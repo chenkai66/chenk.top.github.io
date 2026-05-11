@@ -1,0 +1,882 @@
+<!doctype html><html lang=zh data-translation=/en/python-engineering/06-concurrency/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio · Chen Kai Blog</title>
+<meta name=description content="深入理解 GIL，掌握 threading、multiprocessing 和 asyncio。学会为 I/O 密集型与 CPU 密集型任务选择最合适的并发模型。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/python-engineering/06-concurrency/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/python-engineering/06-concurrency/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/python-engineering/06-concurrency/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/python-engineering/06-concurrency/><meta property="og:type" content="article"><meta property="og:title" content="Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio"><meta property="og:description" content="深入理解 GIL，掌握 threading、multiprocessing 和 asyncio。学会为 I/O 密集型与 CPU 密集型任务选择最合适的并发模型。"><meta property="og:url" content="https://www.chenk.top/zh/python-engineering/06-concurrency/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><meta property="og:image:alt" content="Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio"><meta property="article:published_time" content="2022-04-21T09:00:00Z"><meta property="article:modified_time" content="2022-04-21T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Python"><meta property="article:tag" content="Concurrency"><meta property="article:tag" content="asyncio"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio"><meta name=twitter:description content="深入理解 GIL，掌握 threading、multiprocessing 和 asyncio。学会为 I/O 密集型与 CPU 密集型任务选择最合适的并发模型。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio\"","description":"\"深入理解 GIL，掌握 threading、multiprocessing 和 asyncio。学会为 I/O 密集型与 CPU 密集型任务选择最合适的并发模型。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2022-04-21T09:00:00Z\"","dateModified":"\"2022-04-21T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/python-engineering/06-concurrency/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Python 工程实践</a>
+· 第 6 篇</div><h1>Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio</h1><p class=deck>深入理解 GIL，掌握 threading、multiprocessing 和 asyncio。学会为 I/O 密集型与 CPU 密集型任务选择最合适的并发模型。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-04-21>April 21, 2022</time> · 18 分钟 · 4100 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/concurrency/ class=tag>#Concurrency</a><a href=/zh/tags/asyncio/ class=tag>#asyncio</a></div><a class="pill pill-outline" href=/en/python-engineering/06-concurrency/>Read in English →</a></div></header><div class=prose><p>你的脚本一次只下载 100 个文件，每个下载耗时约 2 秒——其中绝大部分时间都在等待服务器响应。总耗时：200 秒。但在此期间，CPU 有 99% 的时间处于空闲状态。你为一件事（网络延迟）付费，却浪费了另一件事（计算资源）。并发编程正是为解决这一问题而生。</p><p>Python 提供三种并发模型，各自针对不同场景设计。若选错模型，你的代码要么依然缓慢，要么充斥着竞态条件（race conditions）。本文将详解每种模型的适用场景。</p><h2 id=gil它是什么为何重要>GIL：它是什么？为何重要？</h2><p>全局解释器锁（Global Interpreter Lock，GIL）是一个互斥锁（mutex），用于保护对 Python 对象的访问。即使在多核机器上，也<strong>仅允许一个线程执行 Python 字节码</strong>。</p><h3 id=gil-无法防止什么>GIL 无法防止什么</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>threading</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>counter</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>increment</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>global</span> <span class=n>counter</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1_000_000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>counter</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># 这不是原子操作！</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>threads</span> <span class=o>=</span> <span class=p>[</span><span class=n>threading</span><span class=o>.</span><span class=n>Thread</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>increment</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>4</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>counter</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># 无 GIL：竞态条件，counter &lt; 4_000_000</span>
+</span></span><span class=line><span class=cl><span class=c1># 有 GIL：仍有竞态条件！counter &lt; 4_000_000</span>
+</span></span></code></pre></td></tr></table></div></div><p>等等，GIL 并不能防止这个？没错。<code>counter += 1</code> 编译为多个字节码指令（LOAD、ADD、STORE），而 GIL 可能在这些指令之间释放。GIL 保护的是解释器内部结构，而非你的应用逻辑。</p><h3 id=gil-实际能做什么>GIL 实际能做什么</h3><ul><li>防止多线程同时破坏 Python 内部数据结构（如引用计数、对象分配）</li><li>加速单线程代码执行（避免加锁开销）</li><li>在 I/O 操作（文件读写、网络调用、<code>sleep</code>）期间自动释放</li></ul><h3 id=gil-对你的实际影响>GIL 对你的实际影响</h3><table><thead><tr><th>工作负载类型</th><th>Threading</th><th>Multiprocessing</th></tr></thead><tbody><tr><td>I/O 密集型（网络、磁盘、数据库）</td><td>表现良好（I/O 期间 GIL 释放）</td><td>可行但过度设计</td></tr><tr><td>CPU 密集型（数学计算、解析）</td><td>无加速效果（GIL 阻塞并行执行）</td><td>表现良好（独立进程，各自拥有 GIL）</td></tr><tr><td>混合型</td><td>取决于 I/O 与 CPU 比例</td><td>通常更稳妥的选择</td></tr></tbody></table><h2 id=threading面向-io-密集型任务的并发>Threading：面向 I/O 密集型任务的并发</h2><p>线程共享同一内存空间，开销轻量。由于 GIL 在 I/O 操作期间会释放，因此线程非常适合网络请求、文件操作和数据库查询等场景。</p><h3 id=基础线程用法>基础线程用法</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>threading</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;下载 URL，返回响应体大小。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>urls</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 串行执行：约 4 秒</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>results</span> <span class=o>=</span> <span class=p>[</span><span class=n>download</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>sequential_time</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Sequential: </span><span class=si>{</span><span class=n>sequential_time</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 多线程：约 1 秒</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>threads</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=n>threading</span><span class=o>.</span><span class=n>Thread</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>download</span><span class=p>,</span> <span class=n>args</span><span class=o>=</span><span class=p>(</span><span class=n>url</span><span class=p>,))</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>threads</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>threaded_time</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Threaded: </span><span class=si>{</span><span class=n>threaded_time</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>输出：</p><pre tabindex=0><code>Sequential: 4.12s
+Threaded: 1.08s
+</code></pre><h3 id=threadpoolexecutor>ThreadPoolExecutor</h3><p><code>concurrent.futures</code> 提供更高层的 API，并支持结果收集：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span><span class=p>,</span> <span class=n>as_completed</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=n>response</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>url</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>urls</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/2&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;https://httpbin.org/delay/3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 提交全部任务</span>
+</span></span><span class=line><span class=cl>    <span class=n>futures</span> <span class=o>=</span> <span class=p>{</span><span class=n>executor</span><span class=o>.</span><span class=n>submit</span><span class=p>(</span><span class=n>download</span><span class=p>,</span> <span class=n>url</span><span class=p>):</span> <span class=n>url</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 按完成顺序处理结果</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>future</span> <span class=ow>in</span> <span class=n>as_completed</span><span class=p>(</span><span class=n>futures</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>url</span> <span class=o>=</span> <span class=n>futures</span><span class=p>[</span><span class=n>future</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>result_url</span><span class=p>,</span> <span class=n>size</span> <span class=o>=</span> <span class=n>future</span><span class=o>.</span><span class=n>result</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=n>result_url</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>size</span><span class=si>}</span><span class=s2> bytes&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Failed </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=线程安全的数据结构>线程安全的数据结构</h3><p>当线程共享数据时，需使用锁或线程安全集合：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>threading</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>deque</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 用于保护共享状态的锁</span>
+</span></span><span class=line><span class=cl><span class=n>lock</span> <span class=o>=</span> <span class=n>threading</span><span class=o>.</span><span class=n>Lock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>results</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>worker</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>processed</span> <span class=o>=</span> <span class=n>expensive_computation</span><span class=p>(</span><span class=n>item</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>lock</span><span class=p>:</span>  <span class=c1># 同一时刻仅一个线程可执行此代码块</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>processed</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 生产者-消费者模式中使用的队列</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>queue</span> <span class=kn>import</span> <span class=n>Queue</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>work_queue</span><span class=p>:</span> <span class=n>Queue</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>Queue</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>work_queue</span><span class=o>.</span><span class=n>put</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>consumer</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>url</span> <span class=o>=</span> <span class=n>work_queue</span><span class=o>.</span><span class=n>get</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>url</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># Poison pill（终止信号）</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>        <span class=n>download</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>work_queue</span><span class=o>.</span><span class=n>task_done</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 启动消费者线程</span>
+</span></span><span class=line><span class=cl><span class=n>threads</span> <span class=o>=</span> <span class=p>[</span><span class=n>threading</span><span class=o>.</span><span class=n>Thread</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>consumer</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>4</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 等待所有任务完成</span>
+</span></span><span class=line><span class=cl><span class=n>work_queue</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 发送终止信号</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>work_queue</span><span class=o>.</span><span class=n>put</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>threads</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=multiprocessing面向-cpu-密集型任务的并发>Multiprocessing：面向 CPU 密集型任务的并发</h2><p>每个进程拥有独立的 Python 解释器和 GIL，从而实现在多核 CPU 上真正的并行执行。</p><h3 id=基础用法>基础用法</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>multiprocessing</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>cpu_intensive</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;模拟 CPU 密集型工作。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>total</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>total</span> <span class=o>+=</span> <span class=n>i</span> <span class=o>*</span> <span class=n>i</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>total</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>numbers</span> <span class=o>=</span> <span class=p>[</span><span class=mi>10_000_000</span><span class=p>]</span> <span class=o>*</span> <span class=mi>4</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 串行执行</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>results</span> <span class=o>=</span> <span class=p>[</span><span class=n>cpu_intensive</span><span class=p>(</span><span class=n>n</span><span class=p>)</span> <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>numbers</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Sequential: </span><span class=si>{</span><span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 并行执行</span>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>multiprocessing</span><span class=o>.</span><span class=n>Pool</span><span class=p>(</span><span class=n>processes</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>pool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=n>pool</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>cpu_intensive</span><span class=p>,</span> <span class=n>numbers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Parallel:   </span><span class=si>{</span><span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>在 4 核机器上的输出：</p><pre tabindex=0><code>Sequential: 8.45s
+Parallel:   2.31s
+</code></pre><h3 id=processpoolexecutor>ProcessPoolExecutor</h3><p>API 与 <code>ThreadPoolExecutor</code> 完全一致，便于在两者间切换：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ProcessPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>factorize</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;找出 n 的所有因数。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>factors</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=nb>int</span><span class=p>(</span><span class=n>n</span><span class=o>**</span><span class=mf>0.5</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>n</span> <span class=o>%</span> <span class=n>i</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>factors</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>i</span> <span class=o>!=</span> <span class=n>n</span> <span class=o>//</span> <span class=n>i</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>factors</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>n</span> <span class=o>//</span> <span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>factors</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>numbers</span> <span class=o>=</span> <span class=p>[</span><span class=mi>112272535095293</span><span class=p>,</span> <span class=mi>112582705942171</span><span class=p>,</span> <span class=mi>115280095190773</span><span class=p>,</span> <span class=mi>115797848077099</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ProcessPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>factorize</span><span class=p>,</span> <span class=n>numbers</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>factors</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>numbers</span><span class=p>,</span> <span class=n>results</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>factors</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=multiprocessing-开销>Multiprocessing 开销</h3><p>进程比线程更“重”：</p><table><thead><tr><th>方面</th><th>Threads</th><th>Processes</th></tr></thead><tbody><tr><td>内存</td><td>共享（轻量）</td><td>独立（每个进程复制数据）</td></tr><tr><td>启动成本</td><td>~1ms</td><td>~50–100ms</td></tr><tr><td>通信方式</td><td>直接（共享内存，但需加锁）</td><td>序列化（通过管道 pickle）</td></tr><tr><td>GIL 限制</td><td>是（CPU 密集型受限）</td><td>否（独立解释器）</td></tr><tr><td>调试难度</td><td>更难（共享状态引发的 bug）</td><td>更易（状态隔离）</td></tr></tbody></table><p>切勿对小任务使用 multiprocessing。序列化与进程启动开销可能导致其比串行执行更慢。</p><h3 id=进程间共享数据>进程间共享数据</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>multiprocessing</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>worker</span><span class=p>(</span><span class=n>shared_array</span><span class=p>,</span> <span class=n>index</span><span class=p>,</span> <span class=n>value</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>shared_array</span><span class=p>[</span><span class=n>index</span><span class=p>]</span> <span class=o>=</span> <span class=n>value</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&#34;__main__&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 共享数组</span>
+</span></span><span class=line><span class=cl>    <span class=n>arr</span> <span class=o>=</span> <span class=n>multiprocessing</span><span class=o>.</span><span class=n>Array</span><span class=p>(</span><span class=s2>&#34;i&#34;</span><span class=p>,</span> <span class=mi>4</span><span class=p>)</span>  <span class=c1># 4 个整数</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>processes</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>4</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=n>multiprocessing</span><span class=o>.</span><span class=n>Process</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>worker</span><span class=p>,</span> <span class=n>args</span><span class=o>=</span><span class=p>(</span><span class=n>arr</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>i</span> <span class=o>*</span> <span class=mi>10</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>processes</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>processes</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=nb>list</span><span class=p>(</span><span class=n>arr</span><span class=p>))</span>  <span class=c1># [0, 10, 20, 30]</span>
+</span></span></code></pre></td></tr></table></div></div><p>注意 <code>if __name__ == "__main__":</code> 守卫语句。在 macOS 和 Windows 上这是必需的，因为 multiprocessing 使用 <code>spawn</code> 方式创建新进程，会重新导入模块。</p><h2 id=concurrentfutures统一-api>concurrent.futures：统一 API</h2><p><code>concurrent.futures</code> 的精妙之处在于：在线程与进程间切换，只需改动一行代码：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span><span class=p>,</span> <span class=n>ProcessPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>process_item</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># ... 执行某些工作 ...</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>result</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>items</span> <span class=o>=</span> <span class=nb>range</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 用于 I/O 密集型任务：</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>process_item</span><span class=p>,</span> <span class=n>items</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 用于 CPU 密集型任务（仅改这一行）：</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ProcessPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>process_item</span><span class=p>,</span> <span class=n>items</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=超时与异常处理>超时与异常处理</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span><span class=p>,</span> <span class=ne>TimeoutError</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>slow_download</span><span class=p>(</span><span class=n>url</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>    <span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;Done: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>future</span> <span class=o>=</span> <span class=n>executor</span><span class=o>.</span><span class=n>submit</span><span class=p>(</span><span class=n>slow_download</span><span class=p>,</span> <span class=s2>&#34;https://example.com&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>future</span><span class=o>.</span><span class=n>result</span><span class=p>(</span><span class=n>timeout</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span>  <span class=c1># 最多等待 5 秒</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>TimeoutError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Task timed out!&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>future</span><span class=o>.</span><span class=n>cancel</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Task failed: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=asyncio协作式并发>asyncio：协作式并发</h2><p>asyncio 基于单线程与事件循环（event loop）运行。协程函数在 <code>await</code> 点主动让出控制权，使其他任务得以运行。无需线程、无需锁、无需担忧 GIL。</p><h3 id=基础-asyncawait>基础 async/await</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>say_after</span><span class=p>(</span><span class=n>delay</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>message</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;等待后返回消息。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>delay</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>message</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 串行执行：耗时 3 秒</span>
+</span></span><span class=line><span class=cl>    <span class=n>result1</span> <span class=o>=</span> <span class=k>await</span> <span class=n>say_after</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=s2>&#34;hello&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>result2</span> <span class=o>=</span> <span class=k>await</span> <span class=n>say_after</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=s2>&#34;world&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=n>result1</span><span class=p>,</span> <span class=n>result2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 并发执行：耗时 2 秒（取最大延迟）</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>say_after</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=s2>&#34;hello&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>say_after</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=s2>&#34;world&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=n>results</span><span class=p>)</span>  <span class=c1># [&#39;hello&#39;, &#39;world&#39;]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=创建任务tasks>创建任务（Tasks）</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Start: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># 模拟网络 I/O</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Done: </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;Content of </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 创建任务（立即开始执行）</span>
+</span></span><span class=line><span class=cl>    <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=n>asyncio</span><span class=o>.</span><span class=n>create_task</span><span class=p>(</span><span class=n>download</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;https://example.com/</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 等待全部完成</span>
+</span></span><span class=line><span class=cl>    <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> pages&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>输出：</p><pre tabindex=0><code>Start: https://example.com/0
+Start: https://example.com/1
+Start: https://example.com/2
+Start: https://example.com/3
+Start: https://example.com/4
+Done: https://example.com/0
+Done: https://example.com/1
+Done: https://example.com/2
+Done: https://example.com/3
+Done: https://example.com/4
+Downloaded 5 pages
+</code></pre><p>五个下载任务几乎同时启动，并在约 1 秒后全部完成。</p><h3 id=aiohttp异步-http-客户端>aiohttp：异步 HTTP 客户端</h3><p><code>requests</code> 是同步库。要进行异步 HTTP 请求，请使用 <code>aiohttp</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install aiohttp
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>session</span><span class=p>:</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>,</span> <span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>response</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>content</span> <span class=o>=</span> <span class=k>await</span> <span class=n>response</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;https://httpbin.org/delay/1&#34;</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>10</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span><span class=n>download</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>elapsed</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> URLs in </span><span class=si>{</span><span class=n>elapsed</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Total bytes: </span><span class=si>{</span><span class=nb>sum</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>输出：</p><pre tabindex=0><code>Downloaded 10 URLs in 1.15s
+Total bytes: 4230
+</code></pre><p>10 个各延迟 1 秒的 URL，在略超 1 秒内全部完成。</p><h3 id=semaphore控制并发数量>Semaphore：控制并发数量</h3><p>无限制的并发可能压垮服务端或触发速率限制：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>download</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>session</span><span class=p>:</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>url</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>semaphore</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Semaphore</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>semaphore</span><span class=p>:</span>  <span class=c1># 最多 N 个并发下载</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>response</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>content</span> <span class=o>=</span> <span class=k>await</span> <span class=n>response</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;https://httpbin.org/delay/1&#34;</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>100</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>    <span class=n>semaphore</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>Semaphore</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>  <span class=c1># 最多 10 个并发请求</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span><span class=n>download</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>,</span> <span class=n>semaphore</span><span class=p>)</span> <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Downloaded </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> URLs&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=asyncio-中的超时处理>asyncio 中的超时处理</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>slow_operation</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;done&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>wait_for</span><span class=p>(</span><span class=n>slow_operation</span><span class=p>(),</span> <span class=n>timeout</span><span class=o>=</span><span class=mf>3.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>TimeoutError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Operation timed out after 3 seconds&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>main</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=如何选择正确的并发模型>如何选择正确的并发模型？</h2><p>决策取决于你的工作负载类型：</p><p><strong>I/O 密集型任务（网络、磁盘、数据库）：</strong></p><ul><li>并发任务数较少（&lt; 50）：使用 <code>ThreadPoolExecutor</code></li><li>并发任务数较多（50+）：使用 <code>asyncio</code></li><li>简单脚本或一次性任务：<code>ThreadPoolExecutor</code></li><li>Web 服务器、长期运行的服务：<code>asyncio</code></li></ul><p><strong>CPU 密集型任务（数学计算、图像处理、文本解析）：</strong></p><ul><li>始终使用 <code>ProcessPoolExecutor</code> 或 <code>multiprocessing.Pool</code></li></ul><p><strong>混合型工作负载：</strong></p><ul><li>用 <code>asyncio</code> 处理 I/O，将 CPU 密集型工作卸载至 <code>ProcessPoolExecutor</code>：</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ProcessPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>cpu_work</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=nb>bytes</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;CPU 密集型处理（在独立进程中运行）。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 解析、转换、计算...</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;result&#34;</span><span class=p>:</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>fetch_and_process</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>,</span> <span class=n>process_pool</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;异步获取数据（I/O），再交由进程池处理（CPU）。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>response</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>data</span> <span class=o>=</span> <span class=k>await</span> <span class=n>response</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 将 CPU 工作卸载至进程池</span>
+</span></span><span class=line><span class=cl>    <span class=n>loop</span> <span class=o>=</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>get_event_loop</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=k>await</span> <span class=n>loop</span><span class=o>.</span><span class=n>run_in_executor</span><span class=p>(</span><span class=n>process_pool</span><span class=p>,</span> <span class=n>cpu_work</span><span class=p>,</span> <span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>result</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>urls</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;https://example.com/</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>20</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>ProcessPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=k>as</span> <span class=n>process_pool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>                <span class=n>fetch_and_process</span><span class=p>(</span><span class=n>session</span><span class=p>,</span> <span class=n>url</span><span class=p>,</span> <span class=n>process_pool</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>for</span> <span class=n>url</span> <span class=ow>in</span> <span class=n>urls</span>
+</span></span><span class=line><span class=cl>            <span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=真实基准测试串行-vs-线程-vs-异步>真实基准测试：串行 vs 线程 vs 异步</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;基准测试：用不同并发模型下载 20 个 URL。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>aiohttp</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>URL</span> <span class=o>=</span> <span class=s2>&#34;https://httpbin.org/delay/1&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>COUNT</span> <span class=o>=</span> <span class=mi>20</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sequential</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>COUNT</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>URL</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>threaded</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>download</span><span class=p>(</span><span class=n>url</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=n>COUNT</span><span class=p>)</span> <span class=k>as</span> <span class=n>executor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>list</span><span class=p>(</span><span class=n>executor</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>download</span><span class=p>,</span> <span class=p>[</span><span class=n>URL</span><span class=p>]</span> <span class=o>*</span> <span class=n>COUNT</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>async_download</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>aiohttp</span><span class=o>.</span><span class=n>ClientSession</span><span class=p>()</span> <span class=k>as</span> <span class=n>session</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>tasks</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>COUNT</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>tasks</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>session</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>URL</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>responses</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>responses</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>r</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>r</span><span class=o>.</span><span class=n>close</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>benchmark</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>func</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>start</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>func</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>elapsed</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>start</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>name</span><span class=si>:</span><span class=s2>12s</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>elapsed</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>s&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>benchmark</span><span class=p>(</span><span class=s2>&#34;Sequential&#34;</span><span class=p>,</span> <span class=n>sequential</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>benchmark</span><span class=p>(</span><span class=s2>&#34;Threaded&#34;</span><span class=p>,</span> <span class=n>threaded</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>benchmark</span><span class=p>(</span><span class=s2>&#34;Async&#34;</span><span class=p>,</span> <span class=k>lambda</span><span class=p>:</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>async_download</span><span class=p>()))</span>
+</span></span></code></pre></td></tr></table></div></div><p>结果：</p><pre tabindex=0><code>Sequential  : 21.34s
+Threaded    : 1.18s
+Async       : 1.09s
+</code></pre><p>线程与异步均在约 1 秒内完成（等于服务器延迟）。异步方案系统资源占用更低——没有线程栈、没有上下文切换开销。</p><h2 id=对比汇总表>对比汇总表</h2><table><thead><tr><th>特性</th><th>threading</th><th>multiprocessing</th><th>asyncio</th></tr></thead><tbody><tr><td>并行类型</td><td>并发（受 GIL 限制）</td><td>真正并行</td><td>协作式并发</td></tr><tr><td>最佳适用场景</td><td>I/O 密集型</td><td>CPU 密集型</td><td>I/O 密集型（大量任务）</td></tr><tr><td>内存开销</td><td>低（~8KB/线程）</td><td>高（~30MB/进程）</td><td>极低（~1KB/协程）</td></tr><tr><td>实际可支撑任务数</td><td>~100–1000</td><td>等于 CPU 核心数</td><td>~10,000+</td></tr><tr><td>共享状态</td><td>是（需加锁）</td><td>否（需序列化）</td><td>是（无需锁，单线程）</td></tr><tr><td>调试难度</td><td>难（竞态条件）</td><td>中等（隔离性有助调试）</td><td>中等（堆栈跟踪不够清晰）</td></tr><tr><td>生态兼容性</td><td>所有库均可使用</td><td>所有库均可使用</td><td>需要异步兼容库</td></tr><tr><td>启动成本</td><td>~1ms</td><td>~50–100ms</td><td>~0.01ms</td></tr><tr><td>是否受 GIL 影响</td><td>是</td><td>否</td><td>不适用（单线程）</td></tr></tbody></table><h2 id=常见陷阱>常见陷阱</h2><table><thead><tr><th>陷阱</th><th>表现症状</th><th>解决方案</th></tr></thead><tbody><tr><td>对 CPU 密集型任务使用线程</td><td>无性能提升，单核 100% 占用</td><td>切换至 <code>ProcessPoolExecutor</code></td></tr><tr><td>创建过多线程</td><td>内存耗尽、上下文切换变慢</td><td>限制线程池大小（通常 10–50）</td></tr><tr><td>忘记 <code>if __name__ == "__main__":</code></td><td>macOS/Windows 报 <code>RuntimeError</code></td><td>所有 multiprocessing 代码必须加此守卫</td></tr><tr><td>同步与异步混用</td><td><code>RuntimeError: This event loop is already running</code></td><td>仅在顶层调用 <code>asyncio.run()</code></td></tr><tr><td>忘记 <code>await</code> 协程</td><td><code>RuntimeWarning: coroutine was never awaited</code></td><td>所有异步函数调用必须 <code>await</code></td></tr><tr><td>在异步代码中执行阻塞操作</td><td>事件循环冻结，其他任务饿死</td><td>将阻塞操作卸载至线程/进程池</td></tr><tr><td>共享状态引发竞态条件</td><td>数据不一致、偶发 Bug</td><td>使用锁、队列或不可变数据</td></tr><tr><td>死锁</td><td>程序永久挂起</td><td>按固定顺序获取锁，使用超时机制</td></tr></tbody></table><h2 id=下一步>下一步</h2><p>你的代码现已具备并发能力且高效运行。但在将其发布给全世界之前，还需正确打包。下一篇文章中，我们将构建可分发的 Python 包、发布到 PyPI、创建 Docker 镜像，并搭建完整的分发流水线。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/python-engineering/>Python 工程实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/python-engineering/05-io-and-serialization/><span class=title>Python 工程实践（5）：I/O、序列化与数据格式</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=title>Python 工程实践（7）：打包分发 —— 从 pip install 到 PyPI</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/01-environment-and-toolchain/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Python 工程实践（1）：环境搭建 — pyenv、venv 与依赖地狱</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Python 工程实践（2）：项目结构 —— 从脚本到包</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Python 工程实践（3）：测试 — pytest、Fixture 与信心循环</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/04-type-hints-and-linting/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Python 工程实践（4）：类型提示、代码检查与质量保障</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/05-io-and-serialization/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Python 工程实践（5）：I/O、序列化与数据格式</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>06</span>
+<span class=series-nav-title>Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Python 工程实践（7）：打包分发 —— 从 pip install 到 PyPI</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Python 工程实践（8）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#gil它是什么为何重要>GIL：它是什么？为何重要？</a><ul><li><a href=#gil-无法防止什么>GIL 无法防止什么</a></li><li><a href=#gil-实际能做什么>GIL 实际能做什么</a></li><li><a href=#gil-对你的实际影响>GIL 对你的实际影响</a></li></ul></li><li><a href=#threading面向-io-密集型任务的并发>Threading：面向 I/O 密集型任务的并发</a><ul><li><a href=#基础线程用法>基础线程用法</a></li><li><a href=#threadpoolexecutor>ThreadPoolExecutor</a></li><li><a href=#线程安全的数据结构>线程安全的数据结构</a></li></ul></li><li><a href=#multiprocessing面向-cpu-密集型任务的并发>Multiprocessing：面向 CPU 密集型任务的并发</a><ul><li><a href=#基础用法>基础用法</a></li><li><a href=#processpoolexecutor>ProcessPoolExecutor</a></li><li><a href=#multiprocessing-开销>Multiprocessing 开销</a></li><li><a href=#进程间共享数据>进程间共享数据</a></li></ul></li><li><a href=#concurrentfutures统一-api>concurrent.futures：统一 API</a><ul><li><a href=#超时与异常处理>超时与异常处理</a></li></ul></li><li><a href=#asyncio协作式并发>asyncio：协作式并发</a><ul><li><a href=#基础-asyncawait>基础 async/await</a></li><li><a href=#创建任务tasks>创建任务（Tasks）</a></li><li><a href=#aiohttp异步-http-客户端>aiohttp：异步 HTTP 客户端</a></li><li><a href=#semaphore控制并发数量>Semaphore：控制并发数量</a></li><li><a href=#asyncio-中的超时处理>asyncio 中的超时处理</a></li></ul></li><li><a href=#如何选择正确的并发模型>如何选择正确的并发模型？</a></li><li><a href=#真实基准测试串行-vs-线程-vs-异步>真实基准测试：串行 vs 线程 vs 异步</a></li><li><a href=#对比汇总表>对比汇总表</a></li><li><a href=#常见陷阱>常见陷阱</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/python-engineering/ class=series-name>Python 工程实践</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
+<span class=chapter-title>Python 工程实践（1）：环境搭建 — pyenv、venv 与依赖地狱</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=chapter-num>02</span>
+<span class=chapter-title>Python 工程实践（2）：项目结构 —— 从脚本到包</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
+<span class=chapter-title>Python 工程实践（3）：测试 — pytest、Fixture 与信心循环</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/04-type-hints-and-linting/><span class=chapter-num>04</span>
+<span class=chapter-title>Python 工程实践（4）：类型提示、代码检查与质量保障</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/05-io-and-serialization/><span class=chapter-num>05</span>
+<span class=chapter-title>Python 工程实践（5）：I/O、序列化与数据格式</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
+<span class=chapter-title>Python 工程实践（7）：打包分发 —— 从 pip install 到 PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
+<span class=chapter-title>Python 工程实践（8）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>18 min</strong></div><div class=row><span>字数</span><strong>4100</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

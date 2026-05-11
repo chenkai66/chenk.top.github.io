@@ -1,0 +1,395 @@
+<!doctype html><html lang=zh data-translation=/en/databases/02-indexing-and-query-planning/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>数据库（2）：索引与查询规划——数据库如何找到你的数据 · Chen Kai Blog</title>
+<meta name=description content="深入剖析 B 树与 B+ 树索引、哈希索引、复合索引、覆盖索引，以及如何阅读 EXPLAIN 输出以诊断慢查询。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><meta property="og:type" content="article"><meta property="og:title" content="数据库（2）：索引与查询规划——数据库如何找到你的数据"><meta property="og:description" content="深入剖析 B 树与 B+ 树索引、哈希索引、复合索引、覆盖索引，以及如何阅读 EXPLAIN 输出以诊断慢查询。"><meta property="og:url" content="https://www.chenk.top/zh/databases/02-indexing-and-query-planning/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><meta property="og:image:alt" content="数据库（2）：索引与查询规划——数据库如何找到你的数据"><meta property="article:published_time" content="2023-12-08T09:00:00Z"><meta property="article:modified_time" content="2023-12-08T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Databases"><meta property="article:tag" content="SQL"><meta property="article:tag" content="Indexing"><meta property="article:tag" content="Performance"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="数据库（2）：索引与查询规划——数据库如何找到你的数据"><meta name=twitter:description content="深入剖析 B 树与 B+ 树索引、哈希索引、复合索引、覆盖索引，以及如何阅读 EXPLAIN 输出以诊断慢查询。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"数据库（2）：索引与查询规划——数据库如何找到你的数据\"","description":"\"深入剖析 B 树与 B+ 树索引、哈希索引、复合索引、覆盖索引，以及如何阅读 EXPLAIN 输出以诊断慢查询。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-12-08T09:00:00Z\"","dateModified":"\"2023-12-08T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/databases/02-indexing-and-query-planning/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>数据库原理与实践</a>
+· 第 2 篇</div><h1>数据库（2）：索引与查询规划——数据库如何找到你的数据</h1><p class=deck>深入剖析 B 树与 B+ 树索引、哈希索引、复合索引、覆盖索引，以及如何阅读 EXPLAIN 输出以诊断慢查询。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-12-08>December 8, 2023</time> · 22 分钟 · 5145 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/databases/ class=tag>#Databases</a><a href=/zh/tags/sql/ class=tag>#SQL</a><a href=/zh/tags/indexing/ class=tag>#Indexing</a><a href=/zh/tags/performance/ class=tag>#Performance</a></div><a class="pill pill-outline" href=/en/databases/02-indexing-and-query-planning/>Read in English →</a></div></header><div class=prose><p>在你的笔记本电脑上仅含 1,000 行数据时耗时 2 毫秒的查询，在生产环境中面对 5,000 万行数据时可能需要 45 秒——除非你拥有正确的索引。索引是你数据库工具箱中<strong>性能影响最大</strong>的单一手段；理解其工作原理，将彻底改变你对每一个数据库 Schema 和每一条 SQL 查询的思考方式。</p><h2 id=根本问题如何定位一行数据>根本问题：如何定位一行数据</h2><p>想象一张包含 1,000 万行的表，以堆文件（heap file）形式存储在磁盘上。每一行都位于一系列 8 KB 数据页中的某个位置。当你执行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>email</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;alice@example.com&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>若无索引，数据库必须执行一次 <strong>顺序扫描（sequential scan）</strong>（也称全表扫描）：逐页读取整张表，逐行检查 <code>email</code> 字段是否匹配。若该表在磁盘上占 2 GB，则数据库需读取整整 2 GB —— 仅仅为了查找一行数据。</p><p>而索引是一种独立的数据结构，它将列值映射到对应行的物理位置。若在 <code>email</code> 列上建立了 B 树索引，同样的查找操作只需访问约 3–4 个数据页，而非 250,000 个。这正是毫秒级响应与分钟级延迟之间的本质区别。</p><h2 id=顺序扫描-vs-索引扫描>顺序扫描 vs 索引扫描</h2><table><thead><tr><th>维度</th><th>顺序扫描</th><th>索引扫描</th></tr></thead><tbody><tr><td>工作原理</td><td>按表的物理顺序逐页读取</td><td>遍历索引树，再获取匹配的行</td></tr><tr><td>最适用场景</td><td>小型表；或查询返回 >10–15% 的行</td><td>高选择性查询（返回少量行）</td></tr><tr><td>I/O 模式</td><td>顺序读取（HDD 上较快）</td><td>随机读取（每行可能位于不同页）</td></tr><tr><td>CPU 开销</td><td>每行开销低（仅过滤）</td><td>每行开销较高（树遍历 + 堆获取）</td></tr><tr><td>触发条件</td><td>无合适索引；或优化器估算扫描更便宜</td><td>存在合适索引且查询具备高选择性</td></tr></tbody></table><p>数据库的查询优化器会自动做出这一决策。有时顺序扫描确实更快——例如当 <code>WHERE</code> 条件匹配了表中 80% 的行时，索引带来的随机 I/O 反而比一次性顺序读取全部数据更慢。</p><h2 id=b-树索引主力索引类型>B 树索引：主力索引类型</h2><p>B 树（平衡树）几乎是所有关系型数据库的默认索引类型。其工作原理如下。</p><h3 id=结构>结构</h3><p>B 树是一种自平衡树，具有以下特征：</p><ul><li>每个节点包含多个按升序排列的键（key）</li><li>每个内部节点包含指向子节点的指针，这些指针分布在键之间及两端</li><li>所有叶子节点处于同一深度（即“平衡”）</li><li><strong>分支因子（branching factor）</strong>（每个节点的子节点数）通常为数百至数千</li></ul><p>假设一张表有 1,000 万行，分支因子为 500：</p><ul><li>第 0 层（根节点）：1 个节点</li><li>第 1 层：最多 500 个节点</li><li>第 2 层：最多 250,000 个节点</li><li>第 3 层（叶子层）：最多 1.25 亿个条目</li></ul><p>仅需三次树遍历（即三次页读取），即可在 1,000 万行中定位任意一行。这就是 O(log N) 时间复杂度的保证——只不过其对数底数非常大。</p><h3 id=查找过程>查找过程</h3><p>要查找 <code>email = 'alice@example.com'</code>：</p><ol><li>从根节点开始，通过二分查找确定应跟随哪个子节点指针；</li><li>加载该子节点，再次进行二分查找；</li><li>重复此过程，直至抵达叶子节点；</li><li>叶子节点中包含指向磁盘上实际行（元组 ID 或行 ID）的指针；</li><li>从堆（主表数据区）中获取该行。</li></ol><pre tabindex=0><code>Root Node: [charlie@... | mike@... | zara@...]
+                |              |           |
+          Child &lt; charlie  charlie-mike  mike-zara   &gt; zara
+                |
+    [alice@... | bob@...]  &lt;-- leaf node
+         |
+    Pointer to heap page 4721, offset 23
+</code></pre><h3 id=创建-b-树索引>创建 B 树索引</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 单列索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_email</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 唯一索引（同时强制唯一性约束）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>UNIQUE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_email_unique</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 查看现有索引（PostgreSQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>indexname</span><span class=p>,</span><span class=w> </span><span class=n>indexdef</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_indexes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>tablename</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;users&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 查看现有索引（MySQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=b-树为何数据库更偏爱它>B+ 树：为何数据库更偏爱它？</h2><p>大多数数据库实现实际上使用的是 <strong>B+ 树</strong>——B 树的一种变体：</p><table><thead><tr><th>特性</th><th>B 树</th><th>B+ 树</th></tr></thead><tbody><tr><td>数据指针位置</td><td>内部节点和叶子节点均包含</td><td><strong>仅叶子节点包含</strong></td></tr><tr><td>叶子节点是否链式连接</td><td>否</td><td><strong>是，通过兄弟指针（sibling pointers）</strong></td></tr><tr><td>内部节点大小</td><td>更大（存储数据指针）</td><td>更小（仅存储键 + 子节点指针）</td></tr><tr><td>分支因子</td><td>较低</td><td><strong>更高</strong>（每页可容纳更多键）</td></tr><tr><td>范围查询效率</td><td>需回溯父节点</td><td><strong>直接沿叶子链顺序遍历</strong></td></tr><tr><td>点查（point lookup）</td><td>可在内部节点提前终止</td><td>总是需到达叶子层</td></tr></tbody></table><p>关键优势在于：由于内部节点不存储数据指针，仅存键和子节点指针，因此每页可容纳更多键，从而提升分支因子。更高的分支因子意味着更浅的树结构，进而减少磁盘读取次数。</p><p>叶子节点间的链式连接对范围查询至关重要：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 范围查询：查找最近 7 天的订单
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;=</span><span class=w> </span><span class=n>NOW</span><span class=p>()</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>INTERVAL</span><span class=w> </span><span class=s1>&#39;7 days&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>created_at</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>若 <code>created_at</code> 上建有 B+ 树索引，数据库只需定位第一个匹配的叶子节点，然后沿兄弟指针顺序读取所有匹配项——无需反复回溯内部节点。</p><h2 id=哈希索引>哈希索引</h2><p>哈希索引利用哈希函数将键直接映射到行的物理位置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL：显式创建哈希索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_email_hash</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>USING</span><span class=w> </span><span class=n>hash</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>维度</th><th>哈希索引</th><th>B 树索引</th></tr></thead><tbody><tr><td>等值查找（<code>=</code>）</td><td>平均 O(1)</td><td>O(log N)</td></tr><tr><td>范围查询（<code>></code>, <code>&lt;</code>, <code>BETWEEN</code>）</td><td>不支持</td><td>支持</td></tr><tr><td>排序 / <code>ORDER BY</code></td><td>不支持</td><td>支持</td></tr><tr><td>前缀匹配（<code>LIKE 'abc%'</code>）</td><td>不支持</td><td>支持</td></tr><tr><td>WAL 日志记录（崩溃安全）</td><td>PostgreSQL 10+ 支持</td><td>始终支持</td></tr><tr><td>实际使用频率</td><td>实践中极少使用</td><td>默认索引类型，几乎总是首选</td></tr></tbody></table><p>哈希索引在纯等值查找场景下胜出，但在其他所有场景下均失效。实践中，B 树索引的等值查找已足够快，哈希索引功能受限的代价通常得不偿失。PostgreSQL 直到版本 10 才使哈希索引具备崩溃安全性。</p><h2 id=复合索引列顺序至关重要>复合索引：列顺序至关重要</h2><p>复合索引（多列索引）将多个列作为一个整体进行索引：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_user_status</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>该索引构建的 B+ 树首先按 <code>user_id</code> 排序，再在每个 <code>user_id</code> 下按 <code>status</code> 排序。类比电话簿：先按姓氏排序，再在同姓下按名字排序。</p><h3 id=最左前缀规则leftmost-prefix-rule>最左前缀规则（Leftmost Prefix Rule）</h3><p>一个 <code>(a, b, c)</code> 复合索引可满足以下查询的过滤条件：</p><table><thead><tr><th>查询过滤条件</th><th>是否使用索引？</th><th>原因</th></tr></thead><tbody><tr><td><code>a</code></td><td>是</td><td>最左前缀</td></tr><tr><td><code>a, b</code></td><td>是</td><td>最左前缀</td></tr><tr><td><code>a, b, c</code></td><td>是</td><td>完整索引</td></tr><tr><td><code>b</code></td><td><strong>否</strong></td><td>跳过了最左列</td></tr><tr><td><code>b, c</code></td><td><strong>否</strong></td><td>跳过了最左列</td></tr><tr><td><code>a, c</code></td><td><strong>部分使用</strong></td><td>使用 <code>a</code>，但对 <code>c</code> 需额外扫描</td></tr></tbody></table><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 此查询高效利用复合索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;completed&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 此查询可利用索引（最左前缀）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 此查询**无法**利用该复合索引
+</span></span></span><span class=line><span class=cl><span class=c1>-- 需单独为 (status) 创建索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>列顺序策略</strong>：将选择性最高的列（即能过滤掉最多行的列）放在最前面，随后是常被一起使用的列。</p><h2 id=覆盖索引与仅索引扫描index-only-scan>覆盖索引与仅索引扫描（Index-Only Scan）</h2><p>通常，索引扫描包含两个步骤：</p><ol><li>遍历索引以定位匹配项；</li><li>从堆（主表数据）中获取剩余所需列（即“堆获取”，heap fetch）。</li></ol><p>第 2 步涉及随机 I/O。而 <strong>覆盖索引（covering index）</strong> 包含查询所需的所有列，从而完全避免堆获取：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 创建覆盖索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_covering</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>INCLUDE</span><span class=w> </span><span class=p>(</span><span class=n>created_at</span><span class=p>,</span><span class=w> </span><span class=n>order_id</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 此查询可完全由索引满足
+</span></span></span><span class=line><span class=cl><span class=c1>-- 无需堆获取 → “仅索引扫描”
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;completed&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>在 PostgreSQL 中，使用 <code>INCLUDE</code> 子句添加非搜索用但需覆盖的列。而在 MySQL（InnoDB）中，覆盖索引天然有效——因为 InnoDB 的二级索引若已包含查询所需全部列，即可直接服务查询。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- MySQL 覆盖索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_covering</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=p>,</span><span class=w> </span><span class=n>order_id</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 检查是否启用仅索引扫描（MySQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>EXPLAIN</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;completed&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 查看 Extra 列是否显示 &#34;Using index&#34;
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=explain解读查询执行计划>EXPLAIN：解读查询执行计划</h2><p><code>EXPLAIN</code> 显示优化器选定的执行计划；<code>EXPLAIN ANALYZE</code> 则真正执行查询并报告真实耗时。</p><h3 id=postgresql-explain-analyze>PostgreSQL EXPLAIN ANALYZE</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>EXPLAIN</span><span class=w> </span><span class=k>ANALYZE</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>full_name</span><span class=p>,</span><span class=w> </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>order_count</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=n>u</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=n>o</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>user_id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;completed&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>full_name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>order_count</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>10</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>输出示例：</p><pre tabindex=0><code> Limit  (cost=1845.23..1845.26 rows=10 width=40) (actual time=12.456..12.461 rows=10 loops=1)
+   -&gt;  Sort  (cost=1845.23..1857.45 rows=4889 width=40) (actual time=12.454..12.458 rows=10 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 25kB
+         -&gt;  HashAggregate  (cost=1723.56..1772.45 rows=4889 width=40) (actual time=11.234..11.890 rows=4889 loops=1)
+               Group Key: u.full_name
+               Batches: 1  Memory Usage: 913kB
+               -&gt;  Hash Join  (cost=234.67..1601.23 rows=24450 width=32) (actual time=2.345..8.901 rows=24450 loops=1)
+                     Hash Cond: (o.user_id = u.user_id)
+                     -&gt;  Seq Scan on orders o  (cost=0.00..1156.00 rows=24450 width=4) (actual time=0.012..4.567 rows=24450 loops=1)
+                           Filter: ((status)::text = &#39;completed&#39;::text)
+                           Rows Removed by Filter: 25550
+                     -&gt;  Hash  (cost=159.00..159.00 rows=10000 width=36) (actual time=2.123..2.123 rows=10000 loops=1)
+                           Buckets: 16384  Batches: 1  Memory Usage: 641kB
+                           -&gt;  Seq Scan on users u  (cost=0.00..159.00 rows=10000 width=36) (actual time=0.008..0.987 rows=10000 loops=1)
+ Planning Time: 0.234 ms
+ Execution Time: 12.567 ms
+</code></pre><p>关键字段解读：</p><table><thead><tr><th>字段</th><th>含义</th></tr></thead><tbody><tr><td><code>Seq Scan</code></td><td>全表扫描 —— 可能需要添加索引</td></tr><tr><td><code>Index Scan</code></td><td>使用索引 —— 对高选择性查询有利</td></tr><tr><td><code>Index Only Scan</code></td><td>覆盖索引 —— 最优情况</td></tr><tr><td><code>Bitmap Index Scan</code></td><td>合并多个索引结果</td></tr><tr><td><code>Hash Join</code> / <code>Nested Loop</code> / <code>Merge Join</code></td><td>连接策略</td></tr><tr><td><code>actual time</code></td><td>真实执行耗时（首行..末行），单位毫秒</td></tr><tr><td><code>rows</code></td><td>实际处理的行数</td></tr><tr><td><code>Rows Removed by Filter</code></td><td>已读取但被过滤丢弃的行数 —— 数值高表明缺少索引</td></tr><tr><td><code>loops</code></td><td>当前步骤执行次数</td></tr></tbody></table><h3 id=mysql-explain>MySQL EXPLAIN</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>EXPLAIN</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>full_name</span><span class=p>,</span><span class=w> </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>order_count</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=n>u</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=n>o</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>user_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>user_id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;completed&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>full_name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>order_count</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>10</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>+----+-------------+-------+------+------------------+---------+---------+------------------+-------+----------------------------------------------+
+| id | select_type | table | type | possible_keys    | key     | key_len | ref              | rows  | Extra                                        |
++----+-------------+-------+------+------------------+---------+---------+------------------+-------+----------------------------------------------+
+|  1 | SIMPLE      | o     | ref  | idx_order_status | idx_... | 82      | const            | 24450 | Using where; Using temporary; Using filesort |
+|  1 | SIMPLE      | u     | ref  | PRIMARY          | PRIMARY | 4       | mydb.o.user_id   |     1 | NULL                                         |
++----+-------------+-------+------+------------------+---------+---------+------------------+-------+----------------------------------------------+
+</code></pre><p>MySQL EXPLAIN 中最重要的字段是 <code>type</code>：</p><table><thead><tr><th>type</th><th>含义</th><th>性能</th></tr></thead><tbody><tr><td><code>system</code> / <code>const</code></td><td>至多匹配一行</td><td>最优</td></tr><tr><td><code>eq_ref</code></td><td>每次连接返回一行（主键/唯一键）</td><td>极佳</td></tr><tr><td><code>ref</code></td><td>通过非唯一索引匹配多行</td><td>良好</td></tr><tr><td><code>range</code></td><td>索引范围扫描</td><td>良好</td></tr><tr><td><code>index</code></td><td>全索引扫描（读取所有索引条目）</td><td>中等</td></tr><tr><td><code>ALL</code></td><td>全表扫描</td><td>最差 —— 通常需加索引</td></tr></tbody></table><h3 id=识别性能问题>识别性能问题</h3><p>以下是一个糟糕的查询计划（PostgreSQL）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>EXPLAIN</span><span class=w> </span><span class=k>ANALYZE</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=s1>&#39;2023-01-01&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code> Seq Scan on orders  (cost=0.00..2456.00 rows=245 width=48) (actual time=0.034..18.567 rows=234 loops=1)
+   Filter: (((status)::text = &#39;pending&#39;::text) AND (created_at &gt; &#39;2023-01-01&#39;))
+   Rows Removed by Filter: 49766
+ Planning Time: 0.089 ms
+ Execution Time: 18.623 ms
+</code></pre><p>警示信号：</p><ul><li>在 50,000 行的表上执行 <code>Seq Scan</code>；</li><li><code>Rows Removed by Filter: 49766</code> —— 读取了 50,000 行才找到 234 行。</li></ul><p>修复方案：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_status_created</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>建索引后：</p><pre tabindex=0><code> Index Scan using idx_orders_status_created on orders  (cost=0.29..12.45 rows=245 width=48) (actual time=0.023..0.189 rows=234 loops=1)
+   Index Cond: (((status)::text = &#39;pending&#39;::text) AND (created_at &gt; &#39;2023-01-01&#39;))
+ Planning Time: 0.102 ms
+ Execution Time: 0.234 ms
+</code></pre><p>从 18.6 毫秒降至 0.23 毫秒 —— <strong>80 倍性能提升</strong>，仅靠一个索引。</p><h2 id=索引选型策略>索引选型策略</h2><h3 id=应该建立索引的列>应该建立索引的列</h3><ol><li><strong>主键（Primary keys）</strong>：所有数据库均自动为其建立索引；</li><li><strong>外键（Foreign keys）</strong>：务必索引 —— JOIN 操作频繁依赖；</li><li><strong>WHERE 子句中的列</strong>：尤其是高频查询中的过滤条件；</li><li><strong>ORDER BY 子句中的列</strong>：避免昂贵的排序操作；</li><li><strong>GROUP BY 子句中的列</strong>：加速聚合计算；</li><li><strong>JOIN 条件中的列</strong>：除外键外，任何连接表达式中的列。</li></ol><h3 id=基数cardinality至关重要>基数（Cardinality）至关重要</h3><p><strong>基数</strong> = 列中不同值的数量。</p><table><thead><tr><th>列</th><th>基数</th><th>是否适合建索引？</th></tr></thead><tbody><tr><td><code>email</code>（唯一）</td><td>10,000,000</td><td>是 —— 高度选择性</td></tr><tr><td><code>country</code></td><td>195</td><td>视查询模式而定</td></tr><tr><td><code>status</code>（active/inactive）</td><td>2</td><td><strong>极少</strong> —— 选择性不足</td></tr><tr><td><code>is_deleted</code>（true/false）</td><td>2</td><td><strong>否</strong> —— 应改用部分索引（partial index）</td></tr></tbody></table><p>低基数列的每个值对应大量行，优化器往往倾向于顺序扫描而非索引扫描。</p><p>例外：若某低基数值极为稀有（如 <code>status = 'fraud'</code> 仅匹配 0.01% 的行），则它具备高选择性，索引依然有效；此时部分索引效果更佳。</p><h2 id=过度索引隐藏的成本>过度索引：隐藏的成本</h2><p>每个索引都会带来成本：</p><table><thead><tr><th>成本</th><th>影响</th></tr></thead><tbody><tr><td><strong>写放大（Write amplification）</strong></td><td>每次 INSERT/UPDATE/DELETE 都需更新所有相关索引</td></tr><tr><td><strong>存储空间</strong></td><td>每个索引体积可达表的 10–30%</td></tr><tr><td><strong>内存压力</strong></td><td>索引与表竞争缓冲池（buffer pool）空间</td></tr><tr><td><strong>规划耗时</strong></td><td>索引越多，优化器评估选项越多，规划时间越长</td></tr><tr><td><strong>维护开销</strong></td><td>VACUUM、REINDEX、统计信息更新等</td></tr></tbody></table><p>一张表若有 10 个索引，则每次 INSERT 实际需写入 11 个数据结构（表 + 10 个索引）。对写密集型负载而言，这是灾难性的。</p><p><strong>经验法则</strong>：多数 OLTP 表应维持 3–5 个索引。若超过 8 个，请全面审计。</p><p>在 PostgreSQL 中检查未使用的索引：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>schemaname</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>tablename</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>indexname</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>idx_scan</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>times_used</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pg_size_pretty</span><span class=p>(</span><span class=n>pg_relation_size</span><span class=p>(</span><span class=n>indexrelid</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>index_size</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_user_indexes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>idx_scan</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>pg_relation_size</span><span class=p>(</span><span class=n>indexrelid</span><span class=p>)</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=部分索引partial-indexes>部分索引（Partial Indexes）</h2><p>部分索引仅对满足特定条件的行建立索引：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 仅索引未删除的用户（若 99% 用户未被删除）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_active</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>is_deleted</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>FALSE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 仅索引待处理订单（若大部分订单已完成）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_pending</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>created_at</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>优势：</p><ul><li>体积远小于全量索引；</li><li>维护更快（需更新的条目更少）；</li><li>缓冲池命中率更高。</li></ul><p>但查询中<strong>必须包含</strong>部分索引的 <code>WHERE</code> 条件，优化器才会选用它：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 此查询可使用 idx_orders_pending
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=s1>&#39;2023-12-01&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 此查询**不会**使用 idx_orders_pending
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;completed&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=s1>&#39;2023-12-01&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=表达式索引expression-indexes>表达式索引（Expression Indexes）</h2><p>你可以对表达式或函数的结果建立索引：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 为大小写不敏感查找建立小写 email 索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_email_lower</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>(</span><span class=k>LOWER</span><span class=p>(</span><span class=n>email</span><span class=p>));</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 查询必须使用相同表达式
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=k>LOWER</span><span class=p>(</span><span class=n>email</span><span class=p>)</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;alice@example.com&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 为时间戳提取年份建立索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_year</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=k>EXTRACT</span><span class=p>(</span><span class=k>YEAR</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>created_at</span><span class=p>));</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 为 JSONB 字段建立索引（PostgreSQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_metadata_country</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>((</span><span class=n>metadata</span><span class=o>-&gt;&gt;</span><span class=s1>&#39;country&#39;</span><span class=p>));</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>若未使用表达式索引，<code>WHERE</code> 子句中调用函数将导致优化器无法使用该列上的普通索引：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 此查询**无法**使用 email 列上的普通索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=k>LOWER</span><span class=p>(</span><span class=n>email</span><span class=p>)</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;alice@example.com&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 数据库看到的是 LOWER(email)，而非 email —— 二者语义不同
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 此查询**可以**使用 email 列上的普通索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>email</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;alice@example.com&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=gin-与-gist-索引postgresql>GIN 与 GiST 索引（PostgreSQL）</h2><p>除 B 树外，PostgreSQL 提供多种专用索引类型：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- GIN 索引用于全文检索
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_products_search</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>products</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>USING</span><span class=w> </span><span class=n>gin</span><span class=w> </span><span class=p>(</span><span class=n>to_tsvector</span><span class=p>(</span><span class=s1>&#39;english&#39;</span><span class=p>,</span><span class=w> </span><span class=n>name</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=s1>&#39; &#39;</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=n>description</span><span class=p>));</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 全文检索查询
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>name</span><span class=p>,</span><span class=w> </span><span class=n>ts_rank</span><span class=p>(</span><span class=n>to_tsvector</span><span class=p>(</span><span class=s1>&#39;english&#39;</span><span class=p>,</span><span class=w> </span><span class=n>name</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=s1>&#39; &#39;</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=n>description</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                     </span><span class=n>plainto_tsquery</span><span class=p>(</span><span class=s1>&#39;english&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;wireless keyboard&#39;</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>rank</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>products</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>to_tsvector</span><span class=p>(</span><span class=s1>&#39;english&#39;</span><span class=p>,</span><span class=w> </span><span class=n>name</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=s1>&#39; &#39;</span><span class=w> </span><span class=o>||</span><span class=w> </span><span class=n>description</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=o>@@</span><span class=w> </span><span class=n>plainto_tsquery</span><span class=p>(</span><span class=s1>&#39;english&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;wireless keyboard&#39;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>rank</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- GIN 索引用于 JSONB 包含查询
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_metadata</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>USING</span><span class=w> </span><span class=n>gin</span><span class=w> </span><span class=p>(</span><span class=n>metadata</span><span class=w> </span><span class=n>jsonb_path_ops</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>metadata</span><span class=w> </span><span class=o>@&gt;</span><span class=w> </span><span class=s1>&#39;{&#34;country&#34;: &#34;US&#34;}&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- GiST 索引用于几何/区间数据
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_events_timerange</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>events</span><span class=w> </span><span class=k>USING</span><span class=w> </span><span class=n>gist</span><span class=w> </span><span class=p>(</span><span class=n>time_range</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>索引类型</th><th>最适用场景</th><th>支持的操作符</th></tr></thead><tbody><tr><td>B-tree</td><td>等值、范围、排序</td><td><code>=</code>, <code>&lt;</code>, <code>></code>, <code>BETWEEN</code>, <code>ORDER BY</code>, <code>LIKE 'prefix%'</code></td></tr><tr><td>Hash</td><td>仅等值</td><td><code>=</code></td></tr><tr><td>GIN</td><td>数组、JSONB、全文检索</td><td><code>@></code>, <code>&&</code>, <code>@@</code>, <code>?</code>, <code>?&</code></td></tr><tr><td>GiST</td><td>几何、区间、最近邻</td><td><code>&lt;&lt;</code>, <code>>></code>, <code>&&</code>, <code>@></code>, <code>&lt;-></code></td></tr><tr><td>BRIN</td><td>大型、天然有序的表</td><td><code>&lt;</code>, <code>></code>, <code>=</code>（精度略降）</td></tr></tbody></table><h2 id=实用索引设计流程>实用索引设计流程</h2><p>遇到慢查询时，请遵循以下流程：</p><pre tabindex=0><code>1. 对慢查询运行 EXPLAIN ANALYZE
+2. 寻找带有高 &#34;Rows Removed by Filter&#34; 的 Seq Scan
+3. 识别 WHERE/JOIN/ORDER BY 中缺失索引的列
+4. 检查这些列的基数
+5. 创建最具选择性的复合索引
+6. 再次运行 EXPLAIN ANALYZE 验证改进效果
+7. 监控 pg_stat_user_indexes 以确认实际使用率
+8. 30 天后删除未使用的索引
+</code></pre><p>完整示例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 步骤 1：慢查询
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>EXPLAIN</span><span class=w> </span><span class=k>ANALYZE</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=n>p</span><span class=p>.</span><span class=n>name</span><span class=p>,</span><span class=w> </span><span class=k>SUM</span><span class=p>(</span><span class=n>oi</span><span class=p>.</span><span class=n>quantity</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>total_sold</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>order_items</span><span class=w> </span><span class=n>oi</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=n>p</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>oi</span><span class=p>.</span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>p</span><span class=p>.</span><span class=n>product_id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=n>o</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>oi</span><span class=p>.</span><span class=n>order_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>order_id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;=</span><span class=w> </span><span class=s1>&#39;2023-11-01&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;completed&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>p</span><span class=p>.</span><span class=n>name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>total_sold</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>10</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Execution Time: 234.567 ms
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 步骤 2–4：orders 表出现 Seq Scan，过滤掉 80% 的行
+</span></span></span><span class=line><span class=cl><span class=c1>-- 需要在 (status, created_at) 上建索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 步骤 5：创建索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_orders_status_date</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>status</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 步骤 6：验证
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>EXPLAIN</span><span class=w> </span><span class=k>ANALYZE</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- ... 同一查询 ...
+</span></span></span><span class=line><span class=cl><span class=c1>-- Execution Time: 3.456 ms  （68 倍提速）
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=下一步>下一步</h2><p>索引告诉数据库<strong>去哪里</strong>查找数据。但当两个事务同时尝试修改同一行数据时，会发生什么？在下一篇文章中，我们将深入探讨 <strong>事务与并发控制</strong> —— ACID 保证、隔离级别、锁机制，以及预防死锁的“黑魔法”。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/databases/>数据库原理与实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=title>数据库（1）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=series-nav-num>01</span>
+<span class=series-nav-title>数据库（1）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>02</span>
+<span class=series-nav-title>数据库（2）：索引与查询规划——数据库如何找到你的数据</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=series-nav-num>03</span>
+<span class=series-nav-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=series-nav-num>04</span>
+<span class=series-nav-title>数据库（4）：存储引擎——数据如何落盘</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=series-nav-num>05</span>
+<span class=series-nav-title>数据库（5）：NoSQL — 文档型、键值型、列式与图数据库</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=series-nav-num>06</span>
+<span class=series-nav-title>数据库（6）：复制与分片——突破单机限制的扩展之道</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/07-distributed-transactions/><span class=series-nav-num>07</span>
+<span class=series-nav-title>数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=series-nav-num>08</span>
+<span class=series-nav-title>数据库（8）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#根本问题如何定位一行数据>根本问题：如何定位一行数据</a></li><li><a href=#顺序扫描-vs-索引扫描>顺序扫描 vs 索引扫描</a></li><li><a href=#b-树索引主力索引类型>B 树索引：主力索引类型</a><ul><li><a href=#结构>结构</a></li><li><a href=#查找过程>查找过程</a></li><li><a href=#创建-b-树索引>创建 B 树索引</a></li></ul></li><li><a href=#b-树为何数据库更偏爱它>B+ 树：为何数据库更偏爱它？</a></li><li><a href=#哈希索引>哈希索引</a></li><li><a href=#复合索引列顺序至关重要>复合索引：列顺序至关重要</a><ul><li><a href=#最左前缀规则leftmost-prefix-rule>最左前缀规则（Leftmost Prefix Rule）</a></li></ul></li><li><a href=#覆盖索引与仅索引扫描index-only-scan>覆盖索引与仅索引扫描（Index-Only Scan）</a></li><li><a href=#explain解读查询执行计划>EXPLAIN：解读查询执行计划</a><ul><li><a href=#postgresql-explain-analyze>PostgreSQL EXPLAIN ANALYZE</a></li><li><a href=#mysql-explain>MySQL EXPLAIN</a></li><li><a href=#识别性能问题>识别性能问题</a></li></ul></li><li><a href=#索引选型策略>索引选型策略</a><ul><li><a href=#应该建立索引的列>应该建立索引的列</a></li><li><a href=#基数cardinality至关重要>基数（Cardinality）至关重要</a></li></ul></li><li><a href=#过度索引隐藏的成本>过度索引：隐藏的成本</a></li><li><a href=#部分索引partial-indexes>部分索引（Partial Indexes）</a></li><li><a href=#表达式索引expression-indexes>表达式索引（Expression Indexes）</a></li><li><a href=#gin-与-gist-索引postgresql>GIN 与 GiST 索引（PostgreSQL）</a></li><li><a href=#实用索引设计流程>实用索引设计流程</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/databases/ class=series-name>数据库原理与实践</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=chapter-num>01</span>
+<span class=chapter-title>数据库（1）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
+<span class=chapter-title>数据库（2）：索引与查询规划——数据库如何找到你的数据</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=chapter-num>03</span>
+<span class=chapter-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=chapter-num>04</span>
+<span class=chapter-title>数据库（4）：存储引擎——数据如何落盘</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=chapter-num>05</span>
+<span class=chapter-title>数据库（5）：NoSQL — 文档型、键值型、列式与图数据库</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=chapter-num>06</span>
+<span class=chapter-title>数据库（6）：复制与分片——突破单机限制的扩展之道</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/07-distributed-transactions/><span class=chapter-num>07</span>
+<span class=chapter-title>数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=chapter-num>08</span>
+<span class=chapter-title>数据库（8）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>22 min</strong></div><div class=row><span>字数</span><strong>5145</strong></div><div class=row><span>写于</span><strong>Dec 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

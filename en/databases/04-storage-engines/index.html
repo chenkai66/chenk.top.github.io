@@ -1,0 +1,447 @@
+<!doctype html><html lang=en data-translation=/zh/databases/04-storage-engines/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Databases (4): Storage Engines — How Data Hits Disk · Chen Kai Blog</title>
+<meta name=description content="How database storage engines work under the hood — B-tree vs LSM-tree, WAL, buffer pools, compaction, and why your choice of engine shapes everything."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/databases/04-storage-engines/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/databases/04-storage-engines/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/databases/04-storage-engines/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/databases/04-storage-engines/><meta property="og:type" content="article"><meta property="og:title" content="Databases (4): Storage Engines — How Data Hits Disk"><meta property="og:description" content="How database storage engines work under the hood — B-tree vs LSM-tree, WAL, buffer pools, compaction, and why your choice of engine shapes everything."><meta property="og:url" content="https://www.chenk.top/en/databases/04-storage-engines/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><meta property="og:image:alt" content="Databases (4): Storage Engines — How Data Hits Disk"><meta property="article:published_time" content="2023-12-14T09:00:00Z"><meta property="article:modified_time" content="2023-12-14T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Databases"><meta property="article:tag" content="Storage Engines"><meta property="article:tag" content="InnoDB"><meta property="article:tag" content="LSM Tree"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Databases (4): Storage Engines — How Data Hits Disk"><meta name=twitter:description content="How database storage engines work under the hood — B-tree vs LSM-tree, WAL, buffer pools, compaction, and why your choice of engine shapes everything."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Databases (4): Storage Engines — How Data Hits Disk\"","description":"\"How database storage engines work under the hood — B-tree vs LSM-tree, WAL, buffer pools, compaction, and why your choice of engine shapes everything.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-12-14T09:00:00Z\"","dateModified":"\"2023-12-14T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/databases/04-storage-engines/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Databases</a>
+· Chapter 4</div><h1>Databases (4): Storage Engines — How Data Hits Disk</h1><p class=deck>How database storage engines work under the hood — B-tree vs LSM-tree, WAL, buffer pools, compaction, and why your choice of engine shapes everything.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-12-14>December 14, 2023</time> · 30 min read · 3193 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/databases/ class=tag>#Databases</a><a href=/en/tags/storage-engines/ class=tag>#Storage Engines</a><a href=/en/tags/innodb/ class=tag>#InnoDB</a><a href=/en/tags/lsm-tree/ class=tag>#LSM Tree</a></div><a class="pill pill-outline" href=/zh/databases/04-storage-engines/>阅读中文版 →</a></div></header><div class=prose><p>Every SQL statement you write eventually becomes bytes written to a disk. The component responsible for this translation — the storage engine — determines your database&rsquo;s performance characteristics more than almost any other factor. Two tables with identical schemas and identical data can perform wildly differently depending on the storage engine underneath. Understanding this layer explains <em>why</em> databases behave the way they do.</p><h2 id=the-basics-pages-extents-and-tablespaces>The Basics: Pages, Extents, and Tablespaces</h2><p>Databases do not read or write individual rows from disk. Disk I/O operates on <strong>pages</strong> (also called blocks), typically 4 KB, 8 KB, or 16 KB.</p><pre tabindex=0><code>Tablespace (logical container)
+  └── Data File (physical file on disk)
+       └── Extent (group of contiguous pages, e.g., 64 pages = 1 MB)
+            └── Page (smallest I/O unit, e.g., 8 KB in PostgreSQL, 16 KB in InnoDB)
+                 └── Row (actual data, packed into pages)
+</code></pre><table><thead><tr><th>Concept</th><th>PostgreSQL</th><th>MySQL InnoDB</th></tr></thead><tbody><tr><td>Page size</td><td>8 KB (compile-time)</td><td>16 KB (configurable: 4/8/16/32/64 KB)</td></tr><tr><td>Extent</td><td>1 MB (128 pages)</td><td>1 MB (64 pages) for tables > 32 MB</td></tr><tr><td>Tablespace</td><td>Directories on filesystem</td><td><code>.ibd</code> files per table</td></tr><tr><td>Row storage</td><td>HEAP (unordered)</td><td>Clustered by primary key</td></tr></tbody></table><p>When you <code>SELECT * FROM users WHERE id = 42</code>, the database does not seek to row 42 on disk. It loads the page containing row 42 into memory, extracts the row, and returns it. If the page is already in the buffer pool (in-memory cache), no disk I/O is needed at all.</p><h2 id=b-tree-storage-engines>B-Tree Storage Engines</h2><p>B-tree engines (used by PostgreSQL, MySQL InnoDB, Oracle, SQL Server) organize data in B+tree structures on disk. The tree is the primary data structure for both tables and indexes.</p><h3 id=innodb-mysqls-default-engine>InnoDB: MySQL&rsquo;s Default Engine</h3><p>InnoDB is a B-tree engine with some distinctive characteristics.</p><h4 id=clustered-index>Clustered Index</h4><p>In InnoDB, the table data itself <em>is</em> a B+tree, organized by the primary key. This is called the <strong>clustered index</strong> (or primary index).</p><pre tabindex=0><code>Clustered Index (primary key = id)
+Root: [id=500 | id=1000 | id=1500]
+       |          |           |
+    Leaf pages (actual data rows sorted by id):
+    Page 1: id=1, name=&#34;Alice&#34;, email=&#34;alice@...&#34;
+             id=2, name=&#34;Bob&#34;,   email=&#34;bob@...&#34;
+             ...
+    Page 2: id=501, name=&#34;Carol&#34;, email=&#34;carol@...&#34;
+             ...
+</code></pre><p>Every row in InnoDB lives inside the clustered index. There is no separate &ldquo;heap&rdquo; file.</p><p>Implications:</p><ul><li><strong>Sequential primary key access is fast</strong>: Reading <code>id = 1, 2, 3, ...</code> reads consecutive pages.</li><li><strong>Random primary key inserts are expensive</strong>: Inserting with a UUID primary key causes random page splits across the tree.</li><li><strong>Secondary indexes are larger</strong>: A secondary index stores the primary key as the row pointer, not a physical address. Looking up by secondary index requires two tree traversals — one for the secondary index, one for the clustered index.</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- This secondary index stores (email -&gt; primary_key) pairs
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_email</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Query flow:
+</span></span></span><span class=line><span class=cl><span class=c1>-- 1. Traverse idx_email B+tree to find email=&#39;alice@...&#39; -&gt; id=1
+</span></span></span><span class=line><span class=cl><span class=c1>-- 2. Traverse clustered index B+tree to find id=1 -&gt; full row
+</span></span></span><span class=line><span class=cl><span class=c1>-- This is called a &#34;bookmark lookup&#34; or &#34;index lookup&#34;
+</span></span></span></code></pre></td></tr></table></div></div><h4 id=why-auto-increment-primary-keys-matter-in-innodb>Why Auto-Increment Primary Keys Matter in InnoDB</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Good: sequential inserts append to the end of the B+tree
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>order_id</span><span class=w> </span><span class=nb>BIGINT</span><span class=w> </span><span class=n>AUTO_INCREMENT</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>...</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Problematic: random UUIDs cause random inserts across the tree
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>order_id</span><span class=w> </span><span class=nb>CHAR</span><span class=p>(</span><span class=mi>36</span><span class=p>)</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=p>(</span><span class=n>UUID</span><span class=p>()),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>...</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Random primary keys cause:</p><ol><li><strong>Page splits</strong>: When a page is full and a new row belongs in the middle, the page must be split in two.</li><li><strong>Fragmentation</strong>: Pages are only partially filled after splits.</li><li><strong>Buffer pool thrashing</strong>: Random pages are accessed, evicting useful cached pages.</li></ol><p>If you need UUIDs, consider UUIDv7 (time-ordered) or use a <code>BIGINT AUTO_INCREMENT</code> primary key with a separate UUID column.</p><h4 id=buffer-pool>Buffer Pool</h4><p>InnoDB&rsquo;s buffer pool is a region of memory that caches data pages and index pages. It is the most important performance-related configuration.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Check buffer pool size (MySQL)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;innodb_buffer_pool_size&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Set buffer pool to 80% of available RAM (typical recommendation)
+</span></span></span><span class=line><span class=cl><span class=c1>-- In my.cnf:
+</span></span></span><span class=line><span class=cl><span class=c1>-- innodb_buffer_pool_size = 12G  (for a 16 GB server)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Monitor buffer pool hit ratio
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;Innodb_buffer_pool_read%&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Innodb_buffer_pool_read_requests: total logical reads
+</span></span></span><span class=line><span class=cl><span class=c1>-- Innodb_buffer_pool_reads: reads that went to disk
+</span></span></span><span class=line><span class=cl><span class=c1>-- Hit ratio = 1 - (reads / read_requests)
+</span></span></span><span class=line><span class=cl><span class=c1>-- Target: &gt; 99%
+</span></span></span></code></pre></td></tr></table></div></div><p>The buffer pool uses a modified <strong>LRU (Least Recently Used)</strong> algorithm with two sublists:</p><pre tabindex=0><code>Buffer Pool LRU:
+┌─────────────────────────────────────────────────────────────┐
+│  Young sublist (hot pages, 5/8)  │  Old sublist (3/8)      │
+│  [Frequently accessed pages]     │  [Newly loaded pages]   │
+│                                  │  [Aging out]            │
+└─────────────────────────────────────────────────────────────┘
+</code></pre><p>New pages enter at the head of the old sublist. If accessed again (within a configurable window), they move to the young sublist. This prevents a one-time full table scan from evicting all hot pages — a pure LRU would push every hot page out.</p><h3 id=postgresql-storage>PostgreSQL Storage</h3><p>PostgreSQL uses a different approach. Tables are stored as <strong>heap files</strong> — unordered collections of pages. There is no clustered index by default.</p><pre tabindex=0><code>Table &#34;users&#34; (heap):
+Page 0: [row: id=7, ...] [row: id=3, ...] [row: id=12, ...]
+Page 1: [row: id=1, ...] [row: id=9, ...] [dead tuple] [row: id=5, ...]
+Page 2: [row: id=15, ...] [row: id=2, ...] [row: id=11, ...]
+</code></pre><p>Rows are not in any particular order. Every index (including the primary key index) stores a physical tuple ID <code>(page_number, offset)</code> pointing to the heap.</p><pre tabindex=0><code>Primary Key Index (B+tree):
+  id=1 -&gt; (page 1, offset 0)
+  id=2 -&gt; (page 2, offset 1)
+  id=3 -&gt; (page 0, offset 1)
+  ...
+</code></pre><p>This means:</p><ul><li><strong>Primary key lookups require one index traversal + one heap fetch</strong> (same as InnoDB secondary indexes)</li><li><strong>No penalty for random primary keys</strong> — the heap is already unordered</li><li><strong>VACUUM is critical</strong> — deleted/updated rows leave dead tuples in the heap that must be reclaimed</li></ul><p>PostgreSQL&rsquo;s buffer pool is called the <strong>shared buffer pool</strong>, configured via <code>shared_buffers</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># postgresql.conf</span>
+</span></span><span class=line><span class=cl><span class=nv>shared_buffers</span> <span class=o>=</span> 4GB      <span class=c1># 25% of RAM is typical starting point</span>
+</span></span><span class=line><span class=cl><span class=nv>effective_cache_size</span> <span class=o>=</span> 12GB  <span class=c1># estimate of OS disk cache (for planner)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=lsm-tree-storage-engines>LSM-Tree Storage Engines</h2><p>Log-Structured Merge-tree (LSM-tree) engines take a fundamentally different approach. Instead of updating data in place (like B-trees), they batch writes in memory and flush them sequentially. This makes writes much faster but reads more complex.</p><p>LSM-tree engines include: RocksDB, LevelDB, Cassandra&rsquo;s storage engine, HBase, CockroachDB (built on RocksDB), and TiKV (TiDB&rsquo;s storage layer).</p><h3 id=how-lsm-trees-work>How LSM-Trees Work</h3><pre tabindex=0><code>Write Path:
+1. Write to WAL (append-only, sequential)
+2. Insert into MemTable (in-memory sorted structure, usually a skip list or red-black tree)
+3. When MemTable is full (~64 MB), freeze it and start a new MemTable
+4. Flush frozen MemTable to disk as an SSTable (Sorted String Table)
+5. Background compaction merges SSTables
+
+Read Path:
+1. Check MemTable (current + frozen)
+2. Check each SSTable level (using Bloom filters to skip non-matching SSTables)
+3. Merge results (most recent version wins)
+</code></pre><pre tabindex=0><code>                    ┌─────────────┐
+  Write ──────────► │  MemTable   │ (in-memory, sorted)
+                    └──────┬──────┘
+                           │ flush (when full)
+                    ┌──────▼──────┐
+                    │  Level 0    │  SSTable files (unsorted between files)
+                    └──────┬──────┘
+                           │ compaction
+                    ┌──────▼──────┐
+                    │  Level 1    │  SSTable files (sorted, non-overlapping)
+                    └──────┬──────┘
+                           │ compaction
+                    ┌──────▼──────┐
+                    │  Level 2    │  SSTable files (sorted, non-overlapping, 10x larger)
+                    └──────┬──────┘
+                           │ compaction
+                    ┌──────▼──────┐
+                    │  Level 3    │  (10x larger again)
+                    └─────────────┘
+</code></pre><h3 id=sstables-sorted-string-tables>SSTables (Sorted String Tables)</h3><p>An SSTable is an immutable, sorted file on disk. Once written, it is never modified — only replaced during compaction.</p><pre tabindex=0><code>SSTable format:
+┌───────────────────────────────────────────────────┐
+│  Data Block 1: [key1=val1, key2=val2, ...]        │
+│  Data Block 2: [key5=val5, key6=val6, ...]        │
+│  ...                                              │
+│  Index Block: [key1 -&gt; block1, key5 -&gt; block2...] │
+│  Bloom Filter: [bitmap for quick key lookup]      │
+│  Footer: [metadata, magic number]                 │
+└───────────────────────────────────────────────────┘
+</code></pre><h3 id=compaction>Compaction</h3><p>Over time, SSTables accumulate. Multiple SSTables may contain different versions of the same key. Compaction merges SSTables to:</p><ul><li>Remove obsolete versions (keep only the latest)</li><li>Remove tombstones (delete markers)</li><li>Reduce the number of SSTables to check during reads</li></ul><p>Two main compaction strategies:</p><p><strong>Size-Tiered Compaction</strong> (write-optimized):</p><ul><li>Merge SSTables of similar size together</li><li>Pros: Higher write throughput</li><li>Cons: More space amplification (up to 2x), read latency spikes during compaction</li></ul><p><strong>Leveled Compaction</strong> (read-optimized):</p><ul><li>Each level has a size limit (level N+1 is 10x level N)</li><li>SSTables at each level have non-overlapping key ranges</li><li>Pros: More predictable read performance, lower space amplification</li><li>Cons: Higher write amplification</li></ul><h3 id=bloom-filters-avoiding-unnecessary-disk-reads>Bloom Filters: Avoiding Unnecessary Disk Reads</h3><p>A Bloom filter is a probabilistic data structure that tells you:</p><ul><li><strong>Definitely not in the set</strong> — skip this SSTable (no disk read needed)</li><li><strong>Possibly in the set</strong> — must check this SSTable</li></ul><pre tabindex=0><code>Looking for key &#34;user:42&#34;:
+  SSTable-1 Bloom Filter: &#34;user:42&#34; → NO  → skip (saved a disk read!)
+  SSTable-2 Bloom Filter: &#34;user:42&#34; → MAYBE → read SSTable-2 → found it!
+  SSTable-3 Bloom Filter: → not checked (already found)
+</code></pre><p>False positive rate is configurable (typically 1%). A 1% false positive rate requires about 10 bits per key.</p><h2 id=b-tree-vs-lsm-tree-comparison>B-Tree vs LSM-Tree Comparison</h2><table><thead><tr><th>Aspect</th><th>B-Tree (InnoDB, PostgreSQL)</th><th>LSM-Tree (RocksDB, LevelDB)</th></tr></thead><tbody><tr><td><strong>Write pattern</strong></td><td>Random (update in place)</td><td>Sequential (append-only)</td></tr><tr><td><strong>Write throughput</strong></td><td>Lower (random I/O)</td><td>Higher (sequential I/O)</td></tr><tr><td><strong>Read latency</strong></td><td>Predictable (single tree traversal)</td><td>Variable (may check multiple levels)</td></tr><tr><td><strong>Write amplification</strong></td><td>~10x (page rewrites)</td><td>~10-30x (compaction rewrites)</td></tr><tr><td><strong>Read amplification</strong></td><td>1 (one index traversal)</td><td>~1-5 (multiple levels to check)</td></tr><tr><td><strong>Space amplification</strong></td><td>~1.5x (page fragmentation)</td><td>~1.1-2x (depends on compaction)</td></tr><tr><td><strong>Best for</strong></td><td>Read-heavy OLTP, random reads</td><td>Write-heavy workloads, time-series</td></tr><tr><td><strong>Concurrency</strong></td><td>MVCC + row locks</td><td>Lock-free reads (immutable SSTables)</td></tr></tbody></table><p><strong>Write amplification</strong>: total bytes written to disk / bytes of actual data written. If you write 1 KB of data but the engine writes 10 KB total (including index updates, page rewrites, compaction), the write amplification is 10x.</p><p><strong>Read amplification</strong>: number of disk reads needed to answer a point query. B-trees: typically 1 (the page is cached or one tree traversal). LSM-trees: potentially one read per level.</p><p><strong>Space amplification</strong>: total disk space used / actual data size. B-trees waste space due to partially-filled pages. LSM-trees waste space due to multiple versions existing across levels before compaction.</p><h2 id=write-ahead-log-wal>Write-Ahead Log (WAL)</h2><p>The WAL (also called redo log in MySQL) is the foundation of durability. Before any data page is modified, the change is written to the WAL.</p><pre tabindex=0><code>Write flow with WAL:
+1. Application: INSERT INTO users (name) VALUES (&#39;Alice&#39;)
+2. Engine writes to WAL: &#34;Page 42, offset 3: insert row {name=&#39;Alice&#39;}&#34;
+3. WAL is fsynced to disk (durability guaranteed)
+4. Engine modifies the page in the buffer pool (memory only)
+5. Eventually, dirty pages are flushed to data files (checkpoint)
+</code></pre><p>Why not write directly to data files?</p><ul><li>Data files require random I/O (the row could be anywhere)</li><li>WAL is append-only (sequential I/O), which is 10-100x faster</li><li>If the system crashes between step 4 and 5, the WAL contains enough information to replay the changes</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL WAL configuration
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>wal_level</span><span class=p>;</span><span class=w>          </span><span class=c1>-- minimal, replica, or logical
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>max_wal_size</span><span class=p>;</span><span class=w>       </span><span class=c1>-- triggers checkpoint when exceeded (default: 1GB)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>checkpoint_timeout</span><span class=p>;</span><span class=w> </span><span class=c1>-- max time between checkpoints (default: 5min)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- MySQL redo log configuration
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;innodb_log_file_size&#39;</span><span class=p>;</span><span class=w>    </span><span class=c1>-- size per log file
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;innodb_log_files_in_group&#39;</span><span class=p>;</span><span class=w> </span><span class=c1>-- number of log files
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;innodb_flush_log_at_trx_commit&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 1 = flush to disk on every commit (safest, default)
+</span></span></span><span class=line><span class=cl><span class=c1>-- 2 = flush to OS cache on every commit (faster, risk: OS crash)
+</span></span></span><span class=line><span class=cl><span class=c1>-- 0 = flush every second (fastest, risk: 1 second of data loss)
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=checkpoint>Checkpoint</h3><p>A <strong>checkpoint</strong> is when dirty pages in the buffer pool are flushed to the data files on disk. After a checkpoint, the WAL entries before that point are no longer needed for crash recovery.</p><pre tabindex=0><code>Timeline:
+  WAL: [entry1] [entry2] [entry3] [CHECKPOINT] [entry4] [entry5]
+                                       ↑
+                              data files are consistent up to here
+                              on crash, only replay entry4 and entry5
+</code></pre><p>Without checkpoints, crash recovery would need to replay the entire WAL from the beginning of time. Checkpoints bound recovery time.</p><h2 id=innodb-architecture-the-big-picture>InnoDB Architecture: The Big Picture</h2><pre tabindex=0><code>Client Connection
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     InnoDB Engine                            │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │              Buffer Pool (in memory)                │     │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐            │     │
+│  │  │Data Page │ │Data Page │ │Index Page│  ...        │     │
+│  │  │(clean)   │ │(dirty)   │ │(clean)   │            │     │
+│  │  └──────────┘ └──────────┘ └──────────┘            │     │
+│  └─────────────────────────┬───────────────────────────┘     │
+│                            │                                  │
+│  ┌────────────┐    ┌───────▼──────┐    ┌─────────────┐      │
+│  │ Change     │    │ Redo Log     │    │ Undo Log    │      │
+│  │ Buffer     │    │ (WAL)        │    │ (for MVCC   │      │
+│  │ (secondary │    │              │    │  &amp; rollback)│      │
+│  │  index     │    │ Sequential   │    │             │      │
+│  │  changes)  │    │ writes only  │    │             │      │
+│  └────────────┘    └───────┬──────┘    └─────────────┘      │
+│                            │                                  │
+│  ┌─────────────────────────▼──────────────────────────┐      │
+│  │              Data Files (.ibd)                      │      │
+│  │  Tablespace files on disk                           │      │
+│  │  (clustered index + secondary indexes)              │      │
+│  └─────────────────────────────────────────────────────┘      │
+└──────────────────────────────────────────────────────────────┘
+</code></pre><p>The flow for an UPDATE:</p><ol><li>Find the page in the buffer pool (or load from disk)</li><li>Write the change to the redo log (WAL)</li><li>Modify the page in the buffer pool (mark as dirty)</li><li>Write old row version to the undo log (for MVCC and rollback)</li><li>On COMMIT: flush redo log to disk</li><li>Eventually: checkpoint flushes dirty pages to data files</li></ol><h2 id=compression>Compression</h2><h3 id=page-compression>Page Compression</h3><p>InnoDB supports transparent page compression:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Create table with compression (MySQL 5.7+)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>logs</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>log_id</span><span class=w> </span><span class=nb>BIGINT</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>message</span><span class=w> </span><span class=nb>TEXT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>created_at</span><span class=w> </span><span class=k>TIMESTAMP</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ROW_FORMAT</span><span class=o>=</span><span class=n>COMPRESSED</span><span class=w> </span><span class=n>KEY_BLOCK_SIZE</span><span class=o>=</span><span class=mi>8</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Check compression ratio
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>table_name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=n>data_length</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>data_mb</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=n>data_free</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>free_mb</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>tables</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>table_schema</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;mydb&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>table_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;logs&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>PostgreSQL uses TOAST (The Oversized-Attribute Storage Technique) for large values:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Values larger than ~2 KB are automatically compressed and/or stored out-of-line
+</span></span></span><span class=line><span class=cl><span class=c1>-- No explicit configuration needed for basic compression
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Check TOAST table usage
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>relname</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pg_size_pretty</span><span class=p>(</span><span class=n>pg_total_relation_size</span><span class=p>(</span><span class=n>oid</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>total_size</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pg_size_pretty</span><span class=p>(</span><span class=n>pg_relation_size</span><span class=p>(</span><span class=n>oid</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>table_size</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pg_size_pretty</span><span class=p>(</span><span class=n>pg_total_relation_size</span><span class=p>(</span><span class=n>oid</span><span class=p>)</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>pg_relation_size</span><span class=p>(</span><span class=n>oid</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>toast_size</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_class</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>relname</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;logs&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=transparent-data-encryption-tde>Transparent Data Encryption (TDE)</h3><p>Encryption at the storage engine level — data is encrypted on disk but decrypted transparently when loaded into the buffer pool:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- MySQL 8.0: enable encryption per tablespace
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=n>ENCRYPTION</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;Y&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- PostgreSQL: use pgcrypto for column-level encryption
+</span></span></span><span class=line><span class=cl><span class=c1>-- or full-disk encryption at the OS level (dm-crypt, LUKS)
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=column-oriented-storage>Column-Oriented Storage</h2><p>Everything we have discussed so far is <strong>row-oriented</strong> storage: each page contains complete rows. This is optimal for OLTP (transactional) workloads where you typically access all columns of a few rows.</p><p>For <strong>analytical</strong> (OLAP) workloads, column-oriented storage is dramatically better:</p><pre tabindex=0><code>Row-oriented (good for: SELECT * FROM users WHERE id = 42):
+Page 1: [id=1, name=&#34;Alice&#34;, email=&#34;a@...&#34;, age=30]
+         [id=2, name=&#34;Bob&#34;,   email=&#34;b@...&#34;, age=25]
+
+Column-oriented (good for: SELECT AVG(age) FROM users):
+Column &#34;id&#34;:    [1, 2, 3, 4, 5, ...]     -- stored together
+Column &#34;name&#34;:  [&#34;Alice&#34;, &#34;Bob&#34;, ...]     -- stored together
+Column &#34;email&#34;: [&#34;a@..&#34;, &#34;b@..&#34;, ...]     -- stored together
+Column &#34;age&#34;:   [30, 25, 35, 28, ...]    -- stored together
+</code></pre><p>Why column-oriented is better for analytics:</p><table><thead><tr><th>Benefit</th><th>Explanation</th></tr></thead><tbody><tr><td>Less I/O</td><td><code>SELECT AVG(age)</code> reads only the age column, not name/email/etc.</td></tr><tr><td>Better compression</td><td>Similar values in the same column compress 5-10x better</td></tr><tr><td>Vectorized processing</td><td>CPU can process batches of same-type values using SIMD</td></tr><tr><td>Cache efficiency</td><td>All values being processed fit in CPU cache lines</td></tr></tbody></table><p>Column-oriented databases include: ClickHouse, Apache Parquet (file format), DuckDB, Amazon Redshift, Google BigQuery.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- ClickHouse example: analytics query
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>toStartOfMonth</span><span class=p>(</span><span class=n>event_time</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>month</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>count</span><span class=p>()</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>events</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>uniqExact</span><span class=p>(</span><span class=n>user_id</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>unique_users</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>avg</span><span class=p>(</span><span class=n>duration_ms</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>avg_duration</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>events</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>event_time</span><span class=w> </span><span class=o>&gt;=</span><span class=w> </span><span class=s1>&#39;2023-01-01&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>month</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>month</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Scans billions of rows in seconds because it only reads
+</span></span></span><span class=line><span class=cl><span class=c1>-- the 4 columns needed, not all 50 columns in the table.
+</span></span></span></code></pre></td></tr></table></div></div><p>Most OLTP databases do not use column-oriented storage (InnoDB, PostgreSQL are row-oriented). But hybrid approaches are emerging:</p><ul><li>PostgreSQL&rsquo;s <strong>cstore_fdw</strong> (columnar foreign data wrapper)</li><li>MySQL HeatWave (in-memory columnar accelerator)</li><li>Oracle&rsquo;s in-memory column store</li><li>SQL Server&rsquo;s columnstore indexes</li></ul><h2 id=measuring-storage-engine-performance>Measuring Storage Engine Performance</h2><p>When evaluating storage engines, three amplification metrics matter most. Let us make them concrete with numbers.</p><h3 id=write-amplification-in-practice>Write Amplification in Practice</h3><p>Write amplification is the ratio of total bytes written to storage versus the logical bytes written by the application.</p><pre tabindex=0><code>Example: Insert a 1 KB row
+
+B-tree engine (InnoDB):
+  1. Write to redo log:           1 KB  (WAL entry)
+  2. Modify page in buffer pool:  0 KB  (in memory, no I/O yet)
+  3. Eventually flush 16 KB page: 16 KB (entire page rewritten for 1 KB change)
+  4. Update secondary index:      16 KB (another page write)
+  Total: ~33 KB written for 1 KB of data → write amplification = 33x
+
+LSM-tree engine (RocksDB):
+  1. Write to WAL:                1 KB
+  2. Flush memtable to L0:        1 KB  (written once)
+  3. Compact L0 → L1:             1 KB  (rewritten)
+  4. Compact L1 → L2:             1 KB  (rewritten)
+  5. Compact L2 → L3:             1 KB  (rewritten)
+  Total: ~5 KB sequential writes → write amplification = 5x
+  But with 10 levels: could be 10-30x
+</code></pre><h3 id=benchmarking-with-real-tools>Benchmarking With Real Tools</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># sysbench: standard database benchmark</span>
+</span></span><span class=line><span class=cl><span class=c1># Install</span>
+</span></span><span class=line><span class=cl>apt-get install sysbench
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Prepare test data (1 million rows)</span>
+</span></span><span class=line><span class=cl>sysbench oltp_read_write <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --db-driver<span class=o>=</span>mysql <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-host<span class=o>=</span>localhost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-user<span class=o>=</span>root <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-password<span class=o>=</span>secret <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-db<span class=o>=</span>sbtest <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --tables<span class=o>=</span><span class=m>4</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --table-size<span class=o>=</span><span class=m>1000000</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  prepare
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Run OLTP read-write benchmark (60 seconds, 16 threads)</span>
+</span></span><span class=line><span class=cl>sysbench oltp_read_write <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --db-driver<span class=o>=</span>mysql <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-host<span class=o>=</span>localhost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-user<span class=o>=</span>root <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-password<span class=o>=</span>secret <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --mysql-db<span class=o>=</span>sbtest <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --tables<span class=o>=</span><span class=m>4</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --table-size<span class=o>=</span><span class=m>1000000</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --threads<span class=o>=</span><span class=m>16</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --time<span class=o>=</span><span class=m>60</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --report-interval<span class=o>=</span><span class=m>5</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  run
+</span></span></code></pre></td></tr></table></div></div><p>Sample output:</p><pre tabindex=0><code>SQL statistics:
+    queries performed:
+        read:                            560420
+        write:                           160120
+        other:                           80060
+        total:                           800600
+    transactions:                        40030  (667.11 per sec.)
+    queries:                             800600 (13342.20 per sec.)
+    ignored errors:                      0      (0.00 per sec.)
+    reconnects:                          0      (0.00 per sec.)
+
+Latency (ms):
+         min:                                    3.42
+         avg:                                   23.97
+         max:                                  245.12
+         95th percentile:                       41.85
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># fio: test raw disk I/O (important for understanding engine behavior)</span>
+</span></span><span class=line><span class=cl><span class=c1># Random read test (simulates B-tree index lookups)</span>
+</span></span><span class=line><span class=cl>fio --name<span class=o>=</span>randread --ioengine<span class=o>=</span>libaio --iodepth<span class=o>=</span><span class=m>32</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --rw<span class=o>=</span>randread --bs<span class=o>=</span>8k --size<span class=o>=</span>1G --numjobs<span class=o>=</span><span class=m>4</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --runtime<span class=o>=</span><span class=m>30</span> --group_reporting
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Sequential write test (simulates WAL/LSM writes)</span>
+</span></span><span class=line><span class=cl>fio --name<span class=o>=</span>seqwrite --ioengine<span class=o>=</span>libaio --iodepth<span class=o>=</span><span class=m>32</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --rw<span class=o>=</span>write --bs<span class=o>=</span>64k --size<span class=o>=</span>1G --numjobs<span class=o>=</span><span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --runtime<span class=o>=</span><span class=m>30</span> --group_reporting
+</span></span></code></pre></td></tr></table></div></div><p>Understanding the ratio between random read IOPS and sequential write throughput on your hardware directly explains why B-tree engines and LSM-tree engines perform differently on the same machine.</p><h2 id=choosing-a-storage-engine>Choosing a Storage Engine</h2><table><thead><tr><th>Workload</th><th>Recommended Engine</th><th>Why</th></tr></thead><tbody><tr><td>General OLTP</td><td>InnoDB / PostgreSQL</td><td>Proven, ACID, MVCC</td></tr><tr><td>Write-heavy (logs, metrics)</td><td>LSM-based (RocksDB, TiKV)</td><td>Sequential writes, high throughput</td></tr><tr><td>Analytics / OLAP</td><td>Column-oriented (ClickHouse, DuckDB)</td><td>Scan efficiency, compression</td></tr><tr><td>Embedded / edge</td><td>SQLite / DuckDB</td><td>Zero configuration, single-file</td></tr><tr><td>Key-value workloads</td><td>RocksDB / LevelDB</td><td>Optimized for simple get/put</td></tr><tr><td>Time-series</td><td>TimescaleDB / InfluxDB</td><td>Time-partitioned, retention policies</td></tr></tbody></table><h2 id=whats-next>What&rsquo;s Next</h2><p>We have now seen how individual storage engines organize data on a single machine. But not all data fits in tables, and not all workloads are best served by SQL. In the next article, we will explore the <strong>NoSQL landscape</strong> — document stores, key-value stores, wide-column databases, and graph databases — and when each one makes sense.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/databases/>Databases</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><span class=title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/databases/05-nosql-landscape/><span class=title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/databases/01-data-models-and-sql/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Databases (1): Data Models and SQL — Why Tables Won (For Now)</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Databases (2): Indexing and Query Planning — How Databases Find Your Data</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>04</span>
+<span class=series-nav-title>Databases (4): Storage Engines — How Data Hits Disk</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/05-nosql-landscape/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Databases (6): Replication and Partitioning — Scaling Beyond One Machine</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/07-distributed-transactions/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/08-database-in-practice/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-basics-pages-extents-and-tablespaces>The Basics: Pages, Extents, and Tablespaces</a></li><li><a href=#b-tree-storage-engines>B-Tree Storage Engines</a><ul><li><a href=#innodb-mysqls-default-engine>InnoDB: MySQL&rsquo;s Default Engine</a><ul><li><a href=#clustered-index>Clustered Index</a></li><li><a href=#why-auto-increment-primary-keys-matter-in-innodb>Why Auto-Increment Primary Keys Matter in InnoDB</a></li><li><a href=#buffer-pool>Buffer Pool</a></li></ul></li><li><a href=#postgresql-storage>PostgreSQL Storage</a></li></ul></li><li><a href=#lsm-tree-storage-engines>LSM-Tree Storage Engines</a><ul><li><a href=#how-lsm-trees-work>How LSM-Trees Work</a></li><li><a href=#sstables-sorted-string-tables>SSTables (Sorted String Tables)</a></li><li><a href=#compaction>Compaction</a></li><li><a href=#bloom-filters-avoiding-unnecessary-disk-reads>Bloom Filters: Avoiding Unnecessary Disk Reads</a></li></ul></li><li><a href=#b-tree-vs-lsm-tree-comparison>B-Tree vs LSM-Tree Comparison</a></li><li><a href=#write-ahead-log-wal>Write-Ahead Log (WAL)</a><ul><li><a href=#checkpoint>Checkpoint</a></li></ul></li><li><a href=#innodb-architecture-the-big-picture>InnoDB Architecture: The Big Picture</a></li><li><a href=#compression>Compression</a><ul><li><a href=#page-compression>Page Compression</a></li><li><a href=#transparent-data-encryption-tde>Transparent Data Encryption (TDE)</a></li></ul></li><li><a href=#column-oriented-storage>Column-Oriented Storage</a></li><li><a href=#measuring-storage-engine-performance>Measuring Storage Engine Performance</a><ul><li><a href=#write-amplification-in-practice>Write Amplification in Practice</a></li><li><a href=#benchmarking-with-real-tools>Benchmarking With Real Tools</a></li></ul></li><li><a href=#choosing-a-storage-engine>Choosing a Storage Engine</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/databases/ class=series-name>Databases</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/01-data-models-and-sql/><span class=chapter-num>01</span>
+<span class=chapter-title>Databases (1): Data Models and SQL — Why Tables Won (For Now)</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><span class=chapter-num>02</span>
+<span class=chapter-title>Databases (2): Indexing and Query Planning — How Databases Find Your Data</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><span class=chapter-num>03</span>
+<span class=chapter-title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>Databases (4): Storage Engines — How Data Hits Disk</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/05-nosql-landscape/><span class=chapter-num>05</span>
+<span class=chapter-title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><span class=chapter-num>06</span>
+<span class=chapter-title>Databases (6): Replication and Partitioning — Scaling Beyond One Machine</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/07-distributed-transactions/><span class=chapter-num>07</span>
+<span class=chapter-title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/08-database-in-practice/><span class=chapter-num>08</span>
+<span class=chapter-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3193</strong></div><div class=row><span>Published</span><strong>Dec 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

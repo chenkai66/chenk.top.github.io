@@ -1,0 +1,660 @@
+<!doctype html><html lang=en data-translation=/zh/databases/03-transactions-and-concurrency/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking · Chen Kai Blog</title>
+<meta name=description content="A thorough guide to ACID properties, isolation levels, MVCC, locking strategies, and deadlock prevention — with concrete SQL examples for every concept."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><meta property="og:type" content="article"><meta property="og:title" content="Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking"><meta property="og:description" content="A thorough guide to ACID properties, isolation levels, MVCC, locking strategies, and deadlock prevention — with concrete SQL examples for every concept."><meta property="og:url" content="https://www.chenk.top/en/databases/03-transactions-and-concurrency/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><meta property="og:image:alt" content="Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking"><meta property="article:published_time" content="2023-12-11T09:00:00Z"><meta property="article:modified_time" content="2023-12-11T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Databases"><meta property="article:tag" content="SQL"><meta property="article:tag" content="Transactions"><meta property="article:tag" content="Concurrency"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking"><meta name=twitter:description content="A thorough guide to ACID properties, isolation levels, MVCC, locking strategies, and deadlock prevention — with concrete SQL examples for every concept."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking\"","description":"\"A thorough guide to ACID properties, isolation levels, MVCC, locking strategies, and deadlock prevention — with concrete SQL examples for every concept.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-12-11T09:00:00Z\"","dateModified":"\"2023-12-11T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/databases/03-transactions-and-concurrency/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Databases</a>
+· Chapter 3</div><h1>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</h1><p class=deck>A thorough guide to ACID properties, isolation levels, MVCC, locking strategies, and deadlock prevention — with concrete SQL examples for every concept.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-12-11>December 11, 2023</time> · 32 min read · 3289 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/databases/ class=tag>#Databases</a><a href=/en/tags/sql/ class=tag>#SQL</a><a href=/en/tags/transactions/ class=tag>#Transactions</a><a href=/en/tags/concurrency/ class=tag>#Concurrency</a></div><a class="pill pill-outline" href=/zh/databases/03-transactions-and-concurrency/>阅读中文版 →</a></div></header><div class=prose><p>Every application that handles money, inventory, or any state that matters eventually hits a concurrency bug. Two users buy the last item in stock. A bank transfer debits one account but crashes before crediting the other. A report reads half-updated data and produces nonsense numbers. Transactions exist to prevent these failures, and understanding how they work is non-negotiable for anyone building production systems.</p><h2 id=what-is-a-transaction>What Is a Transaction?</h2><p>A transaction is a group of operations that the database treats as a single unit. Either <strong>all</strong> operations succeed, or <strong>none</strong> of them do.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>500</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>500</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>2</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>If the server crashes between the two <code>UPDATE</code> statements, the transaction is rolled back. Account 1 does not lose $500 without Account 2 gaining it. This is the fundamental guarantee.</p><h2 id=acid-the-four-guarantees>ACID: The Four Guarantees</h2><p>ACID is not just an acronym you memorize for interviews. Each letter represents a specific guarantee, and understanding what breaks <em>without</em> each one is more important than the definition itself.</p><h3 id=atomicity--all-or-nothing>Atomicity — All or Nothing</h3><p><strong>Definition</strong>: A transaction either completes fully or has no effect at all.</p><p><strong>What breaks without it</strong>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Without atomicity: server crashes between these two statements
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>inventory</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- CRASH HERE
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>order_items</span><span class=w> </span><span class=p>(</span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>product_id</span><span class=p>,</span><span class=w> </span><span class=n>quantity</span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>101</span><span class=p>,</span><span class=w> </span><span class=mi>42</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Stock decreased but order item never created. Inventory leak.
+</span></span></span></code></pre></td></tr></table></div></div><p>Atomicity means the database uses a <strong>write-ahead log (WAL)</strong> to record changes before applying them. On crash recovery, incomplete transactions are rolled back.</p><h3 id=consistency--valid-state-to-valid-state>Consistency — Valid State to Valid State</h3><p><strong>Definition</strong>: A transaction moves the database from one valid state to another. All constraints (foreign keys, CHECK, UNIQUE, NOT NULL) are enforced.</p><p><strong>What breaks without it</strong>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Without consistency enforcement:
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>user_id</span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>999</span><span class=p>,</span><span class=w> </span><span class=mi>12345</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- user_id 12345 does not exist in the users table
+</span></span></span><span class=line><span class=cl><span class=c1>-- Now we have an orphaned order with no associated user
+</span></span></span></code></pre></td></tr></table></div></div><p>The foreign key constraint <code>REFERENCES users(user_id)</code> prevents this. Consistency also includes application-level invariants — for example, &ldquo;the sum of all account balances must remain constant during a transfer.&rdquo;</p><h3 id=isolation--concurrent-transactions-dont-interfere>Isolation — Concurrent Transactions Don&rsquo;t Interfere</h3><p><strong>Definition</strong>: Concurrently executing transactions produce the same result as if they ran sequentially.</p><p><strong>What breaks without it</strong>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Transaction A: reads account balance
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Returns 1000
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Transaction B: withdraws 500 and commits
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>500</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Transaction A: reads again (same transaction)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Returns 500!
+</span></span></span><span class=line><span class=cl><span class=c1>-- The balance changed mid-transaction. A&#39;s view of the world is inconsistent.
+</span></span></span></code></pre></td></tr></table></div></div><p>This is a <strong>non-repeatable read</strong>. Isolation levels control which anomalies are allowed.</p><h3 id=durability--committed-means-permanent>Durability — Committed Means Permanent</h3><p><strong>Definition</strong>: Once a transaction commits, its changes survive any subsequent crash (power failure, OS crash, hardware failure).</p><p><strong>What breaks without it</strong>: You commit a bank transfer, see &ldquo;Success&rdquo; on screen, and then the server reboots. The transfer is gone. The database reverted to a state before the commit because changes were only in memory.</p><p>Durability is enforced by flushing the WAL to persistent storage before reporting a commit as successful. The actual data pages may still be in memory (dirty pages), but the WAL contains enough information to reconstruct them after a crash.</p><h2 id=transaction-lifecycle>Transaction Lifecycle</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Start a transaction
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- or: START TRANSACTION;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Do work
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>inventory</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Create a savepoint (partial rollback target)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>SAVEPOINT</span><span class=w> </span><span class=n>after_inventory</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- More work
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>shipping</span><span class=w> </span><span class=p>(</span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>address</span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=n>currval</span><span class=p>(</span><span class=s1>&#39;orders_order_id_seq&#39;</span><span class=p>),</span><span class=w> </span><span class=s1>&#39;123 Main St&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Oops, wrong address. Roll back to savepoint.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ROLLBACK</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>SAVEPOINT</span><span class=w> </span><span class=n>after_inventory</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Fix and retry
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>shipping</span><span class=w> </span><span class=p>(</span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>address</span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=n>currval</span><span class=p>(</span><span class=s1>&#39;orders_order_id_seq&#39;</span><span class=p>),</span><span class=w> </span><span class=s1>&#39;456 Oak Ave&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Commit everything
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>Command</th><th>Effect</th></tr></thead><tbody><tr><td><code>BEGIN</code></td><td>Start a new transaction</td></tr><tr><td><code>COMMIT</code></td><td>Make all changes permanent</td></tr><tr><td><code>ROLLBACK</code></td><td>Undo all changes since <code>BEGIN</code></td></tr><tr><td><code>SAVEPOINT name</code></td><td>Create a named checkpoint within the transaction</td></tr><tr><td><code>ROLLBACK TO SAVEPOINT name</code></td><td>Undo changes back to the savepoint (transaction continues)</td></tr><tr><td><code>RELEASE SAVEPOINT name</code></td><td>Remove the savepoint (changes kept)</td></tr></tbody></table><p>In autocommit mode (the default in most databases), every statement is its own transaction. An explicit <code>BEGIN</code> starts a multi-statement transaction.</p><h2 id=isolation-levels>Isolation Levels</h2><p>The SQL standard defines four isolation levels, each allowing different concurrency anomalies. Stronger isolation = fewer anomalies but lower throughput.</p><h3 id=the-three-anomalies>The Three Anomalies</h3><p>Before we look at isolation levels, let us define the anomalies precisely.</p><p><strong>Dirty Read</strong>: Transaction A reads data written by Transaction B before B commits. If B rolls back, A has read data that never officially existed.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Session 1                          -- Session 2
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>price</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>0</span><span class=p>.</span><span class=mi>01</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=c1>-- Dirty read: sees price = 0.01
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=k>SELECT</span><span class=w> </span><span class=n>price</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>products</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ROLLBACK</span><span class=p>;</span><span class=w>  </span><span class=c1>-- price reverts to 49.99
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=c1>-- Session 2 used price 0.01 for
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=c1>-- a decision, but that price
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=c1>-- never existed.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>Non-Repeatable Read</strong>: Transaction A reads a row, Transaction B modifies and commits that row, then A reads the same row again and gets different data.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Session 1                          -- Session 2
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Returns 1000
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>500</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Returns 500!
+</span></span></span><span class=line><span class=cl><span class=c1>-- Same query, different result within
+</span></span></span><span class=line><span class=cl><span class=c1>-- the same transaction.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>Phantom Read</strong>: Transaction A runs a query with a range condition, Transaction B inserts a new row that matches, then A re-runs the query and sees a new &ldquo;phantom&rdquo; row.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Session 1                          -- Session 2
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Returns 5
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>99</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=k>COUNT</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>orders</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Returns 6!
+</span></span></span><span class=line><span class=cl><span class=c1>-- A new row appeared (phantom).
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=isolation-level-matrix>Isolation Level Matrix</h3><table><thead><tr><th>Isolation Level</th><th>Dirty Read</th><th style=text-align:right>Non-Repeatable Read</th><th style=text-align:right>Phantom Read</th><th>Performance</th></tr></thead><tbody><tr><td>READ UNCOMMITTED</td><td>Possible</td><td style=text-align:right>Possible</td><td style=text-align:right>Possible</td><td>Fastest</td></tr><tr><td>READ COMMITTED</td><td><strong>Prevented</strong></td><td style=text-align:right>Possible</td><td style=text-align:right>Possible</td><td>Fast</td></tr><tr><td>REPEATABLE READ</td><td><strong>Prevented</strong></td><td style=text-align:right><strong>Prevented</strong></td><td style=text-align:right>Possible*</td><td>Moderate</td></tr><tr><td>SERIALIZABLE</td><td><strong>Prevented</strong></td><td style=text-align:right><strong>Prevented</strong></td><td style=text-align:right><strong>Prevented</strong></td><td>Slowest</td></tr></tbody></table><p>*In PostgreSQL, REPEATABLE READ also prevents phantom reads (it uses snapshot isolation, which is stronger than the SQL standard requires).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Set isolation level for a transaction
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=w> </span><span class=k>TRANSACTION</span><span class=w> </span><span class=k>ISOLATION</span><span class=w> </span><span class=k>LEVEL</span><span class=w> </span><span class=k>REPEATABLE</span><span class=w> </span><span class=k>READ</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- ... your queries ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Set default isolation level for the session (PostgreSQL)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SET</span><span class=w> </span><span class=n>default_transaction_isolation</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;read committed&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Check current isolation level (PostgreSQL)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>default_transaction_isolation</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- MySQL
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SET</span><span class=w> </span><span class=k>TRANSACTION</span><span class=w> </span><span class=k>ISOLATION</span><span class=w> </span><span class=k>LEVEL</span><span class=w> </span><span class=k>REPEATABLE</span><span class=w> </span><span class=k>READ</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>@@</span><span class=n>transaction_isolation</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=what-should-you-use>What Should You Use?</h3><table><thead><tr><th>Use Case</th><th>Recommended Level</th></tr></thead><tbody><tr><td>Most web applications</td><td>READ COMMITTED (PostgreSQL default)</td></tr><tr><td>Financial transactions</td><td>SERIALIZABLE or REPEATABLE READ</td></tr><tr><td>Reporting / analytics</td><td>REPEATABLE READ (consistent snapshot)</td></tr><tr><td>Best effort / monitoring</td><td>READ UNCOMMITTED (only if you really need it)</td></tr></tbody></table><p>PostgreSQL defaults to READ COMMITTED. MySQL (InnoDB) defaults to REPEATABLE READ. Both are reasonable defaults for most applications.</p><h2 id=mvcc-how-databases-implement-isolation-efficiently>MVCC: How Databases Implement Isolation Efficiently</h2><p>Multi-Version Concurrency Control (MVCC) is the mechanism that makes isolation levels practical. Instead of blocking readers when writers are active (which kills performance), MVCC keeps multiple versions of each row.</p><h3 id=postgresql-mvcc>PostgreSQL MVCC</h3><p>In PostgreSQL, each row has hidden system columns:</p><ul><li><code>xmin</code> — the transaction ID that created (inserted) this row version</li><li><code>xmax</code> — the transaction ID that deleted/updated this row version (0 if still live)</li></ul><p>When you <code>UPDATE</code> a row, PostgreSQL does not modify it in place. Instead:</p><ol><li>Marks the old row version as expired (<code>xmax = current transaction ID</code>)</li><li>Creates a new row version (<code>xmin = current transaction ID</code>)</li></ol><p>Both versions coexist. Each transaction sees only the version that was &ldquo;alive&rdquo; at its snapshot time.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Transaction 100 inserts a row
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=p>(</span><span class=n>id</span><span class=p>,</span><span class=w> </span><span class=n>balance</span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>1000</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Row: xmin=100, xmax=0, balance=1000
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Transaction 200 updates the row
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>500</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Old row: xmin=100, xmax=200, balance=1000  (still visible to old snapshots)
+</span></span></span><span class=line><span class=cl><span class=c1>-- New row: xmin=200, xmax=0,   balance=500   (visible to new snapshots)
+</span></span></span></code></pre></td></tr></table></div></div><p>This is why PostgreSQL needs <code>VACUUM</code> — dead row versions accumulate and must be cleaned up.</p><h3 id=mysql-innodb-mvcc>MySQL InnoDB MVCC</h3><p>InnoDB uses a different approach:</p><ul><li>Each row has a hidden 6-byte transaction ID and a 7-byte roll pointer</li><li>The roll pointer points to an <strong>undo log</strong> entry containing the previous version</li><li>Multiple undo log entries form a chain for each row</li></ul><p>To reconstruct an old version, InnoDB walks the undo log chain backwards. This means old versions do not consume extra space in the main table, but long-running transactions force InnoDB to keep long undo log chains.</p><h3 id=mvcc-implications>MVCC Implications</h3><table><thead><tr><th>Behavior</th><th>PostgreSQL</th><th>MySQL InnoDB</th></tr></thead><tbody><tr><td>Readers block writers</td><td>No</td><td>No</td></tr><tr><td>Writers block readers</td><td>No</td><td>No</td></tr><tr><td>Writers block writers</td><td>Yes (same row)</td><td>Yes (same row)</td></tr><tr><td>Dead version cleanup</td><td>VACUUM (manual/auto)</td><td>Purge thread (automatic)</td></tr><tr><td>Long transaction cost</td><td>Table bloat</td><td>Long undo log chains</td></tr></tbody></table><p>The key insight: <strong>reads never block writes, and writes never block reads.</strong> This is why modern databases can handle thousands of concurrent connections without everything grinding to a halt.</p><h2 id=locking>Locking</h2><p>Despite MVCC, databases still need locks when multiple transactions write to the same data.</p><h3 id=row-level-locks>Row-Level Locks</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- SELECT FOR UPDATE acquires a row lock
+</span></span></span><span class=line><span class=cl><span class=c1>-- Other transactions trying to update the same row will wait
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Row is now locked. Other transactions wait if they try to modify it.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>100</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Lock released
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- SELECT FOR SHARE (read lock)
+</span></span></span><span class=line><span class=cl><span class=c1>-- Other transactions can read but not modify
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>SHARE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Row is read-locked. Others can read it but not UPDATE/DELETE.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- SKIP LOCKED: non-blocking queue pattern
+</span></span></span><span class=line><span class=cl><span class=c1>-- Great for job queues — workers grab unlocked tasks
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>tasks</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;pending&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>created_at</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=w> </span><span class=n>SKIP</span><span class=w> </span><span class=n>LOCKED</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- If a row is locked by another worker, skip it and get the next one
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>tasks</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;processing&#39;</span><span class=p>,</span><span class=w> </span><span class=n>worker_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;worker-3&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>task_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>...;</span><span class=w>  </span><span class=c1>-- the ID from the SELECT above
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- NOWAIT: fail immediately instead of waiting
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=w> </span><span class=n>NOWAIT</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- If locked, immediately raises: ERROR: could not obtain lock on row
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=table-level-locks>Table-Level Locks</h3><p>Table locks are rare in OLTP but appear in DDL operations:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Explicit table lock (PostgreSQL)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>LOCK</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=k>EXCLUSIVE</span><span class=w> </span><span class=k>MODE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- ACCESS EXCLUSIVE: blocks everything, required for DROP TABLE, ALTER TABLE
+</span></span></span><span class=line><span class=cl><span class=c1>-- ACCESS SHARE: compatible with everything except ACCESS EXCLUSIVE
+</span></span></span></code></pre></td></tr></table></div></div><p>PostgreSQL lock modes (from weakest to strongest):</p><table><thead><tr><th>Lock Mode</th><th>Conflicts With</th></tr></thead><tbody><tr><td>ACCESS SHARE</td><td>ACCESS EXCLUSIVE</td></tr><tr><td>ROW SHARE</td><td>EXCLUSIVE, ACCESS EXCLUSIVE</td></tr><tr><td>ROW EXCLUSIVE</td><td>SHARE, SHARE ROW EXCLUSIVE, EXCLUSIVE, ACCESS EXCLUSIVE</td></tr><tr><td>SHARE UPDATE EXCLUSIVE</td><td>SHARE UPDATE EXCLUSIVE, SHARE, SHARE ROW EXCLUSIVE, EXCLUSIVE, ACCESS EXCLUSIVE</td></tr><tr><td>SHARE</td><td>ROW EXCLUSIVE, SHARE UPDATE EXCLUSIVE, EXCLUSIVE, ACCESS EXCLUSIVE</td></tr><tr><td>SHARE ROW EXCLUSIVE</td><td>ROW EXCLUSIVE, SHARE UPDATE EXCLUSIVE, SHARE, SHARE ROW EXCLUSIVE, EXCLUSIVE, ACCESS EXCLUSIVE</td></tr><tr><td>EXCLUSIVE</td><td>ROW SHARE, ROW EXCLUSIVE, SHARE UPDATE EXCLUSIVE, SHARE, SHARE ROW EXCLUSIVE, EXCLUSIVE, ACCESS EXCLUSIVE</td></tr><tr><td>ACCESS EXCLUSIVE</td><td>All lock modes</td></tr></tbody></table><h3 id=advisory-locks>Advisory Locks</h3><p>Application-level locks using the database as a coordination point:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Acquire an advisory lock (PostgreSQL)
+</span></span></span><span class=line><span class=cl><span class=c1>-- The lock number is arbitrary — your application defines the meaning
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>pg_advisory_lock</span><span class=p>(</span><span class=mi>12345</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- ... do work that needs exclusive access ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>pg_advisory_unlock</span><span class=p>(</span><span class=mi>12345</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Try to acquire without blocking
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>pg_try_advisory_lock</span><span class=p>(</span><span class=mi>12345</span><span class=p>);</span><span class=w>  </span><span class=c1>-- Returns true/false
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Session-level advisory locks (released when session ends)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>pg_advisory_lock</span><span class=p>(</span><span class=n>hashtext</span><span class=p>(</span><span class=s1>&#39;process_daily_report&#39;</span><span class=p>));</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Use cases: cron job coordination (only one instance runs), rate limiting, distributed locking without Redis.</p><h2 id=deadlocks>Deadlocks</h2><p>A deadlock occurs when two transactions each hold a lock that the other needs.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Transaction A                      -- Transaction B
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>                                </span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>900</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Locks row 1
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1100</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>2</span><span class=p>;</span><span class=w>  </span><span class=c1>-- Locks row 2
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1100</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>2</span><span class=p>;</span><span class=w>  </span><span class=c1>-- WAITS for B&#39;s lock
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>                                      </span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>900</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                                      </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>  </span><span class=c1>-- WAITS for A&#39;s lock
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- DEADLOCK! Both transactions are waiting for each other.
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=how-databases-handle-deadlocks>How Databases Handle Deadlocks</h3><p>Databases detect deadlocks using a <strong>wait-for graph</strong>. When a cycle is detected, one transaction is chosen as the victim and rolled back:</p><pre tabindex=0><code>ERROR:  deadlock detected
+DETAIL: Process 12345 waits for ShareLock on transaction 67890;
+        blocked by process 67891.
+        Process 67891 waits for ShareLock on transaction 12345;
+        blocked by process 12345.
+HINT:   See server log for query details.
+</code></pre><h3 id=deadlock-prevention-strategies>Deadlock Prevention Strategies</h3><ol><li><strong>Always lock resources in the same order</strong>: If every transaction that needs accounts 1 and 2 always locks account 1 first, deadlocks cannot occur.</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Always lock the lower account_id first
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>LEAST</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>GREATEST</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>500</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>500</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>2</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><ol start=2><li><p><strong>Keep transactions short</strong>: The longer a transaction holds locks, the higher the chance of deadlock.</p></li><li><p><strong>Use NOWAIT or lock timeouts</strong>:</p></li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL: fail fast on lock contention
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SET</span><span class=w> </span><span class=n>lock_timeout</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;5s&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- If locked for &gt; 5 seconds, abort instead of waiting forever
+</span></span></span></code></pre></td></tr></table></div></div><ol start=4><li><strong>Reduce lock scope</strong>: Lock only what you need, when you need it.</li></ol><h2 id=optimistic-vs-pessimistic-concurrency>Optimistic vs Pessimistic Concurrency</h2><p>Two fundamentally different approaches to handling concurrent modifications:</p><h3 id=pessimistic-locking>Pessimistic Locking</h3><p>Lock the data before modifying it. This is what <code>SELECT FOR UPDATE</code> does.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Pessimistic: lock the row first
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Check stock, calculate, etc.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>Pros</strong>: Simple, guaranteed correctness.
+<strong>Cons</strong>: Reduces throughput, risk of deadlocks, does not work across distributed systems.</p><h3 id=optimistic-locking>Optimistic Locking</h3><p>Do not lock anything. Instead, detect conflicts at commit time using a version number or timestamp.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Add a version column
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=k>version</span><span class=w> </span><span class=nb>INT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Read the current state (no lock)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>product_id</span><span class=p>,</span><span class=w> </span><span class=n>stock</span><span class=p>,</span><span class=w> </span><span class=k>version</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>products</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Returns: stock = 10, version = 5
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Application does its computation...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Update with version check
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>products</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SET</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=k>version</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>version</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=k>version</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>5</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- If affected rows = 0, someone else modified the row. Retry.
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Application-side optimistic locking pattern</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>purchase_product</span><span class=p>(</span><span class=n>product_id</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>quantity</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_retries</span> <span class=o>=</span> <span class=mi>3</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>attempt</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_retries</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Read current state</span>
+</span></span><span class=line><span class=cl>        <span class=n>product</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>query</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;SELECT stock, version FROM products WHERE product_id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>[</span><span class=n>product_id</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>product</span><span class=o>.</span><span class=n>stock</span> <span class=o>&lt;</span> <span class=n>quantity</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=n>InsufficientStockError</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Try to update with version check</span>
+</span></span><span class=line><span class=cl>        <span class=n>rows_affected</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>execute</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;&#34;&#34;UPDATE products
+</span></span></span><span class=line><span class=cl><span class=s2>               SET stock = stock - </span><span class=si>%s</span><span class=s2>, version = version + 1
+</span></span></span><span class=line><span class=cl><span class=s2>               WHERE product_id = </span><span class=si>%s</span><span class=s2> AND version = </span><span class=si>%s</span><span class=s2>&#34;&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>[</span><span class=n>quantity</span><span class=p>,</span> <span class=n>product_id</span><span class=p>,</span> <span class=n>product</span><span class=o>.</span><span class=n>version</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>rows_affected</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span>  <span class=c1># Success</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Version mismatch — retry</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=n>ConflictError</span><span class=p>(</span><span class=s2>&#34;Too many retries&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Pros</strong>: Higher throughput when conflicts are rare, works across distributed systems.
+<strong>Cons</strong>: Must handle retries, more complex application logic.</p><table><thead><tr><th>Criterion</th><th>Pessimistic</th><th>Optimistic</th></tr></thead><tbody><tr><td>Conflict frequency</td><td>High — locks prevent conflicts</td><td>Low — detects conflicts after the fact</td></tr><tr><td>Throughput</td><td>Lower (waiting for locks)</td><td>Higher (no waiting)</td></tr><tr><td>Complexity</td><td>Simple SQL</td><td>Application must handle retries</td></tr><tr><td>Deadlock risk</td><td>Yes</td><td>No</td></tr><tr><td>Best for</td><td>High-contention data (inventory, balances)</td><td>Low-contention data (user profiles, settings)</td></tr></tbody></table><h2 id=real-example-concurrent-bank-transfer>Real Example: Concurrent Bank Transfer</h2><p>Let us put it all together with a realistic bank transfer scenario.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- The safe transfer function (PostgreSQL)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>OR</span><span class=w> </span><span class=k>REPLACE</span><span class=w> </span><span class=k>FUNCTION</span><span class=w> </span><span class=n>transfer</span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>from_account</span><span class=w> </span><span class=nb>INT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>to_account</span><span class=w> </span><span class=nb>INT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>amount</span><span class=w> </span><span class=nb>DECIMAL</span><span class=p>(</span><span class=mi>12</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=k>RETURNS</span><span class=w> </span><span class=n>VOID</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=err>$$</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>DECLARE</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>from_balance</span><span class=w> </span><span class=nb>DECIMAL</span><span class=p>(</span><span class=mi>12</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>BEGIN</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=c1>-- Lock both accounts in consistent order (lowest ID first)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=c1>-- This prevents deadlocks
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=k>IF</span><span class=w> </span><span class=n>from_account</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>to_account</span><span class=w> </span><span class=k>THEN</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>PERFORM</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>from_account</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>PERFORM</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>to_account</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>ELSE</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>PERFORM</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>to_account</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>PERFORM</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>from_account</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=k>UPDATE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>END</span><span class=w> </span><span class=k>IF</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=c1>-- Check sufficient funds
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=k>SELECT</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>from_balance</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>FROM</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>from_account</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>IF</span><span class=w> </span><span class=n>from_balance</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>amount</span><span class=w> </span><span class=k>THEN</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>RAISE</span><span class=w> </span><span class=k>EXCEPTION</span><span class=w> </span><span class=s1>&#39;Insufficient funds: balance=%, amount=%&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>from_balance</span><span class=p>,</span><span class=w> </span><span class=n>amount</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>END</span><span class=w> </span><span class=k>IF</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=c1>-- Perform transfer
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>amount</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>from_account</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>amount</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>WHERE</span><span class=w> </span><span class=n>account_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>to_account</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=c1>-- Log the transfer
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>transfer_log</span><span class=w> </span><span class=p>(</span><span class=n>from_account</span><span class=p>,</span><span class=w> </span><span class=n>to_account</span><span class=p>,</span><span class=w> </span><span class=n>amount</span><span class=p>,</span><span class=w> </span><span class=n>transferred_at</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=n>from_account</span><span class=p>,</span><span class=w> </span><span class=n>to_account</span><span class=p>,</span><span class=w> </span><span class=n>amount</span><span class=p>,</span><span class=w> </span><span class=n>NOW</span><span class=p>());</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>END</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>$$</span><span class=w> </span><span class=k>LANGUAGE</span><span class=w> </span><span class=n>plpgsql</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Usage
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=n>transfer</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>,</span><span class=w> </span><span class=mi>500</span><span class=p>.</span><span class=mi>00</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>This function:</p><ol><li>Locks accounts in consistent order (prevents deadlocks)</li><li>Checks sufficient funds after locking (prevents race condition)</li><li>Performs both updates in a single transaction (atomicity)</li><li>Logs the transfer for audit trail</li><li>Runs at the default isolation level (READ COMMITTED is sufficient here because we hold explicit row locks)</li></ol><h2 id=monitoring-lock-contention>Monitoring Lock Contention</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL: view current locks
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l</span><span class=p>.</span><span class=n>pid</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>a</span><span class=p>.</span><span class=n>usename</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l</span><span class=p>.</span><span class=n>locktype</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l</span><span class=p>.</span><span class=n>relation</span><span class=p>::</span><span class=n>regclass</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>table_name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l</span><span class=p>.</span><span class=k>mode</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l</span><span class=p>.</span><span class=k>granted</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>a</span><span class=p>.</span><span class=n>query</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>age</span><span class=p>(</span><span class=n>now</span><span class=p>(),</span><span class=w> </span><span class=n>a</span><span class=p>.</span><span class=n>query_start</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>query_age</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_locks</span><span class=w> </span><span class=n>l</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>pg_stat_activity</span><span class=w> </span><span class=n>a</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>l</span><span class=p>.</span><span class=n>pid</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>a</span><span class=p>.</span><span class=n>pid</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=n>l</span><span class=p>.</span><span class=k>granted</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>a</span><span class=p>.</span><span class=n>query_start</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Find blocking queries
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>blocked</span><span class=p>.</span><span class=n>pid</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>blocked_pid</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>blocked</span><span class=p>.</span><span class=n>query</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>blocked_query</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>blocking</span><span class=p>.</span><span class=n>pid</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>blocking_pid</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>blocking</span><span class=p>.</span><span class=n>query</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>blocking_query</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>age</span><span class=p>(</span><span class=n>now</span><span class=p>(),</span><span class=w> </span><span class=n>blocked</span><span class=p>.</span><span class=n>query_start</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>waiting_time</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_activity</span><span class=w> </span><span class=n>blocked</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>pg_locks</span><span class=w> </span><span class=n>blocked_locks</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>blocked</span><span class=p>.</span><span class=n>pid</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>blocked_locks</span><span class=p>.</span><span class=n>pid</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>pg_locks</span><span class=w> </span><span class=n>blocking_locks</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>blocked_locks</span><span class=p>.</span><span class=n>locktype</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>blocking_locks</span><span class=p>.</span><span class=n>locktype</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>AND</span><span class=w> </span><span class=n>blocked_locks</span><span class=p>.</span><span class=n>relation</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>blocking_locks</span><span class=p>.</span><span class=n>relation</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>AND</span><span class=w> </span><span class=n>blocked_locks</span><span class=p>.</span><span class=n>pid</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=n>blocking_locks</span><span class=p>.</span><span class=n>pid</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>pg_stat_activity</span><span class=w> </span><span class=n>blocking</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>blocking_locks</span><span class=p>.</span><span class=n>pid</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>blocking</span><span class=p>.</span><span class=n>pid</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=n>blocked_locks</span><span class=p>.</span><span class=k>granted</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- MySQL: view InnoDB lock waits
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r</span><span class=p>.</span><span class=n>trx_id</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>waiting_trx</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r</span><span class=p>.</span><span class=n>trx_mysql_thread_id</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>waiting_thread</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r</span><span class=p>.</span><span class=n>trx_query</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>waiting_query</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>b</span><span class=p>.</span><span class=n>trx_id</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>blocking_trx</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>b</span><span class=p>.</span><span class=n>trx_mysql_thread_id</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>blocking_thread</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>b</span><span class=p>.</span><span class=n>trx_query</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>blocking_query</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>innodb_lock_waits</span><span class=w> </span><span class=n>w</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>innodb_trx</span><span class=w> </span><span class=n>b</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>b</span><span class=p>.</span><span class=n>trx_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>w</span><span class=p>.</span><span class=n>blocking_trx_id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>innodb_trx</span><span class=w> </span><span class=n>r</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>r</span><span class=p>.</span><span class=n>trx_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>w</span><span class=p>.</span><span class=n>requesting_trx_id</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=whats-next>What&rsquo;s Next</h2><p>Transactions guarantee correctness at the logical level. But how does the database actually store data on disk? How does a <code>COMMIT</code> survive a power failure? In the next article, we will go a level deeper and explore <strong>storage engines</strong> — the machinery that turns SQL into bytes on disk.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/databases/>Databases</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><span class=title>Databases (2): Indexing and Query Planning — How Databases Find Your Data</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/databases/04-storage-engines/><span class=title>Databases (4): Storage Engines — How Data Hits Disk</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/databases/01-data-models-and-sql/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Databases (1): Data Models and SQL — Why Tables Won (For Now)</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Databases (2): Indexing and Query Planning — How Databases Find Your Data</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
+<span class=series-nav-title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/04-storage-engines/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Databases (4): Storage Engines — How Data Hits Disk</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/05-nosql-landscape/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Databases (6): Replication and Partitioning — Scaling Beyond One Machine</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/07-distributed-transactions/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/08-database-in-practice/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-is-a-transaction>What Is a Transaction?</a></li><li><a href=#acid-the-four-guarantees>ACID: The Four Guarantees</a><ul><li><a href=#atomicity--all-or-nothing>Atomicity — All or Nothing</a></li><li><a href=#consistency--valid-state-to-valid-state>Consistency — Valid State to Valid State</a></li><li><a href=#isolation--concurrent-transactions-dont-interfere>Isolation — Concurrent Transactions Don&rsquo;t Interfere</a></li><li><a href=#durability--committed-means-permanent>Durability — Committed Means Permanent</a></li></ul></li><li><a href=#transaction-lifecycle>Transaction Lifecycle</a></li><li><a href=#isolation-levels>Isolation Levels</a><ul><li><a href=#the-three-anomalies>The Three Anomalies</a></li><li><a href=#isolation-level-matrix>Isolation Level Matrix</a></li><li><a href=#what-should-you-use>What Should You Use?</a></li></ul></li><li><a href=#mvcc-how-databases-implement-isolation-efficiently>MVCC: How Databases Implement Isolation Efficiently</a><ul><li><a href=#postgresql-mvcc>PostgreSQL MVCC</a></li><li><a href=#mysql-innodb-mvcc>MySQL InnoDB MVCC</a></li><li><a href=#mvcc-implications>MVCC Implications</a></li></ul></li><li><a href=#locking>Locking</a><ul><li><a href=#row-level-locks>Row-Level Locks</a></li><li><a href=#table-level-locks>Table-Level Locks</a></li><li><a href=#advisory-locks>Advisory Locks</a></li></ul></li><li><a href=#deadlocks>Deadlocks</a><ul><li><a href=#how-databases-handle-deadlocks>How Databases Handle Deadlocks</a></li><li><a href=#deadlock-prevention-strategies>Deadlock Prevention Strategies</a></li></ul></li><li><a href=#optimistic-vs-pessimistic-concurrency>Optimistic vs Pessimistic Concurrency</a><ul><li><a href=#pessimistic-locking>Pessimistic Locking</a></li><li><a href=#optimistic-locking>Optimistic Locking</a></li></ul></li><li><a href=#real-example-concurrent-bank-transfer>Real Example: Concurrent Bank Transfer</a></li><li><a href=#monitoring-lock-contention>Monitoring Lock Contention</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/databases/ class=series-name>Databases</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/01-data-models-and-sql/><span class=chapter-num>01</span>
+<span class=chapter-title>Databases (1): Data Models and SQL — Why Tables Won (For Now)</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><span class=chapter-num>02</span>
+<span class=chapter-title>Databases (2): Indexing and Query Planning — How Databases Find Your Data</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/04-storage-engines/><span class=chapter-num>04</span>
+<span class=chapter-title>Databases (4): Storage Engines — How Data Hits Disk</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/05-nosql-landscape/><span class=chapter-num>05</span>
+<span class=chapter-title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><span class=chapter-num>06</span>
+<span class=chapter-title>Databases (6): Replication and Partitioning — Scaling Beyond One Machine</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/07-distributed-transactions/><span class=chapter-num>07</span>
+<span class=chapter-title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/08-database-in-practice/><span class=chapter-num>08</span>
+<span class=chapter-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>32 min</strong></div><div class=row><span>Word count</span><strong>3289</strong></div><div class=row><span>Published</span><strong>Dec 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

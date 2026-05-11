@@ -1,0 +1,782 @@
+<!doctype html><html lang=en data-translation=/zh/python-engineering/07-packaging-and-distribution/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Python Engineering (7): Packaging — From pip install to PyPI · Chen Kai Blog</title>
+<meta name=description content="Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/><meta property="og:type" content="article"><meta property="og:title" content="Python Engineering (7): Packaging — From pip install to PyPI"><meta property="og:description" content="Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package."><meta property="og:url" content="https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><meta property="og:image:alt" content="Python Engineering (7): Packaging — From pip install to PyPI"><meta property="article:published_time" content="2022-04-24T09:00:00Z"><meta property="article:modified_time" content="2022-04-24T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Python"><meta property="article:tag" content="Packaging"><meta property="article:tag" content="Docker"><meta property="article:tag" content="PyPI"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Python Engineering (7): Packaging — From pip install to PyPI"><meta name=twitter:description content="Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Python Engineering (7): Packaging — From pip install to PyPI\"","description":"\"Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/python-engineering.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2022-04-24T09:00:00Z\"","dateModified":"\"2022-04-24T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/python-engineering/07-packaging-and-distribution/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Python Engineering</a>
+· Chapter 7</div><h1>Python Engineering (7): Packaging — From pip install to PyPI</h1><p class=deck>Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-04-24>April 24, 2022</time> · 22 min read · 2199 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/python/ class=tag>#Python</a><a href=/en/tags/packaging/ class=tag>#Packaging</a><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/pypi/ class=tag>#PyPI</a></div><a class="pill pill-outline" href=/zh/python-engineering/07-packaging-and-distribution/>阅读中文版 →</a></div></header><div class=prose><p>You wrote a useful utility. A colleague asks you to share it. You zip the folder and email it. They unzip it, run <code>python main.py</code>, and get <code>ModuleNotFoundError</code> because they do not have the dependencies. Then they install the dependencies, but the wrong versions. Then they have Python 3.8 and your f-string walrus operators do not parse.</p><p>Proper packaging eliminates all of this. With <code>pip install your-tool</code>, everything just works: correct dependencies, correct versions, and a clean CLI command.</p><h2 id=package-vs-module-vs-library>Package vs Module vs Library</h2><p>These terms are used loosely, but they have specific meanings in Python:</p><table><thead><tr><th>Term</th><th>Definition</th><th>Example</th></tr></thead><tbody><tr><td><strong>Module</strong></td><td>A single <code>.py</code> file</td><td><code>utils.py</code></td></tr><tr><td><strong>Package</strong></td><td>A directory with <code>__init__.py</code> containing modules</td><td><code>my_tool/</code> directory</td></tr><tr><td><strong>Library</strong></td><td>A package (or collection of packages) distributed for reuse</td><td><code>requests</code>, <code>flask</code></td></tr><tr><td><strong>Distribution</strong></td><td>An installable archive (wheel or sdist) on PyPI</td><td><code>requests-2.31.0-py3-none-any.whl</code></td></tr><tr><td><strong>Script</strong></td><td>A standalone <code>.py</code> file run directly</td><td><code>download.py</code></td></tr></tbody></table><p>When someone says &ldquo;install the requests library,&rdquo; they mean: download the <code>requests</code> distribution from PyPI, which contains the <code>requests</code> package and its subpackages.</p><h2 id=building-distributions>Building Distributions</h2><p>Python packages are distributed in two formats:</p><h3 id=sdist-source-distribution>sdist (Source Distribution)</h3><p>A <code>.tar.gz</code> archive of the source code. The recipient needs a build toolchain to install it (compiler for C extensions, etc.).</p><h3 id=wheel-built-distribution>wheel (Built Distribution)</h3><p>A <code>.whl</code> file (which is actually a zip archive). Pre-built, no compilation needed. Faster to install. This is what pip uses by default.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install build tool</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install build
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Build both sdist and wheel</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ python -m build
+</span></span><span class=line><span class=cl>* Creating venv isolated environment...
+</span></span><span class=line><span class=cl>* Installing packages in isolated environment... <span class=o>(</span>setuptools&gt;<span class=o>=</span>68.0, wheel<span class=o>)</span>
+</span></span><span class=line><span class=cl>* Getting build dependencies <span class=k>for</span> sdist...
+</span></span><span class=line><span class=cl>* Building sdist...
+</span></span><span class=line><span class=cl>* Building wheel from sdist
+</span></span><span class=line><span class=cl>Successfully built my_tool-0.1.0.tar.gz and my_tool-0.1.0-py3-none-any.whl
+</span></span></code></pre></td></tr></table></div></div><p>The output goes to <code>dist/</code>:</p><pre tabindex=0><code>dist/
+  my_tool-0.1.0.tar.gz                    # sdist
+  my_tool-0.1.0-py3-none-any.whl          # wheel
+</code></pre><p>The wheel filename encodes metadata: <code>{name}-{version}-{python}-{abi}-{platform}.whl</code>. <code>py3-none-any</code> means &ldquo;Python 3, no ABI dependency, any platform&rdquo; (a pure Python package).</p><h3 id=inspecting-a-wheel>Inspecting a Wheel</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># A .whl is just a zip file</span>
+</span></span><span class=line><span class=cl>$ unzip -l dist/my_tool-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl>Archive:  dist/my_tool-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl>  Length      Date    Time    Name
+</span></span><span class=line><span class=cl>---------  ---------- -----   ----
+</span></span><span class=line><span class=cl>      <span class=m>142</span>  2024-01-15 10:00   my_tool/__init__.py
+</span></span><span class=line><span class=cl>     <span class=m>1845</span>  2024-01-15 10:00   my_tool/core.py
+</span></span><span class=line><span class=cl>      <span class=m>923</span>  2024-01-15 10:00   my_tool/cli.py
+</span></span><span class=line><span class=cl>      <span class=m>456</span>  2024-01-15 10:00   my_tool/utils.py
+</span></span><span class=line><span class=cl>      <span class=m>178</span>  2024-01-15 10:00   my_tool/config.py
+</span></span><span class=line><span class=cl>      <span class=m>631</span>  2024-01-15 10:00   my_tool-0.1.0.dist-info/METADATA
+</span></span><span class=line><span class=cl>       <span class=m>92</span>  2024-01-15 10:00   my_tool-0.1.0.dist-info/WHEEL
+</span></span><span class=line><span class=cl>       <span class=m>50</span>  2024-01-15 10:00   my_tool-0.1.0.dist-info/entry_points.txt
+</span></span><span class=line><span class=cl>      <span class=m>654</span>  2024-01-15 10:00   my_tool-0.1.0.dist-info/RECORD
+</span></span></code></pre></td></tr></table></div></div><h2 id=pyprojecttoml-for-packaging>pyproject.toml for Packaging</h2><p>The complete packaging configuration:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;setuptools&gt;=68.0&#34;</span><span class=p>,</span> <span class=s2>&#34;wheel&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;setuptools.backends._legacy:_Backend&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>name</span> <span class=p>=</span> <span class=s2>&#34;my-tool&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>version</span> <span class=p>=</span> <span class=s2>&#34;0.1.0&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>description</span> <span class=p>=</span> <span class=s2>&#34;A CLI tool for downloading and converting files&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>readme</span> <span class=p>=</span> <span class=s2>&#34;README.md&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>requires-python</span> <span class=p>=</span> <span class=s2>&#34;&gt;=3.10&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>license</span> <span class=p>=</span> <span class=p>{</span><span class=nx>text</span> <span class=p>=</span> <span class=s2>&#34;MIT&#34;</span><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=nx>authors</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span><span class=nx>name</span> <span class=p>=</span> <span class=s2>&#34;Your Name&#34;</span><span class=p>,</span> <span class=nx>email</span> <span class=p>=</span> <span class=s2>&#34;you@example.com&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>keywords</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;download&#34;</span><span class=p>,</span> <span class=s2>&#34;convert&#34;</span><span class=p>,</span> <span class=s2>&#34;cli&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>classifiers</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Development Status :: 3 - Alpha&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Environment :: Console&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Intended Audience :: Developers&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;License :: OSI Approved :: MIT License&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Programming Language :: Python :: 3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Programming Language :: Python :: 3.10&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Programming Language :: Python :: 3.11&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Programming Language :: Python :: 3.12&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Topic :: Utilities&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dependencies</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;requests&gt;=2.28,&lt;3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;click&gt;=8.0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;rich&gt;=13.0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>.</span><span class=nx>optional-dependencies</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dev</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;pytest&gt;=7.0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;pytest-cov&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;ruff&gt;=0.3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;mypy&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;build&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;twine&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>.</span><span class=nx>scripts</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>my-tool</span> <span class=p>=</span> <span class=s2>&#34;my_tool.cli:main&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>.</span><span class=nx>urls</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>Homepage</span> <span class=p>=</span> <span class=s2>&#34;https://github.com/you/my-tool&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>Documentation</span> <span class=p>=</span> <span class=s2>&#34;https://my-tool.readthedocs.io&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>Repository</span> <span class=p>=</span> <span class=s2>&#34;https://github.com/you/my-tool&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>Issues</span> <span class=p>=</span> <span class=s2>&#34;https://github.com/you/my-tool/issues&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>Changelog</span> <span class=p>=</span> <span class=s2>&#34;https://github.com/you/my-tool/blob/main/CHANGELOG.md&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>setuptools</span><span class=p>.</span><span class=nx>packages</span><span class=p>.</span><span class=nx>find</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>where</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;src&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>setuptools</span><span class=p>.</span><span class=nx>package-data</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>my_tool</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;py.typed&#34;</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=key-sections>Key Sections</h3><p><strong><code>[build-system]</code></strong>: Tells pip which build tool to use. setuptools is the default, but you can use flit, hatchling, or poetry-core.</p><p><strong><code>[project]</code></strong>: PEP 621 standard metadata. Name, version, dependencies.</p><p><strong><code>[project.scripts]</code></strong>: Creates CLI commands. After <code>pip install</code>, <code>my-tool</code> appears in PATH.</p><p><strong><code>[project.optional-dependencies]</code></strong>: Extra dependencies grouped by purpose. Install with <code>pip install my-tool[dev]</code>.</p><p><strong><code>[tool.setuptools.packages.find]</code></strong>: Tells setuptools to look for packages in <code>src/</code>.</p><h3 id=including-data-files>Including Data Files</h3><p>If your package needs non-Python files (templates, configs, data), declare them:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>setuptools</span><span class=p>.</span><span class=nx>package-data</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>my_tool</span> <span class=p>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;templates/*.html&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;data/*.json&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;py.typed&#34;</span><span class=p>,</span>  <span class=c># marker for PEP 561 type checking</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>Or create a <code>MANIFEST.in</code> for sdist-specific includes:</p><pre tabindex=0><code>include LICENSE
+include README.md
+recursive-include src/my_tool/templates *.html
+recursive-include src/my_tool/data *.json
+</code></pre><h2 id=publishing-to-pypi>Publishing to PyPI</h2><h3 id=testpypi-first>TestPyPI First</h3><p>Always test on TestPyPI before publishing to the real PyPI:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install twine</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install twine
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Build</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ python -m build
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upload to TestPyPI</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ twine upload --repository testpypi dist/*
+</span></span><span class=line><span class=cl>Uploading distributions to https://test.pypi.org/legacy/
+</span></span><span class=line><span class=cl>Uploading my_tool-0.1.0-py3-none-any.whl <span class=o>[========================================]</span> 100%
+</span></span><span class=line><span class=cl>Uploading my_tool-0.1.0.tar.gz <span class=o>[========================================]</span> 100%
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Test installation from TestPyPI</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install --index-url https://test.pypi.org/simple/ my-tool
+</span></span></code></pre></td></tr></table></div></div><h3 id=create-pypi-account-and-api-token>Create PyPI Account and API Token</h3><ol><li>Register at <a href=https://pypi.org/account/register/ target=_blank rel="noopener noreferrer">https://pypi.org/account/register/ <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Go to Account Settings > API Tokens</li><li>Create a token scoped to your project (or all projects for the first upload)</li></ol><p>Configure <code>~/.pypirc</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=k>[distutils]</span>
+</span></span><span class=line><span class=cl><span class=na>index-servers</span> <span class=o>=</span><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>    pypi
+</span></span></span><span class=line><span class=cl><span class=s>    testpypi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>[pypi]</span>
+</span></span><span class=line><span class=cl><span class=na>username</span> <span class=o>=</span> <span class=s>__token__</span>
+</span></span><span class=line><span class=cl><span class=na>password</span> <span class=o>=</span> <span class=s>pypi-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>[testpypi]</span>
+</span></span><span class=line><span class=cl><span class=na>repository</span> <span class=o>=</span> <span class=s>https://test.pypi.org/legacy/</span>
+</span></span><span class=line><span class=cl><span class=na>username</span> <span class=o>=</span> <span class=s>__token__</span>
+</span></span><span class=line><span class=cl><span class=na>password</span> <span class=o>=</span> <span class=s>pypi-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=upload-to-pypi>Upload to PyPI</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ twine upload dist/*
+</span></span><span class=line><span class=cl>Uploading distributions to https://upload.pypi.org/legacy/
+</span></span><span class=line><span class=cl>Uploading my_tool-0.1.0-py3-none-any.whl <span class=o>[========================================]</span> 100%
+</span></span><span class=line><span class=cl>Uploading my_tool-0.1.0.tar.gz <span class=o>[========================================]</span> 100%
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>View at:
+</span></span><span class=line><span class=cl>https://pypi.org/project/my-tool/0.1.0/
+</span></span></code></pre></td></tr></table></div></div><p>Now anyone can install it:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ pip install my-tool
+</span></span></code></pre></td></tr></table></div></div><h3 id=pre-upload-checklist>Pre-Upload Checklist</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Check the distribution for common errors</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ twine check dist/*
+</span></span><span class=line><span class=cl>Checking dist/my_tool-0.1.0-py3-none-any.whl: PASSED
+</span></span><span class=line><span class=cl>Checking dist/my_tool-0.1.0.tar.gz: PASSED
+</span></span></code></pre></td></tr></table></div></div><p>Common issues twine catches:</p><ul><li>Missing README</li><li>Invalid long_description format</li><li>Missing required metadata</li></ul><h2 id=private-package-indexes>Private Package Indexes</h2><p>Not everything belongs on public PyPI. For internal packages:</p><h3 id=devpi>devpi</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install devpi server and client</span>
+</span></span><span class=line><span class=cl>$ pip install devpi-server devpi-client
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Start server</span>
+</span></span><span class=line><span class=cl>$ devpi-server --start --port <span class=m>3141</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Configure</span>
+</span></span><span class=line><span class=cl>$ devpi use http://localhost:3141
+</span></span><span class=line><span class=cl>$ devpi login root --password <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>$ devpi index -c dev
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upload</span>
+</span></span><span class=line><span class=cl>$ devpi upload dist/*
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Install from private index</span>
+</span></span><span class=line><span class=cl>$ pip install my-tool --index-url http://localhost:3141/root/dev/+simple/
+</span></span></code></pre></td></tr></table></div></div><h3 id=pip-configuration-for-private-index>pip Configuration for Private Index</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=c1># ~/.pip/pip.conf (Linux/macOS) or %APPDATA%\pip\pip.ini (Windows)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>[global]</span>
+</span></span><span class=line><span class=cl><span class=na>extra-index-url</span> <span class=o>=</span> <span class=s>http://internal-pypi.company.com/simple/</span>
+</span></span><span class=line><span class=cl><span class=na>trusted-host</span> <span class=o>=</span> <span class=s>internal-pypi.company.com</span>
+</span></span></code></pre></td></tr></table></div></div><p>Or per-project in <code>pyproject.toml</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=c># This is not standard but supported by pip-tools</span>
+</span></span><span class=line><span class=cl><span class=c># For pip itself, use pip.conf or command-line flags</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Per-command</span>
+</span></span><span class=line><span class=cl>$ pip install my-internal-tool --extra-index-url http://internal-pypi.company.com/simple/
+</span></span></code></pre></td></tr></table></div></div><h2 id=docker-images-with-python>Docker Images with Python</h2><h3 id=choosing-a-base-image>Choosing a Base Image</h3><table><thead><tr><th>Base Image</th><th>Size</th><th>Use Case</th></tr></thead><tbody><tr><td><code>python:3.11</code></td><td>~900MB</td><td>Development, includes build tools</td></tr><tr><td><code>python:3.11-slim</code></td><td>~150MB</td><td>Production, stripped down</td></tr><tr><td><code>python:3.11-alpine</code></td><td>~50MB</td><td>Minimal, but musl libc can cause issues</td></tr><tr><td><code>python:3.11-bookworm</code></td><td>~900MB</td><td>Debian Bookworm, good compatibility</td></tr><tr><td><code>python:3.11-slim-bookworm</code></td><td>~150MB</td><td>Production on Debian Bookworm</td></tr></tbody></table><p><strong>Recommendation:</strong> Use <code>python:3.11-slim</code> for production. Avoid alpine unless you specifically need the small size and are prepared to deal with musl compatibility issues (numpy, pandas, and other packages with C extensions may fail).</p><h3 id=basic-dockerfile>Basic Dockerfile</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> python:3.11-slim</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Install system dependencies (if needed)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=o>&amp;&amp;</span> apt-get install -y --no-install-recommends <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    gcc <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Copy dependency files first (better cache)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --no-cache-dir -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Copy application code</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> src/ src/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> pyproject.toml .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Install the package</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --no-cache-dir .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Run as non-root user</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> useradd --create-home appuser<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> appuser</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 8000</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;my-tool&#34;</span><span class=p>,</span> <span class=s2>&#34;serve&#34;</span><span class=p>,</span> <span class=s2>&#34;--host&#34;</span><span class=p>,</span> <span class=s2>&#34;0.0.0.0&#34;</span><span class=p>,</span> <span class=s2>&#34;--port&#34;</span><span class=p>,</span> <span class=s2>&#34;8000&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=multi-stage-build>Multi-Stage Build</h3><p>Reduce final image size by building in one stage and running in another:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Stage 1: Build</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:3.11 AS builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /build</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --no-cache-dir --prefix<span class=o>=</span>/install -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> src/ src/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> pyproject.toml .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --no-cache-dir --prefix<span class=o>=</span>/install .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Stage 2: Runtime</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:3.11-slim</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Copy only installed packages from builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --from<span class=o>=</span>builder /install /usr/local<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Create non-root user</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> useradd --create-home appuser<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> appuser</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 8000</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;my-tool&#34;</span><span class=p>,</span> <span class=s2>&#34;serve&#34;</span><span class=p>,</span> <span class=s2>&#34;--host&#34;</span><span class=p>,</span> <span class=s2>&#34;0.0.0.0&#34;</span><span class=p>,</span> <span class=s2>&#34;--port&#34;</span><span class=p>,</span> <span class=s2>&#34;8000&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>The builder stage includes gcc and build tools. The runtime stage only has the installed packages.</p><h3 id=dockerignore>.dockerignore</h3><pre tabindex=0><code>.venv/
+.git/
+.mypy_cache/
+__pycache__/
+*.pyc
+dist/
+build/
+*.egg-info/
+.env
+.env.*
+tests/
+docs/
+*.md
+</code></pre><h3 id=build-and-run>Build and Run</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Build</span>
+</span></span><span class=line><span class=cl>$ docker build -t my-tool:0.1.0 .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Run</span>
+</span></span><span class=line><span class=cl>$ docker run -p 8000:8000 my-tool:0.1.0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Run with environment variables</span>
+</span></span><span class=line><span class=cl>$ docker run -p 8000:8000 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=nv>DATABASE_URL</span><span class=o>=</span>postgresql://db:5432/mydb <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=nv>API_KEY</span><span class=o>=</span>sk-abc123 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    my-tool:0.1.0
+</span></span></code></pre></td></tr></table></div></div><h2 id=poetry-build-and-publish>Poetry Build and Publish</h2><p>If your project uses Poetry instead of setuptools:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install Poetry</span>
+</span></span><span class=line><span class=cl>$ curl -sSL https://install.python-poetry.org <span class=p>|</span> python3 -
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Initialize a new project</span>
+</span></span><span class=line><span class=cl>$ poetry new my-tool
+</span></span><span class=line><span class=cl>$ <span class=nb>cd</span> my-tool
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Or convert existing project</span>
+</span></span><span class=line><span class=cl>$ poetry init
+</span></span></code></pre></td></tr></table></div></div><p>Poetry uses its own <code>[tool.poetry]</code> section in <code>pyproject.toml</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>poetry</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>name</span> <span class=p>=</span> <span class=s2>&#34;my-tool&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>version</span> <span class=p>=</span> <span class=s2>&#34;0.1.0&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>description</span> <span class=p>=</span> <span class=s2>&#34;A CLI tool&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>authors</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;Your Name &lt;you@example.com&gt;&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>readme</span> <span class=p>=</span> <span class=s2>&#34;README.md&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>packages</span> <span class=p>=</span> <span class=p>[{</span><span class=nx>include</span> <span class=p>=</span> <span class=s2>&#34;my_tool&#34;</span><span class=p>,</span> <span class=nx>from</span> <span class=p>=</span> <span class=s2>&#34;src&#34;</span><span class=p>}]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>poetry</span><span class=p>.</span><span class=nx>dependencies</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>python</span> <span class=p>=</span> <span class=s2>&#34;^3.10&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>requests</span> <span class=p>=</span> <span class=s2>&#34;^2.28&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>click</span> <span class=p>=</span> <span class=s2>&#34;^8.0&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>poetry</span><span class=p>.</span><span class=nx>group</span><span class=p>.</span><span class=nx>dev</span><span class=p>.</span><span class=nx>dependencies</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>pytest</span> <span class=p>=</span> <span class=s2>&#34;^7.0&#34;</span>
+</span></span><span class=line><span class=cl><span class=nx>ruff</span> <span class=p>=</span> <span class=s2>&#34;^0.3&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>poetry</span><span class=p>.</span><span class=nx>scripts</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>my-tool</span> <span class=p>=</span> <span class=s2>&#34;my_tool.cli:main&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;poetry-core&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>build-backend</span> <span class=p>=</span> <span class=s2>&#34;poetry.core.masonry.api&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Build</span>
+</span></span><span class=line><span class=cl>$ poetry build
+</span></span><span class=line><span class=cl>Building my-tool <span class=o>(</span>0.1.0<span class=o>)</span>
+</span></span><span class=line><span class=cl>  - Building sdist
+</span></span><span class=line><span class=cl>  - Built my_tool-0.1.0.tar.gz
+</span></span><span class=line><span class=cl>  - Building wheel
+</span></span><span class=line><span class=cl>  - Built my_tool-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Publish to TestPyPI</span>
+</span></span><span class=line><span class=cl>$ poetry config repositories.testpypi https://test.pypi.org/legacy/
+</span></span><span class=line><span class=cl>$ poetry publish --repository testpypi
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Publish to PyPI</span>
+</span></span><span class=line><span class=cl>$ poetry publish
+</span></span></code></pre></td></tr></table></div></div><h2 id=versioning>Versioning</h2><h3 id=semver-semantic-versioning>SemVer (Semantic Versioning)</h3><p>The standard format: <code>MAJOR.MINOR.PATCH</code></p><table><thead><tr><th>Component</th><th>Increment When</th><th>Example</th></tr></thead><tbody><tr><td>MAJOR</td><td>Breaking API changes</td><td>1.0.0 -> 2.0.0</td></tr><tr><td>MINOR</td><td>New features, backward compatible</td><td>1.0.0 -> 1.1.0</td></tr><tr><td>PATCH</td><td>Bug fixes, backward compatible</td><td>1.0.0 -> 1.0.1</td></tr></tbody></table><p>Pre-release versions: <code>1.0.0a1</code> (alpha), <code>1.0.0b1</code> (beta), <code>1.0.0rc1</code> (release candidate).</p><h3 id=setting-the-version>Setting the Version</h3><p><strong>Option 1: Single source of truth in pyproject.toml</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>version</span> <span class=p>=</span> <span class=s2>&#34;0.1.0&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Access at runtime:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>importlib.metadata</span> <span class=kn>import</span> <span class=n>version</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>__version__</span> <span class=o>=</span> <span class=n>version</span><span class=p>(</span><span class=s2>&#34;my-tool&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Option 2: <code>__version__</code> in <code>__init__.py</code></strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># src/my_tool/__init__.py</span>
+</span></span><span class=line><span class=cl><span class=n>__version__</span> <span class=o>=</span> <span class=s2>&#34;0.1.0&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Reference in pyproject.toml:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dynamic</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;version&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>setuptools</span><span class=p>.</span><span class=nx>dynamic</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>version</span> <span class=p>=</span> <span class=p>{</span><span class=nx>attr</span> <span class=p>=</span> <span class=s2>&#34;my_tool.__version__&#34;</span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Option 3: Dynamic versioning from git tags</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install setuptools-scm
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-toml data-lang=toml><span class=line><span class=cl><span class=p>[</span><span class=nx>build-system</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>requires</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;setuptools&gt;=68.0&#34;</span><span class=p>,</span> <span class=s2>&#34;setuptools-scm&gt;=8.0&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>project</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=nx>dynamic</span> <span class=p>=</span> <span class=p>[</span><span class=s2>&#34;version&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>[</span><span class=nx>tool</span><span class=p>.</span><span class=nx>setuptools_scm</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>Version is derived from git tags:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ git tag v0.1.0
+</span></span><span class=line><span class=cl>$ python -m build
+</span></span><span class=line><span class=cl><span class=c1># Package version is 0.1.0</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=real-example-package-and-publish>Real Example: Package and Publish</h2><p>Here is the complete workflow for publishing the downloader tool from earlier in this series:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. Verify tests pass</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pytest -v --cov<span class=o>=</span><span class=nv>my_tool</span>
+</span></span><span class=line><span class=cl><span class=o>=========================</span> <span class=m>14</span> passed in 0.45s <span class=o>==========================</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. Verify linting</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ ruff check src/ tests/
+</span></span><span class=line><span class=cl>All checks passed!
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. Verify type checking</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ mypy src/
+</span></span><span class=line><span class=cl>Success: no issues found
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. Build</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ python -m build
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 5. Check the built package</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ twine check dist/*
+</span></span><span class=line><span class=cl>Checking dist/my_tool-0.1.0-py3-none-any.whl: PASSED
+</span></span><span class=line><span class=cl>Checking dist/my_tool-0.1.0.tar.gz: PASSED
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 6. Test install in a fresh venv</span>
+</span></span><span class=line><span class=cl>$ python -m venv /tmp/test-install
+</span></span><span class=line><span class=cl>$ <span class=nb>source</span> /tmp/test-install/bin/activate
+</span></span><span class=line><span class=cl><span class=o>(</span>test-install<span class=o>)</span> $ pip install dist/my_tool-0.1.0-py3-none-any.whl
+</span></span><span class=line><span class=cl><span class=o>(</span>test-install<span class=o>)</span> $ my-tool --help
+</span></span><span class=line><span class=cl>Usage: my-tool <span class=o>[</span>OPTIONS<span class=o>]</span> URL
+</span></span><span class=line><span class=cl>...
+</span></span><span class=line><span class=cl><span class=o>(</span>test-install<span class=o>)</span> $ deactivate
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 7. Upload to TestPyPI first</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ twine upload --repository testpypi dist/*
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 8. Test from TestPyPI</span>
+</span></span><span class=line><span class=cl>$ pip install --index-url https://test.pypi.org/simple/ my-tool
+</span></span><span class=line><span class=cl>$ my-tool --version
+</span></span><span class=line><span class=cl>my-tool 0.1.0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 9. Upload to real PyPI</span>
+</span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ twine upload dist/*
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 10. Tag the release</span>
+</span></span><span class=line><span class=cl>$ git tag -a v0.1.0 -m <span class=s2>&#34;Release 0.1.0&#34;</span>
+</span></span><span class=line><span class=cl>$ git push origin v0.1.0
+</span></span></code></pre></td></tr></table></div></div><h3 id=automating-with-github-actions>Automating with GitHub Actions</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/publish.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Publish to PyPI</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>release</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>types</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>published]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>publish</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>permissions</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>id-token</span><span class=p>:</span><span class=w> </span><span class=l>write </span><span class=w> </span><span class=c># Required for trusted publishing</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Set up Python</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/setup-python@v5</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>python-version</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;3.11&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Install dependencies</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>          python -m pip install --upgrade pip
+</span></span></span><span class=line><span class=cl><span class=sd>          pip install build</span><span class=w>          
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Build</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=l>python -m build</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Publish to PyPI</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>pypa/gh-action-pypi-publish@release/v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=c># Uses trusted publishing (no API token needed)</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>With trusted publishing, you configure PyPI to trust your GitHub Actions workflow. No API tokens to manage.</p><h2 id=whats-next>What&rsquo;s Next</h2><p>Your package is published and installable. But is it fast enough? In the next article, we will profile Python code to find bottlenecks, apply caching and vectorization, and learn the crucial skill of knowing when optimization matters and when it does not.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/python-engineering/>Python Engineering</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/python-engineering/06-concurrency/><span class=title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/01-environment-and-toolchain/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/02-project-structure/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Python Engineering (2): Project Structure — From Script to Package</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Python Engineering (3): Testing — pytest, Fixtures, and the Confidence Loop</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/04-type-hints-and-linting/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Python Engineering (4): Type Hints, Linting, and Code Quality</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/05-io-and-serialization/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Python Engineering (5): I/O, Serialization, and Data Formats</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/06-concurrency/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>Python Engineering (7): Packaging — From pip install to PyPI</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#package-vs-module-vs-library>Package vs Module vs Library</a></li><li><a href=#building-distributions>Building Distributions</a><ul><li><a href=#sdist-source-distribution>sdist (Source Distribution)</a></li><li><a href=#wheel-built-distribution>wheel (Built Distribution)</a></li><li><a href=#inspecting-a-wheel>Inspecting a Wheel</a></li></ul></li><li><a href=#pyprojecttoml-for-packaging>pyproject.toml for Packaging</a><ul><li><a href=#key-sections>Key Sections</a></li><li><a href=#including-data-files>Including Data Files</a></li></ul></li><li><a href=#publishing-to-pypi>Publishing to PyPI</a><ul><li><a href=#testpypi-first>TestPyPI First</a></li><li><a href=#create-pypi-account-and-api-token>Create PyPI Account and API Token</a></li><li><a href=#upload-to-pypi>Upload to PyPI</a></li><li><a href=#pre-upload-checklist>Pre-Upload Checklist</a></li></ul></li><li><a href=#private-package-indexes>Private Package Indexes</a><ul><li><a href=#devpi>devpi</a></li><li><a href=#pip-configuration-for-private-index>pip Configuration for Private Index</a></li></ul></li><li><a href=#docker-images-with-python>Docker Images with Python</a><ul><li><a href=#choosing-a-base-image>Choosing a Base Image</a></li><li><a href=#basic-dockerfile>Basic Dockerfile</a></li><li><a href=#multi-stage-build>Multi-Stage Build</a></li><li><a href=#dockerignore>.dockerignore</a></li><li><a href=#build-and-run>Build and Run</a></li></ul></li><li><a href=#poetry-build-and-publish>Poetry Build and Publish</a></li><li><a href=#versioning>Versioning</a><ul><li><a href=#semver-semantic-versioning>SemVer (Semantic Versioning)</a></li><li><a href=#setting-the-version>Setting the Version</a></li></ul></li><li><a href=#real-example-package-and-publish>Real Example: Package and Publish</a><ul><li><a href=#automating-with-github-actions>Automating with GitHub Actions</a></li></ul></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/python-engineering/ class=series-name>Python Engineering</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/01-environment-and-toolchain/><span class=chapter-num>01</span>
+<span class=chapter-title>Python Engineering (1): Environment Setup — pyenv, venv, and Dependency Hell</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/02-project-structure/><span class=chapter-num>02</span>
+<span class=chapter-title>Python Engineering (2): Project Structure — From Script to Package</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/03-testing-and-debugging/><span class=chapter-num>03</span>
+<span class=chapter-title>Python Engineering (3): Testing — pytest, Fixtures, and the Confidence Loop</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/04-type-hints-and-linting/><span class=chapter-num>04</span>
+<span class=chapter-title>Python Engineering (4): Type Hints, Linting, and Code Quality</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/05-io-and-serialization/><span class=chapter-num>05</span>
+<span class=chapter-title>Python Engineering (5): I/O, Serialization, and Data Formats</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/06-concurrency/><span class=chapter-num>06</span>
+<span class=chapter-title>Python Engineering (6): Concurrency — Threads, Processes, and asyncio</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>Python Engineering (7): Packaging — From pip install to PyPI</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
+<span class=chapter-title>Python Engineering (8): Performance — Profiling, Caching, and Knowing When to Stop</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>22 min</strong></div><div class=row><span>Word count</span><strong>2199</strong></div><div class=row><span>Published</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

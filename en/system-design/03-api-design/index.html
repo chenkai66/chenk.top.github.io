@@ -1,0 +1,808 @@
+<!doctype html><html lang=en data-translation=/zh/system-design/03-api-design/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely · Chen Kai Blog</title>
+<meta name=description content="A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/system-design/03-api-design/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/system-design/03-api-design/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/system-design/03-api-design/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/system-design/03-api-design/><meta property="og:type" content="article"><meta property="og:title" content="System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely"><meta property="og:description" content="A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style."><meta property="og:url" content="https://www.chenk.top/en/system-design/03-api-design/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg"><meta property="og:image:alt" content="System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely"><meta property="article:published_time" content="2025-07-15T09:00:00Z"><meta property="article:modified_time" content="2025-07-15T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="System Design"><meta property="article:tag" content="API Design"><meta property="article:tag" content="REST"><meta property="article:tag" content="gRPC"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely"><meta name=twitter:description content="A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely\"","description":"\"A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2025-07-15T09:00:00Z\"","dateModified":"\"2025-07-15T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/system-design/03-api-design/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>System Design</a>
+· Chapter 3</div><h1>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</h1><p class=deck>A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-07-15>July 15, 2025</time> · 30 min read · 3051 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/system-design/ class=tag>#System Design</a><a href=/en/tags/api-design/ class=tag>#API Design</a><a href=/en/tags/rest/ class=tag>#REST</a><a href=/en/tags/grpc/ class=tag>#gRPC</a></div><a class="pill pill-outline" href=/zh/system-design/03-api-design/>阅读中文版 →</a></div></header><div class=prose><p>In 2015, Facebook published a blog post introducing GraphQL, describing how their mobile app was drowning in REST API calls. A single news feed screen required data from posts, users, comments, likes, and media — each a separate endpoint, each returning far more data than the client needed. The over-fetching was killing mobile performance on slow networks. GraphQL was their solution, but it was not a universal solution.</p><p>Every API style exists because it solves a specific set of problems well, and every API style creates new problems. The skill is matching the right protocol to the right context.</p><h2 id=rest-the-lingua-franca-of-web-apis>REST: The Lingua Franca of Web APIs</h2><p>REST (Representational State Transfer) is an architectural style, not a protocol. It was defined by Roy Fielding in his 2000 doctoral dissertation, but what most people call &ldquo;REST&rdquo; is really &ldquo;HTTP-based APIs that use JSON.&rdquo;</p><h3 id=core-concepts>Core Concepts</h3><p>REST models everything as a <strong>resource</strong>, identified by a URL. Operations on resources map to HTTP methods.</p><table><thead><tr><th>HTTP Method</th><th>CRUD Operation</th><th>Example</th></tr></thead><tbody><tr><td>GET</td><td>Read</td><td><code>GET /users/123</code></td></tr><tr><td>POST</td><td>Create</td><td><code>POST /users</code></td></tr><tr><td>PUT</td><td>Replace</td><td><code>PUT /users/123</code></td></tr><tr><td>PATCH</td><td>Partial update</td><td><code>PATCH /users/123</code></td></tr><tr><td>DELETE</td><td>Delete</td><td><code>DELETE /users/123</code></td></tr></tbody></table><h3 id=status-codes>Status Codes</h3><p>Status codes communicate the result of an operation. Using them correctly is the difference between a good API and a frustrating one.</p><pre tabindex=0><code>2xx Success
+  200 OK           — Request succeeded, response body contains result
+  201 Created      — Resource created, Location header points to it
+  204 No Content   — Success, no response body (common for DELETE)
+
+3xx Redirection
+  301 Moved Permanently — Resource has a new URL
+  304 Not Modified      — Cached version is still valid
+
+4xx Client Error
+  400 Bad Request    — Malformed request (validation errors)
+  401 Unauthorized   — Authentication required
+  403 Forbidden      — Authenticated but not authorized
+  404 Not Found      — Resource does not exist
+  409 Conflict       — Request conflicts with current state
+  429 Too Many Requests — Rate limited
+
+5xx Server Error
+  500 Internal Server Error — Unhandled exception
+  502 Bad Gateway          — Upstream service failure
+  503 Service Unavailable  — Server temporarily overloaded
+  504 Gateway Timeout      — Upstream service timeout
+</code></pre><h3 id=rest-best-practices>REST Best Practices</h3><p><strong>URL Design</strong>: Use nouns for resources, not verbs. The HTTP method is the verb.</p><pre tabindex=0><code>Good:
+  GET    /photos              # List photos
+  POST   /photos              # Create a photo
+  GET    /photos/456          # Get a specific photo
+  DELETE /photos/456          # Delete a photo
+  GET    /users/123/photos    # List photos by user 123
+
+Bad:
+  GET    /getPhotos
+  POST   /createPhoto
+  POST   /deletePhoto?id=456
+</code></pre><p><strong>Versioning</strong>: Two common approaches, each with trade-offs.</p><p>URL versioning (<code>/v1/photos</code>):</p><ul><li>Easy to understand and implement</li><li>Clear in logs and documentation</li><li>Clutters URL namespace</li><li>Forces clients to update URLs on version change</li></ul><p>Header versioning (<code>Accept: application/vnd.example.v1+json</code>):</p><ul><li>Cleaner URLs</li><li>More RESTful (same resource, different representation)</li><li>Harder to test in browser</li><li>Easy to forget, leading to implicit versioning bugs</li></ul><p>In practice, URL versioning wins for public APIs because of its simplicity. Header versioning works for internal APIs where you control all clients.</p><p><strong>Pagination</strong>: Never return unbounded lists.</p><pre tabindex=0><code># Offset-based pagination
+GET /photos?offset=20&amp;limit=10
+
+# Cursor-based pagination (better for large datasets)
+GET /photos?cursor=eyJpZCI6MTAwfQ&amp;limit=10
+
+Response:
+{
+  &#34;data&#34;: [...],
+  &#34;pagination&#34;: {
+    &#34;next_cursor&#34;: &#34;eyJpZCI6MTEwfQ&#34;,
+    &#34;has_more&#34;: true
+  }
+}
+</code></pre><p>Cursor-based pagination is superior for large, actively-changing datasets. Offset-based pagination breaks when items are inserted or deleted between page requests (you skip or duplicate items).</p><p><strong>Filtering and Sorting</strong>:</p><pre tabindex=0><code>GET /photos?user_id=123&amp;created_after=2025-01-01&amp;sort=-created_at&amp;fields=id,url,caption
+</code></pre><p>The <code>fields</code> parameter reduces payload size — a lightweight alternative to GraphQL&rsquo;s field selection.</p><h3 id=rest-anti-patterns>REST Anti-Patterns</h3><p><strong>RPC-style URLs</strong>: Using POST for everything and encoding the operation in the URL.</p><pre tabindex=0><code>POST /api/executeAction
+Body: { &#34;action&#34;: &#34;getUser&#34;, &#34;userId&#34;: 123 }
+</code></pre><p>This loses all the benefits of REST: cacheability (GET is cacheable, POST is not), discoverability, standard tooling.</p><p><strong>Ignoring HTTP semantics</strong>: Returning 200 for errors with an error flag in the body.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;success&#34;</span><span class=p>:</span> <span class=kc>false</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;error&#34;</span><span class=p>:</span> <span class=s2>&#34;User not found&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>HTTP status codes exist for a reason. Middleware, proxies, and client libraries all depend on them.</p><p><strong>Deeply nested resources</strong>: URLs like <code>/companies/1/departments/2/teams/3/members/4/roles</code> suggest your API models your database schema rather than your use cases. Flatten when depth exceeds 2 levels.</p><h2 id=grpc-the-performance-protocol>gRPC: The Performance Protocol</h2><p>gRPC is a high-performance, open-source RPC framework developed by Google. It uses Protocol Buffers (protobuf) for serialization and HTTP/2 for transport.</p><h3 id=protocol-buffers>Protocol Buffers</h3><p>Protobuf is a binary serialization format. You define your data structures and service interfaces in <code>.proto</code> files, and code generators produce client and server stubs in your target language.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-protobuf data-lang=protobuf><span class=line><span class=cl><span class=n>syntax</span> <span class=o>=</span> <span class=s>&#34;proto3&#34;</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kn>package</span> <span class=nn>photos</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c1>// Data structures
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kd>message</span> <span class=nc>Photo</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>id</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>url</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>caption</span> <span class=o>=</span> <span class=mi>3</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>user_id</span> <span class=o>=</span> <span class=mi>4</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>int64</span> <span class=n>created_at</span> <span class=o>=</span> <span class=mi>5</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>repeated</span> <span class=kt>string</span> <span class=n>tags</span> <span class=o>=</span> <span class=mi>6</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kd>message</span> <span class=nc>GetPhotoRequest</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>id</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kd>message</span> <span class=nc>ListPhotosRequest</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>user_id</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>int32</span> <span class=n>page_size</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>page_token</span> <span class=o>=</span> <span class=mi>3</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kd>message</span> <span class=nc>ListPhotosResponse</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>repeated</span> <span class=n>Photo</span> <span class=n>photos</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>next_page_token</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=kd>message</span> <span class=nc>UploadPhotoRequest</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>bytes</span> <span class=n>image_data</span> <span class=o>=</span> <span class=mi>1</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=kt>string</span> <span class=n>caption</span> <span class=o>=</span> <span class=mi>2</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>repeated</span> <span class=kt>string</span> <span class=n>tags</span> <span class=o>=</span> <span class=mi>3</span><span class=p>;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=p>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c1>// Service definition
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kd>service</span> <span class=n>PhotoService</span> <span class=p>{</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>rpc</span> <span class=n>GetPhoto</span><span class=p>(</span><span class=n>GetPhotoRequest</span><span class=p>)</span> <span class=k>returns</span> <span class=p>(</span><span class=n>Photo</span><span class=p>);</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>rpc</span> <span class=n>ListPhotos</span><span class=p>(</span><span class=n>ListPhotosRequest</span><span class=p>)</span> <span class=k>returns</span> <span class=p>(</span><span class=n>ListPhotosResponse</span><span class=p>);</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>rpc</span> <span class=n>UploadPhoto</span><span class=p>(</span><span class=n>UploadPhotoRequest</span><span class=p>)</span> <span class=k>returns</span> <span class=p>(</span><span class=n>Photo</span><span class=p>);</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span>  <span class=k>rpc</span> <span class=n>StreamPhotos</span><span class=p>(</span><span class=n>ListPhotosRequest</span><span class=p>)</span> <span class=k>returns</span> <span class=p>(</span><span class=n>stream</span> <span class=n>Photo</span><span class=p>);</span>  <span class=c1>// Server streaming
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=grpc-streaming-modes>gRPC Streaming Modes</h3><p>gRPC supports four communication patterns:</p><p><strong>Unary</strong>: Standard request-response. Client sends one message, server returns one message.</p><p><strong>Server streaming</strong>: Client sends one request, server returns a stream of messages. Use case: subscribing to real-time updates, downloading large datasets.</p><p><strong>Client streaming</strong>: Client sends a stream of messages, server returns one response. Use case: file upload, batch ingestion.</p><p><strong>Bidirectional streaming</strong>: Both client and server send streams of messages independently. Use case: chat applications, collaborative editing.</p><h3 id=using-grpc-in-python>Using gRPC in Python</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># server.py</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>grpc</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent</span> <span class=kn>import</span> <span class=n>futures</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>photos_pb2</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>photos_pb2_grpc</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PhotoServicer</span><span class=p>(</span><span class=n>photos_pb2_grpc</span><span class=o>.</span><span class=n>PhotoServiceServicer</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>GetPhoto</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>request</span><span class=p>,</span> <span class=n>context</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Look up photo by ID</span>
+</span></span><span class=line><span class=cl>        <span class=n>photo</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>get_photo</span><span class=p>(</span><span class=n>request</span><span class=o>.</span><span class=n>id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>photo</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>context</span><span class=o>.</span><span class=n>set_code</span><span class=p>(</span><span class=n>grpc</span><span class=o>.</span><span class=n>StatusCode</span><span class=o>.</span><span class=n>NOT_FOUND</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>context</span><span class=o>.</span><span class=n>set_details</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Photo </span><span class=si>{</span><span class=n>request</span><span class=o>.</span><span class=n>id</span><span class=si>}</span><span class=s2> not found&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>photos_pb2</span><span class=o>.</span><span class=n>Photo</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>photos_pb2</span><span class=o>.</span><span class=n>Photo</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=nb>id</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>url</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>url</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>caption</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>caption</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>user_id</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>user_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>created_at</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>created_at</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>StreamPhotos</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>request</span><span class=p>,</span> <span class=n>context</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Server streaming - yields photos one at a time&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>photos</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>list_photos</span><span class=p>(</span><span class=n>user_id</span><span class=o>=</span><span class=n>request</span><span class=o>.</span><span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>photo</span> <span class=ow>in</span> <span class=n>photos</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>yield</span> <span class=n>photos_pb2</span><span class=o>.</span><span class=n>Photo</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=nb>id</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>url</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>url</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>caption</span><span class=o>=</span><span class=n>photo</span><span class=o>.</span><span class=n>caption</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>serve</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>server</span> <span class=o>=</span> <span class=n>grpc</span><span class=o>.</span><span class=n>server</span><span class=p>(</span><span class=n>futures</span><span class=o>.</span><span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=mi>10</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>photos_pb2_grpc</span><span class=o>.</span><span class=n>add_PhotoServiceServicer_to_server</span><span class=p>(</span><span class=n>PhotoServicer</span><span class=p>(),</span> <span class=n>server</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>server</span><span class=o>.</span><span class=n>add_insecure_port</span><span class=p>(</span><span class=s2>&#34;[::]:50051&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>server</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>server</span><span class=o>.</span><span class=n>wait_for_termination</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># client.py</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>grpc</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>photos_pb2</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>photos_pb2_grpc</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>channel</span> <span class=o>=</span> <span class=n>grpc</span><span class=o>.</span><span class=n>insecure_channel</span><span class=p>(</span><span class=s2>&#34;localhost:50051&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>stub</span> <span class=o>=</span> <span class=n>photos_pb2_grpc</span><span class=o>.</span><span class=n>PhotoServiceStub</span><span class=p>(</span><span class=n>channel</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Unary call</span>
+</span></span><span class=line><span class=cl><span class=n>photo</span> <span class=o>=</span> <span class=n>stub</span><span class=o>.</span><span class=n>GetPhoto</span><span class=p>(</span><span class=n>photos_pb2</span><span class=o>.</span><span class=n>GetPhotoRequest</span><span class=p>(</span><span class=nb>id</span><span class=o>=</span><span class=s2>&#34;abc123&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Photo: </span><span class=si>{</span><span class=n>photo</span><span class=o>.</span><span class=n>caption</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Server streaming</span>
+</span></span><span class=line><span class=cl><span class=n>request</span> <span class=o>=</span> <span class=n>photos_pb2</span><span class=o>.</span><span class=n>ListPhotosRequest</span><span class=p>(</span><span class=n>user_id</span><span class=o>=</span><span class=s2>&#34;user456&#34;</span><span class=p>,</span> <span class=n>page_size</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>photo</span> <span class=ow>in</span> <span class=n>stub</span><span class=o>.</span><span class=n>StreamPhotos</span><span class=p>(</span><span class=n>request</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Streamed photo: </span><span class=si>{</span><span class=n>photo</span><span class=o>.</span><span class=n>id</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=why-choose-grpc>Why Choose gRPC</h3><p>gRPC excels in service-to-service communication within a backend:</p><ul><li><strong>Binary serialization</strong>: 5-10x smaller payloads than JSON</li><li><strong>HTTP/2</strong>: Multiplexed streams over a single connection, header compression</li><li><strong>Code generation</strong>: Type-safe client/server stubs in 10+ languages</li><li><strong>Streaming</strong>: Native support for all four streaming patterns</li><li><strong>Deadlines</strong>: Built-in timeout propagation across service chains</li></ul><h3 id=why-not-grpc>Why Not gRPC</h3><p>gRPC is a poor fit for browser-to-server communication:</p><ul><li>Browsers do not support HTTP/2 trailers (required by gRPC)</li><li>Binary format is not human-readable (harder to debug)</li><li>gRPC-Web exists but adds complexity and limitations</li><li>No native browser support means you need a proxy</li></ul><h2 id=graphql-client-driven-queries>GraphQL: Client-Driven Queries</h2><p>GraphQL is a query language for APIs. Instead of the server defining fixed endpoint shapes, the client specifies exactly what data it needs.</p><h3 id=schema-definition>Schema Definition</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-graphql data-lang=graphql><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nc>Photo</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>id</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>url</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>caption</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>user</span><span class=p>:</span><span class=w> </span><span class=nc>User</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>tags</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=nc>String</span><span class=p>!]!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>likes</span><span class=p>:</span><span class=w> </span><span class=nc>Int</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>comments</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>Int</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=py>10</span><span class=p>):</span><span class=w> </span><span class=p>[</span><span class=nc>Comment</span><span class=p>!]!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>createdAt</span><span class=p>:</span><span class=w> </span><span class=nc>DateTime</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>User</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>id</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>name</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>avatarUrl</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>photos</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>Int</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=py>20</span><span class=p>,</span><span class=w> </span><span class=py>after</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=p>):</span><span class=w> </span><span class=nc>PhotoConnection</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>followerCount</span><span class=p>:</span><span class=w> </span><span class=nc>Int</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>Comment</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>id</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>text</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>author</span><span class=p>:</span><span class=w> </span><span class=nc>User</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>createdAt</span><span class=p>:</span><span class=w> </span><span class=nc>DateTime</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>PhotoConnection</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>edges</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=nc>PhotoEdge</span><span class=p>!]!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>pageInfo</span><span class=p>:</span><span class=w> </span><span class=nc>PageInfo</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>PhotoEdge</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>node</span><span class=p>:</span><span class=w> </span><span class=nc>Photo</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>cursor</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>PageInfo</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>hasNextPage</span><span class=p>:</span><span class=w> </span><span class=nc>Boolean</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>endCursor</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>Query</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>photo</span><span class=p>(</span><span class=py>id</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!):</span><span class=w> </span><span class=nc>Photo</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>feed</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>Int</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=py>20</span><span class=p>,</span><span class=w> </span><span class=py>after</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=p>):</span><span class=w> </span><span class=nc>PhotoConnection</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>user</span><span class=p>(</span><span class=py>id</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!):</span><span class=w> </span><span class=nc>User</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>Mutation</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>uploadPhoto</span><span class=p>(</span><span class=kd>input</span><span class=p>:</span><span class=w> </span><span class=nc>UploadPhotoInput</span><span class=p>!):</span><span class=w> </span><span class=nc>Photo</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nc>likePhoto</span><span class=p>(</span><span class=py>photoId</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!):</span><span class=w> </span><span class=nc>Photo</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>addComment</span><span class=p>(</span><span class=py>photoId</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!,</span><span class=w> </span><span class=py>text</span><span class=p>:</span><span class=w> </span><span class=nc>String</span><span class=p>!):</span><span class=w> </span><span class=nc>Comment</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nc>Subscription</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>newComment</span><span class=p>(</span><span class=py>photoId</span><span class=p>:</span><span class=w> </span><span class=nc>ID</span><span class=p>!):</span><span class=w> </span><span class=nc>Comment</span><span class=p>!</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=client-queries>Client Queries</h3><p>The client requests exactly the fields it needs:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-graphql data-lang=graphql><span class=line><span class=cl><span class=c># Mobile app: needs minimal data</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>query</span><span class=w> </span><span class=nc>FeedMinimal</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>feed</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>10</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=py>edges</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=py>node</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>url</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>likes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=py>pageInfo</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=py>hasNextPage</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=py>endCursor</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c># Web app: needs full data including user info</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>query</span><span class=w> </span><span class=nc>FeedFull</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>feed</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>20</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=py>edges</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=py>node</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>url</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>caption</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>likes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>user</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=py>name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=py>avatarUrl</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>comments</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>3</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=py>text</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=py>author</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=py>name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Both queries hit the same endpoint (<code>POST /graphql</code>) but return different shapes. The mobile app fetches only 3 fields per photo; the web app fetches 8+ fields including nested user and comment data. This eliminates the over-fetching problem that motivated GraphQL&rsquo;s creation.</p><h3 id=graphql-drawbacks>GraphQL Drawbacks</h3><p><strong>N+1 Query Problem</strong>: A naive resolver implementation fetches related data one at a time.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Bad: N+1 queries</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PhotoResolver</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>resolve_user</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>photo</span><span class=p>,</span> <span class=n>info</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>db</span><span class=o>.</span><span class=n>get_user</span><span class=p>(</span><span class=n>photo</span><span class=o>.</span><span class=n>user_id</span><span class=p>)</span>  <span class=c1># Called once per photo!</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># If you fetch 20 photos, this makes 1 query for photos + 20 queries for users = 21 queries</span>
+</span></span></code></pre></td></tr></table></div></div><p>The solution is a DataLoader that batches and caches lookups:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>promise</span> <span class=kn>import</span> <span class=n>Promise</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>promise.dataloader</span> <span class=kn>import</span> <span class=n>DataLoader</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>UserLoader</span><span class=p>(</span><span class=n>DataLoader</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>batch_load_fn</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_ids</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>users</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>get_users_by_ids</span><span class=p>(</span><span class=n>user_ids</span><span class=p>)</span>  <span class=c1># Single batch query</span>
+</span></span><span class=line><span class=cl>        <span class=n>user_map</span> <span class=o>=</span> <span class=p>{</span><span class=n>u</span><span class=o>.</span><span class=n>id</span><span class=p>:</span> <span class=n>u</span> <span class=k>for</span> <span class=n>u</span> <span class=ow>in</span> <span class=n>users</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>Promise</span><span class=o>.</span><span class=n>resolve</span><span class=p>([</span><span class=n>user_map</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>uid</span><span class=p>)</span> <span class=k>for</span> <span class=n>uid</span> <span class=ow>in</span> <span class=n>user_ids</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Now 20 photos result in 1 query for photos + 1 batch query for users = 2 queries</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Caching Complexity</strong>: REST APIs can use HTTP caching (CDN, browser cache) because each URL is a unique cacheable resource. GraphQL uses a single endpoint with POST requests, which are not cacheable by default. You need application-level caching (persisted queries, response caching by query hash).</p><p><strong>Authorization Complexity</strong>: In REST, you authorize at the endpoint level. In GraphQL, a single query can traverse multiple resource types, each with different authorization rules. You need field-level authorization.</p><p><strong>Query Complexity Attacks</strong>: A malicious client can craft deeply nested queries that consume enormous server resources.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-graphql data-lang=graphql><span class=line><span class=cl><span class=c># Malicious query: exponential expansion</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>query</span><span class=w> </span><span class=nc>Evil</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=py>user</span><span class=p>(</span><span class=py>id</span><span class=p>:</span><span class=w> </span><span class=sc>&#34;1&#34;</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nc>photos</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>100</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=py>edges</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=py>node</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=py>comments</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>100</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=py>author</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=py>photos</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>100</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>              </span><span class=py>edges</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=py>node</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=py>comments</span><span class=p>(</span><span class=py>first</span><span class=p>:</span><span class=w> </span><span class=nc>100</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                  </span><span class=py>author</span><span class=w> </span><span class=p>{</span><span class=w> </span><span class=py>name</span><span class=w> </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>              </span><span class=p>}}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=p>}}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Mitigation: query depth limiting, query cost analysis, persisted queries (only allow pre-registered queries).</p><h2 id=rate-limiting>Rate Limiting</h2><p>Rate limiting protects your API from abuse and ensures fair resource allocation. Three common algorithms:</p><h3 id=token-bucket>Token Bucket</h3><p>A bucket holds tokens. Each request consumes one token. Tokens are added at a fixed rate. When the bucket is empty, requests are rejected.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>threading</span> <span class=kn>import</span> <span class=n>Lock</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TokenBucket</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>rate</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>capacity</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>rate</span> <span class=o>=</span> <span class=n>rate</span>          <span class=c1># Tokens per second</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>capacity</span> <span class=o>=</span> <span class=n>capacity</span>  <span class=c1># Maximum burst size</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>=</span> <span class=n>capacity</span>    <span class=c1># Current tokens</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>last_refill</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>monotonic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lock</span> <span class=o>=</span> <span class=n>Lock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>allow</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=bp>self</span><span class=o>.</span><span class=n>lock</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>now</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>monotonic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>elapsed</span> <span class=o>=</span> <span class=n>now</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_refill</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>capacity</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>+</span> <span class=n>elapsed</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>rate</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>last_refill</span> <span class=o>=</span> <span class=n>now</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>&gt;=</span> <span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>tokens</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 100 requests/second with burst of 200</span>
+</span></span><span class=line><span class=cl><span class=n>limiter</span> <span class=o>=</span> <span class=n>TokenBucket</span><span class=p>(</span><span class=n>rate</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span> <span class=n>capacity</span><span class=o>=</span><span class=mi>200</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Token bucket allows bursts up to the bucket capacity, then throttles to the refill rate. This matches real-world traffic patterns well.</p><h3 id=sliding-window-log>Sliding Window Log</h3><p>Track the timestamp of every request. Count requests within the window. Reject if count exceeds limit.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>deque</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>threading</span> <span class=kn>import</span> <span class=n>Lock</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>SlidingWindowLog</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>limit</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>window_seconds</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>limit</span> <span class=o>=</span> <span class=n>limit</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>window</span> <span class=o>=</span> <span class=n>window_seconds</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>requests</span> <span class=o>=</span> <span class=n>deque</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lock</span> <span class=o>=</span> <span class=n>Lock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>allow</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=bp>self</span><span class=o>.</span><span class=n>lock</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>now</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>monotonic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Remove expired entries</span>
+</span></span><span class=line><span class=cl>            <span class=k>while</span> <span class=bp>self</span><span class=o>.</span><span class=n>requests</span> <span class=ow>and</span> <span class=bp>self</span><span class=o>.</span><span class=n>requests</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>&lt;=</span> <span class=n>now</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>window</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>requests</span><span class=o>.</span><span class=n>popleft</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>requests</span><span class=p>)</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>limit</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>requests</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>now</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>False</span>
+</span></span></code></pre></td></tr></table></div></div><p>Precise but memory-intensive (stores every timestamp). Not practical for high-traffic APIs.</p><h3 id=fixed-window-counter>Fixed Window Counter</h3><p>Divide time into fixed windows (e.g., 1-minute intervals). Count requests per window. Reject if count exceeds limit.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>threading</span> <span class=kn>import</span> <span class=n>Lock</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>FixedWindowCounter</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>limit</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>window_seconds</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>limit</span> <span class=o>=</span> <span class=n>limit</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>window</span> <span class=o>=</span> <span class=n>window_seconds</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>current_window</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>count</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lock</span> <span class=o>=</span> <span class=n>Lock</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>allow</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=bp>self</span><span class=o>.</span><span class=n>lock</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>now</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>time</span><span class=o>.</span><span class=n>monotonic</span><span class=p>()</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>window</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>now</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>current_window</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>current_window</span> <span class=o>=</span> <span class=n>now</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>count</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>count</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>limit</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>False</span>
+</span></span></code></pre></td></tr></table></div></div><p>Simple and memory-efficient, but has a boundary problem: a burst at the end of window N and start of window N+1 can allow 2x the limit. The sliding window counter variant fixes this by weighting the previous window&rsquo;s count.</p><h3 id=rate-limit-headers>Rate Limit Headers</h3><p>Always communicate rate limit status in response headers:</p><pre tabindex=0><code>HTTP/1.1 200 OK
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 73
+X-RateLimit-Reset: 1689436800
+
+HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1689436800
+</code></pre><h2 id=idempotency>Idempotency</h2><p>An operation is idempotent if performing it multiple times has the same effect as performing it once. This is critical for reliability because network failures cause retries, and retries must not create duplicate side effects.</p><p>HTTP methods and idempotency:</p><ul><li><strong>GET</strong>: Naturally idempotent (reading data does not change state)</li><li><strong>PUT</strong>: Naturally idempotent (replacing a resource with the same data is a no-op)</li><li><strong>DELETE</strong>: Naturally idempotent (deleting an already-deleted resource is a no-op)</li><li><strong>POST</strong>: NOT naturally idempotent (creating a resource twice creates duplicates)</li><li><strong>PATCH</strong>: May or may not be idempotent (depends on the operation)</li></ul><h3 id=idempotency-keys>Idempotency Keys</h3><p>For non-idempotent operations, the client generates a unique key and includes it with the request. The server uses this key to detect duplicates.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Client sends:</span>
+</span></span><span class=line><span class=cl><span class=n>POST</span> <span class=o>/</span><span class=n>payments</span>
+</span></span><span class=line><span class=cl><span class=n>Idempotency</span><span class=o>-</span><span class=n>Key</span><span class=p>:</span> <span class=mf>550e8400</span><span class=o>-</span><span class=n>e29b</span><span class=o>-</span><span class=mi>41</span><span class=n>d4</span><span class=o>-</span><span class=n>a716</span><span class=o>-</span><span class=mi>446655440000</span>
+</span></span><span class=line><span class=cl><span class=n>Content</span><span class=o>-</span><span class=n>Type</span><span class=p>:</span> <span class=n>application</span><span class=o>/</span><span class=n>json</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;amount&#34;</span><span class=p>:</span> <span class=mf>100.00</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;currency&#34;</span><span class=p>:</span> <span class=s2>&#34;USD&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;recipient&#34;</span><span class=p>:</span> <span class=s2>&#34;user_456&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Server implementation</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>hashlib</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>process_payment</span><span class=p>(</span><span class=n>request</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>idempotency_key</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>headers</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;Idempotency-Key&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=ow>not</span> <span class=n>idempotency_key</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>error_response</span><span class=p>(</span><span class=mi>400</span><span class=p>,</span> <span class=s2>&#34;Idempotency-Key header required&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Check if we already processed this key</span>
+</span></span><span class=line><span class=cl>    <span class=n>existing</span> <span class=o>=</span> <span class=n>redis</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;idempotency:</span><span class=si>{</span><span class=n>idempotency_key</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>existing</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>existing</span><span class=p>)</span>  <span class=c1># Return cached response</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Process the payment</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=n>payment_service</span><span class=o>.</span><span class=n>charge</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>amount</span><span class=o>=</span><span class=n>request</span><span class=o>.</span><span class=n>json</span><span class=p>[</span><span class=s2>&#34;amount&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>currency</span><span class=o>=</span><span class=n>request</span><span class=o>.</span><span class=n>json</span><span class=p>[</span><span class=s2>&#34;currency&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>recipient</span><span class=o>=</span><span class=n>request</span><span class=o>.</span><span class=n>json</span><span class=p>[</span><span class=s2>&#34;recipient&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Cache the response for 24 hours</span>
+</span></span><span class=line><span class=cl>    <span class=n>redis</span><span class=o>.</span><span class=n>setex</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;idempotency:</span><span class=si>{</span><span class=n>idempotency_key</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=mi>86400</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>result</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>result</span>
+</span></span></code></pre></td></tr></table></div></div><p>If the client retries (network timeout, 5xx error), the server recognizes the duplicate key and returns the cached response without processing the payment again.</p><h2 id=api-authentication>API Authentication</h2><p>A brief overview of common authentication mechanisms:</p><p><strong>API Keys</strong>: Simple, suitable for server-to-server communication. Include in a header (<code>X-API-Key: abc123</code>) or query parameter. Easy to implement but hard to scope (all-or-nothing access).</p><p><strong>OAuth 2.0</strong>: Delegated authorization. The user grants a third-party application limited access to their resources. Four grant types (authorization code, implicit, client credentials, device code). Complex but industry standard for user-facing APIs.</p><p><strong>JWT (JSON Web Tokens)</strong>: Self-contained tokens that encode claims (user ID, roles, expiration). The server validates the token&rsquo;s signature without a database lookup. Useful for stateless authentication but cannot be revoked individually (use short expiration + refresh tokens).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># JWT validation example</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>jwt</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>authenticate</span><span class=p>(</span><span class=n>request</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>token</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>headers</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;Authorization&#34;</span><span class=p>,</span> <span class=s2>&#34;&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&#34;Bearer &#34;</span><span class=p>,</span> <span class=s2>&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>payload</span> <span class=o>=</span> <span class=n>jwt</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>token</span><span class=p>,</span> <span class=n>SECRET_KEY</span><span class=p>,</span> <span class=n>algorithms</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;HS256&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>payload</span><span class=p>[</span><span class=s2>&#34;user_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=n>jwt</span><span class=o>.</span><span class=n>ExpiredSignatureError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=n>AuthError</span><span class=p>(</span><span class=s2>&#34;Token expired&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=n>jwt</span><span class=o>.</span><span class=n>InvalidTokenError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=n>AuthError</span><span class=p>(</span><span class=s2>&#34;Invalid token&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=comparison-rest-vs-grpc-vs-graphql>Comparison: REST vs gRPC vs GraphQL</h2><table><thead><tr><th>Feature</th><th>REST</th><th>gRPC</th><th>GraphQL</th></tr></thead><tbody><tr><td>Protocol</td><td>HTTP/1.1 or HTTP/2</td><td>HTTP/2</td><td>HTTP/1.1 or HTTP/2</td></tr><tr><td>Data format</td><td>JSON (text)</td><td>Protobuf (binary)</td><td>JSON (text)</td></tr><tr><td>Schema/contract</td><td>OpenAPI (optional)</td><td>.proto (required)</td><td>GraphQL schema (required)</td></tr><tr><td>Code generation</td><td>Optional</td><td>Built-in</td><td>Optional</td></tr><tr><td>Streaming</td><td>SSE, WebSocket</td><td>Native (4 modes)</td><td>Subscriptions (WebSocket)</td></tr><tr><td>Browser support</td><td>Native</td><td>Via gRPC-Web proxy</td><td>Native</td></tr><tr><td>Caching</td><td>HTTP caching (native)</td><td>No standard caching</td><td>Complex (single endpoint)</td></tr><tr><td>Learning curve</td><td>Low</td><td>Medium</td><td>Medium-High</td></tr><tr><td>Over-fetching</td><td>Common problem</td><td>Minimal (typed messages)</td><td>Solved (client selects fields)</td></tr><tr><td>Under-fetching</td><td>Common (multiple calls)</td><td>Minimal (design per RPC)</td><td>Solved (nested queries)</td></tr><tr><td>Tooling maturity</td><td>Excellent</td><td>Good</td><td>Good</td></tr><tr><td>Best for</td><td>Public APIs, web apps</td><td>Internal microservices</td><td>Mobile apps, complex UIs</td></tr><tr><td>Worst for</td><td>Complex nested data</td><td>Browser clients</td><td>Simple CRUD APIs</td></tr></tbody></table><h3 id=decision-framework>Decision Framework</h3><p><strong>Use REST when</strong>:</p><ul><li>Building a public API consumed by third-party developers</li><li>Clients are primarily web browsers</li><li>The data model is simple and resource-oriented</li><li>HTTP caching is important</li><li>You want maximum ecosystem compatibility</li></ul><p><strong>Use gRPC when</strong>:</p><ul><li>Building internal service-to-service communication</li><li>Low latency and high throughput are critical</li><li>You need streaming (real-time data, file transfers)</li><li>You want strong typing and code generation</li><li>All clients are backend services you control</li></ul><p><strong>Use GraphQL when</strong>:</p><ul><li>Multiple clients need different data shapes (mobile vs web vs TV)</li><li>The data model has many relationships (graph-like)</li><li>Reducing network requests is critical (mobile on slow networks)</li><li>Frontend teams need to iterate independently of backend</li><li>You are willing to invest in the tooling (DataLoader, caching, authorization)</li></ul><p><strong>Hybrid approaches</strong> are common. Many systems use REST for public APIs, gRPC for internal services, and GraphQL for their frontend-facing gateway.</p><h2 id=whats-next>What&rsquo;s Next</h2><p>Once your API design is solid, the next performance lever is caching. The next article covers caching strategies — where to cache, what to evict, and the surprisingly common ways that caching makes things worse instead of better.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/system-design/>System Design</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/system-design/02-dns-cdn-load-balancing/><span class=title>System Design (2): DNS, CDN, and Load Balancing — The First Three Hops</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/system-design/04-caching-strategies/><span class=title>System Design (4): Caching — Where to Cache, What to Evict, and When Caching Hurts</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/01-thinking-in-systems/><span class=series-nav-num>01</span>
+<span class=series-nav-title>System Design (1): Thinking in Systems — Load, Latency, and the Art of Estimation</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/02-dns-cdn-load-balancing/><span class=series-nav-num>02</span>
+<span class=series-nav-title>System Design (2): DNS, CDN, and Load Balancing — The First Three Hops</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
+<span class=series-nav-title>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/04-caching-strategies/><span class=series-nav-num>04</span>
+<span class=series-nav-title>System Design (4): Caching — Where to Cache, What to Evict, and When Caching Hurts</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/05-message-queues/><span class=series-nav-num>05</span>
+<span class=series-nav-title>System Design (5): Message Queues and Event-Driven Architecture</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=series-nav-num>06</span>
+<span class=series-nav-title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/07-data-pipelines/><span class=series-nav-num>07</span>
+<span class=series-nav-title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/08-case-studies/><span class=series-nav-num>08</span>
+<span class=series-nav-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#rest-the-lingua-franca-of-web-apis>REST: The Lingua Franca of Web APIs</a><ul><li><a href=#core-concepts>Core Concepts</a></li><li><a href=#status-codes>Status Codes</a></li><li><a href=#rest-best-practices>REST Best Practices</a></li><li><a href=#rest-anti-patterns>REST Anti-Patterns</a></li></ul></li><li><a href=#grpc-the-performance-protocol>gRPC: The Performance Protocol</a><ul><li><a href=#protocol-buffers>Protocol Buffers</a></li><li><a href=#grpc-streaming-modes>gRPC Streaming Modes</a></li><li><a href=#using-grpc-in-python>Using gRPC in Python</a></li><li><a href=#why-choose-grpc>Why Choose gRPC</a></li><li><a href=#why-not-grpc>Why Not gRPC</a></li></ul></li><li><a href=#graphql-client-driven-queries>GraphQL: Client-Driven Queries</a><ul><li><a href=#schema-definition>Schema Definition</a></li><li><a href=#client-queries>Client Queries</a></li><li><a href=#graphql-drawbacks>GraphQL Drawbacks</a></li></ul></li><li><a href=#rate-limiting>Rate Limiting</a><ul><li><a href=#token-bucket>Token Bucket</a></li><li><a href=#sliding-window-log>Sliding Window Log</a></li><li><a href=#fixed-window-counter>Fixed Window Counter</a></li><li><a href=#rate-limit-headers>Rate Limit Headers</a></li></ul></li><li><a href=#idempotency>Idempotency</a><ul><li><a href=#idempotency-keys>Idempotency Keys</a></li></ul></li><li><a href=#api-authentication>API Authentication</a></li><li><a href=#comparison-rest-vs-grpc-vs-graphql>Comparison: REST vs gRPC vs GraphQL</a><ul><li><a href=#decision-framework>Decision Framework</a></li></ul></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/system-design/ class=series-name>System Design</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/01-thinking-in-systems/><span class=chapter-num>01</span>
+<span class=chapter-title>System Design (1): Thinking in Systems — Load, Latency, and the Art of Estimation</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/02-dns-cdn-load-balancing/><span class=chapter-num>02</span>
+<span class=chapter-title>System Design (2): DNS, CDN, and Load Balancing — The First Three Hops</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/04-caching-strategies/><span class=chapter-num>04</span>
+<span class=chapter-title>System Design (4): Caching — Where to Cache, What to Evict, and When Caching Hurts</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/05-message-queues/><span class=chapter-num>05</span>
+<span class=chapter-title>System Design (5): Message Queues and Event-Driven Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=chapter-num>06</span>
+<span class=chapter-title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/07-data-pipelines/><span class=chapter-num>07</span>
+<span class=chapter-title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/08-case-studies/><span class=chapter-num>08</span>
+<span class=chapter-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3051</strong></div><div class=row><span>Published</span><strong>Jul 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

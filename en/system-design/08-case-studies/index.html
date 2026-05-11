@@ -1,0 +1,941 @@
+<!doctype html><html lang=en data-translation=/zh/system-design/08-case-studies/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed · Chen Kai Blog</title>
+<meta name=description content="Three complete system design walkthroughs — a URL shortener, a real-time chat system, and a news feed — each following the full process from requirements and estimation through high-level design, deep dives, and scaling strategies."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/system-design/08-case-studies/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/system-design/08-case-studies/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/system-design/08-case-studies/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/system-design/08-case-studies/><meta property="og:type" content="article"><meta property="og:title" content="System Design (8): Case Studies — URL Shortener, Chat System, News Feed"><meta property="og:description" content="Three complete system design walkthroughs — a URL shortener, a real-time chat system, and a news feed — each following the full process from requirements and estimation through high-level design, deep dives, and scaling strategies."><meta property="og:url" content="https://www.chenk.top/en/system-design/08-case-studies/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg"><meta property="og:image:alt" content="System Design (8): Case Studies — URL Shortener, Chat System, News Feed"><meta property="article:published_time" content="2025-07-27T09:00:00Z"><meta property="article:modified_time" content="2025-07-27T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="System Design"><meta property="article:tag" content="Case Studies"><meta property="article:tag" content="Distributed Systems"><meta property="article:tag" content="Architecture"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="System Design (8): Case Studies — URL Shortener, Chat System, News Feed"><meta name=twitter:description content="Three complete system design walkthroughs — a URL shortener, a real-time chat system, and a news feed — each following the full process from requirements and estimation through high-level design, deep dives, and scaling strategies."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"System Design (8): Case Studies — URL Shortener, Chat System, News Feed\"","description":"\"Three complete system design walkthroughs — a URL shortener, a real-time chat system, and a news feed — each following the full process from requirements and estimation through high-level design, deep dives, and scaling strategies.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2025-07-27T09:00:00Z\"","dateModified":"\"2025-07-27T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/system-design/08-case-studies/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>System Design</a>
+· Chapter 8</div><h1>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</h1><p class=deck>Three complete system design walkthroughs — a URL shortener, a real-time chat system, and a news feed — each following the full process from requirements and estimation through high-level design, deep dives, and scaling strategies.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-07-27>July 27, 2025</time> · 40 min read · 4245 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/system-design/ class=tag>#System Design</a><a href=/en/tags/case-studies/ class=tag>#Case Studies</a><a href=/en/tags/distributed-systems/ class=tag>#Distributed Systems</a><a href=/en/tags/architecture/ class=tag>#Architecture</a></div><a class="pill pill-outline" href=/zh/system-design/08-case-studies/>阅读中文版 →</a></div></header><div class=prose><p>The best way to learn system design is to practice it. Reading about individual components — caching, queues, load balancers — builds your vocabulary, but designing a complete system is where you learn to compose those components into something that actually works.</p><p>This article walks through three classic system design problems end to end. Each follows the framework from the first article in this series: clarify requirements, estimate scale, design the architecture, deep dive into critical components, and identify bottlenecks.</p><hr><h2 id=case-study-1-url-shortener>Case Study 1: URL Shortener</h2><p>A URL shortener takes a long URL and produces a short alias (e.g., <code>https://short.ly/abc123</code>) that redirects to the original. It sounds trivially simple, but at scale it touches hashing, distributed storage, caching, and analytics.</p><h3 id=requirements>Requirements</h3><p><strong>Functional</strong>:</p><ul><li>Given a long URL, generate a short URL</li><li>Given a short URL, redirect to the original long URL</li><li>Users can optionally specify a custom alias</li><li>Short URLs expire after a configurable period (default: 5 years)</li><li>Track click analytics (count, referrer, geography)</li></ul><p><strong>Non-functional</strong>:</p><ul><li>100 million new URLs per day</li><li>Read:write ratio of 100:1 (10 billion redirects per day)</li><li>Redirect latency under 50ms (p99)</li><li>Availability: 99.99% (this is critical infrastructure for anyone using the short URLs)</li><li>Short URLs should be as short as possible</li></ul><h3 id=estimation>Estimation</h3><p><strong>Write QPS (URL creation)</strong>:</p><pre tabindex=0><code>100M URLs/day ÷ 86,400 sec/day ≈ 1,160 writes/sec
+Peak (3x): ~3,500 writes/sec
+</code></pre><p><strong>Read QPS (redirects)</strong>:</p><pre tabindex=0><code>10B redirects/day ÷ 86,400 sec/day ≈ 115,000 reads/sec
+Peak (3x): ~350,000 reads/sec
+</code></pre><p>This is an extremely read-heavy system. Caching will be essential.</p><p><strong>Storage</strong>:</p><pre tabindex=0><code>Per URL record:
+  Short code: 7 bytes
+  Long URL: 500 bytes (average)
+  User ID: 8 bytes
+  Created timestamp: 8 bytes
+  Expiration timestamp: 8 bytes
+  Total: ~530 bytes
+
+Daily: 100M × 530 bytes = 53 GB/day
+Yearly: 53 GB × 365 = 19.3 TB/year
+5-year retention: ~100 TB
+</code></pre><p><strong>Cache memory</strong> (using the 80/20 rule — 20% of URLs handle 80% of traffic):</p><pre tabindex=0><code>Daily unique URLs accessed: ~1B (estimate)
+Hot set (20%): 200M URLs
+Cache per entry: 530 bytes
+Cache memory: 200M × 530 bytes ≈ 106 GB
+</code></pre><p>106 GB is manageable across a Redis cluster (e.g., 6 nodes with 32 GB each).</p><h3 id=short-url-generation>Short URL Generation</h3><p>The core design challenge: how to generate a unique, short code for each URL.</p><p><strong>Approach 1: Base62 encoding of an auto-increment ID</strong></p><p>Use a distributed ID generator (like Twitter&rsquo;s Snowflake) to generate a unique 64-bit integer, then encode it in base62 (a-z, A-Z, 0-9).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>string</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>ALPHABET</span> <span class=o>=</span> <span class=n>string</span><span class=o>.</span><span class=n>ascii_lowercase</span> <span class=o>+</span> <span class=n>string</span><span class=o>.</span><span class=n>ascii_uppercase</span> <span class=o>+</span> <span class=n>string</span><span class=o>.</span><span class=n>digits</span>  <span class=c1># 62 chars</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>encode_base62</span><span class=p>(</span><span class=n>num</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>num</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>ALPHABET</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>result</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>num</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>ALPHABET</span><span class=p>[</span><span class=n>num</span> <span class=o>%</span> <span class=mi>62</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>num</span> <span class=o>//=</span> <span class=mi>62</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>reversed</span><span class=p>(</span><span class=n>result</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>decode_base62</span><span class=p>(</span><span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>num</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>char</span> <span class=ow>in</span> <span class=n>s</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>num</span> <span class=o>=</span> <span class=n>num</span> <span class=o>*</span> <span class=mi>62</span> <span class=o>+</span> <span class=n>ALPHABET</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>char</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>num</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Examples:</span>
+</span></span><span class=line><span class=cl><span class=c1># encode_base62(1000000) → &#34;4C92&#34;     (4 characters)</span>
+</span></span><span class=line><span class=cl><span class=c1># encode_base62(1000000000) → &#34;15FTGg&#34; (6 characters)</span>
+</span></span><span class=line><span class=cl><span class=c1># encode_base62(3500000000000) → &#34;zzzzzz&#34; (6 characters, max 6-char value)</span>
+</span></span></code></pre></td></tr></table></div></div><p>With 7 characters of base62, we can represent 62^7 = 3.5 trillion unique URLs, which is more than enough for decades.</p><p><strong>Approach 2: Hash and truncate</strong></p><p>Hash the long URL with MD5 or SHA-256, then take the first 7 characters of the base62-encoded hash.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>hashlib</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>generate_short_code</span><span class=p>(</span><span class=n>long_url</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>hash_bytes</span> <span class=o>=</span> <span class=n>hashlib</span><span class=o>.</span><span class=n>md5</span><span class=p>(</span><span class=n>long_url</span><span class=o>.</span><span class=n>encode</span><span class=p>())</span><span class=o>.</span><span class=n>digest</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>hash_int</span> <span class=o>=</span> <span class=nb>int</span><span class=o>.</span><span class=n>from_bytes</span><span class=p>(</span><span class=n>hash_bytes</span><span class=p>[:</span><span class=mi>8</span><span class=p>],</span> <span class=n>byteorder</span><span class=o>=</span><span class=s2>&#34;big&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>code</span> <span class=o>=</span> <span class=n>encode_base62</span><span class=p>(</span><span class=n>hash_int</span><span class=p>)[:</span><span class=mi>7</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>code</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Problem</strong>: Collisions. Two different URLs can produce the same 7-character code. You must check for collisions and append a counter or use a different hash seed if one occurs.</p><p><strong>Approach 3: Pre-generated key pool</strong></p><p>Pre-generate a large pool of unique short codes in a separate service. When a new URL is created, grab the next available code from the pool.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>KeyGenerationService</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Pre-generates unique short codes for the URL shortener.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>redis_client</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span> <span class=o>=</span> <span class=n>redis_client</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>pool_key</span> <span class=o>=</span> <span class=s2>&#34;available_codes&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>generate_batch</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Generate a batch of unique codes and add to the pool.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>codes</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>codes</span><span class=p>)</span> <span class=o>&lt;</span> <span class=n>batch_size</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>code</span> <span class=o>=</span> <span class=n>encode_base62</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>62</span><span class=o>**</span><span class=mi>7</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>code</span> <span class=o>=</span> <span class=n>code</span><span class=o>.</span><span class=n>ljust</span><span class=p>(</span><span class=mi>7</span><span class=p>,</span> <span class=s2>&#34;0&#34;</span><span class=p>)</span>  <span class=c1># Pad to 7 chars</span>
+</span></span><span class=line><span class=cl>            <span class=n>codes</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>code</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Add to Redis set (automatically deduplicates)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pipeline</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>pipeline</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>code</span> <span class=ow>in</span> <span class=n>codes</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>pipeline</span><span class=o>.</span><span class=n>sadd</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>pool_key</span><span class=p>,</span> <span class=n>code</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pipeline</span><span class=o>.</span><span class=n>execute</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>get_code</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Pop a code from the pool. Thread-safe and atomic.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>code</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>spop</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>pool_key</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>code</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=s2>&#34;Code pool exhausted — generate more codes&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>code</span><span class=o>.</span><span class=n>decode</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>For this design, I will use Approach 1 (base62 encoding of a distributed ID) because it is simple, collision-free, and produces predictably short codes.</p><h3 id=high-level-architecture>High-Level Architecture</h3><p>Components:</p><ol><li><strong>API servers</strong> (stateless) — handle create and redirect requests</li><li><strong>Distributed ID generator</strong> — produces unique IDs for new URLs</li><li><strong>Database</strong> — stores URL mappings (short code → long URL)</li><li><strong>Redis cache</strong> — caches hot URL mappings for fast redirects</li><li><strong>Analytics pipeline</strong> — records click events for analytics</li></ol><p>Data flow for URL creation:</p><pre tabindex=0><code>Client → Load Balancer → API Server
+  → Generate unique ID (Snowflake)
+  → Encode as base62 short code
+  → Store mapping in database
+  → Return short URL to client
+</code></pre><p>Data flow for redirect:</p><pre tabindex=0><code>Client → Load Balancer → API Server
+  → Look up short code in Redis cache
+  → Cache hit: redirect immediately
+  → Cache miss: look up in database, populate cache, redirect
+  → Async: record click event to Kafka for analytics
+</code></pre><h3 id=deep-dive-redirect-logic>Deep Dive: Redirect Logic</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>fastapi</span> <span class=kn>import</span> <span class=n>FastAPI</span><span class=p>,</span> <span class=n>Response</span><span class=p>,</span> <span class=n>HTTPException</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>fastapi.responses</span> <span class=kn>import</span> <span class=n>RedirectResponse</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>redis</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>app</span> <span class=o>=</span> <span class=n>FastAPI</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>cache</span> <span class=o>=</span> <span class=n>redis</span><span class=o>.</span><span class=n>Redis</span><span class=p>(</span><span class=n>host</span><span class=o>=</span><span class=s2>&#34;cache.internal&#34;</span><span class=p>,</span> <span class=n>port</span><span class=o>=</span><span class=mi>6379</span><span class=p>,</span> <span class=n>decode_responses</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@app.get</span><span class=p>(</span><span class=s2>&#34;/</span><span class=si>{short_code}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>redirect</span><span class=p>(</span><span class=n>short_code</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Step 1: Check cache</span>
+</span></span><span class=line><span class=cl>    <span class=n>long_url</span> <span class=o>=</span> <span class=n>cache</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;url:</span><span class=si>{</span><span class=n>short_code</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>long_url</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Step 2: Cache miss — check database</span>
+</span></span><span class=line><span class=cl>        <span class=n>record</span> <span class=o>=</span> <span class=k>await</span> <span class=n>db</span><span class=o>.</span><span class=n>fetch_one</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;SELECT long_url, expires_at FROM urls WHERE short_code = $1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>short_code</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>record</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=n>HTTPException</span><span class=p>(</span><span class=n>status_code</span><span class=o>=</span><span class=mi>404</span><span class=p>,</span> <span class=n>detail</span><span class=o>=</span><span class=s2>&#34;Short URL not found&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>record</span><span class=p>[</span><span class=s2>&#34;expires_at&#34;</span><span class=p>]</span> <span class=ow>and</span> <span class=n>record</span><span class=p>[</span><span class=s2>&#34;expires_at&#34;</span><span class=p>]</span> <span class=o>&lt;</span> <span class=n>datetime</span><span class=o>.</span><span class=n>utcnow</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=n>HTTPException</span><span class=p>(</span><span class=n>status_code</span><span class=o>=</span><span class=mi>410</span><span class=p>,</span> <span class=n>detail</span><span class=o>=</span><span class=s2>&#34;Short URL has expired&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>long_url</span> <span class=o>=</span> <span class=n>record</span><span class=p>[</span><span class=s2>&#34;long_url&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Populate cache (TTL: 24 hours)</span>
+</span></span><span class=line><span class=cl>        <span class=n>cache</span><span class=o>.</span><span class=n>setex</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;url:</span><span class=si>{</span><span class=n>short_code</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span> <span class=mi>86400</span><span class=p>,</span> <span class=n>long_url</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Step 3: Record analytics event (async, non-blocking)</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>kafka_producer</span><span class=o>.</span><span class=n>send</span><span class=p>(</span><span class=s2>&#34;click-events&#34;</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;short_code&#34;</span><span class=p>:</span> <span class=n>short_code</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;timestamp&#34;</span><span class=p>:</span> <span class=n>datetime</span><span class=o>.</span><span class=n>utcnow</span><span class=p>()</span><span class=o>.</span><span class=n>isoformat</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;referrer&#34;</span><span class=p>:</span> <span class=n>request</span><span class=o>.</span><span class=n>headers</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;referer&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;user_agent&#34;</span><span class=p>:</span> <span class=n>request</span><span class=o>.</span><span class=n>headers</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;user-agent&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ip&#34;</span><span class=p>:</span> <span class=n>request</span><span class=o>.</span><span class=n>client</span><span class=o>.</span><span class=n>host</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Step 4: Redirect</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 301 (permanent) is more cache-friendly but hides analytics</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 302 (temporary) forces the browser to always hit our server (better for analytics)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>RedirectResponse</span><span class=p>(</span><span class=n>url</span><span class=o>=</span><span class=n>long_url</span><span class=p>,</span> <span class=n>status_code</span><span class=o>=</span><span class=mi>302</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=301-vs-302-redirect>301 vs 302 Redirect</h3><p>This is a meaningful trade-off:</p><table><thead><tr><th>Redirect</th><th>Behavior</th><th>Analytics</th><th>CDN Caching</th></tr></thead><tbody><tr><td>301 (Permanent)</td><td>Browser caches, never hits server again</td><td>Undercounts (misses cached redirects)</td><td>CDN caches aggressively</td></tr><tr><td>302 (Temporary)</td><td>Browser hits server every time</td><td>Accurate (every click recorded)</td><td>CDN may or may not cache</td></tr></tbody></table><p>Most URL shorteners use 302 because analytics is a core feature. Some offer both: 302 by default, 301 for performance-critical use cases.</p><h3 id=scaling-strategy>Scaling Strategy</h3><p><strong>Database partitioning</strong>: Hash the short code to determine the partition. This distributes writes evenly and allows lookups without scanning.</p><pre tabindex=0><code>Partition 0: short codes starting with [0-9]
+Partition 1: short codes starting with [a-m]
+Partition 2: short codes starting with [n-z]
+Partition 3: short codes starting with [A-M]
+Partition 4: short codes starting with [N-Z]
+</code></pre><p><strong>Cache hot URLs</strong>: The top 1% of URLs receive 90%+ of traffic. A Redis cluster caching these hot URLs handles the vast majority of redirects without touching the database.</p><p><strong>Analytics pipeline</strong>: Click events go to Kafka, not directly to the database. A Flink job aggregates clicks per minute/hour/day and writes to a time-series database. This decouples the real-time redirect path from the analytics path.</p><hr><h2 id=case-study-2-real-time-chat-system>Case Study 2: Real-Time Chat System</h2><p>A chat application requires real-time bidirectional communication, persistent message storage, presence awareness, and efficient fan-out for group messages.</p><h3 id=requirements-1>Requirements</h3><p><strong>Functional</strong>:</p><ul><li>1:1 messaging between users</li><li>Group chat (up to 500 members)</li><li>Online/offline status (presence)</li><li>Message history (persistent, searchable)</li><li>Sent/delivered/read receipts</li><li>Push notifications for offline users</li><li>Support text, images, and file attachments</li></ul><p><strong>Non-functional</strong>:</p><ul><li>50 million daily active users</li><li>Each user sends 40 messages per day</li><li>Average group size: 10 members</li><li>30% of messages are group messages</li><li>Message delivery latency under 200ms (p95)</li><li>Availability: 99.9%</li><li>Message ordering guaranteed within a conversation</li></ul><h3 id=estimation-1>Estimation</h3><p><strong>Message volume</strong>:</p><pre tabindex=0><code>50M DAU × 40 messages/user/day = 2B messages/day
+2B ÷ 86,400 = ~23,000 messages/sec
+Peak (3x): ~70,000 messages/sec
+</code></pre><p><strong>Connection count</strong>:</p><pre tabindex=0><code>50M DAU, assume 30% are connected simultaneously = 15M concurrent WebSocket connections
+Each connection: ~10 KB memory overhead
+Total memory for connections: 15M × 10 KB = 150 GB
+</code></pre><p>150 GB of connection state requires multiple servers. If each server handles 500K connections, you need ~30 connection servers.</p><p><strong>Storage</strong>:</p><pre tabindex=0><code>Average message size: 200 bytes (text) + 100 bytes (metadata) = 300 bytes
+Daily: 2B × 300 bytes = 600 GB/day
+Yearly: 600 GB × 365 = 219 TB/year
+With 3x replication: ~660 TB/year
+</code></pre><p>For media attachments, object storage (S3) with CDN is appropriate. Text messages go to a database.</p><h3 id=high-level-architecture-1>High-Level Architecture</h3><p>Components:</p><ol><li><strong>WebSocket Gateway</strong> — maintains persistent connections with clients</li><li><strong>Chat Service</strong> — handles message routing and business logic</li><li><strong>Message Store</strong> — persistent storage for message history</li><li><strong>Presence Service</strong> — tracks online/offline status</li><li><strong>Push Notification Service</strong> — sends push notifications to offline users</li><li><strong>Media Service</strong> — handles file uploads and serving (backed by object storage + CDN)</li><li><strong>Kafka</strong> — decouples message ingestion from storage and delivery</li></ol><h3 id=websocket-connection-management>WebSocket Connection Management</h3><p>The WebSocket gateway maintains a mapping from user ID to connection.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Connection manager (runs on each WebSocket server)</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>websockets</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>defaultdict</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ConnectionManager</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>server_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>redis_client</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>server_id</span> <span class=o>=</span> <span class=n>server_id</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>connections</span> <span class=o>=</span> <span class=p>{}</span>  <span class=c1># user_id → websocket</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span> <span class=o>=</span> <span class=n>redis_client</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>connect</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>websocket</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>connections</span><span class=p>[</span><span class=n>user_id</span><span class=p>]</span> <span class=o>=</span> <span class=n>websocket</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Register in Redis: user_id → server_id</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>hset</span><span class=p>(</span><span class=s2>&#34;user_connections&#34;</span><span class=p>,</span> <span class=n>user_id</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>server_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Publish presence event</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>publish</span><span class=p>(</span><span class=s2>&#34;presence&#34;</span><span class=p>,</span> <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;user_id&#34;</span><span class=p>:</span> <span class=n>user_id</span><span class=p>,</span> <span class=s2>&#34;status&#34;</span><span class=p>:</span> <span class=s2>&#34;online&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>disconnect</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>connections</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>hdel</span><span class=p>(</span><span class=s2>&#34;user_connections&#34;</span><span class=p>,</span> <span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>publish</span><span class=p>(</span><span class=s2>&#34;presence&#34;</span><span class=p>,</span> <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;user_id&#34;</span><span class=p>:</span> <span class=n>user_id</span><span class=p>,</span> <span class=s2>&#34;status&#34;</span><span class=p>:</span> <span class=s2>&#34;offline&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>send_to_user</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>message</span><span class=p>:</span> <span class=nb>dict</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>ws</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>connections</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>ws</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>ws</span><span class=o>.</span><span class=n>send</span><span class=p>(</span><span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>find_server</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Find which server a user is connected to.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>hget</span><span class=p>(</span><span class=s2>&#34;user_connections&#34;</span><span class=p>,</span> <span class=n>user_id</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=message-routing>Message Routing</h3><p>When User A sends a message to User B:</p><ol><li>User A&rsquo;s WebSocket server receives the message</li><li>Message is published to Kafka (for persistence and ordering)</li><li>Chat Service consumes from Kafka, looks up User B&rsquo;s connection server in Redis</li><li>If User B is on the same server: deliver directly via WebSocket</li><li>If User B is on a different server: route via inter-server communication (Redis Pub/Sub or internal gRPC)</li><li>If User B is offline: store message and send push notification</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>ChatService</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>handle_message</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>message</span><span class=p>:</span> <span class=nb>dict</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>sender_id</span> <span class=o>=</span> <span class=n>message</span><span class=p>[</span><span class=s2>&#34;sender_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>recipient_id</span> <span class=o>=</span> <span class=n>message</span><span class=p>[</span><span class=s2>&#34;recipient_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>conversation_id</span> <span class=o>=</span> <span class=n>message</span><span class=p>[</span><span class=s2>&#34;conversation_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Generate message ID and timestamp (server-side for consistency)</span>
+</span></span><span class=line><span class=cl>        <span class=n>message</span><span class=p>[</span><span class=s2>&#34;message_id&#34;</span><span class=p>]</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>uuid</span><span class=o>.</span><span class=n>uuid4</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=n>message</span><span class=p>[</span><span class=s2>&#34;server_timestamp&#34;</span><span class=p>]</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>utcnow</span><span class=p>()</span><span class=o>.</span><span class=n>isoformat</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Persist to Kafka (for ordering and durability)</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>kafka_producer</span><span class=o>.</span><span class=n>send</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>topic</span><span class=o>=</span><span class=sa>f</span><span class=s2>&#34;chat-messages&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>key</span><span class=o>=</span><span class=n>conversation_id</span><span class=p>,</span>  <span class=c1># Same conversation → same partition → ordered</span>
+</span></span><span class=line><span class=cl>            <span class=n>value</span><span class=o>=</span><span class=n>message</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Send acknowledgment to sender</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>connection_manager</span><span class=o>.</span><span class=n>send_to_user</span><span class=p>(</span><span class=n>sender_id</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;ack&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;message_id&#34;</span><span class=p>:</span> <span class=n>message</span><span class=p>[</span><span class=s2>&#34;message_id&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;status&#34;</span><span class=p>:</span> <span class=s2>&#34;sent&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Deliver to recipient</span>
+</span></span><span class=line><span class=cl>        <span class=n>recipient_server</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>connection_manager</span><span class=o>.</span><span class=n>find_server</span><span class=p>(</span><span class=n>recipient_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>recipient_server</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>recipient_server</span> <span class=o>==</span> <span class=bp>self</span><span class=o>.</span><span class=n>server_id</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=c1># Same server — deliver directly</span>
+</span></span><span class=line><span class=cl>                <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>connection_manager</span><span class=o>.</span><span class=n>send_to_user</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>recipient_id</span><span class=p>,</span> <span class=n>message</span>
+</span></span><span class=line><span class=cl>                <span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=c1># Different server — route via Redis Pub/Sub</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>publish</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=sa>f</span><span class=s2>&#34;deliver:</span><span class=si>{</span><span class=n>recipient_server</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>message</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># User is offline — send push notification</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>push_service</span><span class=o>.</span><span class=n>notify</span><span class=p>(</span><span class=n>recipient_id</span><span class=p>,</span> <span class=n>message</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=group-message-fan-out>Group Message Fan-Out</h3><p>Group messages require delivering to all group members. For a group with N members, this is a fan-out of N.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>handle_group_message</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>message</span><span class=p>:</span> <span class=nb>dict</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>group_id</span> <span class=o>=</span> <span class=n>message</span><span class=p>[</span><span class=s2>&#34;group_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>sender_id</span> <span class=o>=</span> <span class=n>message</span><span class=p>[</span><span class=s2>&#34;sender_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Get group members</span>
+</span></span><span class=line><span class=cl>    <span class=n>members</span> <span class=o>=</span> <span class=k>await</span> <span class=n>db</span><span class=o>.</span><span class=n>fetch_all</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;SELECT user_id FROM group_members WHERE group_id = $1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>group_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Persist message</span>
+</span></span><span class=line><span class=cl>    <span class=n>message</span><span class=p>[</span><span class=s2>&#34;message_id&#34;</span><span class=p>]</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>uuid</span><span class=o>.</span><span class=n>uuid4</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=n>message</span><span class=p>[</span><span class=s2>&#34;server_timestamp&#34;</span><span class=p>]</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>utcnow</span><span class=p>()</span><span class=o>.</span><span class=n>isoformat</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>kafka_producer</span><span class=o>.</span><span class=n>send</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>topic</span><span class=o>=</span><span class=s2>&#34;chat-messages&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>key</span><span class=o>=</span><span class=n>group_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>value</span><span class=o>=</span><span class=n>message</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Fan-out to all members (except sender)</span>
+</span></span><span class=line><span class=cl>    <span class=n>delivery_tasks</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>member</span> <span class=ow>in</span> <span class=n>members</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>member</span><span class=p>[</span><span class=s2>&#34;user_id&#34;</span><span class=p>]</span> <span class=o>!=</span> <span class=n>sender_id</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>delivery_tasks</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>deliver_to_user</span><span class=p>(</span><span class=n>member</span><span class=p>[</span><span class=s2>&#34;user_id&#34;</span><span class=p>],</span> <span class=n>message</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Deliver in parallel</span>
+</span></span><span class=line><span class=cl>    <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>delivery_tasks</span><span class=p>,</span> <span class=n>return_exceptions</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>For large groups (100+ members), fan-out should be asynchronous. The chat service publishes the message to Kafka, and a separate delivery worker handles the fan-out.</p><h3 id=message-storage>Message Storage</h3><p>Messages need to be stored for history and searchability. The access pattern is: &ldquo;Get the last N messages in conversation X, ordered by timestamp.&rdquo;</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Cassandra-style schema (wide column store, optimized for time-series access)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>messages</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>conversation_id</span><span class=w> </span><span class=nb>TEXT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>message_id</span><span class=w> </span><span class=n>TIMEUUID</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>sender_id</span><span class=w> </span><span class=nb>TEXT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>content</span><span class=w> </span><span class=nb>TEXT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>message_type</span><span class=w> </span><span class=nb>TEXT</span><span class=p>,</span><span class=w>  </span><span class=c1>-- &#39;text&#39;, &#39;image&#39;, &#39;file&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>    </span><span class=n>media_url</span><span class=w> </span><span class=nb>TEXT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>created_at</span><span class=w> </span><span class=k>TIMESTAMP</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=p>(</span><span class=n>conversation_id</span><span class=p>,</span><span class=w> </span><span class=n>message_id</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=k>WITH</span><span class=w> </span><span class=n>CLUSTERING</span><span class=w> </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=p>(</span><span class=n>message_id</span><span class=w> </span><span class=k>DESC</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Query: last 50 messages in a conversation
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>messages</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>conversation_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;conv_123&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>message_id</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>50</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Cassandra is a common choice for chat message storage because:</p><ul><li>Write-optimized (append-only)</li><li>Partition by conversation_id distributes data evenly</li><li>Time-ordered clustering allows efficient range queries</li><li>Linear scalability (add nodes to increase capacity)</li></ul><h3 id=presence-service>Presence Service</h3><p>Presence tracking (online/offline status) uses a heartbeat mechanism:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>PresenceService</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>HEARTBEAT_INTERVAL</span> <span class=o>=</span> <span class=mi>30</span>  <span class=c1># seconds</span>
+</span></span><span class=line><span class=cl>    <span class=n>OFFLINE_THRESHOLD</span> <span class=o>=</span> <span class=mi>90</span>    <span class=c1># seconds without heartbeat = offline</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>redis_client</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span> <span class=o>=</span> <span class=n>redis_client</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>heartbeat</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Called every 30 seconds by connected clients.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>setex</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;presence:</span><span class=si>{</span><span class=n>user_id</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>OFFLINE_THRESHOLD</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;online&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>is_online</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>exists</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;presence:</span><span class=si>{</span><span class=n>user_id</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>get_online_friends</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>friend_ids</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_friends</span><span class=p>(</span><span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pipeline</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>pipeline</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>fid</span> <span class=ow>in</span> <span class=n>friend_ids</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>pipeline</span><span class=o>.</span><span class=n>exists</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;presence:</span><span class=si>{</span><span class=n>fid</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span> <span class=o>=</span> <span class=n>pipeline</span><span class=o>.</span><span class=n>execute</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>[</span><span class=n>fid</span> <span class=k>for</span> <span class=n>fid</span><span class=p>,</span> <span class=n>online</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>friend_ids</span><span class=p>,</span> <span class=n>results</span><span class=p>)</span> <span class=k>if</span> <span class=n>online</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=scaling-considerations>Scaling Considerations</h3><p><strong>Partition WebSocket connections by user ID hash</strong>: Consistent hashing maps each user to a specific gateway server. If a server fails, only its users need to reconnect.</p><p><strong>Message ordering</strong>: Kafka partitions by conversation_id, guaranteeing ordering within a conversation. Different conversations can be processed in parallel across partitions.</p><p><strong>Hot groups</strong>: A group with 500 active members generates 500x fan-out per message. Isolate hot groups on dedicated delivery workers to prevent them from affecting 1:1 chat latency.</p><hr><h2 id=case-study-3-news-feed-system>Case Study 3: News Feed System</h2><p>A news feed system displays a personalized, ranked stream of content from users and pages that you follow. This is the core product feature of platforms like Facebook, Twitter, and Instagram.</p><h3 id=requirements-2>Requirements</h3><p><strong>Functional</strong>:</p><ul><li>Users can create posts (text, images, links)</li><li>Users can follow/unfollow other users</li><li>Users see a feed of posts from people they follow</li><li>Feed is ranked (not purely chronological)</li><li>Support pagination (infinite scroll)</li><li>Like and comment on posts</li></ul><p><strong>Non-functional</strong>:</p><ul><li>200 million DAU</li><li>Average user follows 200 accounts</li><li>Average user publishes 1 post per day and reads their feed 10 times per day</li><li>Feed generation latency under 500ms</li><li>Availability: 99.9%</li><li>Eventual consistency is acceptable (a post can appear in followers&rsquo; feeds with a few seconds of delay)</li></ul><h3 id=estimation-2>Estimation</h3><p><strong>Post creation QPS</strong>:</p><pre tabindex=0><code>200M DAU × 1 post/day ÷ 86,400 = ~2,300 posts/sec
+Peak (3x): ~7,000 posts/sec
+</code></pre><p><strong>Feed read QPS</strong>:</p><pre tabindex=0><code>200M DAU × 10 reads/day ÷ 86,400 = ~23,000 reads/sec
+Peak (3x): ~70,000 reads/sec
+</code></pre><p><strong>Fan-out volume</strong>:</p><pre tabindex=0><code>Each post fans out to the poster&#39;s followers.
+Average followers per user: 200
+2,300 posts/sec × 200 followers = 460,000 fan-out writes/sec
+</code></pre><p>460,000 writes per second to feed caches/stores is significant but manageable with a distributed system.</p><h3 id=the-fan-out-problem>The Fan-Out Problem</h3><p>The central design challenge: how to build each user&rsquo;s feed from the posts of the people they follow.</p><p><strong>Fan-Out on Write (Push Model)</strong>: When a user publishes a post, immediately write it to each follower&rsquo;s feed cache.</p><pre tabindex=0><code>User A publishes a post:
+  → For each of A&#39;s 200 followers:
+    → Add post to follower&#39;s pre-computed feed cache
+
+When a user opens their feed:
+  → Read directly from their pre-computed feed cache (fast!)
+</code></pre><p>Advantages:</p><ul><li>Feed reads are extremely fast (pre-computed)</li><li>No complex query at read time</li></ul><p>Disadvantages:</p><ul><li>High write amplification (1 post → 200+ writes)</li><li>Celebrity problem: a user with 10M followers triggers 10M writes per post</li><li>Wasted work for inactive users who never read their feed</li></ul><p><strong>Fan-Out on Read (Pull Model)</strong>: When a user opens their feed, query the posts from everyone they follow in real-time.</p><pre tabindex=0><code>User opens their feed:
+  → Get list of followed users (200 users)
+  → Query recent posts from each followed user
+  → Merge and rank all posts
+  → Return top N posts
+</code></pre><p>Advantages:</p><ul><li>No write amplification</li><li>No wasted work (only compute when someone reads)</li><li>Handles celebrities naturally (no special case)</li></ul><p>Disadvantages:</p><ul><li>Slow feed reads (must query 200+ users&rsquo; posts and merge)</li><li>High database load at read time</li><li>Latency spikes during traffic peaks</li></ul><p><strong>Hybrid Model (the practical choice)</strong>: Use fan-out on write for regular users and fan-out on read for celebrities.</p><pre tabindex=0><code>User with &lt; 10,000 followers: fan-out on write (push to followers&#39; feeds)
+User with &gt;= 10,000 followers: fan-out on read (followers pull at read time)
+</code></pre><p>This is the approach used by Twitter and most large social platforms.</p><h3 id=high-level-architecture-2>High-Level Architecture</h3><p>Components:</p><ol><li><strong>Post Service</strong> — handles post creation and storage</li><li><strong>Feed Generation Service</strong> — builds and caches feeds</li><li><strong>Fan-Out Service</strong> — distributes posts to followers&rsquo; feeds</li><li><strong>Ranking Service</strong> — ranks feed items by relevance</li><li><strong>Social Graph Service</strong> — manages follow relationships</li><li><strong>Feed Cache</strong> — pre-computed feeds stored in Redis</li><li><strong>Post Cache</strong> — frequently accessed posts cached in Redis</li><li><strong>Kafka</strong> — decouples post creation from fan-out</li></ol><h3 id=post-creation-flow>Post Creation Flow</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>PostService</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>create_post</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>content</span><span class=p>:</span> <span class=nb>dict</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Create post in database</span>
+</span></span><span class=line><span class=cl>        <span class=n>post_id</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>uuid</span><span class=o>.</span><span class=n>uuid4</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=n>post</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;post_id&#34;</span><span class=p>:</span> <span class=n>post_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;user_id&#34;</span><span class=p>:</span> <span class=n>user_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>content</span><span class=p>[</span><span class=s2>&#34;text&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;media_urls&#34;</span><span class=p>:</span> <span class=n>content</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;media_urls&#34;</span><span class=p>,</span> <span class=p>[]),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;created_at&#34;</span><span class=p>:</span> <span class=n>datetime</span><span class=o>.</span><span class=n>utcnow</span><span class=p>()</span><span class=o>.</span><span class=n>isoformat</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>db</span><span class=o>.</span><span class=n>execute</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;INSERT INTO posts (id, user_id, content, media_urls, created_at) &#34;</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;VALUES ($1, $2, $3, $4, $5)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>post_id</span><span class=p>,</span> <span class=n>user_id</span><span class=p>,</span> <span class=n>post</span><span class=p>[</span><span class=s2>&#34;content&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>post</span><span class=p>[</span><span class=s2>&#34;media_urls&#34;</span><span class=p>]),</span> <span class=n>post</span><span class=p>[</span><span class=s2>&#34;created_at&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Cache the post</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>redis</span><span class=o>.</span><span class=n>setex</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;post:</span><span class=si>{</span><span class=n>post_id</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span> <span class=mi>86400</span><span class=p>,</span> <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>post</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Publish event for fan-out</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>kafka_producer</span><span class=o>.</span><span class=n>send</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>topic</span><span class=o>=</span><span class=s2>&#34;new-posts&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>key</span><span class=o>=</span><span class=n>user_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>value</span><span class=o>=</span><span class=n>post</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>post</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=fan-out-service>Fan-Out Service</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>FanOutService</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>CELEBRITY_THRESHOLD</span> <span class=o>=</span> <span class=mi>10000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>process_new_post</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>post</span><span class=p>:</span> <span class=nb>dict</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>user_id</span> <span class=o>=</span> <span class=n>post</span><span class=p>[</span><span class=s2>&#34;user_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Get follower count</span>
+</span></span><span class=line><span class=cl>        <span class=n>follower_count</span> <span class=o>=</span> <span class=k>await</span> <span class=n>social_graph</span><span class=o>.</span><span class=n>get_follower_count</span><span class=p>(</span><span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>follower_count</span> <span class=o>&gt;=</span> <span class=bp>self</span><span class=o>.</span><span class=n>CELEBRITY_THRESHOLD</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Celebrity: skip fan-out, fans will pull at read time</span>
+</span></span><span class=line><span class=cl>            <span class=k>await</span> <span class=n>redis</span><span class=o>.</span><span class=n>sadd</span><span class=p>(</span><span class=s2>&#34;celebrity_users&#34;</span><span class=p>,</span> <span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Regular user: fan-out on write</span>
+</span></span><span class=line><span class=cl>        <span class=n>followers</span> <span class=o>=</span> <span class=k>await</span> <span class=n>social_graph</span><span class=o>.</span><span class=n>get_followers</span><span class=p>(</span><span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Batch fan-out for efficiency</span>
+</span></span><span class=line><span class=cl>        <span class=n>pipeline</span> <span class=o>=</span> <span class=n>redis</span><span class=o>.</span><span class=n>pipeline</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>follower_id</span> <span class=ow>in</span> <span class=n>followers</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>feed_key</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;feed:</span><span class=si>{</span><span class=n>follower_id</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Add post ID to follower&#39;s feed (sorted set, scored by timestamp)</span>
+</span></span><span class=line><span class=cl>            <span class=n>pipeline</span><span class=o>.</span><span class=n>zadd</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>feed_key</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=p>{</span><span class=n>post</span><span class=p>[</span><span class=s2>&#34;post_id&#34;</span><span class=p>]:</span> <span class=nb>float</span><span class=p>(</span><span class=n>post</span><span class=p>[</span><span class=s2>&#34;created_at_epoch&#34;</span><span class=p>])},</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Trim feed to last 1000 posts (prevent unbounded growth)</span>
+</span></span><span class=line><span class=cl>            <span class=n>pipeline</span><span class=o>.</span><span class=n>zremrangebyrank</span><span class=p>(</span><span class=n>feed_key</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=mi>1001</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>pipeline</span><span class=o>.</span><span class=n>execute</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=feed-read-flow>Feed Read Flow</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>FeedService</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>FEED_SIZE</span> <span class=o>=</span> <span class=mi>50</span>  <span class=c1># Posts per page</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>get_feed</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>cursor</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>feed_key</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;feed:</span><span class=si>{</span><span class=n>user_id</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Step 1: Get pre-computed feed (fan-out on write posts)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>cursor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>max_score</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>cursor</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>max_score</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>post_ids</span> <span class=o>=</span> <span class=k>await</span> <span class=n>redis</span><span class=o>.</span><span class=n>zrevrangebyscore</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>feed_key</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>max_score</span><span class=p>,</span> <span class=s2>&#34;-inf&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>start</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>num</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>FEED_SIZE</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>withscores</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Step 2: Merge with celebrity posts (fan-out on read)</span>
+</span></span><span class=line><span class=cl>        <span class=n>celebrity_ids</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_followed_celebrities</span><span class=p>(</span><span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>celebrity_ids</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>celebrity_posts</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>fetch_celebrity_posts</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>celebrity_ids</span><span class=p>,</span> <span class=n>max_score</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>FEED_SIZE</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Merge celebrity posts with pre-computed feed</span>
+</span></span><span class=line><span class=cl>            <span class=n>all_posts</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>merge_sorted</span><span class=p>(</span><span class=n>post_ids</span><span class=p>,</span> <span class=n>celebrity_posts</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>all_posts</span> <span class=o>=</span> <span class=n>post_ids</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Step 3: Fetch full post data (batch from cache/DB)</span>
+</span></span><span class=line><span class=cl>        <span class=n>enriched_posts</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>enrich_posts</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=p>[</span><span class=n>pid</span> <span class=k>for</span> <span class=n>pid</span><span class=p>,</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>all_posts</span><span class=p>[:</span><span class=bp>self</span><span class=o>.</span><span class=n>FEED_SIZE</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Step 4: Rank posts</span>
+</span></span><span class=line><span class=cl>        <span class=n>ranked_posts</span> <span class=o>=</span> <span class=k>await</span> <span class=bp>self</span><span class=o>.</span><span class=n>ranking_service</span><span class=o>.</span><span class=n>rank</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>user_id</span><span class=p>,</span> <span class=n>enriched_posts</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Step 5: Build response with cursor for pagination</span>
+</span></span><span class=line><span class=cl>        <span class=n>next_cursor</span> <span class=o>=</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>ranked_posts</span><span class=p>)</span> <span class=o>==</span> <span class=bp>self</span><span class=o>.</span><span class=n>FEED_SIZE</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>next_cursor</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>all_posts</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>FEED_SIZE</span> <span class=o>-</span> <span class=mi>1</span><span class=p>][</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;posts&#34;</span><span class=p>:</span> <span class=n>ranked_posts</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;next_cursor&#34;</span><span class=p>:</span> <span class=n>next_cursor</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>fetch_celebrity_posts</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=p>,</span> <span class=n>celebrity_ids</span><span class=p>:</span> <span class=nb>list</span><span class=p>,</span> <span class=n>max_timestamp</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>limit</span><span class=p>:</span> <span class=nb>int</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Pull recent posts from celebrity users (fan-out on read).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>tasks</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=n>db</span><span class=o>.</span><span class=n>fetch_all</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;SELECT post_id, created_at_epoch FROM posts &#34;</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;WHERE user_id = $1 AND created_at_epoch &lt; $2 &#34;</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ORDER BY created_at_epoch DESC LIMIT $3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>celeb_id</span><span class=p>,</span> <span class=n>max_timestamp</span><span class=p>,</span> <span class=n>limit</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>celeb_id</span> <span class=ow>in</span> <span class=n>celebrity_ids</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>results</span> <span class=o>=</span> <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>*</span><span class=n>tasks</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Merge all celebrity posts, sort by timestamp</span>
+</span></span><span class=line><span class=cl>        <span class=n>merged</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>result</span> <span class=ow>in</span> <span class=n>results</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>merged</span><span class=o>.</span><span class=n>extend</span><span class=p>([(</span><span class=n>r</span><span class=p>[</span><span class=s2>&#34;post_id&#34;</span><span class=p>],</span> <span class=n>r</span><span class=p>[</span><span class=s2>&#34;created_at_epoch&#34;</span><span class=p>])</span> <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>result</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>merged</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>merged</span><span class=p>[:</span><span class=n>limit</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=ranking>Ranking</h3><p>A purely chronological feed is straightforward but does not maximize engagement. A ranked feed uses signals to surface the most relevant posts:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>RankingService</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>def</span> <span class=nf>rank</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>posts</span><span class=p>:</span> <span class=nb>list</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Score and rank posts based on relevance signals.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>scored_posts</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>post</span> <span class=ow>in</span> <span class=n>posts</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>score</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>compute_score</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>post</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>scored_posts</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>score</span><span class=p>,</span> <span class=n>post</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>scored_posts</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>[</span><span class=n>post</span> <span class=k>for</span> <span class=n>_</span><span class=p>,</span> <span class=n>post</span> <span class=ow>in</span> <span class=n>scored_posts</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>compute_score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>post</span><span class=p>:</span> <span class=nb>dict</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Simple scoring function combining multiple signals.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>score</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Recency: exponential decay over time</span>
+</span></span><span class=line><span class=cl>        <span class=n>age_hours</span> <span class=o>=</span> <span class=p>(</span><span class=n>time</span><span class=o>.</span><span class=n>time</span><span class=p>()</span> <span class=o>-</span> <span class=n>post</span><span class=p>[</span><span class=s2>&#34;created_at_epoch&#34;</span><span class=p>])</span> <span class=o>/</span> <span class=mi>3600</span>
+</span></span><span class=line><span class=cl>        <span class=n>recency_score</span> <span class=o>=</span> <span class=n>math</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.1</span> <span class=o>*</span> <span class=n>age_hours</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>score</span> <span class=o>+=</span> <span class=n>recency_score</span> <span class=o>*</span> <span class=mi>10</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Engagement: posts with more likes/comments rank higher</span>
+</span></span><span class=line><span class=cl>        <span class=n>engagement</span> <span class=o>=</span> <span class=n>post</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;like_count&#34;</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=n>post</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;comment_count&#34;</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>*</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>        <span class=n>score</span> <span class=o>+=</span> <span class=n>math</span><span class=o>.</span><span class=n>log1p</span><span class=p>(</span><span class=n>engagement</span><span class=p>)</span> <span class=o>*</span> <span class=mi>3</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Affinity: how often the user interacts with the post author</span>
+</span></span><span class=line><span class=cl>        <span class=n>interaction_count</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_interaction_count</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>post</span><span class=p>[</span><span class=s2>&#34;user_id&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>affinity_score</span> <span class=o>=</span> <span class=n>math</span><span class=o>.</span><span class=n>log1p</span><span class=p>(</span><span class=n>interaction_count</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>score</span> <span class=o>+=</span> <span class=n>affinity_score</span> <span class=o>*</span> <span class=mi>5</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Content type boost: images and videos rank higher than text</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>post</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;media_urls&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>score</span> <span class=o>+=</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>score</span>
+</span></span></code></pre></td></tr></table></div></div><p>In production, this simple scoring function is replaced by an ML model trained on user behavior (click-through rate, dwell time, likes, shares). But the simple version illustrates the concept.</p><h3 id=the-celebrity-problem-deep-dive>The Celebrity Problem Deep Dive</h3><p>When a user with 50 million followers publishes a post, fan-out on write would require 50 million cache writes. At 1 microsecond per write, that takes 50 seconds. Meanwhile, the next post from another celebrity starts its own fan-out. The system falls behind.</p><p>The hybrid model solves this: celebrities are handled via fan-out on read. But there is a spectrum between &ldquo;regular user&rdquo; and &ldquo;celebrity.&rdquo; Some practical thresholds:</p><pre tabindex=0><code>Followers &lt; 10,000:    Fan-out on write (pre-compute feed)
+Followers 10K-1M:      Fan-out on write with lower priority (async, may be delayed)
+Followers &gt; 1M:        Fan-out on read only (pull at query time)
+</code></pre><p>The threshold is not fixed. It depends on your infrastructure capacity, acceptable latency, and the percentage of followers who are actually active.</p><h3 id=scaling-strategy-1>Scaling Strategy</h3><p><strong>Feed cache partitioning</strong>: Partition by user ID hash across Redis cluster nodes. Each user&rsquo;s feed lives on a deterministic shard.</p><p><strong>Post storage</strong>: Partition by user ID for write-optimized access (all of a user&rsquo;s posts on the same shard). Use a secondary index or search service for cross-user queries.</p><p><strong>Fan-out workers</strong>: The fan-out service is a pool of Kafka consumers. Scale workers horizontally to handle post volume. Each worker processes fan-out for a subset of posts.</p><p><strong>Read path optimization</strong>: Pre-compute and cache the top 200 posts per user&rsquo;s feed. Most users only scroll through the first 20-50 posts, so cache hit rates are high.</p><hr><h2 id=cross-cutting-themes>Cross-Cutting Themes</h2><p>Looking across all three case studies, several patterns recur:</p><p><strong>Read-heavy systems benefit from caching</strong>: The URL shortener, chat history, and news feed all have read:write ratios of 10:1 to 100:1. Caching transforms an unscalable system into a scalable one.</p><p><strong>Async processing via message queues</strong>: All three systems use Kafka to decouple the write path from downstream processing. The URL shortener decouples analytics. The chat system decouples message storage from delivery. The news feed decouples post creation from fan-out.</p><p><strong>The right data store for the right access pattern</strong>: The URL shortener uses a key-value store (hash lookup). The chat system uses a wide-column store (time-ordered messages per conversation). The news feed uses a sorted set cache (ranked posts per user). No single database fits all three.</p><p><strong>Estimation drives architecture</strong>: The numbers calculated in the estimation phase determine which components are needed. 350,000 reads/sec demands a cache. 460,000 fan-out writes/sec demands a message queue. 15 million concurrent connections demands a distributed WebSocket gateway. Without the math, these decisions are guesswork.</p><h2 id=whats-next>What&rsquo;s Next</h2><p>This article concludes the System Design series. The eight articles together cover the full spectrum from estimation fundamentals to complete system designs. The next step is practice: pick a system you use daily, define its requirements, estimate its scale, and design its architecture. The more systems you design, the more patterns you recognize, and the faster you converge on good solutions.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/system-design/>System Design</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/system-design/07-data-pipelines/><span class=title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=/en/series/system-design/><span class=title>Back to System Design index</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/01-thinking-in-systems/><span class=series-nav-num>01</span>
+<span class=series-nav-title>System Design (1): Thinking in Systems — Load, Latency, and the Art of Estimation</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/02-dns-cdn-load-balancing/><span class=series-nav-num>02</span>
+<span class=series-nav-title>System Design (2): DNS, CDN, and Load Balancing — The First Three Hops</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/03-api-design/><span class=series-nav-num>03</span>
+<span class=series-nav-title>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/04-caching-strategies/><span class=series-nav-num>04</span>
+<span class=series-nav-title>System Design (4): Caching — Where to Cache, What to Evict, and When Caching Hurts</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/05-message-queues/><span class=series-nav-num>05</span>
+<span class=series-nav-title>System Design (5): Message Queues and Event-Driven Architecture</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=series-nav-num>06</span>
+<span class=series-nav-title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/07-data-pipelines/><span class=series-nav-num>07</span>
+<span class=series-nav-title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>08</span>
+<span class=series-nav-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span>
+<span class=series-nav-here>you are here</span></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#case-study-1-url-shortener>Case Study 1: URL Shortener</a><ul><li><a href=#requirements>Requirements</a></li><li><a href=#estimation>Estimation</a></li><li><a href=#short-url-generation>Short URL Generation</a></li><li><a href=#high-level-architecture>High-Level Architecture</a></li><li><a href=#deep-dive-redirect-logic>Deep Dive: Redirect Logic</a></li><li><a href=#301-vs-302-redirect>301 vs 302 Redirect</a></li><li><a href=#scaling-strategy>Scaling Strategy</a></li></ul></li><li><a href=#case-study-2-real-time-chat-system>Case Study 2: Real-Time Chat System</a><ul><li><a href=#requirements-1>Requirements</a></li><li><a href=#estimation-1>Estimation</a></li><li><a href=#high-level-architecture-1>High-Level Architecture</a></li><li><a href=#websocket-connection-management>WebSocket Connection Management</a></li><li><a href=#message-routing>Message Routing</a></li><li><a href=#group-message-fan-out>Group Message Fan-Out</a></li><li><a href=#message-storage>Message Storage</a></li><li><a href=#presence-service>Presence Service</a></li><li><a href=#scaling-considerations>Scaling Considerations</a></li></ul></li><li><a href=#case-study-3-news-feed-system>Case Study 3: News Feed System</a><ul><li><a href=#requirements-2>Requirements</a></li><li><a href=#estimation-2>Estimation</a></li><li><a href=#the-fan-out-problem>The Fan-Out Problem</a></li><li><a href=#high-level-architecture-2>High-Level Architecture</a></li><li><a href=#post-creation-flow>Post Creation Flow</a></li><li><a href=#fan-out-service>Fan-Out Service</a></li><li><a href=#feed-read-flow>Feed Read Flow</a></li><li><a href=#ranking>Ranking</a></li><li><a href=#the-celebrity-problem-deep-dive>The Celebrity Problem Deep Dive</a></li><li><a href=#scaling-strategy-1>Scaling Strategy</a></li></ul></li><li><a href=#cross-cutting-themes>Cross-Cutting Themes</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/system-design/ class=series-name>System Design</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/01-thinking-in-systems/><span class=chapter-num>01</span>
+<span class=chapter-title>System Design (1): Thinking in Systems — Load, Latency, and the Art of Estimation</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/02-dns-cdn-load-balancing/><span class=chapter-num>02</span>
+<span class=chapter-title>System Design (2): DNS, CDN, and Load Balancing — The First Three Hops</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/03-api-design/><span class=chapter-num>03</span>
+<span class=chapter-title>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/04-caching-strategies/><span class=chapter-num>04</span>
+<span class=chapter-title>System Design (4): Caching — Where to Cache, What to Evict, and When Caching Hurts</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/05-message-queues/><span class=chapter-num>05</span>
+<span class=chapter-title>System Design (5): Message Queues and Event-Driven Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=chapter-num>06</span>
+<span class=chapter-title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/07-data-pipelines/><span class=chapter-num>07</span>
+<span class=chapter-title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
+<span class=chapter-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>40 min</strong></div><div class=row><span>Word count</span><strong>4245</strong></div><div class=row><span>Published</span><strong>Jul 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

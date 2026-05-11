@@ -1,0 +1,446 @@
+<!doctype html><html lang=zh data-translation=/en/databases/07-distributed-transactions/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难 · Chen Kai Blog</title>
+<meta name=description content="分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/databases/07-distributed-transactions/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/databases/07-distributed-transactions/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/databases/07-distributed-transactions/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/databases/07-distributed-transactions/><meta property="og:type" content="article"><meta property="og:title" content="数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难"><meta property="og:description" content="分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。"><meta property="og:url" content="https://www.chenk.top/zh/databases/07-distributed-transactions/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><meta property="og:image:alt" content="数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难"><meta property="article:published_time" content="2023-12-24T09:00:00Z"><meta property="article:modified_time" content="2023-12-24T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Databases"><meta property="article:tag" content="Distributed Systems"><meta property="article:tag" content="Consensus"><meta property="article:tag" content="Transactions"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难"><meta name=twitter:description content="分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难\"","description":"\"分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-12-24T09:00:00Z\"","dateModified":"\"2023-12-24T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/databases/07-distributed-transactions/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>数据库原理与实践</a>
+· 第 7 篇</div><h1>数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</h1><p class=deck>分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-12-24>December 24, 2023</time> · 22 分钟 · 5317 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/databases/ class=tag>#Databases</a><a href=/zh/tags/distributed-systems/ class=tag>#Distributed Systems</a><a href=/zh/tags/consensus/ class=tag>#Consensus</a><a href=/zh/tags/transactions/ class=tag>#Transactions</a></div><a class="pill pill-outline" href=/en/databases/07-distributed-transactions/>Read in English →</a></div></header><div class=prose><p>第 3 篇文章中关于事务的所有内容，都基于单数据库服务器的假设：一台机器、一份事务日志、一个锁管理器。一旦你的数据分布在多台机器上——这在你开始分片（sharding）、采用微服务并为每个服务配备独立数据库、或启用强一致性复制时就会立刻发生——你就直面分布式系统中最难的问题：<strong>如何让多台机器达成一致？</strong></p><h2 id=分布式事务问题>分布式事务问题</h2><p>考虑一个电商系统，订单服务和库存服务彼此分离，各自拥有独立数据库：</p><pre tabindex=0><code>Order Service (DB-1)              Inventory Service (DB-2)
+┌─────────────────────┐          ┌─────────────────────────┐
+│ INSERT INTO orders   │          │ UPDATE products          │
+│ (user_id, total)     │          │ SET stock = stock - 1    │
+│ VALUES (1, 99.99)    │          │ WHERE product_id = 42    │
+└─────────────────────┘          └─────────────────────────┘
+</code></pre><p>如果订单插入成功，但库存更新失败（网络故障、约束冲突、进程崩溃），问题就出现了：一笔订单对应的商品从未被预留。若无协调机制，不一致便不可避免。</p><p>在单数据库中，用 <code>BEGIN ... COMMIT</code> 将二者包裹即可解决。但在两个数据库之间，这是不可能的——它们拥有各自独立的事务日志、独立的崩溃恢复机制、独立的时钟。</p><h2 id=两阶段提交2pc>两阶段提交（2PC）</h2><p>分布式事务的经典教科书解法。由一个协调者节点（coordinator）主导协议，多个参与者节点（participants）配合执行。</p><h3 id=协议流程>协议流程</h3><pre tabindex=0><code>Phase 1: PREPARE (投票阶段)
+  Coordinator → Participant A: &#34;Can you commit transaction T?&#34;
+  Coordinator → Participant B: &#34;Can you commit transaction T?&#34;
+  Participant A → Coordinator: &#34;Yes, I&#39;m prepared&#34; (locks held, WAL flushed)
+  Participant B → Coordinator: &#34;Yes, I&#39;m prepared&#34;
+
+Phase 2: COMMIT (决策阶段)
+  Coordinator → Participant A: &#34;COMMIT transaction T&#34;
+  Coordinator → Participant B: &#34;COMMIT transaction T&#34;
+  Participant A → Coordinator: &#34;Done&#34;
+  Participant B → Coordinator: &#34;Done&#34;
+</code></pre><p>若任一参与者在 Phase 1 投“否”票，则协调者向所有参与者发送 ROLLBACK。</p><pre tabindex=0><code>Coordinator                   Participant A      Participant B
+    │                              │                   │
+    ├──── PREPARE ────────────────►│                   │
+    ├──── PREPARE ───────────────────────────────────►│
+    │                              │                   │
+    │◄─── YES (prepared) ─────────┤                   │
+    │◄─── YES (prepared) ──────────────────────────────┤
+    │                              │                   │
+    │  (writes COMMIT to own log)  │                   │
+    │                              │                   │
+    ├──── COMMIT ─────────────────►│                   │
+    ├──── COMMIT ──────────────────────────────────►│
+    │                              │                   │
+    │◄─── ACK ────────────────────┤                   │
+    │◄─── ACK ─────────────────────────────────────────┤
+    │                              │                   │
+</code></pre><h3 id=协调者失效问题the-coordinator-failure-problem>协调者失效问题（The Coordinator Failure Problem）</h3><p>2PC 的关键弱点在于：若协调者在发出 PREPARE 后、发出 COMMIT/ROLLBACK 前崩溃，则参与者将陷入僵持状态。它们已投“是”，并持有锁，却无法得知最终决策。</p><pre tabindex=0><code>Coordinator                   Participant A      Participant B
+    │                              │                   │
+    ├──── PREPARE ────────────────►│                   │
+    ├──── PREPARE ───────────────────────────────────►│
+    │                              │                   │
+    │◄─── YES ────────────────────┤                   │
+    │◄─── YES ─────────────────────────────────────────┤
+    │                              │                   │
+    ╳ CRASH                        │                   │
+                                   │                   │
+                               &#34;I voted YES          &#34;I voted YES
+                                but don&#39;t know        but don&#39;t know
+                                the decision.         the decision.
+                                Can&#39;t commit.         Can&#39;t commit.
+                                Can&#39;t rollback.       Can&#39;t rollback.
+                                Locks held...&#34;        Locks held...&#34;
+</code></pre><p>这被称为 <strong>阻塞问题（blocking problem）</strong>。参与者必须等待（可能无限期）协调者恢复并揭示其决策。实践中这意味着：</p><ul><li>锁被无限期持有，阻塞其他事务；</li><li>可能需要人工干预；</li><li>该协议不具备容错能力。</li></ul><h3 id=2pc-在实践中的应用>2PC 在实践中的应用</h3><p>尽管存在局限性，2PC 仍在实际系统中被使用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL: 预处理事务（2PC 参与者）
+</span></span></span><span class=line><span class=cl><span class=c1>-- 应用程序/协调者调用以下命令：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Phase 1: Prepare
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>accounts</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>balance</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>100</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>PREPARE</span><span class=w> </span><span class=k>TRANSACTION</span><span class=w> </span><span class=s1>&#39;transfer_001_debit&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Phase 2: Commit（若所有参与者均成功 prepare）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>COMMIT</span><span class=w> </span><span class=n>PREPARED</span><span class=w> </span><span class=s1>&#39;transfer_001_debit&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 或回滚
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ROLLBACK</span><span class=w> </span><span class=n>PREPARED</span><span class=w> </span><span class=s1>&#39;transfer_001_debit&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 检查孤立的预处理事务（卡住的 2PC）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=n>gid</span><span class=p>,</span><span class=w> </span><span class=n>prepared</span><span class=p>,</span><span class=w> </span><span class=k>owner</span><span class=p>,</span><span class=w> </span><span class=k>database</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_prepared_xacts</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=c1>// Java XA 事务（JTA）—— 2PC 的标准 API</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>UserTransaction</span><span class=w> </span><span class=n>ut</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>(</span><span class=n>UserTransaction</span><span class=p>)</span><span class=w> </span><span class=n>ctx</span><span class=p>.</span><span class=na>lookup</span><span class=p>(</span><span class=s>&#34;java:comp/UserTransaction&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ut</span><span class=p>.</span><span class=na>begin</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>// 将两个不同数据库纳入同一事务</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Connection</span><span class=w> </span><span class=n>conn1</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ds1</span><span class=p>.</span><span class=na>getConnection</span><span class=p>();</span><span class=w>  </span><span class=c1>// 订单数据库</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Connection</span><span class=w> </span><span class=n>conn2</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ds2</span><span class=p>.</span><span class=na>getConnection</span><span class=p>();</span><span class=w>  </span><span class=c1>// 库存数据库</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>conn1</span><span class=p>.</span><span class=na>prepareStatement</span><span class=p>(</span><span class=s>&#34;INSERT INTO orders ...&#34;</span><span class=p>).</span><span class=na>execute</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>conn2</span><span class=p>.</span><span class=na>prepareStatement</span><span class=p>(</span><span class=s>&#34;UPDATE inventory SET stock = stock - 1 ...&#34;</span><span class=p>).</span><span class=na>execute</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ut</span><span class=p>.</span><span class=na>commit</span><span class=p>();</span><span class=w>  </span><span class=c1>// 事务管理器运行 2PC 协议</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=三阶段提交3pc>三阶段提交（3PC）</h2><p>3PC 在 PREPARE 和 COMMIT 之间增加了一个 PRE-COMMIT 阶段，使参与者可在协调者失效时自主恢复：</p><pre tabindex=0><code>Phase 1: CAN-COMMIT?  → 参与者检查自身是否可提交
+Phase 2: PRE-COMMIT   → 协调者通知参与者准备（但暂不提交）
+Phase 3: DO-COMMIT    → 最终提交
+
+若协调者在 PRE-COMMIT 后崩溃：
+  参与者可超时后直接提交（因已知所有节点均已就绪）
+</code></pre><p>理论上，3PC 是非阻塞的。但实践中极少使用，原因如下：</p><ul><li>网络分区仍可能导致不一致（某参与者可能未收到 PRE-COMMIT）；</li><li>额外的一次往返增加了延迟；</li><li>Raft/Paxos 等共识协议更稳健地解决了该问题。</li></ul><h2 id=共识算法consensus-algorithms>共识算法（Consensus Algorithms）</h2><p>共识问题是：即使部分节点发生故障，多个节点仍需就某个值达成一致。它是强一致性分布式数据库的基石。</p><h3 id=paxos概念性>Paxos（概念性）</h3><p>Paxos（Leslie Lamport 于 1989 年提出）是首个被严格证明正确的共识算法。它定义了三个角色：</p><ul><li><strong>提议者（Proposers）</strong>：提出值；</li><li><strong>接受者（Acceptors）</strong>：对提议进行投票；</li><li><strong>学习者（Learners）</strong>：获知最终被选定的值。</li></ul><p>Single-Decree Paxos 的简化视图如下：</p><pre tabindex=0><code>Phase 1: Prepare
+  Proposer → Acceptors: &#34;Prepare(proposal_number=5)&#34;
+  Acceptors → Proposer: &#34;Promise: I won&#39;t accept proposals &lt; 5&#34;
+                          + &#34;Last accepted: (proposal=3, value=&#39;X&#39;)&#34; if any
+
+Phase 2: Accept
+  Proposer → Acceptors: &#34;Accept(proposal=5, value=&#39;Y&#39;)&#34;
+  Acceptors → Proposer: &#34;Accepted&#34; (if no higher proposal seen)
+  
+When a majority of acceptors accept → value is decided
+</code></pre><p>Paxos 正确但 notoriously 难以实现。正如 Lamport 所言，社区花了数年才真正理解他的论文。这种复杂性催生了 Raft。</p><h3 id=raft可理解的共识协议>Raft：可理解的共识协议</h3><p>Raft（2014 年，Diego Ongaro 和 John Ousterhout 提出）旨在提供与 Paxos 等价但更易理解的共识方案。它将共识分解为三个子问题：</p><ol><li><strong>领导者选举（Leader election）</strong></li><li><strong>日志复制（Log replication）</strong></li><li><strong>安全性（Safety）</strong></li></ol><h4 id=领导者选举>领导者选举</h4><p>每个节点初始为 <strong>追随者（Follower）</strong>。若追随者在随机超时（如 150–300 ms）内未收到来自领导者的心跳，则转变为 <strong>候选人（Candidate）</strong> 并发起选举。</p><pre tabindex=0><code>Node States:
+  Follower  → times out, no heartbeat  → Candidate
+  Candidate → receives majority votes  → Leader
+  Candidate → discovers higher-term leader → Follower
+  Leader    → discovers higher-term leader → Follower
+
+Election Process:
+  1. Candidate increments its term number
+  2. Votes for itself
+  3. Sends RequestVote RPCs to all other nodes
+  4. If majority responds with vote: becomes Leader
+  5. Starts sending periodic heartbeats to prevent new elections
+</code></pre><pre tabindex=0><code>Term 1: Node A is leader
+         Node A ──heartbeat──► Node B
+         Node A ──heartbeat──► Node C
+
+Term 2: Node A crashes. Node B times out.
+         Node B: &#34;I&#39;m a candidate for term 2. Vote for me.&#34;
+         Node C: &#34;OK, you have my vote for term 2.&#34;
+         Node B: Now leader. Starts sending heartbeats.
+</code></pre><h4 id=日志复制>日志复制</h4><p>领导者当选后，接收客户端请求并追加至本地日志，再将日志条目复制给追随者：</p><pre tabindex=0><code>Leader Log:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]
+                    │                │               │
+                    ▼                ▼               ▼
+Follower B:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]  ✓ up to date
+Follower C:   [term1:SET x=1] [term1:SET y=2]                  ✗ catching up
+
+A log entry is &#34;committed&#34; when replicated to a majority of nodes.
+The leader then applies the entry to its state machine and responds to the client.
+</code></pre><pre tabindex=0><code>Client ─── &#34;SET x=3&#34; ──► Leader
+                          │
+                 1. Append to log
+                 2. Send AppendEntries RPC to followers
+                          │
+                    ┌──────┼──────┐
+                    ▼      ▼      ▼
+                 Foll.B  Foll.C  Foll.D
+                    │      │      │
+                    └──────┼──────┘
+                 3. Wait for majority acknowledgment
+                          │
+                 4. Commit entry
+                 5. Apply to state machine
+                 6. Respond to client: &#34;OK&#34;
+</code></pre><h4 id=raft-的实际应用>Raft 的实际应用</h4><table><thead><tr><th>系统</th><th>Raft 使用场景</th></tr></thead><tbody><tr><td>etcd</td><td>键值存储（Kubernetes 后端存储）</td></tr><tr><td>CockroachDB</td><td>每个 range（分区）使用独立的 Raft 组</td></tr><tr><td>TiKV</td><td>TiDB 的存储层</td></tr><tr><td>Consul</td><td>服务发现与配置管理</td></tr><tr><td>RethinkDB</td><td>集群协调</td></tr></tbody></table><h2 id=saga-模式>Saga 模式</h2><p>当 2PC 成本过高或不切实际（这在微服务架构中几乎总是如此）时，Saga 模式提供了替代方案。它不追求单一巨型分布式事务，而是将业务流程拆分为一系列本地事务，每个事务都配有一个 <strong>补偿事务（compensating transaction）</strong>，用于在后续步骤失败时撤销其效果。</p><h3 id=编排orchestration-vs-协作choreography>编排（Orchestration） vs. 协作（Choreography）</h3><p><strong>协作式（Choreography）</strong>：各服务发布事件，下游服务监听并响应。</p><pre tabindex=0><code>Order Service              Inventory Service          Payment Service
+     │                          │                          │
+     │ OrderCreated event ──────►                          │
+     │                          │                          │
+     │                    InventoryReserved event ─────────►
+     │                          │                          │
+     │                          │              PaymentProcessed event
+     │◄─────────────────────────────────────────────────────┤
+     │                          │                          │
+     │ OrderConfirmed           │                          │
+</code></pre><p><strong>编排式（Orchestration）</strong>：由中心化协调器（orchestrator）依次指挥各服务。</p><pre tabindex=0><code>Saga Orchestrator
+     │
+     ├──── &#34;Create order&#34; ──────► Order Service
+     │◄─── &#34;Order created&#34; ──────┤
+     │
+     ├──── &#34;Reserve inventory&#34; ──► Inventory Service
+     │◄─── &#34;Inventory reserved&#34; ──┤
+     │
+     ├──── &#34;Process payment&#34; ────► Payment Service
+     │◄─── &#34;Payment failed!&#34; ─────┤
+     │
+     │  COMPENSATION:
+     ├──── &#34;Release inventory&#34; ──► Inventory Service
+     │◄─── &#34;Inventory released&#34; ──┤
+     │
+     ├──── &#34;Cancel order&#34; ──────► Order Service
+     │◄─── &#34;Order cancelled&#34; ─────┤
+</code></pre><h3 id=补偿事务compensating-transactions>补偿事务（Compensating Transactions）</h3><p>每个正向操作都需配套一个补偿操作：</p><table><thead><tr><th>步骤</th><th>正向操作</th><th>补偿操作</th></tr></thead><tbody><tr><td>1</td><td>创建订单（状态：pending）</td><td>取消订单（状态：cancelled）</td></tr><tr><td>2</td><td>预留库存（stock - 1）</td><td>释放库存（stock + 1）</td></tr><tr><td>3</td><td>扣款支付</td><td>退款</td></tr><tr><td>4</td><td>发货</td><td>取消发货</td></tr></tbody></table><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Saga 编排器伪代码</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>OrderSaga</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>steps</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=n>SagaStep</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>action</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>order_service</span><span class=o>.</span><span class=n>create_order</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>user_id</span><span class=p>,</span> <span class=n>ctx</span><span class=o>.</span><span class=n>items</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>compensation</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>order_service</span><span class=o>.</span><span class=n>cancel_order</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>order_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>SagaStep</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>action</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>inventory_service</span><span class=o>.</span><span class=n>reserve</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>items</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>compensation</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>inventory_service</span><span class=o>.</span><span class=n>release</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>items</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>SagaStep</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>action</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>payment_service</span><span class=o>.</span><span class=n>charge</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>user_id</span><span class=p>,</span> <span class=n>ctx</span><span class=o>.</span><span class=n>total</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>compensation</span><span class=o>=</span><span class=k>lambda</span> <span class=n>ctx</span><span class=p>:</span> <span class=n>payment_service</span><span class=o>.</span><span class=n>refund</span><span class=p>(</span><span class=n>ctx</span><span class=o>.</span><span class=n>payment_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>execute</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>context</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>completed</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>steps</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>result</span> <span class=o>=</span> <span class=n>step</span><span class=o>.</span><span class=n>action</span><span class=p>(</span><span class=n>context</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>completed</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>step</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=c1># 按逆序执行补偿</span>
+</span></span><span class=line><span class=cl>                <span class=k>for</span> <span class=n>completed_step</span> <span class=ow>in</span> <span class=nb>reversed</span><span class=p>(</span><span class=n>completed</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                    <span class=n>completed_step</span><span class=o>.</span><span class=n>compensation</span><span class=p>(</span><span class=n>context</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>raise</span> <span class=n>SagaFailedError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Step failed: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=线性一致性linearizability-vs-可串行化serializability>线性一致性（Linearizability） vs. 可串行化（Serializability）</h2><p>这两个术语常被混淆，但描述的是完全不同的保证：</p><p><strong>可串行化（Serializability）</strong>（来自事务）：并发执行多个事务的结果，等价于这些事务以某种<strong>串行顺序</strong>执行的结果。它关注的是事务与数据库层面的正确性。</p><p><strong>线性一致性（Linearizability）</strong>（来自分布式系统）：每个操作看起来都在其调用与完成之间的某个瞬时点原子生效；一旦写入被确认，所有后续读取都必须看到该值。它关注的是<strong>单个操作</strong>与实时顺序。</p><pre tabindex=0><code>线性一致系统（寄存器初始值为 0）：
+
+Client A: write(1)  ─────────────────► OK
+                                        │ （从此刻起，所有读取必须返回 1）
+Client B:              read() ──────────► 1  ✓
+Client C:                     read() ──► 1   ✓
+
+非线性一致：
+Client A: write(1)  ─────────────────► OK
+Client B:              read() ──────────► 0  ✗ （陈旧！）
+Client C:                     read() ──► 1   ✓
+</code></pre><table><thead><tr><th>属性</th><th>可串行化（Serializability）</th><th>线性一致性（Linearizability）</th></tr></thead><tbody><tr><td>范围</td><td>多操作事务</td><td>单个操作</td></tr><tr><td>排序要求</td><td>存在某种串行顺序（任意顺序均可）</td><td>实时顺序（real-time order）</td></tr><tr><td>关键场景</td><td>数据库</td><td>分布式键值存储、分布式锁</td></tr><tr><td>示例系统</td><td>任何 SERIALIZABLE 隔离级别的数据库</td><td>ZooKeeper、etcd、Spanner</td></tr></tbody></table><p><strong>严格可串行化（Strict serializability）</strong> = 可串行化 + 线性一致性。这是最强的一致性保证，也是 Google Spanner 提供的保证。</p><h2 id=最终一致性eventual-consistency>最终一致性（Eventual Consistency）</h2><p>在线性一致性的另一端是最终一致性：若不再有新的写入，所有副本将<strong>最终</strong>收敛到相同值。</p><p>“最终”是模糊的——可能是毫秒级，也可能是分钟级。实践中：</p><pre tabindex=0><code>向 Node A 写入 &#34;x = 5&#34;
+  t=0ms:  Node A: x=5,  Node B: x=3,  Node C: x=3
+  t=50ms: Node A: x=5,  Node B: x=5,  Node C: x=3
+  t=100ms: Node A: x=5, Node B: x=5,  Node C: x=5  ← 收敛完成
+</code></pre><p>默认采用最终一致性的系统包括：</p><ul><li>DynamoDB（除非显式请求强一致性读取）；</li><li>Cassandra（一致性级别设为 ONE）；</li><li>DNS；</li><li>CDN 缓存。</li></ul><p>它适用于以下场景：</p><ul><li>陈旧数据可容忍（社交媒体动态流、商品推荐）；</li><li>系统能检测并解决冲突（购物车、CRDT）；</li><li>性能比一致性更重要（分析、日志）。</li></ul><h2 id=真实世界常用模式>真实世界常用模式</h2><h3 id=outbox-模式>Outbox 模式</h3><p>如何<strong>原子性地</strong>更新数据库 <em>并</em> 向消息中间件（如 Kafka）发布消息？你无法在数据库与 Kafka 之间使用分布式事务。</p><p>Outbox 模式：将消息写入数据库内的一个 “outbox” 表（与业务更新在同一事务中）。再由独立进程读取该表，并向消息中间件发布。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 单数据库事务（原子性！）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>BEGIN</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 业务逻辑
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>total</span><span class=p>,</span><span class=w> </span><span class=n>status</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>99</span><span class=p>.</span><span class=mi>99</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;created&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Outbox 条目（同事务、同数据库）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>outbox</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>aggregate_type</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>aggregate_id</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>event_type</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>payload</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>created_at</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Order&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>currval</span><span class=p>(</span><span class=s1>&#39;orders_order_id_seq&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;OrderCreated&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;{&#34;user_id&#34;: 1, &#34;total&#34;: 99.99}&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>NOW</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>COMMIT</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>一个独立的发布进程（或 Debezium + CDC）持续读取 outbox 表并向 Kafka 发布事件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Outbox 发布器（持续运行）</span>
+</span></span><span class=line><span class=cl><span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>rows</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=n>query</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>        SELECT id, event_type, payload
+</span></span></span><span class=line><span class=cl><span class=s2>        FROM outbox
+</span></span></span><span class=line><span class=cl><span class=s2>        WHERE published_at IS NULL
+</span></span></span><span class=line><span class=cl><span class=s2>        ORDER BY created_at
+</span></span></span><span class=line><span class=cl><span class=s2>        LIMIT 100
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>row</span> <span class=ow>in</span> <span class=n>rows</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>kafka</span><span class=o>.</span><span class=n>produce</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>topic</span><span class=o>=</span><span class=sa>f</span><span class=s2>&#34;events.</span><span class=si>{</span><span class=n>row</span><span class=o>.</span><span class=n>event_type</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>value</span><span class=o>=</span><span class=n>row</span><span class=o>.</span><span class=n>payload</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>db</span><span class=o>.</span><span class=n>execute</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;UPDATE outbox SET published_at = NOW() WHERE id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>row</span><span class=o>.</span><span class=n>id</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=变更数据捕获cdc>变更数据捕获（CDC）</h3><p>不主动写 outbox 表，而是直接从数据库的事务日志（WAL / Binlog）中捕获变更：</p><pre tabindex=0><code>Database WAL/Binlog ──► CDC Tool (Debezium) ──► Kafka ──► Consumers
+
+PostgreSQL WAL → Debezium → Kafka topic &#34;db.public.orders&#34;
+MySQL Binlog   → Debezium → Kafka topic &#34;db.inventory.products&#34;
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// Debezium CDC 事件（来自 PostgreSQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;before&#34;</span><span class=p>:</span> <span class=kc>null</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;after&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;order_id&#34;</span><span class=p>:</span> <span class=mi>1234</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;user_id&#34;</span><span class=p>:</span> <span class=mi>1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;total&#34;</span><span class=p>:</span> <span class=mf>99.99</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;status&#34;</span><span class=p>:</span> <span class=s2>&#34;created&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;source&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;version&#34;</span><span class=p>:</span> <span class=s2>&#34;2.4.0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;connector&#34;</span><span class=p>:</span> <span class=s2>&#34;postgresql&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;orders-db&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;ts_ms&#34;</span><span class=p>:</span> <span class=mi>1702656000000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;db&#34;</span><span class=p>:</span> <span class=s2>&#34;ecommerce&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;schema&#34;</span><span class=p>:</span> <span class=s2>&#34;public&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;table&#34;</span><span class=p>:</span> <span class=s2>&#34;orders&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;op&#34;</span><span class=p>:</span> <span class=s2>&#34;c&#34;</span><span class=p>,</span>  <span class=c1>// c=create, u=update, d=delete, r=read (snapshot)
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=nt>&#34;ts_ms&#34;</span><span class=p>:</span> <span class=mi>1702656000123</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>CDC 相较于 Outbox 模式的优点：</p><ul><li>无需修改应用代码或数据库 schema；</li><li>捕获所有变更，而非仅靠人工“记得”写 outbox 的那些；</li><li>更低延迟（直接读 WAL）；</li><li>规避双写风险（dual-write risk）。</li></ul><h2 id=何时应避免分布式事务>何时应避免分布式事务？</h2><p><strong>最好的分布式事务，就是你根本不需要的那个。</strong> 替代策略包括：</p><ol><li><p><strong>将需事务协同的数据保留在同一节点</strong>：设计分片键（partition key），使关联数据共置（co-locate）。</p></li><li><p><strong>接受最终一致性</strong>：许多业务流程天然异步（邮件、通知、分析）。</p></li><li><p><strong>使用幂等操作（Idempotent operations）</strong>：设计操作使其重试安全。</p></li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 幂等插入（PostgreSQL）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>processed_events</span><span class=w> </span><span class=p>(</span><span class=n>event_id</span><span class=p>,</span><span class=w> </span><span class=n>processed_at</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;evt-123&#39;</span><span class=p>,</span><span class=w> </span><span class=n>NOW</span><span class=p>())</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ON</span><span class=w> </span><span class=n>CONFLICT</span><span class=w> </span><span class=p>(</span><span class=n>event_id</span><span class=p>)</span><span class=w> </span><span class=k>DO</span><span class=w> </span><span class=k>NOTHING</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 安全重试——重复插入会被静默忽略
+</span></span></span></code></pre></td></tr></table></div></div><ol start=4><li><p><strong>面向补偿设计（Design for compensation）</strong>：不追求预防不一致，而是在事后检测并修复。银行正是这样做的——每日运行对账（reconciliation）流程。</p></li><li><p><strong>使用单数据库</strong>：若你的微服务共享同一数据库（虽属“异端”，但务实），则可直接使用常规事务。</p></li></ol><h2 id=下一篇预告>下一篇预告</h2><p>我们已覆盖理论：数据如何存储、查询、复制、分片与事务处理。但仅有理论远远不够。在最后一篇中，我们将走向实战：<strong>生产环境中的数据库</strong>——迁移、监控、连接池、备份、容量规划，以及来自真实线上事故的“战争故事”。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/databases/>数据库原理与实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=title>数据库（6）：复制与分片——突破单机限制的扩展之道</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=title>数据库（8）：实战中的数据库——迁移、监控与故障案例</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=series-nav-num>01</span>
+<span class=series-nav-title>数据库（1）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><span class=series-nav-num>02</span>
+<span class=series-nav-title>数据库（2）：索引与查询规划——数据库如何找到你的数据</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=series-nav-num>03</span>
+<span class=series-nav-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=series-nav-num>04</span>
+<span class=series-nav-title>数据库（4）：存储引擎——数据如何落盘</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=series-nav-num>05</span>
+<span class=series-nav-title>数据库（5）：NoSQL — 文档型、键值型、列式与图数据库</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=series-nav-num>06</span>
+<span class=series-nav-title>数据库（6）：复制与分片——突破单机限制的扩展之道</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=series-nav-num>08</span>
+<span class=series-nav-title>数据库（8）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#分布式事务问题>分布式事务问题</a></li><li><a href=#两阶段提交2pc>两阶段提交（2PC）</a><ul><li><a href=#协议流程>协议流程</a></li><li><a href=#协调者失效问题the-coordinator-failure-problem>协调者失效问题（The Coordinator Failure Problem）</a></li><li><a href=#2pc-在实践中的应用>2PC 在实践中的应用</a></li></ul></li><li><a href=#三阶段提交3pc>三阶段提交（3PC）</a></li><li><a href=#共识算法consensus-algorithms>共识算法（Consensus Algorithms）</a><ul><li><a href=#paxos概念性>Paxos（概念性）</a></li><li><a href=#raft可理解的共识协议>Raft：可理解的共识协议</a><ul><li><a href=#领导者选举>领导者选举</a></li><li><a href=#日志复制>日志复制</a></li><li><a href=#raft-的实际应用>Raft 的实际应用</a></li></ul></li></ul></li><li><a href=#saga-模式>Saga 模式</a><ul><li><a href=#编排orchestration-vs-协作choreography>编排（Orchestration） vs. 协作（Choreography）</a></li><li><a href=#补偿事务compensating-transactions>补偿事务（Compensating Transactions）</a></li></ul></li><li><a href=#线性一致性linearizability-vs-可串行化serializability>线性一致性（Linearizability） vs. 可串行化（Serializability）</a></li><li><a href=#最终一致性eventual-consistency>最终一致性（Eventual Consistency）</a></li><li><a href=#真实世界常用模式>真实世界常用模式</a><ul><li><a href=#outbox-模式>Outbox 模式</a></li><li><a href=#变更数据捕获cdc>变更数据捕获（CDC）</a></li></ul></li><li><a href=#何时应避免分布式事务>何时应避免分布式事务？</a></li><li><a href=#下一篇预告>下一篇预告</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/databases/ class=series-name>数据库原理与实践</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/01-data-models-and-sql/><span class=chapter-num>01</span>
+<span class=chapter-title>数据库（1）：数据模型与 SQL —— 为何关系型表结构至今仍占主导地位</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/02-indexing-and-query-planning/><span class=chapter-num>02</span>
+<span class=chapter-title>数据库（2）：索引与查询规划——数据库如何找到你的数据</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/03-transactions-and-concurrency/><span class=chapter-num>03</span>
+<span class=chapter-title>数据库（三）：事务与并发控制——ACID、隔离级别与锁机制</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/04-storage-engines/><span class=chapter-num>04</span>
+<span class=chapter-title>数据库（4）：存储引擎——数据如何落盘</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/05-nosql-landscape/><span class=chapter-num>05</span>
+<span class=chapter-title>数据库（5）：NoSQL — 文档型、键值型、列式与图数据库</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/06-replication-and-partitioning/><span class=chapter-num>06</span>
+<span class=chapter-title>数据库（6）：复制与分片——突破单机限制的扩展之道</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>数据库（7）：分布式事务——两阶段提交、Saga 模式，以及为何共识如此困难</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/databases/08-database-in-practice/><span class=chapter-num>08</span>
+<span class=chapter-title>数据库（8）：实战中的数据库——迁移、监控与故障案例</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>22 min</strong></div><div class=row><span>字数</span><strong>5317</strong></div><div class=row><span>写于</span><strong>Dec 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

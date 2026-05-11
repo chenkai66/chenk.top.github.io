@@ -1,0 +1,877 @@
+<!doctype html><html lang=en data-translation=/zh/databases/08-database-in-practice/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories · Chen Kai Blog</title>
+<meta name=description content="The operational side of databases — schema migrations, connection pooling, monitoring, backup strategies, managed database options, and hard-won lessons from production incidents."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/databases/08-database-in-practice/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/databases/08-database-in-practice/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/databases/08-database-in-practice/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/databases/08-database-in-practice/><meta property="og:type" content="article"><meta property="og:title" content="Databases (8): Databases in Practice — Migration, Monitoring, and War Stories"><meta property="og:description" content="The operational side of databases — schema migrations, connection pooling, monitoring, backup strategies, managed database options, and hard-won lessons from production incidents."><meta property="og:url" content="https://www.chenk.top/en/databases/08-database-in-practice/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><meta property="og:image:alt" content="Databases (8): Databases in Practice — Migration, Monitoring, and War Stories"><meta property="article:published_time" content="2023-12-28T09:00:00Z"><meta property="article:modified_time" content="2023-12-28T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Databases"><meta property="article:tag" content="Operations"><meta property="article:tag" content="Monitoring"><meta property="article:tag" content="Migration"><meta property="article:tag" content="Cloud"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Databases (8): Databases in Practice — Migration, Monitoring, and War Stories"><meta name=twitter:description content="The operational side of databases — schema migrations, connection pooling, monitoring, backup strategies, managed database options, and hard-won lessons from production incidents."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Databases (8): Databases in Practice — Migration, Monitoring, and War Stories\"","description":"\"The operational side of databases — schema migrations, connection pooling, monitoring, backup strategies, managed database options, and hard-won lessons from production incidents.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/databases.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-12-28T09:00:00Z\"","dateModified":"\"2023-12-28T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/databases/08-database-in-practice/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Databases</a>
+· Chapter 8</div><h1>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</h1><p class=deck>The operational side of databases — schema migrations, connection pooling, monitoring, backup strategies, managed database options, and hard-won lessons from production incidents.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-12-28>December 28, 2023</time> · 36 min read · 3625 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/databases/ class=tag>#Databases</a><a href=/en/tags/operations/ class=tag>#Operations</a><a href=/en/tags/monitoring/ class=tag>#Monitoring</a><a href=/en/tags/migration/ class=tag>#Migration</a><a href=/en/tags/cloud/ class=tag>#Cloud</a></div><a class="pill pill-outline" href=/zh/databases/08-database-in-practice/>阅读中文版 →</a></div></header><div class=prose><p>Knowing how databases work internally is half the battle. The other half is keeping them running in production without losing data, dropping availability, or waking up at 3 AM. This article covers the operational knowledge that comes from experience — the things nobody teaches you until something breaks.</p><h2 id=schema-migrations-changing-the-engine-while-flying>Schema Migrations: Changing the Engine While Flying</h2><p>Your schema will change. New features require new columns, new tables, new indexes. The question is how to evolve the schema without downtime.</p><h3 id=migration-tools>Migration Tools</h3><table><thead><tr><th>Tool</th><th>Language</th><th>Database Support</th><th>Key Feature</th></tr></thead><tbody><tr><td>Flyway</td><td>Java (CLI available)</td><td>PostgreSQL, MySQL, Oracle, SQL Server</td><td>SQL + Java migrations, version tracking</td></tr><tr><td>Liquibase</td><td>Java (CLI available)</td><td>PostgreSQL, MySQL, Oracle, SQL Server</td><td>XML/YAML/JSON changelogs, rollback support</td></tr><tr><td>golang-migrate</td><td>Go</td><td>PostgreSQL, MySQL, SQLite, more</td><td>CLI + library, up/down migrations</td></tr><tr><td>Alembic</td><td>Python (SQLAlchemy)</td><td>Any SQLAlchemy-supported DB</td><td>Auto-generation from models</td></tr><tr><td>Prisma Migrate</td><td>TypeScript</td><td>PostgreSQL, MySQL, SQLite, MongoDB</td><td>Schema-first, auto-generated SQL</td></tr><tr><td>dbmate</td><td>Go</td><td>PostgreSQL, MySQL, SQLite, ClickHouse</td><td>Simple, framework-agnostic</td></tr></tbody></table><h3 id=migration-file-structure>Migration File Structure</h3><pre tabindex=0><code>migrations/
+├── 001_create_users.up.sql
+├── 001_create_users.down.sql
+├── 002_create_orders.up.sql
+├── 002_create_orders.down.sql
+├── 003_add_email_index.up.sql
+├── 003_add_email_index.down.sql
+├── 004_add_phone_to_users.up.sql
+└── 004_add_phone_to_users.down.sql
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 004_add_phone_to_users.up.sql
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_phone</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>(</span><span class=n>phone</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 004_add_phone_to_users.down.sql
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>DROP</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_users_phone</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>DROP</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># golang-migrate example</span>
+</span></span><span class=line><span class=cl><span class=c1># Apply all pending migrations</span>
+</span></span><span class=line><span class=cl>migrate -path ./migrations -database <span class=s2>&#34;postgresql://user:pass@localhost/mydb?sslmode=disable&#34;</span> up
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Roll back the last migration</span>
+</span></span><span class=line><span class=cl>migrate -path ./migrations -database <span class=s2>&#34;postgresql://user:pass@localhost/mydb?sslmode=disable&#34;</span> down <span class=m>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Check current version</span>
+</span></span><span class=line><span class=cl>migrate -path ./migrations -database <span class=s2>&#34;postgresql://user:pass@localhost/mydb?sslmode=disable&#34;</span> version
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Alembic (Python) example</span>
+</span></span><span class=line><span class=cl><span class=c1># Generate migration from model changes</span>
+</span></span><span class=line><span class=cl>alembic revision --autogenerate -m <span class=s2>&#34;add phone to users&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Apply migrations</span>
+</span></span><span class=line><span class=cl>alembic upgrade head
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Rollback one step</span>
+</span></span><span class=line><span class=cl>alembic downgrade -1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Show current revision</span>
+</span></span><span class=line><span class=cl>alembic current
+</span></span></code></pre></td></tr></table></div></div><h3 id=migration-best-practices>Migration Best Practices</h3><h4 id=1-backward-compatibility>1. Backward Compatibility</h4><p>Never break the current running application. This means migrations must be compatible with both the old and new code:</p><pre tabindex=0><code>Deployment timeline:
+  1. Run migration (add column, make nullable)
+  2. Deploy new code (writes to new column)
+  3. Backfill old rows
+  4. Run second migration (add NOT NULL constraint)
+</code></pre><p>Bad (breaks old code):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- This immediately breaks the old code that doesn&#39;t know about the column
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Good (compatible with old and new code):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Step 1: Add nullable column (old code ignores it)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 2: Deploy new code that writes phone
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 3: Backfill existing rows
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;unknown&#39;</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=k>IS</span><span class=w> </span><span class=k>NULL</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 4: Add NOT NULL constraint
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ALTER</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h4 id=2-online-ddl>2. Online DDL</h4><p>Some DDL operations lock the entire table, blocking reads and writes for the duration. On a 100 million row table, this can mean minutes of downtime.</p><p>Operations that are safe (no lock or very brief lock in PostgreSQL):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Adding a nullable column: instant (no table rewrite)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>20</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Adding a column with a constant default (PostgreSQL 11+): instant
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>active</span><span class=w> </span><span class=nb>BOOLEAN</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=k>TRUE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Creating an index concurrently: no table lock
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>CONCURRENTLY</span><span class=w> </span><span class=n>idx_users_email</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Note: takes longer but doesn&#39;t block writes
+</span></span></span></code></pre></td></tr></table></div></div><p>Operations that are dangerous (full table rewrite or extended lock):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- DANGEROUS: Changing column type rewrites the entire table
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ALTER</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=k>TYPE</span><span class=w> </span><span class=nb>TEXT</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- DANGEROUS in MySQL: Adding index without ALGORITHM=INPLACE
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_email</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Use instead:
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_email</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>),</span><span class=w> </span><span class=n>ALGORITHM</span><span class=o>=</span><span class=n>INPLACE</span><span class=p>,</span><span class=w> </span><span class=k>LOCK</span><span class=o>=</span><span class=k>NONE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- DANGEROUS: Adding NOT NULL with default to existing column (older PG versions)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ALTER</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>phone</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Safe approach: add a CHECK constraint first
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>CONSTRAINT</span><span class=w> </span><span class=n>users_phone_not_null</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>CHECK</span><span class=w> </span><span class=p>(</span><span class=n>phone</span><span class=w> </span><span class=k>IS</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>VALID</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=n>VALIDATE</span><span class=w> </span><span class=k>CONSTRAINT</span><span class=w> </span><span class=n>users_phone_not_null</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>For MySQL, tools like <code>pt-online-schema-change</code> (Percona) and <code>gh-ost</code> (GitHub) perform online schema changes by creating a shadow table, copying data, and swapping:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># gh-ost: online schema change for MySQL</span>
+</span></span><span class=line><span class=cl>gh-ost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --host<span class=o>=</span>localhost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --database<span class=o>=</span>mydb <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --table<span class=o>=</span>users <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --alter<span class=o>=</span><span class=s2>&#34;ADD COLUMN phone VARCHAR(20)&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --execute
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># What gh-ost does:</span>
+</span></span><span class=line><span class=cl><span class=c1># 1. Creates _users_gho (ghost table) with new schema</span>
+</span></span><span class=line><span class=cl><span class=c1># 2. Creates _users_ghc (changelog table)</span>
+</span></span><span class=line><span class=cl><span class=c1># 3. Copies existing rows in batches</span>
+</span></span><span class=line><span class=cl><span class=c1># 4. Captures ongoing changes via binlog</span>
+</span></span><span class=line><span class=cl><span class=c1># 5. Atomically renames: users → _users_old, _users_gho → users</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=3-zero-downtime-rename-strategy>3. Zero-Downtime Rename Strategy</h4><p>Renaming a column is tricky — old code references the old name, new code references the new name:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Step 1: Add new column
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>full_name</span><span class=w> </span><span class=nb>VARCHAR</span><span class=p>(</span><span class=mi>200</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 2: Dual-write (application writes to both columns)
+</span></span></span><span class=line><span class=cl><span class=c1>-- Deploy code that writes to both &#39;name&#39; and &#39;full_name&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 3: Backfill
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>full_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>name</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>full_name</span><span class=w> </span><span class=k>IS</span><span class=w> </span><span class=k>NULL</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 4: Switch reads to new column
+</span></span></span><span class=line><span class=cl><span class=c1>-- Deploy code that reads from &#39;full_name&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 5: Stop writing to old column
+</span></span></span><span class=line><span class=cl><span class=c1>-- Deploy code that only writes to &#39;full_name&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Step 6: Drop old column
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>DROP</span><span class=w> </span><span class=k>COLUMN</span><span class=w> </span><span class=n>name</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=connection-pooling>Connection Pooling</h2><p>Every database connection consumes resources: memory (5-10 MB per connection in PostgreSQL), file descriptors, and CPU for process/thread management. Without connection pooling, a spike in application instances can exhaust the database&rsquo;s connection limit.</p><h3 id=the-problem>The Problem</h3><pre tabindex=0><code>Without pooling:
+  100 app servers × 20 threads each = 2,000 database connections
+  PostgreSQL default max_connections = 100
+  Result: connection refused errors, application crashes
+
+With pooling:
+  100 app servers × 20 threads each = 2,000 application connections
+  PgBouncer maintains 50 actual database connections
+  Multiplexing ratio: 40:1
+</code></pre><h3 id=pgbouncer-postgresql>PgBouncer (PostgreSQL)</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=c1>; pgbouncer.ini</span>
+</span></span><span class=line><span class=cl><span class=k>[databases]</span>
+</span></span><span class=line><span class=cl><span class=na>mydb</span> <span class=o>=</span> <span class=s>host=localhost port=5432 dbname=mydb</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>[pgbouncer]</span>
+</span></span><span class=line><span class=cl><span class=na>listen_addr</span> <span class=o>=</span> <span class=s>0.0.0.0</span>
+</span></span><span class=line><span class=cl><span class=na>listen_port</span> <span class=o>=</span> <span class=s>6432</span>
+</span></span><span class=line><span class=cl><span class=na>auth_type</span> <span class=o>=</span> <span class=s>md5</span>
+</span></span><span class=line><span class=cl><span class=na>auth_file</span> <span class=o>=</span> <span class=s>/etc/pgbouncer/userlist.txt</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>; Pool sizing</span>
+</span></span><span class=line><span class=cl><span class=na>default_pool_size</span> <span class=o>=</span> <span class=s>20        ; connections per user/db pair</span>
+</span></span><span class=line><span class=cl><span class=na>max_client_conn</span> <span class=o>=</span> <span class=s>1000        ; max client connections to pgbouncer</span>
+</span></span><span class=line><span class=cl><span class=na>min_pool_size</span> <span class=o>=</span> <span class=s>5             ; keep at least 5 connections ready</span>
+</span></span><span class=line><span class=cl><span class=na>reserve_pool_size</span> <span class=o>=</span> <span class=s>5         ; extra connections for burst</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>; Pool mode</span>
+</span></span><span class=line><span class=cl><span class=na>pool_mode</span> <span class=o>=</span> <span class=s>transaction</span>
+</span></span><span class=line><span class=cl><span class=c1>; session    = connection held for entire client session (safest, least efficient)</span>
+</span></span><span class=line><span class=cl><span class=c1>; transaction = connection returned after each transaction (best balance)</span>
+</span></span><span class=line><span class=cl><span class=c1>; statement   = connection returned after each statement (most efficient, limited features)</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Connect to PgBouncer admin console</span>
+</span></span><span class=line><span class=cl>psql -h localhost -p <span class=m>6432</span> -U pgbouncer pgbouncer
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Show pool status</span>
+</span></span><span class=line><span class=cl>SHOW POOLS<span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=c1>#  database |   user    | cl_active | cl_waiting | sv_active | sv_idle | sv_used</span>
+</span></span><span class=line><span class=cl><span class=c1># ----------+-----------+-----------+------------+-----------+---------+--------</span>
+</span></span><span class=line><span class=cl><span class=c1>#  mydb     | app_user  |        45 |          0 |        18 |       2 |       0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Show client connections</span>
+</span></span><span class=line><span class=cl>SHOW CLIENTS<span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Show server (database) connections</span>
+</span></span><span class=line><span class=cl>SHOW SERVERS<span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Show stats</span>
+</span></span><span class=line><span class=cl>SHOW STATS<span class=p>;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=proxysql-mysql>ProxySQL (MySQL)</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- ProxySQL admin interface (port 6032)
+</span></span></span><span class=line><span class=cl><span class=c1>-- Configure backend servers
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>mysql_servers</span><span class=w> </span><span class=p>(</span><span class=n>hostgroup_id</span><span class=p>,</span><span class=w> </span><span class=n>hostname</span><span class=p>,</span><span class=w> </span><span class=n>port</span><span class=p>,</span><span class=w> </span><span class=n>max_connections</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>VALUES</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=p>(</span><span class=mi>10</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;mysql-leader&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>3306</span><span class=p>,</span><span class=w> </span><span class=mi>100</span><span class=p>),</span><span class=w>    </span><span class=c1>-- writer hostgroup
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>  </span><span class=p>(</span><span class=mi>20</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;mysql-replica1&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>3306</span><span class=p>,</span><span class=w> </span><span class=mi>100</span><span class=p>),</span><span class=w>  </span><span class=c1>-- reader hostgroup
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>  </span><span class=p>(</span><span class=mi>20</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;mysql-replica2&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>3306</span><span class=p>,</span><span class=w> </span><span class=mi>100</span><span class=p>);</span><span class=w>  </span><span class=c1>-- reader hostgroup
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Configure query routing rules
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>mysql_query_rules</span><span class=w> </span><span class=p>(</span><span class=n>rule_id</span><span class=p>,</span><span class=w> </span><span class=n>active</span><span class=p>,</span><span class=w> </span><span class=n>match_pattern</span><span class=p>,</span><span class=w> </span><span class=n>destination_hostgroup</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>VALUES</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;^SELECT .* FOR UPDATE&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>10</span><span class=p>),</span><span class=w>  </span><span class=c1>-- SELECT FOR UPDATE → leader
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>  </span><span class=p>(</span><span class=mi>2</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;^SELECT&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>20</span><span class=p>),</span><span class=w>                </span><span class=c1>-- all other SELECTs → replicas
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>  </span><span class=p>(</span><span class=mi>3</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;.*&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>10</span><span class=p>);</span><span class=w>                     </span><span class=c1>-- everything else → leader
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Apply configuration
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>LOAD</span><span class=w> </span><span class=n>MYSQL</span><span class=w> </span><span class=n>SERVERS</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>RUNTIME</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=n>MYSQL</span><span class=w> </span><span class=n>QUERY</span><span class=w> </span><span class=n>RULES</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>RUNTIME</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>SAVE</span><span class=w> </span><span class=n>MYSQL</span><span class=w> </span><span class=n>SERVERS</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>DISK</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>SAVE</span><span class=w> </span><span class=n>MYSQL</span><span class=w> </span><span class=n>QUERY</span><span class=w> </span><span class=n>RULES</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>DISK</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=application-level-pooling>Application-Level Pooling</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Python: SQLAlchemy connection pool</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sqlalchemy</span> <span class=kn>import</span> <span class=n>create_engine</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>engine</span> <span class=o>=</span> <span class=n>create_engine</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;postgresql://user:pass@localhost:5432/mydb&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_size</span><span class=o>=</span><span class=mi>20</span><span class=p>,</span>           <span class=c1># number of persistent connections</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_overflow</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span>        <span class=c1># additional connections during burst</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_timeout</span><span class=o>=</span><span class=mi>30</span><span class=p>,</span>        <span class=c1># seconds to wait for a connection</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_recycle</span><span class=o>=</span><span class=mi>3600</span><span class=p>,</span>      <span class=c1># recycle connections after 1 hour</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_pre_ping</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>     <span class=c1># test connections before use</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=c1>// Java: HikariCP (fastest JDBC pool)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>HikariConfig</span><span class=w> </span><span class=n>config</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>HikariConfig</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setJdbcUrl</span><span class=p>(</span><span class=s>&#34;jdbc:postgresql://localhost:5432/mydb&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setUsername</span><span class=p>(</span><span class=s>&#34;user&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setPassword</span><span class=p>(</span><span class=s>&#34;pass&#34;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setMaximumPoolSize</span><span class=p>(</span><span class=n>20</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setMinimumIdle</span><span class=p>(</span><span class=n>5</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setConnectionTimeout</span><span class=p>(</span><span class=n>30000</span><span class=p>);</span><span class=w>  </span><span class=c1>// 30 seconds</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setIdleTimeout</span><span class=p>(</span><span class=n>600000</span><span class=p>);</span><span class=w>       </span><span class=c1>// 10 minutes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setMaxLifetime</span><span class=p>(</span><span class=n>1800000</span><span class=p>);</span><span class=w>      </span><span class=c1>// 30 minutes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>config</span><span class=p>.</span><span class=na>setLeakDetectionThreshold</span><span class=p>(</span><span class=n>60000</span><span class=p>);</span><span class=w> </span><span class=c1>// warn if connection held &gt; 60s</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>HikariDataSource</span><span class=w> </span><span class=n>ds</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>HikariDataSource</span><span class=p>(</span><span class=n>config</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=database-monitoring>Database Monitoring</h2><h3 id=key-metrics>Key Metrics</h3><table><thead><tr><th>Metric</th><th>Healthy Range</th><th>Action if Unhealthy</th></tr></thead><tbody><tr><td><strong>QPS</strong> (queries/second)</td><td>Baseline ± 20%</td><td>Investigate if spike or drop</td></tr><tr><td><strong>Query latency p99</strong></td><td>&lt; 100 ms for OLTP</td><td>Find and optimize slow queries</td></tr><tr><td><strong>Active connections</strong></td><td>&lt; 80% of max</td><td>Increase pool or max_connections</td></tr><tr><td><strong>Replication lag</strong></td><td>&lt; 1 second</td><td>Check replica load, network</td></tr><tr><td><strong>Buffer pool hit ratio</strong></td><td>> 99%</td><td>Increase buffer pool or reduce dataset</td></tr><tr><td><strong>Disk I/O wait</strong></td><td>&lt; 10%</td><td>Faster storage or more RAM for caching</td></tr><tr><td><strong>Lock waits</strong></td><td>&lt; 5% of transactions</td><td>Optimize transaction scope</td></tr><tr><td><strong>Deadlocks/sec</strong></td><td>&lt; 1</td><td>Fix lock ordering in application</td></tr><tr><td><strong>WAL generation rate</strong></td><td>Baseline ± 30%</td><td>Check for write storms</td></tr><tr><td><strong>Table bloat</strong> (PostgreSQL)</td><td>&lt; 20% dead tuples</td><td>Tune autovacuum</td></tr></tbody></table><h3 id=postgresql-monitoring-queries>PostgreSQL Monitoring Queries</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Current activity: what is running right now?
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pid</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>usename</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>state</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>wait_event_type</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>wait_event</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>age</span><span class=p>(</span><span class=n>now</span><span class=p>(),</span><span class=w> </span><span class=n>query_start</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>query_duration</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>left</span><span class=p>(</span><span class=n>query</span><span class=p>,</span><span class=w> </span><span class=mi>80</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>query_preview</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_activity</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=k>state</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=s1>&#39;idle&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>query_start</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Table statistics: which tables are hot?
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>schemaname</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>relname</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>table_name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>seq_scan</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>idx_scan</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_tup_ins</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>inserts</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_tup_upd</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>updates</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_tup_del</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>deletes</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_live_tup</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>live_rows</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_dead_tup</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>dead_rows</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=n>n_dead_tup</span><span class=p>::</span><span class=nb>numeric</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=k>NULLIF</span><span class=p>(</span><span class=n>n_live_tup</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>n_dead_tup</span><span class=p>,</span><span class=w> </span><span class=mi>0</span><span class=p>)</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>100</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>dead_pct</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>last_autovacuum</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_user_tables</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>n_dead_tup</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>20</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Index usage: are your indexes being used?
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>schemaname</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>tablename</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>indexname</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>idx_scan</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>scans</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>idx_tup_read</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>tuples_read</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>idx_tup_fetch</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>tuples_fetched</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pg_size_pretty</span><span class=p>(</span><span class=n>pg_relation_size</span><span class=p>(</span><span class=n>indexrelid</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>size</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_user_indexes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>idx_scan</span><span class=w> </span><span class=k>ASC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>20</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Indexes with 0 scans are candidates for removal
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Cache hit ratio
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;index hit rate&#39;</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=k>sum</span><span class=p>(</span><span class=n>idx_blks_hit</span><span class=p>)::</span><span class=nb>numeric</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=k>NULLIF</span><span class=p>(</span><span class=k>sum</span><span class=p>(</span><span class=n>idx_blks_hit</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>idx_blks_read</span><span class=p>),</span><span class=w> </span><span class=mi>0</span><span class=p>),</span><span class=w> </span><span class=mi>4</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>ratio</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_statio_user_indexes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UNION</span><span class=w> </span><span class=k>ALL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;table hit rate&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=k>sum</span><span class=p>(</span><span class=n>heap_blks_hit</span><span class=p>)::</span><span class=nb>numeric</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=k>NULLIF</span><span class=p>(</span><span class=k>sum</span><span class=p>(</span><span class=n>heap_blks_hit</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>heap_blks_read</span><span class=p>),</span><span class=w> </span><span class=mi>0</span><span class=p>),</span><span class=w> </span><span class=mi>4</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_statio_user_tables</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Both should be &gt; 0.99
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Database size
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>datname</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>pg_size_pretty</span><span class=p>(</span><span class=n>pg_database_size</span><span class=p>(</span><span class=n>datname</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>size</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_database</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>pg_database_size</span><span class=p>(</span><span class=n>datname</span><span class=p>)</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=mysql-monitoring-queries>MySQL Monitoring Queries</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Current processlist
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>PROCESSLIST</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- InnoDB status (comprehensive)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>ENGINE</span><span class=w> </span><span class=n>INNODB</span><span class=w> </span><span class=n>STATUS</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Key InnoDB metrics
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>variable_name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>variable_value</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>performance_schema</span><span class=p>.</span><span class=n>global_status</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>variable_name</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_buffer_pool_read_requests&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_buffer_pool_reads&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_rows_read&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_rows_inserted&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_rows_updated&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_rows_deleted&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_deadlocks&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_row_lock_waits&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Innodb_row_lock_time_avg&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Threads_connected&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Threads_running&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Slow_queries&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=s1>&#39;Questions&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=slow-query-analysis>Slow Query Analysis</h2><h3 id=enable-slow-query-logging>Enable Slow Query Logging</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># PostgreSQL: postgresql.conf</span>
+</span></span><span class=line><span class=cl><span class=nv>log_min_duration_statement</span> <span class=o>=</span> <span class=m>100</span>  <span class=c1># log queries taking &gt; 100ms</span>
+</span></span><span class=line><span class=cl><span class=nv>log_statement</span> <span class=o>=</span> <span class=s1>&#39;none&#39;</span>            <span class=c1># don&#39;t log all statements (too noisy)</span>
+</span></span><span class=line><span class=cl>auto_explain.log_min_duration <span class=o>=</span> <span class=s1>&#39;200ms&#39;</span>  <span class=c1># auto-explain for slow queries</span>
+</span></span><span class=line><span class=cl>auto_explain.log_analyze <span class=o>=</span> on
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># MySQL: my.cnf</span>
+</span></span><span class=line><span class=cl><span class=nv>slow_query_log</span> <span class=o>=</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=nv>slow_query_log_file</span> <span class=o>=</span> /var/log/mysql/slow.log
+</span></span><span class=line><span class=cl><span class=nv>long_query_time</span> <span class=o>=</span> 0.1  <span class=c1># log queries taking &gt; 100ms</span>
+</span></span><span class=line><span class=cl><span class=nv>log_queries_not_using_indexes</span> <span class=o>=</span> <span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=query-optimization-workflow>Query Optimization Workflow</h3><pre tabindex=0><code>Step 1: Find the slow query
+  → slow query log, pg_stat_statements, or monitoring tool
+
+Step 2: Run EXPLAIN ANALYZE
+  → Understand the execution plan
+
+Step 3: Identify bottleneck
+  → Seq Scan? Missing index? Bad join order? Large sort?
+
+Step 4: Test fix
+  → Add index, rewrite query, or adjust configuration
+
+Step 5: Verify with EXPLAIN ANALYZE again
+  → Confirm improvement
+
+Step 6: Monitor in production
+  → Watch for regression
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL: pg_stat_statements (top slow queries)
+</span></span></span><span class=line><span class=cl><span class=c1>-- Enable: shared_preload_libraries = &#39;pg_stat_statements&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>calls</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=n>total_exec_time</span><span class=p>::</span><span class=nb>numeric</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>total_ms</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>(</span><span class=n>mean_exec_time</span><span class=p>::</span><span class=nb>numeric</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>avg_ms</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ROUND</span><span class=p>((</span><span class=n>stddev_exec_time</span><span class=p>)::</span><span class=nb>numeric</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>stddev_ms</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>rows</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>left</span><span class=p>(</span><span class=n>query</span><span class=p>,</span><span class=w> </span><span class=mi>100</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>query_preview</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>pg_stat_statements</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>mean_exec_time</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LIMIT</span><span class=w> </span><span class=mi>20</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=backup-strategies>Backup Strategies</h2><h3 id=logical-backups>Logical Backups</h3><p>Logical backups export data as SQL statements or structured data files.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># PostgreSQL: pg_dump</span>
+</span></span><span class=line><span class=cl><span class=c1># Single database, compressed</span>
+</span></span><span class=line><span class=cl>pg_dump -Fc -h localhost -U postgres mydb &gt; mydb_<span class=k>$(</span>date +%Y%m%d<span class=k>)</span>.dump
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Specific tables only</span>
+</span></span><span class=line><span class=cl>pg_dump -Fc -t users -t orders mydb &gt; tables_<span class=k>$(</span>date +%Y%m%d<span class=k>)</span>.dump
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Schema only (no data)</span>
+</span></span><span class=line><span class=cl>pg_dump -s mydb &gt; schema.sql
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Restore</span>
+</span></span><span class=line><span class=cl>pg_restore -h localhost -U postgres -d mydb mydb_20231228.dump
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># All databases</span>
+</span></span><span class=line><span class=cl>pg_dumpall -h localhost -U postgres &gt; all_databases.sql
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># MySQL: mysqldump</span>
+</span></span><span class=line><span class=cl><span class=c1># Single database, with consistent snapshot</span>
+</span></span><span class=line><span class=cl>mysqldump --single-transaction --routines --triggers <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -h localhost -u root -p mydb &gt; mydb_<span class=k>$(</span>date +%Y%m%d<span class=k>)</span>.sql
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Compressed</span>
+</span></span><span class=line><span class=cl>mysqldump --single-transaction mydb <span class=p>|</span> gzip &gt; mydb_<span class=k>$(</span>date +%Y%m%d<span class=k>)</span>.sql.gz
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Restore</span>
+</span></span><span class=line><span class=cl>mysql -h localhost -u root -p mydb &lt; mydb_20231228.sql
+</span></span><span class=line><span class=cl><span class=c1># Or compressed:</span>
+</span></span><span class=line><span class=cl>gunzip &lt; mydb_20231228.sql.gz <span class=p>|</span> mysql -h localhost -u root -p mydb
+</span></span></code></pre></td></tr></table></div></div><h3 id=physical-backups>Physical Backups</h3><p>Physical backups copy the actual data files. Much faster for large databases.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># PostgreSQL: pg_basebackup</span>
+</span></span><span class=line><span class=cl>pg_basebackup -h localhost -U repl_user -D /backup/base <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --checkpoint<span class=o>=</span>fast --wal-method<span class=o>=</span>stream -P
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># This creates a complete copy of the data directory</span>
+</span></span><span class=line><span class=cl><span class=c1># including WAL files needed for consistent recovery</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Restore: stop PostgreSQL, replace data directory, start</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># MySQL: Percona XtraBackup</span>
+</span></span><span class=line><span class=cl><span class=c1># Full backup</span>
+</span></span><span class=line><span class=cl>xtrabackup --backup --target-dir<span class=o>=</span>/backup/full <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --user<span class=o>=</span>root --password<span class=o>=</span>xxx
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Prepare (apply redo logs)</span>
+</span></span><span class=line><span class=cl>xtrabackup --prepare --target-dir<span class=o>=</span>/backup/full
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Restore: stop MySQL, copy files, fix permissions, start</span>
+</span></span><span class=line><span class=cl>xtrabackup --copy-back --target-dir<span class=o>=</span>/backup/full
+</span></span><span class=line><span class=cl>chown -R mysql:mysql /var/lib/mysql
+</span></span></code></pre></td></tr></table></div></div><h3 id=point-in-time-recovery-pitr>Point-in-Time Recovery (PITR)</h3><p>PITR lets you restore to any moment in time, not just when the backup was taken.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># PostgreSQL PITR</span>
+</span></span><span class=line><span class=cl><span class=c1># 1. Take a base backup</span>
+</span></span><span class=line><span class=cl>pg_basebackup -D /backup/base --checkpoint<span class=o>=</span>fast
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. Archive WAL segments continuously</span>
+</span></span><span class=line><span class=cl><span class=c1># postgresql.conf:</span>
+</span></span><span class=line><span class=cl><span class=c1># archive_mode = on</span>
+</span></span><span class=line><span class=cl><span class=c1># archive_command = &#39;cp %p /backup/wal/%f&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. To recover to a specific time:</span>
+</span></span><span class=line><span class=cl><span class=c1># recovery.conf (or postgresql.conf in PG 12+):</span>
+</span></span><span class=line><span class=cl><span class=c1># restore_command = &#39;cp /backup/wal/%f %p&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># recovery_target_time = &#39;2023-12-28 14:30:00 UTC&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># recovery_target_action = &#39;promote&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=backup-comparison>Backup Comparison</h3><table><thead><tr><th>Aspect</th><th>Logical (pg_dump)</th><th>Physical (pg_basebackup)</th><th>PITR</th></tr></thead><tbody><tr><td>Speed (backup)</td><td>Slow (reads all data via SQL)</td><td>Fast (copies files)</td><td>Continuous (WAL streaming)</td></tr><tr><td>Speed (restore)</td><td>Slow (replays SQL)</td><td>Fast (copies files)</td><td>Medium (base + replay WAL)</td></tr><tr><td>Size</td><td>Smaller (compressed SQL)</td><td>Larger (full data dir)</td><td>Base + WAL segments</td></tr><tr><td>Granularity</td><td>Per-table possible</td><td>Full cluster only</td><td>Any point in time</td></tr><tr><td>Version compatibility</td><td>Cross-version OK</td><td>Same major version</td><td>Same major version</td></tr><tr><td>Partial restore</td><td>Yes (specific tables)</td><td>No</td><td>No</td></tr></tbody></table><h3 id=backup-testing>Backup Testing</h3><p><strong>A backup that has never been tested is not a backup.</strong> Schedule regular restore tests:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=c1># Monthly backup restore test</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span> -e
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Starting backup restore test: </span><span class=k>$(</span>date<span class=k>)</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create a test database</span>
+</span></span><span class=line><span class=cl>createdb restore_test
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Restore the latest backup</span>
+</span></span><span class=line><span class=cl>pg_restore -d restore_test /backup/latest/mydb.dump
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Run validation queries</span>
+</span></span><span class=line><span class=cl>psql -d restore_test -c <span class=s2>&#34;SELECT COUNT(*) FROM users;&#34;</span> <span class=p>|</span> grep -q <span class=s2>&#34;[0-9]&#34;</span>
+</span></span><span class=line><span class=cl>psql -d restore_test -c <span class=s2>&#34;SELECT COUNT(*) FROM orders;&#34;</span> <span class=p>|</span> grep -q <span class=s2>&#34;[0-9]&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Compare row counts with production</span>
+</span></span><span class=line><span class=cl><span class=nv>PROD_USERS</span><span class=o>=</span><span class=k>$(</span>psql -d mydb -t -c <span class=s2>&#34;SELECT COUNT(*) FROM users;&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>TEST_USERS</span><span class=o>=</span><span class=k>$(</span>psql -d restore_test -t -c <span class=s2>&#34;SELECT COUNT(*) FROM users;&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$PROD_USERS</span><span class=s2>&#34;</span> !<span class=o>=</span> <span class=s2>&#34;</span><span class=nv>$TEST_USERS</span><span class=s2>&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;ALERT: Row count mismatch! Prod=</span><span class=nv>$PROD_USERS</span><span class=s2>, Restored=</span><span class=nv>$TEST_USERS</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Clean up</span>
+</span></span><span class=line><span class=cl>dropdb restore_test
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Backup restore test passed: </span><span class=k>$(</span>date<span class=k>)</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=choosing-a-managed-database>Choosing a Managed Database</h2><p>Running your own database is educational but operationally expensive. Managed services handle patching, backups, replication, and monitoring:</p><table><thead><tr><th>Service</th><th>Provider</th><th>Engine Support</th><th>Key Feature</th></tr></thead><tbody><tr><td>RDS</td><td>Alibaba Cloud / AWS</td><td>MySQL, PostgreSQL, SQL Server, MariaDB</td><td>Automated backups, multi-AZ</td></tr><tr><td>PolarDB</td><td>Alibaba Cloud</td><td>MySQL, PostgreSQL, Oracle-compatible</td><td>Shared storage, up to 100 TB, read scaling</td></tr><tr><td>AnalyticDB</td><td>Alibaba Cloud</td><td>MySQL-compatible (OLAP)</td><td>Petabyte-scale analytics, columnar</td></tr><tr><td>Aurora</td><td>AWS</td><td>MySQL, PostgreSQL compatible</td><td>6-way replication, auto-scaling storage</td></tr><tr><td>Cloud SQL</td><td>Google Cloud</td><td>MySQL, PostgreSQL, SQL Server</td><td>Automated failover, IAM integration</td></tr><tr><td>AlloyDB</td><td>Google Cloud</td><td>PostgreSQL compatible</td><td>Columnar engine for analytics</td></tr></tbody></table><h3 id=when-to-self-manage-vs-use-managed>When to Self-Manage vs Use Managed</h3><table><thead><tr><th>Self-manage when</th><th>Use managed when</th></tr></thead><tbody><tr><td>You need specific extensions or patches</td><td>Standard configurations suffice</td></tr><tr><td>Extreme performance tuning required</td><td>Operational simplicity is priority</td></tr><tr><td>Cost-sensitive at very large scale</td><td>Team is small, no dedicated DBA</td></tr><tr><td>Compliance requires full control</td><td>Provider meets compliance needs</td></tr><tr><td>Educational/learning purposes</td><td>Production workloads</td></tr></tbody></table><h2 id=capacity-planning>Capacity Planning</h2><h3 id=when-to-scale-up-vs-scale-out>When to Scale Up vs Scale Out</h3><pre tabindex=0><code>Scale UP (vertical):
+  More CPU, RAM, faster storage on the same server
+  + Simpler (no application changes)
+  + All features work (transactions, joins)
+  - Has a ceiling (largest available instance)
+  - Single point of failure without replication
+
+Scale OUT (horizontal):
+  Add more servers (replication + sharding)
+  + No ceiling (add nodes as needed)
+  + Built-in redundancy
+  - Application complexity (query routing, distributed transactions)
+  - Not all operations work across shards (cross-shard joins)
+</code></pre><h3 id=capacity-estimation>Capacity Estimation</h3><pre tabindex=0><code>Example: estimate database size for a SaaS application
+
+Users: 1 million
+Average row size: 200 bytes
+Tables: users (1M rows), orders (10M), order_items (30M), products (100K), sessions (5M)
+
+Data size:
+  users:       1,000,000 × 200 B = 200 MB
+  orders:     10,000,000 × 150 B = 1.5 GB
+  order_items: 30,000,000 × 100 B = 3.0 GB
+  products:       100,000 × 500 B = 50 MB
+  sessions:    5,000,000 × 1 KB  = 5.0 GB
+  Total data: ~10 GB
+
+Index overhead: ~30-50% of data = 3-5 GB
+WAL/binlog: ~2-5 GB rotating
+Working set (hot data): maybe 20% = 2 GB
+
+Recommendation:
+  RAM: 16 GB (fits entire dataset in buffer pool)
+  Storage: 50 GB SSD (room for growth + backups)
+  CPU: 4 cores (for a few hundred QPS)
+</code></pre><h2 id=war-stories-common-production-incidents>War Stories: Common Production Incidents</h2><table><thead><tr><th>Incident</th><th>Root Cause</th><th>Symptom</th><th>Fix</th><th>Prevention</th></tr></thead><tbody><tr><td><strong>Query of death</strong></td><td>Missing index on new feature</td><td>CPU 100%, all queries slow</td><td><code>CREATE INDEX CONCURRENTLY</code></td><td>Require EXPLAIN for new queries in code review</td></tr><tr><td><strong>Connection exhaustion</strong></td><td>No connection pooling, app scaled to 50 pods</td><td>&ldquo;too many connections&rdquo; errors</td><td>Add PgBouncer, reduce pool size per pod</td><td>Always use connection pooling</td></tr><tr><td><strong>Replication broke</strong></td><td>DDL on leader without <code>SET STATEMENT_FORMAT=ROW</code></td><td>Replica diverged, stale reads</td><td>Re-snapshot replica</td><td>Standardize binlog format to ROW</td></tr><tr><td><strong>Disk full</strong></td><td>Unmonitored WAL growth from idle replication slot</td><td>Database refuses writes</td><td><code>SELECT pg_drop_replication_slot('dead_slot')</code></td><td>Monitor <code>pg_replication_slots</code>, alert on inactive</td></tr><tr><td><strong>Table bloat</strong></td><td>Autovacuum not keeping up with UPDATE-heavy table</td><td>Queries progressively slower</td><td>Manual <code>VACUUM FULL</code> (locks table)</td><td>Tune <code>autovacuum_vacuum_scale_factor</code> per table</td></tr><tr><td><strong>Lock convoy</strong></td><td>Long-running migration held exclusive lock</td><td>All queries queued behind lock</td><td>Kill migration, retry with <code>lock_timeout</code></td><td>Set <code>lock_timeout = '5s'</code> for migrations</td></tr><tr><td><strong>OOM killer</strong></td><td>Huge sort in memory (no work_mem limit)</td><td>PostgreSQL process killed, connections dropped</td><td>Set <code>work_mem = '256MB'</code>, add index</td><td>Configure <code>work_mem</code> and <code>temp_file_limit</code></td></tr><tr><td><strong>Cascading failure</strong></td><td>Database slow → app retries × 3 → 3x load → database slower</td><td>Complete outage</td><td>Circuit breaker, stop retries</td><td>Implement circuit breakers, set query timeouts</td></tr><tr><td><strong>Data corruption</strong></td><td><code>fsync=off</code> for &ldquo;performance&rdquo;</td><td>Silent data loss after power outage</td><td>Restore from backup</td><td>Never disable fsync in production</td></tr><tr><td><strong>Schema migration failure</strong></td><td>ALTER TABLE timeout on 500M row table</td><td>Stuck lock, blocked writes for 20 min</td><td><code>gh-ost</code> / <code>pt-online-schema-change</code></td><td>Use online DDL tools for large tables</td></tr></tbody></table><h3 id=the-golden-rules>The Golden Rules</h3><ol><li><p><strong>Always have backups. Test your restores.</strong> A backup you have never restored is a hope, not a strategy.</p></li><li><p><strong>Monitor before you need to.</strong> Set up dashboards and alerts before the first production user. Key metrics: connection count, query latency p99, replication lag, disk usage.</p></li><li><p><strong>Use connection pooling.</strong> Always. Even if your application framework claims to handle it.</p></li><li><p><strong>Set timeouts everywhere.</strong> Statement timeout, lock timeout, connection timeout, idle-in-transaction timeout. A query without a timeout is a query that will eventually hold a lock forever.</p></li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- PostgreSQL: set safety timeouts
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>DATABASE</span><span class=w> </span><span class=n>mydb</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>statement_timeout</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;30s&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ALTER</span><span class=w> </span><span class=k>DATABASE</span><span class=w> </span><span class=n>mydb</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>lock_timeout</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;10s&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ALTER</span><span class=w> </span><span class=k>DATABASE</span><span class=w> </span><span class=n>mydb</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>idle_in_transaction_session_timeout</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;60s&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><ol start=5><li><p><strong>Never run untested migrations in production.</strong> Test every migration against a copy of production data. Time it. Check for locks.</p></li><li><p><strong>Read replicas are not a scaling strategy for writes.</strong> They only help with reads. If writes are your bottleneck, you need sharding.</p></li><li><p><strong>Keep transactions short.</strong> A transaction that holds locks for 30 seconds blocks every other transaction that needs those rows.</p></li><li><p><strong>The database is not a queue.</strong> If you are polling a table with <code>SELECT ... WHERE status = 'pending' FOR UPDATE SKIP LOCKED</code>, you should probably be using an actual message queue.</p></li></ol><h2 id=series-wrap-up>Series Wrap-Up</h2><p>Over these eight articles, we have gone from the relational model and SQL basics all the way to distributed transactions and production operations. The path was intentional: you cannot understand why replication lag matters until you understand isolation levels, and you cannot appreciate the Saga pattern until you understand why 2PC blocks.</p><p>Databases are one of those areas where superficial knowledge is dangerous. A developer who does not understand indexing will build systems that work perfectly on small datasets and fail catastrophically in production. A team that does not understand isolation levels will ship concurrency bugs that only appear under load. An organization that does not test its backups will discover they are useless precisely when they are needed most.</p><p>The fundamentals do not change much. B-trees, WALs, MVCC, and consensus have been the core building blocks for decades. Master them once, and every new database you encounter — whether it is PostgreSQL, CockroachDB, DynamoDB, or whatever comes next — is a variation on ideas you already understand.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/databases/>Databases</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/databases/07-distributed-transactions/><span class=title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=/en/series/databases/><span class=title>Back to Databases index</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/databases/01-data-models-and-sql/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Databases (1): Data Models and SQL — Why Tables Won (For Now)</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Databases (2): Indexing and Query Planning — How Databases Find Your Data</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/04-storage-engines/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Databases (4): Storage Engines — How Data Hits Disk</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/05-nosql-landscape/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Databases (6): Replication and Partitioning — Scaling Beyond One Machine</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/databases/07-distributed-transactions/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>08</span>
+<span class=series-nav-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span>
+<span class=series-nav-here>you are here</span></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#schema-migrations-changing-the-engine-while-flying>Schema Migrations: Changing the Engine While Flying</a><ul><li><a href=#migration-tools>Migration Tools</a></li><li><a href=#migration-file-structure>Migration File Structure</a></li><li><a href=#migration-best-practices>Migration Best Practices</a><ul><li><a href=#1-backward-compatibility>1. Backward Compatibility</a></li><li><a href=#2-online-ddl>2. Online DDL</a></li><li><a href=#3-zero-downtime-rename-strategy>3. Zero-Downtime Rename Strategy</a></li></ul></li></ul></li><li><a href=#connection-pooling>Connection Pooling</a><ul><li><a href=#the-problem>The Problem</a></li><li><a href=#pgbouncer-postgresql>PgBouncer (PostgreSQL)</a></li><li><a href=#proxysql-mysql>ProxySQL (MySQL)</a></li><li><a href=#application-level-pooling>Application-Level Pooling</a></li></ul></li><li><a href=#database-monitoring>Database Monitoring</a><ul><li><a href=#key-metrics>Key Metrics</a></li><li><a href=#postgresql-monitoring-queries>PostgreSQL Monitoring Queries</a></li><li><a href=#mysql-monitoring-queries>MySQL Monitoring Queries</a></li></ul></li><li><a href=#slow-query-analysis>Slow Query Analysis</a><ul><li><a href=#enable-slow-query-logging>Enable Slow Query Logging</a></li><li><a href=#query-optimization-workflow>Query Optimization Workflow</a></li></ul></li><li><a href=#backup-strategies>Backup Strategies</a><ul><li><a href=#logical-backups>Logical Backups</a></li><li><a href=#physical-backups>Physical Backups</a></li><li><a href=#point-in-time-recovery-pitr>Point-in-Time Recovery (PITR)</a></li><li><a href=#backup-comparison>Backup Comparison</a></li><li><a href=#backup-testing>Backup Testing</a></li></ul></li><li><a href=#choosing-a-managed-database>Choosing a Managed Database</a><ul><li><a href=#when-to-self-manage-vs-use-managed>When to Self-Manage vs Use Managed</a></li></ul></li><li><a href=#capacity-planning>Capacity Planning</a><ul><li><a href=#when-to-scale-up-vs-scale-out>When to Scale Up vs Scale Out</a></li><li><a href=#capacity-estimation>Capacity Estimation</a></li></ul></li><li><a href=#war-stories-common-production-incidents>War Stories: Common Production Incidents</a><ul><li><a href=#the-golden-rules>The Golden Rules</a></li></ul></li><li><a href=#series-wrap-up>Series Wrap-Up</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/databases/ class=series-name>Databases</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/01-data-models-and-sql/><span class=chapter-num>01</span>
+<span class=chapter-title>Databases (1): Data Models and SQL — Why Tables Won (For Now)</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/02-indexing-and-query-planning/><span class=chapter-num>02</span>
+<span class=chapter-title>Databases (2): Indexing and Query Planning — How Databases Find Your Data</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/03-transactions-and-concurrency/><span class=chapter-num>03</span>
+<span class=chapter-title>Databases (3): Transactions and Concurrency — ACID, Isolation Levels, and Locking</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/04-storage-engines/><span class=chapter-num>04</span>
+<span class=chapter-title>Databases (4): Storage Engines — How Data Hits Disk</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/05-nosql-landscape/><span class=chapter-num>05</span>
+<span class=chapter-title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><span class=chapter-num>06</span>
+<span class=chapter-title>Databases (6): Replication and Partitioning — Scaling Beyond One Machine</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/07-distributed-transactions/><span class=chapter-num>07</span>
+<span class=chapter-title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
+<span class=chapter-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>36 min</strong></div><div class=row><span>Word count</span><strong>3625</strong></div><div class=row><span>Published</span><strong>Dec 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

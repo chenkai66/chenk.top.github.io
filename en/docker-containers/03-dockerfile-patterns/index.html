@@ -1,0 +1,692 @@
+<!doctype html><html lang=en data-translation=/zh/docker-containers/03-dockerfile-patterns/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Docker and Containers (3): Dockerfile Patterns — From Naive to Production · Chen Kai Blog</title>
+<meta name=description content="A Dockerfile defines how your image is built. The difference between a naive Dockerfile and an optimized one can be 10x in image size and build time."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/docker-containers/03-dockerfile-patterns/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/docker-containers/03-dockerfile-patterns/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/docker-containers/03-dockerfile-patterns/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/docker-containers/03-dockerfile-patterns/><meta property="og:type" content="article"><meta property="og:title" content="Docker and Containers (3): Dockerfile Patterns — From Naive to Production"><meta property="og:description" content="A Dockerfile defines how your image is built. The difference between a naive Dockerfile and an optimized one can be 10x in image size and build time."><meta property="og:url" content="https://www.chenk.top/en/docker-containers/03-dockerfile-patterns/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg"><meta property="og:image:alt" content="Docker and Containers (3): Dockerfile Patterns — From Naive to Production"><meta property="article:published_time" content="2023-09-18T09:00:00Z"><meta property="article:modified_time" content="2023-09-18T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Docker"><meta property="article:tag" content="Containers"><meta property="article:tag" content="Dockerfile"><meta property="article:tag" content="Multi-stage Build"><meta property="article:tag" content="DevOps"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Docker and Containers (3): Dockerfile Patterns — From Naive to Production"><meta name=twitter:description content="A Dockerfile defines how your image is built. The difference between a naive Dockerfile and an optimized one can be 10x in image size and build time."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Docker and Containers (3): Dockerfile Patterns — From Naive to Production\"","description":"\"A Dockerfile defines how your image is built. The difference between a naive Dockerfile and an optimized one can be 10x in image size and build time.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-09-18T09:00:00Z\"","dateModified":"\"2023-09-18T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/docker-containers/03-dockerfile-patterns/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Docker and Containers</a>
+· Chapter 3</div><h1>Docker and Containers (3): Dockerfile Patterns — From Naive to Production</h1><p class=deck>A Dockerfile defines how your image is built. The difference between a naive Dockerfile and an optimized one can be 10x in image size and build time.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-09-18>September 18, 2023</time> · 28 min read · 2840 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/dockerfile/ class=tag>#Dockerfile</a><a href=/en/tags/multi-stage-build/ class=tag>#Multi-stage Build</a><a href=/en/tags/devops/ class=tag>#DevOps</a></div><a class="pill pill-outline" href=/zh/docker-containers/03-dockerfile-patterns/>阅读中文版 →</a></div></header><div class=prose><p>Most tutorials show you a 5-line Dockerfile and move on. Then you deploy to production and discover your image is 1.2 GB, builds take 8 minutes even for a one-line code change, and your security team is flagging vulnerabilities in packages you didn&rsquo;t even know were installed. Writing a good Dockerfile is a skill — one that pays dividends every time your CI pipeline runs.</p><h2 id=every-dockerfile-instruction>Every Dockerfile Instruction</h2><p>Let&rsquo;s go through every instruction you&rsquo;ll use, with concrete examples.</p><h3 id=from--the-starting-point>FROM — The Starting Point</h3><p>Every Dockerfile begins with <code>FROM</code>. It sets the base image that all subsequent instructions build upon.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Use a specific version (recommended)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:3.11-slim</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Use a minimal base</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> alpine:3.18</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Use scratch (empty image) for statically compiled binaries</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> scratch</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Multiple FROM statements = multi-stage build (covered later)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> golang:1.21 AS builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># ...</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> alpine:3.18</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># ...</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>Best practice</strong>: Always pin a specific version. <code>FROM python:latest</code> will break when a new Python version is released and your code isn&rsquo;t compatible.</p><table><thead><tr><th>Base Image Choice</th><th>Size</th><th>Use When</th></tr></thead><tbody><tr><td><code>python:3.11</code></td><td>~900 MB</td><td>You need build tools (gcc, etc.)</td></tr><tr><td><code>python:3.11-slim</code></td><td>~150 MB</td><td>Standard production images</td></tr><tr><td><code>python:3.11-alpine</code></td><td>~50 MB</td><td>Size-critical, but watch for musl compatibility</td></tr><tr><td><code>ubuntu:22.04</code></td><td>~78 MB</td><td>You need apt and Ubuntu-specific packages</td></tr><tr><td><code>alpine:3.18</code></td><td>~7 MB</td><td>Minimal base, not language-specific</td></tr><tr><td><code>scratch</code></td><td>0 MB</td><td>Statically compiled Go, Rust binaries</td></tr></tbody></table><h3 id=run--execute-commands>RUN — Execute Commands</h3><p><code>RUN</code> executes a command inside the image during the build process. Each <code>RUN</code> creates a new layer.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Shell form (runs in /bin/sh -c)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=o>&amp;&amp;</span> apt-get install -y curl<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Exec form (no shell processing)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> <span class=o>[</span><span class=s2>&#34;apt-get&#34;</span>, <span class=s2>&#34;update&#34;</span><span class=o>]</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Multi-line with &amp;&amp; to keep it in one layer</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> apt-get install -y --no-install-recommends <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        curl <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        ca-certificates <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        git <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>Critical pattern</strong>: Chain commands with <code>&&</code> and clean up in the same <code>RUN</code> instruction. If you <code>apt-get install</code> in one <code>RUN</code> and <code>rm -rf /var/lib/apt/lists/*</code> in another, the package lists still exist in the first layer — layers are additive, never subtractive.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># BAD: 3 layers, cleanup doesn&#39;t help (lists persist in Layer 1)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get install -y curl<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> rm -rf /var/lib/apt/lists/*<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># GOOD: 1 layer, lists are removed before the layer is committed</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> apt-get install -y --no-install-recommends curl <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=copy-and-add--bring-files-into-the-image>COPY and ADD — Bring Files Into the Image</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># COPY: Copy files from build context into the image</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt /app/requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . /app/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># COPY with --chown to set ownership</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --chown<span class=o>=</span>appuser:appuser . /app/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># ADD: Like COPY, but also:</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c>#   - Extracts tar archives automatically</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c>#   - Supports URLs (but don&#39;t use this — use curl in RUN instead)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ADD</span> archive.tar.gz /app/<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>Best practice</strong>: Use <code>COPY</code> unless you specifically need tar extraction. <code>COPY</code> is more explicit and predictable.</p><h3 id=workdir--set-working-directory>WORKDIR — Set Working Directory</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Sets the working directory for subsequent instructions</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Equivalent to mkdir -p &amp;&amp; cd (creates the directory if it doesn&#39;t exist)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app/src</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># These three lines:</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> mkdir -p /app <span class=o>&amp;&amp;</span> <span class=nb>cd</span> /app <span class=o>&amp;&amp;</span> npm install<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Are better written as:</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> npm install<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=env-and-arg--variables>ENV and ARG — Variables</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># ENV: Set environment variables (persist in the running container)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENV</span> <span class=nv>NODE_ENV</span><span class=o>=</span>production
+</span></span><span class=line><span class=cl><span class=k>ENV</span> <span class=nv>APP_PORT</span><span class=o>=</span><span class=m>8080</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c># ARG: Build-time variables (NOT available in the running container)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ARG</span> <span class=nv>PYTHON_VERSION</span><span class=o>=</span><span class=m>3</span>.11<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:${PYTHON_VERSION}-slim</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># ARG values can be overridden at build time</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># docker build --build-arg PYTHON_VERSION=3.12 .</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Key differences:</p><table><thead><tr><th>Feature</th><th>ENV</th><th>ARG</th></tr></thead><tbody><tr><td>Available during build</td><td>Yes</td><td>Yes</td></tr><tr><td>Available at runtime</td><td>Yes</td><td>No</td></tr><tr><td>Visible in <code>docker inspect</code></td><td>Yes</td><td>No (but cached in layers)</td></tr><tr><td>Can be overridden at build</td><td>No (use ARG for that)</td><td>Yes (<code>--build-arg</code>)</td></tr><tr><td>Persists across stages</td><td>Yes (within a stage)</td><td>No (reset at each FROM)</td></tr></tbody></table><p><strong>Security warning</strong>: Neither <code>ENV</code> nor <code>ARG</code> should contain secrets. Build arguments are stored in the image history (<code>docker history</code>). Use Docker secrets or mount secrets at build time with <code>--secret</code> instead.</p><h3 id=expose--document-ports>EXPOSE — Document Ports</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Documents which ports the container listens on</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 80</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 443</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 8080/tcp</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 8443/udp</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p><code>EXPOSE</code> does <strong>not</strong> publish the port. It&rsquo;s documentation. You still need <code>-p 8080:80</code> when running the container. Think of it as a comment that tooling can read.</p><h3 id=cmd-and-entrypoint--what-runs>CMD and ENTRYPOINT — What Runs</h3><p>These two instructions define what happens when the container starts. Understanding the difference is crucial.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># CMD: Default command (can be overridden entirely)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;python3&#34;</span><span class=p>,</span> <span class=s2>&#34;app.py&#34;</span><span class=p>]</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># ENTRYPOINT: Fixed executable (arguments can be appended)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENTRYPOINT</span> <span class=p>[</span><span class=s2>&#34;python3&#34;</span><span class=p>,</span> <span class=s2>&#34;app.py&#34;</span><span class=p>]</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Combined: ENTRYPOINT is the executable, CMD provides default arguments</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENTRYPOINT</span> <span class=p>[</span><span class=s2>&#34;python3&#34;</span><span class=p>]</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;app.py&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Behavior with <code>docker run</code>:</p><table><thead><tr><th>Dockerfile</th><th><code>docker run image</code></th><th><code>docker run image bash</code></th></tr></thead><tbody><tr><td><code>CMD ["python3", "app.py"]</code></td><td>Runs <code>python3 app.py</code></td><td>Runs <code>bash</code> (CMD replaced)</td></tr><tr><td><code>ENTRYPOINT ["python3", "app.py"]</code></td><td>Runs <code>python3 app.py</code></td><td>Runs <code>python3 app.py bash</code> (appended)</td></tr><tr><td><code>ENTRYPOINT ["python3"]</code> + <code>CMD ["app.py"]</code></td><td>Runs <code>python3 app.py</code></td><td>Runs <code>python3 bash</code> (CMD replaced)</td></tr></tbody></table><p><strong>Shell form vs exec form:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Exec form (preferred) — runs directly, receives signals properly</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;python3&#34;</span><span class=p>,</span> <span class=s2>&#34;app.py&#34;</span><span class=p>]</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Shell form — runs as /bin/sh -c &#34;python3 app.py&#34;</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># The shell wraps your process, so SIGTERM goes to sh, not your app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> python3 app.py<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Always use exec form (<code>["executable", "arg1", "arg2"]</code>) for <code>CMD</code> and <code>ENTRYPOINT</code>. Shell form wraps your process in <code>/bin/sh -c</code>, which prevents proper signal handling and can cause issues with graceful shutdown.</p><h3 id=user--run-as-non-root>USER — Run as Non-Root</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Create a non-root user and switch to it</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> groupadd -r appuser <span class=o>&amp;&amp;</span> useradd -r -g appuser appuser<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> appuser</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Or on Alpine</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> addgroup -S appuser <span class=o>&amp;&amp;</span> adduser -S appuser -G appuser<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> appuser</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>We&rsquo;ll cover why this matters for security in article 7.</p><h3 id=healthcheck--container-health>HEALTHCHECK — Container Health</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Check if the web server is responding</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>HEALTHCHECK --interval=30s --timeout=3s </span>--start-period<span class=o>=</span>5s --retries<span class=o>=</span><span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    CMD curl -f http://localhost:8080/health <span class=o>||</span> <span class=nb>exit</span> <span class=m>1</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Disable healthcheck inherited from base image</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>HEALTHCHECK</span> NONE<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>Parameter</th><th>Default</th><th>Meaning</th></tr></thead><tbody><tr><td><code>--interval</code></td><td>30s</td><td>Time between checks</td></tr><tr><td><code>--timeout</code></td><td>30s</td><td>Max time for a single check</td></tr><tr><td><code>--start-period</code></td><td>0s</td><td>Grace period before first check</td></tr><tr><td><code>--retries</code></td><td>3</td><td>Consecutive failures before &ldquo;unhealthy&rdquo;</td></tr></tbody></table><p>Docker marks the container as <code>healthy</code>, <code>unhealthy</code>, or <code>starting</code> based on the healthcheck results. Orchestrators (Docker Compose, Kubernetes) use this to decide whether to route traffic to the container.</p><h2 id=naive-vs-optimized-a-real-example>Naive vs Optimized: A Real Example</h2><p>Let&rsquo;s build a Flask application. Here&rsquo;s the app:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># app.py</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>flask</span> <span class=kn>import</span> <span class=n>Flask</span><span class=p>,</span> <span class=n>jsonify</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>redis</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>app</span> <span class=o>=</span> <span class=n>Flask</span><span class=p>(</span><span class=vm>__name__</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>cache</span> <span class=o>=</span> <span class=n>redis</span><span class=o>.</span><span class=n>Redis</span><span class=p>(</span><span class=n>host</span><span class=o>=</span><span class=s1>&#39;redis&#39;</span><span class=p>,</span> <span class=n>port</span><span class=o>=</span><span class=mi>6379</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@app.route</span><span class=p>(</span><span class=s1>&#39;/&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>hello</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>count</span> <span class=o>=</span> <span class=n>cache</span><span class=o>.</span><span class=n>incr</span><span class=p>(</span><span class=s1>&#39;hits&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>jsonify</span><span class=p>(</span><span class=n>message</span><span class=o>=</span><span class=s1>&#39;Hello from Docker!&#39;</span><span class=p>,</span> <span class=n>visits</span><span class=o>=</span><span class=n>count</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s1>&#39;__main__&#39;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>app</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>host</span><span class=o>=</span><span class=s1>&#39;0.0.0.0&#39;</span><span class=p>,</span> <span class=n>port</span><span class=o>=</span><span class=mi>5000</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code># requirements.txt
+flask==3.0.0
+redis==5.0.1
+gunicorn==21.2.0
+</code></pre><h3 id=the-naive-dockerfile>The Naive Dockerfile</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> python:3.11</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . /app<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 5000</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;python&#34;</span><span class=p>,</span> <span class=s2>&#34;app.py&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Build and check size:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker build -t flask-naive -f Dockerfile.naive .
+</span></span><span class=line><span class=cl>docker images flask-naive
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>REPOSITORY    TAG       IMAGE ID       CREATED          SIZE
+flask-naive   latest    a1b2c3d4e5f6   10 seconds ago   1.02GB
+</code></pre><p><strong>1.02 GB</strong> for a Flask app with 3 dependencies. The problems:</p><ol><li>Uses <code>python:3.11</code> (full Debian with build tools) — 900+ MB</li><li>Copies everything (including <code>.git</code>, <code>__pycache__</code>, <code>.env</code>, etc.)</li><li>No <code>.dockerignore</code></li><li>Runs as root</li><li>Uses development server (<code>python app.py</code>)</li><li>No healthcheck</li><li><code>pip install</code> runs every time ANY file changes (cache-busting)</li></ol><h3 id=the-optimized-dockerfile>The Optimized Dockerfile</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> python:3.11-slim AS base</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Prevent Python from writing .pyc files and enable unbuffered output</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENV</span> <span class=nv>PYTHONDONTWRITEBYTECODE</span><span class=o>=</span><span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=nv>PYTHONUNBUFFERED</span><span class=o>=</span><span class=m>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Install dependencies first (cached unless requirements.txt changes)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --no-cache-dir -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Create non-root user</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> groupadd -r appuser <span class=o>&amp;&amp;</span> useradd -r -g appuser -d /app appuser<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Copy application code</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --chown<span class=o>=</span>appuser:appuser . .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Switch to non-root user</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> appuser</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 5000</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Use production WSGI server</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+</span></span></span><span class=line><span class=cl><span class=err>    </span><span class=k>CMD</span> python -c <span class=s2>&#34;import urllib.request; urllib.request.urlopen(&#39;http://localhost:5000/&#39;)&#34;</span> <span class=o>||</span> <span class=nb>exit</span> <span class=m>1</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;gunicorn&#34;</span><span class=p>,</span> <span class=s2>&#34;--bind&#34;</span><span class=p>,</span> <span class=s2>&#34;0.0.0.0:5000&#34;</span><span class=p>,</span> <span class=s2>&#34;--workers&#34;</span><span class=p>,</span> <span class=s2>&#34;4&#34;</span><span class=p>,</span> <span class=s2>&#34;app:app&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>And the <code>.dockerignore</code>:</p><pre tabindex=0><code>.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+.env
+.venv
+venv
+*.md
+.dockerignore
+Dockerfile*
+docker-compose*
+.pytest_cache
+.coverage
+htmlcov
+</code></pre><p>Build and compare:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker build -t flask-optimized -f Dockerfile.optimized .
+</span></span><span class=line><span class=cl>docker images <span class=p>|</span> grep flask
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>REPOSITORY        TAG       IMAGE ID       CREATED          SIZE
+flask-optimized   latest    f6e5d4c3b2a1   5 seconds ago    167MB
+flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
+</code></pre><table><thead><tr><th>Metric</th><th>Naive</th><th>Optimized</th><th>Improvement</th></tr></thead><tbody><tr><td>Image size</td><td>1.02 GB</td><td>167 MB</td><td>6x smaller</td></tr><tr><td>Runs as root?</td><td>Yes</td><td>No</td><td>Security fix</td></tr><tr><td>Rebuild on code change</td><td>Full pip install</td><td>Only COPY layer</td><td>Minutes saved</td></tr><tr><td>Production server</td><td>Flask dev server</td><td>Gunicorn</td><td>Production-ready</td></tr><tr><td>Healthcheck</td><td>None</td><td>Yes</td><td>Orchestrator-friendly</td></tr><tr><td>Files leaked</td><td>.git, .env, etc.</td><td>Clean</td><td>No secrets in image</td></tr></tbody></table><h2 id=the-dockerignore-file>The .dockerignore File</h2><p>The <code>.dockerignore</code> file works like <code>.gitignore</code> but for the Docker build context. When you run <code>docker build .</code>, Docker sends the entire directory (the &ldquo;build context&rdquo;) to the daemon. Without <code>.dockerignore</code>, this includes everything.</p><pre tabindex=0><code># .dockerignore
+
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist
+build
+.eggs
+
+# Virtual environments
+.venv
+venv
+env
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Docker files (prevent recursive context)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Testing and CI
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.mypy_cache
+
+# Documentation
+*.md
+docs/
+LICENSE
+</code></pre><p>Without a <code>.dockerignore</code>, a project with a 500 MB <code>.git</code> directory and a 200 MB <code>node_modules</code> sends 700 MB to the daemon on every build — even if none of those files are used in the image.</p><h2 id=layer-caching-why-instruction-order-matters>Layer Caching: Why Instruction Order Matters</h2><p>Docker caches each layer. If an instruction hasn&rsquo;t changed (and all preceding layers are cached), Docker reuses the cached layer. But the moment one layer&rsquo;s cache is invalidated, all subsequent layers must be rebuilt.</p><p>This is why instruction order is critical:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># BAD ORDER: Any code change invalidates pip install cache</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . /app<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install -r requirements.txt  <span class=c1># Rebuilds every time ANY file changes</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># GOOD ORDER: pip install is cached unless requirements.txt changes</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt /app/requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install -r requirements.txt  <span class=c1># Only rebuilds when dependencies change</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . /app                          <span class=c1># Code changes only rebuild this layer</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>The general rule: order instructions from least-frequently-changing to most-frequently-changing.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> python:3.11-slim          # Changes rarely (base image updates)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=o>&amp;&amp;</span> ...      <span class=c1># Changes rarely (system packages)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .        <span class=c1># Changes occasionally (dependencies)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install -r ...         <span class=c1># Changes occasionally</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . .                       <span class=c1># Changes frequently (your code)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=err>...</span><span class=p>]</span>                      <span class=c1># Changes rarely</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>You can verify cache behavior in the build output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># First build (no cache)</span>
+</span></span><span class=line><span class=cl>docker build -t myapp .
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>[+] Building 45.2s (10/10) FINISHED
+ =&gt; [1/5] FROM python:3.11-slim                                      0.0s
+ =&gt; [2/5] WORKDIR /app                                               0.0s
+ =&gt; [3/5] COPY requirements.txt .                                    0.1s
+ =&gt; [4/5] RUN pip install --no-cache-dir -r requirements.txt        42.3s
+ =&gt; [5/5] COPY . .                                                   0.2s
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Second build after changing only app.py (cache hit on pip install)</span>
+</span></span><span class=line><span class=cl>docker build -t myapp .
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>[+] Building 1.8s (10/10) FINISHED
+ =&gt; [1/5] FROM python:3.11-slim                                      0.0s
+ =&gt; CACHED [2/5] WORKDIR /app                                        0.0s
+ =&gt; CACHED [3/5] COPY requirements.txt .                              0.0s
+ =&gt; CACHED [4/5] RUN pip install --no-cache-dir -r requirements.txt   0.0s
+ =&gt; [5/5] COPY . .                                                   0.2s
+</code></pre><p>42 seconds saved because <code>requirements.txt</code> didn&rsquo;t change.</p><h2 id=multi-stage-builds>Multi-Stage Builds</h2><p>Multi-stage builds are one of Docker&rsquo;s most powerful features. They let you use a large image for building (with compilers, build tools, etc.) and copy only the final artifact into a small runtime image.</p><h3 id=python-example>Python Example</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Stage 1: Build dependencies in a full image</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:3.11 AS builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --user --no-cache-dir -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Stage 2: Runtime with only what&#39;s needed</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> python:3.11-slim</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Copy installed packages from builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --from<span class=o>=</span>builder /root/.local /root/.local<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENV</span> <span class=nv>PATH</span><span class=o>=</span>/root/.local/bin:<span class=nv>$PATH</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> nobody</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;gunicorn&#34;</span><span class=p>,</span> <span class=s2>&#34;--bind&#34;</span><span class=p>,</span> <span class=s2>&#34;0.0.0.0:5000&#34;</span><span class=p>,</span> <span class=s2>&#34;app:app&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=go-example-extreme-size-reduction>Go Example (Extreme Size Reduction)</h3><p>Go compiles to static binaries, enabling the smallest possible images:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Stage 1: Build</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> golang:1.21 AS builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> go.mod go.sum ./<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> go mod download<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> <span class=nv>CGO_ENABLED</span><span class=o>=</span><span class=m>0</span> <span class=nv>GOOS</span><span class=o>=</span>linux go build -o server .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Stage 2: Runtime (scratch = empty image)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> scratch</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --from<span class=o>=</span>builder /app/server /server<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --from<span class=o>=</span>builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 8080</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENTRYPOINT</span> <span class=p>[</span><span class=s2>&#34;/server&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Size comparison for a Go HTTP server:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker images <span class=p>|</span> grep go-server
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>REPOSITORY        TAG          IMAGE ID       CREATED          SIZE
+go-server         single       a1b2c3d4e5f6   10 seconds ago   845MB
+go-server         multistage   b2c3d4e5f6a7   5 seconds ago    12.4MB
+</code></pre><p><strong>845 MB vs 12.4 MB</strong>. The multi-stage build produces an image 68x smaller because it discards the entire Go toolchain — only the compiled binary and CA certificates make it to the final image. The same pattern works for Node.js (build with <code>node:20-alpine</code>, copy only <code>node_modules</code> and app code to the runtime stage) and any other language.</p><h2 id=build-arguments-vs-environment-variables>Build Arguments vs Environment Variables</h2><p>A common confusion point. Here&rsquo;s a practical example:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Build-time configuration with ARG</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ARG</span> <span class=nv>NODE_ENV</span><span class=o>=</span>production
+</span></span><span class=line><span class=cl><span class=k>ARG</span> <span class=nv>APP_VERSION</span><span class=o>=</span>unknown
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c># Build-time use (determines what gets installed)</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> <span class=k>if</span> <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$NODE_ENV</span><span class=s2>&#34;</span> <span class=o>=</span> <span class=s2>&#34;development&#34;</span> <span class=o>]</span><span class=p>;</span> <span class=k>then</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        npm install<span class=p>;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=k>else</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        npm ci --only<span class=o>=</span>production<span class=p>;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=k>fi</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Runtime configuration with ENV</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENV</span> <span class=nv>NODE_ENV</span><span class=o>=</span><span class=si>${</span><span class=nv>NODE_ENV</span><span class=si>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENV</span> <span class=nv>APP_VERSION</span><span class=o>=</span><span class=si>${</span><span class=nv>APP_VERSION</span><span class=si>}</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Now NODE_ENV is available both during build AND at runtime</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Build with different arguments:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Production build</span>
+</span></span><span class=line><span class=cl>docker build --build-arg <span class=nv>NODE_ENV</span><span class=o>=</span>production --build-arg <span class=nv>APP_VERSION</span><span class=o>=</span>v2.3.1 -t myapp:prod .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Development build (includes devDependencies)</span>
+</span></span><span class=line><span class=cl>docker build --build-arg <span class=nv>NODE_ENV</span><span class=o>=</span>development -t myapp:dev .
+</span></span></code></pre></td></tr></table></div></div><h2 id=common-patterns-and-anti-patterns>Common Patterns and Anti-Patterns</h2><h3 id=pattern-pin-package-versions>Pattern: Pin Package Versions</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># BAD: Different results on different days</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get install -y curl<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># GOOD: Reproducible</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get install -y <span class=nv>curl</span><span class=o>=</span>7.88.1-10+deb12u4<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># GOOD for pip</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install <span class=nv>flask</span><span class=o>==</span>3.0.0 <span class=nv>gunicorn</span><span class=o>==</span>21.2.0<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># GOOD for npm</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> package-lock.json .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> npm ci  <span class=c1># Uses lockfile for exact versions</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=pattern-minimize-layer-count>Pattern: Minimize Layer Count</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># BAD: 4 layers for one logical operation</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get install -y curl<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get install -y git<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get clean<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># GOOD: 1 layer</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> apt-get install -y --no-install-recommends <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        curl <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        git <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> apt-get clean <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=pattern-use-copy---link-for-better-caching>Pattern: Use COPY &ndash;link for Better Caching</h3><p>Docker BuildKit supports <code>--link</code> which makes <code>COPY</code> independent of previous layers:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>COPY</span> --link requirements.txt .<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=anti-pattern-secrets-in-build-arguments>Anti-Pattern: Secrets in Build Arguments</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># NEVER DO THIS — the password is stored in the image history</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ARG</span> DB_PASSWORD<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> <span class=nb>echo</span> <span class=s2>&#34;password=</span><span class=nv>$DB_PASSWORD</span><span class=s2>&#34;</span> &gt; /app/config<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Instead, use BuildKit secrets</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> --mount<span class=o>=</span><span class=nv>type</span><span class=o>=</span>secret,id<span class=o>=</span>db_password <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    cat /run/secrets/db_password &gt; /app/config<span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>Build with:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker build --secret <span class=nv>id</span><span class=o>=</span>db_password,src<span class=o>=</span>./db_password.txt -t myapp .
+</span></span></code></pre></td></tr></table></div></div><h2 id=building-and-tagging>Building and Tagging</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Basic build</span>
+</span></span><span class=line><span class=cl>docker build -t myapp .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Build with a specific Dockerfile</span>
+</span></span><span class=line><span class=cl>docker build -f Dockerfile.prod -t myapp:prod .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Build with multiple tags</span>
+</span></span><span class=line><span class=cl>docker build -t myapp:v2.3.1 -t myapp:latest .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Build for a specific platform</span>
+</span></span><span class=line><span class=cl>docker build --platform linux/amd64 -t myapp .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Build with no cache (force rebuild)</span>
+</span></span><span class=line><span class=cl>docker build --no-cache -t myapp .
+</span></span></code></pre></td></tr></table></div></div><h2 id=quick-reference-dockerfile-instruction-summary>Quick Reference: Dockerfile Instruction Summary</h2><table><thead><tr><th>Instruction</th><th>Purpose</th><th>Creates Layer?</th></tr></thead><tbody><tr><td><code>FROM</code></td><td>Set base image</td><td>Yes (base layer)</td></tr><tr><td><code>RUN</code></td><td>Execute command during build</td><td>Yes</td></tr><tr><td><code>COPY</code></td><td>Copy files from build context</td><td>Yes</td></tr><tr><td><code>ADD</code></td><td>Copy files (with tar extraction)</td><td>Yes</td></tr><tr><td><code>WORKDIR</code></td><td>Set working directory</td><td>Yes (if directory is created)</td></tr><tr><td><code>ENV</code></td><td>Set environment variable</td><td>No (metadata)</td></tr><tr><td><code>ARG</code></td><td>Define build-time variable</td><td>No (metadata)</td></tr><tr><td><code>EXPOSE</code></td><td>Document port</td><td>No (metadata)</td></tr><tr><td><code>CMD</code></td><td>Default command</td><td>No (metadata)</td></tr><tr><td><code>ENTRYPOINT</code></td><td>Fixed command</td><td>No (metadata)</td></tr><tr><td><code>USER</code></td><td>Set user for subsequent instructions</td><td>No (metadata)</td></tr><tr><td><code>HEALTHCHECK</code></td><td>Define health check</td><td>No (metadata)</td></tr><tr><td><code>LABEL</code></td><td>Add metadata key-value pair</td><td>No (metadata)</td></tr><tr><td><code>VOLUME</code></td><td>Create mount point</td><td>No (metadata)</td></tr><tr><td><code>STOPSIGNAL</code></td><td>Set stop signal</td><td>No (metadata)</td></tr><tr><td><code>SHELL</code></td><td>Set default shell</td><td>No (metadata)</td></tr></tbody></table><h2 id=whats-next>What&rsquo;s Next</h2><p>You can now write Dockerfiles that produce small, secure, fast-building images. But a container in isolation isn&rsquo;t very useful — it needs to communicate with the outside world and persist data. The next article covers Docker networking (how containers talk to each other and the host) and volumes (how data survives container restarts). These are the building blocks you&rsquo;ll need before we tackle multi-container applications with Docker Compose.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/docker-containers/>Docker and Containers</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/docker-containers/02-images-and-layers/><span class=title>Docker and Containers (2): Images and Layers — What docker pull Actually Downloads</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/docker-containers/04-networking-and-volumes/><span class=title>Docker and Containers (4): Networking and Volumes — How Containers Talk and Persist</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/docker-containers/01-why-containers/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Docker and Containers (1): Why Containers — The Problem VMs Didn't Solve</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/docker-containers/02-images-and-layers/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Docker and Containers (2): Images and Layers — What docker pull Actually Downloads</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
+<span class=series-nav-title>Docker and Containers (3): Dockerfile Patterns — From Naive to Production</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/docker-containers/04-networking-and-volumes/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Docker and Containers (4): Networking and Volumes — How Containers Talk and Persist</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/docker-containers/05-docker-compose/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Docker and Containers (5): Docker Compose — Multi-Container Applications</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/docker-containers/06-debugging-and-logging/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Docker and Containers (6): Debugging and Logging — When Things Go Wrong Inside a Box</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/docker-containers/07-security-and-best-practices/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Docker and Containers (7): Security — Running Containers Without Giving Away the Keys</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/docker-containers/08-orchestration-preview/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#every-dockerfile-instruction>Every Dockerfile Instruction</a><ul><li><a href=#from--the-starting-point>FROM — The Starting Point</a></li><li><a href=#run--execute-commands>RUN — Execute Commands</a></li><li><a href=#copy-and-add--bring-files-into-the-image>COPY and ADD — Bring Files Into the Image</a></li><li><a href=#workdir--set-working-directory>WORKDIR — Set Working Directory</a></li><li><a href=#env-and-arg--variables>ENV and ARG — Variables</a></li><li><a href=#expose--document-ports>EXPOSE — Document Ports</a></li><li><a href=#cmd-and-entrypoint--what-runs>CMD and ENTRYPOINT — What Runs</a></li><li><a href=#user--run-as-non-root>USER — Run as Non-Root</a></li><li><a href=#healthcheck--container-health>HEALTHCHECK — Container Health</a></li></ul></li><li><a href=#naive-vs-optimized-a-real-example>Naive vs Optimized: A Real Example</a><ul><li><a href=#the-naive-dockerfile>The Naive Dockerfile</a></li><li><a href=#the-optimized-dockerfile>The Optimized Dockerfile</a></li></ul></li><li><a href=#the-dockerignore-file>The .dockerignore File</a></li><li><a href=#layer-caching-why-instruction-order-matters>Layer Caching: Why Instruction Order Matters</a></li><li><a href=#multi-stage-builds>Multi-Stage Builds</a><ul><li><a href=#python-example>Python Example</a></li><li><a href=#go-example-extreme-size-reduction>Go Example (Extreme Size Reduction)</a></li></ul></li><li><a href=#build-arguments-vs-environment-variables>Build Arguments vs Environment Variables</a></li><li><a href=#common-patterns-and-anti-patterns>Common Patterns and Anti-Patterns</a><ul><li><a href=#pattern-pin-package-versions>Pattern: Pin Package Versions</a></li><li><a href=#pattern-minimize-layer-count>Pattern: Minimize Layer Count</a></li><li><a href=#pattern-use-copy---link-for-better-caching>Pattern: Use COPY &ndash;link for Better Caching</a></li><li><a href=#anti-pattern-secrets-in-build-arguments>Anti-Pattern: Secrets in Build Arguments</a></li></ul></li><li><a href=#building-and-tagging>Building and Tagging</a></li><li><a href=#quick-reference-dockerfile-instruction-summary>Quick Reference: Dockerfile Instruction Summary</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/docker-containers/ class=series-name>Docker and Containers</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/01-why-containers/><span class=chapter-num>01</span>
+<span class=chapter-title>Docker and Containers (1): Why Containers — The Problem VMs Didn't Solve</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/02-images-and-layers/><span class=chapter-num>02</span>
+<span class=chapter-title>Docker and Containers (2): Images and Layers — What docker pull Actually Downloads</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>Docker and Containers (3): Dockerfile Patterns — From Naive to Production</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/04-networking-and-volumes/><span class=chapter-num>04</span>
+<span class=chapter-title>Docker and Containers (4): Networking and Volumes — How Containers Talk and Persist</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/05-docker-compose/><span class=chapter-num>05</span>
+<span class=chapter-title>Docker and Containers (5): Docker Compose — Multi-Container Applications</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/06-debugging-and-logging/><span class=chapter-num>06</span>
+<span class=chapter-title>Docker and Containers (6): Debugging and Logging — When Things Go Wrong Inside a Box</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/07-security-and-best-practices/><span class=chapter-num>07</span>
+<span class=chapter-title>Docker and Containers (7): Security — Running Containers Without Giving Away the Keys</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/08-orchestration-preview/><span class=chapter-num>08</span>
+<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2840</strong></div><div class=row><span>Published</span><strong>Sep 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

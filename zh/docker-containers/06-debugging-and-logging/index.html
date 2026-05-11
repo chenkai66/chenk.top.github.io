@@ -1,0 +1,643 @@
+<!doctype html><html lang=zh data-translation=/en/docker-containers/06-debugging-and-logging/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时 · Chen Kai Blog</title>
+<meta name=description content="容器按设计隐藏其内部实现。当系统出现故障时，你需要特定的工具和技巧，在不破坏容器核心隔离特性的前提下，窥探‘盒子’内部发生了什么。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/docker-containers/06-debugging-and-logging/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/><meta property="og:type" content="article"><meta property="og:title" content="Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时"><meta property="og:description" content="容器按设计隐藏其内部实现。当系统出现故障时，你需要特定的工具和技巧，在不破坏容器核心隔离特性的前提下，窥探‘盒子’内部发生了什么。"><meta property="og:url" content="https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg"><meta property="og:image:alt" content="Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时"><meta property="article:published_time" content="2023-09-30T09:00:00Z"><meta property="article:modified_time" content="2023-09-30T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Docker"><meta property="article:tag" content="Containers"><meta property="article:tag" content="Debugging"><meta property="article:tag" content="Logging"><meta property="article:tag" content="Observability"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时"><meta name=twitter:description content="容器按设计隐藏其内部实现。当系统出现故障时，你需要特定的工具和技巧，在不破坏容器核心隔离特性的前提下，窥探‘盒子’内部发生了什么。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时\"","description":"\"容器按设计隐藏其内部实现。当系统出现故障时，你需要特定的工具和技巧，在不破坏容器核心隔离特性的前提下，窥探‘盒子’内部发生了什么。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-09-30T09:00:00Z\"","dateModified":"\"2023-09-30T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Docker 与容器化</a>
+· 第 6 篇</div><h1>Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时</h1><p class=deck>容器按设计隐藏其内部实现。当系统出现故障时，你需要特定的工具和技巧，在不破坏容器核心隔离特性的前提下，窥探‘盒子’内部发生了什么。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-09-30>September 30, 2023</time> · 18 分钟 · 4279 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/docker/ class=tag>#Docker</a><a href=/zh/tags/containers/ class=tag>#Containers</a><a href=/zh/tags/debugging/ class=tag>#Debugging</a><a href=/zh/tags/logging/ class=tag>#Logging</a><a href=/zh/tags/observability/ class=tag>#Observability</a></div><a class="pill pill-outline" href=/en/docker-containers/06-debugging-and-logging/>Read in English →</a></div></header><div class=prose><p>一个正常运行的容器是隐形的；一个出问题的容器则成了黑盒。容器化的核心价值正是隔离 —— 但恰恰是这种隔离，让调试变得更困难。你无法直接通过 <code>ssh</code> 登录容器，也无法从宿主机直接浏览其文件系统。Docker 提供了一套专用工具，用于检查、诊断并理解正在运行（或已崩溃）的容器内部究竟发生了什么。</p><h2 id=查看容器日志>查看容器日志</h2><p>日志是你排查问题的第一道防线。Docker 会捕获容器向 stdout 和 stderr 写入的所有内容。</p><h3 id=docker-logs>docker logs</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看容器全部日志</span>
+</span></span><span class=line><span class=cl>docker logs my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 实时跟踪日志（类似 tail -f）</span>
+</span></span><span class=line><span class=cl>docker logs -f my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 显示最后 100 行</span>
+</span></span><span class=line><span class=cl>docker logs --tail <span class=m>100</span> my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 显示指定时间点之后的日志</span>
+</span></span><span class=line><span class=cl>docker logs --since 2023-09-30T10:00:00 my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 显示过去 30 分钟的日志</span>
+</span></span><span class=line><span class=cl>docker logs --since 30m my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 每行日志前显示时间戳</span>
+</span></span><span class=line><span class=cl>docker logs -t my-container
+</span></span></code></pre></td></tr></table></div></div><p>带时间戳的输出示例：</p><pre tabindex=0><code>2023-09-30T10:15:23.456789012Z [INFO] Server starting on port 8080
+2023-09-30T10:15:23.567890123Z [INFO] Connected to database at postgres:5432
+2023-09-30T10:15:24.678901234Z [INFO] Loading configuration from /app/config.yaml
+2023-09-30T10:15:24.789012345Z [WARNING] Cache directory /tmp/cache does not exist, creating
+2023-09-30T10:15:25.890123456Z [INFO] Ready to accept connections
+2023-09-30T10:16:01.234567890Z [ERROR] Failed to process request: connection refused
+2023-09-30T10:16:01.345678901Z Traceback (most recent call last):
+2023-09-30T10:16:01.345678901Z   File &#34;/app/handler.py&#34;, line 45, in process_request
+2023-09-30T10:16:01.345678901Z     response = requests.get(upstream_url, timeout=5)
+2023-09-30T10:16:01.345678901Z   File &#34;/usr/local/lib/python3.11/site-packages/requests/api.py&#34;, line 73
+2023-09-30T10:16:01.345678901Z     return session.request(method=method, url=url, **kwargs)
+2023-09-30T10:16:01.345678901Z ConnectionError: (&#39;Connection aborted.&#39;, ConnectionRefusedError(111, &#39;Connection refused&#39;))
+</code></pre><h3 id=已停止容器的日志>已停止容器的日志</h3><p>这一点至关重要 —— 当容器崩溃后停止运行，其日志仍会被保留，直到该容器被显式删除（<code>docker rm</code>）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 列出所有已停止的容器</span>
+</span></span><span class=line><span class=cl>docker ps -a --filter <span class=s2>&#34;status=exited&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>CONTAINER ID   IMAGE       COMMAND            CREATED          STATUS                     NAMES
+a1b2c3d4e5f6   myapp:v2    &#34;python app.py&#34;    10 minutes ago   Exited (1) 8 minutes ago   crashed-app
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看崩溃日志</span>
+</span></span><span class=line><span class=cl>docker logs crashed-app
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>Traceback (most recent call last):
+  File &#34;/app/app.py&#34;, line 12, in &lt;module&gt;
+    db = psycopg2.connect(os.environ[&#39;DATABASE_URL&#39;])
+  File &#34;/usr/local/lib/python3.11/site-packages/psycopg2/__init__.py&#34;, line 122
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not connect to server: Connection refused
+    Is the server running on host &#34;postgres&#34; (172.18.0.2) and accepting
+    TCP/IP connections on port 5432?
+</code></pre><p>该容器以退出码 1（错误）终止。日志揭示了它无法连接 PostgreSQL。可能原因包括：应用启动时数据库尚未就绪（依赖顺序问题），或主机名配置错误。</p><h3 id=退出码exit-codes>退出码（Exit codes）</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看退出码</span>
+</span></span><span class=line><span class=cl>docker inspect crashed-app --format <span class=s1>&#39;{{.State.ExitCode}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出: 1</span>
+</span></span></code></pre></td></tr></table></div></div><p>常见退出码含义：</p><table><thead><tr><th>退出码</th><th>含义</th><th>常见原因</th></tr></thead><tbody><tr><td>0</td><td>成功</td><td>正常关闭</td></tr><tr><td>1</td><td>通用错误</td><td>应用异常、未捕获异常</td></tr><tr><td>2</td><td>Shell 内置命令误用</td><td>脚本语法错误</td></tr><tr><td>126</td><td>命令不可执行</td><td>Entrypoint 权限问题</td></tr><tr><td>127</td><td>命令未找到</td><td>CMD/ENTRYPOINT 配置错误、二进制缺失</td></tr><tr><td>137</td><td>SIGKILL（128+9）</td><td>OOM killer 触发、<code>docker kill</code>、超时终止</td></tr><tr><td>139</td><td>SIGSEGV（128+11）</td><td>段错误（Segmentation fault）</td></tr><tr><td>143</td><td>SIGTERM（128+15）</td><td><code>docker stop</code>（优雅关闭）</td></tr></tbody></table><p>退出码 137 尤其值得关注 —— 它通常表示容器因超出内存限制而被 OOM（Out of Memory）killer 终止。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 检查容器是否被 OOM killer 终止</span>
+</span></span><span class=line><span class=cl>docker inspect crashed-app --format <span class=s1>&#39;{{.State.OOMKilled}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出: true</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=使用-docker-exec-进行交互式调试>使用 docker exec 进行交互式调试</h2><p><code>docker exec</code> 可在运行中的容器内执行命令，是交互式调试的主要方式：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 在运行中的容器内打开 shell</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -it my-container bash
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 若容器不含 bash（如 Alpine 或 distroless 镜像）</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -it my-container sh
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 执行特定命令</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> my-container cat /app/config.yaml
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 以不同用户身份运行</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -u root my-container apt-get update
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 为命令设置环境变量</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -e <span class=nv>DEBUG</span><span class=o>=</span><span class=nb>true</span> my-container python check.py
+</span></span></code></pre></td></tr></table></div></div><p>进入容器后，你可以进行如下排查：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 检查环境变量</span>
+</span></span><span class=line><span class=cl>env <span class=p>|</span> sort
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查网络连通性</span>
+</span></span><span class=line><span class=cl>curl -v http://postgres:5432
+</span></span><span class=line><span class=cl>ping redis
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查 DNS 解析</span>
+</span></span><span class=line><span class=cl>nslookup postgres
+</span></span><span class=line><span class=cl>cat /etc/resolv.conf
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查运行进程</span>
+</span></span><span class=line><span class=cl>ps aux
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查文件权限</span>
+</span></span><span class=line><span class=cl>ls -la /app/
+</span></span><span class=line><span class=cl>stat /app/config.yaml
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查磁盘使用量</span>
+</span></span><span class=line><span class=cl>df -h
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查内存使用</span>
+</span></span><span class=line><span class=cl>free -m
+</span></span><span class=line><span class=cl>cat /proc/meminfo
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查打开的文件与连接（若工具可用）</span>
+</span></span><span class=line><span class=cl><span class=c1># (if the tool is available)</span>
+</span></span><span class=line><span class=cl>ss -tlnp
+</span></span><span class=line><span class=cl>netstat -tlnp
+</span></span></code></pre></td></tr></table></div></div><h3 id=当-bash-不可用时>当 bash 不可用时</h3><p>精简镜像（如 Alpine、distroless）可能不包含 bash 或常用调试工具：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Alpine 默认使用 sh，而非 bash</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -it alpine-container sh
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 临时安装调试工具（Alpine）</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -it alpine-container apk add --no-cache curl bind-tools
+</span></span></code></pre></td></tr></table></div></div><p>对于 distroless 镜像，你根本无法 <code>exec</code> 进入（无 shell）。此时应改用调试 sidecar：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 运行一个共享目标容器网络命名空间的调试容器</span>
+</span></span><span class=line><span class=cl>docker run -it --rm <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --network container:my-distroless-container <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    nicolaka/netshoot <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    bash
+</span></span></code></pre></td></tr></table></div></div><p><code>nicolaka/netshoot</code> 镜像集成了所有你需要的网络调试工具（curl、nslookup、tcpdump、iptables 等），而 <code>--network container:my-distroless-container</code> 使其共享目标容器的网络命名空间。</p><h2 id=docker-inspect--获取完整视图>docker inspect — 获取完整视图</h2><p><code>docker inspect</code> 返回关于容器的详细 JSON 元数据。虽然输出冗长，但它包含了你能想到的一切信息：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 完整输出（非常长）</span>
+</span></span><span class=line><span class=cl>docker inspect my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 使用 Go 模板提取特定字段</span>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{.State.Status}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出: running</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{.State.StartedAt}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出: 2023-09-30T10:15:23.123456789Z</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{.Config.Image}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出: myapp:v2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 网络信息</span>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{range .NetworkSettings.Networks}}IP: {{.IPAddress}} Gateway: {{.Gateway}}{{end}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出: IP: 172.18.0.3 Gateway: 172.18.0.1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 环境变量</span>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{range .Config.Env}}{{println .}}{{end}}&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+DATABASE_URL=postgresql://postgres:secret@postgres:5432/myapp
+REDIS_URL=redis://redis:6379
+NODE_ENV=production
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 挂载点信息</span>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{json .Mounts}}&#39;</span> <span class=p>|</span> python3 -m json.tool
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Type&#34;</span><span class=p>:</span> <span class=s2>&#34;volume&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Name&#34;</span><span class=p>:</span> <span class=s2>&#34;app-data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Source&#34;</span><span class=p>:</span> <span class=s2>&#34;/var/lib/docker/volumes/app-data/_data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Destination&#34;</span><span class=p>:</span> <span class=s2>&#34;/data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Driver&#34;</span><span class=p>:</span> <span class=s2>&#34;local&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Mode&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;RW&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Propagation&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Type&#34;</span><span class=p>:</span> <span class=s2>&#34;bind&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Source&#34;</span><span class=p>:</span> <span class=s2>&#34;/home/user/config&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Destination&#34;</span><span class=p>:</span> <span class=s2>&#34;/app/config&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Mode&#34;</span><span class=p>:</span> <span class=s2>&#34;ro&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;RW&#34;</span><span class=p>:</span> <span class=kc>false</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Propagation&#34;</span><span class=p>:</span> <span class=s2>&#34;rprivate&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 端口映射</span>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{json .NetworkSettings.Ports}}&#39;</span> <span class=p>|</span> python3 -m json.tool
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;8080/tcp&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;HostIp&#34;</span><span class=p>:</span> <span class=s2>&#34;0.0.0.0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;HostPort&#34;</span><span class=p>:</span> <span class=s2>&#34;8080&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=实用的-inspect-单行命令>实用的 inspect 单行命令</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 获取容器 IP 地址</span>
+</span></span><span class=line><span class=cl>docker inspect -f <span class=s1>&#39;{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}&#39;</span> my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取容器 MAC 地址</span>
+</span></span><span class=line><span class=cl>docker inspect -f <span class=s1>&#39;{{range .NetworkSettings.Networks}}{{.MacAddress}}{{end}}&#39;</span> my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取容器重启次数</span>
+</span></span><span class=line><span class=cl>docker inspect -f <span class=s1>&#39;{{.RestartCount}}&#39;</span> my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取所用镜像</span>
+</span></span><span class=line><span class=cl>docker inspect -f <span class=s1>&#39;{{.Config.Image}}&#39;</span> my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 获取当前运行的命令</span>
+</span></span><span class=line><span class=cl>docker inspect -f <span class=s1>&#39;{{json .Config.Cmd}}&#39;</span> my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查容器是否正在运行</span>
+</span></span><span class=line><span class=cl>docker inspect -f <span class=s1>&#39;{{.State.Running}}&#39;</span> my-container
+</span></span></code></pre></td></tr></table></div></div><h2 id=docker-stats--实时资源监控>docker stats — 实时资源监控</h2><p><code>docker stats</code> 提供资源消耗的实时视图：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker stats
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>CONTAINER ID   NAME              CPU %   MEM USAGE / LIMIT     MEM %   NET I/O           BLOCK I/O         PIDS
+a1b2c3d4e5f6   myapp-api-1       2.34%   125.4MiB / 512MiB     24.49%  15.2kB / 8.9kB    4.1MB / 0B        12
+b2c3d4e5f6a7   myapp-postgres-1  0.45%   89.2MiB / 1GiB        8.71%   12.1kB / 9.8kB    28.5MB / 12.3MB   15
+c3d4e5f6a7b8   myapp-redis-1     0.12%   12.5MiB / 256MiB      4.88%   8.4kB / 6.2kB     0B / 524kB        5
+d4e5f6a7b8c9   myapp-worker-1    15.67%  234.5MiB / 512MiB     45.80%  5.1kB / 3.2kB     0B / 0B           8
+</code></pre><p>关键列说明：</p><table><thead><tr><th>列名</th><th>含义</th><th>关注点</th></tr></thead><tbody><tr><td>CPU %</td><td>相对于宿主机的 CPU 使用率</td><td>持续高 CPU = 瓶颈</td></tr><tr><td>MEM USAGE / LIMIT</td><td>当前内存使用量 / 配置上限</td><td>接近上限 = OOM 风险</td></tr><tr><td>MEM %</td><td>占配置上限的百分比</td><td>> 80% 需警惕</td></tr><tr><td>NET I/O</td><td>网络收发字节数</td><td>异常流量模式</td></tr><tr><td>BLOCK I/O</td><td>磁盘读写量</td><td>高写入 = 可能日志泛滥</td></tr><tr><td>PIDS</td><td>进程数</td><td>持续增长 = 可能存在泄漏</td></tr></tbody></table><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 监控特定容器（单次快照）</span>
+</span></span><span class=line><span class=cl>docker stats my-container --no-stream
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 自定义输出格式</span>
+</span></span><span class=line><span class=cl>docker stats --format <span class=s2>&#34;table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=docker-top--进程列表>docker top — 进程列表</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker top my-container
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+appuser             12345               12330               0                   10:15               ?                   00:00:05            gunicorn: master [app:app]
+appuser             12350               12345               2                   10:15               ?                   00:01:30            gunicorn: worker [app:app]
+appuser             12351               12345               2                   10:15               ?                   00:01:28            gunicorn: worker [app:app]
+appuser             12352               12345               1                   10:15               ?                   00:01:25            gunicorn: worker [app:app]
+appuser             12353               12345               2                   10:15               ?                   00:01:32            gunicorn: worker [app:app]
+</code></pre><p>注意 PID 和 PPID 列显示的是宿主机上的 PID。在容器内部，主进程 PID 是 1，但在宿主机上它是 12345 —— 这是命名空间映射的结果。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 使用 ps 风格格式化输出</span>
+</span></span><span class=line><span class=cl>docker top my-container -o pid,ppid,user,%cpu,%mem,comm
+</span></span></code></pre></td></tr></table></div></div><h2 id=docker-diff--文件系统变更>docker diff — 文件系统变更</h2><p><code>docker diff</code> 显示容器可写层相对于原始镜像所发生的文件增删改：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker diff my-container
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>C /tmp
+A /tmp/cache
+A /tmp/cache/session_abc123
+C /var/log
+A /var/log/app.log
+C /app
+C /app/config.yaml
+A /app/data/uploads/image001.png
+</code></pre><table><thead><tr><th>前缀</th><th>含义</th></tr></thead><tbody><tr><td>A</td><td>新增 —— 该文件在原始镜像中不存在</td></tr><tr><td>C</td><td>修改 —— 该文件在镜像中存在但已被修改</td></tr><tr><td>D</td><td>删除 —— 该文件在镜像中存在但已被移除</td></tr></tbody></table><p>此功能适用于：</p><ul><li>定位应用写入数据的位置（是否应改用 volume？）</li><li>检测意外的文件修改</li><li>理解运行中容器累积的状态</li></ul><h2 id=调试已崩溃容器>调试已崩溃容器</h2><p>当容器立即退出时，你无法 <code>docker exec</code> 进入。以下是几种有效策略：</p><h3 id=策略-1查看日志>策略 1：查看日志</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker logs crashed-container
+</span></span></code></pre></td></tr></table></div></div><p>这对任何已停止容器都有效（只要尚未执行 <code>docker rm</code>）。</p><h3 id=策略-2覆盖默认命令>策略 2：覆盖默认命令</h3><p>若容器在启动阶段崩溃，可覆盖命令使其保持运行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 不运行原命令，改为 sleep</span>
+</span></span><span class=line><span class=cl>docker run -it --name debug-container myapp:v2 bash
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 或完全覆盖 entrypoint</span>
+</span></span><span class=line><span class=cl>docker run -it --entrypoint bash myapp:v2
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 现在你已进入容器，可自由排查</span>
+</span></span><span class=line><span class=cl>ls /app/
+</span></span><span class=line><span class=cl>cat /app/config.yaml
+</span></span><span class=line><span class=cl>python -c <span class=s2>&#34;import psycopg2; print(&#39;module found&#39;)&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=策略-3从已停止容器中复制文件>策略 3：从已停止容器中复制文件</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 创建容器但不启动</span>
+</span></span><span class=line><span class=cl>docker create --name debug-container myapp:v2
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 复制文件出来</span>
+</span></span><span class=line><span class=cl>docker cp debug-container:/app/config.yaml ./debug-config.yaml
+</span></span><span class=line><span class=cl>docker cp debug-container:/var/log/ ./debug-logs/
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 清理</span>
+</span></span><span class=line><span class=cl>docker rm debug-container
+</span></span></code></pre></td></tr></table></div></div><h3 id=策略-4将已停止容器提交为新镜像>策略 4：将已停止容器提交为新镜像</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看已崩溃容器</span>
+</span></span><span class=line><span class=cl>docker ps -a <span class=p>|</span> grep crashed
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 将其当前状态保存为新镜像</span>
+</span></span><span class=line><span class=cl>docker commit crashed-container debug-image:latest
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 现在可以探索它</span>
+</span></span><span class=line><span class=cl>docker run -it debug-image:latest bash
+</span></span></code></pre></td></tr></table></div></div><h2 id=临时调试容器ephemeral-debug-containers>临时调试容器（Ephemeral Debug Containers）</h2><p>有时你需要网络工具、<code>strace</code> 或其他不在应用镜像中的调试工具。此时可运行一个独立的调试容器，并共享目标容器的网络：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 运行调试容器并共享目标容器的网络命名空间</span>
+</span></span><span class=line><span class=cl>docker run -it --rm <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --network container:my-app-container <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    nicolaka/netshoot <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    bash
+</span></span></code></pre></td></tr></table></div></div><p>在 <code>netshoot</code> 中，你拥有对目标容器网络的完全访问权限：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># DNS 解析（使用 my-app-container 的网络配置）</span>
+</span></span><span class=line><span class=cl>nslookup postgres
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># TCP 连接测试</span>
+</span></span><span class=line><span class=cl>nc -zv postgres <span class=m>5432</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># HTTP 请求</span>
+</span></span><span class=line><span class=cl>curl -v http://localhost:8080/health
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 抓包</span>
+</span></span><span class=line><span class=cl>tcpdump -i eth0 -n port <span class=m>5432</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 路由追踪</span>
+</span></span><span class=line><span class=cl>traceroute postgres
+</span></span></code></pre></td></tr></table></div></div><p>你也可以共享其他命名空间：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 共享 PID 命名空间（查看目标容器的进程）</span>
+</span></span><span class=line><span class=cl>docker run -it --rm <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --pid container:my-app-container <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    ubuntu bash -c <span class=s2>&#34;ps aux&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=日志驱动log-drivers>日志驱动（Log Drivers）</h2><p>默认情况下，Docker 将日志以 JSON 格式存储在本地磁盘。你可以配置不同的日志驱动：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看当前日志驱动</span>
+</span></span><span class=line><span class=cl>docker info --format <span class=s1>&#39;{{.LoggingDriver}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出: json-file</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=可用日志驱动>可用日志驱动</h3><table><thead><tr><th>驱动</th><th>目标</th><th>支持 <code>docker logs</code>？</th><th>使用场景</th></tr></thead><tbody><tr><td><code>json-file</code></td><td>本地 JSON 文件</td><td>是</td><td>默认，开发环境</td></tr><tr><td><code>local</code></td><td>优化的本地存储</td><td>是</td><td>生产环境（单机）</td></tr><tr><td><code>syslog</code></td><td>Syslog 守护进程</td><td>否</td><td>传统 Linux 日志体系</td></tr><tr><td><code>journald</code></td><td>systemd journal</td><td>是</td><td>使用 systemd 的主机</td></tr><tr><td><code>fluentd</code></td><td>Fluentd 收集器</td><td>否</td><td>集中式日志（ELK/EFK）</td></tr><tr><td><code>awslogs</code></td><td>CloudWatch Logs</td><td>否</td><td>AWS 部署</td></tr><tr><td><code>gcplogs</code></td><td>Google Cloud Logging</td><td>否</td><td>GCP 部署</td></tr><tr><td><code>splunk</code></td><td>Splunk HTTP Event Collector</td><td>否</td><td>企业级环境</td></tr><tr><td><code>none</code></td><td>丢弃所有日志</td><td>否</td><td>高吞吐场景（日志由应用自行处理）</td></tr></tbody></table><h3 id=按容器配置日志驱动>按容器配置日志驱动</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 为单个容器指定日志驱动</span>
+</span></span><span class=line><span class=cl>docker run -d <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --log-driver json-file <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --log-opt max-size<span class=o>=</span>10m <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --log-opt max-file<span class=o>=</span><span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --name my-container <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    myapp
+</span></span></code></pre></td></tr></table></div></div><h3 id=配置日志轮转生产环境必备>配置日志轮转（生产环境必备）</h3><p>若不启用日志轮转，<code>json-file</code> 日志会无限增长，最终耗尽磁盘空间：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Docker daemon 配置 (/etc/docker/daemon.json)</span>
+</span></span><span class=line><span class=cl>cat /etc/docker/daemon.json
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;log-driver&#34;</span><span class=p>:</span> <span class=s2>&#34;json-file&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;log-opts&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;max-size&#34;</span><span class=p>:</span> <span class=s2>&#34;10m&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;max-file&#34;</span><span class=p>:</span> <span class=s2>&#34;5&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;compress&#34;</span><span class=p>:</span> <span class=s2>&#34;true&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>选项</th><th>效果</th><th>推荐值</th></tr></thead><tbody><tr><td><code>max-size</code></td><td>单个日志文件最大尺寸</td><td>10m - 50m</td></tr><tr><td><code>max-file</code></td><td>保留的轮转日志文件数量</td><td>3 - 5</td></tr><tr><td><code>compress</code></td><td>是否压缩已轮转的日志文件</td><td>true</td></tr></tbody></table><p>缺少这些配置，繁忙的容器可能在短时间内生成 GB 级日志。</p><h3 id=在-docker-compose-中配置>在 Docker Compose 中配置</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>services</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>api</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>image</span><span class=p>:</span><span class=w> </span><span class=l>myapp</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>logging</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>driver</span><span class=p>:</span><span class=w> </span><span class=l>json-file</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>options</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>max-size</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;10m&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>max-file</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;3&#34;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=常见故障模式>常见故障模式</h2><p>以下是对最常见容器问题的诊断速查表：</p><table><thead><tr><th>症状</th><th>最可能原因</th><th>诊断命令</th><th>解决方案</th></tr></thead><tbody><tr><td>容器立即退出</td><td>应用启动时崩溃</td><td><code>docker logs container</code></td><td>检查配置、依赖项</td></tr><tr><td>退出码 137</td><td>内存不足（OOM killed）</td><td><code>docker inspect -f '{{.State.OOMKilled}}'</code></td><td>增加 <code>--memory</code> 限制，或修复内存泄漏</td></tr><tr><td>退出码 127</td><td>命令未找到</td><td><code>docker inspect -f '{{json .Config.Cmd}}'</code></td><td>检查 CMD/ENTRYPOINT 拼写，确认二进制存在</td></tr><tr><td>退出码 126</td><td>命令权限拒绝</td><td><code>docker exec container ls -la /entrypoint.sh</code></td><td><code>chmod +x</code> 设置入口脚本权限，检查 USER</td></tr><tr><td>“地址已在使用”</td><td>端口冲突</td><td><code>docker ps</code>（检查端口映射）</td><td>更换宿主机端口</td></tr><tr><td>“连接被拒绝”到某服务</td><td>服务未就绪或主机名错误</td><td><code>docker exec container curl http://service:port</code></td><td>检查 <code>depends_on</code>、健康检查、网络配置</td></tr><tr><td>DNS 解析失败</td><td>未加入自定义网络</td><td><code>docker network inspect bridge</code></td><td>使用 <code>docker network create</code> 创建自定义网络</td></tr><tr><td>文件权限错误</td><td>宿主机与容器 UID 不匹配</td><td><code>docker exec container id</code> + <code>ls -la /path</code></td><td>对齐 UID，或改用命名卷（named volumes）</td></tr><tr><td>macOS 上性能缓慢</td><td>绑定挂载（bind mount）I/O 开销大</td><td><code>docker stats</code></td><td>对依赖项使用命名卷，仅对源码使用绑定挂载</td></tr><tr><td>容器循环重启</td><td>CrashLoopBackOff（崩溃 → 重启 → 崩溃）</td><td><code>docker logs --tail 50 container</code></td><td>修复根本崩溃原因，设置 <code>restart: on-failure</code></td></tr></tbody></table><h2 id=调试工作流检查清单>调试工作流检查清单</h2><p>当容器无法正常工作时，请按此顺序执行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. 容器是否正在运行？</span>
+</span></span><span class=line><span class=cl>docker ps -a <span class=p>|</span> grep my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. 日志说了什么？</span>
+</span></span><span class=line><span class=cl>docker logs --tail <span class=m>100</span> my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. 退出码是多少？</span>
+</span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{.State.ExitCode}} OOM:{{.State.OOMKilled}}&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. 资源使用情况如何？</span>
+</span></span><span class=line><span class=cl>docker stats my-container --no-stream
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 5. 我能否进入容器？</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -it my-container bash  <span class=c1># 或 sh</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 6. 当前运行哪些进程？</span>
+</span></span><span class=line><span class=cl>docker top my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 7. 文件系统发生了哪些变更？</span>
+</span></span><span class=line><span class=cl>docker diff my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 8. 完整配置是什么？</span>
+</span></span><span class=line><span class=cl>docker inspect my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 9. 容器能否访问其依赖服务？</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> my-container ping postgres
+</span></span><span class=line><span class=cl>docker <span class=nb>exec</span> my-container curl -v http://api:8000/health
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 10. 网络配置是否正确？</span>
+</span></span><span class=line><span class=cl>docker network inspect <span class=k>$(</span>docker inspect my-container --format <span class=s1>&#39;{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}&#39;</span><span class=k>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=docker-events--全局系统活动>Docker Events — 全局系统活动</h2><p><code>docker events</code> 流式输出 Docker daemon 的实时事件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker events
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>2023-09-30T10:30:15.123456789Z container start a1b2c3d4e5f6 (image=myapp:v2, name=api)
+2023-09-30T10:30:45.234567890Z container die a1b2c3d4e5f6 (exitCode=1, image=myapp:v2, name=api)
+2023-09-30T10:30:46.345678901Z container start a1b2c3d4e5f6 (image=myapp:v2, name=api)
+2023-09-30T10:31:16.456789012Z container die a1b2c3d4e5f6 (exitCode=1, image=myapp:v2, name=api)
+</code></pre><p>这表明容器正处于重启循环（die → start → die）。可通过过滤减少噪音：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 仅显示容器事件</span>
+</span></span><span class=line><span class=cl>docker events --filter <span class=nv>type</span><span class=o>=</span>container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 仅显示特定容器的事件</span>
+</span></span><span class=line><span class=cl>docker events --filter <span class=nv>container</span><span class=o>=</span>my-container
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 仅显示特定事件类型</span>
+</span></span><span class=line><span class=cl>docker events --filter <span class=nv>event</span><span class=o>=</span>die --filter <span class=nv>event</span><span class=o>=</span>oom
+</span></span></code></pre></td></tr></table></div></div><h2 id=下一步>下一步</h2><p>现在你已掌握在容器行为异常时定位问题的方法。但调试本质上是被动响应 —— 理想情况下，我们应提前预防问题发生。下一篇文章将聚焦<strong>安全性</strong>：以非 root 用户运行容器、降权（drop capabilities）、漏洞扫描，以及遵循最佳实践，规避容器化应用中最常见的安全失误。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/docker-containers/>Docker 与容器化</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/docker-containers/05-docker-compose/><span class=title>Docker 与容器（5）：Docker Compose — 多容器应用</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/docker-containers/07-security-and-best-practices/><span class=title>Docker 与容器（7）：安全——运行容器时不必交出全部权限</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/01-why-containers/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Docker 与容器（1）：为何需要容器——虚拟机未能解决的问题</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/02-images-and-layers/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/03-dockerfile-patterns/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Docker 与容器（3）：Dockerfile 最佳实践 —— 从初学者到生产环境</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/04-networking-and-volumes/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Docker 与容器（4）：网络与卷 — 容器如何通信与持久化数据</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/05-docker-compose/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Docker 与容器（5）：Docker Compose — 多容器应用</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>06</span>
+<span class=series-nav-title>Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/07-security-and-best-practices/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Docker 与容器（7）：安全——运行容器时不必交出全部权限</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/08-orchestration-preview/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Docker 与容器（8）：超越 Docker —— Kubernetes、Swarm 及未来演进</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#查看容器日志>查看容器日志</a><ul><li><a href=#docker-logs>docker logs</a></li><li><a href=#已停止容器的日志>已停止容器的日志</a></li><li><a href=#退出码exit-codes>退出码（Exit codes）</a></li></ul></li><li><a href=#使用-docker-exec-进行交互式调试>使用 docker exec 进行交互式调试</a><ul><li><a href=#当-bash-不可用时>当 bash 不可用时</a></li></ul></li><li><a href=#docker-inspect--获取完整视图>docker inspect — 获取完整视图</a><ul><li><a href=#实用的-inspect-单行命令>实用的 inspect 单行命令</a></li></ul></li><li><a href=#docker-stats--实时资源监控>docker stats — 实时资源监控</a></li><li><a href=#docker-top--进程列表>docker top — 进程列表</a></li><li><a href=#docker-diff--文件系统变更>docker diff — 文件系统变更</a></li><li><a href=#调试已崩溃容器>调试已崩溃容器</a><ul><li><a href=#策略-1查看日志>策略 1：查看日志</a></li><li><a href=#策略-2覆盖默认命令>策略 2：覆盖默认命令</a></li><li><a href=#策略-3从已停止容器中复制文件>策略 3：从已停止容器中复制文件</a></li><li><a href=#策略-4将已停止容器提交为新镜像>策略 4：将已停止容器提交为新镜像</a></li></ul></li><li><a href=#临时调试容器ephemeral-debug-containers>临时调试容器（Ephemeral Debug Containers）</a></li><li><a href=#日志驱动log-drivers>日志驱动（Log Drivers）</a><ul><li><a href=#可用日志驱动>可用日志驱动</a></li><li><a href=#按容器配置日志驱动>按容器配置日志驱动</a></li><li><a href=#配置日志轮转生产环境必备>配置日志轮转（生产环境必备）</a></li><li><a href=#在-docker-compose-中配置>在 Docker Compose 中配置</a></li></ul></li><li><a href=#常见故障模式>常见故障模式</a></li><li><a href=#调试工作流检查清单>调试工作流检查清单</a></li><li><a href=#docker-events--全局系统活动>Docker Events — 全局系统活动</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/docker-containers/ class=series-name>Docker 与容器化</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/01-why-containers/><span class=chapter-num>01</span>
+<span class=chapter-title>Docker 与容器（1）：为何需要容器——虚拟机未能解决的问题</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/02-images-and-layers/><span class=chapter-num>02</span>
+<span class=chapter-title>Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/03-dockerfile-patterns/><span class=chapter-num>03</span>
+<span class=chapter-title>Docker 与容器（3）：Dockerfile 最佳实践 —— 从初学者到生产环境</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/04-networking-and-volumes/><span class=chapter-num>04</span>
+<span class=chapter-title>Docker 与容器（4）：网络与卷 — 容器如何通信与持久化数据</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/05-docker-compose/><span class=chapter-num>05</span>
+<span class=chapter-title>Docker 与容器（5）：Docker Compose — 多容器应用</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/07-security-and-best-practices/><span class=chapter-num>07</span>
+<span class=chapter-title>Docker 与容器（7）：安全——运行容器时不必交出全部权限</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/08-orchestration-preview/><span class=chapter-num>08</span>
+<span class=chapter-title>Docker 与容器（8）：超越 Docker —— Kubernetes、Swarm 及未来演进</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>18 min</strong></div><div class=row><span>字数</span><strong>4279</strong></div><div class=row><span>写于</span><strong>Sep 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

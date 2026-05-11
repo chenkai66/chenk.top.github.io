@@ -1,0 +1,646 @@
+<!doctype html><html lang=en data-translation=/zh/system-design/07-data-pipelines/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture · Chen Kai Blog</title>
+<meta name=description content="A practical guide to data pipeline architectures — covering ETL vs ELT, batch processing with Spark, stream processing with Flink, Lambda vs Kappa architectures, Change Data Capture, and a complete real-time analytics pipeline design."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/system-design/07-data-pipelines/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/system-design/07-data-pipelines/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/system-design/07-data-pipelines/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/system-design/07-data-pipelines/><meta property="og:type" content="article"><meta property="og:title" content="System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture"><meta property="og:description" content="A practical guide to data pipeline architectures — covering ETL vs ELT, batch processing with Spark, stream processing with Flink, Lambda vs Kappa architectures, Change Data Capture, and a complete real-time analytics pipeline design."><meta property="og:url" content="https://www.chenk.top/en/system-design/07-data-pipelines/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg"><meta property="og:image:alt" content="System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture"><meta property="article:published_time" content="2025-07-24T09:00:00Z"><meta property="article:modified_time" content="2025-07-24T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="System Design"><meta property="article:tag" content="Data Engineering"><meta property="article:tag" content="Stream Processing"><meta property="article:tag" content="Apache Kafka"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture"><meta name=twitter:description content="A practical guide to data pipeline architectures — covering ETL vs ELT, batch processing with Spark, stream processing with Flink, Lambda vs Kappa architectures, Change Data Capture, and a complete real-time analytics pipeline design."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture\"","description":"\"A practical guide to data pipeline architectures — covering ETL vs ELT, batch processing with Spark, stream processing with Flink, Lambda vs Kappa architectures, Change Data Capture, and a complete real-time analytics pipeline design.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/system-design.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2025-07-24T09:00:00Z\"","dateModified":"\"2025-07-24T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/system-design/07-data-pipelines/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>System Design</a>
+· Chapter 7</div><h1>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</h1><p class=deck>A practical guide to data pipeline architectures — covering ETL vs ELT, batch processing with Spark, stream processing with Flink, Lambda vs Kappa architectures, Change Data Capture, and a complete real-time analytics pipeline design.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-07-24>July 24, 2025</time> · 30 min read · 3090 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/system-design/ class=tag>#System Design</a><a href=/en/tags/data-engineering/ class=tag>#Data Engineering</a><a href=/en/tags/stream-processing/ class=tag>#Stream Processing</a><a href=/en/tags/apache-kafka/ class=tag>#Apache Kafka</a></div><a class="pill pill-outline" href=/zh/system-design/07-data-pipelines/>阅读中文版 →</a></div></header><div class=prose><p>Every second, a large e-commerce platform generates thousands of data points: page views, search queries, add-to-cart events, purchases, inventory changes, price updates, and delivery status changes. This raw data is useless in its original form — scattered across dozens of services, stored in different formats, and arriving at unpredictable rates. The system that transforms this raw data into actionable insights — real-time dashboards, personalized recommendations, fraud detection alerts, business reports — is the data pipeline.</p><p>Data pipelines are not glamorous. They do not face users directly. But they are the nervous system of every data-driven organization, and designing them well is the difference between decisions made on yesterday&rsquo;s data and decisions made on data from 30 seconds ago.</p><h2 id=etl-vs-elt>ETL vs ELT</h2><p>The two fundamental approaches to data pipeline design differ in when transformation happens.</p><h3 id=etl-extract-transform-load>ETL: Extract, Transform, Load</h3><p>The traditional approach. Data is extracted from source systems, transformed in a staging area, and loaded into the destination (typically a data warehouse).</p><pre tabindex=0><code>Source Systems → Extract → Transform (staging) → Load → Data Warehouse
+
+Example:
+  MySQL (orders) ─┐
+  PostgreSQL (users) ─┤→ Transform (clean, join, aggregate) → Load → Snowflake
+  MongoDB (logs) ─┘
+</code></pre><p>The transformation happens before loading. This means:</p><ul><li>Only clean, validated data enters the warehouse</li><li>The warehouse schema is controlled and predictable</li><li>Transformations can be complex (joins, aggregations, deduplication)</li><li>Changes to transformation logic require re-running the pipeline</li></ul><h3 id=elt-extract-load-transform>ELT: Extract, Load, Transform</h3><p>The modern approach. Data is extracted from sources and loaded raw into a data lake or cloud warehouse. Transformation happens inside the destination using its compute power.</p><pre tabindex=0><code>Source Systems → Extract → Load (raw) → Transform (in warehouse) → Mart/Views
+
+Example:
+  MySQL (orders) ─┐
+  PostgreSQL (users) ─┤→ Load raw → BigQuery → dbt models → Clean tables
+  MongoDB (logs) ─┘
+</code></pre><p>Transformation happens after loading. This means:</p><ul><li>Raw data is preserved (you can re-transform without re-extracting)</li><li>Cloud warehouses provide cheap, scalable compute for transformations</li><li>Schema-on-read: the raw data does not need a predefined schema</li><li>Faster to get data in; slower to get clean data out</li></ul><h3 id=when-to-use-each>When to Use Each</h3><table><thead><tr><th>Factor</th><th>ETL</th><th>ELT</th></tr></thead><tbody><tr><td>Data volume</td><td>Moderate</td><td>Large to massive</td></tr><tr><td>Transformation complexity</td><td>Complex, multi-step</td><td>SQL-expressible</td></tr><tr><td>Data quality requirements</td><td>High (pre-validated)</td><td>Flexible (raw + validated layers)</td></tr><tr><td>Infrastructure</td><td>On-premise or custom</td><td>Cloud data warehouse</td></tr><tr><td>Schema stability</td><td>Stable, pre-defined</td><td>Evolving, schema-on-read</td></tr><tr><td>Latency requirements</td><td>Batch (hourly/daily)</td><td>Batch or near-real-time</td></tr><tr><td>Cost model</td><td>Compute-heavy staging</td><td>Storage-cheap, compute-on-demand</td></tr></tbody></table><h2 id=batch-processing>Batch Processing</h2><p>Batch processing handles large volumes of data in scheduled intervals — hourly, daily, or weekly. The data is collected, stored, and processed as a complete set.</p><h3 id=mapreduce-conceptual>MapReduce (Conceptual)</h3><p>MapReduce, introduced by Google in 2004, is the foundational model for distributed batch processing. While it has been largely superseded by higher-level frameworks, understanding the concept is essential.</p><p>The model has two phases:</p><p><strong>Map</strong>: Process each input record independently, emitting key-value pairs.</p><p><strong>Reduce</strong>: Group all values by key, aggregate them.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Conceptual MapReduce: count page views per URL</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Map phase (runs on many machines in parallel)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>map_function</span><span class=p>(</span><span class=n>log_line</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Parse log line, emit (url, 1) for each page view.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>url</span> <span class=o>=</span> <span class=n>parse_url</span><span class=p>(</span><span class=n>log_line</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>emit</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Shuffle phase (framework groups by key)</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;/products/123&#34; → [1, 1, 1, 1, 1]</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;/products/456&#34; → [1, 1, 1]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Reduce phase (aggregates values per key)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>reduce_function</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>counts</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Sum all counts for each URL.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>emit</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=nb>sum</span><span class=p>(</span><span class=n>counts</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Output:</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;/products/123&#34; → 5</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;/products/456&#34; → 3</span>
+</span></span></code></pre></td></tr></table></div></div><p>MapReduce&rsquo;s limitation is that multi-step transformations require chaining multiple MapReduce jobs, each reading from and writing to disk. This disk I/O between stages makes complex pipelines slow.</p><h3 id=apache-spark>Apache Spark</h3><p>Spark replaced MapReduce for most batch processing workloads. Its key innovation: in-memory computation. Instead of writing intermediate results to disk, Spark keeps data in memory across transformation steps, making iterative algorithms 10-100x faster.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pyspark.sql</span> <span class=kn>import</span> <span class=n>SparkSession</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pyspark.sql</span> <span class=kn>import</span> <span class=n>functions</span> <span class=k>as</span> <span class=n>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>spark</span> <span class=o>=</span> <span class=n>SparkSession</span><span class=o>.</span><span class=n>builder</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>appName</span><span class=p>(</span><span class=s2>&#34;DailyOrderAnalytics&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>config</span><span class=p>(</span><span class=s2>&#34;spark.sql.shuffle.partitions&#34;</span><span class=p>,</span> <span class=mi>200</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>getOrCreate</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Read raw order data from data lake</span>
+</span></span><span class=line><span class=cl><span class=n>orders</span> <span class=o>=</span> <span class=n>spark</span><span class=o>.</span><span class=n>read</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=s2>&#34;s3://data-lake/raw/orders/date=2025-07-24/&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>users</span> <span class=o>=</span> <span class=n>spark</span><span class=o>.</span><span class=n>read</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=s2>&#34;s3://data-lake/raw/users/&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>products</span> <span class=o>=</span> <span class=n>spark</span><span class=o>.</span><span class=n>read</span><span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=s2>&#34;s3://data-lake/raw/products/&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Transform: join orders with users and products</span>
+</span></span><span class=line><span class=cl><span class=n>enriched_orders</span> <span class=o>=</span> <span class=n>orders</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>users</span><span class=p>,</span> <span class=n>orders</span><span class=o>.</span><span class=n>user_id</span> <span class=o>==</span> <span class=n>users</span><span class=o>.</span><span class=n>id</span><span class=p>,</span> <span class=s2>&#34;left&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>products</span><span class=p>,</span> <span class=n>orders</span><span class=o>.</span><span class=n>product_id</span> <span class=o>==</span> <span class=n>products</span><span class=o>.</span><span class=n>id</span><span class=p>,</span> <span class=s2>&#34;left&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>select</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>orders</span><span class=o>.</span><span class=n>order_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>orders</span><span class=o>.</span><span class=n>created_at</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>users</span><span class=o>.</span><span class=n>country</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>users</span><span class=o>.</span><span class=n>age_group</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>products</span><span class=o>.</span><span class=n>category</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>products</span><span class=o>.</span><span class=n>name</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&#34;product_name&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>orders</span><span class=o>.</span><span class=n>quantity</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>orders</span><span class=o>.</span><span class=n>total_price</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Aggregate: daily sales by country and category</span>
+</span></span><span class=line><span class=cl><span class=n>daily_sales</span> <span class=o>=</span> <span class=n>enriched_orders</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>groupBy</span><span class=p>(</span><span class=s2>&#34;country&#34;</span><span class=p>,</span> <span class=s2>&#34;category&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>agg</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>F</span><span class=o>.</span><span class=n>count</span><span class=p>(</span><span class=s2>&#34;order_id&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&#34;order_count&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>F</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=s2>&#34;total_price&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&#34;total_revenue&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>F</span><span class=o>.</span><span class=n>avg</span><span class=p>(</span><span class=s2>&#34;total_price&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&#34;avg_order_value&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>F</span><span class=o>.</span><span class=n>countDistinct</span><span class=p>(</span><span class=s2>&#34;user_id&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>alias</span><span class=p>(</span><span class=s2>&#34;unique_buyers&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>orderBy</span><span class=p>(</span><span class=n>F</span><span class=o>.</span><span class=n>desc</span><span class=p>(</span><span class=s2>&#34;total_revenue&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Write to warehouse</span>
+</span></span><span class=line><span class=cl><span class=n>daily_sales</span><span class=o>.</span><span class=n>write</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=s2>&#34;overwrite&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>partitionBy</span><span class=p>(</span><span class=s2>&#34;country&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>parquet</span><span class=p>(</span><span class=s2>&#34;s3://data-lake/curated/daily_sales/date=2025-07-24/&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Also write to a reporting database</span>
+</span></span><span class=line><span class=cl><span class=n>daily_sales</span><span class=o>.</span><span class=n>write</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>format</span><span class=p>(</span><span class=s2>&#34;jdbc&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>option</span><span class=p>(</span><span class=s2>&#34;url&#34;</span><span class=p>,</span> <span class=s2>&#34;jdbc:postgresql://reporting-db:5432/analytics&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>option</span><span class=p>(</span><span class=s2>&#34;dbtable&#34;</span><span class=p>,</span> <span class=s2>&#34;daily_sales&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>option</span><span class=p>(</span><span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;etl_user&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>mode</span><span class=p>(</span><span class=s2>&#34;append&#34;</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>    <span class=o>.</span><span class=n>save</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=batch-processing-characteristics>Batch Processing Characteristics</h3><ul><li><strong>High throughput</strong>: Processes entire datasets; optimized for volume, not latency</li><li><strong>Complete data</strong>: Can re-process historical data, handle late arrivals in the next batch</li><li><strong>Simple error handling</strong>: If a job fails, re-run it</li><li><strong>High latency</strong>: Results are available only after the batch completes (hours or days)</li><li><strong>Predictable resource usage</strong>: Runs at scheduled times, resources can be provisioned accordingly</li></ul><h2 id=stream-processing>Stream Processing</h2><p>Stream processing handles data continuously as it arrives, producing results with sub-second to minute-level latency.</p><h3 id=core-concepts>Core Concepts</h3><p><strong>Event</strong>: A single data point with a timestamp. Examples: a page view, a transaction, a sensor reading.</p><p><strong>Stream</strong>: An unbounded, continuously-arriving sequence of events.</p><p><strong>Windowing</strong>: Grouping events into finite sets for aggregation. Without windowing, you cannot compute aggregates like &ldquo;count per minute&rdquo; on an infinite stream.</p><h3 id=window-types>Window Types</h3><p><strong>Tumbling window</strong>: Fixed-size, non-overlapping time intervals. Every event belongs to exactly one window.</p><pre tabindex=0><code>Time:    |----1min----|----1min----|----1min----|
+Events:  [e1, e2, e3] [e4, e5]    [e6, e7, e8, e9]
+Windows: [  Window 1 ] [ Window 2 ] [  Window 3   ]
+</code></pre><p><strong>Sliding window</strong>: Fixed-size windows that advance by a fixed step. Windows overlap.</p><pre tabindex=0><code>Time:    |----1min-----------|
+         |     |----1min----|------|
+Events:  [e1, e2, e3, e4, e5, e6, e7]
+Windows: [  Window 1 (0-60s)      ]
+              [  Window 2 (30-90s)     ]
+                   [  Window 3 (60-120s)    ]
+</code></pre><p><strong>Session window</strong>: Dynamic windows based on activity gaps. A window closes when no events arrive for a specified gap duration.</p><pre tabindex=0><code>Events:  e1..e2..e3........e4..e5..e6............e7..e8
+         |--- session 1 ---|--- session 2 ------|--session 3--|
+         (gap &lt; threshold)  (gap &lt; threshold)    (gap &gt; threshold)
+</code></pre><h3 id=watermarks>Watermarks</h3><p>In a distributed system, events can arrive out of order. An event with timestamp T=100 might arrive after an event with timestamp T=105. Watermarks track the progress of event time and tell the system when it is safe to close a window.</p><pre tabindex=0><code>A watermark of W=100 means: &#34;All events with timestamp &lt;= 100 have arrived.&#34;
+
+If the current watermark is W=100:
+  - Window [0, 60] is complete (all events arrived)
+  - Window [60, 120] might still receive events
+  
+Late events (timestamp &lt; watermark) can be:
+  - Dropped (simplest)
+  - Processed in a side output (for correction)
+  - Used to update previous results (retractions)
+</code></pre><h2 id=apache-flink>Apache Flink</h2><p>Flink is the leading open-source stream processing framework. It provides exactly-once processing guarantees, event time processing, and sophisticated windowing.</p><h3 id=key-concepts>Key Concepts</h3><p><strong>DataStream API</strong>: The core abstraction for stream processing. A DataStream represents a stream of events that can be transformed through operators (map, filter, keyBy, window, aggregate).</p><p><strong>Event Time vs Processing Time</strong>: Event time is when the event actually occurred (embedded in the data). Processing time is when the system processes the event. Event time is preferred for correctness because processing delays do not affect results.</p><p><strong>Checkpointing</strong>: Flink periodically snapshots the state of all operators to durable storage. On failure, the system restores from the latest checkpoint and replays events from the source (e.g., Kafka offsets). This provides exactly-once processing semantics.</p><h3 id=flink-pipeline-example-conceptual-python>Flink Pipeline Example (Conceptual Python)</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Conceptual Flink pipeline for real-time e-commerce analytics</span>
+</span></span><span class=line><span class=cl><span class=c1># Using PyFlink&#39;s Table API</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pyflink.table</span> <span class=kn>import</span> <span class=n>EnvironmentSettings</span><span class=p>,</span> <span class=n>TableEnvironment</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pyflink.table.expressions</span> <span class=kn>import</span> <span class=n>col</span><span class=p>,</span> <span class=n>lit</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pyflink.table.window</span> <span class=kn>import</span> <span class=n>Tumble</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Initialize environment</span>
+</span></span><span class=line><span class=cl><span class=n>env_settings</span> <span class=o>=</span> <span class=n>EnvironmentSettings</span><span class=o>.</span><span class=n>in_streaming_mode</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>t_env</span> <span class=o>=</span> <span class=n>TableEnvironment</span><span class=o>.</span><span class=n>create</span><span class=p>(</span><span class=n>env_settings</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Define Kafka source</span>
+</span></span><span class=line><span class=cl><span class=n>t_env</span><span class=o>.</span><span class=n>execute_sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    CREATE TABLE page_views (
+</span></span></span><span class=line><span class=cl><span class=s2>        user_id STRING,
+</span></span></span><span class=line><span class=cl><span class=s2>        page_url STRING,
+</span></span></span><span class=line><span class=cl><span class=s2>        event_time TIMESTAMP(3),
+</span></span></span><span class=line><span class=cl><span class=s2>        WATERMARK FOR event_time AS event_time - INTERVAL &#39;5&#39; SECOND
+</span></span></span><span class=line><span class=cl><span class=s2>    ) WITH (
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;connector&#39; = &#39;kafka&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;topic&#39; = &#39;page-views&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;properties.bootstrap.servers&#39; = &#39;kafka:9092&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;properties.group.id&#39; = &#39;analytics-pipeline&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;format&#39; = &#39;json&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;scan.startup.mode&#39; = &#39;latest-offset&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>    )
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Define output sink</span>
+</span></span><span class=line><span class=cl><span class=n>t_env</span><span class=o>.</span><span class=n>execute_sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    CREATE TABLE page_view_counts (
+</span></span></span><span class=line><span class=cl><span class=s2>        window_start TIMESTAMP(3),
+</span></span></span><span class=line><span class=cl><span class=s2>        window_end TIMESTAMP(3),
+</span></span></span><span class=line><span class=cl><span class=s2>        page_url STRING,
+</span></span></span><span class=line><span class=cl><span class=s2>        view_count BIGINT,
+</span></span></span><span class=line><span class=cl><span class=s2>        unique_users BIGINT
+</span></span></span><span class=line><span class=cl><span class=s2>    ) WITH (
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;connector&#39; = &#39;jdbc&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;url&#39; = &#39;jdbc:postgresql://analytics-db:5432/metrics&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;table-name&#39; = &#39;page_view_counts&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;driver&#39; = &#39;org.postgresql.Driver&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;username&#39; = &#39;flink_user&#39;,
+</span></span></span><span class=line><span class=cl><span class=s2>        &#39;password&#39; = &#39;...&#39;
+</span></span></span><span class=line><span class=cl><span class=s2>    )
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Tumbling window aggregation: count page views per URL per minute</span>
+</span></span><span class=line><span class=cl><span class=n>t_env</span><span class=o>.</span><span class=n>execute_sql</span><span class=p>(</span><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>    INSERT INTO page_view_counts
+</span></span></span><span class=line><span class=cl><span class=s2>    SELECT
+</span></span></span><span class=line><span class=cl><span class=s2>        window_start,
+</span></span></span><span class=line><span class=cl><span class=s2>        window_end,
+</span></span></span><span class=line><span class=cl><span class=s2>        page_url,
+</span></span></span><span class=line><span class=cl><span class=s2>        COUNT(*) AS view_count,
+</span></span></span><span class=line><span class=cl><span class=s2>        COUNT(DISTINCT user_id) AS unique_users
+</span></span></span><span class=line><span class=cl><span class=s2>    FROM TABLE(
+</span></span></span><span class=line><span class=cl><span class=s2>        TUMBLE(TABLE page_views, DESCRIPTOR(event_time), INTERVAL &#39;1&#39; MINUTE)
+</span></span></span><span class=line><span class=cl><span class=s2>    )
+</span></span></span><span class=line><span class=cl><span class=s2>    GROUP BY window_start, window_end, page_url
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=lambda-architecture>Lambda Architecture</h2><p>The Lambda architecture, proposed by Nathan Marz, combines batch and stream processing to provide both accurate historical results and low-latency approximate results.</p><h3 id=three-layers>Three Layers</h3><p><strong>Batch layer</strong>: Processes the complete dataset periodically (e.g., every hour). Produces accurate, comprehensive results. Stored in a batch view.</p><p><strong>Speed layer</strong>: Processes new data in real-time since the last batch run. Produces approximate, low-latency results. Stored in a real-time view.</p><p><strong>Serving layer</strong>: Merges batch and real-time views to answer queries. Queries check the batch view for historical data and the speed view for recent data.</p><pre tabindex=0><code>                    ┌──────────────┐
+All Data ──────────→│  Batch Layer │ → Batch Views ─────┐
+     │              │  (Spark)     │                     │
+     │              └──────────────┘                     ▼
+     │                                              ┌──────────┐
+     │                                              │ Serving   │ → Queries
+     │                                              │ Layer     │
+     │              ┌──────────────┐                └──────────┘
+     └─────────────→│  Speed Layer │ → Real-time Views ─┘
+                    │  (Flink)     │
+                    └──────────────┘
+</code></pre><h3 id=lambda-example-page-view-counter>Lambda Example: Page View Counter</h3><pre tabindex=0><code>Batch layer (runs every hour):
+  - Read all page view events from data lake
+  - Count page views per URL for all time
+  - Write to batch_view table: {url, total_views, last_updated}
+
+Speed layer (runs continuously):
+  - Read page view events from Kafka (since last batch run)
+  - Count page views per URL in real-time
+  - Write to realtime_view table: {url, recent_views, last_updated}
+
+Serving layer (query time):
+  SELECT
+    batch.url,
+    batch.total_views + COALESCE(realtime.recent_views, 0) AS total_views
+  FROM batch_view batch
+  LEFT JOIN realtime_view realtime ON batch.url = realtime.url
+</code></pre><h3 id=lambda-drawbacks>Lambda Drawbacks</h3><p>The main problem: you maintain two codebases (batch and stream) that must produce consistent results. Bugs in one but not the other cause discrepancies. Every business logic change must be implemented twice.</p><h2 id=kappa-architecture>Kappa Architecture</h2><p>The Kappa architecture, proposed by Jay Kreps (co-creator of Kafka), simplifies Lambda by using only stream processing. The key insight: if your stream processor can replay historical data (by re-reading from Kafka), you do not need a separate batch layer.</p><h3 id=how-it-works>How It Works</h3><pre tabindex=0><code>All Data → Kafka (retained for months/years) → Stream Processor → Serving Layer
+
+For historical reprocessing:
+  1. Deploy new version of stream processor
+  2. Start from beginning of Kafka topic (offset 0)
+  3. Process all historical events through the new logic
+  4. Switch serving layer to the new output
+  5. Shut down old processor version
+</code></pre><h3 id=lambda-vs-kappa-comparison>Lambda vs Kappa Comparison</h3><table><thead><tr><th>Factor</th><th>Lambda</th><th>Kappa</th></tr></thead><tbody><tr><td>Codebases</td><td>Two (batch + stream)</td><td>One (stream only)</td></tr><tr><td>Complexity</td><td>Higher (two systems to maintain)</td><td>Lower (one system)</td></tr><tr><td>Accuracy</td><td>Batch is always accurate</td><td>Depends on stream processor correctness</td></tr><tr><td>Reprocessing</td><td>Natural (just re-run batch job)</td><td>Re-read Kafka from beginning</td></tr><tr><td>Late data handling</td><td>Batch corrects in next run</td><td>Depends on watermark/window strategy</td></tr><tr><td>Storage cost</td><td>Data lake + Kafka</td><td>Kafka (with long retention)</td></tr><tr><td>Latency</td><td>Real-time from speed layer</td><td>Real-time</td></tr><tr><td>Maturity</td><td>Well-established pattern</td><td>Newer, growing adoption</td></tr><tr><td>Best for</td><td>Complex analytics with strict accuracy</td><td>Event-driven systems with simpler logic</td></tr></tbody></table><p><strong>Use Lambda when</strong>: You need guaranteed accuracy for historical data and your batch logic is too complex for stream processing (e.g., complex ML model training, graph algorithms).</p><p><strong>Use Kappa when</strong>: Your processing logic can be expressed as stream operations, Kafka retention covers your reprocessing needs, and you want to avoid maintaining two codebases.</p><h2 id=data-lake-vs-data-warehouse>Data Lake vs Data Warehouse</h2><table><thead><tr><th>Feature</th><th>Data Lake</th><th>Data Warehouse</th></tr></thead><tbody><tr><td>Schema</td><td>Schema-on-read (raw data)</td><td>Schema-on-write (structured)</td></tr><tr><td>Data format</td><td>Any (JSON, Parquet, Avro, CSV, images)</td><td>Structured tables</td></tr><tr><td>Processing</td><td>Spark, Flink, Presto</td><td>SQL (BigQuery, Snowflake, Redshift)</td></tr><tr><td>Users</td><td>Data engineers, data scientists</td><td>Business analysts, BI tools</td></tr><tr><td>Cost</td><td>Cheap storage (S3, GCS)</td><td>Expensive compute (per-query pricing)</td></tr><tr><td>Governance</td><td>Harder (unstructured data)</td><td>Easier (defined schemas)</td></tr><tr><td>Use cases</td><td>ML training, raw data exploration</td><td>Business reporting, dashboards</td></tr><tr><td>Examples</td><td>S3 + Spark, Delta Lake, Apache Iceberg</td><td>Snowflake, BigQuery, Redshift</td></tr></tbody></table><p>The modern trend is the <strong>Lakehouse</strong> — combining data lake storage (cheap, schema-flexible) with data warehouse features (ACID transactions, SQL queries, schema enforcement). Technologies like Delta Lake, Apache Iceberg, and Apache Hudi enable this pattern.</p><h2 id=data-quality>Data Quality</h2><h3 id=schema-validation>Schema Validation</h3><p>Validate incoming data against an expected schema before processing:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pydantic</span> <span class=kn>import</span> <span class=n>BaseModel</span><span class=p>,</span> <span class=n>validator</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Optional</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datetime</span> <span class=kn>import</span> <span class=n>datetime</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>OrderEvent</span><span class=p>(</span><span class=n>BaseModel</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>order_id</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>user_id</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>product_id</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>quantity</span><span class=p>:</span> <span class=nb>int</span>
+</span></span><span class=line><span class=cl>    <span class=n>total_price</span><span class=p>:</span> <span class=nb>float</span>
+</span></span><span class=line><span class=cl>    <span class=n>currency</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>timestamp</span><span class=p>:</span> <span class=n>datetime</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@validator</span><span class=p>(</span><span class=s2>&#34;quantity&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>quantity_must_be_positive</span><span class=p>(</span><span class=bp>cls</span><span class=p>,</span> <span class=n>v</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>v</span> <span class=o>&lt;=</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>&#34;quantity must be positive&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>v</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@validator</span><span class=p>(</span><span class=s2>&#34;currency&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>currency_must_be_valid</span><span class=p>(</span><span class=bp>cls</span><span class=p>,</span> <span class=n>v</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>valid</span> <span class=o>=</span> <span class=p>{</span><span class=s2>&#34;USD&#34;</span><span class=p>,</span> <span class=s2>&#34;EUR&#34;</span><span class=p>,</span> <span class=s2>&#34;GBP&#34;</span><span class=p>,</span> <span class=s2>&#34;JPY&#34;</span><span class=p>,</span> <span class=s2>&#34;CNY&#34;</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>v</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>valid</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;currency must be one of </span><span class=si>{</span><span class=n>valid</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>v</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>validate_event</span><span class=p>(</span><span class=n>raw_event</span><span class=p>:</span> <span class=nb>dict</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Optional</span><span class=p>[</span><span class=n>OrderEvent</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>OrderEvent</span><span class=p>(</span><span class=o>**</span><span class=n>raw_event</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Route to dead letter topic for investigation</span>
+</span></span><span class=line><span class=cl>        <span class=n>send_to_dlq</span><span class=p>(</span><span class=n>raw_event</span><span class=p>,</span> <span class=nb>str</span><span class=p>(</span><span class=n>e</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=kc>None</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=data-lineage>Data Lineage</h3><p>Track where data came from and how it was transformed. This is critical for debugging, compliance, and impact analysis.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># Example lineage metadata (stored alongside processed data)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>lineage</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>source</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>system</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;orders-service&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>topic</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;orders&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>partition</span><span class=p>:</span><span class=w> </span><span class=m>3</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>offset</span><span class=p>:</span><span class=w> </span><span class=m>145892</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>timestamp</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;2025-07-24T10:30:00Z&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>transformations</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>step</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;schema_validation&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;1.2.0&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>timestamp</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;2025-07-24T10:30:01Z&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>step</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;currency_conversion&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;2.0.1&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>rates_source</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;ecb_daily_2025-07-24&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>timestamp</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;2025-07-24T10:30:01Z&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>step</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;user_enrichment&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;1.0.0&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>source</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;users-service-api&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>timestamp</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;2025-07-24T10:30:02Z&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>destination</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>table</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;enriched_orders&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>partition</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;date=2025-07-24&#34;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=change-data-capture-cdc>Change Data Capture (CDC)</h2><p>CDC captures row-level changes (INSERT, UPDATE, DELETE) from a database&rsquo;s transaction log and streams them as events. This enables real-time data synchronization without polling.</p><h3 id=debezium>Debezium</h3><p>Debezium is the most widely-used open-source CDC platform. It reads the database&rsquo;s write-ahead log (WAL/binlog) and publishes change events to Kafka.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># Debezium connector configuration for PostgreSQL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>{<span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>&#34;name&#34;: </span><span class=s2>&#34;orders-connector&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>&#34;config&#34;: </span>{<span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;connector.class&#34;: </span><span class=s2>&#34;io.debezium.connector.postgresql.PostgresConnector&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;database.hostname&#34;: </span><span class=s2>&#34;orders-db&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;database.port&#34;: </span><span class=s2>&#34;5432&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;database.user&#34;: </span><span class=s2>&#34;debezium&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;database.password&#34;: </span><span class=s2>&#34;...&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;database.dbname&#34;: </span><span class=s2>&#34;orders&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;database.server.name&#34;: </span><span class=s2>&#34;orders&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;table.include.list&#34;: </span><span class=s2>&#34;public.orders,public.order_items&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;plugin.name&#34;: </span><span class=s2>&#34;pgoutput&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;publication.name&#34;: </span><span class=s2>&#34;dbz_publication&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;slot.name&#34;: </span><span class=s2>&#34;debezium_slot&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;topic.prefix&#34;: </span><span class=s2>&#34;cdc&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;transforms&#34;: </span><span class=s2>&#34;route&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;transforms.route.type&#34;: </span><span class=s2>&#34;org.apache.kafka.connect.transforms.RegexRouter&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;transforms.route.regex&#34;: </span><span class=s2>&#34;cdc\\.public\\.(.*)&#34;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>&#34;transforms.route.replacement&#34;: </span><span class=s2>&#34;cdc.$1&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>}<span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span>}<span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>A CDC change event looks like:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;before&#34;</span><span class=p>:</span> <span class=kc>null</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;after&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;order_id&#34;</span><span class=p>:</span> <span class=s2>&#34;ord_789&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;user_id&#34;</span><span class=p>:</span> <span class=s2>&#34;user_123&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;total&#34;</span><span class=p>:</span> <span class=mf>59.98</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;status&#34;</span><span class=p>:</span> <span class=s2>&#34;created&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;created_at&#34;</span><span class=p>:</span> <span class=mi>1721822400000</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;source&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;version&#34;</span><span class=p>:</span> <span class=s2>&#34;2.5.0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;connector&#34;</span><span class=p>:</span> <span class=s2>&#34;postgresql&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;orders&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;ts_ms&#34;</span><span class=p>:</span> <span class=mi>1721822400123</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;db&#34;</span><span class=p>:</span> <span class=s2>&#34;orders&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;schema&#34;</span><span class=p>:</span> <span class=s2>&#34;public&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;table&#34;</span><span class=p>:</span> <span class=s2>&#34;orders&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;txId&#34;</span><span class=p>:</span> <span class=mi>12345</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;lsn&#34;</span><span class=p>:</span> <span class=mi>98765432</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;op&#34;</span><span class=p>:</span> <span class=s2>&#34;c&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;ts_ms&#34;</span><span class=p>:</span> <span class=mi>1721822400200</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>The <code>op</code> field indicates the operation type: <code>c</code> (create/insert), <code>u</code> (update), <code>d</code> (delete), <code>r</code> (read/snapshot).</p><h3 id=cdc-use-cases>CDC Use Cases</h3><ul><li><strong>Real-time analytics</strong>: Stream database changes to an analytics pipeline without querying the database</li><li><strong>Search index sync</strong>: Keep Elasticsearch in sync with the source database</li><li><strong>Cache invalidation</strong>: Invalidate Redis cache entries when the underlying database row changes</li><li><strong>Cross-service data sync</strong>: Replicate data between services without API calls</li><li><strong>Audit logging</strong>: Capture every data change for compliance</li></ul><h2 id=idempotent-processing-in-pipelines>Idempotent Processing in Pipelines</h2><p>Duplicate events are inevitable in distributed pipelines (at-least-once delivery, retries, reprocessing). Every pipeline stage must handle duplicates gracefully.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>IdempotentProcessor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Ensures each event is processed exactly once using a deduplication store.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>redis_client</span><span class=p>,</span> <span class=n>ttl</span><span class=o>=</span><span class=mi>86400</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>redis</span> <span class=o>=</span> <span class=n>redis_client</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ttl</span> <span class=o>=</span> <span class=n>ttl</span>  <span class=c1># How long to remember processed events</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>process</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>event</span><span class=p>:</span> <span class=nb>dict</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>event_id</span> <span class=o>=</span> <span class=n>event</span><span class=p>[</span><span class=s2>&#34;event_id&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>dedup_key</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;processed:</span><span class=si>{</span><span class=n>event_id</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Atomic check-and-set</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>redis</span><span class=o>.</span><span class=n>set</span><span class=p>(</span><span class=n>dedup_key</span><span class=p>,</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span> <span class=n>ex</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>ttl</span><span class=p>,</span> <span class=n>nx</span><span class=o>=</span><span class=kc>True</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=c1># First time seeing this event — process it</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Duplicate — skip</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Usage in pipeline</span>
+</span></span><span class=line><span class=cl><span class=n>processor</span> <span class=o>=</span> <span class=n>IdempotentProcessor</span><span class=p>(</span><span class=n>redis_client</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>event</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>processor</span><span class=o>.</span><span class=n>process</span><span class=p>(</span><span class=n>event</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>transform_and_store</span><span class=p>(</span><span class=n>event</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>metrics</span><span class=o>.</span><span class=n>increment</span><span class=p>(</span><span class=s2>&#34;duplicate_events_skipped&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=real-example-real-time-analytics-for-e-commerce>Real Example: Real-Time Analytics for E-Commerce</h2><h3 id=requirements>Requirements</h3><ul><li>Track page views, add-to-cart, and purchase events in real-time</li><li>Display a live dashboard showing metrics per minute (views, conversions, revenue)</li><li>Support drilling down by product category, country, and device type</li><li>Data must be available within 30 seconds of the event</li><li>Handle 50,000 events per second at peak</li></ul><h3 id=architecture>Architecture</h3><pre tabindex=0><code>Web/Mobile App → Event Collector (API) → Kafka → Flink → PostgreSQL → Grafana Dashboard
+                                           ↓
+                                      S3 Data Lake (raw events for batch reprocessing)
+</code></pre><p>Components:</p><ol><li><p><strong>Event Collector</strong>: A lightweight HTTP API that validates events and publishes to Kafka. Runs as a stateless service behind a load balancer.</p></li><li><p><strong>Kafka</strong>: Three topics — <code>page-views</code>, <code>add-to-cart</code>, <code>purchases</code>. Each partitioned by user ID for ordering. Retention: 30 days for reprocessing.</p></li><li><p><strong>Flink</strong>: Three stream processing jobs:</p><ul><li>Per-minute aggregation of page views by URL, country, and device</li><li>Per-minute conversion funnel (view → cart → purchase)</li><li>Per-minute revenue by product category and country</li></ul></li><li><p><strong>PostgreSQL</strong>: Stores aggregated metrics (not raw events). TimescaleDB extension for time-series optimization.</p></li><li><p><strong>S3 Data Lake</strong>: Raw events stored in Parquet format, partitioned by date and event type. Used for ad-hoc analysis and batch reprocessing.</p></li><li><p><strong>Grafana</strong>: Dashboard querying PostgreSQL for real-time metrics.</p></li></ol><h3 id=estimation>Estimation</h3><pre tabindex=0><code>Peak: 50,000 events/sec
+Average event size: 500 bytes
+
+Kafka throughput: 50,000 × 500 = 25 MB/sec
+Daily volume: 25 MB/sec × 86,400 = 2.16 TB/day
+Monthly storage (Kafka, 30-day retention): 64.8 TB
+S3 storage (raw, compressed): ~15 TB/month (Parquet ≈ 70% compression)
+
+Flink output: ~1,000 aggregated rows per minute
+PostgreSQL storage: negligible (aggregated data is small)
+</code></pre><p>This architecture handles the requirements with reasonable infrastructure: a 3-broker Kafka cluster, 2-4 Flink task managers, and a single PostgreSQL instance for aggregated metrics.</p><h2 id=whats-next>What&rsquo;s Next</h2><p>With all the building blocks in place — estimation, networking, APIs, caching, message queues, microservices, and data pipelines — the final article puts them together. Three complete case studies: a URL shortener, a real-time chat system, and a news feed. Each walks through the full design process from requirements to scaling strategies.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/system-design/>System Design</a> <span class=count>8 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/system-design/08-case-studies/><span class=title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/01-thinking-in-systems/><span class=series-nav-num>01</span>
+<span class=series-nav-title>System Design (1): Thinking in Systems — Load, Latency, and the Art of Estimation</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/02-dns-cdn-load-balancing/><span class=series-nav-num>02</span>
+<span class=series-nav-title>System Design (2): DNS, CDN, and Load Balancing — The First Three Hops</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/03-api-design/><span class=series-nav-num>03</span>
+<span class=series-nav-title>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/04-caching-strategies/><span class=series-nav-num>04</span>
+<span class=series-nav-title>System Design (4): Caching — Where to Cache, What to Evict, and When Caching Hurts</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/05-message-queues/><span class=series-nav-num>05</span>
+<span class=series-nav-title>System Design (5): Message Queues and Event-Driven Architecture</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=series-nav-num>06</span>
+<span class=series-nav-title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/system-design/08-case-studies/><span class=series-nav-num>08</span>
+<span class=series-nav-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#etl-vs-elt>ETL vs ELT</a><ul><li><a href=#etl-extract-transform-load>ETL: Extract, Transform, Load</a></li><li><a href=#elt-extract-load-transform>ELT: Extract, Load, Transform</a></li><li><a href=#when-to-use-each>When to Use Each</a></li></ul></li><li><a href=#batch-processing>Batch Processing</a><ul><li><a href=#mapreduce-conceptual>MapReduce (Conceptual)</a></li><li><a href=#apache-spark>Apache Spark</a></li><li><a href=#batch-processing-characteristics>Batch Processing Characteristics</a></li></ul></li><li><a href=#stream-processing>Stream Processing</a><ul><li><a href=#core-concepts>Core Concepts</a></li><li><a href=#window-types>Window Types</a></li><li><a href=#watermarks>Watermarks</a></li></ul></li><li><a href=#apache-flink>Apache Flink</a><ul><li><a href=#key-concepts>Key Concepts</a></li><li><a href=#flink-pipeline-example-conceptual-python>Flink Pipeline Example (Conceptual Python)</a></li></ul></li><li><a href=#lambda-architecture>Lambda Architecture</a><ul><li><a href=#three-layers>Three Layers</a></li><li><a href=#lambda-example-page-view-counter>Lambda Example: Page View Counter</a></li><li><a href=#lambda-drawbacks>Lambda Drawbacks</a></li></ul></li><li><a href=#kappa-architecture>Kappa Architecture</a><ul><li><a href=#how-it-works>How It Works</a></li><li><a href=#lambda-vs-kappa-comparison>Lambda vs Kappa Comparison</a></li></ul></li><li><a href=#data-lake-vs-data-warehouse>Data Lake vs Data Warehouse</a></li><li><a href=#data-quality>Data Quality</a><ul><li><a href=#schema-validation>Schema Validation</a></li><li><a href=#data-lineage>Data Lineage</a></li></ul></li><li><a href=#change-data-capture-cdc>Change Data Capture (CDC)</a><ul><li><a href=#debezium>Debezium</a></li><li><a href=#cdc-use-cases>CDC Use Cases</a></li></ul></li><li><a href=#idempotent-processing-in-pipelines>Idempotent Processing in Pipelines</a></li><li><a href=#real-example-real-time-analytics-for-e-commerce>Real Example: Real-Time Analytics for E-Commerce</a><ul><li><a href=#requirements>Requirements</a></li><li><a href=#architecture>Architecture</a></li><li><a href=#estimation>Estimation</a></li></ul></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/system-design/ class=series-name>System Design</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/01-thinking-in-systems/><span class=chapter-num>01</span>
+<span class=chapter-title>System Design (1): Thinking in Systems — Load, Latency, and the Art of Estimation</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/02-dns-cdn-load-balancing/><span class=chapter-num>02</span>
+<span class=chapter-title>System Design (2): DNS, CDN, and Load Balancing — The First Three Hops</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/03-api-design/><span class=chapter-num>03</span>
+<span class=chapter-title>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/04-caching-strategies/><span class=chapter-num>04</span>
+<span class=chapter-title>System Design (4): Caching — Where to Cache, What to Evict, and When Caching Hurts</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/05-message-queues/><span class=chapter-num>05</span>
+<span class=chapter-title>System Design (5): Message Queues and Event-Driven Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=chapter-num>06</span>
+<span class=chapter-title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/08-case-studies/><span class=chapter-num>08</span>
+<span class=chapter-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3090</strong></div><div class=row><span>Published</span><strong>Jul 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

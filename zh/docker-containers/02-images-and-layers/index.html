@@ -1,0 +1,405 @@
+<!doctype html><html lang=zh data-translation=/en/docker-containers/02-images-and-layers/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？ · Chen Kai Blog</title>
+<meta name=description content="Docker 镜像并非单一的巨型文件，而是由多个只读分层（layers）堆叠而成，且这些分层可在不同容器间共享。理解分层机制，是实现快速构建与精简镜像的关键。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/docker-containers/02-images-and-layers/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/docker-containers/02-images-and-layers/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/docker-containers/02-images-and-layers/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/docker-containers/02-images-and-layers/><meta property="og:type" content="article"><meta property="og:title" content="Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？"><meta property="og:description" content="Docker 镜像并非单一的巨型文件，而是由多个只读分层（layers）堆叠而成，且这些分层可在不同容器间共享。理解分层机制，是实现快速构建与精简镜像的关键。"><meta property="og:url" content="https://www.chenk.top/zh/docker-containers/02-images-and-layers/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg"><meta property="og:image:alt" content="Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？"><meta property="article:published_time" content="2023-09-14T09:00:00Z"><meta property="article:modified_time" content="2023-09-14T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Docker"><meta property="article:tag" content="Containers"><meta property="article:tag" content="Images"><meta property="article:tag" content="Registry"><meta property="article:tag" content="OCI"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？"><meta name=twitter:description content="Docker 镜像并非单一的巨型文件，而是由多个只读分层（layers）堆叠而成，且这些分层可在不同容器间共享。理解分层机制，是实现快速构建与精简镜像的关键。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？\"","description":"\"Docker 镜像并非单一的巨型文件，而是由多个只读分层（layers）堆叠而成，且这些分层可在不同容器间共享。理解分层机制，是实现快速构建与精简镜像的关键。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/docker-containers.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2023-09-14T09:00:00Z\"","dateModified":"\"2023-09-14T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/docker-containers/02-images-and-layers/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.2bb518cb7f212e20b3ee085da24e1c148c6119ae47f5cbcf243ccd1a6f25813c.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Docker 与容器化</a>
+· 第 2 篇</div><h1>Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？</h1><p class=deck>Docker 镜像并非单一的巨型文件，而是由多个只读分层（layers）堆叠而成，且这些分层可在不同容器间共享。理解分层机制，是实现快速构建与精简镜像的关键。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-09-14>September 14, 2023</time> · 20 分钟 · 4811 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/docker/ class=tag>#Docker</a><a href=/zh/tags/containers/ class=tag>#Containers</a><a href=/zh/tags/images/ class=tag>#Images</a><a href=/zh/tags/registry/ class=tag>#Registry</a><a href=/zh/tags/oci/ class=tag>#OCI</a></div><a class="pill pill-outline" href=/en/docker-containers/02-images-and-layers/>Read in English →</a></div></header><div class=prose><p>第一次运行 <code>docker pull ubuntu</code> 时，我本以为会下载一整套操作系统。结果它几秒就完成了，体积仅 77 MB —— 对一个 Linux 发行版而言，这小得不可思议。其中的奥秘正是「分层」（layers）；而理解分层的工作原理，将彻底改变你构建和分发容器的方式。</p><h2 id=镜像-vs-容器>镜像 vs 容器</h2><p>在深入分层机制之前，我们先厘清一个常令初学者困惑的基础概念。</p><p><strong>镜像（Image）</strong> 是一个只读模板，包含构建容器所需的全部内容：文件系统、环境变量、默认命令及元数据。你可以把它类比为面向对象编程中的「类定义（class definition）」。</p><p><strong>容器（Container）</strong> 是由镜像创建的正在运行（或已停止）的实例。它拥有镜像的一切，外加一层可写层（writable layer），以及运行时状态（如网络配置、进程 ID 等）。你可以把它类比为从类实例化出的「对象（object）」。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 镜像（模板）</span>
+</span></span><span class=line><span class=cl>docker images
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
+nginx        latest    61395b4c586d   2 weeks ago   187MB
+ubuntu       22.04     c6b84b685f35   3 weeks ago   77.8MB
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 由镜像创建的容器（实例）</span>
+</span></span><span class=line><span class=cl>docker ps -a
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS                     NAMES
+a1b2c3d4e5f6   nginx          &#34;/docker-entrypoint.…&#34;   10 minutes ago   Up 10 minutes              web1
+b2c3d4e5f6a7   nginx          &#34;/docker-entrypoint.…&#34;   8 minutes ago    Up 8 minutes               web2
+c3d4e5f6a7b8   ubuntu:22.04   &#34;bash&#34;                   5 minutes ago    Exited (0) 3 minutes ago   test
+</code></pre><p>注意：两个容器（<code>web1</code> 和 <code>web2</code>）均基于同一 <code>nginx</code> 镜像运行。它们共享相同的只读分层，但各自拥有独立的可写层。<code>web1</code> 中的修改不会影响 <code>web2</code>，二者也均不影响原始镜像。</p><h2 id=分层模型layer-model>分层模型（Layer Model）</h2><p>每个 Docker 镜像均由一组分层堆叠而成。每一层代表一组文件系统变更 —— 文件的新增、修改或删除。这些分层具有以下特性：</p><ol><li><strong>只读性（Read-only）</strong>：一旦创建，分层永不更改；</li><li><strong>内容寻址（Content-addressable）</strong>：通过其内容的 SHA256 哈希值唯一标识；</li><li><strong>可共享（Shared）</strong>：若两个镜像使用相同基础层，则该层在磁盘上仅存储一份；</li><li><strong>堆叠式（Stacked）</strong>：联合文件系统（union filesystem）将所有分层合并为一个统一、连贯的视图。</li></ol><p>下面以一个典型 Dockerfile 为例，直观说明分层如何工作：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> ubuntu:22.04          # 第 1 层：Ubuntu 基础文件系统</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update         <span class=c1># 第 2 层：更新后的软件包列表</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get install -y curl <span class=c1># 第 3 层：curl 二进制文件及其依赖</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> app.py /app/app.py    <span class=c1># 第 4 层：你的应用文件</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;python3&#34;</span><span class=p>,</span> <span class=s2>&#34;/app/app.py&#34;</span><span class=p>]</span>  <span class=c1># 仅元数据（不生成新分层）</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>每条修改文件系统的指令都会创建一个新分层。<code>CMD</code> 指令仅设置元数据，不改动任何文件，因此不产生新分层。</p><p>当容器从此镜像启动时，Docker 会在最上方额外添加一层：</p><pre tabindex=0><code>[可写容器层]  ← 运行时的修改发生于此
+[第 4 层：COPY app.py]      ← 只读
+[第 3 层：apt install curl]  ← 只读
+[第 2 层：apt update]        ← 只读
+[第 1 层：ubuntu:22.04]      ← 只读
+</code></pre><p>若你在容器内修改了底层分层中的某个文件，联合文件系统将采用 <strong>写时复制（copy-on-write）</strong> 机制：先将该文件复制到可写层，再修改副本；原始只读分层中的文件保持不变。</p><h2 id=拉取镜像docker-pull-到底下载了什么>拉取镜像：<code>docker pull</code> 到底下载了什么？</h2><p>我们来追踪 <code>docker pull nginx</code> 的实际执行过程：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker pull nginx
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>Using default tag: latest
+latest: Pulling from library/nginx
+a2abf6c4d29d: Pull complete
+a9edb18cadd1: Pull complete
+589b7251471a: Pull complete
+186b1aaa4aa6: Pull complete
+b4df32aa5a72: Pull complete
+a0bcbecc962e: Pull complete
+Digest: sha256:0d17b565c37bcbd895e9d92315a05c1c3c9a29f762b011a10c54a66cd53c9b31
+Status: Downloaded newer image for nginx:latest
+docker.io/library/nginx:latest
+</code></pre><p>共下载了六个分层。每行 <code>Pull complete</code> 对应一个独立分层（真实终端中你会看到并行下载的进度条）。<code>Digest</code> 字段是镜像清单（manifest）的 SHA256 哈希值，它唯一标识了这一组特定分层的组合。</p><p>现在拉取另一个共享相同基础层的镜像：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker pull nginx:alpine
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>Using default tag: latest
+alpine: Pulling from library/nginx
+59bf1c3509f3: Already exists
+8d6ba530f648: Pull complete
+5288d7ad7a7f: Pull complete
+39e51c61c033: Pull complete
+ee6f71c6f4a8: Pull complete
+Digest: sha256:6a2a8c246fa1c0ee9c9af9e41f51f14b4cc0e0f20a0bfa9e7f0e5e4f25abf2c3
+Status: Downloaded newer image for nginx:alpine
+docker.io/library/nginx:alpine
+</code></pre><p>注意 <code>59bf1c3509f3: Already exists</code> —— Docker 识别出本地已存在该分层（很可能与 Alpine 基础镜像共享），因而跳过下载。这就是分层共享（layer sharing）的实际体现：它同时节省带宽与磁盘空间。</p><h2 id=检查镜像分层>检查镜像分层</h2><h3 id=docker-history><code>docker history</code></h3><p><code>docker history</code> 命令展示镜像中每一层的来源指令及其大小：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker <span class=nb>history</span> nginx
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>IMAGE          CREATED       CREATED BY                                      SIZE      COMMENT
+61395b4c586d   2 weeks ago   /bin/sh -c #(nop)  CMD [&#34;nginx&#34; &#34;-g&#34; &#34;daemon…   0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  STOPSIGNAL SIGQUIT           0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  EXPOSE 80                    0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  ENTRYPOINT [&#34;/docker-entr…   0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop) COPY file:caec368f5a54f70a…   4.62kB
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop) COPY file:01e75c6dd0ce317d…   3.02kB
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop) COPY file:7b307b62e82255f0…   298B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c set -x     &amp;&amp; addgroup --system -…   61.1MB
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  ENV PKG_RELEASE=1~bookworm   0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  ENV NJS_VERSION=0.8.0        0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  ENV NGINX_VERSION=1.25.2     0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  LABEL maintainer=NGINX Do…   0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop)  CMD [&#34;bash&#34;]                 0B
+&lt;missing&gt;      2 weeks ago   /bin/sh -c #(nop) ADD file:756183bba9c7f4593…   74.8MB
+</code></pre><p>自下而上阅读（最老的层在底部）：</p><ol><li><code>ADD file:756...</code> — 74.8 MB — Debian 基础文件系统；</li><li>大块 <code>set -x && addgroup...</code> — 61.1 MB — nginx 安装；</li><li>多个 <code>COPY</code> 指令 — 各几 KB — 配置文件；</li><li><code>ENV</code>, <code>EXPOSE</code>, <code>CMD</code> 等 — 0 字节 — 纯元数据。</li></ol><p><code>IMAGE</code> 列中的 <code>&lt;missing></code> 表示这些中间层没有自己的镜像标签。只有最终层（顶部）拥有镜像 ID <code>61395b4c586d</code>。</p><h3 id=docker-image-inspect><code>docker image inspect</code></h3><p>获取 JSON 格式的详细元数据：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker image inspect nginx --format <span class=s1>&#39;{{json .RootFS}}&#39;</span> <span class=p>|</span> python3 -m json.tool
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;Type&#34;</span><span class=p>:</span> <span class=s2>&#34;layers&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;Layers&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;sha256:2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;sha256:e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;sha256:b8d6e692a25e11b0d32c5c3dd544b71b1085ddc1fddad08e68cbd7fda7f70221&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;sha256:f1db227348d0a5e0b99b15a096d930d1a69db7474a1847acbc31f05e4ef8df8c&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;sha256:32ce5f6a5106cc637d09a98289782edf47c32cb082dc475dd43d5f9f0b1e5867&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;sha256:d874fd2bc83bb3322b566df739681fbd2248c58d3369cb0e7b48b2e8a4e97a52&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这些是各分层的内容寻址 SHA256 哈希值。Docker 正是依靠它们判断某一分层是否已在本地存在。</p><h2 id=镜像命名与镜像仓库registry>镜像命名与镜像仓库（Registry）</h2><p>Docker 镜像遵循如下命名约定：</p><pre tabindex=0><code>[registry/][namespace/]repository[:tag][@digest]
+</code></pre><p>示例：</p><table><thead><tr><th>完整名称</th><th>仓库（Registry）</th><th>命名空间（Namespace）</th><th>仓库（Repository）</th><th>标签（Tag）</th></tr></thead><tbody><tr><td><code>nginx</code></td><td>docker.io（隐式）</td><td>library（隐式）</td><td>nginx</td><td>latest（隐式）</td></tr><tr><td><code>nginx:1.25</code></td><td>docker.io</td><td>library</td><td>nginx</td><td>1.25</td></tr><tr><td><code>ubuntu:22.04</code></td><td>docker.io</td><td>library</td><td>ubuntu</td><td>22.04</td></tr><tr><td><code>myuser/myapp:v2</code></td><td>docker.io</td><td>myuser</td><td>myapp</td><td>v2</td></tr><tr><td><code>gcr.io/project/app:prod</code></td><td>gcr.io</td><td>project</td><td>app</td><td>prod</td></tr><tr><td><code>ghcr.io/owner/repo:sha-abc123</code></td><td>ghcr.io</td><td>owner</td><td>repo</td><td>sha-abc123</td></tr><tr><td><code>registry.example.com:5000/team/svc:latest</code></td><td>registry.example.com:5000</td><td>team</td><td>svc</td><td>latest</td></tr></tbody></table><p>关键规则：</p><ul><li><strong>省略仓库地址</strong> 默认为 <code>docker.io</code>（即 Docker Hub）；</li><li><strong>省略标签（tag）</strong> 默认为 <code>latest</code>（仅为惯例，并不保证是最新的版本）；</li><li><strong>Docker Hub 上的官方镜像</strong> 无命名空间（例如 <code>nginx</code>, <code>ubuntu</code>, <code>python</code>）；</li><li><strong>用户镜像</strong> 必须有命名空间（例如 <code>myuser/myapp</code>）；</li><li><strong>摘要（digest）</strong>（<code>@sha256:...</code>）是不可变的 —— 标签可被重新指向不同镜像，但摘要永久固定。</li></ul><h3 id=docker-hub>Docker Hub</h3><p>Docker Hub 是默认的公共镜像仓库。当你运行 <code>docker pull nginx</code> 时，Docker 会连接 <code>registry-1.docker.io</code> 下载镜像。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 从 CLI 搜索 Docker Hub</span>
+</span></span><span class=line><span class=cl>docker search python --limit <span class=m>5</span>
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>NAME                  DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
+python                Python is an interpreted, interactive, objec…   9283      [OK]
+pypy                  PyPy is a fast, compliant alternative implem…   380       [OK]
+circleci/python       Python is an interpreted, interactive, objec…   55
+cimg/python           The CircleCI Python Docker Convenience Image    10
+bitnami/python        Bitnami Python Docker Image                     25                   [OK]
+</code></pre><h3 id=私有镜像仓库private-registries>私有镜像仓库（Private Registries）</h3><p>你可以自建私有仓库，或使用云服务商提供的托管服务：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 登录私有仓库</span>
+</span></span><span class=line><span class=cl>docker login registry.example.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 为私有仓库打标签</span>
+</span></span><span class=line><span class=cl>docker tag myapp:latest registry.example.com/team/myapp:v1.0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 推送至私有仓库</span>
+</span></span><span class=line><span class=cl>docker push registry.example.com/team/myapp:v1.0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 从私有仓库拉取</span>
+</span></span><span class=line><span class=cl>docker pull registry.example.com/team/myapp:v1.0
+</span></span></code></pre></td></tr></table></div></div><p>常见私有镜像仓库：</p><table><thead><tr><th>仓库</th><th>提供方</th></tr></thead><tbody><tr><td>Amazon ECR</td><td>AWS</td></tr><tr><td>Google Artifact Registry</td><td>GCP</td></tr><tr><td>Azure Container Registry</td><td>Azure</td></tr><tr><td>GitHub Container Registry (ghcr.io)</td><td>GitHub</td></tr><tr><td>Docker Hub（私有仓库）</td><td>Docker</td></tr><tr><td>Harbor</td><td>自托管（CNCF 项目）</td></tr><tr><td>JFrog Artifactory</td><td>JFrog</td></tr></tbody></table><h2 id=镜像大小为何重要>镜像大小：为何重要？</h2><p>镜像大小直接影响：</p><ul><li><strong>拉取耗时（Pull time）</strong>：越大越慢，拖慢部署；</li><li><strong>构建耗时（Build time）</strong>：大分层上传更慢；</li><li><strong>磁盘占用（Disk space）</strong>：每个节点需本地存储镜像；</li><li><strong>安全攻击面（Security surface）</strong>：文件越多，潜在漏洞越多；</li><li><strong>冷启动延迟（Cold start）</strong>：Serverless 平台（如 AWS Lambda、Cloud Run）对大镜像响应更慢。</li></ul><p>对比几种基础镜像大小：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker pull ubuntu:22.04
+</span></span><span class=line><span class=cl>docker pull debian:bookworm-slim
+</span></span><span class=line><span class=cl>docker pull alpine:3.18
+</span></span><span class=line><span class=cl>docker pull gcr.io/distroless/static-debian12
+</span></span><span class=line><span class=cl>docker images --format <span class=s2>&#34;table {{.Repository}}\t{{.Tag}}\t{{.Size}}&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>REPOSITORY                          TAG                 SIZE
+ubuntu                              22.04               77.8MB
+debian                              bookworm-slim       74.8MB
+alpine                              3.18                7.34MB
+gcr.io/distroless/static-debian12   latest              2.45MB
+</code></pre><table><thead><tr><th>基础镜像</th><th>大小</th><th>Shell</th><th>包管理器</th><th>使用场景</th></tr></thead><tbody><tr><td><code>ubuntu:22.04</code></td><td>77.8 MB</td><td>bash</td><td>apt</td><td>开发、调试、熟悉度高</td></tr><tr><td><code>debian:bookworm-slim</code></td><td>74.8 MB</td><td>bash</td><td>apt</td><td>生产环境（官方镜像常用）</td></tr><tr><td><code>alpine:3.18</code></td><td>7.34 MB</td><td>sh</td><td>apk</td><td>极致轻量生产环境、尺寸敏感场景</td></tr><tr><td><code>distroless/static</code></td><td>2.45 MB</td><td>无</td><td>无</td><td>仅支持静态编译二进制（如 Go）</td></tr><tr><td><code>scratch</code></td><td>0 MB</td><td>无</td><td>无</td><td>最小化（Go 二进制等）</td></tr></tbody></table><p>Alpine 比 Ubuntu 小约 10 倍，Distroless 更小约 30 倍。代价是：越小的镜像，调试工具越少。你无法对 distroless 容器执行 <code>docker exec -it container bash</code>，因为其中根本不存在 <code>bash</code>。</p><p>我们将在下一篇关于 Dockerfile 的文章中深入探讨优化策略。</p><h2 id=导出与导入镜像>导出与导入镜像</h2><h3 id=docker-save--docker-load><code>docker save</code> / <code>docker load</code></h3><p>这两个命令操作镜像 tar 归档文件，适用于无镜像仓库时的镜像迁移：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 将镜像保存为 tar 文件</span>
+</span></span><span class=line><span class=cl>docker save nginx:latest -o nginx-latest.tar
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查看文件大小</span>
+</span></span><span class=line><span class=cl>ls -lh nginx-latest.tar
+</span></span><span class=line><span class=cl><span class=c1># 输出：-rw------- 1 user user 188M Sep 14 10:30 nginx-latest.tar</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在另一台机器上加载镜像</span>
+</span></span><span class=line><span class=cl>docker load -i nginx-latest.tar
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>Loaded image: nginx:latest
+</code></pre><p>tar 文件包含所有分层（各自为独立 tar 文件）及清单（manifest）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>tar tf nginx-latest.tar <span class=p>|</span> head -20
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f/
+2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f/VERSION
+2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f/json
+2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f/layer.tar
+e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10/
+e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10/VERSION
+e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10/json
+e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10/layer.tar
+manifest.json
+repositories
+</code></pre><p>每个目录对应一个分层，每个 <code>layer.tar</code> 包含该分层的文件系统变更。</p><h3 id=docker-export--docker-import><code>docker export</code> / <code>docker import</code></h3><p>这两个命令作用于<strong>容器（而非镜像）</strong>，输出扁平化的文件系统快照：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 创建容器并做些修改</span>
+</span></span><span class=line><span class=cl>docker run --name test-export ubuntu:22.04 bash -c <span class=s2>&#34;echo &#39;hello&#39; &gt; /data.txt&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 导出容器的文件系统</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>export</span> test-export -o test-export.tar
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 导入为新镜像</span>
+</span></span><span class=line><span class=cl>docker import test-export.tar my-custom-ubuntu:v1
+</span></span></code></pre></td></tr></table></div></div><p>核心区别：</p><table><thead><tr><th>操作</th><th>作用对象</th><th>是否保留分层？</th><th>是否保留元数据？（CMD、ENV 等）</th></tr></thead><tbody><tr><td><code>save/load</code></td><td>镜像</td><td>是</td><td>是</td></tr><tr><td><code>export/import</code></td><td>容器</td><td>否（扁平化为单层）</td><td>否</td></tr></tbody></table><p>用 <code>save/load</code> 在机器间迁移镜像；仅在需要扁平化文件系统快照时才用 <code>export/import</code>。</p><h2 id=镜像标签tagging>镜像标签（Tagging）</h2><p>标签（tag）是可变的指针，指向某个具体镜像摘要（digest）。你可以自由创建：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 为现有镜像打新标签</span>
+</span></span><span class=line><span class=cl>docker tag nginx:latest my-nginx:v1.0
+</span></span><span class=line><span class=cl>docker tag nginx:latest my-nginx:production
+</span></span><span class=line><span class=cl>docker tag nginx:latest registry.example.com/team/nginx:v1.0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查看镜像列表 — 注意它们共享同一 IMAGE ID</span>
+</span></span><span class=line><span class=cl>docker images <span class=p>|</span> grep -E <span class=s2>&#34;nginx|my-nginx&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>REPOSITORY                        TAG          IMAGE ID       CREATED       SIZE
+nginx                             latest       61395b4c586d   2 weeks ago   187MB
+my-nginx                          v1.0         61395b4c586d   2 weeks ago   187MB
+my-nginx                          production   61395b4c586d   2 weeks ago   187MB
+registry.example.com/team/nginx   v1.0         61395b4c586d   2 weeks ago   187MB
+</code></pre><p>四个条目均指向同一镜像（<code>61395b4c586d</code>），无数据重复。标签只是指针。</p><h3 id=latest-标签陷阱>“latest” 标签陷阱</h3><p><code>latest</code> 标签对 Docker 来说并无特殊含义，它只是一个<strong>惯例（convention）</strong>，而非机制。Docker 不会自动将 <code>latest</code> 指向最新版本。如果有人推送了 <code>myapp:v2</code> 却未同步更新 <code>latest</code>，那么 <code>latest</code> 仍指向旧版本。</p><p>最佳实践：<strong>生产环境务必使用明确的标签。</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 错误 —— 这到底是什么版本？</span>
+</span></span><span class=line><span class=cl>docker pull myapp:latest
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 正确 —— 明确且可复现</span>
+</span></span><span class=line><span class=cl>docker pull myapp:v2.3.1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 最佳 —— 不可变，永不更改</span>
+</span></span><span class=line><span class=cl>docker pull myapp@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+</span></span></code></pre></td></tr></table></div></div><h2 id=清理镜像>清理镜像</h2><p>镜像会快速累积。以下是释放磁盘空间的方法：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看磁盘使用情况</span>
+</span></span><span class=line><span class=cl>docker system df
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          5         2         450.2MB   312.4MB (69%)
+Containers      3         1         12.5kB    12.5kB (100%)
+Local Volumes   2         1         256MB     128MB (50%)
+Build Cache     15        0         1.2GB     1.2GB
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 删除指定镜像</span>
+</span></span><span class=line><span class=cl>docker rmi nginx:alpine
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 删除所有未被使用的镜像（未被任何容器引用）</span>
+</span></span><span class=line><span class=cl>docker image prune
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 删除所有未被运行中容器使用的镜像（激进模式）</span>
+</span></span><span class=line><span class=cl>docker image prune -a
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 终极清理 —— 删除所有未使用的资源（镜像、容器、卷、网络）</span>
+</span></span><span class=line><span class=cl>docker system prune -a --volumes
+</span></span></code></pre></td></tr></table></div></div><p><code>docker system prune -a --volumes</code> 具有破坏性：它将移除所有已停止的容器、所有未使用的网络、所有未被至少一个运行中容器引用的镜像，以及所有未被至少一个容器使用的卷。请仅在开发机上使用，切勿用于生产环境。</p><h2 id=检查镜像内部内容>检查镜像内部内容</h2><p>有时你想查看镜像内容，却不想真正运行容器：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 创建容器但不启动</span>
+</span></span><span class=line><span class=cl>docker create --name peek nginx:latest
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 复制文件出来</span>
+</span></span><span class=line><span class=cl>docker cp peek:/etc/nginx/nginx.conf ./nginx.conf
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 或浏览整个文件系统</span>
+</span></span><span class=line><span class=cl>docker <span class=nb>export</span> peek <span class=p>|</span> tar tf - <span class=p>|</span> head -30
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>.dockerenv
+bin
+boot/
+dev/
+docker-entrypoint.d/
+docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+docker-entrypoint.d/15-local-resolvers.sh
+docker-entrypoint.d/20-envsubst-on-templates.sh
+docker-entrypoint.d/30-tune-worker-processes.sh
+docker-entrypoint.sh
+etc/
+etc/adduser.conf
+etc/alternatives/
+...
+</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 清理</span>
+</span></span><span class=line><span class=cl>docker rm peek
+</span></span></code></pre></td></tr></table></div></div><p>你也可以使用第三方工具（如 <code>dive</code>）交互式地逐层浏览：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 安装 dive（https://github.com/wagoodman/dive）</span>
+</span></span><span class=line><span class=cl><span class=c1># 然后分析镜像</span>
+</span></span><span class=line><span class=cl>dive nginx:latest
+</span></span></code></pre></td></tr></table></div></div><p><code>dive</code> 可显示每层的具体内容，让你看清每层新增/修改/删除了哪些文件，并估算浪费的空间。</p><h2 id=分层在磁盘上的存储方式>分层在磁盘上的存储方式</h2><p>在 Linux 主机上，Docker 将所有数据存于 <code>/var/lib/docker/</code> 下。确切结构取决于所用存储驱动（通常为 OverlayFS）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看存储驱动信息</span>
+</span></span><span class=line><span class=cl>docker info --format <span class=s1>&#39;{{.Driver}}&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 输出：overlay2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查看分层存储位置</span>
+</span></span><span class=line><span class=cl>ls /var/lib/docker/overlay2/ <span class=p>|</span> head -5
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f
+backingFsBlockDev
+e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10
+l
+</code></pre><p><code>overlay2/</code> 下每个目录即一个分层。<code>l/</code> 目录存放用于分层识别的短符号链接。<strong>切勿直接修改这些文件</strong> —— 请交由 Docker 自动管理。</p><h2 id=多架构镜像multi-architecture-images>多架构镜像（Multi-Architecture Images）</h2><p>现代 Docker 镜像常在一个标签下支持多种 CPU 架构：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker manifest inspect nginx:latest <span class=p>|</span> python3 -m json.tool <span class=p>|</span> head -30
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;schemaVersion&#34;</span><span class=p>:</span> <span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;mediaType&#34;</span><span class=p>:</span> <span class=s2>&#34;application/vnd.oci.image.index.v1+json&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;manifests&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;mediaType&#34;</span><span class=p>:</span> <span class=s2>&#34;application/vnd.oci.image.manifest.v1+json&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;digest&#34;</span><span class=p>:</span> <span class=s2>&#34;sha256:...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;size&#34;</span><span class=p>:</span> <span class=mi>1234</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;platform&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&#34;architecture&#34;</span><span class=p>:</span> <span class=s2>&#34;amd64&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&#34;os&#34;</span><span class=p>:</span> <span class=s2>&#34;linux&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;mediaType&#34;</span><span class=p>:</span> <span class=s2>&#34;application/vnd.oci.image.manifest.v1+json&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;digest&#34;</span><span class=p>:</span> <span class=s2>&#34;sha256:...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;size&#34;</span><span class=p>:</span> <span class=mi>1234</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&#34;platform&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&#34;architecture&#34;</span><span class=p>:</span> <span class=s2>&#34;arm64&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=nt>&#34;os&#34;</span><span class=p>:</span> <span class=s2>&#34;linux&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>当你在 ARM Mac 上执行 <code>docker pull nginx</code>，Docker 会自动选择 <code>arm64</code> 变体；而在 x86_64 Linux 服务器上则选择 <code>amd64</code>。<strong>同一标签，不同二进制</strong> —— 这正是跨平台部署无缝衔接的原因。</p><h2 id=下一步>下一步</h2><p>你现在已理解：镜像是由多个只读分层堆叠而成；分层可在镜像间共享；容器在此之上叠加一层薄薄的可写层；你也掌握了检查、导出、打标签及清理镜像的方法。</p><p>下一步是构建你自己的镜像 —— 即编写 Dockerfile。一个朴素的 Dockerfile 与一个经过优化的 Dockerfile，其差异可能就是：一个 1.5 GB、耗时 10 分钟构建的镜像，与一个 50 MB、30 秒即可完成构建的镜像之间的鸿沟。下一篇将详述每一个 Dockerfile 指令，以及区分开发型与生产型 Dockerfile 的关键模式。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/docker-containers/>Docker 与容器化</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/docker-containers/01-why-containers/><span class=title>Docker 与容器（1）：为何需要容器——虚拟机未能解决的问题</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/docker-containers/03-dockerfile-patterns/><span class=title>Docker 与容器（3）：Dockerfile 最佳实践 —— 从初学者到生产环境</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/01-why-containers/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Docker 与容器（1）：为何需要容器——虚拟机未能解决的问题</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>02</span>
+<span class=series-nav-title>Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/03-dockerfile-patterns/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Docker 与容器（3）：Dockerfile 最佳实践 —— 从初学者到生产环境</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/04-networking-and-volumes/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Docker 与容器（4）：网络与卷 — 容器如何通信与持久化数据</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/05-docker-compose/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Docker 与容器（5）：Docker Compose — 多容器应用</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/07-security-and-best-practices/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Docker 与容器（7）：安全——运行容器时不必交出全部权限</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/docker-containers/08-orchestration-preview/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Docker 与容器（8）：超越 Docker —— Kubernetes、Swarm 及未来演进</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#镜像-vs-容器>镜像 vs 容器</a></li><li><a href=#分层模型layer-model>分层模型（Layer Model）</a></li><li><a href=#拉取镜像docker-pull-到底下载了什么>拉取镜像：<code>docker pull</code> 到底下载了什么？</a></li><li><a href=#检查镜像分层>检查镜像分层</a><ul><li><a href=#docker-history><code>docker history</code></a></li><li><a href=#docker-image-inspect><code>docker image inspect</code></a></li></ul></li><li><a href=#镜像命名与镜像仓库registry>镜像命名与镜像仓库（Registry）</a><ul><li><a href=#docker-hub>Docker Hub</a></li><li><a href=#私有镜像仓库private-registries>私有镜像仓库（Private Registries）</a></li></ul></li><li><a href=#镜像大小为何重要>镜像大小：为何重要？</a></li><li><a href=#导出与导入镜像>导出与导入镜像</a><ul><li><a href=#docker-save--docker-load><code>docker save</code> / <code>docker load</code></a></li><li><a href=#docker-export--docker-import><code>docker export</code> / <code>docker import</code></a></li></ul></li><li><a href=#镜像标签tagging>镜像标签（Tagging）</a><ul><li><a href=#latest-标签陷阱>“latest” 标签陷阱</a></li></ul></li><li><a href=#清理镜像>清理镜像</a></li><li><a href=#检查镜像内部内容>检查镜像内部内容</a></li><li><a href=#分层在磁盘上的存储方式>分层在磁盘上的存储方式</a></li><li><a href=#多架构镜像multi-architecture-images>多架构镜像（Multi-Architecture Images）</a></li><li><a href=#下一步>下一步</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/docker-containers/ class=series-name>Docker 与容器化</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/01-why-containers/><span class=chapter-num>01</span>
+<span class=chapter-title>Docker 与容器（1）：为何需要容器——虚拟机未能解决的问题</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
+<span class=chapter-title>Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/03-dockerfile-patterns/><span class=chapter-num>03</span>
+<span class=chapter-title>Docker 与容器（3）：Dockerfile 最佳实践 —— 从初学者到生产环境</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/04-networking-and-volumes/><span class=chapter-num>04</span>
+<span class=chapter-title>Docker 与容器（4）：网络与卷 — 容器如何通信与持久化数据</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/05-docker-compose/><span class=chapter-num>05</span>
+<span class=chapter-title>Docker 与容器（5）：Docker Compose — 多容器应用</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/><span class=chapter-num>06</span>
+<span class=chapter-title>Docker 与容器（6）：调试与日志——当‘盒子’内部出问题时</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/07-security-and-best-practices/><span class=chapter-num>07</span>
+<span class=chapter-title>Docker 与容器（7）：安全——运行容器时不必交出全部权限</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/08-orchestration-preview/><span class=chapter-num>08</span>
+<span class=chapter-title>Docker 与容器（8）：超越 Docker —— Kubernetes、Swarm 及未来演进</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>20 min</strong></div><div class=row><span>字数</span><strong>4811</strong></div><div class=row><span>写于</span><strong>Sep 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>
