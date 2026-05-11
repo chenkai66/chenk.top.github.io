@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Claude Code Hands-On</a>
 · Chapter 10</div><h1>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</h1><p class=deck>Skills are the newest extension mechanism in Claude Code: a folder, a SKILL.md, and a body of instructions the model loads on demand. How they differ from slash commands, MCP servers, and hooks — with a decision tree for which one to reach for.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-27>April 27, 2026</time> · 10 min read · 859 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/skills/ class=tag>#skills</a><a href=/en/tags/slash-commands/ class=tag>#slash-commands</a><a href=/en/tags/mcp/ class=tag>#mcp</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/10-skills-decision-tree/>阅读中文版 →</a></div></header><div class=prose><p>Claude Code now has four extension mechanisms: slash commands, MCP servers, hooks, and Skills. They overlap. The first time you have a &ldquo;Claude should know how to do X&rdquo; thought, the question is <em>which</em> of the four to use.</p><p>This is the closing chapter of the series. Let&rsquo;s lay out the decision tree.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_1.png alt="Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=what-a-skill-actually-is>What a Skill actually is</h2><p>A Skill is a folder under <code>~/.claude/skills/&lt;name>/</code> (user-level) or <code>&lt;repo>/.claude/skills/&lt;name>/</code> (project-level), containing at minimum a <code>SKILL.md</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-04-27>April 27, 2026</time> · 28 min read · 2955 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/skills/ class=tag>#skills</a><a href=/en/tags/slash-commands/ class=tag>#slash-commands</a><a href=/en/tags/mcp/ class=tag>#mcp</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/10-skills-decision-tree/>阅读中文版 →</a></div></header><div class=prose><p>Claude Code now has four extension mechanisms: slash commands, MCP servers, hooks, and Skills. They overlap. The first time you have a &ldquo;Claude should know how to do X&rdquo; thought, the question is <em>which</em> of the four to use.</p><p>This is the closing chapter of the series. Let me lay out the decision tree.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_1.png alt="Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=what-a-skill-actually-is>What a Skill actually is</h2><p>A Skill is a folder under <code>~/.claude/skills/&lt;name>/</code> (user-level) or <code>&lt;repo>/.claude/skills/&lt;name>/</code> (project-level), containing at minimum a <code>SKILL.md</code>.</p><h3 id=the-complete-skillmd-anatomy>The complete SKILL.md anatomy</h3><p>Every SKILL.md has two parts: the frontmatter and the body.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -56,11 +56,291 @@
 </span></span><span class=line><span class=cl><span class=k>3.</span> Adapt to ZH (not translate)
 </span></span><span class=line><span class=cl><span class=k>4.</span> Generate covers
 </span></span><span class=line><span class=cl><span class=k>5.</span> Build + deploy
-</span></span></code></pre></td></tr></table></div></div><p>When you start a session, Claude reads the <em>descriptions</em> of all available skills. When something you ask matches, Claude loads the skill body. The body becomes part of the system prompt for that turn.</p><p>Two things follow:</p><ul><li>The <code>description</code> is load-bearing. If it doesn&rsquo;t say when to use the skill, the skill won&rsquo;t get used.</li><li>The body can be long. It&rsquo;s loaded on demand, so verbosity isn&rsquo;t taxed unless triggered.</li></ul><h2 id=how-skills-differ-from-the-other-three>How Skills differ from the other three</h2><table><thead><tr><th>Mechanism</th><th>Lives in</th><th>Loaded when</th><th>Best for</th></tr></thead><tbody><tr><td>Slash command</td><td><code>&lt;repo>/.claude/commands/&lt;name>.md</code></td><td>User types <code>/&lt;name></code></td><td>Repeated workflows that take 1-2 lines to describe</td></tr><tr><td>MCP server</td><td><code>mcp.json</code> config</td><td>Always available</td><td>Reaching outside the filesystem (browser, DB, third-party API)</td></tr><tr><td>Hook</td><td><code>settings.json</code> referenced script</td><td>Around tool calls</td><td>Policy enforcement, side-effects on edit/write</td></tr><tr><td>Skill</td><td><code>.claude/skills/&lt;name>/SKILL.md</code></td><td>Description matches the prompt</td><td>Domain knowledge, voice, multi-step procedures</td></tr></tbody></table><p>The clearest dividing line: <strong>slash commands are commands, skills are knowledge</strong>. A slash command is &ldquo;do this exact thing.&rdquo; A skill is &ldquo;here&rsquo;s how I think about this whole class of problem; use this whenever it applies.&rdquo;</p><h2 id=when-to-reach-for-which>When to reach for which</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_2.png alt="Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual" loading=lazy decoding=async class=content-image></figure></p><p>Walk through these in order:</p><p><strong>1. Does the task need a tool that doesn&rsquo;t exist yet?</strong> (Browser automation, querying a real database, talking to an internal API.)
-→ Build an <strong>MCP server</strong>. The other mechanisms can&rsquo;t grant new capabilities.</p><p><strong>2. Should something happen automatically around tool calls — block, validate, log, format?</strong>
-→ Write a <strong>hook</strong>. This is the only mechanism that runs without the model deciding to invoke it.</p><p><strong>3. Is this a compact procedure the user will explicitly invoke?</strong> (<code>/commit</code>, <code>/deploy-staging</code>, <code>/make-changelog</code>)
-→ Write a <strong>slash command</strong>. Commands are for things you call by name.</p><p><strong>4. Is this a body of domain knowledge — a voice, a workflow, a set of conventions — that should kick in whenever the topic comes up?</strong>
-→ Write a <strong>skill</strong>. Skills are for things you want Claude to <em>recognize and apply</em> without being told to.</p><p>If a thing fits two boxes, prefer the simpler one. A skill that calls a slash command is fine. A slash command that pretends to be a skill is brittle.</p><h2 id=three-skills-ive-actually-written>Three skills I&rsquo;ve actually written</h2><p><strong>1. <code>chenk-blog-write</code></strong> — for writing on this site. Covers front matter, voice, EN/ZH parity, cover generation, deploy. Triggered by anything mentioning chenk.top or &ldquo;write a post.&rdquo; The body is ~600 lines. Worth every one.</p><p><strong>2. <code>update-config</code></strong> — for changes to <code>~/.claude/settings.json</code>. Triggered by &ldquo;allow X command,&rdquo; &ldquo;set env Y,&rdquo; &ldquo;add a hook.&rdquo; Encodes the permission precedence rules above and the typical patterns. Saves me from re-deriving the merge order.</p><p><strong>3. <code>simplify</code></strong> — for code review on my own changes. Triggered by &ldquo;is there a simpler way to do this.&rdquo; Encodes my taste: prefer composition, kill dead code, name things by what they are not how they&rsquo;re built.</p><p>None of those would work as slash commands. They&rsquo;re not invoked by name; they&rsquo;re invoked by <em>topic</em>. That&rsquo;s the skill-shaped use case.</p><h2 id=when-skills-are-the-wrong-answer>When skills are the wrong answer</h2><p>A skill that fires too often is worse than no skill — it pollutes context for tasks that don&rsquo;t need it. Three traps:</p><ul><li><strong>Vague descriptions.</strong> &ldquo;Use for general programming.&rdquo; Use for everything = use for nothing useful.</li><li><strong>Skill bodies that overlap.</strong> Two skills that both fire on &ldquo;write code&rdquo; → context bloat. Pick one.</li><li><strong>Skills that should have been hooks.</strong> &ldquo;Always do X before Y&rdquo; → that&rsquo;s a hook, not a skill. Skills suggest; hooks enforce.</li></ul><h2 id=the-end-of-the-series>The end of the series</h2><p>Ten chapters in, you have:</p><ul><li>A configured Claude Code with the three-layer settings model in your head (chs 1, 9).</li><li>Fluency with shortcuts, modes, and conversation control (ch 2).</li><li>The four extension mechanisms — slash commands, MCP, hooks, skills — and a decision tree for picking between them (chs 3, 4, 5, 7, 10).</li><li>The concurrency primitives — sub-agents, worktrees, plan mode — for scaling individual sessions to bigger work (ch 8).</li><li>A working SDK + GitHub integration story for putting Claude in CI (ch 6).</li></ul><p>That is the surface area. Past it lies the actually interesting work, which is no longer about Claude Code itself — it&rsquo;s about what you build <em>with</em> it. Go build.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=/en/series/claude-code-learn/><span class=title>Back to Claude Code Hands-On index</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=frontmatter-fields>Frontmatter fields</h3><table><thead><tr><th>Field</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>Yes</td><td>The skill&rsquo;s identifier. Used in logs and debugging. Keep it lowercase-with-dashes.</td></tr><tr><td><code>description</code></td><td>Yes</td><td><strong>Load-bearing.</strong> This is how Claude decides whether to load the skill. If the description does not say when to use it, the skill will not get used.</td></tr></tbody></table><p>The <code>description</code> is the most important line in the entire file. Claude reads the descriptions of all available skills at the start of each session. When your prompt matches a description, Claude loads the full skill body. If the description is vague, the skill fires on everything or nothing — both are bad.</p><h3 id=the-body>The body</h3><p>The body can be as long as it needs to be. It becomes part of the system prompt <em>only when triggered</em>, so verbosity is not taxed unless the skill fires. I have skills with 600+ line bodies. Worth every line.</p><p>The body is free-form Markdown. But there are patterns that work:</p><p><strong>Voice/style section</strong> — how Claude should write when this skill is active:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=gh># Voice
+</span></span></span><span class=line><span class=cl><span class=gh></span><span class=k>-</span> First person, practical, no filler
+</span></span><span class=line><span class=cl><span class=k>-</span> Code before explanation
+</span></span><span class=line><span class=cl><span class=k>-</span> If a claim has no example, cut the claim
+</span></span></code></pre></td></tr></table></div></div><p><strong>Schema/format section</strong> — exact formats Claude must follow:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=gh># Front matter format
+</span></span></span><span class=line><span class=cl><span class=gh></span>title: string (required)
+</span></span><span class=line><span class=cl>date: YYYY-MM-DD HH:MM:SS (required)
+</span></span><span class=line><span class=cl>tags: list of strings
+</span></span><span class=line><span class=cl>series: string (optional, must match series name in config)
+</span></span></code></pre></td></tr></table></div></div><p><strong>Workflow section</strong> — step-by-step procedure:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=gh># Workflow
+</span></span></span><span class=line><span class=cl><span class=gh></span><span class=k>1.</span> Read the existing content at [path]
+</span></span><span class=line><span class=cl><span class=k>2.</span> Generate outline with N sections
+</span></span><span class=line><span class=cl><span class=k>3.</span> Write each section
+</span></span><span class=line><span class=cl><span class=k>4.</span> Run build to verify
+</span></span><span class=line><span class=cl><span class=k>5.</span> Deploy
+</span></span></code></pre></td></tr></table></div></div><p><strong>Rules/constraints</strong> — what NOT to do:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=gh># Rules
+</span></span></span><span class=line><span class=cl><span class=gh></span><span class=k>-</span> Never create documentation files unless explicitly asked
+</span></span><span class=line><span class=cl><span class=k>-</span> Never add emojis
+</span></span><span class=line><span class=cl><span class=k>-</span> Always use absolute paths
+</span></span><span class=line><span class=cl><span class=k>-</span> Keep files clean — no v1/v2 suffixes
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=skill-directory-structure>Skill directory structure</h2><h3 id=user-level-skills>User-level skills</h3><pre tabindex=0><code>~/.claude/
+  skills/
+    chenk-blog-write/
+      SKILL.md
+    update-config/
+      SKILL.md
+    simplify/
+      SKILL.md
+</code></pre><p>User-level skills are available in every project on your machine.</p><h3 id=project-level-skills>Project-level skills</h3><pre tabindex=0><code>my-project/
+  .claude/
+    skills/
+      deploy-staging/
+        SKILL.md
+      code-review/
+        SKILL.md
+</code></pre><p>Project-level skills are available only in that project. They can be committed to git so the whole team shares them.</p><h3 id=which-level-to-use>Which level to use</h3><table><thead><tr><th>Situation</th><th>Level</th><th>Reason</th></tr></thead><tbody><tr><td>Personal writing style</td><td>User</td><td>Applies everywhere you write</td></tr><tr><td>Project deploy procedure</td><td>Project</td><td>Specific to this codebase</td></tr><tr><td>Code review taste</td><td>User</td><td>Your taste, all projects</td></tr><tr><td>API integration workflow</td><td>Project</td><td>Specific APIs, specific patterns</td></tr><tr><td>General &ldquo;simplify code&rdquo;</td><td>User</td><td>Universal applicability</td></tr></tbody></table><hr><h2 id=writing-a-real-skill-from-scratch>Writing a real skill from scratch</h2><p>Let me walk through building a skill for a concrete use case: a team that deploys a Node.js app to a staging environment.</p><h3 id=step-1-identify-the-skill-shaped-use-case>Step 1: Identify the skill-shaped use case</h3><p>The question to ask: &ldquo;Is this domain knowledge that should kick in whenever the topic comes up, or is it a command I invoke by name?&rdquo;</p><p>Deploying to staging is something the team does in multiple contexts — after merging a PR, when testing a feature, when debugging production. It is not a single command; it is a body of knowledge about <em>how we deploy</em>. That is skill-shaped.</p><h3 id=step-2-write-the-description>Step 2: Write the description</h3><p>Start with the description, because it determines when the skill fires:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>name: deploy-staging
+</span></span><span class=line><span class=cl>description: Use when deploying to the staging environment, preparing a staging build, or troubleshooting staging deployment issues. Covers the deploy pipeline, environment config, health checks, and rollback procedures for the acme-api project.
+</span></span><span class=line><span class=cl>---
+</span></span></code></pre></td></tr></table></div></div><p>Be specific. &ldquo;Use for deployment&rdquo; is too vague — it would fire on discussions about deployment theory. &ldquo;Use when deploying to the staging environment&rdquo; is specific to the action.</p><h3 id=step-3-write-the-body>Step 3: Write the body</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>name: deploy-staging
+</span></span><span class=line><span class=cl>description: Use when deploying to the staging environment, preparing a staging build, or troubleshooting staging deployment issues. Covers the deploy pipeline, environment config, health checks, and rollback procedures for the acme-api project.
+</span></span><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># Staging environment
+</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl><span class=k>-</span> URL: https://staging.acme.dev
+</span></span><span class=line><span class=cl><span class=k>-</span> Region: us-east-1
+</span></span><span class=line><span class=cl><span class=k>-</span> Cluster: acme-staging-ecs
+</span></span><span class=line><span class=cl><span class=k>-</span> Branch: deploys from <span class=sb>`main`</span> or any branch with <span class=sb>`staging-`</span> prefix
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># Pre-deploy checklist
+</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl><span class=k>1.</span> All tests pass: <span class=sb>`npm run test`</span>
+</span></span><span class=line><span class=cl><span class=k>2.</span> TypeScript compiles: <span class=sb>`npm run build`</span>
+</span></span><span class=line><span class=cl><span class=k>3.</span> No uncommitted changes: <span class=sb>`git status`</span> must be clean
+</span></span><span class=line><span class=cl><span class=k>4.</span> On correct branch: <span class=sb>`main`</span> or <span class=sb>`staging-*`</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># Deploy command
+</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl>```bash
+</span></span><span class=line><span class=cl><span class=gh># Build the Docker image
+</span></span></span><span class=line><span class=cl><span class=gh></span>docker build -t acme-api:staging -f Dockerfile.staging .
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># Tag for ECR
+</span></span></span><span class=line><span class=cl><span class=gh></span>docker tag acme-api:staging 123456789.dkr.ecr.us-east-1.amazonaws.com/acme-api:staging
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># Push to ECR
+</span></span></span><span class=line><span class=cl><span class=gh></span>docker push 123456789.dkr.ecr.us-east-1.amazonaws.com/acme-api:staging
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># Update ECS service
+</span></span></span><span class=line><span class=cl><span class=gh></span>aws ecs update-service \
+</span></span><span class=line><span class=cl>  --cluster acme-staging-ecs \
+</span></span><span class=line><span class=cl>  --service acme-api \
+</span></span><span class=line><span class=cl>  --force-new-deployment
+</span></span></code></pre></td></tr></table></div></div><h1 id=health-check>Health check</h1><p>After deploy, wait 60 seconds, then verify:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>curl -s https://staging.acme.dev/health <span class=p>|</span> jq .
+</span></span><span class=line><span class=cl><span class=c1># Expected: {&#34;status&#34;:&#34;ok&#34;,&#34;version&#34;:&#34;&lt;new-version&gt;&#34;}</span>
+</span></span></code></pre></td></tr></table></div></div><h1 id=rollback>Rollback</h1><p>If the deploy is bad:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Find the previous task definition</span>
+</span></span><span class=line><span class=cl>aws ecs describe-services --cluster acme-staging-ecs --services acme-api <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq <span class=s1>&#39;.services[0].deployments[] | select(.status == &#34;PRIMARY&#34;) | .taskDefinition&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Roll back to previous revision</span>
+</span></span><span class=line><span class=cl>aws ecs update-service <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --cluster acme-staging-ecs <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --service acme-api <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --task-definition acme-api:&lt;previous-revision&gt;
+</span></span></code></pre></td></tr></table></div></div><h1 id=common-issues>Common issues</h1><ul><li><strong>Deploy times out</strong>: Check CloudWatch logs for the new task. Usually a startup crash.</li><li><strong>Health check fails</strong>: Check if the new code has a different health endpoint. It must be <code>/health</code>.</li><li><strong>ECR push fails</strong>: Run <code>aws ecr get-login-password</code> to refresh credentials.</li></ul><h1 id=rules>Rules</h1><ul><li>Never deploy directly to production from this skill. Staging only.</li><li>Always run the health check after deploy.</li><li>If the health check fails, roll back immediately — do not debug on staging.</li></ul><pre tabindex=0><code>
+### Step 4: Test the skill
+
+Create the file and start a Claude session:
+
+```bash
+mkdir -p .claude/skills/deploy-staging
+# (write the SKILL.md)
+
+# Start Claude and test
+claude
+&gt; Deploy the latest changes to staging.
+</code></pre><p>Claude should load the skill and follow the procedure. If it does not, check the description — it might not match your phrasing.</p><h3 id=step-5-iterate>Step 5: Iterate</h3><p>After a few uses, you will notice gaps. Add them to the body:</p><ul><li>&ldquo;Oh, I need to mention the VPN requirement.&rdquo;</li><li>&ldquo;The ECR login step should be more prominent.&rdquo;</li><li>&ldquo;Add the Slack notification step.&rdquo;</li></ul><p>Each iteration makes the skill more complete. After a week of use, the skill becomes the authoritative documentation for the deploy process.</p><hr><h2 id=skills-vs-commands-vs-hooks-vs-mcp--the-complete-comparison>Skills vs commands vs hooks vs MCP — the complete comparison</h2><p>This is the table I wish I had when I started:</p><table><thead><tr><th>Dimension</th><th>Slash command</th><th>MCP server</th><th>Hook</th><th>Skill</th></tr></thead><tbody><tr><td><strong>Lives in</strong></td><td><code>.claude/commands/&lt;name>.md</code></td><td><code>mcp.json</code> config</td><td><code>settings.json</code></td><td><code>.claude/skills/&lt;name>/SKILL.md</code></td></tr><tr><td><strong>Loaded when</strong></td><td>User types <code>/&lt;name></code></td><td>Always available</td><td>Around tool calls</td><td>Description matches prompt</td></tr><tr><td><strong>Trigger</strong></td><td>Explicit (user types it)</td><td>Explicit (Claude calls tool)</td><td>Automatic (on tool call)</td><td>Implicit (topic match)</td></tr><tr><td><strong>Best for</strong></td><td>Repeatable workflows</td><td>External capabilities</td><td>Policy enforcement</td><td>Domain knowledge</td></tr><tr><td><strong>Can edit files</strong></td><td>Yes (via Claude)</td><td>Yes (via tools)</td><td>Yes (side-effects)</td><td>Yes (via Claude)</td></tr><tr><td><strong>Can block actions</strong></td><td>No</td><td>No</td><td>Yes (exit code 2)</td><td>No</td></tr><tr><td><strong>Context cost</strong></td><td>Loaded once when invoked</td><td>Tool descriptions always loaded</td><td>Minimal (scripts run externally)</td><td>Loaded when triggered</td></tr><tr><td><strong>Shareable</strong></td><td>Yes (commit to repo)</td><td>Yes (commit config)</td><td>Yes (commit settings + scripts)</td><td>Yes (commit to repo)</td></tr><tr><td><strong>Complexity to write</strong></td><td>Low (just Markdown)</td><td>High (server code)</td><td>Medium (Node.js scripts)</td><td>Low (just Markdown)</td></tr><tr><td><strong>User-level available</strong></td><td>No (project only)</td><td>Yes</td><td>Yes</td><td>Yes</td></tr></tbody></table><h3 id=the-clearest-dividing-lines>The clearest dividing lines</h3><p><strong>Slash commands are commands; skills are knowledge.</strong> A slash command is &ldquo;do this exact thing.&rdquo; A skill is &ldquo;here is how I think about this whole class of problem; use this whenever it applies.&rdquo;</p><p><strong>Hooks are automatic; everything else is opt-in.</strong> A hook runs whether or not Claude or the user wants it to. That makes hooks the right choice for safety policy, and the wrong choice for optional workflows.</p><p><strong>MCP is for capabilities; the others are for instructions.</strong> Only MCP can give Claude a tool it does not have. If you need browser automation, database access, or a third-party API, MCP is the only option. The others shape how Claude uses its existing tools.</p><hr><h2 id=skill-discovery-and-loading>Skill discovery and loading</h2><h3 id=how-claude-discovers-skills>How Claude discovers skills</h3><p>At session start, Claude scans for skill files:</p><ol><li><code>~/.claude/skills/*/SKILL.md</code> — user-level skills</li><li><code>.claude/skills/*/SKILL.md</code> — project-level skills</li></ol><p>It reads the <code>description</code> from each SKILL.md frontmatter. The descriptions are always in context — they are part of the system prompt.</p><h3 id=how-loading-works>How loading works</h3><p>When you send a message, Claude compares your prompt against all skill descriptions. If there is a match, Claude loads the full body of the matching skill(s) into context for that turn.</p><p>This means:</p><ul><li><strong>Descriptions are always loaded</strong> (small cost — just the description lines).</li><li><strong>Bodies are loaded on demand</strong> (potentially large, but only when relevant).</li><li><strong>Multiple skills can fire</strong> if multiple descriptions match. This can cause context bloat — see &ldquo;When skills are the wrong answer&rdquo; below.</li></ul><h3 id=debugging-skill-loading>Debugging skill loading</h3><p>If a skill is not firing when you expect it to:</p><ol><li><strong>Check the description.</strong> Does it mention the keywords you are using? Claude matches on semantic similarity, not exact keywords, but specific descriptions work better than vague ones.</li><li><strong>Check the file location.</strong> Is the SKILL.md in the right directory? <code>~/.claude/skills/&lt;name>/SKILL.md</code> or <code>.claude/skills/&lt;name>/SKILL.md</code>.</li><li><strong>Check the frontmatter.</strong> Is it valid YAML? Is the <code>---</code> delimiter present?</li><li><strong>Try explicit invocation.</strong> Some skills can be invoked by name if they are also registered as slash commands. But the point of skills is implicit loading — if you have to invoke it by name, it should probably be a slash command.</li></ol><hr><h2 id=conditional-skills>Conditional skills</h2><p>Sometimes a skill should only fire in specific contexts. You handle this in the description and body.</p><h3 id=context-aware-descriptions>Context-aware descriptions</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>name: python-ml
+</span></span><span class=line><span class=cl>description: Use when writing or modifying Python ML/AI code — model training, data pipelines, evaluation scripts. Only relevant in Python projects with ML dependencies.
+</span></span><span class=line><span class=cl>---
+</span></span></code></pre></td></tr></table></div></div><p>The &ldquo;only relevant in Python projects&rdquo; part is a hint to Claude. It will not load this skill when you are working on a JavaScript project, even if you mention &ldquo;training.&rdquo;</p><h3 id=body-level-conditions>Body-level conditions</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>name: strict-review
+</span></span><span class=line><span class=cl>description: Use when reviewing code changes before commit. Applies strict standards.
+</span></span><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># When to apply strict standards
+</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl>Apply these standards ONLY when:
+</span></span><span class=line><span class=cl><span class=k>-</span> The file is in <span class=sb>`src/core/`</span> or <span class=sb>`src/security/`</span>
+</span></span><span class=line><span class=cl><span class=k>-</span> The change touches authentication, authorization, or payment logic
+</span></span><span class=line><span class=cl><span class=k>-</span> The user explicitly asks for a strict review
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>For other files, apply standard review practices.
+</span></span></code></pre></td></tr></table></div></div><p>This is not enforcement — Claude can still deviate. But it gives Claude clear guidance on when to dial up the strictness.</p><hr><h2 id=the-decision-tree-as-a-flowchart>The decision tree as a flowchart</h2><p>When you have a &ldquo;Claude should know how to do X&rdquo; thought, walk through this:</p><pre tabindex=0><code>START: &#34;I want Claude to do X&#34;
+  |
+  v
+Does X need a tool Claude doesn&#39;t have?
+(browser, database, external API, etc.)
+  |
+  ├── YES ──&gt; Build an MCP server.
+  |           Only MCP can grant new capabilities.
+  |
+  └── NO
+      |
+      v
+Should X happen automatically around tool calls?
+(block dangerous commands, format on save, log all calls)
+  |
+  ├── YES ──&gt; Write a hook.
+  |           Hooks are the only mechanism that runs
+  |           without the model deciding to invoke it.
+  |
+  └── NO
+      |
+      v
+Is X a compact procedure the user will invoke by name?
+(/deploy, /commit, /make-changelog, /run-migrations)
+  |
+  ├── YES ──&gt; Write a slash command.
+  |           Commands are for things you call explicitly.
+  |
+  └── NO
+      |
+      v
+Is X a body of domain knowledge that should kick in
+whenever the topic comes up?
+(writing style, deploy procedures, code conventions,
+ project-specific knowledge)
+  |
+  ├── YES ──&gt; Write a skill.
+  |           Skills are for things you want Claude to
+  |           recognize and apply without being told.
+  |
+  └── NO
+      |
+      v
+Maybe you don&#39;t need an extension.
+Just tell Claude in the conversation.
+</code></pre><p>If a thing fits two boxes, prefer the simpler one. A skill that calls a slash command is fine. A slash command that pretends to be a skill is brittle.</p><hr><h2 id=three-skills-i-have-actually-written>Three skills I have actually written</h2><h3 id=1-chenk-blog-write>1. <code>chenk-blog-write</code></h3><p>For writing on this site. Covers front matter schema, writing voice, EN/ZH parity requirements, cover generation with Wanxiang, deploy procedure, and common pitfalls.</p><p>Triggered by anything mentioning chenk.top, &ldquo;write a post,&rdquo; or &ldquo;new article.&rdquo; The body is ~600 lines. Worth every one.</p><p>Why it is a skill and not a command: I do not always invoke it by name. Sometimes I say &ldquo;write about hooks&rdquo; and Claude needs to know that means &ldquo;write a blog post on chenk.top about hooks, in this voice, with this format.&rdquo; The skill fires because the description matches.</p><h3 id=2-update-config>2. <code>update-config</code></h3><p>For changes to <code>~/.claude/settings.json</code> and <code>.claude/settings.json</code>. Triggered by &ldquo;allow X command,&rdquo; &ldquo;set env Y,&rdquo; &ldquo;add a hook,&rdquo; &ldquo;move permission to project settings.&rdquo;</p><p>Encodes the permission precedence rules from Chapter 9 and the typical patterns. Saves me from re-deriving the merge order every time.</p><p>Why it is a skill and not a hook: it provides knowledge about <em>how</em> to edit settings, not enforcement of settings. A hook would block or allow; this skill <em>teaches</em>.</p><h3 id=3-simplify>3. <code>simplify</code></h3><p>For code review on my own changes. Triggered by &ldquo;is there a simpler way to do this,&rdquo; &ldquo;review for quality,&rdquo; &ldquo;check for reuse.&rdquo;</p><p>Encodes my taste: prefer composition over inheritance, kill dead code immediately, name things by what they are not how they are built, if a function is over 30 lines it is probably two functions.</p><p>Why it is a skill and not a command: it is not a procedure. It is a set of values and heuristics that should inform how Claude reads and reviews code. You cannot command taste; you can teach it.</p><hr><h2 id=when-skills-are-the-wrong-answer>When skills are the wrong answer</h2><p>A skill that fires too often is worse than no skill — it pollutes context for tasks that do not need it. Three traps:</p><h3 id=1-vague-descriptions>1. Vague descriptions</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=gh># BAD:
+</span></span></span><span class=line><span class=cl><span class=gh></span>description: Use for general programming tasks.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># GOOD:
+</span></span></span><span class=line><span class=cl><span class=gh></span>description: Use when writing or modifying Python FastAPI endpoints — covers route structure, dependency injection, Pydantic models, and error handling for the acme-api project.
+</span></span></code></pre></td></tr></table></div></div><p>&ldquo;Use for general programming&rdquo; matches everything. It will fire when you are editing a README. It will fire when you are writing a commit message. Use for everything = use for nothing useful.</p><h3 id=2-overlapping-skills>2. Overlapping skills</h3><p>Two skills that both fire on &ldquo;write code&rdquo; create context bloat. The model gets two sets of instructions, possibly contradictory, and has to figure out which one applies.</p><p>Fix: merge them into one skill, or make the descriptions more specific so they fire on different subtopics.</p><h3 id=3-skills-that-should-have-been-hooks>3. Skills that should have been hooks</h3><p>&ldquo;Always format code after editing.&rdquo; That is a hook, not a skill. Skills suggest; hooks enforce.</p><p>The litmus test: if the instruction contains &ldquo;always&rdquo; or &ldquo;never&rdquo; and applies to every tool call of a certain type, it is a hook. If it contains &ldquo;when discussing X&rdquo; or &ldquo;for tasks involving Y,&rdquo; it is a skill.</p><hr><h2 id=building-your-own-extension-library>Building your own extension library</h2><p>Over time, you will accumulate extensions across all four mechanisms. Here is how I organize mine:</p><pre tabindex=0><code>~/.claude/
+  settings.json                  # Global deny rules, global hooks
+  skills/
+    chenk-blog-write/SKILL.md    # Blog writing
+    simplify/SKILL.md            # Code review
+    update-config/SKILL.md       # Settings management
+    claude-api/SKILL.md          # Anthropic SDK usage
+
+my-project/
+  .claude/
+    settings.json                # Project permissions, env, hooks
+    settings.local.json          # My local overrides
+    commands/
+      deploy.md                  # /deploy command
+      release.md                 # /release command
+    skills/
+      project-conventions/SKILL.md  # Project-specific coding standards
+    agents/
+      research.md                # Research sub-agent
+      test-writer.md             # Test-writing sub-agent
+  hooks/
+    block-env-read.js            # Secret protection
+    bash-blacklist.js            # Dangerous command blocking
+    format-on-write.js           # Auto-formatting
+    test-on-edit.js              # Auto-testing
+  mcp.json                      # MCP server config (browser, DB, etc.)
+</code></pre><p>The pattern: user-level for personal taste and universal tools, project-level for team-shared knowledge and project-specific procedures.</p><hr><h2 id=the-end-of-the-series>The end of the series</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_2.png alt="Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual" loading=lazy decoding=async class=content-image></figure></p><p>Ten chapters in, you have:</p><ul><li>A configured Claude Code with the three-layer settings model in your head (chapters 1, 9).</li><li>Fluency with shortcuts, modes, and conversation control (chapter 2).</li><li>The four extension mechanisms — slash commands, MCP, hooks, skills — and a decision tree for picking between them (chapters 3, 4, 5, 7, 10).</li><li>The concurrency primitives — sub-agents, worktrees, plan mode — for scaling individual sessions to bigger work (chapter 8).</li><li>A working SDK and GitHub integration story for putting Claude in CI (chapter 6).</li></ul><p>That is the surface area. The extension points compose: a skill can reference a slash command, a hook can enforce what a skill recommends, an MCP server can provide data that a skill tells Claude how to interpret. The mechanism you pick first matters less than picking any mechanism at all — the gap between &ldquo;Claude with no extensions&rdquo; and &ldquo;Claude with even one well-written skill&rdquo; is larger than the gap between a skill and a command.</p><p>Past this point, the work is no longer about Claude Code itself — it is about what you build <em>with</em> it. Go build.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=/en/series/claude-code-learn/><span class=title>Back to Claude Code Hands-On index</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
 <span class=series-nav-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
 <span class=series-nav-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=series-nav-num>03</span>
 <span class=series-nav-title>Claude Code Hands-On (3): Custom Slash Commands and Conversation Control</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/04-mcp-servers/><span class=series-nav-num>04</span>
@@ -71,7 +351,7 @@
 <span class=series-nav-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=series-nav-num>09</span>
 <span class=series-nav-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>10</span>
 <span class=series-nav-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span>
-<span class=series-nav-here>you are here</span></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-a-skill-actually-is>What a Skill actually is</a></li><li><a href=#how-skills-differ-from-the-other-three>How Skills differ from the other three</a></li><li><a href=#when-to-reach-for-which>When to reach for which</a></li><li><a href=#three-skills-ive-actually-written>Three skills I&rsquo;ve actually written</a></li><li><a href=#when-skills-are-the-wrong-answer>When skills are the wrong answer</a></li><li><a href=#the-end-of-the-series>The end of the series</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
+<span class=series-nav-here>you are here</span></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-a-skill-actually-is>What a Skill actually is</a><ul><li><a href=#the-complete-skillmd-anatomy>The complete SKILL.md anatomy</a></li><li><a href=#frontmatter-fields>Frontmatter fields</a></li><li><a href=#the-body>The body</a></li></ul></li><li><a href=#skill-directory-structure>Skill directory structure</a><ul><li><a href=#user-level-skills>User-level skills</a></li><li><a href=#project-level-skills>Project-level skills</a></li><li><a href=#which-level-to-use>Which level to use</a></li></ul></li><li><a href=#writing-a-real-skill-from-scratch>Writing a real skill from scratch</a><ul><li><a href=#step-1-identify-the-skill-shaped-use-case>Step 1: Identify the skill-shaped use case</a></li><li><a href=#step-2-write-the-description>Step 2: Write the description</a></li><li><a href=#step-3-write-the-body>Step 3: Write the body</a></li></ul></li></ul><ul><li><ul><li><a href=#step-5-iterate>Step 5: Iterate</a></li></ul></li><li><a href=#skills-vs-commands-vs-hooks-vs-mcp--the-complete-comparison>Skills vs commands vs hooks vs MCP — the complete comparison</a><ul><li><a href=#the-clearest-dividing-lines>The clearest dividing lines</a></li></ul></li><li><a href=#skill-discovery-and-loading>Skill discovery and loading</a><ul><li><a href=#how-claude-discovers-skills>How Claude discovers skills</a></li><li><a href=#how-loading-works>How loading works</a></li><li><a href=#debugging-skill-loading>Debugging skill loading</a></li></ul></li><li><a href=#conditional-skills>Conditional skills</a><ul><li><a href=#context-aware-descriptions>Context-aware descriptions</a></li><li><a href=#body-level-conditions>Body-level conditions</a></li></ul></li><li><a href=#the-decision-tree-as-a-flowchart>The decision tree as a flowchart</a></li><li><a href=#three-skills-i-have-actually-written>Three skills I have actually written</a><ul><li><a href=#1-chenk-blog-write>1. <code>chenk-blog-write</code></a></li><li><a href=#2-update-config>2. <code>update-config</code></a></li><li><a href=#3-simplify>3. <code>simplify</code></a></li></ul></li><li><a href=#when-skills-are-the-wrong-answer>When skills are the wrong answer</a><ul><li><a href=#1-vague-descriptions>1. Vague descriptions</a></li><li><a href=#2-overlapping-skills>2. Overlapping skills</a></li><li><a href=#3-skills-that-should-have-been-hooks>3. Skills that should have been hooks</a></li></ul></li><li><a href=#building-your-own-extension-library>Building your own extension library</a></li><li><a href=#the-end-of-the-series>The end of the series</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
 <span class=chapter-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
 <span class=chapter-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=chapter-num>03</span>
@@ -82,5 +362,5 @@
 <span class=chapter-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>10 min</strong></div><div class=row><span>Word count</span><strong>859</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2955</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

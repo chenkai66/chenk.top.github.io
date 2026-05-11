@@ -20,9 +20,23 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Claude Code Hands-On</a>
 · Chapter 6</div><h1>Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI</h1><p class=deck>The SDK turns Claude Code from a CLI into a library. GitHub Action makes it answer @claude on PRs. Together they let you put Claude inside the same CI pipeline that already runs your tests — without giving up control.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-23>April 23, 2026</time> · 10 min read · 920 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/sdk/ class=tag>#sdk</a><a href=/en/tags/github-actions/ class=tag>#github-actions</a><a href=/en/tags/automation/ class=tag>#automation</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/06-sdk-and-github/>阅读中文版 →</a></div></header><div class=prose><p>The CLI is the obvious surface. The SDK is the interesting one. The GitHub integration is where it pays off.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png alt="Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=the-sdk-in-one-paragraph>The SDK in one paragraph</h2><p><code>@anthropic-ai/claude-code</code> is the npm package. It exposes the same Claude Code engine the CLI uses, with the same tools and permissions, as a programmatic interface. You give it a prompt; you get an async iterable of conversation events. Plug it into anything — a script, a service, a CI step.</p><p>Install:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>npm install @anthropic-ai/claude-code
-</span></span></code></pre></td></tr></table></div></div><p>The hello-world:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-04-23>April 23, 2026</time> · 40 min read · 4167 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/sdk/ class=tag>#sdk</a><a href=/en/tags/github-actions/ class=tag>#github-actions</a><a href=/en/tags/automation/ class=tag>#automation</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/06-sdk-and-github/>阅读中文版 →</a></div></header><div class=prose><p>The CLI is the obvious surface. The SDK is the interesting one. The GitHub integration is where it pays off.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png alt="Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=the-sdk-in-one-paragraph>The SDK in one paragraph</h2><p><code>@anthropic-ai/claude-code</code> is the npm package. It exposes the same Claude Code engine the CLI uses, with the same tools and permissions, as a programmatic interface. You give it a prompt; you get an async iterable of conversation events. Plug it into anything — a script, a service, a CI step.</p><h2 id=sdk-installation-and-setup>SDK installation and setup</h2><h3 id=prerequisites>Prerequisites</h3><p>You need Node.js 18+ and an Anthropic API key. The SDK runs the same agent loop as the CLI, so it needs the same credentials.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Check Node version</span>
+</span></span><span class=line><span class=cl>node --version  <span class=c1># needs v18+</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Install the SDK</span>
+</span></span><span class=line><span class=cl>npm install @anthropic-ai/claude-code
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set your API key (required)</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ANTHROPIC_API_KEY</span><span class=o>=</span>sk-ant-xxxxxxxxxx
+</span></span></code></pre></td></tr></table></div></div><h3 id=project-setup-for-typescript>Project setup for TypeScript</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -35,20 +49,38 @@
 </span><span class=lnt>11
 </span><span class=lnt>12
 </span><span class=lnt>13
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mkdir claude-automation <span class=o>&amp;&amp;</span> <span class=nb>cd</span> claude-automation
+</span></span><span class=line><span class=cl>npm init -y
+</span></span><span class=line><span class=cl>npm install @anthropic-ai/claude-code
+</span></span><span class=line><span class=cl>npm install -D typescript @types/node tsx
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>result</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
-</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=s1>&#39;List the three largest source files in this repo and explain each in one sentence.&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
-</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;default&#39;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl><span class=c1># Create tsconfig</span>
+</span></span><span class=line><span class=cl>cat &gt; tsconfig.json <span class=s>&lt;&lt; &#39;EOF&#39;
+</span></span></span><span class=line><span class=cl><span class=s>{
+</span></span></span><span class=line><span class=cl><span class=s>  &#34;compilerOptions&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s>    &#34;target&#34;: &#34;ES2022&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>    &#34;module&#34;: &#34;ES2022&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>    &#34;moduleResolution&#34;: &#34;node16&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>    &#34;esModuleInterop&#34;: true,
+</span></span></span><span class=line><span class=cl><span class=s>    &#34;strict&#34;: true,
+</span></span></span><span class=line><span class=cl><span class=s>    &#34;outDir&#34;: &#34;dist&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>    &#34;declaration&#34;: true
+</span></span></span><span class=line><span class=cl><span class=s>  },
+</span></span></span><span class=line><span class=cl><span class=s>  &#34;include&#34;: [&#34;src/**/*&#34;]
+</span></span></span><span class=line><span class=cl><span class=s>}
+</span></span></span><span class=line><span class=cl><span class=s>EOF</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>result</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>Run it. You&rsquo;ll see the same agent loop play out in your terminal — tool calls and all. It&rsquo;s the CLI minus the chat UI.</p><h2 id=permissions-programmatically>Permissions, programmatically</h2><p>This is the bit you have to get right. The CLI defaults to &ldquo;ask the human.&rdquo; A script can&rsquo;t ask. So the SDK exposes permission modes:</p><table><thead><tr><th>Mode</th><th>Meaning</th></tr></thead><tbody><tr><td><code>default</code></td><td>Errors on any tool that would normally need a confirmation</td></tr><tr><td><code>acceptEdits</code></td><td>Auto-accepts file edits, asks for shell</td></tr><tr><td><code>bypassPermissions</code></td><td>Auto-accepts everything (dangerous)</td></tr><tr><td>Custom</td><td>You provide a callback that decides per call</td></tr></tbody></table><p>For real work, use the callback:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span><span class=line><span class=cl>mkdir src
+</span></span></code></pre></td></tr></table></div></div><h3 id=the-hello-world>The hello-world</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -59,18 +91,26 @@
 </span><span class=lnt> 9
 </span><span class=lnt>10
 </span><span class=lnt>11
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>result</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
-</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=s1>&#39;...&#39;</span><span class=p>,</span>
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=c1>// src/hello.ts
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=s1>&#39;List the three largest source files in this repo and explain each in one sentence.&#39;</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;custom&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nx>permissionCallback</span>: <span class=kt>async</span> <span class=p>(</span><span class=nx>tool</span><span class=p>,</span> <span class=nx>input</span><span class=p>)</span> <span class=o>=&gt;</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Bash&#39;</span> <span class=o>&amp;&amp;</span> <span class=nx>input</span><span class=p>.</span><span class=nx>command</span><span class=p>.</span><span class=nx>startsWith</span><span class=p>(</span><span class=s1>&#39;rm &#39;</span><span class=p>))</span> <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Write&#39;</span> <span class=o>&amp;&amp;</span> <span class=nx>input</span><span class=p>.</span><span class=nx>path</span><span class=p>.</span><span class=nx>startsWith</span><span class=p>(</span><span class=s1>&#39;/etc&#39;</span><span class=p>))</span> <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>      <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;default&#39;</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>});</span>
-</span></span></code></pre></td></tr></table></div></div><p>Now you have programmatic policy. The script can run unattended and you know it can&rsquo;t do the things you&rsquo;ve explicitly forbidden.</p><h2 id=a-real-script-auto-update-changelog>A real script: auto-update CHANGELOG</h2><p>I have this in <code>scripts/update-changelog.ts</code> in a few projects:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Run it:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>npx tsx src/hello.ts
+</span></span></code></pre></td></tr></table></div></div><p>You&rsquo;ll see the same agent loop play out in your terminal — tool calls and all. It&rsquo;s the CLI minus the chat UI.</p><h2 id=understanding-conversation-events>Understanding conversation events</h2><p>The async iterable from <code>query()</code> yields typed events. Understanding these is critical for building real automations:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -96,33 +136,89 @@
 </span><span class=lnt>24
 </span><span class=lnt>25
 </span><span class=lnt>26
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>execSync</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;child_process&#39;</span><span class=p>;</span>
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span><span class=p>,</span> <span class=kr>type</span> <span class=nx>ConversationEvent</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>lastTag</span> <span class=o>=</span> <span class=nx>execSync</span><span class=p>(</span><span class=s1>&#39;git describe --tags --abbrev=0&#39;</span><span class=p>).</span><span class=nx>toString</span><span class=p>().</span><span class=nx>trim</span><span class=p>();</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>commits</span> <span class=o>=</span> <span class=nx>execSync</span><span class=p>(</span><span class=sb>`git log </span><span class=si>${</span><span class=nx>lastTag</span><span class=si>}</span><span class=sb>..HEAD --oneline`</span><span class=p>).</span><span class=nx>toString</span><span class=p>();</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>result</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
-</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=sb>`
-</span></span></span><span class=line><span class=cl><span class=sb>    Update CHANGELOG.md with a new entry for an upcoming release.
-</span></span></span><span class=line><span class=cl><span class=sb>    The commits since </span><span class=si>${</span><span class=nx>lastTag</span><span class=si>}</span><span class=sb> are:
-</span></span></span><span class=line><span class=cl><span class=sb>
-</span></span></span><span class=line><span class=cl><span class=sb>    </span><span class=si>${</span><span class=nx>commits</span><span class=si>}</span><span class=sb>
-</span></span></span><span class=line><span class=cl><span class=sb>
-</span></span></span><span class=line><span class=cl><span class=sb>    Group them into Added/Changed/Fixed/Removed.
-</span></span></span><span class=line><span class=cl><span class=sb>    Use semantic versioning to suggest the next version.
-</span></span></span><span class=line><span class=cl><span class=sb>    Edit CHANGELOG.md in place.
-</span></span></span><span class=line><span class=cl><span class=sb>  `</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
-</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;acceptEdits&#39;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=s1>&#39;What files are in this directory?&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span> <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span> <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;acceptEdits&#39;</span> <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>});</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>result</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>switch</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>case</span> <span class=s1>&#39;text&#39;</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// The model&#39;s text output, streamed token-by-token
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=k>break</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>case</span> <span class=s1>&#39;tool_use&#39;</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// The model is calling a tool
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=sb>`</span><span class=err>\</span><span class=sb>n[Tool] </span><span class=si>${</span><span class=nx>event</span><span class=p>.</span><span class=nx>name</span><span class=si>}</span><span class=sb>(</span><span class=si>${</span><span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>input</span><span class=p>)</span><span class=si>}</span><span class=sb>)`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=k>break</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>case</span> <span class=s1>&#39;tool_result&#39;</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// A tool returned its result
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=sb>`[Result] </span><span class=si>${</span><span class=nx>event</span><span class=p>.</span><span class=nx>content</span><span class=o>?</span><span class=p>.</span><span class=nx>substring</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>100</span><span class=p>)</span><span class=si>}</span><span class=sb>...`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=k>break</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>case</span> <span class=s1>&#39;error&#39;</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// Something went wrong
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`[Error] </span><span class=si>${</span><span class=nx>event</span><span class=p>.</span><span class=nx>error</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=k>break</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>case</span> <span class=s1>&#39;done&#39;</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// Conversation complete
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;\n[Done]&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=k>break</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>Run before every release. The CHANGELOG writes itself, the commit log gets curated into prose, and I review and commit. Five minutes saved per release × every release for the last six months.</p><h2 id=the-github-action>The GitHub Action</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png alt="Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual" loading=lazy decoding=async class=content-image></figure></p><p>Anthropic ships an official Action: <code>anthropic/claude-code-action@v1</code>. Add it to a workflow:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=collecting-the-full-response>Collecting the full response</h3><p>Often you want the complete text response, not the stream:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>async</span> <span class=kd>function</span> <span class=nx>getResponse</span><span class=p>(</span><span class=nx>prompt</span>: <span class=kt>string</span><span class=p>)</span><span class=o>:</span> <span class=nx>Promise</span><span class=p>&lt;</span><span class=nt>string</span><span class=p>&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>    <span class=nx>prompt</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>options</span><span class=o>:</span> <span class=p>{</span> <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span> <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;acceptEdits&#39;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>parts</span>: <span class=kt>string</span><span class=p>[]</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>parts</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>parts</span><span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>analysis</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>getResponse</span><span class=p>(</span><span class=s1>&#39;Analyze the error handling in src/api.ts&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=nx>analysis</span><span class=p>);</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=permissions-programmatically>Permissions, programmatically</h2><p>This is the bit you have to get right. The CLI defaults to &ldquo;ask the human.&rdquo; A script can&rsquo;t ask. So the SDK exposes permission modes:</p><table><thead><tr><th>Mode</th><th>Behavior</th><th>Use when</th></tr></thead><tbody><tr><td><code>default</code></td><td>Errors on any tool that would normally need confirmation</td><td>Testing, safe exploration</td></tr><tr><td><code>acceptEdits</code></td><td>Auto-accepts file edits, asks for shell commands</td><td>Automated refactoring</td></tr><tr><td><code>bypassPermissions</code></td><td>Auto-accepts everything</td><td>CI with full trust (dangerous)</td></tr><tr><td>Custom callback</td><td>You decide per call</td><td>Production scripts</td></tr></tbody></table><h3 id=the-custom-callback-in-detail>The custom callback in detail</h3><p>For real work, use the callback:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -143,7 +239,485 @@
 </span><span class=lnt>19
 </span><span class=lnt>20
 </span><span class=lnt>21
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Claude on PR</span><span class=w>
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=s1>&#39;Fix the failing tests and update the changelog&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;custom&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionCallback</span>: <span class=kt>async</span> <span class=p>(</span><span class=nx>toolName</span><span class=p>,</span> <span class=nx>toolInput</span><span class=p>)</span> <span class=o>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// Allow all read operations
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=k>if</span> <span class=p>(</span><span class=nx>toolName</span> <span class=o>===</span> <span class=s1>&#39;Read&#39;</span><span class=p>)</span> <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>      <span class=c1>// Allow file edits within src/ and tests/
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=k>if</span> <span class=p>(</span><span class=nx>toolName</span> <span class=o>===</span> <span class=s1>&#39;Write&#39;</span> <span class=o>||</span> <span class=nx>toolName</span> <span class=o>===</span> <span class=s1>&#39;Edit&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>toolInput</span><span class=p>.</span><span class=nx>file_path</span> <span class=o>||</span> <span class=nx>toolInput</span><span class=p>.</span><span class=nx>path</span> <span class=o>||</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=nx>path</span><span class=p>.</span><span class=nx>includes</span><span class=p>(</span><span class=s1>&#39;/src/&#39;</span><span class=p>)</span> <span class=o>||</span> <span class=nx>path</span><span class=p>.</span><span class=nx>includes</span><span class=p>(</span><span class=s1>&#39;/tests/&#39;</span><span class=p>)</span> <span class=o>||</span> <span class=nx>path</span><span class=p>.</span><span class=nx>includes</span><span class=p>(</span><span class=s1>&#39;CHANGELOG&#39;</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=nx>console</span><span class=p>.</span><span class=nx>warn</span><span class=p>(</span><span class=sb>`Denied write to: </span><span class=si>${</span><span class=nx>path</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>      <span class=c1>// Allow specific safe bash commands
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=k>if</span> <span class=p>(</span><span class=nx>toolName</span> <span class=o>===</span> <span class=s1>&#39;Bash&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kr>const</span> <span class=nx>cmd</span> <span class=o>=</span> <span class=nx>toolInput</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=kr>const</span> <span class=nx>safePatterns</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=sr>/^npm test/</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sr>/^npm run/</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sr>/^git (status|diff|log|show)/</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sr>/^ls /</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sr>/^cat /</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sr>/^grep /</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sr>/^find /</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>];</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=nx>safePatterns</span><span class=p>.</span><span class=nx>some</span><span class=p>(</span><span class=nx>p</span> <span class=o>=&gt;</span> <span class=nx>p</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>)))</span> <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=nx>console</span><span class=p>.</span><span class=nx>warn</span><span class=p>(</span><span class=sb>`Denied bash: </span><span class=si>${</span><span class=nx>cmd</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>      <span class=c1>// Deny everything else by default
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Now you have programmatic policy. The script can run unattended and you know it can&rsquo;t do the things you&rsquo;ve explicitly forbidden.</p><h3 id=permission-callback-patterns>Permission callback patterns</h3><p>Here are reusable permission patterns:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=c1>// Read-only: no writes, no shell
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>readOnly</span> <span class=o>=</span> <span class=kr>async</span> <span class=p>(</span><span class=nx>tool</span>: <span class=kt>string</span><span class=p>)</span> <span class=o>=&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Read&#39;</span> <span class=o>?</span> <span class=s1>&#39;allow&#39;</span> <span class=o>:</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Edit-only: reads + writes, no shell
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>editOnly</span> <span class=o>=</span> <span class=kr>async</span> <span class=p>(</span><span class=nx>tool</span>: <span class=kt>string</span><span class=p>)</span> <span class=o>=&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=p>[</span><span class=s1>&#39;Read&#39;</span><span class=p>,</span> <span class=s1>&#39;Write&#39;</span><span class=p>,</span> <span class=s1>&#39;Edit&#39;</span><span class=p>].</span><span class=nx>includes</span><span class=p>(</span><span class=nx>tool</span><span class=p>)</span> <span class=o>?</span> <span class=s1>&#39;allow&#39;</span> <span class=o>:</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Project-scoped: anything within the project, nothing outside
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>projectScoped</span> <span class=o>=</span> <span class=kr>async</span> <span class=p>(</span><span class=nx>tool</span>: <span class=kt>string</span><span class=p>,</span> <span class=nx>input</span>: <span class=kt>any</span><span class=p>)</span> <span class=o>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Read&#39;</span><span class=p>)</span> <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Write&#39;</span> <span class=o>||</span> <span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Edit&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>input</span><span class=p>.</span><span class=nx>file_path</span> <span class=o>||</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nx>path</span><span class=p>.</span><span class=nx>startsWith</span><span class=p>(</span><span class=nx>process</span><span class=p>.</span><span class=nx>cwd</span><span class=p>())</span> <span class=o>?</span> <span class=s1>&#39;allow&#39;</span> <span class=o>:</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Bash&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>cmd</span> <span class=o>=</span> <span class=nx>input</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// Block commands that could escape the project
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=k>if</span> <span class=p>(</span><span class=sr>/\/(etc|usr|var|root)/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>))</span> <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>};</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=real-world-automation-scripts>Real-world automation scripts</h2><h3 id=script-1-auto-update-changelog>Script 1: auto-update CHANGELOG</h3><p>I have this in <code>scripts/update-changelog.ts</code> in a few projects:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>execSync</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;child_process&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>lastTag</span> <span class=o>=</span> <span class=nx>execSync</span><span class=p>(</span><span class=s1>&#39;git describe --tags --abbrev=0&#39;</span><span class=p>).</span><span class=nx>toString</span><span class=p>().</span><span class=nx>trim</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>commits</span> <span class=o>=</span> <span class=nx>execSync</span><span class=p>(</span><span class=sb>`git log </span><span class=si>${</span><span class=nx>lastTag</span><span class=si>}</span><span class=sb>..HEAD --oneline`</span><span class=p>).</span><span class=nx>toString</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>commits</span><span class=p>.</span><span class=nx>trim</span><span class=p>())</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;No new commits since&#39;</span><span class=p>,</span> <span class=nx>lastTag</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=sb>`Updating CHANGELOG for commits since </span><span class=si>${</span><span class=nx>lastTag</span><span class=si>}</span><span class=sb>...`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=sb>`Found </span><span class=si>${</span><span class=nx>commits</span><span class=p>.</span><span class=nx>trim</span><span class=p>().</span><span class=nx>split</span><span class=p>(</span><span class=s1>&#39;\n&#39;</span><span class=p>).</span><span class=nx>length</span><span class=si>}</span><span class=sb> commits</span><span class=err>\</span><span class=sb>n`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=sb>`
+</span></span></span><span class=line><span class=cl><span class=sb>    Update CHANGELOG.md with a new entry for an upcoming release.
+</span></span></span><span class=line><span class=cl><span class=sb>    The commits since </span><span class=si>${</span><span class=nx>lastTag</span><span class=si>}</span><span class=sb> are:
+</span></span></span><span class=line><span class=cl><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>    </span><span class=si>${</span><span class=nx>commits</span><span class=si>}</span><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>    Group them into Added/Changed/Fixed/Removed following Keep a Changelog format.
+</span></span></span><span class=line><span class=cl><span class=sb>    Use semantic versioning to suggest the next version.
+</span></span></span><span class=line><span class=cl><span class=sb>    Edit CHANGELOG.md in place. Do not create a new file.
+</span></span></span><span class=line><span class=cl><span class=sb>    Today&#39;s date is </span><span class=si>${</span><span class=k>new</span> <span class=nb>Date</span><span class=p>().</span><span class=nx>toISOString</span><span class=p>().</span><span class=nx>split</span><span class=p>(</span><span class=s1>&#39;T&#39;</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=sb>.
+</span></span></span><span class=line><span class=cl><span class=sb>  `</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;acceptEdits&#39;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;\n\nCHANGELOG updated. Review with: git diff CHANGELOG.md&#39;</span><span class=p>);</span>
+</span></span></code></pre></td></tr></table></div></div><p>Run before every release. The CHANGELOG writes itself, the commit log gets curated into prose, and I review and commit. Five minutes saved per release.</p><h3 id=script-2-code-review-bot>Script 2: code review bot</h3><p>A script that reviews staged changes and writes findings to a file:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=c1>// scripts/review-staged.ts
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>execSync</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;child_process&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>writeFileSync</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;fs&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>diff</span> <span class=o>=</span> <span class=nx>execSync</span><span class=p>(</span><span class=s1>&#39;git diff --cached&#39;</span><span class=p>).</span><span class=nx>toString</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>diff</span><span class=p>.</span><span class=nx>trim</span><span class=p>())</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;No staged changes to review.&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>filesChanged</span> <span class=o>=</span> <span class=nx>execSync</span><span class=p>(</span><span class=s1>&#39;git diff --cached --name-only&#39;</span><span class=p>).</span><span class=nx>toString</span><span class=p>().</span><span class=nx>trim</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;Reviewing staged changes in:&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=nx>filesChanged</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;---\n&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>parts</span>: <span class=kt>string</span><span class=p>[]</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=sb>`
+</span></span></span><span class=line><span class=cl><span class=sb>    Review the following staged git diff. Focus on:
+</span></span></span><span class=line><span class=cl><span class=sb>    1. Bugs or logic errors
+</span></span></span><span class=line><span class=cl><span class=sb>    2. Security issues (hardcoded secrets, SQL injection, XSS)
+</span></span></span><span class=line><span class=cl><span class=sb>    3. Performance concerns
+</span></span></span><span class=line><span class=cl><span class=sb>    4. Missing error handling
+</span></span></span><span class=line><span class=cl><span class=sb>    5. Breaking API changes
+</span></span></span><span class=line><span class=cl><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>    Be specific. Reference line numbers. Skip style nits.
+</span></span></span><span class=line><span class=cl><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>    Files changed:
+</span></span></span><span class=line><span class=cl><span class=sb>    </span><span class=si>${</span><span class=nx>filesChanged</span><span class=si>}</span><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>    Diff:
+</span></span></span><span class=line><span class=cl><span class=sb>    </span><span class=si>${</span><span class=nx>diff</span><span class=si>}</span><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>  `</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;default&#39;</span>  <span class=c1>// read-only, no tool use needed
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>parts</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Save review to file
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>writeFileSync</span><span class=p>(</span><span class=s1>&#39;.claude/last-review.md&#39;</span><span class=p>,</span> <span class=nx>parts</span><span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;&#39;</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;\n\nReview saved to .claude/last-review.md&#39;</span><span class=p>);</span>
+</span></span></code></pre></td></tr></table></div></div><p>Add it to your workflow:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Stage your changes</span>
+</span></span><span class=line><span class=cl>git add -p
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Get a review before committing</span>
+</span></span><span class=line><span class=cl>npx tsx scripts/review-staged.ts
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># If the review looks good, commit</span>
+</span></span><span class=line><span class=cl>git commit
+</span></span></code></pre></td></tr></table></div></div><h3 id=script-3-dependency-audit>Script 3: dependency audit</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=c1>// scripts/audit-deps.ts
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=sb>`
+</span></span></span><span class=line><span class=cl><span class=sb>    Audit this project&#39;s dependencies:
+</span></span></span><span class=line><span class=cl><span class=sb>    1. Read package.json
+</span></span></span><span class=line><span class=cl><span class=sb>    2. Run &#39;npm audit&#39; and analyze the results
+</span></span></span><span class=line><span class=cl><span class=sb>    3. Check for outdated packages with &#39;npm outdated&#39;
+</span></span></span><span class=line><span class=cl><span class=sb>    4. Identify any dependencies that are deprecated or unmaintained
+</span></span></span><span class=line><span class=cl><span class=sb>    5. Give me a prioritized list of actions (critical security fixes first)
+</span></span></span><span class=line><span class=cl><span class=sb>  `</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;custom&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionCallback</span>: <span class=kt>async</span> <span class=p>(</span><span class=nx>tool</span><span class=p>,</span> <span class=nx>input</span><span class=p>)</span> <span class=o>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Read&#39;</span><span class=p>)</span> <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>tool</span> <span class=o>===</span> <span class=s1>&#39;Bash&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kr>const</span> <span class=nx>cmd</span> <span class=o>=</span> <span class=nx>input</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=sr>/^npm (audit|outdated|ls|list)/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>))</span> <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=sr>/^(cat|grep|jq)/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>))</span> <span class=k>return</span> <span class=s1>&#39;allow&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=k>return</span> <span class=s1>&#39;deny&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=script-4-multi-file-refactoring>Script 4: multi-file refactoring</h3><p>For large refactoring tasks that need to touch many files:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=c1>// scripts/refactor.ts
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>task</span> <span class=o>=</span> <span class=nx>process</span><span class=p>.</span><span class=nx>argv</span><span class=p>[</span><span class=mi>2</span><span class=p>];</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>task</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s1>&#39;Usage: npx tsx scripts/refactor.ts &#34;description of refactoring&#34;&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=sb>`Starting refactoring: </span><span class=si>${</span><span class=nx>task</span><span class=si>}</span><span class=err>\</span><span class=sb>n`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=sb>`
+</span></span></span><span class=line><span class=cl><span class=sb>    Perform the following refactoring across this codebase:
+</span></span></span><span class=line><span class=cl><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>    </span><span class=si>${</span><span class=nx>task</span><span class=si>}</span><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>
+</span></span></span><span class=line><span class=cl><span class=sb>    Rules:
+</span></span></span><span class=line><span class=cl><span class=sb>    - Make changes file by file
+</span></span></span><span class=line><span class=cl><span class=sb>    - Run tests after each significant change
+</span></span></span><span class=line><span class=cl><span class=sb>    - If tests break, fix them before moving on
+</span></span></span><span class=line><span class=cl><span class=sb>    - Do not change public API signatures unless that&#39;s the explicit goal
+</span></span></span><span class=line><span class=cl><span class=sb>    - Commit each logical change separately with a clear message
+</span></span></span><span class=line><span class=cl><span class=sb>  `</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;acceptEdits&#39;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;\n\nRefactoring complete. Review with: git log --oneline -10&#39;</span><span class=p>);</span>
+</span></span></code></pre></td></tr></table></div></div><p>Usage:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>npx tsx scripts/refactor.ts <span class=s2>&#34;Rename UserService to AccountService everywhere&#34;</span>
+</span></span><span class=line><span class=cl>npx tsx scripts/refactor.ts <span class=s2>&#34;Convert all callback-based functions in src/utils/ to async/await&#34;</span>
+</span></span><span class=line><span class=cl>npx tsx scripts/refactor.ts <span class=s2>&#34;Add TypeScript strict null checks and fix all resulting errors&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=sdk-vs-cli-comparison>SDK vs CLI comparison</h2><p>When should you use the SDK versus the CLI? Here&rsquo;s a detailed comparison:</p><table><thead><tr><th>Aspect</th><th>CLI (<code>claude</code>)</th><th>SDK (<code>@anthropic-ai/claude-code</code>)</th></tr></thead><tbody><tr><td><strong>Interface</strong></td><td>Interactive chat in terminal</td><td>Programmatic async iterable</td></tr><tr><td><strong>Permissions</strong></td><td>Prompted interactively</td><td>Callback or mode-based</td></tr><tr><td><strong>Best for</strong></td><td>Exploratory work, one-off tasks</td><td>Automation, CI, scripts</td></tr><tr><td><strong>Session state</strong></td><td>Persistent until <code>/clear</code></td><td>Fresh per <code>query()</code> call</td></tr><tr><td><strong>Startup time</strong></td><td>~2s</td><td>~1s (no TUI overhead)</td></tr><tr><td><strong>Output</strong></td><td>Formatted for humans</td><td>Typed events for code</td></tr><tr><td><strong>Error handling</strong></td><td>Shows errors in chat</td><td>Throws/yields error events</td></tr><tr><td><strong>Hooks</strong></td><td>From settings.json</td><td>From settings.json (same)</td></tr><tr><td><strong>MCP servers</strong></td><td>From settings.json</td><td>From settings.json (same)</td></tr><tr><td><strong>CLAUDE.md</strong></td><td>Auto-loaded</td><td>Auto-loaded (same)</td></tr><tr><td><strong>Multi-turn</strong></td><td>Natural via chat</td><td>Build conversation array manually</td></tr><tr><td><strong>Parallel runs</strong></td><td>One at a time</td><td>Multiple <code>query()</code> calls</td></tr></tbody></table><p>The key insight: the SDK and CLI share the same engine. The difference is the interface, not the capability. Hooks, MCP servers, CLAUDE.md, and settings all work identically.</p><h2 id=the-github-action>The GitHub Action</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png alt="Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual" loading=lazy decoding=async class=content-image></figure></p><p>Anthropic ships an official Action: <code>anthropic/claude-code-action@v1</code>. Add it to a workflow:</p><h3 id=basic-setup>Basic setup</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/claude.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Claude on PR</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>pull_request_review_comment</span><span class=p>:</span><span class=w>
@@ -161,10 +735,618 @@
 </span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>issues</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>ref</span><span class=p>:</span><span class=w> </span><span class=l>${{ github.head_ref }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>fetch-depth</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>anthropic/claude-code-action@v1</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>anthropic-api-key</span><span class=p>:</span><span class=w> </span><span class=l>${{ secrets.ANTHROPIC_API_KEY }}</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><p>Now anyone in your repo can write <code>@claude please review the failing test</code> in a PR comment and Claude will:</p><ol><li>Check out the branch</li><li>Read the comment thread for context</li><li>Run whatever it needs to (tests, linters, file reads)</li><li>Reply on the PR with its analysis</li><li>Optionally push commits if asked</li></ol><p>The Action respects <code>.claude/settings.json</code> from the repo. The hooks you wrote in piece 5 still apply. The slash commands you wrote in piece 3 still work — <code>@claude /review</code> does what you&rsquo;d expect.</p><h2 id=what-i-use-the-github-action-for>What I use the GitHub Action for</h2><p>Three things have stuck:</p><p><strong>1. PR triage.</strong> New PR opens, a workflow runs <code>@claude /review</code> automatically. By the time a human looks, there&rsquo;s already a first-pass review on the conversation. Saves the reviewer 10 minutes per PR and catches the obvious stuff.</p><p><strong>2. Issue summarization.</strong> A workflow runs on new issues to label them, suggest a fix scope, and link related code. The reporter gets a faster ack and the maintainer gets a head start.</p><p><strong>3. Doc updates.</strong> When the schema changes, an Action runs that asks Claude to update the docs to match. Not always perfect, but ~80% of the work is mechanical.</p><h2 id=the-boundary-between-sdk-and-action>The boundary between SDK and Action</h2><p>I use the SDK when:</p><ul><li>I want Claude inside a script I run locally</li><li>The trigger is a cron, a file change, or a manual command</li><li>I need to inspect the events programmatically</li></ul><p>I use the Action when:</p><ul><li>The trigger is a GitHub event</li><li>The output should land in a PR or issue</li><li>I want a human in the loop and the loop is <code>@mention</code></li></ul><p>There&rsquo;s overlap, of course. The Action is built on the SDK underneath.</p><h2 id=putting-the-series-together>Putting the series together</h2><p>Six pieces, one progression:</p><ol><li>Install + the three-layer config</li><li>Shortcuts and modes</li><li>Slash commands for personal workflows</li><li>MCP for external integrations</li><li>Hooks for safety rails</li><li>SDK + Action for programmatic and CI use</li></ol><p>Each piece on its own buys you something concrete. Together they turn Claude Code from a chat client for code into a piece of programmable infrastructure that lives inside your repo.</p><p>The single trait that distinguishes power users I&rsquo;ve watched: they treat <code>.claude/</code> as part of the codebase. Settings, commands, hooks all committed, all reviewed in PRs, all evolving with the project. That&rsquo;s the muscle memory worth building.</p><p>Happy shipping.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/05-hooks/><span class=title>Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/claude-code-learn/07-hooks-deep-dive/><span class=title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+</span></span></span></code></pre></td></tr></table></div></div><p>Now anyone in your repo can write <code>@claude please review the failing test</code> in a PR comment and Claude will:</p><ol><li>Check out the branch</li><li>Read the comment thread for context</li><li>Run whatever it needs to (tests, linters, file reads)</li><li>Reply on the PR with its analysis</li><li>Optionally push commits if asked</li></ol><h3 id=detailed-workflow-configuration>Detailed workflow configuration</h3><p>Here&rsquo;s a more complete setup with multiple triggers:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/claude-full.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Claude Code Assistant</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Respond to @claude in PR comments</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>pull_request_review_comment</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>types</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>created]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>issue_comment</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>types</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>created]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Auto-review new PRs</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>pull_request</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>types</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>opened, synchronize]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Job 1: Respond to @claude mentions</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>respond</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>if</span><span class=p>:</span><span class=w> </span><span class=p>&gt;</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>      (github.event_name == &#39;issue_comment&#39; || github.event_name == &#39;pull_request_review_comment&#39;)
+</span></span></span><span class=line><span class=cl><span class=sd>      &amp;&amp; contains(github.event.comment.body, &#39;@claude&#39;)</span><span class=w>      
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>permissions</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>contents</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>pull-requests</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>issues</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>ref</span><span class=p>:</span><span class=w> </span><span class=l>${{ github.head_ref }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>fetch-depth</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>anthropic/claude-code-action@v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>anthropic-api-key</span><span class=p>:</span><span class=w> </span><span class=l>${{ secrets.ANTHROPIC_API_KEY }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>max-turns</span><span class=p>:</span><span class=w> </span><span class=m>20</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>timeout-minutes</span><span class=p>:</span><span class=w> </span><span class=m>15</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Job 2: Auto-review new PRs</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>auto-review</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>if</span><span class=p>:</span><span class=w> </span><span class=l>github.event_name == &#39;pull_request&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>permissions</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>contents</span><span class=p>:</span><span class=w> </span><span class=l>read</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>pull-requests</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>fetch-depth</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>anthropic/claude-code-action@v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>anthropic-api-key</span><span class=p>:</span><span class=w> </span><span class=l>${{ secrets.ANTHROPIC_API_KEY }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>prompt</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>            Review this PR. Focus on:
+</span></span></span><span class=line><span class=cl><span class=sd>            1. Correctness and logic errors
+</span></span></span><span class=line><span class=cl><span class=sd>            2. Security issues
+</span></span></span><span class=line><span class=cl><span class=sd>            3. Performance concerns
+</span></span></span><span class=line><span class=cl><span class=sd>            4. Missing tests for new functionality
+</span></span></span><span class=line><span class=cl><span class=sd>            Leave your review as a PR review with specific file/line comments.</span><span class=w>            
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>max-turns</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>timeout-minutes</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=action-parameters-reference>Action parameters reference</h3><table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>anthropic-api-key</code></td><td>Required</td><td>Your Anthropic API key</td></tr><tr><td><code>prompt</code></td><td>From comment</td><td>Override the prompt (for automated triggers)</td></tr><tr><td><code>max-turns</code></td><td><code>30</code></td><td>Maximum agent turns before stopping</td></tr><tr><td><code>timeout-minutes</code></td><td><code>30</code></td><td>Maximum execution time</td></tr><tr><td><code>model</code></td><td>Default</td><td>Specific model to use</td></tr><tr><td><code>allowed-tools</code></td><td>All</td><td>Restrict which tools Claude can use</td></tr></tbody></table><h3 id=secrets-management>Secrets management</h3><p>Store your API key as a GitHub repository secret:</p><ol><li>Go to Settings > Secrets and variables > Actions</li><li>Click &ldquo;New repository secret&rdquo;</li><li>Name: <code>ANTHROPIC_API_KEY</code>, Value: your key</li><li>The workflow references it as <code>${{ secrets.ANTHROPIC_API_KEY }}</code></li></ol><p>Never hardcode API keys in workflow files. They&rsquo;re visible in the repository.</p><p>The Action respects <code>.claude/settings.json</code> from the repo. The hooks you wrote in piece 5 still apply. The slash commands you wrote in piece 3 still work — <code>@claude /review</code> does what you&rsquo;d expect.</p><h2 id=pr-review-workflow--detailed-walkthrough>PR review workflow — detailed walkthrough</h2><p>Let me walk through a complete PR review workflow from start to finish.</p><h3 id=setup-once>Setup once</h3><ol><li>Add the workflow YAML file (above) to <code>.github/workflows/</code></li><li>Add the <code>ANTHROPIC_API_KEY</code> secret</li><li>Commit and push</li></ol><h3 id=the-daily-workflow>The daily workflow</h3><p>A developer opens a PR. The auto-review job triggers:</p><pre tabindex=0><code>Claude Code reviews PR #42: &#34;Add user authentication middleware&#34;
+
+---
+
+## Review Summary
+
+### Critical Issues
+
+**1. Missing rate limiting (src/middleware/auth.ts:45)**
+The authentication middleware doesn&#39;t rate-limit failed attempts.
+An attacker could brute-force tokens. Consider adding:
+
+    import rateLimit from &#39;express-rate-limit&#39;;
+    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
+
+**2. Token stored in localStorage (src/utils/auth.ts:12)**
+localStorage is vulnerable to XSS. Consider httpOnly cookies instead.
+
+### Suggestions
+
+- Add tests for the token refresh flow (currently untested)
+- The `validateToken` function swallows errors silently — log them
+- Consider extracting the JWT config to environment variables
+
+### What looks good
+- Clean separation of auth middleware from business logic
+- Good use of TypeScript generics in the token types
+- Test coverage for the happy path is solid
+</code></pre><p>The reviewer reads Claude&rsquo;s analysis, addresses the critical issues, and replies:</p><pre tabindex=0><code>@claude good catches. Please fix the rate limiting issue — add express-rate-limit
+to the auth middleware with a 100 requests per 15 minute window. Also add a test
+for it.
+</code></pre><p>Claude reads the comment, checks out the branch, makes the changes, runs tests, and pushes a commit:</p><pre tabindex=0><code>I&#39;ve made the following changes:
+
+1. Added `express-rate-limit` dependency
+2. Applied rate limiting to the auth middleware (100 req / 15 min window)
+3. Added test in `tests/middleware/auth.test.ts` for rate limiting behavior
+
+Commit: abc1234 &#34;Add rate limiting to auth middleware&#34;
+
+All tests pass (47 passed, 0 failed).
+</code></pre><p>This loop — review, request changes, Claude implements — can repeat as many times as needed. The PR conversation becomes the interface.</p><h2 id=ci-integration-patterns>CI integration patterns</h2><p>Beyond the GitHub Action, there are patterns for integrating Claude into your existing CI.</p><h3 id=pattern-1-pre-merge-checks>Pattern 1: Pre-merge checks</h3><p>Run Claude as a check before merging:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/claude-check.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Claude Pre-merge Check</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>pull_request</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>types</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>opened, synchronize]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>branches</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>main]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>security-check</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>permissions</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>contents</span><span class=p>:</span><span class=w> </span><span class=l>read</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>pull-requests</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>fetch-depth</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>anthropic/claude-code-action@v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>anthropic-api-key</span><span class=p>:</span><span class=w> </span><span class=l>${{ secrets.ANTHROPIC_API_KEY }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>prompt</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>            Review the diff in this PR for security issues only.
+</span></span></span><span class=line><span class=cl><span class=sd>            Check for:
+</span></span></span><span class=line><span class=cl><span class=sd>            - Hardcoded secrets or credentials
+</span></span></span><span class=line><span class=cl><span class=sd>            - SQL injection vulnerabilities
+</span></span></span><span class=line><span class=cl><span class=sd>            - XSS vulnerabilities
+</span></span></span><span class=line><span class=cl><span class=sd>            - Insecure deserialization
+</span></span></span><span class=line><span class=cl><span class=sd>            - Path traversal
+</span></span></span><span class=line><span class=cl><span class=sd>            - Command injection
+</span></span></span><span class=line><span class=cl><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>            If you find any security issues, leave a review requesting changes.
+</span></span></span><span class=line><span class=cl><span class=sd>            If the code is clean, approve the PR.</span><span class=w>            
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>max-turns</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=pattern-2-automated-documentation-updates>Pattern 2: Automated documentation updates</h3><p>When API files change, update docs automatically:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/claude-docs.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Auto-update Docs</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>push</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>branches</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>main]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>paths</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=s1>&#39;src/api/**&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=s1>&#39;src/models/**&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>update-docs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>permissions</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>contents</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>pull-requests</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>anthropic/claude-code-action@v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>anthropic-api-key</span><span class=p>:</span><span class=w> </span><span class=l>${{ secrets.ANTHROPIC_API_KEY }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>prompt</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>            The API or model files have changed. Update the API documentation:
+</span></span></span><span class=line><span class=cl><span class=sd>            1. Read the changed files in src/api/ and src/models/
+</span></span></span><span class=line><span class=cl><span class=sd>            2. Update docs/api-reference.md to reflect the current state
+</span></span></span><span class=line><span class=cl><span class=sd>            3. If any endpoints were added/removed/changed, update the table
+</span></span></span><span class=line><span class=cl><span class=sd>            4. Create a PR with the documentation updates</span><span class=w>            
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>max-turns</span><span class=p>:</span><span class=w> </span><span class=m>15</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=pattern-3-release-notes-generation>Pattern 3: Release notes generation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/release-notes.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Generate Release Notes</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>release</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>types</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>created]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>notes</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>permissions</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>contents</span><span class=p>:</span><span class=w> </span><span class=l>write</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>fetch-depth</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>anthropic/claude-code-action@v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>anthropic-api-key</span><span class=p>:</span><span class=w> </span><span class=l>${{ secrets.ANTHROPIC_API_KEY }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>prompt</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>            Generate release notes for ${{ github.event.release.tag_name }}.
+</span></span></span><span class=line><span class=cl><span class=sd>            Look at commits since the previous tag.
+</span></span></span><span class=line><span class=cl><span class=sd>            Group changes by category (Features, Fixes, Breaking Changes).
+</span></span></span><span class=line><span class=cl><span class=sd>            Format for GitHub release notes (markdown).
+</span></span></span><span class=line><span class=cl><span class=sd>            Update the release body using gh CLI.</span><span class=w>            
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>max-turns</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=pattern-4-sdk-in-a-custom-ci-step>Pattern 4: SDK in a custom CI step</h3><p>If the GitHub Action doesn&rsquo;t fit your workflow, use the SDK directly:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/custom-claude.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Custom Claude Check</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>push]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>analyze</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>runs-on</span><span class=p>:</span><span class=w> </span><span class=l>ubuntu-latest</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/setup-node@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>node-version</span><span class=p>:</span><span class=w> </span><span class=s1>&#39;20&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Install SDK</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=l>npm install @anthropic-ai/claude-code</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>Run analysis</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>env</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>ANTHROPIC_API_KEY</span><span class=p>:</span><span class=w> </span><span class=l>${{ secrets.ANTHROPIC_API_KEY }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>          node --experimental-vm-modules &lt;&lt; &#39;EOF&#39;
+</span></span></span><span class=line><span class=cl><span class=sd>          import { query } from &#39;@anthropic-ai/claude-code&#39;;
+</span></span></span><span class=line><span class=cl><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>          const conversation = query({
+</span></span></span><span class=line><span class=cl><span class=sd>            prompt: &#39;Run the test suite and report any failures with root cause analysis.&#39;,
+</span></span></span><span class=line><span class=cl><span class=sd>            options: {
+</span></span></span><span class=line><span class=cl><span class=sd>              cwd: process.cwd(),
+</span></span></span><span class=line><span class=cl><span class=sd>              permissionMode: &#39;bypassPermissions&#39;
+</span></span></span><span class=line><span class=cl><span class=sd>            }
+</span></span></span><span class=line><span class=cl><span class=sd>          });
+</span></span></span><span class=line><span class=cl><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>          for await (const event of conversation) {
+</span></span></span><span class=line><span class=cl><span class=sd>            if (event.type === &#39;text&#39;) process.stdout.write(event.text);
+</span></span></span><span class=line><span class=cl><span class=sd>          }
+</span></span></span><span class=line><span class=cl><span class=sd>          EOF</span><span class=w>          
+</span></span></span></code></pre></td></tr></table></div></div><p>This gives you full control over the prompting, permissions, and output handling.</p><h2 id=advanced-sdk-patterns>Advanced SDK patterns</h2><h3 id=multi-turn-conversations>Multi-turn conversations</h3><p>The basic <code>query()</code> is single-turn. For multi-turn conversations, manage the message history yourself:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>async</span> <span class=kd>function</span> <span class=nx>multiTurn</span><span class=p>(</span><span class=nx>turns</span>: <span class=kt>string</span><span class=p>[])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kd>let</span> <span class=nx>context</span> <span class=o>=</span> <span class=s1>&#39;&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>turn</span> <span class=k>of</span> <span class=nx>turns</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>fullPrompt</span> <span class=o>=</span> <span class=nx>context</span>
+</span></span><span class=line><span class=cl>      <span class=o>?</span> <span class=sb>`Previous context:</span><span class=err>\</span><span class=sb>n</span><span class=si>${</span><span class=nx>context</span><span class=si>}</span><span class=err>\</span><span class=sb>n</span><span class=err>\</span><span class=sb>nNew instruction:</span><span class=err>\</span><span class=sb>n</span><span class=si>${</span><span class=nx>turn</span><span class=si>}</span><span class=sb>`</span>
+</span></span><span class=line><span class=cl>      <span class=o>:</span> <span class=nx>turn</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>parts</span>: <span class=kt>string</span><span class=p>[]</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>      <span class=nx>prompt</span>: <span class=kt>fullPrompt</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;acceptEdits&#39;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=nx>parts</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nx>context</span> <span class=o>+=</span> <span class=sb>`</span><span class=err>\</span><span class=sb>nTurn: </span><span class=si>${</span><span class=nx>turn</span><span class=si>}</span><span class=err>\</span><span class=sb>nResponse: </span><span class=si>${</span><span class=nx>parts</span><span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;&#39;</span><span class=p>)</span><span class=si>}</span><span class=err>\</span><span class=sb>n`</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;\n---\n&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>await</span> <span class=nx>multiTurn</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;Read src/api/users.ts and identify any potential issues&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;Fix the issues you identified and add error handling&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;Write tests for the changes you made&#39;</span>
+</span></span><span class=line><span class=cl><span class=p>]);</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=parallel-execution>Parallel execution</h3><p>Run multiple Claude tasks in parallel for independent analyses:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>async</span> <span class=kd>function</span> <span class=nx>runTask</span><span class=p>(</span><span class=nx>name</span>: <span class=kt>string</span><span class=p>,</span> <span class=nx>prompt</span>: <span class=kt>string</span><span class=p>)</span><span class=o>:</span> <span class=nx>Promise</span><span class=p>&lt;</span><span class=nt>string</span><span class=p>&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>parts</span>: <span class=kt>string</span><span class=p>[]</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>    <span class=nx>prompt</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>      <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;default&#39;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=nx>parts</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=sb>`## </span><span class=si>${</span><span class=nx>name</span><span class=si>}</span><span class=err>\</span><span class=sb>n</span><span class=si>${</span><span class=nx>parts</span><span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;&#39;</span><span class=p>)</span><span class=si>}</span><span class=sb>`</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Run analyses in parallel
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>results</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>Promise</span><span class=p>.</span><span class=nx>all</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>  <span class=nx>runTask</span><span class=p>(</span><span class=s1>&#39;Security&#39;</span><span class=p>,</span> <span class=s1>&#39;Audit this codebase for security vulnerabilities. Read key files.&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>  <span class=nx>runTask</span><span class=p>(</span><span class=s1>&#39;Performance&#39;</span><span class=p>,</span> <span class=s1>&#39;Identify performance bottlenecks in the hot paths. Check database queries.&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>  <span class=nx>runTask</span><span class=p>(</span><span class=s1>&#39;Debt&#39;</span><span class=p>,</span> <span class=s1>&#39;Find the top 5 areas of technical debt. Look for TODO comments and complex functions.&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>]);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=nx>results</span><span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;\n\n---\n\n&#39;</span><span class=p>));</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=streaming-to-a-file>Streaming to a file</h3><p>For long-running tasks, stream output to a file while also displaying it:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>query</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@anthropic-ai/claude-code&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>createWriteStream</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;fs&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>outputFile</span> <span class=o>=</span> <span class=nx>createWriteStream</span><span class=p>(</span><span class=s1>&#39;analysis-output.md&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>conversation</span> <span class=o>=</span> <span class=nx>query</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>prompt</span><span class=o>:</span> <span class=s1>&#39;Do a comprehensive architecture review of this project.&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>options</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>cwd</span>: <span class=kt>process.cwd</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>permissionMode</span><span class=o>:</span> <span class=s1>&#39;default&#39;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=k>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>event</span> <span class=k>of</span> <span class=nx>conversation</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=kr>type</span> <span class=o>===</span> <span class=s1>&#39;text&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>stdout</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>outputFile</span><span class=p>.</span><span class=nx>write</span><span class=p>(</span><span class=nx>event</span><span class=p>.</span><span class=nx>text</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>outputFile</span><span class=p>.</span><span class=nx>end</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=nx>console</span><span class=p>.</span><span class=nx>log</span><span class=p>(</span><span class=s1>&#39;\n\nOutput saved to analysis-output.md&#39;</span><span class=p>);</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=troubleshooting>Troubleshooting</h2><h3 id=common-sdk-issues>Common SDK issues</h3><table><thead><tr><th>Problem</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td><code>ANTHROPIC_API_KEY not set</code></td><td>Missing env var</td><td>Export the key in your shell or CI</td></tr><tr><td><code>Permission denied</code> on tool use</td><td><code>default</code> mode blocks everything</td><td>Switch to <code>acceptEdits</code> or custom callback</td></tr><tr><td>Timeout on long tasks</td><td>Default timeout too short</td><td>Set a longer timeout in options</td></tr><tr><td><code>Cannot find module</code></td><td>Wrong import path</td><td>Use <code>@anthropic-ai/claude-code</code>, not <code>claude-code</code></td></tr><tr><td>Empty response</td><td>Model didn&rsquo;t produce text</td><td>Check for error events in the stream</td></tr></tbody></table><h3 id=common-github-action-issues>Common GitHub Action issues</h3><table><thead><tr><th>Problem</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td>Action never triggers</td><td><code>if</code> condition wrong</td><td>Check <code>contains()</code> syntax and event type</td></tr><tr><td>&ldquo;Resource not accessible&rdquo;</td><td>Missing permissions</td><td>Add required permissions block</td></tr><tr><td>Claude can&rsquo;t push commits</td><td>Checkout without ref</td><td>Add <code>ref: ${{ github.head_ref }}</code> to checkout</td></tr><tr><td>Timeout after 30 min</td><td>Complex task</td><td>Increase <code>timeout-minutes</code> or reduce scope</td></tr><tr><td>No response on PR</td><td>Secret not configured</td><td>Verify <code>ANTHROPIC_API_KEY</code> in repo secrets</td></tr></tbody></table><h3 id=debugging-workflow-runs>Debugging workflow runs</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Check recent workflow runs</span>
+</span></span><span class=line><span class=cl>gh run list --limit <span class=m>5</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># View a specific run&#39;s logs</span>
+</span></span><span class=line><span class=cl>gh run view RUN_ID --log
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Re-run a failed workflow</span>
+</span></span><span class=line><span class=cl>gh run rerun RUN_ID
+</span></span></code></pre></td></tr></table></div></div><h2 id=what-i-use-the-github-action-for>What I use the GitHub Action for</h2><p>Three things have stuck:</p><p><strong>1. PR triage.</strong> New PR opens, a workflow runs <code>@claude /review</code> automatically. By the time a human looks, there&rsquo;s already a first-pass review on the conversation. Saves the reviewer 10 minutes per PR and catches the obvious stuff.</p><p><strong>2. Issue summarization.</strong> A workflow runs on new issues to label them, suggest a fix scope, and link related code. The reporter gets a faster ack and the maintainer gets a head start.</p><p><strong>3. Doc updates.</strong> When the schema changes, an Action runs that asks Claude to update the docs to match. Not always perfect, but ~80% of the work is mechanical.</p><h2 id=the-boundary-between-sdk-and-action>The boundary between SDK and Action</h2><p>I use the SDK when:</p><ul><li>I want Claude inside a script I run locally</li><li>The trigger is a cron, a file change, or a manual command</li><li>I need to inspect the events programmatically</li><li>I want fine-grained permission control via callbacks</li></ul><p>I use the Action when:</p><ul><li>The trigger is a GitHub event (PR, issue, comment)</li><li>The output should land in a PR or issue comment</li><li>I want a human in the loop and the loop is <code>@mention</code></li><li>I want the simplest possible setup</li></ul><p>There&rsquo;s overlap, of course. The Action is built on the SDK underneath.</p><h2 id=putting-the-series-together>Putting the series together</h2><p>Six pieces, one progression:</p><ol><li>Install + the three-layer config</li><li>Shortcuts and modes</li><li>Slash commands for personal workflows</li><li>MCP for external integrations</li><li>Hooks for safety rails</li><li>SDK + Action for programmatic and CI use</li></ol><p>Each piece on its own buys you something concrete. Together they turn Claude Code from a chat client for code into a piece of programmable infrastructure that lives inside your repo.</p><p>The single trait that distinguishes power users I&rsquo;ve watched: they treat <code>.claude/</code> as part of the codebase. Settings, commands, hooks all committed, all reviewed in PRs, all evolving with the project. That&rsquo;s the muscle memory worth building.</p><p>Happy shipping.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/05-hooks/><span class=title>Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/claude-code-learn/07-hooks-deep-dive/><span class=title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
 <span class=series-nav-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
 <span class=series-nav-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=series-nav-num>03</span>
 <span class=series-nav-title>Claude Code Hands-On (3): Custom Slash Commands and Conversation Control</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/04-mcp-servers/><span class=series-nav-num>04</span>
@@ -175,7 +1357,7 @@
 <span class=series-nav-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=series-nav-num>08</span>
 <span class=series-nav-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=series-nav-num>09</span>
 <span class=series-nav-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=series-nav-num>10</span>
-<span class=series-nav-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-sdk-in-one-paragraph>The SDK in one paragraph</a></li><li><a href=#permissions-programmatically>Permissions, programmatically</a></li><li><a href=#a-real-script-auto-update-changelog>A real script: auto-update CHANGELOG</a></li><li><a href=#the-github-action>The GitHub Action</a></li><li><a href=#what-i-use-the-github-action-for>What I use the GitHub Action for</a></li><li><a href=#the-boundary-between-sdk-and-action>The boundary between SDK and Action</a></li><li><a href=#putting-the-series-together>Putting the series together</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
+<span class=series-nav-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-sdk-in-one-paragraph>The SDK in one paragraph</a></li><li><a href=#sdk-installation-and-setup>SDK installation and setup</a><ul><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#project-setup-for-typescript>Project setup for TypeScript</a></li><li><a href=#the-hello-world>The hello-world</a></li></ul></li><li><a href=#understanding-conversation-events>Understanding conversation events</a><ul><li><a href=#collecting-the-full-response>Collecting the full response</a></li></ul></li><li><a href=#permissions-programmatically>Permissions, programmatically</a><ul><li><a href=#the-custom-callback-in-detail>The custom callback in detail</a></li><li><a href=#permission-callback-patterns>Permission callback patterns</a></li></ul></li><li><a href=#real-world-automation-scripts>Real-world automation scripts</a><ul><li><a href=#script-1-auto-update-changelog>Script 1: auto-update CHANGELOG</a></li><li><a href=#script-2-code-review-bot>Script 2: code review bot</a></li><li><a href=#script-3-dependency-audit>Script 3: dependency audit</a></li><li><a href=#script-4-multi-file-refactoring>Script 4: multi-file refactoring</a></li></ul></li><li><a href=#sdk-vs-cli-comparison>SDK vs CLI comparison</a></li><li><a href=#the-github-action>The GitHub Action</a><ul><li><a href=#basic-setup>Basic setup</a></li><li><a href=#detailed-workflow-configuration>Detailed workflow configuration</a></li><li><a href=#action-parameters-reference>Action parameters reference</a></li><li><a href=#secrets-management>Secrets management</a></li></ul></li><li><a href=#pr-review-workflow--detailed-walkthrough>PR review workflow — detailed walkthrough</a><ul><li><a href=#setup-once>Setup once</a></li><li><a href=#the-daily-workflow>The daily workflow</a></li></ul></li><li><a href=#ci-integration-patterns>CI integration patterns</a><ul><li><a href=#pattern-1-pre-merge-checks>Pattern 1: Pre-merge checks</a></li><li><a href=#pattern-2-automated-documentation-updates>Pattern 2: Automated documentation updates</a></li><li><a href=#pattern-3-release-notes-generation>Pattern 3: Release notes generation</a></li><li><a href=#pattern-4-sdk-in-a-custom-ci-step>Pattern 4: SDK in a custom CI step</a></li></ul></li><li><a href=#advanced-sdk-patterns>Advanced SDK patterns</a><ul><li><a href=#multi-turn-conversations>Multi-turn conversations</a></li><li><a href=#parallel-execution>Parallel execution</a></li><li><a href=#streaming-to-a-file>Streaming to a file</a></li></ul></li><li><a href=#troubleshooting>Troubleshooting</a><ul><li><a href=#common-sdk-issues>Common SDK issues</a></li><li><a href=#common-github-action-issues>Common GitHub Action issues</a></li><li><a href=#debugging-workflow-runs>Debugging workflow runs</a></li></ul></li><li><a href=#what-i-use-the-github-action-for>What I use the GitHub Action for</a></li><li><a href=#the-boundary-between-sdk-and-action>The boundary between SDK and Action</a></li><li><a href=#putting-the-series-together>Putting the series together</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
 <span class=chapter-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
 <span class=chapter-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=chapter-num>03</span>
@@ -186,5 +1368,5 @@
 <span class=chapter-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>10 min</strong></div><div class=row><span>Word count</span><strong>920</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>40 min</strong></div><div class=row><span>Word count</span><strong>4167</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

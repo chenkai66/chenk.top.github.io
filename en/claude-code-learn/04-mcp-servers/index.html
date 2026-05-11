@@ -20,29 +20,83 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Claude Code Hands-On</a>
 · Chapter 4</div><h1>Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything</h1><p class=deck>MCP is the plug-in protocol that lets Claude Code reach beyond your filesystem. Install one (Playwright), see it work end-to-end, and learn the permission model that keeps it from going feral.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-21>April 21, 2026</time> · 8 min read · 773 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/mcp/ class=tag>#mcp</a><a href=/en/tags/playwright/ class=tag>#playwright</a><a href=/en/tags/integration/ class=tag>#integration</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/04-mcp-servers/>阅读中文版 →</a></div></header><div class=prose><p>If you only learn one extension mechanism in Claude Code, learn MCP. It is the difference between an autocomplete and a platform.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.png alt="Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=the-60-second-pitch>The 60-second pitch</h2><p>MCP is <strong>Model Context Protocol</strong> — a small open spec that lets Claude Code call tools and read resources from external servers. The &ldquo;server&rdquo; is any process that speaks MCP over stdio or HTTP. Claude treats MCP tools the same as its built-in tools: the model decides when to call them, you confirm or auto-approve, results come back as text.</p><p>This means Claude can:</p><ul><li>Drive a browser (Playwright MCP)</li><li>Query a Postgres database (Postgres MCP)</li><li>Read your Notion or Obsidian vault</li><li>Talk to your internal API</li><li>Anything you wrap in a 200-line Node script</li></ul><p>MCP servers are mostly community-built. There&rsquo;s a catalog at <code>mcp.so</code> and a growing one inside Anthropic&rsquo;s docs. The good ones are short, focused, and honest about what they do.</p><h2 id=install-your-first-mcp-server>Install your first MCP server</h2><p>Playwright is the canonical &ldquo;first MCP&rdquo; because it makes the value obvious. From your shell — <em>not</em> inside Claude Code:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_mcp_arch_en.png alt="MCP Server Communication Flow" loading=lazy decoding=async class=content-image></figure></p><p>The MCP server is its own process. Claude Code talks to it over stdio (or HTTP, for remote servers). Tools are discovered at handshake — Claude asks &ldquo;what can you do?&rdquo; and the server replies with a list of tool schemas. From then on, the model can call those tools as if they were built-in.</p><p>The protocol is small enough that you can read the spec in 30 minutes. Building your own is a half-day project for a focused use case.</p><h2 id=permissions--the-part-you-must-not-skip>Permissions — the part you must not skip</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_2.png alt="Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual" loading=lazy decoding=async class=content-image></figure></p><p>Every MCP tool has a permission level. The first time the model calls one, you get a confirmation dialog. You have three options:</p><ul><li><strong>Allow once</strong> — for this call only</li><li><strong>Allow for this session</strong> — until you <code>/clear</code> or quit</li><li><strong>Always allow</strong> — written into <code>.claude/settings.json</code></li></ul><p>I do not recommend &ldquo;always allow&rdquo; for any MCP that mutates state. Read-only tools (search, fetch, query) — sure. Anything that writes files, sends messages, or hits an API with side effects — confirm every time, or scope the permission narrowly.</p><p>The right pattern in <code>.claude/settings.json</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
-</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__navigate&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__extract_text&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=p>],</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span>
-</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__execute_javascript&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=p>]</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>This auto-allows the safe Playwright tools and outright blocks the one that runs arbitrary JS in the browser. Per-tool granularity.</p><h2 id=useful-mcp-servers-i-actually-use>Useful MCP servers I actually use</h2><p>After trying ~30, the ones that earned a permanent spot:</p><table><thead><tr><th>Server</th><th>What it does</th><th>Why it&rsquo;s worth it</th></tr></thead><tbody><tr><td><code>playwright</code></td><td>Browser automation</td><td>Replaces a dozen hand-rolled scrapers</td></tr><tr><td><code>postgres</code></td><td>Read-only Postgres queries</td><td>&ldquo;Show me the rows&rdquo; without leaving Claude</td></tr><tr><td><code>filesystem</code></td><td>Sandboxed file access outside the project root</td><td>Read configs in <code>~/.config/</code> etc.</td></tr><tr><td><code>slack</code></td><td>Search Slack history, post to channels</td><td>Standup summaries write themselves</td></tr><tr><td><code>github</code></td><td>Issue and PR access via GitHub API</td><td>Cleaner than CLI for some queries</td></tr></tbody></table><p>The pattern: each does one thing well, ships as a single npm or PyPI package, and exposes 3-10 tools.</p><h2 id=what-mcp-isnt>What MCP isn&rsquo;t</h2><p>A few things to be clear about:</p><ul><li><strong>Not a sandbox.</strong> An MCP server runs with your user permissions. A malicious server can do whatever you can do. Vet what you install.</li><li><strong>Not a fast path.</strong> Each MCP tool call is a process roundtrip. Latency is real. Don&rsquo;t use MCP for things you&rsquo;d put in a hot loop.</li><li><strong>Not the only way.</strong> For one-off integrations, a slash command that runs a shell script is sometimes the right answer. MCP is for things you&rsquo;ll call repeatedly across sessions.</li></ul><h2 id=building-one-sketch>Building one (sketch)</h2><p>If you want to build your own, the SDK is <code>@modelcontextprotocol/sdk</code> for Node or <code>mcp</code> for Python. The minimal server is ~50 lines:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-04-21>April 21, 2026</time> · 38 min read · 4016 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/mcp/ class=tag>#mcp</a><a href=/en/tags/playwright/ class=tag>#playwright</a><a href=/en/tags/integration/ class=tag>#integration</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/04-mcp-servers/>阅读中文版 →</a></div></header><div class=prose><p>If you only learn one extension mechanism in Claude Code, learn MCP. It is the difference between an autocomplete and a platform.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.png alt="Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=the-60-second-pitch>The 60-second pitch</h2><p>MCP is <strong>Model Context Protocol</strong> — a small open spec that lets Claude Code call tools and read resources from external servers. The &ldquo;server&rdquo; is any process that speaks MCP over stdio or HTTP. Claude treats MCP tools the same as its built-in tools: the model decides when to call them, you confirm or auto-approve, results come back as text.</p><p>This means Claude can:</p><ul><li>Drive a browser (Playwright MCP)</li><li>Query a Postgres database (Postgres MCP)</li><li>Read your Notion or Obsidian vault</li><li>Talk to your internal API</li><li>Anything you wrap in a 200-line Node script</li></ul><p>MCP servers are mostly community-built. There&rsquo;s a catalog at <code>mcp.so</code> and a growing one inside Anthropic&rsquo;s docs. The good ones are short, focused, and honest about what they do.</p><h2 id=understanding-the-mcp-protocol>Understanding the MCP protocol</h2><p>Before installing anything, it helps to understand what&rsquo;s actually happening under the hood. MCP is a JSON-RPC 2.0 protocol with a specific lifecycle:</p><p><strong>1. Initialization.</strong> Claude Code spawns the MCP server process (or connects to a remote one). The two sides exchange capabilities in an <code>initialize</code> handshake. The server declares what it supports — tools, resources, prompts — and the client confirms what it wants to use.</p><p><strong>2. Discovery.</strong> Claude Code calls <code>tools/list</code> to get the full catalog of available tools. Each tool comes with a name, description, and a JSON Schema for its input. This is how the model knows what it can call and what arguments to pass.</p><p><strong>3. Invocation.</strong> During a conversation, when the model decides to use an MCP tool, Claude Code sends a <code>tools/call</code> request with the tool name and arguments. The server executes the logic and returns a result — text, images, or structured data.</p><p><strong>4. Shutdown.</strong> When Claude Code exits or you remove the server, it sends a shutdown notification and terminates the process.</p><p>The entire protocol spec is surprisingly short. You can read it at <code>spec.modelcontextprotocol.io</code> in about 30 minutes. The key insight is that MCP is stateless between calls — each <code>tools/call</code> is independent. The server doesn&rsquo;t need to track conversation context; Claude Code handles that.</p><h3 id=stdio-vs-sse-transport>Stdio vs SSE transport</h3><p>MCP supports two transport mechanisms, and understanding the difference matters for how you configure and debug servers:</p><p><strong>Stdio transport</strong> is the default and most common. Claude Code spawns the MCP server as a child process and communicates over stdin/stdout. Each JSON-RPC message is written as a line to stdout; Claude Code writes requests to the process&rsquo;s stdin.</p><p>Advantages of stdio:</p><ul><li>Zero network configuration</li><li>No port conflicts</li><li>Process lifecycle managed automatically</li><li>Works behind firewalls and VPNs</li><li>Simplest to debug — you can just read the pipe</li></ul><p><strong>SSE (Server-Sent Events) transport</strong> is for remote servers. The MCP server runs as an HTTP service, and Claude Code connects to it via Server-Sent Events for server-to-client messages and HTTP POST for client-to-server messages.</p><p>Advantages of SSE:</p><ul><li>Server can run on a different machine</li><li>Multiple clients can share one server instance</li><li>Server persists across Claude Code sessions</li><li>Can be deployed behind a reverse proxy with auth</li></ul><p>In practice, 90% of the MCP servers you&rsquo;ll use are stdio. SSE is for when you need a shared service — a company-wide database proxy, a centralized tool server, etc.</p><pre tabindex=0><code># Stdio: Claude Code spawns the process
+Claude Code  ──stdin/stdout──&gt;  MCP Server Process (local)
+
+# SSE: Claude Code connects over HTTP
+Claude Code  ──HTTP POST──&gt;  MCP Server (remote)
+             &lt;──SSE──────
+</code></pre><h2 id=install-your-first-mcp-server>Install your first MCP server</h2><p>Playwright is the canonical &ldquo;first MCP&rdquo; because it makes the value obvious. From your shell — <em>not</em> inside Claude Code:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_mcp_arch_en.png alt="MCP Server Communication Flow" loading=lazy decoding=async class=content-image></figure></p><p>The MCP server is its own process. Claude Code talks to it over stdio (or HTTP, for remote servers). Tools are discovered at handshake — Claude asks &ldquo;what can you do?&rdquo; and the server replies with a list of tool schemas. From then on, the model can call those tools as if they were built-in.</p><h3 id=step-by-step-playwright-mcp>Step-by-step: Playwright MCP</h3><p>Playwright MCP gives Claude a real browser. Not a headless scraper — a full Chromium instance it can navigate, click, screenshot, and inspect.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Add the server to your project</span>
+</span></span><span class=line><span class=cl>claude mcp add playwright -- npx @anthropic-ai/mcp-playwright
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Verify it&#39;s registered</span>
+</span></span><span class=line><span class=cl>claude mcp list
+</span></span></code></pre></td></tr></table></div></div><p>After adding, restart Claude Code (or start a new session). You should see the Playwright tools in the tool list. Try a simple prompt:</p><pre tabindex=0><code>Navigate to https://news.ycombinator.com and tell me the top 3 stories
+</code></pre><p>Claude will call <code>browser_navigate</code>, then <code>browser_snapshot</code> to read the page content, and summarize the results. The first time each tool is called, you&rsquo;ll get a permission prompt.</p><p>Here&rsquo;s what the actual tool calls look like in a session:</p><pre tabindex=0><code>Claude wants to use mcp tool: mcp__playwright__browser_navigate
+  url: &#34;https://news.ycombinator.com&#34;
+&gt; Allow? (y/n/always)
+
+Claude wants to use mcp tool: mcp__playwright__browser_snapshot
+&gt; Allow? (y/n/always)
+</code></pre><h3 id=step-by-step-filesystem-mcp>Step-by-step: Filesystem MCP</h3><p>The filesystem MCP server gives Claude controlled access to directories outside your project root. By default, Claude Code can only read and write files within the current working directory. The filesystem MCP extends that — with guardrails.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Allow Claude to read your SSH config and dotfiles (read-only)</span>
+</span></span><span class=line><span class=cl>claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  /Users/you/.config <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  /Users/you/.ssh/config
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The paths you pass are the allowed directories.</span>
+</span></span><span class=line><span class=cl><span class=c1># The server refuses access to anything outside them.</span>
+</span></span></code></pre></td></tr></table></div></div><p>Now you can ask Claude things like:</p><pre tabindex=0><code>Read my SSH config and tell me which hosts I have configured
+</code></pre><pre tabindex=0><code>Check my git config in ~/.config/git/config and suggest improvements
+</code></pre><p>The filesystem server enforces a strict allowlist. Even if the model tries to read <code>/etc/passwd</code>, the server returns an error. This is sandbox-by-design.</p><h3 id=step-by-step-github-mcp>Step-by-step: GitHub MCP</h3><p>The GitHub MCP server gives Claude direct access to the GitHub API — issues, PRs, repos, and more. It&rsquo;s richer than shelling out to <code>gh</code> because the model gets structured data back.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># You need a GitHub personal access token</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>GITHUB_PERSONAL_ACCESS_TOKEN</span><span class=o>=</span>ghp_xxxxxxxxxxxx
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add the server</span>
+</span></span><span class=line><span class=cl>claude mcp add github -- npx -y @modelcontextprotocol/server-github
+</span></span></code></pre></td></tr></table></div></div><p>Now Claude can:</p><pre tabindex=0><code>List all open issues in this repo labeled &#34;bug&#34;
+</code></pre><pre tabindex=0><code>Show me the review comments on PR #42
+</code></pre><pre tabindex=0><code>Create a new issue titled &#34;Fix login timeout&#34; with the label &#34;backend&#34;
+</code></pre><p>The GitHub MCP exposes tools for repositories, issues, pull requests, branches, files, and search. It&rsquo;s one of the most tool-rich MCP servers — around 30+ tools.</p><h3 id=step-by-step-postgres-mcp>Step-by-step: Postgres MCP</h3><p>The Postgres MCP server connects Claude to a PostgreSQL database. It&rsquo;s designed for read-only exploration — analyzing schemas, running queries, explaining table structures.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Add with your connection string</span>
+</span></span><span class=line><span class=cl>claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=s2>&#34;postgresql://user:password@localhost:5432/mydb&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Now you can have conversations like:</p><pre tabindex=0><code>Show me the schema of the users table
+</code></pre><pre tabindex=0><code>How many orders were placed in the last 7 days, grouped by status?
+</code></pre><pre tabindex=0><code>Find any users who signed up but never placed an order
+</code></pre><p>The server runs queries against your database and returns results as formatted text. A few safety notes:</p><ul><li>Use a read-only database user. The server doesn&rsquo;t enforce read-only mode itself.</li><li>Don&rsquo;t point it at production with a write-capable user. Use a replica.</li><li>Connection strings with passwords end up in your settings file. Use environment variables instead:</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=s2>&#34;</span><span class=nv>$DATABASE_URL</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-by-step-slack-mcp>Step-by-step: Slack MCP</h3><p>The Slack MCP server lets Claude search your Slack workspace, read channels, and post messages.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Requires a Slack bot token with appropriate scopes</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>SLACK_BOT_TOKEN</span><span class=o>=</span>xoxb-xxxxxxxxxxxx
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>claude mcp add slack -- npx -y @anthropic-ai/mcp-slack
+</span></span></code></pre></td></tr></table></div></div><p>Useful prompts:</p><pre tabindex=0><code>Search Slack for messages about the deployment failure yesterday
+</code></pre><pre tabindex=0><code>Summarize the #engineering channel from the last 24 hours
+</code></pre><pre tabindex=0><code>Post a standup update to #team-backend summarizing what I committed today
+</code></pre><p>This one is powerful but I keep it on per-call confirmation. A tool that can post messages to your entire company&rsquo;s Slack deserves careful supervision.</p><h2 id=configuration-in-settingsjson>Configuration in settings.json</h2><p>When you run <code>claude mcp add</code>, the server gets registered in <code>.claude/settings.json</code>. Here&rsquo;s what that looks like for a multi-server setup:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -64,29 +118,616 @@
 </span><span class=lnt>20
 </span><span class=lnt>21
 </span><span class=lnt>22
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>Server</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@modelcontextprotocol/sdk/server/index.js&#39;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>StdioServerTransport</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@modelcontextprotocol/sdk/server/stdio.js&#39;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>server</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>Server</span><span class=p>({</span> <span class=nx>name</span><span class=o>:</span> <span class=s1>&#39;my-tools&#39;</span><span class=p>,</span> <span class=nx>version</span><span class=o>:</span> <span class=s1>&#39;0.1&#39;</span> <span class=p>},</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>capabilities</span><span class=o>:</span> <span class=p>{</span> <span class=nx>tools</span><span class=o>:</span> <span class=p>{}</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>});</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nx>server</span><span class=p>.</span><span class=nx>setRequestHandler</span><span class=p>(</span><span class=s1>&#39;tools/list&#39;</span><span class=p>,</span> <span class=kr>async</span> <span class=p>()</span> <span class=o>=&gt;</span> <span class=p>({</span>
-</span></span><span class=line><span class=cl>  <span class=nx>tools</span><span class=o>:</span> <span class=p>[{</span>
-</span></span><span class=line><span class=cl>    <span class=nx>name</span><span class=o>:</span> <span class=s1>&#39;echo&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nx>description</span><span class=o>:</span> <span class=s1>&#39;Echo back the input&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nx>inputSchema</span><span class=o>:</span> <span class=p>{</span> <span class=kr>type</span><span class=o>:</span> <span class=s1>&#39;object&#39;</span><span class=p>,</span> <span class=nx>properties</span><span class=o>:</span> <span class=p>{</span> <span class=nx>text</span><span class=o>:</span> <span class=p>{</span> <span class=kr>type</span><span class=o>:</span> <span class=s1>&#39;string&#39;</span> <span class=p>}</span> <span class=p>}</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=p>}]</span>
-</span></span><span class=line><span class=cl><span class=p>}));</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nx>server</span><span class=p>.</span><span class=nx>setRequestHandler</span><span class=p>(</span><span class=s1>&#39;tools/call&#39;</span><span class=p>,</span> <span class=kr>async</span> <span class=p>(</span><span class=nx>req</span><span class=p>)</span> <span class=o>=&gt;</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>req</span><span class=p>.</span><span class=nx>params</span><span class=p>.</span><span class=nx>name</span> <span class=o>===</span> <span class=s1>&#39;echo&#39;</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span> <span class=nx>content</span><span class=o>:</span> <span class=p>[{</span> <span class=kr>type</span><span class=o>:</span> <span class=s1>&#39;text&#39;</span><span class=p>,</span> <span class=nx>text</span>: <span class=kt>req.params.arguments.text</span> <span class=p>}]</span> <span class=p>};</span>
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;mcpServers&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;playwright&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;npx&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;args&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;@anthropic-ai/mcp-playwright&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;filesystem&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;npx&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;args&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;-y&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;@modelcontextprotocol/server-filesystem&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;/Users/you/.config&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;github&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;npx&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;args&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;-y&#34;</span><span class=p>,</span> <span class=s2>&#34;@modelcontextprotocol/server-github&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;GITHUB_PERSONAL_ACCESS_TOKEN&#34;</span><span class=p>:</span> <span class=s2>&#34;${GITHUB_PERSONAL_ACCESS_TOKEN}&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;postgres&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;npx&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;args&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;-y&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;@modelcontextprotocol/server-postgres&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;${DATABASE_URL}&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>A few things to notice:</p><ul><li><strong>Environment variables</strong> are referenced with <code>${VAR}</code> syntax. Claude Code resolves them at startup. Never hardcode secrets in settings files.</li><li><strong>The <code>args</code> array</strong> is passed directly to the command. No shell interpolation happens here.</li><li><strong>Server names</strong> (like <code>playwright</code>, <code>github</code>) are how you&rsquo;ll reference them in permissions and in conversation.</li></ul><h3 id=configuration-scopes>Configuration scopes</h3><p>MCP servers can be registered at three levels:</p><table><thead><tr><th>Scope</th><th>File</th><th>Applies to</th></tr></thead><tbody><tr><td>Project</td><td><code>.claude/settings.json</code></td><td>Everyone who clones this repo</td></tr><tr><td>User-project</td><td><code>.claude/settings.local.json</code></td><td>Only you, in this repo</td></tr><tr><td>Global</td><td><code>~/.claude/settings.json</code></td><td>All your projects</td></tr></tbody></table><p>Project-level is for servers the whole team should use (Playwright for testing, database for exploration). User-project is for personal productivity servers (your Obsidian vault, your private APIs). Global is for servers you want everywhere (filesystem access to your dotfiles).</p><h2 id=permissions--the-part-you-must-not-skip>Permissions — the part you must not skip</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_2.png alt="Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual" loading=lazy decoding=async class=content-image></figure></p><p>Every MCP tool has a permission level. The first time the model calls one, you get a confirmation dialog. You have three options:</p><ul><li><strong>Allow once</strong> — for this call only</li><li><strong>Allow for this session</strong> — until you <code>/clear</code> or quit</li><li><strong>Always allow</strong> — written into <code>.claude/settings.json</code></li></ul><p>I do not recommend &ldquo;always allow&rdquo; for any MCP that mutates state. Read-only tools (search, fetch, query) — sure. Anything that writes files, sends messages, or hits an API with side effects — confirm every time, or scope the permission narrowly.</p><p>The right pattern in <code>.claude/settings.json</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__browser_navigate&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__browser_snapshot&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__browser_click&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__github__list_issues&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__github__get_pull_request&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__postgres__query&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__browser_run_code_unsafe&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__github__create_issue&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__slack__post_message&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>This auto-allows read-only operations and blocks anything that mutates external state. Per-tool granularity.</p><h3 id=permission-naming-convention>Permission naming convention</h3><p>MCP tool permissions follow the pattern <code>mcp__SERVERNAME__TOOLNAME</code>. The double underscore is intentional. You can also use regex patterns:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__browser_snapshot&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__browser_navigate&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__playwright__browser_run_code_unsafe&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>If you want to allow all tools from a server (for read-only servers), you can be more permissive. But I prefer explicit allowlists.</p><h3 id=common-permissions-gotchas>Common permissions gotchas</h3><p><strong>Gotcha 1: npx downloads on first run.</strong> The first time an MCP server runs, <code>npx</code> may download the package. This takes a few seconds and looks like the server is hanging. It&rsquo;s not broken — just wait.</p><p><strong>Gotcha 2: Permission prompt fatigue.</strong> If you&rsquo;re getting a permission prompt on every single MCP call, you&rsquo;re doing it wrong. Add the safe, read-only tools to your allow list. Keep the write tools on manual confirmation.</p><p><strong>Gotcha 3: Env vars not resolved.</strong> If your server needs environment variables and they&rsquo;re not set in your shell, the server will fail silently or with a cryptic error. Always verify with <code>echo $VAR_NAME</code> before blaming the MCP server.</p><p><strong>Gotcha 4: Server name collisions.</strong> If two settings files (e.g., project and global) define the same server name, the more specific one wins. This can be confusing if you expect the global config to apply.</p><h2 id=useful-mcp-servers-i-actually-use>Useful MCP servers I actually use</h2><p>After trying ~30, the ones that earned a permanent spot:</p><table><thead><tr><th>Server</th><th>Package</th><th>What it does</th><th>Why it&rsquo;s worth it</th></tr></thead><tbody><tr><td>Playwright</td><td><code>@anthropic-ai/mcp-playwright</code></td><td>Browser automation</td><td>Replaces a dozen hand-rolled scrapers</td></tr><tr><td>Postgres</td><td><code>@modelcontextprotocol/server-postgres</code></td><td>Read-only Postgres queries</td><td>&ldquo;Show me the rows&rdquo; without leaving Claude</td></tr><tr><td>Filesystem</td><td><code>@modelcontextprotocol/server-filesystem</code></td><td>Sandboxed file access outside project root</td><td>Read configs in <code>~/.config/</code> etc.</td></tr><tr><td>Slack</td><td><code>@anthropic-ai/mcp-slack</code></td><td>Search Slack history, post to channels</td><td>Standup summaries write themselves</td></tr><tr><td>GitHub</td><td><code>@modelcontextprotocol/server-github</code></td><td>Issue and PR access via GitHub API</td><td>Cleaner than CLI for some queries</td></tr><tr><td>Fetch</td><td><code>@anthropic-ai/mcp-fetch</code></td><td>HTTP GET/POST to any URL</td><td>Quick API exploration, web fetching</td></tr></tbody></table><p>The pattern: each does one thing well, ships as a single npm or PyPI package, and exposes 3-10 tools.</p><h3 id=servers-i-evaluated-and-dropped>Servers I evaluated and dropped</h3><p>Not every MCP server is worth keeping. Here are some I tried and why I removed them:</p><table><thead><tr><th>Server</th><th>Why I dropped it</th></tr></thead><tbody><tr><td>Memory server</td><td>Interesting concept but the model&rsquo;s built-in context is usually enough</td></tr><tr><td>Brave Search</td><td>Rate limits hit fast; <code>WebSearch</code> built-in tool is often sufficient</td></tr><tr><td>SQLite</td><td>Postgres server covers my needs; didn&rsquo;t need a second database tool</td></tr><tr><td>Docker</td><td>Too much power with too little guardrails; prefer scripting Docker commands directly</td></tr></tbody></table><h2 id=debugging-mcp-connection-issues>Debugging MCP connection issues</h2><p>Things will go wrong. Here&rsquo;s a systematic approach to debugging MCP servers.</p><h3 id=step-1-check-the-server-is-registered>Step 1: Check the server is registered</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>claude mcp list
+</span></span></code></pre></td></tr></table></div></div><p>You should see your server in the list with its command and args. If it&rsquo;s not there, re-add it.</p><h3 id=step-2-test-the-server-standalone>Step 2: Test the server standalone</h3><p>Run the server command directly in your terminal:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># For a stdio server, just run it and see if it starts</span>
+</span></span><span class=line><span class=cl>npx @anthropic-ai/mcp-playwright
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># It should sit there waiting for input on stdin</span>
+</span></span><span class=line><span class=cl><span class=c1># If it crashes immediately, you have a dependency issue</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-3-check-for-error-output>Step 3: Check for error output</h3><p>When a server fails inside Claude Code, the error often shows up in Claude Code&rsquo;s own output. Look for lines like:</p><pre tabindex=0><code>MCP server &#39;playwright&#39; failed to start: Error: spawn npx ENOENT
+</code></pre><p>Common causes:</p><table><thead><tr><th>Error</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td><code>ENOENT</code></td><td><code>npx</code> not found</td><td>Ensure Node.js is in your PATH</td></tr><tr><td><code>ECONNREFUSED</code></td><td>SSE server not running</td><td>Start the remote server first</td></tr><tr><td><code>timeout</code></td><td>Server took too long to initialize</td><td>Check if <code>npx</code> is downloading a package</td></tr><tr><td><code>unexpected token</code></td><td>Version mismatch</td><td>Clear npx cache: <code>npx clear-npx-cache</code></td></tr></tbody></table><h3 id=step-4-enable-verbose-logging>Step 4: Enable verbose logging</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Run Claude Code with debug output</span>
+</span></span><span class=line><span class=cl><span class=nv>CLAUDE_DEBUG</span><span class=o>=</span><span class=m>1</span> claude
+</span></span></code></pre></td></tr></table></div></div><p>This shows the raw JSON-RPC messages between Claude Code and the MCP server. You&rsquo;ll see exactly where the communication breaks down.</p><h3 id=step-5-check-environment-variables>Step 5: Check environment variables</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Make sure all required env vars are set</span>
+</span></span><span class=line><span class=cl>env <span class=p>|</span> grep -i github
+</span></span><span class=line><span class=cl>env <span class=p>|</span> grep -i slack
+</span></span><span class=line><span class=cl>env <span class=p>|</span> grep -i database
+</span></span></code></pre></td></tr></table></div></div><p>MCP servers fail silently when required environment variables are missing. The server starts, the handshake succeeds, but the first tool call fails with an auth error.</p><h2 id=what-mcp-isnt>What MCP isn&rsquo;t</h2><p>A few things to be clear about:</p><ul><li><strong>Not a sandbox.</strong> An MCP server runs with your user permissions. A malicious server can do whatever you can do. Vet what you install.</li><li><strong>Not a fast path.</strong> Each MCP tool call is a process roundtrip. Latency is real. Don&rsquo;t use MCP for things you&rsquo;d put in a hot loop.</li><li><strong>Not the only way.</strong> For one-off integrations, a slash command that runs a shell script is sometimes the right answer. MCP is for things you&rsquo;ll call repeatedly across sessions.</li><li><strong>Not a streaming interface.</strong> MCP tools return complete results, not streams. If you need real-time data, you need a different approach.</li></ul><h2 id=building-a-custom-mcp-server--complete-example>Building a custom MCP server — complete example</h2><p>If you want to build your own, the SDK is <code>@modelcontextprotocol/sdk</code> for Node or <code>mcp</code> for Python. Let me walk through a real example: a server that queries a REST API and exposes it as tools.</p><h3 id=the-scenario>The scenario</h3><p>You have an internal API at <code>https://api.internal.company.com</code> that manages deployments. You want Claude to be able to list deployments, check their status, and trigger rollbacks. Instead of teaching Claude to use <code>curl</code>, you build an MCP server.</p><h3 id=project-setup>Project setup</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mkdir mcp-deploy-server
+</span></span><span class=line><span class=cl><span class=nb>cd</span> mcp-deploy-server
+</span></span><span class=line><span class=cl>npm init -y
+</span></span><span class=line><span class=cl>npm install @modelcontextprotocol/sdk zod
+</span></span></code></pre></td></tr></table></div></div><h3 id=the-full-server>The full server</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=c1>// server.ts
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>import</span> <span class=p>{</span> <span class=nx>McpServer</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@modelcontextprotocol/sdk/server/mcp.js&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>StdioServerTransport</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;@modelcontextprotocol/sdk/server/stdio.js&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=kr>import</span> <span class=p>{</span> <span class=nx>z</span> <span class=p>}</span> <span class=kr>from</span> <span class=s1>&#39;zod&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>API_BASE</span> <span class=o>=</span> <span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>DEPLOY_API_URL</span> <span class=o>||</span> <span class=s1>&#39;https://api.internal.company.com&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>API_TOKEN</span> <span class=o>=</span> <span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>DEPLOY_API_TOKEN</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>API_TOKEN</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s1>&#39;DEPLOY_API_TOKEN environment variable is required&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>async</span> <span class=kd>function</span> <span class=nx>apiCall</span><span class=p>(</span><span class=nx>path</span>: <span class=kt>string</span><span class=p>,</span> <span class=nx>method</span> <span class=o>=</span> <span class=s1>&#39;GET&#39;</span><span class=p>,</span> <span class=nx>body?</span>: <span class=kt>unknown</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>response</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>fetch</span><span class=p>(</span><span class=sb>`</span><span class=si>${</span><span class=nx>API_BASE</span><span class=si>}${</span><span class=nx>path</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>method</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>headers</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=s1>&#39;Authorization&#39;</span><span class=o>:</span> <span class=sb>`Bearer </span><span class=si>${</span><span class=nx>API_TOKEN</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s1>&#39;Content-Type&#39;</span><span class=o>:</span> <span class=s1>&#39;application/json&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=nx>body</span>: <span class=kt>body</span> <span class=o>?</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>body</span><span class=p>)</span> <span class=o>:</span> <span class=kc>undefined</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>response</span><span class=p>.</span><span class=nx>ok</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>throw</span> <span class=k>new</span> <span class=nb>Error</span><span class=p>(</span><span class=sb>`API error </span><span class=si>${</span><span class=nx>response</span><span class=p>.</span><span class=nx>status</span><span class=si>}</span><span class=sb>: </span><span class=si>${</span><span class=k>await</span> <span class=nx>response</span><span class=p>.</span><span class=nx>text</span><span class=p>()</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>response</span><span class=p>.</span><span class=nx>json</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Create the server
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>server</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>McpServer</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>name</span><span class=o>:</span> <span class=s1>&#39;deploy-tools&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>version</span><span class=o>:</span> <span class=s1>&#39;1.0.0&#39;</span><span class=p>,</span>
 </span></span><span class=line><span class=cl><span class=p>});</span>
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>await</span> <span class=nx>server</span><span class=p>.</span><span class=nx>connect</span><span class=p>(</span><span class=k>new</span> <span class=nx>StdioServerTransport</span><span class=p>());</span>
-</span></span></code></pre></td></tr></table></div></div><p>That&rsquo;s a working MCP server. Save it, register it (<code>claude mcp add my-echo node my-server.js</code>), restart, and Claude has a new tool. The hard part is choosing what tools to expose; the protocol gets out of the way.</p><p>Next piece: hooks — code that runs before and after every tool call. The defensive layer.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=title>Claude Code Hands-On (3): Custom Slash Commands and Conversation Control</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/claude-code-learn/05-hooks/><span class=title>Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+</span></span><span class=line><span class=cl><span class=c1>// Tool 1: List deployments
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>server</span><span class=p>.</span><span class=nx>tool</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;list_deployments&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;List recent deployments with their status&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>environment</span>: <span class=kt>z.enum</span><span class=p>([</span><span class=s1>&#39;staging&#39;</span><span class=p>,</span> <span class=s1>&#39;production&#39;</span><span class=p>]).</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;Target environment&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>limit</span>: <span class=kt>z.number</span><span class=p>().</span><span class=nx>min</span><span class=p>(</span><span class=mi>1</span><span class=p>).</span><span class=nx>max</span><span class=p>(</span><span class=mi>50</span><span class=p>).</span><span class=k>default</span><span class=p>(</span><span class=mi>10</span><span class=p>).</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;Number of results&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=kr>async</span> <span class=p>({</span> <span class=nx>environment</span><span class=p>,</span> <span class=nx>limit</span> <span class=p>})</span> <span class=o>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>data</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>apiCall</span><span class=p>(</span><span class=sb>`/deployments?env=</span><span class=si>${</span><span class=nx>environment</span><span class=si>}</span><span class=sb>&amp;limit=</span><span class=si>${</span><span class=nx>limit</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>formatted</span> <span class=o>=</span> <span class=nx>data</span><span class=p>.</span><span class=nx>deployments</span>
+</span></span><span class=line><span class=cl>      <span class=p>.</span><span class=nx>map</span><span class=p>((</span><span class=nx>d</span>: <span class=kt>any</span><span class=p>)</span> <span class=o>=&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=sb>`[</span><span class=si>${</span><span class=nx>d</span><span class=p>.</span><span class=nx>status</span><span class=si>}</span><span class=sb>] </span><span class=si>${</span><span class=nx>d</span><span class=p>.</span><span class=nx>id</span><span class=si>}</span><span class=sb> — </span><span class=si>${</span><span class=nx>d</span><span class=p>.</span><span class=nx>service</span><span class=si>}</span><span class=sb> @ </span><span class=si>${</span><span class=nx>d</span><span class=p>.</span><span class=nx>version</span><span class=si>}</span><span class=sb> (</span><span class=si>${</span><span class=nx>d</span><span class=p>.</span><span class=nx>deployed_at</span><span class=si>}</span><span class=sb>)`</span>
+</span></span><span class=line><span class=cl>      <span class=p>)</span>
+</span></span><span class=line><span class=cl>      <span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;\n&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>content</span><span class=o>:</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=kr>type</span><span class=o>:</span> <span class=s1>&#39;text&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>text</span>: <span class=kt>formatted</span> <span class=o>||</span> <span class=s1>&#39;No deployments found.&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=p>};</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Tool 2: Get deployment details
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>server</span><span class=p>.</span><span class=nx>tool</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;get_deployment&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;Get detailed information about a specific deployment&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>deployment_id</span>: <span class=kt>z.string</span><span class=p>().</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;The deployment ID&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=kr>async</span> <span class=p>({</span> <span class=nx>deployment_id</span> <span class=p>})</span> <span class=o>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>data</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>apiCall</span><span class=p>(</span><span class=sb>`/deployments/</span><span class=si>${</span><span class=nx>deployment_id</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>content</span><span class=o>:</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=kr>type</span><span class=o>:</span> <span class=s1>&#39;text&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>text</span>: <span class=kt>JSON.stringify</span><span class=p>(</span><span class=nx>data</span><span class=p>,</span> <span class=kc>null</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>      <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=p>};</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Tool 3: Trigger rollback
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>server</span><span class=p>.</span><span class=nx>tool</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;rollback_deployment&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;Roll back a deployment to a previous version. This is a destructive action.&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>deployment_id</span>: <span class=kt>z.string</span><span class=p>().</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;The deployment ID to roll back&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>target_version</span>: <span class=kt>z.string</span><span class=p>().</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;The version to roll back to&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>reason</span>: <span class=kt>z.string</span><span class=p>().</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;Reason for the rollback&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=kr>async</span> <span class=p>({</span> <span class=nx>deployment_id</span><span class=p>,</span> <span class=nx>target_version</span><span class=p>,</span> <span class=nx>reason</span> <span class=p>})</span> <span class=o>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>data</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>apiCall</span><span class=p>(</span><span class=sb>`/deployments/</span><span class=si>${</span><span class=nx>deployment_id</span><span class=si>}</span><span class=sb>/rollback`</span><span class=p>,</span> <span class=s1>&#39;POST&#39;</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>target_version</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nx>reason</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>});</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>content</span><span class=o>:</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=kr>type</span><span class=o>:</span> <span class=s1>&#39;text&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>text</span><span class=o>:</span> <span class=sb>`Rollback initiated: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>rollback_id</span><span class=si>}</span><span class=err>\</span><span class=sb>nStatus: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>status</span><span class=si>}</span><span class=err>\</span><span class=sb>nETA: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>estimated_completion</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=p>};</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Tool 4: Health check
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>server</span><span class=p>.</span><span class=nx>tool</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;check_health&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s1>&#39;Check the health status of a service in an environment&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>service</span>: <span class=kt>z.string</span><span class=p>().</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;Service name&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>environment</span>: <span class=kt>z.enum</span><span class=p>([</span><span class=s1>&#39;staging&#39;</span><span class=p>,</span> <span class=s1>&#39;production&#39;</span><span class=p>]).</span><span class=nx>describe</span><span class=p>(</span><span class=s1>&#39;Target environment&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=kr>async</span> <span class=p>({</span> <span class=nx>service</span><span class=p>,</span> <span class=nx>environment</span> <span class=p>})</span> <span class=o>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>data</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>apiCall</span><span class=p>(</span><span class=sb>`/health/</span><span class=si>${</span><span class=nx>service</span><span class=si>}</span><span class=sb>?env=</span><span class=si>${</span><span class=nx>environment</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>content</span><span class=o>:</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=kr>type</span><span class=o>:</span> <span class=s1>&#39;text&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>text</span><span class=o>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=sb>`Service: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>service</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sb>`Environment: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>environment</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sb>`Status: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>status</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sb>`Uptime: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>uptime</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sb>`Last check: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>last_check</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=sb>`Instances: </span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>healthy_instances</span><span class=si>}</span><span class=sb>/</span><span class=si>${</span><span class=nx>data</span><span class=p>.</span><span class=nx>total_instances</span><span class=si>}</span><span class=sb> healthy`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>].</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;\n&#39;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>      <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=p>};</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Start the server
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>transport</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>StdioServerTransport</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=k>await</span> <span class=nx>server</span><span class=p>.</span><span class=nx>connect</span><span class=p>(</span><span class=nx>transport</span><span class=p>);</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=register-it-with-claude-code>Register it with Claude Code</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>claude mcp add deploy-tools -- npx tsx /path/to/mcp-deploy-server/server.ts
+</span></span></code></pre></td></tr></table></div></div><p>Or with environment variables:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>claude mcp add deploy-tools <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -e <span class=nv>DEPLOY_API_TOKEN</span><span class=o>=</span><span class=nv>$DEPLOY_API_TOKEN</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -e <span class=nv>DEPLOY_API_URL</span><span class=o>=</span>https://api.internal.company.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -- npx tsx /path/to/mcp-deploy-server/server.ts
+</span></span></code></pre></td></tr></table></div></div><h3 id=set-up-permissions>Set up permissions</h3><p>In <code>.claude/settings.json</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__deploy-tools__list_deployments&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__deploy-tools__get_deployment&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;mcp__deploy-tools__check_health&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Notice I left <code>rollback_deployment</code> off the allow list. That one stays on manual confirmation because it mutates production state.</p><h3 id=using-it-in-practice>Using it in practice</h3><p>Now in Claude Code, you can have conversations like:</p><pre tabindex=0><code>&gt; Show me the last 5 production deployments
+
+Claude calls list_deployments(environment=&#34;production&#34;, limit=5)
+
+[SUCCESS] dep-4521 — auth-service @ v2.3.1 (2026-04-21 14:30)
+[SUCCESS] dep-4520 — api-gateway @ v1.8.0 (2026-04-21 12:15)
+[FAILED]  dep-4519 — user-service @ v3.1.0 (2026-04-21 10:00)
+[SUCCESS] dep-4518 — api-gateway @ v1.7.9 (2026-04-20 16:45)
+[SUCCESS] dep-4517 — auth-service @ v2.3.0 (2026-04-20 14:20)
+
+&gt; What happened with dep-4519?
+
+Claude calls get_deployment(deployment_id=&#34;dep-4519&#34;)
+// Returns full deployment details including error logs
+
+&gt; Roll it back to v3.0.2 because the migration script had a bug
+
+Claude calls rollback_deployment(...)
+// You get a permission prompt because this tool isn&#39;t auto-allowed
+</code></pre><p>This is the power of MCP: domain-specific operations feel like natural conversation, but with full control over what&rsquo;s allowed.</p><h3 id=building-in-python>Building in Python</h3><p>If TypeScript isn&rsquo;t your thing, the Python SDK is equally capable:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># server.py</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>mcp.server.fastmcp</span> <span class=kn>import</span> <span class=n>FastMCP</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>httpx</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>mcp</span> <span class=o>=</span> <span class=n>FastMCP</span><span class=p>(</span><span class=s2>&#34;deploy-tools&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>API_BASE</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;DEPLOY_API_URL&#34;</span><span class=p>,</span> <span class=s2>&#34;https://api.internal.company.com&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>API_TOKEN</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;DEPLOY_API_TOKEN&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@mcp.tool</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>list_deployments</span><span class=p>(</span><span class=n>environment</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>10</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;List recent deployments with their status.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Args:
+</span></span></span><span class=line><span class=cl><span class=s2>        environment: Target environment (staging or production)
+</span></span></span><span class=line><span class=cl><span class=s2>        limit: Number of results to return (1-50)
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>httpx</span><span class=o>.</span><span class=n>AsyncClient</span><span class=p>()</span> <span class=k>as</span> <span class=n>client</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>resp</span> <span class=o>=</span> <span class=k>await</span> <span class=n>client</span><span class=o>.</span><span class=n>get</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>API_BASE</span><span class=si>}</span><span class=s2>/deployments&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>params</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;env&#34;</span><span class=p>:</span> <span class=n>environment</span><span class=p>,</span> <span class=s2>&#34;limit&#34;</span><span class=p>:</span> <span class=n>limit</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=n>headers</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;Authorization&#34;</span><span class=p>:</span> <span class=sa>f</span><span class=s2>&#34;Bearer </span><span class=si>{</span><span class=n>API_TOKEN</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>resp</span><span class=o>.</span><span class=n>raise_for_status</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>data</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>json</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>lines</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>data</span><span class=p>[</span><span class=s2>&#34;deployments&#34;</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>        <span class=n>lines</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;[</span><span class=si>{</span><span class=n>d</span><span class=p>[</span><span class=s1>&#39;status&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>] </span><span class=si>{</span><span class=n>d</span><span class=p>[</span><span class=s1>&#39;id&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2> — </span><span class=si>{</span><span class=n>d</span><span class=p>[</span><span class=s1>&#39;service&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2> @ </span><span class=si>{</span><span class=n>d</span><span class=p>[</span><span class=s1>&#39;version&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span> <span class=ow>or</span> <span class=s2>&#34;No deployments found.&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@mcp.tool</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>check_health</span><span class=p>(</span><span class=n>service</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>environment</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Check the health of a service in an environment.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Args:
+</span></span></span><span class=line><span class=cl><span class=s2>        service: Service name
+</span></span></span><span class=line><span class=cl><span class=s2>        environment: Target environment (staging or production)
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>async</span> <span class=k>with</span> <span class=n>httpx</span><span class=o>.</span><span class=n>AsyncClient</span><span class=p>()</span> <span class=k>as</span> <span class=n>client</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>resp</span> <span class=o>=</span> <span class=k>await</span> <span class=n>client</span><span class=o>.</span><span class=n>get</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>API_BASE</span><span class=si>}</span><span class=s2>/health/</span><span class=si>{</span><span class=n>service</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>params</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;env&#34;</span><span class=p>:</span> <span class=n>environment</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=n>headers</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;Authorization&#34;</span><span class=p>:</span> <span class=sa>f</span><span class=s2>&#34;Bearer </span><span class=si>{</span><span class=n>API_TOKEN</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>resp</span><span class=o>.</span><span class=n>raise_for_status</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>data</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>json</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;Service: </span><span class=si>{</span><span class=n>data</span><span class=p>[</span><span class=s1>&#39;service&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;Status: </span><span class=si>{</span><span class=n>data</span><span class=p>[</span><span class=s1>&#39;status&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;Uptime: </span><span class=si>{</span><span class=n>data</span><span class=p>[</span><span class=s1>&#39;uptime&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;Healthy: </span><span class=si>{</span><span class=n>data</span><span class=p>[</span><span class=s1>&#39;healthy_instances&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>data</span><span class=p>[</span><span class=s1>&#39;total_instances&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&#34;__main__&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>mcp</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>transport</span><span class=o>=</span><span class=s2>&#34;stdio&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Register it:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>claude mcp add deploy-tools -- python3 /path/to/server.py
+</span></span></code></pre></td></tr></table></div></div><p>The Python SDK uses type hints and docstrings to auto-generate the tool schemas. Less boilerplate than the TypeScript version.</p><h2 id=real-workflow-examples>Real workflow examples</h2><h3 id=workflow-1-testing-a-web-app-end-to-end>Workflow 1: Testing a web app end-to-end</h3><p>With Playwright MCP installed, you can ask Claude to test your app like a real user:</p><pre tabindex=0><code>I just deployed a change to the login page. Go to http://localhost:3000/login,
+try logging in with test@example.com / password123, and tell me if the
+redirect to /dashboard works correctly.
+</code></pre><p>Claude will navigate, fill in the form, click submit, check the resulting URL, and report back. If something breaks, it can screenshot the error state and read the console logs.</p><h3 id=workflow-2-database-driven-debugging>Workflow 2: Database-driven debugging</h3><p>With Postgres MCP:</p><pre tabindex=0><code>A user reported they can&#39;t see their orders. Their email is jane@example.com.
+Check the users table for their account, then the orders table, and tell me
+if there&#39;s a data issue.
+</code></pre><p>Claude runs the queries, correlates the data, and gives you a diagnosis. No context-switching to a SQL client.</p><h3 id=workflow-3-cross-referencing-github-and-slack>Workflow 3: Cross-referencing GitHub and Slack</h3><p>With both GitHub and Slack MCP:</p><pre tabindex=0><code>Find all GitHub issues labeled &#34;regression&#34; that were opened this week,
+then search Slack #incidents for any related discussion, and give me a
+summary of what broke and whether it&#39;s been addressed.
+</code></pre><p>This kind of cross-system correlation is where MCP really shines. Each server does one thing; Claude orchestrates.</p><h2 id=mcp-server-management-commands>MCP server management commands</h2><p>Here&rsquo;s the full reference for managing MCP servers via the CLI:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Add a stdio server</span>
+</span></span><span class=line><span class=cl>claude mcp add SERVER_NAME -- COMMAND <span class=o>[</span>ARGS...<span class=o>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add with environment variables</span>
+</span></span><span class=line><span class=cl>claude mcp add SERVER_NAME -e <span class=nv>KEY</span><span class=o>=</span>VALUE -- COMMAND <span class=o>[</span>ARGS...<span class=o>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add at a specific scope</span>
+</span></span><span class=line><span class=cl>claude mcp add SERVER_NAME -s user -- COMMAND <span class=o>[</span>ARGS...<span class=o>]</span>    <span class=c1># global</span>
+</span></span><span class=line><span class=cl>claude mcp add SERVER_NAME -s project -- COMMAND <span class=o>[</span>ARGS...<span class=o>]</span>  <span class=c1># project (default)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># List all registered servers</span>
+</span></span><span class=line><span class=cl>claude mcp list
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Get details about a specific server</span>
+</span></span><span class=line><span class=cl>claude mcp get SERVER_NAME
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Remove a server</span>
+</span></span><span class=line><span class=cl>claude mcp remove SERVER_NAME
+</span></span></code></pre></td></tr></table></div></div><h2 id=what-to-build-next>What to build next</h2><p>If you&rsquo;ve made it this far, you have MCP servers installed, configured, and you understand the protocol. The natural progression:</p><ol><li><strong>Start with pre-built servers.</strong> Install 2-3 from the list above.</li><li><strong>Get comfortable with permissions.</strong> Build your allowlist over a week of use.</li><li><strong>Build a custom server</strong> for your team&rsquo;s internal tools.</li><li><strong>Share it.</strong> Commit the server config to your repo&rsquo;s <code>.claude/settings.json</code> so the team gets it automatically.</li></ol><p>The protocol is small enough that you can read the spec in 30 minutes. Building your own is a half-day project for a focused use case. The hard part is choosing what tools to expose; the protocol gets out of the way.</p><p>Next piece: hooks — code that runs before and after every tool call. The defensive layer.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=title>Claude Code Hands-On (3): Custom Slash Commands and Conversation Control</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/claude-code-learn/05-hooks/><span class=title>Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
 <span class=series-nav-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
 <span class=series-nav-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=series-nav-num>03</span>
 <span class=series-nav-title>Claude Code Hands-On (3): Custom Slash Commands and Conversation Control</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>04</span>
@@ -97,7 +738,7 @@
 <span class=series-nav-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=series-nav-num>08</span>
 <span class=series-nav-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=series-nav-num>09</span>
 <span class=series-nav-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=series-nav-num>10</span>
-<span class=series-nav-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-60-second-pitch>The 60-second pitch</a></li><li><a href=#install-your-first-mcp-server>Install your first MCP server</a></li><li><a href=#permissions--the-part-you-must-not-skip>Permissions — the part you must not skip</a></li><li><a href=#useful-mcp-servers-i-actually-use>Useful MCP servers I actually use</a></li><li><a href=#what-mcp-isnt>What MCP isn&rsquo;t</a></li><li><a href=#building-one-sketch>Building one (sketch)</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
+<span class=series-nav-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-60-second-pitch>The 60-second pitch</a></li><li><a href=#understanding-the-mcp-protocol>Understanding the MCP protocol</a><ul><li><a href=#stdio-vs-sse-transport>Stdio vs SSE transport</a></li></ul></li><li><a href=#install-your-first-mcp-server>Install your first MCP server</a><ul><li><a href=#step-by-step-playwright-mcp>Step-by-step: Playwright MCP</a></li><li><a href=#step-by-step-filesystem-mcp>Step-by-step: Filesystem MCP</a></li><li><a href=#step-by-step-github-mcp>Step-by-step: GitHub MCP</a></li><li><a href=#step-by-step-postgres-mcp>Step-by-step: Postgres MCP</a></li><li><a href=#step-by-step-slack-mcp>Step-by-step: Slack MCP</a></li></ul></li><li><a href=#configuration-in-settingsjson>Configuration in settings.json</a><ul><li><a href=#configuration-scopes>Configuration scopes</a></li></ul></li><li><a href=#permissions--the-part-you-must-not-skip>Permissions — the part you must not skip</a><ul><li><a href=#permission-naming-convention>Permission naming convention</a></li><li><a href=#common-permissions-gotchas>Common permissions gotchas</a></li></ul></li><li><a href=#useful-mcp-servers-i-actually-use>Useful MCP servers I actually use</a><ul><li><a href=#servers-i-evaluated-and-dropped>Servers I evaluated and dropped</a></li></ul></li><li><a href=#debugging-mcp-connection-issues>Debugging MCP connection issues</a><ul><li><a href=#step-1-check-the-server-is-registered>Step 1: Check the server is registered</a></li><li><a href=#step-2-test-the-server-standalone>Step 2: Test the server standalone</a></li><li><a href=#step-3-check-for-error-output>Step 3: Check for error output</a></li><li><a href=#step-4-enable-verbose-logging>Step 4: Enable verbose logging</a></li><li><a href=#step-5-check-environment-variables>Step 5: Check environment variables</a></li></ul></li><li><a href=#what-mcp-isnt>What MCP isn&rsquo;t</a></li><li><a href=#building-a-custom-mcp-server--complete-example>Building a custom MCP server — complete example</a><ul><li><a href=#the-scenario>The scenario</a></li><li><a href=#project-setup>Project setup</a></li><li><a href=#the-full-server>The full server</a></li><li><a href=#register-it-with-claude-code>Register it with Claude Code</a></li><li><a href=#set-up-permissions>Set up permissions</a></li><li><a href=#using-it-in-practice>Using it in practice</a></li><li><a href=#building-in-python>Building in Python</a></li></ul></li><li><a href=#real-workflow-examples>Real workflow examples</a><ul><li><a href=#workflow-1-testing-a-web-app-end-to-end>Workflow 1: Testing a web app end-to-end</a></li><li><a href=#workflow-2-database-driven-debugging>Workflow 2: Database-driven debugging</a></li><li><a href=#workflow-3-cross-referencing-github-and-slack>Workflow 3: Cross-referencing GitHub and Slack</a></li></ul></li><li><a href=#mcp-server-management-commands>MCP server management commands</a></li><li><a href=#what-to-build-next>What to build next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
 <span class=chapter-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
 <span class=chapter-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/03-custom-commands/><span class=chapter-num>03</span>
@@ -108,5 +749,5 @@
 <span class=chapter-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>8 min</strong></div><div class=row><span>Word count</span><strong>773</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>38 min</strong></div><div class=row><span>Word count</span><strong>4016</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

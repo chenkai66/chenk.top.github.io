@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Claude Code Hands-On</a>
 · Chapter 3</div><h1>Claude Code Hands-On (3): Custom Slash Commands and Conversation Control</h1><p class=deck>Slash commands turn repeated workflows into one-line invocations. $ARGUMENTS makes them parameterized. The right ones become your team's shared vocabulary.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-20>April 20, 2026</time> · 8 min read · 729 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/slash-commands/ class=tag>#slash-commands</a><a href=/en/tags/workflow/ class=tag>#workflow</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/03-custom-commands/>阅读中文版 →</a></div></header><div class=prose><p>Built-in slash commands like <code>/clear</code> and <code>/init</code> are the visible part of the iceberg. The whole point of the system is that you write your own, and they live in your repo.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png alt="Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=what-a-slash-command-is>What a slash command is</h2><p>A file at <code>.claude/commands/&lt;name>.md</code>. Contents are a Markdown prompt. Filename becomes the command. After creation you have to restart Claude Code (one of the few places it&rsquo;s not hot-reloaded).</p><p>The simplest possible example. Create <code>.claude/commands/audit.md</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2026-04-20>April 20, 2026</time> · 36 min read · 3744 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/slash-commands/ class=tag>#slash-commands</a><a href=/en/tags/workflow/ class=tag>#workflow</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/03-custom-commands/>阅读中文版 →</a></div></header><div class=prose><p>Built-in slash commands like <code>/clear</code> and <code>/init</code> are the visible part of the iceberg. The whole point of the system is that you write your own, and they live in your repo.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png alt="Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=what-a-slash-command-is>What a slash command is</h2><p>A file at <code>.claude/commands/&lt;name>.md</code>. Contents are a Markdown prompt. Filename becomes the command. After creation you have to restart Claude Code (one of the few places it&rsquo;s not hot-reloaded).</p><p>The simplest possible example. Create <code>.claude/commands/audit.md</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -29,7 +29,27 @@
 </span></span><span class=line><span class=cl>Run <span class=sb>`npm test`</span> to confirm nothing broke.
 </span></span><span class=line><span class=cl>Report which CVEs were patched and which remain.
 </span></span></code></pre></td></tr></table></div></div><p>Restart, then in any session:</p><pre tabindex=0><code>/audit
-</code></pre><p>The whole prompt fires. You get a structured audit report instead of having to remember the three commands and their order.</p><p>Two things to notice:</p><ol><li>The command is just a prompt. There&rsquo;s no DSL, no special syntax. That keeps the surface area tiny.</li><li>You don&rsquo;t have to repeat yourself. The next time anyone on the team needs an audit, they type <code>/audit</code>.</li></ol><h2 id=arguments--parameterization><code>$ARGUMENTS</code> — parameterization</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_2.png alt="Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual" loading=lazy decoding=async class=content-image></figure></p><p>Slash commands get a magic <code>$ARGUMENTS</code> token that&rsquo;s replaced with whatever you typed after the command name. Example — <code>.claude/commands/explain.md</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</code></pre><p>The whole prompt fires. You get a structured audit report instead of having to remember the three commands and their order.</p><p>Two things to notice:</p><ol><li>The command is just a prompt. There&rsquo;s no DSL, no special syntax. That keeps the surface area tiny.</li><li>You don&rsquo;t have to repeat yourself. The next time anyone on the team needs an audit, they type <code>/audit</code>.</li></ol><h3 id=how-the-command-system-works-internally>How the command system works internally</h3><p>When you type <code>/audit</code>, Claude Code does the following:</p><ol><li>Looks for <code>.claude/commands/audit.md</code> in the current project</li><li>Also checks <code>~/.claude/commands/audit.md</code> for personal global commands</li><li>Reads the file contents</li><li>Sends the contents as a prompt, as if you had typed them</li></ol><p>Project commands take precedence over global commands with the same name. This means a team can override your personal <code>/audit</code> with a project-specific version.</p><p>The command content is treated as a regular prompt. That means:</p><ul><li>It can reference files with <code>@</code></li><li>It can include thinking level triggers (&ldquo;think a lot&rdquo;)</li><li>It can use <code>$ARGUMENTS</code> for parameterization</li><li>It can contain multi-step instructions</li><li>Markdown formatting is preserved</li></ul><h2 id=the-directory-structure>The directory structure</h2><p>Here&rsquo;s the full layout for a mature project:</p><pre tabindex=0><code>.claude/
+├── commands/               # Project commands (committed to git)
+│   ├── audit.md
+│   ├── review.md
+│   ├── test.md
+│   ├── deploy.md
+│   ├── explain.md
+│   ├── document.md
+│   ├── onboard.md
+│   └── debug.md
+├── settings.json           # Project settings (committed)
+├── settings.local.json     # Personal settings (gitignored)
+└── CLAUDE.md               # Project memory (committed, or at repo root)
+</code></pre><p>And for personal global commands:</p><pre tabindex=0><code>~/.claude/
+├── commands/               # Personal global commands
+│   ├── standup.md
+│   ├── changelog.md
+│   └── quicktest.md
+├── settings.json           # Global settings
+└── auth.json               # Auth token
+</code></pre><p>The split matters. Team commands go in the project&rsquo;s <code>.claude/commands/</code>. Personal workflow commands go in <code>~/.claude/commands/</code>. Personal commands are available in every project. Team commands are specific to one repo.</p><h3 id=naming-conventions>Naming conventions</h3><p>Names become the slash command, so keep them short and obvious:</p><table><thead><tr><th>Good</th><th>Bad</th><th>Why</th></tr></thead><tbody><tr><td><code>/review</code></td><td><code>/code-review-for-pr</code></td><td>Too long to type</td></tr><tr><td><code>/test</code></td><td><code>/run-all-tests-and-report</code></td><td>Verbose</td></tr><tr><td><code>/deploy</code></td><td><code>/deploy-to-staging-env</code></td><td>Include the environment in $ARGUMENTS instead</td></tr><tr><td><code>/explain</code></td><td><code>/e</code></td><td>Too cryptic for teammates</td></tr><tr><td><code>/debug</code></td><td><code>/dbg</code></td><td>Abbreviation unclear to new members</td></tr></tbody></table><p>The sweet spot is one word, 4-8 characters, that any team member would guess on their first try. If someone can&rsquo;t guess that <code>/review</code> reviews code, the naming is wrong.</p><p>Avoid versioning in names (<code>/review-v2</code>, <code>/test-new</code>). If you need a better version, replace the old file. Git history preserves the old version if you ever need it back.</p><h2 id=arguments--parameterization><code>$ARGUMENTS</code> — parameterization</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_2.png alt="Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual" loading=lazy decoding=async class=content-image></figure></p><p>Slash commands get a magic <code>$ARGUMENTS</code> token that&rsquo;s replaced with whatever you typed after the command name. Example — <code>.claude/commands/explain.md</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -44,35 +64,472 @@
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>If the term is ambiguous, list the meanings and ask which one I want.
 </span></span></code></pre></td></tr></table></div></div><p>Then:</p><pre tabindex=0><code>/explain rate limiter
-</code></pre><p><code>$ARGUMENTS</code> becomes <code>rate limiter</code>, the prompt fires, you get a three-level explanation grounded in the actual repo.</p><h2 id=the-commands-i-have-on-every-project>The commands I have on every project</h2><p>After two years of using Claude Code I have settled on a small set:</p><p><strong><code>/audit</code></strong> — security audit, as above.</p><p><strong><code>/test</code></strong> — runs the test suite, summarizes failures, suggests fixes.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</code></pre><p><code>$ARGUMENTS</code> becomes <code>rate limiter</code>, the prompt fires, you get a three-level explanation grounded in the actual repo.</p><h3 id=arguments-patterns><code>$ARGUMENTS</code> patterns</h3><p>The <code>$ARGUMENTS</code> token is just string substitution — everything after the command name becomes the value. This simplicity is a feature. Here are patterns that exploit it:</p><p><strong>Single argument — a name or identifier:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/find.md --&gt;</span>
+</span></span><span class=line><span class=cl>Find all usages of $ARGUMENTS in the codebase.
+</span></span><span class=line><span class=cl>Group by: direct usage, re-export, test usage.
+</span></span><span class=line><span class=cl>Show the file path and line number for each.
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>/find UserService
+</code></pre><p><strong>Multiple arguments as a natural sentence:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/compare.md --&gt;</span>
+</span></span><span class=line><span class=cl>Compare $ARGUMENTS.
+</span></span><span class=line><span class=cl>Show the key differences in a table format.
+</span></span><span class=line><span class=cl>Include: API surface, performance characteristics, bundle size impact.
+</span></span><span class=line><span class=cl>Recommend which one to use for our project and explain why.
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>/compare axios vs fetch vs ky for HTTP requests
+</code></pre><p>Everything after <code>/compare</code> becomes <code>$ARGUMENTS</code>, so Claude gets &ldquo;axios vs fetch vs ky for HTTP requests&rdquo; as a natural language string.</p><p><strong>File path as argument:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
 </span><span class=lnt>5
 </span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/coverage.md --&gt;</span>
+</span></span><span class=line><span class=cl>Analyze test coverage for $ARGUMENTS.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> Find the test file(s) that test this module.
+</span></span><span class=line><span class=cl><span class=k>2.</span> List every exported function/class.
+</span></span><span class=line><span class=cl><span class=k>3.</span> For each, indicate whether it has test coverage.
+</span></span><span class=line><span class=cl><span class=k>4.</span> For untested functions, write a test stub.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Do not modify existing tests. Only create new ones.
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>/coverage src/services/payment.ts
+</code></pre><p><strong>No arguments — default behavior:</strong></p><p>If <code>$ARGUMENTS</code> is empty (the user just typed <code>/coverage</code> with nothing after), the substitution produces an empty string. Design your prompts to handle this gracefully:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/status.md --&gt;</span>
+</span></span><span class=line><span class=cl>Show the project status.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If a specific area is given: $ARGUMENTS — focus on that area.
+</span></span><span class=line><span class=cl>Otherwise, give a general overview:
+</span></span><span class=line><span class=cl><span class=k>1.</span> Git status (uncommitted changes, branch, ahead/behind)
+</span></span><span class=line><span class=cl><span class=k>2.</span> Last 5 commits (one line each)
+</span></span><span class=line><span class=cl><span class=k>3.</span> Any failing tests
+</span></span><span class=line><span class=cl><span class=k>4.</span> Any lint errors
+</span></span><span class=line><span class=cl><span class=k>5.</span> TODO comments added in the last week
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>/status                    # General overview
+/status authentication     # Focused on auth
+</code></pre><p>This pattern — &ldquo;if arguments exist, scope to them; otherwise, do everything&rdquo; — makes commands more flexible without needing separate commands for the general and specific cases.</p><h2 id=the-commands-i-have-on-every-project>The commands I have on every project</h2><p>After two years of using Claude Code I have settled on a core set. Here they are with the full prompt contents.</p><h3 id=audit--security-audit><code>/audit</code> — security audit</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Run <span class=sb>`npm audit`</span> (or the equivalent for this project&#39;s package manager)
+</span></span><span class=line><span class=cl>to find vulnerable installed packages.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Report:
+</span></span><span class=line><span class=cl><span class=k>1.</span> Total vulnerabilities by severity (critical, high, moderate, low)
+</span></span><span class=line><span class=cl><span class=k>2.</span> For each critical/high: the package name, CVE, and whether a fix exists
+</span></span><span class=line><span class=cl><span class=k>3.</span> Run the fix command for non-breaking updates
+</span></span><span class=line><span class=cl><span class=k>4.</span> Run tests to confirm nothing broke
+</span></span><span class=line><span class=cl><span class=k>5.</span> List any remaining vulnerabilities that require manual intervention
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If the project doesn&#39;t use npm, adapt the approach to the actual package
+</span></span><span class=line><span class=cl>manager (pip, cargo, etc.) — check CLAUDE.md for guidance.
+</span></span></code></pre></td></tr></table></div></div><h3 id=test--run-and-analyze-tests><code>/test</code> — run and analyze tests</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Run the project&#39;s test suite (see CLAUDE.md for the test command).
+</span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>For each failure:
-</span></span><span class=line><span class=cl>  <span class=k>-</span> quote the failing test name and the assertion that failed
-</span></span><span class=line><span class=cl>  <span class=k>-</span> propose the smallest plausible fix
-</span></span><span class=line><span class=cl>  <span class=k>-</span> mark whether you&#39;d patch the test or the code
+</span></span><span class=line><span class=cl>  <span class=k>-</span> Quote the failing test name and the assertion that failed
+</span></span><span class=line><span class=cl>  <span class=k>-</span> Show the relevant code (both the test and the code under test)
+</span></span><span class=line><span class=cl>  <span class=k>-</span> Propose the smallest plausible fix
+</span></span><span class=line><span class=cl>  <span class=k>-</span> Mark whether you&#39;d patch the test or the code
+</span></span><span class=line><span class=cl>  <span class=k>-</span> Rate confidence: high/medium/low
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>At the end:
+</span></span><span class=line><span class=cl>  <span class=k>-</span> Total: X passed, Y failed, Z skipped
+</span></span><span class=line><span class=cl>  <span class=k>-</span> If all pass, just say &#34;All tests pass&#34; — no need for the detailed format
+</span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>Do not make changes — this is a report.
-</span></span></code></pre></td></tr></table></div></div><p><strong><code>/review</code></strong> — code review of a diff.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
+</span></span></code></pre></td></tr></table></div></div><h3 id=review--code-review><code>/review</code> — code review</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Review the staged diff (`git diff --staged`).
-</span></span><span class=line><span class=cl>Focus on: correctness, edge cases, naming, and adherence to CLAUDE.md.
-</span></span><span class=line><span class=cl>Output as numbered findings, each with severity (must-fix / nit / praise).
-</span></span><span class=line><span class=cl>End with one paragraph summarizing whether you&#39;d approve.
-</span></span></code></pre></td></tr></table></div></div><p><strong><code>/explain $ARGUMENTS</code></strong> — see above.</p><p><strong><code>/onboard</code></strong> — produces a one-page brief for someone new to the codebase.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If there&#39;s nothing staged, review unstaged changes (`git diff`).
+</span></span><span class=line><span class=cl>If there are no changes at all, say so and stop.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Focus areas (in priority order):
+</span></span><span class=line><span class=cl><span class=k>1.</span> Correctness — will this break anything?
+</span></span><span class=line><span class=cl><span class=k>2.</span> Edge cases — what inputs/states aren&#39;t handled?
+</span></span><span class=line><span class=cl><span class=k>3.</span> Naming — are variable/function names clear and consistent?
+</span></span><span class=line><span class=cl><span class=k>4.</span> Adherence to CLAUDE.md conventions
+</span></span><span class=line><span class=cl><span class=k>5.</span> Performance — any obvious N+1 queries, unnecessary loops, etc.
+</span></span><span class=line><span class=cl><span class=k>6.</span> Security — any injection, auth bypass, data exposure risks?
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Output format:
+</span></span><span class=line><span class=cl><span class=k>-</span> Numbered findings
+</span></span><span class=line><span class=cl><span class=k>-</span> Each has a severity: 🔴 must-fix / 🟡 should-fix / 🟢 nit / 👍 praise
+</span></span><span class=line><span class=cl><span class=k>-</span> End with one paragraph: would you approve this PR as-is?
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Think a lot before responding.
+</span></span></code></pre></td></tr></table></div></div><h3 id=explain--three-level-explanation><code>/explain</code> — three-level explanation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Explain $ARGUMENTS at three levels:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**One sentence**</span> — what is it, in plain language. No jargon.
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**One paragraph**</span> — how it works, key components, why it exists.
+</span></span><span class=line><span class=cl>   Use analogies if helpful.
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**Code-level**</span> — point to where this is implemented in our repo,
+</span></span><span class=line><span class=cl>   with file paths and line numbers. Walk through the key logic.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If the term is ambiguous in this codebase, list the possible meanings
+</span></span><span class=line><span class=cl>and ask which one I want before explaining.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If it&#39;s not found in the codebase, explain it generally and note that
+</span></span><span class=line><span class=cl>it doesn&#39;t appear to be implemented here.
+</span></span></code></pre></td></tr></table></div></div><h3 id=onboard--new-engineer-orientation><code>/onboard</code> — new engineer orientation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Write a one-page onboarding doc for a new engineer joining this repo.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Use CLAUDE.md as the source of truth. Supplement by reading key files.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Include:
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**What it does**</span> — one paragraph, plain language
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**Setup**</span> — step by step, from clone to running locally
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**How to run tests**</span> — the exact command and what to expect
+</span></span><span class=line><span class=cl><span class=k>4.</span> <span class=gs>**Architecture**</span> — the 3-5 most important directories and what&#39;s in them
+</span></span><span class=line><span class=cl><span class=k>5.</span> <span class=gs>**Three things you&#39;re most likely to break**</span> — common gotchas
+</span></span><span class=line><span class=cl><span class=k>6.</span> <span class=gs>**Where to look first**</span> — when you need to debug, where do you start?
+</span></span><span class=line><span class=cl><span class=k>7.</span> <span class=gs>**Key contacts**</span> — who owns what (if mentioned in CLAUDE.md)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Keep it to one page. No filler. A new engineer should be able to read
+</span></span><span class=line><span class=cl>this in 10 minutes and be productive.
+</span></span></code></pre></td></tr></table></div></div><h3 id=deploy--deployment-checklist><code>/deploy</code> — deployment checklist</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Prepare for deployment to $ARGUMENTS (default: staging).
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Checklist:
+</span></span><span class=line><span class=cl><span class=k>1.</span> Run tests — all must pass
+</span></span><span class=line><span class=cl><span class=k>2.</span> Run lint — no errors (warnings OK)
+</span></span><span class=line><span class=cl><span class=k>3.</span> Check for uncommitted changes — warn if any
+</span></span><span class=line><span class=cl><span class=k>4.</span> Check the current branch — warn if not main/master
+</span></span><span class=line><span class=cl><span class=k>5.</span> Show the commits that will be deployed (compare to last deploy tag)
+</span></span><span class=line><span class=cl><span class=k>6.</span> Check for any TODO or FIXME comments in changed files
+</span></span><span class=line><span class=cl><span class=k>7.</span> Verify environment variables are set (check .env.example vs .env)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Output a go/no-go summary at the end.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Do NOT actually deploy. This is a pre-deploy check only.
+</span></span></code></pre></td></tr></table></div></div><h3 id=debug--structured-debugging><code>/debug</code> — structured debugging</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Debug the issue described below:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>$ARGUMENTS
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Follow this process:
+</span></span><span class=line><span class=cl><span class=k>1.</span> <span class=gs>**Reproduce**</span> — identify the exact steps or conditions that trigger the issue
+</span></span><span class=line><span class=cl><span class=k>2.</span> <span class=gs>**Locate**</span> — find the relevant code. Start with error messages, stack traces,
+</span></span><span class=line><span class=cl>   or the module name mentioned in the description
+</span></span><span class=line><span class=cl><span class=k>3.</span> <span class=gs>**Hypothesize**</span> — list 2-3 possible causes, ranked by likelihood
+</span></span><span class=line><span class=cl><span class=k>4.</span> <span class=gs>**Verify**</span> — for the most likely cause, trace the code path and confirm
+</span></span><span class=line><span class=cl><span class=k>5.</span> <span class=gs>**Fix**</span> — propose the minimal fix. Show the diff.
+</span></span><span class=line><span class=cl><span class=k>6.</span> <span class=gs>**Test**</span> — suggest how to verify the fix works
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Do not apply the fix. Present it for review.
+</span></span><span class=line><span class=cl>Think a lot before responding.
+</span></span></code></pre></td></tr></table></div></div><h3 id=document--generate-documentation><code>/document</code> — generate documentation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Document $ARGUMENTS.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If it&#39;s a file path: document that file&#39;s exports (functions, classes, types).
+</span></span><span class=line><span class=cl>If it&#39;s a module name: document the module&#39;s public API.
+</span></span><span class=line><span class=cl>If it&#39;s a concept: explain how it&#39;s implemented in this codebase.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>For each function/method:
+</span></span><span class=line><span class=cl><span class=k>-</span> Brief description (one line)
+</span></span><span class=line><span class=cl><span class=k>-</span> Parameters with types and descriptions
+</span></span><span class=line><span class=cl><span class=k>-</span> Return value
+</span></span><span class=line><span class=cl><span class=k>-</span> Example usage
+</span></span><span class=line><span class=cl><span class=k>-</span> Edge cases or gotchas
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Output as JSDoc/docstring comments that can be pasted directly into the code.
+</span></span><span class=line><span class=cl>Match the existing documentation style in the project.
+</span></span></code></pre></td></tr></table></div></div><h2 id=building-a-team-command-library>Building a team command library</h2><p>Slash commands are the easiest way to spread a convention across a team. The process is dead simple:</p><ol><li>Write a useful command</li><li>Put it in <code>.claude/commands/</code></li><li>Commit it to main</li><li>Tell nobody</li></ol><p>Step 4 is not a joke. The next time anyone runs <code>claude</code> in that repo and types <code>/</code>, they see the command in the autocomplete list. They try it. It works. They use it again. No training deck, no Confluence page, no onboarding session.</p><h3 id=how-command-libraries-evolve>How command libraries evolve</h3><p>I&rsquo;ve watched command libraries grow across three teams. The pattern is consistent:</p><p><strong>Week 1-2:</strong> One person adds 2-3 commands. Usually <code>/test</code>, <code>/review</code>, and one project-specific one.</p><p><strong>Week 3-4:</strong> Other team members discover the commands. They start using them. Somebody adds a <code>/deploy</code> command.</p><p><strong>Month 2:</strong> The commands start getting refined. The <code>/review</code> prompt gets better criteria. Somebody adds <code>/explain</code> because they keep asking Claude to explain parts of the codebase.</p><p><strong>Month 3+:</strong> The command library stabilizes at 5-10 commands. New ones get added rarely. The existing ones get tweaked for precision. At this point, the commands are effectively the team&rsquo;s shared vocabulary for interacting with AI.</p><h3 id=commands-as-documentation>Commands as documentation</h3><p>Here&rsquo;s a non-obvious benefit: your command library documents your team&rsquo;s workflows. A new engineer can read <code>.claude/commands/</code> and learn:</p><ul><li>What the deployment process looks like (<code>/deploy</code>)</li><li>What the team values in code review (<code>/review</code>)</li><li>What the testing strategy is (<code>/test</code>)</li><li>What the common debugging approach is (<code>/debug</code>)</li></ul><p>Each command file is a runnable specification of a workflow. That&rsquo;s more useful than a wiki page because it&rsquo;s always up to date (if it weren&rsquo;t, people would fix it because they use it every day).</p><h3 id=personal-vs-team-commands>Personal vs. team commands</h3><p>Keep the distinction clear:</p><table><thead><tr><th>Type</th><th>Location</th><th>Git-tracked</th><th>Example</th></tr></thead><tbody><tr><td>Team</td><td><code>.claude/commands/</code></td><td>Yes</td><td><code>/review</code>, <code>/test</code>, <code>/deploy</code></td></tr><tr><td>Personal</td><td><code>~/.claude/commands/</code></td><td>No</td><td><code>/standup</code>, <code>/journal</code>, <code>/quickfix</code></td></tr></tbody></table><p>Personal commands are for your individual workflow. Some of mine:</p><p><strong><code>~/.claude/commands/standup.md</code>:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Write a one-page onboarding doc for a new engineer joining this repo.
-</span></span><span class=line><span class=cl>Use CLAUDE.md as the source of truth.
-</span></span><span class=line><span class=cl>Include: what it does, how to set up, how to run tests, the three things
-</span></span><span class=line><span class=cl>they&#39;re most likely to break, and where to look first.
-</span></span></code></pre></td></tr></table></div></div><p>Five commands. Together they cover most of what I&rsquo;d otherwise type by hand every day.</p><h2 id=conversation-control--the-three-you-should-know>Conversation control — the three you should know</h2><p>Built-in commands worth muscle-memorizing:</p><p><strong><code>/compact</code></strong> — summarizes the conversation so far. Use when the model starts to feel slow. Keeps the gist, drops the verbose bits.</p><p><strong><code>/clear</code></strong> — wipes conversation. Keeps memory and settings. Use when switching tasks.</p><p><strong><code>/init</code></strong> — covered last piece. Run once per repo to bootstrap <code>CLAUDE.md</code>.</p><p>There are more — <code>/help</code> lists everything — but those three are the daily set.</p><h2 id=a-note-on-team-adoption>A note on team adoption</h2><p>Slash commands are the easiest way to spread a convention across a team. Push three useful ones into <code>.claude/commands/</code> on <code>main</code>. The next time anyone runs <code>claude</code> in that repo, they have them. There&rsquo;s no configuration for the user. That&rsquo;s the point.</p><p>I have seen this pattern do more for team-wide AI usage than any internal training. People copy what&rsquo;s already there, and <code>.claude/commands/</code> is a directory full of &ldquo;things that have been useful enough to commit.&rdquo;</p><h2 id=what-it-stops-being-good-for>What it stops being good for</h2><p>Slash commands are bad at:</p><ul><li>Anything that needs runtime arguments more complex than a single string</li><li>Anything that needs to maintain state between invocations</li><li>Anything you&rsquo;d want to test</li></ul><p>For those cases you want the SDK (piece 6). Slash commands are for the workflow shortcuts that don&rsquo;t justify the complexity of code.</p><p>Next piece: MCP — the protocol that lets Claude Code talk to anything.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/claude-code-learn/04-mcp-servers/><span class=title>Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Help me prepare for standup.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> What did I do yesterday? Check <span class=sb>`git log --author=&#34;$(git config user.name)&#34; --since=&#34;yesterday&#34; --oneline`</span>
+</span></span><span class=line><span class=cl><span class=k>2.</span> What am I doing today? Check for any TODO comments I added recently and any open branches.
+</span></span><span class=line><span class=cl><span class=k>3.</span> Any blockers? Check for failing tests or lint errors.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Format as three bullet points: yesterday, today, blockers.
+</span></span></code></pre></td></tr></table></div></div><p><strong><code>~/.claude/commands/changelog.md</code>:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Generate a changelog entry for the changes since the last tag.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> Find the last git tag
+</span></span><span class=line><span class=cl><span class=k>2.</span> List all commits since that tag
+</span></span><span class=line><span class=cl><span class=k>3.</span> Group by: Features, Fixes, Breaking Changes, Other
+</span></span><span class=line><span class=cl><span class=k>4.</span> Write in keepachangelog.com format
+</span></span><span class=line><span class=cl><span class=k>5.</span> Suggest the next version number based on the changes (semver)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Output the changelog entry — don&#39;t modify any files.
+</span></span></code></pre></td></tr></table></div></div><p>These are personal because they&rsquo;re about my workflow, not the team&rsquo;s. A teammate might have a completely different standup format.</p><h2 id=advanced-command-patterns>Advanced command patterns</h2><h3 id=commands-that-chain-other-commands>Commands that chain other commands</h3><p>A command can reference other commands by name in its prompt:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/morning.md --&gt;</span>
+</span></span><span class=line><span class=cl>Run the following checks in order:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> Check git status for any uncommitted changes from yesterday
+</span></span><span class=line><span class=cl><span class=k>2.</span> Pull the latest changes from main
+</span></span><span class=line><span class=cl><span class=k>3.</span> Run the test suite (same as /test)
+</span></span><span class=line><span class=cl><span class=k>4.</span> Show any new TODO or FIXME comments added to main since yesterday
+</span></span><span class=line><span class=cl><span class=k>5.</span> Summarize: what&#39;s changed, what&#39;s broken, what needs attention
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>This is my morning orientation — give me the full picture in one response.
+</span></span></code></pre></td></tr></table></div></div><p>This isn&rsquo;t literally invoking <code>/test</code> as a subcommand — it&rsquo;s asking Claude to do what <code>/test</code> does. Since Claude has read the <code>/test</code> command file (it&rsquo;s in the project), it knows the format. The effect is the same.</p><h3 id=commands-with-structured-output>Commands with structured output</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/deps.md --&gt;</span>
+</span></span><span class=line><span class=cl>Analyze the dependency graph for $ARGUMENTS.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Output as a structured report:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>## Direct Dependencies
+</span></span></span><span class=line><span class=cl><span class=gu></span>| Package | Version | Used in | Purpose |
+</span></span><span class=line><span class=cl>|---------|---------|---------|---------|
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>## Transitive Dependencies (notable)
+</span></span></span><span class=line><span class=cl><span class=gu></span>List any transitive dependency that is:
+</span></span><span class=line><span class=cl><span class=k>-</span> Known to have security issues
+</span></span><span class=line><span class=cl><span class=k>-</span> Very large (&gt;1MB)
+</span></span><span class=line><span class=cl><span class=k>-</span> Duplicated at different versions
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>## Recommendations
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> Any packages that could be removed?
+</span></span><span class=line><span class=cl><span class=k>-</span> Any that should be updated?
+</span></span><span class=line><span class=cl><span class=k>-</span> Any that have better alternatives?
+</span></span></code></pre></td></tr></table></div></div><h3 id=commands-for-specific-workflows>Commands for specific workflows</h3><p><strong>Pre-PR checklist:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/pre-pr.md --&gt;</span>
+</span></span><span class=line><span class=cl>I&#39;m about to open a PR. Run through this checklist:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>1.</span> [ ] All tests pass
+</span></span><span class=line><span class=cl><span class=k>2.</span> [ ] No lint errors
+</span></span><span class=line><span class=cl><span class=k>3.</span> [ ] No TypeScript errors (`npx tsc --noEmit`)
+</span></span><span class=line><span class=cl><span class=k>4.</span> [ ] No console.log statements in production code
+</span></span><span class=line><span class=cl><span class=k>5.</span> [ ] All new functions have docstrings/JSDoc
+</span></span><span class=line><span class=cl><span class=k>6.</span> [ ] No hardcoded secrets or API keys
+</span></span><span class=line><span class=cl><span class=k>7.</span> [ ] CLAUDE.md is up to date if architecture changed
+</span></span><span class=line><span class=cl><span class=k>8.</span> [ ] Changes are committed with clear messages
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>For each item, check and report pass/fail.
+</span></span><span class=line><span class=cl>If everything passes, draft a PR title and description based on the commits.
+</span></span></code></pre></td></tr></table></div></div><p><strong>Database migration review:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/migration-check.md --&gt;</span>
+</span></span><span class=line><span class=cl>Review the pending database migration(s).
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Check for:
+</span></span><span class=line><span class=cl><span class=k>1.</span> Reversibility — is there a down migration? Does it work?
+</span></span><span class=line><span class=cl><span class=k>2.</span> Data loss — does any step drop columns or tables with data?
+</span></span><span class=line><span class=cl><span class=k>3.</span> Locking — will any step lock a table for too long? (ALTER TABLE on large tables)
+</span></span><span class=line><span class=cl><span class=k>4.</span> Index impact — are new indexes created concurrently?
+</span></span><span class=line><span class=cl><span class=k>5.</span> Default values — do new NOT NULL columns have defaults for existing rows?
+</span></span><span class=line><span class=cl><span class=k>6.</span> Foreign keys — are new FK constraints validated?
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Think a lot. Database migrations are permanent.
+</span></span></code></pre></td></tr></table></div></div><h2 id=debugging-commands>Debugging commands</h2><p>When a command doesn&rsquo;t work as expected, here&rsquo;s how to diagnose:</p><p><strong>Command not showing up.</strong> Check the file location. It must be exactly <code>.claude/commands/&lt;name>.md</code> — not <code>.claude/command/</code> (singular), not <code>.claude/commands/&lt;name>.txt</code>. Restart Claude Code after creating the file.</p><p><strong>Command runs but produces bad output.</strong> The most common issue is an ambiguous prompt. Test your command prompt by pasting its contents directly into Claude Code as a regular message. If it doesn&rsquo;t work well as a direct prompt, it won&rsquo;t work well as a command.</p><p><strong><code>$ARGUMENTS</code> not substituting.</strong> Make sure you typed something after the command name. <code>/explain</code> with nothing after it sends an empty string for <code>$ARGUMENTS</code>. If your command requires arguments, add a note at the top:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=c>&lt;!-- .claude/commands/explain.md --&gt;</span>
+</span></span><span class=line><span class=cl><span class=c>&lt;!-- Usage: /explain &lt;term or concept&gt; --&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Explain $ARGUMENTS at three levels:
+</span></span><span class=line><span class=cl>...
+</span></span></code></pre></td></tr></table></div></div><p>The HTML comment won&rsquo;t affect the prompt but serves as documentation when someone reads the file.</p><p><strong>Command too long.</strong> There&rsquo;s no hard limit on command file length, but very long commands can push out context space for the actual work. Keep commands under 50 lines. If you need more, you&rsquo;re probably trying to do too much in one command — split it into two.</p><p><strong>Command works in one project but not another.</strong> Check whether the command references project-specific details (specific file paths, specific test commands). If it does, either make it generic (use &ldquo;see CLAUDE.md for the test command&rdquo; instead of hardcoding <code>npm test</code>) or accept that it&rsquo;s a project-specific command.</p><h2 id=conversation-control--the-three-you-should-know>Conversation control — the three you should know</h2><p>Built-in commands worth muscle-memorizing:</p><p><strong><code>/compact</code></strong> — summarizes the conversation so far. Use when the model starts to feel slow. Keeps the gist, drops the verbose bits. Covered in depth in piece 2.</p><p><strong><code>/clear</code></strong> — wipes conversation. Keeps memory and settings. Use when switching tasks.</p><p><strong><code>/init</code></strong> — covered in piece 1. Run once per repo to bootstrap <code>CLAUDE.md</code>.</p><p>There are more — <code>/help</code> lists everything — but those three are the daily set.</p><h3 id=other-built-in-commands-worth-knowing>Other built-in commands worth knowing</h3><table><thead><tr><th>Command</th><th>What it does</th><th>When to use</th></tr></thead><tbody><tr><td><code>/help</code></td><td>Shows all available commands</td><td>When you forget a command name</td></tr><tr><td><code>/compact</code></td><td>Summarize and shrink context</td><td>Long sessions getting slow</td></tr><tr><td><code>/clear</code></td><td>Fresh conversation</td><td>Switching tasks</td></tr><tr><td><code>/init</code></td><td>Generate CLAUDE.md</td><td>New repo setup</td></tr><tr><td><code>/config</code></td><td>Open settings</td><td>Changing preferences</td></tr><tr><td><code>/cost</code></td><td>Show token usage</td><td>Monitoring spend</td></tr><tr><td><code>/doctor</code></td><td>Diagnose Claude Code issues</td><td>When something feels broken</td></tr><tr><td><code>/login</code></td><td>Re-authenticate</td><td>Token expired</td></tr><tr><td><code>/logout</code></td><td>Clear authentication</td><td>Switching accounts</td></tr><tr><td><code>/permissions</code></td><td>View active permissions</td><td>Debugging &ldquo;why did it ask me?&rdquo;</td></tr></tbody></table><h2 id=what-stops-being-good-for-slash-commands>What stops being good for slash commands</h2><p>Slash commands are bad at:</p><ul><li><p><strong>Anything that needs runtime arguments more complex than a single string.</strong> <code>$ARGUMENTS</code> is just one token. You can&rsquo;t have named parameters like <code>/deploy --env staging --skip-tests</code>. If you need that, write a shell script and call it from Claude.</p></li><li><p><strong>Anything that needs to maintain state between invocations.</strong> Each <code>/command</code> runs in a fresh prompt context. There&rsquo;s no way to have <code>/step1</code> pass data to <code>/step2</code>. For multi-step stateful workflows, use a single long prompt or the SDK.</p></li><li><p><strong>Anything you&rsquo;d want to test.</strong> You can&rsquo;t write a unit test for a slash command. If your workflow needs validation, it should be a script that Claude calls, not a command that Claude executes.</p></li><li><p><strong>Anything that needs to be different per environment.</strong> The command file is the same for everyone. If staging and production need different steps, use <code>$ARGUMENTS</code> to pass the environment name and handle the branching in the prompt.</p></li></ul><p>For those cases you want the SDK (piece 6). Slash commands are for the workflow shortcuts that don&rsquo;t justify the complexity of code.</p><h3 id=the-hierarchy-of-automation-in-claude-code>The hierarchy of automation in Claude Code</h3><pre tabindex=0><code>Simple → Complex:
+
+1. CLAUDE.md conventions    (passive — Claude follows them automatically)
+2. Slash commands           (one-shot — type /name, get a result)
+3. Shell scripts + Claude   (call scripts from Claude, or Claude from scripts)
+4. Claude Code SDK          (programmatic — full control, state, testing)
+</code></pre><p>Start at level 1. Move up only when the lower level can&rsquo;t handle your use case. Most teams never need level 4. Almost every team benefits from levels 1-2.</p><h2 id=a-real-command-library-walkthrough>A real command library walkthrough</h2><p>Let me show what a mature <code>.claude/commands/</code> directory looks like for a production API project:</p><pre tabindex=0><code>.claude/commands/
+├── audit.md          # Security audit
+├── debug.md          # Structured debugging
+├── deploy.md         # Pre-deploy checklist
+├── deps.md           # Dependency analysis
+├── document.md       # Generate docstrings
+├── explain.md        # Three-level explanation
+├── migration-check.md # Database migration review
+├── onboard.md        # New engineer orientation
+├── pre-pr.md         # PR preparation checklist
+├── review.md         # Code review
+└── test.md           # Test run and analysis
+</code></pre><p>11 commands. Each one is a workflow that used to be either (a) done manually with multiple steps, or (b) not done at all because it was too tedious.</p><p>The total investment to create these: maybe 2 hours spread over two months. The time saved per week: hard to measure, but conservatively 30 minutes per developer. With a team of 5, that&rsquo;s 2.5 hours per week. The commands paid for themselves in the first week.</p><p>The real value isn&rsquo;t the time savings — it&rsquo;s the consistency. Every code review covers the same criteria. Every debug session follows the same structure. Every deploy goes through the same checklist. The commands encode the team&rsquo;s best practices into repeatable workflows.</p><p>Next piece: MCP — the protocol that lets Claude Code talk to anything.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/claude-code-learn/>Claude Code Hands-On</a> <span class=count>10 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/claude-code-learn/04-mcp-servers/><span class=title>Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
 <span class=series-nav-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
 <span class=series-nav-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
 <span class=series-nav-title>Claude Code Hands-On (3): Custom Slash Commands and Conversation Control</span>
@@ -83,7 +540,7 @@
 <span class=series-nav-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=series-nav-num>08</span>
 <span class=series-nav-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=series-nav-num>09</span>
 <span class=series-nav-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=series-nav-num>10</span>
-<span class=series-nav-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-a-slash-command-is>What a slash command is</a></li><li><a href=#arguments--parameterization><code>$ARGUMENTS</code> — parameterization</a></li><li><a href=#the-commands-i-have-on-every-project>The commands I have on every project</a></li><li><a href=#conversation-control--the-three-you-should-know>Conversation control — the three you should know</a></li><li><a href=#a-note-on-team-adoption>A note on team adoption</a></li><li><a href=#what-it-stops-being-good-for>What it stops being good for</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
+<span class=series-nav-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-a-slash-command-is>What a slash command is</a><ul><li><a href=#how-the-command-system-works-internally>How the command system works internally</a></li></ul></li><li><a href=#the-directory-structure>The directory structure</a><ul><li><a href=#naming-conventions>Naming conventions</a></li></ul></li><li><a href=#arguments--parameterization><code>$ARGUMENTS</code> — parameterization</a><ul><li><a href=#arguments-patterns><code>$ARGUMENTS</code> patterns</a></li></ul></li><li><a href=#the-commands-i-have-on-every-project>The commands I have on every project</a><ul><li><a href=#audit--security-audit><code>/audit</code> — security audit</a></li><li><a href=#test--run-and-analyze-tests><code>/test</code> — run and analyze tests</a></li><li><a href=#review--code-review><code>/review</code> — code review</a></li><li><a href=#explain--three-level-explanation><code>/explain</code> — three-level explanation</a></li><li><a href=#onboard--new-engineer-orientation><code>/onboard</code> — new engineer orientation</a></li><li><a href=#deploy--deployment-checklist><code>/deploy</code> — deployment checklist</a></li><li><a href=#debug--structured-debugging><code>/debug</code> — structured debugging</a></li><li><a href=#document--generate-documentation><code>/document</code> — generate documentation</a></li></ul></li><li><a href=#building-a-team-command-library>Building a team command library</a><ul><li><a href=#how-command-libraries-evolve>How command libraries evolve</a></li><li><a href=#commands-as-documentation>Commands as documentation</a></li><li><a href=#personal-vs-team-commands>Personal vs. team commands</a></li></ul></li><li><a href=#advanced-command-patterns>Advanced command patterns</a><ul><li><a href=#commands-that-chain-other-commands>Commands that chain other commands</a></li><li><a href=#commands-with-structured-output>Commands with structured output</a></li><li><a href=#commands-for-specific-workflows>Commands for specific workflows</a></li></ul></li><li><a href=#debugging-commands>Debugging commands</a></li><li><a href=#conversation-control--the-three-you-should-know>Conversation control — the three you should know</a><ul><li><a href=#other-built-in-commands-worth-knowing>Other built-in commands worth knowing</a></li></ul></li><li><a href=#what-stops-being-good-for-slash-commands>What stops being good for slash commands</a><ul><li><a href=#the-hierarchy-of-automation-in-claude-code>The hierarchy of automation in Claude Code</a></li></ul></li><li><a href=#a-real-command-library-walkthrough>A real command library walkthrough</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/claude-code-learn/ class=series-name>Claude Code Hands-On</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
 <span class=chapter-title>Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
 <span class=chapter-title>Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
@@ -94,5 +551,5 @@
 <span class=chapter-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>8 min</strong></div><div class=row><span>Word count</span><strong>729</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>36 min</strong></div><div class=row><span>Word count</span><strong>3744</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>
