@@ -119,6 +119,9 @@ $$f_{X|Y}(x | y) = \frac{6(1-y)}{6y(1-y)} = \frac{1}{y} \quad \text{对 } 0 < x 
 
 ## 独立性（Independence）
 
+
+![Independence vs dependence linked chains vs free floating ev](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-independence-vs-dependence-linked-chains-vs-free-floating-ev.jpg)
+
 随机变量 $X$ 和 $Y$ **相互独立**，当且仅当其联合分布可分解为边缘分布的乘积：
 
 $$f_{X,Y}(x, y) = f_X(x) \, f_Y(y) \quad \text{对所有 } (x, y) \text{ 成立}.$$

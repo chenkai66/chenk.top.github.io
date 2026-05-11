@@ -121,6 +121,9 @@ Keep these handy for estimation:
 
 ## Storage Estimation
 
+
+![Availability nines uptime guarantee as a reliability fortres](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-availability-nines-uptime-guarantee-as-a-reliability-fortres.jpg)
+
 Here is the general process for estimating storage requirements.
 
 **Step 1: Identify daily active users (DAU)**
@@ -344,6 +347,9 @@ Even with headroom, traffic spikes can exceed planned capacity. Strategies inclu
 - **Circuit breakers**: Fail fast when downstream services are overwhelmed
 
 ## The System Design Framework
+
+
+![Back of envelope estimation napkin math on a whiteboard](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-back-of-envelope-estimation-napkin-math-on-a-whiteboard.jpg)
 
 Whether in an interview or a real architectural discussion, a structured approach prevents you from getting lost. Here is a repeatable framework.
 

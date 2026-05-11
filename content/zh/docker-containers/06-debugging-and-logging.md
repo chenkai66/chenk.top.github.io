@@ -213,6 +213,9 @@ docker run -it --rm \
 
 ## docker inspect — 获取完整视图
 
+
+![Container logging pipeline data streams flowing from contain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-container-logging-pipeline-data-streams-flowing-from-contain.jpg)
+
 `docker inspect` 返回关于容器的详细 JSON 元数据。虽然输出冗长，但它包含了你能想到的一切信息：
 
 ![Troubleshooting decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-troubleshooting.png)
@@ -457,6 +460,9 @@ docker run -it debug-image:latest bash
 ```
 
 ## 临时调试容器（Ephemeral Debug Containers）
+
+
+![Debugging inside a container detective with magnifying glass](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-debugging-inside-a-container-detective-with-magnifying-glass.jpg)
 
 有时你需要网络工具、`strace` 或其他不在应用镜像中的调试工具。此时可运行一个独立的调试容器，并共享目标容器的网络：
 

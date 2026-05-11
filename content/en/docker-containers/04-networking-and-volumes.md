@@ -402,6 +402,9 @@ Use tmpfs for:
 
 ## Real-World Example: MySQL with Persistent Data
 
+
+![Docker network bridge connecting containers like islands con](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-network-bridge-connecting-containers-like-islands-con.jpg)
+
 This example demonstrates why volumes matter. Without a volume, deleting the MySQL container destroys all your data.
 
 ![Overlay network](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-overlay-network.png)
@@ -538,6 +541,9 @@ docker run --user 1000:1000 -v mydata:/data myapp
 | Build cache | Named volume | `-v build-cache:/root/.cache` |
 
 ## Putting It Together: Networked App with Persistence
+
+
+![Docker volumes as floating storage crystals connected to con](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-volumes-as-floating-storage-crystals-connected-to-con.jpg)
 
 Here's a complete example — a Python app that connects to Redis, with both on a custom network and Redis data persisted:
 

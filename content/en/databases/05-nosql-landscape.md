@@ -204,6 +204,9 @@ const results = await orders.aggregate(pipeline).toArray();
 
 ## Key-Value Stores: Redis
 
+
+![Cap theorem triangle floating in space consistency availabil](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/05-cap-theorem-triangle-floating-in-space-consistency-availabil.jpg)
+
 A key-value store is the simplest NoSQL model: you give it a key, it gives you back a value. Redis takes this further by supporting rich data structures as values.
 
 ### Data Structures

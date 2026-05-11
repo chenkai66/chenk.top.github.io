@@ -556,6 +556,9 @@ class PresenceService:
 
 ## Case Study 3: News Feed System
 
+
+![System design case study architect blueprint of large scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/08-system-design-case-study-architect-blueprint-of-large-scale-.jpg)
+
 A news feed system displays a personalized, ranked stream of content from users and pages that you follow. This is the core product feature of platforms like Facebook, Twitter, and Instagram.
 
 ![News feed design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-news-feed.png)

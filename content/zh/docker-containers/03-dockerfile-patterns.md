@@ -380,6 +380,9 @@ flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
 
 ## `.dockerignore` 文件
 
+
+![Dockerfile optimization journey from bloated to slim contain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/03-dockerfile-optimization-journey-from-bloated-to-slim-contain.jpg)
+
 `.dockerignore` 的作用类似于 `.gitignore`，但针对 Docker 构建上下文。当你执行 `docker build .` 时，Docker 会将整个目录（即“构建上下文”）发送给守护进程。若无 `.dockerignore`，所有文件都将被上传。
 
 ![Layer optimization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-layer-optimization.png)
@@ -606,6 +609,9 @@ docker build --build-arg NODE_ENV=development -t myapp:dev .
 ```
 
 ## 常见模式与反模式
+
+
+![Multi stage build factory assembly line producing optimized](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/03-multi-stage-build-factory-assembly-line-producing-optimized-.jpg)
 
 ### 模式：锁定软件包版本
 

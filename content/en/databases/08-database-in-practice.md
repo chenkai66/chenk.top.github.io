@@ -336,6 +336,9 @@ HikariDataSource ds = new HikariDataSource(config);
 
 ![Database monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-monitoring-dashboard.png)
 
+
+![Database monitoring dashboard control room with holographic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-monitoring-dashboard-control-room-with-holographic-.jpg)
+
 ### Key Metrics
 
 | Metric | Healthy Range | Action if Unhealthy |

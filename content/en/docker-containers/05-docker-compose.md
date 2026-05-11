@@ -123,6 +123,9 @@ The project name defaults to the directory name. A project in `~/projects/myapp/
 
 ## Compose File Structure
 
+
+![Microservices ecosystem interconnected containers forming a](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-microservices-ecosystem-interconnected-containers-forming-a-.jpg)
+
 A compose file has four top-level keys:
 
 ![Compose networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-networking.png)

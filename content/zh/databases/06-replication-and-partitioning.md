@@ -408,6 +408,9 @@ Email 索引分片 B（n–z）：zara@... → 分片 3
 
 ## MySQL 主从复制实操指南
 
+
+![Consistent hashing ring as a futuristic carousel with data d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-consistent-hashing-ring-as-a-futuristic-carousel-with-data-d.jpg)
+
 下面我们搭建一个基础的 MySQL 主从复制环境。
 
 ### 主节点（Leader）配置
@@ -545,5 +548,8 @@ START REPLICA;
 - **pg_auto_failover**：PostgreSQL 的轻量级高可用替代方案  
 
 ## 下一步
+
+
+![Distributed database replication data streams flowing betwee](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)
 
 复制与分片解决了数据跨多机部署的问题。但当一个事务需要同时更新多个机器上的数据时，又该如何保证原子性与一致性？这就是**分布式事务（Distributed Transactions）** 的挑战——两阶段提交（2PC）、Saga 模式、共识算法（Consensus），以及为何大多数工程师在可行时都尽量规避它。我们将在下一篇文章中深入探讨。

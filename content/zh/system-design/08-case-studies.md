@@ -556,6 +556,9 @@ class PresenceService:
 
 ## 案例研究 3：新闻信息流系统（News Feed System）
 
+
+![System design case study architect blueprint of large scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/08-system-design-case-study-architect-blueprint-of-large-scale-.jpg)
+
 新闻信息流系统向用户展示个性化、排序后的动态内容流，内容来自其关注的用户与页面。这是 Facebook、Twitter、Instagram 等平台的核心产品功能。
 
 ![News feed design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-news-feed.png)

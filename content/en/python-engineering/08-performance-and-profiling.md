@@ -221,6 +221,9 @@ snakeviz opens an interactive visualization showing a sunburst chart of function
 
 ## line_profiler: Per-Line Timing
 
+
+![Optimization journey slow python code transforming to fast o](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/08-optimization-journey-slow-python-code-transforming-to-fast-o.jpg)
+
 cProfile tells you which functions are slow. `line_profiler` tells you which lines within those functions are slow.
 
 ```bash
@@ -524,6 +527,9 @@ total = data[data > 0].sum()
 ```
 
 ## Generators and Lazy Evaluation
+
+
+![Python profiling xray scanning code for performance bottlene](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/08-python-profiling-xray-scanning-code-for-performance-bottlene.jpg)
 
 Generators produce values one at a time instead of creating the entire collection in memory.
 

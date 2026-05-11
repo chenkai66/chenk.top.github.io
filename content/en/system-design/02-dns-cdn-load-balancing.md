@@ -197,6 +197,9 @@ The tiered caching architecture is important. Without mid-tier caches, every edg
 
 ## Layer 4 Load Balancing
 
+
+![Dns resolution journey message traveling through hierarchica](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/02-dns-resolution-journey-message-traveling-through-hierarchica.jpg)
+
 Layer 4 load balancers operate at the transport layer (TCP/UDP). They make routing decisions based on IP addresses and port numbers without inspecting the application-layer payload.
 
 ![L4 vs L7 load balancing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-l4-vs-l7.png)
@@ -430,6 +433,9 @@ upstream api_servers {
 This configuration marks a server as unavailable after 3 failures within 30 seconds, and tries it again after 30 seconds.
 
 ## Global Server Load Balancing (GSLB)
+
+
+![Load balancer traffic controller directing requests to healt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/02-load-balancer-traffic-controller-directing-requests-to-healt.jpg)
 
 GSLB distributes traffic across multiple geographic regions. It combines DNS-based routing with health checking to direct users to the closest healthy datacenter.
 

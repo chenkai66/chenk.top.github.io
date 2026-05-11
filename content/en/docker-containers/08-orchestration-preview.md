@@ -240,6 +240,9 @@ Swarm is a good choice when:
 
 ## Kubernetes: The Industry Standard
 
+
+![Container orchestration evolution from docker compose to kub](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/08-container-orchestration-evolution-from-docker-compose-to-kub.jpg)
+
 Kubernetes (K8s) is the dominant container orchestration platform. It's more complex than Swarm but dramatically more capable. Most cloud providers offer managed Kubernetes services (EKS, GKE, AKS, ACK), eliminating the operational burden of managing the control plane.
 
 ![Kubernetes architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-k8s-architecture.png)
@@ -578,6 +581,9 @@ If you're running on a single host and want better deployment workflows, look at
 - **Coolify** — an open source and self-hostable alternative to Heroku/Netlify/Vercel
 
 ## The Cloud-Native Ecosystem
+
+
+![Kubernetes cluster as a space station with pods as modules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/08-kubernetes-cluster-as-a-space-station-with-pods-as-modules.jpg)
 
 Kubernetes spawned an ecosystem of tools. Here's a map of the most important ones:
 

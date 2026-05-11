@@ -206,6 +206,9 @@ const results = await orders.aggregate(pipeline).toArray();
 
 ## 键值型数据库：Redis
 
+
+![Cap theorem triangle floating in space consistency availabil](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/05-cap-theorem-triangle-floating-in-space-consistency-availabil.jpg)
+
 键值存储是最简单的 NoSQL 模型：你提供一个 key，它返回一个 value。Redis 在此基础上进一步支持丰富的数据结构作为 value。
 
 ![Graph database traversal](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-graph-traversal.png)

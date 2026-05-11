@@ -330,6 +330,9 @@ HikariDataSource ds = new HikariDataSource(config);
 
 ![Database monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-monitoring-dashboard.png)
 
+
+![Database monitoring dashboard control room with holographic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-monitoring-dashboard-control-room-with-holographic-.jpg)
+
 ### 关键指标
 
 | 指标 | 健康范围 | 异常时行动建议 |

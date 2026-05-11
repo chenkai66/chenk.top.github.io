@@ -148,6 +148,9 @@ ut.commit();  // 事务管理器运行 2PC 协议
 
 ## 三阶段提交（3PC）
 
+
+![Distributed consensus protocol servers voting in a digital p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-distributed-consensus-protocol-servers-voting-in-a-digital-p.jpg)
+
 3PC 在 PREPARE 和 COMMIT 之间增加了一个 PRE-COMMIT 阶段，使参与者可在协调者失效时自主恢复：
 
 ```
@@ -396,6 +399,9 @@ Client C:                     read() ──► 1   ✓
 **严格可串行化（Strict serializability）** = 可串行化 + 线性一致性。这是最强的一致性保证，也是 Google Spanner 提供的保证。
 
 ## 最终一致性（Eventual Consistency）
+
+
+![Saga pattern as a chain of compensating transactions domino](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-saga-pattern-as-a-chain-of-compensating-transactions-domino-.jpg)
 
 在线性一致性的另一端是最终一致性：若不再有新的写入，所有副本将**最终**收敛到相同值。
 

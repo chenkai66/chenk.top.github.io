@@ -96,6 +96,9 @@ my_tool/
 
 ## `__init__.py`：包的标识符
 
+
+![Python package import resolution detective following sys pat](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-package-import-resolution-detective-following-sys-pat.jpg)
+
 当一个目录包含 `__init__.py` 文件时，它即成为一个 Python 包。该文件可以为空，也可包含初始化逻辑。
 
 ![__init__.py patterns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-init-purpose.png)
@@ -294,6 +297,9 @@ if __name__ == "__main__":
 该机制在开发阶段（尚未安装包时）非常有用，也适用于那些既需被导入、又需直接运行的模块。
 
 ## 使用 `argparse` 构建 CLI
+
+
+![Python project structure as a well organized filing cabinet](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-project-structure-as-a-well-organized-filing-cabinet-.jpg)
 
 标准库 `argparse` 是构建命令行接口的基础方案：
 

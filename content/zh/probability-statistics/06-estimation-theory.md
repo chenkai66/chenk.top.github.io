@@ -85,6 +85,9 @@ $$E\left[\sum X_i^2\right] = n(\sigma^2 + \mu^2), \quad E[n\bar{X}^2] = n\left(\
 
 ## 矩估计法（Method of Moments）
 
+
+![Maximum likelihood estimation mountain climber finding the p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/06-maximum-likelihood-estimation-mountain-climber-finding-the-p.jpg)
+
 最简单的估计方法：将样本矩与总体矩匹配。
 
 **步骤：**

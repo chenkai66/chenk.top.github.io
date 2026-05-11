@@ -153,6 +153,9 @@ def test_float_division():
 
 ## Fixture：可复用的测试准备逻辑
 
+
+![Testing pyramid ancient egyptian pyramid with unit integrati](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-testing-pyramid-ancient-egyptian-pyramid-with-unit-integrati.jpg)
+
 Fixture 替代了 unittest 中的 `setUp`/`tearDown` 模式，通过函数参数向测试注入依赖。
 
 ![Fixture scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png)

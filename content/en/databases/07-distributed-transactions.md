@@ -148,6 +148,9 @@ ut.commit();  // Transaction manager runs 2PC protocol
 
 ## Three-Phase Commit (3PC)
 
+
+![Distributed consensus protocol servers voting in a digital p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-distributed-consensus-protocol-servers-voting-in-a-digital-p.jpg)
+
 3PC adds a PRE-COMMIT phase between PREPARE and COMMIT, which allows participants to recover without the coordinator:
 
 ```
@@ -396,6 +399,9 @@ Client C:                     read() ──► 1   ✓
 **Strict serializability** = serializability + linearizability. This is the strongest guarantee and what Google Spanner provides.
 
 ## Eventual Consistency
+
+
+![Saga pattern as a chain of compensating transactions domino](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-saga-pattern-as-a-chain-of-compensating-transactions-domino-.jpg)
 
 At the opposite end of the spectrum from linearizability is eventual consistency: if no new writes are made, all replicas will *eventually* converge to the same value.
 

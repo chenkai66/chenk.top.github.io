@@ -193,6 +193,9 @@ pathlib is cleaner in every case. The `/` operator for joining paths is reason e
 
 ![Encoding flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
 
+
+![Data serialization formats json yaml toml as different conta](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-data-serialization-formats-json-yaml-toml-as-different-conta.jpg)
+
 ### The Problem
 
 ```python
@@ -507,6 +510,9 @@ with open("excel_export.csv", encoding="utf-8-sig") as f:
 
 
 ![Format size comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-format-sizes.png)
+
+
+![File io pipeline data flowing from disk through buffers to a](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-file-io-pipeline-data-flowing-from-disk-through-buffers-to-a.jpg)
 
 ### pickle: Python Object Serialization
 

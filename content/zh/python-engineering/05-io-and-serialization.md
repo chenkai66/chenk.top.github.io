@@ -193,6 +193,9 @@ p.rmdir()           # 删除空目录
 
 ![Encoding flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
 
+
+![Data serialization formats json yaml toml as different conta](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-data-serialization-formats-json-yaml-toml-as-different-conta.jpg)
+
 ### 问题所在
 
 ```python
@@ -507,6 +510,9 @@ with open("excel_export.csv", encoding="utf-8-sig") as f:
 ```
 
 ## 二进制格式
+
+
+![File io pipeline data flowing from disk through buffers to a](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-file-io-pipeline-data-flowing-from-disk-through-buffers-to-a.jpg)
 
 ### `pickle`：Python 对象序列化
 

@@ -105,6 +105,9 @@ $$\lim_{n \to \infty} P(|\bar{X}_n - \mu| > \varepsilon) \leq \lim_{n \to \infty
 
 ## 强大数定律（SLLN）
 
+
+![Central limit theorem many random streams merging into a bel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-central-limit-theorem-many-random-streams-merging-into-a-bel.jpg)
+
 **定理（SLLN）。** 在与 WLLN 相同（甚至更弱）的条件下（仅需有限均值）：  
 $$\bar{X}_n \xrightarrow{a.s.} \mu.$$  
 即，$P\left(\lim_{n \to \infty} \bar{X}_n = \mu\right) = 1$。
@@ -313,6 +316,9 @@ plt.show()
 当 $n = 1$ 时，直方图反映原始分布形状；至 $n = 5$，各分布已呈钟形；当 $n = 30$ 时，即使高度偏斜的指数分布，其样本均值也几乎无法与高斯分布区分。这正是 CLT 的普适性：源分布无关紧要（只要方差有限）。
 
 ## Delta 方法：变换量的 CLT
+
+
+![Law of large numbers coin flips converging to fifty percent](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-law-of-large-numbers-coin-flips-converging-to-fifty-percent.jpg)
 
 CLT 告诉我们 $\sqrt{n}(\bar{X}_n - \mu) \xrightarrow{d} \mathcal{N}(0, \sigma^2)$。但若关注均值的函数（如 $g(\bar{X}_n)$）呢？**Delta 方法**将 CLT 推广至此。
 

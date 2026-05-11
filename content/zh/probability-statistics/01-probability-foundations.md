@@ -100,6 +100,9 @@ $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
 
 ## 条件概率
 
+
+![Probability sample space as a cosmic universe of possible ou](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-probability-sample-space-as-a-cosmic-universe-of-possible-ou.jpg)
+
 当我们得知某事件 $B$ 已发生时，我们对其他事件的信念会发生变化。这种更新由**条件概率**刻画。
 
 ![Conditional probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-conditional-probability.png)

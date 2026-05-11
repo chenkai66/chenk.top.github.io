@@ -103,6 +103,9 @@ SELECT balance FROM accounts WHERE account_id = 1;  -- 返回 500！
 
 ## 事务生命周期
 
+
+![Mvcc timeline visualization parallel universes of database s](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-mvcc-timeline-visualization-parallel-universes-of-database-s.jpg)
+
 ```sql
 -- 启动事务
 BEGIN;

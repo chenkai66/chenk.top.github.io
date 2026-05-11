@@ -103,6 +103,9 @@ We used LOTUS with $g(x) = x^2$ and $f(x) = 1$ on $[0,1]$. No need to derive the
 
 ![Variance visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-variance.png)
 
+
+![Covariance correlation dance partners moving together or ind](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-covariance-correlation-dance-partners-moving-together-or-ind.jpg)
+
 ### Definition
 
 The **variance** of $X$ measures the average squared deviation from the mean:
@@ -345,6 +348,9 @@ $$P((X - \mu)^2 \geq k^2 \sigma^2) \leq \frac{E[(X - \mu)^2]}{k^2 \sigma^2} = \f
 Chebyshev is **distribution-free** — it holds for any distribution with finite variance. The price for this generality is that the bound is loose (compare the columns above). But "loose but always valid" is often more useful than "tight but only for Gaussians."
 
 ## Python: Visualizing Moments and Chebyshev's Bound
+
+
+![Expectation as center of mass balance point on probability d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-expectation-as-center-of-mass-balance-point-on-probability-d.jpg)
 
 ```python
 import numpy as np

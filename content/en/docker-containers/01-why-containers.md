@@ -83,6 +83,9 @@ This is why starting a container is fast: there's no filesystem to copy. The con
 
 ## Containers vs Virtual Machines
 
+
+![Shipping containers stacked on a digital cargo ship represen](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/01-shipping-containers-stacked-on-a-digital-cargo-ship-represen.jpg)
+
 The architectural difference is fundamental. Here's how the two stacks compare (imagine this as a diagram):
 
 ![Resource overhead comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-resource-comparison.png)

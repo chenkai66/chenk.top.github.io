@@ -153,6 +153,9 @@ def test_float_division():
 
 ## Fixtures: Reusable Test Setup
 
+
+![Testing pyramid ancient egyptian pyramid with unit integrati](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-testing-pyramid-ancient-egyptian-pyramid-with-unit-integrati.jpg)
+
 Fixtures replace the `setUp`/`tearDown` pattern from unittest. They provide test dependencies through function arguments.
 
 ![Fixture scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png)

@@ -100,6 +100,9 @@ $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
 
 ## Conditional Probability
 
+
+![Probability sample space as a cosmic universe of possible ou](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-probability-sample-space-as-a-cosmic-universe-of-possible-ou.jpg)
+
 Knowing that some event $B$ has occurred changes our beliefs about other events. This is captured by **conditional probability**.
 
 ![Conditional probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-conditional-probability.png)

@@ -79,6 +79,9 @@ CREATE TABLE order_items (
 
 ## SQL 基础要点
 
+
+![Abstract visualization of relational database tables connect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-abstract-visualization-of-relational-database-tables-connect.jpg)
+
 SQL（Structured Query Language）是与关系型数据库对话的语言。它是**声明式（declarative）**的：你只需描述 *想要什么数据*，而非 *如何获取它*；执行计划由数据库引擎自行推导。
 
 ![SQL query execution pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
@@ -319,6 +322,9 @@ ALTER TABLE users DROP COLUMN phone;
 零冗余，每个事实仅存储一次。
 
 ## 何时反范式化（Denormalize）
+
+
+![Sql query processing engine mechanical gears and data pipes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-sql-query-processing-engine-mechanical-gears-and-data-pipes-.jpg)
 
 范式化消除了冗余，但读取常需 JOIN 多张表——而 JOIN 有开销。有时你**主动反范式化以换取性能**：
 

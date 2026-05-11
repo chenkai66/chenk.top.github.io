@@ -189,6 +189,9 @@ daily_sales.write \
 
 ## 流处理（Stream Processing）
 
+
+![Data pipeline river system streams flowing through processin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-data-pipeline-river-system-streams-flowing-through-processin.jpg)
+
 流处理持续处理实时到达的数据，产出结果的延迟通常在亚秒级至分钟级。
 
 ### 核心概念
@@ -430,6 +433,9 @@ Kappa架构由Kafka联合创始人Jay Kreps提出，通过**仅使用流处理**
 
 
 ![Data quality dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-data-quality.png)
+
+
+![Etl vs elt two factory layouts transform first vs load first](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-etl-vs-elt-two-factory-layouts-transform-first-vs-load-first.jpg)
 
 ### Schema校验
 

@@ -100,6 +100,9 @@ Archive:  dist/my_tool-0.1.0-py3-none-any.whl
 
 ## 使用 pyproject.toml 进行打包配置
 
+
+![Python packaging journey from script to pypi published packa](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-python-packaging-journey-from-script-to-pypi-published-packa.jpg)
+
 完整的打包配置如下：
 
 ```toml
@@ -443,6 +446,9 @@ $ docker run -p 8000:8000 \
 ```
 
 ## 使用 Poetry 构建与发布
+
+
+![Wheel vs sdist comparison prebuilt furniture vs ikea flatpac](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg)
 
 若项目采用 Poetry 而非 setuptools：
 

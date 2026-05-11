@@ -176,6 +176,9 @@ effective_cache_size = 12GB  # estimate of OS disk cache (for planner)
 
 ## LSM-Tree Storage Engines
 
+
+![Storage engine internals lsm tree compaction process like ge](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/04-storage-engine-internals-lsm-tree-compaction-process-like-ge.jpg)
+
 Log-Structured Merge-tree (LSM-tree) engines take a fundamentally different approach. Instead of updating data in place (like B-trees), they batch writes in memory and flush them sequentially. This makes writes much faster but reads more complex.
 
 LSM-tree engines include: RocksDB, LevelDB, Cassandra's storage engine, HBase, CockroachDB (built on RocksDB), and TiKV (TiDB's storage layer).

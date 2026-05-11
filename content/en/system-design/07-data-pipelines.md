@@ -189,6 +189,9 @@ daily_sales.write \
 
 ## Stream Processing
 
+
+![Data pipeline river system streams flowing through processin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-data-pipeline-river-system-streams-flowing-through-processin.jpg)
+
 Stream processing handles data continuously as it arrives, producing results with sub-second to minute-level latency.
 
 ### Core Concepts
@@ -430,6 +433,9 @@ The modern trend is the **Lakehouse** — combining data lake storage (cheap, sc
 
 
 ![Data quality dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-data-quality.png)
+
+
+![Etl vs elt two factory layouts transform first vs load first](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-etl-vs-elt-two-factory-layouts-transform-first-vs-load-first.jpg)
 
 ### Schema Validation
 

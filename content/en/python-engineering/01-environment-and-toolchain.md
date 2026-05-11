@@ -163,6 +163,9 @@ $ pyenv versions
 
 ## Virtual Environments: Isolating Dependencies
 
+
+![Dependency hell tangled wires vs clean resolved dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-dependency-hell-tangled-wires-vs-clean-resolved-dependencies.jpg)
+
 Even with the right Python version, you still need dependency isolation. Without it, `pip install` puts packages into a shared location, and two projects needing different versions of the same package will conflict.
 
 ![Dependency resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)

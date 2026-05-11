@@ -74,6 +74,9 @@ CDF 是右连续、非减函数，且满足 $\lim_{x \to -\infty} F(x) = 0$ 与 
 
 ![Quantile function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-quantile-function.png)
 
+
+![Probability distributions as mountain landscapes normal expo](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-probability-distributions-as-mountain-landscapes-normal-expo.jpg)
+
 ### Bernoulli 分布
 
 最简单的随机变量：单次试验，仅两种结果。
@@ -416,6 +419,9 @@ plt.show()
 - **Gamma** 推广了 Exponential，新增形状参数控制“峰形”。
 
 ## 分布间的联系
+
+
+![Random variable transformation machine input outcomes output](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-random-variable-transformation-machine-input-outcomes-output.jpg)
 
 上述分布并非彼此孤立，而是一个具有深层关联的家族：
 

@@ -408,6 +408,9 @@ Query by email → go to the right index shard → then to the data shard
 
 ## MySQL Replication Setup Walkthrough
 
+
+![Consistent hashing ring as a futuristic carousel with data d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-consistent-hashing-ring-as-a-futuristic-carousel-with-data-d.jpg)
+
 Let us set up a basic leader-follower replication in MySQL.
 
 ### Leader Configuration
@@ -545,5 +548,8 @@ In production, use orchestration tools for automated failover:
 - **pg_auto_failover**: Simpler alternative for PostgreSQL
 
 ## What's Next
+
+
+![Distributed database replication data streams flowing betwee](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)
 
 Replication and partitioning get data onto multiple machines. But what happens when a single transaction needs to update data on multiple machines? That is the problem of **distributed transactions** — 2PC, Saga, consensus, and why most people avoid them when they can. We will cover that next.

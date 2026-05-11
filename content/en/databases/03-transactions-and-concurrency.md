@@ -100,6 +100,9 @@ Durability is enforced by flushing the WAL to persistent storage before reportin
 
 ## Transaction Lifecycle
 
+
+![Mvcc timeline visualization parallel universes of database s](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-mvcc-timeline-visualization-parallel-universes-of-database-s.jpg)
+
 ```sql
 -- Start a transaction
 BEGIN;

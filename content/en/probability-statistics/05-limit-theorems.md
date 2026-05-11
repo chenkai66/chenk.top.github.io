@@ -117,6 +117,9 @@ With enough data, the sample mean is close to the true mean with high probabilit
 
 ## The Strong Law of Large Numbers
 
+
+![Central limit theorem many random streams merging into a bel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-central-limit-theorem-many-random-streams-merging-into-a-bel.jpg)
+
 **Theorem (SLLN).** Under the same conditions as the WLLN (and even weaker ones — finite mean suffices):
 
 $$\bar{X}_n \xrightarrow{a.s.} \mu.$$
@@ -363,6 +366,9 @@ This simulation is the CLT in action. Each row is a different source distributio
 At $n = 1$, the histogram reflects the raw distribution shape. By $n = 5$, the distributions are already becoming bell-shaped. At $n = 30$, even the highly skewed Exponential distribution produces sample means that are nearly indistinguishable from a Gaussian. This is the CLT's universality: the source distribution doesn't matter (as long as it has finite variance).
 
 ## Delta Method: CLT for Transformed Quantities
+
+
+![Law of large numbers coin flips converging to fifty percent](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-law-of-large-numbers-coin-flips-converging-to-fifty-percent.jpg)
 
 The CLT tells us that $\sqrt{n}(\bar{X}_n - \mu) \xrightarrow{d} \mathcal{N}(0, \sigma^2)$. But what if we care about a function of the mean, like $g(\bar{X}_n)$? The **delta method** extends the CLT.
 

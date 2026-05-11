@@ -163,6 +163,9 @@ $ pyenv versions
 
 ## 虚拟环境：依赖隔离
 
+
+![Dependency hell tangled wires vs clean resolved dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-dependency-hell-tangled-wires-vs-clean-resolved-dependencies.jpg)
+
 即使有了正确的 Python 版本，你仍需依赖隔离。否则，`pip install` 会把包安装到共享位置，而两个需要同一包不同版本的项目就会发生冲突。
 
 ![Version management stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png)

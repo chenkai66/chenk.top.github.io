@@ -243,6 +243,9 @@ cat /run/secrets/db_password
 
 ## Kubernetes：行业标准编排平台
 
+
+![Container orchestration evolution from docker compose to kub](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/08-container-orchestration-evolution-from-docker-compose-to-kub.jpg)
+
 Kubernetes（K8s）是当前占据主导地位的容器编排平台。它比 Swarm 更复杂，但能力也强大得多。主流云厂商均提供托管 Kubernetes 服务（如 EKS、GKE、AKS、ACK），从而免除了用户自行管理控制平面（Control Plane）的运维负担。
 
 ![Kubernetes architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-k8s-architecture.png)
@@ -581,6 +584,9 @@ kubectl top nodes
 - **Coolify**——开源、可自托管的 Heroku/Netlify/Vercel 替代方案  
 
 ## 云原生（Cloud-Native）生态系统
+
+
+![Kubernetes cluster as a space station with pods as modules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/08-kubernetes-cluster-as-a-space-station-with-pods-as-modules.jpg)
 
 Kubernetes 催生了一个庞大的工具生态。以下是其中最重要的一些：
 

@@ -87,6 +87,9 @@ $$\alpha = P(\text{reject } H_0 \mid H_0 \text{ is true}) = P(T \in R \mid H_0).
 
 ![Type I and Type II errors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-error-types.png)
 
+
+![Ab testing laboratory two beakers being compared scientific](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-ab-testing-laboratory-two-beakers-being-compared-scientific-.jpg)
+
 ### 定义
 
 **p 值**是在 $H_0$ 成立的前提下，观察到当前检验统计量或更极端值的概率：
@@ -427,6 +430,9 @@ print(f"{'Benjamini-Hochberg':<25} {bh_reject.sum():>10} "
 输出通常显示：未校正时，约 5–6 个假阳性混入 90 个零假设中。Bonferroni 消除了所有假阳性，但可能遗漏部分真实效应。Benjamini-Hochberg 则在控制假发现的同时捕获了大部分真实效应。这体现了 FDR 控制相比 FWER 控制的功效优势。
 
 ## 效应量：p 值无法告诉你的信息
+
+
+![Hypothesis testing courtroom trial null hypothesis on trial](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-hypothesis-testing-courtroom-trial-null-hypothesis-on-trial.jpg)
 
 p 值仅说明效应是否在统计上可与零区分。它**无法**告诉你效应有多大，或是否具有实际意义。
 

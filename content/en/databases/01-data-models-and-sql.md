@@ -79,6 +79,9 @@ Four tables. Three foreign keys. That is enough to represent users placing order
 
 ## SQL Essentials
 
+
+![Abstract visualization of relational database tables connect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-abstract-visualization-of-relational-database-tables-connect.jpg)
+
 SQL (Structured Query Language) is how you talk to relational databases. It is declarative: you describe *what* data you want, not *how* to get it. The database engine figures out the execution plan.
 
 ![SQL join types visualized](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-join-types.png)
@@ -319,6 +322,9 @@ Our four-table schema is already in 3NF:
 No redundancy. Every fact stored exactly once.
 
 ## When to Denormalize
+
+
+![Sql query processing engine mechanical gears and data pipes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-sql-query-processing-engine-mechanical-gears-and-data-pipes-.jpg)
 
 Normalization eliminates redundancy. But reads often need to JOIN multiple tables — and JOINs have a cost. Sometimes you intentionally denormalize for performance:
 

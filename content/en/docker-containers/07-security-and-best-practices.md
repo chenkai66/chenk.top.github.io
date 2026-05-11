@@ -117,6 +117,9 @@ Running as non-root can break things that assume root access:
 
 ## Read-Only Filesystem
 
+
+![Container security fortress with multiple defense layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-container-security-fortress-with-multiple-defense-layers.jpg)
+
 A read-only root filesystem prevents an attacker from modifying binaries, planting malware, or changing configuration files:
 
 ```bash

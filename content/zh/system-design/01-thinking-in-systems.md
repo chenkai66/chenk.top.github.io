@@ -64,6 +64,9 @@ translationKey: "system-design-1"
 
 ## 快速估算（Back-of-Envelope Estimation）
 
+
+![Availability nines uptime guarantee as a reliability fortres](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-availability-nines-uptime-guarantee-as-a-reliability-fortres.jpg)
+
 系统设计中最宝贵的一项技能，就是快速、粗略地估算关键数量级。你不需要精确数字，你需要的是**数量级上的正确性**。误差 2 倍以内完全可接受；误差达 100 倍，则意味着你的架构方向已错。
 
 ![Capacity estimation workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-capacity-estimation.png)
@@ -307,6 +310,9 @@ translationKey: "system-design-1"
 多数应用应瞄准 99.9% 至 99.95%。四个 9 及以上，仅适用于支付系统、核心数据库等关键基础设施。
 
 ## 容量规划（Capacity Planning）
+
+
+![Back of envelope estimation napkin math on a whiteboard](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-back-of-envelope-estimation-napkin-math-on-a-whiteboard.jpg)
 
 容量规划是确定生产环境所需容量以应对动态需求的过程。以下是关键概念。
 

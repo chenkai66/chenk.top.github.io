@@ -114,6 +114,9 @@ innodb_buffer_pool_instances = 8  # Reduce contention
 
 ## Caching Patterns
 
+
+![Cache invalidation problem stale data ghost haunting fresh d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/04-cache-invalidation-problem-stale-data-ghost-haunting-fresh-d.jpg)
+
 There are four fundamental patterns for integrating a cache with a database. Each has different consistency guarantees and failure modes.
 
 ![Caching patterns comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/04-caching-patterns.png)
@@ -490,6 +493,9 @@ cached = r.get(f"user:{user_id}:v{version}")
 This requires a version lookup but guarantees you never read stale data. The trade-off is that the version lookup itself may need to be cached (and now you have a meta-caching problem).
 
 ## The Thundering Herd Problem
+
+
+![Caching layers stacked shields protecting database from traf](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/04-caching-layers-stacked-shields-protecting-database-from-traf.jpg)
 
 When a popular cache entry expires, hundreds of concurrent requests simultaneously experience a cache miss and all query the database for the same data. This spike can overwhelm the database.
 

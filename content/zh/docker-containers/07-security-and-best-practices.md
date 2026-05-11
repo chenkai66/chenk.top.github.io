@@ -120,6 +120,9 @@ docker exec default-container id
 
 ## 只读文件系统
 
+
+![Container security fortress with multiple defense layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-container-security-fortress-with-multiple-defense-layers.jpg)
+
 只读根文件系统可阻止攻击者篡改二进制文件、植入恶意软件或修改配置文件：
 
 ![Image vulnerability scanning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-image-scanning.png)

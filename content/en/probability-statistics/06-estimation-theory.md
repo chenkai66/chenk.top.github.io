@@ -85,6 +85,9 @@ A statistic $T(X_1, \ldots, X_n)$ is **sufficient** for $\theta$ if the conditio
 
 ## Method of Moments
 
+
+![Maximum likelihood estimation mountain climber finding the p](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/06-maximum-likelihood-estimation-mountain-climber-finding-the-p.jpg)
+
 The simplest estimation method: match sample moments to population moments.
 
 **Recipe:**

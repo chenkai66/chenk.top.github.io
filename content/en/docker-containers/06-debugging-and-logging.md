@@ -210,6 +210,9 @@ The `nicolaka/netshoot` image contains every network debugging tool you could wa
 
 ## docker inspect — The Complete Picture
 
+
+![Container logging pipeline data streams flowing from contain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-container-logging-pipeline-data-streams-flowing-from-contain.jpg)
+
 `docker inspect` returns detailed JSON metadata about a container. It's verbose but contains everything:
 
 ![exec vs attach](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-exec-vs-attach.png)
@@ -460,6 +463,9 @@ docker run -it debug-image:latest bash
 ```
 
 ## Ephemeral Debug Containers
+
+
+![Debugging inside a container detective with magnifying glass](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-debugging-inside-a-container-detective-with-magnifying-glass.jpg)
 
 Sometimes you need networking tools, strace, or other debugging utilities that aren't in your application image. Run a separate debug container that shares the target's network:
 

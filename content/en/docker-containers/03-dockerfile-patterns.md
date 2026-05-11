@@ -383,6 +383,9 @@ flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
 
 ## The .dockerignore File
 
+
+![Dockerfile optimization journey from bloated to slim contain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/03-dockerfile-optimization-journey-from-bloated-to-slim-contain.jpg)
+
 The `.dockerignore` file works like `.gitignore` but for the Docker build context. When you run `docker build .`, Docker sends the entire directory (the "build context") to the daemon. Without `.dockerignore`, this includes everything.
 
 ```
@@ -606,6 +609,9 @@ docker build --build-arg NODE_ENV=development -t myapp:dev .
 ```
 
 ## Common Patterns and Anti-Patterns
+
+
+![Multi stage build factory assembly line producing optimized](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/03-multi-stage-build-factory-assembly-line-producing-optimized-.jpg)
 
 ### Pattern: Pin Package Versions
 

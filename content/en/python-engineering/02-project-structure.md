@@ -94,6 +94,9 @@ With the flat layout, `import my_tool` resolves to the local directory even if t
 
 ## `__init__.py`: The Package Marker
 
+
+![Python package import resolution detective following sys pat](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-package-import-resolution-detective-following-sys-pat.jpg)
+
 A directory becomes a Python package when it contains `__init__.py`. This file can be empty or contain initialization code.
 
 ![Package structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-package-structure.png)
@@ -290,6 +293,9 @@ if __name__ == "__main__":
 This is useful during development (before installing the package) and for modules that need to be both importable and runnable.
 
 ## CLI with argparse
+
+
+![Python project structure as a well organized filing cabinet](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-project-structure-as-a-well-organized-filing-cabinet-.jpg)
 
 The standard library includes `argparse` for command-line interfaces:
 

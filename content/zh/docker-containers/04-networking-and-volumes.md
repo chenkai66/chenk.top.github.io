@@ -402,6 +402,9 @@ docker run -d \
 
 ## 真实案例：MySQL 与持久化数据
 
+
+![Docker network bridge connecting containers like islands con](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-network-bridge-connecting-containers-like-islands-con.jpg)
+
 本例展示卷为何至关重要。若不使用卷，删除 MySQL 容器将导致所有数据彻底丢失。
 
 ![Overlay network](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-overlay-network.png)
@@ -538,6 +541,9 @@ docker run --user 1000:1000 -v mydata:/data myapp
 | 构建缓存 | 命名卷 | `-v build-cache:/root/.cache` |
 
 ## 综合实践：带网络与持久化的应用
+
+
+![Docker volumes as floating storage crystals connected to con](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-volumes-as-floating-storage-crystals-connected-to-con.jpg)
 
 以下是一个完整示例——Python 应用连接 Redis，二者均运行于自定义网络，且 Redis 数据持久化：
 

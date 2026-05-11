@@ -106,6 +106,9 @@ $$E[X^2] = \int_0^1 x^2 \cdot 1 \, dx = \frac{x^3}{3}\bigg|_0^1 = \frac{1}{3}.$$
 
 ![Covariance scatter plots](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-covariance-scatter.png)
 
+
+![Covariance correlation dance partners moving together or ind](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-covariance-correlation-dance-partners-moving-together-or-ind.jpg)
+
 ### 定义
 
 随机变量 $X$ 的**方差**衡量其值偏离均值的平均平方距离：
@@ -345,6 +348,9 @@ $$P((X - \mu)^2 \geq k^2 \sigma^2) \leq \frac{E[(X - \mu)^2]}{k^2 \sigma^2} = \f
 切比雪夫不等式是**分布无关的（distribution-free）**——只要方差有限，它对任何分布都成立。这种普适性的代价是上界较宽松（对比上表两列）。但“宽松却恒成立”，往往比“紧致却仅适用于高斯分布”更有实用价值。
 
 ## Python：可视化矩与切比雪夫上界
+
+
+![Expectation as center of mass balance point on probability d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-expectation-as-center-of-mass-balance-point-on-probability-d.jpg)
 
 ```python
 import numpy as np

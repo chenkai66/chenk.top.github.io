@@ -123,6 +123,9 @@ volumes:
 
 ## Compose 文件结构
 
+
+![Microservices ecosystem interconnected containers forming a](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-microservices-ecosystem-interconnected-containers-forming-a-.jpg)
+
 一个 Compose 文件包含四个顶层键：
 
 ![Compose networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-networking.png)

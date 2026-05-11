@@ -150,6 +150,9 @@ def check_module_boundaries():
 
 ## 服务边界：领域驱动设计（Domain-Driven Design）
 
+
+![Circuit breaker pattern electrical circuit breaker protectin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-circuit-breaker-pattern-electrical-circuit-breaker-protectin.jpg)
+
 微服务最难的部分，是**如何划定服务边界**。划错边界，轻则导致服务间高频“聊天”，重则催生大量无意义的细粒度服务。
 
 领域驱动设计（DDD）为此提供了原则性方法。

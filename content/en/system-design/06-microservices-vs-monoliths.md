@@ -150,6 +150,9 @@ Every benefit comes with a cost. Microservices introduce distributed systems pro
 
 ## Service Boundaries: Domain-Driven Design
 
+
+![Circuit breaker pattern electrical circuit breaker protectin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-circuit-breaker-pattern-electrical-circuit-breaker-protectin.jpg)
+
 The hardest part of microservices is deciding where to draw the boundaries. Get them wrong, and you end up with chatty services that need to call each other constantly, or services that are too granular to be useful.
 
 Domain-Driven Design (DDD) provides a principled approach.

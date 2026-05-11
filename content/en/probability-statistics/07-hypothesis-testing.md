@@ -87,6 +87,9 @@ Decreasing $\alpha$ reduces false positives but increases false negatives ($\bet
 
 ## The p-Value
 
+
+![Ab testing laboratory two beakers being compared scientific](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-ab-testing-laboratory-two-beakers-being-compared-scientific-.jpg)
+
 ### Definition
 
 The **p-value** is the probability, under $H_0$, of observing a test statistic at least as extreme as the one actually observed:
@@ -424,6 +427,9 @@ print(f"{'Benjamini-Hochberg':<25} {bh_reject.sum():>10} "
 The output typically shows: without correction, about 5-6 false positives sneak in among the 90 nulls. Bonferroni eliminates all false positives but may miss some true effects. Benjamini-Hochberg finds most true effects while keeping false discoveries under control. This illustrates the power advantage of FDR control over FWER control.
 
 ## Effect Size: What p-Values Don't Tell You
+
+
+![Hypothesis testing courtroom trial null hypothesis on trial](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-hypothesis-testing-courtroom-trial-null-hypothesis-on-trial.jpg)
 
 A p-value tells you whether an effect is statistically distinguishable from zero. It does **not** tell you how large the effect is or whether it matters.
 

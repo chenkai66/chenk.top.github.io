@@ -197,6 +197,9 @@ aws cloudfront create-invalidation \
 
 ## 第 4 层负载均衡（Layer 4 Load Balancing）
 
+
+![Dns resolution journey message traveling through hierarchica](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/02-dns-resolution-journey-message-traveling-through-hierarchica.jpg)
+
 第 4 层负载均衡器工作于传输层（TCP/UDP），仅依据 IP 地址与端口号做路由决策，不解析应用层载荷。
 
 ![L4 vs L7 load balancing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-l4-vs-l7.png)
@@ -430,6 +433,9 @@ upstream api_servers {
 该配置表示：30 秒内连续失败 3 次即标记服务器不可用，并在 30 秒后尝试恢复。
 
 ## 全局服务器负载均衡（GSLB）
+
+
+![Load balancer traffic controller directing requests to healt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/02-load-balancer-traffic-controller-directing-requests-to-healt.jpg)
 
 GSLB 在多个地理区域间分发流量，结合 DNS 路由与健康检查，将用户导向最近且健康的区域数据中心。
 

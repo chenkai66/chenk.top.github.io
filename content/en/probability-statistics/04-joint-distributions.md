@@ -121,6 +121,9 @@ Given $Y = y$, $X$ is uniformly distributed on $(0, y)$. This makes sense: the c
 
 ## Independence
 
+
+![Independence vs dependence linked chains vs free floating ev](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-independence-vs-dependence-linked-chains-vs-free-floating-ev.jpg)
+
 Random variables $X$ and $Y$ are **independent** if and only if their joint distribution factors:
 
 $$f_{X,Y}(x, y) = f_X(x) \, f_Y(y) \quad \text{for all } (x, y).$$

@@ -114,6 +114,9 @@ innodb_buffer_pool_instances = 8  # 减少锁竞争
 
 ## 缓存模式（Caching Patterns）
 
+
+![Cache invalidation problem stale data ghost haunting fresh d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/04-cache-invalidation-problem-stale-data-ghost-haunting-fresh-d.jpg)
+
 将缓存与数据库集成，有四种基础模式。每种模式具有一致性保证与失败行为上的差异。
 
 ![Caching patterns comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/04-caching-patterns.png)
@@ -491,6 +494,9 @@ cached = r.get(f"user:{user_id}:v{version}")
 这需要一次版本查询，但能确保绝不会读到陈旧数据。代价是版本查询本身也可能需要缓存（于是又引入了元缓存问题）。
 
 ## 惊群效应（Thundering Herd Problem）
+
+
+![Caching layers stacked shields protecting database from traf](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/04-caching-layers-stacked-shields-protecting-database-from-traf.jpg)
 
 当热门缓存条目过期时，数百个并发请求同时遭遇缓存未命中，并全部涌向数据库查询相同数据。这一突发流量可能压垮数据库。
 

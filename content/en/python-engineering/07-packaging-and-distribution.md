@@ -97,6 +97,9 @@ Archive:  dist/my_tool-0.1.0-py3-none-any.whl
 
 ## pyproject.toml for Packaging
 
+
+![Python packaging journey from script to pypi published packa](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-python-packaging-journey-from-script-to-pypi-published-packa.jpg)
+
 The complete packaging configuration:
 
 ```toml
@@ -440,6 +443,9 @@ $ docker run -p 8000:8000 \
 ```
 
 ## Poetry Build and Publish
+
+
+![Wheel vs sdist comparison prebuilt furniture vs ikea flatpac](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg)
 
 If your project uses Poetry instead of setuptools:
 

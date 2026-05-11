@@ -71,6 +71,9 @@ The CDF is right-continuous, non-decreasing, with $\lim_{x \to -\infty} F(x) = 0
 
 ## Key Discrete Distributions
 
+
+![Probability distributions as mountain landscapes normal expo](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-probability-distributions-as-mountain-landscapes-normal-expo.jpg)
+
 ### Bernoulli Distribution
 
 The simplest random variable: a single trial with two outcomes.
@@ -408,6 +411,9 @@ This gallery lets you see the shape of every distribution at a glance. A few pat
 - **Gamma** generalizes the Exponential, adding a shape parameter that controls the "hump."
 
 ## Connections Between Distributions
+
+
+![Random variable transformation machine input outcomes output](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/02-random-variable-transformation-machine-input-outcomes-output.jpg)
 
 The distributions above are not isolated — they form a family with deep connections:
 

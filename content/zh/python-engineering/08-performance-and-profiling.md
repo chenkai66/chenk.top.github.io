@@ -221,6 +221,9 @@ $ snakeviz profile.prof
 
 ## `line_profiler`：逐行计时
 
+
+![Optimization journey slow python code transforming to fast o](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/08-optimization-journey-slow-python-code-transforming-to-fast-o.jpg)
+
 `cProfile` 告诉你哪些函数慢，而 `line_profiler` 则精确指出这些函数内部哪一行最慢。
 
 ```bash
@@ -524,6 +527,9 @@ total = data[data > 0].sum()
 ```
 
 ## 生成器与惰性求值（Generators and Lazy Evaluation）
+
+
+![Python profiling xray scanning code for performance bottlene](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/08-python-profiling-xray-scanning-code-for-performance-bottlene.jpg)
 
 生成器按需产生值，而非一次性在内存中构建整个集合。
 
