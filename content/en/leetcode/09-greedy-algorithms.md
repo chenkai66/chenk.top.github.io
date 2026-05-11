@@ -83,7 +83,7 @@ The same template proves correctness for Jump Game II, Task Scheduler's lower-bo
 
 ---
 
-## LeetCode 55: Jump Game
+## LeetCode 55 — Jump Game
 
 > Given a non-negative integer array `nums` where `nums[i]` is the maximum jump length at position `i`, starting from index 0, return `true` if you can reach the last index.
 
@@ -127,7 +127,7 @@ class Solution:
 
 ---
 
-## LeetCode 45: Jump Game II
+## LeetCode 45 — Jump Game II
 
 > Same setup as LC 55, but you are guaranteed to be able to reach the end. Return the **minimum** number of jumps.
 
@@ -162,7 +162,7 @@ class Solution:
 
 ---
 
-## LeetCode 134: Gas Station
+## LeetCode 134 — Gas Station
 
 > A circular route has `n` gas stations. Station `i` has `gas[i]` litres; driving from `i` to `i+1` costs `cost[i]` litres. Starting with an empty tank, return the index from which you can complete the loop, or `-1` if impossible. The answer is unique.
 
@@ -202,7 +202,7 @@ class Solution:
 
 ---
 
-## LeetCode 122: Best Time to Buy and Sell Stock II
+## LeetCode 122 — Best Time to Buy and Sell Stock II
 
 > Given daily stock prices, you can buy and sell as many times as you like (but never hold more than one share). Maximise total profit.
 
@@ -228,7 +228,7 @@ class Solution:
 
 ---
 
-## LeetCode 435: Non-overlapping Intervals
+## LeetCode 435 — Non-overlapping Intervals
 
 > Return the minimum number of intervals to remove so that the rest do not overlap.
 
@@ -272,7 +272,7 @@ class Solution:
 
 ---
 
-## LeetCode 621: Task Scheduler
+## LeetCode 621 — Task Scheduler
 
 > Tasks are letters; identical tasks must be separated by at least `n` cooldown slots (any letter or `idle`). Return the minimum total length of the schedule.
 
@@ -305,7 +305,7 @@ class Solution:
 
 ---
 
-## LeetCode 763: Partition Labels
+## LeetCode 763 — Partition Labels
 
 > Partition the string into as many parts as possible so each letter appears in at most one part. Return the lengths of the parts.
 

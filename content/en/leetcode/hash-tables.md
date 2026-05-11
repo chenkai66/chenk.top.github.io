@@ -36,7 +36,7 @@ This article is the first installment of the **LeetCode Patterns** series. We wi
 9. Greedy Algorithms — exchange argument, scheduling
 10. Stack & Queue — monotonic stack, deque tricks
 
-## 1. What a hash table really is
+## What a hash table really is
 
 A hash table stores `(key, value)` pairs in an internal array. The trick is the **hash function**, which turns any key into an integer index that says *which array slot the pair belongs in*.
 
@@ -85,7 +85,7 @@ The rule of thumb is **array > set > map** in memory cost. Use the lightest stru
 
 In Python, `set` and `dict` share the same hash machinery, so use whichever expresses your intent — that is also the easiest code to read and debug.
 
-## 2. Two Sum — the complement pattern
+## Two Sum — the complement pattern
 
 > **LeetCode 1.** Given an array `nums` and an integer `target`, return the indices of the two numbers that add up to `target`. You may assume exactly one solution exists, and you may not use the same element twice.
 
@@ -155,7 +155,7 @@ Whenever you are looking for **pairs that satisfy a relation involving the other
 | Subarray sum equals `k` (LeetCode 560) | prefix sums | `prefix − k` in `seen`? |
 | Continuous subarray sum (LeetCode 523) | prefix sum % k | same residue seen before? |
 
-## 3. Group Anagrams — the canonical-form pattern
+## Group Anagrams — the canonical-form pattern
 
 > **LeetCode 49.** Given an array of strings, group the anagrams together.
 
@@ -218,7 +218,7 @@ Whenever a problem says "group / find / count things that are equal up to some s
 | Isomorphic Strings (LeetCode 205) | same letter pattern | normalized "first-occurrence" string |
 | Group strings by length | same length | the length itself |
 
-## 4. Longest Substring Without Repeating Characters — sliding window with a hash map
+## Longest Substring Without Repeating Characters — sliding window with a hash map
 
 > **LeetCode 3.** Given a string `s`, find the length of the longest substring with no repeated characters.
 
@@ -283,7 +283,7 @@ for right, x in enumerate(arr):
 
 Variants you will meet later: minimum window substring (LeetCode 76), longest substring with at most K distinct characters (LeetCode 340), permutation in string (LeetCode 567).
 
-## 5. Top K Frequent Elements — frequency map + bucket sort
+## Top K Frequent Elements — frequency map + bucket sort
 
 > **LeetCode 347.** Given an integer array `nums` and an integer `k`, return the `k` most frequent elements.
 
@@ -364,7 +364,7 @@ def is_anagram(s: str, t: str) -> bool:
 
 Frequency maps power: anagram checks, majority element, first unique character, sort by frequency, top-K, and any "how often does X happen?" problem.
 
-## 6. Common pitfalls
+## Common pitfalls
 
 A short but high-yield list — most hash table bugs in interviews fall into one of these:
 
@@ -375,7 +375,7 @@ A short but high-yield list — most hash table bugs in interviews fall into one
 - **Iterating while mutating.** Adding or deleting keys mid-iteration can raise `RuntimeError`. Iterate over a snapshot — `list(d.items())` — if you must mutate.
 - **Forgetting that hash tables are unordered (in spirit).** Python 3.7+ preserves insertion order, but do not rely on key order for algorithm correctness.
 
-## 7. Interview checklist
+## Interview checklist
 
 When you suspect a hash table fits, run through this in your head before writing code:
 
@@ -389,7 +389,7 @@ Out loud, the script in interviews is roughly:
 
 > "Brute force is `O(n²)` because for each element I compare against every other. I can avoid that by storing a hash map of `<key>` → `<value>` as I go, so each lookup becomes `O(1)`. Total time `O(n)`, space `O(n)`."
 
-## 8. What to practise next
+## What to practise next
 
 Once these four patterns feel automatic, here is a graded set of follow-ups:
 
@@ -399,7 +399,7 @@ Once these four patterns feel automatic, here is a graded set of follow-ups:
 
 In **part 2 (Two Pointers)** we will look at the other side of the trade-off: when the input is sorted (or can afford to be sorted), two pointers can match a hash table's `O(n)` time while using only `O(1)` extra space. The interesting question is when to pick which — and we will answer it with concrete problems.
 
-## 9. Why this pattern shows up in interviews
+## Why this pattern shows up in interviews
 
 Two reasons, both honest:
 
@@ -408,7 +408,7 @@ Two reasons, both honest:
 
 The pattern to recognize in problem statements: any phrase like "find pairs/triplets/groups that satisfy ..." or "have we seen this before?" or "count occurrences of ..." is a hash table waiting to be written.
 
-## 10. Production analog
+## Production analog
 
 Three concrete places the hash-table patterns from this article appear in code I've actually written:
 
@@ -418,7 +418,7 @@ Three concrete places the hash-table patterns from this article appear in code I
 
 The interview problem is a sandbox; the production version usually adds streaming, eviction, and concurrency on top, but the algorithm core is identical.
 
-## 11. Test your solution on edge cases
+## Test your solution on edge cases
 
 For Two Sum specifically — the canonical introduction problem — the cases that catch most submissions:
 

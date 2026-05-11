@@ -77,7 +77,7 @@ A.next = B.next   # A skips B
 
 This is the entire mental model: **operations on a linked list are pointer assignments performed in a careful order**. Everything else in this article is a variation on that theme.
 
-## LeetCode 206: Reverse Linked List
+## LeetCode 206 — Reverse Linked List
 
 > Given the head of a singly linked list, reverse the list and return its new head.
 >
@@ -167,7 +167,7 @@ Then `head.next = None` cuts `head`'s outgoing link so the new tail terminates c
 
 In an interview, lead with iterative. Mention recursive as a follow-up to show range. In production, always pick iterative — Python's default recursion limit (1000) will bite you on long lists.
 
-## LeetCode 21: Merge Two Sorted Lists
+## LeetCode 21 — Merge Two Sorted Lists
 
 > Merge two sorted linked lists into one sorted list by splicing existing nodes.
 >
@@ -240,7 +240,7 @@ def mergeTwoLists_recursive(l1, l2):
         return l2
 ```
 
-## LeetCode 141 / 142: Linked List Cycle (and where it begins)
+## LeetCode 141 / 142 — Linked List Cycle (and where it begins)
 
 > 141: Detect whether a linked list has a cycle.
 >
@@ -307,7 +307,7 @@ $$2(a + b) = a + b + kL \implies a = kL - b = (k-1)L + c$$
 
 That last equality is the punchline. It says: *walking $a$ steps from the head lands on the entrance, and walking $a$ steps from the meeting point also lands on the entrance* (because $(k-1)L$ is just whole loops). So if we reset `slow` to `head` and step both pointers one node at a time, they meet at the entrance.
 
-## LeetCode 19: Remove Nth Node From End
+## LeetCode 19 — Remove Nth Node From End
 
 > Given the head of a linked list, remove the nth node from the end and return the head. Try to do it in one pass.
 >
@@ -350,7 +350,7 @@ def removeNthFromEnd(head, n):
 
 Without the dummy, you would need a separate branch like `if n == length: return head.next`, which means computing the length first — and now you have a two-pass solution again.
 
-## LeetCode 146: LRU Cache
+## LeetCode 146 — LRU Cache
 
 > Design a data structure with `get(key)` and `put(key, value)` that both run in $O(1)$ amortized time. When capacity is exceeded, evict the least recently used key.
 

@@ -38,9 +38,9 @@ This part of the series walks the whole landscape end-to-end. We start from the 
 9. **Stack & Queue** — monotonic stack, priority queue, deque ← *you are here*
 10. Greedy & Bit Manipulation — greedy strategies, bitwise tricks
 
-## 1. Stack and Queue Fundamentals
+## Stack and Queue Fundamentals
 
-## 1.1 Stack — LIFO
+## Stack — LIFO
 
 A **stack** is a linear container in which the most recently inserted element is the first to leave. Think of a pile of plates: you add to the top and remove from the top. The interface is tiny:
 
@@ -81,7 +81,7 @@ int top = st.top();
 st.pop();
 ```
 
-## 1.2 Queue — FIFO
+## Queue — FIFO
 
 A **queue** is the mirror image: the *oldest* element leaves first. Picture a line at a coffee shop. The standard interface is:
 
@@ -105,9 +105,9 @@ In Java the analogue is `ArrayDeque` again (used as a queue via `offer` / `poll`
 
 A practical mental model: **stack = function call history, queue = work to-do list**. That single sentence already tells you which one BFS, DFS, undo/redo, task schedulers, and bracket matchers want.
 
-## 2. Stack Classics
+## Stack Classics
 
-## 2.1 LeetCode 20 — Valid Parentheses
+## LeetCode 20 — Valid Parentheses
 
 > Given a string `s` containing only the characters `()[]{}`, decide whether every opening bracket is closed by the same type, in the correct nested order.
 
@@ -140,7 +140,7 @@ Figure 2 traces the algorithm on `({[]})`. Each column is one step: the highligh
 - Returning early on the first match without checking the rest of the string.
 - Returning `True` when the loop ends without checking that the stack is empty (`"((("` would pass).
 
-## 2.2 LeetCode 155 — Min Stack
+## LeetCode 155 — Min Stack
 
 > Design a stack that, in addition to `push`, `pop`, `top`, supports `getMin()` in **O(1)**.
 
@@ -167,7 +167,7 @@ class MinStack:
 
 Every operation is O(1) and the space overhead is one extra integer per element. The "two parallel stacks" variant works too but is fiddlier when duplicates of the minimum appear (you must compare `<= ` instead of `<` on push, and pop the auxiliary stack only when the popped value equals the current min).
 
-## 2.3 LeetCode 150 — Evaluate Reverse Polish Notation
+## LeetCode 150 — Evaluate Reverse Polish Notation
 
 Postfix notation eliminates parentheses by writing operators after their operands: `((2 + 1) * 3)` becomes `2 1 + 3 *`. The evaluation rule is a one-line stack invariant: **the stack always holds the operands waiting for their next operator**.
 
@@ -193,7 +193,7 @@ Two subtleties bite people:
 - **Operand order.** The first element popped is the *right* operand. `a - b` and `b - a` are different.
 - **Division.** LeetCode wants truncation toward zero (`-7 / 2 == -3` in C, `-3` here too), but Python's `//` rounds toward negative infinity (`-7 // 2 == -4`). Use `int(a / b)`.
 
-## 3. Monotonic Stack
+## Monotonic Stack
 
 A **monotonic stack** is just a stack with the discipline that its contents are kept in strictly increasing or decreasing order. Whenever a new element would break the invariant, we pop until it doesn't. That single rule turns a quadratic-looking "for each i, find the next j such that..." into an amortised O(n) sweep, because every index is pushed and popped at most once.
 
@@ -203,7 +203,7 @@ The pattern matches four families of questions:
 - next smaller element to the right → increasing stack
 - previous greater / previous smaller → same logic, scan from the right (or pre-process)
 
-## 3.1 LeetCode 739 — Daily Temperatures
+## LeetCode 739 — Daily Temperatures
 
 > For each day `i`, how many days until a strictly warmer day? Output `0` if none.
 
@@ -230,7 +230,7 @@ Figure 3 makes the resolution visual. Each green arc is "this colder day was fin
 
 **Trap:** the stack stores **indices**, not temperatures, because we need both the value (to compare) and the position (to compute the gap).
 
-## 4. Queues and BFS
+## Queues and BFS
 
 Queues' best-known job is implementing **breadth-first search**: explore all distance-1 neighbours, then all distance-2, and so on. The skeleton fits in eight lines:
 
@@ -271,7 +271,7 @@ def levelOrder(root):
     return out
 ```
 
-## 5. Priority Queue (Heap)
+## Priority Queue (Heap)
 
 A **priority queue** breaks the FIFO rule deliberately: the next element out is always the one with the smallest (or largest) key. The standard implementation is a **binary heap** — a complete binary tree stored in an array, where every parent compares ≤ (min-heap) or ≥ (max-heap) to its children.
 
@@ -286,7 +286,7 @@ That is what makes `heappush` and `heappop` cost **O(log n)**, while `peek` (roo
 
 In Python, `heapq` is always a min-heap. To get max-heap behaviour, push the negation of your key.
 
-## 5.1 LeetCode 347 — Top K Frequent Elements
+## LeetCode 347 — Top K Frequent Elements
 
 > Return the `k` most frequent elements of `nums`.
 
@@ -324,11 +324,11 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
 
 The min-heap idea generalises beyond top-K: it is the same trick you use for **Merge K Sorted Lists** (one heap entry per list head), **K-th Largest in a Stream**, and Dijkstra's shortest paths.
 
-## 6. Deque — Sliding Window Maximum
+## Deque — Sliding Window Maximum
 
 A **deque** (double-ended queue) supports O(1) push/pop on **both** ends. It is exactly what you need when a sliding window asks for an extremum of its current contents.
 
-## 6.1 LeetCode 239 — Sliding Window Maximum
+## LeetCode 239 — Sliding Window Maximum
 
 > Slide a window of size `k` across `nums`; return the max of each window.
 
@@ -360,11 +360,11 @@ def maxSlidingWindow(nums: list[int], k: int) -> list[int]:
 
 Each index enters and leaves the deque at most once, so the total cost is O(n). A naive solution that recomputes the max per window would be O(n·k). Why a deque and not a heap? Because a heap can't cheaply *evict* an element that has just slid out of the window — you would have to lazy-delete and the bound becomes O(n log n) instead of O(n).
 
-## 7. Bridges — Building One on Top of the Other
+## Bridges — Building One on Top of the Other
 
 These two problems show up surprisingly often as warm-up questions for system-design interviews because they test whether you really *understand* the access patterns.
 
-## 7.1 LeetCode 232 — Implement Queue using Stacks
+## LeetCode 232 — Implement Queue using Stacks
 
 A queue needs FIFO; a stack gives LIFO. Reversing twice gets you back to the original order, so we keep two stacks: an **input stack** for pushes and an **output stack** for pops. A pop that finds the output stack empty drains the input stack into it; otherwise it just pops the output top.
 
@@ -398,7 +398,7 @@ class MyQueue:
 
 `push` is O(1). `pop` and `peek` are O(1) **amortised**: every element is moved across at most once during its lifetime, so n operations cost O(n) total even though one individual `pop` may do a big shift.
 
-## 7.2 LeetCode 225 — Implement Stack using Queues
+## LeetCode 225 — Implement Stack using Queues
 
 The reverse direction is uglier because rotation is expensive. The single-queue approach is the simplest: on every push, append `x`, then rotate the previous `n - 1` elements to the back so `x` sits at the front.
 
@@ -426,7 +426,7 @@ class MyStack:
 
 `push` is O(n), `pop` and `top` are O(1). The asymmetry tells you something deep: queues are *not* stacks-with-extra-capabilities; the LIFO discipline genuinely needs different machinery.
 
-## 8. Complexity Cheat Sheet
+## Complexity Cheat Sheet
 
 | Container | push / enqueue | pop / dequeue | peek | search |
 |---|---|---|---|---|
@@ -444,7 +444,7 @@ Algorithm-level summary:
 - sliding-window extremum via monotonic deque — O(n) time, O(k) space
 - top-K frequent via min-heap of size K — O(n log k) time, O(n) space
 
-## 9. Q&A
+## Q&A
 
 **Q1. Why use `deque` instead of `list` for queues in Python?**
 
@@ -474,7 +474,7 @@ Each element is moved from input to output exactly once before it leaves. n oper
 
 Stack (or recursion) gives you DFS — depth first, follow one path until it terminates, then backtrack. Queue gives you BFS — visit by distance from the start. They explore the same graph but in different orders, so the right choice depends on what you are looking for (any path, shortest path, etc.).
 
-## 10. Summary
+## Summary
 
 The mental model that makes all of this stick is short:
 

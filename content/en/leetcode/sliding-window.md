@@ -19,7 +19,7 @@ translationKey: "leetcode-4"
 
 If you have ever caught yourself writing a double `for` loop to inspect every contiguous subarray, **sliding window** is probably the optimisation you are missing. It turns an $O(nk)$ or $O(n^2)$ scan into a single linear pass by *reusing the work* it has already done. This article walks through the technique from first principles, then drills four canonical LeetCode problems plus a monotonic-deque variant.
 
-## 1. The Idea in One Picture
+## The Idea in One Picture
 
 A sliding window is a contiguous range `[left, right]` over an array or string. Instead of recomputing everything when the range moves, we **add the element entering on the right** and **remove the element leaving on the left**. Each element is touched at most twice, so the total cost is $O(n)$.
 
@@ -34,7 +34,7 @@ A picture is worth a thousand words. Below, the green cells are the live window 
 
 The orange cell is *entering* the window; the pink one is *leaving*. Notice the right column: each step is one subtraction and one addition, never a fresh `sum()` call. That is the entire trick.
 
-## 2. Fixed-Size Window — Maximum Sum Subarray of Size K
+## Fixed-Size Window — Maximum Sum Subarray of Size K
 
 **Problem.** Given an array `arr` and an integer `k`, find the maximum sum of any contiguous subarray of length `k`.
 
@@ -79,7 +79,7 @@ public int maxSumSubarray(int[] arr, int k) {
 
 **Why it works.** The window's sum is a function of its multiset of elements. When the window shifts by one, the multiset changes by exactly one removal and one insertion, so we only need to apply that delta. This *incremental update* generalises to running counts, frequency maps, and even monotonic deques (Section 6).
 
-## 3. Variable-Size Window — Two Postures
+## Variable-Size Window — Two Postures
 
 When the window size is not given, we use two pointers and let the problem dictate the policy:
 
@@ -96,7 +96,7 @@ And here is what the window length looks like over time. Green bands are expansi
 
 The crucial invariant: **`left` only ever moves right**. So even though there is a `while` inside a `for`, the inner loop's *total* work across the whole run is bounded by `n`. That is the amortised-$O(n)$ argument.
 
-## 4. LeetCode 3 — Longest Substring Without Repeating Characters
+## LeetCode 3 — Longest Substring Without Repeating Characters
 
 ![Longest substring without repeating characters: window expanding and contracting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/sliding-window-substr.gif)
 
@@ -144,7 +144,7 @@ public int lengthOfLongestSubstring(String s) {
 
 **Two implementation styles.** The version above uses *jump-left* — `left` leaps directly past the previous occurrence. The textbook alternative is *step-left*: hold a frequency map and `while count[s[right]] > 1: drop(s[left]); left += 1`. Both are $O(n)$; jump-left is one line shorter, step-left generalises better to "at most k" variants.
 
-## 5. LeetCode 76 — Minimum Window Substring
+## LeetCode 76 — Minimum Window Substring
 
 **Problem.** Given `s` and `t`, return the shortest substring of `s` that contains every character of `t` (with multiplicities). Return `""` if no such window exists.
 
@@ -227,7 +227,7 @@ public String minWindow(String s, String t) {
 
 **The subtle line** is `if have[drop] == need[drop]: valid -= 1` — we decrement `valid` *before* the `have` count actually falls below the threshold, because we're about to make it fall. Get the order wrong and the counter desyncs.
 
-## 6. LeetCode 567 — Permutation in String
+## LeetCode 567 — Permutation in String
 
 **Problem.** Return `True` iff some substring of `s2` is a permutation of `s1`.
 
@@ -306,7 +306,7 @@ public boolean checkInclusion(String s1, String s2) {
 
 The same skeleton solves **LC 438 (Find All Anagrams)** verbatim — just collect the start indices instead of returning early.
 
-## 7. Variant: Sliding Window Maximum (Monotonic Deque)
+## Variant: Sliding Window Maximum (Monotonic Deque)
 
 When the window asks for the **min or max** of its elements, the simple "add / remove" trick is not enough — removing the current max means we need to know the next-best element instantly. The standard tool is a **monotonic deque** that stores values (or indices) in strictly decreasing order. The front of the deque is always the current window max.
 
@@ -339,7 +339,7 @@ def max_sliding_window(nums, k):
 
 Each index is pushed and popped at most once, so total work is $O(n)$ — the same linear bound as the basic patterns.
 
-## 8. When to Reach for Sliding Window
+## When to Reach for Sliding Window
 
 The decision tree below summarises which flavour fits which problem shape:
 
@@ -353,7 +353,7 @@ Reach for sliding window when **all** of the following are true:
 
 If any of those fails — non-contiguous picks, requiring a global view, or needing to undo arbitrary insertions — try prefix sums, two pointers on sorted data, dynamic programming, or a heap instead.
 
-## 9. Templates Worth Memorising
+## Templates Worth Memorising
 
 **Fixed-size window**
 
@@ -400,7 +400,7 @@ def shortest_valid(arr):
     return best if best != float("inf") else 0
 ```
 
-## 10. Common Pitfalls
+## Common Pitfalls
 
 - **Off-by-one in length.** Window length is `right - left + 1`, not `right - left`.
 - **Updating `valid` after the count change.** Increment `valid` exactly when `have[c]` first equals `need[c]`; decrement *before* it falls below. The order matters.
@@ -408,7 +408,7 @@ def shortest_valid(arr):
 - **Recomputing the window from scratch.** The whole point is incremental update — if your inner loop scans the window, you have lost the asymptotic improvement.
 - **Negative numbers in "sum ≥ target".** Contracting may not reduce the sum, so the "shortest valid" template doesn't apply directly. Reach for prefix sums + monotonic deque, or a different framing.
 
-## 11. Practice Set
+## Practice Set
 
 | Difficulty | Problem | Pattern |
 |---|---|---|
@@ -426,7 +426,7 @@ def shortest_valid(arr):
 | Hard | LC 239 Sliding Window Maximum | monotonic deque |
 | Hard | LC 30 Substring with Concatenation of All Words | fixed + hashing |
 
-## 12. Summary
+## Summary
 
 Sliding window is fundamentally an **amortisation argument**: instead of recomputing each window's value from scratch, you maintain a tiny piece of state and update it as the window moves by one position. Two pointers, both monotonically increasing, give you an $O(n)$ algorithm where the brute force is $O(n^2)$.
 
@@ -439,7 +439,7 @@ The mental checklist when you see a contiguous-range problem:
 
 Internalise those four questions and most sliding window problems collapse to filling in a template.
 
-## 13. Where Sliding Window Shows Up Outside Interviews
+## Where Sliding Window Shows Up Outside Interviews
 
 The pattern lives well beyond LeetCode. Three places I've actually shipped it:
 
@@ -449,7 +449,7 @@ The pattern lives well beyond LeetCode. Three places I've actually shipped it:
 
 The interview problem is the toy version. The production version is the same algorithm with timestamps instead of array indices and TTL eviction instead of pointer increments.
 
-## 14. A Cleaner Python Idiom
+## A Cleaner Python Idiom
 
 C-style `while right < n` loops work, but a single `for right, x in enumerate(arr)` reads better and removes one source of off-by-one bugs. Compare:
 
@@ -494,7 +494,7 @@ def length_of_longest_substring_k_distinct(s: str, k: int) -> int:
 
 The `del` after decrement is what keeps `len(cnt)` honest — without it your "distinct count" silently includes zero-count keys.
 
-## 15. Edge-Case Test Battery
+## Edge-Case Test Battery
 
 Before you submit, run your solution mentally against this list. Most "wrong answer" verdicts on sliding-window problems are one of these:
 

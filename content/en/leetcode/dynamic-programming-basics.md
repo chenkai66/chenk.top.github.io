@@ -117,7 +117,7 @@ from a fixed-size window of earlier cells. Once you see this, you also
 see why we can almost always shrink the array to a couple of variables
 - you only need to remember as far back as the transition reaches.
 
-### LeetCode 70 - Climbing Stairs
+### LeetCode 70 — Climbing Stairs
 
 > You are climbing a staircase that takes $n$ steps. Each move is 1 or
 > 2 steps. How many distinct ways are there to reach the top?
@@ -153,7 +153,7 @@ def climbStairs(n: int) -> int:
     return prev1
 ```
 
-### LeetCode 198 - House Robber
+### LeetCode 198 — House Robber
 
 > Each house has some cash. You cannot rob two adjacent houses. Return
 > the maximum total cash.
@@ -185,7 +185,7 @@ generalizes to a huge family of problems - whenever a choice at index
 $i$ blocks index $i-1$, the state and transition look like House
 Robber.
 
-### LeetCode 322 - Coin Change
+### LeetCode 322 — Coin Change
 
 > Given coin denominations and a target `amount`, return the fewest
 > coins that sum to `amount`, or $-1$ if impossible.
@@ -215,7 +215,7 @@ def coinChange(coins: list[int], amount: int) -> int:
 (`INF = amount + 1`) is worth remembering - it lets `min` work cleanly
 without special-casing unreachable states.
 
-### LeetCode 300 - Longest Increasing Subsequence
+### LeetCode 300 — Longest Increasing Subsequence
 
 > Find the length of the longest strictly increasing subsequence of
 > `nums`.
@@ -310,7 +310,7 @@ been updated this iteration, which is the recurrence for the
 **unbounded** knapsack (each item usable infinitely many times) - a
 useful problem in its own right, but a bug here.
 
-### LeetCode 1143 - Longest Common Subsequence
+### LeetCode 1143 — Longest Common Subsequence
 
 > Return the length of the longest common subsequence of two strings.
 
@@ -360,7 +360,7 @@ def longestCommonSubsequence(text1: str, text2: str) -> int:
     return prev[n]
 ```
 
-### LeetCode 72 - Edit Distance
+### LeetCode 72 — Edit Distance
 
 > Return the minimum number of insert / delete / replace operations to
 > turn `word1` into `word2`.

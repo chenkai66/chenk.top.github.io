@@ -21,7 +21,7 @@ Binary search is the algorithm everyone thinks they understand until they have t
 
 We will build everything from a single invariant: at every iteration the answer, if it exists, lives inside our current search interval. Once that invariant is internalised, the choice between `<` and `<=`, between `right = mid` and `right = mid - 1`, becomes mechanical instead of mysterious.
 
-## 1. The Mental Model
+## The Mental Model
 
 ![Binary search: lo, mid, hi narrowing the search space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/binary-search-step.gif)
 
@@ -37,7 +37,7 @@ Why is binary search logarithmic? After $k$ iterations the window contains at mo
 
 **When binary search applies.** The classical condition is "the array is sorted", but the deeper condition is **monotonicity of a predicate**. If you can write a function `feasible(x)` whose answer flips from `False` to `True` (or vice versa) exactly once as `x` increases, you can binary-search for the flip point. The "answer-space" problems later in this article exploit this directly.
 
-## 2. The Standard Template
+## The Standard Template
 
 The standard template finds *any* index where `nums[i] == target` in a sorted array, returning `-1` if none exists. We use the **closed interval** `[l, r]` and the loop condition `l <= r`:
 
@@ -85,7 +85,7 @@ class Solution:
 
 This is literally the template. Edge cases handle themselves: an empty array gives `r = -1`, the loop body never executes, we return `-1`. A single-element array works because `l == r == 0` and `l <= r` is true exactly once.
 
-## 3. Boundary Templates: First / Last Occurrence
+## Boundary Templates: First / Last Occurrence
 
 Many problems do not just ask whether the target exists; they ask for the **first** or **last** position where some condition holds, or for the position where a new element should be inserted. The standard template is not enough because when `nums[m] == target` we cannot return immediately — there might be earlier (or later) matches.
 
@@ -204,7 +204,7 @@ class Solution:
 
 This is the cleanest possible illustration that binary search is about monotonic predicates, not sorted arrays.
 
-## 4. Two Interval Conventions
+## Two Interval Conventions
 
 You may have noticed that Sections 2 and 3 use different conventions: the standard search uses closed `[l, r]`, the boundary templates use half-open `[l, r)`. Both are correct; mixing them within one function is what causes infinite loops.
 
@@ -219,7 +219,7 @@ The figure shows the two conventions running side by side on the same input. The
 
 Pick a convention per function and stick to it. The most common bug — the one that hangs your code in the interview — is using `l < r` with `r = m - 1`: the interval can shrink to `[l, l]` and `m = l`, after which `r = l - 1 < l` exits, but only after potentially skipping the answer. The reverse mismatch (`l <= r` with `r = m`) is worse: when `l == r == m` you set `r = m = l` again and loop forever.
 
-## 5. Search in Rotated Sorted Array
+## Search in Rotated Sorted Array
 
 So far the array has been sorted. Rotated arrays are not, but they retain a useful structural property: **after splitting at any index, at least one of the two halves is sorted**. That is enough to keep using binary search.
 
@@ -256,7 +256,7 @@ class Solution:
 
 The single subtlety is `nums[l] <= nums[m]` (note the `<=`). When `l == m` the left "half" is the single element `nums[l]`, which is trivially sorted; the equality covers that case.
 
-## 6. Find Peak Element
+## Find Peak Element
 
 A peak is an element strictly greater than both neighbours. The array is *not* sorted, yet binary search still works because we have a monotonic property of a different flavour: the slope.
 
@@ -281,7 +281,7 @@ If `nums[m] < nums[m + 1]` we are climbing; since `nums[n] = -inf` by convention
 
 This problem is the prototype for "binary search on a monotonic property of an unsorted array". Once you spot the local-monotonicity argument, the template is mechanical.
 
-## 7. Binary Search on the Answer
+## Binary Search on the Answer
 
 The most powerful generalisation of binary search drops the array entirely. Instead, we search over **the answer space** — the range of possible answer values — using a feasibility check.
 
@@ -353,7 +353,7 @@ class Solution:
 
 Once you have written one of these, you have written all of them. *Split Array Largest Sum* (410), *Minimum Number of Days to Make m Bouquets* (1482), *Find K-th Smallest Pair Distance* (719) — they all fit this skeleton, and the entire creative work is the feasibility predicate.
 
-## 8. The Bug Catalogue
+## The Bug Catalogue
 
 These are the only four bugs you will write, in roughly decreasing order of frequency.
 
@@ -367,7 +367,7 @@ These are the only four bugs you will write, in roughly decreasing order of freq
 
 A simple debugging recipe: add `print(f"l={l} r={r} m={m} nums[m]={nums[m]}")` inside the loop and verify three things: (a) the interval shrinks every iteration, (b) the invariant "answer is inside `[l, r]`" holds, (c) the value at the returned index is what you expect.
 
-## 9. Picking a Template
+## Picking a Template
 
 A short decision tree covers most problems:
 
@@ -379,7 +379,7 @@ A short decision tree covers most problems:
 
 When in doubt, prefer the half-open `[l, r)` convention. It generalises better — it accommodates "insert at the end" naturally, it works unchanged when you switch from indices to floats, and the loop condition `l < r` makes the termination criterion explicit.
 
-## 10. Where Binary Search Lives in Practice
+## Where Binary Search Lives in Practice
 
 Binary search is not just an interview trick. It is one of the half-dozen algorithms that genuinely run the world.
 
@@ -391,7 +391,7 @@ Standard library functions — `bisect_left` / `bisect_right` in Python, `lower_
 
 Learning rate finders, hyperparameter scheduling, and rate limiters all do binary search on the answer when the predicate ("does training diverge?", "does p99 latency exceed SLA?") is expensive but monotonic. Production systems answer "what is the largest QPS we can serve at 99% success?" with the same template that solves *Koko Eating Bananas*.
 
-## 11. Quick Reference
+## Quick Reference
 
 A compact cheat sheet for revision the night before the interview.
 
