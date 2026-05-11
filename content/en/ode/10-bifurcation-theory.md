@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (10): Bifurcation Theory"
-date: 2023-12-01 09:00:00
+date: 2023-12-02 09:00:00
 tags:
   - Ordinary Differential Equations
   - Bifurcation Theory

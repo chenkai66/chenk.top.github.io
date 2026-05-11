@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (9): Chaos Theory and the Lorenz System"
-date: 2023-11-14 09:00:00
+date: 2023-11-25 09:00:00
 tags:
   - ODE
   - Chaos Theory

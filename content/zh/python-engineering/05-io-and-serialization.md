@@ -1,0 +1,652 @@
+---
+title: "Python 工程实践（5）：I/O、序列化与数据格式"
+date: 2022-04-19 09:00:00
+tags:
+  - Python
+  - Serialization
+  - Data Formats
+categories:
+  - Python Engineering
+series: python-engineering
+lang: zh
+description: "在 Python 中处理文件、路径、编码及各类数据格式。通过实际示例对比 JSON、YAML、TOML、CSV、pickle 和 Parquet。"
+disableNunjucks: true
+series_order: 5
+translationKey: "python-engineering-5"
+---
+
+大多数程序本质上只是不同数据格式之间的“管道”：读取 CSV，转换后写入 JSON；加载配置文件，校验后将设置传给应用程序。每位 Python 开发者都会编写这类代码，而其中多数人至少曾因编码、路径处理或序列化的细节问题踩过坑。
+
+本文覆盖 Python 中所有常见 I/O 模式——从基础文件读写到列式数据格式，并重点剖析那些浪费你大量时间的陷阱。
+
+## 文件 I/O：基础操作
+
+### 打开文件
+
+```python
+# 正确方式：始终使用上下文管理器（context manager）
+with open("data.txt", "r", encoding="utf-8") as f:
+    content = f.read()
+
+# 不用 'with' 会发生什么：
+f = open("data.txt", "r")
+content = f.read()
+f.close()  # 容易遗漏，尤其当上方代码抛出异常时
+```
+
+`with` 语句能确保即使发生异常，`f.close()` 也一定会执行。**永远不要不用 `with` 打开文件。**
+
+### 文件打开模式
+
+| 模式 | 名称 | 是否创建？ | 是否截断？ | 起始位置 |
+|------|------|------------|------------|----------|
+| `"r"` | 只读 | 否（文件不存在时报错） | 否 | 文件开头 |
+| `"w"` | 写入 | 是 | 是 | 文件开头 |
+| `"a"` | 追加 | 是 | 否 | 文件末尾 |
+| `"x"` | 独占创建 | 是（若文件已存在则报错） | N/A | 文件开头 |
+| `"r+"` | 读写 | 否 | 否 | 文件开头 |
+| `"w+"` | 读写（覆盖） | 是 | 是 | 文件开头 |
+| `"rb"` | 二进制只读 | 否 | 否 | 文件开头 |
+| `"wb"` | 二进制写入 | 是 | 是 | 文件开头 |
+
+### 读取模式
+
+```python
+# 一次性读取整个文件为字符串
+with open("data.txt", encoding="utf-8") as f:
+    content = f.read()
+
+# 读取为行列表
+with open("data.txt", encoding="utf-8") as f:
+    lines = f.readlines()
+# 每行末尾包含换行符 '\n'
+
+# 逐行迭代（对大文件内存友好）
+with open("data.txt", encoding="utf-8") as f:
+    for line in f:
+        process(line.rstrip("\n"))
+
+# 读取指定字节数
+with open("data.bin", "rb") as f:
+    header = f.read(4)  # 前 4 字节
+    rest = f.read()     # 剩余全部字节
+```
+
+### 写入模式
+
+```python
+# 写入字符串
+with open("output.txt", "w", encoding="utf-8") as f:
+    f.write("Hello, world\n")
+
+# 写入多行
+lines = ["first", "second", "third"]
+with open("output.txt", "w", encoding="utf-8") as f:
+    for line in lines:
+        f.write(line + "\n")
+# 或者：
+with open("output.txt", "w", encoding="utf-8") as f:
+    f.writelines(line + "\n" for line in lines)
+
+# 追加到已有文件
+with open("log.txt", "a", encoding="utf-8") as f:
+    f.write(f"[{timestamp}] Event occurred\n")
+
+# 写入二进制
+with open("output.bin", "wb") as f:
+    f.write(b"\x00\x01\x02\x03")
+```
+
+## `pathlib.Path`：现代路径处理方式
+
+`pathlib` 模块以面向对象 API 替代了 `os.path`。请在所有场景中使用它。
+
+```python
+from pathlib import Path
+
+# 创建路径
+project = Path("/home/user/project")
+config = project / "config" / "settings.toml"
+# 结果：PosixPath('/home/user/project/config/settings.toml')
+
+# 当前目录与用户主目录
+cwd = Path.cwd()
+home = Path.home()
+
+# 路径组成部分
+p = Path("/home/user/project/data/file.csv")
+p.name       # 'file.csv'
+p.stem       # 'file'
+p.suffix     # '.csv'
+p.parent     # PosixPath('/home/user/project/data')
+p.parents[1] # PosixPath('/home/user/project')
+p.parts      # ('/', 'home', 'user', 'project', 'data', 'file.csv')
+```
+
+### 常见操作
+
+```python
+from pathlib import Path
+
+p = Path("data")
+
+# 检查存在性
+p.exists()       # True/False
+p.is_file()      # 若为文件返回 True
+p.is_dir()       # 若为目录返回 True
+
+# 创建目录（自动创建父目录，且不报错若已存在）
+p.mkdir(parents=True, exist_ok=True)
+
+# 列出目录内容
+for child in p.iterdir():
+    print(child)
+
+# Glob 模式匹配
+for csv_file in p.glob("*.csv"):
+    print(csv_file)
+
+# 递归 Glob
+for py_file in p.rglob("*.py"):
+    print(py_file)
+
+# 便捷读写方法（无需显式 open）
+text = p.joinpath("config.txt").read_text(encoding="utf-8")
+p.joinpath("output.txt").write_text("hello\n", encoding="utf-8")
+data = p.joinpath("image.png").read_bytes()
+p.joinpath("copy.png").write_bytes(data)
+
+# 文件元数据
+stat = p.stat()
+stat.st_size     # 文件大小（字节）
+stat.st_mtime    # 修改时间（Unix 时间戳）
+
+# 重命名与删除
+p.rename("new_name")
+p.unlink()          # 删除文件
+p.rmdir()           # 删除空目录
+```
+
+### `os.path` vs `pathlib`
+
+| 操作 | `os.path` | `pathlib` |
+|------|-----------|-----------|
+| 拼接路径 | `os.path.join(a, b)` | `Path(a) / b` |
+| 获取文件名 | `os.path.basename(p)` | `p.name` |
+| 获取扩展名 | `os.path.splitext(p)[1]` | `p.suffix` |
+| 获取父目录 | `os.path.dirname(p)` | `p.parent` |
+| 检查是否存在 | `os.path.exists(p)` | `p.exists()` |
+| 读取文件 | `open(p).read()` | `p.read_text()` |
+| Glob 匹配 | `glob.glob("*.txt")` | `Path(".").glob("*.txt")` |
+| 绝对路径 | `os.path.abspath(p)` | `p.resolve()` |
+
+`pathlib` 在所有情况下都更简洁清晰。仅凭 `/` 运算符拼接路径这一点，就值得全面迁移。
+
+## 编码：UTF-8 优先原则
+
+### 问题所在
+
+```python
+# 这段代码在你的 Mac 上能运行，但在 Windows 服务器上会失败：
+with open("data.txt") as f:
+    content = f.read()
+# UnicodeDecodeError: 'cp1252' codec can't decode byte 0xe9
+```
+
+未显式指定 `encoding` 时，Python 使用平台默认编码：macOS/Linux 通常是 UTF-8，而 Windows 常为 cp1252（Windows-1252）。这意味着本地能跑通的代码，在生产环境极易崩溃。
+
+### 解决方案
+
+**始终显式指定编码：**
+
+```python
+# 务必这样做
+with open("data.txt", encoding="utf-8") as f:
+    content = f.read()
+```
+
+从 Python 3.15（PEP 686）起，UTF-8 将成为默认编码。在此之前，请保持显式声明。
+
+### 处理编码错误
+
+```python
+# 跳过非法字节
+with open("messy.txt", encoding="utf-8", errors="ignore") as f:
+    content = f.read()
+
+# 将非法字节替换为 '?'
+with open("messy.txt", encoding="utf-8", errors="replace") as f:
+    content = f.read()
+
+# 自动检测编码（当你完全不知道源编码时）
+import chardet
+
+with open("mystery.txt", "rb") as f:
+    raw = f.read()
+    detected = chardet.detect(raw)
+    # {'encoding': 'utf-8', 'confidence': 0.99, 'language': ''}
+
+content = raw.decode(detected["encoding"])
+```
+
+### BOM（字节顺序标记）
+
+某些 Windows 工具会在 UTF-8 文件开头添加 BOM（`﻿`）。使用 `utf-8-sig` 可自动处理：
+
+```python
+# 读取：自动剥离 BOM（如存在）
+with open("windows_file.csv", encoding="utf-8-sig") as f:
+    content = f.read()
+
+# 写入：添加 BOM（提升 Windows 兼容性）
+with open("output.csv", "w", encoding="utf-8-sig") as f:
+    f.write("data\n")
+```
+
+## JSON
+
+JSON 是最常用的数据交换格式。Python 标准库 `json` 模块原生支持。
+
+### 读写操作
+
+```python
+import json
+
+# 解析 JSON 字符串
+data = json.loads('{"name": "Alice", "age": 30}')
+# data = {'name': 'Alice', 'age': 30}
+
+# 序列化为 JSON 字符串
+text = json.dumps(data)
+# '{"name": "Alice", "age": 30}'
+
+# 美化输出
+text = json.dumps(data, indent=2, sort_keys=True)
+# {
+#   "age": 30,
+#   "name": "Alice"
+# }
+
+# 从文件读取
+with open("config.json", encoding="utf-8") as f:
+    config = json.load(f)
+
+# 写入文件
+with open("output.json", "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+```
+
+`ensure_ascii=False` 对非 ASCII 文本至关重要。否则中文、emoji 等字符会被转义为 `\uXXXX`。
+
+### 自定义序列化器
+
+JSON 不支持 `datetime`、`Path`、`set`、`bytes` 或自定义对象。可通过 `default` 参数处理：
+
+```python
+import json
+from datetime import datetime
+from pathlib import Path
+
+
+def json_serializer(obj):
+    """处理 json.dumps 无法直接序列化的类型"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, set):
+        return sorted(obj)
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8", errors="replace")
+    raise TypeError(f"Type {type(obj)} is not JSON serializable")
+
+
+data = {
+    "timestamp": datetime.now(),
+    "path": Path("/home/user/data"),
+    "tags": {"python", "coding"},
+}
+
+text = json.dumps(data, default=json_serializer, indent=2)
+```
+
+### 命令行 JSON 工具
+
+Python 内置 JSON 格式化工具：
+
+```bash
+# 美化打印 JSON 文件
+$ python -m json.tool data.json
+
+# 从管道输入
+$ curl -s https://api.example.com/data | python -m json.tool
+```
+
+## YAML
+
+YAML 因其人类可读性及支持注释，广泛用于配置文件。
+
+```bash
+(.venv) $ pip install pyyaml
+```
+
+```python
+import yaml
+
+# 读取 YAML
+with open("config.yaml", encoding="utf-8") as f:
+    config = yaml.safe_load(f)
+
+# 写入 YAML
+with open("output.yaml", "w", encoding="utf-8") as f:
+    yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
+```
+
+### `safe_load` vs `load`
+
+**务必始终使用 `safe_load`。** `load` 函数可能执行 YAML 中嵌入的任意 Python 代码：
+
+```yaml
+# 下面这段 YAML 在使用 yaml.load() 时会执行系统命令：
+!!python/object/apply:os.system
+  args: ["rm -rf /"]
+```
+
+`safe_load` 会拒绝此类危险标签。除非你**完全信任数据源**，否则没有理由使用 `load`。
+
+### YAML 的陷阱
+
+```yaml
+# YAML 存在令人意外的类型强制转换：
+norway: NO       # 解析为布尔值 False！
+version: 3.10    # 解析为浮点数 3.1！
+port: 8080       # 解析为整数（通常符合预期）
+zip: 01onal      # 解析为字符串
+
+# 对任何可能被误判为布尔值或数字的值，务必加引号：
+norway: "NO"
+version: "3.10"
+```
+
+这是真实存在的 bug 来源。请坚持使用 `safe_load`，并对所有疑似布尔值或数字的字符串显式加引号。
+
+## TOML
+
+TOML 是 YAML 的现代替代品，专为配置设计：无类型强制转换、无歧义，也是 Python 打包标准（`pyproject.toml`）。
+
+### 读取 TOML
+
+Python 3.11+ 内置 `tomllib`：
+
+```python
+# Python 3.11+
+import tomllib
+
+with open("config.toml", "rb") as f:
+    config = tomllib.load(f)
+
+# 或从字符串解析
+config = tomllib.loads("""
+[server]
+host = "0.0.0.0"
+port = 8080
+debug = false
+
+[database]
+url = "postgresql://localhost/mydb"
+pool_size = 5
+""")
+```
+
+注意：`tomllib` **必须以二进制模式（`"rb"`）打开文件**，而非文本模式。
+
+对于 Python 3.10 及更早版本：
+
+```bash
+(.venv) $ pip install tomli
+```
+
+```python
+import tomli
+
+with open("config.toml", "rb") as f:
+    config = tomli.load(f)
+```
+
+### 写入 TOML
+
+标准库不提供 TOML 写入器。请使用 `tomli-w`：
+
+```bash
+(.venv) $ pip install tomli-w
+```
+
+```python
+import tomli_w
+
+config = {
+    "server": {"host": "0.0.0.0", "port": 8080},
+    "database": {"url": "postgresql://localhost/mydb"},
+}
+
+with open("config.toml", "wb") as f:
+    tomli_w.dump(config, f)
+```
+
+## CSV
+
+CSV 在数据工作中无处不在。Python 的 `csv` 模块能正确处理引号、转义和不同分隔符。
+
+### 读取 CSV
+
+```python
+import csv
+
+# 作为列表读取
+with open("data.csv", encoding="utf-8") as f:
+    reader = csv.reader(f)
+    header = next(reader)
+    for row in reader:
+        print(row)  # ['Alice', '30', 'alice@example.com']
+
+# 作为字典读取（通常更推荐）
+with open("data.csv", encoding="utf-8") as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        print(row["name"], row["age"])
+```
+
+### 写入 CSV
+
+```python
+import csv
+
+# 使用 DictWriter 写入
+rows = [
+    {"name": "Alice", "age": 30, "email": "alice@example.com"},
+    {"name": "Bob", "age": 25, "email": "bob@example.com"},
+]
+
+with open("output.csv", "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=["name", "age", "email"])
+    writer.writeheader()
+    writer.writerows(rows)
+```
+
+`newline=""` 参数在 Windows 上至关重要。缺失它会导致双换行。
+
+### CSV 边界情况
+
+```python
+# 制表符分隔（TSV）
+with open("data.tsv", encoding="utf-8") as f:
+    reader = csv.reader(f, delimiter="\t")
+
+# 分号分隔（欧洲地区常见）
+with open("data.csv", encoding="utf-8") as f:
+    reader = csv.reader(f, delimiter=";")
+
+# 处理由 Excel 导出的带 BOM 的 CSV
+with open("excel_export.csv", encoding="utf-8-sig") as f:
+    reader = csv.DictReader(f)
+```
+
+## 二进制格式
+
+### `pickle`：Python 对象序列化
+
+`pickle` 可将任意 Python 对象序列化为字节流并还原，速度快且便捷。
+
+```python
+import pickle
+
+data = {"key": [1, 2, 3], "nested": {"a": "b"}}
+
+# 序列化
+with open("data.pkl", "wb") as f:
+    pickle.dump(data, f)
+
+# 反序列化
+with open("data.pkl", "rb") as f:
+    loaded = pickle.load(f)
+```
+
+**`pickle` 极其危险。** 加载不受信任的 pickle 文件会执行任意代码。**切勿反序列化来自不可信来源的数据。** pickle 文件也不跨 Python 版本或跨平台兼容。仅限在你自己的系统内作临时缓存使用。
+
+| 格式 | 人类可读 | 跨语言 | 可安全加载自不可信源 | Python 专用 |
+|------|----------|--------|----------------------|-------------|
+| JSON | 是 | 是 | 是 | 否 |
+| YAML | 是 | 是 | 是（`safe_load`） | 否 |
+| TOML | 是 | 是 | 是 | 否 |
+| `pickle` | 否 | 否 | **否（危险）** | 是 |
+| `msgpack` | 否 | 是 | 是 | 否 |
+
+### `struct`：二进制数据打包
+
+用于处理二进制协议或文件格式：
+
+```python
+import struct
+
+# 将数据打包为字节
+packed = struct.pack(">IHB", 1024, 256, 42)
+# > = 大端序，I = uint32，H = uint16，B = uint8
+# 结果：b'\x00\x00\x04\x00\x01\x00\x2a'
+
+# 将字节解包为数值
+values = struct.unpack(">IHB", packed)
+# (1024, 256, 42)
+```
+
+### `msgpack`：快速二进制序列化
+
+`msgpack` 是 JSON 的二进制替代品，更快更紧凑：
+
+```bash
+(.venv) $ pip install msgpack
+```
+
+```python
+import msgpack
+
+data = {"name": "Alice", "scores": [95, 87, 91]}
+
+# 序列化
+packed = msgpack.packb(data)
+# b'\x82\xa4name\xa5Alice\xa6scores\x93_W['
+
+# 反序列化
+unpacked = msgpack.unpackb(packed)
+```
+
+## Parquet 与 Arrow：列式数据
+
+对于大型数据集，行式格式（CSV、JSON）效率低下。Parquet 采用列式存储，支持高效压缩与分析查询。
+
+```bash
+(.venv) $ pip install pyarrow pandas
+```
+
+```python
+import pandas as pd
+
+# 读取 CSV 并写入 Parquet
+df = pd.read_csv("large_data.csv")
+df.to_parquet("large_data.parquet", engine="pyarrow")
+
+# 读取 Parquet
+df = pd.read_parquet("large_data.parquet")
+
+# 仅读取特定列（Parquet 可跳过未使用列）
+df = pd.read_parquet("large_data.parquet", columns=["name", "age"])
+```
+
+一个百万行数据集的性能对比：
+
+| 格式 | 文件大小 | 写入耗时 | 读取耗时 | 仅读两列耗时 |
+|------|----------|----------|----------|--------------|
+| CSV | 120 MB | 8.2s | 5.1s | 5.1s（全量读取） |
+| JSON | 200 MB | 12.5s | 9.8s | 9.8s（全量读取） |
+| Parquet | 15 MB | 1.8s | 0.4s | 0.1s |
+
+在此例中，Parquet 比 CSV 小 8 倍，读取快 12 倍。
+
+## 配置模式
+
+### 使用 `python-dotenv` 处理 `.env` 文件
+
+```bash
+(.venv) $ pip install python-dotenv
+```
+
+```
+# .env
+DATABASE_URL=postgresql://localhost/mydb
+API_KEY=sk-abc123
+DEBUG=true
+SECRET_KEY=super-secret-key-do-not-commit
+```
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # 将 .env 加载至 os.environ
+
+database_url = os.environ["DATABASE_URL"]
+api_key = os.environ["API_KEY"]
+debug = os.environ.get("DEBUG", "false").lower() == "true"
+```
+
+务必把 `.env` 加入 `.gitignore`。提交一个带占位符的 `.env.example`：
+
+```
+# .env.example
+DATABASE_URL=postgresql://localhost/mydb
+API_KEY=your-api-key-here
+DEBUG=false
+SECRET_KEY=generate-a-random-key
+```
+
+## 配置文件格式对比表
+
+| 特性 | JSON | YAML | TOML | `.env` |
+|------|------|------|------|--------|
+| 支持注释 | 否 | 是 | 是 | 是 |
+| 嵌套结构 | 是 | 是 | 是 | 否（仅扁平键值对） |
+| 类型安全性 | 良好 | 差（类型强制转换） | 良好 | 无（全为字符串） |
+| 人类可读性 | 良好 | 良好 | 良好 | 良好 |
+| Python 标准库支持 | 是 | PyYAML | 是（3.11+） | `python-dotenv` |
+| 多行字符串 | 需转义 | 是 | 是 | 有限 |
+| 典型用途 | API、数据交换 | Kubernetes、Docker Compose | `pyproject.toml`、Cargo | 密钥、环境变量 |
+| “陷阱”风险 | 低 | 中（类型强制转换） | 低 | 低 |
+
+**推荐方案：**
+- **应用配置**：TOML（清晰、强类型、无歧义）
+- **密钥与环境变量**：`.env` 文件（**绝不可提交至版本控制**）
+- **数据交换**：JSON（通用性强，所有语言均支持）
+- **避免 YAML**，除非你必须配合要求 YAML 的工具（如 Kubernetes、GitHub Actions）
+
+## 下一步
+
+文件与数据格式构成了 I/O 层。但当你的程序需要**同时执行大量 I/O 操作**（例如下载 100 个文件、并发调用 50 个 API）时，串行执行会把大部分时间浪费在等待上。下一篇文章，我们将深入探讨并发编程：线程（threads）、进程（processes）与异步 I/O（asyncio），并学会为不同场景选择最合适的工具。
