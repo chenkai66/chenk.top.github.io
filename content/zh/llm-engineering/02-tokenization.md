@@ -137,7 +137,7 @@ LLaMA-3 还在词表末尾加了 28 个保留特殊 token（`<|reserved_special_
 
 ![fig2: CJK token bloat by language](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/02-tokenization/fig2_cjk_bloat.png)
 
-这个问题在一个中文产品上狠狠咬了我一口。GPT-3.5 的分词器（cl100k_base, 100K 词表）把英文字符串 "Hello, how are you?" 分成了 6 个 tokens。中文等价物 "你好，你今天怎么样？" 分成了 17 个 tokens。
+我在做一个中文产品时被这个问题狠狠坑了一把。GPT-3.5 的分词器（cl100k_base, 100K 词表）把英文字符串 "Hello, how are you?" 分成了 6 个 tokens。中文等价物 "你好，你今天怎么样？" 分成了 17 个 tokens。
 
 三个因素叠加：
 
