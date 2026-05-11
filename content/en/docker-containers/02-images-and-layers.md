@@ -1,6 +1,6 @@
 ---
 title: "Docker and Containers (2): Images and Layers — What docker pull Actually Downloads"
-date: 2023-09-14 09:00:00
+date: 2023-06-18 09:00:00
 tags:
   - Docker
   - Containers

@@ -1,6 +1,6 @@
 ---
-title: "Docker 与容器（2）：镜像与分层——`docker pull` 到底下载了什么？"
-date: 2023-09-14 09:00:00
+title: "Docker 与容器（二）：镜像与分层——`docker pull` 到底下载了什么？"
+date: 2023-06-18 09:00:00
 tags:
   - Docker
   - Containers

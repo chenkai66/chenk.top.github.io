@@ -1,6 +1,6 @@
 ---
 title: "Databases (8): Databases in Practice — Migration, Monitoring, and War Stories"
-date: 2023-12-28 09:00:00
+date: 2024-04-30 09:00:00
 tags:
   - Databases
   - Operations

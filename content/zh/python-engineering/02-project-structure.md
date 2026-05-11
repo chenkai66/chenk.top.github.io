@@ -1,5 +1,5 @@
 ---
-title: "Python 工程实践（2）：项目结构 —— 从脚本到包"
+title: "Python 工程实践（二）：项目结构 —— 从脚本到包"
 date: 2022-04-12 09:00:00
 tags:
   - Python

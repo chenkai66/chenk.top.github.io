@@ -1,6 +1,6 @@
 ---
 title: "Databases (2): Indexing and Query Planning — How Databases Find Your Data"
-date: 2023-12-08 09:00:00
+date: 2024-04-19 09:00:00
 tags:
   - Databases
   - SQL

@@ -1,6 +1,6 @@
 ---
 title: "Docker and Containers (1): Why Containers — The Problem VMs Didn't Solve"
-date: 2023-09-10 09:00:00
+date: 2023-06-16 09:00:00
 tags:
   - Docker
   - Containers

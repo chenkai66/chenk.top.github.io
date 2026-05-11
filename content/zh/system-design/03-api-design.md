@@ -1,5 +1,5 @@
 ---
-title: "系统设计（3）：API 设计 — REST、gRPC、GraphQL 及如何明智选型"
+title: "系统设计（三）：API 设计 — REST、gRPC、GraphQL 及如何明智选型"
 date: 2025-07-15 09:00:00
 tags:
   - System Design

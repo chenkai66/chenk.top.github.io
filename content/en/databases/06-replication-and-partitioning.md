@@ -1,6 +1,6 @@
 ---
 title: "Databases (6): Replication and Partitioning — Scaling Beyond One Machine"
-date: 2023-12-21 09:00:00
+date: 2024-04-26 09:00:00
 tags:
   - Databases
   - Replication

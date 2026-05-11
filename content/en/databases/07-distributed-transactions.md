@@ -1,6 +1,6 @@
 ---
 title: "Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard"
-date: 2023-12-24 09:00:00
+date: 2024-04-28 09:00:00
 tags:
   - Databases
   - Distributed Systems

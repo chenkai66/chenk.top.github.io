@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (6): Linear Systems and the Matrix Exponential"
-date: 2023-10-14 09:00:00
+date: 2023-09-24 09:00:00
 tags:
   - ODE
   - Linear Systems

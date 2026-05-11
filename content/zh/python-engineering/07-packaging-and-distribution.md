@@ -1,5 +1,5 @@
 ---
-title: "Python 工程实践（7）：打包分发 —— 从 pip install 到 PyPI"
+title: "Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI"
 date: 2022-04-24 09:00:00
 tags:
   - Python

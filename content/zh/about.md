@@ -1,4 +1,8 @@
 ---
+_build:
+  list: never
+  publishResources: true
+  render: always
 title: "关于"
 type: about
 layout: about

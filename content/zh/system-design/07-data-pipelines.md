@@ -1,5 +1,5 @@
 ---
-title: "系统设计（7）：数据管道——批处理、流处理与Lambda架构"
+title: "系统设计（七）：数据管道——批处理、流处理与Lambda架构"
 date: 2025-07-24 09:00:00
 tags:
   - System Design

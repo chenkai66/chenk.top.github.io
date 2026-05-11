@@ -1,6 +1,6 @@
 ---
 title: "Databases (1): Data Models and SQL — Why Tables Won (For Now)"
-date: 2023-12-05 09:00:00
+date: 2024-04-17 09:00:00
 tags:
   - Databases
   - SQL

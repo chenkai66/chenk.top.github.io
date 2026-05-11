@@ -1,6 +1,6 @@
 ---
-title: "Docker 与容器（8）：超越 Docker —— Kubernetes、Swarm 及未来演进"
-date: 2023-10-08 09:00:00
+title: "Docker 与容器（八）：超越 Docker —— Kubernetes、Swarm 及未来演进"
+date: 2023-06-30 09:00:00
 tags:
   - Docker
   - Containers

@@ -1,5 +1,5 @@
 ---
-title: "Python 工程实践（6）：并发编程 —— 线程、进程与 asyncio"
+title: "Python 工程实践（六）：并发编程 —— 线程、进程与 asyncio"
 date: 2022-04-21 09:00:00
 tags:
   - Python

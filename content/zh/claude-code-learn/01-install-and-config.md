@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战入门（1）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客"
+title: "Claude Code 实战入门（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客"
 date: 2026-04-18 09:00:00
 tags:
   - claude-code

@@ -1,5 +1,5 @@
 ---
-title: "系统设计（2）：DNS、CDN 与负载均衡——请求旅程的前三跳"
+title: "系统设计（二）：DNS、CDN 与负载均衡——请求旅程的前三跳"
 date: 2025-07-12 09:00:00
 tags:
   - System Design
