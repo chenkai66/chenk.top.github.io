@@ -27,6 +27,9 @@ This article walks through all four with working Terraform, the cost crossover, 
 
 ![Three primary places to run an agent: ECS, ACK, FC](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png)
 
+![Auto-scaling compute cluster dynamically adjusting to workload](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/wanxiang_compute_scale.png)
+
+
 Each has a sweet spot:
 
 - **ECS** is a Linux VM. Long-lived, stateful, easy to SSH into when you're debugging. The right answer for prototypes, single-tenant agents, and anywhere you want to keep one machine "warm" with cached models or local state.
@@ -199,6 +202,9 @@ About 90 seconds from `apply` to `pm2 status` showing the agent as `online`. The
 ## Pattern 2: ACK for production fleets
 
 Once you have three or more agent kinds running side by side, the per-VM operational cost dominates and ECS stops scaling. ACK gives you one cluster, one scheduler, one upgrade path, and a single place to wire autoscaling and observability.
+
+![Container orchestration managing distributed agent workloads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/wanxiang_container_orchestration.png)
+
 
 The minimal Terraform to get a managed K8s cluster on Aliyun:
 

@@ -30,6 +30,9 @@ translationKey: "terraform-agents-1"
 
 聊基础设施之前，我们先明确 Agent 系统到底包含哪些组件——那些 `pip install langgraph` 的 README 通常会略过的部分：
 
+![AI agent workloads running on cloud infrastructure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_agent_infra.png)
+
+
 1. **A runtime** 跑 Agent 循环进程的运行时——通常是 Python 或 Node——并且能扛住重启
 2. **A vector store** 语义记忆用的向量存储——文档嵌入、历史对话、工具输出
 3. **A relational store** 存会话状态的关系型存储——轮次对话、工具调用 trace、用户身份
@@ -45,6 +48,9 @@ translationKey: "terraform-agents-1"
 ## The console-vs-IaC moment
 
 九个服务手动操作意味着九个漂移面。这种痛苦模式太普遍了，我甚至有个标准图来形容它：
+
+![Infrastructure as Code workflow transforming declarative configs into cloud resources](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_iac_workflow.png)
+
 
 ![Console clicks vs Terraform — where the divergence happens](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
 
@@ -175,6 +181,9 @@ module "vpc" {
 ## IaC 到底能防止哪些 Agent 特有的故障模式
 
 在把 Terraform 和其他工具拉出来对比之前，得先搞清楚你到底买的是什么。市面上讲 IaC 总爱提“一致性”和“可复现”——话没错，但听着没劲。折腾这套系统三年下来，最让我头疼的故障模式都跟 Agent 有关，而每一个都有对应的 Terraform 解法：
+
+![Infrastructure drift detection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_drift_detection.png)
+
 
 **1. 凌晨 3 点的 Token 泄露**。Agent 自己死循环了——停止条件写烂了、工具无限重试、规划状态 hallucinated——一夜之间烧掉 40,000 元的 LLM 预算。手动在控制台点出来的栈没有程序化的预算 guard，因为没人写。Terraform 栈从第一天就 provision 了 `alicloud_log_alert`（见文章 7），因为模块默认自带。告警的成本不过是计划里多一个资源；没有告警的成本是财务打来的电话。
 

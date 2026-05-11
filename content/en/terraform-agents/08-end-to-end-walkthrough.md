@@ -56,6 +56,9 @@ research-agent-stack/
     └── restore-drill.sh
 ```
 
+![Infrastructure modules composing together into a complete architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png)
+
+
 Eight `*.tf` files at the top, five modules in `modules/`, environment values in `env/*.tfvars`, secrets out of git in `secrets/secrets.auto.tfvars`. This is the layout I use on every project — boring is good. The thing I will not negotiate on is the `secrets/` directory being in `.gitignore` from commit zero. Every leaked-key incident I've cleaned up traced back to someone adding the gitignore entry on commit 50 instead of commit 1.
 
 ## main.tf — the composition
@@ -65,6 +68,9 @@ locals {
   is_prod   = terraform.workspace == "prod"
   name      = "agents-${terraform.workspace}"
   zones     = ["cn-shanghai-l", "cn-shanghai-m", "cn-shanghai-n"]
+
+![Complete cloud architecture stack from network to application layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_full_stack.png)
+
 
   common_tags = {
     Project     = "research-agent-stack"
@@ -294,6 +300,9 @@ That's a complete agent stack. ALB endpoint, gateway URL, the SLS dashboard URL 
 ## Day-2 operations
 
 The stack is up. Now what? These are the operations I run on every long-lived stack — the ones the article won't tell you but the on-call rotation will.
+
+![CI/CD pipeline automating build, test, and deploy stages](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_cicd_pipeline.png)
+
 
 ### Adding a new agent
 

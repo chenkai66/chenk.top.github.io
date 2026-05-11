@@ -66,6 +66,9 @@ terraform {
 
 Provider 需要 Aliyun  credentials。真正可选的就三种，按专业程度递增：
 
+![Authentication flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
+
+
 ![Three ways to authenticate the alicloud provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png)
 
 ### 方案 A: 静态 AK/SK（仅限个人笔记本）
@@ -117,6 +120,9 @@ provider "alicloud" {
 ## Step 3: 状态文件——为什么本地 tfstate 是隐患
 
 跑 `terraform apply` 时，默认 Terraform 会把 `terraform.tfstate` 写在当前目录。这文件是基础设施现状的唯一事实来源。三件事迟早会出错：
+
+![Distributed state locking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_state_lock.png)
+
 
 1. **丢失。** 删了目录，Terraform 就觉得什么都不存在了。下次 `apply` 试图重建一切（或者因为重复资源失败）。
 2. **冲突。** 两个工程师同时跑 `apply` 会搞坏状态文件。
@@ -256,6 +262,9 @@ terraform init
 ## Step 6: 用 workspace 隔离环境
 
 workspace 其实就是同一个 backend 里的独立状态文件。默认那个很有用，就叫 `default`。你需要其他环境就自己建：
+
+![Multi-environment workspace isolation for dev, staging, and production](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_workspace.png)
+
 
 ```bash
 terraform workspace new dev

@@ -51,6 +51,9 @@ translationKey: "terraform-agents-6"
 
 第一条铁律：厂商密钥绝不出现在 `.env` 文件里，不在 `provider {}` 块里，不在 Agent 代码里，也不以明文出现在 tfstate 里。它们只活在 KMS Secrets Manager 里，网关启动时通过 STS 拉取。
 
+![Secure vault for managing API keys and credentials](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/wanxiang_secret_vault.png)
+
+
 ```hcl
 locals {
   llm_secrets = {

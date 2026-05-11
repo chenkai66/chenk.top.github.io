@@ -45,6 +45,9 @@ The cheapest mistake here is shipping with only `print()` to stdout. The most ex
 
 Everything observability-related starts with one SLS project. One per environment is right; one per agent is too granular.
 
+![Cloud monitoring command center with real-time metrics dashboards](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/wanxiang_monitoring.png)
+
+
 ```hcl
 resource "alicloud_log_project" "agents" {
   name        = "agents-${terraform.workspace}"
@@ -210,6 +213,9 @@ For custom application metrics — "tokens consumed by research-agent" — emit 
 ## Step 5: the cost dashboard
 
 Here's where it gets interesting. Every LLM request hits the gateway, and the gateway logs one row per request to `gateway-requests` with fields like:
+
+![Cloud cost optimization with resource right-sizing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/wanxiang_cost_optimization.png)
+
 
 ```json
 {

@@ -113,6 +113,9 @@ A small relational layer is the spine. The next layer is what makes the agent fe
 
 You have two reasonable choices on Aliyun for the vector layer:
 
+![Vector embedding space with similarity search for agent memory retrieval](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/wanxiang_vector_search.png)
+
+
 1. **OpenSearch Vector Search Edition** — managed, Lucene-backed, supports HNSW + IVF, billed per QPS quota.
 2. **PolarDB or RDS PostgreSQL with `pgvector`** — co-located with your relational data, no new infra, slower past ~1M vectors.
 
@@ -154,6 +157,9 @@ The Terraform half is just the database; the schema is application code (Alembic
 ## Layer 3: object storage
 
 OSS is where artifacts go: generated images, PDFs, screenshots, run-trace tarballs, model checkpoints if you fine-tune. For an agent stack:
+
+![Data lifecycle management from hot to cold storage tiers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/wanxiang_data_lifecycle.png)
+
 
 ```hcl
 resource "alicloud_oss_bucket" "artifacts" {

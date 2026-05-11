@@ -52,6 +52,9 @@ I use both depending on routing complexity. For a pure proxy with quotas, API Ga
 
 The first rule: provider keys never appear in `.env` files, in `provider {}` blocks, in agent code, or in tfstate plaintext. They live in KMS Secrets Manager and the gateway pulls them at startup via STS.
 
+![Secure vault for managing API keys and credentials](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/wanxiang_secret_vault.png)
+
+
 ```hcl
 locals {
   llm_secrets = {
@@ -85,6 +88,9 @@ Cost note: KMS Secrets Manager bills around ¥0.4 per secret per month plus ¥0.
 ## Step 2: a RAM role the gateway can assume
 
 The gateway ECS or function needs permission to read these secrets — and **only** these secrets:
+
+![Centralized API gateway routing requests to multiple LLM endpoints](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/wanxiang_api_gateway.png)
+
 
 ```hcl
 resource "alicloud_ram_role" "gateway" {

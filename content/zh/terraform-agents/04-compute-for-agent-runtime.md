@@ -26,6 +26,9 @@ translationKey: "terraform-agents-4"
 
 ![Three primary places to run an agent: ECS, ACK, FC](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png)
 
+![Auto-scaling compute cluster dynamically adjusting to workload](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/wanxiang_compute_scale.png)
+
+
 每种方案都有它的最佳场景：
 
 - **ECS** 就是 Linux 虚拟机。长驻、有状态，调试时 SSH 进去很方便。适合原型、单租户 Agent，或者需要让机器“热着”缓存模型或本地状态的场景。
@@ -198,6 +201,9 @@ echo "$(date -Iseconds)" > /run/agent/bootstrap-done
 ## Pattern 2: ACK for production fleets
 
 一旦你有三种以上 Agent 并行运行，单 VM 的运维成本就占主导了，ECS 扩展性到头。ACK 给你一个集群、一个调度器、一条升级路径，还有一个地方接自动伸缩和可观测性。
+
+![Container orchestration managing distributed agent workloads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/wanxiang_container_orchestration.png)
+
 
 在阿里云上搞一个托管 K8s 集群的最小 Terraform 代码：
 

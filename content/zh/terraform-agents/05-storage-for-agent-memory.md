@@ -112,6 +112,9 @@ resource "alicloud_db_database" "session" {
 
 阿里云上向量层有两个合理选择：
 
+![Vector embedding space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/wanxiang_vector_search.png)
+
+
 1. **OpenSearch Vector Search Edition** —— 托管版，基于 Lucene，支持 HNSW + IVF，按 QPS 配额计费。
 2. **带 `pgvector` 的 PolarDB 或 RDS PostgreSQL** —— 和关系数据在一起，不用新 infra，超过 ~100 万向量后变慢。
 
@@ -153,6 +156,9 @@ Terraform 只管数据库；schema 是应用代码的事（Alembic、Flyway、sq
 ## 第三层：对象存储
 
 OSS 是 artifacts 的去处：生成的图片、PDF、截图、run-trace tarballs，如果你做 fine-tune 还有模型 checkpoints。对于 Agent 栈：
+
+![Data lifecycle management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/wanxiang_data_lifecycle.png)
+
 
 ```hcl
 resource "alicloud_oss_bucket" "artifacts" {

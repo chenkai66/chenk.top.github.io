@@ -258,6 +258,9 @@ resource "alicloud_security_group_rule" "vector_from_agent" {
 
 静态加密（Encryption-at-rest）是任何合规制度的底线。阿里云的做法是**每个数据域一把 Customer Master Key (CMK)**，这样你可以单独轮换某一把而不影响其他，也能按密钥审计访问记录。
 
+![Data encryption at rest and in transit with key management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/wanxiang_encryption.png)
+
+
 ![KMS encryption — one CMK per data domain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig3_kms_encrypt.png)
 
 ```hcl

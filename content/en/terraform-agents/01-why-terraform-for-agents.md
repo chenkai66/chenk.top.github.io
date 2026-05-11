@@ -31,6 +31,9 @@ Eight articles. One real, working stack at the end. This first one is the why.
 
 Before we talk infrastructure, let's name the components an agent system has — the ones a `pip install langgraph` README usually skips:
 
+![AI agent workloads running on cloud infrastructure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_agent_infra.png)
+
+
 1. **A runtime** that holds the agent loop process — usually Python or Node — and survives restarts
 2. **A vector store** for semantic memory — embeddings of documents, prior conversations, tool outputs
 3. **A relational store** for session state — turn-by-turn conversation, tool-call traces, user identity
@@ -46,6 +49,9 @@ That is at least nine separate Aliyun services touching each other in specific w
 ## The console-vs-IaC moment
 
 Nine services touched by hand is also nine drift surfaces. The pain pattern is universal enough that I have a stock figure for it:
+
+![Infrastructure as Code workflow transforming declarative configs into cloud resources](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_iac_workflow.png)
+
 
 ![Console clicks vs Terraform — where the divergence happens](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
 
@@ -177,6 +183,9 @@ We will build exactly this module in article 3 and reuse it in every subsequent 
 ## The agent-specific failure modes IaC actually prevents
 
 Before comparing Terraform against alternatives, it's worth pinning down what specifically you're buying. Generic IaC pitches focus on "consistency" and "reproducibility" — true but underwhelming. After three years of running these systems, the failure modes that have hurt me most are agent-shaped, and each one has a Terraform-shaped fix:
+
+![Infrastructure drift detection — when reality diverges from declared state](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_drift_detection.png)
+
 
 **1. The 3am token leak.** An agent loops on itself — bad stop condition, infinite tool retry, hallucinated planner state — and burns ¥40,000 of LLM budget overnight. The console-clicked stack has no programmatic budget guard because nobody wrote one. The Terraform stack has `alicloud_log_alert` provisioned from day one (article 7) because the module includes it by default. The cost of the alert is one extra resource in the plan; the cost of not having it is a phone call from finance.
 

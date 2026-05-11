@@ -67,6 +67,9 @@ Pinning early is cheap insurance. The alicloud provider has shipped breaking cha
 
 The provider needs Aliyun credentials. There are three real choices, in increasing order of professional acceptability:
 
+![Authentication flow from credentials to API access](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
+
+
 ![Three ways to authenticate the alicloud provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png)
 
 ### Option A: static AK/SK (only on a personal laptop)
@@ -118,6 +121,9 @@ Zero secrets in any config, in any env var, in any file. Rotation is automatic. 
 ## Step 3: state — why local tfstate is a footgun
 
 When you run `terraform apply`, by default Terraform writes `terraform.tfstate` in the current directory. That file is the source of truth for what infrastructure exists. Three things will go wrong:
+
+![Distributed state locking prevents concurrent modifications](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_state_lock.png)
+
 
 1. **Loss.** Delete the directory and Terraform thinks nothing exists. The next `apply` tries to recreate everything (or fails on duplicates).
 2. **Conflict.** Two engineers running `apply` simultaneously can corrupt the state file.
@@ -258,6 +264,9 @@ Apply this to the role you authenticate with. Don't grant `oss:*` — least priv
 ## Step 6: workspaces for env isolation
 
 A workspace is a separate state file inside the same backend. The default workspace is — usefully — called `default`. Create the others you need:
+
+![Multi-environment workspace isolation for dev, staging, and production](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_workspace.png)
+
 
 ```bash
 terraform workspace new dev

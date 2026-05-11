@@ -55,6 +55,9 @@ research-agent-stack/
     └── restore-drill.sh
 ```
 
+![Infrastructure modules composing together into a complete architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png)
+
+
 顶层八个 `*.tf` 文件，`modules/` 目录下五个模块，环境变量放在 `env/*.tfvars`，密钥隔离在 `secrets/secrets.auto.tfvars` 且不进 git。这是我每个项目通用的布局——枯燥点挺好，稳定最重要。唯独 `secrets/` 目录必须从第一次提交就开始被 `.gitignore` 忽略，这点我绝不妥协。我处理过的每一次密钥泄露事故，追溯回去都是因为有人在第 50 次提交才补上 gitignore，而不是在第 1 次。
 
 ## main.tf — the composition
@@ -64,6 +67,9 @@ locals {
   is_prod   = terraform.workspace == "prod"
   name      = "agents-${terraform.workspace}"
   zones     = ["cn-shanghai-l", "cn-shanghai-m", "cn-shanghai-n"]
+
+![Complete cloud architecture stack from network to application layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_full_stack.png)
+
 
   common_tags = {
     Project     = "research-agent-stack"
@@ -292,6 +298,9 @@ total_estimated_cost = "~¥2060/month at dev sizing"
 ## Day-2 运营
 
 栈搭好了，然后呢？这些是我每个长期运行的栈都会做的操作——文章里不会写，但 on-call 轮值会教你做人。
+
+![CI/CD pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_cicd_pipeline.png)
+
 
 ### 添加新 Agent
 

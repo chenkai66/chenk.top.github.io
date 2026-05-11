@@ -177,6 +177,9 @@ The SNAT entries are what actually let private-subnet instances reach the intern
 
 The right way to do security groups on Aliyun is **one SG per tier**, with rules that reference SG IDs not CIDRs:
 
+![Multi-layer network security architecture with firewall barriers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/wanxiang_network_layers.png)
+
+
 ![Security group strategy — tight ingress, loose egress, layered](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/fig2_sg_layers.png)
 
 ```hcl
@@ -258,6 +261,9 @@ By the time you're done, attaching an ECS to the right SG is just `security_grou
 ## KMS keys per data domain
 
 Encryption-at-rest is mandatory for any compliance regime worth its salt. The Aliyun way is **one Customer Master Key (CMK) per data domain**, so you can rotate one without touching another and audit access per-key.
+
+![Data encryption at rest and in transit with key management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/wanxiang_encryption.png)
+
 
 ![KMS encryption — one CMK per data domain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/fig3_kms_encrypt.png)
 
