@@ -1,14 +1,16 @@
 ---
-title: "Vim Essentials: Modal Editing, Motions, and a Repeatable Workflow"
-date: 2024-12-30 09:00:00
+title: "Linux (9): Vim Essentials — Modal Editing, Motions, and a Repeatable Workflow"
+date: 2022-04-15 09:00:00
 tags:
   - Linux
   - Tools
-categories: Tutorial
+categories: Linux
 lang: en
 description: "Learn Vim by understanding its grammar -- modes, operators + motions, text objects -- not by memorizing shortcuts. A practical, beginner-friendly guide with a one-week practice plan."
 disableNunjucks: true
 translationKey: "linux-9"
+series_order: 9
+series: linux
 ---
 
 Most people quit Vim because they try to memorize shortcuts. That is the wrong frame. Vim is a *small language*: learn the grammar -- **operator + motion** -- and you can express any edit without ever opening a cheat sheet again. This guide walks you through the 80% of Vim you will use daily, then shows how the remaining 20% composes naturally from the same handful of rules.
