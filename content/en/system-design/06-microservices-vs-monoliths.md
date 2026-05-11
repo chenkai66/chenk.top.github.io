@@ -273,6 +273,9 @@ The previous article on message queues covers this in detail. The key design cho
 
 When a downstream service is failing, continuing to send requests is wasteful and can cascade the failure. A circuit breaker stops the bleeding.
 
+![Circuit breaker state transitions animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-06-circuit-breaker.gif)
+
+
 ![Circuit breaker state machine](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-circuit-breaker.png)
 
 

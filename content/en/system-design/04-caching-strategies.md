@@ -308,6 +308,9 @@ When a cache reaches capacity, it must decide which entries to remove. The choic
 
 LRU is the most widely used eviction policy. Here is a clean implementation:
 
+![LRU cache eviction animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-04-lru-cache.gif)
+
+
 ```python
 from collections import OrderedDict
 

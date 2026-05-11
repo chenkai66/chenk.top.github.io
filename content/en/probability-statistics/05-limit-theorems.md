@@ -74,6 +74,9 @@ Almost sure and $L^2$ convergence are not directly comparable — neither implie
 
 **Theorem (WLLN).** Let $X_1, X_2, \ldots$ be i.i.d. random variables with $E[X_i] = \mu$ and $\text{Var}(X_i) = \sigma^2 < \infty$. Define the sample mean:
 
+![LLN convergence animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-05-lln-convergence.gif)
+
+
 ![LLN simulation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-lln-simulation.png)
 
 
@@ -127,6 +130,9 @@ The SLLN is strictly stronger than the WLLN: it says not just that the probabili
 ## The Central Limit Theorem
 
 The LLN says the sample mean converges to $\mu$. The CLT tells us **how** — by characterizing the fluctuations around $\mu$.
+
+![CLT convergence animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-05-clt-convergence.gif)
+
 
 ![CLT convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-clt-convergence.png)
 

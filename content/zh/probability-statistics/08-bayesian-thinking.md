@@ -96,6 +96,9 @@ $$\boxed{p(\theta | \mathbf{x}) \propto p(\mathbf{x} | \theta) \cdot p(\theta)}$
 
 这是贝叶斯推断的经典范例。我们将完整推导。
 
+![Bayesian updating animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-08-bayesian-updating.gif)
+
+
 ![Beta-Binomial sequential updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-beta-binomial.png)
 
 

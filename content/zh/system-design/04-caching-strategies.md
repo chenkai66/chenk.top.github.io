@@ -309,6 +309,9 @@ def get_user_read_through(user_id: str) -> dict:
 
 LRU 是最广泛使用的淘汰策略。以下是一个简洁实现：
 
+![LRU cache eviction animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-04-lru-cache.gif)
+
+
 ```python
 from collections import OrderedDict
 

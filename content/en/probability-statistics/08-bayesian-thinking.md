@@ -93,6 +93,9 @@ Without conjugacy, the posterior integral $p(\mathbf{x}) = \int p(\mathbf{x}|\th
 
 This is the canonical example of Bayesian inference. We'll work through it in full detail.
 
+![Bayesian updating animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-08-bayesian-updating.gif)
+
+
 ![Beta-Binomial sequential updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-beta-binomial.png)
 
 

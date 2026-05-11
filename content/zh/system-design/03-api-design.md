@@ -480,6 +480,9 @@ query Evil {
 
 限流用于保护 API 免受滥用，并确保资源公平分配。三种常用算法如下：
 
+![Token bucket rate limiting animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-03-token-bucket.gif)
+
+
 ![Token bucket rate limiting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rate-limiting.png)
 
 

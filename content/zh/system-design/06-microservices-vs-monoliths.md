@@ -273,6 +273,9 @@ def get_user(user_id: str) -> dict:
 
 当下游服务持续失败时，继续发送请求不仅浪费资源，更会引发级联故障。熔断器可及时“止血”。
 
+![Circuit breaker state transitions animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-06-circuit-breaker.gif)
+
+
 ![Circuit breaker state machine](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-circuit-breaker.png)
 
 

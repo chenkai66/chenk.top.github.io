@@ -59,6 +59,9 @@ Notice two containers (`web1` and `web2`) running from the same `nginx` image. T
 
 Every Docker image is built from a stack of layers. Each layer represents a set of filesystem changes — files added, modified, or deleted. Layers are:
 
+![Docker layer building animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/docker-02-layer-building.gif)
+
+
 ![Docker image layer stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-stack.png)
 
 

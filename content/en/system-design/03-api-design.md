@@ -480,6 +480,9 @@ Mitigation: query depth limiting, query cost analysis, persisted queries (only a
 
 Rate limiting protects your API from abuse and ensures fair resource allocation. Three common algorithms:
 
+![Token bucket rate limiting animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-03-token-bucket.gif)
+
+
 ![Token bucket rate limiting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rate-limiting.png)
 
 

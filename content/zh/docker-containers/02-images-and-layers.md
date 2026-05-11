@@ -59,6 +59,9 @@ c3d4e5f6a7b8   ubuntu:22.04   "bash"                   5 minutes ago    Exited (
 
 每个 Docker 镜像均由一组分层堆叠而成。每一层代表一组文件系统变更 —— 文件的新增、修改或删除。这些分层具有以下特性：
 
+![Docker layer building animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/docker-02-layer-building.gif)
+
+
 ![Docker image layer stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-stack.png)
 
 
