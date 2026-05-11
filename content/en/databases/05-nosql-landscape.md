@@ -23,6 +23,9 @@ Not everything fits neatly into rows and columns. A social network's friend grap
 
 The term "NoSQL" is misleading. It does not mean "no SQL" — some NoSQL databases support SQL-like query languages. It means "not only SQL" or, more accurately, "non-relational." The motivations for NoSQL fall into three categories:
 
+![NoSQL database types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-nosql-types.png)
+
+
 1. **Schema flexibility**: Your data does not have a fixed schema, or the schema changes frequently
 2. **Scale-out architecture**: You need horizontal scaling beyond what a single relational database can handle
 3. **Data model fit**: Your data is naturally a document, graph, key-value pair, or time series — not a table
@@ -32,6 +35,9 @@ Let us explore each family.
 ## Document Stores: MongoDB
 
 Document databases store data as semi-structured documents, typically JSON (or BSON in MongoDB's case). Each document can have a different structure — no fixed schema.
+
+![Document vs relational model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-document-model.png)
+
 
 ### Data Model
 
@@ -301,6 +307,9 @@ SET product:42 '{"name":"Widget","price":9.99}' EX 300  # 5-min TTL
 
 Wide-column databases (sometimes called column-family stores) are designed for massive scale with predictable performance. Apache Cassandra is the most prominent example.
 
+![Column-family store layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-column-store.png)
+
+
 ### Data Model
 
 Cassandra uses tables with a primary key composed of:
@@ -363,6 +372,9 @@ LIMIT 20;
 ## Graph Databases: Neo4j
 
 When relationships *are* the data — social networks, fraud detection, recommendation engines, knowledge graphs — a graph database is the natural fit.
+
+![Graph database traversal](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-graph-traversal.png)
+
 
 ### Data Model
 
@@ -445,6 +457,9 @@ RETURN DISTINCT fofof.name
 ## The CAP Theorem
 
 The CAP theorem states that a distributed system can provide at most two of these three guarantees:
+
+![CAP theorem tradeoffs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-cap-theorem.png)
+
 
 - **Consistency**: Every read receives the most recent write
 - **Availability**: Every request receives a response (even if not the most recent data)

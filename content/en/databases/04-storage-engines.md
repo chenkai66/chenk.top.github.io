@@ -22,6 +22,9 @@ Every SQL statement you write eventually becomes bytes written to a disk. The co
 
 Databases do not read or write individual rows from disk. Disk I/O operates on **pages** (also called blocks), typically 4 KB, 8 KB, or 16 KB.
 
+![Database page structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-page-structure.png)
+
+
 ```
 Tablespace (logical container)
   └── Data File (physical file on disk)
@@ -238,6 +241,9 @@ Over time, SSTables accumulate. Multiple SSTables may contain different versions
 - Remove tombstones (delete markers)
 - Reduce the number of SSTables to check during reads
 
+![LSM-tree compaction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-compaction-process.png)
+
+
 Two main compaction strategies:
 
 **Size-Tiered Compaction** (write-optimized):
@@ -279,6 +285,9 @@ False positive rate is configurable (typically 1%). A 1% false positive rate req
 | **Best for** | Read-heavy OLTP, random reads | Write-heavy workloads, time-series |
 | **Concurrency** | MVCC + row locks | Lock-free reads (immutable SSTables) |
 
+![B-tree vs LSM-tree tradeoffs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-btree-vs-lsm.png)
+
+
 **Write amplification**: total bytes written to disk / bytes of actual data written. If you write 1 KB of data but the engine writes 10 KB total (including index updates, page rewrites, compaction), the write amplification is 10x.
 
 **Read amplification**: number of disk reads needed to answer a point query. B-trees: typically 1 (the page is cached or one tree traversal). LSM-trees: potentially one read per level.
@@ -288,6 +297,9 @@ False positive rate is configurable (typically 1%). A 1% false positive rate req
 ## Write-Ahead Log (WAL)
 
 The WAL (also called redo log in MySQL) is the foundation of durability. Before any data page is modified, the change is written to the WAL.
+
+![Write-ahead log flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-wal-flow.png)
+
 
 ```
 Write flow with WAL:
@@ -321,6 +333,9 @@ SHOW VARIABLES LIKE 'innodb_flush_log_at_trx_commit';
 ### Checkpoint
 
 A **checkpoint** is when dirty pages in the buffer pool are flushed to the data files on disk. After a checkpoint, the WAL entries before that point are no longer needed for crash recovery.
+
+![Checkpoint flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-checkpoint-flow.png)
+
 
 ```
 Timeline:

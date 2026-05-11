@@ -24,6 +24,9 @@ translationKey: "system-design-3"
 
 REST（Representational State Transfer）是一种架构风格，而非具体协议。它由 Roy Fielding 在其 2000 年博士论文中提出，但现实中人们常说的“REST”，往往指的是“基于 HTTP、使用 JSON 的 API”。
 
+![REST vs gRPC vs GraphQL](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png)
+
+
 ### 核心概念
 
 REST 将一切建模为 **资源（resource）**，每个资源通过 URL 唯一标识。对资源的操作则映射为标准 HTTP 方法。
@@ -155,6 +158,9 @@ HTTP 状态码的存在自有其意义。中间件、代理服务器及各类客
 ## gRPC：高性能通信协议
 
 gRPC 是 Google 开发的高性能开源 RPC 框架，采用 Protocol Buffers（protobuf）进行序列化，以 HTTP/2 作为传输层。
+
+![API versioning strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-versioning.png)
+
 
 ### Protocol Buffers
 
@@ -474,6 +480,9 @@ query Evil {
 
 限流用于保护 API 免受滥用，并确保资源公平分配。三种常用算法如下：
 
+![Token bucket rate limiting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rate-limiting.png)
+
+
 ### 令牌桶（Token Bucket）
 
 一个“桶”中存放令牌。每次请求消耗一个令牌；令牌以固定速率持续注入。桶空时，新请求被拒绝。
@@ -591,6 +600,9 @@ X-RateLimit-Reset: 1689436800
 
 若某操作重复执行多次与执行一次效果相同，则称其为幂等操作。这是系统可靠性基石 —— 网络故障必然引发重试，而重试绝不能产生重复副作用。
 
+![Idempotency key pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png)
+
+
 HTTP 方法与幂等性关系：
 - **GET**：天然幂等（读取不改变状态）
 - **PUT**：天然幂等（用相同数据替换资源即为无操作）
@@ -652,6 +664,9 @@ def process_payment(request):
 ## API 认证（Authentication）
 
 常见认证机制简述：
+
+![API authentication methods](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-auth.png)
+
 
 **API Keys**：简单，适用于服务间通信。置于请求头（`X-API-Key: abc123`）或查询参数中。易于实现，但难以精细化授权（通常为全有或全无）。
 

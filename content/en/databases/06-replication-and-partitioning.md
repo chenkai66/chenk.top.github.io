@@ -39,6 +39,9 @@ Most production databases use both.
 
 The most common replication topology. One node (the leader/master/primary) handles all writes. One or more followers (slaves/replicas/standbys) receive a copy of every write and serve read queries.
 
+![Leader-follower replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
+
+
 ```
                     Writes
 Client ────────────► Leader (Primary)
@@ -130,6 +133,9 @@ Solution: route each user consistently to the same replica (e.g., hash the user 
 ### Multi-Leader Replication
 
 Each of several leaders accepts writes independently. Changes are replicated between leaders. Common in multi-datacenter setups.
+
+![Multi-leader replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-multi-leader.png)
+
 
 ```
 Data Center A              Data Center B
@@ -231,6 +237,9 @@ Replication puts the same data on multiple machines. Partitioning puts *differen
 - Spread write load across multiple machines
 - Keep hot data closer to specific users (geographic partitioning)
 
+![Partitioning strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-partition-strategies.png)
+
+
 ### Range-Based Partitioning
 
 Assign contiguous ranges of the partition key to each shard:
@@ -304,6 +313,9 @@ CREATE TABLE sessions_p3 PARTITION OF sessions
 ### Consistent Hashing
 
 The problem with `hash(key) % N`: when you add or remove a shard, almost every key maps to a different shard, requiring massive data migration.
+
+![Consistent hashing ring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-consistent-hashing.png)
+
 
 Consistent hashing solves this by mapping both keys and nodes onto a ring (0 to 2^32):
 

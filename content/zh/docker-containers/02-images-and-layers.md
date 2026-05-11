@@ -23,6 +23,9 @@ translationKey: "docker-containers-2"
 
 在深入分层机制之前，我们先厘清一个常令初学者困惑的基础概念。
 
+![Union filesystem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-union-fs.png)
+
+
 **镜像（Image）** 是一个只读模板，包含构建容器所需的全部内容：文件系统、环境变量、默认命令及元数据。你可以把它类比为面向对象编程中的「类定义（class definition）」。
 
 **容器（Container）** 是由镜像创建的正在运行（或已停止）的实例。它拥有镜像的一切，外加一层可写层（writable layer），以及运行时状态（如网络配置、进程 ID 等）。你可以把它类比为从类实例化出的「对象（object）」。
@@ -56,6 +59,9 @@ c3d4e5f6a7b8   ubuntu:22.04   "bash"                   5 minutes ago    Exited (
 
 每个 Docker 镜像均由一组分层堆叠而成。每一层代表一组文件系统变更 —— 文件的新增、修改或删除。这些分层具有以下特性：
 
+![Docker image layer stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-stack.png)
+
+
 1. **只读性（Read-only）**：一旦创建，分层永不更改；
 2. **内容寻址（Content-addressable）**：通过其内容的 SHA256 哈希值唯一标识；
 3. **可共享（Shared）**：若两个镜像使用相同基础层，则该层在磁盘上仅存储一份；
@@ -88,6 +94,9 @@ CMD ["python3", "/app/app.py"]  # 仅元数据（不生成新分层）
 ## 拉取镜像：`docker pull` 到底下载了什么？
 
 我们来追踪 `docker pull nginx` 的实际执行过程：
+
+![Layer sharing between containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-sharing.png)
+
 
 ```bash
 docker pull nginx
@@ -131,6 +140,9 @@ docker.io/library/nginx:alpine
 注意 `59bf1c3509f3: Already exists` —— Docker 识别出本地已存在该分层（很可能与 Alpine 基础镜像共享），因而跳过下载。这就是分层共享（layer sharing）的实际体现：它同时节省带宽与磁盘空间。
 
 ## 检查镜像分层
+
+
+![Build cache mechanism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-build-cache.png)
 
 ### `docker history`
 
@@ -194,6 +206,9 @@ docker image inspect nginx --format '{{json .RootFS}}' | python3 -m json.tool
 ## 镜像命名与镜像仓库（Registry）
 
 Docker 镜像遵循如下命名约定：
+
+![Image registry workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-image-registry.png)
+
 
 ```
 [registry/][namespace/]repository[:tag][@digest]

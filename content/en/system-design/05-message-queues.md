@@ -26,6 +26,9 @@ That architectural pattern — decoupling through asynchronous messaging — is 
 
 In a synchronous system, the caller waits for the callee to respond before proceeding. This is simple, intuitive, and works perfectly for many use cases. But it creates tight coupling.
 
+![Sync vs async communication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-sync-vs-async.png)
+
+
 ```
 Synchronous (REST):
   Client → Order Service → Payment Service → Inventory Service → Notification Service
@@ -88,6 +91,9 @@ Every message queue system has these core components:
 ## Apache Kafka
 
 Kafka is a distributed event streaming platform designed for high throughput, durability, and scalability. It models messages as an append-only log rather than a traditional queue.
+
+![Apache Kafka architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-kafka-architecture.png)
+
 
 ### Architecture
 
@@ -337,6 +343,9 @@ channel.start_consuming()
 
 Message delivery semantics are a fundamental design decision.
 
+![Message delivery guarantees](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-delivery-guarantees.png)
+
+
 ### At-Most-Once
 
 The message is delivered zero or one time. If the consumer crashes before processing, the message is lost.
@@ -402,6 +411,9 @@ def process_order_idempotently(order):
 
 Event sourcing is an architectural pattern where state changes are stored as a sequence of events rather than as the current state. The current state is derived by replaying all events.
 
+![CRUD vs event sourcing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-event-sourcing.png)
+
+
 ### Traditional vs Event-Sourced
 
 ```
@@ -440,6 +452,9 @@ Event-Sourced:
 ## CQRS
 
 Command Query Responsibility Segregation separates the write model (commands) from the read model (queries). This pairs naturally with event sourcing.
+
+![CQRS pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-cqrs.png)
+
 
 ```
 Write Side (Command):

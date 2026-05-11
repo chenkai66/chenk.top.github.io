@@ -23,6 +23,9 @@ Most tutorials show you a 5-line Dockerfile and move on. Then you deploy to prod
 
 Let's go through every instruction you'll use, with concrete examples.
 
+![Dockerfile best practices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-best-practices.png)
+
+
 ### FROM — The Starting Point
 
 Every Dockerfile begins with `FROM`. It sets the base image that all subsequent instructions build upon.
@@ -237,6 +240,9 @@ Docker marks the container as `healthy`, `unhealthy`, or `starting` based on the
 
 Let's build a Flask application. Here's the app:
 
+![Build context](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-build-context.png)
+
+
 ```python
 # app.py
 from flask import Flask, jsonify
@@ -301,6 +307,9 @@ flask-naive   latest    a1b2c3d4e5f6   10 seconds ago   1.02GB
 
 ```dockerfile
 FROM python:3.11-slim AS base
+
+![Layer optimization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-layer-optimization.png)
+
 
 # Prevent Python from writing .pyc files and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -494,6 +503,9 @@ docker build -t myapp .
 
 Multi-stage builds are one of Docker's most powerful features. They let you use a large image for building (with compilers, build tools, etc.) and copy only the final artifact into a small runtime image.
 
+![Multi-stage build](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-multi-stage-build.png)
+
+
 ### Python Example
 
 ```dockerfile
@@ -522,6 +534,9 @@ CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
 ### Go Example (Extreme Size Reduction)
 
 Go compiles to static binaries, enabling the smallest possible images:
+
+![Base image size comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-image-size-comparison.png)
+
 
 ```dockerfile
 # Stage 1: Build

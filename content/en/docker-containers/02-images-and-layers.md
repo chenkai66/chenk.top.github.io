@@ -23,6 +23,9 @@ The first time I ran `docker pull ubuntu` I expected to download an entire opera
 
 Before diving into layers, let's clarify a fundamental distinction that trips up many beginners.
 
+![Image registry workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-image-registry.png)
+
+
 An **image** is a read-only template. It contains the filesystem, environment variables, default command, and metadata needed to create a container. Think of it as a class definition in object-oriented programming.
 
 A **container** is a running (or stopped) instance created from an image. It has everything the image has, plus a writable layer on top and runtime state (network, process IDs, etc.). Think of it as an object instantiated from a class.
@@ -56,6 +59,9 @@ Notice two containers (`web1` and `web2`) running from the same `nginx` image. T
 
 Every Docker image is built from a stack of layers. Each layer represents a set of filesystem changes — files added, modified, or deleted. Layers are:
 
+![Docker image layer stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-stack.png)
+
+
 1. **Read-only** — once created, a layer never changes
 2. **Content-addressable** — identified by a SHA256 hash of their contents
 3. **Shared** — if two images use the same base layer, it's stored only once on disk
@@ -88,6 +94,9 @@ If you modify a file from a lower layer inside the container, the union filesyst
 ## Pulling an Image: What Actually Downloads
 
 Let's trace what happens during `docker pull nginx`:
+
+![Union filesystem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-union-fs.png)
+
 
 ```bash
 docker pull nginx
@@ -131,6 +140,9 @@ docker.io/library/nginx:alpine
 Notice `59bf1c3509f3: Already exists`. Docker recognized that it already had this layer (shared with another image, likely the Alpine base) and skipped downloading it. This is layer sharing in action — it saves both bandwidth and disk space.
 
 ## Inspecting Image Layers
+
+
+![Layer sharing between containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-sharing.png)
 
 ### docker history
 
@@ -194,6 +206,9 @@ These are the content-addressable SHA256 hashes of each layer. Docker uses these
 ## Image Naming and Registries
 
 Docker images follow a naming convention:
+
+![Build cache mechanism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-build-cache.png)
+
 
 ```
 [registry/][namespace/]repository[:tag][@digest]

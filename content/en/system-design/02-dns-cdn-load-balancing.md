@@ -24,6 +24,9 @@ Every HTTP request your users make passes through at least two of these systems 
 
 The Domain Name System is a distributed, hierarchical database that maps human-readable domain names to IP addresses. When a user types `photos.example.com` into their browser, a cascade of lookups happens before a single byte of your application code executes.
 
+![DNS resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-dns-resolution.png)
+
+
 ### The Resolution Process
 
 DNS resolution involves two query styles: recursive and iterative.
@@ -104,6 +107,9 @@ A CDN is a globally distributed network of proxy servers that cache content clos
 ### How CDN Caching Works
 
 The basic flow:
+
+![CDN edge caching topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-cdn-topology.png)
+
 
 1. User requests `https://photos.example.com/img/abc123.jpg`
 2. DNS resolves `photos.example.com` to the nearest CDN edge server (via GeoDNS or anycast)
@@ -192,6 +198,9 @@ The tiered caching architecture is important. Without mid-tier caches, every edg
 ## Layer 4 Load Balancing
 
 Layer 4 load balancers operate at the transport layer (TCP/UDP). They make routing decisions based on IP addresses and port numbers without inspecting the application-layer payload.
+
+![L4 vs L7 load balancing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-l4-vs-l7.png)
+
 
 ### How It Works
 
@@ -349,6 +358,9 @@ This configuration demonstrates:
 
 Load balancers must detect unhealthy backends and stop sending traffic to them. There are two approaches.
 
+![Health check mechanisms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-health-checks.png)
+
+
 ### Active Health Checks
 
 The load balancer periodically sends probe requests to each backend and evaluates the response.
@@ -420,6 +432,9 @@ This configuration marks a server as unavailable after 3 failures within 30 seco
 ## Global Server Load Balancing (GSLB)
 
 GSLB distributes traffic across multiple geographic regions. It combines DNS-based routing with health checking to direct users to the closest healthy datacenter.
+
+![Global server load balancing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-gslb.png)
+
 
 ### GSLB Architecture
 

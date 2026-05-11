@@ -26,6 +26,9 @@ translationKey: "system-design-8"
 
 网址缩短服务接收一个长 URL，并生成一个短别名（例如 `https://short.ly/abc123`），该别名重定向至原始长 URL。它看似极其简单，但在海量规模下，会触及哈希、分布式存储、缓存及分析等核心问题。
 
+![URL shortener design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-url-shortener.png)
+
+
 ### 需求
 
 **功能性需求**：
@@ -279,6 +282,9 @@ async def redirect(short_code: str):
 ## 案例研究 2：实时聊天系统
 
 聊天应用需支持实时双向通信、持久化消息存储、在线状态感知（presence），以及高效的群组消息广播（fan-out）。
+
+![Real-time chat system](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-chat-system.png)
+
 
 ### 需求
 
@@ -551,6 +557,9 @@ class PresenceService:
 ## 案例研究 3：新闻信息流系统（News Feed System）
 
 新闻信息流系统向用户展示个性化、排序后的动态内容流，内容来自其关注的用户与页面。这是 Facebook、Twitter、Instagram 等平台的核心产品功能。
+
+![News feed design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-news-feed.png)
+
 
 ### 需求
 
@@ -878,6 +887,9 @@ class RankingService:
 
 纵观全部三个案例，以下模式反复出现：
 
+![Cross-cutting concerns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-cross-cutting.png)
+
+
 **读密集型系统受益于缓存**：网址缩短服务、聊天历史、新闻信息流的读写比均为 10:1 至 100:1。缓存能将原本不可扩展的系统转变为可扩展系统。
 
 **通过消息队列实现异步处理**：三个系统均使用 Kafka 解耦写入路径与下游处理。网址缩短服务解耦分析；聊天系统解耦消息存储与投递；新闻信息流解耦发帖与广播。
@@ -889,3 +901,5 @@ class RankingService:
 ## 下一步
 
 本文标志着《系统设计》系列的完结。八篇文章共同覆盖了从规模估算基础到完整系统设计的全谱系。下一步是实践：挑选你每天使用的某个系统，定义其需求，估算其规模，并设计其架构。你设计的系统越多，识别出的模式就越丰富，收敛到优质解决方案的速度也就越快。
+
+![System design template](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-design-template.png)

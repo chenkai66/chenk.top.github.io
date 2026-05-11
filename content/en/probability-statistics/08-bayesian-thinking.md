@@ -24,6 +24,9 @@ This, roughly, is the Bayesian-frequentist debate. It's not about who's right â€
 
 ## Bayesian vs Frequentist: The Core Difference
 
+
+![Conjugate prior families](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-conjugate-priors.png)
+
 ### The Frequentist View
 
 - **Parameters** are fixed but unknown constants.
@@ -72,6 +75,9 @@ This is the fundamental equation of Bayesian statistics. Everything else is a co
 
 A prior is **conjugate** to a likelihood if the resulting posterior belongs to the same family as the prior. Conjugacy makes the math tractable â€” the posterior has a closed-form expression.
 
+![Prior to posterior updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-prior-posterior.png)
+
+
 | Likelihood | Conjugate Prior | Posterior |
 |---|---|---|
 | Bernoulli/Binomial | Beta | Beta |
@@ -86,6 +92,9 @@ Without conjugacy, the posterior integral $p(\mathbf{x}) = \int p(\mathbf{x}|\th
 ## The Beta-Binomial Model
 
 This is the canonical example of Bayesian inference. We'll work through it in full detail.
+
+![Beta-Binomial sequential updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-beta-binomial.png)
+
 
 ### Setup
 
@@ -182,6 +191,9 @@ Precision is additive, making it the natural parameterization for Bayesian updat
 
 A **credible interval** is the Bayesian analog of a confidence interval.
 
+![Credible vs confidence intervals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-credible-vs-confidence.png)
+
+
 **Definition.** A $100(1-\alpha)\%$ credible interval $[a, b]$ for $\theta$ satisfies:
 
 $$P(\theta \in [a, b] | \mathbf{x}) = 1 - \alpha.$$
@@ -244,6 +256,9 @@ The predictive variance $\sigma^2 + \sigma_n^2$ is **larger** than the sampling 
 ## MCMC: When Conjugacy Isn't Enough
 
 Most realistic models don't have conjugate priors. The posterior $p(\theta | \mathbf{x})$ is known only up to a normalizing constant: we can evaluate $p(\mathbf{x} | \theta) p(\theta)$ for any $\theta$, but computing $p(\mathbf{x}) = \int p(\mathbf{x}|\theta)p(\theta)d\theta$ is intractable.
+
+![MCMC trace plot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-mcmc-trace.png)
+
 
 **Markov Chain Monte Carlo (MCMC)** methods generate samples $\theta^{(1)}, \theta^{(2)}, \ldots$ from the posterior without computing the normalizing constant.
 

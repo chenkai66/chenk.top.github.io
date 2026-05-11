@@ -23,6 +23,9 @@ translationKey: "databases-5"
 
 “NoSQL” 这一术语颇具误导性。它**并不意味着“不用 SQL”**——事实上，部分 NoSQL 数据库支持类 SQL 查询语言；它真正意指“**不仅仅是 SQL**”（Not Only SQL），或更准确地说，“**非关系型**”（non-relational）。采用 NoSQL 的动因可归为三类：
 
+![Document vs relational model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-document-model.png)
+
+
 1. **模式灵活性（Schema flexibility）**：你的数据没有固定模式，或模式频繁变更  
 2. **横向扩展架构（Scale-out architecture）**：你需要超越单机关系型数据库所能承载的水平扩展能力  
 3. **数据模型契合度（Data model fit）**：你的数据天然就是文档、图、键值对或时间序列形式，而非表格
@@ -32,6 +35,9 @@ translationKey: "databases-5"
 ## 文档型数据库：MongoDB
 
 文档数据库以半结构化文档形式存储数据，通常采用 JSON（MongoDB 中使用其二进制变体 BSON）。
+
+![Column-family store layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-column-store.png)
+
 
 每个文档可拥有不同结构——无需固定 schema。
 
@@ -202,6 +208,9 @@ const results = await orders.aggregate(pipeline).toArray();
 
 键值存储是最简单的 NoSQL 模型：你提供一个 key，它返回一个 value。Redis 在此基础上进一步支持丰富的数据结构作为 value。
 
+![Graph database traversal](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-graph-traversal.png)
+
+
 ### 数据结构
 
 ```bash
@@ -302,6 +311,9 @@ SET product:42 '{"name":"Widget","price":9.99}' EX 300  # 5 分钟 TTL
 ## 宽列式数据库：Cassandra
 
 宽列式数据库（亦称列族存储）专为海量规模与可预测性能而设计。Apache Cassandra 是其中最具代表性的实现。
+
+![NoSQL database types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-nosql-types.png)
+
 
 ### 数据模型
 
@@ -447,6 +459,9 @@ RETURN DISTINCT fofof.name
 ## CAP 定理
 
 CAP 定理指出：一个分布式系统**最多只能同时满足以下三项保证中的两项**：
+
+![CAP theorem tradeoffs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-cap-theorem.png)
+
 
 - **一致性（Consistency）**：每次读操作都返回最新写入的数据  
 - **可用性（Availability）**：每次请求都返回响应（即使不是最新数据）  

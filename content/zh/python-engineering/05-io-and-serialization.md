@@ -21,6 +21,9 @@ translationKey: "python-engineering-5"
 
 ## 文件 I/O：基础操作
 
+
+![Serialization formats](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png)
+
 ### 打开文件
 
 ```python
@@ -100,6 +103,9 @@ with open("output.bin", "wb") as f:
 ## `pathlib.Path`：现代路径处理方式
 
 `pathlib` 模块以面向对象 API 替代了 `os.path`。请在所有场景中使用它。
+
+![pathlib vs os.path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-pathlib-vs-os.png)
+
 
 ```python
 from pathlib import Path
@@ -184,6 +190,9 @@ p.rmdir()           # 删除空目录
 
 ## 编码：UTF-8 优先原则
 
+
+![Encoding flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
+
 ### 问题所在
 
 ```python
@@ -246,6 +255,9 @@ with open("output.csv", "w", encoding="utf-8-sig") as f:
 ## JSON
 
 JSON 是最常用的数据交换格式。Python 标准库 `json` 模块原生支持。
+
+![I/O pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png)
+
 
 ### 读写操作
 
@@ -325,6 +337,9 @@ $ curl -s https://api.example.com/data | python -m json.tool
 ## YAML
 
 YAML 因其人类可读性及支持注释，广泛用于配置文件。
+
+![Format size comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-format-sizes.png)
+
 
 ```bash
 (.venv) $ pip install pyyaml

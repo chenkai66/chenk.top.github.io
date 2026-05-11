@@ -23,6 +23,9 @@ That conversation captures the core reason system design matters. It is not abou
 
 System design is the process of defining the architecture, components, modules, interfaces, and data flow of a system to satisfy specified requirements. But that textbook definition misses the point. In practice, system design is the discipline of making informed trade-offs under uncertainty.
 
+![System design framework](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-system-design-framework.png)
+
+
 Every system design decision involves a trade-off:
 - More caching means lower latency but harder consistency
 - More replicas mean higher availability but more operational complexity
@@ -60,9 +63,15 @@ These three qualities are often in tension. A highly scalable system may be hard
 
 The single most valuable system design skill is the ability to estimate quantities quickly and approximately. You do not need exact numbers. You need order-of-magnitude correctness. Being off by 2x is fine. Being off by 100x means your architecture is wrong.
 
+![Capacity estimation workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-capacity-estimation.png)
+
+
 ### Powers of 2
 
 Memorize these. They come up constantly when reasoning about storage, memory, and network capacity.
+
+![Powers of 2 quick reference](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-powers-of-two.png)
+
 
 | Power | Exact Value | Approximate |
 |-------|------------|-------------|
@@ -75,6 +84,9 @@ Memorize these. They come up constantly when reasoning about storage, memory, an
 ### Latency Numbers Every Programmer Should Know
 
 These numbers, originally compiled by Jeff Dean and updated over the years, form the foundation of performance reasoning. The exact values shift with hardware generations, but the relative magnitudes stay remarkably stable.
+
+![Latency numbers every programmer should know](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-latency-numbers.png)
+
 
 | Operation | Latency | Notes |
 |-----------|---------|-------|
@@ -247,6 +259,9 @@ The relationship flows upward: SLIs are measured, SLOs set targets for SLIs, and
 ## Availability Math
 
 Availability is expressed as a percentage of uptime over a given period. The industry shorthand uses "nines."
+
+![Availability nines and downtime](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-availability-nines.png)
+
 
 | Availability | Downtime/year | Downtime/month | Downtime/week |
 |-------------|---------------|----------------|---------------|

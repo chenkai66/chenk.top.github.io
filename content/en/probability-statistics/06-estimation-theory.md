@@ -25,6 +25,9 @@ This is **estimation theory**: the bridge between probability (where parameters 
 
 Suppose we observe data $x_1, x_2, \ldots, x_n$ drawn i.i.d. from some distribution $p(x|\theta)$, where $\theta$ is an unknown parameter (or vector of parameters).
 
+![Confidence intervals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-confidence-interval.png)
+
+
 An **estimator** $\hat{\theta}$ is a function of the data: $\hat{\theta} = g(X_1, \ldots, X_n)$. It is a random variable (since the data are random). An **estimate** is the numerical value $\hat{\theta}(x_1, \ldots, x_n)$ obtained from a specific dataset.
 
 **Notation convention:** $\hat{\theta}$ (hat) denotes an estimator/estimate. $\theta$ (no hat) denotes the true parameter.
@@ -34,6 +37,9 @@ An **estimator** $\hat{\theta}$ is a function of the data: $\hat{\theta} = g(X_1
 ### Bias
 
 The **bias** of an estimator is
+
+![Bias-variance tradeoff](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-bias-variance.png)
+
 
 $$\text{Bias}(\hat{\theta}) = E[\hat{\theta}] - \theta.$$
 
@@ -96,6 +102,9 @@ Method of moments estimators are easy to compute but generally not the most effi
 
 ## Maximum Likelihood Estimation
 
+
+![Estimation methods comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-estimation-comparison.png)
+
 ### The Likelihood Function
 
 Given observed data $x_1, \ldots, x_n$ drawn i.i.d. from $p(x|\theta)$, the **likelihood** is:
@@ -111,6 +120,9 @@ The log-likelihood is easier to work with (sums are simpler than products), and 
 ### The MLE
 
 The **maximum likelihood estimator** is the value of $\theta$ that maximizes the likelihood:
+
+![MLE likelihood surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-mle-likelihood.png)
+
 
 $$\hat{\theta}_{\text{MLE}} = \arg\max_\theta \ell(\theta).$$
 
@@ -184,6 +196,9 @@ Under regularity conditions (smooth, identifiable model):
 **Warning:** Invariance is a property of the MLE, not of unbiased estimators in general. If $\hat{\theta}$ is unbiased for $\theta$, $g(\hat{\theta})$ is generally **not** unbiased for $g(\theta)$ (by Jensen's inequality, unless $g$ is linear).
 
 ## Fisher Information and the Cramer-Rao Bound
+
+
+![Fisher information](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-fisher-information.png)
 
 ### Fisher Information
 

@@ -23,6 +23,9 @@ Docker's default configuration prioritizes convenience over security. Out of the
 
 Before locking things down, understand what you're defending against:
 
+![Rootless containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png)
+
+
 1. **Vulnerable application code**: Your app has a bug (RCE, path traversal, SSRF) and an attacker gets code execution inside the container
 2. **Vulnerable dependencies**: A library in your image has a known CVE
 3. **Container escape**: An attacker exploits a kernel or runtime vulnerability to break out of the container
@@ -156,6 +159,9 @@ docker run --read-only myapp 2>&1 | grep "Read-only file system"
 ## Linux Capabilities
 
 Linux capabilities divide root's power into ~40 individual privileges. By default, Docker grants containers a subset of these — more than most applications need.
+
+![Linux capability management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-capability-model.png)
+
 
 Default capabilities given to Docker containers:
 
@@ -336,6 +342,9 @@ The `:ro` flag makes it read-only. Combine with `--tmpfs /tmp` and `--read-only`
 ## Image Scanning with Trivy
 
 Trivy is a vulnerability scanner that checks container images against known CVE databases:
+
+![Image vulnerability scanning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-image-scanning.png)
+
 
 ```bash
 # Install Trivy
@@ -542,9 +551,15 @@ docker run --pids-limit 100 myapp
 
 ## Security Options
 
+
+![Security layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-security-layers.png)
+
 ### Seccomp Profiles
 
 Seccomp (Secure Computing Mode) filters which system calls a container can make. Docker's default seccomp profile blocks ~60 dangerous syscalls:
+
+![Seccomp syscall filtering](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-seccomp-profile.png)
+
 
 ```bash
 # Run with the default seccomp profile (automatic)

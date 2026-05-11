@@ -24,6 +24,9 @@ Hypothesis testing is the formal framework for answering this question. It's als
 
 ## The Framework
 
+
+![Statistical power curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-power-curve.png)
+
 ### Setting Up the Hypotheses
 
 A hypothesis test begins with two competing claims:
@@ -41,6 +44,9 @@ The alternative can be **one-sided** ($H_1: \theta > \theta_0$) or **two-sided**
 ### Test Statistics and Rejection Regions
 
 A **test statistic** $T = T(X_1, \ldots, X_n)$ summarizes the data into a single number that measures evidence against $H_0$.
+
+![Rejection regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-rejection-region.png)
+
 
 The **rejection region** $R$ is a set of values of $T$ for which we reject $H_0$:
 
@@ -61,6 +67,9 @@ Common choices: $\alpha = 0.05, 0.01, 0.001$. The rejection region is chosen to 
 |---|---|---|
 | **Reject $H_0$** | Type I error (false positive) | Correct (true positive) |
 | **Fail to reject $H_0$** | Correct (true negative) | Type II error (false negative) |
+
+![Type I and Type II errors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-error-types.png)
+
 
 - **Type I error rate** = $\alpha$ = P(reject $H_0$ | $H_0$ true)
 - **Type II error rate** = $\beta$ = P(fail to reject $H_0$ | $H_0$ false)
@@ -230,6 +239,9 @@ The **false discovery rate** is $\text{FDR} = E\left[\frac{\text{false positives
 This controls $\text{FDR} \leq \alpha$ and is much more powerful than Bonferroni when many tests are conducted.
 
 ## A/B Testing
+
+
+![A/B test design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-ab-test.png)
 
 ### The Setup
 
@@ -414,6 +426,9 @@ The output typically shows: without correction, about 5-6 false positives sneak 
 ## Effect Size: What p-Values Don't Tell You
 
 A p-value tells you whether an effect is statistically distinguishable from zero. It does **not** tell you how large the effect is or whether it matters.
+
+![Effect size visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-effect-size.png)
+
 
 ### Cohen's d
 

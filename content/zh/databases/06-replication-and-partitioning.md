@@ -39,6 +39,9 @@ translationKey: "databases-6"
 
 最常用的复制拓扑结构。一个节点（称为主节点/Leader/Master/Primary）负责全部写操作；一个或多个从节点（Follower/Slave/Replica/Standby）接收所有写入的副本，并可服务读请求。
 
+![Leader-follower replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
+
+
 ```
                     Writes
 Client ────────────► Leader (Primary)
@@ -130,6 +133,9 @@ def get_comments(post_id, last_write_ts=None):
 ### 多主复制（Multi-Leader Replication）
 
 多个主节点均可独立接受写入，彼此之间双向同步变更。常见于多数据中心架构。
+
+![Multi-leader replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-multi-leader.png)
+
 
 ```
 数据中心 A              数据中心 B
@@ -231,6 +237,9 @@ R = 2（读取需从 2 个节点获取响应）
 - 将写负载分散至多台机器
 - 将热点数据就近部署给特定用户（地理分片）
 
+![Partitioning strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-partition-strategies.png)
+
+
 ### 基于范围的分片（Range-Based Partitioning）
 
 按分区键的连续区间分配数据至各分片：
@@ -304,6 +313,9 @@ CREATE TABLE sessions_p3 PARTITION OF sessions
 ### 一致性哈希（Consistent Hashing）
 
 传统 `hash(key) % N` 的问题：增减分片时，几乎所有键都会映射到新分片，引发海量数据迁移。
+
+![Consistent hashing ring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-consistent-hashing.png)
+
 
 一致性哈希通过将键与节点共同映射到一个环（0 到 2^32）来解决：
 

@@ -23,6 +23,9 @@ translationKey: "databases-8"
 
 你的数据库模式一定会变：新功能需要新字段、新表、新索引。真正的挑战在于：如何在零停机的前提下完成演进？
 
+![Schema evolution strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-schema-evolution.png)
+
+
 ### 迁移工具对比
 
 | 工具 | 语言 | 支持数据库 | 核心特性 |
@@ -202,6 +205,9 @@ ALTER TABLE users DROP COLUMN name;
 
 每个数据库连接都消耗资源：内存（PostgreSQL 中约 5–10 MB/连接）、文件描述符、CPU（用于进程/线程管理）。若无连接池，应用实例突发增长极易耗尽数据库连接上限。
 
+![Connection pooling](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-connection-pooling.png)
+
+
 ### 问题场景
 
 ```
@@ -321,6 +327,9 @@ HikariDataSource ds = new HikariDataSource(config);
 
 ## 数据库监控
 
+
+![Database monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-monitoring-dashboard.png)
+
 ### 关键指标
 
 | 指标 | 健康范围 | 异常时行动建议 |
@@ -436,6 +445,9 @@ WHERE variable_name IN (
 
 ## 慢查询分析
 
+
+![Migration workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-migration-workflow.png)
+
 ### 启用慢查询日志
 
 ```bash
@@ -497,6 +509,9 @@ LIMIT 20;
 ### 逻辑备份（Logical Backups）
 
 逻辑备份导出为 SQL 语句或结构化数据文件。
+
+![Backup strategy comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-backup-strategy.png)
+
 
 ```bash
 # PostgreSQL：pg_dump

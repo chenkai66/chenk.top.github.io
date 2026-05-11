@@ -23,6 +23,9 @@ translationKey: "docker-containers-5"
 
 典型的 Web 应用通常由多个服务组成：
 
+![Compose architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-architecture.png)
+
+
 - 前端（React、Vue 或服务端渲染的 HTML）
 - 后端 API（Python、Node.js、Go）
 - 数据库（PostgreSQL、MySQL）
@@ -35,6 +38,9 @@ translationKey: "docker-containers-5"
 ## `docker-compose.yml` 基础
 
 以下是上述手动命令对应的 Compose 等价写法：
+
+![Health check flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-healthcheck-flow.png)
+
 
 ```yaml
 services:
@@ -118,6 +124,9 @@ volumes:
 ## Compose 文件结构
 
 一个 Compose 文件包含四个顶层键：
+
+![Compose networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-networking.png)
+
 
 ```yaml
 services:    # 容器定义（必需）
@@ -335,6 +344,9 @@ DB_NAME=myapp
 ### `depends_on`
 
 `depends_on` 控制服务启动顺序，但需严格区分“已启动”与“已就绪”：
+
+![Service dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-service-dependency.png)
+
 
 ```yaml
 services:
@@ -582,6 +594,9 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-co
 ## 服务扩缩容（Scaling）
 
 Compose 支持对单个服务运行多个实例：
+
+![Scaling pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-scaling-pattern.png)
+
 
 ```bash
 # 将 worker 扩容至 3 个实例

@@ -23,6 +23,9 @@ Answering these questions requires **joint distributions** — the mathematical 
 
 ## Joint Distributions: Discrete Case
 
+
+![Joint PMF table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-joint-pmf.png)
+
 ### Joint PMF
 
 If $X$ and $Y$ are discrete random variables defined on the same probability space, their **joint PMF** is
@@ -40,6 +43,9 @@ Properties:
 ### Marginal Distributions
 
 The **marginal PMF** of $X$ is obtained by summing out $Y$:
+
+![Marginal projections](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-marginal-projection.png)
+
 
 $$p_X(x) = \sum_y p_{X,Y}(x, y).$$
 
@@ -131,6 +137,9 @@ In the example above, $f(x, y) = 6(1-y)$ on a triangular region $\{0 < x < y < 1
 
 The most important multivariate distribution. If $(X, Y)$ follows a bivariate normal, the joint PDF is:
 
+![Bivariate normal contour](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-bivariate-normal.png)
+
+
 $$f(x, y) = \frac{1}{2\pi \sigma_X \sigma_Y \sqrt{1 - \rho^2}} \exp\left(-\frac{1}{2(1-\rho^2)} \left[\frac{(x-\mu_X)^2}{\sigma_X^2} - \frac{2\rho(x-\mu_X)(y-\mu_Y)}{\sigma_X \sigma_Y} + \frac{(y-\mu_Y)^2}{\sigma_Y^2}\right]\right)$$
 
 where $\mu_X, \mu_Y$ are the means, $\sigma_X, \sigma_Y$ the standard deviations, and $\rho = \text{Corr}(X, Y)$ is the correlation.
@@ -197,6 +206,9 @@ $$J = \det \begin{pmatrix} \frac{\partial x_1}{\partial y_1} & \frac{\partial x_
 
 If $X$ and $Y$ are independent with PDFs $f_X$ and $f_Y$, the PDF of $Z = X + Y$ is the **convolution**:
 
+![Convolution of random variables](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-convolution.png)
+
+
 $$f_Z(z) = \int_{-\infty}^{\infty} f_X(x) f_Y(z - x) \, dx = (f_X * f_Y)(z).$$
 
 *Derivation.* Let $Z = X + Y$ and use the auxiliary variable $W = X$:
@@ -236,6 +248,9 @@ Properties:
 ## Order Statistics
 
 Given $n$ i.i.d. random variables $X_1, \ldots, X_n$, the **order statistics** are the sorted values $X_{(1)} \leq X_{(2)} \leq \cdots \leq X_{(n)}$.
+
+![Order statistics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-order-statistics.png)
+
 
 - $X_{(1)} = \min(X_1, \ldots, X_n)$
 - $X_{(n)} = \max(X_1, \ldots, X_n)$

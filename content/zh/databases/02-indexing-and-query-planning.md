@@ -22,6 +22,9 @@ translationKey: "databases-2"
 
 想象一张包含 1,000 万行的表，以堆文件（heap file）形式存储在磁盘上。每一行都位于一系列 8 KB 数据页中的某个位置。当你执行：
 
+![Hash index structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-hash-index.png)
+
+
 ```sql
 SELECT * FROM users WHERE email = 'alice@example.com';
 ```
@@ -40,11 +43,17 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 | CPU 开销 | 每行开销低（仅过滤） | 每行开销较高（树遍历 + 堆获取） |
 | 触发条件 | 无合适索引；或优化器估算扫描更便宜 | 存在合适索引且查询具备高选择性 |
 
+![B-tree index structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-btree-index.png)
+
+
 数据库的查询优化器会自动做出这一决策。有时顺序扫描确实更快——例如当 `WHERE` 条件匹配了表中 80% 的行时，索引带来的随机 I/O 反而比一次性顺序读取全部数据更慢。
 
 ## B 树索引：主力索引类型
 
 B 树（平衡树）几乎是所有关系型数据库的默认索引类型。其工作原理如下。
+
+![Query cost model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-query-cost-model.png)
+
 
 ### 结构
 
@@ -104,6 +113,9 @@ SHOW INDEX FROM users;
 ## B+ 树：为何数据库更偏爱它？
 
 大多数数据库实现实际上使用的是 **B+ 树**——B 树的一种变体：
+
+![Index selectivity impact](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-index-selectivity.png)
+
 
 | 特性 | B 树 | B+ 树 |
 |------|------|--------|
@@ -192,6 +204,9 @@ WHERE status = 'pending';
 通常，索引扫描包含两个步骤：
 1. 遍历索引以定位匹配项；
 2. 从堆（主表数据）中获取剩余所需列（即“堆获取”，heap fetch）。
+
+![Index scan vs sequential scan](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-scan-comparison.png)
+
 
 第 2 步涉及随机 I/O。而 **覆盖索引（covering index）** 包含查询所需的所有列，从而完全避免堆获取：
 

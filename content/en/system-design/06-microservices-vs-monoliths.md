@@ -24,6 +24,9 @@ This story is not unique. The microservices pattern has become the default archi
 
 A monolith is a single deployable unit that contains all the application's functionality. The entire codebase is compiled and deployed together. All modules share the same process, the same memory space, and the same database.
 
+![Monolith vs microservices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-monolith-vs-micro.png)
+
+
 ### Why Monoliths Work
 
 **Simplicity**: One codebase, one deployment pipeline, one database, one set of logs. A new developer can clone the repo, run `docker-compose up`, and have the entire system running locally in minutes.
@@ -155,6 +158,9 @@ Domain-Driven Design (DDD) provides a principled approach.
 
 A bounded context is a boundary within which a particular domain model is defined and applicable. Within a bounded context, terms have precise, unambiguous meanings. Across bounded contexts, the same term may mean different things.
 
+![DDD bounded contexts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-ddd-bounded-contexts.png)
+
+
 Example: In an e-commerce system, "Order" means different things in different contexts:
 
 - **Sales context**: An Order is a customer's intent to purchase items, with pricing, discounts, and payment terms
@@ -267,6 +273,9 @@ The previous article on message queues covers this in detail. The key design cho
 
 When a downstream service is failing, continuing to send requests is wasteful and can cascade the failure. A circuit breaker stops the bleeding.
 
+![Circuit breaker state machine](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-circuit-breaker.png)
+
+
 ### States
 
 The circuit breaker has three states:
@@ -360,6 +369,9 @@ def process_payment(order):
 
 In a microservices architecture, a single user request may traverse 5-10 services. When something goes wrong, you need to trace the request across all of them.
 
+![Distributed tracing timeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-distributed-tracing.png)
+
+
 ### OpenTelemetry
 
 OpenTelemetry is the industry standard for distributed tracing. It propagates a trace context (trace ID + span ID) through all service calls.
@@ -415,6 +427,9 @@ The trace appears in Jaeger/Zipkin as a timeline showing each span, its duration
 ## API Gateway
 
 An API gateway sits between external clients and internal services, providing a single entry point.
+
+![API gateway pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-api-gateway.png)
+
 
 ### Gateway Responsibilities
 

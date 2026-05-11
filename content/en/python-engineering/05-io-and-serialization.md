@@ -21,6 +21,9 @@ This article covers every common I/O pattern in Python, from basic file reading 
 
 ## File I/O: The Basics
 
+
+![I/O pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png)
+
 ### Opening Files
 
 ```python
@@ -100,6 +103,9 @@ with open("output.bin", "wb") as f:
 ## pathlib.Path: Modern File Path Handling
 
 The `pathlib` module replaces `os.path` with an object-oriented API. Use it everywhere.
+
+![pathlib vs os.path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-pathlib-vs-os.png)
+
 
 ```python
 from pathlib import Path
@@ -183,6 +189,9 @@ p.rmdir()           # Delete empty directory
 pathlib is cleaner in every case. The `/` operator for joining paths is reason enough to switch.
 
 ## Encoding: UTF-8 Everywhere
+
+
+![Encoding flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
 
 ### The Problem
 
@@ -281,6 +290,9 @@ The `ensure_ascii=False` parameter is important for non-ASCII text. Without it, 
 ### Custom Serializers
 
 JSON does not support `datetime`, `Path`, `set`, `bytes`, or custom objects. Handle them with `default`:
+
+![Serialization formats](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png)
+
 
 ```python
 import json
@@ -492,6 +504,9 @@ with open("excel_export.csv", encoding="utf-8-sig") as f:
 ```
 
 ## Binary Formats
+
+
+![Format size comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-format-sizes.png)
 
 ### pickle: Python Object Serialization
 

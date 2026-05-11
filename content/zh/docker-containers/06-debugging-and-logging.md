@@ -23,9 +23,15 @@ translationKey: "docker-containers-6"
 
 日志是你排查问题的第一道防线。Docker 会捕获容器向 stdout 和 stderr 写入的所有内容。
 
+![Resource monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-resource-monitoring.png)
+
+
 ### docker logs
 
 ```bash
+
+![Logging drivers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-log-drivers.png)
+
 # 查看容器全部日志
 docker logs my-container
 
@@ -127,6 +133,9 @@ docker inspect crashed-app --format '{{.State.OOMKilled}}'
 
 `docker exec` 可在运行中的容器内执行命令，是交互式调试的主要方式：
 
+![exec vs attach](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-exec-vs-attach.png)
+
+
 ```bash
 # 在运行中的容器内打开 shell
 docker exec -it my-container bash
@@ -205,6 +214,9 @@ docker run -it --rm \
 ## docker inspect — 获取完整视图
 
 `docker inspect` 返回关于容器的详细 JSON 元数据。虽然输出冗长，但它包含了你能想到的一切信息：
+
+![Troubleshooting decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-troubleshooting.png)
+
 
 ```bash
 # 完整输出（非常长）
@@ -447,6 +459,9 @@ docker run -it debug-image:latest bash
 ## 临时调试容器（Ephemeral Debug Containers）
 
 有时你需要网络工具、`strace` 或其他不在应用镜像中的调试工具。此时可运行一个独立的调试容器，并共享目标容器的网络：
+
+![Debugging workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-debug-workflow.png)
+
 
 ```bash
 # 运行调试容器并共享目标容器的网络命名空间

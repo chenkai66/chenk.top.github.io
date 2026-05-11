@@ -23,6 +23,9 @@ translationKey: "docker-containers-3"
 
 我们逐条梳理你将用到的所有指令，并辅以具体示例。
 
+![Dockerfile best practices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-best-practices.png)
+
+
 ### FROM — 起点镜像
 
 每个 Dockerfile 都必须以 `FROM` 开头。它指定了所有后续指令所基于的基础镜像。
@@ -237,6 +240,9 @@ Docker 根据健康检查结果将容器标记为 `healthy`、`unhealthy` 或 `s
 
 我们来构建一个 Flask 应用。应用代码如下：
 
+![Build context](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-build-context.png)
+
+
 ```python
 # app.py
 from flask import Flask, jsonify
@@ -376,6 +382,9 @@ flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
 
 `.dockerignore` 的作用类似于 `.gitignore`，但针对 Docker 构建上下文。当你执行 `docker build .` 时，Docker 会将整个目录（即“构建上下文”）发送给守护进程。若无 `.dockerignore`，所有文件都将被上传。
 
+![Layer optimization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-layer-optimization.png)
+
+
 ```
 # .dockerignore
 
@@ -433,6 +442,9 @@ LICENSE
 ## 层缓存（Layer Caching）：为何指令顺序至关重要
 
 Docker 会对每一层进行缓存。若某条指令未变更（且其之前所有层均已缓存），Docker 将复用缓存层。但一旦某层缓存失效，其后所有层都必须重建。
+
+![Base image size comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-image-size-comparison.png)
+
 
 这正是指令顺序如此关键的原因：
 
@@ -493,6 +505,9 @@ docker build -t myapp .
 ## 多阶段构建（Multi-Stage Builds）
 
 多阶段构建是 Docker 最强大的特性之一。它允许你在大型构建镜像（含编译器、构建工具等）中完成构建，再仅将最终产物复制到轻量级运行时镜像中。
+
+![Multi-stage build](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-multi-stage-build.png)
+
 
 ### Python 示例
 

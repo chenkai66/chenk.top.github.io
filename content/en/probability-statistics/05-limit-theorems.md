@@ -25,6 +25,9 @@ This article develops both theorems carefully, starting with the different notio
 
 Before we can say "converges," we need to say what kind of convergence we mean. There are four main types, listed from weakest to strongest.
 
+![Convergence modes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-convergence-modes.png)
+
+
 ### Convergence in Distribution
 
 $X_n \xrightarrow{d} X$ if $F_{X_n}(x) \to F_X(x)$ for every $x$ at which $F_X$ is continuous.
@@ -70,6 +73,9 @@ Almost sure and $L^2$ convergence are not directly comparable — neither implie
 ## The Weak Law of Large Numbers
 
 **Theorem (WLLN).** Let $X_1, X_2, \ldots$ be i.i.d. random variables with $E[X_i] = \mu$ and $\text{Var}(X_i) = \sigma^2 < \infty$. Define the sample mean:
+
+![LLN simulation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-lln-simulation.png)
+
 
 $$\bar{X}_n = \frac{1}{n} \sum_{i=1}^n X_i.$$
 
@@ -122,6 +128,9 @@ The SLLN is strictly stronger than the WLLN: it says not just that the probabili
 
 The LLN says the sample mean converges to $\mu$. The CLT tells us **how** — by characterizing the fluctuations around $\mu$.
 
+![CLT convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-clt-convergence.png)
+
+
 **Theorem (CLT).** Let $X_1, X_2, \ldots$ be i.i.d. with $E[X_i] = \mu$ and $\text{Var}(X_i) = \sigma^2 \in (0, \infty)$. Then:
 
 $$\frac{\bar{X}_n - \mu}{\sigma / \sqrt{n}} \xrightarrow{d} \mathcal{N}(0, 1).$$
@@ -168,6 +177,9 @@ $$W_n \xrightarrow{d} \mathcal{N}(0, 1). \quad \blacksquare$$
 
 A classic application. If $X \sim \text{Binomial}(n, p)$, then $X = \sum_{i=1}^n X_i$ where $X_i \sim \text{Bernoulli}(p)$ i.i.d. By the CLT:
 
+![Normal approximation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-normal-approximation.png)
+
+
 $$\frac{X - np}{\sqrt{np(1-p)}} \approx \mathcal{N}(0, 1) \quad \text{for large } n.$$
 
 ### Continuity Correction
@@ -191,6 +203,9 @@ The exact answer (computed via scipy) is $0.0284$. The approximation is excellen
 ## The Berry-Esseen Theorem
 
 How fast does the CLT convergence happen? The Berry-Esseen theorem provides a bound.
+
+![Berry-Esseen bound](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-berry-esseen.png)
+
 
 **Theorem (Berry-Esseen).** Under the CLT conditions, if $E[|Z_i|^3] = \rho < \infty$, then:
 

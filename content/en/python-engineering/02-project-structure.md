@@ -38,6 +38,9 @@ You need a package when:
 
 There are two dominant project structures in the Python ecosystem.
 
+![Flat vs src layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-flat-vs-src.png)
+
+
 ### Flat Layout
 
 ```
@@ -93,6 +96,9 @@ With the flat layout, `import my_tool` resolves to the local directory even if t
 
 A directory becomes a Python package when it contains `__init__.py`. This file can be empty or contain initialization code.
 
+![Package structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-package-structure.png)
+
+
 ```python
 # src/my_tool/__init__.py
 
@@ -106,6 +112,9 @@ __version__ = "0.1.0"
 1. **Marks a directory as a package** so Python can import from it
 2. **Runs on import** — code in `__init__.py` executes when someone does `import my_tool`
 3. **Controls the public API** via `__all__`
+
+![__init__.py patterns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-init-purpose.png)
+
 
 ```python
 # src/my_tool/__init__.py
@@ -134,6 +143,9 @@ Since Python 3.3, directories without `__init__.py` are namespace packages. Thes
 ## Relative vs Absolute Imports
 
 ```python
+
+![Import resolution order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-import-resolution.png)
+
 # Absolute import — always works, always clear
 from my_tool.core import download_file
 from my_tool.utils import format_size
@@ -280,6 +292,9 @@ This is useful during development (before installing the package) and for module
 ## CLI with argparse
 
 The standard library includes `argparse` for command-line interfaces:
+
+![CLI entry point architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-cli-architecture.png)
+
 
 ```python
 # src/my_tool/cli.py

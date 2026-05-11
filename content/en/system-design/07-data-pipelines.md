@@ -24,6 +24,9 @@ Data pipelines are not glamorous. They do not face users directly. But they are 
 
 The two fundamental approaches to data pipeline design differ in when transformation happens.
 
+![ETL vs ELT comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-etl-vs-elt.png)
+
+
 ### ETL: Extract, Transform, Load
 
 The traditional approach. Data is extracted from source systems, transformed in a staging area, and loaded into the destination (typically a data warehouse).
@@ -77,6 +80,9 @@ Transformation happens after loading. This means:
 ## Batch Processing
 
 Batch processing handles large volumes of data in scheduled intervals — hourly, daily, or weekly. The data is collected, stored, and processed as a complete set.
+
+![Batch vs stream processing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-batch-vs-stream.png)
+
 
 ### MapReduce (Conceptual)
 
@@ -242,6 +248,9 @@ Late events (timestamp < watermark) can be:
 ## Apache Flink
 
 Flink is the leading open-source stream processing framework. It provides exactly-once processing guarantees, event time processing, and sophisticated windowing.
+
+![Apache Flink architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-flink-architecture.png)
+
 
 ### Key Concepts
 
@@ -419,6 +428,9 @@ The modern trend is the **Lakehouse** — combining data lake storage (cheap, sc
 
 ## Data Quality
 
+
+![Data quality dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-data-quality.png)
+
 ### Schema Validation
 
 Validate incoming data against an expected schema before processing:
@@ -492,6 +504,9 @@ lineage:
 ## Change Data Capture (CDC)
 
 CDC captures row-level changes (INSERT, UPDATE, DELETE) from a database's transaction log and streams them as events. This enables real-time data synchronization without polling.
+
+![Change data capture pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-cdc.png)
+
 
 ### Debezium
 

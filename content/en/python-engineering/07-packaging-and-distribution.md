@@ -24,6 +24,9 @@ Proper packaging eliminates all of this. With `pip install your-tool`, everythin
 
 These terms are used loosely, but they have specific meanings in Python:
 
+![Packaging pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png)
+
+
 | Term | Definition | Example |
 |------|-----------|---------|
 | **Module** | A single `.py` file | `utils.py` |
@@ -45,6 +48,9 @@ A `.tar.gz` archive of the source code. The recipient needs a build toolchain to
 ### wheel (Built Distribution)
 
 A `.whl` file (which is actually a zip archive). Pre-built, no compilation needed. Faster to install. This is what pip uses by default.
+
+![Wheel vs sdist](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png)
+
 
 ```bash
 # Install build tool
@@ -270,6 +276,9 @@ Common issues twine catches:
 
 Not everything belongs on public PyPI. For internal packages:
 
+![Private package index](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-private-index.png)
+
+
 ### devpi
 
 ```bash
@@ -314,6 +323,9 @@ $ pip install my-internal-tool --extra-index-url http://internal-pypi.company.co
 ```
 
 ## Docker Images with Python
+
+
+![Docker Python packaging](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-docker-python.png)
 
 ### Choosing a Base Image
 
@@ -489,6 +501,9 @@ $ poetry publish
 ```
 
 ## Versioning
+
+
+![Semantic versioning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png)
 
 ### SemVer (Semantic Versioning)
 

@@ -22,6 +22,9 @@ A query that returns in 2 milliseconds on your laptop with 1,000 rows will take 
 
 Imagine a table with 10 million rows, stored on disk as a heap file. Each row sits somewhere in a sequence of 8 KB pages. When you run:
 
+![Index selectivity impact](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-index-selectivity.png)
+
+
 ```sql
 SELECT * FROM users WHERE email = 'alice@example.com';
 ```
@@ -40,11 +43,17 @@ An index is a separate data structure that maps column values to row locations. 
 | CPU cost | Low per-row (just filter) | Higher per-row (tree traversal + heap fetch) |
 | When chosen | No suitable index, or optimizer estimates scan is cheaper | Suitable index exists and query is selective |
 
+![Index scan vs sequential scan](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-scan-comparison.png)
+
+
 The database's query optimizer makes this decision automatically. Sometimes a sequential scan *is* faster — for example, when your `WHERE` clause matches 80% of the table, random I/O from an index would be slower than just reading everything sequentially.
 
 ## B-Tree Index: The Workhorse
 
 The B-tree (balanced tree) is the default index type in virtually every relational database. Here is how it works.
+
+![B-tree index structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-btree-index.png)
+
 
 ### Structure
 
@@ -130,6 +139,9 @@ With a B+tree index on `created_at`, the database traverses to the first matchin
 ## Hash Indexes
 
 Hash indexes use a hash function to map keys directly to row locations.
+
+![Hash index structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-hash-index.png)
+
 
 ```sql
 -- PostgreSQL: explicitly create a hash index
@@ -222,6 +234,9 @@ FROM orders WHERE user_id = 42 AND status = 'completed';
 ## EXPLAIN: Reading the Query Plan
 
 `EXPLAIN` shows you the execution plan the optimizer chose. `EXPLAIN ANALYZE` actually runs the query and shows real timing.
+
+![Query cost model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-query-cost-model.png)
+
 
 ### PostgreSQL EXPLAIN ANALYZE
 

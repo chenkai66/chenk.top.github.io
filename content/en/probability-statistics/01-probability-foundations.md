@@ -25,6 +25,9 @@ This article lays the groundwork. We'll define precisely what a "probability" is
 
 ## Sample Spaces, Events, and Sigma-Algebras
 
+
+![Sample space visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-sample-space.png)
+
 ### The Sample Space
 
 A **sample space** $\Omega$ is the set of all possible outcomes of a random experiment.
@@ -57,6 +60,9 @@ For this series, we will work with the **power set** (all subsets) when $\Omega$
 ## Kolmogorov's Three Axioms
 
 A **probability measure** $P$ on $(\Omega, \mathcal{F})$ is a function $P: \mathcal{F} \to \mathbb{R}$ satisfying:
+
+![Kolmogorov axioms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-kolmogorov-axioms.png)
+
 
 **Axiom 1 (Non-negativity).** For every event $A \in \mathcal{F}$,
 
@@ -96,6 +102,9 @@ $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
 
 Knowing that some event $B$ has occurred changes our beliefs about other events. This is captured by **conditional probability**.
 
+![Conditional probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-conditional-probability.png)
+
+
 **Definition.** If $P(B) > 0$, the conditional probability of $A$ given $B$ is
 
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}.$$
@@ -133,6 +142,9 @@ This is enormously useful. When you can't compute $P(A)$ directly, break the wor
 ## Bayes' Theorem
 
 **Theorem (Bayes).** If $P(A) > 0$ and $P(B) > 0$, then
+
+![Bayes theorem decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-bayes-tree.png)
+
 
 $$P(B \mid A) = \frac{P(A \mid B) \, P(B)}{P(A)}.$$
 
@@ -302,6 +314,9 @@ $$\binom{k + n - 1}{n - 1} = \binom{k + n - 1}{k}.$$
 ## The Birthday Problem
 
 **Problem.** In a room of $n$ people, what is the probability that at least two share a birthday? (Assume 365 equally likely birthdays, ignore leap years.)
+
+![Birthday problem curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-birthday-problem.png)
+
 
 This is easier to compute via the complement: let $A$ be "at least one shared birthday," so $A^c$ is "all birthdays distinct."
 

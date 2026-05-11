@@ -27,6 +27,9 @@ translationKey: "probability-statistics-4"
 
 若 $X$ 和 $Y$ 是定义在同一概率空间上的离散型随机变量，则其 **联合 PMF** 定义为：
 
+![Joint PMF table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-joint-pmf.png)
+
+
 $$p_{X,Y}(x, y) = P(X = x, Y = y)$$
 
 对所有 $(x, y)$ 成立。
@@ -40,6 +43,9 @@ $$p_{X,Y}(x, y) = P(X = x, Y = y)$$
 ### 边缘分布（Marginal Distributions）
 
 $X$ 的 **边缘 PMF** 通过对 $Y$ 求和得到：
+
+![Marginal projections](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-marginal-projection.png)
+
 
 $$p_X(x) = \sum_y p_{X,Y}(x, y).$$
 
@@ -129,6 +135,9 @@ $$f_{X,Y}(x, y) = f_X(x) \, f_Y(y) \quad \text{对所有 } (x, y) \text{ 成立}
 
 最重要的多元分布。若 $(X, Y)$ 服从二元正态分布，则其联合 PDF 为：
 
+![Bivariate normal contour](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-bivariate-normal.png)
+
+
 $$f(x, y) = \frac{1}{2\pi \sigma_X \sigma_Y \sqrt{1 - \rho^2}} \exp\left(-\frac{1}{2(1-\rho^2)} \left[\frac{(x-\mu_X)^2}{\sigma_X^2} - \frac{2\rho(x-\mu_X)(y-\mu_Y)}{\sigma_X \sigma_Y} + \frac{(y-\mu_Y)^2}{\sigma_Y^2}\right]\right)$$
 
 其中 $\mu_X, \mu_Y$ 为均值，$\sigma_X, \sigma_Y$ 为标准差，$\rho = \text{Corr}(X, Y)$ 为相关系数。
@@ -194,6 +203,9 @@ $$J = \det \begin{pmatrix} \frac{\partial x_1}{\partial y_1} & \frac{\partial x_
 
 若 $X$ 与 $Y$ 独立，PDF 分别为 $f_X$ 和 $f_Y$，则 $Z = X + Y$ 的 PDF 为 **卷积**：
 
+![Convolution of random variables](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-convolution.png)
+
+
 $$f_Z(z) = \int_{-\infty}^{\infty} f_X(x) f_Y(z - x) \, dx = (f_X * f_Y)(z).$$
 
 *推导。* 令 $Z = X + Y$，并引入辅助变量 $W = X$：
@@ -233,6 +245,9 @@ $$P(X_1 = n_1, \ldots, X_k = n_k) = \frac{n!}{n_1! \cdots n_k!} p_1^{n_1} \cdots
 ## 次序统计量（Order Statistics）
 
 给定 $n$ 个 i.i.d. 随机变量 $X_1, \ldots, X_n$，其 **次序统计量** 为排序后的值 $X_{(1)} \leq X_{(2)} \leq \cdots \leq X_{(n)}$。
+
+![Order statistics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-order-statistics.png)
+
 
 - $X_{(1)} = \min(X_1, \ldots, X_n)$；
 - $X_{(n)} = \max(X_1, \ldots, X_n)$；

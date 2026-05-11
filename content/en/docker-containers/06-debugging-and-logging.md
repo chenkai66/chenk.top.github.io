@@ -23,6 +23,9 @@ A container that works is invisible. A container that doesn't work is a black bo
 
 Logs are your first line of investigation. Docker captures anything a container writes to stdout and stderr.
 
+![Logging drivers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-log-drivers.png)
+
+
 ### docker logs
 
 ```bash
@@ -127,6 +130,9 @@ docker inspect crashed-app --format '{{.State.OOMKilled}}'
 
 `docker exec` runs a command inside a running container. It's the primary way to interactively debug:
 
+![Debugging workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-debug-workflow.png)
+
+
 ```bash
 # Open a shell inside a running container
 docker exec -it my-container bash
@@ -205,6 +211,9 @@ The `nicolaka/netshoot` image contains every network debugging tool you could wa
 ## docker inspect — The Complete Picture
 
 `docker inspect` returns detailed JSON metadata about a container. It's verbose but contains everything:
+
+![exec vs attach](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-exec-vs-attach.png)
+
 
 ```bash
 # Full output (very long)
@@ -305,6 +314,9 @@ docker inspect -f '{{.State.Running}}' my-container
 
 `docker stats` provides a live view of resource consumption:
 
+![Resource monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-resource-monitoring.png)
+
+
 ```bash
 docker stats
 ```
@@ -341,6 +353,9 @@ docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 ```bash
 docker top my-container
 ```
+
+![Troubleshooting decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-troubleshooting.png)
+
 
 ```
 UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD

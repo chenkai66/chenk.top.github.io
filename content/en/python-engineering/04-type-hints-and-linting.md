@@ -24,6 +24,9 @@ This article covers three layers of automated code quality: type hints catch log
 
 Python is dynamically typed, but since 3.5 it supports optional type annotations. They do not affect runtime behavior. They are metadata that tools like mypy can check.
 
+![Type system hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-type-system.png)
+
+
 ### Primitive Types
 
 ```python
@@ -224,6 +227,9 @@ create_user({"name": "Alice", "age": 30})
 
 mypy reads your type annotations and reports errors without running the code.
 
+![mypy type checking flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-mypy-flow.png)
+
+
 ### Installation and Basic Usage
 
 ```bash
@@ -334,6 +340,9 @@ result = some_untyped_function()  # type: ignore[no-untyped-call]
 
 ruff is a Python linter written in Rust. It is 10-100x faster than flake8 and replaces flake8, isort, pyflakes, pycodestyle, pydocstyle, and many flake8 plugins in a single tool.
 
+![Linting pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-linting-pipeline.png)
+
+
 ### Installation and Usage
 
 ```bash
@@ -358,6 +367,9 @@ Found 2 errors (1 fixed, 1 remaining).
 ### ruff Configuration
 
 ```toml
+
+![Ruff vs other linters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-ruff-vs-others.png)
+
 # pyproject.toml
 
 [tool.ruff]
@@ -464,6 +476,9 @@ black has very few options by design. The point is to stop debating. Use the def
 ## Pre-commit Hooks
 
 Pre-commit runs checks automatically before every `git commit`. If any check fails, the commit is blocked until you fix the issue.
+
+![Pre-commit hooks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-precommit.png)
+
 
 ### Installation
 

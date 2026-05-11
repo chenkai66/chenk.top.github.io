@@ -23,6 +23,9 @@ This article develops the mathematical framework for summarizing distributions. 
 
 ## Expectation
 
+
+![Expectation as balance point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-expectation.png)
+
 ### Definition
 
 For a **discrete** random variable $X$ with PMF $p(x)$:
@@ -97,6 +100,9 @@ We used LOTUS with $g(x) = x^2$ and $f(x) = 1$ on $[0,1]$. No need to derive the
 
 ## Variance
 
+
+![Variance visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-variance.png)
+
 ### Definition
 
 The **variance** of $X$ measures the average squared deviation from the mean:
@@ -150,6 +156,9 @@ $$\text{Var}(X + Y) = \text{Var}(X) + \text{Var}(Y) + 2\text{Cov}(X, Y)$$
 which brings us to our next topic.
 
 ## Covariance
+
+
+![Covariance scatter plots](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-covariance-scatter.png)
 
 ### Definition
 
@@ -215,6 +224,9 @@ Correlation measures the strength and direction of the **linear** relationship b
 ## Higher Moments
 
 The $k$-th **moment** of $X$ about the origin is $E[X^k]$. The $k$-th **central moment** is $E[(X - \mu)^k]$.
+
+![Moment generating function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-mgf.png)
+
 
 - 1st moment: $E[X] = \mu$ (location)
 - 2nd central moment: $\text{Var}(X) = \sigma^2$ (spread)
@@ -313,6 +325,9 @@ Markov's inequality is often loose, but it requires almost nothing — just $X \
 ## Chebyshev's Inequality
 
 **Theorem (Chebyshev).** For any random variable $X$ with finite mean $\mu$ and variance $\sigma^2$, and for any $k > 0$:
+
+![Chebyshev inequality](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-chebyshev-bound.png)
+
 
 $$P(|X - \mu| \geq k\sigma) \leq \frac{1}{k^2}.$$
 

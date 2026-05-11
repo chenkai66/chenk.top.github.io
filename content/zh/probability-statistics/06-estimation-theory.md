@@ -25,6 +25,9 @@ translationKey: "probability-statistics-6"
 
 假设我们观测到独立同分布（i.i.d.）样本 $x_1, x_2, \ldots, x_n$，其来自某个分布 $p(x|\theta)$，其中 $\theta$ 是未知参数（或参数向量）。
 
+![Confidence intervals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-confidence-interval.png)
+
+
 一个**估计量** $\hat{\theta}$ 是数据的函数：$\hat{\theta} = g(X_1, \ldots, X_n)$。它本身是一个随机变量（因为数据是随机的）。而一个**估计值**则是该函数在某组具体数据上计算出的数值：$\hat{\theta}(x_1, \ldots, x_n)$。
 
 **记号惯例：** 带帽子的 $\hat{\theta}$ 表示估计量/估计值；不带帽子的 $\theta$ 表示真实参数。
@@ -34,6 +37,9 @@ translationKey: "probability-statistics-6"
 ### 偏差（Bias）
 
 估计量的**偏差**定义为：
+
+![Bias-variance tradeoff](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-bias-variance.png)
+
 
 $$\text{Bias}(\hat{\theta}) = E[\hat{\theta}] - \theta.$$
 
@@ -96,6 +102,9 @@ $$\hat{\beta}_{\text{MoM}} = \frac{\bar{X}}{S^2}, \qquad \hat{\alpha}_{\text{MoM
 
 ## 极大似然估计（Maximum Likelihood Estimation）
 
+
+![Estimation methods comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-estimation-comparison.png)
+
 ### 似然函数（Likelihood Function）
 
 给定 i.i.d. 观测数据 $x_1, \ldots, x_n$ 来自 $p(x|\theta)$，其**似然函数**为：
@@ -111,6 +120,9 @@ $$\ell(\theta) = \ln L(\theta) = \sum_{i=1}^n \ln p(x_i | \theta).$$
 ### 极大似然估计量（MLE）
 
 **极大似然估计量**是使似然函数最大的 $\theta$ 值：
+
+![MLE likelihood surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-mle-likelihood.png)
+
 
 $$\hat{\theta}_{\text{MLE}} = \arg\max_\theta \ell(\theta).$$
 
@@ -188,6 +200,9 @@ $$L(\theta) = \prod_{i=1}^n \frac{1}{\theta} \cdot \mathbf{1}_{0 \leq x_i \leq \
 ### 费希尔信息量（Fisher Information）
 
 **得分函数（score function）** 定义为 $s(\theta) = \frac{\partial}{\partial\theta} \ln p(X|\theta)$。
+
+![Fisher information](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-fisher-information.png)
+
 
 在正则性条件下，$E[s(\theta)] = 0$。
 

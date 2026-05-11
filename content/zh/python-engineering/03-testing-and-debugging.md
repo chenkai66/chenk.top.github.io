@@ -23,6 +23,9 @@ translationKey: "python-engineering-3"
 
 编写测试在前期会消耗时间。但不写测试，后期将付出更多时间。以下是对比：
 
+![Testing pyramid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-test-pyramid.png)
+
+
 | 活动 | 无测试 | 有测试 |
 |----------|--------------|------------|
 | 初始开发 | 更快（无需编写测试） | 更慢（测试增加 20–40% 时间） |
@@ -151,6 +154,9 @@ def test_float_division():
 ## Fixture：可复用的测试准备逻辑
 
 Fixture 替代了 unittest 中的 `setUp`/`tearDown` 模式，通过函数参数向测试注入依赖。
+
+![Fixture scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png)
+
 
 ### 基础 Fixture
 
@@ -303,6 +309,9 @@ def test_monkeypatch_env(monkeypatch):
 
 无需为每种输入单独编写测试函数，使用 `@pytest.mark.parametrize` 即可：
 
+![Parametrized tests](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png)
+
+
 ```python
 import pytest
 
@@ -355,6 +364,9 @@ def test_filename_from_url(url, expected_filename):
 ## Mocking：隔离你的代码
 
 当测试调用外部服务的函数时，你不希望测试真正发起 HTTP 请求。Mocking 将代码中部分组件替换为可控的模拟对象。
+
+![Mock architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png)
+
 
 ### unittest.mock.patch
 
@@ -418,6 +430,9 @@ def test_download_with_env_config(monkeypatch):
 ## Coverage：衡量测试覆盖度
 
 安装 pytest-cov：
+
+![Coverage report](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-coverage-report.png)
+
 
 ```bash
 (.venv) $ pip install pytest-cov

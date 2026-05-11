@@ -26,6 +26,9 @@ This article walks through three classic system design problems end to end. Each
 
 A URL shortener takes a long URL and produces a short alias (e.g., `https://short.ly/abc123`) that redirects to the original. It sounds trivially simple, but at scale it touches hashing, distributed storage, caching, and analytics.
 
+![URL shortener design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-url-shortener.png)
+
+
 ### Requirements
 
 **Functional**:
@@ -279,6 +282,9 @@ Partition 4: short codes starting with [N-Z]
 ## Case Study 2: Real-Time Chat System
 
 A chat application requires real-time bidirectional communication, persistent message storage, presence awareness, and efficient fan-out for group messages.
+
+![Real-time chat system](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-chat-system.png)
+
 
 ### Requirements
 
@@ -551,6 +557,9 @@ class PresenceService:
 ## Case Study 3: News Feed System
 
 A news feed system displays a personalized, ranked stream of content from users and pages that you follow. This is the core product feature of platforms like Facebook, Twitter, and Instagram.
+
+![News feed design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-news-feed.png)
+
 
 ### Requirements
 
@@ -878,6 +887,9 @@ The threshold is not fixed. It depends on your infrastructure capacity, acceptab
 
 Looking across all three case studies, several patterns recur:
 
+![Cross-cutting concerns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-cross-cutting.png)
+
+
 **Read-heavy systems benefit from caching**: The URL shortener, chat history, and news feed all have read:write ratios of 10:1 to 100:1. Caching transforms an unscalable system into a scalable one.
 
 **Async processing via message queues**: All three systems use Kafka to decouple the write path from downstream processing. The URL shortener decouples analytics. The chat system decouples message storage from delivery. The news feed decouples post creation from fan-out.
@@ -889,3 +901,6 @@ Looking across all three case studies, several patterns recur:
 ## What's Next
 
 This article concludes the System Design series. The eight articles together cover the full spectrum from estimation fundamentals to complete system designs. The next step is practice: pick a system you use daily, define its requirements, estimate its scale, and design its architecture. The more systems you design, the more patterns you recognize, and the faster you converge on good solutions.
+
+![System design template](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-design-template.png)
+

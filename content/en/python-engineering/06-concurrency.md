@@ -23,6 +23,9 @@ Python has three concurrency models, each designed for different problems. Pick 
 
 The Global Interpreter Lock (GIL) is a mutex that protects access to Python objects. Only one thread can execute Python bytecode at a time, even on a multi-core machine.
 
+![GIL impact on parallelism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-gil-impact.png)
+
+
 ### What the GIL Prevents
 
 ```python
@@ -65,6 +68,9 @@ Wait, the GIL does not prevent this? Correct. `counter += 1` compiles to multipl
 ## Threading: I/O-Bound Concurrency
 
 Threads share the same memory space and are lightweight. The GIL releases during I/O operations, so threads are effective for network calls, file operations, and database queries.
+
+![Concurrency models comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-concurrency-models.png)
+
 
 ### Basic Thread Usage
 
@@ -199,6 +205,9 @@ for t in threads:
 ## Multiprocessing: CPU-Bound Concurrency
 
 Each process has its own Python interpreter and GIL. This enables true parallelism on multiple CPU cores.
+
+![Concurrency decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-decision-tree.png)
+
 
 ### Basic Usage
 
@@ -349,6 +358,9 @@ with ThreadPoolExecutor(max_workers=2) as executor:
 ## asyncio: Cooperative Concurrency
 
 asyncio uses a single thread with an event loop. Functions voluntarily give up control at `await` points, allowing other tasks to run. No threads, no locks, no GIL worries.
+
+![asyncio event loop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-asyncio-loop.png)
+
 
 ### Basic async/await
 
@@ -579,6 +591,9 @@ async def main():
 
 ```python
 """Benchmark: download 20 URLs with different concurrency models."""
+
+![Concurrency benchmark](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-benchmark.png)
+
 
 import asyncio
 import time

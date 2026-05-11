@@ -27,6 +27,9 @@ This article catalogs the distributions you'll encounter most often and shows ex
 
 **Definition.** A **random variable** $X$ is a function from the sample space to the real numbers:
 
+![Quantile function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-quantile-function.png)
+
+
 $$X: \Omega \to \mathbb{R}$$
 
 such that for every real number $x$, the set $\{\omega \in \Omega : X(\omega) \leq x\}$ is an event in $\mathcal{F}$.
@@ -40,6 +43,9 @@ The key shift: instead of tracking the full outcome $\omega$, we work with the n
 ## Discrete Random Variables
 
 A random variable is **discrete** if it takes values in a countable set (finite or countably infinite).
+
+![Discrete vs continuous](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-discrete-vs-continuous.png)
+
 
 ### Probability Mass Function (PMF)
 
@@ -55,6 +61,9 @@ for each value $x$ in the support of $X$. Properties:
 ### Cumulative Distribution Function (CDF)
 
 The **CDF** of any random variable (discrete or continuous) is
+
+![Key distributions gallery](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-gallery.png)
+
 
 $$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(discrete case)}.$$
 
@@ -402,6 +411,9 @@ This gallery lets you see the shape of every distribution at a glance. A few pat
 
 The distributions above are not isolated — they form a family with deep connections:
 
+![Distribution connections](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-connections.png)
+
+
 1. **Bernoulli is Binomial with $n=1$**: $\text{Binomial}(1, p) = \text{Bernoulli}(p)$
 2. **Binomial is a sum of Bernoullis**: If $X_i \sim \text{Bernoulli}(p)$ i.i.d., then $\sum X_i \sim \text{Binomial}(n, p)$
 3. **Poisson approximates Binomial**: $\text{Binomial}(n, \lambda/n) \to \text{Poisson}(\lambda)$ as $n \to \infty$
@@ -415,6 +427,9 @@ These connections are not accidents. They reflect deep structural relationships 
 ## Quantile Functions and Inverse CDF
 
 The **quantile function** (or **inverse CDF**) $F^{-1}(p)$ is defined for $p \in (0, 1)$ as:
+
+![CDF comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-cdf-comparison.png)
+
 
 $$F^{-1}(p) = \inf\{x : F(x) \geq p\}.$$
 

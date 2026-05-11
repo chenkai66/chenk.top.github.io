@@ -23,6 +23,9 @@ translationKey: "probability-statistics-3"
 
 ## 期望
 
+
+![Expectation as balance point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-expectation.png)
+
 ### 定义
 
 对于具有概率质量函数（PMF）$p(x)$ 的**离散型**随机变量 $X$：
@@ -79,6 +82,9 @@ $$E[\text{逆序对个数}] = \binom{n}{2} \cdot \frac{1}{2} = \frac{n(n-1)}{4}.
 
 要计算 $E[g(X)]$（$g$ 为某函数），你或许会认为必须先求出 $Y = g(X)$ 的分布。其实不必。
 
+![Variance visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-variance.png)
+
+
 **定理（LOTUS）。** 若 $X$ 是离散型随机变量，其 PMF 为 $p(x)$，则：
 
 $$E[g(X)] = \sum_x g(x) \, p(x).$$
@@ -96,6 +102,9 @@ $$E[X^2] = \int_0^1 x^2 \cdot 1 \, dx = \frac{x^3}{3}\bigg|_0^1 = \frac{1}{3}.$$
 我们在此应用了 LOTUS，其中 $g(x) = x^2$，$f(x) = 1$（定义域为 $[0,1]$）。无需推导 $X^2$ 的分布。
 
 ## 方差
+
+
+![Covariance scatter plots](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-covariance-scatter.png)
 
 ### 定义
 
@@ -151,6 +160,9 @@ $$\text{Var}(X + Y) = \text{Var}(X) + \text{Var}(Y) + 2\text{Cov}(X, Y)$$
 
 ## 协方差
 
+
+![Chebyshev inequality](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-chebyshev-bound.png)
+
 ### 定义
 
 $X$ 与 $Y$ 的**协方差**衡量二者如何共同变动：
@@ -184,6 +196,9 @@ $$E[XY] = E[X^3] = \int_{-1}^{1} x^3 \cdot \frac{1}{2} dx = 0$$
 ## 相关系数
 
 **皮尔逊相关系数**将协方差标准化，使其取值范围落在 $[-1, 1]$ 内：
+
+![Moment generating function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-mgf.png)
+
 
 $$\rho(X, Y) = \frac{\text{Cov}(X, Y)}{\sigma_X \sigma_Y} = \frac{\text{Cov}(X, Y)}{\sqrt{\text{Var}(X)\text{Var}(Y)}}.$$
 

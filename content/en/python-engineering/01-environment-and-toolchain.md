@@ -23,6 +23,9 @@ This article walks through the entire toolchain from scratch. By the end, you wi
 
 Most operating systems ship with a system Python. On macOS, it used to be Python 2.7 (removed in Monterey). On Ubuntu 22.04, it is Python 3.10. This system Python is used by OS-level tools. Installing packages into it or upgrading it can break your operating system.
 
+![Version management stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png)
+
+
 The core problems:
 
 | Problem | Example |
@@ -42,6 +45,9 @@ The solution is a three-layer stack:
 ## pyenv: Multiple Python Versions Without Pain
 
 pyenv intercepts the `python` command and redirects it to whichever version you have configured. It does this by inserting shims into your `$PATH`.
+
+![pyenv shim mechanism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png)
+
 
 ### Installation
 
@@ -159,6 +165,9 @@ $ pyenv versions
 
 Even with the right Python version, you still need dependency isolation. Without it, `pip install` puts packages into a shared location, and two projects needing different versions of the same package will conflict.
 
+![Dependency resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
+
+
 ### Creating a Virtual Environment
 
 ```bash
@@ -210,6 +219,9 @@ $
 ### Why .venv?
 
 The `.` prefix hides it in file listings. Most tools (VS Code, PyCharm, pytest) auto-detect `.venv`. Add it to `.gitignore` immediately:
+
+![Virtual environment isolation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-venv-isolation.png)
+
 
 ```bash
 echo ".venv/" >> .gitignore
@@ -288,6 +300,9 @@ The problem with `pip freeze`: it dumps every installed package, including trans
 ## pip-tools: Reproducible Installs
 
 pip-tools solves the `pip freeze` problem by separating what you want from what gets installed.
+
+![Toolchain comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-toolchain-comparison.png)
+
 
 ### Installation
 

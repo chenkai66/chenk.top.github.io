@@ -25,10 +25,16 @@ translationKey: "probability-statistics-5"
 
 在我们说“收敛”之前，必须先明确定义所指的收敛类型。共有四种主要类型，按强度由弱到强排列如下。
 
+![LLN simulation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-lln-simulation.png)
+
+
 ### 依分布收敛（Convergence in Distribution）
 
 $X_n \xrightarrow{d} X$ 当且仅当对 $F_X$ 的每一个连续点 $x$，均有  
 $$F_{X_n}(x) \to F_X(x).$$
+
+![Convergence modes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-convergence-modes.png)
+
 
 这是最弱的收敛形式。我们仅要求累积分布函数（CDF）逐点收敛；随机变量 $X_n$ 甚至无需与 $X$ 定义在同一概率空间上。
 
@@ -70,6 +76,9 @@ $$\bar{X}_n = \frac{1}{n} \sum_{i=1}^n X_i.$$
 则 $\bar{X}_n \xrightarrow{P} \mu$。即，对任意 $\varepsilon > 0$：  
 $$\lim_{n \to \infty} P(|\bar{X}_n - \mu| > \varepsilon) = 0.$$
 
+![CLT convergence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-clt-convergence.png)
+
+
 ### 利用切比雪夫不等式的证明
 
 这是概率论中最优美的证明之一——简洁、清晰、富有启发性。
@@ -99,6 +108,9 @@ $$\lim_{n \to \infty} P(|\bar{X}_n - \mu| > \varepsilon) \leq \lim_{n \to \infty
 **定理（SLLN）。** 在与 WLLN 相同（甚至更弱）的条件下（仅需有限均值）：  
 $$\bar{X}_n \xrightarrow{a.s.} \mu.$$  
 即，$P\left(\lim_{n \to \infty} \bar{X}_n = \mu\right) = 1$。
+
+![Normal approximation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-normal-approximation.png)
+
 
 SLLN 严格强于 WLLN：它不仅断言偏离概率趋于零，更声称在几乎所有样本路径上，均值序列都以普通微积分意义收敛至 $\mu$。其证明难度显著更高（通常需 Borel-Cantelli 引理或截断论证），故此处仅陈述而不予证明。
 
@@ -159,6 +171,9 @@ $$P(X \geq 60) = P(X \geq 59.5) \approx 1 - \Phi\left(\frac{59.5 - 50}{5}\right)
 ## Berry-Esseen 定理
 
 CLT 的收敛速度如何？Berry-Esseen 定理给出了定量界。
+
+![Berry-Esseen bound](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-berry-esseen.png)
+
 
 **定理（Berry-Esseen）。** 在 CLT 条件下，若 $E[|Z_i|^3] = \rho < \infty$，则：  
 $$\sup_x \left|P(W_n \leq x) - \Phi(x)\right| \leq \frac{C \rho}{\sqrt{n}},$$  

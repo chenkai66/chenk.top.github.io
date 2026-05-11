@@ -146,6 +146,9 @@ List comprehension wins. But the difference is often small enough that readabili
 
 cProfile tracks every function call, how many times it was called, and how long it took.
 
+![Profiling workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/08-profiling-flow.png)
+
+
 ### Basic Usage
 
 ```bash
@@ -295,6 +298,9 @@ Line 15 (the `append` with dict creation) takes 65% of the time. That is the opt
 (.venv) $ pip install memory_profiler
 ```
 
+![Python object memory layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/08-memory-layout.png)
+
+
 ```python
 from memory_profiler import profile
 
@@ -329,6 +335,9 @@ Line #    Mem usage    Increment  Occurrences   Line Contents
 ## functools.lru_cache: Memoization
 
 Memoization stores the results of expensive function calls and returns the cached result when the same inputs occur again.
+
+![lru_cache benchmark](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/08-lru-cache.png)
+
 
 ```python
 from functools import lru_cache
@@ -431,6 +440,9 @@ def _get_default_config_cached() -> dict:
 ## NumPy Vectorization
 
 Python loops are slow because each iteration involves type checking, reference counting, and bytecode interpretation. NumPy pushes the loop into optimized C code.
+
+![NumPy vectorization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/08-vectorization.png)
+
 
 ```python
 import numpy as np
@@ -664,6 +676,9 @@ Cython is a big topic. For most applications, the optimization techniques earlie
 ## Performance Optimization Checklist
 
 Before optimizing, ask these questions in order:
+
+![Optimization checklist](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/08-optimization-checklist.png)
+
 
 | Step | Question | Action |
 |------|----------|--------|

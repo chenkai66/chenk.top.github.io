@@ -86,6 +86,9 @@ Three-node cluster in four commands. That's Swarm's appeal.
 
 Swarm uses the concept of "services" — a service is a definition of how to run containers, and Swarm manages the desired number of replicas:
 
+![Deployment strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-deployment-strategies.png)
+
+
 ```bash
 # Create a service with 3 replicas
 docker service create \
@@ -239,6 +242,9 @@ Swarm is a good choice when:
 
 Kubernetes (K8s) is the dominant container orchestration platform. It's more complex than Swarm but dramatically more capable. Most cloud providers offer managed Kubernetes services (EKS, GKE, AKS, ACK), eliminating the operational burden of managing the control plane.
 
+![Kubernetes architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-k8s-architecture.png)
+
+
 ### Architecture
 
 Kubernetes clusters have two types of nodes:
@@ -282,6 +288,9 @@ Everything in Kubernetes is a declarative object — you describe the desired st
 #### Pod
 
 The smallest deployable unit. A pod contains one or more containers that share network and storage:
+
+![Pod lifecycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-pod-lifecycle.png)
+
 
 ```yaml
 # pod.yaml
@@ -544,6 +553,9 @@ kubectl top nodes
 
 Not every application needs Kubernetes. Be honest about your requirements:
 
+![Orchestration tools comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-orchestration-comparison.png)
+
+
 | Your Situation | Recommendation |
 |---------------|---------------|
 | Single server, few services | Docker Compose |
@@ -652,6 +664,9 @@ The "standard" open-source observability stack for Kubernetes is Prometheus + Gr
 ## From Docker to Production: A Typical Path
 
 Here's a realistic progression for a team growing from a side project to a production service:
+
+![Docker to Kubernetes mapping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-docker-to-k8s.png)
+
 
 | Stage | Infrastructure | Deployment |
 |-------|---------------|------------|

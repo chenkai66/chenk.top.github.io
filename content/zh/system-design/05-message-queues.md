@@ -26,6 +26,9 @@ translationKey: "system-design-5"
 
 在同步系统中，调用方必须等待被调用方响应后才能继续执行。这种方式简单直观，适用于大量场景。但它带来了强耦合。
 
+![Sync vs async communication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-sync-vs-async.png)
+
+
 ```
 同步（REST）：
   客户端 → 订单服务 → 支付服务 → 库存服务 → 通知服务
@@ -88,6 +91,9 @@ translationKey: "system-design-5"
 ## Apache Kafka
 
 Kafka 是一款为高吞吐、高持久性与高可扩展性而设计的分布式事件流平台。它将消息建模为追加式日志（append-only log），而非传统意义上的队列。
+
+![Apache Kafka architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-kafka-architecture.png)
+
 
 ### 架构
 
@@ -337,6 +343,9 @@ channel.start_consuming()
 
 消息投递语义是系统设计的根本决策之一。
 
+![Message delivery guarantees](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-delivery-guarantees.png)
+
+
 ### 最多一次（At-Most-Once）
 
 消息被投递零次或一次。若消费者在处理完成前崩溃，该消息即丢失。
@@ -402,6 +411,9 @@ def process_order_idempotently(order):
 
 事件溯源是一种架构模式：不直接存储当前状态，而是将所有状态变更记录为一系列不可变事件；当前状态通过重放（replay）全部事件推导得出。
 
+![CRUD vs event sourcing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-event-sourcing.png)
+
+
 ### 传统方式 vs 事件溯源
 
 ```
@@ -440,6 +452,9 @@ def process_order_idempotently(order):
 ## CQRS（命令查询职责分离）
 
 CQRS 将写模型（Commands）与读模型（Queries）彻底分离。它天然适配事件溯源。
+
+![CQRS pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-cqrs.png)
+
 
 ```
 写侧（Command）：

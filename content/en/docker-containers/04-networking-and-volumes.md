@@ -23,6 +23,9 @@ Containers are deliberately isolated. That's the point. But useful applications 
 
 When Docker starts, it creates a virtual network infrastructure on the host. Each container gets its own network namespace (its own IP address, routing table, and network interfaces), and Docker manages how traffic flows between containers and the outside world.
 
+![Container DNS resolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png)
+
+
 ### Network Drivers
 
 Docker supports several network drivers, each suited to different use cases:
@@ -41,6 +44,9 @@ For most single-host use cases, you'll use **bridge** networks. Let's explore ea
 ### The Default Bridge Network
 
 When you install Docker, it creates a network called `bridge` (backed by a Linux bridge device called `docker0`):
+
+![Bridge networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-bridge-network.png)
+
 
 ```bash
 docker network ls
@@ -168,6 +174,9 @@ docker network rm my-app-network other-network
 
 Containers have their own network namespace. To expose a container's port to the host (and thus the outside world), you map ports:
 
+![Port mapping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-port-mapping.png)
+
+
 ```bash
 # Map host port 8080 to container port 80
 docker run -d -p 8080:80 --name web nginx
@@ -251,6 +260,9 @@ docker network prune
 ## Docker Volumes
 
 By default, all data written inside a container is stored in its writable layer. When the container is deleted, that data is gone. Volumes provide persistent storage that exists independently of the container lifecycle.
+
+![Volume types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-volume-types.png)
+
 
 ### Three Types of Mounts
 
@@ -391,6 +403,9 @@ Use tmpfs for:
 ## Real-World Example: MySQL with Persistent Data
 
 This example demonstrates why volumes matter. Without a volume, deleting the MySQL container destroys all your data.
+
+![Overlay network](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-overlay-network.png)
+
 
 ```bash
 # Create a network and volume

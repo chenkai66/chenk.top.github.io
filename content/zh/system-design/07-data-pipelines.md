@@ -24,6 +24,9 @@ translationKey: "system-design-7"
 
 数据管道设计的两种基础范式，核心差异在于**转换（Transformation）发生的时机**。
 
+![ETL vs ELT comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-etl-vs-elt.png)
+
+
 ### ETL：Extract, Transform, Load（抽取、转换、加载）
 
 传统范式。数据从源系统抽取，在暂存区完成转换，再加载至目标系统（通常是数据仓库）。
@@ -77,6 +80,9 @@ translationKey: "system-design-7"
 ## 批处理（Batch Processing）
 
 批处理以固定周期（如每小时、每天或每周）处理大量数据。数据被收集、存储后，作为完整数据集进行处理。
+
+![Batch vs stream processing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-batch-vs-stream.png)
+
 
 ### MapReduce（概念模型）
 
@@ -242,6 +248,9 @@ daily_sales.write \
 ## Apache Flink
 
 Flink是目前领先的开源流处理框架，提供**精确一次（exactly-once）** 处理保证、事件时间（event time）处理及高级窗口支持。
+
+![Apache Flink architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-flink-architecture.png)
+
 
 ### 关键概念
 
@@ -419,6 +428,9 @@ Kappa架构由Kafka联合创始人Jay Kreps提出，通过**仅使用流处理**
 
 ## 数据质量（Data Quality）
 
+
+![Data quality dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-data-quality.png)
+
 ### Schema校验
 
 在处理前，对输入数据进行Schema校验：
@@ -492,6 +504,9 @@ lineage:
 ## 变更数据捕获（Change Data Capture, CDC）
 
 CDC从数据库事务日志中捕获行级变更（INSERT/UPDATE/DELETE），并以事件形式流式输出。这使得实时数据同步无需轮询。
+
+![Change data capture pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-cdc.png)
+
 
 ### Debezium
 

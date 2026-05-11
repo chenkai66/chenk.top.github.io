@@ -24,6 +24,9 @@ translationKey: "python-engineering-7"
 
 这些术语常被混用，但在 Python 生态中有明确定义：
 
+![Packaging pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png)
+
+
 | 术语 | 定义 | 示例 |
 |------|------|------|
 | **Module（模块）** | 单个 `.py` 文件 | `utils.py` |
@@ -38,6 +41,9 @@ translationKey: "python-engineering-7"
 
 Python 包支持两种标准分发格式：
 
+![Semantic versioning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png)
+
+
 ### sdist（源码分发包）
 
 `.tar.gz` 格式的源码归档。接收方需具备构建工具链（如 C 扩展所需的编译器等）才能安装。
@@ -45,6 +51,9 @@ Python 包支持两种标准分发格式：
 ### wheel（预编译分发包）
 
 `.whl` 文件（本质是 zip 归档）。已预先构建完成，无需编译，安装更快。`pip` 默认使用 wheel。
+
+![Wheel vs sdist](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png)
+
 
 ```bash
 # 安装构建工具
@@ -270,6 +279,9 @@ Checking dist/my_tool-0.1.0.tar.gz: PASSED
 
 并非所有包都适合公开发布。内部工具应使用私有索引：
 
+![Private package index](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-private-index.png)
+
+
 ### devpi
 
 ```bash
@@ -314,6 +326,9 @@ $ pip install my-internal-tool --extra-index-url http://internal-pypi.company.co
 ```
 
 ## 使用 Docker 构建 Python 镜像
+
+
+![Docker Python packaging](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-docker-python.png)
 
 ### 基础镜像选择
 

@@ -24,6 +24,9 @@ For the past four decades, one model has dominated: the relational model. Flat t
 
 In 1970, Edgar F. Codd published "A Relational Model of Data for Large Shared Data Banks." The core insight was radical at the time: separate the **logical** representation of data from its **physical** storage. Applications should not care whether data lives on disk, in memory, or across ten machines. They should see **tables** — nothing more.
 
+![Normalization forms comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-normalization-forms.png)
+
+
 A relational database organizes data into **relations** (tables). Each table has:
 
 - **Columns** (attributes) — typed fields like `name VARCHAR(100)` or `price DECIMAL(10,2)`
@@ -36,6 +39,9 @@ These four concepts give you everything you need to model surprisingly complex d
 ## A Practical Schema: E-Commerce
 
 Theory is easier with concrete tables. Here is a minimal e-commerce schema that we will use throughout this article:
+
+![SQL query execution pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
+
 
 ```sql
 CREATE TABLE users (
@@ -75,6 +81,9 @@ Four tables. Three foreign keys. That is enough to represent users placing order
 
 SQL (Structured Query Language) is how you talk to relational databases. It is declarative: you describe *what* data you want, not *how* to get it. The database engine figures out the execution plan.
 
+![SQL join types visualized](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-join-types.png)
+
+
 ### SELECT, FROM, WHERE
 
 The most basic query:
@@ -111,6 +120,9 @@ LIMIT 5;
 ### JOINs: The Heart of Relational Queries
 
 JOINs combine rows from multiple tables. There are four types you need to know:
+
+![Entity-Relationship diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-er-diagram.png)
+
 
 | JOIN Type | Returns |
 |-----------|---------|
@@ -216,6 +228,9 @@ Choosing the right data type affects storage, performance, and correctness. Here
 ## ALTER TABLE: Schema Evolution
 
 Schemas change. New features require new columns:
+
+![The relational model in action](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-relational-model.png)
+
 
 ```sql
 -- Add a phone number column

@@ -23,6 +23,9 @@ translationKey: "python-engineering-1"
 
 大多数操作系统都自带一个系统级 Python。macOS 曾长期预装 Python 2.7（Monterey 中已移除）；Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具所依赖。向其中安装包或升级它，都可能导致操作系统异常。
 
+![Dependency resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
+
+
 核心问题如下：
 
 | 问题 | 示例 |
@@ -42,6 +45,9 @@ translationKey: "python-engineering-1"
 ## pyenv：无痛管理多版本 Python
 
 pyenv 通过拦截 `python` 命令，并将其重定向至你配置的任意 Python 版本，来实现版本切换。它通过在你的 `$PATH` 中插入 shim 脚本来完成这一操作。
+
+![pyenv shim mechanism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png)
+
 
 ### 安装
 
@@ -159,6 +165,9 @@ $ pyenv versions
 
 即使有了正确的 Python 版本，你仍需依赖隔离。否则，`pip install` 会把包安装到共享位置，而两个需要同一包不同版本的项目就会发生冲突。
 
+![Version management stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png)
+
+
 ### 创建虚拟环境
 
 ```bash
@@ -210,6 +219,9 @@ $
 ### 为什么叫 `.venv`？
 
 前缀 `.` 使其在文件列表中隐藏。大多数工具（VS Code、PyCharm、pytest）都能自动识别 `.venv`。请立即将其加入 `.gitignore`：
+
+![Virtual environment isolation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-venv-isolation.png)
+
 
 ```bash
 echo ".venv/" >> .gitignore
@@ -288,6 +300,9 @@ urllib3==2.1.0
 ## pip-tools：实现可复现安装
 
 pip-tools 通过分离「你想要什么」和「实际安装什么」，解决了 `pip freeze` 的缺陷。
+
+![Toolchain comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-toolchain-comparison.png)
+
 
 ### 安装
 

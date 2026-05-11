@@ -24,6 +24,9 @@ translationKey: "probability-statistics-8"
 
 ## 贝叶斯 vs 频率学派：核心差异
 
+
+![Prior to posterior updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-prior-posterior.png)
+
 ### 频率学派观点
 
 - **参数** 是固定但未知的常数。
@@ -45,6 +48,9 @@ translationKey: "probability-statistics-8"
 ## 分布形式的贝叶斯公式
 
 我们此前已见过事件层面的贝叶斯定理。贝叶斯推断引擎将相同逻辑应用于分布。
+
+![Conjugate prior families](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-conjugate-priors.png)
+
 
 给定数据 $\mathbf{x} = (x_1, \ldots, x_n)$ 和参数 $\theta$：
 
@@ -72,6 +78,9 @@ $$\boxed{p(\theta | \mathbf{x}) \propto p(\mathbf{x} | \theta) \cdot p(\theta)}$
 
 若某先验与似然配对后所得后验属于同一分布族，则称该先验为该似然的 **共轭先验**。共轭性使数学处理可解——后验具有闭式表达式。
 
+![Credible vs confidence intervals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-credible-vs-confidence.png)
+
+
 | 似然 | 共轭先验 | 后验 |
 |---|---|---|
 | 伯努利 / 二项 | Beta | Beta |
@@ -86,6 +95,9 @@ $$\boxed{p(\theta | \mathbf{x}) \propto p(\mathbf{x} | \theta) \cdot p(\theta)}$
 ## Beta-二项模型
 
 这是贝叶斯推断的经典范例。我们将完整推导。
+
+![Beta-Binomial sequential updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-beta-binomial.png)
+
 
 ### 设定
 
@@ -244,6 +256,9 @@ $$\tilde{X} | \mathbf{x} \sim \mathcal{N}(\mu_n, \sigma^2 + \sigma_n^2).$$
 ## MCMC：当共轭性不足时
 
 大多数现实模型并无共轭先验。后验 $p(\theta | \mathbf{x})$ 仅知其比例形式（即缺少归一化常数）：我们可对任意 $\theta$ 计算 $p(\mathbf{x} | \theta) p(\theta)$，但计算 $p(\mathbf{x}) = \int p(\mathbf{x}|\theta)p(\theta)d\theta$ 不可行。
+
+![MCMC trace plot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-mcmc-trace.png)
+
 
 **马尔可夫链蒙特卡洛（MCMC）** 方法无需计算归一化常数，即可从后验中生成样本 $\theta^{(1)}, \theta^{(2)}, \ldots$。
 

@@ -39,6 +39,9 @@ On a single database, wrapping both in a `BEGIN ... COMMIT` solves this. Across 
 
 The textbook solution to distributed transactions. A coordinator node orchestrates the protocol with participating nodes.
 
+![Two-phase commit protocol](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-two-phase-commit.png)
+
+
 ### The Protocol
 
 ```
@@ -193,6 +196,9 @@ Paxos is correct but notoriously difficult to implement. In Lamport's own words,
 
 Raft (2014, Diego Ongaro and John Ousterhout) was designed to be equivalent to Paxos but easier to understand. It decomposes consensus into three sub-problems:
 
+![Raft leader election](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-raft-election.png)
+
+
 1. **Leader election**
 2. **Log replication**
 3. **Safety**
@@ -273,6 +279,9 @@ Client ─── "SET x=3" ──► Leader
 ## Saga Pattern
 
 When 2PC is too expensive or impractical (which is most of the time in microservices), the Saga pattern provides an alternative. Instead of one big distributed transaction, break it into a sequence of local transactions, each with a **compensating transaction** that undoes its work if a later step fails.
+
+![Saga pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-saga-pattern.png)
+
 
 ### Choreography vs Orchestration
 
@@ -389,6 +398,9 @@ Client C:                     read() ──► 1   ✓
 ## Eventual Consistency
 
 At the opposite end of the spectrum from linearizability is eventual consistency: if no new writes are made, all replicas will *eventually* converge to the same value.
+
+![Consistency spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-consistency-spectrum.png)
+
 
 "Eventually" is vague — it could be milliseconds or minutes. In practice:
 

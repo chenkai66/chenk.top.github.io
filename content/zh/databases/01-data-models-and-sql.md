@@ -24,6 +24,9 @@ translationKey: "databases-1"
 
 1970 年，埃德加·F·科德（Edgar F. Codd）发表了论文《大型共享数据库的关系数据模型》（"A Relational Model of Data for Large Shared Data Banks"）。其核心洞见在当时极为激进：将数据的 **逻辑表示** 与 **物理存储** 彻底分离。应用程序无需关心数据究竟存于磁盘、内存，还是跨十台机器分布；它们只需看到 **表（tables）**——仅此而已。
 
+![Normalization forms comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-normalization-forms.png)
+
+
 关系型数据库将数据组织为 **关系（relations）**（即表）。每张表包含：
 
 - **列（columns）**（属性）——带类型的字段，例如 `name VARCHAR(100)` 或 `price DECIMAL(10,2)`
@@ -36,6 +39,9 @@ translationKey: "databases-1"
 ## 实用 Schema 示例：电商系统
 
 理论结合具体表结构更易理解。以下是一个极简的电商 Schema，本文后续将反复使用：
+
+![Entity-Relationship diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-er-diagram.png)
+
 
 ```sql
 CREATE TABLE users (
@@ -75,6 +81,9 @@ CREATE TABLE order_items (
 
 SQL（Structured Query Language）是与关系型数据库对话的语言。它是**声明式（declarative）**的：你只需描述 *想要什么数据*，而非 *如何获取它*；执行计划由数据库引擎自行推导。
 
+![SQL query execution pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
+
+
 ### SELECT、FROM、WHERE
 
 最基础的查询：
@@ -111,6 +120,9 @@ LIMIT 5;
 ### JOIN：关系型查询的核心
 
 JOIN 将多张表的行组合起来。你需要掌握四种类型：
+
+![SQL join types visualized](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-join-types.png)
+
 
 | JOIN 类型 | 返回结果 |
 |-----------|---------|
@@ -216,6 +228,9 @@ ORDER BY total_revenue DESC;
 ## ALTER TABLE：Schema 演进
 
 Schema 必然随业务演进。新功能常需新增列：
+
+![The relational model in action](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-relational-model.png)
+
 
 ```sql
 -- 添加电话号码列

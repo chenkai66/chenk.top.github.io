@@ -23,6 +23,9 @@ translationKey: "docker-containers-4"
 
 Docker 启动时，会在宿主机上创建一套虚拟网络基础设施。每个容器都拥有自己独立的网络命名空间（包括专属 IP 地址、路由表和网络接口），而 Docker 则负责管理容器之间以及容器与外部世界之间的流量转发。
 
+![Container DNS resolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png)
+
+
 ### 网络驱动（Network Drivers）
 
 Docker 支持多种网络驱动，各自适用于不同场景：
@@ -41,6 +44,9 @@ Docker 支持多种网络驱动，各自适用于不同场景：
 ### 默认 Bridge 网络
 
 安装 Docker 后，它会自动创建一个名为 `bridge` 的网络（底层由 Linux 桥接设备 `docker0` 实现）：
+
+![Bridge networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-bridge-network.png)
+
 
 ```bash
 docker network ls
@@ -168,6 +174,9 @@ docker network rm my-app-network other-network
 
 容器拥有自己的网络命名空间。要将容器端口暴露给宿主机（进而暴露给外部世界），需进行端口映射：
 
+![Port mapping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-port-mapping.png)
+
+
 ```bash
 # 将宿主机端口 8080 映射到容器端口 80
 docker run -d -p 8080:80 --name web nginx
@@ -251,6 +260,9 @@ docker network prune
 ## Docker 卷（Volumes）
 
 默认情况下，写入容器内的所有数据均存于其可写层（writable layer）。一旦容器被删除，这些数据即永久丢失。**卷（Volumes）** 提供了一种独立于容器生命周期之外的持久化存储机制。
+
+![Volume types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-volume-types.png)
+
 
 ### 三种挂载类型（Mount Types）
 
@@ -391,6 +403,9 @@ docker run -d \
 ## 真实案例：MySQL 与持久化数据
 
 本例展示卷为何至关重要。若不使用卷，删除 MySQL 容器将导致所有数据彻底丢失。
+
+![Overlay network](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-overlay-network.png)
+
 
 ```bash
 # 创建网络与卷

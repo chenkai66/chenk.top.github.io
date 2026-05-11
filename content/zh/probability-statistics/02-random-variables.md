@@ -27,6 +27,9 @@ translationKey: "probability-statistics-2"
 
 **定义。** 一个**随机变量** $X$ 是从样本空间到实数集的函数：
 
+![Discrete vs continuous](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-discrete-vs-continuous.png)
+
+
 $$X: \Omega \to \mathbb{R}$$
 
 且对任意实数 $x$，集合 $\{\omega \in \Omega : X(\omega) \leq x\}$ 是 $\mathcal{F}$ 中的一个事件。
@@ -40,6 +43,9 @@ $$X: \Omega \to \mathbb{R}$$
 ## 离散型随机变量
 
 若一个随机变量取值于可数集（有限或可数无限），则称其为**离散型随机变量（Discrete Random Variable）**。
+
+![Distribution connections](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-connections.png)
+
 
 ### 概率质量函数（PMF）
 
@@ -56,11 +62,17 @@ $$p_X(x) = P(X = x)$$
 
 任意随机变量（离散或连续）的**累积分布函数（Cumulative Distribution Function, CDF）** 定义为：
 
+![CDF comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-cdf-comparison.png)
+
+
 $$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(离散情形)}.$$
 
 CDF 是右连续、非减函数，且满足 $\lim_{x \to -\infty} F(x) = 0$ 与 $\lim_{x \to \infty} F(x) = 1$。
 
 ## 关键离散分布
+
+
+![Quantile function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-quantile-function.png)
 
 ### Bernoulli 分布
 
@@ -171,6 +183,9 @@ $$f_X(x) = F_X'(x).$$
 ### 均匀分布（Uniform Distribution）
 
 $$X \sim \text{Uniform}(a, b), \quad f_X(x) = \frac{1}{b-a} \text{ for } x \in [a, b].$$
+
+![Key distributions gallery](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-gallery.png)
+
 
 - **均值：** $E[X] = (a+b)/2$
 - **方差：** $\text{Var}(X) = (b-a)^2/12$

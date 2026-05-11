@@ -70,6 +70,9 @@ The foreign key constraint `REFERENCES users(user_id)` prevents this. Consistenc
 
 **Definition**: Concurrently executing transactions produce the same result as if they ran sequentially.
 
+![Isolation levels comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-isolation-levels.png)
+
+
 **What breaks without it**:
 
 ```sql
@@ -140,6 +143,9 @@ The SQL standard defines four isolation levels, each allowing different concurre
 ### The Three Anomalies
 
 Before we look at isolation levels, let us define the anomalies precisely.
+
+![Isolation level anomalies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-isolation-anomalies.png)
+
 
 **Dirty Read**: Transaction A reads data written by Transaction B before B commits. If B rolls back, A has read data that never officially existed.
 
@@ -237,6 +243,9 @@ PostgreSQL defaults to READ COMMITTED. MySQL (InnoDB) defaults to REPEATABLE REA
 
 Multi-Version Concurrency Control (MVCC) is the mechanism that makes isolation levels practical. Instead of blocking readers when writers are active (which kills performance), MVCC keeps multiple versions of each row.
 
+![Multi-version concurrency control](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-mvcc-timeline.png)
+
+
 ### PostgreSQL MVCC
 
 In PostgreSQL, each row has hidden system columns:
@@ -287,6 +296,9 @@ The key insight: **reads never block writes, and writes never block reads.** Thi
 ## Locking
 
 Despite MVCC, databases still need locks when multiple transactions write to the same data.
+
+![Lock types hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-lock-types.png)
+
 
 ### Row-Level Locks
 
@@ -380,6 +392,9 @@ Use cases: cron job coordination (only one instance runs), rate limiting, distri
 ## Deadlocks
 
 A deadlock occurs when two transactions each hold a lock that the other needs.
+
+![Deadlock detection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-deadlock-detection.png)
+
 
 ```sql
 -- Transaction A                      -- Transaction B

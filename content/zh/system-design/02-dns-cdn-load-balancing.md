@@ -24,6 +24,9 @@ translationKey: "system-design-2"
 
 域名系统（Domain Name System，DNS）是一个分布式、分层的数据库，用于将人类可读的域名映射为 IP 地址。当用户在浏览器中输入 `photos.example.com` 时，一系列 DNS 查询便已悄然启动，远早于你的任何一行应用代码执行。
 
+![DNS resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-dns-resolution.png)
+
+
 ### 解析流程
 
 DNS 解析包含两种查询模式：递归查询（recursive）和迭代查询（iterative）。
@@ -100,6 +103,9 @@ GeoDNS 是全局负载均衡的基础，但存在局限性：
 ## 内容分发网络（CDN）
 
 CDN 是一个全球分布的代理服务器网络，将内容缓存至靠近终端用户的边缘节点。当悉尼用户请求位于弗吉尼亚服务器上的图片时，CDN 会直接从悉尼边缘节点提供该资源。
+
+![CDN edge caching topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-cdn-topology.png)
+
 
 ### CDN 缓存机制
 
@@ -192,6 +198,9 @@ aws cloudfront create-invalidation \
 ## 第 4 层负载均衡（Layer 4 Load Balancing）
 
 第 4 层负载均衡器工作于传输层（TCP/UDP），仅依据 IP 地址与端口号做路由决策，不解析应用层载荷。
+
+![L4 vs L7 load balancing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-l4-vs-l7.png)
+
 
 ### 工作原理
 
@@ -349,6 +358,9 @@ server {
 
 负载均衡器必须探测后端健康状态，并停止向异常节点转发流量。主要分为两类。
 
+![Health check mechanisms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-health-checks.png)
+
+
 ### 主动健康检查（Active Health Checks）
 
 负载均衡器周期性向各后端发送探针请求，并评估响应。
@@ -420,6 +432,9 @@ upstream api_servers {
 ## 全局服务器负载均衡（GSLB）
 
 GSLB 在多个地理区域间分发流量，结合 DNS 路由与健康检查，将用户导向最近且健康的区域数据中心。
+
+![Global server load balancing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/02-gslb.png)
+
 
 ### GSLB 架构
 

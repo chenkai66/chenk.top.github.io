@@ -23,6 +23,9 @@ translationKey: "system-design-1"
 
 系统设计，是为满足特定需求而定义系统架构、组件、模块、接口及数据流的过程。但这个教科书式的定义并未触及要害。在实践中，系统设计是一门在不确定性中做出明智权衡的学科。
 
+![Latency numbers every programmer should know](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-latency-numbers.png)
+
+
 每一个系统设计决策都隐含权衡：
 - 更多缓存 → 更低延迟，但一致性更难保证  
 - 更多副本 → 更高可用性，但运维复杂度上升  
@@ -48,6 +51,9 @@ translationKey: "system-design-1"
 
 在深入估算技巧之前，先明确支撑一切优秀系统设计的三大基石：
 
+![Availability nines and downtime](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-availability-nines.png)
+
+
 **可扩展性（Scalability）**：系统能随增长（更多用户、更多数据、更多请求）而平滑扩容，无需根本性重构。可扩展性分为两类：垂直扩展（升级单机硬件）和水平扩展（增加机器数量）。后者几乎总是首选——它没有理论上限，且天然提供冗余。
 
 **可靠性（Reliability）**：即使发生故障（硬件损坏、软件缺陷、人为误操作、流量突增），系统仍能持续正确运行。可靠性通过冗余、故障隔离与优雅降级来构建。
@@ -60,9 +66,15 @@ translationKey: "system-design-1"
 
 系统设计中最宝贵的一项技能，就是快速、粗略地估算关键数量级。你不需要精确数字，你需要的是**数量级上的正确性**。误差 2 倍以内完全可接受；误差达 100 倍，则意味着你的架构方向已错。
 
+![Capacity estimation workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-capacity-estimation.png)
+
+
 ### 2 的幂次（Powers of 2）
 
 牢记这些值。它们在存储、内存与网络容量估算中反复出现。
+
+![Powers of 2 quick reference](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-powers-of-two.png)
+
 
 | 幂次 | 精确值 | 近似值 |
 |------|--------|--------|
@@ -110,6 +122,9 @@ translationKey: "system-design-1"
 ## 存储估算
 
 以下是估算存储需求的一般流程。
+
+![System design framework](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-system-design-framework.png)
+
 
 **步骤 1：确定日活跃用户数（DAU）**
 

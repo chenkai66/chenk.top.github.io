@@ -23,6 +23,9 @@ The previous articles taught you how to run containers with `docker run`, pass p
 
 A typical web application has multiple services:
 
+![Compose architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-architecture.png)
+
+
 - A frontend (React, Vue, or server-rendered HTML)
 - A backend API (Python, Node.js, Go)
 - A database (PostgreSQL, MySQL)
@@ -35,6 +38,9 @@ Each service is its own container. Without Compose, starting this stack means ru
 ## docker-compose.yml Basics
 
 Here's the Compose equivalent of the commands above:
+
+![Health check flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-healthcheck-flow.png)
+
 
 ```yaml
 services:
@@ -118,6 +124,9 @@ The project name defaults to the directory name. A project in `~/projects/myapp/
 ## Compose File Structure
 
 A compose file has four top-level keys:
+
+![Compose networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-networking.png)
+
 
 ```yaml
 services:    # Container definitions (required)
@@ -331,6 +340,9 @@ DB_NAME=myapp
 The `init.sql` creates the tasks table on first start. PostgreSQL automatically runs scripts in `/docker-entrypoint-initdb.d/` when the data volume is empty.
 
 ## Service Dependencies
+
+
+![Service dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-service-dependency.png)
 
 ### depends_on
 
@@ -582,6 +594,9 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-co
 ## Scaling Services
 
 Compose can run multiple instances of a service:
+
+![Scaling pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-scaling-pattern.png)
+
 
 ```bash
 # Scale the worker service to 3 instances

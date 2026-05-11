@@ -23,6 +23,9 @@ Knowing how databases work internally is half the battle. The other half is keep
 
 Your schema will change. New features require new columns, new tables, new indexes. The question is how to evolve the schema without downtime.
 
+![Schema evolution strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-schema-evolution.png)
+
+
 ### Migration Tools
 
 | Tool | Language | Database Support | Key Feature |
@@ -33,6 +36,9 @@ Your schema will change. New features require new columns, new tables, new index
 | Alembic | Python (SQLAlchemy) | Any SQLAlchemy-supported DB | Auto-generation from models |
 | Prisma Migrate | TypeScript | PostgreSQL, MySQL, SQLite, MongoDB | Schema-first, auto-generated SQL |
 | dbmate | Go | PostgreSQL, MySQL, SQLite, ClickHouse | Simple, framework-agnostic |
+
+![Migration workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-migration-workflow.png)
+
 
 ### Migration File Structure
 
@@ -205,6 +211,9 @@ ALTER TABLE users DROP COLUMN name;
 
 Every database connection consumes resources: memory (5-10 MB per connection in PostgreSQL), file descriptors, and CPU for process/thread management. Without connection pooling, a spike in application instances can exhaust the database's connection limit.
 
+![Connection pooling](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-connection-pooling.png)
+
+
 ### The Problem
 
 ```
@@ -323,6 +332,9 @@ HikariDataSource ds = new HikariDataSource(config);
 ```
 
 ## Database Monitoring
+
+
+![Database monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-monitoring-dashboard.png)
 
 ### Key Metrics
 
@@ -496,6 +508,9 @@ LIMIT 20;
 ```
 
 ## Backup Strategies
+
+
+![Backup strategy comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-backup-strategy.png)
 
 ### Logical Backups
 

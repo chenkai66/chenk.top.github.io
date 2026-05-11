@@ -38,6 +38,9 @@ translationKey: "python-engineering-2"
 
 Python 生态中存在两种主流项目结构。
 
+![Flat vs src layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-flat-vs-src.png)
+
+
 ### 平铺布局（Flat Layout）
 
 ```
@@ -95,6 +98,9 @@ my_tool/
 
 当一个目录包含 `__init__.py` 文件时，它即成为一个 Python 包。该文件可以为空，也可包含初始化逻辑。
 
+![__init__.py patterns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-init-purpose.png)
+
+
 ```python
 # src/my_tool/__init__.py
 
@@ -135,6 +141,9 @@ __all__ = ["download_file", "validate_url", "format_size"]
 
 自 Python 3.3 起，不含 `__init__.py` 的目录可作为命名空间包（namespace package），允许多个物理目录共同构成一个逻辑包。**除非你在构建插件系统，否则务必包含 `__init__.py`。**
 
+![Package structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-package-structure.png)
+
+
 ## 相对导入 vs 绝对导入
 
 ```python
@@ -163,6 +172,9 @@ from ..other_module import something  # 父包
 ### 循环导入（Circular Imports）
 
 当模块 A 导入模块 B，而模块 B 又导入模块 A 时，即发生循环导入：
+
+![Import resolution order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-import-resolution.png)
+
 
 ```python
 # core.py
@@ -284,6 +296,9 @@ if __name__ == "__main__":
 ## 使用 `argparse` 构建 CLI
 
 标准库 `argparse` 是构建命令行接口的基础方案：
+
+![CLI entry point architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-cli-architecture.png)
+
 
 ```python
 # src/my_tool/cli.py

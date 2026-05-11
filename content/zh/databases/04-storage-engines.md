@@ -22,6 +22,9 @@ translationKey: "databases-4"
 
 数据库从不直接按行读写磁盘。磁盘 I/O 的最小单位是 **页（Page）**（也称块，Block），典型大小为 4 KB、8 KB 或 16 KB。
 
+![Database page structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-page-structure.png)
+
+
 ```
 表空间（逻辑容器）
   └── 数据文件（磁盘上的物理文件）
@@ -238,6 +241,9 @@ SSTable 格式：
 - 清除墓碑（Tombstones，即删除标记）
 - 减少读取时需检查的 SSTable 数量
 
+![LSM-tree compaction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-compaction-process.png)
+
+
 两种主流合并压缩策略：
 
 **大小分层合并（Size-Tiered Compaction）**（写优化）：
@@ -279,6 +285,9 @@ SSTable 格式：
 | **适用场景** | 读密集型 OLTP、随机读 | 写密集型负载、时序数据 |
 | **并发控制** | MVCC + 行锁 | 无锁读（SSTable 不可变） |
 
+![B-tree vs LSM-tree tradeoffs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-btree-vs-lsm.png)
+
+
 **写放大（Write Amplification）**：磁盘总写入字节数 / 应用逻辑写入字节数。例如，你写入 1 KB 数据，但引擎共写入 10 KB（含索引更新、页重写、合并压缩），则写放大为 10x。
 
 **读放大（Read Amplification）**：回答一次点查询（Point Query）所需的磁盘读次数。B-Tree：通常为 1（页已缓存，或单次树遍历）。LSM-Tree：可能为每层一次读。
@@ -288,6 +297,9 @@ SSTable 格式：
 ## 预写日志（Write-Ahead Log, WAL）
 
 WAL（MySQL 中亦称重做日志 Redo Log）是持久性的基石。**任何数据页被修改前，其变更必须先写入 WAL**。
+
+![Write-ahead log flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-wal-flow.png)
+
 
 ```
 带 WAL 的写入流程：
@@ -321,6 +333,9 @@ SHOW VARIABLES LIKE 'innodb_flush_log_at_trx_commit';
 ### 检查点（Checkpoint）
 
 **检查点（Checkpoint）** 是指缓冲池中所有脏页被刷入磁盘数据文件的时刻。检查点之后，该点之前的 WAL 条目便不再需要用于崩溃恢复。
+
+![Checkpoint flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-checkpoint-flow.png)
+
 
 ```
 时间线：

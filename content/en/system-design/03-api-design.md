@@ -24,6 +24,9 @@ Every API style exists because it solves a specific set of problems well, and ev
 
 REST (Representational State Transfer) is an architectural style, not a protocol. It was defined by Roy Fielding in his 2000 doctoral dissertation, but what most people call "REST" is really "HTTP-based APIs that use JSON."
 
+![REST vs gRPC vs GraphQL](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png)
+
+
 ### Core Concepts
 
 REST models everything as a **resource**, identified by a URL. Operations on resources map to HTTP methods.
@@ -155,6 +158,9 @@ HTTP status codes exist for a reason. Middleware, proxies, and client libraries 
 ## gRPC: The Performance Protocol
 
 gRPC is a high-performance, open-source RPC framework developed by Google. It uses Protocol Buffers (protobuf) for serialization and HTTP/2 for transport.
+
+![API versioning strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-versioning.png)
+
 
 ### Protocol Buffers
 
@@ -474,6 +480,9 @@ Mitigation: query depth limiting, query cost analysis, persisted queries (only a
 
 Rate limiting protects your API from abuse and ensures fair resource allocation. Three common algorithms:
 
+![Token bucket rate limiting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rate-limiting.png)
+
+
 ### Token Bucket
 
 A bucket holds tokens. Each request consumes one token. Tokens are added at a fixed rate. When the bucket is empty, requests are rejected.
@@ -591,6 +600,9 @@ X-RateLimit-Reset: 1689436800
 
 An operation is idempotent if performing it multiple times has the same effect as performing it once. This is critical for reliability because network failures cause retries, and retries must not create duplicate side effects.
 
+![Idempotency key pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png)
+
+
 HTTP methods and idempotency:
 - **GET**: Naturally idempotent (reading data does not change state)
 - **PUT**: Naturally idempotent (replacing a resource with the same data is a no-op)
@@ -652,6 +664,9 @@ If the client retries (network timeout, 5xx error), the server recognizes the du
 ## API Authentication
 
 A brief overview of common authentication mechanisms:
+
+![API authentication methods](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-auth.png)
+
 
 **API Keys**: Simple, suitable for server-to-server communication. Include in a header (`X-API-Key: abc123`) or query parameter. Easy to implement but hard to scope (all-or-nothing access).
 

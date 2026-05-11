@@ -23,6 +23,9 @@ Every developer has heard the phrase "it works on my machine." Virtual machines 
 
 Consider deploying a Python web application. You need Python 3.11, specific pip packages, a particular version of libssl, and some system-level configuration. Your colleague's app needs Python 3.9 and a conflicting libssl version. The staging server runs Ubuntu 20.04 while production runs Amazon Linux 2.
 
+![VMs vs containers comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-vm-vs-container.png)
+
+
 Virtual machines solve this by giving each application its own entire operating system. It works, but it's wasteful. Each VM carries:
 
 - A full kernel (hundreds of MB)
@@ -36,9 +39,15 @@ Containers solve the same isolation problem by sharing the host kernel and isola
 
 A container is not a lightweight VM. That analogy is convenient but misleading. A container is a regular Linux process (or group of processes) with three kernel features applied to it:
 
+![Container architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-container-architecture.png)
+
+
 ### Namespaces — What the Process Can See
 
 Linux namespaces partition kernel resources so that one set of processes sees one set of resources while another set sees a different set. There are several namespace types:
+
+![Namespaces and cgroups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-namespace-cgroup.png)
+
 
 | Namespace | Isolates | Effect |
 |-----------|----------|--------|
@@ -76,6 +85,9 @@ This is why starting a container is fast: there's no filesystem to copy. The con
 
 The architectural difference is fundamental. Here's how the two stacks compare (imagine this as a diagram):
 
+![Resource overhead comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-resource-comparison.png)
+
+
 **Virtual Machine stack (bottom to top):**
 ```
 Hardware → Host OS → Hypervisor → [Guest OS + Bins/Libs + App] per VM
@@ -107,6 +119,9 @@ When do you still want VMs? When you need strong security isolation (multi-tenan
 ## The Container Ecosystem: OCI, Docker, containerd, Podman
 
 Docker popularized containers, but it's not the only player. Understanding the ecosystem prevents confusion later.
+
+![Container isolation layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-isolation-layers.png)
+
 
 ### The OCI Standard
 

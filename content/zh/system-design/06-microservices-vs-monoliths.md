@@ -24,6 +24,9 @@ translationKey: "system-design-6"
 
 单体是一个**单一可部署单元**，包含应用全部功能。整个代码库被统一编译、统一部署；所有模块共享同一进程、同一内存空间、同一数据库。
 
+![Monolith vs microservices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-monolith-vs-micro.png)
+
+
 ### 为什么单体架构行之有效
 
 **简洁性（Simplicity）**：一个代码库、一条部署流水线、一个数据库、一套日志。新开发者只需克隆仓库，运行 `docker-compose up`，几分钟内即可在本地启动完整系统。
@@ -155,6 +158,9 @@ def check_module_boundaries():
 
 限界上下文是**特定领域模型被定义并适用的边界**。在此边界内，术语具有精确、无歧义的含义；跨越边界时，同一术语可能指向不同概念。
 
+![DDD bounded contexts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-ddd-bounded-contexts.png)
+
+
 示例：在电商系统中，“Order”（订单）在不同上下文中含义迥异：
 
 - **销售上下文（Sales context）**：订单是客户的购买意向，含定价、折扣与支付条款  
@@ -267,6 +273,9 @@ def get_user(user_id: str) -> dict:
 
 当下游服务持续失败时，继续发送请求不仅浪费资源，更会引发级联故障。熔断器可及时“止血”。
 
+![Circuit breaker state machine](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-circuit-breaker.png)
+
+
 ### 三种状态
 
 熔断器拥有三个状态：
@@ -360,6 +369,9 @@ def process_payment(order):
 
 在微服务架构中，单个用户请求可能穿越 5–10 个服务。出问题时，你必须能跨所有服务追踪该请求。
 
+![Distributed tracing timeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-distributed-tracing.png)
+
+
 ### OpenTelemetry
 
 OpenTelemetry 是分布式追踪的行业标准，它通过传播 trace context（trace ID + span ID）贯穿所有服务调用。
@@ -415,6 +427,9 @@ def create_order():
 ## API 网关（API Gateway）
 
 API 网关位于外部客户端与内部服务之间，提供统一入口点。
+
+![API gateway pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-api-gateway.png)
+
 
 ### 网关职责
 

@@ -38,6 +38,9 @@ The benefits cascade:
 
 Modern systems have caches at every layer. Understanding each layer prevents you from solving the wrong problem.
 
+![Cache layers in a web application](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/04-cache-layers.png)
+
+
 ### Client-Side Cache
 
 The browser caches HTTP responses based on `Cache-Control` headers.
@@ -112,6 +115,9 @@ innodb_buffer_pool_instances = 8  # Reduce contention
 ## Caching Patterns
 
 There are four fundamental patterns for integrating a cache with a database. Each has different consistency guarantees and failure modes.
+
+![Caching patterns comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/04-caching-patterns.png)
+
 
 ### Cache-Aside (Lazy Loading)
 
@@ -285,6 +291,9 @@ def get_user_read_through(user_id: str) -> dict:
 
 When a cache reaches capacity, it must decide which entries to remove. The choice of eviction policy significantly affects cache hit rate.
 
+![Cache eviction policies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/04-eviction-policies.png)
+
+
 ### Policy Comparison
 
 | Policy | How It Works | Hit Rate | Overhead | Best For |
@@ -328,6 +337,9 @@ Redis uses an approximated LRU algorithm. Instead of tracking the exact LRU orde
 ## Redis as a Cache
 
 Redis is the de facto standard for application-level caching. Here is a practical configuration.
+
+![Redis architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/04-redis-architecture.png)
+
 
 ### Redis Configuration for Caching
 
@@ -477,6 +489,9 @@ This requires a version lookup but guarantees you never read stale data. The tra
 ## The Thundering Herd Problem
 
 When a popular cache entry expires, hundreds of concurrent requests simultaneously experience a cache miss and all query the database for the same data. This spike can overwhelm the database.
+
+![Thundering herd problem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/04-thundering-herd.png)
+
 
 ### Visualization
 

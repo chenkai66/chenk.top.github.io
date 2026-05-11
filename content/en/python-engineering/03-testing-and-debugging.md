@@ -23,6 +23,9 @@ Tests are not bureaucracy. They are the fastest way to know that your code does 
 
 Writing tests costs time up front. Not writing tests costs more time later. Here is the math:
 
+![Testing pyramid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-test-pyramid.png)
+
+
 | Activity | Without Tests | With Tests |
 |----------|--------------|------------|
 | Initial development | Faster (no tests to write) | Slower (tests add 20-40% time) |
@@ -151,6 +154,9 @@ def test_float_division():
 ## Fixtures: Reusable Test Setup
 
 Fixtures replace the `setUp`/`tearDown` pattern from unittest. They provide test dependencies through function arguments.
+
+![Fixture scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png)
+
 
 ### Basic Fixture
 
@@ -303,6 +309,9 @@ def test_monkeypatch_env(monkeypatch):
 
 Instead of writing separate test functions for each case, use `@pytest.mark.parametrize`:
 
+![Parametrized tests](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png)
+
+
 ```python
 import pytest
 
@@ -355,6 +364,9 @@ def test_filename_from_url(url, expected_filename):
 ## Mocking: Isolating Your Code
 
 When testing a function that calls an external service, you do not want your tests to make real HTTP requests. Mocking replaces parts of your code with controlled fakes.
+
+![Mock architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png)
+
 
 ### unittest.mock.patch
 
@@ -418,6 +430,9 @@ def test_download_with_env_config(monkeypatch):
 ## Coverage: Measuring What Is Tested
 
 Install pytest-cov:
+
+![Coverage report](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-coverage-report.png)
+
 
 ```bash
 (.venv) $ pip install pytest-cov
