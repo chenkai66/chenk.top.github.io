@@ -69,6 +69,8 @@ A healthcare startup with one ML engineer chose to fine-tune BioBERT for clinica
 
 ## 2. The End-to-End Transfer Learning Pipeline
 
+![End-to-End Transfer Learning Pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications/12-pipeline.png)
+
 A production transfer learning system has six stages. Most tutorials cover stage 3 (fine-tuning) and ignore the other five.
 
 ### 2.1 Pretrained Model Selection
@@ -459,6 +461,8 @@ A/B tests measure **what** happened, but user feedback explains **why**.
 
 ## 8. Monitoring and Maintaining Production Models
 
+![Production Model Monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications/12-monitoring.png)
+
 A deployed model is not a static artifact. Inputs drift, user behavior changes, and upstream systems evolve. Monitoring detects problems before they become incidents.
 
 ### 8.1 What to Monitor
@@ -483,6 +487,8 @@ Track the downstream impact (revenue, conversions, user satisfaction). A stable 
 - Use the PSI threshold of 0.25 as a "retrain now" signal.
 
 ## 9. Return on Investment (ROI)
+
+![ROI Analysis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications/12-roi.png)
 
 Leadership cares about **business impact**, not validation loss.
 
