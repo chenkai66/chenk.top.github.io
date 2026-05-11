@@ -23,7 +23,6 @@ Serverless 不是说没有服务器，而是让你不再操心服务器。你写
 
 这篇文章咱们聊聊阿里云上两个 Serverless 核心组件：函数计算 FC（执行引擎）和事件总线 EventBridge（事件路由层）。读完后，我们会亲手搭建一个完整的事件驱动图像处理流水线，文件一落 OSS 自动触发 resize、加水印、生成缩略图。
 
-![Serverless](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/cover.png)
 
 ## 什么时候该用 Serverless（什么时候不该用）
 

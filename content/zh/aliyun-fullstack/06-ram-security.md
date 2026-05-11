@@ -22,7 +22,6 @@ translationKey: "aliyun-fullstack-6"
 
 那天我配了 RAM 用户，轮转了所有 access key，开了 MFA，凡是沾 frontend 的地方都开始用 STS。这篇文章就是把我在这一过程中学到的东西全整理出来了，结构安排得让你一个下午就能搞定，不用非得出了事故才去学。
 
-![RAM and Security](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/cover.png)
 
 安全组——也就是网络层防火墙——我们在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 讲过了。这篇讲的是身份层：谁能做什么、怎么加密数据、怎么审计所有操作。想用 Terraform 管安全，看 [Terraform Part 6: LLM Gateway and Secrets](/zh/terraform-agents/06-llm-gateway-and-secrets/)。
 

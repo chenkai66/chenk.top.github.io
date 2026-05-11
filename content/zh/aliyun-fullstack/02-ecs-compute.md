@@ -20,7 +20,6 @@ translationKey: "aliyun-fullstack-2"
 
 这篇文章就是 ECS 的完全指南。我们从 ECS 到底是什么讲起，穿过实例家族和定价模型，最后用 CLI 从零搭建一个生产级的应用服务器。读完这篇，你就有足够的实战知识去为真实业务配置、加固和运维 ECS 实例了。
 
-![ECS Compute](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/cover.png)
 
 ## ECS 到底是什么
 

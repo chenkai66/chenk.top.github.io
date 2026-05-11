@@ -19,7 +19,6 @@ translationKey: "aliyun-fullstack-3"
 ---
 我在云上排查过的每一次故障，追根溯源最后都指向了网络。要么是 CIDR 规划没做好，半年后 IP 不够用了；要么是路由缺失，流量在层级间静默丢弃；要么是安全组配置极端，要么对 `0.0.0.0/0` 开放了 22 端口（哈喽，黑客朋友），要么锁得太死导致健康检查失败，负载均衡不停剔除健康实例。把网络层搞定，是部署任何其他东西之前最重要的一步，也是事后补救最痛苦的一步——因为修改 VPC CIDR 意味着要重建里面的所有资源。
 
-![VPC Networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/cover.png)
 
 我们在 [Part 1](/zh/aliyun-fullstack/01-ecosystem-map/) 搭建了基础 VPC，现在要深入细节了。读完这篇，你将拥有一个生产级的多可用区网络：层级隔离、安全边界清晰、通过 NAT 访问互联网、通过 SLB 负载均衡。放入这些子网的 ECS 实例会在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)` 讲解。如果你想用 Terraform setup VPC，参考 [Terraform Part 3: VPC and Security Baseline](/zh/terraform-agents/03-vpc-and-security-baseline/)。
 

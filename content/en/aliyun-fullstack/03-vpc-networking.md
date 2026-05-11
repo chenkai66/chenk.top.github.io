@@ -20,7 +20,6 @@ translationKey: "aliyun-fullstack-3"
 
 Every outage I have debugged in the cloud ultimately traced back to networking. Bad CIDR planning that ran out of IPs six months in. Missing routes that silently dropped traffic between tiers. Security groups that were either wide open (hello, port 22 to `0.0.0.0/0`) or so locked down that health checks failed and the load balancer kept draining healthy instances. Getting the network layer right is the single most important thing you can do before deploying anything else, and it is the single most painful thing to fix retroactively because changing a VPC CIDR means recreating everything inside it.
 
-![VPC Networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/cover.png)
 
 We set up the basic VPC in [Part 1](/en/aliyun-fullstack/01-ecosystem-map/) -- now we are going deep. By the end of this article you will have a production-grade multi-AZ network with isolated tiers, proper security boundaries, internet access via NAT, and load balancing via SLB. The ECS instances that go into these subnets are covered in [Part 2](/en/aliyun-fullstack/02-ecs-compute/). For the Terraform approach to VPC setup, see [Terraform Part 3: VPC and Security Baseline](/en/terraform-agents/03-vpc-and-security-baseline/).
 

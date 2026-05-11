@@ -20,7 +20,6 @@ translationKey: "aliyun-fullstack-5"
 ---
 我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期的磁盘 I/O 飙升直接把服务打挂。InnoDB buffer pool 跟 OS page cache 抢内存，binary log 填盘速度比 cron 任务清理得还快，单线程复制到“备份”实例已经 lag 了九个小时。凌晨三点，我只能靠扩容磁盘救火。两周后，同样的问题又来了。那天我才真正明白托管数据库存在的意义——不是因为我不会跑 MySQL，而是我不想成为那个半夜三点被叫醒的人，只因 MySQL 判定 relay log 损坏，唯一的修复方案是用可能一致也可能不一致的冷备份重建副本。
 
-![RDS Database Layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/cover.png)
 
 这篇文章咱们聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还有那些让数据保持存活的运维实践——规格 sizing、复制、备份、监控、安全。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
 

@@ -19,7 +19,6 @@ translationKey: "aliyun-fullstack-4"
 ---
 以前我把用户上传的文件直接塞进 ECS 磁盘里。头像、PDF 发票、CSV 导出文件——统统丢在一台跑着 Flask 应用的 `ecs.g7.large` 实例的 `/var/data/uploads/` 目录下。我写了个 cron 任务，每六小时 rsync 一次到第二台 ECS 上，美其名曰“备份”。直到某个周五凌晨 3 点，批处理任务生成了 40GB 没人下载的报表，系统盘瞬间爆满到 100%，实例变成只读，应用直接挂掉，而 rsync 自从前一天晚上就没跑过。我丢了六小时的用户上传数据，整个周末都在跟客户道歉。就是那一周让我明白，对象存储不是什么“有了更好”的选项——它是你在云上构建一切的基础。应用服务器是 ephemeral 的，但数据不是。
 
-![OSS Object Storage](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/04-oss-storage/cover.png)
 
 这篇文章会从第一性原理讲到生产部署，带你彻底搞定阿里云对象存储 OSS。读完你就能拥有一个带生命周期管理、CDN 加速和 Python API 预签名上传的媒体存储后端。我们在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/) 和 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 已经搭好了 VPC 和 ECS 基础——现在加上这个能扛住实例故障、扩展到 PB 级、成本却只有块存储零头的存储层。
 

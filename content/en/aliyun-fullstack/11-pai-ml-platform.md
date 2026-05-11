@@ -25,7 +25,6 @@ PAI (Platform for AI) is Alibaba Cloud's managed ML platform. It is not one prod
 
 This article is the breadth-first tour. If you want the depth-first treatment -- instance selection strategies, DLC spot preemption survival, EAS cold-start mitigation -- there is a dedicated [PAI series](/en/aliyun-pai/01-platform-overview/) with five articles that go deep on each sub-product. Here we cover enough to understand what PAI is, when to reach for each component, and how to train and deploy a model end-to-end.
 
-![PAI ML Platform](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/cover.png)
 
 ## PAI platform overview
 

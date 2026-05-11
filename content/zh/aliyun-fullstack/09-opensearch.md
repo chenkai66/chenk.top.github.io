@@ -20,7 +20,6 @@ translationKey: "aliyun-fullstack-9"
 ---
 我做的第一个搜索引擎是用 Elasticsearch 搭的，配了一堆同义词表。花了六个月才勉强能看。每周都是死循环：用户说搜不到，我加同义词，结果把别的地方搞挂了，再加例外规则，如此往复。调优表格涨到了 400 行。我有三种语言的自定义 analyzer，boosting 配置连我自己都看不懂，重建索引要跑四个小时。后来我在一个侧边项目试了混合向量 + 关键词搜索，第一天效果就比之前好。不是好一点点，是“用户不再抱怨”那种好。这次经历彻底改变了我对搜索的看法，也是写这篇文章的原因。
 
-![OpenSearch](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/cover.png)
 
 搜索这活儿看着简单，其实坑很深。关键词搜索怕用户用的词跟文档作者不一样。向量搜索怕用户需要精确匹配（比如零件号、错误码、SKU）。过去三年行业里摸索出来的答案是把两者结合起来——而且越来越倾向于在上面加一层 LLM 来做 query 理解和答案生成。阿里云有个托管服务能搞定所有这些：OpenSearch。这篇文章会覆盖从基础关键词搜索到 LLM 驱动的 AI Search 的全 spectrum，最后给你一个能直接部署的完整商品搜索引擎。
 

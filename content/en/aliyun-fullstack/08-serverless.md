@@ -24,7 +24,6 @@ Serverless does not mean there are no servers. It means you stop thinking about 
 
 This article covers the two serverless building blocks on Alibaba Cloud: Function Compute (the execution engine) and EventBridge (the event routing layer). By the end, we will build a complete event-driven image processing pipeline that resizes, watermarks, and generates thumbnails -- triggered automatically when files land in OSS.
 
-![Serverless](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/cover.png)
 
 ## When serverless makes sense (and when it doesn't)
 

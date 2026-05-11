@@ -21,7 +21,6 @@ translationKey: "aliyun-fullstack-9"
 
 I built my first search engine with Elasticsearch and a pile of synonyms. It took six months to get decent results. Every week was the same cycle: users complained about missing results, I added more synonyms, broke something else, added exception rules, repeated. The relevance tuning spreadsheet grew to 400 rows. I had custom analyzers for three languages, a boosting config that nobody understood (including me), and a reindexing job that took four hours. Then I tried hybrid vector+keyword search on a side project and got better results on day one. Not marginally better -- "users stopped complaining" better. That experience changed how I think about search entirely, and it is the reason this article exists.
 
-![OpenSearch](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/cover.png)
 
 Search is deceptively hard. Keyword search fails when users use different words than the document author. Vector search fails when users need exact matches (part numbers, error codes, SKUs). The answer, as the industry has learned over the past three years, is to combine both -- and increasingly, to throw an LLM on top for query understanding and answer generation. Alibaba Cloud has a managed service for all of this: OpenSearch. This article covers the full spectrum, from basic keyword search to LLM-powered AI Search, and ends with a complete product search engine you can deploy.
 

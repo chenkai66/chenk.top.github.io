@@ -21,7 +21,6 @@ The first ECS instance I ever launched was wildly over-provisioned. I picked the
 
 This article is the complete guide to Elastic Compute Service. We start from what ECS actually is, move through instance families and pricing models, then build a production-ready app server from scratch using the CLI. By the end, you will have enough working knowledge to provision, secure, and operate ECS instances for real workloads.
 
-![ECS Compute](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/cover.png)
 
 ## What ECS actually is
 

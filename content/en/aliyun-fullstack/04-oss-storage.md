@@ -20,7 +20,6 @@ translationKey: "aliyun-fullstack-4"
 
 I used to store user uploads on the ECS disk. Profile pictures, PDF invoices, CSV exports -- all dumped into `/var/data/uploads/` on a single `ecs.g7.large` running my Flask app. I had a cron job that rsynced the directory to a second ECS instance every six hours as a "backup." Then one Friday at 3am, the system disk hit 100% because a batch job generated 40GB of reports nobody ever downloaded, the instance went read-only, the app crashed, and the rsync hadn't run since the previous evening. I lost six hours of user uploads and spent the weekend apologizing to customers. That was the week I learned that object storage is not a nice-to-have -- it is the foundation of everything you build in the cloud. Your application server is ephemeral. Your data is not.
 
-![OSS Object Storage](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/cover.png)
 
 This article covers Alibaba Cloud's Object Storage Service from first principles through production deployment. By the end, you will have a working media storage backend with lifecycle management, CDN acceleration, and presigned uploads from a Python API. We set up the VPC and ECS foundation in [Part 2](/en/aliyun-fullstack/02-ecs-compute/) and [Part 3](/en/aliyun-fullstack/03-vpc-networking/) -- now we add the storage layer that survives instance failures, scales to petabytes, and costs a fraction of block storage.
 

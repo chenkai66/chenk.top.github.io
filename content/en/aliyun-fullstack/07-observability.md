@@ -23,7 +23,6 @@ The worst production outage I ever caused took three hours to diagnose. A Node.j
 
 The lesson was simple and expensive: observability is not the thing you set up after your app is stable. It is the thing you set up before you deploy to production. Ideally before you even write the application code, because the observability stack shapes how you structure your logging, how you propagate request IDs, and how you instrument your dependencies. Set it up last and you retrofit everything. Set it up first and everything slots in naturally.
 
-![Observability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/cover.png)
 
 This article covers the full observability stack on Alibaba Cloud: SLS for logs, CloudMonitor for metrics, and ARMS for traces. By the end you will have a working monitoring setup for the production web application we have been building throughout this series. The ECS instances come from [Part 2](/en/aliyun-fullstack/02-ecs-compute/), the network from [Part 3](/en/aliyun-fullstack/03-vpc-networking/). For the Terraform approach to provisioning these monitoring resources, see [Terraform Part 7: Observability and Cost Control](/en/terraform-agents/07-observability-and-cost-control/).
 

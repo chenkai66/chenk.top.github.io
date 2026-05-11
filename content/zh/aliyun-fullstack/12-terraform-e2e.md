@@ -25,7 +25,6 @@ translationKey: "aliyun-fullstack-12"
 
 这是大结局。我们将把第一部分到第十一部分的所有内容编码进 Terraform 模块。读完这篇文章，你将拥有一个完整的、生产级的 Terraform 项目，一条命令就能 provision 你的整个阿里云基础设施。
 
-![Terraform E2E](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/cover.png)
 
 ## 为什么需要基础设施即代码？
 

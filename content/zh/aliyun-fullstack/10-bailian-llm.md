@@ -22,7 +22,6 @@ translationKey: "aliyun-fullstack-10"
 
 这不是篇浅尝辄止的概览。读完你会搞清楚整个模型目录，知道怎么调用所有模态（文本、图像、视频、音频、Embeddings），搞定那个让每个团队至少踩坑一次的异步任务模式，最后还能跑通一个多模态流水线：生成文章、配图、再念出来——全用 Python 实现。
 
-![Bailian LLM](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/cover.png)
 
 ## Bailian vs DashScope：到底啥是啥
 

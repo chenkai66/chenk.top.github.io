@@ -23,7 +23,6 @@ I once found a DashScope API key hardcoded in a public GitHub repo. It was mine.
 
 That was the day I set up RAM users, rotated every access key, enabled MFA, and started using STS for anything that touches a frontend. This article is everything I learned in the process, structured so you can do it in an afternoon instead of learning it from an incident.
 
-![RAM and Security](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/cover.png)
 
 Security groups -- the network-layer firewall -- are covered in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). This article is about the identity layer: who can do what, how to encrypt data, and how to audit everything. For Terraform-managed security, see [Terraform Part 6: LLM Gateway and Secrets](/en/terraform-agents/06-llm-gateway-and-secrets/).
 

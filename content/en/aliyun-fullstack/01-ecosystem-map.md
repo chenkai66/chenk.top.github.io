@@ -21,7 +21,6 @@ I spent my first week on Alibaba Cloud completely lost in a sea of product names
 
 This article is the lay of the land. We are going to map the entire Alibaba Cloud ecosystem to the AWS/Azure/GCP services you probably already know, set up an account from scratch, understand the billing model well enough to not get surprised, and deploy a working ECS instance by the end. No theory for the sake of theory. Everything here is something I use in production or consciously chose not to use after evaluating it.
 
-![Alibaba Cloud Ecosystem Map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/cover.png)
 
 ## Why Alibaba Cloud?
 

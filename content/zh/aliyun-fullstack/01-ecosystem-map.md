@@ -20,7 +20,6 @@ translationKey: "aliyun-fullstack-1"
 
 这篇文章就是全景地图。我们要把整个阿里云生态映射到你可能已经熟悉的 AWS/Azure/GCP 服务，从零 设置账号，搞清楚计费模型以免被账单吓一跳，最后部署一个能跑的 ECS 实例。不讲为了理论而理论的空话。这里提到的每一样东西，要么是我在生产环境用的，要么是我评估后决定不用的。
 
-![阿里云生态地图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/cover.png)
 
 ## 为什么选阿里云？
 

@@ -21,7 +21,6 @@ translationKey: "aliyun-fullstack-5"
 
 My self-managed MySQL on ECS lasted exactly four months before a disk I/O spike during peak traffic brought the whole thing down. The InnoDB buffer pool was fighting the OS page cache for memory, the binary log was filling the system disk faster than my cron job could rotate it, and the single-threaded replication to my "backup" instance was nine hours behind. I fixed it at 3 AM by throwing more disk at it. Then it happened again two weeks later. That is the day I learned why managed databases exist -- not because I cannot run MySQL, but because I do not want to be the person paged at 3 AM when MySQL decides the relay log is corrupted and the only fix is to rebuild the replica from a cold backup that may or may not be consistent.
 
-![RDS Database Layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/cover.png)
 
 This article covers the database layer on Alibaba Cloud: RDS for managed relational databases, PolarDB for when RDS hits its limits, and the operational practices -- sizing, replication, backup, monitoring, security -- that keep your data alive. The VPC where this database lives was set up in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). For the Terraform approach to database provisioning, see [Terraform Part 5](/en/terraform-agents/05-storage-for-agent-memory/).
 
