@@ -96,7 +96,7 @@ And here is what the window length looks like over time. Green bands are expansi
 
 The crucial invariant: **`left` only ever moves right**. So even though there is a `while` inside a `for`, the inner loop's *total* work across the whole run is bounded by `n`. That is the amortised-$O(n)$ argument.
 
-## LeetCode 3 — Longest Substring Without Repeating Characters
+### LeetCode 3 — Longest Substring Without Repeating Characters
 
 ![Longest substring without repeating characters: window expanding and contracting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/sliding-window-substr.gif)
 
@@ -144,7 +144,7 @@ public int lengthOfLongestSubstring(String s) {
 
 **Two implementation styles.** The version above uses *jump-left* — `left` leaps directly past the previous occurrence. The textbook alternative is *step-left*: hold a frequency map and `while count[s[right]] > 1: drop(s[left]); left += 1`. Both are $O(n)$; jump-left is one line shorter, step-left generalises better to "at most k" variants.
 
-## LeetCode 76 — Minimum Window Substring
+### LeetCode 76 — Minimum Window Substring
 
 **Problem.** Given `s` and `t`, return the shortest substring of `s` that contains every character of `t` (with multiplicities). Return `""` if no such window exists.
 
@@ -227,7 +227,7 @@ public String minWindow(String s, String t) {
 
 **The subtle line** is `if have[drop] == need[drop]: valid -= 1` — we decrement `valid` *before* the `have` count actually falls below the threshold, because we're about to make it fall. Get the order wrong and the counter desyncs.
 
-## LeetCode 567 — Permutation in String
+### LeetCode 567 — Permutation in String
 
 **Problem.** Return `True` iff some substring of `s2` is a permutation of `s1`.
 
@@ -306,7 +306,7 @@ public boolean checkInclusion(String s1, String s2) {
 
 The same skeleton solves **LC 438 (Find All Anagrams)** verbatim — just collect the start indices instead of returning early.
 
-## Variant: Sliding Window Maximum (Monotonic Deque)
+### Variant: Sliding Window Maximum (Monotonic Deque)
 
 When the window asks for the **min or max** of its elements, the simple "add / remove" trick is not enough — removing the current max means we need to know the next-best element instantly. The standard tool is a **monotonic deque** that stores values (or indices) in strictly decreasing order. The front of the deque is always the current window max.
 

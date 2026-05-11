@@ -48,7 +48,7 @@ Three guarantees come out of this design:
 - **Average-case `O(1)`.** With a reasonable hash function, the work per insert / lookup / delete does not grow with `n`.
 - **Worst-case `O(n)`.** If too many keys collide into the same slot, you degrade to a linear scan. In practice this only happens with adversarial input or a broken hash function.
 
-## Collisions are inevitable
+### Collisions are inevitable
 
 Two different keys can hash to the same slot — that is a **collision**. Hash tables handle them with one of two strategies:
 
@@ -59,7 +59,7 @@ Two different keys can hash to the same slot — that is a **collision**. Hash t
 
 You almost never implement collision handling yourself. But knowing the mechanism explains why hash tables can occasionally be slower than `O(1)` — and why a good hash function matters.
 
-## Hash table vs alternatives
+### Hash table vs alternatives
 
 Why reach for a hash table instead of a sorted array or a plain array?
 
@@ -67,7 +67,7 @@ Why reach for a hash table instead of a sorted array or a plain array?
 
 The gap is enormous as `n` grows. At `n = 1000`, a linear scan does ~1000 comparisons per lookup, binary search does ~10, a hash lookup does ~1. Memory is the price you pay: a Python `dict` carries roughly 8–16× the byte cost of a raw array, because it stores the hash, the key, the value, and keeps the table sparse to avoid collisions.
 
-## Pick the right structure
+### Pick the right structure
 
 Before you write code, decide what you actually need:
 
@@ -94,7 +94,7 @@ Input:  nums = [2, 7, 11, 15], target = 9
 Output: [0, 1]      # because 2 + 7 == 9
 ```
 
-## Brute force first
+### Brute force first
 
 The naive solution checks every pair, which is `O(n²)` time and `O(1)` space:
 
@@ -110,7 +110,7 @@ def two_sum_brute(nums, target):
 
 For `n = 10⁴` that is roughly 50 million comparisons. We can do better.
 
-## The hash table insight
+### The hash table insight
 
 While scanning left to right, every time we look at `num`, the question is not "is `num` in the array?" but "**have I already seen `target − num`?**" If yes, we have our pair. So we keep a map `value → index` of everything seen so far.
 
@@ -138,13 +138,13 @@ Two details that matter:
 - **Check before insert.** If you store `seen[num] = i` first, an input like `nums = [3, 0, 0]` with `target = 6` would happily pair `nums[0]` with itself.
 - **Return order.** `seen[complement]` is the *earlier* index, so it must come first: `[seen[complement], i]`.
 
-## Why it is `O(n)`
+### Why it is `O(n)`
 
 One pass through `nums` does `n` iterations. Each iteration is one dictionary lookup and possibly one insert — both `O(1)` average. Total: `O(n)` time, `O(n)` space (the dictionary holds at most `n` entries).
 
 You cannot do better in time *and* space for the unsorted version of this problem. If the array were already sorted, the two-pointer technique (covered in part 2) achieves `O(n)` time and `O(1)` space — but that requires a sort, which is `O(n log n)`.
 
-## Pattern: complement search
+### Pattern: complement search
 
 Whenever you are looking for **pairs that satisfy a relation involving the other element**, ask whether you can rephrase the problem as "for each `x`, is there a previously-seen `y` such that `f(x, y)` holds?" If yes, a hash table will usually win:
 
@@ -166,7 +166,7 @@ Output: [["eat", "tea", "ate"], ["tan", "nat"], ["bat"]]
 
 Two strings are anagrams if they have the same multiset of characters but in different orders. The whole game is to design a **key** that maps every anagram to the same bucket.
 
-## Approach 1 — sorted string as the key
+### Approach 1 — sorted string as the key
 
 The most direct canonical form: sort the characters.
 
@@ -185,7 +185,7 @@ def group_anagrams(strs: List[str]) -> List[List[str]]:
 
 Simple, generic, works for any character set. The cost is the sort: `O(k log k)` per string.
 
-## Approach 2 — character count as the key
+### Approach 2 — character count as the key
 
 If the alphabet is small (say lowercase English, 26 letters), counting characters is `O(k)` and we skip the sort:
 
@@ -207,7 +207,7 @@ def group_anagrams(strs: List[str]) -> List[List[str]]:
 
 The tuple matters. Dictionary keys must be **immutable and hashable** — a list cannot be a key, but its tuple version can.
 
-## Pattern: canonical form
+### Pattern: canonical form
 
 Whenever a problem says "group / find / count things that are equal up to some symmetry", ask **"what is the canonical representation that is the same for every member of an equivalence class?"** Then use that representation as a hash key.
 
@@ -263,7 +263,7 @@ The trace for `"abcabcbb"`:
 | 6 | `b` | `{a:3, b:6, c:5}` | 5 | `cb` | 3 |
 | 7 | `b` | `{a:3, b:7, c:5}` | 7 | `b` | 3 |
 
-## Pattern: variable-size window with a hash map
+### Pattern: variable-size window with a hash map
 
 Use this template whenever you need the **longest / shortest** substring or subarray satisfying a constraint that you can update in `O(1)` as you add or drop a single element:
 
@@ -294,7 +294,7 @@ Output: [1, 2]
 
 Step one is obvious — count frequencies with a hash map (or `Counter`). Step two is the interesting design choice: how do you pick the top `k`?
 
-## Approach 1 — heap (`O(n log k)`)
+### Approach 1 — heap (`O(n log k)`)
 
 Push each `(count, value)` pair through a min-heap of size `k`:
 
@@ -312,7 +312,7 @@ def top_k_frequent(nums: List[int], k: int) -> List[int]:
 
 `Counter.most_common` already uses a heap underneath. Clean, idiomatic, and good enough most of the time.
 
-## Approach 2 — bucket sort (`O(n)`)
+### Approach 2 — bucket sort (`O(n)`)
 
 Frequencies are bounded by `n`. So we can put each value into a bucket indexed by its count, then read the buckets back from highest to lowest:
 
@@ -342,7 +342,7 @@ def top_k_frequent(nums: List[int], k: int) -> List[int]:
 
 This is the classic "**counts are bounded, so use the count as an index**" trick. It is genuinely `O(n)` — no logarithmic factor — and shows up again in problems like Sort Characters by Frequency (LeetCode 451).
 
-## Pattern: frequency counting
+### Pattern: frequency counting
 
 Three Python idioms you will use constantly:
 

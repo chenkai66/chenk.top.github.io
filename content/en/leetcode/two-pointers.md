@@ -53,7 +53,7 @@ Each pattern is a different way of saying *"a comparison eliminates a slab of th
 
 ## Pattern 1 — Collision Pointers (Sorted Array)
 
-## The invariant
+### The invariant
 
 Two pointers `left` and `right` start at the ends of a sorted array and walk toward each other. The invariant is:
 
@@ -63,7 +63,7 @@ A comparison either confirms the current pair or rules out one of the boundary e
 
 ![Collision pointers walking through Two Sum II](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/two-pointers/fig1_collision_pointers.png)
 
-## LeetCode 167 — Two Sum II
+### LeetCode 167 — Two Sum II
 
 **Problem.** Given a sorted array `numbers` (1-indexed) and a target, return the 1-indexed positions of two numbers whose sum equals the target. Exactly one solution exists.
 
@@ -86,7 +86,7 @@ def two_sum_sorted(numbers: list[int], target: int) -> list[int]:
 
 **Complexity.** $O(n)$ time, $O(1)$ space. Each iteration moves at least one pointer toward the other; the loop ends when they meet.
 
-## LeetCode 11 — Container With Most Water
+### LeetCode 11 — Container With Most Water
 
 ![Container With Most Water: two pointers narrowing inward](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/two-pointers-container-water.gif)
 
@@ -113,7 +113,7 @@ def max_area(height: list[int]) -> int:
 
 The point worth memorizing: it is **not** true that the next pair will be larger; it is only true that no pair anchored at the discarded index can be. That is enough to make the greedy correct.
 
-## LeetCode 15 — 3Sum
+### LeetCode 15 — 3Sum
 
 **Problem.** Return every unique triplet `[a, b, c]` with `a + b + c == 0`.
 
@@ -164,7 +164,7 @@ Skipping any of these slots produces duplicate triplets on inputs like `[-2, 0, 
 
 ## Pattern 2 — Fast / Slow Pointers (Floyd's Tortoise and Hare)
 
-## The invariant
+### The invariant
 
 Two pointers move along the same sequence at different speeds (canonically slow $= 1$ step, fast $= 2$ steps). The invariant is:
 
@@ -174,7 +174,7 @@ The mechanism is purely arithmetic: inside a cycle the gap between fast and slow
 
 ![Fast and slow pointers detecting a cycle in a linked list](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/two-pointers/fig2_fast_slow_cycle.png)
 
-## LeetCode 141 — Linked List Cycle
+### LeetCode 141 — Linked List Cycle
 
 Given a linked list, determine if it has a cycle. Use `O(1)` extra space.
 
@@ -199,7 +199,7 @@ def has_cycle(head: ListNode | None) -> bool:
 
 **Why it has to be 1 vs 2, not 1 vs 3 or 1 vs 5.** Any speed pair $(a, b)$ with $a < b$ and $\gcd(b - a, \lambda) = 1$ works. The pair $(1, 2)$ is special because $b - a = 1$ always divides $\lambda$, so correctness holds *regardless* of the cycle length — no number-theoretic gotchas.
 
-## Cycle entry point (LeetCode 142)
+### Cycle entry point (LeetCode 142)
 
 Once `slow` and `fast` meet at some node `m` inside the cycle, reset one pointer to `head` and step both by 1. They meet again exactly at the cycle entry.
 
@@ -224,7 +224,7 @@ def detect_cycle(head: ListNode | None) -> ListNode | None:
 
 ## Pattern 3 — Sliding Window
 
-## The invariant
+### The invariant
 
 A window $[l, r]$ over an array or string is **valid** iff some constraint holds (e.g., no duplicate characters, sum $\ge k$, contains every required character). Sliding window applies when validity is **monotone in window contents**:
 
@@ -234,7 +234,7 @@ That monotonicity is what lets `left` advance without ever going back. Each inde
 
 ![Sliding window expanding right and shrinking left when a duplicate appears](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/two-pointers/fig3_sliding_window.png)
 
-## LeetCode 3 — Longest Substring Without Repeating Characters
+### LeetCode 3 — Longest Substring Without Repeating Characters
 
 Given a string, find the length of the longest substring without repeating characters.
 
@@ -261,7 +261,7 @@ def length_of_longest_substring(s: str) -> int:
 
 ## Pattern 4 — Partition Pointers (k-way)
 
-## The invariant
+### The invariant
 
 Maintain $k$ regions in the same array. With $k = 3$ (Dutch National Flag), three pointers `lo`, `mid`, `hi` carve the array into:
 
@@ -271,7 +271,7 @@ Each step processes `arr[mid]` and either swaps it into the low region, leaves i
 
 ![Dutch National Flag: three pointers carve the array into 0/1/2 regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/two-pointers/fig4_partition_pointers.png)
 
-## LeetCode 75 — Sort Colors (Dutch National Flag)
+### LeetCode 75 — Sort Colors (Dutch National Flag)
 
 Given an array with values 0, 1, and 2 representing red, white, and blue, sort them in-place so that same-colored elements are adjacent, in the order red, white, blue. Solve it in one pass.
 
@@ -294,7 +294,7 @@ def sort_colors(nums: list[int]) -> None:
 
 **The asymmetry between the 0 and 2 branches** is the single most-missed detail. When you swap into the **low** region, the displaced value used to live in `[lo, mid)`, which by invariant means it was already a `1` — safe to step past. When you swap into the **high** region, the displaced value came from `[mid+1, hi]`, which is **unclassified** — you must look at it next iteration, so `mid` does not advance.
 
-## LeetCode 283 — Move Zeroes (k = 2 partition)
+### LeetCode 283 — Move Zeroes (k = 2 partition)
 
 The two-region degenerate case: `[0, write)` are the non-zero values in original order, `[write, n)` is everything else.
 

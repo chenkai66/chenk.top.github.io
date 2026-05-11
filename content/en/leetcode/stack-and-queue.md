@@ -40,7 +40,7 @@ This part of the series walks the whole landscape end-to-end. We start from the 
 
 ## Stack and Queue Fundamentals
 
-## Stack — LIFO
+### Stack — LIFO
 
 A **stack** is a linear container in which the most recently inserted element is the first to leave. Think of a pile of plates: you add to the top and remove from the top. The interface is tiny:
 
@@ -81,7 +81,7 @@ int top = st.top();
 st.pop();
 ```
 
-## Queue — FIFO
+### Queue — FIFO
 
 A **queue** is the mirror image: the *oldest* element leaves first. Picture a line at a coffee shop. The standard interface is:
 
@@ -107,7 +107,7 @@ A practical mental model: **stack = function call history, queue = work to-do li
 
 ## Stack Classics
 
-## LeetCode 20 — Valid Parentheses
+### LeetCode 20 — Valid Parentheses
 
 > Given a string `s` containing only the characters `()[]{}`, decide whether every opening bracket is closed by the same type, in the correct nested order.
 
@@ -140,7 +140,7 @@ Figure 2 traces the algorithm on `({[]})`. Each column is one step: the highligh
 - Returning early on the first match without checking the rest of the string.
 - Returning `True` when the loop ends without checking that the stack is empty (`"((("` would pass).
 
-## LeetCode 155 — Min Stack
+### LeetCode 155 — Min Stack
 
 > Design a stack that, in addition to `push`, `pop`, `top`, supports `getMin()` in **O(1)**.
 
@@ -167,7 +167,7 @@ class MinStack:
 
 Every operation is O(1) and the space overhead is one extra integer per element. The "two parallel stacks" variant works too but is fiddlier when duplicates of the minimum appear (you must compare `<= ` instead of `<` on push, and pop the auxiliary stack only when the popped value equals the current min).
 
-## LeetCode 150 — Evaluate Reverse Polish Notation
+### LeetCode 150 — Evaluate Reverse Polish Notation
 
 Postfix notation eliminates parentheses by writing operators after their operands: `((2 + 1) * 3)` becomes `2 1 + 3 *`. The evaluation rule is a one-line stack invariant: **the stack always holds the operands waiting for their next operator**.
 
@@ -203,7 +203,7 @@ The pattern matches four families of questions:
 - next smaller element to the right → increasing stack
 - previous greater / previous smaller → same logic, scan from the right (or pre-process)
 
-## LeetCode 739 — Daily Temperatures
+### LeetCode 739 — Daily Temperatures
 
 > For each day `i`, how many days until a strictly warmer day? Output `0` if none.
 
@@ -286,7 +286,7 @@ That is what makes `heappush` and `heappop` cost **O(log n)**, while `peek` (roo
 
 In Python, `heapq` is always a min-heap. To get max-heap behaviour, push the negation of your key.
 
-## LeetCode 347 — Top K Frequent Elements
+### LeetCode 347 — Top K Frequent Elements
 
 > Return the `k` most frequent elements of `nums`.
 
@@ -328,7 +328,7 @@ The min-heap idea generalises beyond top-K: it is the same trick you use for **M
 
 A **deque** (double-ended queue) supports O(1) push/pop on **both** ends. It is exactly what you need when a sliding window asks for an extremum of its current contents.
 
-## LeetCode 239 — Sliding Window Maximum
+### LeetCode 239 — Sliding Window Maximum
 
 > Slide a window of size `k` across `nums`; return the max of each window.
 
@@ -364,7 +364,7 @@ Each index enters and leaves the deque at most once, so the total cost is O(n). 
 
 These two problems show up surprisingly often as warm-up questions for system-design interviews because they test whether you really *understand* the access patterns.
 
-## LeetCode 232 — Implement Queue using Stacks
+### LeetCode 232 — Implement Queue using Stacks
 
 A queue needs FIFO; a stack gives LIFO. Reversing twice gets you back to the original order, so we keep two stacks: an **input stack** for pushes and an **output stack** for pops. A pop that finds the output stack empty drains the input stack into it; otherwise it just pops the output top.
 
@@ -398,7 +398,7 @@ class MyQueue:
 
 `push` is O(1). `pop` and `peek` are O(1) **amortised**: every element is moved across at most once during its lifetime, so n operations cost O(n) total even though one individual `pop` may do a big shift.
 
-## LeetCode 225 — Implement Stack using Queues
+### LeetCode 225 — Implement Stack using Queues
 
 The reverse direction is uglier because rotation is expensive. The single-queue approach is the simplest: on every push, append `x`, then rotate the previous `n - 1` elements to the back so `x` sits at the front.
 

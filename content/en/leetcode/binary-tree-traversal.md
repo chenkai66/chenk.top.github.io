@@ -181,7 +181,7 @@ The two phases mirror the two halves of the recursive call: pushing onto the sta
 
 Two pitfalls trip people up here. First, forgetting `cur = cur.right` after popping creates an infinite loop, because the same node is pushed and popped forever. Second, treating the inner `while` as `if` only descends one step at a time and misses the leftmost grandchildren; you must drain the entire left spine before the first pop.
 
-## Preorder and postorder iteratively, in one paragraph each
+### Preorder and postorder iteratively, in one paragraph each
 
 **Preorder** is the easiest to convert. Push the root onto a stack, then loop: pop a node, record it, and push its right child *before* its left child so that the left child comes out first (LIFO):
 

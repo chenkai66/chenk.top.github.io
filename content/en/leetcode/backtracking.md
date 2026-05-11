@@ -101,7 +101,7 @@ DFS *traverses*: it visits each node once, never modifies what it walked over, a
 
 Example: `nums = [1,2,3]` -> `[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]`.
 
-## How the template specializes
+### How the template specializes
 
 - **Goal**: `len(path) == len(nums)`.
 - **Choices**: any number that hasn't been used yet.
@@ -112,7 +112,7 @@ The recursion tree for `[1,2,3]` is a perfect 3-2-1 fan-out — three first choi
 
 ![Backtracking: exploring the permutations tree for [1,2,3]](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/backtracking-permutations.gif)
 
-## Implementation
+### Implementation
 
 ```python
 from typing import List
@@ -141,7 +141,7 @@ class Solution:
         return result
 ```
 
-## Complexity
+### Complexity
 
 There are `n!` permutations and each one costs `O(n)` to copy into the result, so the total time is `O(n * n!)`. The recursion stack and the `path` array each take `O(n)` auxiliary space (the output is not counted).
 
@@ -153,7 +153,7 @@ Why `n!`? At depth 0 there are `n` legal choices, at depth 1 there are `n-1`, an
 
 Example: `candidates = [2,3,6,7], target = 7` -> `[[2,2,3], [7]]`.
 
-## How the template specializes
+### How the template specializes
 
 - **Goal**: `remain == 0`.
 - **Constraint pruning**: if `remain < 0`, abandon this branch immediately.
@@ -164,7 +164,7 @@ The decision tree for the example below shows pruning in action: every red `X` i
 
 ![Combination Sum decision tree with pruning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/backtracking/fig3_combinations_pruning.png)
 
-## Implementation
+### Implementation
 
 ```python
 from typing import List
@@ -189,7 +189,7 @@ class Solution:
         return result
 ```
 
-## Sort-then-break optimization
+### Sort-then-break optimization
 
 If you sort `candidates` first, the inner loop can `break` (not just `continue`) as soon as `candidates[i] > remain`, because every later candidate is even larger. On adversarial inputs this is a huge speedup.
 
@@ -203,7 +203,7 @@ for i in range(start, len(candidates)):
     path.pop()
 ```
 
-## Complexity
+### Complexity
 
 A clean upper bound is hard to write because reuse means paths can be longer than the input. With smallest candidate `m`, paths have length at most `target / m`, and at each step there are at most `n` choices, giving `O(n^(target/m))` worst case. Pruning shaves this down dramatically in practice. Space is `O(target / m)` for the recursion depth.
 
@@ -213,7 +213,7 @@ A clean upper bound is hard to write because reuse means paths can be longer tha
 
 Example: `nums = [1,2,3]` -> `[[],[1],[2],[1,2],[3],[1,3],[2,3],[1,2,3]]`.
 
-## How the template specializes
+### How the template specializes
 
 - **Goal**: there isn't a single goal — *every* node of the recursion tree is a valid subset, including the root (empty set). Save on entry to every call.
 - **Choices**: include `nums[i]` for `i >= start`, then recurse with `start = i + 1`.

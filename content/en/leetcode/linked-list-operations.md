@@ -46,7 +46,7 @@ class ListNode:
 
 That is the entire interface. Every algorithm in this article is just a sequence of `node.next = something` assignments performed in the right order, with the right safety checks.
 
-## Linked list vs. array
+### Linked list vs. array
 
 | Feature | Array | Linked list |
 |---|---|---|
@@ -89,7 +89,7 @@ This is the *"hello world"* of pointer manipulation. The challenge is that you h
 
 ![Reversing a linked list: prev, curr, next pointer dance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/linked-list-reverse.gif)
 
-## Iterative: three pointers, $O(1)$ space
+### Iterative: three pointers, $O(1)$ space
 
 The trick is to remember that flipping `curr.next = prev` immediately destroys our path forward, so we must save it first.
 
@@ -126,7 +126,7 @@ Return `prev = 3`, which now heads the reversed list.
 - Empty list (`head is None`): the loop body never runs, return `prev = None`.
 - Single node: one iteration, sets `1.next = None`, returns `1`.
 
-## Recursive: rewire on the way back up
+### Recursive: rewire on the way back up
 
 The recursive view says: *"reverse everything after `head`, then make the old `head.next` point back to `head`."*
 
@@ -158,7 +158,7 @@ The single line that confuses everyone is `head.next.next = head`. Read it slowl
 
 Then `head.next = None` cuts `head`'s outgoing link so the new tail terminates cleanly.
 
-## Iterative or recursive?
+### Iterative or recursive?
 
 | Approach | Time | Space | When to prefer |
 |---|---|---|---|
@@ -177,7 +177,7 @@ The interesting question here is not the merge — that is just standard two-poi
 
 ![Merging with a dummy node](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/linked-list-operations/fig4_merge.png)
 
-## Iterative with a dummy node
+### Iterative with a dummy node
 
 ```python
 def mergeTwoLists(l1, l2):
@@ -220,7 +220,7 @@ def mergeTwoLists(l1, l2):
 
 Return `dummy.next`.
 
-## Recursive variant
+### Recursive variant
 
 ```python
 def mergeTwoLists_recursive(l1, l2):
@@ -252,7 +252,7 @@ The brute-force solutions — hash every node, or count steps — are correct bu
 
 ![Floyd's cycle detection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/linked-list-operations/fig3_floyd_cycle.png)
 
-## Phase 1: detect the cycle
+### Phase 1: detect the cycle
 
 ```python
 def hasCycle(head):
@@ -268,7 +268,7 @@ def hasCycle(head):
 
 Why does it work? If there is no cycle, `fast` reaches `None` and the loop exits. If there is a cycle, both pointers are eventually trapped inside it, and because `fast` gains one node per step on `slow`, the gap shrinks by 1 per iteration and they must collide within at most $L$ iterations (where $L$ is the cycle length).
 
-## Phase 2: locate the cycle entrance
+### Phase 2: locate the cycle entrance
 
 ```python
 def detectCycle(head):
@@ -358,7 +358,7 @@ This problem comes up everywhere — operating system page caches, CDN edge cach
 
 ![LRU cache architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/linked-list-operations/fig5_lru.png)
 
-## Why both data structures?
+### Why both data structures?
 
 - A hash map alone gets us $O(1)$ lookup but no notion of recency.
 - A linked list alone tracks recency but lookup is $O(n)$.
