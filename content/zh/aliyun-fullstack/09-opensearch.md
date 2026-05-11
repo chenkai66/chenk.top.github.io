@@ -18,16 +18,16 @@ description: "From keyword search to AI-powered retrieval: OpenSearch service, v
 disableNunjucks: true
 translationKey: "aliyun-fullstack-9"
 ---
-我做的第一个搜索引擎是用 Elasticsearch 搭的，配了一堆同义词表。花了六个月才勉强能看。每周都是死循环：用户说搜不到，我加同义词，结果把别的地方搞挂了，再加例外规则，如此往复。调优表格涨到了 400 行。我有三种语言的自定义 analyzer，boosting 配置连我自己都看不懂，重建索引要跑四个小时。后来我在一个侧边项目试了混合向量 + 关键词搜索，第一天效果就比之前好。不是好一点点，是“用户不再抱怨”那种好。这次经历彻底改变了我对搜索的看法，也是写这篇文章的原因。
+我做的第一个搜索引擎是用 Elasticsearch 搭的，配了一堆同义词表。花了六个月才达到基本可用水平。每周陷入重复循环：用户反馈搜不到结果 → 我添加同义词 → 引发其他查询误匹配 → 再补充例外规则 → 如此反复。相关性调优配置增长至 400 行。我有三种语言的自定义 analyzer，boosting 配置逻辑高度复杂，已超出可维护边界。，重建索引要跑四个小时。后来我在一个侧边项目试了混合向量 + 关键词搜索，第一天效果就比之前好。效果提升显著，首次实现用户零投诉的搜索体验。这一实践经历重塑了我对搜索系统设计的理解，并直接催生了本文。
 
 
-搜索这活儿看着简单，其实坑很深。关键词搜索怕用户用的词跟文档作者不一样。向量搜索怕用户需要精确匹配（比如零件号、错误码、SKU）。过去三年行业里摸索出来的答案是把两者结合起来——而且越来越倾向于在上面加一层 LLM 来做 query 理解和答案生成。阿里云有个托管服务能搞定所有这些：OpenSearch。这篇文章会覆盖从基础关键词搜索到 LLM 驱动的 AI Search 的全 spectrum，最后给你一个能直接部署的完整商品搜索引擎。
+搜索表面简单，实则涉及多个易被低估的技术挑战。关键词搜索依赖字面匹配，难以应对用户查询词与文档用词不一致的情况（如术语差异、同义表达）。向量搜索基于语义相似度，对需严格字面匹配的场景（如零件号、错误码、SKU）支持较弱。过去三年，业界普遍采用混合搜索架构，并进一步集成 LLM 以增强 query 理解与答案生成能力。阿里云有个托管服务能搞定所有这些：OpenSearch。这篇文章会覆盖从基础关键词搜索到 LLM 驱动的 AI Search 的全 spectrum，最后给你一个能直接部署的完整商品搜索引擎。
 
 生成文中用到的 embeddings，请参考 [百炼系列，第二部分：Qwen LLM API](/zh/aliyun-bailian/02-qwen-llm-api/)。喂给搜索索引的数据库内容在 [第五部分：RDS](/zh/aliyun-fullstack/05-rds-database/) 里讲。想了解 RAG pipeline 的 LLM Engineering 视角，去看 [LLM Engineering 系列](/zh/llm-engineering/)。
 
 ## 阿里云上的搜索 landscape
 
-在深入 OpenSearch 之前，得先搞清楚阿里云上到底有哪些搜索选项。选错了要么浪费钱，要么浪费几个月迁移。
+在深入 OpenSearch 之前，得先搞清楚阿里云上到底有哪些搜索选项。方案选型失误可能导致成本浪费，甚至引发耗时数月的系统迁移。
 
 ![阿里云搜索类型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_search_types.png)
 
@@ -39,14 +39,14 @@ translationKey: "aliyun-fullstack-9"
 | **Lindorm Search** | 集成在 Lindorm 数据库里的搜索引擎 | Lindorm 已经是主存储时 | 全托管 | 是 |
 | **AnalyticDB (ADB)** | 支持向量索引的数据仓库 | 分析为主，搜索为辅 | 全托管 | 是 |
 
-决策树很简单：
+决策逻辑如下：
 
 - **你只想要个搜索引擎，别的不要** -- 用 OpenSearch。它的相关性调优最好，原生支持向量，还有 AI Search 插件。
-- **团队已经熟悉 Elasticsearch** -- 用托管 Elasticsearch 服务。API 是标准 ES，现有代码能直接用。用 OpenSearch 的一些高级特性换了熟悉度。
+- **团队已经熟悉 Elasticsearch** -- 用托管 Elasticsearch 服务。API 是标准 ES，现有代码能直接用。以 OpenSearch 的部分高级特性为代价，换取团队对 Elasticsearch 的熟悉度。
 - **搜索只是数据库的副产品** -- 如果已经在用 Lindorm 或 AnalyticDB 且只需要基础搜索，直接用内置功能，别再加新服务了。
-- **需要 AWS 兼容性** -- 注意，阿里云的 "OpenSearch" 跟 AWS OpenSearch Service 不是一回事（后者是 Elasticsearch 的 fork）。名字一样，完全是两个产品，API 也不同。如果你要从 AWS OpenSearch 迁移，用阿里云的托管 Elasticsearch 服务，别用 OpenSearch。
+- **需要 AWS 兼容性** -- 注意，阿里云的 "OpenSearch" 跟 AWS OpenSearch Service 不是一回事（后者是 Elasticsearch 的 fork）。名称相同，但二者是完全不同的产品，API 也不兼容。如果你要从 AWS OpenSearch 迁移，用阿里云的托管 Elasticsearch 服务，别用 OpenSearch。
 
-最后这点最容易把人绕晕。我再强调一遍：**阿里云 OpenSearch 不是 AWS OpenSearch。** 这是两套完全不同的系统，查询语言、API、计价模型都不一样。
+最后这点最容易把人绕晕。再次强调：**阿里云 OpenSearch 与 AWS OpenSearch Service 并非同一产品。** 这是两套完全不同的系统，查询语言、API、计价模型都不一样。
 
 ## OpenSearch 基础
 
@@ -152,7 +152,7 @@ query_with_agg = {
 | 聚合 | `{"aggs": {"cats": {"terms": {"field": "category"}}}}` | `aggregate=group_key:category,agg_fun:count()` |
 | 分页 | `{"from": 0, "size": 10}` | `start=0&hit=10` |
 
-如果你从 Elasticsearch 过来，会觉得这查询语法灵活性差些，但更简洁。大部分事都能干，但复杂嵌套查询得换种写法。
+对于熟悉 Elasticsearch 的用户，OpenSearch 查询语法灵活性较低，但结构更简洁。常规查询均可支持，但深度嵌套查询需适配其语法范式。
 
 ### 跟 AWS OpenSearch Service 对比
 
@@ -169,7 +169,7 @@ query_with_agg = {
 | 计价模型 | 按 QPS 和存储 | 按实例时长 |
 | 从 ES 迁移路径 | 需要重写 | 自建 ES 迁移几乎无缝 |
 
-阿里云这个产品 opinionated 更强，灵活性差些，但运维简单。用零运维和原生 AI 功能换了庞大的 Elasticsearch 生态。
+阿里云 OpenSearch 的设计倾向性更强，在灵活性上有所取舍，但大幅降低了运维复杂度。以零运维和原生 AI 功能为代价，放弃了 Elasticsearch 庞大的插件生态。
 ## Vector Search for RAG
 
 搜索这事儿到了向量这里才真正变得有意思。传统关键词搜索靠的是倒排索引——它把词映射到文档。要是用户搜"wireless earbuds"，但商品列表里写的是"bluetooth headphones"，关键词搜索直接返回空结果。词对不上嘛。

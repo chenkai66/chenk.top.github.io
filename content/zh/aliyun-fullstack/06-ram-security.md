@@ -18,16 +18,16 @@ description: "Lock down your cloud: RAM users, groups, roles, and policies. STS 
 disableNunjucks: true
 translationKey: "aliyun-fullstack-6"
 ---
-有一次我在一个公开的 GitHub 仓库里看到了一个 DashScope API key。那是我自己的。有人 fork 了我几个月前推的一个 demo，key 就躺在我忘了 gitignore 的配置文件里。等我注意到的时候，这个 key 已经在一个周末内被用来生成了 14,000 次 Qwen API 调用。账单倒是没爆仓——DashScope 的按 token 计价还算宽容——但教训深刻。我之前总觉得云安全是以后的事。结果这个"以后"变成了周日凌晨 2 点的一条账单 alert。
+有一次，我在一个公开的 GitHub 仓库里发现了一个 DashScope API Key——竟是我自己的。有人 fork 了我几个月前上传的一个 Demo，而这个 API Key 就明文存放在未被 .gitignore 排除的配置文件中。等我发现时，这个 Key 已在短短一个周末内被用于发起 14,000 次 Qwen API 调用。所幸账单未超支——这得益于 DashScope 按 token 计费的弹性计费机制——但教训极为深刻。我曾以为云安全可以‘以后再做’，结果这个‘以后’，变成了一条凌晨两点触发的账单告警。
 
-那天我配了 RAM 用户，轮转了所有 access key，开了 MFA，凡是沾 frontend 的地方都开始用 STS。这篇文章就是把我在这一过程中学到的东西全整理出来了，结构安排得让你一个下午就能搞定，不用非得出了事故才去学。
+那天我配了 RAM 用户，轮转了所有 access key，开了 MFA，所有涉及前端直连云服务的场景，均改用 STS 临时凭证。本文将我在这一过程中积累的经验系统梳理出来，结构清晰，目标明确：一个下午即可完成基础加固，无需等到事故发生后再补救。
 
 
 安全组——也就是网络层防火墙——我们在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 讲过了。这篇讲的是身份层：谁能做什么、怎么加密数据、怎么审计所有操作。想用 Terraform 管安全，看 [Terraform Part 6: LLM Gateway and Secrets](/zh/terraform-agents/06-llm-gateway-and-secrets/)。
 
 ## 安全心智模型
 
-云安全不是开个开关就完事的。它是一叠独立的层，每一层覆盖一种故障模式。漏了一层，其他层还能护着你——这就是防御纵深 (defense in depth) 原则。
+云安全不是开个开关就完事的。它由多个相互独立的安全层构成，每层专门防御一类典型故障。即使某一层失效，其余层仍可提供防护——这正是‘纵深防御（defense in depth）’原则的核心要义。
 
 ![阿里云安全模型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_security_model.png)
 
@@ -40,33 +40,33 @@ translationKey: "aliyun-fullstack-6"
 | **加密 (Encryption)** | 数据静态和传输中是否受保护？ | KMS, SSL certificates | KMS, ACM |
 | **审计 (Auditing)** | 谁在什么时候做了什么？ | ActionTrail | CloudTrail |
 
-你做的每个安全决策都能归进这四个桶里。出问题的时候——肯定会出的——审计 trail 会告诉你另外三层哪层失效了。给新团队设计权限时，把这四个过一遍：建身份、分权限、加密数据、记录操作。
+你所做的每一项安全决策，都可归入这四个范畴。一旦出现问题（这是不可避免的），审计日志将揭示其余三层中哪一层出现了失效。为新团队设计权限时，应依次覆盖这四个维度：创建身份、分配权限、加密数据、记录操作。
 
-这套心智模型跟 AWS IAM 映射得很清楚，这是故意的。阿里云设计 RAM 的时候就是对标 AWS IAM 做的，概念层级也一样：顶层是 root 账号，下面是 RAM 用户，策略授予权限，角色用于跨服务和跨账号访问。用过 AWS IAM 的话，RAM 八成东西你都已经会了。剩下两成只是命名差别和几个功能细节不太一样。
+该心智模型与 AWS IAM 高度一致——阿里云在设计 RAM 时正是对标 IAM 进行的。阿里云设计 RAM 的时候就是对标 AWS IAM 做的，概念层级也一样：顶层是 root 账号，下面是 RAM 用户，策略授予权限，角色用于跨服务和跨账号访问。若已熟悉 AWS IAM，RAM 的大部分概念和操作你基本已掌握。剩下两成只是命名差别和几个功能细节不太一样。
 
-有个关键差别：阿里云的 root 账号叫"阿里云主账号"，有时候也叫"主账号"。控制台里不叫"root"，但功能上就是那个东西——一个全能的身份，绝不应该用于日常工作。
+一个关键区别在于：阿里云将 root 账号称为‘阿里云主账号’（也简称‘主账号’）。控制台中虽不显示‘root’字样，但其权限与 root 完全等同——即对整个云环境拥有完全控制权，因此严禁用于日常操作。
 
 ## RAM：资源访问管理
 
-RAM 就是阿里云的身份和访问管理系统。每个 API 调用、每次控制台点击、每条 CLI 命令都通过 RAM 认证和授权。理解 RAM 不是选修课，是必修课——这篇文章后面所有内容都建在这个基础上。
+RAM 就是阿里云的身份和访问管理系统。每个 API 调用、每次控制台点击、每条 CLI 命令都通过 RAM 认证和授权。理解 RAM 不是选修课，而是必修课——后文所有内容都以此为基础。
 
 ![RAM 用户、组与角色层次](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_ram_hierarchy.png)
 
 ### 阿里云主账号 (Root)
 
-注册阿里云的时候，你会得到一个阿里云主账号。这就是 root 身份。它对每个服务、每个资源、每个账单设置都有无限制访问权。它能创建删除 RAM 用户、改支付方式、直接把账号关了。
+注册阿里云的时候，你会得到一个阿里云主账号。这就是 root 身份。它对每个服务、每个资源、每个账单设置都有无限制访问权。它可创建或删除 RAM 用户、修改支付方式，甚至直接注销整个阿里云账号。
 
-这个账号只做三件事：
+该主账号仅允许用于以下三类操作：
 
 1. 初始设置（创建你的第一个 RAM 管理员用户）
 2. 账单和支付方式变更
 3. RAM 配错时的紧急恢复
 
-其他所有事——开发、部署、运维、监控——都用 RAM 用户。我见过六个工程师共用主账号 credentials 的团队。一个人手滑删了生产 RDS 实例，没人查得出来是谁干的，因为 ActionTrail 里每个操作显示的都是"root"。身份隔离不是搞官僚主义，这是你 debug 事故的方式。
+其他所有事——开发、部署、运维、监控——都用 RAM 用户。我曾见过多个团队让六名工程师共用主账号凭证。一旦有人误操作删除了生产环境 RDS 实例，便无法追溯具体责任人，因为 ActionTrail 中所有操作均显示为‘root’。身份隔离并非额外增加管理负担，而是开展事故根因分析的基本前提。
 
 ### 创建 RAM 用户
 
-RAM 用户是你阿里云主账号里的永久身份。每个用户有自己的登录 credentials（控制台用密码，API/CLI 用 AccessKey）和自己的权限集。
+RAM 用户是隶属于阿里云主账号的永久身份。每个用户有自己的登录 credentials（控制台用密码，API/CLI 用 AccessKey）和自己的权限集。
 
 用 CLI 创建 RAM 用户：
 
@@ -77,7 +77,7 @@ aliyun ram CreateUser \
   --Comments "Backend developer, team-alpha"
 ```
 
-启用密码控制台登录：
+启用控制台密码登录：
 
 ```bash
 aliyun ram CreateLoginProfile \
@@ -87,7 +87,7 @@ aliyun ram CreateLoginProfile \
   --MFABindRequired true
 ```
 
-`--PasswordResetRequired true` 标志强制 Alice 首次登录时改密码。`--MFABindRequired true` 强制她先配好 MFA 才能操作。任何有生产资源写权限的账号，这两条都没得商量。
+`--PasswordResetRequired true` 标志强制 Alice 首次登录时改密码。`--MFABindRequired true` 强制她先配好 MFA 才能操作。任何拥有生产资源写权限的账号，这两项要求均不可妥协。
 
 创建 AccessKey pair 用于程序访问：
 
@@ -95,11 +95,11 @@ aliyun ram CreateLoginProfile \
 aliyun ram CreateAccessKey --UserName alice
 ```
 
-这会返回一个 AccessKeyId 和 AccessKeySecret。Secret 只显示一次——丢了就得新建 key pair。存进密码管理器，别放配置文件，别放共享服务器的环境变量，绝对别进 Git 仓库。
+这会返回一个 AccessKeyId 和 AccessKeySecret。AccessKeySecret 仅在创建时显示一次，一旦丢失，只能通过重新创建密钥对来恢复。请将其存入专用密码管理器；切勿写入配置文件或共享服务器的环境变量，更不可提交到 Git 仓库。
 
 ### 配置 MFA
 
-多因素认证给身份支柱加了第二层。就算有人偷了密码，没有手机 app 里的 TOTP code 也登不进去。
+多因素认证（MFA）为身份认证这一支柱增加了第二重保障。即便攻击者窃取了密码，若未同步获取手机 App 中的 TOTP 动态验证码，仍无法完成登录。
 
 给 RAM 用户启用虚拟 MFA：
 
@@ -119,15 +119,15 @@ aliyun ram BindMFADevice \
   --AuthenticationCode2 789012
 ```
 
-主账号 specifically，去控制台：**账号管理 > 安全设置 > MFA**。有硬件 key 就用硬件 key。主账号 MFA 设备得存保险箱，别放 CEO 每年换一次的手机上。
+请为主账号单独配置 MFA：登录阿里云控制台，依次进入 **账号管理 > 安全设置 > 多因素认证（MFA）**。推荐优先使用硬件安全密钥（如 YubiKey）。主账号的 MFA 设备须妥善保存在物理保险箱中，切勿存放在 CEO 等人员频繁变动的个人手机上。
 
 ## RAM 群组
 
-按用户管权限扩展性不行。3 个开发的时候，给每个用户绑 policy 还行。30 个的时候，维护起来就是灾难。一个开发换团队，你忘了删旧权限。另一个开发入职，你复制粘贴别人的 policy，不小心给新人授了生产删除权限。
+基于单个用户绑定策略的方式缺乏可扩展性：3 名开发者时尚可维护，但当团队扩展至 30 人时，权限管理将迅速失控。例如，某开发者转岗后，旧权限可能被遗漏清理；新成员入职时，若直接复制他人策略，极易误授生产环境删除权限。
 
-群组能解决这问题。RAM 群组是用户的容器。你把 policy 绑给群组，组里每个用户都继承这些 policy。有人换团队，把他移到别的组就行。新人入职，加进对应的组，拿到的权限刚好够用。
+用户组（Group）机制可有效应对这一权限管理难题。RAM 用户组本质上是用户的逻辑集合。您可将策略绑定至用户组，组内所有成员自动继承该策略权限。有人换团队，把他移到别的组就行。新人入职，加进对应的组，拿到的权限刚好够用。
 
-这是我大多数项目用的群组结构：
+以下是我在多数项目中采用的用户组划分方案：
 
 | 群组 | 用途 | 关键策略 |
 |---|---|---|
@@ -170,17 +170,17 @@ aliyun ram AttachPolicyToGroup \
 aliyun ram ListUsersForGroup --GroupName Developers
 ```
 
-用户换团队时移除：
+将用户从原用户组中移除：
 
 ```bash
 aliyun ram RemoveUserFromGroup --UserName alice --GroupName Developers
 aliyun ram AddUserToGroup --UserName alice --GroupName Administrators
 ```
 
-核心纪律：别直接把 policy 绑给用户。永远走群组。唯一的例外是给组内需要受限访问的特定用户配 deny policy——但即便如此，建个单独的组来处理更好。
+核心原则：禁止直接为 RAM 用户绑定权限策略，所有权限均须通过用户组统一授予。唯一例外是需对组内个别成员施加额外限制的情形；此时，建议为其新建专用用户组并绑定 Deny 策略，而非在原组内混用 Allow/Deny。
 ## 深入理解 RAM 策略
 
-策略是授权的核心引擎。阿里云里的每次 API 调用都要过一遍策略，决定是放行还是拒绝。搞懂策略机制，是从“能跑通”到“跑得安全”的关键分水岭。
+策略是授权的核心引擎。阿里云里的每次 API 调用都要过一遍策略，决定是放行还是拒绝。理解策略机制，是从‘功能可用’迈向‘安全可控’的关键分水岭。
 
 ![RAM 策略评估流程图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_policy_evaluation.png)
 

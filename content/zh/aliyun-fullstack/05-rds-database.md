@@ -18,7 +18,7 @@ description: "RDS MySQL vs PolarDB: when to use which. Instance sizing, read rep
 disableNunjucks: true
 translationKey: "aliyun-fullstack-5"
 ---
-我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期的磁盘 I/O 飙升直接把服务打挂。InnoDB buffer pool 跟 OS page cache 抢内存，binary log 填盘速度比 cron 任务清理得还快，单线程复制到“备份”实例已经 lag 了九个小时。凌晨三点，我只能靠扩容磁盘救火。两周后，同样的问题又来了。那天我才真正明白托管数据库存在的意义——不是因为我不会跑 MySQL，而是我不想成为那个半夜三点被叫醒的人，只因 MySQL 判定 relay log 损坏，唯一的修复方案是用可能一致也可能不一致的冷备份重建副本。
+我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期磁盘 I/O 飙升，直接导致服务宕机。InnoDB buffer pool 跟 OS page cache 抢内存，binary log 写入磁盘的速度超过了 cron 任务的清理速度，单线程复制到“备份”实例的延迟已高达九小时。凌晨三点，我只能靠扩容磁盘救火。两周后，同样的问题又来了。那天我才真正理解托管数据库的价值：不是因为我不会部署或运维 MySQL，而是不愿在凌晨三点被报警叫醒——只因 MySQL 判定 relay log 损坏，而唯一可行的修复方式，只能依赖一致性无法保障的冷备份重建副本。
 
 
 这篇文章咱们聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还有那些让数据保持存活的运维实践——规格 sizing、复制、备份、监控、安全。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
@@ -37,7 +37,7 @@ translationKey: "aliyun-fullstack-5"
 - **磁盘管理。** 文件系统选型（XFS vs ext4），I/O scheduler 调优，IOPS provisioning，在线磁盘扩容。
 - **安全。** SSL/TLS 配置，审计日志，静态加密，密钥轮转。
 
-托管数据库把这些活儿全包了。你失去了 root 权限，也没法随便装 MySQL 插件（别想自定义 UDF，也别想拿 Group Replication 拓扑做实验）。但作为交换，你拿到了自动备份、一键 HA failover、内置监控、一键创建 read replicas，而且再也不会因为磁盘满了半夜被叫醒。
+托管数据库把这些活儿全包了。你失去了 root 权限，也无法随意安装 MySQL 插件（例如自定义 UDF，或基于 Group Replication 拓扑进行实验）。但作为交换，你可获得自动备份、一键 HA 故障切换、内置监控、一键创建只读实例，也无需再因磁盘空间耗尽而在深夜被告警唤醒。
 
 对于 95% 的生产负载，选托管绝对划算。
 
@@ -64,9 +64,9 @@ RDS MySQL 是阿里云上用得最多的数据库服务。它是 fully managed M
 
 ### 架构
 
-RDS MySQL HA 实例在同一地域内以主备对（primary-standby pair）运行。Primary 处理所有读写。Standby 通过半同步复制接收变更，如果 primary 挂掉，它会自动 promoted。Failover 通常在 30 秒内完成，对应用透明（DNS endpoint 不变，连接只是瞬间断开）。
+RDS MySQL HA 实例在同一地域内以主备对（primary-standby pair）运行。Primary 处理所有读写。Standby 通过半同步复制接收变更，如果 primary 挂掉，它会自动 promoted。故障切换通常在 30 秒内完成，对应用透明（DNS 地址不变，连接仅短暂中断）。
 
-Standby 不可读——它只为 failover 存在。如果想做读扩容，得加 read replicas（后面会讲）。
+备节点不可读——其唯一作用是支撑故障切换。如果想做读扩容，得加 read replicas（后面会讲）。
 
 ### 版本
 
@@ -78,11 +78,11 @@ RDS MySQL 有三个版本：
 | **High-Availability (HA)** | 2 (primary + standby) | Yes (30s) | Production | Standard |
 | **Enterprise (Cluster)** | 3 (primary + 2 standby) | Yes (< 30s, zero data loss) | Mission-critical, finance | Highest |
 
-Basic 版没有 standby。如果 primary 挂了，阿里云会从最新备份恢复，这意味着几分钟到几小时的 downtime，取决于数据库大小。**生产环境千万别用 Basic。**
+Basic 版本不包含备用节点。若主节点发生故障，阿里云将基于最近一次备份执行恢复，恢复时间通常为几分钟到几小时，具体取决于数据库规模。**生产环境请勿使用 Basic 版本。**
 
 HA 版是大多数生产负载的正确选择。同地域的 standby 提供接近零的 RPO（半同步复制）和约 30 秒的 RTO。
 
-Enterprise 版加了第三个节点做基于 Paxos 的 consensus，保证即使 failover 也不丢数据。这对金融系统很重要，那里丢一个交易都是不可接受的。
+Enterprise 版本额外增加一个节点，通过 Paxos 协议实现共识机制，确保故障切换过程中零数据丢失。这对金融系统很重要，那里丢一个交易都是不可接受的。
 
 ### 存储类型
 
@@ -95,7 +95,7 @@ Enterprise 版加了第三个节点做基于 Paxos 的 consensus，保证即使 
 
 Local SSD 延迟最低，因为 SSD 物理附着在宿主机上，不走网络。代价是容量：Local SSD 上限 3 TB。数据库要是会超过这个大小，直接用 ESSD。
 
-ESSD（Enhanced SSD）是网络附加块存储，容量弹性。你可以在线扩容 ESSD 不停机，32 TB 上限能容纳大多数数据库。ESSD PL1 是默认选项，也是大多数负载的正确选择。只有当 CloudMonitor 显示你的 IOPS 持续 hitting PL1 天花板时，再升级到 PL2 或 PL3。
+ESSD（Enhanced SSD）是一种网络附加型块存储，支持容量弹性伸缩。你可在线扩容 ESSD（无需停机），32 TB 的最大容量足以满足大多数数据库需求。ESSD PL1 是默认选项，也是大多数负载的正确选择。只有当 CloudMonitor 显示你的 IOPS 持续 hitting PL1 天花板时，再升级到 PL2 或 PL3。
 
 > **Practical tip:** 从 ESSD PL1 起步。在 CloudMonitor 里盯一周 `IOPSUsage` 指标。如果看到持续 usage 超过 PL1 限制的 70%，再升级。如果从来没超过 20%，那你就是在为不需要的余量付费——不过 PL0 和 PL1 的价差很小，这点保险钱值得花。
 

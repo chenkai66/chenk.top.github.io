@@ -174,7 +174,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 1. Bash 白名单只包含了只读和可逆的 Git 命令，绝不含 `push`、`reset --hard` 或 `rebase -i`。push 操作必须由人工主动触发。
 2. `Edit(.github/workflows/**)` 被 deny 了。CI 配置变更需要 review，我不想让它们混进普通 commit 里。
-3. hooks 还为 deny 规则提供了双重保障：即便某条 deny 规则因拼写错误而失效，对应的 hook 仍可拦截危险调用。
+3. hooks 还为 deny 规则提供了一层额外保障：即使某条 deny 规则因拼写错误未生效，对应的 hook 仍可拦截危险操作。
 
 ## 优先级顺序，当作检查清单
 

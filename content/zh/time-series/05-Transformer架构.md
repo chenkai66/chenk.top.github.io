@@ -31,19 +31,19 @@ translationKey: "time-series-5"
 ---
 ## 1. 为什么时间序列要用 Transformer
 
-LSTM 和 GRU 处理序列时是一步步来的，这带来了三个问题：
+LSTM 和 GRU 按时间步顺序处理序列，由此引发三个固有缺陷：
 
 1. **路径长度是 O(L)**。信息从第 $t-L$ 步传到第 $t$ 步，需要经过 $L$ 次递归。这就是梯度消失的根源。
 2. **训练只能串行**。第 $t+1$ 步必须等第 $t$ 步跑完才能开始，GPU 很多时候都闲着。
 3. **隐状态是个瓶颈**。模型要把所有可能用到的历史信息压缩到一个固定大小的向量里。
 
-自注意力机制一次性解决了这三个问题：每个位置通过 **一次矩阵乘法** 就能看到其他所有位置，任意两步之间的路径长度缩短为 $O(1)$，整个序列可以并行处理。代价是显存占用：存储 $n \times n$ 的注意力权重需要 $O(n^2)$ 的空间，这个问题我会在第 5 节和第 7 节详细讨论。
+自注意力机制一次性解决了这三个问题：每个位置仅需一次矩阵乘法，即可聚合所有其他位置的信息，任意两步之间的路径长度缩短为 $O(1)$，整个序列可以并行处理。代价是显存占用：存储 $n \times n$ 的注意力权重需要 $O(n^2)$ 的空间，这个问题我会在第 5 节和第 7 节详细讨论。
 
 ![时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig1_architecture.png)
 *图 1. 时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。*
 ## 2. 架构逐块拆解
 
-时间序列 Transformer 就是 2017 年的原始架构，但做了三处小而关键的改动：
+时间序列 Transformer 基于 2017 年原始 Transformer 架构，仅在三个关键环节进行了适配性修改：
 
 | 模块         | 原版 NLP                          | 时间序列                                              |
 |--------------|-----------------------------------|-------------------------------------------------------|
@@ -64,18 +64,18 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\
 
 ### 2.1 编码器
 
-编码器读取 lookback 窗口 $x_{t-L+1:t}$，生成上下文向量 $M \in \mathbb{R}^{L \times d_{\text{model}}}$。这里**没有 mask**，每个位置都能看到所有其他位置。
+编码器读取 lookback 窗口 $x_{t-L+1:t}$，生成上下文向量 $M \in \mathbb{R}^{L \times d_{\text{model}}}$。此处不使用掩码（mask），即编码器对输入序列执行全连接自注意力。
 
 ### 2.2 解码器
 
 解码器的输入是**标签窗口**（历史数据最后 $L_{\text{label}}$ 步）拼接上占位零（用于预测范围），输出是预测值 $\hat{y}_{t+1:t+H}$。每个 block 包含两层 attention：
 
 - **Masked self-attention**，带因果 mask，确保第 $t+k$ 步只能看到 $\le t+k-1$ 的位置。
-- **Cross-attention**，Query 来自解码器，Key 和 Value 来自编码器的 memory $M$。这是解码器唯一能访问编码器输出的地方。
+- **Cross-attention**，Query 来自解码器，Key 和 Value 来自编码器的 memory $M$。这也是解码器访问编码器输出的唯一途径。
 
 ### 2.3 标签窗口：一个小技巧
 
-纯 encoder-decoder 模型在历史和预测交界处容易出问题。Informer 和 Autoformer 的解决办法是给解码器喂 $L_{\text{label}}$ 步**已知历史**加上 $H$ 个零占位符。这样解码器从一个已知状态开始，逐步推进到未知区域。
+标准 encoder-decoder 架构在历史序列与预测序列的边界区域易产生预测偏差。Informer 和 Autoformer 的解决办法是给解码器喂 $L_{\text{label}}$ 步**已知历史**加上 $H$ 个零占位符。这样解码器从一个已知状态开始，逐步推进到未知区域。
 ## 3. 时间序列的位置编码
 
 自注意力机制是排列不变的——打乱输入，输出不会变。在 NLP 中这是个问题，在时间序列中则是灾难。我用正弦编码来注入位置信息：
@@ -144,7 +144,7 @@ class TemporalPositionalEncoding(nn.Module):
 Transformer 的 **可解释性** 就来源于此：把最后一层的注意力头平均一下，就能知道预测依赖哪些历史步数。
 ## 5. O(n²) 瓶颈
 
-朴素 attention 每层每个头都需要存一个 $n \times n$ 的 score 矩阵。用 fp16，8 个头时，每层注意力的显存占用是：
+朴素 attention 每层每个头都需要存一个 $n \times n$ 的 score 矩阵。以 fp16 精度计算，8 个注意力头下，每层注意力模块的显存开销为：
 
 $$M_{\text{attn}} = h \cdot n^2 \cdot 2 \;\text{bytes}.$$
 

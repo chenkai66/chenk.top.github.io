@@ -24,7 +24,7 @@ translationKey: "terraform-agents-2"
 4. 三个工作空间（`dev`, `staging`, `prod`），共用后端但状态隔离。
 5. 能跑通的 `terraform plan`，哪怕配置还是空的。
 
-这儿还没开始部署 Agent。我们是在打地基，后面所有文章都假定这一步已经完成。要是跳过这步，想着等到第三篇再补，我保证你一周内就会遭遇状态文件损坏的事故。
+到这里为止，我们还没有部署 Agent。当前阶段纯粹是在搭建基础设施底座——后续所有文章都默认这一步已完成。如果跳过这步，打算拖到第三篇再补，我敢说，一周内你大概率会遇到状态文件损坏的问题。
 
 ## Step 0: 安装 Terraform
 
@@ -38,7 +38,7 @@ terraform version
 # on darwin_arm64
 ```
 
-锁定一个近期的稳定版。Aliyun 文档虽然测试过 `>= 0.12`，但新项目直接上 `>= 1.9`。新版本在体验上有实打实的改进——`for_each`、`optional()`、更精细的 `moved` 块、声明式的 `import` 块——这套系列文章里你都会用到。
+锁定一个近期的稳定版。Aliyun 文档虽然测试过 `>= 0.12`，但新项目直接上 `>= 1.9`。新版本在体验上有实打实的改进——`for_each`、`optional()`、更精细的 `moved` 块、声明式的 `import` 块——本系列后续文章都会用到这些特性。
 
 ## Step 1: 锁定 Provider
 
@@ -60,7 +60,7 @@ terraform {
 
 `~> 1.230` 这个约束允许 `1.230.0` 到 `1.230.x`，但会拦住 `1.231.0`。这是默认的最佳实践。一旦你把 `.terraform.lock.hcl` 提交到 git（`terraform init` 时 Terraform 会自动生成），你就锁死了 *确切* 的 provider 版本和校验和。队友 later 跑 `terraform init` 时，拿到的 provider 跟你比特级一致。
 
-早点锁定版本是廉价的保险。alicloud provider 在小版本之间也出过破坏性变更（1.220 左右那次 OSS bucket schema 重构坑了我三个下午）。你迟早得升级——但要刻意地升，提个 PR，看着 plan 输出的差异升，别等到半夜 11 点在队友电脑上 accidentally 升级了。
+尽早锁定 provider 版本是一项低成本但高回报的风险控制措施。例如，alicloud provider 在 1.220 版本附近曾对 OSS Bucket 的 schema 进行重构，导致我花了三个下午排查问题。你最终仍需升级，但必须主动推进：先提交 PR，仔细审查 plan 输出的变更差异，确认无误后再执行 apply；切勿在未经评审的情况下，于深夜 11 点在他人机器上意外触发升级。
 
 ## Step 2: 认证——三种方案，按靠谱程度排个序
 
@@ -99,7 +99,7 @@ provider "alicloud" {
 }
 ```
 
-角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，而且一旦剥离信任策略就能瞬间撤销。这是 GitLab CI、GitHub Actions 和 Jenkins runner 应该用的模型。
+角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，而且一旦剥离信任策略就能瞬间撤销。这也是 GitLab CI、GitHub Actions 和 Jenkins 等 CI/CD 环境中推荐采用的模型。
 
 ### 方案 C: ECS RAM 角色（堡垒机 / IaC 服务 runner）
 
@@ -113,13 +113,13 @@ provider "alicloud" {
 }
 ```
 
-配置里、环境变量里、文件里，零密钥。轮换是自动的。这是黄金标准，也是我 push 每个团队在第一个月内必须走的路径。
+配置里、环境变量里、文件里，零密钥。凭证轮换由系统自动完成。这是业界公认的黄金标准，我也建议每个团队在落地 Terraform 的首月内即采用该方案。
 
-> **实战建议：** 不管选哪个，显式设置 `ALICLOUD_REGION`（或者 `provider { region = ... }`）。如果不设，Provider 不会选默认值——你会在 `terraform plan` 时得到一个让人困惑的 "Region must be specified" 错误，这坑我也踩过不止一次。
+> **实战建议：** 不管选哪个，显式设置 `ALICLOUD_REGION`（或者 `provider { region = ... }`）。如果不设，Provider 不会选默认值——你会在 `terraform plan` 时得到一个让人困惑的 "Region must be specified" 错误，该错误我在实践中多次遇到。
 
 ## Step 3: 状态文件——为什么本地 tfstate 是隐患
 
-跑 `terraform apply` 时，默认 Terraform 会把 `terraform.tfstate` 写在当前目录。这文件是基础设施现状的唯一事实来源。三件事迟早会出错：
+跑 `terraform apply` 时，默认 Terraform 会把 `terraform.tfstate` 写在当前目录。该文件是基础设施当前状态的唯一权威来源。以下三种情况极易发生：
 
 ![Distributed state locking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_state_lock.png)
 
@@ -132,13 +132,13 @@ provider "alicloud" {
 
 有个常见误区：tfstate 只存资源 ID。错。状态文件包含 Terraform 知道的每个资源的每个属性——包括计算出来的值，比如 RDS 连接串、生成的密码、KMS 密钥材料，还有 `sensitive` 变量。
 
-随便找个非 trivial 的状态文件跑一下这个命令看看输出：
+任选一个结构较复杂的 tfstate 文件，运行以下命令查看其内容：
 
 ```bash
 terraform show -json | jq '.values.root_module.resources[] | select(.values | tostring | test("password|secret|key"; "i"))'
 ```
 
-你会看到密码。你会看到 API key。你可能看到整块整块的 credential JSON blob。这是设计使然——Terraform 需要这些值来做 diff 和 apply。
+你会看到密码。你会看到 API key。你可能看到整块整块的 credential JSON blob。这是 Terraform 的设计决定：它需要这些值来计算差异（diff）和执行变更（apply）。
 
 这正是本地 tfstate 过不了第一天就必须换掉的原因。解法是 **远程状态** 加 **状态锁定**。在 Aliyun 上，标准做法是 OSS + Tablestore：
 
@@ -162,7 +162,7 @@ variable "rds_admin_password" {
 
 ## Step 4: 引导后端（先有鸡还是先有蛋）
 
- holding 我们后端的 OSS bucket 和 Tablestore... 得在后端能用它们之前就存在。诚实的工作流是：用一个 *本地* 状态文件，在小小的一次性 `bootstrap/` 目录里 provision 它们，然后再也不碰它。
+ 用于承载后端的 OSS Bucket 和 Tablestore 实例，必须在 Terraform 后端配置启用前预先创建完成。诚实的工作流是：用一个 *本地* 状态文件，在小小的一次性 `bootstrap/` 目录里 provision 它们，然后再也不碰它。
 
 ```hcl
 # bootstrap/main.tf — run once, store local tfstate in this directory only

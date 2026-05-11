@@ -16,7 +16,7 @@ description: "在 macOS 或 Ubuntu 上装好 OpenClaw，接入模型服务商，
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
-README 写的是五分钟，但实际可能需要十分钟——多出的五分钟，几乎都耗在 Node 版本问题上，新手极易在此卡住。
+README 声称只需五分钟，但实际往往需要十分钟——多出的时间几乎全花在 Node 版本问题上，新手极易在此卡住。
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
@@ -43,7 +43,7 @@ nvm install 24
 nvm use 24
 ```
 
-这是唯一的‘脚枪’（foot-gun）：Node 版本不兼容会导致后续运行时错误，解决后即可顺利进行。
+这是唯一的‘陷阱’（foot-gun）：Node 版本不兼容会引发后续运行时错误，修复后即可顺利进行。
 
 ### 获取 API Key
 
@@ -57,7 +57,7 @@ nvm use 24
 
 如果你在国内，DashScope 是最省心的选择：其国内端点延迟通常低于 200ms，无需代理或 VPN。
 
-**Anthropic** — [console.anthropic.com](https://console.anthropic.com)，创建账号，添加支付方式，在 Settings > API Keys 下生成 key。最低充值 $5。Claude Sonnet 是 Agent 使用的 sweet spot。
+**Anthropic** — [console.anthropic.com](https://console.anthropic.com)，创建账号，添加支付方式，在 Settings > API Keys 下生成 key。最低充值 $5。Claude Sonnet 是 Agent 场景下的理想选择。
 
 **OpenAI** — [platform.openai.com](https://platform.openai.com)，在 API keys 下生成 key。GPT-4o 作为底层模型表现不错。
 
@@ -292,7 +292,7 @@ openclaw web start
 # open http://127.0.0.1:18790
 ```
 
-我平时多半不开它——毕竟 TUI 响应更快——但如果想直观地检查内存状态或者 Skill 状态，这玩意儿挺好使。等你配置了定时任务后，这里也能看到 cron jobs 的运行情况。
+我平时多半不开它——毕竟 TUI 响应更快——但如果想直观地检查内存状态或者 Skill 状态，这个界面很实用。等你配置了定时任务后，这里也能看到 cron jobs 的运行情况。
 
 ## 刚才到底发生了什么（架构视角）
 

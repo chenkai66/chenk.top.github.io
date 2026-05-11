@@ -17,18 +17,18 @@ description: "Build a production network from scratch: VPC architecture, CIDR pl
 disableNunjucks: true
 translationKey: "aliyun-fullstack-3"
 ---
-我在云上排查过的每一次故障，追根溯源最后都指向了网络。要么是 CIDR 规划没做好，半年后 IP 不够用了；要么是路由缺失，流量在层级间静默丢弃；要么是安全组配置极端，要么对 `0.0.0.0/0` 开放了 22 端口（哈喽，黑客朋友），要么锁得太死导致健康检查失败，负载均衡不停剔除健康实例。把网络层搞定，是部署任何其他东西之前最重要的一步，也是事后补救最痛苦的一步——因为修改 VPC CIDR 意味着要重建里面的所有资源。
+我在云上排查过的每一次故障，追根溯源最后都指向了网络。要么是 CIDR 规划没做好，半年后 IP 不够用了；要么是路由缺失，流量在层级间静默丢弃；要么是安全组配置极端，要么对 `0.0.0.0/0` 开放了 22 端口（哈喽，黑客朋友），要么锁得太死导致健康检查失败，负载均衡不停剔除健康实例。网络层是所有部署的前提，必须最先规划、最先落地；但一旦需要调整，其补救成本也最高——修改 VPC 的 CIDR 段将强制重建该 VPC 下的所有资源。
 
 
-我们在 [Part 1](/zh/aliyun-fullstack/01-ecosystem-map/) 搭建了基础 VPC，现在要深入细节了。读完这篇，你将拥有一个生产级的多可用区网络：层级隔离、安全边界清晰、通过 NAT 访问互联网、通过 SLB 负载均衡。放入这些子网的 ECS 实例会在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)` 讲解。如果你想用 Terraform setup VPC，参考 [Terraform Part 3: VPC and Security Baseline](/zh/terraform-agents/03-vpc-and-security-baseline/)。
+我们在 [Part 1](/zh/aliyun-fullstack/01-ecosystem-map/) 搭建了基础 VPC，现在要深入细节了。读完本文，你将构建一个生产级的多可用区网络：支持层级隔离、具备边界清晰的安全控制、私有子网可通过 NAT 网关访问互联网、公网流量可通过 SLB 实现负载均衡。放入这些子网的 ECS 实例会在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)` 讲解。如果你想用 Terraform setup VPC，参考 [Terraform Part 3: VPC and Security Baseline](/zh/terraform-agents/03-vpc-and-security-baseline/)。
 
 ## What Is a VPC?
 
-虚拟私有云（VPC）就是你在阿里云上独占的网络段。把它想象成一个完全用软件定义的私有数据中心网络：IP 范围你选，划分子网你定，防火墙规则你写，谁能上网、谁只能内网通信，全由你说了算。除非你显式允许，否则任何流量都进不来也出不去。
+虚拟私有云（VPC）就是你在阿里云上独占的网络段。可将其理解为一个纯软件定义的私有数据中心网络：IP 地址段由你指定，子网由你划分，防火墙规则由你配置；哪些实例可访问互联网、哪些仅限内网通信，均由你控制。默认情况下，所有入站和出站流量均被拒绝；只有显式配置了允许规则的流量才可通过。
 
 ![VPC architecture overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 
-如果你用过 AWS，心智模型几乎一样。阿里云的 VPC 功能上等同于 AWS VPC，只是叫法不同：
+如果你熟悉 AWS，其 VPC 的心智模型与阿里云基本一致。阿里云的 VPC 功能上等同于 AWS VPC，只是叫法不同：
 
 | Alibaba Cloud | AWS | What it does |
 |---|---|---|
@@ -41,9 +41,9 @@ translationKey: "aliyun-fullstack-3"
 | NAT Gateway | NAT Gateway | Internet access for private subnets |
 | SLB (CLB/ALB/NLB) | ELB (CLB/ALB/NLB) | Load balancing |
 
-在 VPC 出现之前，阿里云有个“经典网络”，区域内所有实例共享一个扁平网络。经典网络已经废弃，新账号再也开不了了。如果在旧文档里看到，直接忽略。现在所有业务都跑在 VPC 里。
+在 VPC 出现之前，阿里云有个“经典网络”，区域内所有实例共享一个扁平网络。经典网络已被弃用，新账号无法创建。如果在旧文档里看到，直接忽略。现在所有业务都跑在 VPC 里。
 
-你要打交道的主要组件：
+你需要配置的核心组件包括：
 
 - **VPC** -- 容器。每个区域一个 VPC（你可以建多个）。由 CIDR 块定义。
 - **VSwitch** -- VPC 内的子网，绑定到一个可用区。实例实际就住在这里。
@@ -55,7 +55,7 @@ translationKey: "aliyun-fullstack-3"
 
 ## CIDR Planning: Get This Right from Day One
 
-CIDR（无类别域间路由）记法定义了你的 IP 地址空间。这一步错了，你就得准备度过一个非常痛苦的周末，把所有东西迁移到新 VPC。
+CIDR（无类别域间路由）用于定义 VPC 的 IP 地址空间。若此步规划失误，将不得不重建整个 VPC 并迁移所有资源。
 
 ![CIDR planning guide for VPC subnets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
 
@@ -69,7 +69,7 @@ CIDR（无类别域间路由）记法定义了你的 IP 地址空间。这一步
 | /24 | 24 | 256 (254 usable) | Standard subnet |
 | /28 | 28 | 16 (14 usable) | Tiny subnet (NAT, bastion) |
 
-阿里云 VPC 支持使用私有范围 `10.0.0.0/8`、`172.16.0.0/12` 或 `192.168.0.0/16` 内的 /8 到 /24 CIDR 块。VSwitch 最小可以到 /29（8 个 IP，6 个可用——阿里云在每个 VSwitch 中保留前两个和最后一个）。
+阿里云 VPC 支持使用私有范围 `10.0.0.0/8`、`172.16.0.0/12` 或 `192.168.0.0/16` 内的 /8 到 /24 CIDR 块。VSwitch 支持的最小网段为 /29（共 8 个 IP 地址，其中 6 个可用——阿里云为每个 VSwitch 保留首两个和末一个地址）。
 
 黄金法则：**按当前需求的 10 倍规划**。如果你觉得需要 50 个 IP，分配一个 /24（254 个可用）。如果你觉得需要 500 个 IP，分配一个 /20（4,094 个可用）。子网创建后不能调整大小——你得新建 VSwitch 然后迁移实例。
 
@@ -87,13 +87,13 @@ VPC 本身用 `10.0.0.0/16`，给我们 65,534 个可用 IP，以后加子网也
 
 ## VSwitches: Subnets Across Availability Zones
 
-VSwitch 就是子网，每个 VSwitch 只存在于一个可用区。你不能把一个 VSwitch 拉伸到多个可用区。这是设计使然——意味着某个可用区故障只会影响分配给该区的 VSwitch 里的实例，不会干掉整个层级。
+VSwitch 即子网，每个 VSwitch 仅隶属于一个可用区。你不能把一个 VSwitch 拉伸到多个可用区。这是设计使然：单个可用区发生故障时，仅影响该可用区内的 VSwitch 所承载的实例，不会波及同层级的其他可用区。
 
 ![多可用区 VSwitch 拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vswitch_layout.png)
 
-模式是每层每个可用区一个 VSwitch。2 个可用区 3 层架构，就是 6 个 VSwitch。3 个可用区就是 9 个。单个应用我还没见过需要超过 3 个可用区的。
+典型模式是：每一层、每一个可用区各部署一个 VSwitch。2 个可用区 3 层架构，就是 6 个 VSwitch。3 个可用区就是 9 个。单个应用我还没见过需要超过 3 个可用区的。
 
-首先，创建 VPC：
+首先创建 VPC：
 
 ```bash
 aliyun vpc CreateVpc \
@@ -163,11 +163,11 @@ aliyun vpc DescribeVSwitches \
   --output cols=VSwitchId,VSwitchName,ZoneId,CidrBlock,AvailableIpAddressCount
 ```
 
-有几件事值得知道：
+需注意以下几点：
 
 - `ZoneId` 必须匹配你区域里的真实可用区。运行 `aliyun ecs DescribeZones --RegionId cn-hangzhou` 列出可用区。
-- 不是所有实例类型在所有可用区都有货。定可用区布局前先查一下。
-- 你可以随时给现有 VPC 添加 VSwitch，只要 CIDR 不和现有 VSwitch 重叠。这就是为什么 CIDR 规划里留空隙很重要。
+- 并非所有实例类型在所有可用区均有供应。定可用区布局前先查一下。
+- 你可以随时给现有 VPC 添加 VSwitch，只要 CIDR 不和现有 VSwitch 重叠。这也是 CIDR 规划时预留地址间隙的关键原因。
 
 ## Route Tables
 
@@ -201,19 +201,19 @@ aliyun vpc AssociateRouteTable \
 
 当 VSwitch 关联到自定义路由表时，该表优先级高于系统路由表。本地路由（VPC 内流量）始终继承，无法覆盖。
 
-有个路由表细节容易把人绕进去：阿里云按最长前缀匹配评估路由。`10.0.10.0/24` 的路由比 `10.0.0.0/16` 更具体，`10.0.0.0/16` 又比 `0.0.0.0/0` 更具体。流量总是走最具体的匹配路由。
+需特别注意一个路由匹配机制：阿里云采用最长前缀匹配原则。`10.0.10.0/24` 的路由比 `10.0.0.0/16` 更具体，`10.0.0.0/16` 又比 `0.0.0.0/0` 更具体。流量总是走最具体的匹配路由。
 ## 安全组深度解析
 
-安全组这东西，大多数人要么太随意（全部放开），要么太复杂（搞几百条规则没人看得懂）。最佳实践其实是：只建少量安全组，名字要起得望文生义。
+安全组配置常见两种偏差：一是过度宽松（如全端口开放），二是过度复杂（规则数百条，难以维护）。最佳实践其实是：只建少量安全组，名字要起得望文生义。
 
-安全组本质上是实例级别的有状态防火墙。所谓“有状态”，就是说如果你放行了 80 端口的入站流量，响应流量会自动放行出站——你不需要专门为回包写一条出站规则。
+安全组是作用于 ECS 实例的有状态防火墙。所谓‘有状态’，是指当某条入站规则允许流量（例如 80 端口的 HTTP 请求）进入后，其对应的响应流量（如 TCP ACK 或 HTTP 响应）将自动被允许出站，无需单独配置返回路径。
 
 默认行为是这样的：
 
 - **入站（Inbound）**：拒绝所有（除非你加规则，否则谁也连不上你的实例）
 - **出站（Outbound）**：允许所有（你的实例可以访问任何地方，只要路由允许，包括互联网）
 
-这个默认配置上手没问题，但生产环境出站全开太危险了。实例一旦被攻破， unrestricted outbound 会让它轻易窃取数据或者加入僵尸网络。
+该默认配置便于快速上手，但在生产环境中，出站流量完全放行存在安全风险。实例一旦被攻破， unrestricted outbound 会让它轻易窃取数据或者加入僵尸网络。
 
 ### 规则构成
 
@@ -226,7 +226,7 @@ aliyun vpc AssociateRouteTable \
 - **优先级**：1（最高）到 100（最低）。数字越小优先级越高。
 - **动作**：允许或丢弃
 
-优先级系统非常强大。你可以在优先级 100 设一个宽泛的“拒绝所有”，然后在优先级 1 开特定的口子。阿里云会按优先级从高到低（1 到 100）评估规则，命中第一条就停止。
+该优先级机制十分灵活：你可在优先级 100 设置一条宽泛的‘拒绝所有’规则，再在更高优先级（如 1）添加精确的允许规则。阿里云会按优先级从高到低（1 到 100）评估规则，命中第一条就停止。
 
 ### 企业型 vs 基础型安全组
 

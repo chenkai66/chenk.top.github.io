@@ -20,17 +20,17 @@ translationKey: "terraform-agents-6"
 ---
 我在很多还没成熟的 Agent 架构里总看到一个通病：每个 Agent 都在自己的 `.env` 文件里存一份 `OPENAI_API_KEY`。有时候是同一个 key，有时候不一样，甚至还有同事原型阶段留下的个人密钥。等到账单来了，没人说得清是哪个 Agent 烧了多少 token；一旦密钥泄露（迟早的事），你就得在十几个 `.env` 文件里打地鼠。
 
-真正让我警醒的是两年前的一件事。有个外包周五结束三个月的合同， laptop 带走了，结果周二 DashScope 账单报警，显示有 1200 万 `qwen-max` token 的流量来自一个陌生 IP。他个人 API key——当初复制粘贴到侧边项目里的——还留在我们 Agent 的 `.env` 里。轮换这个 key 花了六个小时：三个工程师、四个 repo、两条 CI 流水线，还有一个 panic 的 Slack 线程。这种事，绝不能有第二次。
+真正让我警醒的是两年前的一件事。有个外包周五结束三个月的合同， laptop 带走了，结果周二 DashScope 账单报警，显示有 1200 万 `qwen-max` token 的流量来自一个陌生 IP。他个人 API key——当初复制粘贴到侧边项目里的——还留在我们 Agent 的 `.env` 里。轮换该密钥耗时六小时：涉及三名工程师、四个代码仓库、两条 CI 流水线，还有一条迅速失控的 Slack 讨论线程。这类事故，绝不能再发生。
 
 这篇文章就是为了解决这个问题。我们要建一个 **LLM 网关**，做到以下几点：
 
 - 把所有厂商的密钥统一收进 KMS Secrets Manager（一个 bucket，一套 ACL，统一的轮换节奏）
 - Agent 通过 RAM 颁发的短期 Token 认证——Agent 机器上零静态 AK
-- 限制每个 Agent 的 QPM 和每日 token 上限，防止死循环一天烧掉 800 块，而不是烧掉你一个季度的预算
+- 限制每个 Agent 的每分钟请求数（QPM）和每日 token 上限，避免因死循环导致单日费用飙升至 800 元，甚至耗尽整个季度预算。
 - 所有请求记入 SLS，方便取证、成本分摊和 SOC-2 审计
 - 轮换密钥不用重启或重新部署任何 Agent——一个 PR，一次 apply，搞定
 
-两天搭建，永久受益。
+两天即可完成搭建，长期受益。
 
 ![Terraform for AI Agents (6): LLM Gateway and Secrets Management — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
 
@@ -38,14 +38,14 @@ translationKey: "terraform-agents-6"
 
 ![Centralised LLM gateway: one egress, one quota, one audit log](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)
 
-左边是 Agent，右边是模型厂商，网关卡在中间。每个 Agent 发给"LLM"的 HTTP 请求，实际上都先到了网关。由网关决定 dispatch 给哪个厂商，附上正确的 key，执行配额限制，并记录结果。
+架构中，Agent 位于左侧，模型厂商位于右侧，网关居中作为代理层。每个 Agent 发往 "LLM" 的 HTTP 请求，实际都会先抵达网关。由网关决定 dispatch 给哪个厂商，附上正确的 key，执行配额限制，并记录结果。
 
-实现方案主要有两个靠谱的选择：
+实现方案主要有两种可行选择：
 
-1. **Aliyun API Gateway 加自定义后端** —— 最托管，配额计划 easiest to wire，原生集成 RAM。适合路由逻辑简单的场景：“一个模型，一个厂商，只管限流”。
+1. **Aliyun API Gateway 加自定义后端** —— 最托管，配额策略配置最简单，原生集成 RAM。适合路由逻辑简单的场景：“一个模型，一个厂商，只管限流”。
 2. **ALB 后面自托管 LiteLLM on ECS** —— 最灵活，支持长尾厂商（DeepSeek、Moonshot、Zhipu、你自己微调的 PAI 端点），更容易扩展成本追踪和跨厂商 fallback。
 
-我自己是看路由复杂度来选。如果是纯代理加配额，API Gateway 就够了。但如果是多厂商路由，还要带预算 guard 和熔断机制——这也是大部分团队半年内都会走到的阶段——LiteLLM on ECS 胜出。本文剩下部分基于 LiteLLM 展开，因为 80% 的团队都需要这个。
+我们建议根据路由复杂度来选择。如果是纯代理加配额，API Gateway 就够了。但如果是多厂商路由，还要带预算 guard 和熔断机制——而这恰恰是大多数团队在半年内就会进入的阶段——此时 LiteLLM on ECS 更具优势。本文剩下部分基于 LiteLLM 展开，因为 80% 的团队都需要这个。
 
 ## 第一步：把所有密钥存进 KMS Secrets Manager
 
@@ -80,9 +80,9 @@ resource "alicloud_kms_secret" "llm" {
 
 密钥本身通过 `var.llm_keys` 传入——用 `-var-file=secrets.auto.tfvars`（已 gitignore）或者 CI secret 里的 `TF_VAR_llm_keys='{...}'` 设置。它们绝不会出现在你的代码仓库里。
 
-算笔账：KMS Secrets Manager 在上海区域大概是每个密钥每月 0.4 元，加上每 1 万次 API 调用 0.03 元。四个厂商密钥，两台网关机器每小时拉取两次，每月账单几乎是忽略不计——不到 10 块钱。默认服务密钥免费，只有客户管理的 CMK 每个每月 1 元。别让"KMS 听起来很贵”成为你继续用 `.env` 文件的理由。
+我们来算一笔账：KMS Secrets Manager 在上海地域的费用约为每个密钥每月 0.4 元，外加每万次 API 调用 0.03 元。四个厂商密钥，两台网关机器每小时拉取两次，每月账单几乎是忽略不计——不到 10 块钱。阿里云默认提供的服务密钥免费，仅当使用客户自主创建和管理的 CMK（客户主密钥）时，才按每个每月 1 元计费。别让"KMS 听起来很贵”成为你继续用 `.env` 文件的理由。
 
-> **实战建议：** 轮换厂商密钥时，修改 `secret_data` 并 bump `version_id`。KMS 会在恢复窗口期内保留旧版本生效，这样进行中的请求不会失败；新网关拉取拿到的是新版本。把这个流程写成 PR 形式，方便审计。
+> **实战建议：** 轮换厂商密钥时，修改 `secret_data` 并 bump `version_id`。KMS 会在恢复窗口期内保持旧版本有效，确保进行中的请求不受影响；新启动的网关实例则会拉取并使用新版本。把这个流程写成 PR 形式，方便审计。
 
 ## 第二步：网关 assumable 的 RAM Role
 
@@ -131,13 +131,13 @@ resource "alicloud_ram_role_policy_attachment" "gateway_kms" {
 
 这里有三点设计是刻意的：
 
-- **资源级权限控制。** 只针对这些特定密钥，而不是对 `*` 开放 `kms:GetSecretValue`。万一网关机器被攻破，攻击者无法横向移动到其他 KMS 密钥——账单密钥、RDS 密码、OSS bucket 全部保持密封。
+- **资源级权限控制。** 只针对这些特定密钥，而不是对 `*` 开放 `kms:GetSecretValue`。即使网关机器被攻破，攻击者也无法横向访问其他 KMS 密钥——例如账单密钥、RDS 密码、OSS 存储桶等，均保持隔离状态。
 - **无长期 AK。** 角色由 ECS 实例通过 metadata service 假设。磁盘上、环境变量里、cloud-init 中零静态凭证。
-- **`kms:Decrypt` 是必须的。** 哪怕只是读取密钥，因为密钥在静态存储时是 KMS 加密的。忘记这点是网关启动后每次 fetch 都 401 的头号原因。
+- **`kms:Decrypt` 是必须的。** 即使只需读取密钥，也必须显式声明该权限——因为 KMS 在静态存储时已对密钥加密。忽略此配置，是网关启动后每次 fetch 均返回 401 的最常见原因。
 
 ## 第三步：在 ECS 上部署 LiteLLM
 
-LiteLLM 是我用过最顺手的开源 LLM 代理。前端讲 OpenAI API 格式，后端翻译成各个厂商的协议。在 ECS 上自托管 keeps things flexible：
+LiteLLM 是目前我使用体验最好的开源 LLM 网关：前端兼容 OpenAI API 格式，后端可对接多家厂商的协议。在 ECS 上自托管 keeps things flexible：
 
 ```hcl
 resource "alicloud_instance" "gateway" {
@@ -198,7 +198,7 @@ locals {
 }
 ```
 
-两台 `ecs.c7.large` —— 2 vCPU, 4 GB 内存 —— 轻松扛住 200+ QPS 的纯代理流量。LiteLLM 是异步 I/O  bound；CPU 很少超过 30%。别配大了。如果流量有突发，放进弹性伸缩组，让云监控在 CPU 持续超过 60% 时加节点。
+两台 `ecs.c7.large` —— 2 vCPU, 4 GB 内存 —— 轻松扛住 200+ QPS 的纯代理流量。LiteLLM 属于异步 I/O 密集型服务，CPU 使用率通常不超过 30%。别配大了。如果流量有突发，放进弹性伸缩组，让云监控在 CPU 持续超过 60% 时加节点。
 
 `gateway-init.sh` 负责启动流程：
 
@@ -285,7 +285,7 @@ resource "alicloud_alb_listener" "gateway" {
 }
 ```
 
-现在 Agent 只要访问 `http://<alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/completions` 就能到达网关，完全看不到厂商密钥。ALB 仅限内网——没有公网 IP，没有面向世界的 443 监听。如果 Agent 需要从 VPC 外部调用，走 bastion 或 CEN，绝不直连。
+现在 Agent 只要访问 `http://<alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/completions` 就能到达网关，完全看不到厂商密钥。ALB 仅允许内网访问：不分配公网 IP，也不监听任何面向公网的端口（如 443）。如果 Agent 需要从 VPC 外部调用，走 bastion 或 CEN，绝不直连。
 ## 步骤 4：单 Agent 配额
 
 LiteLLM 原生支持按 Key 配额。最干净的做法是用 Terraform 给每个 Agent 配一个 LiteLLM "virtual key"，独立设置 QPM 和 Token 预算。因为 LiteLLM 把这些存在自己数据库里，我们得在 apply 阶段调它的 API 来创建，用个 `null_resource` 就行：
@@ -329,7 +329,7 @@ resource "null_resource" "agent_keys" {
 
 输出结果是每个 Agent 拿到独立的 `LITELLM_API_KEY` 环境变量，第 4 篇文章里的 cloud-init 脚本会读这个。配额超限会返回 `429 Too Many Requests`，Agent 端必须用指数退避处理——把这逻辑写进共享的 HTTP 客户端里，别指望每个 Agent 作者都能记住。
 
-说说数字。`schedule-agent` 的上限设在每天 10 万 Token 和 40 块钱，看着挺低。确实低，但我是故意的。一个调度 Agent 要是突然飙到 200 万 Token，大概率是卡在规划循环里了，这时候硬截断比月底账单多出 3000 块惊喜要好得多。把上限调成"Agent 过去 30 天 P99 日用量的 10 倍”，然后每季度复查一次。
+说说数字。`schedule-agent` 的上限设在每天 10 万 Token 和 40 块钱，看着挺低。确实低，但我是故意的。一个调度 Agent 要是突然飙到 200 万 Token，大概率是卡在规划循环里了，这时候硬截断比月底账单多出 3000 块惊喜要好得多。可将上限设为“Agent 过去 30 天日用量的 P99 值的 10 倍”，并每季度复查一次。
 
 ## 步骤 5：密钥轮换流程
 
@@ -347,7 +347,7 @@ resource "null_resource" "agent_keys" {
 4. 30 天后，`v1` 被禁用——谁还在用就会拿到 `InvalidSecretVersion`
 5. 你通过 SLS 确认 `v1`  usage 为零，然后提升 `v2` 并退役 `v1`
 
-对团队来说，把这写成 Runbook，哪怕没泄露也要每季度执行一次。活过季度的密钥默认就是 stale 的；把 stale 当成低等级事故处理。开篇那个外包商的故事就是因为没人轮换 DashScope 密钥，拖了 14 个月。看完这篇文章，那种情况就不可能发生了——就算你忘了，30 天的窗口期也会逼着你处理。
+对团队来说，把这写成 Runbook，哪怕没泄露也要每季度执行一次。存活超过一个季度的密钥默认视为过期（stale），应按低优先级安全事件处理。开篇那个外包商的故事就是因为没人轮换 DashScope 密钥，拖了 14 个月。看完这篇文章，那种情况就不可能发生了——就算你忘了，30 天的窗口期也会逼着你处理。
 
 ## 步骤 6：明文到底还会怎么漏（以及怎么堵）
 
@@ -376,7 +376,7 @@ resource "alicloud_instance" "gateway" {
 }
 ```
 
-原则很简单：**Terraform 应该知道密钥的*名字*，而不是*值***。运行时通过实例元数据从 KMS 拉取值。这是最重要的一条习惯，跟大多数教程教的正好相反。
+核心原则是：Terraform 只需知晓密钥的名称，无需掌握其具体值。运行时通过实例元数据从 KMS 拉取值。这是最重要的一条习惯，跟大多数教程教的正好相反。
 
 ### Leak 2: CI logs
 

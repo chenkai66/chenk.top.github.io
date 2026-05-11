@@ -22,7 +22,7 @@ translationKey: "claude-code-learn-3"
 
 ## 什么是斜杠命令？
 
-一个位于 `.claude/commands/<name>.md` 的 Markdown 文件。文件内容即为向 Claude 发送的提示词（prompt），文件名就是命令名。创建后需重启 Claude Code（这是少数几个不支持热重载的功能之一）。
+一个位于 `.claude/commands/<name>.md` 的 Markdown 文件。文件内容即为向 Claude 发送的提示词（prompt），文件名就是命令名。创建后需重启 Claude Code（这是少数几个不支持热重载的功能）。
 
 最简示例：新建 `.claude/commands/audit.md`：
 
@@ -39,7 +39,7 @@ translationKey: "claude-code-learn-3"
 /audit
 ```
 
-整段提示词会立即执行。你将直接获得一份结构清晰的安全审计报告，无需手动回忆并逐条输入三条命令。
+整段提示词会立即执行，你将直接获得一份结构清晰的安全审计报告，无需手动回忆和逐条输入那三条命令。
 
 注意两点：
 
@@ -55,9 +55,9 @@ translationKey: "claude-code-learn-3"
 3. 读取文件内容  
 4. 将其作为 prompt 发送给 Claude，效果等同于你亲手输入了这段文字  
 
-**项目级命令优先级高于全局命令**。这意味着团队可直接在项目中覆盖你个人的 `/audit`，提供更贴合当前项目的版本。
+**项目级命令的优先级高于全局命令**。这意味着团队可直接在项目中覆盖你个人的 `/audit`，提供更贴合当前项目的版本。
 
-命令内容就是一段普通 prompt，因此支持：
+命令内容就是一段普通 prompt，因此支持以下能力：
 
 - 使用 `@` 引用项目内文件  
 - 插入思考层级指令（如 “think a lot”）  
@@ -97,7 +97,7 @@ translationKey: "claude-code-learn-3"
 └── auth.json               # 认证 token
 ```
 
-**核心区别在于作用域**：  
+**两者的核心区别在于作用域**：  
 ✅ 团队命令 → 放在项目 `.claude/commands/` 下 → 仅对该仓库生效  
 ✅ 个人命令 → 放在 `~/.claude/commands/` 下 → 在所有项目中均可使用  
 
@@ -440,7 +440,7 @@ Think a lot before responding.
 ⚠️ 仅输出日志内容，禁止修改任何文件。
 ```
 
-这些命令是“个人化”的，因为它们描述的是我的工作节奏，而非团队共识。另一位同事的站会格式可能完全不同。
+这些命令是‘个人化’的，描述的是我个人的工作节奏，而非团队共识；另一位同事的站会格式可能完全不同。
 
 ## 高级命令模式
 

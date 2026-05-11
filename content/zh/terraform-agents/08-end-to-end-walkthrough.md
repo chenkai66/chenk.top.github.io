@@ -16,13 +16,13 @@ description: "把七个 module 拼到一个仓库，跑一次 terraform apply，
 disableNunjucks: true
 translationKey: "terraform-agents-8"
 ---
-前面第 2 到第 7 篇的所有内容，最后都汇聚到这里。跑一次 `terraform apply`，你就能在阿里云上得到一套完整、可观测、带预算控制的 Agent 运行时栈——大概 31 个资源，实际耗时 7 分钟左右，生产环境规模下全包成本约 ¥12,530/月。
+本系列第 2 至第 7 篇所构建的全部模块，最终在此完成整合与部署。跑一次 `terraform apply`，你就能在阿里云上得到一套完整、可观测、带预算控制的 Agent 运行时栈——大概 31 个资源，实际耗时 7 分钟左右，生产环境规模下全包成本约 ¥12,530/月。
 
 我们要搭建的栈结构如下：
 
 ![research-agent-stack: every box, one terraform apply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png)
 
-一共五层——边缘、计算、记忆、平台、运维——由本系列之前构建的模块组合而成。底层依赖十一个阿里云产品：VPC、ECS、ALB、OSS、RDS for PostgreSQL、OpenSearch、KMS、SLS、ARMS、CloudMonitor，以及 DashScope（通过网关访问的 LLM 提供商）。
+一共五层——边缘、计算、记忆、平台、运维——由本系列之前构建的模块组合而成。底层依赖 11 款阿里云服务：VPC、ECS、ALB、OSS、RDS for PostgreSQL、OpenSearch、KMS、SLS、ARMS、CloudMonitor，以及通过网关调用的 DashScope（LLM 接入服务）。
 
 ## Project structure
 
@@ -58,7 +58,7 @@ research-agent-stack/
 ![Infrastructure modules composing together into a complete architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png)
 
 
-顶层八个 `*.tf` 文件，`modules/` 目录下五个模块，环境变量放在 `env/*.tfvars`，密钥隔离在 `secrets/secrets.auto.tfvars` 且不进 git。这是我每个项目通用的布局——枯燥点挺好，稳定最重要。唯独 `secrets/` 目录必须从第一次提交就开始被 `.gitignore` 忽略，这点我绝不妥协。我处理过的每一次密钥泄露事故，追溯回去都是因为有人在第 50 次提交才补上 gitignore，而不是在第 1 次。
+顶层八个 `*.tf` 文件，`modules/` 目录下五个模块，环境变量放在 `env/*.tfvars`，密钥隔离在 `secrets/secrets.auto.tfvars` 且不进 git。这是我每个项目的标准目录结构：略显刻板，但胜在稳定可靠。唯独 `secrets/` 目录必须从第一次提交就开始被 `.gitignore` 忽略，这点我绝不妥协。我处理过的所有密钥泄露事件，根本原因都是 gitignore 文件未在项目初始化时配置，而是在后续（例如第 50 次提交）才临时补充。
 
 ## main.tf — the composition
 
@@ -140,13 +140,13 @@ module "compute" {
 }
 ```
 
-五个模块调用。每个模块都把*前一个*模块的输出作为输入——`module.compute` 读取 `module.vpc`、`module.storage`、`module.gateway`、`module.observability`。这种依赖连线就是 Terraform 构建 apply DAG 的依据：
+五个模块调用。每个模块都把*前一个*模块的输出作为输入——`module.compute` 读取 `module.vpc`、`module.storage`、`module.gateway`、`module.observability`。这类模块间的依赖关系，正是 Terraform 构建 apply 执行图（有向无环图，DAG）的依据。
 
 ![Terraform module dependency DAG](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png)
 
-VPC 和 KMS 位于顶层——它们没有依赖。Storage 和 gateway 依赖 VPC + KMS，但彼此独立，所以 Terraform 会并行构建它们。Compute 依赖前三者，因为 cloud-init 模板需要它们的端点。Observability 资源在最后发散开来，因为它们要引用 compute 的安全组 ID。
+VPC 和 KMS 位于依赖链顶层，自身不依赖其他模块。Storage 和 gateway 均依赖 VPC 和 KMS，但二者互不依赖，因此 Terraform 会并行创建。Compute 模块依赖前三个模块，因其 cloud-init 模板需引用这些模块输出的端点地址。Observability 资源在最后发散开来，因为它们要引用 compute 的安全组 ID。
 
-`local.is_prod` 里的三元表达式就是全部的环境升级策略，三行代码搞定：生产环境获得高可用 RDS、两个网关实例、三个 Agent ECS、¥800 成本上限、跨地域灾备。开发环境则使用最小可行配置。模块相同，只是规模不同，无需维护特定于环境的代码路径。
+`local.is_prod` 里的三元表达式就是全部的环境升级策略，三行代码搞定：生产环境获得高可用 RDS、两个网关实例、三个 Agent ECS、¥800 成本上限、跨地域灾备。开发环境则使用最小可行配置。模块完全相同，仅通过变量调节规模，因此无需为不同环境维护独立代码分支或条件逻辑。
 
 ## variables.tf
 
@@ -234,13 +234,13 @@ terraform apply tfplan
 
 ![Real apply timeline — RDS/OpenSearch dominate, the rest is parallel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig3_apply_timeline.png)
 
-墙钟时间分解：
+实际耗时分解（wall-clock time）：
 
 - **0–60s：** VPC、vSwitch、NAT、EIP、KMS keys —— 快速资源
-- **60–380s：** RDS（5 分钟）、OpenSearch（5.5 分钟）、ECS（~2 分钟）、gateway（~1.5 分钟）—— 全部并行，受限于最慢的那个
+- **60–380s：** RDS（约 5 分钟）、OpenSearch（约 5.5 分钟）、ECS（约 2 分钟）、gateway（约 1.5 分钟）——这些资源并行创建，整体耗时取决于最慢的一项。
 - **380–460s：** 通过 cloud-init 部署 agent 应用、观测资源、告警
 
-总共约 7 分钟，主要耗时在 RDS 和 OpenSearch 的 部署 上。如果没有变更再次 apply，会在 30 秒内完成，因为 Terraform 只做 diff。
+总共约 7 分钟，主要耗时集中在 RDS 和 OpenSearch 的创建过程。如果没有变更再次 apply，会在 30 秒内完成，因为 Terraform 只做 diff。
 
 一份精简后的 apply 转录：
 
@@ -294,10 +294,10 @@ sls_dashboard_url    = "https://sls.console.aliyun.com/lognext/project/agents-de
 total_estimated_cost = "~¥2060/month at dev sizing"
 ```
 
-这就是一套完整的 Agent 栈。ALB 端点、网关 URL、SLS 仪表盘 URL——随便复制一个到浏览器都能直接访问。`total_estimated_cost` 输出是在 `outputs.tf` 里根据 workspace 条件计算出来的，所以你在 plan 里看到的数字和账单上显示的相符（误差 ~10% 以内，这是我长期运行的经验法则）。
+至此，一套完整的 Agent 运行时栈已完成部署。ALB 端点、网关 URL、SLS 仪表盘 URL 均已就绪，任选其一粘贴至浏览器即可直接访问。`total_estimated_cost` 输出是在 `outputs.tf` 里根据 workspace 条件计算出来的，所以你在 plan 里看到的数字和账单上显示的相符（误差 ~10% 以内，这是我长期运行的经验法则）。
 ## Day-2 运营
 
-栈搭好了，然后呢？这些是我每个长期运行的栈都会做的操作——文章里不会写，但 on-call 轮值会教你做人。
+栈搭好了，然后呢？这些是我每个长期运行的栈都会做的操作——这些操作虽未在正文中详述，却是 on-call 工程师日常运维的必备实践。
 
 ![CI/CD pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_cicd_pipeline.png)
 
@@ -309,11 +309,11 @@ total_estimated_cost = "~¥2060/month at dev sizing"
 3. 网关模块里的 `null_resource` 会 部署 一个新的 LiteLLM key
 4. 带着新的 `LITELLM_API_KEY` 环境变量部署你的 Agent 代码
 
-端到端大概 30 秒。第一次用这套模式上线时，产品团队问能不能通过 Slack 表单自助接入 Agent。一旦有了 Terraform 契约，写这个表单也就半天工作量。
+端到端大概 30 秒。该模式首次上线时，产品团队曾提出需求：希望支持通过 Slack 表单自助接入 Agent。一旦有了 Terraform 契约，写这个表单也就半天工作量。
 
 ### 扩容
 
-修改模块调用里的 `ecs_count`（或者通过 `tfvars` 设置）。`terraform apply` 会拉起新实例，挂到 ALB 上，旧实例在整个过程中保持健康（`create_before_destroy`）。零停机。我曾在一个病毒式传播的时刻，凌晨 2 点用这 exact 的一行变更，把 Agent 实例从 3 个扩到了 12 个。
+修改模块调用里的 `ecs_count`（或者通过 `tfvars` 设置）。`terraform apply` 会拉起新实例，挂到 ALB 上，旧实例在整个过程中保持健康（`create_before_destroy`）。零停机。我曾在一次流量激增期间，于凌晨 2 点通过修改这一行配置，将 Agent 实例数从 3 扩容至 12。
 
 ### 销毁 Dev 环境
 
@@ -378,7 +378,7 @@ jobs:
             -d "{\"text\":{\"content\":\"Promotion plan ${{ inputs.from_workspace }}→${{ inputs.to_workspace }} ready for review\"}}"
 ```
 
-Plan 会发到钉钉上的 on-call 工程师。他们会特别关注任何与 dev 显示*不同*的地方。如果 plan 显示有资源要重建，而在 dev 里没重建——停手。Apply 之前先调查。这几乎总是 workspace 条件 bug 或者 tfvars 拼写错误。
+Plan 会发到钉钉上的 on-call 工程师。他们会特别关注任何与 dev 显示*不同*的地方。如果 plan 显示有资源要重建，而在 dev 里没重建——停手。Apply 之前先调查。这通常源于 workspace 条件配置错误或 tfvars 文件拼写错误。
 
 **第三步：Apply，烟雾测试，然后解封。** 实际的 prod apply  gated 在一个需要审批人的 GitHub Environment 上（第 6 篇文章里配置过）。Apply 成功后，流量切换前先跑烟雾测试：
 

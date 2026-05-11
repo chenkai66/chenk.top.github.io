@@ -18,9 +18,9 @@ description: "Build full-stack observability: SLS for log collection and queryin
 disableNunjucks: true
 translationKey: "aliyun-fullstack-7"
 ---
-我职业生涯中最严重的一次生产事故，排查整整花了三个小时。当时有个 Node.js 服务间歇性返回 502，大概 5% 的请求受影响，而我手头没有任何工具。没有集中式日志（每台 ECS 实例都有自己的 `/var/log/`，我得一台台 SSH 上去看）。没有监控大盘（只能在终端里跑 `top` 和 `df -h`）。没有链路追踪（只能靠加 `console.log` 时间戳来猜是哪个下游调用卡住了）。三个小时后我才找到原因：一个被遗忘的 cron 任务占着连接不放，导致 RDS 连接池在高负载下耗尽。修复只需要两行代码。但因为缺乏可观测性，排查过程成了三个小时的折磨。
+我职业生涯中最严重的一次生产事故，排查整整花了三个小时。当时有个 Node.js 服务间歇性返回 502，大概 5% 的请求受影响，而我手头没有任何工具。没有集中式日志（每台 ECS 实例都有自己的 `/var/log/`，我得一台台 SSH 上去看）。没有监控大盘（只能在终端里跑 `top` 和 `df -h`）。没有链路追踪（只能靠加 `console.log` 时间戳来猜是哪个下游调用卡住了）。三个小时后我才找到原因：一个被遗忘的 cron 任务占着连接不放，导致 RDS 连接池在高负载下耗尽。修复只需要两行代码。但因为缺乏可观测性，排查过程耗时三小时，异常艰难。
 
-这个教训简单但昂贵：可观测性不是等应用稳定后才去补的东西，而是上线前就必须到位的基础设施。理想情况下，甚至在写业务代码之前就该搭建好，因为可观测性栈会决定你如何组织日志、如何传递请求 ID、以及如何埋点依赖库。最后再补，所有东西都得重构；最先搭建，所有东西自然融入。
+这个教训看似简单，代价却极为高昂：可观测性不是应用稳定后再补的‘锦上添花’，而是上线前必须就绪的基础设施。理想情况下，可观测性基础设施应在编写业务代码前就搭建完成——它直接决定了日志格式、请求 ID 透传方式和依赖库埋点策略。事后补建往往需全面重构，而前置建设则可自然融入开发流程。
 
 
 这篇文章会完整介绍阿里云上的可观测性栈：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用就会有一套可用的监控 setup。ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform 部署 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
@@ -37,7 +37,7 @@ translationKey: "aliyun-fullstack-7"
 
 **Traces** 告诉你为什么发生。追踪会说“这个特定请求在 API 网关花了 15ms，在订单服务花了 200ms，等待数据库查询花了 1800ms，序列化响应花了 50ms"。追踪跟随单个请求穿越多个服务。它是分布式系统里的 X 光，揭示哪个组件是瓶颈。
 
-三者缺一不可。指标告诉你出事了（错误率飙升），日志告诉你哪出事了（数据库超时错误），追踪告诉你为啥出事（orders 表上的某个特定查询在做全表扫描，因为索引被删了）。
+三者缺一不可：指标告诉你出事了（如错误率飙升），日志告诉你哪里出了问题（如数据库超时错误），追踪则揭示原因（如 orders 表上某条查询因索引被误删而执行全表扫描）。
 
 在阿里云上，映射关系很清晰：
 
@@ -51,7 +51,7 @@ translationKey: "aliyun-fullstack-7"
 
 ## SLS: Simple Log Service
 
-SLS 是阿里云可观测性的 backbone。别看名字叫 Simple，它一点都不简单——这是一个功能完备的日志分析平台，集采集、存储、索引、查询、可视化、告警于一身。你可以把它理解为 AWS CloudWatch Logs 和 Elasticsearch 合体，上面还套了个 SQL 查询引擎。
+SLS 是阿里云可观测性的核心组件。尽管名称含 ‘Simple’，它实则功能完备：集日志采集、存储、索引、查询、可视化与告警于一体。你可以将其理解为 AWS CloudWatch Logs 与 Elasticsearch 的融合体，并内置了 SQL 查询引擎。
 
 ![SLS log collection pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
@@ -74,7 +74,7 @@ SLS Project: prod-webapp
 └── Alert: high-error-rate
 ```
 
-通过 CLI 创建 project 和 logstores：
+可通过 CLI 创建 Project 和 Logstore：
 
 ```bash
 # Create the SLS project
@@ -126,11 +126,11 @@ aliyun sls CreateLogStore \
 | Schema-on-read | Yes, with indexing | Partially (Insights) |
 | Real-time streaming | Built-in consumer groups | Kinesis Data Streams (separate) |
 
-最大区别：SLS 把日志存储、搜索、分析合在一个服务里。在 AWS，你可能用 CloudWatch Logs 采集，导出到 S3，搭 Elasticsearch (OpenSearch) 做搜索，再用 Athena 做 SQL 分析。SLS 在一个地方全干了。代价是厂商锁定——SLS 查询语法跨云不标准。
+最显著的区别在于：SLS 将日志存储、搜索与分析集成于单一服务；而 AWS 生态通常需组合使用 CloudWatch Logs（采集）、S3（长期存储）、OpenSearch（搜索）和 Athena（SQL 分析）。SLS 在一个地方全干了。代价是厂商锁定：SLS 查询语法并非跨云通用标准。
 
 ### Log Query Syntax
 
-SLS 支持三种查询模式，搞清楚能省掉很多 frustration。
+SLS 支持三种查询模式，掌握这三种模式，可显著提升查询效率。
 
 **Full-text search** -- 直接输关键词。SLS 搜所有索引字段。
 
@@ -204,7 +204,7 @@ LIMIT 50
 
 ### Enabling Indexes
 
-SLS 默认不索引字段。要想用 key-value 查询或 SQL 分析，先得创建索引配置。没索引的话，只有对原始日志内容的全文本搜索能用，而且那也得要有全文索引。
+SLS 默认不为字段建立索引。如需使用键值对查询或 SQL 分析，须预先配置字段索引。未配置字段索引时，仅支持全文关键词搜索；若未启用全文索引，则无法执行任何搜索。
 
 ```bash
 aliyun sls CreateIndex \
@@ -233,7 +233,7 @@ aliyun sls CreateIndex \
 > **Cost note:** Indexing roughly doubles your storage cost. For high-volume logs where you only need full-text search, skip per-field indexing and rely on the `line` index. For access logs where you run SQL dashboards, per-field indexing is worth the cost.
 ## 配置 Logtail
 
-Logtail 算是 SLS 的官方日志采集 agent 了。它跑在你的 ECS 实例上，监控日志文件，按配置解析，然后投递到 SLS。这玩意儿很轻量（通常占用 50-100 MB 内存，CPU <1%），可靠（本地缓冲处理网络中断），并且和 SLS 深度集成。
+Logtail 是 SLS 官方日志采集 agent，运行于 ECS 实例，负责监控日志文件、按配置解析并投递至 SLS。它轻量（通常占用 50–100 MB 内存，CPU 使用率 <1%）、可靠（通过本地缓冲应对网络中断），且与 SLS 深度集成。
 
 ![Logtail 采集器部署架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_logtail_architecture.png)
 

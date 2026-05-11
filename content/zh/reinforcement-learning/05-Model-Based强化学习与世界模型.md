@@ -20,11 +20,11 @@ disableNunjucks: true
 series_order: 5
 translationKey: "reinforcement-learning-5"
 ---
-到目前为止，我介绍的所有算法——DQN、REINFORCE、A2C、PPO、SAC——都属于 **Model-Free** 类型。智能体把环境当作黑盒，输入动作，接收奖励，更新策略，完全不去理解环境的内部机制。这种方法虽然有效，但效率极低。比如，DQN 需要 **1000 万帧**才能在 Atari Pong 上达到精通；OpenAI Five 在 Dota 2 上自我对弈的时间相当于 **45000 年**；AlphaStar 则消耗了数年的 StarCraft 数据来训练一个智能体。
+到目前为止，我介绍的所有算法——DQN、REINFORCE、A2C、PPO、SAC——都属于 **Model-Free** 类型。智能体把环境当作黑盒，输入动作，接收奖励，更新策略，完全不去理解环境的内部机制。这种方法虽然有效，但样本效率极低：DQN 需要约 **1000 万帧**才能在 Atari Pong 上达到人类水平；OpenAI Five 在 Dota 2 中的自我对弈量相当于 **4.5 万年**的游戏时长；AlphaStar 的训练则依赖数年的 StarCraft 对战数据。
 
-人类显然不是这样学习的。下棋的人会提前推演几步，排除明显糟糕的走法；小孩掉一次悬崖就知道"危险"，而不是靠反复摔下去学会。这两种情况都依赖于一个内部的 **模型**，用来预测世界如何响应动作。更重要的是，大部分认知资源都花在模型里，而不是真实环境中。
+人类显然不依赖这种试错方式学习：棋手会向前推演几步，主动排除明显劣招；小孩跌下悬崖一次就学会‘危险’，无需反复体验。这两种情况都依赖一个内在的 **模型**——即预测动作如何影响世界状态的机制。更重要的是，人类将大部分认知资源投入模型内部的推理，而非真实环境交互。
 
-**Model-Based RL（基于模型的强化学习，MBRL）** 就是把这个思路系统化：先学习一个近似的动态模型 $\hat{P}(s'\mid s,a)$ 和奖励模型 $\hat{R}(s,a)$，然后用它们作为廉价的模拟器，进行规划、策略改进或价值估计。在适用的任务上，这种方法能带来巨大的回报——**真实环境样本需求量减少 10 到 100 倍**。这就像让一个机器人从需要三个月物理交互，缩短到只需要一下午。
+**Model-Based RL（基于模型的强化学习，MBRL）** 就是把这个思路系统化：先学习一个近似的动态模型 $\hat{P}(s'\mid s,a)$ 和奖励模型 $\hat{R}(s,a)$，然后用它们作为廉价的模拟器，进行规划、策略改进或价值估计。在适用的任务上，该方法可将真实环境交互所需的样本量降低 10 至 100 倍。这意味着机器人完成训练所需的物理交互时间，可从三个月缩短至仅一下午。
 
 这篇文章梳理了 MBRL 的现代发展脉络：Dyna（1990）-> MBPO（2019）-> World Models（2018）-> Dreamer（2020-23）-> MuZero（2020）。每种方法背后都有一个核心思想，而本文的 7 张图逐一展示了这些思想。
 ![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
@@ -46,7 +46,7 @@ translationKey: "reinforcement-learning-5"
 
 ![Model-free 与 model-based 控制循环对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig1_mf_vs_mb_loops.png)
 
-Model-Free RL 只有一个循环：*执行 -> 观察 -> 学习*。Model-Based RL 则多了一个循环：*学习模型 -> 在模型中规划 -> 改进策略*。一次真实交互可以分摊到成千上万次想象更新中，效率立刻提升。
+Model-Free RL 只有一个循环：*执行 -> 观察 -> 学习*。Model-Based RL 则多了一个循环：*学习模型 -> 在模型中规划 -> 改进策略*。一次真实交互可支撑成千上万次基于模型的想象更新，显著提升样本效率。
 
 ### 核心权衡
 
@@ -139,7 +139,7 @@ class DynaQ:
 
 ### Dyna 的启示与局限
 
-Dyna 提炼出了一个核心洞见：**学到一个模型，可以用算力替代样本**。它同时也揭示了一个所有现代方法都绕不开的问题：在错误的模型上规划，会直接将偏差注入价值函数。在表格化的确定性世界中，这个问题并不明显；但换成神经网络模型和长 horizon，误差会指数级累积。本文后续内容本质上就是针对这个问题的一系列巧妙解答。
+Dyna 揭示了一个核心思想：**以计算换样本**——即用模型驱动的想象更新，替代昂贵的真实环境交互。它同时也揭示了一个所有现代方法都绕不开的问题：在错误的模型上规划，会直接将偏差注入价值函数。在表格化、确定性环境中，该问题尚不突出；但在基于神经网络的模型与长程任务（long-horizon）设定下，预测误差会随步数呈指数增长。本文后续内容本质上就是针对这个问题的一系列巧妙解答。
 ## 三、MBPO：让想象短一些
 
 ![MBPO 短分支 rollout 与模型误差随长度增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig4_mbpo_short_rollouts.png)

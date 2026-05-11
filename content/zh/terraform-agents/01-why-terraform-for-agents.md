@@ -16,11 +16,11 @@ description: "Agent 系统是个移动靶——每个月都有新工具、新记
 disableNunjucks: true
 translationKey: "terraform-agents-1"
 ---
-过去十八个月，我在阿里云上交付了四个 Agent 系统。其中三个起步都是某人在控制台点出来的单台 ECS 上的 `tmux` 会话。这三个项目都在第二个工程师加入、生产区库存告急或者安全团队索要网络拓扑图时，让我不得不花费一个恐慌的周末重构。
+过去十八个月，我在阿里云上交付了四个 Agent 系统。其中三个起步都是某人在控制台点出来的单台 ECS 上的 `tmux` 会话。这三个项目，通常在第二位工程师加入、生产环境资源告急，或安全团队索要网络拓扑图时，迫使我不得不在某个手忙脚乱的周末紧急重构。
 
-第四个是从 `terraform apply` 开始的。它是唯一一个没让我牺牲周末的系统。
+第四个是从 `terraform apply` 开始的。它是唯一一个无需占用周末就能交付的系统。
 
-这个系列就是为第四种模式准备的实战指南：如何用 Terraform  部署 AI Agent 系统在阿里云上真正需要的基础设施。这不是 Terraform 教程——网上有很好的教程，官方 `快速入门` 文档也覆盖了基础。这是针对“我跑 Agent"和“我在阿里云上跑”这两个交集的高级工程师 实战手册。
+这个系列就是为第四种模式准备的实战指南：如何用 Terraform  部署 AI Agent 系统在阿里云上真正需要的基础设施。这不是 Terraform 教程——网上有很好的教程，官方 `快速入门` 文档也覆盖了基础。这是一份面向同时满足‘正在运行 Agent’和‘部署在阿里云上’两个条件的高级工程师的实战手册。
 
 八篇文章。最后交付一个真实可用的栈。第一篇讲讲为什么。
 
@@ -43,7 +43,7 @@ translationKey: "terraform-agents-1"
 8. **Secrets**  provider keys、OAuth tokens、OSS 凭证、数据库密码
 9. **Cost control** 因为当 Agent 自我循环时，token 账单可能一夜之间翻 10 倍
 
-这至少涉及九个相互交互的阿里云服务。每个都有自己的控制台页面、RAM 权限、Region 范围和网络配置。指望手动把这些全部连线，并且在三个月的演进后还能让 `dev`、`staging` 和 `prod` 保持一致，概率差不多是零。
+这至少涉及九个相互交互的阿里云服务。每个服务都有独立的控制台入口、RAM 权限策略、可用区（Region）支持范围和网络配置。指望手动把这些全部连线，并且在三个月的演进后还能让 `dev`、`staging` 和 `prod` 保持一致，概率差不多是零。
 
 ## The console-vs-IaC moment
 
@@ -54,7 +54,7 @@ translationKey: "terraform-agents-1"
 
 ![Console clicks vs Terraform — where the divergence happens](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
 
-仔细看左列。每一步都看似合理——都不是蠢 mistake。这是聪明人在几个月里做出微小合理决策后的结果。右列是同一条路径，但每一步都在 git 里留下了 artifact。两列之间的 diff 就是“我交付了这个”和“凌晨 2 点我被 call 醒因为没人知道 `cn-beijing` 里跑着什么”的区别。
+仔细看左列。每一步都看似合理——都不是蠢 mistake。这是聪明人在几个月里做出微小合理决策后的结果。右列走的是同一条路径，但每一步变更都通过可审查的配置文件记录在 Git 中。两列之间的 diff 就是“我交付了这个”和“凌晨 2 点我被 call 醒因为没人知道 `cn-beijing` 里跑着什么”的区别。
 
 阿里云 Terraform 官方文档说得更委婉些：
 
@@ -70,15 +70,15 @@ translationKey: "terraform-agents-1"
 
 从中需要内化三点：
 
-- **Declarative, not imperative.** 别说“创建实例”，要说“存在一个这种形状的实例”。如果什么都没变，重跑配置是 空操作。这让 Terraform 可以安全地在每次 commit 时从 CI 运行。
-- **State is real.** `terraform.tfstate` 文件是从 HCL 资源地址到云实际资源 ID 的 JSON 映射。丢了 state file，Terraform 就会认为什么都不存在。第二篇文章会讲把 state 放在哪里才持久——但影响远不止“别丢文件”，我们后面会回来说。
+- **Declarative, not imperative.** 不要写‘创建实例’这样的命令式语句，而要声明‘存在一个符合该规格的实例’这一状态。如果实际状态未发生变化，重复执行配置将不产生任何变更。这让 Terraform 可以安全地在每次 commit 时从 CI 运行。
+- **State is real.** `terraform.tfstate` 文件是从 HCL 资源地址到云实际资源 ID 的 JSON 映射。一旦丢失 state file，Terraform 就会认为所有资源都不存在。第二篇文章会讲把 state 放在哪里才持久——但影响远不止“别丢文件”，我们后面会回来说。
 - **Plan before apply.** 这是杀手锏。每次变更都会在你动手*之前*字面展示什么会被创建、修改或销毁。养成把 plan 输出 paste 到 PR 描述里的习惯——未来的你会感谢自己。
 
 ## State as the agent stack's 物料清单
 
 "State 是真实的”这点值得多写几句，因为对于 Agent 栈来说，state 文件兼任了你的库存清单。
 
-我交付的每个 Agent 栈在某个时刻都被审计过——安全审查、财务核对云支出、或者新 SRE  trying to figure out 到底跑着什么。每次问题都一样：*存在什么，谁创建的，花了我多少钱？*
+我交付的每个 Agent 栈在某个时刻都被审计过——安全审查、财务核对云支出、或者新入职的 SRE 试图厘清当前运行的是什么。每次审计的核心问题都相同：当前有哪些资源？由谁创建？花费多少费用？
 
 如果你的基础设施活在 Terraform state 文件里，这个问题 30 秒就能回答：
 
@@ -90,7 +90,7 @@ terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, ty
 
 对于我今天跑的四个 Agent 栈，这三条命令几秒钟就能生成一份综合清单。在用 Terraform 之前，同样的审计需要打开 ECS、VPC、RDS、OSS、RAM、KMS、SLS、ARMS、ACK、CloudMonitor、ALB 和 OpenSearch 的十二个控制台标签页——运气好按 tag 过滤，运气不好全靠直觉。
 
-State 文件也是供应链意义上的 *物料清单*。每个资源都携带 provider 版本和 module 来源。当 alicloud provider 出现 CVE 时——确实会有，一年几次——你可以在几分钟内 grep 所有项目的 state 文件：
+State 文件在供应链意义上也相当于一份 *物料清单*。每个资源都携带 provider 版本和 module 来源。当 alicloud provider 暴露 CVE 时（此类情况每年发生数次），你可以在几分钟内遍历所有项目的 state 文件并检索相关条目：
 
 ```bash
 for d in stack-*/; do

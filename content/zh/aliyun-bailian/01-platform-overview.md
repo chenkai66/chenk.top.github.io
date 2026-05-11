@@ -15,7 +15,7 @@ description: "一个工程师视角的阿里云百炼（DashScope）导览——
 disableNunjucks: true
 translationKey: "aliyun-bailian-1"
 ---
-只要你的产品面向中文用户，迟早都得调百炼（Bailian）的模型。Qwen-Max 是目前拿到 GPT-4 级别中文理解能力最划算的正道；万相（Wanxiang）视频模型是我能找到唯一能开中文发票、能上生产环境的文生视频 API；而 Qwen-TTS-Flash 是唯一一个讲粤语和四川话不像海关播报的 TTS。在一个 AI 营销平台上跑了一年生产流量后，这篇系列文章就是我希望第一天就有人塞给我的那份指南。
+只要你的产品面向中文用户，迟早都得调百炼（Bailian）的模型。Qwen-Max 是目前在中文理解能力上达到 GPT-4 水平、性价比最高的选择；万相（Wanxiang）是目前我所知唯一支持中文发票生成、且已稳定用于生产环境的文生视频 API；而 Qwen-TTS-Flash 是目前唯一在粤语和四川话合成上自然度较高、无明显机械感的 TTS 模型。在一个 AI 营销平台上跑了一年生产流量后，这篇系列文章就是我希望第一天就有人塞给我的那份指南。
 
 第一篇先摸底：百炼到底是什么，你会碰到哪些模型家族，两种接口风格有什么区别，以及两种风格的 Hello World。这样后面的文章就不用反复解释基础概念了。
 
@@ -23,11 +23,11 @@ translationKey: "aliyun-bailian-1"
 
 ## 百炼是什么，DashScope 又是什么？
 
-命名确实让人头大，因为阿里半路改了名。官方 "DashScope" 文档是从 API 角度讲的；"百炼" 文档是从控制台角度讲的。其实是同一个产品，两个名字。
+命名体系较为混乱：阿里曾将产品名从 DashScope 统一更改为‘百炼’。官方 "DashScope" 文档是从 API 角度讲的；"百炼" 文档是从控制台角度讲的。其实是同一个产品，两个名字。
 
 ![Bailian (console) vs DashScope (API)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
 
-文档里这两个名字会混着出现，有时甚至在同一段落里。你就当成控制台 vs API 的区别。有人说 "部署百炼应用" 指的是控制台；有人说 "DashScope 报错" 指的是 API 返回了非 200 状态码。
+文档里这两个名字会混着出现，有时甚至在同一段落里。可简单理解为‘控制台’与‘API’两种使用视角的区别。例如，有人称‘部署百炼应用’指在控制台完成配置；而‘DashScope 报错’通常指 API 返回非 200 状态码。
 
 ## 你真正关心的模型清单
 
@@ -42,11 +42,11 @@ translationKey: "aliyun-bailian-1"
 | Qwen-TTS | `qwen3-tts-flash` | Speech synthesis, 40+ voices |
 | Embeddings | `text-embedding-v3`, `text-embedding-v4` | Vector search |
 
-表里没有的要么是 deprecated，要么是薄包装的变体，要么是研究预览版。 sticking to these 你就不会因为模型上线六周后突然 EOL 而措手不及。
+表中未列出的模型，通常属于以下三类之一：已弃用（deprecated）、仅提供轻量封装的变体，或处于研究预览阶段的版本。坚持使用表中所列模型，就能避免因模型上线六周后突然终止支持（EOL）而措手不及。
 
 ## 一句话讲清计费模式
 
-LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍），TTS 按音频秒数，万相按视频秒数，Embeddings 按调用次数。每个模型都有免费额度——通常是 100 万 Token 或 100 次生成——新模型发布时会重置。这意味着只要你不介意跳版本，几乎任何东西都可以免费原型验证。生产流量必须走独立的 API Key 并设置预算告警；我曾经因为有人把 debug 循环开了一整夜，吃过一次四位数的账单。
+LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍），TTS 按音频秒数，万相按视频秒数，Embeddings 按调用次数。每个模型都有免费额度——通常是 100 万 Token 或 100 次生成——新模型发布时会重置。这意味着，只要接受模型版本可能自动更新，几乎所有功能都可用于免费原型验证。生产流量必须使用独立的 API Key，并配置预算告警；我曾因调试循环未及时终止、整夜持续运行，收到过一笔四位数账单。
 
 ## API Key：千万别提交到代码库
 
@@ -56,11 +56,11 @@ LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍），TTS 按音
 export DASHSCOPE_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
-本系列所有代码片段都读取 `os.environ['DASHSCOPE_API_KEY']`。不要硬编码 Key，不要提交 `.env` 文件，生产环境请把 Key 放进 secrets manager。DashScope 团队确实会撤销泄露的 Key，但那是出现在公开爬虫之后，到时候已经晚了。
+本系列所有代码片段都读取 `os.environ['DASHSCOPE_API_KEY']`。不要硬编码 Key，不要提交 `.env` 文件，生产环境请把 Key 放进 secrets manager。DashScope 团队确实会撤销已泄露的密钥，但这一操作通常发生在密钥被公开爬虫捕获之后，此时损失往往已无法挽回。
 
 ## 两种接口：OpenAI 兼容 vs DashScope 原生
 
-这是本文最重要的事实。根据 Qwen API 参考文档，**每个百炼文本/多模态模型都可以通过两种不同的 HTTP 表面访问。**
+这是本文最关键的前提：根据 Qwen API 参考文档，**所有百炼文本及多模态模型均支持两种 HTTP 接口方式。**
 
 ![Two HTTP surfaces, one model catalog](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig2_two_endpoints.png)
 
@@ -68,7 +68,7 @@ export DASHSCOPE_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
 
 Base URL: `https://dashscope.aliyuncs.com/compatible-mode/v1`（大陆），或 `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`（新加坡）。
 
-它讲 OpenAI 的通信协议。把官方 `openai` Python SDK 指向它，你现有 95% 的 OpenAI 代码不用改就能跑。这是我默认的选择。
+它讲 OpenAI 的通信协议。把官方 `openai` Python SDK 指向它，你现有 95% 的 OpenAI 代码不用改就能跑。这也是我的默认选择。
 
 ```python
 import os
@@ -114,7 +114,7 @@ print(resp.output.choices[0].message.content)
 
 ### 什么时候用哪个
 
-我的规则，都是踩坑踩出来的：
+这些规则均来自实际踩坑经验：
 
 - **OpenAI 兼容**：默认用于普通聊天、函数调用、JSON 模式、流式输出。改一行代码就能跟 GPT-4 做 A/B 测试。
 - **DashScope 原生**：万相视频必须用，Qwen-TTS 必须用，推荐用于 Qwen-Omni 多模态（兼容层会丢掉一些视频参数），需要异步任务模式必须用，想要还没回迁到兼容层的最新特性必须用。
@@ -127,7 +127,7 @@ print(resp.output.choices[0].message.content)
 
 ### model_id
 
-每次调用都靠一个字符串 keyed，比如 `qwen-plus` 或 `wan2.5-t2v-plus`。没有版本号——阿里会在同一个 id 下发布新权重，然后在 changelog 里告诉你。如果需要固定版本，使用模型卡片里列出的日期别名（`qwen-plus-2025-09-11`）。任何面向客户的功能，**必须固定日期**；我见过未版本化的别名一夜之间变了语气。
+每次调用都靠一个字符串 keyed，比如 `qwen-plus` 或 `wan2.5-t2v-plus`。没有版本号——阿里会在同一 model_id 下发布新版本模型权重，并在变更日志（changelog）中说明。如果需要固定版本，使用模型卡片里列出的日期别名（`qwen-plus-2025-09-11`）。所有面向客户的功能，**必须使用带日期的模型别名**；我曾因未固定版本，导致模型更新后输出风格突变。
 
 ### 异步任务
 
@@ -188,13 +188,13 @@ if __name__ == "__main__":
 
 ## 控制台 vs SDK vs OpenAI 兼容——什么时候用哪个
 
-实际上有三个地方可以驱动百炼，选择的重要性比文档说的要大得多。花在同一个产品里混用它们两个月，我才慢吞吞地摸清了这个道理。
+实际上有三个地方可以驱动百炼，选择的重要性比文档说的要大得多。在项目中同时混用这三种方式长达两个月后，我才逐步理清各自的适用边界。
 
-`bailian.console.aliyun.com` 上的 **控制台** 只做两件事： provisioning（创建工作空间、API Key、RAM 授权、应用）和诊断（查看单次请求日志，找出模型为什么返回垃圾）。它不是用来跑运行时流量的。控制台里的 " playground" 方便提示词迭代，但它会忽略一些 SDK 调用会用的参数，所以在 playground 能跑的提示词，真正上线时可能还是会出问题。我把 playground 当成 "模型可达" 的标志，而不是 "这个提示词正确" 的保证。
+`bailian.console.aliyun.com` 上的 **控制台** 只做两件事： provisioning（创建工作空间、API Key、RAM 授权、应用）和诊断（查看单次请求日志，找出模型为什么返回垃圾）。它不适用于运行时的生产流量分发与调度。控制台中的 Playground 便于提示词快速迭代，但会忽略部分 SDK 调用所需的参数，因此在 Playground 中可用的提示词，上线后仍可能失败。我把 playground 当成 "模型可达" 的标志，而不是 "这个提示词正确" 的保证。
 
 **DashScope 原生 SDK**（`pip install dashscope`）是当你需要任何阿里特有功能时的正确选择：异步任务、视频/TTS/万相、最新模型参数、跨工作空间计费的 workspace-id header，或者 `X-DashScope-DataInspection` 调试 header。原生 SDK 暴露了兼容层会丢掉的 `parameters` 块字段（`incremental_output`，图像生成的 `seed`，联网模型的 `enable_search`）。它也是批量推理和 `RemoteService` 模型部署的唯一路径。
 
-**OpenAI 兼容接口** 是当你的代码基于 OpenAI SDK 编写，且想通过改一行代码就能对百炼和 OpenAI 做 A/B 测试时的正确选择。兼容层是个薄翻译器。它讲 `chat.completions.create`，`embeddings.create`，支持 `tools` / `tool_choice` / `response_format` / `stream`，并接受 `extra_body` 来传递少数 Qwen 特有旋钮（`enable_thinking`, `enable_search`）。它不讲万相、TTS 或任何异步模式。如果需要那些，你必须为那个调用降级到原生 SDK—— nothing stops you from using both clients in the same app.
+**OpenAI 兼容接口** 是当你的代码基于 OpenAI SDK 编写，且想通过改一行代码就能对百炼和 OpenAI 做 A/B 测试时的正确选择。兼容层是个薄翻译器。它讲 `chat.completions.create`，`embeddings.create`，支持 `tools` / `tool_choice` / `response_format` / `stream`，并接受 `extra_body` 来传递少数 Qwen 特有旋钮（`enable_thinking`, `enable_search`）。它不讲万相、TTS 或任何异步模式。如果需要那些，你必须为那个调用降级到原生 SDK—— 你完全可以同时在同一个应用中使用两种客户端。
 
 跑了一年后的经验法则：
 
@@ -203,9 +203,9 @@ if __name__ == "__main__":
 - 生产调试 →  exclusively 原生 SDK，因为错误信封更丰富（`code` + `message` + `request_id`，而兼容层只给你 OpenAI 形状的错误）。
 ## 区域路由和 RAM 权限，这些你真正得搞清楚
 
-百炼主要就两个区：**北京**和**杭州**（还有个新加坡“国际”节点，功能上算第三个区）。默认的 `dashscope.aliyuncs.com` 会解析到你账号最初开通时所在的区域。这就是为什么“昨天还好好的”这种报错报告比任何其他问题都多的根源。
+百炼主要就两个区：**北京**和**杭州**（还有个新加坡“国际”节点，功能上算第三个区）。默认的 `dashscope.aliyuncs.com` 会解析到你账号最初开通时所在的区域。这正是‘昨天还正常，今天就报错’类问题高频出现的根本原因。
 
-具体坑在哪？有些模型是绑死区域的。`wan2.5-t2v-plus` 只在北京池子里。`qwen3-omni-flash` 多区域可用。`text-embedding-v4` 先上的杭州，过了六周才到北京。如果你的账号路由到了一个模型还没部署的区域，你会收到一个看似合法的 404，提示 `Model not exist`。这时候你别傻乎乎调 prompt 调一个小时，最后才发现是路由问题。
+具体坑在哪？有些模型是绑死区域的。`wan2.5-t2v-plus` 只在北京池子里。`qwen3-omni-flash` 多区域可用。`text-embedding-v4` 先上的杭州，过了六周才到北京。如果你的账号路由到了一个模型还没部署的区域，你会收到一个看似合法的 404，提示 `Model not exist`。此时无需反复调试 prompt，而应首先排查区域路由问题。
 
 解决办法有两个：
 

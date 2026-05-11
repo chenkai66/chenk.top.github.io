@@ -16,7 +16,7 @@ description: "SDK 把 Claude Code 从 CLI 变成库。GitHub Action 让它在 PR
 disableNunjucks: true
 translationKey: "claude-code-learn-6"
 ---
-CLI 只是門面，SDK 才有實質功能，而 GitHub 集成才是真正實現價值的環節。
+CLI 只是門面，SDK 提供核心功能，而 GitHub 集成才是真正釋放價值的關鍵環節。
 
 ![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
@@ -48,11 +48,11 @@ for await (const event of result) {
 }
 ```
 
-運行一下，你會看到相同的 agent 循環在終端中執行——包含工具調用。這本質上就是一個移除了聊天界面的 CLI。
+運行一下，你會看到相同的 agent 循環在終端中執行——包含工具調用。這本質上就是一個去除了聊天界面的 CLI。
 
 ## 權限，程序化控制
 
-這塊必須搞對。CLI 默認策略是「問人」。腳本無法與用戶交互確認。所以 SDK 暴露了幾種權限模式：
+這塊必須搞對。CLI 默認策略是「問人」。腳本無法與用戶進行交互式確認。所以 SDK 暴露了幾種權限模式：
 
 | Mode | Meaning |
 |------|---------|
@@ -77,7 +77,7 @@ const result = query({
 });
 ```
 
-這下策略就程序化了。腳本可以無人值守運行，你也清楚它絕對幹不了你明確禁止的事。
+這樣，權限策略就實現了程序化控制。腳本可以無人值守運行，你也清楚它絕對幹不了你明確禁止的事。
 
 ## 實戰腳本：自動更新 CHANGELOG
 
@@ -112,7 +112,7 @@ for await (const event of result) {
 }
 ```
 
-每次發布前跑一次。CHANGELOG 自己寫自己，commit log 被整理成通順的文字，我只負責審查和提交。每次發布可節省約 5 分鐘，累計過去六個月的所有發布，效益明顯。
+每次發布前跑一次。CHANGELOG 自己寫自己，commit log 被整理成通順的文字，我只負責審查和提交。每次發布可節省約 5 分鐘；累計過去六個月的所有發布，節省時間效益顯著。
 
 ## GitHub Action
 
@@ -191,8 +191,8 @@ Action 會認倉庫裡的 `.claude/settings.json`。你在第 5 篇寫的 hooks 
 5. 安全護欄 Hooks
 6. 程序化和 CI 用的 SDK + Action
 
-單看每一篇都能買到具體的東西。合在一起，Claude Code 就從代碼聊天客戶端變成了住在倉庫裡的程序化基礎設施。
+單獨閱讀每一篇文章，都能獲得一項具體可用的能力。合在一起，Claude Code 就從代碼聊天客戶端變成了住在倉庫裡的程序化基礎設施。
 
-我觀察過的那些高手，只有一個共同特質：他們把 `.claude/` 當作代碼庫的一部分。配置、命令、hooks 全部提交，全部在 PR 裡審查，全部隨項目進化。這才是值得養成的肌肉記憶。
+我觀察過的那些高手，只有一個共同特質：他們把 `.claude/` 當作代碼庫的一部分。配置、命令、hooks 全部提交，全部在 PR 裡審查，全部隨項目進化。這才是值得長期堅持的工程習慣。
 
 放心交付。

@@ -16,9 +16,9 @@ description: "A 实战指南 to Alibaba Cloud's product ecosystem. We map every 
 disableNunjucks: true
 translationKey: "aliyun-fullstack-1"
 ---
-刚上阿里云的第一周，我彻底迷失在产品命名的海洋里。ECS、SLB、SLS、RDS、OSS、NAS、PAI、ARMS、ACK、FC、CDN、WAF、RAM、KMS、ROS、CloudMonitor、EventBridge、PolarDB、Lindorm、AnalyticDB、MaxCompute、DataWorks、Flink、DashScope、Bailian、OpenSearch……每个控制台页面都连着三个我没听过的产品。文档假定你已经知道所有东西是什么。英文翻译有时直译，有时意译，偶尔还会缺失。这就是我当初希望有人能直接塞给我的指南，免得我搭进去第一个周末，点点控制台，读着那些只解释功能开关却不说明产品用途的翻译文档。
+刚上阿里云的第一周，我彻底迷失在产品命名的海洋里。ECS、SLB、SLS、RDS、OSS、NAS、PAI、ARMS、ACK、FC、CDN、WAF、RAM、KMS、ROS、CloudMonitor、EventBridge、PolarDB、Lindorm、AnalyticDB、MaxCompute、DataWorks、Flink、DashScope、Bailian、OpenSearch……每个控制台页面都连着三个我没听过的产品。文档假定你已经知道所有东西是什么。英文翻译有时直译，有时意译，偶尔还会缺失。这正是我初上阿里云时最需要的一份指南——不用把第一个周末全花在点控台和硬啃文档上；那些翻译文档常常只告诉你怎么打开某个开关，却从不解释这个产品到底用来做什么。
 
-这篇文章就是全景地图。我们要把整个阿里云生态映射到你可能已经熟悉的 AWS/Azure/GCP 服务，从零 设置账号，搞清楚计费模型以免被账单吓一跳，最后部署一个能跑的 ECS 实例。不讲为了理论而理论的空话。这里提到的每一样东西，要么是我在生产环境用的，要么是我评估后决定不用的。
+这篇文章就是全景地图。我们要把整个阿里云生态映射到你可能已经熟悉的 AWS/Azure/GCP 服务，从零 设置账号，搞清楚计费模型以免被账单吓一跳，最后部署一个能跑的 ECS 实例。不讲空洞的理论。文中提到的每一项服务，我都已在生产环境实际使用过，或经审慎评估后决定弃用。
 
 
 ## 为什么选阿里云？
@@ -40,7 +40,7 @@ translationKey: "aliyun-fullstack-1"
 - **MaxCompute / DataWorks** —— 处理阿里内部分析的数据仓库和 ETL 栈。AWS 上没有东西能匹配这两者之间的集成深度。
 - **支付宝 / 淘宝生态集成** —— 如果你为中国电商构建任何东西（小程序、支付流程、商家工具），原生集成能节省数月工作。
 
-如果这些都不适用你——如果你的用户在美国，不需要中文大模型，也不在乎亚洲市场——那就坚持用 AWS。我不会假装不是这样。但如果哪怕只有一条适用，阿里云就值得 系统学习，这也是我们在这里的原因。
+如果以上几点都不适用——比如用户主要在美国、无需中文大模型支持、也没有亚洲市场拓展需求——那么继续使用 AWS 完全合理。我完全认同这一点。但如果其中任何一条适用，阿里云就值得系统学习——这正是我们写这篇文章的原因。
 
 ## 服务地图：阿里云 vs AWS vs Azure vs GCP
 

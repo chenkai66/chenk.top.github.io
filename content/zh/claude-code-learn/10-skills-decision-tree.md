@@ -47,9 +47,9 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 5. Build + deploy
 ```
 
-会话启动时，Claude 会预先读取所有可用 skill 的 description；仅当用户提问内容与某 description 匹配时，才按需加载对应 skill 的正文。正文会成为那一轮 system prompt 的一部分。
+会话启动时，Claude 会预先读取所有可用 Skill 的 description；仅当用户提问与某 description 匹配时，才按需加载该 Skill 的正文。正文会成为那一轮 system prompt 的一部分。
 
-两点要注意：
+需注意两点：
 
 - `description` 是承重墙。如果没写清楚什么时候用，skill 就不会被触发。
 - 正文可以较长——由于按需加载，只要未被触发，就不会占用任何上下文（context）资源。
@@ -83,7 +83,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 **4. 这是一堆领域知识吗？**（风格、工作流、一套规范）
 → 写一个 **skill**。Skill 是用来让 Claude 自己*识别并应用*的，不用你特意喊它。
 
-若某需求同时符合多种机制，优先选择实现更简单的一种。Skill 内部调用 slash command 是合理设计；但将本应是 slash command 的功能强行包装为 Skill，则会导致触发不可靠、维护困难。
+若某需求适配多种机制，优先选择实现最简单的一种。Skill 内部调用 slash command 是合理设计；但将本应是 slash command 的功能强行包装为 Skill，则会导致触发不可靠、维护困难。
 
 ## 我实际写过的三个 skills
 
@@ -93,11 +93,11 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 
 **3. `simplify`** — 用来 review 我自己代码的。触发词是 "is there a simpler way to do this." 编码了我的品味：偏好组合，删死代码，命名看本质不看实现。
 
-这几个都没法做成 slash command。不是靠名字调用，是靠*话题*调用。这才是 Skill 该用的地方。
+这几个都无法实现为 slash command——因为它们依赖话题触发，而非显式命名调用。这正是 Skill 的适用场景。
 
 ## 什么时候 Skill 不是正确答案
 
-触发过于频繁的 Skill 反而有害——它会将无关知识注入本不需要它的任务上下文中，造成干扰。三个坑：
+触发过于频繁的 Skill 反而有害：它会将无关知识注入本无需该 Skill 的任务上下文，造成干扰。三个坑：
 
 - **描述模糊。** "用于一般编程。" 用于一切 = 用于 nothing useful。
 - **正文重叠。** 两个 skill 都响应 "write code" → context 膨胀。选一个。

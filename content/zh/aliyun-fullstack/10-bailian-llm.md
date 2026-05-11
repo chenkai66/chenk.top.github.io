@@ -18,20 +18,20 @@ description: "The complete LLM toolkit on Alibaba Cloud: Qwen model family, Dash
 disableNunjucks: true
 translationKey: "aliyun-fullstack-10"
 ---
-当初我在国内搞生产级 LLM 应用时，选择少得可怜，还死贵。国际大厂要么没有内地 endpoint，要么计费得绑境外信用卡，调美国 API 首 token 延迟动辄 800ms 起步。后来 Qwen 上了 DashScope，还给了个 OpenAI 兼容的接口，在国内做 AI 产品突然就变得跟在海外一样顺手了。SDK 一样，请求结构一样，流式协议也一样——只要改个 `base_url`，再从百炼控制台拿个 Key 就行。这套方案我在生产环境跑了一年多，这篇文章就是我把当初希望第一天就能看到的实战指南整理出来的。
+早年我在国内开发生产级 LLM 应用时，可选方案极少，且成本高昂。国际大厂要么未在中国内地部署服务端点（endpoint），要么计费需绑定境外信用卡；若调用其美国 API，首 Token 延迟普遍超过 800ms。后来 Qwen 接入 DashScope，并提供了 OpenAI 兼容接口，国内开发 AI 产品体验就此与海外接轨。SDK 一样，请求结构一样，流式协议也一样——只要改个 `base_url`，再从百炼控制台拿个 Key 就行。该方案已在生产环境稳定运行一年以上。本文系统梳理了我初上手时最急需的实战经验。
 
-这不是篇浅尝辄止的概览。读完你会搞清楚整个模型目录，知道怎么调用所有模态（文本、图像、视频、音频、Embeddings），搞定那个让每个团队至少踩坑一次的异步任务模式，最后还能跑通一个多模态流水线：生成文章、配图、再念出来——全用 Python 实现。
+本文不是泛泛而谈的概览。读完后，你将：厘清完整的模型目录；掌握全部模态（文本、图像、视频、音频、Embeddings）的调用方法；理解各团队高频遇到的异步任务模式；并动手实现一个端到端多模态流水线——生成文章、配图、语音合成，全程使用 Python。
 
 
 ## Bailian vs DashScope：到底啥是啥
 
-这名字确实容易把人绕晕，有时候连阿里云自己的文档都写不清楚。实话实说：
+这两个名称容易混淆，阿里云官方文档中的界定也不够清晰。简要说明如下：
 
-**Bailian (百炼)** 是产品平台。地址在 `bailian.console.aliyun.com`。在这里你管理 API Key、浏览模型目录、启动微调任务、搭建 RAG 应用、创建提示词模板、评估模型表现以及查看账单。把它当成控制平面就好。
+**Bailian (百炼)** 是产品平台。地址在 `bailian.console.aliyun.com`。在这里你管理 API Key、浏览模型目录、启动微调任务、搭建 RAG 应用、创建提示词模板、评估模型表现以及查看账单。可将其理解为控制平面。
 
 **DashScope** 是 API 服务。所有 HTTP 请求都打到 `dashscope.aliyuncs.com`。Python SDK 是 `pip install dashscope`。代码调用模型时是在跟 DashScope 对话；查账单或部署微调模型时，用的是 Bailian。
 
-实际操作中：你打开 Bailian 拿 Key 配环境，然后写代码调 DashScope 来用模型。
+实际操作流程是：在 Bailian 获取 API Key 并配置环境变量，再通过代码调用 DashScope 的模型接口。
 
 ### 对应到 AWS 是怎么个概念
 
@@ -44,7 +44,7 @@ translationKey: "aliyun-fullstack-10"
 | 提示词工程工作室 | **Bailian Prompt Lab** | Bedrock Playground |
 | RAG 服务 | **Bailian Knowledge Base** | Bedrock Knowledge Bases |
 
-跟 AWS 的关键区别在于：在阿里云上，Qwen 是同一家公司亲生的第一方模型家族。而在 AWS 上，所有模型（Claude、Llama、Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能更新最快，定价因为没有中间商赚差价而极具侵略性，而且中文质量无可匹敌——毕竟 Qwen 训练时就把中文当作一等公民，而不是事后补救。
+与 AWS 的关键区别在于：在阿里云平台上，Qwen 是阿里自研的第一方模型家族。而在 AWS 上，所有模型（Claude、Llama、Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能迭代更快、定价更有优势，且中文能力业界领先——因为其训练始终以中文为首要语言，而非后期适配。
 
 想深入了解 Bailian 平台本身，可以看我们的专门系列 [Bailian 系列](/zh/aliyun-bailian/01-platform-overview/)。
 

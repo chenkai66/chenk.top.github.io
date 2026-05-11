@@ -18,9 +18,9 @@ description: "Agent 主循环在阿里云上有三个合理落点：长跑 ECS +
 disableNunjucks: true
 translationKey: "terraform-agents-4"
 ---
-做 Agent 系统架构时，最关键的决定其实是*Agent 循环进程到底跑在哪儿*。阿里云上有三个主流选法，还有一个大家容易忘掉的第四选。选错了不至于崩盘——毕竟后面能迁——但会让你白搭几周时间写脚手架，每个月还得白白浪费几千块算力钱。
+做 Agent 系统架构时，最关键的决定其实是*Agent 循环进程到底跑在哪儿*。阿里云上有三个主流选法，还有一个大家容易忘掉的第四选。选错了虽不至于导致系统崩溃（后续仍可迁移），但会多花几周时间搭建基础设施，每月还可能额外浪费数千元算力费用。
 
-这篇文章把四种方案都过一遍，配上能跑的 Terraform 代码，算算成本拐点，再聊聊那些我踩过坑的运维细节。
+本文将逐一分析这四种方案，附可直接运行的 Terraform 代码，估算成本拐点，并分享我在实际运维中遇到的关键问题。
 
 ## The four patterns
 
@@ -31,12 +31,12 @@ translationKey: "terraform-agents-4"
 
 每种方案都有它的最佳场景：
 
-- **ECS** 就是 Linux 虚拟机。长驻、有状态，调试时 SSH 进去很方便。适合原型、单租户 Agent，或者需要让机器“热着”缓存模型或本地状态的场景。
-- **ACK**（容器服务 Kubernetes 版）是规模化生产的正解。多种 Agent、自动伸缩、滚动发布、GPU 调度。只有当你至少有三个以上 Agent 服务，且有个熟悉 K8s 的 SRE 时，才值得背上这个运维包袱。
+- **ECS** 就是 Linux 虚拟机。长期运行、有状态，调试时可通过 SSH 直接登录，非常方便。适合原型、单租户 Agent，或者需要让机器“热着”缓存模型或本地状态的场景。
+- **ACK**（容器服务 Kubernetes 版）是规模化生产的正解。多种 Agent、自动伸缩、滚动发布、GPU 调度。仅当您同时运行三个以上 Agent 服务，且团队中有熟悉 Kubernetes 的 SRE 时，才建议采用 ACK 方案。
 - **Function Compute (FC)** 是按次调用、缩容到零。冷启动 200-800ms，单次调用硬上限 24 小时。适合 webhook 触发的 Agent、定时爬虫，以及那种突发性运行、其余时间空闲的任务。
-- **Elastic Container Instance (ECI)** 是容易被忘掉的那个——没有底层节点的容器。冷启动约 5 秒，按秒计费，不用管节点池。最适合的场景是突发性批处理任务，每次跑 2-30 分钟，每小时跑几次。
+- **Elastic Container Instance (ECI)** 是容易被忘掉的那个——没有底层节点的容器。冷启动约需 5 秒，按实际运行秒数计费，无需管理节点池。最适合的场景是突发性批处理任务，每次跑 2-30 分钟，每小时跑几次。
 
-前三种覆盖了大多数情况。ECI 填补了"FC 跑太久”和"ECS 太突发”之间的空白。
+前三种方案已覆盖大多数场景。ECI 则恰好填补了‘FC 运行时长受限’与‘ECS 突发性负载下资源闲置’之间的空白。
 
 ## The cost crossover
 
@@ -46,7 +46,7 @@ translationKey: "terraform-agents-4"
 
 持续 QPS 低于 ~1 时，FC 占优——空闲时几乎不花钱。~1 到 ~30 之间，单台 ECS 胜出。超过这个值，ACK 较高的固定成本被足够的负载分摊，比往 ECS 上硬塞更便宜。ECI 比较特殊：利用率低于 50% 时比 ECS 便宜，高于 50% 则更贵。
 
-模型比较粗——实际数字取决于实例族、网络和 Agent 的通信频率——但*趋势*是靠谱的。我用的决策规则：
+该成本模型较为粗略：实际费用会受实例规格、网络类型、Agent 通信频率等因素影响，但整体成本变化趋势是可信的。我用的决策规则：
 
 > Bursty + low average → Function Compute
 >
@@ -56,11 +56,11 @@ translationKey: "terraform-agents-4"
 >
 > Bursty batch, 2-30 min per run → ECI
 
-框架搭好了，接下来逐个过一遍每种模式及其对应的 Terraform 代码。
+架构方案已明确，接下来将逐一详解四种模式及其对应的 Terraform 实现。
 
 ## Pattern 1: ECS with pm2
 
-80% 的 Agent 项目，选这个就够了。ALB 后面挂一两台 ECS，每台跑个 `pm2` 作为 Python 或 Node Agent 进程的守护器。
+80% 的 Agent 项目选择该方案即可。ALB 后面挂一两台 ECS，每台跑个 `pm2` 作为 Python 或 Node Agent 进程的守护器。
 
 ```hcl
 data "alicloud_images" "ubuntu" {
@@ -116,13 +116,13 @@ resource "alicloud_instance" "agent" {
 
 三点值得注意：
 
-1. **`data` 块用来选镜像和实例类型**，而不是写死。`ubuntu_22_04_x64` 会解析到最新 patched 镜像；`data.alicloud_instance_types.agent` 会找到 4 vCPU 16 GiB 的 `ecs.c7`。当阿里云废弃某个镜像 SKU 时，下次 plan 会自动选新的。写死 `ecs.c7.xlarge` 直到该 SKU 在你可用区缺货前都能用，那时 Terraform 就会报错——让 data source 自己选能给个优雅降级。
+1. **`data` 块用来选镜像和实例类型**，而不是写死。`ubuntu_22_04_x64` 会解析到最新 patched 镜像；`data.alicloud_instance_types.agent` 会找到 4 vCPU 16 GiB 的 `ecs.c7`。当阿里云废弃某个镜像 SKU 时，下次 plan 会自动选新的。写死 `ecs.c7.xlarge` 直到该 SKU 在你可用区缺货前都能用，那时 Terraform 就会报错——由 data source 自动选择可用镜像，可实现平滑降级。
 2. **`system_disk_kms_key_id` 把磁盘绑定到第 3 篇文章里的 `memory` CMK 上**。静态加密不额外花钱，还省去了一堆合规麻烦。
 3. **`lifecycle { create_before_destroy = true }`** 意味着计划替换时会先创建新实例，挂到 ALB，排空旧实例，再销毁——零停机轮换。代价是短暂需要 2 倍容量，两台实例的集群没问题，到了 50 台就开始肉疼了。
 
 ### The cloud-init that actually survives a real bootstrap
 
-大多数博客展示的 cloud-init 都是理想路径：`apt-get install`, `git clone`, `pm2 start`, 完事。demo 够用。生产环境 bootstrap 得处理六个理想路径忽略的问题：DNS 竞争、公共源慢、RAM 凭证时序、启动盘快照泄露秘密、root vs 服务账户、以及 ALB 健康检查依赖的 bootstrap 完成标记。
+大多数博客展示的 cloud-init 都是理想路径：`apt-get install`, `git clone`, `pm2 start`, 完事。此类 cloud-init 示例仅适用于演示环境。生产环境的初始化流程还需应对六类典型问题：DNS 解析竞争、公共软件源响应延迟、基于 RAM 的临时凭证存在时序依赖、启动盘快照可能意外暴露敏感信息、root 用户与服务账户需严格权限隔离，以及 ALB 健康检查对初始化完成状态的依赖。
 
 这是我实际运行的版本：
 
@@ -194,7 +194,7 @@ echo "$(date -Iseconds)" > /run/agent/bootstrap-done
 
 ![Cloud-init bootstrap flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig3_cloud_init_flow.png)
 
-从 `apply` 到 `pm2 status` 显示 agent 为 `online` 大约 90 秒。第一次 `apt-get install` 最慢（~60s）。一旦有了稳定镜像，**用 Packer 打包**，这样未来的 ECS 实例就能跳过 apt 直接 25 秒启动。
+从 `apply` 到 `pm2 status` 显示 agent 为 `online` 大约 90 秒。第一次 `apt-get install` 最慢（~60s）。一旦获得稳定镜像，即可使用 Packer 打包，后续 ECS 实例便能跳过 apt 更新，启动时间缩短至约 25 秒。
 
 > **实战建议：** `user_data` 会记录在实例的 `/var/log/cloud-init-output.log`。Agent 起不来时，先看这儿。开头的 `set -euxo pipefail` 让失败大声且可追踪——没它我曾花两小时调试一个静默失败的 `pip install`，结果发现是缺了 `gcc`。
 

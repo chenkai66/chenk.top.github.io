@@ -17,7 +17,7 @@ description: "Skill 不是 Prompt 模板——它是一套完整的 SOP，包括
 disableNunjucks: true
 translationKey: "openclaw-quickstart-6"
 ---
-走到第五篇，你的 OpenClaw 已经能跑起来，还能聊天了。从这里开始，它就不再是个 Demo 了。
+学到第五篇，你的 OpenClaw 已经可以正常运行并支持对话了。从这一步起，它就不再只是一个演示原型（Demo）了。
 
 ![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
@@ -32,7 +32,7 @@ translationKey: "openclaw-quickstart-6"
 3. 读取当天的日历安排（通过封装 `gcalcli` 的 Skill）
 4. 把两者总结成一段话，推送到我的 Telegram
 
-这才是真流程。做完这套，你就有了骨架，随时可以换自己的数据源。
+这才是一个真实的端到端流程。完成这一步后，你就获得了一个可复用的系统骨架，后续只需替换数据源即可。
 
 ## 第一步：写一个 Skill
 
@@ -73,7 +73,7 @@ Produce a single paragraph summary.
 这里有两个设计点：
 
 - **trigger** 字段是模型决定要不要调用这个 Skill 的依据。站在用户角度写，别管实现细节。
-- **body** 部分是 SOP。把它当成新员工入职文档来写——包含示例、边界情况、输出格式。越具体越好。
+- **body** 部分是 SOP。请按新员工入职文档的标准编写：包含调用示例、典型边界情况，以及严格定义的输出格式。细节越充分越好。
 
 重启网关，确认 Skill 加载成功：
 
@@ -217,7 +217,7 @@ openclaw cron list
 # morning-briefing | 0 7 * * 1-5 | next: tomorrow 07:00 | channel: telegram
 ```
 
-第一次运行时，盯着网关日志看。你会看到 Agent 循环触发，Skill 加载，Playwright 工具调用滚屏，最后一条消息落进你的 Telegram。
+首次运行时，请观察网关日志：你会看到 Agent 循环触发、Skill 加载、Playwright 工具执行滚动操作，最终消息推送至你的 Telegram。
 
 ## 你现在拥有了什么
 
@@ -236,6 +236,6 @@ openclaw cron list
 2. **让新闻源可配置。** 写个 Skill 从 `~/openclaw-workspace/sources.yaml` 读取并遍历。这几乎等于免费得了个"Agent 版 RSS 阅读器"。
 3. **接第二个渠道。** 同一个 Agent，工作时间也推送到钉钉。Skill 不用改。
 
-QuickStart 就到这儿。官方文档的其余部分会深挖每一层，你现在有了地图，知道怎么 navigate 了。
+QuickStart 到此结束。官方文档其余章节将深入讲解各层实现细节。现在你已掌握整体架构，并清楚如何在各模块之间切换与协作。
 
-如果只记住一点，那就是：真正值钱的是那些无聊的层（Skills, memory, channels）。Agent 循环大家都一样。让你的安装变得有用的，是你建的 Skill 库和你投放的渠道。祝好运。
+如果只记住一件事，请牢记：真正具有长期价值的是那些看似平凡的基础层——Skills、记忆机制（memory）和通信渠道（channels）。Agent 的核心循环逻辑大同小异；让整个系统真正落地可用的，是你构建的 Skill 库和接入的实际渠道。祝好运。

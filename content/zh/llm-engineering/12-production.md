@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "服务栈选型细化、给 LLM 做 autoscaling、延迟预算、prompt+completion 成本跟踪、多模型路由、FrugalGPT 级联、第一天就要的可观测性，以及能用的 on-call 模式。"
 translationKey: "llm-engineering-12"
 ---
-这是最后一章了。前面我们聊了模型、Prompt、检索、评估，这一章只关心两件事：让服务跑稳，别破产。生产环境的 LLM 服务，其实更像高流量 Web 服务，而不是传统 ML 服务——只不过每个 Web 请求都要烧钱，而且可能卡上两分钟。
+这是最后一章了。前面我们聊了模型、Prompt、检索、评估，这一章只聚焦两件事：保障服务稳定，控制成本不超支。生产环境的 LLM 服务，其实更像高流量 Web 服务，而不是传统 ML 服务——只不过每次 Web 请求都会产生成本，且响应可能长达两分钟。
 
-这一章我会多摆点数据。原因很简单：在生产环境，一个功能到底赚钱还是亏钱，往往就差在那没人盯的 2-5 倍成本系数上。最有用的技能就是手算 LLM 负载的成本账。下面的数据截止到 2025 年底/2026 年初，真要用之前记得核对最新定价。
+这一章我会多摆点数据。原因很简单：在生产环境，一个功能到底赚钱还是亏钱，往往就差在那没人盯的 2-5 倍成本系数上。最实用的能力是手动核算 LLM 负载的成本。下面的数据截止到 2025 年底/2026 年初，真要用之前记得核对最新定价。
 
 ![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/illustration_1.png)
 
@@ -46,14 +46,14 @@ translationKey: "llm-engineering-12"
 
 App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑；LLM Gateway 则要让一堆模型表现得像单个服务。
 
-从第一天起就把 LLM Gateway 建成独立服务。你需要它来做这些事：
+从项目启动第一天起，就应将 LLM Gateway 作为独立服务构建。你需要它来做这些事：
 
 - **多模型路由**：根据分类器，把某些请求发给小而快的模型，其他的发给大而慢的。
 - **降级（Fallback）**：主提供商返回 5xx 时，自动重试备用提供商。
 - **成本追踪**：记录每个请求的 prompt tokens、completion tokens、模型和美元成本。
 - **Prompt 缓存包装**：即使提供商支持缓存，你的业务代码也不该关心 cache key 怎么生成。
 - **A/B 测试**：把可配置比例的流量路由到新的模型 variant。
-- **配额/熔断**：当单个用户消耗成本 disproportionate 时，直接切断请求。
+- **配额/熔断**：当单个用户消耗成本显著超出合理水平时，自动中断其请求。
 
 从头构建这个大概需要几周工程量。开源选项覆盖了不少场景：
 
@@ -63,7 +63,7 @@ App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑；LLM
 - **BentoML / Bento Cloud** — 更重的框架，适合同时需要在这个网关后托管自训模型的场景。
 - **Portkey, Langfuse Gateway** — 新入局者，观测性故事讲得比较好。
 
-早点选一个，但也做好以后换掉的准备。Gateway 是少数真正存在厂商锁定的地方（你会对着网关的契约写大量代码）；所以要把这个契约保持精简。
+早点选一个，但也做好以后换掉的准备。Gateway 是少数真正存在厂商锁定风险的组件（业务代码深度依赖其接口）；因此，必须将其接口设计得尽可能简洁。
 
 ## 自建 vs 托管 API
 
@@ -83,9 +83,9 @@ App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑；LLM
 - 需要持续 <100 ms TTFT。
 - 有特定的 fine-tuning 需求。
 
-盈亏平衡点大概在每月 10 亿 tokens（Qwen3-32B 级别 workload）。低于这个数，算上工程时间，托管 API 比自建划算。高于这个数， dedicated GPUs（租或买）自建成本能低 3-10 倍。
+盈亏平衡点大致出现在月调用量 10 亿 tokens 左右（对应 Qwen3-32B 级别负载）。低于这个数，算上工程时间，托管 API 比自建划算。高于这个数， dedicated GPUs（租或买）自建成本能低 3-10 倍。
 
-常见错误：自建 GPU 利用率太低。4xH100 部署如果利用率只有 30%，单 token 成本比 OpenAI API 还贵。目标得是持续吞吐量 >70%。
+常见错误：自建 GPU 利用率太低。若 4×H100 集群的 GPU 利用率仅为 30%，则单 token 成本甚至高于 OpenAI API。目标得是持续吞吐量 >70%。
 
 2025-2026 流行的一种实用混合模式：**自建小模型扛大部分便宜流量，把难的 5-10% 路由给托管 frontier API。** 这样既拿到了自建的大部分成本优势，又在关键地方保留了 frontier 质量。路由决策由一个小分类器完成（见下文多模型路由章节）。
 
@@ -121,7 +121,7 @@ def cascade(question, models=[CHEAP, MID, EXPENSIVE]):
 
 基于 Embedding 的路由（Hu et al., 2024, *RouteLLM: Learning to Route LLMs with Preference Data*）在离线偏好数据上训练 (query, best-model) 对的分类器，学习 upfront 预测用哪个模型。RouteLLM 训练的路由器在 MT-Bench 上能达到 GPT-4 95% 的质量，成本只有 26-44%。
 
-在生产环境，路由决策往往简化为两个问题：“这查询简单吗？”（路由给便宜的）和“这是已知难点模式吗？”（路由给贵的）。中间地带走默认模型。50 问 heuristic 分类器能拿到 80% 的节省；learned routers 大概能拿到 90%。
+在生产环境，路由决策通常可简化为两个判断：“该查询是否简单？”（若是，则路由至低成本模型）和“是否属于已知的高难度模式？”（若是，则路由至高性能模型）。中间地带走默认模型。50 问 heuristic 分类器能拿到 80% 的节省；learned routers 大概能拿到 90%。
 
 ## 缓存层级
 
@@ -131,7 +131,7 @@ def cascade(question, models=[CHEAP, MID, EXPENSIVE]):
 2. **应用侧语义缓存** — 当两个用户查询 *语义相似* 时，直接服缓存答案。工具：GPTCache（原创，基于 FAISS）、Redis Semantic Cache、MemCache + 自定义 embedding  lookup。FAQ 类 workload 命中率 30-70%，开放式聊天接近 0%。
 3. **确定性函数的结果缓存** — 如果 LLM 输出 feeds into 下游 pipeline（比如分类、提取）且输入完全匹配，直接把输出存下来，key 用输入 hash。相同输入绝不调用第二次 LLM。
 
-GPTCache 值得细看。模式：用小 embedding 模型嵌入每个用户查询，跟缓存比（cosine similarity），如果相似度 > 阈值（通常 0.95）就服缓存答案。阈值就是旋钮 — 越高假阳性越少但命中率越低。对于回答常见问题的客服机器人，0.92 阈值能带来 50% 成本降低；对于每个查询都独特的代码生成助手，语义缓存基本 ~没用。
+GPTCache 值得重点关注。模式：用小 embedding 模型嵌入每个用户查询，跟缓存比（cosine similarity），如果相似度 > 阈值（通常 0.95）就服缓存答案。阈值是一个可调节参数：阈值越高，假阳性越少，但缓存命中率也越低。例如，在回答常见问题的客服机器人场景中，0.92 的相似度阈值可降低约 50% 的成本；而在代码生成等查询高度个性化的场景中，语义缓存的命中率极低，几乎无效。
 
 可组合性很重要：Prompt 缓存降低 *每次* 调用的成本；语义缓存减少调用 *次数*。两者是相乘关系。
 
@@ -139,18 +139,18 @@ GPTCache 值得细看。模式：用小 embedding 模型嵌入每个用户查询
 
 ![fig4: autoscaling LLM workloads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig4_autoscaling.png)
 
-LLM 的自动扩容比无状态 Web 服务器难得多。三个原因：
+LLM 服务的自动扩缩容比无状态 Web 服务复杂得多，主要原因有三：
 
-1. **加载模型需要几分钟**。带 70B 模型的新 vLLM  replica 需要 2-4 分钟加载权重和预热。如果流量峰值只持续 10 分钟，靠扩容响应太慢。
-2. **GPU 按小时计费，不是按请求**。为了 5 分钟的峰值启 fresh GPU 实例，会浪费 55 分钟的 GPU 钱。
-3. **Continuous batching 负载非线性**。50% 负载和 90% 负载的 vLLM 服务器延迟 profile 差别很大；安全操作点比 CPU 服务建议的低得多。
+1. **加载模型需要几分钟**。加载一个搭载 70B 模型的新 vLLM 实例需耗时 2–4 分钟，用于加载权重并完成预热。如果流量峰值只持续 10 分钟，靠扩容响应太慢。
+2. **GPU 按小时计费，不是按请求**。为应对仅持续 5 分钟的流量峰值而启动新的 GPU 实例，会导致其余 55 分钟的 GPU 资源闲置浪费。
+3. **Continuous batching 负载非线性**。50% 负载和 90% 负载的 vLLM 服务器延迟 profile 差别很大；其安全运行负载阈值远低于典型 CPU 服务的推荐值。
 
 实用模式：
 
 - **定时预热**：如果流量在 9 点 predictable 峰值，8:50 提前扩容。
-- **保守扩容，激进缩容**：60% 利用率时扩容，30% 时缩容。（跟典型 Web 服务反过来。）
-- **缓冲降级**：自建满容量时，overflow 到托管 API。单位成本高但能吸收峰值而不浪费 provisioning。
-- **多模型保底**：即使流量低，每个模型也至少保持一个 replica 在线。冷启动成本太高。
+- **保守扩容，激进缩容**：在 GPU 利用率达 60% 时触发扩容，在利用率降至 30% 时触发缩容——这与典型 Web 服务的扩缩容策略相反。
+- **缓冲降级**：当自建服务达到容量上限时，将溢出流量自动路由至托管 API。单位成本高但能吸收峰值而不浪费 provisioning。
+- **多模型保底**：即使在低流量时段，每个模型也应至少维持一个在线实例，以避免高昂的冷启动开销。
 - **带背压的队列**：服务器过载时，用 per-user 公平调度器 queue 请求，返回带 `Retry-After` 头的 429，而不是让所有人的 latency 崩掉。
 
 vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-tokens`（每步最大 token 吞吐）。调优这些参数以匹配你的延迟目标，而不是最大化吞吐。

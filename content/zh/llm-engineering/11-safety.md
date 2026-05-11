@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "对齐在工程上意味什么、拒绝校准、红队分类、幻觉指标、Sleeper Agents、refusal 作为特征向量、constitutional AI，以及 2026 年安全上线实际需要什么。"
 translationKey: "llm-engineering-11"
 ---
-安全这个话题在 LLM 工程里信噪比最差。哲学讨论一大堆，营销话术满天飞，真正落地的工程细节却没多少。这一章只讲工程细节：RLHF 嘴上说着“安全”到底在优化什么，拒绝校准（refusal calibration）是怎么崩的，实际的红队测试（red-teaming）长什么样，哪些幻觉指标真能预测客户影响，以及那些 2024-2026 年间不起眼但至关重要的论文（Sleeper Agents, refusal as a feature direction, weak-to-strong generalization）——它们应该改变你对生产环境对齐（alignment）的看法。
+安全是 LLM 工程中信噪比最低的话题：哲学讨论泛滥，营销话术盛行，而真正可落地的工程细节却十分稀缺。这一章只讲工程细节：RLHF 名义上强调‘安全’，实际优化目标究竟是什么？，拒绝校准（refusal calibration）为何失效，实际的红队测试（red-teaming）长什么样，哪些幻觉评估指标能切实预测对客户的影响，以及那些 2024-2026 年间不起眼但至关重要的论文（Sleeper Agents, refusal as a feature direction, weak-to-strong generalization）——这些研究应当重塑你对生产环境中对齐（alignment）实践的理解。
 
-先表个态。我是工程师，不是搞政策的。我对 AI 存在性风险（x-risk）没什么强烈观点，也不想给你灌输任何观点。我只关心生产环境里什么管用，什么会尴尬地失败，以及文献里到底展示了什么。文末的参考文献才是重点，把引用当作核心结论来看。
+先明确立场：我是一名工程师，而非政策研究者。我对 AI 存在性风险（x-risk）持开放态度，也不试图向读者灌输特定立场。我只关心生产环境里什么管用，什么会尴尬地失败，以及文献里到底展示了什么。文末的参考文献才是重点，把引用当作核心结论来看。
 
 ![LLM Engineering (11): Safety and Alignment — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/illustration_1.png)
 
@@ -32,11 +32,11 @@ translationKey: "llm-engineering-11"
 2. **Harmlessness** —— 模型有没有拒绝那些会伤害他人的事？
 3. **Honesty** —— 模型有没有准确报告它知道和不知道的内容？
 
-Anthropic 的 HHH (Helpful-Harmless-Honest) 框架出自 Askell et al. (2021, *A General Language Assistant as a Laboratory for Alignment*)，至今仍是拆解得最清晰的。RLHF/RLAIF/CAI 技术 targeting 所有这三点，但优化时的权衡是真实的：一个被训练得极度无害的模型倾向于过度拒绝（损害 helpfulness），一个被训练得极度诚实的模型倾向于不那么顺从（“我不确定我该不该..."），以此类推。
+Anthropic 的 HHH（Helpful-Harmless-Honest）框架源自 Askell 等人（2021，《A General Language Assistant as a Laboratory for Alignment》），迄今仍是对此三维度最清晰的解构。RLHF/RLAIF/CAI 技术 targeting 所有这三点，但优化时的权衡是真实的：一个被训练得极度无害的模型倾向于过度拒绝（损害 helpfulness），一个被训练得极度诚实的模型倾向于不那么顺从（“我不确定我该不该..."），以此类推。
 
-生产环境的“对齐”，大多是在跟这些权衡打交道，而不是解决它们。你选好部署时想在曲线上坐哪个位置，然后测量、调优。
+生产环境中的‘对齐’，核心在于管理这些权衡，而非彻底消除它们。你需要在效用-安全权衡曲线上选定部署点，再通过测量与调优实现收敛。
 
-文献里还暗示了第四个轴，但很少干净地命名：*controllability*。一个在攻击下仍能遵循开发者 system prompt 的模型，比一个会漂移的模型更具可控性。Wallace et al. 的指令层级（第 9 章）部分就是在讲这个。在生产环境里，controllability 才是你真正拿来跟 helpfulness 做权衡的；一个可控性极强的模型会拒绝更多用户请求，因为 system prompt 让它这么做。
+文献中还隐含第四个关键维度：*controllability*（可控性），但尚未形成统一、明确的命名。一个在攻击下仍能遵循开发者 system prompt 的模型，比一个会漂移的模型更具可控性。Wallace 等人提出的指令层级框架（见第 9 章）即聚焦于此。在生产实践中，可控性（controllability）才是与有用性（helpfulness）直接权衡的核心维度：当模型严格遵循 system prompt 时，其可控性增强，但也可能导致对合法请求的过度拒绝。
 
 ## RLHF 目标及其教会模型的东西
 

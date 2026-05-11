@@ -25,37 +25,37 @@ translationKey: "aliyun-pai-2"
 
 官方文档说 DSW 是**面向 AI 开发的云端 IDE**，集成了 JupyterLab、VSCode 和终端，预配了 PyTorch 和 TensorFlow 容器镜像，支持异构计算（CPU / GPU / 灵骏），还能挂载 OSS、NAS 和 CPFS 数据集。实际操作起来，就是点一下“打开”，一分钟内你就能拿到一个真正的 Jupyter，跑在真正的 GPU 上，`nvidia-smi` 正常，PyTorch 直接 import。
 
-有意思的是**盒子里没有什么**。DSW 容器的系统盘寿命跟实例绑定。你 `pip install` 的东西能扛过 kernel 重启，但扛不住实例重启，除非你把 conda 环境持久化到 OSS，或者通过快照功能存到 ACR。
+有意思的是**镜像里其实什么都没多装**。DSW 容器的系统盘生命周期与实例一致。你 `pip install` 的东西能扛过 kernel 重启，但扛不住实例重启，除非你把 conda 环境持久化到 OSS，或者通过快照功能存到 ACR。
 
 ![Anatomy of a DSW instance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig1_dsw_anatomy.png)
 
 ## 怎么选实例类型
 
-文档里 DSW 资源分两类：**公共资源**（按量付费）和**专属资源**（包年包月或灵骏）。日常干活选公共资源就行——用多少 GPU 分钟付多少钱，按秒计费，搞个 10 分钟实验随时启停不心疼。
+文档里 DSW 资源分两类：**公共资源**（按量付费）和**专属资源**（包年包月或灵骏）。日常开发选用公共资源即可：按实际使用的 GPU 秒数计费，用多少付多少；运行 10 分钟的实验，可随时启停，毫无压力。
 
 我自己怎么选：
 
 - **微小实验 / 调试** — `ecs.gn7i-c8g1.2xlarge` (1 × A10, 24 GB)。便宜，微调 7B 模型开 4-bit 量化或者跑 512×512 的扩散模型绰绰有余。
-- **小模型正式训练** — `ecs.gn7i-c16g1.4xlarge` 或 `ecs.gn7e-c12g1.3xlarge` (A10 / A100 40 GB)。跑 CIFAR-10 ResNet、ImageNet-tiny 或者 7B SFT 加 QLoRA 都很舒服。
-- **LLM 开发** — `ecs.gn7e-c12g1.6xlarge` 或更高 (A100 80 GB)。如果你想不加 offloading 直接加载 13-30B 的 BF16 模型，这是必须的。
+- **小模型正式训练** — `ecs.gn7i-c16g1.4xlarge` 或 `ecs.gn7e-c12g1.3xlarge` (A10 / A100 40 GB)。运行 CIFAR-10 上的 ResNet、ImageNet-tiny 或 7B 模型的 SFT + QLoRA 训练都很流畅。
+- **LLM 开发** — `ecs.gn7e-c12g1.6xlarge` 或更高 (A100 80 GB)。若需在不启用 offloading 的前提下直接加载 13–30B 的 BF16 模型，此配置为必需。
 
 > **实战建议：** 如果控制台显示想要的 GPU 类型“缺货”，换个可用区（AZ）。库存是按 AZ 算的，不是按 Region。我见过同一分钟内 `cn-shanghai-h` 的 80 GB A100 没货，但 `cn-shanghai-l` 随便用。
 
 ## 镜像目录
 
-DSW 镜像都是官方维护、带版本号和标签的。快速入门用的是 `modelscope:1.26.0-pytorch2.6.0-gpu-py311-cu124-ubuntu22.04`——这串字符直接告诉你里面有什么。从左往右读：ModelScope SDK 1.26，PyTorch 2.6，GPU 版，Python 3.11，CUDA 12.4，Ubuntu 22.04。
+DSW 镜像都是官方维护、带版本号和标签的。快速入门用的是 `modelscope:1.26.0-pytorch2.6.0-gpu-py311-cu124-ubuntu22.04`——该镜像标签直观体现了其技术栈组成。从左往右读：ModelScope SDK 1.26，PyTorch 2.6，GPU 版，Python 3.11，CUDA 12.4，Ubuntu 22.04。
 
-我基本只选 `pytorch` 或 `modelscope` 镜像。TensorFlow 镜像没问题，但版本总慢半拍。还有个 `dsw-stable` 系列，设计上就滞后——适合那些不想在训练中途遇到 CUDA 升级的生产级任务。
+我基本只选 `pytorch` 或 `modelscope` 镜像。TensorFlow 镜像没问题，但版本总慢半拍。还有个 `dsw-stable` 系列，设计上保持版本稳定，适用于不希望在训练过程中遭遇 CUDA 升级的生产环境任务。
 
 你也可以自己打包镜像推到 ACR。对于那些依赖树特别重的项目（`vllm`, `flash-attn`, 自定义 CUDA kernel），这么做每次新实例启动能省四分钟 `pip install`。
 
 ## 不丢数据的标准工作流
 
-控制台流程长这样：
+控制台操作流程如下：
 
 ![Standard DSW workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig2_dsw_workflow.png)
 
-生命周期钩子容易忽略，但忘了代价很大。**空闲 shutdown** 我默认设 30 分钟；**定时 shutdown** 设晚上 11 点，防止周末忘了关笔记本。每个 DSW 空闲 GPU 每小时 5 块钱，周一醒来你就欠阿里云 100 块。
+生命周期钩子容易忽略，但若忽略此项，将带来显著成本损失。**空闲 shutdown** 我默认设 30 分钟；**定时 shutdown** 设晚上 11 点，防止周末忘了关笔记本。每台空闲的 DSW GPU 实例每小时计费约 5 元，若周末全程未关闭，周一可能产生约 100 元费用。
 
 ## 数据存在哪
 
@@ -153,7 +153,7 @@ DSW 这里有两个机制，都值得了解：
 | `tensorflow:*` | `tensorflow:2.16.1-gpu-py311-cu123-ubuntu22.04` | TF / Keras 代码库，TFRecord 流水线 | 你在 2026 年从头开始（别这么做） |
 | `dsw-stable:*` | `dsw-stable:1.10-pytorch2.4-cu121` | 长期运行的笔记本，不想季度中遇到 CUDA 升级 | 你需要最新特性 |
 
-命名规则从左到右一致：SDK 版本 → 框架版本 → CPU/GPU → Python 版本 → CUDA 版本 → 操作系统。像读菜谱一样读它。我见过最多的两种翻车模式：
+命名规则从左到右依次为：SDK 版本、框架版本、CPU/GPU 类型、Python 版本、CUDA 版本、操作系统。建议按此顺序解读镜像标签。我遇到最多的两类典型问题：
 
 - **想要 bare PyTorch 却选了 ModelScope。** 镜像大概 14 GB，首次启动要拉 600+ 个 Python 包。如果不需要 `modelscope` SDK 或 `vllm`，省掉 90 秒冷启动和磁盘压力。
 - **想要 ModelScope 却选了 PyTorch。** 然后每次新实例都要 `pip install vllm flash-attn modelscope`。能用，但浪费四分钟，而且偶尔会遇到 CUDA 版本不匹配，比如 `flash-attn` 决定跟错误的 nvcc 编译。

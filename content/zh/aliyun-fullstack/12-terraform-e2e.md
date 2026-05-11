@@ -17,18 +17,18 @@ description: "The grand finale: codify everything from Parts 1-11 into Terraform
 disableNunjucks: true
 translationKey: "aliyun-fullstack-12"
 ---
-十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉，只用一条 `terraform apply` 重建整个栈。这就是基础设施即代码存在的意义。
+十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉，只用一条 `terraform apply` 重建整个栈。这正是基础设施即代码（IaC）的核心价值所在。
 
-在这个系列的过去十一部分里，我们点击过控制台，敲过 `aliyun` CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这行得通。我们亲手构建了每个资源，所以对它们了如指掌。但如果我现在让你在新区域重现整个栈——包括三层两可用区的 VPC、带 cloud-init 脚本的 ECS 实例、RDS MySQL HA setup、带生命周期规则的 OSS bucket、RAM 策略、SLS 日志管道、Function Compute 事件处理——你至少需要整整一天的仔细工作。而且难免会漏掉点什么。一条安全组规则。一个备份策略。一个 CORS 配置。
+在这个系列的过去十一部分里，我们点击过控制台，敲过 `aliyun` CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这种方式可行：我们亲手搭建了每个资源，因而对其细节了然于胸。但如果我现在让你在新区域重现整个栈——包括三层两可用区的 VPC、带 cloud-init 脚本的 ECS 实例、RDS MySQL HA setup、带生命周期规则的 OSS bucket、RAM 策略、SLS 日志管道、Function Compute 事件处理——你至少需要一整天的细致操作。而且难免遗漏：一条安全组规则、一个备份策略、一项 CORS 配置。
 
-基础设施即代码彻底消除了这个问题。你用声明式配置文件描述想要什么，工具会自动 figuring out 如何达成。我们在十一篇文章中构建的整个栈，现在变成了一个 `.tf` 文件仓库，团队里的任何人都可以阅读、审查、修改和应用。
+基础设施即代码彻底消除了这个问题。你用声明式配置文件描述想要什么，工具会自动推导并执行达成该状态所需的全部操作。我们在十一篇文章中构建的整个栈，现在变成了一个 `.tf` 文件仓库，团队里的任何人都可以阅读、审查、修改和应用。
 
-这是大结局。我们将把第一部分到第十一部分的所有内容编码进 Terraform 模块。读完这篇文章，你将拥有一个完整的、生产级的 Terraform 项目，一条命令就能 provision 你的整个阿里云基础设施。
+本文是本系列的收官之作。我们将把第一部分至第十一部分的所有手动配置，统一封装为 Terraform 模块。读完本文，你将获得一个完整的、可用于生产的 Terraform 项目，仅需一条命令即可完成整个阿里云基础设施的部署。
 
 
 ## 为什么需要基础设施即代码？
 
-读到这个系列的第十二篇文章，想必不需要我再说服你。但我还是要精确地列出理由，因为当你说服团队投入时间时，这些就是你要用的论据。
+读到本系列第十二篇，您应该已充分认同 IaC 的必要性。但我还是要精确地列出理由，因为当你说服团队投入时间时，这些就是你要用的论据。
 
 ### 演进过程
 
@@ -36,25 +36,25 @@ translationKey: "aliyun-fullstack-12"
 
 **阶段 1：手动（控制台点击）。** 你在 Web 控制台点点点。一个人管理几个资源时还行。一旦需要重建什么东西、解释你做了什么，或者把环境交给队友，这就行不通了。
 
-**阶段 2：脚本（CLI 命令）。** 你写 shell 脚本调用 `aliyun ecs CreateInstance` 这类命令。比点击好，但脚本是指令式的——它们描述步骤，而不是期望的最终状态。脚本跑两次，要么失败（资源已存在），要么创建重复资源。你最后不得不写越来越复杂的逻辑来处理幂等性，相当于重新发明了一个糟糕版本的 Terraform。
+**阶段 2：脚本（CLI 命令）。** 你写 shell 脚本调用 `aliyun ecs CreateInstance` 这类命令。比点击好，但脚本是命令式的：它描述的是具体执行步骤，而非期望的最终状态。脚本跑两次，要么失败（资源已存在），要么创建重复资源。你最终不得不编写日益复杂的逻辑来保证幂等性——这本质上是在重复造一个简陋版的 Terraform。
 
-**阶段 3：基础设施即代码（声明式）。** 你描述期望状态：“我想要一个 CIDR 为 10.0.0.0/16 且带有三个 VSwitch 的 VPC。”工具比较期望状态和实际状态，计算出 reconciling 所需的最小 API 调用集。跑一次，跑一百次，结果都一样。
+**阶段 3：基础设施即代码（声明式）。** 你描述期望状态：“我想要一个 CIDR 为 10.0.0.0/16 且带有三个 VSwitch 的 VPC。”工具比对期望状态与实际状态，计算出达成该状态所需的最少 API 调用。无论执行多少次，最终状态始终一致。
 
 ### 五大支柱
 
-基础设施即代码提供了手动 部署 无法给出的五样东西：
+基础设施即代码提供了手动部署所不具备的五大能力：
 
 | Pillar | What it means | Why it matters |
 |---|---|---|
-| **可复现性** | 代码相同 = 基础设施相同，每次皆然 | 随时 Spin up 完全一致的 staging/production 环境 |
+| **可复现性** | 代码相同 = 基础设施相同，每次皆然 | 随时一键创建完全一致的预发/生产环境 |
 | **版本控制** | 基础设施变更 tracked in Git | 谁改了什么、何时、为何——完整的 diff history |
 | **协作** | 基础设施变更走 Pull requests | 基础设施也能像应用代码一样 Code review |
-| **灾难恢复** | 几分钟内从代码重建整个栈 | Region 挂了？一条命令 Redeploy 到新区域 |
+| **灾难恢复** | 几分钟内从代码重建整个栈 | 若所在地域发生故障，只需一条命令，即可将整套基础设施重建至新地域。 |
 | **成本追踪** | 代码定义的基础设施可估算成本 | 应用前就知道变更要花多少钱 |
 
 ### Terraform vs Alibaba Cloud ROS
 
-阿里云有自己的 IaC 服务：Resource Orchestration Service (ROS)。它使用 JSON 或 YAML 模板，与阿里云控制台紧密集成。它是免费的。那我为什么还推荐 Terraform？
+阿里云有自己的 IaC 服务：Resource Orchestration Service (ROS)。它基于 JSON 或 YAML 模板定义资源，并与阿里云控制台深度集成。它是免费的。那我为什么还推荐 Terraform？
 
 | Criteria | Terraform | ROS |
 |---|---|---|
@@ -64,10 +64,10 @@ translationKey: "aliyun-fullstack-12"
 | **语言** | HCL (专为 IaC 设计，可读性强) | JSON/YAML (冗长，易错) |
 | **模块生态** | Terraform Registry 上有数千个模块 | 有限 |
 | **学习投入** | 技能可迁移到任何云 | 阿里云特定 |
-| **漂移检测** | `terraform plan` 显示精确 diff | 漂移检测能力有限 |
+| **漂移检测** | `terraform plan` 显示精确 diff | 漂移检测功能尚不完善 |
 | **导入现有资源** | `terraform import` | 支持但不够成熟 |
 
-如果你的世界只有阿里云，且不想引入额外工具，ROS 没问题。但如果你跨云工作，看重社区支持，或者希望技能能迁移到下一份工作，Terraform 是明确的选择。阿里云 Terraform provider (`alicloud`) 维护积极，覆盖了我们在这个系列中用到的几乎所有服务。
+如果您的环境仅限阿里云，且不希望引入额外工具，ROS 是一种可行选择。但如果你需要跨云管理、重视社区支持，或希望所掌握的技能具备跨平台可迁移性，Terraform 是更优选择。阿里云 Terraform provider (`alicloud`) 维护积极，覆盖了我们在这个系列中用到的几乎所有服务。
 
 关于 Terraform 本身的更深入探讨，请看我们的 [Terraform 系列](/zh/terraform-agents/01-why-terraform-for-agents/) —— 八篇文章涵盖从第一性原理到高级模式的所有方面。这篇文章假设你已经了解基础，重点在于如何将 Terraform 应用到我们构建的具体阿里云栈上。
 
@@ -124,11 +124,11 @@ translationKey: "aliyun-fullstack-12"
 | SLS project, logstore, alerts | [Part 7: SLS Observability](/zh/aliyun-fullstack/07-sls-observability/) | `modules/monitoring` |
 | Function Compute, OSS trigger | [Part 8: Serverless](/zh/aliyun-fullstack/08-serverless/) | `modules/serverless` |
 
-对于 [Part 10](/zh/aliyun-fullstack/10-bailian-llm/) 和 [Part 11](/zh/aliyun-fullstack/11-pai-ml-platform/) 中涵盖的 LLM 和 ML 部署，Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 覆盖结束的地方。
+对于 [Part 10](/zh/aliyun-fullstack/10-bailian-llm/) 和 [Part 11](/zh/aliyun-fullstack/11-pai-ml-platform/) 中涵盖的 LLM 和 ML 部署，Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 支持的边界所在。
 
 ## 项目结构
 
-一个组织良好的 Terraform 项目，决定了你的代码库是能被团队维护数年，还是在几个月内变成“别碰它，它能跑”的负债。结构如下：
+一个组织良好的 Terraform 项目，直接决定该代码库能否被团队长期维护，还是在数月内沦为‘不可触碰、仅能侥幸运行’的技术债务。结构如下：
 
 ![Terraform 模块布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_layout.png)
 
@@ -192,10 +192,10 @@ aliyun-fullstack-terraform/
         └── terraform.yml      # CI/CD pipeline
 ```
 
-这个布局中的关键决策：
+该结构设计的关键决策包括：
 
 - **一个根模块，多个子模块。** 每个子模块都是自包含且可复用的。你可以在不同项目中使用 `modules/network`，而不必拖着 database 模块一起。
-- **通过 `.tfvars` 文件隔离环境。** 不是 separate directories，也不是 workspaces（它们共享 state backends，容易出事故）。只是不同的变量文件：`terraform apply -var-file=environments/prod.tfvars`。
+- **通过 `.tfvars` 文件隔离环境。** 既不采用独立目录，也不使用 Terraform Workspace——后者因共享同一 state backend，存在并发冲突风险。只是不同的变量文件：`terraform apply -var-file=environments/prod.tfvars`。
 - **每个环境独立状态。** 每个环境在单独的 OSS 路径下拥有自己的 state file。我们在 backend 中配置这一点。
 - **密钥不进版本控制。** `terraform.tfvars` 被 gitignored。`terraform.tfvars.example` 展示结构但不含值。
 ## 配置 Provider 和 State
@@ -247,7 +247,7 @@ terraform {
 }
 ```
 
-State 存 OSS，锁用 TableStore。团队协作这是命门——没锁的话，两个人同时跑 `terraform apply`，State 文件直接损坏。TableStore 提供分布式锁，防止并发修改 State。
+State 文件存储于 OSS，分布式锁由 Table Store 提供。团队协作这是命门——没锁的话，两个人同时跑 `terraform apply`，State 文件直接损坏。TableStore 提供分布式锁，防止并发修改 State。
 
 创建 State Bucket 和锁表（这是一次性的 bootstrap 步骤）：
 

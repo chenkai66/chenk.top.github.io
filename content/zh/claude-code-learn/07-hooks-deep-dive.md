@@ -34,7 +34,7 @@ translationKey: "claude-code-learn-7"
 
 ## 1. block-env-read — 保护 secrets
 
-这是投入产出比最高（ROI）的一个 Hook。防止 `Read` 和 `Grep` 触碰 `.env`、`id_rsa`、`credentials.json`：
+这是性价比最高（ROI 最高）的一个 Hook。防止 `Read` 和 `Grep` 触碰 `.env`、`id_rsa`、`credentials.json`：
 
 ```javascript
 #!/usr/bin/env node
@@ -170,7 +170,7 @@ if (h < 9 || h >= 22) {
 }
 ```
 
-该脚本部署于处理非工作时间告警的专用机器。若 bot 尝试在凌晨 2 点执行操作，极大概率属于误触发。
+该脚本部署在专门处理非工作时间告警的机器上。若 bot 在凌晨 2 点尝试执行操作，极大概率是误触发。
 
 ## 把它们串起来的逻辑
 
