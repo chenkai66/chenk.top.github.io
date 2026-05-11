@@ -16,13 +16,13 @@ description: "SDK 把 Claude Code 从 CLI 变成库。GitHub Action 让它在 PR
 disableNunjucks: true
 translationKey: "claude-code-learn-6"
 ---
-CLI 只是表面功夫，SDK 才有意思，GitHub 集成才是價值變現的地方。
+CLI 只是門面，SDK 才有實質功能，而 GitHub 集成才是真正實現價值的環節。
 
 ![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
 ## 一段話說清 SDK
 
-`@anthropic-ai/claude-code` 就是那個 npm 包。它暴露了 CLI 用的同一個 Claude Code 引擎，工具和權限一模一樣，只不過變成了程序化接口。你丟給它一個 prompt，它返回一個對話事件的異步迭代器。隨便插到哪兒都行——腳本、服務、CI 步驟。
+`@anthropic-ai/claude-code` 就是那個 npm 包。它暴露了 CLI 用的同一個 Claude Code 引擎，工具和權限一模一樣，只不過變成了程序化接口。你傳入一個 prompt，它會返回一個用於遍歷對話事件的異步迭代器。隨便插到哪兒都行——腳本、服務、CI 步驟。
 
 安裝：
 
@@ -48,11 +48,11 @@ for await (const event of result) {
 }
 ```
 
-跑一下。你會看到一樣的 agent 循環在終端裡跑起來——包括工具調用。這本質上就是去掉了聊天 UI 的 CLI。
+運行一下，你會看到相同的 agent 循環在終端中執行——包含工具調用。這本質上就是一個移除了聊天界面的 CLI。
 
 ## 權限，程序化控制
 
-這塊必須搞對。CLI 默認策略是「問人」。腳本沒法問。所以 SDK 暴露了幾種權限模式：
+這塊必須搞對。CLI 默認策略是「問人」。腳本無法與用戶交互確認。所以 SDK 暴露了幾種權限模式：
 
 | Mode | Meaning |
 |------|---------|
@@ -61,7 +61,7 @@ for await (const event of result) {
 | `bypassPermissions` | 自動接受所有操作（危險） |
 | Custom | 你提供一個 callback，每次調用時決定 |
 
-真幹活的時候，直接用 callback：
+實際投入生產時，建議直接使用回調函數：
 
 ```typescript
 const result = query({
@@ -112,7 +112,7 @@ for await (const event of result) {
 }
 ```
 
-每次發布前跑一次。CHANGELOG 自己寫自己，commit log 被整理成通順的文字，我只負責審查和提交。每次發布省 5 分鐘 × 過去六個月的每次發布。
+每次發布前跑一次。CHANGELOG 自己寫自己，commit log 被整理成通順的文字，我只負責審查和提交。每次發布可節省約 5 分鐘，累計過去六個月的所有發布，效益明顯。
 
 ## GitHub Action
 

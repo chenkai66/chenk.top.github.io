@@ -16,7 +16,7 @@ description: "从参考仓库的 100 个脚本里挑出 10 个，每一个都给
 disableNunjucks: true
 translationKey: "claude-code-learn-7"
 ---
-第五章咱们过了遍 Hook 的概念巡礼，这一章就是实地指南。那个 100 脚本的参考库里，只有十个能进我每个严肃项目的法眼。我就挑这十个，配上代码 walkthrough 一遍。
+第五章我们梳理了 Hook 的基本概念，本章则聚焦实战应用。在收录百余个脚本的参考库中，仅有这十个被我纳入所有严肃项目的标准配置。我们逐一介绍这十个 Hook，并附上代码级操作说明。
 
 所有示例默认 Node 18+ 环境，脚本存到 `./hooks/`，加上 `chmod +x` 权限，然后在 `.claude/settings.json` 里这样配置：
 
@@ -34,7 +34,7 @@ translationKey: "claude-code-learn-7"
 
 ## 1. block-env-read — 保护 secrets
 
-这是 ROI 最高的一个 Hook。防止 `Read` 和 `Grep` 触碰 `.env`、`id_rsa`、`credentials.json`：
+这是投入产出比最高（ROI）的一个 Hook。防止 `Read` 和 `Grep` 触碰 `.env`、`id_rsa`、`credentials.json`：
 
 ```javascript
 #!/usr/bin/env node
@@ -50,7 +50,7 @@ if (sensitive.some(s => p.includes(s))) {
 process.exit(0);
 ```
 
-把它挂在 `Read|Grep|MultiEdit|Edit|Write` 上。PreToolUse 里退出码 2 会阻断调用；stderr 的内容会原样喂给模型，让它知道*为什么*被拦。
+把它挂在 `Read|Grep|MultiEdit|Edit|Write` 上。在 PreToolUse 阶段，退出码 2 将阻断工具调用；stderr 输出的内容会原样传递给模型，用于说明拦截原因。
 
 ## 2. bash-blacklist — 阻止 `rm -rf /`
 
@@ -67,7 +67,7 @@ if (banned.some(re => re.test(cmd))) {
 }
 ```
 
-正则列表故意写得很短。太长的黑名单一旦误报多了，反而会被无视。
+正则表达式列表刻意保持简短。过长的黑名单容易因误报率升高而被实际忽略。
 
 ## 3. bash-whitelist — 适合生产环境周边的机器
 
@@ -79,7 +79,7 @@ const first = (cmd.trim().split(/\s+/)[0] || "").split('/').pop();
 if (!allow.has(first)) { console.error(`Not on allowlist: ${first}`); process.exit(2); }
 ```
 
-白名单在黑名单失手的地方赢：你不可能意外放行新东西。
+白名单的优势在于弥补黑名单的不足：它天然杜绝意外放行未经显式允许的新命令。
 
 ## 4. block-git-push — 禁止意外 push
 
@@ -105,7 +105,7 @@ if (path && /\.(ts|tsx|js|jsx|json|md|css)$/.test(path)) {
 }
 ```
 
-PostToolUse 在编辑*之后*运行，所以退出码 2 也回滚不了什么。重点是卫生，不是策略。
+PostToolUse 在编辑操作完成后触发，此时退出码 2 已无法回滚变更——它的作用是保障代码质量（‘卫生’），而非执行访问控制（‘策略’）。
 
 ## 6. test-on-edit — 快速失败
 
@@ -118,7 +118,7 @@ if (/\/(src|lib)\/.*\.(ts|js)$/.test(path)) {
 }
 ```
 
-退出码 1 会把失败暴露给模型，它看到测试输出后会重试。就是这一个 Hook，随着时间推移教会了 Claude 在我的 repo 里写出更好的代码。
+退出码 1 会将测试失败信息返回给模型，模型据此输出可触发自动重试。长期使用该 Hook，显著提升了 Claude 在本仓库中生成代码的质量。
 
 ## 7. backup-before-edit — 安全网
 
@@ -143,7 +143,7 @@ const line = JSON.stringify({ ts: Date.now(), tool: t.tool_name, input: t.tool_i
 fs.appendFileSync('.claude/tool-calls.jsonl', line);
 ```
 
-你不会天天看这个文件。但用到它的那天，你会庆幸它在。
+该日志文件日常无需关注，但在排查问题时至关重要。
 
 ## 9. read-before-write — 禁止盲改
 
@@ -156,7 +156,7 @@ if (t.tool_name === 'Read') { seen[path] = Date.now(); fs.writeFileSync('.claude
 if (!seen[path]) { console.error(`Blocked: ${path} was not Read in this session.`); process.exit(2); }
 ```
 
-强制模型编辑前先读文件。能抓住那种模型基于 prior 而不是文件当前状态去编辑的隐蔽 bug。
+强制模型编辑前先读文件。可捕获一类隐蔽缺陷：模型依赖先验知识（prior）而非文件当前实际内容进行编辑。
 
 ## 10. work-hours-only — 人性化边界
 
@@ -170,14 +170,14 @@ if (h < 9 || h >= 22) {
 }
 ```
 
-我把这脚本跑在处理非工作时间告警的机器上。如果 bot 想在凌晨 2 点搞破坏，那多半是误触。
+该脚本部署于处理非工作时间告警的专用机器。若 bot 尝试在凌晨 2 点执行操作，极大概率属于误触发。
 
 ## 把它们串起来的逻辑
 
-三条血泪换来的规则：
+以下三条经验规则源于实际踩坑：
 
 1. **PreToolUse 管策略，PostToolUse 管卫生。** 别想在 PostToolUse 里回滚——副作用已经发生了。
 2. **Stderr 是反馈，退出码是判决。** 退出码 2 阻断（仅限 PreToolUse）。stderr 里的内容会原样喂给 Claude。两者配合用。
 3. **Hook 出错即阻断。** 一个行为不端的 Hook 会阻断你所有的工具调用。配置前先拿 `echo '{"tool_name":"Read","tool_input":{"file_path":"/tmp/x"}}' | node hook.js` 测一下脚本。
 
-十个 Hook 听起来不多。但足够让 Yolo 模式的会话变得靠谱。
+十个 Hook 数量看似有限，却足以将‘YOLO’（You Only Live Once）式的随意会话转化为可控、可靠的工程实践。

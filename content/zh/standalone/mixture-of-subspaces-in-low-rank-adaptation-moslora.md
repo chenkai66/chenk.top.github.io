@@ -1,5 +1,5 @@
 ---
-date: 2024-08-30 09:00:00
+date: 2024-09-01 09:00:00
 title: "Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)"
 description: "MoSLoRA 用一个 k×k 可学习 mixer 组合 k 个低秩子空间，整体重写为干净的 BWA 乘积，保留可合并性与零推理开销。"
 tags:

@@ -16,7 +16,7 @@ description: "Claude Code 现在有四种扩展机制：斜杠命令、MCP serve
 disableNunjucks: true
 translationKey: "claude-code-learn-10"
 ---
-Claude Code 现在有四种扩展机制：slash commands、MCP servers、hooks 和 Skills。功能上有重叠。当你冒出"Claude 应该知道怎么做 X"的念头时，关键问题是*选哪一个*。
+Claude Code 现在有四种扩展机制：slash commands、MCP servers、hooks 和 Skills。功能上有重叠。当你产生“Claude 应该知道怎么做 X”这类想法时，首要问题就是：该选用哪一种扩展机制？
 
 这是系列的最后一章。直接上决策树。
 
@@ -47,12 +47,12 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 5. Build + deploy
 ```
 
-会话开始时，Claude 会读取所有可用 skill 的 *descriptions*。当你问的东西匹配上了，Claude 才加载 skill 正文。正文会成为那一轮 system prompt 的一部分。
+会话启动时，Claude 会预先读取所有可用 skill 的 description；仅当用户提问内容与某 description 匹配时，才按需加载对应 skill 的正文。正文会成为那一轮 system prompt 的一部分。
 
 两点要注意：
 
 - `description` 是承重墙。如果没写清楚什么时候用，skill 就不会被触发。
-- 正文可以很长。因为是按需加载，除非触发，否则啰嗦点也不消耗 context。
+- 正文可以较长——由于按需加载，只要未被触发，就不会占用任何上下文（context）资源。
 
 ## Skill 和其他三者的区别
 
@@ -63,7 +63,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 | Hook | `settings.json` 引用的脚本 | 工具调用前后 | 策略 enforcement，edit/write 的副作用 |
 | Skill | `.claude/skills/<name>/SKILL.md` | Description 匹配 prompt | 领域知识、风格、多步骤流程 |
 
-最核心的界限：**slash commands 是指令，skills 是知识**。Slash command 是"做这件具体的事"。Skill 是"这类问题我是这么想的，碰到了就用"。
+最核心的界限：**slash commands 是指令，skills 是知识**。Slash command 用于执行具体、明确的操作；Skill 则用于表达一类问题的通用处理思路，由模型自主识别并应用。
 
 ## 什么时候用哪个
 
@@ -83,7 +83,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 **4. 这是一堆领域知识吗？**（风格、工作流、一套规范）
 → 写一个 **skill**。Skill 是用来让 Claude 自己*识别并应用*的，不用你特意喊它。
 
-如果一个东西 fit 两个框，选简单的那个。Skill 调 slash command 没问题。Slash command 装成 skill 会很脆。
+若某需求同时符合多种机制，优先选择实现更简单的一种。Skill 内部调用 slash command 是合理设计；但将本应是 slash command 的功能强行包装为 Skill，则会导致触发不可靠、维护困难。
 
 ## 我实际写过的三个 skills
 
@@ -97,7 +97,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 
 ## 什么时候 Skill 不是正确答案
 
-触发太频繁的 skill 比没有更糟——它会污染那些不需要它的任务的 context。三个坑：
+触发过于频繁的 Skill 反而有害——它会将无关知识注入本不需要它的任务上下文中，造成干扰。三个坑：
 
 - **描述模糊。** "用于一般编程。" 用于一切 = 用于 nothing useful。
 - **正文重叠。** 两个 skill 都响应 "write code" → context 膨胀。选一个。

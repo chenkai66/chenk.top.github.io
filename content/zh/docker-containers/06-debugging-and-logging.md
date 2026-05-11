@@ -1,6 +1,6 @@
 ---
 title: "Docker 与容器（六）：调试与日志——当‘盒子’内部出问题时"
-date: 2023-06-26 09:00:00
+date: 2023-06-21 09:00:00
 tags:
   - Docker
   - Containers

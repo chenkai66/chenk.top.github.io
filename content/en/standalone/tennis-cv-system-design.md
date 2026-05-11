@@ -1,6 +1,6 @@
 ---
 title: "Tennis-Scene Computer Vision: From Paper Survey to Production"
-date: 2024-08-29 09:00:00
+date: 2024-08-31 09:00:00
 tags:
   - Computer Vision
   - Object Detection

@@ -1,6 +1,6 @@
 ---
 title: "Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next"
-date: 2023-06-30 09:00:00
+date: 2023-06-23 09:00:00
 tags:
   - Docker
   - Containers

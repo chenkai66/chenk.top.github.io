@@ -1,5 +1,5 @@
 ---
-date: 2024-04-30 09:00:00
+date: 2024-05-01 09:00:00
 title: "HCGR —— Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation"
 description: "HCGR 把会话图嵌入洛伦兹双曲流形，切空间跑 GNN 注意力聚合，再加 InfoNCE 对比损失，长尾深层数据集增益最大。"
 tags:

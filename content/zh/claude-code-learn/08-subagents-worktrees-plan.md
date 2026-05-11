@@ -24,19 +24,19 @@ translationKey: "claude-code-learn-8"
 
 ## Plan mode —— 气闸舱
 
-Plan mode 成本最低。按 `Shift+Tab` 直到指示器显示 **plan**。这时候模型只规划不行动。它会阅读、思考、提出方案，然后停住。你来看计划。要么 approve，要么 edit，要么直接 kill。只有这一步过了，它才会执行。
+Plan mode 成本最低。按 `Shift+Tab` 直到指示器显示 **plan**。这时候模型只规划不行动。它会阅读、思考、提出方案，然后停住。由你审阅该计划：可批准（approve）、修改（edit），或中止（kill）。只有这一步过了，它才会执行。
 
 我一般在这些时候用：
 
-- 任何非 trivial 任务的前 30 秒。比如“实现 X 功能”→ 先 plan。几乎每次，计划都会暴露模型误解了代码库。
-- 任何涉及 auth、支付、schema 迁移或生产配置的操作。花两秒扫一眼，能省下几小时收拾烂摊子的时间。
-- 在不熟悉的 repo 里干活。这份计划顺便就成了我的 onboarding 文档。
+- 任何非 trivial 任务的前 30 秒。比如“实现 X 功能”→ 先 plan。几乎每次，计划都会暴露出模型对代码库的理解偏差。
+- 任何涉及 auth、支付、schema 迁移或生产配置的操作。只需花两秒快速浏览，就可能避免数小时的故障修复。
+- 在不熟悉的 repo 里干活。这份计划也自然成为我熟悉该仓库的入门参考。
 
 容易踩的坑：觉得“任务小”就跳过 plan mode。恰恰是小任务最容易冒出“等等，这不是我想要的”这种状况。
 
 ## Sub-agents —— 适合并行跑的任务
 
-子代理是父 agent spawn 出来的一个 Claude Code 实例，用来处理 scoped task。经典写法放在 `.claude/agents/<name>.md`：
+子代理是由父 agent 启动的一个独立 Claude Code 实例，用于处理边界明确的子任务。经典写法放在 `.claude/agents/<name>.md`：
 
 ```markdown
 ---
@@ -58,7 +58,7 @@ Do not edit. Do not run shell commands. Stay focused.
 这能换来什么：
 
 - **上下文隔离。** 子代理有自己的 context window。父 agent 的保持干净。
-- **工具限制。** research agent  literally 无法编辑。这是架构级别的安全，不是靠自律。
+- **工具限制。** research agent 确实不具备编辑能力——这是由系统架构保障的安全机制，而非依赖使用者自觉。
 - **并行工作。** 任务独立时，你可以同时 fan out 给三个子代理。
 
 代价是什么：
@@ -76,11 +76,11 @@ git worktree 是同一个 repo 的第二个 working tree，在不同分支，不
 
 这些场景很关键：
 
-- 你正在 `feat/x` 上干活，用户突然要求在 `main` 上修个无关的 quick fix。Spawn 一个 worktree，修完，commit，退出。
+- 你正在 `feat/x` 上干活，用户突然要求在 `main` 上修个无关的 quick fix。新建一个 worktree，完成修复后提交（commit），再退出。
 - 你想尝试同一问题的两种不同解法，又不想用废弃的 commit 弄脏主干。
 - 你委托给子代理，希望它在物理上跟你的 working tree 隔离。
 
-心智模型：worktree 是上下文隔离的*物理*版本。子代理隔离上下文；worktree 隔离文件系统。
+心智模型：worktree 是上下文隔离的*物理实现*：子代理通过会话隔离上下文，worktree 则通过独立工作目录隔离文件系统。
 
 关于退出怎么想：
 
@@ -98,7 +98,7 @@ git worktree 是同一个 repo 的第二个 working tree，在不同分支，不
 3. **Sub-agents** 处理 worktree 内的独立子任务。先 research，再 implementation，最后写 test —— 每个都在自己的上下文里。
 4. 回到父 agent，合并结果，commit，退出 worktree（工作暂停用 `keep`，完成了用 `remove`）。
 
-三层信任门，三级 escalation。等到模型开始改文件时，你投入的注意力刚好匹配任务所需的难度。
+三层信任门，三级 escalation。当模型进入文件修改阶段时，你所投入的注意力程度，恰好与任务复杂度相匹配。
 
 ## 什么时候都不用
 

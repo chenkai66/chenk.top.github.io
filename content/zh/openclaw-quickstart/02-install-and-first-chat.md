@@ -16,7 +16,7 @@ description: "在 macOS 或 Ubuntu 上装好 OpenClaw，接入模型服务商，
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
-README 上写的是五分钟，但我得说十分钟——多出来的五分钟，几乎全是栽在 Node 版本上，第一次装的人难免踩这个坑。
+README 写的是五分钟，但实际可能需要十分钟——多出的五分钟，几乎都耗在 Node 版本问题上，新手极易在此卡住。
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
@@ -43,7 +43,7 @@ nvm install 24
 nvm use 24
 ```
 
-这是唯一的“脚枪”（foot-gun），过了这关后面就顺了。
+这是唯一的‘脚枪’（foot-gun）：Node 版本不兼容会导致后续运行时错误，解决后即可顺利进行。
 
 ### 获取 API Key
 
@@ -55,7 +55,7 @@ nvm use 24
 4. 点击 "创建新的 API-KEY"。立刻复制，他们只显示一次。
 5. 免费 tier 给 `qwen-plus` 和 `qwen-turbo` 的额度很大。够你折腾好几天才会碰到限制。
 
-如果你在国内，DashScope 是阻力最小的路径。国内网络连他们的端点延迟低于 200ms。不用代理，不用 VPN，没麻烦。
+如果你在国内，DashScope 是最省心的选择：其国内端点延迟通常低于 200ms，无需代理或 VPN。
 
 **Anthropic** — [console.anthropic.com](https://console.anthropic.com)，创建账号，添加支付方式，在 Settings > API Keys 下生成 key。最低充值 $5。Claude Sonnet 是 Agent 使用的 sweet spot。
 
@@ -63,7 +63,7 @@ nvm use 24
 
 **网络注意事项**
 
-如果你在国内：DashScope 端点在国内，很快。Anthropic 和 OpenAI 端点需要代理、香港 VPS 转发请求，或者 SOCKS5 隧道。OpenClaw 尊重 `HTTPS_PROXY` 和 `ALL_PROXY` 环境变量，所以如果你本地已经跑了代理，启动网关前导出这些变量就行。别先在“连接超时”错误上浪费时间调试，先确认你的网络能不能 actually reach 提供商的端点。
+如果你在国内：DashScope 端点在国内，很快。Anthropic 和 OpenAI 端点需要代理、香港 VPS 转发请求，或者 SOCKS5 隧道。OpenClaw 尊重 `HTTPS_PROXY` 和 `ALL_PROXY` 环境变量，所以如果你本地已经跑了代理，启动网关前导出这些变量就行。不要急于调试‘连接超时’错误，先确认你的网络能否实际访问对应提供商的 API 端点。
 
 如果你在国内以外：三家提供商都不用额外配置就能用。DashScope 的国际端点可用，但从美欧连延迟稍高。
 
@@ -183,7 +183,7 @@ Fetch https://news.ycombinator.com and tell me the top 3 stories right now.
 [tool:web_fetch] url=https://news.ycombinator.com status=200 bytes=48231
 ```
 
-这确认 Agent 发出了出站 HTTP 请求，拿到了响应，现在正在总结它。
+这表明 Agent 已发出出站 HTTP 请求、成功获取响应，并正在对内容进行总结。
 
 ```
 Run `git log --oneline -5` in ~/my-project and explain what the last five commits did.
@@ -195,7 +195,7 @@ Run `git log --oneline -5` in ~/my-project and explain what the last five commit
 [tool:exec] cmd="git log --oneline -5" cwd=/Users/you/my-project exit=0
 ```
 
-Agent 看到 stdout 并在此基础上推理。如果 exit code 非零，它会告诉你哪里出了问题。
+Agent 会读取命令的标准输出（stdout）并据此推理；若退出码（exit code）非零，它将反馈具体错误原因。
 
 来个多步任务：
 

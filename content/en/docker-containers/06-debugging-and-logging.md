@@ -1,6 +1,6 @@
 ---
 title: "Docker and Containers (6): Debugging and Logging — When Things Go Wrong Inside a Box"
-date: 2023-06-26 09:00:00
+date: 2023-06-21 09:00:00
 tags:
   - Docker
   - Containers

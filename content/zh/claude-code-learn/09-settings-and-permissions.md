@@ -30,7 +30,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 2. **项目设置** — `<repo>/.claude/settings.json`。提交到 git 里。对这个 repo 里的所有人都生效。
 3. **本地设置** — `<repo>/.claude/settings.local.json`。被 gitignore 忽略。你在这个 repo 里的私有覆盖配置。
 
-合并规则很简单：后一层覆盖前一层，键对键（key by key）。**权限方面**，`allow` 是叠加的，`deny` 是否决性的——一旦任何一层 deny 了某个操作，其他层都无法再重新 allow 它。这种不对称性正是系统安全的基石。
+合并规则很简单：后一层配置会逐键（key-by-key）覆盖前一层。**权限方面**，`allow` 是叠加的，`deny` 是否决性的——一旦任何一层 deny 了某个操作，其他层都无法再重新 allow 它。这种不对称性正是系统安全的基石。
 
 实际建议：把组织策略放在 `~/.claude/settings.json`，把项目规则放在 `.claude/settings.json`（提交），把你那些“我信任我机器上这个特定操作”的覆盖配置放在 `.claude/settings.local.json`。
 
@@ -71,7 +71,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
-一旦合并后的配置里有任何东西 deny 了一个动作，别的都救不回来。这是你要利用的杠杆。
+一旦合并后的配置里有任何东西 deny 了一个动作，别的都救不回来。这正是你可以依赖的关键机制。
 
 举个例子。某个 repo 的 `.claude/settings.json` 写着：
 
@@ -172,9 +172,9 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 注意三点：
 
-1. Bash 白名单只包含了只读和可逆的 Git 命令，绝不含 `push`、`reset --hard` 或 `rebase -i`。Push 必须是人为的 deliberate 动作。
+1. Bash 白名单只包含了只读和可逆的 Git 命令，绝不含 `push`、`reset --hard` 或 `rebase -i`。push 操作必须由人工主动触发。
 2. `Edit(.github/workflows/**)` 被 deny 了。CI 配置变更需要 review，我不想让它们混进普通 commit 里。
-3. Hooks 给 deny 列表上了双保险。如果 deny 规则有拼写错误，hook 依然能拦截危险调用。
+3. hooks 还为 deny 规则提供了双重保障：即便某条 deny 规则因拼写错误而失效，对应的 hook 仍可拦截危险调用。
 
 ## 优先级顺序，当作检查清单
 
@@ -188,4 +188,4 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ## 结语
 
-settings.json 就是 Claude 在项目里能做什么的宪法。Keep deny short and merciless，keep allow specific，keep hooks 作为第二道防线。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。
+settings.json 就是 Claude 在项目里能做什么的宪法。deny 规则宜简短严苛，allow 规则宜具体明确，hooks 则作为第二道防线。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。

@@ -17,15 +17,15 @@ disableNunjucks: true
 description: "切分策略、dense vs sparse vs 混合检索、reranker 选型、2026 年长上下文 vs RAG 的取舍，以及 10 万文档以上才会冒头的失败模式。"
 translationKey: "llm-engineering-8"
 ---
-RAG 是目前 LLM 应用里部署最多、但工程化做得最差的模式。2024 年流行的 Demo 套路——用 `text-embedding-3-large` 把所有内容向量化，扔进 pgvector，然后取 cosine 相似度 top-5——应付 1000 篇文档和容错率高的演示没问题。但一旦面对 10 万篇真实文档，以及一个会追究答案准确性的客户，这套方案就扛不住了。这一章讲的内容，是我希望更多团队在构建第二代 RAG 系统之前就能掌握的经验。
+RAG 是当前 LLM 应用中部署最广泛，但工程实践最不成熟的范式。2024 年流行的 Demo 套路——用 `text-embedding-3-large` 把所有内容向量化，扔进 pgvector，然后取 cosine 相似度 top-5——应付千篇量级的文档和对答案容错率较高的演示场景尚可。但当处理十万篇真实业务文档，且客户严格要求答案准确性时，该方案便难以胜任。这一章讲的内容，是我希望更多团队在构建第二代 RAG 系统之前就能掌握的经验。
 
-最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）把检索增强生成定义为一种混合模型：_dense retriever_（DPR）与_generator_（BART）联合训练，检索目标直接优化端到端任务准确率。2026 年的生产级 RAG 看起来跟 Lewis 当初设想的不太一样——现代系统通常使用冻结的预训练 embedder、独立的 reranker，以及不与 retriever 联合训练的 decoder-only 生成模型。但核心洞察（将知识与推理能力参数分离）保留了下来，并成为主导范式。[Gao et al. (2023) 的 RAG 综述][gao-survey] 是对 2020 年后演进路线（"Naive RAG → Advanced RAG → Modular RAG"）最全面的概述。
+最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为一种混合架构：稠密检索器（DPR）与生成器（BART）联合训练，使检索目标直接服务于端到端任务的准确率优化。2026 年的生产级 RAG 已显著偏离 Lewis 当初的设计——现代系统普遍采用冻结的预训练 embedding 模型、独立的重排序器（reranker），以及不与检索器联合训练的仅解码器（decoder-only）生成模型。但其核心思想——将知识存储与推理能力解耦——得以保留，并发展为主导范式。[Gao et al. (2023) 的 RAG 综述][gao-survey] 是对 2020 年后演进路线（"Naive RAG → Advanced RAG → Modular RAG"）最全面的概述。
 
 ![LLM Engineering (8): Retrieval-Augmented Generation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/illustration_1.png)
 
 ## RAG 到底是什么
 
-检索增强生成（Retrieval-augmented generation）：查询时，从外部语料库抓取相关文本，塞进 LLM 的上下文窗口，生成有依据的答案。"增强"的部分体现在 prompt 模板里：
+检索增强生成（Retrieval-augmented generation）：在查询时，从外部语料库检索相关文本片段，并将其注入大语言模型的上下文窗口，从而生成有依据的答案。"增强"的部分体现在 prompt 模板里：
 
 ```
 You are an assistant. Answer the user's question using only the context below.
@@ -37,13 +37,13 @@ Context:
 Question: {user_query}
 ```
 
-真正的工程难点在"增强"左边——构建一个能找准 chunk 的 retriever。这涉及三个子系统：chunking（切分）、embedding（向量化）和 ranking（排序）。
+真正的工程难点在于“增强”环节之前——即构建一个能精准召回相关文本块（chunk）的检索器（retriever）。这涉及三大核心组件：文本块切分（chunking）、文本嵌入（embedding）和相关性排序（ranking）。
 
 ## Chunking 是隐形杀手
 
 ![fig1: chunking strategies compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/fig1_chunking_strategies.png)
 
-文档怎么切分成 chunk，决定了 retriever 理论上能找回什么。常见的 chunk 大小：256、512、1024 tokens。常见策略：
+文本块的切分方式，直接决定了检索器理论上能够召回的内容边界。常见的 chunk 大小：256、512、1024 tokens。常见策略：
 
 - **Fixed size**：每 $N$ 个 token 切一刀。简单，但会切断语义单元。
 - **Sentence**：按句子边界切分。好一些，但往往太碎。
@@ -51,9 +51,9 @@ Question: {user_query}
 - **Semantic**：嵌入滑动窗口，在嵌入相似度下降处切分。效果更好，成本更高。
 - **Late chunking** ([Günther et al., 2024](https://arxiv.org/abs/2409.04701))：用长上下文 embedder 嵌入整个文档，然后切分*嵌入序列*——每个 chunk 的嵌入都融合了周围文档的上下文。最适合长文档，需要长上下文 embedder（Jina, BGE-M3）。
 
-正确答案取决于你的语料库。代码：按函数/类切分。法律：按条款切分。Markdown：按标题切分。PDF：单独解析表格和图片，别让它们打断正文流。我调试过的大多数失败案例，根源都是"文档在表格中间被切断了"或者"答案横跨两个 chunk，但单个 chunk 都说不通"。
+正确答案取决于你的语料库。代码：按函数/类切分。法律：按条款切分。Markdown：按标题切分。PDF：单独解析表格和图片，别让它们打断正文流。我在调试中遇到的多数失败案例，根本原因在于：文档在表格内部被截断，或答案跨越两个文本块，而任一文本块均无法独立支撑完整语义。
 
-做个 chunk 大小的合理性检查：挑 20 个代表性问题，手动在语料库中找到答案，数一下 token 数。如果大多数答案能塞进 512-token 的 chunk，就用 512。如果大多数答案需要 1500 token 的上下文（比如法律合同），就用 1500 并设置 200-token 的重叠。
+建议进行文本块大小的合理性验证：选取 20 个典型问题，在语料库中人工定位答案，并统计其 token 数量。如果大多数答案能塞进 512-token 的 chunk，就用 512。如果大多数答案需要 1500 token 的上下文（比如法律合同），就用 1500 并设置 200-token 的重叠。
 
 ```python
 # A reasonable default chunker
@@ -67,13 +67,13 @@ splitter = RecursiveCharacterTextSplitter(
 chunks = splitter.split_text(document)
 ```
 
-重叠（overlap）很关键。没有重叠，一个从 chunk A 的 799 位置开始、在 chunk B 的 821 位置结束的句子就会被切断。有了 100-token 重叠，两个 chunk 都包含完整的句子。
+重叠（overlap）很关键。若未设置重叠，一个起始于文本块 A 第 799 个 token、终止于文本块 B 第 821 个 token 的句子将被截断。有了 100-token 重叠，两个 chunk 都包含完整的句子。
 
 ### Late chunking：2024 年的突破
 
- naive chunking 独立嵌入每个 chunk。"Q3 营收增长 12%"这个 chunk 不包含任何关于是哪家公司或哪一年的信息。Late chunking 颠倒了顺序：把整个文档（最多 8K-32K tokens）喂给长上下文 embedder，获取每个 token 的上下文嵌入，然后在 chunk 边界内池化 token 嵌入得到最终的 chunk 嵌入。"Q3 营收增长 12%"的 chunk 嵌入现在能反映周围"Apple 2024 年第一季度财报"的上下文。
+ 朴素切分（naive chunking）对每个文本块独立进行嵌入。“Q3 营收增长 12%”这类文本块，往往缺乏所属公司及年份等关键上下文信息。晚期切分（late chunking）则调整了处理顺序：先将整篇文档（最长支持 8K–32K tokens）输入长上下文 embedding 模型，获得每个 token 的上下文感知嵌入，再按文本块边界对 token 嵌入进行池化，生成最终的文本块嵌入。"Q3 营收增长 12%"的 chunk 嵌入现在能反映周围"Apple 2024 年第一季度财报"的上下文。
 
-在长文档 QA 上的报告增益：相比相同 chunk 边界的 naive chunking，NDCG 提升 5-15%，无额外存储成本，索引延迟略有增加。Jina 的 `jina-embeddings-v3` 和 BGE-M3 都原生支持 late chunking。
+在长文档问答任务上的实测效果显示：相较于采用相同文本块边界的朴素切分方法，晚期切分可将 NDCG 指标提升 5–15%，且无需额外存储开销，仅带来轻微的索引延迟增长。Jina 的 `jina-embeddings-v3` 和 BGE-M3 都原生支持 late chunking。
 
 什么时候 late chunking 有用？只要你的文档长到单个 chunk 内的局部上下文丢失了重要框架信息——研究论文、法律合同、代码库、多章节技术文档。对于短文档语料库（FAQ 条目、产品描述），收益较小。
 
@@ -81,7 +81,7 @@ chunks = splitter.split_text(document)
 
 ![fig2: dense vs sparse vs hybrid retrieval](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/fig2_dense_sparse_hybrid.png)
 
-Embedding 把文本变成向量，以便相似度搜索能找到语义相关的 chunk。你选的模型决定了质量、成本和延迟。
+文本嵌入（embedding）将原始文本映射为向量表示，从而支持基于相似度的语义检索，以召回相关的文本块。你选的模型决定了质量、成本和延迟。
 
 2026 年的技术现状：
 
