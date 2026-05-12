@@ -53,7 +53,7 @@ process.stdin.on('end', () => {
 下面的代码清单为了简洁，会跳过这段开头，但每个真实的 Hook 都从这里起步。
 
 ![Hook 的 I/O 契约：stdin 输入 JSON，退出码 + stderr 输出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
-*每个 Hook 都是从 stdin 读取 JSON 载荷的脚本，靠退出码作判决、stderr 作说明；settings.json 中的 matcher 控制其可见范围——即哪些 Hook 能接收到本次工具调用。*
+*每个 Hook 都是从 stdin 读取 JSON 载荷的脚本，靠退出码作判决、 stderr 作说明； settings.json 中的 matcher 控制其可见范围——即哪些 Hook 能接收到本次工具调用。*
 
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
@@ -141,7 +141,7 @@ echo "Exit code: $?"
 
 ### 触发时 Claude 看到什么
 
-Hook 拦截调用时，stderr 文本会作为反馈交给 Claude。真实会话大致是这样的：
+Hook 拦截调用时， stderr 文本会作为反馈交给 Claude。真实会话大致是这样的：
 
 ```
 Claude: I'll read the environment configuration...
@@ -303,7 +303,7 @@ process.stdin.on('end', () => {
 写错一次 push 的代价，远比我自己手动敲一遍 `git push` 大得多。这条规则配合 `git commit` 不拦截：让模型放心做 commit，但保留人类按下 push 这一步。
 
 ![退出码在 PreToolUse 与 PostToolUse 中的语义差异](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png)
-*同样的退出码在不同生命周期阶段含义完全不同。exit 2 只在 PreToolUse 阶段阻断调用；在 PostToolUse 阶段副作用已经发生，无法回滚。*
+*同样的退出码在不同生命周期阶段含义完全不同。 exit 2 只在 PreToolUse 阶段阻断调用；在 PostToolUse 阶段副作用已经发生，无法回滚。*
 
 ---
 
@@ -348,7 +348,7 @@ process.stdin.on('end', () => {
 
 ### 为什么是 exit 0，不是 exit 1
 
-PostToolUse 在编辑后运行，此时副作用已发生，exit 2 无法回滚；若用 exit 1，错误将暴露给模型，可能引发反复编辑的死循环——格式化属纯辅助操作，记录警告后放行。
+PostToolUse 在编辑后运行，此时副作用已发生， exit 2 无法回滚；若用 exit 1，错误将暴露给模型，可能引发反复编辑的死循环——格式化属纯辅助操作，记录警告后放行。
 
 ### 真实终端输出
 
@@ -359,7 +359,7 @@ Claude: I'll update the component...
 Claude: Done. The component now accepts a `subtitle` prop.
 ```
 
-格式化静默发生，Claude 自己甚至都不会提及。
+格式化静默发生， Claude 自己甚至都不会提及。
 
 ---
 
@@ -422,7 +422,7 @@ process.stdin.on('end', () => {
 
 ### 为什么是 exit 1，不是 exit 2
 
-在 PostToolUse 中，exit 1 会把失败信息回喂给模型。模型读到测试输出后会尝试修复代码，形成一个反馈闭环：
+在 PostToolUse 中， exit 1 会把失败信息回喂给模型。模型读到测试输出后会尝试修复代码，形成一个反馈闭环：
 
 ```
 Claude: I'll update the validation logic...
@@ -598,7 +598,7 @@ cat .claude/tool-calls.jsonl | jq -r 'select(.ts > "2026-04-24T10:15") | "\(.ts)
 该日志文件日常静默，但在关键排查时刻，它的存在是可观测性的底线保障。
 
 ![read-before-write 状态机：UNSEEN / FRESH / STALE](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig6.png)
-*Hook 在 `seen.json` 中维护每个文件最近一次 Read 的时间戳。对 UNSEEN 或 STALE 文件的编辑会被 exit 2 阻断，stderr 直接告诉 Claude 该如何补救。*
+*Hook 在 `seen.json` 中维护每个文件最近一次 Read 的时间戳。对 UNSEEN 或 STALE 文件的编辑会被 exit 2 阻断， stderr 直接告诉 Claude 该如何补救。*
 
 ---
 
@@ -669,7 +669,7 @@ process.stdin.on('end', () => {
 
 ### settings.json 接线（两处条目）
 
-这个 Hook 需要在 Read（用于记录）和 Edit/MultiEdit（用于强制）上同时挂载。
+这个 Hook 需要在 Read （用于记录）和 Edit/MultiEdit （用于强制）上同时挂载。
 
 ```json
 {
@@ -690,7 +690,7 @@ process.stdin.on('end', () => {
 
 ### 它能抓住什么
 
-这个 Hook 专治一类隐蔽缺陷：模型基于训练数据的先验，而不是文件当前的实际状态在编辑。没有这个 Hook，Claude 可能"修复"它在训练里见过的某个函数版本——而那个函数在你当前的仓库里根本不长那样。
+这个 Hook 专治一类隐蔽缺陷：模型基于训练数据的先验，而不是文件当前的实际状态在编辑。没有这个 Hook， Claude 可能"修复"它在训练里见过的某个函数版本——而那个函数在你当前的仓库里根本不长那样。
 
 ---
 
@@ -741,7 +741,7 @@ process.stdin.on('end', () => {
 
 上面这十个 Hook 不是孤立运行的，它们是组合在一起的。下面是它们在真实项目里如何分层。
 
-### 完整的 settings.json（含所有十个 Hook）
+### 完整的 settings.json （含所有十个 Hook）
 
 ```json
 {
@@ -793,7 +793,7 @@ process.stdin.on('end', () => {
 ### 执行顺序
 
 ![Edit 调用的 Hook 执行顺序：PreToolUse → 工具执行 → PostToolUse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png)
-*一次 Edit 调用依次流经六个 Hook：3 个 PreToolUse（策略守门员）、工具本体、3 个 PostToolUse（卫生作业）；任一 PreToolUse 返回 exit 2，整条链路立即终止。*
+*一次 Edit 调用依次流经六个 Hook： 3 个 PreToolUse （策略守门员）、工具本体、 3 个 PostToolUse （卫生作业）；任一 PreToolUse 返回 exit 2，整条链路立即终止。*
 
 当 Claude 对一个源文件调用 `Edit`，事件序列是：
 
@@ -805,17 +805,17 @@ process.stdin.on('end', () => {
 6. **test-on-edit** — 跑相关测试。失败就把错误暴露给模型。
 7. **log-tool-calls** — 追加一条 JSONL 日志。
 
-第 1–3 步为 PreToolUse（任一 exit 2 均阻断编辑），第 5–7 步为 PostToolUse（编辑已完成）——顺序即原则：安全优先、卫生次之、可观测性兜底。
+第 1–3 步为 PreToolUse （任一 exit 2 均阻断编辑），第 5–7 步为 PostToolUse （编辑已完成）——顺序即原则：安全优先、卫生次之、可观测性兜底。
 
 ### 组合时常见的坑
 
-**问题：Hook 串行执行，慢的 Hook 拖累整体。**
+**问题： Hook 串行执行，慢的 Hook 拖累整体。**
 如果 `test-on-edit` 跑 60 秒，每次编辑都会感觉很卡。解决：设置超时；对大型测试套件，改走异步触发（比如把测试请求扔到一个独立队列里）。
 
 **问题：单个 Hook 的退出码会终止整条链路。**
 在 PreToolUse 里，如果 `block-env-read` 退出 2，后面的 `backup-before-edit`、`read-before-write` 不会再跑。这是正确行为——一个被拦截的调用不应该被备份或追踪。
 
-**问题：Hook 之间会互相冲突。**
+**问题： Hook 之间会互相冲突。**
 一个会修改文件的格式化 Hook，可能触发 `read-before-write` 的"自上次 Read 后文件已变化"逻辑。解决方案：格式化 Hook 跑在 PostToolUse 阶段，而 PostToolUse 不会再触发 PreToolUse，所以生命周期天然规避了这个冲突。
 
 ---
@@ -908,7 +908,7 @@ claude --debug
 
 | 症状 | 原因 | 修法 |
 |------|------|------|
-| Hook 把所有调用都阻断了 | 脚本抛出未处理异常，Node 用 1 或 2 退出 | 用 try-catch 包住主逻辑，意外错误时 exit 0 |
+| Hook 把所有调用都阻断了 | 脚本抛出未处理异常， Node 用 1 或 2 退出 | 用 try-catch 包住主逻辑，意外错误时 exit 0 |
 | Hook 完全不触发 | matcher 没匹配上工具名 | 检查拼写——是 `MultiEdit`，不是 `multi-edit` |
 | Hook 触发但没拦下 | 用了 exit 1，没用 exit 2 | PreToolUse 里只有 exit 2 才会阻断 |
 | stdin 是空的 | Hook 没用异步方式读 stdin | 用本文开头给的异步模板 |
@@ -920,8 +920,8 @@ claude --debug
 
 三条经验规则，都是踩过坑得来的：
 
-1. **PreToolUse 管策略，PostToolUse 管卫生。** 别想在 PostToolUse 里回滚——副作用已经发生了。
-2. **Stderr 是反馈，退出码是判决。** 退出码 2 阻断（仅限 PreToolUse）。stderr 里的内容会原样喂给 Claude。两者配合用。
+1. **PreToolUse 管策略， PostToolUse 管卫生。** 别想在 PostToolUse 里回滚——副作用已经发生了。
+2. **Stderr 是反馈，退出码是判决。** 退出码 2 阻断（仅限 PreToolUse）。 stderr 里的内容会原样喂给 Claude。两者配合用。
 3. **Hook 出错即阻断。** 一个行为不端的 Hook 会阻断你所有的工具调用。配置前先拿 `echo '{"tool_name":"Read","tool_input":{"file_path":"/tmp/x"}}' | node hook.js` 测一下脚本。
 
-十个 Hook 数量看似有限，却足以将 YOLO（You Only Live Once）式的随意会话转化为可控、可靠的工程实践。
+十个 Hook 数量看似有限，却足以将 YOLO （You Only Live Once）式的随意会话转化为可控、可靠的工程实践。

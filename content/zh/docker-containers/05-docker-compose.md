@@ -16,7 +16,7 @@ series_order: 5
 translationKey: "docker-containers-5"
 ---
 
-前几篇文章介绍了如何使用 `docker run` 运行容器、用 `-p` 参数映射端口、用 `docker network create` 创建网络、以及用 `-v` 挂载卷。现在试想一下：每次启动开发环境时，都要为 Web 服务器、API 后端、数据库、缓存和任务队列分别执行这些操作——这将变得极其繁琐。Docker Compose 将原本需要 20+ 条命令完成的工作，简化为一个文件和一条命令：`docker compose up`。
+前几篇文章介绍了如何使用 `docker run` 运行容器、用 `-p` 参数映射端口、用 `docker network create` 创建网络、以及用 `-v` 挂载卷。现在试想一下：每次启动开发环境时，都要为 Web 服务器、 API 后端、数据库、缓存和任务队列分别执行这些操作——这将变得极其繁琐。 Docker Compose 将原本需要 20+ 条命令完成的工作，简化为一个文件和一条命令：`docker compose up`。
 
 ## 为什么需要 Compose
 
@@ -25,11 +25,11 @@ translationKey: "docker-containers-5"
 ![Compose architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-architecture.png)
 
 
-- 前端（React、Vue 或服务端渲染的 HTML）
-- 后端 API（Python、Node.js、Go）
-- 数据库（PostgreSQL、MySQL）
-- 缓存（Redis、Memcached）
-- 任务队列（Celery、Bull）
+- 前端（React、 Vue 或服务端渲染的 HTML）
+- 后端 API （Python、 Node.js、 Go）
+- 数据库（PostgreSQL、 MySQL）
+- 缓存（Redis、 Memcached）
+- 任务队列（Celery、 Bull）
 - 可能还有反向代理（nginx）
 
 每个服务都运行在独立的容器中。若不使用 Compose，启动整套栈意味着要依次运行 `docker network create`、`docker volume create`，再为每个服务单独执行带十几个参数的 `docker run`——至少五条命令，极易出错，且无法以清晰、可版本控制的方式管理。而 Compose 将这一切转化为一份声明式配置文件。
@@ -109,7 +109,7 @@ volumes:
 
 ### Compose 自动完成的工作
 
-当你运行 `docker compose up` 时，Compose 会自动：
+当你运行 `docker compose up` 时， Compose 会自动：
 
 1. 为所有服务创建一个专用网络（默认命名为 `<project>_default`）  
 2. 创建 `volumes:` 部分中声明的命名卷  
@@ -153,7 +153,7 @@ secrets:     # 敏感数据（仅 Swarm 模式）
     file: ./db_password.txt
 ```
 
-注意：Compose 文件顶部的 `version:` 字段已在 Docker Compose v2 中弃用，可完全省略。旧示例中出现的 `version: "3.8"` 虽无害，但已无必要。
+注意： Compose 文件顶部的 `version:` 字段已在 Docker Compose v2 中弃用，可完全省略。旧示例中出现的 `version: "3.8"` 虽无害，但已无必要。
 
 ### 服务配置选项详解
 
@@ -249,12 +249,12 @@ services:
         max-file: "3"
 ```
 
-## 完整示例：Python Web 应用 + PostgreSQL + Redis
+## 完整示例： Python Web 应用 + PostgreSQL + Redis
 
 
 ![Docker compose orchestra conductor directing multiple servic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-docker-compose-orchestra-conductor-directing-multiple-servic.jpg)
 
-我们来构建一个完整的应用栈：API 通过 HTTP 接收任务，将其存入 PostgreSQL 并推入 Redis 队列；Worker 异步处理任务。项目结构如下：
+我们来构建一个完整的应用栈： API 通过 HTTP 接收任务，将其存入 PostgreSQL 并推入 Redis 队列； Worker 异步处理任务。项目结构如下：
 
 ```
 myapp/
@@ -366,7 +366,7 @@ services:
         condition: service_healthy
 ```
 
-若未配置健康检查，`depends_on` 仅确保容器进程已启动，**并不等待其内部服务真正就绪**。PostgreSQL 初始化需数秒；若 API 在 PostgreSQL 尚未接受连接时启动，将直接崩溃。
+若未配置健康检查，`depends_on` 仅确保容器进程已启动，**并不等待其内部服务真正就绪**。 PostgreSQL 初始化需数秒；若 API 在 PostgreSQL 尚未接受连接时启动，将直接崩溃。
 
 ✅ **务必对数据库等有初始化耗时的服务，配合 `condition: service_healthy` 使用 `depends_on`**。这要求被依赖服务必须定义 `healthcheck`。
 
@@ -642,7 +642,7 @@ services:
       - "8000"    # 仅限 Docker 网络内访问
 ```
 
-## Compose Profiles（服务分组）
+## Compose Profiles （服务分组）
 
 Profiles 允许定义可选服务，仅在显式启用时才启动。
 
@@ -676,7 +676,7 @@ docker compose --profile debug up -d
 docker compose --profile debug --profile monitoring up -d
 ```
 
-## Compose Watch（开发热重载）
+## Compose Watch （开发热重载）
 
 Docker Compose Watch 可自动将文件变更同步至运行中的容器：
 

@@ -34,7 +34,7 @@ $$
 1. SGD 的两类收敛行为：凸情形下的 $O(1/\sqrt{T})$ 速率，以及强凸情形下的 $O(1/T)$ 速率；  
 2. SGD 的方差控制界，为何步长 $\eta = 1/L$ 过于激进，以及 $\eta_t = 1/(\mu t)$ 这一调度策略的来源；  
 3. SVRG 算法及其线性收敛性；  
-4. SAGA、Katyusha，以及下界结果 $\Omega((n + \sqrt{n \kappa}) \log(1/\epsilon))$；  
+4. SAGA、 Katyusha，以及下界结果 $\Omega((n + \sqrt{n \kappa}) \log(1/\epsilon))$；  
 5. 实践考量：小批量、动量（momentum），以及 SGD 与方差缩减方法各自适用的场景。
 
 ## 前置知识
@@ -45,7 +45,7 @@ $$
 
 ## 1. SGD 框架
 
-在每轮迭代 $t$，SGD 从 $\{1, \ldots, n\}$ 中均匀随机采样一个索引 $i_t$，并执行更新：
+在每轮迭代 $t$， SGD 从 $\{1, \ldots, n\}$ 中均匀随机采样一个索引 $i_t$，并执行更新：
 $$
 x_{t+1} = x_t - \eta_t \nabla f_{i_t}(x_t).
 $$
@@ -61,7 +61,7 @@ $$
 这两条假设（无偏性 + 有界方差）构成了 SGD 的公理基础。由此导出的收敛界强度，取决于目标函数 $f$ 所具备的额外结构（如凸性、强凸性、光滑性等）。
 
 ![病态二次函数上 SGD 与全梯度下降的轨迹对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig1.png)
-*全梯度下降沿确定性路径平稳下降；SGD 则在同方向上呈现噪声锯齿轨迹。每步 SGD 的扰动幅度正由噪声预算 $\sigma^2$ 所控制。*
+*全梯度下降沿确定性路径平稳下降； SGD 则在同方向上呈现噪声锯齿轨迹。每步 SGD 的扰动幅度正由噪声预算 $\sigma^2$ 所控制。*
 
 ---
 
@@ -99,7 +99,7 @@ $$
 $$  
 若将 $G^2 + \sigma^2$ 简化为 $\sigma^2$（或视 $G$ 为噪声的一部分），即得前述形式。$\blacksquare$
 
-该 $O(1/\sqrt{T})$ 速率是**经典 SGD 的标准收敛速率**。注意它只依赖于方差 $\sigma^2$，而与函数的光滑常数 $L$ 或条件数 $\kappa$ 无关。因此，只要步长选取恰当，SGD 对噪声具有鲁棒性，但收敛速度较慢。
+该 $O(1/\sqrt{T})$ 速率是**经典 SGD 的标准收敛速率**。注意它只依赖于方差 $\sigma^2$，而与函数的光滑常数 $L$ 或条件数 $\kappa$ 无关。因此，只要步长选取恰当， SGD 对噪声具有鲁棒性，但收敛速度较慢。
 ## 3. 强凸情形下的收敛速率：$O(1/T)$
 
 > **定理**。假设 $f$ 是 $\mu$-强凸函数，且满足方差界 $\mathbb{E}[\|\nabla f_i(x) - \nabla f(x)\|_2^2] \leq \sigma^2$。取步长 $\eta_t = 2 / (\mu (t + 1))$，则经过 $T$ 次迭代后，
@@ -113,7 +113,7 @@ a_{t+1} \leq (1 - 2 \eta_t \mu) a_t + \eta_t^2 \sigma^2 + \eta_t^2 L^2 a_t,
 $$
 其中最后一项源于对梯度模长的界：对 $L$-光滑且强凸的 $f$，有 $\|\nabla f(x_t)\|_2 \leq L \|x_t - x^\star\|_2$。当 $\eta_t = 2/(\mu(t+1))$ 足够小时，$L^2$ 项可忽略，通过归纳法即得 $a_t = O(1/(\mu^2 t))$。
 
-最优步长按 $1/t$ 衰减——这正是 Robbins–Monro（1951）提出的经典步长调度方案，也是所有现代自适应 SGD 步长策略（如 AdaGrad、Adam）的理论基础。
+最优步长按 $1/t$ 衰减——这正是 Robbins–Monro （1951）提出的经典步长调度方案，也是所有现代自适应 SGD 步长策略（如 AdaGrad、 Adam）的理论基础。
 
 ### 3.1 为何在强凸函数上 SGD 不能使用常数步长？
 
@@ -137,17 +137,17 @@ $$
 $$
 该量随 $B$ 线性增长——因此小批量本身**并不节省总计算量**！其实际优势在于更大的批次更易于在 GPU 上高效并行化。
 
-**线性缩放律**（Goyal 等，2017）——「批大小扩大 $k$ 倍，学习率同步扩大 $k$ 倍」——正源于此分析：噪声项 $\eta^2 \sigma^2 / B$ 在 $\eta \propto B$ 时保持恒定，故更大批次允许采用更大步长。但该规律仅在「临界批大小」（critical batch size）以内成立；超过该阈值后，噪声不再是最主要瓶颈（McCandlish 等，2018）。
+**线性缩放律**（Goyal 等， 2017）——「批大小扩大 $k$ 倍，学习率同步扩大 $k$ 倍」——正源于此分析：噪声项 $\eta^2 \sigma^2 / B$ 在 $\eta \propto B$ 时保持恒定，故更大批次允许采用更大步长。但该规律仅在「临界批大小」（critical batch size）以内成立；超过该阈值后，噪声不再是最主要瓶颈（McCandlish 等， 2018）。
 
 ![小批量方差与临界批大小](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig4.png)
 *左：梯度方差按 $\sigma^2/B$ 的速率随批大小线性下降（log-log 坐标）。右：线性缩放律允许有效步长随 $B$ 同比例增长——但仅到临界批大小 $B^\star$ 为止，超过后加速比饱和，因为此时梯度信号本身（而非噪声）成为瓶颈。*
-## 5. 方差缩减：SVRG
+## 5. 方差缩减： SVRG
 
-只要我们仅用单个 $\nabla f_{i_t}$ 作为梯度估计，SGD 的方差项 $\sigma^2$ 就不可避免。**方差缩减（variance reduction）** 引入额外的控制变量（control variates）—— 即额外的计算开销，以在极限下将估计方差降至零。
+只要我们仅用单个 $\nabla f_{i_t}$ 作为梯度估计， SGD 的方差项 $\sigma^2$ 就不可避免。**方差缩减（variance reduction）** 引入额外的控制变量（control variates）—— 即额外的计算开销，以在极限下将估计方差降至零。
 
 ### 5.1 SVRG 算法
 
-（随机方差缩减梯度法，Stochastic Variance-Reduced Gradient，Johnson & Zhang，2013）
+（随机方差缩减梯度法， Stochastic Variance-Reduced Gradient， Johnson & Zhang， 2013）
 
 ```
 SVRG（epoch 长度为 m，学习率为 η）：
@@ -174,11 +174,11 @@ $$
 正是这一特性赋予了 SVRG 线性收敛速率。
 
 ![同一点处 SGD 与 SVRG 的随机梯度样本对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig3.png)
-*每条浅色箭头是一次随机梯度采样，加粗蓝色箭头表示真实梯度 $\nabla f(x)$。SGD（橙色）样本在均值附近大幅散布；SVRG（绿色）样本紧密聚集——控制变量 $-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$ 抵消了大部分方差。*
+*每条浅色箭头是一次随机梯度采样，加粗蓝色箭头表示真实梯度 $\nabla f(x)$。 SGD （橙色）样本在均值附近大幅散布； SVRG （绿色）样本紧密聚集——控制变量 $-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$ 抵消了大部分方差。*
 
 ### 5.2 SVRG 收敛性分析
 
-> **定理（Johnson–Zhang，2013）**：假设每个 $f_i$ 是 $L$-光滑的，且 $f$ 是 $\mu$-强凸的。取步长 $\eta = \frac{1}{10 L}$，并令 epoch 长度 $m$ 足够大（具体地，$m \geq 100 L / \mu$），则 SVRG 几何收敛：
+> **定理（Johnson–Zhang， 2013）**：假设每个 $f_i$ 是 $L$-光滑的，且 $f$ 是 $\mu$-强凸的。取步长 $\eta = \frac{1}{10 L}$，并令 epoch 长度 $m$ 足够大（具体地，$m \geq 100 L / \mu$），则 SVRG 几何收敛：
 > $$
 > \mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].
 > $$
@@ -202,14 +202,14 @@ $$
 - **SGD**：$O(\kappa^2 / \epsilon)$ —— 对于小 $\epsilon$，可能远差于 SVRG；
 - **SVRG**：$O\big((n + \kappa) \log(1/\epsilon)\big)$ —— $n$ 与 $\kappa$ 相加。
 
-当 $n \approx \kappa$（典型正则化机器学习场景）时，SVRG 比全梯度下降快约 $\kappa$ 倍；相比 SGD，在小 $\epsilon$ 下快约 $\kappa^2 / (\kappa \log(1/\epsilon)) = \kappa / \log(1/\epsilon)$ 倍。
+当 $n \approx \kappa$（典型正则化机器学习场景）时， SVRG 比全梯度下降快约 $\kappa$ 倍；相比 SGD，在小 $\epsilon$ 下快约 $\kappa^2 / (\kappa \log(1/\epsilon)) = \kappa / \log(1/\epsilon)$ 倍。
 
 ![SGD、全梯度下降、SVRG 与 Katyusha 的收敛速率](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig2.png)
-*log-log 坐标下，次优间隙 $f(x_T) - f^\star$ 随梯度计算次数 $T$ 的变化。SGD 的 $1/\sqrt{T}$ 速率最为缓慢；全梯度下降几何收敛但每步消耗 $n$ 次梯度计算；SVRG 与 Katyusha 在 epoch 数上呈线性收敛，最终全面胜出。*
+*log-log 坐标下，次优间隙 $f(x_T) - f^\star$ 随梯度计算次数 $T$ 的变化。 SGD 的 $1/\sqrt{T}$ 速率最为缓慢；全梯度下降几何收敛但每步消耗 $n$ 次梯度计算； SVRG 与 Katyusha 在 epoch 数上呈线性收敛，最终全面胜出。*
 
 ---
 
-## 6. SAGA、Katyusha 与下界
+## 6. SAGA、 Katyusha 与下界
 
 **SAGA**（Defazio, Bach & Lacoste-Julien, 2014）与 SVRG 类似，但为每个 $i$ 维护一张表，记录最新计算的 $\nabla f_i$，每次迭代仅更新对应条目。它避免了快照开销，但需 $O(nd)$ 额外内存。收敛速率同为 $O\big((n + \kappa) \log(1/\epsilon)\big)$。
 
@@ -219,12 +219,12 @@ O\big((n + \sqrt{n \kappa}) \log(1/\epsilon)\big),
 $$  
 当 $\kappa \gg n$ 时优于 SVRG。
 
-> **定理（下界，Woodworth & Srebro, 2016）**：任意随机一阶有限和（finite-sum）算法，至少需要 $\Omega\big((n + \sqrt{n \kappa}) \log(1/\epsilon)\big)$ 次梯度计算。
+> **定理（下界， Woodworth & Srebro, 2016）**：任意随机一阶有限和（finite-sum）算法，至少需要 $\Omega\big((n + \sqrt{n \kappa}) \log(1/\epsilon)\big)$ 次梯度计算。
 
-因此，Katyusha 在强凸有限和问题中是**最优的**。
+因此， Katyusha 在强凸有限和问题中是**最优的**。
 
 ![达到给定精度所需的总梯度计算次数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig5.png)
-*在 $n=10^4$、$\kappa=10^3$ 的设定下，全梯度下降需约 $10^{11}$ 次梯度计算才能达到 $\epsilon=10^{-4}$；SGD 的 $O(\kappa^2/\epsilon)$ 复杂度约需 $10^{10}$ 次。SVRG 将其降至 $\sim 10^5$，Katyusha 进一步省下 $\sqrt{n/\kappa}$ 倍。*
+*在 $n=10^4$、$\kappa=10^3$ 的设定下，全梯度下降需约 $10^{11}$ 次梯度计算才能达到 $\epsilon=10^{-4}$； SGD 的 $O(\kappa^2/\epsilon)$ 复杂度约需 $10^{10}$ 次。 SVRG 将其降至 $\sim 10^5$， Katyusha 进一步省下 $\sqrt{n/\kappa}$ 倍。*
 
 ---
 
@@ -233,12 +233,12 @@ $$
 | 问题场景                                      | 推荐方法                                 |
 | --------------------------------------------- | ---------------------------------------- |
 | $n$ 很大、精度要求低（深度学习）               | SGD + 动量 + 余弦学习率调度                |
-| $n$ 中等、精度要求高（经典机器学习）             | SVRG、SAGA 或拟牛顿法                      |
+| $n$ 中等、精度要求高（经典机器学习）             | SVRG、 SAGA 或拟牛顿法                      |
 | 强凸、病态、有限和问题                           | Katyusha 或加速版 SVRG                   |
-| 凸但非强凸                                     | SGD 上的 Polyak 平均；FISTA-SGD           |
+| 凸但非强凸                                     | SGD 上的 Polyak 平均； FISTA-SGD           |
 | 在线（流式）数据                                | 仅用 SGD；方差缩减依赖有限 $n$，无法适用     |
 
-在深度学习中，朴素 SGD + 动量 + 学习率调度仍普遍优于各类方差缩减方法。其原因尚未完全阐明，主流猜测包括：（a）随机性有助于泛化；（b）损失下降时噪声尺度自然衰减；（c）SGD 的隐式偏差倾向于导向平坦极小值（flat minima）。
+在深度学习中，朴素 SGD + 动量 + 学习率调度仍普遍优于各类方差缩减方法。其原因尚未完全阐明，主流猜测包括：（a）随机性有助于泛化；（b）损失下降时噪声尺度自然衰减；（c） SGD 的隐式偏差倾向于导向平坦极小值（flat minima）。
 ## 8. 总结
 
 随机优化以每步计算代价的降低为代价，引入了噪声。经典 SGD 的收敛速率（凸函数下为 $O(1/\sqrt{T})$，强凸函数下为 $O(1/T)$）可直接由“噪声预算”分析得出。方差缩减技术则将 SGD 的单步效率提升至确定性优化的速率量级，其中 Katyusha 算法达到了匹配的理论下界。

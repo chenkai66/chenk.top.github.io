@@ -63,7 +63,7 @@ B 树是一种自平衡树，具有以下特征：
 - 所有叶子节点处于同一深度（即“平衡”）
 - **分支因子（branching factor）**（每个节点的子节点数）通常为数百至数千
 
-假设一张表有 1,000 万行、分支因子为 500：根节点（第 0 层）1 个，第 1 层最多 500 个节点，第 2 层最多 250,000 个节点，叶子层（第 3 层）最多 1.25 亿个条目。  
+假设一张表有 1,000 万行、分支因子为 500：根节点（第 0 层） 1 个，第 1 层最多 500 个节点，第 2 层最多 250,000 个节点，叶子层（第 3 层）最多 1.25 亿个条目。  
 
 仅需三次树遍历（即三次页读取），即可在 1,000 万行中定位任意一行。这正是 O(log N) 时间复杂度的体现——得益于极高的分支因子，实际查找只需极少层数。
 
@@ -155,7 +155,7 @@ CREATE INDEX idx_users_email_hash ON users USING hash (email);
 | WAL 日志记录（崩溃安全） | PostgreSQL 10+ 支持 | 始终支持 |
 | 实际使用频率 | 实践中极少使用 | 默认索引类型，几乎总是首选 |
 
-哈希索引只支持等值查找，而不支持范围查询、排序和前缀匹配。实践中，B 树索引的等值查找性能已足够优秀，而哈希索引功能受限带来的收益，往往无法弥补其适用场景狭窄的缺陷。PostgreSQL 直到版本 10 才使哈希索引具备崩溃安全性。
+哈希索引只支持等值查找，而不支持范围查询、排序和前缀匹配。实践中， B 树索引的等值查找性能已足够优秀，而哈希索引功能受限带来的收益，往往无法弥补其适用场景狭窄的缺陷。 PostgreSQL 直到版本 10 才使哈希索引具备崩溃安全性。
 
 ## 复合索引：列顺序至关重要
 
@@ -201,7 +201,7 @@ WHERE status = 'pending';
 
 通常，索引扫描包含两个步骤：
 1. 遍历索引以定位匹配项；
-2. 从堆（主表数据）中获取剩余所需列（即“堆获取”，heap fetch）。
+2. 从堆（主表数据）中获取剩余所需列（即“堆获取”， heap fetch）。
 
 ![Index scan vs sequential scan](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-scan-comparison.png)
 
@@ -220,7 +220,7 @@ FROM orders
 WHERE user_id = 42 AND status = 'completed';
 ```
 
-在 PostgreSQL 中，使用 `INCLUDE` 子句添加非搜索用但需覆盖的列。而在 MySQL（InnoDB）中，覆盖索引天然有效——因为 InnoDB 的二级索引若已包含查询所需全部列，即可直接服务查询。
+在 PostgreSQL 中，使用 `INCLUDE` 子句添加非搜索用但需覆盖的列。而在 MySQL （InnoDB）中，覆盖索引天然有效——因为 InnoDB 的二级索引若已包含查询所需全部列，即可直接服务查询。
 
 ```sql
 -- MySQL 覆盖索引
@@ -389,7 +389,7 @@ CREATE INDEX idx_orders_status_created ON orders (status, created_at);
 
 ![Magnifying glass over database index revealing optimized que](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-magnifying-glass-over-database-index-revealing-optimized-que.jpg)
 
-每个索引都附带成本：写放大（每次 INSERT/UPDATE/DELETE 都要同步更新所有相关索引）、存储开销（索引体积常达表的 10–30%）、内存争用（与表共享 buffer pool）、规划延迟（索引越多，优化器评估路径越耗时）以及维护负担（如 VACUUM、REINDEX、统计更新等）。
+每个索引都附带成本：写放大（每次 INSERT/UPDATE/DELETE 都要同步更新所有相关索引）、存储开销（索引体积常达表的 10–30%）、内存争用（与表共享 buffer pool）、规划延迟（索引越多，优化器评估路径越耗时）以及维护负担（如 VACUUM、 REINDEX、统计更新等）。
 
 一张表若有 10 个索引，则每次 INSERT 实际需写入 11 个数据结构（表 + 10 个索引）。对写密集型负载而言，这是灾难性的。
 
@@ -472,7 +472,7 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 
 ## GIN 与 GiST 索引（PostgreSQL）
 
-除 B 树外，PostgreSQL 提供多种专用索引类型：
+除 B 树外， PostgreSQL 提供多种专用索引类型：
 
 ```sql
 -- GIN 索引用于全文检索
@@ -500,7 +500,7 @@ CREATE INDEX idx_events_timerange ON events USING gist (time_range);
 |-----------|---------|---------------------|
 | B-tree | 等值、范围、排序 | `=`, `<`, `>`, `BETWEEN`, `ORDER BY`, `LIKE 'prefix%'` |
 | Hash | 仅等值 | `=` |
-| GIN | 数组、JSONB、全文检索 | `@>`, `&&`, `@@`, `?`, `?&` |
+| GIN | 数组、 JSONB、全文检索 | `@>`, `&&`, `@@`, `?`, `?&` |
 | GiST | 几何、区间、最近邻 | `<<`, `>>`, `&&`, `@>`, `<->` |
 | BRIN | 大型、天然有序的表 | `<`, `>`, `=`（精度略降） |
 

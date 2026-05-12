@@ -213,7 +213,7 @@ def test_file_creation(temp_dir):
 
 ### Fixture 作用域（Scope）
 
-默认情况下，fixture 在每个测试函数前运行一次。对开销较大的初始化操作，可调整作用域：
+默认情况下， fixture 在每个测试函数前运行一次。对开销较大的初始化操作，可调整作用域：
 
 ```python
 @pytest.fixture(scope="session")
@@ -349,7 +349,7 @@ tests/test_utils.py::test_format_size[1073741824-1.0 GB] PASSED
 tests/test_utils.py::test_format_size[5368709120-5.0 GB] PASSED
 ```
 
-7 组用例，1 个函数。每组用例在输出中作为独立测试项呈现，各自拥有独立的通过/失败状态。
+7 组用例， 1 个函数。每组用例在输出中作为独立测试项呈现，各自拥有独立的通过/失败状态。
 
 ### 使用 ID 命名 Parametrize 用例
 
@@ -368,7 +368,7 @@ def test_filename_from_url(url, expected_filename):
 
 ## Mocking：隔离你的代码
 
-当测试调用外部服务的函数时，你不希望测试真正发起 HTTP 请求。Mocking 将代码中部分组件替换为可控的模拟对象。
+当测试调用外部服务的函数时，你不希望测试真正发起 HTTP 请求。 Mocking 将代码中部分组件替换为可控的模拟对象。
 
 ![Mock architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png)
 
@@ -419,7 +419,7 @@ def test_download_file_http_error(mock_get):
 | 时间相关逻辑 | 数学计算 |
 | 外部服务 API | 自己的内部逻辑 |
 
-过度 Mock 是一种常见误区：如果 Mock 了所有依赖，测试实际上只验证了 Mock 的行为，而非你自己的代码逻辑。**只在边界处 Mock（网络、磁盘、时钟），并在真实环境中测试核心逻辑。**
+过度 Mock 是一种常见误区：如果 Mock 了所有依赖，测试实际上只验证了 Mock 的行为，而非你自己的代码逻辑。**只在边界处 Mock （网络、磁盘、时钟），并在真实环境中测试核心逻辑。**
 
 ### Monkeypatch：更简洁的替代方案
 
@@ -654,7 +654,7 @@ $ pytest -s tests/test_core.py  # 此时 breakpoint() 将使用 ipdb
 # 在失败点自动进入 pdb
 ```
 
-这极为强大：你无需手动添加 `breakpoint()`。只需加上 `--pdb` 参数，pytest 就会在断言失败的**精确行号**处启动调试器，并保留所有局部变量。
+这极为强大：你无需手动添加 `breakpoint()`。只需加上 `--pdb` 参数， pytest 就会在断言失败的**精确行号**处启动调试器，并保留所有局部变量。
 
 ## 真实案例：测试日志处理器
 

@@ -20,12 +20,12 @@ translationKey: "pde-ml-4"
 
 ## 本文的七个维度
 
-1. **动机**：VI 和 MCMC 虽看似不同，实则都在解同一个 PDE。
+1. **动机**： VI 和 MCMC 虽看似不同，实则都在解同一个 PDE。
 2. **理论**：从 SDE 推导出 Fokker-Planck 方程。
-3. **几何**：KL 散度是 Wasserstein 空间的梯度流。
-4. **算法**：Langevin Monte Carlo、平均场 VI、SVGD。
+3. **几何**： KL 散度是 Wasserstein 空间的梯度流。
+4. **算法**： Langevin Monte Carlo、平均场 VI、 SVGD。
 5. **收敛**：对数 Sobolev 不等式保证指数 KL 收敛。
-6. **数值实验**：7 张图，附完整代码脚本。
+6. **数值实验**： 7 张图，附完整代码脚本。
 7. **应用**：用 Langevin 采样近似贝叶斯神经网络后验。
 ## 你将学到
 
@@ -37,9 +37,9 @@ translationKey: "pde-ml-4"
 - 贝叶斯神经网络的后验推断实践。
 ## 前置知识
 
-- 概率论基础：贝叶斯定理、KL 散度、期望。
+- 概率论基础：贝叶斯定理、 KL 散度、期望。
 - 第 3 篇提到的 Wasserstein 梯度流。
-- 随机分析基本概念：布朗运动、It&ocirc; 积分。
+- 随机分析基本概念：布朗运动、 It&ocirc; 积分。
 - 实验需要 Python 和 PyTorch。
 ## 1. 推断问题
 
@@ -56,7 +56,7 @@ $$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\,p(\theta)}{\int p(x \mid \theta
 
 - **马尔可夫链蒙特卡洛（MCMC）**：构造平稳分布为 $p(\cdot \mid x)$ 的马氏链。**Langevin 动力学**是基于梯度的典型实例。
 
-两者看似不同：VI 是有限维参数优化，而 MCMC 是无限时间随机过程。但从 PDE 视角来看，它们只是同一种概率测度演化的不同采样方式。
+两者看似不同： VI 是有限维参数优化，而 MCMC 是无限时间随机过程。但从 PDE 视角来看，它们只是同一种概率测度演化的不同采样方式。
 ## 2. 从 SDE 到 Fokker-Planck
 
 考虑 It&ocirc; SDE
@@ -95,16 +95,16 @@ def langevin_sample(grad_log_p, x0, step=0.01, n_steps=10_000, tau=1.0):
 ULA 的偏差是 $O(\eta)$。**MALA**（Metropolis 校正版 Langevin）通过 accept-reject 步骤实现无偏。**HMC**（哈密顿蒙特卡洛）是带动量的欠阻尼版本。
 
 ![Langevin SDE 轨迹与经验密度。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/fig2_langevin_sde_to_density.png)
-*图 2. 左：双势阱中 25 条粒子轨迹，部分粒子有限时间内不跨越势垒。右：400 个粒子直方图随时间收敛到 Gibbs 目标 -- 这对应图 1 的 PDE 随机实现。*
+*图 2. 左：双势阱中 25 条粒子轨迹，部分粒子有限时间内不跨越势垒。右： 400 个粒子直方图随时间收敛到 Gibbs 目标 -- 这对应图 1 的 PDE 随机实现。*
 ## 4. KL 散度是 Wasserstein 梯度流
 
 将 KL 散度对 $p^\star \propto e^{-V}$ 分解：
 $$\mathcal{F}[p] = \mathrm{KL}(p\,\|\,p^\star) = \underbrace{\int p\log p\,dx}_{\text{负熵 }\mathcal{H}[p]} + \underbrace{\int p\, V\,dx}_{\text{势能}} + \text{常数}.$$
-这是第 3 篇提到的 **自由能泛函**。Jordan-Kinderlehrer-Otto（JKO，1998）定理指出，其 **2-Wasserstein 梯度流** 为
+这是第 3 篇提到的 **自由能泛函**。 Jordan-Kinderlehrer-Otto （JKO， 1998）定理指出，其 **2-Wasserstein 梯度流** 为
 $$\partial_t p = \nabla\!\cdot\!\bigl(p\nabla V\bigr) + \Delta p,$$
 正是 $\tau = 1$ 时 Langevin 的 Fokker-Planck 方程。
 
-> **等价性**。在 Wasserstein 空间最小化 $\mathrm{KL}(\cdot \| p^\star)$ 和运行目标为 $p^\star$ 的 Langevin 动力学，本质是同一个 PDE。VI 和 Langevin MCMC 是同一连续时间梯度流的两种离散化方法。
+> **等价性**。在 Wasserstein 空间最小化 $\mathrm{KL}(\cdot \| p^\star)$ 和运行目标为 $p^\star$ 的 Langevin 动力学，本质是同一个 PDE。 VI 和 Langevin MCMC 是同一连续时间梯度流的两种离散化方法。
 
 | 视角 | 变分推断 | Langevin MCMC |
 |---|---|---|
@@ -121,14 +121,14 @@ $$\partial_t p = \nabla\!\cdot\!\bigl(p\nabla V\bigr) + \Delta p,$$
 
 连续极限下相同，但有限时间行为差别很大。
 
-- **VI（最小化反向 KL）是模式寻求型**：$q$ 限制在简单分布族时，最优解塌缩到单一模式，低估不确定性。
+- **VI （最小化反向 KL）是模式寻求型**：$q$ 限制在简单分布族时，最优解塌缩到单一模式，低估不确定性。
 - **MCMC 是质量覆盖型**：链足够长时按比例访问每个模式，但跨越势垒可能指数慢。
 
 ![VI 与 MCMC 对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/fig4_vi_vs_mcmc.png)
-*图 4. 左：双峰后验下，最优平均场高斯（反向 KL 意义）只能覆盖一个峰。右：4000 个 Langevin 样本同时覆盖两个峰 -- 前提是 1D 例子中势垒较低。*
+*图 4. 左：双峰后验下，最优平均场高斯（反向 KL 意义）只能覆盖一个峰。右： 4000 个 Langevin 样本同时覆盖两个峰 -- 前提是 1D 例子中势垒较低。*
 ## 6. Stein 变分梯度下降
 
-SVGD（Liu & Wang, 2016）是介于 VI 和 MCMC 的确定性粒子方法。维护粒子 $\{x_i\}_{i=1}^n$，更新公式如下：
+SVGD （Liu & Wang, 2016）是介于 VI 和 MCMC 的确定性粒子方法。维护粒子 $\{x_i\}_{i=1}^n$，更新公式如下：
 $$x_i \leftarrow x_i + \eta\,\hat\phi^*(x_i),\quad \hat\phi^*(x) = \tfrac{1}{n}\sum_{j=1}^n \Bigl[\,k(x_j,x)\,\nabla_{x_j}\log p^\star(x_j) + \nabla_{x_j} k(x_j,x)\Bigr],$$
 核函数 $k(x,y) = \exp(-\|x-y\|^2 / 2h^2)$ 是 RBF 核，带宽 $h$ 用中位数启发式确定。两项作用相反：
 
@@ -149,12 +149,12 @@ def svgd_step(x, score, eta=0.05):
     return x + eta * phi
 ```
 
-无穷粒子极限下，SVGD 满足 PDE：
+无穷粒子极限下， SVGD 满足 PDE：
 $$\partial_t p = -\nabla\!\cdot\!\bigl(p\, v[p]\bigr),\quad v[p](x) = \mathbb{E}_{y\sim p}\bigl[k(y,x)\nabla\log p^\star(y) + \nabla_y k(y,x)\bigr],$$
-当带宽 $h \to 0$，退化为标准 Fokker-Planck 方程。SVGD 是核平滑的 FP 求解器。
+当带宽 $h \to 0$，退化为标准 Fokker-Planck 方程。 SVGD 是核平滑的 FP 求解器。
 
 ![SVGD 在双峰目标上的粒子演化。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/fig5_svgd_particles.png)
-*图 5. 左：80 个粒子从原点出发，几百步内分裂覆盖两个峰。右：完整轨迹显示核排斥防止塌缩，漂移项稳定粒子在 $\pm 2$ 附近。*
+*图 5. 左： 80 个粒子从原点出发，几百步内分裂覆盖两个峰。右：完整轨迹显示核排斥防止塌缩，漂移项稳定粒子在 $\pm 2$ 附近。*
 ## 7. 收敛理论
 
 **定义（LSI）。** 若 $p^\star$ 满足常数 $\lambda > 0$ 的 **对数 Sobolev 不等式**，则对所有 $p \ll p^\star$：
@@ -168,7 +168,7 @@ $$
 强对数凹目标（$\nabla^2 V \succeq mI$）自动满足 LSI，且 $\lambda \geq m$ [Bakry-&Eacute;mery]。多峰目标的 $\lambda$ 很小，解释了实践中指数级慢混合现象。
 
 ![收敛速率分析。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/fig6_convergence_analysis.png)
-*图 6. 左：不同 $\lambda$ 下理论 KL 衰减曲线 $e^{-2\lambda t}$。右：VI、Langevin MCMC、SVGD 在光滑高斯目标上的实测 KL 轨迹 -- 三者收敛速率与噪声特性各异。*
+*图 6. 左：不同 $\lambda$ 下理论 KL 衰减曲线 $e^{-2\lambda t}$。右： VI、 Langevin MCMC、 SVGD 在光滑高斯目标上的实测 KL 轨迹 -- 三者收敛速率与噪声特性各异。*
 ## 8. 应用：贝叶斯神经网络
 
 贝叶斯神经网络对权重加先验 $p(w)$，求后验 $p(w \mid \mathcal{D}) \propto p(\mathcal{D}\mid w)\,p(w)$。小网络的后验也难解析，但 Langevin 动力学只需
@@ -178,23 +178,23 @@ $$\nabla_w \log p(w \mid \mathcal{D}) = \nabla_w \log p(\mathcal{D}\mid w) + \na
 下图用 24 个随机傅里叶特征构建 "贝叶斯 NN"，使权重后验明确，并用全批 Langevin 采样。
 
 ![贝叶斯神经网络后验带。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/fig7_bayesian_nn.png)
-*图 7. 左：训练数据有缺口的回归问题，90% Langevin 后验带在数据缺失处加宽。右：预测标准差在缺口处峰值 -- 这是点估计网络缺失的 **认知不确定性**。*
+*图 7. 左：训练数据有缺口的回归问题， 90% Langevin 后验带在数据缺失处加宽。右：预测标准差在缺口处峰值 -- 这是点估计网络缺失的 **认知不确定性**。*
 ## 9. 总结
 
 - 任意 It&ocirc; SDE 都对应一个 Fokker-Planck PDE，描述其密度演化。
-- Langevin 动力学采样自 $p^\star \propto e^{-V}$；ULA/MALA/HMC 是离散实现。
-- $\mathrm{KL}(\cdot \,\|\, p^\star)$ 是 Wasserstein 梯度流能量泛函；其流方程就是 Langevin FP 方程。VI 和 MCMC 在连续时间下等价。
+- Langevin 动力学采样自 $p^\star \propto e^{-V}$； ULA/MALA/HMC 是离散实现。
+- $\mathrm{KL}(\cdot \,\|\, p^\star)$ 是 Wasserstein 梯度流能量泛函；其流方程就是 Langevin FP 方程。 VI 和 MCMC 在连续时间下等价。
 - SVGD 是核平滑的确定性粒子近似，避免了 MCMC 的随机游走低效问题。
 - 收敛速率为 $2\lambda$，$\lambda$ 是 $p^\star$ 的 log-Sobolev 常数；高势垒混合是实际瓶颈。
 - 贝叶斯神经网络后验采样归结为在损失景观上运行 Langevin 或 SVGD。
 
 **系列结语**  
-四篇文章用 PDE 统一了科学计算与机器学习：从神经网络求解 PDE（PINNs），到学习算子（FNO/DeepONet），再到训练作为梯度流，最后到概率推断作为 Fokker-Planck 动力学。核心主题：机器学习中的离散算法常可理解为连续 PDE 的时间离散化，PDE 理论是证明收敛性的关键语言。
+四篇文章用 PDE 统一了科学计算与机器学习：从神经网络求解 PDE （PINNs），到学习算子（FNO/DeepONet），再到训练作为梯度流，最后到概率推断作为 Fokker-Planck 动力学。核心主题：机器学习中的离散算法常可理解为连续 PDE 的时间离散化， PDE 理论是证明收敛性的关键语言。
 ## 10. 数值实现：能跑起来的 SDE 模拟
 
 连续 Langevin SDE $dX = -\nabla U(X)\,dt + \sqrt{2}\,dW$ 离散化为
 $$ X_{k+1} = X_k - \eta\,\nabla U(X_k) + \sqrt{2\eta}\,\xi_k,\quad \xi_k \sim \mathcal{N}(0, I). $$
-这就是 **Euler-Maruyama**，算法全貌。Python：
+这就是 **Euler-Maruyama**，算法全貌。 Python：
 
 ```python
 import numpy as np
@@ -210,8 +210,8 @@ def langevin(grad_U, x0, eta=1e-3, n_steps=10000):
 实际运行会踩三个坑：
 
 1. **步长偏置。** EM 的稳态分布和真 SDE 不一样，偏差量级 $O(\eta)$。要么 $\eta \to 0$，牺牲混合速度；要么套 Metropolis-Hastings 接受/拒绝——变成 MALA，无偏但每步多一次 log-density 计算。
-2. **重尾分布炸梯度。** 若 $U$ 增长慢于二次，EM 在尾部发散。换 Milstein 高阶方法，或截断梯度。神经网络 log-density 必须处理。
-3. **多模态目标卡住。** 朴素 Langevin 进了山谷就出不来。Replica exchange 开 $K$ 条链，温度 $T_1 < \dots < T_K$，定期交换样本。代价是 $K$ 倍计算，但双峰后验混合速度提升数量级。
+2. **重尾分布炸梯度。** 若 $U$ 增长慢于二次， EM 在尾部发散。换 Milstein 高阶方法，或截断梯度。神经网络 log-density 必须处理。
+3. **多模态目标卡住。** 朴素 Langevin 进了山谷就出不来。 Replica exchange 开 $K$ 条链，温度 $T_1 < \dots < T_K$，定期交换样本。代价是 $K$ 倍计算，但双峰后验混合速度提升数量级。
 
 论文写"用 Langevin 采样"，背后至少踩一个坑。这些细节通常不提。
 ## 11. SVGD 的实现：理论藏着三个坑
@@ -238,7 +238,7 @@ $$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $
 - **Score Matching**：训练 $s_\theta(x, t) \approx \nabla\log p_t(x)$。用 Denoising Score Matching (Vincent, 2011)。关键技巧是 $\nabla_x \log p_t(x) = \mathbb{E}[\nabla_x \log q(x|x_0)\,|\,x]$，条件高斯 $q(x|x_0)$ 的 score 可直接计算。
 - **反向**：用 Anderson (1982) 的时间反演 SDE 和学到的 score。每步是带学习漂移修正的 Langevin。
 
-没人明说的事：**扩散模型 = SVGD 把 kernel 换成学到的 score 场**。SVGD 手动平衡"斥力 vs 吸引力"，扩散从数据中学。两者都属于"密度上的梯度流"，第 4 节的 Wasserstein 几何正是描述它们的语言。
+没人明说的事：**扩散模型 = SVGD 把 kernel 换成学到的 score 场**。 SVGD 手动平衡"斥力 vs 吸引力"，扩散从数据中学。两者都属于"密度上的梯度流"，第 4 节的 Wasserstein 几何正是描述它们的语言。
 
 PDE-ML 第七章单独展开扩散模型细节，这里只点透 Fokker-Planck 的关系。
 ## 参考文献

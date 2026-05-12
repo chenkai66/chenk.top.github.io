@@ -15,13 +15,13 @@ description: "一个工程师视角的阿里云百炼（DashScope）导览——
 disableNunjucks: true
 translationKey: "aliyun-bailian-1"
 ---
-只要你的产品面向中文用户，迟早都得调用百炼（Bailian）的模型。Qwen-Max 是当前中文理解能力对标 GPT-4、性价比最优的 LLM；万相（Wanxiang）是迄今唯一支持中文发票生成且已在生产环境稳定落地的 text-to-video API；Qwen-TTS-Flash 则是目前唯一在粤语与四川话合成中自然度高、无机械感的 TTS 模型。在 AI 营销平台跑了一年生产流量后，我希望入职第一天就能拿到这份指南。
+只要你的产品面向中文用户，迟早都得调用百炼（Bailian）的模型。 Qwen-Max 是当前中文理解能力对标 GPT-4、性价比最优的 LLM；万相（Wanxiang）是迄今唯一支持中文发票生成且已在生产环境稳定落地的 text-to-video API； Qwen-TTS-Flash 则是目前唯一在粤语与四川话合成中自然度高、无机械感的 TTS 模型。在 AI 营销平台跑了一年生产流量后，我希望入职第一天就能拿到这份指南。
 
 第一篇先摸底：百炼是什么、会遇到哪些模型家族、两种接口风格的区别，以及各自的 Hello World，这样后面的文章就不用反复解释基础概念了。
 
 ![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.png)
 
-## 百炼是什么，DashScope 又是什么？
+## 百炼是什么， DashScope 又是什么？
 
 命名体系较为混乱：阿里曾将产品名从 DashScope 统一更改为‘百炼’。官方 "DashScope" 文档是从 API 角度讲的；"百炼" 文档是从控制台角度讲的。其实是同一个产品，两个名字。
 
@@ -46,7 +46,7 @@ translationKey: "aliyun-bailian-1"
 
 ## 一句话讲清计费模式
 
-LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍），TTS 按音频秒数，万相按视频秒数，Embeddings 按调用次数。每个模型都有免费额度，通常是 100 万 Token 或 100 次生成，新模型发布时会重置。这意味着，只要接受模型版本可能自动更新，几乎所有功能都可用于免费原型验证。生产流量必须使用独立的 API Key，并配置预算告警；我曾因调试循环未及时终止、整夜持续运行，收到过一笔四位数账单。
+LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍）， TTS 按音频秒数，万相按视频秒数， Embeddings 按调用次数。每个模型都有免费额度，通常是 100 万 Token 或 100 次生成，新模型发布时会重置。这意味着，只要接受模型版本可能自动更新，几乎所有功能都可用于免费原型验证。生产流量必须使用独立的 API Key，并配置预算告警；我曾因调试循环未及时终止、整夜持续运行，收到过一笔四位数账单。
 
 ## API Key：千万别提交到代码库
 
@@ -56,9 +56,9 @@ LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍），TTS 按音
 export DASHSCOPE_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
-本系列所有代码片段都读取 `os.environ['DASHSCOPE_API_KEY']`。不要硬编码 Key，不要提交 `.env` 文件，生产环境请把 Key 放进 secrets manager。DashScope 团队确实会撤销已泄露的密钥，但这一操作通常发生在密钥被公开爬虫捕获之后，此时损失往往已无法挽回。
+本系列所有代码片段都读取 `os.environ['DASHSCOPE_API_KEY']`。不要硬编码 Key，不要提交 `.env` 文件，生产环境请把 Key 放进 secrets manager。 DashScope 团队确实会撤销已泄露的密钥，但这一操作通常发生在密钥被公开爬虫捕获之后，此时损失往往已无法挽回。
 
-## 两种接口：OpenAI 兼容 vs DashScope 原生
+## 两种接口： OpenAI 兼容 vs DashScope 原生
 
 这是本文最关键的前提：根据 Qwen API 参考文档，所有百炼文本及多模态模型均支持两种 HTTP 接口方式。
 
@@ -116,8 +116,8 @@ print(resp.output.choices[0].message.content)
 
 这些规则均来自实际踩坑经验：
 
-- **OpenAI 兼容**：默认用于普通聊天、函数调用、JSON 模式、流式输出。改一行代码就能跟 GPT-4 做 A/B 测试。
-- **DashScope 原生**：万相视频必须用，Qwen-TTS 必须用，推荐用于 Qwen-Omni 多模态（兼容层会丢掉一些视频参数），需要异步任务模式必须用，想要还没回迁到兼容层的最新特性必须用。
+- **OpenAI 兼容**：默认用于普通聊天、函数调用、 JSON 模式、流式输出。改一行代码就能跟 GPT-4 做 A/B 测试。
+- **DashScope 原生**：万相视频必须用， Qwen-TTS 必须用，推荐用于 Qwen-Omni 多模态（兼容层会丢掉一些视频参数），需要异步任务模式必须用，想要还没回迁到兼容层的最新特性必须用。
 
 有个常见的坑：有人看到 "OpenAI 兼容" 就以为 *所有* 模型都支持。并不是。`wan2.5-t2v-plus` 仅原生。`qwen3-tts-flash` 仅原生。第 4 和第 5 篇文章会重点强调这点。
 
@@ -150,7 +150,7 @@ LLM 和 Qwen-Omni 支持 SSE 流式。对于开启 `enable_thinking=True` 的 Qw
 
 ![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_2.png)
 
-保存为 `hello_bailian.py` 并运行。如果打印出一句话，说明你的账户、Key 和网络都没问题，可以进入第 2 篇了。
+保存为 `hello_bailian.py` 并运行。如果打印出一句话，说明你的账户、 Key 和网络都没问题，可以进入第 2 篇了。
 
 ```python
 import os
@@ -190,11 +190,11 @@ if __name__ == "__main__":
 
 实际上有三个地方可以驱动百炼，选择的重要性比文档说的要大得多。在项目中同时混用这三种方式长达两个月后，我才逐步理清各自的适用边界。
 
-`bailian.console.aliyun.com` 上的 **控制台** 只做两件事： provisioning（创建工作空间、API Key、RAM 授权、应用）和诊断（查看单次请求日志，找出模型为什么返回垃圾）。它不适用于运行时的生产流量分发与调度。控制台中的 Playground 便于提示词快速迭代，但会忽略部分 SDK 调用所需的参数，因此在 Playground 中可用的提示词，上线后仍可能失败。我把 playground 当成 "模型可达" 的标志，而不是 "这个提示词正确" 的保证。
+`bailian.console.aliyun.com` 上的 **控制台** 只做两件事： provisioning （创建工作空间、 API Key、 RAM 授权、应用）和诊断（查看单次请求日志，找出模型为什么返回垃圾）。它不适用于运行时的生产流量分发与调度。控制台中的 Playground 便于提示词快速迭代，但会忽略部分 SDK 调用所需的参数，因此在 Playground 中可用的提示词，上线后仍可能失败。我把 playground 当成 "模型可达" 的标志，而不是 "这个提示词正确" 的保证。
 
 **DashScope 原生 SDK**（`pip install dashscope`）是当你需要任何阿里特有功能时的正确选择：异步任务、视频/TTS/万相、最新模型参数、跨工作空间计费的 workspace-id header，或者 `X-DashScope-DataInspection` 调试 header。原生 SDK 暴露了兼容层会丢掉的 `parameters` 块字段（`incremental_output`，图像生成的 `seed`，联网模型的 `enable_search`）。它也是批量推理和 `RemoteService` 模型部署的唯一路径。
 
-**OpenAI 兼容接口** 是当你的代码基于 OpenAI SDK 编写，且想通过改一行代码就能对百炼和 OpenAI 做 A/B 测试时的正确选择。兼容层是个薄翻译器。它讲 `chat.completions.create`，`embeddings.create`，支持 `tools` / `tool_choice` / `response_format` / `stream`，并接受 `extra_body` 来传递少数 Qwen 特有旋钮（`enable_thinking`, `enable_search`）。它不讲万相、TTS 或任何异步模式。如果需要那些，你必须为那个调用降级到原生 SDK—— 你完全可以同时在同一个应用中使用两种客户端。
+**OpenAI 兼容接口** 是当你的代码基于 OpenAI SDK 编写，且想通过改一行代码就能对百炼和 OpenAI 做 A/B 测试时的正确选择。兼容层是个薄翻译器。它讲 `chat.completions.create`，`embeddings.create`，支持 `tools` / `tool_choice` / `response_format` / `stream`，并接受 `extra_body` 来传递少数 Qwen 特有旋钮（`enable_thinking`, `enable_search`）。它不讲万相、 TTS 或任何异步模式。如果需要那些，你必须为那个调用降级到原生 SDK—— 你完全可以同时在同一个应用中使用两种客户端。
 
 跑了一年后的经验法则：
 
@@ -223,7 +223,7 @@ dashscope.api_key = key
 dashscope.base_http_api_url = "https://dashscope.aliyuncs.com/api/v1"
 ```
 
-再说 RAM，坑在于 API Key 是绑在工作空间（workspace）上的，而工作空间属于主账号。RAM 子账号不会自动继承主账号的百炼工作空间权限。你要么直接给 `AliyunBailianFullAccess`（省事但粗放），要么写个自定义策略绑定到工作空间 ARN。策略资源格式是 `acs:bailian:*:*:workspace/<workspace_id>` —— 注意 workspace id 在控制台 URL 栏里，不在什么明显的“详情”页。那些能登控制台但 API 调用报 `Forbidden.RAM` 的，基本都是缺了这个策略。
+再说 RAM，坑在于 API Key 是绑在工作空间（workspace）上的，而工作空间属于主账号。 RAM 子账号不会自动继承主账号的百炼工作空间权限。你要么直接给 `AliyunBailianFullAccess`（省事但粗放），要么写个自定义策略绑定到工作空间 ARN。策略资源格式是 `acs:bailian:*:*:workspace/<workspace_id>` —— 注意 workspace id 在控制台 URL 栏里，不在什么明显的“详情”页。那些能登控制台但 API 调用报 `Forbidden.RAM` 的，基本都是缺了这个策略。
 
 生产环境我这么搞：每个环境（dev / staging / prod）单独建一个 RAM 子账号，对应一个工作空间，配一个由 secrets store 管理的轮转 API Key。这样跨环境泄露就是显式的策略动作，而不是意外事故。
 
@@ -269,10 +269,10 @@ dashscope.base_http_api_url = "https://dashscope.aliyuncs.com/api/v1"
 - **输出价格是输入的 2-4 倍**。一个循环 3 次的 Function Calling Agent，账单大头在助手的输出 Token，不在用户 prompt。优化成本时，最后再砍系统 prompt，优先砍输出。
 - **缓存输入半价**。百炼在 2025 年底上了隐式 prompt 缓存——大概 5 分钟内发送相同的 prompt 前缀就能命中缓存。不用特意开通，但得日志里看 `usage.cached_tokens` 才能见到省下的钱。对于带长固定系统 prompt 的 RAG 应用，缓存命中率通常有 60-80%，账单相应下降。
 
-万相（按视频秒数）和 Qwen-TTS（按音频秒数），计价单位是成品资产，不是 Token。720p 5 秒 clips 大概 1.5 元；60 秒 TTS  narration 大概 0.6 元。都便宜到瓶颈在于人工审核，而不是 API 花费。
+万相（按视频秒数）和 Qwen-TTS （按音频秒数），计价单位是成品资产，不是 Token。 720p 5 秒 clips 大概 1.5 元； 60 秒 TTS  narration 大概 0.6 元。都便宜到瓶颈在于人工审核，而不是 API 花费。
 
 ## 接下来写什么
 
-第二篇深挖 Qwen LLM 家族——按延迟和成本选模型、Function Calling、JSON 模式，还有那个让我 personally 调试了四个小时的 `enable_thinking` 参数。第三篇讲 Qwen-Omni 的流式要求和真实的视频理解案例。第四篇是万相视频管线端到端实战，第五篇是用 Qwen-TTS 做多语言 narration。
+第二篇深挖 Qwen LLM 家族——按延迟和成本选模型、 Function Calling、 JSON 模式，还有那个让我 personally 调试了四个小时的 `enable_thinking` 参数。第三篇讲 Qwen-Omni 的流式要求和真实的视频理解案例。第四篇是万相视频管线端到端实战，第五篇是用 Qwen-TTS 做多语言 narration。
 
 如果只读一篇，读第二篇——那里“文档里没写但你必须知道”的内容密度最高。

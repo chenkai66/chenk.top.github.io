@@ -14,7 +14,7 @@ description: '内点法何以成为凸规划默认求解器：以对数障碍函
 disableNunjucks: true
 translationKey: "optim-09"
 ---
-1984 年，Karmarkar 证明了线性规划（LP）问题不仅在理论上（椭球法早已在纸面上实现这一点），更在**实际中**可于多项式时间内求解。他的**内点法**始终停留在可行多面体内部，并以 $O(n L)$ 次迭代收敛，远优于单纯形法的指数级最坏时间复杂度。短短十年之内，Nesterov 与 Nemirovski 利用**自协调障碍函数**（self-concordant barrier）框架，将该思想推广至**全部凸规划问题**。其标志性成果——对 $n$ 维问题仅需 $O(\sqrt{n} \log(1/\epsilon))$ 次牛顿迭代——至今仍是中等规模凸优化的**黄金标准**。
+1984 年， Karmarkar 证明了线性规划（LP）问题不仅在理论上（椭球法早已在纸面上实现这一点），更在**实际中**可于多项式时间内求解。他的**内点法**始终停留在可行多面体内部，并以 $O(n L)$ 次迭代收敛，远优于单纯形法的指数级最坏时间复杂度。短短十年之内， Nesterov 与 Nemirovski 利用**自协调障碍函数**（self-concordant barrier）框架，将该思想推广至**全部凸规划问题**。其标志性成果——对 $n$ 维问题仅需 $O(\sqrt{n} \log(1/\epsilon))$ 次牛顿迭代——至今仍是中等规模凸优化的**黄金标准**。
 
 本文将这一技术体系拆解为三层结构，逐层展开：
 
@@ -81,7 +81,7 @@ $$
 
 ### 1.2 天真算法及其缺陷
 
-当 $t$ 极大时，子问题 ($P_t$) 会严重病态——目标中 $t f_0$ 项在边界附近起主导作用，导致牛顿法难以稳定收敛。解决方法是：**沿递增的 $t$ 序列依次求解多个 ($P_t$)**，并将前一问题的解作为后一问题的初始点（即**热启动**，warm-start）：
+当 $t$ 极大时，子问题 ($P_t$) 会严重病态——目标中 $t f_0$ 项在边界附近起主导作用，导致牛顿法难以稳定收敛。解决方法是：**沿递增的 $t$ 序列依次求解多个 ($P_t$)**，并将前一问题的解作为后一问题的初始点（即**热启动**， warm-start）：
 
 ```
 算法：障碍法
@@ -200,7 +200,7 @@ $$
 \begin{aligned}
 A x &= b \quad \text{（原始可行性）} \\
 A^\top \nu + \lambda &= c \quad \text{（对偶可行性）} \\
-x_i \lambda_i &= 1/t \quad \text{（扰动互补松弛条件，perturbed CS）} \\
+x_i \lambda_i &= 1/t \quad \text{（扰动互补松弛条件， perturbed CS）} \\
 x, \lambda &\geq 0
 \end{aligned}
 $$
@@ -212,7 +212,7 @@ $$
 - **数值条件更优**：牛顿方程组具有块结构，便于高效求解；且当 $t \to \infty$ 时，其病态程度显著低于纯原始牛顿系统；
 - **自校正性（self-correcting）**：$x$ 中的误差可通过 $\lambda$ 得到修正，反之亦然。
 
-目前绝大多数主流求解器（如 Mosek、Gurobi（QP）、SDPT3（SDP）、OSQP（QP））均实现基于预测-校正机制与自适应步长策略的原始-对偶内点法。
+目前绝大多数主流求解器（如 Mosek、 Gurobi （QP）、 SDPT3 （SDP）、 OSQP （QP））均实现基于预测-校正机制与自适应步长策略的原始-对偶内点法。
 ![原始-对偶残差随迭代下降](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig5.png)
 *图 5. Mehrotra 预测-校正型原始-对偶内点法的收敛过程：原始残差 $\|Ax-b\|$、对偶残差 $\|A^\top \nu + \lambda - c\|$ 与对偶间隙 $x^\top \lambda$ 三者同步以几何速率下降。**预测**步沿中心路径计算仿射方向，**校正**步引入中心化修正，确保下一迭代点保持在中心路径附近。*
 
@@ -271,8 +271,8 @@ $$
 
 ## 延伸阅读
 
-- Nesterov & Nemirovski，《Convex Programming 中的内点多项式算法》（*Interior-Point Polynomial Algorithms in Convex Programming*），SIAM，1994 —— 奠基性专著。  
+- Nesterov & Nemirovski，《Convex Programming 中的内点多项式算法》（*Interior-Point Polynomial Algorithms in Convex Programming*）， SIAM， 1994 —— 奠基性专著。  
 - Boyd & Vandenberghe，《凸优化》（*Convex Optimization*），第 11 章 —— 面向工程师最清晰的讲解。  
-- Renegar，《内点方法的数学视角》（*A Mathematical View of Interior-Point Methods*），SIAM，2001 —— 从几何角度阐释自协调性。  
-- Wright，《原-对偶内点法》（*Primal-Dual Interior-Point Methods*），SIAM，1997 —— 面向实际算法的系统论述。  
-- Mehrotra，《原-对偶内点法的实现》（*On the Implementation of a Primal-Dual Interior Point Method*），SIOPT 2, 1992 —— 所有现代求解器所采用的预估-校正（predictor-corrector）方案。
+- Renegar，《内点方法的数学视角》（*A Mathematical View of Interior-Point Methods*）， SIAM， 2001 —— 从几何角度阐释自协调性。  
+- Wright，《原-对偶内点法》（*Primal-Dual Interior-Point Methods*）， SIAM， 1997 —— 面向实际算法的系统论述。  
+- Mehrotra，《原-对偶内点法的实现》（*On the Implementation of a Primal-Dual Interior Point Method*）， SIOPT 2, 1992 —— 所有现代求解器所采用的预估-校正（predictor-corrector）方案。

@@ -126,7 +126,7 @@ A clean mental model: zero-shot, few-shot, CoT, and ToT sit on a *cost-to-qualit
 
 For tasks where the format or style isn't obvious, 2-5 examples in the prompt routinely beat 0-shot:
 
-```
+```json
 You are extracting structured data from product descriptions.
 
 Example 1:

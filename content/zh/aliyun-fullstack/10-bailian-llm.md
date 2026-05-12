@@ -18,9 +18,9 @@ description: "The complete LLM toolkit on Alibaba Cloud: Qwen model family, Dash
 disableNunjucks: true
 translationKey: "aliyun-fullstack-10"
 ---
-早年在国内开发生产级 LLM 应用时，可选方案极少且成本高昂：国际大厂要么未在中国内地部署服务端点（endpoint），要么计费需绑定境外信用卡；若调用其美国 API，首 Token 延迟普遍超过 800ms。后来 Qwen 接入 DashScope 并提供 OpenAI 兼容接口，国内开发 AI 产品的体验因此与海外接轨。SDK 一样，请求结构一样，流式协议也一样——只要改个 `base_url`，再从百炼控制台拿个 Key 就行。该方案已在生产环境稳定运行一年以上。本文系统梳理了我初上手时最急需的实战经验。
+早年在国内开发生产级 LLM 应用时，可选方案极少且成本高昂：国际大厂要么未在中国内地部署服务端点（endpoint），要么计费需绑定境外信用卡；若调用其美国 API，首 Token 延迟普遍超过 800ms。后来 Qwen 接入 DashScope 并提供 OpenAI 兼容接口，国内开发 AI 产品的体验因此与海外接轨。 SDK 一样，请求结构一样，流式协议也一样——只要改个 `base_url`，再从百炼控制台拿个 Key 就行。该方案已在生产环境稳定运行一年以上。本文系统梳理了我初上手时最急需的实战经验。
 
-本文不是泛泛而谈的概览。你将厘清完整的模型目录，掌握文本、图像、视频、音频、embeddings 等所有模态的调用方法，理解各团队高频遭遇的异步任务模式，并动手实现端到端的多模态流水线——生成文章、配图和语音合成，全程基于 Python。
+本文不是泛泛而谈的概览。你将厘清完整的模型目录，掌握文本、图像、视频、音频、 embeddings 等所有模态的调用方法，理解各团队高频遭遇的异步任务模式，并动手实现端到端的多模态流水线——生成文章、配图和语音合成，全程基于 Python。
 
 
 ## Bailian vs DashScope：到底啥是啥
@@ -29,7 +29,7 @@ translationKey: "aliyun-fullstack-10"
 
 **Bailian (百炼)** 是产品平台。地址在 `bailian.console.aliyun.com`。在这里你管理 API Key、浏览模型目录、启动微调任务、搭建 RAG 应用、创建提示词模板、评估模型表现以及查看账单。可将其理解为控制平面。
 
-**DashScope** 是 API 服务。所有 HTTP 请求都打到 `dashscope.aliyuncs.com`。Python SDK 是 `pip install dashscope`。代码调用模型时是在跟 DashScope 对话；查账单或部署微调模型时，用的是 Bailian。
+**DashScope** 是 API 服务。所有 HTTP 请求都打到 `dashscope.aliyuncs.com`。 Python SDK 是 `pip install dashscope`。代码调用模型时是在跟 DashScope 对话；查账单或部署微调模型时，用的是 Bailian。
 
 实际流程是在 Bailian 获取 API Key 并配置环境变量，然后用代码调用 DashScope 模型接口。
 
@@ -44,7 +44,7 @@ translationKey: "aliyun-fullstack-10"
 | 提示词工程工作室 | **Bailian Prompt Lab** | Bedrock Playground |
 | RAG 服务 | **Bailian Knowledge Base** | Bedrock Knowledge Bases |
 
-与 AWS 的关键区别在于：在阿里云平台上，Qwen 是阿里自研的第一方模型家族。而在 AWS 上，所有模型（Claude、Llama、Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能迭代更快、定价更优、中文能力业界领先——训练始终以中文为首要语言，而非后期适配。
+与 AWS 的关键区别在于：在阿里云平台上， Qwen 是阿里自研的第一方模型家族。而在 AWS 上，所有模型（Claude、 Llama、 Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能迭代更快、定价更优、中文能力业界领先——训练始终以中文为首要语言，而非后期适配。
 
 想深入了解 Bailian 平台本身，可以看我们的专门系列 [Bailian 系列](/zh/aliyun-bailian/01-platform-overview/)。
 
@@ -62,7 +62,7 @@ Qwen 不是一个模型，而是一个家族。覆盖文本、视觉、音频、
 | `qwen-plus` | 128K | 默认首选 -- 聊天、总结、翻译、轻度推理 | 0.8 / 2.0 |
 | `qwen-max` | 128K | 高难度推理、法律/医疗准确性、容错率低的场景 | 2.4 / 9.6 |
 | `qwen3-max` | 128K | 高难度推理新默认；开启 thinking 模式比 qwen-max 更便宜 | 2.0 / 6.0 |
-| `qwen3-coder-plus` | 128K | 代码生成、diff/patch、AST 操作 | 1.0 / 4.0 |
+| `qwen3-coder-plus` | 128K | 代码生成、 diff/patch、 AST 操作 | 1.0 / 4.0 |
 | `qwen-turbo-longcontext` | 1M | 128K 装不下的超大文档 | 0.6 / 2.0 |
 
 **我的原则：** 默认选 `qwen-plus`。只有当评估证明 Plus 准确度不够时，再升级到 `qwen3-max`。只有当你的体量下成本真的成为瓶颈时，再降级到 `qwen-turbo`。开启 `enable_thinking=True` 的 `qwen3-max` 模型能以更低价格达到 `qwen-max` 的准确度，但需要流式输出——后面会细说。
@@ -77,11 +77,11 @@ Qwen 不是一个模型，而是一个家族。覆盖文本、视觉、音频、
 | `text-embedding-v4` | 文本 → 向量 | 更新版本，基准测试表现略好 | 0.7 / 1M tokens |
 | `wan2.5-t2v-plus` | 文本 → 视频 | 根据提示生成 5 秒视频 | 按视频秒数 |
 | `wan2.5-i2v-plus` | 图像 → 视频 | 根据起始帧生成 5 秒视频 | 按视频秒数 |
-| `qwen3-tts-flash` | 文本 → 音频 | 语音合成，40+ 音色，支持方言 | 0.8 CNY / 1K 字符 |
+| `qwen3-tts-flash` | 文本 → 音频 | 语音合成， 40+ 音色，支持方言 | 0.8 CNY / 1K 字符 |
 
 每种模态都有自己的 API 模式和坑。文章剩下的部分会逐一拆解。
 
-## DashScope API：OpenAI 兼容
+## DashScope API： OpenAI 兼容
 
 这是关于 DashScope 最重要的一点：它提供了 OpenAI 兼容的 endpoint。你只需修改两行配置，就能直接使用官方的 OpenAI Python SDK。
 
@@ -97,7 +97,7 @@ client = OpenAI(
 )
 ```
 
-就这么简单。你之前从 OpenAI 那里熟悉的所有 `client.chat.completions.create()` 调用、流式模式、函数调用 schema，在这里都能用。SDK 是线程安全的且会连接池化——在进程生命周期内构造一次客户端就够了。每次调用都新建 client 会增加 50-100ms 的 TLS 握手开销。
+就这么简单。你之前从 OpenAI 那里熟悉的所有 `client.chat.completions.create()` 调用、流式模式、函数调用 schema，在这里都能用。 SDK 是线程安全的且会连接池化——在进程生命周期内构造一次客户端就够了。每次调用都新建 client 会增加 50-100ms 的 TLS 握手开销。
 
 ### OpenAI 兼容 endpoint 支持哪些功能
 
@@ -120,7 +120,7 @@ client = OpenAI(
 
 | Endpoint | URL | SDK | 适用场景 |
 |---|---|---|---|
-| **OpenAI-compatible** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `openai` Python SDK | 文本、embeddings、视觉、Omni |
+| **OpenAI-compatible** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `openai` Python SDK | 文本、 embeddings、视觉、 Omni |
 | **DashScope native** | `https://dashscope.aliyuncs.com/api/v1/services/aigc/...` | `dashscope` Python SDK 或 raw HTTP | TTS、图像生成、视频生成 |
 
 我默认所有支持的功能都走 OpenAI 兼容 endpoint。请求结构熟悉，错误处理在 OpenAI 那边文档详尽，以后想切换 provider 也只需要改一行 `base_url`。
@@ -175,7 +175,7 @@ for chunk in stream:
 
 ### enable_thinking 陷阱（Qwen3 系列）
 
-这个 bug 让我白白浪费了半天时间。Qwen3 模型（`qwen3-max`, `qwen3-coder-plus`）有个 `enable_thinking` 参数，用来激活思维链推理。这功能很强 —— 开启 thinking 的 `qwen3-max` 能在更低成本下达到 `qwen-max` 的准确率 —— 但有条硬规矩：
+这个 bug 让我白白浪费了半天时间。 Qwen3 模型（`qwen3-max`, `qwen3-coder-plus`）有个 `enable_thinking` 参数，用来激活思维链推理。这功能很强 —— 开启 thinking 的 `qwen3-max` 能在更低成本下达到 `qwen-max` 的准确率 —— 但有条硬规矩：
 
 > **`enable_thinking=True` 必须配合 `stream=True`。非流式调用会直接失败。**
 
@@ -310,7 +310,7 @@ print(chat("What about cold starts?"))
 
 | Parameter | Default | Range | What it controls |
 |---|---|---|---|
-| `temperature` | 1.0 | 0.0 - 2.0 | 随机性。0.0 用于确定性任务，0.7-0.9 用于创意生成 |
+| `temperature` | 1.0 | 0.0 - 2.0 | 随机性。 0.0 用于确定性任务， 0.7-0.9 用于创意生成 |
 | `top_p` | 1.0 | 0.0 - 1.0 | 核采样。值越低输出越聚焦 |
 | `max_tokens` | Model-dependent | 1 - 8192 | 最大输出长度 |
 | `stop` | None | List of strings | 遇到这些序列时停止生成 |
@@ -321,7 +321,7 @@ print(chat("What about cold starts?"))
 
 ## 嵌入向量
 
-Embeddings 把文本变成向量，这是 RAG（检索增强生成）、语义搜索、聚类和去重的基础。DashScope 提供 `text-embedding-v3` 和更新的 `text-embedding-v4`。
+Embeddings 把文本变成向量，这是 RAG （检索增强生成）、语义搜索、聚类和去重的基础。 DashScope 提供 `text-embedding-v3` 和更新的 `text-embedding-v4`。
 
 ![嵌入向量与 RAG 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_embedding_pipeline.png)
 
@@ -393,7 +393,7 @@ for text, score in similarities[:3]:
 生产环境别在 Python 循环里算余弦相似度。直接用 OpenSearch 的向量搜索功能，或者专门的向量数据库比如 Milvus。上面的代码只是为了帮你理解概念。
 ## Wanxiang: image and video generation
 
-万相（Wanxiang）是 DashScope 旗下的生成式媒体家族。它覆盖文生图、图生视频和文生视频。所有媒体生成都走 DashScope 原生 API（不是 OpenAI 兼容接口），并且遵循异步任务模式。
+万相（Wanxiang）是 DashScope 旗下的生成式媒体家族。它覆盖文生图、图生视频和文生视频。所有媒体生成都走 DashScope 原生 API （不是 OpenAI 兼容接口），并且遵循异步任务模式。
 
 ![万象异步生成流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_wanxiang_pipeline.png)
 
@@ -532,11 +532,11 @@ def create_image_task(prompt: str, size: str = "1024*1024") -> str:
 
 ## Qwen TTS: text-to-speech
 
-Qwen TTS 是容易让人踩坑的地方。很多人想当然觉得“既然 Qwen LLM 能通过 OpenAI 客户端跑，TTS 肯定也行”。
+Qwen TTS 是容易让人踩坑的地方。很多人想当然觉得“既然 Qwen LLM 能通过 OpenAI 客户端跑， TTS 肯定也行”。
 
 > **Qwen-TTS 不走 OpenAI 兼容接口。仅限 DashScope 原生。**
 
-你不能指着 `openai` SDK 的 `audio.speech.create` 去调兼容 URL，行不通。TTS 没有兼容层。要么用 `dashscope` SDK，要么直接调 HTTP。
+你不能指着 `openai` SDK 的 `audio.speech.create` 去调兼容 URL，行不通。 TTS 没有兼容层。要么用 `dashscope` SDK，要么直接调 HTTP。
 
 ### The simplest call
 
@@ -612,7 +612,7 @@ with open("streamed_output.mp3", "wb") as f:
 Qwen TTS 的完整深度解析包括声音克隆和 instruct 模式，见 [Bailian Part 5: Qwen TTS](/zh/aliyun-bailian/05-qwen-tts-voice/)。
 ## 在百炼上进行微调
 
-微调是最后的杀手锏。在决定用它之前，先问问自己：提示词工程、Few-shot 示例或者 RAG 能不能解决问题？根据我的经验，80% 喊着“我们需要微调”的讨论，最后都以“其实换个更好的 System Prompt 就搞定了”收场。
+微调是最后的杀手锏。在决定用它之前，先问问自己：提示词工程、 Few-shot 示例或者 RAG 能不能解决问题？根据我的经验， 80% 喊着“我们需要微调”的讨论，最后都以“其实换个更好的 System Prompt 就搞定了”收场。
 
 ![百炼平台概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_bailian_platform.png)
 
@@ -637,7 +637,7 @@ Qwen TTS 的完整深度解析包括声音克隆和 instruct 模式，见 [Baili
 
 写好训练数据的几条规矩：
 
-- **最少 50 条示例**，200-500 条是甜蜜点。除非你的领域特别杂，否则超过 1000 条提升不大。
+- **最少 50 条示例**， 200-500 条是甜蜜点。除非你的领域特别杂，否则超过 1000 条提升不大。
 - **所有示例的 System Prompt 必须一致** —— 模型会把 System Prompt 当作任务定义的一部分来学习。
 - **只要高质量输出** —— 每条 Assistant 回复都必须是你想要模型产出的完美结果。一条坏数据就能教坏模型。
 - **输入要多样化** —— 别拿同一个问题变着花样重复。要覆盖生产环境中可能遇到的所有输入情况。
@@ -689,7 +689,7 @@ else:
 3. **监控训练**：控制台会显示 Loss 曲线和训练进度
 4. **部署**：训练完成后，部署模型以获得自定义的 `model_id`
 
-通过 API（使用 `dashscope` SDK）：
+通过 API （使用 `dashscope` SDK）：
 
 ```python
 import dashscope
@@ -920,7 +920,7 @@ if __name__ == "__main__":
 | `wan2.5-t2v-plus` | 20 | N/A | 可以 |
 | `qwen3-tts-flash` | 180 | N/A | 可以 |
 
-一旦触限，DashScope 会返回 HTTP 429 并带上 `Retry-After` 头。这么处理：
+一旦触限， DashScope 会返回 HTTP 429 并带上 `Retry-After` 头。这么处理：
 
 ```python
 import time
@@ -960,7 +960,7 @@ result = call_with_retry(
 
 ### 预算告警
 
-去百炼控制台设个预算告警。我就吃过一次亏，有人忘了关调试循环跑了一整夜，账单直接四位数。要是当时有告警，30 分钟就能发现，而不是 8 小时后。
+去百炼控制台设个预算告警。我就吃过一次亏，有人忘了关调试循环跑了一整夜，账单直接四位数。要是当时有告警， 30 分钟就能发现，而不是 8 小时后。
 
 ```bash
 # Quick check: your current month's usage via CLI
@@ -982,18 +982,18 @@ curl -s "https://dashscope.aliyuncs.com/compatible-mode/v1/models" \
 
 典型的 AI 应用流程：
 
-1. 用户请求发到你的 API（跑在 ECS 或 Function Compute 上）
+1. 用户请求发到你的 API （跑在 ECS 或 Function Compute 上）
 2. 你的应用通过 DashScope 调用 `text-embedding-v3` 嵌入查询
 3. 用这些嵌入向量去 OpenSearch 搜相关上下文
 4. 通过 DashScope 调用 `qwen-plus`，带上检索到的上下文和用户查询
 5. 响应流式回传给用户
 6. 如果需要媒体内容，异步调用 Wanxiang 并把结果存到 OSS
 
-这个栈里的每一块本系列都会讲到。DashScope 是大脑，其他服务是躯干。
+这个栈里的每一块本系列都会讲到。 DashScope 是大脑，其他服务是躯干。
 
 ## 核心要点
 
-1. **百炼是控制台，DashScope 是 API。** 配置在百炼，代码对接 DashScope。别搞混了。
+1. **百炼是控制台， DashScope 是 API。** 配置在百炼，代码对接 DashScope。别搞混了。
 
 2. **默认用 OpenAI 兼容端点。** `base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"` 配合 `openai` SDK 能搞定文本、嵌入、视觉和多模态。只有 TTS、生图和生视频才切原生 API。
 
@@ -1003,12 +1003,12 @@ curl -s "https://dashscope.aliyuncs.com/compatible-mode/v1/models" \
 
 5. **TTS 只能用 DashScope 原生接口。** 别拿 OpenAI 兼容端点调 `qwen3-tts-flash`，会 404。
 
-6. **所有媒体生成都是异步的。** 提交任务、轮询、24 小时内下载。链接 24 小时过期是生产环境最常见的事故。
+6. **所有媒体生成都是异步的。** 提交任务、轮询、 24 小时内下载。链接 24 小时过期是生产环境最常见的事故。
 
-7. **微调是最后手段。** 先试提示词工程、Few-shot 和 RAG。只有当你每月有 10 万 + 请求量，且任务明确，小模型微调能媲美大模型长 prompt 时，再考虑微调。
+7. **微调是最后手段。** 先试提示词工程、 Few-shot 和 RAG。只有当你每月有 10 万 + 请求量，且任务明确，小模型微调能媲美大模型长 prompt 时，再考虑微调。
 
 8. **设预算告警。** 现在就设，别等有人忘了关调试循环跑了一整夜。
 
 ## 下一篇
 
-[Part 11](/zh/aliyun-fullstack/11-security/) 讲阿里云上的安全：RAM 策略、KMS 密钥管理、安全中心和 WAF。本文涉及的每个 API Key、每次 DashScope 调用、每个 OSS Bucket 都需要妥善的安全保障——这也是我们接下来的方向。
+[Part 11](/zh/aliyun-fullstack/11-security/) 讲阿里云上的安全： RAM 策略、 KMS 密钥管理、安全中心和 WAF。本文涉及的每个 API Key、每次 DashScope 调用、每个 OSS Bucket 都需要妥善的安全保障——这也是我们接下来的方向。

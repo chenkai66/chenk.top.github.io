@@ -55,7 +55,7 @@ INSERT INTO order_items (order_id, product_id, quantity) VALUES (101, 42, 1);
 
 ### 一致性（Consistency）——从有效状态到有效状态
 
-**定义**：事务将数据库从一个满足所有约束的有效状态，迁移至另一个同样有效的状态。所有约束（外键、CHECK、UNIQUE、NOT NULL）均被强制执行。
+**定义**：事务将数据库从一个满足所有约束的有效状态，迁移至另一个同样有效的状态。所有约束（外键、 CHECK、 UNIQUE、 NOT NULL）均被强制执行。
 
 **缺失一致性时会发生什么**：
 
@@ -212,7 +212,7 @@ COMMIT;
 | REPEATABLE READ | **禁止** | **禁止** | 允许* | 中等 |
 | SERIALIZABLE | **禁止** | **禁止** | **禁止** | 最慢 |
 
-*PostgreSQL 中，REPEATABLE READ 也禁止幻读（它采用快照隔离，比 SQL 标准要求更强）。
+*PostgreSQL 中， REPEATABLE READ 也禁止幻读（它采用快照隔离，比 SQL 标准要求更强）。
 
 ```sql
 -- 为单个事务设置隔离级别
@@ -235,12 +235,12 @@ SELECT @@transaction_isolation;
 
 | 使用场景 | 推荐级别 |
 |----------|------------------|
-| 大多数 Web 应用 | READ COMMITTED（PostgreSQL 默认） |
+| 大多数 Web 应用 | READ COMMITTED （PostgreSQL 默认） |
 | 金融交易 | SERIALIZABLE 或 REPEATABLE READ |
-| 报表/分析类查询 | REPEATABLE READ（提供一致快照） |
-| 尽力而为型/监控类任务 | READ UNCOMMITTED（仅当真有此需求） |
+| 报表/分析类查询 | REPEATABLE READ （提供一致快照） |
+| 尽力而为型/监控类任务 | READ UNCOMMITTED （仅当真有此需求） |
 
-PostgreSQL 默认使用 READ COMMITTED；MySQL（InnoDB）默认使用 REPEATABLE READ。两者对大多数应用而言都是合理的选择。
+PostgreSQL 默认使用 READ COMMITTED； MySQL （InnoDB）默认使用 REPEATABLE READ。两者对大多数应用而言都是合理的选择。
 
 ## MVCC：数据库如何高效实现隔离性
 
@@ -254,9 +254,9 @@ PostgreSQL 默认使用 READ COMMITTED；MySQL（InnoDB）默认使用 REPEATABL
 PostgreSQL 中，每行数据包含隐藏的系统列：
 
 - `xmin` —— 创建（插入）该行版本的事务 ID
-- `xmax` —— 删除/更新该行版本的事务 ID（若值为 0，表示该版本仍有效）
+- `xmax` —— 删除/更新该行版本的事务 ID （若值为 0，表示该版本仍有效）
 
-当你执行 `UPDATE` 时，PostgreSQL **不会就地修改**原行，而是：
+当你执行 `UPDATE` 时， PostgreSQL **不会就地修改**原行，而是：
 1. 将旧行版本标记为过期（`xmax = 当前事务 ID`）
 2. 创建一个新行版本（`xmin = 当前事务 ID`）
 
@@ -282,7 +282,7 @@ InnoDB 采用不同策略：
 - 回滚指针指向**undo log**中的条目，其中保存了该行的前一版本
 - 多个 undo log 条目为每行构成一条链
 
-为重构旧版本，InnoDB 沿 undo log 链反向遍历。这意味着旧版本不占用主表空间，但长事务会迫使 InnoDB 保留冗长的 undo log 链。
+为重构旧版本， InnoDB 沿 undo log 链反向遍历。这意味着旧版本不占用主表空间，但长事务会迫使 InnoDB 保留冗长的 undo log 链。
 
 ### MVCC 的影响对比
 
@@ -291,7 +291,7 @@ InnoDB 采用不同策略：
 | 读操作阻塞写操作 | 否 | 否 |
 | 写操作阻塞读操作 | 否 | 否 |
 | 写操作阻塞写操作 | 是（同一行） | 是（同一行） |
-| 过期版本清理 | VACUUM（手动/自动） | Purge 线程（自动） |
+| 过期版本清理 | VACUUM （手动/自动） | Purge 线程（自动） |
 | 长事务开销 | 表膨胀（bloat） | 长 undo log 链 |
 
 关键洞见：**读操作从不阻塞写操作，写操作也从不阻塞读操作。** 这正是现代数据库能支撑数千并发连接而不致全面卡顿的根本原因。

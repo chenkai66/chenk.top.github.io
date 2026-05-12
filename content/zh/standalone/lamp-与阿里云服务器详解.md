@@ -15,14 +15,14 @@ translationKey: "lamp-on-ecs"
 刚买的一台阿里云 ECS，从「能 SSH 登录」到「公网能稳定访问、跑得动一个站点」之间，最容易卡的其实就三件事：
 
 1.  **网络通不通**——包可能在云厂商的安全组、操作系统防火墙、监听端口三个地方被悄悄丢掉，你看到的现象只有一个：浏览器一直转圈。
-2.  **服务串不起来**——Apache、PHP、MySQL 是三个独立的进程，靠文件后缀、Unix socket、TCP 端口互相找到对方，每个接口都有自己的坑。
-3.  **身份和权限不匹配**——Apache 跑在 `www-data` 用户下，MySQL 跑在 `mysql` 用户下，`wget` 下来的文件却归 `root` 所有。组合错了就是 403、Access denied，最后被逼到 `chmod 777`。
+2.  **服务串不起来**——Apache、 PHP、 MySQL 是三个独立的进程，靠文件后缀、 Unix socket、 TCP 端口互相找到对方，每个接口都有自己的坑。
+3.  **身份和权限不匹配**——Apache 跑在 `www-data` 用户下， MySQL 跑在 `mysql` 用户下，`wget` 下来的文件却归 `root` 所有。组合错了就是 403、 Access denied，最后被逼到 `chmod 777`。
 
 这篇文章就按你第一天会撞到的顺序把上面三件事讲透，再继续把第三十天才会遇到的问题——HTTPS、虚拟主机、备份、源码编译、什么时候该把单机拆成多机——一起讲完。目标是你照着做能跑起来，并且过半年回头看不会觉得自己当时埋了一堆雷。
 
 ## 读完这篇你能做到
 
--   在脑子里画出一个 HTTP 请求穿过 Linux、Apache、PHP、MySQL 的完整路径，知道每一跳可能在哪儿挂掉。
+-   在脑子里画出一个 HTTP 请求穿过 Linux、 Apache、 PHP、 MySQL 的完整路径，知道每一跳可能在哪儿挂掉。
 -   配置阿里云网络时不再用 `0.0.0.0/0` 一把梭，而是有真正的纵深防御。
 -   在 Ubuntu 上装好、验通、加固 LAMP 的每一个组件（CentOS / Alibaba Cloud Linux 的差异点也会顺带说清）。
 -   把一个真实的应用（Discuz!）从下载到上线全跑一遍，包括官方文档跳过的权限和数据库账号细节。
@@ -32,7 +32,7 @@ translationKey: "lamp-on-ecs"
 ## 前提
 
 -   一台阿里云 ECS，操作系统 Ubuntu 22.04 LTS 或 Alibaba Cloud Linux 3 / CentOS 7+。
--   能用密钥（不是密码）SSH 进去。
+-   能用密钥（不是密码） SSH 进去。
 -   常用的 Linux 命令熟练：`ls`、`cd`、`cat`、`systemctl`、`sudo`。
 -   一个域名是可选的，但讲到 HTTPS 那段会方便很多。
 
@@ -40,16 +40,16 @@ translationKey: "lamp-on-ecs"
 
 ## 1. 为什么 2025 年还要学 LAMP
 
-LAMP（**L**inux + **A**pache + **M**ySQL + **P**HP）从 2010 年开始就被各种新框架轮番宣告过死亡，但它每次都活了下来。原因不是怀旧，是「合适」。对内容站点、CMS（WordPress、Discuz、Drupal、MediaWiki）、客户门户、内部工具，以及一长串小型 SaaS 后端来说，LAMP 仍然是把动态网页放到用户面前**性价比最高、文档最全、维护成本最低**的方案。
+LAMP （**L**inux + **A**pache + **M**ySQL + **P**HP）从 2010 年开始就被各种新框架轮番宣告过死亡，但它每次都活了下来。原因不是怀旧，是「合适」。对内容站点、 CMS （WordPress、 Discuz、 Drupal、 MediaWiki）、客户门户、内部工具，以及一长串小型 SaaS 后端来说， LAMP 仍然是把动态网页放到用户面前**性价比最高、文档最全、维护成本最低**的方案。
 
 LAMP 自带、新栈要自己拼起来的东西：
 
--   **极成熟的生态。** Apache 二十八岁、MySQL 二十八岁、PHP 三十岁。你能遇到的几乎所有问题都被人踩过、写下过、被搜索引擎收录过。
+-   **极成熟的生态。** Apache 二十八岁、 MySQL 二十八岁、 PHP 三十岁。你能遇到的几乎所有问题都被人踩过、写下过、被搜索引擎收录过。
 -   **共享主机的兼容性。** 一个 LAMP 应用从 5 块钱一个月的虚拟主机搬到 ECS，代码一行不用改。
 -   **可预测的请求路径。** 没有 service mesh、没有 sidecar、没有编排器，一棵进程树一台机器。延迟一上去，`top` 一下大概率能直接看到原因。
 -   **极低的运维门槛。** 一台机器，三个服务。需要装在脑子里的东西比 Kubernetes 少一个数量级。
 
-下面几种场景**别**用 LAMP：高扇出 API（用 Nginx + Go/Node/Rust）、长连接事件驱动（大规模 WebSocket 更适合 event loop 而不是 Apache prefork）、团队已经在容器和控制平面上有积累。把 LAMP 放在它擅长的地方用，别把它当默认选项。
+下面几种场景**别**用 LAMP：高扇出 API （用 Nginx + Go/Node/Rust）、长连接事件驱动（大规模 WebSocket 更适合 event loop 而不是 Apache prefork）、团队已经在容器和控制平面上有积累。把 LAMP 放在它擅长的地方用，别把它当默认选项。
 
 ## 2. 四层架构
 
@@ -59,18 +59,18 @@ LAMP 自带、新栈要自己拼起来的东西：
 
 每一层都**owns**一些具体的东西：
 
--   **Linux** 管进程、文件、socket。如果 `systemctl status apache2` 显示 `inactive`，上面的事情都不用谈。
--   **Apache** 管 HTTP 协议本身，以及把 URL 映射到处理器的那一步。Apache 没起来，80 端口就只是个关着的 socket；起来了但没有 `VirtualHost` 匹配你的 `Host:` 头，请求就会落到默认页。
--   **PHP** 管代码执行。Apache 把一个 `.php` 文件交给它，PHP 解析、运行、返回文本。如果 PHP 缺失或者它的模块没启用，Apache 会高高兴兴地把你的源代码当纯文本送出去——这是个穿着「配置错误」外衣的安全事故。
--   **MySQL** 管持久化。MySQL 挂了，需要数据的 PHP 脚本会抛异常；MySQL 在但凭据不对，同样的脚本会输出空白页。
+-   **Linux** 管进程、文件、 socket。如果 `systemctl status apache2` 显示 `inactive`，上面的事情都不用谈。
+-   **Apache** 管 HTTP 协议本身，以及把 URL 映射到处理器的那一步。 Apache 没起来， 80 端口就只是个关着的 socket；起来了但没有 `VirtualHost` 匹配你的 `Host:` 头，请求就会落到默认页。
+-   **PHP** 管代码执行。 Apache 把一个 `.php` 文件交给它， PHP 解析、运行、返回文本。如果 PHP 缺失或者它的模块没启用， Apache 会高高兴兴地把你的源代码当纯文本送出去——这是个穿着「配置错误」外衣的安全事故。
+-   **MySQL** 管持久化。 MySQL 挂了，需要数据的 PHP 脚本会抛异常； MySQL 在但凭据不对，同样的脚本会输出空白页。
 
 层与层之间的接口，才是真正会出问题的地方：
 
 | 接口 | 容易出什么问题 | 一行命令就能查 |
 | --- | --- | --- |
-| Linux -> Apache | 服务没启动、80 端口被占 | `ss -tlnp \| grep ':80'` |
+| Linux -> Apache | 服务没启动、 80 端口被占 | `ss -tlnp \| grep ':80'` |
 | Apache -> PHP | `php` 模块没启用 | `apache2ctl -M \| grep php` |
-| PHP -> MySQL | 扩展没装、host 或 socket 错 | `php -r "var_dump(extension_loaded('mysqli'));"` |
+| PHP -> MySQL | 扩展没装、 host 或 socket 错 | `php -r "var_dump(extension_loaded('mysqli'));"` |
 | MySQL -> 磁盘 | 数据目录权限、磁盘满 | `journalctl -u mysql -n 50` |
 
 把这四条命令背下来，你之后基本不需要再去 Stack Overflow 翻 LAMP 的问题。
@@ -86,13 +86,13 @@ LAMP 自带、新栈要自己拼起来的东西：
 **实例规格族。** 命名是 `<族><代>.<规格>`。对一个公网 LAMP 站来说：
 
 -   `g7.large`（2 vCPU / 8 GiB）是稳妥的默认值——CPU 和内存均衡。
--   `c7.large` 适合工作负载主要是 PHP（CPU bound）、数据库不大的场景。
+-   `c7.large` 适合工作负载主要是 PHP （CPU bound）、数据库不大的场景。
 -   `r7.large` 适合读多、靠 MySQL 缓冲池命中率取胜的场景。
 -   `t6` 突发型实例价格只有 `g7` 的一小半，跑一个低流量博客绰绰有余——前提是你理解 CPU 积分会用完。
 
-**磁盘。** ESSD PL1 比基础的云盘强太多。IOPS 从 ~1000 跳到 5000，对应到管理后台的体验就是「卡」和「不卡」的差别，而小容量上的价格差很小。系统盘 40 GiB 够用，数据库会长大就单挂一块数据盘。
+**磁盘。** ESSD PL1 比基础的云盘强太多。 IOPS 从 ~1000 跳到 5000，对应到管理后台的体验就是「卡」和「不卡」的差别，而小容量上的价格差很小。系统盘 40 GiB 够用，数据库会长大就单挂一块数据盘。
 
-**公网 IP。** 直接用实例自带的公网 IP（便宜，但绑死在实例上，释放就没了）或者绑一个弹性公网 IP（EIP，可在实例间漂移）。任何你日后可能重建的环境，都付那点 EIP 的费用。
+**公网 IP。** 直接用实例自带的公网 IP （便宜，但绑死在实例上，释放就没了）或者绑一个弹性公网 IP （EIP，可在实例间漂移）。任何你日后可能重建的环境，都付那点 EIP 的费用。
 
 就这四件事。剩下那一长串高级特性，新手阶段可以无视。
 
@@ -154,7 +154,7 @@ sudo ufw enable
 sudo ufw status numbered
 ```
 
-CentOS / Alibaba Cloud Linux（firewalld）：
+CentOS / Alibaba Cloud Linux （firewalld）：
 
 ```bash
 sudo firewall-cmd --permanent --add-service=ssh
@@ -192,11 +192,11 @@ curl -I http://127.0.0.1
 请求最终送到 Apache 时发生的事：
 
 1.  浏览器对 `8.134.207.88:80` 发起 TCP 连接。
-2.  阿里云安全组放行 SYN（80 端口对 0.0.0.0/0 的规则）。
+2.  阿里云安全组放行 SYN （80 端口对 0.0.0.0/0 的规则）。
 3.  内核把这个连接交给监听者——`apache2`。
 4.  Apache 解析请求行 `GET /index.php HTTP/1.1`，遍历 `VirtualHost` 配置找到 `ServerName` 匹配 `Host:` 头的那一条，再用这条 vhost 的 `DocumentRoot` 去解析 `/index.php`。
-5.  `mod_php` 处理器命中 `.php`，Apache 调用内嵌的 PHP 解释器（如果用 FPM，则是打开 unix socket 把请求转过去）。
-6.  PHP 脚本开始跑，第一句多半是 `new mysqli('localhost', ...)` 或者 `new PDO('mysql:host=localhost;...')`。PHP 对 `127.0.0.1:3306` 发起 TCP 连接（在 Debian/Ubuntu 上更可能是走 unix socket `/var/run/mysqld/mysqld.sock`）。
+5.  `mod_php` 处理器命中 `.php`， Apache 调用内嵌的 PHP 解释器（如果用 FPM，则是打开 unix socket 把请求转过去）。
+6.  PHP 脚本开始跑，第一句多半是 `new mysqli('localhost', ...)` 或者 `new PDO('mysql:host=localhost;...')`。 PHP 对 `127.0.0.1:3306` 发起 TCP 连接（在 Debian/Ubuntu 上更可能是走 unix socket `/var/run/mysqld/mysqld.sock`）。
 7.  MySQL 验证用户、解析 SQL，命中 InnoDB 缓冲池（没命中就读盘），返回结果集。
 8.  PHP 把结果渲染成 HTML，交回 Apache，由 Apache 写回 socket。
 
@@ -217,7 +217,7 @@ sudo systemctl status apache2 nginx mysql mariadb 2>/dev/null \
 sudo systemctl disable --now nginx
 ```
 
-安装顺序很重要：先 Apache，再 MySQL，最后 PHP。PHP 的包会顺手把 Apache 模块拉进来并启用——前提是 Apache 已经在那儿。
+安装顺序很重要：先 Apache，再 MySQL，最后 PHP。 PHP 的包会顺手把 Apache 模块拉进来并启用——前提是 Apache 已经在那儿。
 
 ## 6.1 Apache
 
@@ -257,7 +257,7 @@ sudo mysql_secure_installation
 
 `mysql_secure_installation` 会问五个问题。建议的答案：
 
-1.  **VALIDATE PASSWORD plugin：** yes，强度选 2（strong）。
+1.  **VALIDATE PASSWORD plugin：** yes，强度选 2 （strong）。
 2.  **设置 root 密码：** 用密码管理器生成的 16 位以上密码，存好。
 3.  **删除匿名用户：** yes。
 4.  **禁止 root 远程登录：** yes——你之后会用 SSH 隧道。
@@ -272,7 +272,7 @@ sudo mysql -e "SELECT version(), @@hostname;"
 
 ### `caching_sha2_password` 这个坑
 
-MySQL 8.0 把默认认证插件从 `mysql_native_password` 改成了 `caching_sha2_password`。老一点的 PHP `mysqli` 驱动、PHP 自带的 `mysql` 扩展、还有不少 CMS 的安装程序不会说新协议，会报 `The server requested authentication method unknown to the client`。今天最正确的做法是升级驱动；现实里没条件升级时，**只针对应用账号**切回老插件：
+MySQL 8.0 把默认认证插件从 `mysql_native_password` 改成了 `caching_sha2_password`。老一点的 PHP `mysqli` 驱动、 PHP 自带的 `mysql` 扩展、还有不少 CMS 的安装程序不会说新协议，会报 `The server requested authentication method unknown to the client`。今天最正确的做法是升级驱动；现实里没条件升级时，**只针对应用账号**切回老插件：
 
 ```sql
 ALTER USER 'discuz_user'@'localhost'
@@ -392,11 +392,11 @@ Header always set Strict-Transport-Security "max-age=63072000"
 
 -   能用 `php-fpm` 就别用 `mod_php`——把 PHP 故障从 Apache 进程树里隔离出去。
 -   生产环境的 `/etc/php/8.1/apache2/php.ini` 里 `expose_php = Off`、`display_errors = Off`。
--   不论部署什么框架，都要订阅它的安全公告。LAMP 服务器被入侵的最大单一来源就是 CMS 的 CVE。
+-   不论部署什么框架，都要订阅它的安全公告。 LAMP 服务器被入侵的最大单一来源就是 CMS 的 CVE。
 
-## 8. 端到端部署：Discuz!
+## 8. 端到端部署： Discuz!
 
-拿 Discuz! 当例子，是因为它把一个新装的 LAMP 的薄弱环节都敲打了一遍：文件权限、多个可写目录、MySQL 用户创建、PHP 扩展依赖、还有一个 web 安装器把这些都重新校验一次。
+拿 Discuz! 当例子，是因为它把一个新装的 LAMP 的薄弱环节都敲打了一遍：文件权限、多个可写目录、 MySQL 用户创建、 PHP 扩展依赖、还有一个 web 安装器把这些都重新校验一次。
 
 ## 8.1 下载
 
@@ -440,16 +440,16 @@ sudo mysql -e "
 
 两点注意：
 
--   `discuz.*`——授权范围是单一数据库。Discuz 即使被打穿，攻击者也读不到你别的应用的表。
--   `'discuz_user'@'localhost'`——主机部分是身份的一部分。同名用户从不同主机来是不同用户。走 unix socket 算 `'localhost'`，TCP 到 `127.0.0.1` 算 `'127.0.0.1'`。如果 `mysql_secure_installation` 之后这两个不等价，两个都要授权。
+-   `discuz.*`——授权范围是单一数据库。 Discuz 即使被打穿，攻击者也读不到你别的应用的表。
+-   `'discuz_user'@'localhost'`——主机部分是身份的一部分。同名用户从不同主机来是不同用户。走 unix socket 算 `'localhost'`， TCP 到 `127.0.0.1` 算 `'127.0.0.1'`。如果 `mysql_secure_installation` 之后这两个不等价，两个都要授权。
 
 ## 8.4 跑安装器
 
 访问 `http://你的公网IP/install/`。三件事会发生：
 
-1.  **环境检查**——PHP 版本、GD、mbstring、mysqli。缺哪个就 `sudo apt install -y php-<扩展> && sudo systemctl reload apache2`。
+1.  **环境检查**——PHP 版本、 GD、 mbstring、 mysqli。缺哪个就 `sudo apt install -y php-<扩展> && sudo systemctl reload apache2`。
 2.  **权限检查**——`data/`、`config/`、`uc_server/data/`、`uc_client/data/` 旁边都应该是绿色的勾。没勾就回 8.2 重新检查。
-3.  **数据库信息**——host 填 `localhost`，name `discuz`，user `discuz_user`，密码用上面设的。
+3.  **数据库信息**——host 填 `localhost`， name `discuz`， user `discuz_user`，密码用上面设的。
 
 装完之后：
 
@@ -488,11 +488,11 @@ sudo -u www-data cat /var/www/html/index.php # web 用户能读吗
 grep -r DirectoryIndex /etc/apache2/
 ```
 
-修复方案 99% 是 `chown -R www-data:www-data /var/www/html`——你以 root 身份 `wget` 了某个东西，web 用户读不动。
+修复方案 99% 是 `chown -R www-data:www-data /var/www/html`——你以 root 身份 `wget` 了某个东西， web 用户读不动。
 
 ## 故障 3 —— 浏览器里看到 PHP 源码
 
-**含义：** Apache 把 `.php` 当成静态文件返回了，PHP 处理器没注册。
+**含义：** Apache 把 `.php` 当成静态文件返回了， PHP 处理器没注册。
 
 ```bash
 apache2ctl -M | grep php_module    # 没输出？PHP 模块没启用
@@ -505,7 +505,7 @@ curl -s http://127.0.0.1/info.php | head -n 1   # 应该是 HTML，不是 <?php
 
 ## 故障 4 ——「Can't connect to MySQL server on 'localhost'」
 
-**含义：** MySQL 没跑、socket 路径变了、或凭据错了。
+**含义：** MySQL 没跑、 socket 路径变了、或凭据错了。
 
 ```bash
 sudo systemctl status mysql
@@ -513,7 +513,7 @@ sudo journalctl -u mysql -n 100 --no-pager
 mysql -u discuz_user -p -h 127.0.0.1 -e 'SELECT 1'
 ```
 
-小规格实例上常见原因：MySQL 被 OOM-killed。`dmesg | tail -50` 会显示 `Killed process ... mysqld`。要么把 `innodb_buffer_pool_size` 调小，要么换更大的实例。
+小规格实例上常见原因： MySQL 被 OOM-killed。`dmesg | tail -50` 会显示 `Killed process ... mysqld`。要么把 `innodb_buffer_pool_size` 调小，要么换更大的实例。
 
 ## 故障 5 —— Discuz 提示「目录不可写」
 
@@ -609,7 +609,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 几乎每个能跑起来的 LAMP 站，最终都会撞到单机拓扑的天花板，然后要决定是纵向扩（更大的 ECS）还是横向拆（拆三层）。上图就是这个决定的两个目的地。
 
-**继续单机的条件**：峰值流量塞得进一台机器，数据库小到缓冲池能盖住热数据，团队就一个工程师。PHP 和 MySQL 之间走 localhost 的连接比任何网络调用都快，运维面只是一个操作系统要打补丁。
+**继续单机的条件**：峰值流量塞得进一台机器，数据库小到缓冲池能盖住热数据，团队就一个工程师。 PHP 和 MySQL 之间走 localhost 的连接比任何网络调用都快，运维面只是一个操作系统要打补丁。
 
 **该拆三层的信号**：需要横向扩容（SLB 后挂多个 PHP worker），需要高可用（RDS 直接给你主备），或者你为单台 ECS 付的钱已经超过两台小 ECS + 一个 RDS。阿里云上经典三层：
 
@@ -619,11 +619,11 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 成本大致变成 3 倍，故障面从「一台机器」变成「多台机器加一段网络」，运维确实更难。别因为图画得好看就迁——单机真的扛不住了再迁。
 
-## 12. 源码编译 MySQL（进阶）
+## 12. 源码编译 MySQL （进阶）
 
-通常你不需要这么干。除非有具体理由——发行版省了某个编译选项、合规要求锁死某个版本、上游还没 merge 的补丁——否则用包管理器。源码编译的代价是真的：编译几个小时、没自动安全更新、CVE 全靠你自己跟。
+通常你不需要这么干。除非有具体理由——发行版省了某个编译选项、合规要求锁死某个版本、上游还没 merge 的补丁——否则用包管理器。源码编译的代价是真的：编译几个小时、没自动安全更新、 CVE 全靠你自己跟。
 
-如果一定要做，CentOS 上编译 MySQL 5.6 的标准咒语：
+如果一定要做， CentOS 上编译 MySQL 5.6 的标准咒语：
 
 ```bash
 sudo yum install -y gcc gcc-c++ cmake bison \
@@ -737,10 +737,10 @@ sudo apt install -y php5.6-fpm php8.1-fpm
 很常见的连环反应：流量翻倍，站点开始对 5% 的请求返回 502。原因链几乎总是同一个：
 
 1.  Apache prefork 打满 `MaxRequestWorkers`，新连接开始排队。
-2.  PHP-FPM 打满 `pm.max_children`，Apache 从 FPM socket 拿到的就是 502。
-3.  MySQL 打满 `max_connections`，PHP-FPM worker 阻塞在拿连接的位置直到超时。
+2.  PHP-FPM 打满 `pm.max_children`， Apache 从 FPM socket 拿到的就是 502。
+3.  MySQL 打满 `max_connections`， PHP-FPM worker 阻塞在拿连接的位置直到超时。
 
-修法是把每一层的 worker pool 都调到比上一层略多。4 vCPU / 16 GiB 实例上一个起步参考：
+修法是把每一层的 worker pool 都调到比上一层略多。 4 vCPU / 16 GiB 实例上一个起步参考：
 
 ```ini
 # /etc/apache2/mods-available/mpm_event.conf
@@ -768,10 +768,10 @@ max_connections = 200
 阿里云 ECS 上的 LAMP 浓缩成一份 5 步清单：
 
 1.  **端口开对**——安全组、再操作系统防火墙、再一跳一跳验通。
-2.  **按顺序装**——Apache、MySQL、PHP，每装一个先验过再装下一个。
-3.  **每层验通**——Apache 出 HTML，PHP 跑得了，MySQL 连得上。三条命令，每次都跑。
+2.  **按顺序装**——Apache、 MySQL、 PHP，每装一个先验过再装下一个。
+3.  **每层验通**——Apache 出 HTML， PHP 跑得了， MySQL 连得上。三条命令，每次都跑。
 4.  **权限给得有意识**——`www-data` owns 该可写的部分，绝不 `chmod 777`。
-5.  **部署应用**——Discuz、WordPress、自己写的 PHP，套路都一样。
+5.  **部署应用**——Discuz、 WordPress、自己写的 PHP，套路都一样。
 
 接下来值得做的事：
 

@@ -245,7 +245,7 @@ About 7 minutes total, dominated by RDS and OpenSearch provisioning. Re-applies 
 
 A trimmed apply transcript:
 
-```
+```yaml
 Terraform will perform the following actions:
 
   # module.vpc.alicloud_vpc.this will be created

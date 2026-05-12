@@ -24,19 +24,19 @@ translationKey: "transfer-learning-4"
 ## 你将学到
 
 - N-way K-shot 评测协议，以及为什么标准训练方法会在上面失效
-- 度量学习：Siamese、Prototypical、Matching 和 Relation 网络
-- 元学习：MAML 及其一阶变体（FOMAML、Reptile）
+- 度量学习： Siamese、 Prototypical、 Matching 和 Relation 网络
+- 元学习： MAML 及其一阶变体（FOMAML、 Reptile）
 - 情节式训练：让训练难度与测试难度相匹配
 - 一个简洁、端到端的 Prototypical 网络 PyTorch 实现
 
-**前置知识：** 本系列第 1、2 篇；熟悉 PyTorch 和基础优化方法。
+**前置知识：** 本系列第 1、 2 篇；熟悉 PyTorch 和基础优化方法。
 
 ---
 ## 小样本学习的挑战
 
 ![5-way 1-shot 评测：左侧支持集、右侧查询集](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/04-few-shot-learning/fig1_nway_kshot.png)
 
-### 问题设定：N-way K-shot
+### 问题设定： N-way K-shot
 
 为了方便论文之间的比较，社区统一了一套评估标准：
 
@@ -149,7 +149,7 @@ MAML 的思路简单却非常有效：找到一个初始化参数 $\theta$，使
 
 #### 一阶近似（FOMAML）
 
-精确的二阶 MAML 在参数维度 $d$ 上的内存开销是 $O(d^2)$，实现起来也复杂。FOMAML 直接去掉二阶项，用以下公式近似：
+精确的二阶 MAML 在参数维度 $d$ 上的内存开销是 $O(d^2)$，实现起来也复杂。 FOMAML 直接去掉二阶项，用以下公式近似：
 $$\nabla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),$$
 也就是直接用适配点上的梯度当作元梯度，假装 $\theta_i'$ 不依赖于 $\theta$。这样内存开销降到 $O(d)$，性能几乎没有变化。
 
@@ -207,7 +207,7 @@ for epoch in range(num_epochs):
 
 模型在训练时永远看不到完整的基类数据集。每次梯度更新都在模拟一个小样本任务，因此网络学到的归纳偏置正好是测试时需要的那种。这种训练方式本质上是一种课程学习，而课程的内容就是测试时的实际条件。
 
-一个有趣的实验可以验证这一点：关掉分幕训练，直接训练一个 $|C_{\text{base}}|$ 类的普通分类器，然后在冻结的特征上加一个线性分类头。如果 backbone 足够强（比如深 ResNet 或大量数据增强），这种简单的 "Baseline++" 方法完全可以媲美各种度量学习和元学习方法。Chen 等人在 ICLR 2019 的研究就用这个结果表明，分幕训练并没有大家想象的那么重要，真正关键的是 backbone 的容量和预训练的质量。
+一个有趣的实验可以验证这一点：关掉分幕训练，直接训练一个 $|C_{\text{base}}|$ 类的普通分类器，然后在冻结的特征上加一个线性分类头。如果 backbone 足够强（比如深 ResNet 或大量数据增强），这种简单的 "Baseline++" 方法完全可以媲美各种度量学习和元学习方法。 Chen 等人在 ICLR 2019 的研究就用这个结果表明，分幕训练并没有大家想象的那么重要，真正关键的是 backbone 的容量和预训练的质量。
 ## 这些方法到底效果如何？
 
 ![miniImageNet 5-way 评测：代表性方法的准确率](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/04-few-shot-learning/fig6_mini_imagenet.png)
@@ -218,7 +218,7 @@ for epoch in range(num_epochs):
 - **方法之间的结果很接近。** 只要 backbone 固定，原型网络、匹配网络、关系网络和 MAML 系列的结果基本都在几个百分点之内。选型时根据工程需求（比如实现简单性、计算预算、工具链支持）来决定就好，没必要为了最后一点精度纠结。
 
 ---
-## 完整实现：Prototypical 网络
+## 完整实现： Prototypical 网络
 
 ```python
 import torch
@@ -377,7 +377,7 @@ if __name__ == '__main__':
 
 | 组件                  | 功能                                         |
 |-----------------------|----------------------------------------------|
-| `ProtoNetEncoder`     | 4 块 CNN，miniImageNet 实验的标准 backbone   |
+| `ProtoNetEncoder`     | 4 块 CNN， miniImageNet 实验的标准 backbone   |
 | `compute_prototypes`  | 对每类的支持嵌入取均值                       |
 | `forward`             | 返回负欧氏距离作为 logits                    |
 | `EpisodeSampler`      | 每次迭代生成一个 N-way K-shot episode        |
@@ -401,10 +401,10 @@ if __name__ == '__main__':
 优先选择原型网络：实现简单、速度快、原型直观可解释，而且在标准图像任务上表现不输 MAML，甚至更好。以下三种情况可以考虑 MAML：(a) 任务差异大，彼此看起来完全不同；(b) 数据不是图像，也没有高质量的预训练嵌入；(c) 需要整个网络都参与适应，而不仅仅是最后的分类头。
 
 **基类数量需要多少？**  
-越多越好。标准基准数据集里，miniImageNet 用了 64 个基类，Omniglot 更是超过 1200 个。如果基类少于 30 个，模型很容易对基类本身过拟合，新类的准确率会大幅下降。
+越多越好。标准基准数据集里， miniImageNet 用了 64 个基类， Omniglot 更是超过 1200 个。如果基类少于 30 个，模型很容易对基类本身过拟合，新类的准确率会大幅下降。
 
 **这些方法适用于非图像数据吗？**  
-适用。原型网络对任何有合理嵌入的数据都有效——文本可以用 Transformer 编码器，图结构数据可以用 GNN，音频可以用频谱 CNN。MAML 和 Reptile 本身就是模型无关的算法。Episode 协议也不挑数据模态。
+适用。原型网络对任何有合理嵌入的数据都有效——文本可以用 Transformer 编码器，图结构数据可以用 GNN，音频可以用频谱 CNN。 MAML 和 Reptile 本身就是模型无关的算法。 Episode 协议也不挑数据模态。
 
 **为什么一定要报告置信区间？**  
 单个 episode 的准确率波动很大，一个特别难的 episode 可能会让结果下降 10 到 20 个百分点。只有通过几百个 episode 的均值加上 95% 置信区间，才能让不同论文的结果具有可比性。
@@ -412,11 +412,11 @@ if __name__ == '__main__':
 
 小样本学习直击深度学习最大的实际痛点：长尾数据稀缺。
 
-- **度量学习**（Siamese、Prototypical、Matching、Relation Networks）构建一个嵌入空间，让距离直接反映不相似性。方法简单、速度快、结果直观，其中原型网络（Prototypical Networks）是最常用的默认选择。
-- **元学习**（MAML、FOMAML、Reptile）寻找一个初始化点，从这里出发只需几步梯度更新就能适应新任务。灵活性更高，但计算成本也更大，解释性稍弱。
+- **度量学习**（Siamese、 Prototypical、 Matching、 Relation Networks）构建一个嵌入空间，让距离直接反映不相似性。方法简单、速度快、结果直观，其中原型网络（Prototypical Networks）是最常用的默认选择。
+- **元学习**（MAML、 FOMAML、 Reptile）寻找一个初始化点，从这里出发只需几步梯度更新就能适应新任务。灵活性更高，但计算成本也更大，解释性稍弱。
 - **Episode 训练** 是统一的训练框架：每次迭代都模拟一个全新的小样本任务，确保训练难度和测试难度一致。
 
-横向对比发现一个常被忽视的事实：一旦固定 backbone，不同方法的性能差距迅速缩小。这提醒我，backbone 的容量和预训练质量，至少和小样本算法本身一样重要。
+横向对比发现一个常被忽视的事实：一旦固定 backbone，不同方法的性能差距迅速缩小。这提醒我， backbone 的容量和预训练质量，至少和小样本算法本身一样重要。
 
 下一篇 [第 5 章——知识蒸馏](/zh/transfer-learning/05-知识蒸馏/)，我会换个方向，看看如何把一个庞大的教师模型压缩成一个轻量级的学生模型，同时保持性能接近。 
 

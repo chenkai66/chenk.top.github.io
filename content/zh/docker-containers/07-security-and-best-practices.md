@@ -16,7 +16,7 @@ series_order: 7
 translationKey: "docker-containers-7"
 ---
 
-Docker 默认配置优先便利性而非安全性：开箱即用时容器以 root（UID 0）运行、拥有大量 Linux capabilities、且根文件系统默认可写。开发环境或可容忍，但生产环境极其危险——若存在容器逃逸（container escape）漏洞且容器以 root 运行，攻击者将直接接管宿主机。让我们来修复这个问题。
+Docker 默认配置优先便利性而非安全性：开箱即用时容器以 root （UID 0）运行、拥有大量 Linux capabilities、且根文件系统默认可写。开发环境或可容忍，但生产环境极其危险——若存在容器逃逸（container escape）漏洞且容器以 root 运行，攻击者将直接接管宿主机。让我们来修复这个问题。
 
 ## 威胁模型
 
@@ -36,7 +36,7 @@ Docker 默认配置优先便利性而非安全性：开箱即用时容器以 roo
 
 ## 以非 root 用户身份运行
 
-默认情况下，Docker 容器进程以 root（UID 0）运行——该身份与宿主机 root 相同（启用 user namespaces 除外）；一旦容器逃逸，攻击者即获得宿主机 root 权限。
+默认情况下， Docker 容器进程以 root （UID 0）运行——该身份与宿主机 root 相同（启用 user namespaces 除外）；一旦容器逃逸，攻击者即获得宿主机 root 权限。
 
 ![Rootless containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png)
 
@@ -132,7 +132,7 @@ docker exec default-container id
 docker run --read-only myapp
 ```
 
-大多数应用仍需向某些路径写入（临时文件、缓存、PID 文件）。可使用 `tmpfs` 提供可写区域：
+大多数应用仍需向某些路径写入（临时文件、缓存、 PID 文件）。可使用 `tmpfs` 提供可写区域：
 
 ```bash
 # 根文件系统只读，同时允许 `/tmp` 和 `/var/run` 写入
@@ -239,7 +239,7 @@ docker exec my-container capsh --decode=00000000a80425fb
 
 ## 密钥管理（Secrets Management）
 
-密钥（API keys、数据库密码、TLS 证书）是容器化应用最典型的安全失守环节。
+密钥（API keys、数据库密码、 TLS 证书）是容器化应用最典型的安全失守环节。
 
 ### 错误的密钥处理方式
 
@@ -387,7 +387,7 @@ Total: 3 (HIGH: 2, MEDIUM: 1)
 +-------------------+------------------+----------+-------------------+-------------------+
 ```
 
-Trivy 同时扫描操作系统包和应用依赖（pip、npm、gem 等）。
+Trivy 同时扫描操作系统包和应用依赖（pip、 npm、 gem 等）。
 
 ```bash
 # 仅扫描 CRITICAL 和 HIGH 级别漏洞
@@ -455,7 +455,7 @@ ENTRYPOINT ["python3", "app.py"]
 
 缺点：调试更困难（无法 `exec` 进入容器）。可参考上一篇文章中的“临时调试容器”技巧。
 
-### Scratch 镜像（Go、Rust）
+### Scratch 镜像（Go、 Rust）
 
 对于静态编译语言，可直接使用 `scratch`（真正空镜像）：
 
@@ -491,7 +491,7 @@ docker push myrepo/myapp:v1.0
 # Docker 将提示输入签名口令
 ```
 
-DCT 基于 The Update Framework（TUF）管理密钥与签名。启用后：  
+DCT 基于 The Update Framework （TUF）管理密钥与签名。启用后：  
 - `docker pull` 验证镜像是否由可信发布者签名  
 - `docker push` 使用你的密钥对镜像签名  
 - 未签名镜像将被拒绝  
@@ -561,7 +561,7 @@ docker run --pids-limit 100 myapp
 
 ### Seccomp 配置文件
 
-Seccomp（Secure Computing Mode）用于过滤容器可调用的系统调用。Docker 默认 seccomp 配置文件屏蔽了约 60 个高危 syscall：
+Seccomp （Secure Computing Mode）用于过滤容器可调用的系统调用。 Docker 默认 seccomp 配置文件屏蔽了约 60 个高危 syscall：
 
 ![Seccomp syscall filtering](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-seccomp-profile.png)
 
@@ -579,7 +579,7 @@ docker run --security-opt seccomp=unconfined myapp
 
 ### AppArmor 与 SELinux
 
-Docker 自动应用 AppArmor（Ubuntu/Debian）或 SELinux（RHEL/CentOS）配置文件：
+Docker 自动应用 AppArmor （Ubuntu/Debian）或 SELinux （RHEL/CentOS）配置文件：
 
 ```bash
 # 查看 AppArmor 配置文件
@@ -622,7 +622,7 @@ services:
 | 镜像中不存放密钥 | 关键 | 使用运行时环境变量、挂载文件或 Docker secrets |
 | 使用多阶段构建 | 高 | 构建工具不进入生产镜像 |
 | 启用 `no-new-privileges` | 中 | `--security-opt no-new-privileges:true` |
-| 使用最小化基础镜像 | 中 | Alpine、distroless 或 scratch |
+| 使用最小化基础镜像 | 中 | Alpine、 distroless 或 scratch |
 | 锁定依赖版本 | 中 | lockfiles、精确版本号 |
 | 设置 PID 限制 | 中 | `--pids-limit 100` |
 | 启用内容信任 | 中 | `DOCKER_CONTENT_TRUST=1` |

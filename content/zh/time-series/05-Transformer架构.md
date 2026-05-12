@@ -21,7 +21,7 @@ translationKey: "time-series-5"
 - 为什么必须加入位置信息，正弦编码、学习式编码和时间感知编码各自有什么不同
 - 多头注意力在时间序列上到底学到了什么
 - 朴素 attention 的瓶颈在哪里（O(n²)），以及四种改进方向：稀疏、线性、分块、仅解码器
-- 提供一份清晰的 PyTorch 参考实现，教你如何选择 Autoformer、FEDformer、Informer 或 PatchTST
+- 提供一份清晰的 PyTorch 参考实现，教你如何选择 Autoformer、 FEDformer、 Informer 或 PatchTST
 ## 前置知识
 
 - 自注意力和多头注意力（第 4 篇）
@@ -34,7 +34,7 @@ translationKey: "time-series-5"
 LSTM 和 GRU 按时间步顺序处理序列，由此引发三个固有缺陷：
 
 1. **路径长度是 O(L)**。信息从第 $t-L$ 步传到第 $t$ 步，需要经过 $L$ 次递归。这就是梯度消失的根源。
-2. **训练只能串行**。第 $t+1$ 步必须等第 $t$ 步跑完才能开始，GPU 很多时候都闲着。
+2. **训练只能串行**。第 $t+1$ 步必须等第 $t$ 步跑完才能开始， GPU 很多时候都闲着。
 3. **隐状态是个瓶颈**。模型要把所有可能用到的历史信息压缩到一个固定大小的向量里。
 
 自注意力机制一次性解决了这三个问题：每个位置仅需一次矩阵乘法，即可聚合所有其他位置的信息，任意两步之间的路径长度缩短为 $O(1)$，整个序列可以并行处理。代价是显存占用：存储 $n \times n$ 的注意力权重需要 $O(n^2)$ 的空间，这个问题我会在第 5 节和第 7 节详细讨论。
@@ -51,7 +51,7 @@ LSTM 和 GRU 按时间步顺序处理序列，由此引发三个固有缺陷：
 | 位置信息     | 基于 token 索引的正弦编码          | **时间感知**编码（日历特征、不等间隔时间差）          |
 | 输出头       | 对词汇表做 softmax                | 使用**线性层**输出实值预测向量                        |
 
-其他部分完全不变：多头自注意力、前馈网络、残差连接、LayerNorm、解码器 cross-attention、因果掩码。每个 block 包含四个子层：
+其他部分完全不变：多头自注意力、前馈网络、残差连接、 LayerNorm、解码器 cross-attention、因果掩码。每个 block 包含四个子层：
 
 $$\begin{aligned}
 h_1 &= \text{LayerNorm}(x + \text{MHSA}(x)) \\
@@ -71,11 +71,11 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\
 解码器的输入是**标签窗口**（历史数据最后 $L_{\text{label}}$ 步）拼接上占位零（用于预测范围），输出是预测值 $\hat{y}_{t+1:t+H}$。每个 block 包含两层 attention：
 
 - **Masked self-attention**，带因果 mask，确保第 $t+k$ 步只能看到 $\le t+k-1$ 的位置。
-- **Cross-attention**，Query 来自解码器，Key 和 Value 来自编码器的 memory $M$。这也是解码器访问编码器输出的唯一途径。
+- **Cross-attention**， Query 来自解码器， Key 和 Value 来自编码器的 memory $M$。这也是解码器访问编码器输出的唯一途径。
 
 ### 2.3 标签窗口：一个小技巧
 
-标准 encoder-decoder 架构在历史序列与预测序列的边界区域易产生预测偏差。Informer 和 Autoformer 的解决办法是给解码器喂 $L_{\text{label}}$ 步**已知历史**加上 $H$ 个零占位符。这样解码器从一个已知状态开始，逐步推进到未知区域。
+标准 encoder-decoder 架构在历史序列与预测序列的边界区域易产生预测偏差。 Informer 和 Autoformer 的解决办法是给解码器喂 $L_{\text{label}}$ 步**已知历史**加上 $H$ 个零占位符。这样解码器从一个已知状态开始，逐步推进到未知区域。
 ## 3. 时间序列的位置编码
 
 自注意力机制是排列不变的——打乱输入，输出不会变。在 NLP 中这是个问题，在时间序列中则是灾难。我用正弦编码来注入位置信息：
@@ -91,7 +91,7 @@ $$\text{PE}_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right), \qquad
 时间序列通常需要比“步索引”更丰富的**位置信息**：
 
 - **日历特征**：小时、星期、月份、节假日标志。每个特征都有独立的可学习 embedding，并加到输入上。
-- **非均匀采样**：用实际时间戳 $\tau_p$ 替换位置 $p$，并归一化。Time2Vec 和 Continuous-Time Transformer 就是这么做的。
+- **非均匀采样**：用实际时间戳 $\tau_p$ 替换位置 $p$，并归一化。 Time2Vec 和 Continuous-Time Transformer 就是这么做的。
 - **相对位置**：直接在 attention score 中编码 $\tau_q - \tau_k$（T5 / TUPE 风格），更适合超长上下文。
 
 ```python
@@ -144,20 +144,20 @@ class TemporalPositionalEncoding(nn.Module):
 Transformer 的 **可解释性** 就来源于此：把最后一层的注意力头平均一下，就能知道预测依赖哪些历史步数。
 ## 5. O(n²) 瓶颈
 
-朴素 attention 每层每个头都需要存一个 $n \times n$ 的 score 矩阵。以 fp16 精度计算，8 个注意力头下，每层注意力模块的显存开销为：
+朴素 attention 每层每个头都需要存一个 $n \times n$ 的 score 矩阵。以 fp16 精度计算， 8 个注意力头下，每层注意力模块的显存开销为：
 
 $$M_{\text{attn}} = h \cdot n^2 \cdot 2 \;\text{bytes}.$$
 
 $n=512$ 时占 4 MB，完全没问题；$n=4096$ 时占 256 MB，开始吃力；$n=16384$ 时单层光注意力矩阵就要 4 GB 以上。计算量也一样，每层是 $O(n^2 d_{\text{model}})$ FLOPs。
 
 ![注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步后就跑不动了；稀疏、线性、Patching 三类方案能把开销压回可控范围。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig5_quadratic_bottleneck.png)
-*图 5. 注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步后就跑不动了；稀疏、线性、Patching 三类方案能把开销压回可控范围。*
+*图 5. 注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步后就跑不动了；稀疏、线性、 Patching 三类方案能把开销压回可控范围。*
 
 解决这个问题有四类方法，按对模型改动的大小排序：
 
-1. **稀疏注意力**（Longformer、BigBird、Informer 的 ProbSparse）：只计算 $(q, k)$ 对的一个稀疏子集。复杂度降到 $O(n \cdot w)$，其中 $w$ 是窗口大小或选中的 key 数量。
-2. **线性注意力**（Performer、Linformer、Nystromformer）：用可分解的核函数替换 softmax，把复杂度降到 $O(n \cdot d^2)$。
-3. **Patching**（PatchTST、Autoformer 风格的序列分解）：直接缩短序列，把连续几步合并成一个 patch。第 7 节会详细讲。
+1. **稀疏注意力**（Longformer、 BigBird、 Informer 的 ProbSparse）：只计算 $(q, k)$ 对的一个稀疏子集。复杂度降到 $O(n \cdot w)$，其中 $w$ 是窗口大小或选中的 key 数量。
+2. **线性注意力**（Performer、 Linformer、 Nystromformer）：用可分解的核函数替换 softmax，把复杂度降到 $O(n \cdot d^2)$。
+3. **Patching**（PatchTST、 Autoformer 风格的序列分解）：直接缩短序列，把连续几步合并成一个 patch。第 7 节会详细讲。
 4. **Decoder-only + KV cache**（第 6 节）：训练时还是 $O(n^2)$，但推理可以增量处理。
 
 实战中，如果 lookback 窗口在 2k 以内，预测步长在几百以内，朴素 attention 完全够用。再长的话，**Patching 是最划算的选择**——不仅大幅降低计算量，通常还能提升精度。
@@ -188,22 +188,22 @@ def autoregressive_forecast(model, history: torch.Tensor, horizon: int):
 | 训练成本         | 两个堆栈                     | 一个堆栈                                |
 | 推理延迟         | 一次前向计算出 $H$ 步         | $H$ 次前向计算（带 KV cache 时成本低很多） |
 | 暴露偏差         | teacher forcing 可缓解       | 不用 scheduled sampling 就会有暴露偏差   |
-| 预训练迁移       | 不够自然                     | 天然适合——TimesFM、Lag-Llama、Chronos 都是这种架构 |
+| 预训练迁移       | 不够自然                     | 天然适合——TimesFM、 Lag-Llama、 Chronos 都是这种架构 |
 
-如果要用一个基础模型应对多种任务，decoder-only 已经成为主流选择。
+如果要用一个基础模型应对多种任务， decoder-only 已经成为主流选择。
 ## 7. Patching：最有效的提速方法
 
-PatchTST（Nie 等，ICLR 2023）提出了一个颠覆性的观点：**时间步并不是合适的 token**。一段长度为 512 的小时级序列，token 数量远超普通 NLP 句子，但每个“token”几乎没什么信息量。如果按 $P$ 步一组分成 patch，token 数量会减少到 $\lceil L / P \rceil$，每个 token 都能概括一小段波形。
+PatchTST （Nie 等， ICLR 2023）提出了一个颠覆性的观点：**时间步并不是合适的 token**。一段长度为 512 的小时级序列， token 数量远超普通 NLP 句子，但每个“token”几乎没什么信息量。如果按 $P$ 步一组分成 patch， token 数量会减少到 $\lceil L / P \rceil$，每个 token 都能概括一小段波形。
 
 ![Patching 策略。上：将长度 96 的序列分成 8 个大小为 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：随着 patch size 增大，attention 开销快速下降（O(n²) 的优势）。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig7_patching.png)
-*图 7. Patching 策略。上：将长度 96 的序列分成 8 个大小为 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：随着 patch size 增大，attention 开销快速下降（O(n²) 的优势）。*
+*图 7. Patching 策略。上：将长度 96 的序列分成 8 个大小为 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：随着 patch size 增大， attention 开销快速下降（O(n²) 的优势）。*
 
 为什么 patching 这么有效？
 
 - **注意力开销直接减少 $P^2$ 倍**。比如 $P=16$、$L=512$ 时，每头的注意力条目从 26 万降到约 1 千。
-- **每个 token 都有实际意义**。12 个小时组成一个 patch，正好是半天的有效单位；单个小时则没有这种意义。
-- **天然具备局部性偏置**。patch 内部的局部模式由线性投影处理，attention 只需建模 patch 之间的长程关系。
-- **通道独立性**。PatchTST 把每个变量当作独立序列，共享权重，避免了训练初期出现伪通道关联。
+- **每个 token 都有实际意义**。 12 个小时组成一个 patch，正好是半天的有效单位；单个小时则没有这种意义。
+- **天然具备局部性偏置**。 patch 内部的局部模式由线性投影处理， attention 只需建模 patch 之间的长程关系。
+- **通道独立性**。 PatchTST 把每个变量当作独立序列，共享权重，避免了训练初期出现伪通道关联。
 
 ```python
 class PatchEmbedding(nn.Module):
@@ -266,7 +266,7 @@ class TimeSeriesTransformer(nn.Module):
 | 变体         | 核心思想                                      | 最佳适用场景                   | 年份 |
 |--------------|-----------------------------------------------|--------------------------------|------|
 | **Vanilla**  | 编码器-解码器 + 正弦 PE                       | lookback < 1k，需要基线模型     | 2017 |
-| **Informer** | ProbSparse 注意力 + 标签窗口                  | 超长 lookback（5k-10k）         | 2021 |
+| **Informer** | ProbSparse 注意力 + 标签窗口                  | 超长 lookback （5k-10k）         | 2021 |
 | **Autoformer** | 序列分解 + auto-correlation 替代 self-attention | 数据周期性强、规律清晰          | 2021 |
 | **FEDformer** | 频域注意力                                    | 周期性数据，预测跨度大          | 2022 |
 | **PatchTST** | Patching + 通道独立                           | 多变量预测任务                 | 2023 |
@@ -277,18 +277,18 @@ class TimeSeriesTransformer(nn.Module):
 
 ### 10.1 预测质量
 
-我用一个带日周期和周周期的合成信号，加上随机尖峰，做了 96 步预测。Transformer 干净利落地捕捉到了两个周期，LSTM 能跟上主要的日周期，但在周周期上开始漂移。
+我用一个带日周期和周周期的合成信号，加上随机尖峰，做了 96 步预测。 Transformer 干净利落地捕捉到了两个周期， LSTM 能跟上主要的日周期，但在周周期上开始漂移。
 
 ![日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig4_lstm_vs_transformer.png)
-*图 4. 日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。*
+*图 4. 日 + 周双周期信号上的预测质量。 Transformer 锁住两个周期， LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。*
 
 ### 10.2 训练技巧（那些决定成败的小细节）
 
-- **优化器**：AdamW，$\beta = (0.9, 0.95)$。这是 GPT-3 的设置，默认的 0.999 对时间序列来说太慢了。
+- **优化器**： AdamW，$\beta = (0.9, 0.95)$。这是 GPT-3 的设置，默认的 0.999 对时间序列来说太慢了。
 - **学习率调度**：前 5%-10% 的步数做线性 warm-up，然后用余弦退火降到 0。没有 warm-up，深层 Transformer 很容易发散。
 - **学习率**：$d_{\text{model}}=128$ 时从 $1\text{e-}4$ 开始，模型更大就适当调低。
 - **梯度裁剪**：$\|g\| \le 1.0$，这一点没得商量。
-- **batch size**：能多大就多大，Transformer 在大 batch 下稳定性提升非常明显。
+- **batch size**：能多大就多大， Transformer 在大 batch 下稳定性提升非常明显。
 - **混合精度**（`torch.cuda.amp` 或 `bfloat16`）：速度提升 2-3 倍，精度几乎没有损失。
 - **训练轮数**：预测任务的 Transformer 通常需要 100-300 个 epoch，语言模型那种 3-10 个 epoch 的经验在这里不适用。
 
@@ -296,13 +296,13 @@ class TimeSeriesTransformer(nn.Module):
 
 - 用 **`torch.compile`**（PyTorch 2.x）：延迟直接降低 1.5-2 倍，完全免费。
 - decoder-only 部署时，一定要 **缓存 K 和 V**：这样每新增一步的复杂度从 $O(n^2)$ 降到 $O(n)$。
-- **可逆实例归一化**（RevIN，ICLR 2022）：推理时对每个输入序列做归一化，输出时再反归一化。一行代码的改动，彻底解决“训练数据和线上数据分布漂移”的老问题。
+- **可逆实例归一化**（RevIN， ICLR 2022）：推理时对每个输入序列做归一化，输出时再反归一化。一行代码的改动，彻底解决“训练数据和线上数据分布漂移”的老问题。
 ## 11. 常见问题与解决方法
 
 | 现象                                    | 可能原因                                           | 解决办法                                   |
 |-----------------------------------------|----------------------------------------------------|--------------------------------------------|
 | Loss 停在数据方差附近                   | 忘了归一化输入                                     | 按序列做 z-score，输出时反归一化           |
-| 几百步后 Loss 开始发散                  | 没有 warm-up；post-LN 配合学习率过高               | 加上线性 warm-up，设置 `norm_first=True`   |
+| 几百步后 Loss 开始发散                  | 没有 warm-up； post-LN 配合学习率过高               | 加上线性 warm-up，设置 `norm_first=True`   |
 | 验证集结果变成常数                      | 解码器的 mask 错误导致未来信息泄露                 | 确保 `tgt_mask` 是严格的上三角矩阵         |
 | lookback > 1024 时内存不足              | 使用了普通的 attention                             | 先尝试 patching，必要时改用稀疏或线性方法  |
 | 预测只跟随最近值，忽略趋势              | 位置信息未注入，或者 PE 被特征数值范围压制         | 将 PE 缩放到特征量级，添加日历特征         |
@@ -311,7 +311,7 @@ class TimeSeriesTransformer(nn.Module):
 
 Transformer 并不是什么魔法，它只是让每个时间步都能直接访问其他所有时间步的最简单架构，而且是并行处理。在时间序列问题中，有三点最关键：
 
-1. **位置信息就是输入**——如果位置信息不够好，Transformer 就分不清周一和周五。可以用正弦位置编码（PE）加上日历特征，或者对不规则数据使用相对位置。
+1. **位置信息就是输入**——如果位置信息不够好， Transformer 就分不清周一和周五。可以用正弦位置编码（PE）加上日历特征，或者对不规则数据使用相对位置。
 2. **标准注意力机制复杂度是 O(n²)**——但只有当时间步超过几千时才会成为问题。最简单的解决办法是 **Patching**，而且通常还能顺便提升精度。
 3. **根据数据选择合适的变体**——大多数多元预测问题用 PatchTST 或 iTransformer；周期性明显的场景用 FEDformer 或 Autoformer；如果是类似基础模型迁移的任务，则用 decoder-only 架构。
 

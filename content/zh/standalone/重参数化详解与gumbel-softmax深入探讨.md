@@ -136,9 +136,9 @@ $$\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),$$
 | $\mathrm{Exp}(\lambda)$ | $z=-\tfrac1\lambda\log(1-u)$, $u\sim\mathrm U(0,1)$ |
 | $\mathrm{Gumbel}(\mu,\beta)$ | $z=\mu-\beta\log(-\log u)$, $u\sim\mathrm U(0,1)$ |
 
-**反例**：Gamma、Beta、Dirichlet、Student-t 这些没有简单的位置-尺度形式，需要"隐式重参数化（implicit reparameterization gradients）"或路径求导技巧——这是 NeurIPS 2018 Figurnov 等人的工作（详见 §7）。
+**反例**： Gamma、 Beta、 Dirichlet、 Student-t 这些没有简单的位置-尺度形式，需要"隐式重参数化（implicit reparameterization gradients）"或路径求导技巧——这是 NeurIPS 2018 Figurnov 等人的工作（详见 §7）。
 
-## 三、离散分布的重参数化：Gumbel-Max 技巧
+## 三、离散分布的重参数化： Gumbel-Max 技巧
 
 ## 3.1 难点
 
@@ -157,7 +157,7 @@ $$\nabla_\alpha\,\mathbb E_{k\sim\mathrm{Cat}(\pi)}[f(k)]
 
 $$F(g)=\exp(-e^{-g}),\qquad f(g)=\exp\!\bigl(-(g+e^{-g})\bigr).$$
 
-它的众数在 $0$，均值在 $\gamma\approx 0.5772$（欧拉-马歇罗尼常数）。重要的是它是**极值分布**——独立同分布样本的最大值（在合适的标准化下）服从 Gumbel。Gumbel-Max 正是利用这一点。
+它的众数在 $0$，均值在 $\gamma\approx 0.5772$（欧拉-马歇罗尼常数）。重要的是它是**极值分布**——独立同分布样本的最大值（在合适的标准化下）服从 Gumbel。 Gumbel-Max 正是利用这一点。
 
 利用逆 CDF 采样很方便：
 
@@ -165,7 +165,7 @@ $$u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).$
 
 ![Gumbel distribution PDF/CDF/empirical](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig2_gumbel_pdf.png)
 
-> **左**：Gumbel(0,1) 的 PDF；**中**：通过 inverse-CDF 采样的几何示意；**右**：用 $-\log(-\log u)$ 生成 2 万样本，直方图与解析 PDF 完美吻合。
+> **左**： Gumbel(0,1) 的 PDF；**中**：通过 inverse-CDF 采样的几何示意；**右**：用 $-\log(-\log u)$ 生成 2 万样本，直方图与解析 PDF 完美吻合。
 
 ## 3.3 Gumbel-Max 技巧
 
@@ -198,15 +198,15 @@ $$\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alph
 
 ![Gumbel-Max trick](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig3_gumbel_max_trick.png)
 
-> **左**：目标 categorical 分布；**中**：单次实验，加 Gumbel 噪声后的 argmax 选中 c2；**右**：8000 次重复采样的经验频率与目标 softmax 高度吻合，验证了 Gumbel-Max 在期望意义下严格等价。
+> **左**：目标 categorical 分布；**中**：单次实验，加 Gumbel 噪声后的 argmax 选中 c2；**右**： 8000 次重复采样的经验频率与目标 softmax 高度吻合，验证了 Gumbel-Max 在期望意义下严格等价。
 
 ### 为什么这一招有用？
 
 - **采样高效**：只需 $K$ 个独立 Uniform 样本，一次 argmax，没有显式归一化、没有累积分布查找。
 - **数值稳定**：在 logits 上做加法后取 argmax，对常数平移免疫——softmax 中的 $\max$ 减法稳定性同理可得。
-- **更重要的**：这个表达把"采样的随机性"全部装进 $g$ 里，logits $\alpha$ 出现在确定性的 $\alpha+g$ 上——离"可微"只剩最后一步：把 $\arg\max$ 换成可微近似。
+- **更重要的**：这个表达把"采样的随机性"全部装进 $g$ 里， logits $\alpha$ 出现在确定性的 $\alpha+g$ 上——离"可微"只剩最后一步：把 $\arg\max$ 换成可微近似。
 
-## 四、Gumbel-Softmax：把 argmax 软化
+## 四、 Gumbel-Softmax：把 argmax 软化
 
 ## 4.1 定义
 
@@ -217,7 +217,7 @@ $$y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bi
 
 其中 $y\in\Delta^{K-1}$（$K-1$ 维概率单纯形），是一个连续向量。两端极限给出直观理解：
 
-- $\tau\to 0^+$：softmax 退化为 argmax 的指示向量，$y$ 趋于 one-hot，**接近真离散采样**；
+- $\tau\to 0^+$： softmax 退化为 argmax 的指示向量，$y$ 趋于 one-hot，**接近真离散采样**；
 - $\tau\to\infty$：$(\alpha_i+g_i)/\tau\to 0$，$y$ 趋于均匀向量 $(1/K,\dots,1/K)$。
 
 由于 $g$ 与 $\alpha$ 无关、并且 softmax 是处处可微的，$y$ 关于 $\alpha$（也就是关于上游网络参数 $\theta$）**可微**。这就是 Gumbel-Softmax 的核心：用一个连续可微的 $y$ 当作离散 one-hot 的"代理"。
@@ -231,13 +231,13 @@ $$y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bi
 > - $\tau=5$：极平滑、几乎均匀，**梯度方差小**但**严重偏离**真实离散采样；
 > - $\tau=1$：折中；
 > - $\tau=0.5$：开始接近 one-hot；
-> - $\tau=0.1$：几乎是 one-hot（看起来像柱状），**偏差小**但**方差大**（且 softmax 内部数值容易上下溢）。
+> - $\tau=0.1$：几乎是 one-hot （看起来像柱状），**偏差小**但**方差大**（且 softmax 内部数值容易上下溢）。
 
 可以从估计器层面写出这件事：用 Gumbel-Softmax 做 $\nabla_\alpha\,\mathbb E[f(z)]$ 的估计时，温度 $\tau$ 越小，$y$ 越接近真实 one-hot $z$，偏差越小；但 softmax 在 logit 差别大时的雅可比矩阵 $\partial y/\partial\alpha$ 元素呈 $1/\tau$ 量级，方差按 $\tau^{-2}$ 放大。
 
 **实践退火（annealing）建议**：
 
-- 起始 $\tau=1.0\sim 2.0$，end $\tau=0.1\sim 0.5$；
+- 起始 $\tau=1.0\sim 2.0$， end $\tau=0.1\sim 0.5$；
 - 指数退火 $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$，每 $\sim 1000$ 步衰减一次；
 - **不要**直接训到 $\tau\to 0$——softmax 数值会爆掉，且梯度方差会主导；让模型早期"看清楚"分布形状，后期再"硬化"。
 
@@ -288,9 +288,9 @@ $$\nabla_\theta\,\mathbb E_{z\sim q_\theta}[f(z)]
 降方差的常见手段：
 
 - **Baseline / Control variate**：把 $f(z)-b$ 代入，$b$ 是与 $z$ 无关的基线（如运行平均）；
-- **Rao-Blackwellization、antithetic、importance sampling**……
+- **Rao-Blackwellization、 antithetic、 importance sampling**……
 
-但即使各种 trick 上身，REINFORCE 的方差通常仍比重参数化高 $1\sim 3$ 个数量级。
+但即使各种 trick 上身， REINFORCE 的方差通常仍比重参数化高 $1\sim 3$ 个数量级。
 
 ## 5.2 实测对比
 
@@ -298,13 +298,13 @@ $$\nabla_\theta\,\mathbb E_{z\sim q_\theta}[f(z)]
 
 ![Variance: REINFORCE vs Gumbel-Softmax](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig5_discrete_pipeline.png)
 
-> **左侧管线**：logits → +Gumbel 噪声 → /τ → softmax → $y_{\text{soft}}$；可选 argmax → $y_{\text{hard}}$，结合 STE，即可前向硬、反向软。**右侧曲线**：横轴是每次梯度估计使用的样本数，纵轴是估计的方差（log-log）。Gumbel-Softmax（$\tau=0.5$）始终低 REINFORCE 一个数量级以上，且两者方差都按 $1/n$ 下降（斜率 $-1$）。
+> **左侧管线**： logits → +Gumbel 噪声 → /τ → softmax → $y_{\text{soft}}$；可选 argmax → $y_{\text{hard}}$，结合 STE，即可前向硬、反向软。**右侧曲线**：横轴是每次梯度估计使用的样本数，纵轴是估计的方差（log-log）。 Gumbel-Softmax （$\tau=0.5$）始终低 REINFORCE 一个数量级以上，且两者方差都按 $1/n$ 下降（斜率 $-1$）。
 
 这就是为什么有了重参数化，离散变量的端到端训练才真正可用。
 
 ## 六、完整 PyTorch 实现：连续 VAE 与离散 VAE
 
-## 6.1 连续 VAE（重参数化）
+## 6.1 连续 VAE （重参数化）
 
 ```python
 import torch
@@ -354,7 +354,7 @@ def vae_loss(logits_x, x, mu, logvar):
 - KL 项闭式而非采样，减少梯度方差；
 - 可选 KL 退火（$\beta$-VAE 的 $\beta$ 从 0 慢慢升到 1）以缓解后验坍塌。
 
-## 6.2 离散隐变量 VAE（Categorical + Gumbel-Softmax）
+## 6.2 离散隐变量 VAE （Categorical + Gumbel-Softmax）
 
 ```python
 class CategoricalVAE(nn.Module):
@@ -390,7 +390,7 @@ def cat_vae_loss(logits_x, x, q_logits):
 
 **实现要点**：
 
-- 把每个隐变量看作 $K$-类分类，logits 形状 `[B, n_cat, K]`，**最后一维** softmax；
+- 把每个隐变量看作 $K$-类分类， logits 形状 `[B, n_cat, K]`，**最后一维** softmax；
 - KL 用 categorical 闭式 $\mathrm{KL}(q\|\mathrm{Uniform})=\log K - H(q)$，不用采样；
 - `hard=True` 走 ST-GS，能保证下游真离散；`hard=False` 走纯 soft，梯度更稳；
 - 退火：`tau0=1.0`，`tau_min=0.5`，`r=1e-5`（每 1000 步检查一次）。
@@ -399,26 +399,26 @@ def cat_vae_loss(logits_x, x, q_logits):
 
 | 现象 | 可能原因 | 修复 |
 |------|----------|------|
-| **NaN loss** | $\tau$ 退到太小，softmax 上下溢；或 $\log(-\log u)$ 中 $u=0$ | clamp $u\in[\epsilon, 1-\epsilon]$；$\tau_{\min}\ge 0.1$ |
+| **NaN loss** | $\tau$ 退到太小， softmax 上下溢；或 $\log(-\log u)$ 中 $u=0$ | clamp $u\in[\epsilon, 1-\epsilon]$；$\tau_{\min}\ge 0.1$ |
 | **梯度方差炸** | 一次只采 1 个样本 + $\tau$ 过小 | 增加每 batch 的 MC 样本数；$\tau$ 退火节奏放慢 |
 | **离散结构不"硬"** | 一直用 soft 输出做评估 | 推断时 `hard=True` 或 `argmax`；训练后期切 ST-GS |
 | **后验坍塌**（连续 VAE） | KL 一开始就太强 | $\beta$ 从 0 退到 1；用 free-bits |
-| **离散 VAE 不学结构** | 解码器太强、KL 太弱 | 弱化 decoder 容量；降 KL 权重再升回来 |
+| **离散 VAE 不学结构** | 解码器太强、 KL 太弱 | 弱化 decoder 容量；降 KL 权重再升回来 |
 | **梯度对 logit 不敏感** | $\tau$ 过大，输出趋均匀 | 降 $\tau$ 或加大学习率 |
 | **forward/backward 不一致** | 用了 ST-GS 却没把 `.detach()` 写对 | 复查 `y_hard - y_soft.detach() + y_soft` 这一行 |
 
 ## 八、最新研究进展（Recent Work）
 
-- **Implicit Reparameterization Gradients**（Figurnov et al., NeurIPS 2018）：用隐函数定理把 Gamma、Beta、Dirichlet、Student-t 等非位置-尺度族变成可重参数化，公式简洁、误差低。
-- **Rebar / Relax**（Tucker et al., NeurIPS 2017；Grathwohl et al., ICLR 2018）：把 Gumbel-Softmax 与 REINFORCE 结合，用神经网络学习控制变量，方差更低、估计无偏。
+- **Implicit Reparameterization Gradients**（Figurnov et al., NeurIPS 2018）：用隐函数定理把 Gamma、 Beta、 Dirichlet、 Student-t 等非位置-尺度族变成可重参数化，公式简洁、误差低。
+- **Rebar / Relax**（Tucker et al., NeurIPS 2017； Grathwohl et al., ICLR 2018）：把 Gumbel-Softmax 与 REINFORCE 结合，用神经网络学习控制变量，方差更低、估计无偏。
 - **Hard Concrete Gates**（Louizos et al., ICLR 2018）：把 Concrete/Gumbel-Softmax 拉伸 + 截断到 $[0,1]$，得到带"严格 0"的可微门控，用于 $L_0$ 正则化与稀疏化。
 - **Top-$k$ Gumbel** 与 **Plackett-Luce**：把 Gumbel-Max 推广到"无放回采样 $k$ 个类别"，用于稀疏注意力与 routing。
-- **Permutation-equivariant relaxations**（Mena et al., ICLR 2018）：Sinkhorn 算子 + Gumbel 噪声，对**置换矩阵**做可微近似。
+- **Permutation-equivariant relaxations**（Mena et al., ICLR 2018）： Sinkhorn 算子 + Gumbel 噪声，对**置换矩阵**做可微近似。
 
 ## 总结
 
 - 连续场景下，重参数化把"随机变量 $z$"改写为"噪声 $\epsilon$ + 可微变换 $g_\theta$"，让梯度顺着确定性路径回到参数；这是 VAE 等深度生成模型可以用 SGD 稳定训练的关键。
-- 离散场景下，Gumbel-Max 给出"加 Gumbel 噪声后取 argmax = softmax 采样"的精确等价；Gumbel-Softmax 把 argmax 软化成温度 $\tau$ 的 softmax，让整个采样可微。
+- 离散场景下， Gumbel-Max 给出"加 Gumbel 噪声后取 argmax = softmax 采样"的精确等价； Gumbel-Softmax 把 argmax 软化成温度 $\tau$ 的 softmax，让整个采样可微。
 - 温度 $\tau$ 是核心超参：小 $\tau$ 偏差小但方差大；大 $\tau$ 反之。退火策略（先大后小）是训练稳定的关键。
 - 需要严格离散输出时用 ST-GS：前向 hard、反向 soft，是工程上最常用的折中。
 - 与 REINFORCE 相比，重参数化路径估计的梯度方差小 $1\sim 3$ 个数量级，是离散结构能端到端训练的物质基础。

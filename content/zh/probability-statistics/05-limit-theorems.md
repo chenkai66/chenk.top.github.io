@@ -16,7 +16,7 @@ series_order: 5
 translationKey: "probability-statistics-5"
 ---
 
-若你必须从全部概率论中仅挑选两个定理，那必然是**大数定律（LLN）**与**中心极限定理（CLT）**——它们共同回答了两个根本性问题。LLN 断言“是的，你的样本均值将收敛至真实均值”，CLT 则进一步指出“而这些波动的精确形态正是如此”。 若无这两个定理，民意调查将失去理论依据，临床试验结果无法令人信服，随机梯度下降（SGD）的收敛性也无从解释。
+若你必须从全部概率论中仅挑选两个定理，那必然是**大数定律（LLN）**与**中心极限定理（CLT）**——它们共同回答了两个根本性问题。 LLN 断言“是的，你的样本均值将收敛至真实均值”， CLT 则进一步指出“而这些波动的精确形态正是如此”。 若无这两个定理，民意调查将失去理论依据，临床试验结果无法令人信服，随机梯度下降（SGD）的收敛性也无从解释。
 
 本文将严谨推导这两个定理，并首先厘清使结论精确化的各类“收敛”概念。
 
@@ -116,11 +116,11 @@ $$\bar{X}_n \xrightarrow{a.s.} \mu.$$
 
 SLLN 严格强于 WLLN：它不仅断言偏离概率趋于零，更声称在几乎所有样本路径上，均值序列都以普通微积分意义收敛至 $\mu$。其证明难度显著更高（通常需 Borel-Cantelli 引理或截断论证），故此处仅陈述而不予证明。
 
-**关键区别**：WLLN 表述为“对任意容差，大多数实验成功”；SLLN 则表述为“在单次无限长实验中，收敛必然发生”。
+**关键区别**： WLLN 表述为“对任意容差，大多数实验成功”； SLLN 则表述为“在单次无限长实验中，收敛必然发生”。
 
 ## 中心极限定理（CLT）
 
-LLN 指出样本均值收敛至 $\mu$；CLT 则揭示其**如何收敛**——通过刻画围绕 $\mu$ 的波动形态。
+LLN 指出样本均值收敛至 $\mu$； CLT 则揭示其**如何收敛**——通过刻画围绕 $\mu$ 的波动形态。
 
 **定理（CLT）。** 设 $X_1, X_2, \ldots$ 是 i.i.d. 随机变量，满足 $E[X_i] = \mu$ 且 $\text{Var}(X_i) = \sigma^2 \in (0, \infty)$。则：  
 $$\frac{\bar{X}_n - \mu}{\sigma / \sqrt{n}} \xrightarrow{d} \mathcal{N}(0, 1).$$  
@@ -129,7 +129,7 @@ $$\frac{S_n - n\mu}{\sigma\sqrt{n}} \xrightarrow{d} \mathcal{N}(0, 1).$$
 
 换言之：无论 $X_i$ 来自何种分布（只要具有有限均值与方差），标准化后的和均依分布收敛至标准正态分布。
 
-这正是高斯分布在各处涌现的原因。身高是众多遗传与环境因素之和；测量误差是诸多微小扰动之和；股票收益（粗略而言）是大量小额交易之和。CLT 断言：大量微小独立效应之和呈现正态性。
+这正是高斯分布在各处涌现的原因。身高是众多遗传与环境因素之和；测量误差是诸多微小扰动之和；股票收益（粗略而言）是大量小额交易之和。 CLT 断言：大量微小独立效应之和呈现正态性。
 
 ### 利用矩生成函数（MGF）的证明概要
 
@@ -172,7 +172,7 @@ $$P(X \geq 60) = P(X \geq 59.5) \approx 1 - \Phi\left(\frac{59.5 - 50}{5}\right)
 
 ## Berry-Esseen 定理
 
-CLT 的收敛速度如何？Berry-Esseen 定理给出了定量界。
+CLT 的收敛速度如何？ Berry-Esseen 定理给出了定量界。
 
 ![Berry-Esseen bound](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-berry-esseen.png)
 
@@ -181,7 +181,7 @@ CLT 的收敛速度如何？Berry-Esseen 定理给出了定量界。
 $$\sup_x \left|P(W_n \leq x) - \Phi(x)\right| \leq \frac{C \rho}{\sqrt{n}},$$  
 其中 $C$ 为绝对常数（目前最优已知值为 $C \leq 0.4748$）。
 
-该定理表明收敛速率为 $O(1/\sqrt{n})$：样本量翻倍，CDF 最大误差约减小 $\sqrt{2}$ 倍。
+该定理表明收敛速率为 $O(1/\sqrt{n})$：样本量翻倍， CDF 最大误差约减小 $\sqrt{2}$ 倍。
 
 ## CLT 对和与均值的应用
 
@@ -204,13 +204,13 @@ CLT 要求**有限方差**。若方差无穷，该定理可能彻底失效。
 
 $\text{Cauchy}(0,1)$ 分布的概率密度函数为 $f(x) = \frac{1}{\pi(1+x^2)}$。其均值与方差均不存在（积分发散）。
 
-对 i.i.d. 柯西随机变量，样本均值 $\bar{X}_n$ 与任一单个 $X_i$ 具有**相同分布**：$\bar{X}_n \sim \text{Cauchy}(0, 1)$。取平均毫无帮助：无任何收敛，CLT 完全失效。
+对 i.i.d. 柯西随机变量，样本均值 $\bar{X}_n$ 与任一单个 $X_i$ 具有**相同分布**：$\bar{X}_n \sim \text{Cauchy}(0, 1)$。取平均毫无帮助：无任何收敛， CLT 完全失效。
 
 **实践中如何检测重尾？** 若数据存在极端离群值、峰度极高（$\gamma_2 \gg 3$），或样本均值随数据量增加而无法稳定，很可能面临重尾分布。此时应：  
 - 使用**中位数**替代均值（更稳健）  
 - 使用**截尾均值**（剔除极端观测）  
 - 应用**Winsorization**（对极端值设限）  
-- 考虑专为重尾设计的分布（t 分布、Pareto 分布、稳定分布）
+- 考虑专为重尾设计的分布（t 分布、 Pareto 分布、稳定分布）
 
 柯西例子虽极端，但许多现实世界量（金融收益、保险损失、社交网络节点度分布）的尾部足够厚重，导致 CLT 收敛极慢或需极大样本量。
 
@@ -224,15 +224,15 @@ $$\bar{X}_n = X_1, \quad \text{Var}(\bar{X}_n) = \text{Var}(X_1),$$
 
 尽管经典 CLT 要求 i.i.d. 数据，若干扩展可处理相依观测：
 
-**鞅 CLT（Martingale CLT）。** 若 $\{S_n\}$ 是满足适当矩条件的鞅，则经缩放的鞅收敛至正态分布。应用于序贯分析与金融数学。
+**鞅 CLT （Martingale CLT）。** 若 $\{S_n\}$ 是满足适当矩条件的鞅，则经缩放的鞅收敛至正态分布。应用于序贯分析与金融数学。
 
-**混合序列 CLT（CLT for mixing sequences）。** 若 $X_i$ 与 $X_j$ 的依赖性随 $|i - j| \to \infty$ 足够快衰减（如 $\alpha$-混合或 $\phi$-混合条件），则仍成立 CLT，但需调整方差缩放。适用于诸多时间序列模型。
+**混合序列 CLT （CLT for mixing sequences）。** 若 $X_i$ 与 $X_j$ 的依赖性随 $|i - j| \to \infty$ 足够快衰减（如 $\alpha$-混合或 $\phi$-混合条件），则仍成立 CLT，但需调整方差缩放。适用于诸多时间序列模型。
 
 **Lindeberg-Feller CLT。** 针对独立（但未必同分布）变量的最一般版本。若 Lindeberg 条件成立（直观而言：无单一变量主导总和），则标准化和收敛至 $\mathcal{N}(0,1)$。
 
-核心启示：CLT 具鲁棒性。你只需依赖性随时间衰减，且无单项主导，而无需严格的 i.i.d.。
+核心启示： CLT 具鲁棒性。你只需依赖性随时间衰减，且无单项主导，而无需严格的 i.i.d.。
 
-## Glivenko-Cantelli 定理：CDF 版的大数定律
+## Glivenko-Cantelli 定理： CDF 版的大数定律
 
 LLN 断言 $\bar{X}_n \to \mu$；**Glivenko-Cantelli 定理**则是关于整个分布函数的更强结果。
 
@@ -242,9 +242,9 @@ $$\hat{F}_n(x) = \frac{1}{n} \sum_{i=1}^n \mathbf{1}_{X_i \leq x}.$$
 **定理（Glivenko-Cantelli）。** 若 $X_1, X_2, \ldots$ 是 i.i.d.，其 CDF 为 $F$，则：  
 $$\sup_x |\hat{F}_n(x) - F(x)| \xrightarrow{a.s.} 0.$$
 
-经验 CDF 一致收敛至真实 CDF。这正是直方图（经验分布）能可靠逼近底层分布的原因。Kolmogorov-Smirnov 检验即基于此：通过测度经验 CDF 与理论 CDF 的最大偏差，检验数据是否服从指定分布。
+经验 CDF 一致收敛至真实 CDF。这正是直方图（经验分布）能可靠逼近底层分布的原因。 Kolmogorov-Smirnov 检验即基于此：通过测度经验 CDF 与理论 CDF 的最大偏差，检验数据是否服从指定分布。
 
-**Dvoretzky-Kiefer-Wolfowitz（DKW）不等式**给出非渐近界：  
+**Dvoretzky-Kiefer-Wolfowitz （DKW）不等式**给出非渐近界：  
 $$P\left(\sup_x |\hat{F}_n(x) - F(x)| > \varepsilon\right) \leq 2e^{-2n\varepsilon^2}.$$  
 这是针对整个 CDF 的 Hoeffding 型指数集中不等式（而非仅针对均值）。它给出经验 CDF 的置信带：以至少 $1 - \alpha$ 的概率，真实 CDF 在处处距经验 CDF 不超过 $\pm\sqrt{\frac{\ln(2/\alpha)}{2n}}$。
 
@@ -353,13 +353,13 @@ $$P\left(|\bar{X}_n - \mu| \geq t\right) \leq 2\exp\left(-\frac{2nt^2}{(b-a)^2}\
 **示例。** 抛掷一枚均匀硬币 $n = 100$ 次，观察到 60% 或更多正面的概率是多少？  
 切比雪夫：$P(|\bar{X} - 0.5| \geq 0.1) \leq \frac{0.25}{100 \times 0.01} = 0.25$。  
 Hoeffding：$P(|\bar{X} - 0.5| \geq 0.1) \leq 2\exp(-2 \times 100 \times 0.01/1) = 2e^{-2} \approx 0.27$。  
-本例中两者相近，但当 $t$ 增大或对亚高斯变量，Hoeffding 显著更紧。
+本例中两者相近，但当 $t$ 增大或对亚高斯变量， Hoeffding 显著更紧。
 
 ### Chernoff 界
 
 对任意 $t > 0$ 及任意随机变量 $X$：  
 $$P(X \geq a) = P(e^{tX} \geq e^{ta}) \leq \frac{E[e^{tX}]}{e^{ta}} = \frac{M_X(t)}{e^{ta}}.$$  
-对 $t$ 优化可得最紧界。此即 **Chernoff 界**，Hoeffding 不等式即由此导出。
+对 $t$ 优化可得最紧界。此即 **Chernoff 界**， Hoeffding 不等式即由此导出。
 
 ## 连续映射定理（Continuous Mapping Theorem）
 
@@ -381,7 +381,7 @@ $$T_n = \frac{\bar{X}_n - \mu_0}{S_n/\sqrt{n}} = \frac{\sqrt{n}(\bar{X}_n - \mu_
 分子依分布收敛至 $\mathcal{N}(0, 1)$（CLT）；分母 $S_n/\sigma \xrightarrow{P} 1$（LLN 作用于样本方差）。由 Slutsky 定理，$T_n \xrightarrow{d} \mathcal{N}(0, 1)$。  
 这说明：即使 $\sigma$ 未知，对大样本仍可用 Z 检验——t 分布收敛至正态分布。
 
-## 为何机器学习有效：CLT 的关联
+## 为何机器学习有效： CLT 的关联
 
 随机梯度下降（SGD）通过一个大小为 $B$ 的 mini-batch 样本估计真实梯度 $\nabla L(\theta)$：  
 $$\hat{g} = \frac{1}{B} \sum_{i=1}^B \nabla \ell(\theta; x_i).$$  
@@ -391,7 +391,7 @@ $$\hat{g} \approx \mathcal{N}\left(\nabla L(\theta), \frac{\Sigma}{B}\right),$$
 
 该高斯近似具有实际意义：  
 - **噪声随 $O(1/\sqrt{B})$ 减小**：批量大小加倍，噪声仅减小 $\sqrt{2}$ 倍。  
-- **梯度噪声起正则化作用**：CLT 预测的高斯噪声有助于 SGD 逃离尖锐极小值，找到更平坦、泛化性更好的解。  
+- **梯度噪声起正则化作用**： CLT 预测的高斯噪声有助于 SGD 逃离尖锐极小值，找到更平坦、泛化性更好的解。  
 - **学习率与批量大小耦合**：“线性缩放规则”（$\text{lr} \propto B$）即源于 CLT 的缩放特性。
 
 CLT 不仅解释样本均值为何有效，更解释了为何含噪声的优化算法能收敛并泛化。

@@ -17,7 +17,7 @@ description: "钉钉、飞书（已弃用）、企业微信三种模式、微信
 disableNunjucks: true
 translationKey: "openclaw-quickstart-9"
 ---
-第五章快速对比了 Telegram、DingTalk 和 WeChat；本章则聚焦国内企业场景——所有渠道落地前均需通过公司 IT 部门审批。渠道众多，官方文档分散在数十个 README 中，网上的各类‘对比表’也大多过时。
+第五章快速对比了 Telegram、 DingTalk 和 WeChat；本章则聚焦国内企业场景——所有渠道落地前均需通过公司 IT 部门审批。渠道众多，官方文档分散在数十个 README 中，网上的各类‘对比表’也大多过时。
 
 下方矩阵表是我每次向他人推荐方案前必查的决策清单。
 
@@ -55,15 +55,15 @@ npx @openclaw-china/setup
 
 延迟数据取自业务高峰期北京/上海节点的往返消息耗时，主要瓶颈在于 webhook 投递链路——公众号与企微自建应用需经腾讯 dispatcher 中转，相比长轮询渠道额外增加 500–1000ms。
 
-消息格式支持比看起来更重要。Markdown 支持意味着 Agent 可发送代码块与格式化列表；DingTalk 和 WeCom 智能机器人对 GitHub-flavored markdown 兼容良好，微信渠道则仅支持纯文本或其私有 card schema。
+消息格式支持比看起来更重要。 Markdown 支持意味着 Agent 可发送代码块与格式化列表； DingTalk 和 WeCom 智能机器人对 GitHub-flavored markdown 兼容良好，微信渠道则仅支持纯文本或其私有 card schema。
 
 ## 三道题选型法
 
 请勿逐行对照表格，而应聚焦以下三个核心问题：
 
 1. **目标用户是谁？** 同事 → DingTalk 或 WeCom 长轮询。外部微信用户 → 企微自建应用或微信客服。个人使用者 → WorkBuddy
-2. **有公网 IP 吗？** 没有 → 只能选 DingTalk、WeCom 长轮询和 WorkBuddy。有 → 随便选。
-3. **需要群聊吗？** 要 → DingTalk、WeCom 长轮询或 WorkBuddy。客服和公众号渠道只能 1:1。
+2. **有公网 IP 吗？** 没有 → 只能选 DingTalk、 WeCom 长轮询和 WorkBuddy。有 → 随便选。
+3. **需要群聊吗？** 要 → DingTalk、 WeCom 长轮询或 WorkBuddy。客服和公众号渠道只能 1:1。
 
 实践中，我们常用以下两类技术栈：
 
@@ -96,7 +96,7 @@ npx @openclaw-china/setup
 
 ## 钉钉深潜 —— 那些坑
 
-**消息大小限制。** 单条消息文本上限 2048 字符，markdown card 上限 4096。如果 Agent 生成的回复更长，设 `dingtalk.autoChunk: true` —— 它会自动拆分，但你会看到多个消息气泡。
+**消息大小限制。** 单条消息文本上限 2048 字符， markdown card 上限 4096。如果 Agent 生成的回复更长，设 `dingtalk.autoChunk: true` —— 它会自动拆分，但你会看到多个消息气泡。
 
 **频率限制每秒 20 条消息。** 按机器人算，不是按用户。群聊活跃的话很容易触顶。插件会自动排队重试，但延迟会飙升。建议把重度用户拆分到不同的机器人实例。
 
@@ -118,11 +118,11 @@ npx @openclaw-china/setup
 
 **智能机器人注册。** 企业微信管理后台 → 应用管理 → 创建应用 → 机器人。马上拿到 webhook URL。长轮询模式的话，启用回调服务器，拿 `token` 和 `encodingAESKey`。不需要域名验证，不需要公网 IP。注意：智能机器人不能发起对话 —— 只能回复。
 
-**自建应用注册。** 需要：已验证域名（要 ICP 备案）、回调用的公网 IP、互通 license（~2000 RMB/年起）。拿到 license 后，外部微信用户能把你的机器人加为联系人。不能跟外部用户群聊，不支持流式，消息格式也受限。
+**自建应用注册。** 需要：已验证域名（要 ICP 备案）、回调用的公网 IP、互通 license （~2000 RMB/年起）。拿到 license 后，外部微信用户能把你的机器人加为联系人。不能跟外部用户群聊，不支持流式，消息格式也受限。
 
-**互通 license 成本。** 基础版（100 外部联系人）：~2000 RMB/年。中级版（1000 联系人）：~10000 RMB/年。企业版：50000 RMB/年起谈。如果测试，申请 3 个月试用（最多 50 联系人）。
+**互通 license 成本。** 基础版（100 外部联系人）：~2000 RMB/年。中级版（1000 联系人）：~10000 RMB/年。企业版： 50000 RMB/年起谈。如果测试，申请 3 个月试用（最多 50 联系人）。
 
-**会话管理。** 企业微信服务端不保存对话历史。`openclaw-china` 插件用 `(userId, channelId)` 键值的 session store 处理这个，30 分钟后过期。注意：用户 ID 是渠道隔离的 —— 同一个人在智能机器人和自建应用里 ID 不同。
+**会话管理。** 企业微信服务端不保存对话历史。`openclaw-china` 插件用 `(userId, channelId)` 键值的 session store 处理这个， 30 分钟后过期。注意：用户 ID 是渠道隔离的 —— 同一个人在智能机器人和自建应用里 ID 不同。
 
 ## WorkBuddy —— 桌面桥接
 
@@ -149,7 +149,7 @@ WorkBuddy 是腾讯官方的 QClaw 桥接，运行在你的桌面上，不需要
 }
 ```
 
-不要 API keys，不要 webhooks。插件在 localhost 跟 WorkBuddy 对话，WorkBuddy 替你跟微信/QQ 对话。
+不要 API keys，不要 webhooks。插件在 localhost 跟 WorkBuddy 对话， WorkBuddy 替你跟微信/QQ 对话。
 
 ## 迁移指南 —— 切换渠道
 
@@ -172,10 +172,10 @@ curl http://localhost:3000/api/channels/dingtalk/health
 
 **端到端测试** —— 每小时发条测试消息并验证回复。能抓到心跳漏掉的问题（比如 Agent 卡在重试循环里）。
 
-**重连模式** —— 健康状态：平均每数小时重连一次；异常状态：频繁重连（如每 30 秒一次）。查 gateway 日志里的 disconnect codes（1006 = 网络，1008 = 策略违规/IP 被封）。
+**重连模式** —— 健康状态：平均每数小时重连一次；异常状态：频繁重连（如每 30 秒一次）。查 gateway 日志里的 disconnect codes （1006 = 网络， 1008 = 策略违规/IP 被封）。
 
 ## 矩阵背后的教训
 
-渠道是 Agent 真正 *活着* 的地方。渠道不稳定，Agent 再好也不稳定。因此，在搞任何花哨功能之前，先选一个匹配受众和网络的渠道，然后过度投入将其搞稳。再加第二个做冗余。
+渠道是 Agent 真正 *活着* 的地方。渠道不稳定， Agent 再好也不稳定。因此，在搞任何花哨功能之前，先选一个匹配受众和网络的渠道，然后过度投入将其搞稳。再加第二个做冗余。
 
 其他都是瞎折腾。

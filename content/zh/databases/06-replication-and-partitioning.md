@@ -15,7 +15,7 @@ series_order: 6
 translationKey: "databases-6"
 ---
 
-一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：或许你需要的读吞吐量超出了单颗 CPU 的能力，或者需要让数据在数据中心火灾中幸存，又或者你的数据集已超出单块磁盘的容量。此时，你就需要**复制（Replication）**与**分片（Partitioning / Sharding）**。
+一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：可能是因为读吞吐量超出了单颗 CPU 的能力、需要数据在数据中心火灾中幸存，或数据集已超出单块磁盘的容量。此时，你就需要**复制（Replication）**与**分片（Partitioning / Sharding）**。
 
 这是两种正交的扩展策略：
 - **复制**：将**相同的数据**拷贝到多台机器上（提升可用性与读扩展能力）
@@ -36,7 +36,7 @@ translationKey: "databases-6"
 
 ### 主从复制（Leader-Follower / Master-Slave）
 
-最常用的复制拓扑结构是一个节点（称为主节点/Leader/Master/Primary）负责全部写操作，一个或多个从节点（Follower/Slave/Replica/Standby）接收所有写入的副本并可服务读请求。
+最常用的复制拓扑结构是主节点（Leader/Master/Primary）负责全部写操作，一个或多个从节点（Follower/Slave/Replica/Standby）接收所有写入的副本并可服务读请求。
 
 ![Leader-follower replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
 
@@ -173,9 +173,9 @@ WHERE user_id = 1;
 -- 但主节点 A 的变更被静默丢弃
 ```
 
-### 无主复制（Leaderless Replication，Dynamo 风格）
+### 无主复制（Leaderless Replication， Dynamo 风格）
 
-完全不设主节点，任何节点均可接受读写请求。Amazon DynamoDB、Apache Cassandra 和 Riak 均采用此模型。
+完全不设主节点，任何节点均可接受读写请求。 Amazon DynamoDB、 Apache Cassandra 和 Riak 均采用此模型。
 
 #### 法定人数读写（Quorum Reads and Writes）
 
@@ -212,7 +212,7 @@ R = 2（读取需从 2 个节点获取响应）
 |------|------|
 | W=N, R=1 | 强一致性写入，快速读取（写入代价高） |
 | W=1, R=N | 快速写入，强一致性读取（读取代价高） |
-| W=2, R=2（N=3） | 平衡型 —— 可容忍 1 个节点故障 |
+| W=2, R=2 （N=3） | 平衡型 —— 可容忍 1 个节点故障 |
 | W=1, R=1 | 快速但无一致性保证 |
 
 #### 读修复（Read Repair）与反熵（Anti-Entropy）
@@ -365,7 +365,7 @@ Cassandra 默认：每物理节点 256 个 vnode
   节点 11：分区 90–99, 190–199, ...（共接收约 91 个分区）
 ```
 
-**动态分区（Dynamic partitioning）**：初始仅设少量分区；当分区过大时分裂，过小时合并。HBase 和 MongoDB 采用此方式。
+**动态分区（Dynamic partitioning）**：初始仅设少量分区；当分区过大时分裂，过小时合并。 HBase 和 MongoDB 采用此方式。
 
 ### 分片数据库中的二级索引（Secondary Indexes）
 
@@ -544,11 +544,11 @@ START REPLICA;
 生产环境中，应使用编排工具实现自动化故障转移：
 - **Orchestrator**（MySQL）：自动检测主节点故障、提升从节点、重配复制拓扑  
 - **Patroni**（PostgreSQL）：基于 etcd/ZooKeeper/Consul 实现主节点选举与高可用管理  
-- **pg_auto_failover**：PostgreSQL 的轻量级高可用替代方案  
+- **pg_auto_failover**： PostgreSQL 的轻量级高可用替代方案  
 
 ## 下一步
 
 
 ![Distributed database replication data streams flowing betwee](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)
 
-复制与分片解决了数据跨多机部署的问题。但当一个事务需要同时更新多个机器上的数据时，又该如何保证原子性与一致性？这就是**分布式事务（Distributed Transactions）** 的挑战——两阶段提交（2PC）、Saga 模式、共识算法（Consensus），以及为何大多数工程师在可行时都尽量规避它。我们将在下一篇文章中深入探讨。
+复制与分片解决了数据跨多机部署的问题。但当一个事务需要同时更新多个机器上的数据时，又该如何保证原子性与一致性？这就是**分布式事务（Distributed Transactions）** 的挑战——两阶段提交（2PC）、 Saga 模式、共识算法（Consensus），以及为何大多数工程师在可行时都尽量规避它。我们将在下一篇文章中深入探讨。

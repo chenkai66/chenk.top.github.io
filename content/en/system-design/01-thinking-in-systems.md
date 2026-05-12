@@ -328,7 +328,7 @@ Production systems must handle peak traffic, not average traffic. The ratio betw
 
 Never run at 100% capacity. Standard practice is to maintain 30-50% headroom:
 
-```
+```yaml
 Required capacity = Peak load / (1 - headroom percentage)
 
 Example:

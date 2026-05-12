@@ -92,7 +92,7 @@ Instance families are the core abstraction for hardware specialization. The nami
 
 ![ECS instance family comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_instance_families.png)
 
-```
+```yaml
 ecs.{family}{generation}.{size}
 
 Examples:

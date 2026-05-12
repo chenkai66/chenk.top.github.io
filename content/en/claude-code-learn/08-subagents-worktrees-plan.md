@@ -46,7 +46,7 @@ There are three ways:
 
 Let me show exactly what happens. Say I am working on an Express API and I want to add rate limiting:
 
-```
+```yaml
 You: Add rate limiting to the API. 100 requests per minute per IP.
 
 [Mode: plan]

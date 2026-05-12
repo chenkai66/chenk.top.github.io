@@ -169,7 +169,7 @@ openclaw cron add \
 
 What arrives at 6:47:
 
-```
+```yaml
 Morning brief — Thursday Apr 10
 Weather: Shanghai, 18C, overcast, rain after 3pm.
 Calendar: Sprint planning 10:00 | 1:1 with L 14:30 | Design review 16:00

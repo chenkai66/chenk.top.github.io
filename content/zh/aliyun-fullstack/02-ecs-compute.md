@@ -16,27 +16,27 @@ description: "Everything you need to know about ECS: instance families (g8, c8, 
 disableNunjucks: true
 translationKey: "aliyun-fullstack-2"
 ---
-记得我第一次启动 ECS 实例时，配置选得离谱地高。挑了个能找到的最大规格——`ecs.r6.8xlarge`，32 vCPU 配 256 GiB 内存，就为了跑个每分钟大概 20 个请求的 Flask 应用。结果一周内就耗尽了账号额度。紧急学习在线降配操作后，我将实例规格降至 2 vCPU —— 实际性能未受影响，但成本降低了 94%。选对实例规格，远比盲目堆砌算力更重要；而深入理解计算层，才是掌握任一云平台的关键。
+记得我第一次启动 ECS 实例时，配置选得离谱地高。挑了个能找到的最大规格——`ecs.r6.8xlarge`， 32 vCPU 配 256 GiB 内存，就为了跑个每分钟大概 20 个请求的 Flask 应用。结果一周内就耗尽了账号额度。紧急学习在线降配操作后，我将实例规格降至 2 vCPU —— 实际性能未受影响，但成本降低了 94%。选对实例规格，远比盲目堆砌算力更重要；而深入理解计算层，才是掌握任一云平台的关键。
 
 本文是一份完整的 ECS 实战指南：从厘清 ECS 的本质出发，深入实例家族与计费模型，最终通过 CLI 从零构建一台生产级应用服务器。读完这篇，你就有足够的实战知识去为真实业务配置、加固和运维 ECS 实例了。
 
 
 ## ECS 到底是什么
 
-弹性计算服务（ECS）就是阿里云的虚拟机产品。如果你用过 AWS EC2、Azure VMs 或者 GCP Compute Engine，ECS 就是它们的直接对标物。你将获得一台运行 Linux 或 Windows 的虚拟服务器，接入虚拟网络，并可挂载块存储。通过 SSH 或 RDP 控制，按小时或按月付费。
+弹性计算服务（ECS）就是阿里云的虚拟机产品。如果你用过 AWS EC2、 Azure VMs 或者 GCP Compute Engine， ECS 就是它们的直接对标物。你将获得一台运行 Linux 或 Windows 的虚拟服务器，接入虚拟网络，并可挂载块存储。通过 SSH 或 RDP 控制，按小时或按月付费。
 
 但 ECS 不仅仅是“一台 VM"。它由六个构建块组成，分开理解每一块能省去很多麻烦：
 
 | 组件 | 说明 | AWS 对标 |
 |---|---|---|
-| **Instance** | 虚拟机本身 — vCPU、RAM、本地 NVMe | EC2 instance |
+| **Instance** | 虚拟机本身 — vCPU、 RAM、本地 NVMe | EC2 instance |
 | **Image** | 用于启动实例的 OS 模板 | AMI |
 | **Block Storage (disk)** | 网络附加持久存储 — 系统盘 + 数据盘 | EBS |
 | **Security Group** | 绑定在实例网卡上的有状态防火墙规则 | Security Group |
 | **VPC / VSwitch** | 实例所在的虚拟网络和子网 | VPC / Subnet |
 | **ENI** | 弹性网卡 — 虚拟 NIC | ENI |
 
-在控制台“创建 ECS 实例”时，其实是在一次性配置这六个组件。控制台在创建流程中将这些组件整合呈现以简化操作，但每个组件均有独立的生命周期。你可以把磁盘从一台实例卸下来挂到另一台。ENI 可以在实例间迁移。安全组是跨实例共享的。真正理解这种解耦设计，是区分‘普通使用者’与‘专业运维者’的关键分水岭。
+在控制台“创建 ECS 实例”时，其实是在一次性配置这六个组件。控制台在创建流程中将这些组件整合呈现以简化操作，但每个组件均有独立的生命周期。你可以把磁盘从一台实例卸下来挂到另一台。 ENI 可以在实例间迁移。安全组是跨实例共享的。真正理解这种解耦设计，是区分‘普通使用者’与‘专业运维者’的关键分水岭。
 
 ### ECS 生命周期
 
@@ -70,7 +70,7 @@ translationKey: "aliyun-fullstack-2"
 实践中几个关键状态：
 
 - **Stopped**: 按量付费实例不收计算费（磁盘和 IP 继续计费）。这是开发环境实例夜间停机的推荐状态。
-- **Running**: 实例运行中，正在计费。CPU/内存/网络计量生效。
+- **Running**: 实例运行中，正在计费。 CPU/内存/网络计量生效。
 - **Stopping**: 短暂过渡。`ForceStop` 最多耗时 60 秒。优雅停止会向操作系统发送 ACPI 关机信号，并等待其完成关机流程。
 - **Released**: 没了。实例、系统盘和本地盘被永久删除。数据盘只有配置了 `DeleteWithInstance = false` 才能保留。
 
@@ -80,9 +80,9 @@ translationKey: "aliyun-fullstack-2"
 
 如果你从 AWS 过来，以下是值得注意的差异：
 
-1. **No instance store volumes**：没有 EC2 意义上的实例存储卷。ECS 本地 NVMe 磁盘只存在于特定实例家族（i-series），大多数工作负载 exclusively 使用云盘。
+1. **No instance store volumes**：没有 EC2 意义上的实例存储卷。 ECS 本地 NVMe 磁盘只存在于特定实例家族（i-series），大多数工作负载 exclusively 使用云盘。
 2. **Security groups are VPC-scoped**：安全组是 VPC 范围的，不是 Region 范围。不能跨 VPC 共享安全组。
-3. **Metadata endpoint**：是 `http://100.100.100.200/latest/meta-data/` 而不是 `169.254.169.254`。Cloud-init 工作方式一样，但如果你要移植脚本，得更新 URL。
+3. **Metadata endpoint**：是 `http://100.100.100.200/latest/meta-data/` 而不是 `169.254.169.254`。 Cloud-init 工作方式一样，但如果你要移植脚本，得更新 URL。
 4. **Chinese regions**：中国区域有独立的基础设施。`cn-hangzhou` 和 `us-east-1` 不只是可用区不同——它们是完全独立的控制平面，账号和账单都分开。
 
 ## 实例家族深挖
@@ -91,7 +91,7 @@ translationKey: "aliyun-fullstack-2"
 
 ![ECS 实例家族对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_instance_families.png)
 
-```
+```yaml
 ecs.{family}{generation}.{size}
 
 Examples:
@@ -114,14 +114,14 @@ Examples:
 | **g7** | 通用型 | 1:4 | Intel Xeon (Ice Lake) | 最高 25 | Web 服务器，中层 API |
 | **g8i** | 通用型 | 1:4 | Intel Xeon (Sapphire Rapids) | 最高 40 | 通用工作负载，最新代际 |
 | **g8y** | 通用型 | 1:4 | Yitian 710 (ARM) | 最高 40 | 成本敏感的 ARM 工作负载 |
-| **c7** | 计算优化型 | 1:2 | Intel Xeon (Ice Lake) | 最高 25 | 高 CPU：编码，CI/CD |
+| **c7** | 计算优化型 | 1:2 | Intel Xeon (Ice Lake) | 最高 25 | 高 CPU：编码， CI/CD |
 | **c8i** | 计算优化型 | 1:2 | Intel Xeon (Sapphire Rapids) | 最高 40 | 批处理，游戏服务器 |
 | **c8y** | 计算优化型 | 1:2 | Yitian 710 (ARM) | 最高 40 | ARM CI/CD，构建农场 |
 | **r7** | 内存优化型 | 1:8 | Intel Xeon (Ice Lake) | 最高 25 | 数据库，内存缓存 |
-| **r8i** | 内存优化型 | 1:8 | Intel Xeon (Sapphire Rapids) | 最高 40 | Redis，Elasticsearch |
+| **r8i** | 内存优化型 | 1:8 | Intel Xeon (Sapphire Rapids) | 最高 40 | Redis， Elasticsearch |
 | **r8y** | 内存优化型 | 1:8 | Yitian 710 (ARM) | 最高 40 | 成本敏感的内存工作负载 |
 | **gn7i** | GPU | 可变 | A10 (24 GB) | 最高 32 | ML 推理，微调 |
-| **gn7** | GPU | 可变 | V100 (16/32 GB) | 最高 25 | ML 训练，HPC |
+| **gn7** | GPU | 可变 | V100 (16/32 GB) | 最高 25 | ML 训练， HPC |
 | **gn6v** | GPU | 可变 | V100 (16 GB) | 最高 5 | 预算 ML，开发推理 |
 | **t6** | 突发型 | 1:1/1:2/1:4 | Intel Xeon | 最高 1.2 | 开发/测试，微工作负载 |
 | **ebmg7** | 裸金属 | 1:4 | Intel Xeon (Ice Lake) | 最高 65 | 高性能，无 Hypervisor |
@@ -141,11 +141,11 @@ Examples:
 | 8xlarge | 32 | 128 GiB |
 | 16xlarge | 64 | 256 GiB |
 
-> **关于 Yitian 710 (ARM) 的实战建议：** `*y` 家族同规格下比 Intel equivalents 便宜 20-30%。若工作负载运行在 Linux 上，且不依赖 x86 架构特有的二进制文件，则建议优先尝试 ARM 实例。大多数 Python/Node/Go/Java 工作负载直接能跑。Docker 镜像需要是多架构的（`linux/arm64`），这在 Dockerfile build 里只是一行改动。
+> **关于 Yitian 710 (ARM) 的实战建议：** `*y` 家族同规格下比 Intel equivalents 便宜 20-30%。若工作负载运行在 Linux 上，且不依赖 x86 架构特有的二进制文件，则建议优先尝试 ARM 实例。大多数 Python/Node/Go/Java 工作负载直接能跑。 Docker 镜像需要是多架构的（`linux/arm64`），这在 Dockerfile build 里只是一行改动。
 
 ### 突发实例：陷阱与修复
 
-`t6` 家族值得单独提一下，因为它几乎坑遍了所有人。突发性能实例在空闲时累积 CPU 积分，在负载较高时消耗积分；一旦积分耗尽，CPU 性能将被限制在基线水平（通常为 vCPU 总性能的 10%–20%）。
+`t6` 家族值得单独提一下，因为它几乎坑遍了所有人。突发性能实例在空闲时累积 CPU 积分，在负载较高时消耗积分；一旦积分耗尽， CPU 性能将被限制在基线水平（通常为 vCPU 总性能的 10%–20%）。
 
 这对大部分时间空闲、偶尔跑构建的开发/测试机器很完美。但对于任何有持续 CPU 使用率的工作负载来说都很糟糕。我亲眼见过生产数据库在 `t6.large` 实例上跑了几周没问题，然后在流量高峰期间突然崩盘，因为积分余额归零了。
 
@@ -163,7 +163,7 @@ Examples:
 | REST API 后端 (Node/Python) | `ecs.g7.xlarge` (4 vCPU, 16 GiB) | 平衡 — 一些 CPU 用于 JSON 序列化，内存用于连接池 |
 | PostgreSQL / MySQL | `ecs.r7.2xlarge` (8 vCPU, 64 GiB) | 内存密集用于 buffer pool。考虑直接用 RDS。 |
 | Redis / Memcached | `ecs.r7.xlarge` (4 vCPU, 32 GiB) | 全是内存。同样，考虑托管 Redis。 |
-| CI/CD  runner | `ecs.c8y.xlarge` (4 vCPU, 8 GiB) | CPU 密集编译。ARM 对大多数构建没问题。 |
+| CI/CD  runner | `ecs.c8y.xlarge` (4 vCPU, 8 GiB) | CPU 密集编译。 ARM 对大多数构建没问题。 |
 | ML 推理 (LLM) | `ecs.gn7i.xlarge` (4 vCPU, 1x A10) | GPU 用于矩阵运算，适度 CPU 用于前/后处理 |
 | ML 训练 | `ecs.gn7.8xlarge` (32 vCPU, 8x V100) | 多 GPU 用于分布式训练 |
 | 开发/测试一次性 | `ecs.t6.large` (2 vCPU, 4 GiB) | 便宜，突发，晚上停止它 |
@@ -183,7 +183,7 @@ ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高
 
 ### 包年包月 (Subscription)
 
-承诺使用 1 个月、3 个月、6 个月、1 年、2 年或 3 年。相比 PAYG，折扣范围从 ~15%（1 个月）到 ~50%（3 年）不等。需要预付。不管你用不用，实例都在跑。
+承诺使用 1 个月、 3 个月、 6 个月、 1 年、 2 年或 3 年。相比 PAYG，折扣范围从 ~15% （1 个月）到 ~50% （3 年）不等。需要预付。不管你用不用，实例都在跑。
 
 适用场景：利用率稳定可预测的生产环境负载。
 
@@ -191,7 +191,7 @@ ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高
 
 硬件和 PAYG 一样，但价格随供需浮动——通常便宜 70-90%。缺点是：需求高峰时，阿里云会提前 5 分钟通知回收实例。你会被打断。
 
-适用场景：无状态批处理、CI/CD、分布式 ML 训练（带 checkpoint 机制）、任何能容忍中断的负载。
+适用场景：无状态批处理、 CI/CD、分布式 ML 训练（带 checkpoint 机制）、任何能容忍中断的负载。
 
 ### 节省计划与预留实例
 
@@ -201,7 +201,7 @@ ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高
 
 ### 价格对比
 
-下面是 `ecs.c7.large` (2 vCPU, 4 GiB) 在 `cn-beijing` 区域，24/7 运行一个月的真实成本对比（价格近似，请以当前费率为准）：
+下面是 `ecs.c7.large` (2 vCPU, 4 GiB) 在 `cn-beijing` 区域， 24/7 运行一个月的真实成本对比（价格近似，请以当前费率为准）：
 
 | Model | Hourly (CNY) | Monthly (CNY) | Savings vs PAYG |
 |---|---|---|---|
@@ -212,7 +212,7 @@ ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高
 | Preemptible (avg) | 0.10 | ~72 | 85% |
 | Savings Plan (1 year) | — | ~295 | 40% |
 
-抢占式实例的价格没写错。如果你的负载能容忍中断，Spot 实例几乎等于免费。我把所有 CI/CD 都跑在 Spot 上，一年大概只被中断过三次——都是在中国 major 购物节需求峰值期间。
+抢占式实例的价格没写错。如果你的负载能容忍中断， Spot 实例几乎等于免费。我把所有 CI/CD 都跑在 Spot 上，一年大概只被中断过三次——都是在中国 major 购物节需求峰值期间。
 
 > **我自己实际采用的混合策略：** 生产环境跑包年包月（1 年期）。开发测试跑 PAYG，配合午夜自动停止脚本。批处理任务跑抢占式实例，如果 Spot 容量不足则 fallback 到 PAYG。相比全用 PAYG，这套组合拳能把总账单砍掉约 45%。
 
@@ -234,9 +234,9 @@ ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高
 1. **计费方式**：暂时选按量付费。
 2. **地域**：`China (Beijing)`，可用区 H。
 3. **实例规格**：搜索 `ecs.c7.large`。选中它。
-4. **镜像**：Alibaba Cloud Linux 3.2104 LTS 64-bit（默认）。兼容 CentOS 且免费。
+4. **镜像**： Alibaba Cloud Linux 3.2104 LTS 64-bit （默认）。兼容 CentOS 且免费。
 5. **存储**：系统盘 = 40 GiB ESSD PL0。暂时不加数据盘。
-6. **网络**：选中你的 VPC，可用区 H 的 VSwitch。分配公网 IP（SSH 用 1 Mbps 够了；生产流量走 SLB/ALB）。
+6. **网络**：选中你的 VPC，可用区 H 的 VSwitch。分配公网 IP （SSH 用 1 Mbps 够了；生产流量走 SLB/ALB）。
 7. **安全组**：选中或创建一个允许你的 IP 访问 TCP 22 端口的组。
 8. **登录方式**：密钥对（别用密码）。
 9. **高级选项**：在 User Data 里粘贴 cloud-init 脚本（下面会写）。
@@ -331,7 +331,7 @@ ssh -i ~/.ssh/app-server-key.pem root@<public-ip>
 
 ## Cloud-init：开机即自动化
 
-千万别 SSH 进新实例手动装包。Cloud-init 在首次启动时运行，自动配置实例。每个 ECS 镜像都预装了 cloud-init。
+千万别 SSH 进新实例手动装包。 Cloud-init 在首次启动时运行，自动配置实例。每个 ECS 镜像都预装了 cloud-init。
 
 ![Cloud-init 开机启动流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_cloud_init.png)
 
@@ -467,7 +467,7 @@ runcmd:
   - echo "cloud-init complete at $(date)" >> /var/log/cloud-init-complete.log
 ```
 
-实例启动后，cloud-init 分阶段处理这个文件：设时区、装包、建用户、写文件、跑命令。在 `ecs.c7.large` 上全过程大概 2-3 分钟。
+实例启动后， cloud-init 分阶段处理这个文件：设时区、装包、建用户、写文件、跑命令。在 `ecs.c7.large` 上全过程大概 2-3 分钟。
 
 验证 cloud-init 是否成功完成：
 
@@ -482,7 +482,7 @@ tail -100 /var/log/cloud-init-output.log
 curl http://localhost/health
 ```
 
-> **调试技巧：** 最常见的 cloud-init 失败原因是 YAML 缩进错误。Base64 编码前，先用 `cloud-init schema --config-file cloud-init.yaml` 在本地验证配置。另外，`UserData` 有 16 KiB 限制——如果脚本复杂，让 cloud-init 从 OSS 拉取脚本 instead。
+> **调试技巧：** 最常见的 cloud-init 失败原因是 YAML 缩进错误。 Base64 编码前，先用 `cloud-init schema --config-file cloud-init.yaml` 在本地验证配置。另外，`UserData` 有 16 KiB 限制——如果脚本复杂，让 cloud-init 从 OSS 拉取脚本 instead。
 ## 安全组：你的第一道防火墙
 
 安全组就是挂在 ENI 层面的状态防火墙。进出 ECS 实例的每个数据包都要过一遍安全组规则。要是没匹配上任何规则，包就直接**丢弃**——默认拒绝。
@@ -550,7 +550,7 @@ aliyun ecs AuthorizeSecurityGroup \
 ### 我给每个安全组定的规矩
 
 1. **SSH (22) 别对 `0.0.0.0/0` 开。** 用办公室 CIDR，或者更好，用堡垒机。
-2. **数据库端口别暴露公网。** PostgreSQL 的 5432，MySQL 的 3306，Redis 的 6379——这些只能让应用安全组访问。
+2. **数据库端口别暴露公网。** PostgreSQL 的 5432， MySQL 的 3306， Redis 的 6379——这些只能让应用安全组访问。
 3. **每条规则写描述。** 半年后你肯定忘了 8443 是干嘛的。描述会告诉你。
 4. **每季度审查。** 安全组规则会像藤壶一样堆积。设个日历提醒。
 
@@ -627,9 +627,9 @@ scp -o ProxyJump=bastion localfile.tar.gz app-internal:/opt/app/
 | **Standard SSD** | 25,000 | 300 MB/s | 0.5-2 ms | Legacy, non-critical |
 | **Ultra Disk** | 5,000 | 140 MB/s | 1-3 ms | Cold storage, archives |
 
-性能等级（PL0 到 PL3）是你做的最重要的存储决策。数据库跑在 PL0 上会撞 10,000 IOPS 天花板，操作排队；同样的数据库在 PL1 上就有 5 倍余量。PL0 和 PL1 的差价大概 2 倍——比起计算成本还是很便宜的。
+性能等级（PL0 到 PL3）是你做的最重要的存储决策。数据库跑在 PL0 上会撞 10,000 IOPS 天花板，操作排队；同样的数据库在 PL1 上就有 5 倍余量。 PL0 和 PL1 的差价大概 2 倍——比起计算成本还是很便宜的。
 
-> **我的默认选择：** 系统盘用 PL0（OS 不需要高 IOPS），跑数据库或任何有 fsync 的数据盘用 PL1。拿不准就先上 PL1——100 GiB 磁盘差价也就 40 元/月。
+> **我的默认选择：** 系统盘用 PL0 （OS 不需要高 IOPS），跑数据库或任何有 fsync 的数据盘用 PL1。拿不准就先上 PL1——100 GiB 磁盘差价也就 40 元/月。
 
 ### 在线扩容磁盘
 
@@ -659,7 +659,7 @@ sudo xfs_growfs /
 快照是磁盘的时间点拷贝。它们是增量的（只存变化的块）且崩溃一致性。用途如下：
 
 1. **高风险操作前备份。** 跑数据库迁移前执行 `aliyun ecs CreateSnapshot --DiskId d-xxx`。
-2. **制作镜像。** 快照配置好的实例系统盘，然后基于它创建自定义镜像。新实例启动就是全配置状态，30 秒搞定，不用等 cloud-init 跑 3 分钟。
+2. **制作镜像。** 快照配置好的实例系统盘，然后基于它创建自定义镜像。新实例启动就是全配置状态， 30 秒搞定，不用等 cloud-init 跑 3 分钟。
 3. **灾难恢复。** 设自动快照策略——每天快照保留 7 天是个合理的起点。
 
 ```bash
@@ -927,13 +927,13 @@ aliyun cms PutResourceMetricRule \
   --Period 300
 ```
 
-这就搞定了一套完整的生产部署：VPC、安全组、密钥对、带 cloud-init 自动化的 ECS 实例、nginx 反向代理、supervisor 托管的 Flask 应用、自动续期的 HTTPS，还有监控告警。从零到生产环境，API 调用大概 5 分钟，cloud-init 执行 3 分钟。
+这就搞定了一套完整的生产部署： VPC、安全组、密钥对、带 cloud-init 自动化的 ECS 实例、 nginx 反向代理、 supervisor 托管的 Flask 应用、自动续期的 HTTPS，还有监控告警。从零到生产环境， API 调用大概 5 分钟， cloud-init 执行 3 分钟。
 
 ## Key takeaways
 
 **先小后大，随时扩容。** ECS 支持在线变配实例规格。别靠猜来决定配置，先跑起来，看监控数据再调整。
 
-**选对实例族。** 通用型（g-series）是默认选项。CPU 密集型换计算型（c-series），内存密集型换内存型（r-series），ML 任务上 GPU（gn-series）。想省 20-30% 成本，试试 ARM 架构（y-suffix）。
+**选对实例族。** 通用型（g-series）是默认选项。 CPU 密集型换计算型（c-series），内存密集型换内存型（r-series）， ML 任务上 GPU （gn-series）。想省 20-30% 成本，试试 ARM 架构（y-suffix）。
 
 **混合计费模式。** 长期生产用包年包月，开发测试用按量付费（PAYG），批处理任务用抢占式实例。混合策略通常比全按量付费省 40-50%。
 

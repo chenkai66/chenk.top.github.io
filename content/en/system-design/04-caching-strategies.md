@@ -53,7 +53,7 @@ Cache-Control: no-store                    # Never cache
 
 `ETag` and `If-None-Match` headers enable conditional requests:
 
-```
+```json
 # First request
 GET /api/user/123
 Response:

@@ -28,7 +28,7 @@ The original RAG paper ([Lewis et al., 2020][lewis-rag]) framed retrieval-augmen
 
 Retrieval-augmented generation: at query time, fetch relevant text from an external corpus, stuff it into the LLM's context, generate a grounded answer. The "augmented" part is the prompt template:
 
-```
+```yaml
 You are an assistant. Answer the user's question using only the context below.
 If the context doesn't contain the answer, say "I don't know."
 

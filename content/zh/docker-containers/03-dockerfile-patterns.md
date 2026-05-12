@@ -199,7 +199,7 @@ CMD ["python3", "app.py"]
 CMD python3 app.py
 ```
 
-对 `CMD` 和 `ENTRYPOINT`，**始终使用 Exec 形式**（`["executable", "arg1", "arg2"]`）。Shell 形式会将你的进程包裹在 `/bin/sh -c` 中，导致信号处理异常，影响优雅关闭。
+对 `CMD` 和 `ENTRYPOINT`，**始终使用 Exec 形式**（`["executable", "arg1", "arg2"]`）。 Shell 形式会将你的进程包裹在 `/bin/sh -c` 中，导致信号处理异常，影响优雅关闭。
 
 ### USER — 以非 root 用户运行
 
@@ -233,7 +233,7 @@ HEALTHCHECK NONE
 | `--start-period` | 0s | 首次检查前的宽限期 |
 | `--retries` | 3 | 连续失败多少次后标记为 “unhealthy” |
 
-Docker 根据健康检查结果将容器标记为 `healthy`、`unhealthy` 或 `starting`。编排系统（Docker Compose、Kubernetes）据此决定是否向该容器路由流量。
+Docker 根据健康检查结果将容器标记为 `healthy`、`unhealthy` 或 `starting`。编排系统（Docker Compose、 Kubernetes）据此决定是否向该容器路由流量。
 
 ## 初学者版 vs 优化版：真实案例对比
 
@@ -382,7 +382,7 @@ flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
 
 ![Dockerfile optimization journey from bloated to slim contain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/03-dockerfile-optimization-journey-from-bloated-to-slim-contain.jpg)
 
-`.dockerignore` 的作用类似于 `.gitignore`，但针对 Docker 构建上下文。当你执行 `docker build .` 时，Docker 会将整个目录（即“构建上下文”）发送给守护进程。若无 `.dockerignore`，所有文件都将被上传。
+`.dockerignore` 的作用类似于 `.gitignore`，但针对 Docker 构建上下文。当你执行 `docker build .` 时， Docker 会将整个目录（即“构建上下文”）发送给守护进程。若无 `.dockerignore`，所有文件都将被上传。
 
 ![Layer optimization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-layer-optimization.png)
 
@@ -443,7 +443,7 @@ LICENSE
 
 ## 层缓存（Layer Caching）：为何指令顺序至关重要
 
-Docker 会对每一层进行缓存。若某条指令未变更（且其之前所有层均已缓存），Docker 将复用缓存层。但一旦某层缓存失效，其后所有层都必须重建。
+Docker 会对每一层进行缓存。若某条指令未变更（且其之前所有层均已缓存）， Docker 将复用缓存层。但一旦某层缓存失效，其后所有层都必须重建。
 
 ![Base image size comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-image-size-comparison.png)
 
@@ -572,9 +572,9 @@ go-server         single       a1b2c3d4e5f6   10 seconds ago   845MB
 go-server         multistage   b2c3d4e5f6a7   5 seconds ago    12.4MB
 ```
 
-**845 MB vs 12.4 MB**。多阶段构建产出的镜像缩小了 68 倍——因为它丢弃了整个 Go 工具链，最终镜像中仅保留编译好的二进制文件和 CA 证书。该模式同样适用于 Node.js（用 `node:20-alpine` 构建，仅复制 `node_modules` 和应用代码至运行时阶段）及任何其他语言。
+**845 MB vs 12.4 MB**。多阶段构建产出的镜像缩小了 68 倍——因为它丢弃了整个 Go 工具链，最终镜像中仅保留编译好的二进制文件和 CA 证书。该模式同样适用于 Node.js （用 `node:20-alpine` 构建，仅复制 `node_modules` 和应用代码至运行时阶段）及任何其他语言。
 
-## 构建参数（ARG）vs 环境变量（ENV）
+## 构建参数（ARG） vs 环境变量（ENV）
 
 这是一个常见的混淆点，以下是一个实用示例：
 
@@ -692,7 +692,7 @@ docker build --platform linux/amd64 -t myapp .
 docker build --no-cache -t myapp .
 ```
 
-## 快速参考：Dockerfile 指令汇总表
+## 快速参考： Dockerfile 指令汇总表
 
 | 指令 | 用途 | 是否创建层？ |
 |------------|---------|---------------|

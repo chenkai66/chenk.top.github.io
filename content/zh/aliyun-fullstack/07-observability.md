@@ -23,7 +23,7 @@ translationKey: "aliyun-fullstack-7"
 这个教训看似简单，代价却极高：可观测性不是系统稳定后的‘锦上添花’，而是上线前必须就绪的基础设施——理想情况下，甚至应在编写第一行代码前完成搭建，因为它直接决定了日志格式、请求 ID 透传机制与依赖库埋点策略。事后补建往往需要全面重构，而前置建设则可以自然融入开发流程。
 
 
-这篇文章将完整介绍阿里云上的可观测性栈：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用将拥有一套可用的监控设置。ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform 部署 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
+这篇文章将完整介绍阿里云上的可观测性栈： SLS 负责日志， CloudMonitor 负责指标， ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用将拥有一套可用的监控设置。 ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform 部署 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
 
 ## The Three Pillars of Observability
 
@@ -33,7 +33,7 @@ translationKey: "aliyun-fullstack-7"
 
 **Logs** 告诉你发生了什么。日志行会说"14:32:07，用户 abc123 请求了 /api/orders，因为数据库连接 30 秒超时而返回 500"。日志是离散事件，带时间戳且结构化。它是出事后的 forensic evidence。
 
-**Metrics** 告诉你正在发生什么。指标会说"/api/orders 的 P99 延迟现在是 2.3 秒，应用层 CPU 利用率 78%，RDS 连接池耗尽 90%"。指标是数值时间序列。它是你在大盘上盯着的生命体征，用来在用户报障前发现问题。
+**Metrics** 告诉你正在发生什么。指标会说"/api/orders 的 P99 延迟现在是 2.3 秒，应用层 CPU 利用率 78%， RDS 连接池耗尽 90%"。指标是数值时间序列。它是你在大盘上盯着的生命体征，用来在用户报障前发现问题。
 
 **Traces** 告诉你为什么发生。追踪会说“这个特定请求在 API 网关花了 15ms，在订单服务花了 200ms，等待数据库查询花了 1800ms，序列化响应花了 50ms"。追踪跟随单个请求穿越多个服务。它是分布式系统里的 X 光，揭示哪个组件是瓶颈。
 
@@ -47,7 +47,7 @@ translationKey: "aliyun-fullstack-7"
 | **Metrics** | CloudMonitor | CloudWatch Metrics | Infrastructure and custom metrics, alerting |
 | **Traces** | ARMS (Application Real-Time Monitoring) | X-Ray + CloudWatch APM | APM, distributed tracing, service topology |
 
-这三个服务是互通的。CloudMonitor 可以基于 SLS 查询结果触发告警。ARMS 追踪能关联到 SLS 日志条目。SLS 大盘可以拉取 CloudMonitor 指标数据。集成度虽不如 Datadog 那种统一平台丝滑，但不用第三方工具也能覆盖 90% 的需求。
+这三个服务是互通的。 CloudMonitor 可以基于 SLS 查询结果触发告警。 ARMS 追踪能关联到 SLS 日志条目。 SLS 大盘可以拉取 CloudMonitor 指标数据。集成度虽不如 Datadog 那种统一平台丝滑，但不用第三方工具也能覆盖 90% 的需求。
 
 ## SLS: Simple Log Service
 
@@ -59,7 +59,7 @@ SLS 是阿里云可观测性的核心组件。尽管名称含 ‘Simple’，它
 
 SLS 把 everything 组织成两层：
 
-**Project** -- 顶层容器，通常每个环境或应用一个。Project 是 Region 级别的。项目内的所有 Logstore、Dashboard、告警共享同一个计费账户和访问控制。
+**Project** -- 顶层容器，通常每个环境或应用一个。 Project 是 Region 级别的。项目内的所有 Logstore、 Dashboard、告警共享同一个计费账户和访问控制。
 
 **Logstore** -- 项目内的日志数据表。每个 Logstore 有自己的 schema、保留周期和索引配置。通常每个日志源创建一个 Logstore：一个给 nginx 访问日志，一个给应用日志，一个给系统日志。
 
@@ -110,7 +110,7 @@ aliyun sls CreateLogStore \
   --endpoint cn-hangzhou.log.aliyuncs.com
 ```
 
-`shardCount` 决定写入吞吐量。每个 shard 处理 5 MB/s 写入和 10 MB/s 读取。两个 shard 给你 10 MB/s 写入能力。开启 `autoSplit` 后，当写入压力超过阈值，SLS 会自动增加 shard，直到 `maxSplitShard`。
+`shardCount` 决定写入吞吐量。每个 shard 处理 5 MB/s 写入和 10 MB/s 读取。两个 shard 给你 10 MB/s 写入能力。开启 `autoSplit` 后，当写入压力超过阈值， SLS 会自动增加 shard，直到 `maxSplitShard`。
 
 ### SLS vs AWS: What Is Different
 
@@ -126,13 +126,13 @@ aliyun sls CreateLogStore \
 | Schema-on-read | Yes, with indexing | Partially (Insights) |
 | Real-time streaming | Built-in consumer groups | Kinesis Data Streams (separate) |
 
-最显著的区别在于：SLS 将日志存储、搜索与分析集成于单一服务；而 AWS 生态通常需组合使用 CloudWatch Logs（采集）、S3（长期存储）、OpenSearch（搜索）和 Athena（SQL 分析）。SLS 在一个地方全干了。代价是厂商锁定：SLS 查询语法并非跨云通用标准。
+最显著的区别在于： SLS 将日志存储、搜索与分析集成于单一服务；而 AWS 生态通常需组合使用 CloudWatch Logs （采集）、 S3 （长期存储）、 OpenSearch （搜索）和 Athena （SQL 分析）。 SLS 在一个地方全干了。代价是厂商锁定： SLS 查询语法并非跨云通用标准。
 
 ### Log Query Syntax
 
 SLS 支持三种查询模式，掌握这三种模式，可显著提升查询效率。
 
-**Full-text search** -- 直接输关键词。SLS 搜所有索引字段。
+**Full-text search** -- 直接输关键词。 SLS 搜所有索引字段。
 
 ```
 ERROR
@@ -236,7 +236,7 @@ aliyun sls CreateIndex \
 > **Cost note:** Indexing roughly doubles your storage cost. For high-volume logs where you only need full-text search, skip per-field indexing and rely on the `line` index. For access logs where you run SQL dashboards, per-field indexing is worth the cost.
 ## 配置 Logtail
 
-Logtail 是 SLS 官方日志采集 agent，运行于 ECS 实例，负责监控日志文件、按配置解析并投递至 SLS。它轻量（通常占用 50–100 MB 内存，CPU 使用率 <1%）、可靠（通过本地缓冲应对网络中断），且与 SLS 深度集成。
+Logtail 是 SLS 官方日志采集 agent，运行于 ECS 实例，负责监控日志文件、按配置解析并投递至 SLS。它轻量（通常占用 50–100 MB 内存， CPU 使用率 <1%）、可靠（通过本地缓冲应对网络中断），且与 SLS 深度集成。
 
 ![Logtail 采集器部署架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_logtail_architecture.png)
 
@@ -279,7 +279,7 @@ aliyun sls CreateMachineGroup \
   --endpoint cn-hangzhou.log.aliyuncs.com
 ```
 
-如果是弹性伸缩组，IP 会变，这时候别用 IP 标识，改用用户自定义标识。在每个实例上创建文件 `/etc/ilogtail/user_defined_id`，里面写上组标识比如 `prod-app-servers`，然后把 `machineIdentifyType` 设成 `userdefined`。
+如果是弹性伸缩组， IP 会变，这时候别用 IP 标识，改用用户自定义标识。在每个实例上创建文件 `/etc/ilogtail/user_defined_id`，里面写上组标识比如 `prod-app-servers`，然后把 `machineIdentifyType` 设成 `userdefined`。
 
 ### 采集 Nginx 访问日志
 
@@ -415,7 +415,7 @@ JSON 日志的 Logtail 配置简单多了，根本不需要正则：
 
 ### 采集系统日志
 
-像 syslog、journald 这种系统级事件，Logtail 原生就支持：
+像 syslog、 journald 这种系统级事件， Logtail 原生就支持：
 
 ```json
 {
@@ -452,7 +452,7 @@ JSON 日志的 Logtail 配置简单多了，根本不需要正则：
 |---|---|---|
 | QPS 趋势 | `* \| SELECT date_trunc('minute', __time__) as t, count(*)/60.0 as qps GROUP BY t ORDER BY t` | 流量模式——是流量突增导致的问题，还是流量跌了（上游故障）？ |
 | 错误率 | `* \| SELECT date_trunc('minute', __time__) as t, round(count_if(status>=500)*100.0/count(*),2) as err_pct GROUP BY t ORDER BY t` | 错误率是否升高？任何超过 0.1% 的情况都值得调查。 |
-| P99 延迟 | `* \| SELECT date_trunc('minute', __time__) as t, approx_percentile(request_time, 0.99) as p99 GROUP BY t ORDER BY t` | 服务是否变慢？P99 能捕捉到平均值掩盖的长尾延迟。 |
+| P99 延迟 | `* \| SELECT date_trunc('minute', __time__) as t, approx_percentile(request_time, 0.99) as p99 GROUP BY t ORDER BY t` | 服务是否变慢？ P99 能捕捉到平均值掩盖的长尾延迟。 |
 | 顶部接口 | `* \| SELECT request_uri, count(*) as cnt, approx_percentile(request_time, 0.50) as p50 GROUP BY request_uri ORDER BY cnt DESC LIMIT 10` | 流量去哪了？哪些接口慢？ |
 | 状态码分布 | `* \| SELECT status, count(*) as cnt GROUP BY status ORDER BY cnt DESC` | 有没有异常的 4xx/5xx 模式？ |
 
@@ -562,7 +562,7 @@ aliyun sls CreateDashboard \
 > **实战建议：** 先用 SLS 控制台的可视化编辑器交互式的把图表调好，再导出 JSON 定义去做版本控制。手写仪表盘 JSON 太折磨人了。控制台的查询 explorer 能让你在提交到仪表盘面板前，先即时测试 SLS 查询语句。
 ## CloudMonitor: 基础设施监控与告警
 
-SLS 负责日志，CloudMonitor 负责指标——也就是那些追踪基础设施健康状态的数值时间序列。所有阿里云资源默认都开着 CloudMonitor。只要你创建了 ECS 实例、RDS 数据库或者 SLB 负载均衡，监控立马就开始收集基础指标。
+SLS 负责日志， CloudMonitor 负责指标——也就是那些追踪基础设施健康状态的数值时间序列。所有阿里云资源默认都开着 CloudMonitor。只要你创建了 ECS 实例、 RDS 数据库或者 SLB 负载均衡，监控立马就开始收集基础指标。
 
 ### 内置指标
 
@@ -599,10 +599,10 @@ sudo ./cms-go-client.linux-amd64/cloudmonitor --status
 
 | 服务 | 关键指标 |
 |---|---|
-| **RDS** | CPU、内存、连接数、IOPS、磁盘使用率、每秒慢查询数 |
-| **SLB** | 活跃连接数、新建连接数、QPS、健康主机数、延迟 |
+| **RDS** | CPU、内存、连接数、 IOPS、磁盘使用率、每秒慢查询数 |
+| **SLB** | 活跃连接数、新建连接数、 QPS、健康主机数、延迟 |
 | **OSS** | 请求数、带宽、可用性、首字节延迟 |
-| **Redis (Tair)** | CPU、内存使用率、连接数、QPS、命中率、驱逐数 |
+| **Redis (Tair)** | CPU、内存使用率、连接数、 QPS、命中率、驱逐数 |
 | **NAT Gateway** | 活跃连接数、带宽、包速率 |
 
 ### 自定义指标
@@ -725,15 +725,15 @@ aliyun cms PutEventRule \
 ```
 ## 告警配置
 
-告警是连接可观测性和行动的桥梁。对的告警能在错误率飙升时凌晨 3 点把你叫醒。错的告警也会凌晨 3 点把你叫醒，只不过是因为定时备份时 CPU 短暂冲到了 81%，30 秒后又回去了。把告警阈值设准了是一门艺术，不过下面这几条经验法则我一直用着挺顺手。
+告警是连接可观测性和行动的桥梁。对的告警能在错误率飙升时凌晨 3 点把你叫醒。错的告警也会凌晨 3 点把你叫醒，只不过是因为定时备份时 CPU 短暂冲到了 81%， 30 秒后又回去了。把告警阈值设准了是一门艺术，不过下面这几条经验法则我一直用着挺顺手。
 
 ![告警配置与通知流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_flow.png)
 
 ### 告警设计原则
 
-1. **告警症状，别告警原因。** 告警“错误率 > 1%"，别告警"CPU > 80%"。CPU 高只有导致用户能感知的影响时才算问题。错误率本身就是用户能感知的影响。
+1. **告警症状，别告警原因。** 告警“错误率 > 1%"，别告警"CPU > 80%"。 CPU 高只有导致用户能感知的影响时才算问题。错误率本身就是用户能感知的影响。
 2. **使用持续阈值。** 别单凭一个数据点就发告警。要求条件持续 3-5 分钟，过滤掉瞬时毛刺。
-3. **正好设三个 severity 级别。** Critical（立刻打电话叫人）、Warning（几小时内需要排查）、Info（记录留档）。超过三个级别，没人搞得清每个级别到底啥意思。
+3. **正好设三个 severity 级别。** Critical （立刻打电话叫人）、 Warning （几小时内需要排查）、 Info （记录留档）。超过三个级别，没人搞得清每个级别到底啥意思。
 4. **已知维护期间静音。** 没什么比明明提前通知了要部署，告警却还在狂发更破坏信任的了。
 
 ![基于症状告警 vs 基于原因告警](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_symptoms_vs_causes.png)
@@ -787,7 +787,7 @@ aliyun sls CreateAlert \
 
 `total > 100` 这个条件是为了防止低流量期的误报。如果只进了 3 个请求却挂了 1 个，数值上看是 33% 错误率——看着吓人，实际没啥意义。
 
-**2. 持续高 CPU（Warning）**
+**2. 持续高 CPU （Warning）**
 
 ```bash
 # CloudMonitor Alert: CPU > 80% for 5 minutes
@@ -902,7 +902,7 @@ aliyun cms PutContact \
 | **DingTalk webhook** | 团队可见的告警，事故协调 |
 | **SMS** | 需要立即关注的 Critical 告警 |
 | **Phone call** | 生产不可用的严重程度（慎用） |
-| **Webhook (HTTP)** | 对接 PagerDuty、Slack 或自定义系统 |
+| **Webhook (HTTP)** | 对接 PagerDuty、 Slack 或自定义系统 |
 
 ![告警严重级别到通知渠道的路由](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_severity_routing.png)
 
@@ -911,13 +911,13 @@ aliyun cms PutContact \
 
 ## ARMS：应用实时监控服务
 
-ARMS 补上了可观测性的第三块拼图：链路追踪（traces）。SLS 告诉你发生了什么，CloudMonitor 告诉你系统层面的影响，而 ARMS 告诉你问题究竟出在应用的哪个位置。
+ARMS 补上了可观测性的第三块拼图：链路追踪（traces）。 SLS 告诉你发生了什么， CloudMonitor 告诉你系统层面的影响，而 ARMS 告诉你问题究竟出在应用的哪个位置。
 
 ![ARMS 分布式链路追踪](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_arms_traces.png)
 
 ### ARMS 能做什么
 
-ARMS 是一个 APM（应用性能监控）平台，提供以下功能：
+ARMS 是一个 APM （应用性能监控）平台，提供以下功能：
 
 - **分布式追踪** -- 跨服务、数据库、缓存和消息队列追踪请求。精确看到时间花在哪了。
 - **服务拓扑** -- 自动发现的服务通信地图。一眼看清依赖关系、调用量和错误率。
@@ -934,9 +934,9 @@ ARMS 支持自动埋点（automatic instrumentation）的语言包括：
 | Go | SDK | net/http, gRPC, database/sql, go-redis |
 | PHP | Extension | Laravel, ThinkPHP, MySQLi, cURL |
 
-所谓自动埋点，意味着你不需要修改应用代码。Agent 会拦截框架层的调用，自动生成 trace spans。你只需要在启动命令里加上 Agent，trace 就会出现。
+所谓自动埋点，意味着你不需要修改应用代码。 Agent 会拦截框架层的调用，自动生成 trace spans。你只需要在启动命令里加上 Agent， trace 就会出现。
 
-### 安装 ARMS Agent（Node.js）
+### 安装 ARMS Agent （Node.js）
 
 对于我们一直在 ECS 实例上运行的 Node.js 应用：
 
@@ -973,11 +973,11 @@ java -javaagent:/path/to/arms-agent.jar \
 
 ### 查看链路
 
-Agent 运行后，ARMS 开始为每个进入的请求生成 trace。每个 trace 由 spans 组成——每个操作（HTTP 调用、数据库查询、缓存查找）对应一个 span。这些 spans 形成一棵树，展示完整的请求生命周期。
+Agent 运行后， ARMS 开始为每个进入的请求生成 trace。每个 trace 由 spans 组成——每个操作（HTTP 调用、数据库查询、缓存查找）对应一个 span。这些 spans 形成一棵树，展示完整的请求生命周期。
 
 典型的 API 请求 trace 长这样：
 
-```
+```sql
 Trace: abc-123-def (total: 234ms)
 ├── [order-service] POST /api/orders                       0-234ms
 │   ├── [order-service] MySQL: SELECT * FROM users         12-18ms
@@ -1304,14 +1304,14 @@ aliyun cms PutResourceMetricRule \
 - **存储前先聚合。** 对于那些只需要 5-minute 粒度的指标，直接在应用层聚合好再推数据，别把每个请求的 datapoint 都推上去。
 ## 核心要点
 
-1. **上线前就把可观测性搞定，别等之后。** 事后补救的成本——重构日志格式、补充链路追踪、重做仪表盘——永远比从一开始就做好要高。把 Logtail、CloudMonitor 插件和 ARMS 插件直接写进实例初始化脚本里，一步到位。
+1. **上线前就把可观测性搞定，别等之后。** 事后补救的成本——重构日志格式、补充链路追踪、重做仪表盘——永远比从一开始就做好要高。把 Logtail、 CloudMonitor 插件和 ARMS 插件直接写进实例初始化脚本里，一步到位。
 
 2. **三大支柱互补，不是冗余。** 指标告诉你出事了（仪表盘上错误率飙升），日志告诉你啥事（应用日志里数据库超时），追踪告诉你为啥（某条查询路径因为缺失索引跑了 3 秒）。想高效排查线上问题，这三个缺一不可。
 
-3. **把 SLS 当成你的瑞士军刀。** 采集、搜索、SQL 分析、仪表盘、告警，一个服务全搞定。熟练掌握查询语法，尤其是 `search | SQL` 模式，左边全文检索，右边分析计算。仪表盘只要配好五个核心面板（QPS、错误率、P99 延迟、Top 接口、状态码分布），就能覆盖 80% 的事故排查场景。
+3. **把 SLS 当成你的瑞士军刀。** 采集、搜索、 SQL 分析、仪表盘、告警，一个服务全搞定。熟练掌握查询语法，尤其是 `search | SQL` 模式，左边全文检索，右边分析计算。仪表盘只要配好五个核心面板（QPS、错误率、 P99 延迟、 Top 接口、状态码分布），就能覆盖 80% 的事故排查场景。
 
 4. **针对症状告警，别针对原因。** "5 分钟内错误率 > 1%"比"CPU > 80%"有价值得多。一定要设持续阈值（比如连续 3-5 个数据点），别让瞬时抖动把你搞出告警疲劳。计划维护期间记得设静音期。
 
-5. **从最小可行监控栈开始。** Logtail 收 nginx 和应用日志，CloudMonitor 看 ECS/RDS/SLB 自带指标，四条告警规则（错误率、CPU、磁盘、DB 连接），一个运维仪表盘。随着业务增长，再慢慢加 ARMS 追踪、自定义指标这些高级货。第一天就追求完美可观测性没必要，能在站点挂掉时把你叫醒才是正经事。
+5. **从最小可行监控栈开始。** Logtail 收 nginx 和应用日志， CloudMonitor 看 ECS/RDS/SLB 自带指标，四条告警规则（错误率、 CPU、磁盘、 DB 连接），一个运维仪表盘。随着业务增长，再慢慢加 ARMS 追踪、自定义指标这些高级货。第一天就追求完美可观测性没必要，能在站点挂掉时把你叫醒才是正经事。
 
 下一篇我们聊容器，上 ACK 和 SAE。到时候你会庆幸自己先搞好了可观测性，因为如果没有集中式日志，调试一个行为异常的 Kubernetes 集群，那滋味可真不好受。

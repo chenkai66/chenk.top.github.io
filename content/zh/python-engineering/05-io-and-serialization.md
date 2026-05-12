@@ -187,7 +187,7 @@ p.rmdir()           # 删除空目录
 
 `pathlib` 在所有情况下都更简洁清晰。仅凭 `/` 运算符拼接路径这一点，就值得全面迁移。
 
-## 编码：UTF-8 优先原则
+## 编码： UTF-8 优先原则
 
 
 ![Encoding flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
@@ -204,7 +204,7 @@ with open("data.txt") as f:
 # UnicodeDecodeError: 'cp1252' codec can't decode byte 0xe9
 ```
 
-未显式指定 `encoding` 时，Python 使用平台默认编码：macOS/Linux 通常是 UTF-8，而 Windows 常为 cp1252（Windows-1252）。这意味着本地能跑通的代码，在生产环境极易崩溃。
+未显式指定 `encoding` 时， Python 使用平台默认编码： macOS/Linux 通常是 UTF-8，而 Windows 常为 cp1252 （Windows-1252）。这意味着本地能跑通的代码，在生产环境极易崩溃。
 
 ### 解决方案
 
@@ -216,7 +216,7 @@ with open("data.txt", encoding="utf-8") as f:
     content = f.read()
 ```
 
-从 Python 3.15（PEP 686）起，UTF-8 将成为默认编码，在此之前请保持显式声明。
+从 Python 3.15 （PEP 686）起， UTF-8 将成为默认编码，在此之前请保持显式声明。
 
 ### 处理编码错误
 
@@ -240,9 +240,9 @@ with open("mystery.txt", "rb") as f:
 content = raw.decode(detected["encoding"])
 ```
 
-### BOM（字节顺序标记）
+### BOM （字节顺序标记）
 
-某些 Windows 工具会在 UTF-8 文件开头添加 BOM（`﻿`）。使用 `utf-8-sig` 可自动处理：
+某些 Windows 工具会在 UTF-8 文件开头添加 BOM （`﻿`）。使用 `utf-8-sig` 可自动处理：
 
 ```python
 # 读取：自动剥离 BOM（如存在）
@@ -256,7 +256,7 @@ with open("output.csv", "w", encoding="utf-8-sig") as f:
 
 ## JSON
 
-JSON 是最常用的数据交换格式。Python 标准库 `json` 模块原生支持。
+JSON 是最常用的数据交换格式。 Python 标准库 `json` 模块原生支持。
 
 ![I/O pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png)
 
@@ -290,7 +290,7 @@ with open("output.json", "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
 ```
 
-`ensure_ascii=False` 对非 ASCII 文本至关重要。否则中文、emoji 等字符会被转义为 `\uXXXX`。
+`ensure_ascii=False` 对非 ASCII 文本至关重要。否则中文、 emoji 等字符会被转义为 `\uXXXX`。
 
 ### 自定义序列化器
 
@@ -452,7 +452,7 @@ with open("config.toml", "wb") as f:
 
 ## CSV
 
-CSV 在数据工作中无处不在。Python 的 `csv` 模块能正确处理引号、转义和不同分隔符。
+CSV 在数据工作中无处不在。 Python 的 `csv` 模块能正确处理引号、转义和不同分隔符。
 
 ### 读取 CSV
 
@@ -513,7 +513,7 @@ with open("excel_export.csv", encoding="utf-8-sig") as f:
 
 ![File io pipeline data flowing from disk through buffers to a](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-file-io-pipeline-data-flowing-from-disk-through-buffers-to-a.jpg)
 
-### `pickle`：Python 对象序列化
+### `pickle`： Python 对象序列化
 
 `pickle` 可将任意 Python 对象序列化为字节流并还原，速度快且便捷。
 
@@ -581,7 +581,7 @@ unpacked = msgpack.unpackb(packed)
 
 ## Parquet 与 Arrow：列式数据
 
-对于大型数据集，行式格式（CSV、JSON）效率低下。Parquet 采用列式存储，支持高效压缩与分析查询。
+对于大型数据集，行式格式（CSV、 JSON）效率低下。 Parquet 采用列式存储，支持高效压缩与分析查询。
 
 ```bash
 (.venv) $ pip install pyarrow pandas
@@ -605,11 +605,11 @@ df = pd.read_parquet("large_data.parquet", columns=["name", "age"])
 
 | 格式 | 文件大小 | 写入耗时 | 读取耗时 | 仅读两列耗时 |
 |------|----------|----------|----------|--------------|
-| CSV | 120 MB | 8.2s | 5.1s | 5.1s（全量读取） |
-| JSON | 200 MB | 12.5s | 9.8s | 9.8s（全量读取） |
+| CSV | 120 MB | 8.2s | 5.1s | 5.1s （全量读取） |
+| JSON | 200 MB | 12.5s | 9.8s | 9.8s （全量读取） |
 | Parquet | 15 MB | 1.8s | 0.4s | 0.1s |
 
-在此例中，Parquet 比 CSV 小 8 倍，读取速度快 12 倍。
+在此例中， Parquet 比 CSV 小 8 倍，读取速度快 12 倍。
 
 ## 配置模式
 
@@ -658,15 +658,15 @@ SECRET_KEY=generate-a-random-key
 | 人类可读性 | 良好 | 良好 | 良好 | 良好 |
 | Python 标准库支持 | 是 | PyYAML | 是（3.11+） | `python-dotenv` |
 | 多行字符串 | 需转义 | 是 | 是 | 有限 |
-| 典型用途 | API、数据交换 | Kubernetes、Docker Compose | `pyproject.toml`、Cargo | 密钥、环境变量 |
+| 典型用途 | API、数据交换 | Kubernetes、 Docker Compose | `pyproject.toml`、 Cargo | 密钥、环境变量 |
 | “陷阱”风险 | 低 | 中（类型强制转换） | 低 | 低 |
 
 **推荐方案：**
-- **应用配置**：TOML（清晰、强类型、无歧义）
+- **应用配置**： TOML （清晰、强类型、无歧义）
 - **密钥与环境变量**：`.env` 文件（**绝不可提交至版本控制**）
-- **数据交换**：JSON（通用性强，所有语言均支持）
-- **避免 YAML**，除非你必须配合要求 YAML 的工具（如 Kubernetes、GitHub Actions）
+- **数据交换**： JSON （通用性强，所有语言均支持）
+- **避免 YAML**，除非你必须配合要求 YAML 的工具（如 Kubernetes、 GitHub Actions）
 
 ## 下一步
 
-文件与数据格式构成了 I/O 层，但当你的程序需要**同时执行大量 I/O 操作**（例如下载 100 个文件、并发调用 50 个 API）时，串行执行会把大部分时间浪费在等待上。下一篇文章我们将深入探讨并发编程：线程（threads）、进程（processes）与异步 I/O（asyncio），并学会为不同场景选择最合适的工具。
+文件与数据格式构成了 I/O 层，但当你的程序需要**同时执行大量 I/O 操作**（例如下载 100 个文件、并发调用 50 个 API）时，串行执行会把大部分时间浪费在等待上。下一篇文章我们将深入探讨并发编程：线程（threads）、进程（processes）与异步 I/O （asyncio），并学会为不同场景选择最合适的工具。

@@ -16,7 +16,7 @@ description: "A 实战指南 to Alibaba Cloud's product ecosystem. We map every 
 disableNunjucks: true
 translationKey: "aliyun-fullstack-1"
 ---
-刚上阿里云的第一周，我彻底迷失在产品命名的海洋里：ECS、SLB、SLS、RDS、OSS、NAS、PAI、ARMS、ACK、FC、CDN、WAF、RAM、KMS、ROS、CloudMonitor、EventBridge、PolarDB、Lindorm、AnalyticDB、MaxCompute、DataWorks、Flink、DashScope、Bailian、OpenSearch……每个控制台页面都连着三四个我没听过的产品。文档假定你已经知道所有东西。英文翻译有时直译，有时意译，偶尔还会缺失。这正是我初上阿里云时最需要的指南：不用耗掉整个周末点击控制台、硬啃文档；那些翻译文档往往只教你怎么打开开关，却从不说明产品究竟解决什么问题。
+刚上阿里云的第一周，我彻底迷失在产品命名的海洋里： ECS、 SLB、 SLS、 RDS、 OSS、 NAS、 PAI、 ARMS、 ACK、 FC、 CDN、 WAF、 RAM、 KMS、 ROS、 CloudMonitor、 EventBridge、 PolarDB、 Lindorm、 AnalyticDB、 MaxCompute、 DataWorks、 Flink、 DashScope、 Bailian、 OpenSearch……每个控制台页面都连着三四个我没听过的产品。文档假定你已经知道所有东西。英文翻译有时直译，有时意译，偶尔还会缺失。这正是我初上阿里云时最需要的指南：不用耗掉整个周末点击控制台、硬啃文档；那些翻译文档往往只教你怎么打开开关，却从不说明产品究竟解决什么问题。
 
 这篇文章就是全景地图，将阿里云生态整体映射到你已熟悉的 AWS/Azure/GCP 服务：从零开通账号、厘清计费模型（避免账单惊吓）、最终部署一个可运行的 ECS 实例。不讲空洞的理论。文中每项服务，均已在生产环境实测，或经审慎评估后明确弃用。
 
@@ -29,15 +29,15 @@ translationKey: "aliyun-fullstack-1"
 
 以下是三个理由，按实际重要性降序排列：
 
-**1. 中国。** 如果你的用户在中国，你需要中国的基础设施。AWS 中国（由光环新网/西云数据运营）虽然存在，但它是独立实体，账号独立，服务子集，发布周期更慢。Azure 中国（由世纪互联运营）也有同样的限制。GCP 根本没有中国大陆区域。阿里云是原生云，运行着淘宝、支付宝、天猫和饿了么。它有七个大陆地域，亚洲最大的数据中心足迹，每个服务第一天就能用，不需要 ICP 牌照合作伙伴安排。
+**1. 中国。** 如果你的用户在中国，你需要中国的基础设施。 AWS 中国（由光环新网/西云数据运营）虽然存在，但它是独立实体，账号独立，服务子集，发布周期更慢。 Azure 中国（由世纪互联运营）也有同样的限制。 GCP 根本没有中国大陆区域。阿里云是原生云，运行着淘宝、支付宝、天猫和饿了么。它有七个大陆地域，亚洲最大的数据中心足迹，每个服务第一天就能用，不需要 ICP 牌照合作伙伴安排。
 
 **2. 市场地位。** 阿里云是亚太地区最大的云提供商，全球第三，仅次于 AWS 和 Azure。根据 Gartner 2025 年的数据，它占据中国云市场约 35% 的份额，全球约 5%。这和你在西方选择 AWS 的理由一样：生态系统（第三方集成、社区支持、招聘池、供应商合作伙伴）跟随市场领导者。
 
 **3. 独特服务。** 有些阿里云产品在其他地方没有直接对应，或明显领先：
 
-- **DashScope / Bailian** —— Qwen 模型家族（LLM、多模态、TTS、视频生成）只在这里原生可用。你可以在任何云上自托管 Qwen，但带有按 Token 计费和中文语言优化的托管 API 是阿里云独有的。
-- **PolarDB** —— 云原生分布式数据库，确实和 Aurora 不同。它在页级别分离计算和存储，并在同一产品中支持 PostgreSQL、MySQL 和分布式（分片）模式。
-- **MaxCompute / DataWorks** —— 处理阿里内部分析的数据仓库和 ETL 栈。AWS 上没有东西能匹配这两者之间的集成深度。
+- **DashScope / Bailian** —— Qwen 模型家族（LLM、多模态、 TTS、视频生成）只在这里原生可用。你可以在任何云上自托管 Qwen，但带有按 Token 计费和中文语言优化的托管 API 是阿里云独有的。
+- **PolarDB** —— 云原生分布式数据库，确实和 Aurora 不同。它在页级别分离计算和存储，并在同一产品中支持 PostgreSQL、 MySQL 和分布式（分片）模式。
+- **MaxCompute / DataWorks** —— 处理阿里内部分析的数据仓库和 ETL 栈。 AWS 上没有东西能匹配这两者之间的集成深度。
 - **支付宝 / 淘宝生态集成** —— 如果你为中国电商构建任何东西（小程序、支付流程、商家工具），原生集成能节省数月工作。
 
 如果以上几点都不适用——比如用户主要在美国、无需中文大模型支持、也没有亚洲市场拓展需求——继续使用 AWS 完全合理。我完全认同这一点。但如果其中任何一条适用，阿里云就值得系统学习——这正是我们写这篇文章的原因。
@@ -73,10 +73,10 @@ translationKey: "aliyun-fullstack-1"
 
 | 阿里云 | AWS | Azure | GCP | 功能说明 |
 |---|---|---|---|---|
-| **RDS** | RDS | Azure SQL / Azure DB | Cloud SQL | 托管 MySQL、PostgreSQL、SQL Server、MariaDB。 |
+| **RDS** | RDS | Azure SQL / Azure DB | Cloud SQL | 托管 MySQL、 PostgreSQL、 SQL Server、 MariaDB。 |
 | **PolarDB** | Aurora | — | AlloyDB | 云原生分布式关系数据库。 |
 | **Lindorm** | DynamoDB + Timestream | Cosmos DB | Bigtable + BigTable | 多模型数据库（宽列、时间序列、搜索）。 |
-| **AnalyticDB (ADB)** | Redshift | Synapse | BigQuery | 云数据仓库，列式，MPP。 |
+| **AnalyticDB (ADB)** | Redshift | Synapse | BigQuery | 云数据仓库，列式， MPP。 |
 | **Tair** (formerly Redis Enterprise) | ElastiCache | Azure Cache for Redis | Memorystore | 托管 Redis 兼容内存存储。 |
 | **MongoDB** (ApsaraDB for MongoDB) | DocumentDB | Cosmos DB (Mongo API) | — | 托管 MongoDB。 |
 
@@ -98,9 +98,9 @@ translationKey: "aliyun-fullstack-1"
 
 | 阿里云 | AWS | Azure | GCP | 功能说明 |
 |---|---|---|---|---|
-| **PAI** (Platform for AI) | SageMaker | Azure ML | Vertex AI | 完整 ML 平台：Notebooks、训练、服务。 |
-| **DashScope** | Bedrock | Azure OpenAI Service | Vertex AI (Gemini) | 模型 API 网关（Qwen、万相、Embeddings）。 |
-| **Bailian (百炼)** | Bedrock console | Azure AI Studio | — | 模型管理控制台，RAG 构建，微调 UI。 |
+| **PAI** (Platform for AI) | SageMaker | Azure ML | Vertex AI | 完整 ML 平台： Notebooks、训练、服务。 |
+| **DashScope** | Bedrock | Azure OpenAI Service | Vertex AI (Gemini) | 模型 API 网关（Qwen、万相、 Embeddings）。 |
+| **Bailian (百炼)** | Bedrock console | Azure AI Studio | — | 模型管理控制台， RAG 构建，微调 UI。 |
 | **OpenSearch** | OpenSearch Service | Azure AI Search | Vertex AI Search | 托管搜索，带 AI 排序和检索。 |
 
 ### 安全与身份
@@ -140,7 +140,7 @@ translationKey: "aliyun-fullstack-1"
 | **ROS** (Resource Orchestration Service) | CloudFormation | ARM/Bicep | Deployment Manager | 原生基于模板的 IaC。 |
 | **Pulumi** (alicloud provider) | Pulumi (aws) | Pulumi (azure) | Pulumi (gcp) | Python/TS/Go 编程式 IaC。 |
 
-产品确实很多。你不需要背下这张表。把它加入书签。当你在文档页面看到缩写需要知道映射关系时再回来查。最有帮助的心智模型是：**阿里云几乎为每个 AWS 服务都有接近 1:1 的对应产品**，外加一些 extras（PolarDB、DashScope、MaxCompute）和一些 gaps（没有像 AWS Organizations 多账号策略那样成熟的对应方案，英文 SDK 文档比中文落后几周到几个月）。
+产品确实很多。你不需要背下这张表。把它加入书签。当你在文档页面看到缩写需要知道映射关系时再回来查。最有帮助的心智模型是：**阿里云几乎为每个 AWS 服务都有接近 1:1 的对应产品**，外加一些 extras （PolarDB、 DashScope、 MaxCompute）和一些 gaps （没有像 AWS Organizations 多账号策略那样成熟的对应方案，英文 SDK 文档比中文落后几周到几个月）。
 ## 账号搭建：从零到控制台
 
 搭阿里云账号跟 AWS 不太一样。有个额外步骤，每次都能把西方开发者第一次就卡住：**实名认证**（实名认证）。
@@ -153,7 +153,7 @@ translationKey: "aliyun-fullstack-1"
 
 ### 第二步：实名认证
 
-国内所有云服务都必须实名认证。这是监管硬性要求，不是阿里自己的规矩。AWS 中国也一样。流程如下：
+国内所有云服务都必须实名认证。这是监管硬性要求，不是阿里自己的规矩。 AWS 中国也一样。流程如下：
 
 - **个人账号**：上传身份证照片（国内居民用身份证，外国人用护照）。审核通常需要 1-3 个工作日。
 - **企业账号**：上传营业执照、法人身份证，有时还需要银行打款验证。耗时 3-5 个工作日。
@@ -166,7 +166,7 @@ translationKey: "aliyun-fullstack-1"
 
 1. 进入 **账号管理** > **安全设置**
 2. 开启 **虚拟 MFA 设备**
-3. 用认证器 App（Google Authenticator、1Password 等）扫码
+3. 用认证器 App （Google Authenticator、 1Password 等）扫码
 4. 输入两个连续验证码确认
 
 ### 第四步：创建 RAM 管理员用户
@@ -240,11 +240,11 @@ aliyun bssopenapi QueryAccountBalance
 
 阿里云新账号的免费额度（有效期 12 个月）包括：
 
-- **ECS**：1 台实例（1 vCPU, 1 GB RAM）可用 3 个月——够本系列用了
-- **OSS**：5 GB 存储，5 GB  outbound 流量 / 月
-- **RDS**：1 台微实例可用 1 个月
-- **Function Compute**：100 万次请求 + 400,000 GB-秒 / 月
-- **SLS**：500 MB / 天 摄入
+- **ECS**： 1 台实例（1 vCPU, 1 GB RAM）可用 3 个月——够本系列用了
+- **OSS**： 5 GB 存储， 5 GB  outbound 流量 / 月
+- **RDS**： 1 台微实例可用 1 个月
+- **Function Compute**： 100 万次请求 + 400,000 GB-秒 / 月
+- **SLS**： 500 MB / 天 摄入
 - **各类 AI 服务**：每个模型免费额度（DashScope, PAI 等）
 
 具体 offerings 每季度会变。去 [免费试用页面](https://free.aliyun.com/) 看最新详情。
@@ -260,7 +260,7 @@ aliyun bssopenapi QueryAccountBalance
 | Region ID | Location | Good for |
 |---|---|---|
 | `cn-hangzhou` | 杭州，浙江 | 大多数服务的默认区。阿里总部。服务覆盖最全。 |
-| `cn-shanghai` | 上海 | 金融服务，AI/ML（GPU 库存最足）。 |
+| `cn-shanghai` | 上海 | 金融服务， AI/ML （GPU 库存最足）。 |
 | `cn-beijing` | 北京 | 政府，媒体，华北用户。 |
 | `cn-shenzhen` | 深圳，广东 | 华南，毗邻香港。 |
 | `cn-zhangjiakou` | 张家口，河北 | 冷存储，批处理（最便宜）。 |
@@ -298,7 +298,7 @@ aliyun bssopenapi QueryAccountBalance
 4. **成本敏感的批处理负载？** 张家口和呼和浩特计算资源便宜 15-30%。
 5. **默认选啥？** 国内选 `cn-hangzhou`，国际选 `ap-southeast-1`。
 
-> **实战建议：** 每个区域都有多个可用区（AZ），标记为 `a`, `b`, `c` 等。只要是重要业务，至少跨两个 AZ 部署。AZ 故障虽少见，但确实会发生——我在 18 个月内见过 `cn-hangzhou-h` 两次降级。
+> **实战建议：** 每个区域都有多个可用区（AZ），标记为 `a`, `b`, `c` 等。只要是重要业务，至少跨两个 AZ 部署。 AZ 故障虽少见，但确实会发生——我在 18 个月内见过 `cn-hangzhou-h` 两次降级。
 
 ## 理解计费模式
 
@@ -318,7 +318,7 @@ aliyun bssopenapi QueryAccountBalance
 
 ### 包年包月（Subscription, 包年包月）
 
-你承诺用 1 个月、3 个月、6 个月、1 年、2 年或 3 年。承诺越久，折扣越深。3 年的 ECS 承诺比按量付费便宜 40-60%。但你需要预付（或按月自动续费），而且即使你停用实例，钱照样扣。
+你承诺用 1 个月、 3 个月、 6 个月、 1 年、 2 年或 3 年。承诺越久，折扣越深。 3 年的 ECS 承诺比按量付费便宜 40-60%。但你需要预付（或按月自动续费），而且即使你停用实例，钱照样扣。
 
 适用场景：你知道至少会跑一年的生产服务器。
 
@@ -326,7 +326,7 @@ aliyun bssopenapi QueryAccountBalance
 
 概念跟 AWS Spot Instances 一样。你竞价使用闲置容量，折扣 10-90%。实例可能被回收，但会有 5 分钟预警。阿里云的 Spot 市场竞争没 AWS 那么激烈，这意味着折扣往往更深，中断也没那么频繁——至少我在 `cn-shanghai` 的经验是这样。
 
-适用场景：批处理、可 checkpoint 的训练任务、CI  runners。
+适用场景：批处理、可 checkpoint 的训练任务、 CI  runners。
 
 ```bash
 # 启动一台抢占式实例
@@ -362,7 +362,7 @@ aliyun ecs RunInstances \
 
 ![阿里云免费额度一览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_free_tier.png)
 
-我们要启动一台运行 Alibaba Cloud Linux 3 的 ECS 实例，SSH 连上去，装个 nginx，然后托管一个测试页面。大概 15 分钟搞定。
+我们要启动一台运行 Alibaba Cloud Linux 3 的 ECS 实例， SSH 连上去，装个 nginx，然后托管一个测试页面。大概 15 分钟搞定。
 
 ### 前置条件
 
@@ -372,7 +372,7 @@ aliyun ecs RunInstances \
 
 ### 第一步：创建 VPC 和 VSwitch
 
-每台 ECS 实例都得活在 VPC 里。你需要一个 VPC 和至少一个 VSwitch（子网）。
+每台 ECS 实例都得活在 VPC 里。你需要一个 VPC 和至少一个 VSwitch （子网）。
 
 ```bash
 # Create a VPC
@@ -402,7 +402,7 @@ echo "VSwitch ID: $VSWITCH_ID"
 
 ### 第二步：创建安全组
 
-安全组其实就是虚拟防火墙。咱们得放行 SSH（22 端口）仅给自己的 IP，HTTP（80 端口）开放给全网。
+安全组其实就是虚拟防火墙。咱们得放行 SSH （22 端口）仅给自己的 IP， HTTP （80 端口）开放给全网。
 
 ```bash
 # Create security group
@@ -496,9 +496,9 @@ echo "Instance ID: $INSTANCE_ID"
 
 这几个参数得说一下：
 
-- **`ecs.c7.large`**：2 vCPU，4 GB 内存。拿来学习够用，价格也不心疼。`c7` 系列是 Intel Ice Lake 架构，通用负载的默认好选择。
+- **`ecs.c7.large`**： 2 vCPU， 4 GB 内存。拿来学习够用，价格也不心疼。`c7` 系列是 Intel Ice Lake 架构，通用负载的默认好选择。
 - **`cloud_essd`**：增强型 SSD。新实例默认就是这个，只要涉及磁盘读写，选它准没错。老的 `cloud_efficiency`（高效云盘）虽然便宜点，但慢得明显。
-- **`InternetMaxBandwidthOut 5`**：5 Mbps 公网带宽。设成非零值会自动分配公网 IP，不用单独搞 EIP。学习够用；生产环境建议用 EIP 或 SLB。
+- **`InternetMaxBandwidthOut 5`**： 5 Mbps 公网带宽。设成非零值会自动分配公网 IP，不用单独搞 EIP。学习够用；生产环境建议用 EIP 或 SLB。
 - **`PostPaid`**：按量付费。用完停掉实例，计算资源就不再计费（磁盘还得付点小钱）。
 
 ### 第五步：获取公网 IP 并 SSH 登录
@@ -763,7 +763,7 @@ Article 12: Putting It All Together — A Production Architecture
 其中有些主题本博客已经有专门的深度系列了：
 
 - **PAI (articles 1-5)**：如果想全面了解 GPU 笔记本、分布式训练和模型服务，请看 [PAI series](/zh/aliyun-pai/01-platform-overview/)。
-- **Bailian and DashScope (articles 1-5)**：针对 LLM API、多模态模型、TTS 和视频生成，请看 [Bailian series](/zh/aliyun-bailian/01-platform-overview/)。
+- **Bailian and DashScope (articles 1-5)**：针对 LLM API、多模态模型、 TTS 和视频生成，请看 [Bailian series](/zh/aliyun-bailian/01-platform-overview/)。
 - **Terraform (articles 1-8)**：针对 AI 代理系统的基础设施即代码模式，请看 [Terraform for AI Agents series](/zh/terraform-agents/01-why-terraform-for-agents/)。
 
 这个全栈系列是广度优先的巡礼。那些系列是深度优先的深挖。两者互补——每到一个主题，我会指引你去看对应的深度文章。

@@ -30,11 +30,11 @@ aliases:
 - RMSProp 用一行代码（指数滑动平均）救活了 AdaGrad
 - Adam 怎么把动量和 RMSProp 拼在一起，为什么需要"偏差修正"
 - AdamW vs Adam：为什么"L2 正则等价于 weight decay"在 Adam 里**不再成立**
-- Lion / Sophia / Schedule-Free：2023+ 真正进入主流训练栈的三条路
+- Lion / Sophia / Schedule-Free： 2023+ 真正进入主流训练栈的三条路
 
 ## 前置知识
 
-- 基础微积分（梯度、Hessian、Taylor 展开）
+- 基础微积分（梯度、 Hessian、 Taylor 展开）
 - 训练过任意一个神经网络（任何框架都行）
 
 ---
@@ -72,7 +72,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t)$$
 
 ## 2. SGD：噪声的代价与红利
 
-数据量上去之后，全量梯度算不动。SGD 用 mini-batch 估计：
+数据量上去之后，全量梯度算不动。 SGD 用 mini-batch 估计：
 
 $$g_t = \nabla J(\theta_t) + \xi_t,\quad \mathbb{E}[\xi_t]=0$$
 
@@ -80,11 +80,11 @@ $$g_t = \nabla J(\theta_t) + \xi_t,\quad \mathbb{E}[\xi_t]=0$$
 - **诅咒**：步子大一点就被噪声放大成发散
 - **祝福**：噪声有助于**逃离尖锐局部极小**——这后来被 Keskar 等人证明与泛化直接相关（小 batch 的"flat minima"假说）
 
-**Fig 1 中间面板**：SGD 在同一窄谷里的轨迹比 GD 更"毛糙"，但平均方向仍然朝着谷底。
+**Fig 1 中间面板**： SGD 在同一窄谷里的轨迹比 GD 更"毛糙"，但平均方向仍然朝着谷底。
 
 ## 3. 动量（Momentum）：把"惯性"还给优化器
 
-直觉：把参数想成**滑下山谷的小球**。GD 等价于"无质量的虫子"——每步只看当前坡度，于是窄谷里左右乱晃。给虫子加点质量，惯性就会**沿着山谷长方向累积**，在垂直窄方向自动相互抵消。
+直觉：把参数想成**滑下山谷的小球**。 GD 等价于"无质量的虫子"——每步只看当前坡度，于是窄谷里左右乱晃。给虫子加点质量，惯性就会**沿着山谷长方向累积**，在垂直窄方向自动相互抵消。
 
 更新规则：
 
@@ -106,15 +106,15 @@ NAG 的修正只有一行：
 
 $$v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta_{t+1} = \theta_t - v_t$$
 
-**区别只在梯度求值的位置**：经典动量在 $\theta_t$ 求梯度，NAG 在"如果只走动量那一步会到的地方" $\theta_t - \gamma v_{t-1}$ 求梯度。
+**区别只在梯度求值的位置**：经典动量在 $\theta_t$ 求梯度， NAG 在"如果只走动量那一步会到的地方" $\theta_t - \gamma v_{t-1}$ 求梯度。
 
-**为什么有效**：相当于带了一步**前瞻**。如果前方坡度变缓，NAG 的梯度提前感知到，自动减速；反之提前加速。Nesterov 在 1983 年证明对凸光滑函数能从 $O(1/t)$ 加速到 $O(1/t^2)$。
+**为什么有效**：相当于带了一步**前瞻**。如果前方坡度变缓， NAG 的梯度提前感知到，自动减速；反之提前加速。 Nesterov 在 1983 年证明对凸光滑函数能从 $O(1/t)$ 加速到 $O(1/t^2)$。
 
 ![NAG 用前瞻梯度抑制过冲](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/优化算法的演进-从梯度下降到adam/fig2_nesterov_lookahead.png)
 
 ## 5. AdaGrad：每个坐标自己的学习率
 
-到了 2011，NLP 里大量稀疏特征——比如 word2vec 里某个罕见词只在百万样本里出现 5 次。如果对所有参数用同一个 $\eta$：
+到了 2011， NLP 里大量稀疏特征——比如 word2vec 里某个罕见词只在百万样本里出现 5 次。如果对所有参数用同一个 $\eta$：
 
 - 罕见词的参数：每次都用同样的小梯度，$\eta$ 取大了会把它震飞，取小了它永远学不动
 - 高频词的参数：梯度大、出现频繁，需要的步长反而小
@@ -145,7 +145,7 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t$$
 - **AdaGrad**：$G_t$ 永远变大 → LR 永远变小（不可逆）
 - **RMSProp**：$E[g^2]_t$ 是有限窗口平均 → 当**梯度规模发生变化**时，分母会跟着变 → LR **可以重新放大**
 
-**Fig 4 右面板**直接展示：在 step 60 处梯度规模骤降，AdaGrad 的有效 LR 继续往下走，RMSProp 的有效 LR 立刻**爬升回来**以匹配新规模。
+**Fig 4 右面板**直接展示：在 step 60 处梯度规模骤降， AdaGrad 的有效 LR 继续往下走， RMSProp 的有效 LR 立刻**爬升回来**以匹配新规模。
 
 ![RMSProp（EMA）vs AdaGrad（累积和）在非平稳梯度规模下](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/优化算法的演进-从梯度下降到adam/fig4_rmsprop_moving_average.png)
 
@@ -155,7 +155,7 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t$$
 - **动量**给的是**好方向**
 - **RMSProp** 给的是**好尺度（per-coordinate scaling）**
 
-Kingma & Ba（2014）的 Adam 把它们直接合二为一：
+Kingma & Ba （2014）的 Adam 把它们直接合二为一：
 
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t \quad\text{(一阶矩，即动量)}$$
 
@@ -177,23 +177,23 @@ $$\theta_{t+1} = \theta_t - \frac{\eta\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}$$
 
 L2 正则 $\frac{\lambda}{2}\|\theta\|^2$ 加到损失里，会在梯度里多出一项 $\lambda\theta$。在**SGD** 里这等价于直接把权重乘以 $(1-\eta\lambda)$——也就是经典的 weight decay。
 
-但 Loshchilov & Hutter（2017）发现：在 **Adam** 里这两件事**不再等价**。原因很直接：Adam 把梯度除以 $\sqrt{\hat v_t}$。如果你把 $\lambda\theta$ 也塞进梯度，它**也被除以** $\sqrt{\hat v_t}$——也就是说**梯度大的参数 weight decay 被自动调小**，这恰恰和正则化想做的事**反着来**。
+但 Loshchilov & Hutter （2017）发现：在 **Adam** 里这两件事**不再等价**。原因很直接： Adam 把梯度除以 $\sqrt{\hat v_t}$。如果你把 $\lambda\theta$ 也塞进梯度，它**也被除以** $\sqrt{\hat v_t}$——也就是说**梯度大的参数 weight decay 被自动调小**，这恰恰和正则化想做的事**反着来**。
 
 AdamW 的修正只是把 weight decay **从梯度里抠出来**，直接乘到参数上：
 
 $$\theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \eta\lambda\,\theta_t$$
 
-效果：在同样的 $\lambda$ 和 LR 下，AdamW 在 ImageNet/Transformer 上的 generalization gap 显著小于 Adam+L2。这就是为什么 2018 之后**所有大模型预训练默认都是 AdamW**。
+效果：在同样的 $\lambda$ 和 LR 下， AdamW 在 ImageNet/Transformer 上的 generalization gap 显著小于 Adam+L2。这就是为什么 2018 之后**所有大模型预训练默认都是 AdamW**。
 
 ![AdamW（解耦）vs Adam+L2（耦合）：weight decay 进入更新公式的位置不同](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/优化算法的演进-从梯度下降到adam/fig6_adamw_vs_adam.png)
 
 ## 9. 2023+ 之后的三条路
 
-AdamW 当了 6 年的"统治者"之后，2023 起出现三个**真正在大模型上被反复验证**的方向。
+AdamW 当了 6 年的"统治者"之后， 2023 起出现三个**真正在大模型上被反复验证**的方向。
 
-## 9.1 Lion（Google, 2023）：只看符号
+## 9.1 Lion （Google, 2023）：只看符号
 
-由 AutoML 程序搜索发现的优化器，update 只取**符号**：
+由 AutoML 程序搜索发现的优化器， update 只取**符号**：
 
 $$m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t$$
 
@@ -201,10 +201,10 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_
 
 **关键性质**：
 - **省一半显存**：不用维护 $v_t$（二阶矩），对千亿参数模型是真金白银的省
-- **更新幅度恒定 $\eta$**：因为 sign 输出 $\pm 1$。所以 Lion 的 LR **比 AdamW 小约 10 倍**，wd 大约 10 倍
+- **更新幅度恒定 $\eta$**：因为 sign 输出 $\pm 1$。所以 Lion 的 LR **比 AdamW 小约 10 倍**， wd 大约 10 倍
 - 在 ViT 和 LLM 预训练上和 AdamW 打平甚至略胜，且训练更快
 
-## 9.2 Sophia（Stanford, 2023）：廉价二阶
+## 9.2 Sophia （Stanford, 2023）：廉价二阶
 
 Sophia 把对角 Hessian 的廉价估计塞到分母里：
 
@@ -216,14 +216,14 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_
 
 **核心 trick**：
 - 用 $\mathrm{diag}(H)$ 而不是 $g^2$ 当分母——这才是**真正的曲率**
-- `clip` 是关键：非凸下 $h_t$ 可能为负，clip 把更新幅度框住保证稳定
+- `clip` 是关键：非凸下 $h_t$ 可能为负， clip 把更新幅度框住保证稳定
 - Hessian probe 不是每步都做，所以平均开销可控
 
 报告显示在 GPT-2 规模上能把达到同样困惑度的 wall-clock 减半。
 
-## 9.3 Schedule-Free（Meta, 2024）：摆脱"必须知道总步数"
+## 9.3 Schedule-Free （Meta, 2024）：摆脱"必须知道总步数"
 
-LR 调度（cosine、WSD 等）的麻烦在于：**必须事先知道总步数**。研究阶段你完全不知道要训多久，提前订调度等于自我束缚。
+LR 调度（cosine、 WSD 等）的麻烦在于：**必须事先知道总步数**。研究阶段你完全不知道要训多久，提前订调度等于自我束缚。
 
 Schedule-Free AdamW 的核心思想是把"调度"用**迭代平均**替代：
 
@@ -252,13 +252,13 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(返回的"平均"参数)}$$
 
 1. **加了动量必须降 LR**：动量把有效步长放大约 $1/(1-\gamma)$ 倍。$\gamma=0.9$ 大约对应 ×10。
 2. **Adam 的 $\beta_2 = 0.999$ 决定了你需要 ~1000 步预热**：因为 $v_t$ 在前 1000 步还没"热起来"。
-3. **AdamW 的 wd 是和 LR 解耦的**：所以 LR scheduler 衰减 LR 的时候，wd 不会跟着衰减。这是和老的 SGD+L2 工作流的根本差别。
+3. **AdamW 的 wd 是和 LR 解耦的**：所以 LR scheduler 衰减 LR 的时候， wd 不会跟着衰减。这是和老的 SGD+L2 工作流的根本差别。
 4. **Lion 的 LR 必须比 AdamW 小约一个数量级**：直接照搬 AdamW 的 3e-4 会立即发散。
-5. **二阶方法在深度学习里"看起来"一直没普及**：不是因为不好，而是 Hessian 的存储/计算曾经太贵。Sophia 把 $\mathrm{diag}(H)$ 和 Hutchinson 估计组合起来后，这个壁垒第一次被打穿。
+5. **二阶方法在深度学习里"看起来"一直没普及**：不是因为不好，而是 Hessian 的存储/计算曾经太贵。 Sophia 把 $\mathrm{diag}(H)$ 和 Hutchinson 估计组合起来后，这个壁垒第一次被打穿。
 
 ## 12. 优化器状态显存：公式不会告诉你的成本
 
-动量、AdaGrad、RMSProp、Adam 的推导从来不提显存。生产环境里这恰恰是头号约束。对一个有 $P$ 个可训练参数的 fp16 模型来说：
+动量、 AdaGrad、 RMSProp、 Adam 的推导从来不提显存。生产环境里这恰恰是头号约束。对一个有 $P$ 个可训练参数的 fp16 模型来说：
 
 | 优化器 | 每参数状态（fp32） | 7 B 参数 | 70 B 参数 |
 |---|---|---|---|
@@ -268,11 +268,11 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(返回的"平均"参数)}$$
 | Lion | 4 字节（仅 $m$） | 28 GB | 280 GB |
 | Sophia | 8 字节（$m, h$） | 56 GB | 560 GB |
 | Adafactor | 约 2 字节（分解） | 14 GB | 140 GB |
-| 8-bit AdamW（`bnb`） | 2 字节 | 14 GB | 140 GB |
+| 8-bit AdamW （`bnb`） | 2 字节 | 14 GB | 140 GB |
 
-这张表才是真正决定"你能跑哪个优化器"的东西。一个 fp16 的 7 B 模型，权重 14 GB、梯度 14 GB，AdamW 再加 56 GB——已经把 80 GB 的 A100 直接撑爆。同一个模型用 8-bit AdamW 或 Adafactor 就能舒服地装下。这也就是为什么 LLM 预训练社区对优化器状态的量化有种古典 ML 时代从未有过的执念：算法本身没问题，瓶颈在显存。
+这张表才是真正决定"你能跑哪个优化器"的东西。一个 fp16 的 7 B 模型，权重 14 GB、梯度 14 GB， AdamW 再加 56 GB——已经把 80 GB 的 A100 直接撑爆。同一个模型用 8-bit AdamW 或 Adafactor 就能舒服地装下。这也就是为什么 LLM 预训练社区对优化器状态的量化有种古典 ML 时代从未有过的执念：算法本身没问题，瓶颈在显存。
 
-一个比较实用的判断标准：如果优化器状态超过权重显存的 1.5 倍，你大概率得在三件事里挑一件——把优化器分片（ZeRO-1）、把它量化（`bitsandbytes`）、或者换一个状态更轻的算法（Lion、Adafactor）。怎么选取决于你的瓶颈在单卡显存还是整集群显存。
+一个比较实用的判断标准：如果优化器状态超过权重显存的 1.5 倍，你大概率得在三件事里挑一件——把优化器分片（ZeRO-1）、把它量化（`bitsandbytes`）、或者换一个状态更轻的算法（Lion、 Adafactor）。怎么选取决于你的瓶颈在单卡显存还是整集群显存。
 
 
 ![各优化器的状态显存对比，以及在 7B / 70B 规模下的总显存占用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig8_optimizer_memory.png)
@@ -308,7 +308,7 @@ bf16 让这件事稍微宽松一点：动态范围够大，可以在某些场景
 | Schedule-Free AdamW | 1e-4 – 6e-4 | 跟 AdamW 一样；变的是**调度** |
 | Adafactor | 相对步长 0.01 – 0.05 | 用的是相对步长，绝对 LR 没意义 |
 
-这只是开手第一发的先验。真实最优值取决于 batch size（SGD 走线性放缩律，Adam 大约是 $\sqrt{}$ 放缩律）、warmup 长度、数据噪声。但要是一开始就超出这些区间，几乎一定是配置错了，而不是发现新大陆。
+这只是开手第一发的先验。真实最优值取决于 batch size （SGD 走线性放缩律， Adam 大约是 $\sqrt{}$ 放缩律）、 warmup 长度、数据噪声。但要是一开始就超出这些区间，几乎一定是配置错了，而不是发现新大陆。
 
 ## 总结
 
@@ -321,9 +321,9 @@ bf16 让这件事稍微宽松一点：动态范围够大，可以在某些场景
 
 ## 延伸阅读
 
-- Adam: A Method for Stochastic Optimization（Kingma & Ba, 2014）— [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
-- Decoupled Weight Decay Regularization（Loshchilov & Hutter, 2017）— [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
-- Symbolic Discovery of Optimization Algorithms / Lion（Chen et al., 2023）— [arXiv:2302.06675](https://arxiv.org/abs/2302.06675)
-- Sophia: A Scalable Stochastic Second-order Optimizer for Language Model Pre-training（Liu et al., 2023）— [arXiv:2305.14342](https://arxiv.org/abs/2305.14342)
-- The Road Less Scheduled / Schedule-Free（Defazio et al., 2024）— [arXiv:2405.15682](https://arxiv.org/abs/2405.15682)
+- Adam: A Method for Stochastic Optimization （Kingma & Ba, 2014）— [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
+- Decoupled Weight Decay Regularization （Loshchilov & Hutter, 2017）— [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)
+- Symbolic Discovery of Optimization Algorithms / Lion （Chen et al., 2023）— [arXiv:2302.06675](https://arxiv.org/abs/2302.06675)
+- Sophia: A Scalable Stochastic Second-order Optimizer for Language Model Pre-training （Liu et al., 2023）— [arXiv:2305.14342](https://arxiv.org/abs/2305.14342)
+- The Road Less Scheduled / Schedule-Free （Defazio et al., 2024）— [arXiv:2405.15682](https://arxiv.org/abs/2405.15682)
 - 进一步看**学习率调度本身**：[学习率：从入门到大模型训练的终极指南](./04-learning-rate-schedules/)

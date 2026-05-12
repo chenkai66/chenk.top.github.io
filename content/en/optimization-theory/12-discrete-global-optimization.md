@@ -75,7 +75,7 @@ If the LP relaxation happens to have integer-valued $z^\star_{LP}$, we are done.
 
 ### A.3 Branch-and-bound
 
-```
+```yaml
 Algorithm: Branch-and-Bound for MILP
 Initialize: incumbent UB = +∞, problem queue = {original LP relaxation}
 while queue not empty:

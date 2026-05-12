@@ -22,7 +22,7 @@ translationKey: "claude-code-learn-3"
 
 ## 什么是斜杠命令？
 
-一个位于 `.claude/commands/<name>.md` 的 Markdown 文件。文件内容即为向 Claude 发送的提示词（prompt），文件名就是命令名。创建后需重启 Claude Code（这是少数几个不支持热重载的功能）。
+一个位于 `.claude/commands/<name>.md` 的 Markdown 文件。文件内容即为向 Claude 发送的提示词（prompt），文件名就是命令名。创建后需重启 Claude Code （这是少数几个不支持热重载的功能）。
 
 最简示例：新建 `.claude/commands/audit.md`：
 
@@ -48,7 +48,7 @@ translationKey: "claude-code-learn-3"
 
 ### 斜杠命令的内部工作机制
 
-当你输入 `/audit` 时，Claude Code 会执行以下步骤：
+当你输入 `/audit` 时， Claude Code 会执行以下步骤：
 
 1. 在当前项目中查找 `.claude/commands/audit.md`  
 2. 同时检查 `~/.claude/commands/audit.md`（个人全局命令目录）  
@@ -66,7 +66,7 @@ translationKey: "claude-code-learn-3"
 - 完整保留 Markdown 格式（加粗、列表、表格等）
 
 ![斜杠命令查找顺序：项目命令优先、其次用户命令、最后内置命令](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig3.png)
-*图：Claude Code 解析斜杠命令时的查找顺序——先项目级，再用户级，最后内置命令。*
+*图： Claude Code 解析斜杠命令时的查找顺序——先项目级，再用户级，最后内置命令。*
 
 ## 目录结构规范
 
@@ -116,9 +116,9 @@ translationKey: "claude-code-learn-3"
 | `/explain` | `/e` | 对队友不友好，缺乏可发现性 |
 | `/debug` | `/dbg` | 新成员无法直观理解含义 |
 
-**黄金标准**：单个英文单词，4–8 字符，团队新人第一次见就能猜中用途。如果有人看到 `/review` 却想不到是“代码评审”，那命名就失败了。
+**黄金标准**：单个英文单词， 4–8 字符，团队新人第一次见就能猜中用途。如果有人看到 `/review` 却想不到是“代码评审”，那命名就失败了。
 
-🚫 避免在名称中加入版本号（如 `/review-v2`、`/test-new`）。需要升级时，直接替换原文件即可。Git 历史会自动保留旧版本，随时可回溯。
+🚫 避免在名称中加入版本号（如 `/review-v2`、`/test-new`）。需要升级时，直接替换原文件即可。 Git 历史会自动保留旧版本，随时可回溯。
 
 ## `$ARGUMENTS`：让命令支持参数化
 
@@ -142,7 +142,7 @@ translationKey: "claude-code-learn-3"
 /explain rate limiter
 ```
 
-`$ARGUMENTS` 即被替换为 `rate limiter`，Claude 将基于真实代码库生成一份三层嵌套的精准解释。
+`$ARGUMENTS` 即被替换为 `rate limiter`， Claude 将基于真实代码库生成一份三层嵌套的精准解释。
 
 ![$ARGUMENTS 替换流程：命令文件 + 用户输入 -> 最终发送给 Claude 的 prompt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig4.png)
 *图：`$ARGUMENTS` 仅做纯字符串替换——命令名后的全部内容会原样拼入 prompt。*
@@ -184,7 +184,7 @@ translationKey: "claude-code-learn-3"
 /compare axios vs fetch vs ky for HTTP requests
 ```
 
-`/compare` 后的所有内容（`axios vs fetch vs ky for HTTP requests`）整体成为 `$ARGUMENTS`，Claude 将其视为一条自然语言指令处理。
+`/compare` 后的所有内容（`axios vs fetch vs ky for HTTP requests`）整体成为 `$ARGUMENTS`， Claude 将其视为一条自然语言指令处理。
 
 **参数为文件路径**
 
@@ -613,7 +613,7 @@ Explain $ARGUMENTS at three levels:
 ```
 
 ![自动化层级金字塔：CLAUDE.md、斜杠命令、Shell 脚本、SDK，由简至繁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig6.png)
-*图：四级自动化体系。绝大多数团队终其一生只需停留在第 1、2 层。*
+*图：四级自动化体系。绝大多数团队终其一生只需停留在第 1、 2 层。*
 
 **从第 1 层起步，仅当低层无法满足需求时，才向上跃迁。**  
 绝大多数团队终身无需第 4 层；几乎所有团队都能从第 1–2 层显著受益。
@@ -638,7 +638,7 @@ Explain $ARGUMENTS at three levels:
 ```
 
 ![成熟的 .claude/commands 目录按职责分组：质量门禁、知识沉淀、运维操作](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig7.png)
-*图：11 条命令按意图分组。每个文件即一条工作流，共同构成团队的“AI 协作语言”。*
+*图： 11 条命令按意图分组。每个文件即一条工作流，共同构成团队的“AI 协作语言”。*
 
 共 11 个命令。每一个，都曾是：  
 ✅ 手动执行的多步骤流程，或  
@@ -654,4 +654,4 @@ Explain $ARGUMENTS at three levels:
 每一次部署，走过相同的检查点。  
 这些命令，已将团队的最佳实践，固化为可重复、可传承的工作流。
 
-下一篇：MCP —— 让 Claude Code 与万物对话的协议。
+下一篇： MCP —— 让 Claude Code 与万物对话的协议。

@@ -64,7 +64,7 @@ $$p_{X|Y}(x | y) = \frac{p_{X,Y}(x, y)}{p_Y(y)}, \quad \text{要求 } p_Y(y) > 0
 
 这正是条件概率公式 $P(A|B) = P(A \cap B)/P(B)$ 在随机变量上的自然推广。
 
-对每个固定的 $y$，函数 $p_{X|Y}(\cdot | y)$ 构成一个合法的 PMF（非负、总和为 1）。
+对每个固定的 $y$，函数 $p_{X|Y}(\cdot | y)$ 构成一个合法的 PMF （非负、总和为 1）。
 
 ## 联合分布：连续情形
 
@@ -160,8 +160,8 @@ $$f(x, y) = \frac{1}{2\pi \sigma_X \sigma_Y \sqrt{1 - \rho^2}} \exp\left(-\frac{
 条件方差 $\sigma_X^2(1 - \rho^2)$ 不依赖于 $y$。这意味着 $X$ 围绕其条件均值的“离散程度”对所有 $Y$ 的取值都相同 —— 这一性质称为 **同方差性（homoscedasticity）**。因子 $(1 - \rho^2)$ 刻画了已知 $Y$ 后对 $X$ 不确定性的削减程度：
 
 - $\rho = 0$：无削减（$\text{Var}(X|Y) = \sigma_X^2$）；
-- $|\rho| = 0.5$：削减 25%（$\text{Var}(X|Y) = 0.75\sigma_X^2$）；
-- $|\rho| = 0.9$：削减 81%（$\text{Var}(X|Y) = 0.19\sigma_X^2$）；
+- $|\rho| = 0.5$：削减 25% （$\text{Var}(X|Y) = 0.75\sigma_X^2$）；
+- $|\rho| = 0.9$：削减 81% （$\text{Var}(X|Y) = 0.19\sigma_X^2$）；
 - $|\rho| = 1$：完全消除（$\text{Var}(X|Y) = 0$，即 $X$ 完全由 $Y$ 决定）。
 
 量 $R^2 = \rho^2$ 即为 **决定系数（coefficient of determination）** —— 表示 $Y$ 解释的 $X$ 方差比例。这正是线性回归中计算的 $R^2$。
@@ -206,7 +206,7 @@ $$J = \det \begin{pmatrix} \frac{\partial x_1}{\partial y_1} & \frac{\partial x_
 
 ## 随机变量之和：卷积（Convolution）
 
-若 $X$ 与 $Y$ 独立，PDF 分别为 $f_X$ 和 $f_Y$，则 $Z = X + Y$ 的 PDF 为 **卷积**：
+若 $X$ 与 $Y$ 独立， PDF 分别为 $f_X$ 和 $f_Y$，则 $Z = X + Y$ 的 PDF 为 **卷积**：
 
 ![Convolution of random variables](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-convolution.png)
 
@@ -463,9 +463,9 @@ $$p(x_1, x_2, \ldots, x_d) = \prod_{i=1}^d p(x_i \mid \text{parents}(x_i))$$
 
 **示例。** $X$ = “洒水器开启”，$Y$ = “下雨”，$Z$ = “草地湿润”。若已知草地湿润，则洒水器与下雨成为条件依赖（若草地湿且未下雨，则洒水器很可能开启了）。但边际上，洒水器与下雨可能独立。这是 **解释消解（explaining away）** 的经典例子 —— 概率推理中的核心概念。
 
-理解 **边际独立性**（$X \perp Y$）与 **条件独立性**（$X \perp Y \mid Z$）的区别，对因果推断与图模型至关重要。两变量可边际独立但条件依赖（碰撞偏差，collider bias），或边际依赖但条件独立（中介效应，mediation）。DAG 的结构决定了哪些独立性成立。
+理解 **边际独立性**（$X \perp Y$）与 **条件独立性**（$X \perp Y \mid Z$）的区别，对因果推断与图模型至关重要。两变量可边际独立但条件依赖（碰撞偏差， collider bias），或边际依赖但条件独立（中介效应， mediation）。 DAG 的结构决定了哪些独立性成立。
 
-对数学感兴趣的读者：DAG 中的 **d-分离（d-separation）准则** 提供了一套完整的图形规则，可直接从网络结构读出条件独立性，无需显式计算任何概率。图论与概率论的这一深刻联系，构成了现代统计学（尤其是 Judea Pearl 发展的因果推断）的基石。
+对数学感兴趣的读者： DAG 中的 **d-分离（d-separation）准则** 提供了一套完整的图形规则，可直接从网络结构读出条件独立性，无需显式计算任何概率。图论与概率论的这一深刻联系，构成了现代统计学（尤其是 Judea Pearl 发展的因果推断）的基石。
 
 ## 多个随机变量的函数（Functions of Multiple Random Variables）
 

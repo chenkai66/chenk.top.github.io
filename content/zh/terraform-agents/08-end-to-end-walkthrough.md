@@ -22,7 +22,7 @@ translationKey: "terraform-agents-8"
 
 ![research-agent-stack: every box, one terraform apply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png)
 
-共五层：边缘、计算、记忆、平台、运维——均由本系列此前构建的模块组合而成；底层依赖 11 款阿里云服务：VPC、ECS、ALB、OSS、RDS for PostgreSQL、OpenSearch、KMS、SLS、ARMS、CloudMonitor，以及通过网关调用的 DashScope（LLM 接入服务）。
+共五层：边缘、计算、记忆、平台、运维——均由本系列此前构建的模块组合而成；底层依赖 11 款阿里云服务： VPC、 ECS、 ALB、 OSS、 RDS for PostgreSQL、 OpenSearch、 KMS、 SLS、 ARMS、 CloudMonitor，以及通过网关调用的 DashScope （LLM 接入服务）。
 
 ## Project structure
 
@@ -140,11 +140,11 @@ module "compute" {
 }
 ```
 
-五个模块调用。每个模块都把*前一个*模块的输出作为输入——`module.compute` 读取 `module.vpc`、`module.storage`、`module.gateway`、`module.observability`。这类模块间的依赖关系，正是 Terraform 构建 apply 执行图（有向无环图，DAG）的依据。
+五个模块调用。每个模块都把*前一个*模块的输出作为输入——`module.compute` 读取 `module.vpc`、`module.storage`、`module.gateway`、`module.observability`。这类模块间的依赖关系，正是 Terraform 构建 apply 执行图（有向无环图， DAG）的依据。
 
 ![Terraform module dependency DAG](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png)
 
-VPC 与 KMS 位于依赖链顶端，不依赖任何其他模块；Storage 与 gateway 均依赖 VPC 和 KMS，但彼此无依赖，因此 Terraform 并行创建；Compute 模块依赖前三者，因为其 cloud-init 模板需引用它们输出的 endpoint 地址；Observability 资源最后部署，需引用 compute 的 security group ID。
+VPC 与 KMS 位于依赖链顶端，不依赖任何其他模块； Storage 与 gateway 均依赖 VPC 和 KMS，但彼此无依赖，因此 Terraform 并行创建； Compute 模块依赖前三者，因为其 cloud-init 模板需引用它们输出的 endpoint 地址； Observability 资源最后部署，需引用 compute 的 security group ID。
 
 `local.is_prod` 里的三元表达式就是全部的环境升级策略，三行代码搞定：生产环境获得高可用 RDS、两个网关实例、三个 Agent ECS、¥800 成本上限、跨地域灾备。开发环境则使用最小可行配置。模块完全相同，仅通过变量调节规模，因此无需为不同环境维护独立代码分支或条件逻辑。
 
@@ -188,7 +188,7 @@ variable "agent_quotas" {
 }
 ```
 
-`sensitive = true` 防止 Terraform 在 plan/apply 输出中打印值。不过值还是会写进 tfstate（这就是为什么我们在第 2 篇里用独立的 KMS CMK 加密了 OSS state bucket）。
+`sensitive = true` 防止 Terraform 在 plan/apply 输出中打印值。不过值还是会写进 tfstate （这就是为什么我们在第 2 篇里用独立的 KMS CMK 加密了 OSS state bucket）。
 
 ## env/dev.tfvars and secrets
 
@@ -236,15 +236,15 @@ terraform apply tfplan
 
 实际耗时分解（wall-clock time）：
 
-- **0–60s：** VPC、vSwitch、NAT、EIP、KMS keys —— 快速资源
-- **60–380s：** RDS（约 5 分钟）、OpenSearch（约 5.5 分钟）、ECS（约 2 分钟）、gateway（约 1.5 分钟）——这些资源并行创建，整体耗时取决于最慢的一项。
+- **0–60s：** VPC、 vSwitch、 NAT、 EIP、 KMS keys —— 快速资源
+- **60–380s：** RDS （约 5 分钟）、 OpenSearch （约 5.5 分钟）、 ECS （约 2 分钟）、 gateway （约 1.5 分钟）——这些资源并行创建，整体耗时取决于最慢的一项。
 - **380–460s：** 通过 cloud-init 部署 agent 应用、观测资源、告警
 
 总共约 7 分钟，主要耗时集中在 RDS 和 OpenSearch 的创建过程。如果没有变更再次 apply，会在 30 秒内完成，因为 Terraform 只做 diff。
 
 一份精简后的 apply 转录：
 
-```
+```yaml
 Terraform will perform the following actions:
 
   # module.vpc.alicloud_vpc.this will be created
@@ -294,7 +294,7 @@ sls_dashboard_url    = "https://sls.console.aliyun.com/lognext/project/agents-de
 total_estimated_cost = "~¥2060/month at dev sizing"
 ```
 
-至此，一套完整的 Agent 运行时栈已完成部署。ALB 端点、网关 URL、SLS 仪表盘 URL 均已就绪，任选其一粘贴至浏览器即可直接访问。`total_estimated_cost` 输出是在 `outputs.tf` 里根据 workspace 条件计算出来的，所以你在 plan 里看到的数字和账单上显示的相符（误差 ~10% 以内，这是我长期运行的经验法则）。
+至此，一套完整的 Agent 运行时栈已完成部署。 ALB 端点、网关 URL、 SLS 仪表盘 URL 均已就绪，任选其一粘贴至浏览器即可直接访问。`total_estimated_cost` 输出是在 `outputs.tf` 里根据 workspace 条件计算出来的，所以你在 plan 里看到的数字和账单上显示的相符（误差 ~10% 以内，这是我长期运行的经验法则）。
 ## Day-2 运营
 
 栈搭好了，然后呢？这些是我每个长期运行的栈都会做的操作——这些操作虽未在正文中详述，却是 on-call 工程师日常运维的必备实践。
@@ -378,9 +378,9 @@ jobs:
             -d "{\"text\":{\"content\":\"Promotion plan ${{ inputs.from_workspace }}→${{ inputs.to_workspace }} ready for review\"}}"
 ```
 
-Plan 会发到钉钉上的 on-call 工程师。他们会特别关注任何与 dev 显示*不同*的地方。如果 plan 显示有资源要重建，而在 dev 里没重建——停手。Apply 之前先调查。这通常源于 workspace 条件配置错误或 tfvars 文件拼写错误。
+Plan 会发到钉钉上的 on-call 工程师。他们会特别关注任何与 dev 显示*不同*的地方。如果 plan 显示有资源要重建，而在 dev 里没重建——停手。 Apply 之前先调查。这通常源于 workspace 条件配置错误或 tfvars 文件拼写错误。
 
-**第三步：Apply，烟雾测试，然后解封。** 实际的 prod apply  gated 在一个需要审批人的 GitHub Environment 上（第 6 篇文章里配置过）。Apply 成功后，流量切换前先跑烟雾测试：
+**第三步： Apply，烟雾测试，然后解封。** 实际的 prod apply  gated 在一个需要审批人的 GitHub Environment 上（第 6 篇文章里配置过）。 Apply 成功后，流量切换前先跑烟雾测试：
 
 ```bash
 gateway=$(terraform output -raw gateway_url)
@@ -394,7 +394,7 @@ reply=$(curl -s -X POST $gateway/v1/chat/completions \
 
 5 秒钟的烟雾测试能在错误传播前抓住“我把网关搞挂了”这类问题。如果失败，虽然 apply  technically 成功了，但你可以用第一步的快照回滚。
 
-**第四步：Apply 后与 Staging 对比。** 跑一个跨 workspace 对比：
+**第四步： Apply 后与 Staging 对比。** 跑一个跨 workspace 对比：
 
 ```bash
 diff <(terraform workspace select staging && terraform output -json) \
@@ -402,11 +402,11 @@ diff <(terraform workspace select staging && terraform output -json) \
      | head -100
 ```
 
-预期差异：实例数量、RDS HA 标志、DR 区域。意外差异：其他任何内容。调查它们——这往往能 reveal 一个 tfvars 拼写错误或者第三步没触发的 workspace 条件 bug。
+预期差异：实例数量、 RDS HA 标志、 DR 区域。意外差异：其他任何内容。调查它们——这往往能 reveal 一个 tfvars 拼写错误或者第三步没触发的 workspace 条件 bug。
 
 ### 季度模块依赖升级
 
-每个季度：把 `alicloud` provider、所有开源模块和 Terraform 本身升级一个小版本。在 dev 跑 plan。Apply，浸泡一周。晋升。这种纪律能防止当 CVE-2027-XXX 爆发时，你落后三年，被迫在一个周末紧急跨六个版本升级。
+每个季度：把 `alicloud` provider、所有开源模块和 Terraform 本身升级一个小版本。在 dev 跑 plan。 Apply，浸泡一周。晋升。这种纪律能防止当 CVE-2027-XXX 爆发时，你落后三年，被迫在一个周末紧急跨六个版本升级。
 
 ### 状态备份到不同 Region
 
@@ -433,7 +433,7 @@ resource "alicloud_oss_bucket_replication" "tfstate" {
 
 ## 连接你的实际 Agent 代码
 
-栈是*平台*。Agent 本身来自你的 repo（`var.agent_repo_url`），由 ECS 启动时的 cloud-init 部署。你的 Agent 代码需要遵守的最小契约：
+栈是*平台*。 Agent 本身来自你的 repo （`var.agent_repo_url`），由 ECS 启动时的 cloud-init 部署。你的 Agent 代码需要遵守的最小契约：
 
 ```python
 # These come from environment variables set by cloud-init
@@ -447,11 +447,11 @@ SLS_LOGSTORE       = os.environ["SLS_LOGSTORE"]
 ARMS_OTLP_ENDPOINT = os.environ["ARMS_OTLP_ENDPOINT"]
 ```
 
-所有这些值都来自 Terraform outputs。Agent 代码在形态上保持云无关——它只读环境变量——但在运行时完全接入 Aliyun 栈。当有人问“怎么把这个移到 AWS？”时，答案是：换模块，Agent 代码保持不变。契约就是这份环境变量列表。
+所有这些值都来自 Terraform outputs。 Agent 代码在形态上保持云无关——它只读环境变量——但在运行时完全接入 Aliyun 栈。当有人问“怎么把这个移到 AWS？”时，答案是：换模块， Agent 代码保持不变。契约就是这份环境变量列表。
 
 ## 成本算术 — Dev 和 Prod
 
-对于 Dev（低流量、单可用区、无 HA）：
+对于 Dev （低流量、单可用区、无 HA）：
 
 | 组件                      | 每月      |
 |-------------------------|--------:|
@@ -470,22 +470,22 @@ Prod，全 HA，跨区域 DR，真实流量——这是财务问"AI Agent 平台
 
 | 层级        | 资源                                | 规格                        | 每月 (¥) |
 |--------------|-----------------------------------------|-------------------------------|------------:|
-| 网络      | VPC, vSwitch, RT, KMS                   | 3 可用区，3 CMKs                |          10 |
+| 网络      | VPC, vSwitch, RT, KMS                   | 3 可用区， 3 CMKs                |          10 |
 | 网络      | NAT Gateway (Enhanced) + EIP            | 预留 + 1 TB 出口        |         920 |
 | 计算      | ECS x3 (`ecs.c7.xlarge` 4c/8g)          | 3 实例，每个 80 GB ESSD  |        1380 |
 | 计算      | LiteLLM gateway ECS x2                  | `ecs.c7.large` 2c/4g          |         450 |
 | 计算      | ALB Standard                            | 1 ALB, 面向互联网        |         180 |
 | 内存       | RDS Postgres HA (`pg.x4.large.2c`)      | 200 GB ESSD + 备机         |        2200 |
-| 内存       | OpenSearch vector (medium)              | 50 文档大小，80 计算       |        1800 |
+| 内存       | OpenSearch vector (medium)              | 50 文档大小， 80 计算       |        1800 |
 | 内存       | OSS (500 GB Standard + lifecycle)       | 主要是 Standard, 部分 IA      |         100 |
 | 内存       | OSS DR replica (cn-beijing)             | 500 GB IA                     |          60 |
 | 密钥      | KMS Secrets Manager                     | 8  secrets, 50k 解密/月    |          50 |
-| 可观测性| SLS                                     | 30 GB 摄入，90 天保留      |         450 |
-| 可观测性| ARMS APM                                | 1 环境，50M spans              |         600 |
+| 可观测性| SLS                                     | 30 GB 摄入， 90 天保留      |         450 |
+| 可观测性| ARMS APM                                | 1 环境， 50M spans              |         600 |
 | 可观测性| CloudMonitor                            | 主机指标 + 20 自定义      |          30 |
 | **小计 — 基础设施**                                                                   |    **8,230** |
-| LLM API      | DashScope Qwen-max                      | 50M 输入，12M 输出 tokens  |        3500 |
-| LLM API      | Anthropic / OpenAI fallback             | 5M 输入，1M 输出 tokens    |         800 |
+| LLM API      | DashScope Qwen-max                      | 50M 输入， 12M 输出 tokens  |        3500 |
+| LLM API      | Anthropic / OpenAI fallback             | 5M 输入， 1M 输出 tokens    |         800 |
 | **小计 — LLM**                                                                     |    **4,300** |
 | **Prod 总计 / 月**                                                                 |   **¥12,530** |
 
@@ -493,7 +493,7 @@ Prod，全 HA，跨区域 DR，真实流量——这是财务问"AI Agent 平台
 
 - **OpenSearch 和 RDS 加起来约占基础设施成本的 31%。** 如果你缩放得紧，只用 pgvector 的方案（去掉 OpenSearch）每月能省 ~¥1,800，代价是混合搜索变慢。向量数低于 1M 时值得做。
 - **NAT 出口费是意外的大项。** 在一个项目上切换到 DashScope 的 PrivateLink 让我的 NAT 账单降了 60%。在任何非 trivial 的流量下，这点配置开销都值得。
-- **在这个规模下 LLM 占总额的 35%。** 流量到 10× 时，LLM 会变成账单的 70–80%。网关的每 Agent 配额会在基础设施之前成为最重要的成本杠杆。
+- **在这个规模下 LLM 占总额的 35%。** 流量到 10× 时， LLM 会变成账单的 70–80%。网关的每 Agent 配额会在基础设施之前成为最重要的成本杠杆。
 - **可观测性占基础设施的 10%。** 这是正确的比例——低于 5% 意味着 instrumentation 不足；超过 20% 意味着收集太多。每月审计 SLS 摄入 volume。
 
 用于财务审查：单次会话成本是 ¥12,530 / 每月会话数。在 100k sessions/month 时，那是 ¥0.125 每会话。在 1k sessions/month 时是 ¥12.50——这时候你就要开始问，为了这个流量跑这个平台是否值得，或者是否应该 consolidate 到别人的平台上。
@@ -538,9 +538,9 @@ module "stack_singapore" {
 }
 ```
 
-`agent-stack` 模块就是把前面第 3 到第 7 篇的内容打包在一起。`is_primary` 参数决定了 RDS 是主库还是只读副本，OSS 是拥有 Bucket 还是作为复制目标等等。
+`agent-stack` 模块就是把前面第 3 到第 7 篇的内容打包在一起。`is_primary` 参数决定了 RDS 是主库还是只读副本， OSS 是拥有 Bucket 还是作为复制目标等等。
 
-跨地域连线得靠 CEN（Cloud Enterprise Network）来实现 VPC 间的私网互通：
+跨地域连线得靠 CEN （Cloud Enterprise Network）来实现 VPC 间的私网互通：
 
 ```hcl
 resource "alicloud_cen_instance" "agents" {
@@ -578,7 +578,7 @@ resource "alicloud_cen_bandwidth_package_attachment" "this" {
 }
 ```
 
-CEN 按跨地域带宽收费，上面那个 50 Mbps 的包大概 ~¥3,000/month。对于真正跑多地域流量的栈来说这钱花得值；要是为了“说不定哪天要用”那就纯属浪费。单项目 apply 多地域部署大概耗时 ~9 minutes total，因为两个区域的 RDS 是并行创建的。要是拆成两个项目：14+ minutes 还得维护两份 state 文件。
+CEN 按跨地域带宽收费，上面那个 50 Mbps 的包大概 ~¥3,000/month。对于真正跑多地域流量的栈来说这钱花得值；要是为了“说不定哪天要用”那就纯属浪费。单项目 apply 多地域部署大概耗时 ~9 minutes total，因为两个区域的 RDS 是并行创建的。要是拆成两个项目： 14+ minutes 还得维护两份 state 文件。
 
 ## 我刻意省略了什么
 
@@ -595,20 +595,20 @@ starter stack 里我刻意省略了四件事：
 
 八篇文章，一个栈，一个 Terraform 项目。你现在手里有：
 
-- **一套能跑的 composition** — 五个 module，一次 apply，~31 resources，7 minutes — 直接在阿里云上跑起来，第一天就具备可观测性、密钥管理和预算 guard 的 Agent 运行时。
+- **一套能跑的 composition** — 五个 module，一次 apply，~31 resources， 7 minutes — 直接在阿里云上跑起来，第一天就具备可观测性、密钥管理和预算 guard 的 Agent 运行时。
 - **一套可复用的 pattern** 通过 CI 推动 dev → staging → prod，带有 state 快照和 apply 后的 diff。
-- **真实的成本账** — dev 环境 ¥2,060/month，prod 环境 ¥12,530/month — 这样在财务找你之前，你就能先跟他们谈平台成本。
+- **真实的成本账** — dev 环境 ¥2,060/month， prod 环境 ¥12,530/month — 这样在财务找你之前，你就能先跟他们谈平台成本。
 - **一个多地域逃生通道** 不需要把 everything 扔掉重来。
-- **一份 Day-2 实战手册** 持续回报的 pattern：state 备份、月度成本分摊、季度升级、年度架构 review。
+- **一份 Day-2 实战手册** 持续回报的 pattern： state 备份、月度成本分摊、季度升级、年度架构 review。
 
 接下来的路你自己选：
 
 - **更多 Agent：** 往 `var.agent_quotas` 里加配置然后 `terraform apply`。合同条款稳固后，可以通过 Slack 表单实现自助服务。
-- **更多 LLM 提供商：** 在 gateway module 的 `local.litellm_config` 里添加。gateway 会把你的栈其余部分与具体选择解耦。
+- **更多 LLM 提供商：** 在 gateway module 的 `local.litellm_config` 里添加。 gateway 会把你的栈其余部分与具体选择解耦。
 - **多地域：** 参考上面的 `agent-stack` module 模式。先从单地域开始，留个 `provider.alias` 占位符，这样迁移就是机械化的操作。
 - **GitOps：** 把 `terraform apply` 包在 CI 里，由 PR review 和必需的 reviewer 把关。上面的 promotion workflow 就是起点。
 - **Pulumi 或 Crossplane：** 资源图可以直接转换。等你真正需要 TypeScript 或者 Kubernetes-native 控制循环时再迁移，别提前。
 
-最重要的一点是，你的基础设施现在躺在 git 里了。每次变更都可审查，每个环境都可复现，每笔成本都能归属到 workspace、module，甚至单个 Agent。这才是 IaC 带给你的价值，也让在阿里云上交付 Agent 变成了一种可持续的工程实践，而不是无休止的救火。
+最重要的一点是，你的基础设施现在躺在 git 里了。每次变更都可审查，每个环境都可复现，每笔成本都能归属到 workspace、 module，甚至单个 Agent。这才是 IaC 带给你的价值，也让在阿里云上交付 Agent 变成了一种可持续的工程实践，而不是无休止的救火。
 
-感谢阅读本系列。Starter repo (https://github.com/example/research-agent-stack) 随便你 fork。如果你基于它上线了真正的栈，我很想听听你改了什么、为什么这么改——模式就是这样磨锋利的。
+感谢阅读本系列。 Starter repo (https://github.com/example/research-agent-stack) 随便你 fork。如果你基于它上线了真正的栈，我很想听听你改了什么、为什么这么改——模式就是这样磨锋利的。

@@ -66,7 +66,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### env
 
-为所有工具调用（如 Bash、hook 等）设置环境变量。
+为所有工具调用（如 Bash、 hook 等）设置环境变量。
 
 ### hooks
 
@@ -133,7 +133,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### `additionalDirectories` 字段
 
-默认情况下，Claude 仅能访问当前项目目录内的文件。若需授予项目外路径访问权限：
+默认情况下， Claude 仅能访问当前项目目录内的文件。若需授予项目外路径访问权限：
 
 ```json
 {
@@ -179,7 +179,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 只要合并后的配置中存在任一 deny 规则，该动作即被永久阻断——这正是整个权限模型可信赖的核心。
 ![图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)
 
-*图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。*
+*图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、 git 历史、敏感文件、配置漂移四大类。*
 
 
 举个例子。某个 repo 的 `.claude/settings.json` 写着：
@@ -229,7 +229,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 ### `env` 变量影响范围
 
 - **Bash 命令**：所有 `Bash` 工具调用均继承这些变量。例如 `NODE_ENV=development` 将在 Claude 执行 `npm test` 时生效。
-- **Hook 脚本**：hook 作为子进程运行，继承全部环境变量。脚本可通过 `process.env.LOG_LEVEL` 读取。
+- **Hook 脚本**： hook 作为子进程运行，继承全部环境变量。脚本可通过 `process.env.LOG_LEVEL` 读取。
 - **不泄露至模型提示词**：模型无法看到任何环境变量值。此处是存放配置的安全位置。
 
 ### `env` 的层级优先级
@@ -354,7 +354,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 // 两者均会运行：用户级 `global-blacklist.js` 先执行，随后执行项目级 `project-blacklist.js`。
 ```
 
-这与权限（deny 优先）、env（深层覆盖）的行为截然不同：hooks 始终累加执行。
+这与权限（deny 优先）、 env （深层覆盖）的行为截然不同： hooks 始终累加执行。
 
 ## 一个真实 repo 里的真实 settings.json
 
@@ -405,8 +405,8 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 注意三点：
 
-1. Bash 白名单只包含了只读和可逆的 Git 命令，绝不含 `push`、`reset --hard` 或 `rebase -i`。push 操作必须由人工主动触发。
-2. `Edit(.github/workflows/**)` 被 deny 了。CI 配置变更需要 review，我不想让它们混进普通 commit 里。
+1. Bash 白名单只包含了只读和可逆的 Git 命令，绝不含 `push`、`reset --hard` 或 `rebase -i`。 push 操作必须由人工主动触发。
+2. `Edit(.github/workflows/**)` 被 deny 了。 CI 配置变更需要 review，我不想让它们混进普通 commit 里。
 3. hooks 还为 deny 规则提供了一层额外保障：即使某条 deny 规则因拼写错误未生效，对应的 hook 仍可拦截危险操作。
 
 ## 不同项目类型的 settings.json 模板
@@ -553,7 +553,7 @@ Monorepo 特定设计说明：
 
 ### “Claude 总是请求权限确认”
 
-最常见问题。Claude 提示是因为该操作既未出现在 `allow` 中，也未出现在 `deny` 中，落入交互式提示流程。
+最常见问题。 Claude 提示是因为该操作既未出现在 `allow` 中，也未出现在 `deny` 中，落入交互式提示流程。
 
 **修复方法**：将操作加入 `allow`：
 
@@ -636,7 +636,7 @@ cat .claude/settings.local.json | jq .
 3. 否则 → Claude 会在执行前询问。
 ![图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig4.png)
 
-*图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。*
+*图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析； deny 会短路后续所有判断。*
 
 
 如果你想知道哪条规则赢了，加 `--debug` 运行并查看权限解析日志。它会准确告诉你哪个文件的哪一行做出了裁决。
@@ -647,7 +647,7 @@ cat .claude/settings.local.json | jq .
 |--------|------------|
 | `permissions.deny` | 所有层级 `deny` 规则**并集生效**。**任一层级存在 deny 即阻断**。 |
 | `permissions.allow` | 所有层级 `allow` 规则**并集生效**。任一层级允许即许可（除非被 deny 阻断）。 |
-| `env` | **深层级覆盖浅层级**：Local > Project > User。 |
+| `env` | **深层级覆盖浅层级**： Local > Project > User。 |
 | `hooks` | **所有层级钩子累积执行**。全部运行，无覆盖。 |
 | `worktree` | **深层级覆盖浅层级**。 |
 
@@ -762,4 +762,4 @@ settings.json      settings.json        settings.local.json
 
 ## 结语
 
-settings.json 就是 Claude 在项目里能做什么的宪法。deny 规则应简短严苛，allow 规则须具体明确，hooks 作为兜底防护层。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。
+settings.json 就是 Claude 在项目里能做什么的宪法。 deny 规则应简短严苛， allow 规则须具体明确， hooks 作为兜底防护层。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。

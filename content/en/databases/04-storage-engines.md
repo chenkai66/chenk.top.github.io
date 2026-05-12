@@ -342,7 +342,7 @@ A **checkpoint** is when dirty pages in the buffer pool are flushed to the data 
 ![Checkpoint flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-checkpoint-flow.png)
 
 
-```
+```yaml
 Timeline:
   WAL: [entry1] [entry2] [entry3] [CHECKPOINT] [entry4] [entry5]
                                        ↑
@@ -450,7 +450,7 @@ Everything we have discussed so far is **row-oriented** storage: each page conta
 
 For **analytical** (OLAP) workloads, column-oriented storage is dramatically better:
 
-```
+```json
 Row-oriented (good for: SELECT * FROM users WHERE id = 42):
 Page 1: [id=1, name="Alice", email="a@...", age=30]
          [id=2, name="Bob",   email="b@...", age=25]

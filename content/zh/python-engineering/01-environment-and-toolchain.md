@@ -20,7 +20,7 @@ translationKey: "python-engineering-1"
 
 ## Python 版本问题
 
-大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7（Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。
+大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7 （Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。
 
 ![Dependency resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
 
@@ -37,7 +37,7 @@ translationKey: "python-engineering-1"
 
 推荐采用以下三层协同架构：
 
-1. **pyenv**：管理多个 Python 版本（并行安装 3.9、3.10、3.11 等）
+1. **pyenv**：管理多个 Python 版本（并行安装 3.9、 3.10、 3.11 等）
 2. **venv**：为每个项目隔离依赖
 3. **pip-tools** 或 **Poetry**：精确锁定版本，保障可复现性
 
@@ -220,7 +220,7 @@ $
 
 ### 为什么叫 `.venv`？
 
-前缀 `.` 使其在文件列表中隐藏。大多数工具（VS Code、PyCharm、pytest）都能自动识别 `.venv`。请立即将其加入 `.gitignore`：
+前缀 `.` 使其在文件列表中隐藏。大多数工具（VS Code、 PyCharm、 pytest）都能自动识别 `.venv`。请立即将其加入 `.gitignore`：
 
 ![Virtual environment isolation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-venv-isolation.png)
 
@@ -241,11 +241,11 @@ echo ".venv/" >> .gitignore
 | 非 Python 依赖支持 | 否 | 否 | 是（如 C 库等） |
 | 跨平台支持 | 是 | 是 | 是 |
 | 环境体积 | 小 | 小 | 大（200MB+） |
-| 最适用场景 | 通用 Python 项目 | 遗留项目 / 追求速度 | 数据科学（含 CUDA、MKL 等难编译的 C 依赖） |
+| 最适用场景 | 通用 Python 项目 | 遗留项目 / 追求速度 | 数据科学（含 CUDA、 MKL 等难编译的 C 依赖） |
 
-**建议：** 绝大多数项目使用 `venv`；仅当你需要预编译的科学计算库（如 CUDA、MKL）且源码编译极其困难时，才选用 `conda`。
+**建议：** 绝大多数项目使用 `venv`；仅当你需要预编译的科学计算库（如 CUDA、 MKL）且源码编译极其困难时，才选用 `conda`。
 
-## pip：Python 包安装器
+## pip： Python 包安装器
 
 
 ![Python virtual environment isolated bubbles each with differ](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-python-virtual-environment-isolated-bubbles-each-with-differ.jpg)

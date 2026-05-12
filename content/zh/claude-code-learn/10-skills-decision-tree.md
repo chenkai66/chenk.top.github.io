@@ -16,7 +16,7 @@ description: "Claude Code 现在有四种扩展机制：斜杠命令、MCP serve
 disableNunjucks: true
 translationKey: "claude-code-learn-10"
 ---
-Claude Code 提供四种扩展机制：slash commands、MCP servers、hooks 和 Skills，功能存在交叉。当你冒出‘Claude 应该知道怎么做 X’这类念头时，第一个问题就是：该选哪一种？
+Claude Code 提供四种扩展机制： slash commands、 MCP servers、 hooks 和 Skills，功能存在交叉。当你冒出‘Claude 应该知道怎么做 X’这类念头时，第一个问题就是：该选哪一种？
 
 本章是系列终篇，直接进入决策树。
 
@@ -24,7 +24,7 @@ Claude Code 提供四种扩展机制：slash commands、MCP servers、hooks 和 
 
 ## Skill 到底是什么
 
-Skill 就是一个文件夹，位置在 `~/.claude/skills/<name>/`（用户级）或 `<repo>/.claude/skills/<name>/`（项目级）。里面至少得有个 `SKILL.md`。每个 SKILL.md 由两部分构成：frontmatter 与 body。
+Skill 就是一个文件夹，位置在 `~/.claude/skills/<name>/`（用户级）或 `<repo>/.claude/skills/<name>/`（项目级）。里面至少得有个 `SKILL.md`。每个 SKILL.md 由两部分构成： frontmatter 与 body。
 
 ```markdown
 ---
@@ -47,11 +47,11 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 5. Build + deploy
 ```
 
-会话启动时，Claude 预先读取所有 Skill 的 description，仅当用户提问语义匹配某条 description 时，才按需加载其 body 并注入当前系统提示。
+会话启动时， Claude 预先读取所有 Skill 的 description，仅当用户提问语义匹配某条 description 时，才按需加载其 body 并注入当前系统提示。
 
 需注意两点：
 
-- `description` 是承重墙。如果没写清楚什么时候用，skill 就不会被触发。
+- `description` 是承重墙。如果没写清楚什么时候用， skill 就不会被触发。
 - 正文可以较长——由于按需加载，只要未被触发，就不会占用任何上下文（context）资源。
 
 ![Skill 加载生命周期：description 始终在上下文中，正文仅在 description 与 prompt 匹配时才加载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig3.png)
@@ -61,9 +61,9 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 | 字段 | 是否必需 | 说明 |
 |------|----------|------|
 | `name` | 是 | skill 的唯一标识符，用于日志与调试。请使用小写短横线格式（`lowercase-with-dashes`）。 |
-| `description` | 是 | **核心字段**。Claude 依据该描述决定是否加载此 skill。若描述中未明确说明"何时使用"，该 skill 将永远不会被触发。 |
+| `description` | 是 | **核心字段**。 Claude 依据该描述决定是否加载此 skill。若描述中未明确说明"何时使用"，该 skill 将永远不会被触发。 |
 
-`description` 是整个文件中最重要的字段。Claude 在每次会话启动时，会扫描所有可用 skill 的 `description`；仅当你的 prompt 语义匹配某条描述时，才会加载对应 skill 的完整 body。若描述模糊，skill 要么泛化触发（对所有输入都加载），要么完全沉默（永不触发）——二者皆不可取。
+`description` 是整个文件中最重要的字段。 Claude 在每次会话启动时，会扫描所有可用 skill 的 `description`；仅当你的 prompt 语义匹配某条描述时，才会加载对应 skill 的完整 body。若描述模糊， skill 要么泛化触发（对所有输入都加载），要么完全沉默（永不触发）——二者皆不可取。
 
 ### Body 内容
 
@@ -154,7 +154,7 @@ description: Use when deploying to the staging environment, preparing a staging 
 
 ### 步骤 3：撰写 body
 
-一个真实的 `deploy-staging` skill 正文应包含以下要素：环境信息（staging URL、region、ECS cluster、默认部署分支）；预部署检查清单（测试通过、TypeScript 编译成功、无未提交变更、当前分支正确）；部署命令流（构建 Docker 镜像 → 为 ECR 打标签 → 推送 → 更新 ECS service）；健康检查（等待 60 秒后调用 `/health` 端点）；回滚流程（定位上一版 task definition ARN，执行 `aws ecs update-service --task-definition ...`）；以及常见故障排查——部署超时查 CloudWatch、健康检查失败查依赖连通性、ECR 推送失败用 `aws ecr get-login-password` 刷新凭证。
+一个真实的 `deploy-staging` skill 正文应包含以下要素：环境信息（staging URL、 region、 ECS cluster、默认部署分支）；预部署检查清单（测试通过、 TypeScript 编译成功、无未提交变更、当前分支正确）；部署命令流（构建 Docker 镜像 → 为 ECR 打标签 → 推送 → 更新 ECS service）；健康检查（等待 60 秒后调用 `/health` 端点）；回滚流程（定位上一版 task definition ARN，执行 `aws ecs update-service --task-definition ...`）；以及常见故障排查——部署超时查 CloudWatch、健康检查失败查依赖连通性、 ECR 推送失败用 `aws ecr get-login-password` 刷新凭证。
 
 最后一定要有几条硬性规则：禁止从此 skill 直接部署至 production；每次部署后必须执行健康检查；若健康检查失败，立即回滚，**不得**在 staging 上调试。
 
@@ -204,7 +204,7 @@ Claude 应自动加载该 skill 并严格遵循其中步骤。若未触发，请
 
 ### 最清晰的边界划分
 
-**Slash command 是指令，skill 是知识。** Slash command 表达"请执行这个确定动作"；skill 表达"这是我对某类问题的系统性理解，请在适用时自主调用"。
+**Slash command 是指令， skill 是知识。** Slash command 表达"请执行这个确定动作"； skill 表达"这是我对某类问题的系统性理解，请在适用时自主调用"。
 
 **Hook 是自动的，其余皆为显式启用。** Hook 无需任何授权即可在工具调用时强制运行——这使其成为安全策略、合规审计等强制场景的理想选择，但完全不适合可选工作流。
 
@@ -212,9 +212,9 @@ Claude 应自动加载该 skill 并严格遵循其中步骤。若未触发，请
 
 ## Skill 的发现与加载
 
-会话启动时，Claude 扫描 `~/.claude/skills/*/SKILL.md`（用户级）和 `.claude/skills/*/SKILL.md`（项目级），读取每个文件 frontmatter 中的 `description` 字段。这些描述始终在上下文中——它们是 system prompt 的一部分。
+会话启动时， Claude 扫描 `~/.claude/skills/*/SKILL.md`（用户级）和 `.claude/skills/*/SKILL.md`（项目级），读取每个文件 frontmatter 中的 `description` 字段。这些描述始终在上下文中——它们是 system prompt 的一部分。
 
-当你发送消息时，Claude 将 prompt 与所有 skill 的 description 进行语义匹配。若存在匹配项，则将对应 skill 的**完整正文**加载进当前 turn 的上下文：
+当你发送消息时， Claude 将 prompt 与所有 skill 的 description 进行语义匹配。若存在匹配项，则将对应 skill 的**完整正文**加载进当前 turn 的上下文：
 
 - **描述始终加载**（开销小——仅 description 行本身）；
 - **正文按需加载**（可能较大，但仅在相关时才加载）；
@@ -222,9 +222,9 @@ Claude 应自动加载该 skill 并严格遵循其中步骤。若未触发，请
 
 若某 skill 未按预期触发，按以下顺序排查：
 
-1. **描述内容**：是否包含你 prompt 中的关键语义？Claude 基于语义相似度匹配，但具体描述比模糊描述更易命中。
+1. **描述内容**：是否包含你 prompt 中的关键语义？ Claude 基于语义相似度匹配，但具体描述比模糊描述更易命中。
 2. **文件路径**：`SKILL.md` 是否在正确目录？
-3. **frontmatter 格式**：YAML 是否有效？`---` 分隔符是否存在？
+3. **frontmatter 格式**： YAML 是否有效？`---` 分隔符是否存在？
 4. 若必须靠名字调用，该功能更适合作为 slash command 实现——skill 的核心价值在于隐式加载。
 
 ## 条件化 skill
@@ -263,15 +263,15 @@ Apply these standards ONLY when:
 → 写一个 **slash command**。命令是用来点名调用的。
 
 **4. 这是一堆领域知识吗？**（风格、工作流、一套规范）
-→ 写一个 **skill**。Skill 是用来让 Claude 自己*识别并应用*的，不用你特意喊它。
+→ 写一个 **skill**。 Skill 是用来让 Claude 自己*识别并应用*的，不用你特意喊它。
 
-若某需求适配多种机制，优先选择实现最简单的一种。Skill 内部调用 slash command 是合理设计，但将本应是 slash command 的功能强行包装为 skill 会导致触发不可靠、维护困难。
+若某需求适配多种机制，优先选择实现最简单的一种。 Skill 内部调用 slash command 是合理设计，但将本应是 slash command 的功能强行包装为 skill 会导致触发不可靠、维护困难。
 
 ![决策树：按顺序走一遍，遇到第一个 YES 就停 —— MCP 加新能力、Hook 做自动策略、Slash command 显式调用、Skill 按话题自动加载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig1.png)
 
 ## 我实际写过的三个 skill
 
-**1. `chenk-blog-write`** — 给这个站点写文章用的。覆盖 front matter、风格、EN/ZH parity、封面生成、部署。只要提到 chenk.top 或 "write a post" 就触发。正文大概 600 行。每一行都值。
+**1. `chenk-blog-write`** — 给这个站点写文章用的。覆盖 front matter、风格、 EN/ZH parity、封面生成、部署。只要提到 chenk.top 或 "write a post" 就触发。正文大概 600 行。每一行都值。
 
 **2. `update-config`** — 用来改 `~/.claude/settings.json` 的。触发词是 "allow X command," "set env Y," "add a hook." 编码了上面的权限优先级规则和典型模式。省得我去推 merge order。
 
@@ -287,13 +287,13 @@ Apply these standards ONLY when:
 
 - **描述模糊。** "用于一般编程。" 用于一切 = 用于 nothing useful。
 - **正文重叠。** 两个 skill 都响应 "write code" → context 膨胀。选一个。
-- **本该是 Hook。** "总是在 Y 之前做 X" → 这是 hook，不是 skill。Skill 是建议，hook 是强制。
+- **本该是 Hook。** "总是在 Y 之前做 X" → 这是 hook，不是 skill。 Skill 是建议， hook 是强制。
 
 判别标准：若指令中含 "always" 或 "never" 且应用于某类工具调用的每一次，那就是 hook；若含 "讨论 X 时" 或 "处理 Y 类任务时"，那就是 skill。
 
 ## 构建你自己的扩展库
 
-随着时间推移，你会通过全部四种扩展机制（slash command、hook、MCP、skill）积累大量扩展。以下是我组织它们的方式：
+随着时间推移，你会通过全部四种扩展机制（slash command、 hook、 MCP、 skill）积累大量扩展。以下是我组织它们的方式：
 
 ```
 ~/.claude/
@@ -335,9 +335,9 @@ my-project/
 
 十章下来，你有了：
 
-- 一个配置好的 Claude Code，脑子里有三层设置模型 (第 1、9 章)。
-- 熟练使用 shortcuts、modes 和对话控制 (第 2 章)。
-- 四种扩展机制 — slash commands, MCP, hooks, skills — 以及如何在它们之间选择的决策树 (第 3、4、5、7、10 章)。
+- 一个配置好的 Claude Code，脑子里有三层设置模型 (第 1、 9 章)。
+- 熟练使用 shortcuts、 modes 和对话控制 (第 2 章)。
+- 四种扩展机制 — slash commands, MCP, hooks, skills — 以及如何在它们之间选择的决策树 (第 3、 4、 5、 7、 10 章)。
 - 并发原语 — sub-agents, worktrees, plan mode — 把单个 session 扩展到更大的工作 (第 8 章)。
 - 一套能用的 SDK + GitHub 集成方案，把 Claude 放进 CI (第 6 章)。
 

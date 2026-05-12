@@ -15,7 +15,7 @@ series_order: 4
 translationKey: "python-engineering-4"
 ---
 
-代码评审应当聚焦于逻辑与架构设计，而不是争论单引号和双引号的使用。关于格式的争论纯粹是浪费工程时间。解决方案很简单：让机器处理风格问题，让人专注于正确性。
+代码评审应聚焦于逻辑与架构设计，而非争论单引号和双引号的使用。关于格式的争论纯粹是浪费工程时间。解决方案很简单：让机器处理风格问题，人则专注于正确性。
 
 本文涵盖三层自动化代码质量保障机制：**类型提示**在运行前捕获逻辑错误，**代码检查器（linter）** 检测风格违规与常见缺陷，**pre-commit 钩子**则在每次提交时自动执行全部检查。
 
@@ -88,7 +88,7 @@ def process(value: str | int) -> str:
     return str(value)
 ```
 
-### Any、Callable 与 Iterator
+### Any、 Callable 与 Iterator
 
 ```python
 from typing import Any, Callable, Iterator
@@ -131,7 +131,7 @@ def fetch(url: str, headers: Headers, on_progress: Callback) -> bytes:
     ...
 ```
 
-## 泛型类型：TypeVar 与 Protocol
+## 泛型类型： TypeVar 与 Protocol
 
 ### TypeVar
 
@@ -151,7 +151,7 @@ x: int = first([1, 2, 3])        # T = int
 y: str = first(["a", "b", "c"])  # T = str
 ```
 
-### 有界 TypeVar（Bounded TypeVar）
+### 有界 TypeVar （Bounded TypeVar）
 
 ```python
 from typing import TypeVar
@@ -167,7 +167,7 @@ add(1.0, 2.0)   # OK: float
 add("a", "b")   # Error: str 不是 int 或 float
 ```
 
-### Protocol（结构化子类型）
+### Protocol （结构化子类型）
 
 Protocol 通过结构（而非继承）定义接口：只要对象具备所需方法，即视为匹配。
 
@@ -340,7 +340,7 @@ result = some_untyped_function()  # type: ignore[no-untyped-call]
 
 ![Code quality pipeline raw code passing through linter format](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-code-quality-pipeline-raw-code-passing-through-linter-format.jpg)
 
-ruff 是一款用 Rust 编写的 Python linter，速度比 flake8 快 10–100 倍，并集成了 flake8、isort、pyflakes、pycodestyle、pydocstyle 及众多 flake8 插件的功能。
+ruff 是一款用 Rust 编写的 Python linter，速度比 flake8 快 10–100 倍，并集成了 flake8、 isort、 pyflakes、 pycodestyle、 pydocstyle 及众多 flake8 插件的功能。
 
 ![Ruff vs other linters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-ruff-vs-others.png)
 
@@ -549,9 +549,9 @@ $ git commit --no-verify -m "hotfix: emergency patch"
 $ SKIP=mypy git commit -m "WIP: types incomplete"
 ```
 
-请谨慎使用 `--no-verify`。若频繁跳过钩子，CI 流水线仍会捕获这些问题，反而导致你在事后花费更多时间修复。
+请谨慎使用 `--no-verify`。若频繁跳过钩子， CI 流水线仍会捕获这些问题，反而导致你在事后花费更多时间修复。
 
-## 对比：ruff vs flake8 vs pylint
+## 对比： ruff vs flake8 vs pylint
 
 | 特性 | ruff | flake8 | pylint |
 |------|------|--------|--------|
@@ -563,7 +563,7 @@ $ SKIP=mypy git commit -m "WIP: types incomplete"
 | 类型检查 | ❌（需搭配 mypy） | ❌ | ✅（基础） |
 | 插件生态 | 快速成长中 | 极其庞大 | 内置丰富 |
 | 配置方式 | `pyproject.toml` | `.flake8` 或 `setup.cfg` | `.pylintrc` |
-| 规则数量 | 800+ | ~200（核心） | 400+ |
+| 规则数量 | 800+ | ~200 （核心） | 400+ |
 | 开发活跃度 | 非常活跃 | 维护阶段 | 活跃 |
 
 ![Linting pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-linting-pipeline.png)
@@ -617,7 +617,7 @@ show_missing = true
 fail_under = 80
 ```
 
-## CI 集成：GitHub Actions
+## CI 集成： GitHub Actions
 
 在 CI 中运行全部检查，确保无遗漏：
 
@@ -672,4 +672,4 @@ jobs:
 
 ## 下一步
 
-你的代码现已具备类型安全性、格式一致性，并在每次提交时自动验证。但 Python 程序远不止计算——它们还要读写文件、解析配置、以数十种格式序列化数据。下一篇文章中，我们将深入 I/O 实践，攻克编码难题，并横向对比 JSON、Parquet 等所有主流序列化格式。
+你的代码现已具备类型安全性、格式一致性，并在每次提交时自动验证。但 Python 程序远不止计算——它们还要读写文件、解析配置、以数十种格式序列化数据。下一篇文章中，我们将深入 I/O 实践，攻克编码难题，并横向对比 JSON、 Parquet 等所有主流序列化格式。

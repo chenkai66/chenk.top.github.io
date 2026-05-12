@@ -696,7 +696,7 @@ Scale OUT (horizontal):
 
 ### Capacity Estimation
 
-```
+```yaml
 Example: estimate database size for a SaaS application
 
 Users: 1 million

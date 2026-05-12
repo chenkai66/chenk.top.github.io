@@ -981,7 +981,7 @@ Once the agent is running, ARMS starts generating traces for every incoming requ
 
 A typical trace for an API request looks like this:
 
-```
+```sql
 Trace: abc-123-def (total: 234ms)
 ├── [order-service] POST /api/orders                       0-234ms
 │   ├── [order-service] MySQL: SELECT * FROM users         12-18ms

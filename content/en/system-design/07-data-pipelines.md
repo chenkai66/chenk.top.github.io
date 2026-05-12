@@ -30,7 +30,7 @@ The two fundamental approaches to data pipeline design differ in when transforma
 
 The traditional approach. Data is extracted from source systems, transformed in a staging area, and loaded into the destination (typically a data warehouse).
 
-```
+```yaml
 Source Systems → Extract → Transform (staging) → Load → Data Warehouse
 
 Example:
@@ -49,7 +49,7 @@ The transformation happens before loading. This means:
 
 The modern approach. Data is extracted from sources and loaded raw into a data lake or cloud warehouse. Transformation happens inside the destination using its compute power.
 
-```
+```yaml
 Source Systems → Extract → Load (raw) → Transform (in warehouse) → Mart/Views
 
 Example:

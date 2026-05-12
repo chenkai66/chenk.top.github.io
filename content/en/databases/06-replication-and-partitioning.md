@@ -94,7 +94,7 @@ With asynchronous replication, followers may be slightly behind the leader. This
 
 A user writes data, then immediately reads it — but the read goes to a follower that has not received the write yet.
 
-```
+```yaml
 Timeline:
 1. User posts a comment (goes to leader)
 2. Leader writes: OK

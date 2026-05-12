@@ -19,11 +19,11 @@ translationKey: "symplectic-geometry-and-structure-preserving-neural-networks"
 ## 你将学到
 
 - 为什么短期误差很小的普通 NN 在长时预测中仍然会“漂”
-- 哈密顿力学的基本要素：相空间、Hamilton 方程、Poisson 括号
-- 读论文所需的辛几何知识：闭非退化 2-形式、Darboux 定理、Liouville 定理
+- 哈密顿力学的基本要素：相空间、 Hamilton 方程、 Poisson 括号
+- 读论文所需的辛几何知识：闭非退化 2-形式、 Darboux 定理、 Liouville 定理
 - 为什么辛积分器（如 Verlet 和辛 RK）的能量误差是有界振荡而非线性增长
-- 三种主流架构及其选择：Hamiltonian NN（HNN）、Lagrangian NN（LNN）、Symplectic NN（SympNet）
-- 四个经典实验：谐振子、双摆（混沌）、Kepler 问题、Lennard-Jones 分子动力学
+- 三种主流架构及其选择： Hamiltonian NN （HNN）、 Lagrangian NN （LNN）、 Symplectic NN （SympNet）
+- 四个经典实验：谐振子、双摆（混沌）、 Kepler 问题、 Lennard-Jones 分子动力学
 
 ## 前置知识
 
@@ -48,13 +48,13 @@ Hamilton 方程 $\dot q = p$、$\dot p = -\omega^{2} q$，精确解 $q(t) = A\co
 1. **能量漂移**。$H(q_t, p_t)$ 不再围绕 $H(q_0, p_0)$ 振荡，而是单调地走开。走的方向取决于优化器、初始化甚至随机种子——损失函数里没有任何机制把"学到的向量场"和"某个守恒标量"绑在一起。
 2. **相位累积**。每步几乎可以忽略的小误差累加起来，几百步之后预测轨道与真实轨道相位差就到了周期的相当一部分。
 
-这两个问题不是统计的，是**结构性的**。MLP 能拟合任意光滑的 $\mathbb{R}^2 \to \mathbb{R}^2$ 映射，而由 Hamilton 量生成的"辛映射"是这个空间里的一个测度零的子流形。SGD 没有任何理由恰好落在上面。
+这两个问题不是统计的，是**结构性的**。 MLP 能拟合任意光滑的 $\mathbb{R}^2 \to \mathbb{R}^2$ 映射，而由 Hamilton 量生成的"辛映射"是这个空间里的一个测度零的子流形。 SGD 没有任何理由恰好落在上面。
 
 ### 1.2 结构性的解法
 
 结构保持网络的思路：把假设空间限制成"已经满足守恒律"的那部分。常见的三种做法，差别在于"网络代表什么"：
 
-- **HNN**——网络代表标量函数 $H_{\theta}(q,p)$。Hamilton 方程是后处理的解析步骤（用 autograd 求梯度），所以只要 $H_{\theta}$ 不显含时间，能量就严格守恒。
+- **HNN**——网络代表标量函数 $H_{\theta}(q,p)$。 Hamilton 方程是后处理的解析步骤（用 autograd 求梯度），所以只要 $H_{\theta}$ 不显含时间，能量就严格守恒。
 - **LNN**——网络代表 Lagrange 函数 $L_{\theta}(q, \dot q)$，加速度从欧拉-拉格朗日方程反解。当动量定义不方便时（比如约束力学）特别合用。
 - **SympNet**——网络**直接是**一个辛映射 $\Phi_{\theta} : (q_t, p_t) \mapsto (q_{t+1}, p_{t+1})$，由若干基本"剪切层"复合而成，每一层的 Jacobian 都满足 $J^\top \Omega J = \Omega$。整个过程不显式写下任何 Hamilton 量。
 
@@ -127,7 +127,7 @@ $$|\,H(z_{n}) - H(z_{0})\,| \;\le\; C\, h^{p} \quad (\text{辛、可积}).$$
 
 这一条不等式就是为什么所有生产环境的分子动力学代码都用辛积分器。
 
-### 4.2 Verlet（Störmer / leapfrog）
+### 4.2 Verlet （Störmer / leapfrog）
 
 对可分 Hamilton 量 $H(q, p) = \tfrac{1}{2}p^{\top} M^{-1} p + V(q)$，**速度 Verlet** 步骤为：
 
@@ -137,11 +137,11 @@ q_{n+1} &= q_{n} + h\, M^{-1} p_{n+\tfrac{1}{2}}, \\
 p_{n+1} &= p_{n+\tfrac{1}{2}} - \tfrac{h}{2}\,\nabla V(q_{n+1}).
 \end{aligned}$$
 
-二阶、对称、显式（不需要解隐式方程）、辛——离散映射可以拆成两个剪切再加一个平移，每一个都明显保体积。LAMMPS、GROMACS 等大型 MD 包的"主力发动机"都是 Verlet。
+二阶、对称、显式（不需要解隐式方程）、辛——离散映射可以拆成两个剪切再加一个平移，每一个都明显保体积。 LAMMPS、 GROMACS 等大型 MD 包的"主力发动机"都是 Verlet。
 
 ### 4.3 辛 Runge-Kutta
 
-非可分 Hamilton 量需要隐式方法。$s$ 阶 Runge-Kutta（系数 $a_{ij}$、$b_i$）是辛的，当且仅当
+非可分 Hamilton 量需要隐式方法。$s$ 阶 Runge-Kutta （系数 $a_{ij}$、$b_i$）是辛的，当且仅当
 
 $$b_{i}\, a_{ij} + b_{j}\, a_{ji} \;=\; b_{i}\, b_{j}, \quad \forall i, j.$$
 
@@ -151,11 +151,11 @@ $$z_{n+1} \;=\; z_{n} + h\, J\, \nabla H\!\left(\tfrac{z_{n} + z_{n+1}}{2}\right
 
 二阶、辛、无条件 B-稳定。
 
-## 5. Hamiltonian Neural Networks（HNN）
+## 5. Hamiltonian Neural Networks （HNN）
 
 ### 5.1 核心想法
 
-Greydanus、Dzamba 与 Yosinski（2019）的关键观察是：**别去回归 $\dot z$，去回归 $H$**。让网络 $H_{\theta} : \mathbb{R}^{2n} \to \mathbb{R}$ 学习标量 Hamilton 量，然后用解析公式拿到动力学：
+Greydanus、 Dzamba 与 Yosinski （2019）的关键观察是：**别去回归 $\dot z$，去回归 $H$**。让网络 $H_{\theta} : \mathbb{R}^{2n} \to \mathbb{R}$ 学习标量 Hamilton 量，然后用解析公式拿到动力学：
 
 $$\dot z \;=\; J \,\nabla_{z} H_{\theta}(z).$$
 
@@ -178,9 +178,9 @@ $$\mathcal{L}(\theta) \;=\; \frac{1}{N} \sum_{i=1}^{N} \big\| J \,\nabla H_{\the
 ### 5.4 它的边界
 
 - 必须有显式的典范坐标 $(q, p)$。如果数据是别的参数化，得先变换。
-- 纯 HNN 处理不了耗散。带阻尼或外驱动时用 **port-Hamiltonian** 扩展（Desai 等，2021）。
+- 纯 HNN 处理不了耗散。带阻尼或外驱动时用 **port-Hamiltonian** 扩展（Desai 等， 2021）。
 
-## 6. Lagrangian Neural Networks（LNN）
+## 6. Lagrangian Neural Networks （LNN）
 
 Cranmer 等（2020）做了对偶的事情：让网络代表 Lagrange 函数 $L_{\theta}(q, \dot q)$，加速度由欧拉-拉格朗日方程反解：
 
@@ -192,24 +192,24 @@ $$\mathcal{L}(\theta) \;=\; \frac{1}{N} \sum_{i=1}^{N} \big\| \ddot q_{i} - \ddo
 
 LNN 用更高的 autograd 代价（二阶导加上一个矩阵解）换来两个真正的优势：(1) 直接在位形空间工作，约束力学（比如沿轨道滑行的摆）天然方便；(2) 不用做 Legendre 变换——而 Legendre 变换在动力学退化时是会出问题的。
 
-对无约束的保守系统，LNN 与 HNN 通过 Legendre 变换 $H = p^\top \dot q - L$、$p = \nabla_{\dot q} L$ 在形式上等价。
+对无约束的保守系统， LNN 与 HNN 通过 Legendre 变换 $H = p^\top \dot q - L$、$p = \nabla_{\dot q} L$ 在形式上等价。
 
-## 7. Symplectic Neural Networks（SympNet）
+## 7. Symplectic Neural Networks （SympNet）
 
 ![SympNet 架构：剪切型辛模块的复合](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig3_sympnet_arch.png)
 
 ### 7.1 剪切技巧
 
-Jin、Zhang、Zhu、Zhang 与 Karniadakis（2020）走的是另一条路：**不学 Hamilton 量，直接学流映射本身**，但把架构造得每一层都从结构上就是辛的。两种基本模块就够了：
+Jin、 Zhang、 Zhu、 Zhang 与 Karniadakis （2020）走的是另一条路：**不学 Hamilton 量，直接学流映射本身**，但把架构造得每一层都从结构上就是辛的。两种基本模块就够了：
 
-- **G-module（梯度 / 动能剪切）**
+- **G-module （梯度 / 动能剪切）**
 $$(q, p) \;\mapsto\; \big(q,\; p + \nabla V_{\theta}(q)\big),$$
-- **L-module（提升 / 势能剪切）**
+- **L-module （提升 / 势能剪切）**
 $$(q, p) \;\mapsto\; \big(q + \nabla K_{\phi}(p),\; p\big),$$
 
-其中 $V_\theta$、$K_\phi$ 是标量网络。每一块的 Jacobian 都是分块上三角或下三角，对角线上是单位矩阵，直接代入就能验证 $J^\top \Omega J = \Omega$。辛映射的复合仍是辛映射，所以任何 G-、L- 块的交替堆叠都是辛映射。
+其中 $V_\theta$、$K_\phi$ 是标量网络。每一块的 Jacobian 都是分块上三角或下三角，对角线上是单位矩阵，直接代入就能验证 $J^\top \Omega J = \Omega$。辛映射的复合仍是辛映射，所以任何 G-、 L- 块的交替堆叠都是辛映射。
 
-这是 normalizing flow 思路在物理上的对偶：RealNVP 用 coupling 层强制可逆，SympNet 用剪切层强制保辛。
+这是 normalizing flow 思路在物理上的对偶： RealNVP 用 coupling 层强制可逆， SympNet 用剪切层强制保辛。
 
 ### 7.2 训练
 
@@ -232,13 +232,13 @@ $$\mathcal{L}(\theta) \;=\; \sum_{i} \big\| \Phi_{\theta}(z_i) - z_{i+1} \big\|^
 
 ![单摆上的能量守恒：vanilla NN 漂移，SympNet 稳定振荡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig4_energy_drift.png)
 
-图 4 在略丰富一点的系统——单摆 $H = \tfrac{1}{2}p^{2} + (g/L)(1-\cos q)$——上展示了本文最核心的结论。"Vanilla NN"用显式 Euler 作为代理（它的失败模式与一个不带约束的 MLP 在质上一致）：能量沿一条几乎是直线的路线缓慢漂离 $H_0$。SympNet 这边用同步长的 Verlet 作为代理（受过良好训练的 SympNet **行为相同**）：能量在宽度为 $O(h^2)$ 的窄带里振荡。相图把这件事画得更直观——vanilla 轨道向外旋开，SympNet 轨道闭合。
+图 4 在略丰富一点的系统——单摆 $H = \tfrac{1}{2}p^{2} + (g/L)(1-\cos q)$——上展示了本文最核心的结论。"Vanilla NN"用显式 Euler 作为代理（它的失败模式与一个不带约束的 MLP 在质上一致）：能量沿一条几乎是直线的路线缓慢漂离 $H_0$。 SympNet 这边用同步长的 Verlet 作为代理（受过良好训练的 SympNet **行为相同**）：能量在宽度为 $O(h^2)$ 的窄带里振荡。相图把这件事画得更直观——vanilla 轨道向外旋开， SympNet 轨道闭合。
 
 真正训练出来的网络结果一样，只不过那条带子的宽度是由"训练误差"而非"离散误差"决定的。
 
 ### 8.2 双摆（混沌）
 
-双摆是混沌系统：相距 $10^{-6}$ 的两条轨迹会指数发散。光靠能量守恒并不足以——单条轨道在长时间后本来就无法重建。但你**可以**重建的是**统计结构**：能壳上的不变测度、Lyapunov 谱、Poincaré 截面的拓扑。
+双摆是混沌系统：相距 $10^{-6}$ 的两条轨迹会指数发散。光靠能量守恒并不足以——单条轨道在长时间后本来就无法重建。但你**可以**重建的是**统计结构**：能壳上的不变测度、 Lyapunov 谱、 Poincaré 截面的拓扑。
 
 HNN 与 SympNet 能保住这些统计；普通 MLP 因为引入了"假性耗散"，几个 Lyapunov 时间内就把不变测度坍缩到一个不动点附近——画出来就是"系统停了下来"。
 
@@ -248,15 +248,15 @@ HNN 与 SympNet 能保住这些统计；普通 MLP 因为引入了"假性耗散"
 
 $$H \;=\; \tfrac{1}{2}\!\left( p_{r}^{2} + \frac{p_{\theta}^{2}}{r^{2}} \right) - \frac{k}{r},$$
 
-有两个守恒量：能量 $H$ 与角动量 $p_\theta$。HNN 自动保住第一个。第二个守恒**当且仅当**学到的 $H_\theta$ 不显式依赖 $\theta$——这个对称性既可以靠等变层强制注入，也可以期望从数据中浮现。Finzi、Wang 与 Wilson（2020）用 Lagrange 乘子的方式把守恒约束"硬"加进去。
+有两个守恒量：能量 $H$ 与角动量 $p_\theta$。 HNN 自动保住第一个。第二个守恒**当且仅当**学到的 $H_\theta$ 不显式依赖 $\theta$——这个对称性既可以靠等变层强制注入，也可以期望从数据中浮现。 Finzi、 Wang 与 Wilson （2020）用 Lagrange 乘子的方式把守恒约束"硬"加进去。
 
-值得画的诊断图：$10^4$ 圈轨道下 $H$ 与 $p_\theta$ 的相对漂移。Vanilla NN：两个都漂；HNN：$H$ 严格、$p_\theta$ 慢漂；HNN + 对称约束：两个都严格守恒。
+值得画的诊断图：$10^4$ 圈轨道下 $H$ 与 $p_\theta$ 的相对漂移。 Vanilla NN：两个都漂； HNN：$H$ 严格、$p_\theta$ 慢漂； HNN + 对称约束：两个都严格守恒。
 
 ### 8.4 分子动力学（真正的工业战场）
 
 ![结构保持学习在分子动力学中的应用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig5_md_application.png)
 
-这是结构保持学习正在改变实际科学的地方。256 粒子的 Lennard-Jones 流体 Hamilton 量为
+这是结构保持学习正在改变实际科学的地方。 256 粒子的 Lennard-Jones 流体 Hamilton 量为
 
 $$H \;=\; \sum_{i=1}^{N} \frac{p_{i}^{2}}{2 m} + \sum_{i < j} 4\varepsilon \!\left[ \left(\frac{\sigma}{r_{ij}}\right)^{12} - \left(\frac{\sigma}{r_{ij}}\right)^{6} \right].$$
 
@@ -266,25 +266,25 @@ $$H \;=\; \sum_{i=1}^{N} \frac{p_{i}^{2}}{2 m} + \sum_{i < j} 4\varepsilon \!\le
 
 (b) **径向分布函数** $g(r)$——X 射线散射真正测的就是这个，所有 MD 力场最终都拿它去验证；
 
-(c) 长时能量曲线。Vanilla NN 力场会漂——系统慢慢升温或降温，$g(r)$ 的峰被涂宽，跑 $10^5$ 步之后你模拟的已经是**别的物相**了。HNN/Verlet 在任意长时段里都只在 $E_0$ 附近做窄带振荡。
+(c) 长时能量曲线。 Vanilla NN 力场会漂——系统慢慢升温或降温，$g(r)$ 的峰被涂宽，跑 $10^5$ 步之后你模拟的已经是**别的物相**了。 HNN/Verlet 在任意长时段里都只在 $E_0$ 附近做窄带振荡。
 
-这正是为什么近年来的机器学习原子间势——ANI、NequIP、MACE——都开始构建在**等变架构 + 显式能量守恒**之上，而不是直接预测力。**几何的代价是值得付的。**
+这正是为什么近年来的机器学习原子间势——ANI、 NequIP、 MACE——都开始构建在**等变架构 + 显式能量守恒**之上，而不是直接预测力。**几何的代价是值得付的。**
 
 ## 9. 工程上的几条经验
 
 - **HNN 适合**：要可解释性、系统保守、有 $(q,p)$ 数据或可靠的有限差分导数。
 - **LNN 适合**：动量定义不方便（约束、非笛卡尔坐标），或者想结合变分积分器。
 - **SympNet 适合**：只有固定步长 $\tau$ 的 $(z_t, z_{t+1})$ 对，更在意单次推断成本而非可解释性。
-- **耗散或受驱系统**：看 port-Hamiltonian NN（Desai 等）或带显式阻尼项的 Neural ODE（Chen 等，2018）。
+- **耗散或受驱系统**：看 port-Hamiltonian NN （Desai 等）或带显式阻尼项的 Neural ODE （Chen 等， 2018）。
 - **推断时务必用辛积分器**积分训好的模型——否则离散误差会把架构辛苦消除的"漂移"重新带回来。
 
 ## 10. 总结
 
-两句话讲完本文。**普通神经网络在长时物理预测里失败，是因为辛映射在所有光滑映射中是一个测度零的薄子流形，SGD 没有理由命中它。结构保持网络通过参数化 Hamilton 量（HNN）、Lagrange 量（LNN）或辛剪切的复合（SympNet）把假设空间限制在这个子流形里，无论 rollout 多长都不会漂。**
+两句话讲完本文。**普通神经网络在长时物理预测里失败，是因为辛映射在所有光滑映射中是一个测度零的薄子流形， SGD 没有理由命中它。结构保持网络通过参数化 Hamilton 量（HNN）、 Lagrange 量（LNN）或辛剪切的复合（SympNet）把假设空间限制在这个子流形里，无论 rollout 多长都不会漂。**
 
 值得追的几条线：
 
-- **随机与耗散扩展**——保持**扩展**相空间的辛结构（Langevin、port-Hamiltonian）。
+- **随机与耗散扩展**——保持**扩展**相空间的辛结构（Langevin、 port-Hamiltonian）。
 - **高维辛学习**——多体系统里普通 MLP 已经吃不消，需要等变架构。
 - **辛基础模型**——能不能在百万级 Hamilton 量上预训一个 SympNet，然后小样本迁移到新动力学？
 - **可证泛化**——利用几何归纳偏置，而不是忽视它，给出更紧的泛化界。

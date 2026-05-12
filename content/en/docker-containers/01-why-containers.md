@@ -278,7 +278,7 @@ docker version
 
 Expected output:
 
-```
+```yaml
 Client: Docker Engine - Community
  Version:           24.0.6
  API version:       1.43
@@ -361,7 +361,7 @@ docker info
 
 This command reveals your Docker installation's configuration:
 
-```
+```yaml
 Client: Docker Engine - Community
  Version:    24.0.6
  Context:    default

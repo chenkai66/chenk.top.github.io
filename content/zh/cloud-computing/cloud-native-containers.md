@@ -26,23 +26,23 @@ polished_by_qwen_max: true
 ## 你将学到
 
 - 12 要素应用方法论，每条要素的设计动机
-- 容器内部：namespace、cgroup、union 文件系统、镜像分层
-- Docker 实践：多阶段构建、安全加固、Compose 本地开发
+- 容器内部： namespace、 cgroup、 union 文件系统、镜像分层
+- Docker 实践：多阶段构建、安全加固、 Compose 本地开发
 - K8s 架构：控制平面通过协调循环驱动 Worker 节点
-- 工作负载原语：Pod、Service、Deployment、StatefulSet、DaemonSet、Job
-- 网络：CNI 插件、NetworkPolicy、Ingress，Istio 回本场景
-- 存储：PV/PVC 动态供给，`ReadWriteMany` 的代价
-- Helm 打包、Release 历史、回滚机制
-- 微服务模式：熔断、Saga、API 网关
+- 工作负载原语： Pod、 Service、 Deployment、 StatefulSet、 DaemonSet、 Job
+- 网络： CNI 插件、 NetworkPolicy、 Ingress， Istio 回本场景
+- 存储： PV/PVC 动态供给，`ReadWriteMany` 的代价
+- Helm 打包、 Release 历史、回滚机制
+- 微服务模式：熔断、 Saga、 API 网关
 - ArgoCD GitOps 交付与运维纪律
 ## 前置知识
 
-- 熟悉 Linux 命令行和基础网络（路由、DNS、TCP）
+- 熟悉 Linux 命令行和基础网络（路由、 DNS、 TCP）
 - 理解 HTTP/REST，知道 Web 应用和数据库如何交互
 - 建议先读本系列前 6 篇，重点是[虚拟化](/zh/cloud-computing/virtualization/)、[网络](/zh/cloud-computing/networking-sdn/)、[运维与 DevOps](/zh/cloud-computing/operations-devops/)
 ## 云原生：变了什么、为什么变
 
-云原生不等于"把东西放到云上跑"。一台 lift-and-shift 上云的虚拟机在云上，但不是云原生。CNCF 的定义很精准：
+云原生不等于"把东西放到云上跑"。一台 lift-and-shift 上云的虚拟机在云上，但不是云原生。 CNCF 的定义很精准：
 
 > 云原生技术让组织能在公有云、私有云和混合云等动态环境中构建和运行可扩展应用。容器、服务网格、微服务、不可变基础设施和声明式 API 是其代表。
 
@@ -69,7 +69,7 @@ polished_by_qwen_max: true
 
 ### 12 要素应用：一份生存指南
 
-[12 要素方法论](https://12factor.net/)（Heroku，2011）早于 Kubernetes，但已成为容器化服务默认遵守的运维契约。每条要素都是为了让某种故障模式**不可能发生**：
+[12 要素方法论](https://12factor.net/)（Heroku， 2011）早于 Kubernetes，但已成为容器化服务默认遵守的运维契约。每条要素都是为了让某种故障模式**不可能发生**：
 
 | 编号 | 要素 | 为什么重要 |
 |---|---|---|
@@ -79,7 +79,7 @@ polished_by_qwen_max: true
 | 4 | **后端服务** -- 视为附加资源 | 换数据库只改 URL，不重构代码 |
 | 5 | **构建/发布/运行** -- 严格分离 | Release 不可变、可回滚 |
 | 6 | **进程** -- 无状态、无共享 | 任意副本都能服务任意请求 |
-| 7 | **端口绑定** -- 自包含 | 无需外部服务器（Tomcat、IIS） |
+| 7 | **端口绑定** -- 自包含 | 无需外部服务器（Tomcat、 IIS） |
 | 8 | **并发** -- 通过进程模型扩展 | 默认水平扩缩容 |
 | 9 | **易处理** -- 快速启动、优雅关闭 | 自动扩缩容与滚动更新可用 |
 | 10 | **开发/生产对等** -- 环境尽量一致 | 缩小生产惊喜面 |
@@ -93,11 +93,11 @@ polished_by_qwen_max: true
 
 实现这一点靠三个 Linux 内核特性：
 
-1. **namespace** -- 给进程独立的资源视图（PID、网络、挂载、UTS、IPC、用户、cgroup）。在 PID namespace 里，容器看到自己是 PID 1，看不到外面的进程。
-2. **cgroups（v2）** -- 限制资源使用（CPU、内存、IO、PID 数）。设了 `--memory=512m`，超限就杀进程。
+1. **namespace** -- 给进程独立的资源视图（PID、网络、挂载、 UTS、 IPC、用户、 cgroup）。在 PID namespace 里，容器看到自己是 PID 1，看不到外面的进程。
+2. **cgroups （v2）** -- 限制资源使用（CPU、内存、 IO、 PID 数）。设了 `--memory=512m`，超限就杀进程。
 3. **联合文件系统**（现在默认 overlay2） -- 把只读镜像层堆起来，上面加一个可写薄层，实现写时复制。
 
-没了。**容器共享宿主机内核**，没有 hypervisor，没有第二个操作系统。代价是：启动 ~50 ms（虚机要 ~30 s），开销 ~5 MB（虚机要 ~500 MB），单机密度上百（虚机几十）。
+没了。**容器共享宿主机内核**，没有 hypervisor，没有第二个操作系统。代价是：启动 ~50 ms （虚机要 ~30 s），开销 ~5 MB （虚机要 ~500 MB），单机密度上百（虚机几十）。
 
 ### 镜像分层：让构建变快的缓存
 
@@ -111,7 +111,7 @@ polished_by_qwen_max: true
 
 ![GitOps 部署流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig_gitops_pipeline_zh.png)
 
-核心是 **GitOps**：集群状态由 Git 定义。ArgoCD（或 Flux）持续对齐集群与 Git 仓。两大优势：
+核心是 **GitOps**：集群状态由 Git 定义。 ArgoCD （或 Flux）持续对齐集群与 Git 仓。两大优势：
 
 1. **审计链。** 每次变更都有提交记录。凌晨两点谁改了 prod？`git blame`。
 2. **灾难恢复。** 集群挂了？从 manifest 仓 `kubectl apply` 即可恢复。
@@ -134,7 +134,7 @@ spec:
     syncOptions: [CreateNamespace=true]
 ```
 
-`selfHeal: true` 表示"有人手动 `kubectl edit` 资源，ArgoCD 会自动改回"。这就是 GitOps 的纪律——集群状态以 Git 为准，不看终端操作。
+`selfHeal: true` 表示"有人手动 `kubectl edit` 资源， ArgoCD 会自动改回"。这就是 GitOps 的纪律——集群状态以 Git 为准，不看终端操作。
 ## 生产环境真正有用的命令
 
 ```bash
@@ -165,14 +165,14 @@ kubectl rollout restart deploy/web    # 强制重新发布，用于加载新 Sec
 
 宣布工作负载生产就绪前，确认以下事项：
 
-- [ ] 使用多阶段 Dockerfile，非 root 用户，distroless 或最小化基础镜像
-- [ ] 镜像按 digest 固定（或至少使用不可变 tag），CI 中完成签名和扫描
+- [ ] 使用多阶段 Dockerfile，非 root 用户， distroless 或最小化基础镜像
+- [ ] 镜像按 digest 固定（或至少使用不可变 tag）， CI 中完成签名和扫描
 - [ ] 每个容器都设置 resource requests 和 limits
-- [ ] 配置 liveness 和 readiness 探针，readiness 控制流量，liveness 控制重启
+- [ ] 配置 liveness 和 readiness 探针， readiness 控制流量， liveness 控制重启
 - [ ] 设置 PodDisruptionBudget，避免集群维护时低于 `minAvailable`
 - [ ] 流量波动时配置 HorizontalPodAutoscaler
 - [ ] NetworkPolicy 默认拒绝，显式允许必要流量
-- [ ] Secret 存储在外部系统（Vault、AWS Secrets Manager、External Secrets Operator），不使用明文 Secret
+- [ ] Secret 存储在外部系统（Vault、 AWS Secrets Manager、 External Secrets Operator），不使用明文 Secret
 - [ ] 日志输出到 stdout，结构化为 JSON，聚合到中央系统
 - [ ] 暴露 Prometheus 格式指标，并配置监控面板
 - [ ] 接入分布式追踪（OpenTelemetry）

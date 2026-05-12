@@ -19,7 +19,7 @@ translationKey: "aliyun-fullstack-12"
 ---
 十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉，只用一条 `terraform apply` 重建整个栈。这就是基础设施即代码（IaC）的价值。
 
-在这个系列的过去十一部分里，我们点击过控制台，敲过 `aliyun` CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这种方式可行：亲手搭建每个资源，因此对细节了如指掌。但若要在新地域重建整套栈——三层双可用区 VPC、带 cloud-init 的 ECS 实例、RDS MySQL HA、带生命周期规则与 CORS 配置的 OSS bucket、RAM 策略、SLS 日志管道、Function Compute 事件触发器——至少需要一整天的精细操作。而且难免遗漏：安全组规则、备份策略或 CORS 配置。
+在这个系列的过去十一部分里，我们点击过控制台，敲过 `aliyun` CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这种方式可行：亲手搭建每个资源，因此对细节了如指掌。但若要在新地域重建整套栈——三层双可用区 VPC、带 cloud-init 的 ECS 实例、 RDS MySQL HA、带生命周期规则与 CORS 配置的 OSS bucket、 RAM 策略、 SLS 日志管道、 Function Compute 事件触发器——至少需要一整天的精细操作。而且难免遗漏：安全组规则、备份策略或 CORS 配置。
 
 基础设施即代码（IaC）一举解决这个问题：通过声明式配置描述期望状态，工具自动比对现状、计算差异并调用 API 达成目标。我们在十一篇文章中构建的整个栈，现在变成了一个 `.tf` 文件仓库，团队里的任何人都可以阅读、审查、修改和应用。
 
@@ -54,20 +54,20 @@ translationKey: "aliyun-fullstack-12"
 
 ### Terraform vs Alibaba Cloud ROS
 
-阿里云有自己的 IaC 服务：Resource Orchestration Service (ROS)。它基于 JSON 或 YAML 模板定义资源，并与阿里云控制台深度集成。它是免费的。那我为什么还推荐 Terraform？
+阿里云有自己的 IaC 服务： Resource Orchestration Service (ROS)。它基于 JSON 或 YAML 模板定义资源，并与阿里云控制台深度集成。它是免费的。那我为什么还推荐 Terraform？
 
 | Criteria | Terraform | ROS |
 |---|---|---|
 | **多云支持** | 支持 -- AWS, Azure, GCP, 3000+ providers | 仅限阿里云 |
 | **状态管理** | 本地或远程 (S3, OSS, Consul 等) | 由 ROS 服务管理 |
-| **社区** | 庞大 -- 模块、示例、Stack Overflow | 较小， mostly Chinese-language |
+| **社区** | 庞大 -- 模块、示例、 Stack Overflow | 较小， mostly Chinese-language |
 | **语言** | HCL (专为 IaC 设计，可读性强) | JSON/YAML (冗长，易错) |
 | **模块生态** | Terraform Registry 上有数千个模块 | 有限 |
 | **学习投入** | 技能可迁移到任何云 | 阿里云特定 |
 | **漂移检测** | `terraform plan` 显示精确 diff | 漂移检测功能尚不完善 |
 | **导入现有资源** | `terraform import` | 支持但不够成熟 |
 
-如果您的环境仅限阿里云，且不希望引入额外工具，ROS 是一种可行选择。但如果你需要跨云管理、重视社区支持，或希望所掌握的技能具备跨平台可迁移性，Terraform 是更优选择。阿里云 Terraform provider (`alicloud`) 维护积极，覆盖了我们在这个系列中用到的几乎所有服务。
+如果您的环境仅限阿里云，且不希望引入额外工具， ROS 是一种可行选择。但如果你需要跨云管理、重视社区支持，或希望所掌握的技能具备跨平台可迁移性， Terraform 是更优选择。阿里云 Terraform provider (`alicloud`) 维护积极，覆盖了我们在这个系列中用到的几乎所有服务。
 
 关于 Terraform 本身的更深入探讨，请看我们的 [Terraform 系列](/zh/terraform-agents/01-why-terraform-for-agents/) —— 八篇文章涵盖从第一性原理到高级模式的所有方面。这篇文章假设你已经了解基础，重点在于如何将 Terraform 应用到我们构建的具体阿里云栈上。
 
@@ -124,7 +124,7 @@ translationKey: "aliyun-fullstack-12"
 | SLS project, logstore, alerts | [Part 7: SLS Observability](/zh/aliyun-fullstack/07-sls-observability/) | `modules/monitoring` |
 | Function Compute, OSS trigger | [Part 8: Serverless](/zh/aliyun-fullstack/08-serverless/) | `modules/serverless` |
 
-对于 [Part 10](/zh/aliyun-fullstack/10-bailian-llm/) 和 [Part 11](/zh/aliyun-fullstack/11-pai-ml-platform/) 中涵盖的 LLM 和 ML 部署，Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 支持的边界所在。
+对于 [Part 10](/zh/aliyun-fullstack/10-bailian-llm/) 和 [Part 11](/zh/aliyun-fullstack/11-pai-ml-platform/) 中涵盖的 LLM 和 ML 部署， Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 支持的边界所在。
 
 ## 项目结构
 
@@ -229,7 +229,7 @@ provider "alicloud" {
 }
 ```
 
-Provider 版本必须锁死。`alicloud` 更新频繁，Breaking Changes 时有发生。`~>` 约束允许 patch 更新（1.230.x），但挡住了 minor 版本升级。
+Provider 版本必须锁死。`alicloud` 更新频繁， Breaking Changes 时有发生。`~>` 约束允许 patch 更新（1.230.x），但挡住了 minor 版本升级。
 
 千万别把凭证硬编码在 provider 块里。实际生产中，你会用环境变量（`ALICLOUD_ACCESS_KEY`, `ALICLOUD_SECRET_KEY`）或者阿里云凭证文件。这里用变量是为了显式声明。
 
@@ -247,7 +247,7 @@ terraform {
 }
 ```
 
-State 文件存储于 OSS，分布式锁由 Table Store 提供。团队协作这是命门——没锁的话，两个人同时跑 `terraform apply`，State 文件直接损坏。TableStore 提供分布式锁，防止并发修改 State。
+State 文件存储于 OSS，分布式锁由 Table Store 提供。团队协作这是命门——没锁的话，两个人同时跑 `terraform apply`， State 文件直接损坏。 TableStore 提供分布式锁，防止并发修改 State。
 
 ![远程 state 后端拓扑：OSS 存储 + Tablestore 加锁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_state_backend.png)
 
@@ -341,11 +341,11 @@ variable "db_password" {
 }
 ```
 
-注意凭证变量加了 `sensitive = true`。Terraform 会在 plan 输出和 state 日志里把这些值掩码处理。
+注意凭证变量加了 `sensitive = true`。 Terraform 会在 plan 输出和 state 日志里把这些值掩码处理。
 
 ## 网络模块
 
-网络模块负责部署 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 里设计的 VPC 架构——3 层结构、2 可用区布局，包含安全组、出向流量的 NAT Gateway 以及公网访问的 EIP。
+网络模块负责部署 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 里设计的 VPC 架构——3 层结构、 2 可用区布局，包含安全组、出向流量的 NAT Gateway 以及公网访问的 EIP。
 
 ![网络模块资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_network_module.png)
 
@@ -568,7 +568,7 @@ output "nat_eip" {
 }
 ```
 
-留意安全组规则。SSH 只允许 VPC 内部访问（`10.0.0.0/16`），不对公网开放。App 端口（8080）只有公共子网能通。MySQL 仅限 App 子网访问。这就是 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 设计的三层隔离，现在代码化了，随时可复用。
+留意安全组规则。 SSH 只允许 VPC 内部访问（`10.0.0.0/16`），不对公网开放。 App 端口（8080）只有公共子网能通。 MySQL 仅限 App 子网访问。这就是 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 设计的三层隔离，现在代码化了，随时可复用。
 ## 模块：计算 (Compute)
 
 计算模块负责创建我们在 [第二部分](/zh/aliyun-fullstack/02-ecs-compute/) 定好的 ECS 实例，连带着自动引导的 cloud-init 脚本一起配好。
@@ -893,7 +893,7 @@ output "database_name" {
 
 ## 模块：存储 (Storage)
 
-存储模块对应 [第四部分](/zh/aliyun-fullstack/04-oss-storage/) 里的 OSS Bucket，顺便把生命周期策略、CORS 规则以及 CDN 加速都配置上。
+存储模块对应 [第四部分](/zh/aliyun-fullstack/04-oss-storage/) 里的 OSS Bucket，顺便把生命周期策略、 CORS 规则以及 CDN 加速都配置上。
 
 ### modules/storage/main.tf
 
@@ -1180,7 +1180,7 @@ output "developer_group_name" {
 
 ## 模块：监控
 
-监控模块主要搞定 SLS（Simple Log Service）的 Project 和 Logstore，实现日志集中管理，再加上 CloudMonitor 的告警规则。这一步算是把 Part 7 里聊的可观测性层给彻底代码化了。
+监控模块主要搞定 SLS （Simple Log Service）的 Project 和 Logstore，实现日志集中管理，再加上 CloudMonitor 的告警规则。这一步算是把 Part 7 里聊的可观测性层给彻底代码化了。
 
 ### modules/monitoring/main.tf
 
@@ -1364,7 +1364,7 @@ output "access_logstore" {
 }
 ```
 
-## 模块：Serverless
+## 模块： Serverless
 
 Serverless 模块就是 Function Compute 服务配上 OSS 触发器——跟咱们在 [Part 8](/zh/aliyun-fullstack/08-serverless/) 里搭建的一模一样。只要往媒体存储桶上传文件，函数就会自动生成缩略图。
 
@@ -1758,7 +1758,7 @@ Changes to Outputs:
 
 ## 基于 GitHub Actions 的 CI/CD
 
-在自己电脑上手动跑 `terraform apply` 玩个人项目没问题。但如果是团队协作，你就得自动化了：每次提 PR 都跑 `terraform plan` 让 Reviewer 看到基础设施的变更差异，PR 合并到 main 分支后自动执行 `terraform apply`。
+在自己电脑上手动跑 `terraform apply` 玩个人项目没问题。但如果是团队协作，你就得自动化了：每次提 PR 都跑 `terraform plan` 让 Reviewer 看到基础设施的变更差异， PR 合并到 main 分支后自动执行 `terraform apply`。
 
 ![基于 GitHub Actions 的 CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_cicd_flow.png)
 
@@ -2046,7 +2046,7 @@ terraform destroy -var-file=environments/staging.tfvars
 
 ![按依赖反向顺序销毁资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_teardown_order.png)
 
-1.  **不可逆。** RDS 数据、OSS 对象、SLS 日志——全都没了。Terraform 会让你确认，但一旦输入 `yes`，就没有撤销按钮。
+1.  **不可逆。** RDS 数据、 OSS 对象、 SLS 日志——全都没了。 Terraform 会让你确认，但一旦输入 `yes`，就没有撤销按钮。
 2.  **有些资源抗拒删除。** OSS Bucket 必须先清空才能删。设置了 `deletion_protection = true` 的 RDS 实例会阻止销毁。这些都是安全机制。如果你真要彻底清理，可能需要手动清空 Bucket，或者在资源上设置 `force_destroy = true`。
 
 ```hcl
@@ -2069,7 +2069,7 @@ resource "alicloud_oss_bucket" "media" {
 
 **3. 资源名称唯一性。** 有些阿里云资源要求全局名称唯一（比如 OSS Bucket 名）。务必加上随机后缀或者你的账号/项目前缀。
 
-**4. 配额限制。** 每个阿里云账号都有默认配额（比如每个区域 20 个 ECS 实例，5 个 VPC）。如果 `terraform apply` 跑到一半因为配额不足失败，你会得到一个半成品的基础设施。apply 之前先查配额。
+**4. 配额限制。** 每个阿里云账号都有默认配额（比如每个区域 20 个 ECS 实例， 5 个 VPC）。如果 `terraform apply` 跑到一半因为配额不足失败，你会得到一个半成品的基础设施。 apply 之前先查配额。
 
 ```bash
 # 检查 ECS 配额
@@ -2094,20 +2094,20 @@ terraform import module.compute.alicloud_instance.app i-bp1xxxxxxxxxxxxx
 
 **1. 基础设施即代码。** 我们在第 1 到第 11 篇里手动搭建的每个资源，现在都是一个声明式的 `.tf` 文件。代码既是文档，也是操作手册，还是灾难恢复计划。
 
-**2. 模块是复用单元。** 每个模块（网络、计算、数据库、存储、安全、监控、Serverless）都是独立且可测试的。下一个项目你可以直接用网络模块，不用动数据库模块。
+**2. 模块是复用单元。** 每个模块（网络、计算、数据库、存储、安全、监控、 Serverless）都是独立且可测试的。下一个项目你可以直接用网络模块，不用动数据库模块。
 
 **3. 环境只是变量。** 开发、测试、生产用同一套代码，只是 `.tfvars` 文件不同。再也不会有“生产环境有个半年前手动加的安全组规则，没人记得为啥”这种事了。
 
-**4. CI/CD 形成闭环。** 基础设施变更走和应用代码一样的 PR 流程：提案、 review、合并、apply。不会再有“谁动了安全组？”这种悬案。
+**4. CI/CD 形成闭环。** 基础设施变更走和应用代码一样的 PR 流程：提案、 review、合并、 apply。不会再有“谁动了安全组？”这种悬案。
 
 **5. 成本优化也是代码变更。** 调整规格、包年包月、抢占式实例——这些都是 `.tfvars` 文件里的参数变化，像其他代码变更一样可 review、可审计。
 
 十二篇文章，咱们覆盖了不少内容。从 [第 1 篇的生态图谱](/zh/aliyun-fullstack/01-ecosystem-map/) 开始，经过 [计算](/zh/aliyun-fullstack/02-ecs-compute/)、[网络](/zh/aliyun-fullstack/03-vpc-networking/)、[存储](/zh/aliyun-fullstack/04-oss-storage/)、[数据库](/zh/aliyun-fullstack/05-rds-database/)、[安全](/zh/aliyun-fullstack/06-ram-security/)、可观测性、[Serverless](/zh/aliyun-fullstack/08-serverless/)、容器、[LLM](/zh/aliyun-fullstack/10-bailian-llm/)、[ML 平台](/zh/aliyun-fullstack/11-pai-ml-platform/)，到现在的基础设施即代码——你已经拥有了在阿里云构建生产系统的完整工具包。
 
-这篇文章的代码只是起点，不是成品。Fork 它，根据你的架构调整，添加你需要的资源，删掉你不用的。重点从来不是具体的配置，而是像对待应用代码一样认真对待基础设施这种实践。
+这篇文章的代码只是起点，不是成品。 Fork 它，根据你的架构调整，添加你需要的资源，删掉你不用的。重点从来不是具体的配置，而是像对待应用代码一样认真对待基础设施这种实践。
 
 一次 `terraform apply`，搞定所有需求。本该如此。
 
 ---
 
-这是**阿里云全栈**系列的第 12 篇（终篇）。如果想更深入研究 Terraform 本身——模块、工作区、测试、CI/CD 模式和多云架构——请看 [Terraform for Agents 系列](/zh/terraform-agents/01-why-terraform-for-agents/)。
+这是**阿里云全栈**系列的第 12 篇（终篇）。如果想更深入研究 Terraform 本身——模块、工作区、测试、 CI/CD 模式和多云架构——请看 [Terraform for Agents 系列](/zh/terraform-agents/01-why-terraform-for-agents/)。

@@ -35,9 +35,9 @@ translationKey: "openclaw-quickstart-8"
 | 适用场景 |  捕获异常、发现遗漏任务 | 日常例行、定时报告 |
 | 会话上下文 | 最新活跃渠道 | 默认隔离 |
 
-> Heartbeat 像巡逻警察，Cron 像厨房定时器。
+> Heartbeat 像巡逻警察， Cron 像厨房定时器。
 
-在生产环境中，两者并用：Cron 负责每日 7:00 的晨间简报和 17:00 的 shutdown 总结；Heartbeat 每 45 分钟巡检一次，专门检查遗漏的 PR。
+在生产环境中，两者并用： Cron 负责每日 7:00 的晨间简报和 17:00 的 shutdown 总结； Heartbeat 每 45 分钟巡检一次，专门检查遗漏的 PR。
 
 ## 开启功能
 
@@ -50,7 +50,7 @@ translationKey: "openclaw-quickstart-8"
 }
 ```
 
-注意 `message` 这个工具——没它的话，Agent 没法主动向外发送任何消息。
+注意 `message` 这个工具——没它的话， Agent 没法主动向外发送任何消息。
 
 ## Heartbeat —— 巡逻机制
 
@@ -120,7 +120,7 @@ translationKey: "openclaw-quickstart-8"
 
 ## Cron —— 闹钟
 
-有两种用法。CLI 方式更持久（即使 Gateway 重启也不怕）：
+有两种用法。 CLI 方式更持久（即使 Gateway 重启也不怕）：
 
 ```bash
 openclaw cron add \
@@ -168,7 +168,7 @@ openclaw cron add \
 
 6:47 收到的内容如下：
 
-```
+```yaml
 Morning brief — Thursday Apr 10
 Weather: Shanghai, 18C, overcast, rain after 3pm.
 Calendar: Sprint planning 10:00 | 1:1 with L 14:30 | Design review 16:00
@@ -262,7 +262,7 @@ openclaw cron edit --name "morning-brief" --missed-fire retry --missed-window "1
 真正的威力在于它们作为闭环系统协同工作：
 
 1. **晨间 Cron (6:47am)** —— 生成简报，把今天的行动项写入 memory。
-2. **Heartbeat (每 45 分钟，9am-6pm)** —— 检查这些行动项是否得到处理。PR 过了 3 小时还没 review？升级提醒。
+2. **Heartbeat (每 45 分钟， 9am-6pm)** —— 检查这些行动项是否得到处理。 PR 过了 3 小时还没 review？升级提醒。
 3. **晚间 Cron (5:30pm)** —— 报告完成了什么，标记没完成的，把总结写入 memory。
 
 Heartbeat 配置须关联晨间简报输出：
@@ -298,19 +298,19 @@ openclaw cron add \
   --system-event "EOD. Read 'today_actions' from memory. Check completion status of each. Report done/open/new items. Write to 'yesterday_summary'. Clear 'today_actions'."
 ```
 
-由此，三个独立定时任务构成一套具备问责机制的连贯工作流。如果晨间简报说“Review PR #412”，而到了下午 2 点我还没动它，Heartbeat 会提醒我，EOD Cron 随后记录我是否跟进到位。
+由此，三个独立定时任务构成一套具备问责机制的连贯工作流。如果晨间简报说“Review PR #412”，而到了下午 2 点我还没动它， Heartbeat 会提醒我， EOD Cron 随后记录我是否跟进到位。
 ## 定时任务的 Token 开销
 
 定时任务需要消耗 Token。我们来算一笔账。
 
-**Heartbeat：** 每天活跃 13 小时 / 45 分钟间隔 = 每天约 17 次调用。每次安静巡逻（系统提示词 + 记忆 + HEARTBEAT_OK）大概 800 tokens，合计 13,600 tokens/天。用 qwen-plus（$0.003/1K tokens）算下来是 $0.04/天。要是巡逻触发了技能，每次得多花 3,000-8,000 tokens。假设有 3 次触发，总量升到 ~26,200 tokens = $0.08/天。
+**Heartbeat：** 每天活跃 13 小时 / 45 分钟间隔 = 每天约 17 次调用。每次安静巡逻（系统提示词 + 记忆 + HEARTBEAT_OK）大概 800 tokens，合计 13,600 tokens/天。用 qwen-plus （$0.003/1K tokens）算下来是 $0.04/天。要是巡逻触发了技能，每次得多花 3,000-8,000 tokens。假设有 3 次触发，总量升到 ~26,200 tokens = $0.08/天。
 
-**Cron：** 开销永远更大，因为它们必定会产生输出。晨间简报：3,500 tokens。仓库监控（每小时触发，共 8 次）：12,000。竞品监控：10,000。每日总结：4,000。总计：~29,500 tokens = $0.09/天。
+**Cron：** 开销永远更大，因为它们必定会产生输出。晨间简报： 3,500 tokens。仓库监控（每小时触发，共 8 次）： 12,000。竞品监控： 10,000。每日总结： 4,000。总计：~29,500 tokens = $0.09/天。
 
 **Combined：** 加起来 $0.15-0.20/天，用 qwen-plus 一个月大概 $4.50-6.00。如果换成 gpt-4o 或者 claude-sonnet，价格会翻 5-8 倍。
 
-**Recommendation：** Heartbeat 提示词越短越好——系统提示词和 HEARTBEAT.md 每次巡逻都得加载，每多写一行，每天就得为此多付 17 次钱。重活交给 Cron（复杂技能、长总结），因为它们只跑一次。要是发现 Heartbeat 比 Cron 还贵，说明你活儿分反了。
+**Recommendation：** Heartbeat 提示词越短越好——系统提示词和 HEARTBEAT.md 每次巡逻都得加载，每多写一行，每天就得为此多付 17 次钱。重活交给 Cron （复杂技能、长总结），因为它们只跑一次。要是发现 Heartbeat 比 Cron 还贵，说明你活儿分反了。
 
 ## 结语
 
-OpenClaw 的核心在于让 Agent 主动找你。Heartbeat 和 Cron 是实现这一点的两扇门。严格按时执行的任务交给 Cron，仅在异常发生时才需响应的任务交给 Heartbeat。不要把它们搞混。
+OpenClaw 的核心在于让 Agent 主动找你。 Heartbeat 和 Cron 是实现这一点的两扇门。严格按时执行的任务交给 Cron，仅在异常发生时才需响应的任务交给 Heartbeat。不要把它们搞混。

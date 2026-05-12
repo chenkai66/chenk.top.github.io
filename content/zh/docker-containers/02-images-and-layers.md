@@ -81,7 +81,7 @@ CMD ["python3", "/app/app.py"]  # 仅元数据（不生成新分层）
 
 每条修改文件系统的指令都会创建一个新分层。`CMD` 指令仅设置元数据，不改动任何文件，因此不产生新分层。
 
-当容器从此镜像启动时，Docker 会在最上方额外添加一层：
+当容器从此镜像启动时， Docker 会在最上方额外添加一层：
 
 ```
 [可写容器层]  ← 运行时的修改发生于此
@@ -206,7 +206,7 @@ docker image inspect nginx --format '{{json .RootFS}}' | python3 -m json.tool
 }
 ```
 
-这些是各分层的内容寻址 SHA256 哈希值。Docker 正是依靠它们判断某一分层是否已在本地存在。
+这些是各分层的内容寻址 SHA256 哈希值。 Docker 正是依靠它们判断某一分层是否已在本地存在。
 
 ## 镜像命名与镜像仓库（Registry）
 
@@ -223,7 +223,7 @@ Docker 镜像遵循如下命名约定：
 
 | 完整名称 | 仓库（Registry） | 命名空间（Namespace） | 仓库（Repository） | 标签（Tag） |
 |-----------|----------|-----------|------------|-----|
-| `nginx` | docker.io（隐式） | library（隐式） | nginx | latest（隐式） |
+| `nginx` | docker.io （隐式） | library （隐式） | nginx | latest （隐式） |
 | `nginx:1.25` | docker.io | library | nginx | 1.25 |
 | `ubuntu:22.04` | docker.io | library | ubuntu | 22.04 |
 | `myuser/myapp:v2` | docker.io | myuser | myapp | v2 |
@@ -241,7 +241,7 @@ Docker 镜像遵循如下命名约定：
 
 ### Docker Hub
 
-Docker Hub 是默认的公共镜像仓库。当你运行 `docker pull nginx` 时，Docker 会连接 `registry-1.docker.io` 下载镜像。
+Docker Hub 是默认的公共镜像仓库。当你运行 `docker pull nginx` 时， Docker 会连接 `registry-1.docker.io` 下载镜像。
 
 ```bash
 # 从 CLI 搜索 Docker Hub
@@ -283,7 +283,7 @@ docker pull registry.example.com/team/myapp:v1.0
 | Google Artifact Registry | GCP |
 | Azure Container Registry | Azure |
 | GitHub Container Registry (ghcr.io) | GitHub |
-| Docker Hub（私有仓库） | Docker |
+| Docker Hub （私有仓库） | Docker |
 | Harbor | 自托管（CNCF 项目） |
 | JFrog Artifactory | JFrog |
 
@@ -295,7 +295,7 @@ docker pull registry.example.com/team/myapp:v1.0
 - **构建耗时（Build time）**：大分层上传更慢；
 - **磁盘占用（Disk space）**：每个节点需本地存储镜像；
 - **安全攻击面（Security surface）**：文件越多，潜在漏洞越多；
-- **冷启动延迟（Cold start）**：Serverless 平台（如 AWS Lambda、Cloud Run）对大镜像响应更慢。
+- **冷启动延迟（Cold start）**： Serverless 平台（如 AWS Lambda、 Cloud Run）对大镜像响应更慢。
 
 对比几种基础镜像大小：
 
@@ -323,7 +323,7 @@ gcr.io/distroless/static-debian12   latest              2.45MB
 | `distroless/static` | 2.45 MB | 无 | 无 | 仅支持静态编译二进制（如 Go） |
 | `scratch` | 0 MB | 无 | 无 | 最小化（Go 二进制等） |
 
-Alpine 比 Ubuntu 小约 10 倍，Distroless 更小约 30 倍。代价是：越小的镜像，调试工具越少。你无法对 distroless 容器执行 `docker exec -it container bash`，因为其中根本不存在 `bash`。
+Alpine 比 Ubuntu 小约 10 倍， Distroless 更小约 30 倍。代价是：越小的镜像，调试工具越少。你无法对 distroless 容器执行 `docker exec -it container bash`，因为其中根本不存在 `bash`。
 
 我们将在下一篇关于 Dockerfile 的文章中深入探讨优化策略。
 
@@ -387,7 +387,7 @@ docker import test-export.tar my-custom-ubuntu:v1
 
 核心区别：
 
-| 操作 | 作用对象 | 是否保留分层？ | 是否保留元数据？（CMD、ENV 等） |
+| 操作 | 作用对象 | 是否保留分层？ | 是否保留元数据？（CMD、 ENV 等） |
 |-----------|-----------|-------------------|---------------------|
 | `save/load` | 镜像 | 是 | 是 |
 | `export/import` | 容器 | 否（扁平化为单层） | 否 |
@@ -420,7 +420,7 @@ registry.example.com/team/nginx   v1.0         61395b4c586d   2 weeks ago   187M
 
 ### “latest” 标签陷阱
 
-`latest` 标签对 Docker 来说并无特殊含义，它只是一个**惯例（convention）**，而非机制。Docker 不会自动将 `latest` 指向最新版本。如果有人推送了 `myapp:v2` 却未同步更新 `latest`，那么 `latest` 仍指向旧版本。
+`latest` 标签对 Docker 来说并无特殊含义，它只是一个**惯例（convention）**，而非机制。 Docker 不会自动将 `latest` 指向最新版本。如果有人推送了 `myapp:v2` 却未同步更新 `latest`，那么 `latest` 仍指向旧版本。
 
 最佳实践：**生产环境务必使用明确的标签。**
 
@@ -520,7 +520,7 @@ dive nginx:latest
 
 ## 分层在磁盘上的存储方式
 
-在 Linux 主机上，Docker 将所有数据存于 `/var/lib/docker/` 下。确切结构取决于所用存储驱动（通常为 OverlayFS）：
+在 Linux 主机上， Docker 将所有数据存于 `/var/lib/docker/` 下。确切结构取决于所用存储驱动（通常为 OverlayFS）：
 
 ```bash
 # 查看存储驱动信息
@@ -575,10 +575,10 @@ docker manifest inspect nginx:latest | python3 -m json.tool | head -30
 }
 ```
 
-当你在 ARM Mac 上执行 `docker pull nginx`，Docker 会自动选择 `arm64` 变体；而在 x86_64 Linux 服务器上则选择 `amd64`。**同一标签，不同二进制** —— 这正是跨平台部署无缝衔接的原因。
+当你在 ARM Mac 上执行 `docker pull nginx`， Docker 会自动选择 `arm64` 变体；而在 x86_64 Linux 服务器上则选择 `amd64`。**同一标签，不同二进制** —— 这正是跨平台部署无缝衔接的原因。
 
 ## 下一步
 
 你现在已理解：镜像是由多个只读分层堆叠而成；分层可在镜像间共享；容器在此之上叠加一层薄薄的可写层；你也掌握了检查、导出、打标签及清理镜像的方法。
 
-下一步是构建你自己的镜像 —— 即编写 Dockerfile。一个朴素的 Dockerfile 与一个经过优化的 Dockerfile，其差异可能就是：一个 1.5 GB、耗时 10 分钟构建的镜像，与一个 50 MB、30 秒即可完成构建的镜像之间的鸿沟。下一篇将详述每一个 Dockerfile 指令，以及区分开发型与生产型 Dockerfile 的关键模式。
+下一步是构建你自己的镜像 —— 即编写 Dockerfile。一个朴素的 Dockerfile 与一个经过优化的 Dockerfile，其差异可能就是：一个 1.5 GB、耗时 10 分钟构建的镜像，与一个 50 MB、 30 秒即可完成构建的镜像之间的鸿沟。下一篇将详述每一个 Dockerfile 指令，以及区分开发型与生产型 Dockerfile 的关键模式。

@@ -34,19 +34,19 @@ translationKey: "openclaw-quickstart-6"
 
 这才是一个真实的端到端流程。完成这一步，你就拥有了一个可复用的系统骨架——后续只需替换数据源，但在动手前，必须先厘清待整合的两个系统。
 
-## Skills、Tools 与 MCP —— 心智模型
+## Skills、 Tools 与 MCP —— 心智模型
 
 这三个术语虽然常被混用，但本质上是不同的：
 
 | 概念 | 是什么 | 谁编写 | 何时加载 |
 |------|--------|--------|----------|
-| **Tool（工具）** | 一个动词：读取文件、执行命令、网页搜索等。具有类型化 Schema 和处理函数（handler function）。 | 框架作者 或 你（自定义工具） | 始终加载；模型每轮都可见完整工具列表 |
-| **Skill（技能）** | 一种知识性名词：一份 Markdown 格式的标准操作流程（SOP），告诉 Agent *如何* 完成特定任务。 | 你 | 懒加载 —— 仅在触发时才实例化，正文按需载入 |
-| **MCP Server（MCP 服务端）** | 一个外部进程，通过 Model Context Protocol（MCP）暴露 *额外* 的工具。 | 第三方 或 你 | 网关启动时加载；其工具与内置工具并列呈现 |
+| **Tool （工具）** | 一个动词：读取文件、执行命令、网页搜索等。具有类型化 Schema 和处理函数（handler function）。 | 框架作者 或 你（自定义工具） | 始终加载；模型每轮都可见完整工具列表 |
+| **Skill （技能）** | 一种知识性名词：一份 Markdown 格式的标准操作流程（SOP），告诉 Agent *如何* 完成特定任务。 | 你 | 懒加载 —— 仅在触发时才实例化，正文按需载入 |
+| **MCP Server （MCP 服务端）** | 一个外部进程，通过 Model Context Protocol （MCP）暴露 *额外* 的工具。 | 第三方 或 你 | 网关启动时加载；其工具与内置工具并列呈现 |
 
-三者关系：**Skills 调用 Tools；MCP Servers 暴露 Tools**。例如某 Skill 写道：‘用 Playwright 工具抓取该网页’——Playwright 工具来自 MCP Server，Skill 则定义如何组合调用。
+三者关系：**Skills 调用 Tools； MCP Servers 暴露 Tools**。例如某 Skill 写道：‘用 Playwright 工具抓取该网页’——Playwright 工具来自 MCP Server， Skill 则定义如何组合调用。
 
-类比来说，Tools 是 Agent 的双手，Skills 是操作手册，而 MCP 则是为 Agent 增配新双手的机制。
+类比来说， Tools 是 Agent 的双手， Skills 是操作手册，而 MCP 则是为 Agent 增配新双手的机制。
 
 ## 第一步：写一个 Skill
 
@@ -86,7 +86,7 @@ Produce a single paragraph summary.
 
 ### SKILL.md 文件结构解析
 
-该文件包含两部分：YAML 前置元数据（即 **manifest**）和 Markdown 正文（即 **SOP**）。二者均不可或缺，并在不同阶段承担不同职责。
+该文件包含两部分： YAML 前置元数据（即 **manifest**）和 Markdown 正文（即 **SOP**）。二者均不可或缺，并在不同阶段承担不同职责。
 
 **Manifest** 在 gateway 启动时加载。每个 skill 的 manifest 均被注入系统 prompt，供模型判断应调用哪个 skill。各字段说明如下：
 
@@ -95,7 +95,7 @@ Produce a single paragraph summary.
 | `name` | 是 | 唯一标识符，用于日志记录与跨引用。 | `summarize-headlines` |
 | `description` | 是 | 单行摘要，模型据此判断技能相关性。 | `Summarize a list of headlines...` |
 | `trigger` | 是 | 自然语言触发条件。请从用户视角撰写，而非实现视角。 | `when user asks for a news briefing` |
-| `tools_required` | 否 | 本 skill 所需的 tool 列表。若声明，gateway 将预先授权。 | `[web_search, exec]` |
+| `tools_required` | 否 | 本 skill 所需的 tool 列表。若声明， gateway 将预先授权。 | `[web_search, exec]` |
 | `skills_required` | 否 | 本 skill 所依赖的其他 skill。触发时，其 body 将被热加载。 | `[today-calendar]` |
 | `priority` | 否 | 取值为 `high`、`normal` 或 `low`，用于多 skill 匹配时的优先级裁决；默认为 `normal`。 | `high` |
 | `version` | 否 | 语义化版本号（Semver），仅作信息参考，便于 skill 分享与协作。 | `1.0.0` |
@@ -104,7 +104,7 @@ Produce a single paragraph summary.
 
 ### 如何编写高效的 trigger
 
-`trigger` 是整个 skill 中最关键的一行。若过于宽泛，skill 将误触发；若过于狭窄，则可能完全不触发。常见模式如下：
+`trigger` 是整个 skill 中最关键的一行。若过于宽泛， skill 将误触发；若过于狭窄，则可能完全不触发。常见模式如下：
 
 **低效 trigger 示例：**
 - `when the user asks about news` —— 过于宽泛，会在 "what's new in the codebase" 等非新闻场景下误触发
@@ -136,7 +136,7 @@ openclaw skills inspect summarize-headlines
 
 ## 第二步：挂载 MCP server
 
-MCP（Model Context Protocol）是一种将大语言模型连接至外部工具服务器的标准协议。OpenClaw 本身不原生支持 MCP，而是通过 `MCPorter` 作为适配层（shim），在 OpenClaw 内部的 tool 格式与 MCP 协议之间进行双向转换。
+MCP （Model Context Protocol）是一种将大语言模型连接至外部工具服务器的标准协议。 OpenClaw 本身不原生支持 MCP，而是通过 `MCPorter` 作为适配层（shim），在 OpenClaw 内部的 tool 格式与 MCP 协议之间进行双向转换。
 
 ### 安装 MCPorter
 
@@ -192,7 +192,7 @@ https://news.ycombinator.com and just give me the titles and URLs.
 如果 Agent 返回了一个列表，说明链路通畅。若失败，常见原因如下：
 
 1. **MCPorter 未运行**：运行 `mcporter status`，确认 `playwright` 显示为 `running`。若为 `stopped`，手动执行 `mcporter start playwright`，并检查日志 `~/.mcporter/logs/playwright.log` 排查错误。
-2. **端口冲突**：MCPorter 默认监听 `:7890`。若该端口被占用，可设置环境变量 `MCPORTER_PORT=7891`，并同步更新 `openclaw.json` 中的 `porter_endpoint`。
+2. **端口冲突**： MCPorter 默认监听 `:7890`。若该端口被占用，可设置环境变量 `MCPORTER_PORT=7891`，并同步更新 `openclaw.json` 中的 `porter_endpoint`。
 3. **Playwright 浏览器未安装**：首次运行 `npx @playwright/mcp@latest` 会自动下载 Chromium 等浏览器，耗时约 2–3 分钟、占用约 400MB 磁盘空间。若中途中断，请手动运行 `npx playwright install chromium` 补全安装。
 
 ### 添加其他 MCP server
@@ -251,7 +251,7 @@ Format as a markdown bullet list:
 If there are no events, return "Nothing on the calendar today".
 ```
 
-注意，这个 Skill 本质上是一份食谱（recipe），不是函数。模型是运行时，`exec` 工具是动词，Skill 则是把两者绑在一起的知识名词。
+注意，这个 Skill 本质上是一份食谱（recipe），不是函数。模型是运行时，`exec` 工具是动词， Skill 则是把两者绑在一起的知识名词。
 
 ### 何时使用 `exec` vs. MCP
 
@@ -324,11 +324,11 @@ skills_required: [today-calendar, summarize-headlines]
 Send the result to the default channel.
 ```
 
-`skills_required` 字段告诉 OpenClaw，当这个 Skill 触发时，要把那些 Skill 的内容预加载进来。不用重新 fetch，也没有额外延迟。这是一个关键优化——若没有它，Agent 必须每次单独触发各个子 Skill，每次都要付出 manifest 查询的成本。
+`skills_required` 字段告诉 OpenClaw，当这个 Skill 触发时，要把那些 Skill 的内容预加载进来。不用重新 fetch，也没有额外延迟。这是一个关键优化——若没有它， Agent 必须每次单独触发各个子 Skill，每次都要付出 manifest 查询的成本。
 
 ### Skill 组合的内部机制
 
-当 `morning-briefing` 触发时，gateway 执行以下操作：
+当 `morning-briefing` 触发时， gateway 执行以下操作：
 
 1. 将 `morning-briefing` 的 body 载入 prompt；
 2. 发现 `skills_required: [today-calendar, summarize-headlines]`；
@@ -362,7 +362,7 @@ cat ~/.openclaw/sessions/<session_id>.jsonl | jq '.tool_calls[].name'
    }
    ```
 
-## 第五步：Cron
+## 第五步： Cron
 
 Skill 真正变得有用，是它能在你不在场时自动运行。在 `openclaw.json` 里配置：
 
@@ -386,7 +386,7 @@ openclaw cron list
 # morning-briefing | 0 7 * * 1-5 | next: tomorrow 07:00 | channel: telegram
 ```
 
-首次运行时，请观察网关日志：你会看到 Agent 循环触发、Skill 加载、Playwright 工具执行滚动操作，最终消息推送至你的 Telegram。
+首次运行时，请观察网关日志：你会看到 Agent 循环触发、 Skill 加载、 Playwright 工具执行滚动操作，最终消息推送至你的 Telegram。
 
 ### Cron 配置参考
 
@@ -397,15 +397,15 @@ openclaw cron list
 | `skill` | 是 | string | 触发的 Skill 名称，必须存在于 `~/.openclaw/skills/`。 |
 | `channel` | 是 | string | 输出发送的目标 channel，必须为已配置的 channel。 |
 | `user_id` | 否 | string | 使用哪位用户的 memory / context。默认为 admin 用户。 |
-| `timeout_sec` | 否 | integer | 最大执行时长（秒），默认值：120。 |
-| `retry` | 否 | integer | 失败时重试次数，默认值：0。 |
+| `timeout_sec` | 否 | integer | 最大执行时长（秒），默认值： 120。 |
+| `retry` | 否 | integer | 失败时重试次数，默认值： 0。 |
 | `env` | 否 | object | 该任务运行时传递给 tool 的额外环境变量。 |
 
 ### Cron 下的限制与注意事项
 
 Cron 任务在模拟会话（synthetic session）中运行 —— 无真实用户参与。这带来两点关键影响：
 
-1. **无确认提示**：若 Skill 使用 `exec` 且所执行命令未列入 `trusted_commands`，cron 任务将因等待永不出现的用户确认而挂起。请务必把所有 cron 触发的命令加入可信命令列表。
+1. **无确认提示**：若 Skill 使用 `exec` 且所执行命令未列入 `trusted_commands`， cron 任务将因等待永不出现的用户确认而挂起。请务必把所有 cron 触发的命令加入可信命令列表。
 2. **无后续交互**：若模型响应中包含提问（例如："是否包含加密货币新闻？"），无人可作答；消息发布至 channel 后即结束会话。因此 cron 触发的 Skill 必须自包含 —— 所有决策应由 SOP 明确定义，不可依赖用户实时交互。
 
 调试 cron 任务的实用技巧：
@@ -422,7 +422,7 @@ openclaw cron history morning-briefing --limit 5
 
 晨间简报是一个入门级项目。以下是我在实践中常用的另外三种模式，附关键设计考量。
 
-### 模式 1：Git 周变更日志
+### 模式 1： Git 周变更日志
 
 一个从 git 提交记录生成周度变更日志的 Skill：
 
@@ -468,7 +468,7 @@ tools_required: [sqlite_query]
 - 标记任何超过 100MB 的表为 "large"
 ```
 
-### 模式 3：PR 审查助手
+### 模式 3： PR 审查助手
 
 一个融合 GitHub MCP 与代码分析能力的 Skill：
 
@@ -497,19 +497,19 @@ skills_required: []
 
 ### Skill 触发成功，但输出错误
 
-**现象**：Skill 正常触发，但 Agent 忽略了 SOP 中约一半的指令。
+**现象**： Skill 正常触发，但 Agent 忽略了 SOP 中约一半的指令。
 
-**原因**：Skill 正文过长或表述模糊。模型会像人类一样跳读长文本。
+**原因**： Skill 正文过长或表述模糊。模型会像人类一样跳读长文本。
 
 **解决**：正文控制在 500 字以内；用编号步骤替代段落叙述；将输出模板置于末尾（利用 recency bias）；若逻辑必须复杂，请拆分为多个子 Skill，并通过 `skills_required` 显式编排。
 
 ### MCP server 在对话中途崩溃
 
-**现象**：Agent 执行工作流中途报错 `connection refused`。
+**现象**： Agent 执行工作流中途报错 `connection refused`。
 
-**原因**：MCP server 进程意外退出。Playwright 尤其容易因页面触发 OOM、弹出无法处理的下载对话框而崩溃。
+**原因**： MCP server 进程意外退出。 Playwright 尤其容易因页面触发 OOM、弹出无法处理的下载对话框而崩溃。
 
-**解决**：MCPorter 支持 auto-restart，请确认已启用：
+**解决**： MCPorter 支持 auto-restart，请确认已启用：
 
 ```bash
 mcporter config playwright
@@ -518,13 +518,13 @@ mcporter config playwright
 # restart_delay_ms: 1000
 ```
 
-若 60 秒内崩溃次数超过 `max_restarts`，MCPorter 将放弃重试并记录错误。请检查 `~/.mcporter/logs/playwright.log` 定位原因。常见诱因：页面触发无限 JS 循环，或加载超 100MB 的资源。
+若 60 秒内崩溃次数超过 `max_restarts`， MCPorter 将放弃重试并记录错误。请检查 `~/.mcporter/logs/playwright.log` 定位原因。常见诱因：页面触发无限 JS 循环，或加载超 100MB 的资源。
 
 ### Cron 任务显示执行成功，但未发送消息
 
 **现象**：`openclaw cron history` 显示任务成功运行，但目标 channel 无任何消息。
 
-**原因**：通常为 channel 认证失效 —— OAuth token 过期、钉钉 Webhook URL 轮转、Telegram Bot Token 被撤销等。
+**原因**：通常为 channel 认证失效 —— OAuth token 过期、钉钉 Webhook URL 轮转、 Telegram Bot Token 被撤销等。
 
 **解决**：查看 `gateway.log` 中对应 cron 时间戳，搜索 `channel send failed` 错误。重新认证 channel：`openclaw channel test telegram` 会发送测试消息并报告所有 auth 异常。
 
@@ -532,7 +532,7 @@ mcporter config playwright
 
 **现象**：同一用户消息下行为不一致 —— 有时 Skill A 触发，有时 Skill B 触发。
 
-**原因**：trigger 描述存在重叠。模型会依据细微措辞差异随机选择其一。
+**原因**： trigger 描述存在重叠。模型会依据细微措辞差异随机选择其一。
 
 **解决**：确保 trigger 互斥。例如，若同时存在 "meeting notes" 和 "project notes" Skill，**切勿**对二者都写 `when user asks about notes`。应改为：
 - `when user asks about meeting notes or documenting a meeting`
@@ -554,7 +554,7 @@ mcporter config playwright
 - 一个把"我得去问"变成"它自己来"的 Cron 任务
 - 一套出问题时帮你定位原因的调试工具
 
-这就是完整闭环。官方文档里的其他案例——第二大脑、内容 pipeline、DevOps 自动化——都是这五步的变体。换些 Skill，换些 MCPs，改几行 Cron 配置而已。
+这就是完整闭环。官方文档里的其他案例——第二大脑、内容 pipeline、 DevOps 自动化——都是这五步的变体。换些 Skill，换些 MCPs，改几行 Cron 配置而已。
 
 ## 接下来我会做什么
 
@@ -562,8 +562,8 @@ mcporter config playwright
 
 1. **加个反馈循环。** 回复晨间简报进行纠正（比如"跳过 crypto 头条"）。写个 Skill 把这些纠正记入 `~/.openclaw/memory/feedback/morning-briefing.md`。第二天早上的简报会读取这些内容。一周之后，简报会悄无声息地适配你的偏好——你完全不用动 SOP。
 2. **让新闻源可配置。** 写个 Skill 从 `~/openclaw-workspace/sources.yaml` 读取并遍历。这几乎等于免费得了个"Agent 版 RSS 阅读器"。这份 YAML 文件就是简单的 UI——加一行 URL，第二天的简报就有了。
-3. **接第二个渠道。** 同一个 Agent，工作时间也推送到钉钉。Skill 不用改——channel 层是解耦的。你可以同时在两个地方收到同样的简报，也可以根据上下文把不同的 Skill 路由到不同 channel。
+3. **接第二个渠道。** 同一个 Agent，工作时间也推送到钉钉。 Skill 不用改——channel 层是解耦的。你可以同时在两个地方收到同样的简报，也可以根据上下文把不同的 Skill 路由到不同 channel。
 
 QuickStart 到此结束。官方文档其余章节将深入讲解各层实现细节。现在你已掌握整体架构，并清楚如何在各模块之间切换与协作。
 
-如果只记住一件事，请牢记：真正具有长期价值的是那些看似平凡的基础层——Skills、记忆机制（memory）和通信渠道（channels）。Agent 的核心循环逻辑大同小异；让整个系统真正落地可用的，是你构建的 Skill 库和接入的实际渠道。祝好运。
+如果只记住一件事，请牢记：真正具有长期价值的是那些看似平凡的基础层——Skills、记忆机制（memory）和通信渠道（channels）。 Agent 的核心循环逻辑大同小异；让整个系统真正落地可用的，是你构建的 Skill 库和接入的实际渠道。祝好运。

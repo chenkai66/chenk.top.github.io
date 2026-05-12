@@ -17,7 +17,7 @@ translationKey: "python-engineering-7"
 
 你写了一个实用的小工具。一位同事向你索要。你把整个文件夹压缩成 ZIP，通过邮件发给他。他解压后运行 `python main.py`，却得到 `ModuleNotFoundError` —— 因为他没有安装依赖。接着他手动安装了依赖，但版本不匹配；随后又发现他使用的是 Python 3.8，而你的代码中使用了 f-string 内的海象运算符（walrus operator），该语法在 Python 3.8 中尚不可用，导致解析失败。
 
-**规范的打包能彻底解决所有这些问题。** 只需执行 `pip install your-tool`，一切就绪：依赖自动安装、版本精确匹配、CLI 命令开箱即用。
+**规范的打包能彻底解决所有这些问题。** 只需执行 `pip install your-tool`，一切就绪：依赖自动安装、版本精确匹配、 CLI 命令开箱即用。
 
 ## Package vs Module vs Library
 
@@ -28,11 +28,11 @@ translationKey: "python-engineering-7"
 
 | 术语 | 定义 | 示例 |
 |------|------|------|
-| **Module（模块）** | 单个 `.py` 文件 | `utils.py` |
-| **Package（包）** | 包含 `__init__.py` 的目录，内含多个模块 | `my_tool/` 目录 |
-| **Library（库）** | 为复用而发布的包（或包集合） | `requests`, `flask` |
-| **Distribution（分发包）** | 可安装的归档文件（wheel 或 sdist），托管于 PyPI | `requests-2.31.0-py3-none-any.whl` |
-| **Script（脚本）** | 可直接运行的独立 `.py` 文件 | `download.py` |
+| **Module （模块）** | 单个 `.py` 文件 | `utils.py` |
+| **Package （包）** | 包含 `__init__.py` 的目录，内含多个模块 | `my_tool/` 目录 |
+| **Library （库）** | 为复用而发布的包（或包集合） | `requests`, `flask` |
+| **Distribution （分发包）** | 可安装的归档文件（wheel 或 sdist），托管于 PyPI | `requests-2.31.0-py3-none-any.whl` |
+| **Script （脚本）** | 可直接运行的独立 `.py` 文件 | `download.py` |
 
 当有人说“安装 requests 库”，其真实含义是：从 PyPI 下载 `requests` 分发包，该包中包含 `requests` 包及其子包。
 
@@ -43,11 +43,11 @@ Python 包支持两种标准分发格式：
 ![Semantic versioning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png)
 
 
-### sdist（源码分发包）
+### sdist （源码分发包）
 
 `.tar.gz` 格式的源码归档。接收方需具备构建工具链（如 C 扩展所需的编译器等）才能安装。
 
-### wheel（预编译分发包）
+### wheel （预编译分发包）
 
 `.whl` 文件（本质是 zip 归档）。已预先构建完成，无需编译，安装更快。`pip` 默认使用 wheel。
 
@@ -225,7 +225,7 @@ Uploading my_tool-0.1.0.tar.gz [========================================] 100%
 
 1. 访问 https://pypi.org/account/register/ 注册账户  
 2. 进入 Account Settings > API Tokens  
-3. 创建一个作用域限定于你项目的 token（首次上传可选“all projects”）
+3. 创建一个作用域限定于你项目的 token （首次上传可选“all projects”）
 
 配置 `~/.pypirc`：
 
@@ -342,7 +342,7 @@ $ pip install my-internal-tool --extra-index-url http://internal-pypi.company.co
 | `python:3.11-bookworm` | ~900MB | Debian Bookworm，兼容性佳 |
 | `python:3.11-slim-bookworm` | ~150MB | Debian Bookworm 生产环境 |
 
-**推荐：生产环境使用 `python:3.11-slim`。除非明确需要极小体积且能处理 musl 兼容性问题（如 numpy、pandas 等含 C 扩展的包可能失败），否则避免 Alpine。**
+**推荐：生产环境使用 `python:3.11-slim`。除非明确需要极小体积且能处理 musl 兼容性问题（如 numpy、 pandas 等含 C 扩展的包可能失败），否则避免 Alpine。**
 
 ### 基础 Dockerfile
 
@@ -668,7 +668,7 @@ jobs:
         # Uses trusted publishing (no API token needed)
 ```
 
-启用 Trusted Publishing 后，PyPI 将信任你的 GitHub Actions 工作流，无需手动管理 API Token。
+启用 Trusted Publishing 后， PyPI 将信任你的 GitHub Actions 工作流，无需手动管理 API Token。
 
 ## 下一步
 

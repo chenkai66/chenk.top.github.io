@@ -28,7 +28,7 @@ In a synchronous system, the caller waits for the callee to respond before proce
 ![Sync vs async communication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-sync-vs-async.png)
 
 
-```
+```yaml
 Synchronous (REST):
   Client → Order Service → Payment Service → Inventory Service → Notification Service
   
@@ -40,7 +40,7 @@ Synchronous (REST):
 
 In an asynchronous system, the caller sends a message and moves on. The callee processes the message independently.
 
-```
+```yaml
 Asynchronous (Message Queue):
   Client → Order Service → Message Queue
                                 ↓
@@ -418,7 +418,7 @@ Event sourcing is an architectural pattern where state changes are stored as a s
 
 ### Traditional vs Event-Sourced
 
-```
+```sql
 Traditional (state-based):
   Account table: { id: "acc_123", balance: 150.00 }
   

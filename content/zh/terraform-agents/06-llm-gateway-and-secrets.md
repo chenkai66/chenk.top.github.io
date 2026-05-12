@@ -24,7 +24,7 @@ translationKey: "terraform-agents-6"
 
 这篇文章旨在解决这个问题。我们构建了一个 **LLM 网关**，实现以下目标：
 
-- 把所有厂商的密钥统一收进 KMS Secrets Manager（一个 bucket，一套 ACL，统一的轮换节奏）
+- 把所有厂商的密钥统一收进 KMS Secrets Manager （一个 bucket，一套 ACL，统一的轮换节奏）
 - Agent 通过 RAM 颁发的短期 Token 认证——Agent 机器上零静态 AK
 - 限制每个 Agent 的每分钟请求数（QPM）与每日 token 上限，防止死循环引发单日费用飙升（最高达 800 元）乃至季度预算耗尽。
 - 所有请求记入 SLS，方便取证、成本分摊和 SOC-2 审计
@@ -38,14 +38,14 @@ translationKey: "terraform-agents-6"
 
 ![Centralised LLM gateway: one egress, one quota, one audit log](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)
 
-架构上，Agent 在左，模型厂商在右，网关居中充当代理层。每个 Agent 发往 "LLM" 的 HTTP 请求实际上都会先到达网关，再由网关统一分发请求至对应厂商、注入正确密钥、执行配额控制并记录调用结果。
+架构上， Agent 在左，模型厂商在右，网关居中充当代理层。每个 Agent 发往 "LLM" 的 HTTP 请求实际上都会先到达网关，再由网关统一分发请求至对应厂商、注入正确密钥、执行配额控制并记录调用结果。
 
 实现方案主要有两种选择：
 
 1. **Aliyun API Gateway 加自定义后端** —— 最托管，配额策略配置最简单，原生集成 RAM。适合路由逻辑简单的场景：“一个模型，一个厂商，只管限流”。
-2. **ALB 后面自托管 LiteLLM on ECS** —— 最灵活，支持长尾厂商（DeepSeek、Moonshot、Zhipu、你自己微调的 PAI 端点），更容易扩展成本追踪和跨厂商 fallback。
+2. **ALB 后面自托管 LiteLLM on ECS** —— 最灵活，支持长尾厂商（DeepSeek、 Moonshot、 Zhipu、你自己微调的 PAI 端点），更容易扩展成本追踪和跨厂商 fallback。
 
-我们建议根据路由复杂度来选择。如果是纯代理加配额，API Gateway 就足够了。但如果是多厂商路由，还需要带预算 guard 和熔断机制——这通常是大多数团队在半年内会进入的阶段——此时 LiteLLM on ECS 更具优势。本文剩余部分将基于 LiteLLM 展开，因为 80% 的团队都需要这种方案。
+我们建议根据路由复杂度来选择。如果是纯代理加配额， API Gateway 就足够了。但如果是多厂商路由，还需要带预算 guard 和熔断机制——这通常是大多数团队在半年内会进入的阶段——此时 LiteLLM on ECS 更具优势。本文剩余部分将基于 LiteLLM 展开，因为 80% 的团队都需要这种方案。
 
 ## 第一步：把所有密钥存进 KMS Secrets Manager
 
@@ -80,9 +80,9 @@ resource "alicloud_kms_secret" "llm" {
 
 密钥本身通过 `var.llm_keys` 传入——用 `-var-file=secrets.auto.tfvars`（已 gitignore）或者 CI secret 里的 `TF_VAR_llm_keys='{...}'` 设置。它们绝不会出现在你的代码仓库里。
 
-我们来算一笔账：KMS Secrets Manager 在上海地域的费用约为每个密钥每月 0.4 元，外加每万次 API 调用 0.03 元。四个厂商密钥，两台网关机器每小时拉取两次，每月账单几乎是忽略不计——不到 10 块钱。阿里云默认提供的服务密钥免费，仅当使用客户自主创建和管理的 CMK（客户主密钥）时，才按每个每月 1 元计费。别让"KMS 听起来很贵”成为你继续用 `.env` 文件的理由。
+我们来算一笔账： KMS Secrets Manager 在上海地域的费用约为每个密钥每月 0.4 元，外加每万次 API 调用 0.03 元。四个厂商密钥，两台网关机器每小时拉取两次，每月账单几乎是忽略不计——不到 10 块钱。阿里云默认提供的服务密钥免费，仅当使用客户自主创建和管理的 CMK （客户主密钥）时，才按每个每月 1 元计费。别让"KMS 听起来很贵”成为你继续用 `.env` 文件的理由。
 
-> **实战建议：** 轮换厂商密钥时，修改 `secret_data` 并 bump `version_id`。KMS 会在恢复窗口期内保持旧版本有效，确保进行中的请求不受影响；新启动的网关实例则会拉取并使用新版本。把这个流程写成 PR 形式，方便审计。
+> **实战建议：** 轮换厂商密钥时，修改 `secret_data` 并 bump `version_id`。 KMS 会在恢复窗口期内保持旧版本有效，确保进行中的请求不受影响；新启动的网关实例则会拉取并使用新版本。把这个流程写成 PR 形式，方便审计。
 
 ## 第二步：网关 assumable 的 RAM Role
 
@@ -131,8 +131,8 @@ resource "alicloud_ram_role_policy_attachment" "gateway_kms" {
 
 这里的设计有三个关键点：
 
-- **资源级权限控制。** 只针对这些特定密钥，而不是对 `*` 开放 `kms:GetSecretValue`。即使网关机器被攻破，攻击者也无法横向访问其他 KMS 密钥——例如账单密钥、RDS 密码、OSS 存储桶等，均保持隔离状态。
-- **无长期 AK。** 角色由 ECS 实例通过 metadata service 假设。磁盘上、环境变量里、cloud-init 中零静态凭证。
+- **资源级权限控制。** 只针对这些特定密钥，而不是对 `*` 开放 `kms:GetSecretValue`。即使网关机器被攻破，攻击者也无法横向访问其他 KMS 密钥——例如账单密钥、 RDS 密码、 OSS 存储桶等，均保持隔离状态。
+- **无长期 AK。** 角色由 ECS 实例通过 metadata service 假设。磁盘上、环境变量里、 cloud-init 中零静态凭证。
 - **`kms:Decrypt` 是必须的。** 即使只需读取密钥，也必须显式声明该权限——因为 KMS 在静态存储时已对密钥加密。忽略此配置，是网关启动后每次 fetch 均返回 401 的最常见原因。
 
 ## 第三步：在 ECS 上部署 LiteLLM
@@ -198,7 +198,7 @@ locals {
 }
 ```
 
-两台 `ecs.c7.large` —— 2 vCPU, 4 GB 内存 —— 轻松扛住 200+ QPS 的纯代理流量。LiteLLM 属于异步 I/O 密集型服务，CPU 使用率通常不超过 30%。别配大了。如果流量有突发，放进弹性伸缩组，让云监控在 CPU 持续超过 60% 时加节点。
+两台 `ecs.c7.large` —— 2 vCPU, 4 GB 内存 —— 轻松扛住 200+ QPS 的纯代理流量。 LiteLLM 属于异步 I/O 密集型服务， CPU 使用率通常不超过 30%。别配大了。如果流量有突发，放进弹性伸缩组，让云监控在 CPU 持续超过 60% 时加节点。
 
 `gateway-init.sh` 负责启动流程：
 
@@ -285,7 +285,7 @@ resource "alicloud_alb_listener" "gateway" {
 }
 ```
 
-现在 Agent 只要访问 `http://<alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/completions` 就能到达网关，完全看不到厂商密钥。ALB 仅允许内网访问：不分配公网 IP，也不监听任何面向公网的端口（如 443）。如果 Agent 需要从 VPC 外部调用，走 bastion 或 CEN，绝不直连。
+现在 Agent 只要访问 `http://<alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/completions` 就能到达网关，完全看不到厂商密钥。 ALB 仅允许内网访问：不分配公网 IP，也不监听任何面向公网的端口（如 443）。如果 Agent 需要从 VPC 外部调用，走 bastion 或 CEN，绝不直连。
 ## 步骤 4：单 Agent 配额
 
 LiteLLM 原生支持按 Key 配额。最干净的做法是用 Terraform 给每个 Agent 配一个 LiteLLM "virtual key"，独立设置 QPM 和 Token 预算。因为 LiteLLM 把这些存在自己数据库里，我们得在 apply 阶段调它的 API 来创建，用个 `null_resource` 就行：
@@ -327,7 +327,7 @@ resource "null_resource" "agent_keys" {
 
 我不太待见 `null_resource` + `local-exec` 这套组合，这通常是"Provider 里还没这个资源”时的逃生舱口。但它管用，而且为了这一个团队去写个自定义 Terraform Provider 代码量太大，不划算。要是 LiteLLM 哪天出了官方 Provider，换起来也就一天的事。
 
-输出结果是每个 Agent 拿到独立的 `LITELLM_API_KEY` 环境变量，第 4 篇文章里的 cloud-init 脚本会读这个。配额超限会返回 `429 Too Many Requests`，Agent 端必须用指数退避处理——把这逻辑写进共享的 HTTP 客户端里，别指望每个 Agent 作者都能记住。
+输出结果是每个 Agent 拿到独立的 `LITELLM_API_KEY` 环境变量，第 4 篇文章里的 cloud-init 脚本会读这个。配额超限会返回 `429 Too Many Requests`， Agent 端必须用指数退避处理——把这逻辑写进共享的 HTTP 客户端里，别指望每个 Agent 作者都能记住。
 
 说说数字。`schedule-agent` 的上限设在每天 10 万 Token 和 40 块钱，看着挺低。确实低，但我是故意的。一个调度 Agent 要是突然飙到 200 万 Token，大概率是卡在规划循环里了，这时候硬截断比月底账单多出 3000 块惊喜要好得多。可将上限设为“Agent 过去 30 天日用量的 P99 值的 10 倍”，并每季度复查一次。
 
@@ -347,7 +347,7 @@ resource "null_resource" "agent_keys" {
 4. 30 天后，`v1` 被禁用——谁还在用就会拿到 `InvalidSecretVersion`
 5. 你通过 SLS 确认 `v1`  usage 为零，然后提升 `v2` 并退役 `v1`
 
-对团队来说，把这写成 Runbook，哪怕没泄露也要每季度执行一次。存活超过一个季度的密钥默认视为过期（stale），应按低优先级安全事件处理。开篇那个外包商的故事就是因为没人轮换 DashScope 密钥，拖了 14 个月。看完这篇文章，那种情况就不可能发生了——就算你忘了，30 天的窗口期也会逼着你处理。
+对团队来说，把这写成 Runbook，哪怕没泄露也要每季度执行一次。存活超过一个季度的密钥默认视为过期（stale），应按低优先级安全事件处理。开篇那个外包商的故事就是因为没人轮换 DashScope 密钥，拖了 14 个月。看完这篇文章，那种情况就不可能发生了——就算你忘了， 30 天的窗口期也会逼着你处理。
 
 ## 步骤 6：明文到底还会怎么漏（以及怎么堵）
 
@@ -359,7 +359,7 @@ Step 1 保护的是静态存储（at rest）的密钥。如果你不小心，至
 
 1. **OSS Bucket KMS 加密**（第 2 篇）——已经做了。保护静态状态文件。
 2. **OSS Bucket 访问策略**——`oss:GetObject` 只限 CI runner 角色，开发人员永远不行。
-3. **用 `data` source 模式，别把明文写进 HCL。** 当密钥是带外创建的（比如由 HSM 轮换任务或 KMS 控制台创建），Terraform 只读不写：
+3. **用 `data` source 模式，别把明文写进 HCL。** 当密钥是带外创建的（比如由 HSM 轮换任务或 KMS 控制台创建）， Terraform 只读不写：
 
 ```hcl
 data "alicloud_kms_secret" "openai" {
@@ -376,7 +376,7 @@ resource "alicloud_instance" "gateway" {
 }
 ```
 
-核心原则是：Terraform 只需知晓密钥的名称，无需掌握其具体值。运行时通过实例元数据从 KMS 拉取值。这是最重要的一条习惯，跟大多数教程教的正好相反。
+核心原则是： Terraform 只需知晓密钥的名称，无需掌握其具体值。运行时通过实例元数据从 KMS 拉取值。这是最重要的一条习惯，跟大多数教程教的正好相反。
 
 ### Leak 2: CI logs
 
@@ -435,7 +435,7 @@ shred -u /tmp/tf.log    # delete when done
 ```
 
 更好的是用 `TF_LOG_CORE=DEBUG`（仅限 Terraform 核心），通常能隔离问题且不包含 Provider 请求体。
-## 步骤 7：CI 中的 plan-review-apply 门禁
+## 步骤 7： CI 中的 plan-review-apply 门禁
 
 单个工程师玩票，用 `null_resource` 生成 LiteLLM 密钥没问题。但要是团队里有多个 Agent、多套环境，还得轮流 On-call，那就得上结构化的 CI 流水线，让人类在 Diff 层面做评审。这是我跑的 GitHub Actions 工作流：
 
@@ -539,13 +539,13 @@ jobs:
         run: terraform apply -input=false -auto-approve tfplan-${{ inputs.workspace }}
 ```
 
-GitHub 的 `environment` 机制把生产环境的 Apply 权限锁死，必须经过评审人批准——通常是另一个真人（比如 On-call 同事）点一下"approve"才能跑。Apply 用的 RAM 角色跟 Plan 也不一样：Plan 只读，Apply 可写。典型的双钥启动流程。
+GitHub 的 `environment` 机制把生产环境的 Apply 权限锁死，必须经过评审人批准——通常是另一个真人（比如 On-call 同事）点一下"approve"才能跑。 Apply 用的 RAM 角色跟 Plan 也不一样： Plan 只读， Apply 可写。典型的双钥启动流程。
 
 这套流水线在我跑的一年裡抓到了五次真实事故：一个不小心把 `prevent_destroy = false` 翻了个面，一个会破坏 VPC 对等连接的 CIDR 重叠，一个忘了锁定的模块版本，一个掩盖了真实配置漂移的 `ignore_changes`，还有一个混进 PR 的安全组规则 `0.0.0.0/0`。每个都是在 PR 上留评论，合并前就修好了。
 
 ### 什么时候该升级到 Atlantis
 
-GitHub Actions 是个好的起点。一旦跑 Terraform 的工程师超过五个，每个 PR 挂 Plan 评论、锁竞争、人工审批这些运维开销就开始让人头疼了。Atlantis 是下一步：一个自托管的 Webhook 服务器，监听 PR，自动跑 `terraform plan`，评论 Plan，并且允许授权用户通过 `atlantis apply` 执行应用。
+GitHub Actions 是个好的起点。一旦跑 Terraform 的工程师超过五个，每个 PR 挂 Plan 评论、锁竞争、人工审批这些运维开销就开始让人头疼了。 Atlantis 是下一步：一个自托管的 Webhook 服务器，监听 PR，自动跑 `terraform plan`，评论 Plan，并且允许授权用户通过 `atlantis apply` 执行应用。
 
 跟 Actions 比：
 
@@ -553,7 +553,7 @@ GitHub Actions 是个好的起点。一旦跑 Terraform 的工程师超过五个
 - 一个持久服务器持有锁，顺序执行 Apply——没有跨并发 PR 的竞争条件。
 - 每项目配置（`atlantis.yaml`）让你能 scope 哪些目录被管理，带每目录的审批策略。
 
-部署 Atlantis 本身就是个 `vpc-baseline` + `compute` 的活儿——一台 ECS，一个 ALB，一个 RAM 角色。在 10 人团队跑了两个月，吞吐量提升是实打实的：Plan 到 Apply 的周期从 25 分钟（Actions 队列 + 人工审批）降到了 8 分钟。
+部署 Atlantis 本身就是个 `vpc-baseline` + `compute` 的活儿——一台 ECS，一个 ALB，一个 RAM 角色。在 10 人团队跑了两个月，吞吐量提升是实打实的： Plan 到 Apply 的周期从 25 分钟（Actions 队列 + 人工审批）降到了 8 分钟。
 
 工程师少于 5 个我不推荐 Atlantis——运维成本划不来。超过 5 个，一个季度内就能回本。
 
@@ -561,9 +561,9 @@ GitHub Actions 是个好的起点。一旦跑 Terraform 的工程师超过五个
 
 ## 针对百炼 / DashScope 的特殊说明
 
-在 LiteLLM 眼里，DashScope 就是个兼容 OpenAI 协议的端点。模型名是 `dashscope/qwen-max`、`dashscope/qwen-plus` 等。API Key 就是你从 DashScope 控制台生成的那个。
+在 LiteLLM 眼里， DashScope 就是个兼容 OpenAI 协议的端点。模型名是 `dashscope/qwen-max`、`dashscope/qwen-plus` 等。 API Key 就是你从 DashScope 控制台生成的那个。
 
-如果你想用阿里云原生的待遇（比如用 STS 代替 API Key），DashScope 在某些端点上支持基于 STS 的认证——但在 2026 年，API Key 路径仍然是标准做法，上面提到的通过 KMS 轮换 Key 是正确的运维模式。等 STS 成为默认（路线图建议是 2027 年），这篇文章的配置只需要翻个面就行；轮换纪律保持不变。
+如果你想用阿里云原生的待遇（比如用 STS 代替 API Key）， DashScope 在某些端点上支持基于 STS 的认证——但在 2026 年， API Key 路径仍然是标准做法，上面提到的通过 KMS 轮换 Key 是正确的运维模式。等 STS 成为默认（路线图建议是 2027 年），这篇文章的配置只需要翻个面就行；轮换纪律保持不变。
 
 > **实战建议：** 在 LiteLLM 上设一个 `master_key`（`LITELLM_MASTER_KEY` 环境变量）。没有它，任何能触达网关的人都能给自己发 API Key。有了它，只有 master 能铸造 subordinate keys——而且 master 永远不出 Terraform 的变量空间。
 
@@ -574,7 +574,7 @@ GitHub Actions 是个好的起点。一旦跑 Terraform 的工程师超过五个
 - 所有 Agent 调用"LLM"的统一 URL
 - 添加新模型提供商的统一入口（编辑 `litellm_config`，`terraform apply`）
 - 轮换任何提供商 Key 的统一入口（编辑 `var.llm_keys`，`terraform apply`）
-- 统一日志流（下篇文章）展示每个请求、延迟、Token 数、模型和 Agent
+- 统一日志流（下篇文章）展示每个请求、延迟、 Token 数、模型和 Agent
 - 每个 Agent 的硬 QPM 和预算上限——跑飞了的循环每天最多花¥800，而不是整个月的预算
 - 能抓住人类容易忽略的回归的 CI 流水线，配合生产环境的双钥启动
 - 堵死了三个具体的明文泄露向量，不只是最明显的那个
@@ -583,6 +583,6 @@ GitHub Actions 是个好的起点。一旦跑 Terraform 的工程师超过五个
 
 ## 接下来是什么
 
-第 7 篇是可观测性和成本控制：SLS 做日志，ARMS 做链路追踪，CloudMonitor 做指标，每日 LLM 花费超过阈值时 ping DingTalk 的预算报警，以及让你能看到“哪个 Agent 在烧我预算”的 SLS 驱动成本仪表盘。
+第 7 篇是可观测性和成本控制： SLS 做日志， ARMS 做链路追踪， CloudMonitor 做指标，每日 LLM 花费超过阈值时 ping DingTalk 的预算报警，以及让你能看到“哪个 Agent 在烧我预算”的 SLS 驱动成本仪表盘。
 
 第 8 篇是端到端 walkthrough，第 2 到 7 篇的所有内容作为一个 `terraform apply` 落地。

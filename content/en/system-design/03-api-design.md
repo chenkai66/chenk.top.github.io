@@ -71,7 +71,7 @@ Status codes communicate the result of an operation. Using them correctly is the
 
 **URL Design**: Use nouns for resources, not verbs. The HTTP method is the verb.
 
-```
+```yaml
 Good:
   GET    /photos              # List photos
   POST   /photos              # Create a photo
@@ -103,7 +103,7 @@ In practice, URL versioning wins for public APIs because of its simplicity. Head
 
 **Pagination**: Never return unbounded lists.
 
-```
+```json
 # Offset-based pagination
 GET /photos?offset=20&limit=10
 
@@ -134,7 +134,7 @@ The `fields` parameter reduces payload size — a lightweight alternative to Gra
 
 **RPC-style URLs**: Using POST for everything and encoding the operation in the URL.
 
-```
+```json
 POST /api/executeAction
 Body: { "action": "getUser", "userId": 123 }
 ```

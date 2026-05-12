@@ -56,7 +56,7 @@ my_tool/
   README.md
 ```
 
-包目录直接位于项目根目录，结构更简单。Flask 和 Requests 等知名项目均采用此方式。
+包目录直接位于项目根目录，结构更简单。 Flask 和 Requests 等知名项目均采用此方式。
 
 ### `src` 布局
 
@@ -77,7 +77,7 @@ my_tool/
 
 包目录置于 `src/` 子目录内。该布局被 Python 打包权威机构（PyPA）推荐，其关键优势在于：**强制你在测试前先安装包**。这能在发布前就暴露打包错误（如遗漏文件、导入失败）。
 
-在平铺布局中，`import my_tool` 会直接解析到本地目录，即使该包根本无法正确安装；而在 `src` 布局中，Python 根本找不到 `my_tool`，除非你先执行 `pip install -e .`。这是设计特性，而非缺陷。
+在平铺布局中，`import my_tool` 会直接解析到本地目录，即使该包根本无法正确安装；而在 `src` 布局中， Python 根本找不到 `my_tool`，除非你先执行 `pip install -e .`。这是设计特性，而非缺陷。
 
 ### 如何选择？
 
@@ -85,7 +85,7 @@ my_tool/
 |----------|-----------|-------------|
 | 简洁性 | 更简洁 | 目录嵌套略深 |
 | 测试准确性 | 可能掩盖打包缺陷 | 提前捕获缺陷 |
-| 典型案例 | Flask、Requests、FastAPI | pytest、pip、setuptools |
+| 典型案例 | Flask、 Requests、 FastAPI | pytest、 pip、 setuptools |
 | PyPA 推荐程度 | 可接受 | **推荐** |
 | 导入安全性 | 可能意外导入本地未安装版本 | 必须先安装才能导入 |
 

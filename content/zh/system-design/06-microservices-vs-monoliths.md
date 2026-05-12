@@ -125,7 +125,7 @@ def check_module_boundaries():
 
 **技术多样性（Technology diversity）**：订单服务可用 Python，推荐引擎可用 Go 提升性能，搜索服务可集成 Elasticsearch。各团队按领域需求自由选型。
 
-**团队自治（Team autonomy）**：每支团队端到端负责其服务——编码、测试、部署、监控与值班。Conway 定律在此成为助力：架构自然映射组织结构。
+**团队自治（Team autonomy）**：每支团队端到端负责其服务——编码、测试、部署、监控与值班。 Conway 定律在此成为助力：架构自然映射组织结构。
 
 **独立伸缩（Independent scaling）**：黑五期间搜索服务流量激增 100 倍？只需将其扩至 50 实例，而订单服务维持 5 实例即可。
 
@@ -135,7 +135,7 @@ def check_module_boundaries():
 
 每一项优势都伴随代价。微服务引入了单体中根本不存在的分布式系统问题。
 
-**网络延迟（Network latency）**：函数调用耗时纳秒级；网络调用则达毫秒级。若用户请求需串行调用 5 个服务，仅网络延迟就增加 5–50ms（尚未计入处理时间）。
+**网络延迟（Network latency）**：函数调用耗时纳秒级；网络调用则达毫秒级。若用户请求需串行调用 5 个服务，仅网络延迟就增加 5–50ms （尚未计入处理时间）。
 
 **部分失败（Partial failures）**：单体中进程非“全活”即“全死”；分布式系统中，服务 A 正常而服务 B 已宕机是常态。每次服务调用均需超时控制、重试逻辑与降级策略。
 
@@ -184,9 +184,9 @@ def check_module_boundaries():
 
 ### 上下文映射（Context Mapping）
 
-服务需相互通信，而边界之间必须建立显式契约。DDD 定义了若干关系模式：
+服务需相互通信，而边界之间必须建立显式契约。 DDD 定义了若干关系模式：
 
-**公开语言（Published Language）**：服务间约定共享的数据格式（如 Protobuf Schema、JSON Schema、OpenAPI 规范），用于事件或 API 合约。
+**公开语言（Published Language）**：服务间约定共享的数据格式（如 Protobuf Schema、 JSON Schema、 OpenAPI 规范），用于事件或 API 合约。
 
 **防腐层（Anti-Corruption Layer）**：对接遗留系统或外部服务时，构建翻译层，将外部模型转换为内部模型。此举可防止外部系统的设计决策污染你的代码库。
 
@@ -227,7 +227,7 @@ class PaymentGatewayAdapter:
 
 ![Monolith to microservices evolution single building to city](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-monolith-to-microservices-evolution-single-building-to-city-.jpg)
 
-### 同步通信：REST 与 gRPC
+### 同步通信： REST 与 gRPC
 
 当调用方需要**即时响应**时使用同步通信。
 
@@ -382,7 +382,7 @@ def process_payment(order):
 
 ### OpenTelemetry
 
-OpenTelemetry 是分布式追踪的行业标准，它通过传播 trace context（trace ID + span ID）贯穿所有服务调用。
+OpenTelemetry 是分布式追踪的行业标准，它通过传播 trace context （trace ID + span ID）贯穿所有服务调用。
 
 ```python
 from opentelemetry import trace
@@ -529,11 +529,11 @@ server {
 - 某服务的重型查询会拖垮其他服务性能  
 - 若服务共享数据库迁移脚本，则无法真正独立部署  
 
-### 数据一致性：Saga 模式（The Saga Pattern）
+### 数据一致性： Saga 模式（The Saga Pattern）
 
 缺乏分布式事务时，跨服务一致性需依赖 Saga——即由事件或编排驱动的一系列本地事务。
 
-**基于编排的 Saga（Choreography-based saga）**（事件驱动）：
+**基于编排的 Saga （Choreography-based saga）**（事件驱动）：
 
 ```
 1. 订单服务：创建订单（状态：PENDING）  
@@ -554,7 +554,7 @@ server {
 
 各服务发布事件并响应事件，**无中心协调者**。短流程简单，但复杂工作流难以追踪。
 
-**基于编排的 Saga（Orchestration-based saga）**（中心协调者）：
+**基于编排的 Saga （Orchestration-based saga）**（中心协调者）：
 
 ```python
 class OrderSaga:

@@ -1568,7 +1568,7 @@ The free tier is generous. Let's calculate a real workload:
 
 **Scenario:** An API function with 512 MiB memory, 200ms average execution, called 5 million times per month.
 
-```
+```yaml
 Invocations:
   5,000,000 - 1,000,000 (free) = 4,000,000 billable
   4,000,000 / 10,000 * 0.0133 = 5.32 CNY

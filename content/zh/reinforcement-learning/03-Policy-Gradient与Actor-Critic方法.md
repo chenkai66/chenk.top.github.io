@@ -34,7 +34,7 @@ DQN 证明了深度强化学习能够成功解决 Atari 游戏，但其能力存
 - 连续控制的经典算法：**DDPG / TD3 / SAC**
 - 一份基于工业实践的**算法选型指南**
 
-**前置知识**：[第 1 篇](/zh/reinforcement-learning/01-基础与核心概念/)（MDP、价值函数、TD 学习）和 [第 2 篇](/zh/reinforcement-learning/02-q-learning与深度q网络/)（DQN、目标网络、经验回放）。
+**前置知识**：[第 1 篇](/zh/reinforcement-learning/01-基础与核心概念/)（MDP、价值函数、 TD 学习）和 [第 2 篇](/zh/reinforcement-learning/02-q-learning与深度q网络/)（DQN、目标网络、经验回放）。
 
 ---
 ## 1. 为什么选择策略梯度？
@@ -59,7 +59,7 @@ DQN 学习的是 $Q(s,a)$，然后通过贪心策略选择动作：$\pi(s) = \ar
 
 设 $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G_0]$ 是策略 $\pi_\theta$ 生成轨迹的期望回报。我需要计算 $\nabla_\theta J(\theta)$ 来进行梯度上升。
 
-**策略梯度定理**（Sutton 等，2000）给出了一个简洁且可采样的形式：
+**策略梯度定理**（Sutton 等， 2000）给出了一个简洁且可采样的形式：
 
 $$\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\pi_\theta}\!\Big[\sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\;\cdot\;Q^{\pi_\theta}(s_t, a_t)\Big]$$
 
@@ -73,7 +73,7 @@ $$\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\pi_\theta}\!\Big[\sum_{t=0}^{T} \na
 
 ![策略梯度作为 score function 对动作分布的更新](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/03-Policy-Gradient与Actor-Critic方法/fig1_policy_gradient_theorem.png)
 
-左图展示了更新前后的 $\pi_\theta(a|s)$：概率质量向奖励峰值移动。右图展示了更新方向本身：score 函数 × 奖励 × 当前密度。乘积为正的地方，提升 $\pi(a)$；乘积为负的地方，降低它。
+左图展示了更新前后的 $\pi_\theta(a|s)$：概率质量向奖励峰值移动。右图展示了更新方向本身： score 函数 × 奖励 × 当前密度。乘积为正的地方，提升 $\pi(a)$；乘积为负的地方，降低它。
 
 ### 1.2 高方差问题与基线技巧
 
@@ -91,10 +91,10 @@ $$A^\pi(s,a) \;=\; Q^\pi(s,a) - V^\pi(s)$$
 
 ![Q(s,a)、价值基线 V(s) 与优势 A](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/03-Policy-Gradient与Actor-Critic方法/fig4_advantage_decomposition.png)
 
-右图中绿色柱子表示值得加强的动作，红色柱子表示需要抑制的动作。DQN 的“挑最大 $Q$”离散视角，被替换成了一个连续、带符号的更新：“根据每个动作的相对优势，按比例抬升或压低策略。”
+右图中绿色柱子表示值得加强的动作，红色柱子表示需要抑制的动作。 DQN 的“挑最大 $Q$”离散视角，被替换成了一个连续、带符号的更新：“根据每个动作的相对优势，按比例抬升或压低策略。”
 ## 2. REINFORCE：蒙特卡洛策略梯度
 
-**REINFORCE**（Williams，1992）是教科书级别的起点。它直接用实际的折扣回报 $G_t$ 来估计 $Q^\pi(s_t, a_t)$。
+**REINFORCE**（Williams， 1992）是教科书级别的起点。它直接用实际的折扣回报 $G_t$ 来估计 $Q^\pi(s_t, a_t)$。
 
 ### 2.1 算法
 
@@ -204,7 +204,7 @@ def reinforce_with_baseline(env_name="CartPole-v1", episodes=1000,
     return policy, history
 ```
 
-CartPole 通常在 100 到 200 个回合内就能解决。但任务一旦变难，REINFORCE 的短板就暴露无遗。
+CartPole 通常在 100 到 200 个回合内就能解决。但任务一旦变难， REINFORCE 的短板就暴露无遗。
 
 **优点**：简单、无偏、不挑动作空间。  
 **缺点**：梯度方差大，轨迹只能用一次（无法 off-policy 复用），更新只能等到回合结束。
@@ -259,11 +259,11 @@ class ActorCritic(nn.Module):
         return F.softmax(self.actor(h), dim=-1), self.critic(h).squeeze(-1)
 ```
 
-A3C（Mnih 等，2016）将这套方法扩展到多个异步 worker 上运行。现代实践中更常用的是同步版本 **A2C**：从 $N$ 个并行环境中同步采集数据，然后合并梯度。思路相同，但对 GPU 更友好。
+A3C （Mnih 等， 2016）将这套方法扩展到多个异步 worker 上运行。现代实践中更常用的是同步版本 **A2C**：从 $N$ 个并行环境中同步采集数据，然后合并梯度。思路相同，但对 GPU 更友好。
 
 ### 3.3 GAE：在 TD 和蒙特卡洛之间找到平衡
 
-单步 TD 偏差大但方差小，蒙特卡洛则相反。**广义优势估计（GAE）**（Schulman 等，2016）通过一个超参数 $\lambda \in [0, 1]$ 在两者之间插值：
+单步 TD 偏差大但方差小，蒙特卡洛则相反。**广义优势估计（GAE）**（Schulman 等， 2016）通过一个超参数 $\lambda \in [0, 1]$ 在两者之间插值：
 
 $$\hat A_t^{\text{GAE}(\lambda)} \;=\; \sum_{k=0}^{\infty} (\gamma\lambda)^k\,\delta_{t+k},
 \quad \delta_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)$$
@@ -272,17 +272,17 @@ $\lambda = 0$ 对应单步 TD 优势，$\lambda = 1$ 对应完整蒙特卡洛回
 
 ![GAE 偏差-方差权衡曲线与多步回报权重](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/03-Policy-Gradient与Actor-Critic方法/fig5_gae_lambda_sweep.png)
 
-左图展示的是定性的权衡曲线，右图揭示了权重分配的实际效果：$\lambda$ 越大，信用分配会分散到更多未来的 TD 误差上；$\lambda$ 越小，则更倾向于信任最近一步的误差。PPO 默认的 $\lambda = 0.95$、$\gamma = 0.99$ 几乎正好落在最佳区域。
-## 4. 连续控制：DDPG 和 TD3
+左图展示的是定性的权衡曲线，右图揭示了权重分配的实际效果：$\lambda$ 越大，信用分配会分散到更多未来的 TD 误差上；$\lambda$ 越小，则更倾向于信任最近一步的误差。 PPO 默认的 $\lambda = 0.95$、$\gamma = 0.99$ 几乎正好落在最佳区域。
+## 4. 连续控制： DDPG 和 TD3
 
 像机器人关节力矩这样的连续动作，策略通常用高斯分布建模：$a \sim \mathcal{N}(\mu_\theta(s),\,\sigma_\theta(s))$。但采样会引入噪声，影响精细控制。**确定性策略** $a = \mu_\theta(s)$ 直接输出动作，避免了噪声干扰，同时梯度形式非常简洁。
 
 ### 4.1 DDPG：深度确定性策略梯度
 
-DDPG（Lillicrap 等，2016）把 DQN 的稳定性技巧融入 Actor-Critic 框架：
+DDPG （Lillicrap 等， 2016）把 DQN 的稳定性技巧融入 Actor-Critic 框架：
 
 - **经验回放 + 目标网络**（继承自 DQN）。
-- **确定性策略梯度**（Silver 等，2014）：
+- **确定性策略梯度**（Silver 等， 2014）：
 
 $$\nabla_\theta J \;=\; \mathbb{E}_{s \sim \rho^\beta}\!\Big[\,\nabla_a Q_\phi(s,a)\big|_{a=\mu_\theta(s)}\;\nabla_\theta \mu_\theta(s)\,\Big]$$
 
@@ -292,10 +292,10 @@ $$\nabla_\theta J \;=\; \mathbb{E}_{s \sim \rho^\beta}\!\Big[\,\nabla_a Q_\phi(s
 
 ### 4.2 TD3：三个让 DDPG 更稳定的改进
 
-DDPG 沿用了 DQN 的高估偏差问题，且对超参数和实现细节高度敏感。**TD3**（Fujimoto 等，2018）用三个独立且有效的改进解决了这个问题：
+DDPG 沿用了 DQN 的高估偏差问题，且对超参数和实现细节高度敏感。**TD3**（Fujimoto 等， 2018）用三个独立且有效的改进解决了这个问题：
 
 1. **截断双 Q 学习**。训练两个 critic，目标值取两者预测中的较小值：$y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde a')$。
-2. **延迟策略更新**。critic 更新 $d$ 次（通常 $d=2$），actor 才更新一次。给 critic 时间先稳定下来。
+2. **延迟策略更新**。 critic 更新 $d$ 次（通常 $d=2$）， actor 才更新一次。给 critic 时间先稳定下来。
 3. **目标策略平滑**。为目标动作加一段截断噪声：$\tilde a' = \mu_{\theta'}(s') + \mathrm{clip}(\epsilon, -c, c)$，$\epsilon \sim \mathcal{N}(0, \sigma)$。这迫使 critic 对 $a$ 平滑，避免 actor 利用 Q 函数的尖峰。
 
 ```python
@@ -360,11 +360,11 @@ class TD3:
 这三个改进让 DDPG 从“调参后偶尔能用”变成了一个稳定、可复现的强基线。
 ## 5. SAC：最大熵强化学习
 
-TD3 也有问题：策略可能会坍缩成一个狭窄的分布，导致探索停止。**Soft Actor-Critic**（Haarnoja 等，2018）直接从根源下手——**改了目标函数**：
+TD3 也有问题：策略可能会坍缩成一个狭窄的分布，导致探索停止。**Soft Actor-Critic**（Haarnoja 等， 2018）直接从根源下手——**改了目标函数**：
 
 $$J(\pi) \;=\; \mathbb{E}\!\Big[\sum_t \gamma^t\big(r_t + \alpha\,\mathcal H[\pi(\cdot|s_t)]\big)\Big]$$
 
-熵项 $\mathcal H[\pi]$ 鼓励智能体保持不确定性，温度参数 $\alpha$ 调节这个权衡。Bellman 备份也做了调整："软" Q 目标加了一个对数策略期望。
+熵项 $\mathcal H[\pi]$ 鼓励智能体保持不确定性，温度参数 $\alpha$ 调节这个权衡。 Bellman 备份也做了调整："软" Q 目标加了一个对数策略期望。
 
 SAC 的实用性强，主要得益于三项关键工程设计：
 
@@ -372,7 +372,7 @@ SAC 的实用性强，主要得益于三项关键工程设计：
 - **squashed Gaussian 随机策略。** actor 输出 $(\mu, \log\sigma)$，采样后经过 $\tanh$，再用雅可比行列式修正 log-prob。
 - **双 critic + 截断双 Q + 离策略回放 + 软目标更新**——熟悉的 TD3 套路。
 
-实际用起来，SAC 在 MuJoCo 基准上能持平甚至超过 TD3，而且对超参数没那么敏感。在真实硬件上做连续控制时，很多实验室都把 SAC 当作默认起点。
+实际用起来， SAC 在 MuJoCo 基准上能持平甚至超过 TD3，而且对超参数没那么敏感。在真实硬件上做连续控制时，很多实验室都把 SAC 当作默认起点。
 ## 6. 为什么这东西能奏效？在 $\theta$ 空间里爬一座带噪声的山
 
 退一步看，有必要把视角拉远。本文提到的所有算法，其实都是同一个核心思想的不同实现：**在策略参数空间中对 $J(\theta)$ 做随机梯度上升**。这里的“随机”二字分量很重——梯度估计本身充满噪声，有时甚至大得离谱，而且损失曲面还是非凸的。
@@ -381,9 +381,9 @@ SAC 的实用性强，主要得益于三项关键工程设计：
 
 这张图清楚地说明了几件事：
 
-- 路径是**锯齿状**的，一点都不平滑。方差缩减技术（baseline、advantage、GAE）的作用，就是让路径少抖一点，但最终目的地不变。
+- 路径是**锯齿状**的，一点都不平滑。方差缩减技术（baseline、 advantage、 GAE）的作用，就是让路径少抖一点，但最终目的地不变。
 - **局部平台确实存在。** SAC 的熵正则化和随机策略设计，部分目的就是为了避免智能体卡在这些平台上。
-- 曲面本身**会随着 $\theta$ 的变化而变化**——因为数据分布是 on-policy 的。这就是为什么 off-policy 方法（DDPG、TD3、SAC）需要小心修正，也是为什么 PPO 在下一节中要对更新步长做 clip 操作的根本原因。
+- 曲面本身**会随着 $\theta$ 的变化而变化**——因为数据分布是 on-policy 的。这就是为什么 off-policy 方法（DDPG、 TD3、 SAC）需要小心修正，也是为什么 PPO 在下一节中要对更新步长做 clip 操作的根本原因。
 
 ---
 ## 7. 算法选型指南
@@ -399,8 +399,8 @@ SAC 的实用性强，主要得益于三项关键工程设计：
 
 **截至 2026 年的实际应用情况：**
 
-- OpenAI（Dota 2、ChatGPT 的 RLHF）：**PPO**
-- DeepMind（连续控制研究）：**SAC** 及其变种
+- OpenAI （Dota 2、 ChatGPT 的 RLHF）：**PPO**
+- DeepMind （连续控制研究）：**SAC** 及其变种
 - 伯克利机器人组（真实世界操作）：**SAC**
 - TD3 仍是连续控制基准中最常用的参考基线
 

@@ -16,9 +16,9 @@ description: "三个改变 Claude Code 一次能扛多少事的特性：子 Agen
 disableNunjucks: true
 translationKey: "claude-code-learn-8"
 ---
-说完 hooks，Claude Code 使用体验的下一个关键点是*并发控制*。这里的‘并发’不是指线程级并发，而是指模型在同一时间并行处理的任务数量、任务间的上下文隔离程度，以及所需的监督注意力。
+说完 hooks， Claude Code 使用体验的下一个关键点是*并发控制*。这里的‘并发’不是指线程级并发，而是指模型在同一时间并行处理的任务数量、任务间的上下文隔离程度，以及所需的监督注意力。
 
-这三个功能按所需信任度从低到高依次为：Plan mode、Worktrees、Sub-agents。
+这三个功能按所需信任度从低到高依次为： Plan mode、 Worktrees、 Sub-agents。
 
 ![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
@@ -85,13 +85,13 @@ Claude：以下是添加限流功能的完整计划：
 - 第 3 步明确定义了中间件在调用链中的精确插入位置；  
 - 第 6 步提前提醒了环境变量类型定义的补充需求。  
 
-若跳过 Plan mode，Claude 将直接编码，关键上下文细节（如依赖位置、中间件插入点、环境变量类型）只能在 Code Review 阶段才暴露；而 Plan mode 则强制在执行前完成显式对齐。
+若跳过 Plan mode， Claude 将直接编码，关键上下文细节（如依赖位置、中间件插入点、环境变量类型）只能在 Code Review 阶段才暴露；而 Plan mode 则强制在执行前完成显式对齐。
 
 ### 我一般在这些时候用
 
 
 - 任何非 trivial 任务的前 30 秒。比如“实现 X 功能”→ 先 plan。几乎每次，计划都会暴露出模型对代码库的理解偏差。
-- 任何涉及 auth、支付、schema 迁移或生产配置的操作。只需花两秒快速浏览，就可能避免数小时的故障修复。
+- 任何涉及 auth、支付、 schema 迁移或生产配置的操作。只需花两秒快速浏览，就可能避免数小时的故障修复。
 - 在不熟悉的 repo 里干活。这份计划也自然成为我熟悉该仓库的入门参考。
 
 常见误区是认为任务简单就可以跳过 Plan mode——实际上，小任务更容易因理解偏差导致‘等等，这不是我想要的’。
@@ -117,7 +117,7 @@ Claude：仅聚焦 schema 变更：
 
 Claude 输出计划后，你可选择：
 
-- **批准（Approve）**：切回 `auto` 模式（`Shift+Tab`），并说 “go”。Claude 将执行该计划。  
+- **批准（Approve）**：切回 `auto` 模式（`Shift+Tab`），并说 “go”。 Claude 将执行该计划。  
 - **编辑（Edit）**：例如，“整体不错，但跳过第 4 步，并将第 3 步提前到第 2 步之前。” Claude 会据此调整计划。  
 - **拒绝（Reject）**：“算了，我们改做 Y 吧。” Plan mode 成本极低——你只损失约三十秒，而非三十分钟。
 
@@ -249,19 +249,19 @@ Claude：以下是三个 sub-agent 的结果：...
 
 ![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_2.png)
 
-git worktree 是同一个 repo 的第二个 working tree，在不同分支，不同目录。Claude Code 认识这东西：`EnterWorktree` 工具会创建新分支 + worktree 并把 session 切换进去。
+git worktree 是同一个 repo 的第二个 working tree，在不同分支，不同目录。 Claude Code 认识这东西：`EnterWorktree` 工具会创建新分支 + worktree 并把 session 切换进去。
 
 ### worktree 的底层工作机制
 
 当 Claude 调用 `EnterWorktree` 时，实际发生以下步骤：
 
 1. 在 `.claude/worktrees/<name>/` 下创建一个新目录；  
-2. 基于 `origin/main`（默认）或当前 HEAD（若已配置）新建一个 git 分支；  
+2. 基于 `origin/main`（默认）或当前 HEAD （若已配置）新建一个 git 分支；  
 3. 通过 `git worktree add` 将该新目录关联至该新分支；  
 4. Claude 的工作目录切换至该 worktree；  
 5. 此后所有文件操作均在该 worktree 中进行，**不再影响原始仓库**。
 
-关键要点：该 worktree 与原始仓库**共享同一 `.git` 对象存储**（即 commits、branches、refs 完全共享），但**工作树（磁盘上的文件）是完全独立的**。
+关键要点：该 worktree 与原始仓库**共享同一 `.git` 对象存储**（即 commits、 branches、 refs 完全共享），但**工作树（磁盘上的文件）是完全独立的**。
 
 
 
@@ -283,7 +283,7 @@ Claude：[EnterWorktree: name="refactor-auth"]
 
 ### 配置 base ref
 
-默认情况下，worktree 从 `origin/<default-branch>`（通常是 `origin/main`）派生。若希望改为从当前本地 HEAD 派生：
+默认情况下， worktree 从 `origin/<default-branch>`（通常是 `origin/main`）派生。若希望改为从当前本地 HEAD 派生：
 
 可通过 `worktree.baseRef` 设置控制：
 - `fresh`（默认）：从 `origin/main` 派生  
@@ -296,7 +296,7 @@ Claude：[EnterWorktree: name="refactor-auth"]
 - 你想尝试同一问题的两种不同解法，又不想用废弃的 commit 弄脏主干。
 - 你委托给子代理，希望它在物理上跟你的 working tree 隔离。
 
-心智模型：worktree 是上下文隔离的一种*物理层面实现*：子代理通过会话隔离实现逻辑上下文隔离，worktree 则通过独立工作目录实现文件系统层面的隔离。
+心智模型： worktree 是上下文隔离的一种*物理层面实现*：子代理通过会话隔离实现逻辑上下文隔离， worktree 则通过独立工作目录实现文件系统层面的隔离。
 
 关于关于清理方式：
 
@@ -330,7 +330,7 @@ git branch -d refactor-auth
 
 **所有 worktree 共享 Git 仓库级锁（git lock）。** 某些 Git 操作（如 `git gc`）会锁定整个 repo。若一个 worktree 正在执行 `gc`，其他 worktree 的同类操作将被阻塞。实践中极少发生，但可能引发难以排查的挂起（hang）。
 
-**IDE 集成支持程度不一。** 部分编辑器能自动识别 worktree 并正确调整上下文；另一些则可能混淆“哪个目录才是真正的 repo 根”。VS Code 对 worktree 支持良好；其他编辑器建议先验证兼容性。
+**IDE 集成支持程度不一。** 部分编辑器能自动识别 worktree 并正确调整上下文；另一些则可能混淆“哪个目录才是真正的 repo 根”。 VS Code 对 worktree 支持良好；其他编辑器建议先验证兼容性。
 
 
 
@@ -344,13 +344,13 @@ git branch -d refactor-auth
 1. **Plan mode。** “我要做这个；你打算怎么做？”看计划。调整。
 2. **Worktree。** 进一个隔离分支，这样实验失败了也不至于弄脏主干。
 3. **Sub-agents** 处理 worktree 内的独立子任务。先 research，再 implementation，最后写 test —— 每个都在自己的上下文里。
-4. 回到父 agent，合并结果，commit，退出 worktree（工作暂停用 `keep`，完成了用 `remove`）。
+4. 回到父 agent，合并结果， commit，退出 worktree （工作暂停用 `keep`，完成了用 `remove`）。
 
 ### 场景：重构单体应用的 auth 模块
 
 任务：将 Express 单体应用中的认证逻辑抽离为独立的中间件包。涉及 15+ 个文件、新建包结构、测试迁移，以及保持向后兼容的导入路径。
 
-#### 第一步：Plan mode（计划模式）
+#### 第一步： Plan mode （计划模式）
 
 ```
 你：[plan mode] 我想把 auth 逻辑抽离为独立包，请规划整体方案。
@@ -387,7 +387,7 @@ Claude：auth 抽离计划如下：
 
 我审阅该 plan。循环依赖风险真实存在——此前我并未意识到。我批准执行，但附加一项修改：“先完成调研阶段，之后我们再共同复核并优化 plan。”
 
-#### 第二步：Worktree（工作树）
+#### 第二步： Worktree （工作树）
 
 ```
 你：为此任务创建名为 `extract-auth` 的 git worktree。
@@ -399,7 +399,7 @@ Claude：[EnterWorktree: name="extract-auth"]
 
 此后所有操作均在隔离环境中进行。若抽离失败，只需删除该 worktree，主分支完全不受影响。
 
-#### 第三步：Sub-agent（子 Agent）执行调研
+#### 第三步： Sub-agent （子 Agent）执行调研
 
 ```
 你：调用 research sub-agent，绘制 auth 的全部依赖关系图。
@@ -455,7 +455,7 @@ Claude：[ExitWorktree: action="keep"]
 
 整场重构全程在隔离 worktree 中完成。任一环节出错，均可通过 `ExitWorktree: action="remove"` 彻底回退，零污染主分支。
 
-三层信任门控，对应三级操作升级：Plan mode（审阅）、Worktrees（隔离）、Sub-agents（并行）。当模型进入文件修改阶段时，你所投入的注意力程度，恰好与任务复杂度相匹配。
+三层信任门控，对应三级操作升级： Plan mode （审阅）、 Worktrees （隔离）、 Sub-agents （并行）。当模型进入文件修改阶段时，你所投入的注意力程度，恰好与任务复杂度相匹配。
 
 | 功能 | 信任等级 | 你放弃的 | 你获得的 |
 |------|----------|------------|------------|
@@ -479,7 +479,7 @@ Claude：[ExitWorktree: action="keep"]
 
 - **非持久化。** 计划仅存在于当前对话中；会话结束后计划即丢失。对关键计划，请手动复制到文件（如 `CLAUDE.md`）中保存。
 - **无强制约束力。** Claude 在执行过程中可能偏离计划——通常能遵循，但在边界情况或出错时可能发生 drift。请务必对照原始计划复核最终结果。
-- **引入额外延迟。** 对简单任务而言，Plan 模式属于冗余开销。例如「修复第 42 行的拼写错误」这类指令无需生成计划。
+- **引入额外延迟。** 对简单任务而言， Plan 模式属于冗余开销。例如「修复第 42 行的拼写错误」这类指令无需生成计划。
 
 ### Subagent 局限性
 
@@ -497,7 +497,7 @@ Claude：[ExitWorktree: action="keep"]
 
 ## 什么时候都不用
 
-大多数任务。说真的。80% 的情况就是“改这个函数，跑测试，发布”—— 普通模式，不要子代理，不要 worktrees。上面那些功能是为那 20% 庞大、不可逆或分支复杂的任务准备的。
+大多数任务。说真的。 80% 的情况就是“改这个函数，跑测试，发布”—— 普通模式，不要子代理，不要 worktrees。上面那些功能是为那 20% 庞大、不可逆或分支复杂的任务准备的。
 
 如果你发现自己每个任务都想掏子代理和 worktree，更有趣的问题是：你是不是把任务拆得太大了。
 

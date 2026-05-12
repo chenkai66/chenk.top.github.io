@@ -21,7 +21,7 @@ Everything we covered about transactions in Article 3 assumed a single database 
 
 Consider an e-commerce system with separate services for orders and inventory, each with its own database:
 
-```
+```sql
 Order Service (DB-1)              Inventory Service (DB-2)
 ┌─────────────────────┐          ┌─────────────────────────┐
 │ INSERT INTO orders   │          │ UPDATE products          │

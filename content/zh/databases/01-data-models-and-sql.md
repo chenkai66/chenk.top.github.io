@@ -15,29 +15,29 @@ series_order: 1
 translationKey: "databases-1"
 ---
 
-你用过的每一个应用程序，其底层都依赖某种数据模型。若选错模型，接下来三年你将疲于与自己的数据库搏斗，而非交付新功能。
+你用过的每一个应用程序，其底层都依赖某种数据模型。如果选错了模型，接下来的三年你将疲于与数据库搏斗，而无法专注于交付新功能。
 
-过去四十年间，一种模型始终占据主导地位：**关系模型（Relational Model）**——扁平的表结构、外键、SQL。它不炫酷，也不时髦；但几乎每一家银行、航空公司、医院和电商平台仍在运行它，自有其深刻原因。理解 *为何如此*，是你真正理解数据库的第一步。
+过去四十年间，一种模型始终占据主导地位：**关系模型（Relational Model）**——扁平的表结构、外键、 SQL。虽然它既不炫酷也不时髦，但几乎每一家银行、航空公司、医院和电商平台仍在使用，自有其深刻原因。理解这一点，是真正理解数据库的第一步。
 
 ## 关系模型：科德（Codd）的伟大构想
 
-1970 年，埃德加·F·科德（Edgar F. Codd）发表了论文《大型共享数据库的关系数据模型》（"A Relational Model of Data for Large Shared Data Banks"）。其核心洞见在当时极为激进：将数据的 **逻辑表示** 与 **物理存储** 彻底分离。应用程序无需关心数据究竟存于磁盘、内存，还是跨十台机器分布；它们只需看到 **表（tables）**——仅此而已。
+1970 年，埃德加·F·科德（Edgar F. Codd）发表了论文《大型共享数据库的关系数据模型》（"A Relational Model of Data for Large Shared Data Banks"）。其核心洞见在当时极为激进：将数据的 **逻辑表示** 与 **物理存储** 彻底分离。应用程序无需关心数据究竟存于磁盘、内存，还是跨十台机器分布，只需看到 **表（tables）**——仅此而已。
 
 ![Normalization forms comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-normalization-forms.png)
 
 
-关系型数据库将数据组织为 **关系（relations）**（即表）。每张表包含：
+关系型数据库将数据组织为 **关系（relations）**（即表），每张表包含：
 
 - **列（columns）**（属性）——带类型的字段，例如 `name VARCHAR(100)` 或 `price DECIMAL(10,2)`
 - **行（rows）**（元组）——单条记录
 - **主键（primary key）**——一个（或一组）能唯一标识每一行的列
 - **外键（foreign key）**——一个引用另一张表主键的列，用于建立表间关联
 
-这四个概念，足以建模出令人惊讶的复杂业务领域。
+这四个概念足以建模出令人惊讶的复杂业务领域。
 
 ## 实用 Schema 示例：电商系统
 
-理论结合具体表结构更易理解。以下是一个极简的电商 Schema，本文后续将反复使用：
+理论结合具体表结构更易理解。以下是一个极简的电商 Schema，本文后续将反复使用。
 
 ![Entity-Relationship diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-er-diagram.png)
 
@@ -81,12 +81,12 @@ CREATE TABLE order_items (
 
 ![Abstract visualization of relational database tables connect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-abstract-visualization-of-relational-database-tables-connect.jpg)
 
-SQL（Structured Query Language）是与关系型数据库对话的语言。它是**声明式（declarative）**的：你只需描述 *想要什么数据*，而非 *如何获取它*；执行计划由数据库引擎自行推导。
+SQL （Structured Query Language）是与关系型数据库对话的语言，它是**声明式（declarative）**的：你只需描述 *想要什么数据*，而非 *如何获取它*，执行计划由数据库引擎自行推导。
 
 ![SQL query execution pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
 
 
-### SELECT、FROM、WHERE
+### SELECT、 FROM、 WHERE
 
 最基础的查询：
 
@@ -205,20 +205,20 @@ ORDER BY total_revenue DESC;
 
 ## 数据类型：了解你的选项
 
-选择合适的数据类型直接影响存储开销、性能与数据正确性。以下是 PostgreSQL 与 MySQL 中常见类型的对比：
+选择合适的数据类型直接影响存储开销、性能与数据正确性。以下是 PostgreSQL 与 MySQL 中常见类型的对比。
 
 | 类型 | PostgreSQL | MySQL | 字节数 | 取值范围 / 说明 |
 |------|-----------|-------|--------|-----------------|
 | 小整数 | `SMALLINT` | `SMALLINT` | 2 | -32,768 到 32,767 |
 | 整数 | `INT` / `INTEGER` | `INT` | 4 | -21 亿 到 21 亿 |
 | 大整数 | `BIGINT` | `BIGINT` | 8 | -9.2 × 10¹⁸ 到 9.2 × 10¹⁸ |
-| 可变长文本 | `VARCHAR(n)` | `VARCHAR(n)` | 1-4 + 长度 | 最大 1GB（PG），65,535 字节（MySQL） |
-| 无限长文本 | `TEXT` | `TEXT` / `LONGTEXT` | 1-4 + 长度 | 无长度限制（PG），4GB（MySQL LONGTEXT） |
+| 可变长文本 | `VARCHAR(n)` | `VARCHAR(n)` | 1-4 + 长度 | 最大 1GB （PG）， 65,535 字节（MySQL） |
+| 无限长文本 | `TEXT` | `TEXT` / `LONGTEXT` | 1-4 + 长度 | 无长度限制（PG）， 4GB （MySQL LONGTEXT） |
 | 精确小数 | `DECIMAL(p,s)` / `NUMERIC` | `DECIMAL(p,s)` | 可变 | 货币场景必用。**切勿用 FLOAT 存货币！** |
 | 时间戳 | `TIMESTAMP` / `TIMESTAMPTZ` | `TIMESTAMP` / `DATETIME` | 8 | PG 中务必用 `TIMESTAMPTZ` |
 | 布尔值 | `BOOLEAN` | `BOOLEAN` / `TINYINT(1)` | 1 | MySQL 的 `BOOLEAN` 实为 `TINYINT` |
 | JSON | `JSON` / `JSONB` | `JSON` | 可变 | `JSONB`（PG）为二进制格式，可索引且更快 |
-| UUID | `UUID` | `CHAR(36)` 或 `BINARY(16)` | 16 | PG 原生支持，MySQL 需模拟 |
+| UUID | `UUID` | `CHAR(36)` 或 `BINARY(16)` | 16 | PG 原生支持， MySQL 需模拟 |
 
 **经验法则：**
 
@@ -227,9 +227,9 @@ ORDER BY total_revenue DESC;
 - PostgreSQL 使用 `TIMESTAMPTZ`；或统一以 UTC 存储所有时间。
 - 仅当确实需要 schema-free 字段时才用 `JSONB`（PostgreSQL）；**切勿用它逃避合理 schema 设计。**
 
-## ALTER TABLE：Schema 演进
+## ALTER TABLE： Schema 演进
 
-Schema 必然随业务演进。新功能常需新增列：
+Schema 必然随业务演进，新功能常需新增列：
 
 ![The relational model in action](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-relational-model.png)
 
@@ -252,15 +252,15 @@ ALTER TABLE order_items ADD CONSTRAINT uq_order_product
 ALTER TABLE users DROP COLUMN phone;
 ```
 
-在生产环境中，对大表执行 `ALTER TABLE` 可能导致表被锁住数分钟甚至数小时。第 8 篇文章将详解在线 DDL（Online DDL）策略。
+在生产环境中，对大表执行 `ALTER TABLE` 可能导致表被锁住数分钟甚至数小时。第 8 篇文章将详解在线 DDL （Online DDL）策略。
 
 ## 范式化（Normalization）：消除冗余
 
-范式化是通过组织列与表来减少数据冗余、防止更新异常的过程。
+范式化是通过组织列与表来减少数据冗余并防止更新异常的过程。
 
 ### 范式化前（反范式化混乱）
 
-设想所有数据挤在一张表里：
+设想所有数据挤在一张表里。
 
 ```
 | order_id | customer_name | customer_email      | product_name | product_price | quantity |
@@ -272,7 +272,7 @@ ALTER TABLE users DROP COLUMN phone;
 ```
 
 问题：
-- **更新异常（Update anomaly）**：Alice 修改邮箱？你必须更新她出现过的每一行。
+- **更新异常（Update anomaly）**： Alice 修改邮箱？你必须更新她出现过的每一行。
 - **插入异常（Insert anomaly）**：未产生订单，就无法添加新产品。
 - **删除异常（Delete anomaly）**：删掉 Bob 唯一的一笔订单，他的客户信息也彻底丢失。
 
@@ -312,7 +312,7 @@ ALTER TABLE users DROP COLUMN phone;
 
 ### 范式化后
 
-我们当前的四表 Schema 已符合 3NF：
+我们当前的四表 Schema 已符合 3NF。
 - `users` —— 仅用户数据
 - `products` —— 仅产品数据
 - `orders` —— 订单元数据，引用 `users`
@@ -349,15 +349,15 @@ WHERE o.order_id = 42;
 | 缓存聚合值（Cached aggregates） | 频繁运行的仪表板查询 | 每次写入均需同步更新 |
 | 物化视图（Materialized views） | 复杂报表查询 | 刷新间隔内数据陈旧 |
 | 冗余列（Redundant columns） | 热路径（hot paths）中规避昂贵 JOIN | 更新异常风险重现 |
-| 汇总表（Summary tables） | 时序数据滚动聚合（按小时/天） | 额外存储开销，ETL 复杂性 |
+| 汇总表（Summary tables） | 时序数据滚动聚合（按小时/天） | 额外存储开销， ETL 复杂性 |
 
 准则：**先范式化，仅在实测存在性能瓶颈时才反范式化。**
 
-## 高级 SQL：子查询、CTE 与窗口函数
+## 高级 SQL：子查询、 CTE 与窗口函数
 
 ### 子查询（Subqueries）
 
-子查询是嵌套在另一查询内部的查询：
+子查询是嵌套在另一查询内部的查询。
 
 ```sql
 -- 查找总消费额超过平均用户消费额的用户
@@ -383,7 +383,7 @@ WHERE user_totals.total_spent > (
 ORDER BY user_totals.total_spent DESC;
 ```
 
-此写法可行，但可读性差。CTE（Common Table Expressions）可解决此问题。
+此写法可行，但可读性差。 CTE （Common Table Expressions）可解决此问题。
 
 ### 公共表表达式（CTEs）
 
@@ -425,9 +425,9 @@ ORDER BY us.total_spent DESC;
  Carol White   |     1567.20 |    892.34 |           1.76
 ```
 
-CTE 更易读、可在同一查询中复用；部分数据库（如 PostgreSQL 12+）还能将其内联（inline）以提升性能。
+CTE 更易读，可在同一查询中复用；部分数据库（如 PostgreSQL 12+）还能将其内联（inline）以提升性能。
 
-### 递归 CTE（Recursive CTEs）
+### 递归 CTE （Recursive CTEs）
 
 CTE 可自我引用，适用于层级数据：
 
@@ -530,7 +530,7 @@ ORDER BY month;
  2023-12-01 |  24560.80 |          18900.00  |       30.0
 ```
 
-你应该掌握的常用窗口函数：
+你应该掌握的常用窗口函数。
 
 | 函数 | 用途 |
 |----------|---------|
@@ -547,7 +547,7 @@ ORDER BY month;
 
 ## 综合实战
 
-以下是一个融合 CTE、JOIN 与窗口函数的真实查询：基于电商 Schema，找出每个品类营收最高的商品，并计算其占该品类总营收的百分比：
+以下是一个融合 CTE、 JOIN 与窗口函数的真实查询：基于电商 Schema，找出每个品类营收最高的商品，并计算其占该品类总营收的百分比：
 
 ```sql
 WITH product_revenue AS (
@@ -594,7 +594,7 @@ ORDER BY revenue DESC;
 
 ## 为何表结构至今仍占主导地位（暂且）
 
-关系模型之所以胜出，在于它提供了其他模型当时所不具备的关键能力：**数据独立性（Data Independence）**。你可以随意更改物理存储方式、添加索引、分表、复制数据——所有这些操作，均无需修改一行应用代码。SQL 接口保持不变。
+关系模型之所以胜出，在于它提供了其他模型当时所不具备的关键能力：**数据独立性（Data Independence）**。你可以随意更改物理存储方式、添加索引、分表、复制数据，所有这些操作均无需修改一行应用代码， SQL 接口保持不变。
 
 它并非完美。某些数据（社交图谱、时序数据、深度嵌套的文档）难以优雅地映射到表结构中。第 5 篇文章将探讨这些替代方案。但对于大多数应用——尤其是数据一致性至关重要的场景——关系模型仍是默认且合理的选择。
 
