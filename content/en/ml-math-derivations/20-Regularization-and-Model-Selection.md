@@ -174,9 +174,9 @@ The extra term is an L2 penalty *weighted by feature variance*: large-magnitude 
 
 ### 4.3 Variants
 
-* **DropConnect.** Drop weights, not activations.
-* **Spatial dropout.** For CNNs, drop entire feature maps (channels), not individual pixels — pixels are too correlated for elementwise dropout to do much.
-* **Variational dropout.** RNNs use the *same* mask across all time steps so the recurrent dynamics remain coherent.
+- **DropConnect.** Drop weights, not activations.
+- **Spatial dropout.** For CNNs, drop entire feature maps (channels), not individual pixels — pixels are too correlated for elementwise dropout to do much.
+- **Variational dropout.** RNNs use the *same* mask across all time steps so the recurrent dynamics remain coherent.
 
 ---
 
@@ -222,8 +222,8 @@ $$\mathrm{AIC} = -2\log p(\mathcal D \mid \hat{\mathbf w}) + 2p,
 
 For $N \ge 8$ we have $\log N > 2$, so BIC penalises complexity more strongly. Statistically:
 
-* **BIC is consistent**: as $N \to \infty$, BIC selects the true model with probability one (when it is in the candidate set).
-* **AIC is asymptotically efficient for prediction**: it minimises expected out-of-sample loss, but it does not necessarily recover the true model.
+- **BIC is consistent**: as $N \to \infty$, BIC selects the true model with probability one (when it is in the candidate set).
+- **AIC is asymptotically efficient for prediction**: it minimises expected out-of-sample loss, but it does not necessarily recover the true model.
 
 Use BIC when you trust your candidate set and want interpretability. Use AIC (or CV) when you only care about predictive accuracy.
 
@@ -261,10 +261,10 @@ Modern neural networks have $p \gg N$. Their VC dimension is enormous (proportio
 
 Several non-classical phenomena are at work:
 
-* **Implicit regularisation by SGD.** SGD, especially with small batches and large learning rates, prefers flat minima of the loss landscape. Flat minima generalise better than sharp ones (a connection going back to Hochreiter & Schmidhuber, 1997).
-* **Norm-based bounds.** Even though the *parameter count* is huge, the *norm* of the trained weights is small. PAC-Bayes and Rademacher bounds in terms of weight norms can be tight enough to be predictive.
-* **Implicit minimum-norm interpolation.** For overparameterised linear models, gradient descent from zero converges to the *minimum-norm* interpolating solution — the same solution as ridge regression in the $\lambda \to 0$ limit.
-* **Double descent.** As model capacity grows past the interpolation threshold $p = N$, the test error first follows the classical U, *spikes* at $p = N$ (the pseudo-inverse becomes ill-conditioned), then **decreases again** in the over-parameterised regime.
+- **Implicit regularisation by SGD.** SGD, especially with small batches and large learning rates, prefers flat minima of the loss landscape. Flat minima generalise better than sharp ones (a connection going back to Hochreiter & Schmidhuber, 1997).
+- **Norm-based bounds.** Even though the *parameter count* is huge, the *norm* of the trained weights is small. PAC-Bayes and Rademacher bounds in terms of weight norms can be tight enough to be predictive.
+- **Implicit minimum-norm interpolation.** For overparameterised linear models, gradient descent from zero converges to the *minimum-norm* interpolating solution — the same solution as ridge regression in the $\lambda \to 0$ limit.
+- **Double descent.** As model capacity grows past the interpolation threshold $p = N$, the test error first follows the classical U, *spikes* at $p = N$ (the pseudo-inverse becomes ill-conditioned), then **decreases again** in the over-parameterised regime.
 
 ![Double descent: the classical U-shape, an interpolation peak at p = N, then a second descent in the modern regime](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/fig7_double_descent.png)
 
@@ -357,13 +357,13 @@ Two things scikit-learn handles for you that you would otherwise have to write. 
 
 This series began with calculus and probability and ends with the question that motivates the whole field: *why does empirical risk minimisation work?* Looking back across the twenty parts:
 
-* **Parts 1-4 — Foundations.** Linear algebra, probability, and convex optimisation gave us the language.
-* **Parts 5-9 — Classical supervised learning.** Linear / logistic regression, decision trees, SVMs, naive Bayes — the bread-and-butter models, each with its own clean derivation.
-* **Parts 10-12 — Bayesian networks and ensembles.** From graphical models to XGBoost: how to combine weak structure into strong predictions.
-* **Parts 13-15 — Latent variables.** EM, variational inference, HMMs — what to do when the data does not tell you everything.
-* **Parts 16-18 — Beyond labels.** CRFs, dimensionality reduction, clustering — structured prediction and unsupervised learning.
-* **Part 19 — Neural networks.** Backpropagation as the chain rule, and the reason everything since 2012 happened.
-* **Part 20 — This article.** The meta-question: when does any of it *generalise*?
+- **Parts 1-4 — Foundations.** Linear algebra, probability, and convex optimisation gave us the language.
+- **Parts 5-9 — Classical supervised learning.** Linear / logistic regression, decision trees, SVMs, naive Bayes — the bread-and-butter models, each with its own clean derivation.
+- **Parts 10-12 — Bayesian networks and ensembles.** From graphical models to XGBoost: how to combine weak structure into strong predictions.
+- **Parts 13-15 — Latent variables.** EM, variational inference, HMMs — what to do when the data does not tell you everything.
+- **Parts 16-18 — Beyond labels.** CRFs, dimensionality reduction, clustering — structured prediction and unsupervised learning.
+- **Part 19 — Neural networks.** Backpropagation as the chain rule, and the reason everything since 2012 happened.
+- **Part 20 — This article.** The meta-question: when does any of it *generalise*?
 
 The honest answer to that meta-question, today, is: *we are still figuring it out*. Classical theory (VC, Rademacher) gives a lower-bound story that under-explains the modern over-parameterised regime. Newer ideas — implicit bias, flat minima, neural tangent kernels, PAC-Bayes, scaling laws — are pieces of a picture that has not yet snapped into place. If the next decade of theory is as productive as the last decade of practice, the sequel to this series will be a different book.
 

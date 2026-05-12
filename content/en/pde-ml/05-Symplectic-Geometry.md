@@ -230,8 +230,8 @@ class HNN(nn.Module):
 
 Two design choices matter:
 
-* **Smooth activations** (`Softplus`, `Tanh`). Hamilton's equations need the *gradient* of $H_\theta$; a `ReLU` would give a piecewise-constant vector field with kinks.
-* **No bias on the last layer is fine.** $H$ is defined up to an additive constant, which has no dynamical effect.
+- **Smooth activations** (`Softplus`, `Tanh`). Hamilton's equations need the *gradient* of $H_\theta$; a `ReLU` would give a piecewise-constant vector field with kinks.
+- **No bias on the last layer is fine.** $H$ is defined up to an additive constant, which has no dynamical effect.
 
 ### 4.5 Pendulum benchmark
 
@@ -244,8 +244,8 @@ The relative energy error of the HNN is $< 10^{-2}$ throughout; the vanilla MLP 
 
 ### 4.6 What HNNs do *not* do
 
-* **They do not solve Hamilton's equations symplectically.** The HNN forward pass produces a vector field; you still need to integrate it. If you integrate it with explicit Euler, you will see energy drift (smaller than the vanilla NN, but still present). For best results, integrate the HNN's vector field with a symplectic integrator. A few works (e.g. `SRNN`, Chen et al. 2020) bake symplectic integration into training too.
-* **They cannot model dissipation or driving.** $\dot z = J\nabla H$ is conservative by definition. For dissipative systems, see Port-Hamiltonian NNs (Desai et al., 2021) or GENERIC-style decompositions.
+- **They do not solve Hamilton's equations symplectically.** The HNN forward pass produces a vector field; you still need to integrate it. If you integrate it with explicit Euler, you will see energy drift (smaller than the vanilla NN, but still present). For best results, integrate the HNN's vector field with a symplectic integrator. A few works (e.g. `SRNN`, Chen et al. 2020) bake symplectic integration into training too.
+- **They cannot model dissipation or driving.** $\dot z = J\nabla H$ is conservative by definition. For dissipative systems, see Port-Hamiltonian NNs (Desai et al., 2021) or GENERIC-style decompositions.
 
 ---
 
@@ -286,8 +286,8 @@ $$\phi_\theta \;=\; \phi_K \circ \phi_{K-1} \circ \cdots \circ \phi_1.$$
 
 The two canonical building blocks are
 
-* **Up-shear** $(q, p) \mapsto (q + \nabla S_\theta(p),\; p)$ for any scalar $S_\theta$,
-* **Low-shear** $(q, p) \mapsto (q,\; p + \nabla T_\theta(q))$ for any scalar $T_\theta$.
+- **Up-shear** $(q, p) \mapsto (q + \nabla S_\theta(p),\; p)$ for any scalar $S_\theta$,
+- **Low-shear** $(q, p) \mapsto (q,\; p + \nabla T_\theta(q))$ for any scalar $T_\theta$.
 
 A direct calculation shows each shear has a triangular Jacobian with unit diagonal, so $M^\top J M = J$ exactly. The parameter functions $S_\theta, T_\theta$ are MLPs. Composing $K$ such layers gives a universal approximator for symplectic maps.
 
@@ -301,21 +301,21 @@ A direct calculation shows each shear has a triangular Jacobian with unit diagon
 ![Hub-and-spoke diagram with Hamiltonian / Symplectic deep learning at the centre and six application areas around it: molecular dynamics, robotics, celestial mechanics, plasma physics, Hamiltonian Monte Carlo, and fluid / climate.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig7_applications.png)
 *Figure 7. Application landscape for structure-preserving deep learning. Anywhere a long, conservative simulation matters — molecular dynamics ($10^9$ time steps), orbital mechanics ($10^6$ years), plasma physics, fluid reduced-order models, Hamiltonian Monte Carlo proposals — the energy drift of vanilla integrators (and vanilla networks) is the limiting factor.*
 
-* **Molecular dynamics.** All-atom simulations run for $10^8$-$10^9$ steps. With a non-symplectic integrator the temperature would slowly cook off; leapfrog is the only reason MD works at all. HNN-flavoured surrogates inherit this stability.
-* **Orbital mechanics and the n-body problem.** The JPL ephemerides use symplectic integrators because they have to keep planetary orbits stable for $10^4$-$10^6$ years.
-* **Hamiltonian Monte Carlo.** The leapfrog step is at the heart of NUTS and modern HMC. A learned Hamiltonian (Levy et al., 2018) can produce dramatically faster mixing in high-dimensional posteriors.
-* **Robotics and control.** LNNs and DeLaNs (Lutter et al., 2019) learn rigid-body dynamics from video and use the learned $L$ inside a model-based RL or trajectory-optimisation loop.
-* **Plasma physics, accelerator design, climate.** Anywhere you need a reduced-order model that respects energy and momentum balance over long horizons, structure-preserving networks are the right hammer.
+- **Molecular dynamics.** All-atom simulations run for $10^8$-$10^9$ steps. With a non-symplectic integrator the temperature would slowly cook off; leapfrog is the only reason MD works at all. HNN-flavoured surrogates inherit this stability.
+- **Orbital mechanics and the n-body problem.** The JPL ephemerides use symplectic integrators because they have to keep planetary orbits stable for $10^4$-$10^6$ years.
+- **Hamiltonian Monte Carlo.** The leapfrog step is at the heart of NUTS and modern HMC. A learned Hamiltonian (Levy et al., 2018) can produce dramatically faster mixing in high-dimensional posteriors.
+- **Robotics and control.** LNNs and DeLaNs (Lutter et al., 2019) learn rigid-body dynamics from video and use the learned $L$ inside a model-based RL or trajectory-optimisation loop.
+- **Plasma physics, accelerator design, climate.** Anywhere you need a reduced-order model that respects energy and momentum balance over long horizons, structure-preserving networks are the right hammer.
 
 ---
 
 ## 8. Common pitfalls
 
-* **Forgetting `create_graph=True`.** The HNN gradient is itself differentiated during backprop — without `create_graph=True` PyTorch will silently detach the graph and your gradient w.r.t. $\theta$ will be wrong.
-* **Choosing `ReLU` activations.** $H_\theta$ must be twice differentiable for the HNN gradient to be smooth. Use `Softplus`, `Tanh`, `SiLU`, or `GELU`.
-* **Integrating an HNN with explicit Euler.** The continuous-time dynamics is symplectic but Euler discretisation breaks it. Use leapfrog at inference time.
-* **Confusing accuracy and structure.** RK4 is *more accurate per step* than leapfrog, and *less stable per long rollout*. Order $\neq$ structure preservation.
-* **Asking an HNN to model friction.** $\dot z = J\nabla H$ is conservative. Add a damping term (Port-Hamiltonian or GENERIC) for dissipative systems.
+- **Forgetting `create_graph=True`.** The HNN gradient is itself differentiated during backprop — without `create_graph=True` PyTorch will silently detach the graph and your gradient w.r.t. $\theta$ will be wrong.
+- **Choosing `ReLU` activations.** $H_\theta$ must be twice differentiable for the HNN gradient to be smooth. Use `Softplus`, `Tanh`, `SiLU`, or `GELU`.
+- **Integrating an HNN with explicit Euler.** The continuous-time dynamics is symplectic but Euler discretisation breaks it. Use leapfrog at inference time.
+- **Confusing accuracy and structure.** RK4 is *more accurate per step* than leapfrog, and *less stable per long rollout*. Order $\neq$ structure preservation.
+- **Asking an HNN to model friction.** $\dot z = J\nabla H$ is conservative. Add a damping term (Port-Hamiltonian or GENERIC) for dissipative systems.
 
 ---
 
