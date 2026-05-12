@@ -121,8 +121,9 @@
           row('[', isZh ? '上一篇（同系列）' : 'Previous in series') +
           row(']', isZh ? '下一篇（同系列）' : 'Next in series') +
           row('t', isZh ? '切换主题' : 'Toggle theme') +
-          row('⌘ K  /  Ctrl K', isZh ? '搜索' : 'Search') +
-          row('Shift + ?', isZh ? '显示这个面板' : 'Show this panel') +
+          row('⌘ + K', isZh ? '搜索（macOS）' : 'Search (macOS)') +
+          row('Ctrl + K', isZh ? '搜索（Win/Linux）' : 'Search (Win/Linux)') +
+          row('?', isZh ? '显示这个面板' : 'Show this panel') +
           row('Esc', isZh ? '关闭面板' : 'Close panel') +
           row('↑ ↑ ↓ ↓', isZh ? '彩蛋 ✨' : 'Easter egg ✨') +
         '</dl>' +
@@ -134,7 +135,17 @@
     return p;
   }
   function row(k, label) {
-    return '<dt><kbd>' + k.replace(/ /g, '</kbd> <kbd>') + '</kbd></dt><dd>' + label + '</dd>';
+    // Tokenize: split on " + " into separate kbds with a "+" separator;
+    // remaining spaces become separate kbds (e.g. "g g")
+    var parts = k.split(/(\s\+\s|\s)/).filter(function(s){return s.length>0});
+    var html = '<dt>';
+    parts.forEach(function(p) {
+      if (p === ' + ') html += '<span class="kbd-plus">+</span>';
+      else if (p === ' ') html += ' ';
+      else html += '<kbd>' + p + '</kbd>';
+    });
+    html += '</dt><dd>' + label + '</dd>';
+    return html;
   }
 
   function flashToast(msg) {
@@ -183,7 +194,7 @@
     b.id = 'kbd-fab';
     b.type = 'button';
     b.setAttribute('aria-label', isLangZh() ? '键盘快捷键' : 'Keyboard shortcuts');
-    b.title = (isLangZh() ? '按 Shift + ? 打开' : 'Press Shift + ? to open');
+    b.title = (isLangZh() ? '按 ? 打开' : 'Press ? to open');
     b.textContent = '?';
     b.addEventListener('click', toggleHelp);
     document.body.appendChild(b);
