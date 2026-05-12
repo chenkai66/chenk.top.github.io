@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "aliyun-pai-3"
 ---
 
-A DSW notebook is for one engineer on one GPU. The moment you need eight GPUs across two nodes, or the moment training runs longer than the eight hours you'll keep the tab open, you switch to **DLC**. DLC is PAI's job-submission front-end for a managed Kubernetes cluster: you describe what you want (image, command, resources, data mounts), DLC schedules pods, runs them to completion, persists logs, and tells you what happened. The docs call this *Deep Learning Containers*; we just say "DLC job".
+A DSW notebook is for one engineer on one GPU. When you need eight GPUs across two nodes, or when training runs longer than eight hours, you switch to **DLC**. DLC is PAI's job-submission front-end for a managed Kubernetes cluster: you describe what you want (image, command, resources, data mounts), DLC schedules pods, runs them to completion, persists logs, and tells you what happened. The docs call this *Deep Learning Containers*; we just say "DLC job".
 
 ![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/illustration_1.png)
 
@@ -31,7 +31,7 @@ The official DLC overview lists four bullets I want to highlight, because they m
 - **Fault tolerance** — AIMaster (the watchdog), EasyCKPT (the async checkpointer), SanityCheck (pre-flight node health), node self-healing.
 - **Training acceleration** — built-in framework with data parallelism, pipeline parallelism, operator splitting, automatic parallel-strategy exploration, topology-aware scheduling, optimized communication.
 
-The first and third bullets are what make DLC interesting compared to renting GPU ECS yourself.
+The first and third points are what make DLC interesting compared to renting GPU ECS yourself.
 
 ## The job lifecycle
 
@@ -47,7 +47,7 @@ You submit to one of three pools. The docs mostly talk about quotas and bills; t
 
 ![DLC resource pools](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/fig3_dlc_resource_pools.png)
 
-For most teams the answer is general-purpose, pay-as-you-go. Lingjun makes sense once you're training above 8 GPUs and need RDMA between nodes — the docs note RDMA is configurable on Lingjun and gives "accelerated inter-node communication" (which is a polite way of saying NCCL AllReduce will be 5-10x faster than over standard ethernet). Preemptible is a cost saver for jobs that checkpoint cleanly, which thanks to EasyCKPT is most jobs.
+For most teams, the best choice is general-purpose, pay-as-you-go. Lingjun is useful when you're training with more than 8 GPUs and need RDMA between nodes. The docs mention that RDMA is configurable on Lingjun and provides "accelerated inter-node communication" (meaning NCCL AllReduce will be 5-10x faster than over standard Ethernet). Preemptible is a cost-effective option for jobs that checkpoint cleanly, which, thanks to EasyCKPT, is true for most jobs.
 
 ## A real distributed job
 
@@ -91,7 +91,7 @@ A few things worth noting that are not obvious from a quick read of the docs:
 
 ## Watching it run
 
-The console "Training Jobs" view gives you logs, GPU utilization, network throughput, and AIMaster events. From the SDK you can stream logs:
+The console "Training Jobs" view provides logs, GPU utilization, network throughput, and AIMaster events. You can also stream logs from the SDK:
 
 ```python
 for line in job.tail_logs(follow=True):
@@ -118,7 +118,7 @@ For a typical 7B SFT (4 x A10, 6 hours) on general-purpose pay-as-you-go you're 
 
 The docs say AIMaster does "fault tolerance"; they don't say what that means at the pod level, which is the actual question. Here's what I've reverse-engineered from running it across roughly 200 jobs.
 
-AIMaster runs as a sidecar pod alongside your training pods, with its own ServiceAccount that has the right K8s permissions to mark, evict, and recreate worker pods. It does three things:
+AIMaster runs as a sidecar pod alongside your training pods, with its own ServiceAccount that has the necessary K8s permissions to mark, evict, and recreate worker pods. It performs three tasks:
 
 1. **Liveness probing.** Every 5-10 s it checks each worker's health endpoint (a small HTTP server AIMaster injects into your container via a side-mount). The check is shallow — process alive, GPU visible, no NCCL deadlock signature in `/proc/[pid]/stack`. It is *not* a deep check on training progress; if your loss is NaN, AIMaster will not notice.
 2. **Restart policy.** When a worker fails the liveness check three times in a row, AIMaster marks the pod failed, asks the scheduler for a replacement on a healthy node (avoiding the one that just failed), and waits for the new pod to come up. The other workers are blocked at the next collective op (an `all_reduce` or `barrier`) — they don't crash, they wait. Once the replacement is in, AIMaster signals "resume" and the workers re-init the process group.

@@ -29,17 +29,17 @@ This is the grand finale. We are going to take everything from Parts 1 through 1
 
 ## Why Infrastructure as Code?
 
-If you are reading the twelfth article in this series, you probably do not need to be convinced. But let me lay out the case precisely, because these are the arguments you will use when convincing your team to invest the time.
+If you're reading the twelfth article in this series, you probably don't need to be convinced. But let me lay out the case precisely, because these are the arguments you'll use when convincing your team to invest the time.
 
 ### The progression
 
-Every team goes through roughly the same evolution:
+Every team goes through a similar evolution:
 
-**Stage 1: Manual (console clicks).** You click through the web console. It works for one person managing a few resources. It falls apart the moment you need to recreate something, explain what you did, or hand the environment to a teammate.
+**Stage 1: Manual (console clicks).** You click through the web console. It works for one person managing a few resources. It falls apart when you need to recreate something, explain what you did, or hand the environment to a teammate.
 
 **Stage 2: Scripts (CLI commands).** You write shell scripts that call `aliyun ecs CreateInstance` and similar commands. Better than clicking, but the scripts are imperative — they describe the steps, not the desired end state. If you run the script twice, it either fails (resource already exists) or creates duplicates. You end up writing increasingly complex logic to handle idempotency, and you have reinvented a bad version of Terraform.
 
-**Stage 3: Infrastructure as Code (declarative).** You describe the desired state: "I want a VPC with CIDR 10.0.0.0/16 and three VSwitches." The tool compares desired state to actual state and figures out the minimum set of API calls to reconcile them. Run it once, run it a hundred times — the result is the same.
+**Stage 3: Infrastructure as Code (declarative).** You describe the desired state: "I want a VPC with CIDR 10.0.0.0/16 and three VSwitches." The tool compares the desired state to the actual state and figures out the minimum set of API calls to reconcile them. Run it once, run it a hundred times — the result is the same.
 
 ### The five pillars
 
@@ -55,7 +55,7 @@ Infrastructure-as-code gives you five things that manual provisioning cannot:
 
 ### Terraform vs Alibaba Cloud ROS
 
-Alibaba Cloud has its own IaC service: Resource Orchestration Service (ROS). It uses JSON or YAML templates and is tightly integrated with the Alibaba Cloud console. It is free. So why do I recommend Terraform instead?
+Alibaba Cloud has its own IaC service: Resource Orchestration Service (ROS). It uses JSON or YAML templates and is tightly integrated with the Alibaba Cloud console. It's free. So why do I recommend Terraform instead?
 
 | Criteria | Terraform | ROS |
 |---|---|---|

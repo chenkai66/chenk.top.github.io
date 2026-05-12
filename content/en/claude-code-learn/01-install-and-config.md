@@ -22,7 +22,7 @@ This is the first in a six-part field guide to Claude Code. The order is deliber
 
 ## Install
 
-There is one supported install path right now and it's the right one:
+There is one supported install path, and it's the right one:
 
 ```bash
 curl -fsSL https://claude.ai/install.sh | bash
@@ -57,7 +57,7 @@ ln -s ~/.local/bin/claude /usr/local/bin/claude
 
 On a fresh Mac, `~/.local/bin/` almost certainly doesn't exist in your PATH. Check with `echo $PATH | tr ':' '\n' | grep local`.
 
-**Node.js version mismatch.** Claude Code requires Node.js 18+. If you're on an older version (common on Ubuntu LTS), the binary will either silently fail or throw a cryptic error. Check with:
+**Node.js version mismatch.** Claude Code requires Node.js 18+. If you're on an older version (common on Ubuntu LTS), the binary will either fail silently or throw a cryptic error. Check with:
 
 ```bash
 node --version
@@ -79,7 +79,7 @@ export HTTP_PROXY=http://proxy.company.com:8080
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-**WSL-specific note.** On Windows Subsystem for Linux, the browser-based login flow can't open a browser automatically. The CLI will print a URL — copy it, open it in your Windows browser, authorize, and the CLI picks up the token. It works, just not smoothly.
+**WSL-specific note.** On Windows Subsystem for Linux, the browser-based login flow can't open a browser automatically. The CLI will print a URL. Copy it, open it in your Windows browser, authorize, and the CLI will pick up the token. It works, but not smoothly.
 
 **Multiple installations.** If you installed Claude Code via npm globally (`npm install -g @anthropic/claude-code`) and also via the install script, you'll have two competing binaries. Check which one is active:
 
@@ -98,7 +98,7 @@ If it shows an npm path, uninstall the npm one: `npm uninstall -g @anthropic/cla
 claude
 ```
 
-You get an interactive prompt. Try one round-trip to confirm the install:
+You get an interactive prompt. Try a round-trip to confirm the install:
 
 ```
 > what's in this directory?
@@ -122,7 +122,7 @@ The `-p` flag (print mode) skips the interactive loop. This is useful for script
 
 ![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_2.png)
 
-This is the part most users never read. Claude Code merges configuration from three locations, in increasing precedence:
+This is the part most users never read. Claude Code merges configuration from three locations, in order of increasing precedence:
 
 | Layer | Path | Tracked in git? | Used for |
 |-------|------|-----------------|----------|
@@ -130,7 +130,7 @@ This is the part most users never read. Claude Code merges configuration from th
 | Project | `<repo>/.claude/settings.json` | Yes | Team-shared project conventions |
 | Local | `<repo>/.claude/settings.local.json` | No (gitignored) | Your private overrides for this repo |
 
-Why three layers and not two? Because some settings are personal-and-global (your default model, your editor command), some are team-and-shared (the linter the project uses, the test command), and some are personal-but-project-scoped (your own API key for the staging server).
+Why three layers and not two? Some settings are personal and global (like your default model and editor command), some are team and shared (like the linter and test command), and some are personal but project-scoped (like your API key for the staging server).
 
 ![Three layers stack from machine to local; later layers win on conflict, all three feed the merged runtime config](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig4.png)
 
@@ -167,7 +167,7 @@ This is `~/.claude/settings.json`. It applies to every project you open. Keep it
 
 Those are read-only commands I never want to be prompted for. Every time Claude asks "can I run `git status`?" it interrupts my flow for zero safety benefit. Put read-only operations here and forget about them.
 
-What I don't put here: anything that writes files, runs tests, or executes project-specific commands. Those belong in the project layer.
+I don't put anything that writes files, runs tests, or executes project-specific commands here. Those belong in the project layer.
 
 ### Project-level settings — team conventions
 
@@ -246,9 +246,9 @@ This is `<repo>/.claude/settings.local.json`. It's gitignored (add it to `.gitig
 }
 ```
 
-Environment variables set here are available to Claude's shell commands in that project. This is the right place for API keys, database URLs, and anything else that's both sensitive and project-specific.
+Environment variables set here are available to Claude's shell commands in that project. This is the right place for API keys, database URLs, and other sensitive, project-specific data.
 
-A common mistake: putting sensitive values in the project-level config and committing them. The three-layer system exists specifically so you don't have to do that.
+A common mistake is putting sensitive values in the project-level config and committing them. The three-layer system exists to prevent this.
 
 ![The two .claude/ directories at a glance — same name, different roles, different scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig5.png)
 

@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "aliyun-bailian-2"
 ---
 
-This is the article in the series where most of the production wins live. The other models are interesting; the LLMs are what every product I have shipped on Bailian has called every minute of every day. The official Qwen API reference is dense and complete; this article is the readable companion that picks one path through it.
+This article in the series covers most of the production wins. The other models are interesting, but the LLMs are what every product I've shipped on Bailian calls every minute of every day. The official Qwen API reference is dense and complete; this article is the readable companion that guides you through it.
 
 ![Aliyun Bailian (2): The Qwen LLM API in Production — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_1.png)
 
@@ -40,7 +40,7 @@ My production rules of thumb:
 
 ## What actually goes over the wire
 
-Independent of whether you use the OpenAI compat layer or DashScope native, the substance of a chat-completion request is the same: a model id, a messages array, and a parameter block.
+Whether you use the OpenAI compat layer or DashScope native, the core of a chat-completion request remains the same: a model ID, a messages array, and a parameter block.
 
 ![Chat completion request flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/fig2_request_flow.png)
 
@@ -118,7 +118,7 @@ Three things that bite:
 
 ## JSON mode
 
-For structured output, do not rely on prompting. Use:
+For structured output, don't rely on prompting. Use:
 
 ```python
 resp = client.chat.completions.create(

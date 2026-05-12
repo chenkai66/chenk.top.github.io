@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "aliyun-bailian-3"
 ---
 
-Of all the Bailian models, Qwen-Omni is the one that has pulled me out of the most product-roadmap holes. "Can you tell me what's happening in this 2-minute promo video?" used to be a 3-week project involving frame extraction, captioning per frame, and a stitch step. With Qwen-Omni it is one HTTP request. But the docs are sparse on the gotchas, and there is one (streaming is mandatory) that has cost more than one team a half-day. Let's not have that be you.
+Of all the Bailian models, Qwen-Omni has saved me from the most product-roadmap issues. "Can you tell me what's happening in this 2-minute promo video?" used to take 3 weeks, involving frame extraction, captioning each frame, and stitching them together. With Qwen-Omni, it's just one HTTP request. However, the documentation lacks details on some pitfalls, like the fact that streaming is mandatory, which has cost more than one team a half-day. Let's avoid that for you.
 
 ![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 
@@ -73,7 +73,7 @@ The docs note streaming as a feature, but they bury the fact that **for Qwen-Omn
 
 ![Streaming requirement](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png)
 
-The reason makes sense once you think about it: the model is processing many MB of video and producing a long response. The wire protocol assumes incremental delivery. Holding the whole thing back to send as one blob would block your client for tens of seconds with no progress signal.
+The reason makes sense when you think about it: the model processes large video files and generates a long response. The wire protocol assumes incremental delivery. Sending everything at once would block your client for tens of seconds without any progress signal.
 
 If your downstream code expects a complete string, buffer the deltas yourself:
 

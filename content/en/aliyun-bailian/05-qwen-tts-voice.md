@@ -18,13 +18,13 @@ disableNunjucks: true
 translationKey: "aliyun-bailian-5"
 ---
 
-The reason every Chinese-language product I've worked on ends up calling Qwen-TTS-Flash isn't price — there are cheaper TTS APIs. It's that Qwen-TTS is the only one that handles **mainland Chinese dialects** (Cantonese, Sichuanese, Wu) and English in the same SDK, with voices that don't sound like a 2019 customs announcement. After about six months of using it for a marketing-video voice-over pipeline, this is what I wish someone had told me on day one.
+Every Chinese-language product I've worked on uses Qwen-TTS-Flash, not because it's the cheapest TTS API, but because it's the only one that handles **mainland Chinese dialects** (Cantonese, Sichuanese, Wu) and English in the same SDK, with voices that don't sound like a 2019 customs announcement. After six months of using it for a marketing-video voice-over pipeline, this is what I wish someone had told me on day one.
 
 ![Aliyun Bailian (5): Qwen-TTS for Multilingual Voice — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
 
 ## Voice catalog
 
-Per the model card, Qwen-TTS-Flash exposes 40+ voices. The ones I use most:
+According to the model card, Qwen-TTS-Flash offers 40+ voices. The ones I use most:
 
 ![Qwen-TTS voice catalogue](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig1_tts_voice_map.png)
 
@@ -32,7 +32,7 @@ For Mandarin product narration my default is `Cherry` (warm, 30-something female
 
 ## Native API only
 
-Qwen-TTS does not go through the OpenAI compat layer. You call it via the DashScope native SDK:
+Qwen-TTS doesn't use the OpenAI compat layer. You call it via the DashScope native SDK:
 
 ![Qwen-TTS native call structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig2_tts_request_flow.png)
 
@@ -56,14 +56,14 @@ with open("/tmp/out.mp3", "wb") as f:
     f.write(requests.get(audio_url, timeout=30).content)
 ```
 
-Two things to underline:
+Two key points:
 
-- The output is a *URL* by default, not bytes. Same as Wanxiang, **download it within 24 hours** (I do it immediately and re-upload to my own OSS bucket).
+- The output is a *URL* by default, not bytes. Like Wanxiang, **download it within 24 hours** (I do it immediately and re-upload to my own OSS bucket).
 - `format` defaults to `mp3`. WAV is also available; for downstream concatenation work I prefer WAV because there's no MP3 header overhead per chunk.
 
 ## Streaming TTS — when latency matters
 
-For voice-bot use cases (real-time conversational UIs) you want streaming. The deltas are audio bytes you can write straight to a player or a file:
+For voice-bot use cases (real-time conversational UIs), you want streaming. The deltas are audio bytes you can write directly to a player or a file:
 
 ![Streaming TTS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig3_tts_streaming.png)
 
@@ -81,7 +81,7 @@ with open("/tmp/streamed.mp3", "wb") as f:
             f.write(resp.output.audio["data"])
 ```
 
-Time-to-first-byte on streaming is typically under 400ms in Shanghai region, which is fast enough that a user perceives it as immediate. Non-streaming for a 30-second utterance is closer to 4-6 seconds wall clock — fine for batch narration, sluggish for chat.
+Time-to-first-byte for streaming is typically under 400ms in the Shanghai region, which users perceive as immediate. Non-streaming for a 30-second utterance takes around 4-6 seconds, which is fine for batch narration but sluggish for chat.
 
 ## Multi-language and dialect specifics
 
@@ -90,13 +90,13 @@ Qwen-TTS does language *detection* from the text, but if you mix scripts you sho
 - Pure Mandarin text → `language="zh"` (default).
 - Pure English text → `language="en"`. Voices like `Eric` shine here.
 - Cantonese text in Traditional Chinese → `language="zh-yue"`, voice `Sunny` or `Lily`.
-- Mixed CJK + English (the common case for tech narration) → leave language unset, the model handles code-switch surprisingly well.
+- Mixed CJK + English (common in tech narration): leave the language unset; the model handles code-switching surprisingly well.
 
-> **Tip:** For dialect work, **always** A/B against native speakers before launch. Qwen-TTS Cantonese is good but not perfect on tones — a one-syllable tone error in Cantonese can change the meaning entirely.
+> **Tip:** For dialect work, **always** A/B test against native speakers before launch. Qwen-TTS Cantonese is good but not perfect on tones—a one-syllable tone error can completely change the meaning.
 
 ## SSML — what works, what doesn't
 
-The docs list SSML support but are quiet about which tags actually behave. From experience:
+The docs list SSML support but don't specify which tags work. From experience:
 
 - `<break time="500ms"/>` — works. Use for pauses between sentences in marketing copy.
 - `<emphasis level="strong">` — works.
@@ -108,7 +108,7 @@ The docs list SSML support but are quiet about which tags actually behave. From 
 
 ## Concatenating clips for narration
 
-Marketing scripts are long. The pattern for a 60-second voiceover:
+Marketing scripts are long. Here’s the pattern for a 60-second voiceover:
 
 ```python
 def synthesize_long(script: str, voice: str = "Cherry") -> str:
@@ -126,7 +126,7 @@ Why split? Two reasons: (1) per-call latency is much lower for short utterances,
 
 ## Cost
 
-Per-second-of-output-audio billing. Streaming and non-streaming bill identically. A 60-second ad spot is in the few-RMB range — much cheaper than the cost of a voice actor's hourly rate, and fast enough for the marketing team to iterate dozens of variations in an afternoon.
+Billing is per second of output audio. Streaming and non-streaming costs are the same. A 60-second ad spot costs a few RMB—much cheaper than a voice actor's hourly rate and fast enough for the marketing team to iterate dozens of variations in an afternoon.
 
 ## Voice cloning vs preset voices vs SSML control: pick the right knob
 
@@ -134,9 +134,9 @@ Bailian gives you three layers of voice control, and which one you reach for mat
 
 **Preset voices.** The 40+ voices in the catalog. Use these unless you have a specific reason not to. They cover Mandarin male/female across all common ages and registers, plus Cantonese, Sichuanese, Wu, English (US/UK), and a handful of "character" voices for narration work. Per-second cost is the standard rate; latency is the lowest of the three; quality is studio-grade. About 90% of my production traffic is preset-voice.
 
-**SSML control over preset voices.** Same voice, but you nudge prosody, breaks, emphasis, pronunciation. Costs the same as preset voices. Use this when:
-- Long-form narration needs deliberate pacing (technical tutorials, audiobooks).
-- A specific phrase needs emphasis the model misses by default.
+**SSML control over preset voices.** Same voice, but you adjust prosody, breaks, emphasis, and pronunciation. Costs the same as preset voices. Use this when:
+- Long-form narration requires deliberate pacing (technical tutorials, audiobooks).
+- A specific phrase needs emphasis the model misses.
 - You have proper nouns or technical terms the model mispronounces (especially in CJK + English code-switch contexts: "DSL"  often comes out "D-S-L" instead of "deh-es-el").
 
 A real example from my marketing pipeline:
@@ -155,10 +155,10 @@ resp = SpeechSynthesizer.call(model="qwen3-tts-flash", text=text, voice="Cherry"
 
 The `<say-as>` makes "DSL" come out as letter-by-letter (correct for an acronym). The `<break>` adds a deliberate pause where listeners need to absorb. The `<prosody rate="95%">` slows the URL recommendation slightly so listeners can write it down. None of this is possible with plain text input.
 
-**Voice cloning (timbre transfer).** Bailian exposes a separate clone API where you upload 10-30 seconds of reference audio and get back a voice id you can use in subsequent calls. This is real but hedge it with two warnings:
+**Voice cloning (timbre transfer).** Bailian provides a separate clone API where you upload 10-30 seconds of reference audio and get a voice ID for subsequent calls. This is real, but consider two warnings:
 
-- **Quality varies.** Clones of clear, single-speaker, studio-recorded reference audio are excellent. Clones of phone-quality, noisy, or multi-speaker reference audio are uncanny in bad ways. Always hand-screen clones before production use.
-- **Legal/ethical surface.** Cloning a real human's voice without consent is increasingly illegal in many jurisdictions and is explicitly banned in Bailian's ToS. Clone only voices you own or have written permission to clone. The platform may revoke voice ids that look like impersonations of public figures.
+- **Quality varies.** Clones of clear, single-speaker, studio-recorded audio are excellent. Clones of phone-quality, noisy, or multi-speaker audio are uncanny. Always hand-screen clones before production use.
+- **Legal/ethical concerns.** Cloning a real human's voice without consent is increasingly illegal in many jurisdictions and is explicitly banned in Bailian's ToS. Clone only voices you own.r have written permission to clone. The platform may revoke voice ids that look like impersonations of public figures.
 
 For my marketing pipeline I cloned the founder's voice (with their consent) for one product line where they wanted to do dozens of variations of a 30-second pitch. We did it once, validated quality across 20 sample utterances, then used the resulting voice id for everything in that line. Cost is identical to preset voices once the clone is created.
 

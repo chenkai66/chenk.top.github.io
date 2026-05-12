@@ -152,11 +152,11 @@ Generate three variants per critical prompt with different seeds (`seed` paramet
 
 ## Cost and rate limits
 
-Wanxiang is per-second-of-video billed. A 5-second 720p clip is on the order of a few RMB. Concurrent task limits are per-API-key — for production traffic, request a quota increase via the console *before* you launch. The default of (last I checked) 5 concurrent tasks per workspace is fine for prototyping and instantly insufficient for any real product.
+Wanxiang bills per second of video. A 5-second 720p clip costs a few RMB. Concurrent task limits are per API key. For production traffic, request a quota increase via the console before you launch. The default of 5 concurrent tasks per workspace is fine for prototyping but insufficient for a real product.
 
 ## Async patterns: poll vs callback, queue depth
 
-The polling-with-backoff approach in the section above is the simplest pattern that works. For a single user-initiated request it is enough. For a production marketing pipeline that submits 200 videos a day, polling burns API calls and engineering simplicity competes with cost. The alternatives:
+The polling-with-backoff approach in the previous section is the simplest pattern that works. It's sufficient for a single user-initiated request. For a production marketing pipeline that submits 200 videos a day, polling burns API calls, and engineering simplicity competes with cost. The alternatives:
 
 **Callback (webhook).** Bailian supports a callback URL on the create request: pass `notification_url` in the request body, and DashScope will POST to that URL when the task finishes. The body of the POST is the same `output` envelope you'd have polled for. This eliminates polling entirely.
 

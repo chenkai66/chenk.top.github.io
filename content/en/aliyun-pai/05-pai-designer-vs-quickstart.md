@@ -17,13 +17,13 @@ disableNunjucks: true
 translationKey: "aliyun-pai-5"
 ---
 
-The first four articles were about the underlying primitives — DSW, DLC, EAS — that you orchestrate with Python. This one is about the two GUI products that wrap those primitives and ship a runnable thing for users who do not want to write Python: **PAI-Designer** for drag-and-drop tabular pipelines, and **Model Gallery** for zero-code open-source model deployment and fine-tuning. They are not what serious engineers reach for first, but in two specific situations they are obviously the right answer.
+The first four articles covered the underlying primitives — DSW, DLC, EAS — that you orchestrate with Python. This one focuses on two GUI products that wrap these primitives and provide a runnable solution for users who don't want to write Python: **PAI-Designer** for drag-and-drop tabular pipelines, and **Model Gallery** for zero-code open-source model deployment and fine-tuning. While serious engineers might not reach for them first, they are the right choice in two specific situations.
 
 ![Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
 
 ## Designer — the drag-and-drop pipeline composer
 
-Per the docs, Designer "implements modeling and model debugging through workflows. Users can build AI development processes by dragging and dropping different components in workflows like building blocks." The headline numbers: 140+ built-in algorithm components, exports to JSON, schedulable in DataWorks, supports custom SQL / Python / PyAlink scripts as nodes.
+According to the docs, Designer implements modeling and model debugging through workflows. Users can build AI development processes by dragging and dropping different components, like building blocks. Key features include 140+ built-in algorithm components, JSON export, scheduling in DataWorks, and support for custom SQL, Python, and PyAlink scripts as nodes.
 
 ![PAI-Designer canvas](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig1_designer_canvas.png)
 
@@ -43,7 +43,7 @@ I ship Designer pipelines for the tabular workloads I'd otherwise have built in 
 
 ## Model Gallery — the zero-code MaaS shortcut
 
-Model Gallery is the tooling that wraps DLC + EAS so a non-MLOps user can fine-tune and deploy an open-source model with about six clicks. Per the docs, it "encapsulates Platform for AI (PAI)-DLC and PAI-EAS, providing a zero-code solution to efficiently deploy and train open-source large language models".
+Model Gallery is the tooling that wraps DLC + EAS, allowing non-MLOps users to fine-tune and deploy open-source models with just a few clicks. According to the docs, it encapsulates PAI-DLC and PAI-EAS, providing a zero-code solution for deploying and training open-source large language models.
 
 ![Model Gallery pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig2_modelgallery_pipeline.png)
 
@@ -55,7 +55,7 @@ The Quick Start walks through Qwen3-0.6B end-to-end:
 4. **View Call Information** → grab the `Internet Endpoint` and token.
 5. Plug into Cherry Studio (or Claude Code MCP, or the Python SDK with the OpenAI-compatible base URL) and chat.
 
-For fine-tuning, the docs walk through a logistics-information-extraction example: feed it a JSON dataset, pick LoRA hyperparameters from a dropdown, and it submits a DLC job for you. The Quick Start specifically calls out the **distillation pattern** — use a large teacher (Qwen3-235B) to label data and a small student (Qwen3-0.6B) to learn from it. That pattern is worth internalising; it is the single most cost-effective fine-tuning recipe I know.
+For fine-tuning, the docs provide a logistics-information-extraction example: feed it a JSON dataset, select LoRA hyperparameters from a dropdown, and it submits a DLC job for you. The Quick Start highlights the **distillation pattern** — using a large teacher (Qwen3-235B) to label data and a small student (Qwen3-0.6B) to learn from it. This pattern is worth internalizing; it's the most cost-effective fine-tuning method I know.
 
 Where Gallery shines:
 
@@ -75,7 +75,7 @@ The decision matrix that has held up for me:
 
 ![Decision matrix](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig3_decision_matrix.png)
 
-Summary heuristic: **start as high up the stack as the requirements allow**. Most teams over-engineer day one — they build a custom DLC + EAS pipeline for what is really a Model Gallery deploy. Optimise for time-to-first-token, then refactor down once you have real traffic and real metrics to design against.
+Summary heuristic: **start as high up the stack as the requirements allow**. Many teams over-engineer on day one, building custom DLC + EAS pipelines when a Model Gallery deploy would suffice. Optimize for time-to-first-token, then refactor once you have real traffic and metrics to design against.
 
 ## A worked example: when Designer beat custom code
 

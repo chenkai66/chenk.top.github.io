@@ -14,13 +14,13 @@ series_order: 1
 translationKey: "python-engineering-1"
 ---
 
-每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上编写的。更糟的是，你执行了 `pip install` 全局安装，却意外破坏了一个完全无关的项目。尽管 Python 的环境管理体系非常强大，但其默认体验却像布满地雷的雷区。
+每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上编写的。更糟的是，你执行了 `pip install` 全局安装，却意外破坏了一个完全无关的项目。尽管 Python 的环境管理体系非常强大，但默认体验却像布满地雷的雷区。
 
 本文将从零开始梳理整套工具链，构建可复现、强隔离且版本锁定的开发环境，确保跨机器行为一致。
 
 ## Python 版本问题
 
-大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7 （Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。
+大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7（Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。
 
 ![Dependency resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
 

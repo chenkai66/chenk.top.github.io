@@ -16,11 +16,11 @@ series_order: 5
 translationKey: "databases-5"
 ---
 
-并非所有数据都能被整齐地塞进行与列中，例如社交网络中的好友关系图、属性千差万别的商品目录、实时排行榜和推荐引擎背后的关系网络——这些工作负载会让关系型数据库陷入尴尬境地。 NoSQL 数据库之所以存在，是因为不同的数据模型更擅长解决不同的问题——关键在于知道何时选用哪种。
+并非所有数据都能被整齐地塞进行与列中，例如社交网络中的好友关系图、属性千差万别的商品目录、实时排行榜和推荐引擎背后的关系网络——这些工作负载会让关系型数据库陷入尴尬境地。NoSQL 数据库之所以存在，是因为不同的数据模型更擅长解决不同的问题——关键在于知道何时选用哪种。
 
 ## 为何需要 NoSQL？
 
-“NoSQL” 这一术语颇具误导性，并不意味着“不用 SQL”，事实上部分 NoSQL 数据库支持类 SQL 查询语言；它真正意指“不仅仅是 SQL”（Not Only SQL），或更准确地说，“非关系型”（non-relational）。采用 NoSQL 的动因可归为三类：
+“NoSQL”这一术语颇具误导性，并不意味着“不用 SQL”，事实上部分 NoSQL 数据库支持类 SQL 查询语言；它真正意指“不仅仅是 SQL”（Not Only SQL），或更准确地说，“非关系型”（non-relational）。采用 NoSQL 的动因可归为三类：
 
 ![Document vs relational model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-document-model.png)
 
@@ -33,7 +33,7 @@ translationKey: "databases-5"
 
 ## 文档型数据库： MongoDB
 
-文档数据库以半结构化文档形式存储数据，通常采用 JSON （MongoDB 中使用其二进制变体 BSON）。
+文档数据库以半结构化文档形式存储数据，通常采用 JSON（MongoDB 中使用其二进制变体 BSON）。
 
 ![Column-family store layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-column-store.png)
 
@@ -322,9 +322,7 @@ SET product:42 '{"name":"Widget","price":9.99}' EX 300  # 5 分钟 TTL
 
 ### 数据模型
 
-Cassandra 使用表结构，其主键由以下两部分构成：
-- **分区键（Partition key）**：决定数据分布到哪个节点  
-- **聚类键（Clustering key）**：决定同一分区内数据的排序顺序  
+Cassandra 使用表结构，其主键由以下两部分构成：- **分区键（Partition key）**：决定数据分布到哪个节点 - **聚类键（Clustering key）**：决定同一分区内数据的排序顺序  
 
 ```sql
 -- CQL（Cassandra Query Language）
@@ -505,7 +503,7 @@ SELECT * FROM users WHERE user_id = ? CONSISTENCY ONE;
 
 ## NewSQL：鱼与熊掌兼得？
 
-NewSQL 数据库试图融合 SQL、 ACID 事务与水平扩展能力：
+NewSQL 数据库试图融合 SQL、ACID 事务与水平扩展能力：
 
 | 数据库 | 架构 | 核心特性 |
 |--------|------|----------|

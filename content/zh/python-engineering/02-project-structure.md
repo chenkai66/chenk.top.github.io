@@ -35,7 +35,7 @@ translationKey: "python-engineering-2"
 
 ## 平铺布局（Flat Layout） vs `src` 布局
 
-Python 生态中存在两种主流项目结构。
+Python 生态中有两种主流项目结构。
 
 ![Flat vs src layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-flat-vs-src.png)
 
@@ -56,7 +56,7 @@ my_tool/
   README.md
 ```
 
-包目录直接位于项目根目录，结构更简单。 Flask 和 Requests 等知名项目均采用此方式。
+包目录直接位于项目根目录，结构更简单。Flask 和 Requests 等知名项目均采用此方式。
 
 ### `src` 布局
 

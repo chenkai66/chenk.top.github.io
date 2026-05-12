@@ -18,25 +18,25 @@ disableNunjucks: true
 translationKey: "aliyun-pai-4"
 ---
 
-EAS is where the money goes. DSW costs you a few hundred RMB a month for dev. DLC costs you in spikes. EAS bills 24/7 because someone might call your endpoint, and that "minimum replica count" line in the autoscaler config is the single highest-leverage knob in the whole platform. This article is what I wish I'd known the day before we shipped our first production endpoint.
+EAS is where the money goes. DSW costs a few hundred RMB a month for development. DLC costs spike. EAS bills 24/7 because someone might call your endpoint, and the "minimum replica count" in the autoscaler config is the most critical setting in the entire platform. This article covers what I wish I'd known before shipping our first production endpoint.
 
 ![Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_1.png)
 
 ## What EAS is, per the docs
 
-The official "EAS overview" frames it as: "deploy trained models as online inference services or AI web applications, with heterogeneous resources, automatic scaling, one-click stress testing, canary releases, and real-time monitoring". The two things to underline:
+The official "EAS overview" describes it as: "deploy trained models as online inference services or AI web applications, with heterogeneous resources, automatic scaling, one-click stress testing, canary releases, and real-time monitoring". The two key points are:
 
-- It's a **container-runtime serving layer** — your model lives in OSS, your code lives in a container image, EAS pulls the image, mounts OSS at startup, runs your start command, and listens on a port.
-- It's **autoscaled by replica count** — not a serverless function model (with one important exception, see below). Replicas are real GPU pods that take 30-120s to come up. Plan for that.
+- It's a **container-runtime serving layer** — your model is in OSS, your code is in a container image, EAS pulls the image, mounts OSS at startup, runs your start command, and listens on a port.
+- It's **autoscaled by replica count** — not a serverless function model (with one important exception, see below). Replicas are real GPU pods that take 30-120 seconds to start. Plan accordingly.
 
 ## The request path
 
 ![EAS request path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig1_eas_request_path.png)
 
-The four moving parts the docs call out for runtime-image deployment:
+The four components the docs highlight for runtime-image deployment:
 
 1. **Runtime image** — read-only template with OS, CUDA, Python, deps. Use an official one (`vllm:0.11.2-mows0.5.1`, `pytorch:...`) or push your own to ACR.
-2. **Code and model** — *not in the image*. They live in OSS / NAS. Decoupling them lets you update weights without rebuilding the image.
+2. **Code and model** — *not in the image*. They live in OSS / NAS. Decoupling them allows you to update weights without rebuilding the image.
 3. **Storage mounting** — at startup, EAS FUSE-mounts the OSS path you specified to a directory inside the container, e.g. `/mnt/data/`.
 4. **Run command** — the first command after the container starts. Typically launches your HTTP server (`vllm serve /mnt/data/Qwen/Qwen3-0.6B`).
 
@@ -48,15 +48,15 @@ The docs list three. Pick deliberately — the wrong mode wastes either money or
 
 ![EAS inference modes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig2_eas_inference_modes.png)
 
-A practical heuristic:
+A practical guideline:
 
 - **Real-time sync** — chatbots, RAG retrieval, ad ranking, search. You care about p99 latency.
-- **Async** — anything that takes 5+ seconds: image-gen, video-gen, OCR-on-PDF batches. The built-in queue scales replicas based on backlog, which is the right mental model for these workloads.
-- **Batch** — anything you can wait minutes for: nightly embeddings, voice transcription. Use preemptible instances and cut the bill in half.
+- **Async** — anything that takes 5+ seconds: image-gen, video-gen, OCR-on-PDF batches. The built-in queue scales replicas based on backlog, which is the right approach for these workloads.
+- **Batch** — anything you can wait minutes for: nightly embeddings, voice transcription. Use preemptible instances and halve the cost.
 
 ## The Quick Start, in real config
 
-The official Quick Start deploys Qwen3-0.6B with vLLM. The console flow is:
+The official Quick Start deploys Qwen3-0.6B with vLLM. The console process is:
 
 1. **Method:** Image-based deployment.
 2. **Image:** `vllm:0.11.2-mows0.5.1` (official EAS image — vLLM ≥ 0.8.5 is required for OpenAI-compatible chat).
@@ -83,11 +83,11 @@ resp = client.chat.completions.create(
 print(resp.choices[0].message.content)
 ```
 
-If that returns a sentence, your endpoint is alive and you can go back to your colleagues looking like a wizard.
+If that returns a sentence, your endpoint is live, and you can return to your colleagues looking like a wizard.
 
 ## Auto-scaling done right
 
-This is the part the docs do not really hammer home. Default autoscaler behaviour (scale on request rate, min replicas = 1) is a recipe for either cold-start latency tickets or surprise bills.
+This is the part the docs don't emphasize. Default autoscaler behavior (scaling on request rate, with a minimum of 1 replica) can lead to cold-start latency issues or unexpected bills.
 
 ![EAS auto-scaling — replicas track QPS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig3_eas_autoscaling.png)
 
@@ -95,7 +95,7 @@ The three settings that actually matter:
 
 - **`min_replicas`** — never set to zero in production. A cold start on a 7B vLLM container is 60-120 seconds; the user gives up at 5. I default to 2 (one for HA, one for redundancy). For asynchronous services you can do 0 and rely on the queue.
 - **`max_replicas`** — the budget brake. Calculate as: `(p99_qps_per_replica) * 2`. If you don't know your per-replica QPS, run the one-click stress test. The docs cover this under "Service stress testing".
-- **Scaling metric** — by default it's `qps`. For LLM serving, switch to `concurrent_requests` (or vLLM's `running` metric). QPS is misleading because long generations don't show up as more requests.
+- **Scaling metric** — by default it's `qps`. For LLM serving, switch to `concurrent_requests` (or vLLM's `running` metric). QPS is misleading because long generations don't register as additional requests.
 
 > **Real-world tip:** The single biggest wasted spend I have ever seen on PAI was a `max_replicas=50` autoscaler with `min_replicas=10` on a service that got 0.5 QPS off-peak. 5 idle A10s, 24/7, for two months. Always look at the Saturday-night dashboard before you go on holiday.
 
@@ -105,11 +105,11 @@ EAS does this with **service groups**: a routing front-end that points at multip
 
 ![EAS service groups — canary and mirror](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig4_eas_canary_release.png)
 
-I use a 90/10 split for the first 24 hours of any model swap, then 50/50, then 0/100. If any of those steps shows degradation in the success-rate or p99 metrics, rollback is immediate — service groups change traffic weights in seconds.
+I use a 90/10 split for the first 24 hours of any model swap, then 50/50, and finally 0/100. If any step shows degradation in success rate or p99 metrics, rollback is immediate — service groups change traffic weights in seconds.
 
 ## Stress testing — actually do this
 
-The docs have a whole section on the one-click stress tester. Use it. It auto-ramps QPS, charts replica scale-out, and tells you the per-replica saturation point. That number is what you build your autoscaler around. Going to prod without one is the most common cause of "the model fell over at the 3pm peak" tickets.
+The docs have a whole section on the one-click stress tester. Use it. It auto-ramps QPS, charts replica scale-out, and tells you the per-replica saturation point. That number is what you build your autoscaler around. Deploying without one is the most common cause of "the model fell over at the 3pm peak" tickets.
 
 ## The 180-day gotcha
 
@@ -119,7 +119,7 @@ Buried in the docs: "If an EAS service remains in a non-Running state for 180 co
 
 ![Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_2.png)
 
-Cold start is EAS's biggest practical problem. A vLLM Qwen3-7B container takes 60-120 s from scheduler-pick to first-token-served — model load alone is 30-60 s. If your autoscaler ever needs to add a replica under load, the first user requests in that window time out.
+Cold start is EAS's biggest practical issue. A vLLM Qwen3-7B container takes 60-120 seconds from scheduler pick to first token served — model load alone takes 30-60 seconds. If your autoscaler needs to add a replica under load, the first user requests in that window will time out.
 
 The mitigations I've actually shipped, ranked by impact:
 

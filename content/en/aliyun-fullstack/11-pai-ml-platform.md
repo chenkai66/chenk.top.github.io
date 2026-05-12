@@ -19,9 +19,9 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-11"
 ---
 
-Training a model on a single GPU is fun. Deploying it so it serves 1000 requests per second without falling over is the part that separates experiments from products. PAI handles both.
+Training a model on a single GPU is fun. Deploying it to handle 1000 requests per second without failing is what separates experiments from products. PAI handles both.
 
-PAI (Platform for AI) is Alibaba Cloud's managed ML platform. It is not one product — it is five products wearing a trench coat and sharing a console. A notebook environment for exploration, a distributed training service for scale, a model serving platform for production, a visual pipeline designer for people who prefer dragging boxes, and a model gallery for one-click deployment of open-source models. After eighteen months of running real LLM workloads on it, I can say that the individual pieces range from excellent (EAS) to good enough (Designer), and the whole is genuinely greater than the sum of its parts once you understand how they connect.
+PAI (Platform for AI) is Alibaba Cloud's managed ML platform. It's not just one product; it's five products in a trench coat, sharing a console. These include a notebook environment for exploration, a distributed training service for scale, a model serving platform for production, a visual pipeline designer for those who prefer dragging boxes, and a model gallery for one-click deployment of open-source models. After eighteen months of running real LLM workloads on it, I can say that the individual components range from excellent (EAS) to good enough (Designer). The whole platform is genuinely greater than the sum of its parts once you understand how they connect.
 
 This article is the breadth-first tour. If you want the depth-first treatment — instance selection strategies, DLC spot preemption survival, EAS cold-start mitigation — there is a dedicated [PAI series](/en/aliyun-pai/01-platform-overview/) with five articles that go deep on each sub-product. Here we cover enough to understand what PAI is, when to reach for each component, and how to train and deploy a model end-to-end.
 
@@ -30,7 +30,7 @@ This article is the breadth-first tour. If you want the depth-first treatment �
 
 ![PAI platform component overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_pai_components.png)
 
-PAI stands for Platform for AI. The name is generic because the product is broad — it covers the entire ML lifecycle from interactive experimentation to production serving. The closest equivalents on other clouds are AWS SageMaker, Azure Machine Learning, and GCP Vertex AI. But the comparison is only approximate. SageMaker bundles notebooks, training, and endpoints into a relatively monolithic experience. PAI is more modular: each sub-product has its own resource model, pricing, and SDK surface, and you can use any one of them independently.
+PAI stands for Platform for AI. The name is generic because the product is broad — it covers the entire ML lifecycle from interactive experimentation to production serving. The closest equivalents on other clouds are AWS SageMaker, Azure Machine Learning, and GCP Vertex AI. However, the comparison is only approximate. SageMaker bundles notebooks, training, and endpoints into a relatively monolithic experience. PAI is more modular, with each sub-product having its own resource model, pricing, and SDK surface, and you can use any one of them independently.
 
 The five components you will actually touch:
 
@@ -42,7 +42,7 @@ The five components you will actually touch:
 | **PAI-Designer** | Drag-and-drop visual ML pipeline builder | SageMaker Pipelines (visual mode) |
 | **PAI-QuickStart** | One-click deploy of open-source models from a gallery | SageMaker JumpStart |
 
-The mental model that has worked best for me: code matures left to right through DSW, DLC, and EAS, while Designer and QuickStart are shortcuts that skip part of that journey.
+The mental model that works best for me: code matures from left to right through DSW, DLC, and EAS, while Designer and QuickStart are shortcuts that skip part of that journey.
 
 ```
     DSW              DLC              EAS
@@ -55,11 +55,11 @@ The mental model that has worked best for me: code matures left to right through
                  GPU ECS pool
 ```
 
-PAI never owns your data. Datasets, checkpoints, and model artifacts live in OSS or NAS. PAI orchestrates GPU compute on your behalf — when a DSW notebook starts, a real GPU ECS instance boots somewhere; when an EAS endpoint scales out, real GPU pods come up. The reason to use PAI instead of raw ECS is that it pre-bakes CUDA/PyTorch images, mounts your storage, provides metrics dashboards, and bills per second instead of per hour.
+PAI never owns your data. Datasets, checkpoints, and model artifacts live in OSS or NAS. PAI orchestrates GPU compute for you — when a DSW notebook starts, a real GPU ECS instance boots; when an EAS endpoint scales out, real GPU pods come up. The reason to use PAI instead of raw ECS is that it pre-bakes CUDA/PyTorch images, mounts your storage, provides metrics dashboards, and bills per second rather than per hour.
 
 ### PAI vs SageMaker: the meaningful differences
 
-If you are coming from AWS, these are the things that will trip you up or delight you:
+If you're coming from AWS, here are the things that might trip you up or delight you:
 
 | Aspect | PAI | SageMaker |
 |---|---|---|
@@ -74,7 +74,7 @@ The biggest practical difference: PAI exposes the underlying ECS instance types 
 
 ## PAI-DSW: interactive notebooks
 
-DSW (Data Science Workshop) is where most ML work starts on PAI. It is JupyterLab and VSCode-in-browser running on a GPU ECS instance that PAI manages for you. The pitch: skip the CUDA/cuDNN/PyTorch install dance and get a working GPU box in about 90 seconds.
+DSW (Data Science Workshop) is where most ML work begins on PAI. It's JupyterLab and VSCode-in-browser running on a GPU ECS instance managed by PAI. The pitch: skip the CUDA/cuDNN/PyTorch installation and get a working GPU box in about 90 seconds.
 
 ![DSW notebook workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_dsw_workflow.png)
 
@@ -86,7 +86,7 @@ DSW (Data Science Workshop) is where most ML work starts on PAI. It is JupyterLa
 - Writing the training script you will eventually submit to DLC
 - Iterating on inference code before deploying to EAS
 
-Do not use DSW for multi-GPU training (that is DLC), unattended jobs longer than 8 hours (idle shutdown will kill them), or production inference (that is EAS).
+Do not use DSW for multi-GPU training (use DLC), unattended jobs longer than 8 hours (idle shutdown will terminate them), or production inference (use EAS).
 
 ### GPU instance options
 

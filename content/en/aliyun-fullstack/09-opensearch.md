@@ -19,16 +19,16 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-9"
 ---
 
-I built my first search engine with Elasticsearch and a pile of synonyms. It took six months to get decent results. Every week was the same cycle: users complained about missing results, I added more synonyms, broke something else, added exception rules, repeated. The relevance tuning spreadsheet grew to 400 rows. I had custom analyzers for three languages, a boosting config that nobody understood (including me), and a reindexing job that took four hours. Then I tried hybrid vector+keyword search on a side project and got better results on day one. Not marginally better — "users stopped complaining" better. That experience changed how I think about search entirely, and it is the reason this article exists.
+I built my first search engine with Elasticsearch and a pile of synonyms. It took six months to get decent results. Every week, users complained about missing results, I added more synonyms, broke something else, and added exception rules. The relevance tuning spreadsheet grew to 400 rows. I had custom analyzers for three languages, a boosting config that nobody understood (including me), and a reindexing job that took four hours. Then I tried hybrid vector+keyword search on a side project and got better results on day one. Not marginally better — "users stopped complaining" better. That experience changed how I think about search entirely, and it is the reason this article exists.
 
 
-Search is deceptively hard. Keyword search fails when users use different words than the document author. Vector search fails when users need exact matches (part numbers, error codes, SKUs). The answer, as the industry has learned over the past three years, is to combine both — and increasingly, to throw an LLM on top for query understanding and answer generation. Alibaba Cloud has a managed service for all of this: OpenSearch. This article covers the full spectrum, from basic keyword search to LLM-powered AI Search, and ends with a complete product search engine you can deploy.
+Search is deceptively hard. Keyword search fails when users use different words than the document author. Vector search fails when users need exact matches like part numbers, error codes, or SKUs. The answer, as the industry has learned over the past three years, is to combine both — and increasingly, to add an LLM for query understanding and answer generation. Alibaba Cloud offers a managed service for this: OpenSearch. This article covers the full spectrum, from basic keyword search to LLM-powered AI Search, and ends with a complete product search engine you can deploy.
 
 For generating the embeddings we use throughout this article, see our [Bailian series, Part 2: Qwen LLM API](/en/aliyun-bailian/02-qwen-llm-api/). The database feeding our search index is covered in [Part 5: RDS](/en/aliyun-fullstack/05-rds-database/). For the LLM Engineering perspective on RAG pipelines, see our [LLM Engineering series](/en/llm-engineering/).
 
 ## The Search Landscape on Alibaba Cloud
 
-Before diving into OpenSearch, you need to know there are multiple search options on Alibaba Cloud. Choosing the wrong one will cost you either money or months of migration.
+Before diving into OpenSearch, you should know there are multiple search options on Alibaba Cloud. Choosing the wrong one can cost you money or months of migration.
 
 ![Search types on Alibaba Cloud](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_search_types.png)
 
@@ -47,7 +47,7 @@ The decision tree is straightforward:
 - **Search is secondary to your database** — if you already use Lindorm or AnalyticDB and only need basic search, use their built-in search capabilities rather than adding another service.
 - **You need AWS compatibility** — Note that Alibaba Cloud's "OpenSearch" is not the same as AWS OpenSearch Service (which is a fork of Elasticsearch). They share a name but are completely different products with different APIs. If you are migrating from AWS OpenSearch, use Alibaba Cloud's managed Elasticsearch Service, not OpenSearch.
 
-That last point trips people up constantly. I will say it again: **Alibaba Cloud OpenSearch is not AWS OpenSearch.** They are entirely different systems with different query languages, different APIs, and different pricing models.
+That last point often trips people up. I'll say it again: **Alibaba Cloud OpenSearch is not AWS OpenSearch.** They are entirely different systems with different query languages, APIs, and pricing models.
 
 ## OpenSearch Basics
 

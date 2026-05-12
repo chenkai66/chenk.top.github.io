@@ -18,9 +18,9 @@ disableNunjucks: true
 translationKey: "aliyun-pai-1"
 ---
 
-If your team trains or serves any model on Alibaba Cloud, sooner or later you will end up in the PAI console. PAI is the umbrella; underneath it sit the actual workhorses — a notebook product, a distributed training service, a model-serving service, plus a couple of GUI/quick-deploy layers on top. After about eighteen months of running real LLM workloads on it for an AI marketing platform, this series is the field guide I wish someone had handed me before I shipped my first endpoint.
+If your team trains or serves any model on Alibaba Cloud, you'll eventually use the PAI console. PAI is the umbrella; underneath it are the actual workhorses — a notebook product, a distributed training service, a model-serving service, and a few GUI/quick-deploy layers. After about eighteen months of running real LLM workloads on it for an AI marketing platform, this series is the field guide I wish I had before shipping my first endpoint.
 
-This first article is the lay of the land. It is deliberately short on code — articles 2 to 5 are the deep dives. The goal here is so that when I say "DLC job" or "EAS endpoint" later you already know what bucket they fall into.
+This first article is the lay of the land. It is deliberately short on code — articles 2 to 5 are the deep dives. The goal is to help you understand what "DLC job" and "EAS endpoint" mean.
 
 ![Aliyun PAI (1): Platform Overview and the Product Family Map — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/illustration_1.png)
 
@@ -38,9 +38,9 @@ The official "Service architecture" topic spells it out as a four-layer stack:
 
 ![PAI four-layer service architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/fig1_pai_4layer_architecture.png)
 
-Read that bottom-up. The infrastructure layer is the silicon — CPUs, GPUs, RDMA fabric, and ACK Kubernetes underneath. On top of that, *Lingjun* (灵骏) gives you very-high-density AI compute and *general-purpose compute* gives you everyday ECS-backed GPU pools. The platform-and-tools layer is where you spend your day: PyTorch / Megatron / DeepSpeed, plus PAI's optimization toys (TorchAcc, BladeLLM, EasyCkpt, AIMaster), plus the visible products (DSW, DLC, EAS, Designer, FeatureStore, iTAG). The application layer is how PAI plugs into the rest of Alibaba's MaaS world (ModelScope, Bailian/DashScope, Model Studio). The business layer is the marketing slide for industry use cases.
+Read it from the bottom up. The infrastructure layer includes CPUs, GPUs, RDMA fabric, and ACK Kubernetes. Above that, *Lingjun* (灵骏) provides high-density AI compute, while *general-purpose compute* offers everyday ECS-backed GPU pools. The platform-and-tools layer is where you spend most of your time: PyTorch, Megatron, DeepSpeed, PAI's optimization tools (TorchAcc, BladeLLM, EasyCkpt, AIMaster), and the visible products (DSW, DLC, EAS, Designer, FeatureStore, iTAG). The application layer integrates PAI with Alibaba's MaaS world (ModelScope, Bailian/DashScope, Model Studio). The business layer covers industry use cases.
 
-The reason to use PAI instead of raw ECS is that it pre-bakes the CUDA / PyTorch images, mounts your OSS bucket for you, gives you a metrics dashboard, and bills per second.
+Use PAI instead of raw ECS because it pre-configures CUDA and PyTorch images, mounts your OSS bucket, provides a metrics dashboard, and bills per second.
 
 ## The five sub-products you actually touch
 
@@ -54,7 +54,7 @@ After a year and a half of production work I have only ever paid for these, draw
 | **Designer** | 140+ built-in algorithm components, drag-and-drop pipelines, exportable JSON, schedulable in DataWorks | ETL → train → eval flows handed off to non-coders |
 | **Model Gallery** | Wraps DLC + EAS for zero-code deploy and fine-tune of catalogued open-source models | Evaluating a Qwen / DeepSeek / Llama model in 10 minutes |
 
-There's also **iTAG** (data annotation), **PAI-Lingjun** for very large clusters, **PAI-Blade / BladeLLM** for inference optimization, and **FeatureStore**, but unless you're doing >1000-GPU pretraining or building a recommender system, you can ignore them on day one.
+There's also **iTAG** (data annotation), **PAI-Lingjun** for large clusters, **PAI-Blade / BladeLLM** for inference optimization, and **FeatureStore**. Unless you're doing >1000-GPU pretraining or building a recommender system, you can ignore them initially.
 
 The product split maps cleanly onto the ML lifecycle:
 

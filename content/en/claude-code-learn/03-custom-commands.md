@@ -16,13 +16,13 @@ disableNunjucks: true
 translationKey: "claude-code-learn-3"
 ---
 
-Built-in slash commands like `/clear` and `/init` are the visible part of the iceberg. The whole point of the system is that you write your own, and they live in your repo.
+Built-in slash commands like `/clear` and `/init` are the visible part of the iceberg. The main point of the system is for you to write your own commands, which live in your repo.
 
 ![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png)
 
 ## What a slash command is
 
-A file at `.claude/commands/<name>.md`. Contents are a Markdown prompt. Filename becomes the command. After creation you have to restart Claude Code (one of the few places it's not hot-reloaded).
+A file at `.claude/commands/<name>.md`. Contents are a Markdown prompt. Filename becomes the command. After creating the command, you need to restart Claude Code (one of the few places it's not hot-reloaded).
 
 The simplest possible example. Create `.claude/commands/audit.md`:
 
@@ -39,11 +39,11 @@ Restart, then in any session:
 /audit
 ```
 
-The whole prompt fires. You get a structured audit report instead of having to remember the three commands and their order.
+The whole prompt fires. You get a structured audit report without having to remember the three commands and their order.
 
 Two things to notice:
 
-1. The command is just a prompt. There's no DSL, no special syntax. That keeps the surface area tiny.
+1. The command is just a prompt. There's no DSL or special syntax, which keeps the surface area small.
 2. You don't have to repeat yourself. The next time anyone on the team needs an audit, they type `/audit`.
 
 ### How the command system works internally
@@ -100,7 +100,7 @@ And for personal global commands:
 └── auth.json               # Auth token
 ```
 
-The split matters. Team commands go in the project's `.claude/commands/`. Personal workflow commands go in `~/.claude/commands/`. Personal commands are available in every project. Team commands are specific to one repo.
+The split matters. Team commands go in the project's `.claude/commands/`. Personal workflow commands go in `~/.claude/commands/`. Personal commands are available in every project, while team commands are specific to one repo.
 
 ### Naming conventions
 
@@ -116,7 +116,7 @@ Names become the slash command, so keep them short and obvious:
 
 The sweet spot is one word, 4-8 characters, that any team member would guess on their first try. If someone can't guess that `/review` reviews code, the naming is wrong.
 
-Avoid versioning in names (`/review-v2`, `/test-new`). If you need a better version, replace the old file. Git history preserves the old version if you ever need it back.
+Avoid versioning in names (`/review-v2`, `/test-new`). If you need a better version, replace the old file. Git history preserves the old version if you need it later.
 
 ## `$ARGUMENTS` — parameterization
 
@@ -402,7 +402,7 @@ I've watched command libraries grow across three teams. The pattern is consisten
 
 **Month 2:** The commands start getting refined. The `/review` prompt gets better criteria. Somebody adds `/explain` because they keep asking Claude to explain parts of the codebase.
 
-**Month 3+:** The command library stabilizes at 5-10 commands. New ones get added rarely. The existing ones get tweaked for precision. At this point, the commands are effectively the team's shared vocabulary for interacting with AI.
+**Month 3+:** The command library stabilizes at 5-10 commands. New ones get added rarely. The existing ones get tweaked for precision. At this point, the commands are the team's shared vocabulary for interacting with AI.
 
 ### Commands as documentation
 
@@ -413,7 +413,7 @@ Here's a non-obvious benefit: your command library documents your team's workflo
 - What the testing strategy is (`/test`)
 - What the common debugging approach is (`/debug`)
 
-Each command file is a runnable specification of a workflow. That's more useful than a wiki page because it's always up to date (if it weren't, people would fix it because they use it every day).
+Each command file is a runnable specification of a workflow, which is more useful than a wiki page because it's always up to date (if it weren't, people would fix it because they use it every day).
 
 ### Personal vs. team commands
 

@@ -202,7 +202,7 @@ recursive-include src/my_tool/data *.json
 
 ### 先在 TestPyPI 上测试
 
-**务必先在 TestPyPI 测试，再上传至正式 PyPI：**
+**务必先在 TestPyPI 测试，再上传至正式 PyPI。**
 
 ```bash
 # 安装 twine
@@ -668,7 +668,7 @@ jobs:
         # Uses trusted publishing (no API token needed)
 ```
 
-启用 Trusted Publishing 后， PyPI 将信任你的 GitHub Actions 工作流，无需手动管理 API Token。
+启用 Trusted Publishing 后，PyPI 将信任你的 GitHub Actions 工作流，无需手动管理 API Token。
 
 ## 下一步
 

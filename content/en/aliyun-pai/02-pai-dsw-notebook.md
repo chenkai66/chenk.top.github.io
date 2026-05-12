@@ -32,7 +32,7 @@ What's interesting is *what's not in the box*. The DSW container has a system di
 
 ## Picking an instance type
 
-Per the docs, DSW resource types come in two flavors: **public resources** (pay-as-you-go) and **dedicated resources** (subscription on general-purpose compute or Lingjun). For day-to-day work, public is the right answer — you're paying for the GPU minutes you actually use, and the per-second metering means you can spin one up for a 10-minute experiment and not care.
+According to the docs, DSW resource types come in two flavors: **public resources** (pay-as-you-go) and **dedicated resources** (subscription on general-purpose compute or Lingjun). For day-to-day work, public resources are the right choice — you pay for the GPU minutes you actually use, and the per-second metering lets you spin one up for a 10-minute experiment without worry.
 
 What I actually pick:
 

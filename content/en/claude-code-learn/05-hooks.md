@@ -17,13 +17,13 @@ disableNunjucks: true
 translationKey: "claude-code-learn-5"
 ---
 
-If MCP is how Claude reaches out, Hooks are how you reach in. They are the way to enforce — not just hope for — the rules you care about.
+If MCP is how Claude reaches out, hooks are how you reach in. They enforce the rules you care about, not just hope for them.
 
 ![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.png)
 
 ## The model
 
-A Hook is a shell command. Claude Code runs it at one of a few well-defined moments. The two you'll use most:
+A hook is a shell command that Claude Code runs at specific moments. The two you'll use most:
 
 - **`PreToolUse`** — runs before a tool is invoked. Exit code 0 lets the tool proceed; non-zero blocks it.
 - **`PostToolUse`** — runs after a tool returns. Exit code is informational; you can use it to format files, run linters, log.
@@ -34,7 +34,7 @@ There are others (`UserPromptSubmit`, `Stop`, `Notification`, `SubagentStop`). F
 
 ## The complete hook lifecycle
 
-Let me walk through exactly what happens when Claude calls a tool and hooks are configured. Understanding this lifecycle is key to writing hooks that work correctly.
+Let's walk through what happens when Claude calls a tool and hooks are configured. Understanding this lifecycle is key to writing effective hooks.
 ![Where each hook fires along a single conversation turn.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/fig1_lifecycle.png)
 *Where each hook fires along a single conversation turn.*
 
@@ -118,7 +118,7 @@ Runs when Claude finishes its response and is about to yield control back to the
 
 ### Notification — the alert handler
 
-Runs when Claude Code sends a desktop notification (e.g., when a long task completes). You can use this to route notifications to other channels — Slack, email, webhook.
+Runs when Claude Code sends a desktop notification (e.g., when a long task completes). Use it to route notifications to other channels like Slack, email, or webhooks.
 
 ### SubagentStop — the delegation monitor
 
@@ -143,7 +143,7 @@ But for anything beyond a one-liner, use a script file.
 
 **Hooks have a timeout.** By default, hooks must complete within a few seconds. A hook that hangs will be killed and the tool call proceeds (or is blocked, depending on the hook type). Don't make HTTP calls in hooks unless you set a tight timeout.
 
-**Hooks run synchronously.** Each hook must finish before the next one starts. Five hooks at 200ms each is a full second of delay on every tool call. Keep hooks fast.
+**Hooks run synchronously.** Each hook must finish before the next one starts. Five hooks at 200ms each add up to a full second of delay per tool call. Keep hooks fast.
 
 **Hooks inherit the Claude Code process environment.** They have access to your shell's environment variables, PATH, and so on. But they don't run in your interactive shell — no shell aliases, no `.bashrc` functions.
 

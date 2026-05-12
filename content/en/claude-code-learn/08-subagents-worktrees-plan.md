@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-8"
 ---
 
-After hooks, the next thing that changes how Claude Code feels is *concurrency control*. Not concurrency in the threading sense — in the "how many things is the model doing for me, in how much isolation, with how much oversight" sense.
+After hooks, the next thing that changes how Claude Code feels is *concurrency control*. Not in the threading sense, but in terms of how many tasks the model handles, their isolation, and the level of oversight.
 
 Three features, in escalating order of trust required.
 
@@ -44,7 +44,7 @@ There are three ways:
 
 ### A real plan mode walkthrough
 
-Let me show exactly what happens. Say I am working on an Express API and I want to add rate limiting:
+Let me show exactly what happens. Say I'm working on an Express API and want to add rate limiting:
 
 ```yaml
 You: Add rate limiting to the API. 100 requests per minute per IP.
@@ -94,7 +94,7 @@ Now I can see: step 1 caught that the package is in devDependencies. Step 3 tell
 
 ### The common mistake
 
-Skipping plan mode "because the task is small." Small tasks have the highest density of "wait, that is not what I meant." A one-line fix that touches the wrong file is worse than a large feature with a clear plan.
+Skipping plan mode because the task is small. Small tasks often lead to misunderstandings. A one-line fix in the wrong file is worse than a large feature with a clear plan.
 
 ### Plan mode modifiers
 
@@ -125,7 +125,7 @@ After Claude shows the plan:
 
 ## Sub-agents — for things you can run in parallel
 
-A sub-agent is a Claude Code instance the parent agent spawns to handle a scoped task. It gets its own context window, its own tool set, and its own instructions. The parent orchestrates; the sub-agents do the work.
+A sub-agent is a Claude Code instance spawned by the parent agent to handle a scoped task. It has its own context window, tool set, and instructions. The parent orchestrates, while the sub-agents do the work.
 
 
 
@@ -230,7 +230,7 @@ Claude: Based on the research agent's findings, here's how
 
 ### What sub-agents buy you
 
-**Context isolation.** The sub-agent's context window is its own. The parent's stays clean. This is critical when you are working on a complex task and need research done without polluting your main context with 30 file reads.
+**Context isolation.** The sub-agent's context window is separate. The parent's remains clean. This is crucial when working on a complex task and need research without cluttering the main context with 30 file reads.
 
 **Tool restriction.** A research agent literally cannot edit files. That is safety as architecture, not as discipline. You do not have to trust the model to avoid editing — it does not have the capability.
 
@@ -259,7 +259,7 @@ Claude: Here are the results from all three agents: ...
 
 **Coordination.** The parent has to merge the results. If sub-agent A finds something that sub-agent B needs to know, they cannot talk to each other. Plan that step explicitly.
 
-**Startup time.** Spawning a sub-agent is not instant. For a task that takes 10 seconds, the overhead of spawning is not worth it.
+**Startup time.** Spawning a sub-agent is not instant. For a 10-second task, the overhead isn't worth it.
 
 ### When sub-agents are the wrong answer
 

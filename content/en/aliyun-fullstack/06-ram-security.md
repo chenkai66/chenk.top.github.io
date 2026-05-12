@@ -21,14 +21,14 @@ translationKey: "aliyun-fullstack-6"
 
 I once found a DashScope API key hardcoded in a public GitHub repo. It was mine. Someone had forked a demo I pushed months earlier, and the key was sitting in a config file I forgot to gitignore. By the time I noticed, the key had been used to generate 14,000 Qwen API calls in a single weekend. The bill was not catastrophic — DashScope per-token pricing is forgiving — but the lesson was. I had treated cloud security as something I would figure out later. "Later" arrived as a billing alert at 2 AM on a Sunday.
 
-That was the day I set up RAM users, rotated every access key, enabled MFA, and started using STS for anything that touches a frontend. This article is everything I learned in the process, structured so you can do it in an afternoon instead of learning it from an incident.
+That day, I set up RAM users, rotated all access keys, enabled MFA, and started using STS for anything touching a frontend. This article covers everything I learned, structured so you can do it in an afternoon instead of learning it from an incident.
 
 
 Security groups — the network-layer firewall — are covered in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). This article is about the identity layer: who can do what, how to encrypt data, and how to audit everything. For Terraform-managed security, see [Terraform Part 6: LLM Gateway and Secrets](/en/terraform-agents/06-llm-gateway-and-secrets/).
 
 ## The Security Mental Model
 
-Cloud security is not a single feature you turn on. It is a stack of independent layers, each covering a different failure mode. Miss one layer and the others still protect you — that is the principle of defense in depth.
+Cloud security isn't a single feature you turn on. It's a stack of independent layers, each covering a different failure mode. If you miss one layer, the others still protect you—that's the principle of defense in depth.
 
 ![Alibaba Cloud security model overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_security_model.png)
 
@@ -41,21 +41,21 @@ I think about it as four pillars:
 | **Encryption** | Is the data protected at rest and in transit? | KMS, SSL certificates | KMS, ACM |
 | **Auditing** | Who did what, and when? | ActionTrail | CloudTrail |
 
-Every security decision you make falls into one of these four buckets. When something goes wrong — and it will — the audit trail tells you which of the other three failed. When you design access for a new team, you walk through all four: create identities, assign permissions, encrypt their data, and log their actions.
+Every security decision you make fits into one of these four categories. When something goes wrong—and it will—the audit trail shows which of the other three failed. When designing access for a new team, you go through all four steps: create identities, assign permissions, encrypt data, and log actions.
 
-The mental model maps cleanly to AWS IAM, which is intentional. Alibaba Cloud built RAM as a near-equivalent to AWS IAM, with the same conceptual hierarchy: root account at the top, RAM users underneath, policies granting permissions, roles for cross-service and cross-account access. If you have used AWS IAM, you already know 80% of what RAM does. The remaining 20% is naming differences and a few features that work slightly differently.
+The mental model aligns well with AWS IAM, which is intentional. Alibaba Cloud designed RAM to be similar to AWS IAM, with the same conceptual hierarchy: root account at the top, RAM users below, policies granting permissions, and roles for cross-service and cross-account access. If you've used AWS IAM, you already know 80% of what RAM does. The remaining 20% involves naming differences and a few features that work slightly differently.
 
 One critical difference: Alibaba Cloud's root account is called the "Alibaba Cloud Account" or sometimes the "primary account." It is not called "root" in the console, but functionally it is the same thing — an all-powerful identity that should never be used for daily work.
 
 ## RAM: Resource Access Management
 
-RAM is the identity and access management system for Alibaba Cloud. Every API call, every console click, every CLI command is authenticated and authorized through RAM. Understanding RAM is not optional — it is the foundation that everything else in this article builds on.
+RAM is the identity and access management system for Alibaba Cloud. Every API call, console click, and CLI command is authenticated and authorized through RAM. Understanding RAM is essential—it's the foundation for everything else in this article.
 
 ![RAM user, group, and role hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_ram_hierarchy.png)
 
 ### The Alibaba Cloud Account (Root)
 
-When you sign up for Alibaba Cloud, you get an Alibaba Cloud Account. This is the root identity. It has unrestricted access to every service, every resource, every billing setting. It can create and delete RAM users, change payment methods, close the account entirely.
+When you sign up for Alibaba Cloud, you get an Alibaba Cloud Account, which is the root identity. It has unrestricted access to every service, resource, and billing setting. It can create and delete RAM users, change payment methods, and even close the account.
 
 You should use this account for exactly three things:
 
@@ -67,7 +67,7 @@ For everything else — development, deployment, operations, monitoring — use 
 
 ### Creating RAM Users
 
-A RAM user is a permanent identity within your Alibaba Cloud Account. Each user gets their own login credentials (password for console, AccessKey for API/CLI) and their own set of permissions.
+A RAM user is a permanent identity within your Alibaba Cloud Account. Each user gets their own login credentials (password for the console, AccessKey for API/CLI) and a unique set of permissions.
 
 Create a RAM user via CLI:
 
@@ -100,7 +100,7 @@ This returns an AccessKeyId and AccessKeySecret. The secret is shown exactly onc
 
 ### Setting Up MFA
 
-Multi-factor authentication adds a second layer to the identity pillar. Even if someone steals a password, they cannot log in without the TOTP code from a phone app.
+Multi-factor authentication adds a second layer to the identity pillar. Even if someone steals a password, they can't log in without the TOTP code from a phone app.
 
 Enable virtual MFA for a RAM user:
 
@@ -124,7 +124,7 @@ For the root account specifically, go to the console: **Account Management > Sec
 
 ## RAM Groups
 
-Managing permissions per user does not scale. When you have 3 developers, attaching policies to each user is fine. When you have 30, it becomes a maintenance nightmare. One developer changes teams and you forget to remove their old permissions. Another developer joins and you copy-paste policies from someone else, accidentally granting production delete access to a junior hire.
+Managing permissions per user doesn't scale. With 3 developers, attaching policies to each user is manageable. With 30, it becomes a maintenance nightmare. If a developer changes teams, you might forget to remove their old permissions. If a new developer joins, you might copy-paste policies, accidentally granting production delete access to a junior hire.
 
 Groups solve this. A RAM group is a container for users. You attach policies to the group, and every user in the group inherits those policies. When someone changes teams, you move them between groups. When a new hire starts, you add them to the right group and they get exactly the permissions they need.
 

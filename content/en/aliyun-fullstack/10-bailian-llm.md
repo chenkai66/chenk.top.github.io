@@ -26,13 +26,13 @@ This is not a shallow overview. By the end you will understand the full model ca
 
 ## Bailian vs DashScope: what is what
 
-The naming confuses everyone, including Alibaba's own docs sometimes. Here is the truth:
+The naming confuses everyone, even Alibaba's own documentation sometimes. Here’s the truth:
 
 **Bailian (百炼)** is the product platform. It lives at `bailian.console.aliyun.com`. This is where you manage API keys, browse the model catalog, launch fine-tuning jobs, build RAG applications, create prompt templates, evaluate model performance, and check billing. Think of it as the control plane.
 
 **DashScope** is the API service. Every HTTP call hits `dashscope.aliyuncs.com`. The Python SDK is `pip install dashscope`. When your code calls a model, it is talking to DashScope. When you look at your bill or deploy a fine-tuned model, you are using Bailian.
 
-In practice: you open Bailian to get your API key and configure things, then you write code against DashScope to actually use the models.
+In practice, you open Bailian to get your API key and configure things, then write code against DashScope to use the models.
 
 ### How this maps to AWS
 
@@ -51,7 +51,7 @@ For a deep dive into the Bailian platform itself, see our dedicated [Bailian ser
 
 ## The Qwen model family
 
-Qwen is not one model. It is a family of models spanning text, vision, audio, code, math, and multimodal understanding. Here is what matters for production:
+Qwen is not a single model; it's a family of models covering text, vision, audio, code, math, and multimodal understanding. Here’s what matters for production:
 
 ![Qwen model family overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_model_family.png)
 
@@ -80,7 +80,7 @@ Qwen is not one model. It is a family of models spanning text, vision, audio, co
 | `wan2.5-i2v-plus` | Image → Video | 5-second video from starting frame | Per-second of video |
 | `qwen3-tts-flash` | Text → Audio | Speech synthesis, 40+ voices, dialect support | 0.8 CNY / 10K characters |
 
-Each of these modalities has its own API pattern and its own set of gotchas. The rest of this article covers them one by one.
+Each of these modalities has its own API pattern and set of gotchas. The rest of this article covers them one by one.
 
 ## DashScope API: OpenAI-compatible
 

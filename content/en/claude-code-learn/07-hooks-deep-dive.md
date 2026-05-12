@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-7"
 ---
 
-Chapter 5 was the conceptual tour of hooks. This one is the field guide. Out of the 100-script reference repo, ten earn their place in every serious project I run. Those are the ten I will walk through, with code.
+Chapter 5 provided a conceptual tour of hooks. This chapter is the field guide. From the 100-script reference repo, ten scripts earn their place in every serious project I run. I'll walk through these ten with code.
 
 All examples assume Node 18+, save scripts to `./hooks/`, mark them `chmod +x`, and wire them in `.claude/settings.json` like:
 
@@ -31,7 +31,7 @@ All examples assume Node 18+, save scripts to `./hooks/`, mark them `chmod +x`, 
 }
 ```
 
-Before we dig in, let me lay out the hook lifecycle so the code that follows makes sense:
+Before we dive in, here's the hook lifecycle to make the following code clear:
 
 - **PreToolUse** fires *before* Claude executes a tool. Exit code 0 means "allow." Exit code 2 means "block this call." Anything you write to stderr gets fed back to the model as an explanation.
 - **PostToolUse** fires *after* the tool returns. Exit code 1 surfaces errors to the model. Exit code 2 has no special meaning here — the action already happened.
@@ -54,7 +54,7 @@ process.stdin.on('end', () => {
 I will skip that preamble in some listings below for brevity, but every real hook starts with it.
 
 ![Hook I/O contract: stdin payload in, exit code plus stderr out](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
-*Every hook is a script that reads a JSON payload from stdin and signals back via exit code (verdict) and stderr (explanation). The matcher in settings.json picks which hooks see each tool call.*
+*Each hook is a script that reads a JSON payload from stdin and signals back via exit code (verdict) and stderr (explanation). The matcher in settings.json determines which hooks handle each tool call.*
 
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
@@ -223,7 +223,7 @@ The regex list is short on purpose. Long blocklists get ignored when they cause 
 
 ## 3. bash-whitelist — for production-adjacent boxes
 
-The inverse of the blacklist, for repos that touch production. Allow only an explicit set of binaries.
+The inverse of the blacklist, for repos that touch production. It allows only an explicit set of binaries.
 
 ### The complete code
 
@@ -277,7 +277,7 @@ process.stdin.on('end', () => {
 
 ### Why whitelist over blacklist
 
-Whitelists win where blocklists lose: you cannot accidentally allow something new. When a new binary appears on the system, it is blocked by default. The tradeoff is maintenance — you need to add every tool you legitimately use.
+Whitelists succeed where blocklists fail: you can't accidentally allow something new. New binaries are blocked by default. The tradeoff is maintenance—you need to add every legitimate tool.
 
 I run the blacklist on dev machines and the whitelist on anything production-adjacent.
 
@@ -442,7 +442,7 @@ process.stdin.on('end', () => {
 ### Why exit 0, not exit 1
 
 ![Exit code semantics differ between PreToolUse and PostToolUse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png)
-*The same exit code means very different things depending on the lifecycle phase. Exit 2 only blocks in PreToolUse; in PostToolUse the side-effect already landed.*
+*The same exit code means different things depending on the lifecycle phase. Exit 2 only blocks in PreToolUse; in PostToolUse, the side-effect has already occurred.*
 
 PostToolUse runs *after* the edit. Exit code 2 does not roll anything back — the side-effect already happened. Using exit 1 would surface the error to the model, which might then try to "fix" a formatting issue by re-editing the file, creating a loop. For formatting, just log the warning and move on.
 
@@ -461,7 +461,7 @@ The format happens silently. Claude does not even mention it.
 
 ## 6. test-on-edit — fail fast
 
-PostToolUse on `Edit|MultiEdit` for source files. This is the single hook that taught Claude to write better code over time on my repos.
+PostToolUse on `Edit|MultiEdit` for source files. This hook taught Claude to write better code over time on my repos.
 
 ### The complete code
 
@@ -518,7 +518,7 @@ process.stdin.on('end', () => {
 
 ### Why exit 1, not exit 2
 
-Exit code 1 in PostToolUse surfaces the failure to the model. The model sees the test output and tries to fix the code. This creates a feedback loop:
+Exit code 1 in PostToolUse surfaces the failure to the model. The model sees the test output and tries to fix the code, creating a feedback loop:
 
 ```
 Claude: I'll update the validation logic...
@@ -691,7 +691,7 @@ cat .claude/tool-calls.jsonl | jq -r '.tool' | sort | uniq -c | sort -rn
 cat .claude/tool-calls.jsonl | jq -r 'select(.ts > "2026-04-24T10:15") | "\(.ts) \(.tool) \(.file // .cmd // "")"'
 ```
 
-You will not look at this file every day. The day you do, you will be glad it exists.
+You won't look at this file every day, but when you do, you'll be glad it exists.
 
 ---
 
@@ -766,7 +766,7 @@ process.stdin.on('end', () => {
 
 ### The settings.json wiring (two entries)
 
-This hook needs to be wired on both Read (to track) and Edit/MultiEdit (to enforce):
+This hook needs to be wired for both Read (to track) and Edit/MultiEdit (to enforce):
 
 ```json
 {
@@ -830,7 +830,7 @@ process.stdin.on('end', () => {
 
 ### When this actually matters
 
-I run this on the box that handles after-hours pings. If a bot tries to do something destructive at 2am, that is almost certainly a misfire. The hook is not about enforcing work-life balance for Claude — it is about catching runaway automation that should not be running at all.
+I run this on the box that handles after-hours pings. If a bot tries to do something destructive at 2 AM, it's almost certainly a misfire. The hook isn't about enforcing work-life balance for Claude—it's about catching runaway automation that shouldn't be running at all.
 
 ---
 

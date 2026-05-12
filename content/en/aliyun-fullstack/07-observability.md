@@ -21,14 +21,14 @@ translationKey: "aliyun-fullstack-7"
 
 The worst production outage I ever caused took three hours to diagnose. A Node.js service was returning 502s intermittently — maybe 5% of requests — and I had nothing. No centralized logs (each ECS instance had its own `/var/log/` and I was SSH-ing into them one at a time). No metrics dashboards (I was running `top` and `df -h` in terminals). No tracing (I was adding `console.log` timestamps to try to figure out which downstream call was hanging). Three hours later I found it: a connection pool to RDS was exhausting under load because a forgotten cron job was holding connections open. The fix was two lines of code. The diagnosis was three hours of misery because I had zero observability.
 
-The lesson was simple and expensive: observability is not the thing you set up after your app is stable. It is the thing you set up before you deploy to production. Ideally before you even write the application code, because the observability stack shapes how you structure your logging, how you propagate request IDs, and how you instrument your dependencies. Set it up last and you retrofit everything. Set it up first and everything slots in naturally.
+The lesson was simple and costly: observability isn't something you set up after your app is stable. It's something you set up before deploying to production. Ideally, before you even write the application code, because the observability stack shapes how you structure your logging, propagate request IDs, and instrument your dependencies. Set it up last, and you'll have to retrofit everything. Set it up first, and everything will fit naturally.
 
 
 This article covers the full observability stack on Alibaba Cloud: SLS for logs, CloudMonitor for metrics, and ARMS for traces. By the end you will have a working monitoring setup for the production web application we have been building throughout this series. The ECS instances come from [Part 2](/en/aliyun-fullstack/02-ecs-compute/), the network from [Part 3](/en/aliyun-fullstack/03-vpc-networking/). For the Terraform approach to provisioning these monitoring resources, see [Terraform Part 7: Observability and Cost Control](/en/terraform-agents/07-observability-and-cost-control/).
 
 ## The Three Pillars of Observability
 
-The industry has converged on three signals that together give you a complete picture of what your system is doing:
+The industry has converged on three signals that together provide a complete picture of what your system is doing:
 
 ![The three pillars of observability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_three_pillars.png)
 
@@ -38,9 +38,9 @@ The industry has converged on three signals that together give you a complete pi
 
 **Traces** tell you why it happened. A trace says "this specific request spent 15ms in the API gateway, 200ms in the order service, 1800ms waiting for a database query, and 50ms serializing the response." Traces follow a single request as it traverses multiple services. They are the X-ray that reveals which component in a distributed system is the bottleneck.
 
-You need all three. Metrics tell you something is wrong (error rate spiked). Logs tell you what is wrong (database timeout errors). Traces tell you why it is wrong (one specific query on the orders table is doing a full table scan because an index was dropped).
+You need all three. Metrics tell you something is wrong (error rate spiked). Logs tell you what is wrong (database timeout errors). Traces tell you why it's wrong (one specific query on the orders table is doing a full table scan because an index was dropped).
 
-On Alibaba Cloud, the mapping is clean:
+On Alibaba Cloud, the mapping is straightforward:
 
 | Pillar | Alibaba Cloud Service | AWS Equivalent | What It Does |
 |---|---|---|---|
@@ -52,7 +52,7 @@ These three services integrate with each other. CloudMonitor can trigger alerts 
 
 ## SLS: Simple Log Service
 
-SLS is the backbone of observability on Alibaba Cloud. Despite the name, it is not simple — it is a fully-featured log analytics platform that combines collection, storage, indexing, querying, visualization, and alerting in one service. Think of it as AWS CloudWatch Logs and Elasticsearch merged together with a SQL query engine on top.
+SLS is the backbone of observability on Alibaba Cloud. Despite the name, it's not simple—it's a fully-featured log analytics platform that combines collection, storage, indexing, querying, visualization, and alerting in one service. Think of it as AWS CloudWatch Logs and Elasticsearch merged with a SQL query engine on top.
 
 ![SLS log collection pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
@@ -127,7 +127,7 @@ If you are coming from AWS, the mapping is worth clarifying because SLS is not a
 | Schema-on-read | Yes, with indexing | Partially (Insights) |
 | Real-time streaming | Built-in consumer groups | Kinesis Data Streams (separate) |
 
-The biggest difference: SLS combines log storage, search, and analytics in one service. On AWS, you would use CloudWatch Logs for collection, maybe export to S3, set up Elasticsearch (OpenSearch) for search, and use Athena for SQL analytics. SLS does all of that in one place. The tradeoff is vendor lock-in — SLS query syntax is not standard across clouds.
+The biggest difference: SLS combines log storage, search, and analytics in one service. On AWS, you would use CloudWatch Logs for collection, possibly export to S3, set up Elasticsearch (OpenSearch) for search, and use Athena for SQL analytics. SLS does all of that. in one place. The tradeoff is vendor lock-in — SLS query syntax is not standard across clouds.
 
 ### Log Query Syntax
 

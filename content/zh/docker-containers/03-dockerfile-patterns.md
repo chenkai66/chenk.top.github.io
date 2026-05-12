@@ -16,7 +16,7 @@ series_order: 3
 translationKey: "docker-containers-3"
 ---
 
-大多数教程只展示一个 5 行的 Dockerfile 就匆匆略过。结果你部署到生产环境后才发现：镜像体积高达 1.2 GB，哪怕只改一行代码也要花 8 分钟构建，安全团队更是在报告中反复指出——那些你甚至不知道自己安装过的软件包存在严重漏洞。编写一份优秀的 Dockerfile 是一项关键技能，它在每次 CI 流水线运行时都会为你带来持续回报。
+大多数教程只展示一个 5 行的 Dockerfile 就匆匆略过。结果你部署到生产环境后才发现，镜像体积高达 1.2 GB，哪怕只改一行代码也要花 8 分钟构建，安全团队更是在报告中反复指出——那些你甚至不知道自己安装过的软件包存在严重漏洞。编写一份优秀的 Dockerfile 是一项关键技能，在每次 CI 流水线运行时都能带来持续回报。
 
 ## 每一条 Dockerfile 指令详解
 
@@ -166,7 +166,7 @@ EXPOSE 8443/udp
 
 ### CMD 和 ENTRYPOINT — 容器启动行为
 
-这两条指令共同定义容器启动时执行的内容。理解其差异至关重要。
+这两条指令共同定义容器启动时执行的内容，理解其差异至关重要。
 
 ```dockerfile
 # CMD：默认命令（可被 `docker run` 完全覆盖）
@@ -292,7 +292,7 @@ REPOSITORY    TAG       IMAGE ID       CREATED          SIZE
 flask-naive   latest    a1b2c3d4e5f6   10 seconds ago   1.02GB
 ```
 
-一个仅含 3 个依赖的 Flask 应用，镜像竟达 **1.02 GB**。问题在于：
+一个仅含 3 个依赖的 Flask 应用，镜像竟达 **1.02 GB**，问题在于：
 
 1. 使用 `python:3.11`（完整 Debian + 构建工具）—— 占用 900+ MB  
 2. `COPY .` 复制了全部内容（包括 `.git`、`__pycache__`、`.env` 等）  
@@ -506,7 +506,7 @@ docker build -t myapp .
 
 ## 多阶段构建（Multi-Stage Builds）
 
-多阶段构建是 Docker 最强大的特性之一，它允许你在大型构建镜像（含编译器、构建工具等）中完成构建，再仅将最终产物复制到轻量级运行时镜像中。
+多阶段构建是 Docker 最强大的特性之一，允许你在大型构建镜像（含编译器、构建工具等）中完成构建，再仅将最终产物复制到轻量级运行时镜像中。
 
 ![Multi-stage build](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-multi-stage-build.png)
 
@@ -538,7 +538,7 @@ CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
 
 ### Go 示例（极致尺寸压缩）
 
-Go 编译为静态二进制文件，从而实现最小镜像。
+Go 编译为静态二进制文件，实现最小镜像。
 
 ```dockerfile
 # 阶段 1：构建
@@ -715,4 +715,4 @@ docker build --no-cache -t myapp .
 
 ## 下一步
 
-你现在已能编写出体积小、安全性高、构建速度快的 Dockerfile。但孤立的容器价值有限——它需要与外部世界通信，并持久化数据。下一篇文章将讲解 Docker 网络（容器如何与彼此及宿主机通信）和卷（Volume，如何让数据在容器重启后依然存在）。这些是构建多容器应用（如 Docker Compose）前必须掌握的核心基石。
+你现在已能编写出体积小、安全性高、构建速度快的 Dockerfile。但孤立的容器价值有限——它需要与外部世界通信并持久化数据。下一篇文章将讲解 Docker 网络（容器如何与彼此及宿主机通信）和卷（Volume，如何让数据在容器重启后依然存在），这些都是构建多容器应用（如 Docker Compose）前必须掌握的核心基石。
