@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Claude Code 实战</a>
 · 第 7 篇</div><h1>Claude Code 实战（七）：十个实用 Hooks 配方</h1><p class=deck>从参考仓库的 100 个脚本里挑出 10 个，每一个都给：它做什么、JS 全文、settings.json 的接线方式、它会咬人的地方。PreToolUse 守安全，PostToolUse 做卫生，那些朴素但救命的脚本。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-24>April 24, 2026</time> · 8 分钟 · 1639 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/hooks/ class=tag>#hooks</a><a href=/zh/tags/security/ class=tag>#security</a><a href=/zh/tags/workflow/ class=tag>#workflow</a></div><a class="pill pill-outline" href=/en/claude-code-learn/07-hooks-deep-dive/>Read in English →</a></div></header><div class=prose><p>第五章我们梳理了 Hook 的基本概念，本章则聚焦实战应用。在收录百余个脚本的参考库中，仅有这十个被我纳入所有严肃项目的标准配置。我们逐一介绍这十个 Hook，并附上代码级操作说明。</p><p>所有示例默认 Node 18+ 环境，脚本存到 <code>./hooks/</code>，加上 <code>chmod +x</code> 权限，然后在 <code>.claude/settings.json</code> 里这样配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2026-04-24>April 24, 2026</time> · 24 分钟 · 5817 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/hooks/ class=tag>#hooks</a><a href=/zh/tags/security/ class=tag>#security</a><a href=/zh/tags/workflow/ class=tag>#workflow</a></div><a class="pill pill-outline" href=/en/claude-code-learn/07-hooks-deep-dive/>Read in English →</a></div></header><div class=prose><p>第五章我们梳理了 Hook 的基本概念，本章则聚焦实战应用。在收录百余个脚本的参考库中，仅有这十个被我纳入所有严肃项目的标准配置。我们逐一介绍这十个 Hook，并附上代码级操作说明。</p><p>所有示例默认 Node 18+ 环境，脚本存到 <code>./hooks/</code>，加上 <code>chmod +x</code> 权限，然后在 <code>.claude/settings.json</code> 里这样配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -34,7 +34,25 @@
 </span></span><span class=line><span class=cl>    <span class=p>]</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png alt="Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual" loading=lazy decoding=async class=content-image></figure></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png alt="Hook 的 I/O 契约：stdin 输入 JSON，退出码 + stderr 输出" loading=lazy decoding=async class=content-image></figure><em>每个 Hook 都是一个从 stdin 读取 JSON 载荷的脚本，通过退出码（判决）和 stderr（说明）回传结果。settings.json 里的 matcher 决定哪些 Hook 能看到本次工具调用。</em></p><h2 id=1-block-env-read--保护-secrets>1. block-env-read — 保护 secrets</h2><p>这是性价比最高（ROI 最高）的一个 Hook。防止 <code>Read</code> 和 <code>Grep</code> 触碰 <code>.env</code>、<code>id_rsa</code>、<code>credentials.json</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><p>在进入正题前，先把 Hook 的生命周期说清楚，后面的代码才好读：</p><ul><li><strong>PreToolUse</strong> 在 Claude 执行工具<em>之前</em>触发。退出码 0 表示"放行"，退出码 2 表示"拦截这次调用"。任何写到 stderr 的内容都会作为解释回喂给模型。</li><li><strong>PostToolUse</strong> 在工具返回<em>之后</em>触发。退出码 1 会把错误暴露给模型；退出码 2 在这里没有特殊含义——副作用已经发生了。</li><li><strong>stdin</strong> 携带一个包含 <code>tool_name</code> 和 <code>tool_input</code> 的 JSON 载荷。每个 Hook 都从 stdin 读入。</li></ul><p>所有 Hook 共用的开头模板：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// t.tool_name  → &#34;Read&#34;、&#34;Bash&#34;、&#34;Edit&#34; 等
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=c1>// t.tool_input → Claude 传给工具的参数
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=nx>main</span><span class=p>(</span><span class=nx>t</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><p>下面的代码清单为了简洁，会跳过这段开头，但每个真实 Hook 都从这里起步。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png alt="Hook 的 I/O 契约：stdin 输入 JSON，退出码 + stderr 输出" loading=lazy decoding=async class=content-image></figure><em>每个 Hook 都是一个从 stdin 读取 JSON 载荷的脚本，通过退出码（判决）和 stderr（说明）回传结果。settings.json 里的 matcher 决定哪些 Hook 能看到本次工具调用。</em></p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png alt="Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=1-block-env-read--保护-secrets>1. block-env-read — 保护 secrets</h2><p>这是性价比最高（ROI 最高）的一个 Hook。防止 <code>Read</code> 和 <code>Grep</code> 触碰 <code>.env</code>、<code>id_rsa</code>、<code>credentials.json</code>。</p><h3 id=完整代码>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -45,92 +63,1034 @@
 </span><span class=lnt> 9
 </span><span class=lnt>10
 </span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
-</span></span></span><span class=line><span class=cl><span class=ch></span><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=kr>await</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>c</span> <span class=k>of</span> <span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>)</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>p</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span> <span class=o>||</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>path</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>sensitive</span> <span class=o>=</span> <span class=p>[</span><span class=s1>&#39;.env&#39;</span><span class=p>,</span> <span class=s1>&#39;credentials.json&#39;</span><span class=p>,</span> <span class=s1>&#39;secrets.yaml&#39;</span><span class=p>,</span> <span class=s1>&#39;id_rsa&#39;</span><span class=p>,</span> <span class=s1>&#39;.aws/credentials&#39;</span><span class=p>];</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=nx>sensitive</span><span class=p>.</span><span class=nx>some</span><span class=p>(</span><span class=nx>s</span> <span class=p>=&gt;</span> <span class=nx>p</span><span class=p>.</span><span class=nx>includes</span><span class=p>(</span><span class=nx>s</span><span class=p>)))</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Blocked: </span><span class=si>${</span><span class=nx>p</span><span class=si>}</span><span class=sb> matches a sensitive file pattern.`</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>   <span class=c1>// 2 = block, only valid in PreToolUse
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
-</span></span></code></pre></td></tr></table></div></div><p>把它挂在 <code>Read|Grep|MultiEdit|Edit|Write</code> 上。在 PreToolUse 阶段，退出码 2 将阻断工具调用；stderr 输出的内容会原样传递给模型，用于说明拦截原因。</p><h2 id=2-bash-blacklist--阻止-rm--rf->2. bash-blacklist — 阻止 <code>rm -rf /</code></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.png alt="Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual" loading=lazy decoding=async class=content-image></figure></p><p>最常见的自伤操作。挂在 <code>Bash</code> 的 PreToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/block-env-read.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PreToolUse on Read|Grep|Edit|Write|MultiEdit
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>p</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span>
+</span></span><span class=line><span class=cl>          <span class=o>||</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>path</span>
+</span></span><span class=line><span class=cl>          <span class=o>||</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>pattern</span>
+</span></span><span class=line><span class=cl>          <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>sensitive</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;.env&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;.env.local&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;.env.production&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;credentials.json&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;secrets.yaml&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;secrets.yml&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;id_rsa&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;id_ed25519&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;.aws/credentials&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;.gcloud/credentials.json&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;service-account.json&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;.npmrc&#39;</span><span class=p>,</span>           <span class=c1>// 可能包含 token
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=s1>&#39;.pypirc&#39;</span><span class=p>,</span>          <span class=c1>// 可能包含 token
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=p>];</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>sensitive</span><span class=p>.</span><span class=nx>some</span><span class=p>(</span><span class=nx>s</span> <span class=p>=&gt;</span> <span class=nx>p</span><span class=p>.</span><span class=nx>includes</span><span class=p>(</span><span class=nx>s</span><span class=p>)))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Blocked: &#34;</span><span class=si>${</span><span class=nx>p</span><span class=si>}</span><span class=sb>&#34; matches sensitive pattern. If you need values from this file, ask the user to provide them directly.`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=settingsjson-接线>settings.json 接线</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Read|Grep|Edit|Write|MultiEdit&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/block-env-read.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=自测>自测</h3><p>接入前必须先测。给 stdin 喂一个伪造的载荷：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 应当被拦截（exit 2）：</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Read&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./config/.env.local&#34;}}&#39;</span> <span class=p>|</span> node ./hooks/block-env-read.js
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># 期望输出：</span>
+</span></span><span class=line><span class=cl><span class=c1># Blocked: &#34;./config/.env.local&#34; matches sensitive pattern. ...</span>
+</span></span><span class=line><span class=cl><span class=c1># Exit code: 2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 应当放行（exit 0）：</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Read&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./src/app.ts&#34;}}&#39;</span> <span class=p>|</span> node ./hooks/block-env-read.js
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># 期望输出：</span>
+</span></span><span class=line><span class=cl><span class=c1># Exit code: 0</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=触发时-claude-看到什么>触发时 Claude 看到什么</h3><p>Hook 拦截调用时，stderr 文本会作为反馈交给 Claude。真实会话大致是这样的：</p><pre tabindex=0><code>Claude: I&#39;ll read the environment configuration...
+[Hook blocked Read on .env.local]
+Claude: I can&#39;t read .env.local directly as it contains sensitive data.
+        Could you share the specific variable names you&#39;d like me to use?
+        For example: DATABASE_URL, API_KEY, etc.
+</code></pre><p>模型能优雅地恢复，原因在于 stderr 信息明确告诉了它<em>替代方案</em>。</p><hr><h2 id=2-bash-blacklist--阻止-rm--rf->2. bash-blacklist — 阻止 <code>rm -rf /</code></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.png alt="Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual" loading=lazy decoding=async class=content-image></figure></p><p>最常见的自伤操作。挂在 <code>Bash</code> 的 PreToolUse 上。</p><h3 id=完整代码-1>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/bash-blacklist.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PreToolUse on Bash
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>cmd</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>banned</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span> <span class=nx>re</span><span class=o>:</span> <span class=sr>/rm\s+-rf\s+\/(\s|$)/</span><span class=p>,</span>           <span class=nx>desc</span><span class=o>:</span> <span class=s2>&#34;recursive delete from root&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span> <span class=nx>re</span><span class=o>:</span> <span class=sr>/rm\s+-rf\s+~(\s|$)/</span><span class=p>,</span>            <span class=nx>desc</span><span class=o>:</span> <span class=s2>&#34;recursive delete home directory&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span> <span class=nx>re</span><span class=o>:</span> <span class=sr>/:\(\)\s*\{.*:\|:.*\}\s*;:/</span><span class=p>,</span>     <span class=nx>desc</span><span class=o>:</span> <span class=s2>&#34;fork bomb&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span> <span class=nx>re</span><span class=o>:</span> <span class=sr>/mkfs\./</span><span class=p>,</span>                        <span class=nx>desc</span><span class=o>:</span> <span class=s2>&#34;filesystem format&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span> <span class=nx>re</span><span class=o>:</span> <span class=sr>/dd\s+if=.*of=\/dev\//</span><span class=p>,</span>          <span class=nx>desc</span><span class=o>:</span> <span class=s2>&#34;raw write to device&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span> <span class=nx>re</span><span class=o>:</span> <span class=sr>/&gt;\s*\/dev\/sd[a-z]/</span><span class=p>,</span>            <span class=nx>desc</span><span class=o>:</span> <span class=s2>&#34;redirect to disk device&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span> <span class=nx>re</span><span class=o>:</span> <span class=sr>/chmod\s+-R\s+777\s+\//</span><span class=p>,</span>         <span class=nx>desc</span><span class=o>:</span> <span class=s2>&#34;world-writable everything&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=p>];</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=nx>b</span> <span class=k>of</span> <span class=nx>banned</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=nx>b</span><span class=p>.</span><span class=nx>re</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Blocked: </span><span class=si>${</span><span class=nx>b</span><span class=p>.</span><span class=nx>desc</span><span class=si>}</span><span class=sb>. If you really need this, run it yourself.`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><p>正则列表刻意保持精简。过长的黑名单一旦误报率上升，实际就会被忽略。每条规则都附上 <code>desc</code>，触发时 stderr 才能给模型一句明确的"为什么"。</p><h3 id=settingsjson-接线-1>settings.json 接线</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/bash-blacklist.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=3-bash-whitelist--适合生产环境周边的机器>3. bash-whitelist — 适合生产环境周边的机器</h2><p>反过来，适合那些要碰生产环境的 repo。只允许明确列出的二进制文件。</p><h3 id=完整代码-2>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/bash-whitelist.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PreToolUse on Bash
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>cmd</span> <span class=o>=</span> <span class=p>(</span><span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>).</span><span class=nx>trim</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>allow</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>Set</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;ls&#39;</span><span class=p>,</span> <span class=s1>&#39;cat&#39;</span><span class=p>,</span> <span class=s1>&#39;grep&#39;</span><span class=p>,</span> <span class=s1>&#39;rg&#39;</span><span class=p>,</span> <span class=s1>&#39;find&#39;</span><span class=p>,</span> <span class=s1>&#39;head&#39;</span><span class=p>,</span> <span class=s1>&#39;tail&#39;</span><span class=p>,</span> <span class=s1>&#39;wc&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;git&#39;</span><span class=p>,</span> <span class=s1>&#39;npm&#39;</span><span class=p>,</span> <span class=s1>&#39;node&#39;</span><span class=p>,</span> <span class=s1>&#39;python&#39;</span><span class=p>,</span> <span class=s1>&#39;python3&#39;</span><span class=p>,</span> <span class=s1>&#39;pip&#39;</span><span class=p>,</span> <span class=s1>&#39;pip3&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;curl&#39;</span><span class=p>,</span> <span class=s1>&#39;jq&#39;</span><span class=p>,</span> <span class=s1>&#39;echo&#39;</span><span class=p>,</span> <span class=s1>&#39;pwd&#39;</span><span class=p>,</span> <span class=s1>&#39;date&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=p>]);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 取命令链中的第一个二进制文件名
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=kr>const</span> <span class=nx>first</span> <span class=o>=</span> <span class=p>(</span><span class=nx>cmd</span><span class=p>.</span><span class=nx>split</span><span class=p>(</span><span class=sr>/\s+/</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>).</span><span class=nx>split</span><span class=p>(</span><span class=s1>&#39;/&#39;</span><span class=p>).</span><span class=nx>pop</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>allow</span><span class=p>.</span><span class=nx>has</span><span class=p>(</span><span class=nx>first</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>      <span class=sb>`Blocked: &#34;</span><span class=si>${</span><span class=nx>first</span><span class=si>}</span><span class=sb>&#34; is not on the allowlist. `</span> <span class=o>+</span>
+</span></span><span class=line><span class=cl>      <span class=sb>`Allowed: </span><span class=si>${</span><span class=p>[...</span><span class=nx>allow</span><span class=p>].</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;, &#39;</span><span class=p>)</span><span class=si>}</span><span class=sb>.`</span>
+</span></span><span class=line><span class=cl>    <span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=黑名单-vs-白名单>黑名单 vs 白名单</h3><table><thead><tr><th>场景</th><th>推荐</th><th>原因</th></tr></thead><tbody><tr><td>个人项目、本地实验</td><td>黑名单</td><td>灵活，不用持续维护清单</td></tr><tr><td>部署、生产周边</td><td>白名单</td><td>默认拒绝，无清单即拒绝</td></tr><tr><td>团队共享仓库</td><td>白名单</td><td>新成员不会意外引入未审计命令</td></tr></tbody></table><p>白名单的核心优势：它对<em>未知</em>天然安全。新版本工具链里多出来的命令默认走拒绝分支，需要显式审批后才能加入。</p><hr><h2 id=4-block-git-push--禁止意外-push>4. block-git-push — 禁止意外 push</h2><p>我从来没想过让 Claude 不打招呼就直接 push。挂在 <code>Bash</code> 的 PreToolUse 上。</p><h3 id=完整代码-3>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/block-git-push.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PreToolUse on Bash
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>cmd</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 阻止裸 push、force push、push 到远端
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=kr>const</span> <span class=nx>pushPatterns</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=sr>/^\s*git\s+push\b/</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=sr>/git\s+push\s+--force/</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=sr>/git\s+push\s+-f\b/</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=sr>/git\s+push\s+\S+\s+\S+/</span><span class=p>,</span>    <span class=c1>// git push &lt;remote&gt; &lt;branch&gt;
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=p>];</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>pushPatterns</span><span class=p>.</span><span class=nx>some</span><span class=p>(</span><span class=nx>re</span> <span class=p>=&gt;</span> <span class=nx>re</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>)))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Blocked: git push must be human-initiated. &#34;</span> <span class=o>+</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Stage and commit if needed, but the push is for me to do.&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><p>写错一次 push 的代价，远比我自己手动敲一遍 <code>git push</code> 大得多。这条规则配合 <code>git commit</code> 不拦截：让模型放心做 commit，但保留人类按下 push 这一步。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png alt="退出码在 PreToolUse 与 PostToolUse 中的语义差异" loading=lazy decoding=async class=content-image></figure><em>同样的退出码在不同生命周期阶段含义完全不同。exit 2 只在 PreToolUse 阶段阻断调用；在 PostToolUse 阶段副作用已经发生，无法回滚。</em></p><hr><h2 id=5-format-on-write--把-prettier-做成-posttooluse>5. format-on-write — 把 Prettier 做成 PostToolUse</h2><p>挂在 <code>Write|Edit|MultiEdit</code> 的 PostToolUse 上。</p><h3 id=完整代码-4>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/format-on-write.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PostToolUse on Write|Edit|MultiEdit
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=p>{</span> <span class=nx>execSync</span> <span class=p>}</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;child_process&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;path&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>filePath</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 只处理可格式化的文件类型
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=sr>/\.(ts|tsx|js|jsx|json|md|css|scss|html|yaml|yml)$/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>filePath</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>try</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>execSync</span><span class=p>(</span><span class=sb>`npx prettier --write &#34;</span><span class=si>${</span><span class=nx>filePath</span><span class=si>}</span><span class=sb>&#34;`</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>stdio</span><span class=o>:</span> <span class=s1>&#39;pipe&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nx>timeout</span><span class=o>:</span> <span class=mi>10000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>});</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Formatted: </span><span class=si>${</span><span class=nx>path</span><span class=p>.</span><span class=nx>basename</span><span class=p>(</span><span class=nx>filePath</span><span class=p>)</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span> <span class=k>catch</span> <span class=p>(</span><span class=nx>e</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// 不要因为 Prettier 出错就让整个操作失败
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Warning: Prettier failed on </span><span class=si>${</span><span class=nx>filePath</span><span class=si>}</span><span class=sb>: </span><span class=si>${</span><span class=nx>e</span><span class=p>.</span><span class=nx>message</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=为什么是-exit-0不是-exit-1>为什么是 exit 0，不是 exit 1</h3><p>PostToolUse 在编辑<em>之后</em>运行。退出码 2 不会回滚任何东西——副作用已经发生。如果用 exit 1，错误会暴露给模型，模型可能尝试通过再次编辑文件去"修复"格式问题，从而陷入循环。对于格式化这种纯辅助操作，记一条警告然后放过即可。</p><h3 id=真实终端输出>真实终端输出</h3><pre tabindex=0><code>Claude: I&#39;ll update the component...
+[Edit applied to src/components/Header.tsx]
+[PostToolUse hook] Formatted: Header.tsx
+Claude: Done. The component now accepts a `subtitle` prop.
+</code></pre><p>格式化静默发生，Claude 自己甚至都不会提及。</p><hr><h2 id=6-test-on-edit--快速失败>6. test-on-edit — 快速失败</h2><p>挂在源文件的 <code>Edit|MultiEdit</code> 的 PostToolUse 上。这是单论效益最高的 Hook——长期使用，它实际上"训练"了 Claude 在我的仓库里写出更靠谱的代码。</p><h3 id=完整代码-5>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/test-on-edit.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PostToolUse on Edit|MultiEdit
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=p>{</span> <span class=nx>execSync</span> <span class=p>}</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;child_process&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;path&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>fs</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;fs&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>filePath</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 只对源文件触发，跳过测试与配置
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=sr>/\/(src|lib|app|packages)\/.*\.(ts|tsx|js|jsx)$/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>filePath</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 没有 test 脚本就直接放行
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=kr>const</span> <span class=nx>pkgPath</span> <span class=o>=</span> <span class=nx>path</span><span class=p>.</span><span class=nx>resolve</span><span class=p>(</span><span class=s1>&#39;package.json&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=nx>pkgPath</span><span class=p>))</span> <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>pkg</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>fs</span><span class=p>.</span><span class=nx>readFileSync</span><span class=p>(</span><span class=nx>pkgPath</span><span class=p>,</span> <span class=s1>&#39;utf8&#39;</span><span class=p>));</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>hasRelated</span> <span class=o>=</span> <span class=nx>pkg</span><span class=p>.</span><span class=nx>scripts</span><span class=o>?</span><span class=p>.[</span><span class=s1>&#39;test:related&#39;</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>hasTest</span> <span class=o>=</span> <span class=nx>pkg</span><span class=p>.</span><span class=nx>scripts</span><span class=o>?</span><span class=p>.</span><span class=nx>test</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>try</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=nx>hasRelated</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// 只跑与改动文件相关的测试
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>execSync</span><span class=p>(</span><span class=sb>`npm run -s test:related -- &#34;</span><span class=si>${</span><span class=nx>filePath</span><span class=si>}</span><span class=sb>&#34;`</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nx>stdio</span><span class=o>:</span> <span class=s1>&#39;inherit&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>timeout</span><span class=o>:</span> <span class=mi>60000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=p>});</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span> <span class=k>else</span> <span class=k>if</span> <span class=p>(</span><span class=nx>hasTest</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// 退化为跑完整测试
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>execSync</span><span class=p>(</span><span class=s1>&#39;npm run -s test&#39;</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nx>stdio</span><span class=o>:</span> <span class=s1>&#39;inherit&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>timeout</span><span class=o>:</span> <span class=mi>120000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=p>});</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span> <span class=k>catch</span> <span class=p>(</span><span class=nx>e</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Tests failed after editing </span><span class=si>${</span><span class=nx>path</span><span class=p>.</span><span class=nx>basename</span><span class=p>(</span><span class=nx>filePath</span><span class=p>)</span><span class=si>}</span><span class=sb>.`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s2>&#34;Review the test output above and fix the issue.&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>   <span class=c1>// 1 = 把错误暴露给模型
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=为什么是-exit-1不是-exit-2>为什么是 exit 1，不是 exit 2</h3><p>在 PostToolUse 中，exit 1 会把失败信息回喂给模型。模型读到测试输出后，会尝试修代码。这就形成了一个反馈闭环：</p><pre tabindex=0><code>Claude: I&#39;ll update the validation logic...
+[Edit applied to src/validators/email.ts]
+[Running test:related for email.ts...]
+
+  FAIL  tests/validators/email.test.ts
+    ✕ rejects emails without @ symbol (3ms)
+    Expected: false
+    Received: true
+
+Tests failed after editing email.ts.
+Review the test output above and fix the issue.
+
+Claude: The test shows my regex change broke the @ validation.
+        Let me fix the pattern...
+[Edit applied to src/validators/email.ts]
+[Running test:related for email.ts...]
+
+  PASS  tests/validators/email.test.ts
+    ✓ rejects emails without @ symbol (2ms)
+    ✓ accepts valid emails (1ms)
+
+Claude: Fixed. The regex now correctly requires an @ symbol.
+</code></pre><p>随着会话累积，这个 Hook 在事实上"教"模型一次性写出符合你测试预期的代码。本清单中，单论价值，它排第一。</p><hr><h2 id=7-backup-before-edit--安全网>7. backup-before-edit — 安全网</h2><p>挂在 <code>Edit|Write|MultiEdit</code> 的 PreToolUse 上。便宜的保险。</p><h3 id=完整代码-6>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/backup-before-edit.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PreToolUse on Edit|Write|MultiEdit
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>fs</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;fs&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;path&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>filePath</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span> <span class=o>||</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>path</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>filePath</span><span class=p>)</span> <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=nx>filePath</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>backupDir</span> <span class=o>=</span> <span class=s1>&#39;/tmp/cc-backups&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=nx>backupDir</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>fs</span><span class=p>.</span><span class=nx>mkdirSync</span><span class=p>(</span><span class=nx>backupDir</span><span class=p>,</span> <span class=p>{</span> <span class=nx>recursive</span><span class=o>:</span> <span class=kc>true</span> <span class=p>});</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>timestamp</span> <span class=o>=</span> <span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>safeName</span> <span class=o>=</span> <span class=nx>filePath</span><span class=p>.</span><span class=nx>replace</span><span class=p>(</span><span class=sr>/\//g</span><span class=p>,</span> <span class=s1>&#39;_&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>backupPath</span> <span class=o>=</span> <span class=sb>`</span><span class=si>${</span><span class=nx>backupDir</span><span class=si>}</span><span class=sb>/</span><span class=si>${</span><span class=nx>timestamp</span><span class=si>}</span><span class=sb>-</span><span class=si>${</span><span class=nx>safeName</span><span class=si>}</span><span class=sb>`</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>try</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>fs</span><span class=p>.</span><span class=nx>copyFileSync</span><span class=p>(</span><span class=nx>filePath</span><span class=p>,</span> <span class=nx>backupPath</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>      <span class=c1>// 维护一个 manifest，恢复时方便检索
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=kr>const</span> <span class=nx>manifest</span> <span class=o>=</span> <span class=sb>`</span><span class=si>${</span><span class=nx>backupDir</span><span class=si>}</span><span class=sb>/manifest.log`</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>      <span class=kr>const</span> <span class=nx>entry</span> <span class=o>=</span> <span class=sb>`</span><span class=si>${</span><span class=k>new</span> <span class=nb>Date</span><span class=p>().</span><span class=nx>toISOString</span><span class=p>()</span><span class=si>}</span><span class=sb> | </span><span class=si>${</span><span class=nx>filePath</span><span class=si>}</span><span class=sb> -&gt; </span><span class=si>${</span><span class=nx>backupPath</span><span class=si>}</span><span class=sb>\n`</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>      <span class=nx>fs</span><span class=p>.</span><span class=nx>appendFileSync</span><span class=p>(</span><span class=nx>manifest</span><span class=p>,</span> <span class=nx>entry</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span> <span class=k>catch</span> <span class=p>(</span><span class=nx>e</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// 备份失败也要放行——保险不应阻塞工作
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Warning: could not back up </span><span class=si>${</span><span class=nx>filePath</span><span class=si>}</span><span class=sb>: </span><span class=si>${</span><span class=nx>e</span><span class=p>.</span><span class=nx>message</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>   <span class=c1>// 始终放行——这是安全网，不是闸门
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=恢复一个文件>恢复一个文件</h3><p>需要回滚时：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 看一下都备份了什么</span>
+</span></span><span class=line><span class=cl>cat /tmp/cc-backups/manifest.log
+</span></span><span class=line><span class=cl><span class=c1># 2026-04-24T10:23:45.123Z | ./src/config.ts -&gt; /tmp/cc-backups/1714122225123-_src_config.ts</span>
+</span></span><span class=line><span class=cl><span class=c1># 2026-04-24T10:24:01.456Z | ./src/config.ts -&gt; /tmp/cc-backups/1714122241456-_src_config.ts</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 当前版本与备份对比</span>
+</span></span><span class=line><span class=cl>diff ./src/config.ts /tmp/cc-backups/1714122225123-_src_config.ts
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 还原</span>
+</span></span><span class=line><span class=cl>cp /tmp/cc-backups/1714122225123-_src_config.ts ./src/config.ts
+</span></span></code></pre></td></tr></table></div></div><p>我从 <code>/tmp</code> 救回过两次文件，这两次都值回一年的 cron 任务工资。</p><hr><h2 id=8-log-tool-calls--可观测性>8. log-tool-calls — 可观测性</h2><p>挂在 <code>*</code>（所有工具）的 PostToolUse 上。</p><h3 id=完整代码-7>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/log-tool-calls.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PostToolUse on * (all tools)
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>fs</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;fs&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;path&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>logDir</span> <span class=o>=</span> <span class=s1>&#39;.claude&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=nx>logDir</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>fs</span><span class=p>.</span><span class=nx>mkdirSync</span><span class=p>(</span><span class=nx>logDir</span><span class=p>,</span> <span class=p>{</span> <span class=nx>recursive</span><span class=o>:</span> <span class=kc>true</span> <span class=p>});</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>logFile</span> <span class=o>=</span> <span class=nx>path</span><span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=nx>logDir</span><span class=p>,</span> <span class=s1>&#39;tool-calls.jsonl&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 构造一条紧凑的日志
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=kr>const</span> <span class=nx>entry</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>ts</span><span class=o>:</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>().</span><span class=nx>toISOString</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=nx>tool</span><span class=o>:</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_name</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>input</span><span class=o>:</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=p>};</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 对 Bash，单独抽出 command 字段方便 grep
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>if</span> <span class=p>(</span><span class=nx>t</span><span class=p>.</span><span class=nx>tool_name</span> <span class=o>===</span> <span class=s1>&#39;Bash&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>entry</span><span class=p>.</span><span class=nx>cmd</span> <span class=o>=</span> <span class=p>(</span><span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>).</span><span class=nx>substring</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>500</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 对文件操作，单独抽出 path 字段
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>if</span> <span class=p>(</span><span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>entry</span><span class=p>.</span><span class=nx>file</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=p>.</span><span class=nx>file_path</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>line</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>entry</span><span class=p>)</span> <span class=o>+</span> <span class=s2>&#34;\n&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=nx>fs</span><span class=p>.</span><span class=nx>appendFileSync</span><span class=p>(</span><span class=nx>logFile</span><span class=p>,</span> <span class=nx>line</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=查询日志>查询日志</h3><p>JSONL 格式让分析变得简单：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 今天 Claude 改了哪些文件？</span>
+</span></span><span class=line><span class=cl>cat .claude/tool-calls.jsonl <span class=p>|</span> jq -r <span class=s1>&#39;select(.tool == &#34;Edit&#34;) | .file&#39;</span> <span class=p>|</span> sort -u
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 跑过哪些 bash 命令？</span>
+</span></span><span class=line><span class=cl>cat .claude/tool-calls.jsonl <span class=p>|</span> jq -r <span class=s1>&#39;select(.tool == &#34;Bash&#34;) | .cmd&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 各类工具调用次数统计</span>
+</span></span><span class=line><span class=cl>cat .claude/tool-calls.jsonl <span class=p>|</span> jq -r <span class=s1>&#39;.tool&#39;</span> <span class=p>|</span> sort <span class=p>|</span> uniq -c <span class=p>|</span> sort -rn
+</span></span><span class=line><span class=cl><span class=c1>#   42 Read</span>
+</span></span><span class=line><span class=cl><span class=c1>#   28 Edit</span>
+</span></span><span class=line><span class=cl><span class=c1>#   15 Bash</span>
+</span></span><span class=line><span class=cl><span class=c1>#    8 Grep</span>
+</span></span><span class=line><span class=cl><span class=c1>#    3 Write</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 最近 10 分钟发生了什么？</span>
+</span></span><span class=line><span class=cl>cat .claude/tool-calls.jsonl <span class=p>|</span> jq -r <span class=s1>&#39;select(.ts &gt; &#34;2026-04-24T10:15&#34;) | &#34;\(.ts) \(.tool) \(.file // .cmd // &#34;&#34;)&#34;&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>这个文件你不会每天都看。但需要看的那一天，你会庆幸它在那。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig6.png alt="read-before-write 状态机：UNSEEN / FRESH / STALE" loading=lazy decoding=async class=content-image></figure><em>Hook 在 <code>seen.json</code> 中维护每个文件最近一次 Read 的时间戳。对 UNSEEN 或 STALE 文件的编辑会被 exit 2 阻断，stderr 直接告诉 Claude 该如何补救。</em></p><hr><h2 id=9-read-before-write--禁止盲改>9. read-before-write — 禁止盲改</h2><p>挂在 <code>Edit|MultiEdit</code> 的 PreToolUse 上。强制模型在编辑文件前先读它。</p><h3 id=完整代码-8>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/read-before-write.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PreToolUse on Edit|MultiEdit
+</span></span></span><span class=line><span class=cl><span class=c1>// 还需要在 Read 上挂一个伴随条目，用来记录&#34;看过哪些文件&#34;。
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>fs</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;fs&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;path&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>filePath</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span> <span class=o>||</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>path</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>seenFile</span> <span class=o>=</span> <span class=nx>path</span><span class=p>.</span><span class=nx>join</span><span class=p>(</span><span class=s1>&#39;.claude&#39;</span><span class=p>,</span> <span class=s1>&#39;seen.json&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// 加载 seen 映射
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=kd>let</span> <span class=nx>seen</span> <span class=o>=</span> <span class=p>{};</span>
+</span></span><span class=line><span class=cl>  <span class=k>try</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=nx>seenFile</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>seen</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>fs</span><span class=p>.</span><span class=nx>readFileSync</span><span class=p>(</span><span class=nx>seenFile</span><span class=p>,</span> <span class=s1>&#39;utf8&#39;</span><span class=p>));</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span> <span class=k>catch</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>seen</span> <span class=o>=</span> <span class=p>{};</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// Read 调用：记录并放行
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>if</span> <span class=p>(</span><span class=nx>t</span><span class=p>.</span><span class=nx>tool_name</span> <span class=o>===</span> <span class=s1>&#39;Read&#39;</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>seen</span><span class=p>[</span><span class=nx>filePath</span><span class=p>]</span> <span class=o>=</span> <span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>dir</span> <span class=o>=</span> <span class=nx>path</span><span class=p>.</span><span class=nx>dirname</span><span class=p>(</span><span class=nx>seenFile</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=nx>dir</span><span class=p>))</span> <span class=nx>fs</span><span class=p>.</span><span class=nx>mkdirSync</span><span class=p>(</span><span class=nx>dir</span><span class=p>,</span> <span class=p>{</span> <span class=nx>recursive</span><span class=o>:</span> <span class=kc>true</span> <span class=p>});</span>
+</span></span><span class=line><span class=cl>    <span class=nx>fs</span><span class=p>.</span><span class=nx>writeFileSync</span><span class=p>(</span><span class=nx>seenFile</span><span class=p>,</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>seen</span><span class=p>,</span> <span class=kc>null</span><span class=p>,</span> <span class=mi>2</span><span class=p>));</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1>// Edit/MultiEdit：检查文件是否近期被读过（30 分钟内）
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=kr>const</span> <span class=nx>lastSeen</span> <span class=o>=</span> <span class=nx>seen</span><span class=p>[</span><span class=nx>filePath</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>thirtyMinutes</span> <span class=o>=</span> <span class=mi>30</span> <span class=o>*</span> <span class=mi>60</span> <span class=o>*</span> <span class=mi>1000</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>lastSeen</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>      <span class=sb>`Blocked: &#34;</span><span class=si>${</span><span class=nx>filePath</span><span class=si>}</span><span class=sb>&#34; has not been Read in this session. `</span> <span class=o>+</span>
+</span></span><span class=line><span class=cl>      <span class=sb>`Please read the file first to understand its current state before editing.`</span>
+</span></span><span class=line><span class=cl>    <span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>()</span> <span class=o>-</span> <span class=nx>lastSeen</span> <span class=o>&gt;</span> <span class=nx>thirtyMinutes</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>      <span class=sb>`Blocked: &#34;</span><span class=si>${</span><span class=nx>filePath</span><span class=si>}</span><span class=sb>&#34; was last Read </span><span class=si>${</span><span class=nb>Math</span><span class=p>.</span><span class=nx>round</span><span class=p>((</span><span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>()</span> <span class=o>-</span> <span class=nx>lastSeen</span><span class=p>)</span> <span class=o>/</span> <span class=mi>60000</span><span class=p>)</span><span class=si>}</span><span class=sb> minutes ago. `</span> <span class=o>+</span>
+</span></span><span class=line><span class=cl>      <span class=sb>`Please re-read the file to verify its current state.`</span>
+</span></span><span class=line><span class=cl>    <span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=settingsjson-接线两处条目>settings.json 接线（两处条目）</h3><p>这个 Hook 需要在 Read（用于记录）和 Edit/MultiEdit（用于强制）上同时挂载：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Read&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/read-before-write.js&#34;</span> <span class=p>}]</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Edit|MultiEdit&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/read-before-write.js&#34;</span> <span class=p>}]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=它能抓住什么>它能抓住什么</h3><p>这个 Hook 专治一类隐蔽缺陷：模型基于训练数据的先验，而不是文件当前的实际状态在编辑。没有这个 Hook，Claude 可能"修复"它在训练里见过的某个函数版本——而那个函数在你当前的仓库里根本不长那样。</p><hr><h2 id=10-work-hours-only--人性化边界>10. work-hours-only — 人性化边界</h2><p>挂在 <code>Bash</code> 的 PreToolUse 上。</p><h3 id=完整代码-9>完整代码</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=ch>#!/usr/bin/env node
+</span></span></span><span class=line><span class=cl><span class=ch></span><span class=c1>// hooks/work-hours-only.js
+</span></span></span><span class=line><span class=cl><span class=c1>// PreToolUse on Bash
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>chunks</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;data&#39;</span><span class=p>,</span> <span class=nx>c</span> <span class=p>=&gt;</span> <span class=nx>chunks</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>c</span><span class=p>));</span>
+</span></span><span class=line><span class=cl><span class=nx>process</span><span class=p>.</span><span class=nx>stdin</span><span class=p>.</span><span class=nx>on</span><span class=p>(</span><span class=s1>&#39;end&#39;</span><span class=p>,</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>t</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>Buffer</span><span class=p>.</span><span class=nx>concat</span><span class=p>(</span><span class=nx>chunks</span><span class=p>).</span><span class=nx>toString</span><span class=p>());</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>h</span> <span class=o>=</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>().</span><span class=nx>getHours</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>day</span> <span class=o>=</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>().</span><span class=nx>getDay</span><span class=p>();</span> <span class=c1>// 0 = 周日，6 = 周六
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl>  <span class=c1>// 工作日：9:00 - 22:00
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=c1>// 周末：完全屏蔽
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=kr>const</span> <span class=nx>isWeekend</span> <span class=o>=</span> <span class=nx>day</span> <span class=o>===</span> <span class=mi>0</span> <span class=o>||</span> <span class=nx>day</span> <span class=o>===</span> <span class=mi>6</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>isOutsideHours</span> <span class=o>=</span> <span class=nx>h</span> <span class=o>&lt;</span> <span class=mi>9</span> <span class=o>||</span> <span class=nx>h</span> <span class=o>&gt;=</span> <span class=mi>22</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>isWeekend</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s2>&#34;Blocked: no automated work on weekends. Rest.&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>isOutsideHours</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Blocked: outside work hours (current hour: </span><span class=si>${</span><span class=nx>h</span><span class=si>}</span><span class=sb>). Allowed: 9:00-22:00 weekdays.`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=这玩意儿真正解决的问题>这玩意儿真正解决的问题</h3><p>我把这个 Hook 装在专门处理非工作时间告警的机器上。如果一个 bot 凌晨 2 点试图做破坏性操作，那几乎可以判定为误触发。它的目的不是给 Claude"立工作生活平衡"——而是兜住那些根本不该在那个时间运行的失控自动化。</p><hr><h2 id=把它们串起来>把它们串起来</h2><p>上面这十个 Hook 不是孤立运行的，它们是组合在一起的。下面是它们在真实项目里如何分层。</p><h3 id=完整的-settingsjson含所有十个-hook>完整的 settings.json（含所有十个 Hook）</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Read|Grep&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/block-env-read.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/read-before-write.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Edit|Write|MultiEdit&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/block-env-read.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/backup-before-edit.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/read-before-write.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/bash-blacklist.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/block-git-push.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/work-hours-only.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PostToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Edit|Write|MultiEdit&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/format-on-write.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/test-on-edit.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/log-tool-calls.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=执行顺序>执行顺序</h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png alt="Edit 调用的 Hook 执行顺序：PreToolUse → 工具执行 → PostToolUse" loading=lazy decoding=async class=content-image></figure><em>一次 Edit 会依次穿过六个 Hook：三个 PreToolUse 守门员、工具本体、三个 PostToolUse 卫生作业。任何 PreToolUse 阶段的 exit 2 都会让整条链路中断。</em></p><p>当 Claude 对一个源文件调用 <code>Edit</code>，事件序列是：</p><ol><li><strong>block-env-read</strong> — 这是敏感文件吗？是就拦截。</li><li><strong>backup-before-edit</strong> — 把当前版本拷到 <code>/tmp/cc-backups/</code>。</li><li><strong>read-before-write</strong> — 这个文件最近被读过吗？没读过就拦截。</li><li><em>（Claude 执行编辑）</em></li><li><strong>format-on-write</strong> — 用 Prettier 格式化结果。</li><li><strong>test-on-edit</strong> — 跑相关测试。失败就把错误暴露给模型。</li><li><strong>log-tool-calls</strong> — 追加一条 JSONL 日志。</li></ol><p>第 1-3 步是 PreToolUse（其中任何一个 exit 2 都会阻断编辑）；第 5-7 步是 PostToolUse（编辑已经发生）。这个顺序意味着：先安全，再卫生，最后可观测性。</p><h3 id=组合时常见的坑>组合时常见的坑</h3><p><strong>问题：Hook 串行执行，慢的 Hook 拖累整体。</strong>
+如果 <code>test-on-edit</code> 跑 60 秒，每次编辑都会感觉很卡。解决：设置超时；对大型测试套件，改走异步触发（比如把测试请求扔到一个独立队列里）。</p><p><strong>问题：单个 Hook 的退出码会终止整条链路。</strong>
+在 PreToolUse 里，如果 <code>block-env-read</code> 退出 2，后面的 <code>backup-before-edit</code>、<code>read-before-write</code> 不会再跑。这是正确行为——一个被拦截的调用不应该被备份或追踪。</p><p><strong>问题：Hook 之间会互相冲突。</strong>
+一个会修改文件的格式化 Hook，可能触发 <code>read-before-write</code> 的"自上次 Read 后文件已变化"逻辑。解决方案：格式化 Hook 跑在 PostToolUse 阶段，而 PostToolUse 不会再触发 PreToolUse，所以生命周期天然规避了这个冲突。</p><hr><h2 id=起步套件>起步套件</h2><p>如果你想在新项目里一次配齐这十个 Hook，目录结构如下：</p><pre tabindex=0><code>.claude/
+  settings.json          # 上面给出的接线
+your-project/
+  hooks/
+    block-env-read.js
+    bash-blacklist.js
+    bash-whitelist.js     # 生产仓库里把它和黑名单换掉
+    block-git-push.js
+    format-on-write.js
+    test-on-edit.js
+    backup-before-edit.js
+    log-tool-calls.js
+    read-before-write.js
+    work-hours-only.js
+</code></pre><p>设置可执行权限：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>chmod +x hooks/*.js
+</span></span></code></pre></td></tr></table></div></div><p>一次性烟雾测试：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
 </span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>cmd</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=cm>/* stdin */</span><span class=p>).</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>command</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>banned</span> <span class=o>=</span> <span class=p>[</span><span class=sr>/rm\s+-rf\s+\/(\s|$)/</span><span class=p>,</span> <span class=sr>/:\(\)\s*\{.*:\|:.*\}\s*;:/</span><span class=p>,</span> <span class=sr>/mkfs\./</span><span class=p>,</span> <span class=sr>/dd\s+if=.*of=\/dev\//</span><span class=p>];</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=nx>banned</span><span class=p>.</span><span class=nx>some</span><span class=p>(</span><span class=nx>re</span> <span class=p>=&gt;</span> <span class=nx>re</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>)))</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s2>&#34;Blocked: dangerous command pattern.&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>正则表达式列表刻意保持简短。过长的黑名单容易因误报率升高而被实际忽略。</p><h2 id=3-bash-whitelist--适合生产环境周边的机器>3. bash-whitelist — 适合生产环境周边的机器</h2><p>反过来，适合那些要碰生产环境的 repo。只允许明确列出的二进制文件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 快速 smoke test —— 一次普通 Read 应该让所有 Hook exit 0</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> hook in hooks/*.js<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Read&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./src/index.ts&#34;}}&#39;</span> <span class=p>|</span> node <span class=s2>&#34;</span><span class=nv>$hook</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$hook</span><span class=s2>: exit </span><span class=nv>$?</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span></code></pre></td></tr></table></div></div><p>期望输出：</p><pre tabindex=0><code>hooks/backup-before-edit.js: exit 0
+hooks/bash-blacklist.js: exit 0
+hooks/bash-whitelist.js: exit 0
+hooks/block-env-read.js: exit 0
+hooks/block-git-push.js: exit 0
+hooks/format-on-write.js: exit 0
+hooks/log-tool-calls.js: exit 0
+hooks/read-before-write.js: exit 0
+hooks/test-on-edit.js: exit 0
+hooks/work-hours-only.js: exit 0
+</code></pre><hr><h2 id=调试-hook>调试 Hook</h2><p>Hook 出问题时，按这个顺序排查：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png alt="Hook 调试四步法以及最常见的五类错误" loading=lazy decoding=async class=content-image></figure><em>在隔离环境里把失败的调用回放给 Hook，捕获 stderr，再用 <code>claude --debug</code> 和 JSONL 日志逐层排查。下方表格覆盖了 90% 的 Hook 故障原因。</em></p><h3 id=第-1-步隔离测试>第 1 步：隔离测试</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
-</span><span class=lnt>3
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>allow</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>Set</span><span class=p>([</span><span class=s1>&#39;ls&#39;</span><span class=p>,</span><span class=s1>&#39;cat&#39;</span><span class=p>,</span><span class=s1>&#39;grep&#39;</span><span class=p>,</span><span class=s1>&#39;rg&#39;</span><span class=p>,</span><span class=s1>&#39;git&#39;</span><span class=p>,</span><span class=s1>&#39;npm&#39;</span><span class=p>,</span><span class=s1>&#39;node&#39;</span><span class=p>,</span><span class=s1>&#39;python&#39;</span><span class=p>,</span><span class=s1>&#39;python3&#39;</span><span class=p>,</span><span class=s1>&#39;curl&#39;</span><span class=p>,</span><span class=s1>&#39;jq&#39;</span><span class=p>,</span><span class=s1>&#39;head&#39;</span><span class=p>,</span><span class=s1>&#39;tail&#39;</span><span class=p>]);</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>first</span> <span class=o>=</span> <span class=p>(</span><span class=nx>cmd</span><span class=p>.</span><span class=nx>trim</span><span class=p>().</span><span class=nx>split</span><span class=p>(</span><span class=sr>/\s+/</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span> <span class=o>||</span> <span class=s2>&#34;&#34;</span><span class=p>).</span><span class=nx>split</span><span class=p>(</span><span class=s1>&#39;/&#39;</span><span class=p>).</span><span class=nx>pop</span><span class=p>();</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>allow</span><span class=p>.</span><span class=nx>has</span><span class=p>(</span><span class=nx>first</span><span class=p>))</span> <span class=p>{</span> <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Not on allowlist: </span><span class=si>${</span><span class=nx>first</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span> <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span> <span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>白名单的优势在于弥补黑名单的不足：它天然杜绝意外放行未经显式允许的新命令。</p><h2 id=4-block-git-push--禁止意外-push>4. block-git-push — 禁止意外 push</h2><p>我从来没想过让 Claude 不打招呼就直接 push。挂在 <code>Bash</code> 的 PreToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=sr>/^\s*git\s+push\b/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>)</span> <span class=o>||</span> <span class=sr>/git.*push.*--force/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>cmd</span><span class=p>))</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s2>&#34;Blocked: git push must be human-initiated.&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>写错一次的代价，远比我自己敲一遍 <code>git push</code> 麻烦得多。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png alt="退出码在 PreToolUse 与 PostToolUse 中的语义差异" loading=lazy decoding=async class=content-image></figure><em>同样的退出码在不同生命周期阶段含义完全不同。exit 2 只在 PreToolUse 阶段阻断调用；在 PostToolUse 阶段副作用已经发生，无法回滚。</em></p><h2 id=5-format-on-write--把-prettier-做成-posttooluse>5. format-on-write — 把 Prettier 做成 PostToolUse</h2><p>挂在 <code>Write|Edit|MultiEdit</code> 的 PostToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>path</span> <span class=o>=</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span><span class=o>?</span><span class=p>.</span><span class=nx>file_path</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=nx>path</span> <span class=o>&amp;&amp;</span> <span class=sr>/\.(ts|tsx|js|jsx|json|md|css)$/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>path</span><span class=p>))</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;child_process&#39;</span><span class=p>).</span><span class=nx>execSync</span><span class=p>(</span><span class=sb>`npx prettier --write </span><span class=si>${</span><span class=nx>path</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span> <span class=p>{</span> <span class=nx>stdio</span><span class=o>:</span> <span class=s1>&#39;inherit&#39;</span> <span class=p>});</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>PostToolUse 在编辑操作完成后触发，此时退出码 2 已无法回滚变更——它的作用是保障代码质量（‘卫生’），而非执行访问控制（‘策略’）。</p><h2 id=6-test-on-edit--快速失败>6. test-on-edit — 快速失败</h2><p>针对源文件，挂在 <code>Edit|MultiEdit</code> 的 PostToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=sr>/\/(src|lib)\/.*\.(ts|js)$/</span><span class=p>.</span><span class=nx>test</span><span class=p>(</span><span class=nx>path</span><span class=p>))</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>try</span> <span class=p>{</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;child_process&#39;</span><span class=p>).</span><span class=nx>execSync</span><span class=p>(</span><span class=s1>&#39;npm run -s test:related -- &#39;</span> <span class=o>+</span> <span class=nx>path</span><span class=p>,</span> <span class=p>{</span> <span class=nx>stdio</span><span class=o>:</span> <span class=s1>&#39;inherit&#39;</span> <span class=p>});</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=k>catch</span> <span class=p>{</span> <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s2>&#34;Tests failed after edit&#34;</span><span class=p>);</span> <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>退出码 1 会将测试失败信息返回给模型，模型据此输出可触发自动重试。长期使用该 Hook，显著提升了 Claude 在本仓库中生成代码的质量。</p><h2 id=7-backup-before-edit--安全网>7. backup-before-edit — 安全网</h2><p>挂在 <code>Edit|Write|MultiEdit</code> 的 PreToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>fs</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;fs&#39;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=nx>path</span><span class=p>))</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>fs</span><span class=p>.</span><span class=nx>copyFileSync</span><span class=p>(</span><span class=nx>path</span><span class=p>,</span> <span class=sb>`/tmp/cc-backup-</span><span class=si>${</span><span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>()</span><span class=si>}</span><span class=sb>-</span><span class=si>${</span><span class=nx>path</span><span class=p>.</span><span class=nx>replace</span><span class=p>(</span><span class=sr>/\//g</span><span class=p>,</span><span class=s1>&#39;_&#39;</span><span class=p>)</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>便宜的保险。我从 <code>/tmp</code> 恢复过两次文件，这两次都值回一年的 cron 任务工资。</p><h2 id=8-log-tool-calls--可观测性>8. log-tool-calls — 可观测性</h2><p>挂在 <code>*</code> 的 PostToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>fs</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;fs&#39;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>line</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>({</span> <span class=nx>ts</span><span class=o>:</span> <span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>(),</span> <span class=nx>tool</span><span class=o>:</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_name</span><span class=p>,</span> <span class=nx>input</span><span class=o>:</span> <span class=nx>t</span><span class=p>.</span><span class=nx>tool_input</span> <span class=p>})</span> <span class=o>+</span> <span class=s2>&#34;\n&#34;</span><span class=p>;</span>
-</span></span><span class=line><span class=cl><span class=nx>fs</span><span class=p>.</span><span class=nx>appendFileSync</span><span class=p>(</span><span class=s1>&#39;.claude/tool-calls.jsonl&#39;</span><span class=p>,</span> <span class=nx>line</span><span class=p>);</span>
-</span></span></code></pre></td></tr></table></div></div><p>该日志文件日常无需关注，但在排查问题时至关重要。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig6.png alt="read-before-write 状态机：UNSEEN / FRESH / STALE" loading=lazy decoding=async class=content-image></figure><em>Hook 在 <code>seen.json</code> 中维护每个文件最近一次 Read 的时间戳。对 UNSEEN 或 STALE 文件的编辑会被 exit 2 阻断，stderr 直接告诉 Claude 该如何补救。</em></p><h2 id=9-read-before-write--禁止盲改>9. read-before-write — 禁止盲改</h2><p>挂在 <code>Edit|MultiEdit</code> 的 PreToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>fs</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;fs&#39;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>seen</span> <span class=o>=</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>parse</span><span class=p>(</span><span class=nx>fs</span><span class=p>.</span><span class=nx>existsSync</span><span class=p>(</span><span class=s1>&#39;.claude/seen.json&#39;</span><span class=p>)</span> <span class=o>?</span> <span class=nx>fs</span><span class=p>.</span><span class=nx>readFileSync</span><span class=p>(</span><span class=s1>&#39;.claude/seen.json&#39;</span><span class=p>)</span> <span class=o>:</span> <span class=s2>&#34;{}&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=nx>t</span><span class=p>.</span><span class=nx>tool_name</span> <span class=o>===</span> <span class=s1>&#39;Read&#39;</span><span class=p>)</span> <span class=p>{</span> <span class=nx>seen</span><span class=p>[</span><span class=nx>path</span><span class=p>]</span> <span class=o>=</span> <span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>();</span> <span class=nx>fs</span><span class=p>.</span><span class=nx>writeFileSync</span><span class=p>(</span><span class=s1>&#39;.claude/seen.json&#39;</span><span class=p>,</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>seen</span><span class=p>));</span> <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>seen</span><span class=p>[</span><span class=nx>path</span><span class=p>])</span> <span class=p>{</span> <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=sb>`Blocked: </span><span class=si>${</span><span class=nx>path</span><span class=si>}</span><span class=sb> was not Read in this session.`</span><span class=p>);</span> <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span> <span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>强制模型编辑前先读文件。可捕获一类隐蔽缺陷：模型依赖先验知识（prior）而非文件当前实际内容进行编辑。</p><h2 id=10-work-hours-only--人性化边界>10. work-hours-only — 人性化边界</h2><p>挂在 <code>Bash</code> 的 PreToolUse 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=kr>const</span> <span class=nx>h</span> <span class=o>=</span> <span class=k>new</span> <span class=nb>Date</span><span class=p>().</span><span class=nx>getHours</span><span class=p>();</span>
-</span></span><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=nx>h</span> <span class=o>&lt;</span> <span class=mi>9</span> <span class=o>||</span> <span class=nx>h</span> <span class=o>&gt;=</span> <span class=mi>22</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>console</span><span class=p>.</span><span class=nx>error</span><span class=p>(</span><span class=s2>&#34;Outside work hours. Refuse.&#34;</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>2</span><span class=p>);</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>该脚本部署在专门处理非工作时间告警的机器上。若 bot 在凌晨 2 点尝试执行操作，极大概率是误触发。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png alt="Edit 调用的 Hook 执行顺序：PreToolUse → 工具执行 → PostToolUse" loading=lazy decoding=async class=content-image></figure><em>一次 Edit 会依次穿过六个 Hook：三个 PreToolUse 守门员、工具本体、三个 PostToolUse 卫生作业。任何 PreToolUse 阶段的 exit 2 都会让整条链路中断。</em></p><h2 id=把它们串起来的逻辑>把它们串起来的逻辑</h2><p>以下三条经验规则源于实际踩坑：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png alt="Hook 调试四步法以及最常见的五类错误" loading=lazy decoding=async class=content-image></figure><em>在隔离环境里把失败的调用回放给 Hook，捕获 stderr，再用 <code>claude --debug</code> 和 JSONL 日志逐层排查。下方表格覆盖了 90% 的 Hook 故障原因。</em></p><ol><li><strong>PreToolUse 管策略，PostToolUse 管卫生。</strong> 别想在 PostToolUse 里回滚——副作用已经发生了。</li><li><strong>Stderr 是反馈，退出码是判决。</strong> 退出码 2 阻断（仅限 PreToolUse）。stderr 里的内容会原样喂给 Claude。两者配合用。</li><li><strong>Hook 出错即阻断。</strong> 一个行为不端的 Hook 会阻断你所有的工具调用。配置前先拿 <code>echo '{"tool_name":"Read","tool_input":{"file_path":"/tmp/x"}}' | node hook.js</code> 测一下脚本。</li></ol><p>十个 Hook 数量看似有限，却足以将‘YOLO’（You Only Live Once）式的随意会话转化为可控、可靠的工程实践。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/claude-code-learn/>Claude Code 实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/><span class=title>Claude Code 实战（六）：SDK 与 GitHub CI</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Edit&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./src/app.ts&#34;}}&#39;</span> <span class=p>|</span> node ./hooks/your-hook.js
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第-2-步检查-stderr>第 2 步：检查 stderr</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Bash&#34;,&#34;tool_input&#34;:{&#34;command&#34;:&#34;rm -rf /&#34;}}&#39;</span> <span class=p>|</span> node ./hooks/bash-blacklist.js 2&gt;<span class=p>&amp;</span><span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>2>&amp;1</code> 把 stdout 和 stderr 都打到屏幕上。</p><h3 id=第-3-步开启-claude-调试日志>第 3 步：开启 Claude 调试日志</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>claude --debug
+</span></span></code></pre></td></tr></table></div></div><p>调试输出会显示哪些 Hook 触发、它们返回了什么、最终是哪个 Hook 给出了判决。</p><h3 id=第-4-步核对最常见的几类错误>第 4 步：核对最常见的几类错误</h3><table><thead><tr><th>症状</th><th>原因</th><th>修法</th></tr></thead><tbody><tr><td>Hook 把所有调用都阻断了</td><td>脚本抛出未处理异常，Node 用 1 或 2 退出</td><td>用 try-catch 包住主逻辑，意外错误时 exit 0</td></tr><tr><td>Hook 完全不触发</td><td>matcher 没匹配上工具名</td><td>检查拼写——是 <code>MultiEdit</code>，不是 <code>multi-edit</code></td></tr><tr><td>Hook 触发但没拦下</td><td>用了 exit 1，没用 exit 2</td><td>PreToolUse 里只有 exit 2 才会阻断</td></tr><tr><td>stdin 是空的</td><td>Hook 没用异步方式读 stdin</td><td>用本文开头给的异步模板</td></tr><tr><td>JSON 解析报错</td><td>多个 Hook 被错误地用管道串了起来</td><td>每个 Hook 必须独立读自己的 stdin</td></tr></tbody></table><hr><h2 id=把它们串起来的逻辑>把它们串起来的逻辑</h2><p>三条经验规则，都是踩过坑得来的：</p><ol><li><strong>PreToolUse 管策略，PostToolUse 管卫生。</strong> 别想在 PostToolUse 里回滚——副作用已经发生了。</li><li><strong>Stderr 是反馈，退出码是判决。</strong> 退出码 2 阻断（仅限 PreToolUse）。stderr 里的内容会原样喂给 Claude。两者配合用。</li><li><strong>Hook 出错即阻断。</strong> 一个行为不端的 Hook 会阻断你所有的工具调用。配置前先拿 <code>echo '{"tool_name":"Read","tool_input":{"file_path":"/tmp/x"}}' | node hook.js</code> 测一下脚本。</li></ol><p>十个 Hook 数量看似有限，却足以将 YOLO（You Only Live Once）式的随意会话转化为可控、可靠的工程实践。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/claude-code-learn/>Claude Code 实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/claude-code-learn/06-sdk-and-github/><span class=title>Claude Code 实战（六）：SDK 与 GitHub CI</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
 <span class=series-nav-title>Claude Code 实战入门（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
 <span class=series-nav-title>Claude Code 实战指南（二）：快捷键、四态切换与思考模式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><span class=series-nav-num>03</span>
 <span class=series-nav-title>Claude Code 实战指南（三）：自定义斜杠命令与对话控制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=series-nav-num>04</span>
@@ -141,7 +1101,7 @@
 <span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=series-nav-num>08</span>
 <span class=series-nav-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/09-settings-and-permissions/><span class=series-nav-num>09</span>
 <span class=series-nav-title>Claude Code 实战（九）：权限模型与环境变量</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=series-nav-num>10</span>
-<span class=series-nav-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#1-block-env-read--保护-secrets>1. block-env-read — 保护 secrets</a></li><li><a href=#2-bash-blacklist--阻止-rm--rf->2. bash-blacklist — 阻止 <code>rm -rf /</code></a></li><li><a href=#3-bash-whitelist--适合生产环境周边的机器>3. bash-whitelist — 适合生产环境周边的机器</a></li><li><a href=#4-block-git-push--禁止意外-push>4. block-git-push — 禁止意外 push</a></li><li><a href=#5-format-on-write--把-prettier-做成-posttooluse>5. format-on-write — 把 Prettier 做成 PostToolUse</a></li><li><a href=#6-test-on-edit--快速失败>6. test-on-edit — 快速失败</a></li><li><a href=#7-backup-before-edit--安全网>7. backup-before-edit — 安全网</a></li><li><a href=#8-log-tool-calls--可观测性>8. log-tool-calls — 可观测性</a></li><li><a href=#9-read-before-write--禁止盲改>9. read-before-write — 禁止盲改</a></li><li><a href=#10-work-hours-only--人性化边界>10. work-hours-only — 人性化边界</a></li><li><a href=#把它们串起来的逻辑>把它们串起来的逻辑</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/claude-code-learn/ class=series-name>Claude Code 实战</a>
+<span class=series-nav-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#1-block-env-read--保护-secrets>1. block-env-read — 保护 secrets</a><ul><li><a href=#完整代码>完整代码</a></li><li><a href=#settingsjson-接线>settings.json 接线</a></li><li><a href=#自测>自测</a></li><li><a href=#触发时-claude-看到什么>触发时 Claude 看到什么</a></li></ul></li><li><a href=#2-bash-blacklist--阻止-rm--rf->2. bash-blacklist — 阻止 <code>rm -rf /</code></a><ul><li><a href=#完整代码-1>完整代码</a></li><li><a href=#settingsjson-接线-1>settings.json 接线</a></li></ul></li><li><a href=#3-bash-whitelist--适合生产环境周边的机器>3. bash-whitelist — 适合生产环境周边的机器</a><ul><li><a href=#完整代码-2>完整代码</a></li><li><a href=#黑名单-vs-白名单>黑名单 vs 白名单</a></li></ul></li><li><a href=#4-block-git-push--禁止意外-push>4. block-git-push — 禁止意外 push</a><ul><li><a href=#完整代码-3>完整代码</a></li></ul></li><li><a href=#5-format-on-write--把-prettier-做成-posttooluse>5. format-on-write — 把 Prettier 做成 PostToolUse</a><ul><li><a href=#完整代码-4>完整代码</a></li><li><a href=#为什么是-exit-0不是-exit-1>为什么是 exit 0，不是 exit 1</a></li><li><a href=#真实终端输出>真实终端输出</a></li></ul></li><li><a href=#6-test-on-edit--快速失败>6. test-on-edit — 快速失败</a><ul><li><a href=#完整代码-5>完整代码</a></li><li><a href=#为什么是-exit-1不是-exit-2>为什么是 exit 1，不是 exit 2</a></li></ul></li><li><a href=#7-backup-before-edit--安全网>7. backup-before-edit — 安全网</a><ul><li><a href=#完整代码-6>完整代码</a></li><li><a href=#恢复一个文件>恢复一个文件</a></li></ul></li><li><a href=#8-log-tool-calls--可观测性>8. log-tool-calls — 可观测性</a><ul><li><a href=#完整代码-7>完整代码</a></li><li><a href=#查询日志>查询日志</a></li></ul></li><li><a href=#9-read-before-write--禁止盲改>9. read-before-write — 禁止盲改</a><ul><li><a href=#完整代码-8>完整代码</a></li><li><a href=#settingsjson-接线两处条目>settings.json 接线（两处条目）</a></li><li><a href=#它能抓住什么>它能抓住什么</a></li></ul></li><li><a href=#10-work-hours-only--人性化边界>10. work-hours-only — 人性化边界</a><ul><li><a href=#完整代码-9>完整代码</a></li><li><a href=#这玩意儿真正解决的问题>这玩意儿真正解决的问题</a></li></ul></li><li><a href=#把它们串起来>把它们串起来</a><ul><li><a href=#完整的-settingsjson含所有十个-hook>完整的 settings.json（含所有十个 Hook）</a></li><li><a href=#执行顺序>执行顺序</a></li><li><a href=#组合时常见的坑>组合时常见的坑</a></li></ul></li><li><a href=#起步套件>起步套件</a></li><li><a href=#调试-hook>调试 Hook</a><ul><li><a href=#第-1-步隔离测试>第 1 步：隔离测试</a></li><li><a href=#第-2-步检查-stderr>第 2 步：检查 stderr</a></li><li><a href=#第-3-步开启-claude-调试日志>第 3 步：开启 Claude 调试日志</a></li><li><a href=#第-4-步核对最常见的几类错误>第 4 步：核对最常见的几类错误</a></li></ul></li><li><a href=#把它们串起来的逻辑>把它们串起来的逻辑</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/claude-code-learn/ class=series-name>Claude Code 实战</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
 <span class=chapter-title>Claude Code 实战入门（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
 <span class=chapter-title>Claude Code 实战指南（二）：快捷键、四态切换与思考模式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><span class=chapter-num>03</span>
@@ -152,5 +1112,5 @@
 <span class=chapter-title>Claude Code 实战（七）：十个实用 Hooks 配方</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code 实战（九）：权限模型与环境变量</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>8 min</strong></div><div class=row><span>字数</span><strong>1639</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5817</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

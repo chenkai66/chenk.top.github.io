@@ -20,7 +20,37 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Claude Code 实战</a>
 · 第 9 篇</div><h1>Claude Code 实战（九）：权限模型与环境变量</h1><p class=deck>settings.json 决定了 Claude 能动什么、在哪里、用谁的身份。三层（用户、项目、本地）、权限语法、改变行为的环境变量、以及那条第一次都会咬人的优先级规则。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-26>April 26, 2026</time> · 8 分钟 · 1803 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/settings-json/ class=tag>#settings-json</a><a href=/zh/tags/permissions/ class=tag>#permissions</a><a href=/zh/tags/configuration/ class=tag>#configuration</a></div><a class="pill pill-outline" href=/en/claude-code-learn/09-settings-and-permissions/>Read in English →</a></div></header><div class=prose><p>如果说 hooks 是你伸手进 Claude Code 内部操作的方式，那 <code>settings.json</code> 就是划定它能动什么的边界。这也是个容易让人栽跟头的文件，尤其是它的优先级规则。</p><p>这一章就是来补上这块缺失的参考文档。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_1.png alt="Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=三个层级>三个层级</h2><p>Claude Code 会按顺序读取三个 <code>settings.json</code> 文件：</p><ol><li><strong>用户设置</strong> — <code>~/.claude/settings.json</code>。对你机器上的每个项目都生效。</li><li><strong>项目设置</strong> — <code>&lt;repo>/.claude/settings.json</code>。提交到 git 里。对这个 repo 里的所有人都生效。</li><li><strong>本地设置</strong> — <code>&lt;repo>/.claude/settings.local.json</code>。被 gitignore 忽略。你在这个 repo 里的私有覆盖配置。</li></ol><p>合并规则很简单：后一层配置会逐键（key-by-key）覆盖前一层。<strong>权限方面</strong>，<code>allow</code> 是叠加的，<code>deny</code> 是否决性的——一旦任何一层 deny 了某个操作，其他层都无法再重新 allow 它。这种不对称性正是系统安全的基石。</p><p>实际建议：把组织策略放在 <code>~/.claude/settings.json</code>，把项目规则放在 <code>.claude/settings.json</code>（提交），把你那些“我信任我机器上这个特定操作”的覆盖配置放在 <code>.claude/settings.local.json</code>。<figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig3.png alt="图 3：三层 settings.json 文件，以及每个 key 在合并时遵循的不同规则。" loading=lazy decoding=async class=content-image></figure></p><p><em>图 3：三层 settings.json 文件，以及每个 key 在合并时遵循的不同规则。</em></p><h2 id=权限块--语法结构>权限块 —— 语法结构</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-04-26>April 26, 2026</time> · 24 分钟 · 5534 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/settings-json/ class=tag>#settings-json</a><a href=/zh/tags/permissions/ class=tag>#permissions</a><a href=/zh/tags/configuration/ class=tag>#configuration</a></div><a class="pill pill-outline" href=/en/claude-code-learn/09-settings-and-permissions/>Read in English →</a></div></header><div class=prose><p>如果说 hooks 是你伸手进 Claude Code 内部操作的方式，那 <code>settings.json</code> 就是划定它能动什么的边界。这也是个容易让人栽跟头的文件，尤其是它的优先级规则。</p><p>这一章就是来补上这块缺失的参考文档。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_1.png alt="Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=三个层级>三个层级</h2><p>Claude Code 会按顺序读取三个 <code>settings.json</code> 文件：</p><ol><li><strong>用户设置</strong> — <code>~/.claude/settings.json</code>。对你机器上的每个项目都生效。</li><li><strong>项目设置</strong> — <code>&lt;repo>/.claude/settings.json</code>。提交到 git 里。对这个 repo 里的所有人都生效。</li><li><strong>本地设置</strong> — <code>&lt;repo>/.claude/settings.local.json</code>。被 gitignore 忽略。你在这个 repo 里的私有覆盖配置。</li></ol><p>合并规则很简单：后一层配置会逐键（key-by-key）覆盖前一层。<strong>权限方面</strong>，<code>allow</code> 是叠加的，<code>deny</code> 是否决性的——一旦任何一层 deny 了某个操作，其他层都无法再重新 allow 它。这种不对称性正是系统安全的基石。</p><p>实际建议：把组织策略放在 <code>~/.claude/settings.json</code>，把项目规则放在 <code>.claude/settings.json</code>（提交），把你那些“我信任我机器上这个特定操作”的覆盖配置放在 <code>.claude/settings.local.json</code>。<figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig3.png alt="图 3：三层 settings.json 文件，以及每个 key 在合并时遵循的不同规则。" loading=lazy decoding=async class=content-image></figure></p><p><em>图 3：三层 settings.json 文件，以及每个 key 在合并时遵循的不同规则。</em></p><h2 id=完整的-settingsjson-参考手册>完整的 <code>settings.json</code> 参考手册</h2><p>以下是在 <code>settings.json</code> 中可设置的所有顶层键及其说明：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;additionalDirectories&#34;</span><span class=p>:</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PostToolUse&#34;</span><span class=p>:</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;worktree&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;baseRef&#34;</span><span class=p>:</span> <span class=s2>&#34;fresh&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=permissions>permissions</h3><p>控制 Claude 可调用的工具及其作用目标。</p><h3 id=env>env</h3><p>为所有工具调用（Bash、hook 等）设置环境变量。</p><h3 id=hooks>hooks</h3><p>定义在工具调用前或后运行的脚本。详见第 7 章完整说明。</p><h3 id=worktree>worktree</h3><p>控制工作树行为。<code>baseRef</code> 可设为 <code>"fresh"</code>（从 <code>origin/main</code> 分支）或 <code>"head"</code>（从当前 <code>HEAD</code> 分支）。</p><hr><hr><h2 id=权限块--语法结构>权限块 —— 语法结构</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -58,9 +88,29 @@
 </span></span><span class=line><span class=cl>    <span class=nt>&#34;additionalDirectories&#34;</span><span class=p>:</span> <span class=p>[]</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>括号里的内容是针对特定工具的 glob 风格匹配器：<figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig5.png alt="图 5：权限规则语法速查 —— 每条规则都是 ToolName(pattern)，括号里的匹配规则因工具而异。" loading=lazy decoding=async class=content-image></figure></p><p><em>图 5：权限规则语法速查 —— 每条规则都是 ToolName(pattern)，括号里的匹配规则因工具而异。</em></p><ul><li><code>Read(path-glob)</code> — 文件模式。</li><li><code>Edit(path-glob)</code> — 同上。</li><li><code>Bash(command-pattern)</code> — 必须匹配第一个 token。用 <code>*</code> 要小心：<code>Bash(git *)</code> 会允许 <code>git push --force</code>。写具体点。</li><li><code>WebFetch(domain:host)</code> — 只匹配 host，不包含路径。</li></ul><p>裸写的 <code>Read</code> 或 <code>Bash</code> 会允许该工具下的所有操作。除了 <code>~/.claude/settings.json</code> 这种受信任的个人用途外，这几乎总是太宽泛了。</p><h2 id=为什么-deny-说了算>为什么 deny 说了算</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png alt="Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual" loading=lazy decoding=async class=content-image></figure></p><p>一旦合并后的配置里有任何东西 deny 了一个动作，别的都救不回来。这正是你可以依赖的关键机制。<figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png alt="图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。" loading=lazy decoding=async class=content-image></figure></p><p><em>图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。</em></p><p>举个例子。某个 repo 的 <code>.claude/settings.json</code> 写着：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig5.png alt="图 5：权限规则语法速查 —— 每条规则都是 ToolName(pattern)，括号里的匹配规则因工具而异。" loading=lazy decoding=async class=content-image></figure></p><p><em>图 5：权限规则语法速查 —— 每条规则都是 ToolName(pattern)，括号里的匹配规则因工具而异。</em></p><h3 id=工具权限语法>工具权限语法</h3><p>每个权限条目格式为：<code>ToolName</code> 或 <code>ToolName(pattern)</code>。</p><p>括号内为该工具专用的 glob 风格匹配器：</p><table><thead><tr><th>工具</th><th>匹配类型</th><th>示例</th><th>匹配范围</th></tr></thead><tbody><tr><td><code>Read</code></td><td>文件路径 glob</td><td><code>Read(src/**)</code></td><td><code>src/</code> 下任意文件</td></tr><tr><td><code>Read</code></td><td>文件路径 glob</td><td><code>Read(.env)</code></td><td>仅仓库根目录下的 <code>.env</code></td></tr><tr><td><code>Read</code></td><td>文件路径 glob</td><td><code>Read(**/.env*)</code></td><td>任意深度的 <code>.env</code> 类文件</td></tr><tr><td><code>Edit</code></td><td>文件路径 glob</td><td><code>Edit(src/**)</code></td><td>编辑 <code>src/</code> 下的文件</td></tr><tr><td><code>Edit</code></td><td>文件路径 glob</td><td><code>Edit(*.ts)</code></td><td>编辑根目录下的 TypeScript 文件</td></tr><tr><td><code>Write</code></td><td>文件路径 glob</td><td><code>Write(src/**)</code></td><td>在 <code>src/</code> 下写入新文件</td></tr><tr><td><code>MultiEdit</code></td><td>文件路径 glob</td><td><code>MultiEdit(src/**)</code></td><td>对 <code>src/</code> 下文件执行多处编辑</td></tr><tr><td><code>Bash</code></td><td>命令前缀</td><td><code>Bash(npm run *)</code></td><td>所有 <code>npm run</code> 命令</td></tr><tr><td><code>Bash</code></td><td>命令前缀</td><td><code>Bash(git status)</code></td><td>仅精确匹配 <code>git status</code></td></tr><tr><td><code>Bash</code></td><td>命令前缀</td><td><code>Bash(git *)</code></td><td>所有 <code>git</code> 命令（慎用！）</td></tr><tr><td><code>WebFetch</code></td><td>域名</td><td><code>WebFetch(domain:docs.anthropic.com)</code></td><td>仅该域名</td></tr><tr><td><code>Grep</code></td><td>文件路径 glob</td><td><code>Grep(src/**)</code></td><td>仅在 <code>src/</code> 中搜索</td></tr></tbody></table><p>裸工具名（如仅 <code>Read</code>）表示对该工具完全放行。除受信任的个人配置 <code>~/.claude/settings.json</code> 外，此做法几乎总是过于宽泛。</p><h3 id=additionaldirectories-字段><code>additionalDirectories</code> 字段</h3><p>默认情况下，Claude 仅能访问当前项目目录内的文件。若需授予项目外路径访问权限：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;additionalDirectories&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;/path/to/shared-libs&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;/path/to/design-system&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;~/Documents/specs&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>典型使用场景：</p><ul><li>单体仓库（monorepo）中需读取兄弟包</li><li>独立存放的设计系统目录</li><li>存放在仓库外的规范文档</li></ul><h3 id=所有权限类型及示例>所有权限类型及示例</h3><p>可在权限规则中使用的完整工具列表：</p><table><thead><tr><th>工具名</th><th>功能</th><th>常见 <code>allow</code> 模式</th><th>常见 <code>deny</code> 模式</th></tr></thead><tbody><tr><td><code>Read</code></td><td>读取文件内容</td><td><code>Read(src/**)</code></td><td><code>Read(.env)</code>, <code>Read(**/credentials*)</code></td></tr><tr><td><code>Edit</code></td><td>修改现有文件</td><td><code>Edit(src/**)</code></td><td><code>Edit(.github/workflows/**)</code></td></tr><tr><td><code>Write</code></td><td>创建新文件</td><td><code>Write(src/**)</code></td><td><code>Write(.env*)</code></td></tr><tr><td><code>MultiEdit</code></td><td>单次调用多处编辑</td><td><code>MultiEdit(src/**)</code></td><td><code>MultiEdit(.github/**)</code></td></tr><tr><td><code>Bash</code></td><td>执行 Shell 命令</td><td><code>Bash(npm run *)</code></td><td><code>Bash(rm -rf *)</code>, <code>Bash(git push *)</code></td></tr><tr><td><code>Grep</code></td><td>搜索文件内容</td><td><code>Grep</code>（裸名）</td><td>极少被拒绝</td></tr><tr><td><code>Glob</code></td><td>按模式列出文件</td><td><code>Glob</code>（裸名）</td><td>极少被拒绝</td></tr><tr><td><code>WebFetch</code></td><td>获取网页内容</td><td><code>WebFetch(domain:docs.*)</code></td><td><code>WebFetch(domain:internal.corp)</code></td></tr><tr><td><code>WebSearch</code></td><td>全网搜索</td><td><code>WebSearch</code>（裸名）</td><td>极少被拒绝</td></tr><tr><td><code>NotebookEdit</code></td><td>编辑 Jupyter Notebook</td><td><code>NotebookEdit(notebooks/**)</code></td><td>按项目定制</td></tr></tbody></table><hr><h2 id=为什么-deny-说了算>为什么 deny 说了算</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png alt="Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual" loading=lazy decoding=async class=content-image></figure></p><p>一旦合并后的配置里有任何东西 deny 了一个动作，别的都救不回来。这正是你可以依赖的关键机制。<figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png alt="图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。" loading=lazy decoding=async class=content-image></figure></p><p><em>图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。</em></p><p>举个例子。某个 repo 的 <code>.claude/settings.json</code> 写着：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span> <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;Bash(git push *)&#34;</span><span class=p>]</span> <span class=p>}</span> <span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>队友加了个 <code>.claude/settings.local.json</code>，里面写 <code>"allow": ["Bash(git push origin main)"]</code>。这<strong>不会</strong>允许 push。项目层的 deny 胜出。这是正确的行为，你应该依赖它。</p><h2 id=env--另一半配置>env —— 另一半配置</h2><p><code>env</code> 块为<em>每次</em>工具调用设置环境变量：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>队友加了个 <code>.claude/settings.local.json</code>，里面写 <code>"allow": ["Bash(git push origin main)"]</code>。这<strong>不会</strong>允许 push。项目层的 deny 胜出。这是正确的行为，你应该依赖它。</p><h3 id=示例用户级-deny-优先级最高>示例：用户级 <code>deny</code> 优先级最高</h3><p>你的 <code>~/.claude/settings.json</code> 中配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span> <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;Read(.env*)&#34;</span><span class=p>,</span> <span class=s2>&#34;Read(**/secret*)&#34;</span><span class=p>]}</span> <span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>则本机所有项目均无法读取 <code>.env</code> 文件或含 <code>secret</code> 的文件，无论其项目级配置如何。这是机器级安全策略。</p><h3 id=deny-wins-规则的实际含义><code>deny-wins</code> 规则的实际含义</h3><p>该不对称设计源于安全性考量：</p><ul><li><code>allow</code> 是便捷性设置——用于跳过“是否允许？”提示；</li><li><code>deny</code> 是强制性策略——无论其他配置如何，均阻断操作。</li></ul><p>组织可提交含 <code>deny</code> 规则的 <code>.claude/settings.json</code>。开发者无法覆盖这些拒绝规则。这是实现共享安全策略的核心机制。</p><hr><h2 id=env--另一半配置>env —— 另一半配置</h2><p><code>env</code> 块为<em>每次</em>工具调用设置环境变量：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -74,7 +124,75 @@
 </span></span><span class=line><span class=cl>    <span class=nt>&#34;DEBUG&#34;</span><span class=p>:</span> <span class=s2>&#34;false&#34;</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>有两点要知道：</p><ul><li>这些变量适用于 Bash 和任何继承环境的 hook 脚本。它们<em>不会</em>泄露到模型的 prompt 里。这是设置 <code>*_API_KEY</code> 的安全位置。</li><li>本地层覆盖项目层覆盖用户层。所以 <code>.claude/settings.local.json</code> 里的 <code>DEBUG=true</code> 只会为你开启日志，而不需要提交这个改动。</li></ul><h2 id=hooks--从同一个文件引用>hooks —— 从同一个文件引用</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=env-变量影响范围><code>env</code> 变量影响范围</h3><ul><li><strong>Bash 命令</strong>：所有 <code>Bash</code> 工具调用均继承这些变量。例如 <code>NODE_ENV=development</code> 将在 Claude 执行 <code>npm test</code> 时生效。</li><li><strong>Hook 脚本</strong>：hook 作为子进程运行，继承全部环境变量。脚本可通过 <code>process.env.LOG_LEVEL</code> 读取。</li><li><strong>不泄露至模型提示词</strong>：模型无法看到任何环境变量值。此处是存放配置的安全位置。</li></ul><h3 id=env-的层级优先级><code>env</code> 的层级优先级</h3><p>本地层 > 项目层 > 用户层。因此 <code>.claude/settings.local.json</code> 中的 <code>DEBUG=true</code> 仅对你启用日志，且无需提交。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// ~/.claude/settings.json（用户层）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;NODE_ENV&#34;</span><span class=p>:</span> <span class=s2>&#34;development&#34;</span><span class=p>,</span> <span class=nt>&#34;LOG_LEVEL&#34;</span><span class=p>:</span> <span class=s2>&#34;warn&#34;</span> <span class=p>}</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// .claude/settings.json（项目层）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;NODE_ENV&#34;</span><span class=p>:</span> <span class=s2>&#34;test&#34;</span><span class=p>,</span> <span class=nt>&#34;CI&#34;</span><span class=p>:</span> <span class=s2>&#34;false&#34;</span> <span class=p>}</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// .claude/settings.local.json（本地层）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;DEBUG&#34;</span><span class=p>:</span> <span class=s2>&#34;true&#34;</span> <span class=p>}</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 最终生效的 env：
+</span></span></span><span class=line><span class=cl><span class=c1>// NODE_ENV=test        （项目层覆盖用户层）
+</span></span></span><span class=line><span class=cl><span class=c1>// LOG_LEVEL=warn       （仅用户层存在，保留）
+</span></span></span><span class=line><span class=cl><span class=c1>// CI=false             （仅项目层存在）
+</span></span></span><span class=line><span class=cl><span class=c1>// DEBUG=true           （仅本地层存在）
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=实用-env-配置模式>实用 <code>env</code> 配置模式</h3><p><strong>为工具设置 API 密钥：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;OPENAI_API_KEY&#34;</span><span class=p>:</span> <span class=s2>&#34;sk-...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;DATABASE_URL&#34;</span><span class=p>:</span> <span class=s2>&#34;postgresql://localhost:5432/dev&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>请将此类敏感配置放入 <code>settings.local.json</code>（已加入 <code>.gitignore</code>），避免意外提交。</p><p><strong>控制测试行为：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;NODE_ENV&#34;</span><span class=p>:</span> <span class=s2>&#34;test&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;TEST_TIMEOUT&#34;</span><span class=p>:</span> <span class=s2>&#34;30000&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;SKIP_SLOW_TESTS&#34;</span><span class=p>:</span> <span class=s2>&#34;true&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Python 路径配置：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PYTHONPATH&#34;</span><span class=p>:</span> <span class=s2>&#34;./src:./lib&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;VIRTUAL_ENV&#34;</span><span class=p>:</span> <span class=s2>&#34;./.venv&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PATH&#34;</span><span class=p>:</span> <span class=s2>&#34;./.venv/bin:${PATH}&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=hooks--从同一个文件引用>hooks —— 从同一个文件引用</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -106,7 +224,49 @@
 </span></span><span class=line><span class=cl>    <span class=p>]</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行；hooks 没有覆盖机制。在更深层添加 hook 是追加，永远不会替换。</p><h2 id=一个真实-repo-里的真实-settingsjson>一个真实 repo 里的真实 settings.json</h2><p>这是我某个项目的配置，稍微脱敏了一下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><p>匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行；hooks 没有覆盖机制。在更深层添加 hook 是追加，永远不会替换。</p><h3 id=钩子hook配置详情>钩子（Hook）配置详情</h3><p>匹配器（matcher）为竖线分隔的工具名称。例如匹配器 <code>Read|Grep</code> 会在调用 <code>Read</code> 或 <code>Grep</code> 工具时触发。</p><p><strong>特殊匹配器 <code>*</code></strong>：匹配所有工具调用，适用于日志记录或可观测性钩子。</p><p><strong>每个匹配器可配置多个钩子</strong>：按顺序执行。若任一 <code>PreToolUse</code> 钩子退出码为 <code>2</code>，则该工具调用被阻断，后续钩子不再执行。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/check-hours.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/bash-blacklist.js&#34;</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>          <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/bash-whitelist.js&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=钩子层级行为>钩子层级行为</h3><p>三个配置层级（用户级、项目级、本地级）的钩子<strong>累积生效</strong>，而非覆盖。在更深层级添加钩子，仅向钩子链追加，绝不会替换上层已定义的钩子。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// ~/.claude/settings.json（用户级）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ~/hooks/global-blacklist.js&#34;</span> <span class=p>}]</span> <span class=p>}]</span> <span class=p>}</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// .claude/settings.json（项目级）
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/project-blacklist.js&#34;</span> <span class=p>}]</span> <span class=p>}]</span> <span class=p>}</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 两者均会运行：用户级 `global-blacklist.js` 先执行，随后执行项目级 `project-blacklist.js`。
+</span></span></span></code></pre></td></tr></table></div></div><p>这与权限（deny 优先于 allow）和环境变量（深层级覆盖浅层级）的行为不同——钩子始终是累加的。</p><h2 id=一个真实-repo-里的真实-settingsjson>一个真实 repo 里的真实 settings.json</h2><p>这是我某个项目的配置，稍微脱敏了一下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -186,7 +346,359 @@
 </span></span><span class=line><span class=cl>    <span class=p>]</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>注意三点：</p><ol><li>Bash 白名单只包含了只读和可逆的 Git 命令，绝不含 <code>push</code>、<code>reset --hard</code> 或 <code>rebase -i</code>。push 操作必须由人工主动触发。</li><li><code>Edit(.github/workflows/**)</code> 被 deny 了。CI 配置变更需要 review，我不想让它们混进普通 commit 里。</li><li>hooks 还为 deny 规则提供了一层额外保障：即使某条 deny 规则因拼写错误未生效，对应的 hook 仍可拦截危险操作。</li></ol><h2 id=优先级顺序当作检查清单>优先级顺序，当作检查清单</h2><p>当行为不符合预期时：</p><ol><li>在任何 <code>deny</code> 里吗？→ blocked，不管有没有 allow。</li><li>在任何 <code>allow</code> 里吗？→ permitted。</li><li>否则 → Claude 会在执行前询问。<figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig4.png alt="图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。" loading=lazy decoding=async class=content-image></figure></li></ol><p><em>图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。</em></p><p>如果你想知道哪条规则赢了，加 <code>--debug</code> 运行并查看权限解析日志。它会准确告诉你哪个文件的哪一行做出了裁决。</p><h2 id=结语>结语</h2><p>settings.json 就是 Claude 在项目里能做什么的宪法。deny 规则宜简短严苛，allow 规则宜具体明确，hooks 则作为第二道防线。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/claude-code-learn/>Claude Code 实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
+</span></span></code></pre></td></tr></table></div></div><p>注意三点：</p><ol><li>Bash 白名单只包含了只读和可逆的 Git 命令，绝不含 <code>push</code>、<code>reset --hard</code> 或 <code>rebase -i</code>。push 操作必须由人工主动触发。</li><li><code>Edit(.github/workflows/**)</code> 被 deny 了。CI 配置变更需要 review，我不想让它们混进普通 commit 里。</li><li>hooks 还为 deny 规则提供了一层额外保障：即使某条 deny 规则因拼写错误未生效，对应的 hook 仍可拦截危险操作。</li></ol><h2 id=不同项目类型的-settingsjson-模板>不同项目类型的 settings.json 模板</h2><h3 id=python--机器学习项目>Python / 机器学习项目</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(src/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(tests/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(notebooks/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Write(src/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Write(tests/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;NotebookEdit(notebooks/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(python *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(python3 *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(pip install *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(pip3 install *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(pytest *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git status)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git diff *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git log *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git add *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git commit *)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(rm -rf *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git push *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(pip install --user *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(sudo *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(.env)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(**/credentials*)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(**/weights/*)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Write(data/**)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PYTHONPATH&#34;</span><span class=p>:</span> <span class=s2>&#34;./src&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;VIRTUAL_ENV&#34;</span><span class=p>:</span> <span class=s2>&#34;./.venv&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;CUDA_VISIBLE_DEVICES&#34;</span><span class=p>:</span> <span class=s2>&#34;0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;TOKENIZERS_PARALLELISM&#34;</span><span class=p>:</span> <span class=s2>&#34;false&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Python 特定设计说明：</p><ul><li>允许对 <code>notebooks/</code> 目录使用 <code>NotebookEdit</code> —— Claude 可修改 Jupyter Notebook 文件；</li><li>拒绝 <code>Read(**/weights/*)</code> —— 模型权重文件体积庞大，读取无实际意义；</li><li>拒绝 <code>Write(data/**)</code> —— 数据文件不应由 Claude 修改；</li><li>设置 <code>CUDA_VISIBLE_DEVICES="0"</code> —— 防止开发过程中意外启用多 GPU。</li></ul><h3 id=rust-项目>Rust 项目</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(src/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(tests/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(benches/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Write(src/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Write(tests/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(cargo *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(rustup *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git status)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git diff *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git log *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git add *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git commit *)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(rm -rf *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git push *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(cargo publish *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(Cargo.lock)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(.cargo/**)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;RUST_BACKTRACE&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;RUST_LOG&#34;</span><span class=p>:</span> <span class=s2>&#34;debug&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Rust 特定设计说明：</p><ul><li>拒绝 <code>cargo publish</code> —— 错误发布 crate 不可逆；</li><li>拒绝 <code>Edit(Cargo.lock)</code> —— lockfile 应通过 <code>cargo update</code> 更新，而非手动编辑；</li><li>设置 <code>RUST_BACKTRACE=1</code> —— 使 Claude 在测试失败时能获取完整回溯信息。</li></ul><h3 id=单体仓库monorepo-多语言项目>单体仓库（Monorepo）/ 多语言项目</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(packages/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Write(packages/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(npm run *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(npx *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(pnpm *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(turbo *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git status)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git diff *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git log *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git add *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git commit *)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(rm -rf *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git push *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(packages/*/package.json)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(.github/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(turbo.json)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(.env*)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(**/credentials*)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;additionalDirectories&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;../shared-configs&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;TURBO_TELEMETRY_DISABLED&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Monorepo 特定设计说明：</p><ul><li>拒绝 <code>Edit(packages/*/package.json)</code> —— 依赖变更需显式、审慎操作；</li><li><code>additionalDirectories</code> 引入同级目录 <code>../shared-configs</code>，复用共享配置；</li><li>各子包可拥有独立的 <code>.claude/settings.json</code>，支持更宽松的细粒度规则。</li></ul><hr><h2 id=权限问题排查>权限问题排查</h2><h3 id=claude-总是请求权限确认>“Claude 总是请求权限确认”</h3><p>最常见问题。Claude 提示是因为该操作既未出现在 <code>allow</code> 中，也未出现在 <code>deny</code> 中，落入交互式提示流程。</p><p><strong>修复方法</strong>：将操作加入 <code>allow</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// 修复前：Claude 每次运行测试都询问
+</span></span></span><span class=line><span class=cl><span class=c1>// 修复后：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;Bash(npm test)&#34;</span><span class=p>,</span> <span class=s2>&#34;Bash(npm run test:*)&#34;</span><span class=p>]</span> <span class=p>}</span> <span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=claude-被阻断但原因不明>“Claude 被阻断，但原因不明”</h3><p>使用 <code>--debug</code> 启动 Claude，查看权限解析日志：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>claude --debug
+</span></span></code></pre></td></tr></table></div></div><p>调试输出将明确显示每条规则来源的配置文件及最终匹配的规则。</p><h3 id=我已允许某操作却仍被阻止>“我已允许某操作，却仍被阻止”</h3><p>检查是否存在 <code>deny</code> 规则。注意：<strong>deny 永远优先于 allow</strong>。典型反例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// 此配置会阻止 `git push origin main`（尽管它出现在 allow 中）：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;Bash(git push origin main)&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;Bash(git push *)&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>deny</code> 中的 <code>git push *</code> 匹配 <code>git push origin main</code>，因此生效。如需仅允许特定推送目标，应改用钩子实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// ❌ 下面写法无效（deny 永远胜出）
+</span></span></span><span class=line><span class=cl><span class=c1>// ✅ 正确做法：使用钩子做精细化判断：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/selective-push-gate.js&#34;</span> <span class=p>}]</span>
+</span></span><span class=line><span class=cl>    <span class=p>}]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=本地配置未生效>“本地配置未生效”</h3><p>验证文件名与路径是否正确：</p><ul><li>文件名必须为 <code>.claude/settings.local.json</code>（非 <code>settings-local.json</code> 或 <code>local.settings.json</code>）；</li><li>必须位于仓库根目录下的 <code>.claude/</code> 子目录中；</li><li>必须为合法 JSON。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 验证文件存在且格式有效</span>
+</span></span><span class=line><span class=cl>cat .claude/settings.local.json <span class=p>|</span> jq .
+</span></span></code></pre></td></tr></table></div></div><h3 id=用户级设置中的钩子未运行>“用户级设置中的钩子未运行”</h3><p>确保钩子脚本路径为绝对路径，或相对于当前工作目录正确：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=c1>// 在 ~/.claude/settings.json 中，使用绝对路径：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ~/hooks/global-blacklist.js&#34;</span> <span class=p>}]</span> <span class=p>}]</span> <span class=p>}</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// 在 .claude/settings.json（项目级）中，使用相对路径：
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>{</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Bash&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/project-blacklist.js&#34;</span> <span class=p>}]</span> <span class=p>}]</span> <span class=p>}</span> <span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=优先级顺序当作检查清单>优先级顺序，当作检查清单</h2><p>当行为不符合预期时：</p><ol><li>在任何 <code>deny</code> 里吗？→ blocked，不管有没有 allow。</li><li>在任何 <code>allow</code> 里吗？→ permitted。</li><li>否则 → Claude 会在执行前询问。<figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig4.png alt="图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。" loading=lazy decoding=async class=content-image></figure></li></ol><p><em>图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。</em></p><p>如果你想知道哪条规则赢了，加 <code>--debug</code> 运行并查看权限解析日志。它会准确告诉你哪个文件的哪一行做出了裁决。</p><h3 id=各配置项优先级规则>各配置项优先级规则</h3><table><thead><tr><th>配置项</th><th>优先级规则</th></tr></thead><tbody><tr><td><code>permissions.deny</code></td><td>所有层级 <code>deny</code> 规则<strong>并集生效</strong>。<strong>任一层级存在 deny 即阻断</strong>。</td></tr><tr><td><code>permissions.allow</code></td><td>所有层级 <code>allow</code> 规则<strong>并集生效</strong>。任一层级允许即许可（除非被 deny 阻断）。</td></tr><tr><td><code>env</code></td><td><strong>深层级覆盖浅层级</strong>：Local > Project > User。</td></tr><tr><td><code>hooks</code></td><td><strong>所有层级钩子累积执行</strong>。全部运行，无覆盖。</td></tr><tr><td><code>worktree</code></td><td><strong>深层级覆盖浅层级</strong>。</td></tr></tbody></table><h3 id=合并过程可视化>合并过程可视化</h3><pre tabindex=0><code>用户级设置         项目级设置           本地设置
+~/.claude/         .claude/             .claude/
+settings.json      settings.json        settings.local.json
+     |                  |                     |
+     v                  v                     v
+  ┌──────┐         ┌──────┐             ┌──────┐
+  │allow │ ─────→  │allow │ ─────→     │allow │
+  │deny  │  UNION  │deny  │  UNION     │deny  │
+  │env   │ ─────→  │env   │  OVERRIDE→ │env   │
+  │hooks │ ─────→  │hooks │  ACCUMULATE→│hooks │
+  └──────┘         └──────┘             └──────┘
+                                              |
+                                              v
+                                       ┌────────────┐
+                                       │  最终生效配置  │
+                                       └────────────┘
+</code></pre><h3 id=常见场景速查表>常见场景速查表</h3><table><thead><tr><th>需求</th><th>推荐配置位置</th></tr></thead><tbody><tr><td>“任何项目都禁止 X”</td><td><code>~/.claude/settings.json</code> 中配置 <code>deny</code></td></tr><tr><td>“本项目禁止 X”</td><td><code>.claude/settings.json</code> 中配置 <code>deny</code>（提交至版本库）</td></tr><tr><td>“我个人跳过 X 的权限确认”</td><td><code>.claude/settings.local.json</code> 中配置 <code>allow</code></td></tr><tr><td>“仅对我启用 <code>DEBUG=true</code>”</td><td><code>.claude/settings.local.json</code> 中配置 <code>env</code></td></tr><tr><td>“全团队在保存时自动运行 Prettier”</td><td><code>.claude/settings.json</code> 中配置 <code>hooks</code></td></tr><tr><td>“我个人额外添加日志钩子”</td><td><code>.claude/settings.local.json</code> 中配置 <code>hooks</code></td></tr></tbody></table><h2 id=从零构建-settingsjson>从零构建 <code>settings.json</code></h2><p>新建项目时，推荐按以下步骤构建配置：</p><h3 id=第一步先设-deny最小权限原则>第一步：先设 <code>deny</code>（最小权限原则）</h3><p>明确哪些操作<strong>绝对不可发生</strong>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;deny&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(rm -rf *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git push *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(.env*)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(**/credentials*)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read(**/secret*)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第二步补充常用-allow-规则>第二步：补充常用 <code>allow</code> 规则</h3><p>将 Claude 频繁请求、且你认为安全的操作加入白名单：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;permissions&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allow&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Read&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(src/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Edit(tests/**)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(npm run *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git status)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git diff *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git log *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git add *)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;Bash(git commit *)&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第三步配置-env-变量>第三步：配置 <code>env</code> 变量</h3><p>声明开发环境必需的环境变量：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;env&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;NODE_ENV&#34;</span><span class=p>:</span> <span class=s2>&#34;development&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第四步添加-hooks>第四步：添加 <code>hooks</code></h3><p>定义需自动化执行的策略（如敏感文件读取拦截）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;PreToolUse&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=p>{</span> <span class=nt>&#34;matcher&#34;</span><span class=p>:</span> <span class=s2>&#34;Read|Grep&#34;</span><span class=p>,</span> <span class=nt>&#34;hooks&#34;</span><span class=p>:</span> <span class=p>[{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;command&#34;</span><span class=p>,</span> <span class=nt>&#34;command&#34;</span><span class=p>:</span> <span class=s2>&#34;node ./hooks/block-env-read.js&#34;</span> <span class=p>}]</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第五步实测迭代>第五步：实测迭代</h3><p>启动 Claude 实际使用，观察提示行为：</p><ul><li>若频繁提示某安全操作 → 加入 <code>allow</code>；</li><li>若发生不期望行为 → 加入 <code>deny</code>；</li><li>持续微调，直至符合预期。</li></ul><h2 id=结语>结语</h2><p>settings.json 就是 Claude 在项目里能做什么的宪法。deny 规则宜简短严苛，allow 规则宜具体明确，hooks 则作为第二道防线。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/claude-code-learn/>Claude Code 实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=series-nav-num>01</span>
 <span class=series-nav-title>Claude Code 实战入门（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=series-nav-num>02</span>
 <span class=series-nav-title>Claude Code 实战指南（二）：快捷键、四态切换与思考模式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><span class=series-nav-num>03</span>
 <span class=series-nav-title>Claude Code 实战指南（三）：自定义斜杠命令与对话控制</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/04-mcp-servers/><span class=series-nav-num>04</span>
@@ -197,7 +709,7 @@
 <span class=series-nav-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>09</span>
 <span class=series-nav-title>Claude Code 实战（九）：权限模型与环境变量</span>
 <span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=series-nav-num>10</span>
-<span class=series-nav-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#三个层级>三个层级</a></li><li><a href=#权限块--语法结构>权限块 —— 语法结构</a></li><li><a href=#为什么-deny-说了算>为什么 deny 说了算</a></li><li><a href=#env--另一半配置>env —— 另一半配置</a></li><li><a href=#hooks--从同一个文件引用>hooks —— 从同一个文件引用</a></li><li><a href=#一个真实-repo-里的真实-settingsjson>一个真实 repo 里的真实 settings.json</a></li><li><a href=#优先级顺序当作检查清单>优先级顺序，当作检查清单</a></li><li><a href=#结语>结语</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/claude-code-learn/ class=series-name>Claude Code 实战</a>
+<span class=series-nav-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#三个层级>三个层级</a></li><li><a href=#完整的-settingsjson-参考手册>完整的 <code>settings.json</code> 参考手册</a><ul><li><a href=#permissions>permissions</a></li><li><a href=#env>env</a></li><li><a href=#hooks>hooks</a></li><li><a href=#worktree>worktree</a></li></ul></li><li><a href=#权限块--语法结构>权限块 —— 语法结构</a><ul><li><a href=#工具权限语法>工具权限语法</a></li><li><a href=#additionaldirectories-字段><code>additionalDirectories</code> 字段</a></li><li><a href=#所有权限类型及示例>所有权限类型及示例</a></li></ul></li><li><a href=#为什么-deny-说了算>为什么 deny 说了算</a><ul><li><a href=#示例用户级-deny-优先级最高>示例：用户级 <code>deny</code> 优先级最高</a></li><li><a href=#deny-wins-规则的实际含义><code>deny-wins</code> 规则的实际含义</a></li></ul></li><li><a href=#env--另一半配置>env —— 另一半配置</a><ul><li><a href=#env-变量影响范围><code>env</code> 变量影响范围</a></li><li><a href=#env-的层级优先级><code>env</code> 的层级优先级</a></li><li><a href=#实用-env-配置模式>实用 <code>env</code> 配置模式</a></li></ul></li><li><a href=#hooks--从同一个文件引用>hooks —— 从同一个文件引用</a><ul><li><a href=#钩子hook配置详情>钩子（Hook）配置详情</a></li><li><a href=#钩子层级行为>钩子层级行为</a></li></ul></li><li><a href=#一个真实-repo-里的真实-settingsjson>一个真实 repo 里的真实 settings.json</a></li><li><a href=#不同项目类型的-settingsjson-模板>不同项目类型的 settings.json 模板</a><ul><li><a href=#python--机器学习项目>Python / 机器学习项目</a></li><li><a href=#rust-项目>Rust 项目</a></li><li><a href=#单体仓库monorepo-多语言项目>单体仓库（Monorepo）/ 多语言项目</a></li></ul></li><li><a href=#权限问题排查>权限问题排查</a><ul><li><a href=#claude-总是请求权限确认>“Claude 总是请求权限确认”</a></li><li><a href=#claude-被阻断但原因不明>“Claude 被阻断，但原因不明”</a></li><li><a href=#我已允许某操作却仍被阻止>“我已允许某操作，却仍被阻止”</a></li><li><a href=#本地配置未生效>“本地配置未生效”</a></li><li><a href=#用户级设置中的钩子未运行>“用户级设置中的钩子未运行”</a></li></ul></li><li><a href=#优先级顺序当作检查清单>优先级顺序，当作检查清单</a><ul><li><a href=#各配置项优先级规则>各配置项优先级规则</a></li><li><a href=#合并过程可视化>合并过程可视化</a></li><li><a href=#常见场景速查表>常见场景速查表</a></li></ul></li><li><a href=#从零构建-settingsjson>从零构建 <code>settings.json</code></a><ul><li><a href=#第一步先设-deny最小权限原则>第一步：先设 <code>deny</code>（最小权限原则）</a></li><li><a href=#第二步补充常用-allow-规则>第二步：补充常用 <code>allow</code> 规则</a></li><li><a href=#第三步配置-env-变量>第三步：配置 <code>env</code> 变量</a></li><li><a href=#第四步添加-hooks>第四步：添加 <code>hooks</code></a></li><li><a href=#第五步实测迭代>第五步：实测迭代</a></li></ul></li><li><a href=#结语>结语</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/claude-code-learn/ class=series-name>Claude Code 实战</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/01-install-and-config/><span class=chapter-num>01</span>
 <span class=chapter-title>Claude Code 实战入门（一）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/02-shortcuts-and-modes/><span class=chapter-num>02</span>
 <span class=chapter-title>Claude Code 实战指南（二）：快捷键、四态切换与思考模式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/03-custom-commands/><span class=chapter-num>03</span>
@@ -208,5 +720,5 @@
 <span class=chapter-title>Claude Code 实战（七）：十个实用 Hooks 配方</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code 实战（九）：权限模型与环境变量</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>8 min</strong></div><div class=row><span>字数</span><strong>1803</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5534</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
