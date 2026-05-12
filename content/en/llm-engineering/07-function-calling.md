@@ -4,8 +4,8 @@ date: 2026-04-02 09:00:00
 tags:
   - LLM
   - function-calling
-  - tools
-  - agents
+  - Tools
+  - Agents
   - json-schema
 categories: LLM Engineering
 series: llm-engineering

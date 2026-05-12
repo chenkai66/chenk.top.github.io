@@ -6,8 +6,7 @@ tags:
   - Replication
   - Sharding
   - Distributed Systems
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "数据库如何通过复制保障高可用性，又如何通过分片实现水平扩展——涵盖主从复制、多主复制、无主复制、分片策略及一致性哈希。"

@@ -7,8 +7,7 @@ tags:
   - Security
   - DevSecOps
   - Best Practices
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "Containers provide isolation, not security. Default Docker configurations run processes as root with full capabilities. This article shows how to lock containers down for production."

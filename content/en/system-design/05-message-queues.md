@@ -6,8 +6,7 @@ tags:
   - Message Queues
   - Kafka
   - Event-Driven Architecture
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "A practical guide to message queues and event-driven systems — covering Kafka and RabbitMQ architectures, delivery guarantees, event sourcing, CQRS, dead letter queues, backpressure, and a complete order processing pipeline design."

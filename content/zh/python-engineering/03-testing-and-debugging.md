@@ -5,8 +5,7 @@ tags:
   - Python
   - Testing
   - pytest
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "借助 pytest fixture、parametrize、mocking 和覆盖率分析，建立对代码的信心。掌握可节省数小时的调试技巧。"

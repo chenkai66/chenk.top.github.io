@@ -18,19 +18,19 @@ translationKey: "cloud-computing-4"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/illustration_1.png)
 
-When Netflix stores petabytes of video, when Instagram serves billions of photos, when a quant fund replays a year of market data in minutes -- behind every one of these workloads is a *distributed storage system*. Storage looks deceptively simple from a developer's window (`PUT key`, `GET key`), but the moment you cross the boundary of a single machine, you inherit a stack of problems that has driven decades of research: how to survive disk failures, how to scale linearly, how to provide a consistency model that does not surprise the application, and how to do all of this while paying cents per gigabyte rather than dollars.
+When Netflix stores petabytes of video, when Instagram serves billions of photos, when a quant fund replays a year of market data in minutes — behind every one of these workloads is a *distributed storage system*. Storage looks deceptively simple from a developer's window (`PUT key`, `GET key`), but the moment you cross the boundary of a single machine, you inherit a stack of problems that has driven decades of research: how to survive disk failures, how to scale linearly, how to provide a consistency model that does not surprise the application, and how to do all of this while paying cents per gigabyte rather than dollars.
 
 This article walks the entire stack: the *theoretical floor* (CAP, consistency, consistent hashing), the *three storage shapes* (object, block, file), the *production systems* you will actually use (S3, HDFS, Ceph), and the *engineering levers* (replication, erasure coding, lifecycle, multipart uploads) that turn raw capacity into a service-level guarantee.
 
 ## What you will learn
 
-1. **The trade-off space** -- CAP, PACELC, and why partition tolerance is mandatory
-2. **The three shapes of cloud storage** -- block, file, object: when each is the right primitive
-3. **Object storage internals** -- partitioning, placement, durability, the request path through S3
-4. **Distributed file systems** -- HDFS (master-based) vs Ceph (CRUSH peer-to-peer)
-5. **Replication vs erasure coding** -- the math behind 11-nines durability at 1.5x overhead
-6. **Operational design** -- consistency models, quorum, multipart uploads, lifecycle policies
-7. **Cost engineering** -- storage classes, compression, deduplication, tiering policies
+1. **The trade-off space** — CAP, PACELC, and why partition tolerance is mandatory
+2. **The three shapes of cloud storage** — block, file, object: when each is the right primitive
+3. **Object storage internals** — partitioning, placement, durability, the request path through S3
+4. **Distributed file systems** — HDFS (master-based) vs Ceph (CRUSH peer-to-peer)
+5. **Replication vs erasure coding** — the math behind 11-nines durability at 1.5x overhead
+6. **Operational design** — consistency models, quorum, multipart uploads, lifecycle policies
+7. **Cost engineering** — storage classes, compression, deduplication, tiering policies
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ This article walks the entire stack: the *theoretical floor* (CAP, consistency, 
 
 A single SSD can deliver hundreds of thousands of IOPS and survive years. The problem is that *one* of anything in production is a liability:
 
-- A single disk dies every few years -- in a fleet of 10,000, you replace one or more *every day*.
+- A single disk dies every few years — in a fleet of 10,000, you replace one or more *every day*.
 - A single machine is a capacity ceiling: you cannot grow past its rack slot or PSU budget.
 - A single network path is a SPOF: one ToR switch reload takes the box dark.
 
@@ -78,11 +78,11 @@ Eric Brewer's CAP conjecture (2000), later proved by Gilbert and Lynch (2002), s
 
 ![CAP theorem Venn diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig3_cap_theorem.png)
 
-- **Consistency (C)** -- every read returns the most recent committed write (linearisable).
-- **Availability (A)** -- every non-failing node returns a response in finite time.
-- **Partition tolerance (P)** -- the system continues to operate even when arbitrary messages between nodes are dropped.
+- **Consistency (C)** — every read returns the most recent committed write (linearisable).
+- **Availability (A)** — every non-failing node returns a response in finite time.
+- **Partition tolerance (P)** — the system continues to operate even when arbitrary messages between nodes are dropped.
 
-Because partitions are not optional in a real network -- a switch reload, a fibre cut, a kernel pause -- you do not get to opt out of P. So the real choice is **CP vs AP**. "CA" describes single-machine systems that pretend partitions cannot happen.
+Because partitions are not optional in a real network — a switch reload, a fibre cut, a kernel pause — you do not get to opt out of P. So the real choice is **CP vs AP**. "CA" describes single-machine systems that pretend partitions cannot happen.
 
 | System | Class | Behaviour during a partition |
 |--------|-------|------------------------------|
@@ -157,7 +157,7 @@ ring = ConsistentHash(["s3-az-a", "s3-az-b", "s3-az-c"])
 print(ring.get_node("user:12345/profile.jpg"))
 ```
 
-**Why 128 vnodes?** With 1 vnode per server you get standard-deviation in load of ~30%. With 128 vnodes, the variance drops to a few percent -- close enough to uniform that you can plan capacity by averages.
+**Why 128 vnodes?** With 1 vnode per server you get standard-deviation in load of ~30%. With 128 vnodes, the variance drops to a few percent — close enough to uniform that you can plan capacity by averages.
 
 ---
 
@@ -171,14 +171,14 @@ S3 is the de facto standard for cloud object storage and the inspiration for OSS
 
 A `PUT` for `s3://my-bucket/users/42.jpg`:
 
-1. **DNS + edge** -- the client resolves the regional endpoint and lands at an edge front-end.
-2. **Auth** -- SigV4 signature is verified; bucket ACL / IAM policy / SCP / VPC endpoint policy / object ACL are evaluated.
-3. **Index lookup** -- the bucket name maps to a *partition* of an internal key-range index. Hot buckets are auto-split (S3 will split a partition once it exceeds an internal QPS or size threshold; this is the historical reason for the "key prefix randomisation" advice, which is now mostly obsolete).
-4. **Placement** -- the placement service picks an OSD set in the target durability scheme (e.g. 6+3 erasure coding spread across 3 AZs).
-5. **Write** -- bytes are streamed to enough nodes to satisfy the write quorum.
-6. **Acknowledge** -- once durable, S3 returns `200 OK` with an ETag.
+1. **DNS + edge** — the client resolves the regional endpoint and lands at an edge front-end.
+2. **Auth** — SigV4 signature is verified; bucket ACL / IAM policy / SCP / VPC endpoint policy / object ACL are evaluated.
+3. **Index lookup** — the bucket name maps to a *partition* of an internal key-range index. Hot buckets are auto-split (S3 will split a partition once it exceeds an internal QPS or size threshold; this is the historical reason for the "key prefix randomisation" advice, which is now mostly obsolete).
+4. **Placement** — the placement service picks an OSD set in the target durability scheme (e.g. 6+3 erasure coding spread across 3 AZs).
+5. **Write** — bytes are streamed to enough nodes to satisfy the write quorum.
+6. **Acknowledge** — once durable, S3 returns `200 OK` with an ETag.
 
-### 4.2 Storage classes -- the cost lever
+### 4.2 Storage classes — the cost lever
 
 | Class | $/GB-month (US-East-1) | Retrieval latency | Min storage | Retrieval fee |
 |-------|------------------------|-------------------|-------------|----------------|
@@ -305,7 +305,7 @@ Hot data wants the replication profile (a single read is one HTTP fetch). Cold d
 
 ### 5.2 11-nines durability is a budget
 
-S3 advertises "eleven nines" (99.999999999%) of object durability. That is one expected loss per 100 billion object-years. The number is not magic -- it is engineered:
+S3 advertises "eleven nines" (99.999999999%) of object durability. That is one expected loss per 100 billion object-years. The number is not magic — it is engineered:
 
 - Disk AFR ~1%.
 - Spread `k+m` shards across at least 3 AZs.
@@ -322,7 +322,7 @@ When you do need POSIX-ish semantics across many machines, two reference designs
 
 ![HDFS vs Ceph architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig5_distributed_fs.png)
 
-### 6.1 HDFS -- master-coordinated, batch-tuned
+### 6.1 HDFS — master-coordinated, batch-tuned
 
 HDFS is built on three opinions:
 
@@ -332,9 +332,9 @@ HDFS is built on three opinions:
 
 Architecture:
 
-- **NameNode** -- single source of truth for the namespace and block locations. The active NameNode is paired with a **Standby NameNode** sharing edits via a **JournalNode** quorum (Quorum Journal Manager) for HA.
-- **DataNodes** -- store the blocks. Default replication factor 3.
-- **Block placement** -- first replica on the writer's node (or a random one if the writer is outside the cluster), second on a different *rack*, third on another node in the same rack as the second. This survives a full-rack outage while keeping rack-local reads fast.
+- **NameNode** — single source of truth for the namespace and block locations. The active NameNode is paired with a **Standby NameNode** sharing edits via a **JournalNode** quorum (Quorum Journal Manager) for HA.
+- **DataNodes** — store the blocks. Default replication factor 3.
+- **Block placement** — first replica on the writer's node (or a random one if the writer is outside the cluster), second on a different *rack*, third on another node in the same rack as the second. This survives a full-rack outage while keeping rack-local reads fast.
 
 ```xml
 <!-- hdfs-site.xml: production-ready core settings -->
@@ -365,7 +365,7 @@ for info in hdfs.get_file_info(pafs.FileSelector("/user/data", recursive=False))
 
 **HDFS is the wrong tool** for: small files (each consumes ~150 bytes of NameNode RAM), random writes (it is append-only), or low-latency lookups. For everything else in the Hadoop / Spark ecosystem, it is still excellent.
 
-### 6.2 Ceph -- one cluster, three interfaces
+### 6.2 Ceph — one cluster, three interfaces
 
 Ceph's contribution is *unified storage*: a single RADOS cluster exposing block (RBD), object (RGW), and file (CephFS) interfaces, all backed by the same OSDs.
 
@@ -437,7 +437,7 @@ For `N` replicas and read/write quorums `R` and `W`:
 - `W = N` is the strongest writes (no progress on any failure); `W = 1` is the weakest.
 - Dynamo-style stores let the *application* choose `R` and `W` per request; ZooKeeper/etcd hard-code `W = R = majority`.
 
-### 7.3 Lifecycle policies -- automate the cost story
+### 7.3 Lifecycle policies — automate the cost story
 
 Most cost optimisation is a few lines of policy, not engineering work. Move logs to IA at 30 days, Glacier at 90, delete at 365; expire incomplete multipart uploads; transition object versions:
 
@@ -482,7 +482,7 @@ s3.put_bucket_lifecycle_configuration(
 | Pilot light (data replicated, infra absent) | hours | minutes | 1.05-1.1x | internal apps |
 | Backup-restore only | hours - days | hours | 1.01x | dev / analytics |
 
-The right answer is rarely the strictest one -- it is the one whose cost matches the business loss per minute of downtime.
+The right answer is rarely the strictest one — it is the one whose cost matches the business loss per minute of downtime.
 
 ---
 
@@ -494,10 +494,10 @@ The number to watch is **P99 latency**, not the average. In a system that fans o
 
 ### 8.2 The four levers
 
-- **Parallelism** -- multipart uploads, range GETs, concurrent prefixes.
-- **Locality** -- co-locate compute and storage (data-locality in HDFS, AZ-affinity in S3 cross-region setups).
-- **Caching** -- LRU at the application, CloudFront in front of public S3, OSS CDN for hot prefixes.
-- **Compression** -- zstd is the modern default (level 3 ≈ gzip-6 speed at gzip-9 ratio); use Snappy when CPU is scarce.
+- **Parallelism** — multipart uploads, range GETs, concurrent prefixes.
+- **Locality** — co-locate compute and storage (data-locality in HDFS, AZ-affinity in S3 cross-region setups).
+- **Caching** — LRU at the application, CloudFront in front of public S3, OSS CDN for hot prefixes.
+- **Compression** — zstd is the modern default (level 3 ≈ gzip-6 speed at gzip-9 ratio); use Snappy when CPU is scarce.
 
 ### 8.3 A throughput rule of thumb
 
@@ -525,7 +525,7 @@ A 1 TB dataset accessed twice a day, stored for 1 year:
 - **Standard + 30-day lifecycle to IA:** ~$160/yr storage + IA retrieval costs (~$10) ≈ **$170/yr**.
 - **Lifecycle to Deep Archive after 90 days, with 2 retrievals/year for re-training:** ~$15/yr storage + ~$40 retrieval fees ≈ **$55/yr**.
 
-The point is not the exact numbers -- list pricing changes -- but the order of magnitude. **Lifecycle is a 5-10x cost lever** and costs nothing to enable.
+The point is not the exact numbers — list pricing changes — but the order of magnitude. **Lifecycle is a 5-10x cost lever** and costs nothing to enable.
 
 ---
 

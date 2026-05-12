@@ -8,8 +8,7 @@ tags:
   - Dynamic Programming
   - Q-Learning
   - Temporal Difference Learning
-categories:
-  - Reinforcement Learning
+categories: Reinforcement Learning
 series: reinforcement-learning
 lang: en
 mathjax: true
@@ -28,11 +27,11 @@ This article builds RL from the ground up. We will use the bicycle as our runnin
 
 ## What You Will Learn
 
-- The **Markov Decision Process** (MDP) -- the mathematical skeleton of every RL problem
+- The **Markov Decision Process** (MDP) — the mathematical skeleton of every RL problem
 - **Bellman equations** and why they make value functions tractable
 - **Dynamic programming** for environments where the rules are known
 - **Monte Carlo methods** for learning purely from experience
-- **Temporal difference (TD) learning** -- the bridge between DP and MC that powers DQN, PPO, and beyond
+- **Temporal difference (TD) learning** — the bridge between DP and MC that powers DQN, PPO, and beyond
 - Working **Python implementations** you can run on your laptop
 
 **Prerequisites:** Basic probability and a little Python. Familiarity with supervised learning helps but is not required.
@@ -49,7 +48,7 @@ Picture yourself on a bicycle for the first time. At every instant, three things
 2. **You act**: lean a little, steer a little, pedal a little.
 3. **The world responds**: the bike either steadies, drifts further off balance, or drops you on the pavement.
 
-That third step gives you a *signal* -- a small reward when you stay upright, a sharp punishment when you fall. Over many trials, your brain assembles a **policy**: a mapping from "what I am sensing right now" to "what I should do next." The policy is never written down; it is etched into your reflexes by the loop itself.
+That third step gives you a *signal* — a small reward when you stay upright, a sharp punishment when you fall. Over many trials, your brain assembles a **policy**: a mapping from "what I am sensing right now" to "what I should do next." The policy is never written down; it is etched into your reflexes by the loop itself.
 
 Reinforcement learning is the mathematical formalism of this loop. The "you" in the diagram is called the **agent**; the bicycle plus road is the **environment**; the lean and steer commands are **actions**; the tilt and speed readouts are **states**; and the don't-fall feeling is the **reward**. Everything else in this article is just careful bookkeeping on top of this picture.
 
@@ -65,7 +64,7 @@ Reinforcement learning is the mathematical formalism of this loop. The "you" in 
 Formally, the bicycle loop is a **Markov Decision Process (MDP)**, a five-tuple
 
 $$\langle \mathcal{S}, \mathcal{A}, P, R, \gamma \rangle.$$
-The figure above shows a deliberately tiny MDP: just three states (*Balanced*, *Wobbling*, *Fallen*), a few actions, and the transition probabilities and rewards labelled directly on the edges. Every real RL problem -- robot control, Go, large-language-model fine-tuning -- is a (much larger) instance of this same structure.
+The figure above shows a deliberately tiny MDP: just three states (*Balanced*, *Wobbling*, *Fallen*), a few actions, and the transition probabilities and rewards labelled directly on the edges. Every real RL problem — robot control, Go, large-language-model fine-tuning — is a (much larger) instance of this same structure.
 
 ### The Five Components
 
@@ -77,7 +76,7 @@ The figure above shows a deliberately tiny MDP: just three states (*Balanced*, *
 $$P(s' \mid s, a) = \Pr(S_{t+1} = s' \mid S_t = s, A_t = a),\qquad \sum_{s'} P(s' \mid s, a) = 1.$$
 A perfectly balanced bicycle is *not* a deterministic system: a gust of wind, a pebble, or a slightly uneven pedal stroke can each push you to a different next state. The transition probability captures all of that uncertainty.
 
-**Reward function** $R(s, a, s')$: the immediate payoff for the transition $s \xrightarrow{a} s'$. Rewards are the agent's **only** learning signal. Get them wrong and the agent will obediently optimise the wrong thing -- a phenomenon known as *reward hacking*.
+**Reward function** $R(s, a, s')$: the immediate payoff for the transition $s \xrightarrow{a} s'$. Rewards are the agent's **only** learning signal. Get them wrong and the agent will obediently optimise the wrong thing — a phenomenon known as *reward hacking*.
 
 **Discount factor** $\gamma \in [0, 1)$: how much the agent cares about *future* reward versus *immediate* reward. We will see this is far more than a numerical convenience.
 
@@ -85,11 +84,11 @@ A perfectly balanced bicycle is *not* a deterministic system: a gust of wind, a 
 
 The defining assumption of an MDP is delightfully simple: **the future depends only on the present, not on how you got here.**
 $$P(S_{t+1} \mid S_t, A_t, S_{t-1}, A_{t-1}, \ldots) = P(S_{t+1} \mid S_t, A_t).$$
-For the bicycle this looks suspicious -- surely *which way I was leaning a moment ago* matters? It does, but the trick is to *fold history into the state itself*. If we redefine the state as `(tilt, angular velocity, speed)` instead of just `tilt`, the Markov property holds again. In Atari, DeepMind famously stacked the last 4 frames into the state for exactly this reason.
+For the bicycle this looks suspicious — surely *which way I was leaning a moment ago* matters? It does, but the trick is to *fold history into the state itself*. If we redefine the state as `(tilt, angular velocity, speed)` instead of just `tilt`, the Markov property holds again. In Atari, DeepMind famously stacked the last 4 frames into the state for exactly this reason.
 
 ### Policy: From States to Actions
 
-A **policy** $\pi$ is the agent's strategy -- the function that turns observations into decisions:
+A **policy** $\pi$ is the agent's strategy — the function that turns observations into decisions:
 
 - **Deterministic**: $a = \pi(s)$. Always the same action for the same state.
 - **Stochastic**: $\pi(a \mid s) = \Pr(A_t = a \mid S_t = s)$. A probability distribution over actions.
@@ -103,7 +102,7 @@ $$G_t = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \cdots = \sum_{k=0}^{\infty} \
 Why discount? Three independent reasons all point the same way:
 
 - **Mathematical**: when $|r| \le R_{\max}$ the geometric sum stays finite, $|G_t| \le R_{\max} / (1 - \gamma)$. Without it, infinite-horizon tasks would blow up.
-- **Cognitive**: a reward today is worth more than the same reward tomorrow -- there is uncertainty between you and tomorrow.
+- **Cognitive**: a reward today is worth more than the same reward tomorrow — there is uncertainty between you and tomorrow.
 - **Operational**: without discount, an agent could rationally do *nothing forever* and still claim infinite return. Discounting forces it to *get on with it*.
 
 We then define two value functions, one for states and one for state-action pairs:
@@ -114,11 +113,11 @@ $$V^\pi(s) = \sum_a \pi(a \mid s) \, Q^\pi(s, a),\qquad Q^\pi(s, a) = \sum_{s'} 
 
 ![Bellman backup tree: today's value built from tomorrow's](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/fig3_bellman_recursion.png)
 
-Value functions have a beautiful recursive structure. This is the single most important idea in RL theory -- once it clicks, every algorithm in the rest of the series will feel like a variation on a theme.
+Value functions have a beautiful recursive structure. This is the single most important idea in RL theory — once it clicks, every algorithm in the rest of the series will feel like a variation on a theme.
 
 **Bellman expectation equation** (for any policy $\pi$):
 $$V^\pi(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^\pi(s')\right].$$
-Read it out loud: *the value of being here equals the expected immediate reward plus the discounted value of where I land next*. The tree in the figure is exactly this equation drawn out -- the root is the current state, the middle layer is the actions weighted by $\pi$, the leaves are the next states weighted by $P$, and the rewards live on the arrows.
+Read it out loud: *the value of being here equals the expected immediate reward plus the discounted value of where I land next*. The tree in the figure is exactly this equation drawn out — the root is the current state, the middle layer is the actions weighted by $\pi$, the leaves are the next states weighted by $P$, and the rewards live on the arrows.
 
 **Bellman optimality equation** (for the best possible policy $\pi^*$):
 $$V^*(s) = \max_a \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^*(s')\right],$$$$Q^*(s, a) = \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma \max_{a'} Q^*(s', a')\right].$$
@@ -145,7 +144,7 @@ with solution $V(s_1) \approx 52.3$ and $V(s_2) \approx 50.4$. The values are la
 
 ## Dynamic Programming: When You Know the Rules
 
-When the environment model ($P$ and $R$) is fully known, **dynamic programming (DP)** computes the optimal policy *exactly*. There are no samples, no noise -- just deterministic iteration on the Bellman equation.
+When the environment model ($P$ and $R$) is fully known, **dynamic programming (DP)** computes the optimal policy *exactly*. There are no samples, no noise — just deterministic iteration on the Bellman equation.
 
 ### Policy Evaluation
 
@@ -166,7 +165,7 @@ Alternate between the two:
 1. Start with any policy $\pi_0$.
 2. **Evaluate**: compute $V^{\pi_k}$.
 3. **Improve**: build the greedy $\pi_{k+1}$.
-4. If $\pi_{k+1} = \pi_k$, stop -- we have hit a fixed point, which is the optimal policy.
+4. If $\pi_{k+1} = \pi_k$, stop — we have hit a fixed point, which is the optimal policy.
 
 ### Value Iteration
 
@@ -259,7 +258,7 @@ V, policy = value_iteration(env)
 print(np.round(V, 1))
 ```
 
-DP is exact and elegant, but it has two crippling limitations. First, it requires the model: in real life we rarely know $P$ and $R$ in closed form. Second, it sweeps over the entire state space on every iteration -- impossible when the state space is the set of all $84 \times 84$ Atari frames. The next two sections fix both issues.
+DP is exact and elegant, but it has two crippling limitations. First, it requires the model: in real life we rarely know $P$ and $R$ in closed form. Second, it sweeps over the entire state space on every iteration — impossible when the state space is the set of all $84 \times 84$ Atari frames. The next two sections fix both issues.
 
 ---
 
@@ -295,7 +294,7 @@ $$\pi(a \mid s) = \begin{cases}
 1 - \varepsilon + \varepsilon / |\mathcal{A}| & \text{if } a = \arg\max_{a'} Q(s, a'), \\
 \varepsilon / |\mathcal{A}| & \text{otherwise.}
 \end{cases}$$
-That tiny $\varepsilon$ is the engine of *exploration* -- without it, the agent might lock onto a mediocre action and never discover the better one.
+That tiny $\varepsilon$ is the engine of *exploration* — without it, the agent might lock onto a mediocre action and never discover the better one.
 
 ### Code: MC Policy Evaluation and Control
 
@@ -387,7 +386,7 @@ The name spells out the quintuple it depends on: $(S_t, A_t, R_t, S_{t+1}, A_{t+
 
 Q-learning (Watkins, 1989) replaces the actual next action with the *best* next action:
 $$Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha\,\big[\,r_t + \gamma \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t)\,\big].$$
-The single-character difference -- $A_{t+1}$ versus $\max_{a'}$ -- changes everything. Sarsa evaluates the policy it follows (**on-policy**); Q-learning evaluates the *greedy* policy regardless of what it actually does (**off-policy**). Q-learning can therefore learn the optimal policy *while* exploring randomly.
+The single-character difference — $A_{t+1}$ versus $\max_{a'}$ — changes everything. Sarsa evaluates the policy it follows (**on-policy**); Q-learning evaluates the *greedy* policy regardless of what it actually does (**off-policy**). Q-learning can therefore learn the optimal policy *while* exploring randomly.
 
 ### Sarsa vs Q-Learning: Cliff Walking
 
@@ -401,7 +400,7 @@ C C C C C C C C
 The agent starts at `S`, must reach `G`, and falls into the cliff `C` if it ever steps below the top row.
 
 - **Sarsa** *factors in* the risk of an exploratory step pushing it off the cliff. It learns a safer path that hugs the top edge of the grid.
-- **Q-learning** evaluates the greedy policy (which never explores), so it learns the optimal path right along the cliff edge -- but during *training* it falls in much more often.
+- **Q-learning** evaluates the greedy policy (which never explores), so it learns the optimal path right along the cliff edge — but during *training* it falls in much more often.
 
 This is the cleanest possible illustration of the on-policy/off-policy trade-off: Sarsa is conservative, Q-learning is asymptotically optimal but more reckless during learning.
 
@@ -471,7 +470,7 @@ Every learning agent faces a permanent dilemma: *use what I know, or test what I
 
 The figure above runs a classic 10-armed bandit experiment: each "arm" is a slot machine with an unknown average payoff, and the agent has 1000 pulls. Cumulative *regret* is the gap between the reward of the best arm and the reward you actually collected.
 
-- **$\varepsilon = 0$** (pure greedy) often locks onto an arm that *seemed* good after a few pulls but isn't actually the best -- regret grows linearly forever.
+- **$\varepsilon = 0$** (pure greedy) often locks onto an arm that *seemed* good after a few pulls but isn't actually the best — regret grows linearly forever.
 - **$\varepsilon = 0.3$** keeps wasting pulls on bad arms.
 - **$\varepsilon \in [0.01, 0.1]$** sits in the sweet spot.
 
@@ -484,7 +483,7 @@ This same trade-off shows up dressed in different clothes throughout the series:
 The discount factor $\gamma$ is more than a numerical knob. It quietly defines *how far into the future* the agent thinks. Two ways to see it:
 
 - **Reward weighting (left panel)**: a reward $k$ steps away is worth $\gamma^k$ of an immediate reward. With $\gamma = 0.5$, a reward 10 steps out is already worth less than 0.1%; with $\gamma = 0.99$, it still carries 90%.
-- **Effective horizon (right panel)**: the rough number of future steps that meaningfully contribute to $G_t$ is $1 / (1 - \gamma)$. So $\gamma = 0.9$ means "I plan about 10 steps ahead," $\gamma = 0.99$ means "100 steps," and $\gamma = 0.999$ means "1000 steps." Notice the y-axis is logarithmic -- pushing $\gamma$ from 0.99 to 0.999 is a *tenfold* expansion of the planning horizon, not a 1% tweak.
+- **Effective horizon (right panel)**: the rough number of future steps that meaningfully contribute to $G_t$ is $1 / (1 - \gamma)$. So $\gamma = 0.9$ means "I plan about 10 steps ahead," $\gamma = 0.99$ means "100 steps," and $\gamma = 0.999$ means "1000 steps." Notice the y-axis is logarithmic — pushing $\gamma$ from 0.99 to 0.999 is a *tenfold* expansion of the planning horizon, not a 1% tweak.
 
 Practical consequence: $\gamma$ should match the time scale of your task. Game-playing agents often use $\gamma \approx 0.99$. Recommendation systems that care about decade-long lifetime value might push it higher. Robot reflex controllers might use $\gamma = 0.9$ or lower because anything more than a second is irrelevant.
 
@@ -524,9 +523,9 @@ This chapter built the foundation that the rest of the series stands on:
 - **Temporal difference methods** combine the best of both worlds: model-free *and* online.
 - **Exploration vs exploitation** and the **discount factor** are the two hidden levers that show up in every algorithm to come.
 
-All of these methods assume small, discrete state and action spaces where you can store one value per cell of a table. When state spaces explode -- think $256^{84 \times 84}$ Atari frames -- tabular methods break down completely.
+All of these methods assume small, discrete state and action spaces where you can store one value per cell of a table. When state spaces explode — think $256^{84 \times 84}$ Atari frames — tabular methods break down completely.
 
-**Next up:** [Part 2](/en/reinforcement-learning/02-q-learning-and-dqn/) introduces **Deep Q-Networks (DQN)** -- using neural networks to approximate $Q$, with experience replay and target networks to keep training stable. That is the bridge from textbook RL to the algorithms that beat humans at Atari.
+**Next up:** [Part 2](/en/reinforcement-learning/02-q-learning-and-dqn/) introduces **Deep Q-Networks (DQN)** — using neural networks to approximate $Q$, with experience replay and target networks to keep training stable. That is the bridge from textbook RL to the algorithms that beat humans at Atari.
 
 ---
 

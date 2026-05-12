@@ -6,8 +6,7 @@ tags:
   - Storage Engines
   - InnoDB
   - LSM Tree
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: en
 description: "How database storage engines work under the hood — B-tree vs LSM-tree, WAL, buffer pools, compaction, and why your choice of engine shapes everything."

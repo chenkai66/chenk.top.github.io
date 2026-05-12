@@ -20,9 +20,9 @@ translationKey: "time-series-4"
 
 - Why recurrent models hit a wall on long-range dependencies, and how attention removes it.
 - The Query / Key / Value mechanism, scaled dot-product attention, and the role of $1/\sqrt{d_k}$.
-- Two classic scoring functions -- **Bahdanau** (additive) and **Luong** (multiplicative).
+- Two classic scoring functions — **Bahdanau** (additive) and **Luong** (multiplicative).
 - How to wire **attention into an LSTM encoder/decoder** for time series.
-- **Multi-head attention** specialised for time -- different heads for recency, period, anomaly.
+- **Multi-head attention** specialised for time — different heads for recency, period, anomaly.
 - The $O(n^2)$ memory wall and how sparse / linear attention bypass it.
 - A worked **stock-prediction case** with attention-weight overlays.
 
@@ -40,10 +40,10 @@ Real time series rarely cooperate with that geometry:
 - Today's electricity load looks most like *the same hour, last Wednesday*.
 - A stock price reacts to an **earnings event** that happened weeks ago.
 
-Attention proposes a radically different geometry: every step has a **direct, learned link to every other step**. The path length between any two positions becomes $O(1)$, and the link strength -- the *attention weight* -- is itself interpretable.
+Attention proposes a radically different geometry: every step has a **direct, learned link to every other step**. The path length between any two positions becomes $O(1)$, and the link strength — the *attention weight* — is itself interpretable.
 
 ![Attention weights over a 24-step window. The bright diagonal is recency, the off-diagonal is a 12-step periodicity, and the vertical band is persistent memory of an anomaly at t=5.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig1_attention_heatmap.png)
-*Figure 1. A causal attention map already encodes three useful priors -- recency, periodicity, and persistent memory of anomalies -- without any handcrafted features.*
+*Figure 1. A causal attention map already encodes three useful priors — recency, periodicity, and persistent memory of anomalies — without any handcrafted features.*
 
 ---
 
@@ -55,9 +55,9 @@ $$Q = X W^Q, \qquad K = X W^K, \qquad V = X W^V,$$
 
 with $W^Q, W^K \in \mathbb{R}^{d \times d_k}$ and $W^V \in \mathbb{R}^{d \times d_v}$.
 
-- **Query** $Q$ -- "what is this step looking for?"
-- **Key** $K$ -- "what does this step advertise?"
-- **Value** $V$ -- "what does this step actually carry?"
+- **Query** $Q$ — "what is this step looking for?"
+- **Key** $K$ — "what does this step advertise?"
+- **Value** $V$ — "what does this step actually carry?"
 
 The compatibility between query $i$ and key $j$ is a dot product. Stacking:
 
@@ -65,7 +65,7 @@ $$\text{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}
 
 ### Why divide by $\sqrt{d_k}$?
 
-If the entries of $Q$ and $K$ are i.i.d. with variance $1$, then each dot product $q_i^\top k_j$ has variance $d_k$. As $d_k$ grows, the softmax inputs become large in magnitude and the softmax saturates -- gradients collapse to near zero on all but one position. Dividing by $\sqrt{d_k}$ rescales the variance back to $1$ and keeps gradients healthy.
+If the entries of $Q$ and $K$ are i.i.d. with variance $1$, then each dot product $q_i^\top k_j$ has variance $d_k$. As $d_k$ grows, the softmax inputs become large in magnitude and the softmax saturates — gradients collapse to near zero on all but one position. Dividing by $\sqrt{d_k}$ rescales the variance back to $1$ and keeps gradients healthy.
 
 ### A minimal implementation
 
@@ -109,7 +109,7 @@ Both produce a vector of pre-softmax scores, both finish with softmax + weighted
 
 ## 4. Self-attention applied to a time series
 
-In the seq2seq world, queries come from the decoder and keys/values come from the encoder -- two different sequences. **Self-attention** drops that distinction: the same sequence acts as $Q$, $K$, and $V$. Each step looks at every other step in the *same* window.
+In the seq2seq world, queries come from the decoder and keys/values come from the encoder — two different sequences. **Self-attention** drops that distinction: the same sequence acts as $Q$, $K$, and $V$. Each step looks at every other step in the *same* window.
 
 For time series this is exactly what we want. Suppose we want to forecast the next value given a 12-step window. The attention weights from "now" back into the past tell us which historical step the model is leaning on.
 
@@ -118,7 +118,7 @@ For time series this is exactly what we want. Suppose we want to forecast the ne
 
 ### Causal masking
 
-For forecasting we must prevent step $i$ from looking at the future. The standard fix is a **causal mask** -- a lower-triangular matrix added to the scores, with $-\infty$ in the upper triangle so the softmax kills those entries:
+For forecasting we must prevent step $i$ from looking at the future. The standard fix is a **causal mask** — a lower-triangular matrix added to the scores, with $-\infty$ in the upper triangle so the softmax kills those entries:
 
 ```python
 def causal_mask(n, device):
@@ -190,7 +190,7 @@ class MultiHeadAttention(nn.Module):
 
 ## 6. Positional encoding: putting time back in
 
-Self-attention is **permutation-invariant** -- shuffling the input shuffles the output identically. For time series, that throws away the most important variable in the dataset. We must inject position explicitly.
+Self-attention is **permutation-invariant** — shuffling the input shuffles the output identically. For time series, that throws away the most important variable in the dataset. We must inject position explicitly.
 
 ### Sinusoidal encoding
 
@@ -219,7 +219,7 @@ def time_features(timestamps, d_model):
     return torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
 ```
 
-This generalises sinusoidal PE to arbitrary time intervals -- the same code handles 1 Hz IoT data, irregular trade ticks, and missing samples uniformly.
+This generalises sinusoidal PE to arbitrary time intervals — the same code handles 1 Hz IoT data, irregular trade ticks, and missing samples uniformly.
 
 ---
 
@@ -258,7 +258,7 @@ class LSTMAttention(nn.Module):
         return torch.cat(outs, dim=1), alpha
 ```
 
-Empirically this architecture (or variants -- DA-RNN, dual-stage attention, etc.) wins many M-competition style benchmarks, especially when the horizon is short and data is limited.
+Empirically this architecture (or variants — DA-RNN, dual-stage attention, etc.) wins many M-competition style benchmarks, especially when the horizon is short and data is limited.
 
 ---
 
@@ -282,16 +282,16 @@ For most time-series problems, $n$ is in the hundreds, $d$ is in the tens to a f
 
 ## 9. Case study: forecasting a stock price
 
-To make the whole pipeline concrete, here is a synthetic stock series with three regimes -- a slow trend, a 30-day cycle, and an earnings event at day 60 -- forecast 10 days ahead by an LSTM+attention model and a no-attention baseline.
+To make the whole pipeline concrete, here is a synthetic stock series with three regimes — a slow trend, a 30-day cycle, and an earnings event at day 60 — forecast 10 days ahead by an LSTM+attention model and a no-attention baseline.
 
 ![Stock price forecast with attention overlay. The LSTM+attention forecast (orange) tracks the post-earnings regime; the no-attention baseline (grey dashed) under-shoots. The bottom panel shows the attention weights from the forecast query into the past 30 days, with the earnings day spiking in red.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig7_stock_attention_app.png)
 *Figure 7. The attention weights are not a black box. We can see the model leaning hard on the earnings event and on the most recent week.*
 
 Three things to notice:
 
-1. **The earnings-day weight is large** -- attention has discovered an *event* memory without being told what an earnings release is.
-2. **The cycle peak is preserved** -- the orange forecast follows the 30-day oscillation, while the baseline collapses to a near-linear extrapolation.
-3. **Interpretability comes for free** -- the same matrix that drives the prediction also explains it. With LSTMs you would need post-hoc tools (integrated gradients, SHAP); with attention the explanation is a softmax row.
+1. **The earnings-day weight is large** — attention has discovered an *event* memory without being told what an earnings release is.
+2. **The cycle peak is preserved** — the orange forecast follows the 30-day oscillation, while the baseline collapses to a near-linear extrapolation.
+3. **Interpretability comes for free** — the same matrix that drives the prediction also explains it. With LSTMs you would need post-hoc tools (integrated gradients, SHAP); with attention the explanation is a softmax row.
 
 A note of caution: attention weights are **correlated with importance, not identical to it**. For high-stakes deployments, validate explanations with perturbation tests (zero-out a key step, see the prediction shift) rather than reading the heatmap as ground truth.
 
@@ -304,7 +304,7 @@ A note of caution: attention weights are **correlated with importance, not ident
 3. **Use causal masks** during training and inference for forecasting.
 4. **Start with 4 heads, $d_\text{model} \in [64, 128]$**. Scale only if validation loss demands it.
 5. **Layer-norm before attention**, dropout on attention weights and on the feed-forward block.
-6. **Lower learning rate than RNNs** -- $10^{-4}$ to $5 \cdot 10^{-4}$ with a warm-up of a few hundred steps.
+6. **Lower learning rate than RNNs** — $10^{-4}$ to $5 \cdot 10^{-4}$ with a warm-up of a few hundred steps.
 7. **Visualise heads early**. If they collapse to identical patterns, reduce $h$ or add diversity regularisation.
 8. **Beware the $O(n^2)$ wall**. If you need $n > 1024$, go straight to a sub-quadratic variant or to Informer (Part 8).
 
@@ -312,11 +312,11 @@ A note of caution: attention weights are **correlated with importance, not ident
 
 ## 11. Common pitfalls
 
-- **Forgetting to scale by $\sqrt{d_k}$** -- training stalls within a few steps.
-- **Wrong masking** -- subtle data leakage that inflates training metrics and crashes at deployment.
-- **Attention to padding** -- forgetting the padding mask leaks the special token's signal into every position.
-- **Treating weights as causal explanations** -- they are evidence, not proof.
-- **Training on too-short windows** -- if all useful history fits in 10 steps, an LSTM will probably outrun a Transformer.
+- **Forgetting to scale by $\sqrt{d_k}$** — training stalls within a few steps.
+- **Wrong masking** — subtle data leakage that inflates training metrics and crashes at deployment.
+- **Attention to padding** — forgetting the padding mask leaks the special token's signal into every position.
+- **Treating weights as causal explanations** — they are evidence, not proof.
+- **Training on too-short windows** — if all useful history fits in 10 steps, an LSTM will probably outrun a Transformer.
 
 ---
 
@@ -325,13 +325,13 @@ A note of caution: attention weights are **correlated with importance, not ident
 Attention replaces the **sequential, lossy information channel of an RNN** with a **direct, content-addressable lookup**. The math is two matrix multiplications and a softmax; the consequences are profound:
 
 - $O(1)$ path length between any two time steps.
-- Fully parallel training -- every position is computed at once.
+- Fully parallel training — every position is computed at once.
 - Built-in interpretability via the attention matrix.
 - A clean abstraction for multi-scale temporal patterns through multi-head attention.
 
-The price is $O(n^2)$ memory and the need to inject position explicitly. For most time-series problems those costs are well worth paying -- and Parts 5, 6, and 8 of this series will show how the Transformer, TCN, and Informer push the idea further.
+The price is $O(n^2)$ memory and the need to inject position explicitly. For most time-series problems those costs are well worth paying — and Parts 5, 6, and 8 of this series will show how the Transformer, TCN, and Informer push the idea further.
 
-> **Mnemonic** -- *Q asks, K answers, V carries; scale by $\sqrt{d_k}$, softmax to weights, multiply V to read; many heads, many views.*
+> **Mnemonic** — *Q asks, K answers, V carries; scale by $\sqrt{d_k}$, softmax to weights, multiply V to read; many heads, many views.*
 
 ---
 
@@ -343,7 +343,7 @@ The price is $O(n^2)$ memory and the need to inject position explicitly. For mos
 4. Qin et al., *A Dual-Stage Attention-Based Recurrent Neural Network for Time Series Prediction*, IJCAI 2017.
 5. Kitaev, Kaiser, Levskaya, *Reformer: The Efficient Transformer*, ICLR 2020.
 6. Beltagy, Peters, Cohan, *Longformer: The Long-Document Transformer*, 2020.
-7. Zhou et al., *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting*, AAAI 2021. -- covered in Part 8.
+7. Zhou et al., *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting*, AAAI 2021. — covered in Part 8.
 
 ---
 

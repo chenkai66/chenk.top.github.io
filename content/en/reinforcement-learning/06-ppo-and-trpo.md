@@ -8,8 +8,7 @@ tags:
   - Policy Optimization
   - Trust Region
   - RLHF
-categories:
-  - Reinforcement Learning
+categories: Reinforcement Learning
 series: reinforcement-learning
 lang: en
 mathjax: true
@@ -22,7 +21,7 @@ Policy gradients (Part 3) optimise the policy directly, sidestepping discrete `a
 
 **Trust-region methods** make this concrete: bound the change in *behaviour*, not in parameters, at every update. TRPO does it through a hard KL constraint and a second-order solver. PPO mimics the same effect with one line of clipped arithmetic. The cheaper trick won: PPO trains OpenAI Five, ChatGPT's RLHF stage, almost every modern robotics policy, and remains the workhorse of applied deep RL.
 
-![Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
+![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
 
 ## What you will learn
 
@@ -33,7 +32,7 @@ Policy gradients (Part 3) optimise the policy directly, sidestepping discrete `a
 - **PPO inside RLHF**: how it aligns ChatGPT-class models, and where DPO/IPO/KTO fit
 - A practical hyperparameter and debugging guide that mirrors what you'd find in `cleanrl` or Stable Baselines 3
 
-**Prerequisites:** [Part 3](/en/reinforcement-learning/03-policy-gradient-and-actor-critic/) (REINFORCE, Actor-Critic, advantage). Familiarity with KL divergence and Fisher information helps but is not required -- both are introduced in context.
+**Prerequisites:** [Part 3](/en/reinforcement-learning/03-policy-gradient-and-actor-critic/) (REINFORCE, Actor-Critic, advantage). Familiarity with KL divergence and Fisher information helps but is not required — both are introduced in context.
 
 ---
 
@@ -45,13 +44,13 @@ Say the current policy at state $s$ assigns $\pi(a_1|s) = 0.9$ and $\pi(a_2|s) =
 
 Three pathologies are at play here:
 
-1. **Variance explosion.** The score function carries a $1/\pi$ factor, so rare actions induce gigantic gradient magnitudes -- the same reason "off-policy" REINFORCE is unstable.
-2. **Distribution shift.** The next batch of trajectories is collected by the *new* policy. If the new policy is bad, every datapoint we collect from it confirms a worse signal -- a feedback loop.
+1. **Variance explosion.** The score function carries a $1/\pi$ factor, so rare actions induce gigantic gradient magnitudes — the same reason "off-policy" REINFORCE is unstable.
+2. **Distribution shift.** The next batch of trajectories is collected by the *new* policy. If the new policy is bad, every datapoint we collect from it confirms a worse signal — a feedback loop.
 3. **Irreversibility.** A supervised model only loses *fit* on a bad step; an RL agent loses *data* on a bad step, and policy collapse can take an order of magnitude more samples to undo than to cause.
 
 ### Parameter space lies; policy space tells the truth
 
-Consider two Gaussian policies $\pi_1 = \mathcal{N}(0, 0.01)$ and $\pi_2 = \mathcal{N}(0, 10)$. The Euclidean distance between their parameters (mean and log-std) is small, yet $\pi_1$ is essentially deterministic at zero while $\pi_2$ is nearly uniform across the action range. The induced behaviours -- and hence the rewards -- are completely different.
+Consider two Gaussian policies $\pi_1 = \mathcal{N}(0, 0.01)$ and $\pi_2 = \mathcal{N}(0, 10)$. The Euclidean distance between their parameters (mean and log-std) is small, yet $\pi_1$ is essentially deterministic at zero while $\pi_2$ is nearly uniform across the action range. The induced behaviours — and hence the rewards — are completely different.
 
 The lesson: **a fixed step in parameter space can cause an unbounded change in policy behaviour.** Any safety guarantee must therefore live in *distribution space*. The Kullback-Leibler divergence $D_{KL}(\pi_{\text{old}} \| \pi_\theta)$ is the natural metric.
 
@@ -72,12 +71,12 @@ The probability ratio $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_
 
 Two facts to keep in mind:
 
-- At $\theta = \theta_{\text{old}}$, $L^{\text{IS}}$ has the **same value and gradient** as the true policy-gradient objective $J(\theta)$ -- so it is locally faithful.
+- At $\theta = \theta_{\text{old}}$, $L^{\text{IS}}$ has the **same value and gradient** as the true policy-gradient objective $J(\theta)$ — so it is locally faithful.
 - Far from $\theta_{\text{old}}$, the variance of the IS estimator grows roughly as $\exp(2\,D_{KL})$ (figure below). Tiny KL = trustworthy reuse; large KL = noisy garbage.
 
 ![Importance sampling ratio distribution and variance growth versus KL](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig5_importance_sampling.png)
 
-The left panel histograms the ratio $r_t$ as the new and old policies drift apart -- the distribution stays tight inside the green PPO clip zone $[0.8, 1.2]$ for $D_{KL}\!\le\!0.02$, and develops a heavy right tail beyond $D_{KL}\!=\!0.05$. The right panel plots the variance of the IS estimator on a log scale; the orange shaded region is the variance "saved" by clipping. This is the quantitative argument for keeping every update inside a small trust region.
+The left panel histograms the ratio $r_t$ as the new and old policies drift apart — the distribution stays tight inside the green PPO clip zone $[0.8, 1.2]$ for $D_{KL}\!\le\!0.02$, and develops a heavy right tail beyond $D_{KL}\!=\!0.05$. The right panel plots the variance of the IS estimator on a log scale; the orange shaded region is the variance "saved" by clipping. This is the quantitative argument for keeping every update inside a small trust region.
 
 ---
 
@@ -85,7 +84,7 @@ The left panel histograms the ratio $r_t$ as the new and old policies drift apar
 
 ### The monotonic-improvement bound
 
-Schulman et al. (2015) showed -- generalising Kakade & Langford (2002) -- that the true return of the new policy can be bounded below by the surrogate plus a KL penalty:
+Schulman et al. (2015) showed — generalising Kakade & Langford (2002) — that the true return of the new policy can be bounded below by the surrogate plus a KL penalty:
 $$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \cdot D_{KL}^{\max}\!\left(\pi_{\text{old}} \,\|\, \pi_{\text{new}}\right)$$
 where $C = 4\varepsilon\gamma/(1-\gamma)^2$ depends on the maximum advantage magnitude $\varepsilon$ and the discount factor $\gamma$. The corollary is striking: **as long as we improve the surrogate while keeping $D_{KL}^{\max}$ small, monotonic policy improvement is guaranteed.**
 
@@ -103,10 +102,10 @@ Solving the constrained problem yields the natural gradient update $\Delta\theta
 
 ### Implementation: conjugate gradient + line search
 
-For a network with millions of parameters, $F$ has $\sim 10^{12}$ entries -- forming it explicitly is impossible. TRPO sidesteps this with two tricks:
+For a network with millions of parameters, $F$ has $\sim 10^{12}$ entries — forming it explicitly is impossible. TRPO sidesteps this with two tricks:
 
 1. **Conjugate gradient** to solve $Fx = g$ using only Fisher-vector products $Fv$ (cheap to compute via two `autograd` passes, no matrix is materialised).
-2. **Backtracking line search** along the natural-gradient direction, halving the step until the KL constraint is satisfied *and* the surrogate improves -- this preserves the monotonicity guarantee even when the quadratic approximation is loose.
+2. **Backtracking line search** along the natural-gradient direction, halving the step until the KL constraint is satisfied *and* the surrogate improves — this preserves the monotonicity guarantee even when the quadratic approximation is loose.
 
 ```python
 def conjugate_gradient(fisher_vector_product, b, n_steps=10, tol=1e-10):
@@ -140,7 +139,7 @@ step = torch.sqrt(2 * delta / (x.dot(fisher_vector_product(x)) + 1e-8)) * x
 
 ## PPO: keeping 90% of the benefit at 20% of the complexity
 
-![Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_2.png)
+![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_2.png)
 
 In 2017 Schulman and colleagues asked: *can we get TRPO-like stability using only first-order optimisation?* The answer was PPO, and it has dominated the field ever since.
 
@@ -157,23 +156,23 @@ The two cases (and a one-line summary of each) are:
 - **$\hat{A}>0$ (a good action).** The unclipped surrogate keeps growing as $r_t \to \infty$; the clip caps the reward for $r_t > 1+\varepsilon$. The `min` then *takes the cap*, so the gradient drops to zero past the cap. Translation: *don't push the probability of a sampled good action above $(1+\varepsilon)\pi_{\text{old}}$ on the strength of one minibatch.*
 - **$\hat{A}<0$ (a bad action).** Symmetric: the clip caps how negative the loss can get for $r_t < 1-\varepsilon$, so once the new policy has reduced the probability by enough, the gradient stops. *Don't crush a single bad-luck action.*
 
-The deeper question is: *why use `min`, not `max`?* If we always take whichever surrogate is **larger**, we'd reward huge ratios -- the optimiser would happily blow past the trust region. The `min` bakes in the trust-region intuition without ever computing a KL.
+The deeper question is: *why use `min`, not `max`?* If we always take whichever surrogate is **larger**, we'd reward huge ratios — the optimiser would happily blow past the trust region. The `min` bakes in the trust-region intuition without ever computing a KL.
 
 ### PPO-Penalty: the adaptive cousin
 
-A second variant -- less popular but useful in some domains -- adds an explicit KL penalty and adapts its coefficient:
+A second variant — less popular but useful in some domains — adds an explicit KL penalty and adapts its coefficient:
 $$L^{\text{KL}}(\theta) = \mathbb{E}\!\left[r_t(\theta)\,\hat{A}_t\right] \;-\; \beta\,\mathbb{E}\!\left[D_{KL}(\pi_{\text{old}}\,\|\,\pi_\theta)\right]$$
 with $\beta$ adjusted after every iteration: doubled when measured KL exceeds $1.5\,\delta_{\text{target}}$, halved when below $\delta_{\text{target}}/1.5$.
 
 ![Adaptive KL penalty: objective shape and beta schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig3_kl_penalty.png)
 
-The left panel shows how $\beta$ shapes the objective: $\beta=0$ recovers the unconstrained surrogate (and its instability); large $\beta$ makes the optimum hug $\theta_{\text{old}}$. The right panel shows a real adaptive schedule -- $\beta$ moves over orders of magnitude on a log axis to keep the observed KL near its target. Adaptive KL is what early InstructGPT used internally before clip-style PPO became the default for RLHF in libraries like `trl`.
+The left panel shows how $\beta$ shapes the objective: $\beta=0$ recovers the unconstrained surrogate (and its instability); large $\beta$ makes the optimum hug $\theta_{\text{old}}$. The right panel shows a real adaptive schedule — $\beta$ moves over orders of magnitude on a log axis to keep the observed KL near its target. Adaptive KL is what early InstructGPT used internally before clip-style PPO became the default for RLHF in libraries like `trl`.
 
 ### Surrogate landscape: why clip wins in practice
 
 ![Surrogate vs true objective: unclipped misleads, clipped stays honest](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig6_surrogate_landscape.png)
 
-This figure is the visual punchline. The black curve is the *true* return $J(\theta)$ along a 1D slice -- it has a peak followed by a sharp drop into a low-reward region. The orange dashed line is the unclipped IS surrogate, which keeps climbing and would lure SGD to step into the cliff. The blue line is the PPO-clipped surrogate: inside the trust region (green band) it tracks the true objective; outside, it flattens out, removing the gradient that would otherwise carry us off the cliff.
+This figure is the visual punchline. The black curve is the *true* return $J(\theta)$ along a 1D slice — it has a peak followed by a sharp drop into a low-reward region. The orange dashed line is the unclipped IS surrogate, which keeps climbing and would lure SGD to step into the cliff. The blue line is the PPO-clipped surrogate: inside the trust region (green band) it tracks the true objective; outside, it flattens out, removing the gradient that would otherwise carry us off the cliff.
 
 ### A complete PPO implementation
 
@@ -292,8 +291,8 @@ PPO's edge in practice comes from a *combination* of advantages, not the clip al
 
 - **Multiple epochs per batch** squeeze more learning from the same trajectories.
 - **Entropy bonus** keeps exploration alive without bespoke noise schedules.
-- **No backward-pass overhead per step** -- one Adam call per epoch.
-- **Trivially parallelisable** -- you can run 64 actors in parallel collecting rollouts.
+- **No backward-pass overhead per step** — one Adam call per epoch.
+- **Trivially parallelisable** — you can run 64 actors in parallel collecting rollouts.
 
 ![PPO matches or beats TRPO at a fraction of the cost](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig4_benchmark.png)
 
@@ -303,7 +302,7 @@ The MuJoCo curves (left) and Atari bars (right) show the empirical picture publi
 
 ## PPO inside RLHF
 
-PPO's most consequential application is **Reinforcement Learning from Human Feedback** -- the algorithm that turned GPT-3 into ChatGPT.
+PPO's most consequential application is **Reinforcement Learning from Human Feedback** — the algorithm that turned GPT-3 into ChatGPT.
 
 ### The three-stage pipeline
 
@@ -317,19 +316,19 @@ $$J(\theta) = \mathbb{E}_{x \sim \mathcal{D},\,y \sim \pi_\theta(\cdot|x)}\!\lef
 Two trust regions are at work:
 
 - The **PPO clip** prevents per-update collapse, exactly as in classical RL.
-- The **KL-to-reference penalty** $\beta D_{KL}(\pi_\theta\,\|\,\pi_{\text{ref}})$ prevents *long-run drift* from the SFT model. Without it, PPO finds **reward hacks** -- responses that score high under the reward model but are gibberish, hostile, or sycophantic. The KL penalty is the alignment tax that keeps generations recognisably human-written.
+- The **KL-to-reference penalty** $\beta D_{KL}(\pi_\theta\,\|\,\pi_{\text{ref}})$ prevents *long-run drift* from the SFT model. Without it, PPO finds **reward hacks** — responses that score high under the reward model but are gibberish, hostile, or sycophantic. The KL penalty is the alignment tax that keeps generations recognisably human-written.
 
 ### Why RLHF is harder than CartPole
 
 - Each "episode" is one generation; compute per sample is enormous (forward+backward on a 70B model).
 - The reward model is *also* learnt, and noisy. A small clip range and a substantial KL coefficient ($\beta \in [0.01, 0.2]$) are usually needed.
-- Action space is the entire vocabulary (~50K tokens) over hundreds of timesteps. The advantage estimator must be very low-variance -- this is why PPO with GAE and a large batch is preferred to vanilla policy gradient.
+- Action space is the entire vocabulary (~50K tokens) over hundreds of timesteps. The advantage estimator must be very low-variance — this is why PPO with GAE and a large batch is preferred to vanilla policy gradient.
 
 ### Where DPO, IPO and KTO fit
 
-The complexity of running PPO at scale -- four model copies (policy, ref, reward, value), multiple GPUs syncing -- spurred a wave of *direct* preference learning methods:
+The complexity of running PPO at scale — four model copies (policy, ref, reward, value), multiple GPUs syncing — spurred a wave of *direct* preference learning methods:
 
-- **DPO** (Rafailov et al., 2023) reparameterises the optimal RLHF policy in closed form and trains with a *supervised* contrastive loss -- no reward model, no rollouts.
+- **DPO** (Rafailov et al., 2023) reparameterises the optimal RLHF policy in closed form and trains with a *supervised* contrastive loss — no reward model, no rollouts.
 - **IPO** patches DPO's tendency to overfit on confidently labelled pairs.
 - **KTO** uses single-response signed feedback ("good"/"bad") instead of pairs.
 
@@ -344,25 +343,25 @@ Where direct methods shine: simpler infra, lower variance. Where PPO still wins:
 | Parameter | Typical range | Notes |
 |-----------|---------------|-------|
 | Learning rate | $1\text{e-}4$ to $3\text{e-}4$ | Sometimes annealed linearly to 0 over training |
-| Clip $\varepsilon$ | 0.1 -- 0.3 | 0.2 works in 90% of cases |
-| GAE $\lambda$ | 0.9 -- 0.99 | 0.95 default; closer to 1 when value function is unreliable |
-| Discount $\gamma$ | 0.99 -- 0.999 | Longer-horizon tasks need larger $\gamma$ |
-| Rollout batch | 2048 -- 8192 (single env: longer) | Larger = lower-variance advantage |
-| PPO epochs | 3 -- 10 | More than 15 reliably overfits |
-| Mini-batch size | 64 -- 256 | Independent of rollout batch |
-| Entropy coef | 0.0 -- 0.01 | Atari needs more (~0.01); MuJoCo often 0 |
-| Value loss coef | 0.5 -- 1.0 | Higher when critic is hard to learn |
-| Grad clip norm | 0.5 -- 1.0 | A "safety belt" for outlier batches |
+| Clip $\varepsilon$ | 0.1 — 0.3 | 0.2 works in 90% of cases |
+| GAE $\lambda$ | 0.9 — 0.99 | 0.95 default; closer to 1 when value function is unreliable |
+| Discount $\gamma$ | 0.99 — 0.999 | Longer-horizon tasks need larger $\gamma$ |
+| Rollout batch | 2048 — 8192 (single env: longer) | Larger = lower-variance advantage |
+| PPO epochs | 3 — 10 | More than 15 reliably overfits |
+| Mini-batch size | 64 — 256 | Independent of rollout batch |
+| Entropy coef | 0.0 — 0.01 | Atari needs more (~0.01); MuJoCo often 0 |
+| Value loss coef | 0.5 — 1.0 | Higher when critic is hard to learn |
+| Grad clip norm | 0.5 — 1.0 | A "safety belt" for outlier batches |
 
 ![Hyperparameter sensitivity: clip range, learning rate, and the epochs x batch grid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig7_hyperparameter.png)
 
-The sensitivity plot shows three classic patterns. Clip $\varepsilon$ has a **wide, flat optimum** -- you really do not have to tune it. Learning rate is **narrower** -- a factor of 3 misstep costs 5-10% of return. The epochs $\times$ batch heatmap reveals an interaction: too many epochs on a small batch overfits to current data and hurts the policy's KL budget.
+The sensitivity plot shows three classic patterns. Clip $\varepsilon$ has a **wide, flat optimum** — you really do not have to tune it. Learning rate is **narrower** — a factor of 3 misstep costs 5-10% of return. The epochs $\times$ batch heatmap reveals an interaction: too many epochs on a small batch overfits to current data and hurts the policy's KL budget.
 
 ### Debugging checklist
 
-- **Approximate KL** between old and new policy: should hover around 0.01-0.02 per update. > 0.05 means clip is failing to constrain you -- lower the LR or shrink mini-batches. (Beware the common "one-sample" KL estimator $\frac{1}{2}(\log r)^2$; the unbiased Schulman estimator $r - 1 - \log r$ is preferred.)
+- **Approximate KL** between old and new policy: should hover around 0.01-0.02 per update. > 0.05 means clip is failing to constrain you — lower the LR or shrink mini-batches. (Beware the common "one-sample" KL estimator $\frac{1}{2}(\log r)^2$; the unbiased Schulman estimator $r - 1 - \log r$ is preferred.)
 - **Clip fraction**: the share of samples that hit the clip boundary. 10-30% is healthy. 0% means you are not using your trust region; > 50% means you are training on the boundary.
-- **Entropy**: should decay smoothly. A sudden drop to near-zero is *premature convergence* -- raise the entropy coefficient.
+- **Entropy**: should decay smoothly. A sudden drop to near-zero is *premature convergence* — raise the entropy coefficient.
 - **Explained variance** of the value function: $1 - \mathrm{Var}(R - V)/\mathrm{Var}(R)$. Should rise above 0.5 within a few hundred updates; if stuck near 0, your critic is broken.
 - **Advantage normalisation**: do it per *minibatch*, not per epoch. Forgetting the per-batch normalisation is the single most common implementation bug.
 
@@ -380,14 +379,14 @@ The sensitivity plot shows three classic patterns. Clip $\varepsilon$ has a **wi
 
 ## Summary
 
-Trust-region methods rescued policy gradients from their most embarrassing failure mode -- one bad step erases an hour of training. Two ideas carry the field:
+Trust-region methods rescued policy gradients from their most embarrassing failure mode — one bad step erases an hour of training. Two ideas carry the field:
 
 - **TRPO** turns the policy-improvement bound of Kakade-Langford into an algorithm: optimise the surrogate, hard-constrain the KL, solve via natural gradient. Theoretically beautiful, operationally heavy.
 - **PPO** trades the hard constraint for a clipped surrogate plus first-order optimisation. It loses the formal monotonic-improvement guarantee but gains everything that matters in practice: simple code, multi-epoch updates, parallel rollouts, and robust defaults.
 
-The deeper engineering lesson is universal: **a simple, locally-honest approximation often beats a complex, globally-correct one** -- especially when the "correct" method is two orders of magnitude more expensive per step. PPO's victory mirrors Adam's victory over second-order optimisers in deep learning.
+The deeper engineering lesson is universal: **a simple, locally-honest approximation often beats a complex, globally-correct one** — especially when the "correct" method is two orders of magnitude more expensive per step. PPO's victory mirrors Adam's victory over second-order optimisers in deep learning.
 
-PPO's reach now extends well beyond classical RL. Every major aligned LLM trained in the past three years -- ChatGPT, Claude, Gemini, the Llama-2 chat models -- ran a PPO loop somewhere in its post-training pipeline. The clip is, quite literally, what keeps modern AI assistants from going feral on their reward model.
+PPO's reach now extends well beyond classical RL. Every major aligned LLM trained in the past three years — ChatGPT, Claude, Gemini, the Llama-2 chat models — ran a PPO loop somewhere in its post-training pipeline. The clip is, quite literally, what keeps modern AI assistants from going feral on their reward model.
 
 ---
 

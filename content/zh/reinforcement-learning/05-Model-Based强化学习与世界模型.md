@@ -10,8 +10,7 @@ tags:
   - Dreamer
   - MuZero
   - PlaNet
-categories:
-  - 强化学习
+categories: 强化学习
 series: reinforcement-learning
 lang: zh
 mathjax: true

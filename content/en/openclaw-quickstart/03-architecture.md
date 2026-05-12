@@ -3,7 +3,7 @@ title: "OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work"
 date: 2026-04-10 09:00:00
 tags:
   - openclaw
-  - architecture
+  - Architecture
   - agent-loop
   - gateway
 categories: OpenClaw

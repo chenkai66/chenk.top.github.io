@@ -25,7 +25,7 @@ If you have already worked through a standard linear-algebra course you have see
 Concretely the goals are:
 
 1. Build a **geometric intuition** for what matrices *do* (rotate, stretch, project, kill).
-2. Learn the four decompositions that show up everywhere -- spectral, **SVD**, QR, Cholesky -- and *which one to reach for*.
+2. Learn the four decompositions that show up everywhere — spectral, **SVD**, QR, Cholesky — and *which one to reach for*.
 3. Master enough **matrix calculus** to derive any neural-net gradient on the back of an envelope.
 
 We skim the algebra of row reduction, determinants by cofactor, and abstract vector-space proofs. If you need those, the references at the bottom give the standard treatments. Here, every concept comes back to a picture or a line of NumPy.
@@ -34,19 +34,19 @@ We skim the algebra of row reduction, determinants by cofactor, and abstract vec
 
 ---
 
-## 1. Vector spaces, subspaces, rank -- the geometric core
+## 1. Vector spaces, subspaces, rank — the geometric core
 
 Forget the eight axioms for a moment. The mental model that pays off in ML is:
 
 > *A vector space is a flat, infinite "sheet" through the origin. A subspace is a smaller flat sheet through the origin sitting inside it.*
 
-A line through the origin is a 1D subspace of $\mathbb{R}^2$. A plane through the origin is a 2D subspace of $\mathbb{R}^3$. The crucial word is **through the origin** -- shift the sheet and you lose closure under addition and scaling.
+A line through the origin is a 1D subspace of $\mathbb{R}^2$. A plane through the origin is a 2D subspace of $\mathbb{R}^3$. The crucial word is **through the origin** — shift the sheet and you lose closure under addition and scaling.
 
 ![A 2D subspace inside R^3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/fig1_vector_space_subspace.png)
 
-### 1.1 Span, independence, basis -- in one breath
+### 1.1 Span, independence, basis — in one breath
 
-Pick a few vectors $v_1, \ldots, v_k$. The set of all linear combinations $\sum \alpha_i v_i$ is their **span** -- it is *always* a subspace.
+Pick a few vectors $v_1, \ldots, v_k$. The set of all linear combinations $\sum \alpha_i v_i$ is their **span** — it is *always* a subspace.
 
 Those vectors are **linearly independent** when none of them lives in the span of the others, equivalently:
 
@@ -61,7 +61,7 @@ The picture is the whole story: independent vectors enclose a non-degenerate par
 
 Every matrix $A \in \mathbb{R}^{m \times n}$ is the same object as a linear map $T : \mathbb{R}^n \to \mathbb{R}^m$, and conversely. The dictionary is one rule:
 
-> *The $j$-th column of $A$ is $T(e_j)$ -- where the $j$-th standard basis vector lands.*
+> *The $j$-th column of $A$ is $T(e_j)$ — where the $j$-th standard basis vector lands.*
 
 So when you see a weight matrix $W \in \mathbb{R}^{h \times d}$ in a neural net layer, you are looking at a function "take a $d$-dimensional input, output an $h$-dimensional vector"; the columns of $W$ tell you what each input feature contributes.
 
@@ -80,11 +80,11 @@ For an $m \times n$ matrix $A$ of rank $r$:
 
 *Proof.* If $Ax = 0$ and $w = A^\top z$ is in the row space, then $\langle x, w \rangle = z^\top (A x) = 0$. $\square$
 
-So $\mathbb{R}^n$ splits into two orthogonal pieces: the row space (where $A$ does interesting work) and the null space (where $A$ throws information away). Whenever a model has more parameters than equations -- which is *always* in modern ML -- the null space is non-trivial and many parameter vectors give the same predictions.
+So $\mathbb{R}^n$ splits into two orthogonal pieces: the row space (where $A$ does interesting work) and the null space (where $A$ throws information away). Whenever a model has more parameters than equations — which is *always* in modern ML — the null space is non-trivial and many parameter vectors give the same predictions.
 
 ---
 
-## 2. Norms and inner products -- the geometry layer
+## 2. Norms and inner products — the geometry layer
 
 An **inner product** $\langle \cdot, \cdot \rangle$ gives you angles; a **norm** $\|\cdot\|$ gives you lengths. On $\mathbb{R}^n$ the standard one is $\langle x, y \rangle = x^\top y$, with induced norm $\|x\|_2 = \sqrt{x^\top x}$.
 
@@ -102,7 +102,7 @@ The **$\ell_p$ family** is the workhorse for regularisation:
 
 *Proof.* The quadratic $\|u + tv\|^2 = \|u\|^2 + 2t\langle u, v\rangle + t^2 \|v\|^2$ is non-negative for every $t$, so its discriminant must be $\le 0$. $\square$
 
-Divide both sides by $\|u\|\|v\|$ and you have the **cosine of the angle** $\cos\theta = \langle u, v\rangle / (\|u\|\|v\|)$ -- and the proof that it lives in $[-1, 1]$. This is the formula behind cosine similarity in retrieval, attention, contrastive learning -- everywhere.
+Divide both sides by $\|u\|\|v\|$ and you have the **cosine of the angle** $\cos\theta = \langle u, v\rangle / (\|u\|\|v\|)$ — and the proof that it lives in $[-1, 1]$. This is the formula behind cosine similarity in retrieval, attention, contrastive learning — everywhere.
 
 ### 2.2 Matrix norms you actually use
 
@@ -116,7 +116,7 @@ The spectral norm is the right thing for Lipschitz analysis (e.g. spectral norma
 
 ---
 
-## 3. Eigendecomposition -- "the directions that survive"
+## 3. Eigendecomposition — "the directions that survive"
 
 ### 3.1 Definition and intuition
 
@@ -143,7 +143,7 @@ Eigenvalues solve the characteristic polynomial $\det(A - \lambda I) = 0$. Two f
 
 Equivalently, in **rank-1 form**:
 $$A = \sum_{i=1}^n \lambda_i\, q_i q_i^\top. \tag{3}$$
-Read this carefully -- $A$ is *literally* a weighted sum of projections onto orthogonal directions. This is the ML lens on every symmetric matrix: covariance, Gram, Hessian, graph Laplacian.
+Read this carefully — $A$ is *literally* a weighted sum of projections onto orthogonal directions. This is the ML lens on every symmetric matrix: covariance, Gram, Hessian, graph Laplacian.
 
 ### 3.3 Positive (semi-)definite matrices
 
@@ -162,7 +162,7 @@ Where PD matrices show up:
 
 ---
 
-## 4. Singular Value Decomposition -- the universal factorisation
+## 4. Singular Value Decomposition — the universal factorisation
 
 ![ML Math Derivations (2): Linear Algebra and Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_2.png)
 
@@ -204,7 +204,7 @@ This is the **mathematical engine of PCA**. Center your data matrix $X$, take it
 
 ### 4.5 Pseudo-inverse and condition number
 
-The **Moore-Penrose pseudo-inverse** is computed via SVD: $A^+ = V \Sigma^+ U^\top$ where $\Sigma^+$ inverts the non-zero singular values. Then $x^\star = A^+ b$ is the minimum-norm least-squares solution to $Ax = b$ -- exactly what `numpy.linalg.lstsq` returns.
+The **Moore-Penrose pseudo-inverse** is computed via SVD: $A^+ = V \Sigma^+ U^\top$ where $\Sigma^+$ inverts the non-zero singular values. Then $x^\star = A^+ b$ is the minimum-norm least-squares solution to $Ax = b$ — exactly what `numpy.linalg.lstsq` returns.
 
 The **condition number** $\kappa(A) = \sigma_1 / \sigma_r$ measures how much $A$ amplifies relative perturbations. Roughly, if $\kappa(A) \approx 10^k$ you lose $k$ digits of precision when solving $Ax = b$. Always log it before trusting a least-squares fit.
 
@@ -218,11 +218,11 @@ The **condition number** $\kappa(A) = \sigma_1 / \sigma_r$ measures how much $A$
 | "Values" | may be complex | non-negative real |
 | Right factor = inverse of left? | no (general $P$) | yes ($U, V$ orthogonal) |
 
-For a *symmetric PSD* matrix the two coincide ($U = V = Q$, $\Sigma = \Lambda$). Otherwise prefer SVD -- it's stable, total, and applies to rectangular matrices.
+For a *symmetric PSD* matrix the two coincide ($U = V = Q$, $\Sigma = \Lambda$). Otherwise prefer SVD — it's stable, total, and applies to rectangular matrices.
 
 ---
 
-## 5. Matrix calculus -- the engine of optimisation
+## 5. Matrix calculus — the engine of optimisation
 
 This is where most ML readers want a clean reference. We use **numerator layout**: the derivative has the shape of the output (so a gradient of a scalar w.r.t. a vector is a column vector, matching the input).
 
@@ -235,7 +235,7 @@ This is where most ML readers want a clean reference. We use **numerator layout*
 | 1 | $a^\top x$ | $a$ | linear |
 | 2 | $x^\top A x$ | $(A + A^\top) x$ | $= 2 A x$ if $A$ symmetric |
 | 3 | $\|A x - b\|_2^2$ | $2 A^\top (A x - b)$ | least squares |
-| 4 | $\ln \det X$ | $X^{-\top}$ | log-det -- shows up in Gaussian MLE |
+| 4 | $\ln \det X$ | $X^{-\top}$ | log-det — shows up in Gaussian MLE |
 
 *Proof of (2).* Write $f = \sum_{i,j} A_{ij} x_i x_j$. Then $\partial f / \partial x_k = \sum_j A_{kj} x_j + \sum_i A_{ik} x_i = [(A + A^\top) x]_k$. $\square$
 
@@ -249,7 +249,7 @@ where $J_g$ is the $m \times n$ Jacobian of $g$.
 
 This *is* backpropagation. For one neural-net layer $z = Wx + b$, $a = \sigma(z)$, with downstream loss $L$:
 $$\delta := \frac{\partial L}{\partial a} \odot \sigma'(z), \quad \frac{\partial L}{\partial W} = \delta\, x^\top, \quad \frac{\partial L}{\partial b} = \delta. \tag{7}$$
-That's the entire algorithm -- everything PyTorch's autograd engine does is run (6) on a computation graph.
+That's the entire algorithm — everything PyTorch's autograd engine does is run (6) on a computation graph.
 
 ### 5.3 Sanity check by finite differences
 
@@ -260,13 +260,13 @@ Match against the analytic $\nabla f$ to relative error $\approx 10^{-6}$ at $\v
 
 ---
 
-## 6. Numerical decompositions -- which one and when
+## 6. Numerical decompositions — which one and when
 
 ### 6.1 QR for least squares
 
 Any full-column-rank $A$ factors as $A = QR$ with $Q$ orthonormal columns and $R$ upper triangular. To solve $\min_x \|Ax - b\|$, compute $Q^\top b$ and back-substitute on $R x = Q^\top b$.
 
-**Why prefer QR over normal equations.** Normal equations form $A^\top A$, whose condition number is $\kappa(A)^2$. If $\kappa(A) = 10^4$ that's $10^8$ -- you've squared your error budget. QR works directly on $A$, so it's $\kappa(A)$.
+**Why prefer QR over normal equations.** Normal equations form $A^\top A$, whose condition number is $\kappa(A)^2$. If $\kappa(A) = 10^4$ that's $10^8$ — you've squared your error budget. QR works directly on $A$, so it's $\kappa(A)$.
 
 ### 6.2 Cholesky for PD systems
 
@@ -347,22 +347,22 @@ Three things to notice in the output: the Eckart-Young error matches theory to m
 
 ---
 
-## 8. Q&A -- the questions that come up
+## 8. Q&A — the questions that come up
 
 **Q1. When *should* I trust normal equations?**
-When $\kappa(A) < 10^3$ or so -- e.g. small problems with well-scaled features. Anything ill-conditioned: use QR or SVD. Squaring the condition number really does eat your precision.
+When $\kappa(A) < 10^3$ or so — e.g. small problems with well-scaled features. Anything ill-conditioned: use QR or SVD. Squaring the condition number really does eat your precision.
 
 **Q2. Why does $\ell_1$ produce sparse solutions?**
 The $\ell_1$ unit ball has corners on the coordinate axes. Generic optimisation contours hit these corners first, and at a corner some coordinates are exactly zero. The smooth $\ell_2$ ball has no corners and so generically the optimum lies off the axes.
 
-**Q3. SVD vs PCA -- the same thing?**
+**Q3. SVD vs PCA — the same thing?**
 Yes, modulo bookkeeping. With centred data $X \in \mathbb{R}^{n \times d}$:
 - PCA via covariance: $\Sigma = \tfrac{1}{n} X^\top X$, top eigenvectors = principal directions.
 - PCA via SVD: $X = U \Sigma V^\top$, columns of $V$ = principal directions; $\sigma_i^2 / n$ = explained variances.
 For high-dimensional data ($d \gg n$) the SVD path is dramatically cheaper because you never materialise the $d \times d$ covariance.
 
 **Q4. Why are eigenvalues of symmetric matrices special?**
-They are *real* (so we can order them), and the eigenvectors form an *orthonormal* basis. That orthonormality is what lets us write any vector as $\sum \langle v, q_i\rangle q_i$ -- a clean coordinate system for the action of $A$. The Hessians, covariances, Grams, and Laplacians of ML are all symmetric, which is why this matters every day.
+They are *real* (so we can order them), and the eigenvectors form an *orthonormal* basis. That orthonormality is what lets us write any vector as $\sum \langle v, q_i\rangle q_i$ — a clean coordinate system for the action of $A$. The Hessians, covariances, Grams, and Laplacians of ML are all symmetric, which is why this matters every day.
 
 **Q5. What does "rank" really mean operationally?**
 The rank is *how much information $A$ preserves about its input.* A rank-$r$ matrix in $\mathbb{R}^{m \times n}$ throws away an $(n - r)$-dimensional subspace (its null space) and outputs into an $r$-dimensional subspace (its column space). In ML this is exactly the bottleneck dimension of an autoencoder, the rank in matrix completion, or the latent dimension of an embedding.
@@ -385,8 +385,8 @@ The rank is *how much information $A$ preserves about its input.* A rank-$r$ mat
 ## References
 
 1. Strang, G. (2023). *Introduction to Linear Algebra* (6th ed.). Wellesley-Cambridge Press.
-2. Trefethen, L. N. & Bau III, D. (1997). *Numerical Linear Algebra*. SIAM. -- the cleanest treatment of stability.
-3. Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations* (4th ed.). Johns Hopkins University Press. -- the algorithmic bible.
-4. Petersen, K. B. & Pedersen, M. S. (2012). *The Matrix Cookbook*. Technical University of Denmark. -- the gradient lookup table everyone uses.
+2. Trefethen, L. N. & Bau III, D. (1997). *Numerical Linear Algebra*. SIAM. — the cleanest treatment of stability.
+3. Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations* (4th ed.). Johns Hopkins University Press. — the algorithmic bible.
+4. Petersen, K. B. & Pedersen, M. S. (2012). *The Matrix Cookbook*. Technical University of Denmark. — the gradient lookup table everyone uses.
 5. Eckart, C. & Young, G. (1936). The approximation of one matrix by another of lower rank. *Psychometrika*, 1(3), 211-218.
-6. Boyd, S. & Vandenberghe, L. (2018). *Introduction to Applied Linear Algebra*. Cambridge University Press. -- great companion focused on data.
+6. Boyd, S. & Vandenberghe, L. (2018). *Introduction to Applied Linear Algebra*. Cambridge University Press. — great companion focused on data.

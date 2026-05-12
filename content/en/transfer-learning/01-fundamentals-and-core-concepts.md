@@ -6,8 +6,7 @@ tags:
   - Transfer Learning
   - Domain Adaptation
   - Machine Learning
-categories:
-  - Transfer Learning
+categories: Transfer Learning
 series: transfer-learning
 lang: en
 mathjax: true
@@ -16,7 +15,7 @@ disableNunjucks: true
 series_order: 1
 translationKey: "transfer-learning-1"
 ---
-You spent two weeks training an ImageNet classifier on a rack of GPUs. On Monday morning your team lead asks for a chest-X-ray pneumonia model -- and the entire labelled dataset is **two hundred images**. Do you book another two weeks of GPU time and start from scratch?
+You spent two weeks training an ImageNet classifier on a rack of GPUs. On Monday morning your team lead asks for a chest-X-ray pneumonia model — and the entire labelled dataset is **two hundred images**. Do you book another two weeks of GPU time and start from scratch?
 
 Of course not. You take what the ImageNet model already knows about edges, textures and shapes, swap out the last layer, and fine-tune on the X-rays. Two hours later you have a model that beats anything you could have trained from random weights with so little data. That is **transfer learning**, and it is the reason most real-world deep-learning projects ship in days instead of months.
 
@@ -24,10 +23,10 @@ This article is the foundation for the rest of the series. We will cover the sev
 
 1. **Why** training from scratch is not always an option;
 2. The **formal definitions** of domain, task, source and target;
-3. The **taxonomy** -- inductive, transductive, unsupervised;
+3. The **taxonomy** — inductive, transductive, unsupervised;
 4. **What transfers** at each layer of a deep network;
 5. **Negative transfer**: when borrowed knowledge backfires;
-6. The **Ben-David bound** and **MMD** -- how to tell whether transfer will work;
+6. The **Ben-David bound** and **MMD** — how to tell whether transfer will work;
 7. A **runnable implementation** of feature transfer with MMD alignment.
 
 **Prerequisites:** basic ML vocabulary (loss, gradient descent, classification) and comfort reading Python.
@@ -42,11 +41,11 @@ A textbook supervised pipeline assumes three things, and none of them holds in r
 
 - **Massive labelled data.** Modern deep networks need tens of thousands to millions of labelled examples to generalise. Few real teams have that.
 - **Plentiful compute.** Training a ResNet-50 from random initialisation costs hundreds of GPU-hours; a Transformer from scratch can run into the tens of thousands.
-- **No knowledge reuse.** Even strongly related tasks -- chest X-rays vs. chest CT -- start back at zero.
+- **No knowledge reuse.** Even strongly related tasks — chest X-rays vs. chest CT — start back at zero.
 
 Real medical projects, by contrast, give you a few hundred cases of a rare disease, annotators who must be board-certified physicians, and a deadline measured in weeks. Transfer learning resolves the mismatch with a simple promise: **take a model trained on a large generic dataset, and adapt it cheaply to your data-scarce task.**
 
-The picture below shows what "data-scarce, distribution-shifted" actually looks like. Same two classes, but the target domain has been rotated and shifted -- a faithful cartoon of the kind of covariate shift you encounter when moving from ImageNet photos to medical scans, or from one hospital's scanner to another's.
+The picture below shows what "data-scarce, distribution-shifted" actually looks like. Same two classes, but the target domain has been rotated and shifted — a faithful cartoon of the kind of covariate shift you encounter when moving from ImageNet photos to medical scans, or from one hospital's scanner to another's.
 
 ![Source vs target domain showing distribution shift](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/01-fundamentals-and-core-concepts/fig1_domain_shift.png)
 
@@ -58,13 +57,13 @@ Humans transfer knowledge constantly:
 - A Python programmer reads Java syntax and immediately recognises classes, loops and exceptions.
 - Anyone who has seen a house cat will instantly classify a lion as "some kind of feline".
 
-Deep networks have the same property. The early convolutional layers of a vision model learn near-universal primitives -- oriented edges, colour blobs, simple textures. Those primitives are useful for almost any visual task. Higher layers learn more specialised concepts (fur patterns, eye shapes), but even these are recyclable across related domains. Transfer learning is the engineering discipline of exploiting that overlap.
+Deep networks have the same property. The early convolutional layers of a vision model learn near-universal primitives — oriented edges, colour blobs, simple textures. Those primitives are useful for almost any visual task. Higher layers learn more specialised concepts (fur patterns, eye shapes), but even these are recyclable across related domains. Transfer learning is the engineering discipline of exploiting that overlap.
 
 ### The core idea, in one sentence
 
 > Given a **source** with abundant labelled data and a **target** with very little, transfer learning moves knowledge from the source so that the target model performs better than it would in isolation.
 
-The only requirement is some correlation between source and target. They do not have to share a feature space, a label set, or even a modality -- but the more they share, the more there is to transfer.
+The only requirement is some correlation between source and target. They do not have to share a feature space, a label set, or even a modality — but the more they share, the more there is to transfer.
 
 ---
 
@@ -94,7 +93,7 @@ A task is a pair $\mathcal{T} = \{\mathcal{Y}, f(\cdot)\}$: a label space and th
 | Labels       | abundant                                            | scarce or absent                                    |
 | Distribution | $P_S(X), P_S(Y\|X)$                                 | $P_T(X), P_T(Y\|X)$                                 |
 
-Transfer learning explicitly does **not** require source and target to be identical -- that is its whole reason for existing. They may differ in any combination of feature space ($\mathcal{X}_S \neq \mathcal{X}_T$), marginal ($P_S(X) \neq P_T(X)$), label space ($\mathcal{Y}_S \neq \mathcal{Y}_T$), or conditional ($P_S(Y\mid X) \neq P_T(Y\mid X)$). Each combination gives rise to a different sub-problem.
+Transfer learning explicitly does **not** require source and target to be identical — that is its whole reason for existing. They may differ in any combination of feature space ($\mathcal{X}_S \neq \mathcal{X}_T$), marginal ($P_S(X) \neq P_T(X)$), label space ($\mathcal{Y}_S \neq \mathcal{Y}_T$), or conditional ($P_S(Y\mid X) \neq P_T(Y\mid X)$). Each combination gives rise to a different sub-problem.
 
 ### The formal statement
 
@@ -115,7 +114,7 @@ The field looks chaotic until you organise it by **what is missing on the target
 ### Inductive transfer
 
 - Source and target **tasks differ** ($\mathcal{T}_S \neq \mathcal{T}_T$).
-- Target has **some labels** -- usually a small set.
+- Target has **some labels** — usually a small set.
 - Methods: pretrain-then-finetune, multi-task learning, self-training.
 - Canonical example: an ImageNet-pretrained ResNet head-swapped onto a chest-X-ray classifier with a few hundred labelled scans. This is the workflow behind most medical imaging papers.
 
@@ -128,24 +127,24 @@ The field looks chaotic until you organise it by **what is missing on the target
 
 ### Unsupervised transfer
 
-- **Neither side has labels.** What transfers is structure -- representations, clusters, manifolds.
+- **Neither side has labels.** What transfers is structure — representations, clusters, manifolds.
 - Methods: self-supervised pretraining (MoCo, SimCLR, MAE), deep clustering.
 - Canonical example: Word2Vec or BERT trained on a generic corpus, then used as a feature extractor for any downstream NLP task. This is also where modern foundation-model pipelines start.
 
-In practice these categories blur: a typical foundation-model workflow does **unsupervised** pretraining, **inductive** transfer to a downstream task, and -- if the deployment environment differs from the labelled training set -- **transductive** domain adaptation on top. The taxonomy is a vocabulary, not a strict partition.
+In practice these categories blur: a typical foundation-model workflow does **unsupervised** pretraining, **inductive** transfer to a downstream task, and — if the deployment environment differs from the labelled training set — **transductive** domain adaptation on top. The taxonomy is a vocabulary, not a strict partition.
 
 ---
 
 ## 4. What Transfers at Each Layer
 
-A deep network is not one knowledge unit -- it is a stack of representations of increasing specificity. Yosinski et al. (2014) ran a now-classic experiment: take a CNN trained on one half of ImageNet, freeze the first $k$ layers, retrain the rest on the other half, and measure the accuracy gap as you slide $k$. The result, sketched below, is the single most useful empirical fact about transfer learning.
+A deep network is not one knowledge unit — it is a stack of representations of increasing specificity. Yosinski et al. (2014) ran a now-classic experiment: take a CNN trained on one half of ImageNet, freeze the first $k$ layers, retrain the rest on the other half, and measure the accuracy gap as you slide $k$. The result, sketched below, is the single most useful empirical fact about transfer learning.
 
 ![Layer-wise transferability of CNN features](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/01-fundamentals-and-core-concepts/fig3_layer_transferability.png)
 
 The story has three parts:
 
-1. **Low-level features (`conv1`-`conv3`) are general.** Edges and textures are nearly universal across visual tasks. Freezing these costs you almost nothing -- in fact transferring them often beats training them from scratch on a small target.
-2. **High-level features (`conv5` onwards) are specific.** Filter banks tuned to ImageNet object categories do not align with target classes. Freezing them imposes a real penalty -- the orange "frozen" curve drops sharply.
+1. **Low-level features (`conv1`-`conv3`) are general.** Edges and textures are nearly universal across visual tasks. Freezing these costs you almost nothing — in fact transferring them often beats training them from scratch on a small target.
+2. **High-level features (`conv5` onwards) are specific.** Filter banks tuned to ImageNet object categories do not align with target classes. Freezing them imposes a real penalty — the orange "frozen" curve drops sharply.
 3. **Fine-tuning recovers specificity for free.** The blue "fine-tuned" curve stays flat: as long as you let high-level layers adapt, you keep the low-level priors *and* match the target distribution. This is why "freeze low, fine-tune high" is the default recipe.
 
 This single picture explains most of the practical advice in the rest of the series: *which* layers to freeze, *which* learning rate to use per block, and *why* parameter-efficient methods like LoRA target only the deeper layers.
@@ -174,7 +173,7 @@ The diagram below makes the regime visible. As source-target divergence grows, t
 - **Regularised fine-tuning.** Add an $L_2$ penalty pulling parameters toward the pretrained values, or use techniques like *L2-SP*. This bounds how far you can drift.
 - **Ensemble as a safety net.** When in doubt, average a transfer model and a from-scratch model. The ensemble strictly dominates the worse of the two on most benchmarks.
 
-The crossover in the figure is not theoretical -- it is the operating curve every transfer-learning practitioner is implicitly walking along. Your job is to know which side of it you are on **before** you ship.
+The crossover in the figure is not theoretical — it is the operating curve every transfer-learning practitioner is implicitly walking along. Your job is to know which side of it you are on **before** you ship.
 
 ---
 
@@ -188,9 +187,9 @@ For any hypothesis $h$ in a class $\mathcal{H}$, the target-domain error decompo
 $$\epsilon_T(h) \;\leq\; \epsilon_S(h) \;+\; \tfrac{1}{2}\, d_{\mathcal{H}\Delta\mathcal{H}}(\mathcal{D}_S, \mathcal{D}_T) \;+\; \lambda^{*}.$$
 The three terms are independent levers:
 
-- $\epsilon_S(h)$ -- source error, reducible by **better training**.
-- $d_{\mathcal{H}\Delta\mathcal{H}}$ -- divergence between source and target distributions, reducible by **domain adaptation**.
-- $\lambda^{*}$ -- the irreducible joint error of the best classifier on both domains. This is fixed by the problem itself: if no single hypothesis can do well on both, no amount of clever alignment will save you.
+- $\epsilon_S(h)$ — source error, reducible by **better training**.
+- $d_{\mathcal{H}\Delta\mathcal{H}}$ — divergence between source and target distributions, reducible by **domain adaptation**.
+- $\lambda^{*}$ — the irreducible joint error of the best classifier on both domains. This is fixed by the problem itself: if no single hypothesis can do well on both, no amount of clever alignment will save you.
 
 The bound's practical implication is brutal: if either the divergence or $\lambda^{*}$ is large, **stop and pick a different source domain** rather than burning compute on a doomed adaptation.
 
@@ -218,7 +217,7 @@ Take the convolutional or Transformer body of a model trained on a large generic
 
 ### Why this works in the low-data regime
 
-The data-efficiency curve is the single most compelling business case for transfer learning. With ten labels, training from scratch is barely better than guessing; transfer already gives you something useful. With one hundred labels, the gap is enormous. With ten thousand labels, the curves converge -- which is exactly *why* transfer is most valuable to teams that cannot afford to label ten thousand examples.
+The data-efficiency curve is the single most compelling business case for transfer learning. With ten labels, training from scratch is barely better than guessing; transfer already gives you something useful. With one hundred labels, the gap is enormous. With ten thousand labels, the curves converge — which is exactly *why* transfer is most valuable to teams that cannot afford to label ten thousand examples.
 
 ![Data-efficiency: target accuracy vs. number of target labels](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/01-fundamentals-and-core-concepts/fig6_data_efficiency.png)
 
@@ -226,7 +225,7 @@ Read this chart as a contract: every horizontal slice tells you how many labels 
 
 ### The unsupervised case: domain adaptation
 
-When there are zero target labels, you cannot fine-tune in the usual sense. The dominant strategy -- developed in detail in part 3 of this series -- is to learn a **shared encoder** that pulls source and target features into the same subspace, then train a classifier on the (labelled) source side and apply it to the (now-aligned) target.
+When there are zero target labels, you cannot fine-tune in the usual sense. The dominant strategy — developed in detail in part 3 of this series — is to learn a **shared encoder** that pulls source and target features into the same subspace, then train a classifier on the (labelled) source side and apply it to the (now-aligned) target.
 
 ![Domain adaptation problem setup with a shared encoder](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/01-fundamentals-and-core-concepts/fig7_domain_adaptation.png)
 
@@ -412,7 +411,7 @@ print(f"\nimprovement over from-scratch: "
 | Stage 1 training                   | Classify source while pulling target embeddings closer        |
 | Stage 2 fine-tuning                | Light adaptation using the 50 labelled target samples         |
 
-**Knobs worth understanding.** `lambda_mmd=0.5` controls how aggressively the encoder is pulled toward distributional alignment -- too small and you ignore the target, too large and you destroy classification accuracy on the source. The 100/50 epoch split allocates most of the budget to alignment and a small refinement pass to specialisation.
+**Knobs worth understanding.** `lambda_mmd=0.5` controls how aggressively the encoder is pulled toward distributional alignment — too small and you ignore the target, too large and you destroy classification accuracy on the source. The 100/50 epoch split allocates most of the budget to alignment and a small refinement pass to specialisation.
 
 You can swap the synthetic 2D data for any real pair of datasets (Office-31, DomainNet, VisDA) and the structure of the code does not change. That is the point of the exercise.
 
@@ -442,13 +441,13 @@ Always run a from-scratch baseline. If the transfer model underperforms it, or i
 
 We covered the seven pieces every transfer-learning project needs:
 
-- **Motivation** -- data scarcity, expensive compute, the universal value of knowledge reuse.
-- **Formal definitions** -- domain vs. task, source vs. target, with the four ways they can differ.
-- **Taxonomy** -- inductive, transductive, unsupervised; one vocabulary, three problem shapes.
-- **Layer-wise transferability** -- general low-level features, specific high-level features; freeze low, fine-tune high.
-- **Negative transfer** -- where it comes from, how to detect it, how to bound the damage.
-- **Theory** -- the Ben-David decomposition and MMD as a practical divergence estimator.
-- **Recipe and code** -- pretrained backbone plus new head, with a runnable MMD-aligned implementation.
+- **Motivation** — data scarcity, expensive compute, the universal value of knowledge reuse.
+- **Formal definitions** — domain vs. task, source vs. target, with the four ways they can differ.
+- **Taxonomy** — inductive, transductive, unsupervised; one vocabulary, three problem shapes.
+- **Layer-wise transferability** — general low-level features, specific high-level features; freeze low, fine-tune high.
+- **Negative transfer** — where it comes from, how to detect it, how to bound the damage.
+- **Theory** — the Ben-David decomposition and MMD as a practical divergence estimator.
+- **Recipe and code** — pretrained backbone plus new head, with a runnable MMD-aligned implementation.
 
 Transfer learning is not magic. It is a disciplined exploitation of the structure that real datasets share. Used well, it is one of the highest-leverage techniques in the modern deep-learning toolkit; used carelessly, it silently makes your model worse. The rest of this series is about using it well.
 

@@ -4,8 +4,8 @@ date: 2026-03-27 09:00:00
 tags:
   - LLM
   - Transformer
-  - moe
-  - architecture
+  - MoE
+  - Architecture
   - mamba
 categories: 大模型工程
 series: llm-engineering

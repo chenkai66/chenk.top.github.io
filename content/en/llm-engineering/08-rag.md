@@ -4,7 +4,7 @@ date: 2026-04-03 09:00:00
 tags:
   - LLM
   - RAG
-  - embeddings
+  - Embeddings
   - reranking
   - hybrid-retrieval
 categories: LLM Engineering

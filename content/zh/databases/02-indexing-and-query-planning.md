@@ -6,8 +6,7 @@ tags:
   - SQL
   - Indexing
   - Performance
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "深入剖析 B 树与 B+ 树索引、哈希索引、复合索引、覆盖索引，以及如何阅读 EXPLAIN 输出以诊断慢查询。"

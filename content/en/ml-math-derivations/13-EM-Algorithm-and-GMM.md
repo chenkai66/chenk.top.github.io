@@ -1,8 +1,7 @@
 ---
 title: "ML Math Derivations (13): EM Algorithm and GMM"
 date: 2026-02-01 09:00:00
-categories:
-  - Machine Learning
+categories: Machine Learning
 tags:
   - EM Algorithm
   - Expectation Maximization
@@ -19,7 +18,7 @@ disableNunjucks: true
 series_order: 13
 translationKey: "ml-math-derivations-13"
 ---
-When data carries hidden structure -- a cluster label you never observed, a missing feature, a topic you cannot directly see -- maximum likelihood becomes painful. The log of a sum has no closed form, and gradient methods get tangled in the latent variables. The **EM algorithm** sidesteps the difficulty with a deceptively simple idea: alternate between *guessing* the hidden variables under a posterior (E-step) and *fitting* the parameters as if those guesses were true (M-step). Each iteration is mathematically guaranteed to push the likelihood up. This post derives EM from first principles, proves the monotone-ascent property via Jensen's inequality, and works through its most famous application: **Gaussian Mixture Models (GMM)** -- the soft, elliptical generalisation of K-means.
+When data carries hidden structure — a cluster label you never observed, a missing feature, a topic you cannot directly see — maximum likelihood becomes painful. The log of a sum has no closed form, and gradient methods get tangled in the latent variables. The **EM algorithm** sidesteps the difficulty with a deceptively simple idea: alternate between *guessing* the hidden variables under a posterior (E-step) and *fitting* the parameters as if those guesses were true (M-step). Each iteration is mathematically guaranteed to push the likelihood up. This post derives EM from first principles, proves the monotone-ascent property via Jensen's inequality, and works through its most famous application: **Gaussian Mixture Models (GMM)** — the soft, elliptical generalisation of K-means.
 
 ![ML Math Derivations (13): EM Algorithm and GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_1.png)
 
@@ -59,7 +58,7 @@ For a Gaussian mixture with $K$ components,
 
 $$p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}(\mathbf{x}\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).$$
 
-If we *knew* which component each point came from, fitting would reduce to $K$ independent weighted-Gaussian MLEs -- trivial. We do not know, and that is exactly what EM patches up.
+If we *knew* which component each point came from, fitting would reduce to $K$ independent weighted-Gaussian MLEs — trivial. We do not know, and that is exactly what EM patches up.
 
 ![GMM components with covariance ellipses](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig1_gmm_clusters.png)
 
@@ -90,7 +89,7 @@ This $\mathcal{L}$ is the **Evidence Lower Bound (ELBO)**. It depends on both th
 
 ### 2.2 The exact decomposition
 
-A direct manipulation -- no inequality needed -- yields the *equality*
+A direct manipulation — no inequality needed — yields the *equality*
 
 $$\log p(\mathbf{x}\mid \boldsymbol{\theta})
 \;=\;
@@ -101,7 +100,7 @@ $$\log p(\mathbf{x}\mid \boldsymbol{\theta})
 Two consequences are immediate:
 
 1. The ELBO is **always** $\leq \log p(\mathbf{x}\mid\boldsymbol{\theta})$ because $\mathrm{KL}\geq 0$.
-2. The bound becomes **tight**, $\mathcal{L} = \log p$, **iff** $q(z) = p(z \mid \mathbf{x}, \boldsymbol{\theta})$ -- the posterior.
+2. The bound becomes **tight**, $\mathcal{L} = \log p$, **iff** $q(z) = p(z \mid \mathbf{x}, \boldsymbol{\theta})$ — the posterior.
 
 This single identity is the entire engine of EM.
 
@@ -143,7 +142,7 @@ $$\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})
 
 $$\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{(t)})\;}$$
 
-at every iteration, with equality only at fixed points. EM converges to a stationary point of $\ell$ -- typically a local maximum, occasionally a saddle point. **It is not guaranteed to reach the global maximum**, which is why multiple random restarts matter.
+at every iteration, with equality only at fixed points. EM converges to a stationary point of $\ell$ — typically a local maximum, occasionally a saddle point. **It is not guaranteed to reach the global maximum**, which is why multiple random restarts matter.
 
 ### 3.3 Visualising the two views
 
@@ -178,11 +177,11 @@ p\bigl(z_i = k \mid \mathbf{x}_i, \boldsymbol{\theta}^{(t)}\bigr)
 \frac{\pi_k\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)}{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j)}.
 \;}$$
 
-Each row $(\gamma_{i1},\dots,\gamma_{iK})$ sums to 1 -- the soft cluster membership.
+Each row $(\gamma_{i1},\dots,\gamma_{iK})$ sums to 1 — the soft cluster membership.
 
 ![E-step soft assignments](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig2_e_step.png)
 
-On the left every grid point is coloured by mixing the three component colours according to $\gamma_{ik}$: pure colour where one component dominates, blended colours along the boundaries. On the right, the responsibility matrix $\gamma_{ik}$ for twelve sample points -- rows sum to 1.
+On the left every grid point is coloured by mixing the three component colours according to $\gamma_{ik}$: pure colour where one component dominates, blended colours along the boundaries. On the right, the responsibility matrix $\gamma_{ik}$ for twelve sample points — rows sum to 1.
 
 ### 4.3 The M-step: weighted MLE
 
@@ -196,7 +195,7 @@ $$\boxed{\;
 
 These are exactly the standard Gaussian MLE formulas, but with each sample re-weighted by its responsibility.
 
-![One M-step update -- before vs after](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig3_m_step.png)
+![One M-step update — before vs after](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig3_m_step.png)
 
 Starting from a deliberately bad initialisation, a single M-step pulls the means (red arrows) onto the data and stretches the covariance ellipses to match the observed scatter. After only a handful of E-M cycles the fit is essentially correct.
 
@@ -206,13 +205,13 @@ Run EM for several random restarts and watch the log-likelihood:
 
 ![Log-likelihood is monotone non-decreasing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig4_loglik_monotone.png)
 
-Every restart curve is non-decreasing -- this is the algorithmic guarantee. Different restarts plateau at different basins; the dashed line is the best value found by `sklearn.mixture.GaussianMixture` with `n_init=20`. **Use multiple random or K-means initialisations and keep the best.**
+Every restart curve is non-decreasing — this is the algorithmic guarantee. Different restarts plateau at different basins; the dashed line is the best value found by `sklearn.mixture.GaussianMixture` with `n_init=20`. **Use multiple random or K-means initialisations and keep the best.**
 
 ---
 
 ## 5. K-means is the hard, spherical limit of GMM
 
-Let $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$ for all $k$ and let $\epsilon \to 0$. The Gaussian density becomes infinitely peaked; the responsibility for the **closest** mean tends to 1 and the others to 0. The E-step degenerates to *hard assignment* and the M-step to averaging the assigned points -- exactly K-means.
+Let $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$ for all $k$ and let $\epsilon \to 0$. The Gaussian density becomes infinitely peaked; the responsibility for the **closest** mean tends to 1 and the others to 0. The E-step degenerates to *hard assignment* and the M-step to averaging the assigned points — exactly K-means.
 
 ![K-means vs GMM on anisotropic data](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig6_kmeans_vs_gmm.png)
 
@@ -342,9 +341,9 @@ The BIC score $\mathrm{BIC} = -2\log\hat L + p\log N$ (where $p$ is the paramete
 
 ### Does EM reach the global optimum?
 
-No. Monotone ascent guarantees only a stationary point -- typically a local maximum, sometimes a saddle. Defend yourself with multiple restarts (random or K-means seeded) and keep the run with the highest final log-likelihood.
+No. Monotone ascent guarantees only a stationary point — typically a local maximum, sometimes a saddle. Defend yourself with multiple restarts (random or K-means seeded) and keep the run with the highest final log-likelihood.
 
-### GMM vs K-means -- when does it actually matter?
+### GMM vs K-means — when does it actually matter?
 
 Use GMM when (i) clusters are clearly elliptical / anisotropic, (ii) you want **soft** membership probabilities for downstream calibration, or (iii) you need a generative density model for sampling or anomaly scoring. K-means is faster and fine for roughly spherical, well-separated clusters.
 

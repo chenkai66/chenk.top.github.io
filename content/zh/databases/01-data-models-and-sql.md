@@ -6,8 +6,7 @@ tags:
   - SQL
   - Relational Model
   - Normalization
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "从零开始深入关系模型、SQL 基础、范式化设计及高级查询模式——掌握流利使用 SQL 所需的一切知识。"

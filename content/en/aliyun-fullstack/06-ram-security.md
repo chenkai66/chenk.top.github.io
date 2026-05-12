@@ -19,16 +19,16 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-6"
 ---
 
-I once found a DashScope API key hardcoded in a public GitHub repo. It was mine. Someone had forked a demo I pushed months earlier, and the key was sitting in a config file I forgot to gitignore. By the time I noticed, the key had been used to generate 14,000 Qwen API calls in a single weekend. The bill was not catastrophic -- DashScope per-token pricing is forgiving -- but the lesson was. I had treated cloud security as something I would figure out later. "Later" arrived as a billing alert at 2 AM on a Sunday.
+I once found a DashScope API key hardcoded in a public GitHub repo. It was mine. Someone had forked a demo I pushed months earlier, and the key was sitting in a config file I forgot to gitignore. By the time I noticed, the key had been used to generate 14,000 Qwen API calls in a single weekend. The bill was not catastrophic — DashScope per-token pricing is forgiving — but the lesson was. I had treated cloud security as something I would figure out later. "Later" arrived as a billing alert at 2 AM on a Sunday.
 
 That was the day I set up RAM users, rotated every access key, enabled MFA, and started using STS for anything that touches a frontend. This article is everything I learned in the process, structured so you can do it in an afternoon instead of learning it from an incident.
 
 
-Security groups -- the network-layer firewall -- are covered in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). This article is about the identity layer: who can do what, how to encrypt data, and how to audit everything. For Terraform-managed security, see [Terraform Part 6: LLM Gateway and Secrets](/en/terraform-agents/06-llm-gateway-and-secrets/).
+Security groups — the network-layer firewall — are covered in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). This article is about the identity layer: who can do what, how to encrypt data, and how to audit everything. For Terraform-managed security, see [Terraform Part 6: LLM Gateway and Secrets](/en/terraform-agents/06-llm-gateway-and-secrets/).
 
 ## The Security Mental Model
 
-Cloud security is not a single feature you turn on. It is a stack of independent layers, each covering a different failure mode. Miss one layer and the others still protect you -- that is the principle of defense in depth.
+Cloud security is not a single feature you turn on. It is a stack of independent layers, each covering a different failure mode. Miss one layer and the others still protect you — that is the principle of defense in depth.
 
 ![Alibaba Cloud security model overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_security_model.png)
 
@@ -41,15 +41,15 @@ I think about it as four pillars:
 | **Encryption** | Is the data protected at rest and in transit? | KMS, SSL certificates | KMS, ACM |
 | **Auditing** | Who did what, and when? | ActionTrail | CloudTrail |
 
-Every security decision you make falls into one of these four buckets. When something goes wrong -- and it will -- the audit trail tells you which of the other three failed. When you design access for a new team, you walk through all four: create identities, assign permissions, encrypt their data, and log their actions.
+Every security decision you make falls into one of these four buckets. When something goes wrong — and it will — the audit trail tells you which of the other three failed. When you design access for a new team, you walk through all four: create identities, assign permissions, encrypt their data, and log their actions.
 
 The mental model maps cleanly to AWS IAM, which is intentional. Alibaba Cloud built RAM as a near-equivalent to AWS IAM, with the same conceptual hierarchy: root account at the top, RAM users underneath, policies granting permissions, roles for cross-service and cross-account access. If you have used AWS IAM, you already know 80% of what RAM does. The remaining 20% is naming differences and a few features that work slightly differently.
 
-One critical difference: Alibaba Cloud's root account is called the "Alibaba Cloud Account" or sometimes the "primary account." It is not called "root" in the console, but functionally it is the same thing -- an all-powerful identity that should never be used for daily work.
+One critical difference: Alibaba Cloud's root account is called the "Alibaba Cloud Account" or sometimes the "primary account." It is not called "root" in the console, but functionally it is the same thing — an all-powerful identity that should never be used for daily work.
 
 ## RAM: Resource Access Management
 
-RAM is the identity and access management system for Alibaba Cloud. Every API call, every console click, every CLI command is authenticated and authorized through RAM. Understanding RAM is not optional -- it is the foundation that everything else in this article builds on.
+RAM is the identity and access management system for Alibaba Cloud. Every API call, every console click, every CLI command is authenticated and authorized through RAM. Understanding RAM is not optional — it is the foundation that everything else in this article builds on.
 
 ![RAM user, group, and role hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_ram_hierarchy.png)
 
@@ -63,7 +63,7 @@ You should use this account for exactly three things:
 2. Billing and payment method changes
 3. Emergency recovery when RAM is misconfigured
 
-For everything else -- development, deployment, operations, monitoring -- use RAM users. I have seen teams where six engineers all share the root account credentials. One person accidentally deletes a production RDS instance, and nobody can figure out who did it because ActionTrail shows "root" for every action. Separate identities are not bureaucracy; they are how you debug incidents.
+For everything else — development, deployment, operations, monitoring — use RAM users. I have seen teams where six engineers all share the root account credentials. One person accidentally deletes a production RDS instance, and nobody can figure out who did it because ActionTrail shows "root" for every action. Separate identities are not bureaucracy; they are how you debug incidents.
 
 ### Creating RAM Users
 
@@ -96,7 +96,7 @@ Create an AccessKey pair for programmatic access:
 aliyun ram CreateAccessKey --UserName alice
 ```
 
-This returns an AccessKeyId and AccessKeySecret. The secret is shown exactly once -- if you lose it, you have to create a new key pair. Store it in a password manager, not in a config file, not in an environment variable on a shared server, and absolutely not in a Git repository.
+This returns an AccessKeyId and AccessKeySecret. The secret is shown exactly once — if you lose it, you have to create a new key pair. Store it in a password manager, not in a config file, not in an environment variable on a shared server, and absolutely not in a Git repository.
 
 ### Setting Up MFA
 
@@ -178,7 +178,7 @@ aliyun ram RemoveUserFromGroup --UserName alice --GroupName Developers
 aliyun ram AddUserToGroup --UserName alice --GroupName Administrators
 ```
 
-The key discipline: never attach policies directly to users. Always go through groups. The one exception is deny policies for specific users who need restricted access within their group -- but even that is better handled with a separate group.
+The key discipline: never attach policies directly to users. Always go through groups. The one exception is deny policies for specific users who need restricted access within their group — but even that is better handled with a separate group.
 
 ## RAM Policies Deep Dive
 
@@ -188,7 +188,7 @@ Policies are the authorization engine. Every API call in Alibaba Cloud is evalua
 
 ### System Policies vs Custom Policies
 
-Alibaba Cloud provides over 800 system policies -- pre-built permission sets maintained by Alibaba Cloud. You cannot modify them, but they cover the most common scenarios:
+Alibaba Cloud provides over 800 system policies — pre-built permission sets maintained by Alibaba Cloud. You cannot modify them, but they cover the most common scenarios:
 
 | System policy | What it grants |
 |---|---|
@@ -198,7 +198,7 @@ Alibaba Cloud provides over 800 system policies -- pre-built permission sets mai
 | `AliyunOSSFullAccess` | Full access to OSS |
 | `AliyunRDSFullAccess` | Full access to RDS |
 | `AliyunVPCFullAccess` | Full access to VPC |
-| `AliyunRAMFullAccess` | Full access to RAM (dangerous -- this is the keys to the kingdom) |
+| `AliyunRAMFullAccess` | Full access to RAM (dangerous — this is the keys to the kingdom) |
 | `AliyunKMSFullAccess` | Full access to KMS |
 | `AliyunActionTrailFullAccess` | Full access to ActionTrail |
 | `AliyunBSSFullAccess` | Full access to billing |
@@ -243,7 +243,7 @@ Breaking this down:
 
 ### Real Policy Examples
 
-**ECS administrator -- full ECS access in one region only:**
+**ECS administrator — full ECS access in one region only:**
 
 ```json
 {
@@ -263,7 +263,7 @@ Breaking this down:
 }
 ```
 
-The second statement grants VPC read access -- necessary because ECS operations often need to query VPC/VSwitch information. Without it, creating instances fails with an authorization error that does not mention VPC at all, which is confusing.
+The second statement grants VPC read access — necessary because ECS operations often need to query VPC/VSwitch information. Without it, creating instances fails with an authorization error that does not mention VPC at all, which is confusing.
 
 **OSS read-only for a specific bucket:**
 
@@ -358,7 +358,7 @@ RAM supports two permission models, and most setups use both:
 
 **ABAC (Attribute-Based Access Control)**: Permissions are assigned based on resource attributes, typically tags. "Users can only manage instances tagged with `team=alpha`."
 
-ABAC example -- users can only manage their own team's instances:
+ABAC example — users can only manage their own team's instances:
 
 ```json
 {
@@ -380,7 +380,7 @@ ABAC example -- users can only manage their own team's instances:
 
 This policy says: allow ECS operations only when the resource's `team` tag matches the user's `team` tag. Tag user Alice with `team=alpha`, tag her instances with `team=alpha`, and she can manage them. She cannot touch instances tagged `team=beta`, even though the Action says `ecs:*`.
 
-ABAC is powerful but harder to debug. I recommend starting with RBAC (groups + policies) and adding ABAC only when you need tag-based isolation -- typically when multiple teams share the same account.
+ABAC is powerful but harder to debug. I recommend starting with RBAC (groups + policies) and adding ABAC only when you need tag-based isolation — typically when multiple teams share the same account.
 
 Create and attach a custom policy:
 
@@ -438,9 +438,9 @@ Every role has a trust policy that specifies who can assume it. This is separate
 
 ### Service Role Example: ECS Accessing OSS
 
-A common scenario: your ECS instance needs to read files from an OSS bucket. The wrong way to do this is to put an AccessKey in the instance's environment variables. If the instance is compromised, the attacker has permanent credentials. The right way is an instance role -- the ECS instance automatically gets temporary credentials that rotate every hour.
+A common scenario: your ECS instance needs to read files from an OSS bucket. The wrong way to do this is to put an AccessKey in the instance's environment variables. If the instance is compromised, the attacker has permanent credentials. The right way is an instance role — the ECS instance automatically gets temporary credentials that rotate every hour.
 
-Step 1 -- Create the role with a trust policy allowing ECS to assume it:
+Step 1 — Create the role with a trust policy allowing ECS to assume it:
 
 ```bash
 aliyun ram CreateRole \
@@ -460,7 +460,7 @@ aliyun ram CreateRole \
   --Description "Allows ECS instances to read from OSS"
 ```
 
-Step 2 -- Attach a permission policy to the role:
+Step 2 — Attach a permission policy to the role:
 
 ```bash
 aliyun ram AttachPolicyToRole \
@@ -469,7 +469,7 @@ aliyun ram AttachPolicyToRole \
   --RoleName ECS-OSS-Reader
 ```
 
-Step 3 -- Attach the role to an ECS instance:
+Step 3 — Attach the role to an ECS instance:
 
 ```bash
 aliyun ecs AttachInstanceRamRole \
@@ -478,7 +478,7 @@ aliyun ecs AttachInstanceRamRole \
   --RamRoleName ECS-OSS-Reader
 ```
 
-Step 4 -- Inside the ECS instance, the SDK automatically picks up the role credentials:
+Step 4 — Inside the ECS instance, the SDK automatically picks up the role credentials:
 
 ```python
 from alibabacloud_oss20190517.client import Client
@@ -551,7 +551,7 @@ Security Token Service generates temporary AccessKey pairs with an attached secu
 
 Permanent AccessKeys are a liability. They do not expire. If leaked, they remain valid until you manually rotate them. Rotation means updating every service that uses the key, which means downtime or a coordinated deployment. Most teams put off rotation because it is painful, which means leaked keys stay active for months.
 
-STS tokens expire. The maximum lifetime is 12 hours (default 1 hour, minimum 15 minutes). If a token is leaked, the damage window is small. You do not need to rotate anything -- just wait for it to expire, then investigate how it leaked.
+STS tokens expire. The maximum lifetime is 12 hours (default 1 hour, minimum 15 minutes). If a token is leaked, the damage window is small. You do not need to rotate anything — just wait for it to expire, then investigate how it leaked.
 
 ### The STS Workflow
 
@@ -580,7 +580,7 @@ The flow is: trusted backend assumes a role, gets temporary credentials, passes 
 
 This is the most common STS use case. A mobile app or browser needs to upload files directly to OSS. You do not want the upload to go through your backend (bandwidth and latency), but you also do not want permanent OSS credentials in the frontend.
 
-Step 1 -- Create a role with a narrowly scoped OSS policy:
+Step 1 — Create a role with a narrowly scoped OSS policy:
 
 ```bash
 # Create the role
@@ -629,7 +629,7 @@ aliyun ram AttachPolicyToRole \
   --RoleName STS-OSS-Uploader
 ```
 
-Step 2 -- Backend assumes the role and returns temporary credentials to the frontend:
+Step 2 — Backend assumes the role and returns temporary credentials to the frontend:
 
 ```python
 from alibabacloud_sts20150401.client import Client
@@ -658,7 +658,7 @@ print(f"SecurityToken:   {credentials.security_token}")
 print(f"Expiration:      {credentials.expiration}")
 ```
 
-Step 3 -- Frontend uses the temporary credentials to upload directly to OSS:
+Step 3 — Frontend uses the temporary credentials to upload directly to OSS:
 
 ```javascript
 // Browser-side upload using STS credentials
@@ -683,7 +683,7 @@ The credentials expire after 15 minutes. If the user needs to upload more files,
 
 ## KMS: Key Management Service
 
-KMS handles the encryption pillar. It manages cryptographic keys and uses them to encrypt/decrypt data. You never see the raw key material -- KMS keeps it in hardware security modules (HSMs) and performs cryptographic operations on your behalf.
+KMS handles the encryption pillar. It manages cryptographic keys and uses them to encrypt/decrypt data. You never see the raw key material — KMS keeps it in hardware security modules (HSMs) and performs cryptographic operations on your behalf.
 
 ![KMS envelope encryption flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_kms_encryption.png)
 
@@ -699,11 +699,11 @@ KMS handles the encryption pillar. It manages cryptographic keys and uses them t
 
 ### Why Envelope Encryption?
 
-You might ask: why not just send my data to KMS and let it encrypt everything directly? Because KMS has a 6 KB limit on direct encryption. For anything larger (which is everything in practice -- files, database fields, disk volumes), you use envelope encryption.
+You might ask: why not just send my data to KMS and let it encrypt everything directly? Because KMS has a 6 KB limit on direct encryption. For anything larger (which is everything in practice — files, database fields, disk volumes), you use envelope encryption.
 
 The flow:
 
-1. Call `GenerateDataKey` -- KMS returns a plaintext data key AND an encrypted copy of the same key
+1. Call `GenerateDataKey` — KMS returns a plaintext data key AND an encrypted copy of the same key
 2. Use the plaintext data key to encrypt your data locally (AES-256-GCM)
 3. Store the encrypted data + the encrypted data key together
 4. Discard the plaintext data key from memory
@@ -797,7 +797,7 @@ aliyun kms UpdateRotationPolicy \
   --RotationInterval "365d"
 ```
 
-For manual rotation (useful for incident response -- "we think this key might be compromised"):
+For manual rotation (useful for incident response — "we think this key might be compromised"):
 
 ```bash
 aliyun kms CreateKeyVersion --KeyId <your-cmk-id>
@@ -805,7 +805,7 @@ aliyun kms CreateKeyVersion --KeyId <your-cmk-id>
 
 ## ActionTrail: Audit Everything
 
-ActionTrail is the auditing pillar. It records every API call made against your Alibaba Cloud account -- who did it, when, from what IP, with what parameters, and whether it succeeded. Think of it as the black box flight recorder for your cloud.
+ActionTrail is the auditing pillar. It records every API call made against your Alibaba Cloud account — who did it, when, from what IP, with what parameters, and whether it succeeded. Think of it as the black box flight recorder for your cloud.
 
 ![ActionTrail audit pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_audit_trail.png)
 
@@ -1123,9 +1123,9 @@ The total time to set this up is about 30 minutes via CLI. The total time to rec
 
 3. **Temporary credentials beat permanent credentials every time.** Use STS for anything that touches an untrusted environment (frontend, mobile, third-party). Use instance roles for ECS and Function Compute. Reserve permanent AccessKeys for backend services that cannot use roles.
 
-4. **Encrypt everything at rest.** KMS makes this trivial -- enable SSE-KMS on OSS, disk encryption on ECS, TDE on RDS. The performance overhead is negligible. The cost of a data breach is not.
+4. **Encrypt everything at rest.** KMS makes this trivial — enable SSE-KMS on OSS, disk encryption on ECS, TDE on RDS. The performance overhead is negligible. The cost of a data breach is not.
 
-5. **Audit everything, always.** ActionTrail is free for management events. Enable it on day one, not after the first incident. When something goes wrong -- and it will -- the audit trail is the first thing you reach for.
+5. **Audit everything, always.** ActionTrail is free for management events. Enable it on day one, not after the first incident. When something goes wrong — and it will — the audit trail is the first thing you reach for.
 
 6. **Security is layers, not a single wall.** Identity controls who gets in. Authorization controls what they can do. Encryption protects data even if someone gets through. Auditing tells you when someone tried. Each layer compensates for failures in the others.
 
@@ -1133,4 +1133,4 @@ The hardcoded API key that kicked off this article cost me a weekend and a modes
 
 ## What's Next
 
-In [Part 7](/en/aliyun-fullstack/07-oss-storage/), we move to the storage layer: OSS for object storage, NAS for shared filesystems, and the block storage options that back your ECS instances. We will build on the security foundations from this article -- every bucket gets SSE-KMS, every access goes through RAM roles, and nothing gets a permanent AccessKey.
+In [Part 7](/en/aliyun-fullstack/07-oss-storage/), we move to the storage layer: OSS for object storage, NAS for shared filesystems, and the block storage options that back your ECS instances. We will build on the security foundations from this article — every bucket gets SSE-KMS, every access goes through RAM roles, and nothing gets a permanent AccessKey.

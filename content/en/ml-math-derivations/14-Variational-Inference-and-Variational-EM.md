@@ -1,8 +1,7 @@
 ---
 title: "ML Math Derivations (14): Variational Inference and Variational EM"
 date: 2026-02-02 09:00:00
-categories:
-  - Machine Learning
+categories: Machine Learning
 tags:
   - Variational Inference
   - ELBO

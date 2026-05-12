@@ -19,10 +19,10 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-5"
 ---
 
-My self-managed MySQL on ECS lasted exactly four months before a disk I/O spike during peak traffic brought the whole thing down. The InnoDB buffer pool was fighting the OS page cache for memory, the binary log was filling the system disk faster than my cron job could rotate it, and the single-threaded replication to my "backup" instance was nine hours behind. I fixed it at 3 AM by throwing more disk at it. Then it happened again two weeks later. That is the day I learned why managed databases exist -- not because I cannot run MySQL, but because I do not want to be the person paged at 3 AM when MySQL decides the relay log is corrupted and the only fix is to rebuild the replica from a cold backup that may or may not be consistent.
+My self-managed MySQL on ECS lasted exactly four months before a disk I/O spike during peak traffic brought the whole thing down. The InnoDB buffer pool was fighting the OS page cache for memory, the binary log was filling the system disk faster than my cron job could rotate it, and the single-threaded replication to my "backup" instance was nine hours behind. I fixed it at 3 AM by throwing more disk at it. Then it happened again two weeks later. That is the day I learned why managed databases exist — not because I cannot run MySQL, but because I do not want to be the person paged at 3 AM when MySQL decides the relay log is corrupted and the only fix is to rebuild the replica from a cold backup that may or may not be consistent.
 
 
-This article covers the database layer on Alibaba Cloud: RDS for managed relational databases, PolarDB for when RDS hits its limits, and the operational practices -- sizing, replication, backup, monitoring, security -- that keep your data alive. The VPC where this database lives was set up in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). For the Terraform approach to database provisioning, see [Terraform Part 5](/en/terraform-agents/05-storage-for-agent-memory/).
+This article covers the database layer on Alibaba Cloud: RDS for managed relational databases, PolarDB for when RDS hits its limits, and the operational practices — sizing, replication, backup, monitoring, security — that keep your data alive. The VPC where this database lives was set up in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). For the Terraform approach to database provisioning, see [Terraform Part 5](/en/terraform-agents/05-storage-for-agent-memory/).
 
 ## Why Managed Databases?
 
@@ -30,7 +30,7 @@ Running a database on a raw ECS instance gives you complete control. You choose 
 
 But here is what you are also signing up for:
 
-- **OS patching.** The kernel security update that requires a reboot -- do you have failover configured?
+- **OS patching.** The kernel security update that requires a reboot — do you have failover configured?
 - **Backup management.** Physical backups with Percona XtraBackup, testing restores monthly, managing storage for backup files, implementing point-in-time recovery with binary log archival.
 - **High availability.** Semi-synchronous replication, GTID configuration, automated failover with orchestrators like MHA or ProxySQL, VIP management, split-brain prevention.
 - **Monitoring.** Slow query analysis, InnoDB buffer pool hit ratio, replication lag, connection pool exhaustion, lock wait timeouts.
@@ -65,13 +65,13 @@ For this article, we focus on RDS (the workhorse) and PolarDB (the upgrade path 
 
 ## RDS MySQL Deep Dive
 
-RDS MySQL is the most commonly used database service on Alibaba Cloud. It is a fully managed MySQL instance with automated backups, patching, monitoring, and high availability. You get a MySQL-compatible endpoint and connect to it the same way you connect to any MySQL server -- `mysql -h <endpoint> -u <user> -p`.
+RDS MySQL is the most commonly used database service on Alibaba Cloud. It is a fully managed MySQL instance with automated backups, patching, monitoring, and high availability. You get a MySQL-compatible endpoint and connect to it the same way you connect to any MySQL server — `mysql -h <endpoint> -u <user> -p`.
 
 ### Architecture
 
 An RDS MySQL HA instance runs as a primary-standby pair within the same region. The primary handles all reads and writes. The standby receives changes via semi-synchronous replication and is promoted automatically if the primary fails. Failover typically completes in 30 seconds or less and is transparent to the application (the DNS endpoint stays the same, the connection just drops momentarily).
 
-The standby is not readable -- it exists solely for failover. If you want read scaling, you add read replicas (covered later in this article).
+The standby is not readable — it exists solely for failover. If you want read scaling, you add read replicas (covered later in this article).
 
 ![HA failover timeline showing the ~30-second sequence from heartbeat loss to writes resuming](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_ha_failover_sequence.png)
 
@@ -106,17 +106,17 @@ Local SSD provides the lowest latency because the SSD is physically attached to 
 
 ESSD (Enhanced SSD) is network-attached block storage with elastic capacity. You can expand ESSD online without downtime, and the maximum size of 32 TB accommodates most databases. ESSD PL1 is the default and the right choice for most workloads. Move to PL2 or PL3 only if CloudMonitor shows your IOPS consistently hitting the PL1 ceiling.
 
-> **Practical tip:** Start with ESSD PL1. Watch the `IOPSUsage` metric in CloudMonitor for a week. If you see sustained usage above 70% of the PL1 limit, upgrade. If you never break 20%, you are paying for headroom you do not need -- but the cost difference between PL0 and PL1 is small enough that the insurance is worth it.
+> **Practical tip:** Start with ESSD PL1. Watch the `IOPSUsage` metric in CloudMonitor for a week. If you see sustained usage above 70% of the PL1 limit, upgrade. If you never break 20%, you are paying for headroom you do not need — but the cost difference between PL0 and PL1 is small enough that the insurance is worth it.
 
 ### Connection methods
 
 RDS MySQL provides three connection methods:
 
-1. **Internal endpoint** -- accessible only from within the same VPC. This is what your application servers use. Looks like `rm-bp1xxxxxxxxx.mysql.rds.aliyuncs.com:3306`.
+1. **Internal endpoint** — accessible only from within the same VPC. This is what your application servers use. Looks like `rm-bp1xxxxxxxxx.mysql.rds.aliyuncs.com:3306`.
 
-2. **Public endpoint** -- accessible from the internet. Disabled by default. Only enable this for remote administration (and lock it down with the IP whitelist). You should never have your production application connecting to the database over the public endpoint.
+2. **Public endpoint** — accessible from the internet. Disabled by default. Only enable this for remote administration (and lock it down with the IP whitelist). You should never have your production application connecting to the database over the public endpoint.
 
-3. **Database Proxy endpoint** -- a proxy layer that provides read/write splitting, connection pooling, and short-lived connection optimization. This is the recommended endpoint for applications that use read replicas.
+3. **Database Proxy endpoint** — a proxy layer that provides read/write splitting, connection pooling, and short-lived connection optimization. This is the recommended endpoint for applications that use read replicas.
 
 ## PolarDB: When RDS Isn't Enough
 
@@ -130,7 +130,7 @@ The key architectural difference is **compute-storage separation**. In RDS, each
 
 This changes everything:
 
-- **Adding a read replica takes minutes, not hours.** A new RDS read replica must copy the entire dataset to its own disk. A PolarDB read replica just boots a new compute node that attaches to the shared storage -- no data copy required.
+- **Adding a read replica takes minutes, not hours.** A new RDS read replica must copy the entire dataset to its own disk. A PolarDB read replica just boots a new compute node that attaches to the shared storage — no data copy required.
 
 - **Storage scales automatically.** PolarDB storage grows as your data grows, up to 128 TB. You never provision storage capacity manually. You never run out of disk at 3 AM.
 
@@ -158,9 +158,9 @@ This changes everything:
 
 PolarDB offers a Serverless mode where compute scales automatically based on load. You set minimum and maximum PCU (PolarDB Compute Units), and the system scales between them:
 
-- **Minimum PCU: 1** -- the database scales down to 1 PCU during idle periods, costing very little.
-- **Maximum PCU: 32** -- during traffic spikes, the database scales up automatically.
-- **Scale-to-zero** -- PolarDB Serverless can pause compute entirely during sustained inactivity, charging only for storage.
+- **Minimum PCU: 1** — the database scales down to 1 PCU during idle periods, costing very little.
+- **Maximum PCU: 32** — during traffic spikes, the database scales up automatically.
+- **Scale-to-zero** — PolarDB Serverless can pause compute entirely during sustained inactivity, charging only for storage.
 
 This is perfect for development databases, staging environments, or production workloads with extreme traffic variation (e.g., an e-commerce site that gets 100x traffic during promotions).
 
@@ -193,10 +193,10 @@ Picking the right RDS instance type is the most impactful cost decision you will
 
 ### Key metrics for sizing
 
-- **vCPUs** -- determines concurrent query processing capacity. CPU-bound workloads (complex JOINs, aggregations) need more.
-- **Memory** -- directly maps to InnoDB buffer pool size. Ideally, your entire working dataset fits in the buffer pool.
-- **Max IOPS** -- the ceiling for disk operations per second. Transaction-heavy workloads hit this.
-- **Max connections** -- each instance type has a hard limit. Connection pooling on the application side is mandatory for high-concurrency workloads.
+- **vCPUs** — determines concurrent query processing capacity. CPU-bound workloads (complex JOINs, aggregations) need more.
+- **Memory** — directly maps to InnoDB buffer pool size. Ideally, your entire working dataset fits in the buffer pool.
+- **Max IOPS** — the ceiling for disk operations per second. Transaction-heavy workloads hit this.
+- **Max connections** — each instance type has a hard limit. Connection pooling on the application side is mandatory for high-concurrency workloads.
 
 ### Sizing table for common workloads
 
@@ -211,7 +211,7 @@ Picking the right RDS instance type is the most impactful cost decision you will
 
 ### The buffer pool rule
 
-InnoDB performance is dominated by one thing: whether your data fits in the buffer pool. The buffer pool is an in-memory cache of data and index pages. A query that reads from the buffer pool takes microseconds. The same query reading from disk takes milliseconds -- 1,000x slower.
+InnoDB performance is dominated by one thing: whether your data fits in the buffer pool. The buffer pool is an in-memory cache of data and index pages. A query that reads from the buffer pool takes microseconds. The same query reading from disk takes milliseconds — 1,000x slower.
 
 The formula:
 
@@ -298,7 +298,7 @@ aliyun rds CreateDBInstance \
 
 Breaking down the important parameters:
 
-- **Engine/EngineVersion**: MySQL 8.0. Use 8.0 for new projects -- 5.7 is in maintenance mode.
+- **Engine/EngineVersion**: MySQL 8.0. Use 8.0 for new projects — 5.7 is in maintenance mode.
 - **DBInstanceClass**: `rds.mysql.s3.large` gives us 4 vCPU, 8 GiB memory. Right for a medium web app.
 - **DBInstanceStorage**: 100 GiB initial. ESSD can be expanded online later.
 - **Category**: `HighAvailability` gives us primary + standby.
@@ -438,9 +438,9 @@ Managing read replicas manually is painful. Your application needs to know which
 
 Database Proxy is a built-in proxy layer that sits between your application and the RDS instances. It provides:
 
-- **Automatic read/write splitting** -- `INSERT/UPDATE/DELETE` goes to the primary, `SELECT` goes to replicas
-- **Connection pooling** -- reduces connection overhead on the database
-- **Single endpoint** -- your application connects to one address, the proxy handles routing
+- **Automatic read/write splitting** — `INSERT/UPDATE/DELETE` goes to the primary, `SELECT` goes to replicas
+- **Connection pooling** — reduces connection overhead on the database
+- **Single endpoint** — your application connects to one address, the proxy handles routing
 
 Enable Database Proxy:
 
@@ -472,8 +472,8 @@ aliyun rds ModifyReadWriteSplittingConnection \
 
 The weight configuration means:
 
-- Primary (`rm-bp1xxxxxxxxx`): weight 0 -- no reads go to primary (writes still go here automatically)
-- Replica (`rr-bp1yyyyyyyyy`): weight 100 -- all reads go to replica
+- Primary (`rm-bp1xxxxxxxxx`): weight 0 — no reads go to primary (writes still go here automatically)
+- Replica (`rr-bp1yyyyyyyyy`): weight 100 — all reads go to replica
 
 If the replica's replication lag exceeds `MaxDelayTime` (10 seconds), the proxy automatically routes reads back to the primary until the replica catches up.
 
@@ -495,7 +495,7 @@ No application code changes needed. The proxy handles all routing transparently.
 
 ## Backup and Recovery
 
-Backups are the one thing you cannot skip. When everything else fails -- bad deploy, data corruption, accidental `DROP TABLE` -- backups are your last line of defense.
+Backups are the one thing you cannot skip. When everything else fails — bad deploy, data corruption, accidental `DROP TABLE` — backups are your last line of defense.
 
 ![Backup timeline with point-in-time recovery](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_backup_timeline.png)
 
@@ -571,7 +571,7 @@ aliyun rds CloneDBInstance \
   --VSwitchId vsw-bp1xxxxxxxxx
 ```
 
-PITR restores always create a new instance. They never overwrite the existing instance. This is by design -- you verify the restored data on the new instance, then swap it in if everything looks correct.
+PITR restores always create a new instance. They never overwrite the existing instance. This is by design — you verify the restored data on the new instance, then swap it in if everything looks correct.
 
 ### Cross-region backup
 
@@ -659,10 +659,10 @@ aliyun cms PutResourceMetricRule \
 
 DAS is Alibaba Cloud's intelligent diagnostics tool for RDS. It goes beyond raw metrics and provides:
 
-- **Automatic SQL diagnostics** -- identifies slow queries and suggests index optimizations
-- **Real-time session analysis** -- shows active sessions, lock waits, and blocking queries
-- **Performance trend analysis** -- tracks performance metrics over time to detect degradation
-- **Automatic optimization** -- can apply recommended index changes automatically (opt-in)
+- **Automatic SQL diagnostics** — identifies slow queries and suggests index optimizations
+- **Real-time session analysis** — shows active sessions, lock waits, and blocking queries
+- **Performance trend analysis** — tracks performance metrics over time to detect degradation
+- **Automatic optimization** — can apply recommended index changes automatically (opt-in)
 
 DAS is enabled by default for RDS instances. Access it through the RDS console under "Autonomy Service."
 
@@ -771,7 +771,7 @@ aliyun rds ModifySecurityIps \
   --ModifyMode Append
 ```
 
-Never add `0.0.0.0/0` to the whitelist. This opens the database to all IPs -- including the entire internet if the public endpoint is enabled. Even with strong passwords, brute force attacks will hammer your database.
+Never add `0.0.0.0/0` to the whitelist. This opens the database to all IPs — including the entire internet if the public endpoint is enabled. Even with strong passwords, brute force attacks will hammer your database.
 
 ### SSL encryption
 
@@ -846,11 +846,11 @@ The complete security chain for connecting to RDS from your application:
 
 *Defense in depth — an attacker who breaches one layer still has to defeat the next four before touching real data.*
 
-1. **VPC isolation** -- RDS and ECS are in the same VPC, different VSwitches (data tier vs app tier)
-2. **Security groups** -- ECS security group allows outbound 3306; RDS whitelist allows inbound from app tier CIDR
-3. **SSL encryption** -- data in transit is encrypted
-4. **Least-privilege accounts** -- application uses a Normal account with ReadWrite on specific databases only
-5. **No public endpoint** -- the database is not accessible from the internet
+1. **VPC isolation** — RDS and ECS are in the same VPC, different VSwitches (data tier vs app tier)
+2. **Security groups** — ECS security group allows outbound 3306; RDS whitelist allows inbound from app tier CIDR
+3. **SSL encryption** — data in transit is encrypted
+4. **Least-privilege accounts** — application uses a Normal account with ReadWrite on specific databases only
+5. **No public endpoint** — the database is not accessible from the internet
 
 ```bash
 # Verify: from app-tier ECS, connection works
@@ -1185,8 +1185,8 @@ For a production database with HA, read scaling, automated backup, and cross-reg
 
 **Monitor the four critical metrics.** CPU utilization, disk usage, connection usage, and replication lag. Set alerts at 80% thresholds. By the time you notice problems manually, your users have been suffering for hours.
 
-**Lock down access.** IP whitelist to app tier CIDRs only, no public endpoint, SSL encryption, least-privilege accounts. The database contains your most valuable asset -- treat its security accordingly.
+**Lock down access.** IP whitelist to app tier CIDRs only, no public endpoint, SSL encryption, least-privilege accounts. The database contains your most valuable asset — treat its security accordingly.
 
 ## What's Next
 
-The database is running, replicated, backed up, and monitored. But a production application needs more than just a relational database. In the next article, we cover the caching and storage layer -- Tair (managed Redis) for session storage and caching, OSS for object storage, and NAS for shared file systems. These are the services that sit alongside your database to handle the workloads that relational databases are not built for.
+The database is running, replicated, backed up, and monitored. But a production application needs more than just a relational database. In the next article, we cover the caching and storage layer — Tair (managed Redis) for session storage and caching, OSS for object storage, and NAS for shared file systems. These are the services that sit alongside your database to handle the workloads that relational databases are not built for.

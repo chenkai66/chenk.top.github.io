@@ -7,8 +7,7 @@ tags:
   - Virtualization
   - Linux
   - DevOps
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "Containers solve the 'works on my machine' problem that VMs made expensive. Learn what containers actually are, how they differ from VMs, and run your first one."

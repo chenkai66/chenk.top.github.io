@@ -18,19 +18,19 @@ translationKey: "cloud-computing-5"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/illustration_1.png)
 
-A cloud platform is, in the end, a network with computers attached. The compute layer scales by adding boxes; the storage layer scales by adding disks; the *network* layer is what makes those boxes and disks behave as a single coherent system. Get the network right and the rest of the stack feels effortless. Get it wrong -- a missing route, a 5-tuple mismatch on a security group, an under-provisioned load balancer -- and the whole platform goes dark.
+A cloud platform is, in the end, a network with computers attached. The compute layer scales by adding boxes; the storage layer scales by adding disks; the *network* layer is what makes those boxes and disks behave as a single coherent system. Get the network right and the rest of the stack feels effortless. Get it wrong — a missing route, a 5-tuple mismatch on a security group, an under-provisioned load balancer — and the whole platform goes dark.
 
 This article maps the cloud-networking stack from the packet up: how a VPC actually carves an isolated network out of shared infrastructure, what changes when load balancers move from L4 to L7, how a CDN turns geography into latency savings, why SDN reshaped the data centre, and how BGP stitches it all together across regions.
 
 ## What you will learn
 
-1. **VPC internals** -- subnets, route tables, gateways, endpoints, and the encapsulation that makes them isolated
-2. **Load balancing** -- L4 vs L7, algorithms, health checks, sticky sessions, draining
-3. **CDN architecture** -- edge PoPs, cache hierarchies, TLS termination, dynamic acceleration
-4. **SDN** -- control / data plane split, OpenFlow / P4Runtime, NFV and service chains
-5. **VPN, Direct Connect, and Transit Gateway** -- when to choose which connectivity model
-6. **Security** -- security groups vs NACLs, flow logs, zero-trust micro-segmentation
-7. **BGP and global routing** -- AS-paths, ECMP, anycast, multi-region failover
+1. **VPC internals** — subnets, route tables, gateways, endpoints, and the encapsulation that makes them isolated
+2. **Load balancing** — L4 vs L7, algorithms, health checks, sticky sessions, draining
+3. **CDN architecture** — edge PoPs, cache hierarchies, TLS termination, dynamic acceleration
+4. **SDN** — control / data plane split, OpenFlow / P4Runtime, NFV and service chains
+5. **VPN, Direct Connect, and Transit Gateway** — when to choose which connectivity model
+6. **Security** — security groups vs NACLs, flow logs, zero-trust micro-segmentation
+7. **BGP and global routing** — AS-paths, ECMP, anycast, multi-region failover
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ This article maps the cloud-networking stack from the packet up: how a VPC actua
 
 ## 1. Virtual Private Cloud (VPC)
 
-A VPC is a software-defined slice of the cloud provider's physical network that *behaves* like your own private datacentre: you choose the IP space, draw the subnets, install the gateways and write the firewall rules. Behind the scenes the provider implements isolation through **VXLAN** (or a proprietary equivalent) -- every packet carries a tenant tag so two customers can both use 10.0.0.0/16 without ever seeing each other's traffic.
+A VPC is a software-defined slice of the cloud provider's physical network that *behaves* like your own private datacentre: you choose the IP space, draw the subnets, install the gateways and write the firewall rules. Behind the scenes the provider implements isolation through **VXLAN** (or a proprietary equivalent) — every packet carries a tenant tag so two customers can both use 10.0.0.0/16 without ever seeing each other's traffic.
 
 ![Multi-AZ VPC architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig1_vpc_architecture.png)
 
@@ -144,13 +144,13 @@ Three production-relevant choices encoded above:
 | **PrivateLink** | service exposure | one VPC publishes a service to many consumer VPCs | one-way; no need to peer entire networks |
 | **Cloud WAN** | global mesh | multi-region, multi-account meshes | newest, simplest at scale, costs accordingly |
 
-The decision driver is mostly the *topology* you need, not the bandwidth -- all of these can saturate 10s of Gbps when sized correctly.
+The decision driver is mostly the *topology* you need, not the bandwidth — all of these can saturate 10s of Gbps when sized correctly.
 
 ---
 
 ## 2. Load Balancing
 
-A load balancer turns a fleet into a service. It hides individual instance failures, spreads load, terminates TLS, and -- in its L7 form -- lets you reshape traffic by path, host or header without touching the apps.
+A load balancer turns a fleet into a service. It hides individual instance failures, spreads load, terminates TLS, and — in its L7 form — lets you reshape traffic by path, host or header without touching the apps.
 
 ![L4 vs L7 load balancers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig3_lb_l4_l7.png)
 
@@ -248,11 +248,11 @@ The non-obvious knobs:
 
 ### 2.4 Health checks that do not lie
 
-A health check that hits `/` and runs a database query *does* tell you when the database is down -- but it also marks the entire fleet unhealthy on the first DB blip, taking the whole site offline. The pattern that survives production:
+A health check that hits `/` and runs a database query *does* tell you when the database is down — but it also marks the entire fleet unhealthy on the first DB blip, taking the whole site offline. The pattern that survives production:
 
-- **`/livez`** -- "the process is alive" (no dependencies). LB checks this.
-- **`/readyz`** -- "this instance can serve traffic right now" (cache warmed, DB pool open). Kubernetes checks this.
-- Application metrics, traces, and logs check the rest -- not the load balancer.
+- **`/livez`** — "the process is alive" (no dependencies). LB checks this.
+- **`/readyz`** — "this instance can serve traffic right now" (cache warmed, DB pool open). Kubernetes checks this.
+- Application metrics, traces, and logs check the rest — not the load balancer.
 
 ---
 
@@ -264,11 +264,11 @@ A CDN is geography turned into a cache. Static content is replicated to edge PoP
 
 ### 3.1 What actually happens on a request
 
-1. **DNS** -- the user resolves `cdn.example.com` to an anycast IP that lands at the closest healthy PoP.
-2. **TLS termination** -- the TLS handshake completes at the edge (much shorter RTT) and the PoP holds a session ticket.
-3. **Cache lookup** -- the PoP keys on URL + Vary headers. On HIT, return immediately.
-4. **MISS path** -- the PoP fetches from a *parent* (regional cache) which may itself fetch from origin (the hierarchical/tiered cache reduces origin load even for unique content).
-5. **Cache fill** -- the PoP stores the response per its TTL (`Cache-Control: max-age`, `s-maxage`, `stale-while-revalidate`).
+1. **DNS** — the user resolves `cdn.example.com` to an anycast IP that lands at the closest healthy PoP.
+2. **TLS termination** — the TLS handshake completes at the edge (much shorter RTT) and the PoP holds a session ticket.
+3. **Cache lookup** — the PoP keys on URL + Vary headers. On HIT, return immediately.
+4. **MISS path** — the PoP fetches from a *parent* (regional cache) which may itself fetch from origin (the hierarchical/tiered cache reduces origin load even for unique content).
+5. **Cache fill** — the PoP stores the response per its TTL (`Cache-Control: max-age`, `s-maxage`, `stale-while-revalidate`).
 
 ### 3.2 Cache headers that work
 
@@ -292,7 +292,7 @@ location /api/me {
 Three rules of thumb:
 
 - **`immutable`** is the single biggest win on static assets (no revalidation traffic at all).
-- **`stale-while-revalidate`** lets the CDN serve a stale copy while it asynchronously refreshes -- origin pain becomes invisible to users.
+- **`stale-while-revalidate`** lets the CDN serve a stale copy while it asynchronously refreshes — origin pain becomes invisible to users.
 - **Vary on the bare minimum.** `Vary: Accept-Encoding` is fine; `Vary: User-Agent` blows up the cache key space and your hit ratio.
 
 ### 3.3 Beyond static: dynamic acceleration
@@ -303,7 +303,7 @@ Modern CDNs also accelerate *uncacheable* traffic. The mechanisms:
 - **Pre-warmed long-haul connections** between PoPs and origin reuse keepalive (no re-handshake per request).
 - **Anycast DNS + BGP optimisation** routes the client to the lowest-latency PoP, not just the closest by mileage.
 
-The combination -- CloudFront's "CloudFront Functions", Aliyun DCDN, Cloudflare Workers -- moves the *line* between "static" and "dynamic" further into the application than most teams realise.
+The combination — CloudFront's "CloudFront Functions", Aliyun DCDN, Cloudflare Workers — moves the *line* between "static" and "dynamic" further into the application than most teams realise.
 
 ---
 
@@ -322,7 +322,7 @@ Traditional networks bound the *control* (routing, ACLs, QoS) tightly to each de
 | **Southbound API** | Controller pushes flow rules to switches | OpenFlow 1.3+, NETCONF/YANG, gNMI, P4Runtime |
 | **Northbound API** | Apps program the controller | REST / gRPC, GraphQL |
 
-Inside a hyperscaler's region, **everything** is SDN: Hyper-V Virtual Switch, Open vSwitch, Cisco ACI, AWS's "Mapping Service" + "Hyperplane" implement what you experience as a VPC. Your security-group rules are compiled into ACL entries pushed to the host's vswitch on the path your packet takes -- not enforced at the destination instance.
+Inside a hyperscaler's region, **everything** is SDN: Hyper-V Virtual Switch, Open vSwitch, Cisco ACI, AWS's "Mapping Service" + "Hyperplane" implement what you experience as a VPC. Your security-group rules are compiled into ACL entries pushed to the host's vswitch on the path your packet takes — not enforced at the destination instance.
 
 ### 4.2 Why operators love it
 
@@ -333,14 +333,14 @@ Inside a hyperscaler's region, **everything** is SDN: Hyper-V Virtual Switch, Op
 
 ### 4.3 Network Functions Virtualisation (NFV)
 
-NFV is SDN's sibling: *replace dedicated network appliances with software running on commodity x86 servers*. A firewall, a load balancer, a WAN optimiser -- each becomes a VNF that you can spin up, scale, and chain like any other workload.
+NFV is SDN's sibling: *replace dedicated network appliances with software running on commodity x86 servers*. A firewall, a load balancer, a WAN optimiser — each becomes a VNF that you can spin up, scale, and chain like any other workload.
 
 ```
 Traditional:   [Router HW] -> [Firewall HW] -> [LB HW] -> [WAN-opt HW]
 NFV:           x86 server: [Router VNF] -> [Firewall VNF] -> [LB VNF] -> [WAN-opt VNF]
 ```
 
-A representative VNF -- HAProxy as the load balancer in a service chain:
+A representative VNF — HAProxy as the load balancer in a service chain:
 
 ```
 frontend public_https
@@ -409,7 +409,7 @@ resource "aws_ec2_transit_gateway_route" "prod_to_shared" {
 }
 ```
 
-The pattern -- **disable default association/propagation, then write the routes you want** -- is how you turn a TGW from a flat-mesh footgun into an enforceable segmentation boundary.
+The pattern — **disable default association/propagation, then write the routes you want** — is how you turn a TGW from a flat-mesh footgun into an enforceable segmentation boundary.
 
 ---
 
@@ -472,7 +472,7 @@ GROUP BY srcsubnet, dstsubnet ORDER BY bytes DESC LIMIT 20;
 
 ### 6.3 Zero trust at the network layer
 
-The "soft chewy interior" model -- a hard perimeter, trusted internal network -- is gone. Modern designs assume the network is hostile and enforce identity per request. Practical building blocks:
+The "soft chewy interior" model — a hard perimeter, trusted internal network — is gone. Modern designs assume the network is hostile and enforce identity per request. Practical building blocks:
 
 - **mTLS everywhere** (service-to-service via a mesh: Istio, Linkerd, App Mesh).
 - **Short-lived workload identity** (SPIFFE/SPIRE, IAM Roles for Service Accounts, GCP Workload Identity).
@@ -482,7 +482,7 @@ The "soft chewy interior" model -- a hard perimeter, trusted internal network --
 
 ## 7. BGP and global routing
 
-When a request leaves your region and crosses the public internet -- or when you fail over from one region to another -- the system that gets it there is **BGP**, the Border Gateway Protocol. BGP is the routing protocol *between* autonomous systems (ASes); within a region your provider runs OSPF or IS-IS, but the moment you step out, BGP is in charge.
+When a request leaves your region and crosses the public internet — or when you fail over from one region to another — the system that gets it there is **BGP**, the Border Gateway Protocol. BGP is the routing protocol *between* autonomous systems (ASes); within a region your provider runs OSPF or IS-IS, but the moment you step out, BGP is in charge.
 
 ![BGP across multiple regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig5_bgp_multi_region.png)
 
@@ -490,16 +490,16 @@ When a request leaves your region and crosses the public internet -- or when you
 
 Given multiple paths to the same prefix, BGP picks one by walking down a long tiebreak list. The first five rungs cover 99% of cases:
 
-1. **Highest LOCAL_PREF** -- "internal preference"; how *we* want to leave our network. Operator-set.
-2. **Shortest AS_PATH** -- fewer ASes to traverse.
-3. **Lowest MED** -- "I'd prefer you enter my AS this way"; honoured between peers, not always between providers.
-4. **eBGP > iBGP** -- prefer routes learned from external peers over internal.
-5. **Lowest IGP cost to the next hop** -- shortest *internal* path to the chosen exit.
+1. **Highest LOCAL_PREF** — "internal preference"; how *we* want to leave our network. Operator-set.
+2. **Shortest AS_PATH** — fewer ASes to traverse.
+3. **Lowest MED** — "I'd prefer you enter my AS this way"; honoured between peers, not always between providers.
+4. **eBGP > iBGP** — prefer routes learned from external peers over internal.
+5. **Lowest IGP cost to the next hop** — shortest *internal* path to the chosen exit.
 
 ### 7.2 ECMP and anycast
 
-- **ECMP (Equal-Cost Multi-Path)** -- when several paths tie on all the above, hash the 5-tuple of each flow and spread them across the equal-cost neighbours. ECMP is how a 100 Gbit/s logical link is built from ten 10 Gbit/s physical links, and how a multi-region anycast service spreads load across its PoPs.
-- **Anycast** -- announce the *same* IP from many locations; BGP delivers each user to the topologically closest one. Anycast is the foundation of every CDN, every DNS root, every public DoH resolver.
+- **ECMP (Equal-Cost Multi-Path)** — when several paths tie on all the above, hash the 5-tuple of each flow and spread them across the equal-cost neighbours. ECMP is how a 100 Gbit/s logical link is built from ten 10 Gbit/s physical links, and how a multi-region anycast service spreads load across its PoPs.
+- **Anycast** — announce the *same* IP from many locations; BGP delivers each user to the topologically closest one. Anycast is the foundation of every CDN, every DNS root, every public DoH resolver.
 
 ### 7.3 Multi-region failover
 
@@ -508,9 +508,9 @@ A common pattern for global services:
 - Primary region serves writes; secondary regions serve reads.
 - The DNS name is anycast or a Route 53 / Aliyun GTM **failover record set** keyed off health checks.
 - Database replication is async cross-region; on failover the standby is promoted (RPO of seconds to minutes).
-- On recovery, traffic is *manually* shifted back -- automatic flap-back has burned almost everyone who has tried it.
+- On recovery, traffic is *manually* shifted back — automatic flap-back has burned almost everyone who has tried it.
 
-The BGP details rarely intrude on the application -- but when something is mis-announced upstream (the [Facebook 2021 outage](https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/) or any of the hundreds of route leaks per year) every layer above goes dark. RPKI route-origin validation and a careful prefix list at the ingress edge are mandatory hygiene at any meaningful scale.
+The BGP details rarely intrude on the application — but when something is mis-announced upstream (the [Facebook 2021 outage](https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/) or any of the hundreds of route leaks per year) every layer above goes dark. RPKI route-origin validation and a careful prefix list at the ingress edge are mandatory hygiene at any meaningful scale.
 
 ---
 
@@ -520,12 +520,12 @@ The BGP details rarely intrude on the application -- but when something is mis-a
 
 When traffic is broken, walk *up* from the wire:
 
-1. **Reachability** -- can the source ARP/ND the gateway? `ip neigh`, `arping`. If not, it is L2 / SG / NACL.
-2. **Routing** -- does the route table have a path? `aws ec2 describe-route-tables`, `ip route`.
-3. **Filters** -- is the SG / NACL allowing the 5-tuple? Check both directions if NACL is involved.
-4. **DNS** -- is the name resolving to the IP you think? `dig +short`, beware of split-horizon DNS.
-5. **TLS** -- `openssl s_client -connect host:443 -servername host`. Half of "API down" is a stale cert.
-6. **Application** -- `curl -vvv https://...`. Log shows `200 OK`? It's not the network.
+1. **Reachability** — can the source ARP/ND the gateway? `ip neigh`, `arping`. If not, it is L2 / SG / NACL.
+2. **Routing** — does the route table have a path? `aws ec2 describe-route-tables`, `ip route`.
+3. **Filters** — is the SG / NACL allowing the 5-tuple? Check both directions if NACL is involved.
+4. **DNS** — is the name resolving to the IP you think? `dig +short`, beware of split-horizon DNS.
+5. **TLS** — `openssl s_client -connect host:443 -servername host`. Half of "API down" is a stale cert.
+6. **Application** — `curl -vvv https://...`. Log shows `200 OK`? It's not the network.
 
 ### 8.2 The Swiss-army CLI
 
@@ -574,4 +574,4 @@ At least one public + one private + one DB subnet per AZ. A 3-AZ VPC therefore h
 
 **Q: When does my workload need its own SDN controller (vs the cloud's)?**
 
-Almost never on the cloud -- you are renting the controller and you cannot replace it. On-prem with OpenStack or VMware NSX, yes. Edge / 5G operators who build their own DC fabric, yes. Most application teams should not even think about SDN below the VPC abstraction.
+Almost never on the cloud — you are renting the controller and you cannot replace it. On-prem with OpenStack or VMware NSX, yes. Edge / 5G operators who build their own DC fabric, yes. Most application teams should not even think about SDN below the VPC abstraction.

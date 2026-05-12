@@ -7,8 +7,7 @@ tags:
   - Hypothesis Testing
   - Confidence Intervals
   - A/B Testing
-categories:
-  - Probability and Statistics
+categories: Probability and Statistics
 series: probability-statistics
 lang: zh
 mathjax: true

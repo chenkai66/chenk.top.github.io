@@ -19,10 +19,10 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-9"
 ---
 
-I built my first search engine with Elasticsearch and a pile of synonyms. It took six months to get decent results. Every week was the same cycle: users complained about missing results, I added more synonyms, broke something else, added exception rules, repeated. The relevance tuning spreadsheet grew to 400 rows. I had custom analyzers for three languages, a boosting config that nobody understood (including me), and a reindexing job that took four hours. Then I tried hybrid vector+keyword search on a side project and got better results on day one. Not marginally better -- "users stopped complaining" better. That experience changed how I think about search entirely, and it is the reason this article exists.
+I built my first search engine with Elasticsearch and a pile of synonyms. It took six months to get decent results. Every week was the same cycle: users complained about missing results, I added more synonyms, broke something else, added exception rules, repeated. The relevance tuning spreadsheet grew to 400 rows. I had custom analyzers for three languages, a boosting config that nobody understood (including me), and a reindexing job that took four hours. Then I tried hybrid vector+keyword search on a side project and got better results on day one. Not marginally better — "users stopped complaining" better. That experience changed how I think about search entirely, and it is the reason this article exists.
 
 
-Search is deceptively hard. Keyword search fails when users use different words than the document author. Vector search fails when users need exact matches (part numbers, error codes, SKUs). The answer, as the industry has learned over the past three years, is to combine both -- and increasingly, to throw an LLM on top for query understanding and answer generation. Alibaba Cloud has a managed service for all of this: OpenSearch. This article covers the full spectrum, from basic keyword search to LLM-powered AI Search, and ends with a complete product search engine you can deploy.
+Search is deceptively hard. Keyword search fails when users use different words than the document author. Vector search fails when users need exact matches (part numbers, error codes, SKUs). The answer, as the industry has learned over the past three years, is to combine both — and increasingly, to throw an LLM on top for query understanding and answer generation. Alibaba Cloud has a managed service for all of this: OpenSearch. This article covers the full spectrum, from basic keyword search to LLM-powered AI Search, and ends with a complete product search engine you can deploy.
 
 For generating the embeddings we use throughout this article, see our [Bailian series, Part 2: Qwen LLM API](/en/aliyun-bailian/02-qwen-llm-api/). The database feeding our search index is covered in [Part 5: RDS](/en/aliyun-fullstack/05-rds-database/). For the LLM Engineering perspective on RAG pipelines, see our [LLM Engineering series](/en/llm-engineering/).
 
@@ -42,10 +42,10 @@ Before diving into OpenSearch, you need to know there are multiple search option
 
 The decision tree is straightforward:
 
-- **You want a search engine and nothing else** -- use OpenSearch. It has the best relevance tuning, native vector support, and the AI Search add-on.
-- **Your team already knows Elasticsearch** -- use the managed Elasticsearch Service. The API is standard ES, so your existing code works. You trade some of OpenSearch's advanced features for familiarity.
-- **Search is secondary to your database** -- if you already use Lindorm or AnalyticDB and only need basic search, use their built-in search capabilities rather than adding another service.
-- **You need AWS compatibility** -- Note that Alibaba Cloud's "OpenSearch" is not the same as AWS OpenSearch Service (which is a fork of Elasticsearch). They share a name but are completely different products with different APIs. If you are migrating from AWS OpenSearch, use Alibaba Cloud's managed Elasticsearch Service, not OpenSearch.
+- **You want a search engine and nothing else** — use OpenSearch. It has the best relevance tuning, native vector support, and the AI Search add-on.
+- **Your team already knows Elasticsearch** — use the managed Elasticsearch Service. The API is standard ES, so your existing code works. You trade some of OpenSearch's advanced features for familiarity.
+- **Search is secondary to your database** — if you already use Lindorm or AnalyticDB and only need basic search, use their built-in search capabilities rather than adding another service.
+- **You need AWS compatibility** — Note that Alibaba Cloud's "OpenSearch" is not the same as AWS OpenSearch Service (which is a fork of Elasticsearch). They share a name but are completely different products with different APIs. If you are migrating from AWS OpenSearch, use Alibaba Cloud's managed Elasticsearch Service, not OpenSearch.
 
 That last point trips people up constantly. I will say it again: **Alibaba Cloud OpenSearch is not AWS OpenSearch.** They are entirely different systems with different query languages, different APIs, and different pricing models.
 
@@ -57,10 +57,10 @@ OpenSearch on Alibaba Cloud is a fully managed search platform. You do not opera
 
 The core concepts:
 
-- **Application** -- The top-level container. Think of it as a search "project." Each application has its own schema, data source, and query configuration.
-- **Table** -- The data schema within an application. Defines fields, types, and which fields are indexed.
-- **Index** -- The searchable structure built from table data. OpenSearch supports inverted indexes (for keywords), vector indexes (for embeddings), and attribute indexes (for filtering/sorting).
-- **Data Source** -- Where the data comes from. Can be RDS, MaxCompute, Object Table Service, or direct API push.
+- **Application** — The top-level container. Think of it as a search "project." Each application has its own schema, data source, and query configuration.
+- **Table** — The data schema within an application. Defines fields, types, and which fields are indexed.
+- **Index** — The searchable structure built from table data. OpenSearch supports inverted indexes (for keywords), vector indexes (for embeddings), and attribute indexes (for filtering/sorting).
+- **Data Source** — Where the data comes from. Can be RDS, MaxCompute, Object Table Service, or direct API push.
 
 ### Creating an Application
 
@@ -174,7 +174,7 @@ The Alibaba product is more opinionated and less flexible, but operationally sim
 
 ## Vector Search for RAG
 
-This is where search gets interesting. Traditional keyword search uses inverted indexes -- it maps words to documents. If the user searches "wireless earbuds" but the product listing says "bluetooth headphones," keyword search returns nothing. The words do not match.
+This is where search gets interesting. Traditional keyword search uses inverted indexes — it maps words to documents. If the user searches "wireless earbuds" but the product listing says "bluetooth headphones," keyword search returns nothing. The words do not match.
 
 ![Vector embedding and ANN search flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_vector_embedding.png)
 
@@ -228,9 +228,9 @@ The `text-embedding-v3` model costs 0.0007 RMB per 1,000 tokens. For a product c
 
 When you query a vector index, the system calculates how "close" the query vector is to each document vector. Two common distance metrics:
 
-**Cosine Similarity** -- Measures the angle between two vectors. Returns a value between -1 and 1 (1 = identical direction, 0 = orthogonal, -1 = opposite). Ignores magnitude, so it only cares about direction. This is the default and the right choice for most text search use cases.
+**Cosine Similarity** — Measures the angle between two vectors. Returns a value between -1 and 1 (1 = identical direction, 0 = orthogonal, -1 = opposite). Ignores magnitude, so it only cares about direction. This is the default and the right choice for most text search use cases.
 
-**L2 Distance (Euclidean)** -- Measures the straight-line distance between two points in vector space. Returns 0 for identical vectors and increases with dissimilarity. Sensitive to magnitude. Better for cases where the absolute values in the embedding matter (rare for text).
+**L2 Distance (Euclidean)** — Measures the straight-line distance between two points in vector space. Returns 0 for identical vectors and increases with dissimilarity. Sensitive to magnitude. Better for cases where the absolute values in the embedding matter (rare for text).
 
 ![Cosine similarity measures the angle between two vectors and ignores magnitude — so vector A and vector B are considered close if they point in similar directions. L2 measures straight-line distance and is sensitive to magnitude. For text embeddings (which are usually normalized), cosine is the right default.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_distance_metrics.png)
 
@@ -249,7 +249,7 @@ In practice, most embedding models produce normalized vectors (magnitude = 1), s
 
 Vector search would be unusably slow if it compared the query vector against every document vector. With 1 million documents and 1024 dimensions, that is 1 billion multiplications per query. HNSW (Hierarchical Navigable Small World) is the index structure that makes it fast.
 
-Think of HNSW as a multi-level graph. The top level is a sparse graph connecting distant "landmark" vectors. Each lower level adds more connections. A query starts at the top level, quickly navigates to the right neighborhood, then drills down through increasingly detailed levels to find the nearest neighbors. The result is approximate (it might miss the absolute nearest neighbor) but it is fast -- typically sub-millisecond for millions of vectors.
+Think of HNSW as a multi-level graph. The top level is a sparse graph connecting distant "landmark" vectors. Each lower level adds more connections. A query starts at the top level, quickly navigates to the right neighborhood, then drills down through increasingly detailed levels to find the nearest neighbors. The result is approximate (it might miss the absolute nearest neighbor) but it is fast — typically sub-millisecond for millions of vectors.
 
 ![HNSW navigates a layered graph: the query enters at sparse top layers (few landmark vectors), descends through medium layers, and finishes at the dense bottom layer where it locates the nearest neighbors. This is what gives sub-millisecond ANN search on millions of vectors.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_hnsw_index.png)
 
@@ -420,7 +420,7 @@ for r in results:
 
 ## Hybrid Search: Best of Both Worlds
 
-Vector search is great for semantic understanding. Keyword search is great for exact matches. A user searching for "WH-1000XM5" wants the exact product -- vector search might return semantically similar headphones instead of the exact model. A user searching for "comfortable headphones for long flights" wants semantic understanding -- keyword search will fail because no product listing uses exactly those words.
+Vector search is great for semantic understanding. Keyword search is great for exact matches. A user searching for "WH-1000XM5" wants the exact product — vector search might return semantically similar headphones instead of the exact model. A user searching for "comfortable headphones for long flights" wants semantic understanding — keyword search will fail because no product listing uses exactly those words.
 
 ![Hybrid search combining vector and keyword](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_hybrid_search.png)
 
@@ -450,7 +450,7 @@ A document ranked 3rd by both methods:
 RRF_score = 1/(60+3) + 1/(60+3) = 0.01587 + 0.01587 = 0.03175
 ```
 
-These are close, which is the point -- RRF balances consistency across methods with strong performance in any single method.
+These are close, which is the point — RRF balances consistency across methods with strong performance in any single method.
 
 ![RRF in action: keyword and vector lists each rank Doc-A and Doc-B in their top results. RRF promotes both to the top of the fused list because they perform consistently across methods. Doc-F appears only in vector search, so it ranks lower despite a #2 in vector.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_rrf_fusion.png)
 
@@ -569,11 +569,11 @@ Each stage is optional. You can use query understanding without answer generatio
 
 The query understanding stage takes the raw user query and transforms it into a better search query. Three capabilities:
 
-**Intent detection** -- Classifies what the user wants. "How do I return my order?" is a support query. "AirPods Pro price" is a product search. This lets you route queries to different search configurations.
+**Intent detection** — Classifies what the user wants. "How do I return my order?" is a support query. "AirPods Pro price" is a product search. This lets you route queries to different search configurations.
 
-**Query expansion** -- Adds related terms. "laptop" might expand to "laptop OR notebook OR computer." This is what synonyms do manually, but the LLM does it automatically and contextually.
+**Query expansion** — Adds related terms. "laptop" might expand to "laptop OR notebook OR computer." This is what synonyms do manually, but the LLM does it automatically and contextually.
 
-**Entity extraction** -- Pulls out structured attributes. "Red Nike running shoes under $100" becomes `brand=Nike, color=red, category=running shoes, price<100`. These map directly to filters.
+**Entity extraction** — Pulls out structured attributes. "Red Nike running shoes under $100" becomes `brand=Nike, color=red, category=running shoes, price<100`. These map directly to filters.
 
 ```python
 # AI Search with query understanding enabled
@@ -632,7 +632,7 @@ def ai_search(query_text: str) -> dict:
 
 The re-ranker takes the top N results from hybrid search and re-scores them using a cross-encoder model. Unlike the embedding model (which encodes query and document independently), the re-ranker encodes them together, allowing it to capture fine-grained interactions between query terms and document content.
 
-This is computationally expensive -- you cannot run a cross-encoder on a million documents. But running it on the top 20-50 candidates from hybrid search is fast and dramatically improves precision.
+This is computationally expensive — you cannot run a cross-encoder on a million documents. But running it on the top 20-50 candidates from hybrid search is fast and dramatically improves precision.
 
 ![Bi-encoder vs cross-encoder. The bi-encoder pre-encodes documents and is millisecond-fast at search. The cross-encoder reads query and document jointly for finer relevance, but is too slow to apply to millions of docs — use it on the top 20-50 candidates only.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_reranker.png)
 
@@ -676,7 +676,7 @@ My recommendation: start with OpenSearch's built-in answer generation. Move to a
 
 ## Query Rewriting and Relevance Tuning
 
-Even with hybrid search and LLM capabilities, you still need to tune relevance. The LLM handles the hard cases, but the easy cases -- synonyms, stop words, field boosting -- are better handled by traditional configuration. It is faster, cheaper, and more predictable.
+Even with hybrid search and LLM capabilities, you still need to tune relevance. The LLM handles the hard cases, but the easy cases — synonyms, stop words, field boosting — are better handled by traditional configuration. It is faster, cheaper, and more predictable.
 
 ![Query rewrite pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_query_rewrite.png)
 
@@ -778,9 +778,9 @@ The boosting values are relative. Start with title at 3x, category at 2x, and de
 
 You cannot improve what you do not measure. Set up A/B testing for search by:
 
-1. **Logging every query and click** -- Store the query, the results shown, and which result the user clicked (and at what position).
-2. **Calculating metrics** -- Click-through rate (CTR), Mean Reciprocal Rank (MRR), and NDCG are the three that matter most.
-3. **Splitting traffic** -- Send 50% of users to config A and 50% to config B. Compare metrics after sufficient data (typically 1,000+ queries per variant).
+1. **Logging every query and click** — Store the query, the results shown, and which result the user clicked (and at what position).
+2. **Calculating metrics** — Click-through rate (CTR), Mean Reciprocal Rank (MRR), and NDCG are the three that matter most.
+3. **Splitting traffic** — Send 50% of users to config A and 50% to config B. Compare metrics after sufficient data (typically 1,000+ queries per variant).
 
 ```python
 import random
@@ -851,9 +851,9 @@ The DTS job monitors the MySQL binlog and translates INSERT/UPDATE/DELETE operat
 
 Important considerations:
 
-- **Schema mapping** -- DTS maps RDS columns to OpenSearch fields. You need to configure this explicitly for non-trivial schemas.
-- **Embedding generation** -- DTS syncs raw data. It does NOT generate embeddings. You need a separate pipeline (a Function Compute trigger, for example) that watches for new/updated documents in OpenSearch and adds embeddings.
-- **Delete handling** -- When you delete a row in RDS, DTS sends a delete command to OpenSearch. This works out of the box.
+- **Schema mapping** — DTS maps RDS columns to OpenSearch fields. You need to configure this explicitly for non-trivial schemas.
+- **Embedding generation** — DTS syncs raw data. It does NOT generate embeddings. You need a separate pipeline (a Function Compute trigger, for example) that watches for new/updated documents in OpenSearch and adds embeddings.
+- **Delete handling** — When you delete a row in RDS, DTS sends a delete command to OpenSearch. This works out of the box.
 
 ### Embedding Pipeline for Real-Time Updates
 
@@ -1409,7 +1409,7 @@ For a product catalog of 100,000 items:
 
 ![Cost breakdown by component, plus how the LLM share scales with the AI-on-every-query strategy.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_cost_breakdown.png)
 
-This is for a moderately trafficked search service. The LLM costs scale linearly with query volume -- if you do not need AI features on every query, add them only for complex queries and cut the LLM cost by 80%.
+This is for a moderately trafficked search service. The LLM costs scale linearly with query volume — if you do not need AI features on every query, add them only for complex queries and cut the LLM cost by 80%.
 
 ## Key Takeaways
 
@@ -1427,4 +1427,4 @@ This is for a moderately trafficked search service. The LLM costs scale linearly
 
 ## What's Next
 
-Search gets data to users. But the data has to get into the system first, and at scale, that means event-driven architectures. In the next article, we cover message queues and event streaming on Alibaba Cloud -- RocketMQ, Kafka, and EventBridge -- the infrastructure that connects everything together in a decoupled, scalable way.
+Search gets data to users. But the data has to get into the system first, and at scale, that means event-driven architectures. In the next article, we cover message queues and event streaming on Alibaba Cloud — RocketMQ, Kafka, and EventBridge — the infrastructure that connects everything together in a decoupled, scalable way.

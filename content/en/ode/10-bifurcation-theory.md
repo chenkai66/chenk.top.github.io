@@ -8,8 +8,7 @@ tags:
   - Catastrophe Theory
   - Critical Points
   - Python
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -18,7 +17,7 @@ disableNunjucks: true
 series_order: 10
 translationKey: "ode-10"
 ---
-A lake stays clear for decades, then turns murky in a single season. A power grid hums along stably, then trips into a cascading blackout in seconds. A column under slowly increasing load is straight, straight, straight -- and then suddenly buckles.
+A lake stays clear for decades, then turns murky in a single season. A power grid hums along stably, then trips into a cascading blackout in seconds. A column under slowly increasing load is straight, straight, straight — and then suddenly buckles.
 
 These are not failures of prediction. They are the universe doing exactly what dynamical systems theory says it must do: cross a **bifurcation**. When a parameter drifts past a critical value, the topology of phase space rearranges itself, and what was once impossible becomes inevitable. This chapter is about classifying those rearrangements. There turn out to be only a handful of them, and once you see the catalogue you start spotting them everywhere.
 
@@ -30,7 +29,7 @@ These are not failures of prediction. They are the universe doing exactly what d
 - The four codimension-1 normal forms: saddle-node, transcritical, supercritical pitchfork, subcritical pitchfork
 - The Hopf bifurcation: how a stable spiral spawns a limit cycle when a pair of complex eigenvalues crosses the imaginary axis
 - Why subcritical bifurcations are *catastrophic* (they jump and they hyster) while supercritical ones are gentle
-- A first taste of global bifurcations -- homoclinic orbits, SNIC, and how they open the door to chaos
+- A first taste of global bifurcations — homoclinic orbits, SNIC, and how they open the door to chaos
 - The ideas of *codimension* and *universality* that explain why nature reuses the same handful of normal forms
 
 **Prerequisites**: stability and phase-plane analysis from [Chapter 8](/en/ode/08-nonlinear-stability/), and the chaos vocabulary from [Chapter 9](/en/ode/09-bifurcation-chaos/).
@@ -47,7 +46,7 @@ The shift is qualitative, not quantitative. A water pipe gradually narrowing is 
 
 ### A useful mental model
 
-Think of$f(x,\mu)$as a landscape that depends on$\mu$. The fixed points are where the gradient vanishes; their stability is the curvature there. As$\mu$slides, the landscape morphs continuously -- but whenever a hill flattens to a saddle and then flips into a valley, *that* moment is a bifurcation. Between bifurcations the landscape is just being pushed around.
+Think of$f(x,\mu)$as a landscape that depends on$\mu$. The fixed points are where the gradient vanishes; their stability is the curvature there. As$\mu$slides, the landscape morphs continuously — but whenever a hill flattens to a saddle and then flips into a valley, *that* moment is a bifurcation. Between bifurcations the landscape is just being pushed around.
 
 ---
 
@@ -73,19 +72,19 @@ Why "codimension-1"? Because each requires tuning exactly **one** parameter to o
 The linearisation$f_x = -2x$tells us the stability immediately: at$+\sqrt{\mu}$we have$f_x = -2\sqrt{\mu} < 0$(stable), and at$-\sqrt{\mu}$we have$f_x = +2\sqrt{\mu} > 0$(unstable). The two equilibria are born together as$\mu$increases through 0.
 
 ![Saddle-node bifurcation: phase function on the left, bifurcation diagram with flow direction on the right.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/fig1_saddle_node_bifurcation.png)
-*Left: the parabola$\mu - x^2$slides up as$\mu$grows; its zero crossings (the equilibria) are born at the fold point$\mu=0$. Right: bifurcation diagram. The grey region has no equilibria at all -- a state simply does not exist there.*
+*Left: the parabola$\mu - x^2$slides up as$\mu$grows; its zero crossings (the equilibria) are born at the fold point$\mu=0$. Right: bifurcation diagram. The grey region has no equilibria at all — a state simply does not exist there.*
 
 **Where it shows up**
 
 - *Lasers*: below threshold pump current, the only stationary state is "no light". Above threshold, a coherent emitting state appears. The "no-light" state continues to exist but coexists with it.
-- *Neurons (Class I)*: below the rheobase current the resting state is the only equilibrium. Above it, the resting state collides with a saddle and disappears -- the neuron starts firing.
+- *Neurons (Class I)*: below the rheobase current the resting state is the only equilibrium. Above it, the resting state collides with a saddle and disappears — the neuron starts firing.
 - *Lakes flipping from clear to murky*: the clear-water equilibrium disappears in a saddle-node fold as nutrient loading crosses a threshold.
 
 The signature of a fold is **bistability before annihilation**. Just below$\mu_c$two equilibria coexist; just above$\mu_c$neither does. The system *must* go somewhere else, often violently.
 
 ### 2.2 Transcritical bifurcation
 
-**Normal form:**$\dot{x} = \mu x - x^2.$Two equilibria always exist:$x^*=0$and$x^*=\mu$. They never disappear -- they merely **swap stability** as they cross at$\mu=0$.
+**Normal form:**$\dot{x} = \mu x - x^2.$Two equilibria always exist:$x^*=0$and$x^*=\mu$. They never disappear — they merely **swap stability** as they cross at$\mu=0$.
 
 | range of$\mu$|$x^*=0$|$x^*=\mu$|
 |---|---|---|
@@ -116,11 +115,11 @@ This is the universal **symmetry-breaking** bifurcation. The equation is invaria
 In real systems higher-order terms eventually re-stabilise things: adding a$-x^5$term gives the canonical hysteretic model$\dot{x} = \mu x + x^3 - x^5,$which has a high-amplitude stable branch coexisting with the trivial state in a window$-\tfrac14 \le \mu \le 0$. Slowly ramping$\mu$produces the famous **hysteresis loop**: the system jumps to large amplitude when$\mu$crosses 0 from below, and only jumps back down when$\mu$is pulled past$-\tfrac14$on the way back.
 
 ![Pitchfork bifurcations: the gentle supercritical fork on the left, the dangerous subcritical version with hysteresis on the right.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/fig3_pitchfork_bifurcation.png)
-*Left: supercritical pitchfork. The new branches grow continuously from zero -- a gentle, reversible transition. Right: subcritical pitchfork stabilised by an$x^5$term. Purple arrows show the catastrophic jump up at$\mu=0$and the delayed jump down at$\mu=-\tfrac14$. The width of the bistable window is the hysteresis loop.*
+*Left: supercritical pitchfork. The new branches grow continuously from zero — a gentle, reversible transition. Right: subcritical pitchfork stabilised by an$x^5$term. Purple arrows show the catastrophic jump up at$\mu=0$and the delayed jump down at$\mu=-\tfrac14$. The width of the bistable window is the hysteresis loop.*
 
 **Why it matters**
 
-- *Buckled columns* (Euler buckling): a slender vertical rod under compression undergoes a *supercritical* pitchfork at the critical load -- it bends a small amount one way or the other, reversibly.
+- *Buckled columns* (Euler buckling): a slender vertical rod under compression undergoes a *supercritical* pitchfork at the critical load — it bends a small amount one way or the other, reversibly.
 - *Snapping shells* (von Karman buckling of cylinders): the pitchfork is *subcritical*. The shell sits straight, sits straight, then collapses with a bang into a heavily-deformed configuration. This is why aerospace engineers calculate buckling loads with safety factors of 3-10.
 - *Ferromagnets near the Curie point*: supercritical pitchfork. Magnetisation grows continuously from zero as temperature drops.
 - *Climate tipping*: glacial$\leftrightarrow$interglacial transitions are often modelled as subcritical-pitchfork (or fold) bifurcations of a temperature-albedo system. The hysteresis window means a tipped state cannot be "untipped" simply by reverting CO$_2$to its earlier value.
@@ -147,7 +146,7 @@ The bifurcations above are scalar. The first genuinely two-dimensional bifurcati
 - For$\mu \le 0$, the only attractor is$r=0$-- a stable spiral.
 - For$\mu > 0$, the origin is an unstable spiral and a **stable limit cycle** of radius$r=\sqrt{\mu}$encircles it.
 
-In Cartesian form,$\dot{x} = \mu x - \omega y - x(x^2+y^2),$$\dot{y} = \omega x + \mu y - y(x^2+y^2).$The Jacobian at the origin is$\bigl(\begin{smallmatrix}\mu & -\omega \\ \omega & \mu\end{smallmatrix}\bigr)$, with eigenvalues$\lambda = \mu \pm i\omega$. As$\mu$crosses zero from below, the complex pair crosses the imaginary axis transversally -- this is the **Hopf condition**.
+In Cartesian form,$\dot{x} = \mu x - \omega y - x(x^2+y^2),$$\dot{y} = \omega x + \mu y - y(x^2+y^2).$The Jacobian at the origin is$\bigl(\begin{smallmatrix}\mu & -\omega \\ \omega & \mu\end{smallmatrix}\bigr)$, with eigenvalues$\lambda = \mu \pm i\omega$. As$\mu$crosses zero from below, the complex pair crosses the imaginary axis transversally — this is the **Hopf condition**.
 
 ![Hopf bifurcation: phase portraits before, at, and after, plus the 3D paraboloid of limit-cycle amplitudes.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/fig4_hopf_bifurcation.png)
 *Top row: trajectories spiral inward to the origin for$\mu=-0.4$, hover indecisively at$\mu=0$, and converge onto a limit cycle of radius$\sqrt{0.4}\approx 0.63$for$\mu=+0.4$. Bottom: the family of limit cycles forms a paraboloid$r = \sqrt{\mu}$opening to the right.*
@@ -189,7 +188,7 @@ Common codimension-2 bifurcations:
 - **Bogdanov-Takens**: a double-zero eigenvalue. The unfolding contains saddle-node, Hopf, and homoclinic curves meeting at one point. Whenever you find a Hopf curve and a fold curve approaching each other in a parameter diagram, look for a BT point at the meeting.
 - **Bautin (generalised Hopf)**: where the first Lyapunov coefficient passes through zero, marking the boundary between supercritical and subcritical Hopf. Cycles fold over in a saddle-node-of-cycles bifurcation.
 
-The deep reason these classifications exist is the **centre-manifold theorem** plus the **method of normal forms**. Near a codimension-k bifurcation, only a handful of variables (the centre directions) carry the slow dynamics; everything else is enslaved to them. After polynomial coordinate changes, the slow dynamics reduces to the universal normal form. This is why bifurcation theory is finite -- almost a periodic table.
+The deep reason these classifications exist is the **centre-manifold theorem** plus the **method of normal forms**. Near a codimension-k bifurcation, only a handful of variables (the centre directions) carry the slow dynamics; everything else is enslaved to them. After polynomial coordinate changes, the slow dynamics reduces to the universal normal form. This is why bifurcation theory is finite — almost a periodic table.
 
 ---
 
@@ -199,9 +198,9 @@ Local bifurcations rearrange phase space near a single point. **Global** bifurca
 
 ### Homoclinic bifurcation
 
-A trajectory that leaves a saddle along its unstable manifold and *returns* along its stable manifold is a **homoclinic orbit**. It exists only at isolated parameter values (a codimension-1 phenomenon). Near a homoclinic bifurcation, periodic orbits nearby have arbitrarily long periods -- the orbit spends ever more time creeping past the saddle. This produces the universal scaling$T \sim -\log|\mu - \mu_c|$.
+A trajectory that leaves a saddle along its unstable manifold and *returns* along its stable manifold is a **homoclinic orbit**. It exists only at isolated parameter values (a codimension-1 phenomenon). Near a homoclinic bifurcation, periodic orbits nearby have arbitrarily long periods — the orbit spends ever more time creeping past the saddle. This produces the universal scaling$T \sim -\log|\mu - \mu_c|$.
 
-The Shilnikov theorem says: a homoclinic loop to a saddle-focus with appropriate eigenvalue ratio implies the existence of countably many periodic orbits of all periods in a neighborhood -- in other words, **chaos**.
+The Shilnikov theorem says: a homoclinic loop to a saddle-focus with appropriate eigenvalue ratio implies the existence of countably many periodic orbits of all periods in a neighborhood — in other words, **chaos**.
 
 ### Heteroclinic bifurcation
 

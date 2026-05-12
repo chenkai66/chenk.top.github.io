@@ -11,8 +11,7 @@ tags:
   - Leslie Matrix
   - Ecology
   - Python
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -48,13 +47,13 @@ Let $N(t)$ be a population size.
 **Logistic** (Verhulst 1838). Add density-dependent crowding:
 $$\boxed{\;\dot N = r N\!\left(1 - \frac{N}{K}\right).\;}$$The carrying capacity $K$ is a stable fixed point; $0$ is unstable. The closed-form solution is the famous S-curve $N(t) = K / (1 + ((K - N_0)/N_0) e^{-rt})$, with maximum growth rate $rK/4$ at $N = K/2$.
 
-**Allee effect** (1931). Some species need a *minimum* density to grow at all -- mate finding, group defence, cooperative hunting. The strong-Allee logistic:$$\dot N = r N\!\left(1 - \frac{N}{K}\right)\!\left(\frac{N}{A} - 1\right).$$Now $0$ is stable, $A$ is an unstable threshold, and $K$ is stable. Below $A$ the population goes extinct; above $A$ it grows toward $K$. This is **bistability**: a single equation with two basins of attraction.
+**Allee effect** (1931). Some species need a *minimum* density to grow at all — mate finding, group defence, cooperative hunting. The strong-Allee logistic:$$\dot N = r N\!\left(1 - \frac{N}{K}\right)\!\left(\frac{N}{A} - 1\right).$$Now $0$ is stable, $A$ is an unstable threshold, and $K$ is stable. Below $A$ the population goes extinct; above $A$ it grows toward $K$. This is **bistability**: a single equation with two basins of attraction.
 
 The Allee effect explains why some endangered species fail to recover even after habitat is restored, and why introducing a small founding population for re-wilding often fails. The math is identical to the cubic potential of mechanics; the dynamics is gradient descent in a double-well landscape.
 
 ![Allee effect: per-capita and total growth rates, trajectories from various N0, and the energy-landscape interpretation.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/fig3_allee_effect.png)
 
-*Top-left: per-capita growth rate $\dot N / N$ vs density. Logistic (blue) is positive everywhere up to $K$. Strong Allee (red) is negative below the threshold $A$. Top-right: $\dot N$ vs $N$ -- strong Allee has *three* equilibria. Bottom-left: trajectories from various initial populations -- those starting below $A$ collapse to extinction; those above $A$ rise to carrying capacity. Bottom-right: the corresponding "potential" $V(N)$ such that $\dot N = -V'(N)$. The two stable states (extinction at $N = 0$, carrying capacity at $N = K$) are valleys; the threshold $A$ is the **barrier** that separates them. A noise-perturbed system can tunnel between basins, providing a clean model of "regime shifts" in ecology.*
+*Top-left: per-capita growth rate $\dot N / N$ vs density. Logistic (blue) is positive everywhere up to $K$. Strong Allee (red) is negative below the threshold $A$. Top-right: $\dot N$ vs $N$ — strong Allee has *three* equilibria. Bottom-left: trajectories from various initial populations — those starting below $A$ collapse to extinction; those above $A$ rise to carrying capacity. Bottom-right: the corresponding "potential" $V(N)$ such that $\dot N = -V'(N)$. The two stable states (extinction at $N = 0$, carrying capacity at $N = K$) are valleys; the threshold $A$ is the **barrier** that separates them. A noise-perturbed system can tunnel between basins, providing a clean model of "regime shifts" in ecology.*
 
 ---
 
@@ -64,7 +63,7 @@ Two species: prey $x$, predator $y$.$$\boxed{\;\dot x = \alpha x - \beta x y, \q
 - $\gamma$: predator death rate (no prey)
 - $\beta, \delta$: encounter rates
 
-Setting derivatives to zero gives two equilibria: extinction $(0, 0)$ -- a saddle -- and **coexistence** $(\gamma/\delta,\ \alpha/\beta)$ -- a *neutral centre*.
+Setting derivatives to zero gives two equilibria: extinction $(0, 0)$ — a saddle — and **coexistence** $(\gamma/\delta,\ \alpha/\beta)$ — a *neutral centre*.
 
 ### A conserved quantity
 
@@ -78,7 +77,7 @@ The Hudson Bay Company's pelt records (1845-1930) show a beautiful 10-year cycle
 
 ![Lotka-Volterra: time series, phase portrait with closed orbits, conserved quantity, paradox of enrichment.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/fig1_lotka_volterra.png)
 
-*Top-left: the classic out-of-phase oscillation -- prey peaks first, predator peaks a quarter cycle later. Top-right: phase plane with five different initial conditions tracing five different closed orbits, all centred on $(\gamma/\delta,\ \alpha/\beta)$. Vector field shows the rotation direction. Bottom-left: $H$ along one orbit -- numerical drift only (a real conservation law). Bottom-right: with a Holling Type II prey response and logistic prey growth, increasing the prey carrying capacity $K$ destabilises the equilibrium and produces a growing limit cycle -- the **paradox of enrichment**.*
+*Top-left: the classic out-of-phase oscillation — prey peaks first, predator peaks a quarter cycle later. Top-right: phase plane with five different initial conditions tracing five different closed orbits, all centred on $(\gamma/\delta,\ \alpha/\beta)$. Vector field shows the rotation direction. Bottom-left: $H$ along one orbit — numerical drift only (a real conservation law). Bottom-right: with a Holling Type II prey response and logistic prey growth, increasing the prey carrying capacity $K$ destabilises the equilibrium and produces a growing limit cycle — the **paradox of enrichment**.*
 
 ```python
 import numpy as np
@@ -99,17 +98,17 @@ plt.tight_layout(); plt.show()
 
 ### Functional responses (Holling)
 
-Real predators saturate -- a wolf cannot eat infinitely many rabbits in a day. Holling categorised three responses:
+Real predators saturate — a wolf cannot eat infinitely many rabbits in a day. Holling categorised three responses:
 
 - **Type I**: linear $g(x) = ax$ (Lotka-Volterra default; biologically rare).
-- **Type II**: $g(x) = ax / (1 + ahx)$ -- saturates at $1/h$. Most common.
-- **Type III**: $g(x) = ax^2 / (1 + ahx^2)$ -- sigmoidal; allows prey switching at low density.
+- **Type II**: $g(x) = ax / (1 + ahx)$ — saturates at $1/h$. Most common.
+- **Type III**: $g(x) = ax^2 / (1 + ahx^2)$ — sigmoidal; allows prey switching at low density.
 
 Replacing the LV interaction with a Holling-II response gives the **Rosenzweig-MacArthur model**, whose equilibrium can lose stability through a Hopf bifurcation as the prey carrying capacity grows. Higher $K$ means more food for prey, larger predator population, larger prey crashes, larger limit cycle, eventual extinction. *More food is bad.*
 
 ### Paradox of enrichment
 
-The arithmetic: at fixed predator-prey parameters, the Hopf bifurcation occurs when $K$ crosses a threshold, after which a limit cycle appears whose amplitude grows like $\sqrt{K - K_c}$. Eventually the cycle approaches the axes and any small noise drives a population to zero. This is *not* an idealised counter-intuition -- it has been observed in lake-fish enrichment experiments.
+The arithmetic: at fixed predator-prey parameters, the Hopf bifurcation occurs when $K$ crosses a threshold, after which a limit cycle appears whose amplitude grows like $\sqrt{K - K_c}$. Eventually the cycle approaches the axes and any small noise drives a population to zero. This is *not* an idealised counter-intuition — it has been observed in lake-fish enrichment experiments.
 
 ---
 
@@ -119,10 +118,10 @@ Two species drawing on the same resource pool:$$\dot N_1 = r_1 N_1\!\left(1 - \f
 
 The system has up to four equilibria:
 
-- $(0, 0)$ -- always unstable when both species can grow alone
-- $(K_1, 0)$ -- species 1 wins
-- $(0, K_2)$ -- species 2 wins
-- interior $\bigl(\hat N_1, \hat N_2\bigr)$ if it exists -- coexistence
+- $(0, 0)$ — always unstable when both species can grow alone
+- $(K_1, 0)$ — species 1 wins
+- $(0, K_2)$ — species 2 wins
+- interior $\bigl(\hat N_1, \hat N_2\bigr)$ if it exists — coexistence
 
 Stability of these depends on whether each species can invade when the *other* is at carrying capacity. Comparing growth rates gives **four canonical outcomes**:
 
@@ -133,11 +132,11 @@ Stability of these depends on whether each species can invade when the *other* i
 | $\alpha_{12} > K_1/K_2$ AND $\alpha_{21} < K_2/K_1$ | Species 2 wins |
 | $\alpha_{12} > K_1/K_2$ AND $\alpha_{21} > K_2/K_1$ | **Bistable**: founder effect |
 
-The competitive exclusion principle (Gause 1934) is the corollary: two species with **identical** niches ($\alpha_{12} = \alpha_{21} = 1$ and $K_1 = K_2$) cannot stably coexist. Coexistence requires niche differentiation -- intraspecific competition must exceed interspecific competition.
+The competitive exclusion principle (Gause 1934) is the corollary: two species with **identical** niches ($\alpha_{12} = \alpha_{21} = 1$ and $K_1 = K_2$) cannot stably coexist. Coexistence requires niche differentiation — intraspecific competition must exceed interspecific competition.
 
 ![Four panels: stable coexistence, species 1 wins, species 2 wins, bistable founder effect; nullclines, vector fields, and trajectories.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/fig2_competition_model.png)
 
-*Each panel shows nullclines (blue / red lines), vector field (gray arrows), trajectories from five initial conditions (coloured), and equilibria (black dots / star). Top-left: coexistence -- nullclines cross with the right orientation; the interior star is stable. Top-right and bottom-left: exclusion -- the interior equilibrium does not exist, all trajectories funnel to one axis. Bottom-right: bistability -- the interior equilibrium is a *saddle*, and the basin boundary is its stable manifold; whichever species starts in the right basin wins.*
+*Each panel shows nullclines (blue / red lines), vector field (gray arrows), trajectories from five initial conditions (coloured), and equilibria (black dots / star). Top-left: coexistence — nullclines cross with the right orientation; the interior star is stable. Top-right and bottom-left: exclusion — the interior equilibrium does not exist, all trajectories funnel to one axis. Bottom-right: bistability — the interior equilibrium is a *saddle*, and the basin boundary is its stable manifold; whichever species starts in the right basin wins.*
 
 ---
 
@@ -151,7 +150,7 @@ This is just $n_{t+1} = L\,n_t$; the long-run dynamics is governed by the **domi
 - $\lambda = 1$: stable population
 - $\lambda < 1$: decline to extinction
 
-The corresponding (right) eigenvector is the **stable age distribution** -- the fraction of the population in each age class once the dynamics has equilibrated. *Any* initial distribution converges to it (up to a possibly oscillating phase if $L$ has complex eigenvalues of equal magnitude, which Perron-Frobenius rules out for non-negative irreducible Leslie matrices).
+The corresponding (right) eigenvector is the **stable age distribution** — the fraction of the population in each age class once the dynamics has equilibrated. *Any* initial distribution converges to it (up to a possibly oscillating phase if $L$ has complex eigenvalues of equal magnitude, which Perron-Frobenius rules out for non-negative irreducible Leslie matrices).
 
 ### Why $\lambda$ is *the* number
 
@@ -159,7 +158,7 @@ The net reproductive rate is $R_0 = \sum_i \ell_i F_i$ where $\ell_i = \prod_{j 
 
 ![Leslie matrix as a heatmap, eigenvalue spectrum, geometric growth trajectory, stable age distribution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/fig4_age_structured_leslie.png)
 
-*Top-left: Leslie matrix $L$ as a heatmap -- top row holds fertilities $F_i$, subdiagonal holds survivals $P_i$. Top-right: eigenvalues in the complex plane; the dominant real eigenvalue (red star) sits outside the unit circle, so the population grows. Bottom-left: trajectory starting from 1000 newborns. Geometric growth at rate $\lambda$ takes hold within 10-15 years. Bottom-right: stable age distribution (Perron eigenvector, red bars) versus a trajectory snapshot at $t = 30$ (black dots) -- they agree.*
+*Top-left: Leslie matrix $L$ as a heatmap — top row holds fertilities $F_i$, subdiagonal holds survivals $P_i$. Top-right: eigenvalues in the complex plane; the dominant real eigenvalue (red star) sits outside the unit circle, so the population grows. Bottom-left: trajectory starting from 1000 newborns. Geometric growth at rate $\lambda$ takes hold within 10-15 years. Bottom-right: stable age distribution (Perron eigenvector, red bars) versus a trajectory snapshot at $t = 30$ (black dots) — they agree.*
 
 ```python
 import numpy as np
@@ -181,7 +180,7 @@ print('Stable age distribution:', np.abs(vec[:, i].real / vec[:, i].real.sum()))
 
 When a species lives in *patches* (forest fragments, ponds, islands) rather than one continuous habitat, what matters is not the local population in each patch but the **fraction of patches occupied**. Levins (1969) wrote down the simplest such model:$$\boxed{\;\dot p = c\,p\,(1 - p) - e\,p,\;}$$where $p$ is the fraction occupied, $c$ is the colonisation rate (per occupied patch, into empty patches) and $e$ is the local extinction rate. The equilibrium is $p^* = 1 - e/c$ (positive iff $c > e$).
 
-This is structurally identical to the SIS infection model, with patches as "individuals" and colonisation as "transmission". The metapopulation persists iff $c > e$ -- a regional extinction threshold.
+This is structurally identical to the SIS infection model, with patches as "individuals" and colonisation as "transmission". The metapopulation persists iff $c > e$ — a regional extinction threshold.
 
 The lesson for conservation: even if every individual habitat patch is healthy, regional extinction can occur if the colonisation rate (corridors, dispersal) is too low. Roads and fences fragment habitat by cutting $c$, even if each fragment looks fine.
 
@@ -192,17 +191,17 @@ The lesson for conservation: even if every individual habitat patch is healthy, 
 ![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_2.png)
 
 The **Fisher equation** (Fisher 1937; Kolmogorov-Petrovskii-Piskunov 1937) marries logistic growth to diffusion:$$\boxed{\;\partial_t N = D\,\partial_x^2 N + r N\!\left(1 - \frac{N}{K}\right).\;}$$With initial condition compactly supported, the front of the population spreads at a deterministic asymptotic speed:$$c_{\min} = 2\sqrt{D r}.$$
-The proof, in two lines: linearise the leading edge ($N \ll K$); a travelling-wave ansatz $N = e^{-\lambda(x - ct)}$ requires $c = D\lambda + r/\lambda$, minimised over $\lambda$ at $c_{\min} = 2\sqrt{Dr}$. (The actual selected speed *is* the linear minimum -- this is the celebrated *KPP selection principle*.)
+The proof, in two lines: linearise the leading edge ($N \ll K$); a travelling-wave ansatz $N = e^{-\lambda(x - ct)}$ requires $c = D\lambda + r/\lambda$, minimised over $\lambda$ at $c_{\min} = 2\sqrt{Dr}$. (The actual selected speed *is* the linear minimum — this is the celebrated *KPP selection principle*.)
 
 This formula is everywhere in ecology: it predicts the speed of plant-range expansion under climate change, the muskrat invasion of Europe (literally measured at $\approx \sqrt{Dr}$ in the 1920s), and the wave speed of advantageous-allele fixation in genetics.
 
 ![Levins metapopulation, extinction threshold, Fisher-KPP traveling-wave snapshots, front position vs time.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/fig5_metapopulation.png)
 
-*Top-left: Levins $p(t)$ for various extinction rates $e$. Higher $e$ means lower $p^*$; if $e > c$ the metapopulation goes extinct regionally. Top-right: $p^*$ as a function of $e/c$ -- the extinction threshold at $e = c$. Bottom-left: Fisher-KPP traveling wave snapshots at $t = 0, 20, 40, 60, 80$. The front is a smooth front of constant shape moving at speed $c_{\min} = 2\sqrt{Dr}$. Bottom-right: numerically tracked front position; the slope of the linear fit matches $2\sqrt{Dr}$ to within 2%.*
+*Top-left: Levins $p(t)$ for various extinction rates $e$. Higher $e$ means lower $p^*$; if $e > c$ the metapopulation goes extinct regionally. Top-right: $p^*$ as a function of $e/c$ — the extinction threshold at $e = c$. Bottom-left: Fisher-KPP traveling wave snapshots at $t = 0, 20, 40, 60, 80$. The front is a smooth front of constant shape moving at speed $c_{\min} = 2\sqrt{Dr}$. Bottom-right: numerically tracked front position; the slope of the linear fit matches $2\sqrt{Dr}$ to within 2%.*
 
 ### Beyond Fisher: Turing patterns
 
-When two species (e.g. activator and inhibitor, or predator and prey) diffuse at *different* rates, the homogeneous equilibrium can become unstable to spatial perturbations -- spontaneous *patterns* form. This is the **Turing instability** (1952). The same mechanism is hypothesised to underlie animal coat patterns, vegetation stripes in semi-arid regions, and certain mussel-bed dynamics. It is the linchpin of mathematical *morphogenesis*.
+When two species (e.g. activator and inhibitor, or predator and prey) diffuse at *different* rates, the homogeneous equilibrium can become unstable to spatial perturbations — spontaneous *patterns* form. This is the **Turing instability** (1952). The same mechanism is hypothesised to underlie animal coat patterns, vegetation stripes in semi-arid regions, and certain mussel-bed dynamics. It is the linchpin of mathematical *morphogenesis*.
 
 ---
 
@@ -220,7 +219,7 @@ When two species (e.g. activator and inhibitor, or predator and prey) diffuse at
 | Levins | $\dot p = cp(1 - p) - ep$ | regional extinction threshold $e/c$ |
 | Fisher-KPP | $\partial_t N = D\partial_x^2 N + rN(1 - N/K)$ | wave speed $2\sqrt{Dr}$ |
 
-Mathematical ecology is small in number of equations but vast in number of behaviours. A handful of compositional rules -- diffusion + reaction, single-species + age structure, mean-field + heterogeneity -- generate the entire field.
+Mathematical ecology is small in number of equations but vast in number of behaviours. A handful of compositional rules — diffusion + reaction, single-species + age structure, mean-field + heterogeneity — generate the entire field.
 
 ---
 

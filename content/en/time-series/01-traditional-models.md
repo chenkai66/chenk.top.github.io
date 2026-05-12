@@ -23,7 +23,7 @@ translationKey: "time-series-1"
 - Why **stationarity** is the entry ticket for the whole ARIMA family, and how differencing buys it.
 - How to read **ACF and PACF** plots like a Box-Jenkins practitioner: cut-off vs. tail-off as the rule for identifying $p$ and $q$.
 - The full **ARIMA / SARIMA** machinery, including how seasonality is folded in via lag-$s$ operators.
-- Where **VAR, GARCH, exponential smoothing, Prophet and the Kalman filter** sit on the same map -- mean dynamics vs. variance dynamics vs. state-space recursion.
+- Where **VAR, GARCH, exponential smoothing, Prophet and the Kalman filter** sit on the same map — mean dynamics vs. variance dynamics vs. state-space recursion.
 - A decision rule for when a traditional model is the right answer and when to graduate to the deep models in the rest of this series.
 
 ## Prerequisites
@@ -38,7 +38,7 @@ translationKey: "time-series-1"
 
 Before the deep-learning era, the time-series toolbox was already remarkably complete. ARIMA captures linear autocorrelation, SARIMA adds calendar effects, VAR generalises to vectors, GARCH models the variance, and the Kalman filter unifies the lot inside a state-space recursion. They share three properties that deep models do not give for free:
 
-1. **Interpretability.** Every parameter has a meaning -- "yesterday's level matters with weight $\phi_1$", "the shock from two months ago decays with weight $\theta_2$".
+1. **Interpretability.** Every parameter has a meaning — "yesterday's level matters with weight $\phi_1$", "the shock from two months ago decays with weight $\theta_2$".
 2. **Calibrated uncertainty.** Confidence intervals fall out of maximum likelihood, not from ad-hoc dropout tricks.
 3. **Sample efficiency.** A few hundred observations is enough; you do not need a GPU.
 
@@ -55,7 +55,7 @@ $$y_t = T_t + S_t + R_t,$$
 a slowly moving **trend** $T_t$, a periodic **seasonal** component $S_t$ (period $s$), and a **residual** $R_t$ that should look like noise once the structure is removed. The classical additive decomposition makes this concrete:
 
 ![Classical additive decomposition of a synthetic monthly series into trend, seasonality and residual.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig1_components.png)
-*Fig. 1 -- Classical additive decomposition. Once trend and seasonality are subtracted, the residual should be approximately stationary white noise; that is exactly the regime where ARMA-style models are well-posed.*
+*Fig. 1 — Classical additive decomposition. Once trend and seasonality are subtracted, the residual should be approximately stationary white noise; that is exactly the regime where ARMA-style models are well-posed.*
 
 The whole ARIMA programme can be summarised in one sentence: **transform the data until what is left looks stationary, then fit a linear model with autocorrelated errors.**
 
@@ -65,7 +65,7 @@ A series is **(weakly) stationary** if its mean, variance and autocovariances do
 
 $$\mathbb{E}[y_t] = \mu, \qquad \mathrm{Var}(y_t) = \sigma^2, \qquad \mathrm{Cov}(y_t, y_{t-k}) = \gamma_k.$$
 
-Most real series are *not* stationary -- they trend, drift, or have variance that grows with the level. The two standard remedies are:
+Most real series are *not* stationary — they trend, drift, or have variance that grows with the level. The two standard remedies are:
 
 - **Differencing**: $\nabla y_t = y_t - y_{t-1}$ removes a linear trend; $\nabla^2 y_t$ removes a quadratic one.
 - **Variance-stabilising transforms**: $\log y_t$ or a Box-Cox transform tames multiplicative growth.
@@ -74,12 +74,12 @@ The **Augmented Dickey-Fuller (ADF)** test gives a hypothesis test: $H_0$ is "un
 
 ---
 
-## 3. AR, MA, and ARMA -- three flavours of memory
+## 3. AR, MA, and ARMA — three flavours of memory
 
 ARIMA is built from two atomic ingredients. They look similar but encode very different ideas about *what* the series remembers.
 
 ![Sample paths from AR(1), MA(2) and ARMA(1,1) processes contrasted on the same axes.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig2_ar_ma_arma.png)
-*Fig. 2 -- AR remembers past values, MA remembers past shocks, ARMA does both. The qualitative differences are visible in the sample paths even before any formal statistic is computed.*
+*Fig. 2 — AR remembers past values, MA remembers past shocks, ARMA does both. The qualitative differences are visible in the sample paths even before any formal statistic is computed.*
 
 ### Autoregressive: AR($p$)
 
@@ -114,7 +114,7 @@ In practice $d = 1$ handles linear drift, $d = 2$ handles curvature; rarely do y
 
 ---
 
-## 4. ACF and PACF -- the model-identification microscope
+## 4. ACF and PACF — the model-identification microscope
 
 How do you pick $p$ and $q$? Two diagnostic plots almost always do the job.
 
@@ -130,7 +130,7 @@ The Box-Jenkins identification rules:
 | ARMA($p$, $q$) | tails off | tails off |
 
 ![ACF and PACF of an AR(2) process and an MA(2) process.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig3_acf_pacf.png)
-*Fig. 3 -- The PACF of an AR(2) drops to zero after lag 2 (the spike pattern is the signature). Symmetrically, the ACF of an MA(2) drops to zero after lag 2. When in doubt, prefer the simpler model -- the diagnostic tests in step 5 will catch under-fitting.*
+*Fig. 3 — The PACF of an AR(2) drops to zero after lag 2 (the spike pattern is the signature). Symmetrically, the ACF of an MA(2) drops to zero after lag 2. When in doubt, prefer the simpler model — the diagnostic tests in step 5 will catch under-fitting.*
 
 When neither plot has a clean cut-off, you are looking at an ARMA process; the cleanest path is then to grid-search $(p, q)$ and pick the pair that minimises an information criterion.
 
@@ -148,7 +148,7 @@ with $\ell$ the maximised log-likelihood, $k$ the number of free parameters, $n$
 ARIMA is not a one-shot fit; it is an **iterative loop** that Box and Jenkins formalised in 1970. Every subsequent statistical-forecasting toolkit (including `auto.arima`) is just an automation of the same four boxes.
 
 ![Box-Jenkins methodology: identification, estimation, diagnostic checking and forecasting, with a feedback loop when residual diagnostics fail.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig6_box_jenkins_flow.png)
-*Fig. 4 -- The point is the feedback arrow. If the fitted residuals fail a Ljung-Box test or show structure in their ACF, the model is misspecified -- go back and revise $(p, d, q)$ rather than trusting the forecast.*
+*Fig. 4 — The point is the feedback arrow. If the fitted residuals fail a Ljung-Box test or show structure in their ACF, the model is misspecified — go back and revise $(p, d, q)$ rather than trusting the forecast.*
 
 1. **Identification.** Plot the series, run ADF for stationarity, study ACF/PACF, propose a candidate $(p, d, q)$.
 2. **Estimation.** Fit by maximum likelihood (or conditional least squares). All major libraries do this for you.
@@ -202,17 +202,17 @@ ci = fc.conf_int(alpha=0.05)
 The forecast on a held-out tail looks like this:
 
 ![ARIMA(2,1,1) forecast with 95% confidence band on a held-out segment.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig4_arima_forecast.png)
-*Fig. 5 -- The point forecast quickly reverts to the long-run drift, and the interval fans out at rate $\sigma\sqrt{h}$ in the horizon $h$. That widening cone is the honest representation of how little a linear model truly knows about the future.*
+*Fig. 5 — The point forecast quickly reverts to the long-run drift, and the interval fans out at rate $\sigma\sqrt{h}$ in the horizon $h$. That widening cone is the honest representation of how little a linear model truly knows about the future.*
 
 ---
 
 ## 7. Seasonality: SARIMA
 
-Many series have a calendar that ARIMA on its own cannot exploit -- monthly retail with a December peak, daily traffic with a weekly cycle, hourly load with a 24-hour cycle. **SARIMA** ($p, d, q$)($P, D, Q$)$_s$ folds in seasonal lags of period $s$:
+Many series have a calendar that ARIMA on its own cannot exploit — monthly retail with a December peak, daily traffic with a weekly cycle, hourly load with a 24-hour cycle. **SARIMA** ($p, d, q$)($P, D, Q$)$_s$ folds in seasonal lags of period $s$:
 
 $$\Phi(B^s)\, \phi(B)\, (1-B)^d (1-B^s)^D y_t \;=\; \Theta(B^s)\, \theta(B)\, \varepsilon_t.$$
 
-You apply two kinds of differencing -- regular ($1-B$) for trend and seasonal ($1-B^s$) for the period -- and then attach AR/MA terms at both regular lags and lags that are multiples of $s$.
+You apply two kinds of differencing — regular ($1-B$) for trend and seasonal ($1-B^s$) for the period — and then attach AR/MA terms at both regular lags and lags that are multiples of $s$.
 
 ```python
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -229,7 +229,7 @@ forecast = model.get_forecast(steps=24)
 ```
 
 ![SARIMA(1,1,1)(1,1,1,12) forecast on a series with strong yearly seasonality.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig5_sarima_forecast.png)
-*Fig. 6 -- The seasonal cycle is reproduced cleanly out of sample because the seasonal-difference operator $(1-B^{12})$ has stripped the yearly pattern from the residual, and the seasonal AR/MA terms put it back in the forecast at the right phase.*
+*Fig. 6 — The seasonal cycle is reproduced cleanly out of sample because the seasonal-difference operator $(1-B^{12})$ has stripped the yearly pattern from the residual, and the seasonal AR/MA terms put it back in the forecast at the right phase.*
 
 **Identification cheat sheet for the seasonal part**: look at the ACF/PACF of the *seasonally differenced* series at the seasonal lags $s, 2s, 3s, \ldots$. The same cut-off / tail-off rules apply as in the non-seasonal case.
 
@@ -237,9 +237,9 @@ forecast = model.get_forecast(steps=24)
 
 ## 8. Beyond ARIMA: the rest of the family
 
-The ideas above generalise in four useful directions. They are not separate worlds -- each one specialises ARIMA in a single dimension.
+The ideas above generalise in four useful directions. They are not separate worlds — each one specialises ARIMA in a single dimension.
 
-### 8.1 VAR -- multivariate dynamics
+### 8.1 VAR — multivariate dynamics
 
 When you have several series that influence each other (GDP and unemployment, electricity demand and temperature), promote the scalar AR to a **vector autoregression**:
 
@@ -247,16 +247,16 @@ $$\mathbf{y}_t = \mathbf{c} + A_1 \mathbf{y}_{t-1} + A_2 \mathbf{y}_{t-2} + \cdo
 
 Each entry of the matrix $A_k$ has an interpretation: $(A_k)_{ij}$ is the marginal effect of variable $j$ at lag $k$ on variable $i$ today. This makes VAR popular in macroeconomics where **Granger causality** ("does $x$ help predict $y$ beyond $y$'s own past?") is the central question.
 
-A practical caveat: with $K$ series and lag $p$ the model has $K + pK^2$ free parameters. For $K = 10, p = 4$ that is already 410 numbers from probably a few hundred observations. Hence the regularised cousins -- Bayesian VAR, factor models -- exist for high-dimensional settings.
+A practical caveat: with $K$ series and lag $p$ the model has $K + pK^2$ free parameters. For $K = 10, p = 4$ that is already 410 numbers from probably a few hundred observations. Hence the regularised cousins — Bayesian VAR, factor models — exist for high-dimensional settings.
 
-### 8.2 GARCH -- variance dynamics
+### 8.2 GARCH — variance dynamics
 
 ARIMA models the **mean**; GARCH models the **conditional variance**. The basic GARCH(1,1) is:
 
 $$\sigma_t^2 = \omega + \alpha\, \varepsilon_{t-1}^2 + \beta\, \sigma_{t-1}^2,
 \qquad \varepsilon_t = \sigma_t\, z_t,\quad z_t \sim \mathcal{N}(0, 1).$$
 
-The $\alpha$ term lets a large shock yesterday push variance up today (the "ARCH" effect); the $\beta$ term lets variance be persistent. Stationarity requires $\alpha + \beta < 1$, and in financial data $\alpha + \beta$ typically lands near 0.95-0.99 -- volatility is a slow-moving thing.
+The $\alpha$ term lets a large shock yesterday push variance up today (the "ARCH" effect); the $\beta$ term lets variance be persistent. Stationarity requires $\alpha + \beta < 1$, and in financial data $\alpha + \beta$ typically lands near 0.95-0.99 — volatility is a slow-moving thing.
 
 GARCH is *the* standard tool for risk management (VaR, options pricing) and pairs naturally with an ARIMA mean model: fit ARIMA to the returns, then GARCH to the squared residuals.
 
@@ -275,7 +275,7 @@ s_t = \gamma(y_t - \ell_t) + (1-\gamma) s_{t-s}.$$
 This is the workhorse behind the **ETS** family in R / `statsmodels`, and many of the methods that won the M-competitions are sophisticated descendants of it.
 
 ![Holt-Winters additive forecast and the underlying level / trend / seasonal components.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig7_holt_winters.png)
-*Fig. 7 -- The decomposition gives Holt-Winters its appeal: each component is intelligible on its own, the smoothing coefficients ($\alpha, \beta, \gamma$) say how quickly each one adapts, and the recursive form means it costs $O(n)$ to fit.*
+*Fig. 7 — The decomposition gives Holt-Winters its appeal: each component is intelligible on its own, the smoothing coefficients ($\alpha, \beta, \gamma$) say how quickly each one adapts, and the recursive form means it costs $O(n)$ to fit.*
 
 ### 8.4 Prophet
 
@@ -300,7 +300,7 @@ K_t = P_{t|t-1} H_t^\top (H_t P_{t|t-1} H_t^\top + R_t)^{-1},\\
 \hat{\mathbf{x}}_t = \hat{\mathbf{x}}_{t|t-1} + K_t (\mathbf{y}_t - H_t \hat{\mathbf{x}}_{t|t-1}),\\
 P_t = (I - K_t H_t)\, P_{t|t-1}.$$
 
-Why this matters: ARIMA, exponential smoothing, dynamic linear regressions, structural models with seasonal dummies -- all of them can be cast in the form above and inherit the Kalman recursion for free. That is exactly how `statsmodels`'s `SARIMAX` works under the hood, and why it can handle missing observations and exogenous regressors with no extra effort.
+Why this matters: ARIMA, exponential smoothing, dynamic linear regressions, structural models with seasonal dummies — all of them can be cast in the form above and inherit the Kalman recursion for free. That is exactly how `statsmodels`'s `SARIMAX` works under the hood, and why it can handle missing observations and exogenous regressors with no extra effort.
 
 ---
 
@@ -316,7 +316,7 @@ Why this matters: ARIMA, exponential smoothing, dynamic linear regressions, stru
 | **Prophet** | Business series with holidays, missing data | Sub-daily high-frequency data |
 | **Kalman / state-space** | Online updating, missing data, custom structure | When a black-box is acceptable and abundant data is available |
 
-A pragmatic recipe: start with **ETS or SARIMA** as a baseline, add **GARCH** if the variance is the quantity you care about, and only move to deep models (LSTM, TCN, Transformer, N-BEATS, Informer -- the rest of this series) when the residuals show clear non-linear structure or you have many parallel series to share information across.
+A pragmatic recipe: start with **ETS or SARIMA** as a baseline, add **GARCH** if the variance is the quantity you care about, and only move to deep models (LSTM, TCN, Transformer, N-BEATS, Informer — the rest of this series) when the residuals show clear non-linear structure or you have many parallel series to share information across.
 
 ---
 
@@ -350,10 +350,10 @@ That is the launchpad for the next seven articles. We start with **LSTM** as the
 > This is **Part 1** of the 8-part Time Series Forecasting series.
 >
 > - **Part 1: Traditional Statistical Models** (current)
-> - [Part 2: LSTM -- Gated Memory and Long-Term Dependencies](/en/time-series/lstm/)
-> - [Part 3: GRU -- Lightweight Gating and Efficiency](/en/time-series/gru/)
-> - [Part 4: Attention Mechanism -- Direct Long-Range Dependencies](/en/time-series/attention-mechanism/)
+> - [Part 2: LSTM — Gated Memory and Long-Term Dependencies](/en/time-series/lstm/)
+> - [Part 3: GRU — Lightweight Gating and Efficiency](/en/time-series/gru/)
+> - [Part 4: Attention Mechanism — Direct Long-Range Dependencies](/en/time-series/attention-mechanism/)
 > - [Part 5: Transformer Architecture for Time Series](/en/time-series/transformer/)
 > - [Part 6: Temporal Convolutional Networks (TCN)](/en/time-series/temporal-convolutional-networks/)
-> - [Part 7: N-BEATS -- Interpretable Deep Architecture](/en/time-series/n-beats/)
-> - [Part 8: Informer -- Efficient Long-Sequence Forecasting](/en/time-series/informer-long-sequence/)
+> - [Part 7: N-BEATS — Interpretable Deep Architecture](/en/time-series/n-beats/)
+> - [Part 8: Informer — Efficient Long-Sequence Forecasting](/en/time-series/informer-long-sequence/)

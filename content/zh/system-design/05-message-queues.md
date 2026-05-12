@@ -6,8 +6,7 @@ tags:
   - Message Queues
   - Kafka
   - Event-Driven Architecture
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "一份面向实践的消息队列与事件驱动系统指南——涵盖 Kafka 与 RabbitMQ 架构、投递语义保障、事件溯源（Event Sourcing）、CQRS、死信队列（DLQ）、反压（Backpressure），以及完整的订单处理流水线设计。"

@@ -6,8 +6,7 @@ tags:
   - CTR Prediction
   - Deep Learning
   - Feature Interactions
-categories:
-  - Recommendation Systems
+categories: Recommendation Systems
 series: recommendation-systems
 lang: en
 mathjax: true
@@ -22,7 +21,7 @@ Every time you scroll through a social-media feed, click a product recommendatio
 
 > **"What is the probability that this specific user will click on this specific item, right now?"**
 
-Behind that question is one of the most economically valuable problems in machine learning. A 1% lift in CTR translates into millions of dollars at Google, Amazon, or Alibaba scale -- and the same models also drive video feeds, app stores, news apps, and dating apps. CTR prediction sits at the heart of the **ranking** stage: candidate generation gives you a few thousand items, and the CTR model decides which dozen actually reach the user.
+Behind that question is one of the most economically valuable problems in machine learning. A 1% lift in CTR translates into millions of dollars at Google, Amazon, or Alibaba scale — and the same models also drive video feeds, app stores, news apps, and dating apps. CTR prediction sits at the heart of the **ranking** stage: candidate generation gives you a few thousand items, and the CTR model decides which dozen actually reach the user.
 
 This article is a tour through the decade-long evolution of CTR models, from a single-line logistic regression to attention-based architectures. We will not just look at formulas. For each model we will ask three questions:
 
@@ -37,13 +36,13 @@ By the end you should be able to read any modern CTR paper, sketch its architect
 ## What You Will Learn
 
 - The CTR prediction problem and **why** it is uniquely hard (it is not just classification with imbalanced labels)
-- **Logistic Regression** as both a baseline and a sanity check -- and exactly where it breaks
+- **Logistic Regression** as both a baseline and a sanity check — and exactly where it breaks
 - **Factorization Machines (FM)** and **Field-aware FM (FFM)** for automatic pairwise interactions on sparse data
-- **DeepFM** -- the industry workhorse that combines FM and a deep network
-- **xDeepFM** -- explicit *high-order* interactions through the Compressed Interaction Network
-- **DCN** -- bounded-degree feature crosses with linear parameter cost
-- **AutoInt** -- self-attention applied to feature interactions
-- **FiBiNet** -- learning *which features matter* with SENet plus richer bilinear interactions
+- **DeepFM** — the industry workhorse that combines FM and a deep network
+- **xDeepFM** — explicit *high-order* interactions through the Compressed Interaction Network
+- **DCN** — bounded-degree feature crosses with linear parameter cost
+- **AutoInt** — self-attention applied to feature interactions
+- **FiBiNet** — learning *which features matter* with SENet plus richer bilinear interactions
 - Training reality: class imbalance, calibration, AUC vs Logloss, and how to evaluate offline before A/B tests
 
 ## Prerequisites
@@ -75,7 +74,7 @@ Empirically, $\text{CTR} = \text{clicks} / \text{impressions}$, and the model ou
 
 Five properties make CTR prediction look like a standard classification task and behave like nothing of the sort:
 
-**1. Extreme class imbalance.** Display ads sit at 0.1-2%, e-commerce at 1-5%, news feeds at 2-10%. A "predict no" model gets 95%+ accuracy and is useless -- AUC and Logloss replace accuracy.
+**1. Extreme class imbalance.** Display ads sit at 0.1-2%, e-commerce at 1-5%, news feeds at 2-10%. A "predict no" model gets 95%+ accuracy and is useless — AUC and Logloss replace accuracy.
 
 **2. High-dimensional, ultra-sparse features.** After one-hot encoding, the feature space is $10^6$ to $10^9$ dimensions. Each sample lights up only dozens of them. Storing a weight per feature pair is impossible.
 
@@ -103,7 +102,7 @@ With that mental map, let us walk the architecture timeline.
 
 ## Logistic Regression: The Foundation (and the Reason FM Exists)
 
-Despite living next to giant neural networks in production, Logistic Regression (LR) refuses to die. It is the universal baseline, the calibration anchor, and -- in latency-bounded systems -- still the actual scorer for a non-trivial fraction of requests.
+Despite living next to giant neural networks in production, Logistic Regression (LR) refuses to die. It is the universal baseline, the calibration anchor, and — in latency-bounded systems — still the actual scorer for a non-trivial fraction of requests.
 
 ### How It Works
 
@@ -119,7 +118,7 @@ The geometry tells the whole story. LR can only learn a hyperplane in feature sp
 
 ![Left: LR cannot separate XOR-shaped click data with a single line. Right: a non-linear interaction term recovers the structure.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/fig1_lr_limitation.png)
 
-In the left panel, "young + action" and "old + comedy" both click, but "young + comedy" and "old + action" do not. No linear boundary works -- AUC stays near 0.5. The right panel adds a single interaction term ($x_1 \cdot x_2$) and instantly recovers the structure. Every CTR model after LR is, at heart, an answer to the question:
+In the left panel, "young + action" and "old + comedy" both click, but "young + comedy" and "old + action" do not. No linear boundary works — AUC stays near 0.5. The right panel adds a single interaction term ($x_1 \cdot x_2$) and instantly recovers the structure. Every CTR model after LR is, at heart, an answer to the question:
 
 > **"How do we discover and represent useful feature crosses, automatically and at scale?"**
 
@@ -167,10 +166,10 @@ def train_lr(X_train, y_train, X_val, y_val, epochs=100, lr=0.01):
     return model, scaler
 ```
 
-### Where LR Falls Short -- Concretely
+### Where LR Falls Short — Concretely
 
 1. **No feature interactions.** Treats every feature as independent.
-2. **Manual feature engineering.** To capture interactions you must hand-craft `user_age x item_category` columns -- impossible past two- or three-way crosses.
+2. **Manual feature engineering.** To capture interactions you must hand-craft `user_age x item_category` columns — impossible past two- or three-way crosses.
 3. **Linear decision boundary.** Visible above; no representation power for XOR-style structure.
 
 These three failures motivate every subsequent architecture in this article.
@@ -185,13 +184,13 @@ Steffen Rendle's 2010 Factorization Machines were the first model that made auto
 
 ### The Core Insight
 
-A naive "interaction-aware LR" would learn a separate weight $w_{ij}$ for every pair of features. With $d$ features that is $O(d^2)$ parameters -- and most pairs are *never observed together* in the training set, so they cannot be learned anyway.
+A naive "interaction-aware LR" would learn a separate weight $w_{ij}$ for every pair of features. With $d$ features that is $O(d^2)$ parameters — and most pairs are *never observed together* in the training set, so they cannot be learned anyway.
 
 FM replaces the per-pair weight with the dot product of two learnable vectors:
 $$w_{ij} \approx \langle \mathbf{v}_i, \mathbf{v}_j \rangle = \sum_{f=1}^{k} v_{i,f} \, v_{j,f}.$$
-> **Analogy.** Imagine 1,000 movies. Storing a weight for every pair needs a million numbers, most never observed. Instead, give each movie a $k$-dimensional "personality vector". Two movies interact strongly iff their vectors point similarly. We now have $1000 \cdot k$ numbers, and we can predict an interaction even for a pair we have *never seen together* -- because each vector was learned from many other co-occurrences.
+> **Analogy.** Imagine 1,000 movies. Storing a weight for every pair needs a million numbers, most never observed. Instead, give each movie a $k$-dimensional "personality vector". Two movies interact strongly iff their vectors point similarly. We now have $1000 \cdot k$ numbers, and we can predict an interaction even for a pair we have *never seen together* — because each vector was learned from many other co-occurrences.
 
-That last property -- generalisation to unseen pairs -- is the real magic. It is why FM still works on extreme sparsity where decision trees and linear models stall.
+That last property — generalisation to unseen pairs — is the real magic. It is why FM still works on extreme sparsity where decision trees and linear models stall.
 
 ### Mathematical Formulation
 $$\hat{y}(\mathbf{x}) = \underbrace{w_0}_{\text{bias}} + \underbrace{\sum_{i=1}^{d} w_i x_i}_{\text{linear}} + \underbrace{\sum_{i=1}^{d} \sum_{j=i+1}^{d} \langle \mathbf{v}_i, \mathbf{v}_j \rangle x_i x_j}_{\text{pairwise interactions}}.$$
@@ -252,7 +251,7 @@ print(model(x).squeeze())
 
 **Strengths.** Pairwise interactions for free, $O(kd)$ compute, and statistical generalisation to unseen pairs.
 
-**Limitations.** Only pairwise, and a feature uses *the same* embedding regardless of which other field it is interacting with -- which is sometimes wrong. That single observation gave us FFM.
+**Limitations.** Only pairwise, and a feature uses *the same* embedding regardless of which other field it is interacting with — which is sometimes wrong. That single observation gave us FFM.
 
 ---
 
@@ -424,7 +423,7 @@ where $\circ$ is the Hadamard (elementwise) product and $W$ are learned weights.
 
 > **Plain English.** "Take every feature map from the previous layer, cross it elementwise with every original embedding, then apply a learned 1x1 convolution to compress all those crosses back down to a manageable number of feature maps. Stack."
 
-The full xDeepFM is **Linear + CIN + Deep MLP** -- a three-tower model, summed before the sigmoid.
+The full xDeepFM is **Linear + CIN + Deep MLP** — a three-tower model, summed before the sigmoid.
 
 ### Implementation
 
@@ -513,7 +512,7 @@ class xDeepFM(nn.Module):
 |---|---|---|
 | Low-order interactions | Explicit (FM) | Explicit (FM + CIN) |
 | High-order interactions | Implicit (deep MLP only) | Explicit (CIN) + Implicit (deep) |
-| Interpretability | Limited | Better -- you can probe CIN feature maps |
+| Interpretability | Limited | Better — you can probe CIN feature maps |
 | Inference cost | Lower | Higher (CIN dominates) |
 | When to pick it | Default starting point | Complex datasets where DeepFM plateaus |
 
@@ -527,11 +526,11 @@ DCN (Google, 2017) takes a different route. Instead of stacking elementwise prod
 $$\mathbf{x}_{l+1} = \mathbf{x}_0 \cdot (\mathbf{w}_l^\top \mathbf{x}_l) + \mathbf{b}_l + \mathbf{x}_l.$$
 > **Plain English.** "Take a learned scalar projection of the current state, multiply it by the *original* input vector, add a bias, plus a residual." Each step injects $\mathbf{x}_0$ once more, raising the interaction degree by one.
 
-After $L$ cross layers you have learned a polynomial of degree $L+1$ in the original features -- but with only $L \cdot d$ parameters in the cross stack.
+After $L$ cross layers you have learned a polynomial of degree $L+1$ in the original features — but with only $L \cdot d$ parameters in the cross stack.
 
 The picture below shows both ideas: how each cross layer adds degree, and how dramatically cheaper this is than naively expanding all polynomial monomials.
 
-![Left: each cross layer injects x0 again, raising the polynomial degree by one. Right: parameter cost vs degree -- DCN scales linearly while explicit polynomials explode](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/fig4_dcn_cross.png)
+![Left: each cross layer injects x0 again, raising the polynomial degree by one. Right: parameter cost vs degree — DCN scales linearly while explicit polynomials explode](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/fig4_dcn_cross.png)
 
 The right panel is the punchline. At degree 6 with 100 input features, an explicit polynomial expansion needs $10^{12}$ parameters. The cross network needs 600.
 
@@ -599,7 +598,7 @@ class DCN(nn.Module):
 
 **DCN advantages.**
 
-- Explicit, *bounded* interaction degree -- no surprises in production.
+- Explicit, *bounded* interaction degree — no surprises in production.
 - Cross stack is tiny relative to the deep MLP, so latency stays close to a plain MLP.
 - Successfully deployed at Google scale; v2 of the paper introduces DCN-Mix for even higher capacity.
 
@@ -607,7 +606,7 @@ class DCN(nn.Module):
 
 ## AutoInt: Attention as a Feature-Interaction Engine
 
-AutoInt (2019) brings **multi-head self-attention** -- the engine inside Transformers -- to feature interactions. The key claim: not all interactions matter equally, and attention can learn *which* feature pairs to focus on, with multiple heads learning multiple notions of "related".
+AutoInt (2019) brings **multi-head self-attention** — the engine inside Transformers — to feature interactions. The key claim: not all interactions matter equally, and attention can learn *which* feature pairs to focus on, with multiple heads learning multiple notions of "related".
 
 ### How It Works
 
@@ -725,7 +724,7 @@ FiBiNet (2019) tackles two assumptions other models bake in silently:
 
 Three steps:
 
-- **Squeeze.** Average each field's embedding along the embedding dimension to a scalar -- one importance score per field.
+- **Squeeze.** Average each field's embedding along the embedding dimension to a scalar — one importance score per field.
 - **Excitation.** A two-layer MLP (bottleneck) maps the scalars to per-field gates.
 - **Reweight.** Multiply each embedding by its gate.
 
@@ -831,14 +830,14 @@ class FiBiNet(nn.Module):
 
 Now the question every practitioner asks: **does any of this actually move AUC?**
 
-The figure below summarises typical relative ordering on Criteo-style benchmarks. Numbers are illustrative -- absolute values vary by dataset, embedding size, and training budget -- but the *gap pattern* is consistent across published reports.
+The figure below summarises typical relative ordering on Criteo-style benchmarks. Numbers are illustrative — absolute values vary by dataset, embedding size, and training budget — but the *gap pattern* is consistent across published reports.
 
 ![Bar charts comparing AUC and Logloss across LR, FM, FFM, DeepFM, xDeepFM, DCN, AutoInt, FiBiNet on Criteo-style benchmarks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/fig5_auc_logloss.png)
 
 Two observations matter more than the absolute numbers:
 
 1. **The biggest single jump is LR -> FM.** Adding pairwise interactions, even cheaply, is worth more AUC than any later architectural refinement.
-2. **DeepFM and beyond live within ~0.005 AUC of each other.** That sounds tiny. At Google or Meta scale, 0.5 milli-AUC is real money. At a startup with 1M users, it is in the noise -- features and freshness will dominate.
+2. **DeepFM and beyond live within ~0.005 AUC of each other.** That sounds tiny. At Google or Meta scale, 0.5 milli-AUC is real money. At a startup with 1M users, it is in the noise — features and freshness will dominate.
 
 ### Computational Complexity
 
@@ -944,7 +943,7 @@ def train_with_early_stopping(model, train_loader, val_loader,
 
 ### Evaluation Metrics
 
-**AUC-ROC** is the headline metric. It measures the probability that a random positive sample is scored above a random negative one -- by construction, it is invariant to the label imbalance.
+**AUC-ROC** is the headline metric. It measures the probability that a random positive sample is scored above a random negative one — by construction, it is invariant to the label imbalance.
 
 ```python
 from sklearn.metrics import roc_auc_score, log_loss
@@ -988,13 +987,13 @@ Default to **DeepFM**. Try xDeepFM only after DeepFM clearly plateaus and your d
 
 Four levers, usually combined: (1) initialise embeddings from content features (text/image encoders); (2) fall back to popularity for the first few impressions; (3) explore via a contextual bandit so new items get *some* impressions; (4) pre-train embeddings on a related task. The rule of thumb: *never* let a model see only the item id of a new item.
 
-### Feature engineering vs model architecture -- which matters more?
+### Feature engineering vs model architecture — which matters more?
 
 Almost always feature engineering, by 2-3x. Good cross features, sensible bucketisation, proper missing-value handling, and rolling user/item statistics typically yield 10-30% AUC improvement. Switching architectures within the deep CTR family yields 2-10%. Do feature engineering first; reach for fancier architectures last.
 
 ### How do I handle missing features?
 
-Four options: (1) default value (0, mean, mode); (2) add a binary `is_missing` indicator; (3) reserve a special "missing" embedding for categorical features; (4) impute with KNN or a simple model. Choose based on whether *missingness itself is informative* -- if a logged-out user is missing demographics, that fact predicts behaviour and should be a feature.
+Four options: (1) default value (0, mean, mode); (2) add a binary `is_missing` indicator; (3) reserve a special "missing" embedding for categorical features; (4) impute with KNN or a simple model. Choose based on whether *missingness itself is informative* — if a logged-out user is missing demographics, that fact predicts behaviour and should be a feature.
 
 ### How do I evaluate offline vs online?
 
@@ -1002,11 +1001,11 @@ Four options: (1) default value (0, mean, mode); (2) add a binary `is_missing` i
 
 ### How do I deploy CTR models in production?
 
-The big four: (1) serve from TorchServe / Triton / TF-Serving with batched requests; (2) target < 10 ms p99 via INT8 quantisation, embedding sharding, and pre-fetching; (3) monitor predicted-CTR distribution drift -- if the histogram shifts, retrain or roll back; (4) version your models *and your feature pipelines together* -- a feature schema mismatch silently destroys AUC.
+The big four: (1) serve from TorchServe / Triton / TF-Serving with batched requests; (2) target < 10 ms p99 via INT8 quantisation, embedding sharding, and pre-fetching; (3) monitor predicted-CTR distribution drift — if the histogram shifts, retrain or roll back; (4) version your models *and your feature pipelines together* — a feature schema mismatch silently destroys AUC.
 
 ### What are the latest trends (2024-2025)?
 
-Transformer-based interaction stacks at scale, multi-task learning (jointly predicting CTR + conversion + watch time), graph neural networks over user-item graphs, AutoML for embedding dimension and architecture search, debiasing via causal inference and inverse-propensity weighting, and federated learning for privacy. The fundamentals -- feature quality, interaction modelling, calibration, freshness -- remain the dominant levers regardless of the trend.
+Transformer-based interaction stacks at scale, multi-task learning (jointly predicting CTR + conversion + watch time), graph neural networks over user-item graphs, AutoML for embedding dimension and architecture search, debiasing via causal inference and inverse-propensity weighting, and federated learning for privacy. The fundamentals — feature quality, interaction modelling, calibration, freshness — remain the dominant levers regardless of the trend.
 
 ---
 
@@ -1014,19 +1013,19 @@ Transformer-based interaction stacks at scale, multi-task learning (jointly pred
 
 CTR prediction is the heart of modern ranking. We walked the architecture timeline from a single linear layer to attention-based interaction discovery:
 
-1. **LR** -- simple, calibrated, but blind to feature interactions.
-2. **FM / FFM** -- automatic pairwise interactions on sparse data; FFM adds field awareness at a parameter cost.
-3. **DeepFM** -- the industry workhorse: explicit pairwise (FM) + implicit deep, sharing one embedding table.
-4. **xDeepFM** -- explicit higher-order interactions through CIN.
-5. **DCN** -- bounded-degree polynomial crosses with linear parameter cost.
-6. **AutoInt** -- multi-head self-attention for interaction discovery and inspection.
-7. **FiBiNet** -- learnable feature importance (SENet) plus bilinear interactions.
+1. **LR** — simple, calibrated, but blind to feature interactions.
+2. **FM / FFM** — automatic pairwise interactions on sparse data; FFM adds field awareness at a parameter cost.
+3. **DeepFM** — the industry workhorse: explicit pairwise (FM) + implicit deep, sharing one embedding table.
+4. **xDeepFM** — explicit higher-order interactions through CIN.
+5. **DCN** — bounded-degree polynomial crosses with linear parameter cost.
+6. **AutoInt** — multi-head self-attention for interaction discovery and inspection.
+7. **FiBiNet** — learnable feature importance (SENet) plus bilinear interactions.
 
 **Practical takeaways.**
 
 - **Start simple.** LR -> FM -> DeepFM, in that order. Stop the moment you stop improving AUC.
 - **Features first, architecture second.** A new cross-feature usually beats a new model.
-- **Handle imbalance deliberately.** Pick one of pos_weight, downsampling+calibration, or focal loss -- and stick with it.
+- **Handle imbalance deliberately.** Pick one of pos_weight, downsampling+calibration, or focal loss — and stick with it.
 - **Evaluate honestly.** Time-based splits offline, A/B tests online, and watch calibration alongside AUC.
 - **Iterate forever.** CTR systems are never done. Distributions shift, items churn, and yesterday's model is today's baseline.
 

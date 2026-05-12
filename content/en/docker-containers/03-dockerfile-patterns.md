@@ -7,8 +7,7 @@ tags:
   - Dockerfile
   - Multi-stage Build
   - DevOps
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "A Dockerfile defines how your image is built. The difference between a naive Dockerfile and an optimized one can be 10x in image size and build time."

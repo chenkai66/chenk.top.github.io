@@ -13,14 +13,14 @@ series_order: 9
 series: linux
 ---
 
-Most people quit Vim because they try to memorize shortcuts. That is the wrong frame. Vim is a *small language*: learn the grammar -- **operator + motion** -- and you can express any edit without ever opening a cheat sheet again. This guide walks you through the 80% of Vim you will use daily, then shows how the remaining 20% composes naturally from the same handful of rules.
+Most people quit Vim because they try to memorize shortcuts. That is the wrong frame. Vim is a *small language*: learn the grammar — **operator + motion** — and you can express any edit without ever opening a cheat sheet again. This guide walks you through the 80% of Vim you will use daily, then shows how the remaining 20% composes naturally from the same handful of rules.
 
 ## What you will learn
 
 - The single core idea: **modes** plus **composable operations** (operator + motion)
 - The handful of motions, text objects, and operators that cover almost everything
 - File operations, search & replace, macros, marks, registers
-- Buffers vs windows vs tabs -- the mental model people most often get wrong
+- Buffers vs windows vs tabs — the mental model people most often get wrong
 - A minimal `.vimrc` and a one-week deliberate-practice plan to build muscle memory
 
 ## Prerequisites
@@ -30,7 +30,7 @@ Most people quit Vim because they try to memorize shortcuts. That is the wrong f
 
 ---
 
-## 1. The core idea -- modes plus a tiny grammar
+## 1. The core idea — modes plus a tiny grammar
 
 ![The Four Modes of Vim](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig1_mode_state_diagram.png)
 
@@ -38,22 +38,22 @@ Vim revolves around one loop:
 
 1. **Move** to what you want to change (a *motion*).
 2. **Select** the scope (implicitly via the motion, or explicitly in Visual mode).
-3. **Apply** an *operator* -- delete, change, yank.
+3. **Apply** an *operator* — delete, change, yank.
 
 Once that loop becomes reflex, you stop "remembering keys" and start "speaking Vim."
 
 ### The four modes you actually use
 
-- **Normal mode** -- navigation and commands. Vim starts here. Spend ~80% of your time here.
-- **Insert mode** -- type text. Treat it as a temporary detour: enter, type a small chunk, leave.
-- **Visual mode** -- select text (character / line / block).
-- **Command-line mode** -- everything that starts with `:` (save, search & replace, settings) or `/` and `?` (search).
+- **Normal mode** — navigation and commands. Vim starts here. Spend ~80% of your time here.
+- **Insert mode** — type text. Treat it as a temporary detour: enter, type a small chunk, leave.
+- **Visual mode** — select text (character / line / block).
+- **Command-line mode** — everything that starts with `:` (save, search & replace, settings) or `/` and `?` (search).
 
-Replace mode (`R`) exists too, but most people only enter it by accident. If your typing is suddenly *overwriting* characters, press `Esc` -- you slipped into Replace.
+Replace mode (`R`) exists too, but most people only enter it by accident. If your typing is suddenly *overwriting* characters, press `Esc` — you slipped into Replace.
 
 > **The single most important habit:** the moment you finish typing, press `Esc`. Idle time should be spent in Normal mode, where every key is a command.
 
-### Operators and motions -- the grammar
+### Operators and motions — the grammar
 
 A Vim command reads like a tiny English sentence:
 
@@ -61,7 +61,7 @@ A Vim command reads like a tiny English sentence:
 [count] operator motion
 ```
 
-**Operators** -- *what* to do:
+**Operators** — *what* to do:
 
 | Op  | Meaning                     |
 | --- | --------------------------- |
@@ -72,26 +72,26 @@ A Vim command reads like a tiny English sentence:
 | `<` | indent left                 |
 | `=` | auto-indent                 |
 
-**Motions / text objects** -- *how much*:
+**Motions / text objects** — *how much*:
 
-- `w` / `b` -- next / previous word
-- `0` / `^` / `$` -- line start / first non-blank / line end
-- `gg` / `G` / `{n}G` -- file top / file end / line `n`
-- `iw` / `ip` / `i"` -- inner word / paragraph / quoted string
+- `w` / `b` — next / previous word
+- `0` / `^` / `$` — line start / first non-blank / line end
+- `gg` / `G` / `{n}G` — file top / file end / line `n`
+- `iw` / `ip` / `i"` — inner word / paragraph / quoted string
 
 Now compose:
 
-- `dw` -- delete a word
-- `d$` -- delete to end of line
-- `ciw` -- change inner word
-- `yip` -- yank a paragraph
-- `3dw` -- delete the next three words
+- `dw` — delete a word
+- `d$` — delete to end of line
+- `ciw` — change inner word
+- `yip` — yank a paragraph
+- `3dw` — delete the next three words
 
 That's the whole game. Memorize the operators (there are five), memorize a dozen motions, and you can already edit faster than you can in most GUI editors.
 
 ---
 
-## 2. Movement -- jump, do not crawl
+## 2. Movement — jump, do not crawl
 
 ![Vim Motion Cheat Sheet](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig2_motion_cheatsheet.png)
 
@@ -106,12 +106,12 @@ The cheat sheet above is worth printing once and then never looking at again. Th
 
 Two motions deserve special mention because they pair perfectly with operators:
 
-- `f{char}` jumps to the next occurrence of `{char}` on the line; `t{char}` jumps to just before it. So `df,` deletes everything up to and including the next comma -- a very common need when editing argument lists.
+- `f{char}` jumps to the next occurrence of `{char}` on the line; `t{char}` jumps to just before it. So `df,` deletes everything up to and including the next comma — a very common need when editing argument lists.
 - `%` jumps between matching brackets. `d%` from an opening `(` deletes the entire parenthesised expression.
 
 ---
 
-## 3. Edits -- delete, change, yank, paste
+## 3. Edits — delete, change, yank, paste
 
 ### Delete
 
@@ -140,14 +140,14 @@ Two motions deserve special mention because they pair perfectly with operators:
 
 ### Paste
 
-- `p` -- paste **after** the cursor (or below the line for line-wise yanks).
-- `P` -- paste **before**.
+- `p` — paste **after** the cursor (or below the line for line-wise yanks).
+- `P` — paste **before**.
 
 ### Undo and redo
 
-- `u` -- undo.
-- `Ctrl-r` -- redo.
-- `:earlier 5m` / `:later 30s` -- time-travel through the undo *tree* (yes, Vim's undo is a tree, not a stack).
+- `u` — undo.
+- `Ctrl-r` — redo.
+- `:earlier 5m` / `:later 30s` — time-travel through the undo *tree* (yes, Vim's undo is a tree, not a stack).
 
 ### "Cut" is just delete
 
@@ -159,9 +159,9 @@ There's no separate cut command. Delete already puts the text in a register, so 
 
 ---
 
-## 4. Text objects -- edit by meaning, not by position
+## 4. Text objects — edit by meaning, not by position
 
-![Text Objects -- Edit by Meaning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig3_text_objects.png)
+![Text Objects — Edit by Meaning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig3_text_objects.png)
 
 Text objects are the feature most beginners skip and most experts use constantly. Instead of selecting boundaries by hand, you name a *semantic unit*:
 
@@ -180,11 +180,11 @@ Text objects are the feature most beginners skip and most experts use constantly
 | `i[` / `a[`  | inside / around `[...]`       | `di[` delete an array literal    |
 | `it` / `at`  | inside / around HTML tag      | `cit` rewrite tag content        |
 
-The cursor does **not** need to be on the boundary -- `ci"` works from anywhere inside or even on the quotes. That is the whole point: you stop thinking "select then act" and start thinking "act on this thing".
+The cursor does **not** need to be on the boundary — `ci"` works from anywhere inside or even on the quotes. That is the whole point: you stop thinking "select then act" and start thinking "act on this thing".
 
 ---
 
-## 5. Search and replace -- with safety
+## 5. Search and replace — with safety
 
 `/pattern` searches forward, `?pattern` searches backward; `n` and `N` step through matches.
 
@@ -201,18 +201,18 @@ Replace follows the classic ed/sed syntax:
 A safer workflow than just running `:%s/old/new/g`:
 
 1. Run `/old` first and step through with `n` to confirm the pattern is what you think it is.
-2. Then run `:%s//new/gc` -- the empty pattern reuses your last search, and `c` makes Vim ask `y / n / a / q` for each match.
+2. Then run `:%s//new/gc` — the empty pattern reuses your last search, and `c` makes Vim ask `y / n / a / q` for each match.
 3. Run `:noh` to clear the highlight when you are done.
 
 Useful flags inside the search pattern itself:
 
 - `\c` case-insensitive, `\C` case-sensitive
 - `\<word\>` whole-word match
-- `\v` "very magic" mode -- treats more characters as regex meta (much closer to Perl/PCRE)
+- `\v` "very magic" mode — treats more characters as regex meta (much closer to Perl/PCRE)
 
 ---
 
-## 6. Macros -- automate without leaving Vim
+## 6. Macros — automate without leaving Vim
 
 Macros are the highest-ROI "advanced" feature in Vim because they turn any repetitive edit into a one-time recording.
 
@@ -229,15 +229,15 @@ The trick to writing a *robust* macro is to make every motion repeatable from a 
 
 ---
 
-## 7. Registers -- a clipboard with thirty slots
+## 7. Registers — a clipboard with thirty slots
 
 Every yank and delete goes into a *register*. There is more than one:
 
-- `""` -- the unnamed register (the default; last delete or yank).
-- `"a` ... `"z` -- named registers, you fill these on purpose.
-- `"0` ... `"9` -- a yank/delete history.
-- `"+` and `"*` -- the system clipboard (requires Vim built with `+clipboard`; check with `vim --version | grep clipboard`).
-- `"_` -- the black hole. Anything sent here vanishes; useful when you want to delete *without* overwriting the unnamed register.
+- `""` — the unnamed register (the default; last delete or yank).
+- `"a` ... `"z` — named registers, you fill these on purpose.
+- `"0` ... `"9` — a yank/delete history.
+- `"+` and `"*` — the system clipboard (requires Vim built with `+clipboard`; check with `vim --version | grep clipboard`).
+- `"_` — the black hole. Anything sent here vanishes; useful when you want to delete *without* overwriting the unnamed register.
 
 Use them like this:
 
@@ -249,11 +249,11 @@ Use them like this:
 :reg   " inspect every register
 ```
 
-Pro habit: when you are about to paste then immediately delete something else (which would clobber the clipboard), prefix the delete with `"_` -- e.g. `"_dd` deletes the line without touching your yanked text.
+Pro habit: when you are about to paste then immediately delete something else (which would clobber the clipboard), prefix the delete with `"_` — e.g. `"_dd` deletes the line without touching your yanked text.
 
 ---
 
-## 8. Marks -- bookmarks across a file or project
+## 8. Marks — bookmarks across a file or project
 
 ```
 ma     " set mark a at the cursor
@@ -261,7 +261,7 @@ ma     " set mark a at the cursor
 `a     " jump to the exact position of mark a
 ```
 
-Lowercase marks (`a`-`z`) are local to the buffer; uppercase marks (`A`-`Z`) are *global* and survive across files -- very handy for "I'll come back to this".
+Lowercase marks (`a`-`z`) are local to the buffer; uppercase marks (`A`-`Z`) are *global* and survive across files — very handy for "I'll come back to this".
 
 A few special marks Vim sets for you:
 
@@ -278,7 +278,7 @@ Three flavours:
 
 - `v` -- character-wise selection.
 - `V` -- line-wise selection.
-- `Ctrl-v` -- **block-wise** (rectangular) selection. This is the killer feature.
+- `Ctrl-v` — **block-wise** (rectangular) selection. This is the killer feature.
 
 Visual Block solves the "edit the same column on twenty lines" problem that requires regex or macros in most other editors:
 
@@ -326,7 +326,7 @@ This is the model people get wrong most often. Read it once, slowly:
 | **Window** | a viewport showing one buffer       | `:split`, `:vsplit`, `Ctrl-w` motions           |
 | **Tab**    | a *layout* of windows               | `:tabnew`, `gt`, `gT`                           |
 
-A file is **always** a buffer the moment you open it, even if no window is currently showing it. Two windows can show the *same* buffer (great for looking at the top and bottom of a long file at once). Tabs are not "open files" like in a browser -- they are saved layouts.
+A file is **always** a buffer the moment you open it, even if no window is currently showing it. Two windows can show the *same* buffer (great for looking at the top and bottom of a long file at once). Tabs are not "open files" like in a browser — they are saved layouts.
 
 ### The swap file
 
@@ -342,7 +342,7 @@ find . -name ".*.swp" -delete
 
 ![Where Vim Keeps Things](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig4_vim_file_structure.png)
 
-Vim becomes comfortable once you set a handful of defaults. Don't pile on plugins yet -- start with this:
+Vim becomes comfortable once you set a handful of defaults. Don't pile on plugins yet — start with this:
 
 ```vim
 " ---- display ----
@@ -371,13 +371,13 @@ set wildmenu      " tab-completion in command-line mode
 autocmd BufWritePre * :%s/\s\+$//e
 ```
 
-Save it as `~/.vimrc` and restart Vim. There is no daemon to reload -- the file is read at startup.
+Save it as `~/.vimrc` and restart Vim. There is no daemon to reload — the file is read at startup.
 
 If you use **Neovim**, the equivalent config lives at `~/.config/nvim/init.vim` (or `init.lua` for the Lua version).
 
 ---
 
-## 12. Common workflows -- search/replace and multi-file editing
+## 12. Common workflows — search/replace and multi-file editing
 
 ![Two Workflows You Will Use Every Day](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig5_workflows.png)
 
@@ -432,7 +432,7 @@ Both are excellent. Decide on practical grounds:
 - **Stick with Vim if** you mostly edit on remote servers and containers (Vim is preinstalled almost everywhere), or you don't need LSP / modern plugin ecosystems.
 - **Switch to Neovim if** you want built-in LSP (autocompletion, go-to-definition, diagnostics), a Lua config, async plugins, and a faster-moving community.
 
-You can move between the two without re-learning -- the editor commands are identical. Only the configuration and plugin layer differ.
+You can move between the two without re-learning — the editor commands are identical. Only the configuration and plugin layer differ.
 
 ---
 
@@ -440,21 +440,21 @@ You can move between the two without re-learning -- the editor commands are iden
 
 You become fluent in Vim the same way you become fluent in any language: by forcing yourself to use it for a fixed period, even when you're slower than usual.
 
-**Day 1-2 -- only these keys.** `hjkl`, `w`, `b`, `0`, `^`, `$`, `dd`, `dw`, `ciw`, `/`, `:%s`. Do all editing this way. You will be slow. That is the point.
+**Day 1-2 — only these keys.** `hjkl`, `w`, `b`, `0`, `^`, `$`, `dd`, `dw`, `ciw`, `/`, `:%s`. Do all editing this way. You will be slow. That is the point.
 
-**Day 3-4 -- add text objects.** Force yourself to use `ciw`, `ci"`, `ci(`, `dap` instead of selecting things by hand. This is where Vim starts feeling fast.
+**Day 3-4 — add text objects.** Force yourself to use `ciw`, `ci"`, `ci(`, `dap` instead of selecting things by hand. This is where Vim starts feeling fast.
 
-**Day 5 -- add macros.** When you spot any repetition (more than three times), record a macro: `qa` ... `q` ... `@a`.
+**Day 5 — add macros.** When you spot any repetition (more than three times), record a macro: `qa` ... `q` ... `@a`.
 
-**Day 6 -- add splits and buffers.** Stop opening multiple terminal tabs. Use `:vsp`, `:sp`, `:b`, `Ctrl-w` to navigate.
+**Day 6 — add splits and buffers.** Stop opening multiple terminal tabs. Use `:vsp`, `:sp`, `:b`, `Ctrl-w` to navigate.
 
-**Day 7 -- customise.** *Now* edit `.vimrc`. Add the settings from section 11, then one or two personal mappings. Avoid plugins for at least another week.
+**Day 7 — customise.** *Now* edit `.vimrc`. Add the settings from section 11, then one or two personal mappings. Avoid plugins for at least another week.
 
 After this week, the grammar will be in your fingers. From then on, every new "trick" you learn (a new motion, a new text object) just plugs into the grammar you already know.
 
 ---
 
-## Summary -- ten principles
+## Summary — ten principles
 
 1. **Modes are your friend.** Normal is home; Insert is a temporary detour.
 2. **Think operator + motion.** `d` + `w` = delete word. Everything is a sentence.
@@ -473,7 +473,7 @@ Once the grammar lives in your fingers, Vim stops being a tool you "operate" and
 
 ## Where to go next
 
-- `vimtutor` -- run it in your terminal. Thirty minutes, built into Vim.
-- *Practical Vim* by Drew Neil -- the best book for going from beginner to fluent.
-- [Vim Adventures](https://vim-adventures.com) -- a browser game that teaches motions.
-- [Vim Golf](https://vimgolf.com) -- competitive minimum-keystroke puzzles; great for advanced tricks.
+- `vimtutor` — run it in your terminal. Thirty minutes, built into Vim.
+- *Practical Vim* by Drew Neil — the best book for going from beginner to fluent.
+- [Vim Adventures](https://vim-adventures.com) — a browser game that teaches motions.
+- [Vim Golf](https://vimgolf.com) — competitive minimum-keystroke puzzles; great for advanced tricks.

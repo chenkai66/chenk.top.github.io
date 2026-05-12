@@ -6,8 +6,7 @@ tags:
   - Networking
   - Load Balancing
   - CDN
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "每个 Web 请求都始于 DNS 解析，可能途经 CDN 边缘节点，最终抵达负载均衡器，才到达你的应用。理解这三跳机制，是构建快速、可靠、全球分布式系统的基石。"

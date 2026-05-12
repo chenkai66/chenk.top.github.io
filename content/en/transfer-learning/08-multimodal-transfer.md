@@ -1,8 +1,7 @@
 ---
 title: "Transfer Learning (8): Multimodal Transfer"
 date: 2025-06-12 09:00:00
-categories:
-  - Transfer Learning
+categories: Transfer Learning
   - Machine Learning
 tags:
   - Multimodal Learning

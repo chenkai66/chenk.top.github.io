@@ -5,8 +5,7 @@ tags:
   - Python
   - Concurrency
   - asyncio
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Understand the GIL, master threading, multiprocessing, and asyncio. Learn which concurrency model to use for I/O-bound vs CPU-bound workloads."

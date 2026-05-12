@@ -7,8 +7,7 @@ tags:
   - Characteristic Equation
   - Spring Oscillation
   - RLC Circuit
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -17,7 +16,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "ode-3"
 ---
-**A first-order ODE has memory of one number; a second-order ODE has memory of two.** That tiny extra degree of freedom is what lets the same equation describe a plucked guitar string, the suspension of your car, the L-C tank circuit inside an FM radio, and the swaying of a tall building in the wind. In every case the same three regimes appear -- oscillate, return-with-a-touch-of-overshoot, or crawl back -- and the same algebraic gadget, the *characteristic equation*, predicts which one happens.
+**A first-order ODE has memory of one number; a second-order ODE has memory of two.** That tiny extra degree of freedom is what lets the same equation describe a plucked guitar string, the suspension of your car, the L-C tank circuit inside an FM radio, and the swaying of a tall building in the wind. In every case the same three regimes appear — oscillate, return-with-a-touch-of-overshoot, or crawl back — and the same algebraic gadget, the *characteristic equation*, predicts which one happens.
 
 This chapter builds the entire toolkit. We will derive it once, prove the structural theorems, then keep meeting the same picture in different clothing.
 
@@ -36,7 +35,7 @@ This chapter builds the entire toolkit. We will derive it once, prove the struct
 
 ## Prerequisites
 
-- [Chapter 2: First-order methods](/en/ode/02-first-order-methods/) -- separable equations, integrating factors
+- [Chapter 2: First-order methods](/en/ode/02-first-order-methods/) — separable equations, integrating factors
 - Linear algebra fluency at the level of $2\times 2$ determinants and complex numbers
 
 ---
@@ -53,7 +52,7 @@ $$\boxed{\;\ddot x + 2\zeta\omega_0\,\dot x + \omega_0^2\,x \;=\; f(t)\;}$$
 
 with **natural frequency** $\omega_0 = \sqrt{k/m}$ and **damping ratio** $\zeta = b/(2\sqrt{mk})$. Almost every example in this chapter is a special case.
 
-> **What second order really buys you.** A first-order ODE $\dot x = F(x,t)$ at time $t$ is determined by the single number $x(t)$. A second-order ODE needs *two* initial conditions, $x(0)$ and $\dot x(0)$ -- you can specify position and velocity independently, so the system can store and exchange two kinds of "stuff" (kinetic and potential energy, voltage and current, etc.). Oscillation is the visible signature of that exchange.
+> **What second order really buys you.** A first-order ODE $\dot x = F(x,t)$ at time $t$ is determined by the single number $x(t)$. A second-order ODE needs *two* initial conditions, $x(0)$ and $\dot x(0)$ — you can specify position and velocity independently, so the system can store and exchange two kinds of "stuff" (kinetic and potential energy, voltage and current, etc.). Oscillation is the visible signature of that exchange.
 
 ---
 
@@ -69,7 +68,7 @@ It is **homogeneous** when $g \equiv 0$, otherwise **non-homogeneous**.
 
 ### 2.2 Three theorems that organise everything
 
-**(T1) Superposition.** If $y_1, y_2$ both solve the homogeneous equation, so does $c_1 y_1 + c_2 y_2$ for any constants $c_1, c_2$. (Linearity of derivatives -- write it out.)
+**(T1) Superposition.** If $y_1, y_2$ both solve the homogeneous equation, so does $c_1 y_1 + c_2 y_2$ for any constants $c_1, c_2$. (Linearity of derivatives — write it out.)
 
 **(T2) Dimension of the homogeneous solution space.** An $n$-th order linear homogeneous ODE on an interval where the coefficients $p_i$ are continuous has *exactly* $n$ linearly independent solutions $y_1, \dots, y_n$, and every solution is
 
@@ -101,7 +100,7 @@ For $n = 2$: $W(y_1, y_2) = y_1 y_2' - y_2 y_1'$.
 
 **Worked example.** Take $y_1 = \sin x, y_2 = \cos x$:
 $$W = \sin x \cdot (-\sin x) - \cos x \cdot \cos x = -1 \neq 0.$$
-Independent everywhere -- they form a basis for solutions of $y'' + y = 0$.
+Independent everywhere — they form a basis for solutions of $y'' + y = 0$.
 
 **A dependent example.** $y_1 = \sin x, y_2 = 2\sin x$ gives $W = 2\sin x\cos x - 2\sin x\cos x = 0$ identically. They are scalar multiples; the dimension of the span is one, not two.
 
@@ -140,7 +139,7 @@ The reason: when $P(r)$ has a double root, the operator $L$ factors as $(D - r)^
 $$y \;=\; e^{\alpha x}\bigl(c_1 \cos\beta x + c_2 \sin\beta x\bigr).$$
 *Why this works.* The complex pair contributes $C_1 e^{(\alpha+i\beta)x} + C_2 e^{(\alpha-i\beta)x}$, and Euler's formula $e^{i\beta x} = \cos\beta x + i\sin\beta x$ rearranges this into the real form. Concretely, $\alpha$ controls the exponential envelope and $\beta$ controls the oscillation rate.
 
-*Example.* $y'' + 2y' + 5y = 0$ gives $r = -1 \pm 2i$, so $y = e^{-x}(c_1\cos 2x + c_2\sin 2x)$ -- a sinusoid trapped inside a shrinking exponential envelope.
+*Example.* $y'' + 2y' + 5y = 0$ gives $r = -1 \pm 2i$, so $y = e^{-x}(c_1\cos 2x + c_2\sin 2x)$ — a sinusoid trapped inside a shrinking exponential envelope.
 
 ### 3.3 Reading roots geometrically
 
@@ -173,7 +172,7 @@ Its characteristic equation $r^2 + 2\zeta\omega_0 r + \omega_0^2 = 0$ has discri
 | **Overdamped** | $\zeta > 1$ | two real, both negative | Sum of two decaying exponentials, slow return |
 
 ![Three damping regimes side by side: underdamped oscillation under an exponential envelope, critical damping, and a slow overdamped relaxation.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig1_damping_regimes.png)
-*Three damping regimes of $\ddot x + 2\zeta\omega_0 \dot x + \omega_0^2 x = 0$. The dashed envelope on the left panel is $\pm e^{-\zeta\omega_0 t}$ -- the imaginary part of the roots controls the oscillation; the real part controls the envelope decay.*
+*Three damping regimes of $\ddot x + 2\zeta\omega_0 \dot x + \omega_0^2 x = 0$. The dashed envelope on the left panel is $\pm e^{-\zeta\omega_0 t}$ — the imaginary part of the roots controls the oscillation; the real part controls the envelope decay.*
 
 > **Engineering aside.** Car suspensions are tuned to $\zeta \approx 0.6\text{--}0.7$. That is just below critical damping: the car settles fast, but with a small overshoot you do not feel. Pure $\zeta = 1$ would feel "dead" because the response is sluggish near the end; pure $\zeta = 0.1$ would let you bounce for a city block after every pothole. Door closers, by contrast, are deliberately overdamped ($\zeta > 1$) to avoid slamming.
 
@@ -200,7 +199,7 @@ To solve $L[y] = f(x)$ with constant coefficients:
 | $e^{\alpha x}\cos\beta x$ | $e^{\alpha x}(A\cos\beta x + B\sin\beta x)$ |
 | product / sum of the above | corresponding product / sum |
 
-**The resonance correction.** If your trial form is *itself a homogeneous solution*, multiply it by $x$ (or $x^2$ for a double resonance). Otherwise the substitution gives $0 = f$ -- a contradiction.
+**The resonance correction.** If your trial form is *itself a homogeneous solution*, multiply it by $x$ (or $x^2$ for a double resonance). Otherwise the substitution gives $0 = f$ — a contradiction.
 
 ### 5.3 A worked example end-to-end
 
@@ -210,7 +209,7 @@ Solve $y'' + y' + y = e^{-x/2}\cos x$.
 
 $$y_h \;=\; e^{-x/2}\bigl(c_1\cos\tfrac{\sqrt 3}{2}x + c_2\sin\tfrac{\sqrt 3}{2}x\bigr).$$
 
-**Trial form.** The forcing is $e^{-x/2}\cos x$ -- the exponential envelope matches $y_h$ but the inner frequency $\beta = 1$ does *not* match $\sqrt 3/2$, so there is no resonance and we may try
+**Trial form.** The forcing is $e^{-x/2}\cos x$ — the exponential envelope matches $y_h$ but the inner frequency $\beta = 1$ does *not* match $\sqrt 3/2$, so there is no resonance and we may try
 
 $$y_p \;=\; e^{-x/2}(A\cos x + B\sin x).$$
 
@@ -229,10 +228,10 @@ The naive trial $A\cos\omega_0 t + B\sin\omega_0 t$ already solves the homogeneo
 
 $$x_p \;=\; \frac{F_0}{2\omega_0}\,t\,\sin\omega_0 t.$$
 
-The amplitude grows linearly with time -- energy is pumped in every cycle and never removed. Add even a sliver of damping and the unbounded growth becomes a finite peak at $\omega_r = \omega_0\sqrt{1 - 2\zeta^2}$, with peak amplitude $\propto 1/\zeta$.
+The amplitude grows linearly with time — energy is pumped in every cycle and never removed. Add even a sliver of damping and the unbounded growth becomes a finite peak at $\omega_r = \omega_0\sqrt{1 - 2\zeta^2}$, with peak amplitude $\propto 1/\zeta$.
 
 ![Steady-state amplitude versus driving frequency for several damping ratios; the resonance peak sharpens dramatically as zeta tends to zero.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig3_resonance_curve.png)
-*Steady-state amplitude as a function of driving frequency, for $\zeta = 0.05, 0.1, 0.2, 0.4, 1/\sqrt 2$. As $\zeta \to 0$ the peak grows without bound (the undamped resonance limit). For $\zeta > 1/\sqrt 2$ the peak disappears entirely -- the system has no resonance.*
+*Steady-state amplitude as a function of driving frequency, for $\zeta = 0.05, 0.1, 0.2, 0.4, 1/\sqrt 2$. As $\zeta \to 0$ the peak grows without bound (the undamped resonance limit). For $\zeta > 1/\sqrt 2$ the peak disappears entirely — the system has no resonance.*
 
 ---
 
@@ -244,7 +243,7 @@ The undetermined-coefficients table only contains exponentials, polynomials, sin
 
 ### 6.2 The formula (second order)
 
-Given $y'' + p(x)y' + q(x)y = f(x)$ and a basis $y_1, y_2$ for the homogeneous equation, look for a particular solution of the form $y_p = u_1(x)\,y_1(x) + u_2(x)\,y_2(x)$ -- promoting the "constants" of the homogeneous solution to functions (hence the name). Imposing the constraint $u_1' y_1 + u_2' y_2 = 0$ to keep things tractable, substitution yields the linear system
+Given $y'' + p(x)y' + q(x)y = f(x)$ and a basis $y_1, y_2$ for the homogeneous equation, look for a particular solution of the form $y_p = u_1(x)\,y_1(x) + u_2(x)\,y_2(x)$ — promoting the "constants" of the homogeneous solution to functions (hence the name). Imposing the constraint $u_1' y_1 + u_2' y_2 = 0$ to keep things tractable, substitution yields the linear system
 
 $$\begin{pmatrix} y_1 & y_2 \\ y_1' & y_2' \end{pmatrix}
 \begin{pmatrix} u_1' \\ u_2' \end{pmatrix} =
@@ -269,7 +268,7 @@ $$y_p \;=\; -\cos x\int\tan x\,dx + \sin x\int 1\,dx
 ![Variation of parameters on y''+y = sec(x): the homogeneous basis, the antiderivatives u1 and u2, and the reconstructed particular solution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig7_variation_of_parameters.png)
 *Variation of parameters on $y'' + y = \sec x$. Top row: the homogeneous basis $y_1, y_2$ and the singular forcing $\sec x$. Bottom row: the antiderivatives $u_1(x) = \ln|\cos x|$ and $u_2(x) = x$, and the assembled particular solution $y_p = \cos x \ln|\cos x| + x\sin x$.*
 
-> **When to use which.** Undetermined coefficients is faster when it applies: you guess and solve a small linear system. Variation of parameters always works (with continuous $f$) but costs you two integrals -- which may themselves be hard. For exponential / trig / polynomial forcings, prefer undetermined coefficients; for everything else, reach for variation of parameters.
+> **When to use which.** Undetermined coefficients is faster when it applies: you guess and solve a small linear system. Variation of parameters always works (with continuous $f$) but costs you two integrals — which may themselves be hard. For exponential / trig / polynomial forcings, prefer undetermined coefficients; for everything else, reach for variation of parameters.
 
 ---
 
@@ -309,7 +308,7 @@ $$\begin{pmatrix} y_1' \\ y_2' \end{pmatrix} \;=\;
 \begin{pmatrix} y_1 \\ y_2 \end{pmatrix} +
 \begin{pmatrix} 0 \\ f(x) \end{pmatrix}.$$
 
-The eigenvalues of the matrix $\bigl(\begin{smallmatrix} 0 & 1 \\ -b & -a \end{smallmatrix}\bigr)$ are *exactly* the roots of the characteristic polynomial $r^2 + ar + b$ -- so everything we said about characteristic roots is just two-dimensional linear algebra in disguise. We will exploit this fully in Chapter 6.
+The eigenvalues of the matrix $\bigl(\begin{smallmatrix} 0 & 1 \\ -b & -a \end{smallmatrix}\bigr)$ are *exactly* the roots of the characteristic polynomial $r^2 + ar + b$ — so everything we said about characteristic roots is just two-dimensional linear algebra in disguise. We will exploit this fully in Chapter 6.
 
 ---
 
@@ -370,7 +369,7 @@ The eigenvalues of the matrix $\bigl(\begin{smallmatrix} 0 & 1 \\ -b & -a \end{s
 - Kreyszig, *Advanced Engineering Mathematics*, Wiley (2011). Strong on the engineering applications, especially RLC and vibrations.
 - Nagle, Saff & Snider, *Fundamentals of Differential Equations*, Pearson (2017). Clean exposition of variation of parameters.
 - Strogatz, *Nonlinear Dynamics and Chaos* (1994). Chapters 4 and 5 give the geometric reading of linear stability that anticipates [Chapter 7](/en/ode/07-systems-and-phase-plane/).
-- MIT OpenCourseWare 18.03, *Differential Equations* -- video lectures by Arthur Mattuck.
+- MIT OpenCourseWare 18.03, *Differential Equations* — video lectures by Arthur Mattuck.
 
 ---
 

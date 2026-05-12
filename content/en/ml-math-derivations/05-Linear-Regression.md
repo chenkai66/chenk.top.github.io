@@ -16,21 +16,21 @@ disableNunjucks: true
 series_order: 5
 translationKey: "ml-math-derivations-5"
 ---
-> **Hook.** In 1886 Francis Galton noticed something strange about heredity: children of unusually tall (or short) parents tended to be closer to the average than their parents were. He called this drift toward the mean *regression*, and the name stuck. The statistical curiosity grew up into the most consequential model in machine learning -- not because linear regression is powerful on its own, but because almost every other algorithm (logistic regression, neural networks, kernel methods) is some twist on the same idea: **fit a line, but in the right space.**
+> **Hook.** In 1886 Francis Galton noticed something strange about heredity: children of unusually tall (or short) parents tended to be closer to the average than their parents were. He called this drift toward the mean *regression*, and the name stuck. The statistical curiosity grew up into the most consequential model in machine learning — not because linear regression is powerful on its own, but because almost every other algorithm (logistic regression, neural networks, kernel methods) is some twist on the same idea: **fit a line, but in the right space.**
 
-This chapter develops linear regression from three independent starting points -- algebra, geometry, and probability -- and shows that they all land on the same equation. Then we look at what happens when the assumptions break, and how Ridge, Lasso, and robust losses repair them.
+This chapter develops linear regression from three independent starting points — algebra, geometry, and probability — and shows that they all land on the same equation. Then we look at what happens when the assumptions break, and how Ridge, Lasso, and robust losses repair them.
 
 ![ML Math Derivations (5): Linear Regression — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/illustration_1.png)
 
 ## What This Article Covers
 
-1. **Setup** -- how to write the model in matrix form so the math becomes one line.
-2. **Algebra** -- minimize a quadratic, get the *normal equation* $w^\* = (X^\top X)^{-1} X^\top y$.
-3. **Geometry** -- the same answer falls out of orthogonally projecting $y$ onto $\operatorname{Col}(X)$.
-4. **Probability** -- under Gaussian noise, least squares is exactly maximum likelihood.
-5. **Regularization** -- Ridge (L2) makes the system stable, Lasso (L1) makes it sparse.
-6. **Optimization** -- when $X^\top X$ is too big to invert, gradient descent steps in.
-7. **Diagnostics** -- residuals, multicollinearity, outliers, and how to fix each.
+1. **Setup** — how to write the model in matrix form so the math becomes one line.
+2. **Algebra** — minimize a quadratic, get the *normal equation* $w^\* = (X^\top X)^{-1} X^\top y$.
+3. **Geometry** — the same answer falls out of orthogonally projecting $y$ onto $\operatorname{Col}(X)$.
+4. **Probability** — under Gaussian noise, least squares is exactly maximum likelihood.
+5. **Regularization** — Ridge (L2) makes the system stable, Lasso (L1) makes it sparse.
+6. **Optimization** — when $X^\top X$ is too big to invert, gradient descent steps in.
+7. **Diagnostics** — residuals, multicollinearity, outliers, and how to fix each.
 
 ## Setup: Putting Linear Regression in Matrix Form
 
@@ -51,7 +51,7 @@ Stack everything:
 $$X = \begin{bmatrix} x_1^\top \\\\ x_2^\top \\\\ \vdots \\\\ x_m^\top \end{bmatrix} \in \mathbb{R}^{m \times (d+1)}, \qquad y = \begin{bmatrix} y_1 \\\\ y_2 \\\\ \vdots \\\\ y_m \end{bmatrix} \in \mathbb{R}^{m}.$$
 The vector of all predictions is then simply $\hat y = Xw$. Our job is to choose $w$ so that $\hat y$ is as close to $y$ as possible.
 
-## Perspective 1 -- Algebra: The Normal Equation
+## Perspective 1 — Algebra: The Normal Equation
 
 ## The Squared-Error Loss
 
@@ -73,7 +73,7 @@ $$\nabla_w L = -X^\top y + X^\top X\, w = X^\top (Xw - y).$$
 
 Setting $\nabla_w L = 0$:
 $$\boxed{\,X^\top X\, w = X^\top y\,}.$$
-This is the **normal equation** -- so named because, geometrically, it asserts that the residual is *normal* (perpendicular) to every column of $X$. We'll see that geometry in a moment.
+This is the **normal equation** — so named because, geometrically, it asserts that the residual is *normal* (perpendicular) to every column of $X$. We'll see that geometry in a moment.
 
 **Theorem 1 (Closed-form least-squares solution).** *If $X^\top X$ is invertible, the unique minimiser of $L$ is*
 $$w^\* = (X^\top X)^{-1} X^\top y.$$
@@ -83,12 +83,12 @@ $$v^\top X^\top X\, v = \|Xv\|_2^2 > 0$$
 
 **When does $X^\top X$ fail to be invertible?**
 
-- $m < d+1$ -- fewer samples than features (the system is underdetermined),
+- $m < d+1$ — fewer samples than features (the system is underdetermined),
 - columns of $X$ are linearly dependent (perfect multicollinearity).
 
 In both cases the *pseudoinverse* gives the minimum-norm solution: $w^\* = X^{+} y$, computed via SVD ($X = U \Sigma V^\top \Rightarrow X^+ = V \Sigma^+ U^\top$, where $\Sigma^+$ inverts the nonzero singular values and leaves zeros alone).
 
-## Perspective 2 -- Geometry: Orthogonal Projection
+## Perspective 2 — Geometry: Orthogonal Projection
 
 ## The Same Answer, A Different Story
 
@@ -96,7 +96,7 @@ Forget calculus for a moment. The columns of $X$ span a subspace $\operatorname{
 
 Geometry tells us that point exactly: it is the **orthogonal projection** of $y$ onto $\operatorname{Col}(X)$, and it is characterised by the residual $y - \hat y$ being perpendicular to every column of $X$:
 $$X^\top (y - X w^\*) = 0 \quad\Longleftrightarrow\quad X^\top X\, w^\* = X^\top y.$$
-That's the normal equation again -- this time derived without taking a single derivative.
+That's the normal equation again — this time derived without taking a single derivative.
 
 ![OLS as orthogonal projection of y onto the column space of X](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/fig2_projection_geometry.png)
 
@@ -106,7 +106,7 @@ The figure makes three things visible simultaneously: the columns of $X$ spannin
 
 ![ML Math Derivations (5): Linear Regression — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/illustration_2.png)
 
-The projection itself is a linear map -- the **hat matrix**:
+The projection itself is a linear map — the **hat matrix**:
 $$H = X(X^\top X)^{-1} X^\top, \qquad \hat y = H y.$$
 It satisfies the two defining properties of an orthogonal projector:
 
@@ -115,7 +115,7 @@ It satisfies the two defining properties of an orthogonal projector:
 
 The *residual maker* $M = I - H$ projects onto the orthogonal complement; $M y$ is the residual vector. It satisfies $MX = 0$, formalising "residuals are orthogonal to every feature."
 
-## Perspective 3 -- Probability: Maximum Likelihood
+## Perspective 3 — Probability: Maximum Likelihood
 
 ## The Linear-Gaussian Model
 
@@ -133,7 +133,7 @@ Maximising over $w$ (with $\sigma^2$ fixed) is the same as **minimising the sum 
 
 **Theorem 2.** *Under the Gaussian-noise model, the MLE for $w$ is exactly the OLS solution:* $\hat w_{\text{MLE}} = (X^\top X)^{-1} X^\top y$.
 
-Differentiating with respect to $\sigma^2$ yields $\hat\sigma^2_{\text{MLE}} = \tfrac{1}{m}\|y - X\hat w\|_2^2$ -- the mean residual sum of squares. (This estimator is biased; the unbiased version divides by $m - d - 1$.)
+Differentiating with respect to $\sigma^2$ yields $\hat\sigma^2_{\text{MLE}} = \tfrac{1}{m}\|y - X\hat w\|_2^2$ — the mean residual sum of squares. (This estimator is biased; the unbiased version divides by $m - d - 1$.)
 
 ## Bayesian Step: Where Ridge Comes From
 
@@ -151,19 +151,19 @@ $$L_{\text{reg}}(w) = \tfrac{1}{2}\|y - Xw\|_2^2 + \lambda \cdot \mathcal{P}(w).
 
 Take $\mathcal{P}(w) = \tfrac{1}{2}\|w\|_2^2$. The closed form drops out by the same gradient calculation as before:
 $$\boxed{\;\hat w_{\text{Ridge}} = (X^\top X + \lambda I)^{-1} X^\top y.\;}$$
-The added $\lambda I$ shifts every eigenvalue of $X^\top X$ up by $\lambda$, so the matrix is *always* invertible for $\lambda > 0$ -- even when $X^\top X$ alone is singular. This is what people mean by "Ridge stabilises the inverse."
+The added $\lambda I$ shifts every eigenvalue of $X^\top X$ up by $\lambda$, so the matrix is *always* invertible for $\lambda > 0$ — even when $X^\top X$ alone is singular. This is what people mean by "Ridge stabilises the inverse."
 
 ## Lasso Regression (L1)
 
-Take $\mathcal{P}(w) = \|w\|_1$. There is no closed form -- $|\cdot|$ is not differentiable at zero -- but the optimisation is still convex and is solved efficiently by *coordinate descent* or *proximal gradient*. The remarkable property:
+Take $\mathcal{P}(w) = \|w\|_1$. There is no closed form — $|\cdot|$ is not differentiable at zero — but the optimisation is still convex and is solved efficiently by *coordinate descent* or *proximal gradient*. The remarkable property:
 
 > **Lasso produces exactly-zero coefficients**, performing variable selection automatically.
 
-The figure below shows the coefficient *paths* -- how each $w_j$ evolves as $\lambda$ slides from very small (left, equals OLS) to very large (right, every coefficient crushed to zero):
+The figure below shows the coefficient *paths* — how each $w_j$ evolves as $\lambda$ slides from very small (left, equals OLS) to very large (right, every coefficient crushed to zero):
 
 ![Coefficient paths: Ridge shrinks smoothly, Lasso clips to zero](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/fig4_regularization_paths.png)
 
-In Ridge, each curve approaches zero asymptotically -- it gets *small*, but never *zero*. In Lasso, curves **hit the axis and stay there**. That binary "in or out" behaviour is what makes Lasso a feature selector.
+In Ridge, each curve approaches zero asymptotically — it gets *small*, but never *zero*. In Lasso, curves **hit the axis and stay there**. That binary "in or out" behaviour is what makes Lasso a feature selector.
 
 ## Why Lasso is Sparse: A Geometric Argument
 
@@ -176,7 +176,7 @@ The level sets of the loss are ellipsoids around $\hat w_{\text{OLS}}$. The cons
 
 ![L1 vs L2 geometry: corners on axes give sparsity](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/fig5_l1_vs_l2_geometry.png)
 
-The L2 disk has a smooth boundary, so the loss ellipse generally touches it at an *interior* point of the boundary -- both coordinates non-zero. The L1 diamond has *corners on the axes*, and ellipses tilted in generic directions almost always touch a corner first -- giving sparse solutions. The higher the dimension, the more corners and edges the diamond grows, and the more aggressively Lasso zeroes things out.
+The L2 disk has a smooth boundary, so the loss ellipse generally touches it at an *interior* point of the boundary — both coordinates non-zero. The L1 diamond has *corners on the axes*, and ellipses tilted in generic directions almost always touch a corner first — giving sparse solutions. The higher the dimension, the more corners and edges the diamond grows, and the more aggressively Lasso zeroes things out.
 
 ## Elastic Net
 
@@ -211,10 +211,10 @@ The pragmatic middle ground: average the gradient over a batch of $B \in [32, 51
 
 For predictions $\hat y_i$ on a test set:
 
-- **MSE** $= \frac{1}{n}\sum (y_i - \hat y_i)^2$ -- penalises large errors quadratically.
-- **RMSE** $= \sqrt{\text{MSE}}$ -- in the original units of $y$.
-- **MAE** $= \frac{1}{n}\sum |y_i - \hat y_i|$ -- more robust to outliers.
-- **$R^2$** $= 1 - \dfrac{\sum(y_i - \hat y_i)^2}{\sum(y_i - \bar y)^2}$ -- fraction of variance explained.
+- **MSE** $= \frac{1}{n}\sum (y_i - \hat y_i)^2$ — penalises large errors quadratically.
+- **RMSE** $= \sqrt{\text{MSE}}$ — in the original units of $y$.
+- **MAE** $= \frac{1}{n}\sum |y_i - \hat y_i|$ — more robust to outliers.
+- **$R^2$** $= 1 - \dfrac{\sum(y_i - \hat y_i)^2}{\sum(y_i - \bar y)^2}$ — fraction of variance explained.
 
 A subtle warning about $R^2$: it never decreases when you add features. Use **adjusted $R^2$** when comparing models of different sizes:
 $$R^2_{\text{adj}} = 1 - (1 - R^2)\,\frac{n - 1}{n - d - 1}.$$
@@ -232,7 +232,7 @@ Linear regression is "linear in the parameters", *not* "linear in the inputs". A
 
 ![Underfit vs right fit vs overfit on a sine curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/fig3_polynomial_fits.png)
 
-A degree-1 model is too rigid to capture the sine wave (high bias). A degree-3 polynomial nails it. A degree-15 polynomial passes through almost every point but oscillates wildly between them -- a classic overfit. Compare the *training* MSE in each panel: it monotonically decreases. The training error tells you nothing about overfitting; only held-out data does.
+A degree-1 model is too rigid to capture the sine wave (high bias). A degree-3 polynomial nails it. A degree-15 polynomial passes through almost every point but oscillates wildly between them — a classic overfit. Compare the *training* MSE in each panel: it monotonically decreases. The training error tells you nothing about overfitting; only held-out data does.
 
 ## Outlier Sensitivity and Robust Alternatives
 
@@ -240,7 +240,7 @@ Squared loss has a known weakness: a single outlier with a large residual contri
 
 ![OLS gets dragged by outliers; Huber regression resists](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/fig7_outlier_robustness.png)
 
-The dashed grey line is the truth. OLS (purple) tilts visibly toward the three outliers. The **Huber loss** -- quadratic for small residuals, linear for large ones -- treats outliers gently:
+The dashed grey line is the truth. OLS (purple) tilts visibly toward the three outliers. The **Huber loss** — quadratic for small residuals, linear for large ones — treats outliers gently:
 $$\rho_\delta(r) = \begin{cases} \tfrac{1}{2} r^2, & |r| \le \delta, \\\\ \delta\,(|r| - \tfrac{1}{2}\delta), & |r| > \delta. \end{cases}$$
 The Huber fit (green) almost overlaps the truth despite the same outliers. Other options exist (RANSAC, M-estimators, quantile regression), but Huber is the workhorse: differentiable everywhere, convex, robust.
 
@@ -258,7 +258,7 @@ Three reasons squared loss dominates: (i) it's smooth, (ii) it has a closed-form
 
 ### Q2: Normal equation or gradient descent?
 
-**Use the normal equation when** $d \lesssim 10^4$ and $X^\top X$ fits in memory -- it's exact and one-shot.
+**Use the normal equation when** $d \lesssim 10^4$ and $X^\top X$ fits in memory — it's exact and one-shot.
 
 **Use gradient descent when** $d$ is large, when you need online updates, or when you've added a non-smooth penalty (Lasso) that has no closed form.
 
@@ -303,17 +303,17 @@ For inference (p-values, confidence intervals) all four matter. For *prediction*
 
 ### Q8: How do I encode categorical features?
 
-Never as integers (that fakes an ordering). Use **one-hot encoding** (`pd.get_dummies` or `OneHotEncoder`). For a $k$-level category, create $k$ indicators -- and drop one to avoid the multicollinearity caused by the columns summing to 1 (`drop='first'`).
+Never as integers (that fakes an ordering). Use **one-hot encoding** (`pd.get_dummies` or `OneHotEncoder`). For a $k$-level category, create $k$ indicators — and drop one to avoid the multicollinearity caused by the columns summing to 1 (`drop='first'`).
 
 ### Q9: Can linear regression model nonlinear relationships?
 
-Yes -- *linear* refers to the parameters, not the inputs. Replace $x$ with $\phi(x)$ (polynomial, log, sin, ReLU, you name it), then fit a linear model in $\phi$. This is exactly what kernel methods and neural networks generalise.
+Yes — *linear* refers to the parameters, not the inputs. Replace $x$ with $\phi(x)$ (polynomial, log, sin, ReLU, you name it), then fit a linear model in $\phi$. This is exactly what kernel methods and neural networks generalise.
 
 ### Q10: How do I interpret coefficients?
 
 After standardising features, $\hat w_j$ is the change in $\hat y$ (in standard deviations) per one-standard-deviation increase in $x_j$, *holding the other features fixed*. Two large warnings:
 
-- **Multicollinearity** makes individual $\hat w_j$ unstable even when predictions are fine -- don't read a single $\hat w_j$ in isolation.
+- **Multicollinearity** makes individual $\hat w_j$ unstable even when predictions are fine — don't read a single $\hat w_j$ in isolation.
 - **Correlation is not causation.** A regression coefficient is a conditional association in your data, full stop. Causal claims need experimental design or special identification strategies.
 
 ## Verifying the Code
@@ -328,9 +328,9 @@ We approached linear regression from three independent directions and arrived at
 - **Geometry.** Project $y$ orthogonally onto $\operatorname{Col}(X)$. The condition that the residual is perpendicular to the columns *is* the normal equation.
 - **Probability.** Under Gaussian noise, MLE for $w$ minimises squared residuals. Under a Gaussian prior on $w$, MAP gives Ridge.
 
-Then we addressed three failures of vanilla OLS: instability under collinearity (Ridge), failure to select features (Lasso), and oversensitivity to outliers (Huber). The optimisation toolkit -- BGD, SGD, mini-batch -- handles the case where $X^\top X$ is too big to invert. And cross-validation tells us, empirically, what model capacity to choose.
+Then we addressed three failures of vanilla OLS: instability under collinearity (Ridge), failure to select features (Lasso), and oversensitivity to outliers (Huber). The optimisation toolkit — BGD, SGD, mini-batch — handles the case where $X^\top X$ is too big to invert. And cross-validation tells us, empirically, what model capacity to choose.
 
-**Next chapter.** We'll generalise to *classification* -- the output space becomes discrete. The sigmoid function, cross-entropy loss, and the geometric meaning of decision boundaries all fall out of asking "what's the linear-Gaussian model for binary outputs?"
+**Next chapter.** We'll generalise to *classification* — the output space becomes discrete. The sigmoid function, cross-entropy loss, and the geometric meaning of decision boundaries all fall out of asking "what's the linear-Gaussian model for binary outputs?"
 
 ## References
 

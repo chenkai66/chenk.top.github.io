@@ -17,15 +17,15 @@ disableNunjucks: true
 series_order: 12
 translationKey: "linear-algebra-12"
 ---
-![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing -- Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_1.png)
+![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing — Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_1.png)
 
 ## The "Less Is More" Miracle
 
-A raw 24-megapixel photograph weighs in at roughly 70 MB. JPEG compresses it to a few hundred kilobytes -- a 100$\times$reduction -- and you cannot tell the difference. A traditional MRI scan takes thirty minutes; a modern compressed sensing MRI gets the same image in five.
+A raw 24-megapixel photograph weighs in at roughly 70 MB. JPEG compresses it to a few hundred kilobytes — a 100$\times$reduction — and you cannot tell the difference. A traditional MRI scan takes thirty minutes; a modern compressed sensing MRI gets the same image in five.
 
 Both miracles run on the same engine: **sparsity**. Most natural signals, written in the right basis, have only a handful of meaningful coefficients. Everything else is essentially zero.
 
-**Compressed sensing** turns that observation into an algorithm. Because the signal is sparse, you need far fewer measurements than classical sampling theory demands -- and you can still reconstruct it exactly. This chapter walks through why.
+**Compressed sensing** turns that observation into an algorithm. Because the signal is sparse, you need far fewer measurements than classical sampling theory demands — and you can still reconstruct it exactly. This chapter walks through why.
 
 ### What you will learn
 
@@ -48,7 +48,7 @@ Both miracles run on the same engine: **sparsity**. Most natural signals, writte
 
 ### Definition
 
-A vector$\vec{x} \in \mathbb{R}^n$is **$k$-sparse** if at most$k$of its entries are nonzero:$\|\vec{x}\|_0 \;=\; \bigl|\{\,i : x_i \neq 0\,\}\bigr| \;\leq\; k.$The$L_0$"norm" simply counts nonzeros. It is not a real norm -- it fails homogeneity ($\|2x\|_0 = \|x\|_0$) -- but it is the cleanest measure of sparsity we have.
+A vector$\vec{x} \in \mathbb{R}^n$is **$k$-sparse** if at most$k$of its entries are nonzero:$\|\vec{x}\|_0 \;=\; \bigl|\{\,i : x_i \neq 0\,\}\bigr| \;\leq\; k.$The$L_0$"norm" simply counts nonzeros. It is not a real norm — it fails homogeneity ($\|2x\|_0 = \|x\|_0$) — but it is the cleanest measure of sparsity we have.
 
 In practice signals are rarely **exactly** sparse; they are **compressible**. Sort the coefficients by magnitude and the sorted sequence decays quickly. Truncating to the top$k$gives a near-perfect approximation. JPEG works exactly this way: compute the DCT, keep the largest few hundred coefficients, throw the rest away.
 
@@ -98,7 +98,7 @@ When does this actually save memory? Each nonzero in CSR costs eight bytes for t
 
 ![Memory cost of dense vs CSR vs COO storage as a function of density](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig2_memory_savings.png)
 
-CSR breaks even with dense storage at about 67% density (8 / (8+4)). Below ~10% density -- where most real sparse matrices live -- the memory and compute savings are an order of magnitude or more.
+CSR breaks even with dense storage at about 67% density (8 / (8+4)). Below ~10% density — where most real sparse matrices live — the memory and compute savings are an order of magnitude or more.
 
 ---
 
@@ -106,11 +106,11 @@ CSR breaks even with dense storage at about 67% density (8 / (8+4)). Below ~10% 
 
 ### $L_0$is intractable
 
-Find the sparsest representation of$\vec{x}$in dictionary$D$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_0 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This is **NP-hard**. Naively you would enumerate all$\binom{p}{k}$possible supports -- combinatorial explosion. No polynomial-time algorithm is known for the general problem.
+Find the sparsest representation of$\vec{x}$in dictionary$D$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_0 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This is **NP-hard**. Naively you would enumerate all$\binom{p}{k}$possible supports — combinatorial explosion. No polynomial-time algorithm is known for the general problem.
 
 ### $L_1$ as a convex relaxation
 
-Replace$\|\cdot\|_0$with$\|\cdot\|_1 = \sum |\alpha_i|$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_1 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This problem is a **linear program** -- solvable in polynomial time. The remarkable fact is that, under mild conditions on$D$, the$L_1$solution coincides with the$L_0$solution. Convex relaxation is **exact**.
+Replace$\|\cdot\|_0$with$\|\cdot\|_1 = \sum |\alpha_i|$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_1 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This problem is a **linear program** — solvable in polynomial time. The remarkable fact is that, under mild conditions on$D$, the$L_1$solution coincides with the$L_0$solution. Convex relaxation is **exact**.
 
 ### Why does$L_1$promote sparsity? The geometric picture
 
@@ -119,7 +119,7 @@ Imagine the constraint set$\{\vec{\alpha} : D\vec{\alpha} = \vec{x}\}$ as an aff
 - The$L_1$**ball** is a diamond: it has **sharp corners exactly on the coordinate axes**.
 - The$L_2$**ball** is a sphere: smooth everywhere.
 
-A diamond inflated against a generic line touches it first at a corner -- and corners lie on axes, where some coordinates are zero. A sphere touches at a generic surface point with no coordinates forced to zero.
+A diamond inflated against a generic line touches it first at a corner — and corners lie on axes, where some coordinates are zero. A sphere touches at a generic surface point with no coordinates forced to zero.
 
 ![L1 ball touches the constraint at a corner (sparse), L2 ball touches generically (dense)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig3_l1_vs_l2_geometry.png)
 
@@ -145,11 +145,11 @@ When features are highly correlated, pure$L_1$tends to pick one feature from a c
 
 ### Definition
 
-**LASSO** -- Least Absolute Shrinkage and Selection Operator (Tibshirani, 1996):$\min_{\vec{\beta}}\;\tfrac{1}{2}\|X\vec{\beta} - \vec{y}\|^2 \;+\; \lambda\|\vec{\beta}\|_1.$Two things happen simultaneously: the data term fits$\vec{y}$, and the$L_1$penalty drives unimportant coefficients to **exactly zero**. So LASSO is regression and feature selection in one shot.
+**LASSO** — Least Absolute Shrinkage and Selection Operator (Tibshirani, 1996):$\min_{\vec{\beta}}\;\tfrac{1}{2}\|X\vec{\beta} - \vec{y}\|^2 \;+\; \lambda\|\vec{\beta}\|_1.$Two things happen simultaneously: the data term fits$\vec{y}$, and the$L_1$penalty drives unimportant coefficients to **exactly zero**. So LASSO is regression and feature selection in one shot.
 
 ### Soft thresholding
 
-For an orthogonal design ($X^\top X = I$) the LASSO has a closed-form solution:$\hat\beta_j \;=\; \mathcal{S}_\lambda\!\bigl(\hat\beta_j^{\text{OLS}}\bigr) \;=\; \operatorname{sign}\!\bigl(\hat\beta_j^{\text{OLS}}\bigr)\,\bigl(|\hat\beta_j^{\text{OLS}}| - \lambda\bigr)_+.$This **soft thresholding** operator pushes every OLS coefficient toward zero by exactly$\lambda$, and clamps anything smaller than$\lambda$to zero outright. Compare with **hard thresholding**, which leaves large coefficients untouched and zeros the rest -- abrupt and unstable.
+For an orthogonal design ($X^\top X = I$) the LASSO has a closed-form solution:$\hat\beta_j \;=\; \mathcal{S}_\lambda\!\bigl(\hat\beta_j^{\text{OLS}}\bigr) \;=\; \operatorname{sign}\!\bigl(\hat\beta_j^{\text{OLS}}\bigr)\,\bigl(|\hat\beta_j^{\text{OLS}}| - \lambda\bigr)_+.$This **soft thresholding** operator pushes every OLS coefficient toward zero by exactly$\lambda$, and clamps anything smaller than$\lambda$to zero outright. Compare with **hard thresholding**, which leaves large coefficients untouched and zeros the rest — abrupt and unstable.
 
 ### The LASSO solution path
 
@@ -163,23 +163,23 @@ A beautiful structural fact, due to Efron, Hastie, Johnstone, and Tibshirani (20
 
 ![LASSO coefficient paths as the regularization weakens; truly nonzero features marked with *](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig5_lasso_path.png)
 
-The truly active features (bold) enter early and grow large. Spurious features either never enter or enter late with tiny coefficients. Choose$\lambda$by cross-validation -- usually picking the largest$\lambda$within one standard error of the minimum-error choice (the "1-SE rule") to favor parsimony.
+The truly active features (bold) enter early and grow large. Spurious features either never enter or enter late with tiny coefficients. Choose$\lambda$by cross-validation — usually picking the largest$\lambda$within one standard error of the minimum-error choice (the "1-SE rule") to favor parsimony.
 
 ---
 
 ## Compressed Sensing
 
-![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing -- Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_2.png)
+![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing — Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_2.png)
 
 ### The revolutionary idea
 
 **Shannon-Nyquist** says: to recover a band-limited signal you must sample at twice its highest frequency. Period.
 
-**Compressed sensing** says: if the signal is$k$-sparse in some basis, you only need$m \;\sim\; k\,\log\!\frac{n}{k}$linear measurements. For a 256-pixel signal with 10 nonzero wavelet coefficients,$k\log(n/k) \approx 32$measurements -- not 256.
+**Compressed sensing** says: if the signal is$k$-sparse in some basis, you only need$m \;\sim\; k\,\log\!\frac{n}{k}$linear measurements. For a 256-pixel signal with 10 nonzero wavelet coefficients,$k\log(n/k) \approx 32$measurements — not 256.
 
 This is not a free lunch; it works because **the signal model is much stronger**. Shannon-Nyquist asks "any band-limited signal," compressed sensing asks "any$k$-sparse signal." The narrower model permits cheaper sensing.
 
-### The measurement model$\vec{y} \;=\; \Phi \vec{x} \;+\; \vec{e},$with$\vec{x} \in \mathbb{R}^n$($k$-sparse),$\Phi \in \mathbb{R}^{m \times n}$with$m \ll n$, and noise$\vec{e}$. The system$\Phi \vec{x} = \vec{y}$is underdetermined -- infinitely many solutions. Sparsity is the side constraint that selects the right one.
+### The measurement model$\vec{y} \;=\; \Phi \vec{x} \;+\; \vec{e},$with$\vec{x} \in \mathbb{R}^n$($k$-sparse),$\Phi \in \mathbb{R}^{m \times n}$with$m \ll n$, and noise$\vec{e}$. The system$\Phi \vec{x} = \vec{y}$is underdetermined — infinitely many solutions. Sparsity is the side constraint that selects the right one.
 
 ![A 10-sparse signal of length 256 recovered exactly from 64 random measurements via L1](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig4_compressed_sensing.png)
 
@@ -189,15 +189,15 @@ The figure runs ISTA on random Gaussian$\Phi$with$m=64$,$n=256$,$k=10$. The reco
 
 When does an underdetermined$\Phi$preserve enough information to uniquely identify a sparse$\vec{x}$? Candes and Tao's answer is the **Restricted Isometry Property**.
 
-**Definition.**$\Phi$satisfies the$k$-RIP with constant$\delta_k \in (0,1)$if$(1 - \delta_k)\|\vec{x}\|_2^2 \;\leq\; \|\Phi\vec{x}\|_2^2 \;\leq\; (1 + \delta_k)\|\vec{x}\|_2^2$for **every**$k$-sparse$\vec{x}$. In words:$\Phi$acts almost like an isometry on sparse vectors -- it cannot squash two different sparse vectors to (nearly) the same image.
+**Definition.**$\Phi$satisfies the$k$-RIP with constant$\delta_k \in (0,1)$if$(1 - \delta_k)\|\vec{x}\|_2^2 \;\leq\; \|\Phi\vec{x}\|_2^2 \;\leq\; (1 + \delta_k)\|\vec{x}\|_2^2$for **every**$k$-sparse$\vec{x}$. In words:$\Phi$acts almost like an isometry on sparse vectors — it cannot squash two different sparse vectors to (nearly) the same image.
 
 ![RIP intuition: random Gaussian Phi tightly preserves the norm of sparse vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig7_rip_intuition.png)
 
-Left: histograms of$\|\Phi\vec{x}\|/\|\vec{x}\|$over many random$k$-sparse$\vec{x}$, for several sparsity levels. The distributions tightly concentrate around 1 -- norms are nearly preserved. Right: the empirical worst-case distortion$\delta_k$as$k$grows. Beyond some sparsity, the bound$\sqrt{2}-1$is violated; below it, exact recovery is guaranteed.
+Left: histograms of$\|\Phi\vec{x}\|/\|\vec{x}\|$over many random$k$-sparse$\vec{x}$, for several sparsity levels. The distributions tightly concentrate around 1 — norms are nearly preserved. Right: the empirical worst-case distortion$\delta_k$as$k$grows. Beyond some sparsity, the bound$\sqrt{2}-1$is violated; below it, exact recovery is guaranteed.
 
 ### The recovery theorem
 
-**Theorem (Candes-Tao, 2005).** If$\delta_{2k}(\Phi) < \sqrt{2} - 1 \approx 0.414$, then every$k$-sparse$\vec{x}$is the **unique** solution of$\min \|\vec{z}\|_1 \quad \text{s.t.}\quad \Phi\vec{z} = \vec{y}, \qquad \vec{y} = \Phi\vec{x}.$With noise -- via Basis Pursuit Denoising,$\min\|\vec{z}\|_1 \,\text{s.t.}\, \|\Phi\vec{z}-\vec{y}\| \leq \epsilon$-- the recovery error is bounded by a constant times$\epsilon$. Graceful degradation.
+**Theorem (Candes-Tao, 2005).** If$\delta_{2k}(\Phi) < \sqrt{2} - 1 \approx 0.414$, then every$k$-sparse$\vec{x}$is the **unique** solution of$\min \|\vec{z}\|_1 \quad \text{s.t.}\quad \Phi\vec{z} = \vec{y}, \qquad \vec{y} = \Phi\vec{x}.$With noise — via Basis Pursuit Denoising,$\min\|\vec{z}\|_1 \,\text{s.t.}\, \|\Phi\vec{z}-\vec{y}\| \leq \epsilon$-- the recovery error is bounded by a constant times$\epsilon$. Graceful degradation.
 
 ### Designing$\Phi$Building deterministic matrices that satisfy RIP for large$k$is *hard*. The trick is to flip a coin: random matrices satisfy RIP with overwhelming probability.
 
@@ -208,13 +208,13 @@ Left: histograms of$\|\Phi\vec{x}\|/\|\vec{x}\|$over many random$k$-sparse$\vec{
 | Partial Fourier | random rows of DFT | Used in MRI, fast transforms |
 | Sub-Gaussian | other light-tailed | Same scaling$m \sim k\log(n/k)$|
 
-Universality -- the same$\Phi$works for any$k$-sparse signal -- is what makes random measurement matrices so practical.
+Universality — the same$\Phi$works for any$k$-sparse signal — is what makes random measurement matrices so practical.
 
 ---
 
 ## Algorithms
 
-### ISTA -- Iterative Shrinkage-Thresholding
+### ISTA — Iterative Shrinkage-Thresholding
 
 Apply proximal gradient to$\tfrac{1}{2}\|\Phi x - y\|^2 + \lambda\|x\|_1$:$\boxed{\;\vec{x}^{(t+1)} \;=\; \mathcal{S}_{\lambda/L}\!\left(\vec{x}^{(t)} - \tfrac{1}{L}\Phi^\top\!\bigl(\Phi \vec{x}^{(t)} - \vec{y}\bigr)\right)\;}$where$L = \|\Phi^\top\Phi\|_2$is the Lipschitz constant of the smooth part. One gradient step, then a soft threshold. Convergence rate$O(1/t)$.
 
@@ -236,7 +236,7 @@ def ista(Phi, y, lam, max_iter=2000, tol=1e-6):
     return x
 ```
 
-### FISTA -- Nesterov-Accelerated ISTA
+### FISTA — Nesterov-Accelerated ISTA
 
 Add a momentum term and the convergence rate jumps from$O(1/t)$to$O(1/t^2)$:
 
@@ -258,7 +258,7 @@ def fista(Phi, y, lam, max_iter=2000, tol=1e-6):
     return x
 ```
 
-### IHT -- Iterative Hard Thresholding
+### IHT — Iterative Hard Thresholding
 
 If you happen to know the sparsity level$k$, replace the soft threshold by **keep the top-$k$entries**:$\vec{x}^{(t+1)} \;=\; H_k\!\left(\vec{x}^{(t)} - \tfrac{1}{L}\Phi^\top\!\bigl(\Phi \vec{x}^{(t)} - \vec{y}\bigr)\right).$IHT directly attacks the$L_0$problem and converges to a$k$-sparse solution under an RIP-like condition. It is dirt-cheap per iteration: a matrix-vector product plus a partial sort.
 
@@ -266,7 +266,7 @@ If you happen to know the sparsity level$k$, replace the soft threshold by **kee
 
 The four panels snapshot the iterate at iterations 0, 2, 5, and 30 against the true signal (faint background). After two iterations the support is roughly right; by iteration 30 the amplitudes are dialled in. The residual norm$\|\Phi x_t - y\|_2$drops by orders of magnitude.
 
-### OMP -- Orthogonal Matching Pursuit
+### OMP — Orthogonal Matching Pursuit
 
 A pure greedy algorithm: at each step, pick the atom most correlated with the current residual, add it to the support, and resolve least squares on that support.
 
@@ -293,7 +293,7 @@ OMP is fast and easy to reason about, but greedy: a wrong choice early on cannot
 
 ### Compressed sensing MRI
 
-MRI samples in **k-space** -- the Fourier transform of the image -- one row at a time. Sampling all of k-space is what makes MRI slow.
+MRI samples in **k-space** — the Fourier transform of the image — one row at a time. Sampling all of k-space is what makes MRI slow.
 
 The CS-MRI recipe:
 
@@ -309,11 +309,11 @@ Skip the megapixel sensor entirely. A digital micromirror array projects a seque
 
 ### Genomics
 
-A genomic study has$n \sim 20{,}000$candidate genes and$m \sim 100$patients -- the classic$n \gg m$regime where OLS is undefined. LASSO assumes only a handful of genes drive the trait and selects them automatically. The same setup serves quantitative trait loci, GWAS post-processing, and drug-response prediction.
+A genomic study has$n \sim 20{,}000$candidate genes and$m \sim 100$patients — the classic$n \gg m$regime where OLS is undefined. LASSO assumes only a handful of genes drive the trait and selects them automatically. The same setup serves quantitative trait loci, GWAS post-processing, and drug-response prediction.
 
 ### Sparse portfolios
 
-Markowitz portfolios are dense -- you would have to hold a sliver of every asset. Adding$\lambda \|\vec{w}\|_1$to the mean-variance objective produces portfolios with only a few dozen active positions, slashing transaction costs without much risk-adjusted return penalty.
+Markowitz portfolios are dense — you would have to hold a sliver of every asset. Adding$\lambda \|\vec{w}\|_1$to the mean-variance objective produces portfolios with only a few dozen active positions, slashing transaction costs without much risk-adjusted return penalty.
 
 ---
 
@@ -321,7 +321,7 @@ Markowitz portfolios are dense -- you would have to hold a sliver of every asset
 
 ### High-dimensional geometry helps
 
-A$k$-sparse vector lives in the union of$\binom{n}{k}$$k$-dimensional coordinate subspaces -- a vanishingly small fraction of$\mathbb{R}^n$. The set of sparse vectors is so thin that a random low-dimensional projection separates pairs of them with overwhelming probability. That is the geometric heart of RIP.
+A$k$-sparse vector lives in the union of$\binom{n}{k}$$k$-dimensional coordinate subspaces — a vanishingly small fraction of$\mathbb{R}^n$. The set of sparse vectors is so thin that a random low-dimensional projection separates pairs of them with overwhelming probability. That is the geometric heart of RIP.
 
 ### Johnson-Lindenstrauss connection
 
@@ -329,7 +329,7 @@ The **JL lemma** says you can project$N$points into$O(\log N / \epsilon^2)$dimen
 
 ### Information-theoretic optimality
 
-A$k$-sparse vector in$\mathbb{R}^n$has roughly$k \log(n/k)$bits of structural information (which$k$indices) plus$k$real values. Compressed sensing achieves recovery from$O(k \log(n/k))$measurements -- matching the information lower bound up to constants. You cannot do fundamentally better.
+A$k$-sparse vector in$\mathbb{R}^n$has roughly$k \log(n/k)$bits of structural information (which$k$indices) plus$k$real values. Compressed sensing achieves recovery from$O(k \log(n/k))$measurements — matching the information lower bound up to constants. You cannot do fundamentally better.
 
 ---
 

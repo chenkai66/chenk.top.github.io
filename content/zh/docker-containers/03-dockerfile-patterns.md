@@ -7,8 +7,7 @@ tags:
   - Dockerfile
   - Multi-stage Build
   - DevOps
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "Dockerfile 定义了镜像的构建方式。一个朴素的 Dockerfile 和一个优化后的 Dockerfile 之间，镜像大小和构建时间可能相差 10 倍。"

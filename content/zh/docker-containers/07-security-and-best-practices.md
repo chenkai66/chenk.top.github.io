@@ -7,8 +7,7 @@ tags:
   - Security
   - DevSecOps
   - Best Practices
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "容器提供隔离性，而非安全性。默认的 Docker 配置以 root 身份运行进程，并赋予其完整的 Linux capabilities。本文介绍如何为生产环境加固容器。"

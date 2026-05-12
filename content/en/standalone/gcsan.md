@@ -13,7 +13,7 @@ disableNunjucks: true
 translationKey: "gcsan"
 ---
 
-In session-based recommendation you only see a short anonymous click sequence -- no user profile, no long history, no demographics. Every signal you have lives inside that single window. **GC-SAN** (IJCAI 2019) takes the strongest two ideas of the time -- SR-GNN's session graph and the Transformer's self-attention -- and stacks them: a *graph* view captures local transition patterns and loops, a *sequence* view captures long-range intent, and a tiny weighted sum decides how much of each to trust. The result is a clean "best of both worlds" baseline that is genuinely hard to beat at its parameter budget.
+In session-based recommendation you only see a short anonymous click sequence — no user profile, no long history, no demographics. Every signal you have lives inside that single window. **GC-SAN** (IJCAI 2019) takes the strongest two ideas of the time — SR-GNN's session graph and the Transformer's self-attention — and stacks them: a *graph* view captures local transition patterns and loops, a *sequence* view captures long-range intent, and a tiny weighted sum decides how much of each to trust. The result is a clean "best of both worlds" baseline that is genuinely hard to beat at its parameter budget.
 
 ## What you will learn
 
@@ -40,7 +40,7 @@ What makes this harder than classical collaborative filtering:
 
 - **No long-term profile.** You cannot lean on stable user embeddings or demographic features.
 - **Short, noisy behaviour.** A session may contain exploratory clicks, mis-clicks, or back-and-forth navigation.
-- **Long-range dependencies.** Early clicks often still matter -- click "camera" first, click "memory card" twenty steps later.
+- **Long-range dependencies.** Early clicks often still matter — click "camera" first, click "memory card" twenty steps later.
 - **Repeated transitions.** Users bounce between a few related items; a strict sequence model can underuse this structure.
 
 These four pressures pull in different directions. Sequence-only models (RNN/Transformer) handle order well but treat each step as a fresh token. Graph-only models (SR-GNN) capture loops and repeats but need many hops to reach distant clicks. GC-SAN's design pitch is exactly to combine the two without paying the cost of either alone.
@@ -68,7 +68,7 @@ For each session $s$ build a directed graph $G_s = (V_s, E_s)$:
 - For each adjacent pair $(v_{s,i}, v_{s,i+1})$, add a directed edge $v_{s,i} \to v_{s,i+1}$.
 - If the same transition repeats, accumulate its weight (or treat as a multi-edge and normalise later).
 
-This step is where you trade richness for compactness. The same item appearing twice in the session collapses into one node; only the *transitions* between them carry repetition. Loops -- click A then B then A -- show up as cycles in the graph, which a pure sequence model only sees as "two separate occurrences of A".
+This step is where you trade richness for compactness. The same item appearing twice in the session collapses into one node; only the *transitions* between them carry repetition. Loops — click A then B then A — show up as cycles in the graph, which a pure sequence model only sees as "two separate occurrences of A".
 
 Two adjacency matrices are then built and row-normalised:
 
@@ -104,13 +104,13 @@ The update gate $z$ decides how much of the new graph signal to write in; the re
 
 ![GGNN message passing on one node](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig3_ggnn_message_passing.png)
 
-After $T$ propagation steps (the paper uses $T=1$, sometimes 2), each node embedding has absorbed its local neighbourhood. **Crucially**, propagation is performed on the per-session graph -- not a global item graph -- so the embeddings are session-conditional.
+After $T$ propagation steps (the paper uses $T=1$, sometimes 2), each node embedding has absorbed its local neighbourhood. **Crucially**, propagation is performed on the per-session graph — not a global item graph — so the embeddings are session-conditional.
 
 > **Practical note.** Because sessions can repeat items, the implementation maintains an *alias* mapping from each sequence position to its node index in the unique-item graph. After GGNN you "scatter" node states back to sequence positions before applying self-attention. This is what `seq_hidden = hidden[alias_inputs]` does in any standard implementation.
 
 ## 5. Global encoder: self-attention over the session
 
-GGNN is strong locally, but reaching a distant click requires many hops, and stacking too many GGNN layers leads to oversmoothing -- node embeddings collapse toward each other. Self-attention sidesteps this entirely: every position can attend to every other position in one step.
+GGNN is strong locally, but reaching a distant click requires many hops, and stacking too many GGNN layers leads to oversmoothing — node embeddings collapse toward each other. Self-attention sidesteps this entirely: every position can attend to every other position in one step.
 
 Let $E^{(0)} \in \mathbb{R}^{n \times d}$ be the per-position representation after scattering GGNN node states back to the sequence. One self-attention layer computes:
 
@@ -124,7 +124,7 @@ Stacking $k$ such blocks produces $E^{(k)}$, the **graph-contextualised** sequen
 
 ![Self-attention captures long-range dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig4_self_attention.png)
 
-The heatmap is illustrative but the pattern is real: the first click ("camera") attends strongly to thematically related items deep in the session (memory card, battery, bag) -- a connection that would take a 4-hop GNN traversal to reach, by which point the signal has been smoothed.
+The heatmap is illustrative but the pattern is real: the first click ("camera") attends strongly to thematically related items deep in the session (memory card, battery, bag) — a connection that would take a 4-hop GNN traversal to reach, by which point the signal has been smoothed.
 
 ## 6. Fusion: last-click vs global intent
 
@@ -141,7 +141,7 @@ then scores every candidate by dot product with the item embedding table and nor
 
 $$\hat y \;=\; \mathrm{softmax}\!\bigl(s_f \, V^\top\bigr).$$
 
-The weight $w$ is a hyperparameter (typical sweet spot $w \in [0.4, 0.6]$). Set $w = 0$ and you get last-click only, set $w = 1$ and you discard the strong short-term signal. Figure 5(b) shows the typical sweep -- forgiving in the middle, painful at the extremes.
+The weight $w$ is a hyperparameter (typical sweet spot $w \in [0.4, 0.6]$). Set $w = 0$ and you get last-click only, set $w = 1$ and you discard the strong short-term signal. Figure 5(b) shows the typical sweep — forgiving in the middle, painful at the extremes.
 
 ## 7. Training and evaluation
 
@@ -257,7 +257,7 @@ class GCSAN(SequentialRecommender):
 
 A few things worth noticing about this reference:
 
-- The **GGNN cell is imported, not reimplemented** -- GC-SAN is a wiring story.
+- The **GGNN cell is imported, not reimplemented** — GC-SAN is a wiring story.
 - `gather_indexes` extracts the embedding at position `item_seq_len - 1`, which is the actual last click (not the padded tail).
 - The fusion weight `self.weight` is a fixed scalar from config. A natural extension is to make it input-dependent (a small gating MLP on $h_t \oplus a_t$), but the paper does not explore this.
 - Loss can be swapped between BPR and full-softmax cross-entropy depending on $|V|$.
@@ -281,8 +281,8 @@ A few things worth noticing about this reference:
 
 GC-SAN reads as a sober "do both" recipe rather than a clever new mechanism:
 
-- **GGNN** captures local transition patterns and repeats efficiently -- but cannot reach far without oversmoothing.
-- **Self-attention** captures long-range dependencies in one step -- but treats the input as a flat sequence and ignores graph structure.
+- **GGNN** captures local transition patterns and repeats efficiently — but cannot reach far without oversmoothing.
+- **Self-attention** captures long-range dependencies in one step — but treats the input as a flat sequence and ignores graph structure.
 - A single scalar **fusion weight** $w$ between last-click and global intent ties them together, with a forgiving sweet spot.
 
 For session-based recommendation in 2024, GC-SAN remains a clean baseline to beat: it tells you whether your fancy new model actually exploits session structure better than a graph encoder plus a Transformer block. If it does not, you have learned something useful before spending more compute.

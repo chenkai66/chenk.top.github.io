@@ -17,11 +17,11 @@ disableNunjucks: true
 series_order: 9
 translationKey: "linear-algebra-9"
 ---
-![Essence of Linear Algebra (9): Singular Value Decomposition -- The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)
+![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)
 
 ## Why SVD Earns the Crown
 
-The spectral theorem of [Chapter 8](/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/) gave us $A = Q\Lambda Q^T$ -- a beautifully clean factorisation, but **only for symmetric matrices**. Most matrices that show up in practice are not symmetric, and many are not even square:
+The spectral theorem of [Chapter 8](/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/) gave us $A = Q\Lambda Q^T$ — a beautifully clean factorisation, but **only for symmetric matrices**. Most matrices that show up in practice are not symmetric, and many are not even square:
 
 - a photograph stored as a $1920 \times 1080$ pixel matrix,
 - a Netflix-style user--movie rating matrix (millions of rows, thousands of columns),
@@ -36,7 +36,7 @@ $$A = U\,\Sigma\,V^{\!\top}.$$This is the most powerful, most universally applic
 Picture a photo as a matrix of pixel intensities. SVD says three things at once:
 
 1. **Any photo decomposes into a sum of "basic layers."**
-2. **The layers are ranked by importance** -- the first captures gross structure, the second secondary detail, the third still finer detail.
+2. **The layers are ranked by importance** — the first captures gross structure, the second secondary detail, the third still finer detail.
 3. **Keeping just the first few layers recovers most of the image.**
 
 Think of a band recording: lead vocal, guitar, bass, drums. Drop a background harmony and the song still works; drop the lead vocal and it falls apart. SVD makes that intuition precise: the singular values measure exactly *how much* each layer contributes.
@@ -46,7 +46,7 @@ Think of a band recording: lead vocal, guitar, bass, drums. Drop a background ha
 - The definition of SVD and its **three-step geometric meaning** (rotate, stretch, rotate).
 - How to compute singular values and singular vectors via $A^{\!\top}\!A$ and $AA^{\!\top}$.
 - The four fundamental subspaces, read directly off $U$ and $V$.
-- **Low-rank approximation** and the Eckart--Young theorem -- the optimality result behind compression.
+- **Low-rank approximation** and the Eckart--Young theorem — the optimality result behind compression.
 - The **pseudoinverse**: a universal "best inverse" for matrices that have no honest inverse.
 - **PCA as SVD in disguise**.
 - Applications: image compression, recommender systems, latent semantic analysis, denoising, eigenfaces.
@@ -72,7 +72,7 @@ Think of a band recording: lead vocal, guitar, bass, drums. Drop a background ha
 The "economy" form, used in practice for tall matrices, keeps only the $r = \operatorname{rank}(A)$ nonzero singular values:$$A = U_r\,\Sigma_r\,V_r^{\!\top},\qquad U_r \in \mathbb{R}^{m\times r},\ \Sigma_r \in \mathbb{R}^{r\times r},\ V_r \in \mathbb{R}^{n\times r}.$$
 Three facts make the singular values special:
 
-- They are **non-negative real numbers** -- always. (Eigenvalues can be negative or complex.)
+- They are **non-negative real numbers** — always. (Eigenvalues can be negative or complex.)
 - They are **arranged in descending order** by convention.
 - **SVD exists for every matrix.** That is exactly the property eigendecomposition lacks, and it is what makes SVD universal.
 
@@ -119,7 +119,7 @@ Both $A^{\!\top}\!A$ and $AA^{\!\top}$ are **symmetric and positive semidefinite
 
 - columns of $V$ = orthonormal eigenvectors of $A^{\!\top}\!A$ (the **right singular vectors**),
 - columns of $U$ = orthonormal eigenvectors of $AA^{\!\top}$ (the **left singular vectors**),
-- $\sigma_i = \sqrt{\lambda_i}$ where $\lambda_i$ are the (nonnegative) eigenvalues -- shared by both products.
+- $\sigma_i = \sqrt{\lambda_i}$ where $\lambda_i$ are the (nonnegative) eigenvalues — shared by both products.
 
 **Why $A^{\!\top}\!A$?** Think of it as $A$ "acting twice": go forward by $A$, come back by $A^{\!\top}$. The round trip amplifies a direction by exactly $\sigma^2$, which is why eigenvalues of $A^{\!\top}\!A$ are squared singular values.
 
@@ -176,14 +176,14 @@ The orthonormal basis $\{v_1, \ldots, v_r\}$ of the row space is mapped onto the
 
 ## Low-Rank Approximation: the Theorem Behind Compression
 
-![Essence of Linear Algebra (9): Singular Value Decomposition -- The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_2.png)
+![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_2.png)
 
 ### The Eckart--Young theorem
 
 Truncate the outer-product expansion at $k$ terms:$$A_k = \sigma_1 u_1 v_1^{\!\top} + \cdots + \sigma_k u_k v_k^{\!\top}.$$
 **Theorem (Eckart--Young, 1936).** Among all matrices $B$ of rank at most $k$,$$\|A - A_k\|_F \;=\; \min_{\operatorname{rank}(B) \le k} \|A - B\|_F \;=\; \sqrt{\sigma_{k+1}^{\,2} + \cdots + \sigma_r^{\,2}}.$$The same statement holds in the operator (2-)norm with $\|A - A_k\|_2 = \sigma_{k+1}$.
 
-So $A_k$ isn't just *a* low-rank approximation -- it is **provably optimal**. No clever rank-$k$ matrix can do better.
+So $A_k$ isn't just *a* low-rank approximation — it is **provably optimal**. No clever rank-$k$ matrix can do better.
 
 **MP3 analogy.** MP3 compression discards high-frequency components the human ear barely registers. SVD truncation does the same thing for matrices: discard the components carrying the least "energy," keep the loud ones.
 
@@ -201,7 +201,7 @@ Define the matrix's "energy" as its squared Frobenius norm:$$\|A\|_F^2 = \sigma_
 
 ### Image compression in numbers
 
-Storing a rank-$k$ approximation costs $k$ singular values plus the first $k$ columns of $U$ and $V$:$$\text{numbers stored} = k\,(m + n + 1).$$For a $500 \times 500$ image with $k = 50$: the original needs $250{,}000$ numbers, the rank-50 approximation needs $50{,}050$ -- a 5x reduction with usually imperceptible loss.
+Storing a rank-$k$ approximation costs $k$ singular values plus the first $k$ columns of $U$ and $V$:$$\text{numbers stored} = k\,(m + n + 1).$$For a $500 \times 500$ image with $k = 50$: the original needs $250{,}000$ numbers, the rank-50 approximation needs $50{,}050$ — a 5x reduction with usually imperceptible loss.
 
 ![Original vs k=5, 20, 50; spectrum and cumulative-energy curves](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/fig5_image_compression.png)
 
@@ -280,7 +280,7 @@ Centre the data matrix $X \in \mathbb{R}^{n\times p}$ (each column has mean zero
 
 ### Why PCA works
 
-The first principal direction maximises $\operatorname{Var}(X_c w)$ over unit vectors $w$. A short calculation shows this is $w^{\!\top}\!(X_c^{\!\top} X_c)\,w / (n-1)$, which is maximised at the top eigenvector of $X_c^{\!\top} X_c$ -- exactly the top right singular vector $v_1$.
+The first principal direction maximises $\operatorname{Var}(X_c w)$ over unit vectors $w$. A short calculation shows this is $w^{\!\top}\!(X_c^{\!\top} X_c)\,w / (n-1)$, which is maximised at the top eigenvector of $X_c^{\!\top} X_c$ — exactly the top right singular vector $v_1$.
 
 ![Centred data with principal axes; histogram of PC1 scores](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/fig7_pca_via_svd.png)
 
@@ -309,13 +309,13 @@ Netflix, Amazon, and Spotify all face the same question: **how do we predict rat
 
 ### Matrix factorisation
 
-The modelling assumption is that ratings are driven by a small number of **latent factors** -- for movies, perhaps "action level," "romance," "humour," "art-house depth." Then$$R \approx U_k \Sigma_k V_k^{\!\top}.$$
+The modelling assumption is that ratings are driven by a small number of **latent factors** — for movies, perhaps "action level," "romance," "humour," "art-house depth." Then$$R \approx U_k \Sigma_k V_k^{\!\top}.$$
 
 - A row of $U_k \Sigma_k$ is one user's taste vector.
 - A row of $V_k$ is one item's characteristic vector.
 - The predicted rating is just their dot product.
 
-This idea -- learn $U_k$ and $V_k$ to fit the *observed* entries, then read off predictions for the rest -- powered the winning entries of the Netflix Prize (2006--2009).
+This idea — learn $U_k$ and $V_k$ to fit the *observed* entries, then read off predictions for the rest — powered the winning entries of the Netflix Prize (2006--2009).
 
 ---
 
@@ -332,11 +332,11 @@ This idea -- learn $U_k$ and $V_k$ to fit the *observed* entries, then read off 
 
 ### Why SVD earns "crown jewel" status
 
-- **Universal** -- works on any matrix, square or not, full rank or not.
-- **Stable** -- numerically robust; the gold standard for rank, conditioning, and least squares.
-- **Optimal** -- gives provably best low-rank approximations (Eckart--Young).
-- **Insightful** -- exposes rank, the four subspaces, and the operator norm in one shot.
-- **Practical** -- image compression, NLP, recommender systems, denoising, control, statistics.
+- **Universal** — works on any matrix, square or not, full rank or not.
+- **Stable** — numerically robust; the gold standard for rank, conditioning, and least squares.
+- **Optimal** — gives provably best low-rank approximations (Eckart--Young).
+- **Insightful** — exposes rank, the four subspaces, and the operator norm in one shot.
+- **Practical** — image compression, NLP, recommender systems, denoising, control, statistics.
 
 ---
 

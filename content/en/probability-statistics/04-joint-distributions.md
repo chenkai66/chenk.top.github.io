@@ -6,8 +6,7 @@ tags:
   - Statistics
   - Joint Distributions
   - Transformations
-categories:
-  - Probability and Statistics
+categories: Probability and Statistics
 series: probability-statistics
 lang: en
 mathjax: true

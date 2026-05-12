@@ -7,8 +7,7 @@ tags:
   - Debugging
   - Logging
   - Observability
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "Containers hide their internals by design. When something breaks, you need specific tools and techniques to see inside the box without breaking the isolation that makes containers useful."

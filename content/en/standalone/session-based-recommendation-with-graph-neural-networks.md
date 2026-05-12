@@ -43,7 +43,7 @@ Two properties make this regime awkward for classical CF and for plain RNNs:
 - **Short context**: a typical session is 2--10 clicks. There is no signal beyond the session itself, so the model must extract *intent* from very little.
 - **Repeated items and non-monotone intent**: users wander, double back, compare. The same item can show up multiple times in one session, and a "later" click is not necessarily a "better" preference signal than an earlier one.
 
-Pure sequence models compress these clicks into a single hidden state and inevitably lose the relational structure between revisited items. SR-GNN's contribution is to keep that structure explicit -- as a graph -- and let message passing handle the rest.
+Pure sequence models compress these clicks into a single hidden state and inevitably lose the relational structure between revisited items. SR-GNN's contribution is to keep that structure explicit — as a graph — and let message passing handle the rest.
 
 ## 2. Session graph construction
 
@@ -94,12 +94,12 @@ After $T$ steps each node carries a context-aware embedding $h_v$ that depends o
 A few practical notes on the propagation:
 
 - **Number of steps $T$**: the original paper uses $T = 1$ on Yoochoose and $T = 1$ on Diginetica. Increasing $T$ rarely helps because session graphs are tiny (rarely more than 10 nodes) and signal already saturates.
-- **Parameter sharing**: the GRU cell parameters $(W_z, U_z, W_r, U_r, W, U, W_a, b)$ are shared across all nodes and across all sessions -- the model is **transductive over the session catalog only at the embedding table level**, not at the cell level.
+- **Parameter sharing**: the GRU cell parameters $(W_z, U_z, W_r, U_r, W, U, W_a, b)$ are shared across all nodes and across all sessions — the model is **transductive over the session catalog only at the embedding table level**, not at the cell level.
 - **Repeated visits**: because deduplicated nodes appear exactly once in the graph, both visits to `B` share the same embedding throughout propagation. The model recovers ordering information later, in the pooling step.
 
 ## 4. Building the session representation
 
-After propagation, SR-GNN turns the per-item embeddings $\{h_1, \dots, h_n\}$ into a single session vector $s_h$. A naive choice -- "use the last $h_n$" -- works surprisingly well on short sessions but throws away everything else the graph learned. The paper's design uses **two views**, fused linearly.
+After propagation, SR-GNN turns the per-item embeddings $\{h_1, \dots, h_n\}$ into a single session vector $s_h$. A naive choice — "use the last $h_n$" — works surprisingly well on short sessions but throws away everything else the graph learned. The paper's design uses **two views**, fused linearly.
 
 **Local intent.** The embedding of the last clicked item:
 
@@ -135,10 +135,10 @@ $$\mathcal{L} \;=\; -\sum_{i=1}^{|V|} y_i \log \hat y_i \, .$$
 
 A few details that matter in practice:
 
-- **BPTT, but for a tiny graph**: gradients flow through $T$ GGNN steps. Because $T$ is typically 1 and graphs have at most a dozen nodes, this is cheap -- nothing like sequence-model BPTT over hundreds of tokens.
+- **BPTT, but for a tiny graph**: gradients flow through $T$ GGNN steps. Because $T$ is typically 1 and graphs have at most a dozen nodes, this is cheap — nothing like sequence-model BPTT over hundreds of tokens.
 - **Optimiser**: Adam with $\eta = 10^{-3}$, $\beta_1 = 0.9$, $\beta_2 = 0.999$. L2 weight decay $10^{-5}$ on all matrices.
 - **Embedding size**: $d = 100$ is the standard. Going larger (256, 512) overfits Yoochoose 1/64 and Diginetica without lifting Recall@20.
-- **Batching**: sessions vary in length, so the implementation pads each batch to the max session size and masks accordingly. The official repo at <https://github.com/CRIPAC-DIG/SR-GNN/tree/master> handles this carefully -- if you reimplement, copy that masking logic.
+- **Batching**: sessions vary in length, so the implementation pads each batch to the max session size and masks accordingly. The official repo at <https://github.com/CRIPAC-DIG/SR-GNN/tree/master> handles this carefully — if you reimplement, copy that masking logic.
 - **Sampled softmax for huge catalogs**: with $|V| > 10^5$ the full softmax becomes the bottleneck. Replace it with sampled softmax or a two-tower retrieval head; SR-GNN itself stays unchanged.
 
 ## 6. Why session graphs outperform sequential baselines
@@ -149,11 +149,11 @@ The pure-sequence formulation is $h_t = \mathrm{GRU}(h_{t-1}, v_t)$. It has thre
 - **Implicit relational learning.** A sequence model has to *learn* that "two clicks in different positions on the same item refer to the same item" through gradient signal alone. The session graph encodes that fact in the adjacency.
 - **Single direction of information flow.** RNNs are left-to-right. The graph propagates in both directions through the in/out adjacency split, so `D` can pull information from `B` (its predecessor) without waiting for a backward pass.
 
-Empirically these add up. On the standard SR-GNN evaluation -- Yoochoose 1/64, Yoochoose 1/4, Diginetica -- the model beats POP, Item-KNN, FPMC, GRU4Rec, NARM and STAMP on both Recall@20 and MRR@20:
+Empirically these add up. On the standard SR-GNN evaluation — Yoochoose 1/64, Yoochoose 1/4, Diginetica — the model beats POP, Item-KNN, FPMC, GRU4Rec, NARM and STAMP on both Recall@20 and MRR@20:
 
 ![Benchmark comparison: SR-GNN vs prior session-based baselines on Yoochoose 1/64, Yoochoose 1/4 and Diginetica (Recall@20 and MRR@20)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/session-based-recommendation-with-graph-neural-networks/fig5_benchmark_perf.png)
 
-The lifts are biggest on Diginetica, where sessions are longer and have more revisits -- exactly the regime where sequence models lose the most transition information.
+The lifts are biggest on Diginetica, where sessions are longer and have more revisits — exactly the regime where sequence models lose the most transition information.
 
 ## 7. Hyperparameters and training recipe
 
@@ -253,13 +253,13 @@ Add auxiliary losses on the same $s_h$:
 - **Will-the-user-return** (binary classification within the next 24 h).
 - **Category prediction** for the next click.
 
-These regularise the session vector and tend to help when the next-click loss alone is noisy. Keep the auxiliary loss weights small ($0.05$--$0.2$) -- they are guides, not objectives.
+These regularise the session vector and tend to help when the next-click loss alone is noisy. Keep the auxiliary loss weights small ($0.05$--$0.2$) — they are guides, not objectives.
 
 ## 10. When to use SR-GNN vs alternatives
 
 | Scenario                                  | Recommendation                                                       |
 | ----------------------------------------- | -------------------------------------------------------------------- |
-| Long sessions with revisits ($n \ge 5$)   | SR-GNN -- this is its sweet spot                                     |
+| Long sessions with revisits ($n \ge 5$)   | SR-GNN — this is its sweet spot                                     |
 | Very short sessions ($n \le 3$)           | Item-KNN or co-click; SR-GNN has no graph to exploit                 |
 | Heavy cold-start                          | Two-tower with content features; SR-GNN as a re-ranker only          |
 | Real-time latency budget $< 5$ ms         | Cache per-item neighbour reps; consider a distilled MLP head         |
@@ -272,6 +272,6 @@ These regularise the session vector and tend to help when the next-click loss al
 - **GGNN = GRU on graph messages.** A single message $a_t$ aggregated over the in/out adjacency drives reset, update and candidate gates. One propagation step is usually enough.
 - **Local + global pooling.** The session vector fuses the last-click embedding (short-term intent) with an attention sum over all item embeddings (global context anchored on the last click).
 - **Cross-entropy training, dot-product scoring.** The setup is standard; the win comes from what the embeddings encode, not from a fancier loss.
-- **Sweet spot is medium-length sessions with revisits.** Outside that regime -- length $\le 3$, cold-start items, very large catalogs -- pair SR-GNN with the right complement (KNN, content tower, sampled softmax) instead of trying to fix it from inside.
+- **Sweet spot is medium-length sessions with revisits.** Outside that regime — length $\le 3$, cold-start items, very large catalogs — pair SR-GNN with the right complement (KNN, content tower, sampled softmax) instead of trying to fix it from inside.
 
-The deeper takeaway is structural. Session-based recommendation is *not* a sequence problem dressed up; it is a graph problem with a sequential prior. Once you commit to the graph view, every later improvement in this line of work -- attention-weighted GNNs (GC-SAN), hyperbolic embeddings (HCGR), LLM-augmented session models (LLMGR) -- becomes much easier to read.
+The deeper takeaway is structural. Session-based recommendation is *not* a sequence problem dressed up; it is a graph problem with a sequential prior. Once you commit to the graph view, every later improvement in this line of work — attention-weighted GNNs (GC-SAN), hyperbolic embeddings (HCGR), LLM-augmented session models (LLMGR) — becomes much easier to read.

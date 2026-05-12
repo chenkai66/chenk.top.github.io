@@ -20,7 +20,7 @@ translationKey: "aliyun-fullstack-12"
 
 Eleven articles. Dozens of CLI commands. Hundreds of manual steps. Now we throw all of that away and rebuild the entire stack with a single `terraform apply`. This is why infrastructure-as-code exists.
 
-Over the past eleven parts of this series, we have clicked through consoles, typed `aliyun` CLI commands, and manually configured everything from VPCs to Function Compute triggers. It worked. We learned every resource intimately because we built each one by hand. But if I asked you right now to recreate that entire stack in a new region -- the VPC with its three tiers and two availability zones, the ECS instance with its cloud-init script, the RDS MySQL HA setup, the OSS bucket with lifecycle rules, the RAM policies, the SLS log pipeline, the Function Compute event processing -- you would need at least a full day of careful work. And you would inevitably miss something. A security group rule. A backup policy. A CORS configuration.
+Over the past eleven parts of this series, we have clicked through consoles, typed `aliyun` CLI commands, and manually configured everything from VPCs to Function Compute triggers. It worked. We learned every resource intimately because we built each one by hand. But if I asked you right now to recreate that entire stack in a new region — the VPC with its three tiers and two availability zones, the ECS instance with its cloud-init script, the RDS MySQL HA setup, the OSS bucket with lifecycle rules, the RAM policies, the SLS log pipeline, the Function Compute event processing — you would need at least a full day of careful work. And you would inevitably miss something. A security group rule. A backup policy. A CORS configuration.
 
 Infrastructure-as-code eliminates that problem entirely. You describe what you want in declarative configuration files, and the tool figures out how to get there. The entire stack we built across eleven articles becomes a single repository of `.tf` files that anyone on your team can read, review, modify, and apply.
 
@@ -37,9 +37,9 @@ Every team goes through roughly the same evolution:
 
 **Stage 1: Manual (console clicks).** You click through the web console. It works for one person managing a few resources. It falls apart the moment you need to recreate something, explain what you did, or hand the environment to a teammate.
 
-**Stage 2: Scripts (CLI commands).** You write shell scripts that call `aliyun ecs CreateInstance` and similar commands. Better than clicking, but the scripts are imperative -- they describe the steps, not the desired end state. If you run the script twice, it either fails (resource already exists) or creates duplicates. You end up writing increasingly complex logic to handle idempotency, and you have reinvented a bad version of Terraform.
+**Stage 2: Scripts (CLI commands).** You write shell scripts that call `aliyun ecs CreateInstance` and similar commands. Better than clicking, but the scripts are imperative — they describe the steps, not the desired end state. If you run the script twice, it either fails (resource already exists) or creates duplicates. You end up writing increasingly complex logic to handle idempotency, and you have reinvented a bad version of Terraform.
 
-**Stage 3: Infrastructure as Code (declarative).** You describe the desired state: "I want a VPC with CIDR 10.0.0.0/16 and three VSwitches." The tool compares desired state to actual state and figures out the minimum set of API calls to reconcile them. Run it once, run it a hundred times -- the result is the same.
+**Stage 3: Infrastructure as Code (declarative).** You describe the desired state: "I want a VPC with CIDR 10.0.0.0/16 and three VSwitches." The tool compares desired state to actual state and figures out the minimum set of API calls to reconcile them. Run it once, run it a hundred times — the result is the same.
 
 ### The five pillars
 
@@ -48,7 +48,7 @@ Infrastructure-as-code gives you five things that manual provisioning cannot:
 | Pillar | What it means | Why it matters |
 |---|---|---|
 | **Reproducibility** | Same code = same infrastructure, every time | Spin up identical staging/production environments |
-| **Version control** | Infrastructure changes tracked in Git | Who changed what, when, and why -- with full diff history |
+| **Version control** | Infrastructure changes tracked in Git | Who changed what, when, and why — with full diff history |
 | **Collaboration** | Pull requests for infrastructure changes | Code review for infrastructure, just like application code |
 | **Disaster recovery** | Recreate entire stack from code in minutes | Region goes down? Redeploy to a new region with one command |
 | **Cost tracking** | Infrastructure defined in code can be cost-estimated | Know what a change will cost before applying it |
@@ -59,9 +59,9 @@ Alibaba Cloud has its own IaC service: Resource Orchestration Service (ROS). It 
 
 | Criteria | Terraform | ROS |
 |---|---|---|
-| **Multi-cloud** | Yes -- AWS, Azure, GCP, 3000+ providers | Alibaba Cloud only |
+| **Multi-cloud** | Yes — AWS, Azure, GCP, 3000+ providers | Alibaba Cloud only |
 | **State management** | Local or remote (S3, OSS, Consul, etc.) | Managed by ROS service |
-| **Community** | Massive -- modules, examples, Stack Overflow | Small, mostly Chinese-language |
+| **Community** | Massive — modules, examples, Stack Overflow | Small, mostly Chinese-language |
 | **Language** | HCL (purpose-built, readable) | JSON/YAML (verbose, error-prone) |
 | **Module ecosystem** | Terraform Registry with thousands of modules | Limited |
 | **Learning investment** | Transferable to any cloud | Alibaba-specific |
@@ -70,7 +70,7 @@ Alibaba Cloud has its own IaC service: Resource Orchestration Service (ROS). It 
 
 ROS is fine if your entire world is Alibaba Cloud and you want zero additional tooling. But if you work across clouds, value community support, or want skills that transfer to your next job, Terraform is the clear choice. The Alibaba Cloud Terraform provider (`alicloud`) is actively maintained and covers effectively every service we have used in this series.
 
-For a much deeper treatment of Terraform itself, see our [Terraform series](/en/terraform-agents/01-why-terraform-for-agents/) -- eight articles covering every aspect from first principles to advanced patterns. This article assumes you know the basics and focuses on applying Terraform to the specific Alibaba Cloud stack we have built.
+For a much deeper treatment of Terraform itself, see our [Terraform series](/en/terraform-agents/01-why-terraform-for-agents/) — eight articles covering every aspect from first principles to advanced patterns. This article assumes you know the basics and focuses on applying Terraform to the specific Alibaba Cloud stack we have built.
 
 ## Architecture Overview
 
@@ -125,7 +125,7 @@ The resources and where we built them:
 | SLS project, logstore, alerts | [Part 7: SLS Observability](/en/aliyun-fullstack/07-sls-observability/) | `modules/monitoring` |
 | Function Compute, OSS trigger | [Part 8: Serverless](/en/aliyun-fullstack/08-serverless/) | `modules/serverless` |
 
-For LLM and ML deployment covered in [Part 10](/en/aliyun-fullstack/10-bailian-llm/) and [Part 11](/en/aliyun-fullstack/11-pai-ml-platform/), Terraform support is more limited -- DashScope and PAI model deployment are typically done through their own SDKs. We will note where Terraform coverage ends.
+For LLM and ML deployment covered in [Part 10](/en/aliyun-fullstack/10-bailian-llm/) and [Part 11](/en/aliyun-fullstack/11-pai-ml-platform/), Terraform support is more limited — DashScope and PAI model deployment are typically done through their own SDKs. We will note where Terraform coverage ends.
 
 ## Project Structure
 
@@ -249,7 +249,7 @@ terraform {
 }
 ```
 
-Remote state in OSS with locking via TableStore. This is critical for team environments -- without locking, two people running `terraform apply` simultaneously will corrupt the state file. TableStore provides a distributed lock that prevents concurrent state modifications.
+Remote state in OSS with locking via TableStore. This is critical for team environments — without locking, two people running `terraform apply` simultaneously will corrupt the state file. TableStore provides a distributed lock that prevents concurrent state modifications.
 
 ![Remote state backend topology with OSS storage and Tablestore lock](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_state_backend.png)
 
@@ -347,7 +347,7 @@ Notice the `sensitive = true` on credentials. Terraform will mask these values i
 
 ## Module: Network
 
-The network module provisions the VPC architecture from [Part 3](/en/aliyun-fullstack/03-vpc-networking/) -- a 3-tier, 2-AZ layout with security groups, a NAT Gateway for outbound traffic, and an EIP for public access.
+The network module provisions the VPC architecture from [Part 3](/en/aliyun-fullstack/03-vpc-networking/) — a 3-tier, 2-AZ layout with security groups, a NAT Gateway for outbound traffic, and an EIP for public access.
 
 ![Network module resources](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_network_module.png)
 
@@ -1028,7 +1028,7 @@ output "bucket_internal_domain" {
 
 ## Module: Security
 
-The RAM module from [Part 6](/en/aliyun-fullstack/06-ram-security/) -- users, groups, roles, and policies following the principle of least privilege. Plus a KMS key for encryption.
+The RAM module from [Part 6](/en/aliyun-fullstack/06-ram-security/) — users, groups, roles, and policies following the principle of least privilege. Plus a KMS key for encryption.
 
 ### modules/security/main.tf
 
@@ -1370,7 +1370,7 @@ output "access_logstore" {
 
 ## Module: Serverless
 
-Function Compute service with an OSS trigger -- exactly what we built in [Part 8](/en/aliyun-fullstack/08-serverless/). When a file is uploaded to the media bucket, a function automatically generates a thumbnail.
+Function Compute service with an OSS trigger — exactly what we built in [Part 8](/en/aliyun-fullstack/08-serverless/). When a file is uploaded to the media bucket, a function automatically generates a thumbnail.
 
 ### modules/serverless/main.tf
 
@@ -1745,7 +1745,7 @@ chmod 600 key.pem
 $(terraform output -raw ssh_command)
 ```
 
-The `terraform plan` output will show you every resource that will be created before you commit. This is the single most important feature of Terraform -- you always know what is about to happen. In my experience, roughly one in three plans catches something I did not intend, saving me from creating resources in the wrong AZ, opening the wrong port, or provisioning the wrong instance type.
+The `terraform plan` output will show you every resource that will be created before you commit. This is the single most important feature of Terraform — you always know what is about to happen. In my experience, roughly one in three plans catches something I did not intend, saving me from creating resources in the wrong AZ, opening the wrong port, or provisioning the wrong instance type.
 
 A typical plan output for our full stack looks like this:
 
@@ -1893,21 +1893,21 @@ Store these secrets in your GitHub repository settings (Settings > Secrets and v
 | `ALICLOUD_ACCESS_KEY` | Your RAM user's Access Key ID | [Part 6: RAM Security](/en/aliyun-fullstack/06-ram-security/) |
 | `ALICLOUD_SECRET_KEY` | Your RAM user's Access Key Secret | [Part 6: RAM Security](/en/aliyun-fullstack/06-ram-security/) |
 
-Never use your root account credentials in CI/CD. Create a dedicated RAM user with only the permissions needed for Terraform (or better, use OIDC federation to assume a RAM role without long-lived credentials -- but that is an advanced topic for another day).
+Never use your root account credentials in CI/CD. Create a dedicated RAM user with only the permissions needed for Terraform (or better, use OIDC federation to assume a RAM role without long-lived credentials — but that is an advanced topic for another day).
 
 The workflow does five things:
 
-1. **Format check** -- Ensures all `.tf` files are properly formatted. Fail fast on style issues.
-2. **Validate** -- Checks syntax and internal consistency without accessing any APIs.
-3. **Plan** -- Shows what would change. Posts the plan as a PR comment so reviewers can see the infrastructure diff.
-4. **Apply** -- Only runs on merge to main. Applies the changes automatically.
-5. **Output** -- Shows the resulting endpoints and IPs in the workflow log.
+1. **Format check** — Ensures all `.tf` files are properly formatted. Fail fast on style issues.
+2. **Validate** — Checks syntax and internal consistency without accessing any APIs.
+3. **Plan** — Shows what would change. Posts the plan as a PR comment so reviewers can see the infrastructure diff.
+4. **Apply** — Only runs on merge to main. Applies the changes automatically.
+5. **Output** — Shows the resulting endpoints and IPs in the workflow log.
 
 This gives you the same code review workflow for infrastructure that you have for application code. Someone proposes a change, the plan shows what will happen, the team reviews, and the merge triggers the apply.
 
 ## Cost Estimation and Optimization
 
-Infrastructure-as-code makes cost optimization possible at the planning stage -- before you spend anything. The open-source tool `infracost` reads your Terraform files and estimates monthly costs.
+Infrastructure-as-code makes cost optimization possible at the planning stage — before you spend anything. The open-source tool `infracost` reads your Terraform files and estimates monthly costs.
 
 ![Cost optimization strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_cost_optimization.png)
 
@@ -2034,7 +2034,7 @@ That is nearly $2,200 saved per year just from right-sizing and switching to sub
 
 ## Teardown and Cleanup
 
-When you are done with an environment -- perhaps tearing down a staging stack after testing -- Terraform makes it a single command:
+When you are done with an environment — perhaps tearing down a staging stack after testing — Terraform makes it a single command:
 
 ![Safe teardown flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_destroy_flow.png)
 
@@ -2052,7 +2052,7 @@ Two warnings about `terraform destroy`:
 
 ![Dependency-aware teardown order in reverse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_teardown_order.png)
 
-1. **It is irreversible.** RDS data, OSS objects, SLS logs -- gone. Terraform will prompt for confirmation, but once you type `yes`, there is no undo button.
+1. **It is irreversible.** RDS data, OSS objects, SLS logs — gone. Terraform will prompt for confirmation, but once you type `yes`, there is no undo button.
 2. **Some resources resist deletion.** OSS buckets must be empty before deletion. RDS instances with `deletion_protection = true` will block the destroy. These are safety features. If you are tearing down for real, you may need to empty buckets manually or set `force_destroy = true` on the bucket resource.
 
 ```hcl
@@ -2071,7 +2071,7 @@ After running Terraform against Alibaba Cloud for over a year, here are the issu
 
 **1. Provider version drift.** The `alicloud` provider ships updates weekly. Pin your version and upgrade deliberately. An unplanned provider upgrade once changed the default value of a security group rule attribute and opened a port I thought was closed.
 
-**2. State file corruption.** Always use remote state with locking. If two people apply simultaneously without locking, the state file can become inconsistent. Recovery involves `terraform state pull`, manual editing, and `terraform state push` -- unpleasant work you never want to do.
+**2. State file corruption.** Always use remote state with locking. If two people apply simultaneously without locking, the state file can become inconsistent. Recovery involves `terraform state pull`, manual editing, and `terraform state push` — unpleasant work you never want to do.
 
 **3. Resource name uniqueness.** Some Alibaba Cloud resources require globally unique names (like OSS bucket names). Always include a random suffix or your account/project prefix.
 
@@ -2096,7 +2096,7 @@ After importing, run `terraform plan` to see if your configuration matches the a
 
 ## Key Takeaways
 
-This article -- and this series -- boils down to a few principles:
+This article — and this series — boils down to a few principles:
 
 **1. Infrastructure belongs in code.** Every resource we built by hand in Parts 1 through 11 is now a declarative `.tf` file. The code is the documentation, the runbook, and the disaster recovery plan all in one.
 
@@ -2106,14 +2106,14 @@ This article -- and this series -- boils down to a few principles:
 
 **4. CI/CD closes the loop.** Infrastructure changes follow the same pull request workflow as application code: propose, review, merge, apply. No more "who changed the security group?" mysteries.
 
-**5. Cost optimization is a code change.** Right-sizing, reserved instances, spot instances -- these are parameter changes in `.tfvars` files, reviewable and auditable like any other code change.
+**5. Cost optimization is a code change.** Right-sizing, reserved instances, spot instances — these are parameter changes in `.tfvars` files, reviewable and auditable like any other code change.
 
-We have covered a lot of ground in twelve articles. Starting from the [ecosystem map in Part 1](/en/aliyun-fullstack/01-ecosystem-map/), through [compute](/en/aliyun-fullstack/02-ecs-compute/), [networking](/en/aliyun-fullstack/03-vpc-networking/), [storage](/en/aliyun-fullstack/04-oss-storage/), [databases](/en/aliyun-fullstack/05-rds-database/), [security](/en/aliyun-fullstack/06-ram-security/), observability, [serverless](/en/aliyun-fullstack/08-serverless/), containers, [LLMs](/en/aliyun-fullstack/10-bailian-llm/), [ML platforms](/en/aliyun-fullstack/11-pai-ml-platform/), and now infrastructure-as-code -- you have the complete toolkit for building production systems on Alibaba Cloud.
+We have covered a lot of ground in twelve articles. Starting from the [ecosystem map in Part 1](/en/aliyun-fullstack/01-ecosystem-map/), through [compute](/en/aliyun-fullstack/02-ecs-compute/), [networking](/en/aliyun-fullstack/03-vpc-networking/), [storage](/en/aliyun-fullstack/04-oss-storage/), [databases](/en/aliyun-fullstack/05-rds-database/), [security](/en/aliyun-fullstack/06-ram-security/), observability, [serverless](/en/aliyun-fullstack/08-serverless/), containers, [LLMs](/en/aliyun-fullstack/10-bailian-llm/), [ML platforms](/en/aliyun-fullstack/11-pai-ml-platform/), and now infrastructure-as-code — you have the complete toolkit for building production systems on Alibaba Cloud.
 
-The code from this article is a starting point, not a finished product. Fork it, adapt it to your architecture, add the resources you need, remove the ones you do not. The point is never the specific configuration -- it is the practice of treating infrastructure as seriously as you treat your application code.
+The code from this article is a starting point, not a finished product. Fork it, adapt it to your architecture, add the resources you need, remove the ones you do not. The point is never the specific configuration — it is the practice of treating infrastructure as seriously as you treat your application code.
 
 One `terraform apply`. Everything you need. That is the way it should be.
 
 ---
 
-This is Part 12 (the final article) of the **Alibaba Cloud Full Stack** series. For an even deeper dive into Terraform itself -- modules, workspaces, testing, CI/CD patterns, and multi-cloud architectures -- see the [Terraform for Agents series](/en/terraform-agents/01-why-terraform-for-agents/).
+This is Part 12 (the final article) of the **Alibaba Cloud Full Stack** series. For an even deeper dive into Terraform itself — modules, workspaces, testing, CI/CD patterns, and multi-cloud architectures — see the [Terraform for Agents series](/en/terraform-agents/01-why-terraform-for-agents/).

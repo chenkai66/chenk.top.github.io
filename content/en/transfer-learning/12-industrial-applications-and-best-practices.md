@@ -1,8 +1,7 @@
 ---
 title: "Transfer Learning (12): Industrial Applications and Best Practices"
 date: 2025-07-06 09:00:00
-categories:
-  - Transfer Learning
+categories: Transfer Learning
   - Machine Learning
 tags:
   - Industrial Applications
@@ -21,7 +20,7 @@ translationKey: "transfer-learning-12"
 
 A three-person team at a fintech startup shipped a fraud-detection model in two weeks that outperformed the previous system built by 12 engineers over 6 months. The secret? They fine-tuned a pretrained transformer on 5,000 labeled transactions instead of architecting a rule-based ensemble from scratch. The model caught 23% more fraud in the first month while cutting false positives in half. When their VP of Engineering asked why the old team took so long, the answer was simple: they didn't have transfer learning.
 
-This is the final part of the series. The previous eleven parts gave you the mechanics -- pretraining, fine-tuning, domain adaptation, few-shot and zero-shot learning, distillation, multi-task learning, multimodality, parameter-efficient methods, continual learning, and cross-lingual transfer. This part is about the work that happens once the notebook closes: deciding **whether** to use transfer learning, **how** to thread it into a production pipeline, and **how** to know it is still working six months later.
+This is the final part of the series. The previous eleven parts gave you the mechanics — pretraining, fine-tuning, domain adaptation, few-shot and zero-shot learning, distillation, multi-task learning, multimodality, parameter-efficient methods, continual learning, and cross-lingual transfer. This part is about the work that happens once the notebook closes: deciding **whether** to use transfer learning, **how** to thread it into a production pipeline, and **how** to know it is still working six months later.
 
 Everything below is written from the perspective of a team that has to keep a model running, not one that has to publish a paper. The trade-offs are different. You will see more spreadsheets than equations, more monitoring dashboards than architecture diagrams, and more conversations with product managers than with conference reviewers. If your job is to ship and maintain models that create business value, this chapter is for you.
 
@@ -443,7 +442,7 @@ Model is deployed, works great for 2 months, then silently degrades. Six months 
 
 Team fine-tunes a pretrained model, but "enhances" it with custom attention layers, extra auxiliary tasks, multi-stage training, and ensemble tricks. The final system requires 14 steps to train and 3 people to maintain.
 
-**Fix:** Resist the urge to add complexity unless it delivers a large, measurable gain. A video-classification team started with a fine-tuned TimeSformer (F1 = 0.83). They added optical flow (+0.01), audio embeddings (+0.02), temporal ensembling (+0.01), and TTA (+0.01). Final F1: 0.88 -- but training time went from 4 hours to 19, and deployment required 3 separate inference pipelines. They shipped the base model and invested saved engineering time in labeling more data instead.
+**Fix:** Resist the urge to add complexity unless it delivers a large, measurable gain. A video-classification team started with a fine-tuned TimeSformer (F1 = 0.83). They added optical flow (+0.01), audio embeddings (+0.02), temporal ensembling (+0.01), and TTA (+0.01). Final F1: 0.88 — but training time went from 4 hours to 19, and deployment required 3 separate inference pipelines. They shipped the base model and invested saved engineering time in labeling more data instead.
 
 ## 7. A/B Testing and Evaluation in Production
 

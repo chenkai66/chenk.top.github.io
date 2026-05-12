@@ -6,8 +6,7 @@ tags:
   - SQL
   - Transactions
   - Concurrency
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "一份详尽指南：涵盖 ACID 特性、隔离级别、MVCC、锁策略及死锁预防——每个概念均附带可运行的 SQL 示例。"

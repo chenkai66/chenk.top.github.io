@@ -21,16 +21,16 @@ translationKey: "aliyun-fullstack-11"
 
 Training a model on a single GPU is fun. Deploying it so it serves 1000 requests per second without falling over is the part that separates experiments from products. PAI handles both.
 
-PAI (Platform for AI) is Alibaba Cloud's managed ML platform. It is not one product -- it is five products wearing a trench coat and sharing a console. A notebook environment for exploration, a distributed training service for scale, a model serving platform for production, a visual pipeline designer for people who prefer dragging boxes, and a model gallery for one-click deployment of open-source models. After eighteen months of running real LLM workloads on it, I can say that the individual pieces range from excellent (EAS) to good enough (Designer), and the whole is genuinely greater than the sum of its parts once you understand how they connect.
+PAI (Platform for AI) is Alibaba Cloud's managed ML platform. It is not one product — it is five products wearing a trench coat and sharing a console. A notebook environment for exploration, a distributed training service for scale, a model serving platform for production, a visual pipeline designer for people who prefer dragging boxes, and a model gallery for one-click deployment of open-source models. After eighteen months of running real LLM workloads on it, I can say that the individual pieces range from excellent (EAS) to good enough (Designer), and the whole is genuinely greater than the sum of its parts once you understand how they connect.
 
-This article is the breadth-first tour. If you want the depth-first treatment -- instance selection strategies, DLC spot preemption survival, EAS cold-start mitigation -- there is a dedicated [PAI series](/en/aliyun-pai/01-platform-overview/) with five articles that go deep on each sub-product. Here we cover enough to understand what PAI is, when to reach for each component, and how to train and deploy a model end-to-end.
+This article is the breadth-first tour. If you want the depth-first treatment — instance selection strategies, DLC spot preemption survival, EAS cold-start mitigation — there is a dedicated [PAI series](/en/aliyun-pai/01-platform-overview/) with five articles that go deep on each sub-product. Here we cover enough to understand what PAI is, when to reach for each component, and how to train and deploy a model end-to-end.
 
 
 ## PAI platform overview
 
 ![PAI platform component overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_pai_components.png)
 
-PAI stands for Platform for AI. The name is generic because the product is broad -- it covers the entire ML lifecycle from interactive experimentation to production serving. The closest equivalents on other clouds are AWS SageMaker, Azure Machine Learning, and GCP Vertex AI. But the comparison is only approximate. SageMaker bundles notebooks, training, and endpoints into a relatively monolithic experience. PAI is more modular: each sub-product has its own resource model, pricing, and SDK surface, and you can use any one of them independently.
+PAI stands for Platform for AI. The name is generic because the product is broad — it covers the entire ML lifecycle from interactive experimentation to production serving. The closest equivalents on other clouds are AWS SageMaker, Azure Machine Learning, and GCP Vertex AI. But the comparison is only approximate. SageMaker bundles notebooks, training, and endpoints into a relatively monolithic experience. PAI is more modular: each sub-product has its own resource model, pricing, and SDK surface, and you can use any one of them independently.
 
 The five components you will actually touch:
 
@@ -55,7 +55,7 @@ The mental model that has worked best for me: code matures left to right through
                  GPU ECS pool
 ```
 
-PAI never owns your data. Datasets, checkpoints, and model artifacts live in OSS or NAS. PAI orchestrates GPU compute on your behalf -- when a DSW notebook starts, a real GPU ECS instance boots somewhere; when an EAS endpoint scales out, real GPU pods come up. The reason to use PAI instead of raw ECS is that it pre-bakes CUDA/PyTorch images, mounts your storage, provides metrics dashboards, and bills per second instead of per hour.
+PAI never owns your data. Datasets, checkpoints, and model artifacts live in OSS or NAS. PAI orchestrates GPU compute on your behalf — when a DSW notebook starts, a real GPU ECS instance boots somewhere; when an EAS endpoint scales out, real GPU pods come up. The reason to use PAI instead of raw ECS is that it pre-bakes CUDA/PyTorch images, mounts your storage, provides metrics dashboards, and bills per second instead of per hour.
 
 ### PAI vs SageMaker: the meaningful differences
 
@@ -70,7 +70,7 @@ If you are coming from AWS, these are the things that will trip you up or deligh
 | **Model gallery** | Qwen family, Chinese open-source models, plus international models | JumpStart has broader international model selection |
 | **SDK maturity** | Python SDK is functional but docs lag behind Chinese version | Mature SDK, extensive documentation |
 
-The biggest practical difference: PAI exposes the underlying ECS instance types directly. When you pick a DSW instance, you choose `ecs.gn7i-c8g1.2xlarge` (1x A10, 24 GB). When you submit a DLC job, you specify the exact GPU SKU. This transparency makes cost estimation straightforward -- the same price calculators you use for ECS work for PAI.
+The biggest practical difference: PAI exposes the underlying ECS instance types directly. When you pick a DSW instance, you choose `ecs.gn7i-c8g1.2xlarge` (1x A10, 24 GB). When you submit a DLC job, you specify the exact GPU SKU. This transparency makes cost estimation straightforward — the same price calculators you use for ECS work for PAI.
 
 ## PAI-DSW: interactive notebooks
 
@@ -99,7 +99,7 @@ Do not use DSW for multi-GPU training (that is DLC), unattended jobs longer than
 
 The pattern I follow: start on a CPU instance for data prep and EDA, switch to a GPU instance only when you actually call `.cuda()`. PAI lets you stop a DSW instance and restart it with a different SKU.
 
-> **Cost trap:** Set the auto-shutdown timer. Every DSW instance has an "idle shutdown" knob -- default 1 hour. I push it to 30 minutes for dev work. The number of times I have come in on Monday morning to find a forgotten A100 instance billing all weekend is not something I am proud of.
+> **Cost trap:** Set the auto-shutdown timer. Every DSW instance has an "idle shutdown" knob — default 1 hour. I push it to 30 minutes for dev work. The number of times I have come in on Monday morning to find a forgotten A100 instance billing all weekend is not something I am proud of.
 
 ### Pre-built images
 
@@ -157,9 +157,9 @@ print(f"Instance ID: {response.body.instance_id}")
 
 The number one mistake new PAI users make: training for hours, then losing everything when the instance restarts. DSW instances have a system disk that resets on restart. Everything you want to keep must go to:
 
-1. **OSS** -- Mount an OSS bucket at `/mnt/data`. Read training data from here, write checkpoints here.
-2. **NAS** -- Mount a NAS filesystem for POSIX semantics. Better for random-access workloads (many small files).
-3. **Persistent disk** -- A cloud disk that survives instance restarts. Limited to 500 GB, attached to one instance.
+1. **OSS** — Mount an OSS bucket at `/mnt/data`. Read training data from here, write checkpoints here.
+2. **NAS** — Mount a NAS filesystem for POSIX semantics. Better for random-access workloads (many small files).
+3. **Persistent disk** — A cloud disk that survives instance restarts. Limited to 500 GB, attached to one instance.
 
 ```bash
 # Inside a DSW terminal -- verify OSS mount
@@ -173,7 +173,7 @@ python train.py --output_dir /mnt/data/checkpoints/run-001/
 python train.py --output_dir /root/checkpoints/  # DON'T
 ```
 
-For the full DSW deep dive -- image selection, SSH tunneling, GPU memory profiling -- see [PAI Part 2](/en/aliyun-pai/02-pai-dsw-notebook/).
+For the full DSW deep dive — image selection, SSH tunneling, GPU memory profiling — see [PAI Part 2](/en/aliyun-pai/02-pai-dsw-notebook/).
 
 ## PAI-DLC: distributed training
 
@@ -345,7 +345,7 @@ if checkpoints:
     print(f"Resumed from {latest}")
 ```
 
-For the full DLC treatment -- RDMA configuration, DeepSpeed ZeRO configs, spot preemption handling -- see [PAI Part 3](/en/aliyun-pai/03-pai-dlc-distributed-training/).
+For the full DLC treatment — RDMA configuration, DeepSpeed ZeRO configs, spot preemption handling — see [PAI Part 3](/en/aliyun-pai/03-pai-dlc-distributed-training/).
 
 ## PAI-EAS: model serving
 
@@ -357,9 +357,9 @@ EAS (Elastic Algorithm Service) is where PAI earns its keep. A DSW notebook cost
 
 EAS offers two modes:
 
-**Image mode** -- You push a Docker image with whatever HTTP server you want (FastAPI, Triton, vLLM). EAS runs the container, routes traffic, scales replicas. You own everything inside the container. This is the right choice for LLM serving.
+**Image mode** — You push a Docker image with whatever HTTP server you want (FastAPI, Triton, vLLM). EAS runs the container, routes traffic, scales replicas. You own everything inside the container. This is the right choice for LLM serving.
 
-**Processor mode** -- You write a Python class with `initialize()` and `process()` methods. EAS provides the HTTP server and routing. Less code, less control. Fine for scikit-learn models and lightweight classifiers.
+**Processor mode** — You write a Python class with `initialize()` and `process()` methods. EAS provides the HTTP server and routing. Less code, less control. Fine for scikit-learn models and lightweight classifiers.
 
 ### Supported serving frameworks
 
@@ -512,7 +512,7 @@ pai eas update qwen-7b-prod --canary-weight 100
 pai eas update qwen-7b-prod --canary-weight 0
 ```
 
-For the complete EAS deep dive -- cold-start mitigation, warm pool sizing, the TPS dashboard lie -- see [PAI Part 4](/en/aliyun-pai/04-pai-eas-model-serving/).
+For the complete EAS deep dive — cold-start mitigation, warm pool sizing, the TPS dashboard lie — see [PAI Part 4](/en/aliyun-pai/04-pai-eas-model-serving/).
 
 ## Model Gallery
 
@@ -577,7 +577,7 @@ training_job.wait()
 print(f"Fine-tuned model: {training_job.output_path}")
 ```
 
-The gallery's fine-tuning defaults use LoRA (Low-Rank Adaptation) rather than full fine-tuning, which is the right default for most use cases -- it is 10x cheaper in GPU-hours and the quality difference for task-specific adapters is negligible.
+The gallery's fine-tuning defaults use LoRA (Low-Rank Adaptation) rather than full fine-tuning, which is the right default for most use cases — it is 10x cheaper in GPU-hours and the quality difference for task-specific adapters is negligible.
 
 ## Designer: visual ML workflows
 
@@ -586,15 +586,15 @@ PAI-Designer (formerly PAI-Studio) is the drag-and-drop ML pipeline builder. You
 ### When to use Designer
 
 Designer makes sense for:
-- **Tabular ML** -- classification, regression, clustering on structured data. The built-in algorithms (XGBoost, LightGBM, logistic regression, k-means) cover 80% of traditional ML.
-- **Non-coders** -- data analysts and business users who can think in pipelines but do not write Python.
-- **Reproducible experiments** -- every pipeline run is versioned and logged. You can compare run A vs run B on the same dataset with different hyperparameters.
+- **Tabular ML** — classification, regression, clustering on structured data. The built-in algorithms (XGBoost, LightGBM, logistic regression, k-means) cover 80% of traditional ML.
+- **Non-coders** — data analysts and business users who can think in pipelines but do not write Python.
+- **Reproducible experiments** — every pipeline run is versioned and logged. You can compare run A vs run B on the same dataset with different hyperparameters.
 - **ETL + train + eval + deploy** as a single schedulable unit.
 
 Designer does not make sense for:
-- **Deep learning** -- the built-in neural network components are limited. Write code in DSW, train in DLC.
-- **LLM workloads** -- no native support for transformer training or serving.
-- **Complex custom logic** -- if your preprocessing needs 200 lines of Python, a code component in Designer is more painful than just using a script.
+- **Deep learning** — the built-in neural network components are limited. Write code in DSW, train in DLC.
+- **LLM workloads** — no native support for transformer training or serving.
+- **Complex custom logic** — if your preprocessing needs 200 lines of Python, a code component in Designer is more painful than just using a script.
 
 ### Built-in algorithms
 
@@ -612,9 +612,9 @@ Designer does not make sense for:
 
 1. Is the model a transformer or diffusion model? **Code** (DSW/DLC).
 2. Is the data tabular and under 100 GB? **Designer** is a strong candidate.
-3. Does the pipeline need to run on a schedule (daily retrain)? **Designer** -- it has native scheduling.
+3. Does the pipeline need to run on a schedule (daily retrain)? **Designer** — it has native scheduling.
 4. Will the person maintaining this pipeline be a data scientist or a business analyst? If analyst, **Designer**.
-5. Is this a one-off experiment? **Code** -- faster to iterate.
+5. Is this a one-off experiment? **Code** — faster to iterate.
 
 For the Designer vs QuickStart comparison, see [PAI Part 5](/en/aliyun-pai/05-pai-designer-vs-quickstart/).
 
@@ -1092,9 +1092,9 @@ pai eas logs customer-service-v1 --region cn-shanghai --tail 100
 ```
 
 EAS integrates with CloudMonitor for alerting. Set up alerts for:
-- **QPS spike** -- auto-scaling should handle it, but alert if max replicas are reached
-- **Error rate** -- any sustained 5xx rate above 1% needs investigation
-- **Latency p99** -- LLM inference latency is bimodal; p50 might be 200 ms while p99 is 3 seconds
+- **QPS spike** — auto-scaling should handle it, but alert if max replicas are reached
+- **Error rate** — any sustained 5xx rate above 1% needs investigation
+- **Latency p99** — LLM inference latency is bimodal; p50 might be 200 ms while p99 is 3 seconds
 
 ### Cost summary
 
@@ -1114,11 +1114,11 @@ The serving cost dominates. If your traffic is bursty, auto-scaling from 0 to N 
 
 **PAI is five products, not one.** DSW for notebooks, DLC for training, EAS for serving, Designer for visual pipelines, QuickStart for one-click model deployment. Understand which one solves your problem before reaching for it.
 
-**Data lives in OSS, not in PAI.** Every checkpoint, dataset, and model artifact should be in OSS. PAI compute is ephemeral -- if your DSW instance restarts or your DLC job finishes, anything not in OSS is gone.
+**Data lives in OSS, not in PAI.** Every checkpoint, dataset, and model artifact should be in OSS. PAI compute is ephemeral — if your DSW instance restarts or your DLC job finishes, anything not in OSS is gone.
 
 **Start in DSW, train in DLC, serve in EAS.** Code matures left to right. Write your training script interactively in DSW, submit the multi-GPU job to DLC, deploy the final checkpoint to EAS. The same Docker image works across all three.
 
-**EAS auto-scaling is the cost lever.** A GPU sitting idle 20 hours a day costs the same as one serving 1000 QPS. Configure auto-scaling with asymmetric cooldowns -- scale out fast, scale in slow.
+**EAS auto-scaling is the cost lever.** A GPU sitting idle 20 hours a day costs the same as one serving 1000 QPS. Configure auto-scaling with asymmetric cooldowns — scale out fast, scale in slow.
 
 **Use spot instances for training.** DLC spot instances are ~40% cheaper. Checkpoint frequently (every 500 steps) and your job survives preemption without losing progress.
 
@@ -1126,4 +1126,4 @@ The serving cost dominates. If your traffic is bursty, auto-scaling from 0 to N 
 
 For the full depth on each sub-product, the [PAI series](/en/aliyun-pai/01-platform-overview/) has five articles: [DSW notebooks](/en/aliyun-pai/02-pai-dsw-notebook/), [DLC distributed training](/en/aliyun-pai/03-pai-dlc-distributed-training/), [EAS model serving](/en/aliyun-pai/04-pai-eas-model-serving/), and [Designer vs QuickStart](/en/aliyun-pai/05-pai-designer-vs-quickstart/). For LLM APIs without managing your own infrastructure, see [Part 10: Bailian and DashScope](/en/aliyun-fullstack/10-bailian-llm/).
 
-Next up: [Article 12 -- Putting It All Together](/en/aliyun-fullstack/12-production-architecture/), where we assemble a complete production architecture using everything from this series.
+Next up: [Article 12 — Putting It All Together](/en/aliyun-fullstack/12-production-architecture/), where we assemble a complete production architecture using everything from this series.

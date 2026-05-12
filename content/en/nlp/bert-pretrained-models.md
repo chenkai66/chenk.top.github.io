@@ -47,13 +47,13 @@ Before BERT, every NLP task started from a freshly initialized model trained on 
 
 ### A short evolution
 
-**Word2Vec (2013).** Static word embeddings learned from raw text. The same vector represented "bank" in *river bank* and in *bank account* -- there was no way for context to change a word's meaning.
+**Word2Vec (2013).** Static word embeddings learned from raw text. The same vector represented "bank" in *river bank* and in *bank account* — there was no way for context to change a word's meaning.
 
 **ELMo (early 2018).** A bidirectional LSTM produced context-dependent vectors by combining hidden states from every layer:
 
 $$\text{ELMo}_k = \gamma \sum_{j=0}^{L} s_j \, h_{k,j}$$
 
-where $h_{k,j}$ is the hidden state of layer $j$ at token position $k$ and $s_j$ are learned softmax weights. ELMo proved that contextual representations dramatically improve almost every downstream task -- but it was still RNN-based, so training was slow and hard to parallelize.
+where $h_{k,j}$ is the hidden state of layer $j$ at token position $k$ and $s_j$ are learned softmax weights. ELMo proved that contextual representations dramatically improve almost every downstream task — but it was still RNN-based, so training was slow and hard to parallelize.
 
 **GPT-1 (June 2018).** The first system to scale a Transformer through pretraining. It used a left-to-right language model:
 
@@ -82,7 +82,7 @@ The wins are concrete:
 
 ## BERT's architecture
 
-BERT is the **encoder** half of the original Transformer, repeated 12 or 24 times. There is no decoder, no causal mask, and no autoregressive generation -- just a bidirectional stack of self-attention layers that turn a sequence of tokens into a sequence of contextual vectors.
+BERT is the **encoder** half of the original Transformer, repeated 12 or 24 times. There is no decoder, no causal mask, and no autoregressive generation — just a bidirectional stack of self-attention layers that turn a sequence of tokens into a sequence of contextual vectors.
 
 ![BERT bidirectional encoder and input embeddings](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig1_bert_architecture.png)
 
@@ -92,9 +92,9 @@ For every token, BERT adds three learned embeddings of the same dimension:
 
 $$\text{Input}_i = E^{\text{tok}}_{w_i} + E^{\text{seg}}_{s_i} + E^{\text{pos}}_{i}$$
 
-- **Token embedding** -- the WordPiece sub-token id, drawn from a 30K vocabulary.
-- **Segment embedding** -- $E_A$ for tokens belonging to the first sentence, $E_B$ for the second. This lets BERT model sentence-pair tasks (NLI, QA) without any architectural change.
-- **Position embedding** -- a *learned* vector for each absolute position from 0 to 511. (Unlike the original Transformer's sinusoidal positions, BERT learns its own.)
+- **Token embedding** — the WordPiece sub-token id, drawn from a 30K vocabulary.
+- **Segment embedding** — $E_A$ for tokens belonging to the first sentence, $E_B$ for the second. This lets BERT model sentence-pair tasks (NLI, QA) without any architectural change.
+- **Position embedding** — a *learned* vector for each absolute position from 0 to 511. (Unlike the original Transformer's sinusoidal positions, BERT learns its own.)
 
 Two special tokens carry most of the protocol:
 
@@ -148,7 +148,7 @@ where $\mathcal{M}$ is the set of masked positions and $\tilde{x}$ is the corrup
 
 - If you only used `[MASK]`, the model would never see `[MASK]` during fine-tuning (downstream inputs have no masks), creating a train/test mismatch.
 - If you only replaced tokens with random ones, the model could not trust any input token and would underuse local information.
-- Leaving 10% unchanged forces the model to use context even when the surface form looks correct -- otherwise it could learn the shortcut "if a token is not weird-looking, just copy it."
+- Leaving 10% unchanged forces the model to use context even when the surface form looks correct — otherwise it could learn the shortcut "if a token is not weird-looking, just copy it."
 
 The MLM objective is what makes BERT bidirectional in a clean way: predicting the masked word from *both sides* requires the encoder to fuse information from the entire sequence at every position.
 
@@ -171,7 +171,7 @@ The total pretraining loss is just the sum of the MLM and NSP losses.
 
 ### Pretraining corpus
 
-BERT was trained on **BooksCorpus** (about 800M words) and **English Wikipedia** (about 2.5B words), totalling roughly 3.3B words. By 2026 standards that is tiny -- modern LLMs train on trillions of tokens -- but it was already enough to set a new bar.
+BERT was trained on **BooksCorpus** (about 800M words) and **English Wikipedia** (about 2.5B words), totalling roughly 3.3B words. By 2026 standards that is tiny — modern LLMs train on trillions of tokens — but it was already enough to set a new bar.
 
 ---
 
@@ -365,7 +365,7 @@ for i, batch in enumerate(dataloader):
 
 ### Default recipe
 
-When in doubt, start here -- it is what most papers use:
+When in doubt, start here — it is what most papers use:
 
 | Setting             | Recommended                                                     |
 | ------------------- | --------------------------------------------------------------- |
@@ -431,7 +431,7 @@ trainer.train()
 print(trainer.evaluate())
 ```
 
-On a single modern GPU this trains in a few hours and reaches around 92-94% accuracy on IMDB -- a number that took years of hand-engineered features to hit before BERT.
+On a single modern GPU this trains in a few hours and reaches around 92-94% accuracy on IMDB — a number that took years of hand-engineered features to hit before BERT.
 
 ---
 
@@ -480,7 +480,7 @@ MLM only computes a loss at 15% of positions, which is wasteful. ELECTRA replace
 2. A larger discriminator examines every token and decides: was this the original, or did the generator swap it in?
 3. We throw away the generator and keep only the discriminator.
 
-Because the discriminator gets a loss at *every* position, ELECTRA reaches BERT-quality scores with much less compute -- ELECTRA-Small matches BERT-Base while training in a quarter of the time.
+Because the discriminator gets a loss at *every* position, ELECTRA reaches BERT-quality scores with much less compute — ELECTRA-Small matches BERT-Base while training in a quarter of the time.
 
 ### Comparison
 
@@ -500,7 +500,7 @@ Picking among them is a recipe choice, not an architecture one: all four are enc
 It is just as important to know BERT's limits.
 
 - **Cost.** 110-340M parameters and quadratic attention make real-time inference uncomfortable without distillation (DistilBERT, TinyBERT) or quantization.
-- **No generation.** BERT is encoder-only with bidirectional attention. There is no sensible way to autoregressively decode text from it. For generation you need GPT-style decoder models -- the topic of Part 6.
+- **No generation.** BERT is encoder-only with bidirectional attention. There is no sensible way to autoregressively decode text from it. For generation you need GPT-style decoder models — the topic of Part 6.
 - **512-token ceiling.** Position embeddings are learned for positions 0-511. Long documents need sliding windows, hierarchical aggregation, or a different architecture (Longformer, BigBird).
 - **English-centric.** The original BERT was trained on English text only. Multilingual BERT covers 100+ languages but underperforms language-specific models (BERT-Chinese, CamemBERT, etc.) on their target language.
 
@@ -514,7 +514,7 @@ It is just as important to know BERT's limits.
 
 **How do I pick a variant?** Use BERT for general baselines, RoBERTa for pushing accuracy, ALBERT when parameter count matters (mobile, embedded), ELECTRA when training compute is the bottleneck.
 
-**What about non-English languages?** Use mBERT or XLM-RoBERTa as multilingual baselines. For best per-language performance, use a dedicated checkpoint -- BERT-wwm-ext or MacBERT for Chinese, CamemBERT for French, BERTje for Dutch, and so on.
+**What about non-English languages?** Use mBERT or XLM-RoBERTa as multilingual baselines. For best per-language performance, use a dedicated checkpoint — BERT-wwm-ext or MacBERT for Chinese, CamemBERT for French, BERTje for Dutch, and so on.
 
 **Can BERT be used for sentence embeddings?** Naively averaging BERT token vectors gives mediocre sentence embeddings. Use Sentence-BERT (a fine-tuned variant trained with a Siamese contrastive loss) when you need similarity scoring.
 

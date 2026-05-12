@@ -7,8 +7,7 @@ tags:
   - Networking
   - Volumes
   - Storage
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "容器默认是临时性的——删除后数据即丢失，且运行在隔离的网络中。卷（Volumes）和网络（Networks）是两种关键机制，使容器能接入持久化存储与可通信的外部世界。"

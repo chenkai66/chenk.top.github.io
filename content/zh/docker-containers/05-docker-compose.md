@@ -7,8 +7,7 @@ tags:
   - Docker Compose
   - YAML
   - DevOps
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "真实应用绝非单个容器。Docker Compose 允许你用一个 YAML 文件声明式地定义多服务架构——网络、卷、依赖关系，一应俱全。"

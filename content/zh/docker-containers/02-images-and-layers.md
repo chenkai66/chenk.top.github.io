@@ -7,8 +7,7 @@ tags:
   - Images
   - Registry
   - OCI
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "Docker 镜像并非单一的巨型文件，而是由多个只读分层（layers）堆叠而成，且这些分层可在不同容器间共享。理解分层机制，是实现快速构建与精简镜像的关键。"

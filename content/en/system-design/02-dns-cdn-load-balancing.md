@@ -6,8 +6,7 @@ tags:
   - Networking
   - Load Balancing
   - CDN
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "Every web request begins with DNS resolution, may traverse a CDN edge, and lands on a load balancer before reaching your application. Understanding these three hops is essential to building systems that are fast, reliable, and globally distributed."

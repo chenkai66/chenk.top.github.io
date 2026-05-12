@@ -18,7 +18,7 @@ translationKey: "cloud-computing-2"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/illustration_1.png)
 
-Without virtualization, there is no cloud. Every EC2 instance, every Lambda invocation, every Kubernetes pod ultimately stands on the same trick: lying convincingly to an operating system about the hardware underneath it. This article walks the full stack -- from the CPU instructions that make the trick cheap, through the four hypervisors that dominate the market, to the production-grade tuning knobs that decide whether your VMs run at 70 % or 99 % of bare metal.
+Without virtualization, there is no cloud. Every EC2 instance, every Lambda invocation, every Kubernetes pod ultimately stands on the same trick: lying convincingly to an operating system about the hardware underneath it. This article walks the full stack — from the CPU instructions that make the trick cheap, through the four hypervisors that dominate the market, to the production-grade tuning knobs that decide whether your VMs run at 70 % or 99 % of bare metal.
 
 ## What You Will Learn
 
@@ -40,16 +40,16 @@ Without virtualization, there is no cloud. Every EC2 instance, every Lambda invo
 
 ## 1. Virtualization Fundamentals
 
-Virtualization creates virtual versions of hardware resources -- CPU, memory, disks, NICs -- so that multiple operating systems can each believe they own a whole machine. The component that maintains the illusion is the **hypervisor**, also called the Virtual Machine Monitor (VMM).
+Virtualization creates virtual versions of hardware resources — CPU, memory, disks, NICs — so that multiple operating systems can each believe they own a whole machine. The component that maintains the illusion is the **hypervisor**, also called the Virtual Machine Monitor (VMM).
 
 ### 1.1 Why It Took Hardware Help
 
-x86 was not originally virtualizable. The architecture exposes 17 sensitive instructions (e.g. `POPF`, `SGDT`) that change global state but do **not** trap when executed in user mode -- which means a naive hypervisor cannot intercept them. Two workarounds emerged in the early 2000s:
+x86 was not originally virtualizable. The architecture exposes 17 sensitive instructions (e.g. `POPF`, `SGDT`) that change global state but do **not** trap when executed in user mode — which means a naive hypervisor cannot intercept them. Two workarounds emerged in the early 2000s:
 
 - **Binary translation** (VMware): rewrite guest kernel code on the fly to replace dangerous instructions with calls into the hypervisor. Clever but slow and complex.
 - **Para-virtualization** (Xen): modify the guest OS to call the hypervisor directly via "hypercalls". Fast but only works for cooperating guests (Linux, BSD).
 
-In 2005-2006 Intel VT-x and AMD-V added a new CPU mode -- **VMX root** for the hypervisor and **VMX non-root** for the guest -- with hardware-managed transitions (`VMENTER` / `VMEXIT`). Suddenly any unmodified OS could run at near-native speed. A few years later, Extended Page Tables (EPT) and Nested Page Tables (NPT) eliminated the second-biggest cost -- shadow page table maintenance -- by giving the MMU two-level translation in hardware.
+In 2005-2006 Intel VT-x and AMD-V added a new CPU mode — **VMX root** for the hypervisor and **VMX non-root** for the guest — with hardware-managed transitions (`VMENTER` / `VMEXIT`). Suddenly any unmodified OS could run at near-native speed. A few years later, Extended Page Tables (EPT) and Nested Page Tables (NPT) eliminated the second-biggest cost — shadow page table maintenance — by giving the MMU two-level translation in hardware.
 
 This is the moment virtualization became cheap enough to build a public cloud on.
 
@@ -64,7 +64,7 @@ This is the moment virtualization became cheap enough to build a public cloud on
 | Overhead | Minimal | Adds host-OS scheduling layer |
 | Use case | Production clouds, data centers | Dev laptops, training labs |
 
-KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Type 1 hypervisor -- the host kernel and the hypervisor are the same kernel.
+KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Type 1 hypervisor — the host kernel and the hypervisor are the same kernel.
 
 ### 1.3 Key Concepts
 
@@ -78,7 +78,7 @@ KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Ty
 
 | Year | Event |
 |------|-------|
-| 1972 | IBM VM/370 -- first commercial OS-level virtualization |
+| 1972 | IBM VM/370 — first commercial OS-level virtualization |
 | 1999 | VMware Workstation ships, virtualizing x86 via binary translation |
 | 2003 | Xen 1.0 introduces para-virtualization on Linux |
 | 2005 | Intel VT-x and AMD-V bring hardware-assisted virtualization to x86 |
@@ -102,7 +102,7 @@ KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Ty
 
 ![VM vs container resource isolation: each VM ships its own kernel, containers share the host kernel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig2_vm_vs_container.png)
 
-The single most important diagram in this article. A VM virtualizes the **hardware** -- so each guest brings its own kernel. A container virtualizes the **OS** -- it is just a Linux process bundled with namespaces (PID, mount, network, UTS, IPC, user) and cgroups for resource limits. Same kernel for everyone.
+The single most important diagram in this article. A VM virtualizes the **hardware** — so each guest brings its own kernel. A container virtualizes the **OS** — it is just a Linux process bundled with namespaces (PID, mount, network, UTS, IPC, user) and cgroups for resource limits. Same kernel for everyone.
 
 Consequences:
 
@@ -122,7 +122,7 @@ The numbers above are why "serverless" works on Firecracker microVMs (~125 ms co
 
 ![KVM vs Xen vs VMware ESXi vs Hyper-V across six dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig4_hypervisor_matrix.png)
 
-There is no single best hypervisor -- the right choice depends on what you already run, who runs it, and what you can spend on licensing.
+There is no single best hypervisor — the right choice depends on what you already run, who runs it, and what you can spend on licensing.
 
 ### 3.1 KVM (Kernel-based Virtual Machine)
 
@@ -289,7 +289,7 @@ sudo zfs send tank/data@2025-01-01 | ssh backup-host \
 
 ### 4.3 Disk Format and I/O Path
 
-The format you pick for the virtual disk image -- and the cache mode you give QEMU -- often matters more than which CPU you bought.
+The format you pick for the virtual disk image — and the cache mode you give QEMU — often matters more than which CPU you bought.
 
 ```xml
 <!-- libvirt: production-grade disk for KVM -->
@@ -311,7 +311,7 @@ echo none | sudo tee /sys/block/nvme0n1/queue/scheduler
 | QCOW2 | Very good | Snapshots, compression, thin | General use, dev/test |
 | VMDK | Good | VMware ecosystem | VMware shops |
 
-`cache=none` + `io=native` bypasses the host page cache and uses asynchronous direct I/O -- the right default for any guest with its own filesystem cache (i.e. all of them). `cache=writeback` is faster but loses data on host crash; only use it for ephemeral workloads.
+`cache=none` + `io=native` bypasses the host page cache and uses asynchronous direct I/O — the right default for any guest with its own filesystem cache (i.e. all of them). `cache=writeback` is faster but loses data on host crash; only use it for ephemeral workloads.
 
 ## 5. Network Virtualization
 
@@ -373,7 +373,7 @@ The trade-off: live migration becomes harder (the VM is bound to a specific phys
 
 ### 6.1 CPU: Pinning, NUMA, Topology
 
-On any multi-socket host, the worst case is a vCPU that wakes up on socket A but its memory lives on socket B -- every cache line is a cross-socket round trip. Fix this with **CPU pinning** plus **NUMA pinning**:
+On any multi-socket host, the worst case is a vCPU that wakes up on socket A but its memory lives on socket B — every cache line is a cross-socket round trip. Fix this with **CPU pinning** plus **NUMA pinning**:
 
 ```bash
 # Pin each vCPU to a specific physical core
@@ -418,7 +418,7 @@ virsh setmem    ubuntu-server 2G --live   # shrink without reboot
 
 ### 6.3 I/O: virtio Everywhere
 
-Always use virtio devices in KVM guests. They are paravirtual -- the guest knows it is in a VM and uses ring buffers shared with the hypervisor instead of MMIO emulation. `vhost-net` moves the network ring processing into the kernel, eliminating one userspace round trip per packet.
+Always use virtio devices in KVM guests. They are paravirtual — the guest knows it is in a VM and uses ring buffers shared with the hypervisor instead of MMIO emulation. `vhost-net` moves the network ring processing into the kernel, eliminating one userspace round trip per packet.
 
 ```xml
 <interface type='bridge'>
@@ -447,7 +447,7 @@ Live migration is the single feature that turned VMs from "another way to run a 
 
 1. **Initial copy.** Send the entire guest memory image to the destination while the VM keeps running on the source.
 2. **Dirty-page rounds.** The source tracks pages dirtied during step 1 and re-sends them. Repeat until the dirty rate falls below network bandwidth, or you hit the round limit.
-3. **Stop & switch.** Pause the source VM, send the last dirty pages and CPU state, resume on the destination. Pause time is typically < 100 ms -- TCP connections and user sessions survive.
+3. **Stop & switch.** Pause the source VM, send the last dirty pages and CPU state, resume on the destination. Pause time is typically < 100 ms — TCP connections and user sessions survive.
 
 ```bash
 # KVM live migration over TLS
@@ -456,13 +456,13 @@ virsh migrate --live --persistent --undefinesource \
               ubuntu-server qemu+tls://dest-host/system
 ```
 
-If the guest is dirtying memory faster than the link can move it (a busy in-memory database, for example), pre-copy never converges. The fallbacks are **post-copy** (switch first, page-fault memory across the network -- lower total downtime, higher tail latency) and **auto-converge** (throttle the guest CPU until the dirty rate drops).
+If the guest is dirtying memory faster than the link can move it (a busy in-memory database, for example), pre-copy never converges. The fallbacks are **post-copy** (switch first, page-fault memory across the network — lower total downtime, higher tail latency) and **auto-converge** (throttle the guest CPU until the dirty rate drops).
 
 Requirements:
 
 - Shared storage, **or** `--copy-storage-all` (slower)
 - Compatible CPU features on source and destination (use `host-model`, not `host-passthrough`)
-- A network fast enough that dirty rate < bandwidth -- 10 Gbps is the practical minimum for production VMs
+- A network fast enough that dirty rate < bandwidth — 10 Gbps is the practical minimum for production VMs
 
 ## 8. Nested Virtualization
 
@@ -526,7 +526,7 @@ echo "options vfio-pci ids=10de:2204" | sudo tee /etc/modprobe.d/vfio.conf
 
 The fundamental promise of a hypervisor is that one tenant cannot read or affect another. Real-world breaks have come from:
 
-- **VM escape** via emulated device bugs (Venom, 2015 -- floppy drive emulation in QEMU)
+- **VM escape** via emulated device bugs (Venom, 2015 — floppy drive emulation in QEMU)
 - **Side channels** on shared CPU caches (L1TF, MDS, Spectre v2)
 - **Hypervisor kernel bugs** in the management plane
 
@@ -557,7 +557,7 @@ Enable CPU side-channel mitigations on the host (`spectre_v2=on`, `l1tf=full`) a
 - Minimal install (no GUI, no `cups`, no `apt-listchanges`)
 - Automatic security updates (`unattended-upgrades`)
 - Full-disk encryption for sensitive data (LUKS in the guest)
-- Per-trust-tier VLANs -- never put PCI workloads on the same broadcast domain as developer VMs
+- Per-trust-tier VLANs — never put PCI workloads on the same broadcast domain as developer VMs
 - Keep guest agents (`qemu-guest-agent`, `vmtoolsd`, `Hyper-V Integration Services`) up to date
 
 ### 10.4 Confidential Computing
@@ -572,7 +572,7 @@ The newest layer: AMD SEV-SNP, Intel TDX, and ARM CCA encrypt guest memory with 
 | Slow CPU | `virt-top`, `mpstat -P ALL` on host | CPU pinning, governor = performance, check %steal |
 | Slow disk | `iostat -xz 1`, guest `iotop` | Switch to virtio + `cache=none io=native`, raw format |
 | Network packet loss | `ethtool -S`, `tc -s qdisc` | Multi-queue virtio, increase ring buffer, check vhost CPU |
-| Live migration stalls | `virsh domjobinfo <vm>` | Dirty rate too high -- enable auto-converge or use post-copy |
+| Live migration stalls | `virsh domjobinfo <vm>` | Dirty rate too high — enable auto-converge or use post-copy |
 | Memory pressure | `free -h`, `cat /proc/meminfo`, `numastat` | Add huge pages, fix NUMA pinning, reduce overcommit |
 | Random VM crash | `dmesg`, `/var/log/libvirt/qemu/<vm>.log` | EDAC errors -> bad RAM; otherwise check kernel + microcode |
 | `KVM: entry failed, hardware error 0x80000021` | `dmesg | grep KVM` | Disable nested or update microcode; check VT-x state |
@@ -596,7 +596,7 @@ The newest layer: AMD SEV-SNP, Intel TDX, and ARM CCA encrypt guest memory with 
 
 ### 13.1 Enterprise Data Center Consolidation
 
-A financial services company consolidated 200 physical servers onto 20 VMware ESXi hosts backed by a shared NVMe SAN. Result: 90 % rack reduction, 60 % cost saving, deployment time from weeks to hours. The bigger win was operational -- a single vCenter cluster replaced four ticket queues.
+A financial services company consolidated 200 physical servers onto 20 VMware ESXi hosts backed by a shared NVMe SAN. Result: 90 % rack reduction, 60 % cost saving, deployment time from weeks to hours. The bigger win was operational — a single vCenter cluster replaced four ticket queues.
 
 ### 13.2 HPC Research Cluster
 

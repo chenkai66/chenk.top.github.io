@@ -4,7 +4,7 @@ date: 2026-04-20 09:00:00
 tags:
   - claude-code
   - slash-commands
-  - workflow
+  - Workflow
 categories: Claude Code
 lang: en
 mathjax: false
@@ -66,7 +66,7 @@ The command content is treated as a regular prompt. That means:
 - Markdown formatting is preserved
 
 ![Slash command lookup order: project commands win over user commands, which win over built-ins](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/fig3.png)
-*Figure: how Claude Code resolves a slash command -- project scope first, then user, then built-ins.*
+*Figure: how Claude Code resolves a slash command — project scope first, then user, then built-ins.*
 
 ## The directory structure
 
@@ -143,7 +143,7 @@ Then:
 `$ARGUMENTS` becomes `rate limiter`, the prompt fires, you get a three-level explanation grounded in the actual repo.
 
 ![$ARGUMENTS substitution pipeline: command file plus user input become the final prompt sent to Claude](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/fig4.png)
-*Figure: $ARGUMENTS is pure string replacement -- everything after the command name lands verbatim inside the prompt.*
+*Figure: $ARGUMENTS is pure string replacement — everything after the command name lands verbatim inside the prompt.*
 
 ### `$ARGUMENTS` patterns
 
@@ -616,7 +616,7 @@ Simple → Complex:
 4. Claude Code SDK          (programmatic — full control, state, testing)
 ```
 
-![Automation hierarchy: CLAUDE.md, slash commands, shell scripts, SDK -- climb only when you must](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/fig6.png)
+![Automation hierarchy: CLAUDE.md, slash commands, shell scripts, SDK — climb only when you must](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/fig6.png)
 *Figure: four tiers of automation. Most teams live happily at tiers 1 and 2 forever.*
 
 Start at level 1. Move up only when the lower level can't handle your use case. Most teams never need level 4. Almost every team benefits from levels 1-2.
@@ -641,7 +641,7 @@ Let me show what a mature `.claude/commands/` directory looks like for a product
 ```
 
 ![A mature .claude/commands directory grouped by purpose: quality gates, knowledge, operations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/fig7.png)
-*Figure: 11 commands grouped by intent. Each file is one workflow -- together they form the team’s shared vocabulary.*
+*Figure: 11 commands grouped by intent. Each file is one workflow — together they form the team’s shared vocabulary.*
 
 11 commands. Each one is a workflow that used to be either (a) done manually with multiple steps, or (b) not done at all because it was too tedious.
 

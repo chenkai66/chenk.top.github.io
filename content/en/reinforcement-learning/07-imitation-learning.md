@@ -20,7 +20,7 @@ translationKey: "reinforcement-learning-7"
 ---
 Every algorithm in the previous chapters assumed access to a reward function. In practice, _designing_ that reward is often the hardest part of an RL project. Try writing one paragraph that captures "drive like a careful human", "fold a shirt the way a tailor would", or "summarise this document the way an expert editor would". You can _show_ those behaviours far more easily than you can _specify_ them.
 
-Imitation learning takes that intuition seriously: instead of optimising a hand-engineered scalar, it learns from expert demonstrations $\mathcal{D} = \{(s_t, a_t)\}$. This chapter walks the four canonical methods -- behavioral cloning, DAgger, maximum-entropy IRL, and GAIL/AIRL -- not as isolated tricks but as a single ladder where each rung relaxes one assumption and pays for it with new structure.
+Imitation learning takes that intuition seriously: instead of optimising a hand-engineered scalar, it learns from expert demonstrations $\mathcal{D} = \{(s_t, a_t)\}$. This chapter walks the four canonical methods — behavioral cloning, DAgger, maximum-entropy IRL, and GAIL/AIRL — not as isolated tricks but as a single ladder where each rung relaxes one assumption and pays for it with new structure.
 
 ![Reinforcement Learning (7): Imitation Learning and Inverse RL — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_1.png)
 
@@ -42,7 +42,7 @@ Given expert demonstrations
 
 $$\mathcal{D} = \{(s_1, a_1), (s_2, a_2), \ldots, (s_N, a_N)\},$$
 
-the goal is to learn a policy $\pi_\theta$ whose behaviour is close to that of an unknown expert policy $\pi^*$. We never observe $\pi^*$ directly -- only its samples -- and there is no reward signal. Sometimes we can also _query_ the expert on new states (DAgger); often we cannot.
+the goal is to learn a policy $\pi_\theta$ whose behaviour is close to that of an unknown expert policy $\pi^*$. We never observe $\pi^*$ directly — only its samples — and there is no reward signal. Sometimes we can also _query_ the expert on new states (DAgger); often we cannot.
 
 | Aspect | Reinforcement learning | Imitation learning |
 |---|---|---|
@@ -139,7 +139,7 @@ class BehavioralCloning:
 
 Three implementation details matter much more than they look:
 
-1. **Standardise inputs.** BC is a small supervised model -- unscaled features dominate the loss surface and produce overconfident actions in rare states.
+1. **Standardise inputs.** BC is a small supervised model — unscaled features dominate the loss surface and produce overconfident actions in rare states.
 2. **Early-stopping on a held-out validation set.** Long training overfits the expert's noise, which makes the next problem worse, not better.
 3. **Action representation.** For continuous control, predicting Gaussian parameters with a NLL loss outperforms MSE on Tanh outputs whenever the expert is multimodal.
 
@@ -153,7 +153,7 @@ The classical bound formalises the cascade. If $\pi_\theta$ has expected per-ste
 
 $$J(\pi^*) - J(\pi_\theta) \;\le\; \mathcal{O}\!\left( \varepsilon \, T^2 \right),$$
 
-quadratic in horizon (Ross & Bagnell, 2010). Even a 99% accurate policy fails on a 200-step task, because the 1% probability of a mistake compounds and the policy lands in states the expert never visited -- where it has no useful training signal.
+quadratic in horizon (Ross & Bagnell, 2010). Even a 99% accurate policy fails on a 200-step task, because the 1% probability of a mistake compounds and the policy lands in states the expert never visited — where it has no useful training signal.
 
 You can see the cascade clearly when you roll the trained policy forward:
 
@@ -224,7 +224,7 @@ class DAgger:
 - the expert is a more capable model you want to distil (e.g. teacher-student RL, model-based oracle, language-model self-distillation);
 - a human is in the loop and willing to label batches.
 
-It does _not_ apply when the only demonstrations are a static log -- e.g. a recorded driving dataset. For that regime, jump to GAIL.
+It does _not_ apply when the only demonstrations are a static log — e.g. a recorded driving dataset. For that regime, jump to GAIL.
 
 ---
 
@@ -243,7 +243,7 @@ Why bother going through reward? Two reasons:
 
 ### 4.1 Maximum-entropy IRL
 
-A purely "match the expert's value" objective is ill-posed -- many rewards explain the same behaviour. **Maximum-entropy IRL** (Ziebart et al., 2008) breaks the tie by requiring the recovered policy to maximise $r$ subject to maximum entropy. Concretely, the expert's distribution over trajectories $\tau$ takes the Boltzmann form
+A purely "match the expert's value" objective is ill-posed — many rewards explain the same behaviour. **Maximum-entropy IRL** (Ziebart et al., 2008) breaks the tie by requiring the recovered policy to maximise $r$ subject to maximum entropy. Concretely, the expert's distribution over trajectories $\tau$ takes the Boltzmann form
 
 $$p_\theta(\tau) \;\propto\; \exp\!\left( \sum_t r_\theta(s_t, a_t) \right).$$
 
@@ -253,7 +253,7 @@ $$\nabla_\theta \mathcal{L}(\theta) \;=\; \mathbb{E}_{\tau \sim \pi^*}\!\left[\n
 
 Read this as a contrastive update: _push reward up where the expert goes, push it down where the current policy goes_. At convergence, the two expectations match and the policy reproduces the expert occupancy.
 
-The cost is the second expectation. Computing $\mathbb{E}_{\pi_\theta}$ requires solving an RL problem (or doing trajectory sampling) at every reward update -- a nested loop that limited classical IRL to small grid worlds. **Guided cost learning** (Finn, Levine & Abbeel, 2016) replaces the inner RL solve with sampled importance-weighted trajectories, scaling MaxEnt IRL to continuous control.
+The cost is the second expectation. Computing $\mathbb{E}_{\pi_\theta}$ requires solving an RL problem (or doing trajectory sampling) at every reward update — a nested loop that limited classical IRL to small grid worlds. **Guided cost learning** (Finn, Levine & Abbeel, 2016) replaces the inner RL solve with sampled importance-weighted trajectories, scaling MaxEnt IRL to continuous control.
 
 ### 4.2 Reward ambiguity
 
@@ -263,7 +263,7 @@ Even with the max-entropy regulariser, $\hat r$ is recovered up to **shaping inv
 
 ## 5. Adversarial imitation: GAIL and AIRL
 
-The IRL inner loop is expensive. **GAIL** (Ho & Ermon, 2016) noticed that for imitation we don't actually need $r$ -- we only need the policy whose state-action _occupancy_ matches the expert's. So GAIL replaces "recover reward, then re-solve RL" with a single adversarial game.
+The IRL inner loop is expensive. **GAIL** (Ho & Ermon, 2016) noticed that for imitation we don't actually need $r$ — we only need the policy whose state-action _occupancy_ matches the expert's. So GAIL replaces "recover reward, then re-solve RL" with a single adversarial game.
 
 A discriminator $D_\phi(s, a)$ tries to tell expert pairs from policy pairs; the policy tries to fool it. The minimax objective is
 
@@ -272,7 +272,7 @@ $$\min_\theta \max_\phi \;\;
 \,+\, \mathbb{E}_{(s,a)\sim \pi_\theta}\!\left[\log\big(1 - D_\phi(s, a)\big)\right]
 \,-\, \lambda H(\pi_\theta).$$
 
-The entropy term $\lambda H(\pi_\theta)$ stabilises the generator and discourages mode collapse. At the saddle point, $\pi_\theta$'s occupancy measure equals $\pi^*$'s -- which is exactly what BC was trying to do but without the supervision-vs-rollout mismatch.
+The entropy term $\lambda H(\pi_\theta)$ stabilises the generator and discourages mode collapse. At the saddle point, $\pi_\theta$'s occupancy measure equals $\pi^*$'s — which is exactly what BC was trying to do but without the supervision-vs-rollout mismatch.
 
 ![GAIL discriminator-generator architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig4_gail_architecture.png)
 
@@ -330,7 +330,7 @@ class GAIL:
 
 ### 5.1 What does "matching occupancy" actually mean?
 
-GAIL is not minimising an action-prediction loss; it is minimising the Jensen-Shannon divergence between the expert occupancy $\rho_{\pi^*}(s, a)$ and the learner occupancy $\rho_{\pi_\theta}(s, a)$. That is a much stronger objective than BC -- it is _aware_ of the rollout distribution. The price: it requires environment interaction during training (to sample $\rho_{\pi_\theta}$), so it does not work in fully offline settings without modification.
+GAIL is not minimising an action-prediction loss; it is minimising the Jensen-Shannon divergence between the expert occupancy $\rho_{\pi^*}(s, a)$ and the learner occupancy $\rho_{\pi_\theta}(s, a)$. That is a much stronger objective than BC — it is _aware_ of the rollout distribution. The price: it requires environment interaction during training (to sample $\rho_{\pi_\theta}$), so it does not work in fully offline settings without modification.
 
 ### 5.2 AIRL: disentangling reward from shaping
 
@@ -340,7 +340,7 @@ $$D_\phi(s, a, s') \;=\; \frac{\exp\big(f_\phi(s, a, s')\big)}{\exp\big(f_\phi(s
 \qquad
 f_\phi(s, a, s') \;=\; r_\psi(s) + \gamma \Phi_\xi(s') - \Phi_\xi(s),$$
 
-so that $r_\psi$ is the _state-only_ reward and $\Phi_\xi$ absorbs the shaping. Training with this parameterisation yields a recovered reward $\hat r = r_\psi$ that transfers across dynamics changes -- the empirical headline result of the AIRL paper.
+so that $r_\psi$ is the _state-only_ reward and $\Phi_\xi$ absorbs the shaping. Training with this parameterisation yields a recovered reward $\hat r = r_\psi$ that transfers across dynamics changes — the empirical headline result of the AIRL paper.
 
 ---
 
@@ -352,7 +352,7 @@ The strongest practical argument for imitation is sample efficiency. A few thous
 
 The pattern in the left panel is robust across robotics benchmarks: BC saturates below the expert (it cannot exceed its training data), DAgger climbs once it sees recovery states, GAIL eventually matches the expert, and pure RL takes much longer to reach the same level. The right panel makes the trade-off concrete: methods that consume more expert data tend to need fewer environment steps, and vice versa.
 
-This is also why **imitation pre-training + RL fine-tuning** is the dominant recipe in modern systems -- AlphaStar, robotic manipulation, and InstructGPT all start with imitation and then improve with RL.
+This is also why **imitation pre-training + RL fine-tuning** is the dominant recipe in modern systems — AlphaStar, robotic manipulation, and InstructGPT all start with imitation and then improve with RL.
 
 ---
 
@@ -378,19 +378,19 @@ A short decision rule:
 ## 8. Frequently asked questions
 
 **Can imitation learning exceed the expert?**
-Pure imitation cannot, by construction -- the optimal imitator matches the expert. The standard fix is _imitation as initialisation_: start from the BC/GAIL policy and fine-tune with RL on whatever reward you _can_ specify (or with RLHF). Most large-scale systems use exactly this two-stage recipe.
+Pure imitation cannot, by construction — the optimal imitator matches the expert. The standard fix is _imitation as initialisation_: start from the BC/GAIL policy and fine-tune with RL on whatever reward you _can_ specify (or with RLHF). Most large-scale systems use exactly this two-stage recipe.
 
 **How do I handle noisy or suboptimal expert demonstrations?**
-Three lines of defence: (i) weight samples by an estimated quality score (e.g. return, human preference); (ii) replace cross-entropy with a robust loss (Huber, log-cosh) to discount outliers; (iii) use offline RL on the demonstrations -- methods such as IQL or CQL handle suboptimal trajectories gracefully.
+Three lines of defence: (i) weight samples by an estimated quality score (e.g. return, human preference); (ii) replace cross-entropy with a robust loss (Huber, log-cosh) to discount outliers; (iii) use offline RL on the demonstrations — methods such as IQL or CQL handle suboptimal trajectories gracefully.
 
-**The expert is multimodal -- different actions in the same state. What now?**
+**The expert is multimodal — different actions in the same state. What now?**
 Standard MSE-BC averages the modes and produces dangerous in-between actions (the classic "drive into the obstacle because half the demos go left and half go right" failure). Use a Mixture Density Network, a discrete-action quantised policy, a conditional VAE, or a diffusion policy. Diffusion policies (Chi et al., 2023) currently dominate on multimodal manipulation tasks.
 
 **Can BC handle distribution shift if I just collect more data?**
 Up to a point. More data shrinks $\varepsilon$ but does not change the $T^2$ exponent. Once your horizon is long enough that the policy ever leaves the support of $\mathcal{D}$, you need either DAgger-style relabelling, GAIL-style occupancy matching, or _conservative_ offline RL (CQL, IQL) that explicitly penalises out-of-support actions.
 
 **Is RLHF a kind of imitation learning?**
-Partly. The supervised fine-tuning stage of RLHF is BC on human-written demonstrations. The preference-modelling stage is closer to an IRL variant -- you learn a reward model from comparisons, then optimise it with PPO. We unpack the full pipeline in [Part 12](/en/reinforcement-learning/12-rlhf-and-llm-applications/).
+Partly. The supervised fine-tuning stage of RLHF is BC on human-written demonstrations. The preference-modelling stage is closer to an IRL variant — you learn a reward model from comparisons, then optimise it with PPO. We unpack the full pipeline in [Part 12](/en/reinforcement-learning/12-rlhf-and-llm-applications/).
 
 ---
 
@@ -408,6 +408,6 @@ Partly. The supervised fine-tuning stage of RLHF is BC on human-written demonstr
 
 ## Series navigation
 
-- **Previous**: [Part 6 -- Advanced Policy Optimization](/en/reinforcement-learning/06-ppo-and-trpo/)
-- **Next**: [Part 8 -- AlphaGo and Monte Carlo Tree Search](/en/reinforcement-learning/08-alphago-and-mcts/)
+- **Previous**: [Part 6 — Advanced Policy Optimization](/en/reinforcement-learning/06-ppo-and-trpo/)
+- **Next**: [Part 8 — AlphaGo and Monte Carlo Tree Search](/en/reinforcement-learning/08-alphago-and-mcts/)
 - [View all 12 parts in the RL series](/en/tags/reinforcement-learning/)

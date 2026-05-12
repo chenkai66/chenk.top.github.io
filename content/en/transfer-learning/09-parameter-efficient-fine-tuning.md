@@ -1,8 +1,7 @@
 ---
 title: "Transfer Learning (9): Parameter-Efficient Fine-Tuning"
 date: 2025-06-18 09:00:00
-categories:
-  - Transfer Learning
+categories: Transfer Learning
   - Machine Learning
 tags:
   - PEFT
@@ -18,7 +17,7 @@ disableNunjucks: true
 series_order: 9
 translationKey: "transfer-learning-9"
 ---
-How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of the parameters. Parameter-Efficient Fine-Tuning (PEFT) makes this possible -- and on most benchmarks it matches full fine-tuning. This post derives the math behind LoRA, Adapter, Prefix-Tuning, Prompt-Tuning, BitFit and QLoRA, and gives you a single picture for choosing among them.
+How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of the parameters. Parameter-Efficient Fine-Tuning (PEFT) makes this possible — and on most benchmarks it matches full fine-tuning. This post derives the math behind LoRA, Adapter, Prefix-Tuning, Prompt-Tuning, BitFit and QLoRA, and gives you a single picture for choosing among them.
 
 ![Transfer Learning (9): Parameter-Efficient Fine-Tuning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/illustration_1.png)
 
@@ -44,7 +43,7 @@ How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of
 Full fine-tuning updates every parameter $\boldsymbol{\theta}$:
 
 $$\boldsymbol{\theta}^* = \arg\min_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta})$$
-For GPT-3 (175B params) this means roughly **700 GB of FP32 weights**, plus gradients, plus optimiser states -- and one full copy per task. Even after the model fits, the per-task storage and serving cost is brutal: 100 customers means 100 copies of a 700 GB checkpoint.
+For GPT-3 (175B params) this means roughly **700 GB of FP32 weights**, plus gradients, plus optimiser states — and one full copy per task. Even after the model fits, the per-task storage and serving cost is brutal: 100 customers means 100 copies of a 700 GB checkpoint.
 
 PEFT replaces this with an additive decomposition:
 $$\boldsymbol{\theta}^* = \boldsymbol{\theta}_0 + \Delta\boldsymbol{\theta}, \qquad |\Delta\boldsymbol{\theta}| \ll |\boldsymbol{\theta}_0|.$$
@@ -93,14 +92,14 @@ A few details make LoRA work in practice:
 - **Init.** $\mathbf{A} \sim \mathcal{N}(0, \sigma^2)$ with Kaiming-style variance, $\mathbf{B} = \mathbf{0}$. This guarantees $\Delta\mathbf{W} = \mathbf{0}$ at step 0, so training starts from the pretrained behaviour exactly.
 - **Forward.** Compute $\mathbf{h} = \mathbf{W}_0 \mathbf{x} + \tfrac{\alpha}{r}\,\mathbf{B}(\mathbf{A}\mathbf{x})$. **Never materialise $\mathbf{B}\mathbf{A}$**: it is a $d_{\text{out}}\times d_{\text{in}}$ dense matrix, exactly what we were avoiding.
 - **Scaling.** The factor $\alpha/r$ decouples step size from rank: doubling $r$ does not double the effective learning rate, so $\alpha$ can stay fixed across rank sweeps.
-- **Merging.** At inference we can collapse the adapter: $\mathbf{W}_{\text{merged}} = \mathbf{W}_0 + (\alpha/r)\,\mathbf{B}\mathbf{A}$. This adds **zero latency** -- you ship a single weight matrix.
+- **Merging.** At inference we can collapse the adapter: $\mathbf{W}_{\text{merged}} = \mathbf{W}_0 + (\alpha/r)\,\mathbf{B}\mathbf{A}$. This adds **zero latency** — you ship a single weight matrix.
 - **Where to apply.** Empirically, attaching LoRA to the **query** and **value** projections beats attention-only or MLP-only, and matches "all linear layers" at much lower cost.
 
 ### How Much Smaller Is "Smaller"?
 
 ![Trainable parameters per method, log scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/fig2_param_count.png)
 
-On a 175B base, the difference between Full FT and LoRA $r=8$ is roughly **five orders of magnitude** in trainable parameters -- but, as we will see in the GLUE chart at the end, almost no difference in score.
+On a 175B base, the difference between Full FT and LoRA $r=8$ is roughly **five orders of magnitude** in trainable parameters — but, as we will see in the GLUE chart at the end, almost no difference in score.
 
 ---
 
@@ -114,7 +113,7 @@ $$\text{Adapter}(\mathbf{h}) = \mathbf{h} + \mathbf{W}_{\text{up}}\, \sigma(\mat
         \mathbf{W}_{\text{up}} \in \mathbb{R}^{d \times m},\; m \ll d.$$
 The "down then up" projection is the same trick as in LoRA, but applied as an additional layer rather than a delta to an existing one. Initialising $\mathbf{W}_{\text{up}}$ near zero again makes the block start as identity.
 
-**Adapter vs LoRA** -- a useful side-by-side:
+**Adapter vs LoRA** — a useful side-by-side:
 
 | | Adapter | LoRA |
 |---|---------|------|
@@ -146,7 +145,7 @@ Conceptually, the prefix steers attention from the very first layer, biasing wha
 
 ![Prompt-Tuning vs P-Tuning v2](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/fig5_prompt_vs_ptuning.png)
 
-**Prompt-Tuning** (Lester et al., 2021) is the radical simplification: tune $m$ soft prompt vectors at the *input layer only*. Trainable parameters are just $m \times d$ -- often a few thousand.
+**Prompt-Tuning** (Lester et al., 2021) is the radical simplification: tune $m$ soft prompt vectors at the *input layer only*. Trainable parameters are just $m \times d$ — often a few thousand.
 
 The catch: it only really works on **very large** models. Lester et al. show the gap to full fine-tuning closes monotonically with scale; below ~1B parameters the loss is severe, but at 10B+ it essentially vanishes. The intuition: a 100-billion-parameter model has enough capacity to "interpret" arbitrary continuous prompts, while a small one needs more localised editing power.
 
@@ -243,9 +242,9 @@ def apply_lora(module: nn.Module, rank: int = 8, alpha: float = 16.0,
 
 Three things to notice in the implementation:
 
-1. The forward pass **never builds $\mathbf{B}\mathbf{A}$** -- it left-multiplies by $\mathbf{A}$ first, producing an intermediate of width $r$.
+1. The forward pass **never builds $\mathbf{B}\mathbf{A}$** — it left-multiplies by $\mathbf{A}$ first, producing an intermediate of width $r$.
 2. `merge_weights` is a one-time, in-place operation. After merging, the layer behaves bit-for-bit like a plain `nn.Linear`, so latency at serving time is unchanged.
-3. `apply_lora` walks the module tree, swapping only the layers named `"query"` / `"value"` -- the canonical recommendation from the LoRA paper.
+3. `apply_lora` walks the module tree, swapping only the layers named `"query"` / `"value"` — the canonical recommendation from the LoRA paper.
 
 ---
 
@@ -272,7 +271,7 @@ The bubble chart sums up the design space. With RoBERTa-base on GLUE:
 | Few-shot / few-thousand examples | Prefix-Tuning or BitFit | Strong inductive bias, less overfitting |
 | Single 24-48 GB GPU, 30B+ model | QLoRA | NF4 + paged Adam unlocks the size class |
 
-**Picking LoRA's rank.** Start at $r = 8$. Bump to 16 if validation lags by more than ~0.5 points; drop to 4 if you are memory-bound. Larger base models tolerate (and often prefer) **smaller** $r$ -- the intrinsic dimensionality of adaptation does not grow with model size.
+**Picking LoRA's rank.** Start at $r = 8$. Bump to 16 if validation lags by more than ~0.5 points; drop to 4 if you are memory-bound. Larger base models tolerate (and often prefer) **smaller** $r$ — the intrinsic dimensionality of adaptation does not grow with model size.
 
 ---
 
@@ -325,7 +324,7 @@ One to two orders of magnitude higher than full fine-tuning. The trainable param
 
 ### Can I combine PEFT with quantisation?
 
-Yes -- that is exactly QLoRA. NF4 + double quantisation + bf16 LoRA fine-tunes 65B models on a single 48 GB GPU with <2% performance drop.
+Yes — that is exactly QLoRA. NF4 + double quantisation + bf16 LoRA fine-tunes 65B models on a single 48 GB GPU with <2% performance drop.
 
 ### Should I apply LoRA to all linear layers?
 

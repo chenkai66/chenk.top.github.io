@@ -7,8 +7,7 @@ tags:
   - MongoDB
   - Redis
   - Cassandra
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: en
 description: "A practical tour of the four major NoSQL families — document, key-value, wide-column, and graph — including the CAP theorem and when to use each model."

@@ -6,8 +6,7 @@ tags:
   - Distributed Systems
   - Consensus
   - Transactions
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "分布式数据库如何跨机器协调事务——两阶段提交（2PC）、Raft 共识、Saga 模式，以及 outbox 和 CDC 等实用模式。"

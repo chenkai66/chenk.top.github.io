@@ -7,8 +7,7 @@ tags:
   - Neural Networks
   - PDE
   - Automatic Differentiation
-categories:
-  - PDE and Machine Learning
+categories: PDE and Machine Learning
 series: pde-ml
 lang: en
 mathjax: true

@@ -5,8 +5,7 @@ tags:
   - Python
   - Testing
   - pytest
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Build confidence in your code with pytest fixtures, parametrize, mocking, and coverage. Learn debugging techniques that save hours."

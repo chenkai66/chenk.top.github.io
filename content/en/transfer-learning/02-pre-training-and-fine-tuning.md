@@ -10,8 +10,7 @@ tags:
   - Self-Supervised Learning
   - GPT
   - LoRA
-categories:
-  - Transfer Learning
+categories: Transfer Learning
 series: transfer-learning
 lang: en
 mathjax: true

@@ -1,8 +1,7 @@
 ---
 title: "Transfer Learning (7): Zero-Shot Learning"
 date: 2025-06-06 09:00:00
-categories:
-  - Transfer Learning
+categories: Transfer Learning
   - Machine Learning
 tags:
   - Zero-Shot Learning

@@ -17,7 +17,7 @@ translationKey: "time-series-8"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/illustration_1.png)
 
-The Transformer is wonderful at sequence modeling -- right up to the moment your sequence gets long. Vanilla self-attention costs $\mathcal{O}(L^2)$ in both compute and memory, so a one-week hourly window (168 steps) is fine, a one-month window (720 steps) is painful, and a three-month window (2160 steps) is essentially impossible on a single GPU. That is exactly the regime real-world long-horizon forecasting lives in: weather, energy, finance, IoT.
+The Transformer is wonderful at sequence modeling — right up to the moment your sequence gets long. Vanilla self-attention costs $\mathcal{O}(L^2)$ in both compute and memory, so a one-week hourly window (168 steps) is fine, a one-month window (720 steps) is painful, and a three-month window (2160 steps) is essentially impossible on a single GPU. That is exactly the regime real-world long-horizon forecasting lives in: weather, energy, finance, IoT.
 
 **Informer** (Zhou et al., AAAI 2021 best paper) is the architecture that finally made Transformers practical for these settings. It does three things, each of which would be a contribution on its own:
 
@@ -69,8 +69,8 @@ Several papers tried to attack this with structural sparsity (Longformer's local
 
 If you plot the attention distribution of a typical query $q_i$ over the keys, you see two qualitatively different shapes:
 
-- **Peaked.** A handful of keys get most of the probability mass. This query is "selective" -- it knows what it is looking for.
-- **Uniform.** Probability is spread evenly across all keys. This query is "vague" -- it would benefit from looking at everything.
+- **Peaked.** A handful of keys get most of the probability mass. This query is "selective" — it knows what it is looking for.
+- **Uniform.** Probability is spread evenly across all keys. This query is "vague" — it would benefit from looking at everything.
 
 Peaked queries can be approximated very efficiently by computing attention only over their top few keys. Uniform queries cannot. The trick is to identify which is which **without** computing the full attention matrix first.
 
@@ -88,7 +88,7 @@ After dropping constants and substituting the softmax, Zhou et al. show that
 
 $$\mathrm{KL}(q_i \,\|\, U) \;\propto\; \log\!\left(\sum_{j=1}^{L} e^{q_i^\top k_j / \sqrt{d}}\right) - \frac{1}{L}\sum_{j=1}^{L} \frac{q_i^\top k_j}{\sqrt{d}}.$$
 
-Call this quantity $M(q_i, K)$. High $M$ means peaked distribution -- selective query, deserves full attention. Low $M$ means uniform -- vague query, can be skipped.
+Call this quantity $M(q_i, K)$. High $M$ means peaked distribution — selective query, deserves full attention. Low $M$ means uniform — vague query, can be skipped.
 
 But computing $M$ exactly still requires the $L$ inner products, defeating the point. Informer's second trick is to approximate $M$ from a **random sample** of $u = c \log L$ keys (with $c$ a constant, typically 5):
 
@@ -101,7 +101,7 @@ The $\max$ here replaces the LogSumExp because under the concentration of measur
 The procedure for a single attention head:
 
 1. Sample $u = c \log L$ keys uniformly at random.
-2. Compute $\bar{M}(q_i, K)$ for every query $q_i$ -- $\mathcal{O}(L \log L)$ work.
+2. Compute $\bar{M}(q_i, K)$ for every query $q_i$ — $\mathcal{O}(L \log L)$ work.
 3. Pick the top $u$ queries by $\bar{M}$.
 4. For those $u$ queries, compute attention over the **full** $L$ keys. For the remaining $L - u$ queries, fill in the mean of $V$ as the output.
 
@@ -109,7 +109,7 @@ Total cost: $\mathcal{O}(L \log L)$. Memory: also $\mathcal{O}(L \log L)$.
 
 ![ProbSparse attention vs full attention](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig1_probsparse_vs_full.png)
 
-In the figure, the right panel keeps only the rows corresponding to high-$M$ queries. The other rows are not zero in practice -- they are filled with the mean value of $V$, which is a reasonable approximation for a uniform attention distribution.
+In the figure, the right panel keeps only the rows corresponding to high-$M$ queries. The other rows are not zero in practice — they are filled with the mean value of $V$, which is a reasonable approximation for a uniform attention distribution.
 
 A clean implementation:
 
@@ -440,7 +440,7 @@ The bound comes from the expected probability that a "selective" query has its t
 
 ### Does ProbSparse actually identify the *right* queries?
 
-Empirically yes -- the $\max - \mathrm{mean}$ approximation correlates near-perfectly (>0.95 Spearman) with the exact KL divergence on attention distributions seen during training. The paper has the full ablation.
+Empirically yes — the $\max - \mathrm{mean}$ approximation correlates near-perfectly (>0.95 Spearman) with the exact KL divergence on attention distributions seen during training. The paper has the full ablation.
 
 ### Why use the *mean* of $V$ for non-selected queries instead of zero?
 
@@ -455,7 +455,7 @@ Because a uniform attention distribution evaluates to exactly $\frac{1}{L}\sum_j
 
 ### Can I use Informer for multivariate input with variable encoder/decoder feature dimensions?
 
-Yes -- `enc_in` and `dec_in` are independent. A common pattern is to feed all variables into the encoder and only the target variable into the decoder.
+Yes — `enc_in` and `dec_in` are independent. A common pattern is to feed all variables into the encoder and only the target variable into the decoder.
 
 ### What about Autoformer / FEDformer?
 
@@ -469,7 +469,7 @@ Helpful but not required. Unlike NLP, the domain gap between time-series dataset
 
 ## Summary
 
-Informer is the architecture that made Transformers practical for long-horizon time-series forecasting. The three core ideas -- ProbSparse self-attention, encoder distilling, and a generative decoder -- compose into an end-to-end $\mathcal{O}(L \log L)$ system that beats the vanilla $\mathcal{O}(L^2)$ Transformer in both accuracy and wall-clock time on every long-horizon benchmark.
+Informer is the architecture that made Transformers practical for long-horizon time-series forecasting. The three core ideas — ProbSparse self-attention, encoder distilling, and a generative decoder — compose into an end-to-end $\mathcal{O}(L \log L)$ system that beats the vanilla $\mathcal{O}(L^2)$ Transformer in both accuracy and wall-clock time on every long-horizon benchmark.
 
 For a forecasting task with $L > 96$ on a single GPU, Informer is the obvious starting point. Newer architectures (Autoformer, FEDformer, PatchTST) refine the recipe further, but each builds on Informer's central observation that **not every query needs full attention** and that **autoregressive decoding is a self-imposed bottleneck**.
 

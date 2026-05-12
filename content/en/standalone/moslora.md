@@ -12,7 +12,7 @@ disableNunjucks: true
 translationKey: "moslora"
 ---
 
-LoRA is the default tool for adapting a frozen base model: cheap, stable, mergeable, and good enough for most single-task settings. But the moment your fine-tuning data is genuinely heterogeneous -- code mixed with math, instruction following mixed with creative writing, several domains in one adapter -- a single low-rank subspace starts to feel cramped. You can grow $r$, but cost grows with it and you still get *one* subspace, just a fatter one.
+LoRA is the default tool for adapting a frozen base model: cheap, stable, mergeable, and good enough for most single-task settings. But the moment your fine-tuning data is genuinely heterogeneous — code mixed with math, instruction following mixed with creative writing, several domains in one adapter — a single low-rank subspace starts to feel cramped. You can grow $r$, but cost grows with it and you still get *one* subspace, just a fatter one.
 
 [**MoSLoRA**](https://arxiv.org/abs/2406.11909) (Wu, Huang and Wei, 2024) takes a different turn. Instead of one rank-$r$ pair $(B, A)$ it uses $k$ rank-$r$ pairs and lets a tiny **mixer matrix** decide how to combine them. The decomposition rewrites cleanly as a single $B\, W\, A$ product, so the mergeability that made LoRA deployable is preserved, and the extra parameter cost is essentially the $k\times k$ mixer. This post walks through why a single subspace is a real bottleneck, how the mixer changes the geometry of the update, where MoSLoRA actually moves the needle, and how to tune it without overfitting the mixer.
 
@@ -44,13 +44,13 @@ $$W \;=\; W_0 \;+\; \Delta W,
 B \in \mathbb{R}^{d_{out}\times r},\;
 A \in \mathbb{R}^{r\times d_{in}}.$$
 
-With $r \ll \min(d_{in}, d_{out})$ the trainable cost drops from $d_{in}\!\cdot\!d_{out}$ to $r(d_{in}+d_{out})$, often $0.1\%$--$1\%$ of full FT. Initialising $B = 0$ ensures the adapted model starts identical to the base, and at inference the merged $W_0 + \frac{\alpha}{r} B A$ has the same shape as $W_0$ -- so deployment is exactly as cheap as the base model.
+With $r \ll \min(d_{in}, d_{out})$ the trainable cost drops from $d_{in}\!\cdot\!d_{out}$ to $r(d_{in}+d_{out})$, often $0.1\%$--$1\%$ of full FT. Initialising $B = 0$ ensures the adapted model starts identical to the base, and at inference the merged $W_0 + \frac{\alpha}{r} B A$ has the same shape as $W_0$ — so deployment is exactly as cheap as the base model.
 
 ![LoRA recap: one frozen base + one low-rank update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig1_lora_recap.png)
 
 The strong assumption baked into LoRA is that **one** rank-$r$ subspace is the right shape for the update. For narrow tasks this is empirically fine. For broad ones it is not, because:
 
-- The optimal $\Delta W$ may be *low-rank within each task* but *high-rank across tasks* -- different sub-skills push the weights in genuinely different directions.
+- The optimal $\Delta W$ may be *low-rank within each task* but *high-rank across tasks* — different sub-skills push the weights in genuinely different directions.
 - A single subspace forces all those directions to share one $A$ and one $B$. Gradients from one task tend to overwrite useful directions learned for another.
 - The fix of "just increase $r$" gives you a fatter subspace, but the optimum may still want a **structured** combination of several thin subspaces, not one thick one.
 
@@ -76,15 +76,15 @@ $$\Delta W
 \;=\;
 B\, W\, A,$$
 
-where $A \in \mathbb{R}^{kr\times d_{in}}$ stacks the $k$ "down" maps, $B \in \mathbb{R}^{d_{out}\times kr}$ stacks the $k$ "up" maps, and $W \in \mathbb{R}^{kr\times kr}$ is the **mixer**. The diagonal of $W$ recovers a sum of independent LoRAs; the off-diagonal entries let the model **mix** subspaces -- the up-projection of subspace $i$ can be paired with the down-projection of subspace $j$. This is the source of the extra expressivity.
+where $A \in \mathbb{R}^{kr\times d_{in}}$ stacks the $k$ "down" maps, $B \in \mathbb{R}^{d_{out}\times kr}$ stacks the $k$ "up" maps, and $W \in \mathbb{R}^{kr\times kr}$ is the **mixer**. The diagonal of $W$ recovers a sum of independent LoRAs; the off-diagonal entries let the model **mix** subspaces — the up-projection of subspace $i$ can be paired with the down-projection of subspace $j$. This is the source of the extra expressivity.
 
 ![MoSLoRA architecture: k low-rank subspaces with a learnable mixer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig2_subspace_mixing.png)
 
 A few properties drop out of this form:
 
 - **No router, no top-$k$, no load balancing**: every subspace contributes on every token. Training is as smooth as plain LoRA.
-- **Mergeable at inference**: $B W A$ is a single matrix product, so $W_0 + \frac{\alpha}{r} B W A$ collapses back into a single dense weight at deployment time -- exactly like LoRA. This is the property that LoRA-MoE designs typically lose.
-- **Cheap extra cost**: with $k$ subspaces of rank $r$, parameters become $kr(d_{in}+d_{out}) + (kr)^2$. The $(kr)^2$ mixer is the only new term, and for typical $k=4, r=8$ it is $1024$ scalars per adapted projection -- negligible.
+- **Mergeable at inference**: $B W A$ is a single matrix product, so $W_0 + \frac{\alpha}{r} B W A$ collapses back into a single dense weight at deployment time — exactly like LoRA. This is the property that LoRA-MoE designs typically lose.
+- **Cheap extra cost**: with $k$ subspaces of rank $r$, parameters become $kr(d_{in}+d_{out}) + (kr)^2$. The $(kr)^2$ mixer is the only new term, and for typical $k=4, r=8$ it is $1024$ scalars per adapted projection — negligible.
 
 Think of each $(B_i, A_i)$ as a "dial" pointing in some direction of weight space. The mixer learns *how loud each dial should be*, and crucially also *how dials can interact*. With $k=1$ MoSLoRA reduces to LoRA. With $k>1$ and a non-diagonal $W$ you get a strictly richer family of updates at the same per-token compute.
 
@@ -99,7 +99,7 @@ It is tempting to read MoSLoRA as "LoRA-MoE without the gate". That comparison i
 - An explicit **router** producing per-token expert assignments
 - **Top-$k$** sparsity to keep compute bounded
 - **Load-balancing losses** so experts don't collapse
-- A non-trivial inference graph -- the active experts depend on the token, so you cannot pre-merge weights
+- A non-trivial inference graph — the active experts depend on the token, so you cannot pre-merge weights
 
 LoRA-MoE inherits most of these constraints: experts (the LoRAs) are routed, only a subset is active per token, and the merged-weight optimisation that makes LoRA deployable is gone.
 
@@ -108,7 +108,7 @@ MoSLoRA flips the design choice. There is no routing; all $k$ subspaces always c
 - You give up the conditional sparsity that lets MoE scale to dozens of experts.
 - You get back smooth optimisation, mergeable weights, and a model that behaves operationally like LoRA.
 
-For the regime LoRA is used in -- one base model, a handful of adapters, deployable at base-model cost -- this is the right trade.
+For the regime LoRA is used in — one base model, a handful of adapters, deployable at base-model cost — this is the right trade.
 
 ## 5. Mixer design choices
 
@@ -159,7 +159,7 @@ The headline finding in the paper, and the consistent pattern in follow-up work,
 Two patterns are worth internalising:
 
 1. **The gap widens as the task distribution gets more heterogeneous.** Single-domain reasoning benchmarks see modest gains. Instruction-tuning mixtures and multi-skill suites see larger gains. This matches the intuition: one subspace is enough for one direction; many subspaces start to pay when there are many directions.
-2. **Increasing $k$ helps more than increasing $r$ when you're already at $r=8$ or higher.** The Pareto frontier in the parameter-vs-accuracy plot bends -- adding subspaces moves you up faster than adding rank.
+2. **Increasing $k$ helps more than increasing $r$ when you're already at $r=8$ or higher.** The Pareto frontier in the parameter-vs-accuracy plot bends — adding subspaces moves you up faster than adding rank.
 
 ![Parameter efficiency: MoSLoRA shifts the Pareto frontier upward](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig4_param_efficiency.png)
 
@@ -169,7 +169,7 @@ The geometric picture for why this works is the cleanest mental model:
 
 One LoRA is a single elongated direction; targets that lie off that direction can only be approximated, with residual error proportional to their angle off the subspace. MoSLoRA places several slim subspaces at different angles and lets the mixer combine them; the reachable set is a structured *union* of subspaces, not a single fat one.
 
-## 8. When MoSLoRA helps -- and when LoRA is enough
+## 8. When MoSLoRA helps — and when LoRA is enough
 
 MoSLoRA pays off when at least one of the following is true:
 
@@ -191,12 +191,12 @@ A short list of high-signal knobs from the paper and from practice:
 - **Initialise the mixer near identity.** $W \leftarrow I + \varepsilon \cdot \text{Gaussian}$ keeps the model close to a sum-of-LoRAs at step 0 and lets the off-diagonal terms grow only when they help. Random Gaussian init for $W$ tends to slow convergence.
 - **Attach to attention first, then MLP.** Q/K/V/O is the highest-leverage placement. Add the MLP up/gate/down projections only if you still see headroom.
 - **Use a slightly smaller $\alpha/r$ scale than for LoRA.** With $k$ subspaces summing into the update, the effective gain is $k\times$ larger; halving $\alpha$ is a safe starting point.
-- **Watch the mixer's spectrum.** If $W$'s singular values collapse to one direction, the model is effectively running as plain LoRA -- you've over-regularised or given the mixer too little learning rate.
+- **Watch the mixer's spectrum.** If $W$'s singular values collapse to one direction, the model is effectively running as plain LoRA — you've over-regularised or given the mixer too little learning rate.
 - **Keep the global mixer unless you really need input-dependent gating.** The static mixer is mergeable and rarely the bottleneck; the dynamic gate is harder to train and breaks mergeability.
 
 ## 10. Implementation sketch (PyTorch)
 
-A minimal, faithful implementation -- a drop-in for `nn.Linear` that adds the MoSLoRA update on the forward pass:
+A minimal, faithful implementation — a drop-in for `nn.Linear` that adds the MoSLoRA update on the forward pass:
 
 ```python
 import torch
@@ -274,7 +274,7 @@ MoSLoRA is best read as a **structured capacity upgrade** for LoRA, not as a sli
 - LoRA: one rank-$r$ subspace, one direction in weight space.
 - MoSLoRA: $k$ rank-$r$ subspaces $+$ a tiny $kr \times kr$ mixer, mergeable into a single dense weight at inference.
 
-The mixer is what makes the design work: it gives you a structured manifold of rank-$kr$ updates with the same operational footprint as LoRA, and avoids every hard part of MoE -- no router, no top-$k$, no load balancing, no broken mergeability. For practitioners running heterogeneous fine-tuning workloads who don't want to take the operational hit of LoRA-MoE, it is currently the most pragmatic capacity-vs-deployability trade in the LoRA family.
+The mixer is what makes the design work: it gives you a structured manifold of rank-$kr$ updates with the same operational footprint as LoRA, and avoids every hard part of MoE — no router, no top-$k$, no load balancing, no broken mergeability. For practitioners running heterogeneous fine-tuning workloads who don't want to take the operational hit of LoRA-MoE, it is currently the most pragmatic capacity-vs-deployability trade in the LoRA family.
 
 ## References
 

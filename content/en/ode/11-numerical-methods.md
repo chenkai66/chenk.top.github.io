@@ -7,8 +7,7 @@ tags:
   - Euler Method
   - Runge-Kutta
   - Python
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -17,7 +16,7 @@ disableNunjucks: true
 series_order: 11
 translationKey: "ode-11"
 ---
-Almost every interesting differential equation in science and engineering refuses to yield a closed-form solution. Nonlinear vector fields, variable coefficients, ten thousand coupled state variables -- pen and paper give up long before the problem does. Numerical integration is the way through. This chapter builds, evaluates, and compares the small set of algorithms that solve essentially every ODE you will meet, and gives you the diagnostics to know when an integrator is lying to you.
+Almost every interesting differential equation in science and engineering refuses to yield a closed-form solution. Nonlinear vector fields, variable coefficients, ten thousand coupled state variables — pen and paper give up long before the problem does. Numerical integration is the way through. This chapter builds, evaluates, and compares the small set of algorithms that solve essentially every ODE you will meet, and gives you the diagnostics to know when an integrator is lying to you.
 
 ![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_1.png)
 
@@ -35,13 +34,13 @@ Almost every interesting differential equation in science and engineering refuse
 
 ## 1. Why we need numerical methods
 
-The analytical methods of earlier chapters -- separation of variables, integrating factors, Laplace transforms, eigenvalue expansions -- are powerful but **fragile**. They work for narrow classes of equations and break the moment a real problem stops being symbolic-friendly. Take$\frac{dy}{dx} = \sin(xy).$No closed form exists. The Navier-Stokes equations, the three-body problem, every chemical reaction network with more than a handful of species, the Lorenz system -- all defeat symbolic methods. We have to settle for **discrete approximations**$y_n \approx y(x_n)$at a sequence of grid points$x_n = x_0 + nh$.
+The analytical methods of earlier chapters — separation of variables, integrating factors, Laplace transforms, eigenvalue expansions — are powerful but **fragile**. They work for narrow classes of equations and break the moment a real problem stops being symbolic-friendly. Take$\frac{dy}{dx} = \sin(xy).$No closed form exists. The Navier-Stokes equations, the three-body problem, every chemical reaction network with more than a handful of species, the Lorenz system — all defeat symbolic methods. We have to settle for **discrete approximations**$y_n \approx y(x_n)$at a sequence of grid points$x_n = x_0 + nh$.
 
 The questions are then:
 
 - How do we choose the update rule$y_{n+1} = \Phi(y_n, h, f, \ldots)$?
 - How does the error scale with$h$?
-- How does the method behave when the equation is "stiff" -- when small$h$is required for stability rather than for accuracy?
+- How does the method behave when the equation is "stiff" — when small$h$is required for stability rather than for accuracy?
 
 We answer all three.
 
@@ -53,7 +52,7 @@ Given$\dot{y} = f(x, y),\;y(x_0) = y_0$, the simplest step replaces the curve by
 
 ### Order of accuracy
 
-Taylor-expand the true solution:$y(x_n + h) = y(x_n) + h\,y'(x_n) + \tfrac{h^2}{2}y''(x_n) + \mathcal{O}(h^3).$Subtracting the Euler step$y_{n+1} = y_n + h f(x_n, y_n)$leaves a **local truncation error** of$\mathcal{O}(h^2)$per step. Over a fixed interval$[x_0, X]$we take$N = (X - x_0)/h$steps, so the **global error** is$\mathcal{O}(h)$. Halving the step size halves the error -- a slow rate of return for the doubled cost.
+Taylor-expand the true solution:$y(x_n + h) = y(x_n) + h\,y'(x_n) + \tfrac{h^2}{2}y''(x_n) + \mathcal{O}(h^3).$Subtracting the Euler step$y_{n+1} = y_n + h f(x_n, y_n)$leaves a **local truncation error** of$\mathcal{O}(h^2)$per step. Over a fixed interval$[x_0, X]$we take$N = (X - x_0)/h$steps, so the **global error** is$\mathcal{O}(h)$. Halving the step size halves the error — a slow rate of return for the doubled cost.
 
 ### Linear stability
 
@@ -115,7 +114,7 @@ def rk4(f, x0, y0, x_end, h):
 ### Side-by-side: Euler vs RK4
 
 ![Euler vs RK4 on the test equation y' = -2y for several step sizes h.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig1_euler_vs_rk4.png)
-*Same step sizes, same problem ($\dot y = -2y$, $y(0) = 1$). Euler at$h = 0.5$even goes negative -- it overshoots the equilibrium because$h\lambda = -1$is just inside the stability region. RK4 at the same$h$is visually indistinguishable from the exact curve.*
+*Same step sizes, same problem ($\dot y = -2y$, $y(0) = 1$). Euler at$h = 0.5$even goes negative — it overshoots the equilibrium because$h\lambda = -1$is just inside the stability region. RK4 at the same$h$is visually indistinguishable from the exact curve.*
 
 This is not a small effect. Going from order 1 to order 4 means the error budget at fixed$h$is squared *twice*. To match RK4's accuracy at$h=0.1$with Euler, you would need$h \approx 10^{-5}$-- a hundred-thousand-fold cost.
 
@@ -139,7 +138,7 @@ Two practical lessons:
 
 Real solutions are not uniformly smooth. They have plateaus, sharp transients, slow tails. A fixed$h$is either wastefully small on the plateau or dangerously large on the transient. The fix is **adaptive stepping**: choose$h$on the fly to hold the local error near a user-specified tolerance.
 
-The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$p+1$share their stage evaluations. Their difference is an estimate of the local error$E_n$. If$E_n > \text{tol}$we reject the step and try a smaller$h$; otherwise we accept and pick the next step from$h_\text{new} = 0.9\,h\,\bigl(\text{tol}/E_n\bigr)^{1/(p+1)}.$The 0.9 is a safety factor; the exponent comes from the order-$p+1$asymptotic. The most popular embedded pair is **Dormand-Prince RK4(5)** -- the "RK45" inside `scipy.integrate.solve_ivp`. Each step uses 6 function evaluations and produces both a 4th- and a 5th-order estimate.
+The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$p+1$share their stage evaluations. Their difference is an estimate of the local error$E_n$. If$E_n > \text{tol}$we reject the step and try a smaller$h$; otherwise we accept and pick the next step from$h_\text{new} = 0.9\,h\,\bigl(\text{tol}/E_n\bigr)^{1/(p+1)}.$The 0.9 is a safety factor; the exponent comes from the order-$p+1$asymptotic. The most popular embedded pair is **Dormand-Prince RK4(5)** — the "RK45" inside `scipy.integrate.solve_ivp`. Each step uses 6 function evaluations and produces both a 4th- and a 5th-order estimate.
 
 ![Adaptive RK45 step locations on a sharp transient, plus the step-size history.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig3_adaptive_step_size.png)
 *Top: a forced linear ODE with a Gaussian impulse at$t=1$. Red dots mark every step the integrator took. Bottom: the step size shrinks roughly 100x to follow the spike, then expands again. A fixed$h$small enough for the spike would have taken thousands of unnecessary steps in the smooth tail.*
@@ -150,7 +149,7 @@ The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$
 
 ![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_2.png)
 
-Some equations have a small amount of fast dynamics living on top of a slow evolution. Once the fast part has decayed, you would *like* to take big steps -- but explicit methods will not let you. They demand$h \lesssim 1/|\lambda_{\max}|$forever, just to stay numerically stable. Such problems are called **stiff**.
+Some equations have a small amount of fast dynamics living on top of a slow evolution. Once the fast part has decayed, you would *like* to take big steps — but explicit methods will not let you. They demand$h \lesssim 1/|\lambda_{\max}|$forever, just to stay numerically stable. Such problems are called **stiff**.
 
 The textbook example is the van der Pol oscillator at large nonlinearity:$\ddot{y} - \mu(1 - y^2)\dot{y} + y = 0.$For$\mu = 1000$, the slow timescale is$\sim \mu$while the fast timescale is$\sim 1/\mu$. The ratio is $10^6$. Trying to integrate this with RK45 is a disaster.
 
@@ -162,7 +161,7 @@ The way out is **implicit** methods. The simplest is **backward Euler**:$y_{n+1}
 ### Stability regions, drawn
 
 ![Stability regions of explicit and implicit methods in the complex plane.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig5_implicit_vs_explicit.png)
-*Left: explicit methods' stability regions are bounded ovals near the origin. RK4's region (blue) covers ~ $|h\lambda| \le 2.78$ on the negative real axis -- a big chunk, but still bounded. Right: backward Euler and the trapezoidal rule cover the entire left half-plane, the defining property of A-stability.*
+*Left: explicit methods' stability regions are bounded ovals near the origin. RK4's region (blue) covers ~ $|h\lambda| \le 2.78$ on the negative real axis — a big chunk, but still bounded. Right: backward Euler and the trapezoidal rule cover the entire left half-plane, the defining property of A-stability.*
 
 For a stiff problem with eigenvalues stretched far down the negative real axis, the explicit region is a narrow corridor. You either shrink$h$enough to fit (huge cost) or use an A-stable method (no$h$constraint).
 
@@ -217,7 +216,7 @@ sol = solve_ivp(rhs, [0, T], y0, method='LSODA')
 - `method`: `'RK45'` (default), `'RK23'`, `'DOP853'` (8th-order, very high accuracy), `'Radau'`, `'BDF'`, `'LSODA'`.
 - `rtol`, `atol`: relative and absolute tolerances per component. Defaults are loose ($10^{-3}, 10^{-6}$); for serious work tighten to$10^{-8}, 10^{-10}$or below.
 - `dense_output=True`: returns an interpolant `sol.sol(t)` you can call at any time, not just at the integrator's chosen steps.
-- `events`: pass a function and the solver locates its zeros via root-finding -- ideal for collisions, bouncing, threshold crossings.
+- `events`: pass a function and the solver locates its zeros via root-finding — ideal for collisions, bouncing, threshold crossings.
 - `jac`: provide an analytic Jacobian for stiff methods; massive speedup over finite-difference Jacobians.
 
 ### Practical reliability checklist
@@ -242,7 +241,7 @@ sol = solve_ivp(rhs, [0, T], y0, method='LSODA')
 | Trapezoidal / Crank-Nicolson | 2 | implicit | yes (A-stable) | mildly stiff, conservative |
 | BDF (orders 1-5) | up to 5 | implicit, multistep | yes | stiff industrial workhorse |
 | Radau IIA | 3, 5, 9 | implicit RK | yes (L-stable) | very stiff, high-accuracy |
-| Stormer-Verlet | 2 | symplectic | -- | Hamiltonian / orbital |
+| Stormer-Verlet | 2 | symplectic | — | Hamiltonian / orbital |
 
 **One sentence of advice**: start with `solve_ivp(method='RK45')`; if it is slow or unstable, switch to `'BDF'` and try again; if it conserves something and you care about that, look at symplectic methods.
 

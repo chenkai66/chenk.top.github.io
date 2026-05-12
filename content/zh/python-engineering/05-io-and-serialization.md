@@ -5,8 +5,7 @@ tags:
   - Python
   - Serialization
   - Data Formats
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "在 Python 中处理文件、路径、编码及各类数据格式。通过实际示例对比 JSON、YAML、TOML、CSV、pickle 和 Parquet。"

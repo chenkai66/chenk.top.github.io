@@ -3,7 +3,7 @@ title: "大模型工程（五）：推理优化核心技法"
 date: 2026-03-31 09:00:00
 tags:
   - LLM
-  - inference
+  - Inference
   - vllm
   - quantization
   - paged-attention

@@ -65,8 +65,8 @@ small but consequential changes:
 | Positional info  | Sinusoidal on token index            | **Time-aware** encoding (calendar features, irregular dt) |
 | Output head      | Softmax over vocabulary              | **Linear** to a real-valued forecast vector               |
 
-Everything else -- multi-head self-attention, feed-forward, residual
-connections, LayerNorm, decoder cross-attention, causal masking -- is
+Everything else — multi-head self-attention, feed-forward, residual
+connections, LayerNorm, decoder cross-attention, causal masking — is
 unchanged. The four sub-layers per block are:
 
 $$\begin{aligned}
@@ -81,7 +81,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\
 ### 2.1 Encoder
 
 Reads the lookback window $x_{t-L+1:t}$ and produces context vectors
-$M \in \mathbb{R}^{L \times d_{\text{model}}}$. No mask -- every
+$M \in \mathbb{R}^{L \times d_{\text{model}}}$. No mask — every
 position attends to every other.
 
 ### 2.2 Decoder
@@ -107,7 +107,7 @@ state and rolls forward into the unknown.
 
 ## 3. Positional Encoding for Time
 
-Self-attention is permutation invariant -- shuffle the input, you get
+Self-attention is permutation invariant — shuffle the input, you get
 the same output. For language that's a bug; for time series it's
 catastrophic. We inject position with sinusoidal encodings:
 
@@ -220,7 +220,7 @@ change the model":
 
 In practice, for forecasting horizons up to a few hundred steps with
 lookback windows under 2k, vanilla attention is fine. Past that,
-**patching is the most cost-effective change** -- it usually improves
+**patching is the most cost-effective change** — it usually improves
 accuracy *and* slashes compute.
 
 ## 6. Decoder-Only Autoregressive Forecasting
@@ -252,7 +252,7 @@ def autoregressive_forecast(model, history: torch.Tensor, horizon: int):
 | Training cost          | Two stacks                   | One stack                    |
 | Inference latency      | One forward pass for all $H$ | $H$ forward passes (with KV cache, much cheaper) |
 | Exposure bias          | Mitigated by teacher forcing | Present unless you do scheduled sampling |
-| Pre-training transfer  | Awkward                      | Natural -- this is how foundation TS models (TimesFM, Lag-Llama, Chronos) are built |
+| Pre-training transfer  | Awkward                      | Natural — this is how foundation TS models (TimesFM, Lag-Llama, Chronos) are built |
 
 For forecasting from a single foundation model on many tasks,
 decoder-only is now the dominant choice.
@@ -266,15 +266,15 @@ each "token" carries almost no information. Group them into patches of
 size $P$ and you get $\lceil L / P \rceil$ tokens that each summarise a
 short waveform.
 
-![Patching strategy. Top: split a length-96 series into eight patches of size 12. Bottom: each patch becomes one token via a linear projection. Right: relative attention cost as a function of patch size -- O(n^2) shrinks fast.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig7_patching.png)
-*Figure 7. Patching strategy. Top: split a length-96 series into eight patches of size 12. Bottom: each patch becomes one token via a linear projection. Right: relative attention cost as a function of patch size -- O(n^2) shrinks fast.*
+![Patching strategy. Top: split a length-96 series into eight patches of size 12. Bottom: each patch becomes one token via a linear projection. Right: relative attention cost as a function of patch size — O(n^2) shrinks fast.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig7_patching.png)
+*Figure 7. Patching strategy. Top: split a length-96 series into eight patches of size 12. Bottom: each patch becomes one token via a linear projection. Right: relative attention cost as a function of patch size — O(n^2) shrinks fast.*
 
 Why patching helps so much:
 
 - **Attention cost drops by $P^2$**. With $P=16$ on $L=512$,
   you go from 262k attention entries per head to ~1k.
 - **Each token is meaningful**. A patch of 12 hourly values captures
-  half a day -- a useful unit. A single hour does not.
+  half a day — a useful unit. A single hour does not.
 - **Locality bias for free**. The local pattern inside a patch is
   handled by the linear projection; attention only needs to model
   cross-patch (longer-range) interactions.
@@ -338,7 +338,7 @@ A few production notes:
 
 - **`norm_first=True`** (pre-LN) is more stable for deep stacks; the
   original post-LN can require warm-up to converge.
-- **GELU** rather than ReLU in the FFN -- standard since BERT and
+- **GELU** rather than ReLU in the FFN — standard since BERT and
   consistently better in our experience.
 - **Always normalise per series** (z-score) before the model and
   invert at the output. Forgetting this is the most common reason a
@@ -374,7 +374,7 @@ on the weekly component.
 
 ### 10.2 Training recipe (the boring stuff that matters)
 
-- **Optimizer**: AdamW, $\beta = (0.9, 0.95)$ (the GPT-3 setting -- the
+- **Optimizer**: AdamW, $\beta = (0.9, 0.95)$ (the GPT-3 setting — the
   default 0.999 is too sluggish for time series).
 - **Schedule**: linear warm-up over the first 5-10% of steps, then
   cosine decay to zero. Without warm-up, deep Transformers diverge.
@@ -390,7 +390,7 @@ on the weekly component.
 
 ### 10.3 Production: serving cost and the RevIN trick
 
-- Use **`torch.compile`** (PyTorch 2.x) -- 1.5-2x latency win for free.
+- Use **`torch.compile`** (PyTorch 2.x) — 1.5-2x latency win for free.
 - For decoder-only deployments, **cache K and V** across steps so each
   new prediction is $O(n)$ rather than $O(n^2)$.
 - **Reversible Instance Normalization** (RevIN, ICLR 2022): normalise
@@ -411,17 +411,17 @@ on the weekly component.
 
 ## 12. Summary
 
-The Transformer is not magic -- it's the simplest architecture that
+The Transformer is not magic — it's the simplest architecture that
 gives every time step direct access to every other, in parallel. For
 time series, three things matter:
 
-1. **Position is the input** -- without good positional information, a
+1. **Position is the input** — without good positional information, a
    Transformer cannot tell a Monday from a Friday. Use sinusoidal PE
    plus calendar features (or relative position for irregular data).
-2. **Vanilla attention is O(n^2)** -- and that's only a problem past a
+2. **Vanilla attention is O(n^2)** — and that's only a problem past a
    few thousand steps. The cheapest fix is **patching**, which usually
    improves accuracy too.
-3. **Pick the variant that matches the data** -- PatchTST or
+3. **Pick the variant that matches the data** — PatchTST or
    iTransformer for most multivariate problems, FEDformer / Autoformer
    for clean seasonality, decoder-only for foundation-model-style
    transfer.

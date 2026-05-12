@@ -6,8 +6,7 @@ tags:
   - SQL
   - Relational Model
   - Normalization
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: en
 description: "A ground-up tour of the relational model, SQL fundamentals, normalization, and advanced query patterns — everything you need to speak fluent SQL."

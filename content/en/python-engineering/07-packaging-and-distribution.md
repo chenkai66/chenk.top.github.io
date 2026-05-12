@@ -6,8 +6,7 @@ tags:
   - Packaging
   - Docker
   - PyPI
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Package your Python code for distribution via pip, publish to PyPI, create Docker images, and manage versioning. The complete guide from local project to installable package."

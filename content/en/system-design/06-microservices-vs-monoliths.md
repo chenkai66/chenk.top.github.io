@@ -6,8 +6,7 @@ tags:
   - Microservices
   - Architecture
   - Distributed Systems
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "An honest assessment of monoliths vs microservices — covering the distributed systems tax, service boundary design with DDD, inter-service communication patterns, circuit breakers, service mesh, API gateways, and a practical decision framework."

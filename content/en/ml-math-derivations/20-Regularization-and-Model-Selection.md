@@ -399,4 +399,4 @@ Until then: regularise, cross-validate, and trust the validation set.
 
 ---
 
-*This is the final part of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Previous: [Part 19 -- Neural Networks and Backpropagation](/en/ml-math-derivations/19-neural-networks-and-backpropagation). Start from the beginning: [Part 1 -- Introduction](/en/ml-math-derivations/01-introduction-and-mathematical-foundations/).*
+*This is the final part of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Previous: [Part 19 — Neural Networks and Backpropagation](/en/ml-math-derivations/19-neural-networks-and-backpropagation). Start from the beginning: [Part 1 — Introduction](/en/ml-math-derivations/01-introduction-and-mathematical-foundations/).*

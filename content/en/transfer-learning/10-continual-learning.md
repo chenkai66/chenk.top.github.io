@@ -1,8 +1,7 @@
 ---
 title: "Transfer Learning (10): Continual Learning"
 date: 2025-06-24 09:00:00
-categories:
-  - Transfer Learning
+categories: Transfer Learning
   - Machine Learning
 tags:
   - Continual Learning
@@ -20,7 +19,7 @@ translationKey: "transfer-learning-10"
 ---
 You can teach yourself to play guitar this year and you will still remember how to ride a bike. A neural network cannot. Fine-tune a vision model on CIFAR-10 then on SVHN, evaluate it on CIFAR-10 again, and accuracy collapses to barely above chance. The phenomenon is called **catastrophic forgetting**, and overcoming it is the central problem of **continual learning (CL)**: a learner that absorbs a stream of tasks $\mathcal{T}_1, \mathcal{T}_2, \ldots$ without re-accessing past data and without losing what it already knew.
 
-This post derives why forgetting happens (it is not a bug, it is the structure of SGD on overparameterised networks), then walks through the four families of solutions -- regularisation, replay, dynamic architectures, meta-learning -- with the math, the intuition, and a from-scratch EWC implementation.
+This post derives why forgetting happens (it is not a bug, it is the structure of SGD on overparameterised networks), then walks through the four families of solutions — regularisation, replay, dynamic architectures, meta-learning — with the math, the intuition, and a from-scratch EWC implementation.
 
 ![Transfer Learning (10): Continual Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/illustration_1.png)
 
@@ -29,9 +28,9 @@ This post derives why forgetting happens (it is not a bug, it is the structure o
 - The CL problem statement and the three scenarios (Task-IL, Domain-IL, Class-IL)
 - Why SGD on a new task destroys old-task knowledge: gradient interference and the loss-landscape view
 - Fisher information as a principled measure of parameter importance
-- Regularisation methods -- EWC, MAS, SI, LwF -- and how they differ
-- Replay methods -- Experience Replay, GEM, A-GEM -- and the projection geometry of A-GEM
-- Dynamic architectures -- Progressive Networks, PackNet -- and their trade-offs
+- Regularisation methods — EWC, MAS, SI, LwF — and how they differ
+- Replay methods — Experience Replay, GEM, A-GEM — and the projection geometry of A-GEM
+- Dynamic architectures — Progressive Networks, PackNet — and their trade-offs
 - The standard metrics: average accuracy, average forgetting, and forward/backward transfer
 - A self-contained EWC implementation evaluated on Permuted MNIST
 
@@ -51,7 +50,7 @@ Three scenarios make the difficulty concrete (van de Ven & Tolias, 2019):
 
 ![Three CL Scenarios: Task-IL, Domain-IL, Class-IL](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig4_cl_scenarios.png)
 
-- **Task-IL.** The task identity is known at test time. The model can use a per-task head -- only the shared trunk competes for capacity.
+- **Task-IL.** The task identity is known at test time. The model can use a per-task head — only the shared trunk competes for capacity.
 - **Domain-IL.** The label space is fixed but the input distribution shifts (clean -> rotated -> noisy MNIST). One head; no test-time task ID.
 - **Class-IL.** Each task introduces *new classes* and the learner must classify across **all** classes seen so far without knowing which task a sample came from. This is the hardest setting and the one most relevant to deployment.
 
@@ -96,7 +95,7 @@ The Fisher information matrix of the model's predictive distribution $p_\theta(y
 
 $$F(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D},\, y \sim p_\theta(\cdot \mid x)}\!\left[\nabla_\theta \log p_\theta(y \mid x)\, \nabla_\theta \log p_\theta(y \mid x)^{\top}\right].$$
 
-At a local optimum the Fisher equals the (positive semi-definite) Hessian of the negative log-likelihood, so the diagonal $F_i$ measures how steeply the loss rises when $\theta_i$ is perturbed. A large $F_i$ means $\theta_i$ is *load-bearing* for the task -- protect it. A small $F_i$ means the loss is flat in that direction -- it is safe to repurpose the parameter for a new task. Every regularisation method below is a specific answer to "how should we pick which parameters to protect?".
+At a local optimum the Fisher equals the (positive semi-definite) Hessian of the negative log-likelihood, so the diagonal $F_i$ measures how steeply the loss rises when $\theta_i$ is perturbed. A large $F_i$ means $\theta_i$ is *load-bearing* for the task — protect it. A small $F_i$ means the loss is flat in that direction — it is safe to repurpose the parameter for a new task. Every regularisation method below is a specific answer to "how should we pick which parameters to protect?".
 
 ---
 
@@ -128,7 +127,7 @@ EWC needs labels (the log-likelihood). Aljundi et al. (2018) replace it with the
 
 $$\Omega_i \;=\; \mathbb{E}_{x}\!\left[\, \left| \frac{\partial \, \tfrac{1}{2}\|f(x;\theta)\|_2^{2}}{\partial \theta_i} \right| \, \right].$$
 
-This is **unsupervised** -- you can compute it on unlabelled data, even on the test stream -- which is a real advantage in deployed settings.
+This is **unsupervised** — you can compute it on unlabelled data, even on the test stream — which is a real advantage in deployed settings.
 
 ### Synaptic Intelligence (SI)
 
@@ -140,7 +139,7 @@ Li & Hoiem (2017) take a different angle: instead of penalising parameter drift,
 
 $$\mathcal{L} \;=\; \underbrace{\mathcal{L}_{\text{CE}}\bigl(y,\, z^{\text{new}}_{\text{new heads}}\bigr)}_{\text{learn new task}} \;+\; \alpha\, \underbrace{T^{2}\, \mathrm{KL}\!\bigl(\sigma(z^{\text{old}}/T)\,\Vert\,\sigma(z^{\text{new}}_{\text{old heads}}/T)\bigr)}_{\text{don't move old outputs}}.$$
 
-LwF needs no old data and no Fisher matrix -- only the old model. The temperature $T$ (typically 2-4) softens the distributions so the distillation signal carries shape information beyond the argmax.
+LwF needs no old data and no Fisher matrix — only the old model. The temperature $T$ (typically 2-4) softens the distributions so the distillation signal carries shape information beyond the argmax.
 
 ![LwF: knowledge distillation from frozen old model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig5_lwf_distillation.png)
 
@@ -167,11 +166,11 @@ Lopez-Paz & Ranzato (2017) frame the gradient step itself as a constrained optim
 $$\min_{\tilde{\mathbf{g}}} \tfrac{1}{2}\|\tilde{\mathbf{g}} - \mathbf{g}_{\text{new}}\|^{2}
 \quad \text{s.t.} \quad \tilde{\mathbf{g}} \cdot \mathbf{g}_{k} \;\ge\; 0 \quad \forall k = 1, \ldots, t-1.$$
 
-This is a quadratic program with one constraint per past task -- it scales poorly. **A-GEM** (Chaudhry et al., 2019) keeps a single reference gradient $\mathbf{g}_{\text{ref}}$ averaged over a random batch from $\mathcal{M}$ and projects only when the cosine is negative:
+This is a quadratic program with one constraint per past task — it scales poorly. **A-GEM** (Chaudhry et al., 2019) keeps a single reference gradient $\mathbf{g}_{\text{ref}}$ averaged over a random batch from $\mathcal{M}$ and projects only when the cosine is negative:
 
 $$\tilde{\mathbf{g}} \;=\; \mathbf{g}_{\text{new}} \;-\; \frac{\mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}}}{\|\mathbf{g}_{\text{ref}}\|^{2}}\, \mathbf{g}_{\text{ref}} \quad \text{if } \mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}} < 0,$$
 
-otherwise $\tilde{\mathbf{g}} = \mathbf{g}_{\text{new}}$. The cost is one extra forward/backward on the reference batch and a single dot product -- a thousand times cheaper than GEM and almost as accurate.
+otherwise $\tilde{\mathbf{g}} = \mathbf{g}_{\text{new}}$. The cost is one extra forward/backward on the reference batch and a single dot product — a thousand times cheaper than GEM and almost as accurate.
 
 ### DER and DER++
 
@@ -184,10 +183,10 @@ Buzzega et al. (2020) store both the input *and* the model's logits at the time 
 Instead of squeezing all tasks into a fixed parameter budget, grow the model.
 
 - **Progressive Networks** (Rusu et al., 2016): freeze the network after each task and add a new column for the next task, with lateral connections from frozen columns into the new one. Forgetting becomes *zero by construction*, but parameters and inference cost grow linearly with $T$.
-- **PackNet** (Mallya & Lazebnik, 2018): after each task, prune to a sparse subset of weights and freeze them; future tasks reuse the unpruned mask. Model size is fixed but available capacity shrinks each task -- after enough tasks, performance collapses.
+- **PackNet** (Mallya & Lazebnik, 2018): after each task, prune to a sparse subset of weights and freeze them; future tasks reuse the unpruned mask. Model size is fixed but available capacity shrinks each task — after enough tasks, performance collapses.
 - **Supermasks in Superposition** (Wortsman et al., 2020): keep parameters random and frozen; learn a binary mask per task. Storage per task is one bit per parameter, and surprisingly, performance rivals trained baselines.
 
-The trade-off is universal: zero forgetting either costs growing parameters or shrinking capacity. Hybrid approaches -- a fixed trunk with lightweight per-task adapters (cf. Part 9) -- are how this technology actually ships.
+The trade-off is universal: zero forgetting either costs growing parameters or shrinking capacity. Hybrid approaches — a fixed trunk with lightweight per-task adapters (cf. Part 9) — are how this technology actually ships.
 
 ---
 
@@ -304,7 +303,7 @@ for t, (train_loader, test_loader) in enumerate(tasks):
 Two implementation details that matter:
 
 1. **True vs empirical Fisher.** Sampling $y$ from $p_\theta(\cdot \mid x)$ (as above) gives the true Fisher and is theoretically what the EWC derivation uses. Plugging in the dataset labels gives the *empirical* Fisher; in practice both work and the empirical version is slightly stronger when labels are clean.
-2. **Where to compute Fisher.** Compute it *after* you finish training the task -- that is when $\theta \approx \theta_t^{*}$ and the quadratic approximation is tight.
+2. **Where to compute Fisher.** Compute it *after* you finish training the task — that is when $\theta \approx \theta_t^{*}$ and the quadratic approximation is tight.
 
 ---
 
@@ -330,27 +329,27 @@ Start at 100 for MNIST-scale problems and 1-10 for CIFAR-scale. Run a sweep on t
 
 ### Why does my EWC degenerate to "freeze everything" after many tasks?
 
-Accumulated Fisher matrices keep growing -- every parameter eventually gets a large $\sum_t F_{t,i}$. Use **Online EWC** with $\gamma \approx 0.95$ to forget old Fisher contributions exponentially.
+Accumulated Fisher matrices keep growing — every parameter eventually gets a large $\sum_t F_{t,i}$. Use **Online EWC** with $\gamma \approx 0.95$ to forget old Fisher contributions exponentially.
 
-### EWC vs MAS vs SI -- which one in practice?
+### EWC vs MAS vs SI — which one in practice?
 
-EWC for clean supervised tasks. MAS when you have unlabelled streams (it does not need labels). SI when you cannot afford a second pass over data after each task -- it is the cheapest because it is computed online.
+EWC for clean supervised tasks. MAS when you have unlabelled streams (it does not need labels). SI when you cannot afford a second pass over data after each task — it is the cheapest because it is computed online.
 
 ### How big should the replay buffer be?
 
-On Split-CIFAR-style benchmarks the curve typically saturates around 200-500 samples per task. The interesting regime is "as small as you can afford" -- if you can afford more, replay just keeps winning.
+On Split-CIFAR-style benchmarks the curve typically saturates around 200-500 samples per task. The interesting regime is "as small as you can afford" — if you can afford more, replay just keeps winning.
 
-### Continual learning vs multi-task learning -- aren't they the same?
+### Continual learning vs multi-task learning — aren't they the same?
 
-No. Multi-task has *all* data simultaneously, so you optimise a fixed objective; the only challenge is task balancing. CL has tasks one at a time and forbids re-access to past data; the challenge is forgetting. CL with infinite memory and no order constraint reduces to multi-task -- this is exactly the joint upper bound in the benchmark figure.
+No. Multi-task has *all* data simultaneously, so you optimise a fixed objective; the only challenge is task balancing. CL has tasks one at a time and forbids re-access to past data; the challenge is forgetting. CL with infinite memory and no order constraint reduces to multi-task — this is exactly the joint upper bound in the benchmark figure.
 
 ### Does replay leak data?
 
-Yes -- the buffer is literal training data. In privacy-sensitive deployments use **generative replay** (train a generator on past data, then sample from it for replay) or **dark experience** (store only logits, not inputs).
+Yes — the buffer is literal training data. In privacy-sensitive deployments use **generative replay** (train a generator on past data, then sample from it for replay) or **dark experience** (store only logits, not inputs).
 
 ### Why is Class-IL so much harder than Task-IL?
 
-Class-IL requires *cross-task* discrimination at inference time. Even with perfect retention on each task, the per-task softmax heads have not seen each other's classes during training, so their logits are not calibrated against one another -- new-class outputs typically swamp old-class ones. iCaRL (Rebuffi et al., 2017) addresses exactly this with a nearest-class-mean classifier on top of the learned features.
+Class-IL requires *cross-task* discrimination at inference time. Even with perfect retention on each task, the per-task softmax heads have not seen each other's classes during training, so their logits are not calibrated against one another — new-class outputs typically swamp old-class ones. iCaRL (Rebuffi et al., 2017) addresses exactly this with a nearest-class-mean classifier on top of the learned features.
 
 ---
 
@@ -365,7 +364,7 @@ Catastrophic forgetting is a structural property of SGD on a single shared param
 | Dynamic architectures | Add capacity per task | Progressive Nets, PackNet, SupSup | Zero forgetting; growing model |
 | Meta-learning | Learn *how* to continue learning | OML, MER | Powerful but costly to meta-train |
 
-The takeaway for practitioners is direct: if you can store any data at all, run a small reservoir buffer with experience replay; layer in LwF for free regularisation through the old model snapshot; only reach for EWC/MAS when memory is impossible. The next part picks up cross-lingual transfer, where the "tasks" are languages and the same machinery -- careful sharing, careful protection -- carries over.
+The takeaway for practitioners is direct: if you can store any data at all, run a small reservoir buffer with experience replay; layer in LwF for free regularisation through the old model snapshot; only reach for EWC/MAS when memory is impossible. The next part picks up cross-lingual transfer, where the "tasks" are languages and the same machinery — careful sharing, careful protection — carries over.
 
 ---
 

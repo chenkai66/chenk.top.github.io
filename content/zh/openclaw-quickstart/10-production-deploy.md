@@ -4,7 +4,7 @@ date: 2026-04-17 09:00:00
 tags:
   - openclaw
   - production
-  - ecs
+  - ECS
   - nginx
   - troubleshooting
 categories: OpenClaw

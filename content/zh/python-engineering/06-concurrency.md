@@ -5,8 +5,7 @@ tags:
   - Python
   - Concurrency
   - asyncio
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "深入理解 GIL，掌握 threading、multiprocessing 和 asyncio。学会为 I/O 密集型与 CPU 密集型任务选择最合适的并发模型。"

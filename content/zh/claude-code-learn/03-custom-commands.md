@@ -4,7 +4,7 @@ date: 2026-04-20 09:00:00
 tags:
   - claude-code
   - slash-commands
-  - workflow
+  - Workflow
 categories: Claude Code
 lang: zh
 mathjax: false

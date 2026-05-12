@@ -16,7 +16,7 @@ translationKey: "time-series-6"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/illustration_1.png)
 
-For most of the 2010s, anyone who said "deep learning for time series" meant LSTM. The story changed in 2018 when Bai, Kolter, and Koltun published *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*. Their result was annoyingly simple: take a stack of 1-D convolutions, make them causal (no peeking at the future), space the filter taps out exponentially (dilation), wrap the whole thing in residual connections, and train. On task after task, the resulting **Temporal Convolutional Network** (TCN) matched or beat LSTM/GRU -- while training several times faster because every time step in the forward pass runs in parallel.
+For most of the 2010s, anyone who said "deep learning for time series" meant LSTM. The story changed in 2018 when Bai, Kolter, and Koltun published *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*. Their result was annoyingly simple: take a stack of 1-D convolutions, make them causal (no peeking at the future), space the filter taps out exponentially (dilation), wrap the whole thing in residual connections, and train. On task after task, the resulting **Temporal Convolutional Network** (TCN) matched or beat LSTM/GRU — while training several times faster because every time step in the forward pass runs in parallel.
 
 This chapter unpacks why that recipe works. We will derive the receptive-field formula that makes dilation worth caring about, walk through the residual block step by step, and finish with two production-grade case studies (traffic flow and multivariate sensor forecasting) using a PyTorch implementation you can copy out.
 
@@ -51,7 +51,7 @@ A standard 1-D convolution slides a length-$k$ filter $f$ over an input sequence
 
 $$y_t = \sum_{i=0}^{k-1} f_i \, x_{t-i+\lfloor k/2 \rfloor}.$$
 
-That centred form lets the output at time $t$ read both past and future inputs. For forecasting that is **information leakage** -- you cannot learn to predict tomorrow's traffic by peeking at tomorrow's traffic.
+That centred form lets the output at time $t$ read both past and future inputs. For forecasting that is **information leakage** — you cannot learn to predict tomorrow's traffic by peeking at tomorrow's traffic.
 
 A **causal** convolution shifts the filter so the output at $t$ only uses inputs from $1, \ldots, t$:
 
@@ -61,7 +61,7 @@ Implementation-wise, you pad the input on the **left** with $k - 1$ zeros and ru
 
 ![Causal vs non-causal 1-D convolution at t = 6](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/fig2_causal_convolution.png)
 
-In the figure above the green output $y_6$ is the same in both panels, but the inputs it draws on (amber) are different. The non-causal filter on the left reads $x_7$, which lies in the shaded "future" region -- a hard no for forecasting. The causal version on the right only ever looks left.
+In the figure above the green output $y_6$ is the same in both panels, but the inputs it draws on (amber) are different. The non-causal filter on the left reads $x_7$, which lies in the shaded "future" region — a hard no for forecasting. The causal version on the right only ever looks left.
 
 In PyTorch:
 
@@ -108,11 +108,11 @@ If you double the dilation in every layer ($d_\ell = 2^{\ell-1}$), the receptive
 
 $$\text{RF}(L) = 1 + (k - 1)\sum_{\ell=1}^{L} d_\ell = 1 + (k - 1)(2^L - 1).$$
 
-For $k = 3$ and $L = 8$, that is **511 time steps** -- more than enough for a week of hourly data. Same parameter count as 8 ordinary layers, exponential coverage.
+For $k = 3$ and $L = 8$, that is **511 time steps** — more than enough for a week of hourly data. Same parameter count as 8 ordinary layers, exponential coverage.
 
 ![Dilated causal convolution receptive field](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/fig1_dilated_convolution.png)
 
-The diagram traces every input that contributes to the green output neuron at the top. The dilations $1, 2, 4, 8$ make the four-layer stack look like a sparse tree -- and that sparsity is exactly what gives it the wide reach.
+The diagram traces every input that contributes to the green output neuron at the top. The dilations $1, 2, 4, 8$ make the four-layer stack look like a sparse tree — and that sparsity is exactly what gives it the wide reach.
 
 A practical helper for sizing your network:
 
@@ -496,7 +496,7 @@ Replace the L2 loss with the pinball loss at multiple quantiles and have the hea
 
 TCN reframed sequence modeling around a single observation: causal dilated convolutions with residual connections give you long memory, parallel training, and stable gradients without any of the recurrent machinery. The math is small ($\text{RF}(L) = 1 + (k-1)(2^L - 1)$ is the only formula you really need), the implementation fits in 60 lines of PyTorch, and the empirical performance against tuned LSTMs is at-least-as-good on most fixed-length benchmarks.
 
-Use it as your first forecasting baseline. If it loses to something more elaborate, you have learned that the elaborate thing was earning its keep. If it wins -- which it often does -- you have shipped a fast, simple model.
+Use it as your first forecasting baseline. If it loses to something more elaborate, you have learned that the elaborate thing was earning its keep. If it wins — which it often does — you have shipped a fast, simple model.
 
 Next chapter we move from convolutions to **N-BEATS**, which throws away both convolution and recurrence in favour of fully connected blocks plus basis-function expansion, and won the M4 forecasting competition while staying interpretable.
 

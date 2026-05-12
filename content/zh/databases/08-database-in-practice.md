@@ -7,8 +7,7 @@ tags:
   - Monitoring
   - Migration
   - Cloud
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "数据库的运维实践——模式迁移、连接池、监控、备份策略、托管数据库选型，以及来自生产环境的血泪教训。"

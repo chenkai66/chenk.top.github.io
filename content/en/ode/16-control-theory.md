@@ -9,8 +9,7 @@ tags:
   - Feedback Systems
   - Stability
   - Python
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -19,9 +18,9 @@ disableNunjucks: true
 series_order: 16
 translationKey: "ode-16"
 ---
-**When you steer a car you constantly correct based on lane position. A thermostat compares room temperature with the setpoint and adjusts a heater. A rocket gimbal nudges its thrust vector to keep the booster vertical.** Strip away the hardware and the same idea remains: *measure, compare, act*. Control theory is the mathematics of that loop -- and its native language is the ordinary differential equation.
+**When you steer a car you constantly correct based on lane position. A thermostat compares room temperature with the setpoint and adjusts a heater. A rocket gimbal nudges its thrust vector to keep the booster vertical.** Strip away the hardware and the same idea remains: *measure, compare, act*. Control theory is the mathematics of that loop — and its native language is the ordinary differential equation.
 
-This chapter shows how the entire ODE toolkit -- Laplace transforms (Ch 4), linear systems (Ch 6), eigenvalue stability (Ch 7), nonlinear stability (Ch 8) -- collapses into a single unified discipline whose job is no longer to *describe* dynamics, but to *design* them.
+This chapter shows how the entire ODE toolkit — Laplace transforms (Ch 4), linear systems (Ch 6), eigenvalue stability (Ch 7), nonlinear stability (Ch 8) — collapses into a single unified discipline whose job is no longer to *describe* dynamics, but to *design* them.
 
 ![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_1.png)
 
@@ -39,9 +38,9 @@ This chapter shows how the entire ODE toolkit -- Laplace transforms (Ch 4), line
 
 ## Prerequisites
 
-- Chapter 4 -- Laplace transforms (where transfer functions come from)
-- Chapter 6 -- Linear systems and matrix exponential
-- Chapter 7 -- Eigenvalue criteria for linear stability
+- Chapter 4 — Laplace transforms (where transfer functions come from)
+- Chapter 6 — Linear systems and matrix exponential
+- Chapter 7 — Eigenvalue criteria for linear stability
 
 ---
 
@@ -49,7 +48,7 @@ This chapter shows how the entire ODE toolkit -- Laplace transforms (Ch 4), line
 
 Suppose we want a heater to bring a room from 15 deg C up to 22 deg C.
 
-**Open loop**: send a fixed power $u(t)$ for a fixed time. If the window is open, or the outside is colder than expected, you arrive at the wrong temperature -- with no recourse.
+**Open loop**: send a fixed power $u(t)$ for a fixed time. If the window is open, or the outside is colder than expected, you arrive at the wrong temperature — with no recourse.
 
 **Closed loop**: measure the temperature, compute the *error* $e(t) = r(t) - y(t)$ between the reference $r$ and the measured output $y$, and choose $u(t)$ as a function of $e$. The system *self-corrects* against modelling errors and disturbances.
 
@@ -58,8 +57,8 @@ Suppose we want a heater to bring a room from 15 deg C up to 22 deg C.
 
 Two consequences of feedback we will derive precisely:
 
-- **Disturbance rejection** -- a step disturbance no longer drives a steady-state error to infinity.
-- **Sensitivity reduction** -- relative variations in the plant $G$ affect the closed-loop transfer function $T = CG/(1+CGH)$ by a factor $S = 1/(1+CGH)$, the *sensitivity function*.
+- **Disturbance rejection** — a step disturbance no longer drives a steady-state error to infinity.
+- **Sensitivity reduction** — relative variations in the plant $G$ affect the closed-loop transfer function $T = CG/(1+CGH)$ by a factor $S = 1/(1+CGH)$, the *sensitivity function*.
 
 ---
 
@@ -69,7 +68,7 @@ For a linear time-invariant (LTI) system with input $u(t)$ and output $y(t)$, th
 
 $$G(s) \;=\; \frac{Y(s)}{U(s)}$$
 
-is the Laplace ratio at zero initial conditions. ODE differentiation becomes multiplication by $s$, integration becomes division -- algebra replaces calculus.
+is the Laplace ratio at zero initial conditions. ODE differentiation becomes multiplication by $s$, integration becomes division — algebra replaces calculus.
 
 ### First-order plant
 
@@ -92,7 +91,7 @@ The damping ratio $\zeta$ controls the *qualitative* shape of the response:
 | $1$ | real double pole | critically damped (fastest non-overshoot) |
 | $> 1$ | two real poles | overdamped (sluggish) |
 
-These four cases recur everywhere -- circuits, mechanical systems, biology -- because every linear system *near a stable equilibrium* looks like this.
+These four cases recur everywhere — circuits, mechanical systems, biology — because every linear system *near a stable equilibrium* looks like this.
 
 ---
 
@@ -105,24 +104,24 @@ $$u(t) \;=\; K_p\,e(t) \;+\; K_i\!\int_0^t e(\tau)\,d\tau \;+\; K_d\,\dot e(t),
 
 Each term has a clean physical role:
 
-- **Proportional ($K_p$)** -- a "spring" pulling the output toward the setpoint. Fast but cannot eliminate steady-state error against a constant disturbance.
-- **Integral ($K_i$)** -- a "memory" that builds while the error is non-zero. Drives steady-state error to *exactly* zero, but adds a pole at the origin (slows response and risks overshoot).
-- **Derivative ($K_d$)** -- a "damper" that responds to *predicted* future error. Improves transient behaviour but amplifies high-frequency measurement noise.
+- **Proportional ($K_p$)** — a "spring" pulling the output toward the setpoint. Fast but cannot eliminate steady-state error against a constant disturbance.
+- **Integral ($K_i$)** — a "memory" that builds while the error is non-zero. Drives steady-state error to *exactly* zero, but adds a pole at the origin (slows response and risks overshoot).
+- **Derivative ($K_d$)** — a "damper" that responds to *predicted* future error. Improves transient behaviour but amplifies high-frequency measurement noise.
 
 ![PID step responses on a 2nd-order plant, plus the effect of raising the proportional gain.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/fig1_pid_step_response.png)
-*Left: closed-loop step response with progressively richer controllers (no control -> P -> PI -> PD -> PID). Without control, the underdamped plant rings forever and never tracks; PID nails the setpoint with no steady-state error and minimal overshoot. Right: the classic P-only trade-off -- raising $K_p$ speeds the response and shrinks steady-state error, but ringing eventually dominates.*
+*Left: closed-loop step response with progressively richer controllers (no control -> P -> PI -> PD -> PID). Without control, the underdamped plant rings forever and never tracks; PID nails the setpoint with no steady-state error and minimal overshoot. Right: the classic P-only trade-off — raising $K_p$ speeds the response and shrinks steady-state error, but ringing eventually dominates.*
 
 ### Ziegler-Nichols tuning (a starting point)
 
 A pragmatic recipe that requires no model:
 
-1. Set $K_i = K_d = 0$. Increase $K_p$ until the closed-loop response sustains an oscillation -- record the **ultimate gain** $K_u$ and the **oscillation period** $T_u$.
+1. Set $K_i = K_d = 0$. Increase $K_p$ until the closed-loop response sustains an oscillation — record the **ultimate gain** $K_u$ and the **oscillation period** $T_u$.
 2. PID gains:
 
 | Controller | $K_p$ | $K_i$ | $K_d$ |
 |---|---|---|---|
-| P | $0.5\,K_u$ | -- | -- |
-| PI | $0.45\,K_u$ | $1.2\,K_p / T_u$ | -- |
+| P | $0.5\,K_u$ | — | — |
+| PI | $0.45\,K_u$ | $1.2\,K_p / T_u$ | — |
 | PID | $0.6\,K_u$ | $2\,K_p / T_u$ | $K_p T_u / 8$ |
 
 ```python
@@ -154,7 +153,7 @@ class PIDController:
 
 ---
 
-## 4. Root Locus -- where the closed-loop poles go
+## 4. Root Locus — where the closed-loop poles go
 
 For a unity-feedback loop with open-loop transfer function $K\,L(s)$, the closed-loop characteristic equation is
 
@@ -163,12 +162,12 @@ $$1 + K\,L(s) = 0.$$
 The **root locus** plots the closed-loop pole positions in the complex plane as the gain $K$ sweeps from $0$ to $\infty$. It tells you, *visually*, the trade-off between speed (poles further left) and damping (poles closer to the real axis).
 
 ![Root locus of $K/(s(s+2)(s+5))$ and the corresponding step responses for three gains.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/fig2_root_locus.png)
-*Left: three branches of the locus depart from the open-loop poles at $0, -2, -5$. Two of them eventually cross into the right half-plane near $K \approx 70$ -- the gain at which the closed loop loses stability. Right: closed-loop step responses as $K$ rises through that boundary -- damped, lightly damped, and finally an undamped oscillation right at $K = 70$.*
+*Left: three branches of the locus depart from the open-loop poles at $0, -2, -5$. Two of them eventually cross into the right half-plane near $K \approx 70$ — the gain at which the closed loop loses stability. Right: closed-loop step responses as $K$ rises through that boundary — damped, lightly damped, and finally an undamped oscillation right at $K = 70$.*
 
 Two facts to memorize:
 
 - The locus has $n_p - n_z$ asymptotes departing the centroid $\sigma_a = (\sum p_i - \sum z_i)/(n_p - n_z)$ at angles $(2k+1)\pi/(n_p - n_z)$.
-- Where the locus crosses the imaginary axis, the loop has poles $\pm j\omega_c$ -- exactly the *neutral* stability point. Routh-Hurwitz delivers $K_{\text{crit}}$ algebraically.
+- Where the locus crosses the imaginary axis, the loop has poles $\pm j\omega_c$ — exactly the *neutral* stability point. Routh-Hurwitz delivers $K_{\text{crit}}$ algebraically.
 
 ---
 
@@ -176,11 +175,11 @@ Two facts to memorize:
 
 ![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_2.png)
 
-The frequency response $L(j\omega)$ -- the same transfer function evaluated on the imaginary axis -- has two natural readouts: magnitude (in dB) and phase (in degrees) versus $\omega$ on a log scale.
+The frequency response $L(j\omega)$ — the same transfer function evaluated on the imaginary axis — has two natural readouts: magnitude (in dB) and phase (in degrees) versus $\omega$ on a log scale.
 
 ![Bode magnitude and phase, Nyquist contour, and stability summary for $L(s)=100/(s(s+1)(s+10))$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/fig3_bode_plot.png)
 *The **gain crossover** $\omega_g$ is where $|L|$ crosses unity (0 dB); the **phase crossover** $\omega_p$ is where the phase crosses $-180^\circ$. The two robustness numbers are:*
-- *Gain margin (GM): how much we can scale $L$ before instability -- read off the magnitude at $\omega_p$.*
+- *Gain margin (GM): how much we can scale $L$ before instability — read off the magnitude at $\omega_p$.*
 - *Phase margin (PM): how much extra phase lag we can tolerate at $\omega_g$ before the system loses stability.*
 
 Rules of thumb: **GM > 6 dB** (a factor of 2) and **PM > 30 deg** (preferably > 45) for a robust design. The Nyquist contour on the right makes the geometric picture explicit: stability requires that the contour does *not* encircle the critical point $-1 + 0j$.
@@ -194,10 +193,10 @@ For multi-input multi-output (MIMO) systems we drop the transfer-function fictio
 $$\dot{\mathbf x} = A\mathbf x + B\mathbf u, \qquad
 \mathbf y = C\mathbf x + D\mathbf u.$$
 
-Here $\mathbf x \in \mathbb R^n$ is the **state vector** -- enough information to predict the future given $\mathbf u(t)$. $A$ is the dynamics matrix, $B$ couples the inputs in, $C$ extracts the measured outputs, and $D$ is direct feedthrough (often zero).
+Here $\mathbf x \in \mathbb R^n$ is the **state vector** — enough information to predict the future given $\mathbf u(t)$. $A$ is the dynamics matrix, $B$ couples the inputs in, $C$ extracts the measured outputs, and $D$ is direct feedthrough (often zero).
 
 ![State-space block diagram, the controllability/observability tests, and an LQR vs pole-placement comparison on the inverted pendulum.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/fig4_state_space.png)
-*Top: the universal block diagram and the two key rank tests. Bottom: balancing an inverted pendulum on a cart from a $0.2$-rad initial tilt. LQR (blue) chooses the gains by minimising a cost; pole placement (red) chooses gains to put the closed-loop eigenvalues at $\{-1,-2,-3,-4\}$. Both stabilise -- but LQR uses much less control effort.*
+*Top: the universal block diagram and the two key rank tests. Bottom: balancing an inverted pendulum on a cart from a $0.2$-rad initial tilt. LQR (blue) chooses the gains by minimising a cost; pole placement (red) chooses gains to put the closed-loop eigenvalues at $\{-1,-2,-3,-4\}$. Both stabilise — but LQR uses much less control effort.*
 
 ### Stability, controllability, observability
 
@@ -249,7 +248,7 @@ P = solve_continuous_are(A, B, Q, R)
 K_lqr = np.linalg.solve(R, B.T @ P)
 ```
 
-Compared to pole placement, LQR almost always uses less actuator effort to achieve the same disturbance rejection -- and its gains are guaranteed to be stabilising whenever $(A, B)$ is stabilisable and $(A, \sqrt{Q})$ is detectable.
+Compared to pole placement, LQR almost always uses less actuator effort to achieve the same disturbance rejection — and its gains are guaranteed to be stabilising whenever $(A, B)$ is stabilisable and $(A, \sqrt{Q})$ is detectable.
 
 ---
 
@@ -259,7 +258,7 @@ State feedback presupposes you can *measure* every component of $\mathbf x$. In 
 
 $$\dot{\hat{\mathbf x}} \;=\; A\hat{\mathbf x} + B\mathbf u + L\bigl(\mathbf y - C\hat{\mathbf x}\bigr).$$
 
-The estimation error $\tilde{\mathbf x} = \mathbf x - \hat{\mathbf x}$ obeys $\dot{\tilde{\mathbf x}} = (A - LC)\tilde{\mathbf x}$. If $(A, C)$ is observable, we can place the eigenvalues of $A - LC$ wherever we like -- pick them faster than the controller poles so that estimation settles before the controller acts.
+The estimation error $\tilde{\mathbf x} = \mathbf x - \hat{\mathbf x}$ obeys $\dot{\tilde{\mathbf x}} = (A - LC)\tilde{\mathbf x}$. If $(A, C)$ is observable, we can place the eigenvalues of $A - LC$ wherever we like — pick them faster than the controller poles so that estimation settles before the controller acts.
 
 The miraculous **separation principle** says that the closed-loop poles of *controller + observer* are exactly the union of the controller poles (eigenvalues of $A - BK$) and the observer poles (eigenvalues of $A - LC$). You can design the two pieces independently.
 
@@ -278,7 +277,7 @@ $$A = \begin{pmatrix}
 \quad
 B = \begin{pmatrix} 0 \\ 1/M \\ 0 \\ -1/(ML) \end{pmatrix}.$$
 
-Look at $\mathbf{eigvals}(A)$: one of them sits in the right half-plane (the open-loop pendulum falls). We compute $K_{\text{LQR}}$ from the Riccati equation (above), then simulate $\dot{\mathbf x} = (A - BK)\mathbf x$ from a $0.2$-rad initial tilt. The bottom row of the state-space figure shows the angle decaying smoothly to zero, the cart settling to the origin, and the actuator effort dropping to a small steady push -- the full design loop in fewer than 30 lines of Python.
+Look at $\mathbf{eigvals}(A)$: one of them sits in the right half-plane (the open-loop pendulum falls). We compute $K_{\text{LQR}}$ from the Riccati equation (above), then simulate $\dot{\mathbf x} = (A - BK)\mathbf x$ from a $0.2$-rad initial tilt. The bottom row of the state-space figure shows the angle decaying smoothly to zero, the cart settling to the origin, and the actuator effort dropping to a small steady push — the full design loop in fewer than 30 lines of Python.
 
 ---
 
@@ -288,10 +287,10 @@ What we have done in this chapter is replay the ODE story with a **goal**. Stabi
 
 The frontier extends beyond what we covered:
 
-- **Robust control** -- $H_\infty$, $\mu$-synthesis: certify performance under bounded modelling error.
-- **Adaptive and model-predictive control (MPC)** -- the controller updates online using a moving-horizon optimisation.
-- **Nonlinear control** -- feedback linearisation, sliding mode, control Lyapunov functions.
-- **Reinforcement learning** -- the controller is *learned* from experience rather than designed; ties back to Chapter 18's Neural ODEs.
+- **Robust control** — $H_\infty$, $\mu$-synthesis: certify performance under bounded modelling error.
+- **Adaptive and model-predictive control (MPC)** — the controller updates online using a moving-horizon optimisation.
+- **Nonlinear control** — feedback linearisation, sliding mode, control Lyapunov functions.
+- **Reinforcement learning** — the controller is *learned* from experience rather than designed; ties back to Chapter 18's Neural ODEs.
 
 ---
 
@@ -308,7 +307,7 @@ The frontier extends beyond what we covered:
 | LQR | Riccati equation | optimal $K$ |
 | Observer | $\dot{\hat x} = A\hat x + Bu + L(y - C\hat x)$ | estimate hidden states |
 
-Control theory **promotes ODEs from description to design**. We no longer just predict how a system will move -- we tell it where to go.
+Control theory **promotes ODEs from description to design**. We no longer just predict how a system will move — we tell it where to go.
 
 ---
 

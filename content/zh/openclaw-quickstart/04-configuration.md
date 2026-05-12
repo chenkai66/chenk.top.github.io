@@ -4,7 +4,7 @@ date: 2026-04-11 09:00:00
 tags:
   - openclaw
   - configuration
-  - bailian
+  - Bailian
   - coding-plan
 categories: OpenClaw
 lang: zh

@@ -39,7 +39,7 @@ The fix is not to train harder. The fix is to **build the conservation law into 
 ---
 
 ![Phase-space orbits of the pendulum on the left, and a transported phase-space blob on the right showing Liouville's volume preservation.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig1_hamiltonian_flow.png)
-*Figure 1. Hamiltonian flow in phase space. Left: orbits of the simple pendulum are the level sets of $H(q,p) = \tfrac{1}{2}p^2 + (1-\cos q)$; arrows show the direction of the flow $J\nabla H$. Right: a small blob of initial conditions is carried by the flow of the harmonic oscillator. The shape twists but the **area is exactly preserved** -- this is Liouville's theorem, the geometric fingerprint of Hamiltonian mechanics.*
+*Figure 1. Hamiltonian flow in phase space. Left: orbits of the simple pendulum are the level sets of $H(q,p) = \tfrac{1}{2}p^2 + (1-\cos q)$; arrows show the direction of the flow $J\nabla H$. Right: a small blob of initial conditions is carried by the flow of the harmonic oscillator. The shape twists but the **area is exactly preserved** — this is Liouville's theorem, the geometric fingerprint of Hamiltonian mechanics.*
 
 ## 1. Hamiltonian mechanics: physics in phase space
 
@@ -65,7 +65,7 @@ equation (2) collapses to
 
 $$\boxed{\;\dot{\mathbf{z}} \;=\; J\,\nabla H(\mathbf{z}).\;} \tag{3}$$
 
-This single line is the entire content of classical mechanics for conservative systems. Every theorem we prove from here on -- energy conservation, Liouville's theorem, Noether's theorem, KAM stability -- follows from the algebraic structure of $J$.
+This single line is the entire content of classical mechanics for conservative systems. Every theorem we prove from here on — energy conservation, Liouville's theorem, Noether's theorem, KAM stability — follows from the algebraic structure of $J$.
 
 ### 1.3 Energy conservation is automatic
 
@@ -77,7 +77,7 @@ because $J^\top = -J$ implies $\mathbf{v}^\top J \mathbf{v} = 0$ for every $\mat
 
 ### 1.4 Worked example: the pendulum
 
-For the unit-mass pendulum, $H = \tfrac{1}{2}p^2 + (1 - \cos q)$. Hamilton's equations give $\dot q = p,\ \dot p = -\sin q$. Trajectories are *level sets of $H$* (Figure 1, left): closed loops for $H<2$ (libration), open curves for $H>2$ (rotation), and a separatrix at $H=2$. The dynamics never leave a level set -- a fact your neural network must respect if it hopes to extrapolate.
+For the unit-mass pendulum, $H = \tfrac{1}{2}p^2 + (1 - \cos q)$. Hamilton's equations give $\dot q = p,\ \dot p = -\sin q$. Trajectories are *level sets of $H$* (Figure 1, left): closed loops for $H<2$ (libration), open curves for $H>2$ (rotation), and a separatrix at $H=2$. The dynamics never leave a level set — a fact your neural network must respect if it hopes to extrapolate.
 
 ---
 
@@ -107,7 +107,7 @@ Taking determinants in (5) gives $\det(M)^2 = 1$, so $|\det M| = 1$ everywhere a
 
 $$\frac{d}{dt}\operatorname{vol}(\phi_t(U)) = 0 \qquad \text{for every region } U \subset \mathbb{R}^{2n}.$$
 
-This is the foundation of statistical mechanics: the Gibbs ensemble would not be well-defined without it. It also has a startling consequence -- **Poincare's recurrence**: any bounded Hamiltonian trajectory returns arbitrarily close to its starting point infinitely often. Your simulator must reproduce this; an integrator that lets phase volume contract to a point cannot.
+This is the foundation of statistical mechanics: the Gibbs ensemble would not be well-defined without it. It also has a startling consequence — **Poincare's recurrence**: any bounded Hamiltonian trajectory returns arbitrarily close to its starting point infinitely often. Your simulator must reproduce this; an integrator that lets phase volume contract to a point cannot.
 
 ### 2.4 What goes wrong without symplecticity
 
@@ -147,7 +147,7 @@ $$\begin{aligned}
 Second-order accurate, *symmetric* in time, and symplectic. Figure 4 shows the staggered grid: positions live at integer steps and momenta at half-integer steps. The structure ensures that there exists a **modified Hamiltonian** $\tilde H_h = H + h^2 H_2 + h^4 H_4 + \cdots$ that is *exactly* conserved by the discrete map. The energy you measure does not drift; it oscillates with bounded amplitude $\mathcal{O}(h^2)$ around the true value forever.
 
 ![Two-panel comparison: phase-space trajectory of the pendulum integrated by explicit Euler, symplectic Euler, and leapfrog; relative energy error versus time on a symlog axis showing Euler diverging while symplectic methods stay bounded.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig2_integrator_comparison.png)
-*Figure 2. Long-term behaviour of the pendulum integrated for 80 seconds at $h = 0.05$. Left: explicit Euler (red) spirals outward to escape; symplectic Euler (green) and leapfrog (blue) trace nearly the reference orbit. Right: relative energy error $(H-H_0)/H_0$ on a symlog axis. The symplectic methods oscillate inside a tiny envelope; explicit Euler drifts unboundedly. This is not a quantitative point about accuracy -- it is a **qualitative point about geometry**.*
+*Figure 2. Long-term behaviour of the pendulum integrated for 80 seconds at $h = 0.05$. Left: explicit Euler (red) spirals outward to escape; symplectic Euler (green) and leapfrog (blue) trace nearly the reference orbit. Right: relative energy error $(H-H_0)/H_0$ on a symlog axis. The symplectic methods oscillate inside a tiny envelope; explicit Euler drifts unboundedly. This is not a quantitative point about accuracy — it is a **qualitative point about geometry**.*
 
 ### 3.4 Symplectic integrators in code
 
@@ -164,7 +164,7 @@ def leapfrog(q, p, dVdq, h, n_steps):
 That is the entire symplectic story for separable Hamiltonians. Six lines, no dependencies, qualitatively correct for every conservative system. **Now we will teach a neural network to do this.**
 
 ![Leapfrog stencil showing positions q at integer steps and momenta p at half-integer steps connected by alternating kick and drift arrows; energy error comparison of leapfrog, RK4, and explicit Euler on the harmonic oscillator.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig4_leapfrog.png)
-*Figure 3. The leapfrog stencil. Left: positions and momenta live on staggered time grids. The "kick" updates $p$ using $-V'(q)$ and the "drift" updates $q$ using the current $p$. Each individual step is a shear -- and shears are symplectic -- so the composition is too. Right: even RK4 (orange), which is locally fourth-order accurate, drifts on the harmonic oscillator while leapfrog (blue) stays bounded. **Order is not the same as structure preservation.***
+*Figure 3. The leapfrog stencil. Left: positions and momenta live on staggered time grids. The "kick" updates $p$ using $-V'(q)$ and the "drift" updates $q$ using the current $p$. Each individual step is a shear — and shears are symplectic — so the composition is too. Right: even RK4 (orange), which is locally fourth-order accurate, drifts on the harmonic oscillator while leapfrog (blue) stays bounded. **Order is not the same as structure preservation.***
 
 ---
 
@@ -188,7 +188,7 @@ Two consequences are immediate:
 2. **Symmetries become learnable.** If you give the network $H_\theta$ that depends on $|\mathbf{q}|$ alone, angular momentum is conserved too. Noether's theorem holds verbatim.
 
 ![Block diagram showing phase-space input (q,p) flowing through an MLP that outputs scalar H_theta, then through autodifferentiation to gradients, finally producing dot-q and dot-p via Hamilton's equations, with a training loss feedback path.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig3_hnn_architecture.png)
-*Figure 4. HNN architecture. The network maps the phase-space state $(q,p)$ to a single scalar $H_\theta$. Autodiff produces $\partial_q H_\theta$ and $\partial_p H_\theta$, and Hamilton's equations turn those gradients into the time derivatives $(\dot q, \dot p)$. The training loss compares predicted derivatives to observed ones. Energy conservation does not appear as a soft penalty -- it is **baked into the forward pass**.*
+*Figure 4. HNN architecture. The network maps the phase-space state $(q,p)$ to a single scalar $H_\theta$. Autodiff produces $\partial_q H_\theta$ and $\partial_p H_\theta$, and Hamilton's equations turn those gradients into the time derivatives $(\dot q, \dot p)$. The training loss compares predicted derivatives to observed ones. Energy conservation does not appear as a soft penalty — it is **baked into the forward pass**.*
 
 ### 4.3 Training loss
 
@@ -238,9 +238,9 @@ Two design choices matter:
 Train an HNN and a vanilla MLP on $T = 4$ s of pendulum derivatives. Roll both forward to $T = 25$ s.
 
 ![Three-panel pendulum experiment: angle q(t) versus time, phase portrait, and relative energy error showing the HNN tracking the reference and the vanilla MLP drifting away.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig5_pendulum_hnn_vs_nn.png)
-*Figure 5. Pendulum extrapolation. Left: angle versus time -- the vanilla MLP slowly accumulates phase error and amplitude drift; the HNN stays locked on. Centre: phase portrait -- the MLP orbit either spirals outward or collapses inward; the HNN orbit is a slightly displaced closed loop. Right: relative energy error -- the MLP drifts secularly; the HNN error is **bounded**, oscillating around a small bias proportional to how well $H_\theta$ approximates $H_{\text{true}}$. This is the headline result of Greydanus et al. (2019).*
+*Figure 5. Pendulum extrapolation. Left: angle versus time — the vanilla MLP slowly accumulates phase error and amplitude drift; the HNN stays locked on. Centre: phase portrait — the MLP orbit either spirals outward or collapses inward; the HNN orbit is a slightly displaced closed loop. Right: relative energy error — the MLP drifts secularly; the HNN error is **bounded**, oscillating around a small bias proportional to how well $H_\theta$ approximates $H_{\text{true}}$. This is the headline result of Greydanus et al. (2019).*
 
-The relative energy error of the HNN is $< 10^{-2}$ throughout; the vanilla MLP grows past $10^{-1}$ within tens of seconds. The MLP is not "wrong" in the supervised loss -- it has comparable training error -- but it is wrong in the geometric sense that matters at deployment.
+The relative energy error of the HNN is $< 10^{-2}$ throughout; the vanilla MLP grows past $10^{-1}$ within tens of seconds. The MLP is not "wrong" in the supervised loss — it has comparable training error — but it is wrong in the geometric sense that matters at deployment.
 
 ### 4.6 What HNNs do *not* do
 
@@ -292,14 +292,14 @@ The two canonical building blocks are
 A direct calculation shows each shear has a triangular Jacobian with unit diagonal, so $M^\top J M = J$ exactly. The parameter functions $S_\theta, T_\theta$ are MLPs. Composing $K$ such layers gives a universal approximator for symplectic maps.
 
 ![Three side-by-side architecture diagrams comparing HNN learning a Hamiltonian, LNN learning a Lagrangian, and SympNet learning a symplectic map directly.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig6_hnn_lnn_sympnet.png)
-*Figure 6. The three families. **HNN** learns the energy and recovers the flow by autodiff -- exact continuous-time symplecticity. **LNN** learns the action and pays for one Hessian inversion in the forward pass -- works with $(q,\dot q)$ data. **SympNet** parameterises the discrete-time map directly out of shears -- no ODE solver in the loop, exact discrete-time symplecticity. Choice of family depends on what you can measure and what you need to guarantee.*
+*Figure 6. The three families. **HNN** learns the energy and recovers the flow by autodiff — exact continuous-time symplecticity. **LNN** learns the action and pays for one Hessian inversion in the forward pass — works with $(q,\dot q)$ data. **SympNet** parameterises the discrete-time map directly out of shears — no ODE solver in the loop, exact discrete-time symplecticity. Choice of family depends on what you can measure and what you need to guarantee.*
 
 ---
 
 ## 7. Where this matters
 
 ![Hub-and-spoke diagram with Hamiltonian / Symplectic deep learning at the centre and six application areas around it: molecular dynamics, robotics, celestial mechanics, plasma physics, Hamiltonian Monte Carlo, and fluid / climate.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig7_applications.png)
-*Figure 7. Application landscape for structure-preserving deep learning. Anywhere a long, conservative simulation matters -- molecular dynamics ($10^9$ time steps), orbital mechanics ($10^6$ years), plasma physics, fluid reduced-order models, Hamiltonian Monte Carlo proposals -- the energy drift of vanilla integrators (and vanilla networks) is the limiting factor.*
+*Figure 7. Application landscape for structure-preserving deep learning. Anywhere a long, conservative simulation matters — molecular dynamics ($10^9$ time steps), orbital mechanics ($10^6$ years), plasma physics, fluid reduced-order models, Hamiltonian Monte Carlo proposals — the energy drift of vanilla integrators (and vanilla networks) is the limiting factor.*
 
 * **Molecular dynamics.** All-atom simulations run for $10^8$-$10^9$ steps. With a non-symplectic integrator the temperature would slowly cook off; leapfrog is the only reason MD works at all. HNN-flavoured surrogates inherit this stability.
 * **Orbital mechanics and the n-body problem.** The JPL ephemerides use symplectic integrators because they have to keep planetary orbits stable for $10^4$-$10^6$ years.
@@ -311,7 +311,7 @@ A direct calculation shows each shear has a triangular Jacobian with unit diagon
 
 ## 8. Common pitfalls
 
-* **Forgetting `create_graph=True`.** The HNN gradient is itself differentiated during backprop -- without `create_graph=True` PyTorch will silently detach the graph and your gradient w.r.t. $\theta$ will be wrong.
+* **Forgetting `create_graph=True`.** The HNN gradient is itself differentiated during backprop — without `create_graph=True` PyTorch will silently detach the graph and your gradient w.r.t. $\theta$ will be wrong.
 * **Choosing `ReLU` activations.** $H_\theta$ must be twice differentiable for the HNN gradient to be smooth. Use `Softplus`, `Tanh`, `SiLU`, or `GELU`.
 * **Integrating an HNN with explicit Euler.** The continuous-time dynamics is symplectic but Euler discretisation breaks it. Use leapfrog at inference time.
 * **Confusing accuracy and structure.** RK4 is *more accurate per step* than leapfrog, and *less stable per long rollout*. Order $\neq$ structure preservation.
@@ -363,4 +363,4 @@ A direct calculation shows each shear has a triangular Jacobian with unit diagon
 
 ---
 
-*This is Part 5 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 6 -- Continuous Normalizing Flows and Neural ODEs](/en/pde-ml/06-continuous-normalizing-flows). Previous: [Part 4 -- Variational Inference and the Fokker-Planck Equation](/en/pde-ml/04-variational-inference/).*
+*This is Part 5 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 6 — Continuous Normalizing Flows and Neural ODEs](/en/pde-ml/06-continuous-normalizing-flows). Previous: [Part 4 — Variational Inference and the Fokker-Planck Equation](/en/pde-ml/04-variational-inference/).*

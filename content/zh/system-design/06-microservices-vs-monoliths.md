@@ -6,8 +6,7 @@ tags:
   - Microservices
   - Architecture
   - Distributed Systems
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "对单体架构与微服务的坦诚评估——涵盖分布式系统开销、基于领域驱动设计（DDD）的服务边界划分、服务间通信模式、熔断器、服务网格、API 网关，以及一套实用的决策框架。"

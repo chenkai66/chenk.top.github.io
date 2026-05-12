@@ -7,8 +7,7 @@ tags:
   - Matrix Exponential
   - Phase Space
   - Coupled Oscillators
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true

@@ -15,7 +15,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "recommendation-systems-8"
 ---
-When you search for *The Dark Knight* on a streaming platform, the system does not merely log that you watched it. It knows Christian Bale played Batman, Christopher Nolan directed it, it belongs to the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** -- a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).
+When you search for *The Dark Knight* on a streaming platform, the system does not merely log that you watched it. It knows Christian Bale played Batman, Christopher Nolan directed it, it belongs to the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** — a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).
 
 Why does this matter for recommendations? Because pure collaborative filtering has a blind spot: it can only recommend items that already have interaction history. A brand-new film with zero views is invisible. But if that film shares a director with movies you love, a knowledge graph sees the connection on day one. KGs transform recommendation from raw pattern matching into **semantic reasoning**.
 
@@ -56,7 +56,7 @@ A knowledge graph stores facts as **(head, relation, tail)** triples. Each tripl
 
 Formally, a knowledge graph is a set $\mathcal{G} = \{(h, r, t)\}$ where $h \in \mathcal{E}$ is the **head entity**, $r \in \mathcal{R}$ is the **relation type**, and $t \in \mathcal{E}$ is the **tail entity**. $\mathcal{E}$ is the set of all entities and $\mathcal{R}$ is the set of all relation types.
 
-**Analogy.** Think of a knowledge graph as a Wikipedia-scale fact database, but stored as a graph instead of prose. Each article is a node, and every link between articles is a *labeled* edge -- the label tells you *why* they are connected.
+**Analogy.** Think of a knowledge graph as a Wikipedia-scale fact database, but stored as a graph instead of prose. Each article is a node, and every link between articles is a *labeled* edge — the label tells you *why* they are connected.
 
 ### Real-World Knowledge Graphs
 
@@ -69,7 +69,7 @@ Formally, a knowledge graph is a set $\mathcal{G} = \{(h, r, t)\}$ where $h \in 
 
 ### Knowledge Graph Structure for Recommendation
 
-Recommendation KGs are typically **heterogeneous** -- they contain multiple entity and relation types:
+Recommendation KGs are typically **heterogeneous** — they contain multiple entity and relation types:
 
 **Entity types**
 - Users: $U = \{u_1, u_2, \ldots, u_m\}$
@@ -87,7 +87,7 @@ Before feeding a knowledge graph into a recommendation model, we must convert en
 
 ![TransE: head plus relation vector lands near the tail; training pulls valid tails close and pushes negatives outside the margin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/fig2_transe_embedding.png)
 
-**TransE** -- the simplest and most intuitive method -- says: for any valid triple $(h, r, t)$, the vector equation $\mathbf{h} + \mathbf{r} \approx \mathbf{t}$ should hold.
+**TransE** — the simplest and most intuitive method — says: for any valid triple $(h, r, t)$, the vector equation $\mathbf{h} + \mathbf{r} \approx \mathbf{t}$ should hold.
 
 $$\mathcal{L} = \sum_{(h,r,t) \in \mathcal{G}}\; \sum_{(h',r,t') \notin \mathcal{G}} \bigl[\gamma + \|\mathbf{h} + \mathbf{r} - \mathbf{t}\|_2 - \|\mathbf{h}' + \mathbf{r} - \mathbf{t}'\|_2\bigr]_+$$
 **Plain English.** "Push valid triples close together ($\mathbf{h} + \mathbf{r} \approx \mathbf{t}$) and invalid triples far apart. The margin $\gamma$ controls how much separation you require." The right panel of the figure above shows this: the green dot (valid tail) is pulled inside the margin circle, while gray negatives are pushed outside.
@@ -167,7 +167,7 @@ Knowledge graphs solve four hard problems that plague pure collaborative filteri
 
 ### 1. Cold Start
 
-**Problem.** A new movie with zero interactions is invisible to collaborative filtering -- there is nothing for the model to compare against.
+**Problem.** A new movie with zero interactions is invisible to collaborative filtering — there is nothing for the model to compare against.
 
 **KG solution.** Even on day one, the new movie has attributes (director, actors, genre) that connect it to the rest of the graph. If you loved Nolan's other films, the KG can recommend his new movie immediately, with no interaction data required.
 
@@ -175,7 +175,7 @@ Knowledge graphs solve four hard problems that plague pure collaborative filteri
 
 **Problem.** Most users interact with a tiny fraction of items. The interaction matrix is 99%+ zeros, leaving the model little signal to work with.
 
-**KG solution.** The knowledge graph fills the gaps with dense semantic connections. Even if two items share no users, they might share a director, genre, or production studio -- and that link still carries information.
+**KG solution.** The knowledge graph fills the gaps with dense semantic connections. Even if two items share no users, they might share a director, genre, or production studio — and that link still carries information.
 
 ### 3. Explainability
 
@@ -185,7 +185,7 @@ Knowledge graphs solve four hard problems that plague pure collaborative filteri
 
 ### 4. Diversity
 
-**Problem.** Collaborative filtering tends to create filter bubbles -- recommending more of the same.
+**Problem.** Collaborative filtering tends to create filter bubbles — recommending more of the same.
 
 **KG solution.** Different relation paths lead to different kinds of recommendations. Following `same_director` yields different results than `same_genre` or `same_actor`, naturally diversifying the recommendation list.
 
@@ -195,9 +195,9 @@ Knowledge graphs solve four hard problems that plague pure collaborative filteri
 
 The figure traces explicit paths from a user's single watch to four candidate movies:
 
-- **Inception** -- via `Dark Knight -> directed_by -> Nolan -> directed -> Inception`
-- **The Prestige** -- two converging paths through Nolan and Bale (a strong signal)
-- **Batman Begins** -- via shared cast and shared genre
+- **Inception** — via `Dark Knight -> directed_by -> Nolan -> directed -> Inception`
+- **The Prestige** — two converging paths through Nolan and Bale (a strong signal)
+- **Batman Begins** — via shared cast and shared genre
 - The system can produce a different ranking *and* an explanation for each candidate, something pure CF cannot do.
 
 ### Types of KG-Enhanced Methods
@@ -245,7 +245,7 @@ $$\mathbf{u} = \sum_{h=0}^{H} \alpha_h\, \mathbf{o}_u^h$$
 - Hop 1: {Nolan, Bale, Action, Crime}
 - Hop 2: {Inception, Prestige, Batman Begins, DiCaprio, Drama, ...}
 
-The ripples discover that this user might like *Inception* (connected through Nolan) and *The Prestige* (connected through both Nolan and Bale -- a doubly-supported signal).
+The ripples discover that this user might like *Inception* (connected through Nolan) and *The Prestige* (connected through both Nolan and Bale — a doubly-supported signal).
 
 ### Implementation: RippleNet
 
@@ -685,11 +685,11 @@ class CKE(nn.Module):
 
 ### Why Paths Matter
 
-The methods above learn *embeddings* -- dense vectors that are powerful but opaque. Path-based reasoning takes a different route: it finds concrete paths through the knowledge graph from a user's history to a candidate item, and uses those paths as both features and explanations.
+The methods above learn *embeddings* — dense vectors that are powerful but opaque. Path-based reasoning takes a different route: it finds concrete paths through the knowledge graph from a user's history to a candidate item, and uses those paths as both features and explanations.
 
 **Example path.** You rated *The Dark Knight* highly -> *The Dark Knight* `directed_by` *Christopher Nolan* -> *Christopher Nolan* `directed` *Inception* -> **Recommend Inception**.
 
-This path is not just a feature for the model -- it doubles as a human-readable explanation.
+This path is not just a feature for the model — it doubles as a human-readable explanation.
 
 ### Implementation: Multi-Hop Path Reasoning
 
@@ -780,9 +780,9 @@ class PathReasoning(nn.Module):
 
 ![Quantitative lift on MovieLens-1M and qualitative comparison of recommendation lists](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/fig7_with_vs_without_kg.png)
 
-The left panel shows KGAT delivering double-digit relative gains over a vanilla BPR baseline on every standard metric -- and a much larger gain on **cold-start Recall@20**, which is exactly the regime where collaborative filtering struggles most.
+The left panel shows KGAT delivering double-digit relative gains over a vanilla BPR baseline on every standard metric — and a much larger gain on **cold-start Recall@20**, which is exactly the regime where collaborative filtering struggles most.
 
-The right panel makes the qualitative difference visceral. Without a KG, the model falls back on raw popularity and surfaces unrelated blockbusters; the brand-new Nolan film is invisible because no user has seen it yet. With a KG, the model surfaces films that are *thematically* connected -- and the new Nolan release is recommended on day one because the graph already knows Nolan directed it.
+The right panel makes the qualitative difference visceral. Without a KG, the model falls back on raw popularity and surfaces unrelated blockbusters; the brand-new Nolan film is invisible because no user has seen it yet. With a KG, the model surfaces films that are *thematically* connected — and the new Nolan release is recommended on day one because the graph already knows Nolan directed it.
 
 ---
 
@@ -800,10 +800,10 @@ The right panel makes the qualitative difference visceral. Without a KG, the mod
 
 Items in your recommendation system need to be linked to entities in the knowledge graph. Common approaches:
 
-1. **Exact string matching** -- fast but brittle.
-2. **Fuzzy matching** -- handles typos and abbreviations.
-3. **Embedding similarity** -- learn embeddings on both sides and match nearest neighbors.
-4. **Manual curation** -- highest quality but expensive.
+1. **Exact string matching** — fast but brittle.
+2. **Fuzzy matching** — handles typos and abbreviations.
+3. **Embedding similarity** — learn embeddings on both sides and match nearest neighbors.
+4. **Manual curation** — highest quality but expensive.
 
 ### Training Strategies
 
@@ -916,7 +916,7 @@ if __name__ == "__main__":
 
 Even when a new item has zero interactions, it still has attributes in the knowledge graph (genre, director, cast). These attributes connect it to other items that *do* have interaction history. A user who loved Nolan's films can receive a recommendation for his latest movie on release day, purely through KG connections.
 
-### RippleNet vs. KGCN -- what is the difference?
+### RippleNet vs. KGCN — what is the difference?
 
 **RippleNet** is *user-centric*: it starts from the user's history and ripples outward through the KG. **KGCN** is *item-centric*: it builds enriched item representations by aggregating from each item's KG neighborhood. In practice, KGCN tends to scale better because item neighborhoods are more stable than user preference ripples.
 
@@ -926,7 +926,7 @@ Use KGAT when you want to model the interaction between collaborative signals an
 
 ### How does CKE compare to graph-based methods?
 
-CKE is simpler and faster -- it pre-learns KG embeddings and combines them additively. Graph-based methods (KGCN, KGAT) are more powerful because they propagate information through the graph at inference time, but they are also more expensive. Start with CKE for a quick baseline, then upgrade to KGAT if you need better accuracy.
+CKE is simpler and faster — it pre-learns KG embeddings and combines them additively. Graph-based methods (KGCN, KGAT) are more powerful because they propagate information through the graph at inference time, but they are also more expensive. Start with CKE for a quick baseline, then upgrade to KGAT if you need better accuracy.
 
 ### Can knowledge graphs improve recommendation diversity?
 
@@ -943,14 +943,14 @@ Yes. Different relation types lead to different kinds of connections. Following 
 
 The main bottleneck is neighbor aggregation on large KGs (millions of entities). Solutions:
 
-- **Neighbor sampling** -- limit to $K$ neighbors per node.
-- **Hierarchical aggregation** -- aggregate attributes first, then items.
+- **Neighbor sampling** — limit to $K$ neighbors per node.
+- **Hierarchical aggregation** — aggregate attributes first, then items.
 - **Mini-batch training** with subgraph sampling.
 - **Pre-computation** of KG embeddings (CKE approach).
 
 ### Can knowledge graphs provide explainable recommendations?
 
-This is one of their biggest strengths. Path-based methods generate explanations like: "We recommend Movie X because it shares director Y with Movie Z, which you rated highly." These explanations are concrete, human-readable, and grounded in factual relationships -- much better than "users similar to you also liked this."
+This is one of their biggest strengths. Path-based methods generate explanations like: "We recommend Movie X because it shares director Y with Movie Z, which you rated highly." These explanations are concrete, human-readable, and grounded in factual relationships — much better than "users similar to you also liked this."
 
 ### What is the latest in KG-enhanced recommendation?
 
@@ -971,5 +971,5 @@ Recent trends include:
 - **RippleNet propagates user preferences** outward through the KG like ripples in water.
 - **KGCN and KGAT build enriched item representations** by aggregating from KG neighborhoods.
 - **CKE combines three signal types** (collaborative, structural, textual) into a unified item embedding.
-- **Path-based reasoning provides explainability** -- concrete, human-readable reasons for each recommendation.
+- **Path-based reasoning provides explainability** — concrete, human-readable reasons for each recommendation.
 - **2 hops is the sweet spot** for most KG-enhanced methods; more hops introduce noise.

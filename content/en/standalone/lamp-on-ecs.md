@@ -14,9 +14,9 @@ translationKey: "lamp-on-ecs"
 
 You have a fresh ECS instance and SSH access. Your goal is a public website running Apache, PHP and MySQL. Between you and that goal sit three classes of problems that catch every beginner the first time:
 
-1.  **Network reachability** -- packets are silently dropped at the cloud security group, the OS firewall, or the listening socket, and the symptom is the same in all three cases: nothing happens.
-2.  **Service wiring** -- Apache, PHP and MySQL are three separate processes that have to find each other through file extensions, Unix sockets and TCP ports. Each interface has its own failure mode.
-3.  **Identity and permissions** -- Apache runs as `www-data`, MySQL runs as `mysql`, files are owned by `root` after `wget`. The wrong combination produces 403, "Access denied", or `chmod 777` desperation.
+1.  **Network reachability** — packets are silently dropped at the cloud security group, the OS firewall, or the listening socket, and the symptom is the same in all three cases: nothing happens.
+2.  **Service wiring** — Apache, PHP and MySQL are three separate processes that have to find each other through file extensions, Unix sockets and TCP ports. Each interface has its own failure mode.
+3.  **Identity and permissions** — Apache runs as `www-data`, MySQL runs as `mysql`, files are owned by `root` after `wget`. The wrong combination produces 403, "Access denied", or `chmod 777` desperation.
 
 This guide walks through all of them in the order you actually hit them on day one, then keeps going into the things that show up on day thirty: TLS, virtual hosts, backups, source compilation, and when to stop running everything on a single box.
 
@@ -40,13 +40,13 @@ This guide walks through all of them in the order you actually hit them on day o
 
 ## 1. Why LAMP still earns its place
 
-LAMP -- **L**inux + **A**pache + **M**ySQL + **P**HP -- has been declared dead in every web framework cycle since 2010 and refuses to oblige. The reason is not nostalgia, it is fitness for purpose. For content sites, CMS platforms (WordPress, Discuz, Drupal, MediaWiki), customer portals, internal tools and a long tail of small SaaS backends, LAMP is the **most cost-effective, best-documented and lowest-maintenance** way to put dynamic web pages in front of users.
+LAMP — **L**inux + **A**pache + **M**ySQL + **P**HP — has been declared dead in every web framework cycle since 2010 and refuses to oblige. The reason is not nostalgia, it is fitness for purpose. For content sites, CMS platforms (WordPress, Discuz, Drupal, MediaWiki), customer portals, internal tools and a long tail of small SaaS backends, LAMP is the **most cost-effective, best-documented and lowest-maintenance** way to put dynamic web pages in front of users.
 
 What you actually get for free with LAMP that newer stacks make you reassemble:
 
 -   **A mature ecosystem.** Apache is twenty-eight years old, MySQL twenty-eight, PHP thirty. Almost every problem you can have has been hit, written up and indexed.
 -   **Shared-hosting parity.** A LAMP app moves between a $5/month shared host and an ECS without a code change.
--   **A predictable request path.** No service mesh, no sidecar, no orchestrator -- one process tree on one machine. When latency rises you can `top` your way to the answer.
+-   **A predictable request path.** No service mesh, no sidecar, no orchestrator — one process tree on one machine. When latency rises you can `top` your way to the answer.
 -   **A low operational floor.** One server, three services. The cognitive load is a fraction of Kubernetes.
 
 LAMP is **not** the right answer when your workload is high-fanout APIs (use Nginx + Go/Node/Rust), event-driven and connection-heavy (websockets at scale prefer event loops over Apache prefork), or when your team has already invested in containers and a control plane. Pick LAMP for what it is good at, not as a default.
@@ -61,7 +61,7 @@ Each layer **owns** something specific:
 
 -   **Linux** owns processes, files and sockets. If `systemctl status apache2` says `inactive`, the rest does not matter.
 -   **Apache** owns the HTTP wire format and the mapping from URL to handler. If Apache is not loaded, port 80 is just a closed socket; if it is loaded but no `VirtualHost` matches your `Host:` header, you fall through to the default page.
--   **PHP** owns code execution. Apache hands it a `.php` file; PHP parses it, runs it, returns text. If PHP is missing or its module is not enabled, Apache happily serves your source code as plain text -- a security incident dressed as a misconfiguration.
+-   **PHP** owns code execution. Apache hands it a `.php` file; PHP parses it, runs it, returns text. If PHP is missing or its module is not enabled, Apache happily serves your source code as plain text — a security incident dressed as a misconfiguration.
 -   **MySQL** owns durability. If MySQL is down, PHP scripts that need data raise exceptions; if MySQL is up but the credentials are wrong, the same scripts produce blank pages.
 
 The interfaces between the layers are the parts that fail:
@@ -81,16 +81,16 @@ Memorise these four checks and you will resolve most LAMP issues without ever op
 
 Before installing anything, pick the right instance. The console shows hundreds of options; in practice for a starter LAMP server you decide on four things:
 
-**Region and zone.** A region is a city (Hangzhou, Beijing, Singapore); a zone is a data centre inside that city. Latency to your users is set by the region; resilience to one DC failure is set by the zone. For a single-instance LAMP you only pick one zone -- there is no point pretending to be multi-AZ on one machine.
+**Region and zone.** A region is a city (Hangzhou, Beijing, Singapore); a zone is a data centre inside that city. Latency to your users is set by the region; resilience to one DC failure is set by the zone. For a single-instance LAMP you only pick one zone — there is no point pretending to be multi-AZ on one machine.
 
 **Instance family.** The naming is `<family><generation>.<size>`. For a public LAMP site:
 
--   `g7.large` (2 vCPU / 8 GiB) is the safe default -- balanced compute and memory.
+-   `g7.large` (2 vCPU / 8 GiB) is the safe default — balanced compute and memory.
 -   `c7.large` if your workload is mostly PHP (CPU-bound) and your DB is small.
 -   `r7.large` if your workload is read-heavy and you can win by caching aggressively in MySQL's buffer pool.
--   `t6` burstable instances cost a fraction of `g7` and are fine for a low-traffic blog -- as long as you understand CPU credits run out.
+-   `t6` burstable instances cost a fraction of `g7` and are fine for a low-traffic blog — as long as you understand CPU credits run out.
 
-**Disk.** Choose ESSD PL1 over basic cloud disks. The IOPS difference (5000 vs ~1000) is the difference between a snappy admin panel and a slow one, and the price gap on small disks is small. Forty GiB is enough for the OS plus a moderate site -- attach a separate data disk if your database will grow past a few gigabytes.
+**Disk.** Choose ESSD PL1 over basic cloud disks. The IOPS difference (5000 vs ~1000) is the difference between a snappy admin panel and a slow one, and the price gap on small disks is small. Forty GiB is enough for the OS plus a moderate site — attach a separate data disk if your database will grow past a few gigabytes.
 
 **Public IP.** You can take the public IP that comes with the instance (cheap, but bound to the instance and lost on release) or attach an Elastic IP (EIP) which survives instance changes. For anything you might rebuild, pay the small EIP fee.
 
@@ -98,7 +98,7 @@ That is the entire decision. Skip the long list of features and confirm.
 
 ## 4. Networking: the part that traps everyone
 
-Every "I can't reach my server" question on the Aliyun forum has the same root cause -- packets are dropped at one of the four points in the path:
+Every "I can't reach my server" question on the Aliyun forum has the same root cause — packets are dropped at one of the four points in the path:
 
 ```
 client laptop ---internet---> [security group] ---> [OS firewall] ---> [listen socket] ---> Apache
@@ -140,7 +140,7 @@ Compared to opening 3306 on the security group, the tunnel:
 
 ## 4.3 OS-level firewall
 
-The cloud security group is necessary but not sufficient -- a future operator might open everything on the security group "to debug", and your second line of defence is the OS firewall.
+The cloud security group is necessary but not sufficient — a future operator might open everything on the security group "to debug", and your second line of defence is the OS firewall.
 
 On Ubuntu / Debian:
 
@@ -193,7 +193,7 @@ When the request finally lands and Apache answers, this is what happens. Knowing
 
 1.  Browser opens a TCP connection to `8.134.207.88:80`.
 2.  Aliyun's security group accepts the SYN (rule for tcp:80 from 0.0.0.0/0).
-3.  The kernel hands the connection to whoever is listening -- `apache2`.
+3.  The kernel hands the connection to whoever is listening — `apache2`.
 4.  Apache parses the request line `GET /index.php HTTP/1.1`, walks its `VirtualHost` config to find one whose `ServerName` matches the `Host:` header, then resolves `/index.php` against that vhost's `DocumentRoot`.
 5.  The `mod_php` handler matches `.php` and Apache invokes the embedded PHP interpreter (or, with FPM, opens the unix socket and forwards the request).
 6.  The PHP script runs; one of its first statements is usually `new mysqli('localhost', ...)` or `new PDO('mysql:host=localhost;...')`. PHP opens a TCP connection to `127.0.0.1:3306` (or, on Debian/Ubuntu, the unix socket `/var/run/mysqld/mysqld.sock`).
@@ -203,7 +203,7 @@ When the request finally lands and Apache answers, this is what happens. Knowing
 The classic failure modes are annotated under the figure. The most common are:
 
 -   **PHP shows as plain text.** Apache is serving the file but is not invoking PHP. The handler module is not loaded.
--   **Blank page after install.** PHP errors are being suppressed and the script crashed -- look in `/var/log/apache2/error.log`, not in the browser.
+-   **Blank page after install.** PHP errors are being suppressed and the script crashed — look in `/var/log/apache2/error.log`, not in the browser.
 -   **"Connection refused" intermittently.** The MySQL connection limit is hit, or the OOM killer just shot `mysqld`. Check `dmesg` and `mysql.err`.
 
 ## 6. Installing the stack on Ubuntu
@@ -217,7 +217,7 @@ sudo systemctl status apache2 nginx mysql mariadb 2>/dev/null \
 sudo systemctl disable --now nginx
 ```
 
-The order matters: install Apache, then MySQL, then PHP last. PHP's package will pull in the Apache module and will run a post-install hook that enables it -- this only works if Apache is already there.
+The order matters: install Apache, then MySQL, then PHP last. PHP's package will pull in the Apache module and will run a post-install hook that enables it — this only works if Apache is already there.
 
 ## 6.1 Apache
 
@@ -227,16 +227,16 @@ sudo apt install -y apache2
 sudo systemctl enable --now apache2
 ```
 
-Visit `http://YOUR_PUBLIC_IP/` -- you should see the Apache2 Ubuntu Default Page. If you do not, run the four-step verification from section 4.4 in order.
+Visit `http://YOUR_PUBLIC_IP/` — you should see the Apache2 Ubuntu Default Page. If you do not, run the four-step verification from section 4.4 in order.
 
 The directories you will actually edit:
 
 | Path | What lives there |
 | --- | --- |
-| `/etc/apache2/apache2.conf` | global config -- almost never edit directly |
+| `/etc/apache2/apache2.conf` | global config — almost never edit directly |
 | `/etc/apache2/sites-available/*.conf` | virtual host definitions |
 | `/etc/apache2/sites-enabled/` | symlinks; `a2ensite` / `a2dissite` manage them |
-| `/etc/apache2/mods-available/*.{load,conf}` | module config -- managed by `a2enmod` |
+| `/etc/apache2/mods-available/*.{load,conf}` | module config — managed by `a2enmod` |
 | `/var/www/html/` | default DocumentRoot |
 | `/var/log/apache2/{access,error}.log` | the first place to look when anything fails |
 
@@ -260,7 +260,7 @@ The `mysql_secure_installation` wizard asks five questions. The right answers ar
 1.  **VALIDATE PASSWORD plugin:** yes, level 2 (strong).
 2.  **Set root password:** a 16+ character password from a password manager. Save it.
 3.  **Remove anonymous users:** yes.
-4.  **Disallow root login remotely:** yes -- you will tunnel via SSH.
+4.  **Disallow root login remotely:** yes — you will tunnel via SSH.
 5.  **Remove test database:** yes.
 
 Then verify:
@@ -280,7 +280,7 @@ ALTER USER 'discuz_user'@'localhost'
 FLUSH PRIVILEGES;
 ```
 
-Do this for the application user only -- never weaken `root`.
+Do this for the application user only — never weaken `root`.
 
 ### A starter `my.cnf` worth knowing about
 
@@ -322,7 +322,7 @@ sudo a2enmod php8.1                      # match your installed version
 sudo systemctl restart apache2
 ```
 
-**Delete `info.php` after testing** -- it leaks the entire PHP configuration, including loaded extensions, file paths and `disable_functions`. It is the first thing an attacker grep s for.
+**Delete `info.php` after testing** — it leaks the entire PHP configuration, including loaded extensions, file paths and `disable_functions`. It is the first thing an attacker grep s for.
 
 ```bash
 sudo rm /var/www/html/info.php
@@ -334,7 +334,7 @@ sudo rm /var/www/html/info.php
 
 A public LAMP server with default settings will be probed by automated scanners within minutes. Treat security as five concentric rings, each one buying time even when the one outside it fails.
 
-## 7.1 Security group -- the perimeter
+## 7.1 Security group — the perimeter
 
 Already covered in section 4. The rule of thumb: your security group should make the OS firewall feel redundant, and your OS firewall should make the security group feel redundant. Neither should be your only line.
 
@@ -385,12 +385,12 @@ Header always set Strict-Transport-Security "max-age=63072000"
 
 -   Bind to `127.0.0.1` only (default in modern packages, verify in `/etc/mysql/mysql.conf.d/mysqld.cnf`).
 -   One database user **per application**, with `GRANT` scoped to that database.
--   No `GRANT ALL ... TO root@'%'` -- ever.
+-   No `GRANT ALL ... TO root@'%'` — ever.
 -   Backups encrypted at rest if the data is sensitive.
 
 ## 7.5 Application hygiene
 
--   `php-fpm` instead of `mod_php` if you can -- isolates PHP failures from the Apache process tree.
+-   `php-fpm` instead of `mod_php` if you can — isolates PHP failures from the Apache process tree.
 -   `expose_php = Off` and `display_errors = Off` in `/etc/php/8.1/apache2/php.ini` for production.
 -   Whatever framework you deploy, check it has a security advisory feed and subscribe to it. CVEs in CMSes are the single largest source of compromised LAMP servers.
 
@@ -409,7 +409,7 @@ sudo mv upload/* upload/.htaccess . 2>/dev/null || sudo mv upload/* .
 sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
 ```
 
-## 8.2 Permissions -- the part everyone gets wrong
+## 8.2 Permissions — the part everyone gets wrong
 
 Apache runs as `www-data` (Ubuntu) or `apache` (CentOS). The single rule: **the user running Apache must own every file that PHP needs to write**, and only those.
 
@@ -425,7 +425,7 @@ for d in data config uc_server/data uc_client/data; do
 done
 ```
 
-Note that this is `775`, **not** `777`. If `www-data` already owns the directory, `775` lets the owner (web user) write while keeping `o+r` for the rest. `chmod 777` is folk wisdom, not advice -- it lets every user on the system write your application files, and on a shared server that is a privilege-escalation path.
+Note that this is `775`, **not** `777`. If `www-data` already owns the directory, `775` lets the owner (web user) write while keeping `o+r` for the rest. `chmod 777` is folk wisdom, not advice — it lets every user on the system write your application files, and on a shared server that is a privilege-escalation path.
 
 ## 8.3 Database account
 
@@ -440,16 +440,16 @@ sudo mysql -e "
 
 Two things to notice:
 
--   `discuz.*` -- the grant is scoped to one database. If Discuz is ever compromised, the attacker cannot read your other applications' tables.
--   `'discuz_user'@'localhost'` -- the host part is part of the identity. The same username from a different host is a different user. Connections via the unix socket count as `'localhost'`; TCP to `127.0.0.1` counts as `'127.0.0.1'`. If `mysql_secure_installation` left `localhost` and `127.0.0.1` distinct, grant both.
+-   `discuz.*` — the grant is scoped to one database. If Discuz is ever compromised, the attacker cannot read your other applications' tables.
+-   `'discuz_user'@'localhost'` — the host part is part of the identity. The same username from a different host is a different user. Connections via the unix socket count as `'localhost'`; TCP to `127.0.0.1` counts as `'127.0.0.1'`. If `mysql_secure_installation` left `localhost` and `127.0.0.1` distinct, grant both.
 
 ## 8.4 Run the installer
 
 Visit `http://YOUR_PUBLIC_IP/install/`. Three things happen:
 
-1.  **Environment check** -- PHP version, GD, mbstring, mysqli. If anything is missing: `sudo apt install -y php-<extension> && sudo systemctl reload apache2`.
-2.  **Permission check** -- the green ticks should appear next to `data/`, `config/`, `uc_server/data/`, `uc_client/data/`. If not, recheck section 8.2.
-3.  **Database details** -- host `localhost`, name `discuz`, user `discuz_user`, password as set above.
+1.  **Environment check** — PHP version, GD, mbstring, mysqli. If anything is missing: `sudo apt install -y php-<extension> && sudo systemctl reload apache2`.
+2.  **Permission check** — the green ticks should appear next to `data/`, `config/`, `uc_server/data/`, `uc_client/data/`. If not, recheck section 8.2.
+3.  **Database details** — host `localhost`, name `discuz`, user `discuz_user`, password as set above.
 
 After install:
 
@@ -461,7 +461,7 @@ sudo chmod -R 755 /var/www/html/config
 
 ## 9. The five failures that hit everyone
 
-## Failure 1 -- "Connection refused"
+## Failure 1 — "Connection refused"
 
 **Means:** something between you and Apache is dropping the TCP SYN, or Apache is not listening.
 
@@ -476,9 +476,9 @@ sudo ss -tlnp | grep -E ':80|:443'
 sudo ufw status
 ```
 
-If `127.0.0.1` works but the public IP does not, the OS is fine -- check the security group in the cloud console.
+If `127.0.0.1` works but the public IP does not, the OS is fine — check the security group in the cloud console.
 
-## Failure 2 -- "403 Forbidden" or "Index of /"
+## Failure 2 — "403 Forbidden" or "Index of /"
 
 **Means:** Apache served the directory but did not find an index file, or could not read it.
 
@@ -488,9 +488,9 @@ sudo -u www-data cat /var/www/html/index.php # can the web user read it?
 grep -r DirectoryIndex /etc/apache2/
 ```
 
-The fix is almost always `chown -R www-data:www-data /var/www/html` -- you `wget` ed something as root, and the web user cannot read it.
+The fix is almost always `chown -R www-data:www-data /var/www/html` — you `wget` ed something as root, and the web user cannot read it.
 
-## Failure 3 -- PHP source code visible in the browser
+## Failure 3 — PHP source code visible in the browser
 
 **Means:** Apache is serving `.php` as a static file because the PHP handler is not registered.
 
@@ -501,9 +501,9 @@ sudo systemctl restart apache2
 curl -s http://127.0.0.1/info.php | head -n 1   # should be HTML, not <?php
 ```
 
-This is a security incident, not just a misconfiguration -- never leave the box exposed in this state.
+This is a security incident, not just a misconfiguration — never leave the box exposed in this state.
 
-## Failure 4 -- "Can't connect to MySQL server on 'localhost'"
+## Failure 4 — "Can't connect to MySQL server on 'localhost'"
 
 **Means:** MySQL is down, the socket has moved, or credentials are wrong.
 
@@ -515,7 +515,7 @@ mysql -u discuz_user -p -h 127.0.0.1 -e 'SELECT 1'
 
 A common cause on small instances: MySQL was OOM-killed. `dmesg | tail -50` will show `Killed process ... mysqld`. Either tune `innodb_buffer_pool_size` down or move to a larger instance.
 
-## Failure 5 -- Discuz says "Directory not writable"
+## Failure 5 — Discuz says "Directory not writable"
 
 **Means:** the web user cannot write to one of the four required dirs.
 
@@ -598,7 +598,7 @@ And once a month, on a separate machine: `gunzip < some_backup.sql.gz | mysql -u
 
 The Aliyun Cloud Monitor agent gives you CPU, memory, disk and bandwidth out of the box. The two extra signals worth wiring up yourself:
 
--   Apache `mod_status` exposed on `127.0.0.1:80/server-status` -- requests per second, busy workers, slow requests.
+-   Apache `mod_status` exposed on `127.0.0.1:80/server-status` — requests per second, busy workers, slow requests.
 -   MySQL `performance_schema` queries to find the slow queries (`SELECT digest_text, count_star, avg_timer_wait FROM events_statements_summary_by_digest ORDER BY sum_timer_wait DESC LIMIT 10`).
 
 A weekly five-minute look at these will catch capacity problems weeks before they bite.
@@ -617,11 +617,11 @@ Almost every successful LAMP site eventually hits the wall of the single-instanc
 -   **ECS x N** running Apache + PHP, all stateless (sessions in Redis, uploads on OSS).
 -   **RDS for MySQL** as the single source of truth.
 
-The cost roughly triples; the failure surface goes from "one box" to "many boxes plus a network", which is genuinely harder to operate. Do not migrate just because the diagrams look impressive -- migrate because the single instance is actually saturating.
+The cost roughly triples; the failure surface goes from "one box" to "many boxes plus a network", which is genuinely harder to operate. Do not migrate just because the diagrams look impressive — migrate because the single instance is actually saturating.
 
 ## 12. Compiling MySQL from source (advanced)
 
-You normally do not need to do this. Use the package manager unless you have a concrete reason -- a build flag the package omits, a pinned version your vendor mandates, a patch the upstream has not merged. The downsides of source builds are real: hours of compile time, no automatic security updates, your own job to track CVEs.
+You normally do not need to do this. Use the package manager unless you have a concrete reason — a build flag the package omits, a pinned version your vendor mandates, a patch the upstream has not merged. The downsides of source builds are real: hours of compile time, no automatic security updates, your own job to track CVEs.
 
 If you do need it, the canonical incantation for MySQL 5.6 on CentOS:
 
@@ -660,14 +660,14 @@ sudo systemctl enable --now mysql
 
 Two things go wrong almost every time:
 
-1.  **`Could not find OpenSSL`** -- you missed `openssl-devel`. Fix: install it, then **remove the build directory and re-extract** before retrying. `cmake` caches partial state and a half-finished tree will not pick up the new headers.
-2.  **OOM during compilation** -- `make -j$(nproc)` on a 2 GiB instance will be killed. Use `-j2` and add 2 GiB of swap before starting.
+1.  **`Could not find OpenSSL`** — you missed `openssl-devel`. Fix: install it, then **remove the build directory and re-extract** before retrying. `cmake` caches partial state and a half-finished tree will not pick up the new headers.
+2.  **OOM during compilation** — `make -j$(nproc)` on a 2 GiB instance will be killed. Use `-j2` and add 2 GiB of swap before starting.
 
-After install, do not forget the same `mysql_secure_installation` and `my.cnf` tuning from section 6.2 -- a from-source build is not configured for you.
+After install, do not forget the same `mysql_secure_installation` and `my.cnf` tuning from section 6.2 — a from-source build is not configured for you.
 
 ## 13. Real-world cases
 
-## Case A -- Migrating WordPress from shared hosting
+## Case A — Migrating WordPress from shared hosting
 
 The recipe that has worked dozens of times:
 
@@ -700,9 +700,9 @@ sudo find /var/www/html -type f -exec chmod 644 {} \;
 # DNS A record -> 8.134.207.88, TTL low for cutover
 ```
 
-The pitfall is almost always permissions -- shared hosts give you ownership of everything; on ECS, `www-data` does, and uploads will silently fail until you fix it.
+The pitfall is almost always permissions — shared hosts give you ownership of everything; on ECS, `www-data` does, and uploads will silently fail until you fix it.
 
-## Case B -- Two PHP versions on one box
+## Case B — Two PHP versions on one box
 
 Old plugin needs 5.6, new app wants 8.1. Use `php-fpm` per version and route by vhost:
 
@@ -730,9 +730,9 @@ sudo apt install -y php5.6-fpm php8.1-fpm
 </VirtualHost>
 ```
 
-This is also the right time to leave `mod_php` behind. `php-fpm` runs PHP in its own process pool, with its own user, its own resource limits, and its own crash recovery -- a memory leak in PHP no longer takes Apache down.
+This is also the right time to leave `mod_php` behind. `php-fpm` runs PHP in its own process pool, with its own user, its own resource limits, and its own crash recovery — a memory leak in PHP no longer takes Apache down.
 
-## Case C -- A site that suddenly returns 502s under load
+## Case C — A site that suddenly returns 502s under load
 
 A common pattern: traffic doubles, the site starts returning 502 to about 5% of requests. The chain of cause is almost always:
 
@@ -767,23 +767,23 @@ The numbers are not magic; the principle is. Each layer's worker pool must be ab
 
 LAMP on Aliyun ECS reduces to a five-step recipe:
 
-1.  **Open ports correctly** -- security group, then OS firewall, then verify hop by hop.
-2.  **Install in order** -- Apache, MySQL, PHP, in that order, each one verified before moving on.
-3.  **Verify each layer** -- Apache serves HTML, PHP runs, MySQL connects. Three commands, every time.
-4.  **Set permissions deliberately** -- `www-data` owns the writable parts, no `chmod 777`.
-5.  **Deploy the app** -- whether Discuz, WordPress or your own PHP, the playbook is the same.
+1.  **Open ports correctly** — security group, then OS firewall, then verify hop by hop.
+2.  **Install in order** — Apache, MySQL, PHP, in that order, each one verified before moving on.
+3.  **Verify each layer** — Apache serves HTML, PHP runs, MySQL connects. Three commands, every time.
+4.  **Set permissions deliberately** — `www-data` owns the writable parts, no `chmod 777`.
+5.  **Deploy the app** — whether Discuz, WordPress or your own PHP, the playbook is the same.
 
 What to do next:
 
 -   Add HTTPS with Let's Encrypt and set HSTS.
 -   Wire up `mysqldump -> OSS` and **restore from backup** at least once.
--   Read your access log for an hour -- you will learn more about your traffic and your attackers than from any blog post.
+-   Read your access log for an hour — you will learn more about your traffic and your attackers than from any blog post.
 -   Once you outgrow one box, split into SLB + ECS + RDS rather than scaling the single instance forever.
 
 Further reading:
 
--   Apache HTTP Server documentation -- <https://httpd.apache.org/docs/>
--   MySQL 8.0 reference manual -- <https://dev.mysql.com/doc/refman/8.0/en/>
--   PHP manual -- <https://www.php.net/manual/en/>
--   Aliyun ECS user guide -- <https://www.alibabacloud.com/help/en/ecs/>
--   Let's Encrypt with Certbot -- <https://certbot.eff.org/instructions>
+-   Apache HTTP Server documentation — <https://httpd.apache.org/docs/>
+-   MySQL 8.0 reference manual — <https://dev.mysql.com/doc/refman/8.0/en/>
+-   PHP manual — <https://www.php.net/manual/en/>
+-   Aliyun ECS user guide — <https://www.alibabacloud.com/help/en/ecs/>
+-   Let's Encrypt with Certbot — <https://certbot.eff.org/instructions>

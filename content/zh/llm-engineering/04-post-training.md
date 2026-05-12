@@ -4,8 +4,8 @@ date: 2026-03-30 09:00:00
 tags:
   - LLM
   - post-training
-  - sft
-  - dpo
+  - SFT
+  - DPO
   - RLHF
   - LoRA
 categories: 大模型工程

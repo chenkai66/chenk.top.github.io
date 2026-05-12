@@ -5,8 +5,7 @@ tags:
   - Python
   - Serialization
   - Data Formats
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Handle files, paths, encodings, and data formats in Python. Compare JSON, YAML, TOML, CSV, pickle, and Parquet with practical examples."

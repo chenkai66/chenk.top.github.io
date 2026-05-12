@@ -313,7 +313,7 @@ $$\bar{X} \pm z_{\alpha/2} \cdot \frac{\sigma}{\sqrt{n}}. \tag{21}$$
 
 The figure below makes this concrete: 50 simulated 95% CIs from the same data-generating process, colored by whether they happened to cover the true mean.
 
-![Fifty simulated 95% confidence intervals -- about 95% cover the true parameter](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/fig5_confidence_intervals.png)
+![Fifty simulated 95% confidence intervals — about 95% cover the true parameter](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/fig5_confidence_intervals.png)
 
 If you want to say "the parameter is in this interval with probability 95%", you need a Bayesian credible interval — the quantiles of a posterior.
 

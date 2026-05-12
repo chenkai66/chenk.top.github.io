@@ -6,8 +6,7 @@ tags:
   - Type Hints
   - Linting
   - Code Quality
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "使用 mypy 添加类型安全性，用 ruff 和 black 强制执行代码风格，并通过 pre-commit 钩子自动化检查。让代码评审聚焦于逻辑设计，而非格式细节。"

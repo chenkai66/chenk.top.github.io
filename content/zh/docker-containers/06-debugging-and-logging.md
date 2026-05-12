@@ -7,8 +7,7 @@ tags:
   - Debugging
   - Logging
   - Observability
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "容器按设计隐藏其内部实现。当系统出现故障时，你需要特定的工具和技巧，在不破坏容器核心隔离特性的前提下，窥探‘盒子’内部发生了什么。"

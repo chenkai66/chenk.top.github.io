@@ -14,9 +14,9 @@ disableNunjucks: true
 series_order: 1
 translationKey: "nlp-1"
 ---
-Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you are touching a stack that took seventy years to assemble. Natural Language Processing is the discipline that taught machines to read, score, transform, and write human language -- and the surprising thing is how much of the modern stack still rests on a small set of preprocessing primitives invented decades ago.
+Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you are touching a stack that took seventy years to assemble. Natural Language Processing is the discipline that taught machines to read, score, transform, and write human language — and the surprising thing is how much of the modern stack still rests on a small set of preprocessing primitives invented decades ago.
 
-This first article in the series does two things. First, it draws the map: where the field came from, what it covers today, and why the tools we use look the way they do. Second, it builds the foundational layer -- cleaning, tokenization, normalization, and feature extraction -- with code that you can lift directly into a project. By the end you will have a reusable preprocessing pipeline and, more importantly, a sense of when each step helps and when it quietly destroys signal.
+This first article in the series does two things. First, it draws the map: where the field came from, what it covers today, and why the tools we use look the way they do. Second, it builds the foundational layer — cleaning, tokenization, normalization, and feature extraction — with code that you can lift directly into a project. By the end you will have a reusable preprocessing pipeline and, more importantly, a sense of when each step helps and when it quietly destroys signal.
 
 ![NLP application landscape](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig1_applications_landscape.png)
 
@@ -45,9 +45,9 @@ This first article in the series does two things. First, it draws the map: where
 
 NLP did not advance smoothly. It moved in jumps, each driven by a new representation of language. Knowing the sequence helps you reach for the right tool: rule systems still beat neural nets for narrow form-filling, statistical methods still drive search ranking, and embeddings dominate everything else.
 
-### 1.1 Symbolic Era (1950s -- late 1980s)
+### 1.1 Symbolic Era (1950s — late 1980s)
 
-Early systems treated language as a logic problem. ELIZA (1966) matched user input against hand-crafted regex patterns and rephrased the captured groups; SHRDLU (1970) parsed instructions about a blocks world using a hand-written grammar. These systems were precise within their domain and completely brittle outside it -- a synonym or a typo broke them. The lesson, in hindsight, is that language has too many surface forms for any human to enumerate.
+Early systems treated language as a logic problem. ELIZA (1966) matched user input against hand-crafted regex patterns and rephrased the captured groups; SHRDLU (1970) parsed instructions about a blocks world using a hand-written grammar. These systems were precise within their domain and completely brittle outside it — a synonym or a typo broke them. The lesson, in hindsight, is that language has too many surface forms for any human to enumerate.
 
 ### 1.2 Statistical Revolution (1990s)
 
@@ -56,13 +56,13 @@ The turning point was the realization that you do not need to write rules; you c
 $$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$
 This single formula powered IBM's statistical machine translation, the first viable speech recognizers, and probabilistic part-of-speech taggers. Hidden Markov Models extended the same idea to latent state, and probabilistic context-free grammars handled syntax. Features were still hand-engineered, but the rules were learned.
 
-### 1.3 Deep Learning Era (2013 -- 2016)
+### 1.3 Deep Learning Era (2013 — 2016)
 
 Word2Vec (Mikolov et al., 2013) showed that a tiny neural network trained to predict context words produces vectors with a remarkable property: semantic relationships become arithmetic.
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
 For the first time, words were no longer atomic identifiers. They lived in a continuous space where similarity was a cosine away. RNNs and LSTMs followed, letting models thread context through a sequence and finally learn from order, not just bag-of-tokens counts.
 
-### 1.4 Transformer Revolution (2017 -- present)
+### 1.4 Transformer Revolution (2017 — present)
 
 The 2017 paper "Attention Is All You Need" replaced recurrence with self-attention:
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
@@ -70,10 +70,10 @@ Two practical consequences mattered. First, the model is fully parallel across p
 
 | Era | Years | Core idea | What broke it |
 |---|---|---|---|
-| Symbolic | 1950 -- 1980s | Hand-written rules and grammars | Cannot enumerate surface forms |
-| Statistical | 1990s -- 2010s | Estimate probabilities from corpora | Hand-engineered features hit a ceiling |
-| Deep learning | 2013 -- 2016 | Learn dense representations end-to-end | Recurrence is sequential, slow to train |
-| Transformer | 2017 -- now | Self-attention over the whole sequence | (Still being explored) |
+| Symbolic | 1950 — 1980s | Hand-written rules and grammars | Cannot enumerate surface forms |
+| Statistical | 1990s — 2010s | Estimate probabilities from corpora | Hand-engineered features hit a ceiling |
+| Deep learning | 2013 — 2016 | Learn dense representations end-to-end | Recurrence is sequential, slow to train |
+| Transformer | 2017 — now | Self-attention over the whole sequence | (Still being explored) |
 
 **Insight**: each shift solved the previous era's bottleneck without throwing away the layer below. Even today, an LLM tokenizer is a statistical artifact, and your retrieval system probably uses TF-IDF as a fallback.
 
@@ -89,7 +89,7 @@ Two practical consequences mattered. First, the model is fully parallel across p
 | **Conversational AI** | ChatGPT, Claude, voice assistants |
 | **Search and analysis** | Semantic search, topic modeling, RAG |
 
-The figure above arranges these into six clusters. Notice that almost every cluster ultimately consumes a vector -- which is exactly what preprocessing produces.
+The figure above arranges these into six clusters. Notice that almost every cluster ultimately consumes a vector — which is exactly what preprocessing produces.
 
 ---
 
@@ -126,7 +126,7 @@ for pkg in ['punkt', 'stopwords', 'wordnet', 'averaged_perceptron_tagger']:
 
 ---
 
-## 4. Step 1 -- Text Cleaning
+## 4. Step 1 — Text Cleaning
 
 Web text comes wrapped in HTML, peppered with URLs, and littered with control characters. Cleaning removes the obvious noise without touching meaning.
 
@@ -150,9 +150,9 @@ print(clean_text(raw))
 
 **The aggressive cleaning trade-off**. The function above also deletes digits and punctuation. That is fine for topic modeling, where numbers add noise, but it is wrong for:
 
-- **Sentiment analysis** -- `!!!` and `?!` carry emotion.
-- **Named entity recognition** -- "Apple Inc." needs the period and the capitalization.
-- **Financial NLP** -- `$29.99` is the actual signal you care about.
+- **Sentiment analysis** — `!!!` and `?!` carry emotion.
+- **Named entity recognition** — "Apple Inc." needs the period and the capitalization.
+- **Financial NLP** — `$29.99` is the actual signal you care about.
 
 Always tailor the regex set to the task; do not apply a one-size-fits-all cleaner.
 
@@ -173,9 +173,9 @@ text = BeautifulSoup(html_text, 'html.parser').get_text(' ', strip=True)
 
 ---
 
-## 5. Step 2 -- Tokenization
+## 5. Step 2 — Tokenization
 
-Tokenization splits text into the atomic units a model will see. The boundary you choose -- characters, words, subwords -- determines vocabulary size, sequence length, and how gracefully the model handles words it has never seen.
+Tokenization splits text into the atomic units a model will see. The boundary you choose — characters, words, subwords — determines vocabulary size, sequence length, and how gracefully the model handles words it has never seen.
 
 ![Three tokenization strategies for the same input](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig4_tokenization_variants.png)
 
@@ -192,7 +192,7 @@ tokens = word_tokenize("Dr. Smith earned $150,000 in 2023! Isn't that amazing?")
 #  'Is', "n't", 'that', 'amazing', '?']
 ```
 
-NLTK keeps `Dr.` as one token, separates punctuation, and splits the contraction `Isn't` into `Is` + `n't`. Each of those decisions is a hard-coded English convention -- which is exactly why word tokenization is brittle across languages.
+NLTK keeps `Dr.` as one token, separates punctuation, and splits the contraction `Isn't` into `Is` + `n't`. Each of those decisions is a hard-coded English convention — which is exactly why word tokenization is brittle across languages.
 
 ### 5.2 Sentence Tokenization
 
@@ -207,12 +207,12 @@ NLTK's Punkt model learns from data which periods end sentences and which mark a
 
 ### 5.3 Subword Tokenization (BPE)
 
-Modern models -- GPT, BERT, Llama, Claude -- do not tokenize on words. They use **subword tokenization**, almost always a variant of Byte-Pair Encoding (BPE):
+Modern models — GPT, BERT, Llama, Claude — do not tokenize on words. They use **subword tokenization**, almost always a variant of Byte-Pair Encoding (BPE):
 
 1. Start with a vocabulary of individual characters.
 2. Count adjacent character pair frequencies across the corpus.
 3. Merge the most frequent pair into a new symbol.
-4. Repeat until the vocabulary reaches a target size (commonly 30k -- 100k).
+4. Repeat until the vocabulary reaches a target size (commonly 30k — 100k).
 
 ```
 Corpus: "low" x5, "lower" x2, "newest" x6, "widest" x3
@@ -226,9 +226,9 @@ Merge 3: (l, o) -> lo
 
 Why BPE matters in practice:
 
-- **Rare words decompose** -- `unbelievable` becomes `un + believ + able`, all of which have appeared elsewhere.
-- **Vocabulary stays bounded** -- a 50k subword vocabulary covers any English text and most code.
-- **Cross-lingual transfer** -- the same tokenizer handles English, French, and Mandarin if trained on a multilingual corpus.
+- **Rare words decompose** — `unbelievable` becomes `un + believ + able`, all of which have appeared elsewhere.
+- **Vocabulary stays bounded** — a 50k subword vocabulary covers any English text and most code.
+- **Cross-lingual transfer** — the same tokenizer handles English, French, and Mandarin if trained on a multilingual corpus.
 
 Here is a minimal, runnable implementation:
 
@@ -261,11 +261,11 @@ for step in range(5):
     print(f"merge {step + 1}: {best} -> {''.join(best)}")
 ```
 
-For production, use Hugging Face's `tokenizers` library -- it ships GPT-style BPE, BERT WordPiece, and SentencePiece behind a unified API.
+For production, use Hugging Face's `tokenizers` library — it ships GPT-style BPE, BERT WordPiece, and SentencePiece behind a unified API.
 
 ---
 
-## 6. Step 3 -- Normalization
+## 6. Step 3 — Normalization
 
 Normalization collapses surface variants of the same word into a single form, which shrinks vocabulary and improves matching. It also throws information away, so apply it deliberately.
 
@@ -290,7 +290,7 @@ for w in ['running', 'easily', 'connection']:
 # running -> run, easily -> easili, connection -> connect
 ```
 
-`easili` is not a word -- the Porter stemmer optimizes for matching, not for legibility.
+`easili` is not a word — the Porter stemmer optimizes for matching, not for legibility.
 
 **Lemmatization** uses a dictionary plus part-of-speech information to return the actual lemma:
 
@@ -319,7 +319,7 @@ A useful default: use lemmatization unless you are running a high-throughput ret
 
 ---
 
-## 7. Step 4 -- Stopwords and Zipf's Law
+## 7. Step 4 — Stopwords and Zipf's Law
 
 Stopwords are common closed-class words such as `the`, `is`, `at` that carry little task-specific meaning. Removing them shrinks vocabulary by roughly a third and concentrates signal in content words.
 
@@ -327,7 +327,7 @@ The reason a small set of words dominates is Zipf's law: in any natural-language
 $$f(\text{rank}) \propto \frac{1}{\text{rank}}$$
 ![Zipf distribution: head dominated by stopwords, long tail of rare words](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig5_zipf_distribution.png)
 
-The top ten words alone often account for 25 -- 30% of all tokens. That is the head of the distribution, and it is mostly stopwords. The tail -- thousands of words appearing once or twice -- is where most semantic content lives, but it is also where models struggle and where subword tokenization earns its keep.
+The top ten words alone often account for 25 — 30% of all tokens. That is the head of the distribution, and it is mostly stopwords. The tail — thousands of words appearing once or twice — is where most semantic content lives, but it is also where models struggle and where subword tokenization earns its keep.
 
 ```python
 from nltk.corpus import stopwords
@@ -341,14 +341,14 @@ filtered = [w for w in word_tokenize(text.lower()) if w not in stop_words]
 
 When to remove stopwords:
 
-- **Yes** -- bag-of-words and topic models, search indexing.
-- **No** -- sentiment (`not good` is not the same as `good`), QA (function words carry the question), any deep model that learns to weight tokens itself.
+- **Yes** — bag-of-words and topic models, search indexing.
+- **No** — sentiment (`not good` is not the same as `good`), QA (function words carry the question), any deep model that learns to weight tokens itself.
 
 ---
 
-## 8. Step 5 -- From Tokens to Vectors
+## 8. Step 5 — From Tokens to Vectors
 
-A model needs numbers. Two classical encodings -- Bag-of-Words and TF-IDF -- still anchor most retrieval systems and are the right baseline for any new task.
+A model needs numbers. Two classical encodings — Bag-of-Words and TF-IDF — still anchor most retrieval systems and are the right baseline for any new task.
 
 ### 8.1 One-hot vs Distributed Representations
 
@@ -356,7 +356,7 @@ Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector
 
 ![One-hot encoding loses semantics; learned embeddings recover them](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig6_onehot_vs_distributed.png)
 
-Distributed representations -- which we will build in Part 2 -- pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.
+Distributed representations — which we will build in Part 2 — pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.
 
 ### 8.2 Bag of Words
 
@@ -388,13 +388,13 @@ The fatal limitation: `dog bites man` and `man bites dog` produce identical vect
 
 ### 8.3 TF-IDF
 
-TF-IDF up-weights words that are frequent in a document but rare in the corpus -- a heuristic for "important to this document, but not generic":
+TF-IDF up-weights words that are frequent in a document but rare in the corpus — a heuristic for "important to this document, but not generic":
 $$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$
 where $N$ is the number of documents and $\text{df}(t)$ is the number of documents containing term $t$. The `+1` smoothing keeps the IDF defined when a term appears in every document (or in none).
 
 ![Bag of Words counts versus TF-IDF weights on the same toy corpus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig3_bow_vs_tfidf.png)
 
-The figure above shows both matrices side by side. Notice how `learning` -- present in every document -- gets weighted down by TF-IDF, while a word like `vision` that is unique to one document gets lifted. That is exactly the ranking behavior you want for search.
+The figure above shows both matrices side by side. Notice how `learning` — present in every document — gets weighted down by TF-IDF, while a word like `vision` that is unique to one document gets lifted. That is exactly the ranking behavior you want for search.
 
 ```python
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -431,7 +431,7 @@ tfidf = TfidfVectorizer(
 
 ---
 
-## 9. Step 6 -- N-gram Language Models
+## 9. Step 6 — N-gram Language Models
 
 Once you have tokens, you can also model how they follow each other. An n-gram model factors a sentence into a chain of conditional probabilities:
 $$P(w_1, \ldots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_{t-n+1}, \ldots, w_{t-1})$$
@@ -442,10 +442,10 @@ A bigram model uses one word of context, a trigram uses two, and so on.
 
 The trade-off is sharp:
 
-- **Larger n** captures more context, which lowers perplexity (perplexity is roughly the model's effective branching factor -- lower is better).
+- **Larger n** captures more context, which lowers perplexity (perplexity is roughly the model's effective branching factor — lower is better).
 - **Larger n** also explodes the parameter count and starves on rare contexts. With $V$ vocabulary, a trigram model has up to $V^3$ parameters, most of which see zero training examples. This is the **sparsity problem**, the central pain point of statistical NLP.
 
-Smoothing techniques (Laplace, Kneser-Ney) patch the holes by redistributing probability mass to unseen n-grams. Modern neural language models sidestep the issue entirely by sharing parameters across contexts via embeddings -- which is the bridge to Part 2.
+Smoothing techniques (Laplace, Kneser-Ney) patch the holes by redistributing probability mass to unseen n-grams. Modern neural language models sidestep the issue entirely by sharing parameters across contexts via embeddings — which is the bridge to Part 2.
 
 ---
 
@@ -556,7 +556,7 @@ for msg, pred in zip(new_msgs, model.predict(new_vecs)):
     print(f"[{'SPAM' if pred else 'HAM'}] {msg}")
 ```
 
-The point of the example is not the accuracy on ten samples -- it is the shape of the pipeline. Swap in 5,000 SMS messages and the same code reaches roughly 97% accuracy with no further engineering. That is the strength of the classical NLP stack: short, transparent, and remarkably hard to beat without a GPU.
+The point of the example is not the accuracy on ten samples — it is the shape of the pipeline. Swap in 5,000 SMS messages and the same code reaches roughly 97% accuracy with no further engineering. That is the strength of the classical NLP stack: short, transparent, and remarkably hard to beat without a GPU.
 
 ---
 

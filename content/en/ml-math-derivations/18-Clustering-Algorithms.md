@@ -23,7 +23,7 @@ translationKey: "ml-math-derivations-18"
 
 ## What This Article Covers
 
-A million customer records arrive with no labels. Can you discover meaningful groups automatically? That is **clustering**, the most fundamental unsupervised learning task. Unlike classification, clustering forces you to first answer a slippery question: *what does "similar" even mean?* Every clustering algorithm is, at heart, a different answer to that question -- a different geometric, probabilistic, or graph-theoretic prior on what a "group" is.
+A million customer records arrive with no labels. Can you discover meaningful groups automatically? That is **clustering**, the most fundamental unsupervised learning task. Unlike classification, clustering forces you to first answer a slippery question: *what does "similar" even mean?* Every clustering algorithm is, at heart, a different answer to that question — a different geometric, probabilistic, or graph-theoretic prior on what a "group" is.
 
 **What you will learn:**
 
@@ -31,7 +31,7 @@ A million customer records arrive with no labels. Can you discover meaningful gr
 2. **Hierarchical clustering** as a greedy merge process, and how the choice of linkage controls cluster shape.
 3. **DBSCAN** as density-based connectivity, and why it can find non-convex clusters and label noise.
 4. **Spectral clustering** as a continuous relaxation of NCut, with the graph Laplacian doing the heavy lifting.
-5. **Gaussian Mixture Models** as the probabilistic generalization of K-means -- what you gain (soft assignments, ellipsoidal covariance) and what you pay for it.
+5. **Gaussian Mixture Models** as the probabilistic generalization of K-means — what you gain (soft assignments, ellipsoidal covariance) and what you pay for it.
 6. How to **evaluate** clustering quality without labels (silhouette, elbow) and how to choose $K$.
 
 **Prerequisites:** linear algebra (eigendecomposition), basic probability, and the EM algorithm from [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm).
@@ -79,17 +79,17 @@ where $a(i)$ is the mean intra-cluster distance and $b(i)$ is the mean distance 
 
 K-means minimizes the **Within-Cluster Sum of Squares (WCSS):**
 $$J(\{c_i\}, \{\boldsymbol{\mu}_k\}) = \sum_{k=1}^{K} \sum_{i: c_i = k} \\|\mathbf{x}_i - \boldsymbol{\mu}_k\\|^2 \tag{1}$$
-This is a *joint* optimization over discrete assignments $\{c_i\}$ and continuous centroids $\{\boldsymbol{\mu}_k\}$ -- and it is NP-hard in general. Lloyd's algorithm tackles it with **coordinate descent**: alternately optimize one set of variables while fixing the other.
+This is a *joint* optimization over discrete assignments $\{c_i\}$ and continuous centroids $\{\boldsymbol{\mu}_k\}$ — and it is NP-hard in general. Lloyd's algorithm tackles it with **coordinate descent**: alternately optimize one set of variables while fixing the other.
 
 ### 2.2 Lloyd's Algorithm
 
 ![Lloyd's algorithm: four iterations on a 3-blob dataset showing centroid trajectories and the monotonically decreasing WCSS J](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig1_kmeans_steps.png)
 
-**Step 1 -- Assignment.** Fix centroids, assign each point to the nearest:
+**Step 1 — Assignment.** Fix centroids, assign each point to the nearest:
 $$c_i = \arg\min_{k} \\|\mathbf{x}_i - \boldsymbol{\mu}_k\\|^2$$
-**Step 2 -- Update.** Fix assignments, recompute centroids by setting $\partial J / \partial \boldsymbol{\mu}_k = 0$:
+**Step 2 — Update.** Fix assignments, recompute centroids by setting $\partial J / \partial \boldsymbol{\mu}_k = 0$:
 $$\boldsymbol{\mu}_k = \frac{1}{|C_k|} \sum_{i \in C_k} \mathbf{x}_i \tag{2}$$
-**Why it converges.** Each step *can only decrease* $J$. Step 1 is optimal because every point ends up at its closest centroid. Step 2 is optimal because the within-cluster mean is the unique minimizer of squared error (the second derivative $2|C_k|\mathbf{I}$ is positive definite). Since $J \geq 0$ and decreases monotonically, the iteration must terminate at a local minimum -- usually within tens of iterations on real data, as the four-panel figure above shows: centroids drift from a poor initialization, decision regions reshape, and $J$ collapses to a steady value.
+**Why it converges.** Each step *can only decrease* $J$. Step 1 is optimal because every point ends up at its closest centroid. Step 2 is optimal because the within-cluster mean is the unique minimizer of squared error (the second derivative $2|C_k|\mathbf{I}$ is positive definite). Since $J \geq 0$ and decreases monotonically, the iteration must terminate at a local minimum — usually within tens of iterations on real data, as the four-panel figure above shows: centroids drift from a poor initialization, decision regions reshape, and $J$ collapses to a steady value.
 
 **Caveat: local optima.** Lloyd's algorithm finds *a* local minimum, not the global one. Bad initialization can trap it on a plateau where two centroids share one true cluster while a third tries to cover two. The standard remedy is to restart Lloyd's algorithm from many random initializations and keep the lowest-$J$ run; a smarter remedy is K-means++.
 
@@ -119,7 +119,7 @@ The idea is simple: spread initial centroids far apart by picking each one *with
 1. Pick $\boldsymbol{\mu}_1$ uniformly at random from $\mathbf{X}$.
 2. For $k = 2, \dots, K$: compute $D(\mathbf{x}_i)^2 = \min_{j < k} \\|\mathbf{x}_i - \boldsymbol{\mu}_j\\|^2$, then sample $\boldsymbol{\mu}_k = \mathbf{x}_i$ with probability $D(\mathbf{x}_i)^2 / \sum_l D(\mathbf{x}_l)^2$.
 
-**Theoretical guarantee** (Arthur & Vassilvitskii, 2007): the expected K-means++ objective is at most $8(\ln K + 2) \cdot J_{\text{opt}}$ -- a logarithmic-in-$K$ approximation, *without even running Lloyd's iterations afterward*.
+**Theoretical guarantee** (Arthur & Vassilvitskii, 2007): the expected K-means++ objective is at most $8(\ln K + 2) \cdot J_{\text{opt}}$ — a logarithmic-in-$K$ approximation, *without even running Lloyd's iterations afterward*.
 
 ### 2.4 Choosing $K$: Silhouette and Elbow
 
@@ -154,7 +154,7 @@ Build a **dendrogram** from the bottom up:
 2. Merge the two closest clusters.
 3. Repeat until one cluster (or until you have $K$).
 
-The result is a binary tree where the height of each merge encodes the distance at which it happened. To get a flat partition, draw a horizontal line through the tree -- every branch it cuts is one cluster.
+The result is a binary tree where the height of each merge encodes the distance at which it happened. To get a flat partition, draw a horizontal line through the tree — every branch it cuts is one cluster.
 
 ![Ward dendrogram with horizontal cut producing three clusters, plus the resulting scatter plot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig3_dendrogram.png)
 
@@ -188,9 +188,9 @@ The merge rule depends on **linkage**, which is just a choice of how to define d
 DBSCAN ("Density-Based Spatial Clustering of Applications with Noise") replaces the "every point belongs to some cluster" assumption with a density rule. It uses two parameters: neighborhood radius $\epsilon$ and minimum points $\text{MinPts}$.
 
 - **$\epsilon$-neighborhood:** $N_\epsilon(\mathbf{x}) = \{\mathbf{x}' \in \mathbf{X} : \\|\mathbf{x} - \mathbf{x}'\\| \leq \epsilon\}$.
-- **Core point:** $|N_\epsilon(\mathbf{x})| \geq \text{MinPts}$ -- it sits in a dense neighborhood.
+- **Core point:** $|N_\epsilon(\mathbf{x})| \geq \text{MinPts}$ — it sits in a dense neighborhood.
 - **Border point:** not core, but inside some core point's neighborhood.
-- **Noise point:** neither -- DBSCAN explicitly labels it as an outlier.
+- **Noise point:** neither — DBSCAN explicitly labels it as an outlier.
 
 ### 4.2 Density Reachability
 
@@ -200,7 +200,7 @@ DBSCAN grows clusters by chaining core points:
 - **Density-reachable:** there is a chain of directly density-reachable links from $\mathbf{x}$ to $\mathbf{x}'$.
 - **Density-connected:** both points are density-reachable from a common third point.
 
-**A cluster is a maximal set of density-connected points.** This is why DBSCAN handles arbitrary cluster shapes -- no assumption of convexity, no assumption of equal radii, no fixed $K$.
+**A cluster is a maximal set of density-connected points.** This is why DBSCAN handles arbitrary cluster shapes — no assumption of convexity, no assumption of equal radii, no fixed $K$.
 
 ![DBSCAN on noisy moons: core points filled, border points ringed, noise points marked with x; one core point's epsilon-neighborhood is highlighted](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig2_dbscan_density.png)
 
@@ -208,7 +208,7 @@ The figure makes the bookkeeping concrete. The amber circle around the highlight
 
 ### 4.3 Choosing $\epsilon$: the K-Distance Plot
 
-Plot, for every point, the distance to its $k$-th nearest neighbor (with $k = \text{MinPts}$), then sort those values descending. The curve has a knee where it transitions from "dense" to "sparse" distances -- pick $\epsilon$ at that knee.
+Plot, for every point, the distance to its $k$-th nearest neighbor (with $k = \text{MinPts}$), then sort those values descending. The curve has a knee where it transitions from "dense" to "sparse" distances — pick $\epsilon$ at that knee.
 
 ### 4.4 Strengths and Weaknesses
 
@@ -232,7 +232,7 @@ Define the **degree matrix** $D_{ii} = \sum_j W_{ij}$ and the **unnormalized Lap
 $$\mathbf{L} = \mathbf{D} - \mathbf{W}.$$
 The Laplacian's defining property is
 $$\mathbf{f}^T \mathbf{L} \mathbf{f} = \tfrac{1}{2}\sum_{i,j} W_{ij}(f_i - f_j)^2 \geq 0.$$
-That is, $\mathbf{L}$ measures how much a function $\mathbf{f}$ varies across edges. Smooth functions on the graph -- those that change slowly between strongly connected nodes -- have *small* Laplacian quadratic form, and they are exactly the eigenvectors of $\mathbf{L}$ with the smallest eigenvalues.
+That is, $\mathbf{L}$ measures how much a function $\mathbf{f}$ varies across edges. Smooth functions on the graph — those that change slowly between strongly connected nodes — have *small* Laplacian quadratic form, and they are exactly the eigenvectors of $\mathbf{L}$ with the smallest eigenvalues.
 
 The **symmetric normalized Laplacian** rescales by node degree to prevent high-degree nodes from dominating:
 $$\mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{W}\mathbf{D}^{-1/2}.$$
@@ -240,7 +240,7 @@ $$\mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{W}\mathbf{D}^{
 
 Spectral clustering minimizes a graph cut:
 $$\text{NCut}(A, B) = \frac{\text{cut}(A, B)}{\text{vol}(A)} + \frac{\text{cut}(A, B)}{\text{vol}(B)} \tag{3}$$
-where $\text{cut}(A,B) = \sum_{i \in A, j \in B} W_{ij}$ and $\text{vol}(A) = \sum_{i \in A} D_{ii}$. Dividing by volume prevents the trivial "split off one point" solution. Combinatorially this is NP-hard, but a **continuous relaxation** -- letting cluster indicators take real values -- has an exact closed-form solution: it is the eigenvalue problem for $\mathbf{L}_{\text{sym}}$.
+where $\text{cut}(A,B) = \sum_{i \in A, j \in B} W_{ij}$ and $\text{vol}(A) = \sum_{i \in A} D_{ii}$. Dividing by volume prevents the trivial "split off one point" solution. Combinatorially this is NP-hard, but a **continuous relaxation** — letting cluster indicators take real values — has an exact closed-form solution: it is the eigenvalue problem for $\mathbf{L}_{\text{sym}}$.
 
 ### 5.4 The Algorithm
 
@@ -273,7 +273,7 @@ Fit by EM (see [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm)):
 
 K-means is the **limit** of GMM with $\boldsymbol{\Sigma}_k = \sigma^2 \mathbf{I}$ and $\sigma \to 0$: as the variance shrinks, the soft posterior $\gamma_{ik}$ collapses to a one-hot vector, and the M-step becomes the centroid mean. So K-means is GMM with two strong assumptions hard-baked: spherical equal-radius clusters, hard assignments.
 
-GMM relaxes both -- it allows **ellipsoidal covariance** (rotated, stretched clusters) and **soft membership** (a point can be 70% cluster A, 30% cluster B). The price is more parameters and slower convergence.
+GMM relaxes both — it allows **ellipsoidal covariance** (rotated, stretched clusters) and **soft membership** (a point can be 70% cluster A, 30% cluster B). The price is more parameters and slower convergence.
 
 ![GMM versus K-means on anisotropic blobs: K-means imposes straight Voronoi boundaries, GMM recovers tilted Gaussian ellipses](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig6_gmm_vs_kmeans.png)
 
@@ -289,7 +289,7 @@ Different priors, different victories. The grid below runs K-means, DBSCAN, and 
 
 Reading the grid:
 
-- **Blobs (top row).** All three succeed -- this is the easy case. K-means is fastest.
+- **Blobs (top row).** All three succeed — this is the easy case. K-means is fastest.
 - **Moons (middle).** K-means slices each moon in half (its prior is convex, the data isn't). DBSCAN and spectral both follow the curves correctly.
 - **Circles (bottom).** K-means again fails for the same reason. DBSCAN traces the inner and outer rings via density chains; spectral exploits the graph structure.
 
@@ -380,4 +380,4 @@ This is why mini-batch K-means and Nyström-approximated spectral clustering exi
 
 ---
 
-*This is Part 18 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 19 -- Neural Networks and Backpropagation](/en/ml-math-derivations/19-neural-networks-and-backpropagation). Previous: [Part 17 -- Dimensionality Reduction and PCA](/en/ml-math-derivations/17-dimensionality-reduction-and-pca).*
+*This is Part 18 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 19 — Neural Networks and Backpropagation](/en/ml-math-derivations/19-neural-networks-and-backpropagation). Previous: [Part 17 — Dimensionality Reduction and PCA](/en/ml-math-derivations/17-dimensionality-reduction-and-pca).*

@@ -3,7 +3,7 @@ title: "OpenClaw 指南（三）：Agent Loop 六层架构"
 date: 2026-04-10 09:00:00
 tags:
   - openclaw
-  - architecture
+  - Architecture
   - agent-loop
   - gateway
 categories: OpenClaw

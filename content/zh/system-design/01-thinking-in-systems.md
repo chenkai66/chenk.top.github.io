@@ -5,8 +5,7 @@ tags:
   - System Design
   - Estimation
   - Capacity Planning
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "掌握系统设计的基础能力：快速估算（back-of-envelope estimation）、可用性数学推导、SLA 定义，以及一套可复用的系统设计框架。"

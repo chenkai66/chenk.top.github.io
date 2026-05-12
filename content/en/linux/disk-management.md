@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 3
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "End-to-end disk workflow on Linux: identify block devices with lsblk, partition with GPT, format with ext4 / xfs, mount persistently through /etc/fstab, expand capacity online with LVM, and debug the classic 'disk full but du can't find it' incidents."
@@ -32,7 +32,7 @@ LVM, and debug the recurring failure modes — while explaining the
 underlying mechanism so you can reason about what the kernel is
 doing rather than memorising commands.
 
-### The filesystem hierarchy: where things live
+## The filesystem hierarchy: where things live
 
 ![Linux filesystem hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig1_filesystem_hierarchy.png)
 
@@ -60,7 +60,7 @@ runaway log fills `/var`, the root filesystem still has space for
 login and recovery; if `/data` needs to grow, you can extend just that
 volume without touching the OS.
 
-### How disks show up in Linux: block devices and naming
+## How disks show up in Linux: block devices and naming
 
 Every disk attached to the kernel becomes a **block device** under
 `/dev`. The naming convention encodes the bus type:
@@ -89,7 +89,7 @@ prints the block-device tree, the filesystem on each partition, the
 mount point if any, and the UUID. If you remember nothing else,
 remember this one.
 
-#### The naming pitfall: why /dev/sdb can change
+### The naming pitfall: why /dev/sdb can change
 
 Disk names are assigned in the order the kernel enumerates them at
 boot. Add or remove a disk, swap the order in which the SCSI HBA
@@ -103,7 +103,7 @@ identifier instead:
   want to know *which physical disk* you are talking about.
 - `/dev/disk/by-label/...` — human-readable label set at format time.
 
-### Partition tables: MBR vs GPT
+## Partition tables: MBR vs GPT
 
 ![MBR vs GPT partition layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig2_partition_layout.png)
 
@@ -138,7 +138,7 @@ the UEFI spec. It addresses every limitation of MBR:
 that can only boot from MBR, or a dual-boot with a 32-bit Windows
 install). All modern distributions and clouds default to GPT.
 
-#### Tools: fdisk, gdisk, parted
+### Tools: fdisk, gdisk, parted
 
 - `fdisk` — historically MBR-only; modern versions handle GPT too.
 - `gdisk` — GPT-focused, slightly more explicit.
@@ -171,7 +171,7 @@ sector size of modern disks. Misaligned partitions turn one logical
 infuriating performance killer. Modern tools do this by default, but
 it is worth knowing.
 
-### Filesystems: turning a partition into something you can use
+## Filesystems: turning a partition into something you can use
 
 A partition is just a contiguous range of bytes. To store named files
 in it you need to **format** it with a filesystem — install on-disk
@@ -195,7 +195,7 @@ The three filesystems you will actually meet on Linux servers:
   have a chequered history; in production it is most often used for
   the snapshot story.
 
-#### Format
+### Format
 
 ```bash
 sudo mkfs.ext4 -L data /dev/sdb1     # ext4 with the label "data"
@@ -205,7 +205,7 @@ sudo mkfs.xfs  -L data /dev/sdb1     # xfs equivalent
 After formatting, `lsblk -f` will show the filesystem type, label and
 UUID. Take note of the UUID — you will use it in `/etc/fstab`.
 
-#### Mount it once
+### Mount it once
 
 ```bash
 sudo mkdir -p /mnt/data
@@ -218,7 +218,7 @@ on the disk; it just tells the kernel "from now on, paths under
 `/mnt/data` should be served by the filesystem on `/dev/sdb1`." When
 you reboot, the mount is gone.
 
-#### Make it persistent: /etc/fstab
+### Make it persistent: /etc/fstab
 
 ![Mount points and the mount table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig4_mount_table.png)
 
@@ -262,7 +262,7 @@ mount | grep data   # confirm the new mount is active
 
 If `mount -a` errors, fix `fstab` *before* rebooting.
 
-#### Unmounting and "target is busy"
+### Unmounting and "target is busy"
 
 ```bash
 sudo umount /mnt/data
@@ -282,7 +282,7 @@ Kill or restart whatever is holding it. As a last resort,
 from the namespace immediately and is fully released when the last
 file descriptor is closed. Use sparingly; it can mask real bugs.
 
-### LVM: decouple filesystems from physical disks
+## LVM: decouple filesystems from physical disks
 
 ![LVM stack: PV to VG to LV](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig3_lvm_stack.png)
 
@@ -308,7 +308,7 @@ underlying disks. Extending an LV just allocates more extents from
 the VG, which can come from any PV. **You can grow without
 re-partitioning.**
 
-#### Create the stack
+### Create the stack
 
 ```bash
 sudo pvcreate /dev/sdb /dev/sdc                    # claim two disks
@@ -327,7 +327,7 @@ sudo lvs        # logical volumes summary
 sudo pvdisplay  # detailed view, useful when things look wrong
 ```
 
-#### Online expansion: the minimal-downtime playbook
+### Online expansion: the minimal-downtime playbook
 
 You are at 80% on `/data` and the alerts are getting noisier. With
 LVM the expansion is online and takes seconds:
@@ -352,7 +352,7 @@ sudo resize2fs /dev/vg_data/lv_app   # ext4 (online)
 There is no service restart and no data movement. The filesystem
 just sees more blocks underneath it.
 
-#### Shrinking is the hard direction
+### Shrinking is the hard direction
 
 - ext4 **can** be shrunk, but only **offline**: `umount`, `e2fsck
   -f`, `resize2fs <new-size>`, `lvreduce`. Get the order wrong and
@@ -364,7 +364,7 @@ just sees more blocks underneath it.
 The pragmatic rule: **plan to grow, never to shrink.** Start small,
 extend on demand.
 
-#### Snapshots
+### Snapshots
 
 LVM can create a copy-on-write snapshot of an LV. The snapshot is
 itself an LV that initially shares all extents with the original; as
@@ -383,7 +383,7 @@ quick rollback windows. They are **not a backup** — if the snapshot's
 reserved space fills up, the snapshot becomes invalid; if the
 underlying VG dies, both copies die together.
 
-### Inspecting usage: df vs du, and why they disagree
+## Inspecting usage: df vs du, and why they disagree
 
 Two commands that ought to give the same answer routinely don't.
 
@@ -405,7 +405,7 @@ sudo du -sh /var/log              # single total for one path
 There are three classic reasons `df` says "100% full" but `du` can't
 find the missing space.
 
-#### 1. A process still has a deleted file open
+### 1. A process still has a deleted file open
 
 A process opens `/var/log/app.log` and writes to it for weeks.
 Someone deletes the file. The directory entry is gone — `du` doesn't
@@ -421,7 +421,7 @@ The fix is to make the holding process close the file: restart the
 service, send `SIGHUP` if it supports log re-opening, or use
 `logrotate`'s `copytruncate` mode for processes that don't.
 
-#### 2. Mount confusion
+### 2. Mount confusion
 
 You think you are looking at the data volume, but actually nothing
 is mounted there and you are filling up the parent filesystem.
@@ -433,7 +433,7 @@ mount | grep data
 
 If `findmnt` returns nothing, `/data` is just a directory on `/`.
 
-#### 3. ext4 reserved blocks
+### 3. ext4 reserved blocks
 
 ext4 reserves **5%** of the filesystem for `root` by default. The
 intent is that essential daemons can still write even when users
@@ -447,7 +447,7 @@ sudo tune2fs -m 1 /dev/sdb1     # reduce reserved to 1% (carefully)
 
 Only do this on volumes that don't host the OS itself.
 
-#### Inode exhaustion
+### Inode exhaustion
 
 A filesystem can be empty by bytes and full by **inodes** if a
 workload creates millions of tiny files (caches, mail queues, build
@@ -456,7 +456,7 @@ plenty of free space. The only fix is to delete files or reformat
 with a higher inode density (`mkfs.ext4 -N <count>`); xfs allocates
 inodes dynamically and rarely hits this.
 
-### Inodes, hard links, symlinks: why filesystems behave the way they do
+## Inodes, hard links, symlinks: why filesystems behave the way they do
 
 The data structure behind every Unix filesystem is the **inode**. An
 inode stores all the metadata for one file: type, owner, permissions,
@@ -491,7 +491,7 @@ ls -li                 # first column is the inode number
 df -i                  # inode usage per filesystem
 ```
 
-### Special files in /dev
+## Special files in /dev
 
 Not every device node corresponds to hardware. A few are pure kernel
 abstractions you will use constantly:
@@ -511,7 +511,7 @@ dd if=/dev/zero of=/data/test.bin bs=1M count=1024 oflag=direct
 rm /data/test.bin
 ```
 
-### End-to-end checklist: new disk to mounted filesystem
+## End-to-end checklist: new disk to mounted filesystem
 
 The path that turns a freshly attached disk into usable space:
 
@@ -537,9 +537,9 @@ If you can run that checklist confidently, most disk incidents
 become systematic rather than stressful — and the troubleshooting
 sections below become a reference rather than a panic.
 
-### Troubleshooting playbook
+## Troubleshooting playbook
 
-#### "Disk full" but I just deleted gigabytes of logs
+### "Disk full" but I just deleted gigabytes of logs
 
 Almost always a process holding a deleted file open.
 
@@ -549,7 +549,7 @@ sudo lsof | grep '(deleted)' | sort -k7 -h
 
 Restart the holding process or signal it to reopen its log files.
 
-#### "Mount fails after reboot"
+### "Mount fails after reboot"
 
 Common causes, in order of frequency:
 
@@ -564,7 +564,7 @@ Common causes, in order of frequency:
 `sudo mount -a` reproduces the boot-time mount sequence, and `journalctl -b
 | grep -i mount` shows what failed.
 
-#### "Performance suddenly got worse"
+### "Performance suddenly got worse"
 
 Move down the layers, not up:
 
@@ -580,7 +580,7 @@ High `%util` with low queue depth often means a single-threaded
 fsync workload. High `%wa` in `vmstat` with healthy disks usually
 means swapping — check `free -h` and `swapon --show`.
 
-#### "Read-only filesystem" suddenly
+### "Read-only filesystem" suddenly
 
 The kernel remounts a filesystem read-only when it detects
 corruption it cannot safely write through. First, look at the kernel
@@ -597,11 +597,11 @@ itself is damaged, `umount` it and run the offline repair tool —
 `e2fsck -fy /dev/sdb1` for ext4, `xfs_repair /dev/sdb1` for xfs.
 **Take a snapshot or a `dd` image first** if the data matters.
 
-### Command appendix
+## Command appendix
 
 A compact reference you can keep open during an incident.
 
-#### Discover and inspect
+### Discover and inspect
 
 ```bash
 lsblk -f                   # tree of devices + filesystems + mounts + UUIDs
@@ -612,7 +612,7 @@ df -i                      # filesystem usage by inodes
 sudo blkid                 # UUID and TYPE for every formatted partition
 ```
 
-#### Partitioning
+### Partitioning
 
 ```bash
 sudo fdisk -l              # list partition tables on every disk
@@ -622,7 +622,7 @@ sudo parted -s /dev/sdb mkpart primary ext4 1MiB 100%
 sudo partprobe /dev/sdb    # ask the kernel to re-read the partition table
 ```
 
-#### Format and inspect filesystems
+### Format and inspect filesystems
 
 ```bash
 sudo mkfs.ext4 -L data /dev/sdb1
@@ -631,7 +631,7 @@ sudo tune2fs -l /dev/sdb1  | head        # ext4 superblock dump
 sudo xfs_info /data                      # xfs geometry and options
 ```
 
-#### Mount and persist
+### Mount and persist
 
 ```bash
 sudo mount /dev/sdb1 /mnt/data
@@ -640,7 +640,7 @@ sudo umount /mnt/data
 sudo mount -a                            # apply /etc/fstab now
 ```
 
-#### LVM
+### LVM
 
 ```bash
 sudo pvs ; sudo vgs ; sudo lvs           # one-line summaries
@@ -653,7 +653,7 @@ sudo resize2fs /dev/vg_data/lv_app       # ext4 grow
 sudo xfs_growfs /data                    # xfs grow (path, not device)
 ```
 
-#### Diagnose
+### Diagnose
 
 ```bash
 sudo lsof | grep '(deleted)'             # files held open after delete
@@ -664,7 +664,7 @@ dmesg | tail -200                        # recent kernel messages
 sudo smartctl -a /dev/sda                # disk health (SMART)
 ```
 
-#### Two reminders that will save you at 3 a.m.
+### Two reminders that will save you at 3 a.m.
 
 - **Re-run `lsblk -f` before any destructive command.** It takes
   one second and prevents the "I formatted the wrong disk" disaster.

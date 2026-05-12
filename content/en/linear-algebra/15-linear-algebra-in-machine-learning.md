@@ -6,8 +6,7 @@ tags:
   - PCA
   - SVM
   - Machine Learning
-categories:
-  - Linear Algebra
+categories: Linear Algebra
 series: linear-algebra
 lang: en
 mathjax: true
@@ -18,7 +17,7 @@ translationKey: "linear-algebra-15"
 ---
 Ask any senior ML engineer "what math do you actually use day to day?" and the answer is almost always **linear algebra**. Calculus shows up in derivations; probability shows up in modeling; but the runtime of a real ML system is dominated by matrix-vector multiplies, decompositions, and projections. PyTorch's `Linear`, scikit-learn's `PCA`, Spark MLlib's `ALS`, and a Transformer's attention head are all the same primitive in different costumes.
 
-This chapter walks through the algorithms that production ML systems actually run -- PCA, LDA, SVM with kernels, matrix factorization for recommenders, regularized linear regression, neural network layers, attention -- and shows the linear algebra that makes each of them tick. We focus on intuition first, geometry second, formulas third.
+This chapter walks through the algorithms that production ML systems actually run — PCA, LDA, SVM with kernels, matrix factorization for recommenders, regularized linear regression, neural network layers, attention — and shows the linear algebra that makes each of them tick. We focus on intuition first, geometry second, formulas third.
 
 > **What you will learn:**
 > - How raw data (images, text, behavior) becomes vectors, and why feature spaces are geometric
@@ -101,7 +100,7 @@ Caveat: real embeddings are 300- to 4096-dimensional and the analogy property is
 
 ### 2.1 The intuition
 
-Throw a handful of paper clips on a table, then look down. They are clearly elongated along some direction. PCA finds that direction automatically: **the axis of greatest variance**. Why care about variance? Because variance encodes information. A feature direction with near-zero variance is essentially constant -- it cannot help any downstream task.
+Throw a handful of paper clips on a table, then look down. They are clearly elongated along some direction. PCA finds that direction automatically: **the axis of greatest variance**. Why care about variance? Because variance encodes information. A feature direction with near-zero variance is essentially constant — it cannot help any downstream task.
 
 ![PCA: principal axes of a 2D data cloud](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/fig1_pca_projection.png)
 
@@ -158,7 +157,7 @@ A tip from experience: always center, and almost always standardize before PCA w
 
 ### 2.5 Kernel PCA: when the manifold is curved
 
-Linear PCA finds a *flat* subspace. If your data lives on a Swiss-roll-like manifold, no linear projection unfolds it. Kernel PCA conceptually maps each point through a nonlinear feature map $\phi(\mathbf{x})$ and runs PCA in feature space. Crucially, by the kernel trick (next section) you never compute $\phi$ explicitly -- only inner products $k(\mathbf{x}_i, \mathbf{x}_j)$.
+Linear PCA finds a *flat* subspace. If your data lives on a Swiss-roll-like manifold, no linear projection unfolds it. Kernel PCA conceptually maps each point through a nonlinear feature map $\phi(\mathbf{x})$ and runs PCA in feature space. Crucially, by the kernel trick (next section) you never compute $\phi$ explicitly — only inner products $k(\mathbf{x}_i, \mathbf{x}_j)$.
 
 ```python
 from sklearn.decomposition import PCA, KernelPCA
@@ -179,7 +178,7 @@ Kernel PCA has largely been displaced by autoencoders and t-SNE / UMAP for visua
 
 ### 3.1 PCA's blind spot, fixed by labels
 
-PCA is unsupervised: it ignores class labels and chases variance. That can be exactly wrong for classification. Imagine two long, parallel cigar-shaped clouds for classes A and B. PCA picks the direction along the cigars (max variance), which is the direction that **mixes** A and B. The right direction is perpendicular to the cigars -- the one that splits them.
+PCA is unsupervised: it ignores class labels and chases variance. That can be exactly wrong for classification. Imagine two long, parallel cigar-shaped clouds for classes A and B. PCA picks the direction along the cigars (max variance), which is the direction that **mixes** A and B. The right direction is perpendicular to the cigars — the one that splits them.
 
 LDA is supervised. It looks for projections that simultaneously:
 
@@ -233,11 +232,11 @@ The hard cap $C-1$ is often surprising: for binary problems LDA outputs just **o
 
 ### 4.1 Why "maximum margin"?
 
-Many hyperplanes separate two linearly separable classes. SVMs pick the unique one whose margin -- the distance to the nearest training point on either side -- is maximal. The intuition: a wide margin leaves the most room for a new test point to fall on the correct side, so it generalizes better. This intuition is formalized by VC-dimension and PAC-Bayes bounds.
+Many hyperplanes separate two linearly separable classes. SVMs pick the unique one whose margin — the distance to the nearest training point on either side — is maximal. The intuition: a wide margin leaves the most room for a new test point to fall on the correct side, so it generalizes better. This intuition is formalized by VC-dimension and PAC-Bayes bounds.
 
 ![SVM: maximum-margin hyperplane and support vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/fig3_svm_margin.png)
 
-The decision boundary is the central solid line; the dashed amber lines are the margin; the green-circled points sitting **on** the margin are the support vectors. Only those points determine the solution -- delete any non-support-vector and the boundary doesn't move.
+The decision boundary is the central solid line; the dashed amber lines are the margin; the green-circled points sitting **on** the margin are the support vectors. Only those points determine the solution — delete any non-support-vector and the boundary doesn't move.
 
 ### 4.2 The dual is where kernels enter
 
@@ -251,7 +250,7 @@ The dual involves data only through the **inner products** $\mathbf{x}_i^\top\ma
 
 ### 4.3 Lifting to higher dimensions
 
-If the classes form concentric rings in 2D, no straight line separates them. But map every point through $\phi(x_1, x_2) = (x_1, x_2, x_1^2 + x_2^2)$ and the inner ring sits low in the new $z$-coordinate while the outer ring sits high -- a flat plane separates them.
+If the classes form concentric rings in 2D, no straight line separates them. But map every point through $\phi(x_1, x_2) = (x_1, x_2, x_1^2 + x_2^2)$ and the inner ring sits low in the new $z$-coordinate while the outer ring sits high — a flat plane separates them.
 
 ![Kernel trick: lifting non-separable rings into linearly separable 3D](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/fig4_kernel_trick.png)
 
@@ -261,8 +260,8 @@ In general the lifted space can be much higher-dimensional, but with a kernel fu
 
 - **Linear:** $k(\mathbf{x}, \mathbf{y}) = \mathbf{x}^\top\mathbf{y}$
 - **Polynomial of degree $d$:** $k(\mathbf{x}, \mathbf{y}) = (\mathbf{x}^\top\mathbf{y} + c)^d$
-- **RBF (Gaussian):** $k(\mathbf{x}, \mathbf{y}) = \exp(-\gamma\|\mathbf{x} - \mathbf{y}\|^2)$ -- corresponds to an *infinite-dimensional* feature space, yet evaluates in $O(p)$.
-- **Sigmoid:** $k(\mathbf{x}, \mathbf{y}) = \tanh(\kappa \mathbf{x}^\top\mathbf{y} + c)$ -- not always positive definite; used historically for "neural" SVMs.
+- **RBF (Gaussian):** $k(\mathbf{x}, \mathbf{y}) = \exp(-\gamma\|\mathbf{x} - \mathbf{y}\|^2)$ — corresponds to an *infinite-dimensional* feature space, yet evaluates in $O(p)$.
+- **Sigmoid:** $k(\mathbf{x}, \mathbf{y}) = \tanh(\kappa \mathbf{x}^\top\mathbf{y} + c)$ — not always positive definite; used historically for "neural" SVMs.
 
 ### 4.4 The Mercer condition
 
@@ -285,15 +284,15 @@ In modern practice SVMs have been displaced by neural networks for large-scale c
 
 ### 5.1 The Netflix problem
 
-A user-movie rating matrix $\mathbf{R} \in \mathbb{R}^{m\times n}$ is enormous (tens of millions of users, hundreds of thousands of titles) and almost entirely missing -- a typical user rates 0.1% of the catalogue. The goal is to **predict the unobserved cells** so we can recommend the highest-predicted unseen items to each user. The Netflix Prize (2006-2009) established matrix factorization as the workhorse approach, and variants of it still power Spotify, YouTube, and every major e-commerce recommender.
+A user-movie rating matrix $\mathbf{R} \in \mathbb{R}^{m\times n}$ is enormous (tens of millions of users, hundreds of thousands of titles) and almost entirely missing — a typical user rates 0.1% of the catalogue. The goal is to **predict the unobserved cells** so we can recommend the highest-predicted unseen items to each user. The Netflix Prize (2006-2009) established matrix factorization as the workhorse approach, and variants of it still power Spotify, YouTube, and every major e-commerce recommender.
 
 ### 5.2 The low-rank assumption
 
-Suppose user taste and movie content can each be summarized by $k$ latent factors -- say, "amount of action," "amount of romance," "indie-vs-blockbuster," and so on. Then the rating user $u$ would give movie $j$ is well approximated by the inner product of their factor vectors:
+Suppose user taste and movie content can each be summarized by $k$ latent factors — say, "amount of action," "amount of romance," "indie-vs-blockbuster," and so on. Then the rating user $u$ would give movie $j$ is well approximated by the inner product of their factor vectors:
 
 $$\hat{r}_{uj} = \mathbf{p}_u^\top \mathbf{q}_j, \qquad \mathbf{R} \approx \mathbf{P}\mathbf{Q}^\top, \quad \mathbf{P} \in \mathbb{R}^{m\times k}, \mathbf{Q} \in \mathbb{R}^{n\times k}.$$
 
-This is exactly a rank-$k$ approximation of $\mathbf{R}$. With $m=10^7, n=10^5, k=64$, the factor matrices store $\sim 6\times 10^8$ numbers instead of $10^{12}$ -- and they generalize to unseen entries.
+This is exactly a rank-$k$ approximation of $\mathbf{R}$. With $m=10^7, n=10^5, k=64$, the factor matrices store $\sim 6\times 10^8$ numbers instead of $10^{12}$ — and they generalize to unseen entries.
 
 ![Collaborative filtering as low-rank matrix factorization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/fig5_matrix_factorization.png)
 
@@ -305,7 +304,7 @@ We can't run plain SVD because most entries are missing. Instead, optimize over 
 
 $$\min_{\mathbf{P}, \mathbf{Q}} \sum_{(u,j)\in\Omega}\bigl(r_{uj} - \mathbf{p}_u^\top\mathbf{q}_j\bigr)^2 + \lambda\bigl(\|\mathbf{P}\|_F^2 + \|\mathbf{Q}\|_F^2\bigr).$$
 
-This is non-convex jointly in $(\mathbf{P}, \mathbf{Q})$, but **convex when one factor is fixed**. ALS alternates: with $\mathbf{Q}$ fixed, each row of $\mathbf{P}$ is the closed-form solution of an independent ridge regression; then swap. Each pass touches every observation once, and the per-row solves parallelize trivially -- which is why ALS dominates Spark MLlib.
+This is non-convex jointly in $(\mathbf{P}, \mathbf{Q})$, but **convex when one factor is fixed**. ALS alternates: with $\mathbf{Q}$ fixed, each row of $\mathbf{P}$ is the closed-form solution of an independent ridge regression; then swap. Each pass touches every observation once, and the per-row solves parallelize trivially — which is why ALS dominates Spark MLlib.
 
 ```python
 import numpy as np
@@ -383,7 +382,7 @@ If $\mathbf{X}^\top\mathbf{X}$ is ill-conditioned (collinear features, $p > n$, 
 
 $$\hat{\boldsymbol{\beta}}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y}.$$
 
-Adding $\lambda \mathbf{I}$ shifts every eigenvalue of $\mathbf{X}^\top\mathbf{X}$ up by $\lambda$, guaranteeing invertibility and shrinking the condition number from $\sigma_{\max}^2/\sigma_{\min}^2$ to roughly $(\sigma_{\max}^2 + \lambda)/(\sigma_{\min}^2 + \lambda)$. Through the SVD lens, ridge multiplies each singular component of the OLS solution by $\sigma_i^2/(\sigma_i^2 + \lambda)$ -- shrinking small-$\sigma$ (noisy) directions hard while leaving big-$\sigma$ (signal) directions almost unchanged.
+Adding $\lambda \mathbf{I}$ shifts every eigenvalue of $\mathbf{X}^\top\mathbf{X}$ up by $\lambda$, guaranteeing invertibility and shrinking the condition number from $\sigma_{\max}^2/\sigma_{\min}^2$ to roughly $(\sigma_{\max}^2 + \lambda)/(\sigma_{\min}^2 + \lambda)$. Through the SVD lens, ridge multiplies each singular component of the OLS solution by $\sigma_i^2/(\sigma_i^2 + \lambda)$ — shrinking small-$\sigma$ (noisy) directions hard while leaving big-$\sigma$ (signal) directions almost unchanged.
 
 ### 6.4 LASSO: sparsity through $\ell_1$
 
@@ -391,7 +390,7 @@ LASSO replaces the $\ell_2$ penalty with $\ell_1$:
 
 $$\min_{\boldsymbol{\beta}} \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2 + \lambda \|\boldsymbol{\beta}\|_1.$$
 
-The $\ell_1$ ball has corners along the coordinate axes; the OLS contour generically touches the ball at one of those corners, where some coordinates are exactly zero. The solver **selects features automatically** -- a huge usability win for sparse, high-dimensional problems (genetics, NLP, high-frequency trading signals).
+The $\ell_1$ ball has corners along the coordinate axes; the OLS contour generically touches the ball at one of those corners, where some coordinates are exactly zero. The solver **selects features automatically** — a huge usability win for sparse, high-dimensional problems (genetics, NLP, high-frequency trading signals).
 
 ```python
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
@@ -468,7 +467,7 @@ The self-attention block at the heart of every Transformer is
 
 $$\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V},$$
 
-with $\mathbf{Q} = \mathbf{X}\mathbf{W}_Q$, $\mathbf{K} = \mathbf{X}\mathbf{W}_K$, $\mathbf{V} = \mathbf{X}\mathbf{W}_V$ -- three linear projections of the same input. The product $\mathbf{Q}\mathbf{K}^\top$ is an $n\times n$ similarity matrix between every pair of sequence positions; softmax converts it into a stochastic matrix; multiplying by $\mathbf{V}$ takes a weighted average. The $O(n^2)$ memory cost of that similarity matrix is exactly what the FlashAttention and linear-attention literature is fighting.
+with $\mathbf{Q} = \mathbf{X}\mathbf{W}_Q$, $\mathbf{K} = \mathbf{X}\mathbf{W}_K$, $\mathbf{V} = \mathbf{X}\mathbf{W}_V$ — three linear projections of the same input. The product $\mathbf{Q}\mathbf{K}^\top$ is an $n\times n$ similarity matrix between every pair of sequence positions; softmax converts it into a stochastic matrix; multiplying by $\mathbf{V}$ takes a weighted average. The $O(n^2)$ memory cost of that similarity matrix is exactly what the FlashAttention and linear-attention literature is fighting.
 
 ---
 
@@ -488,7 +487,7 @@ Gradient descent's convergence rate depends on the **condition number** $\kappa 
 
 ### 8.3 What Adam actually does
 
-Newton's method preconditions by $\mathbf{H}^{-1}$, transforming the geometry so the Hessian becomes the identity (one step solves a quadratic). Computing $\mathbf{H}^{-1}$ for a billion-parameter network is hopeless, so Adam approximates it by a **diagonal** preconditioner -- a per-parameter running estimate of the squared gradient, $\hat{v}_t$. The update $\theta \leftarrow \theta - \eta \,\hat{m}_t / \sqrt{\hat{v}_t}$ rescales each coordinate so that high-curvature directions take small steps and low-curvature directions take big ones, taming the zigzag at $O(p)$ extra cost.
+Newton's method preconditions by $\mathbf{H}^{-1}$, transforming the geometry so the Hessian becomes the identity (one step solves a quadratic). Computing $\mathbf{H}^{-1}$ for a billion-parameter network is hopeless, so Adam approximates it by a **diagonal** preconditioner — a per-parameter running estimate of the squared gradient, $\hat{v}_t$. The update $\theta \leftarrow \theta - \eta \,\hat{m}_t / \sqrt{\hat{v}_t}$ rescales each coordinate so that high-curvature directions take small steps and low-curvature directions take big ones, taming the zigzag at $O(p)$ extra cost.
 
 ---
 

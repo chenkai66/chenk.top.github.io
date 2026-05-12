@@ -9,8 +9,7 @@ tags:
   - MAML
   - Prototypical Networks
   - Metric Learning
-categories:
-  - 迁移学习
+categories: 迁移学习
 series: transfer-learning
 lang: zh
 mathjax: true

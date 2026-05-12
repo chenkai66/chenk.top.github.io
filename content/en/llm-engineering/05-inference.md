@@ -3,7 +3,7 @@ title: "LLM Engineering (5): Inference Optimization"
 date: 2026-03-31 09:00:00
 tags:
   - LLM
-  - inference
+  - Inference
   - vllm
   - quantization
   - paged-attention

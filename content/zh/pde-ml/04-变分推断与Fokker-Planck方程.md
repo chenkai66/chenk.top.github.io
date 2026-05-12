@@ -7,8 +7,7 @@ tags:
   - Fokker-Planck
   - ELBO
   - Langevin Dynamics
-categories:
-  - PDE与机器学习
+categories: PDE与机器学习
 series: pde-ml
 lang: zh
 mathjax: true

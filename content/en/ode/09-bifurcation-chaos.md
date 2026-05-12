@@ -7,8 +7,7 @@ tags:
   - Lorenz Attractor
   - Butterfly Effect
   - Lyapunov Exponents
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -17,7 +16,7 @@ disableNunjucks: true
 series_order: 9
 translationKey: "ode-9"
 ---
-**In 1961, Edward Lorenz restarted a weather simulation from a rounded-off number -- 0.506 instead of 0.506127.** Within simulated weeks the forecast was unrecognisable. That single accident gave us **the butterfly effect** and turned chaos from a metaphor into a science. The lesson is profound and sober: equations that are *exactly* deterministic can still be *practically* unpredictable.
+**In 1961, Edward Lorenz restarted a weather simulation from a rounded-off number — 0.506 instead of 0.506127.** Within simulated weeks the forecast was unrecognisable. That single accident gave us **the butterfly effect** and turned chaos from a metaphor into a science. The lesson is profound and sober: equations that are *exactly* deterministic can still be *practically* unpredictable.
 
 ![Ordinary Differential Equations (9): Chaos Theory and the Lorenz System — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/illustration_1.png)
 
@@ -44,10 +43,10 @@ translationKey: "ode-9"
 
 A chaotic system satisfies **all four** of:
 
-1. **Deterministic** -- governed by exact equations, no randomness
-2. **Sensitive to initial conditions** -- tiny differences grow exponentially
-3. **Bounded** -- trajectories stay in a finite region
-4. **Aperiodic** -- they never repeat exactly
+1. **Deterministic** — governed by exact equations, no randomness
+2. **Sensitive to initial conditions** — tiny differences grow exponentially
+3. **Bounded** — trajectories stay in a finite region
+4. **Aperiodic** — they never repeat exactly
 
 | Property | Random Process | Chaotic System |
 |---|---|---|
@@ -73,11 +72,11 @@ $$\dot x = \sigma(y - x), \quad \dot y = x(\rho - z) - y, \quad \dot z = xy - \b
 ### The strange attractor
 
 ![Lorenz attractor in 3D, two viewpoints, color-graded by time, showing the two wings.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/fig1_lorenz_attractor.png)
-*Lorenz attractor at $\rho = 28$. Left: classic butterfly view. Right: top-down view, with the two equilibria $C_\pm$ (red X) at the centre of each wing. The trajectory weaves between the wings forever -- never repeating, never escaping, never crossing itself.*
+*Lorenz attractor at $\rho = 28$. Left: classic butterfly view. Right: top-down view, with the two equilibria $C_\pm$ (red X) at the centre of each wing. The trajectory weaves between the wings forever — never repeating, never escaping, never crossing itself.*
 
 Three signatures of "strangeness":
 
-- **Fractal structure.** The Hausdorff dimension is $\approx 2.06$ -- thicker than a surface, thinner than a volume.
+- **Fractal structure.** The Hausdorff dimension is $\approx 2.06$ — thicker than a surface, thinner than a volume.
 - **Aperiodic.** Infinite trajectory length confined to a finite volume.
 - **No self-intersection.** Uniqueness of ODE solutions forbids crossings *at the same time*.
 
@@ -106,12 +105,12 @@ plt.tight_layout(); plt.show()
 
 ![Ordinary Differential Equations (9): Chaos Theory and the Lorenz System — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/illustration_2.png)
 
-Two trajectories that start a *ten-billionth* apart -- $[1, 1, 1]$ and $[1 + 10^{-10}, 1, 1]$ -- diverge exponentially until the difference is system-scale.
+Two trajectories that start a *ten-billionth* apart — $[1, 1, 1]$ and $[1 + 10^{-10}, 1, 1]$ — diverge exponentially until the difference is system-scale.
 
 ![Butterfly effect: two close trajectories on the attractor; their x-components diverge; separation grows exponentially.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/fig2_sensitivity_initial_conditions.png)
-*Top: two trajectories starting $10^{-8}$ apart, traced on the attractor (blue and red). Bottom-left: $x(t)$ for both -- visually identical at first, then unrecognisable. Bottom-right: separation distance grows exponentially $\sim e^{\lambda t}$ until it saturates at the size of the attractor. The slope of the green dashed line **is** the largest Lyapunov exponent.*
+*Top: two trajectories starting $10^{-8}$ apart, traced on the attractor (blue and red). Bottom-left: $x(t)$ for both — visually identical at first, then unrecognisable. Bottom-right: separation distance grows exponentially $\sim e^{\lambda t}$ until it saturates at the size of the attractor. The slope of the green dashed line **is** the largest Lyapunov exponent.*
 
-This is **why weather forecasts fail after about two weeks.** With measurement error $\varepsilon_0$, system size $L$, and Lyapunov exponent $\lambda$,$$T_{\text{predict}} \;\approx\; \frac{1}{\lambda}\,\ln\!\frac{L}{\varepsilon_0}.$$For the atmosphere $\lambda \approx 1/\text{day}$ and $\ln(L/\varepsilon_0) \approx 15$, giving $T \approx 15$ days. No improvement in models can push past this -- only better measurements widen the gap inside the logarithm.
+This is **why weather forecasts fail after about two weeks.** With measurement error $\varepsilon_0$, system size $L$, and Lyapunov exponent $\lambda$,$$T_{\text{predict}} \;\approx\; \frac{1}{\lambda}\,\ln\!\frac{L}{\varepsilon_0}.$$For the atmosphere $\lambda \approx 1/\text{day}$ and $\ln(L/\varepsilon_0) \approx 15$, giving $T \approx 15$ days. No improvement in models can push past this — only better measurements widen the gap inside the logarithm.
 
 ### Ensemble view
 
@@ -134,7 +133,7 @@ The **largest Lyapunov exponent** measures the average exponential rate of separ
 For Lorenz at the canonical parameters, the spectrum is approximately $\{0.91,\ 0,\ -14.57\}$.
 
 ![Largest Lyapunov exponent vs rho for Lorenz; bar chart of full spectrum at rho=28.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/fig5_lyapunov_exponents.png)
-*Left: numerically estimated $\lambda_1(\rho)$ -- crosses zero into chaos around $\rho \approx 25$. Green dots are regular dynamics, red dots are chaotic. Right: full spectrum at $\rho = 28$. The sum is negative ($\sum \lambda_i = -13.66$), confirming volume contraction onto a fractal of Kaplan-Yorke dimension $\approx 2.062$.*
+*Left: numerically estimated $\lambda_1(\rho)$ — crosses zero into chaos around $\rho \approx 25$. Green dots are regular dynamics, red dots are chaotic. Right: full spectrum at $\rho = 28$. The sum is negative ($\sum \lambda_i = -13.66$), confirming volume contraction onto a fractal of Kaplan-Yorke dimension $\approx 2.062$.*
 
 ### Kaplan-Yorke (Lyapunov) dimension
 $$D_{KY} \;=\; 2 + \frac{\lambda_1 + \lambda_2}{|\lambda_3|} \;\approx\; 2 + \frac{0.91}{14.57} \;\approx\; 2.062.$$
@@ -146,8 +145,8 @@ The attractor is *almost* a surface, but with infinitely many fractal layers sta
 
 Setting $\dot x = \dot y = \dot z = 0$ gives three equilibria:
 
-- **Origin** $C_0 = (0,0,0)$ -- stable for $\rho < 1$, saddle for $\rho > 1$
-- **Symmetric pair** $C_\pm = (\pm\sqrt{\beta(\rho-1)},\ \pm\sqrt{\beta(\rho-1)},\ \rho - 1)$ -- born at $\rho = 1$
+- **Origin** $C_0 = (0,0,0)$ — stable for $\rho < 1$, saddle for $\rho > 1$
+- **Symmetric pair** $C_\pm = (\pm\sqrt{\beta(\rho-1)},\ \pm\sqrt{\beta(\rho-1)},\ \rho - 1)$ — born at $\rho = 1$
 
 | $\rho$ | Behaviour |
 |---|---|
@@ -174,7 +173,7 @@ With $a = b = 0.2,\ c = 5.7$ this gives a "folded ribbon" attractor that exposes
 
 ### Double pendulum
 
-Two hinged arms -- one of the simplest mechanical systems with chaos.
+Two hinged arms — one of the simplest mechanical systems with chaos.
 
 ```python
 import numpy as np, matplotlib.pyplot as plt
@@ -197,20 +196,20 @@ sol2 = odeint(double_pendulum, [np.pi/2 + 0.001, 0, np.pi/2, 0], t)
 # ... plot endpoint trajectories and divergence
 ```
 
-The double pendulum is the cleanest *physical* demonstration of chaos -- you can build one on a table.
+The double pendulum is the cleanest *physical* demonstration of chaos — you can build one on a table.
 
 ---
 
 ## Strange Attractors: Stretching and Folding
 
-Chaotic attractors have **fractal structure** -- self-similar, with non-integer dimension. The mechanism is mechanical:
+Chaotic attractors have **fractal structure** — self-similar, with non-integer dimension. The mechanism is mechanical:
 
 - **Stretch:** nearby trajectories pulled apart -> sensitivity.
 - **Fold:** stretched material folded back -> boundedness.
 
-Repeat infinitely and you get an infinitely layered "puff pastry". Think of a baker kneading dough: stretch, fold, stretch, fold -- after $n$ steps, two yeast cells initially $\varepsilon$ apart are $2^n \varepsilon$ apart along the layer direction.
+Repeat infinitely and you get an infinitely layered "puff pastry". Think of a baker kneading dough: stretch, fold, stretch, fold — after $n$ steps, two yeast cells initially $\varepsilon$ apart are $2^n \varepsilon$ apart along the layer direction.
 
-That single mechanism -- **expansion in some directions, contraction in others, with global folding** -- is what every strange attractor in nature does.
+That single mechanism — **expansion in some directions, contraction in others, with global folding** — is what every strange attractor in nature does.
 
 ---
 
@@ -238,7 +237,7 @@ This has been used in laser physics, chemical reactors, and even cardiac pacing.
 
 ### Chaos synchronisation
 
-Two chaotic systems coupled strongly enough can synchronise on a common, still-chaotic trajectory -- the mathematical basis of chaotic secure communications.
+Two chaotic systems coupled strongly enough can synchronise on a common, still-chaotic trajectory — the mathematical basis of chaotic secure communications.
 
 ---
 
@@ -278,7 +277,7 @@ This does not break causality. It limits **predictability**. The distinction mat
 **Computational.**
 
 4. Verify the origin of Lorenz is stable for $\rho < 1$ and a saddle for $\rho > 1$.
-5. Prove $\nabla\cdot\mathbf{f} = -(\sigma + 1 + \beta)$ -- the Lorenz flow contracts phase-space volume at a constant rate.
+5. Prove $\nabla\cdot\mathbf{f} = -(\sigma + 1 + \beta)$ — the Lorenz flow contracts phase-space volume at a constant rate.
 6. For the Cantor set, prove the box-counting dimension is $\ln 2/\ln 3$.
 
 **Programming.**

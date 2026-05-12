@@ -17,11 +17,11 @@ disableNunjucks: true
 series_order: 11
 translationKey: "linear-algebra-11"
 ---
-![Essence of Linear Algebra (11): Matrix Calculus and Optimization -- The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)
+![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)
 
 ## From Shower Knobs to Neural Networks
 
-Every morning you train a tiny neural network. The water comes out too cold, so you nudge the knob -- a *parameter* -- in some direction. A second later you observe a new temperature -- the *error signal* -- and nudge again. After three or four iterations you have converged.
+Every morning you train a tiny neural network. The water comes out too cold, so you nudge the knob — a *parameter* — in some direction. A second later you observe a new temperature — the *error signal* — and nudge again. After three or four iterations you have converged.
 
 Modern deep learning is the same loop, scaled up by seven orders of magnitude. The "knob" is a matrix$W$with hundreds of millions of entries. The "error" is a scalar loss$L$. And the question is the same: **for each parameter, in which direction should I push, and by how much?** The answer lives in a single object: the gradient$\partial L / \partial W$.
 
@@ -29,14 +29,14 @@ This chapter builds that object from the ground up, and then puts it to work.
 
 ### What You Will Learn
 
-- **Gradient** -- the derivative of a scalar with respect to a vector, and why it points uphill
-- **Directional derivative** -- the slope along any direction, and why steepest descent is "downhill"
-- **Jacobian** -- the derivative of a vector function, the chain rule's main building block
-- **Hessian** -- the matrix of second derivatives, which classifies critical points
-- **Matrix derivatives** -- the trace and determinant identities you actually need
-- **Chain rule and backpropagation** -- one rule, applied recursively over a computation graph
-- **Convex optimization** -- the property that turns "search" into "follow the slope"
-- **Optimizers** -- gradient descent, Newton, SGD, momentum, Adam
+- **Gradient** — the derivative of a scalar with respect to a vector, and why it points uphill
+- **Directional derivative** — the slope along any direction, and why steepest descent is "downhill"
+- **Jacobian** — the derivative of a vector function, the chain rule's main building block
+- **Hessian** — the matrix of second derivatives, which classifies critical points
+- **Matrix derivatives** — the trace and determinant identities you actually need
+- **Chain rule and backpropagation** — one rule, applied recursively over a computation graph
+- **Convex optimization** — the property that turns "search" into "follow the slope"
+- **Optimizers** — gradient descent, Newton, SGD, momentum, Adam
 
 ### Prerequisites
 
@@ -70,7 +70,7 @@ $$\nabla f(\vec{x}) = \begin{pmatrix} \partial f/\partial x_1 \\ \vdots \\ \part
 
 The gradient is more than a stack of partial derivatives; three geometric facts explain why this particular packaging is the right one.
 
-**1. Direction.** The gradient points in the direction in which$f$increases fastest. Of all unit directions you could walk from$\vec{x}$, the one parallel to$\nabla f$gives you the steepest ascent. Walk against it for the steepest descent -- that single sentence is the entire justification for gradient descent.
+**1. Direction.** The gradient points in the direction in which$f$increases fastest. Of all unit directions you could walk from$\vec{x}$, the one parallel to$\nabla f$gives you the steepest ascent. Walk against it for the steepest descent — that single sentence is the entire justification for gradient descent.
 
 **2. Magnitude.**$\|\nabla f\|$is the rate of increase along that steepest direction. A large gradient means the surface is steep here; a small step makes a big change in$f$. A near-zero gradient means you're on a plateau (or at a critical point).
 
@@ -84,7 +84,7 @@ These three formulas appear constantly. Memorize them.
 
 **Linear function.**$f(\vec{x}) = \vec{a}^T\vec{x}$. Then$\nabla f = \vec{a}$.
 
-The graph is a hyperplane and$\vec{a}$is its normal direction -- the unique direction of fastest increase.
+The graph is a hyperplane and$\vec{a}$is its normal direction — the unique direction of fastest increase.
 
 **Squared norm.**$f(\vec{x}) = \vec{x}^T\vec{x} = \|\vec{x}\|^2$. Then$\nabla f = 2\vec{x}$.
 
@@ -114,7 +114,7 @@ That last line is the theoretical foundation of **gradient descent**: to decreas
 
 ## The Jacobian: Vector In, Vector Out
 
-When the output is also a vector, one gradient is no longer enough -- you need a matrix of partial derivatives, one per (input, output) pair.
+When the output is also a vector, one gradient is no longer enough — you need a matrix of partial derivatives, one per (input, output) pair.
 
 ### A Cooking Analogy
 
@@ -148,7 +148,7 @@ Its determinant is$\det(J) = r$-- the Jacobian factor that turns$dx\,dy$into$r\,
 
 ## The Hessian: Curvature, and Critical Point Classification
 
-The gradient tells you the slope; the Hessian tells you how the slope changes -- the **curvature**.
+The gradient tells you the slope; the Hessian tells you how the slope changes — the **curvature**.
 
 ### Definition
 
@@ -156,7 +156,7 @@ For$f: \mathbb{R}^n \to \mathbb{R}$, the Hessian is the$n \times n$matrix of sec
 
 $$H = \begin{pmatrix} \partial^2 f/\partial x_1^2 & \cdots & \partial^2 f/\partial x_1 \partial x_n \\ \vdots & \ddots & \vdots \\ \partial^2 f/\partial x_n \partial x_1 & \cdots & \partial^2 f/\partial x_n^2 \end{pmatrix}$$
 
-If second partials are continuous,$H$is **symmetric** (Schwarz/Clairaut). That symmetry is what makes the rest of the chapter work -- it lets us talk about eigenvalues of$H$.
+If second partials are continuous,$H$is **symmetric** (Schwarz/Clairaut). That symmetry is what makes the rest of the chapter work — it lets us talk about eigenvalues of$H$.
 
 ### Second-Order Taylor Expansion
 
@@ -195,7 +195,7 @@ For$f: \mathbb{R}^{m \times n} \to \mathbb{R}$:
 
 $$\frac{\partial f}{\partial X} = \begin{pmatrix} \partial f/\partial x_{11} & \cdots & \partial f/\partial x_{1n}\\ \vdots & \ddots & \vdots\\ \partial f/\partial x_{m1} & \cdots & \partial f/\partial x_{mn} \end{pmatrix}$$
 
-The result has the **same shape** as$X$. This shape rule is the single most useful sanity check in the whole chapter -- if your derivation produces an answer with the wrong shape, you've made an algebra mistake.
+The result has the **same shape** as$X$. This shape rule is the single most useful sanity check in the whole chapter — if your derivation produces an answer with the wrong shape, you've made an algebra mistake.
 
 ### Identities You Will Actually Use
 
@@ -205,7 +205,7 @@ The result has the **same shape** as$X$. This shape rule is the single most usef
 |$\text{tr}(X^TAX)$|$(A + A^T)X$| Quadratic;$2AX$if$A$is symmetric |
 |$\text{tr}(AXB)$|$A^TB^T$| The "sandwich" |
 |$\det(X)$|$\det(X)\, X^{-T}$| Determinant |
-|$\ln\det(X)$|$X^{-T}$| Log-determinant -- ubiquitous in MLE |
+|$\ln\det(X)$|$X^{-T}$| Log-determinant — ubiquitous in MLE |
 |$X^{-1}$(differential) |$\partial(X^{-1}) = -X^{-1}(\partial X)X^{-1}$| Inverse |
 
 The trace appears constantly because *any* scalar function of a matrix can be written as a trace, which then plays well with the cyclic identity$\text{tr}(ABC) = \text{tr}(BCA) = \text{tr}(CAB)$. The full reference is Petersen & Pedersen's *Matrix Cookbook*.
@@ -216,7 +216,7 @@ The trace appears constantly because *any* scalar function of a matrix can be wr
 
 ## The Chain Rule and Backpropagation
 
-![Essence of Linear Algebra (11): Matrix Calculus and Optimization -- The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_2.png)
+![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_2.png)
 
 ### The Chain Rule, in Matrix Form
 
@@ -232,14 +232,14 @@ $$J_{\text{total}} = J_k\,J_{k-1}\,\cdots\,J_1$$
 
 ### Backpropagation: the Chain Rule Done Efficiently
 
-Any composite expression -- including a 1000-layer neural network -- breaks into elementary operations on a directed acyclic graph called a **computation graph**. Backpropagation is the chain rule walked *backwards* over this graph.
+Any composite expression — including a 1000-layer neural network — breaks into elementary operations on a directed acyclic graph called a **computation graph**. Backpropagation is the chain rule walked *backwards* over this graph.
 
 **Why backwards?** Suppose you have$n$inputs and$1$output (the usual setup: millions of parameters, one scalar loss).
 
 - *Forward-mode* (a.k.a. dual numbers) computes the Jacobian-vector product$J\vec{v}$. To get all gradients you need$n$such passes.
 - *Reverse-mode* (backpropagation) computes the vector-Jacobian product$\vec{v}^TJ$. **A single pass** yields gradients with respect to all$n$inputs simultaneously.
 
-For deep learning, "$n$" is "every parameter in the model" -- so reverse-mode is roughly a million times cheaper than forward-mode. That ratio is the only reason deep learning is computationally tractable at all.
+For deep learning, "$n$" is "every parameter in the model" — so reverse-mode is roughly a million times cheaper than forward-mode. That ratio is the only reason deep learning is computationally tractable at all.
 
 ![Forward pass computes values; backward pass propagates gradients along the same graph](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/fig7_backprop_chain_rule.png)
 
@@ -262,7 +262,7 @@ Every modern framework (PyTorch, JAX, TensorFlow) executes exactly this recipe, 
 
 ### Activation Functions and Their Derivatives
 
-**ReLU.**$\sigma(z) = \max(0, z)$, so$\sigma'(z) = 1$for$z > 0$and$0$otherwise. Cheap, no saturation in the positive region. Downside: zero gradient on the negative side -- the dreaded "dying ReLU".
+**ReLU.**$\sigma(z) = \max(0, z)$, so$\sigma'(z) = 1$for$z > 0$and$0$otherwise. Cheap, no saturation in the positive region. Downside: zero gradient on the negative side — the dreaded "dying ReLU".
 
 **Sigmoid.**$\sigma(z) = 1/(1+e^{-z})$, with the elegant identity$\sigma'(z) = \sigma(z)(1 - \sigma(z))$. Output in$(0,1)$, interpretable as probability. Downside: saturates at both ends, so gradients vanish in deep networks.
 
@@ -270,7 +270,7 @@ Every modern framework (PyTorch, JAX, TensorFlow) executes exactly this recipe, 
 
 $$\frac{\partial L}{\partial \vec{z}} = \hat{\vec{y}} - \vec{y}$$
 
-"Predicted probability minus true label." That cleanliness is exactly why softmax + cross-entropy is the default for classification -- the gradient is local, cheap, and well-scaled.
+"Predicted probability minus true label." That cleanliness is exactly why softmax + cross-entropy is the default for classification — the gradient is local, cheap, and well-scaled.
 
 ---
 
@@ -286,7 +286,7 @@ The single fact that makes convexity precious:
 
 > **Theorem.** Every local minimum of a convex function is a global minimum.
 
-For convex problems, "the optimizer converged to a local minimum" is the *whole* story -- there is no worry about getting stuck in a bad basin.
+For convex problems, "the optimizer converged to a local minimum" is the *whole* story — there is no worry about getting stuck in a bad basin.
 
 ### Three Equivalent Characterizations (for$C^2$functions)
 
@@ -300,7 +300,7 @@ For *strict* convexity, replace$\succeq$with$\succ$.
 
 | Function | Why it's convex |
 |---|---|
-|$\vec{a}^T\vec{x} + b$| Affine -- both convex and concave |
+|$\vec{a}^T\vec{x} + b$| Affine — both convex and concave |
 |$\|\vec{x}\|_p$($p \geq 1$) | Triangle inequality |
 |$\vec{x}^TA\vec{x}$with$A \succeq 0$| Hessian is$2A \succeq 0$|
 |$e^x$,$x \log x$| Second derivative$> 0$|
@@ -317,7 +317,7 @@ For the constrained problem$\min f(\vec{x})$subject to$g_i(\vec{x}) \leq 0$and$h
 3. **Complementary slackness:**$\mu_i\, g_i(\vec{x}^*) = 0$(an inequality constraint is either tight or its multiplier is zero).
 4. **Stationarity:**$\nabla f + \sum_i \mu_i \nabla g_i + \sum_j \nu_j \nabla h_j = \vec{0}$.
 
-KKT is the workhorse of constrained optimization -- and the Lagrangian framework that produces it is also how SVMs, max-entropy models, and PCA are derived.
+KKT is the workhorse of constrained optimization — and the Lagrangian framework that produces it is also how SVMs, max-entropy models, and PCA are derived.
 
 ---
 
@@ -339,7 +339,7 @@ $$\vec{x}_{k+1} = \vec{x}_k - H^{-1}\nabla f(\vec{x}_k)$$
 
 Approximate$f$by its second-order Taylor expansion and jump straight to the minimum of that quadratic. The result is **quadratic convergence**: the number of correct digits roughly doubles per step.
 
-The catch: forming and inverting$H$costs$O(n^3)$, prohibitive when$n$is in the millions. And on non-convex losses, Newton's method may steer toward a saddle or even a maximum -- it goes wherever$\nabla f$is zero.
+The catch: forming and inverting$H$costs$O(n^3)$, prohibitive when$n$is in the millions. And on non-convex losses, Newton's method may steer toward a saddle or even a maximum — it goes wherever$\nabla f$is zero.
 
 ![Newton's method versus gradient descent on a quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/fig4_newton_vs_gd.png)
 
@@ -349,7 +349,7 @@ When the loss is a sum over$N$samples,$L = \tfrac{1}{N}\sum_i \ell_i$, an exact 
 
 $$\vec{x}_{k+1} = \vec{x}_k - \alpha \nabla \ell_{i_k}$$
 
-Massively cheaper per step. The injected noise also helps escape narrow saddles and shallow basins -- a feature, not a bug, for non-convex deep learning.
+Massively cheaper per step. The injected noise also helps escape narrow saddles and shallow basins — a feature, not a bug, for non-convex deep learning.
 
 ### Momentum
 
@@ -391,7 +391,7 @@ Add an$\ell_2$regularizer:$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2 + \lambda\|\vec
 
 $$\vec{w}^* = (X^TX + \lambda I)^{-1}X^T\vec{y}$$
 
-The$\lambda I$term shifts every eigenvalue of$X^TX$by$\lambda$, which guarantees invertibility and tames the condition number -- a direct application of Chapter 10's intuition.
+The$\lambda I$term shifts every eigenvalue of$X^TX$by$\lambda$, which guarantees invertibility and tames the condition number — a direct application of Chapter 10's intuition.
 
 ### PCA as Optimization
 
@@ -399,7 +399,7 @@ PCA can be stated as the constrained problem
 
 $$\max_{\|\vec{w}\|=1} \vec{w}^T\Sigma\vec{w}$$
 
-The Lagrangian is$\vec{w}^T\Sigma\vec{w} - \lambda(\vec{w}^T\vec{w} - 1)$, and setting its gradient to zero gives$\Sigma\vec{w} = \lambda\vec{w}$. PCA is an eigenvalue problem -- *because* of the KKT stationarity condition. The optimizer is the leading eigenvector of$\Sigma$.
+The Lagrangian is$\vec{w}^T\Sigma\vec{w} - \lambda(\vec{w}^T\vec{w} - 1)$, and setting its gradient to zero gives$\Sigma\vec{w} = \lambda\vec{w}$. PCA is an eigenvalue problem — *because* of the KKT stationarity condition. The optimizer is the leading eigenvector of$\Sigma$.
 
 ---
 
@@ -555,7 +555,7 @@ The single most important takeaway: **for a scalar loss with a million parameter
 ## References
 
 - Petersen, K. B. & Pedersen, M. S. *The Matrix Cookbook*. (The reference for matrix derivative identities.)
-- Goodfellow, I., Bengio, Y. & Courville, A. (2016). *Deep Learning*, Chapter 6 -- backpropagation in detail.
-- Boyd, S. & Vandenberghe, L. (2004). *Convex Optimization* -- the standard text on convexity, Lagrangians, and KKT.
-- Nocedal, J. & Wright, S. (2006). *Numerical Optimization* -- the canonical reference for Newton, quasi-Newton, and trust-region methods.
+- Goodfellow, I., Bengio, Y. & Courville, A. (2016). *Deep Learning*, Chapter 6 — backpropagation in detail.
+- Boyd, S. & Vandenberghe, L. (2004). *Convex Optimization* — the standard text on convexity, Lagrangians, and KKT.
+- Nocedal, J. & Wright, S. (2006). *Numerical Optimization* — the canonical reference for Newton, quasi-Newton, and trust-region methods.
 - Kingma, D. P. & Ba, J. (2015). "Adam: A Method for Stochastic Optimization." *ICLR*.

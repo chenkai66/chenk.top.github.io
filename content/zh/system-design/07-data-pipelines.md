@@ -6,8 +6,7 @@ tags:
   - Data Engineering
   - Stream Processing
   - Apache Kafka
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "一份实用的数据管道架构指南——涵盖ETL vs ELT、Spark批处理、Flink流处理、Lambda vs Kappa架构、变更数据捕获（CDC），以及端到端实时分析管道设计。"

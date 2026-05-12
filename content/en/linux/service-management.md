@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 6
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "A working model of systemd: PID 1, units and targets, the service lifecycle, writing your own unit files, journalctl filtering, timers as a cron replacement, and a disciplined troubleshooting workflow."

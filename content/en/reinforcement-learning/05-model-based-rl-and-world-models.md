@@ -10,8 +10,7 @@ tags:
   - Dreamer
   - MuZero
   - PlaNet
-categories:
-  - Reinforcement Learning
+categories: Reinforcement Learning
 series: reinforcement-learning
 lang: en
 mathjax: true
@@ -20,11 +19,11 @@ disableNunjucks: true
 series_order: 5
 translationKey: "reinforcement-learning-5"
 ---
-Every algorithm we have covered so far -- DQN, REINFORCE, A2C, PPO, SAC -- is **model-free**: the agent treats the environment as a black box, throws actions at it, and updates its policy from the rewards that come back. The approach works, but it is profligate. DQN needs roughly **10 million frames** to master Atari Pong. OpenAI Five trained on Dota 2 for the equivalent of **~45,000 years** of self-play. AlphaStar consumed years of StarCraft for a single agent.
+Every algorithm we have covered so far — DQN, REINFORCE, A2C, PPO, SAC — is **model-free**: the agent treats the environment as a black box, throws actions at it, and updates its policy from the rewards that come back. The approach works, but it is profligate. DQN needs roughly **10 million frames** to master Atari Pong. OpenAI Five trained on Dota 2 for the equivalent of **~45,000 years** of self-play. AlphaStar consumed years of StarCraft for a single agent.
 
 Humans clearly do not learn this way. A chess player imagines positions a few moves deep and prunes obvious blunders; a child learns "cliffs are bad" once, by inference, not by falling. Both rely on an internal **model** of how the world responds to actions, and they spend most of their cognitive budget *in that model*, not in the world.
 
-**Model-Based RL (MBRL)** formalises this idea: learn an approximate dynamics model$\hat{P}(s'\mid s, a)$and reward model$\hat{R}(s, a)$, then use them as a cheap simulator for planning, policy improvement, or value estimation. The payoff, on tasks where it works, is a **10-100x reduction in real-environment samples** -- the difference between a robot that needs three months of physical interaction and one that needs an afternoon.
+**Model-Based RL (MBRL)** formalises this idea: learn an approximate dynamics model$\hat{P}(s'\mid s, a)$and reward model$\hat{R}(s, a)$, then use them as a cheap simulator for planning, policy improvement, or value estimation. The payoff, on tasks where it works, is a **10-100x reduction in real-environment samples** — the difference between a robot that needs three months of physical interaction and one that needs an afternoon.
 
 This article traces the modern lineage:  Dyna (1990) -> MBPO (2019) -> World Models (2018) -> Dreamer (2020-23) -> MuZero (2020). Each method rests on a single sharp idea, and the seven figures in this post visualise those ideas one at a time.
 
@@ -55,7 +54,7 @@ In model-free RL the only loop is *act -> observe -> learn*. In model-based RL w
 |                    | Model-Free                              | Model-Based                                          |
 | ------------------ | --------------------------------------- | ---------------------------------------------------- |
 | **What is learnt** | A policy / value function only          | A model $\hat{P},\hat{R}$ **and** a policy / value   |
-| **Sample cost**    | High -- each gradient step uses a real interaction | Low -- one real step yields many imagined updates  |
+| **Sample cost**    | High — each gradient step uses a real interaction | Low — one real step yields many imagined updates  |
 | **Compute cost**   | Lower per step                          | Higher (model fitting + planning)                    |
 | **Asymptote**      | Limited only by exploration             | Limited by **model bias**                            |
 | **Transfer**       | Tied to the trained reward              | Same model can be reused for new tasks               |
@@ -96,11 +95,11 @@ Poor fit:
 
 Sutton's **Dyna** (1990) is the first system to articulate the model-based loop in its purest form. Each real transition is consumed three times:
 
-1. **Direct learning** -- update Q with the real$(s,a,r,s')$,
-2. **Model learning** -- store the transition in a tabular model$M(s,a)\to(r,s')$,
-3. **Planning** -- sample$n$previously-seen$(s,a)$pairs, query the model, and apply$n$additional Q-updates from these *imagined* transitions.
+1. **Direct learning** — update Q with the real$(s,a,r,s')$,
+2. **Model learning** — store the transition in a tabular model$M(s,a)\to(r,s')$,
+3. **Planning** — sample$n$previously-seen$(s,a)$pairs, query the model, and apply$n$additional Q-updates from these *imagined* transitions.
 
-The convergence plot on the right shows the consequence on a deterministic GridWorld: increasing$n$from 0 (vanilla Q-Learning) to 50 collapses convergence by an order of magnitude in episodes -- because every real step now triggers 51 Bellman updates instead of 1.
+The convergence plot on the right shows the consequence on a deterministic GridWorld: increasing$n$from 0 (vanilla Q-Learning) to 50 collapses convergence by an order of magnitude in episodes — because every real step now triggers 51 Bellman updates instead of 1.
 
 ### Reference Implementation
 
@@ -144,7 +143,7 @@ class DynaQ:
 
 ### What Dyna Teaches Us, and Where It Breaks
 
-Dyna isolates the core insight: **a learned model lets you spend compute instead of samples**. The trade-off it surfaces -- and that every modern method inherits -- is that planning on a wrong model injects bias straight into the value function. In tabular deterministic worlds this is invisible; with a neural-network model and a long horizon, errors compound exponentially. The rest of this article is essentially a sequence of clever answers to that one problem.
+Dyna isolates the core insight: **a learned model lets you spend compute instead of samples**. The trade-off it surfaces — and that every modern method inherits — is that planning on a wrong model injects bias straight into the value function. In tabular deterministic worlds this is invisible; with a neural-network model and a long horizon, errors compound exponentially. The rest of this article is essentially a sequence of clever answers to that one problem.
 
 ---
 
@@ -216,7 +215,7 @@ The loop:
 3. **Execute only the first action** of the best sequence.
 4. Observe the real next state and re-plan.
 
-The figure shows 12 candidate trajectories (grey), the best one (green), and the single highlighted action that actually gets sent to the actuator. Crucially, executing one step at a time means the model only has to be locally accurate -- compounding error never gets a chance to wreck a long open-loop plan.
+The figure shows 12 candidate trajectories (grey), the best one (green), and the single highlighted action that actually gets sent to the actuator. Crucially, executing one step at a time means the model only has to be locally accurate — compounding error never gets a chance to wreck a long open-loop plan.
 
 MPC is the dominant choice when **the cost of a mistake is high** (real robots, surgery, autonomous driving). It is also the bridge between learned models and the rest of the planning literature: PETS, PlaNet, TD-MPC, and Dreamer's policy improvement loop all reduce to "MPC inside a learned model" in some form.
 
@@ -229,17 +228,17 @@ MPC is the dominant choice when **the cost of a mistake is high** (real robots, 
 
 ![World Model V/M/C architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig2_world_model_vmc.png)
 
-MBPO works because MuJoCo states are 11-23 dimensional. Predicting the next$84\times 84\times 3$Atari frame, by contrast, is hopelessly hard -- and most of those pixels (sky, scoreboard) are irrelevant to control. **World Models** (Ha & Schmidhuber, 2018) propose a different shape:
+MBPO works because MuJoCo states are 11-23 dimensional. Predicting the next$84\times 84\times 3$Atari frame, by contrast, is hopelessly hard — and most of those pixels (sky, scoreboard) are irrelevant to control. **World Models** (Ha & Schmidhuber, 2018) propose a different shape:
 
 > Compress observations into a small latent code, then learn dynamics *in that latent space*.
 
 Three components, drawn left-to-right above:
 
-- **V (Vision)** -- a Variational Autoencoder maps each frame$o_t$to a ~32-dimensional latent$z_t$. The reconstruction loss forces$z_t$to retain enough information about the scene.
-- **M (Memory)** -- a Mixture-Density-Network RNN models$P(z_{t+1}\mid z_t, a_t, h_t)$, where$h_t$is the recurrent state. M *is* the world model.
-- **C (Controller)** -- a deliberately tiny linear policy maps$(z_t, h_t)\to a_t$. On CarRacing it has just **867 parameters** versus DQN's 1.7M.
+- **V (Vision)** — a Variational Autoencoder maps each frame$o_t$to a ~32-dimensional latent$z_t$. The reconstruction loss forces$z_t$to retain enough information about the scene.
+- **M (Memory)** — a Mixture-Density-Network RNN models$P(z_{t+1}\mid z_t, a_t, h_t)$, where$h_t$is the recurrent state. M *is* the world model.
+- **C (Controller)** — a deliberately tiny linear policy maps$(z_t, h_t)\to a_t$. On CarRacing it has just **867 parameters** versus DQN's 1.7M.
 
-### Why It Works -- and Why It Was Surprising
+### Why It Works — and Why It Was Surprising
 
 The controller can be trained **entirely in dreams**: roll out M from a sampled$z$, get pseudo-trajectories, evolve C with CMA-ES, and never touch the real environment until evaluation. The 867-parameter controller scores near-human on CarRacing-v0. The deeper lesson, which all of Dreamer / DreamerV3 / TD-MPC inherit, is that *learning a useful representation is most of the problem*: once V and M are in place, control is almost trivial.
 
@@ -255,10 +254,10 @@ World Models trains V, M, C in three separate phases, which means the VAE optimi
 
 The figure shows three time steps. At each step the latent state has two parts:
 
--$h_t$**(deterministic)** -- a GRU hidden state carrying long-range memory:$h_t = \mathrm{GRU}(h_{t-1}, z_{t-1}, a_{t-1})$.
--$z_t$**(stochastic)** -- a small categorical or Gaussian latent sampled from a prior$p(z_t\mid h_t)$at imagination time, or a posterior$q(z_t\mid h_t, o_t)$at training time.
+-$h_t$**(deterministic)** — a GRU hidden state carrying long-range memory:$h_t = \mathrm{GRU}(h_{t-1}, z_{t-1}, a_{t-1})$.
+-$z_t$**(stochastic)** — a small categorical or Gaussian latent sampled from a prior$p(z_t\mid h_t)$at imagination time, or a posterior$q(z_t\mid h_t, o_t)$at training time.
 
-This separation matters. The deterministic$h$ remembers, while the stochastic$z$ models genuinely uncertain dynamics (a Pong ball going off-screen, a Minecraft chest hiding random loot). Heads on$(h_t, z_t)$predict reward, value, and (during training) the observation -- so any decoder loss flows back through the dynamics and into the representation.
+This separation matters. The deterministic$h$ remembers, while the stochastic$z$ models genuinely uncertain dynamics (a Pong ball going off-screen, a Minecraft chest hiding random loot). Heads on$(h_t, z_t)$predict reward, value, and (during training) the observation — so any decoder loss flows back through the dynamics and into the representation.
 
 ### Behaviour Learning Happens Entirely in Imagination
 
@@ -268,7 +267,7 @@ Once the world model is fitted on real data, Dreamer trains the actor and critic
 2. Rolling the **prior** dynamics 15 steps forward, sampling actions from the actor.
 3. Bootstrapping a value target through the imagined trajectory and updating the actor by reparameterised policy gradient.
 
-No real interaction during this step. A single batch on the real buffer fuels thousands of imagined gradient updates -- the same Dyna idea, but now in a learned latent space.
+No real interaction during this step. A single batch on the real buffer fuels thousands of imagined gradient updates — the same Dyna idea, but now in a learned latent space.
 
 ### Results
 
@@ -282,7 +281,7 @@ DreamerV3's claim to fame is robustness: the same model-based agent, with the sa
 
 ## 7. MuZero: Plan Without Predicting Pixels
 
-The thread running through World Models and Dreamer is "predict observations". MuZero (Schrittwieser et al., *Nature* 2020) noticed that for **planning**, you do not actually need observations -- you need value, policy, and reward. Everything else is a means to that end.
+The thread running through World Models and Dreamer is "predict observations". MuZero (Schrittwieser et al., *Nature* 2020) noticed that for **planning**, you do not actually need observations — you need value, policy, and reward. Everything else is a means to that end.
 
 MuZero learns three small networks operating on an abstract hidden state:
 
@@ -298,13 +297,13 @@ For a trajectory unrolled $K$ steps with MCTS targets$z^v, z^p$and observed rewa
 
 $$\mathcal{L} = \sum_{k=0}^{K} \Big[ \ell^p(p_k, z_k^p) + \ell^v(v_k, z_k^v) + \ell^r(r_k, z_k^r)\Big].$$
 
-Crucially, no reconstruction term ever appears. The model is *implicit* -- it is whatever makes the MCTS targets self-consistent.
+Crucially, no reconstruction term ever appears. The model is *implicit* — it is whatever makes the MCTS targets self-consistent.
 
 ### Results
 
 A single algorithm with a single hyperparameter set achieves:
 
-- **Go, chess, shogi:** matches or exceeds AlphaZero -- *without being given the game rules*.
+- **Go, chess, shogi:** matches or exceeds AlphaZero — *without being given the game rules*.
 - **Atari 57:** new SOTA over R2D2.
 - **MuZero Reanalyse / Sampled MuZero / EfficientZero (2021):** human-level Atari in 2 hours of game time.
 
@@ -316,9 +315,9 @@ MuZero is the cleanest demonstration of a deep principle: **your model only has 
 
 ![Sample efficiency on MuJoCo HalfCheetah and steps-to-target bar chart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig6_sample_efficiency.png)
 
-Stacking the methods on one plot makes the central claim concrete. On HalfCheetah, MBPO and Dreamer reach a score that takes SAC ~600K steps and PPO ~1.6M to match -- in **80-150K** real steps. The shape of every model-based curve is the same: a slow start (the model is being learned) followed by a sharp climb once imagined updates start carrying useful gradients.
+Stacking the methods on one plot makes the central claim concrete. On HalfCheetah, MBPO and Dreamer reach a score that takes SAC ~600K steps and PPO ~1.6M to match — in **80-150K** real steps. The shape of every model-based curve is the same: a slow start (the model is being learned) followed by a sharp climb once imagined updates start carrying useful gradients.
 
-That said, the plot also shows an honest limitation. Model-based curves do not always **exceed** model-free asymptotes; they reach the same level much faster. When samples are cheap, model-free methods often win by simplicity. When samples are expensive -- which is the empirically interesting regime -- model-based wins by a wide margin.
+That said, the plot also shows an honest limitation. Model-based curves do not always **exceed** model-free asymptotes; they reach the same level much faster. When samples are cheap, model-free methods often win by simplicity. When samples are expensive — which is the empirically interesting regime — model-based wins by a wide margin.
 
 ---
 
@@ -349,16 +348,16 @@ Three frontiers are particularly active:
 
 Model-based RL is the family of methods that **spend compute to save samples**:
 
-- **Dyna** introduced the loop -- mix real and imagined updates to amortise interaction.
+- **Dyna** introduced the loop — mix real and imagined updates to amortise interaction.
 - **MBPO** showed that *short* imagined rollouts beat long ones, because model error compounds.
 - **MPC** treats the model as a one-step-ahead simulator and replans every step.
 - **World Models** moved dynamics learning into a compressed latent space, making pixels tractable.
 - **Dreamer / RSSM** trains representation, dynamics, and policy jointly and learns behaviour entirely in imagination.
 - **MuZero** dropped reconstruction altogether: the model just has to be self-consistent under MCTS.
 
-The unifying lesson is that **what you predict should match how you use the prediction**. Predict pixels if pixels matter; predict$(r, v, p)$if those are all that the planner consumes. That principle is what makes the modern wave -- DreamerV3, EfficientZero, TD-MPC2 -- finally feel general.
+The unifying lesson is that **what you predict should match how you use the prediction**. Predict pixels if pixels matter; predict$(r, v, p)$if those are all that the planner consumes. That principle is what makes the modern wave — DreamerV3, EfficientZero, TD-MPC2 — finally feel general.
 
-**Next up:** [Part 6](/en/reinforcement-learning/06-ppo-and-trpo/) dives into **PPO and TRPO** -- the trust-region policy gradient methods that quietly power industrial RL, from robotic manipulation to ChatGPT's RLHF.
+**Next up:** [Part 6](/en/reinforcement-learning/06-ppo-and-trpo/) dives into **PPO and TRPO** — the trust-region policy gradient methods that quietly power industrial RL, from robotic manipulation to ChatGPT's RLHF.
 
 ---
 

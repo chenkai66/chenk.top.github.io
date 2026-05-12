@@ -1,8 +1,7 @@
 ---
 title: "Transfer Learning (11): Cross-Lingual Transfer"
 date: 2025-06-30 09:00:00
-categories:
-  - Transfer Learning
+categories: Transfer Learning
   - Machine Learning
 tags:
   - Cross-Lingual
@@ -20,7 +19,7 @@ translationKey: "transfer-learning-11"
 ---
 English has the labels. The world has 7,000+ languages. Cross-lingual transfer is what lets a sentiment classifier trained only on English IMDB reviews score Spanish tweets, what makes a question-answering model fine-tuned on SQuAD answer Hindi questions, and what allows a model that has never seen a single labeled Swahili sentence to do passable Swahili NER.
 
-This post derives why that is even possible. We start from the bilingual-embedding alignment that motivated the field, walk through the multilingual pretraining recipe (mBERT, XLM-R) that made parallel data optional, and end with the practical playbook -- zero-shot vs translate-train vs translate-test, when to pick which, and where the wheels come off.
+This post derives why that is even possible. We start from the bilingual-embedding alignment that motivated the field, walk through the multilingual pretraining recipe (mBERT, XLM-R) that made parallel data optional, and end with the practical playbook — zero-shot vs translate-train vs translate-test, when to pick which, and where the wheels come off.
 
 ![Transfer Learning (11): Cross-Lingual Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/illustration_1.png)
 
@@ -31,12 +30,12 @@ This post derives why that is even possible. We start from the bilingual-embeddi
 - XLM-R's three changes (data, sampling, scale) and what each one buys you
 - The translate-train / translate-test / zero-shot trade-off and how to choose
 - Pivot strategies for language pairs that have no direct labeled data
-- Where the transfer gap comes from -- script, family, resource size -- and what to do about it
+- Where the transfer gap comes from — script, family, resource size — and what to do about it
 
 ## Prerequisites
 
-- BERT pretraining (MLM, [CLS] pooling) -- see Part 2
-- Transfer-learning fundamentals -- Parts 1-6
+- BERT pretraining (MLM, [CLS] pooling) — see Part 2
+- Transfer-learning fundamentals — Parts 1-6
 - Word embeddings: dense vectors, cosine similarity
 
 ---
@@ -68,13 +67,13 @@ $$\bigl\| f_\theta\!\left(s^{(\ell_1)}\right) - f_\theta\!\left(s^{(\ell_2)}\rig
 
 ![Multilingual embedding space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/fig1_embedding_space.png)
 
-The figure above is the cartoon: each cluster is one concept, and the three markers inside it are the same word in three languages. If your encoder achieves something like this, a classifier head trained on the English markers will fire on the Chinese and French ones too -- you never had to translate.
+The figure above is the cartoon: each cluster is one concept, and the three markers inside it are the same word in three languages. If your encoder achieves something like this, a classifier head trained on the English markers will fire on the Chinese and French ones too — you never had to translate.
 
 ### Bilingual word-embedding alignment
 
 Before multilingual Transformers, this hypothesis was tested on **static word embeddings**. Train word2vec on English, train it again on French, and you get two unrelated embedding matrices $\mathbf{X}_s, \mathbf{X}_t \in \mathbb{R}^{n \times d}$ (rows aligned via a small bilingual dictionary). The question is: does there exist a single linear map taking one space onto the other?
 
-The answer turned out to be yes, and the map should be **orthogonal** -- rotations and reflections preserve dot products, hence preserve the geometric relationships word2vec learned. This is the **Orthogonal Procrustes** problem:
+The answer turned out to be yes, and the map should be **orthogonal** — rotations and reflections preserve dot products, hence preserve the geometric relationships word2vec learned. This is the **Orthogonal Procrustes** problem:
 
 $$\mathbf{W}^* = \arg\min_{\mathbf{W}} \bigl\|\mathbf{X}_s\mathbf{W} - \mathbf{X}_t\bigr\|_F^2
 \quad\text{s.t.}\quad \mathbf{W}^\top \mathbf{W} = \mathbf{I}.$$
@@ -92,7 +91,7 @@ The Procrustes story matters because **multilingual Transformers can be read as 
 
 ![mBERT vs XLM-R](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/fig2_xlmr_architecture.png)
 
-### mBERT -- the "it just works" baseline
+### mBERT — the "it just works" baseline
 
 Devlin et al.'s original recipe: take BERT-base, train it on the concatenation of Wikipedia in 104 languages with a single shared 110K-WordPiece vocabulary, masked-language-modeling objective only, **no parallel data, no language IDs**.
 
@@ -100,11 +99,11 @@ The mystery is why this works at all. Pires et al. (2019) and Wu & Dredze (2020)
 
 1. **Anchor tokens.** Numbers, punctuation, named entities, and English loanwords (`COVID`, `OK`, `Internet`) appear identically across many languages. When the same token shows up in many language contexts, its embedding is forced toward a language-agnostic centroid.
 2. **Subword overlap.** WordPiece splits cognates into shared pieces. `international` (en) and `internationale` (fr) share `inter` + `national`. Two languages that share thousands of subwords are indirectly forced into the same embedding subspace.
-3. **Deep parameter sharing.** All 12 layers are shared across all 104 languages. The cheapest representation for the model -- in the bits-per-token sense -- is one that re-uses circuits across languages, so it does.
+3. **Deep parameter sharing.** All 12 layers are shared across all 104 languages. The cheapest representation for the model — in the bits-per-token sense — is one that re-uses circuits across languages, so it does.
 
 Strikingly, *removing the anchor tokens at training time only drops cross-lingual NER accuracy by ~5 points*. The bigger driver is subword overlap.
 
-### XLM-R -- scale, balance, more scale
+### XLM-R — scale, balance, more scale
 
 Conneau et al. (2020) asked: what if we throw away the cute design choices and just scale? XLM-R changes three things relative to mBERT:
 
@@ -115,7 +114,7 @@ Conneau et al. (2020) asked: what if we throw away the cute design choices and j
 | Sampling          | exponential, ad-hoc   | $p_\ell \propto n_\ell^{0.7}$ |
 | Parameters        | 110M                  | 270M (base) / 550M (large)  |
 
-The sampling change matters more than it looks. Without it, the model sees English orders of magnitude more often than Swahili and the Swahili representations rot. With $\alpha = 0.7$ the high-resource languages still dominate, but the tail gets enough budget to learn useful subword statistics. XLM-R-large beats mBERT by roughly **+10 average XNLI accuracy** -- driven mostly by gains on the long-tail languages.
+The sampling change matters more than it looks. Without it, the model sees English orders of magnitude more often than Swahili and the Swahili representations rot. With $\alpha = 0.7$ the high-resource languages still dominate, but the tail gets enough budget to learn useful subword statistics. XLM-R-large beats mBERT by roughly **+10 average XNLI accuracy** — driven mostly by gains on the long-tail languages.
 
 ### Why subwords are the hidden hero
 
@@ -124,7 +123,7 @@ The sampling change matters more than it looks. Without it, the model sees Engli
 Look at how the same concept tokenizes across four languages. `inter` and `national` appear in the English, French, and German splits and share embeddings; only Chinese, with no script overlap, gets disjoint tokens. Cross-lingual transfer is essentially "free" between languages that share script and morphology, and progressively harder as that overlap drops. Concretely:
 
 - en -> de transfer is easy: shared Latin script, ~30% subword overlap on Wikipedia.
-- en -> zh requires the model to learn the alignment from context alone -- harder, and the gap shows.
+- en -> zh requires the model to learn the alignment from context alone — harder, and the gap shows.
 - en -> sw is bottlenecked by *how much Swahili the model saw at all*, more than by the alignment.
 
 ---
@@ -155,7 +154,7 @@ There are three working recipes, and you should know all three before picking on
 
 ### 1. Zero-shot direct transfer
 
-Fine-tune XLM-R on English labels, deploy it on the target language as-is. The model's encoder is already aligned, so the classifier head -- which only sees `[CLS]` representations -- generalizes.
+Fine-tune XLM-R on English labels, deploy it on the target language as-is. The model's encoder is already aligned, so the classifier head — which only sees `[CLS]` representations — generalizes.
 
 - Pros: cheapest by far, single model serves all languages, no MT dependency.
 - Cons: leaves the most accuracy on the table when target is far from source.
@@ -243,7 +242,7 @@ class CrossLingualClassifier(nn.Module):
 
 Practical notes that matter more than the code:
 
-- Use the **same tokenizer at train and test** -- mismatched tokenization is the most common silent bug.
+- Use the **same tokenizer at train and test** — mismatched tokenization is the most common silent bug.
 - For zero-shot, **don't freeze the encoder**: full fine-tuning on the source language consistently beats frozen + linear probe by 3-5 points.
 - For translate-train, mix English and translated data 1:1 in the same batch; pure-translated training degrades on the source language without helping the target.
 
@@ -301,7 +300,7 @@ These four lines added to a paper would clear up most of the cross-lingual liter
 
 ## Q&A
 
-### mBERT has no parallel corpus -- why does cross-lingual work?
+### mBERT has no parallel corpus — why does cross-lingual work?
 
 Three forces line up: anchor tokens (numbers, punctuation, loanwords) shared across languages, subword overlap on cognates that wires the embedding tables together, and deep parameter sharing that makes language-agnostic features the cheapest representation. Removing any one of these degrades transfer; removing all three breaks it.
 
@@ -317,13 +316,13 @@ XLM-R, unless you are inference-bound on a small device. XLM-R-base (270M) costs
 
 Transfer quality is bounded above by the mutual information between source and target distributions in the encoder's representation space. Empirically: same-family Indo-European pairs cap out with a 3-5 point gap; cross-family pairs (English -> Chinese, English -> Arabic) plateau around 8-12; very low-resource targets (Yoruba, Swahili) are limited by how much of the language the encoder ever saw, not by the alignment.
 
-### Translate-train always wins on accuracy -- why ever ship zero-shot?
+### Translate-train always wins on accuracy — why ever ship zero-shot?
 
 Cost. Translate-train requires per-language MT (latency at training time, but you also need to maintain the MT system) and you typically end up shipping a model per target language. Zero-shot is one model serving all 100 languages. The right answer is usually a hybrid: zero-shot baseline + translate-train on the top traffic languages.
 
-### My target is a low-resource language -- what's the order of operations?
+### My target is a low-resource language — what's the order of operations?
 
-(a) Try XLM-R-large zero-shot. (b) If accuracy is unacceptable, do **adaptive pretraining**: continue MLM on monolingual target-language text for a few epochs before fine-tuning. (c) Add translate-train on whatever MT pair is least bad. (d) If you can collect even 100 labeled target-language examples, mix them in -- few-shot data is disproportionately effective on top of zero-shot transfer.
+(a) Try XLM-R-large zero-shot. (b) If accuracy is unacceptable, do **adaptive pretraining**: continue MLM on monolingual target-language text for a few epochs before fine-tuning. (c) Add translate-train on whatever MT pair is least bad. (d) If you can collect even 100 labeled target-language examples, mix them in — few-shot data is disproportionately effective on top of zero-shot transfer.
 
 ---
 

@@ -4,12 +4,11 @@ date: 2025-04-30 09:00:00
 tags:
   - Linear Algebra
   - quantum computing
-  - graph neural networks
-  - large language models
+  - Graph Neural Networks
+  - Large Language Models
   - tensor networks
   - topological data analysis
-categories:
-  - Linear Algebra
+categories: Linear Algebra
 series: linear-algebra
 lang: en
 mathjax: true
@@ -18,15 +17,15 @@ disableNunjucks: true
 series_order: 18
 translationKey: "linear-algebra-18"
 ---
-We have walked the long road of linear algebra together. We started with arrows in the plane and ended at the gates of quantum computers, the inner workings of large language models, and the topology of data clouds. The remarkable thing -- the thing this series has tried to make visible -- is that the same handful of ideas keeps coming back. A vector is a state. A matrix is a transformation. A decomposition is the structure hiding inside the transformation. A norm tells you when you can trust your computation. Once you internalise that loop, every "frontier" looks less like a foreign country and more like another dialect of a language you already speak.
+We have walked the long road of linear algebra together. We started with arrows in the plane and ended at the gates of quantum computers, the inner workings of large language models, and the topology of data clouds. The remarkable thing — the thing this series has tried to make visible — is that the same handful of ideas keeps coming back. A vector is a state. A matrix is a transformation. A decomposition is the structure hiding inside the transformation. A norm tells you when you can trust your computation. Once you internalise that loop, every "frontier" looks less like a foreign country and more like another dialect of a language you already speak.
 
-This last chapter does two things. First, it walks you through the frontiers -- quantum information, graph neural networks, large models, tensor networks, randomised numerical linear algebra, the matrix exponential as a bridge to Lie theory, free probability, and topological data analysis -- and points to the linear-algebraic skeleton inside each. Second, it steps back and gives you the whole eighteen-chapter map, the recurring themes, the most important theorems, and a path forward.
+This last chapter does two things. First, it walks you through the frontiers — quantum information, graph neural networks, large models, tensor networks, randomised numerical linear algebra, the matrix exponential as a bridge to Lie theory, free probability, and topological data analysis — and points to the linear-algebraic skeleton inside each. Second, it steps back and gives you the whole eighteen-chapter map, the recurring themes, the most important theorems, and a path forward.
 
 > **What you will leave with**
 > - The unitary picture of quantum computation: qubits as unit vectors, gates as unitaries, entanglement from CNOT.
 > - Why a graph Laplacian is the Fourier basis of a network, and how GCN is its first-order Chebyshev filter.
 > - Transformer mathematics distilled: attention as soft retrieval, RoPE as complex rotation, LoRA as low-rank adaptation.
-> - Sparse and linear attention, quantisation, pruning -- the same matrix story, told under a memory budget.
+> - Sparse and linear attention, quantisation, pruning — the same matrix story, told under a memory budget.
 > - Tensor networks, randomised SVD, NeRF, PINNs, Neural ODEs as continuations of earlier chapters.
 > - A complete eighteen-chapter map, the recurring "geometry / numerics / computation" triangle, and reading lists.
 >
@@ -42,7 +41,7 @@ This last chapter does two things. First, it walks you through the frontiers -- 
 
 Before we look forward, look back. The figure above is the actual dependency graph of the series: foundations in blue (vectors, vector spaces, linear maps), structural results in purple (determinants, linear systems, eigenvalues, orthogonality), the two great decompositions in green (the spectral theorem and the SVD), the computational layer in amber (norms and conditioning, matrix calculus, sparsity, tensors, random matrices), the application chapters in red (machine learning, deep learning, computer vision), and this finale chapter in dark.
 
-Notice two things. First, the graph is not a chain -- it is a thin layered network in which several earlier chapters fan into each later chapter. SVD (ch. 9) alone feeds chapters 10, 13, 14, 15, 16, 17, and 18. That is not an accident; SVD is the single most useful theorem in applied linear algebra. Second, the frontier chapter does not introduce new mathematics out of nowhere -- it just reuses the ideas you already know on bigger objects.
+Notice two things. First, the graph is not a chain — it is a thin layered network in which several earlier chapters fan into each later chapter. SVD (ch. 9) alone feeds chapters 10, 13, 14, 15, 16, 17, and 18. That is not an accident; SVD is the single most useful theorem in applied linear algebra. Second, the frontier chapter does not introduce new mathematics out of nowhere — it just reuses the ideas you already know on bigger objects.
 
 ---
 
@@ -60,7 +59,7 @@ with computational basis $|0\rangle = \begin{bmatrix}1\\0\end{bmatrix}$ and $|1\
 
 ### Gates as unitary matrices
 
-A gate is a linear map that preserves the unit-norm condition. That is exactly the definition of a **unitary matrix**: $\mathbf{U}^{\dagger}\mathbf{U} = \mathbf{I}$. Unitarity preserves inner products, which preserves probability -- the linear-algebraic origin of physical reversibility.
+A gate is a linear map that preserves the unit-norm condition. That is exactly the definition of a **unitary matrix**: $\mathbf{U}^{\dagger}\mathbf{U} = \mathbf{I}$. Unitarity preserves inner products, which preserves probability — the linear-algebraic origin of physical reversibility.
 
 The Hadamard gate creates equal superposition,
 
@@ -70,7 +69,7 @@ which the middle panel of the figure shows as a bar chart: a probability-one sta
 
 $$\mathbf{X} = \begin{bmatrix}0 & 1\\ 1 & 0\end{bmatrix},\quad \mathbf{Y} = \begin{bmatrix}0 & -i\\ i & 0\end{bmatrix},\quad \mathbf{Z} = \begin{bmatrix}1 & 0\\ 0 & -1\end{bmatrix}$$
 
-are the three basic rotations -- and an arbitrary single-qubit gate is the matrix exponential $e^{-i\theta(\mathbf{n}\cdot\boldsymbol{\sigma})/2}$, which we will revisit in the Lie-algebra section.
+are the three basic rotations — and an arbitrary single-qubit gate is the matrix exponential $e^{-i\theta(\mathbf{n}\cdot\boldsymbol{\sigma})/2}$, which we will revisit in the Lie-algebra section.
 
 The two-qubit CNOT gate
 
@@ -80,13 +79,13 @@ is the engine of entanglement. Apply Hadamard to the first qubit, then CNOT, and
 
 $$|\Phi^+\rangle = \tfrac{1}{\sqrt{2}}(|00\rangle + |11\rangle),$$
 
-shown in the right panel of the figure as the amplitude vector after each gate. No tensor product of single-qubit states equals $|\Phi^+\rangle$ -- entanglement is a property of multi-qubit vector spaces that has no classical analogue.
+shown in the right panel of the figure as the amplitude vector after each gate. No tensor product of single-qubit states equals $|\Phi^+\rangle$ — entanglement is a property of multi-qubit vector spaces that has no classical analogue.
 
 ### Two emblematic algorithms
 
 **Grover's search.** Find a marked item among $N$ in $O(\sqrt{N})$ queries instead of the classical $O(N)$. The whole algorithm is two reflections: the oracle flips the sign of the marked basis state, then the diffusion operator $2|\psi\rangle\langle\psi| - \mathbf{I}$ reflects across the uniform superposition. Two reflections compose to a rotation, and after $O(\sqrt{N})$ rotations the amplitude has rotated to the marked state. This is the orthogonal-matrix story from chapter 7, in $\mathbb{C}^N$.
 
-**Shor's algorithm.** Factor an integer in polynomial time using the **Quantum Fourier Transform**. The QFT is the same DFT matrix you have met before, applied to the amplitude vector with $O(n^2)$ gates instead of $O(n 2^n)$ scalar multiplications -- the exponential speedup is what threatens RSA.
+**Shor's algorithm.** Factor an integer in polynomial time using the **Quantum Fourier Transform**. The QFT is the same DFT matrix you have met before, applied to the amplitude vector with $O(n^2)$ gates instead of $O(n 2^n)$ scalar multiplications — the exponential speedup is what threatens RSA.
 
 ---
 
@@ -102,7 +101,7 @@ is a *smoothness measure* of the signal $\mathbf{x}$ on the graph. The normalise
 
 ### A Fourier transform on a graph
 
-Eigendecomposing $\mathbf{L} = \mathbf{U}\boldsymbol{\Lambda}\mathbf{U}^{T}$ gives a basis $\mathbf{U}$ in which "frequency" makes sense: small eigenvalues correspond to slowly varying eigenvectors (close-by nodes have close-by values), large eigenvalues to oscillatory ones. The **graph Fourier transform** is $\hat{\mathbf{x}} = \mathbf{U}^{T}\mathbf{x}$, and a spectral filter is just elementwise multiplication in this basis. Spectral clustering -- embedding nodes using the bottom non-trivial eigenvectors and then running k-means -- is the same idea: cluster nodes that look the same to the low-frequency basis.
+Eigendecomposing $\mathbf{L} = \mathbf{U}\boldsymbol{\Lambda}\mathbf{U}^{T}$ gives a basis $\mathbf{U}$ in which "frequency" makes sense: small eigenvalues correspond to slowly varying eigenvectors (close-by nodes have close-by values), large eigenvalues to oscillatory ones. The **graph Fourier transform** is $\hat{\mathbf{x}} = \mathbf{U}^{T}\mathbf{x}$, and a spectral filter is just elementwise multiplication in this basis. Spectral clustering — embedding nodes using the bottom non-trivial eigenvectors and then running k-means — is the same idea: cluster nodes that look the same to the low-frequency basis.
 
 ### From spectral filters to GCN
 
@@ -110,7 +109,7 @@ Spectral convolution costs $O(n^3)$ because of the eigendecomposition. ChebNet r
 
 $$\mathbf{H}' = \sigma\!\left(\tilde{\mathbf{D}}^{-1/2}\tilde{\mathbf{A}}\tilde{\mathbf{D}}^{-1/2}\,\mathbf{H}\,\mathbf{W}\right),$$
 
-with $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ adding a self-loop. Reading the layer from right to left it is "linear transform $\mathbf{W}$, aggregate normalised neighbour features, apply nonlinearity" -- a one-line message-passing scheme that powers everything from molecular property prediction (atoms as nodes, bonds as edges) to recommender systems (user-item bipartite graphs) to the structural side of AlphaFold.
+with $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ adding a self-loop. Reading the layer from right to left it is "linear transform $\mathbf{W}$, aggregate normalised neighbour features, apply nonlinearity" — a one-line message-passing scheme that powers everything from molecular property prediction (atoms as nodes, bonds as edges) to recommender systems (user-item bipartite graphs) to the structural side of AlphaFold.
 
 ---
 
@@ -120,7 +119,7 @@ with $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ adding a self-loop. Reading 
 
 ### Self-attention as soft retrieval
 
-Self-attention -- the inner loop of every modern Transformer -- is
+Self-attention — the inner loop of every modern Transformer — is
 
 $$\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{T}}{\sqrt{d_k}}\right)\mathbf{V}.$$
 
@@ -128,7 +127,7 @@ The $n \times n$ matrix $\mathbf{Q}\mathbf{K}^{T}$ holds every pairwise similari
 
 ### Position information as rotation
 
-Pure self-attention is permutation-equivariant, which would be a disaster for language. The fix is to inject position information. The classic sinusoidal encoding $PE_{(\text{pos},2i)} = \sin(\text{pos}/10000^{2i/d})$ has the property that $PE_{(\text{pos}+k)}$ is a linear function of $PE_{(\text{pos})}$ -- relative position is encoded as a rotation. The modern **Rotary Position Embedding (RoPE)** pushes this all the way: it rotates each pair of coordinates by an angle proportional to position, so that the *inner product* between query and key only depends on the relative offset. RoPE is, quite literally, complex multiplication.
+Pure self-attention is permutation-equivariant, which would be a disaster for language. The fix is to inject position information. The classic sinusoidal encoding $PE_{(\text{pos},2i)} = \sin(\text{pos}/10000^{2i/d})$ has the property that $PE_{(\text{pos}+k)}$ is a linear function of $PE_{(\text{pos})}$ — relative position is encoded as a rotation. The modern **Rotary Position Embedding (RoPE)** pushes this all the way: it rotates each pair of coordinates by an angle proportional to position, so that the *inner product* between query and key only depends on the relative offset. RoPE is, quite literally, complex multiplication.
 
 ### LoRA: low-rank adaptation
 
@@ -148,7 +147,7 @@ In autoregressive generation the keys and values for past tokens never change, s
 
 ### Sparse, linear, and approximate attention
 
-Standard attention is $O(n^2)$ in sequence length, which is prohibitive for documents and long videos. Sparse attention sets most entries of $\mathbf{Q}\mathbf{K}^{T}$ to $-\infty$ -- locally-windowed (Longformer), strided (Sparse Transformer), or local plus a few global tokens (BigBird). Linear attention takes a different route: replace softmax by a kernel feature map $\phi$ so that
+Standard attention is $O(n^2)$ in sequence length, which is prohibitive for documents and long videos. Sparse attention sets most entries of $\mathbf{Q}\mathbf{K}^{T}$ to $-\infty$ — locally-windowed (Longformer), strided (Sparse Transformer), or local plus a few global tokens (BigBird). Linear attention takes a different route: replace softmax by a kernel feature map $\phi$ so that
 
 $$\text{Attn}(\mathbf{Q},\mathbf{K},\mathbf{V}) \approx \phi(\mathbf{Q})\bigl(\phi(\mathbf{K})^{T}\mathbf{V}\bigr),$$
 
@@ -156,7 +155,7 @@ which is $O(nd^2)$ instead of $O(n^2 d)$ because the parenthesised product is a 
 
 ### Quantisation
 
-Symmetric INT$b$ quantisation maps $w$ to $\text{round}(w/s)$ for a per-tensor or per-channel scale $s$. Going from FP16 to INT4 is a 4x memory saving and -- on hardware that supports it -- a substantial speedup. The principled version, **GPTQ**, treats quantisation as a layer-wise weighted approximation problem with the empirical Hessian as the weight, and solves it with Cholesky-based updates. Quantisation is, again, a low-precision version of a matrix-approximation problem.
+Symmetric INT$b$ quantisation maps $w$ to $\text{round}(w/s)$ for a per-tensor or per-channel scale $s$. Going from FP16 to INT4 is a 4x memory saving and — on hardware that supports it — a substantial speedup. The principled version, **GPTQ**, treats quantisation as a layer-wise weighted approximation problem with the empirical Hessian as the weight, and solves it with Cholesky-based updates. Quantisation is, again, a low-precision version of a matrix-approximation problem.
 
 ### Pruning
 
@@ -168,13 +167,13 @@ Remove the small-magnitude weights. Unstructured pruning gives 90%+ sparsity but
 
 ![Tensor networks: graphical calculus for high-dimensional tensors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/fig3_tensor_networks.png)
 
-A tensor with $N$ indices each of size $d$ has $d^N$ entries. You cannot store it. **Tensor networks** are the right factorisation language for these objects, and -- as the figure shows -- they have a beautiful diagrammatic calculus where each node is a small tensor, each edge is a contracted bond, and each open leg is a remaining physical index.
+A tensor with $N$ indices each of size $d$ has $d^N$ entries. You cannot store it. **Tensor networks** are the right factorisation language for these objects, and — as the figure shows — they have a beautiful diagrammatic calculus where each node is a small tensor, each edge is a contracted bond, and each open leg is a remaining physical index.
 
 The simplest tensor network is the **Matrix Product State** (also called Tensor Train),
 
 $$\mathcal{X}(i_1,\ldots,i_N) = \mathbf{G}_1(i_1)\,\mathbf{G}_2(i_2) \cdots \mathbf{G}_N(i_N),$$
 
-with each $\mathbf{G}_k(i_k)$ a small matrix. Storage drops from $d^N$ to $N d r^{2}$, where $r$ is the bond dimension. MPS is the structure underneath the **DMRG** algorithm in quantum many-body physics, and -- as randomised tensor train sketches -- in machine learning compression. **PEPS** generalises to two-dimensional lattices; **MERA** stacks isometries and disentanglers in a hierarchy that captures critical (scale-free) systems. The same picture also explains why deep networks can represent functions exponentially efficiently: each layer is one renormalisation step.
+with each $\mathbf{G}_k(i_k)$ a small matrix. Storage drops from $d^N$ to $N d r^{2}$, where $r$ is the bond dimension. MPS is the structure underneath the **DMRG** algorithm in quantum many-body physics, and — as randomised tensor train sketches — in machine learning compression. **PEPS** generalises to two-dimensional lattices; **MERA** stacks isometries and disentanglers in a hierarchy that captures critical (scale-free) systems. The same picture also explains why deep networks can represent functions exponentially efficiently: each layer is one renormalisation step.
 
 ---
 
@@ -192,9 +191,9 @@ Three things to take away. First, eigenvalue decomposition is what makes the exp
 
 ![From random matrices (ch. 14) to free probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/fig5_random_to_free.png)
 
-Chapter 14 told you that high-dimensional randomness is not chaos -- it is regularity in disguise. Two universal laws appear again on the left of the figure above: the eigenvalues of a sample covariance matrix at aspect ratio $\gamma = p/n$ pile up under the **Marchenko-Pastur** density, with sharp spectral edges at $(1\pm\sqrt{\gamma})^2$.
+Chapter 14 told you that high-dimensional randomness is not chaos — it is regularity in disguise. Two universal laws appear again on the left of the figure above: the eigenvalues of a sample covariance matrix at aspect ratio $\gamma = p/n$ pile up under the **Marchenko-Pastur** density, with sharp spectral edges at $(1\pm\sqrt{\gamma})^2$.
 
-The right-hand panel takes the next step. If $W_1$ and $W_2$ are two large independent Wigner matrices, they are *asymptotically free* -- a non-commutative analogue of independence -- and the spectrum of $W_1 + W_2$ is again a semicircle, with variance equal to the sum of the variances. This is the **free central limit theorem**, and it is the start of a whole calculus (the $R$-transform) that lets you predict spectra of sums and products of random matrices analytically. Free probability is now a working tool inside neural-network theory, deep ensembles, and high-dimensional statistics.
+The right-hand panel takes the next step. If $W_1$ and $W_2$ are two large independent Wigner matrices, they are *asymptotically free* — a non-commutative analogue of independence — and the spectrum of $W_1 + W_2$ is again a semicircle, with variance equal to the sum of the variances. This is the **free central limit theorem**, and it is the start of a whole calculus (the $R$-transform) that lets you predict spectra of sums and products of random matrices analytically. Free probability is now a working tool inside neural-network theory, deep ensembles, and high-dimensional statistics.
 
 ---
 
@@ -202,9 +201,9 @@ The right-hand panel takes the next step. If $W_1$ and $W_2$ are two large indep
 
 ![Topological data analysis: shape persists across scales](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/fig6_persistence.png)
 
-Sometimes the structure in your data is not a cluster or a low-dimensional subspace -- it is a **hole**. The figure above shows a noisy point cloud sampled from an annulus and its **persistence diagram**, the central object of TDA. Sweep a radius $r$ from 0 to large; at each $r$ build the Vietoris-Rips complex (connect any two points within $r$). Track when topological features are born and when they die. Plot every feature as a point $(\text{birth}, \text{death})$.
+Sometimes the structure in your data is not a cluster or a low-dimensional subspace — it is a **hole**. The figure above shows a noisy point cloud sampled from an annulus and its **persistence diagram**, the central object of TDA. Sweep a radius $r$ from 0 to large; at each $r$ build the Vietoris-Rips complex (connect any two points within $r$). Track when topological features are born and when they die. Plot every feature as a point $(\text{birth}, \text{death})$.
 
-Short-lived points hug the diagonal and represent noise. Long-lived points -- the conspicuous diamond above the diagonal in the figure -- represent real features. Here a single $H_1$ point is far above the diagonal: it is the loop, and it survived precisely because the underlying shape really is annular. The whole pipeline rests on linear algebra: persistence is computed by reducing a *boundary matrix* over the field $\mathbb{F}_2$, which is Gaussian elimination with a clever pivot rule. TDA shows up in materials science, biology, and -- increasingly -- in inspecting the loss landscape of neural networks.
+Short-lived points hug the diagonal and represent noise. Long-lived points — the conspicuous diamond above the diagonal in the figure — represent real features. Here a single $H_1$ point is far above the diagonal: it is the loop, and it survived precisely because the underlying shape really is annular. The whole pipeline rests on linear algebra: persistence is computed by reducing a *boundary matrix* over the field $\mathbb{F}_2$, which is Gaussian elimination with a clever pivot rule. TDA shows up in materials science, biology, and — increasingly — in inspecting the loss landscape of neural networks.
 
 ---
 
@@ -214,7 +213,7 @@ Short-lived points hug the diagonal and represent noise. Long-lived points -- th
 
 **Implicit neural representations.** NeRF (Neural Radiance Fields) represents a 3D scene as an MLP from $(\mathbf{x}, \mathbf{d})$ to (density, colour). The Fourier-feature positional encoding is the same trick that lets Transformers see position; without it, MLPs systematically underfit high-frequency detail.
 
-**Neural PDE solvers.** Physics-Informed Neural Networks parameterise the solution of a PDE by a neural network and add the PDE residual to the loss. Automatic differentiation -- an instance of the chain rule, hence of matrix multiplication -- makes arbitrary-order derivatives free. **Neural ODEs** view the network itself as a continuous dynamical system.
+**Neural PDE solvers.** Physics-Informed Neural Networks parameterise the solution of a PDE by a neural network and add the PDE residual to the loss. Automatic differentiation — an instance of the chain rule, hence of matrix multiplication — makes arbitrary-order derivatives free. **Neural ODEs** view the network itself as a continuous dynamical system.
 
 **Equivariant networks and geometric deep learning.** Build the symmetry group into the architecture by replacing matrix multiplication with group convolution. SO(3)-equivariant networks are now standard in molecular modelling.
 
@@ -259,7 +258,7 @@ Short-lived points hug the diagonal and represent noise. Long-lived points -- th
 
 ![The recurring triangle of the series: geometry, numerics, computation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/fig7_three_pillars.png)
 
-If there is one diagram that summarises the whole series, it is this triangle. **Geometry** is the source of intuition -- vectors as arrows, matrices as transformations of space, eigenvectors as invariant directions, the Bloch sphere. **Numerics** is what tells you when you can trust the computation -- norms, conditioning, stable algorithms, floating-point reality. **Computation** is what makes any of it useful at scale -- sparse kernels, randomised methods, GPU tensor cores, low-precision arithmetic.
+If there is one diagram that summarises the whole series, it is this triangle. **Geometry** is the source of intuition — vectors as arrows, matrices as transformations of space, eigenvectors as invariant directions, the Bloch sphere. **Numerics** is what tells you when you can trust the computation — norms, conditioning, stable algorithms, floating-point reality. **Computation** is what makes any of it useful at scale — sparse kernels, randomised methods, GPU tensor cores, low-precision arithmetic.
 
 The three pillars are not separate disciplines. They lean on each other. Spectral theory bridges geometry and numerics: the spectrum of a matrix tells you both its geometric character and its sensitivity to perturbation. Sketching bridges geometry and computation: if you keep distances approximately, you keep the geometry while shrinking the cost. Low-precision arithmetic bridges numerics and computation: you give up bits and gain throughput, and you have to use conditioning to know how many bits you can afford to lose.
 
@@ -277,24 +276,24 @@ The SVD sits at the centre because all three pillars agree on it. Geometrically 
 
 **Always ask why.** Why is the determinant defined this way? Why is the SVD always real? Why does the GCN layer have a self-loop? Refusing to settle for "this is the formula" is the difference between using linear algebra and understanding it.
 
-**Connect every theorem to an application.** Eigendecomposition: PageRank. SVD: latent semantic analysis, recommender systems, NeRF camera poses. Sparsity: compressed sensing MRI. Random matrices: covariance cleaning in finance. The connections are not afterthoughts -- they are how the field moves.
+**Connect every theorem to an application.** Eigendecomposition: PageRank. SVD: latent semantic analysis, recommender systems, NeRF camera poses. Sparsity: compressed sensing MRI. Random matrices: covariance cleaning in finance. The connections are not afterthoughts — they are how the field moves.
 
 ### Reading list
 
 **Classic textbooks.**
 
-- Gilbert Strang, *Introduction to Linear Algebra* -- intuition first, the canonical first book.
-- Sheldon Axler, *Linear Algebra Done Right* -- elegant, determinant-free, abstract perspective.
-- Trefethen and Bau, *Numerical Linear Algebra* -- the right way to learn the numerical side.
-- Golub and Van Loan, *Matrix Computations* -- the engineer's reference.
-- Strang, *Linear Algebra and Learning from Data* -- the bridge to machine learning.
+- Gilbert Strang, *Introduction to Linear Algebra* — intuition first, the canonical first book.
+- Sheldon Axler, *Linear Algebra Done Right* — elegant, determinant-free, abstract perspective.
+- Trefethen and Bau, *Numerical Linear Algebra* — the right way to learn the numerical side.
+- Golub and Van Loan, *Matrix Computations* — the engineer's reference.
+- Strang, *Linear Algebra and Learning from Data* — the bridge to machine learning.
 
 **Frontier reading.**
 
-- Nielsen and Chuang, *Quantum Computation and Quantum Information* -- the standard quantum text.
-- Bronstein et al., *Geometric Deep Learning* -- equivariance, GNNs, Transformers under one umbrella.
-- Halko, Martinsson, Tropp, "Finding Structure with Randomness" -- the randomised NLA manifesto.
-- Edelsbrunner and Harer, *Computational Topology* -- the right introduction to TDA.
+- Nielsen and Chuang, *Quantum Computation and Quantum Information* — the standard quantum text.
+- Bronstein et al., *Geometric Deep Learning* — equivariance, GNNs, Transformers under one umbrella.
+- Halko, Martinsson, Tropp, "Finding Structure with Randomness" — the randomised NLA manifesto.
+- Edelsbrunner and Harer, *Computational Topology* — the right introduction to TDA.
 
 **Online courses.** MIT 18.06 by Strang on YouTube; 3Blue1Brown's *Essence of Linear Algebra*; Stanford CS229 for the ML angle.
 
@@ -354,7 +353,7 @@ The remarkable continuity is the point. Quantum gates are unitary matrices. Grap
 
 If this series has done its job, when you next see a paper that intimidates you with "spectral" or "tensor" or "attention" in the title, you will recognise it as a friend. Open it. Look for the matrices. Look for the decomposition. Look for the conditioning. The mathematics will yield.
 
-Thank you for walking the eighteen chapters with me. The end of a series is not the end of the journey -- it is the start of yours.
+Thank you for walking the eighteen chapters with me. The end of a series is not the end of the journey — it is the start of yours.
 
 ---
 

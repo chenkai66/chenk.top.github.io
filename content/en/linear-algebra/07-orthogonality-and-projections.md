@@ -17,19 +17,19 @@ disableNunjucks: true
 series_order: 7
 translationKey: "linear-algebra-7"
 ---
-![Essence of Linear Algebra (7): Orthogonality and Projections -- When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_1.png)
+![Essence of Linear Algebra (7): Orthogonality and Projections — When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_1.png)
 
 ## Why Orthogonality Matters
 
-Two vectors are **orthogonal** when they "do not interfere" with one another. That single idea -- one direction tells you nothing about the other -- powers GPS positioning, noise-canceling headphones, JPEG compression, recommendation systems, and most of numerical linear algebra.
+Two vectors are **orthogonal** when they "do not interfere" with one another. That single idea — one direction tells you nothing about the other — powers GPS positioning, noise-canceling headphones, JPEG compression, recommendation systems, and most of numerical linear algebra.
 
-Orthogonality is the single biggest computational shortcut in linear algebra. With a generic basis, finding coordinates is solving a linear system. With an **orthogonal** basis, finding coordinates is one dot product per axis. Hard problem, easy problem, same problem -- just a better basis.
+Orthogonality is the single biggest computational shortcut in linear algebra. With a generic basis, finding coordinates is solving a linear system. With an **orthogonal** basis, finding coordinates is one dot product per axis. Hard problem, easy problem, same problem — just a better basis.
 
 This chapter walks from the everyday intuition of "perpendicular" to the heavy hitters of scientific computing: orthogonal projections, Gram-Schmidt, QR decomposition, and least squares.
 
 ### What You Will Learn
 
-- Why a zero dot product means perpendicular -- geometrically and algebraically
+- Why a zero dot product means perpendicular — geometrically and algebraically
 - Orthogonal and orthonormal bases, and why they make coordinate computations trivial
 - Vector projection: the mathematics of shadows
 - Subspace projection and the projection matrix$P=A(A^TA)^{-1}A^T$- Gram-Schmidt orthogonalization: manufacturing orthogonal bases by hand
@@ -77,7 +77,7 @@ Orthogonality is really a statement about **information**. When two vectors are 
 A small linguistic example. To describe a person:
 
 - "Height" and "weight" are correlated, hence not orthogonal.
-- "Height" and "eye color" are roughly orthogonal -- knowing one tells you nothing useful about the other.
+- "Height" and "eye color" are roughly orthogonal — knowing one tells you nothing useful about the other.
 
 In data analysis, we hunt for orthogonal features because they encode non-redundant information. That is the whole spirit of Principal Component Analysis (PCA), which we will see at the end of the chapter.
 
@@ -93,7 +93,7 @@ A set$\{\vec{v}_1,\ldots,\vec{v}_k\}$is an **orthogonal set** if every pair is o
 
 **Theorem.** Any orthogonal set of nonzero vectors is linearly independent.
 
-**Why intuitively.** Three mutually perpendicular sticks point in completely separate directions. You cannot stack two of them to imitate the third -- there is no overlap to combine.
+**Why intuitively.** Three mutually perpendicular sticks point in completely separate directions. You cannot stack two of them to imitate the third — there is no overlap to combine.
 
 **Proof in one line.** Suppose$c_1\vec{v}_1+\cdots+c_k\vec{v}_k=\vec{0}$. Dot both sides with$\vec{v}_i$. Every cross term$\vec{v}_j\cdot\vec{v}_i$($j\neq i$) vanishes, leaving$c_i\|\vec{v}_i\|^2=0$. Since$\vec{v}_i\neq\vec{0}$, we get$c_i=0$for every$i$. QED.
 
@@ -126,7 +126,7 @@ The **orthogonal projection** of$\vec{b}$onto$\vec{a}$is:$\mathrm{proj}_{\vec{a}
 -$\vec{a}\cdot\vec{a}=\|\vec{a}\|^2$normalizes by$\vec{a}$'s squared length.
 - The ratio is a scalar; multiplying by$\vec{a}$produces the shadow vector.
 
-The **scalar projection** -- the signed length of the shadow -- is:$\mathrm{comp}_{\vec{a}}\vec{b}=\frac{\vec{a}\cdot\vec{b}}{\|\vec{a}\|}$It can be negative when$\vec{b}$points roughly opposite to$\vec{a}$.
+The **scalar projection** — the signed length of the shadow — is:$\mathrm{comp}_{\vec{a}}\vec{b}=\frac{\vec{a}\cdot\vec{b}}{\|\vec{a}\|}$It can be negative when$\vec{b}$points roughly opposite to$\vec{a}$.
 
 ### Projection as Closest Point
 
@@ -176,7 +176,7 @@ The four fundamental subspaces of any matrix$A$obey:
 
 ## Gram-Schmidt: Manufacturing Orthogonal Bases
 
-![Essence of Linear Algebra (7): Orthogonality and Projections -- When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_2.png)
+![Essence of Linear Algebra (7): Orthogonality and Projections — When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_2.png)
 
 ### The Problem
 
@@ -227,7 +227,7 @@ def modified_gram_schmidt(A):
     return Q, R
 ```
 
-For production work, prefer **Householder reflections** (used inside `numpy.linalg.qr`) -- they are even more stable.
+For production work, prefer **Householder reflections** (used inside `numpy.linalg.qr`) — they are even more stable.
 
 ---
 
@@ -249,7 +249,7 @@ In picture form:$\vec{a}_j$lives in the span of the first$j$orthonormal axes, an
 
 The normal equations$A^TA\hat{\vec{x}}=A^T\vec{b}$can blow up numerically because forming$A^TA$**squares** the condition number:$\kappa(A^TA)=\kappa(A)^2$. For nearly collinear data, this is fatal.
 
-QR sidesteps the problem. Substitute$A=QR$into the normal equations:$R^TQ^TQR\hat{\vec{x}}=R^TQ^T\vec{b}$Since$Q^TQ=I$and$R^T$is invertible, this collapses to:$R\hat{\vec{x}}=Q^T\vec{b}$An upper triangular system, solved in$O(n^2)$by back substitution -- both fast and numerically stable.
+QR sidesteps the problem. Substitute$A=QR$into the normal equations:$R^TQ^TQR\hat{\vec{x}}=R^TQ^T\vec{b}$Since$Q^TQ=I$and$R^T$is invertible, this collapses to:$R\hat{\vec{x}}=Q^T\vec{b}$An upper triangular system, solved in$O(n^2)$by back substitution — both fast and numerically stable.
 
 ```python
 def qr_decomposition(A):
@@ -281,7 +281,7 @@ print("Verify A = QR:\n", Q @ R)
 
 ### The Problem
 
-Real data is noisy. Fit a line through five measured points? That is five equations in two unknowns -- an **overdetermined** system. Unless the points are exactly collinear, no$\vec{x}$satisfies$A\vec{x}=\vec{b}$.
+Real data is noisy. Fit a line through five measured points? That is five equations in two unknowns — an **overdetermined** system. Unless the points are exactly collinear, no$\vec{x}$satisfies$A\vec{x}=\vec{b}$.
 
 We do not give up. We change the question.
 
@@ -323,7 +323,7 @@ When some measurements are more trustworthy than others, give them larger weight
 
 ### Definition
 
-A square matrix$Q$is **orthogonal** if:$Q^TQ=I$Equivalently$Q^{-1}=Q^T$. The transpose is the inverse -- which is why orthogonal matrices are so cheap to invert.
+A square matrix$Q$is **orthogonal** if:$Q^TQ=I$Equivalently$Q^{-1}=Q^T$. The transpose is the inverse — which is why orthogonal matrices are so cheap to invert.
 
 ### Orthogonal Matrices Preserve Everything
 
@@ -350,7 +350,7 @@ The condition number of an orthogonal matrix is exactly 1:$\kappa(Q)=\frac{\sigm
 
 ### Fourier Analysis
 
-The discrete Fourier transform (DFT) is, mathematically, a change of basis into an **orthogonal basis** of complex exponentials. Each frequency component can be processed independently because the basis vectors do not interfere -- exactly what makes filtering work.
+The discrete Fourier transform (DFT) is, mathematically, a change of basis into an **orthogonal basis** of complex exponentials. Each frequency component can be processed independently because the basis vectors do not interfere — exactly what makes filtering work.
 
 ### Noise-Canceling Headphones
 
@@ -362,13 +362,13 @@ JPEG uses the discrete cosine transform (DCT), the real-valued cousin of the DFT
 
 ### CDMA in Mobile Networks
 
-Each user gets a "code" -- and the codes assigned to different users are pairwise orthogonal. Many users share the same frequency simultaneously. To recover user A's signal from the mixed broadcast, the receiver dot-products the signal with A's code; user B's contribution vanishes because$\vec{c}_A\cdot\vec{c}_B=0$.
+Each user gets a "code" — and the codes assigned to different users are pairwise orthogonal. Many users share the same frequency simultaneously. To recover user A's signal from the mixed broadcast, the receiver dot-products the signal with A's code; user B's contribution vanishes because$\vec{c}_A\cdot\vec{c}_B=0$.
 
 ### PCA: Finding the Most Important Directions
 
 Principal Component Analysis looks for the orthogonal directions of **maximum variance** in a dataset. Concretely, given a centered data matrix$X$, eigendecompose the covariance$\Sigma=\frac{1}{n-1}X^TX=Q\Lambda Q^T$. The columns of$Q$are orthogonal principal axes; the eigenvalues in$\Lambda$measure how much variance each axis carries. Keeping the top$k$columns gives the optimal linear dimensionality reduction.
 
-The orthogonality requirement is what makes the components independent -- each one captures genuinely new structure rather than restating what an earlier one already said.
+The orthogonality requirement is what makes the components independent — each one captures genuinely new structure rather than restating what an earlier one already said.
 
 ---
 

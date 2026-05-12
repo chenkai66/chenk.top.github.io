@@ -7,8 +7,7 @@ tags:
   - Virtualization
   - Linux
   - DevOps
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "容器解决了虚拟机虽能应对却代价高昂的‘在我机器上能跑’问题。本文将详解容器的本质、它与虚拟机的根本区别，并带你运行第一个容器。"

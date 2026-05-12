@@ -6,8 +6,7 @@ tags:
   - API Design
   - REST
   - gRPC
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "REST、gRPC 和 GraphQL 的实用对比 — 涵盖协议设计、真实场景下的权衡取舍、限流算法、幂等性保障，以及一套用于选择合适 API 风格的决策框架。"

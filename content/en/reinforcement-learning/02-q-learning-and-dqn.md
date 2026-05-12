@@ -10,8 +10,7 @@ tags:
   - Target Network
   - Rainbow
   - Value-Based Methods
-categories:
-  - Reinforcement Learning
+categories: Reinforcement Learning
 series: reinforcement-learning
 lang: en
 mathjax: true
@@ -20,17 +19,17 @@ disableNunjucks: true
 series_order: 2
 translationKey: "reinforcement-learning-2"
 ---
-In December 2013, a small DeepMind team uploaded a paper to arXiv with a striking claim: a single neural network, trained from raw pixels and the score, learned to play seven Atari games -- and beat the previous best on six of them. No game-specific features. No hand-coded heuristics. The same architecture for Pong, Breakout, and Space Invaders. The algorithm was **Deep Q-Network (DQN)**, and it kicked off the deep reinforcement learning era.
+In December 2013, a small DeepMind team uploaded a paper to arXiv with a striking claim: a single neural network, trained from raw pixels and the score, learned to play seven Atari games — and beat the previous best on six of them. No game-specific features. No hand-coded heuristics. The same architecture for Pong, Breakout, and Space Invaders. The algorithm was **Deep Q-Network (DQN)**, and it kicked off the deep reinforcement learning era.
 
-DQN was not invented from scratch. It is **Q-Learning** -- a 1989 tabular algorithm by Chris Watkins -- with a neural network in place of the lookup table, plus two engineering tricks that keep training from blowing up. This article explains exactly which problems those tricks solve, walks through a complete PyTorch implementation, and surveys the variants that turned DQN from an Atari demo into a workhorse of modern RL.
+DQN was not invented from scratch. It is **Q-Learning** — a 1989 tabular algorithm by Chris Watkins — with a neural network in place of the lookup table, plus two engineering tricks that keep training from blowing up. This article explains exactly which problems those tricks solve, walks through a complete PyTorch implementation, and surveys the variants that turned DQN from an Atari demo into a workhorse of modern RL.
 
 ![Reinforcement Learning (2): Q-Learning and Deep Q-Networks (DQN) — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/illustration_1.png)
 
 ## What you will learn
 
 - Why tabular Q-Learning collapses in high-dimensional state spaces
-- The **Deadly Triad** -- the three ingredients that make naive deep RL diverge
-- DQN's two innovations: **experience replay** and **target networks** -- and which Triad failure each one fixes
+- The **Deadly Triad** — the three ingredients that make naive deep RL diverge
+- DQN's two innovations: **experience replay** and **target networks** — and which Triad failure each one fixes
 - A complete, runnable Atari **DQN agent** in PyTorch
 - The post-DQN family: **Double DQN**, **Dueling DQN**, **Prioritized Experience Replay**, and **Rainbow**
 
@@ -46,7 +45,7 @@ Recall from Part 1 that for the optimal policy $\pi^*$, the action-value functio
 
 $$Q^*(s, a) \;=\; \mathbb{E}_{s' \sim P(\cdot|s,a)}\Big[R(s,a,s') + \gamma \max_{a'} Q^*(s', a')\Big]$$
 
-Read it as a contract: the value of taking action $a$ in state $s$ today equals the immediate reward plus the discounted best future you can achieve from $s'$. Once you know $Q^*$, the optimal policy is just $\pi^*(s) = \arg\max_a Q^*(s, a)$ -- no planning, no search, just a table lookup.
+Read it as a contract: the value of taking action $a$ in state $s$ today equals the immediate reward plus the discounted best future you can achieve from $s'$. Once you know $Q^*$, the optimal policy is just $\pi^*(s) = \arg\max_a Q^*(s, a)$ — no planning, no search, just a table lookup.
 
 So the entire problem reduces to: **estimate $Q^*$**. Q-Learning is one way.
 
@@ -56,16 +55,16 @@ After taking action $A_t$ in state $S_t$, observing reward $r_t$ and next state 
 
 $$Q(S_t, A_t) \;\leftarrow\; Q(S_t, A_t) + \alpha \underbrace{\Big[r_t + \gamma \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t)\Big]}_{\text{TD error } \delta_t}$$
 
-The bracketed quantity is the **TD error** -- the gap between a one-step bootstrapped estimate and the current value. Positive $\delta_t$ means we underestimated and should nudge up; negative means the opposite.
+The bracketed quantity is the **TD error** — the gap between a one-step bootstrapped estimate and the current value. Positive $\delta_t$ means we underestimated and should nudge up; negative means the opposite.
 
 Two properties make Q-Learning special:
 
-1. **Off-policy.** The target uses $\max_{a'}$ -- the greedy action -- regardless of which action the agent actually picks next. The behaviour policy (typically epsilon-greedy) can explore freely; the target policy stays greedy. This decoupling is the source of Q-Learning's power and, later, its instability.
+1. **Off-policy.** The target uses $\max_{a'}$ — the greedy action — regardless of which action the agent actually picks next. The behaviour policy (typically epsilon-greedy) can explore freely; the target policy stays greedy. This decoupling is the source of Q-Learning's power and, later, its instability.
 2. **Convergence guarantee.** Watkins and Dayan (1992) proved that if every state-action pair is visited infinitely often and the learning rate satisfies the Robbins-Monro conditions ($\sum_t \alpha_t = \infty$, $\sum_t \alpha_t^2 < \infty$), then $Q(s, a) \to Q^*(s, a)$ with probability one.
 
 A trained Q-table is a small but informative object. The figure below shows one for a 4x4 gridworld with a goal, a pit, and a -0.04 step cost. Each cell carries four numbers (one per action); the arrow marks the greedy choice that you would extract via $\arg\max_a Q(s, a)$.
 
-![Q-Table on a 4x4 Gridworld -- four Q-values and the greedy arrow per cell](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/fig1_qtable_gridworld.png)
+![Q-Table on a 4x4 Gridworld — four Q-values and the greedy arrow per cell](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/fig1_qtable_gridworld.png)
 
 ### A worked example: Cliff Walking
 
@@ -134,24 +133,24 @@ The 0.10 curve climbs fast and stabilises near the optimum. The 0.50 curve plate
 
 ## Why Tables Are Not Enough
 
-Cliff Walking has 48 states -- a Q-table is 192 floats. Now consider Atari Breakout. The DQN paper preprocesses the screen into 84 x 84 grayscale frames and stacks the last four to give the agent a sense of motion. The state is a vector in $\{0, \ldots, 255\}^{84 \times 84 \times 4}$, a space of size $256^{28224}$. There are not enough atoms in the universe.
+Cliff Walking has 48 states — a Q-table is 192 floats. Now consider Atari Breakout. The DQN paper preprocesses the screen into 84 x 84 grayscale frames and stacks the last four to give the agent a sense of motion. The state is a vector in $\{0, \ldots, 255\}^{84 \times 84 \times 4}$, a space of size $256^{28224}$. There are not enough atoms in the universe.
 
 Two failures follow immediately:
 
 1. **Storage is impossible.** No table can hold a Q-value per state.
 2. **Visit count is zero.** Q-Learning's convergence theorem requires every state-action pair to be visited infinitely often. The agent will never see the *exact* same 84x84x4 array twice.
 
-The fix is to replace the table with a **parametric function approximator**: a function $Q(s, a; \theta)$ with parameters $\theta$ -- in DQN, a convolutional network -- that *generalises* across visually similar states. Two screens that differ only in noise or brick colour should map to similar Q-values.
+The fix is to replace the table with a **parametric function approximator**: a function $Q(s, a; \theta)$ with parameters $\theta$ — in DQN, a convolutional network — that *generalises* across visually similar states. Two screens that differ only in noise or brick colour should map to similar Q-values.
 
 ### The Deadly Triad
 
 Generalisation comes at a price. Sutton & Barto identify three properties that, **together**, can make a value-based RL algorithm diverge. They call this the **Deadly Triad**:
 
 1. **Bootstrapping.** The TD target $r + \gamma \max_{a'} Q(s', a'; \theta)$ uses the network's own current estimate as ground truth.
-2. **Function approximation.** Updating $\theta$ to fix the Q-value at one state shifts the Q-values at every nearby state too -- you cannot edit one cell of a "neural table" in isolation.
+2. **Function approximation.** Updating $\theta$ to fix the Q-value at one state shifts the Q-values at every nearby state too — you cannot edit one cell of a "neural table" in isolation.
 3. **Off-policy data.** The transitions used for updates do not come from the policy whose value we are trying to learn.
 
-Each pair is fine; tabular Q-Learning is off-policy + bootstrapping but has no function approximation. Linear function approximation + on-policy is fine. But all three at once is genuinely unsafe -- you can construct toy MDPs where Q-values diverge to infinity.
+Each pair is fine; tabular Q-Learning is off-policy + bootstrapping but has no function approximation. Linear function approximation + on-policy is fine. But all three at once is genuinely unsafe — you can construct toy MDPs where Q-values diverge to infinity.
 
 DQN's two innovations target the off-policy and bootstrapping legs of the Triad respectively.
 
@@ -163,7 +162,7 @@ DQN's two innovations target the off-policy and bootstrapping legs of the Triad 
 
 ### Experience replay: breaking temporal correlation
 
-In supervised learning, mini-batch SGD assumes the data are i.i.d. -- you shuffle and sample. In RL, consecutive transitions $(s_t, a_t, r_t, s_{t+1})$ and $(s_{t+1}, a_{t+1}, r_{t+1}, s_{t+2})$ are wildly correlated: the next state is literally a function of the current one. Train on this stream directly and the gradient updates oscillate, the network forgets old experiences as soon as it leaves them, and convergence stalls.
+In supervised learning, mini-batch SGD assumes the data are i.i.d. — you shuffle and sample. In RL, consecutive transitions $(s_t, a_t, r_t, s_{t+1})$ and $(s_{t+1}, a_{t+1}, r_{t+1}, s_{t+2})$ are wildly correlated: the next state is literally a function of the current one. Train on this stream directly and the gradient updates oscillate, the network forgets old experiences as soon as it leaves them, and convergence stalls.
 
 DQN's fix is the **replay buffer**: store every observed transition in a large FIFO queue (typically 1 million entries) and, at each gradient step, draw a random mini-batch from it.
 
@@ -172,7 +171,7 @@ DQN's fix is the **replay buffer**: store every observed transition in a large F
 This buys three benefits:
 
 - **Decorrelated mini-batches.** A random sample of 32 transitions is approximately i.i.d., satisfying the assumption SGD relies on.
-- **Sample efficiency.** Each transition is replayed many times -- DeepMind reports roughly an order-of-magnitude improvement in sample efficiency.
+- **Sample efficiency.** Each transition is replayed many times — DeepMind reports roughly an order-of-magnitude improvement in sample efficiency.
 - **Smoother distribution shift.** The buffer mixes data from many recent policies, so the training distribution evolves slowly even when the policy changes quickly.
 
 ```python
@@ -199,7 +198,7 @@ class ReplayBuffer:
 
 ### Target network: stop chasing your own tail
 
-Even with replay, the TD target $r + \gamma \max_{a'} Q(s', a'; \theta)$ moves every time we update $\theta$ -- the target is a function of the parameters we are optimising. The geometry of the loss surface changes underfoot at every step. Empirically, this causes oscillation and divergence.
+Even with replay, the TD target $r + \gamma \max_{a'} Q(s', a'; \theta)$ moves every time we update $\theta$ — the target is a function of the parameters we are optimising. The geometry of the loss surface changes underfoot at every step. Empirically, this causes oscillation and divergence.
 
 DQN keeps **two copies** of the network:
 
@@ -214,7 +213,7 @@ Every $C$ steps (10,000 in the Nature paper), copy: $\theta^- \leftarrow \theta$
 
 ![Target network: a lagging copy of the online weights stabilises the TD target](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/fig5_target_network.png)
 
-A continuous variant -- the **Polyak (soft) update** $\theta^- \leftarrow \tau \theta + (1-\tau) \theta^-$ with $\tau \approx 0.005$ -- is used by DDPG and SAC and works equally well.
+A continuous variant — the **Polyak (soft) update** $\theta^- \leftarrow \tau \theta + (1-\tau) \theta^-$ with $\tau \approx 0.005$ — is used by DDPG and SAC and works equally well.
 
 ---
 
@@ -314,7 +313,7 @@ class DQNAgent:
 
 A few practical notes you will not find in the paper:
 
-- Use **Huber loss** (`smooth_l1_loss`), not pure MSE -- a few wild TD errors will not throw the optimiser if the gradient is clipped to magnitude 1.
+- Use **Huber loss** (`smooth_l1_loss`), not pure MSE — a few wild TD errors will not throw the optimiser if the gradient is clipped to magnitude 1.
 - **Gradient clipping** to 10 (or norm 1) prevents the rare large update from destabilising everything.
 - **Frame-skip 4 with max-pool over the last two frames** handles Atari's flickering sprites; this is environment preprocessing, not part of the agent.
 - On Pong, this agent reaches near-optimal play (mean episode reward $\approx +21$) in roughly 200-300 episodes on a single GPU.
@@ -323,7 +322,7 @@ A few practical notes you will not find in the paper:
 
 ## DQN Variants: From Double to Rainbow
 
-The original DQN was published in 2013 (workshop) and 2015 (*Nature*). In the years that followed, a procession of papers each plugged one specific weakness. Eventually they were assembled into a single agent -- Rainbow -- whose components compose almost additively.
+The original DQN was published in 2013 (workshop) and 2015 (*Nature*). In the years that followed, a procession of papers each plugged one specific weakness. Eventually they were assembled into a single agent — Rainbow — whose components compose almost additively.
 
 ### Double DQN: removing the maximisation bias
 
@@ -354,14 +353,14 @@ with torch.no_grad():
 
 ### Dueling DQN: separating "how good is here?" from "how good is this action?"
 
-In a great many Atari frames, the choice of action barely matters -- the ball is far away, the enemies are off-screen, you cannot influence anything for a few frames. Lumping state value and action advantage into one Q-head wastes capacity learning the same $V(s)$ over and over.
+In a great many Atari frames, the choice of action barely matters — the ball is far away, the enemies are off-screen, you cannot influence anything for a few frames. Lumping state value and action advantage into one Q-head wastes capacity learning the same $V(s)$ over and over.
 
 Wang et al. (2016) factor the head into two streams:
 
 $$Q(s, a) \;=\; V(s) + \Big(A(s, a) - \tfrac{1}{|\mathcal{A}|} \sum_{a'} A(s, a')\Big)$$
 
-- $V(s)$ -- "How good is it to be in this state?" -- is action-independent.
-- $A(s, a)$ -- "How much better is action $a$ than average?" -- is action-specific.
+- $V(s)$ — "How good is it to be in this state?" — is action-independent.
+- $A(s, a)$ — "How much better is action $a$ than average?" — is action-specific.
 
 The mean-subtraction trick is what makes the decomposition identifiable; without it $V$ and $A$ could absorb arbitrary constants from each other.
 
@@ -384,7 +383,7 @@ class DuelingDQN(nn.Module):
         return v + a - a.mean(dim=1, keepdim=True)
 ```
 
-Dueling pairs especially well with Double DQN -- the two changes attack different weaknesses and stack cleanly.
+Dueling pairs especially well with Double DQN — the two changes attack different weaknesses and stack cleanly.
 
 ### Prioritized Experience Replay
 
@@ -398,7 +397,7 @@ The exponent $\alpha \in [0, 1]$ trades off prioritisation strength ($\alpha = 0
 
 $$w_i = \Big(\tfrac{1}{N \cdot p_i}\Big)^\beta$$
 
-with $\beta$ annealed from 0.4 toward 1.0 across training -- low $\beta$ early when the bias hurts less, full correction late when stability matters more.
+with $\beta$ annealed from 0.4 toward 1.0 across training — low $\beta$ early when the bias hurts less, full correction late when stability matters more.
 
 ### Multi-step targets, distributional RL, NoisyNets
 
@@ -444,7 +443,7 @@ The numbers above are median scores normalised so that the human baseline = 100%
 1. **Solve CartPole first.** A correctly implemented DQN solves CartPole in under 200 episodes on CPU. If yours cannot, the bug is in your code, not your hyperparameters.
 2. **Watch the Q-value magnitudes.** They should rise and then plateau near a sensible scale (for Atari, single or double digits). If they drift past 1000 you have a divergence bug.
 3. **Track the TD error.** It should fall and stay bounded. A monotonic upward trend means the target is escaping.
-4. **Inspect the action distribution.** If the agent only ever takes one action, the network's output is collapsing -- check for dead ReLUs, broken initialisation, or a runaway learning rate.
+4. **Inspect the action distribution.** If the agent only ever takes one action, the network's output is collapsing — check for dead ReLUs, broken initialisation, or a runaway learning rate.
 
 ### When DQN, when something else?
 
@@ -463,9 +462,9 @@ DQN's hard limitation is the discrete action space: $\arg\max_a Q(s, a)$ is triv
 
 DQN's contribution was as much engineering as it was theory. The neural network in place of the table is the obvious change; the experience replay buffer and the target network are the two ideas that turn an unstable algorithm into one that actually trains. Together they neutralise the off-policy and bootstrapping legs of the Deadly Triad enough to get useful learning out of a non-linear function approximator.
 
-The post-DQN variants each add a clean fix to a clean failure: Double DQN removes overestimation bias, Dueling separates state value from action advantage, Prioritized Replay focuses learning on surprising transitions, and Rainbow shows that these fixes compose. The same building blocks survive into modern agents -- you will see replay buffers and target networks in SAC, in offline RL, and in many recent LLM-RL hybrids.
+The post-DQN variants each add a clean fix to a clean failure: Double DQN removes overestimation bias, Dueling separates state value from action advantage, Prioritized Replay focuses learning on surprising transitions, and Rainbow shows that these fixes compose. The same building blocks survive into modern agents — you will see replay buffers and target networks in SAC, in offline RL, and in many recent LLM-RL hybrids.
 
-**Next:** [Part 3](/en/reinforcement-learning/03-policy-gradient-and-actor-critic/) introduces **policy gradient** methods and **actor-critic** architectures -- the family that handles continuous actions and underlies PPO, SAC, and the policy half of every modern algorithm.
+**Next:** [Part 3](/en/reinforcement-learning/03-policy-gradient-and-actor-critic/) introduces **policy gradient** methods and **actor-critic** architectures — the family that handles continuous actions and underlies PPO, SAC, and the policy half of every modern algorithm.
 
 ---
 
@@ -480,4 +479,4 @@ The post-DQN variants each add a clean fix to a clean failure: Double DQN remove
 - Bellemare, M., Dabney, W., & Munos, R. (2017). A Distributional Perspective on Reinforcement Learning. *ICML*.
 - Fortunato, M., et al. (2018). Noisy Networks for Exploration. *ICLR*.
 - Hessel, M., et al. (2018). Rainbow: Combining Improvements in Deep Reinforcement Learning. *AAAI*.
-- Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press. -- Chapter 11 for the Deadly Triad.
+- Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press. — Chapter 11 for the Deadly Triad.

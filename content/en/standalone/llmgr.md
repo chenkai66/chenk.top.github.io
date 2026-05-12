@@ -13,7 +13,7 @@ disableNunjucks: true
 translationKey: "llmgr"
 ---
 
-Session-based recommendation lives or dies on the click graph. New items have no edges. Long-tail items have a handful of noisy edges. Yet every item ships with a title and a description that the model never reads. **LLMGR** plugs that hole: treat the LLM as a "semantic engine" that turns text into representations a graph encoder can fuse with, then let a GNN do what it does best -- rank. The headline result on Amazon Music/Beauty/Pantry: HR@20 up ~8.68%, NDCG@20 up ~10.71%, MRR@20 up ~11.75% over the strongest GNN baseline, with the largest uplift concentrated on cold-start items.
+Session-based recommendation lives or dies on the click graph. New items have no edges. Long-tail items have a handful of noisy edges. Yet every item ships with a title and a description that the model never reads. **LLMGR** plugs that hole: treat the LLM as a "semantic engine" that turns text into representations a graph encoder can fuse with, then let a GNN do what it does best — rank. The headline result on Amazon Music/Beauty/Pantry: HR@20 up ~8.68%, NDCG@20 up ~10.71%, MRR@20 up ~11.75% over the strongest GNN baseline, with the largest uplift concentrated on cold-start items.
 
 ## What you will learn
 
@@ -37,7 +37,7 @@ Session-based recommendation lives or dies on the click graph. New items have no
 
 ## 1. Why pure GNN session recommenders stall on sparsity
 
-A session is a short click stream $s = [v_1, v_2, \dots, v_n]$ -- usually only **3 to 20 clicks** -- and the task is to score the next item or rank a candidate set. Three structural problems make this hard for any model that only sees IDs and edges:
+A session is a short click stream $s = [v_1, v_2, \dots, v_n]$ — usually only **3 to 20 clicks** — and the task is to score the next item or rank a candidate set. Three structural problems make this hard for any model that only sees IDs and edges:
 
 - **Short sequences.** Three to twenty clicks contain a lot of exploration noise; extracting a stable intent signal from so few points is genuinely hard.
 - **Long tail dominates the catalogue.** Most items have a handful of edges, and the edges they do have are unreliable. A GNN trained on these edges learns noise.
@@ -98,9 +98,9 @@ Joint training of the auxiliary and main tasks does not work. LLMGR splits train
 
 ![Two-stage tuning: Stage 1 freezes the GNN and grounds semantics; Stage 2 unfreezes and learns transitions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llmgr/fig4_two_stage_tuning.png)
 
-**Stage 1 -- semantic grounding (1 epoch).** The GNN is **frozen**. Only the hybrid layer and the LLM (via LoRA) are updated. Loss is cross-entropy on the auxiliary "which ID does this text describe?" task. Freezing the GNN here is critical: if the GNN can move, the model can short-circuit the alignment task by overfitting transition edges and the text channel never has to learn anything.
+**Stage 1 — semantic grounding (1 epoch).** The GNN is **frozen**. Only the hybrid layer and the LLM (via LoRA) are updated. Loss is cross-entropy on the auxiliary "which ID does this text describe?" task. Freezing the GNN here is critical: if the GNN can move, the model can short-circuit the alignment task by overfitting transition edges and the text channel never has to learn anything.
 
-**Stage 2 -- behaviour pattern learning (~3 epochs per dataset).** The GNN is unfrozen. Loss is cross-entropy on the main next-item task. The semantic anchors learned in Stage 1 are preserved by the joint optimisation; the model now learns transition structure on top of grounded semantics rather than instead of them.
+**Stage 2 — behaviour pattern learning (~3 epochs per dataset).** The GNN is unfrozen. Loss is cross-entropy on the main next-item task. The semantic anchors learned in Stage 1 are preserved by the joint optimisation; the model now learns transition structure on top of grounded semantics rather than instead of them.
 
 **Why split?** If you train both losses jointly from scratch, the model has not yet learned which text corresponds to which ID, so behaviour noise dominates the gradient. The text channel collapses to noise, the model becomes a vanilla GNN-SBR, and the cold-start gain disappears. The paper's RQ3 ablation confirms this: removing Stage 1 drops NDCG@20 by ~4.16% on Beauty.
 
@@ -146,7 +146,7 @@ with $y$ the one-hot true next item.
 
 ### Setup
 
-Three Amazon datasets -- **Music**, **Beauty**, **Pantry** -- chosen because they (a) have rich item text, (b) span very different shopping intents, and (c) have heavy long tails. Standard preprocessing: drop users and items with fewer than 5 interactions; use leave-one-out splitting (last item = test, second-to-last = validation).
+Three Amazon datasets — **Music**, **Beauty**, **Pantry** — chosen because they (a) have rich item text, (b) span very different shopping intents, and (c) have heavy long tails. Standard preprocessing: drop users and items with fewer than 5 interactions; use leave-one-out splitting (last item = test, second-to-last = validation).
 
 Baselines cover the obvious axes:
 
@@ -159,7 +159,7 @@ Baselines cover the obvious axes:
 Implementation details that matter for reproducibility:
 
 - Base LLM: **LLaMA2-7B** with LoRA, on **2x A100** with DeepSpeed
-- ID embeddings are *bootstrapped from a pre-trained GCSAN* and not modified during LLM training -- a small but important engineering trick that avoids learning ID embeddings from scratch through the LLM
+- ID embeddings are *bootstrapped from a pre-trained GCSAN* and not modified during LLM training — a small but important engineering trick that avoids learning ID embeddings from scratch through the LLM
 - Optimiser: AdamW, batch size 16, cosine schedule, weight decay 1e-2
 - Stage 1: 1 epoch. Stage 2: 3 epochs per dataset
 
@@ -186,9 +186,9 @@ Remove the auxiliary task (i.e., skip Stage 1):
 - Music HR@20 drops by **2.04%**
 - Beauty NDCG@20 drops by **4.16%**
 
-NDCG/MRR moving more than HR confirms that the auxiliary task is doing what it is supposed to do -- improving ranking quality, not just hit count.
+NDCG/MRR moving more than HR confirms that the auxiliary task is doing what it is supposed to do — improving ranking quality, not just hit count.
 
-### Cold-start (RQ4) -- the actual selling point
+### Cold-start (RQ4) — the actual selling point
 
 LLMGR's value proposition is sparsity, so the cold-start cut is the one to watch. Items are bucketed by interaction count: warm-start (50+ interactions) vs cold-start (5-10 interactions).
 
@@ -217,7 +217,7 @@ If you genuinely need online LLM inference for some slice (e.g., long-form perso
 
 ### Clean the text first
 
-Marketing copy makes everything look semantically similar -- "Best Choice! Top Quality! Limited Offer!" is noise that hurts ranking. Before LLMGR sees a description:
+Marketing copy makes everything look semantically similar — "Best Choice! Top Quality! Limited Offer!" is noise that hurts ranking. Before LLMGR sees a description:
 
 - Strip HTML and marketing boilerplate
 - Pull out structured fields (brand, category, key attributes) and put them first
@@ -253,7 +253,7 @@ If a careful "BERT + GNN" baseline matches LLMGR on your data, LLMGR is not wort
 
 ### Is two-stage really necessary?
 
-The RQ3 ablation says yes, and the failure mode has a clean diagnostic: when Stage 1 is skipped, NDCG/MRR fall more than HR. That is exactly what you would predict if the model is hitting the right neighbourhood but failing to rank within it -- which is what happens when text semantics are not properly anchored.
+The RQ3 ablation says yes, and the failure mode has a clean diagnostic: when Stage 1 is skipped, NDCG/MRR fall more than HR. That is exactly what you would predict if the model is hitting the right neighbourhood but failing to rank within it — which is what happens when text semantics are not properly anchored.
 
 There may be one-stage schedules that work (joint training with weighted losses, curriculum schedules), but the paper does not test them.
 

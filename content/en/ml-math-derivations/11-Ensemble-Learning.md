@@ -1,8 +1,7 @@
 ---
 title: "ML Math Derivations (11): Ensemble Learning"
 date: 2026-01-30 09:00:00
-categories:
-  - Machine Learning
+categories: Machine Learning
 tags:
   - Ensemble Learning
   - Boosting

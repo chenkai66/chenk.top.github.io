@@ -18,14 +18,14 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-4"
 ---
 
-I used to store user uploads on the ECS disk. Profile pictures, PDF invoices, CSV exports -- all dumped into `/var/data/uploads/` on a single `ecs.g7.large` running my Flask app. I had a cron job that rsynced the directory to a second ECS instance every six hours as a "backup." Then one Friday at 3am, the system disk hit 100% because a batch job generated 40GB of reports nobody ever downloaded, the instance went read-only, the app crashed, and the rsync hadn't run since the previous evening. I lost six hours of user uploads and spent the weekend apologizing to customers. That was the week I learned that object storage is not a nice-to-have -- it is the foundation of everything you build in the cloud. Your application server is ephemeral. Your data is not.
+I used to store user uploads on the ECS disk. Profile pictures, PDF invoices, CSV exports — all dumped into `/var/data/uploads/` on a single `ecs.g7.large` running my Flask app. I had a cron job that rsynced the directory to a second ECS instance every six hours as a "backup." Then one Friday at 3am, the system disk hit 100% because a batch job generated 40GB of reports nobody ever downloaded, the instance went read-only, the app crashed, and the rsync hadn't run since the previous evening. I lost six hours of user uploads and spent the weekend apologizing to customers. That was the week I learned that object storage is not a nice-to-have — it is the foundation of everything you build in the cloud. Your application server is ephemeral. Your data is not.
 
 
-This article covers Alibaba Cloud's Object Storage Service from first principles through production deployment. By the end, you will have a working media storage backend with lifecycle management, CDN acceleration, and presigned uploads from a Python API. We set up the VPC and ECS foundation in [Part 2](/en/aliyun-fullstack/02-ecs-compute/) and [Part 3](/en/aliyun-fullstack/03-vpc-networking/) -- now we add the storage layer that survives instance failures, scales to petabytes, and costs a fraction of block storage.
+This article covers Alibaba Cloud's Object Storage Service from first principles through production deployment. By the end, you will have a working media storage backend with lifecycle management, CDN acceleration, and presigned uploads from a Python API. We set up the VPC and ECS foundation in [Part 2](/en/aliyun-fullstack/02-ecs-compute/) and [Part 3](/en/aliyun-fullstack/03-vpc-networking/) — now we add the storage layer that survives instance failures, scales to petabytes, and costs a fraction of block storage.
 
 ## What Is OSS?
 
-Object Storage Service is Alibaba Cloud's equivalent of AWS S3. You store files -- called "objects" -- in containers called "buckets." Each object has a unique key (its path), the data itself, and metadata. That is the entire data model. There are no directories, no file hierarchies, no POSIX semantics. When you see `images/2026/05/avatar.png` in OSS, the slashes are part of the key string, not a directory structure. The console renders them as folders for convenience, but the storage layer is flat.
+Object Storage Service is Alibaba Cloud's equivalent of AWS S3. You store files — called "objects" — in containers called "buckets." Each object has a unique key (its path), the data itself, and metadata. That is the entire data model. There are no directories, no file hierarchies, no POSIX semantics. When you see `images/2026/05/avatar.png` in OSS, the slashes are part of the key string, not a directory structure. The console renders them as folders for convenience, but the storage layer is flat.
 
 This simplicity is the point. Because OSS does not need to maintain a filesystem tree, it can distribute objects across thousands of storage nodes transparently. You never think about capacity planning, disk IOPS, or RAID configurations. You PUT an object, and OSS figures out where to store it, how to replicate it across zones for durability, and how to serve it back when you GET it. The durability guarantee is 99.9999999999% (twelve nines) for Standard storage. That is "designed to lose at most one object if you store ten billion."
 
@@ -39,11 +39,11 @@ Alibaba Cloud offers three fundamentally different storage products, and using t
 | **File storage** | NAS / CPFS | Shared across multiple ECS via NFS/SMB | A network file share in your office |
 | **Object storage** | OSS | HTTP API, no mount, unlimited capacity | Dropbox with an API |
 
-**Block storage** (cloud disks attached to ECS) gives you a raw block device that the OS formats with ext4 or xfs. It is fast, low-latency, and supports random I/O -- perfect for databases, OS boot volumes, and anything that needs POSIX filesystem semantics. But it can only be attached to one instance at a time, and you pay for provisioned capacity whether you use it or not.
+**Block storage** (cloud disks attached to ECS) gives you a raw block device that the OS formats with ext4 or xfs. It is fast, low-latency, and supports random I/O — perfect for databases, OS boot volumes, and anything that needs POSIX filesystem semantics. But it can only be attached to one instance at a time, and you pay for provisioned capacity whether you use it or not.
 
 **File storage** (NAS) provides a shared filesystem that multiple ECS instances can mount simultaneously via NFS v3/v4 or SMB. Great for legacy applications that need a shared `/data` directory, CMS systems, or development environments. But it is expensive per GB and performance depends on the capacity tier you purchase.
 
-**Object storage** (OSS) is for everything else -- and "everything else" is usually 90% of your data. Static assets, user uploads, backups, logs, data lake files, ML training datasets, video, audio, documents. If you access it via HTTP and do not need to edit bytes in the middle of the file, OSS is the right answer.
+**Object storage** (OSS) is for everything else — and "everything else" is usually 90% of your data. Static assets, user uploads, backups, logs, data lake files, ML training datasets, video, audio, documents. If you access it via HTTP and do not need to edit bytes in the middle of the file, OSS is the right answer.
 
 ### OSS vs AWS S3
 
@@ -64,19 +64,19 @@ If you are coming from AWS, the mapping is straightforward:
 | Cross-Region Replication | Cross-Region Replication | Same async replication model |
 | CloudFront + S3 | CDN + OSS | Native integration, same back-to-origin pattern |
 
-The main differences: OSS uses AccessKey ID/Secret instead of AWS Signature V4 (though the SDK handles this). OSS endpoints follow the pattern `oss-{region}.aliyuncs.com` rather than `s3.{region}.amazonaws.com`. And OSS has a unique "internal endpoint" for each region (e.g., `oss-cn-beijing-internal.aliyuncs.com`) that provides free data transfer when accessed from ECS instances in the same region -- AWS charges for the same traffic.
+The main differences: OSS uses AccessKey ID/Secret instead of AWS Signature V4 (though the SDK handles this). OSS endpoints follow the pattern `oss-{region}.aliyuncs.com` rather than `s3.{region}.amazonaws.com`. And OSS has a unique "internal endpoint" for each region (e.g., `oss-cn-beijing-internal.aliyuncs.com`) that provides free data transfer when accessed from ECS instances in the same region — AWS charges for the same traffic.
 
 ### Key concepts
 
 Four things you need to understand before writing any code:
 
-**Bucket** -- A globally unique container for objects. Bucket names must be 3-63 characters, lowercase letters, numbers, and hyphens only. They are region-scoped -- a bucket in `cn-beijing` stores data in Beijing. You cannot rename or move a bucket after creation.
+**Bucket** — A globally unique container for objects. Bucket names must be 3-63 characters, lowercase letters, numbers, and hyphens only. They are region-scoped — a bucket in `cn-beijing` stores data in Beijing. You cannot rename or move a bucket after creation.
 
-**Object** -- A file stored in a bucket, identified by a key (path string). Maximum object size is 48.8 TB. Objects are immutable -- you replace the entire object on update, you cannot modify bytes in place.
+**Object** — A file stored in a bucket, identified by a key (path string). Maximum object size is 48.8 TB. Objects are immutable — you replace the entire object on update, you cannot modify bytes in place.
 
-**Region and Endpoint** -- Each bucket lives in one region. Access it via the public endpoint (`oss-cn-beijing.aliyuncs.com`), the internal endpoint (free from ECS in the same region), or a custom domain you bind.
+**Region and Endpoint** — Each bucket lives in one region. Access it via the public endpoint (`oss-cn-beijing.aliyuncs.com`), the internal endpoint (free from ECS in the same region), or a custom domain you bind.
 
-**AccessKey** -- Your credentials for API access. In production, never use your root account AccessKey. Use RAM users or STS temporary credentials, which we cover in the Access Control section below.
+**AccessKey** — Your credentials for API access. In production, never use your root account AccessKey. Use RAM users or STS temporary credentials, which we cover in the Access Control section below.
 
 ## Storage Classes
 
@@ -121,7 +121,7 @@ The fastest way to create your first bucket:
 5. Storage class: Standard (change later via lifecycle rules)
 6. Access Control: **Private** (always start private)
 7. Versioning: Enable (you can always suspend it later, but enabling retroactively does not version existing objects)
-8. Server-Side Encryption: AES-256 or KMS (I recommend AES-256 for most workloads -- it is free and transparent)
+8. Server-Side Encryption: AES-256 or KMS (I recommend AES-256 for most workloads — it is free and transparent)
 9. Click **OK**
 
 ### CLI with ossutil
@@ -186,11 +186,11 @@ ossutil bucket-info oss://myapp-prod-media
 - Globally unique across all of Alibaba Cloud (not just your account)
 - Cannot be renamed after creation
 
-I use the pattern `{app}-{env}-{purpose}-{region-short}` -- e.g., `myapp-prod-media-cn`, `myapp-staging-logs-cn`. This prevents naming collisions and makes it obvious what each bucket is for when you are staring at a list of 30 buckets at 2am.
+I use the pattern `{app}-{env}-{purpose}-{region-short}` — e.g., `myapp-prod-media-cn`, `myapp-staging-logs-cn`. This prevents naming collisions and makes it obvious what each bucket is for when you are staring at a list of 30 buckets at 2am.
 
 ### Versioning
 
-Versioning keeps every version of every object. When you overwrite `report.pdf`, the old version is not deleted -- it becomes a non-current version. When you delete `report.pdf`, it gets a delete marker but the data remains.
+Versioning keeps every version of every object. When you overwrite `report.pdf`, the old version is not deleted — it becomes a non-current version. When you delete `report.pdf`, it gets a delete marker but the data remains.
 
 ```bash
 # Enable versioning
@@ -203,7 +203,7 @@ ossutil bucket-versioning --method get oss://myapp-prod-media
 ossutil ls oss://myapp-prod-media/ --all-versions
 ```
 
-Versioning is essential for any bucket containing user data. The storage cost doubles (because you keep old versions), but the alternative -- losing data permanently on accidental overwrite -- is worse. Combine versioning with lifecycle rules to auto-delete non-current versions after 30 days, which keeps costs controlled.
+Versioning is essential for any bucket containing user data. The storage cost doubles (because you keep old versions), but the alternative — losing data permanently on accidental overwrite — is worse. Combine versioning with lifecycle rules to auto-delete non-current versions after 30 days, which keeps costs controlled.
 
 ## Access Control Deep Dive
 
@@ -231,7 +231,7 @@ ossutil bucket-acl --method get oss://myapp-prod-media
 
 I am not exaggerating about `public-read-write`. Setting a bucket to public-read-write means anyone on the internet can upload arbitrary files to your bucket, run up your storage bill, and use your bucket as a malware distribution point. I have seen this in production. Do not do it.
 
-`public-read` is appropriate only for static assets served directly from OSS (without CDN) where you want the simplest possible setup. Even then, I prefer `private` plus CDN with origin access identity -- but we will get to that.
+`public-read` is appropriate only for static assets served directly from OSS (without CDN) where you want the simplest possible setup. Even then, I prefer `private` plus CDN with origin access identity — but we will get to that.
 
 ### Layer 2: Bucket Policy
 
@@ -271,7 +271,7 @@ ossutil bucket-policy --method put oss://myapp-prod-media ./bucket-policy.json
 
 ### Layer 3: RAM Policy
 
-RAM (Resource Access Management) policies are identity-based -- attached to RAM users, groups, or roles. This is what your application server uses.
+RAM (Resource Access Management) policies are identity-based — attached to RAM users, groups, or roles. This is what your application server uses.
 
 Create a RAM user for your application with minimum necessary permissions:
 
@@ -315,7 +315,7 @@ aliyun ram CreateAccessKey --UserName app-oss-user
 
 ### Layer 4: STS Temporary Credentials
 
-Security Token Service issues temporary credentials that expire after a configurable period (15 minutes to 1 hour). This is what you use for browser-based uploads and mobile apps -- never embed long-lived AccessKeys in client code.
+Security Token Service issues temporary credentials that expire after a configurable period (15 minutes to 1 hour). This is what you use for browser-based uploads and mobile apps — never embed long-lived AccessKeys in client code.
 
 The flow:
 
@@ -422,7 +422,7 @@ bucket.put_object_from_file('images/photo.jpg', '/tmp/photo.jpg', headers=header
 
 ### Multipart upload
 
-For files larger than 100 MB, use multipart upload. The file is split into parts (minimum 100 KB each, except the last), uploaded in parallel, then assembled server-side. If a part fails, you retry just that part -- not the entire file.
+For files larger than 100 MB, use multipart upload. The file is split into parts (minimum 100 KB each, except the last), uploaded in parallel, then assembled server-side. If a part fails, you retry just that part — not the entire file.
 
 ```python
 import oss2
@@ -637,8 +637,8 @@ Cross-Region Replication asynchronously copies objects from a source bucket to a
 
 ![Cross-region replication topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_crr_topology.png)
 
-1. **Disaster recovery** -- If cn-beijing has a regional outage, your data exists in cn-shanghai
-2. **Compliance** -- Regulatory requirements to store copies in specific geographic locations
+1. **Disaster recovery** — If cn-beijing has a regional outage, your data exists in cn-shanghai
+2. **Compliance** — Regulatory requirements to store copies in specific geographic locations
 
 ### Setting up CRR
 
@@ -809,7 +809,7 @@ aliyun cdn RefreshObjectCaches \
 
 ## Image Processing (IMM)
 
-OSS has built-in image processing that transforms images on the fly via URL parameters. No separate service, no pre-processing pipeline -- just append query parameters to the object URL.
+OSS has built-in image processing that transforms images on the fly via URL parameters. No separate service, no pre-processing pipeline — just append query parameters to the object URL.
 
 ![Image processing pipeline via IMM](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_image_processing.png)
 
@@ -865,7 +865,7 @@ curl "https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-os
 
 When you access `https://cdn.example.com/images/photo.jpg?x-oss-process=image/resize,w_800/format,webp`, CDN caches the processed version. Subsequent requests for the same transformation hit the CDN cache, not OSS. This means you get on-the-fly processing with CDN-speed delivery.
 
-The processed images are cached separately from the originals -- the full URL including query parameters is the cache key. So `photo.jpg`, `photo.jpg?x-oss-process=image/resize,w_800`, and `photo.jpg?x-oss-process=image/resize,w_400` are three separate cache entries.
+The processed images are cached separately from the originals — the full URL including query parameters is the cache key. So `photo.jpg`, `photo.jpg?x-oss-process=image/resize,w_800`, and `photo.jpg?x-oss-process=image/resize,w_400` are three separate cache entries.
 
 ## Solution: Media Storage Backend
 
@@ -1205,4 +1205,4 @@ For using OSS with infrastructure-as-code, see [Terraform Part 5: Storage](/en/t
 
 ## What's Next
 
-Storage is where your data lives. With OSS configured -- buckets, lifecycle rules, access control, CDN, and image processing in place -- we have the persistence layer sorted. In the next article, we move to managed databases: RDS for relational data, Redis for caching, and the replication, backup, and failover strategies that keep your data alive when hardware inevitably fails.
+Storage is where your data lives. With OSS configured — buckets, lifecycle rules, access control, CDN, and image processing in place — we have the persistence layer sorted. In the next article, we move to managed databases: RDS for relational data, Redis for caching, and the replication, backup, and failover strategies that keep your data alive when hardware inevitably fails.

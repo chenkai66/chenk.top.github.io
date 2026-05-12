@@ -6,8 +6,7 @@ tags:
   - Type Hints
   - Linting
   - Code Quality
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Add type safety with mypy, enforce style with ruff and black, and automate checks with pre-commit hooks. Make code reviews about logic, not formatting."

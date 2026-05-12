@@ -6,8 +6,7 @@ tags:
   - Replication
   - Sharding
   - Distributed Systems
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: en
 description: "How databases replicate data for availability and partition data for scale — covering leader-follower, multi-leader, leaderless, sharding strategies, and consistent hashing."

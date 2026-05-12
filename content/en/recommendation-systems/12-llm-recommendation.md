@@ -493,9 +493,9 @@ Two-year arc I've watched at multiple companies.
 
 **Phase 1 (mid-2023): Prompt the LLM with item lists, hope.** Excited blog posts about "GPT-4 can rank!". Worked in demos with 10 items. Fell over at scale.
 
-**Phase 2 (late 2023 -- mid 2024): Distill and serve.** Take GPT-4 outputs as labels, train a 7B model to mimic, serve it. Latency improved 5× but still too expensive for tail QPS. Quality degraded vs the teacher by ~3 NDCG points.
+**Phase 2 (late 2023 — mid 2024): Distill and serve.** Take GPT-4 outputs as labels, train a 7B model to mimic, serve it. Latency improved 5× but still too expensive for tail QPS. Quality degraded vs the teacher by ~3 NDCG points.
 
-**Phase 3 (late 2024 -- now): LLMs as offline feature factories.** The LLM never touches the request. Instead it:
+**Phase 3 (late 2024 — now): LLMs as offline feature factories.** The LLM never touches the request. Instead it:
 1. Generates item summaries / extracted attributes (run once per item, cache forever)
 2. Produces user intent labels from search queries / browsing sessions (run hourly per active user)
 3. Detects content quality / safety issues (run on item ingestion)

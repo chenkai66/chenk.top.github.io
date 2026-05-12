@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 5
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "A working mental model for Linux accounts: how /etc/passwd and /etc/shadow fit together, when to use a primary group versus a supplementary one, how sudo actually decides, and the full lifecycle of useradd / usermod / passwd / chage / userdel — including the PAM stack underneath."

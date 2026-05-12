@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 8
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "A deep walk-through of the Unix pipeline model: stdin/stdout/stderr and file descriptors, every common redirection form, the grep/awk/sed/cut/sort/uniq/xargs toolchain, named pipes, and process substitution -- with one-liners you can actually use on logs."
@@ -17,7 +17,7 @@ translationKey: "linux-8"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/illustration_1.png)
 
-The biggest productivity jump on Linux is not memorising more commands. It is learning to **compose small tools** into clean data flows. The pipe operator `|` is the embodiment of the Unix philosophy: each tool does one thing and does it well (`grep` only filters, `awk` only extracts fields, `sort` only sorts), and you chain them into a pipeline that is readable, debuggable, and obvious to maintain. This article starts from the data-flow model -- `stdin`, `stdout`, `stderr` and the file descriptors behind them -- then walks through every common redirection form (`>`, `>>`, `<`, `2>`, `2>&1`, `&>`), builds up the text-processing toolchain (`grep`, `awk`, `sed`, `cut`, `tr`, `sort`, `uniq`, `xargs`, `tee`), and ends with two patterns most introductions skip: named pipes (FIFOs) and process substitution. By the end you should be able to replace many "I need to write a script" tasks with one or two readable command lines, and read other people's one-liners without squinting.
+The biggest productivity jump on Linux is not memorising more commands. It is learning to **compose small tools** into clean data flows. The pipe operator `|` is the embodiment of the Unix philosophy: each tool does one thing and does it well (`grep` only filters, `awk` only extracts fields, `sort` only sorts), and you chain them into a pipeline that is readable, debuggable, and obvious to maintain. This article starts from the data-flow model — `stdin`, `stdout`, `stderr` and the file descriptors behind them — then walks through every common redirection form (`>`, `>>`, `<`, `2>`, `2>&1`, `&>`), builds up the text-processing toolchain (`grep`, `awk`, `sed`, `cut`, `tr`, `sort`, `uniq`, `xargs`, `tee`), and ends with two patterns most introductions skip: named pipes (FIFOs) and process substitution. By the end you should be able to replace many "I need to write a script" tasks with one or two readable command lines, and read other people's one-liners without squinting.
 
 ## The Data-Flow Model: stdin, stdout, stderr
 
@@ -31,10 +31,10 @@ Every Linux process starts life with three open file descriptors. Understanding 
 | **stdout** | 1  | Terminal screen           | Where normal results go                    |
 | **stderr** | 2  | Terminal screen           | Where diagnostics, warnings and errors go  |
 
-The non-obvious thing is the **separation between stdout and stderr**. Both default to the terminal, so when you run a command interactively they look interchangeable -- but the kernel keeps them on two distinct file descriptors. That separation is what makes pipelines safe:
+The non-obvious thing is the **separation between stdout and stderr**. Both default to the terminal, so when you run a command interactively they look interchangeable — but the kernel keeps them on two distinct file descriptors. That separation is what makes pipelines safe:
 
 - The pipe operator `|` only carries fd 1 (stdout). Errors written to fd 2 do not pollute the data flowing into the next stage.
-- You can save normal output to a file while still seeing errors live on the terminal -- or vice versa.
+- You can save normal output to a file while still seeing errors live on the terminal — or vice versa.
 - A script can succeed silently and only speak up via stderr when something goes wrong.
 
 A tiny demonstration:
@@ -85,7 +85,7 @@ ls -l > filelist.txt          # save a directory listing
 date >> deploy.log            # tag a log line with a timestamp
 ```
 
-`>` is destructive -- it truncates the target before the command starts running. If the command then fails, you have already lost the previous contents. When you are not sure, use `>>` and clean up later, or save to a temporary path first.
+`>` is destructive — it truncates the target before the command starts running. If the command then fails, you have already lost the previous contents. When you are not sure, use `>>` and clean up later, or save to a temporary path first.
 
 ### stderr: `2>` and `2>>`
 
@@ -126,7 +126,7 @@ cmd 2>&1 > out.log
 cmd > out.log 2>&1
 ```
 
-Read it left to right and remember that `2>&1` means "make fd 2 point wherever fd 1 currently points" -- not "merge fd 2 into fd 1".
+Read it left to right and remember that `2>&1` means "make fd 2 point wherever fd 1 currently points" — not "merge fd 2 into fd 1".
 
 ### Discarding output: `/dev/null`
 
@@ -162,7 +162,7 @@ Here-docs are how you embed configuration files inside scripts, send multi-line 
 
 The pipe is the simplest IPC primitive in Unix and the reason the rest of this article works. `producer | consumer` does three things at once:
 
-1. Asks the kernel for an anonymous pipe -- a small in-memory ring buffer with a read end and a write end.
+1. Asks the kernel for an anonymous pipe — a small in-memory ring buffer with a read end and a write end.
 2. Forks the producer and dup2's its fd 1 onto the write end.
 3. Forks the consumer and dup2's its fd 0 onto the read end.
 
@@ -175,9 +175,9 @@ $ cat access.log | grep "404" | wc -l
 137
 ```
 
-- `cat access.log` -- streams the log file to its stdout
-- `grep "404"` -- reads from stdin, keeps only matching lines
-- `wc -l` -- reads from stdin, prints a line count
+- `cat access.log` — streams the log file to its stdout
+- `grep "404"` — reads from stdin, keeps only matching lines
+- `wc -l` — reads from stdin, prints a line count
 
 Three reasons this style wins:
 
@@ -193,7 +193,7 @@ The example above can be written more directly:
 grep "404" access.log | wc -l
 ```
 
-Most filtering tools accept a filename argument and will be slightly faster -- and clearer -- when you skip the `cat`. Use `cat file |` only when you genuinely need a stream (for example, to chain with multiple files or to make the pipeline read top-to-bottom for teaching).
+Most filtering tools accept a filename argument and will be slightly faster — and clearer — when you skip the `cat`. Use `cat file |` only when you genuinely need a stream (for example, to chain with multiple files or to make the pipeline read top-to-bottom for teaching).
 
 ### Debugging pipelines with `tee`
 
@@ -217,7 +217,7 @@ echo "127.0.0.1 example.local" | sudo tee -a /etc/hosts
 
 Six tools cover the vast majority of log-and-text work. Learn what each one is *for* and you stop reaching for Python every time.
 
-### grep -- filter lines
+### grep — filter lines
 
 `grep` keeps lines that match a pattern. The flags worth knowing:
 
@@ -227,7 +227,7 @@ Six tools cover the vast majority of log-and-text work. Learn what each one is *
 | `-v`           | Invert match (keep lines that do **not** match)        |
 | `-n`           | Print line numbers                                     |
 | `-E`           | Extended regex (`|`, `+`, `?`, `()` without escaping)  |
-| `-F`           | Fixed string (no regex -- much faster for plain text)  |
+| `-F`           | Fixed string (no regex — much faster for plain text)  |
 | `-r` / `-R`    | Recurse into directories                               |
 | `-l`           | Only print filenames that contain a match              |
 | `-c`           | Count matching lines                                   |
@@ -252,7 +252,7 @@ grep -oE 'https?://[^ "]+' access.log | sort -u
 
 `-F` is worth singling out: when you are searching for a literal string with regex metacharacters in it (a path, an IP address, a stack trace fragment), `grep -F` is both safer and faster than escaping.
 
-### awk -- columns and aggregation
+### awk — columns and aggregation
 
 `awk` is a tiny programming language built around "for each line, split into fields and run an action". It is the right tool whenever your data has *columns* and you want to project, filter on, or aggregate by them.
 
@@ -286,7 +286,7 @@ awk '$9 >= 500 && $10 > 1000 { print $1, $7, $9, $10 }' access.log
 
 The aggregation idiom `count[$key]++ ... END { for (k in count) print count[k], k }` is the workhorse: any time you are about to write a Python script to "count things by some field", check whether one line of awk does it.
 
-### sed -- stream editing
+### sed — stream editing
 
 `sed` is a non-interactive editor. The two operations you will use 95% of the time are substitution and deletion.
 
@@ -316,9 +316,9 @@ sed -i.bak 's/listen 80;/listen 8080;/' /etc/nginx/nginx.conf
 Two notes that save real time:
 
 - The substitution delimiter does not have to be `/`. When the pattern contains slashes, `sed 's|a/b|c/d|'` reads much better than `sed 's/a\/b/c\/d/'`.
-- `sed -i` differs between GNU sed and BSD sed (macOS). `sed -i.bak '...'` works on both -- it always writes a backup with the given suffix and is a habit worth forming.
+- `sed -i` differs between GNU sed and BSD sed (macOS). `sed -i.bak '...'` works on both — it always writes a backup with the given suffix and is a habit worth forming.
 
-### cut, tr -- when you don't need awk or sed
+### cut, tr — when you don't need awk or sed
 
 ```bash
 # cut: extract fields by delimiter
@@ -335,9 +335,9 @@ echo "abc123" | tr -d '0-9'             # delete digits
 tr -s ' ' < file                        # squeeze runs of spaces into one
 ```
 
-Reach for `cut` when the delimiter is fixed and you only need to project columns -- it is faster to type than awk for the simple case. Reach for `tr` for character-level work (case folding, splitting on a delimiter, stripping a class).
+Reach for `cut` when the delimiter is fixed and you only need to project columns — it is faster to type than awk for the simple case. Reach for `tr` for character-level work (case folding, splitting on a delimiter, stripping a class).
 
-### sort, uniq -- ordering and grouping
+### sort, uniq — ordering and grouping
 
 ```bash
 sort file.txt              # lexicographic
@@ -385,7 +385,7 @@ The figure traces the third example: each stage **narrows or aggregates** the da
 
 ## xargs: When the Next Tool Wants Arguments, Not Stdin
 
-The pipe carries data on stdin. But many of the tools you most want to chain with -- `rm`, `cp`, `mv`, `chmod`, `git checkout` -- take **arguments**, not stdin. `xargs` is the bridge.
+The pipe carries data on stdin. But many of the tools you most want to chain with — `rm`, `cp`, `mv`, `chmod`, `git checkout` — take **arguments**, not stdin. `xargs` is the bridge.
 
 ```bash
 find . -name "*.tmp" | xargs rm        # delete every *.tmp file under .
@@ -403,7 +403,7 @@ find . -name "*.tmp" -print0 | xargs -0 rm
 
 `-print0` separates output with NUL bytes; `-0` tells `xargs` to split on NUL. NUL is the one byte that cannot appear in a filename, so this is robust.
 
-The shorter alternative -- often the cleanest -- is to skip `xargs` entirely and let `find` invoke the command itself:
+The shorter alternative — often the cleanest — is to skip `xargs` entirely and let `find` invoke the command itself:
 
 ```bash
 find . -name "*.tmp" -exec rm {} +     # batch invocation, equivalent to xargs -0
@@ -434,9 +434,9 @@ find . -name "*.tmp" -print0 | xargs -0 -p rm
 
 ![Anonymous pipe vs named pipe (FIFO)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/fig4_named_pipes.png)
 
-The pipes you create with `|` are **anonymous** -- they exist in kernel memory, have no name on the filesystem, and disappear when the producer and consumer exit. Both ends have to be on the same shell command line.
+The pipes you create with `|` are **anonymous** — they exist in kernel memory, have no name on the filesystem, and disappear when the producer and consumer exit. Both ends have to be on the same shell command line.
 
-A **named pipe** (FIFO) is a pipe with a name on the filesystem. You create one with `mkfifo`, and any two processes -- on different terminals, started at different times -- can connect to it.
+A **named pipe** (FIFO) is a pipe with a name on the filesystem. You create one with `mkfifo`, and any two processes — on different terminals, started at different times — can connect to it.
 
 ```bash
 $ mkfifo /tmp/jobs
@@ -456,12 +456,12 @@ echo "task-2" > /tmp/jobs
 
 Two semantic facts catch people out the first time:
 
-- A `read` on a FIFO **blocks** until somebody writes. Likewise a `write` blocks until somebody reads (the kernel pipe buffer is small -- usually 64 KiB).
+- A `read` on a FIFO **blocks** until somebody writes. Likewise a `write` blocks until somebody reads (the kernel pipe buffer is small — usually 64 KiB).
 - Closing all readers while a writer is still active gives the writer `SIGPIPE`. Closing all writers makes the next read return EOF.
 
 That blocking behaviour is the *feature*: a FIFO is a tiny zero-config job queue or signalling channel. Real-world uses include simple inter-script signalling, decoupling a long-running consumer from a fast burst of producers, and writing logs from many short-lived processes into one rotator.
 
-Clean up with `rm /tmp/jobs` when you are done -- a FIFO is just a file.
+Clean up with `rm /tmp/jobs` when you are done — a FIFO is just a file.
 
 ## Process Substitution: `<(cmd)` and `>(cmd)`
 
@@ -473,7 +473,7 @@ Process substitution is the answer to the question, "what if I want to feed a co
 diff <(sort file1) <(sort file2)
 ```
 
-Bash arranges things so that `<(sort file1)` expands to a path -- typically `/dev/fd/63` -- that, when read, yields the stdout of the inner command. `diff` opens it like any other file; it has no idea a process is on the other end.
+Bash arranges things so that `<(sort file1)` expands to a path — typically `/dev/fd/63` — that, when read, yields the stdout of the inner command. `diff` opens it like any other file; it has no idea a process is on the other end.
 
 The mechanically equivalent rewrite using temp files makes the value clear:
 
@@ -486,14 +486,14 @@ rm /tmp/a /tmp/b
 
 Bash does the bookkeeping for you, and the inner command runs concurrently rather than serially, so both producers and the consumer overlap.
 
-The output form `>(cmd)` exists too -- the path expands to something that, when written to, becomes stdin of the inner command. It is much rarer in practice, but it does enable patterns like:
+The output form `>(cmd)` exists too — the path expands to something that, when written to, becomes stdin of the inner command. It is much rarer in practice, but it does enable patterns like:
 
 ```bash
 # tee a stream into two simultaneous consumers
 some_command | tee >(gzip > out.gz) >(sha256sum > out.sha256) > /dev/null
 ```
 
-Process substitution is a bash/zsh/ksh feature -- it does not exist in plain POSIX `sh`. If you need a portable script, fall back to a temp file and `trap "rm -f $tmp" EXIT`.
+Process substitution is a bash/zsh/ksh feature — it does not exist in plain POSIX `sh`. If you need a portable script, fall back to a temp file and `trap "rm -f $tmp" EXIT`.
 
 ## Worked Example: Batch File Operations
 
@@ -571,7 +571,7 @@ Without `pipefail`, a pipeline's exit code is the exit code of the **last** stag
 You should now have a coherent picture rather than a pile of commands:
 
 - **The data-flow model.** Three streams (stdin/stdout/stderr) on three file descriptors (0/1/2). Pipes carry stdout only.
-- **Redirection.** `>` `>>` `<` `2>` `2>&1` `&>` `<<` `<<<` -- six forms cover everything, and you understand *why* `2>&1 >file` is wrong.
+- **Redirection.** `>` `>>` `<` `2>` `2>&1` `&>` `<<` `<<<` — six forms cover everything, and you understand *why* `2>&1 >file` is wrong.
 - **The toolchain.** `grep` filters, `awk` projects and aggregates, `sed` edits, `cut`/`tr` do the simple cases, `sort | uniq -c | sort -nr` ranks frequencies.
 - **Argument plumbing.** `xargs` (and `find -exec ... {} +`) bridge stdin-style and argv-style tools, with NUL-delimited handling for spaces in filenames.
 - **Two patterns most articles skip.** Named pipes for cross-process rendezvous; process substitution for "I need a filename, but I have a command".
@@ -579,8 +579,8 @@ You should now have a coherent picture rather than a pile of commands:
 
 **Further reading**
 
-- [The Art of Command Line](https://github.com/jlevy/the-art-of-command-line) -- a curated cheat sheet of the most useful idioms.
+- [The Art of Command Line](https://github.com/jlevy/the-art-of-command-line) — a curated cheat sheet of the most useful idioms.
 - `man bash`, especially the **REDIRECTION**, **Pipelines** and **Process Substitution** sections.
-- `info coreutils` -- the canonical reference for `grep`, `sort`, `cut`, `tr`, `uniq`, etc.
+- `info coreutils` — the canonical reference for `grep`, `sort`, `cut`, `tr`, `uniq`, etc.
 
-This is the last article in the Linux series. With the previous seven posts you have the model -- processes, files, permissions, disks, services, packages, users -- and with this one you have the glue. Real ops work is mostly **applying the glue**: turning "I need to know X" into a one-liner, turning "do this for every file in here" into one safe `find ... -exec`, and treating the shell as the most general programmable tool you have.
+This is the last article in the Linux series. With the previous seven posts you have the model — processes, files, permissions, disks, services, packages, users — and with this one you have the glue. Real ops work is mostly **applying the glue**: turning "I need to know X" into a one-liner, turning "do this for every file in here" into one safe `find ... -exec`, and treating the shell as the most general programmable tool you have.

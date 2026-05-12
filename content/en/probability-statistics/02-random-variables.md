@@ -6,8 +6,7 @@ tags:
   - Statistics
   - Distributions
   - Random Variables
-categories:
-  - Probability and Statistics
+categories: Probability and Statistics
 series: probability-statistics
 lang: en
 mathjax: true

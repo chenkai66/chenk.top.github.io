@@ -10,8 +10,7 @@ tags:
   - RND
   - NGU
   - Count-Based Methods
-categories:
-  - Reinforcement Learning
+categories: Reinforcement Learning
 series: reinforcement-learning
 lang: en
 mathjax: true
@@ -20,11 +19,11 @@ disableNunjucks: true
 series_order: 4
 translationKey: "reinforcement-learning-4"
 ---
-Drop a fresh agent into Montezuma's Revenge. To score a single point it must walk to the right, jump a skull, climb a rope, leap to a platform, and grab a key -- roughly **a hundred precise actions in a row**. Until that key is collected, every reward signal is exactly zero.
+Drop a fresh agent into Montezuma's Revenge. To score a single point it must walk to the right, jump a skull, climb a rope, leap to a platform, and grab a key — roughly **a hundred precise actions in a row**. Until that key is collected, every reward signal is exactly zero.
 
-A textbook DQN with $\varepsilon=0.1$ exploration has, by a generous estimate, a $0.1^{100} \approx 10^{-100}$ chance of stumbling onto that key by accident. Unsurprisingly, vanilla DQN scores **0** on this game. Not "low" -- literally zero, every episode, for the entire training run.
+A textbook DQN with $\varepsilon=0.1$ exploration has, by a generous estimate, a $0.1^{100} \approx 10^{-100}$ chance of stumbling onto that key by accident. Unsurprisingly, vanilla DQN scores **0** on this game. Not "low" — literally zero, every episode, for the entire training run.
 
-This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a deep RL algorithm is only as good as its exploration strategy. Even the finest Bellman backup is useless if the agent never observes a non-zero reward to back up. This chapter walks the path from blind random exploration to **curiosity-driven learning** -- algorithms that manufacture their own rewards for discovering anything new.
+This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a deep RL algorithm is only as good as its exploration strategy. Even the finest Bellman backup is useless if the agent never observes a non-zero reward to back up. This chapter walks the path from blind random exploration to **curiosity-driven learning** — algorithms that manufacture their own rewards for discovering anything new.
 
 ![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_1.png)
 
@@ -45,7 +44,7 @@ This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a 
 
 ### 1.1 Classical schedules and what they actually look like
 
-Every introductory RL course starts with **$\varepsilon$-greedy**: with probability $\varepsilon$ pick a uniformly random action, otherwise pick the greedy one. The hard part is not the formula -- it is the *schedule*: how should $\varepsilon$ decay as training progresses?
+Every introductory RL course starts with **$\varepsilon$-greedy**: with probability $\varepsilon$ pick a uniformly random action, otherwise pick the greedy one. The hard part is not the formula — it is the *schedule*: how should $\varepsilon$ decay as training progresses?
 
 ![Epsilon-greedy decay schedules and induced action probabilities](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig1_epsilon_greedy_decay.png)
 
@@ -72,7 +71,7 @@ The temperature $\tau$ replaces $\varepsilon$ as the exploration knob. As $\tau 
 
 ![Boltzmann action distribution and policy entropy for several temperatures](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig2_boltzmann_softmax.png)
 
-The right panel plots policy entropy $H(\pi_\tau) = -\sum_a \pi_\tau(a) \log \pi_\tau(a)$ against $\tau$. The curve flattens to the maximum value $\ln |\mathcal{A}|$ surprisingly fast: by $\tau = 2$ you are already above 90 % of maximum entropy. This is exactly the **entropy bonus** trick used inside PPO and SAC -- it is Boltzmann exploration, repackaged as a regulariser on the policy network.
+The right panel plots policy entropy $H(\pi_\tau) = -\sum_a \pi_\tau(a) \log \pi_\tau(a)$ against $\tau$. The curve flattens to the maximum value $\ln |\mathcal{A}|$ surprisingly fast: by $\tau = 2$ you are already above 90 % of maximum entropy. This is exactly the **entropy bonus** trick used inside PPO and SAC — it is Boltzmann exploration, repackaged as a regulariser on the policy network.
 
 But Boltzmann shares $\varepsilon$-greedy's fatal flaw: it spreads probability based on the agent's *current Q estimates*, not on any notion of how much it has actually visited each region of the state space. Two states the agent has never seen still get the same softmax over the same untrained Q-values.
 
@@ -82,17 +81,17 @@ For multi-armed bandits, the classical **UCB1** rule is provably near-optimal:
 
 $$a_t = \arg\max_a \left[ \hat Q(a) + c \sqrt{\frac{\ln t}{N(a)}} \right].$$
 
-The first term *exploits*; the second *explores* -- arms pulled fewer times get a larger uncertainty bonus.
+The first term *exploits*; the second *explores* — arms pulled fewer times get a larger uncertainty bonus.
 
 ![UCB1 score decomposition and arm-pull statistics over a 5-arm bandit](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig3_ucb_bandit.png)
 
-Watch what happens in the figure above. At $t = 50$ the bonus dominates (orange bars), all arms look attractive, and pulls are spread across the bandit. By $t = 1000$ the uncertainty bonus has shrunk for the optimal arm 3 (it has been pulled hundreds of times) but stays high for the rest, so the algorithm settles into a *near-greedy regime* on arm 3 while still occasionally checking the others. This is exploration done right -- and it is *guided by data*, not by a pre-baked schedule.
+Watch what happens in the figure above. At $t = 50$ the bonus dominates (orange bars), all arms look attractive, and pulls are spread across the bandit. By $t = 1000$ the uncertainty bonus has shrunk for the optimal arm 3 (it has been pulled hundreds of times) but stays high for the rest, so the algorithm settles into a *near-greedy regime* on arm 3 while still occasionally checking the others. This is exploration done right — and it is *guided by data*, not by a pre-baked schedule.
 
 So why do we not just use UCB everywhere? **Because $N(s,a)$ is meaningless in high-dimensional state spaces.** In Atari each frame is $84 \times 84 \times 4 = 28{,}224$ pixels; the agent will essentially never see the same state twice. So $N(s, a) = 1$ for almost every encountered state-action pair, and the bonus becomes a useless constant.
 
 ### 1.4 Thompson sampling: posterior beliefs over rewards
 
-A close cousin of UCB is **Thompson sampling**: maintain a posterior over each arm's reward parameter, sample one possible world from that posterior, and pick the action that is best in that sampled world. For Bernoulli arms with a Beta prior the update is delightfully simple -- on success increment $\alpha$, on failure increment $\beta$.
+A close cousin of UCB is **Thompson sampling**: maintain a posterior over each arm's reward parameter, sample one possible world from that posterior, and pick the action that is best in that sampled world. For Bernoulli arms with a Beta prior the update is delightfully simple — on success increment $\alpha$, on failure increment $\beta$.
 
 ![Beta posteriors for three Bernoulli arms after 10, 50, and 300 pulls](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig4_thompson_sampling.png)
 
@@ -139,7 +138,7 @@ Bellemare et al. (2016) replaced the literal count with a **pseudo-count** deriv
 
 $$\hat N(s) = \frac{\rho(s)\bigl(1 - \rho_{\text{new}}(s)\bigr)}{\rho_{\text{new}}(s) - \rho(s)},$$
 
-where $\rho_{\text{new}}$ is the model's density after training on one extra observation of $s$. The construction pretends $\rho$ is the empirical distribution of a giant counter and inverts it. With a strong density model (PixelCNN, neural autoregressive models) this delivers the first non-trivial scores on Montezuma's Revenge -- but the model is expensive to train, fragile, and the noisy-TV problem is still wide open: random pixel noise looks low-density, hence high-novelty, hence highly rewarded. Modern systems abandoned pseudo-counts for the more robust prediction-error methods we cover next.
+where $\rho_{\text{new}}$ is the model's density after training on one extra observation of $s$. The construction pretends $\rho$ is the empirical distribution of a giant counter and inverts it. With a strong density model (PixelCNN, neural autoregressive models) this delivers the first non-trivial scores on Montezuma's Revenge — but the model is expensive to train, fragile, and the noisy-TV problem is still wide open: random pixel noise looks low-density, hence high-novelty, hence highly rewarded. Modern systems abandoned pseudo-counts for the more robust prediction-error methods we cover next.
 
 ---
 
@@ -147,8 +146,8 @@ where $\rho_{\text{new}}$ is the model's density after training on one extra obs
 
 **Intrinsic Curiosity Module (ICM)** (Pathak et al., ICML 2017) replaces "have I seen this before?" with "can I predict what happens next?". The intuition:
 
-- If the environment's response to my action is *predictable*, I already understand it -- low intrinsic reward.
-- If the response *surprises* me, I have found something I do not yet model -- high intrinsic reward.
+- If the environment's response to my action is *predictable*, I already understand it — low intrinsic reward.
+- If the response *surprises* me, I have found something I do not yet model — high intrinsic reward.
 
 But predicting raw pixels is a bad idea: TV static is unpredictable yet useless. ICM's brilliant move is to predict in a **learned feature space** $\phi$ that only encodes information *the agent's actions can affect*.
 
@@ -219,7 +218,7 @@ class ICM(nn.Module):
 
 ### What you can expect
 
-On Montezuma's Revenge, ICM + A3C reaches roughly **6,600** points within 25 M frames (vanilla DQN sits at 0 forever). Even more striking, an agent trained with **zero external reward** -- only ICM's intrinsic signal -- learns to navigate the first few rooms, dodge enemies, and pick up keys, simply because doing those things keeps its forward model on its toes.
+On Montezuma's Revenge, ICM + A3C reaches roughly **6,600** points within 25 M frames (vanilla DQN sits at 0 forever). Even more striking, an agent trained with **zero external reward** — only ICM's intrinsic signal — learns to navigate the first few rooms, dodge enemies, and pick up keys, simply because doing those things keeps its forward model on its toes.
 
 ### Where ICM falls down
 
@@ -243,9 +242,9 @@ Intrinsic reward is the predictor's residual:
 $$
 r^{\text{int}}(s) = \bigl\| \hat f(s) - f(s) \bigr\|^2.
 $$
-For a state the predictor has seen many times, training has driven the loss to near zero -- low reward. For a novel state, the predictor has never been trained there, so its output is random and the residual is large -- high reward. The frozen target acts like a deterministic hash function: structurally similar states map to similar targets, so generalisation comes for free.
+For a state the predictor has seen many times, training has driven the loss to near zero — low reward. For a novel state, the predictor has never been trained there, so its output is random and the residual is large — high reward. The frozen target acts like a deterministic hash function: structurally similar states map to similar targets, so generalisation comes for free.
 
-The same trick neutralises the noisy-TV problem. Random static frames are visually different but **structurally similar** in the eyes of a random CNN; the predictor learns to match them after a handful of updates and the reward decays to zero. ICM and RND therefore handle "noisy TV" by completely different mechanisms -- ICM by filtering the *features*, RND by exploiting the *consistency of a random map*.
+The same trick neutralises the noisy-TV problem. Random static frames are visually different but **structurally similar** in the eyes of a random CNN; the predictor learns to match them after a handful of updates and the reward decays to zero. ICM and RND therefore handle "noisy TV" by completely different mechanisms — ICM by filtering the *features*, RND by exploiting the *consistency of a random map*.
 
 ### Reference implementation
 
@@ -298,7 +297,7 @@ class RND(nn.Module):
 
 ### Headline numbers
 
-- **Montezuma's Revenge**: 8,152 average score -- the first algorithm to surpass the human expert benchmark of 7,385.
+- **Montezuma's Revenge**: 8,152 average score — the first algorithm to surpass the human expert benchmark of 7,385.
 - **Pitfall**: 70.4 (previous best: exactly 0).
 - RND was, for a year or two, the strongest reported method on every "hard exploration" Atari game.
 
@@ -321,7 +320,7 @@ $$
 - **Episodic novelty** $r^{\text{episodic}}$. Maintain an episodic memory of state embeddings *for the current episode only*. The reward is large when the current state is far (in embedding space) from anything in this memory. Crucially, the memory **resets on each new episode**, so even a state that has been visited millions of times across training still feels novel within a fresh run.
 - **Lifetime novelty** $r^{\text{lifetime}}$. The classic RND signal, capped at $L$ to prevent run-away.
 
-The multiplication insists on both: a state must be locally novel *and* globally not yet exhausted to score high. NGU also introduces a **family of policies** with different exploration coefficients trained in parallel, and a **directed exploration** scheme on top -- but the episodic-lifetime decomposition is the heart of the idea.
+The multiplication insists on both: a state must be locally novel *and* globally not yet exhausted to score high. NGU also introduces a **family of policies** with different exploration coefficients trained in parallel, and a **directed exploration** scheme on top — but the episodic-lifetime decomposition is the heart of the idea.
 
 The successor, **Agent57** (Badia et al., 2020), bolts NGU onto a meta-controller that picks which exploration policy to use at each moment. It is the first single algorithm to surpass the human baseline on **all 57 Atari games**.
 
@@ -341,13 +340,13 @@ It is worth seeing, on a tiny problem, just how different "random" and "curious"
 
 ![Visit-count heatmaps for ε-greedy and curiosity-driven agents on a 25x25 grid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig7_trajectory_comparison.png)
 
-Both panels show 1,500 steps of an agent starting at the white star in a 25 x 25 GridWorld. The blue agent is a uniform random walker; the purple agent samples its next move with probability proportional to $1/\sqrt{N(s')}$ over neighbours -- the simplest possible count-based curiosity reward. After the same number of steps, the random walker has covered only **65.6 %** of the grid and revisited its favourite cell **19** times; the curious agent has covered **80 %** with a maximum revisit count of **11**. The right panel makes the same point with a sorted log-scale visit-count distribution: curiosity flattens the head of the distribution (no over-visited cells) and lifts the tail (no neglected cells).
+Both panels show 1,500 steps of an agent starting at the white star in a 25 x 25 GridWorld. The blue agent is a uniform random walker; the purple agent samples its next move with probability proportional to $1/\sqrt{N(s')}$ over neighbours — the simplest possible count-based curiosity reward. After the same number of steps, the random walker has covered only **65.6 %** of the grid and revisited its favourite cell **19** times; the curious agent has covered **80 %** with a maximum revisit count of **11**. The right panel makes the same point with a sorted log-scale visit-count distribution: curiosity flattens the head of the distribution (no over-visited cells) and lifts the tail (no neglected cells).
 
 Now multiply that effect over 100 million Atari frames in a state space the size of an exoplanet and you understand why curiosity is the difference between scoring zero and scoring eleven thousand.
 
 ![Score curves and time-to-first-reward on Montezuma's Revenge](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig6_sparse_reward_montezuma.png)
 
-The figure above tells the same story at scale. Vanilla DQN stays at zero forever -- it never finds a single reward. Each successive generation of curiosity (count-based -> ICM -> RND -> NGU) shaves frames off the time-to-first-reward and lifts the asymptotic score. NGU is the first to clear the human-expert dashed line.
+The figure above tells the same story at scale. Vanilla DQN stays at zero forever — it never finds a single reward. Each successive generation of curiosity (count-based -> ICM -> RND -> NGU) shaves frames off the time-to-first-reward and lifts the asymptotic score. NGU is the first to clear the human-expert dashed line.
 
 ---
 
@@ -390,22 +389,22 @@ If you are stuck below the first milestone for 20 M frames, the most common culp
 
 ## 9. Summary and what comes next
 
-Exploration is the bottleneck that separates toy reinforcement learning from anything resembling general intelligence. Random exploration scales catastrophically badly -- not because the math is wrong, but because the universe of possible states is unimaginably larger than what uniform sampling can cover.
+Exploration is the bottleneck that separates toy reinforcement learning from anything resembling general intelligence. Random exploration scales catastrophically badly — not because the math is wrong, but because the universe of possible states is unimaginably larger than what uniform sampling can cover.
 
 The unifying idea behind every modern advance:
 
-> **Treat curiosity as a learnable reward.** Define "novelty" operationally -- as low visit count, high prediction error, large distillation residual, or distance from episodic memory -- and let the agent maximise it alongside the task reward.
+> **Treat curiosity as a learnable reward.** Define "novelty" operationally — as low visit count, high prediction error, large distillation residual, or distance from episodic memory — and let the agent maximise it alongside the task reward.
 
 We saw four concrete instantiations:
 
-- **Count-based / pseudo-count** -- elegant in tabular MDPs, fragile in pixels.
-- **ICM** -- prediction error in a learned, action-relevant feature space.
-- **RND** -- distillation error of a random network; embarrassingly simple, embarrassingly effective.
-- **NGU / Agent57** -- episodic and lifetime novelty multiplied together for tasks that punish forgetting.
+- **Count-based / pseudo-count** — elegant in tabular MDPs, fragile in pixels.
+- **ICM** — prediction error in a learned, action-relevant feature space.
+- **RND** — distillation error of a random network; embarrassingly simple, embarrassingly effective.
+- **NGU / Agent57** — episodic and lifetime novelty multiplied together for tasks that punish forgetting.
 
 The exploration problem is far from closed. Current methods still need on the order of $10^8$-$10^9$ environment frames; the human brain solves Montezuma's Revenge in a few hours. Active research directions include skill discovery, language-grounded exploration, and learning exploration policies from human demonstrations.
 
-**Coming up next:** [Part 5](/en/reinforcement-learning/05-model-based-rl-and-world-models/) introduces **Model-Based RL and World Models** -- learning a differentiable simulator of the environment so the agent can "dream" thousands of imaginary trajectories per real interaction.
+**Coming up next:** [Part 5](/en/reinforcement-learning/05-model-based-rl-and-world-models/) introduces **Model-Based RL and World Models** — learning a differentiable simulator of the environment so the agent can "dream" thousands of imaginary trajectories per real interaction.
 
 ---
 

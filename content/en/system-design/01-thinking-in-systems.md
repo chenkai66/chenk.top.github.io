@@ -5,8 +5,7 @@ tags:
   - System Design
   - Estimation
   - Capacity Planning
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "Learn the foundational skills of system design: back-of-envelope estimation, availability math, SLA definitions, and a repeatable framework for tackling any design problem."

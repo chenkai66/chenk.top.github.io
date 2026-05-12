@@ -6,8 +6,7 @@ tags:
   - Deep Learning
   - Neural Networks
   - Embeddings
-categories:
-  - Recommendation Systems
+categories: Recommendation Systems
 series: recommendation-systems
 lang: en
 mathjax: true
@@ -18,26 +17,26 @@ series_order: 3
 translationKey: "recommendation-systems-3"
 ---
 
-In June 2016, Google published a one-page paper that quietly redrew the map of recommendation systems. The paper described **Wide & Deep Learning**, the model then powering app recommendations inside Google Play -- a billion-user product. Within a year, every major tech company had a deep model in production. By 2019, the industry standard had shifted: matrix factorization was a baseline, not a system.
+In June 2016, Google published a one-page paper that quietly redrew the map of recommendation systems. The paper described **Wide & Deep Learning**, the model then powering app recommendations inside Google Play — a billion-user product. Within a year, every major tech company had a deep model in production. By 2019, the industry standard had shifted: matrix factorization was a baseline, not a system.
 
 What changed? Multi-layer neural networks brought four capabilities classical methods could not deliver:
 
-- **Learned representations.** Embedding layers replace one-hot vectors with dense, semantic vectors -- learned end-to-end from clicks.
+- **Learned representations.** Embedding layers replace one-hot vectors with dense, semantic vectors — learned end-to-end from clicks.
 - **Nonlinear interactions.** A two-layer MLP with ReLU can fit XOR; a dot product cannot.
 - **Multimodal fusion.** Text, images, and behavior sequences flow through the same gradient.
 - **End-to-end optimization.** No more hand-tuned feature crosses; the loss decides.
 
-This article walks the path that took the field from `dot(p_u, q_i)` to NeuMF, YouTube DNN, and Wide & Deep -- with the architectures verified against the original papers, and runnable PyTorch code at every step.
+This article walks the path that took the field from `dot(p_u, q_i)` to NeuMF, YouTube DNN, and Wide & Deep — with the architectures verified against the original papers, and runnable PyTorch code at every step.
 
 ![Recommendation Systems (3): Deep Learning Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/illustration_1.png)
 
 ## What you will build a feel for
 
-- **The MLP intuition** -- why stacking linear layers with ReLU is a universal interaction engine.
-- **Embeddings** -- not just `nn.Embedding`, but *why* gradients pull similar IDs together.
-- **NeuMF** (He et al., WWW 2017) -- two paths, one objective.
-- **YouTube DNN** (Covington et al., RecSys 2016) -- the two-stage pipeline used by every large-scale recommender today.
-- **Wide & Deep** (Cheng et al., DLRS 2016) -- the textbook fusion of memorization and generalization.
+- **The MLP intuition** — why stacking linear layers with ReLU is a universal interaction engine.
+- **Embeddings** — not just `nn.Embedding`, but *why* gradients pull similar IDs together.
+- **NeuMF** (He et al., WWW 2017) — two paths, one objective.
+- **YouTube DNN** (Covington et al., RecSys 2016) — the two-stage pipeline used by every large-scale recommender today.
+- **Wide & Deep** (Cheng et al., DLRS 2016) — the textbook fusion of memorization and generalization.
 
 ## Prerequisites
 
@@ -60,11 +59,11 @@ To see *why*, look at what each classical method can express.
 **Matrix factorization** predicts a rating with a dot product:
 
 $$\hat{r}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$
-In plain terms: each user and each item is a short vector; the prediction is their alignment. Beautiful, but linear -- it cannot capture that you love sci-fi *and* action *together* while disliking either alone.
+In plain terms: each user and each item is a short vector; the prediction is their alignment. Beautiful, but linear — it cannot capture that you love sci-fi *and* action *together* while disliking either alone.
 
 **Factorization machines** add pairwise feature interactions:
 $$\hat{y}(\mathbf{x}) = w_0 + \sum_i w_i x_i + \sum_{i<j} \langle \mathbf{v}_i, \mathbf{v}_j\rangle x_i x_j$$
-This is a strict superset of MF -- but it stops at second order. A "young user × Friday night × thriller" three-way effect requires manual cross-feature engineering.
+This is a strict superset of MF — but it stops at second order. A "young user × Friday night × thriller" three-way effect requires manual cross-feature engineering.
 
 **Collaborative filtering** sidesteps modeling entirely and just looks for similar users or items. It works well until the matrix gets sparse, which it always does in production.
 
@@ -75,7 +74,7 @@ The shared limitation: **all three are at most second-order, and all three need 
 A neural network with one hidden layer and a nonlinearity is, in theory, a universal function approximator. In practice, that means:
 
 - An MLP on top of an embedding can fit *any* finite-order interaction the data warrants.
-- The same backbone consumes images (CNN), text (Transformer), and sequences (RNN) -- all jointly trained.
+- The same backbone consumes images (CNN), text (Transformer), and sequences (RNN) — all jointly trained.
 - Cold-start gets a hook: if the new item has *content* (a title, an image), pre-trained encoders give it a sensible initial vector.
 
 The price: more compute, less interpretability, more hyperparameters. Section 7 covers the engineering discipline that makes this trade pay off.
@@ -90,9 +89,9 @@ A dot product $\mathbf{p}^\top \mathbf{q} = \sum_k p_k q_k$ adds up coordinate-w
 
 Concatenate $[\mathbf{p}; \mathbf{q}]$ and pass through `Linear → ReLU → Linear`:
 $$f(\mathbf{p}, \mathbf{q}) = \mathbf{w}^\top \, \text{ReLU}\!\big(\mathbf{W} [\mathbf{p}; \mathbf{q}] + \mathbf{b}\big)$$
-Now the ReLU gates each hidden unit on or off depending on which combination of input dimensions is active. With enough hidden units, this is exactly the universal-approximation result. **The interaction is no longer a fixed formula -- it is learned.**
+Now the ReLU gates each hidden unit on or off depending on which combination of input dimensions is active. With enough hidden units, this is exactly the universal-approximation result. **The interaction is no longer a fixed formula — it is learned.**
 
-This single substitution -- replace dot product with MLP -- is the seed from which NeuMF, YouTube DNN, and Wide & Deep all grow.
+This single substitution — replace dot product with MLP — is the seed from which NeuMF, YouTube DNN, and Wide & Deep all grow.
 
 ---
 
@@ -104,9 +103,9 @@ This single substitution -- replace dot product with MLP -- is the seed from whi
 
 Picture a catalog with 10 million users and 1 million items. One-hot encoding gives every user a 10-million-dimensional vector with a single 1. Three things go wrong at once:
 
-1. **Storage and compute** explode -- a single user input becomes a 40 MB float vector.
-2. **Information density** collapses -- 99.99999% of the vector is zero.
-3. **All distances are equal** -- $\|\mathbf{e}_i - \mathbf{e}_j\|_2 = \sqrt{2}$ for every $i \ne j$. User 42 is no closer to user 43 than to user 9,999,999.
+1. **Storage and compute** explode — a single user input becomes a 40 MB float vector.
+2. **Information density** collapses — 99.99999% of the vector is zero.
+3. **All distances are equal** — $\|\mathbf{e}_i - \mathbf{e}_j\|_2 = \sqrt{2}$ for every $i \ne j$. User 42 is no closer to user 43 than to user 9,999,999.
 
 An embedding layer fixes all three. It maps each ID to a dense vector of, say, 64 dimensions. After training, **users with similar tastes land near each other** in that 64-D space.
 
@@ -144,10 +143,10 @@ Project a trained item embedding matrix to 2D with t-SNE and you typically see e
 
 | Catalog size | Recommended $d$ | Notes |
 |---|---|---|
-| < 100K | 8 -- 32 | Larger $d$ overfits. |
-| 100K -- 1M | 32 -- 64 | The sweet spot for most domains. |
-| 1M -- 100M | 64 -- 128 | Diminishing returns above 128. |
-| Web-scale | 128 -- 256 | Only if you have billions of interactions. |
+| < 100K | 8 — 32 | Larger $d$ overfits. |
+| 100K — 1M | 32 — 64 | The sweet spot for most domains. |
+| 1M — 100M | 64 — 128 | Diminishing returns above 128. |
+| Web-scale | 128 — 256 | Only if you have billions of interactions. |
 
 A useful heuristic from the YouTube paper and confirmed in many follow-ups: **start at $d = 32$, double until validation AUC stops moving by more than ~0.5%, then stop.** Memory and serving latency are linear in $d$; quality is concave.
 
@@ -197,9 +196,9 @@ He, Liao, Zhang, Nie, Hu, and Chua introduced **Neural Collaborative Filtering**
 
 The NCF paper proposed three siblings:
 
-- **GMF** (Generalized Matrix Factorization) -- a learnable weighted version of the dot product.
-- **MLP** -- pure deep concatenation, no inductive bias toward inner products.
-- **NeuMF** -- the fusion of GMF and MLP, with separate embeddings for each path.
+- **GMF** (Generalized Matrix Factorization) — a learnable weighted version of the dot product.
+- **MLP** — pure deep concatenation, no inductive bias toward inner products.
+- **NeuMF** — the fusion of GMF and MLP, with separate embeddings for each path.
 
 NeuMF is the one that matters in practice. Here is its architecture, faithful to the paper.
 
@@ -209,7 +208,7 @@ NeuMF is the one that matters in practice. Here is its architecture, faithful to
 
 Read the diagram bottom-up:
 
-1. **Two embedding tables per side.** GMF and MLP do *not* share embeddings -- the paper found this matters. Each path learns the representation that suits its objective.
+1. **Two embedding tables per side.** GMF and MLP do *not* share embeddings — the paper found this matters. Each path learns the representation that suits its objective.
 2. **GMF path.** Element-wise product $\mathbf{p}_u^\text{GMF} \odot \mathbf{q}_i^\text{GMF}$. With a learned weight on top, this is a generalization of the standard dot product.
 3. **MLP path.** Concatenate $[\mathbf{p}_u^\text{MLP}; \mathbf{q}_i^\text{MLP}]$, then 2--3 dense + ReLU layers (typical: $128 \to 64 \to 32$).
 4. **Fusion.** Concatenate the two path outputs and project to a scalar through sigmoid:
@@ -217,7 +216,7 @@ $$\hat{y}_{ui} = \sigma\!\left(\mathbf{h}^\top \begin{bmatrix} \mathbf{p}_u^\tex
 For implicit feedback (clicks, plays, purchases), the loss is binary cross-entropy:
 $$\mathcal{L} = -\sum_{(u, i) \in \mathcal{D}^+ \cup \mathcal{D}^-} \big[ y_{ui} \log \hat{y}_{ui} + (1 - y_{ui}) \log(1 - \hat{y}_{ui}) \big]$$
 
-The negative set $\mathcal{D}^-$ is built by sampling -- typically 4 negatives per positive.
+The negative set $\mathcal{D}^-$ is built by sampling — typically 4 negatives per positive.
 
 ### NeuMF, end to end
 
@@ -287,7 +286,7 @@ Three things from the paper that people forget:
 
 ## 5. YouTube DNN: the two-stage pipeline that runs the internet
 
-Covington, Adams, and Sargin (RecSys 2016) is the most-cited industrial recommender paper of the deep-learning era. Its two-stage decomposition -- **candidate generation** then **ranking** -- is the template for almost every large-scale recommender shipped since: TikTok, Spotify, Pinterest, Instagram, Taobao.
+Covington, Adams, and Sargin (RecSys 2016) is the most-cited industrial recommender paper of the deep-learning era. Its two-stage decomposition — **candidate generation** then **ranking** — is the template for almost every large-scale recommender shipped since: TikTok, Spotify, Pinterest, Instagram, Taobao.
 
 ### Why two stages?
 
@@ -300,9 +299,9 @@ You cannot score billions of videos for every request. You also cannot use rich 
 
 ![YouTube DNN two-stage pipeline shown side by side: candidate generation tower on the left consuming watch history, search tokens, geo, age, and gender, producing a 256-dim user vector that hits an ANN index over video embeddings; ranking tower on the right consuming richer features through a four-layer MLP and predicting expected watch time via weighted logistic regression](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/fig3_youtube_dnn.png)
 
-**Candidate generation** is framed as extreme multi-class classification: "given this user state, predict which video they will watch next, out of millions." The user tower averages embeddings of recently watched videos, concatenates demographic features, runs three ReLU layers ($1024 \to 512 \to 256$), and outputs a 256-D **user vector**. At training time the loss is sampled softmax over the full video corpus. At serving time, the learned video embeddings live in an ANN index (HNSW or ScaNN), and the user vector becomes a nearest-neighbor query -- single-digit milliseconds for billions of items.
+**Candidate generation** is framed as extreme multi-class classification: "given this user state, predict which video they will watch next, out of millions." The user tower averages embeddings of recently watched videos, concatenates demographic features, runs three ReLU layers ($1024 \to 512 \to 256$), and outputs a 256-D **user vector**. At training time the loss is sampled softmax over the full video corpus. At serving time, the learned video embeddings live in an ANN index (HNSW or ScaNN), and the user vector becomes a nearest-neighbor query — single-digit milliseconds for billions of items.
 
-**Ranking** is a heavier feed-forward network ($1024 \to 512 \to 256 \to 128$) over much richer features: the impression video's embedding, embeddings of previously watched videos in the same channel, *time since last watch*, *position in feed*, language match, and so on. Critically, the head is a **weighted logistic regression** trained to predict expected watch time -- not click. The paper showed this aligns better with long-term satisfaction than CTR alone.
+**Ranking** is a heavier feed-forward network ($1024 \to 512 \to 256 \to 128$) over much richer features: the impression video's embedding, embeddings of previously watched videos in the same channel, *time since last watch*, *position in feed*, language match, and so on. Critically, the head is a **weighted logistic regression** trained to predict expected watch time — not click. The paper showed this aligns better with long-term satisfaction than CTR alone.
 
 ### What to copy from the YouTube paper
 
@@ -364,9 +363,9 @@ At training time, pair this user vector with a softmax over a sampled set of can
 
 ### The insight
 
-Cheng et al. (DLRS 2016) noticed that a deep model alone, while better at generalizing, sometimes over-recommends -- it suggests reasonable-but-wrong items because the embeddings smooth too much. Conversely, a linear model with cross features memorizes specific co-occurrences perfectly but cannot extrapolate.
+Cheng et al. (DLRS 2016) noticed that a deep model alone, while better at generalizing, sometimes over-recommends — it suggests reasonable-but-wrong items because the embeddings smooth too much. Conversely, a linear model with cross features memorizes specific co-occurrences perfectly but cannot extrapolate.
 
-> **Analogy.** Memorization is the friend who says "you liked Inception, you'll like Tenet" -- specific, accurate, but never adventurous. Generalization is the friend who says "you like cerebral thrillers, try Primer" -- broader, sometimes wrong, but capable of surprise. A great recommender is both friends in one.
+> **Analogy.** Memorization is the friend who says "you liked Inception, you'll like Tenet" — specific, accurate, but never adventurous. Generalization is the friend who says "you like cerebral thrillers, try Primer" — broader, sometimes wrong, but capable of surprise. A great recommender is both friends in one.
 
 Their fix: train them **jointly**, summing the two scores before the sigmoid.
 
@@ -380,7 +379,7 @@ Their fix: train them **jointly**, summing the two scores before the sigmoid.
 
 **Joint head.** $\hat{y} = \sigma(\hat{y}^w + \hat{y}^d)$. Both sides receive gradients from the same loss; the optimizer decides how much each contributes.
 
-The paper used a deliberate split: **FTRL with L1 for the wide side** (sparse, interpretable, picks features), **AdaGrad for the deep side** (dense, smooth). This bi-optimizer setup is essential -- using one optimizer for both hurts.
+The paper used a deliberate split: **FTRL with L1 for the wide side** (sparse, interpretable, picks features), **AdaGrad for the deep side** (dense, smooth). This bi-optimizer setup is essential — using one optimizer for both hurts.
 
 ### Implementation
 
@@ -430,7 +429,7 @@ opt_deep = torch.optim.Adam(
 )
 ```
 
-In practice you can use a single Adam optimizer and still train successfully -- but the joint Wide+Deep loss is what gives the model its name. **It is not an ensemble of two separately trained models.** The wide and deep parameters see each other's gradients, and that interaction is the point.
+In practice you can use a single Adam optimizer and still train successfully — but the joint Wide+Deep loss is what gives the model its name. **It is not an ensemble of two separately trained models.** The wide and deep parameters see each other's gradients, and that interaction is the point.
 
 ### Direct descendants
 
@@ -458,7 +457,7 @@ A correct architecture is necessary but nowhere near sufficient. The following d
 For implicit feedback, every user has thousands of "negatives" (items they did not see). Three sampling strategies, ordered by sophistication:
 
 - **Uniform random.** The default, surprisingly hard to beat for retrieval.
-- **Popularity-weighted.** Sample popular items more often -- if a user ignored a hit, that is a strong negative signal.
+- **Popularity-weighted.** Sample popular items more often — if a user ignored a hit, that is a strong negative signal.
 - **In-batch / hard negatives.** Use other positives in the same batch as negatives. Or, periodically retrieve top-scoring negatives from the current model. Improves discrimination but needs careful temperature tuning.
 
 ```python
@@ -485,7 +484,7 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 )
 ```
 
-- **Dropout 0.2 -- 0.3** in MLP towers. Higher hurts ranking quality.
+- **Dropout 0.2 — 0.3** in MLP towers. Higher hurts ranking quality.
 - **Gradient clipping** (`torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)`) if you see loss spikes.
 - **Early stopping** on validation AUC, patience 5--10 epochs.
 
@@ -553,25 +552,25 @@ If you measure CTR with RMSE or rating prediction with AUC, you will optimize th
 Start at 32 for catalogs under 1M items, 64 above. Double until validation AUC moves by less than ~0.5%. Above $d = 256$ you almost always overfit unless you have billions of interactions.
 
 **Q: Should I always use NeuMF over MF?**
-No. Below ~1M interactions, MF with proper regularization frequently beats NeuMF -- the deep model overfits. NeuMF starts to dominate clearly above ~10M interactions and rich side features.
+No. Below ~1M interactions, MF with proper regularization frequently beats NeuMF — the deep model overfits. NeuMF starts to dominate clearly above ~10M interactions and rich side features.
 
-**Q: Wide & Deep -- can I skip the wide side and just use deep?**
-You can, and many do (DeepFM, DCN). The thing the wide side gives you that pure deep does not is *exact* memorization of high-cardinality co-occurrences -- "users who installed app X also installed app Y." If your business depends on those specific patterns being captured precisely, keep the wide side. Otherwise, automated cross networks (DeepFM, DCN) are usually the better trade.
+**Q: Wide & Deep — can I skip the wide side and just use deep?**
+You can, and many do (DeepFM, DCN). The thing the wide side gives you that pure deep does not is *exact* memorization of high-cardinality co-occurrences — "users who installed app X also installed app Y." If your business depends on those specific patterns being captured precisely, keep the wide side. Otherwise, automated cross networks (DeepFM, DCN) are usually the better trade.
 
 **Q: Where does YouTube DNN fit if I have only a few million users?**
 The two-stage pattern is overkill below ~100K items. Run a single ranker over the whole catalog. Adopt two-stage when scoring everything in your catalog at request time stops fitting your latency budget.
 
 **Q: How do I handle a brand-new item with no interactions?**
 Three options, in order of effectiveness:
-1. **Content-based init** -- compute the embedding from the item's text/image with a pre-trained encoder (BERT, CLIP).
-2. **Category-mean init** -- average the embeddings of items in the same category.
-3. **Bandit exploration** -- expose the new item to a small fraction of traffic to gather initial signal.
+1. **Content-based init** — compute the embedding from the item's text/image with a pre-trained encoder (BERT, CLIP).
+2. **Category-mean init** — average the embeddings of items in the same category.
+3. **Bandit exploration** — expose the new item to a small fraction of traffic to gather initial signal.
 
 **Q: How do I prevent overfitting on a deep recommender?**
 Layered defenses: weight decay $10^{-5}$ on embeddings, dropout 0.2--0.3 in MLPs, early stopping on validation AUC, smaller $d$ if all else fails. Add complexity only when validation moves with it.
 
 **Q: How do I speed training up?**
-The 80/20 list: GPU first (10 -- 100x), then bigger batches (better GPU util), then mixed precision (`torch.cuda.amp` ~ 2x), then `num_workers > 0` in your `DataLoader`. Pre-compute all features offline; never join in the training loop.
+The 80/20 list: GPU first (10 — 100x), then bigger batches (better GPU util), then mixed precision (`torch.cuda.amp` ~ 2x), then `num_workers > 0` in your `DataLoader`. Pre-compute all features offline; never join in the training loop.
 
 ---
 

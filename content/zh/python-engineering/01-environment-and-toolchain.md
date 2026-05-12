@@ -5,8 +5,7 @@ tags:
   - Python
   - Environment
   - Toolchain
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "掌握使用 pyenv、虚拟环境及现代依赖管理工具进行 Python 环境管理。彻底告别依赖地狱。"

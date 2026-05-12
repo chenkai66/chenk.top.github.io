@@ -5,8 +5,7 @@ tags:
   - Python
   - Packaging
   - CLI
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Learn how to organize Python code into proper packages with imports, entry points, and CLI tools. Build a real command-line application from scratch."

@@ -8,8 +8,7 @@ tags:
   - Finite Difference
   - Sturm-Liouville
   - Python
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -18,7 +17,7 @@ disableNunjucks: true
 series_order: 12
 translationKey: "ode-12"
 ---
-An initial value problem hands you a starting state and asks you to march forward. A boundary value problem (BVP) hands you partial information at two different points and asks you to find a path that fits both. The change is small in wording, large in consequence: BVPs can have a unique solution, no solution at all, or infinitely many. They demand a fundamentally different toolkit -- one that is iterative, global, and intimately connected to linear algebra.
+An initial value problem hands you a starting state and asks you to march forward. A boundary value problem (BVP) hands you partial information at two different points and asks you to find a path that fits both. The change is small in wording, large in consequence: BVPs can have a unique solution, no solution at all, or infinitely many. They demand a fundamentally different toolkit — one that is iterative, global, and intimately connected to linear algebra.
 
 This is also where ODE methods quietly become PDE methods. The discretization, eigenvalue, and collocation ideas you meet here scale directly to elliptic PDEs in higher dimensions.
 
@@ -28,8 +27,8 @@ This is also where ODE methods quietly become PDE methods. The discretization, e
 
 - Why BVPs are *qualitatively* harder than IVPs, with a worked example showing existence and uniqueness can both fail
 - Three standard boundary-condition types: Dirichlet, Neumann, Robin
-- The **shooting method** -- reducing a BVP to a root-finding problem on the missing initial condition
-- The **finite-difference method** -- reducing a BVP to a sparse linear system
+- The **shooting method** — reducing a BVP to a root-finding problem on the missing initial condition
+- The **finite-difference method** — reducing a BVP to a sparse linear system
 - **Sturm-Liouville theory** and how it makes BVPs into matrix eigenvalue problems (the bridge to quantum mechanics and vibration analysis)
 - A taste of **collocation** via `scipy.integrate.solve_bvp`, the standard Python tool
 
@@ -99,9 +98,9 @@ def shooting_method(f, a, b, alpha, beta, s_low=-10, s_high=10):
     return x_out, sol.sol(x_out)[0]
 ```
 
-### When shooting works -- and when it does not
+### When shooting works — and when it does not
 
-Shooting is **excellent** when the underlying IVP is well-conditioned: small changes in$s$produce small changes in$y(b)$, so root-finding has a clean target. It is **terrible** when the IVP amplifies errors exponentially -- a common scenario near singular perturbations or for stiff problems with growing modes. Try shooting$y'' - 100y = 0$on$[0, 10]$with$y(0) = 0, y(10) = 1$: the$\sinh$mode contaminates everything, and the residual$F(s)$ranges over $\sim 10^{43}$, making accurate root-finding impossible.
+Shooting is **excellent** when the underlying IVP is well-conditioned: small changes in$s$produce small changes in$y(b)$, so root-finding has a clean target. It is **terrible** when the IVP amplifies errors exponentially — a common scenario near singular perturbations or for stiff problems with growing modes. Try shooting$y'' - 100y = 0$on$[0, 10]$with$y(0) = 0, y(10) = 1$: the$\sinh$mode contaminates everything, and the residual$F(s)$ranges over $\sim 10^{43}$, making accurate root-finding impossible.
 
 The standard cure is **multiple shooting**: divide$[a, b]$into$M$panels, shoot independently on each (with both endpoints as unknowns), and add matching equations between panels. The resulting nonlinear system is larger but each individual shot is short and well-conditioned.
 
@@ -157,7 +156,7 @@ def finite_difference_linear(p, q, r, a, b, alpha, beta, N):
 
 ### Convergence
 
-Central differences are second-order: the truncation error is$\mathcal{O}(h^2)$, so halving$h$cuts the error to a quarter. To get fourth-order accuracy you can use compact (Pade) finite differences or Numerov's method (a tailored scheme for$y'' = f(x, y)$); to get spectral accuracy you can use Chebyshev collocation -- but at the cost of dense matrices.
+Central differences are second-order: the truncation error is$\mathcal{O}(h^2)$, so halving$h$cuts the error to a quarter. To get fourth-order accuracy you can use compact (Pade) finite differences or Numerov's method (a tailored scheme for$y'' = f(x, y)$); to get spectral accuracy you can use Chebyshev collocation — but at the cost of dense matrices.
 
 ---
 
@@ -209,7 +208,7 @@ We solve numerically by truncating the domain to$[-L, L]$with$L$large enough tha
 ![First five eigenfunctions of the quantum harmonic oscillator overlaid on the parabolic potential.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/fig4_sturm_liouville.png)
 *The black curve is the potential$V(x) = x^2$. Each colored eigenfunction is plotted at the height of its energy$E_n$, showing the classic structure: each next mode adds one node, and the wavefunctions oscillate inside the classical turning points and decay exponentially outside. Numerical eigenvalues match the exact$2n+1$to four decimals.*
 
-This template -- "discretize, eigh, plot at energy" -- is essentially the entire toolkit for one-dimensional bound-state problems in quantum mechanics. The same machinery yields the modes of vibrating strings, drums, and molecules.
+This template — "discretize, eigh, plot at energy" — is essentially the entire toolkit for one-dimensional bound-state problems in quantum mechanics. The same machinery yields the modes of vibrating strings, drums, and molecules.
 
 ---
 
@@ -244,7 +243,7 @@ assert sol.success
 
 `solve_bvp`'s strengths:
 
-- adaptive mesh refinement -- it places nodes where the solution varies fastest;
+- adaptive mesh refinement — it places nodes where the solution varies fastest;
 - handles nonlinear BVPs natively via Newton iteration on the collocation residual;
 - the result `sol.sol` is a continuous, differentiable spline you can evaluate anywhere.
 
@@ -257,7 +256,7 @@ Its weaknesses: like all global methods, it requires a reasonable initial guess;
 The famous **Bratu problem**$y'' + 2 e^{y} = 0$,$y(0) = y(1) = 0$has two solutions on the lower branch (a small one and a larger one); we focus on the small one.
 
 ![Three independent BVP methods on the Bratu problem; all agree to plotting accuracy.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/fig5_bvp_solution_methods.png)
-*Left: shooting + brentq, finite differences + Newton, and `solve_bvp` collocation -- three different algorithms, three different numerical pipelines, one solution. Right: the pairwise differences are at the$10^{-7}$level, dominated by each method's own tolerance settings.*
+*Left: shooting + brentq, finite differences + Newton, and `solve_bvp` collocation — three different algorithms, three different numerical pipelines, one solution. Right: the pairwise differences are at the$10^{-7}$level, dominated by each method's own tolerance settings.*
 
 The redundancy is reassuring. When two independent BVP methods disagree by something other than tolerance, **one of them is wrong**; usually it is shooting hitting a sensitivity wall, or solve_bvp being trapped in the wrong branch by a bad guess.
 
@@ -267,7 +266,7 @@ The redundancy is reassuring. When two independent BVP methods disagree by somet
 
 - **Beam deflection.** Euler-Bernoulli beam:$EI\,y^{(4)} = w(x)$with combinations of fixed/free/simply-supported boundary conditions. Eigenvalues give the natural vibration frequencies of the beam; eigenfunctions are mode shapes used in structural dynamics.
 - **Steady heat conduction.**$(k(x) T'(x))' + Q(x) = 0$with Dirichlet (prescribed temperature) or Neumann (prescribed flux) boundaries. Sturm-Liouville to the bone; eigenfunction expansions give the time-dependent heat equation by separation of variables.
-- **Quantum bound states.** As above. Add a finite well, a periodic potential, a hydrogenic Coulomb tail -- the numerical recipe is identical, just change$V(x)$.
+- **Quantum bound states.** As above. Add a finite well, a periodic potential, a hydrogenic Coulomb tail — the numerical recipe is identical, just change$V(x)$.
 - **Thomas-Fermi, Bratu, Falkner-Skan, blasius, Painleve.** Classical nonlinear BVPs with rich histories. All of them yield to `solve_bvp` if you start with a reasonable guess.
 - **Two-point optimal control.** Pontryagin's maximum principle turns optimal control problems into BVPs in the state-costate system. Multiple shooting is the workhorse here.
 

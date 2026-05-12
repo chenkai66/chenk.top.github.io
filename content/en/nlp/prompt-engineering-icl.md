@@ -17,11 +17,11 @@ disableNunjucks: true
 series_order: 7
 translationKey: "nlp-7"
 ---
-The same model can produce a sharp answer or a confident hallucination. The difference is rarely the weights -- it is the framing. A vague request like *"analyze this text"* gets you a generic summary; a prompt with a role, two clean examples, and a strict output schema gets you something a parser can consume. **Prompt engineering is the discipline of turning that gap into a repeatable system instead of a lucky shot.**
+The same model can produce a sharp answer or a confident hallucination. The difference is rarely the weights — it is the framing. A vague request like *"analyze this text"* gets you a generic summary; a prompt with a role, two clean examples, and a strict output schema gets you something a parser can consume. **Prompt engineering is the discipline of turning that gap into a repeatable system instead of a lucky shot.**
 
 In-Context Learning (ICL) is the mechanism that makes this work. When you put a few examples inside the prompt, the model does not retrain; it conditions its forward pass on those examples and effectively *infers a task* from them. Understanding what ICL can and cannot do is the difference between a developer who fights the model and one who steers it.
 
-This part is the seventh in the NLP series. It assumes you know roughly how a Transformer decoder generates tokens (Part 4) and what an autoregressive LM is (Part 6). Everything below is grounded in published behaviour -- but be warned: the literature on prompt engineering is unusually noisy, and most numbers are model- and dataset-specific. Treat the bars in the figures as illustrative shapes, not benchmark claims.
+This part is the seventh in the NLP series. It assumes you know roughly how a Transformer decoder generates tokens (Part 4) and what an autoregressive LM is (Part 6). Everything below is grounded in published behaviour — but be warned: the literature on prompt engineering is unusually noisy, and most numbers are model- and dataset-specific. Treat the bars in the figures as illustrative shapes, not benchmark claims.
 
 
 <!-- wanx-hero -->
@@ -30,7 +30,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 ## What you will learn
 
 - **Prompt anatomy**: the five composable blocks (system, instruction, examples, query, format spec) and what each one buys you.
-- **Three paradigms**: zero-shot, few-shot, and chain-of-thought -- when each is the right choice, and what it costs in tokens.
+- **Three paradigms**: zero-shot, few-shot, and chain-of-thought — when each is the right choice, and what it costs in tokens.
 - **A working theory of ICL**: why a non-trained model can still "learn" from in-prompt examples, and which signals it actually picks up.
 - **The variance problem**: how much accuracy can swing from format and ordering alone, and how to measure it.
 - **Self-consistency**: turning a stochastic decoder into an ensemble by sampling many reasoning paths.
@@ -43,7 +43,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 ![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_2.png)
 
 
-- Familiarity with large language models -- see [Part 6: GPT and Generative Models](/en/nlp/gpt-generative-models/).
+- Familiarity with large language models — see [Part 6: GPT and Generative Models](/en/nlp/gpt-generative-models/).
 - Basic Python; comfort reading short snippets.
 - Access to any LLM API (OpenAI, Anthropic, an open-weights model).
 
@@ -51,7 +51,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 
 ## 1. Anatomy of a prompt
 
-A prompt is *a single text string the model conditions on*. Everything else -- "system" vs. "user" roles, function schemas, retrieval results -- is just structured text the API stitches into one sequence before tokenization. Treating a prompt as a flat string with named blocks is the cleanest mental model.
+A prompt is *a single text string the model conditions on*. Everything else — "system" vs. "user" roles, function schemas, retrieval results — is just structured text the API stitches into one sequence before tokenization. Treating a prompt as a flat string with named blocks is the cleanest mental model.
 
 ![Anatomy of a structured prompt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/fig1_prompt_anatomy.png)
 
@@ -97,7 +97,7 @@ class Prompt:
 
 Two design notes that beginners often miss:
 
-- **Order matters.** Examples placed *after* the format spec but *before* the query consistently work better than examples buried at the top -- recency biases the decoder.
+- **Order matters.** Examples placed *after* the format spec but *before* the query consistently work better than examples buried at the top — recency biases the decoder.
 - **Stable prefix, variable suffix.** Put everything that does not change (system, examples, format) at the top so KV-cache reuse and prompt-cache features can work. Variable input goes last.
 
 ### Four principles that survive contact with reality
@@ -107,7 +107,7 @@ These are the principles I would still teach today, after a lot of prompts in pr
 1. **Clarity over cleverness.** Replace "analyze the text" with "classify the text into {positive, negative, neutral} and return JSON". You are competing with every plausible interpretation the model could pick up.
 2. **Specificity buys determinism.** Say what *not* to do, and what to output when uncertain ("if you cannot answer from the document, return `{\"answer\": null}`"). Models honour negative constraints surprisingly well.
 3. **Context completeness.** If the answer needs a definition the model could plausibly not have, include it. Cheaper than a wrong answer.
-4. **Role assignment when relevant.** "You are a senior security reviewer" measurably narrows the distribution of outputs on code-review tasks. It is *not* a magic spell -- avoid it for generic tasks where it just adds tokens.
+4. **Role assignment when relevant.** "You are a senior security reviewer" measurably narrows the distribution of outputs on code-review tasks. It is *not* a magic spell — avoid it for generic tasks where it just adds tokens.
 
 ---
 
@@ -128,7 +128,7 @@ Sentence: This movie has an excellent plot and outstanding acting.
 Sentiment:"""
 ```
 
-Use zero-shot when the task is something the model already knows well (sentiment, translation, summarization for short inputs) and you care about latency or cost. Its weakness is that the *output format* is unstable -- the model may emit "Positive sentiment", "POSITIVE", or a paragraph of analysis. Pin the format with one constrained sentence ("Reply with exactly one word from the set {positive, negative, neutral}.").
+Use zero-shot when the task is something the model already knows well (sentiment, translation, summarization for short inputs) and you care about latency or cost. Its weakness is that the *output format* is unstable — the model may emit "Positive sentiment", "POSITIVE", or a paragraph of analysis. Pin the format with one constrained sentence ("Reply with exactly one word from the set {positive, negative, neutral}.").
 
 ### Few-shot
 
@@ -152,11 +152,11 @@ Sentiment:"""
 
 Three things examples actually do:
 
-- **Task identification.** They disambiguate what task you mean. "Translate" might mean transliterate, paraphrase, or rewrite -- two examples nail it.
+- **Task identification.** They disambiguate what task you mean. "Translate" might mean transliterate, paraphrase, or rewrite — two examples nail it.
 - **Format alignment.** The output side of each shot is a template. The model copies the template.
 - **Label-space anchoring.** The set of labels in your examples becomes the model's effective output vocabulary, even if you never enumerate them.
 
-The often-cited surprise: **the labels themselves matter less than you might think.** Min et al. (2022) showed that randomizing the gold labels in few-shot prompts barely hurts on many tasks -- what matters is the *distribution of inputs and the label space*. The takeaway is not "labels do not matter at all" (they do for hard tasks) but "do not over-engineer label correctness; engineer coverage and format".
+The often-cited surprise: **the labels themselves matter less than you might think.** Min et al. (2022) showed that randomizing the gold labels in few-shot prompts barely hurts on many tasks — what matters is the *distribution of inputs and the label space*. The takeaway is not "labels do not matter at all" (they do for hard tasks) but "do not over-engineer label correctness; engineer coverage and format".
 
 ### Chain-of-thought
 
@@ -177,7 +177,7 @@ Let's think step by step.
 Answer: 15 pages.
 ```
 
-The trick is mechanical, not mystical. Each generated reasoning token *changes the conditioning context for the next token*. The model is autoregressive, so writing intermediate state ("Read so far: 90") makes that state available to all later tokens -- including the final answer. Without it, the model has to compute every intermediate quantity in a single forward pass through a fixed-depth network. CoT effectively buys extra serial compute, paid in output tokens.
+The trick is mechanical, not mystical. Each generated reasoning token *changes the conditioning context for the next token*. The model is autoregressive, so writing intermediate state ("Read so far: 90") makes that state available to all later tokens — including the final answer. Without it, the model has to compute every intermediate quantity in a single forward pass through a fixed-depth network. CoT effectively buys extra serial compute, paid in output tokens.
 
 ![Chain-of-thought reasoning flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/fig3_cot_flow.png)
 
@@ -194,11 +194,11 @@ When CoT helps and when it does not:
 
 ## 3. A working theory of in-context learning
 
-Why does putting examples in the prompt change behaviour at all? The model's weights are frozen. Three complementary explanations -- none alone complete -- are the closest thing the field has to consensus.
+Why does putting examples in the prompt change behaviour at all? The model's weights are frozen. Three complementary explanations — none alone complete — are the closest thing the field has to consensus.
 
 **1. Implicit task inference.** The pre-trained LM has seen many tasks expressed in text during training (Q&A pairs, code-comment pairs, translation pairs). At inference, examples in the prompt act as a *posterior update* over which "task" the rest of the prompt is drawn from. This is the Bayesian view from Xie et al. (2022): few-shot examples sharpen $P(\text{task} \mid \text{prompt})$.
 
-**2. Implicit gradient descent inside attention.** A line of work (Akyurek et al., von Oswald et al., 2022-2023) shows that attention layers can implement one-step gradient descent on a linear regression task encoded in the prompt. The mechanistic claim is strong only for toy settings, but the suggestive picture -- "attention is doing some kind of fast adaptation" -- is useful intuition.
+**2. Implicit gradient descent inside attention.** A line of work (Akyurek et al., von Oswald et al., 2022-2023) shows that attention layers can implement one-step gradient descent on a linear regression task encoded in the prompt. The mechanistic claim is strong only for toy settings, but the suggestive picture — "attention is doing some kind of fast adaptation" — is useful intuition.
 
 **3. Pattern matching plus copy.** The simplest explanation: induction heads (Olsson et al., 2022) copy patterns from earlier in the context. Few-shot prompts give the model a pattern to copy.
 
@@ -217,7 +217,7 @@ Here is the uncomfortable truth nobody mentions in the marketing material. **Pro
 
 ![Prompt sensitivity to format and ordering](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/fig5_prompt_sensitivity.png)
 
-Lu et al. (2022) called this *order sensitivity* and showed that on classification tasks the same model with the same examples in different orders ranged from near-random to near-state-of-the-art. Sclar et al. (2024) extended this to format sensitivity -- swapping `Q:/A:` for `Question:/Answer:` produces double-digit accuracy swings.
+Lu et al. (2022) called this *order sensitivity* and showed that on classification tasks the same model with the same examples in different orders ranged from near-random to near-state-of-the-art. Sclar et al. (2024) extended this to format sensitivity — swapping `Q:/A:` for `Question:/Answer:` produces double-digit accuracy swings.
 
 What this means in practice:
 
@@ -269,7 +269,7 @@ The pattern is consistent across task families: the first few shots matter a lot
 - For classification with $\le 5$ classes, $k = 2 \times \text{num classes}$ is a good default.
 - For generation tasks, $k = 2$ to $3$ high-quality demonstrations beats $k = 10$ mediocre ones every time.
 
-Pick examples that are **diverse across the input distribution** and **clean / unambiguous on the output side** -- the model will copy your format faithfully, including bugs.
+Pick examples that are **diverse across the input distribution** and **clean / unambiguous on the output side** — the model will copy your format faithfully, including bugs.
 
 ---
 
@@ -281,7 +281,7 @@ A single CoT chain can take a wrong turn at step 2 and propagate the mistake. Se
 
 Formally, given problem $x$ and $k$ sampled chains $z_1, \dots, z_k$ each yielding answer $a_i$:$$\hat{a} \;=\; \arg\max_a \sum_{i=1}^{k} \mathbb{1}[a_i = a].$$
 
-This is a Monte Carlo approximation to the marginal $\sum_z P(z \mid x)\, P(a \mid x, z)$. It works because **errors tend to be diverse but correctness tends to be convergent** -- many wrong reasoning paths land on different wrong answers, while correct paths agree.
+This is a Monte Carlo approximation to the marginal $\sum_z P(z \mid x)\, P(a \mid x, z)$. It works because **errors tend to be diverse but correctness tends to be convergent** — many wrong reasoning paths land on different wrong answers, while correct paths agree.
 
 ```python
 from collections import Counter
@@ -322,7 +322,7 @@ Self-consistency improves what the model can do with what it already knows. **Re
 
 ![ReAct: interleave Thought, Action, Observation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/fig6_react_pattern.png)
 
-The loop terminates when the model emits a final `Answer:` instead of an `Action:`. Modern agent frameworks (LangChain agents, OpenAI's function calling, Anthropic's tool use) are all variations on this template -- often with the structured tool call moved to a JSON-typed API field rather than parsed from free text.
+The loop terminates when the model emits a final `Answer:` instead of an `Action:`. Modern agent frameworks (LangChain agents, OpenAI's function calling, Anthropic's tool use) are all variations on this template — often with the structured tool call moved to a JSON-typed API field rather than parsed from free text.
 
 A minimal implementation that captures the essentials:
 
@@ -532,7 +532,7 @@ No. It shines on multi-step reasoning (math, logic, code, multi-hop QA). On simp
 
 ### What temperature should I use?
 
-For deterministic outputs (classification, extraction): $T \in [0.0, 0.2]$. For balanced generation: $T \in [0.5, 0.7]$. For self-consistency sampling: $T \in [0.7, 0.9]$ -- you *want* path diversity.
+For deterministic outputs (classification, extraction): $T \in [0.0, 0.2]$. For balanced generation: $T \in [0.5, 0.7]$. For self-consistency sampling: $T \in [0.7, 0.9]$ — you *want* path diversity.
 
 ### Does prompt engineering replace fine-tuning?
 
@@ -540,7 +540,7 @@ It replaces a lot of the cases that used to need fine-tuning, especially for ins
 
 ### Does example order matter?
 
-A lot more than it should. The recency bias is real -- the last example influences the model most. Always evaluate at multiple orderings and report the median.
+A lot more than it should. The recency bias is real — the last example influences the model most. Always evaluate at multiple orderings and report the median.
 
 ### Should I worry about prompt injection?
 

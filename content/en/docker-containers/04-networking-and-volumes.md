@@ -7,8 +7,7 @@ tags:
   - Networking
   - Volumes
   - Storage
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "Containers are ephemeral by default — they lose data when deleted and run in isolated networks. Volumes and networks are the two mechanisms that connect containers to the persistent, communicating world."

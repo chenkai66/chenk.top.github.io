@@ -6,8 +6,7 @@ tags:
   - Caching
   - Redis
   - Performance
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "深入剖析全栈各层的缓存策略——从 CDN 到数据库缓冲池——涵盖 cache-aside、write-through、write-behind 模式，淘汰策略、惊群效应（thundering herd）缓解方案，以及实用的 Redis 配置。"

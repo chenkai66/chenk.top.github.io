@@ -15,11 +15,11 @@ disableNunjucks: true
 series_order: 1
 translationKey: "linear-algebra-1"
 ---
-![Essence of Linear Algebra (1): The Essence of Vectors -- More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_1.png)
+![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_1.png)
 
 ## Why Vectors, and Why Care?
 
-A physicist talks about a *force*. A data scientist talks about a *feature*. A game programmer talks about a *velocity*. A quantum theorist talks about a *state*. Different worlds, different languages -- but the same underlying object: **a vector**.
+A physicist talks about a *force*. A data scientist talks about a *feature*. A game programmer talks about a *velocity*. A quantum theorist talks about a *state*. Different worlds, different languages — but the same underlying object: **a vector**.
 
 That is not a coincidence. A vector is the smallest piece of mathematics flexible enough to describe **anything you can add together and scale**. Once you spot that pattern, you spot it everywhere.
 
@@ -28,22 +28,22 @@ Most introductory courses give you two answers to "what is a vector?":
 - "An arrow in space, with a length and a direction."
 - "An ordered list of numbers."
 
-Both are correct. Both are also incomplete. The full story is that *a vector is whatever lives in a vector space* -- a set of objects that play nicely with addition and scaling. Arrows and number lists are the two famous examples; functions, signals, polynomials and quantum states are equally valid.
+Both are correct. Both are also incomplete. The full story is that *a vector is whatever lives in a vector space* — a set of objects that play nicely with addition and scaling. Arrows and number lists are the two famous examples; functions, signals, polynomials and quantum states are equally valid.
 
 This chapter walks that ladder, from very concrete to genuinely abstract:
 
-1. **Geometric** -- arrows you can draw.
-2. **Numerical** -- columns of numbers you can compute with.
-3. **Structural** -- the inner product, which fuses the two.
-4. **Axiomatic** -- the rules that make the whole thing work for *any* such object.
+1. **Geometric** — arrows you can draw.
+2. **Numerical** — columns of numbers you can compute with.
+3. **Structural** — the inner product, which fuses the two.
+4. **Axiomatic** — the rules that make the whole thing work for *any* such object.
 
 ### What You Will Learn
 
 - How to think about vectors geometrically (arrows) and numerically (lists)
 - The three operations: addition, scalar multiplication, subtraction
-- The dot product -- algebra and geometry agreeing on what "alignment" means
+- The dot product — algebra and geometry agreeing on what "alignment" means
 - Several ways to measure size (norms), and why we need more than one
-- The axiomatic vector-space definition -- why functions can be vectors too
+- The axiomatic vector-space definition — why functions can be vectors too
 
 ### Prerequisites
 
@@ -64,11 +64,11 @@ That instruction **is** a vector. We write it as
 $$\vec{v} = \begin{pmatrix} 4 \\ 3 \end{pmatrix},$$
 with$4$pointing east (the$x$component) and$3$pointing north (the$y$component).
 
-Two facts fall out immediately. The **magnitude** -- how far you actually end up from the start -- is just Pythagoras:
+Two facts fall out immediately. The **magnitude** — how far you actually end up from the start — is just Pythagoras:
 $$\|\vec{v}\| = \sqrt{4^2 + 3^2} = 5.$$
 And the **direction** is the angle north of east:
 $$\theta = \arctan\!\left(\frac{3}{4}\right) \approx 37^\circ.$$
-So a vector packages two pieces of geometric information -- *length* and *direction* -- into a single object.
+So a vector packages two pieces of geometric information — *length* and *direction* — into a single object.
 
 ![A 2D vector as a directed arrow with length, angle, and components](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig1_vector_as_arrow.png)
 
@@ -78,7 +78,7 @@ Here is the first idea that surprises beginners: **a vector does not care where 
 
 Velocity is the cleanest example. A ship sailing east at 20 knots has the same velocity vector whether it is in the middle of the Pacific or hugging the coast of Spain. The position changes from minute to minute; the velocity vector does not.
 
-This is why, when we draw vectors, we are free to anchor them at the origin -- a convenience, not a constraint.
+This is why, when we draw vectors, we are free to anchor them at the origin — a convenience, not a constraint.
 
 ![Position vector vs free vector: same arrow, three locations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig4_position_vs_free.png)
 
@@ -105,7 +105,7 @@ Multiplying a vector$\vec{v}$by a number (a *scalar*)$c$rescales it along its ow
 -$c = 0$: it collapses to the **zero vector**.
 -$c < 0$: it **reverses direction** and rescales by$|c|$.
 
-The set of *all* scalar multiples of a single non-zero vector traces out a line through the origin -- this is your first taste of a *span*, which we will meet properly in Chapter 2.
+The set of *all* scalar multiples of a single non-zero vector traces out a line through the origin — this is your first taste of a *span*, which we will meet properly in Chapter 2.
 
 ![Scalar multiplication and the line of all multiples (the span)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig3_scalar_multiplication.png)
 
@@ -124,7 +124,7 @@ A driving analogy makes this stick. If$\vec{v}$is your current velocity, then$2\
 
 If$\vec{a}$and$\vec{b}$are position vectors of two points$A$and$B$(arrows from the origin), then
 $$\vec{b} - \vec{a} \;=\; \text{the vector that takes you from } A \text{ to } B.$$
-Game engines use this constantly: the displacement from a player to a target, the direction a bullet should travel, the offset between two waypoints -- all are subtractions of position vectors.
+Game engines use this constantly: the displacement from a player to a target, the direction a bullet should travel, the offset between two waypoints — all are subtractions of position vectors.
 
 ---
 
@@ -134,7 +134,7 @@ Game engines use this constantly: the displacement from a player to a target, th
 
 Drawing arrows works fine in two or three dimensions. The real power of the vector concept is that the *algebra* keeps working in **any number of dimensions**:
 $$\vec{v} = \begin{pmatrix} v_1 \\ v_2 \\ \vdots \\ v_n \end{pmatrix} \in \mathbb{R}^n.$$
-You cannot picture a 100-dimensional arrow, but every operation -- addition, scaling, dot products, norms -- carries over unchanged. This is the bridge from "geometry you can see" to "geometry you can only compute."
+You cannot picture a 100-dimensional arrow, but every operation — addition, scaling, dot products, norms — carries over unchanged. This is the bridge from "geometry you can see" to "geometry you can only compute."
 
 ### 2.2 The Same Object, Three Viewpoints
 
@@ -144,7 +144,7 @@ Here is the same five numbers,$\{25.3,\,65.0,\,1013,\,15.2,\,45\}$, viewed from 
 
 **Physics.** An arrow in physical space, e.g. a velocity or a force.
 
-**Computer science.** A *feature vector*: a row of measurements characterising one example -- here, weather conditions at one moment (temperature, humidity, pressure, wind speed, cloud cover).
+**Computer science.** A *feature vector*: a row of measurements characterising one example — here, weather conditions at one moment (temperature, humidity, pressure, wind speed, cloud cover).
 
 **Mathematics.** A column of real numbers, an element of$\mathbb{R}^5$.
 
@@ -161,7 +161,7 @@ image_vector = image.flatten()
 print(image_vector.shape)   # (9,)
 ```
 
-Once you accept the three viewpoints as one object, very different things become *the same calculation*. Comparing two users' movie tastes, or comparing two images for similarity, or comparing two molecular fingerprints -- all reduce to the same dot-product computation we are about to define.
+Once you accept the three viewpoints as one object, very different things become *the same calculation*. Comparing two users' movie tastes, or comparing two images for similarity, or comparing two molecular fingerprints — all reduce to the same dot-product computation we are about to define.
 
 ```python
 import numpy as np
@@ -180,7 +180,7 @@ A famous NLP example takes this even further: words become 300-dimensional vecto
 
 ## 3. The Inner Product: Where Geometry Meets Algebra
 
-![Essence of Linear Algebra (1): The Essence of Vectors -- More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_2.png)
+![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_2.png)
 
 The inner product (or *dot product* in$\mathbb{R}^n$) is the deepest single operation in this chapter. It hides a small miracle: two definitions that look completely unrelated turn out to give the same number.
 
@@ -198,7 +198,7 @@ The algebraic form tells you *how to compute*. The geometric form tells you *wha
 
 A picture turns the dot product from formula into geometry. Drop a perpendicular from the tip of$\vec{a}$onto the line through$\vec{b}$. The shadow you create is the **projection** of$\vec{a}$onto$\vec{b}$:
 $$\operatorname{proj}_{\vec{b}}\vec{a} \;=\; \frac{\vec{a}\cdot\vec{b}}{\vec{b}\cdot\vec{b}}\,\vec{b}.$$
-This is *the closest point on the line through$\vec{b}$to the tip of$\vec{a}$*. That is not a coincidence -- it is the same idea behind least-squares regression, principal components, signal filtering, and a dozen other "best linear approximation" problems we will meet again and again.
+This is *the closest point on the line through$\vec{b}$to the tip of$\vec{a}$*. That is not a coincidence — it is the same idea behind least-squares regression, principal components, signal filtering, and a dozen other "best linear approximation" problems we will meet again and again.
 
 ![Dot product as projection: positive when angle is acute, negative when obtuse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig5_dot_product_projection.png)
 
@@ -215,7 +215,7 @@ print(proj)   # [3. 0.]
 
 When$\vec{a} \cdot \vec{b} = 0$, the two vectors are **orthogonal** (perpendicular), written$\vec{a} \perp \vec{b}$. Geometrically that means a 90-degree angle. *Why is that worth a name?*
 
-- **Geometry:** orthogonal directions don't interfere -- moving along one does not change the projection onto the other.
+- **Geometry:** orthogonal directions don't interfere — moving along one does not change the projection onto the other.
 - **Statistics:** uncorrelated random variables correspond to orthogonal vectors (covariance$= 0$).
 - **Computation:** an orthogonal basis decouples a problem into independent one-dimensional pieces. Almost every "this is fast" trick in numerical linear algebra rides on orthogonality.
 
@@ -243,23 +243,23 @@ Why three? Because different problems care about different things:
 
 -$L^2$is smooth, differentiable everywhere away from the origin, and rotation-invariant. It is the safe default and the natural partner of the dot product.
 -$L^1$has corners. That non-smoothness is a *feature*: it pushes optimisers towards solutions where many coordinates are exactly zero. This is the secret behind LASSO regression and compressed sensing.
--$L^\infty$is what you reach for when you care about the *worst* component, not the *average* one -- robust control, error bounds, max-error guarantees.
+-$L^\infty$is what you reach for when you care about the *worst* component, not the *average* one — robust control, error bounds, max-error guarantees.
 
 ### 4.2 Unit Balls: The Geometric Fingerprint of a Norm
 
-A clean way to *see* a norm is to draw its **unit ball** -- the set of all vectors of length 1 in that norm. Three norms, three very different shapes:
+A clean way to *see* a norm is to draw its **unit ball** — the set of all vectors of length 1 in that norm. Three norms, three very different shapes:
 
 ![Unit balls of L1, L2, L-infinity: diamond, circle, square](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig6_norm_unit_balls.png)
 
 The diamond's sharp corners on the axes are exactly *why*$L^1$produces sparse solutions: when you minimise an objective constrained to that diamond, the optimum tends to land on a corner, which means several coordinates are zero.
 
-A reassuring theorem -- **norm equivalence** -- says that in finite dimensions, all of these norms are interchangeable in a qualitative sense: a sequence converges in one if and only if it converges in all of them. The numerical values differ; the topology does not.
+A reassuring theorem — **norm equivalence** — says that in finite dimensions, all of these norms are interchangeable in a qualitative sense: a sequence converges in one if and only if it converges in all of them. The numerical values differ; the topology does not.
 
 ---
 
 ## 5. The Abstract Picture: Vector Spaces from Axioms
 
-So far, "vector" has meant "an arrow" or "a column of numbers". But mathematicians noticed something striking: many wildly different objects -- arrows, polynomials, continuous functions, random variables, quantum states -- *all obey the same rules*. So they distilled those rules into a definition.
+So far, "vector" has meant "an arrow" or "a column of numbers". But mathematicians noticed something striking: many wildly different objects — arrows, polynomials, continuous functions, random variables, quantum states — *all obey the same rules*. So they distilled those rules into a definition.
 
 ### 5.1 The Definition
 
@@ -274,7 +274,7 @@ satisfying ten axioms (commutativity and associativity of addition, existence of
 
 ### 5.2 Surprising Vector Spaces
 
-**Continuous functions.** All continuous functions on$[0,1]$form a vector space: add them pointwise,$(f+g)(x) = f(x) + g(x)$; scale them pointwise,$(cf)(x) = c\,f(x)$; the zero vector is the constant function$0$. This space is *infinite-dimensional* -- you can think of a function as a vector with one coordinate for every$x \in [0,1]$.
+**Continuous functions.** All continuous functions on$[0,1]$form a vector space: add them pointwise,$(f+g)(x) = f(x) + g(x)$; scale them pointwise,$(cf)(x) = c\,f(x)$; the zero vector is the constant function$0$. This space is *infinite-dimensional* — you can think of a function as a vector with one coordinate for every$x \in [0,1]$.
 
 **Polynomials.** Polynomials of degree at most$n$form an$(n+1)$-dimensional vector space, with the natural basis$\{1, x, x^2, \ldots, x^n\}$.
 
@@ -287,7 +287,7 @@ satisfying ten axioms (commutativity and associativity of addition, existence of
 Once you prove a theorem at the level of axioms, it applies *everywhere* the axioms hold:
 
 - Cauchy--Schwarz works for column vectors, function spaces, *and* random variables (where it becomes the covariance inequality$|\operatorname{Cov}(X,Y)| \le \sigma_X \sigma_Y$). One theorem, three subjects.
-- Fourier analysis is "decompose a function as a linear combination of orthogonal basis vectors" -- exactly what we will do with column vectors in Chapter 7.
+- Fourier analysis is "decompose a function as a linear combination of orthogonal basis vectors" — exactly what we will do with column vectors in Chapter 7.
 - Quantum mechanics is "physics, but in an infinite-dimensional inner-product space."
 
 This is the deepest pay-off of linear algebra: *learn the structure once, apply it forever*.
@@ -330,7 +330,7 @@ RGB colours live in$\mathbb{R}^3$. Mixing them is literally vector arithmetic.
 
 GPS positioning is **trilateration**: your receiver measures its distance$d_i$to each of several satellites at known positions$\vec{s}_i$, giving equations
 $$\|\vec{x} - \vec{s}_i\| \;=\; d_i.$$
-In the plane, two such equations leave you with two intersection points; a third pins the answer down. In 3D, you need four satellites (a fourth for clock-bias correction). That is it -- billion-dollar infrastructure, expressed as vector equations.
+In the plane, two such equations leave you with two intersection points; a third pins the answer down. In 3D, you need four satellites (a fourth for clock-bias correction). That is it — billion-dollar infrastructure, expressed as vector equations.
 
 ---
 
@@ -342,7 +342,7 @@ In the plane, two such equations leave you with two intersection points; a third
 
 **"Dot product and cross product are similar."** They are not. The dot product takes two vectors and returns a *scalar*; the cross product (which only exists in$\mathbb{R}^3$, with a partial cousin in$\mathbb{R}^7$) takes two vectors and returns a *vector*. Different inputs in the same place, totally different outputs.
 
-**"The zero vector points in some direction."** No. The zero vector is the unique vector with no well-defined direction -- which is exactly why formulas like$\vec{v}/\|\vec{v}\|$need a special case.
+**"The zero vector points in some direction."** No. The zero vector is the unique vector with no well-defined direction — which is exactly why formulas like$\vec{v}/\|\vec{v}\|$need a special case.
 
 ---
 
@@ -350,17 +350,17 @@ In the plane, two such equations leave you with two intersection points; a third
 
 | Concept | Key Idea |
 |---------|----------|
-| Vector | An object with magnitude and direction -- or, more generally, an element of a vector space |
-| Addition | Head-to-tail, parallelogram, or component-wise -- all equivalent |
+| Vector | An object with magnitude and direction — or, more generally, an element of a vector space |
+| Addition | Head-to-tail, parallelogram, or component-wise — all equivalent |
 | Scalar multiplication | Stretch, shrink, or reverse along the same line |
 | Inner product | Measures alignment; algebra and geometry agree |
-| Projection | The best one-dimensional approximation -- prototype of least-squares |
+| Projection | The best one-dimensional approximation — prototype of least-squares |
 | Norm | Measures size; different norms reflect different priorities |
-| Vector space | Any set where addition and scaling obey the axioms -- including spaces of functions |
+| Vector space | Any set where addition and scaling obey the axioms — including spaces of functions |
 
 ### The Big Takeaway
 
-A vector is not an arrow, and it is not a column of numbers. **It is a pattern** -- a small, sharp set of rules for "things that add and scale". Once you start looking, you will find that pattern in images, signals, quantum states, financial portfolios, neural-network parameters, and probability distributions. Linear algebra is the study of that pattern.
+A vector is not an arrow, and it is not a column of numbers. **It is a pattern** — a small, sharp set of rules for "things that add and scale". Once you start looking, you will find that pattern in images, signals, quantum states, financial portfolios, neural-network parameters, and probability distributions. Linear algebra is the study of that pattern.
 
 ---
 
@@ -388,19 +388,19 @@ $$\theta = \operatorname{atan2}\bigl(\|\vec{u}\times\vec{v}\|,\ \vec{u}\cdot\vec
 
 `atan2` keeps full precision for both tiny and near-$\pi$ angles. The same lesson applies to Gram-Schmidt (use *modified* Gram-Schmidt or Householder, never classical), to computing variance (use Welford's online formula, not $E[X^2] - (E[X])^2$), and to softmax (subtract the max first).
 
-The takeaway: the algebra you learned in this chapter is exact over $\mathbb{R}$, but every line of code lives in $\mathbb{F}_{64}$, a finite set of about $2^{64}$ rational numbers. Cancellation, overflow, and rounding are not edge cases -- they decide whether your model trains.
+The takeaway: the algebra you learned in this chapter is exact over $\mathbb{R}$, but every line of code lives in $\mathbb{F}_{64}$, a finite set of about $2^{64}$ rational numbers. Cancellation, overflow, and rounding are not edge cases — they decide whether your model trains.
 
 ## 7.6 What numpy Actually Does for `np.dot`
 
-When you write `np.dot(u, v)` for two 1-D arrays, numpy does *not* run a Python loop. It dispatches to a BLAS Level 1 routine -- typically `cblas_ddot` from OpenBLAS, MKL, or Apple Accelerate -- written in hand-tuned C or assembly. For a vector of length $n$, the routine:
+When you write `np.dot(u, v)` for two 1-D arrays, numpy does *not* run a Python loop. It dispatches to a BLAS Level 1 routine — typically `cblas_ddot` from OpenBLAS, MKL, or Apple Accelerate — written in hand-tuned C or assembly. For a vector of length $n$, the routine:
 
 1. Checks alignment and stride. If both arrays are contiguous, it takes the fast path.
 2. Splits the loop into chunks of 4 or 8 elements and uses SIMD instructions (AVX2 / AVX-512 on x86, NEON on ARM) so one CPU instruction multiplies-and-adds 4 or 8 doubles in parallel.
-3. Accumulates partial sums in *separate registers* to break the dependency chain, then combines them at the end. This is roughly 4-8x faster than a naive sequential sum and -- somewhat surprisingly -- it changes the *bit-exact* result, because floating-point addition is not associative.
+3. Accumulates partial sums in *separate registers* to break the dependency chain, then combines them at the end. This is roughly 4-8x faster than a naive sequential sum and — somewhat surprisingly — it changes the *bit-exact* result, because floating-point addition is not associative.
 
-The cost: $\Theta(n)$ FLOPs and $\Theta(n)$ memory reads. For a length-$10^6$ vector on a modern laptop you should see roughly 5-10 GFLOPS and a runtime around 0.1 ms. If you ever measure much worse than that, it means numpy fell off the BLAS path -- usually because of a non-contiguous slice (`u[::2]`) or an `object` dtype.
+The cost: $\Theta(n)$ FLOPs and $\Theta(n)$ memory reads. For a length-$10^6$ vector on a modern laptop you should see roughly 5-10 GFLOPS and a runtime around 0.1 ms. If you ever measure much worse than that, it means numpy fell off the BLAS path — usually because of a non-contiguous slice (`u[::2]`) or an `object` dtype.
 
-The same reasoning scales up. `A @ B` for two $n \times n$ matrices calls `dgemm` (BLAS Level 3), which uses a blocked algorithm to keep data in L1/L2 cache. That's why a hand-written triple loop in Python is roughly 1000x slower than `numpy` -- not because Python is slow per multiply, but because it cannot hold the working set in cache the way `dgemm` can.
+The same reasoning scales up. `A @ B` for two $n \times n$ matrices calls `dgemm` (BLAS Level 3), which uses a blocked algorithm to keep data in L1/L2 cache. That's why a hand-written triple loop in Python is roughly 1000x slower than `numpy` — not because Python is slow per multiply, but because it cannot hold the working set in cache the way `dgemm` can.
 
 So: when this chapter says "the inner product is just $\sum u_i v_i$", that is true mathematically. Operationally, `np.dot` is one of the most heavily optimised pieces of software you will ever call. Trust it. Don't reinvent it.
 

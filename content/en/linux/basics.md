@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 1
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "Your entry guide to Linux: the multi-user permission model, the FHS directory tree, distribution lineages, and the command-line muscle memory you need before any deeper topic makes sense."
@@ -17,7 +17,7 @@ translationKey: "linux-1"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/illustration_1.png)
 
-The "difficulty" of Linux rarely lives in the commands themselves. The hard part is whether you have a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions actually buy you, what changes when you switch between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model -- philosophy, distributions, the FHS tree -- and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; depth lives in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).
+The "difficulty" of Linux rarely lives in the commands themselves. The hard part is whether you have a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions actually buy you, what changes when you switch between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model — philosophy, distributions, the FHS tree — and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; depth lives in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).
 
 ## Why Linux, and Why It Looks the Way It Does
 
@@ -27,7 +27,7 @@ Three design decisions explain almost every Linux quirk a newcomer notices: it w
 - **Stable enough to forget about.** Production servers routinely run for years without a reboot. The `uptime` command on a long-lived machine printing `up 412 days` is a normal sight, not a brag.
 - **A package manager is the primary install path.** You almost never download a `.exe`. `apt`, `dnf`, `pacman`, `zypper` resolve dependencies, verify signatures, and let you upgrade the entire system with one command.
 - **Everything is a file.** Disks live in `/dev`, processes appear in `/proc`, kernel knobs are toggled by writing to `/sys`. The same `cat` and `>` operators read CPU info or set LED brightness.
-- **CLI first, GUI optional.** Graphical desktops exist (GNOME, KDE), but on servers you connect over SSH and drive the box with text -- which is also what makes scripting and remote management trivial.
+- **CLI first, GUI optional.** Graphical desktops exist (GNOME, KDE), but on servers you connect over SSH and drive the box with text — which is also what makes scripting and remote management trivial.
 
 ### Distribution Families at a Glance
 
@@ -35,11 +35,11 @@ Most distros descend from a small number of ancestors. The package manager is us
 
 ![Linux distribution family tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/fig5_distro_family_tree.png)
 
-- **Debian / Ubuntu** -- `apt`. The friendliest learning curve, vast documentation, and the default for most cloud images. Pick **Ubuntu LTS** if you have no other constraint.
-- **Red Hat / RHEL / CentOS / Rocky / Alma / Fedora** -- `yum` (CentOS 7) or `dnf` (8+). The enterprise default. After CentOS Linux was discontinued in 2021, **Rocky Linux** and **AlmaLinux** became the binary-compatible drop-in replacements.
-- **SUSE / openSUSE** -- `zypper`. Common in European enterprises and SAP shops.
-- **Arch / Manjaro** -- `pacman`. Rolling release, latest packages, expects you to read the wiki.
-- **Independents** -- Gentoo (compile everything), Alpine (musl + 5 MB, container darling), NixOS (declarative config), Void (no systemd).
+- **Debian / Ubuntu** — `apt`. The friendliest learning curve, vast documentation, and the default for most cloud images. Pick **Ubuntu LTS** if you have no other constraint.
+- **Red Hat / RHEL / CentOS / Rocky / Alma / Fedora** — `yum` (CentOS 7) or `dnf` (8+). The enterprise default. After CentOS Linux was discontinued in 2021, **Rocky Linux** and **AlmaLinux** became the binary-compatible drop-in replacements.
+- **SUSE / openSUSE** — `zypper`. Common in European enterprises and SAP shops.
+- **Arch / Manjaro** — `pacman`. Rolling release, latest packages, expects you to read the wiki.
+- **Independents** — Gentoo (compile everything), Alpine (musl + 5 MB, container darling), NixOS (declarative config), Void (no systemd).
 
 For cloud, also check what your provider blesses: AWS ships **Amazon Linux**, Alibaba Cloud ships **Alibaba Cloud Linux**, both are RHEL derivatives tuned for the platform.
 
@@ -51,7 +51,7 @@ Dozens of users may be logged in at once over SSH or local TTYs, each running ma
 
 #### 2. File-centric permissions
 
-Every file (and a directory is just a special file) has three permission groups -- **owner**, **group**, **others** -- and three bits each: **read (r)**, **write (w)**, **execute (x)**. Read a permission string left to right:
+Every file (and a directory is just a special file) has three permission groups — **owner**, **group**, **others** — and three bits each: **read (r)**, **write (w)**, **execute (x)**. Read a permission string left to right:
 
 ```text
 -rwxr-xr-x  1 alice  devs   2048  Jan 15 09:30  deploy.sh
@@ -62,13 +62,13 @@ Every file (and a directory is just a special file) has three permission groups 
 +------------ type:    -         regular file (d=dir, l=symlink)
 ```
 
-A common pattern you should recognise immediately: `rw-------` (mode `600`) is the only permission an SSH private key is allowed to have -- the SSH client refuses to use it otherwise.
+A common pattern you should recognise immediately: `rw-------` (mode `600`) is the only permission an SSH private key is allowed to have — the SSH client refuses to use it otherwise.
 
 > Depth on `chmod`/`chown`, numeric vs symbolic notation, SUID/SGID/sticky bit, ACLs, and `umask` lives in the **Linux File Permissions** article. The basics here are enough to read what `ls -l` shows you.
 
 #### 3. Everything is a file
 
-Regular files, directories, devices, processes, kernel state, pipes, sockets -- all expose the same `read()` / `write()` interface. The payoff is that one set of tools works everywhere:
+Regular files, directories, devices, processes, kernel state, pipes, sockets — all expose the same `read()` / `write()` interface. The payoff is that one set of tools works everywhere:
 
 ```bash
 cat /proc/cpuinfo                        # CPU model, cores, flags
@@ -95,7 +95,7 @@ The two directories you will visit most are `/etc` (configuration) and `/var/log
 A few subtleties worth knowing on day one:
 
 - `/root` is the home of `root`, *not* `/home/root`. Regular users live under `/home`.
-- `/proc` and `/sys` are virtual -- they exist only in RAM, exposing kernel state. `du -sh /proc` is meaningless.
+- `/proc` and `/sys` are virtual — they exist only in RAM, exposing kernel state. `du -sh /proc` is meaningless.
 - `/tmp` is wiped on most distros at boot (and often mounted as `tmpfs` in RAM). Don't store anything you care about there.
 
 ## The Anatomy of a Command
@@ -133,7 +133,7 @@ root@web01:~#       # '#'  -> you are root, unrestricted
 alice@web01:~$      # '$'  -> a regular user, sudo if needed
 ```
 
-**Don't log in as `root` for routine work.** Use a regular account and call `sudo` when you need power. The audit log (`/var/log/auth.log` or `/var/log/secure`) records every `sudo` invocation with a username -- if everyone shares `root`, that trace is gone.
+**Don't log in as `root` for routine work.** Use a regular account and call `sudo` when you need power. The audit log (`/var/log/auth.log` or `/var/log/secure`) records every `sudo` invocation with a username — if everyone shares `root`, that trace is gone.
 
 ### 2. Where am I, and what's around me?
 
@@ -248,7 +248,7 @@ rm -rf reports                   # recursive + force, no prompts
 **`rm` does not have a trash bin.** Once a file is unlinked, recovery requires forensic tools and even then is unreliable. Two safety habits:
 
 - Run `ls <pattern>` first to *see* what `rm <pattern>` would touch.
-- Add `alias rm='rm -i'` to your shell rc if you're cautious -- it asks before deleting each file.
+- Add `alias rm='rm -i'` to your shell rc if you're cautious — it asks before deleting each file.
 - Never run `rm -rf "$VAR/"` unless you're certain `$VAR` is set; an empty `$VAR` resolves to `rm -rf /`. Modern GNU `rm` refuses `/` by default (`--preserve-root`), but don't rely on it.
 
 ### Copying and Moving
@@ -262,7 +262,7 @@ mv old.md new.md                 # rename in place
 mv *.log /var/log/archive/       # move several files
 ```
 
-`mv` within the same filesystem is just a rename of the directory entry -- effectively free, no data is copied. Across filesystems it's `cp` followed by `rm`.
+`mv` within the same filesystem is just a rename of the directory entry — effectively free, no data is copied. Across filesystems it's `cp` followed by `rm`.
 
 ### Viewing File Contents
 
@@ -290,7 +290,7 @@ debug: false
 EOF
 ```
 
-The `<<'EOF'` heredoc with the quoted delimiter prevents shell expansion -- write `$VAR` literally, not its value. Without quotes, variables get substituted.
+The `<<'EOF'` heredoc with the quoted delimiter prevents shell expansion — write `$VAR` literally, not its value. Without quotes, variables get substituted.
 
 ### Finding Files and Text
 
@@ -392,7 +392,7 @@ ssh-copy-id alice@10.0.0.42
 ssh alice@10.0.0.42
 ```
 
-Once keys work, lock down `sshd` by setting `PasswordAuthentication no` in `/etc/ssh/sshd_config` and reloading the service. Bots scan the entire IPv4 space looking for password-accepting `sshd` -- close that door.
+Once keys work, lock down `sshd` by setting `PasswordAuthentication no` in `/etc/ssh/sshd_config` and reloading the service. Bots scan the entire IPv4 space looking for password-accepting `sshd` — close that door.
 
 ### Hardening Checklist
 
@@ -468,7 +468,7 @@ jobs                              # list backgrounded jobs of this shell
 fg %1                             # resume job 1 in the foreground
 ```
 
-Reach for plain `kill` first; only escalate to `kill -9` if a process is genuinely stuck. `-9` cannot be intercepted, so the program never gets to flush buffers, close sockets, or release locks -- a frequent cause of corrupted state.
+Reach for plain `kill` first; only escalate to `kill -9` if a process is genuinely stuck. `-9` cannot be intercepted, so the program never gets to flush buffers, close sockets, or release locks — a frequent cause of corrupted state.
 
 > CPU/memory/IO monitoring (`vmstat`, `iostat`, `pidstat`), `nice`/`renice`, control groups, and the OOM killer are in the **Linux Process and Resource Management** article.
 
@@ -538,12 +538,12 @@ This article exists to give you a map. Each topic has its own dedicated piece fo
 - **Linux Process and Resource Management** -- monitoring, cgroups, scheduling, OOM.
 - **Linux Advanced File Operations** -- pipes, redirection, `xargs`, `tee`, FIFOs.
 
-Linux is not learned in one sitting. Spin up a free-tier VM (or a local VirtualBox / Multipass / WSL2 instance), open a terminal, and break things on purpose -- it's the fastest way for the muscle memory to set in.
+Linux is not learned in one sitting. Spin up a free-tier VM (or a local VirtualBox / Multipass / WSL2 instance), open a terminal, and break things on purpose — it's the fastest way for the muscle memory to set in.
 
 ## References
 
-- [The Linux Documentation Project](https://tldp.org/) -- canonical, if dated, reference library.
-- [Arch Linux Wiki](https://wiki.archlinux.org/) -- the highest signal-to-noise Linux documentation on the internet, useful well beyond Arch.
-- [The Linux Command Line, William Shotts](http://linuxcommand.org/tlcl.php) -- a free book-length introduction to the shell.
-- [Linux Performance, Brendan Gregg](https://www.brendangregg.com/linuxperf.html) -- the canonical resource page on measuring Linux at scale.
-- [Filesystem Hierarchy Standard 3.0](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html) -- the formal spec for the directory layout.
+- [The Linux Documentation Project](https://tldp.org/) — canonical, if dated, reference library.
+- [Arch Linux Wiki](https://wiki.archlinux.org/) — the highest signal-to-noise Linux documentation on the internet, useful well beyond Arch.
+- [The Linux Command Line, William Shotts](http://linuxcommand.org/tlcl.php) — a free book-length introduction to the shell.
+- [Linux Performance, Brendan Gregg](https://www.brendangregg.com/linuxperf.html) — the canonical resource page on measuring Linux at scale.
+- [Filesystem Hierarchy Standard 3.0](https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html) — the formal spec for the directory layout.

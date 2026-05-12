@@ -29,7 +29,7 @@ Here is the real meaning, in one sentence:
 
 > **The determinant of $A$ is the factor by which $A$ scales area (in 2D) or volume (in 3D).**
 
-Once you internalize this, every property of determinants stops being a rule to memorize and starts being something you can *see*. The product rule $\det(AB) = \det(A)\det(B)$ becomes obvious -- two scalings compose multiplicatively. $\det(A) = 0$ means space gets crushed flat. $\det(A^{-1}) = 1/\det(A)$ says the inverse must undo the scaling. The sign of the determinant tells you whether orientation was preserved or flipped.
+Once you internalize this, every property of determinants stops being a rule to memorize and starts being something you can *see*. The product rule $\det(AB) = \det(A)\det(B)$ becomes obvious — two scalings compose multiplicatively. $\det(A) = 0$ means space gets crushed flat. $\det(A^{-1}) = 1/\det(A)$ says the inverse must undo the scaling. The sign of the determinant tells you whether orientation was preserved or flipped.
 
 ### What you will learn
 
@@ -55,10 +55,10 @@ In the plane, the **unit square** is the square with corners at $(0,0)$, $(1,0)$
 
 A $2 \times 2$ matrix $A = \begin{pmatrix}a & b\\ c & d\end{pmatrix}$ sends the basis vectors to the **columns** of $A$:
 
-- $\vec{e}_1 \;\mapsto\; (a,\,c)$ -- the first column
-- $\vec{e}_2 \;\mapsto\; (b,\,d)$ -- the second column
+- $\vec{e}_1 \;\mapsto\; (a,\,c)$ — the first column
+- $\vec{e}_2 \;\mapsto\; (b,\,d)$ — the second column
 
-The unit square becomes a **parallelogram** spanned by those two columns. A short calculation -- "outer rectangle minus the four corner triangles" -- shows that the area of this parallelogram is
+The unit square becomes a **parallelogram** spanned by those two columns. A short calculation — "outer rectangle minus the four corner triangles" — shows that the area of this parallelogram is
 $$\text{area} = |ad - bc| = |\det(A)|.$$
 That is the whole content of the 2D determinant.
 
@@ -66,7 +66,7 @@ That is the whole content of the 2D determinant.
 
 ### A worked example
 $$A = \begin{pmatrix}3 & 1\\ 0 & 2\end{pmatrix}, \qquad \det(A) = 3\cdot 2 - 1\cdot 0 = 6.$$
-The unit square (area $1$) becomes a parallelogram of area $6$. *Every* shape in the plane is rescaled by the same factor $6$ -- a circle of area $\pi$ becomes an ellipse of area $6\pi$, a triangle of area $0.5$ becomes a triangle of area $3$, and so on. The matrix does not care about the shape, only about the local area element.
+The unit square (area $1$) becomes a parallelogram of area $6$. *Every* shape in the plane is rescaled by the same factor $6$ — a circle of area $\pi$ becomes an ellipse of area $6\pi$, a triangle of area $0.5$ becomes a triangle of area $3$, and so on. The matrix does not care about the shape, only about the local area element.
 
 ### The photocopier analogy
 
@@ -80,7 +80,7 @@ To build intuition, look at three different $A$'s acting on the unit square:
 
 ![Same input shape, three different determinants. Shear preserves area, stretch doubles it, compression halves it.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/fig2_three_determinants.png)
 
-- **Shear**, $\det = 1$: the parallelogram leans, but its area is unchanged. (Imagine pushing the top of a stack of books sideways -- the volume of the stack does not change.)
+- **Shear**, $\det = 1$: the parallelogram leans, but its area is unchanged. (Imagine pushing the top of a stack of books sideways — the volume of the stack does not change.)
 - **Stretch**, $\det = 2$: one direction is doubled; area doubles.
 - **Compression**, $\det = 0.5$: one direction is halved; area is halved.
 
@@ -93,7 +93,7 @@ The determinant captures the *one number* that all of these transformations agre
 The absolute value $|\det(A)|$ tells you about size. The **sign** tells you about *orientation*.
 
 - $\det(A) > 0$: the transformation preserves orientation. A counter-clockwise loop stays counter-clockwise.
-- $\det(A) < 0$: the transformation **flips** orientation. A counter-clockwise loop comes out clockwise -- exactly what a mirror does.
+- $\det(A) < 0$: the transformation **flips** orientation. A counter-clockwise loop comes out clockwise — exactly what a mirror does.
 
 ### Example: reflection across the $y$-axis
 $$A = \begin{pmatrix}-1 & 0\\ \phantom{-}0 & 1\end{pmatrix}, \qquad \det(A) = -1.$$
@@ -104,7 +104,7 @@ $$A = \begin{pmatrix}-1 & 0\\ \phantom{-}0 & 1\end{pmatrix}, \qquad \det(A) = -1
 
 ### The glove analogy
 
-Take a right-hand glove. Rotate it, stretch it, squash it -- it stays a right-hand glove. But turn it inside out, and it becomes a left-hand glove. That "inside-out" operation is exactly the kind of transformation a negative determinant performs in our model. Rotations and stretches keep $\det > 0$; reflections flip the sign.
+Take a right-hand glove. Rotate it, stretch it, squash it — it stays a right-hand glove. But turn it inside out, and it becomes a left-hand glove. That "inside-out" operation is exactly the kind of transformation a negative determinant performs in our model. Rotations and stretches keep $\det > 0$; reflections flip the sign.
 
 ---
 
@@ -114,13 +114,13 @@ If the area scaling factor is $0$, then area becomes $0$. In 2D, that can only m
 
 ### Example
 $$A = \begin{pmatrix}1 & 2\\ 2 & 4\end{pmatrix}, \qquad \det(A) = 1\cdot 4 - 2\cdot 2 = 0.$$
-The second column $(2, 4)$ is exactly twice the first column $(1, 2)$. Both basis images lie on the *same line* through the origin (the line spanned by $(1,2)$). Every point of the plane gets sent to that line -- the 2D world is collapsed into 1D.
+The second column $(2, 4)$ is exactly twice the first column $(1, 2)$. Both basis images lie on the *same line* through the origin (the line spanned by $(1,2)$). Every point of the plane gets sent to that line — the 2D world is collapsed into 1D.
 
 ![When $\det = 0$, the entire plane is crushed onto a one-dimensional subspace. Every distinct point in the input is squashed onto the same line.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/fig4_collapse.png)
 
 ### Why this means non-invertible
 
-Take a 2D photo and squash it into a line -- can you reconstruct the photo? No: countless input points now occupy the same output point, so the map cannot be undone. Information has been destroyed, so $A^{-1}$ does not exist.
+Take a 2D photo and squash it into a line — can you reconstruct the photo? No: countless input points now occupy the same output point, so the map cannot be undone. Information has been destroyed, so $A^{-1}$ does not exist.
 
 This gives one of the cleanest equivalences in linear algebra:
 $$\det(A) = 0 \;\Longleftrightarrow\; A\text{ is singular} \;\Longleftrightarrow\; \text{the columns of }A\text{ are linearly dependent}.$$
@@ -132,7 +132,7 @@ It also gives a fast practical test for linear dependence: just compute the dete
 
 ![Essence of Linear Algebra (4): The Secrets of Determinants — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/illustration_2.png)
 
-Everything we said in 2D lifts cleanly to 3D. The unit cube is built from $\vec{e}_1, \vec{e}_2, \vec{e}_3$, and a $3 \times 3$ matrix sends it to a slanted box -- a **parallelepiped**. The determinant gives the (signed) volume of that box.
+Everything we said in 2D lifts cleanly to 3D. The unit cube is built from $\vec{e}_1, \vec{e}_2, \vec{e}_3$, and a $3 \times 3$ matrix sends it to a slanted box — a **parallelepiped**. The determinant gives the (signed) volume of that box.
 
 ![In 3D, a $3\times 3$ matrix takes the unit cube to a parallelepiped; $|\det A|$ is its volume.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/fig5_volume_3d.png)
 
@@ -148,7 +148,7 @@ A negative 3D determinant means the right-handed coordinate system has been turn
 
 ---
 
-## Properties of Determinants -- All Geometric
+## Properties of Determinants — All Geometric
 
 Once you see determinants as scaling factors, the algebraic properties stop looking like a list of rules and start looking like statements about scaling.
 
@@ -160,7 +160,7 @@ $B$ scales volume by $\det(B)$; then $A$ scales the result by $\det(A)$. Total s
 
 ### Transpose: $\det(A^T) = \det(A)$
 
-Swapping rows for columns leaves the volume scaling unchanged. (Geometrically the parallelepipeds are different, but they have the same volume -- a non-trivial fact that is one of the small miracles of the theory.)
+Swapping rows for columns leaves the volume scaling unchanged. (Geometrically the parallelepipeds are different, but they have the same volume — a non-trivial fact that is one of the small miracles of the theory.)
 
 ### Inverse: $\det(A^{-1}) = 1/\det(A)$
 
@@ -172,7 +172,7 @@ Swapping two rows multiplies the determinant by $-1$. Swapping basis vectors fli
 
 ### Row scaling scales the determinant
 
-Multiplying one row by $k$ multiplies the determinant by $k$ -- you stretched one basis vector $k$ times, so the parallelogram is $k$ times as big.
+Multiplying one row by $k$ multiplies the determinant by $k$ — you stretched one basis vector $k$ times, so the parallelogram is $k$ times as big.
 
 **Corollary.** $\det(kA) = k^n \det(A)$ for an $n\times n$ matrix: $k$ acts on each of the $n$ rows.
 
@@ -182,7 +182,7 @@ Adding a multiple of one row to another does not change the determinant.
 
 This is a **shear**: the parallelogram changes shape, but its area does not. Picture a stack of cards; pushing the top sideways changes the silhouette but not the volume.
 
-This single fact is why Gaussian elimination preserves determinants up to easy bookkeeping -- it is the entire reason the elimination method works for computing $\det$.
+This single fact is why Gaussian elimination preserves determinants up to easy bookkeeping — it is the entire reason the elimination method works for computing $\det$.
 
 ### Special matrices
 
@@ -204,23 +204,23 @@ $$\det\begin{pmatrix}a & b\\ c & d\end{pmatrix} = ad - bc.$$
 
 Copy the first two columns to the right of the matrix, take the three "downward" diagonal products, and subtract the three "upward" ones.
 $$\det\begin{pmatrix}1 & 2 & 3\\ 4 & 5 & 6\\ 7 & 8 & 9\end{pmatrix} = (1\cdot 5\cdot 9 + 2\cdot 6\cdot 7 + 3\cdot 4\cdot 8) - (3\cdot 5\cdot 7 + 2\cdot 4\cdot 9 + 1\cdot 6\cdot 8) = 0.$$
-(The result is $0$ because each row is the previous one plus a constant -- the rows are linearly dependent.)
+(The result is $0$ because each row is the previous one plus a constant — the rows are linearly dependent.)
 
-**Warning.** Sarrus's rule works *only* for $3 \times 3$ matrices. Do not try to extend the diagonal pattern to $4 \times 4$ -- you will get a wrong answer.
+**Warning.** Sarrus's rule works *only* for $3 \times 3$ matrices. Do not try to extend the diagonal pattern to $4 \times 4$ — you will get a wrong answer.
 
 ### General: cofactor (Laplace) expansion
 
 For any $n \times n$ matrix, expand along any row $i$:
 $$\det(A) = \sum_{j=1}^{n} (-1)^{i+j} a_{ij}\, M_{ij},$$
-where $M_{ij}$ is the **minor** -- the determinant of the $(n-1)\times(n-1)$ submatrix obtained by deleting row $i$ and column $j$. The sign pattern $(-1)^{i+j}$ alternates like a checkerboard; for a $3\times 3$ the first row gets signs $+,-,+$.
+where $M_{ij}$ is the **minor** — the determinant of the $(n-1)\times(n-1)$ submatrix obtained by deleting row $i$ and column $j$. The sign pattern $(-1)^{i+j}$ alternates like a checkerboard; for a $3\times 3$ the first row gets signs $+,-,+$.
 
 ![Cofactor expansion in pictures: pick a row, multiply each entry by the determinant of the submatrix you get by deleting its row and column, and alternate signs.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/fig7_cofactor_expansion.png)
 
-**Practical tip.** Expand along the row or column with the most zeros -- those terms vanish and you do less work.
+**Practical tip.** Expand along the row or column with the most zeros — those terms vanish and you do less work.
 
 ### For real computation: Gaussian elimination
 
-Cofactor expansion has $O(n!)$ work, which is hopeless past $n = 10$ or so. In practice you reduce $A$ to upper triangular form by elementary row operations (which only multiply the determinant by predictable factors), then multiply the diagonal. That is $O(n^3)$ -- this is what `numpy.linalg.det` actually does internally.
+Cofactor expansion has $O(n!)$ work, which is hopeless past $n = 10$ or so. In practice you reduce $A$ to upper triangular form by elementary row operations (which only multiply the determinant by predictable factors), then multiply the diagonal. That is $O(n^3)$ — this is what `numpy.linalg.det` actually does internally.
 
 ```python
 import numpy as np
@@ -260,13 +260,13 @@ You are taking half the area of the parallelogram spanned by two edges.
 
 The cross product of two 3D vectors can be written as the formal expansion
 $$\vec{a} \times \vec{b} = \det\begin{pmatrix} \vec{i} & \vec{j} & \vec{k} \\ a_1 & a_2 & a_3 \\ b_1 & b_2 & b_3 \end{pmatrix}.$$
-Its magnitude $\|\vec{a}\times\vec{b}\|$ is exactly the area of the parallelogram spanned by $\vec{a}$ and $\vec{b}$ -- a $2 \times 2$ determinant in disguise.
+Its magnitude $\|\vec{a}\times\vec{b}\|$ is exactly the area of the parallelogram spanned by $\vec{a}$ and $\vec{b}$ — a $2 \times 2$ determinant in disguise.
 
 ### The Jacobian determinant
 
 When you change variables in a multi-dimensional integral, $(x, y) \to (u, v)$ via $x = x(u,v), y = y(u,v)$, the integral picks up an extra factor:
 $$\iint f(x, y)\, dx\, dy = \iint f\bigl(x(u, v),\, y(u, v)\bigr) \left|\det \frac{\partial(x, y)}{\partial(u, v)}\right| du\, dv.$$
-The **Jacobian** $\left|\det\frac{\partial(x,y)}{\partial(u,v)}\right|$ is the local area scaling factor -- the determinant of the linear approximation to the change of variables at each point. Geometrically, you are using our 2D area-scaling theorem at *every infinitesimal patch*.
+The **Jacobian** $\left|\det\frac{\partial(x,y)}{\partial(u,v)}\right|$ is the local area scaling factor — the determinant of the linear approximation to the change of variables at each point. Geometrically, you are using our 2D area-scaling theorem at *every infinitesimal patch*.
 
 **Polar coordinates.** With $x = r\cos\theta,\; y = r\sin\theta$,
 $$\left|\det \frac{\partial(x, y)}{\partial(r, \theta)}\right| = \det\begin{pmatrix} \cos\theta & -r\sin\theta \\ \sin\theta & \phantom{-}r\cos\theta \end{pmatrix} = r.$$
@@ -317,7 +317,7 @@ show_determinant(np.array([[1, 0.5], [0, 1]]))    # shear,   det = 1
 show_determinant(np.array([[-1, 0], [0, 1]]))     # reflection, det = -1
 ```
 
-Try a few more matrices on your own -- in particular, try one with $\det = 0$ and watch the parallelogram collapse to a line.
+Try a few more matrices on your own — in particular, try one with $\det = 0$ and watch the parallelogram collapse to a line.
 
 ---
 
@@ -329,10 +329,10 @@ When you see a determinant, do not think "I need to compute a number." Think:
 
 > **"How does this transformation change the size and orientation of space?"**
 
-- $|\det(A)|$ -- how much area or volume is scaled
-- $\det > 0$ -- orientation preserved
-- $\det < 0$ -- orientation flipped (mirror image)
-- $\det = 0$ -- space crushed flat, information lost, matrix not invertible
+- $|\det(A)|$ — how much area or volume is scaled
+- $\det > 0$ — orientation preserved
+- $\det < 0$ — orientation flipped (mirror image)
+- $\det = 0$ — space crushed flat, information lost, matrix not invertible
 
 ### Key properties at a glance
 
@@ -347,22 +347,22 @@ When you see a determinant, do not think "I need to compute a number." Think:
 
 ## Why Nobody Computes the Determinant by Cofactor Expansion
 
-The cofactor formula is beautiful, recursive, and *catastrophically slow*. Let $T(n)$ be the number of multiplications to expand an $n\times n$ determinant by minors. The recursion $T(n) = n\cdot T(n-1)$ gives $T(n) = n!$. For $n = 20$ that is $2.4 \times 10^{18}$ multiplications -- decades on a single core. For $n = 50$ it is more multiplications than there are atoms on Earth.
+The cofactor formula is beautiful, recursive, and *catastrophically slow*. Let $T(n)$ be the number of multiplications to expand an $n\times n$ determinant by minors. The recursion $T(n) = n\cdot T(n-1)$ gives $T(n) = n!$. For $n = 20$ that is $2.4 \times 10^{18}$ multiplications — decades on a single core. For $n = 50$ it is more multiplications than there are atoms on Earth.
 
-Real implementations -- LAPACK's `dgetrf`, numpy's `np.linalg.det`, Eigen's `determinant()` -- always go through LU decomposition. We factor $PA = LU$ where $L$ is unit-lower-triangular and $U$ is upper-triangular, then
+Real implementations — LAPACK's `dgetrf`, numpy's `np.linalg.det`, Eigen's `determinant()` — always go through LU decomposition. We factor $PA = LU$ where $L$ is unit-lower-triangular and $U$ is upper-triangular, then
 $$\det A = (-1)^{\text{swaps}} \prod_{i=1}^n U_{ii}.$$
-The cost of LU is $\tfrac{2}{3}n^3$ FLOPs, and the cost of multiplying the $n$ diagonal entries is linear. So determinant is $\Theta(n^3)$, not $\Theta(n!)$ -- a saving of, for $n=20$, a factor of $3\times 10^{14}$.
+The cost of LU is $\tfrac{2}{3}n^3$ FLOPs, and the cost of multiplying the $n$ diagonal entries is linear. So determinant is $\Theta(n^3)$, not $\Theta(n!)$ — a saving of, for $n=20$, a factor of $3\times 10^{14}$.
 
 Two practical notes:
 
-- The same factorisation that gives you $\det A$ also gives you $A^{-1}$ and the solution to $Ax=b$ for any right-hand side. If you are computing both the determinant and the solution, do *not* call `np.linalg.det` and `np.linalg.solve` separately -- factor once with `scipy.linalg.lu_factor` and reuse.
+- The same factorisation that gives you $\det A$ also gives you $A^{-1}$ and the solution to $Ax=b$ for any right-hand side. If you are computing both the determinant and the solution, do *not* call `np.linalg.det` and `np.linalg.solve` separately — factor once with `scipy.linalg.lu_factor` and reuse.
 - For symmetric positive-definite matrices, Cholesky is twice as fast: $A = LL^T$ in $\tfrac{1}{3}n^3$ FLOPs, and $\det A = (\prod L_{ii})^2$.
 
 So the cofactor formula stays in the textbook because it is the cleanest statement of *what* the determinant is. For *computing* it, we exploit the multiplicative property $\det(LU) = \det L \cdot \det U$ and the trivial fact that the determinant of a triangular matrix is the product of its diagonal.
 
 ## The `slogdet` Trick: When the Determinant Itself Underflows
 
-Here is a problem you hit the first time you implement maximum-likelihood estimation for a Gaussian. The log-likelihood involves $\log \det \Sigma$ where $\Sigma$ is a covariance matrix. For a $200 \times 200$ covariance with eigenvalues around $0.01$, the determinant is roughly $0.01^{200} = 10^{-400}$ -- which is exactly $0$ in double precision (smallest positive double is $\approx 5\times 10^{-324}$). So `np.log(np.linalg.det(Sigma))` returns `-inf` and your training crashes.
+Here is a problem you hit the first time you implement maximum-likelihood estimation for a Gaussian. The log-likelihood involves $\log \det \Sigma$ where $\Sigma$ is a covariance matrix. For a $200 \times 200$ covariance with eigenvalues around $0.01$, the determinant is roughly $0.01^{200} = 10^{-400}$ — which is exactly $0$ in double precision (smallest positive double is $\approx 5\times 10^{-324}$). So `np.log(np.linalg.det(Sigma))` returns `-inf` and your training crashes.
 
 The fix is to never form the determinant. numpy provides `np.linalg.slogdet`, which returns the sign and the log magnitude separately:
 
@@ -385,4 +385,4 @@ A related habit: when comparing two determinants for sign or relative size, comp
 
 ## What Comes Next
 
-**Chapter 5: Linear Systems and Column Space.** We bring together everything so far -- matrices, transformations, and determinants -- to understand when $A\vec{x} = \vec{b}$ has solutions, how many, and what their structure looks like. The key concepts are the **column space** ("what can $A$ reach?"), the **null space** ("what gets crushed?"), and the **rank** ("how many effective dimensions remain?"). Determinants will play a starring role in the square case; for non-square or rank-deficient $A$ we will need a more refined toolkit.
+**Chapter 5: Linear Systems and Column Space.** We bring together everything so far — matrices, transformations, and determinants — to understand when $A\vec{x} = \vec{b}$ has solutions, how many, and what their structure looks like. The key concepts are the **column space** ("what can $A$ reach?"), the **null space** ("what gets crushed?"), and the **rank** ("how many effective dimensions remain?"). Determinants will play a starring role in the square case; for non-square or rank-deficient $A$ we will need a more refined toolkit.

@@ -7,8 +7,7 @@ tags:
   - Monitoring
   - Migration
   - Cloud
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: en
 description: "The operational side of databases — schema migrations, connection pooling, monitoring, backup strategies, managed database options, and hard-won lessons from production incidents."

@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "ml-math-derivations-8"
 ---
-> **Hook.** You have two clouds of points and infinitely many lines that separate them. Which line is "best"? SVM gives a startlingly geometric answer: the line that sits in the middle of the *widest empty corridor* between the two classes. Push that single idea through Lagrangian duality and it produces a sparse model (only the points on the corridor wall matter), a quadratic program with a global optimum, and -- almost as a free gift -- the kernel trick that lets the same linear machinery carve curved boundaries in infinite-dimensional spaces.
+> **Hook.** You have two clouds of points and infinitely many lines that separate them. Which line is "best"? SVM gives a startlingly geometric answer: the line that sits in the middle of the *widest empty corridor* between the two classes. Push that single idea through Lagrangian duality and it produces a sparse model (only the points on the corridor wall matter), a quadratic program with a global optimum, and — almost as a free gift — the kernel trick that lets the same linear machinery carve curved boundaries in infinite-dimensional spaces.
 
 ![ML Math Derivations (8): Support Vector Machines — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/illustration_1.png)
 
@@ -53,7 +53,7 @@ $$\hat{\gamma}_i \;=\; y_i\,(w^\top x_i + b)
 $$\gamma_i \;=\; \frac{y_i\,(w^\top x_i + b)}{\lVert w \rVert}
 \qquad\text{(geometric margin)}$$
 
-The functional margin is positive on correctly classified points but is *not* scale-invariant: doubling $(w, b)$ doubles it. The geometric margin is the actual Euclidean distance from $x_i$ to the hyperplane, signed by the label, and is invariant to rescaling. That invariance is what makes the optimization well-posed -- without it, "make the margin bigger" has no fixed-point answer, you can always shrink $\lVert w \rVert$.
+The functional margin is positive on correctly classified points but is *not* scale-invariant: doubling $(w, b)$ doubles it. The geometric margin is the actual Euclidean distance from $x_i$ to the hyperplane, signed by the label, and is invariant to rescaling. That invariance is what makes the optimization well-posed — without it, "make the margin bigger" has no fixed-point answer, you can always shrink $\lVert w \rVert$.
 
 *Why this formula?* For any point $x_0$, the closest point on $w^\top x + b = 0$ is its orthogonal projection, and the displacement is $-(w^\top x_0 + b)/\lVert w \rVert^2 \cdot w$. Its norm is $\lvert w^\top x_0 + b\rvert / \lVert w \rVert$. Multiplying by $y_i$ keeps it positive whenever the prediction is correct.
 
@@ -80,13 +80,13 @@ Attach multipliers $\alpha_i \ge 0$ to each constraint:
 
 $$L(w, b, \alpha) \;=\; \tfrac{1}{2}\lVert w \rVert^2 \;-\; \sum_{i=1}^N \alpha_i \bigl[\,y_i(w^\top x_i + b) - 1\,\bigr].$$
 
-**Step 1 -- minimise over $w$ and $b$.** Setting $\partial_w L = 0$ and $\partial_b L = 0$:
+**Step 1 — minimise over $w$ and $b$.** Setting $\partial_w L = 0$ and $\partial_b L = 0$:
 
 $$w^\* \;=\; \sum_{i=1}^N \alpha_i y_i x_i,
 \qquad
 \sum_{i=1}^N \alpha_i y_i \;=\; 0.$$
 
-**Step 2 -- substitute back.** Using $w^\* = \sum_i \alpha_i y_i x_i$ inside $L$:
+**Step 2 — substitute back.** Using $w^\* = \sum_i \alpha_i y_i x_i$ inside $L$:
 
 $$W(\alpha) \;=\; \sum_{i=1}^N \alpha_i \;-\; \tfrac{1}{2} \sum_{i, j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j.$$
 
@@ -97,7 +97,7 @@ $$\boxed{\;\max_{\alpha}\; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \al
 
 Two consequences are doing all the heavy lifting here:
 
-1. The data only enter through inner products $x_i^\top x_j$. Replace this with $K(x_i, x_j)$ and the entire derivation goes through unchanged -- this is the kernel trick before we even introduce it.
+1. The data only enter through inner products $x_i^\top x_j$. Replace this with $K(x_i, x_j)$ and the entire derivation goes through unchanged — this is the kernel trick before we even introduce it.
 2. The dual has $N$ scalar variables and a single equality constraint, so it is much cheaper than the primal whenever the feature dimension $d \gg N$.
 
 ### 1.4 KKT conditions and sparsity
@@ -111,8 +111,8 @@ The primal is convex with affine constraints, so Slater's condition is satisfied
 
 The last line is the punchline. For each $i$ exactly one of these holds:
 
-- $\alpha_i^\* = 0$ -- the point is *strictly* outside the margin band, irrelevant to $w^\*$.
-- $y_i(w^{\*\top} x_i + b^\*) = 1$ -- the point sits *on* the margin and can carry $\alpha_i^\* > 0$.
+- $\alpha_i^\* = 0$ — the point is *strictly* outside the margin band, irrelevant to $w^\*$.
+- $y_i(w^{\*\top} x_i + b^\*) = 1$ — the point sits *on* the margin and can carry $\alpha_i^\* > 0$.
 
 Therefore the optimal classifier is supported by only the second group:
 
@@ -185,7 +185,7 @@ Eliminate $\xi_i$ from the primal by noting that the optimal slack is $\xi_i^\* 
 
 $$\min_{w, b}\; \tfrac{1}{2}\lVert w \rVert^2 + C \sum_i \max\bigl(0,\, 1 - y_i(w^\top x_i + b)\bigr).$$
 
-The right-hand sum is the **hinge loss**. So soft-margin SVM is exactly *L2-regularised empirical risk minimisation with hinge loss*. This view makes SVM look like every other linear classifier you know -- only the loss function differs.
+The right-hand sum is the **hinge loss**. So soft-margin SVM is exactly *L2-regularised empirical risk minimisation with hinge loss*. This view makes SVM look like every other linear classifier you know — only the loss function differs.
 
 ![Surrogate losses on the margin axis: hinge upper-bounds 0/1 loss and is convex; squared loss penalises confident-correct examples](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig5_loss_comparison.png)
 
@@ -222,7 +222,7 @@ The lifted picture shows *why* this works. The inner two-class data on the left 
 | RBF (Gaussian) | $K(x, z) = \exp(-\gamma\,\lVert x - z\rVert^2)$ | infinite-dimensional |
 | Sigmoid | $K(x, z) = \tanh(\gamma\, x^\top z + r)$ | only PSD for some parameters |
 
-**RBF intuition.** Each training point lays down a bump of radius $1/\sqrt{\gamma}$. Large $\gamma$ -- narrow bumps, decision boundary wraps tightly around individual points (overfit risk). Small $\gamma$ -- wide bumps, smoother boundary, possible underfit.
+**RBF intuition.** Each training point lays down a bump of radius $1/\sqrt{\gamma}$. Large $\gamma$ — narrow bumps, decision boundary wraps tightly around individual points (overfit risk). Small $\gamma$ — wide bumps, smoother boundary, possible underfit.
 
 ![RBF SVM at three values of $\gamma$: bandwidth controls how locally each support vector influences the boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig4_rbf_boundary.png)
 
@@ -261,7 +261,7 @@ print(f"eigenvalues: {eig.round(4)} -- all >= 0: {np.all(eig >= -1e-10)}")
 
 ### 4.1 Why two coordinates at a time
 
-The dual is a QP in $N$ variables with a single equality constraint $\sum_i \alpha_i y_i = 0$. General QP solvers run in $O(N^3)$ time and $O(N^2)$ memory -- prohibitive for tens of thousands of points.
+The dual is a QP in $N$ variables with a single equality constraint $\sum_i \alpha_i y_i = 0$. General QP solvers run in $O(N^3)$ time and $O(N^2)$ memory — prohibitive for tens of thousands of points.
 
 A naive coordinate-descent strategy (fix all but one $\alpha_i$ and optimise) is illegal: the equality constraint forces *any* legal move to change at least two coordinates. The minimum number of variables to update while staying feasible is therefore **two**. That is the entire premise of Sequential Minimal Optimization (Platt, 1998): pick a pair, solve the two-variable QP analytically, repeat.
 
@@ -320,7 +320,7 @@ Each step strictly improves the dual objective unless the chosen pair is already
 
 ## 6. Exercises
 
-### Exercise 1 -- Geometric margin
+### Exercise 1 — Geometric margin
 
 **Problem.** Hyperplane $w = (3, 4)^\top$, $b = -1$. Point $x_0 = (1, 1)^\top$ with label $y = +1$. Compute the geometric margin.
 
@@ -334,7 +334,7 @@ w, b, x, y = np.array([3, 4]), -1, np.array([1, 1]), 1
 print(y * (w @ x + b) / np.linalg.norm(w))   # 1.2
 ```
 
-### Exercise 2 -- Closure of kernels under sum
+### Exercise 2 — Closure of kernels under sum
 
 **Problem.** Show that if $K_1, K_2$ are valid kernels, so is $K = K_1 + K_2$.
 
@@ -344,19 +344,19 @@ $$\sum_{i, j} c_i c_j K(x_i, x_j) = \sum_{i, j} c_i c_j K_1(x_i, x_j) + \sum_{i,
 
 since both terms are $\ge 0$ by Mercer applied to $K_1$ and $K_2$. Hence $K$ is PSD and therefore a valid kernel.
 
-### Exercise 3 -- Reading $C$ from the SV count
+### Exercise 3 — Reading $C$ from the SV count
 
 **Problem.** With 100 training samples: $C = 0.1$ yields 30 SVs; $C = 100$ yields 15 SVs. Explain.
 
 **Solution.** Smaller $C$ pays slack cheaply, so the optimiser widens the margin band; many more points then fall inside it and become $\alpha = C$ bound SVs. Larger $C$ punishes slack heavily, the margin shrinks, fewer points sit inside, fewer SVs. The general rule: more regularisation (smaller $C$) -> wider margin -> more SVs.
 
-### Exercise 4 -- Diagnosing $\gamma$
+### Exercise 4 — Diagnosing $\gamma$
 
 **Problem.** With RBF: $\gamma = 0.01$ gives train 95 % / test 60 %; $\gamma = 100$ gives train 100 % / test 70 %. Which is better and what should you try?
 
 **Solution.** Both are bad. $\gamma = 0.01$ has wide bumps and underfits weakly (train decent, test poor). $\gamma = 100$ has needle-thin bumps memorising every training point and severely overfits. Cross-validate over $\gamma \in \{0.1, 0.3, 1, 3, 10, 30\}$ jointly with $C$; the best pair will close the train/test gap.
 
-### Exercise 5 -- SVM vs logistic regression
+### Exercise 5 — SVM vs logistic regression
 
 **Problem.** When prefer one over the other?
 
@@ -388,7 +388,7 @@ $\eta = \lVert \phi(x_1) - \phi(x_2) \rVert^2$, so $\eta = 0$ means the two poin
 
 ### Does SVM extend to regression?
 
-Yes -- **support vector regression** uses the $\varepsilon$-insensitive loss $\max(0, |y - f(x)| - \varepsilon)$. Errors smaller than $\varepsilon$ cost nothing, errors larger become support vectors. Same dual machinery, two multipliers per point ($\alpha_i, \alpha_i^\*$ for the upper and lower side).
+Yes — **support vector regression** uses the $\varepsilon$-insensitive loss $\max(0, |y - f(x)| - \varepsilon)$. Errors smaller than $\varepsilon$ cost nothing, errors larger become support vectors. Same dual machinery, two multipliers per point ($\alpha_i, \alpha_i^\*$ for the upper and lower side).
 
 ### Why standardise inputs?
 

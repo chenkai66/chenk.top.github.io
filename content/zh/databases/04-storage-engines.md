@@ -6,8 +6,7 @@ tags:
   - Storage Engines
   - InnoDB
   - LSM Tree
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "数据库存储引擎在底层如何工作——B树 vs LSM树、WAL、缓冲池、合并压缩（compaction），以及为何引擎选型从根本上塑造了你的数据库行为。"

@@ -430,11 +430,11 @@ print(np.linalg.matrix_rank(A, tol=1e-8)) # 2  -- the truth
 print(np.linalg.svd(A, compute_uv=False)) # [~14, ~10, ~1e-9]
 ```
 
-`matrix_rank` defaults to a tolerance based on the largest singular value. With strict numerics it reports rank 3, but the third singular value is $10^{-9}$ -- the column is *effectively* dependent. If you build a model that inverts $A^TA$, the inversion blows up: the condition number is $\sim 10^{10}$.
+`matrix_rank` defaults to a tolerance based on the largest singular value. With strict numerics it reports rank 3, but the third singular value is $10^{-9}$ — the column is *effectively* dependent. If you build a model that inverts $A^TA$, the inversion blows up: the condition number is $\sim 10^{10}$.
 
 The right tool is the SVD (Chapter 9). The singular values $\sigma_1 \ge \sigma_2 \ge \cdots$ are a continuous measure of "how independent" the columns are. The ratio $\sigma_1/\sigma_n$ is the condition number; a basis where this ratio exceeds $10^{8}$ is no basis at all for double-precision work. *Numerical rank* is then defined as the count of singular values above some threshold, typically $\max(m,n)\cdot \varepsilon \cdot \sigma_1$.
 
-This matters constantly. Polynomial regression on $1, x, x^2, \ldots, x^{15}$ over $x \in [0,1]$ has condition number $> 10^{20}$ -- the monomial basis is theoretically independent but practically useless. Switch to Chebyshev or Legendre polynomials and the condition number drops to $\sim 10^{2}$. Same span, vastly different basis.
+This matters constantly. Polynomial regression on $1, x, x^2, \ldots, x^{15}$ over $x \in [0,1]$ has condition number $> 10^{20}$ — the monomial basis is theoretically independent but practically useless. Switch to Chebyshev or Legendre polynomials and the condition number drops to $\sim 10^{2}$. Same span, vastly different basis.
 
 ## 11. Connection to ML: Feature Redundancy and the Rank of the Data Matrix
 
@@ -444,7 +444,7 @@ In a tabular ML pipeline, your design matrix $X \in \mathbb{R}^{n\times d}$ has 
 
 2. **Redundant engineered features.** If you add `height_cm`, `height_m`, and `height_inches`, you have added one feature, twice. The span has not grown. Tree models do not care; linear models silently give you nonsense coefficients because the inverse is ill-defined.
 
-3. **PCA = picking the best low-dimensional subspace.** PCA finds the $k$-dimensional subspace of $\mathbb{R}^d$ -- the *span* of the top $k$ principal directions -- that captures maximum variance. It is exactly the question "what is the best $k$-vector basis for my cloud of data?", answered by SVD. Reducing 1000 features to 50 means trading a basis you wrote down for one the data chose.
+3. **PCA = picking the best low-dimensional subspace.** PCA finds the $k$-dimensional subspace of $\mathbb{R}^d$ — the *span* of the top $k$ principal directions — that captures maximum variance. It is exactly the question "what is the best $k$-vector basis for my cloud of data?", answered by SVD. Reducing 1000 features to 50 means trading a basis you wrote down for one the data chose.
 
 So when this chapter says *basis* and *dimension*, the ML reading is: a basis is a parameterisation of your hypothesis class, and dimension is its capacity. Choosing a basis is a modelling decision, not a bookkeeping one.
 

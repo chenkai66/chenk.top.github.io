@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 7
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "How processes are born and die on Linux: the fork/exec model, the state machine that ps and top print in the STAT column, the resource axes (CPU, memory, disk I/O, network) that actually constrain a server, the signals you should know by heart, and the cgroup + namespace primitives that turn all of this into containers."
@@ -21,7 +21,7 @@ The job of a Linux operator is rarely "memorise more commands". It is to take a 
 
 This post walks the full picture in that order. We start from how a process actually comes to exist (`fork()` + `exec()`), the state machine the kernel pushes it through, and the four resource axes that bound everything it can do. Then we build up the toolchain — `top` / `htop` / `ps` / `pstree` / `lsof` / `ss` / `iostat` — not as a command list but as a layered way of looking at the same system. Finally we cover the things you do *to* a process: signals, background jobs, `nice`/`renice` priorities, and the cgroup + namespace mechanisms that quietly underpin every container you have ever run.
 
-### Process, program, thread — and why the distinction matters
+## Process, program, thread — and why the distinction matters
 
 ![Process states](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig1_process_states.png)
 
@@ -41,7 +41,7 @@ A few invariants worth keeping in mind:
 - Processes are **isolated by default**: address spaces don't overlap, opening a file in process A does nothing to process B. Sharing requires explicit IPC (pipes, sockets, shared memory, signals).
 - Processes are **dynamic**: they are created, scheduled, blocked, woken, and torn down constantly. A healthy server churns thousands of short-lived processes per minute; that is normal.
 
-### How processes are born: fork() and exec()
+## How processes are born: fork() and exec()
 
 ![fork/exec model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig2_fork_exec_model.png)
 
@@ -60,7 +60,7 @@ Two consequences of this design show up constantly:
 - **Inherited file descriptors.** A child inherits all open FDs of the parent unless they are marked `O_CLOEXEC`. That is why `cmd > log.txt` works: the shell opens the file as FD 1 in the child *before* exec-ing the command. It is also why a leaking daemon can pin deleted files (we'll come back to that).
 - **PID 1 is special.** If a process exits while it still has children, those orphans get re-parented to PID 1, which is responsible for `wait()`-ing on them. A container's PID 1 has the same job — and if you forget to handle it, you get the famous "zombies in my Docker container" problem.
 
-### The process state machine
+## The process state machine
 
 `ps` and `top` show a one-letter `STAT` column for every process. Those letters correspond to the state the kernel currently has the task in:
 
@@ -77,7 +77,7 @@ The state is not just trivia. A box with 200 processes in `D` is not "100 % CPU 
 
 `top`'s top line — `Tasks: 150 total, 2 running, 148 sleeping, 0 stopped, 0 zombie` — is your first sanity check. Anything other than zero in `stopped` or `zombie` deserves a follow-up.
 
-### The four resource axes
+## The four resource axes
 
 Before drowning in tools, fix the mental model. Almost every production problem maps to one of four axes:
 
@@ -88,7 +88,7 @@ Before drowning in tools, fix the mental model. Almost every production problem 
 
 A bottleneck on any of them slows everything that depends on it. The trick is figuring out *which* one — and that's mostly what monitoring tools are for.
 
-#### CPU
+### CPU
 
 What you usually want to know:
 
@@ -104,7 +104,7 @@ nproc
 # 4
 ```
 
-#### Memory
+### Memory
 
 `free -h` is the canonical view. The trap is reading it like Windows Task Manager:
 
@@ -127,15 +127,15 @@ You are *actually* low on memory when **all three** of these become true at once
 - `swap used` is climbing rather than just non-zero,
 - the kernel starts logging OOM kills (`dmesg | grep -i 'killed process'`).
 
-#### Disk and network
+### Disk and network
 
 Disk capacity is `df -h` (per filesystem) and `du -sh *` (per directory). Real-time I/O lives in `iostat -x 1` and `iotop`; the two metrics that matter are `%util` (how busy the device is) and `await` (how long requests sit in the queue). A device pegged at `%util 100` with `await` in the tens of milliseconds is a real bottleneck.
 
 Network is `ss -tulnp` for who is listening, `ip -s link` for interface counters and drops, and `iftop` (or `nload`) for live bandwidth. For "who is using port 80" the fastest answer is `lsof -i :80` or `ss -tulnp | grep :80`.
 
-### The monitoring toolchain
+## The monitoring toolchain
 
-#### `top` — the first thing to run
+### `top` — the first thing to run
 
 ![top dissected](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig3_top_dissected.png)
 
@@ -147,7 +147,7 @@ Network is `ss -tulnp` for who is listening, `ip -s link` for interface counters
 - **Mem / Swap:** trust `avail Mem`, not `free`. If `Swap used` is climbing, the box is under real memory pressure.
 - **Process table:** sortable by hotkey. `P` sorts by `%CPU`, `M` by `%MEM`, `T` by time. `1` toggles per-CPU breakdown — invaluable when one core is pinned and the others sit idle. `k` prompts for a PID and signal. `q` quits.
 
-#### `htop` — top with a UI
+### `htop` — top with a UI
 
 `htop` is `top` with colour, mouse support, a tree view (`F5`) and a built-in signal sender (`F9`). On any box where you spend more than a minute in `top`, install it:
 
@@ -156,7 +156,7 @@ sudo apt install htop          # Debian/Ubuntu
 sudo dnf install htop          # RHEL/Rocky/Fedora
 ```
 
-#### `ps` — the static snapshot
+### `ps` — the static snapshot
 
 `top` refreshes; `ps` freezes a moment in time, which is often what you want for scripting and grep'ing.
 
@@ -173,7 +173,7 @@ The columns worth knowing (`ps aux`):
 - `STAT` — the state codes from the table above, sometimes with extra suffixes (`<` high-priority, `N` low-priority, `s` session leader, `+` foreground process group).
 - `TIME` — accumulated CPU time, not wall-clock.
 
-#### `pstree` — who spawned whom
+### `pstree` — who spawned whom
 
 ```bash
 pstree -ap            # show command line + PIDs
@@ -182,7 +182,7 @@ pstree -ap <PID>      # subtree under a single PID
 
 When a misbehaving process keeps coming back, look up the tree: something is respawning it.
 
-#### `lsof` — every open file is something
+### `lsof` — every open file is something
 
 `lsof` lists open files, where "file" is the Unix everything-is-a-file sense — regular files, sockets, pipes, devices, even kernel-side handles.
 
@@ -204,7 +204,7 @@ The `FD` column is a tiny grammar of its own:
 - `0r`, `1w`, `2w` — stdin / stdout / stderr
 - `Nu` (`u`/`r`/`w`) — a regular open FD with mode
 
-#### `ss` — sockets, the modern `netstat`
+### `ss` — sockets, the modern `netstat`
 
 ```bash
 ss -tulnp            # tcp + udp + listening + numeric + with PID
@@ -212,7 +212,7 @@ ss -s                # one-line summary of all socket states
 ss -tan state established '( dport = :443 )'
 ```
 
-#### `iostat` and `iotop` — the disk axis
+### `iostat` and `iotop` — the disk axis
 
 ```bash
 iostat -x 1          # per-device extended stats, refresh every second
@@ -221,9 +221,9 @@ sudo iotop -o        # only processes currently doing I/O
 
 Watch `%util`, `r/s`, `w/s`, `await`. A device at `%util 100` with single-digit `await` is *busy but healthy*; one at `%util 100` with `await` in the hundreds is *queued and miserable*.
 
-### Controlling processes
+## Controlling processes
 
-#### Signals
+### Signals
 
 ![Signals reference](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig5_signals_table.png)
 
@@ -253,7 +253,7 @@ pkill -HUP nginx       # by name and pattern
 killall -USR1 nginx    # by exact program name
 ```
 
-#### Background jobs and detachment
+### Background jobs and detachment
 
 When you start something that needs to outlive your SSH session, three options in increasing order of robustness:
 
@@ -277,7 +277,7 @@ jobs              # list jobs in this shell
 disown %1         # detach from shell, survive logout
 ```
 
-#### Priorities: `nice` and `renice`
+### Priorities: `nice` and `renice`
 
 The scheduler picks who runs next partly based on a process's **nice value**, an integer from `-20` (highest priority, scheduler favours it) to `19` (lowest, polite to others). Default is `0`. Lowering nice below 0 requires root.
 
@@ -290,7 +290,7 @@ renice -n 5 -u alice                   # all of alice's processes
 
 `nice` is a soft hint — it influences scheduling weight but a low-priority process still gets CPU when nothing else wants it. For *hard* limits (e.g. "this batch job may use no more than 2 cores and 4 GiB"), use cgroups, not nice.
 
-#### Orphans and zombies
+### Orphans and zombies
 
 Two states that confuse newcomers, both rooted in the parent–child contract:
 
@@ -305,7 +305,7 @@ You can list current zombies cheaply:
 ps -eo pid,ppid,stat,cmd | awk '$3 ~ /^Z/'
 ```
 
-### cgroups + namespaces — the foundation under containers
+## cgroups + namespaces — the foundation under containers
 
 ![cgroups and namespaces](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig4_cgroups_namespaces.png)
 
@@ -348,7 +348,7 @@ A container engine like Docker, Podman or `containerd` is, fundamentally, a smal
 
 Once you have seen this, container debugging becomes much less mysterious. `nsenter -t <PID> -a` enters a running container's namespaces; `cat /proc/<PID>/cgroup` tells you which group it lives in; `systemd-cgtop` is `top` for cgroups.
 
-### Walkthrough: "the box feels slow, what now?"
+## Walkthrough: "the box feels slow, what now?"
 
 A repeatable order of operations for triaging "slow":
 
@@ -383,7 +383,7 @@ kill -9 <PID>                   # only after SIGTERM is ignored
 
 Resist the temptation to skip step 2. Most "the server is slow" tickets are misdiagnosed because somebody jumped straight to `top`, saw 100 % CPU on one process, and `kill -9`'d it — when the real problem was a saturated disk and the process was simply waiting in `D`.
 
-### Real-world: recovering an accidentally deleted log file
+## Real-world: recovering an accidentally deleted log file
 
 Classic incident: someone runs `rm -rf /var/log/nginx/access.log` while nginx is happily writing to it. After the `rm`:
 
@@ -409,7 +409,7 @@ sudo nginx -s reload    # or: sudo kill -USR1 "$PID"
 
 The same trick works for any deleted-but-still-open file. The moment the last FD is closed, though, the kernel really frees the inode — so do this *now*, before the daemon restarts.
 
-### Recap
+## Recap
 
 - A **process** is a running program with its own address space; **threads** share that space; only `task_struct`s exist as far as the scheduler is concerned.
 - New processes are created by **`fork()` + `exec()`**, never from scratch. PID 1 (`systemd` / `init`) is the root of every process tree.
@@ -419,7 +419,7 @@ The same trick works for any deleted-but-still-open file. The moment the last FD
 - `kill` sends **signals**; `SIGTERM` first, `SIGKILL` last. Daemons reload on `SIGHUP`.
 - `nice`/`renice` are soft scheduling hints; **cgroups** are hard caps and they are the real foundation of containers, alongside **namespaces**.
 
-#### Further reading
+### Further reading
 
 - Brendan Gregg, *Linux Performance* — <http://www.brendangregg.com/linuxperf.html>
 - `man proc(5)` — exhaustive reference for `/proc`
@@ -427,7 +427,7 @@ The same trick works for any deleted-but-still-open file. The moment the last FD
 - `man 7 cgroups` — cgroup v2 design and controller list
 - `man 7 namespaces` — what each namespace virtualises
 
-#### Up next in this series
+### Up next in this series
 
 - **Linux Disk Management** — partitions, filesystems, LVM and the mount stack
 - **Linux User Management** — users, groups, sudo, PAM, and the principle of least privilege

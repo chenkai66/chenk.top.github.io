@@ -14,10 +14,10 @@ disableNunjucks: true
 series_order: 2
 translationKey: "nlp-2"
 ---
-For decades, machines treated "king" and "queen" as unrelated symbols -- nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute
+For decades, machines treated "king" and "queen" as unrelated symbols — nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute
 
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
-and the entire trajectory of NLP turned toward representation learning. This article walks through that turn -- from the failure of one-hot vectors, to Word2Vec's shallow networks, to the global statistics that GloVe exploits, to the subword n-grams that let FastText handle words it has never seen -- and finally connects embeddings to the language models that gave rise to them.
+and the entire trajectory of NLP turned toward representation learning. This article walks through that turn — from the failure of one-hot vectors, to Word2Vec's shallow networks, to the global statistics that GloVe exploits, to the subword n-grams that let FastText handle words it has never seen — and finally connects embeddings to the language models that gave rise to them.
 
 
 <!-- wanx-hero -->
@@ -66,7 +66,7 @@ Every embedding method in this article rests on one observation, attributed to t
 - "The **cat** sat on the mat" vs. "The **dog** sat on the mat"
 - "The **king** ruled the kingdom" vs. "The **queen** ruled the kingdom"
 
-If we can train any model to predict context from a word -- or vice versa -- the parameters that succeed at this prediction task will have absorbed distributional regularities. The embeddings emerge as a *byproduct* of the prediction.
+If we can train any model to predict context from a word — or vice versa — the parameters that succeed at this prediction task will have absorbed distributional regularities. The embeddings emerge as a *byproduct* of the prediction.
 
 The payoff of taking this hypothesis seriously is shown below: trained embeddings encode meaningful relations as nearly constant directions in space, which is why the famous analogy arithmetic works.
 
@@ -76,7 +76,7 @@ The payoff of taking this hypothesis seriously is shown below: trained embedding
 
 ## Word2Vec: Learning from Local Context
 
-Word2Vec (Mikolov et al., 2013) was the first method to learn high-quality embeddings cheaply on billions of tokens. It comes in two flavours -- **Skip-gram** and **CBOW** -- both implemented as one-hidden-layer neural networks with no non-linearity. The simplicity is the point.
+Word2Vec (Mikolov et al., 2013) was the first method to learn high-quality embeddings cheaply on billions of tokens. It comes in two flavours — **Skip-gram** and **CBOW** — both implemented as one-hidden-layer neural networks with no non-linearity. The simplicity is the point.
 
 ### Skip-gram: Predict Context from Target
 
@@ -86,7 +86,7 @@ Given a target word, predict each surrounding context word inside a fixed window
 (brown, the)   (brown, quick)   (brown, fox)   (brown, jumps)
 ```
 
-The network has three layers: a one-hot input, an embedding lookup matrix $W \in \mathbb{R}^{V \times d}$, and an output matrix $W' \in \mathbb{R}^{d \times V}$ followed by softmax. Because the input is one-hot, the embedding layer reduces to a row lookup -- a constant-time operation.
+The network has three layers: a one-hot input, an embedding lookup matrix $W \in \mathbb{R}^{V \times d}$, and an output matrix $W' \in \mathbb{R}^{d \times V}$ followed by softmax. Because the input is one-hot, the embedding layer reduces to a row lookup — a constant-time operation.
 
 ![Skip-gram architecture: one-hot input, embedding lookup, softmax over the vocabulary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig1_skipgram_architecture.png)
 
@@ -94,9 +94,9 @@ The training objective averages log-probabilities of the true context words:
 $$J = \frac{1}{T}\sum_{t=1}^{T} \sum_{-m \le j \le m,\, j \neq 0} \log P(w_{t+j} \mid w_t)$$
 with
 $$P(c \mid w) = \frac{\exp(\mathbf{v}_w^\top \mathbf{v}'_c)}{\sum_{i=1}^{V} \exp(\mathbf{v}_w^\top \mathbf{v}'_i)}.$$
-Notice the asymmetry: $\mathbf{v}_w$ is read from the input matrix $W$ ("input" or "target" embedding), while $\mathbf{v}'_c$ is read from the output matrix $W'$ ("context" embedding). After training, most pipelines keep only $W$ -- but as we will see, GloVe argues that combining the two matrices is even better.
+Notice the asymmetry: $\mathbf{v}_w$ is read from the input matrix $W$ ("input" or "target" embedding), while $\mathbf{v}'_c$ is read from the output matrix $W'$ ("context" embedding). After training, most pipelines keep only $W$ — but as we will see, GloVe argues that combining the two matrices is even better.
 
-**Why it works.** If "cat" and "dog" both predict "sat", "mat", and "runs" in their contexts, gradient descent must push $\mathbf{v}_{\text{cat}}$ and $\mathbf{v}_{\text{dog}}$ in similar directions -- otherwise they cannot produce similar output distributions. Distributional similarity is *forced* into geometric similarity.
+**Why it works.** If "cat" and "dog" both predict "sat", "mat", and "runs" in their contexts, gradient descent must push $\mathbf{v}_{\text{cat}}$ and $\mathbf{v}_{\text{dog}}$ in similar directions — otherwise they cannot produce similar output distributions. Distributional similarity is *forced* into geometric similarity.
 
 ### CBOW: Predict Target from Context
 
@@ -111,7 +111,7 @@ For most general-purpose embeddings on web-scale corpora, skip-gram with negativ
 
 ### The Softmax Bottleneck
 
-Both architectures have the same wall: the softmax denominator sums over the entire vocabulary $V$. With $V = 100{,}000$ and billions of training pairs, a literal softmax is hopeless -- each gradient step costs $O(Vd)$. Word2Vec's first decisive trick is to never compute that softmax.
+Both architectures have the same wall: the softmax denominator sums over the entire vocabulary $V$. With $V = 100{,}000$ and billions of training pairs, a literal softmax is hopeless — each gradient step costs $O(Vd)$. Word2Vec's first decisive trick is to never compute that softmax.
 
 ### Negative Sampling: The Key Trick
 
@@ -124,7 +124,7 @@ where $\sigma$ is the sigmoid. Geometrically, the gradient pulls the target and 
 Two details that matter in practice:
 
 - **Noise distribution.** Word2Vec samples negatives from $P_n(w) \propto f(w)^{0.75}$, where $f(w)$ is the unigram frequency. The 0.75 exponent flattens the distribution: without it, "the" would be picked $\approx$100x more often than "zebra", and the gradient would be dominated by uninformative high-frequency negatives. With it, rare words show up as negatives often enough to provide useful signal.
-- **Speed gain.** With $k = 5$--$15$ negatives, each step costs $O((k+1)d)$ instead of $O(Vd)$. For $V = 10^5$ and $k = 10$, that is roughly four orders of magnitude faster -- enough to train on billions of tokens on a single machine.
+- **Speed gain.** With $k = 5$--$15$ negatives, each step costs $O((k+1)d)$ instead of $O(Vd)$. For $V = 10^5$ and $k = 10$, that is roughly four orders of magnitude faster — enough to train on billions of tokens on a single machine.
 
 A separate trick, **subsampling**, also drops a fraction of frequent tokens during training. Together with negative sampling, these two heuristics are why Word2Vec runs in hours rather than weeks.
 
@@ -161,7 +161,7 @@ This is literally a low-rank factorisation: a $V \times V$ matrix of log-counts 
 
 ![GloVe approximates the log co-occurrence matrix by the product of a word and a context embedding matrix](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig4_glove_factorization.png)
 
-The published GloVe vectors actually use $\mathbf{w}_i + \tilde{\mathbf{w}}_i$ -- the sum of input and context vectors -- which empirically works slightly better than either alone.
+The published GloVe vectors actually use $\mathbf{w}_i + \tilde{\mathbf{w}}_i$ — the sum of input and context vectors — which empirically works slightly better than either alone.
 
 ### GloVe vs. Word2Vec
 
@@ -191,7 +191,7 @@ For the word "where", FastText pads it with boundary markers `<` and `>` and ext
 
 Each n-gram has its own embedding $\mathbf{z}_g$. The word vector is the sum:
 $$\mathbf{v}_w = \sum_{g \in G(w)} \mathbf{z}_g$$
-Training otherwise looks identical to Word2Vec skip-gram with negative sampling -- only the input "embedding" is replaced with this sum.
+Training otherwise looks identical to Word2Vec skip-gram with negative sampling — only the input "embedding" is replaced with this sum.
 
 ![FastText: every word is the sum of its character n-gram embeddings, which gives free OOV support](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig7_subword_fasttext.png)
 
@@ -219,19 +219,19 @@ If embeddings really capture distributional semantics, projecting them down to t
 
 ![t-SNE projection: words from the same semantic field land in the same neighbourhood](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig3_tsne_clusters.png)
 
-This is one of the most useful debugging tools in practice. If your trained embeddings do *not* show coherent clusters for obviously related words, something is wrong with your data, your tokenisation, or your hyperparameters -- long before you bother running a downstream evaluation.
+This is one of the most useful debugging tools in practice. If your trained embeddings do *not* show coherent clusters for obviously related words, something is wrong with your data, your tokenisation, or your hyperparameters — long before you bother running a downstream evaluation.
 
 ---
 
 ## Language Models and Embeddings
 
-A language model assigns a probability to a sequence of words. Training one well *requires* sharing strength across similar contexts -- and that sharing is exactly what embeddings provide.
+A language model assigns a probability to a sequence of words. Training one well *requires* sharing strength across similar contexts — and that sharing is exactly what embeddings provide.
 
 ### N-gram Language Models
 
 A classical n-gram model estimates the next-word distribution by counting:
 $$P(w_t \mid w_{t-n+1}, \ldots, w_{t-1}) = \frac{\text{count}(w_{t-n+1}, \ldots, w_t)}{\text{count}(w_{t-n+1}, \ldots, w_{t-1})}.$$
-The trouble is data sparsity. With a 50k vocabulary, a 4-gram model has $50{,}000^4 \approx 6 \times 10^{18}$ possible contexts -- the vast majority of which never appear in any corpus. Decades of clever smoothing techniques (Kneser-Ney, Witten-Bell, modified back-off) chip away at this problem, but they cannot share information across *similar* contexts: "the cat ate" and "the kitten ate" remain unrelated bins.
+The trouble is data sparsity. With a 50k vocabulary, a 4-gram model has $50{,}000^4 \approx 6 \times 10^{18}$ possible contexts — the vast majority of which never appear in any corpus. Decades of clever smoothing techniques (Kneser-Ney, Witten-Bell, modified back-off) chip away at this problem, but they cannot share information across *similar* contexts: "the cat ate" and "the kitten ate" remain unrelated bins.
 
 ### Neural Language Models
 
@@ -240,7 +240,7 @@ $$\mathbf{h} = \tanh\left(W_h \cdot [\mathbf{v}_{w_{t-n+1}}; \ldots; \mathbf{v}_
 
 Now "the cat ate" and "the kitten ate" produce *almost the same* hidden state because $\mathbf{v}_{\text{cat}} \approx \mathbf{v}_{\text{kitten}}$, and the model generalises to combinations it has never seen.
 
-The empirical consequence is dramatic. As corpus size grows, n-gram perplexity flattens out -- there are simply not enough counts to keep improving. Neural LMs keep getting better, and Transformer LMs better still:
+The empirical consequence is dramatic. As corpus size grows, n-gram perplexity flattens out — there are simply not enough counts to keep improving. Neural LMs keep getting better, and Transformer LMs better still:
 
 ![Perplexity vs. corpus size: n-gram models plateau, neural and Transformer LMs keep improving](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig5_lm_perplexity.png)
 
@@ -253,11 +253,11 @@ In retrospect Word2Vec is essentially a stripped-down neural language model:
 - **Skip-gram** is the LM that predicts each surrounding word independently from a single target.
 - **CBOW** is the LM that predicts the centre word from a bag of surrounding words.
 
-The simplifications -- shallow network, no non-linearity, no word order, negative sampling instead of full softmax -- are all in service of one goal: train fast enough on enough data for the geometry to settle. The full LM lives one floor up.
+The simplifications — shallow network, no non-linearity, no word order, negative sampling instead of full softmax — are all in service of one goal: train fast enough on enough data for the geometry to settle. The full LM lives one floor up.
 
 ### Static vs. Contextual Embeddings (Preview)
 
-Word2Vec, GloVe, and FastText all produce **static embeddings**: "bank" has a single vector, regardless of whether it appears next to "river" or "account". This is a known limitation. The next wave of models -- ELMo, BERT, GPT -- produce **contextual embeddings**, where every occurrence of a word gets a different vector based on its surroundings. We will cover those in Parts 5 and 6.
+Word2Vec, GloVe, and FastText all produce **static embeddings**: "bank" has a single vector, regardless of whether it appears next to "river" or "account". This is a known limitation. The next wave of models — ELMo, BERT, GPT — produce **contextual embeddings**, where every occurrence of a word gets a different vector based on its surroundings. We will cover those in Parts 5 and 6.
 
 ---
 
@@ -303,7 +303,7 @@ print(model.wv.most_similar('cat', topn=3))
 print(f"cat-dog similarity: {model.wv.similarity('cat', 'dog'):.4f}")
 ```
 
-This toy corpus is far too small to produce useful embeddings -- treat the snippet as an API tour, not a training recipe. For real work, train on at least tens of millions of tokens, or load pre-trained vectors.
+This toy corpus is far too small to produce useful embeddings — treat the snippet as an API tour, not a training recipe. For real work, train on at least tens of millions of tokens, or load pre-trained vectors.
 
 ### Training FastText
 
@@ -399,11 +399,11 @@ Datasets like WordSim-353 and SimLex-999 collect human similarity ratings for wo
 
 ### Extrinsic: Downstream Tasks
 
-The only evaluation that ultimately matters: do the embeddings improve real tasks like sentiment classification, NER, or retrieval? Pre-trained embeddings typically lift accuracy by 2--10 percentage points when labelled data is limited -- the smaller your task-specific dataset, the larger the win.
+The only evaluation that ultimately matters: do the embeddings improve real tasks like sentiment classification, NER, or retrieval? Pre-trained embeddings typically lift accuracy by 2--10 percentage points when labelled data is limited — the smaller your task-specific dataset, the larger the win.
 
 ### Quick Sanity Check
 
-Before any of the above, just inspect nearest neighbours by hand. For "cat" you expect "dog", "kitten", "feline", maybe "pet". If you see "the", "and", "is" -- a classic symptom of forgetting to subsample frequent words -- you have a problem long before any benchmark will catch it.
+Before any of the above, just inspect nearest neighbours by hand. For "cat" you expect "dog", "kitten", "feline", maybe "pet". If you see "the", "and", "is" — a classic symptom of forgetting to subsample frequent words — you have a problem long before any benchmark will catch it.
 
 ---
 
@@ -411,9 +411,9 @@ Before any of the above, just inspect nearest neighbours by hand. For "cat" you 
 
 | Dimension $d$ | When to use |
 |---|---|
-| 50 -- 100 | Small datasets (under 1M tokens), simple downstream models |
-| 100 -- 300 | Medium datasets, general-purpose embeddings, the sweet spot in practice |
-| 300 -- 1000 | Large datasets (over 1B tokens), quality-critical applications |
+| 50 — 100 | Small datasets (under 1M tokens), simple downstream models |
+| 100 — 300 | Medium datasets, general-purpose embeddings, the sweet spot in practice |
+| 300 — 1000 | Large datasets (over 1B tokens), quality-critical applications |
 
 The returns diminish quickly: going from 50 to 100 dimensions buys a lot, going from 300 to 600 buys almost nothing for most tasks. Start with 100 or 300 and only revisit if your downstream evaluation says you need more.
 
@@ -425,9 +425,9 @@ The returns diminish quickly: going from 50 to 100 dimensions buys a lot, going 
 - **Word2Vec, GloVe, and FastText are three answers to the same question.** Word2Vec scans local windows; GloVe factorises the global co-occurrence matrix; FastText decomposes words into character n-grams. They produce embeddings of comparable quality through different routes.
 - **Negative sampling makes training feasible** by replacing the full softmax with binary classification against $k$ random negatives, with frequencies smoothed by the $f(w)^{0.75}$ noise distribution.
 - **Embeddings let language models scale.** Without them, n-gram counts plateau as the corpus grows; with them, neural LMs keep improving because each new context borrows strength from learned geometry.
-- **Static embeddings have a hard limit.** "Bank" has one vector regardless of whether it sits next to "river" or "account". The next two wavefronts -- ELMo / BERT / GPT in Parts 5--6 -- replace static vectors with context-dependent ones.
+- **Static embeddings have a hard limit.** "Bank" has one vector regardless of whether it sits next to "river" or "account". The next two wavefronts — ELMo / BERT / GPT in Parts 5--6 — replace static vectors with context-dependent ones.
 
-Word embeddings cracked open neural NLP. Once words could be added, subtracted, and clustered like real vectors, every downstream architecture -- from RNNs to Transformers -- became possible. We pick up that thread in the next article with sequence modelling.
+Word embeddings cracked open neural NLP. Once words could be added, subtracted, and clustered like real vectors, every downstream architecture — from RNNs to Transformers — became possible. We pick up that thread in the next article with sequence modelling.
 
 ---
 

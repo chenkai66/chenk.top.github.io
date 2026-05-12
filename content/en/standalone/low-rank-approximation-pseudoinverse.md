@@ -36,7 +36,7 @@ The classical inverse$A^{-1}$ only exists for **square, full-rank** matrices. Th
 
 - **Overdetermined** ($m > n$):$Ax = b$ generally has no exact solution, so we settle for least squares.
 - **Underdetermined** ($m < n$): solutions are not unique; we need a principled tie-breaker.
-- **Ill-conditioned**: numerically near-singular -- $A^{-1}$ exists in theory but is useless in practice.
+- **Ill-conditioned**: numerically near-singular — $A^{-1}$ exists in theory but is useless in practice.
 
 The pseudoinverse$A^{+}$ **handles all three uniformly**: it always exists, it is always unique, and it reduces to$A^{-1}$ whenever$A^{-1}$ exists.
 
@@ -53,7 +53,7 @@ When the minimizer is not unique (because$A$ does not have full row rank), we ad
 
 ## Frobenius norm in one line
 $$\|M\|_F^2 \;=\; \sum_{i,j} M_{ij}^2 \;=\; \mathrm{tr}(M^{\!\top} M).$$
-It treats a matrix as one long vector. The trace form is what makes matrix calculus tractable -- you avoid expanding everything element by element.
+It treats a matrix as one long vector. The trace form is what makes matrix calculus tractable — you avoid expanding everything element by element.
 
 ## Solving the optimization (full column rank case)
 
@@ -92,7 +92,7 @@ A direct check verifies all four Penrose conditions, which is why SVD is the **c
 
 ![Pseudoinverse via SVD: least squares = orthogonal projection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/low-rank-approximation-pseudoinverse/fig2_pseudoinverse_svd.png)
 
-Left: an overdetermined regression$y \approx ax + b$, with the least-squares line produced by$\hat\beta = A^{+}b$. Right: geometrically,$AA^{+}b$ is the **orthogonal projection** of$b$ onto the column space$\mathrm{col}(A)$. The residual$b - A\hat\beta$ is perpendicular to$\mathrm{col}(A)$ -- which is exactly the geometric content of the **normal equations**$A^{\!\top}(A\hat\beta - b) = 0$.
+Left: an overdetermined regression$y \approx ax + b$, with the least-squares line produced by$\hat\beta = A^{+}b$. Right: geometrically,$AA^{+}b$ is the **orthogonal projection** of$b$ onto the column space$\mathrm{col}(A)$. The residual$b - A\hat\beta$ is perpendicular to$\mathrm{col}(A)$ — which is exactly the geometric content of the **normal equations**$A^{\!\top}(A\hat\beta - b) = 0$.
 
 ## Code
 
@@ -132,7 +132,7 @@ The same statement holds in spectral norm:$\|A - A_k\|_2 = \sigma_{k+1}$. So the
 
 ![Eckart-Young: truncated SVD is provably the best rank-k approximation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/low-rank-approximation-pseudoinverse/fig3_eckart_young.png)
 
-Left: rapidly decaying singular values; the amber tail$\sigma_{k+1}, \sigma_{k+2}, \ldots$ is exactly what gets discarded, and its$\ell_2$ norm equals the approximation error. Right: truncated SVD versus 8 trials of "random rank-$k$ projections" -- any random low-rank compression is **dominated by Eckart-Young by a wide margin**.
+Left: rapidly decaying singular values; the amber tail$\sigma_{k+1}, \sigma_{k+2}, \ldots$ is exactly what gets discarded, and its$\ell_2$ norm equals the approximation error. Right: truncated SVD versus 8 trials of "random rank-$k$ projections" — any random low-rank compression is **dominated by Eckart-Young by a wide margin**.
 
 ## Why "throwing the tail away" works: image compression demo
 
@@ -150,7 +150,7 @@ The bottom row shows the **singular-value spectrum** and **cumulative energy cur
 
 ## Application: PCA = SVD of centered data
 
-PCA computes the SVD of the centered data matrix$X_c = U\Sigma V^{\!\top}$. The columns of$V$ are the principal-component directions; the variances along them are$\sigma_i^2 / (n-1)$. Projecting onto the top$k$ components is exactly the rank-$k$ truncated SVD of$X_c$ -- so PCA isn't a separate algorithm; it's **Eckart-Young, specialized to centered data**.
+PCA computes the SVD of the centered data matrix$X_c = U\Sigma V^{\!\top}$. The columns of$V$ are the principal-component directions; the variances along them are$\sigma_i^2 / (n-1)$. Projecting onto the top$k$ components is exactly the rank-$k$ truncated SVD of$X_c$ — so PCA isn't a separate algorithm; it's **Eckart-Young, specialized to centered data**.
 
 ## Application: matrix factorization for recommender systems
 
@@ -166,13 +166,13 @@ The Netflix-Prize idea: the user-item rating matrix$R$ is **sparse but low rank*
 
 Inside$A^{+} = V \Sigma^{+} U^{\!\top}$ sits$\Sigma^{+}_{ii} = 1/\sigma_i$. If some$\sigma_i$ is near zero, then$1/\sigma_i$ is huge, and **any tiny noise component in the$u_i$ direction is amplified into a numerical disaster**. The standard quantitative measure is the **condition number**
 $$\kappa(A) \;=\; \frac{\sigma_{\max}}{\sigma_{\min}}.$$
-When$\kappa(A)$ is large (say$10^{10}$), the relative error in solving$Ax = b$ scales like$\kappa(A)$ times the input error -- you lose roughly 10 digits of precision.
+When$\kappa(A)$ is large (say$10^{10}$), the relative error in solving$Ax = b$ scales like$\kappa(A)$ times the input error — you lose roughly 10 digits of precision.
 
 ## Fix 1: truncated SVD (hard threshold)
 
 The simplest cure: **drop singular values that are numerically too small**.
 $$\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i, & \sigma_i > \tau \\ 0, & \sigma_i \le \tau. \end{cases}$$
-Standard choice:$\tau = \mathrm{rcond} \cdot \sigma_1$. This is what `np.linalg.pinv`'s `rcond` parameter does. Truncated SVD treats "signal in small-singular-value directions" as **noise** -- only safe when you actually believe nothing real lives there.
+Standard choice:$\tau = \mathrm{rcond} \cdot \sigma_1$. This is what `np.linalg.pinv`'s `rcond` parameter does. Truncated SVD treats "signal in small-singular-value directions" as **noise** — only safe when you actually believe nothing real lives there.
 
 ## Fix 2: Tikhonov regularization (soft threshold = ridge regression)
 
@@ -215,13 +215,13 @@ The most striking modern application of low-rank approximation is **parameter-ef
 A pretrained weight$W \in \mathbb{R}^{d \times k}$ (e.g.,$d = k = 4096$, giving$1.7 \times 10^7$ parameters per layer). Full fine-tuning updates all of$W$. **LoRA hypothesizes** that the *task-specific* update$\Delta W$ is itself **low rank**:
 $$W' \;=\; W + \Delta W, \qquad \Delta W \;=\; B A, \qquad B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d,k).$$
 
-Parameter count drops from$dk$ to$r(d + k)$. The middle panel above: at$r = 8$, only 0.07 M parameters are trained -- **256x fewer** than full fine-tuning of one layer.
+Parameter count drops from$dk$ to$r(d + k)$. The middle panel above: at$r = 8$, only 0.07 M parameters are trained — **256x fewer** than full fine-tuning of one layer.
 
 ## Why does it work?
 
-The right panel shows the empirical evidence: across many tasks, the singular-value spectrum of$\Delta W$ **decays sharply** -- the effective rank is in the single or low double digits. That's Eckart-Young telling us **a low-rank approximation of$\Delta W$ is essentially lossless**.
+The right panel shows the empirical evidence: across many tasks, the singular-value spectrum of$\Delta W$ **decays sharply** — the effective rank is in the single or low double digits. That's Eckart-Young telling us **a low-rank approximation of$\Delta W$ is essentially lossless**.
 
-> This insight isn't unique to LoRA. Aghajanyan et al. (2020) measured "intrinsic dimensionality" and found that updating only a few hundred dimensions reaches ~90% of full fine-tuning quality. LoRA distilled the observation into a clean, composable, mergeable engineering recipe -- and became the canonical method.
+> This insight isn't unique to LoRA. Aghajanyan et al. (2020) measured "intrinsic dimensionality" and found that updating only a few hundred dimensions reaches ~90% of full fine-tuning quality. LoRA distilled the observation into a clean, composable, mergeable engineering recipe — and became the canonical method.
 
 ## The unifying picture
 

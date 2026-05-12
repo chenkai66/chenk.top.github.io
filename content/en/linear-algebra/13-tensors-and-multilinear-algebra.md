@@ -5,9 +5,8 @@ tags:
   - Linear Algebra
   - tensor decomposition
   - Deep Learning
-  - recommender systems
-categories:
-  - Linear Algebra
+  - Recommender Systems
+categories: Linear Algebra
 series: linear-algebra
 lang: en
 mathjax: true
@@ -22,7 +21,7 @@ The short answer of this chapter:
 
 > A tensor is the natural generalization of a scalar, vector, and matrix to **arbitrary** dimensions. Everything you know about matrices either lifts cleanly to tensors, or breaks in instructive ways.
 
-We'll start from familiar objects, build up the language (fibers, slices, unfolding), then learn the two workhorse decompositions -- **CP** and **Tucker** -- and see how they compress neural networks and power context-aware recommenders.
+We'll start from familiar objects, build up the language (fibers, slices, unfolding), then learn the two workhorse decompositions — **CP** and **Tucker** — and see how they compress neural networks and power context-aware recommenders.
 
 > **What you will learn:**
 > - Tensor order, shape, fibers, slices, and unfolding
@@ -77,7 +76,7 @@ Three words that beginners confuse. Keep them apart:
 
 - **Order** (or "mode"): how many axes there are. A vector is order 1; a $480 \times 640 \times 3$ image is order 3.
 - **Shape**: the size along each axis. The same image has shape $(480, 640, 3)$.
-- **Rank**: a measure of complexity, not of dimensions. Defined later in this chapter -- and as you'll see, tensor rank behaves quite differently from matrix rank.
+- **Rank**: a measure of complexity, not of dimensions. Defined later in this chapter — and as you'll see, tensor rank behaves quite differently from matrix rank.
 
 ---
 
@@ -87,15 +86,15 @@ To work with a tensor, you need ways to "see into" it. Two essential views are *
 
 ### Fibers: toothpicks through a tensor
 
-Picture a Rubik's cube (a 3rd-order tensor). Push a toothpick straight through it along one direction. The string of small cubes you pierce is a **fiber** -- a 1-D slice through the tensor.
+Picture a Rubik's cube (a 3rd-order tensor). Push a toothpick straight through it along one direction. The string of small cubes you pierce is a **fiber** — a 1-D slice through the tensor.
 
-**Definition.** Fix all indices except one; what you get is a vector -- that's a fiber.
+**Definition.** Fix all indices except one; what you get is a vector — that's a fiber.
 
 For a third-order tensor $\mathcal{X} \in \mathbb{R}^{I \times J \times K}$:
 
-- **Mode-1 fiber** $\mathbf{x}_{:jk}$: fix $j$ and $k$, vary the first index -- a vector of length $I$
-- **Mode-2 fiber** $\mathbf{x}_{i:k}$: fix $i$ and $k$ -- a vector of length $J$
-- **Mode-3 fiber** $\mathbf{x}_{ij:}$: fix $i$ and $j$ -- a vector of length $K$
+- **Mode-1 fiber** $\mathbf{x}_{:jk}$: fix $j$ and $k$, vary the first index — a vector of length $I$
+- **Mode-2 fiber** $\mathbf{x}_{i:k}$: fix $i$ and $k$ — a vector of length $J$
+- **Mode-3 fiber** $\mathbf{x}_{ij:}$: fix $i$ and $j$ — a vector of length $K$
 
 For an RGB image $\mathcal{X} \in \mathbb{R}^{H \times W \times 3}$, the mode-3 fiber $\mathbf{x}_{ij:}$ at position $(i, j)$ is exactly that pixel's color vector $(R, G, B)$.
 
@@ -103,7 +102,7 @@ For an RGB image $\mathcal{X} \in \mathbb{R}^{H \times W \times 3}$, the mode-3 
 
 Same Rubik's cube, but now slice it with a knife. Each cut gives you a matrix.
 
-**Definition.** Fix one index; what you get is a matrix -- that's a slice.
+**Definition.** Fix one index; what you get is a matrix — that's a slice.
 
 For $\mathcal{X} \in \mathbb{R}^{I \times J \times K}$:
 
@@ -166,7 +165,7 @@ The outer product runs in the *opposite* direction: it builds higher-order tenso
 
 A tensor that can be written as a single outer product of vectors is called **rank-1**. It is the simplest possible tensor: its full content is determined by a few one-dimensional pieces.
 
-**Key fact.** *Every* tensor can be written as a sum of rank-1 tensors. That single fact is the theoretical foundation of tensor decomposition -- both CP and Tucker grow out of it.
+**Key fact.** *Every* tensor can be written as a sum of rank-1 tensors. That single fact is the theoretical foundation of tensor decomposition — both CP and Tucker grow out of it.
 
 ### n-mode product
 
@@ -263,12 +262,12 @@ $$\operatorname{rank}(\mathcal{X}) = \min\bigl\{ R : \mathcal{X} = \sum_{r=1}^{R
 Three things that look like the matrix story but aren't:
 
 - **Computing tensor rank is NP-hard.** SVD gives matrix rank for free; tensors have no analogue.
-- **The best low-rank approximation may not exist.** For a matrix, SVD always achieves it. For tensors, the optimum can be approached but never reached -- a phenomenon called *border rank*.
+- **The best low-rank approximation may not exist.** For a matrix, SVD always achieves it. For tensors, the optimum can be approached but never reached — a phenomenon called *border rank*.
 - **Tensor rank can exceed every individual dimension.** Matrix rank is bounded by $\min(m, n)$; tensor rank has no such ceiling.
 
 ### Why CP is special: essential uniqueness
 
-A real advantage of CP over matrix factorizations: under mild conditions, the decomposition is **essentially unique**. The factors are determined up to a permutation of components and a rescaling of columns -- nothing else.
+A real advantage of CP over matrix factorizations: under mild conditions, the decomposition is **essentially unique**. The factors are determined up to a permutation of components and a rescaling of columns — nothing else.
 
 **Kruskal's condition.** If $k_{\mathbf{A}} + k_{\mathbf{B}} + k_{\mathbf{C}} \geq 2R + 2$, where $k_{\mathbf{A}}$ is the *Kruskal rank* of $\mathbf{A}$ (the largest $k$ such that any $k$ columns are linearly independent), then CP is essentially unique.
 
@@ -286,7 +285,7 @@ The standard recipe for fitting CP is **Alternating Least Squares (ALS)**: hold 
 
 Here $*$ is the Hadamard (elementwise) product and $\dagger$ the Moore--Penrose pseudo-inverse.
 
-ALS doesn't guarantee a global optimum, but in practice it works well -- run it from several random starts and keep the best fit.
+ALS doesn't guarantee a global optimum, but in practice it works well — run it from several random starts and keep the best fit.
 
 ```python
 import numpy as np
@@ -322,7 +321,7 @@ Each row of `user_factors` is a 5-D embedding of one user; rows of `movie_factor
 $$\mathcal{X} \approx \mathcal{G} \times_1 \mathbf{A} \times_2 \mathbf{B} \times_3 \mathbf{C}$$
 In components:
 $$x_{ijk} \approx \sum_{p=1}^{P} \sum_{q=1}^{Q} \sum_{r=1}^{R} g_{pqr}\, a_{ip}\, b_{jq}\, c_{kr}$$
-Here $\mathcal{G} \in \mathbb{R}^{P \times Q \times R}$ is the **core tensor** -- a small tensor that holds the *interaction structure* -- and $\mathbf{A}, \mathbf{B}, \mathbf{C}$ are the factor matrices that map back out to the original sizes.
+Here $\mathcal{G} \in \mathbb{R}^{P \times Q \times R}$ is the **core tensor** — a small tensor that holds the *interaction structure* — and $\mathbf{A}, \mathbf{B}, \mathbf{C}$ are the factor matrices that map back out to the original sizes.
 
 ### Tucker vs. CP
 
@@ -346,7 +345,7 @@ The analogy with matrix SVD is exact:
 | $\boldsymbol{\Sigma}$ diagonal | $\mathcal{G}$ "all-orthogonal" but not diagonal |
 | $\mathbf{U}, \mathbf{V}$ orthogonal | every $\mathbf{U}^{(n)}$ orthogonal |
 
-HOSVD is workhorse machinery for compression, denoising, and as a warm start for nonlinear Tucker fitting (e.g. HOOI -- Higher-Order Orthogonal Iteration).
+HOSVD is workhorse machinery for compression, denoising, and as a warm start for nonlinear Tucker fitting (e.g. HOOI — Higher-Order Orthogonal Iteration).
 
 ```python
 from tensorly.decomposition import tucker
@@ -367,7 +366,7 @@ print(f"Compression: {original_size / compressed_size:.2f}x")
 
 Tucker comes with its own notion of rank, the **multilinear rank**:
 $$\operatorname{rank}_{\text{ml}}(\mathcal{X}) = \bigl(\operatorname{rank}(\mathbf{X}_{(1)}),\, \operatorname{rank}(\mathbf{X}_{(2)}),\, \operatorname{rank}(\mathbf{X}_{(3)})\bigr)$$
-Each entry is the rank of one mode-$n$ unfolding, i.e. how many independent directions the data uses along that axis. Unlike CP rank, multilinear rank is *easy* to compute -- one matrix SVD per mode.
+Each entry is the rank of one mode-$n$ unfolding, i.e. how many independent directions the data uses along that axis. Unlike CP rank, multilinear rank is *easy* to compute — one matrix SVD per mode.
 
 ---
 
@@ -379,11 +378,11 @@ There's a reason the framework is called TensorFlow. Almost every operation in a
 
 A standard 2D convolutional layer involves four tensors:
 
-- **Input** $\mathcal{X} \in \mathbb{R}^{B \times C_{\text{in}} \times H \times W}$ -- batch, input channels, height, width.
+- **Input** $\mathcal{X} \in \mathbb{R}^{B \times C_{\text{in}} \times H \times W}$ — batch, input channels, height, width.
 - **Kernel** $\mathcal{W} \in \mathbb{R}^{C_{\text{out}} \times C_{\text{in}} \times K_H \times K_W}$.
 - **Output** $\mathcal{Y} \in \mathbb{R}^{B \times C_{\text{out}} \times H' \times W'}$.
 
-The convolution operation itself is one big contraction over $C_{\text{in}}, K_H, K_W$ together with a sliding window over spatial dimensions -- a structured 4-way contraction.
+The convolution operation itself is one big contraction over $C_{\text{in}}, K_H, K_W$ together with a sliding window over spatial dimensions — a structured 4-way contraction.
 
 ### Compressing networks with CP
 
@@ -400,7 +399,7 @@ Compare parameter counts:
 |---|---|---|
 | Parameters | $C_{\text{out}} \cdot C_{\text{in}} \cdot K_H \cdot K_W$ | $R \cdot (C_{\text{out}} + C_{\text{in}} + K_H + K_W)$ |
 
-When $R$ is small the saving is dramatic. A $512 \times 512 \times 3 \times 3$ VGG-16 layer has $\approx$ 2.36 M parameters; rank-64 CP brings that to $\approx$ 66 K -- about 35$\times$ compression, with modest accuracy loss after fine-tuning.
+When $R$ is small the saving is dramatic. A $512 \times 512 \times 3 \times 3$ VGG-16 layer has $\approx$ 2.36 M parameters; rank-64 CP brings that to $\approx$ 66 K — about 35$\times$ compression, with modest accuracy loss after fine-tuning.
 
 ### Compressing networks with Tucker
 
@@ -410,7 +409,7 @@ Tucker is the more popular choice in practice because it lets you compress input
 2. small $K_H \times K_W$ conv working in the compressed $P \times Q$ space;
 3. $1 \times 1$ conv expanding $Q \to C_{\text{out}}$.
 
-This "bottleneck" pattern looks suspiciously like the building block of MobileNets and SqueezeNet -- which is no accident; both can be read as hand-designed Tucker decompositions of a standard conv.
+This "bottleneck" pattern looks suspiciously like the building block of MobileNets and SqueezeNet — which is no accident; both can be read as hand-designed Tucker decompositions of a standard conv.
 
 ---
 
@@ -418,7 +417,7 @@ This "bottleneck" pattern looks suspiciously like the building block of MobileNe
 
 ### From matrix factorization to tensor factorization
 
-Classical collaborative filtering uses a **user-item matrix** $\mathbf{R} \in \mathbb{R}^{U \times M}$ where $r_{um}$ is user $u$'s rating of item $m$. Matrix factorization -- SVD, NMF, ALS -- finds embeddings
+Classical collaborative filtering uses a **user-item matrix** $\mathbf{R} \in \mathbb{R}^{U \times M}$ where $r_{um}$ is user $u$'s rating of item $m$. Matrix factorization — SVD, NMF, ALS — finds embeddings
 $$\mathbf{R} \approx \mathbf{P} \mathbf{Q}^T,\quad \mathbf{P} \in \mathbb{R}^{U \times K},\; \mathbf{Q} \in \mathbb{R}^{M \times K}$$
 so that $\hat{r}_{um} = \mathbf{p}_u^T \mathbf{q}_m$.
 
@@ -430,11 +429,11 @@ The new factor $\mathbf{t}_r$ tells you how component $r$ is modulated over time
 
 ### Sparse data: only fit what you observed
 
-Real rating data is brutally sparse -- often well below 0.1% of entries are observed. So you don't fit the full tensor, you fit only the observed positions:
+Real rating data is brutally sparse — often well below 0.1% of entries are observed. So you don't fit the full tensor, you fit only the observed positions:
 $$\min_{\mathbf{A}, \mathbf{B}, \mathbf{C}} \sum_{(i,j,k) \in \Omega} \left( x_{ijk} - \sum_{r=1}^{R} a_{ir} b_{jr} c_{kr} \right)^2 + \lambda \bigl(\|\mathbf{A}\|_F^2 + \|\mathbf{B}\|_F^2 + \|\mathbf{C}\|_F^2\bigr)$$
 where $\Omega$ is the set of observed indices and $\lambda$ is a regularization parameter that prevents the embeddings from blowing up.
 
-This is exactly how production context-aware recommenders work -- only with neural extensions on top.
+This is exactly how production context-aware recommenders work — only with neural extensions on top.
 
 ---
 
@@ -444,7 +443,7 @@ Every JPEG you open is a 3rd-order tensor. The picture below shows it explicitly
 
 ![A color image is a 3rd-order tensor: H x W x 3, with one matrix per color channel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/fig7_image_as_tensor.png)
 
-Once you see images this way, it's clear why so much of computer vision is just tensor algebra. Color conversion is an n-mode product against a $3 \times 3$ matrix. Image compression is low-rank approximation. Convolutional features are tensor contractions. Even the "channels" of a feature map deep inside a CNN are no different in kind from R, G, B -- they're just learned channels instead of physically given ones.
+Once you see images this way, it's clear why so much of computer vision is just tensor algebra. Color conversion is an n-mode product against a $3 \times 3$ matrix. Image compression is low-rank approximation. Convolutional features are tensor contractions. Even the "channels" of a feature map deep inside a CNN are no different in kind from R, G, B — they're just learned channels instead of physically given ones.
 
 ---
 
@@ -452,17 +451,17 @@ Once you see images this way, it's clear why so much of computer vision is just 
 
 ### Tensor Train (TT)
 
-For very high-order tensors -- think quantum many-body wavefunctions or the natural representation of an order-50 tensor with each axis of size 2 -- both CP and Tucker complexity blow up. **Tensor Train** factors the tensor as a chain of small "carriages":
+For very high-order tensors — think quantum many-body wavefunctions or the natural representation of an order-50 tensor with each axis of size 2 — both CP and Tucker complexity blow up. **Tensor Train** factors the tensor as a chain of small "carriages":
 $$\mathcal{X}(i_1, i_2, \ldots, i_N) = \mathbf{G}_1(i_1)\, \mathbf{G}_2(i_2)\, \cdots\, \mathbf{G}_N(i_N)$$
 where each $\mathbf{G}_k(i_k)$ is a matrix of size $r_{k-1} \times r_k$. Wins:
 
-- Parameter count grows as $O(N\, d\, r^2)$ -- linear in the order $N$, not exponential.
+- Parameter count grows as $O(N\, d\, r^2)$ — linear in the order $N$, not exponential.
 - Stable construction algorithm (TT-SVD) exists.
 - This is the working representation in modern many-body quantum simulators (DMRG / MPS).
 
 ### Non-negative tensor factorization (NTF)
 
-When entries are physically non-negative -- pixel intensities, word counts, chemical concentrations -- you usually want non-negative factors as well:
+When entries are physically non-negative — pixel intensities, word counts, chemical concentrations — you usually want non-negative factors as well:
 $$\mathcal{X} \approx \sum_{r=1}^{R} \mathbf{a}_r \circ \mathbf{b}_r \circ \mathbf{c}_r,\quad \text{with } \mathbf{a}_r, \mathbf{b}_r, \mathbf{c}_r \geq 0$$
 The non-negativity constraint forces components to look like *parts* (additive features that build up into the whole) instead of a mix of positive and negative cancellation. This is why NMF / NTF gives interpretable topics and parts-based decompositions while plain SVD often does not.
 
@@ -584,11 +583,11 @@ def simple_cp_als(X, rank, n_iter=100):
 
 ## Chapter Summary
 
-**Concepts.** Tensors generalize scalars, vectors, and matrices to arbitrary order. Fibers, slices, and unfolding are the basic tools for "looking inside" a tensor. The core operations -- addition, scalar multiplication, contraction, outer product, n-mode product -- are all natural lifts of matrix operations.
+**Concepts.** Tensors generalize scalars, vectors, and matrices to arbitrary order. Fibers, slices, and unfolding are the basic tools for "looking inside" a tensor. The core operations — addition, scalar multiplication, contraction, outer product, n-mode product — are all natural lifts of matrix operations.
 
 **Decompositions.** CP writes a tensor as a sum of rank-1 outer products, and is *essentially unique* under mild conditions, which makes its factors interpretable. Tucker is more flexible (different rank per mode) but suffers from rotational ambiguity; HOSVD provides the canonical orthogonal version.
 
-**Beware of "rank".** Tensor rank is NP-hard to compute, the best low-rank approximation may not exist, and tensor rank can exceed every individual axis size -- none of which are true for matrices.
+**Beware of "rank".** Tensor rank is NP-hard to compute, the best low-rank approximation may not exist, and tensor rank can exceed every individual axis size — none of which are true for matrices.
 
 **Applications.** Compressing convolutional layers (CP / Tucker), context-aware recommendation (user--item--time CP), and the natural representation of images / videos / EEG / quantum states. The unifying theme: *decompose complex high-dimensional structure into combinations of simple components.*
 
@@ -599,5 +598,5 @@ def simple_cp_als(X, rank, n_iter=100):
 - Kolda, T. G., & Bader, B. W. (2009). Tensor decompositions and applications. *SIAM Review*, 51(3), 455--500.
 - Sidiropoulos, N. D., et al. (2017). Tensor decomposition for signal processing and machine learning. *IEEE Transactions on Signal Processing*, 65(13), 3551--3582.
 - Cichocki, A., et al. (2015). Tensor decompositions for signal processing applications. *IEEE Signal Processing Magazine*, 32(2), 145--163.
-- [TensorLy Documentation](https://tensorly.org/) -- Python tensor learning library.
+- [TensorLy Documentation](https://tensorly.org/) — Python tensor learning library.
 - Strang, G. (2019). *Linear Algebra and Learning from Data*, Chapter 7.

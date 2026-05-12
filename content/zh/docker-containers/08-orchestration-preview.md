@@ -7,8 +7,7 @@ tags:
   - Kubernetes
   - Docker Swarm
   - Orchestration
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: zh
 description: "单机版 Docker 在规模化时必然失效。本文预览容器编排技术——Docker Swarm 以简洁见长，Kubernetes 则覆盖一切需求，并勾勒更广阔的云原生生态全景。"

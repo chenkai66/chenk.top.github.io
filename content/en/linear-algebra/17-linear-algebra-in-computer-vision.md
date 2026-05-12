@@ -3,11 +3,10 @@ title: "Essence of Linear Algebra (17): Linear Algebra in Computer Vision"
 date: 2025-04-23 09:00:00
 tags:
   - Linear Algebra
-  - computer vision
-  - 3D reconstruction
+  - Computer Vision
+  - 3D Reconstruction
   - image processing
-categories:
-  - Linear Algebra
+categories: Linear Algebra
 series: linear-algebra
 lang: en
 mathjax: true

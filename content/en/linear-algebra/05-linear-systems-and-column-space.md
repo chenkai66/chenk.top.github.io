@@ -24,13 +24,13 @@ Almost everything in applied mathematics eventually lands on the same question:
 
 > Given a matrix $A$ and a vector $\vec{b}$, does the equation $A\vec{x} = \vec{b}$ have a solution? If so, how many?
 
-The mechanical answer is "row-reduce and look." The *structural* answer is far more interesting -- and it is the goal of this chapter. Three geometric objects tell you everything:
+The mechanical answer is "row-reduce and look." The *structural* answer is far more interesting — and it is the goal of this chapter. Three geometric objects tell you everything:
 
-- **Column space** $C(A)$ -- the set of vectors $A$ can reach. It decides **whether** a solution exists.
-- **Null space** $N(A)$ -- the set of vectors $A$ crushes to zero. It decides **how many** solutions exist.
-- **Rank** $r$ -- the dimension of the column space. It quantifies how much information $A$ preserves.
+- **Column space** $C(A)$ — the set of vectors $A$ can reach. It decides **whether** a solution exists.
+- **Null space** $N(A)$ — the set of vectors $A$ crushes to zero. It decides **how many** solutions exist.
+- **Rank** $r$ — the dimension of the column space. It quantifies how much information $A$ preserves.
 
-Once these three are clear, every linear-systems result -- existence, uniqueness, least squares, the four fundamental subspaces -- becomes the same story told from different angles.
+Once these three are clear, every linear-systems result — existence, uniqueness, least squares, the four fundamental subspaces — becomes the same story told from different angles.
 
 ### What You Will Learn
 
@@ -56,7 +56,7 @@ Consider the system
 
 $$\begin{cases} x + 2y = 5 \\ 3x - y = 1 \end{cases}$$
 
-Each equation describes a **line** in the plane. A solution is a point that lies on **both** lines simultaneously -- their intersection $(1, 2)$. In three variables, each equation describes a plane and the solution set is the intersection of those planes (a point, a line, a plane, or nothing).
+Each equation describes a **line** in the plane. A solution is a point that lies on **both** lines simultaneously — their intersection $(1, 2)$. In three variables, each equation describes a plane and the solution set is the intersection of those planes (a point, a line, a plane, or nothing).
 
 This is the picture most students meet first. It is geometric and concrete, but it hides what really matters: **the structure of the matrix itself**.
 
@@ -72,7 +72,7 @@ This single shift in viewpoint is the most important idea in the whole chapter. 
 
 ![Ax = b geometrically: solvability lives in the column space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig1_ax_equals_b.png)
 
-The figure above shows both sides of the story. On the **left**, the columns $\vec{a}_1, \vec{a}_2$ span the whole plane, so any target $\vec{b}$ can be assembled from them: pick the right scalars and the parallelogram closes onto $\vec{b}$. On the **right**, the two columns happen to be parallel, so the column space collapses to a single line. A target sitting off that line is unreachable; the best we can do is project it onto the line -- the geometry behind least squares.
+The figure above shows both sides of the story. On the **left**, the columns $\vec{a}_1, \vec{a}_2$ span the whole plane, so any target $\vec{b}$ can be assembled from them: pick the right scalars and the parallelogram closes onto $\vec{b}$. On the **right**, the two columns happen to be parallel, so the column space collapses to a single line. A target sitting off that line is unreachable; the best we can do is project it onto the line — the geometry behind least squares.
 
 **Painter analogy.** You stand in front of an empty canvas with three tubes of paint (the columns of $A$). The column space is the set of every color you can produce by mixing. If two tubes are the same shade, you have not gained any new color; your reachable palette is smaller than it looks. That smaller palette is exactly the column space of a rank-deficient matrix.
 
@@ -104,20 +104,20 @@ Write the augmented matrix and eliminate downward, one pivot at a time.
 
 ![Gaussian elimination: turning a system into a triangular ladder](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig4_gaussian_elimination.png)
 
-Each highlighted entry is a **pivot** -- the first non-zero in its row. Once the matrix is triangular, **back-substitute**:
+Each highlighted entry is a **pivot** — the first non-zero in its row. Once the matrix is triangular, **back-substitute**:
 
 - Row 3: $5z = -10 \implies z = -2$.
 - Row 2: $2y - 2z = 6 \implies y = 7/2$.
 - Row 1: $x + 2y + z = 2 \implies x = -11/2$.
 
-Three pivots in three columns means three independent constraints on three unknowns -- a unique solution.
+Three pivots in three columns means three independent constraints on three unknowns — a unique solution.
 
 ### Pivots and Free Variables
 
 After elimination, columns split into two kinds:
 
-- **Pivot columns** -- columns that contain a pivot. The corresponding variables are *determined* by the others.
-- **Free columns** -- columns without a pivot. The corresponding variables can be chosen *freely*.
+- **Pivot columns** — columns that contain a pivot. The corresponding variables are *determined* by the others.
+- **Free columns** — columns without a pivot. The corresponding variables can be chosen *freely*.
 
 This split decides everything:
 
@@ -137,7 +137,7 @@ where $U$ is the upper-triangular matrix you ended up with, and $L$ is lower-tri
 
 ![LU decomposition as two simple shears in sequence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig7_lu_decomposition.png)
 
-Geometrically the picture is delightful. $A$ may look complicated, but elimination splits it into two of the simplest transformations there are: an upper-triangular shear-and-scale ($U$) followed by a lower-triangular shear ($L$). Triangular matrices are easy because their action is **causal** -- each output coordinate depends only on earlier inputs -- which is exactly why back-substitution works.
+Geometrically the picture is delightful. $A$ may look complicated, but elimination splits it into two of the simplest transformations there are: an upper-triangular shear-and-scale ($U$) followed by a lower-triangular shear ($L$). Triangular matrices are easy because their action is **causal** — each output coordinate depends only on earlier inputs — which is exactly why back-substitution works.
 
 ```python
 import numpy as np
@@ -168,7 +168,7 @@ Two equivalent ways to read this: it is **everything you can output**, and it is
 
 > $A\vec{x} = \vec{b}$ has a solution **if and only if** $\vec{b} \in C(A)$.
 
-This is the cleanest statement in the chapter. "Does my equation have a solution?" becomes "is my target in the column space?" -- a purely geometric question.
+This is the cleanest statement in the chapter. "Does my equation have a solution?" becomes "is my target in the column space?" — a purely geometric question.
 
 ### What Column Spaces Look Like
 
@@ -184,7 +184,7 @@ For a $3 \times 3$ matrix the column space lives inside $\mathbb{R}^3$, and ther
 
 The pattern generalises: for an $m \times n$ matrix, the column space is some $r$-dimensional subspace of $\mathbb{R}^m$, where $r$ is the rank.
 
-**Mixer analogy.** Imagine an audio mixer with three faders (the columns) and one master output. The set of all mixes you can produce is the column space. If two channels carry the same instrument, sliding their faders changes nothing genuinely new -- that redundancy is what "rank deficiency" sounds like.
+**Mixer analogy.** Imagine an audio mixer with three faders (the columns) and one master output. The set of all mixes you can produce is the column space. If two channels carry the same instrument, sliding their faders changes nothing genuinely new — that redundancy is what "rank deficiency" sounds like.
 
 ---
 
@@ -202,7 +202,7 @@ The null space always contains the zero vector (since $A\vec{0} = \vec{0}$ for a
 
 ![Null space N(A) = directions A annihilates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig3_null_space.png)
 
-The figure shows the geometric punchline. **Left**: the matrix $A=\begin{pmatrix}1&2\\2&4\end{pmatrix}$ has linearly dependent rows. Its null space is the entire line $\text{span}\{(-2,1)\}$ -- every vector along that direction is mapped to the origin. The image (column space) is a different line, the direction $(1,2)$. **Right**: the projection $\mathbb{R}^3 \to \mathbb{R}^2$ that drops the $z$-coordinate has the entire $z$-axis as its null space; everything vertical is annihilated.
+The figure shows the geometric punchline. **Left**: the matrix $A=\begin{pmatrix}1&2\\2&4\end{pmatrix}$ has linearly dependent rows. Its null space is the entire line $\text{span}\{(-2,1)\}$ — every vector along that direction is mapped to the origin. The image (column space) is a different line, the direction $(1,2)$. **Right**: the projection $\mathbb{R}^3 \to \mathbb{R}^2$ that drops the $z$-coordinate has the entire $z$-axis as its null space; everything vertical is annihilated.
 
 ### Why the Null Space Controls Uniqueness
 
@@ -214,12 +214,12 @@ So $\vec{x}_p + \vec{n}$ is also a solution. The **complete solution set** is al
 
 $$\{ \vec{x}_p + \vec{n} \mid \vec{n} \in N(A) \}$$
 
-The geometric picture is simple: take the null space (a subspace through the origin) and shift it by one particular solution. The result is an **affine subspace** parallel to the null space -- exactly the solution set.
+The geometric picture is simple: take the null space (a subspace through the origin) and shift it by one particular solution. The result is an **affine subspace** parallel to the null space — exactly the solution set.
 
 - If $N(A) = \{\vec{0}\}$: the solution is **unique** (when it exists).
 - If $N(A)$ contains non-zero vectors: there are **infinitely many** solutions, parametrised by the null space.
 
-**Steamroller analogy.** A steamroller compresses a 3D object into a 2D pancake. All vertical motion is lost -- the vertical direction is in the null space. Two objects whose only difference is vertical produce the same flattened image: the null space is exactly the ambiguity in inverting the flattening.
+**Steamroller analogy.** A steamroller compresses a 3D object into a 2D pancake. All vertical motion is lost — the vertical direction is in the null space. Two objects whose only difference is vertical produce the same flattened image: the null space is exactly the ambiguity in inverting the flattening.
 
 ---
 
@@ -229,11 +229,11 @@ The **rank** of $A$ is
 
 $$\text{rank}(A) = \dim C(A) = \text{number of pivots after elimination}$$
 
-It is also the maximum number of linearly independent columns, and (a small miracle) the maximum number of linearly independent **rows**. Row rank equals column rank for any matrix -- it is one of those theorems that looks almost trivial once proved, but says something deep about the symmetry between rows and columns.
+It is also the maximum number of linearly independent columns, and (a small miracle) the maximum number of linearly independent **rows**. Row rank equals column rank for any matrix — it is one of those theorems that looks almost trivial once proved, but says something deep about the symmetry between rows and columns.
 
 ### What Rank Tells You
 
-Rank is the count of **effective dimensions** -- how many independent directions the transformation actually preserves.
+Rank is the count of **effective dimensions** — how many independent directions the transformation actually preserves.
 
 | $3\times 3$ matrix with rank | Geometric effect |
 |------------------------------|------------------|
@@ -274,7 +274,7 @@ Suppose $A$ is $3 \times 5$ with rank $r=2$. Then
 
 $$\dim N(A) = n - r = 5 - 2 = 3$$
 
-Three free variables, a 3-dimensional null space, and a 2-dimensional column space living inside $\mathbb{R}^3$ -- the full structure decoded from a single number.
+Three free variables, a 3-dimensional null space, and a 2-dimensional column space living inside $\mathbb{R}^3$ — the full structure decoded from a single number.
 
 ---
 
@@ -284,19 +284,19 @@ For an $m \times n$ matrix of rank $r$, only four scenarios are possible.
 
 ![Three faces of Ax = b: unique, infinitely many, none](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig6_solution_scenarios.png)
 
-### Case 1: $r = m = n$ -- Square and Full Rank
+### Case 1: $r = m = n$ — Square and Full Rank
 
 $A$ is invertible. For every $\vec{b}$ there is exactly one solution $\vec{x} = A^{-1}\vec{b}$. The column space is all of $\mathbb{R}^m$ and the null space is just $\{\vec{0}\}$.
 
-### Case 2: $r = n < m$ -- Tall and Full Column Rank (Overdetermined)
+### Case 2: $r = n < m$ — Tall and Full Column Rank (Overdetermined)
 
-More equations than unknowns. The column space is a proper subspace of $\mathbb{R}^m$, so most $\vec{b}$ are unreachable. When a solution does exist it is unique, but in practice we use **least squares** to find the closest reachable $\vec{b}$ -- that is the orange dot in the rightmost panel above.
+More equations than unknowns. The column space is a proper subspace of $\mathbb{R}^m$, so most $\vec{b}$ are unreachable. When a solution does exist it is unique, but in practice we use **least squares** to find the closest reachable $\vec{b}$ — that is the orange dot in the rightmost panel above.
 
-### Case 3: $r = m < n$ -- Wide and Full Row Rank (Underdetermined)
+### Case 3: $r = m < n$ — Wide and Full Row Rank (Underdetermined)
 
-More unknowns than equations. The column space fills $\mathbb{R}^m$, so every $\vec{b}$ has a solution -- but the null space has dimension $n-m>0$, so there are infinitely many. The middle panel shows the typical picture: the solution set is a line (or plane, or higher) of equally valid answers.
+More unknowns than equations. The column space fills $\mathbb{R}^m$, so every $\vec{b}$ has a solution — but the null space has dimension $n-m>0$, so there are infinitely many. The middle panel shows the typical picture: the solution set is a line (or plane, or higher) of equally valid answers.
 
-### Case 4: $r < m$ and $r < n$ -- Rank Deficient
+### Case 4: $r < m$ and $r < n$ — Rank Deficient
 
 The most delicate case. Some $\vec{b}$ have no solution; others have infinitely many. Both pathologies appear at once.
 
@@ -330,7 +330,7 @@ When $A\vec{x}=\vec{b}$ has no exact solution (overdetermined), we minimise the 
 
 $$A^T A \hat{x} = A^T \vec{b}$$
 
-Geometrically, $A\hat{x}$ is the orthogonal projection of $\vec{b}$ onto the column space -- the closest reachable point.
+Geometrically, $A\hat{x}$ is the orthogonal projection of $\vec{b}$ onto the column space — the closest reachable point.
 
 ```python
 import numpy as np
@@ -353,7 +353,7 @@ Its null space is the entire $z$-axis: depth is destroyed, which is why recoveri
 
 ### Circuit Analysis
 
-Kirchhoff's current law, written in matrix form, says $A\vec{i} = \vec{0}$ where $A$ is the network's incidence matrix. The null space of $A$ is the space of valid loop currents, and **its dimension counts the number of independent loops** in the circuit -- a topological fact extracted from pure linear algebra.
+Kirchhoff's current law, written in matrix form, says $A\vec{i} = \vec{0}$ where $A$ is the network's incidence matrix. The null space of $A$ is the space of valid loop currents, and **its dimension counts the number of independent loops** in the circuit — a topological fact extracted from pure linear algebra.
 
 ---
 
@@ -405,7 +405,7 @@ analyze_system(np.array([[1, 2, 3], [2, 4, 6]], dtype=float),
 | Column space $C(A)$ | Which $\vec{b}$ are solvable |
 | Null space $N(A)$ | Whether the solution is unique; the shape of the solution set |
 | Rank | How many independent directions $A$ preserves |
-| Rank-nullity | $\text{rank} + \text{nullity} = n$ -- a conservation law for dimensions |
+| Rank-nullity | $\text{rank} + \text{nullity} = n$ — a conservation law for dimensions |
 | Four subspaces | The complete structural picture of any matrix |
 
 The essential thinking of linear algebra is to **understand equations through spaces and dimensions**, not through mechanical computation. Elimination remains the workhorse algorithm, but its real job is to expose the geometry that was already there.
@@ -414,13 +414,13 @@ The essential thinking of linear algebra is to **understand equations through sp
 
 ## Sparse Matrix Shortcut: When $A\vec{x}=\vec{b}$ Costs $O(n)$ Instead of $O(n^3)$
 
-The headline cost of solving $Ax=b$ for a dense $n\times n$ matrix is $\Theta(n^3)$ via LU. For $n=10^6$ this is $\sim 10^{18}$ FLOPs -- impossible. Yet finite-element simulations, recommendation systems, and graph problems routinely solve systems of that size, in seconds. The trick is *sparsity*.
+The headline cost of solving $Ax=b$ for a dense $n\times n$ matrix is $\Theta(n^3)$ via LU. For $n=10^6$ this is $\sim 10^{18}$ FLOPs — impossible. Yet finite-element simulations, recommendation systems, and graph problems routinely solve systems of that size, in seconds. The trick is *sparsity*.
 
-A matrix is **sparse** when the fraction of non-zero entries is small -- think $\le 1\%$. The discrete Laplacian on a 2-D grid, for example, has 5 non-zeros per row regardless of how large the grid is. If $A$ has $\mathrm{nnz}(A)$ non-zeros, three things change at once:
+A matrix is **sparse** when the fraction of non-zero entries is small — think $\le 1\%$. The discrete Laplacian on a 2-D grid, for example, has 5 non-zeros per row regardless of how large the grid is. If $A$ has $\mathrm{nnz}(A)$ non-zeros, three things change at once:
 
 1. **Storage** drops from $n^2$ doubles to $\sim 2\,\mathrm{nnz}(A)$ doubles plus index arrays. CSR (Compressed Sparse Row) is the canonical layout.
-2. **Matrix-vector products** $Ax$ cost $\Theta(\mathrm{nnz}(A))$ instead of $\Theta(n^2)$. For the 2-D Laplacian on a million-cell grid, that is $5\times 10^6$ FLOPs per multiply -- under a millisecond.
-3. **Iterative solvers** like Conjugate Gradient (for SPD $A$) or GMRES (for general $A$) build the answer using only matrix-vector products. Total cost: $\Theta(k\cdot \mathrm{nnz}(A))$ where $k$ is the iteration count -- typically $\sqrt{\kappa(A)}$ for CG, often $10^2$-$10^3$.
+2. **Matrix-vector products** $Ax$ cost $\Theta(\mathrm{nnz}(A))$ instead of $\Theta(n^2)$. For the 2-D Laplacian on a million-cell grid, that is $5\times 10^6$ FLOPs per multiply — under a millisecond.
+3. **Iterative solvers** like Conjugate Gradient (for SPD $A$) or GMRES (for general $A$) build the answer using only matrix-vector products. Total cost: $\Theta(k\cdot \mathrm{nnz}(A))$ where $k$ is the iteration count — typically $\sqrt{\kappa(A)}$ for CG, often $10^2$-$10^3$.
 
 A worked example. Solve a 1-D Poisson problem $-u'' = f$ on $n=10^5$ grid points:
 
@@ -438,24 +438,24 @@ x, info = spla.cg(A, b, rtol=1e-8)   # ~600 iterations, ~0.5 s
 
 The same problem with a dense `np.linalg.solve` would need $10^{15}$ FLOPs and 80 GB of RAM. Sparse iteration finishes in under a second on a laptop.
 
-When does sparsity *not* help? When the sparsity pattern produces *fill-in* during direct factorisation. Even if $A$ is sparse, $L$ and $U$ in the LU decomposition can be nearly dense -- for an arrowhead matrix, fill-in can turn $O(n)$ non-zeros into $O(n^2)$. This is why scipy provides `splu` with reordering strategies (AMD, METIS) that minimise fill-in, and why iterative methods are often preferred over direct solves for very large systems.
+When does sparsity *not* help? When the sparsity pattern produces *fill-in* during direct factorisation. Even if $A$ is sparse, $L$ and $U$ in the LU decomposition can be nearly dense — for an arrowhead matrix, fill-in can turn $O(n)$ non-zeros into $O(n^2)$. This is why scipy provides `splu` with reordering strategies (AMD, METIS) that minimise fill-in, and why iterative methods are often preferred over direct solves for very large systems.
 
 ## What scipy.linalg.solve Actually Does Under the Hood
 
 When you call `scipy.linalg.solve(A, b)` for a dense $n\times n$ matrix, it does *not* compute $A^{-1}$ and then multiply. It dispatches to LAPACK's `dgesv`, which:
 
-1. **Factors** $PA = LU$ via partial-pivoting Gaussian elimination. This is `dgetrf` -- $\tfrac{2}{3}n^3$ FLOPs. Partial pivoting (swapping rows so that the pivot has the largest absolute value in its column) is what keeps the algorithm numerically stable.
-2. **Solves** $Ly = Pb$ by forward substitution -- $n^2$ FLOPs.
-3. **Solves** $Ux = y$ by back substitution -- $n^2$ FLOPs.
+1. **Factors** $PA = LU$ via partial-pivoting Gaussian elimination. This is `dgetrf` — $\tfrac{2}{3}n^3$ FLOPs. Partial pivoting (swapping rows so that the pivot has the largest absolute value in its column) is what keeps the algorithm numerically stable.
+2. **Solves** $Ly = Pb$ by forward substitution — $n^2$ FLOPs.
+3. **Solves** $Ux = y$ by back substitution — $n^2$ FLOPs.
 
-Total: $\tfrac{2}{3}n^3 + 2n^2$. Computing $A^{-1}$ explicitly would cost $2n^3$ FLOPs (an extra factor of 3) and -- crucially -- be *less stable* numerically. The relative error of `solve(A, b)` is bounded by $\kappa(A)\cdot \varepsilon$; the error of `inv(A) @ b` adds an extra $\kappa(A)$ factor. There is essentially no situation where forming $A^{-1}$ is the right move. Solve once per right-hand-side; reuse the LU factorisation if you have many.
+Total: $\tfrac{2}{3}n^3 + 2n^2$. Computing $A^{-1}$ explicitly would cost $2n^3$ FLOPs (an extra factor of 3) and — crucially — be *less stable* numerically. The relative error of `solve(A, b)` is bounded by $\kappa(A)\cdot \varepsilon$; the error of `inv(A) @ b` adds an extra $\kappa(A)$ factor. There is essentially no situation where forming $A^{-1}$ is the right move. Solve once per right-hand-side; reuse the LU factorisation if you have many.
 
 If you know more about $A$, you can pick a faster routine:
 
-- $A$ symmetric positive definite -- `cho_solve` (Cholesky), $\tfrac{1}{3}n^3$ FLOPs, twice as fast as LU.
-- $A$ symmetric indefinite -- `ldl` factorisation.
-- $A$ banded with bandwidth $b$ -- `solve_banded`, $\Theta(n b^2)$ FLOPs.
-- $A$ triangular -- `solve_triangular`, $n^2$ FLOPs (no factorisation needed).
+- $A$ symmetric positive definite — `cho_solve` (Cholesky), $\tfrac{1}{3}n^3$ FLOPs, twice as fast as LU.
+- $A$ symmetric indefinite — `ldl` factorisation.
+- $A$ banded with bandwidth $b$ — `solve_banded`, $\Theta(n b^2)$ FLOPs.
+- $A$ triangular — `solve_triangular`, $n^2$ FLOPs (no factorisation needed).
 
 The principle: every piece of structure you can name about $A$ has a faster solver attached. Plain `solve(A, b)` is the slowest correct answer; specialised routines are 2x to 1000x faster. The chapter you just read is about *which* structure to look for. The answer is encoded in the four fundamental subspaces: rank, symmetry, definiteness, and bandwidth.
 
@@ -463,4 +463,4 @@ The principle: every piece of structure you can name about $A$ has a faster solv
 
 ## What Comes Next
 
-**Chapter 6: Eigenvalues and Eigenvectors.** Most vectors change direction under a transformation. A few special ones do not -- they only get scaled. These eigenvectors are the natural axes of $A$, the directions in which the matrix becomes a simple stretch. Find them and you understand the long-term behaviour of any linear system.
+**Chapter 6: Eigenvalues and Eigenvectors.** Most vectors change direction under a transformation. A few special ones do not — they only get scaled. These eigenvectors are the natural axes of $A$, the directions in which the matrix becomes a simple stretch. Find them and you understand the long-term behaviour of any linear system.

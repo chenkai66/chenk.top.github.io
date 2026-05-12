@@ -6,8 +6,7 @@ tags:
   - Statistics
   - Expectation
   - Moment Generating Functions
-categories:
-  - Probability and Statistics
+categories: Probability and Statistics
 series: probability-statistics
 lang: zh
 mathjax: true

@@ -7,8 +7,7 @@ tags:
   - Transfer Function
   - Control Systems
   - Signal Processing
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true

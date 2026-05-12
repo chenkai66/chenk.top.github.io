@@ -5,8 +5,7 @@ tags:
   - ODE
   - Mathematical Modeling
   - Python
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true

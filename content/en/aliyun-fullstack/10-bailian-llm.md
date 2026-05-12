@@ -19,9 +19,9 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-10"
 ---
 
-When I first needed an LLM API for a production app in China, my options were limited and expensive. Most international providers had no mainland endpoint, billing required a foreign credit card, and latency from calling US-based APIs was 800ms+ before a single token came back. Then Qwen showed up on DashScope with an OpenAI-compatible endpoint, and suddenly building AI products in China became as straightforward as anywhere else. Same SDK, same request shape, same streaming protocol -- just a different `base_url` and a key from the Bailian console. I have been running production workloads against it for over a year now, and this article is the comprehensive walkthrough I wish I had on day one.
+When I first needed an LLM API for a production app in China, my options were limited and expensive. Most international providers had no mainland endpoint, billing required a foreign credit card, and latency from calling US-based APIs was 800ms+ before a single token came back. Then Qwen showed up on DashScope with an OpenAI-compatible endpoint, and suddenly building AI products in China became as straightforward as anywhere else. Same SDK, same request shape, same streaming protocol — just a different `base_url` and a key from the Bailian console. I have been running production workloads against it for over a year now, and this article is the comprehensive walkthrough I wish I had on day one.
 
-This is not a shallow overview. By the end you will understand the full model catalog, know how to call every modality (text, image, video, audio, embeddings), handle the async task pattern that trips up every team at least once, and have a working multi-modal pipeline that generates an article, illustrates it, and narrates it -- all from Python.
+This is not a shallow overview. By the end you will understand the full model catalog, know how to call every modality (text, image, video, audio, embeddings), handle the async task pattern that trips up every team at least once, and have a working multi-modal pipeline that generates an article, illustrates it, and narrates it — all from Python.
 
 
 ## Bailian vs DashScope: what is what
@@ -60,13 +60,13 @@ Qwen is not one model. It is a family of models spanning text, vision, audio, co
 | model_id | Context | Best for | Input / Output (CNY per 1M tokens) |
 |---|---|---|---|
 | `qwen-turbo` | 128K | High-throughput classification, simple extraction, cheap batch jobs | 0.3 / 0.6 |
-| `qwen-plus` | 128K | The default -- chat, summarization, translation, light reasoning | 0.8 / 2.0 |
+| `qwen-plus` | 128K | The default — chat, summarization, translation, light reasoning | 0.8 / 2.0 |
 | `qwen-max` | 128K | Hardest reasoning, legal/medical accuracy, when you cannot afford errors | 2.4 / 9.6 |
 | `qwen3-max` | 128K | New default for hard reasoning; cheaper than qwen-max with thinking mode | 2.0 / 6.0 |
 | `qwen3-coder-plus` | 128K | Code generation, diff/patch, AST manipulation | 1.0 / 4.0 |
 | `qwen-turbo-longcontext` | 1M | Massive documents where 128K is not enough | 0.6 / 2.0 |
 
-**My rule:** Default to `qwen-plus`. Move up to `qwen3-max` only when you have an eval proving Plus is not accurate enough. Move down to `qwen-turbo` only when cost actually matters at your volume. The `qwen3-max` model with `enable_thinking=True` can match `qwen-max` accuracy at lower price, but requires streaming -- more on that later.
+**My rule:** Default to `qwen-plus`. Move up to `qwen3-max` only when you have an eval proving Plus is not accurate enough. Move down to `qwen-turbo` only when cost actually matters at your volume. The `qwen3-max` model with `enable_thinking=True` can match `qwen-max` accuracy at lower price, but requires streaming — more on that later.
 
 ### Multimodal and specialized models
 
@@ -98,7 +98,7 @@ client = OpenAI(
 )
 ```
 
-That is it. Every `client.chat.completions.create()` call, every streaming pattern, every function-calling schema you already know from OpenAI works here. The SDK is thread-safe and pools connections -- construct it once and hold it for the lifetime of the process. Constructing a new client per call adds 50-100ms of TLS handshake overhead.
+That is it. Every `client.chat.completions.create()` call, every streaming pattern, every function-calling schema you already know from OpenAI works here. The SDK is thread-safe and pools connections — construct it once and hold it for the lifetime of the process. Constructing a new client per call adds 50-100ms of TLS handshake overhead.
 
 ### What works through the OpenAI-compatible endpoint
 
@@ -173,11 +173,11 @@ for chunk in stream:
 # The last chunk with include_usage=True contains token counts
 ```
 
-Two things bite people: the last chunk has `delta.content == None` with a `finish_reason`, so always check `if delta:`. And if you want token counts in streaming mode, you must pass `stream_options={"include_usage": True}` -- without it the final chunk has no `usage` field and you will not know what you spent.
+Two things bite people: the last chunk has `delta.content == None` with a `finish_reason`, so always check `if delta:`. And if you want token counts in streaming mode, you must pass `stream_options={"include_usage": True}` — without it the final chunk has no `usage` field and you will not know what you spent.
 
 ### The enable_thinking trap (Qwen3 family)
 
-This is the bug I cost myself half a day on. Qwen3 models (`qwen3-max`, `qwen3-coder-plus`) have an `enable_thinking` parameter that activates chain-of-thought reasoning. It is powerful -- `qwen3-max` with thinking can match `qwen-max` accuracy at lower price -- but there is a hard rule:
+This is the bug I cost myself half a day on. Qwen3 models (`qwen3-max`, `qwen3-coder-plus`) have an `enable_thinking` parameter that activates chain-of-thought reasoning. It is powerful — `qwen3-max` with thinking can match `qwen-max` accuracy at lower price — but there is a hard rule:
 
 > **`enable_thinking=True` requires `stream=True`. Non-streaming calls will fail.**
 
@@ -213,7 +213,7 @@ response = client.chat.completions.create(
 
 ### Structured output (JSON mode)
 
-When you need the model to return structured data -- product attributes, extracted entities, classification results -- use JSON mode:
+When you need the model to return structured data — product attributes, extracted entities, classification results — use JSON mode:
 
 ```python
 response = client.chat.completions.create(
@@ -236,7 +236,7 @@ data = json.loads(response.choices[0].message.content)
 # {"name": "AirPods Max", "category": "headphones", "price_range": "premium", "target_audience": "audiophiles and professionals"}
 ```
 
-JSON mode is more reliable than just asking for JSON in the prompt. Without it, models occasionally add markdown fences or explanatory text around the JSON. With it, the output is always parseable. But it is not a schema validator -- if you need strict schema conformance, validate after parsing.
+JSON mode is more reliable than just asking for JSON in the prompt. Without it, models occasionally add markdown fences or explanatory text around the JSON. With it, the output is always parseable. But it is not a schema validator — if you need strict schema conformance, validate after parsing.
 
 ### Function calling
 
@@ -276,7 +276,7 @@ print(f"Arguments: {tool_call.function.arguments}")
 # Arguments: {"city": "Beijing", "unit": "celsius"}
 ```
 
-You then execute the function yourself, feed the result back as a `tool` message, and let the model generate the final response. The pattern is identical to OpenAI's function calling -- same JSON schema, same message flow.
+You then execute the function yourself, feed the result back as a `tool` message, and let the model generate the final response. The pattern is identical to OpenAI's function calling — same JSON schema, same message flow.
 
 ### Multi-turn conversation
 
@@ -319,7 +319,7 @@ The key parameters worth tuning:
 | `presence_penalty` | 0.0 | -2.0 - 2.0 | Penalize repeating topics |
 | `frequency_penalty` | 0.0 | -2.0 - 2.0 | Penalize repeating exact tokens |
 
-> **My defaults for production:** `temperature=0.3` for extraction and classification (you want consistency), `temperature=0.7` for creative writing and chat (you want variety), `max_tokens` always set explicitly (never rely on the default -- it varies by model and you do not want a surprise 8K-token response eating your budget).
+> **My defaults for production:** `temperature=0.3` for extraction and classification (you want consistency), `temperature=0.7` for creative writing and chat (you want variety), `max_tokens` always set explicitly (never rely on the default — it varies by model and you do not want a surprise 8K-token response eating your budget).
 
 ## Embeddings
 
@@ -408,9 +408,9 @@ Every Wanxiang call follows the same three-step dance:
 
 1. **Create the task.** POST with header `X-DashScope-Async: enable`. You get a `task_id` immediately.
 2. **Poll.** GET `/api/v1/tasks/{task_id}` until `task_status` is `SUCCEEDED` or `FAILED`.
-3. **Download.** The success response includes a URL. **Download within 24 hours** -- after that the URL returns 404 and your media is gone forever.
+3. **Download.** The success response includes a URL. **Download within 24 hours** — after that the URL returns 404 and your media is gone forever.
 
-The 24-hour expiry is the single biggest operational footgun. I have seen multiple teams -- mine included -- lose work because they polled, logged the URL, then failed to download because of an unrelated bug, then noticed the next day. Treat the URL the way you would treat a one-time download link: download immediately, store to your own OSS, never assume it will be there tomorrow.
+The 24-hour expiry is the single biggest operational footgun. I have seen multiple teams — mine included — lose work because they polled, logged the URL, then failed to download because of an unrelated bug, then noticed the next day. Treat the URL the way you would treat a one-time download link: download immediately, store to your own OSS, never assume it will be there tomorrow.
 
 ### Text-to-video example
 
@@ -509,7 +509,7 @@ def create_i2v_task(prompt: str, image_url: str, duration: int = 5) -> str:
     return resp.json()["output"]["task_id"]
 ```
 
-Both models cap at 5 seconds. If you need 10 seconds, make two clips and stitch them -- use the last frame of the first clip as the `img_url` input for the second.
+Both models cap at 5 seconds. If you need 10 seconds, make two clips and stitch them — use the last frame of the first clip as the `img_url` input for the second.
 
 For the full Wanxiang video deep dive, see [Bailian Part 4: Wanxiang Video Generation](/en/aliyun-bailian/04-wanxiang-video-generation/).
 
@@ -531,7 +531,7 @@ def create_image_task(prompt: str, size: str = "1024*1024") -> str:
     return resp.json()["output"]["task_id"]
 ```
 
-Poll with the same `poll_task()` function. The success response contains `output.results[0].url` instead of `output.video_url` -- small inconsistency, just adapt.
+Poll with the same `poll_task()` function. The success response contains `output.results[0].url` instead of `output.video_url` — small inconsistency, just adapt.
 
 ## Qwen TTS: text-to-speech
 
@@ -610,7 +610,7 @@ with open("streamed_output.mp3", "wb") as f:
 
 ### Language and dialect coverage
 
-This is where Qwen TTS genuinely has no competition. Beyond Mandarin and English, it supports Cantonese, Sichuanese, Shanghainese, Northeast dialect, Japanese, and Korean -- with voices that sound native, not like a tourist reading a phrasebook. I have not found another TTS API that handles Cantonese this well at this price.
+This is where Qwen TTS genuinely has no competition. Beyond Mandarin and English, it supports Cantonese, Sichuanese, Shanghainese, Northeast dialect, Japanese, and Korean — with voices that sound native, not like a tourist reading a phrasebook. I have not found another TTS API that handles Cantonese this well at this price.
 
 For the full TTS deep dive including voice cloning and instruct mode, see [Bailian Part 5: Qwen TTS](/en/aliyun-bailian/05-qwen-tts-voice/).
 
@@ -642,9 +642,9 @@ Bailian expects JSONL format with the standard chat completion structure:
 Rules for good training data:
 
 - **Minimum 50 examples**, 200-500 is the sweet spot. More than 1000 rarely helps unless your domain is very diverse.
-- **Consistent system prompt** across all examples -- the model learns the system prompt as part of the task definition.
-- **High-quality outputs only** -- every assistant response should be exactly what you want the model to produce. One bad example can teach one bad habit.
-- **Diverse inputs** -- do not repeat the same question with minor variations. Cover the full range of inputs you expect in production.
+- **Consistent system prompt** across all examples — the model learns the system prompt as part of the task definition.
+- **High-quality outputs only** — every assistant response should be exactly what you want the model to produce. One bad example can teach one bad habit.
+- **Diverse inputs** — do not repeat the same question with minor variations. Cover the full range of inputs you expect in production.
 - **Validate JSONL** before uploading. One malformed line and the whole job fails silently.
 
 ```python
@@ -728,11 +728,11 @@ This is the math that decides whether fine-tuning is worth it:
 | Prompt engineering | `qwen-max` | 2.4 | 9.6 | 800 | ~7,680 CNY |
 | Fine-tuned | `qwen-turbo` (custom) | ~0.6 | ~1.2 | 200 (short prompt, no few-shot needed) | ~360 CNY |
 
-The fine-tuned turbo model costs roughly 6x less than prompt-engineered plus and 21x less than max -- because the prompt is shorter (no few-shot examples needed, the behavior is baked in) and the per-token price of turbo is lower. But fine-tuning itself costs money (training compute) and time (preparing data, validating quality, monitoring for drift). It is worth it only above roughly 100K requests/month for a specific, well-defined task.
+The fine-tuned turbo model costs roughly 6x less than prompt-engineered plus and 21x less than max — because the prompt is shorter (no few-shot examples needed, the behavior is baked in) and the per-token price of turbo is lower. But fine-tuning itself costs money (training compute) and time (preparing data, validating quality, monitoring for drift). It is worth it only above roughly 100K requests/month for a specific, well-defined task.
 
 ## Solution: multi-modal AI pipeline
 
-Let me put it all together. Here is a complete pipeline that takes a topic, generates an article draft, creates an illustration, and produces a voice narration -- all orchestrated in Python.
+Let me put it all together. Here is a complete pipeline that takes a topic, generates an article draft, creates an illustration, and produces a voice narration — all orchestrated in Python.
 
 ![Multi-modal AI pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_multimodal_flow.png)
 
@@ -1016,4 +1016,4 @@ Every piece of this stack is covered in this series. DashScope is the brain; the
 
 ## What's next
 
-[Part 11](/en/aliyun-fullstack/11-security/) covers security on Alibaba Cloud: RAM policies, KMS for key management, Security Center, and WAF. Every API key, every DashScope call, every OSS bucket from this article needs proper security -- and that is where we are headed next.
+[Part 11](/en/aliyun-fullstack/11-security/) covers security on Alibaba Cloud: RAM policies, KMS for key management, Security Center, and WAF. Every API key, every DashScope call, every OSS bucket from this article needs proper security — and that is where we are headed next.

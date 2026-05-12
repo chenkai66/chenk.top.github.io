@@ -6,8 +6,7 @@ tags:
   - random matrices
   - Wigner semicircle law
   - Marchenko-Pastur distribution
-categories:
-  - Linear Algebra
+categories: Linear Algebra
 series: linear-algebra
 lang: en
 mathjax: true
@@ -16,7 +15,7 @@ disableNunjucks: true
 series_order: 14
 translationKey: "linear-algebra-14"
 ---
-A million i.i.d. coin flips, arranged into a thousand-by-thousand symmetric matrix, somehow produce eigenvalues that fill a perfect semicircle. A noisy sample covariance matrix that should be the identity instead spreads its eigenvalues across an interval whose width you can predict before seeing a single number. The largest eigenvalue of a Wigner matrix has a tail distribution that turns up everywhere -- in growing crystals, in the longest increasing subsequence of a random permutation, in the energy levels of heavy nuclei. **Random matrix theory** (RMT) is the study of why these regularities appear, and how to use them.
+A million i.i.d. coin flips, arranged into a thousand-by-thousand symmetric matrix, somehow produce eigenvalues that fill a perfect semicircle. A noisy sample covariance matrix that should be the identity instead spreads its eigenvalues across an interval whose width you can predict before seeing a single number. The largest eigenvalue of a Wigner matrix has a tail distribution that turns up everywhere — in growing crystals, in the longest increasing subsequence of a random permutation, in the energy levels of heavy nuclei. **Random matrix theory** (RMT) is the study of why these regularities appear, and how to use them.
 
 > **What you will learn**
 > - Wigner and Wishart matrices: the two model families that drive almost everything
@@ -33,9 +32,9 @@ A million i.i.d. coin flips, arranged into a thousand-by-thousand symmetric matr
 
 ## 1. The Big Surprise: Why Random Matrices Are Not "Random"
 
-Take a $1000 \times 1000$ matrix, fill its entries with independent standard Gaussians, symmetrise it, and divide by $\sqrt{n}$. Compute the eigenvalues, draw a histogram. The histogram does not depend on the random seed -- it always looks like the same semicircle on $[-2, 2]$. Repeat with uniform $\{-1, +1\}$ entries instead of Gaussians: same semicircle. Replace symmetric Gaussians with complex Hermitian Gaussians: still the same semicircle.
+Take a $1000 \times 1000$ matrix, fill its entries with independent standard Gaussians, symmetrise it, and divide by $\sqrt{n}$. Compute the eigenvalues, draw a histogram. The histogram does not depend on the random seed — it always looks like the same semicircle on $[-2, 2]$. Repeat with uniform $\{-1, +1\}$ entries instead of Gaussians: same semicircle. Replace symmetric Gaussians with complex Hermitian Gaussians: still the same semicircle.
 
-This is not magic; it is the same phenomenon that makes the classical central limit theorem work. When you average over a million weakly correlated random variables (and an eigenvalue is a complicated average over the matrix entries), the microscopic distribution gets washed away and only a few coarse statistics -- mean, variance, symmetry -- determine the limit. The semicircle law is the **central limit theorem of spectra**.
+This is not magic; it is the same phenomenon that makes the classical central limit theorem work. When you average over a million weakly correlated random variables (and an eigenvalue is a complicated average over the matrix entries), the microscopic distribution gets washed away and only a few coarse statistics — mean, variance, symmetry — determine the limit. The semicircle law is the **central limit theorem of spectra**.
 
 What changes in matrix-land is the limiting object: instead of a single Gaussian on the line, we get a whole **density of eigenvalues**, plus precise statements about the **gaps** between them and the **fluctuations** at the edge. RMT is the calculus of all three.
 
@@ -53,9 +52,9 @@ A **Wigner matrix** $\mathbf{W} \in \mathbb{R}^{n\times n}$ has
 - upper-triangular entries $w_{ij}$ ($i < j$) i.i.d. with mean $0$ and variance $\sigma^2$,
 - $w_{ji} = w_{ij}$ enforced by symmetry.
 
-The **Gaussian Orthogonal Ensemble** (GOE) is the special case where all entries are Gaussian. The "orthogonal" name comes from the fact that the distribution is invariant under conjugation by any orthogonal matrix $\mathbf{O}\mathbf{W}\mathbf{O}^\top$. For complex Hermitian entries you get the **GUE** (unitary invariance); for quaternionic entries the **GSE** (symplectic). The trio GOE / GUE / GSE corresponds to whether time-reversal symmetry is present, broken by a magnetic field, or broken with half-integer spin -- which is why the same matrices keep appearing in physics.
+The **Gaussian Orthogonal Ensemble** (GOE) is the special case where all entries are Gaussian. The "orthogonal" name comes from the fact that the distribution is invariant under conjugation by any orthogonal matrix $\mathbf{O}\mathbf{W}\mathbf{O}^\top$. For complex Hermitian entries you get the **GUE** (unitary invariance); for quaternionic entries the **GSE** (symplectic). The trio GOE / GUE / GSE corresponds to whether time-reversal symmetry is present, broken by a magnetic field, or broken with half-integer spin — which is why the same matrices keep appearing in physics.
 
-**Mental picture.** Imagine an Erdős-Rényi social graph where edge weight $w_{ij}$ is a random "closeness" score. The eigenvalues of that closeness matrix tell you about its global community structure -- and for purely random closenesses, the structure is the universal one we are about to study.
+**Mental picture.** Imagine an Erdős-Rényi social graph where edge weight $w_{ij}$ is a random "closeness" score. The eigenvalues of that closeness matrix tell you about its global community structure — and for purely random closenesses, the structure is the universal one we are about to study.
 
 ### 2.2 Wishart matrices: sample covariance
 
@@ -63,7 +62,7 @@ Let $\mathbf{X} \in \mathbb{R}^{n \times p}$ have i.i.d. entries with mean $0$ a
 
 $$\mathbf{S} \;=\; \frac{1}{n}\,\mathbf{X}^\top \mathbf{X} \;\in\; \mathbb{R}^{p\times p}.$$
 
-If $n \gg p$, $\mathbf{S}$ is a good estimator of the true covariance. If $n$ and $p$ are *both* large with their ratio fixed, $\mathbf{S}$ is wildly off -- in a structured, predictable way that the Marchenko-Pastur law describes.
+If $n \gg p$, $\mathbf{S}$ is a good estimator of the true covariance. If $n$ and $p$ are *both* large with their ratio fixed, $\mathbf{S}$ is wildly off — in a structured, predictable way that the Marchenko-Pastur law describes.
 
 **Mental picture.** Track the daily returns of $p = 500$ stocks for one trading year ($n \approx 252$). The "covariance matrix" you compute has $125{,}000$ free parameters but only $\approx 126{,}000$ data points; the resulting estimate is essentially a random matrix and its eigenvalues are spread out by RMT laws even when the true covariance is the identity.
 
@@ -85,13 +84,13 @@ and $f(x) = 0$ outside $[-2, 2]$.
 
 ### 3.2 Three ways to see why it has to be a semicircle
 
-**1) Method of moments (the rigorous route).** Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Each term in the trace is a closed walk on $n$ vertices using $k$ steps, weighted by the corresponding product of Gaussian moments. Independence and zero mean force the only surviving walks to be **pair-matched non-crossing walks** -- exactly the structure counted by Catalan numbers $C_{k/2}$. The Catalan numbers are precisely the moments of the semicircle, so the limits match.
+**1) Method of moments (the rigorous route).** Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Each term in the trace is a closed walk on $n$ vertices using $k$ steps, weighted by the corresponding product of Gaussian moments. Independence and zero mean force the only surviving walks to be **pair-matched non-crossing walks** — exactly the structure counted by Catalan numbers $C_{k/2}$. The Catalan numbers are precisely the moments of the semicircle, so the limits match.
 
 **2) Coulomb gas (the physicist's route).** The joint density of GOE eigenvalues is
 $$\rho(\lambda_1, \dots, \lambda_n) \;\propto\; \prod_{i<j} |\lambda_i - \lambda_j|\;\exp\!\Big(-\tfrac{n}{4}\sum_i \lambda_i^2\Big),$$
 which describes $n$ charged particles on a line with logarithmic repulsion (the Vandermonde factor) confined by a harmonic potential. The equilibrium density that balances repulsion against confinement is the semicircle.
 
-**3) Free CLT (the algebraic route).** A symmetric random matrix can be written as a sum of many "free" rank-one perturbations. In free probability the analogue of "sum of independent variables" is the **free additive convolution**, and its central limit theorem yields the semicircle distribution -- not the Gaussian. Section 7 expands on this.
+**3) Free CLT (the algebraic route).** A symmetric random matrix can be written as a sum of many "free" rank-one perturbations. In free probability the analogue of "sum of independent variables" is the **free additive convolution**, and its central limit theorem yields the semicircle distribution — not the Gaussian. Section 7 expands on this.
 
 ### 3.3 Why the underlying distribution does not matter
 
@@ -144,9 +143,9 @@ If $\gamma > 1$ the matrix has rank $n < p$ and there are $p - n$ exact zero eig
 
 Even when the population covariance is the identity, finite samples spread the eigenvalues out:
 
-- $\gamma = 0.1$: edges $[0.47, 1.69]$ -- mild widening.
-- $\gamma = 0.5$: edges $[0.09, 2.91]$ -- the largest sample eigenvalue is **three times** what it should be.
-- $\gamma = 1.0$: edges $[0, 4]$ -- the spectrum touches zero; the matrix is on the verge of singularity.
+- $\gamma = 0.1$: edges $[0.47, 1.69]$ — mild widening.
+- $\gamma = 0.5$: edges $[0.09, 2.91]$ — the largest sample eigenvalue is **three times** what it should be.
+- $\gamma = 1.0$: edges $[0, 4]$ — the spectrum touches zero; the matrix is on the verge of singularity.
 
 This single density underwrites every quantitative use of RMT in statistics: any sample eigenvalue that lives strictly above $\lambda_+$ is *significantly* large; anything inside $[\lambda_-, \lambda_+]$ is consistent with pure noise.
 
@@ -180,7 +179,7 @@ plt.legend(); plt.show()
 
 ## 5. The Fine Structure: Repulsion and the Edge
 
-The semicircle and MP densities describe the *bulk* -- the macroscopic shape. RMT also gives precise answers on two finer scales.
+The semicircle and MP densities describe the *bulk* — the macroscopic shape. RMT also gives precise answers on two finer scales.
 
 ### 5.1 Spacings: eigenvalues repel
 
@@ -188,7 +187,7 @@ Fix a generic point in the bulk and look at the distribution of the gap to the n
 
 $$p(s) \;=\; \frac{\pi s}{2}\,\exp\!\Big(-\frac{\pi s^2}{4}\Big).$$
 
-The crucial feature is $p(0) = 0$: eigenvalues do not coincide. They actively *repel*, with quadratic vanishing at $s=0$ for GOE (and cubic for GUE -- different symmetry classes have different repulsion exponents).
+The crucial feature is $p(0) = 0$: eigenvalues do not coincide. They actively *repel*, with quadratic vanishing at $s=0$ for GOE (and cubic for GUE — different symmetry classes have different repulsion exponents).
 
 Compare this to **independent** levels: their spacings would be exponential, $p(s) = e^{-s}$, with **maximum** at $s = 0$. The clustering you would expect from independence is exactly what eigenvalues refuse to do.
 
@@ -196,7 +195,7 @@ Compare this to **independent** levels: their spacings would be exponential, $p(
 
 ### 5.2 The edge: Tracy-Widom
 
-The largest eigenvalue $\lambda_{\max}$ of an $n \times n$ GOE sits near $2$ for large $n$, but its fluctuations are tiny -- of order $n^{-2/3}$ rather than the $n^{-1/2}$ you would naively guess. Specifically,
+The largest eigenvalue $\lambda_{\max}$ of an $n \times n$ GOE sits near $2$ for large $n$, but its fluctuations are tiny — of order $n^{-2/3}$ rather than the $n^{-1/2}$ you would naively guess. Specifically,
 
 $$n^{2/3}\big(\lambda_{\max} - 2\big) \;\xrightarrow{d}\; \mathrm{TW}_1,$$
 
@@ -218,7 +217,7 @@ A MIMO channel with $n_t$ transmit and $n_r$ receive antennas has capacity
 
 $$C \;=\; \sum_i \log_2\!\Big(1 + \frac{\mathrm{SNR}}{n_t}\,\lambda_i\Big),$$
 
-where $\lambda_i$ are eigenvalues of $\mathbf{H}\mathbf{H}^\dagger$ and $\mathbf{H}$ is the random channel matrix. The MP law tells you the limiting density of $\lambda_i$, and integrating against $\log_2(1 + \mathrm{SNR}\cdot\lambda)$ gives the ergodic capacity. The conclusion -- that capacity scales **linearly** with $\min(n_t, n_r)$ -- is the theoretical reason every modern phone, base station and Wi-Fi router uses multiple antennas.
+where $\lambda_i$ are eigenvalues of $\mathbf{H}\mathbf{H}^\dagger$ and $\mathbf{H}$ is the random channel matrix. The MP law tells you the limiting density of $\lambda_i$, and integrating against $\log_2(1 + \mathrm{SNR}\cdot\lambda)$ gives the ergodic capacity. The conclusion — that capacity scales **linearly** with $\min(n_t, n_r)$ — is the theoretical reason every modern phone, base station and Wi-Fi router uses multiple antennas.
 
 ```python
 import numpy as np
@@ -295,7 +294,7 @@ This is a hard impossibility theorem for high-dim PCA. It tells you exactly when
 
 ### 6.5 Neural network initialisation
 
-Initialising weights so that $\mathbf{W}^\top\mathbf{W}$ has eigenvalues concentrated near $1$ keeps the variance of activations stable layer by layer. The Xavier/Glorot rule $\mathrm{Var}(w_{ij}) = 2 / (n_\text{in} + n_\text{out})$ is exactly the variance that puts the singular values of $\mathbf{W}$ on the MP support around $1$. Orthogonal initialisation goes further -- it eliminates singular-value spread completely and gives provably better signal propagation in deep linear networks.
+Initialising weights so that $\mathbf{W}^\top\mathbf{W}$ has eigenvalues concentrated near $1$ keeps the variance of activations stable layer by layer. The Xavier/Glorot rule $\mathrm{Var}(w_{ij}) = 2 / (n_\text{in} + n_\text{out})$ is exactly the variance that puts the singular values of $\mathbf{W}$ on the MP support around $1$. Orthogonal initialisation goes further — it eliminates singular-value spread completely and gives provably better signal propagation in deep linear networks.
 
 ---
 
@@ -315,13 +314,13 @@ For the semicircle, the equation is $m(z)^2 + zm(z) + 1 = 0$, solving to $m(z) =
 
 ### 7.2 Free probability in one paragraph
 
-In free probability, "non-commutative random variables" $a, b$ are **freely independent** if their alternating mixed moments factor in a particular tracial way. Voiculescu's theorem says **large independent random matrices are asymptotically free**. The free analogue of convolution -- *free additive convolution* $\boxplus$ -- takes the spectral distribution of $\mathbf{A}$ and that of $\mathbf{B}$ and returns the spectral distribution of $\mathbf{A} + \mathbf{B}$. The associated central limit theorem gives the semicircle distribution. Practical takeaway: anything you used to know how to do for sums of independent scalar variables (mean, variance, CLT, Berry-Esseen), there is a free analogue for spectra of sums of independent matrices.
+In free probability, "non-commutative random variables" $a, b$ are **freely independent** if their alternating mixed moments factor in a particular tracial way. Voiculescu's theorem says **large independent random matrices are asymptotically free**. The free analogue of convolution — *free additive convolution* $\boxplus$ — takes the spectral distribution of $\mathbf{A}$ and that of $\mathbf{B}$ and returns the spectral distribution of $\mathbf{A} + \mathbf{B}$. The associated central limit theorem gives the semicircle distribution. Practical takeaway: anything you used to know how to do for sums of independent scalar variables (mean, variance, CLT, Berry-Esseen), there is a free analogue for spectra of sums of independent matrices.
 
 ![Free additive convolution: sum of two free semicircles is again a semicircle, with summed variance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/fig5_free_convolution.png)
 
 ### 7.3 Sketch of the semicircle proof (method of moments)
 
-Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Expanding the trace gives a sum over closed length-$k$ walks on $\{1, \dots, n\}$, weighted by $\prod_e \mathbb{E}[w_e]$. Independence + zero mean kill any walk that uses an edge an odd number of times. For even $k$, the dominant surviving walks are *non-crossing pair-matched* walks -- counted by the Catalan number $C_{k/2}$ -- and they come with a weight of $1$ after normalisation. Catalan numbers are exactly the moments of the semicircle, so the limit must be the semicircle.
+Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Expanding the trace gives a sum over closed length-$k$ walks on $\{1, \dots, n\}$, weighted by $\prod_e \mathbb{E}[w_e]$. Independence + zero mean kill any walk that uses an edge an odd number of times. For even $k$, the dominant surviving walks are *non-crossing pair-matched* walks — counted by the Catalan number $C_{k/2}$ — and they come with a weight of $1$ after normalisation. Catalan numbers are exactly the moments of the semicircle, so the limit must be the semicircle.
 
 ---
 
@@ -363,7 +362,7 @@ Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Expa
 
 ## 9. Chapter Summary
 
-**Models:** Wigner matrices model symmetric noise; Wishart matrices model sample covariance. The Gaussian variants -- GOE, GUE, GSE -- correspond to different symmetry classes.
+**Models:** Wigner matrices model symmetric noise; Wishart matrices model sample covariance. The Gaussian variants — GOE, GUE, GSE — correspond to different symmetry classes.
 
 **Bulk laws:** the **semicircle** for Wigner spectra and the **Marchenko-Pastur** density for Wishart spectra. Both are universal: the entry distribution does not matter as long as it has finite variance.
 

@@ -16,7 +16,7 @@ translationKey: "time-series-7"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/illustration_1.png)
 
-The 2018 M4 forecasting competition served 100,000 series across six frequencies as a single benchmark. The leaderboard was dominated by hand-tuned ensembles built from decades of statistical-forecasting craft. Then a **pure neural network** with no statistical preprocessing, no feature engineering, and no recurrence won outright. That network was **N-BEATS** by Oreshkin et al. -- a stack of fully-connected blocks with two residual paths. Its interpretable variant additionally split the forecast into a polynomial trend and a Fourier seasonality, so the very thing classical statisticians wanted (a readable decomposition) came for free.
+The 2018 M4 forecasting competition served 100,000 series across six frequencies as a single benchmark. The leaderboard was dominated by hand-tuned ensembles built from decades of statistical-forecasting craft. Then a **pure neural network** with no statistical preprocessing, no feature engineering, and no recurrence won outright. That network was **N-BEATS** by Oreshkin et al. — a stack of fully-connected blocks with two residual paths. Its interpretable variant additionally split the forecast into a polynomial trend and a Fourier seasonality, so the very thing classical statisticians wanted (a readable decomposition) came for free.
 
 This chapter unpacks why such a stripped-down architecture beats both LSTMs and ARIMA-style ensembles, and how to implement and tune it for your own series.
 
@@ -66,14 +66,14 @@ This is the same idea as gradient boosting, but inside a single end-to-end diffe
 
 Every N-BEATS block is the same shape. Given a residual input $r \in \mathbb{R}^{H}$:
 
-1. **Feature extractor** -- four fully-connected ReLU layers of width 256-512:
+1. **Feature extractor** — four fully-connected ReLU layers of width 256-512:
    $$   h_1 = \mathrm{ReLU}(W_1 r + b_1), \quad \ldots, \quad h_4 = \mathrm{ReLU}(W_4 h_3 + b_4).
    $$
-2. **Coefficient projections** -- two linear heads produce backcast and forecast coefficients:
+2. **Coefficient projections** — two linear heads produce backcast and forecast coefficients:
    $$
    \theta^{b} = W_b h_4, \qquad \theta^{f} = W_f h_4.
    $$
-3. **Basis multiplication** -- a fixed or learned matrix $V$ maps coefficients to time-domain outputs:
+3. **Basis multiplication** — a fixed or learned matrix $V$ maps coefficients to time-domain outputs:
    $$
    \hat{x} = V_b \, \theta^{b}, \qquad \hat{y} = V_f \, \theta^{f}.
    $$
@@ -322,7 +322,7 @@ The numbers in the paper:
 - FFORMA: sMAPE 11.720
 - Best classical (Theta): sMAPE 12.309
 
-The accuracy gap is in absolute sMAPE points -- modest but consistent across yearly, quarterly, monthly, weekly, and daily series. The hourly bucket is the only one where Smyl's ES-RNN edged out, by 0.4 sMAPE.
+The accuracy gap is in absolute sMAPE points — modest but consistent across yearly, quarterly, monthly, weekly, and daily series. The hourly bucket is the only one where Smyl's ES-RNN edged out, by 0.4 sMAPE.
 
 The deeper lesson: a sufficiently expressive deep model with the right inductive bias can recover from-scratch what statisticians had spent decades hand-engineering.
 
@@ -334,7 +334,7 @@ Read the M4 paper carefully and you will find a footnote: the headline N-BEATS n
 
 ![Why N-BEATS ensembles: schematic and empirical sMAPE drop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/fig5_ensemble_strategy.png)
 
-The empirical curve on the right shows diminishing returns: most of the gain comes from the first ~30 ensemble members. In production you almost never need to train 180 models -- 10 to 30, with mixed lookbacks and seeds, captures the bulk of the improvement.
+The empirical curve on the right shows diminishing returns: most of the gain comes from the first ~30 ensemble members. In production you almost never need to train 180 models — 10 to 30, with mixed lookbacks and seeds, captures the bulk of the improvement.
 
 A simple ensembling helper:
 
@@ -438,11 +438,11 @@ A pragmatic starting point for a new dataset:
 | Lookback `history` | 4 to 7 times horizon | 4 to 7 times horizon | Larger covers more seasons; tune in 2x steps. |
 | Hidden width | 256 | 512 | Bigger if validation loss plateaus high. |
 | MLP layers per block | 4 | 4 | Rarely need to change. |
-| Trend degree | 2 or 3 | -- | 3 if you see curvature in the trend; 2 otherwise. |
-| Trend blocks | 3 | -- | Add more if trend RMSE is the dominant error. |
-| Seasonality blocks | 3 | -- | Add more for multi-resolution seasonality. |
-| Generic blocks | -- | 20 to 30 | More blocks usually still help, slowly. |
-| Generic $\theta$ size | -- | 32 | 16 underfits short bases, 64+ rarely buys anything. |
+| Trend degree | 2 or 3 | — | 3 if you see curvature in the trend; 2 otherwise. |
+| Trend blocks | 3 | — | Add more if trend RMSE is the dominant error. |
+| Seasonality blocks | 3 | — | Add more for multi-resolution seasonality. |
+| Generic blocks | — | 20 to 30 | More blocks usually still help, slowly. |
+| Generic $\theta$ size | — | 32 | 16 underfits short bases, 64+ rarely buys anything. |
 | Loss | MAE / sMAPE | MAE / sMAPE | Match your evaluation metric. |
 | Optimizer | Adam, lr 1e-3 | Adam, lr 1e-3 | Cosine annealing; warmup is unnecessary. |
 | Ensemble size | 10-30 | 10-30 | Median aggregator. |
@@ -486,7 +486,7 @@ No. The MLP sees the entire window as a fixed-size vector; "position" is implici
 N-HiTS (2023) is by the same authors. It adds multi-rate downsampling and interpolation on the output side, which makes it scale to much longer horizons (720+ steps) and run faster. For short-to-medium horizons (<100 steps), vanilla N-BEATS is still competitive and simpler.
 
 **Why ensemble at all? My single model is fine.**
-You may be lucky on this dataset. The paper shows that across the 100k M4 series, single-model variance is large -- an ensemble of even five members reduces 1-2 sMAPE points. If you only need a single point estimate and your dataset is small, you can skip; if you are reporting numbers, ensemble.
+You may be lucky on this dataset. The paper shows that across the 100k M4 series, single-model variance is large — an ensemble of even five members reduces 1-2 sMAPE points. If you only need a single point estimate and your dataset is small, you can skip; if you are reporting numbers, ensemble.
 
 ---
 

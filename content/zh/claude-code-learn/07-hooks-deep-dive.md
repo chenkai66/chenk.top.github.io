@@ -4,8 +4,8 @@ date: 2026-04-24 09:00:00
 tags:
   - claude-code
   - hooks
-  - security
-  - workflow
+  - Security
+  - Workflow
 categories: Claude Code
 lang: zh
 mathjax: false

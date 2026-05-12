@@ -9,8 +9,7 @@ tags:
   - GNN
   - Turing Instability
   - Over-smoothing
-categories:
-  - PDE与机器学习
+categories: PDE与机器学习
 series: pde-ml
 lang: zh
 mathjax: true

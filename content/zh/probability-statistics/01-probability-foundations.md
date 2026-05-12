@@ -6,8 +6,7 @@ tags:
   - Statistics
   - Combinatorics
   - Bayes Theorem
-categories:
-  - Probability and Statistics
+categories: Probability and Statistics
 series: probability-statistics
 lang: zh
 mathjax: true

@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "linear-algebra-8"
 ---
-![Essence of Linear Algebra (8): Symmetric Matrices and Quadratic Forms -- The Best Matrices in Town — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/illustration_1.png)
+![Essence of Linear Algebra (8): Symmetric Matrices and Quadratic Forms — The Best Matrices in Town — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/illustration_1.png)
 
 ## Why Symmetric Matrices Are the "Best"
 
@@ -39,7 +39,7 @@ This chapter explains why symmetry buys you so much, and how the geometry of **q
 ### What You Will Learn
 
 - Why every real symmetric matrix has real eigenvalues and orthogonal eigenvectors.
-- The **Spectral Theorem** -- diagonalizing any symmetric matrix.
+- The **Spectral Theorem** — diagonalizing any symmetric matrix.
 - **Quadratic forms** as bowls, saddles, and hilltops.
 - **Positive definite** matrices: how to recognize them and why they matter.
 - The **Cholesky decomposition** as the "square root" of a positive definite matrix.
@@ -60,7 +60,7 @@ A real matrix $A$ is **symmetric** if $A = A^T$, i.e. $a_{ij} = a_{ji}$ for ever
 
 ![Symmetric matrix structure: free diagonal, mirrored off-diagonals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/fig1_symmetric_structure.png)
 
-**Geometric picture.** A symmetric transformation only **stretches and compresses** along certain orthogonal directions. There is no twisting, no shearing, no rotation hidden inside. Think of pulling a piece of clay straight along two perpendicular axes -- you change its proportions but never spin it.
+**Geometric picture.** A symmetric transformation only **stretches and compresses** along certain orthogonal directions. There is no twisting, no shearing, no rotation hidden inside. Think of pulling a piece of clay straight along two perpendicular axes — you change its proportions but never spin it.
 
 **Spring analogy.** Two masses are connected by springs. If pushing mass 1 produces a force on mass 2, then pushing mass 2 produces an equal force back on mass 1. That mutual reciprocity is the physical content of $A = A^T$.
 
@@ -82,7 +82,7 @@ A real matrix $A$ is **symmetric** if $A = A^T$, i.e. $a_{ij} = a_{ji}$ for ever
 
 > **Theorem.** Every eigenvalue of a real symmetric matrix is real.
 
-A general matrix can spin space, and rotation eigenvalues are complex (a $90^\circ$ rotation has eigenvalues $\pm i$). Symmetric matrices never spin -- they only stretch -- so their eigenvalues stay on the real line.
+A general matrix can spin space, and rotation eigenvalues are complex (a $90^\circ$ rotation has eigenvalues $\pm i$). Symmetric matrices never spin — they only stretch — so their eigenvalues stay on the real line.
 
 **Proof sketch.** Let $A\vec{v} = \lambda \vec{v}$ with $\vec{v}$ possibly complex. Take $\vec{v}^* A \vec{v}$. Since $A$ is real and symmetric, $A^* = A^T = A$, so
 
@@ -155,7 +155,7 @@ Drop $\vec{x}$ into the eigenbasis: $\vec{x} = Q\vec{y}$ gives
 
 $$Q(\vec{x}) \;=\; \vec{y}^T \Lambda \vec{y} \;=\; \lambda_1 y_1^2 + \lambda_2 y_2^2 + \cdots + \lambda_n y_n^2.$$
 
-All cross terms vanish. The shape of the level set $Q = \mathrm{const}$ is now read directly from the **signs of the eigenvalues** -- this is the **principal axis theorem**.
+All cross terms vanish. The shape of the level set $Q = \mathrm{const}$ is now read directly from the **signs of the eigenvalues** — this is the **principal axis theorem**.
 
 | Eigenvalue signs | Name | 2D shape | Mental picture |
 |---|---|---|---|
@@ -182,7 +182,7 @@ an ellipse whose principal axes are tilted at $45^\circ$ relative to the origina
 
 ## Positive Definite Matrices
 
-![Essence of Linear Algebra (8): Symmetric Matrices and Quadratic Forms -- The Best Matrices in Town — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/illustration_2.png)
+![Essence of Linear Algebra (8): Symmetric Matrices and Quadratic Forms — The Best Matrices in Town — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/illustration_2.png)
 
 ### Definition
 
@@ -190,7 +190,7 @@ A symmetric matrix $A$ is **positive definite** (PD) if for every nonzero $\vec{
 
 $$\vec{x}^T A \vec{x} > 0.$$
 
-Geometrically, the energy increases in every direction away from the origin -- the surface is a true bowl, and the origin is its unique minimum.
+Geometrically, the energy increases in every direction away from the origin — the surface is a true bowl, and the origin is its unique minimum.
 
 Related cousins:
 - **Positive semidefinite (PSD):** $\vec{x}^T A \vec{x} \ge 0$ (flat in some directions).
@@ -257,7 +257,7 @@ The level set $\vec{x}^T A \vec{x} = 1$ for a PD matrix is an **ellipsoid**. Its
 
 ![Principal axes of an ellipse equal the eigenvectors of A](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/fig5_principal_axes.png)
 
-In the eigenbasis the ellipse aligns with the coordinate axes and the cross term disappears -- the same surface, written in its own natural coordinates.
+In the eigenbasis the ellipse aligns with the coordinate axes and the cross term disappears — the same surface, written in its own natural coordinates.
 
 The same principle in 3D is what makes **moment of inertia** computations tractable: pick the axes of a rigid body's inertia tensor and the rotational equations of motion decouple.
 
@@ -282,7 +282,7 @@ Numerator measures how much $A$ "stretches" in the direction $\vec{x}$; denomina
 
 ![Rayleigh quotient: extrema sit on eigenvectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/fig6_rayleigh_quotient.png)
 
-This is exactly the **PCA** statement: the direction of maximum variance is the top eigenvector of the covariance matrix, and that maximum variance is the top eigenvalue. Power iteration -- the simplest eigenvalue algorithm -- is a direct consequence of this fact.
+This is exactly the **PCA** statement: the direction of maximum variance is the top eigenvector of the covariance matrix, and that maximum variance is the top eigenvalue. Power iteration — the simplest eigenvalue algorithm — is a direct consequence of this fact.
 
 ---
 
@@ -330,7 +330,7 @@ Adding $\lambda I$ shifts every eigenvalue of the symmetric PSD matrix $X^T X$ u
 
 ### Vibrating Systems
 
-A coupled mass--spring system has kinetic energy $T = \tfrac{1}{2} \dot{\vec{x}}^T M \dot{\vec{x}}$ and potential energy $V = \tfrac{1}{2} \vec{x}^T K \vec{x}$ with $M, K$ symmetric and PD. The natural frequencies come from the **generalized eigenvalue problem** $K \vec{v} = \omega^2 M \vec{v}$. The eigenvectors are the **normal modes** -- the patterns in which the system oscillates without changing shape. Every guitar harmonic, every bridge resonance, every molecular vibration is an eigenvalue of a stiffness matrix.
+A coupled mass--spring system has kinetic energy $T = \tfrac{1}{2} \dot{\vec{x}}^T M \dot{\vec{x}}$ and potential energy $V = \tfrac{1}{2} \vec{x}^T K \vec{x}$ with $M, K$ symmetric and PD. The natural frequencies come from the **generalized eigenvalue problem** $K \vec{v} = \omega^2 M \vec{v}$. The eigenvectors are the **normal modes** — the patterns in which the system oscillates without changing shape. Every guitar harmonic, every bridge resonance, every molecular vibration is an eigenvalue of a stiffness matrix.
 
 ### Portfolio Optimization
 

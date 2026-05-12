@@ -18,7 +18,7 @@ translationKey: "cloud-computing-3"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/illustration_1.png)
 
-The shift from monolithic applications to cloud-native architectures is one of the most consequential changes in software engineering this decade. The headline -- containers and Kubernetes -- is well known. The interesting story is *why* this stack won, what each layer actually does, and where the seams are that determine whether your platform feels effortless or feels like a maze.
+The shift from monolithic applications to cloud-native architectures is one of the most consequential changes in software engineering this decade. The headline — containers and Kubernetes — is well known. The interesting story is *why* this stack won, what each layer actually does, and where the seams are that determine whether your platform feels effortless or feels like a maze.
 
 This article walks the cloud-native stack from first principles. We start with the architectural shift that motivates everything else, then dig into what a container really is at the Linux kernel level, climb up to Kubernetes orchestration, examine when a service mesh earns its complexity, and finish with packaging and delivery via Helm and GitOps. Examples are deliberately concrete: copy-pastable Dockerfiles, real manifests, and the trade-offs that matter when you run this in production.
 
@@ -52,7 +52,7 @@ Cloud-native is not "running stuff in the cloud." A lift-and-shifted VM is in th
 Three ideas do most of the work behind that sentence:
 
 1. **Immutable infrastructure.** Servers are not pets you patch; they are cattle you replace. A new release is a new image, never an in-place edit. This eliminates configuration drift, the source of half of all production incidents.
-2. **Declarative APIs.** You describe the *desired* state ("I want 3 replicas of v1.4 with 500 MB memory each") and the platform makes reality match. The opposite -- imperative scripts that say "do step 1, then step 2" -- breaks the moment reality differs from the script's assumptions.
+2. **Declarative APIs.** You describe the *desired* state ("I want 3 replicas of v1.4 with 500 MB memory each") and the platform makes reality match. The opposite — imperative scripts that say "do step 1, then step 2" — breaks the moment reality differs from the script's assumptions.
 3. **Loose coupling at every layer.** Services are independent. So are deploys. So are failures. So are scaling decisions. The cost is more moving parts; the benefit is that no single moving part can break everything.
 
 ### Monolith vs Microservices: The Trade-off Made Visible
@@ -76,18 +76,18 @@ The [12-Factor methodology](https://12factor.net/) (Heroku, 2011) predates Kuber
 
 | # | Factor | Why it matters |
 |---|---|---|
-| 1 | **Codebase** -- one repo, many deploys | Same code, different config = reliable promotion path |
-| 2 | **Dependencies** -- explicitly declared and isolated | "Works on my machine" becomes impossible |
-| 3 | **Config** -- in environment, not code | Same image runs in dev/staging/prod |
-| 4 | **Backing services** -- attached resources | Swap a DB by changing a URL, not refactoring |
-| 5 | **Build, release, run** -- strictly separated | A release is immutable and rollback-able |
-| 6 | **Processes** -- stateless and share-nothing | Any replica can serve any request |
-| 7 | **Port binding** -- self-contained | No assumed external server (Tomcat, IIS) |
-| 8 | **Concurrency** -- scale via process model | Horizontal scaling is the default |
-| 9 | **Disposability** -- fast startup, graceful shutdown | Auto-scaling and rolling updates work |
-| 10 | **Dev/prod parity** -- keep environments similar | Production surprises shrink |
-| 11 | **Logs** -- as event streams to stdout | Platform aggregates, you don't write to files |
-| 12 | **Admin processes** -- one-off in same env | Migrations don't have a separate stack |
+| 1 | **Codebase** — one repo, many deploys | Same code, different config = reliable promotion path |
+| 2 | **Dependencies** — explicitly declared and isolated | "Works on my machine" becomes impossible |
+| 3 | **Config** — in environment, not code | Same image runs in dev/staging/prod |
+| 4 | **Backing services** — attached resources | Swap a DB by changing a URL, not refactoring |
+| 5 | **Build, release, run** — strictly separated | A release is immutable and rollback-able |
+| 6 | **Processes** — stateless and share-nothing | Any replica can serve any request |
+| 7 | **Port binding** — self-contained | No assumed external server (Tomcat, IIS) |
+| 8 | **Concurrency** — scale via process model | Horizontal scaling is the default |
+| 9 | **Disposability** — fast startup, graceful shutdown | Auto-scaling and rolling updates work |
+| 10 | **Dev/prod parity** — keep environments similar | Production surprises shrink |
+| 11 | **Logs** — as event streams to stdout | Platform aggregates, you don't write to files |
+| 12 | **Admin processes** — one-off in same env | Migrations don't have a separate stack |
 
 Violating a factor is sometimes the right call (factor 6 is genuinely hard for stateful systems), but each violation is a debt you should know you took on.
 
@@ -97,9 +97,9 @@ A common mental model is "containers are lightweight VMs." That mental model is 
 
 Three Linux kernel features do the work:
 
-1. **Namespaces** -- give a process its own view of system resources (PID, network, mount, UTS, IPC, user, cgroup). Inside a PID namespace, your container sees itself as PID 1 and cannot see processes outside.
-2. **cgroups (v2)** -- enforce resource limits (CPU, memory, IO, PIDs). When you set `--memory=512m`, the kernel kills the process if it exceeds that limit.
-3. **Union filesystems** (overlay2 today) -- stack read-only image layers under a thin writable layer per container, enabling instant copy-on-write filesystem semantics.
+1. **Namespaces** — give a process its own view of system resources (PID, network, mount, UTS, IPC, user, cgroup). Inside a PID namespace, your container sees itself as PID 1 and cannot see processes outside.
+2. **cgroups (v2)** — enforce resource limits (CPU, memory, IO, PIDs). When you set `--memory=512m`, the kernel kills the process if it exceeds that limit.
+3. **Union filesystems** (overlay2 today) — stack read-only image layers under a thin writable layer per container, enabling instant copy-on-write filesystem semantics.
 
 That's it. A container shares the host kernel. There is no hypervisor, no second OS. The cost: ~50 ms startup vs ~30 s for a VM, ~5 MB overhead vs ~500 MB, and density of hundreds per host vs tens.
 
@@ -138,7 +138,7 @@ spec:
     syncOptions: [CreateNamespace=true]
 ```
 
-`selfHeal: true` means "if someone `kubectl edit`s a resource by hand, ArgoCD will revert it." That is the discipline GitOps enforces -- the cluster's state is what's in Git, not what's in someone's terminal.
+`selfHeal: true` means "if someone `kubectl edit`s a resource by hand, ArgoCD will revert it." That is the discipline GitOps enforces — the cluster's state is what's in Git, not what's in someone's terminal.
 
 ## Operating in Production: The Commands That Matter
 
@@ -185,4 +185,4 @@ Before declaring a workload production-ready:
 - [ ] Backups tested (especially for StatefulSets)
 - [ ] Runbook exists for the common failure modes
 
-A workload that ticks all these boxes is not unbreakable -- but the failure modes that remain are the interesting ones, not the embarrassing ones.
+A workload that ticks all these boxes is not unbreakable — but the failure modes that remain are the interesting ones, not the embarrassing ones.

@@ -6,8 +6,7 @@ tags:
   - Case Studies
   - Distributed Systems
   - Architecture
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: zh
 description: "三个完整的系统设计实战 walkthrough —— 网址缩短服务、实时聊天系统与新闻信息流 —— 均严格遵循本系列首篇文章提出的框架：从需求澄清与规模估算，到高层架构设计、关键组件深度剖析，再到可扩展性策略。"

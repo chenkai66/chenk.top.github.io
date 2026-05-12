@@ -7,8 +7,7 @@ tags:
   - Kubernetes
   - Docker Swarm
   - Orchestration
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "Single-host Docker breaks down at scale. This article previews container orchestration — Docker Swarm for simplicity, Kubernetes for everything else — and maps out the broader cloud-native ecosystem."

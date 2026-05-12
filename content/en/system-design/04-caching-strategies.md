@@ -6,8 +6,7 @@ tags:
   - Caching
   - Redis
   - Performance
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "A deep dive into caching strategies across every layer of the stack — from CDN to database buffer pools — covering cache-aside, write-through, write-behind patterns, eviction policies, thundering herd mitigation, and practical Redis configurations."

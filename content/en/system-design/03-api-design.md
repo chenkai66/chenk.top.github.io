@@ -6,8 +6,7 @@ tags:
   - API Design
   - REST
   - gRPC
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style."

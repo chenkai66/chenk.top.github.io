@@ -11,8 +11,7 @@ tags:
   - TD3
   - SAC
   - PPO
-categories:
-  - Reinforcement Learning
+categories: Reinforcement Learning
 series: reinforcement-learning
 lang: en
 mathjax: true
@@ -21,7 +20,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "reinforcement-learning-3"
 ---
-DQN proved that deep RL can master Atari, but it has a hard ceiling: it only works in **discrete action spaces**. Ask it to control a robot arm with seven continuous joint angles and it falls apart -- you would have to solve an inner optimisation problem every time you choose an action.
+DQN proved that deep RL can master Atari, but it has a hard ceiling: it only works in **discrete action spaces**. Ask it to control a robot arm with seven continuous joint angles and it falls apart — you would have to solve an inner optimisation problem every time you choose an action.
 
 **Policy gradient methods** take a fundamentally different route. Instead of learning a value function and *deriving* a policy from it, they **directly optimise the policy**. That single change opens the door to continuous actions, stochastic strategies, and problems where the optimal play is itself random (think rock-paper-scissors).
 
@@ -46,7 +45,7 @@ DQN learns $Q(s,a)$ and acts greedily: $\pi(s) = \arg\max_a Q(s,a)$. That indire
 
 1. **Discrete actions only.** Computing $\arg\max$ over a continuous space is itself a non-trivial optimisation, repeated at every environment step.
 2. **No stochastic policies.** Greedy policies are deterministic. But in matching-pennies-style games the **optimal** policy is genuinely random.
-3. **Error amplification.** Q-value approximation errors get amplified by the $\max$ operator -- the overestimation bias we fixed (partially) with Double DQN in Part 2.
+3. **Error amplification.** Q-value approximation errors get amplified by the $\max$ operator — the overestimation bias we fixed (partially) with Double DQN in Part 2.
 4. **Ad-hoc exploration.** $\epsilon$-greedy is a hack: it has no principled reason for the noise it injects.
 
 Policy gradient methods sidestep all four by **parameterising the policy directly** as $\pi_\theta(a|s)$:
@@ -76,7 +75,7 @@ Visually, the theorem says "shift probability mass toward actions whose realised
 
 ![Policy gradient as a score-function update on the action distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig1_policy_gradient_theorem.png)
 
-The left panel shows $\pi_\theta(a|s)$ before and after one (large, illustrative) update -- mass migrates toward the reward bump. The right panel shows the update direction itself: the score function multiplied by the reward and the current density. Where the product is positive we increase $\pi(a)$; where it is negative we decrease it.
+The left panel shows $\pi_\theta(a|s)$ before and after one (large, illustrative) update — mass migrates toward the reward bump. The right panel shows the update direction itself: the score function multiplied by the reward and the current density. Where the product is positive we increase $\pi(a)$; where it is negative we decrease it.
 
 ### 1.2 The Variance Problem and the Baseline Trick
 
@@ -223,7 +222,7 @@ This typically solves CartPole in 100--200 episodes. On harder tasks, though, RE
 
 REINFORCE waits until the end of the episode to compute $G_t$. That return contains noise from *every* future state, action, and reward. Can we do better?
 
-**Actor-Critic** says: train a second network -- a **critic** $V_\phi(s)$ -- and use it to bootstrap the gradient signal.
+**Actor-Critic** says: train a second network — a **critic** $V_\phi(s)$ — and use it to bootstrap the gradient signal.
 
 - **Actor** $\pi_\theta(a|s)$: decides what to do.
 - **Critic** $V_\phi(s)$: scores how good a state is.
@@ -281,13 +280,13 @@ $\lambda = 0$ recovers the one-step TD advantage; $\lambda = 1$ recovers the ful
 
 ![GAE bias-variance trade-off and n-step return weighting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig5_gae_lambda_sweep.png)
 
-The left panel shows the qualitative trade-off; the right panel shows what the weighting actually does -- larger $\lambda$ spreads the credit across many future TD errors, smaller $\lambda$ trusts only the immediate one. PPO's defaults ($\lambda = 0.95$, $\gamma = 0.99$) live near the sweet spot.
+The left panel shows the qualitative trade-off; the right panel shows what the weighting actually does — larger $\lambda$ spreads the credit across many future TD errors, smaller $\lambda$ trusts only the immediate one. PPO's defaults ($\lambda = 0.95$, $\gamma = 0.99$) live near the sweet spot.
 
 ---
 
 ## 4. Continuous Control: DDPG and TD3
 
-For continuous actions like joint torques the policy is naturally Gaussian: $a \sim \mathcal{N}(\mu_\theta(s),\,\sigma_\theta(s))$. But sampling injects noise that hurts precise control. **Deterministic policies** $a = \mu_\theta(s)$ avoid that noise -- and admit a particularly clean gradient.
+For continuous actions like joint torques the policy is naturally Gaussian: $a \sim \mathcal{N}(\mu_\theta(s),\,\sigma_\theta(s))$. But sampling injects noise that hurts precise control. **Deterministic policies** $a = \mu_\theta(s)$ avoid that noise — and admit a particularly clean gradient.
 
 ### 4.1 DDPG: Deep Deterministic Policy Gradient
 
@@ -385,7 +384,7 @@ Three engineering details make SAC the workhorse it is:
 
 - **Automatic temperature tuning.** $\alpha$ is itself learned by gradient descent against a target-entropy constraint, so you do not have to guess.
 - **Stochastic squashed-Gaussian policy.** The actor outputs $(\mu, \log\sigma)$; samples are passed through $\tanh$ and the log-prob is corrected by the change-of-variables Jacobian.
-- **Twin critics with clipped double-Q**, off-policy replay, and soft target updates -- the familiar TD3 stack.
+- **Twin critics with clipped double-Q**, off-policy replay, and soft target updates — the familiar TD3 stack.
 
 In practice, SAC matches or beats TD3 on MuJoCo benchmarks while being noticeably less sensitive to hyperparameters. For continuous control on real hardware, SAC is the default starting point in many labs.
 
@@ -393,7 +392,7 @@ In practice, SAC matches or beats TD3 on MuJoCo benchmarks while being noticeabl
 
 ## 6. Why Does This Even Work? Climbing a Noisy Hill in $\theta$-Space
 
-It is worth zooming out. Every algorithm in this article is a special case of one idea: **stochastic gradient ascent on $J(\theta)$ in policy parameter space**. The "stochastic" is doing a lot of work -- our gradient estimates are noisy, sometimes wildly so, and the loss surface itself is non-convex.
+It is worth zooming out. Every algorithm in this article is a special case of one idea: **stochastic gradient ascent on $J(\theta)$ in policy parameter space**. The "stochastic" is doing a lot of work — our gradient estimates are noisy, sometimes wildly so, and the loss surface itself is non-convex.
 
 ![Stochastic gradient ascent on the policy return surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig7_policy_optimization_landscape.png)
 
@@ -401,7 +400,7 @@ A few things this picture makes obvious:
 
 - The path is **jagged**, not smooth. Variance reduction (baseline, advantage, GAE) buys us a less jagged path, not a different destination.
 - **Local plateaus exist.** Entropy regularisation (SAC) and stochastic policies are partly defences against getting stuck on them.
-- The landscape itself **changes as $\theta$ changes** -- the data distribution is on-policy. This is why off-policy methods (DDPG, TD3, SAC) need careful corrections, and why PPO clips the update step in the next instalment.
+- The landscape itself **changes as $\theta$ changes** — the data distribution is on-policy. This is why off-policy methods (DDPG, TD3, SAC) need careful corrections, and why PPO clips the update step in the next instalment.
 
 ---
 
@@ -429,16 +428,16 @@ A few things this picture makes obvious:
 
 Policy-gradient methods opened RL to the world beyond discrete actions:
 
-- **REINFORCE** showed that policies can be optimised directly via gradient ascent on expected return -- conceptually clean, practically noisy.
+- **REINFORCE** showed that policies can be optimised directly via gradient ascent on expected return — conceptually clean, practically noisy.
 - **Actor-Critic + advantage** traded a touch of bias for an order-of-magnitude variance reduction, making training tractable.
 - **GAE($\lambda$)** turned the bias-variance choice into a single tunable knob.
 - **DDPG / TD3** brought off-policy efficiency to continuous control with deterministic policies and DQN-style stabilisation.
 - **SAC** added entropy regularisation and became the go-to method for continuous control.
-- **PPO** -- the subject of [Part 6](/en/reinforcement-learning/06-ppo-and-trpo/) -- simplified trust-region ideas into a clipped surrogate that became the industry workhorse.
+- **PPO** — the subject of [Part 6](/en/reinforcement-learning/06-ppo-and-trpo/) — simplified trust-region ideas into a clipped surrogate that became the industry workhorse.
 
 All of these methods are **model-free**: they learn from interaction without ever building an explicit model of the environment. That generality is their strength, and the millions of samples they consume is their weakness.
 
-**Next up:** [Part 4](/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/) tackles the **exploration problem** -- how do agents discover rewards in the first place when the environment provides almost no feedback?
+**Next up:** [Part 4](/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/) tackles the **exploration problem** — how do agents discover rewards in the first place when the environment provides almost no feedback?
 
 ---
 

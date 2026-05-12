@@ -21,7 +21,7 @@ translationKey: "aliyun-fullstack-3"
 Every outage I have debugged in the cloud ultimately traced back to networking. Bad CIDR planning that ran out of IPs six months in. Missing routes that silently dropped traffic between tiers. Security groups that were either wide open (hello, port 22 to `0.0.0.0/0`) or so locked down that health checks failed and the load balancer kept draining healthy instances. Getting the network layer right is the single most important thing you can do before deploying anything else, and it is the single most painful thing to fix retroactively because changing a VPC CIDR means recreating everything inside it.
 
 
-We set up the basic VPC in [Part 1](/en/aliyun-fullstack/01-ecosystem-map/) -- now we are going deep. By the end of this article you will have a production-grade multi-AZ network with isolated tiers, proper security boundaries, internet access via NAT, and load balancing via SLB. The ECS instances that go into these subnets are covered in [Part 2](/en/aliyun-fullstack/02-ecs-compute/). For the Terraform approach to VPC setup, see [Terraform Part 3: VPC and Security Baseline](/en/terraform-agents/03-vpc-and-security-baseline/).
+We set up the basic VPC in [Part 1](/en/aliyun-fullstack/01-ecosystem-map/) — now we are going deep. By the end of this article you will have a production-grade multi-AZ network with isolated tiers, proper security boundaries, internet access via NAT, and load balancing via SLB. The ECS instances that go into these subnets are covered in [Part 2](/en/aliyun-fullstack/02-ecs-compute/). For the Terraform approach to VPC setup, see [Terraform Part 3: VPC and Security Baseline](/en/terraform-agents/03-vpc-and-security-baseline/).
 
 ## What Is a VPC?
 
@@ -46,11 +46,11 @@ Before VPC existed, Alibaba Cloud had a "Classic Network" where all instances in
 
 The key components you will work with:
 
-- **VPC** -- The container. One VPC per region (you can have multiple). Defined by a CIDR block.
-- **VSwitch** -- A subnet within the VPC, bound to exactly one availability zone. This is where instances actually live.
-- **Route Table** -- Controls where traffic goes. Every VPC has a system route table; you can create custom ones.
-- **Security Group** -- A stateful firewall attached to instances. Rules allow traffic; anything not explicitly allowed is denied inbound.
-- **Network ACL** -- An optional stateless firewall at the VSwitch level. Most setups skip this and rely on security groups.
+- **VPC** — The container. One VPC per region (you can have multiple). Defined by a CIDR block.
+- **VSwitch** — A subnet within the VPC, bound to exactly one availability zone. This is where instances actually live.
+- **Route Table** — Controls where traffic goes. Every VPC has a system route table; you can create custom ones.
+- **Security Group** — A stateful firewall attached to instances. Rules allow traffic; anything not explicitly allowed is denied inbound.
+- **Network ACL** — An optional stateless firewall at the VSwitch level. Most setups skip this and rely on security groups.
 
 One VPC cannot span regions. If you need cross-region connectivity, that is where Cloud Enterprise Network (CEN) comes in, which we cover later in this article.
 
@@ -60,7 +60,7 @@ CIDR (Classless Inter-Domain Routing) notation defines your IP address space. Ge
 
 ![CIDR planning guide for VPC subnets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
 
-The notation works like this: `10.0.0.0/16` means "all IPs from `10.0.0.0` to `10.0.255.255`." The number after the slash is the prefix length -- how many bits are fixed. The remaining bits are yours to allocate.
+The notation works like this: `10.0.0.0/16` means "all IPs from `10.0.0.0` to `10.0.255.255`." The number after the slash is the prefix length — how many bits are fixed. The remaining bits are yours to allocate.
 
 | CIDR | Prefix bits | Available IPs | Typical use |
 |---|---|---|---|
@@ -70,9 +70,9 @@ The notation works like this: `10.0.0.0/16` means "all IPs from `10.0.0.0` to `1
 | /24 | 24 | 256 (254 usable) | Standard subnet |
 | /28 | 28 | 16 (14 usable) | Tiny subnet (NAT, bastion) |
 
-Alibaba Cloud VPCs support CIDR blocks from /8 to /24 using the private ranges: `10.0.0.0/8`, `172.16.0.0/12`, or `192.168.0.0/16`. VSwitches can go down to /29 (8 IPs, 6 usable -- Alibaba Cloud reserves the first two and last one in each VSwitch).
+Alibaba Cloud VPCs support CIDR blocks from /8 to /24 using the private ranges: `10.0.0.0/8`, `172.16.0.0/12`, or `192.168.0.0/16`. VSwitches can go down to /29 (8 IPs, 6 usable — Alibaba Cloud reserves the first two and last one in each VSwitch).
 
-The golden rule: **plan for 10x your current need**. If you think you need 50 IPs, allocate a /24 (254 usable). If you think you need 500 IPs, allocate a /20 (4,094 usable). Subnets cannot be resized after creation -- you would have to create a new VSwitch and migrate instances.
+The golden rule: **plan for 10x your current need**. If you think you need 50 IPs, allocate a /24 (254 usable). If you think you need 500 IPs, allocate a /20 (4,094 usable). Subnets cannot be resized after creation — you would have to create a new VSwitch and migrate instances.
 
 Here is my standard planning table for a 3-tier architecture across 2 availability zones:
 
@@ -82,13 +82,13 @@ Here is my standard planning table for a 3-tier architecture across 2 availabili
 | Private App | vsw-app-a | 10.0.10.0/24 | vsw-app-b | 10.0.11.0/24 | 251 |
 | Private Data | vsw-data-a | 10.0.20.0/24 | vsw-data-b | 10.0.21.0/24 | 251 |
 
-The VPC itself gets `10.0.0.0/16`, giving us 65,534 usable IPs and room to add more subnets later without running out of address space. I deliberately leave gaps between the tier ranges (1.x, 10.x, 20.x) so that when you inevitably add a fourth tier -- maybe a cache layer at 10.0.30.0/24 -- it slots in cleanly without renumbering.
+The VPC itself gets `10.0.0.0/16`, giving us 65,534 usable IPs and room to add more subnets later without running out of address space. I deliberately leave gaps between the tier ranges (1.x, 10.x, 20.x) so that when you inevitably add a fourth tier — maybe a cache layer at 10.0.30.0/24 — it slots in cleanly without renumbering.
 
 > **Note:** If your VPCs will ever need to peer with each other (via CEN or VPN), their CIDR blocks must not overlap. Plan a scheme like VPC-prod = 10.0.0.0/16, VPC-staging = 10.1.0.0/16, VPC-dev = 10.2.0.0/16.
 
 ## VSwitches: Subnets Across Availability Zones
 
-A VSwitch is a subnet, and every VSwitch lives in exactly one availability zone. You cannot stretch a VSwitch across zones. This is by design -- it means a zone failure only takes out instances in VSwitches assigned to that zone, not your entire tier.
+A VSwitch is a subnet, and every VSwitch lives in exactly one availability zone. You cannot stretch a VSwitch across zones. This is by design — it means a zone failure only takes out instances in VSwitches assigned to that zone, not your entire tier.
 
 ![Multi-AZ VSwitch topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_vswitch_layout.png)
 
@@ -172,13 +172,13 @@ A few things worth knowing:
 
 ## Route Tables
 
-Every VPC comes with a system route table that you cannot delete. It contains one entry you care about: a local route that automatically enables all VSwitches within the VPC to communicate with each other. This is implicit -- you will not see it in the console, but traffic between `10.0.1.0/24` and `10.0.20.0/24` just works.
+Every VPC comes with a system route table that you cannot delete. It contains one entry you care about: a local route that automatically enables all VSwitches within the VPC to communicate with each other. This is implicit — you will not see it in the console, but traffic between `10.0.1.0/24` and `10.0.20.0/24` just works.
 
 ![Route table decision flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_route_table.png)
 
 The system route table also handles the default route (`0.0.0.0/0`), which initially goes nowhere. To give instances internet access, you point this default route at a NAT Gateway or an internet-facing router.
 
-For most setups, the system route table is enough. You create custom route tables when you need different routing behavior for different VSwitches -- for example, if your public VSwitches should route `0.0.0.0/0` to an internet gateway but your private VSwitches should route it to a NAT Gateway:
+For most setups, the system route table is enough. You create custom route tables when you need different routing behavior for different VSwitches — for example, if your public VSwitches should route `0.0.0.0/0` to an internet gateway but your private VSwitches should route it to a NAT Gateway:
 
 ```bash
 # Create a custom route table
@@ -208,7 +208,7 @@ One route table detail that trips people up: Alibaba Cloud evaluates routes by l
 
 Security groups are where most people either under-invest (leaving everything open) or over-invest (creating 200 rules that nobody can audit). The right answer is a small number of groups with clear, intent-revealing names.
 
-A security group is a stateful firewall at the instance level. "Stateful" means if you allow inbound traffic on port 80, the response traffic is automatically allowed out -- you do not need a separate outbound rule for return packets.
+A security group is a stateful firewall at the instance level. "Stateful" means if you allow inbound traffic on port 80, the response traffic is automatically allowed out — you do not need a separate outbound rule for return packets.
 
 Default behavior:
 
@@ -368,8 +368,8 @@ When to use EIP:
 
 When NOT to use EIP:
 
-- **Web applications serving real traffic** -- use SLB instead (it handles failover)
-- **Every instance** -- if you are binding EIPs to 10 instances, you need a load balancer
+- **Web applications serving real traffic** — use SLB instead (it handles failover)
+- **Every instance** — if you are binding EIPs to 10 instances, you need a load balancer
 
 There are two billing modes:
 
@@ -408,15 +408,15 @@ A common gotcha: an ECS instance can only have one EIP bound at a time via the p
 
 ## NAT Gateway: Internet Access for Private Subnets
 
-Instances in private subnets (the app and data tiers from our plan) have no public IP. They cannot reach the internet by default. But they often need to -- pulling Docker images, calling external APIs, downloading security patches. NAT Gateway solves this.
+Instances in private subnets (the app and data tiers from our plan) have no public IP. They cannot reach the internet by default. But they often need to — pulling Docker images, calling external APIs, downloading security patches. NAT Gateway solves this.
 
 ![NAT Gateway architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_nat_gateway.png)
 
 NAT Gateway sits in a public subnet and provides two functions:
 
-**SNAT (Source NAT)** -- outbound. Private instances send traffic to the NAT Gateway, which replaces the source IP with its own EIP and forwards the request to the internet. The response comes back to the NAT Gateway, which routes it back to the originating private instance. The private instance never gets a public IP.
+**SNAT (Source NAT)** — outbound. Private instances send traffic to the NAT Gateway, which replaces the source IP with its own EIP and forwards the request to the internet. The response comes back to the NAT Gateway, which routes it back to the originating private instance. The private instance never gets a public IP.
 
-**DNAT (Destination NAT)** -- inbound. Maps a specific port on the NAT Gateway's EIP to a specific private instance and port. Incoming traffic to `EIP:8080` gets forwarded to `10.0.10.5:8080`. This is useful for one-off services that need to be reachable from the internet but do not warrant an SLB.
+**DNAT (Destination NAT)** — inbound. Maps a specific port on the NAT Gateway's EIP to a specific private instance and port. Incoming traffic to `EIP:8080` gets forwarded to `10.0.10.5:8080`. This is useful for one-off services that need to be reachable from the internet but do not warrant an SLB.
 
 When to use which:
 
@@ -485,7 +485,7 @@ aliyun vpc CreateSnatEntry \
   --SnatEntryName "data-b-outbound"
 ```
 
-The `SnatIp` is the EIP address you bound to the NAT Gateway. All outbound traffic from these VSwitches will appear to come from this IP. This is useful for whitelisting -- if an external API needs to whitelist your IP, you give them the NAT EIP.
+The `SnatIp` is the EIP address you bound to the NAT Gateway. All outbound traffic from these VSwitches will appear to come from this IP. This is useful for whitelisting — if an external API needs to whitelist your IP, you give them the NAT EIP.
 
 Always use the Enhanced NAT type. The "Normal" type is the legacy version with lower throughput, no support for multi-EIP SNAT, and no integration with newer services. Enhanced NAT is billed by LCU (Logical Connection Unit) which scales with your actual usage.
 
@@ -525,7 +525,7 @@ aliyun alb CreateLoadBalancer \
   ]'
 ```
 
-The ALB spans two AZs. If one zone goes down, the ALB in the surviving zone keeps serving traffic. This is the whole point of multi-AZ -- and the ALB must know about at least two zones to provide this.
+The ALB spans two AZs. If one zone goes down, the ALB in the surviving zone keeps serving traffic. This is the whole point of multi-AZ — and the ALB must know about at least two zones to provide this.
 
 Next, create a server group and add backend instances:
 
@@ -558,9 +558,9 @@ aliyun alb AddServersToServerGroup \
 
 The `Scheduler` field controls how traffic is distributed:
 
-- **Wrr** (Weighted Round Robin) -- distributes requests proportionally to server weights. Set weight 100 on all servers for equal distribution, or 200 on a bigger instance.
-- **Wlc** (Weighted Least Connections) -- sends new requests to the server with the fewest active connections, adjusted by weight. Better when request durations vary.
-- **Sch** (Source-IP Hash) -- same client IP always goes to the same backend. Useful for stateful apps, but defeats the purpose of load balancing if traffic is skewed.
+- **Wrr** (Weighted Round Robin) — distributes requests proportionally to server weights. Set weight 100 on all servers for equal distribution, or 200 on a bigger instance.
+- **Wlc** (Weighted Least Connections) — sends new requests to the server with the fewest active connections, adjusted by weight. Better when request durations vary.
+- **Sch** (Source-IP Hash) — same client IP always goes to the same backend. Useful for stateful apps, but defeats the purpose of load balancing if traffic is skewed.
 
 Finally, create a listener:
 
@@ -589,7 +589,7 @@ The health check configuration deserves deliberate thought. With the settings ab
 - Once removed, it must return 2xx 3 times in a row (`HealthyThreshold: 3`) to be added back
 - Each health check times out after 3 seconds
 
-This means a failing backend is removed after roughly 15 seconds (3 checks * 5 second interval). A recovering backend is added back after another 15 seconds. Tune these values based on your application's startup time -- if your app takes 30 seconds to warm up, set a higher HealthyThreshold or longer interval.
+This means a failing backend is removed after roughly 15 seconds (3 checks * 5 second interval). A recovering backend is added back after another 15 seconds. Tune these values based on your application's startup time — if your app takes 30 seconds to warm up, set a higher HealthyThreshold or longer interval.
 
 The `/health` endpoint in your application should check real dependencies. A health check that just returns `200 OK` without verifying database connectivity tells you nothing useful. At minimum, check that the process is running and the main datastore is reachable.
 
@@ -599,22 +599,22 @@ Cloud Enterprise Network connects VPCs across different regions into a single pr
 
 The architecture is hub-and-spoke:
 
-1. **CEN Instance** -- the global container. Free to create.
-2. **Transit Router (TR)** -- regional hub, one per region. This is the thing that actually routes traffic. Costs money.
-3. **VPC Attachments** -- connect each VPC to its regional Transit Router.
-4. **Inter-region connections** -- link Transit Routers across regions. Billed by bandwidth.
+1. **CEN Instance** — the global container. Free to create.
+2. **Transit Router (TR)** — regional hub, one per region. This is the thing that actually routes traffic. Costs money.
+3. **VPC Attachments** — connect each VPC to its regional Transit Router.
+4. **Inter-region connections** — link Transit Routers across regions. Billed by bandwidth.
 
 When you need CEN:
 
-- **Multi-region deployment** -- app servers in cn-hangzhou, disaster recovery in cn-shanghai
-- **Global presence** -- China + Southeast Asia + Europe
-- **Shared services** -- a central VPC with logging/monitoring that all regional VPCs send data to
-- **Hybrid cloud** -- connecting on-premises data centers via VPN or Express Connect, then extending to cloud VPCs
+- **Multi-region deployment** — app servers in cn-hangzhou, disaster recovery in cn-shanghai
+- **Global presence** — China + Southeast Asia + Europe
+- **Shared services** — a central VPC with logging/monitoring that all regional VPCs send data to
+- **Hybrid cloud** — connecting on-premises data centers via VPN or Express Connect, then extending to cloud VPCs
 
 When you do NOT need CEN:
 
 - Single-region deployment (all your VSwitches are already in the same VPC)
-- Two VPCs in the same region that just need a few ports open (use VPC peering instead -- simpler and cheaper)
+- Two VPCs in the same region that just need a few ports open (use VPC peering instead — simpler and cheaper)
 
 A basic CEN setup between two regions:
 
@@ -874,7 +874,7 @@ That last test is the most important. If the web tier can reach the data tier di
 
 **Security groups reference security groups, not CIDRs.** Using `SourceGroupId` instead of `SourceCidrIp` means your rules survive IP changes, auto-scaling events, and instance replacements. The chain is always intact.
 
-**NAT Gateway is for outbound. SLB is for inbound.** Do not use DNAT for services that need to handle real traffic -- use an ALB or NLB. NAT Gateway's DNAT is for one-off port mappings, not production load balancing.
+**NAT Gateway is for outbound. SLB is for inbound.** Do not use DNAT for services that need to handle real traffic — use an ALB or NLB. NAT Gateway's DNAT is for one-off port mappings, not production load balancing.
 
 **ALB over CLB for new HTTP workloads.** CLB still works and will be supported for years, but ALB has better routing, better health check integration, and native gRPC support.
 
@@ -882,4 +882,4 @@ That last test is the most important. If the web tier can reach the data tier di
 
 ## What's Next
 
-The network is the foundation. With VPC, VSwitches, security groups, NAT, and SLB in place, everything else we deploy has a predictable, secure place to land. In the next article, we move up the stack to managed databases -- RDS for relational data, Redis for caching, and the replication and backup strategies that keep your data alive when hardware fails.
+The network is the foundation. With VPC, VSwitches, security groups, NAT, and SLB in place, everything else we deploy has a predictable, secure place to land. In the next article, we move up the stack to managed databases — RDS for relational data, Redis for caching, and the replication and backup strategies that keep your data alive when hardware fails.

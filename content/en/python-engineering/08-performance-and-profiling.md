@@ -6,8 +6,7 @@ tags:
   - Performance
   - Profiling
   - Optimization
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Profile Python code to find real bottlenecks, apply caching and vectorization where they matter, and avoid the trap of premature optimization."
@@ -721,13 +720,13 @@ Profile before you optimize. Measure the impact after you optimize. If the optim
 
 Over eight articles, we have built a complete Python engineering toolkit:
 
-1. **Environment** -- pyenv, venv, pip-tools for reproducible setups
-2. **Structure** -- packages, imports, and CLI tools
-3. **Testing** -- pytest, fixtures, parametrize, and debugging
-4. **Quality** -- type hints, ruff, black, and pre-commit
-5. **I/O** -- files, encodings, and serialization formats
-6. **Concurrency** -- threads, processes, and asyncio
-7. **Packaging** -- building, publishing, and Docker
-8. **Performance** -- profiling, caching, and vectorization
+1. **Environment** — pyenv, venv, pip-tools for reproducible setups
+2. **Structure** — packages, imports, and CLI tools
+3. **Testing** — pytest, fixtures, parametrize, and debugging
+4. **Quality** — type hints, ruff, black, and pre-commit
+5. **I/O** — files, encodings, and serialization formats
+6. **Concurrency** — threads, processes, and asyncio
+7. **Packaging** — building, publishing, and Docker
+8. **Performance** — profiling, caching, and vectorization
 
-These are not theoretical topics. They are the daily tools of professional Python development. The difference between a script that works and a project that scales is not cleverness -- it is engineering discipline applied consistently.
+These are not theoretical topics. They are the daily tools of professional Python development. The difference between a script that works and a project that scales is not cleverness — it is engineering discipline applied consistently.

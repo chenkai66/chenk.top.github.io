@@ -7,8 +7,7 @@ tags:
   - Lyapunov Theory
   - Phase Space
   - Bifurcation
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -17,7 +16,7 @@ disableNunjucks: true
 series_order: 7
 translationKey: "ode-7"
 ---
-**A small push hits a system. Does it return to rest, drift away, or break entirely?** That single question decides whether bridges survive storms, ecosystems recover from droughts, and economies bounce back from crises. Stability theory answers it -- and it does so *without ever solving the differential equation*. We will learn to read the destiny of a system off the geometry of its phase plane.
+**A small push hits a system. Does it return to rest, drift away, or break entirely?** That single question decides whether bridges survive storms, ecosystems recover from droughts, and economies bounce back from crises. Stability theory answers it — and it does so *without ever solving the differential equation*. We will learn to read the destiny of a system off the geometry of its phase plane.
 
 ![Ordinary Differential Equations (7): Stability Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/illustration_1.png)
 
@@ -25,7 +24,7 @@ translationKey: "ode-7"
 
 - Three precise notions: Lyapunov stable, asymptotically stable, unstable
 - Linearization via the Jacobian and the Hartman-Grobman theorem
-- Lyapunov's direct method -- proving stability with energy-like functions
+- Lyapunov's direct method — proving stability with energy-like functions
 - LaSalle's invariance principle for borderline cases
 - Trace-determinant classification of all 2D linear systems
 - Four canonical bifurcations: saddle-node, transcritical, pitchfork, Hopf
@@ -45,7 +44,7 @@ Stability is, at heart, a *geometric* statement about how trajectories move in p
 ![Six canonical 2D phase portraits: stable spiral, unstable spiral, stable node, saddle, center, degenerate node.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/fig1_phase_portraits.png)
 *Six canonical 2D phase portraits. Solid lines are forward orbits; dashed lines are backward orbits. The eigenvalues of the linearization completely determine which picture you get.*
 
-For nonlinear systems, the same six pictures still appear -- but only locally, near each equilibrium. The damped pendulum and the Lotka-Volterra predator-prey model both show this beautifully:
+For nonlinear systems, the same six pictures still appear — but only locally, near each equilibrium. The damped pendulum and the Lotka-Volterra predator-prey model both show this beautifully:
 
 ![Damped pendulum (left) and Lotka-Volterra (right) trajectories overlaid on their vector fields.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/fig2_trajectory_vector_field.png)
 *Damped pendulum: stable foci alternate with saddles along the$\theta$-axis. Lotka-Volterra: closed orbits encircle a non-hyperbolic center.*
@@ -66,7 +65,7 @@ $$\|\mathbf{x}(0) - \mathbf{x}^*\| < \delta \;\Longrightarrow\; \|\mathbf{x}(t) 
 
 The **basin of attraction** is the set of all initial conditions that converge to $\mathbf{x}^*$. Asymptotic stability is a *local* property; the basin tells you how local.
 
-> **Why two definitions?** A center (closed orbits) is Lyapunov stable but not asymptotically stable -- trajectories stay close but never settle. The Lotka-Volterra model is the classic example.
+> **Why two definitions?** A center (closed orbits) is Lyapunov stable but not asymptotically stable — trajectories stay close but never settle. The Lotka-Volterra model is the classic example.
 
 ---
 
@@ -79,7 +78,7 @@ If every eigenvalue of $J$ has **nonzero real part** (a *hyperbolic* equilibrium
 
 - All $\operatorname{Re}(\lambda) < 0$: asymptotically stable
 - Any $\operatorname{Re}(\lambda) > 0$: unstable
-- Purely imaginary eigenvalues: **linearization fails** -- use Lyapunov methods
+- Purely imaginary eigenvalues: **linearization fails** — use Lyapunov methods
 
 ### Example: damped pendulum
 $$\theta'' + \gamma\theta' + \omega_0^2\sin\theta = 0$$
@@ -133,12 +132,12 @@ Stability without solving the ODE. Construct an *energy-like* scalar function $V
 | $\dot V < 0$ except at $\mathbf{x}^*$ | Asymptotically stable |
 | $V > 0,\ \dot V > 0$ | Unstable (Chetaev) |
 
-### Why it works -- the picture
+### Why it works — the picture
 
 Trajectories cross level sets of $V$ inward. Since $V$ has a minimum at $\mathbf{x}^*$, they cannot escape arbitrarily-small level sets, and (with strict descent) they slide all the way to the bottom.
 
 ![Lyapunov surface as a bowl with trajectories descending into the basin; right panel shows V(t) decaying.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/fig4_lyapunov_function.png)
-*Left: trajectories slide down the bowl $V(x,y) = x^2 + \tfrac12 y^2$. Right: $V$ along each trajectory decays monotonically -- the geometric proof of asymptotic stability.*
+*Left: trajectories slide down the bowl $V(x,y) = x^2 + \tfrac12 y^2$. Right: $V$ along each trajectory decays monotonically — the geometric proof of asymptotic stability.*
 
 ### How to find $V$
 
@@ -199,13 +198,13 @@ Slowly turn a parameter knob $r$. Equilibria can be born, die, or swap stability
 | Pitchfork | $\dot x = rx - x^3$ | One equilibrium splits into three (symmetry breaking) |
 | Hopf | complex eigenvalues cross $i\mathbb{R}$ | A stable focus loses stability and a limit cycle appears |
 
-Hopf is the mechanism behind every self-sustained oscillation in nature -- from heartbeats to the pulsing of variable stars.
+Hopf is the mechanism behind every self-sustained oscillation in nature — from heartbeats to the pulsing of variable stars.
 
 ---
 
 ## Application 1: Lotka-Volterra Predator-Prey
 $$x' = ax - bxy, \qquad y' = -cy + dxy$$
-The non-trivial equilibrium $(c/d,\ a/b)$ has Jacobian eigenvalues $\pm i\sqrt{ac}$ -- a **center**. The Hartman-Grobman theorem does *not* apply (eigenvalues are imaginary), but a conserved quantity$$H(x,y) = dx - c\ln x + by - a\ln y$$makes every orbit closed. The system has periodic population cycles (right panel of fig 2).
+The non-trivial equilibrium $(c/d,\ a/b)$ has Jacobian eigenvalues $\pm i\sqrt{ac}$ — a **center**. The Hartman-Grobman theorem does *not* apply (eigenvalues are imaginary), but a conserved quantity$$H(x,y) = dx - c\ln x + by - a\ln y$$makes every orbit closed. The system has periodic population cycles (right panel of fig 2).
 
 ## Application 2: Inverted Pendulum Control
 
@@ -252,7 +251,7 @@ plt.grid(True, alpha=0.3); plt.tight_layout(); plt.show()
 | Lyapunov function | Energy-like scalar that proves stability without integration |
 | LaSalle's principle | Upgrades $\dot V \leq 0$ to asymptotic stability via invariant sets |
 | Trace-determinant plane | Single picture classifying every 2D linear system |
-| Bifurcations | Saddle-node, transcritical, pitchfork, Hopf -- four ways the picture changes |
+| Bifurcations | Saddle-node, transcritical, pitchfork, Hopf — four ways the picture changes |
 
 ---
 

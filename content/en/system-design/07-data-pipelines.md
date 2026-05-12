@@ -6,8 +6,7 @@ tags:
   - Data Engineering
   - Stream Processing
   - Apache Kafka
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "A practical guide to data pipeline architectures — covering ETL vs ELT, batch processing with Spark, stream processing with Flink, Lambda vs Kappa architectures, Change Data Capture, and a complete real-time analytics pipeline design."

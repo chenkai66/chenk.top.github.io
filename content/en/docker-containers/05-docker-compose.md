@@ -7,8 +7,7 @@ tags:
   - Docker Compose
   - YAML
   - DevOps
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "Real applications aren't single containers. Docker Compose lets you define multi-service architectures in a single YAML file — networks, volumes, dependencies, and all."

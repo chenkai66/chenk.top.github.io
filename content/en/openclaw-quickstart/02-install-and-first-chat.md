@@ -5,7 +5,7 @@ tags:
   - openclaw
   - installation
   - tui
-  - dashscope
+  - DashScope
 categories: OpenClaw
 lang: en
 mathjax: false

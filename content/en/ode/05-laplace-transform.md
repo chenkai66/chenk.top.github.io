@@ -7,8 +7,7 @@ tags:
   - Bessel Functions
   - Legendre Polynomials
   - Frobenius Method
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -17,7 +16,7 @@ disableNunjucks: true
 series_order: 5
 translationKey: "ode-5"
 ---
-**Some ODEs have no solutions in terms of familiar functions.** The Bessel equation, the Legendre equation, the Airy equation -- all arise naturally in physics (heat conduction in cylinders, gravitational fields of planets, quantum tunneling). Their solutions *define* entirely new functions. This chapter shows you how to find them using power series, why the Frobenius extension is forced upon us at singular points, and why the same handful of "special functions" keeps appearing across physics and engineering.
+**Some ODEs have no solutions in terms of familiar functions.** The Bessel equation, the Legendre equation, the Airy equation — all arise naturally in physics (heat conduction in cylinders, gravitational fields of planets, quantum tunneling). Their solutions *define* entirely new functions. This chapter shows you how to find them using power series, why the Frobenius extension is forced upon us at singular points, and why the same handful of "special functions" keeps appearing across physics and engineering.
 
 ![Ordinary Differential Equations (5): Power Series and Special Functions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/illustration_1.png)
 
@@ -42,14 +41,14 @@ translationKey: "ode-5"
 ## 1. Why Power Series?
 
 You are studying heat conduction inside a cylinder and, after separation of variables, arrive at
-$$x^2 y'' + xy' + (x^2 - n^2)y = 0.$$This is the **Bessel equation**. None of our previous methods (characteristic equations for constant coefficients, integrating factors, variation of parameters) reach it because the coefficients are *functions of $x$*, not constants. Worse, the equation is singular at $x = 0$ -- precisely where the cylinder's axis lies and precisely where the answer must be physically well-defined.
+$$x^2 y'' + xy' + (x^2 - n^2)y = 0.$$This is the **Bessel equation**. None of our previous methods (characteristic equations for constant coefficients, integrating factors, variation of parameters) reach it because the coefficients are *functions of $x$*, not constants. Worse, the equation is singular at $x = 0$ — precisely where the cylinder's axis lies and precisely where the answer must be physically well-defined.
 
 **The strategy.** Postulate a series ansatz, plug it in, and let the differential equation generate its own coefficients through a recurrence. We will need *two* flavours of series:
 
 1. Plain Taylor series $\sum a_k (x - x_0)^k$ at **ordinary points**.
 2. Frobenius series $(x - x_0)^r \sum a_k (x - x_0)^k$ at **regular singular points**, where the exponent $r$ is itself determined by the equation.
 
-The same machinery unlocks Bessel, Legendre, Hermite, Airy, Chebyshev, Laguerre, hypergeometric -- the entire pantheon of classical special functions.
+The same machinery unlocks Bessel, Legendre, Hermite, Airy, Chebyshev, Laguerre, hypergeometric — the entire pantheon of classical special functions.
 
 ---
 
@@ -66,7 +65,7 @@ A point $x_0$ is **ordinary** if both $P$ and $Q$ are analytic there. The recipe
 4. Collect coefficients of each power $(x - x_0)^k$ and equate to zero.
 5. Solve the resulting **recurrence** for $a_k$ in terms of $a_0$ and $a_1$ (the two free parameters that match the two initial conditions).
 
-A theorem of Fuchs guarantees that the resulting series converges in any open disk centred at $x_0$ that contains no singularity of $P$ or $Q$ -- and *the radius extends all the way out to the nearest singularity in the complex plane*. This is why complex analysis matters even when the ODE itself is real-valued.
+A theorem of Fuchs guarantees that the resulting series converges in any open disk centred at $x_0$ that contains no singularity of $P$ or $Q$ — and *the radius extends all the way out to the nearest singularity in the complex plane*. This is why complex analysis matters even when the ODE itself is real-valued.
 
 ![Disk of convergence around an ordinary point reaches out to the nearest singularity in the complex plane.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/fig1_radius_of_convergence.png)
 *Around an ordinary point $x_0$, the power-series solution converges in the largest disk that excludes every singularity of the coefficient functions. For an equation with $P(x) = 1/(1+x^2)$, the singularities sit at $x = \pm i$, so the radius of convergence around $x_0 = 0$ is $R = 1$.*
@@ -76,9 +75,9 @@ A theorem of Fuchs guarantees that the resulting series converges in any open di
 Solve $y' = y$ by power series. Let $y = \sum a_k x^k$, then $y' = \sum (k+1) a_{k+1} x^k$. Matching coefficients gives$$(k+1)\,a_{k+1} = a_k, \qquad a_k = \frac{a_0}{k!}.$$So$$y = a_0 \sum_{k=0}^{\infty} \frac{x^k}{k!} = a_0\,e^x.$$The series method "rediscovered" the exponential. The lesson: even when we already know the answer, the recurrence is a mechanical procedure that cannot fail.
 
 ### 2.3 The Airy equation
-$$y'' - x\,y = 0.$$This appears whenever a wave (light, quantum probability, water) meets a turning point where the local wavenumber smoothly changes from real to imaginary -- the prototype example is quantum tunnelling near a linear potential barrier.
+$$y'' - x\,y = 0.$$This appears whenever a wave (light, quantum probability, water) meets a turning point where the local wavenumber smoothly changes from real to imaginary — the prototype example is quantum tunnelling near a linear potential barrier.
 
-Both $P(x) = 0$ and $Q(x) = -x$ are entire, so $x = 0$ is ordinary. Substituting $y = \sum a_k x^k$ and matching powers gives the recurrence$$a_{k+2} = \frac{a_{k-1}}{(k+1)(k+2)} \qquad (k \geq 1), \qquad a_2 = 0.$$The coefficients split into two independent chains starting from $a_0$ and $a_1$, and the resulting two linearly independent solutions are the **Airy functions** $\text{Ai}(x)$ and $\text{Bi}(x)$. Airy decays exponentially for $x > 0$ (the classically forbidden region) and oscillates for $x < 0$ (the classically allowed region) -- a crisp visualisation of quantum tunnelling.
+Both $P(x) = 0$ and $Q(x) = -x$ are entire, so $x = 0$ is ordinary. Substituting $y = \sum a_k x^k$ and matching powers gives the recurrence$$a_{k+2} = \frac{a_{k-1}}{(k+1)(k+2)} \qquad (k \geq 1), \qquad a_2 = 0.$$The coefficients split into two independent chains starting from $a_0$ and $a_1$, and the resulting two linearly independent solutions are the **Airy functions** $\text{Ai}(x)$ and $\text{Bi}(x)$. Airy decays exponentially for $x > 0$ (the classically forbidden region) and oscillates for $x < 0$ (the classically allowed region) — a crisp visualisation of quantum tunnelling.
 
 ```python
 import numpy as np
@@ -105,7 +104,7 @@ plt.show()
 
 ### 3.1 Why a plain Taylor series can fail
 
-Consider the toy ODE$$4 x^2 y'' + y = 0.$$By inspection, $y = \sqrt{x}$ is a solution -- but $\sqrt{x}$ has a vertical tangent at the origin and is *not* analytic there, so no series of the form $\sum a_k x^k$ can ever reproduce it. Some "fractional power" of $x$ has to enter the ansatz.
+Consider the toy ODE$$4 x^2 y'' + y = 0.$$By inspection, $y = \sqrt{x}$ is a solution — but $\sqrt{x}$ has a vertical tangent at the origin and is *not* analytic there, so no series of the form $\sum a_k x^k$ can ever reproduce it. Some "fractional power" of $x$ has to enter the ansatz.
 
 ![A plain Taylor series cannot capture a vertical tangent at the origin; the Frobenius ansatz can.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/fig2_frobenius_vs_taylor.png)
 *Left: any polynomial through the origin has a finite slope at $x = 0$ and so can never match the cusp of $\sqrt{x}$. Right: the Frobenius ansatz $y = x^{1/2}\sum a_k x^k$ reproduces the cusp exactly. The indicial equation for $4x^2 y'' + y = 0$ has the double root $r = 1/2$.*
@@ -135,9 +134,9 @@ The recurrence on $a_k$, obtained from the higher-order coefficient matches, is 
 ### 4.1 The Bessel equation
 $$x^2 y'' + x y' + (x^2 - n^2) y = 0.$$The three places this equation appears in physics:
 
-- **Vibrating circular drumheads** -- the radial part of $\nabla^2 u + k^2 u = 0$ in polar coordinates.
-- **Cylindrical waveguides** -- electromagnetic modes inside a metal pipe.
-- **Heat diffusion in a cylinder** -- transient cooling of a metal rod.
+- **Vibrating circular drumheads** — the radial part of $\nabla^2 u + k^2 u = 0$ in polar coordinates.
+- **Cylindrical waveguides** — electromagnetic modes inside a metal pipe.
+- **Heat diffusion in a cylinder** — transient cooling of a metal rod.
 
 The point $x = 0$ is a regular singular point with $p_0 = 1$ and $q_0 = -n^2$, so the indicial equation $r^2 - n^2 = 0$ gives $r = \pm n$.
 
@@ -146,8 +145,8 @@ The point $x = 0$ is a regular singular point with $p_0 = 1$ and $q_0 = -n^2$, s
 Taking $r = n$ (with $n \geq 0$) and solving the recurrence yields$$\boxed{\; J_n(x) = \sum_{m=0}^{\infty} \frac{(-1)^m}{m!\,\Gamma(m+n+1)} \left(\frac{x}{2}\right)^{2m+n}.\;}$$
 Three properties we will use repeatedly:
 
-- **Recurrence:** $\displaystyle J_{n-1}(x) + J_{n+1}(x) = \frac{2n}{x}\,J_n(x)$ -- lets us slide between orders.
-- **Asymptotic behaviour:** $\displaystyle J_n(x) \approx \sqrt{\frac{2}{\pi x}}\cos\!\left(x - \frac{n\pi}{2} - \frac{\pi}{4}\right)$ as $x \to \infty$ -- so $J_n$ behaves eventually like a damped cosine.
+- **Recurrence:** $\displaystyle J_{n-1}(x) + J_{n+1}(x) = \frac{2n}{x}\,J_n(x)$ — lets us slide between orders.
+- **Asymptotic behaviour:** $\displaystyle J_n(x) \approx \sqrt{\frac{2}{\pi x}}\cos\!\left(x - \frac{n\pi}{2} - \frac{\pi}{4}\right)$ as $x \to \infty$ — so $J_n$ behaves eventually like a damped cosine.
 - **Zeros:** the positive zeros $j_{n,1} < j_{n,2} < \dots$ of $J_n$ are spaced approximately $\pi$ apart and *quantise the resonant frequencies of a circular membrane*.
 
 ![Bessel functions of the first kind, with the first zeros of $J_0$ marked.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/fig3_bessel_first_kind.png)
@@ -213,10 +212,10 @@ Normalised so that $P_n(1) = 1$:
 
 ### 5.3 Rodrigues' formula and orthogonality
 
-A compact closed form:$$P_n(x) = \frac{1}{2^n n!}\,\frac{d^n}{dx^n}(x^2 - 1)^n.$$And the central identity that makes Legendre series possible:$$\int_{-1}^{1} P_m(x)\,P_n(x)\,dx = \frac{2}{2n+1}\,\delta_{mn}.$$Any reasonable function on $[-1,1]$ admits a **Legendre expansion** $f(x) = \sum_{n=0}^{\infty} c_n P_n(x)$ with $c_n = \frac{2n+1}{2}\int_{-1}^{1} f(x) P_n(x)\,dx$ -- the basis of the multipole expansion in electromagnetism and gravitation.
+A compact closed form:$$P_n(x) = \frac{1}{2^n n!}\,\frac{d^n}{dx^n}(x^2 - 1)^n.$$And the central identity that makes Legendre series possible:$$\int_{-1}^{1} P_m(x)\,P_n(x)\,dx = \frac{2}{2n+1}\,\delta_{mn}.$$Any reasonable function on $[-1,1]$ admits a **Legendre expansion** $f(x) = \sum_{n=0}^{\infty} c_n P_n(x)$ with $c_n = \frac{2n+1}{2}\int_{-1}^{1} f(x) P_n(x)\,dx$ — the basis of the multipole expansion in electromagnetism and gravitation.
 
 ![Legendre polynomials on $[-1,1]$ with the orthogonality interval shaded.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/fig5_legendre_polynomials.png)
-*Legendre polynomials $P_0,\dots,P_5$. They all pass through $(1,1)$ by normalisation, and through $(-1, (-1)^n)$ by parity. Every $P_n$ has exactly $n$ simple zeros inside $(-1,1)$ -- the roots used by Gauss-Legendre quadrature.*
+*Legendre polynomials $P_0,\dots,P_5$. They all pass through $(1,1)$ by normalisation, and through $(-1, (-1)^n)$ by parity. Every $P_n$ has exactly $n$ simple zeros inside $(-1,1)$ — the roots used by Gauss-Legendre quadrature.*
 
 ```python
 import numpy as np
@@ -239,14 +238,14 @@ plt.tight_layout(); plt.show()
 ## 6. Hermite Polynomials and the Quantum Harmonic Oscillator
 
 ### 6.1 The Hermite equation
-$$y'' - 2x\,y' + 2n\,y = 0.$$For non-negative integer $n$, the polynomial solutions are the **Hermite polynomials** $H_n(x)$:$$H_0 = 1, \quad H_1 = 2x, \quad H_2 = 4x^2 - 2, \quad H_3 = 8x^3 - 12x, \ldots$$They satisfy the orthogonality $\int_{-\infty}^{\infty} H_m(x) H_n(x) e^{-x^2} dx = \sqrt{\pi}\,2^n n!\,\delta_{mn}$ -- with the Gaussian weight that will become the wavefunction envelope in a moment.
+$$y'' - 2x\,y' + 2n\,y = 0.$$For non-negative integer $n$, the polynomial solutions are the **Hermite polynomials** $H_n(x)$:$$H_0 = 1, \quad H_1 = 2x, \quad H_2 = 4x^2 - 2, \quad H_3 = 8x^3 - 12x, \ldots$$They satisfy the orthogonality $\int_{-\infty}^{\infty} H_m(x) H_n(x) e^{-x^2} dx = \sqrt{\pi}\,2^n n!\,\delta_{mn}$ — with the Gaussian weight that will become the wavefunction envelope in a moment.
 
 ### 6.2 The quantum harmonic oscillator
 
 Schrödinger's equation for a particle in a parabolic potential, written in dimensionless variables, is$$-\tfrac{1}{2}\psi'' + \tfrac{1}{2} x^2 \psi = E\,\psi.$$Substituting $\psi(x) = H_n(x) e^{-x^2/2}$ reduces it to the Hermite equation, and demanding that $\psi$ remain *normalisable* forces $n$ to be a non-negative integer. The eigenfunctions and eigenvalues are$$\psi_n(x) = \frac{1}{\sqrt{2^n n!}\,\pi^{1/4}}\,H_n(x)\,e^{-x^2/2}, \qquad E_n = n + \tfrac{1}{2}\quad(\text{in units of }\hbar\omega).$$Two physical lessons fall out for free:
 
 - **Energy quantisation.** Only the integer values $n = 0, 1, 2, \ldots$ give normalisable solutions, so the energy ladder is discrete.
-- **Zero-point energy.** Even the ground state has $E_0 = \tfrac{1}{2}\hbar\omega \neq 0$ -- a quantum particle in a parabolic well *cannot* sit perfectly still.
+- **Zero-point energy.** Even the ground state has $E_0 = \tfrac{1}{2}\hbar\omega \neq 0$ — a quantum particle in a parabolic well *cannot* sit perfectly still.
 
 ![Hermite-based wavefunctions of the quantum harmonic oscillator, stacked at their eigenenergies.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/fig6_qho_wavefunctions.png)
 *The first six eigenstates $\psi_n$ of the quantum harmonic oscillator, drawn at their eigenenergies $E_n = n + \tfrac{1}{2}$ on top of the parabolic potential. The number of nodes of $\psi_n$ equals $n$, a fingerprint of the underlying Hermite polynomial.*
@@ -289,9 +288,9 @@ with appropriate boundary conditions. Different choices of $p$, $q$, $w$, and th
 
 Three properties are inherited by every entry:
 
-1. **Real eigenvalues** -- the operator is symmetric under the weight $w$.
-2. **Orthogonality** -- $\int y_m y_n\,w\,dx = 0$ for $m \neq n$.
-3. **Completeness** -- generic functions admit a *generalised Fourier series* in the eigenfunctions.
+1. **Real eigenvalues** — the operator is symmetric under the weight $w$.
+2. **Orthogonality** — $\int y_m y_n\,w\,dx = 0$ for $m \neq n$.
+3. **Completeness** — generic functions admit a *generalised Fourier series* in the eigenfunctions.
 
 This is why "expand in spherical harmonics", "expand in Bessel modes", "expand in Hermite states" all feel the same: they *are* the same theorem with different weights.
 

@@ -9,8 +9,7 @@ tags:
   - MAML
   - Prototypical Networks
   - Metric Learning
-categories:
-  - Transfer Learning
+categories: Transfer Learning
 series: transfer-learning
 lang: en
 mathjax: true
@@ -50,8 +49,8 @@ A "5-way 1-shot" task is therefore: here is one labeled image from each of five 
 
 Each evaluation episode consists of:
 
-- a **support set** $\mathcal{S} = \{(x_i, y_i)\}_{i=1}^{NK}$ -- the $N \times K$ labeled examples,
-- a **query set** $\mathcal{Q} = \{(x_j, y_j)\}_{j=1}^{NQ}$ -- the unlabeled images to classify (with hidden labels used only to measure accuracy).
+- a **support set** $\mathcal{S} = \{(x_i, y_i)\}_{i=1}^{NK}$ — the $N \times K$ labeled examples,
+- a **query set** $\mathcal{Q} = \{(x_j, y_j)\}_{j=1}^{NQ}$ — the unlabeled images to classify (with hidden labels used only to measure accuracy).
 
 Reported numbers are averages over hundreds or thousands of episodes drawn from a held-out **novel-class** set, with 95% confidence intervals because the per-episode variance is large.
 
@@ -69,8 +68,8 @@ Empirical risk minimization with weight decay is not enough: regularization stop
 
 To learn from few samples you need **prior knowledge.** Few-shot learning gets that prior by training on a large set of *base classes* (with many examples each), then evaluating on disjoint *novel classes* (with few). The two main routes are:
 
-1. **Metric learning** -- train a backbone whose embedding space already separates classes, so a fresh class can be characterized by the location of its few support points. Classify queries by their distance in this space.
-2. **Meta-learning** -- train across many simulated few-shot tasks so the network *learns to be adapted* by a few gradient steps. Treat "fast adaptation" itself as the thing to optimize.
+1. **Metric learning** — train a backbone whose embedding space already separates classes, so a fresh class can be characterized by the location of its few support points. Classify queries by their distance in this space.
+2. **Meta-learning** — train across many simulated few-shot tasks so the network *learns to be adapted* by a few gradient steps. Treat "fast adaptation" itself as the thing to optimize.
 
 Both share the same data split (base vs. novel) but invest the prior knowledge differently: metric learning bakes it into the embedding; meta-learning bakes it into the optimization initialization.
 
@@ -109,7 +108,7 @@ Train end-to-end with cross-entropy on the query predictions of each episode.
 
 #### Why prototypes are principled
 
-If we model class-conditional embeddings as Gaussians with shared isotropic covariance, $P(x \mid y = c) = \mathcal{N}(\mu_c, \sigma^2 I)$, then the maximum-likelihood class is exactly the nearest centroid. Prototypical networks are therefore the deep-learning incarnation of the Bayes-optimal classifier under that (admittedly strong) assumption -- which is why it tends to work so well in practice.
+If we model class-conditional embeddings as Gaussians with shared isotropic covariance, $P(x \mid y = c) = \mathcal{N}(\mu_c, \sigma^2 I)$, then the maximum-likelihood class is exactly the nearest centroid. Prototypical networks are therefore the deep-learning incarnation of the Bayes-optimal classifier under that (admittedly strong) assumption — which is why it tends to work so well in practice.
 
 A second, cleaner, observation: under squared-Euclidean distance the decision boundary between any two classes is a hyperplane in embedding space. So Prototypical networks are equivalent to a *linear* classifier in the learned space, but with the linear weights tied to the prototype geometry.
 
@@ -123,7 +122,7 @@ The prediction is a label-weighted sum:
 $$P(y \mid x_q, \mathcal{S}) = \sum_{i=1}^{NK} a(x_q, x_i) \cdot y_i, \qquad a(x_q, x_i) = \mathrm{softmax}_i\bigl(\cos(f(x_q), g(x_i))\bigr).$$
 Here $y_i$ is a one-hot label vector, so the prediction is a convex combination of one-hots weighted by attention.
 
-The other contribution of the paper is **full context embeddings**: a bidirectional LSTM is run over the support set so each support embedding is aware of every other support sample. The intuition is that what counts as a discriminative feature depends on the other classes you are trying to separate from -- and the LSTM lets the network express that.
+The other contribution of the paper is **full context embeddings**: a bidirectional LSTM is run over the support set so each support embedding is aware of every other support sample. The intuition is that what counts as a discriminative feature depends on the other classes you are trying to separate from — and the LSTM lets the network express that.
 
 ### Relation Networks
 
@@ -131,7 +130,7 @@ Relation networks take the next step: instead of choosing a fixed metric (Euclid
 $$r_{q, c} = g_\phi\bigl(\mathrm{concat}(f_\theta(x_q),\, \mathbf{c}_c)\bigr) \in [0, 1].$$
 ![Relation Network: shared embedding + learned relation module](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig5_relation.png)
 
-The training target is $r_{q, c} = \mathbb{1}\{y_q = c\}$ with mean-squared-error loss; both modules are trained jointly. Why bother? Fixed metrics implicitly assume the embedding space is isotropic -- every dimension counts equally. A learned metric lets the network downweight dimensions that turn out to be uninformative for the task at hand.
+The training target is $r_{q, c} = \mathbb{1}\{y_q = c\}$ with mean-squared-error loss; both modules are trained jointly. Why bother? Fixed metrics implicitly assume the embedding space is isotropic — every dimension counts equally. A learned metric lets the network downweight dimensions that turn out to be uninformative for the task at hand.
 
 ---
 
@@ -154,7 +153,7 @@ For each sampled task $\mathcal{T}_i$ (with its own support and query sets):
 2. **Outer loop (meta-update).** Evaluate the *adapted* parameters on the query set and update the initialization:
    $$\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').$$
 
-The outer-loop gradient differentiates *through* the inner-loop update, which involves second derivatives of the support loss with respect to $\theta$ -- a Hessian-vector product.
+The outer-loop gradient differentiates *through* the inner-loop update, which involves second derivatives of the support loss with respect to $\theta$ — a Hessian-vector product.
 
 #### First-order approximation (FOMAML)
 
@@ -217,7 +216,7 @@ for epoch in range(num_epochs):
 
 The model never gets to see the full base-class dataset at once. Every gradient update simulates a few-shot task, so the inductive bias the network develops is precisely the one needed at test time. This is curriculum learning where the curriculum *is* the test-time conditions.
 
-A good sanity check: turn off episodic training and just train a flat $|C_{\text{base}}|$-way classifier, then drop a linear head on the frozen features. With a strong backbone (deep ResNet, large augmentation) this "Baseline++" recipe is competitive with metric- and meta-learning approaches -- a result Chen et al. (ICLR 2019) used to argue that episodic training matters less than people thought, and that backbone capacity matters more.
+A good sanity check: turn off episodic training and just train a flat $|C_{\text{base}}|$-way classifier, then drop a linear head on the frozen features. With a strong backbone (deep ResNet, large augmentation) this "Baseline++" recipe is competitive with metric- and meta-learning approaches — a result Chen et al. (ICLR 2019) used to argue that episodic training matters less than people thought, and that backbone capacity matters more.
 
 ---
 
@@ -227,7 +226,7 @@ A good sanity check: turn off episodic training and just train a flat $|C_{\text
 
 The numbers above are from the original papers (with later work routinely surpassing them by using larger backbones and pre-training tricks). Two things to take away:
 
-- **The 1-shot vs. 5-shot gap is huge.** Going from one example to five typically adds 10-20 percentage points -- a reminder that even a tiny amount of data dominates clever architecture choices.
+- **The 1-shot vs. 5-shot gap is huge.** Going from one example to five typically adds 10-20 percentage points — a reminder that even a tiny amount of data dominates clever architecture choices.
 - **Methods cluster.** Once the backbone is held fixed, Prototypical, Matching, Relation, and MAML-family numbers land within a few points of each other. Pick by engineering taste (simplicity, compute budget, tooling) rather than chasing the last point of accuracy.
 
 ---
@@ -408,13 +407,13 @@ Two implementation notes worth highlighting:
 
 ### How is few-shot learning different from ordinary transfer learning?
 
-It is the limit case. Transfer learning assumes you have at least hundreds of target labels, so a fine-tuned head can do most of the work. Few-shot learning has 1-10. That gap is large enough that you need *training-time machinery* -- episodic sampling, metric or meta objectives -- not just a downstream training trick.
+It is the limit case. Transfer learning assumes you have at least hundreds of target labels, so a fine-tuned head can do most of the work. Few-shot learning has 1-10. That gap is large enough that you need *training-time machinery* — episodic sampling, metric or meta objectives — not just a downstream training trick.
 
 ### Why do Prototypical networks use the mean as the prototype?
 
-Under Gaussian class-conditionals with shared isotropic covariance, the class mean is the Bayes-optimal classifier. The mean is also robust enough to be useful even when that assumption fails -- especially for $K \ge 5$.
+Under Gaussian class-conditionals with shared isotropic covariance, the class mean is the Bayes-optimal classifier. The mean is also robust enough to be useful even when that assumption fails — especially for $K \ge 5$.
 
-### MAML or Prototypical Networks -- which should I use?
+### MAML or Prototypical Networks — which should I use?
 
 Default to Prototypical Networks: simpler, faster, the prototypes are interpretable, and they tend to match or beat MAML on standard image benchmarks. Reach for MAML when (a) the tasks are diverse and look qualitatively different from one another, (b) the data is non-image and you do not have a great pretrained embedding, or (c) you specifically need adaptation that updates the *entire* network rather than just a final classifier.
 
@@ -424,11 +423,11 @@ More is always better for generalization. Standard benchmarks use 64 base classe
 
 ### Does any of this work for non-image data?
 
-Yes. Prototypical Networks work for anything with a meaningful embedding -- text (use a transformer encoder), graphs (use a GNN), audio (use a spectrogram CNN). MAML and Reptile are model-agnostic by design. The episodic protocol does not care about modality.
+Yes. Prototypical Networks work for anything with a meaningful embedding — text (use a transformer encoder), graphs (use a GNN), audio (use a spectrogram CNN). MAML and Reptile are model-agnostic by design. The episodic protocol does not care about modality.
 
 ### Why are confidence intervals always reported?
 
-The per-episode accuracy variance is large -- a single hard episode can swing 10-20 points. Reporting the mean over a few hundred episodes plus a 95% CI is the only way to make numbers comparable across papers.
+The per-episode accuracy variance is large — a single hard episode can swing 10-20 points. Reporting the mean over a few hundred episodes plus a 95% CI is the only way to make numbers comparable across papers.
 
 ---
 
@@ -440,9 +439,9 @@ Few-shot learning attacks deep learning's biggest practical bottleneck: data sca
 - **Meta-learning** (MAML, FOMAML, Reptile) learns an initialization from which a few gradient steps reach the optimum of any new task. More flexible, costlier, less interpretable.
 - **Episodic training** is the unifying training paradigm: each iteration is a fresh few-shot task, so training-time difficulty matches test-time difficulty.
 
-Across families, accuracies converge once the backbone is held fixed -- a reminder that backbone capacity and pretraining quality matter at least as much as the few-shot algorithm on top.
+Across families, accuracies converge once the backbone is held fixed — a reminder that backbone capacity and pretraining quality matter at least as much as the few-shot algorithm on top.
 
-Next: [Part 5 -- Knowledge Distillation](/en/transfer-learning/05-knowledge-distillation/), where we compress a large teacher model into a small student that mimics it.
+Next: [Part 5 — Knowledge Distillation](/en/transfer-learning/05-knowledge-distillation/), where we compress a large teacher model into a small student that mimics it.
 
 ---
 

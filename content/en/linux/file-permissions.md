@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 2
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "Master the Linux permission model: rwx semantics on files vs directories, numeric and symbolic notation, chmod/chown usage, umask defaults, SUID/SGID/Sticky bit, and ACLs."

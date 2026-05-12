@@ -8,7 +8,7 @@ tags:
 categories: Linux
 series: linux
 series_order: 4
-series_total: 8
+series_total: 9
 lang: en
 mathjax: false
 description: "Master package management across distributions: dpkg/apt for Debian/Ubuntu, rpm/yum/dnf for RHEL/CentOS, pacman for Arch, dependency troubleshooting, version locking, mirrors, and compiling from source."

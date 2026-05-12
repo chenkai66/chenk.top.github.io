@@ -18,11 +18,11 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-8"
 ---
 
-The first time I saw a Function Compute bill that was 0.03 CNY for handling 10,000 requests, I started rethinking my entire architecture. I had been running a 2-vCPU ECS instance 24/7 to serve an API that processed maybe 200 requests per hour, paying around 490 CNY/month. The same workload on Function Compute cost under 5 CNY/month. Not 5 CNY per day -- 5 CNY per month. The math was so lopsided that I spent the next weekend migrating everything that did not need a persistent process off ECS and onto functions.
+The first time I saw a Function Compute bill that was 0.03 CNY for handling 10,000 requests, I started rethinking my entire architecture. I had been running a 2-vCPU ECS instance 24/7 to serve an API that processed maybe 200 requests per hour, paying around 490 CNY/month. The same workload on Function Compute cost under 5 CNY/month. Not 5 CNY per day — 5 CNY per month. The math was so lopsided that I spent the next weekend migrating everything that did not need a persistent process off ECS and onto functions.
 
 Serverless does not mean there are no servers. It means you stop thinking about servers. You write a function, you define what triggers it, and the platform handles provisioning, scaling, patching, and decommissioning. You pay only for the milliseconds your code actually runs. No traffic, no charge. A million requests in five minutes, a million function instances spin up. You never touch a capacity slider.
 
-This article covers the two serverless building blocks on Alibaba Cloud: Function Compute (the execution engine) and EventBridge (the event routing layer). By the end, we will build a complete event-driven image processing pipeline that resizes, watermarks, and generates thumbnails -- triggered automatically when files land in OSS.
+This article covers the two serverless building blocks on Alibaba Cloud: Function Compute (the execution engine) and EventBridge (the event routing layer). By the end, we will build a complete event-driven image processing pipeline that resizes, watermarks, and generates thumbnails — triggered automatically when files land in OSS.
 
 
 ## When serverless makes sense (and when it doesn't)
@@ -71,7 +71,7 @@ Here is the math for a Python function with 512 MiB memory, 200ms average execut
 | 500,000,000 | ~1,500 | ~490 | ECS |
 | 1,000,000,000 | ~3,000 | ~490 | ECS by 6x |
 
-The crossover happens around 200-300 million requests per month for this configuration. Below that, Function Compute wins decisively. Above that, a dedicated ECS instance is cheaper -- but you also need to handle scaling, patching, and availability yourself.
+The crossover happens around 200-300 million requests per month for this configuration. Below that, Function Compute wins decisively. Above that, a dedicated ECS instance is cheaper — but you also need to handle scaling, patching, and availability yourself.
 
 > **My rule of thumb:** If your function averages fewer than 100 requests per second sustained (roughly 250 million/month), serverless is almost certainly cheaper and operationally simpler. If you consistently exceed that, evaluate ECS or a container solution.
 
@@ -132,7 +132,7 @@ FC supports these managed runtimes:
 | **Custom Runtime** | Any (Docker) | Varies | Full control. For ML models, system libs. |
 | **Custom Container** | Any Docker image | 1-10s | Largest packages. Requires image pull. |
 
-> **If cold start matters to you:** Go is the fastest runtime by a wide margin because functions compile to a single static binary with no runtime initialization. Python is the practical sweet spot -- moderate cold start, massive library ecosystem, easy to write. Java should be your last choice for latency-sensitive functions unless you use GraalVM native compilation.
+> **If cold start matters to you:** Go is the fastest runtime by a wide margin because functions compile to a single static binary with no runtime initialization. Python is the practical sweet spot — moderate cold start, massive library ecosystem, easy to write. Java should be your last choice for latency-sensitive functions unless you use GraalVM native compilation.
 
 ## Writing your first function
 
@@ -165,7 +165,7 @@ image-processor/
 
 ### The handler
 
-Here is the simplest possible function -- an HTTP-triggered hello world:
+Here is the simplest possible function — an HTTP-triggered hello world:
 
 ```python
 # code/index.py
@@ -679,7 +679,7 @@ Now your function code only contains your business logic, and the layer provides
 
 ### Custom runtimes
 
-When the managed runtimes are not enough -- you need a specific system library, a compiled binary, or an ML model -- use a Custom Runtime or Custom Container.
+When the managed runtimes are not enough — you need a specific system library, a compiled binary, or an ML model — use a Custom Runtime or Custom Container.
 
 #### Custom Runtime (HTTP server mode)
 
@@ -763,7 +763,7 @@ Every event in EventBridge follows the CloudEvents 1.0 specification:
 }
 ```
 
-This standardized format means your event processing code does not need to know the specifics of each Alibaba Cloud service's event format -- they all follow the same structure.
+This standardized format means your event processing code does not need to know the specifics of each Alibaba Cloud service's event format — they all follow the same structure.
 
 ### Built-in event sources
 
@@ -903,7 +903,7 @@ event = CloudEvent(
 client.put_events(event_bus_name="my-app-bus", event_list=[event])
 ```
 
-This lets you build fully event-driven architectures where different microservices communicate through EventBridge rather than direct API calls -- loose coupling at its best.
+This lets you build fully event-driven architectures where different microservices communicate through EventBridge rather than direct API calls — loose coupling at its best.
 
 ### EventBridge vs direct triggers
 
@@ -1613,7 +1613,7 @@ The products are functionally similar. FC's advantages are lower pricing in Chin
 
 **Serverless is not always the answer.** It excels at event-driven, bursty, short-lived workloads. It fails at long-running processes, GPU tasks, and ultra-low-latency requirements. Know the crossover point for your traffic pattern.
 
-**Start with Function Compute for new APIs.** Unless you know you need persistent connections or sustained high throughput from day one, FC is cheaper, simpler, and operationally lighter. You can always migrate to ECS later -- the reverse migration is harder.
+**Start with Function Compute for new APIs.** Unless you know you need persistent connections or sustained high throughput from day one, FC is cheaper, simpler, and operationally lighter. You can always migrate to ECS later — the reverse migration is harder.
 
 **Cold starts are manageable.** Choose Go or Python for fast cold starts. Use layers to keep packages small. Use provisioned concurrency only for latency-critical paths. Pre-warm with timer triggers for predictable traffic patterns.
 
@@ -1621,6 +1621,6 @@ The products are functionally similar. FC's advantages are lower pricing in Chin
 
 **Use API Gateway for production APIs.** FC's built-in HTTP trigger is fine for internal services and prototypes. For anything public-facing, put API Gateway in front for authentication, rate limiting, and monitoring.
 
-**The image processing pipeline is a template.** The pattern -- OSS upload triggers EventBridge triggers Function Compute writes back to OSS -- applies to any file processing workflow: PDF generation, video transcoding, data import, log parsing. Swap the processing logic and you have a new pipeline.
+**The image processing pipeline is a template.** The pattern — OSS upload triggers EventBridge triggers Function Compute writes back to OSS — applies to any file processing workflow: PDF generation, video transcoding, data import, log parsing. Swap the processing logic and you have a new pipeline.
 
-Next in this series, we tackle container orchestration with Container Service for Kubernetes (ACK) -- for workloads that outgrow serverless but still need cloud-native operations. If you are looking for the infrastructure-as-code approach to deploying FC functions, the Terraform integration shown in this article's solution section is the recommended starting point.
+Next in this series, we tackle container orchestration with Container Service for Kubernetes (ACK) — for workloads that outgrow serverless but still need cloud-native operations. If you are looking for the infrastructure-as-code approach to deploying FC functions, the Terraform integration shown in this article's solution section is the recommended starting point.

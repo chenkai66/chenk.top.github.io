@@ -9,8 +9,7 @@ tags:
   - DANN
   - Distribution Shift
   - Adversarial Learning
-categories:
-  - Transfer Learning
+categories: Transfer Learning
 series: transfer-learning
 lang: en
 mathjax: true

@@ -5,8 +5,7 @@ tags:
   - Python
   - Environment
   - Toolchain
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: en
 description: "Master Python environment management with pyenv, virtual environments, and modern dependency tools. Escape dependency hell for good."

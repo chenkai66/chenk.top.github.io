@@ -1,8 +1,7 @@
 ---
 title: "ML Math Derivations (15): Hidden Markov Models"
 date: 2026-02-03 09:00:00
-categories:
-  - Machine Learning
+categories: Machine Learning
 tags:
   - Hidden Markov Model
   - HMM
@@ -19,7 +18,7 @@ disableNunjucks: true
 series_order: 15
 translationKey: "ml-math-derivations-15"
 ---
-You hear footsteps behind you in a fog. You cannot see the walker, only the sounds. From the rhythm and pitch -- short, soft, hurried -- can you guess whether they are walking, running, or limping? And if you observed an entire sequence, which gait sequence is most likely? How likely is *any* sequence of sounds under your model of how walking works?
+You hear footsteps behind you in a fog. You cannot see the walker, only the sounds. From the rhythm and pitch — short, soft, hurried — can you guess whether they are walking, running, or limping? And if you observed an entire sequence, which gait sequence is most likely? How likely is *any* sequence of sounds under your model of how walking works?
 
 These are the **three problems of HMMs**, and the surprise is that all three reduce to one trick: write the joint $P(\mathbf{O}, \mathbf{I})$ as a product of local factors along time, then **share sub-computations across time** with dynamic programming. Brute force costs $O(N^T)$. Forward-Backward, Viterbi, and Baum-Welch all cost $O(N^2 T)$. The exponent collapses because the Markov assumption makes the future conditionally independent of the past given the present.
 
@@ -60,8 +59,8 @@ The model is fully described by three parameter blocks $\lambda=(\boldsymbol{\pi
 
 **Two conditional-independence assumptions** make everything tractable:
 
-1. **First-order Markov on states** -- $P(i_{t+1}\mid i_{1:t}) = P(i_{t+1}\mid i_t)$.
-2. **Observation independence** -- $o_t$ depends only on $i_t$, not on other states or observations.
+1. **First-order Markov on states** — $P(i_{t+1}\mid i_{1:t}) = P(i_{t+1}\mid i_t)$.
+2. **Observation independence** — $o_t$ depends only on $i_t$, not on other states or observations.
 
 These two together let us factorise the full joint along time:
 
@@ -72,7 +71,7 @@ Every algorithm in this article is a clever way to **sum or maximise** this prod
 
 ![A three-state Markov chain with transition probabilities (rows of A sum to 1)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig2_transition_diagram.png)
 
-Throughout the article we lean on a 3-state weather example -- *Sunny, Rainy, Cloudy* -- with the transitions shown above. Sunny is sticky ($a_{\text{SS}}=0.70$), and Cloudy is the hub that connects everything else. This is small enough to inspect by hand and rich enough to expose every algorithmic subtlety.
+Throughout the article we lean on a 3-state weather example — *Sunny, Rainy, Cloudy* — with the transitions shown above. Sunny is sticky ($a_{\text{SS}}=0.70$), and Cloudy is the hub that connects everything else. This is small enough to inspect by hand and rich enough to expose every algorithmic subtlety.
 
 ### Three Problems, One Joint
 
@@ -84,7 +83,7 @@ Given $\lambda$, three questions exhaust what we can ask:
 | 2 | **Decoding** | $\lambda, \mathbf{O}$ | $\arg\max_{\mathbf{I}} P(\mathbf{I}\mid\mathbf{O},\lambda)$ | Viterbi |
 | 3 | **Learning** | $\mathbf{O}$ (and $N$) | $\hat\lambda = \arg\max_\lambda P(\mathbf{O}\mid\lambda)$ | Baum-Welch (EM) |
 
-A naive approach to (1) sums the joint over all $N^T$ hidden sequences -- already $\approx 10^{170}$ for $N{=}50, T{=}100$. The next three sections make all three problems polynomial.
+A naive approach to (1) sums the joint over all $N^T$ hidden sequences — already $\approx 10^{170}$ for $N{=}50, T{=}100$. The next three sections make all three problems polynomial.
 
 ---
 
@@ -108,7 +107,7 @@ The bracketed sum is the **only** computation that crosses the time boundary; ev
 
 **Termination.** Sum out the final hidden state:
 $$P(\mathbf{O}\mid\lambda) = \sum_{i=1}^N \alpha_T(i).$$
-**Cost.** Each of $T$ steps has $N$ targets, each requires summing over $N$ predecessors: $O(N^2 T)$. For $N{=}50, T{=}100$ this is $2.5\times 10^{5}$ operations -- about $10^{165}\times$ faster than the brute-force sum.
+**Cost.** Each of $T$ steps has $N$ targets, each requires summing over $N$ predecessors: $O(N^2 T)$. For $N{=}50, T{=}100$ this is $2.5\times 10^{5}$ operations — about $10^{165}\times$ faster than the brute-force sum.
 
 **Underflow.** Probabilities multiply geometrically, so $\alpha_t$ eventually underflows. Two standard fixes:
 
@@ -163,7 +162,7 @@ To recover the path itself, store back-pointers
 $$\psi_t(j) = \arg\max_i\big[\delta_{t-1}(i)\, a_{ij}\big].$$
 After the forward pass, terminate at $i_T^* = \arg\max_i \delta_T(i)$ and **backtrack**: $i_t^* = \psi_{t+1}(i_{t+1}^*)$.
 
-**Why does swapping `sum` for `max` work?** Both operators distribute over the time-factorised joint -- "max-times" forms a commutative semiring, just like "sum-times". The dynamic-programming bookkeeping is identical; only the local reduction changes.
+**Why does swapping `sum` for `max` work?** Both operators distribute over the time-factorised joint — "max-times" forms a commutative semiring, just like "sum-times". The dynamic-programming bookkeeping is identical; only the local reduction changes.
 
 **Numerical form.** In practice always run Viterbi in log-space:
 $$\log\delta_t(j) = \max_i\big[\log\delta_{t-1}(i) + \log a_{ij}\big] + \log b_j(o_t).$$
@@ -173,7 +172,7 @@ Now everything is an addition, so underflow is impossible.
 
 ## 5. Baum-Welch: EM for HMMs
 
-When $\lambda$ is unknown, learn it by maximising $\log P(\mathbf{O}\mid\lambda)$. The hidden states $\mathbf{I}$ are latent, so apply EM. The result -- the **Baum-Welch algorithm** -- predates the general EM framework by several years (Baum & Petrie, 1966) and is one of the prettiest examples of EM in the wild.
+When $\lambda$ is unknown, learn it by maximising $\log P(\mathbf{O}\mid\lambda)$. The hidden states $\mathbf{I}$ are latent, so apply EM. The result — the **Baum-Welch algorithm** — predates the general EM framework by several years (Baum & Petrie, 1966) and is one of the prettiest examples of EM in the wild.
 
 ![Baum-Welch monotonically improves the log-likelihood; recovered transition matrix tracks the truth](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig6_baum_welch.png)
 
@@ -185,7 +184,7 @@ The complete-data log-likelihood factorises as
 $$\log P(\mathbf{O},\mathbf{I}\mid\lambda) = \log\pi_{i_1} + \sum_{t=1}^{T-1}\log a_{i_t i_{t+1}} + \sum_{t=1}^{T}\log b_{i_t}(o_t).$$
 Taking the expectation under $P(\mathbf{I}\mid \mathbf{O},\lambda^{(k)})$ replaces each $\mathbb{1}[\cdot]$ by its posterior probability:
 $$Q(\lambda;\lambda^{(k)}) = \sum_i \gamma_1(i)\log\pi_i + \sum_{t=1}^{T-1}\sum_{i,j}\xi_t(i,j)\log a_{ij} + \sum_{t=1}^{T}\sum_{j,k}\gamma_t(j)\,\mathbb{1}[o_t=v_k]\log b_j(k).$$
-The three terms are **decoupled** in $\boldsymbol{\pi}, \mathbf{A}, \mathbf{B}$ -- the M-step solves three independent constrained maximisations.
+The three terms are **decoupled** in $\boldsymbol{\pi}, \mathbf{A}, \mathbf{B}$ — the M-step solves three independent constrained maximisations.
 
 ### M-step: Three Closed-Form Updates
 
@@ -201,7 +200,7 @@ Read each ratio as expected-transitions-from-$i$-to-$j$ over expected-departures
 
 ### Convergence
 
-EM guarantees $P(\mathbf{O}\mid\lambda^{(k+1)}) \geq P(\mathbf{O}\mid\lambda^{(k)})$ -- the curve in the figure is provably monotonic. The **catch**: the surface is multi-modal, so Baum-Welch finds a local maximum. Standard remedies are random restarts, k-means / segmental k-means initialisation, or informative priors.
+EM guarantees $P(\mathbf{O}\mid\lambda^{(k+1)}) \geq P(\mathbf{O}\mid\lambda^{(k)})$ — the curve in the figure is provably monotonic. The **catch**: the surface is multi-modal, so Baum-Welch finds a local maximum. Standard remedies are random restarts, k-means / segmental k-means initialisation, or informative priors.
 
 ---
 
@@ -211,9 +210,9 @@ EM guarantees $P(\mathbf{O}\mid\lambda^{(k+1)}) \geq P(\mathbf{O}\mid\lambda^{(k
 
 Part-of-speech (POS) tagging is the textbook HMM application. Hidden states are tags (PRON, VERB, ADJ, NOUN, ...) and observations are words. Transitions encode grammar (a determiner is usually followed by an adjective or noun); emissions encode the lexicon (the word *love* is most often a verb, sometimes a noun).
 
-For "I love natural language processing" the Viterbi path lights up as **PRON / VERB / ADJ / NOUN / NOUN** -- correct, despite *processing* being lexically ambiguous, because the ADJ -> NOUN transition is highly probable.
+For "I love natural language processing" the Viterbi path lights up as **PRON / VERB / ADJ / NOUN / NOUN** — correct, despite *processing* being lexically ambiguous, because the ADJ -> NOUN transition is highly probable.
 
-The same engine appears in **speech recognition** (states = phonemes, observations = MFCC frames), **bioinformatics** profile HMMs (states = match/insert/delete columns), and **gesture recognition** -- whenever a discrete latent process generates a noisy observable stream.
+The same engine appears in **speech recognition** (states = phonemes, observations = MFCC frames), **bioinformatics** profile HMMs (states = match/insert/delete columns), and **gesture recognition** — whenever a discrete latent process generates a noisy observable stream.
 
 ---
 
@@ -257,7 +256,7 @@ For everything else — long sequences, large labelled corpora, complex emission
 
 ## Q&A
 
-### Forward vs. Viterbi -- why does swapping operators matter?
+### Forward vs. Viterbi — why does swapping operators matter?
 
 Forward returns the marginal $P(\mathbf{O}\mid\lambda) = \sum_{\mathbf{I}} P(\mathbf{O},\mathbf{I})$; Viterbi returns $\max_{\mathbf{I}} P(\mathbf{O},\mathbf{I})$. Same DP skeleton, different semiring (sum-product vs. max-product). Forward answers "*how plausible is this evidence?*"; Viterbi answers "*what story best explains it?*"
 
@@ -267,7 +266,7 @@ Because $P(\mathbf{I}\mid\mathbf{O}) = P(\mathbf{O},\mathbf{I})/P(\mathbf{O})$ a
 
 ### When does Baum-Welch fail?
 
-Three classic failure modes: (a) bad initialisation -- it lands in a flat or trivial local optimum; (b) **label switching** -- states are only identified up to permutation; (c) **observation collapse** -- a state's emission concentrates on observed symbols only, leaving zero probability for unseen ones. Smooth with a small Dirichlet prior to fix (c).
+Three classic failure modes: (a) bad initialisation — it lands in a flat or trivial local optimum; (b) **label switching** — states are only identified up to permutation; (c) **observation collapse** — a state's emission concentrates on observed symbols only, leaving zero probability for unseen ones. Smooth with a small Dirichlet prior to fix (c).
 
 ### Why CRFs over HMMs for sequence labelling?
 
@@ -275,7 +274,7 @@ CRFs are *discriminative*: they model $P(\mathbf{I}\mid\mathbf{O})$ directly and
 
 ### Are HMMs obsolete in the deep-learning era?
 
-As stand-alone end-to-end models, mostly yes -- RNN/Transformer encoders dominate. But the *inference algorithms* live on. CTC decoding in modern speech systems is essentially Forward over an alignment lattice; sequence-level distillation uses Viterbi; structured-output Transformers borrow from CRFs which borrow from HMMs.
+As stand-alone end-to-end models, mostly yes — RNN/Transformer encoders dominate. But the *inference algorithms* live on. CTC decoding in modern speech systems is essentially Forward over an alignment lattice; sequence-level distillation uses Viterbi; structured-output Transformers borrow from CRFs which borrow from HMMs.
 
 ### How do I choose $N$?
 
@@ -293,7 +292,7 @@ Replace the emission matrix with a density: a single Gaussian, a Gaussian mixtur
 <details><summary>Solution</summary>$\alpha_1(1) = 0.6 \cdot 0.5 = 0.30$, $\alpha_1(2) = 0.4 \cdot 0.4 = 0.16$.</details>
 
 **E2.** For $N{=}50, T{=}100$, compare Forward to brute-force enumeration.
-<details><summary>Solution</summary>Forward: $N^2 T = 2.5\times 10^{5}$ multiplications. Brute force: $N^T \approx 10^{170}$ paths -- intractable.</details>
+<details><summary>Solution</summary>Forward: $N^2 T = 2.5\times 10^{5}$ multiplications. Brute force: $N^T \approx 10^{170}$ paths — intractable.</details>
 
 **E3.** Interpret $\hat a_{ij} = \frac{\sum_t \xi_t(i,j)}{\sum_t \gamma_t(i)}$.
 <details><summary>Solution</summary>Expected number of $i\to j$ transitions divided by expected number of departures from state $i$. Soft generalisation of MLE counts.</details>
@@ -302,7 +301,7 @@ Replace the emission matrix with a density: a single Gaussian, a Gaussian mixtur
 <details><summary>Solution</summary>$\sum_i \pi_i b_i(o_1)\beta_1(i) = \sum_i \alpha_1(i)\beta_1(i)/1 = \sum_i \alpha_t(i)\beta_t(i)$ for any $t$ (a consequence of the chain rule); at $t = T$, $\beta_T \equiv 1$ gives $\sum_i \alpha_T(i)$.</details>
 
 **E5.** Explain why Viterbi requires only $O(N^2 T)$ time but $O(NT)$ memory for back-pointers.
-<details><summary>Solution</summary>The same trellis as Forward (cost $O(N^2 T)$) plus an integer back-pointer per (cell, time) -- $NT$ slots -- consulted during the linear-time backtrack.</details>
+<details><summary>Solution</summary>The same trellis as Forward (cost $O(N^2 T)$) plus an integer back-pointer per (cell, time) — $NT$ slots — consulted during the linear-time backtrack.</details>
 
 ---
 

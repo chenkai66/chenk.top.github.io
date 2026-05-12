@@ -9,8 +9,7 @@ tags:
   - Soft Labels
   - Temperature Parameter
   - Self-Distillation
-categories:
-  - Transfer Learning
+categories: Transfer Learning
 series: transfer-learning
 lang: en
 mathjax: true
@@ -21,7 +20,7 @@ translationKey: "transfer-learning-5"
 ---
 You have a 340M-parameter BERT model that hits 95% accuracy. The product team wants it on a phone that can barely fit 10M parameters. Training a 10M model from scratch lands at 85%. Knowledge distillation closes most of the gap: train the small model on the *output distribution* of the large one, not just on the labels, and you can reach 92%.
 
-The key insight, due to Hinton, is that a teacher's "wrong" predictions are not noise -- they are information. When the teacher classifies a cat image and assigns 0.14 to "tiger", 0.07 to "dog", and 0.008 to "plane", it is telling you that cats look a lot like tigers, somewhat like dogs, and nothing like aeroplanes. That structure -- **dark knowledge** -- is invisible in a one-hot label, and learning it is what lets the student punch above its weight.
+The key insight, due to Hinton, is that a teacher's "wrong" predictions are not noise — they are information. When the teacher classifies a cat image and assigns 0.14 to "tiger", 0.07 to "dog", and 0.008 to "plane", it is telling you that cats look a lot like tigers, somewhat like dogs, and nothing like aeroplanes. That structure — **dark knowledge** — is invisible in a one-hot label, and learning it is what lets the student punch above its weight.
 
 ## What you will learn
 
@@ -77,11 +76,11 @@ Distillation replaces $y_c$ with the teacher's softmax:
 
 $$\mathcal{L}_{\text{KD}} \;=\; -\sum_c \sigma(z_c^T / \tau) \, \log \sigma(z_c^S / \tau).$$
 
-Because the teacher is fixed, this is equivalent to minimising $\mathrm{KL}\!\left(\sigma(z^T/\tau) \,\|\, \sigma(z^S/\tau)\right)$. The student is no longer learning a label -- it is learning a probability distribution.
+Because the teacher is fixed, this is equivalent to minimising $\mathrm{KL}\!\left(\sigma(z^T/\tau) \,\|\, \sigma(z^S/\tau)\right)$. The student is no longer learning a label — it is learning a probability distribution.
 
 ### Temperature: a knob for dark knowledge
 
-Raw softmax outputs tend to be peaky -- the top class gets 0.99, everything else collapses into the noise floor, and the dark knowledge disappears. A **temperature** $\tau$ flattens the distribution:
+Raw softmax outputs tend to be peaky — the top class gets 0.99, everything else collapses into the noise floor, and the dark knowledge disappears. A **temperature** $\tau$ flattens the distribution:
 
 $$\sigma(z_i; \tau) \;=\; \frac{\exp(z_i / \tau)}{\sum_j \exp(z_j / \tau)}.$$
 
@@ -89,13 +88,13 @@ $$\sigma(z_i; \tau) \;=\; \frac{\exp(z_i / \tau)}{\sum_j \exp(z_j / \tau)}.$$
 | --- | --- |
 | $\tau \to 0$ | One-hot (argmax) |
 | $\tau = 1$ | Standard softmax |
-| $\tau = 4$ -- 10 | Reveals inter-class similarity |
+| $\tau = 4$ — 10 | Reveals inter-class similarity |
 | $\tau \to \infty$ | Uniform over all classes |
 
 For logits $z = [5, 3, 1]$:
 
-- $\tau = 1$: $[0.84, 0.11, 0.04]$ -- class 3 is essentially gone.
-- $\tau = 3$: $[0.51, 0.31, 0.18]$ -- class 3 is back in play.
+- $\tau = 1$: $[0.84, 0.11, 0.04]$ — class 3 is essentially gone.
+- $\tau = 3$: $[0.51, 0.31, 0.18]$ — class 3 is back in play.
 
 At high temperature the softmax is approximately linear in the logits,
 
@@ -121,7 +120,7 @@ Sensible defaults: $\tau = 4$, $\alpha = 0.9$ when the teacher is much stronger 
 
 ## Response-based distillation
 
-The classic recipe -- match the teacher's output layer and nothing else.
+The classic recipe — match the teacher's output layer and nothing else.
 
 ### Hinton's algorithm
 
@@ -152,7 +151,7 @@ The difference is *where the softness comes from*. Label smoothing applies the *
 
 ## Feature-based distillation
 
-Response-based KD only matches the top layer. Feature-based KD also matches the **intermediate representations** -- richer signal, more places for the student to absorb the teacher's geometry.
+Response-based KD only matches the top layer. Feature-based KD also matches the **intermediate representations** — richer signal, more places for the student to absorb the teacher's geometry.
 
 ![Response distillation matches logits; feature distillation also matches intermediate maps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/05-knowledge-distillation/fig4_feature_vs_response.png)
 
@@ -191,7 +190,7 @@ Borrowing from neural style transfer, match Gram matrices
 
 $$G \;=\; F^\top F,$$
 
-so $G_{ij}$ captures the correlation between channels $i$ and $j$. This is a second-order statistic -- "texture" rather than "content" -- that pointwise matching cannot capture.
+so $G_{ij}$ captures the correlation between channels $i$ and $j$. This is a second-order statistic — "texture" rather than "content" — that pointwise matching cannot capture.
 
 ---
 
@@ -561,18 +560,18 @@ if __name__ == '__main__':
 
 ### How do I pick the temperature?
 
-Start at $\tau = 4$. The more classes you have and the more similar they are to each other (e.g. fine-grained species classification), the higher you should go -- up to $\tau = 20$ for ImageNet-scale problems. Grid-search $\{2, 4, 8, 12, 20\}$ on a held-out set.
+Start at $\tau = 4$. The more classes you have and the more similar they are to each other (e.g. fine-grained species classification), the higher you should go — up to $\tau = 20$ for ImageNet-scale problems. Grid-search $\{2, 4, 8, 12, 20\}$ on a held-out set.
 
 ### How small can the student get?
 
-You can compress 4-10x with very little loss. Past 50x even distillation cannot save you -- expect 5-10% drops. The general rule: distillation buys you the most when the student has just enough capacity to *represent* what the teacher knows but not enough to learn it from labels alone.
+You can compress 4-10x with very little loss. Past 50x even distillation cannot save you — expect 5-10% drops. The general rule: distillation buys you the most when the student has just enough capacity to *represent* what the teacher knows but not enough to learn it from labels alone.
 
 **Why does self-distillation work at all? The student has the same capacity as the teacher.**
 Two reasons. (1) The soft targets are a stronger regulariser than one-hot labels, especially on small datasets. (2) Each generation lands in a slightly different basin of the loss landscape, so iterating is an implicit ensemble at zero inference cost. Expect 1-2% gains on CIFAR-100, with diminishing returns after 3 generations.
 
 ### Can I use multiple teachers?
 
-Yes -- average their soft outputs (uniformly or weighted by validation accuracy). This usually buys robustness more than headline accuracy, at the cost of training each teacher.
+Yes — average their soft outputs (uniformly or weighted by validation accuracy). This usually buys robustness more than headline accuracy, at the cost of training each teacher.
 
 ### Distil first or prune first?
 
@@ -590,7 +589,7 @@ Knowledge distillation is the art of teaching a small model to think like a big 
 - **Self-distillation** works without a separate teacher and gives you a free ensemble.
 - **Stacked with pruning and quantisation**, distillation enables 10-20x compression with single-digit accuracy cost.
 
-Next: [Part 6 -- Multi-Task Learning](/en/transfer-learning/06-multi-task-learning/), where multiple tasks share parameters to improve generalisation and efficiency.
+Next: [Part 6 — Multi-Task Learning](/en/transfer-learning/06-multi-task-learning/), where multiple tasks share parameters to improve generalisation and efficiency.
 
 ---
 

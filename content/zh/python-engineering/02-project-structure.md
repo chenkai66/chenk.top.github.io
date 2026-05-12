@@ -5,8 +5,7 @@ tags:
   - Python
   - Packaging
   - CLI
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "学习如何将 Python 代码组织为规范的包，涵盖导入机制、入口点（entry points）和命令行工具开发。从零构建一个真实的命令行应用。"

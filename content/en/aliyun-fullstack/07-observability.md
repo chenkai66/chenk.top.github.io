@@ -19,7 +19,7 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-7"
 ---
 
-The worst production outage I ever caused took three hours to diagnose. A Node.js service was returning 502s intermittently -- maybe 5% of requests -- and I had nothing. No centralized logs (each ECS instance had its own `/var/log/` and I was SSH-ing into them one at a time). No metrics dashboards (I was running `top` and `df -h` in terminals). No tracing (I was adding `console.log` timestamps to try to figure out which downstream call was hanging). Three hours later I found it: a connection pool to RDS was exhausting under load because a forgotten cron job was holding connections open. The fix was two lines of code. The diagnosis was three hours of misery because I had zero observability.
+The worst production outage I ever caused took three hours to diagnose. A Node.js service was returning 502s intermittently — maybe 5% of requests — and I had nothing. No centralized logs (each ECS instance had its own `/var/log/` and I was SSH-ing into them one at a time). No metrics dashboards (I was running `top` and `df -h` in terminals). No tracing (I was adding `console.log` timestamps to try to figure out which downstream call was hanging). Three hours later I found it: a connection pool to RDS was exhausting under load because a forgotten cron job was holding connections open. The fix was two lines of code. The diagnosis was three hours of misery because I had zero observability.
 
 The lesson was simple and expensive: observability is not the thing you set up after your app is stable. It is the thing you set up before you deploy to production. Ideally before you even write the application code, because the observability stack shapes how you structure your logging, how you propagate request IDs, and how you instrument your dependencies. Set it up last and you retrofit everything. Set it up first and everything slots in naturally.
 
@@ -52,7 +52,7 @@ These three services integrate with each other. CloudMonitor can trigger alerts 
 
 ## SLS: Simple Log Service
 
-SLS is the backbone of observability on Alibaba Cloud. Despite the name, it is not simple -- it is a fully-featured log analytics platform that combines collection, storage, indexing, querying, visualization, and alerting in one service. Think of it as AWS CloudWatch Logs and Elasticsearch merged together with a SQL query engine on top.
+SLS is the backbone of observability on Alibaba Cloud. Despite the name, it is not simple — it is a fully-featured log analytics platform that combines collection, storage, indexing, querying, visualization, and alerting in one service. Think of it as AWS CloudWatch Logs and Elasticsearch merged together with a SQL query engine on top.
 
 ![SLS log collection pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
@@ -60,9 +60,9 @@ SLS is the backbone of observability on Alibaba Cloud. Despite the name, it is n
 
 SLS organizes everything into two levels:
 
-**Project** -- A top-level container, usually one per environment or application. A project is region-specific. All the logstores, dashboards, and alerts within a project share the same billing account and access control.
+**Project** — A top-level container, usually one per environment or application. A project is region-specific. All the logstores, dashboards, and alerts within a project share the same billing account and access control.
 
-**Logstore** -- A table of log data within a project. Each logstore has its own schema, retention period, and indexing configuration. You typically create one logstore per log source: one for nginx access logs, one for application logs, one for system logs.
+**Logstore** — A table of log data within a project. Each logstore has its own schema, retention period, and indexing configuration. You typically create one logstore per log source: one for nginx access logs, one for application logs, one for system logs.
 
 ```
 SLS Project: prod-webapp
@@ -127,13 +127,13 @@ If you are coming from AWS, the mapping is worth clarifying because SLS is not a
 | Schema-on-read | Yes, with indexing | Partially (Insights) |
 | Real-time streaming | Built-in consumer groups | Kinesis Data Streams (separate) |
 
-The biggest difference: SLS combines log storage, search, and analytics in one service. On AWS, you would use CloudWatch Logs for collection, maybe export to S3, set up Elasticsearch (OpenSearch) for search, and use Athena for SQL analytics. SLS does all of that in one place. The tradeoff is vendor lock-in -- SLS query syntax is not standard across clouds.
+The biggest difference: SLS combines log storage, search, and analytics in one service. On AWS, you would use CloudWatch Logs for collection, maybe export to S3, set up Elasticsearch (OpenSearch) for search, and use Athena for SQL analytics. SLS does all of that in one place. The tradeoff is vendor lock-in — SLS query syntax is not standard across clouds.
 
 ### Log Query Syntax
 
 SLS supports three query modes, and understanding them saves a lot of frustration.
 
-**Full-text search** -- Just type a keyword. SLS searches across all indexed fields.
+**Full-text search** — Just type a keyword. SLS searches across all indexed fields.
 
 ```
 ERROR
@@ -141,7 +141,7 @@ ERROR
 
 This returns every log line containing the word "ERROR" anywhere.
 
-**Key-value search** -- Use field names with operators for precise filtering.
+**Key-value search** — Use field names with operators for precise filtering.
 
 ```
 status >= 500 and request_method: POST
@@ -149,7 +149,7 @@ status >= 500 and request_method: POST
 
 This returns log entries where the HTTP status code is 500 or above AND the request method is POST. The colon (`:`) is a contains operator; `>=` is numeric comparison.
 
-**SQL analytics** -- Append a pipe `|` after a search expression and write standard SQL.
+**SQL analytics** — Append a pipe `|` after a search expression and write standard SQL.
 
 ```
 status >= 500 | SELECT 
@@ -160,7 +160,7 @@ GROUP BY time_bucket
 ORDER BY time_bucket
 ```
 
-This finds all 5xx errors, then groups them by minute to show the error count and number of unique affected users over time. The `__time__` field is the built-in log timestamp. The `approx_distinct` function is a HyperLogLog approximation -- fast and memory-efficient for high-cardinality fields.
+This finds all 5xx errors, then groups them by minute to show the error count and number of unique affected users over time. The `__time__` field is the built-in log timestamp. The `approx_distinct` function is a HyperLogLog approximation — fast and memory-efficient for high-cardinality fields.
 
 ![SLS query syntax: search filter piped into SQL analytics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_sls_query_syntax.png)
 
@@ -256,7 +256,7 @@ sudo ./logtail.sh install cn-hangzhou
 sudo /etc/init.d/ilogtaild status
 ```
 
-The install script detects whether you are on a VPC internal network or the public internet and configures the endpoint accordingly. VPC-internal communication is free -- there are no data transfer charges for log shipping within the same region.
+The install script detects whether you are on a VPC internal network or the public internet and configures the endpoint accordingly. VPC-internal communication is free — there are no data transfer charges for log shipping within the same region.
 
 After installation, create a machine group in SLS to identify which instances should receive which log collection configs:
 
@@ -393,7 +393,7 @@ This produces log lines like:
 {"level":"info","timestamp":"2026-05-20T08:15:32.456Z","service":"order-service","env":"production","hostname":"app-01","msg":"order created","orderId":"ORD-12345","userId":"USR-789","amount":129.99,"latencyMs":45}
 ```
 
-The Logtail config for JSON logs is much simpler -- no regex needed:
+The Logtail config for JSON logs is much simpler — no regex needed:
 
 ```json
 {
@@ -442,7 +442,7 @@ For syslog, journald, and system-level events, Logtail has built-in support:
 
 ## Building Dashboards
 
-A dashboard that nobody looks at is worse than useless -- it gives false confidence. The key is building dashboards around the questions you actually ask during incidents, not the metrics that look impressive.
+A dashboard that nobody looks at is worse than useless — it gives false confidence. The key is building dashboards around the questions you actually ask during incidents, not the metrics that look impressive.
 
 ![SLS dashboard layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_dashboard_layout.png)
 
@@ -452,7 +452,7 @@ Every production web application needs exactly these panels on the primary dashb
 
 | Panel | SLS Query | What It Tells You |
 |---|---|---|
-| QPS trend | `* \| SELECT date_trunc('minute', __time__) as t, count(*)/60.0 as qps GROUP BY t ORDER BY t` | Traffic pattern -- is a spike causing the problem, or did traffic drop (upstream failure)? |
+| QPS trend | `* \| SELECT date_trunc('minute', __time__) as t, count(*)/60.0 as qps GROUP BY t ORDER BY t` | Traffic pattern — is a spike causing the problem, or did traffic drop (upstream failure)? |
 | Error rate | `* \| SELECT date_trunc('minute', __time__) as t, round(count_if(status>=500)*100.0/count(*),2) as err_pct GROUP BY t ORDER BY t` | Is the error rate elevated? Anything above 0.1% deserves investigation. |
 | P99 latency | `* \| SELECT date_trunc('minute', __time__) as t, approx_percentile(request_time, 0.99) as p99 GROUP BY t ORDER BY t` | Is the service getting slower? P99 catches tail latency that averages hide. |
 | Top endpoints | `* \| SELECT request_uri, count(*) as cnt, approx_percentile(request_time, 0.50) as p50 GROUP BY request_uri ORDER BY cnt DESC LIMIT 10` | Where is traffic going? Which endpoints are slow? |
@@ -565,7 +565,7 @@ aliyun sls CreateDashboard \
 
 ## CloudMonitor: Infrastructure Metrics and Alerting
 
-While SLS handles logs, CloudMonitor handles metrics -- the numerical time series that track the health of your infrastructure. CloudMonitor is automatically enabled for all Alibaba Cloud resources. The moment you create an ECS instance, RDS database, or SLB load balancer, CloudMonitor starts collecting basic metrics.
+While SLS handles logs, CloudMonitor handles metrics — the numerical time series that track the health of your infrastructure. CloudMonitor is automatically enabled for all Alibaba Cloud resources. The moment you create an ECS instance, RDS database, or SLB load balancer, CloudMonitor starts collecting basic metrics.
 
 ### Built-in Metrics
 
@@ -698,7 +698,7 @@ module.exports = MetricsBuffer;
 
 ### Event Monitoring
 
-CloudMonitor also tracks system events -- things that happen to your resources outside of normal metric collection. ECS instance restarts, disk errors, scheduled maintenance, security alerts. These are discrete events, not continuous time series.
+CloudMonitor also tracks system events — things that happen to your resources outside of normal metric collection. ECS instance restarts, disk errors, scheduled maintenance, security alerts. These are discrete events, not continuous time series.
 
 Key events to watch:
 
@@ -789,7 +789,7 @@ aliyun sls CreateAlert \
   --endpoint cn-hangzhou.log.aliyuncs.com
 ```
 
-The `total > 100` condition prevents false alerts during low-traffic periods. If only 3 requests came in and 1 failed, that is 33% error rate -- alarming numerically, meaningless practically.
+The `total > 100` condition prevents false alerts during low-traffic periods. If only 3 requests came in and 1 failed, that is 33% error rate — alarming numerically, meaningless practically.
 
 **2. High CPU Sustained (Warning)**
 
@@ -911,7 +911,7 @@ Supported notification channels:
 ![Alert severity routing across notification channels](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_alert_severity_routing.png)
 
 
-> **Mute periods:** For scheduled maintenance windows, set a mute period on the alert rule to suppress notifications. This is better than disabling the alert entirely because the alert still fires and records the event -- you just do not get woken up for something you already know about.
+> **Mute periods:** For scheduled maintenance windows, set a mute period on the alert rule to suppress notifications. This is better than disabling the alert entirely because the alert still fires and records the event — you just do not get woken up for something you already know about.
 
 ## ARMS: Application Real-Time Monitoring
 
@@ -923,10 +923,10 @@ ARMS completes the observability picture by providing the third pillar: traces. 
 
 ARMS is an APM (Application Performance Monitoring) platform that provides:
 
-- **Distributed tracing** -- Follow a request across services, databases, caches, and message queues. See exactly where time is spent.
-- **Service topology** -- Auto-discovered map of how your services communicate. See dependencies, call volumes, and error rates at a glance.
-- **Exception diagnostics** -- Automatic capture and aggregation of exceptions with stack traces, frequency, and affected users.
-- **Slow transaction analysis** -- Drill into specific slow requests to see the full call chain, including database queries and external API calls.
+- **Distributed tracing** — Follow a request across services, databases, caches, and message queues. See exactly where time is spent.
+- **Service topology** — Auto-discovered map of how your services communicate. See dependencies, call volumes, and error rates at a glance.
+- **Exception diagnostics** — Automatic capture and aggregation of exceptions with stack traces, frequency, and affected users.
+- **Slow transaction analysis** — Drill into specific slow requests to see the full call chain, including database queries and external API calls.
 
 ARMS supports automatic instrumentation for:
 
@@ -966,7 +966,7 @@ const app = express();
 // ... rest of your application
 ```
 
-For Java applications, it is even simpler -- just add a JVM flag:
+For Java applications, it is even simpler — just add a JVM flag:
 
 ```bash
 java -javaagent:/path/to/arms-agent.jar \
@@ -977,7 +977,7 @@ java -javaagent:/path/to/arms-agent.jar \
 
 ### Reading Traces
 
-Once the agent is running, ARMS starts generating traces for every incoming request. Each trace consists of spans -- one span per operation (HTTP call, database query, cache lookup). The spans form a tree that shows the complete request lifecycle.
+Once the agent is running, ARMS starts generating traces for every incoming request. Each trace consists of spans — one span per operation (HTTP call, database query, cache lookup). The spans form a tree that shows the complete request lifecycle.
 
 A typical trace for an API request looks like this:
 
@@ -995,11 +995,11 @@ Trace: abc-123-def (total: 234ms)
 │   └── [order-service] Redis: DEL user:789:cart            211-213ms
 ```
 
-From this trace you can see that the payment service's call to Alipay takes 89ms -- that is an external dependency you cannot optimize. The database INSERT takes 67ms -- worth investigating if that number is normally lower. The total 234ms is acceptable for a checkout flow, but if it was 2340ms, you would know exactly which span to look at.
+From this trace you can see that the payment service's call to Alipay takes 89ms — that is an external dependency you cannot optimize. The database INSERT takes 67ms — worth investigating if that number is normally lower. The total 234ms is acceptable for a checkout flow, but if it was 2340ms, you would know exactly which span to look at.
 
 ### Linking Traces to Logs
 
-The real power comes from linking ARMS traces to SLS log entries. When a trace shows that a specific database query was slow, you want to see the corresponding application log to understand the context -- what user triggered it, what parameters were passed, what the query plan was.
+The real power comes from linking ARMS traces to SLS log entries. When a trace shows that a specific database query was slow, you want to see the corresponding application log to understand the context — what user triggered it, what parameters were passed, what the query plan was.
 
 Enable trace-log correlation by including the trace ID in your log output:
 
@@ -1032,7 +1032,7 @@ And in ARMS, each trace span links back to the corresponding SLS log entries. Th
 
 ## Solution: Full-Stack Observability Setup
 
-Let me bring everything together into a complete setup sequence. This assumes you have ECS instances running behind an SLB load balancer with an RDS database -- the architecture from the previous articles in this series.
+Let me bring everything together into a complete setup sequence. This assumes you have ECS instances running behind an SLB load balancer with an RDS database — the architecture from the previous articles in this series.
 
 ### Step 1: Install Agents on All ECS Instances
 
@@ -1308,14 +1308,14 @@ Cost optimization tips:
 
 ## Key Takeaways
 
-1. **Set up observability before you deploy your application, not after.** The cost of instrumenting retroactively -- restructuring logs, adding trace propagation, rebuilding dashboards -- is always higher than doing it from the start. Install Logtail, CloudMonitor agent, and ARMS agent as part of your instance provisioning script.
+1. **Set up observability before you deploy your application, not after.** The cost of instrumenting retroactively — restructuring logs, adding trace propagation, rebuilding dashboards — is always higher than doing it from the start. Install Logtail, CloudMonitor agent, and ARMS agent as part of your instance provisioning script.
 
 2. **The three pillars are complementary, not redundant.** Metrics tell you something is wrong (error rate spike on the dashboard). Logs tell you what is wrong (database timeout in the application log). Traces tell you why it is wrong (one specific query path takes 3 seconds because of a missing index). You need all three to debug production issues efficiently.
 
-3. **SLS is the Swiss Army knife.** It handles log collection, search, SQL analytics, dashboards, and alerting in one service. Learn the query syntax -- the `search | SQL` pattern with full-text search on the left and analytics on the right. The five essential dashboard panels (QPS, error rate, P99 latency, top endpoints, status distribution) cover 80% of incident triage.
+3. **SLS is the Swiss Army knife.** It handles log collection, search, SQL analytics, dashboards, and alerting in one service. Learn the query syntax — the `search | SQL` pattern with full-text search on the left and analytics on the right. The five essential dashboard panels (QPS, error rate, P99 latency, top endpoints, status distribution) cover 80% of incident triage.
 
 4. **Alert on symptoms, not causes.** "Error rate > 1% for 5 minutes" is a better alert than "CPU > 80%." Always require sustained thresholds (3-5 consecutive data points) to avoid alert fatigue from transient spikes. Set up mute periods for planned maintenance.
 
-5. **Start with the minimum viable monitoring stack.** Logtail for nginx and application logs, CloudMonitor for ECS/RDS/SLB built-in metrics, four alert rules (error rate, CPU, disk, DB connections), one ops dashboard. You can add ARMS tracing, custom metrics, and advanced dashboards incrementally as your application grows. Perfect observability on day one is not the goal -- having something that pages you when the site is down is.
+5. **Start with the minimum viable monitoring stack.** Logtail for nginx and application logs, CloudMonitor for ECS/RDS/SLB built-in metrics, four alert rules (error rate, CPU, disk, DB connections), one ops dashboard. You can add ARMS tracing, custom metrics, and advanced dashboards incrementally as your application grows. Perfect observability on day one is not the goal — having something that pages you when the site is down is.
 
-In the next article, we tackle containers with ACK and SAE -- and you will be glad you set up observability first, because debugging a misbehaving Kubernetes cluster without centralized logging is a special kind of pain.
+In the next article, we tackle containers with ACK and SAE — and you will be glad you set up observability first, because debugging a misbehaving Kubernetes cluster without centralized logging is a special kind of pain.

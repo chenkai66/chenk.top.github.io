@@ -7,8 +7,7 @@ tags:
   - Images
   - Registry
   - OCI
-categories:
-  - Docker and Containers
+categories: Docker and Containers
 series: docker-containers
 lang: en
 description: "Docker images aren't monolithic files — they're stacks of read-only layers shared between containers. Understanding layers is the key to fast builds and small images."

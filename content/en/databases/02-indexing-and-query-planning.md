@@ -6,8 +6,7 @@ tags:
   - SQL
   - Indexing
   - Performance
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: en
 description: "Deep dive into B-tree and B+tree indexes, hash indexes, composite indexes, covering indexes, and how to read EXPLAIN output to diagnose slow queries."

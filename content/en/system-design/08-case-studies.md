@@ -6,8 +6,7 @@ tags:
   - Case Studies
   - Distributed Systems
   - Architecture
-categories:
-  - System Design
+categories: System Design
 series: system-design
 lang: en
 description: "Three complete system design walkthroughs — a URL shortener, a real-time chat system, and a news feed — each following the full process from requirements and estimation through high-level design, deep dives, and scaling strategies."

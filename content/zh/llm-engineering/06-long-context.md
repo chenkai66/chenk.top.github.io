@@ -4,7 +4,7 @@ date: 2026-04-01 09:00:00
 tags:
   - LLM
   - long-context
-  - rope
+  - RoPE
   - yarn
   - alibi
   - attention-sinks

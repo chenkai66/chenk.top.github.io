@@ -23,7 +23,7 @@ translationKey: "ml-math-derivations-16"
 
 ## What This Article Covers
 
-Named entity recognition, POS tagging, information extraction -- every one of these tasks asks you to label each element of a sequence. HMMs ([Part 15](/en/ml-math-derivations/15-hidden-markov-models/)) attack this problem **generatively** by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether *bank* is a noun or a verb depends on the preceding word, the following word, the suffix, capitalisation, dictionary lookups -- all of these features at once.
+Named entity recognition, POS tagging, information extraction — every one of these tasks asks you to label each element of a sequence. HMMs ([Part 15](/en/ml-math-derivations/15-hidden-markov-models/)) attack this problem **generatively** by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether *bank* is a noun or a verb depends on the preceding word, the following word, the suffix, capitalisation, dictionary lookups — all of these features at once.
 
 **Conditional Random Fields (CRFs)** drop the generative ambition entirely and model $P(\mathbf{Y}\mid\mathbf{X})$ directly. Once you no longer need a generative story for $\mathbf{X}$, you can pile on as many overlapping features of $\mathbf{X}$ as you like.
 
@@ -31,7 +31,7 @@ Named entity recognition, POS tagging, information extraction -- every one of th
 
 1. Why CRF's discriminative formulation beats HMM's generative one for labeling tasks
 2. How transition and state feature functions define CRF's scoring mechanism
-3. The forward-backward algorithm -- now used to compute $Z(\mathbf{X})$ and marginals
+3. The forward-backward algorithm — now used to compute $Z(\mathbf{X})$ and marginals
 4. How the gradient of the log-likelihood reduces to **empirical minus expected** feature counts
 5. Viterbi decoding for finding the highest-scoring label sequence
 
@@ -59,10 +59,10 @@ The Markov assumption is mostly fine. The observation independence assumption is
 
 A linear-chain CRF defines
 $$P(\mathbf{Y} \mid \mathbf{X}) \;=\; \frac{1}{Z(\mathbf{X})} \exp\!\left(\sum_{t=1}^{T} \Psi_t(y_{t-1}, y_t, \mathbf{X})\right)$$
-The figure above shows the structural difference. In HMM (top) every $x_t$ is a child of $y_t$, so the model has to **explain** the observations -- and to keep the joint factorisable each $x_t$ may depend only on $y_t$. In CRF (bottom) the entire observation sequence $\mathbf{X}$ sits in a shared "context strip"; every clique $(y_{t-1}, y_t, \mathbf{X})$ is allowed to inspect any function of the whole $\mathbf{X}$. We never write down $P(\mathbf{X})$, so we never have to assume anything about how observations were generated.
+The figure above shows the structural difference. In HMM (top) every $x_t$ is a child of $y_t$, so the model has to **explain** the observations — and to keep the joint factorisable each $x_t$ may depend only on $y_t$. In CRF (bottom) the entire observation sequence $\mathbf{X}$ sits in a shared "context strip"; every clique $(y_{t-1}, y_t, \mathbf{X})$ is allowed to inspect any function of the whole $\mathbf{X}$. We never write down $P(\mathbf{X})$, so we never have to assume anything about how observations were generated.
 
 **What you gain:**
-- **Arbitrary, overlapping features.** Word identity, suffix, prefix, capitalisation, neighbour words, gazetteer matches -- all simultaneously, without double counting penalties.
+- **Arbitrary, overlapping features.** Word identity, suffix, prefix, capitalisation, neighbour words, gazetteer matches — all simultaneously, without double counting penalties.
 - **Flexible feature engineering.** Global features are first-class.
 - **Stronger empirical performance.** On standard sequence-labeling benchmarks, CRF typically beats HMM by 5--10 F1 points.
 
@@ -72,21 +72,21 @@ The figure above shows the structural difference. In HMM (top) every $x_t$ is a 
 
 The **Maximum Entropy Markov Model (MEMM)** was the natural intermediate step between HMM and CRF:
 $$P(\mathbf{Y} \mid \mathbf{X}) = \prod_{t=1}^{T} P(y_t \mid y_{t-1}, \mathbf{X})$$
-MEMM is discriminative *and* allows arbitrary features of $\mathbf{X}$, but it normalises **locally** at each position. This causes the **label-bias problem**: states with few outgoing transitions concentrate probability mass simply because their per-position softmax has fewer competitors -- regardless of whether the observation supports them.
+MEMM is discriminative *and* allows arbitrary features of $\mathbf{X}$, but it normalises **locally** at each position. This causes the **label-bias problem**: states with few outgoing transitions concentrate probability mass simply because their per-position softmax has fewer competitors — regardless of whether the observation supports them.
 
 ![HMM vs MEMM vs CRF graphical models](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig5_hmm_memm_crf.png)
 
 CRF fixes this with **global normalisation**: the single $Z(\mathbf{X})$ in the denominator forces all paths through the trellis to compete on the same playing field. Bottom line:
 
-- **HMM** -- generative, locally normalised, observation-independent.
-- **MEMM** -- discriminative, locally normalised, label-biased.
-- **CRF** -- discriminative, globally normalised, no label bias.
+- **HMM** — generative, locally normalised, observation-independent.
+- **MEMM** — discriminative, locally normalised, label-biased.
+- **CRF** — discriminative, globally normalised, no label bias.
 
 ### 1.4 Generative vs discriminative more broadly
 
 ![Generative vs discriminative budgets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig6_generative_vs_disc.png)
 
-Even outside sequence problems the same trade-off applies. A generative model spends parameters on $P(\mathbf{X})$ -- the smooth purple density on the left -- which is wasted capacity if all you care about is the boundary. A discriminative model spends every parameter directly on the conditional decision boundary -- the sharp diagonal contour on the right. Naive Bayes vs Logistic Regression and HMM vs CRF are exactly the same trade-off lifted to two scales.
+Even outside sequence problems the same trade-off applies. A generative model spends parameters on $P(\mathbf{X})$ — the smooth purple density on the left — which is wasted capacity if all you care about is the boundary. A discriminative model spends every parameter directly on the conditional decision boundary — the sharp diagonal contour on the right. Naive Bayes vs Logistic Regression and HMM vs CRF are exactly the same trade-off lifted to two scales.
 
 ---
 
@@ -114,7 +114,7 @@ CRF parameterises the potential through two flavours of feature function:
 
 **Transition features** depend on the previous and current label:
 $$t_k(y_{t-1}, y_t, \mathbf{X}, t), \qquad k = 1, \dots, K_1$$
-*Example:* $t_1 = \mathbb{1}[y_{t-1}=\text{B-PER},\, y_t=\text{I-PER}]$ -- "person name continues".
+*Example:* $t_1 = \mathbb{1}[y_{t-1}=\text{B-PER},\, y_t=\text{I-PER}]$ — "person name continues".
 
 **State features** (emission-style features) depend on the current label and observations:
 $$s_l(y_t, \mathbf{X}, t), \qquad l = 1, \dots, K_2$$
@@ -140,7 +140,7 @@ For each position $t$ define an $L \times L$ score matrix
 $$[\mathbf{M}_t(\mathbf{X})]_{i,j} = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}=i, y_t=j, \mathbf{X}, t)\big)$$
 Then the unnormalised path score factors as a matrix product, and
 $$Z(\mathbf{X}) = \mathbf{1}^\top \!\left(\prod_{t=1}^{T} \mathbf{M}_t(\mathbf{X})\right)\! \mathbf{1}$$
-This is exactly $T$ multiplications of $L\times L$ matrices, hence $O(TL^2)$ -- the same shape as forward-backward.
+This is exactly $T$ multiplications of $L\times L$ matrices, hence $O(TL^2)$ — the same shape as forward-backward.
 
 ---
 
@@ -158,7 +158,7 @@ $$\alpha_t(j) = \sum_{i=1}^{L} \alpha_{t-1}(i) \cdot \Psi_t(y_{t-1}=i,\, y_t=j,\
 $$Z(\mathbf{X}) = \sum_{j=1}^{L} \alpha_T(j)$$
 Intuitively, $\alpha_t(j)$ accumulates the (unnormalised) probability mass of every partial sequence of length $t$ that lands on label $j$. The recursion just says: to land on $j$ at time $t$, you must have come from some label $i$ at time $t-1$.
 
-**Complexity:** $O(TL^2)$ -- at each of $T$ steps you sum over $L \times L$ transitions. Compared to the brute-force $O(L^T)$, this is the difference between practical and impossible.
+**Complexity:** $O(TL^2)$ — at each of $T$ steps you sum over $L \times L$ transitions. Compared to the brute-force $O(L^T)$, this is the difference between practical and impossible.
 
 ### 3.2 Backward recursion
 
@@ -202,7 +202,7 @@ This is the same shape as the gradient of any maximum-entropy model: **how often
 
 ### 4.3 Computing the expectation in $O(TL^2)$
 
-The expectation in (7) looks intractable -- it's a sum over $L^T$ sequences -- but linearity plus the chain structure save us. Substituting the per-position decomposition of $\mathbf{F}$ and exchanging sums,
+The expectation in (7) looks intractable — it's a sum over $L^T$ sequences — but linearity plus the chain structure save us. Substituting the per-position decomposition of $\mathbf{F}$ and exchanging sums,
 $$\mathbb{E}\big[\mathbf{F}(\mathbf{Y}, \mathbf{X})\big] = \sum_{t=1}^{T} \sum_{i,j} P(y_{t-1}=i, y_t=j \mid \mathbf{X}) \cdot \mathbf{f}(i, j, \mathbf{X}, t) \tag{8}$$
 The pair-marginals on the right are exactly the ones we computed in (5), at $O(TL^2)$ cost. So one sweep of forward-backward gives us $\log Z$ and **every gradient component at once**.
 
@@ -211,7 +211,7 @@ The pair-marginals on the right are exactly the ones we computed in (5), at $O(T
 The objective is concave (and strictly concave once you add L2), so any first-order method converges to the global optimum. In practice **L-BFGS** is the standard CRF optimiser:
 
 - Quasi-Newton, so it approximates the inverse Hessian and has near-quadratic convergence.
-- The "limited-memory" flavour stores only the last $m$ gradient differences -- crucial when the feature space has $10^6$+ dimensions.
+- The "limited-memory" flavour stores only the last $m$ gradient differences — crucial when the feature space has $10^6$+ dimensions.
 - Typically converges in 50--200 iterations, where each iteration is one forward-backward pass per training sequence.
 
 `scipy.optimize.fmin_l_bfgs_b` is the canonical implementation.
@@ -295,7 +295,7 @@ class BiLSTM_CRF(nn.Module):
         return self.forward_score(emissions) - self.gold_score(emissions, tags)
 ```
 
-The loss is exactly $\log Z(\mathbf{X}) - \text{score}(\mathbf{Y}_{\text{gold}}, \mathbf{X})$, i.e. the negative of equation (6) for one example. Backpropagation through the forward algorithm computes the same "empirical minus expected" gradient automatically -- the chain rule rediscovers (7).
+The loss is exactly $\log Z(\mathbf{X}) - \text{score}(\mathbf{Y}_{\text{gold}}, \mathbf{X})$, i.e. the negative of equation (6) for one example. Backpropagation through the forward algorithm computes the same "empirical minus expected" gradient automatically — the chain rule rediscovers (7).
 
 ### End-to-end NER with confidence
 
@@ -312,7 +312,7 @@ The figure above shows what a trained CRF actually outputs at inference time on 
 
 **Exercise 1: CRF vs HMM features.** In a POS-tagging task, explain why CRF can use the feature "the next word is a verb" but HMM cannot.
 
-> **Solution:** HMM's observation-independence assumption means $P(x_t \mid y_t)$ may only inspect $x_t$ itself. CRF has no such restriction -- its feature functions $\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$ take the *entire* observation sequence $\mathbf{X}$ as input, so a feature that fires when $x_{t+1}$ is a verb is perfectly legal.
+> **Solution:** HMM's observation-independence assumption means $P(x_t \mid y_t)$ may only inspect $x_t$ itself. CRF has no such restriction — its feature functions $\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$ take the *entire* observation sequence $\mathbf{X}$ as input, so a feature that fires when $x_{t+1}$ is a verb is perfectly legal.
 
 **Exercise 2: Designing feature templates.** Design three feature functions for named entity recognition.
 
@@ -332,7 +332,7 @@ The figure above shows what a trained CRF actually outputs at inference time on 
 
 **Exercise 6: Why label bias bites MEMM but not CRF.** Show with a tiny two-state example why local normalisation can ignore the observation, and explain why global normalisation does not.
 
-> **Solution:** Suppose state $A$ has only one outgoing transition (to $B$) while state $C$ has 50. After local softmax, the $A \to B$ probability is 1 regardless of the observation -- the model has nothing to be uncertain about. CRF's single denominator $Z(\mathbf{X})$ sums over **whole paths**, so a high-scoring path through $A$ must out-score all whole paths through $C$ -- and observation evidence does enter that comparison.
+> **Solution:** Suppose state $A$ has only one outgoing transition (to $B$) while state $C$ has 50. After local softmax, the $A \to B$ probability is 1 regardless of the observation — the model has nothing to be uncertain about. CRF's single denominator $Z(\mathbf{X})$ sums over **whole paths**, so a high-scoring path through $A$ must out-score all whole paths through $C$ — and observation evidence does enter that comparison.
 
 ---
 
@@ -350,4 +350,4 @@ The figure above shows what a trained CRF actually outputs at inference time on 
 
 ---
 
-*This is Part 16 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 17 -- Dimensionality Reduction and PCA](/en/ml-math-derivations/17-dimensionality-reduction-and-pca). Previous: [Part 15 -- Hidden Markov Models](/en/ml-math-derivations/15-hidden-markov-models/).*
+*This is Part 16 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 17 — Dimensionality Reduction and PCA](/en/ml-math-derivations/17-dimensionality-reduction-and-pca). Previous: [Part 15 — Hidden Markov Models](/en/ml-math-derivations/15-hidden-markov-models/).*

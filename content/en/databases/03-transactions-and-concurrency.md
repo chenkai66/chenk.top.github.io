@@ -6,8 +6,7 @@ tags:
   - SQL
   - Transactions
   - Concurrency
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: en
 description: "A thorough guide to ACID properties, isolation levels, MVCC, locking strategies, and deadlock prevention — with concrete SQL examples for every concept."

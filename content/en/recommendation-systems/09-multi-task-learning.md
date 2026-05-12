@@ -16,7 +16,7 @@ translationKey: "recommendation-systems-9"
 ---
 A live e-commerce ranker is never optimizing one number. The same model that decides which product to show you is, in the same forward pass, predicting whether you will click, whether you will add it to cart, whether you will pay, whether you will return it, and whether you will leave a positive review. Each prediction is a different *task* with its own data distribution, its own scarcity, and its own incentives. They are also tightly coupled: a clicker is more likely to convert, a converter is more likely to write a review, and a high-CTR thumbnail can buy clicks that depress watch time.
 
-**Multi-task learning (MTL)** is how production systems handle this. Instead of training one model per objective and stitching scores together, we train one neural network with several output heads and let the shared trunk learn representations that serve all of them at once. The hard part is not the architecture diagram -- it is making sure the heads cooperate instead of fighting over the shared weights.
+**Multi-task learning (MTL)** is how production systems handle this. Instead of training one model per objective and stitching scores together, we train one neural network with several output heads and let the shared trunk learn representations that serve all of them at once. The hard part is not the architecture diagram — it is making sure the heads cooperate instead of fighting over the shared weights.
 
 This post is the mental model and the working code for the four architectures you will actually meet in industry: **Shared-Bottom, ESMM, MMoE, PLE**. We will also unpack *why* the simple version breaks (negative transfer, gradient conflict, sample selection bias) and how Uncertainty Weighting, GradNorm and Pareto trade-offs paper over the cracks.
 
@@ -24,7 +24,7 @@ This post is the mental model and the working code for the four architectures yo
 
 - **Why** ranking is inherently multi-objective and what goes wrong when you ignore that
 - **Sample selection bias** in CVR prediction and ESMM's chain-rule fix
-- **Four architectures** -- Shared-Bottom, ESMM, MMoE, PLE -- and *when* each one wins
+- **Four architectures** — Shared-Bottom, ESMM, MMoE, PLE — and *when* each one wins
 - **Loss balancing**: Uncertainty Weighting, GradNorm, Pareto frontiers
 - A complete **PyTorch training loop** that you can lift into a project
 
@@ -40,7 +40,7 @@ This post is the mental model and the working code for the four architectures yo
 
 ### Optimizing One Number Is the Wrong Game
 
-Picture a restaurant recommender. If you only optimize **clicks**, the model learns that lurid food photos and clickbait names work great -- and your conversion rate craters. If you only optimize **bookings**, you surface safe national chains with no upside for discovery. If you only optimize **stars**, you push fancy expensive places that nobody books. The honest objective is a *bundle*:
+Picture a restaurant recommender. If you only optimize **clicks**, the model learns that lurid food photos and clickbait names work great — and your conversion rate craters. If you only optimize **bookings**, you surface safe national chains with no upside for discovery. If you only optimize **stars**, you push fancy expensive places that nobody books. The honest objective is a *bundle*:
 
 - Will the user **click**? (engagement)
 - Will they actually **visit**? (conversion)
@@ -61,7 +61,7 @@ These metrics are **correlated but distinct**. The job of an MTL model is to exp
 
 Here is the subtle problem that motivated ESMM. Suppose you want a *conversion* model: given a user and an item, what is $P(\text{buy} \mid \text{shown})$?
 
-- **Training labels exist only on clicked items** -- you can only observe a buy after a click.
+- **Training labels exist only on clicked items** — you can only observe a buy after a click.
 - **At serving time the model must score every candidate**, including items the user never clicked.
 
 You train on the slice of impressions that were clicked, then deploy on all impressions. That is **sample selection bias**: a textbook covariate shift between train and serve.
@@ -69,7 +69,7 @@ You train on the slice of impressions that were clicked, then deploy on all impr
 ESMM's escape uses the chain rule of probability:
 
 $$P(\text{buy} \mid \text{imp}) = P(\text{click} \mid \text{imp}) \cdot P(\text{buy} \mid \text{click})$$
-Read it in English: "the probability of buying after seeing an item equals the probability of clicking it times the probability of buying given that you clicked." The first factor (CTR) and the product (CTCVR) are both observable on the *whole* impression space. So we train those two and let CVR fall out as a free byproduct -- no biased slice required.
+Read it in English: "the probability of buying after seeing an item equals the probability of clicking it times the probability of buying given that you clicked." The first factor (CTR) and the product (CTCVR) are both observable on the *whole* impression space. So we train those two and let CVR fall out as a free byproduct — no biased slice required.
 
 ### What MTL Buys You (and What It Costs)
 
@@ -83,7 +83,7 @@ Read it in English: "the probability of buying after seeing an item equals the p
 **Costs**
 
 - *Negative transfer.* Tasks can pull shared weights in opposite directions and make every head worse than its single-task baseline.
-- *Loss balancing.* CTR loss may sit around 0.3 while a revenue MSE sits at 100 -- naive sums let one task drown the others.
+- *Loss balancing.* CTR loss may sit around 0.3 while a revenue MSE sits at 100 — naive sums let one task drown the others.
 - *Architecture choices.* You have to decide what to share and what to keep private, with surprisingly little theory to guide you.
 
 The architectures below are essentially four answers to the same question: **how much sharing, and where?**
@@ -96,7 +96,7 @@ The architectures below are essentially four answers to the same question: **how
 
 The starting point. One MLP trunk produces a representation $h$, then each task gets its own small tower:
 $$h = f_{\text{shared}}(x), \qquad \hat{y}_k = f_k(h), \quad k=1,\dots,K$$
-Every task sees the *same* $h$. That is the single design assumption -- and the single failure mode.
+Every task sees the *same* $h$. That is the single design assumption — and the single failure mode.
 
 ### Implementation
 
@@ -159,7 +159,7 @@ print(ctr.shape, cvr.shape, rev.shape)  # all (32, 1)
 
 ### Why It Eventually Hurts
 
-If two tasks disagree about what the shared representation should encode -- e.g. CTR rewards eye-catching novelty while CVR rewards reliable signals -- the trunk has to compromise. The compromise is usually worse for *both* tasks than the single-task baseline. That is **negative transfer**, and it is the reason every architecture below exists.
+If two tasks disagree about what the shared representation should encode — e.g. CTR rewards eye-catching novelty while CVR rewards reliable signals — the trunk has to compromise. The compromise is usually worse for *both* tasks than the single-task baseline. That is **negative transfer**, and it is the reason every architecture below exists.
 
 ---
 
@@ -257,7 +257,7 @@ Shared-Bottom forces every task through one bottleneck. **MMoE** keeps a pool of
 
 ### The Analogy
 
-You are organizing a dinner party with three jobs: cooking, decor, music. Instead of hiring one person to do all three (Shared-Bottom), you hire four specialists. Each job has its own *manager* (gate) who decides how much weight to give each specialist. The cooking manager leans on the chef and the sommelier; the decor manager leans on the florist and the lighting designer. The chef may still throw in a plating idea for decor -- managers are free to mix.
+You are organizing a dinner party with three jobs: cooking, decor, music. Instead of hiring one person to do all three (Shared-Bottom), you hire four specialists. Each job has its own *manager* (gate) who decides how much weight to give each specialist. The cooking manager leans on the chef and the sommelier; the decor manager leans on the florist and the lighting designer. The chef may still throw in a plating idea for decor — managers are free to mix.
 
 ### The Math
 
@@ -341,13 +341,13 @@ print("Task 3 gate weights:", gates[2][0].detach().round(decimals=2))
 
 - You suspect some tasks conflict but you don't know which.
 - You want a single architecture that gracefully handles both cooperative and antagonistic mixes.
-- The gate weights themselves are useful telemetry -- you can plot them and see which tasks share which experts.
+- The gate weights themselves are useful telemetry — you can plot them and see which tasks share which experts.
 
 ---
 
 ## Architecture 4: PLE (Progressive Layered Extraction)
 
-PLE, from Tencent, addresses an MMoE failure mode: even with gates, a shared expert pool can let one task's gradients corrupt features another task depends on -- the famous **seesaw phenomenon** where lifting CTR drops watch time by exactly the amount you lifted.
+PLE, from Tencent, addresses an MMoE failure mode: even with gates, a shared expert pool can let one task's gradients corrupt features another task depends on — the famous **seesaw phenomenon** where lifting CTR drops watch time by exactly the amount you lifted.
 
 ![PLE architecture: shared experts plus task-specific experts, combined per task by a gate](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig3_ple.png)
 
@@ -355,8 +355,8 @@ PLE, from Tencent, addresses an MMoE failure mode: even with gates, a shared exp
 
 Make the split explicit. Each task layer has:
 
-- **Shared experts** -- visible to every task, learn cross-task patterns.
-- **Task-specific experts** -- private to one task, never see another task's gradient.
+- **Shared experts** — visible to every task, learn cross-task patterns.
+- **Task-specific experts** — private to one task, never see another task's gradient.
 
 Each task's gate combines shared experts with *its own* task-specific experts. Stack a couple of these layers and you get progressive extraction: lower layers do generic feature work, higher layers do task-specific refinement.
 
@@ -446,7 +446,7 @@ print([o.shape for o in out])
 
 ### Why The Split Matters
 
-A task-specific expert receives gradient *only* from its task. So when CTR's gradient yanks the model in a direction CVR hates, the damage is confined to the shared experts -- CVR's private experts are untouched. In Tencent's reported video-recommendation numbers PLE bought another ~0.4% AUC over MMoE on multiple engagement metrics, and meaningfully reduced the seesaw effect.
+A task-specific expert receives gradient *only* from its task. So when CTR's gradient yanks the model in a direction CVR hates, the damage is confined to the shared experts — CVR's private experts are untouched. In Tencent's reported video-recommendation numbers PLE bought another ~0.4% AUC over MMoE on multiple engagement metrics, and meaningfully reduced the seesaw effect.
 
 ---
 
@@ -465,14 +465,14 @@ A reasonable progression in a real project: ship Shared-Bottom; if any single-ta
 
 ## Loss Balancing: Stop One Task From Eating The Others
 
-CTR loss might sit around 0.3, CVR around 0.05, a revenue MSE around 100. If you sum them, the regression task drowns the others. Balancing is not a finishing touch -- it is the difference between the model learning two tasks and learning one and a half.
+CTR loss might sit around 0.3, CVR around 0.05, a revenue MSE around 100. If you sum them, the regression task drowns the others. Balancing is not a finishing touch — it is the difference between the model learning two tasks and learning one and a half.
 
 ### Uncertainty Weighting (Kendall et al., 2018)
 
 Treat each task as a noisy regression / classification with its own variance $\sigma_k^2$, and learn the variances:
 $$\mathcal{L}_{\text{total}} = \sum_k \frac{1}{2\sigma_k^2}\, \mathcal{L}_k + \log \sigma_k$$
 
-Hard tasks naturally inflate $\sigma_k$, which down-weights them; the $\log \sigma_k$ term stops $\sigma_k$ from running off to infinity. The picture is what you'd hope for -- the easy task's normalized weight grows as the hard task's shrinks:
+Hard tasks naturally inflate $\sigma_k$, which down-weights them; the $\log \sigma_k$ term stops $\sigma_k$ from running off to infinity. The picture is what you'd hope for — the easy task's normalized weight grows as the hard task's shrinks:
 
 ![Uncertainty Weighting and GradNorm: how learned task weights and gradient norms evolve during training](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig5_loss_balancing.png)
 
@@ -498,7 +498,7 @@ Uncertainty Weighting balances *losses*. **GradNorm** balances *gradient magnitu
 
 ### Pareto Optimization
 
-When tasks genuinely conflict, no single weighting is "best" -- only different trade-offs. Plotting the achievable (CTR-AUC, CVR-AUC) pairs gives you a **Pareto frontier**: solutions where you cannot improve one metric without sacrificing the other.
+When tasks genuinely conflict, no single weighting is "best" — only different trade-offs. Plotting the achievable (CTR-AUC, CVR-AUC) pairs gives you a **Pareto frontier**: solutions where you cannot improve one metric without sacrificing the other.
 
 ![Pareto frontier between CTR AUC and CVR AUC, with three named operating points](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig4_pareto_frontier.png)
 
@@ -508,7 +508,7 @@ In production this is less of a math problem and more of a product call: where o
 
 ## Why Tasks Fight: Gradient Conflict Up Close
 
-Why does any of this matter? Because shared parameters get pulled in two different directions at once. Pick a single shared weight $\theta$; task A says "increase me" and task B says "decrease me". The joint update is the *sum* of two opposing arrows -- often a much smaller step than either task wanted, in a direction neither task likes.
+Why does any of this matter? Because shared parameters get pulled in two different directions at once. Pick a single shared weight $\theta$; task A says "increase me" and task B says "decrease me". The joint update is the *sum* of two opposing arrows — often a much smaller step than either task wanted, in a direction neither task likes.
 
 ![Two task gradients on shared parameters can point in conflicting directions; cosine similarity between gradients can flip negative during training](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig6_gradient_conflict.png)
 
@@ -609,7 +609,7 @@ for epoch in range(5):
 
 ### When is MTL actually worth the complexity?
 
-When tasks share underlying user/item structure, *and* you have at least one sparse task that benefits from a dense one's signal, *and* you care about serving cost. If those don't apply -- truly independent tasks, comfortable serving budget -- separate models are simpler and often better.
+When tasks share underlying user/item structure, *and* you have at least one sparse task that benefits from a dense one's signal, *and* you care about serving cost. If those don't apply — truly independent tasks, comfortable serving budget — separate models are simpler and often better.
 
 ### How many experts in MMoE / PLE?
 
@@ -636,4 +636,4 @@ In rough order of usefulness:
 
 ## Closing Thought
 
-The architecture progression -- Shared-Bottom → ESMM → MMoE → PLE -- is really a progression in **how much we admit that tasks fight each other**. Shared-Bottom assumes they don't. ESMM sidesteps a specific bias problem. MMoE lets the model decide where to share. PLE makes the share/private split explicit and structural. Pair the right architecture with a sane balancing strategy (start with Uncertainty Weighting), watch your gradient cosine similarities, and you have a multi-task system that holds up in production.
+The architecture progression — Shared-Bottom → ESMM → MMoE → PLE — is really a progression in **how much we admit that tasks fight each other**. Shared-Bottom assumes they don't. ESMM sidesteps a specific bias problem. MMoE lets the model decide where to share. PLE makes the share/private split explicit and structural. Pair the right architecture with a sane balancing strategy (start with Uncertainty Weighting), watch your gradient cosine similarities, and you have a multi-task system that holds up in production.

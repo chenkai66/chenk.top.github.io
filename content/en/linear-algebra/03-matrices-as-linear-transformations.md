@@ -29,7 +29,7 @@ In this chapter we will:
 - Define a linear transformation and develop the geometric "fingerprint" of one.
 - Show that **a matrix is fully determined by where it sends the basis vectors.**
 - Build a visual gallery of rotations, scalings, shears, reflections, and projections.
-- Prove that **matrix multiplication is composition of transformations** -- which immediately explains non-commutativity.
+- Prove that **matrix multiplication is composition of transformations** — which immediately explains non-commutativity.
 - Talk about inverses (undoing a transformation), kernel and image, and what happens when a matrix is *singular*.
 
 **Prerequisites.** Chapter 1 (vectors, addition, scalar multiplication) and Chapter 2 (linear independence, basis, span).
@@ -44,7 +44,7 @@ $$A: \mathbb{R}^{n} \longrightarrow \mathbb{R}^{m}, \qquad \vec{v} \mapsto A\vec
 
 You feed it a vector, you get a vector back. The whole job of this chapter is to describe what kind of function this can be.
 
-**Photocopier analogy.** A photocopier with a zoom dial at 150% maps every point of the original to a point 1.5 times farther from the centre. That is one specific transformation -- uniform scaling. Matrices represent a much larger zoo of similar "geometric machines": rotation, shear, reflection, projection, and any combination of them.
+**Photocopier analogy.** A photocopier with a zoom dial at 150% maps every point of the original to a point 1.5 times farther from the centre. That is one specific transformation — uniform scaling. Matrices represent a much larger zoo of similar "geometric machines": rotation, shear, reflection, projection, and any combination of them.
 
 ### What Counts as "Linear"?
 
@@ -62,7 +62,7 @@ A linear transformation is allowed to do anything to the picture above provided 
 
 - **The origin stays put.** $T(\vec{0}) = \vec{0}$. (Plug $c = 0$ into homogeneity.)
 - **Straight lines stay straight.** No bending, no curving.
-- **Parallel lines stay parallel and evenly spaced.** The deformed grid is still a grid -- it may be tilted, stretched, or even collapsed, but every cell is still a parallelogram of the same shape.
+- **Parallel lines stay parallel and evenly spaced.** The deformed grid is still a grid — it may be tilted, stretched, or even collapsed, but every cell is still a parallelogram of the same shape.
 
 **Rubber-sheet analogy.** Imagine the picture is drawn on a rubber sheet pinned at the origin. You can stretch it, rotate it, shear it, or even flatten it, but you cannot tear it or fold it. Anything you can do to that sheet is a linear transformation; anything that requires tearing or folding is not.
 
@@ -90,7 +90,7 @@ If a transformation $T$ is linear, additivity and homogeneity force
 
 $$T(\vec{v}) = T(x\,\hat{\imath} + y\,\hat{\jmath}) = x\,T(\hat{\imath}) + y\,T(\hat{\jmath}).$$
 
-So the moment we know **two vectors** -- where $\hat{\imath}$ lands and where $\hat{\jmath}$ lands -- we know what $T$ does to *every* vector in the plane. Stack those two landing spots as the columns of a matrix:
+So the moment we know **two vectors** — where $\hat{\imath}$ lands and where $\hat{\jmath}$ lands — we know what $T$ does to *every* vector in the plane. Stack those two landing spots as the columns of a matrix:
 
 $$A = \Big[\;T(\hat{\imath})\;\Big|\;T(\hat{\jmath})\;\Big] = \begin{pmatrix} a & b \\ c & d \end{pmatrix},$$
 
@@ -111,7 +111,7 @@ A\begin{pmatrix} 3 \\ 2 \end{pmatrix}
 = 3\begin{pmatrix} 2 \\ 1 \end{pmatrix} + 2\begin{pmatrix} -1 \\ 3 \end{pmatrix}
 = \begin{pmatrix} 4 \\ 9 \end{pmatrix}.$$
 
-No memorised formula required -- just "three copies of column 1 plus two copies of column 2."
+No memorised formula required — just "three copies of column 1 plus two copies of column 2."
 
 ---
 
@@ -145,13 +145,13 @@ $$S = \begin{pmatrix} s_{x} & 0 \\ 0 & s_{y} \end{pmatrix}.$$
 
 ![Scaling: x by 2, y by 1.5](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/fig3_scaling.png)
 
-The unit square turns into an $s_{x} \times s_{y}$ rectangle, so its area is multiplied by $s_{x} s_{y}$. That product -- the **determinant** -- is the headline of Chapter 4.
+The unit square turns into an $s_{x} \times s_{y}$ rectangle, so its area is multiplied by $s_{x} s_{y}$. That product — the **determinant** — is the headline of Chapter 4.
 
 Resizing an image in Photoshop is exactly this: every pixel coordinate is multiplied by a diagonal $S$.
 
 ### 3.3 Shear
 
-A horizontal shear sends $\hat{\imath} \mapsto (1, 0)$ unchanged and $\hat{\jmath} \mapsto (k, 1)$ -- it slides the top of the unit square sideways:
+A horizontal shear sends $\hat{\imath} \mapsto (1, 0)$ unchanged and $\hat{\jmath} \mapsto (k, 1)$ — it slides the top of the unit square sideways:
 
 $$H = \begin{pmatrix} 1 & k \\ 0 & 1 \end{pmatrix}.$$
 
@@ -182,7 +182,7 @@ $$P_{x} = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}.$$
 
 The whole 2D plane gets flattened onto a 1D line. This is the cast-shadow transformation, with the "sun" directly overhead. More generally, projection onto the line through the origin in unit-vector direction $\vec{u}$ is $P = \vec{u}\vec{u}^{\!\top}$.
 
-Projections are the first transformations that **lose information** -- both $(1, 2)$ and $(1, 99)$ project to $(1, 0)$. We will see in Section 6 that this is exactly what makes them non-invertible. The `fig7` figure further down shows the same phenomenon for any singular matrix.
+Projections are the first transformations that **lose information** — both $(1, 2)$ and $(1, 99)$ project to $(1, 0)$. We will see in Section 6 that this is exactly what makes them non-invertible. The `fig7` figure further down shows the same phenomenon for any singular matrix.
 
 ### Summary Table
 
@@ -212,7 +212,7 @@ $$B(A\vec{v}) \;\equiv\; (BA)\vec{v}.$$
 
 That identity is not a theorem you prove; it is the **design specification** of matrix multiplication. The strange "row times column" arithmetic is just what falls out when you work through "where does $\hat{\imath}$ go after $A$ and then $B$?"
 
-**Right-to-left reading rule.** In an expression like $CBA\vec{v}$, the first matrix to act is the *rightmost* one. Read it as "first $A$, then $B$, then $C$." This is the opposite of how English flows, and it is the source of countless bugs in graphics code -- so it is worth saying out loud whenever you write it.
+**Right-to-left reading rule.** In an expression like $CBA\vec{v}$, the first matrix to act is the *rightmost* one. Read it as "first $A$, then $B$, then $C$." This is the opposite of how English flows, and it is the source of countless bugs in graphics code — so it is worth saying out loud whenever you write it.
 
 ### Why Order Matters: A Picture
 
@@ -234,13 +234,13 @@ Geometrically: stretching first turns the square into a wide rectangle, and rota
 
 ### Associativity Saves Computation
 
-Multiplication *is* associative: $(AB)C = A(BC)$. This is not just an algebraic curiosity -- it is what makes 3D graphics fast.
+Multiplication *is* associative: $(AB)C = A(BC)$. This is not just an algebraic curiosity — it is what makes 3D graphics fast.
 
 In a typical scene, every vertex is scaled, rotated, and translated:
 
 $$M = T \cdot R \cdot S.$$
 
-If you have a million vertices, you do **not** apply $S$, then $R$, then $T$ to each vertex individually (that would be $3$ million matrix-vector multiplies). You compute $M$ once, then do $M\vec{v}$ a million times -- a $3\times$ speedup, plus better numerical conditioning. GPU pipelines are built around this idea.
+If you have a million vertices, you do **not** apply $S$, then $R$, then $T$ to each vertex individually (that would be $3$ million matrix-vector multiplies). You compute $M$ once, then do $M\vec{v}$ a million times — a $3\times$ speedup, plus better numerical conditioning. GPU pipelines are built around this idea.
 
 ---
 
@@ -248,7 +248,7 @@ If you have a million vertices, you do **not** apply $S$, then $R$, then $T$ to 
 
 ### The Identity
 
-The transformation that does nothing -- everything maps to itself -- corresponds to the **identity matrix**
+The transformation that does nothing — everything maps to itself — corresponds to the **identity matrix**
 
 $$I = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}.$$
 
@@ -274,7 +274,7 @@ Examples that are obvious once you think geometrically:
 
 Not every transformation can be undone. Projection lost information by collapsing the $y$-direction; **any transformation that loses a dimension cannot be inverted**. Both $(1, 2)$ and $(1, 5)$ project to $(1, 0)$, so given only $(1, 0)$ you cannot recover the original $y$.
 
-The clean criterion -- which we will earn properly in Chapter 4 -- is:
+The clean criterion — which we will earn properly in Chapter 4 — is:
 
 > $A$ is invertible $\iff$ $A$ does not collapse any dimension $\iff$ $\det(A) \neq 0$.
 
@@ -284,7 +284,7 @@ For $A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}$ with $\det(A) = ad - bc \
 
 $$A^{-1} = \frac{1}{ad - bc}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix}.$$
 
-(Confirm by multiplying it out -- you should get $I$.)
+(Confirm by multiplying it out — you should get $I$.)
 
 ---
 
@@ -298,7 +298,7 @@ The second row is twice the first; the second column is twice the first. Algebra
 
 ![Singular matrix collapses 2D to 1D](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/fig7_singular.png)
 
-Every point in the plane is sent onto the single line $y = 2x$ -- the line spanned by the column $(1, 2)$. The unit square is crushed to a line segment of zero area. The orange "after" grid lines all coincide with that line because every input gets mapped onto it.
+Every point in the plane is sent onto the single line $y = 2x$ — the line spanned by the column $(1, 2)$. The unit square is crushed to a line segment of zero area. The orange "after" grid lines all coincide with that line because every input gets mapped onto it.
 
 This is a **singular** (non-invertible) matrix, and there are now two interesting subspaces to give names to.
 
@@ -308,7 +308,7 @@ The **kernel** (or **null space**) of $A$ is the set of vectors that get sent to
 
 $$\ker(A) = \{\,\vec{v} : A\vec{v} = \vec{0}\,\}.$$
 
-For our $S$, vectors of the form $\vec{v} = t\,(2, -1)$ satisfy $S\vec{v} = \vec{0}$ -- this is the dashed grey "kernel direction" in the figure. The kernel is a 1D line.
+For our $S$, vectors of the form $\vec{v} = t\,(2, -1)$ satisfy $S\vec{v} = \vec{0}$ — this is the dashed grey "kernel direction" in the figure. The kernel is a 1D line.
 
 Intuition: the kernel is the set of *directions the matrix annihilates*. A matrix is invertible iff its kernel is just $\{\vec{0}\}$.
 
@@ -318,7 +318,7 @@ The **image** (or **range**) is the set of all possible outputs:
 
 $$\operatorname{Im}(A) = \{\,A\vec{v} : \vec{v} \in \mathbb{R}^{n}\,\}.$$
 
-For $S$, the image is the line $y = 2x$. This is also called the **column space** because it is exactly the span of the columns of $A$. The two columns of $S$ are $(1, 2)$ and $(2, 4)$ -- both lie on the same line, so they span only a line, not a plane.
+For $S$, the image is the line $y = 2x$. This is also called the **column space** because it is exactly the span of the columns of $A$. The two columns of $S$ are $(1, 2)$ and $(2, 4)$ — both lie on the same line, so they span only a line, not a plane.
 
 ### The Rank-Nullity Theorem
 
@@ -348,7 +348,7 @@ This 3D projection is the higher-dimensional analogue of the singular matrix abo
 
 ## 8. Python: Visualising Transformations
 
-The script that produced every figure in this chapter lives at `scripts/figures/linear-algebra/03-matrices-as-linear-transformations.py`. Here is the minimal idea behind it -- a function that draws a matrix's effect on the unit square:
+The script that produced every figure in this chapter lives at `scripts/figures/linear-algebra/03-matrices-as-linear-transformations.py`. Here is the minimal idea behind it — a function that draws a matrix's effect on the unit square:
 
 ```python
 import numpy as np
@@ -425,7 +425,7 @@ This is exactly the "TRS" pattern (Translate * Rotate * Scale) used by Unity, Un
 
 ### Is translation a linear transformation?
 
-No -- it moves the origin, so $T(\vec{0}) \neq \vec{0}$. To handle translation with matrices, computer graphics uses **homogeneous coordinates**: a 2D point $(x, y)$ becomes the 3D vector $(x, y, 1)$, and a translation by $(t_{x}, t_{y})$ becomes the $3 \times 3$ matrix that adds $t_{x}$ and $t_{y}$ to the first two coordinates. Translation is not linear in $\mathbb{R}^{2}$, but it *is* linear in $\mathbb{R}^{3}$ when we restrict attention to the plane $z = 1$.
+No — it moves the origin, so $T(\vec{0}) \neq \vec{0}$. To handle translation with matrices, computer graphics uses **homogeneous coordinates**: a 2D point $(x, y)$ becomes the 3D vector $(x, y, 1)$, and a translation by $(t_{x}, t_{y})$ becomes the $3 \times 3$ matrix that adds $t_{x}$ and $t_{y}$ to the first two coordinates. Translation is not linear in $\mathbb{R}^{2}$, but it *is* linear in $\mathbb{R}^{3}$ when we restrict attention to the plane $z = 1$.
 
 ### Why is matrix multiplication defined this strange way?
 
@@ -433,7 +433,7 @@ Because the rule was *engineered* to make "product of matrices = composition of 
 
 ### Why are rotation matrices special?
 
-They preserve length and angle. Algebraically, $R^{\!\top} R = I$ (they are *orthogonal*) and $\det R = +1$ (they preserve orientation -- no flipping). Together these properties define the special orthogonal group $\mathrm{SO}(2)$, which is the mathematical object behind every smooth spinning animation you have ever seen.
+They preserve length and angle. Algebraically, $R^{\!\top} R = I$ (they are *orthogonal*) and $\det R = +1$ (they preserve orientation — no flipping). Together these properties define the special orthogonal group $\mathrm{SO}(2)$, which is the mathematical object behind every smooth spinning animation you have ever seen.
 
 ### How can I tell at a glance whether a matrix is a rotation, scaling, shear, or projection?
 
@@ -460,7 +460,7 @@ Everything else cascades from there:
 - The identity matrix does nothing; the inverse undoes whatever its partner did.
 - A matrix is **singular** ($\det = 0$) exactly when it collapses a dimension. The crushed directions form the kernel; the surviving image is the column space.
 
-We have done this all in 2D for visual clarity. In Chapter 4 we will quantify *how much* a transformation expands or shrinks space -- the determinant -- and finally see why $\det(AB) = \det(A)\det(B)$.
+We have done this all in 2D for visual clarity. In Chapter 4 we will quantify *how much* a transformation expands or shrinks space — the determinant — and finally see why $\det(AB) = \det(A)\det(B)$.
 
 ---
 

@@ -19,9 +19,9 @@ translationKey: "cloud-computing-7"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/illustration_1.png)
 
-In 2017 GitLab lost six hours of database state. An engineer, exhausted, ran `rm -rf` on the wrong server during an incident. The backup procedures had silently been broken for months; nobody noticed because no one was restoring from backups. The lesson is not "be careful with rm". The lesson is that operations is a *system* -- tools, runbooks, monitoring, automation, and the rituals around them. When the system is healthy, no single tired engineer can take down production. When the system is rotten, every late-night fix is one keystroke from disaster.
+In 2017 GitLab lost six hours of database state. An engineer, exhausted, ran `rm -rf` on the wrong server during an incident. The backup procedures had silently been broken for months; nobody noticed because no one was restoring from backups. The lesson is not "be careful with rm". The lesson is that operations is a *system* — tools, runbooks, monitoring, automation, and the rituals around them. When the system is healthy, no single tired engineer can take down production. When the system is rotten, every late-night fix is one keystroke from disaster.
 
-This article is about building that system. CI/CD that gates quality before code reaches users. Infrastructure as code so that "the production environment" is a Git revision, not a snowflake server. Monitoring that distinguishes signal from noise. Logs you can actually search. And the SRE practices -- error budgets, SLOs, blameless postmortems -- that turn ad-hoc firefighting into engineering.
+This article is about building that system. CI/CD that gates quality before code reaches users. Infrastructure as code so that "the production environment" is a Git revision, not a snowflake server. Monitoring that distinguishes signal from noise. Logs you can actually search. And the SRE practices — error budgets, SLOs, blameless postmortems — that turn ad-hoc firefighting into engineering.
 
 ## What You Will Learn
 
@@ -51,9 +51,9 @@ A modern CI/CD pipeline is not just "automation". It is the *only* way code is a
 
 | Stage | Purpose | Failure mode |
 |-------|---------|--------------|
-| Commit | Trigger via push or merge | None -- this is just an event |
+| Commit | Trigger via push or merge | None — this is just an event |
 | Build | Compile, package, image | Reproducibility (pin base images, lock dependencies) |
-| Unit tests | Fast feedback on logic | Flakiness erodes trust -- quarantine flaky tests aggressively |
+| Unit tests | Fast feedback on logic | Flakiness erodes trust — quarantine flaky tests aggressively |
 | Security scan | SAST, dependency CVEs, image scan | Noise; tune severity gates per repo |
 | Deploy staging | First time the new artefact runs | Config drift between staging and prod |
 | Smoke / e2e | Cross-service contracts | Slow tests cause people to skip them |
@@ -207,7 +207,7 @@ jobs:
           fi
 ```
 
-Three design decisions worth calling out. First, **OIDC replaces long-lived secrets** -- the `id-token: write` permission and `role-to-assume` mean no AWS access keys live in GitHub. Second, **the production environment requires manual approval**, creating a human checkpoint between staging success and prod deploy. Third, **the canary has automated rollback** -- if the error rate exceeds 1% in the first five minutes, the pipeline rolls back without waiting for a human to wake up.
+Three design decisions worth calling out. First, **OIDC replaces long-lived secrets** — the `id-token: write` permission and `role-to-assume` mean no AWS access keys live in GitHub. Second, **the production environment requires manual approval**, creating a human checkpoint between staging success and prod deploy. Third, **the canary has automated rollback** — if the error rate exceeds 1% in the first five minutes, the pipeline rolls back without waiting for a human to wake up.
 
 ### 1.3 Deployment strategies compared
 
@@ -262,7 +262,7 @@ Terraform's state file (`terraform.tfstate`) is the map between your HCL code an
 
 Rules:
 
-- **Remote backend with locking.** S3 + DynamoDB on AWS, GCS on GCP, Terraform Cloud anywhere. Never commit state to Git -- it contains secrets and causes merge conflicts.
+- **Remote backend with locking.** S3 + DynamoDB on AWS, GCS on GCP, Terraform Cloud anywhere. Never commit state to Git — it contains secrets and causes merge conflicts.
 - **One state file per service per environment.** `services/web/prod/`, `services/web/staging/`, `services/api/prod/`. This limits blast radius and parallelises applies.
 - **State encryption at rest.** S3 server-side encryption is the minimum.
 - **State access restricted to CI.** Humans should run `plan` locally but `apply` only through the pipeline.
@@ -801,7 +801,7 @@ Auto-scaling sounds simple: add capacity when load increases, remove it when loa
 | Signal | When to use | Watch out for |
 |--------|-------------|---------------|
 | **CPU utilisation** | General-purpose; good default | Spiky workloads cause oscillation |
-| **Memory utilisation** | Memory-bound services (caches, JVM) | Slow to release -- GC delays downsizing |
+| **Memory utilisation** | Memory-bound services (caches, JVM) | Slow to release — GC delays downsizing |
 | **Request rate (RPS)** | Web services with predictable per-request cost | Needs custom metrics pipeline |
 | **Queue depth** | Async workers, batch processors | Must scale on *rate of growth*, not absolute depth |
 | **Custom business metric** | When none of the above correlates with user experience | Requires instrumentation effort |
@@ -882,7 +882,7 @@ The `SchedulingBufferTime` of 300 seconds means instances are launched 5 minutes
 
 ## 6. Cost Optimisation Without Rewriting Your Application
 
-Cloud bills surprise everyone eventually. The good news is that 30-50% of most cloud bills can be cut without changing application code -- it is about rightsizing, scheduling, and commitment.
+Cloud bills surprise everyone eventually. The good news is that 30-50% of most cloud bills can be cut without changing application code — it is about rightsizing, scheduling, and commitment.
 
 ### 6.1 The cost optimisation hierarchy
 
@@ -984,7 +984,7 @@ Site Reliability Engineering is the practice of treating operations as a softwar
 
 - **SLI** (Service Level Indicator): a quantitative measure of service behaviour. "The proportion of requests that complete in under 300ms."
 - **SLO** (Service Level Objective): a target for the SLI. "99.9% of requests complete in under 300ms over a rolling 30-day window."
-- **Error budget**: the inverse of the SLO. If your SLO is 99.9%, your error budget is 0.1% -- you are allowed 43 minutes of downtime per month.
+- **Error budget**: the inverse of the SLO. If your SLO is 99.9%, your error budget is 0.1% — you are allowed 43 minutes of downtime per month.
 
 The error budget is a management tool, not just a metric. When the budget is healthy, teams ship features fast. When the budget is low, teams freeze features and focus on reliability. This replaces the perennial "move fast vs. be stable" argument with a number everyone can see.
 
@@ -1155,7 +1155,7 @@ k8s-config/
       elasticsearch/
 ```
 
-This Kustomize-based layout gives you DRY base manifests with environment-specific patches. A PR that changes `apps/web/overlays/production/` is a production change -- it gets the same review scrutiny as application code.
+This Kustomize-based layout gives you DRY base manifests with environment-specific patches. A PR that changes `apps/web/overlays/production/` is a production change — it gets the same review scrutiny as application code.
 
 ### 8.3 GitOps vs. traditional CI/CD
 

@@ -1,8 +1,7 @@
 ---
 title: "ML Math Derivations (12): XGBoost and LightGBM"
 date: 2026-01-31 09:00:00
-categories:
-  - Machine Learning
+categories: Machine Learning
 tags:
   - Gradient Boosting
   - XGBoost
@@ -381,17 +380,17 @@ Tabular: GBDT wins almost always. Unstructured (image, text, audio): deep learni
 
 ## Exercises
 
-**Exercise 1 -- second-order gradients.**
+**Exercise 1 — second-order gradients.**
 For squared loss $L = \tfrac{1}{2}(y - \hat y)^2$ with $y = 5$ and $\hat y = 3$: $g = \hat y - y = -2$, $h = 1$. The Newton step at a single leaf with $\lambda = 0$ is $w^* = -g/h = 2$, exactly the residual.
 
-**Exercise 2 -- split gain.**
+**Exercise 2 — split gain.**
 A leaf has $G = -2$, $H = 10$. A candidate split sends $G_L = -1.5, H_L = 6$ left and $G_R = -0.5, H_R = 4$ right. With $\lambda = 1, \gamma = 0.5$:
 
 $$\text{Gain} = \tfrac{1}{2}\!\left[\tfrac{2.25}{7} + \tfrac{0.25}{5} - \tfrac{4}{11}\right] - 0.5 \approx -0.50.$$
 
 The structural improvement does not pay for $\gamma$ --- skip the split. Increasing $\gamma$ tightens the threshold; decreasing $\lambda$ relaxes it.
 
-**Exercise 3 -- GOSS sample budget.**
+**Exercise 3 — GOSS sample budget.**
 With $N = 1000$, $a = 0.2$, $b = 0.1$: keep $200$ large-gradient samples plus $0.1 \cdot 800 = 80$ small-gradient samples. Effective sample size $= 280$ ($28\%$). Reweight factor for the small set: $(1 - a)/b = 8$.
 
 ---

@@ -7,8 +7,7 @@ tags:
   - Phase Portraits
   - Lotka-Volterra
   - Stability Analysis
-categories:
-  - Ordinary Differential Equations
+categories: Ordinary Differential Equations
 series: ode
 lang: en
 mathjax: true
@@ -17,7 +16,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "ode-8"
 ---
-**The real world is nonlinear.** Predator-prey cycles, heartbeat rhythms, neuron firing -- none of these can be captured by linear equations. When superposition fails, the world acquires *new* behaviors: limit cycles, multiple equilibria, bistability, hysteresis. This chapter gives you the geometric and analytic tools to read those behaviors directly off a 2D phase portrait.
+**The real world is nonlinear.** Predator-prey cycles, heartbeat rhythms, neuron firing — none of these can be captured by linear equations. When superposition fails, the world acquires *new* behaviors: limit cycles, multiple equilibria, bistability, hysteresis. This chapter gives you the geometric and analytic tools to read those behaviors directly off a 2D phase portrait.
 
 ![Ordinary Differential Equations (8): Nonlinear Systems and Phase Portraits — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/illustration_1.png)
 
@@ -41,14 +40,14 @@ translationKey: "ode-8"
 
 ## From Linear to Nonlinear
 
-Linear systems obey **superposition**: if $\mathbf{x}_1$ and $\mathbf{x}_2$ are solutions, so is $c_1\mathbf{x}_1 + c_2\mathbf{x}_2$. This is the engine that powers the entire toolkit of Chapters 1-6 -- exponential ansatz, eigenvectors, fundamental matrices.
+Linear systems obey **superposition**: if $\mathbf{x}_1$ and $\mathbf{x}_2$ are solutions, so is $c_1\mathbf{x}_1 + c_2\mathbf{x}_2$. This is the engine that powers the entire toolkit of Chapters 1-6 — exponential ansatz, eigenvectors, fundamental matrices.
 
-Nonlinear systems break this rule and pay the price -- closed-form solutions vanish. But they get something priceless in return:
+Nonlinear systems break this rule and pay the price — closed-form solutions vanish. But they get something priceless in return:
 
 - **Multiple equilibria**, each with its own stability type
-- **Limit cycles** -- isolated, stable periodic orbits (impossible in linear systems)
-- **Bistability and hysteresis** -- memory of initial conditions
-- **Sensitive dependence** -- chaos, in 3D and beyond (Chapter 9)
+- **Limit cycles** — isolated, stable periodic orbits (impossible in linear systems)
+- **Bistability and hysteresis** — memory of initial conditions
+- **Sensitive dependence** — chaos, in 3D and beyond (Chapter 9)
 
 Almost every interesting system in physics, biology, chemistry, neuroscience, and economics is nonlinear.
 
@@ -59,7 +58,7 @@ Almost every interesting system in physics, biology, chemistry, neuroscience, an
 A Lyapunov function $V(\mathbf{x})$ is a scalar that decreases along trajectories ($\dot V \leq 0$). Geometrically, level sets of $V$ form a nested family of "bowls" around the equilibrium, and trajectories cross them inward.
 
 ![Lyapunov level sets shrinking toward the origin; trajectories cross inward; V(t) decays.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/fig1_lyapunov_stability.png)
-*Left: trajectories from five different starting points all spiral inward, threading the colored level sets of $V(x,y) = x^2 + \tfrac12 y^2$. Right: $V(\mathbf{x}(t))$ decays monotonically (log scale) -- direct geometric proof that the origin is asymptotically stable.*
+*Left: trajectories from five different starting points all spiral inward, threading the colored level sets of $V(x,y) = x^2 + \tfrac12 y^2$. Right: $V(\mathbf{x}(t))$ decays monotonically (log scale) — direct geometric proof that the origin is asymptotically stable.*
 
 Once you see Lyapunov stability as "trajectories falling down a bowl", every theorem becomes obvious:
 
@@ -98,7 +97,7 @@ Near a hyperbolic equilibrium, the Jacobian's eigenvalues completely determine t
 | $\lambda_1 < 0 < \lambda_2$ | Saddle | Unstable |
 | $\alpha \pm \beta i,\ \alpha < 0$ | Stable spiral | Asymptotically stable |
 | $\alpha \pm \beta i,\ \alpha > 0$ | Unstable spiral | Unstable |
-| $\pm \beta i$ | Center | **Inconclusive** -- nonlinear terms decide |
+| $\pm \beta i$ | Center | **Inconclusive** — nonlinear terms decide |
 
 ```python
 import numpy as np
@@ -138,7 +137,7 @@ $$x' = \alpha x - \beta xy, \qquad y' = \delta xy - \gamma y$$
 The conserved quantity$$H(x,y) = \delta x - \gamma\ln x + \beta y - \alpha\ln y$$makes every orbit closed. Time-series and phase-plane look like this:
 
 ![Lotka-Volterra: time-series oscillation (left) and closed orbits encircling the center (right).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/fig2_lotka_volterra.png)
-*Left: predator (red) lags prey (blue) by a quarter period -- the textbook ecological cycle. Right: a family of nested closed orbits around the center $(c/d,\ a/b)$. Different starting conditions live on different orbits forever.*
+*Left: predator (red) lags prey (blue) by a quarter period — the textbook ecological cycle. Right: a family of nested closed orbits around the center $(c/d,\ a/b)$. Different starting conditions live on different orbits forever.*
 
 ### The cycle in words
 
@@ -159,7 +158,7 @@ These flaws drove the development of the more realistic models in the next secti
 
 ## Competition Model: Four Outcomes
 $$\begin{aligned} x' &= r_1 x\!\left(1 - \frac{x + \alpha_{12}y}{K_1}\right), \\ y' &= r_2 y\!\left(1 - \frac{y + \alpha_{21}x}{K_2}\right). \end{aligned}$$
-The product $\alpha_{12}\,\alpha_{21}$ -- the strength of mutual interference -- determines which of four pictures you get.
+The product $\alpha_{12}\,\alpha_{21}$ — the strength of mutual interference — determines which of four pictures you get.
 
 ![Four competition phase portraits with nullclines: species 1 wins, species 2 wins, coexistence, bistability.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/fig5_competition_outcomes.png)
 *Blue and red lines are the nullclines. Black dots are equilibria. Grey curves are sample trajectories. The geometry of nullcline intersections decides the long-term fate of every initial condition.*
@@ -167,7 +166,7 @@ The product $\alpha_{12}\,\alpha_{21}$ -- the strength of mutual interference --
 | Regime | Condition | Outcome |
 |---|---|---|
 | Weak interference | $\alpha_{12} < 1,\ \alpha_{21} < 1$ | Stable coexistence |
-| Strong interference | $\alpha_{12} > 1,\ \alpha_{21} > 1$ | Bistability -- winner depends on starting populations |
+| Strong interference | $\alpha_{12} > 1,\ \alpha_{21} > 1$ | Bistability — winner depends on starting populations |
 | Asymmetric | $\alpha_{12} < 1,\ \alpha_{21} > 1$ | Species 1 wins |
 | Asymmetric | $\alpha_{12} > 1,\ \alpha_{21} < 1$ | Species 2 wins |
 
@@ -179,10 +178,10 @@ This is **competitive exclusion** in mathematical clothing.
 $$x'' - \mu(1 - x^2)x' + x = 0$$
 The genius is in the damping coefficient $-\mu(1 - x^2)$:
 
-- Inside $|x| < 1$: damping is *negative* -- the system pumps energy in.
-- Outside $|x| > 1$: damping is *positive* -- energy bleeds out.
+- Inside $|x| < 1$: damping is *negative* — the system pumps energy in.
+- Outside $|x| > 1$: damping is *positive* — energy bleeds out.
 
-Trajectories from inside grow, trajectories from outside shrink, and both settle on a single **stable limit cycle** -- an isolated periodic orbit that attracts everything in its basin.
+Trajectories from inside grow, trajectories from outside shrink, and both settle on a single **stable limit cycle** — an isolated periodic orbit that attracts everything in its basin.
 
 ![Van der Pol limit cycles for mu = 0.5, 1.5, 4.0; cycles get sharper as mu increases.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/fig4_limit_cycles.png)
 *Three values of $\mu$. Grey curves are transients spiralling toward the cycle. Coloured curves are the limit cycle itself. As $\mu$ grows, the cycle deforms from near-sinusoidal into the famous "relaxation oscillation" with sharp jumps.*
@@ -196,7 +195,7 @@ Trajectories from inside grow, trajectories from outside shrink, and both settle
 ### Gradient systems: $\mathbf{x}' = -\nabla V$
 
 - Trajectories follow the steepest descent of $V$.
-- $\dot V = -|\nabla V|^2 \leq 0$ -- the potential always decreases.
+- $\dot V = -|\nabla V|^2 \leq 0$ — the potential always decreases.
 - **No periodic orbits possible** (you can't go around a hill and end up lower).
 - Machine learning's gradient descent is the discrete cousin.
 
@@ -217,7 +216,7 @@ These two worlds sit at opposite extremes of the dissipation spectrum.
 
 In words: in 2D, the only long-term behaviors are *equilibrium* or *periodic*. There is no room for chaos.
 
-The Jordan curve theorem is the secret here -- a closed orbit divides the plane in two, trapping the trajectory. Add a third dimension and the trajectory can escape *over* the orbit, opening the door to chaos (Chapter 9).
+The Jordan curve theorem is the secret here — a closed orbit divides the plane in two, trapping the trajectory. Add a third dimension and the trajectory can escape *over* the orbit, opening the door to chaos (Chapter 9).
 
 **Bendixson's criterion (no closed orbits).** If $\partial f/\partial x + \partial g/\partial y$ has constant non-zero sign in a simply-connected region, no closed orbit lies inside it.
 
@@ -279,7 +278,7 @@ def rk4_step(f, x, t, h):
 
 7. Reproduce the four competition regimes in fig 5 and shade each basin of attraction.
 8. Numerically estimate the Van der Pol period $T(\mu)$ for $\mu \in \{0.1, 0.5, 1, 3, 10\}$.
-9. Compare Euler vs. RK4 accuracy for the Van der Pol equation -- find the $\mu$ at which Euler breaks down.
+9. Compare Euler vs. RK4 accuracy for the Van der Pol equation — find the $\mu$ at which Euler breaks down.
 
 ---
 

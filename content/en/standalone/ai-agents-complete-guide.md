@@ -12,7 +12,7 @@ disableNunjucks: true
 translationKey: "ai-agents-complete-guide"
 ---
 
-A chatbot answers questions. An *agent* gets things done -- it browses, runs code, calls APIs, queries databases, and iterates until the job is finished. The same LLM sits behind both, but the wrapper is different: an agent runs inside a loop with tools, memory, and the ability to inspect its own work.
+A chatbot answers questions. An *agent* gets things done — it browses, runs code, calls APIs, queries databases, and iterates until the job is finished. The same LLM sits behind both, but the wrapper is different: an agent runs inside a loop with tools, memory, and the ability to inspect its own work.
 
 This guide is the long-form version of that idea. It covers the four core capabilities (planning, memory, tool use, reflection), the major framework families, multi-agent collaboration, evaluation, and the production concerns that decide whether an agent ships or quietly fails on a Tuesday afternoon.
 
@@ -20,7 +20,7 @@ This guide is the long-form version of that idea. It covers the four core capabi
 
 - Why an agent is more than "GPT-4 in a `while` loop"
 - The four capabilities every serious agent implements
-- ReAct, Tree of Thoughts, and Reflexion -- when each is worth the cost
+- ReAct, Tree of Thoughts, and Reflexion — when each is worth the cost
 - Framework trade-offs: LangChain, LangGraph, AutoGen, CrewAI, AutoGPT
 - Multi-agent topologies that actually scale (and ones that look great in demos but break)
 - An evaluation framework that catches real regressions
@@ -71,7 +71,7 @@ Three things make this loop work in practice: a memory that survives across step
 
 Consider the goal "find the top three ML conference deadlines for 2026 and schedule reminders two weeks before each."
 
-A standalone LLM call returns whatever it remembers from training -- often a year out of date -- and physically cannot create calendar events. An agent searches the web for current dates, parses the results, computes the reminder dates, calls a calendar API, and returns confirmation IDs. The LLM is the same; the wiring is what differs.
+A standalone LLM call returns whatever it remembers from training — often a year out of date — and physically cannot create calendar events. An agent searches the web for current dates, parses the results, computes the reminder dates, calls a calendar API, and returns confirmation IDs. The LLM is the same; the wiring is what differs.
 
 ![Rule-based system vs LLM-based agent](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/ai-agents-complete-guide/fig2_agent_vs_rule.png)
 
@@ -126,7 +126,7 @@ class WorkingMemory:
             self.messages.pop(0)
 ```
 
-Production systems layer additional concerns on top -- structured logging, retries, telemetry -- but the kernel is exactly this.
+Production systems layer additional concerns on top — structured logging, retries, telemetry — but the kernel is exactly this.
 
 ---
 
@@ -136,7 +136,7 @@ Planning is what turns "summarise this 200-page report and email the highlights 
 
 ### Chain-of-Thought (CoT)
 
-The simplest pattern: ask the model to verbalise its reasoning before producing the answer. CoT works well when reasoning is mostly internal -- arithmetic, logic puzzles, structured rewriting. It does *not* by itself enable tool use; it only spreads the reasoning over more tokens.
+The simplest pattern: ask the model to verbalise its reasoning before producing the answer. CoT works well when reasoning is mostly internal — arithmetic, logic puzzles, structured rewriting. It does *not* by itself enable tool use; it only spreads the reasoning over more tokens.
 
 CoT is a cost-effective default. Use it as a baseline before reaching for anything fancier.
 
@@ -180,7 +180,7 @@ A typical ReAct trace looks like the figure below. Each row corresponds to one L
 
 ![ReAct trace: interleaved reasoning and acting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/ai-agents-complete-guide/fig5_react_flow.png)
 
-Two practical notes about ReAct. First, the parser is the source of most production bugs -- prefer JSON mode or function calling over free-form parsing. Second, observations from tools should be *summarised before being fed back* if they are large; raw HTML pages will blow your context window in three steps.
+Two practical notes about ReAct. First, the parser is the source of most production bugs — prefer JSON mode or function calling over free-form parsing. Second, observations from tools should be *summarised before being fed back* if they are large; raw HTML pages will blow your context window in three steps.
 
 ### Tree of Thoughts (ToT)
 
@@ -313,7 +313,7 @@ Most "agent failures" are tool-design failures in disguise. Three rules:
 
 ### Computer use and the next frontier
 
-Anthropic's *Computer Use* (October 2024) and similar systems give the agent screenshots and primitives like `mouse_click(x, y)` and `type_text("...")`. This unlocks any application with a UI, including those without an API. The trade-off is reliability -- a 95%-accurate click rate compounds to a 60% success rate over a 10-step task. Treat computer-use agents as research-grade and sandbox them aggressively.
+Anthropic's *Computer Use* (October 2024) and similar systems give the agent screenshots and primitives like `mouse_click(x, y)` and `type_text("...")`. This unlocks any application with a UI, including those without an API. The trade-off is reliability — a 95%-accurate click rate compounds to a 60% success rate over a 10-step task. Treat computer-use agents as research-grade and sandbox them aggressively.
 
 ---
 
@@ -347,7 +347,7 @@ Self-Refine helps most on text generation tasks (writing, summarisation, code re
 
 ### Reflexion: lessons across attempts
 
-Reflexion (Shinn et al., 2023) adds an explicit verbal *lesson* after each failed attempt and feeds it into the next attempt. The lesson is short, concrete, and actionable -- "When the SQL query returns zero rows, try removing the date filter before changing the table." Over a few retries, a Reflexion agent often solves problems that no single-shot agent of the same model can.
+Reflexion (Shinn et al., 2023) adds an explicit verbal *lesson* after each failed attempt and feeds it into the next attempt. The lesson is short, concrete, and actionable — "When the SQL query returns zero rows, try removing the date filter before changing the table." Over a few retries, a Reflexion agent often solves problems that no single-shot agent of the same model can.
 
 Reflexion is most effective when:
 - There is a clear success signal (test passes, answer matches).
@@ -435,7 +435,7 @@ A manager agent decomposes the task and dispatches sub-tasks to specialists (res
 
 ### Pattern 2: Debate (adversarial critique)
 
-Two or more agents argue different positions; a judge agent (or a vote) picks the winner. Useful for tasks with a quality dimension that's hard to verify directly -- legal arguments, design choices, complex reasoning. Empirically, debate over 3-5 rounds beats single-agent reasoning by a meaningful margin on benchmarks like GSM-Hard, at the cost of multiplying token spend.
+Two or more agents argue different positions; a judge agent (or a vote) picks the winner. Useful for tasks with a quality dimension that's hard to verify directly — legal arguments, design choices, complex reasoning. Empirically, debate over 3-5 rounds beats single-agent reasoning by a meaningful margin on benchmarks like GSM-Hard, at the cost of multiplying token spend.
 
 ### Pattern 3: Pipeline (specialist chain)
 
@@ -477,7 +477,7 @@ You cannot improve what you cannot measure. Agent evaluation is harder than LLM 
 | **SWE-bench** | Resolve real GitHub issues | The bar for coding agents |
 | **ToolBench** | Tool selection across 16k+ APIs | Tests breadth of tool use |
 
-Use public benchmarks to track *general* capability of new model/agent versions. Do not use them as your acceptance test -- your task distribution is not theirs.
+Use public benchmarks to track *general* capability of new model/agent versions. Do not use them as your acceptance test — your task distribution is not theirs.
 
 ### Internal eval suites
 
@@ -672,7 +672,7 @@ To productionise this, add the cost cap, structured logging of every tool call, 
 
 A chatbot reacts. An agent decides. The same LLM can be either, depending on whether you wrap it in a loop with tools.
 
-### CoT vs ReAct vs ToT -- how do I choose?
+### CoT vs ReAct vs ToT — how do I choose?
 
 Default to CoT. Move to ReAct when you need tools. Reach for ToT only when ReAct fails consistently and you can afford 10x the calls.
 
@@ -682,7 +682,7 @@ Single agent until the prompt becomes unmanageable or the trajectory exceeds you
 
 ### How do I stop hallucinations in production?
 
-Ground every fact through a tool call. Require citations for non-trivial claims. Add an "I don't know" exit path and reward it. Sample outputs offline and label hallucinations -- you cannot fix what you do not measure.
+Ground every fact through a tool call. Require citations for non-trivial claims. Add an "I don't know" exit path and reward it. Sample outputs offline and label hallucinations — you cannot fix what you do not measure.
 
 ### What are the most common failure modes?
 
@@ -690,7 +690,7 @@ Loops, tool argument errors, context overflow from unsummarised tool output, goa
 
 ### Should I use a hosted agent platform or build my own?
 
-Hosted (OpenAI Assistants, Bedrock Agents, etc.) for prototypes and low-traffic internal tools. Build on a framework like LangGraph or AutoGen when you need control over routing, retries, observability, or cost. Do not write your own agent framework from scratch unless you have a strong reason -- the boring parts are surprisingly deep.
+Hosted (OpenAI Assistants, Bedrock Agents, etc.) for prototypes and low-traffic internal tools. Build on a framework like LangGraph or AutoGen when you need control over routing, retries, observability, or cost. Do not write your own agent framework from scratch unless you have a strong reason — the boring parts are surprisingly deep.
 
 ---
 

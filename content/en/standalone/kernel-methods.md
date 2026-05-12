@@ -13,7 +13,7 @@ disableNunjucks: true
 translationKey: "kernel-methods"
 ---
 
-You have non-linear data and a linear algorithm. The kernel trick lets you run that linear algorithm on the non-linear data -- without ever writing down the high-dimensional feature map. This guide builds the intuition first, then the math, then a practical toolkit you can ship.
+You have non-linear data and a linear algorithm. The kernel trick lets you run that linear algorithm on the non-linear data — without ever writing down the high-dimensional feature map. This guide builds the intuition first, then the math, then a practical toolkit you can ship.
 
 ## What You Will Learn
 
@@ -38,7 +38,7 @@ You have non-linear data and a linear algorithm. The kernel trick lets you run t
 
 ## The linear limitation
 
-A surprising number of useful ML algorithms -- linear regression, PCA, linear SVM, ridge regression, Fisher discriminant -- only work well when the data is **linearly separable** or has a **linear structure**. Real data rarely cooperates.
+A surprising number of useful ML algorithms — linear regression, PCA, linear SVM, ridge regression, Fisher discriminant — only work well when the data is **linearly separable** or has a **linear structure**. Real data rarely cooperates.
 
 The naive workaround is to **engineer features by hand**: add polynomial terms, interaction terms, log transforms, indicator variables. This works, but it has three problems:
 
@@ -55,7 +55,7 @@ that returns the inner product directly. The algorithm gets the same answer it w
 
 > **The kernel trick** trades an explicit map $x \mapsto \phi(x)$ for an implicit one defined by a similarity function $K(x, y)$.
 
-The picture above makes this concrete. In input space, the two classes form concentric rings: no straight line separates them. Lift each point with $\phi(x) = (x_1, x_2, x_1^2 + x_2^2)$ and the rings sit at different heights -- now a flat plane separates them. The polynomial kernel $K(x, y) = (\langle x, y\rangle + 1)^2$ corresponds to all degree-2 polynomial features, but you compute one dot product instead of storing $O(d^2)$ extra coordinates.
+The picture above makes this concrete. In input space, the two classes form concentric rings: no straight line separates them. Lift each point with $\phi(x) = (x_1, x_2, x_1^2 + x_2^2)$ and the rings sit at different heights — now a flat plane separates them. The polynomial kernel $K(x, y) = (\langle x, y\rangle + 1)^2$ corresponds to all degree-2 polynomial features, but you compute one dot product instead of storing $O(d^2)$ extra coordinates.
 
 ## Mathematical Foundation
 
@@ -67,7 +67,7 @@ A symmetric function $K: \mathcal{X} \times \mathcal{X} \to \mathbb{R}$ is **pos
 $$\sum_{i,j=1}^n c_i c_j \, K(x_i, x_j) \;\geq\; 0.$$
 Equivalently, the **Gram matrix** $K_{ij} = K(x_i, x_j)$ is positive semi-definite (PSD) for any sample of points.
 
-Why this matters: positive-definite kernels are exactly the functions that arise as inner products in *some* Hilbert space. So picking a PD kernel is equivalent to picking an implicit feature map -- you just don't have to write it down.
+Why this matters: positive-definite kernels are exactly the functions that arise as inner products in *some* Hilbert space. So picking a PD kernel is equivalent to picking an implicit feature map — you just don't have to write it down.
 
 ## Mercer's theorem
 
@@ -80,7 +80,7 @@ $$\phi(x) \;=\; \big(\sqrt{\lambda_1}\,\phi_1(x),\; \sqrt{\lambda_2}\,\phi_2(x),
 Two things to read off the figure:
 
 - **Eigenvalues decay fast.** A handful of components carries almost all the kernel's "mass". This is why kernel methods admit good low-rank approximations (Nystrom, random Fourier features).
-- **Eigenfunctions look like Fourier modes.** For the RBF kernel on an interval, the top eigenfunctions are smooth, increasingly oscillatory bumps -- the kernel implicitly measures similarity in a smooth-function basis.
+- **Eigenfunctions look like Fourier modes.** For the RBF kernel on an interval, the top eigenfunctions are smooth, increasingly oscillatory bumps — the kernel implicitly measures similarity in a smooth-function basis.
 
 For the RBF kernel, the spectrum is *infinite*: every $\lambda_k > 0$. That is what people mean when they say "RBF has an infinite-dimensional feature space".
 
@@ -145,7 +145,7 @@ $$K(x, y) = \exp\!\left(-\gamma \,\|x - y\|^2\right) \quad \text{or} \quad \exp\
 $$K(x, y) = (\gamma\, \langle x, y \rangle + c)^d.$$
 **Properties.** Finite-dimensional feature space (all monomials up to degree $d$). Captures explicit interactions of order up to $d$.
 
-**When to use.** Sparse high-dimensional data with known interactions (text classification with bigrams; genomics with epistasis). Avoid for dense low-dimensional data -- RBF usually wins.
+**When to use.** Sparse high-dimensional data with known interactions (text classification with bigrams; genomics with epistasis). Avoid for dense low-dimensional data — RBF usually wins.
 
 **Hyperparameters.** $d \in \{2, 3\}$ in practice; degree-$5+$ polynomials almost always overfit. $\gamma$ scales the inner product (sensitive to feature magnitudes; *normalise first*). $c$ controls the trade-off between low- and high-order terms; $c = 0$ keeps only top-order monomials, $c = 1$ mixes all orders.
 
@@ -153,11 +153,11 @@ $$K(x, y) = (\gamma\, \langle x, y \rangle + c)^d.$$
 $$K(x, y) = \langle x, y \rangle.$$
 The trivial kernel. No feature mapping, $O(d)$ per evaluation, equivalent to running the linear algorithm directly.
 
-**When to use.** Linearly separable data, very high-dimensional sparse data (text, gene expression), or as a baseline. For text in particular, linear SVMs often beat RBF -- the curse of dimensionality is on your side here, since random points in high-$d$ space are nearly orthogonal.
+**When to use.** Linearly separable data, very high-dimensional sparse data (text, gene expression), or as a baseline. For text in particular, linear SVMs often beat RBF — the curse of dimensionality is on your side here, since random points in high-$d$ space are nearly orthogonal.
 
 ## 4. Sigmoid kernel
 $$K(x, y) = \tanh(\gamma\, \langle x, y \rangle + c).$$
-Modelled after a neural network activation, but **not always positive definite** -- only for certain ranges of $\gamma, c$. Modern practice has largely abandoned it: if you want neural-network-style nonlinearity, train a neural network. Keeping it here mostly so you recognise it in legacy code.
+Modelled after a neural network activation, but **not always positive definite** — only for certain ranges of $\gamma, c$. Modern practice has largely abandoned it: if you want neural-network-style nonlinearity, train a neural network. Keeping it here mostly so you recognise it in legacy code.
 
 ## 5. Matern kernel (Gaussian processes)
 $$K_\nu(r) = \frac{2^{1-\nu}}{\Gamma(\nu)} \left(\frac{\sqrt{2\nu}\, r}{\ell}\right)^{\!\nu} \! K_\nu\!\left(\frac{\sqrt{2\nu}\, r}{\ell}\right), \qquad r = \|x - y\|.$$
@@ -222,7 +222,7 @@ rs.fit(X_train, y_train)
 For GP regression you can tune $\theta$ (the kernel hyperparameters) by maximising the log marginal likelihood
 $$\log p(\mathbf{y} \mid \theta) = -\tfrac{1}{2} \mathbf{y}^\top (K_\theta + \sigma^2 I)^{-1} \mathbf{y} \;-\; \tfrac{1}{2} \log |K_\theta + \sigma^2 I| \;-\; \tfrac{n}{2}\log(2\pi).$$
 
-This is **principled** (no held-out set needed) and decomposes into a fit term, a complexity penalty, and a constant -- Occam's razor falls out of the math. Caveat: with noisy data and many hyperparameters, marginal-likelihood optimisation can overfit; add weak priors (e.g., log-normal) on length scales.
+This is **principled** (no held-out set needed) and decomposes into a fit term, a complexity penalty, and a constant — Occam's razor falls out of the math. Caveat: with noisy data and many hyperparameters, marginal-likelihood optimisation can overfit; add weak priors (e.g., log-normal) on length scales.
 
 ## Diagnostics: Read the Gram Matrix
 
@@ -232,7 +232,7 @@ The kernel matrix itself tells you whether your hyperparameters are sane.
 
 Three regimes for an RBF kernel on three Gaussian clusters (rows sorted by cluster):
 
-- **$\gamma$ too small.** The matrix is uniformly bright -- every pair of points looks similar. The eigenvalue spectrum is dominated by one mode. Underfit.
+- **$\gamma$ too small.** The matrix is uniformly bright — every pair of points looks similar. The eigenvalue spectrum is dominated by one mode. Underfit.
 - **$\gamma$ in the sweet spot.** Three crisp diagonal blocks emerge, one per cluster. The spectrum has a clear three-step staircase. The kernel sees the cluster structure.
 - **$\gamma$ too large.** The matrix collapses to the identity. The spectrum is flat. Every point is its own island; no generalisation possible.
 
@@ -271,7 +271,7 @@ plt.imshow(rbf_kernel(X_train, gamma=g), cmap="viridis"); plt.colorbar(); plt.sh
 **Fixes.**
 
 1. **Add jitter** to the diagonal: `K = K + 1e-6 * np.eye(n)`.
-2. **Standardise features** before RBF/Matern -- distance-based kernels are scale-sensitive.
+2. **Standardise features** before RBF/Matern — distance-based kernels are scale-sensitive.
 3. **Drop near-duplicate rows.**
 4. **Use a 64-bit dtype** for the kernel matrix.
 5. **Verify PSD** for custom kernels: `np.all(np.linalg.eigvalsh(K) >= -1e-8)`.
@@ -308,7 +308,7 @@ The flow:
 
 **2. Search on a log scale.** Hyperparameters like $\gamma$, $C$, and $\sigma$ act multiplicatively. A linear grid spends most of its budget in a narrow band; a log grid covers many orders of magnitude with the same number of points.
 
-**3. Build the model in a Pipeline.** `Pipeline([scaler, kernel_model])` ensures the scaler is fit on each CV training fold, not on the whole dataset -- otherwise you leak test statistics into validation.
+**3. Build the model in a Pipeline.** `Pipeline([scaler, kernel_model])` ensures the scaler is fit on each CV training fold, not on the whole dataset — otherwise you leak test statistics into validation.
 
 **4. Compose kernels.** Sums and products of valid kernels are valid kernels. `Matern * Periodic + WhiteNoise` is a standard recipe for "smooth, seasonal, with noise".
 
@@ -336,7 +336,7 @@ def is_psd(K, tol=1e-8):
 
 **Use deep learning when** you have large data, need to learn representations from raw signals (images, audio, text), or care about scaling.
 
-These choices are not mutually exclusive. **Deep kernel learning** uses a neural network as a learned feature extractor and a Gaussian process on top -- the best of both worlds when applicable.
+These choices are not mutually exclusive. **Deep kernel learning** uses a neural network as a learned feature extractor and a Gaussian process on top — the best of both worlds when applicable.
 
 ## Summary: Kernel Methods in Five Steps
 

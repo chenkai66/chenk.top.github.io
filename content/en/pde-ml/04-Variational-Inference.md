@@ -104,7 +104,7 @@ def langevin_sample(grad_log_p, x0, step=0.01, n_steps=10_000, tau=1.0):
 ULA's bias is $O(\eta)$; **MALA** (Metropolis-Adjusted Langevin) restores exactness via an accept-reject step. **HMC** (Hamiltonian Monte Carlo) is the natural underdamped analogue with momentum.
 
 ![Langevin SDE trajectories and the empirical density they generate.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig2_langevin_sde_to_density.png)
-*Figure 2. Left: 25 representative particles bouncing inside the double well; many never cross the barrier in finite time. Right: the histogram of 400 particles converges to the Gibbs target as $t$ grows -- the discrete sampler is realising the FP equation in figure 1.*
+*Figure 2. Left: 25 representative particles bouncing inside the double well; many never cross the barrier in finite time. Right: the histogram of 400 particles converges to the Gibbs target as $t$ grows — the discrete sampler is realising the FP equation in figure 1.*
 
 ## 4. KL Divergence is a Wasserstein Gradient Flow
 
@@ -126,7 +126,7 @@ which is exactly the FP equation for Langevin with $\tau = 1$. Hence:
 | Bias | Restricted family + Adam noise | Discretisation $O(\eta)$ |
 
 ![KL divergence as a Wasserstein gradient flow.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig3_kl_gradient_flow.png)
-*Figure 3. Two initial densities (concentrated and broad) are evolved by the FP equation toward the bimodal target. The right panel shows their KL divergence to $p^\star$ decaying monotonically -- the gradient-flow guarantee in action.*
+*Figure 3. Two initial densities (concentrated and broad) are evolved by the FP equation toward the bimodal target. The right panel shows their KL divergence to $p^\star$ decaying monotonically — the gradient-flow guarantee in action.*
 
 ## 5. VI vs MCMC in Practice
 
@@ -136,7 +136,7 @@ VI and MCMC may be equivalent in the continuous limit, but their finite-time beh
 - **MCMC is mass-covering**: a long enough chain visits every mode in proportion to its mass, but mixing across barriers can be exponentially slow.
 
 ![VI vs MCMC.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig4_vi_vs_mcmc.png)
-*Figure 4. Left: the best mean-field Gaussian (in reverse KL) under-fits one mode of a bimodal posterior. Right: 4000 Langevin samples cover both modes correctly -- but only because the barrier in this 1D example is small.*
+*Figure 4. Left: the best mean-field Gaussian (in reverse KL) under-fits one mode of a bimodal posterior. Right: 4000 Langevin samples cover both modes correctly — but only because the barrier in this 1D example is small.*
 
 ## 6. Stein Variational Gradient Descent
 
@@ -172,7 +172,7 @@ and as the bandwidth $h \to 0$ this PDE collapses to the standard Fokker-Planck 
 
 **Definition (LSI).** $p^\star$ satisfies a **log-Sobolev inequality** with constant $\lambda > 0$ if for all smooth probability densities $p \ll p^\star$:
 $$\mathrm{KL}(p \,\|\, p^\star) \;\leq\; \frac{1}{2\lambda}\, I(p \,\|\, p^\star),\qquad I(p\|p^\star) = \int p\, \bigl\|\nabla \log \tfrac{p}{p^\star}\bigr\|^2 dx.$$
-The right-hand side is the **Fisher information** -- which is also the dissipation rate of the FP equation:
+The right-hand side is the **Fisher information** — which is also the dissipation rate of the FP equation:
 $$\frac{d}{dt}\,\mathrm{KL}(p_t\,\|\,p^\star) \;=\; -\, I(p_t\,\|\,p^\star).$$
 Combining, $\frac{d}{dt}\mathrm{KL}(p_t \| p^\star) \leq -2\lambda\, \mathrm{KL}(p_t \| p^\star)$, hence Gr&ouml;nwall:
 $$
@@ -181,7 +181,7 @@ $$
 Strongly log-concave targets ($\nabla^2 V \succeq mI$) automatically satisfy LSI with $\lambda \geq m$ (Bakry-&Eacute;mery). Multimodal targets typically have tiny $\lambda$, predicting the exponentially slow mixing observed empirically.
 
 ![Convergence rates.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig6_convergence_analysis.png)
-*Figure 6. Left: theoretical KL decay $e^{-2\lambda t}$ for three log-Sobolev constants. Right: empirical KL trajectories for VI, Langevin MCMC and SVGD on a smooth Gaussian target -- all three converge, but with different rates and noise profiles.*
+*Figure 6. Left: theoretical KL decay $e^{-2\lambda t}$ for three log-Sobolev constants. Right: empirical KL trajectories for VI, Langevin MCMC and SVGD on a smooth Gaussian target — all three converge, but with different rates and noise profiles.*
 
 ## 8. Application: Bayesian Neural Networks
 
@@ -192,7 +192,7 @@ i.e. exactly the gradient computed during normal back-propagation, plus a Gaussi
 The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so that the posterior over weights is well defined, and samples it with full-batch Langevin.
 
 ![Bayesian neural net posterior bands.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig7_bayesian_nn.png)
-*Figure 7. Left: posterior predictive for a regression model with a gap in the training data; the 90% Langevin band widens precisely where data is missing. Right: predictive standard deviation peaks in the data gap -- exactly the **epistemic uncertainty** that point-estimate networks lack.*
+*Figure 7. Left: posterior predictive for a regression model with a gap in the training data; the 90% Langevin band widens precisely where data is missing. Right: predictive standard deviation peaks in the data gap — exactly the **epistemic uncertainty** that point-estimate networks lack.*
 
 ## 9. Summary
 
@@ -203,7 +203,7 @@ The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so
 - Convergence is exponential at rate $2\lambda$ where $\lambda$ is the log-Sobolev constant of $p^\star$; mixing through high barriers is the bottleneck in practice.
 - Posterior sampling for Bayesian neural networks reduces to running Langevin (or SVGD) on the loss landscape.
 
-**Series conclusion.** Across four articles we have used PDEs to unify scientific computing and machine learning -- from solving PDEs with neural networks (PINNs), to learning solution operators (FNO/DeepONet), to training as gradient flows, to probabilistic inference as Fokker-Planck dynamics. The recurring theme: **discrete algorithms in machine learning are usually best understood as the time-discretisation of a continuous PDE**, and PDE theory is the language for proving convergence.
+**Series conclusion.** Across four articles we have used PDEs to unify scientific computing and machine learning — from solving PDEs with neural networks (PINNs), to learning solution operators (FNO/DeepONet), to training as gradient flows, to probabilistic inference as Fokker-Planck dynamics. The recurring theme: **discrete algorithms in machine learning are usually best understood as the time-discretisation of a continuous PDE**, and PDE theory is the language for proving convergence.
 
 ## 10. Numerical Implementation: SDE Simulation You Can Actually Run
 

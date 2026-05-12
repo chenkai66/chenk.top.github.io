@@ -7,8 +7,7 @@ tags:
   - Bayesian Inference
   - MCMC
   - Machine Learning
-categories:
-  - Probability and Statistics
+categories: Probability and Statistics
 series: probability-statistics
 lang: en
 mathjax: true

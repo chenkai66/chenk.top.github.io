@@ -3,11 +3,10 @@ title: "Essence of Linear Algebra (16): Linear Algebra in Deep Learning"
 date: 2025-04-16 09:00:00
 tags:
   - Linear Algebra
-  - neural networks
+  - Neural Networks
   - Deep Learning
   - Transformer
-categories:
-  - Linear Algebra
+categories: Linear Algebra
 series: linear-algebra
 lang: en
 mathjax: true
@@ -16,12 +15,12 @@ disableNunjucks: true
 series_order: 16
 translationKey: "linear-algebra-16"
 ---
-Strip away the marketing and a deep network is one thing: a long pipeline of matrix multiplications glued together by elementwise nonlinearities. Forward pass, backward pass, convolution, attention, normalization, fine-tuning -- every "trick" is a small twist on the same algebraic theme. Once you see the matrices, the field stops looking like a bag of recipes and starts looking like a single language.
+Strip away the marketing and a deep network is one thing: a long pipeline of matrix multiplications glued together by elementwise nonlinearities. Forward pass, backward pass, convolution, attention, normalization, fine-tuning — every "trick" is a small twist on the same algebraic theme. Once you see the matrices, the field stops looking like a bag of recipes and starts looking like a single language.
 
-This chapter rebuilds the modern stack from that single language. We follow one signal -- a vector $\mathbf{x}$ -- as it flows through linear layers, gets convolved, gets attended to, gets normalized, and gets adapted by a low-rank update. At each step we name the matrix that does the work and the property of that matrix (rank, conditioning, transpose) that makes the trick succeed.
+This chapter rebuilds the modern stack from that single language. We follow one signal — a vector $\mathbf{x}$ — as it flows through linear layers, gets convolved, gets attended to, gets normalized, and gets adapted by a low-rank update. At each step we name the matrix that does the work and the property of that matrix (rank, conditioning, transpose) that makes the trick succeed.
 
 > **What you will learn**
-> - How a neural network IS a chain of matrix multiplications -- and why batching is mandatory on a GPU
+> - How a neural network IS a chain of matrix multiplications — and why batching is mandatory on a GPU
 > - Backpropagation as the matrix chain rule, with $W^{\top}$ as the universal adjoint
 > - Convolution rewritten as a single GEMM via the im2col trick
 > - Scaled dot-product attention, decomposed into four matrix steps you can read off the page
@@ -43,11 +42,11 @@ A neuron does the simplest thing imaginable: take a weighted sum, add a bias, sq
 $$h \;=\; \sigma(\mathbf{w}^{\top}\mathbf{x} + b)$$
 That is **one inner product plus one nonlinearity**. Stop here and the rest of deep learning is just stacking and broadcasting this primitive.
 
-### 1.2 Stack neurons -- get a matrix
+### 1.2 Stack neurons — get a matrix
 
 Pack $m$ neurons' weight vectors as the rows of a matrix $\mathbf{W} \in \mathbb{R}^{m \times d}$:
 $$\mathbf{h} \;=\; \sigma(\mathbf{W}\mathbf{x} + \mathbf{b})$$
-Geometrically, $\mathbf{W}$ is a linear map from a $d$-dimensional input space into an $m$-dimensional feature space; $\sigma$ then bends that space so it is no longer flat. Without $\sigma$ a stack of layers would collapse to a single matrix product -- the nonlinearity is what breaks the closure of matrix multiplication and makes universal approximation possible.
+Geometrically, $\mathbf{W}$ is a linear map from a $d$-dimensional input space into an $m$-dimensional feature space; $\sigma$ then bends that space so it is no longer flat. Without $\sigma$ a stack of layers would collapse to a single matrix product — the nonlinearity is what breaks the closure of matrix multiplication and makes universal approximation possible.
 
 ### 1.3 Batch is not optional
 
@@ -71,11 +70,11 @@ print(linear.bias.shape)         # torch.Size([256])
 
 ### 1.4 Reading a trained weight matrix
 
-After training, $\mathbf{W}$ is not random noise -- each row is a learned **template** the neuron fires on. Heatmapping the matrix and reshaping each row back to the input geometry gives you a direct picture of what the network has learned.
+After training, $\mathbf{W}$ is not random noise — each row is a learned **template** the neuron fires on. Heatmapping the matrix and reshaping each row back to the input geometry gives you a direct picture of what the network has learned.
 
 ![Reading a weight matrix: rows are the neurons' filters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/fig2_weight_heatmap.png)
 
-For an MLP on images you see oriented edges and blobs -- the same primitives Hubel and Wiesel found in V1. For a language model you find feature directions corresponding to syntactic roles. The matrix is interpretable; you just have to look at it.
+For an MLP on images you see oriented edges and blobs — the same primitives Hubel and Wiesel found in V1. For a language model you find feature directions corresponding to syntactic roles. The matrix is interpretable; you just have to look at it.
 
 ---
 
@@ -94,13 +93,13 @@ $$\frac{\partial L}{\partial \mathbf{z}} \;=\; \frac{\partial L}{\partial \mathb
 $$\frac{\partial L}{\partial \mathbf{W}} \;=\; \frac{\partial L}{\partial \mathbf{z}}\,\mathbf{x}^{\top}, \qquad \frac{\partial L}{\partial \mathbf{b}} \;=\; \frac{\partial L}{\partial \mathbf{z}}$$
 4. **Pass to the previous layer** (transposed map):
 $$\frac{\partial L}{\partial \mathbf{x}} \;=\; \mathbf{W}^{\top}\,\frac{\partial L}{\partial \mathbf{z}}$$
-Why $\mathbf{W}^{\top}$? Because $\mathbf{W}$ pushes $\mathbf{x}$ forward; its transpose -- the **adjoint** -- pulls gradients back. This is exactly the duality theorem for linear maps, dressed up in calculus notation.
+Why $\mathbf{W}^{\top}$? Because $\mathbf{W}$ pushes $\mathbf{x}$ forward; its transpose — the **adjoint** — pulls gradients back. This is exactly the duality theorem for linear maps, dressed up in calculus notation.
 
 ### 2.2 Batched form
 
 For a batch $\mathbf{X} \in \mathbb{R}^{B \times d}$ with post-activation gradient $\boldsymbol{\Delta}$:
 $$\frac{\partial L}{\partial \mathbf{W}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{X}, \qquad \frac{\partial L}{\partial \mathbf{b}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{1}, \qquad \frac{\partial L}{\partial \mathbf{X}} \;=\; \boldsymbol{\Delta}\,\mathbf{W}$$
-Notice the parameter gradient is a **sum of outer products** -- contributions from every sample, all packaged in a single matmul.
+Notice the parameter gradient is a **sum of outer products** — contributions from every sample, all packaged in a single matmul.
 
 ```python
 import torch
@@ -189,8 +188,8 @@ print((conv2d_via_im2col(x, w, padding=1) - F.conv2d(x, w, padding=1))
 
 A standard $K\times K$ convolution costs $C_{\rm out}\,C_{\rm in}\,K^2$ parameters. **Depthwise-separable** convolution factors that tensor into two cheaper pieces:
 
-- **Depthwise:** each input channel convolved independently -- $C_{\rm in}\,K^2$ params.
-- **Pointwise ($1\times 1$):** mixes channels -- $C_{\rm out}\,C_{\rm in}$ params.
+- **Depthwise:** each input channel convolved independently — $C_{\rm in}\,K^2$ params.
+- **Pointwise ($1\times 1$):** mixes channels — $C_{\rm out}\,C_{\rm in}$ params.
 
 This is a **low-rank decomposition of the convolution weight tensor**. MobileNet, EfficientNet, ConvNeXt and every modern mobile vision model leans on it.
 
@@ -212,7 +211,7 @@ print(sum(p.numel() for p in DepthwiseSeparableConv(64, 128).parameters()))
 
 ---
 
-## 4. Attention Is a Soft Lookup -- Done with Three Matmuls
+## 4. Attention Is a Soft Lookup — Done with Three Matmuls
 
 ![Essence of Linear Algebra (16): Linear Algebra in Deep Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/illustration_2.png)
 
@@ -228,9 +227,9 @@ Read the four panels left to right:
 
 ![Scaled dot-product attention as four matrix steps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/fig4_attention.png)
 
-1. $\mathbf{Q}\mathbf{K}^{\top}$ -- an $n\times n$ matrix of all pairwise query-key dot products.
+1. $\mathbf{Q}\mathbf{K}^{\top}$ — an $n\times n$ matrix of all pairwise query-key dot products.
 2. Divide by $\sqrt{d_k}$. If each entry of $\mathbf{Q},\mathbf{K}$ is i.i.d. $\mathcal{N}(0,1)$, the dot product has variance $d_k$. Without the scale, large $d_k$ pushes softmax into saturation and the gradient dies. The $\sqrt{d_k}$ keeps the variance at 1, where softmax is well-conditioned.
-3. Row-wise softmax turns scores into a probability distribution -- the **attention weights**.
+3. Row-wise softmax turns scores into a probability distribution — the **attention weights**.
 4. Multiply by $\mathbf{V}$. Each output row is a convex combination of all value vectors, weighted by relevance.
 
 ```python
@@ -250,7 +249,7 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
 
 ### 4.3 Multi-head: many subspaces in parallel
 
-One attention head learns one notion of "relevance". Real language wants many -- syntactic, semantic, positional. Multi-head attention runs $h$ heads in parallel, each in a $d_k = d_{\rm model}/h$ subspace, then mixes them.
+One attention head learns one notion of "relevance". Real language wants many — syntactic, semantic, positional. Multi-head attention runs $h$ heads in parallel, each in a $d_k = d_{\rm model}/h$ subspace, then mixes them.
 $$\mathrm{MultiHead}(\mathbf{X}) = \mathrm{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}^O$$$$\text{head}_i = \mathrm{Attention}(\mathbf{X}\mathbf{W}_i^Q,\,\mathbf{X}\mathbf{W}_i^K,\,\mathbf{X}\mathbf{W}_i^V)$$
 The projection matrices $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V$ carve up the $d_{\rm model}$-dimensional embedding into $h$ disjoint subspaces; $\mathbf{W}^O$ glues the head outputs back together.
 
@@ -276,7 +275,7 @@ class MultiHeadAttention(nn.Module):
         return self.W_o(out), w
 ```
 
-The cost of vanilla attention is $O(n^2 d_k)$ in time and $O(n^2)$ in memory -- the $n\times n$ score matrix is the bottleneck for long sequences. FlashAttention re-tiles the computation so that matrix never lives in HBM; mathematically it is identical, just kinder to the memory hierarchy.
+The cost of vanilla attention is $O(n^2 d_k)$ in time and $O(n^2)$ in memory — the $n\times n$ score matrix is the bottleneck for long sequences. FlashAttention re-tiles the computation so that matrix never lives in HBM; mathematically it is identical, just kinder to the memory hierarchy.
 
 ---
 
@@ -287,7 +286,7 @@ A Transformer encoder layer is just four ingredients in a fixed pattern.
 - **Multi-head self-attention** (Section 4).
 - **Position-wise FFN.** A two-layer MLP, applied independently at each token position, that expands and re-projects:
 $$\mathrm{FFN}(\mathbf{x}) = \mathbf{W}_2\,\mathrm{ReLU}(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2$$
-- **Residual connections.** Every sublayer outputs $\mathbf{x} + \mathrm{sublayer}(\mathbf{x})$. The Jacobian becomes $\mathbf{I} + \mathbf{J}$, with eigenvalues clustered near 1 -- gradients always have an unobstructed shortcut backwards.
+- **Residual connections.** Every sublayer outputs $\mathbf{x} + \mathrm{sublayer}(\mathbf{x})$. The Jacobian becomes $\mathbf{I} + \mathbf{J}$, with eigenvalues clustered near 1 — gradients always have an unobstructed shortcut backwards.
 - **Layer normalization** (Section 6).
 
 The decoder adds **cross-attention** (queries from the decoder, keys/values from the encoder) and a **causal mask** that zeros out scores from the future:
@@ -299,7 +298,7 @@ def causal_mask(seq_len):
 
 Because there is no recurrence, the model needs **positional encoding** to know where each token sits. Sinusoidal encodings,
 $$\mathrm{PE}_{(\mathrm{pos}, 2i)} = \sin(\mathrm{pos}/10000^{2i/d}), \qquad \mathrm{PE}_{(\mathrm{pos}, 2i+1)} = \cos(\mathrm{pos}/10000^{2i/d})$$
-have the elegant property that $\mathrm{PE}_{\mathrm{pos}+k}$ is a **linear function** of $\mathrm{PE}_{\mathrm{pos}}$ -- relative position is encoded as a fixed rotation in feature space.
+have the elegant property that $\mathrm{PE}_{\mathrm{pos}+k}$ is a **linear function** of $\mathrm{PE}_{\mathrm{pos}}$ — relative position is encoded as a fixed rotation in feature space.
 
 ---
 
@@ -312,7 +311,7 @@ Activations drift during training. Normalization layers pull them back to a know
 Both apply $\hat{x} = (x - \mu)/\sqrt{\sigma^2 + \epsilon}$ followed by a learnable affine $\gamma\hat{x} + \beta$. The difference is **which axis the mean and variance are computed over**:
 
 - **BatchNorm:** for each feature, average over the batch dimension. Ties samples together; estimate quality depends on batch size; needs running averages at inference.
-- **LayerNorm:** for each sample, average over the feature dimension. Sample-independent, batch-size-independent, trivially parallel -- which is why every Transformer uses it.
+- **LayerNorm:** for each sample, average over the feature dimension. Sample-independent, batch-size-independent, trivially parallel — which is why every Transformer uses it.
 
 Reading the matrix mental model: BatchNorm standardises **columns** of the activation matrix, LayerNorm standardises **rows**.
 
@@ -350,7 +349,7 @@ Run a forward and backward pass through a 6-layer linear network with three diff
 
 ![Gradient flow through a deep network](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/fig5_backprop_flow.png)
 
-Naive init explodes. Tiny init vanishes. Only He init keeps both the activations and the gradients on a flat trajectory across layers. **Modern tricks for training depth** -- residual connections, careful init, normalization layers, gradient clipping -- are all variations on a single theme: keep the per-layer Jacobian's spectral radius near 1.
+Naive init explodes. Tiny init vanishes. Only He init keeps both the activations and the gradients on a flat trajectory across layers. **Modern tricks for training depth** — residual connections, careful init, normalization layers, gradient clipping — are all variations on a single theme: keep the per-layer Jacobian's spectral radius near 1.
 
 ---
 
@@ -370,7 +369,7 @@ with $\mathbf{A} \in \mathbb{R}^{r \times d_{\rm in}}$, $\mathbf{B} \in \mathbb{
 | Full fine-tuning of one layer | $d_{\rm in}\,d_{\rm out}$ |
 | LoRA (rank $r$) | $r\,(d_{\rm in} + d_{\rm out})$ |
 
-For $d_{\rm in} = d_{\rm out} = 4096$ and $r = 8$: 16.8M parameters become 65K -- **a 256x reduction**.
+For $d_{\rm in} = d_{\rm out} = 4096$ and $r = 8$: 16.8M parameters become 65K — **a 256x reduction**.
 
 ![LoRA: low-rank decomposition of the weight update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/fig7_lora_decomposition.png)
 
@@ -378,7 +377,7 @@ The top row visualises the factorisation: a fat $\Delta\mathbf{W}$ on the left e
 
 ### 8.2 Why low-rank works
 
-Empirically, the change in weights induced by fine-tuning lives in a low-dimensional subspace -- the "intrinsic rank" hypothesis of Aghajanyan et al. and Hu et al. By fixing $\mathrm{rank}(\Delta\mathbf{W}) \le r$ a priori, LoRA both saves parameters and acts as **structural regularization**: you can only move along $r$ directions, which prevents the catastrophic forgetting that full fine-tuning often suffers from.
+Empirically, the change in weights induced by fine-tuning lives in a low-dimensional subspace — the "intrinsic rank" hypothesis of Aghajanyan et al. and Hu et al. By fixing $\mathrm{rank}(\Delta\mathbf{W}) \le r$ a priori, LoRA both saves parameters and acts as **structural regularization**: you can only move along $r$ directions, which prevents the catastrophic forgetting that full fine-tuning often suffers from.
 
 ```python
 class LoRALinear(nn.Module):
@@ -427,7 +426,7 @@ Lay the chapter end to end:
 | Xavier / He init | variance preservation | $\sigma_{\max}$ near 1 per layer |
 | LoRA | $\Delta W = BA$, $\mathrm{rank} \le r$ | exploit low intrinsic dimension |
 
-The same handful of ideas -- linear maps, transposes, ranks, singular values -- explain everything modern deep learning does. The architectures that come and go are reshufflings of the same primitives.
+The same handful of ideas — linear maps, transposes, ranks, singular values — explain everything modern deep learning does. The architectures that come and go are reshufflings of the same primitives.
 
 ---
 
@@ -465,13 +464,13 @@ The same handful of ideas -- linear maps, transposes, ranks, singular values -- 
 ## Chapter Summary
 
 - Every neural network layer is a matrix multiplication wrapped in a nonlinearity. Batches turn this into one big GEMM, the operation GPUs were born to run.
-- Backpropagation is the matrix chain rule. The forward map's transpose is the backward map -- this is the adjoint duality, full stop.
+- Backpropagation is the matrix chain rule. The forward map's transpose is the backward map — this is the adjoint duality, full stop.
 - Convolutions become GEMMs via im2col. Depthwise-separable convolutions are a low-rank factorization of the convolution tensor.
 - Attention is a soft lookup: $\mathrm{softmax}(QK^{\top}/\sqrt{d_k})V$. Multi-head attention parallelises it across subspaces.
 - Initialization, normalization, and residual connections all serve one purpose: keep the per-layer Jacobian's spectral radius near 1.
 - LoRA exploits the empirically low intrinsic rank of fine-tuning updates: $\Delta W = BA$ with $r \ll \min(d_{\rm in}, d_{\rm out})$.
 
-Master these primitives and the next architecture won't look new -- it will look like a remix.
+Master these primitives and the next architecture won't look new — it will look like a remix.
 
 ---
 

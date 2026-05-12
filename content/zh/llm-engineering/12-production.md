@@ -4,8 +4,8 @@ date: 2026-04-07 09:00:00
 tags:
   - LLM
   - production
-  - deployment
-  - monitoring
+  - Deployment
+  - Monitoring
   - cost
   - autoscaling
 categories: 大模型工程

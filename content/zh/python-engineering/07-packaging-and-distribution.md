@@ -6,8 +6,7 @@ tags:
   - Packaging
   - Docker
   - PyPI
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "将 Python 代码打包为可分发形式，通过 pip 安装、发布至 PyPI、构建 Docker 镜像，并管理版本号。本指南完整覆盖从本地项目到可安装包的全流程。"

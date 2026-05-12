@@ -24,7 +24,7 @@ translationKey: "ml-math-derivations-17"
 
 ## What This Article Covers
 
-Feed a clustering algorithm $10{,}000$-dimensional data and it will most likely fail -- not because the algorithm is broken, but because **high-dimensional space is a hostile environment for distance-based learning**. Volumes evaporate into thin shells, the ratio of nearest- to farthest-neighbour distances tends to $1$, and "closeness" stops carrying information. Dimensionality reduction is the response: project the data into a lower-dimensional space while keeping the structure that actually matters.
+Feed a clustering algorithm $10{,}000$-dimensional data and it will most likely fail — not because the algorithm is broken, but because **high-dimensional space is a hostile environment for distance-based learning**. Volumes evaporate into thin shells, the ratio of nearest- to farthest-neighbour distances tends to $1$, and "closeness" stops carrying information. Dimensionality reduction is the response: project the data into a lower-dimensional space while keeping the structure that actually matters.
 
 **What you will learn:**
 
@@ -93,7 +93,7 @@ and the projected variance is exactly $\mathbf{w}_1^\top \mathbf{S}\, \mathbf{w}
 
 ![PCA on a 2D Gaussian cloud](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig1_pca_2d_gaussian.png)
 
-The figure makes the geometry concrete on a correlated $2$D Gaussian cloud. In panel (a) the orange arrow (PC1) is the direction of maximum spread of the data; the green arrow (PC2) is orthogonal to it and absorbs whatever variance remains. The two ellipses are the $1\sigma$ and $2\sigma$ contours of the empirical Gaussian. Panel (b) shows the same points after the rigid rotation $\mathbf{z}_i = \mathbf{W}^\top \mathbf{x}_i$: PC1 becomes the horizontal axis, PC2 the vertical axis, and the data is now decorrelated -- its empirical covariance is the diagonal matrix $\mathrm{diag}(\lambda_1, \lambda_2)$. PCA is, geometrically, just **the rotation that aligns the coordinate axes with the data's principal axes**.
+The figure makes the geometry concrete on a correlated $2$D Gaussian cloud. In panel (a) the orange arrow (PC1) is the direction of maximum spread of the data; the green arrow (PC2) is orthogonal to it and absorbs whatever variance remains. The two ellipses are the $1\sigma$ and $2\sigma$ contours of the empirical Gaussian. Panel (b) shows the same points after the rigid rotation $\mathbf{z}_i = \mathbf{W}^\top \mathbf{x}_i$: PC1 becomes the horizontal axis, PC2 the vertical axis, and the data is now decorrelated — its empirical covariance is the diagonal matrix $\mathrm{diag}(\lambda_1, \lambda_2)$. PCA is, geometrically, just **the rotation that aligns the coordinate axes with the data's principal axes**.
 
 ### 2.3 The full set of principal components
 
@@ -152,7 +152,7 @@ The figure shows what (3) means visually on the digits dataset. The MSE curve fa
 
 ### 4.1 Where linear PCA fails
 
-Linear PCA can only ever rotate and project; it cannot bend. If the data lies on a curved manifold -- two concentric circles, a Swiss roll, a sphere -- then no linear projection can preserve its structure.
+Linear PCA can only ever rotate and project; it cannot bend. If the data lies on a curved manifold — two concentric circles, a Swiss roll, a sphere — then no linear projection can preserve its structure.
 
 ### 4.2 PCA in feature space
 
@@ -168,7 +168,7 @@ and eigendecompose $\tilde{\mathbf{K}}\, \boldsymbol{\alpha}_k = N \tilde{\lambd
 $$z_k(\mathbf{x}) = \sum_{i=1}^{N} \alpha_{k,i}\, k(\mathbf{x}_i, \mathbf{x}).$$
 ![Kernel PCA on a swiss roll](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig6_kernel_pca_swissroll.png)
 
-The Swiss roll is the canonical illustration. The original $3$D manifold is a $2$D sheet rolled up in space; colour encodes position along the sheet. Linear PCA (middle) projects the roll onto a flat plane, **folding distant parts of the manifold on top of each other** -- yellow ends up next to red. Kernel PCA with an RBF kernel (right) effectively performs PCA in the high-dimensional feature space where the roll becomes more linear, and unrolls the sheet so neighbouring colours end up next to each other in $2$D.
+The Swiss roll is the canonical illustration. The original $3$D manifold is a $2$D sheet rolled up in space; colour encodes position along the sheet. Linear PCA (middle) projects the roll onto a flat plane, **folding distant parts of the manifold on top of each other** — yellow ends up next to red. Kernel PCA with an RBF kernel (right) effectively performs PCA in the high-dimensional feature space where the roll becomes more linear, and unrolls the sheet so neighbouring colours end up next to each other in $2$D.
 
 **Cost.** Linear PCA is $O(d^3 + Nd^2)$; kernel PCA is $O(N^3 + N^2 d)$. When $N \ll d$ (e.g. genomics with thousands of features and hundreds of samples) kernel PCA can actually be cheaper.
 
@@ -182,7 +182,7 @@ PCA ignores labels. If your downstream task is classification, this is wasteful:
 
 With two classes $C_1, C_2$ of sizes $N_1, N_2$ and class means $\boldsymbol{\mu}_1, \boldsymbol{\mu}_2$, define
 $$\mathbf{S}_B = (\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)^\top \quad \text{(between-class scatter)}$$$$\mathbf{S}_W = \sum_{c=1}^{2} \sum_{i \in C_c}(\mathbf{x}_i - \boldsymbol{\mu}_c)(\mathbf{x}_i - \boldsymbol{\mu}_c)^\top \quad \text{(within-class scatter)}$$
-Maximise **Fisher's criterion** -- the ratio of the projected between-class to within-class variance:
+Maximise **Fisher's criterion** — the ratio of the projected between-class to within-class variance:
 $$J(\mathbf{w}) = \frac{\mathbf{w}^\top \mathbf{S}_B\, \mathbf{w}}{\mathbf{w}^\top \mathbf{S}_W\, \mathbf{w}}. \tag{4}$$
 Setting $\nabla J = 0$ gives the generalised eigenvalue problem $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$; using the rank-$1$ structure of $\mathbf{S}_B$ this collapses to the closed form
 $$\mathbf{w}^* \propto \mathbf{S}_W^{-1}(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2). \tag{5}$$
@@ -190,7 +190,7 @@ $$\mathbf{w}^* \propto \mathbf{S}_W^{-1}(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2
 
 For $C$ classes, generalise $\mathbf{S}_B$ with the global mean $\boldsymbol{\mu}$:
 $$\mathbf{S}_B = \sum_{c=1}^{C} N_c\, (\boldsymbol{\mu}_c - \boldsymbol{\mu})(\boldsymbol{\mu}_c - \boldsymbol{\mu})^\top.$$
-Solve $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$ for the top eigenvectors. Because $\mathbf{S}_B$ is a sum of $C$ rank-$1$ matrices whose summands are constrained by $\sum_c N_c (\boldsymbol{\mu}_c - \boldsymbol{\mu}) = 0$, $\mathrm{rank}(\mathbf{S}_B) \le C - 1$ -- so **LDA can output at most $C - 1$ components**. This is a hard ceiling that is easy to forget in practice.
+Solve $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$ for the top eigenvectors. Because $\mathbf{S}_B$ is a sum of $C$ rank-$1$ matrices whose summands are constrained by $\sum_c N_c (\boldsymbol{\mu}_c - \boldsymbol{\mu}) = 0$, $\mathrm{rank}(\mathbf{S}_B) \le C - 1$ — so **LDA can output at most $C - 1$ components**. This is a hard ceiling that is easy to forget in practice.
 
 ### 5.3 PCA vs LDA at a glance
 
@@ -207,19 +207,19 @@ Solve $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$ for the top 
 
 ![ML Math Derivations (17): Dimensionality Reduction and PCA — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_2.png)
 
-PCA preserves *global* structure (variance, distances); for $2$D visualisation that is often the wrong objective. A user looking at a scatter plot wants to see **clusters** -- which usually means preserving local neighbourhoods. **t-SNE** does exactly this with a probabilistic formulation.
+PCA preserves *global* structure (variance, distances); for $2$D visualisation that is often the wrong objective. A user looking at a scatter plot wants to see **clusters** — which usually means preserving local neighbourhoods. **t-SNE** does exactly this with a probabilistic formulation.
 
 ### 6.1 High-dimensional similarities
 
 For each pair $(i, j)$ define a symmetric similarity from per-point Gaussians:
 $$p_{j \mid i} = \frac{\exp(-\|\mathbf{x}_i - \mathbf{x}_j\|^2 / 2\sigma_i^2)}{\sum_{k \ne i} \exp(-\|\mathbf{x}_i - \mathbf{x}_k\|^2 / 2\sigma_i^2)}, \qquad p_{ij} = \frac{p_{j \mid i} + p_{i \mid j}}{2N}.$$
-The bandwidth $\sigma_i$ is set per point by binary search so that the **perplexity**, $2^{H(P_i)}$, matches a user-chosen value -- effectively the number of effective neighbours each point should have.
+The bandwidth $\sigma_i$ is set per point by binary search so that the **perplexity**, $2^{H(P_i)}$, matches a user-chosen value — effectively the number of effective neighbours each point should have.
 
 ### 6.2 Low-dimensional similarities and the heavy tail
 
 In the embedding space use a Student-$t$ (Cauchy) kernel:
 $$q_{ij} = \frac{(1 + \|\mathbf{y}_i - \mathbf{y}_j\|^2)^{-1}}{\sum_{k \ne l}(1 + \|\mathbf{y}_k - \mathbf{y}_l\|^2)^{-1}}. \tag{6}$$
-Why a heavy tail? In $2$D there is far less "room" than in the original space, so moderately distant points have to crowd together. The Cauchy distribution decays as $\|y\|^{-2}$ instead of the Gaussian's $\exp(-\|y\|^2)$, which gives those distant points more space to spread out -- this is the **crowding problem** fix.
+Why a heavy tail? In $2$D there is far less "room" than in the original space, so moderately distant points have to crowd together. The Cauchy distribution decays as $\|y\|^{-2}$ instead of the Gaussian's $\exp(-\|y\|^2)$, which gives those distant points more space to spread out — this is the **crowding problem** fix.
 
 ### 6.3 Optimisation
 
@@ -229,7 +229,7 @@ If $p_{ij} > q_{ij}$ the term is **attractive** (the points are similar in the o
 
 ![PCA vs LDA vs t-SNE](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig5_pca_lda_tsne.png)
 
-The figure runs all three methods on the digits dataset. PCA (left) packs the variance into two axes but most digit classes are heavily overlapped -- variance is not class identity. LDA (middle) explicitly maximises class separation and produces visible class-coloured stripes, but it is restricted to $C - 1 = 9$ output dimensions. t-SNE (right) ignores variance and global geometry entirely; it warps the embedding to keep local neighbours together, producing the crisp, well-separated cluster blobs that you have probably seen in many machine-learning papers.
+The figure runs all three methods on the digits dataset. PCA (left) packs the variance into two axes but most digit classes are heavily overlapped — variance is not class identity. LDA (middle) explicitly maximises class separation and produces visible class-coloured stripes, but it is restricted to $C - 1 = 9$ output dimensions. t-SNE (right) ignores variance and global geometry entirely; it warps the embedding to keep local neighbours together, producing the crisp, well-separated cluster blobs that you have probably seen in many machine-learning papers.
 
 > **Caveat for practice.** t-SNE is a visualisation tool, not a clustering tool. Inter-cluster distances and cluster sizes in a t-SNE plot are not meaningful, and the result depends on the random seed, perplexity, and number of iterations. Cluster in the original space (or in PCA space); use t-SNE only to **show** the result.
 
@@ -237,16 +237,16 @@ The figure runs all three methods on the digits dataset. PCA (left) packs the va
 
 ## 7. ICA: When You Need Independence, Not Just Decorrelation
 
-PCA finds **orthogonal** directions of maximum variance. Two PCA components are uncorrelated -- but uncorrelated is much weaker than independent. If the underlying signals are truly independent and non-Gaussian, you can recover them with **Independent Component Analysis (ICA)**.
+PCA finds **orthogonal** directions of maximum variance. Two PCA components are uncorrelated — but uncorrelated is much weaker than independent. If the underlying signals are truly independent and non-Gaussian, you can recover them with **Independent Component Analysis (ICA)**.
 
 The classical setup is the **cocktail-party problem**: $K$ microphones record linear mixtures of $K$ independent sources
 $$\mathbf{x} = A\, \mathbf{s},$$
 
-and you want to recover $\mathbf{s}$ given only $\mathbf{x}$ and the assumption that the $s_j$ are mutually independent and at most one of them is Gaussian. ICA solves this by finding an unmixing matrix $W$ that maximises the **non-Gaussianity** of the recovered components $\mathbf{y} = W\mathbf{x}$ -- typically via a contrast function such as negentropy or kurtosis. The intuition is the central limit theorem: any linear mixture of independent variables is "more Gaussian" than the variables themselves, so the un-mixed components should be the *least* Gaussian directions you can find.
+and you want to recover $\mathbf{s}$ given only $\mathbf{x}$ and the assumption that the $s_j$ are mutually independent and at most one of them is Gaussian. ICA solves this by finding an unmixing matrix $W$ that maximises the **non-Gaussianity** of the recovered components $\mathbf{y} = W\mathbf{x}$ — typically via a contrast function such as negentropy or kurtosis. The intuition is the central limit theorem: any linear mixture of independent variables is "more Gaussian" than the variables themselves, so the un-mixed components should be the *least* Gaussian directions you can find.
 
 ![ICA vs PCA on source separation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig7_ica_vs_pca.png)
 
-The figure shows what this means concretely. The top row are two true independent sources -- a sine and a square wave. The second row are two observed mixtures (each microphone hears both sources). PCA in the third row finds the orthogonal directions of maximum variance, but these axes are *not* the original sources -- you can see the sine and square shapes interfering inside each component. ICA in the bottom row recovers the original sources almost exactly (up to sign and scale, which are inherent ambiguities of the ICA model).
+The figure shows what this means concretely. The top row are two true independent sources — a sine and a square wave. The second row are two observed mixtures (each microphone hears both sources). PCA in the third row finds the orthogonal directions of maximum variance, but these axes are *not* the original sources — you can see the sine and square shapes interfering inside each component. ICA in the bottom row recovers the original sources almost exactly (up to sign and scale, which are inherent ambiguities of the ICA model).
 
 This is the cleanest way to remember the difference: **PCA decorrelates, ICA separates**. Use PCA for compression and visualisation; use ICA when you have reason to believe your data is a mixture of independent generative sources (audio separation, EEG denoising, fMRI component analysis).
 
@@ -287,7 +287,7 @@ A reasonable default workflow when you meet new tabular data: **standardise -> P
 
 **Exercise 5 (PCA whitening).** What is it and what is it good for?
 
-> **Solution.** The whitening transform $\mathbf{z} = \boldsymbol{\Lambda}^{-1/2} \mathbf{W}^\top \mathbf{x}$ produces components with identity covariance -- decorrelated and unit-variance. It is a common preprocessing step before ICA (which assumes whitened input) and a useful normalisation before training models that are sensitive to feature scale.
+> **Solution.** The whitening transform $\mathbf{z} = \boldsymbol{\Lambda}^{-1/2} \mathbf{W}^\top \mathbf{x}$ produces components with identity covariance — decorrelated and unit-variance. It is a common preprocessing step before ICA (which assumes whitened input) and a useful normalisation before training models that are sensitive to feature scale.
 
 ---
 
@@ -311,4 +311,4 @@ A reasonable default workflow when you meet new tabular data: **standardise -> P
 
 ---
 
-*This is Part 17 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 18 -- Clustering Algorithms](/en/ml-math-derivations/18-clustering-algorithms/). Previous: [Part 16 -- Conditional Random Fields](/en/ml-math-derivations/16-conditional-random-fields).*
+*This is Part 17 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 18 — Clustering Algorithms](/en/ml-math-derivations/18-clustering-algorithms/). Previous: [Part 16 — Conditional Random Fields](/en/ml-math-derivations/16-conditional-random-fields).*

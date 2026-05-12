@@ -7,8 +7,7 @@ tags:
   - MongoDB
   - Redis
   - Cassandra
-categories:
-  - Databases
+categories: Databases
 series: databases
 lang: zh
 description: "一次面向实践的四大 NoSQL 家族巡礼——文档型、键值型、宽列式与图数据库，涵盖 CAP 定理及各类模型的适用场景。"

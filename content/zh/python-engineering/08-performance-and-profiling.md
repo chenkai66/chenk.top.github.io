@@ -6,8 +6,7 @@ tags:
   - Performance
   - Profiling
   - Optimization
-categories:
-  - Python Engineering
+categories: Python Engineering
 series: python-engineering
 lang: zh
 description: "通过性能分析定位真实瓶颈，仅在关键路径上应用缓存与向量化，并避免过早优化的陷阱。"
