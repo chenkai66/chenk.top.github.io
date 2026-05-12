@@ -1,6 +1,6 @@
 ---
-title: "优化算法的演进：从梯度下降到 Adam（再到 2025 之后）"
-date: 2022-09-28 09:00:00
+title: "优化理论（三）：梯度下降族——从 SGD 到 AdamW 与 Lion"
+date: 2022-09-16 09:00:00
 tags:
   - ML
   - Optimization
@@ -11,7 +11,9 @@ lang: zh
 mathjax: true
 description: "一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。"
 disableNunjucks: true
-translationKey: "optimizer-evolution-gd-to-adam"
+translationKey: "optim-03"
+series: optimization-theory
+series_order: 3
 ---
 
 为什么训练 ResNet 时大家都说"调 LR 是手艺活"，到了 GPT/LLaMA 这一代，几乎所有论文却清一色地写 "AdamW，$\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$"？这不是巧合——它是**优化器三十年演进**的最终收敛点。

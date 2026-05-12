@@ -1,39 +1,174 @@
 ---
-title: "Solving Constrained Mean-Variance Portfolio Optimization Using Spiral Optimization"
-date: 2026-01-18 09:00:00
+title: "Optimization (12): Discrete and Global Optimization -- IP, Branch-and-Bound, Heuristics, and a Portfolio Case Study"
+date: 2022-09-30 09:00:00
 tags:
+  - Optimization
+  - Discrete Optimization
   - Portfolio Optimization
   - Metaheuristics
-categories: Paper
+categories: Algorithm
 lang: en
 mathjax: true
-description: "Apply Spiral Optimization Algorithm (SOA) to mean-variance portfolio problems with buy-in thresholds and cardinality constraints. Covers MINLP formulation, penalty methods, and performance comparison."
+description: "When variables are integer-valued or the problem is non-convex with multiple basins, classical convex methods stop working. This article surveys what does work: integer programming via branch-and-bound, LP relaxation gap analysis, the heuristic taxonomy (PSO, GA, SOA, simulated annealing), and a deep walk-through of the Spiral Optimization Algorithm applied to constrained mean-variance portfolio optimization."
 disableNunjucks: true
-translationKey: "solving-constrained-mean-variance-portfolio-optimization-pro"
+translationKey: "optim-12"
+series: optimization-theory
+series_order: 12
 ---
 
-Markowitz's mean-variance model is elegant until you add real trading constraints: "if you buy a stock at all, hold at least 5% of it" and "pick exactly 10 names from the S&P 500." The closed-form quadratic program quietly mutates into a *mixed-integer nonlinear program* (MINLP), and the standard solver chain (Lagrange multipliers, KKT conditions, interior-point methods) stops working. The paper reviewed here applies the **Spiral Optimization Algorithm** (SOA), a population-based metaheuristic, to this problem and shows it can find competitive feasible solutions where gradient methods fail outright.
+The first eleven articles in this series tackled **continuous convex** problems (or convex relaxations of non-convex ones). This final article confronts two harder regimes:
 
-This note is a deep walk-through of the formulation, the algorithm, and the numerical evidence, with my own commentary on where SOA actually earns its keep and where it does not.
+- **Discrete optimization**: variables take integer or combinatorial values. The feasible set is a finite (but exponentially large) collection of points. Linear and convex tools no longer apply directly — there are no derivatives across the integer lattice.
+- **Global non-convex optimization**: variables are continuous but the function has many local minima, and we want the *global* one. Methods like Newton and L-BFGS only find local minima.
 
-## What You Will Learn
+Both regimes share a key feature: **provably optimal algorithms are exponential** in the worst case. Practical solutions come from (a) exact algorithms with smart pruning (branch-and-bound), and (b) heuristics that find good (not optimal) solutions in polynomial time.
 
-- The classical mean-variance problem and the precise mathematical step at which adding cardinality / buy-in constraints converts it from a quadratic program into an MINLP.
+This article:
+
+1. Reviews integer programming and the branch-and-bound algorithm with the LP relaxation as the bounding mechanism.
+2. Surveys the heuristic landscape — particle swarm, genetic algorithms, simulated annealing, spiral optimization — and where each fits.
+3. Walks through a substantial case study: applying the Spiral Optimization Algorithm to a constrained mean-variance portfolio problem (a mixed-integer nonlinear program, MINLP).
+
+## What you will learn
+
+- The integer programming formulation and how branch-and-bound prunes the search tree using LP relaxation bounds.
+- Cutting planes, Gomory cuts, and the modern branch-and-cut framework that powers commercial MIP solvers.
+- The heuristic taxonomy: trajectory-based (SA, tabu) vs population-based (GA, PSO, SOA), and a decision rubric for choosing among them.
+- How a quadratic program turns into a mixed-integer nonlinear program when you add cardinality and buy-in constraints.
 - The SOA update rule, why a rotation matrix plus geometric radius decay produces a useful exploration-exploitation schedule, and how it differs from PSO and GA.
 - How to handle integer + box constraints with quadratic penalties (and why the penalty weight $\rho$ is the most subtle hyperparameter).
-- A concrete five-asset benchmark with reproducible numbers, plus a synthetic backtest comparing SOA-MINLP against equal weight and the unconstrained Markowitz portfolio.
-- Honest scaling and reproducibility caveats: SOA is stochastic, has no optimality certificate, and degrades past roughly $n=100$ assets.
+- Concrete numerical results from a published benchmark and an out-of-sample backtest, with commentary on what the evidence does and does not support.
 
 ## Prerequisites
 
-- Basic portfolio theory (expected return, variance, covariance matrix, the efficient frontier).
-- General optimization vocabulary (objective, constraints, feasibility, local vs global optima).
+Articles 08 (Lagrangian duality), 09 (interior-point) for the LP/QP solver mentions. Otherwise self-contained.
 
 ---
 
-## 1. From Quadratic Program to MINLP
+## Part A: Integer Programming and Branch-and-Bound
 
-### 1.1 The classical mean-variance problem
+### A.1 The integer programming problem
+
+A general **mixed-integer linear program** (MILP) is
+$$
+\begin{aligned}
+\min_{x, z} \quad & c^\top x + d^\top z \\
+\text{s.t.} \quad & A x + B z \leq b \\
+& x \in \mathbb{R}^n_+, \quad z \in \mathbb{Z}^p_+.
+\end{aligned}
+$$
+The integer variables $z$ make this NP-hard: even feasibility of pure 0-1 integer programs is NP-complete (it encodes 3SAT). The continuous variables $x$ can model production levels, prices, etc., while integer variables model decisions ("open this facility?", "use this route?").
+
+The naive approach — enumerate all $2^p$ values of $z$, solve an LP for each — is hopeless for $p > 30$. Branch-and-bound is what makes practical MILPs solvable.
+
+### A.2 LP relaxation
+
+Drop the integrality constraint to get the **LP relaxation**:
+$$
+\min \, c^\top x + d^\top z \quad \text{s.t.} \quad A x + B z \leq b, \ x, z \geq 0.
+$$
+This LP gives a **lower bound** on the MILP optimum (any MILP-feasible solution is also LP-feasible). Solving it in polynomial time (interior-point methods, article 09) is the building block of all serious MILP solvers.
+
+If the LP relaxation happens to have integer-valued $z^\star_{LP}$, we are done. Otherwise, pick a fractional $z^\star_{LP, j} \notin \mathbb{Z}$ and **branch**.
+
+### A.3 Branch-and-bound
+
+```
+Algorithm: Branch-and-Bound for MILP
+Initialize: incumbent UB = +∞, problem queue = {original LP relaxation}
+while queue not empty:
+    Pop a sub-problem P from the queue
+    Solve P's LP relaxation, get LB_P
+    if LB_P ≥ UB: prune (this branch can't beat incumbent)
+    if LB_P solution is integer-feasible:
+        if c^T sol < UB: UB ← c^T sol, save incumbent
+    else:
+        Pick fractional variable z_j with value z_j^*
+        Branch: queue += {P + (z_j ≤ ⌊z_j^*⌋), P + (z_j ≥ ⌈z_j^*⌉)}
+return incumbent
+```
+
+Three key concepts:
+
+- **Pruning by bound**: if the LP relaxation of a sub-problem already exceeds the best known integer solution, that entire sub-tree is discarded.
+- **Pruning by infeasibility**: if a sub-problem's LP is infeasible, the sub-tree is empty.
+- **Pruning by integrality**: if the LP relaxation happens to be integer-feasible, that's a leaf.
+
+In the best case, branch-and-bound prunes most of the tree and finds the optimum after solving polynomially many LPs. In the worst case it still enumerates all $2^p$ leaves — confirming that the algorithm is exponential in the worst case.
+
+### A.4 Cutting planes
+
+A **cutting plane** is an inequality $\alpha^\top z \leq \beta$ that is satisfied by every integer-feasible $z$ but violated by the current LP relaxation optimum. Adding cuts tightens the LP relaxation, raising the lower bound and pruning more aggressively.
+
+**Gomory cut**. From the simplex tableau of the LP optimum, if a basic variable $z_j$ has value $\bar z_j = \lfloor \bar z_j \rfloor + f_j$ with $0 < f_j < 1$, then
+$$
+\sum_k \mathrm{frac}(\bar a_{jk}) \cdot z_k \geq f_j
+$$
+holds for every integer $z$ but not for the fractional LP optimum. (Here $\bar a_{jk}$ are the tableau entries and $\mathrm{frac}(x) = x - \lfloor x \rfloor$.)
+
+Modern MILP solvers (Gurobi, CPLEX, SCIP) use 10+ kinds of cuts: Gomory, mixed-integer rounding, lift-and-project, clique cuts, flow cover cuts. The modern algorithm is **branch-and-cut**: at each node, try to add violated cuts before branching.
+
+### A.5 What you can solve in practice
+
+| Problem size            | Realistic with modern solvers? |
+| ----------------------- | ------------------------------ |
+| 0--1 IP, 100 vars       | Yes, seconds to minutes.       |
+| 0--1 IP, 1000 vars      | Often yes, minutes to hours.   |
+| Mixed IP, 10K vars      | Sometimes, depends on structure. |
+| Mixed IP, $\geq 100$K   | Usually requires decomposition (Benders, column generation). |
+
+The frontier moves: problems considered intractable in 1990 are routine today, due to a $10^{12}$ × speedup from algorithm improvements (cuts, presolve) and a $10^6$ × speedup from hardware.
+
+---
+
+## Part B: Heuristics for Hard Problems
+
+When branch-and-bound is too slow or the problem is non-linear (MINLP), heuristics are the fallback. They sacrifice optimality guarantees for tractable runtime.
+
+### B.1 Taxonomy
+
+| Family          | Examples                          | Strengths                                  |
+| --------------- | --------------------------------- | ------------------------------------------ |
+| Trajectory      | Hill climbing, simulated annealing, tabu search | Simple, low-memory, good for combinatorial |
+| Population      | Genetic algorithms, PSO, SOA, differential evolution | Parallelizable, escapes local minima       |
+| Constructive    | Greedy, ant colony, GRASP         | Build solutions step by step                |
+| Hybrid          | Memetic algorithms, large-neighborhood search | Combine local and global search             |
+
+**Simulated annealing (SA)**: random walk on the solution space, accepting moves that improve and accepting worse moves with probability $e^{-\Delta f / T}$. The temperature $T$ decays over time — high $T$ explores, low $T$ exploits. Theoretically converges to the global optimum if $T$ decays slowly enough; practically requires careful cooling schedules.
+
+**Genetic algorithm (GA)**: maintain a population of solutions; combine pairs via crossover and mutation; keep the best. Handles binary and categorical decision variables naturally. Notoriously sensitive to operator design.
+
+**Particle swarm (PSO)**: $N$ particles each with position $x_i$ and velocity $v_i$ in continuous space; velocity updates pull each particle toward the swarm-best and its own best:
+$$
+v_i \leftarrow w v_i + c_1 r_1 (p_i^{\text{best}} - x_i) + c_2 r_2 (p^{\text{global best}} - x_i).
+$$
+Strong on continuous problems with multiple basins.
+
+**Spiral optimization (SOA)**: similar to PSO but each particle follows a logarithmic spiral toward the current incumbent, with the spiral's radius shrinking geometrically. We treat this in detail in the case study below.
+
+### B.2 Choosing among heuristics
+
+| If your problem is...                                   | Try...                          |
+| ------------------------------------------------------- | ------------------------------- |
+| Binary / combinatorial (TSP, scheduling)                | SA, tabu, GA                    |
+| Continuous with multiple basins                         | PSO, DE, CMA-ES, SOA            |
+| Mixed integer with continuous variables                 | Hybrid (GA outer + LP inner)    |
+| Convex but very large                                   | Don't use heuristics; use IPM/SGD |
+| Black-box (no gradient, expensive function evaluations) | Bayesian optimization, GA       |
+
+The dominant lesson from the literature: no heuristic uniformly dominates. Choosing the right one for a problem is craftsmanship. Worth tuning for a few weeks if the problem will be solved repeatedly; otherwise just use whatever is in your favorite library.
+
+---
+
+## Part C: Case Study — The Spiral Optimization Algorithm on a Mean-Variance Portfolio
+
+The remainder of this article is a deep walk-through of applying SOA to a real MINLP from finance. The running example is constrained mean-variance portfolio selection.
+
+Markowitz's mean-variance model is elegant until you add real trading constraints: "if you buy a stock at all, hold at least 5% of it" and "pick exactly 10 names from the S&P 500." The closed-form quadratic program quietly mutates into a *mixed-integer nonlinear program* (MINLP), and the standard solver chain (Lagrange multipliers, KKT conditions, interior-point methods) stops working. The case study reviewed here applies the **Spiral Optimization Algorithm** (SOA), a population-based metaheuristic, to this problem and shows it can find competitive feasible solutions where gradient methods fail outright.
+
+## 4. From Quadratic Program to MINLP
+
+### 4.1 The classical mean-variance problem
 
 Let $\mathbf{y} \in \mathbb{R}^n$ be the vector of capital fractions, $\overline{\mathbf{r}} \in \mathbb{R}^n$ the vector of expected asset returns, and $Q \in \mathbb{R}^{n \times n}$ the positive semidefinite covariance matrix of returns. For a target portfolio return $R_p$, the *long-only* mean-variance problem is
 
@@ -50,7 +185,7 @@ where $\mathbf{e}$ is the all-ones vector. This is a convex quadratic program. S
 
 The figure above shows the geometry on a five-asset universe. The cloud of dots is 5,000 random portfolios sampled uniformly from the simplex (coloured by Sharpe-like ratio). The purple curve is the unconstrained efficient frontier (shorting permitted), and the dashed blue curve is the *cardinality-constrained* frontier with $K=3$. Two observations are immediate: (i) the cardinality-constrained frontier sits to the right of the unconstrained one at every return level (less choice means less diversification, which means more risk), and (ii) the gap between the two is *not* uniform in $R_p$. At extreme returns the gap widens because only a few combinations can hit the target at all.
 
-### 1.2 Adding the buy-in threshold
+### 4.2 Adding the buy-in threshold
 
 Real desks rarely hold a 0.3% position in a stock. The buy-in threshold says: if you hold asset $i$ at all, hold at least $l_i$. Introduce a binary indicator $z_i \in \{0, 1\}$ for inclusion and link it to $y_i$ via box constraints:
 
@@ -58,7 +193,7 @@ $$l_i z_i \leq y_i \leq u_i z_i, \qquad 0 < l_i < u_i \leq 1, \qquad z_i \in \{0
 
 When $z_i = 0$ the entire row collapses to $y_i = 0$. When $z_i = 1$ the weight is forced into $[l_i, u_i]$. This is the precise mathematical instant at which the problem becomes mixed-integer: the feasible set is now a finite union of polytopes (one per choice of $\mathbf{z}$), and convexity is gone.
 
-### 1.3 Adding the cardinality constraint
+### 4.3 Adding the cardinality constraint
 
 The cardinality constraint pins the portfolio to exactly $K$ assets:
 
@@ -77,9 +212,9 @@ $$\begin{aligned}
 
 This object has $\binom{n}{K}$ combinatorial branches. Even at $n = 100, K = 10$ that is $1.7 \times 10^{13}$ subsets, well outside what brute-force enumeration can touch. Branch-and-bound MINLP solvers (BARON, SCIP, Bonmin) can attack it but their wall clock grows quickly; this is the scale at which metaheuristics become attractive.
 
-## 2. The Spiral Optimization Algorithm
+## 5. The Spiral Optimization Algorithm
 
-### 2.1 Update rule
+### 5.1 Update rule
 
 SOA, introduced by Tamura and Yasuda (2011), is a population-based metaheuristic inspired by the logarithmic spirals seen in plant phyllotaxis and galactic arms. At iteration $k$, each candidate $\mathbf{x}_k^{(j)}$ is updated toward the current best $\mathbf{x}^*$ via
 
@@ -91,7 +226,7 @@ where $R(\theta)$ is a $d$-dimensional rotation matrix with angle $\theta$, and 
 
 The left panel shows the trajectories of five candidates initialised in the four quadrants of a non-convex landscape. The amber star marks the current best (which happens to be the global minimum here). Each candidate spirals inward, sampling the loss along the way. The right panel makes the *exploration vs exploitation* trade-off explicit: the geometric envelope $r^k$ governs how fast the spiral collapses. A slow shrink ($r = 0.95$) keeps candidates wandering far from $\mathbf{x}^*$ for many iterations (more exploration), while a fast shrink ($r = 0.85$) collapses them quickly onto the incumbent (more exploitation).
 
-### 2.2 Why the spiral specifically?
+### 5.2 Why the spiral specifically?
 
 Compared to other metaheuristics:
 
@@ -101,13 +236,13 @@ Compared to other metaheuristics:
 
 SOA's selling point is that the rotation $R(\theta)$ guarantees the candidate cycles around the incumbent (so it samples *different* directions deterministically), while the contraction $r$ guarantees eventual convergence. The exploration-exploitation balance reduces to a single hyperparameter: the spectral radius of $r R(\theta)$.
 
-### 2.3 Updating the incumbent
+### 5.3 Updating the incumbent
 
 After each candidate is moved, the population is re-evaluated and $\mathbf{x}^*$ is updated to the best point seen so far. This is the only stochastic element in classical SOA: the initial sampling. Some variants (including the one in the paper) inject random perturbations on candidates that have stagnated, to escape the basin of the current incumbent.
 
-## 3. Constraint Handling
+## 6. Constraint Handling
 
-### 3.1 Quadratic penalty
+### 6.1 Quadratic penalty
 
 The paper handles all constraints with a quadratic penalty:
 
@@ -127,7 +262,7 @@ The integer constraint $z_i \in \{0,1\}$ is enforced by *rounding*: SOA searches
 
 The left panel shows what the penalty does on a 1-D weight slice: the raw variance $V(y)$ (grey dashed) has its minimum sitting in the infeasible region (purple dot, below the buy-in threshold). Adding $\rho \cdot P(y)$ produces sharp parabolic walls outside the feasible band $[l, u]$; the resulting penalised objective (solid blue) has its optimum pulled into the green strip (amber diamond). The right panel shows a 2-D feasibility map for two assets with cardinality $K=1$: only the green region is feasible. Crosses are infeasible candidates, dots are feasible ones.
 
-### 3.2 The penalty weight $\rho$ is subtle
+### 6.2 The penalty weight $\rho$ is subtle
 
 This is the most-fiddled hyperparameter in metaheuristic-with-penalty literature, and it is genuinely tricky:
 
@@ -137,13 +272,13 @@ This is the most-fiddled hyperparameter in metaheuristic-with-penalty literature
 
 A more robust alternative is the *augmented Lagrangian* approach, which adapts $\rho$ over iterations based on observed violations. The paper does not use this, so re-tuning $\rho$ is part of the cost when porting the method to a new universe.
 
-### 3.3 Repair operators
+### 6.3 Repair operators
 
 After each spiral update, candidates can drift outside the unit box. The paper applies a simple *repair*: clip $y_i$ to $[0, 1]$ and renormalise so $\mathbf{e}^\top \mathbf{y} = 1$. This is cheap and keeps every candidate trivially feasible with respect to the budget constraint, leaving only target return, buy-in, and cardinality to the penalty.
 
-## 4. Numerical Results
+## 7. Numerical Results
 
-### 4.1 The benchmark
+### 7.1 The benchmark
 
 Following Bartholomew-Biggs and Kane (2009), the paper uses a five-asset universe with mean return vector
 
@@ -151,7 +286,7 @@ $$\overline{\mathbf{r}} = (0.10, 0.13, 0.085, 0.155, 0.07)^\top$$
 
 and a $5 \times 5$ positive semidefinite covariance matrix (the precise values are in the paper). Target return $R_p = 0.05$, buy-in $l_i = 0.05$, cardinality $K = 5$ (all assets active), penalty $\rho = 10^4$, 50 iterations.
 
-### 4.2 Convergence comparison
+### 7.2 Convergence comparison
 
 ![Convergence vs Quasi-Newton, DIRECT, and PSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig4_convergence.png)
 
@@ -161,7 +296,7 @@ Two things are worth noticing. First, the final values rank consistently with wh
 
 The catch: this is a five-asset problem. Every claim about SOA's relative ranking should be re-checked at scale.
 
-### 4.3 An out-of-sample backtest
+### 7.3 An out-of-sample backtest
 
 To pressure-test the *portfolio* (not just the *solver*), I simulated three years of daily returns from the multivariate Gaussian implied by $\overline{\mathbf{r}}$ and $Q$ and compared three rules: equal weight, unconstrained mean-variance at target return 11%, and an SOA-MINLP-style portfolio (long-only, $K=3$, buy-in $0.10$).
 
@@ -169,7 +304,7 @@ To pressure-test the *portfolio* (not just the *solver*), I simulated three year
 
 The unconstrained MV portfolio has the highest in-model Sharpe but it shorts assets and concentrates aggressively, which translates into a worse drawdown (bottom panel) than the SOA-MINLP portfolio. Equal weight is the most defensive but leaves return on the table. The SOA-MINLP rule hits a sweet spot: the cardinality and buy-in constraints regularise the portfolio, giving up a little expected return for materially better drawdown behaviour. This is the practical case for cardinality constraints: not theoretical optimality, but *risk diversification you can implement on a real desk*.
 
-## 5. When to Use SOA (and When Not To)
+## 8. When to Use SOA (and When Not To)
 
 **Use SOA when:**
 
@@ -185,7 +320,7 @@ The unconstrained MV portfolio has the highest in-model Sharpe but it shorts ass
 - You need real-time rebalancing under tight latency budgets.
 - The constraints are simple bounds (just project; no fancy solver needed).
 
-## 6. Hyperparameter Tuning, in Practice
+## 9. Hyperparameter Tuning, in Practice
 
 | Hyperparameter | Typical range | Effect |
 | -------------- | ------------- | ------ |
@@ -197,7 +332,7 @@ The unconstrained MV portfolio has the highest in-model Sharpe but it shorts ass
 
 **Rule of thumb to start with:** $N = 50$, max_iter $= 100$, $\theta = \pi / 4$, $r = 0.92$, $\rho = 10^4$. Run 30 trials and inspect the convergence band. If the band stays wide at iteration 100, increase $N$. If violations persist, scale $\rho$ up by an order of magnitude.
 
-## 7. Limitations and Honest Caveats
+## 10. Limitations and Honest Caveats
 
 - **No optimality certificate.** SOA is a metaheuristic. You can show it found a good feasible point; you cannot show it found *the* optimum. For regulated capital (Basel, Solvency II), this matters.
 - **Stochastic outputs.** Two runs from different seeds give different portfolios. Operationally, you need a tie-breaking rule (lowest variance? closest to a benchmark? ensemble?).

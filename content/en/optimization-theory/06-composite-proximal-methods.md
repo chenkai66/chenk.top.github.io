@@ -1,6 +1,6 @@
 ---
-title: "Proximal Operator: From Moreau Envelope to ISTA/FISTA and ADMM"
-date: 2022-04-05 09:00:00
+title: "Optimization (6): Composite Optimization and Proximal Methods"
+date: 2022-09-21 09:00:00
 tags:
   - ML
   - Optimization
@@ -10,7 +10,9 @@ lang: en
 mathjax: true
 description: "A systematic walk through the proximal operator: convex-analysis basics, the Moreau envelope, closed-form proxes, and how they power ISTA, FISTA, ADMM, LASSO, and SVM in practice."
 disableNunjucks: true
-translationKey: "proximal-operator"
+translationKey: "optim-06"
+series: optimization-theory
+series_order: 6
 ---
 When your objective contains a non-smooth piece (sparse regularisation, total variation, an indicator of a constraint set) or a constraint that is hard to handle directly, "just do gradient descent" stalls -- there is no gradient at the kink, or every step violates feasibility. The **proximal operator** is the engineered, beautiful workaround: think of each update as "take a step on the smooth part, then run a tiny penalised minimisation that pulls the iterate back toward a structured solution".
 

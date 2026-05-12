@@ -1,6 +1,6 @@
 ---
-title: "Optimizer Evolution: From Gradient Descent to Adam (and Beyond, 2025)"
-date: 2022-09-28 09:00:00
+title: "Optimization (3): The Gradient Descent Family -- From SGD to AdamW and Lion"
+date: 2022-09-16 09:00:00
 tags:
   - ML
   - Optimization
@@ -11,7 +11,9 @@ lang: en
 mathjax: true
 description: "One article that traces the full lineage GD -> SGD -> Momentum -> NAG -> AdaGrad -> RMSProp -> Adam -> AdamW, then onwards to Lion / Sophia / Schedule-Free. Each step is framed by the specific failure of the previous one, and we end with a practical selection guide."
 disableNunjucks: true
-translationKey: "optimizer-evolution-gd-to-adam"
+translationKey: "optim-03"
+series: optimization-theory
+series_order: 3
 ---
 
 Why is "tuning the LR is an art" a meme for ResNet, while every modern LLM paper just writes "AdamW, $\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$" and moves on? It is not an accident — it is the **end-point of three decades of optimizer evolution**.

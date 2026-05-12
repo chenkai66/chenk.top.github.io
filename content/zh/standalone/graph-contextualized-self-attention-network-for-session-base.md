@@ -1,5 +1,5 @@
 ---
-date: 2022-09-30 09:00:00
+date: 2023-01-29 09:00:00
 title: "Graph Contextualized Self-Attention Network for Session-based Recommendation"
 description: "GC-SAN（IJCAI 2019）会话推荐：SR-GNN 抓局部转移加自注意力抓长距离意图，再用一个标量权重融合最后一击与全局意图。"
 tags:

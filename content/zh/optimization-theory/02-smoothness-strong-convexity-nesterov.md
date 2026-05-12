@@ -1,6 +1,6 @@
 ---
-title: "Lipschitz 连续性、强凸性与加速梯度下降"
-date: 2022-09-29 09:00:00
+title: "优化理论（二）：光滑性、强凸性与 Nesterov 加速"
+date: 2022-09-15 09:00:00
 tags:
   - ML
   - Optimization
@@ -10,7 +10,9 @@ lang: zh
 mathjax: true
 description: "用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。"
 disableNunjucks: true
-translationKey: "lipschitz-continuity-strong-convexity-nesterov"
+translationKey: "optim-02"
+series: optimization-theory
+series_order: 2
 ---
 
 许多优化中的所谓“玄学”现象，其实都可以用三个核心概念统一解释：

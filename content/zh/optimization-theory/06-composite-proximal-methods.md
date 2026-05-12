@@ -1,6 +1,6 @@
 ---
-title: "近端算子：从 Moreau 包络到 ISTA/FISTA 与 ADMM"
-date: 2022-04-05 09:00:00
+title: "优化理论（六）：复合优化与近端方法"
+date: 2022-09-21 09:00:00
 tags:
   - ML
   - Optimization
@@ -10,7 +10,9 @@ lang: zh
 mathjax: true
 description: "系统讲解近端算子的理论与应用：凸分析基础、Moreau 包络、常见近端闭式解，以及 ISTA/FISTA、ADMM 等算法中的实际用法。"
 disableNunjucks: true
-translationKey: "proximal-operator"
+translationKey: "optim-06"
+series: optimization-theory
+series_order: 6
 ---
 当目标函数包含不可导项（如稀疏正则、TV 正则、指示函数）或约束难以直接处理时，直接应用梯度下降往往失效：要么在不可导点无梯度可算，要么每一步更新都无法满足可行性要求。**近端算子（proximal operator）** 给出了一个工程化又漂亮的解决方式——把更新理解成"先按光滑部分走一步，再用一个带二次惩罚的最小化把解拉回到合理的结构上"。
 

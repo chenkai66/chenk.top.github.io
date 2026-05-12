@@ -1,5 +1,5 @@
 ---
-date: 2022-09-27 09:00:00
+date: 2023-01-22 09:00:00
 title: "Integrating Large Language Models with Graphical Session-Based Recommendation"
 description: "LLMGR 用混合编码层把 64 维 ID 映射到 4096 维 LLM 空间，两阶段 prompt tuning，冷启动 HR@20 提升 8.68%。"
 tags:

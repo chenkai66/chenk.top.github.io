@@ -1,6 +1,6 @@
 ---
-title: "Lipschitz Continuity, Strong Convexity & Nesterov Acceleration"
-date: 2022-09-29 09:00:00
+title: "Optimization (2): Smoothness, Strong Convexity and Nesterov Acceleration"
+date: 2022-09-15 09:00:00
 tags:
   - ML
   - Optimization
@@ -10,7 +10,9 @@ lang: en
 mathjax: true
 description: "Three concepts that demystify most of optimization: Lipschitz smoothness fixes the maximum step size, strong convexity sets the convergence rate and uniqueness of the minimizer, and Nesterov acceleration replaces kappa with sqrt(kappa) without sacrificing stability. Includes the key theorems with proofs and a least-squares experiment."
 disableNunjucks: true
-translationKey: "lipschitz-continuity-strong-convexity-nesterov"
+translationKey: "optim-02"
+series: optimization-theory
+series_order: 2
 ---
 
 A surprising amount of "optimizer folklore" collapses into three concepts:

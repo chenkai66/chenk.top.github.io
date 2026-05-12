@@ -1,6 +1,6 @@
 ---
-date: 2023-01-31 09:00:00
-title: "学习率：从入门到大模型训练的终极指南"
+date: 2022-09-18 09:00:00
+title: "优化理论（四）：学习率与调度策略"
 description: "从一维抛物线讲到 LLM 预训练配方，覆盖 cosine/WSD/Schedule-Free、LR range test、warmup 新理论与诊断 checklist。"
 tags:
   - Warmup
@@ -11,7 +11,9 @@ categories: 深度学习
 lang: zh
 mathjax: true
 disableNunjucks: true
-translationKey: "learning-rate-guide"
+translationKey: "optim-04"
+series: optimization-theory
+series_order: 4
 ---
 
 模型崩溃了，你把学习率减半——模型能训了，但训练速度慢得惊人；再减半，损失几乎不再下降，曲线趋近于一条水平线。这种场景是不是很熟？在所有可调的超参数里，**学习率（learning rate, LR）是最容易决定训练成败的那一个**——它直接决定模型是顺利收敛、进展极其缓慢，还是迅速发散。
