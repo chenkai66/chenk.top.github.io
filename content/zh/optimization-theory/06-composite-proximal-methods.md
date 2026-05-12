@@ -359,6 +359,10 @@ $$
 
 **LASSO 的 ADMM 形式**：把约束改写为 $x = z$，则 $x$-更新是岭回归的解析解，$z$-更新就是软阈值——干净利落。
 
+![图 6 - ADMM 迭代结构图与 LASSO 收敛对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/06-composite-proximal-methods/fig6_admm.png)
+
+图 6 左侧画出一次完整的 ADMM 迭代：$x$-更新吸收光滑项 $g$ 与二次惩罚（在 LASSO 中是闭式岭回归），$z$-更新只对 $h$ 做一次近端（在 LASSO 中是软阈值），对偶变量 $u$ 累积残差 $Ax+Bz-c$。右侧在同一个 60 维 LASSO 实例上比较 ISTA、FISTA 与 ADMM（$\rho=1$）：ADMM 早期与 FISTA 接近，并最先收敛到机器精度——当每个子问题本身都"好算"时，拆分往往最划算。
+
 ADMM 的优势：
 
 - 适合**两个非光滑项**叠加（如 $\ell_1 + $ 全变分）。

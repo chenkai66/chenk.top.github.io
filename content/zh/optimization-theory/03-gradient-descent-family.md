@@ -274,6 +274,9 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(返回的"平均"参数)}$$
 
 一个比较实用的判断标准：如果优化器状态超过权重显存的 1.5 倍，你大概率得在三件事里挑一件——把优化器分片（ZeRO-1）、把它量化（`bitsandbytes`）、或者换一个状态更轻的算法（Lion、Adafactor）。怎么选取决于你的瓶颈在单卡显存还是整集群显存。
 
+
+![各优化器的状态显存对比，以及在 7B / 70B 规模下的总显存占用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig8_optimizer_memory.png)
+
 ## 13. 混合精度：优化器仍然是 fp32 的世界
 
 第一次跑预训练的人常常踩到的细节：即便训练的其它部分都是 fp16/bf16，优化器几乎一定要跑在 fp32。原因是 Adam 的指数加权平均要在几千步上累积——以 $\beta_2 = 0.999$ 为例，$v_t$ 里最小贡献项只有最大项的 $10^{-3}$，已经掉在 fp16 可表示范围（约 $6 \times 10^{-5}$ 到 $6 \times 10^4$）的下沿之外。
@@ -288,6 +291,9 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(返回的"平均"参数)}$$
 PyTorch 的 `torch.amp` 和 DeepSpeed 都是自动做这件事的。这也解释了上面那张"显存成本"表为什么按 fp32 字节算——即便模型是 fp16，每个参数在优化器里仍然要占 fp32。
 
 bf16 让这件事稍微宽松一点：动态范围够大，可以在某些场景里梯度全程保持 bf16；但凡是值得用的实现里，优化器状态仍然是 fp32。规模化预训练里这一条没得商量。
+
+
+![混合精度训练的数据流：哪些张量在 fp16/bf16，哪些必须在 fp32](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig9_mixed_precision.png)
 
 ## 14. 各优化器在 Transformer 基线上的学习率合理区间
 

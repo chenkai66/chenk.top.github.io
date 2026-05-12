@@ -70,6 +70,10 @@ So after $k$ iterations the last $n - k$ coordinates of $x_k$ are still zero, an
 
 The takeaway: **any first-order method that sees only $\nabla f$ at visited points is information-theoretically stuck at $\sqrt{\kappa}$.** Going faster requires either (a) more information about $f$ (second-order methods, article 07), or (b) structure beyond smoothness + strong convexity.
 
+![Lower bound vs upper bounds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig3_lowerbound.png "Nemirovski-Yudin lower bound matches Nesterov's upper bound")
+
+The shaded band above shows the optimal-rate region: any first-order method's worst-case error must lie at or above the Nemirovski-Yudin curve, and Nesterov's method actually attains that rate (up to constants). Plain GD lives in a much higher region — its $(1 - 1/\kappa)^{2k}$ envelope decays roughly $\sqrt{\kappa}$ times slower than the accelerated bound.
+
 ---
 
 ## 2. Polyak's Heavy-Ball method
@@ -105,6 +109,10 @@ with rate $\rho(M) = \frac{\sqrt{\kappa} - 1}{\sqrt{\kappa} + 1}$. This is **the
 Polyak proved his rate for quadratics. For general smooth strongly convex functions, the same parameters can fail to converge — Lessard, Recht, Packard (2016) gave an explicit smooth strongly convex counterexample where Heavy-Ball with the optimal-quadratic parameters cycles forever. This is in stark contrast to Nesterov's method, which converges on every $L$-smooth $\mu$-strongly convex function.
 
 The fix is to use slightly conservative parameters or to verify convergence empirically; in practice Heavy-Ball is the workhorse behind PyTorch's `momentum=0.9` for SGD and works well for neural networks even though the theoretical guarantees are only for quadratics.
+
+![2D trajectories on ellipse contours](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig2_trajectory.png "GD zig-zags along the steep direction; momentum methods overshoot but reach $x^\star$ much faster")
+
+GD zig-zags along the steep $x_1$ direction and crawls along the flat $x_2$ direction. Heavy-Ball and Nesterov both *overshoot* the optimum thanks to inertia, then swing back — but each oscillation is a coarse correction in the right direction, so they reach the optimum in far fewer iterations.
 
 ---
 
@@ -166,6 +174,10 @@ The gradient restart criterion is generally preferred — it does not require ev
 
 **Why restart works.** A restart converts a single $O(1/k^2)$ phase into a sequence of phases. Within each phase, the iterates behave as if started from a new $x_0$ closer to $x^\star$. The total iteration count is still $O(\sqrt{\kappa} \log(1/\epsilon))$ but with much better constants and no oscillation in practice. On strongly convex problems, restart automatically adapts to the unknown $\mu$ — you can run the convex-only acceleration scheme and it will achieve the strongly convex rate without knowing $\mu$ in advance.
 
+![Adaptive restart vs no restart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig4_restart.png "Without restart, the convex Nesterov scheme oscillates; gradient restart yields clean monotone descent")
+
+Without restart, the function value bounces (orange curve) — the momentum coefficient $\beta_k \to 1$ keeps pushing the iterate past $x^\star$ along the flat direction. Adaptive gradient restart (blue) detects this with the cheap test $\langle \nabla f(y_k), x_{k+1} - x_k \rangle > 0$ and reboots the momentum, producing a sequence of clean accelerated phases (vertical bars mark restart events).
+
 ---
 
 ## 5. Catalyst: black-box acceleration
@@ -185,6 +197,11 @@ Note $g_y$ is $\kappa$-strongly convex even if $f$ is not. The Catalyst iteratio
 3. Update $y_{k+1} = x_{k+1} + \beta_k (x_{k+1} - x_k)$ with momentum $\beta_k$ chosen as in Nesterov.
 
 If the inner solver has linear convergence rate $\rho$ on $\kappa$-strongly convex problems, Catalyst converges at the **accelerated** rate $O(\sqrt{L/\kappa} \cdot \rho^{-1} \log(1/\epsilon))$.
+
+![Catalyst meta-algorithm flowchart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig5_catalyst.png "Outer Nesterov loop drives an inner regularized solver")
+
+The outer loop runs Nesterov-style momentum on the *anchors* $y_k$; the inner loop calls any linearly-convergent solver on the regularized subproblem $g_{y_k}(x) = f(x) + \frac{\kappa}{2}\|x - y_k\|^2$. Because $g_{y_k}$ is $\kappa$-strongly convex by construction, even a non-strongly-convex problem becomes amenable to a linearly-convergent inner solver.
+
 
 ### 5.2 Example application
 
@@ -242,6 +259,10 @@ gd_hist = gd(steps)
 hb_hist = heavy_ball(steps)
 nag_hist = nesterov(steps)
 ```
+
+![GD vs Heavy-Ball vs Nesterov on a $\kappa = 100$ quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig1_convergence.png "Convergence curves: $\sqrt{\kappa}$ speedup of momentum")
+
+The two accelerated methods (Heavy-Ball, Nesterov) sit on essentially the same line and both hug the $(1 - 1/\sqrt{\kappa})^{2k}$ envelope; GD sits on the much shallower $(1 - 1/\kappa)^{2k}$ envelope. Reading off the iteration counts to reach $10^{-6}$: GD needs roughly $\sqrt{\kappa} = 10\times$ more iterations.
 
 Typical output (function value at iteration 500):
 - Plain GD: $\sim 6 \times 10^{-3}$ — $\kappa = 10^4$ is brutal.

@@ -128,6 +128,10 @@ The classical empirical rule (Goyal et al. 2017, "Accurate, Large Minibatch SGD"
 
 Modern large-batch results (LAMB, LARS) extend this idea, but the basic message is unchanged: **LR and $B$ are tied**.
 
+![Linear scaling rule and gradient noise vs batch size](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/04-learning-rate-schedules/fig8.png)
+
+Left: empirically, the linear rule $\eta \propto B$ holds to within a few percent up to a critical batch size, then plateaus — past that point, more data per step buys you no extra LR headroom. Right: the gradient standard error shrinks as $1/\sqrt B$, which is exactly *why* a larger batch can absorb a larger step.
+
 ## 3.2 Momentum: a hidden LR amplifier
 
 SGD with momentum (Polyak / heavy-ball form):
@@ -173,6 +177,10 @@ It's tempting to think the adaptive scaling makes warmup unnecessary. It doesn't
 - **Preconditioned sharpness is large.** The newer view (Kalra et al., *Why Warmup the Learning Rate?*, 2024) is that warmup pushes the network into a region where the **preconditioned Hessian has smaller maximum eigenvalue** — i.e. it shapes the optimization landscape, so a larger peak LR becomes safe later.
 
 Either way: **always warm up Adam**. 1–5% of total steps for vision/CNN, 5–10% for LLMs and very large batches.
+
+![Effect of warmup on early training: smoother loss and bounded gradient norm](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/04-learning-rate-schedules/fig9.png)
+
+The failure mode is dramatic. Without warmup the gradient norm spikes far above the clip threshold in the first ~30 steps, the loss takes a sharp upward bump, and the run never quite catches up to the warmed-up curve. A few hundred warmup steps are often the difference between a training run that converges and one that diverges or stalls.
 
 ---
 

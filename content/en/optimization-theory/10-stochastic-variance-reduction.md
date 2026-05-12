@@ -61,6 +61,9 @@ Two facts about $\nabla f_{i_t}(x_t)$:
 
 These two assumptions (unbiased + bounded variance) are the SGD axioms. The strength of the resulting bounds depends on what additional structure $f$ has.
 
+![SGD vs Full GD trajectories on an ill-conditioned 2D quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig1.png)
+*Full GD follows a smooth, deterministic descent path; SGD takes a noisy zigzag in expectation around the same direction. The variance of each SGD step is what the noise budget $\sigma^2$ controls.*
+
 ---
 
 ## 2. Convex rate: $O(1/\sqrt{T})$
@@ -136,6 +139,9 @@ This grows linearly with $B$ — so mini-batching does not save on total compute
 
 The **linear scaling rule** (Goyal et al., 2017) — batch size $\times k$, learning rate $\times k$ — comes from this analysis: the noise term $\eta^2 \sigma^2 / B$ stays constant if $\eta \propto B$, so larger batches let us take larger steps. This works only up to a "critical batch size" beyond which the noise is no longer the bottleneck (McCandlish et al., 2018).
 
+![Mini-batch variance and the critical batch size](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig4.png)
+*Left: gradient variance falls as $\sigma^2/B$ on a log-log plot. Right: the linear scaling rule lets effective step size grow with $B$ — but only up to a critical batch $B^\star$, beyond which speedup saturates because the gradient signal, not noise, becomes the bottleneck.*
+
 ---
 
 ## 5. Variance reduction: SVRG
@@ -170,6 +176,9 @@ Properties:
 
 This is what gives the linear convergence rate.
 
+![SGD vs SVRG gradient samples around a fixed point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig3.png)
+*Each light arrow is one stochastic gradient sample; the bold blue arrow is the true $\nabla f(x)$. SGD samples (orange) scatter widely around the mean; SVRG samples (green) cluster tightly because the control variate $-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$ cancels most of the variance.*
+
 ### 5.2 SVRG convergence
 
 > **Theorem (Johnson--Zhang 2013).** Suppose each $f_i$ is $L$-smooth and $f$ is $\mu$-strongly convex. With $\eta = \frac{1}{10 L}$ and $m$ chosen large enough (specifically $m \geq 100 L / \mu$), SVRG converges geometrically:
@@ -195,6 +204,9 @@ Compare to:
 
 For $n \approx \kappa$ (typical regularized ML), SVRG is $\sim \kappa \times$ faster than full GD and $\sim \kappa^2 / (\kappa \log(1/\epsilon))$ faster than SGD for small $\epsilon$.
 
+![Convergence rates: SGD, Full GD, SVRG, Katyusha](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig2.png)
+*Suboptimality vs total gradient evaluations on a log-log axis. SGD's $1/\sqrt{T}$ rate is the slowest curve; Full GD is geometric but the per-step cost is $n$. SVRG and Katyusha are linear in the number of epochs, eventually beating both.*
+
 ---
 
 ## 6. SAGA, Katyusha, and the lower bound
@@ -206,6 +218,9 @@ For $n \approx \kappa$ (typical regularized ML), SVRG is $\sim \kappa \times$ fa
 > **Theorem (lower bound, Woodworth & Srebro 2016).** Any randomized first-order finite-sum algorithm requires $\Omega((n + \sqrt{n \kappa}) \log(1/\epsilon))$ gradient evaluations.
 
 So Katyusha is **optimal** for the strongly convex finite-sum setting.
+
+![Total gradient evaluations needed to reach high precision](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig5.png)
+*With $n=10^4$ and $\kappa=10^3$, Full GD needs $\sim 10^{11}$ gradients to reach $\epsilon=10^{-4}$; SGD's $O(\kappa^2/\epsilon)$ scaling requires $\sim 10^{10}$. SVRG drops it to $\sim 10^{5}$, and Katyusha shaves another factor of $\sqrt{n/\kappa}$.*
 
 ---
 

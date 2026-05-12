@@ -359,6 +359,10 @@ Each subproblem now contains **only one** non-smooth term, so each can be solved
 
 **LASSO via ADMM**: rewrite the constraint as $x = z$. The $x$-update is the closed-form ridge solution; the $z$-update is the soft-threshold. Clean.
 
+![Figure 6 - ADMM iteration block diagram and convergence on LASSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/06-composite-proximal-methods/fig6_admm.png)
+
+Figure 6 (left) lays out one full ADMM cycle: the $x$-update consumes the smooth term $g$ plus a quadratic penalty (closed-form ridge for LASSO), the $z$-update is a single prox on $h$ (soft-threshold for LASSO), and the dual update $u$ accumulates the residual $Ax+Bz-c$. The right panel runs ISTA, FISTA, and ADMM ($\rho=1$) on the same 60-D LASSO instance — ADMM matches FISTA early and reaches machine-precision suboptimality fastest, illustrating why splitting often pays off when each subproblem is tractable.
+
 ADMM's strengths:
 
 - Two non-smooth terms summed (e.g. $\ell_1$ + total variation).

@@ -98,6 +98,10 @@ Three key concepts:
 
 In the best case, branch-and-bound prunes most of the tree and finds the optimum after solving polynomially many LPs. In the worst case it still enumerates all $2^p$ leaves — confirming that the algorithm is exponential in the worst case.
 
+![Branch-and-bound search tree with three pruning rules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_bnb_tree.png)
+
+The figure above traces a small B&B run with two integer variables. The root LP gives a fractional solution $(2.4, 1.7)$ and a lower bound of $8.5$. We branch on $z_1$, then on $z_2$ inside each child. Node P4 is integer-feasible and becomes the incumbent with $\text{UB} = 9.6$; node P5 is also integer-feasible but its objective $9.7$ is worse than the incumbent so it is pruned by bound; node P6 is LP-infeasible and pruned. Whole sub-trees never need to be solved — this is what makes B&B fast in practice even though its worst case is still exponential.
+
 ### A.4 Cutting planes
 
 A **cutting plane** is an inequality $\alpha^\top z \leq \beta$ that is satisfied by every integer-feasible $z$ but violated by the current LP relaxation optimum. Adding cuts tightens the LP relaxation, raising the lower bound and pruning more aggressively.
@@ -109,6 +113,10 @@ $$
 holds for every integer $z$ but not for the fractional LP optimum. (Here $\bar a_{jk}$ are the tableau entries and $\mathrm{frac}(x) = x - \lfloor x \rfloor$.)
 
 Modern MILP solvers (Gurobi, CPLEX, SCIP) use 10+ kinds of cuts: Gomory, mixed-integer rounding, lift-and-project, clique cuts, flow cover cuts. The modern algorithm is **branch-and-cut**: at each node, try to add violated cuts before branching.
+
+![LP relaxation polytope and the effect of a cutting plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_lp_relaxation.png)
+
+The left panel shows the geometric content of LP relaxation: the LP optimum (amber star) sits at a fractional vertex of the polytope, while the IP optimum (purple disk) is one of the green integer lattice points strictly inside the relaxation. The right panel adds one cutting plane $z_1 + z_2 \le 4$ (orange line). The original fractional vertex is now infeasible (purple cross), every green integer point is preserved, and the new LP vertex happens to be integer — the LP relaxation alone now solves the IP. In real solvers cuts rarely close the gap in one shot, but each one tightens the bound and makes B&B prune more aggressively.
 
 ### A.5 What you can solve in practice
 
@@ -136,6 +144,10 @@ When branch-and-bound is too slow or the problem is non-linear (MINLP), heuristi
 | Constructive    | Greedy, ant colony, GRASP         | Build solutions step by step                |
 | Hybrid          | Memetic algorithms, large-neighborhood search | Combine local and global search             |
 
+![Heuristic taxonomy: trajectory, population, constructive, hybrid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_taxonomy.png)
+
+The four families above are the standard cuts in the metaheuristic literature. Trajectory methods (single-state) are cheap and effective on combinatorial problems; population methods carry many candidates in parallel and are the natural fit for continuous multi-modal landscapes; constructive methods build a solution piece by piece and dominate problems with strong sequential structure; hybrid methods combine an outer global search with an inner local-search or exact solver.
+
 **Simulated annealing (SA)**: random walk on the solution space, accepting moves that improve and accepting worse moves with probability $e^{-\Delta f / T}$. The temperature $T$ decays over time — high $T$ explores, low $T$ exploits. Theoretically converges to the global optimum if $T$ decays slowly enough; practically requires careful cooling schedules.
 
 **Genetic algorithm (GA)**: maintain a population of solutions; combine pairs via crossover and mutation; keep the best. Handles binary and categorical decision variables naturally. Notoriously sensitive to operator design.
@@ -159,6 +171,10 @@ Strong on continuous problems with multiple basins.
 | Black-box (no gradient, expensive function evaluations) | Bayesian optimization, GA       |
 
 The dominant lesson from the literature: no heuristic uniformly dominates. Choosing the right one for a problem is craftsmanship. Worth tuning for a few weeks if the problem will be solved repeatedly; otherwise just use whatever is in your favorite library.
+
+![SA, GA, and PSO on a multi-modal 1-D landscape](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_convergence.png)
+
+A toy illustration on a 1-D multi-modal objective. The left panel shows the landscape and where each method ends up after a fixed budget: SA (blue) and GA (green population) reach the global basin near the amber star, while PSO (purple diamond) is trapped in a shallow local minimum on the left because all particles converged toward an early-found basin. The right panel plots best-so-far value over iterations: SA and GA approach the global optimum (dashed amber); PSO plateaus above it. The point is not that PSO is bad — with a different seed and inertia schedule it would also reach the global optimum — but that no method dominates universally and seed-to-seed variance is real. This is why production runs use 30+ independent restarts.
 
 ---
 

@@ -60,6 +60,9 @@ $$
 
 这两条假设（无偏性 + 有界方差）构成了 SGD 的公理基础。由此导出的收敛界强度，取决于目标函数 $f$ 所具备的额外结构（如凸性、强凸性、光滑性等）。
 
+![病态二次函数上 SGD 与全梯度下降的轨迹对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig1.png)
+*全梯度下降沿确定性路径平稳下降；SGD 则在同方向上呈现噪声锯齿轨迹。每步 SGD 的扰动幅度正由噪声预算 $\sigma^2$ 所控制。*
+
 ---
 
 ## 2. 凸情形收敛率：$O(1/\sqrt{T})$
@@ -135,6 +138,9 @@ $$
 该量随 $B$ 线性增长——因此小批量本身**并不节省总计算量**！其实际优势在于更大的批次更易于在 GPU 上高效并行化。
 
 **线性缩放律**（Goyal 等，2017）——「批大小扩大 $k$ 倍，学习率同步扩大 $k$ 倍」——正源于此分析：噪声项 $\eta^2 \sigma^2 / B$ 在 $\eta \propto B$ 时保持恒定，故更大批次允许采用更大步长。但该规律仅在「临界批大小」（critical batch size）以内成立；超过该阈值后，噪声不再是最主要瓶颈（McCandlish 等，2018）。
+
+![小批量方差与临界批大小](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig4.png)
+*左：梯度方差按 $\sigma^2/B$ 的速率随批大小线性下降（log-log 坐标）。右：线性缩放律允许有效步长随 $B$ 同比例增长——但仅到临界批大小 $B^\star$ 为止，超过后加速比饱和，因为此时梯度信号本身（而非噪声）成为瓶颈。*
 ## 5. 方差缩减：SVRG
 
 只要我们仅用单个 $\nabla f_{i_t}$ 作为梯度估计，SGD 的方差项 $\sigma^2$ 就不可避免。**方差缩减（variance reduction）** 引入额外的控制变量（control variates）—— 即额外的计算开销，以在极限下将估计方差降至零。
@@ -167,6 +173,9 @@ $$
 
 正是这一特性赋予了 SVRG 线性收敛速率。
 
+![同一点处 SGD 与 SVRG 的随机梯度样本对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig3.png)
+*每条浅色箭头是一次随机梯度采样，加粗蓝色箭头表示真实梯度 $\nabla f(x)$。SGD（橙色）样本在均值附近大幅散布；SVRG（绿色）样本紧密聚集——控制变量 $-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$ 抵消了大部分方差。*
+
 ### 5.2 SVRG 收敛性分析
 
 > **定理（Johnson–Zhang，2013）**：假设每个 $f_i$ 是 $L$-光滑的，且 $f$ 是 $\mu$-强凸的。取步长 $\eta = \frac{1}{10 L}$，并令 epoch 长度 $m$ 足够大（具体地，$m \geq 100 L / \mu$），则 SVRG 几何收敛：
@@ -195,6 +204,9 @@ $$
 
 当 $n \approx \kappa$（典型正则化机器学习场景）时，SVRG 比全梯度下降快约 $\kappa$ 倍；相比 SGD，在小 $\epsilon$ 下快约 $\kappa^2 / (\kappa \log(1/\epsilon)) = \kappa / \log(1/\epsilon)$ 倍。
 
+![SGD、全梯度下降、SVRG 与 Katyusha 的收敛速率](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig2.png)
+*log-log 坐标下，次优间隙 $f(x_T) - f^\star$ 随梯度计算次数 $T$ 的变化。SGD 的 $1/\sqrt{T}$ 速率最为缓慢；全梯度下降几何收敛但每步消耗 $n$ 次梯度计算；SVRG 与 Katyusha 在 epoch 数上呈线性收敛，最终全面胜出。*
+
 ---
 
 ## 6. SAGA、Katyusha 与下界
@@ -210,6 +222,9 @@ $$
 > **定理（下界，Woodworth & Srebro, 2016）**：任意随机一阶有限和（finite-sum）算法，至少需要 $\Omega\big((n + \sqrt{n \kappa}) \log(1/\epsilon)\big)$ 次梯度计算。
 
 因此，Katyusha 在强凸有限和问题中是**最优的**。
+
+![达到给定精度所需的总梯度计算次数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig5.png)
+*在 $n=10^4$、$\kappa=10^3$ 的设定下，全梯度下降需约 $10^{11}$ 次梯度计算才能达到 $\epsilon=10^{-4}$；SGD 的 $O(\kappa^2/\epsilon)$ 复杂度约需 $10^{10}$ 次。SVRG 将其降至 $\sim 10^5$，Katyusha 进一步省下 $\sqrt{n/\kappa}$ 倍。*
 
 ---
 

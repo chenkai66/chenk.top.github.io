@@ -81,6 +81,10 @@ $$f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|\nabla f(x)\|^2.$$
 
 As long as $\eta \le 1/L$, the bracket is $\ge 1/2$, so **every step strictly decreases $f$**, with the decrease lower-bounded by a constant times $\|\nabla f\|^2$. This is the *real* origin of "step size at most $1/L$" — not folklore, but a direct corollary of the descent lemma.
 
+![GD on a 1D quadratic at three step sizes: contracting at eta=0.8/L, exact at eta=1/L, divergent at eta=2.2/L](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig7_stepsize.png)
+
+Three regimes on the same quadratic $f(x) = \tfrac{L}{2}x^2$ (here $L = 4$). Left: a small step ($\eta = 0.8/L$) creeps down monotonically. Middle: the canonical $\eta = 1/L$ lands at the optimum in one move from $x_0 = 1$ — fastest possible without overshoot. Right: cross the $2/L$ ceiling and the iterates blow up, the descent lemma broken. The tight band $[1/L,\, 2/L]$ is exactly where convergence is fastest *and* still safe; below it you waste iterations, above it you diverge.
+
 ## 1.3 Three worked examples
 
 | Function | Gradient | Spectral norm of Hessian | $L$ |
@@ -197,6 +201,10 @@ $$f(x_t) - f^\star \le \frac{2L\,\|x_0 - x^\star\|^2}{(t+1)^2}.$$
 $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 
 we get $f(x_t) - f^\star \le \big(1 - \sqrt{1/\kappa}\big)^t (f(x_0) - f^\star)$, hence $t = \mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$.
+
+![Trajectories on a rotated ill-conditioned quadratic: GD zigzags across the steep direction while Nesterov rolls smoothly along the valley](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig6_trajectories.png)
+
+Left: 80 iterations on a rotated quadratic with $\kappa = 30$. GD (blue, $\eta = 1.9/L$ to amplify the effect) overshoots in the steep direction and zigzags across the narrow valley, making slow net progress along the flat axis. Nesterov (purple, $\eta = 1/L$) builds up momentum along the valley and barely excites the steep mode at all. Right: distance to $x^\star$ on a log scale — the slope difference is the geometric realisation of the $\kappa$ vs $\sqrt{\kappa}$ rate gap that Theorems 5 and 7 predict.
 
 ![GD vs Heavy Ball vs Nesterov on a strongly convex quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig4_convergence_rates.png)
 

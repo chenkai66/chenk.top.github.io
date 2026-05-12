@@ -81,6 +81,10 @@ $$f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|\nabla f(x)\|^2.$$
 
 只要 $\eta \le 1/L$，括号项 $\ge 1/2$，**每一步都严格下降**，且下降量被梯度范数平方控制。这就是"步长不要超过 $1/L$"的硬来源——不是经验之谈，而是 descent lemma 的直接推论。
 
+![一维二次函数上 GD 在三种步长下的行为：eta=0.8/L 收敛、eta=1/L 一步到位、eta=2.2/L 发散](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig7_stepsize.png)
+
+同一条二次函数 $f(x) = \tfrac{L}{2}x^2$（这里 $L=4$）下的三种情形。左：小步长（$\eta = 0.8/L$）单调爬下来；中：经典 $\eta = 1/L$ 从 $x_0=1$ 一步直达最优——不过冲的最快配置；右：一旦越过 $2/L$ 这条天花板，迭代点就会爆炸，descent lemma 失效。区间 $[1/L, 2/L]$ 正是"既最快又安全"的临界带；低于它浪费迭代，高于它直接发散。
+
 ## 1.3 三个例子算一遍
 
 | 函数 | 梯度 | Hessian 谱范数 | $L$ |
@@ -197,6 +201,10 @@ $$f(x_t) - f^\star \le \frac{2L\,\|x_0 - x^\star\|^2}{(t+1)^2}.$$
 $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 
 则 $f(x_t) - f^\star \le \big(1 - \sqrt{1/\kappa}\big)^t (f(x_0) - f^\star)$，对应 $t = \mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$。
+
+![旋转后的病态二次型上的迭代轨迹：GD 沿陡方向来回震荡，Nesterov 沿低谷顺势滑行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig6_trajectories.png)
+
+左图：在 $\kappa = 30$ 的旋转二次型上跑 80 代。GD（蓝色，为放大效果取 $\eta = 1.9/L$）在陡方向上反复过冲，沿狭长山谷曲折前行，沿平方向几乎挪不动；Nesterov（紫色，$\eta = 1/L$）则沿山谷积累动量，几乎不激发陡模。右图：到 $x^\star$ 距离的对数图——两条曲线斜率的差距，正是定理 5 与定理 7 中 $\kappa$ vs $\sqrt{\kappa}$ 速率差的几何投影。
 
 ![GD vs Heavy Ball vs Nesterov 在强凸二次型上的收敛曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/深入解析非线性优化中的lipschitz连续性-强凸性与加速梯度下降算法/fig4_convergence_rates.png)
 

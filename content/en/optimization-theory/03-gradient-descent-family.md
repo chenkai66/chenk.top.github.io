@@ -272,6 +272,9 @@ This is the table that decides which optimizer you can actually run. A 7 B model
 
 A practical rule of thumb: if optimizer state exceeds 1.5× model weight memory, you are likely going to want to either shard the optimizer (ZeRO-1), quantize it (`bitsandbytes`), or move to a state-lighter algorithm (Lion, Adafactor). The choice depends on whether your bottleneck is single-GPU memory or aggregate cluster memory.
 
+
+![Optimizer state memory across optimizers, and total VRAM at 7B / 70B scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig8_optimizer_memory.png)
+
 ## 13. Mixed precision: where the optimizer sees fp32
 
 A subtle point that bites first-time pretrainers: the optimizer almost always operates in fp32 even when the rest of training is fp16/bf16. The reason is that Adam's exponential moving averages accumulate over thousands of steps. With $\beta_2 = 0.999$, $v_t$ is a sum where the smallest contributors are $10^{-3}$ of the largest, easily below fp16's representable range ($\sim 6 \times 10^{-5}$ to $\sim 6 \times 10^4$).
@@ -286,6 +289,9 @@ The standard recipe is:
 This is what PyTorch's `torch.amp` and DeepSpeed do automatically. It also explains why the "memory cost" rows above are in fp32 bytes — even if your model is fp16, the optimizer is paying fp32 per param.
 
 bf16 changes the calculus slightly: its dynamic range is wide enough that you can sometimes keep gradients in bf16 throughout, but the optimizer state is still fp32 in every implementation worth using. For LLM pretraining at scale this is non-negotiable.
+
+
+![Mixed-precision training data flow: where each tensor lives in fp16/bf16 vs fp32](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig9_mixed_precision.png)
 
 ## 14. Learning rate sanity ranges per optimizer (Transformer baseline)
 

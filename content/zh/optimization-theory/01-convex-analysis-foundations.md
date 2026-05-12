@@ -53,6 +53,8 @@ $$
 
 一个反直觉的例子：所有**可逆矩阵**构成的集合**不是凸集**。取 $X = I$ 与 $Y = -I$，其连线中点为零矩阵（不可逆）。
 
+![凸集与非凸集对比：集合是凸集，当且仅当其中任意两点之间的线段都包含在集合内。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig1_convex_set.png)
+
 ### 1.2 保持凸性的运算
 
 下列构造若以凸集为输入，则输出仍为凸集。每条均可直接由定义一步验证；你应能不查阅资料即写出证明。
@@ -103,6 +105,8 @@ $$
 令 $\lambda \to 0^+$ 即得所需不等式。反之，若该不等式对所有 $x \in C$ 成立，展开 $\|x - y\|_2^2 = \|(x - z) - (y - z)\|_2^2 \geq \|y - z\|_2^2$，即可推出 $z = \pi_C(y)$。$\blacksquare$
 
 投影定理具有优美的几何解释：$\pi_C(y)$ 是 $C$ 中使得线段 $y \to z$ 与 $C$ 内任一方向夹角均不超过 $90^\circ$ 的唯一点。
+
+![点 $y$ 到闭凸集 $C$ 的投影：$z = \pi_C(y)$ 是唯一的最近点，残量 $y - z$ 与指向 $C$ 内部的任意方向 $x - z$ 的夹角均不小于 $90^\circ$。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig2_projection.png)
 ## 2. 凸函数
 
 ### 2.1 四种等价刻画
@@ -145,6 +149,8 @@ $$
 g''(\lambda) = (y - x)^\top \nabla^2 f((1 - \lambda) x + \lambda y) (y - x) \geq 0,
 $$  
 故 $g$ 在 $[0,1]$ 上是凸函数，这正是 (D)。
+
+![凸性的两种等价视角：（左）一阶条件——任意点处的切线都是 $f$ 的全局下界；（右）上镜图 $\mathrm{epi}(f)$ 本身是 $\mathbb{R}^{n+1}$ 中的凸集。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig3_convex_function.png)
 
 ### 2.2 严格凸性与强凸性
 
@@ -193,6 +199,8 @@ $$
 ### 3.1 几何解释
 
 对固定斜率 $y$，$f^*(y)$ 表示 $\langle y, x \rangle - f(x)$ 关于 $x$ 能取到的最大值。等价地，仿射函数 $x \mapsto \langle y, x \rangle - f^*(y)$ 是斜率为 $y$、且位于 $f$ 下方的最高仿射下界（affine minorant）。因此，$f^*$ 刻画了：对每个可能的斜率 $y$，对应的支持超平面（supporting hyperplane）距离函数图像下方有多远。
+
+![共轭函数的几何含义：对斜率 $y$，$f$ 下方斜率为 $y$ 的最高仿射下界为 $x \mapsto y\,x - f^*(y)$；$f^*(y)$ 即该直线与 $y$ 轴交点到原点的纵向距离。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig4_conjugate.png)
 
 ### 3.2 Fenchel–Young 不等式
 
@@ -258,6 +266,8 @@ $$
 \partial f(x) = \begin{cases} \{1\} & x > 0 \\ \{-1\} & x < 0 \\ [-1, 1] & x = 0. \end{cases}
 $$  
 在 $x = 0$ 处，任意斜率介于 $-1$ 与 $1$ 之间的直线均为 $|x|$ 的支撑线，且整体位于其下方。
+
+![$|x|$ 在尖点 $x=0$ 处的次梯度集合：$[-1, 1]$ 中的每个斜率都对应一条过原点且位于 $|x|$ 下方的支撑直线，故 $\partial f(0) = [-1, 1]$。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig5_subgradient.png)
 
 **例 2：$f(x) = \|x\|_1$ 在 $\mathbb{R}^n$ 上。**  
 

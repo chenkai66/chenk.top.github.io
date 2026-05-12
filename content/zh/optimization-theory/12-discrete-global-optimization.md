@@ -95,6 +95,10 @@ $$
 
 在最好情形下，分支定界法能剪去绝大部分搜索树，仅需求解多项式数量级的 LP 即可找到最优解；而在最坏情形下，它仍需遍历全部 $2^p$ 个叶节点——这印证了该算法在最坏情况下的指数时间复杂度。
 
+![分支定界搜索树与三种剪枝规则](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_bnb_tree.png)
+
+上图展示了一个包含两个整数变量的小型 B&B 运行。根节点 LP 的最优解为分数 $(2.4, 1.7)$，下界 $\text{LB}=8.5$。我们先在 $z_1$ 上分支，再在每个子节点中对 $z_2$ 分支。节点 P4 是整数可行解，成为当前最优解（incumbent），上界更新为 $\text{UB}=9.6$；节点 P5 也是整数可行解，但其目标值 $9.7$ 劣于当前最优解，被界剪枝；节点 P6 的 LP 不可行，被不可行性剪枝。诸多整个子树根本无需求解——这正是 B&B 在实践中快速高效的原因，尽管其最坏情况仍为指数。
+
 ### A.4 割平面法
 
 一个**割平面**（cutting plane）是一类线性不等式 $\alpha^\top z \leq \beta$，它对所有整数可行解 $z$ 成立，但被当前 LP 松弛的最优解所违反。添加割平面可收紧 LP 松弛，提升下界，从而更早、更广泛地实施剪枝。
@@ -106,6 +110,10 @@ $$
 （其中 $\bar a_{jk}$ 为单纯形表中的系数，$\mathrm{frac}(x) = x - \lfloor x \rfloor$ 表示小数部分。）
 
 现代 MILP 求解器（如 Gurobi、CPLEX、SCIP）综合运用十余类割平面：Gomory 割、混合整数舍入割（MIR）、提升与投影割（lift-and-project）、团割（clique cut）、流覆盖割（flow cover cut）等。当前主流算法为**分支割平面法**（branch-and-cut）：在每个搜索节点处，先尝试生成并添加被违反的割平面，再决定是否分支。
+
+![LP 松弛多面体与割平面的作用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_lp_relaxation.png)
+
+左图展示 LP 松弛的几何含义：LP 最优解（琰色五角星）位于多面体的某个分数顶点上，而整数规划（IP）的最优解（紫色圆点）是松弛区域内部某个绿色整数格点。右图加入一条割平面 $z_1+z_2\le 4$（橙色直线）：原本的分数顶点被切掉（紫色 ×），所有绿色整数点仍被保留，而新的 LP 顶点恰好是整数点——仅凭 LP 松弛就已解出了原 IP。实际求解器中单一割平面很少能一步到位，但每一条割都会收紧下界，使 B&B 能更激进地剪枝。
 
 ### A.5 实践中可求解的问题规模
 
@@ -130,6 +138,10 @@ $$
 | 构造类（Constructive） | 贪心算法（Greedy）、蚁群算法（ACO）、贪婪随机自适应搜索过程（GRASP） | 逐步构建可行解                                   |
 | 混合类（Hybrid）       | 模因算法（Memetic algorithms）、大规模邻域搜索（LNS）         | 融合局部搜索与全局搜索能力                         |
 
+![启发式算法分类：轨迹、种群、构造与混合](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_taxonomy.png)
+
+上图是启发式（metaheuristic）文献中的标准分类。轨迹类（单状态）开销低，适合组合优化问题；种群类并行携带多个候选解，是连续多峰问题的天然选择；构造类逐步拼接可行解，在序列结构强的问题上占优；混合类则将外层全局搜索与内层的局部搜索或精确求解器结合。
+
 **模拟退火（Simulated Annealing, SA）**：在解空间中执行随机游走，总是接受改进的移动，同时以概率 $e^{-\Delta f / T}$ 接受劣解移动。温度参数 $T$ 随时间衰减——高温阶段侧重探索（exploration），低温阶段侧重开发（exploitation）。理论上，若 $T$ 衰减足够缓慢（如 $T_k \propto 1/\log k$），SA 可以以概率 1 收敛至全局最优；实践中则需精心设计退火调度（cooling schedule）。
 
 **遗传算法（Genetic Algorithm, GA）**：维护一组候选解（种群）；通过交叉（crossover）与变异（mutation）操作组合个体；依据适应度保留优质后代。天然适用于二元变量与类别型决策变量。但其性能对算子（如选择、交叉、变异策略）的设计高度敏感。
@@ -153,6 +165,10 @@ $$
 | 黑箱函数（无梯度信息、目标函数评估代价高昂）                 | 贝叶斯优化（Bayesian Optimization）、遗传算法（GA）    |
 
 文献中的核心共识是：**不存在一种启发式方法能在所有问题上全面胜出**。为特定问题选择合适的方法是一门技艺（craftsmanship）。若该问题需反复求解，值得投入数周时间调参与定制；否则，直接采用你最熟悉的优化库（如 `scipy.optimize`、`DEAP` 或 `pyswarms`）中已实现的成熟版本即可。
+
+![SA、GA 与 PSO 在一维多峰函数上的表现](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/12-discrete-global-optimization/fig_heuristic_convergence.png)
+
+一维多峰目标函数上的玩具示例。左图展示函数地貌与各方法在固定预算后的最终位置：SA（蓝色）与 GA（绿色种群）都接近了琰色星所在的全局低谷，而 PSO（紫色菱形）被左侧一个浅局部最优困住，因为所有粒子都过早向初期发现的那个盆地收敛。右图绘出迭代过程中的历史最优值：SA 与 GA 逐渐逼近全局最优值（虚线琰色），PSO 则停滞在一个较差的值上。重点不在于 PSO 本身差——换个随机种子与惯性调度后，它同样能找到全局最优——而是没有任何方法能全面胜出，且随机种子间的方差不容忽视。这正是为什么生产环境中总是运行 30 次以上独立重启。
 
 ---
 

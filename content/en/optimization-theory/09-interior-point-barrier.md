@@ -49,7 +49,10 @@ Replace the inequalities with a **logarithmic barrier**
 $$
 \phi(x) = -\sum_{i=1}^m \log(-f_i(x)),
 $$
-which is finite on the strict interior $\{x : f_i(x) < 0\}$ and blows up at the boundary. For each $t > 0$, solve
+which is finite on the strict interior $\{x : f_i(x) < 0\}$ and blows up at the boundary.
+![Logarithmic barrier on a 1D interval](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig1.png)
+*Figure 1. The logarithmic barrier $-\log x - \log(4-x)$ on the open interval $(0,4)$. It is smooth and strictly convex inside the feasible set and diverges to $+\infty$ as $x$ approaches either boundary. The minimizer of the barrier alone is the **analytic center** of the feasible set.*
+ For each $t > 0$, solve
 $$
 \min_x \quad t f_0(x) + \phi(x), \quad Ax = b. \tag{$P_t$}
 $$
@@ -72,7 +75,10 @@ For each $t > 0$:
   $$
   Why? Define $\nu(t) = (\nu_1(t), \ldots, \nu_p(t))$ from the equality constraints. Then $(\lambda(t), \nu(t))$ is dual feasible and the Lagrangian evaluated at this dual point is exactly $f_0(x^\star(t)) - m/t$, by direct calculation.
 
-So **as $t \to \infty$, $x^\star(t) \to x^\star$**, and the duality gap shrinks like $1/t$. This gives the most basic interior-point algorithm: choose $t = m/\epsilon$, solve ($P_t$), and you have $\epsilon$-suboptimality.
+So **as $t \to \infty$, $x^\star(t) \to x^\star$**, and the duality gap shrinks like $1/t$.
+![Central path on a 2D polytope](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig2.png)
+*Figure 2. Central path $x^\star(t)$ on a 2D polytope. As the barrier weight $t$ grows, the minimizer moves smoothly from the **analytic center** (where the barrier dominates) toward the **optimum** $x^\star$ at a vertex (where the linear objective dominates). Light gray contours show level sets of the linear objective $c^\top x$.*
+ This gives the most basic interior-point algorithm: choose $t = m/\epsilon$, solve ($P_t$), and you have $\epsilon$-suboptimality.
 
 ### 1.2 The naive algorithm and its problem
 
@@ -134,6 +140,9 @@ $$
 This is quadratic convergence — and the convergence radius $\frac{1}{4}$ is **independent of conditioning**.
 
 These properties are what makes Newton's method robust on a self-concordant function: "damped Newton phase" with constant decrease until $\lambda \leq 1/4$, then "quadratic phase" finishing in $O(\log \log(1/\epsilon))$ steps.
+![Two phases of Newton on a self-concordant function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig4.png)
+*Figure 4. **Left:** the per-step decrease $\omega(\lambda) = \lambda - \log(1+\lambda)$ stays above an absolute constant ($\geq 0.02$) whenever $\lambda \geq 1/4$, so the **damped phase** burns down $\phi$ at a constant rate. **Right:** once the Newton decrement enters the **quadratic region** $\lambda \leq 1/4$, full Newton steps satisfy $\lambda_+ \leq 2\lambda^2$ and convergence is dramatic. Crucially the boundary $1/4$ is independent of conditioning.*
+
 
 ### 2.2 Putting it together for the barrier method
 
@@ -174,6 +183,9 @@ For LP with $m$ inequality constraints, $\nu = m$ and the complexity is $O(\sqrt
 The textbook short-step method ($\mu = 1 + 1/\sqrt{\nu}$, full Newton steps) has the cleanest theory but is slow in practice — many small outer iterations. **Long-step** algorithms ($\mu = 10$ or $100$, damped Newton) violate the strict theory but converge much faster empirically. The theoretical complexity becomes $O(\nu \log(\nu/\epsilon))$ in the worst case, but the practical performance often matches short-step.
 
 Modern solvers use **predictor-corrector** schemes (Mehrotra, 1992): predict the central path direction with one Newton step, then correct with a second-order term. This is the basis of every commercial LP/QP/SDP solver.
+![Barrier weight schedule and duality gap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig3.png)
+*Figure 3. Two outer-iteration schedules for the barrier method on an LP with $m=200$ constraints. Long-step ($\mu=10$) inflates $t_k$ aggressively and reaches tolerance in $\sim 8$ outer iterations; short-step ($\mu = 1 + 1/\sqrt{\nu}$) takes $\sim 90$ tiny steps but each inner solve is provably $O(1)$ Newton steps. Both produce a duality gap $m/t_k$ that decays geometrically.*
+
 
 ---
 
@@ -201,6 +213,9 @@ This is a system in $(x, \nu, \lambda)$ with $1/t$ as a perturbation. Newton's m
 - **Self-correcting**: errors in $x$ get corrected through $\lambda$ and vice versa.
 
 The vast majority of solvers (Mosek, Gurobi for QP, SDPT3 for SDP, OSQP for QP) implement primal-dual interior-point methods with predictor-corrector and adaptive step sizes.
+![Primal-dual residuals over iterations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig5.png)
+*Figure 5. Convergence of a Mehrotra predictor-corrector primal-dual interior-point method. The primal residual $\|Ax-b\|$, dual residual $\|A^\top \nu + \lambda - c\|$ and duality gap $x^\top \lambda$ all drop together at a geometric rate. The **predictor** step computes the affine direction along the central path; the **corrector** step adds a centering correction so the next iterate stays close to the central path.*
+
 
 ---
 

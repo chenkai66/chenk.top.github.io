@@ -87,6 +87,10 @@ $$
 该定理**不依赖任何凸性假设**——对任意（无论多么病态的）约束优化问题均成立。对偶问题提供了最优性的认证机制：若能找到原始可行解 $x$ 和对偶可行解 $(\lambda, \nu)$，使得 $f_0(x) = g(\lambda, \nu)$，则 $x$ 必为原始问题的最优解。这正是整数规划分支定界法（branch-and-bound）的理论基础。
 
 差值 $p^\star - d^\star \geq 0$ 称为**对偶间隙（duality gap）**。当该间隙为零时，称**强对偶性（strong duality）** 成立。
+
+![弱对偶性与对偶间隙](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig1.png)
+*图 1 —— 弱对偶性。对偶函数 $g(\lambda)$ 始终不超过原始最优值 $p^\star$，其上确界 $d^\star$ 是最佳下界；阴影区域即为对偶间隙，在强对偶性成立时为零。*
+
 ## 3. 强对偶性
 
 ### 3.1 斯莱特条件（Slater’s condition）
@@ -106,6 +110,10 @@ $$
 借助共轭函数性质，以及 $V$ 在 $0$ 附近是凸且下半连续的事实，可得 $V(0) = -V^{**}(0)$，进而推出 $p^\star = d^\star$。
 
 完整证明见 Boyd 与 Vandenberghe《凸优化》第 5.3.2 节；关键步骤是在凸集 $\{(u, t) : t \geq V(u)\}$ 的边界点 $(0, V(0))$ 处应用支撑超平面定理。斯莱特条件确保所得到的支撑超平面非竖直，从而导出有限的拉格朗日乘子。$\blacksquare$
+
+
+![值函数与支撑超平面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig4.png)
+*图 4 —— 通过值函数解释强对偶性。$V(u)$ 是扰动约束后的最优值函数；凸性加斯莱特条件保证 $u=0$ 处存在非竖直的支撑超平面，其斜率恰好为 $-\lambda^\star$。*
 
 ### 3.2 斯莱特条件不成立的情形
 
@@ -128,6 +136,10 @@ $$
 
 **为何在强对偶下这些条件成立？**  
 强对偶性给出 $f_0(x^\star) = L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star)$ 对所有 $x$ 成立。因此 $x^\star$ 是拉格朗日函数 $L(\cdot, \lambda^\star, \nu^\star)$ 在 $\mathbb{R}^n$ 上的全局最小值点，从而导出平稳性条件。原始/对偶可行性由定义直接保证。唯一非平凡的步骤是互补松弛性：由 $L(x^\star, \lambda^\star, \nu^\star) = f_0(x^\star)$ 可得 $\sum_i \lambda_i^\star f_i(x^\star) = 0$；又因每一项 $\lambda_i^\star f_i(x^\star) \leq 0$，故各项必须各自为零。
+
+
+![KKT 条件的几何图景](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig3.png)
+*图 3 —— 二维下的 KKT 平稳性。在最优点 $x^\star$ 处，目标函数负梯度 $-\nabla f_0$ 落在活跃约束梯度所张成的凸锥中，权重 $\lambda_i^\star$ 非负。*
 
 ### 4.1 KKT 作为充分最优性条件（凸问题）
 
@@ -160,6 +172,10 @@ KKT 条件在最优解处成立**仅当满足某种约束规范（constraint qua
 
 右侧不等式表示：给定乘子 $(\lambda^\star, \nu^\star)$，$x^\star$ 是原始最优；左侧不等式表示：$(\lambda^\star, \nu^\star)$ 是对偶最优。
 
+
+![拉格朗日函数的鞍点曲面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig2.png)
+*图 2 —— 拉格朗日函数的鞍点曲面。对每个 $\lambda$ 关于 $x$ 取最小，得到对偶函数（绿色）；对每个原始可行 $x$ 关于 $\lambda$ 取最大，得到原始值（橙色）。强对偶下两者相交于鞍点。*
+
 鞍点刻画是以下方法的理论基础：
 
 - **增广拉格朗日法（Augmented Lagrangian methods）**：交替进行原始与对偶更新，并引入二次惩罚项以增强稳定性；
@@ -191,6 +207,10 @@ $$
 \text{s.t.} \quad & \alpha_i \geq 0, \quad \sum_i \alpha_i y_i = 0.
 \end{aligned}
 $$
+
+
+![SVM 对偶与支持向量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig5.png)
+*图 5 —— SVM 对偶问题。最大间隔分离超平面（黑色）完全由支持向量（紫色圆圈）决定；互补松弛性使得所有内部样本 $\alpha_i^\star = 0$，而 $w^\star = \sum_i \alpha_i^\star y_i x_i$ 是一个稀疏加权和。*
 
 **为何这意义重大？**
 

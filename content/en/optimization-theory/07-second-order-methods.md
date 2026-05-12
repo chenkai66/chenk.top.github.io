@@ -52,6 +52,10 @@ This is the **Newton direction**. The pure Newton iteration is $x_{k+1} = x_k + 
 
 Geometrically: Newton's method approximates $f$ by the local quadratic and jumps to the minimum of that quadratic. If $f$ is itself a quadratic, Newton converges in one step.
 
+
+![Newton's method local quadratic model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig1.png)
+*Figure 1. Newton's method approximates f by the local quadratic at x_k and jumps to that quadratic's minimum. If f is itself quadratic, one step suffices.*
+
 ### 1.2 Quadratic local convergence
 
 > **Theorem.** Suppose $f$ is twice continuously differentiable, $\nabla^2 f$ is $L$-Lipschitz (i.e., $\|\nabla^2 f(x) - \nabla^2 f(y)\| \leq L \|x - y\|$), and $\nabla^2 f(x^\star) \succeq \mu I$ at a stationary point $x^\star$. Then for $x_0$ close enough to $x^\star$, Newton's method converges with
@@ -75,6 +79,10 @@ The integrand is bounded in norm by $L (1 - t) \|x_k - x^\star\|_2$. Integrating
 
 The "doubling of digits" is concrete: if $\|x_k - x^\star\| = 10^{-3}$, then $\|x_{k+1} - x^\star\| \leq C \cdot 10^{-6}$, then $C^2 \cdot 10^{-12}$, etc. To go from $10^{-3}$ to $10^{-12}$ takes 2 iterations, not the $\log(10^9) / \log(\sqrt{\kappa})$ a first-order method would need.
 
+
+![Convergence rates: GD vs BFGS vs Newton](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig2.png)
+*Figure 2. Error vs iteration on a log scale: gradient descent decays linearly (constant rate), BFGS achieves superlinear decay, and Newton doubles the number of correct digits per step (quadratic).*
+
 ### 1.3 The catch: globalization
 
 The convergence theorem only guarantees fast convergence **in a neighborhood of $x^\star$**. Far from $x^\star$, the Newton direction may not even be a descent direction (when $\nabla^2 f \not\succ 0$), and the step size may be too large.
@@ -84,6 +92,10 @@ The standard fix is **damped Newton**: $x_{k+1} = x_k + \alpha_k d_k^N$ where $\
 - **Curvature:** $\nabla f(x_k + \alpha d_k)^\top d_k \geq c_2 \nabla f(x_k)^\top d_k$, typical $c_2 = 0.9$ for Newton-like methods.
 
 Once $x_k$ is close to $x^\star$, the unit step $\alpha_k = 1$ satisfies both conditions and the algorithm transitions automatically into the quadratic-convergence regime.
+
+
+![Damped Newton backtracking line search](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig3.png)
+*Figure 3. Damped Newton: starting from x_k, the pure step (alpha=1) overshoots; backtracking halves alpha until the Armijo sufficient-decrease bound (dotted) is satisfied.*
 
 ### 1.4 When the Hessian is indefinite
 
@@ -169,6 +181,10 @@ return r                              # r = H_k g
 
 Each loop touches each pair once; the total work is $4mn$ inner products plus a vector scaling — totally bypassing the $O(n^2)$ matrix update.
 
+
+![L-BFGS two-loop recursion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig4.png)
+*Figure 4. The L-BFGS two-loop recursion. The backward loop sweeps the m history pairs to produce alpha_i and an updated q; H_k^0 is applied; the forward loop sweeps in reverse, yielding r = H_k g in O(mn) without ever forming H_k.*
+
 ### 3.2 Where the two-loop comes from
 
 Apply (BFGS) recursively to expand $H_k$ in terms of $H_k^0$ and the pairs $(s_i, y_i)$. The first loop unwinds the right-most factor $(I - \rho_i y_i s_i^\top)$ for each $i$ from $k-1$ down to $k-m$, applied to $g$. Multiplying by $H_k^0$ gives the middle. The second loop applies the left factors $(I - \rho_i s_i y_i^\top)$ in the reverse order. The $\alpha_i$ values are reused because they appear symmetrically in both factors. (Nocedal & Wright, *Numerical Optimization*, Algorithm 7.4 has the full derivation.)
@@ -222,6 +238,10 @@ The Cauchy point gives at most a Cauchy decrease — comparable to gradient desc
 - Else: take the linear combination that lies on the trust region boundary, giving a quasi-Newton step with reduced length.
 
 The dogleg path is a "broken line" from $0$ to $d_k^{SD}$ to $d_k^N$. The model decrease along this path is monotone, so the best feasible point is where the path meets the trust region boundary (or $d_k^N$ if interior).
+
+
+![Trust region dogleg path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig5.png)
+*Figure 5. Trust-region subproblem in 2D: contours of the quadratic model m(d), the trust ball ||d||<=Delta (dashed), the Cauchy direction d_SD, the Newton step d_N, and the dogleg broken line. The dogleg solution is the intersection of the path with the trust boundary.*
 
 ### 4.3 Convergence
 

@@ -57,6 +57,8 @@ Examples worth knowing by heart:
 
 A surprising one: the set of *invertible* matrices is **not** convex. Consider $X = I$ and $Y = -I$; their midpoint is the zero matrix.
 
+![Convex set vs non-convex set: a set is convex iff every line segment between two of its points stays inside.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig1_convex_set.png)
+
 ### 1.2 Operations that preserve convexity
 
 The following constructions take convex inputs to convex outputs. Each is a one-line check from the definition; you should be able to write the proofs without looking.
@@ -108,6 +110,8 @@ Letting $\lambda \to 0^+$ gives the inequality. The converse is a similar calcul
 
 The projection theorem has a beautiful geometric reading: $\pi_C(y)$ is the point of $C$ where the segment $y \to z$ meets $C$ at an angle of at most $90^\circ$ to every other direction inside $C$.
 
+![Projection of $y$ onto a closed convex set $C$: $z = \pi_C(y)$ is the unique closest point, and the residual $y - z$ makes a non-acute angle with every direction $x - z$ pointing into $C$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig2_projection.png)
+
 ---
 
 ## 2. Convex functions
@@ -148,6 +152,8 @@ $$
 Taylor expansion gives $f(x + tv) = f(x) + t \langle \nabla f(x), v \rangle + \tfrac{t^2}{2} v^\top \nabla^2 f(x) v + o(t^2)$. Comparing yields $v^\top \nabla^2 f(x) v \geq 0$.
 
 (F2) $\Rightarrow$ (D): integrate twice. Specifically, for the line $g(\lambda) = f((1 - \lambda) x + \lambda y)$, $g''(\lambda) = (y - x)^\top \nabla^2 f((1 - \lambda) x + \lambda y) (y - x) \geq 0$, so $g$ is convex on $[0, 1]$, which is exactly (D).
+
+![Two equivalent views of convexity: (left) the first-order condition says the tangent at any point is a global lower bound on $f$; (right) the epigraph $\mathrm{epi}(f)$ is itself a convex set in $\mathbb{R}^{n+1}$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig3_convex_function.png)
 
 ### 2.2 Strict and strong convexity
 
@@ -199,6 +205,8 @@ The conjugate $f^*$ is **always convex**, even if $f$ is not — it is the point
 ### 3.1 Geometric reading
 
 For a fixed slope $y$, $f^*(y)$ is the largest value of $\langle y, x \rangle - f(x)$. Equivalently, the affine function $x \mapsto \langle y, x \rangle - f^*(y)$ is the highest affine minorant of $f$ with slope $y$. So $f^*$ tracks, for each slope, how far the supporting hyperplane sits below the graph.
+
+![Geometric meaning of the conjugate: for slope $y$, the highest affine minorant of $f$ with that slope is $x \mapsto y\,x - f^*(y)$; the value $f^*(y)$ measures the vertical drop from the origin to where this line crosses the $y$-axis.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig4_conjugate.png)
 
 ### 3.2 Fenchel--Young inequality
 
@@ -267,6 +275,8 @@ $$
 \partial f(x) = \begin{cases} \{1\} & x > 0 \\ \{-1\} & x < 0 \\ [-1, 1] & x = 0. \end{cases}
 $$
 At $x = 0$, every slope between $-1$ and $1$ defines a tangent line that lies below $|x|$ everywhere.
+
+![Subgradients of $|x|$ at the kink: every slope in $[-1, 1]$ produces a line through the origin that stays below $|x|$, so $\partial f(0) = [-1, 1]$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig5_subgradient.png)
 
 **Example 2: $f(x) = \|x\|_1$ on $\mathbb{R}^n$.**
 

@@ -17,7 +17,7 @@ Engineer, writer — building long-running, production-grade agent systems at Al
 - **AI4Science**: An autonomous research agent system that accepts scientific questions, reads papers, designs & runs experiments, and returns structured reports. Pipelines run for hours or days — sustained by shared memory architecture and harness-driven skill evolution.
 - **llm-elevator**: An internal performance enhancement layer (not publicly available), comprising prompt template engine, agent runtime harness, and adversarial evaluation framework. It does *not* modify models — instead, it lifts real-task success rates and stability of frontier LLMs. All upstream projects depend on it.
 - **DaaS (Documents-as-Skill)**: Converts unstructured technical documentation into callable, verifiable, context-aware agent skills.
-- **chenk.top**: A technical blog with 249 original Chinese + 249 original English long-form posts (498 total), organized into 21 series. Every post is written twice from scratch — no translations. Chinese favors concision; English favors exposition.
+- **chenk.top**: A technical blog: {{< blog-stats >}}. Every post is written twice from scratch — no translations. Chinese favors concision; English favors exposition.
 
 ### The core question I keep returning to
 **How do long-running systems maintain resilience amid failure, model swaps, cost pressure, and infrastructure migration?**

@@ -48,7 +48,10 @@ $$
 $$
 \phi(x) = -\sum_{i=1}^m \log(-f_i(x)),
 $$
-该函数在严格可行域 $\{x : f_i(x) < 0\}$ 上取有限值，且在边界处趋于 $+\infty$。对每个 $t > 0$，求解带等式约束的无约束化子问题：
+该函数在严格可行域 $\{x : f_i(x) < 0\}$ 上取有限值，且在边界处趋于 $+\infty$。
+![一维区间上的对数障碍函数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig1.png)
+*图 1. 开区间 $(0,4)$ 上的对数障碍函数 $-\log x - \log(4-x)$。其在可行域内部光滑、严格凸；当 $x$ 趋近任一端点时迅速发散至 $+\infty$。障碍函数自身的极小点即为可行域的**解析中心**（analytic center）。*
+对每个 $t > 0$，求解带等式约束的无约束化子问题：
 $$
 \min_x \quad t f_0(x) + \phi(x), \quad Ax = b. \tag{$P_t$}
 $$
@@ -71,7 +74,10 @@ $$
   $$
   为什么？令 $\nu(t) = (\nu_1(t), \ldots, \nu_p(t))$ 为对应等式约束 $Ax = b$ 的拉格朗日乘子向量，则 $(\lambda(t), \nu(t))$ 是一个对偶可行点；直接计算可知，拉格朗日函数在此对偶点处的取值恰为 $f_0(x^\star(t)) - m/t$。
 
-因此，**当 $t \to \infty$ 时，$x^\star(t) \to x^\star$**，且对偶间隙以 $1/t$ 的速率衰减。这便导出了最基础的内点算法：取 $t = m/\epsilon$，求解 ($P_t$)，即可获得 $\epsilon$-次优解。
+因此，**当 $t \to \infty$ 时，$x^\star(t) \to x^\star$**，且对偶间隙以 $1/t$ 的速率衰减。
+![二维多面体上的中心路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig2.png)
+*图 2. 二维多面体上的中心路径 $x^\star(t)$。随障碍权重 $t$ 增大，最优解从**解析中心**（障碍项主导）平滑移动至顶点处的**最优解** $x^\star$（线性目标主导）。浅灰等高线为线性目标 $c^\top x$ 的水平集。*
+这便导出了最基础的内点算法：取 $t = m/\epsilon$，求解 ($P_t$)，即可获得 $\epsilon$-次优解。
 
 ### 1.2 天真算法及其缺陷
 
@@ -134,6 +140,9 @@ $$
 此即二次收敛——且该收敛半径 $\frac{1}{4}$ **与问题条件数无关**。
 
 正是上述三条性质，保障了牛顿法在自协调函数上的鲁棒性：先经“阻尼牛顿阶段”，以常数降幅快速逼近，直至 $\lambda \leq 1/4$；再进入“二次收敛阶段”，仅需 $O(\log \log(1/\epsilon))$ 步即可达到精度 $\epsilon$。
+![自协调函数上牛顿法的两阶段行为](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig4.png)
+*图 4. **左图**：每步下降量 $\omega(\lambda) = \lambda - \log(1+\lambda)$ 在 $\lambda \geq 1/4$ 时始终大于绝对常数（$\geq 0.02$），故**阻尼阶段**以恒定速率削减 $\phi$。**右图**：一旦牛顿减量进入**二次收敛区域** $\lambda \leq 1/4$，完整牛顿步满足 $\lambda_+ \leq 2\lambda^2$，收敛极为迅速。关键在于阈值 $1/4$ 与问题条件数无关。*
+
 
 ### 2.2 将其整合应用于障碍法（barrier method）
 
@@ -174,6 +183,9 @@ $$
 教科书式的短步长方法（$\mu = 1 + 1/\sqrt{\nu}$，采用完整牛顿步）理论最简洁，但实践中较慢——需执行大量细粒度的外层迭代。**长步长**算法（$\mu = 10$ 或 $100$，采用阻尼牛顿法）虽偏离严格理论保证，却在实际中收敛快得多。其最坏情况理论复杂度退化为 $O(\nu \log(\nu/\epsilon))$，但实际性能常与短步长方法相当。
 
 现代求解器普遍采用 **预测-校正（predictor-corrector）方案**（Mehrotra, 1992）：先用一次牛顿步预测中心路径方向，再引入二阶修正项进行校正。该框架构成了所有商用 LP/QP/SDP 求解器的基础。
+![障碍权重序列与对偶间隙](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig3.png)
+*图 3. 对含 $m=200$ 个约束的线性规划问题采用两种外层迭代策略：长步长（$\mu=10$）约 8 次外层迭代即可收敛；短步长（$\mu=1+1/\sqrt{\nu}$）需约 90 次小步迭代，但每次内层求解理论上仅需 $O(1)$ 次牛顿迭代。两者的对偶间隙 $m/t_k$ 均以几何速率衰减。*
+
 
 ---
 
@@ -201,6 +213,9 @@ $$
 - **自校正性（self-correcting）**：$x$ 中的误差可通过 $\lambda$ 得到修正，反之亦然。
 
 目前绝大多数主流求解器（如 Mosek、Gurobi（QP）、SDPT3（SDP）、OSQP（QP））均实现基于预测-校正机制与自适应步长策略的原始-对偶内点法。
+![原始-对偶残差随迭代下降](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig5.png)
+*图 5. Mehrotra 预测-校正型原始-对偶内点法的收敛过程：原始残差 $\|Ax-b\|$、对偶残差 $\|A^\top \nu + \lambda - c\|$ 与对偶间隙 $x^\top \lambda$ 三者同步以几何速率下降。**预测**步沿中心路径计算仿射方向，**校正**步引入中心化修正，确保下一迭代点保持在中心路径附近。*
+
 
 ---
 

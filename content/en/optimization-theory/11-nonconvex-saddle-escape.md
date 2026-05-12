@@ -56,6 +56,11 @@ The classical worry: in dimension $d$, the number of saddles can grow exponentia
 
 The good news: **most saddles are escapable**.
 
+![Stationary-point taxonomy by Hessian signature](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig2.png)
+
+*Figure: the four classes of stationary points sorted by Hessian eigenvalue signature. Strict saddles (third panel) have at least one strictly negative eigenvalue and are escapable; degenerate critical points (fourth panel) have a zero eigenvalue and require higher-order information.*
+
+
 ---
 
 ## 2. Saddle escape via perturbed GD
@@ -82,6 +87,11 @@ for t = 0, 1, 2, ...:
 ```
 
 The idea: at a stationary point with negative eigenvalue, a random perturbation $\xi_t$ has positive component along the negative eigenvector with overwhelming probability. The GD steps after the perturbation amplify this component (the matrix exponential in the negative-eigenvalue direction), pushing the iterate away from the saddle.
+
+![3D saddle landscape with vanilla and perturbed GD trajectories](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig1.png)
+
+*Figure: the canonical strict saddle $f(x,y) = x^2 - y^2$. Vanilla GD descends the $x$-direction and stalls at the saddle (grey). A small random perturbation gives a non-zero $y$-component, which the negative curvature amplifies exponentially — the iterate escapes (orange).*
+
 
 > **Theorem (Jin et al. 2017).** For an $L$-smooth, $\rho$-Hessian-Lipschitz function with the strict saddle property, perturbed GD finds an $\epsilon$-second-order stationary point (i.e., $\|\nabla f\| \leq \epsilon$ and $\lambda_{\min}(\nabla^2 f) \geq -\sqrt{\rho \epsilon}$) in
 > $$
@@ -110,6 +120,11 @@ PL is **weaker than strong convexity** — every $\mu$-strongly convex function 
 - The squared loss $\|Ax - b\|_2^2$ when $A$ has full row rank — PL but not strongly convex if $A$ is "wide".
 - Over-parameterized neural networks at suitable initializations (Liu, Zhu & Belkin 2022) — PL on the loss landscape near the initialization in some regimes.
 - Logistic regression with separable data — PL at infinity but not finite minimum.
+
+![PL condition vs strong convexity](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig3.png)
+
+*Figure: left — strong convexity forces a unique minimum, while PL allows multiple disjoint global minima (the quartic $\tfrac12(x^2-1.2)^2$ has two). Right — both functions satisfy $\|\nabla f\|^2 \geq 2\mu(f - f^\star)$ (log-log scale, dashed line is the PL boundary with $\mu = 0.5$).*
+
 
 > **Theorem.** If $f$ is $L$-smooth and satisfies the PL inequality with $\mu$, GD with step $\eta = 1/L$ converges linearly:
 > $$
@@ -155,11 +170,21 @@ GD on the squared loss in this regime converges at the eigenvalues of the NTK �
 
 NTK is descriptive of "lazy training" — wide networks where weights barely change. Real-world networks operate beyond this regime, with feature learning and qualitative weight changes.
 
+![NTK regime: wide networks stay near init, GD converges linearly](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig4.png)
+
+*Figure: left — in the NTK / lazy regime a wide network's parameters $\theta$ stay inside a tiny neighborhood of the initialization $\theta_0$ (blue), while a narrow network's parameters move substantially (orange, feature learning). Right — under PL with NTK constant $\mu$, GD enjoys the linear rate $(1-\mu/L)^t$, in contrast to the sublinear plateau of generic non-convex landscapes.*
+
+
 ### 4.3 Implicit bias of SGD
 
 SGD does not just find any global min — it finds **flat** ones. Empirically, SGD-found minima generalize better than the same loss values found by full-batch GD. The conjectured mechanism: the SGD noise has variance proportional to the loss's local curvature, so SGD spends more time in flat regions where curvature is small.
 
 A precise statement (Mandt et al. 2017): SGD's stationary distribution at constant step $\eta$ is approximately Gaussian centered at $x^\star$ with covariance $\eta C$ where $C$ depends on the inverse Hessian and the gradient covariance. Flatter minima (small Hessian) get visited more often.
+
+![Flat vs sharp minima and the generalization gap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig5.png)
+
+*Figure: left — a 1-D loss with one flat (wide) basin and one sharp (narrow) basin at almost identical training-loss values. Right — when the test distribution shifts the loss slightly, the flat minimum's value barely changes (gap $\approx 0.05$) while the sharp minimum's value blows up (gap $\approx 0.93$). This is the geometric intuition behind SGD's preference for flat minima and their better generalization.*
+
 
 This is part of a larger story — **implicit bias** — where the choice of optimization algorithm shapes the function class effectively learned, even when the loss has many global minima. Linear models with logistic loss converge to the max-margin solution under GD; the same loss with Adam finds different solutions.
 

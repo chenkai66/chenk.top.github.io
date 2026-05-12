@@ -130,6 +130,10 @@ mini-batch 梯度 $\tilde g_t$ 是真实梯度 $\nabla L(\theta_t)$ 的无偏估
 
 后来 LAMB、LARS 等大 batch 算法把这一思路又推了一步，但本质没变：**LR 和 $B$ 是绑在一起的**。
 
+![Linear scaling rule 与梯度噪声随 batch size 的变化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/04-learning-rate-schedules/fig8.png)
+
+左图：经验上，线性规则 $\eta \propto B$ 在达到一个临界 batch size 之前都能在几个百分点以内成立，超过该点后开始走平——再加 batch 不会多出 LR 余量。右图：梯度标准误差以 $1/\sqrt B$ 衰减，这正是“大 batch 能承受大步长”背后的原因。
+
 ## 3.2 动量：藏在背后的 LR 放大器
 
 带动量的 SGD（Polyak / heavy-ball 形式）：
@@ -175,6 +179,10 @@ v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
 - **预条件化曲率（preconditioned sharpness）很大。** 更新的解释来自 Kalra et al. 2024 的 *Why Warmup the Learning Rate?*：warmup 把网络推到一个"预条件化 Hessian 最大特征值更小"的区域——本质上是在**重塑优化地形**，让后面更大的峰值 LR 变得安全。
 
 无论哪种解释，结论都一样：**Adam 永远要 warmup**。视觉/CNN 用 1–5% 的总步数；LLM 和超大 batch 推荐 5–10%。
+
+![Warmup 对早期训练的影响：损失更平滑，梯度范数不超限](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/04-learning-rate-schedules/fig9.png)
+
+不加 warmup 的崩坏样子很可观：前 30 步左右梯度范数冲出 clip 阈值很高，损失出现明显隐凸，之后的训练也几乎追不上加了 warmup 的曲线。几百步的 warmup 往往就是“能收敛”与“发散或卡住”的分界。
 
 ---
 
