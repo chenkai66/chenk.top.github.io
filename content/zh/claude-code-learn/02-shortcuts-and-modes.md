@@ -16,7 +16,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-2"
 ---
 
-快捷键未出现在帮助界面中，这是刻意设计——遵循「用中发现」而非「查文档掌握」的哲学。但为方便查阅，我们仍在此完整列出。
+快捷键未出现在帮助界面中，这是刻意设计——遵循「用中发现」而非「查文档掌握」的哲学。不过为了方便查阅，我们还是在此完整列出。
 
 ![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
@@ -66,7 +66,7 @@ translationKey: "claude-code-learn-2"
 > 接下来更新 Controller，调用新服务方法
 ```
 
-该模式达成理想平衡： Claude 可自由编写代码而不中断你的思路，所有带副作用的操作（如 Shell 命令、 Git 操作等）仍需你最终确认。我约 40% 的会话使用此模式，适用于一切需紧盯输出的专注编码任务。
+该模式达成理想平衡：Claude 可自由编写代码而不中断你的思路，所有带副作用的操作（如 Shell 命令、Git 操作等）仍需你最终确认。我约 40% 的会话使用此模式，适用于需要紧盯输出的专注编码任务。
 
 ⚠️ 注意陷阱：**切勿开启「自动接受编辑」后就离开终端**。该模式的前提是「你在实时关注」。若你无法持续关注，请保持在常规模式。
 

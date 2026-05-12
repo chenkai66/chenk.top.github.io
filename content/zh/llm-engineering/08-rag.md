@@ -43,7 +43,7 @@ Question: {user_query}
 
 ![fig1: chunking strategies compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/fig1_chunking_strategies.png)
 
-文本块的切分方式直接决定了检索器理论上能够召回的内容边界。常见的 chunk 大小有 256、 512、 1024 tokens。常见策略包括：
+文本块的切分方式直接决定了检索器理论上能够召回的内容边界。常见的 chunk 大小有 256、512、1024 tokens。常见策略包括：
 
 - **Fixed size**：每 $N$ 个 token 切一刀。简单，但会切断语义单元。
 - **Sentence**：按句子边界切分。好一些，但往往太碎。
@@ -81,7 +81,7 @@ chunks = splitter.split_text(document)
 
 ![fig2: dense vs sparse vs hybrid retrieval](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/fig2_dense_sparse_hybrid.png)
 
-文本嵌入（embedding）将原始文本映射为向量表示，从而支持基于相似度的语义检索，以召回相关的文本块。你选的模型决定了质量、成本和延迟。
+文本嵌入（embedding）将原始文本映射为向量表示，从而支持基于相似度的语义检索，以召回相关的文本块。选择的模型决定了质量、成本和延迟。
 
 2026 年的技术现状：
 

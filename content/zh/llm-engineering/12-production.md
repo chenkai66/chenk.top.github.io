@@ -18,7 +18,7 @@ disableNunjucks: true
 description: "服务栈选型细化、给 LLM 做 autoscaling、延迟预算、prompt+completion 成本跟踪、多模型路由、FrugalGPT 级联、第一天就要的可观测性，以及能用的 on-call 模式。"
 translationKey: "llm-engineering-12"
 ---
-这是最后一章——前面已覆盖模型、 Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本不超支。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务：每次请求都产生成本，响应延迟甚至可达两分钟。
+这是最后一章——前面已覆盖了模型、Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务：每次请求都会产生成本，响应延迟甚至可达两分钟。
 
 本章将密集呈现关键数据——因为在生产环境中，一个功能的盈亏往往取决于那些被忽视的 2-5 倍成本差异。最实用的能力是手动核算 LLM 负载的成本。以下数据截至 2025 年底/2026 年初，请在实际使用前核对最新定价。
 
@@ -44,23 +44,23 @@ translationKey: "llm-engineering-12"
 [Observability] ← logs, metrics, traces, eval runs
 ```
 
-App Server 和 LLM Gateway 是工程重心。 App Server 处理业务逻辑，而 LLM Gateway 则要让多个模型表现得像单个服务。
+App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑，LLM Gateway 则要让多个模型表现得像单个服务。
 
 LLM Gateway 应从项目第一天起就作为独立服务构建，承担以下职责：
 
-- **多模型路由**：根据分类器，把某些请求发给小而快的模型，其他的发给大而慢的。
+- **多模型路由**：根据分类器，把某些请求发给小而快的模型，其他请求发给大而慢的。
 - **降级（Fallback）**：主提供商返回 5xx 时，自动重试备用提供商。
-- **成本追踪**：记录每个请求的 prompt tokens、 completion tokens、模型和美元成本。
-- **Prompt 缓存包装**：即使提供商支持缓存，你的业务代码也不该关心 cache key 怎么生成。
-- **A/B 测试**：把可配置比例的流量路由到新的模型 variant。
+- **成本追踪**：记录每个请求的 prompt tokens、completion tokens、模型和美元成本。
+- **Prompt 缓存包装**：即使提供商支持缓存，业务代码也不应关心 cache key 的生成。
+- **A/B 测试**：把可配置比例的流量路由到新的模型变体。
 - **配额/熔断**：当单个用户消耗成本显著超出合理水平时，自动中断其请求。
 
-从头构建这大概需要几周时间。主流开源方案覆盖了大多数场景：
+从头构建大概需要几周时间。主流开源方案覆盖了大多数场景：
 
-- **LiteLLM**：纯 Python 代理，支持 100+ provider，提供开箱即用的 OpenAI 兼容 API，内置成本追踪完善——最快上手选择。
-- **OpenRouter** — 托管网关，单一 API 对接所有提供商，内置模型市场。单 token 成本比直连提供商高，但自动处理 failover 和价格套利。
-- **Cloudflare AI Gateway** — CDN 边缘的托管代理，带缓存、限流和分析。便宜且运维 trivial，但牺牲了一些灵活性。
-- **BentoML / Bento Cloud** — 更重的框架，适合同时需要在这个网关后托管自训模型的场景。
+- **LiteLLM**：纯 Python 代理，支持 100+ 提供商，提供开箱即用的 OpenAI 兼容 API，内置成本追踪完善——最快上手选择。
+- **OpenRouter** — 托管网关，单一 API 对接所有提供商，内置模型市场。单 token 成本比直连提供商高，但自动处理故障转移和价格套利。
+- **Cloudflare AI Gateway** — CDN 边缘的托管代理，带缓存、限流和分析。便宜且运维简单，但牺牲了一些灵活性。
+- **BentoML / Bento Cloud** — 更重的框架，适合同时需要在这个网关后托管自训练模型的场景。
 - **Portkey, Langfuse Gateway** — 新入局者，观测性故事讲得比较好。
 
 尽早选定方案，但需预留替换能力——Gateway 是少数存在显著供应商锁定风险的组件（业务代码深度耦合其接口），接口设计务必极简。

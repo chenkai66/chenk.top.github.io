@@ -16,7 +16,7 @@ description: "在 macOS 或 Ubuntu 上装好 OpenClaw，接入模型服务商，
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
-README 声称只需五分钟，实际上却常常需要十分钟——多出的时间几乎全耗在 Node 版本兼容性上，新手极易卡在这里。
+README 声称只需五分钟，但实际上常常需要十分钟——多出的时间几乎全耗在 Node 版本兼容性上，新手极易卡在这里。
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
@@ -43,7 +43,7 @@ nvm install 24
 nvm use 24
 ```
 
-这是唯一的真正‘陷阱’（foot-gun）： Node 版本不兼容会导致后续运行时错误，修复后流程即可恢复正常。
+这是唯一的真正‘陷阱’（foot-gun）：Node 版本不兼容会导致后续运行时错误，修复后流程即可恢复正常。
 
 ### 获取 API Key
 
@@ -65,7 +65,7 @@ nvm use 24
 
 如果你在国内， DashScope 端点在国内，速度很快；而 Anthropic 和 OpenAI 端点则需要代理、香港 VPS 转发请求或 SOCKS5 隧道。 OpenClaw 尊重 `HTTPS_PROXY` 和 `ALL_PROXY` 环境变量，所以如果你本地已经跑了代理，启动网关前导出这些变量就行。不要急于调试‘连接超时’错误，先确认你的网络能否实际访问对应提供商的 API 端点。
 
-如果你不在国内，三家提供商都不需要额外配置即可使用。 DashScope 的国际端点可用，但从美欧连接时延迟稍高。
+如果你不在国内，三家提供商都不需要额外配置即可使用。DashScope 的国际端点可用，但从美欧连接时延迟稍高。
 
 ## 安装 OpenClaw
 

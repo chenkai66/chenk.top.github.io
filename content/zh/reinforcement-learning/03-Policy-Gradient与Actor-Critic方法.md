@@ -20,7 +20,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "reinforcement-learning-3"
 ---
-DQN 证明了深度强化学习能够成功解决 Atari 游戏，但其能力存在明显局限：仅适用于离散动作空间。若将其用于控制具有七个连续关节角度的机械臂，则会完全失效——因为每一步动作选择都需要额外求解一个内部优化问题。
+DQN 证明了深度强化学习能够成功解决 Atari 游戏，但其能力存在明显局限：仅适用于离散动作空间。若用于控制具有七个连续关节角度的机械臂，则会完全失效——因为每一步动作选择都需要额外求解一个内部优化问题。
 
 **策略梯度方法**换了一条路子。它不学习价值函数，也不依赖价值函数间接导出策略，而是**直接对策略参数进行优化**。仅此一项改变，便使强化学习得以处理连续动作空间和随机策略，并能自然应对最优策略本身即具随机性的问题（例如石头剪刀布）。
 ![强化学习（三）：Policy Gradient与Actor-Critic方法 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_1.png)

@@ -20,7 +20,7 @@ translationKey: "python-engineering-3"
 
 ## 为何要写测试
 
-编写测试在前期会消耗时间。但不写测试，后期将付出更多时间。以下是对比：
+编写测试在前期会消耗时间，但不写测试，后期将付出更多时间。以下是对比：
 
 ![Testing pyramid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-test-pyramid.png)
 
@@ -213,7 +213,7 @@ def test_file_creation(temp_dir):
 
 ### Fixture 作用域（Scope）
 
-默认情况下， fixture 在每个测试函数前运行一次。对开销较大的初始化操作，可调整作用域：
+默认情况下，fixture 在每个测试函数前运行一次。对开销较大的初始化操作，可调整作用域：
 
 ```python
 @pytest.fixture(scope="session")
@@ -419,7 +419,7 @@ def test_download_file_http_error(mock_get):
 | 时间相关逻辑 | 数学计算 |
 | 外部服务 API | 自己的内部逻辑 |
 
-过度 Mock 是一种常见误区：如果 Mock 了所有依赖，测试实际上只验证了 Mock 的行为，而非你自己的代码逻辑。**只在边界处 Mock （网络、磁盘、时钟），并在真实环境中测试核心逻辑。**
+过度 Mock 是一种常见误区：如果 Mock 了所有依赖，测试实际上只验证了 Mock 的行为，而非你自己的代码逻辑。**只在边界处 Mock（网络、磁盘、时钟），并在真实环境中测试核心逻辑。**
 
 ### Monkeypatch：更简洁的替代方案
 
@@ -503,7 +503,7 @@ exclude_lines = [
 
 ### 单元测试（Unit Tests）
 
-隔离测试单个函数。快速、专注、数量众多。
+隔离测试单个函数，快速、专注、数量众多。
 
 ```python
 # tests/test_utils.py
@@ -517,7 +517,7 @@ def test_format_size_kilobytes():
 
 ### 集成测试（Integration Tests）
 
-测试多个组件如何协同工作。较慢、数量较少。
+测试多个组件如何协同工作，较慢、数量较少。
 
 ```python
 # tests/integration/test_download.py

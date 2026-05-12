@@ -21,7 +21,7 @@ translationKey: "python-engineering-7"
 
 ## Package vs Module vs Library
 
-这些术语常被混用，但在 Python 生态中有明确定义：
+这些术语常被混用，但在 Python 生态中有明确定义。
 
 ![Packaging pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png)
 
@@ -38,7 +38,7 @@ translationKey: "python-engineering-7"
 
 ## 构建分发包
 
-Python 包支持两种标准分发格式：
+Python 包支持两种标准分发格式。
 
 ![Semantic versioning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png)
 
@@ -102,7 +102,7 @@ Archive:  dist/my_tool-0.1.0-py3-none-any.whl
 
 ![Python packaging journey from script to pypi published packa](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-python-packaging-journey-from-script-to-pypi-published-packa.jpg)
 
-完整的打包配置如下：
+完整的打包配置如下。
 
 ```toml
 [build-system]
@@ -178,7 +178,7 @@ my_tool = ["py.typed"]
 
 ### 包含非 Python 数据文件
 
-如果包需要加载模板、配置文件或数据文件，必须显式声明：
+如果包需要加载模板、配置文件或数据文件，必须显式声明。
 
 ```toml
 [tool.setuptools.package-data]
@@ -225,7 +225,7 @@ Uploading my_tool-0.1.0.tar.gz [========================================] 100%
 
 1. 访问 https://pypi.org/account/register/ 注册账户  
 2. 进入 Account Settings > API Tokens  
-3. 创建一个作用域限定于你项目的 token （首次上传可选“all projects”）
+3. 创建一个作用域限定于你项目的 token（首次上传可选“all projects”）。
 
 配置 `~/.pypirc`：
 
@@ -257,7 +257,7 @@ View at:
 https://pypi.org/project/my-tool/0.1.0/
 ```
 
-现在任何人都可一键安装：
+现在任何人都可一键安装。
 
 ```bash
 $ pip install my-tool
@@ -279,7 +279,7 @@ Checking dist/my_tool-0.1.0.tar.gz: PASSED
 
 ## 私有包索引（Private Package Indexes）
 
-并非所有包都适合公开发布，内部工具应使用私有索引：
+并非所有包都适合公开发布，内部工具应使用私有索引。
 
 ![Private package index](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-private-index.png)
 
@@ -377,7 +377,7 @@ CMD ["my-tool", "serve", "--host", "0.0.0.0", "--port", "8000"]
 
 ### 多阶段构建（Multi-Stage Build）
 
-通过分离构建与运行阶段减小最终镜像体积：
+通过分离构建与运行阶段减小最终镜像体积。
 
 ```dockerfile
 # 第一阶段：构建
@@ -672,4 +672,4 @@ jobs:
 
 ## 下一步
 
-你的包已成功发布并可供安装。但它够快吗？在下一篇文章中，我们将学习如何对 Python 代码进行性能剖析、定位瓶颈、应用缓存与向量化优化，并掌握一项关键技能：**判断何时该优化、何时不该优化。**
+你的包已成功发布并可供安装。但它够快吗？在下一篇文章中，我们将学习如何对 Python 代码进行性能剖析、定位瓶颈、应用缓存与向量化优化，并掌握一项关键技能：**判断何时该优化、何时不该优化**。

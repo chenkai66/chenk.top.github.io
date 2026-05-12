@@ -24,7 +24,7 @@ translationKey: "terraform-agents-2"
 4. 三个工作空间（`dev`, `staging`, `prod`），共用后端但状态隔离。
 5. 能跑通的 `terraform plan`，哪怕配置还是空的。
 
-至此， Agent 尚未部署——本阶段仅涉及基础设施底座搭建，后续所有文章均以此为前提。如果跳过此步骤，推迟到第三篇文章再补，一周内遇到 tfstate 损坏的概率极高。
+至此，Agent 尚未部署——本阶段仅涉及基础设施底座搭建，后续所有文章均以此为前提。如果跳过此步骤，推迟到第三篇文章再补，一周内遇到 tfstate 损坏的概率极高。
 
 ## Step 0: 安装 Terraform
 
@@ -64,7 +64,7 @@ terraform {
 
 ## Step 2: 认证——三种方案，按靠谱程度排个序
 
-Provider 需要 Aliyun credentials。真正可选的有三种，按专业程度递增：
+Provider 需要 Aliyun credentials，真正可选的有三种，按专业程度递增：
 
 ![Authentication flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
 
@@ -81,7 +81,7 @@ export ALICLOUD_REGION="cn-shanghai"
 
 Provider 会自动发现这些环境变量。千万别——在任何情况下都别——把密钥写进 `.tf` 文件。状态文件不存这玩意儿，但 `provider {}` 块会，而那块代码是进 git 的。
 
-如果这个 AK/SK 属于一个 RAM 子账号，且权限仅限于 Terraform 管理的资源，那么单人项目可以接受。如果是协作项目，请直接查看方案 B。
+如果这个 AK/SK 属于一个 RAM 子账号，且权限仅限于 Terraform 管理的资源，单人项目可以接受。如果是协作项目，请直接查看方案 B。
 
 ### 方案 B: AssumeRole （CI  runner）
 
@@ -99,7 +99,7 @@ provider "alicloud" {
 }
 ```
 
-角色才有实际的写权限； AK 只有 assume 它的权限。 STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，而且一旦剥离信任策略就能瞬间撤销。这也是 GitLab CI、 GitHub Actions 和 Jenkins 等 CI/CD 环境中推荐的模型。
+角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，一旦剥离信任策略就能瞬间撤销。这也是 GitLab CI、GitHub Actions 和 Jenkins 等 CI/CD 环境中推荐的模型。
 
 ### 方案 C: ECS RAM 角色（堡垒机 / IaC 服务 runner）
 

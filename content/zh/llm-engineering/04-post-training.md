@@ -18,7 +18,7 @@ disableNunjucks: true
 description: "SFT、DPO、RLHF、RLAIF 各自具体在优化什么，奖励模型在哪里失败，KL 约束的作用，LoRA vs 全量微调那场争论，以及 2026 年生产里实际跑的 post-training 配方。"
 translationKey: "llm-engineering-4"
 ---
-预训练的基座模型只会续写文本；让它听懂指令、拒绝有害请求、维持人设，这些都属于后训练阶段的工作。这也是论文宣称的效果与生产级模型之间差距最大的地方。本章将探讨各个后训练算法的具体优化内容、为何大多数奖励模型存在隐疾，以及 2026 年真正有效的方案。
+预训练的基座模型只会续写文本，而让它听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段。这也是论文中宣称的效果与生产级模型之间差距最大的地方。本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。
 
 ![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_1.png)
 
@@ -26,16 +26,16 @@ translationKey: "llm-engineering-4"
 
 ![fig1: RLHF pipeline overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig1_rlhf_pipeline.png)
 
-当前的 LLM 后训练流程大致分为四个步骤：
+当前的 LLM 后训练流程大致分为以下四个步骤：
 
 1. **SFT**（supervised fine-tuning）用于指令数据，教授模型响应格式和基本的指令遵循行为。
 2. **偏好优化**（DPO, IPO, KTO, 或 RLHF），教授模型在两个有效回复中哪个更受人类（或代理）青睐。
 3. **在线 RL**（RLHF, RLAIF, 或 RLVR — 可验证奖励），对奖励模型或程序检查器进行更激进的调优。对于非推理模型，这一步是可选的，并且越来越常被跳过。
 4. **专项阶段**：包括工具使用 SFT、长上下文 SFT、安全红队测试和宪法 AI 过滤。
 
-OpenAI、 Anthropic 和 Google 仍在采用接近 "SFT → 偏好 DPO → RLHF/RLAIF" 的流程。 DeepSeek-R1 [DeepSeek-AI, 2025] 和 o1 系列模型引入了 **RLVR**（RL with verifiable rewards — 适用于数学/代码等可通过程序检查正确性的场景）作为主要信号。这是 2024-2025 年最重要的后训练变革。
+OpenAI、Anthropic 和 Google 仍在采用接近 "SFT → 偏好 DPO → RLHF/RLAIF" 的流程。DeepSeek-R1 [DeepSeek-AI, 2025] 和 o1 系列模型引入了 **RLVR**（RL with verifiable rewards — 适用于数学/代码等可通过程序检查正确性的场景）作为主要信号。这是 2024-2025 年最重要的后训练变革。
 
-师承关系非常重要。第一篇可信的 "RL from human feedback" 论文是 [Christiano et al., 2017]，将偏好学习应用于 Atari 和连续控制。[Stiennon et al., 2020] 将其用于摘要生成。[Ouyang et al., 2022] (InstructGPT) 是首个通过 SFT + RLHF 进行端到端指令微调的 LLM，现代所有后训练技术栈均源自该论文。 2023-2025 年的这一波浪潮（DPO, IPO, KTO, RLVR）本质上都是 InstructGPT 主题的变体。
+师承关系非常重要。第一篇可信的 "RL from human feedback" 论文是 [Christiano et al., 2017]，将偏好学习应用于 Atari 和连续控制。[Stiennon et al., 2020] 将其用于摘要生成。[Ouyang et al., 2022] (InstructGPT) 是首个通过 SFT + RLHF 进行端到端指令微调的 LLM，现代所有后训练技术栈均源自该论文。2023-2025 年的这一波浪潮（DPO, IPO, KTO, RLVR）本质上都是 InstructGPT 主题的变体。
 
 ## SFT：比大家以为的更重要
 
@@ -57,12 +57,11 @@ def sft_loss(logits, labels, response_mask):
 ```
 
 SFT 的成败取决于两点：
+**数据质量而非数量。** LIMA [Zhou et al., 2023] 证明了 1000 条精心策划的例子可以媲美 5 万条普通数据。Tulu-3 混合集 [Lambert et al., 2024] (AllenAI, 2024) 策划了约 20 万条数据。Qwen3 的 SFT 混合集接近 100 万，但经过了严格的质量过滤。高质量数据在超过 100K 后，收益曲线趋于平缓。
 
-**数据质量而非数量。** LIMA [Zhou et al., 2023] 证明了 1000 条精心策划的例子可以媲美 5 万条普通数据。 Tulu-3 混合集 [Lambert et al., 2024] (AllenAI, 2024) 策划了约 20 万条数据。 Qwen3 的 SFT 混合集接近 100 万，但经过了严格的质量过滤。高质量数据在超过 100K 后，收益曲线趋于平缓。
+**格式一致性。** 如果一半 SFT 数据用 "Sure, I'll help!" 这种开场白，另一半不用，模型就会学会不一致地使用开场白。如果 SFT 数据用 Markdown 标题，但测试 prompt 是关于纯 prose 的，输出就会不匹配。预处理要积极，把格式标准化。
 
-**格式一致性。** 如果一半 SFT 数据用 "Sure, I'll help!" 这种开场白，另一半不用，模型就会学会 inconsistently 使用开场白。如果 SFT 数据用 Markdown 标题，但测试 prompt 是关于纯 prose 的，输出就会不匹配。预处理要 aggressive，把格式 normalize 掉。
-
-一个意想不到的失败模式是：过度训练短回复会导致模型难以生成长文本。模型会从训练数据中学习回复长度的条件分布。如果希望模型能够写出 2000 字的文章， SFT 混合集中至少需要 5-10% 的长示例。我们之前调整过一个 Qwen3-7B 微调版，始终无法生成超过 800 token 的输出，原因在于 SFT 混合集中 Q&A 占比过高。
+一个意想不到的失败模式是：过度训练短回复会导致模型难以生成长文本。模型会从训练数据中学习回复长度的条件分布。如果希望模型能够写出 2000 字的文章，SFT 混合集中至少需要 5-10% 的长示例。我们之前调整过一个 Qwen3-7B 微调版，始终无法生成超过 800 token 的输出，原因是 SFT 混合集中 Q&A 占比过高。
 
 ## SFT 数据来源与合成
 

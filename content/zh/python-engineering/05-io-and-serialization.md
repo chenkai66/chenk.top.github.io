@@ -609,7 +609,7 @@ df = pd.read_parquet("large_data.parquet", columns=["name", "age"])
 | JSON | 200 MB | 12.5s | 9.8s | 9.8s （全量读取） |
 | Parquet | 15 MB | 1.8s | 0.4s | 0.1s |
 
-在此例中， Parquet 比 CSV 小 8 倍，读取速度快 12 倍。
+在此例中，Parquet 比 CSV 小 8 倍，读取速度快 12 倍。
 
 ## 配置模式
 

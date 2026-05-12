@@ -16,9 +16,9 @@ description: "三个改变 Claude Code 一次能扛多少事的特性：子 Agen
 disableNunjucks: true
 translationKey: "claude-code-learn-8"
 ---
-说完 hooks， Claude Code 使用体验的下一个关键点是*并发控制*。这里的‘并发’不是指线程级并发，而是指模型在同一时间并行处理的任务数量、任务间的上下文隔离程度，以及所需的监督注意力。
+说完 hooks，Claude Code 使用体验的下一个关键点是*并发控制*。这里的‘并发’不是指线程级并发，而是指模型在同一时间并行处理的任务数量、任务间的上下文隔离程度及所需的监督注意力。
 
-这三个功能按所需信任度从低到高依次为： Plan mode、 Worktrees、 Sub-agents。
+这三个功能按所需信任度从低到高依次为：Plan mode、Worktrees 和 Sub-agents。
 
 ![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
@@ -85,7 +85,7 @@ Claude：以下是添加限流功能的完整计划：
 - 第 3 步明确定义了中间件在调用链中的精确插入位置；  
 - 第 6 步提前提醒了环境变量类型定义的补充需求。  
 
-若跳过 Plan mode， Claude 将直接编码，关键上下文细节（如依赖位置、中间件插入点、环境变量类型）只能在 Code Review 阶段才暴露；而 Plan mode 则强制在执行前完成显式对齐。
+若跳过 Plan mode，Claude 将直接编码，关键上下文细节（如依赖位置、中间件插入点、环境变量类型）只能在 Code Review 阶段才暴露；而 Plan mode 则强制在执行前完成显式对齐。
 
 ### 我一般在这些时候用
 
@@ -94,7 +94,7 @@ Claude：以下是添加限流功能的完整计划：
 - 任何涉及 auth、支付、 schema 迁移或生产配置的操作。只需花两秒快速浏览，就可能避免数小时的故障修复。
 - 在不熟悉的 repo 里干活。这份计划也自然成为我熟悉该仓库的入门参考。
 
-常见误区是认为任务简单就可以跳过 Plan mode——实际上，小任务更容易因理解偏差导致‘等等，这不是我想要的’。
+常见误区是认为任务简单就可以跳过 Plan mode——实际上，小任务更容易因理解偏差导致“等等，这不是我想要的”。
 
 ### Plan mode 修饰符
 

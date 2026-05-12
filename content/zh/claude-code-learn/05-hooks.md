@@ -16,13 +16,13 @@ description: "Hooks 是每次工具调用前后跑的 shell 脚本。PreToolUse 
 disableNunjucks: true
 translationKey: "claude-code-learn-5"
 ---
-如果说 MCP 是 Claude 向外扩展能力的机制，那么 Hooks 就是向内施加约束的手段——强制执行你关心的规则，而不是依赖模型自觉遵守。
+如果说 MCP 是 Claude 向外扩展能力的机制，那么 Hooks 则是向内施加约束的手段——强制执行你关心的规则，而非依赖模型自觉遵守。
 
 ![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_1.png)
 
 ## 模型
 
-Hook 本质上是一条 shell 命令， Claude Code 会在若干预定义时机触发它——最常用的两个时刻是：
+Hook 本质上是一条 shell 命令，Claude Code 会在若干预定义时机触发——最常用的两个时刻是：
 
 - **`PreToolUse`** — 在工具调用前运行。退出码为 0 表示允许执行；非零则中止操作。
 - **`PostToolUse`** — 在工具返回后运行。此时退出码仅用于信息提示，不影响流程；可用于格式化文件、运行 linter 或记录日志。

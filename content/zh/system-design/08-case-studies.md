@@ -15,9 +15,9 @@ series_order: 8
 translationKey: "system-design-8"
 ---
 
-学习系统设计的最佳方式是动手实践。阅读关于单个组件（如缓存、消息队列、负载均衡器）的资料能帮你建立术语库，但只有亲手设计一个完整系统，你才能学会如何将这些组件有机组合，构建出真正可用的系统。
+学习系统设计的最佳方式是动手实践。阅读关于单个组件（如缓存、消息队列、负载均衡器）的资料能帮你建立术语库，但只有亲手设计一个完整系统，才能学会如何将这些组件有机组合，构建出真正可用的系统。
 
-本文将端到端地剖析三个经典系统设计问题。每个案例均严格遵循本系列第一篇文章提出的系统设计框架：明确需求 → 规模估算 → 高层架构设计 → 关键组件深度剖析 → 瓶颈识别。
+本文将端到端地剖析三个经典系统设计问题，每个案例均严格遵循本系列第一篇文章提出的系统设计框架：明确需求 → 规模估算 → 高层架构设计 → 关键组件深度剖析 → 瓶颈识别。
 
 ---
 
@@ -58,7 +58,7 @@ translationKey: "system-design-8"
 峰值（3×）：~350,000 reads/sec
 ```
 
-这是一个极度读密集型（read-heavy）系统。缓存将是其可扩展性的基石。
+这是一个极度读密集型系统，缓存将是其可扩展性的基石。
 
 **存储估算**：
 ```
@@ -91,7 +91,7 @@ translationKey: "system-design-8"
 
 **方案 1：自增 ID 的 Base62 编码**
 
-使用分布式 ID 生成器（如 Twitter Snowflake）生成唯一的 64 位整数，再将其以 base62 （a–z, A–Z, 0–9）编码。
+使用分布式 ID 生成器（如 Twitter Snowflake）生成唯一的 64 位整数，再将其以 base62 编码（a–z, A–Z, 0–9）。
 
 ```python
 import string
@@ -135,11 +135,11 @@ def generate_short_code(long_url: str) -> str:
     return code
 ```
 
-**问题**：哈希碰撞。两个不同 URL 可能生成相同的 7 字符短码。必须检测碰撞，并在发生时追加计数器或更换哈希种子。
+**问题**：哈希碰撞。两个不同 URL 可能生成相同的 7 字符短码。必须检测碰撞并在发生时追加计数器或更换哈希种子。
 
 **方案 3：预生成密钥池（Pre-generated key pool）**
 
-由独立服务预先批量生成大量唯一短码并存入池中。新 URL 创建时，直接从池中取出下一个可用短码。
+由独立服务预先批量生成大量唯一短码并存入池中，新 URL 创建时直接从池中取出下一个可用短码。
 
 ```python
 class KeyGenerationService:
@@ -171,7 +171,7 @@ class KeyGenerationService:
         return code.decode()
 ```
 
-本设计选用**方案 1 （分布式 ID 的 base62 编码）**，因其简洁、无碰撞风险，且能稳定生成最短编码。
+本设计选用方案 1（分布式 ID 的 base62 编码），因其简洁、无碰撞风险且能稳定生成最短编码。
 
 ### 高层架构
 
@@ -258,7 +258,7 @@ async def redirect(short_code: str):
 | 301 （永久） | 浏览器缓存，后续不再访问服务器 | 低估（遗漏缓存重定向） | CDN 强力缓存 |
 | 302 （临时） | 浏览器每次均访问服务器 | 准确（每次点击均被记录） | CDN 可能不缓存 |
 
-绝大多数 URL 缩短服务采用 302，因为分析是其核心功能。部分服务提供双模式：默认 302，对性能敏感场景支持可选 301。
+绝大多数 URL 缩短服务采用 302，因为分析是其核心功能；部分服务提供双模式，默认 302，对性能敏感场景支持可选 301。
 
 ### 可扩展性策略
 
@@ -280,7 +280,7 @@ async def redirect(short_code: str):
 
 ## 案例研究 2：实时聊天系统
 
-聊天应用需支持实时双向通信、持久化消息存储、在线状态感知（presence），以及高效的群组消息广播（fan-out）。
+聊天应用需支持实时双向通信、持久化消息存储、在线状态感知（presence）以及高效的群组消息广播（fan-out）。
 
 ![Real-time chat system](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-chat-system.png)
 
@@ -331,7 +331,7 @@ async def redirect(short_code: str):
 三副本：~660 TB/year
 ```
 
-媒体附件应使用对象存储（S3）+ CDN；纯文本消息存入数据库。
+媒体附件应使用对象存储（S3）+ CDN，纯文本消息存入数据库。
 
 ### 高层架构
 
@@ -391,13 +391,12 @@ class ConnectionManager:
 ### 消息路由
 
 当用户 A 向用户 B 发送消息时：
-
-1. 用户 A 的 WebSocket 服务器接收消息  
-2. 消息发布至 Kafka （保障持久性与顺序）  
-3. 聊天服务从 Kafka 消费，通过 Redis 查询用户 B 所连服务器  
-4. 若用户 B 在同一服务器：直接通过 WebSocket 投递  
-5. 若用户 B 在另一服务器：通过服务器间通信（Redis Pub/Sub 或内部 gRPC）路由  
-6. 若用户 B 离线：存储消息并发送推送通知  
+1. 用户 A 的 WebSocket 服务器接收消息。
+2. 消息发布至 Kafka（保障持久性与顺序）。
+3. 聊天服务从 Kafka 消费并通过 Redis 查询用户 B 所连服务器。
+4. 若用户 B 在同一服务器，直接通过 WebSocket 投递。
+5. 若用户 B 在另一服务器，通过服务器间通信（Redis Pub/Sub 或内部 gRPC）路由。
+6. 若用户 B 离线，存储消息并发送推送通知。  
 
 ```python
 class ChatService:
@@ -558,7 +557,7 @@ class PresenceService:
 
 ![System design case study architect blueprint of large scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/08-system-design-case-study-architect-blueprint-of-large-scale-.jpg)
 
-新闻信息流系统向用户展示个性化、排序后的动态内容流，内容来自其关注的用户与页面。这是 Facebook、 Twitter、 Instagram 等平台的核心产品功能。
+新闻信息流系统向用户展示个性化、排序后的动态内容流，内容来自其关注的用户与页面，这是 Facebook、Twitter、Instagram 等平台的核心产品功能。
 
 ![News feed design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-news-feed.png)
 
@@ -857,13 +856,13 @@ class RankingService:
         return score
 ```
 
-在生产环境中，此简易评分函数会被一个基于用户行为（点击率 CTR、停留时长、点赞、分享）训练的机器学习模型取代。但简易版已清晰阐明核心思想。
+在生产环境中，此简易评分函数会被一个基于用户行为（点击率 CTR、停留时长、点赞、分享）训练的机器学习模型取代，但简易版已清晰阐明核心思想。
 
 ### “名人问题”深度剖析
 
 当一位拥有 5000 万粉丝的用户发帖时，“写时广播”需执行 5000 万次缓存写入。若每次写入耗时 1 微秒，则总耗时达 50 秒。此时另一位名人的新帖又启动其广播，系统迅速积压、落后。
 
-混合模型解决了此问题：名人交由“读时广播”。但“普通用户”与“名人”之间存在连续谱。一些实用阈值如下：
+混合模型解决了此问题：名人交由“读时广播”，但“普通用户”与“名人”之间存在连续谱。一些实用阈值如下：
 
 ```
 粉丝数 < 10,000：      写时广播（预计算信息流）
@@ -871,7 +870,7 @@ class RankingService:
 粉丝数 > 1M：         仅读时广播（查询时拉取）
 ```
 
-该阈值并非固定不变，而取决于你的基础设施容量、可接受延迟，以及粉丝中实际活跃用户的占比。
+该阈值并非固定不变，而取决于基础设施容量、可接受延迟以及粉丝中实际活跃用户的占比。
 
 ### 可扩展性策略
 

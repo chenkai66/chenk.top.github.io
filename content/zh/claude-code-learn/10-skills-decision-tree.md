@@ -16,9 +16,9 @@ description: "Claude Code 现在有四种扩展机制：斜杠命令、MCP serve
 disableNunjucks: true
 translationKey: "claude-code-learn-10"
 ---
-Claude Code 提供四种扩展机制： slash commands、 MCP servers、 hooks 和 Skills，功能存在交叉。当你冒出‘Claude 应该知道怎么做 X’这类念头时，第一个问题就是：该选哪一种？
+Claude Code 提供四种扩展机制：slash commands、MCP servers、hooks 和 skills，功能存在交叉。当你冒出‘Claude 应该知道怎么做 X’这类念头时，首要问题是：该选哪一种？
 
-本章是系列终篇，直接进入决策树。
+作为系列的终篇，本章将直接进入决策树。
 
 ![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_1.png)
 
@@ -47,7 +47,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 5. Build + deploy
 ```
 
-会话启动时， Claude 预先读取所有 Skill 的 description，仅当用户提问语义匹配某条 description 时，才按需加载其 body 并注入当前系统提示。
+会话启动时，Claude 预先读取所有 skill 的 description，仅当用户提问语义匹配某条 description 时，才按需加载其 body 并注入当前系统提示。
 
 需注意两点：
 
@@ -71,7 +71,7 @@ body 长度无硬性限制——仅在 skill 触发时注入 system prompt，故
 
 Body 支持自由格式 Markdown，但以下几类结构已被验证为高效：**语气/风格规范**（定义 Claude 在该 skill 激活时的表达方式）、**Schema/格式规范**（明确必须严格遵守的输出格式）、**工作流**（分步执行逻辑）、**规则/约束**（明确禁止行为）。
 
-例如，工作流与规则可如此组织：
+例如，工作流和规则可以这样组织：
 
 ```markdown
 # Workflow
@@ -117,7 +117,7 @@ my-project/
         SKILL.md
 ```
 
-项目级 skill 仅在当前项目中可用。可提交至 Git，供团队共享。
+项目级 skill 仅在当前项目中可用，可提交至 Git 供团队共享。
 
 ### 选择层级的依据
 
@@ -131,13 +131,13 @@ my-project/
 
 ## 从零编写一个真实 skill
 
-我们以一个具体用例为例：为团队构建一个将 Node.js 应用部署到预发布（staging）环境的 skill。
+以一个具体用例为例：为团队构建一个将 Node.js 应用部署到预发布（staging）环境的 skill。
 
 ### 步骤 1：识别"skill 形态"的使用场景
 
-关键在于：这是应在相关话题出现时自动触发的领域知识，还是需显式调用的命令？
+关键在于这是应在相关话题出现时自动触发的领域知识，还是需要显式调用的命令？
 
-向 staging 部署是团队在 PR 合并后、功能测试时、排查生产问题等多种上下文中反复执行的操作——这不是孤立命令，而是关于 *“我们如何部署”* 的结构化知识，属于典型的 skill-shaped 场景。
+向 staging 部署是团队在 PR 合并后、功能测试时、排查生产问题等多种上下文中反复执行的操作——这不是孤立命令，而是关于“我们如何部署”的结构化知识，属于典型的 skill-shaped 场景。
 
 ### 步骤 2：撰写 description
 
@@ -150,13 +150,13 @@ description: Use when deploying to the staging environment, preparing a staging 
 ---
 ```
 
-务必具体。"Use for deployment" 过于宽泛，会导致 skill 在讨论部署理论时误触发；"Use when deploying to the staging environment" 则精准锚定到实际操作。
+务必具体。“Use for deployment”过于宽泛，会导致 skill 在讨论部署理论时误触发；“Use when deploying to the staging environment”则精准锚定到实际操作。
 
 ### 步骤 3：撰写 body
 
 一个真实的 `deploy-staging` skill 正文应包含以下要素：环境信息（staging URL、 region、 ECS cluster、默认部署分支）；预部署检查清单（测试通过、 TypeScript 编译成功、无未提交变更、当前分支正确）；部署命令流（构建 Docker 镜像 → 为 ECR 打标签 → 推送 → 更新 ECS service）；健康检查（等待 60 秒后调用 `/health` 端点）；回滚流程（定位上一版 task definition ARN，执行 `aws ecs update-service --task-definition ...`）；以及常见故障排查——部署超时查 CloudWatch、健康检查失败查依赖连通性、 ECR 推送失败用 `aws ecr get-login-password` 刷新凭证。
 
-最后一定要有几条硬性规则：禁止从此 skill 直接部署至 production；每次部署后必须执行健康检查；若健康检查失败，立即回滚，**不得**在 staging 上调试。
+最后一定要有几条硬性规则：禁止从此 skill 直接部署至 production；每次部署后必须执行健康检查；若健康检查失败，立即回滚，不得在 staging 上调试。
 
 ### 步骤 4：测试
 

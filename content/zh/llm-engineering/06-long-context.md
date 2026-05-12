@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "RoPE 怎么编码位置、为什么朴素扩展会崩、NTK-aware 和 YaRN 缩放、ALiBi vs RoPE、流式生成的 attention sinks，以及 1M 上下文承诺为什么常在检索测试上崩盘。"
 translationKey: "llm-engineering-6"
 ---
-""1M 上下文"算是大模型圈最注水的指标之一：模型能处理 1M token 属于架构能力，但能否真正利用第 80 万位的信息回答问题，则是对行为能力的考验——这难度要大得多。本章将介绍位置编码的数学原理、将上下文扩展到训练长度之外的工程技巧，以及为什么大多数长上下文能力在“大海捞针”测试中表现不佳。
+""1M 上下文"算是大模型圈最注水的指标之一：模型能处理 1M token 是架构能力的体现，但能否真正利用第 80 万位的信息回答问题则是对行为能力的考验——这难度要大得多。本章将介绍位置编码的数学原理、将上下文扩展到训练长度之外的工程技巧，以及为何大多数长上下文能力在“大海捞针”测试中表现不佳。
 
-大模型长上下文的发展史大概分三幕。第一幕（2017-2021）：模型训练长度卡在 512-2048 token，因为 attention 是 $O(n^2)$ 的，显存吃不消。第二幕（2022-2023）：高效的 attention 算子（如 FlashAttention [Dao et al., 2022]）使长序列训练成为可能；后处理式的上下文扩展技术（如 Position Interpolation、 NTK-aware scaling 和 YaRN）则允许将预训练 checkpoint 的上下文长度从 4K 扩展到 32K 甚至更高。第三幕（2024-2026）：原生长上下文训练（如 Llama 3.1 的 128K、 Gemini 的 1-2M 和 Claude 的 200K）成为标配，但能 attend 的上下文和有用的上下文之间仍存在差距——这正是本章的重点。
+大模型长上下文的发展史大概分三幕。第一幕（2017-2021）：模型训练长度卡在 512-2048 token，因为 attention 是 $O(n^2)$ 的，显存吃不消。第二幕（2022-2023）：高效的 attention 算子（如 FlashAttention [Dao et al., 2022]）使长序列训练成为可能；后处理式的上下文扩展技术（如 Position Interpolation、NTK-aware scaling 和 YaRN）则允许将预训练 checkpoint 的上下文长度从 4K 扩展到 32K 甚至更高。第三幕（2024-2026）：原生长上下文训练（如 Llama 3.1 的 128K、Gemini 的 1-2M 和 Claude 的 200K）成为标配，但能 attend 的上下文和有用的上下文之间仍有差距——这正是本章的重点。
 
 ![LLM Engineering (6): Long Context — RoPE, YaRN, Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/06-long-context/illustration_1.png)
 
@@ -29,12 +29,12 @@ translationKey: "llm-engineering-6"
 Self-attention 对排列是不变的，没有位置信号，模型无法区分“猫坐在垫子上”和“垫子坐在猫上”。注入位置信息主要有三种方案：
 
 1. **Sinusoidal absolute**（原始 Transformer）：在第 1 层之前把位置的 $\sin/\cos$ 函数加到 token embedding 上。
-2. **Learned absolute**：为每个绝对索引学习一个位置 embedding，直到最大长度。 GPT-2, BERT 在用。
-3. **Rotary (RoPE)**：在每个 attention 层*内部*，按与位置成比例的角度旋转 Q 和 K 向量。 LLaMA, Qwen, Mistral, DeepSeek 都在用。
+2. **Learned absolute**：为每个绝对索引学习一个位置 embedding，直到最大长度。GPT-2 和 BERT 在用。
+3. **Rotary (RoPE)**：在每个 attention 层内部，按与位置成比例的角度旋转 Q 和 K 向量。LLaMA、Qwen、Mistral 和 DeepSeek 都在用。
 
 RoPE 已成为主流——截至 2026 年，所有主流大模型都采用它作为位置编码，既在每层内部注入位置信号以增强鲁棒性，又让相对位置信息自然浮现于 Q·Kᵀ 点积中，而这正是 attention 机制的本质需求。
 
-第四个方案 **ALiBi** (attention with linear bias) 在 2022 年左右曾有激烈的竞争，但最终失败了；本章后面会将其作为最有趣的替代路径进行讲解。第五个 **xPos** (Sun et al., 2022) 是 RoPE 的改进版，加了个依赖长度的 decay 让外推更稳； DeepSeek 和少数现代模型内部在用，但核心思想还是 RoPE 加工程打磨。
+第四个方案 **ALiBi** (attention with linear bias) 在 2022 年左右曾有激烈竞争，但最终失败了；本章后面会将其作为最有趣的替代路径进行讲解。第五个 **xPos** (Sun et al., 2022) 是 RoPE 的改进版，加了个依赖长度的 decay 让外推更稳；DeepSeek 和少数现代模型内部在用，但核心思想仍是 RoPE 加工程打磨。
 
 ## RoPE：数学原理
 

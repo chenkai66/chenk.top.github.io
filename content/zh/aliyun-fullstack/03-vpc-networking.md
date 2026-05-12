@@ -17,18 +17,18 @@ description: "Build a production network from scratch: VPC architecture, CIDR pl
 disableNunjucks: true
 translationKey: "aliyun-fullstack-3"
 ---
-我在云上排查过的每一次故障，追根溯源最后都指向了网络。要么是 CIDR 规划没做好，半年后 IP 不够用了；要么是路由缺失，流量在层级间静默丢弃；要么是安全组配置极端，要么对 `0.0.0.0/0` 开放了 22 端口（哈喽，黑客朋友），要么锁得太死导致健康检查失败，负载均衡不停剔除健康实例。网络层是所有部署的前提，必须最先规划和落地；但一旦需要调整，补救成本也最高——修改 VPC 的 CIDR 段会强制重建其下所有资源。
+我在云上排查过的每一次故障，追根溯源最后都指向了网络。要么是 CIDR 规划没做好，半年后 IP 不够用了；要么是路由缺失，流量在层级间静默丢弃；要么是安全组配置极端，要么对 `0.0.0.0/0` 开放了 22 端口（哈喽，黑客朋友），要么锁得太死导致健康检查失败，负载均衡不停剔除健康实例。网络层是所有部署的前提，必须最先规划和落地。但一旦需要调整，补救成本很高——修改 VPC 的 CIDR 段会强制重建其下所有资源。
 
 
 我们在 [Part 1](/zh/aliyun-fullstack/01-ecosystem-map/) 搭建了基础 VPC，现在要深入细节了。读完本文，你将构建一个生产级多可用区网络：支持层级隔离、边界清晰的安全控制、私有子网通过 NAT 网关访问互联网、公网流量经 SLB 实现负载均衡。放入这些子网的 ECS 实例会在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)` 讲解。如果你想用 Terraform setup VPC，参考 [Terraform Part 3: VPC and Security Baseline](/zh/terraform-agents/03-vpc-and-security-baseline/)。
 
 ## What Is a VPC?
 
-虚拟私有云（VPC）就是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络： IP 地址段由你指定，子网由你划分，防火墙规则由你配置；哪些实例可访问互联网、哪些仅限内网通信，均由你控制。默认拒绝所有入站和出站流量；仅显式允许的流量才能通过。
+虚拟私有云（VPC）是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络：IP 地址段由你指定，子网由你划分，防火墙规则由你配置；哪些实例可访问互联网、哪些仅限内网通信，均由你控制。默认拒绝所有入站和出站流量，仅显式允许的流量才能通过。
 
 ![VPC architecture overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 
-如果你熟悉 AWS，阿里云 VPC 的心智模型与其基本一致，功能完全等价，仅术语不同。
+如果你熟悉 AWS，阿里云 VPC 的心智模型与其基本一致，功能完全等价，只是术语不同。
 
 | Alibaba Cloud | AWS | What it does |
 |---|---|---|
@@ -43,7 +43,7 @@ translationKey: "aliyun-fullstack-3"
 
 在 VPC 出现之前，阿里云有个“经典网络”，区域内所有实例共享一个扁平网络。经典网络已被弃用，新账号无法创建；如果在旧文档里看到，直接忽略。现在所有业务都跑在 VPC 里。
 
-你需要配置的核心组件有：
+你需要配置的核心组件包括：
 
 - **VPC** -- 容器。每个区域一个 VPC （你可以建多个）。由 CIDR 块定义。
 - **VSwitch** -- VPC 内的子网，绑定到一个可用区。实例实际就住在这里。
@@ -71,7 +71,7 @@ CIDR （无类别域间路由）用于定义 VPC 的 IP 地址空间。若此步
 
 阿里云 VPC 支持使用私有范围 `10.0.0.0/8`、`172.16.0.0/12` 或 `192.168.0.0/16` 内的 /8 到 /24 CIDR 块。 VSwitch 支持的最小网段为 /29 （共 8 个 IP 地址，其中 6 个可用——阿里云为每个 VSwitch 保留首两个和末一个地址）。
 
-黄金法则是**按当前需求的 10 倍规划**。例如，如果你觉得需要 50 个 IP，分配一个 /24 （254 个可用）；如果你觉得需要 500 个 IP，分配一个 /20 （4,094 个可用）。子网创建后不能调整大小——你得新建 VSwitch 并迁移实例。
+黄金法则是**按当前需求的 10 倍规划**。例如，如果需要 50 个 IP，分配一个 /24（254 个可用）；如果需要 500 个 IP，分配一个 /20（4,094 个可用）。子网创建后不能调整大小——需新建 VSwitch 并迁移实例。
 
 这是我针对 2 个可用区 3 层架构的标准规划表：
 
@@ -87,7 +87,7 @@ VPC 本身用 `10.0.0.0/16`，给我们 65,534 个可用 IP，以后加子网也
 
 ## VSwitches: Subnets Across Availability Zones
 
-VSwitch 即子网，每个 VSwitch 仅隶属于一个可用区。你不能把一个 VSwitch 拉伸到多个可用区。这是设计使然：单个可用区发生故障时，仅影响该可用区内的 VSwitch 所承载的实例，不会波及同层级的其他可用区。
+VSwitch 即子网，每个 VSwitch 仅隶属于一个可用区。不能把一个 VSwitch 拉伸到多个可用区。这是设计使然：单个可用区发生故障时，仅影响该可用区内的 VSwitch 所承载的实例，不会波及其他可用区。
 
 ![多可用区 VSwitch 拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vswitch_layout.png)
 

@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "KV cache 力学、paged attention、continuous batching、speculative decoding、INT8/INT4/AWQ/GPTQ 量化，以及 vLLM、SGLang、TensorRT-LLM 的取舍。"
 translationKey: "llm-engineering-5"
 ---
-真正的成本压力来自推理：以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——仅需运行约 3 个月。本章聚焦两个核心指标——首 token 延迟（TTFT）和 token 间延迟（ITL），以及一个关键比率：每百万输出 token 消耗的 GPU 秒数。
+真正的成本压力来自推理。以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——仅需运行约 3 个月。本章聚焦两个核心指标：首 token 延迟（TTFT）、token 间延迟（ITL）以及一个关键比率：每百万输出 token 消耗的 GPU 秒数。
 
-训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。 tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长。因此，主流 LLM 团队普遍配备专职推理工程师；开源社区五年内已迭代出四代推理引擎： FasterTransformer、 DeepSpeed-Inference、 vLLM 和 SGLang/TensorRT-LLM/llama.cpp。
+训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长。因此，主流 LLM 团队普遍配备专职推理工程师；开源社区五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。
 
 ![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
 
@@ -33,17 +33,17 @@ translationKey: "llm-engineering-5"
 1.  **Prefill （提示词处理）**：输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。 70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——能把一张 H100 饱和运行约 70 ms。
 2.  **Decode （生成）**：一次生成一个 token，基于缓存的 key 和 value 做注意力。这是内存密集型（Memory-bound）。每个 decode 步都要读取整个 KV cache （几 GB 大小）才能产出一个 token。
 
-这种不对称性是关键所在： Prefill 阶段天然支持跨用户批处理（同一 kernel 并行处理不同序列），而 Decode 阶段若采用朴素批处理（naive batching），效果通常很差——各用户序列长度不一，计算步无法对齐。主流推理引擎都是围绕这种不对称性设计的。
+这种不对称性是关键：Prefill 阶段天然支持跨用户批处理（同一 kernel 并行处理不同序列），而 Decode 阶段若采用朴素批处理（naive batching），效果通常很差——各用户序列长度不一，计算步无法对齐。主流推理引擎都是围绕这种不对称性设计的。
 
-一条常用经验法则是： TTFT 主要取决于 prefill 阶段， ITL 则主要受限于 decode 阶段的内存带宽。降低 TTFT 的关键是提升计算吞吐（如增加 SM 数量或启用张量并行）；降低 ITL 则依赖更高的内存带宽（HBM3 优于 GDDR）或模型量化——后者通过压缩参数缓解带宽压力。
+一条常用经验法则是：TTFT 主要取决于 prefill 阶段，ITL 则主要受限于 decode 阶段的内存带宽。降低 TTFT 的关键是提升计算吞吐（如增加 SM 数量或启用张量并行）；降低 ITL 则依赖更高的内存带宽（HBM3 优于 GDDR）或模型量化——后者通过压缩参数缓解带宽压力。
 
-用算术强度来论证会更严谨。 70B 模型处理 4K prompt 的 prefill：模型权重（BF16 下 140 GB）加载一次，操作 4096 个 token。算术强度 ≈ 每读取一个参数字节对应 4096 FLOP。同样，单 token 的 decode：权重加载一次，操作 1 个 token。算术强度 ≈ 每字节 1 FLOP。 H100 在 BF16 下算力 989 TFLOPS， HBM 带宽 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。 Prefill 的 4096 FLOP/byte 远高于平衡点（计算密集型），而 Decode 的 1 FLOP/byte 低于平衡点两个数量级（内存密集型）。这两个阶段需要不同的硬件特性， Serving 栈如果不将它们分开处理，性能就会大打折扣。
+用算术强度来论证会更严谨。70B 模型处理 4K prompt 的 prefill：模型权重（BF16 下 140 GB）加载一次，操作 4096 个 token。算术强度 ≈ 每读取一个参数字节对应 4096 FLOP。同样，单 token 的 decode：权重加载一次，操作 1 个 token。算术强度 ≈ 每字节 1 FLOP。H100 在 BF16 下算力 989 TFLOPS，HBM 带宽 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。Prefill 的 4096 FLOP/byte 远高于平衡点（计算密集型），而 Decode 的 1 FLOP/byte 低于平衡点两个数量级（内存密集型）。这两个阶段需要不同的硬件特性，Serving 栈如果不将它们分开处理，性能就会大打折扣。
 
 ## KV cache：支撑长上下文的数据结构
 
 ![fig2: KV cache size growth](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig2_kv_cache_growth.png)
 
-KV cache 存储了每一层中每个 prior token 的投影 K 和 V 向量。对于 70B 模型， GQA-8， 32K 上下文（数据来自第一章）：
+KV cache 存储了每一层中每个 prior token 的投影 K 和 V 向量。对于 70B 模型，GQA-8，32K 上下文（数据来自第一章）：
 
 $$\text{KV} = 2 \cdot 80 \cdot 2 \cdot 8 \cdot 128 \cdot 32{,}768 \cdot 2 \text{ bytes} = 8.6 \text{ GB}$$
 

@@ -14,9 +14,9 @@ series_order: 1
 translationKey: "python-engineering-1"
 ---
 
-每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上编写的。更糟的是，你执行了 `pip install` 全局安装，却意外破坏了一个完全无关的项目。尽管 Python 的环境管理体系非常强大，但其默认体验却如同布满地雷的雷区。
+每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上编写的。更糟的是，你执行了 `pip install` 全局安装，却意外破坏了一个完全无关的项目。尽管 Python 的环境管理体系非常强大，但其默认体验却像布满地雷的雷区。
 
-本文将从零开始梳理整套工具链，构建可复现、强隔离且版本锁定的开发环境，确保跨机器行为完全一致。
+本文将从零开始梳理整套工具链，构建可复现、强隔离且版本锁定的开发环境，确保跨机器行为一致。
 
 ## Python 版本问题
 
@@ -25,7 +25,7 @@ translationKey: "python-engineering-1"
 ![Dependency resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
 
 
-核心痛点如下：
+以下是核心痛点：
 
 | 问题 | 示例 |
 |---------|---------|
@@ -35,7 +35,7 @@ translationKey: "python-engineering-1"
 | 可复现性失效 | “在我机器上能跑”——只因各处版本不一致 |
 | 系统工具依赖系统 Python | Ubuntu 的 `apt` 在内部使用系统 Python |
 
-推荐采用以下三层协同架构：
+建议采用以下三层协同架构：
 
 1. **pyenv**：管理多个 Python 版本（并行安装 3.9、 3.10、 3.11 等）
 2. **venv**：为每个项目隔离依赖
@@ -368,7 +368,7 @@ werkzeug==3.0.1
     # via flask
 ```
 
-每行都注明了依赖来源，使用以下命令精确同步环境：
+每行都注明了依赖来源，使用以下命令精确同步环境。
 
 ```bash
 (.venv) $ pip-sync requirements.txt
@@ -474,7 +474,7 @@ testpaths = ["tests"]
 
 ## 实际工作流：从克隆到运行
 
-零起点初始化标准流程：
+零起点初始化的标准流程：
 
 ```bash
 # 1. 克隆仓库

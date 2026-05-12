@@ -16,13 +16,13 @@ description: "万相文生视频 / 图生视频上生产：异步任务模式、
 disableNunjucks: true
 translationKey: "aliyun-bailian-4"
 ---
-万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、 URL 会过期，限流方式还特别隐蔽。本文总结了我连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）所积累的实战经验。
+万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、 URL 会过期，限流方式还特别隐蔽。本文总结了我连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）积累的实战经验。
 
 ![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
 ## 模型阵容
 
-三个模型均提供原生接口（不兼容 OpenAI 协议），并全部采用异步调用。
+三个模型均提供原生接口（不兼容 OpenAI 协议），且全部采用异步调用。
 
 ![Wanxiang model lineup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png)
 
@@ -151,7 +151,7 @@ def archive(result_url: str, key: str) -> str:
 
 ## 成本和限流
 
-万象按视频秒数计费： 5 秒 720p 片段约几元。并发任务限制按 API Key 设置——面向生产流量，上线前必须通过控制台申请配额扩容。默认每个 workspace （我上次查是） 5 个并发任务，原型验证够用，真产品瞬间就不够了。
+万象按视频秒数计费： 5 秒 720p 片段约几元。并发任务限制按 API Key 设置——面向生产流量，上线前必须通过控制台申请配额扩容。默认每个 workspace 有 5 个并发任务，原型验证够用，但实际产品可能不够。
 
 ## 异步模式：轮询 vs 回调，队列深度
 
@@ -272,7 +272,7 @@ def extract_last_frame(video_url: str) -> str:
 - **锁死镜头语言。** "35mm film grain, shallow depth of field"，系列里每个 prompt 都得一模一样。模型会把这当成风格锚点。
 - **用 ffmpeg 做跨片段色彩匹配。** 全生成完后，跑 `ffmpeg -i clipN.mp4 -vf "colorbalance=rs=0.02:gs=-0.01" out.mp4` 把飘了的片段往系列中位数拉。该步骤需手动执行，但开销很低。
 
-拼接一条 30 秒的商业广告（由 6 个 5 秒片段组成）时，该方法约有 70% 的概率实现‘视觉连贯、近乎单镜头’的效果。剩下 30% 的情况，要么换 seed 重跑那个掉链子的片段，要么干脆认怂，加个显性的切场转场。
+拼接一条 30 秒的商业广告（由 6 个 5 秒片段组成）时，该方法约有 70% 的概率实现“视觉连贯、近乎单镜头”的效果。剩下的 30% 情况下，可以换 seed 重跑问题片段，或者干脆添加显性的切场转场。
 
 ## 画幅比例成本矩阵
 
@@ -324,4 +324,4 @@ moderate = client.chat.completions.create(
 
 ## 下一篇预告
 
-系列第五篇将介绍 **Qwen-TTS-Flash** —— 语音合成，这是唯一一个我愿意投产的中文方言语音合成工具。也是原生仅支持，所以本文的模式同样适用。
+系列第五篇将介绍 **Qwen-TTS-Flash** —— 语音合成，这是唯一一个我愿意投产的中文方言语音合成工具。它也是原生支持，因此本文的模式同样适用。

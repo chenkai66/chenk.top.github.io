@@ -17,7 +17,7 @@ description: "钉钉、飞书（已弃用）、企业微信三种模式、微信
 disableNunjucks: true
 translationKey: "openclaw-quickstart-9"
 ---
-第五章快速对比了 Telegram、 DingTalk 和 WeChat；本章则聚焦国内企业场景——所有渠道落地前均需通过公司 IT 部门审批。渠道众多，官方文档分散在数十个 README 中，网上的各类‘对比表’也大多过时。
+第五章快速对比了 Telegram、DingTalk 和 WeChat；本章则聚焦国内企业场景——所有渠道落地前均需通过公司 IT 部门审批。渠道众多，官方文档分散在数十个 README 中，网上的各类‘对比表’也大多过时。
 
 下方矩阵表是我每次向他人推荐方案前必查的决策清单。
 
@@ -53,7 +53,7 @@ npx @openclaw-china/setup
 
 两点注意：飞书自 2026 年 3 月起停止支持新部署的 openclaw-china 实例（状态标记为 deprecated），推荐选用 DingTalk 或 WeCom；微信订阅号仅支持用户发起消息后 5 秒内的被动回复，不支持主动推送，而服务号与测试号则无此限制。
 
-延迟数据取自业务高峰期北京/上海节点的往返消息耗时，主要瓶颈在于 webhook 投递链路——公众号与企微自建应用需经腾讯 dispatcher 中转，相比长轮询渠道额外增加 500–1000ms。
+延迟数据取自业务高峰期北京/上海节点的往返消息耗时，主要瓶颈在于 webhook 投递链路——公众号与企微自建应用需经腾讯 dispatcher 中转，相比长轮询渠道额外增加 500-1000ms。
 
 消息格式支持比看起来更重要。 Markdown 支持意味着 Agent 可发送代码块与格式化列表； DingTalk 和 WeCom 智能机器人对 GitHub-flavored markdown 兼容良好，微信渠道则仅支持纯文本或其私有 card schema。
 
@@ -149,7 +149,7 @@ WorkBuddy 是腾讯官方的 QClaw 桥接，运行在你的桌面上，不需要
 }
 ```
 
-不要 API keys，不要 webhooks。插件在 localhost 跟 WorkBuddy 对话， WorkBuddy 替你跟微信/QQ 对话。
+不需要 API keys 和 webhooks。插件在 localhost 与 WorkBuddy 对话，WorkBuddy 替你与微信/QQ 对话。
 
 ## 迁移指南 —— 切换渠道
 
@@ -176,6 +176,6 @@ curl http://localhost:3000/api/channels/dingtalk/health
 
 ## 矩阵背后的教训
 
-渠道是 Agent 真正 *活着* 的地方。渠道不稳定， Agent 再好也不稳定。因此，在搞任何花哨功能之前，先选一个匹配受众和网络的渠道，然后过度投入将其搞稳。再加第二个做冗余。
+渠道是 Agent 真正 *活着* 的地方。渠道不稳定，Agent 再好也不稳定。因此，在搞任何花哨功能之前，先选一个匹配受众和网络的渠道，然后过度投入将其搞稳。再加第二个做冗余。
 
 其他都是瞎折腾。

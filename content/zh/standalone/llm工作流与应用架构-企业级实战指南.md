@@ -29,7 +29,7 @@ translationKey: "llm-workflows-architecture"
 
 ## 阅读前提
 
-你写过 REST 接口，用过异步 Python 或 Node，大致了解 Docker，并调用过至少一家 LLM 厂商的 SDK。你不需要在生产环境中运行过向量数据库——文中涉及的工程做法都会自带足够的上下文。
+你写过 REST 接口，用过异步 Python 或 Node，大致了解 Docker，并调用过至少一家 LLM 厂商的 SDK。你不需要在生产环境中运行过向量数据库，文中涉及的工程做法自带足够的上下文。
 
 ---
 

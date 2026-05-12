@@ -22,7 +22,7 @@ translationKey: "terraform-agents-1"
 
 这个系列就是为第四种模式准备的实战指南：如何用 Terraform  部署 AI Agent 系统在阿里云上真正需要的基础设施。这不是 Terraform 教程——网上有很好的教程，官方 `快速入门` 文档也覆盖了基础。这是一份面向同时满足‘正在运行 Agent’和‘部署在阿里云上’两个条件的高级工程师的实战手册。
 
-八篇文章，最终交付一个真实可用的栈。第一篇将解释原因。
+八篇文章最终交付一个真实可用的栈，第一篇将解释原因。
 
 ![Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
@@ -33,15 +33,15 @@ translationKey: "terraform-agents-1"
 ![AI agent workloads running on cloud infrastructure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_agent_infra.png)
 
 
-1. **运行时**：运行 Agent 循环进程的运行时——通常是 Python 或 Node，并且能够承受重启。
-2. **向量存储**：用于语义记忆的向量存储——包括文档嵌入、历史对话和工具输出。
-3. **关系型存储**：存储会话状态的关系型存储——包括轮次对话、工具调用 trace 和用户身份。
-4. **对象存储**：存储制品的对象存储——包括生成的图片、 PDF、截图和运行快照。
+1. **运行时**：运行 Agent 循环进程的运行时，通常是 Python 或 Node，并且能够承受重启。
+2. **向量存储**：用于语义记忆的向量存储，包括文档嵌入、历史对话和工具输出。
+3. **关系型存储**：存储会话状态的关系型存储，包括轮次对话、工具调用 trace 和用户身份。
+4. **对象存储**：存储制品的对象存储，包括生成的图片、PDF、截图和运行快照。
 5. **LLM 网关**：统一持有 API Key 并执行每个 Agent 配额限制的地方。
-6. **出站网络**：用于调用 DashScope、 OpenAI、 Anthropic 或你的爬虫目标。
-7. **可观测性**： Agent 运行是非确定性的，因此日志和 trace 是必需的。
-8. **密钥**： provider keys、 OAuth tokens、 OSS 凭证和数据库密码。
-9. **成本控制**：因为当 Agent 自我循环时， token 账单可能一夜之间翻十倍。
+6. **出站网络**：用于调用 DashScope、OpenAI、Anthropic 或你的爬虫目标。
+7. **可观测性**：Agent 运行是非确定性的，因此日志和 trace 是必需的。
+8. **密钥**：provider keys、OAuth tokens、OSS 凭证和数据库密码。
+9. **成本控制**：当 Agent 自我循环时，token 账单可能一夜之间翻十倍。
 
 这至少涉及九个相互交互的阿里云服务。每个服务都有独立的控制台入口、 RAM 权限策略、可用区（Region）支持范围和网络配置。指望手动把这些全部连线，并且在三个月的演进后还能让 `dev`、`staging` 和 `prod` 保持一致，概率差不多是零。
 

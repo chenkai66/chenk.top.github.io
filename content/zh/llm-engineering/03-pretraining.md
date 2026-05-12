@@ -18,7 +18,7 @@ disableNunjucks: true
 description: "数据混合、去重、benchmark 污染、μP，FSDP / ZeRO-3 / Pipeline 并行，实战意义上的 200B token 悬崖，以及 1000 卡以上才会出现的失败模式。"
 translationKey: "llm-engineering-3"
 ---
-预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方；大多数公开的训练记录更像是工程奇迹而非科学成果。这一章聊聊当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有在集群达到一定规模时才会暴露的故障模式——例如，一次失败的 NCCL all-reduce 可能导致整个为期 30 天的训练任务中断。
+预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方；大多数公开的训练记录更像是工程奇迹而非科学成果。这一章聊聊当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有在集群达到一定规模时才会暴露的故障模式——例如，一次失败的 NCCL all-reduce 可能导致为期 30 天的训练任务中断。
 
 ![LLM Engineering (3): Pretraining at Scale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/illustration_1.png)
 
@@ -26,7 +26,7 @@ translationKey: "llm-engineering-3"
 
 ![fig3: data mixture composition](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/fig3_data_mixture.png)
 
-过去三年里所有可靠的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小（约 5% perplexity），但不同数据配比带来的性能差异极为显著（超过 30%）。 Chinchilla 论文中的 compute-optimal 缩放定律假设数据分布固定；一旦允许数据分布变化，数据就占据了主导地位。
+过去三年里所有可靠的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小（约 5% perplexity），但不同数据配比带来的性能差异极为显著（超过 30%）。Chinchilla 论文中的 compute-optimal 缩放定律假设数据分布固定；一旦允许数据分布变化，数据就占据了主导地位。
 
 现代预训练配比大致如下（FineWeb-Edu [Penedo et al., 2024]、 RedPajama-V2 [Together AI, 2024]、 Dolma [Soldaini et al., 2024]——所有开放配比彼此相差无几）：
 
@@ -42,11 +42,11 @@ translationKey: "llm-engineering-3"
 
 有个最重要的数字没人提：**去重率**。 CommonCrawl 2024 在文档级别去重后保留约 25% 的原始字节，在行级别去重（更激进）则保留约 12%。 Lee et al. (2022) 的论文表明，即使激进去重移除了 75% 的数据，仍可降低困惑度（perplexity）。重复对语言模型来说是毒药——它教会模型记忆而不是泛化。
 
-DeepSeek 的预训练说明（DeepSeek-V3 技术报告 [DeepSeek-AI, 2024]， 2024 年 12 月）是我见过对配比最诚实的： 14.8T tokens， 87% 是代码、数学和网页， 13% 是“高质量书籍和合成数据”。合成数据的占比比大家承认的要高。
+DeepSeek 的预训练说明（DeepSeek-V3 技术报告 [DeepSeek-AI, 2024]，2024 年 12 月）是我见过对配比最诚实的：14.8T tokens，87% 是代码、数学和网页，13% 是“高质量书籍和合成数据”。合成数据的占比比大家承认的要高。
 
 ## DataComp-LM：数据质量胜过数量，且有据可查
 
-关于数据质量最严谨的公开研究是 DataComp for Language Models 基准 [Li et al., 2024]。他们固定了架构和训练算力，然后跑了 416 次对照实验，只变数据配比。值得记住的发现：
+关于数据质量最严谨的公开研究是 DataComp for Language Models 基准 [Li et al., 2024]。他们固定了架构和训练算力，然后跑了 416 次对照实验，只变数据配比。以下是值得记住的发现：
 
 - **质量过滤器主导。** 一个基于模型的质量分类器（FastText 训练用于预测文本是否类似"高质量"参考数据），在与基线相同的算力下训练，在 MMLU 上超越基线 6.6 个百分点，在 Core （一个 22 任务基准）上超越 3.5。
 - **激进过滤胜出。** 只保留质量分类器得分前 10 % 的文档，表现优于保留前 50 %，即使它丢弃了 5× 更多的 tokens。
@@ -59,7 +59,7 @@ DeepSeek 的预训练说明（DeepSeek-V3 技术报告 [DeepSeek-AI, 2024]， 20
 
 ![LLM Engineering (3): Pretraining at Scale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/illustration_2.png)
 
-直到 ~2023 年，普遍的观点还是"合成数据是污染，绝不能用"。当 Phi-1 [Gunasekar et al., 2023] (Microsoft, 2023) 展示了一个 1.3B 模型如果完全在 GPT-4 生成的合成教科书式数据上训练，可以匹配大得多的代码模型时，这一观点开始转变。 Phi 系列继续沿用这个路线；其他团队则悄然跟进。
+直到 2023 年左右，普遍的观点还是“合成数据是污染，绝不能用”。当 Phi-1 [Gunasekar et al., 2023] (Microsoft, 2023) 展示了一个 1.3B 模型如果完全在 GPT-4 生成的合成教科书式数据上训练，可以匹配大得多的代码模型时，这一观点开始转变。Phi 系列继续沿用这个路线；其他团队则悄然跟进。
 
 2026 年，顶级开源模型都在用合成数据：
 
@@ -71,7 +71,7 @@ DeepSeek 的预训练说明（DeepSeek-V3 技术报告 [DeepSeek-AI, 2024]， 20
 
 [Shumailov et al., 2024] 指出的一个更隐蔽的风险是 **model collapse**：在从前代模型采样的数据上训练会逐渐 narrowing 数据分布，最终降低质量。他们的实验表明，递归地在模型输出上训练——即使是高质量的——也会在 5-10 代内收敛到退化分布。生产环境中的标准缓解措施是始终将合成数据与大量人工撰写的数据混合（通常 50-70 % 人类， 30-50 % 合成），并使用来自许多独立教师的合成数据，而不是单一强模型。
 
-经济账也很重要。使用 GPT-4o 生成 10 亿（1B）高质量合成 token 的成本约为 3 万美元。用较小的、针对合成微调的模型（例如自托管集群上的 Qwen3-32B-Instruct）生成，成本降至几百美元。 2026 年大多数生产环境的合成数据管道采用混合模式：用强 frontier 模型（Claude, GPT-4o）生成"seed"多样数据，然后用自托管中型模型进行规模放大。
+经济账也很重要。使用 GPT-4o 生成 10 亿（1B）高质量合成 token 的成本约为 3 万美元。用较小的、针对合成微调的模型（例如自托管集群上的 Qwen3-32B-Instruct）生成，成本降至几百美元。2026 年大多数生产环境的合成数据管道采用混合模式：用强 frontier 模型（Claude, GPT-4o）生成“seed”多样数据，然后用自托管中型模型进行规模放大。
 
 ## 缩放定律：从 Chinchilla 到 200B
 

@@ -18,7 +18,7 @@ description: "Lock down your cloud: RAM users, groups, roles, and policies. STS 
 disableNunjucks: true
 translationKey: "aliyun-fullstack-6"
 ---
-有一次，我在一个公开的 GitHub 仓库里发现了自己的 DashScope API Key。有人 fork 了我几个月前上传的一个 Demo，而这个 API Key 明文存放在未被 .gitignore 排除的配置文件中。等我发现时，这个 Key 已在一个周末内被用于发起 14,000 次 Qwen API 调用。所幸账单未超支——这得益于 DashScope 按 token 计费的弹性计费机制——但教训极为深刻。我曾以为云安全可以‘以后再做’，结果这个‘以后’变成了凌晨两点触发的账单告警。
+有一次，我在一个公开的 GitHub 仓库里发现了自己的 DashScope API Key——有人 fork 了我几个月前上传的一个 Demo，而这个 API Key 明文存放在未被 .gitignore 排除的配置文件中。等我发现时，这个 Key 已在一个周末内被用于发起 14,000 次 Qwen API 调用。所幸账单未超支——这得益于 DashScope 按 token 计费的弹性计费机制——但教训极为深刻。我曾以为云安全可以“以后再做”，结果这个“以后”变成了凌晨两点触发的账单告警。
 
 那天我配置了 RAM 用户，轮转了所有 access key，开启了 MFA，并将所有涉及前端直连云服务的场景改为使用 STS 临时凭证。我将这一过程的经验系统地梳理成文，结构清晰、目标明确——一个下午就完成了基础加固，不必等到事故发生后再亡羊补牢。
 
@@ -27,7 +27,7 @@ translationKey: "aliyun-fullstack-6"
 
 ## 安全心智模型
 
-云安全不是打开一个开关就能搞定的事——它由多个相互独立的安全层构成，各层分别防御一类典型故障。即使某一层失效，其余层仍可提供防护，这正是‘纵深防御（defense in depth）’原则的核心要义。
+云安全不是打开一个开关就能搞定的事——它由多个相互独立的安全层构成，各层分别防御一类典型故障。即使某一层失效，其余层仍可提供防护，这正是“纵深防御（defense in depth）”原则的核心要义。
 
 ![阿里云安全模型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_security_model.png)
 
@@ -37,14 +37,14 @@ translationKey: "aliyun-fullstack-6"
 |---|---|---|---|
 | **身份 (Identity)** | 谁发起了请求？ | RAM (users, groups) | IAM (users, groups) |
 | **授权 (Authorization)** | 允许做什么？ | RAM (policies, roles) | IAM (policies, roles) |
-| **加密 (Encryption)** | 数据静态和传输中是否受保护？ | KMS, SSL certificates | KMS, ACM |
+| **加密 (Encryption)** | 数据静态和传输中是否受保护？ | KMS, SSL 证书 | KMS, ACM |
 | **审计 (Auditing)** | 谁在什么时候做了什么？ | ActionTrail | CloudTrail |
 
-每一项安全决策，都落在这四个范畴之内；一旦出问题（不可避免），审计日志会指出其余三层中哪一层失守。为新团队设计权限时，应依次覆盖这四个维度：创建身份、分配权限、加密数据、记录操作。
+每一项安全决策都落在这四个范畴之内；一旦出问题（不可避免），审计日志会指出其余三层中哪一层失守。为新团队设计权限时，应依次覆盖这四个维度：创建身份、分配权限、加密数据、记录操作。
 
 该心智模型与 AWS IAM 高度一致——阿里云在设计 RAM 时直接对标 IAM。顶层是 root 账号，其下是 RAM 用户；策略授予权限，角色支持跨服务与跨账号访问。若已熟悉 AWS IAM， RAM 的大部分概念和操作你基本已掌握，剩下的两成只是命名差别和一些功能细节不同。
 
-一个关键区别在于，阿里云将 root 账号称为‘阿里云主账号’（也简称‘主账号’）。虽然控制台中不显示‘root’字样，但其权限与 root 完全等同，即对整个云环境拥有完全控制权，因此严禁用于日常操作。
+一个关键区别在于，阿里云将 root 账号称为“阿里云主账号”（也简称“主账号”）。虽然控制台中不显示“root”字样，但其权限与 root 完全等同，即对整个云环境拥有完全控制权，因此严禁用于日常操作。
 
 ## RAM：资源访问管理
 

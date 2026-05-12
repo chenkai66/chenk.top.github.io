@@ -17,36 +17,36 @@ description: "在 PAI-DLC 上提交真实多卡训练任务、看懂三种资源
 disableNunjucks: true
 translationKey: "aliyun-pai-3"
 ---
-DSW 笔记本适合单人单卡场景；一旦需要八卡、跨两节点训练，或训练时长超过你愿意为一个浏览器标签页持续守候的八小时，就该切换到 **DLC**。 DLC 是 PAI 面向托管 Kubernetes 集群的作业提交入口——你声明需求（镜像、命令、资源、数据挂载），它会自动调度 Pod、运行至完成、持久化日志，并返回结果。文档称其为 *Deep Learning Containers*，日常交流中则统一简称为“DLC 任务”。
+DSW 笔记本适合单人单卡场景；一旦需要八卡、跨两节点训练，或训练时长超过你愿意为一个浏览器标签页持续守候的八小时，就该切换到 **DLC**。 DLC 是 PAI 面向托管 Kubernetes 集群的作业提交入口——你声明需求（镜像、命令、资源、数据挂载），它会自动调度 Pod、运行至完成、持久化日志并返回结果。文档称其为 *Deep Learning Containers*，日常交流中则统一简称为“DLC 任务”。
 
 ![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/03-pai-dlc-distributed-training/illustration_1.png)
 
 ## 文档到底说了啥
 
-官方 DLC 概览列了四点，我特意挑出来讲，因为它们确实有用：
+官方 DLC 概览列了四点，我特意挑出来讲，因为它们确实有用。
 
-- **多样化算力** — 灵骏 AI 计算服务、 ECS、 ECI、神龙裸金属、灵骏裸金属，支持混合调度。
-- **多种分布式任务类型** — 内置支持 Megatron、 DeepSpeed、 PyTorch DDP、 TensorFlow PS/Worker、 Slurm、 Ray、 MPI、 XGBoost，不用自己搭建集群。
-- **容错能力** — AIMaster （看门狗）、 EasyCKPT （异步检查点）、 SanityCheck （跑前节点健康检查）、节点自愈。
-- **训练加速** — 内置框架支持数据并行、流水线并行、算子拆分、自动并行策略探索、拓扑感知调度、通信优化。
+- **多样化算力** — 灵骏 AI 计算服务、ECS、ECI、神龙裸金属、灵骏裸金属，支持混合调度。
+- **多种分布式任务类型** — 内置支持 Megatron、DeepSpeed、PyTorch DDP、TensorFlow PS/Worker、Slurm、Ray、MPI、XGBoost，无需自行搭建集群。
+- **容错能力** — AIMaster（看门狗）、EasyCKPT（异步检查点）、SanityCheck（跑前节点健康检查）、节点自愈。
+- **训练加速** — 内置框架支持数据并行、流水线并行、算子拆分、自动并行策略探索、拓扑感知调度和通信优化。
 
-第一点（多样化算力）和第三点（容错能力）是 DLC 相较于自行租用 GPU ECS 的核心优势。
+多样化算力和容错能力是 DLC 相较于自行租用 GPU ECS 的核心优势。
 
 ## 任务生命周期
 
-一个 DLC 任务从提交到完成会经历六个阶段：
+一个 DLC 任务从提交到完成会经历六个阶段。
 
 ![DLC job lifecycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/03-pai-dlc-distributed-training/fig1_dlc_job_lifecycle.png)
 
-其中两个阶段——**调度器放置 Pod** 和 **挂载 OSS/NAS**——是绝大多数“任务卡在 PENDING”工单的根源。卡在调度阶段通常是由于资源组配额耗尽；卡在挂载阶段则常因 OSS/NAS 的 RAM 角色权限配置错误。跟 DSW 一样，排查手段就是起一个带同样 OSS 挂载的微型 DSW，确认 `oss ls` 能通。
+其中两个阶段——**调度器放置 Pod** 和 **挂载 OSS/NAS**——是大多数“任务卡在 PENDING”工单的根源。卡在调度阶段通常是由于资源组配额耗尽；卡在挂载阶段则常因 OSS/NAS 的 RAM 角色权限配置错误。跟 DSW 一样，排查手段就是起一个带同样 OSS 挂载的微型 DSW，确认 `oss ls` 能通。
 
 ## 选资源池
 
-你可以提交到三个池子中的一个。文档主要讲解配额和账单；实际决策取决于你的任务耐受度。
+你可以提交到三个池子中的一个。文档主要讲解配额和账单，实际决策取决于你的任务耐受度。
 
 ![DLC resource pools](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/03-pai-dlc-distributed-training/fig3_dlc_resource_pools.png)
 
-对大多数团队而言，通用型按量付费已足够；但当训练规模超过 8 卡且依赖节点间 RDMA 加速时，灵骏才更具成本效益。 文档称灵骏支持 RDMA 配置，即“加速节点间通信”，实际上是指 NCCL AllReduce 性能可达标准以太网的 5-10 倍。抢占式实例能节省成本，前提是任务能够干净地打检查点，得益于 EasyCKPT，大多数任务都能做到这一点。
+对大多数团队而言，通用型按量付费已足够；但当训练规模超过 8 卡且依赖节点间 RDMA 加速时，灵骏更具成本效益。 文档称灵骏支持 RDMA 配置，即“加速节点间通信”，实际上指 NCCL AllReduce 性能可达标准以太网的 5-10 倍。抢占式实例能节省成本，前提是任务能够干净地打检查点。得益于 EasyCKPT，大多数任务都能做到这一点。
 
 ## 真实的分布式任务
 

@@ -18,7 +18,7 @@ translationKey: "claude-code-learn-9"
 ---
 如果说 hooks 是你伸手进 Claude Code 内部操作的方式，那 `settings.json` 就是划定它能动什么的边界。这也是个容易让人栽跟头的文件，尤其是它的优先级规则。
 
-这一章就是来补上这块缺失的参考文档。
+这一章将补充这块缺失的参考文档。
 
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_1.png)
 
@@ -66,11 +66,11 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### env
 
-为所有工具调用（如 Bash、 hook 等）设置环境变量。
+为所有工具调用（如 Bash、hook 等）设置环境变量。
 
 ### hooks
 
-定义在工具调用前或后运行的脚本。详见第 7 章详细说明。
+定义在工具调用前或后运行的脚本。详见第 7 章。
 
 ### worktree
 
@@ -176,7 +176,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
-只要合并后的配置中存在任一 deny 规则，该动作即被永久阻断——这正是整个权限模型可信赖的核心。
+只要合并后的配置中存在任一 deny 规则，该动作即被永久阻断——这是整个权限模型可信赖的核心。
 ![图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)
 
 *图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、 git 历史、敏感文件、配置漂移四大类。*
@@ -313,7 +313,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 }
 ```
 
-匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行，不覆盖，只追加：任一层级新增 hook，均加入执行链末端，绝不会替换上层已定义的 hook。
+匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行，不覆盖，只追加：任一层级新增 hook，均加入执行链末端，不会替换上层已定义的 hook。
 
 ### 钩子（Hook）配置详情
 
@@ -342,7 +342,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### 钩子层级行为
 
-三个配置层级（用户级、项目级、本地级）的钩子**累积生效**，而非覆盖。在更深层级添加钩子，仅向钩子链追加，绝不会替换上层已定义的钩子。
+三个配置层级（用户级、项目级、本地级）的钩子**累积生效**，而非覆盖。在更深层级添加钩子，仅向钩子链追加，不会替换上层已定义的钩子。
 
 ```json
 // ~/.claude/settings.json（用户级）
@@ -707,7 +707,7 @@ settings.json      settings.json        settings.local.json
 
 ### 第二步：补充常用 `allow` 规则
 
-将 Claude 频繁请求、且你认为安全的操作加入白名单：
+将 Claude 频繁请求且你认为安全的操作加入白名单：
 
 ```json
 {
@@ -762,4 +762,4 @@ settings.json      settings.json        settings.local.json
 
 ## 结语
 
-settings.json 就是 Claude 在项目里能做什么的宪法。 deny 规则应简短严苛， allow 规则须具体明确， hooks 作为兜底防护层。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。
+settings.json 就是 Claude 在项目里能做什么的宪法。deny 规则应简短严苛，allow 规则须具体明确，hooks 作为兜底防护层。一旦你理解了层级和优先级的概念，配置一个新 repo 只需九十秒。在此之前，你可能会觉得规则很任意；其实不然。

@@ -17,7 +17,7 @@ description: "Skill 不是 Prompt 模板——它是一套完整的 SOP，包括
 disableNunjucks: true
 translationKey: "openclaw-quickstart-6"
 ---
-学到第五篇，你的 OpenClaw 不仅能正常运行、支持对话，而且已经从一个演示原型（Demo）变成了一个可落地的 Agent 系统。
+学到第五篇，你的 OpenClaw 不仅能正常运行和支持对话，还从一个演示原型（Demo）变成了一个可落地的 Agent 系统。
 
 ![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
@@ -32,11 +32,11 @@ translationKey: "openclaw-quickstart-6"
 3. 读取当天的日历安排（通过封装 `gcalcli` 的 Skill）
 4. 把两者总结成一段话，推送到我的 Telegram
 
-这才是一个真实的端到端流程。完成这一步，你就拥有了一个可复用的系统骨架——后续只需替换数据源，但在动手前，必须先厘清待整合的两个系统。
+这才是一个真实的端到端流程。完成这一步后，你将拥有一个可复用的系统骨架——后续只需替换数据源。但在动手前，必须先厘清待整合的两个系统。
 
 ## Skills、 Tools 与 MCP —— 心智模型
 
-这三个术语虽然常被混用，但本质上是不同的：
+这三个术语虽然常被混用，但本质上是不同的。
 
 | 概念 | 是什么 | 谁编写 | 何时加载 |
 |------|--------|--------|----------|
@@ -44,9 +44,9 @@ translationKey: "openclaw-quickstart-6"
 | **Skill （技能）** | 一种知识性名词：一份 Markdown 格式的标准操作流程（SOP），告诉 Agent *如何* 完成特定任务。 | 你 | 懒加载 —— 仅在触发时才实例化，正文按需载入 |
 | **MCP Server （MCP 服务端）** | 一个外部进程，通过 Model Context Protocol （MCP）暴露 *额外* 的工具。 | 第三方 或 你 | 网关启动时加载；其工具与内置工具并列呈现 |
 
-三者关系：**Skills 调用 Tools； MCP Servers 暴露 Tools**。例如某 Skill 写道：‘用 Playwright 工具抓取该网页’——Playwright 工具来自 MCP Server， Skill 则定义如何组合调用。
+三者关系：**Skills 调用 Tools；MCP Servers 暴露 Tools**。例如，某个 Skill 可以写道：“用 Playwright 工具抓取该网页”——Playwright 工具来自 MCP Server，Skill 则定义如何组合调用。
 
-类比来说， Tools 是 Agent 的双手， Skills 是操作手册，而 MCP 则是为 Agent 增配新双手的机制。
+类比来说，Tools 是 Agent 的双手，Skills 是操作手册，而 MCP 则是为 Agent 增配新双手的机制。
 
 ## 第一步：写一个 Skill
 
@@ -116,7 +116,7 @@ Produce a single paragraph summary.
 
 **调试 trigger 问题：** 若 skill 未按预期触发，请设置环境变量 `OPENCLAW_LOG=debug` 并发送测试消息。检查 `gateway.log` 中的 `skill_selection` 日志条目——它会清晰列出模型评估了哪些 skill，以及最终选择（或未选择）某 skill 的原因。
 
-重启网关以确认 Skill 加载成功：
+重启网关以确认 Skill 加载成功。
 
 ```bash
 openclaw skills list | grep summarize
