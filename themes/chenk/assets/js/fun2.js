@@ -102,7 +102,7 @@
     panel.classList.toggle('open', open);
     var fab = document.getElementById('kbd-fab');
     if (fab) fab.classList.toggle('hidden', open);
-    try { sessionStorage.setItem(HELP_KEY, open ? Ĺ' : ĸ'); } catch (e) {}
+    try { sessionStorage.setItem(HELP_KEY, open ? '1' : '0'); } catch (e) {}
   }
   function toggleHelp() {
     var panel = document.getElementById('shortcut-help');
@@ -205,7 +205,7 @@
     document.body.appendChild(b);
     // Restore previous open state across page nav
     try {
-      if (sessionStorage.getItem(HELP_KEY) === Ĺ') {
+      if (sessionStorage.getItem(HELP_KEY) === '1') {
         var panel = buildHelpPanel();
         document.body.appendChild(panel);
         // Show without animation jitter
