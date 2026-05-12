@@ -97,17 +97,23 @@
   }
 
   // ---------- Help panel ----------
+  var HELP_KEY = 'kbd-help-open';
+  function setHelpState(open, panel) {
+    panel.classList.toggle('open', open);
+    var fab = document.getElementById('kbd-fab');
+    if (fab) fab.classList.toggle('hidden', open);
+    try { sessionStorage.setItem(HELP_KEY, open ? Ĺ' : ĸ'); } catch (e) {}
+  }
   function toggleHelp() {
     var panel = document.getElementById('shortcut-help');
     if (!panel) {
       panel = buildHelpPanel();
       document.body.appendChild(panel);
     }
-    var willOpen = !panel.classList.contains('open');
-    panel.classList.toggle('open', willOpen);
-    var fab = document.getElementById('kbd-fab');
-    if (fab) fab.classList.toggle('hidden', willOpen);
+    setHelpState(!panel.classList.contains('open'), panel);
   }
+  // Update sh-close click to use setHelpState too
+
 
   function buildHelpPanel() {
     var isZh = (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0;
@@ -129,9 +135,7 @@
         row('↑ ↑ ↓ ↓', isZh ? '彩蛋 ✨' : 'Easter egg ✨') +
       '</dl>';
     p.querySelector('.sh-close').addEventListener('click', function () {
-      p.classList.remove('open');
-      var fab = document.getElementById('kbd-fab');
-      if (fab) fab.classList.remove('hidden');
+      setHelpState(false, p);
     });
     return p;
   }
@@ -199,6 +203,15 @@
     b.textContent = '?';
     b.addEventListener('click', toggleHelp);
     document.body.appendChild(b);
+    // Restore previous open state across page nav
+    try {
+      if (sessionStorage.getItem(HELP_KEY) === Ĺ') {
+        var panel = buildHelpPanel();
+        document.body.appendChild(panel);
+        // Show without animation jitter
+        requestAnimationFrame(function () { setHelpState(true, panel); });
+      }
+    } catch (e) {}
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', createHelpButton);
