@@ -15,9 +15,9 @@ disableNunjucks: true
 series_order: 8
 translationKey: "recommendation-systems-8"
 ---
-When you search for *The Dark Knight* on a streaming platform, the system does not merely log that you watched it. It knows Christian Bale played Batman, Christopher Nolan directed it, it belongs to the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** — a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).
+When you search for *The Dark Knight* on a streaming platform, the system doesn't just log that you watched it. It knows Christian Bale played Batman, Christopher Nolan directed it, it's part of the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** — a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).
 
-Why does this matter for recommendations? Because pure collaborative filtering has a blind spot: it can only recommend items that already have interaction history. A brand-new film with zero views is invisible. But if that film shares a director with movies you love, a knowledge graph sees the connection on day one. KGs transform recommendation from raw pattern matching into **semantic reasoning**.
+Why does this matter for recommendations? Pure collaborative filtering has a blind spot: it can only recommend items with existing interaction history. A brand-new film with zero views is invisible. But if that film shares a director with movies you love, a knowledge graph sees the connection right away. KGs transform recommendation from raw pattern matching into **semantic reasoning**.
 
 ---
 
@@ -56,7 +56,7 @@ A knowledge graph stores facts as **(head, relation, tail)** triples. Each tripl
 
 Formally, a knowledge graph is a set $\mathcal{G} = \{(h, r, t)\}$ where $h \in \mathcal{E}$ is the **head entity**, $r \in \mathcal{R}$ is the **relation type**, and $t \in \mathcal{E}$ is the **tail entity**. $\mathcal{E}$ is the set of all entities and $\mathcal{R}$ is the set of all relation types.
 
-**Analogy.** Think of a knowledge graph as a Wikipedia-scale fact database, but stored as a graph instead of prose. Each article is a node, and every link between articles is a *labeled* edge — the label tells you *why* they are connected.
+**Analogy.** Think of a knowledge graph as a Wikipedia-scale fact database, but stored as a graph instead of prose. Each article is a node, and every link between articles is a *labeled* edge — the label explains *why* they are connected.
 
 ### Real-World Knowledge Graphs
 
@@ -83,7 +83,7 @@ Recommendation KGs are typically **heterogeneous** — they contain multiple ent
 
 ### Knowledge Graph Embeddings
 
-Before feeding a knowledge graph into a recommendation model, we must convert entities and relations into dense vectors. The key question: how do we train these embeddings so they respect the graph's structure?
+Before feeding a knowledge graph into a recommendation model, we must convert entities and relations into dense vectors. The key question is: how do we train these embeddings to respect the graph's structure?
 
 ![TransE: head plus relation vector lands near the tail; training pulls valid tails close and pushes negatives outside the margin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/fig2_transe_embedding.png)
 
@@ -99,7 +99,7 @@ $$\mathcal{L} = \sum_{(h,r,t) \in \mathcal{G}}\; \sum_{(h',r,t') \notin \mathcal
 | **DistMult** | $\mathbf{h}^T \text{diag}(\mathbf{r})\, \mathbf{t}$ | Symmetric relations |
 | **ComplEx** | $\text{Re}(\mathbf{h}^T \text{diag}(\mathbf{r})\, \bar{\mathbf{t}})$ | Asymmetric relations |
 
-**TransE analogy.** Think of cities on a map. "Paris" + "fly_east_2000km" should land near "Moscow." "Paris" + "fly_south_1500km" should land near "Algiers." The relation vector behaves like a displacement on the map.
+**TransE analogy.** Think of cities on a map. "Paris" + "fly_east_2000km" should land near "Moscow." "Paris" + "fly_south_1500km" should land near "Algiers." The relation vector acts like a displacement on the map.
 
 ### Implementation: Knowledge Graph Construction
 
@@ -167,13 +167,13 @@ Knowledge graphs solve four hard problems that plague pure collaborative filteri
 
 ### 1. Cold Start
 
-**Problem.** A new movie with zero interactions is invisible to collaborative filtering — there is nothing for the model to compare against.
+**Problem.** A new movie with zero interactions is invisible to collaborative filtering — there's nothing for the model to compare against.
 
-**KG solution.** Even on day one, the new movie has attributes (director, actors, genre) that connect it to the rest of the graph. If you loved Nolan's other films, the KG can recommend his new movie immediately, with no interaction data required.
+**KG solution.** Even on day one, the new movie has attributes (director, actors, genre) that connect it to the rest of the graph. If you loved Nolan's other films, the KG can recommend his new movie immediately, without any interaction data.
 
 ### 2. Data Sparsity
 
-**Problem.** Most users interact with a tiny fraction of items. The interaction matrix is 99%+ zeros, leaving the model little signal to work with.
+**Problem.** Most users interact with a tiny fraction of items. The interaction matrix is 99%+ zeros, leaving the model with little signal to work with.
 
 **KG solution.** The knowledge graph fills the gaps with dense semantic connections. Even if two items share no users, they might share a director, genre, or production studio — and that link still carries information.
 
@@ -181,7 +181,7 @@ Knowledge graphs solve four hard problems that plague pure collaborative filteri
 
 **Problem.** "Users who liked X also liked Y" is not a satisfying explanation.
 
-**KG solution.** "We recommend *Inception* because it was directed by Christopher Nolan, who also directed *The Dark Knight*, which you rated 5 stars." The KG yields concrete, interpretable reasoning paths.
+**KG solution.** "We recommend *Inception* because it was directed by Christopher Nolan, who also directed *The Dark Knight*, which you rated 5 stars." The KG provides concrete, interpretable reasoning paths.
 
 ### 4. Diversity
 

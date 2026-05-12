@@ -18,7 +18,7 @@ description: "JSON-mode vs function-mode vs free-form, parallel tool calls, stru
 translationKey: "llm-engineering-7"
 ---
 
-Function calling is the bridge between an LLM and the world outside its weights. It's also the place where chat-template details (chapter 2), structured-output kernels (chapter 5), and prompt engineering (chapter 9) all collide. This chapter is about what's actually happening underneath, what guarantees you can lean on, and the agent-loop patterns that survive a real workload.
+Function calling bridges an LLM to the world outside its weights. It's where chat-template details (chapter 2), structured-output kernels (chapter 5), and prompt engineering (chapter 9) intersect. This chapter explores what happens under the hood, the guarantees you can rely on, and the agent-loop patterns that withstand real workloads.
 
 The intellectual lineage matters. Tool use as an LLM capability traces back to two near-simultaneous papers in 2022: **MRKL Systems** (Karpas et al., AI21) which proposed expert-routing among neuro-symbolic modules, and **ReAct** ([Yao et al., 2022][yao-react]) which interleaved chain-of-thought reasoning with tool actions. **Toolformer** ([Schick et al., 2023][schick-toolformer]) showed self-supervised teaching of tool use, generating training data by having a model insert tool-call markers into existing text. By 2024 every frontier model had post-training data structured around the tool-use format, and tool calling moved from "research demo" to "API feature."
 
@@ -35,7 +35,7 @@ When an API exposes "function calling," several different things might be happen
 
 Production systems mix all four. The OpenAI/Anthropic APIs use 1+3 (trained behavior + schema enforcement). vLLM and SGLang implement 2+3 for any model. The free-form approach (4) is the fallback when nothing else is available.
 
-A subtle but important distinction: **JSON vs XML for tool format**. OpenAI defaults to JSON tool calls; Anthropic Claude internally trains on XML-like structured output and exposes it as JSON in the API. The Anthropic argument (made publicly by their team in 2024) is that XML tags are easier for models to learn — the angle-bracket structure aligns with how training data marks special regions, and partial XML is easier to parse mid-stream than partial JSON. Empirically both formats work; the choice mostly affects parsing tooling. Inside the model both look like sequences of tokens with a learned grammar.
+A subtle but important distinction: **JSON vs XML for tool format**. OpenAI defaults to JSON tool calls, while Anthropic Claude trains on XML-like structured output and exposes it as JSON in the API. Anthropic's team argued in 2024 that XML tags are easier for models to learn because the angle-bracket structure aligns with how training data marks special regions, and partial XML is easier to parse mid-stream than partial JSON. Both formats work, but the choice mainly affects parsing tooling. Inside the model, both look like sequences of tokens with a learned grammar.
 
 ## A real function-call request
 
@@ -94,7 +94,7 @@ The conversation now has a tool call and a tool result; the next assistant turn 
 
 ## Tool definition best practices
 
-Tool definitions are prompts in disguise. Models read them as part of the system prompt during every call, and the quality of the definition directly affects whether the model picks the right tool, calls it correctly, and recovers from errors. Patterns that consistently work:
+Tool definitions are essentially prompts. Models read them as part of the system prompt during each call, and the quality of the definition directly affects whether the model selects the right tool, calls it correctly, and recovers from errors. Consistently effective patterns include:
 
 **Descriptions are the most-read text in your prompt.** A good description includes (a) what the tool does in one sentence, (b) when to use it (and when not to), (c) what it returns. A bad description is just a function name restated. "Search the database" is bad; "Search the customer database for orders matching the given criteria. Use this when the user asks about specific orders or order history. Returns up to 10 most recent matches." is good.
 

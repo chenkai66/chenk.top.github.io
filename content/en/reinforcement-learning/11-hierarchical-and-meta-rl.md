@@ -50,11 +50,11 @@ A flat policy makes one decision per environment step, so its credit-assignment 
 
 ![Options Framework: timeline view and the (I, π, β) triple](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig1_options_framework.png)
 
-Beyond the asymptotic argument, hierarchies offer three practical wins:
+Beyond the asymptotic argument, hierarchies offer three practical benefits:
 
-1. **Modularity** --- options trained on one task transfer to others (e.g. *go-to-door* generalises across navigation problems).
-2. **Interpretability** --- the high-level policy is small enough to inspect, and decisions are taken at semantically meaningful checkpoints.
-3. **Reward shaping** --- subgoals provide dense intrinsic rewards even when extrinsic reward is sparse.
+1. **Modularity** — options trained on one task transfer to others (e.g., *go-to-door* generalizes across navigation problems).
+2. **Interpretability** — the high-level policy is small enough to inspect, and decisions are made at semantically meaningful checkpoints.
+3. **Reward Shaping** — subgoals provide dense intrinsic rewards even when extrinsic rewards are sparse.
 
 ### The option triple
 

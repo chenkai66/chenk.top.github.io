@@ -16,7 +16,7 @@ series_order: 8
 translationKey: "docker-containers-8"
 ---
 
-Everything in this series so far has been single-host Docker: one machine running containers. This works well for development, small projects, and applications with modest traffic. But the moment you need your service to survive a server failure, handle traffic spikes, or deploy updates without downtime, single-host Docker shows its limits. Container orchestration solves these problems — and Kubernetes has become the de facto answer.
+So far, this series has focused on single-host Docker: one machine running containers. This setup works well for development, small projects, and applications with modest traffic. However, when you need your service to survive server failures, handle traffic spikes, or deploy updates without downtime, single-host Docker falls short. Container orchestration addresses these issues, and Kubernetes has become the go-to solution.
 
 ## Why Single-Host Docker Isn't Enough
 
@@ -119,7 +119,7 @@ c3d4e5f6a7b8   web.2   nginx:alpine   worker1    Running         Running 30 seco
 d4e5f6a7b8c9   web.3   nginx:alpine   worker2    Running         Running 30 seconds ago
 ```
 
-Swarm distributed the three replicas across all three nodes. It also provides built-in load balancing — any node in the swarm can accept traffic on port 80, and Swarm routes it to a container running the service.
+Swarm distributes the three replicas across all three nodes. It also provides built-in load balancing: any node in the swarm can accept traffic on port 80, and Swarm routes it to a container running the service.
 
 ### Rolling Updates
 
@@ -137,7 +137,7 @@ overall progress: 3 out of 3 tasks
 verify: Service converged
 ```
 
-Swarm updates one container at a time, waiting 10 seconds between each. If a new container fails its healthcheck, Swarm rolls back automatically.
+Swarm updates one container at a time, waiting 10 seconds between each. If a new container fails its health check, Swarm rolls back automatically.
 
 ### Deploying a Stack (Compose in Swarm)
 
@@ -242,7 +242,7 @@ Swarm is a good choice when:
 
 ![Container orchestration evolution from docker compose to kub](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/08-container-orchestration-evolution-from-docker-compose-to-kub.jpg)
 
-Kubernetes (K8s) is the dominant container orchestration platform. It's more complex than Swarm but dramatically more capable. Most cloud providers offer managed Kubernetes services (EKS, GKE, AKS, ACK), eliminating the operational burden of managing the control plane.
+Kubernetes (K8s) is the dominant container orchestration platform. It's more complex than Swarm but much more capable. Most cloud providers offer managed Kubernetes services (EKS, GKE, AKS, ACK), eliminating the operational burden of managing the control plane.
 
 ![Kubernetes architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-k8s-architecture.png)
 

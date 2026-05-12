@@ -17,41 +17,41 @@ translationKey: "linux-1"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/illustration_1.png)
 
-The "difficulty" of Linux rarely lives in the commands themselves. The hard part is whether you have a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions actually buy you, what changes when you switch between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model — philosophy, distributions, the FHS tree — and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; depth lives in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).
+The difficulty of Linux rarely lies in the commands themselves. The hard part is having a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions offer, what changes when switching between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model — philosophy, distributions, the FHS tree — and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; deeper details are in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).
 
 ## Why Linux, and Why It Looks the Way It Does
 
-Three design decisions explain almost every Linux quirk a newcomer notices: it was built for **many users at once**, it treats **files as the universal interface**, and it expects **automation over clicking**.
+Three design decisions explain most Linux quirks a newcomer notices: it was built for **multiple users at once**, it treats **files as the universal interface**, and it prioritizes **automation over clicking**.
 
-- **Open and customisable.** Every component, from the kernel to the init system, can be swapped, recompiled, or stripped down. A 5 MB Alpine container and a 12 GB Oracle Linux install both call themselves Linux.
+- **Open and customisable.** Every component, from the kernel to the init system, can be swapped, recompiled, or stripped down. Both a 5 MB Alpine container and a 12 GB Oracle Linux install call themselves Linux.
 - **Stable enough to forget about.** Production servers routinely run for years without a reboot. The `uptime` command on a long-lived machine printing `up 412 days` is a normal sight, not a brag.
 - **A package manager is the primary install path.** You almost never download a `.exe`. `apt`, `dnf`, `pacman`, `zypper` resolve dependencies, verify signatures, and let you upgrade the entire system with one command.
 - **Everything is a file.** Disks live in `/dev`, processes appear in `/proc`, kernel knobs are toggled by writing to `/sys`. The same `cat` and `>` operators read CPU info or set LED brightness.
-- **CLI first, GUI optional.** Graphical desktops exist (GNOME, KDE), but on servers you connect over SSH and drive the box with text — which is also what makes scripting and remote management trivial.
+- **CLI first, GUI optional.** Graphical desktops like GNOME and KDE exist, but on servers, you connect via SSH and manage the system with text, which also makes scripting and remote management easy.
 
 ### Distribution Families at a Glance
 
-Most distros descend from a small number of ancestors. The package manager is usually the fastest way to tell them apart.
+Most distributions descend from a few ancestors. The package manager is usually the quickest way to tell them apart.
 
 ![Linux distribution family tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/fig5_distro_family_tree.png)
 
-- **Debian / Ubuntu** — `apt`. The friendliest learning curve, vast documentation, and the default for most cloud images. Pick **Ubuntu LTS** if you have no other constraint.
-- **Red Hat / RHEL / CentOS / Rocky / Alma / Fedora** — `yum` (CentOS 7) or `dnf` (8+). The enterprise default. After CentOS Linux was discontinued in 2021, **Rocky Linux** and **AlmaLinux** became the binary-compatible drop-in replacements.
-- **SUSE / openSUSE** — `zypper`. Common in European enterprises and SAP shops.
-- **Arch / Manjaro** — `pacman`. Rolling release, latest packages, expects you to read the wiki.
+- **Debian / Ubuntu** — `apt`. The friendliest learning curve, vast documentation, and the default for most cloud images. Pick **Ubuntu LTS** if you have no other constraints.
+- **Red Hat / RHEL / CentOS / Rocky / Alma / Fedora** — `yum` (CentOS 7) or `dnf` (8+). The enterprise default. After CentOS Linux was discontinued in 2021, **Rocky Linux** and **AlmaLinux** became the binary-compatible replacements.
+- **SUSE / openSUSE** — `zypper`. Common in European enterprises and SAP environments.
+- **Arch / Manjaro** — `pacman`. Rolling release, latest packages, and expects you to read the wiki.
 - **Independents** — Gentoo (compile everything), Alpine (musl + 5 MB, container darling), NixOS (declarative config), Void (no systemd).
 
-For cloud, also check what your provider blesses: AWS ships **Amazon Linux**, Alibaba Cloud ships **Alibaba Cloud Linux**, both are RHEL derivatives tuned for the platform.
+For cloud, also check what your provider supports: AWS ships **Amazon Linux**, and Alibaba Cloud ships **Alibaba Cloud Linux**. Both are RHEL derivatives tuned for the platform.
 
 ### The Three Ideas That Explain Everything Else
 
 #### 1. Multi-user, multi-task
 
-Dozens of users may be logged in at once over SSH or local TTYs, each running many processes in parallel. The kernel must isolate their CPU time, memory, files, and network sockets. This is the reason the permission model is strict: without it, any user could read another user's secrets or kill another user's processes.
+Dozens of users may log in simultaneously over SSH or local TTYs, each running many processes in parallel. The kernel must isolate their CPU time, memory, files, and network sockets. This is why the permission model is strict: without it, any user could read another user's secrets or kill their processes.
 
 #### 2. File-centric permissions
 
-Every file (and a directory is just a special file) has three permission groups — **owner**, **group**, **others** — and three bits each: **read (r)**, **write (w)**, **execute (x)**. Read a permission string left to right:
+Every file (and a directory is just a special file) has three permission groups — **owner**, **group**, **others** — and three bits each: **read (r)**, **write (w)**, **execute (x)**. Read a permission string from left to right:
 
 ```text
 -rwxr-xr-x  1 alice  devs   2048  Jan 15 09:30  deploy.sh
@@ -100,7 +100,7 @@ A few subtleties worth knowing on day one:
 
 ## The Anatomy of a Command
 
-Every Linux command line is parsed by the shell into three kinds of tokens, separated by spaces.
+Every Linux command line is parsed by the shell into three types of tokens, separated by spaces.
 
 ![Anatomy of a shell command](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/fig2_command_anatomy.png)
 
@@ -114,7 +114,7 @@ $ ls -l -a -h --color=auto /var/log /etc
   command (the program to run)
 ```
 
-Three habits will save you hours:
+Three habits will save you time:
 
 - `-lah` means the same as `-l -a -h`. Short flags stack.
 - Quote anything containing spaces or shell-special characters: `ls "/var/log my dir"`.

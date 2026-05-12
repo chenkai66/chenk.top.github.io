@@ -20,7 +20,7 @@ translationKey: "openclaw-quickstart-9"
 
 Chapter 5 covered Telegram, DingTalk, and WeChat at a glance. This chapter is the sequel for everyone in mainland China who needed to ship something past their team's IT department. There are too many channels, the docs are scattered across a dozen READMEs, and most of the "compare" tables online are out of date.
 
-What follows is the matrix I check before recommending anything to anyone.
+Here’s the matrix I check before making any recommendations.
 
 ![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_1.png)
 
@@ -40,7 +40,7 @@ Or the wizard:
 npx @openclaw-china/setup
 ```
 
-Then the choices:
+Here are the choices:
 
 | Channel | Audience | Public IP needed | Reaches WeChat users | Group chat | Streaming | Latency | Msg formats | Cost |
 |---|---|:---:|:---:|:---:|:---:|---|---|---|
@@ -52,21 +52,21 @@ Then the choices:
 | WeChat public account | followers | yes | yes | no | no | 1500-3000ms | text, news cards | free |
 | WorkBuddy (QClaw) | personal WeChat/QQ | no | yes | yes | yes | 500-1000ms | text, images | free |
 
-Two notes: Feishu is officially listed as deprecated for new openclaw-china installs as of March 2026 — pick DingTalk or WeCom. WeChat public accounts in subscription mode have a 5-second passive reply window and cannot push proactively; service accounts and test accounts don't.
+Two notes: Feishu is officially deprecated for new openclaw-china installs as of March 2026 — choose DingTalk or WeCom. WeChat public accounts in subscription mode have a 5-second passive reply window and can't push proactively; service accounts and test accounts can.
 
-Latency numbers are round-trip message-to-response timings measured from Beijing/Shanghai during business hours. The biggest latency killer is the webhook delivery path — public accounts and WeCom self-built apps route through Tencent's dispatcher, adding 500-1000ms compared to long-poll channels.
+Latency numbers are round-trip message-to-response timings measured from Beijing/Shanghai during business hours. The main cause of high latency is the webhook delivery path — public accounts and WeCom self-built apps route through Tencent's dispatcher, adding 500-1000ms compared to long-poll channels.
 
-Message format support matters more than it looks. Markdown means your agent can send code blocks and formatted lists. DingTalk and WeCom smart bot handle GitHub-flavored markdown well. WeChat channels require plain text or proprietary card schemas.
+Message format support is more important than it seems. Markdown allows your agent to send code blocks and formatted lists. DingTalk and WeCom smart bot handle GitHub-flavored markdown well. WeChat channels require plain text or proprietary card schemas.
 
 ## The three-question picker
 
-Don't read the matrix top to bottom. Ask yourself three questions:
+Instead of reading the matrix top to bottom, ask yourself three questions:
 
 1. **Who is on the other end?** A coworker → DingTalk or WeCom long-poll. An external WeChat user → WeCom self-built app or WeChat customer service. Yourself → WorkBuddy.
 2. **Do you have a public IP?** No → only DingTalk, WeCom long-poll, and WorkBuddy are options. Yes → everything is on the table.
 3. **Do you need group chat?** Yes → DingTalk, WeCom long-poll, or WorkBuddy. The customer-service and public-account channels are 1:1 only.
 
-In practice I land on one of two stacks:
+In practice, I usually end up with one of two stacks:
 
 - **Internal team, no public IP:** DingTalk for the human channel, WeCom long-poll as backup. Heartbeat patrols both.
 - **External WeChat reach:** WeCom self-built app for the agent's primary surface, WeChat customer service for inbound from non-tagged users.
@@ -75,7 +75,7 @@ In practice I land on one of two stacks:
 
 ![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_2.png)
 
-Stream mode (long-poll) is the only reason DingTalk is fast to ship. No public IP, no domain verification, just register a bot and grab two values:
+Stream mode (long-poll) is why DingTalk is quick to set up. No public IP or domain verification required—just register a bot and grab two values:
 
 ```json
 {

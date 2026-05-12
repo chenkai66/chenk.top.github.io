@@ -211,7 +211,7 @@ Three design decisions worth calling out. First, **OIDC replaces long-lived secr
 
 ### 1.3 Deployment strategies compared
 
-Not every service can afford a canary. The right strategy depends on traffic volume, rollback cost, and how quickly you can detect a bad deploy.
+Not every service can afford a canary. The right strategy depends on traffic volume, rollback cost, and how quickly you can detect a bad deployment.
 
 | Strategy | How it works | Rollback speed | When to use |
 |----------|-------------|----------------|-------------|

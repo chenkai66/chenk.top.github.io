@@ -145,7 +145,7 @@ Five module calls. Each module takes the *previous* module's output as input —
 
 ![Terraform module dependency DAG](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png)
 
-VPC and KMS sit at the top — they have no dependencies. Storage and gateway depend on VPC + KMS but are independent of each other, so Terraform builds them in parallel. Compute depends on all three because the cloud-init template needs their endpoints. Observability resources fan out at the end because they reference SG IDs from compute.
+VPC and KMS sit at the top with no dependencies. Storage and gateway depend on VPC and KMS but are independent of each other, so Terraform builds them in parallel. Compute depends on all three because the cloud-init template needs their endpoints. Observability resources fan out at the end, referencing SG IDs from compute.
 
 The `local.is_prod` ternaries are the entire promotion strategy in three lines: prod gets HA RDS, two gateway instances, three agent ECS, ¥800 cost ceiling, cross-region DR. Dev gets the smallest viable shape. Same modules, different sizing, no environment-specific code paths to maintain.
 
@@ -241,7 +241,7 @@ The wall-clock breakdown:
 - **60–380s:** RDS (5 minutes), OpenSearch (5.5 minutes), ECS (~2 minutes), gateway (~1.5 minutes) — all in parallel, gated by the slowest
 - **380–460s:** agent app deploy via cloud-init, observability resources, alarms
 
-About 7 minutes total, dominated by RDS and OpenSearch provisioning. Re-applies on no-change runs settle in under 30 seconds because Terraform only diffs.
+About 7 minutes total, dominated by RDS and OpenSearch provisioning. Re-applies on no-change runs take under 30 seconds because Terraform only diffs.
 
 A trimmed apply transcript:
 

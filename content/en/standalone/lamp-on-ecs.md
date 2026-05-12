@@ -12,29 +12,29 @@ disableNunjucks: true
 translationKey: "lamp-on-ecs"
 ---
 
-You have a fresh ECS instance and SSH access. Your goal is a public website running Apache, PHP and MySQL. Between you and that goal sit three classes of problems that catch every beginner the first time:
+You have a fresh ECS instance and SSH access. Your goal is to run a public website with Apache, PHP, and MySQL. Three types of problems often trip up beginners:
 
-1.  **Network reachability** — packets are silently dropped at the cloud security group, the OS firewall, or the listening socket, and the symptom is the same in all three cases: nothing happens.
-2.  **Service wiring** — Apache, PHP and MySQL are three separate processes that have to find each other through file extensions, Unix sockets and TCP ports. Each interface has its own failure mode.
+1. **Network reachability** — packets are silently dropped by the cloud security group, the OS firewall, or the listening socket, and the symptom is the same: nothing happens.
+2. **Service wiring** — Apache, PHP, and MySQL are separate processes that need to find each other through file extensions, Unix sockets, and TCP ports. Each interface has its own failure mode.
 3.  **Identity and permissions** — Apache runs as `www-data`, MySQL runs as `mysql`, files are owned by `root` after `wget`. The wrong combination produces 403, "Access denied", or `chmod 777` desperation.
 
-This guide walks through all of them in the order you actually hit them on day one, then keeps going into the things that show up on day thirty: TLS, virtual hosts, backups, source compilation, and when to stop running everything on a single box.
+This guide covers these issues in the order you'll encounter them on day one, and continues with topics that arise later, such as TLS, virtual hosts, backups, source compilation, and when to stop running everything on a single box.
 
-## What you will be able to do after reading
+## What You Will Be Able to Do After Reading
 
--   Build a mental model of how an HTTP request travels through Linux, Apache, PHP and MySQL, and predict where it will break.
+- Build a mental model of how an HTTP request travels through Linux, Apache, PHP, and MySQL, and predict where it will break.
 -   Configure Aliyun networking from the security group inwards, with a real defence-in-depth model rather than `0.0.0.0/0` everywhere.
--   Install, verify and harden each LAMP component on Ubuntu (the steps for CentOS / Alibaba Cloud Linux are called out alongside).
--   Deploy a non-trivial application end-to-end (Discuz!), including the file-permission and database-account work that the docs gloss over.
--   Diagnose the five failures that account for ~90% of "my LAMP doesn't work" tickets.
--   Decide when to stay on a single ECS, and when to split into SLB + ECS + RDS.
+- Install, verify, and harden each LAMP component on Ubuntu (steps for CentOS/Alibaba Cloud Linux are included).
+- Deploy a non-trivial application end-to-end (Discuz!), including file permissions and database account setup that the documentation often skips.
+- Diagnose the five failures that account for ~90% of "my LAMP doesn't work" issues.
+- Decide when to stay on a single ECS and when to split into SLB + ECS + RDS.
 
 ## Prerequisites
 
--   An Alibaba Cloud ECS instance, Ubuntu 22.04 LTS or Alibaba Cloud Linux 3 / CentOS 7+.
--   SSH access from your laptop using a key (not a password).
+- An Alibaba Cloud ECS instance (Ubuntu 22.04 LTS or Alibaba Cloud Linux 3/CentOS 7+).
+- SSH access from your laptop using a key (not a password).
 -   Comfort with the Linux command line: `ls`, `cd`, `cat`, `systemctl`, `sudo`.
--   A domain name is optional but nice to have for the TLS section.
+- A domain name is optional but useful for the TLS section.
 
 ---
 

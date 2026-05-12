@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-6"
 ---
 
-Five pieces in, you have a working OpenClaw with a chat channel. This is where it stops being a demo.
+After five pieces, you have a working OpenClaw with a chat channel. This is where it stops being a demo.
 
 ![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
@@ -33,11 +33,11 @@ A morning-briefing agent that:
 3. Reads my calendar for the day (via a Skill that wraps `gcalcli`)
 4. Summarizes both into a paragraph and pushes it to my Telegram
 
-That is a real workflow. By the end you will have the bones to swap in your own data sources. But before we build, we need to understand the two systems we are combining.
+This is a real workflow. By the end, you'll have the structure to swap in your own data sources. But first, let's understand the two systems we're combining.
 
 ## Skills vs. Tools vs. MCP — the mental model
 
-These three words get conflated. They should not be.
+These three words often get mixed up, but they shouldn't.
 
 | Concept | What it is | Who writes it | When it loads |
 |---------|-----------|--------------|--------------|
@@ -47,7 +47,7 @@ These three words get conflated. They should not be.
 
 The relationship: Skills *use* tools. MCP servers *provide* tools. A skill might say "use the Playwright tools to scrape this page" — the Playwright tools come from an MCP server, and the skill tells the agent what to do with them.
 
-Think of it as: Tools are the hands. Skills are the training manual. MCP is a way to give the agent more hands.
+Think of it like this: Tools are the hands. Skills are the training manual. MCP is a way to give the agent more hands.
 
 ## Step 1: Write a Skill
 

@@ -19,7 +19,7 @@ translationKey: "ode-10"
 ---
 A lake stays clear for decades, then turns murky in a single season. A power grid hums along stably, then trips into a cascading blackout in seconds. A column under slowly increasing load is straight, straight, straight — and then suddenly buckles.
 
-These are not failures of prediction. They are the universe doing exactly what dynamical systems theory says it must do: cross a **bifurcation**. When a parameter drifts past a critical value, the topology of phase space rearranges itself, and what was once impossible becomes inevitable. This chapter is about classifying those rearrangements. There turn out to be only a handful of them, and once you see the catalogue you start spotting them everywhere.
+These are not prediction failures. The universe is doing exactly what dynamical systems theory says it must: cross a **bifurcation**. When a parameter drifts past a critical value, the topology of phase space rearranges, and what was once impossible becomes inevitable. This chapter classifies these rearrangements. There are only a few, and once you see the catalogue, you'll spot them everywhere.
 
 ![Ordinary Differential Equations (10): Bifurcation Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_1.png)
 

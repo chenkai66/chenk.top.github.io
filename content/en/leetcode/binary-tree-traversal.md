@@ -17,9 +17,9 @@ translationKey: "leetcode-6"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/06-binary-tree/illustration_1.png)
 
-A binary tree problem is rarely about the tree. It is about *the order in which you touch nodes* and *what you remember from the children before deciding what to do at the parent*. Once those two ideas click, the four traversal orders, the iterative rewrites, the construction problems, and even classics like Validate BST and Maximum Depth all collapse into a handful of variations on the same recipe. This article builds that recipe end to end.
+A binary tree problem is rarely about the tree itself. It's about *the order in which you visit nodes* and *what you remember from the children before deciding what to do at the parent*. Once these two ideas click, the four traversal orders, iterative rewrites, construction problems, and even classics like Validate BST and Maximum Depth all boil down to variations on the same recipe. This article builds that recipe from start to finish.
 
-We use a single example tree throughout so the figures and the code line up exactly:
+We use a single example tree throughout, so the figures and code align perfectly.
 
 ```
         3
@@ -50,7 +50,7 @@ Its preorder is `[3, 9, 20, 15, 7]`, inorder is `[9, 3, 15, 20, 7]`, postorder i
 
 ## What a binary tree is — and the only vocabulary you need
 
-A **binary tree** is a tree in which every node has at most two children, and crucially, the two children are *ordered* — left and right are not interchangeable. The empty tree counts as a binary tree, which is the base case that keeps every recursive definition clean.
+A **binary tree** is a tree where each node has at most two children, and the children are *ordered* — left and right are not interchangeable. An empty tree is also considered a binary tree, serving as the base case for recursive definitions.
 
 Three labels appear over and over in problem statements:
 

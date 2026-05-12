@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 10
 translationKey: "nlp-10"
 ---
-A frozen language model is a confident liar. It cannot read yesterday's incident report, your company wiki, or the patch notes that shipped this morning, so when you ask, it confabulates an answer that is grammatically perfect and factually wrong. **Retrieval-Augmented Generation (RAG)** breaks the deadlock by separating *memory* from *reasoning*: keep the LLM small and stable, and put the volatile knowledge in an external store that you can update at any time. Before generating, retrieve the relevant evidence and condition the model on it.
+A frozen language model is a confident liar. It can't read yesterday's incident report, your company wiki, or the patch notes that shipped this morning, so when you ask, it confabulates an answer that is grammatically perfect but factually wrong. **Retrieval-Augmented Generation (RAG)** breaks the deadlock by separating *memory* from *reasoning*: keep the LLM small and stable, and put the volatile knowledge in an external store that you can update anytime. Before generating, retrieve the relevant evidence and condition the model on it.
 
 The idea is one paragraph. The engineering is the rest of this article. A real RAG system has roughly a dozen knobs — chunk size, embedding model, index type, $k$, hybrid weighting, reranker depth, prompt template, citation format, refusal policy — and most of them interact. We walk through each one with the math, the trade-offs, and code that runs.
 

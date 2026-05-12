@@ -13,7 +13,7 @@ disableNunjucks: true
 translationKey: "llmgr"
 ---
 
-Session-based recommendation lives or dies on the click graph. New items have no edges. Long-tail items have a handful of noisy edges. Yet every item ships with a title and a description that the model never reads. **LLMGR** plugs that hole: treat the LLM as a "semantic engine" that turns text into representations a graph encoder can fuse with, then let a GNN do what it does best — rank. The headline result on Amazon Music/Beauty/Pantry: HR@20 up ~8.68%, NDCG@20 up ~10.71%, MRR@20 up ~11.75% over the strongest GNN baseline, with the largest uplift concentrated on cold-start items.
+Session-based recommendation depends on the click graph. New items have no edges, and long-tail items have a few noisy ones. Every item comes with a title and description, but the model never uses them. **LLMGR** addresses this: it treats the LLM as a "semantic engine" that converts text into representations a graph encoder can use, then lets a GNN handle ranking. On Amazon Music/Beauty/Pantry, the results show HR@20 up ~8.68%, NDCG@20 up ~10.71%, and MRR@20 up ~11.75% over the strongest GNN baseline, with the biggest gains for cold-start items.
 
 ## What you will learn
 
@@ -43,7 +43,7 @@ A session is a short click stream $s = [v_1, v_2, \dots, v_n]$ — usually only 
 - **Long tail dominates the catalogue.** Most items have a handful of edges, and the edges they do have are unreliable. A GNN trained on these edges learns noise.
 - **IDs carry no semantics.** A neighbour relationship in the click graph could mean *similar*, *complementary*, or *substitute*; transition edges alone cannot tell you which.
 
-Text is usually the lifeline. Even a brand-new SKU has a title, a description and a category; a long-tail item has the same. But the standard trick of "concatenate a frozen BERT embedding next to the ID embedding" almost never works, for two reasons:
+Text is often the lifeline. Even a new SKU has a title, description, and category, and long-tail items have the same. But the common trick of "concatenating a frozen BERT embedding with the ID embedding" rarely works, for two reasons:
 
 1. **Space mismatch.** Text embeddings (768 or 4096-d) and graph embeddings (64-d) live in different geometries. Concatenation gives the optimiser no reason to align them.
 2. **Domain mismatch.** Pre-trained encoders are optimised on Wikipedia and CommonCrawl, not on shopping intent. "iPhone" and "charger" are unrelated in general English but tightly complementary in retail.
@@ -56,13 +56,13 @@ The cleanest way to read LLMGR is as a two-stream model with a fusion layer in t
 
 ![LLMGR end-to-end architecture: LLM semantic stream + GNN structural stream + hybrid encoding + MLP ranker](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llmgr/fig1_framework.png)
 
-A common pitfall is to ask the LLM to *generate* the next item. That fails for three concrete reasons:
+A common pitfall is asking the LLM to *generate* the next item. This fails for three reasons:
 
 - **Candidate sets are huge.** Tens of thousands of items will not fit in any token budget.
 - **Ranking needs calibrated scores and negatives.** Free-form generation does not give you a calibrated $p(v \mid s)$.
 - **Online cost.** Running a 7B model per request blows out latency and cost.
 
-LLMGR's wager is more pragmatic: **let the LLM extract semantics; let a GNN + MLP head do the actual ranking.** The LLM never produces an item ID at inference time; it produces a hidden state that the ranker scores against the candidate set.
+LLMGR takes a more pragmatic approach: **let the LLM extract semantics, and let a GNN + MLP head handle the ranking.** The LLM doesn't produce item IDs at inference time; instead, it generates a hidden state that the ranker uses to score the candidate set.
 
 ## 3. Multi-task prompts as supervision interfaces
 

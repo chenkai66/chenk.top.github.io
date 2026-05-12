@@ -16,11 +16,11 @@ series_order: 7
 translationKey: "docker-containers-7"
 ---
 
-Docker's default configuration prioritizes convenience over security. Out of the box, containers run as root, have access to a broad set of Linux capabilities, and can write to their entire filesystem. This is fine for development — dangerous for production. A container escape vulnerability combined with a root-privileged container means an attacker owns the host. Let's fix that.
+Docker's default configuration prioritizes convenience over security. Containers run as root, have access to a broad set of Linux capabilities, and can write to their entire filesystem. This is fine for development but dangerous for production. A container escape vulnerability in a root-privileged container means an attacker can take over the host. Let's fix that.
 
 ## The Threat Model
 
-Before locking things down, understand what you're defending against:
+Before securing your setup, understand what you're defending against:
 
 ![Rootless containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png)
 
@@ -32,11 +32,11 @@ Before locking things down, understand what you're defending against:
 5. **Secrets exposure**: Credentials leak through environment variables, image history, or logs
 6. **Lateral movement**: An attacker in one container pivots to other containers or the host
 
-Each hardening technique addresses one or more of these threats. The goal is defense in depth — no single measure is sufficient, but layers of hardening make exploitation significantly harder.
+Each hardening technique addresses one or more of these threats. The goal is defense in depth: no single measure is sufficient, but layers of hardening make exploitation much harder.
 
 ## Running as Non-Root
 
-By default, the process inside a Docker container runs as root (UID 0). This root is the same root as on the host (unless user namespaces are enabled). If an attacker escapes the container, they're root on the host.
+By default, the process inside a Docker container runs as root (UID 0). This root is the same as on the host (unless user namespaces are enabled). If an attacker escapes the container, they become root on the host.
 
 ### In the Dockerfile
 
@@ -80,7 +80,7 @@ CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
 
 ### At Runtime
 
-Even if the Dockerfile doesn't set a user, you can override at runtime:
+Even if the Dockerfile doesn't set a user, you can override it at runtime:
 
 ```bash
 # Run as a specific UID:GID
@@ -104,7 +104,7 @@ docker exec default-container id
 
 ### Common non-root gotchas
 
-Running as non-root can break things that assume root access:
+Running as a non-root user can break things that assume root access:
 
 | Problem | Symptom | Solution |
 |---------|---------|----------|
@@ -119,14 +119,14 @@ Running as non-root can break things that assume root access:
 
 ![Container security fortress with multiple defense layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-container-security-fortress-with-multiple-defense-layers.jpg)
 
-A read-only root filesystem prevents an attacker from modifying binaries, planting malware, or changing configuration files:
+A read-only root filesystem prevents attackers from modifying binaries, planting malware, or changing configuration files:
 
 ```bash
 # Run with read-only filesystem
 docker run --read-only myapp
 ```
 
-Most applications need to write to some locations (temp files, caches, pid files). Use tmpfs for writable areas:
+Most applications need to write to some locations (temp files, caches, pid files). Use tmpfs for these writable areas:
 
 ```bash
 # Read-only root with writable /tmp and /var/run
@@ -163,7 +163,7 @@ docker run --read-only myapp 2>&1 | grep "Read-only file system"
 
 ![Rootless container running as unprivileged user security vis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-rootless-container-running-as-unprivileged-user-security-vis.jpg)
 
-Linux capabilities divide root's power into ~40 individual privileges. By default, Docker grants containers a subset of these — more than most applications need.
+Linux capabilities divide root's power into about 40 individual privileges. By default, Docker grants containers a subset of these, more than most applications need.
 
 ![Linux capability management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-capability-model.png)
 
@@ -187,7 +187,7 @@ Default capabilities given to Docker containers:
 | `KILL` | Send signals to other processes | Sometimes |
 | `AUDIT_WRITE` | Write to kernel audit log | Rarely |
 
-The principle of least privilege: drop all capabilities, then add back only what your application needs.
+Follow the principle of least privilege: drop all capabilities and add back only what your application needs.
 
 ```bash
 # Drop ALL capabilities, add back only what's needed
@@ -233,7 +233,7 @@ docker exec my-container capsh --decode=00000000a80425fb
 
 ## Secrets Management
 
-Secrets (API keys, database passwords, TLS certificates) are one of the most common security failures in containerized applications.
+Secrets (API keys, database passwords, TLS certificates) are among the most common security failures in containerized applications.
 
 ### How NOT to handle secrets
 
@@ -249,7 +249,7 @@ ENV API_KEY=sk-12345abcde
 COPY credentials.json /app/credentials.json
 ```
 
-All three of these are visible to anyone who has access to the image:
+All three of these are visible to anyone with access to the image:
 
 ```bash
 # Build args are visible in history

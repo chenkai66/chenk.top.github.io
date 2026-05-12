@@ -14,11 +14,11 @@ disableNunjucks: true
 series_order: 9
 translationKey: "recommendation-systems-9"
 ---
-A live e-commerce ranker is never optimizing one number. The same model that decides which product to show you is, in the same forward pass, predicting whether you will click, whether you will add it to cart, whether you will pay, whether you will return it, and whether you will leave a positive review. Each prediction is a different *task* with its own data distribution, its own scarcity, and its own incentives. They are also tightly coupled: a clicker is more likely to convert, a converter is more likely to write a review, and a high-CTR thumbnail can buy clicks that depress watch time.
+A live e-commerce ranker doesn't optimize just one number. The same model that decides which product to show you also predicts, in the same forward pass, whether you will click, add it to your cart, pay for it, return it, or leave a positive review. Each prediction is a different *task* with its own data distribution, scarcity, and incentives. These tasks are tightly coupled: a clicker is more likely to convert, a converter is more likely to write a review, and a high-CTR thumbnail can attract clicks that reduce watch time.
 
 **Multi-task learning (MTL)** is how production systems handle this. Instead of training one model per objective and stitching scores together, we train one neural network with several output heads and let the shared trunk learn representations that serve all of them at once. The hard part is not the architecture diagram — it is making sure the heads cooperate instead of fighting over the shared weights.
 
-This post is the mental model and the working code for the four architectures you will actually meet in industry: **Shared-Bottom, ESMM, MMoE, PLE**. We will also unpack *why* the simple version breaks (negative transfer, gradient conflict, sample selection bias) and how Uncertainty Weighting, GradNorm and Pareto trade-offs paper over the cracks.
+This post provides the mental model and working code for the four architectures you'll encounter in industry: **Shared-Bottom, ESMM, MMoE, PLE**. We'll also explain why the simple version fails (negative transfer, gradient conflict, sample selection bias) and how Uncertainty Weighting, GradNorm, and Pareto trade-offs address these issues.
 
 ## What You Will Learn
 
@@ -159,7 +159,7 @@ print(ctr.shape, cvr.shape, rev.shape)  # all (32, 1)
 
 ### Why It Eventually Hurts
 
-If two tasks disagree about what the shared representation should encode — e.g. CTR rewards eye-catching novelty while CVR rewards reliable signals — the trunk has to compromise. The compromise is usually worse for *both* tasks than the single-task baseline. That is **negative transfer**, and it is the reason every architecture below exists.
+If two tasks disagree on what the shared representation should encode—e.g., CTR rewards eye-catching novelty while CVR rewards reliable signals—the trunk must compromise. This compromise often makes both tasks perform worse than their single-task baselines. This is **negative transfer**, and it's the reason for the other architectures below.
 
 ---
 

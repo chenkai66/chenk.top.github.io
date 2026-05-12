@@ -17,9 +17,9 @@ disableNunjucks: true
 description: "切分策略、dense vs sparse vs 混合检索、reranker 选型、2026 年长上下文 vs RAG 的取舍，以及 10 万文档以上才会冒头的失败模式。"
 translationKey: "llm-engineering-8"
 ---
-RAG 是当前 LLM 应用中部署最广泛，但工程实践最不成熟的范式。 2024 年流行的 Demo 套路——用 `text-embedding-3-large` 把所有内容向量化，扔进 pgvector，然后取 cosine 相似度 top-5——应付千篇量级的文档和对答案容错率较高的演示场景尚可。但当处理十万篇真实业务文档，且客户严格要求答案准确性时，该方案便难以胜任。这一章讲的内容，是我希望更多团队在构建第二代 RAG 系统之前就能掌握的经验。
+RAG 是当前 LLM 应用中部署最广泛，但工程实践最不成熟的范式。 2024 年流行的 Demo 套路——用 `text-embedding-3-large` 把所有内容向量化，扔进 pgvector，然后取 cosine 相似度 top-5——应付千篇量级的文档和对答案容错率较高的演示场景尚可。但当处理十万篇真实业务文档，且客户严格要求答案准确性时，该方案便难以胜任。这一章的内容，我希望更多团队在构建第二代 RAG 系统之前就能掌握。
 
-最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为稠密检索器（DPR）与生成器（BART）联合训练的混合架构，以优化端到端任务的准确率；而 2026 年的生产级 RAG 已显著偏离这一设计，现代系统普遍采用冻结的预训练 embedding 模型、独立重排序器（reranker）和不与检索器联合训练的仅解码器（decoder-only）生成模型。但其核心思想——将知识存储与推理能力解耦——得以保留，并发展为主导范式。[Gao et al. (2023) 的 RAG 综述][gao-survey] 是对 2020 年后演进路线（"Naive RAG → Advanced RAG → Modular RAG"）最全面的概述。
+最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为稠密检索器（DPR）与生成器（BART）联合训练的混合架构，以优化端到端任务的准确率；而 2026 年的生产级 RAG 已显著偏离这一设计，现代系统普遍采用冻结的预训练 embedding 模型、独立重排序器（reranker）和不与检索器联合训练的仅解码器（decoder-only）生成模型。但其核心思想——将知识存储与推理能力解耦——得以保留并发展为主导范式。[Gao et al. (2023) 的 RAG 综述][gao-survey] 是对 2020 年后演进路线（"Naive RAG → Advanced RAG → Modular RAG"）最全面的概述。
 
 ![LLM Engineering (8): Retrieval-Augmented Generation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/illustration_1.png)
 
@@ -43,7 +43,7 @@ Question: {user_query}
 
 ![fig1: chunking strategies compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/fig1_chunking_strategies.png)
 
-文本块的切分方式直接决定了检索器理论上能够召回的内容边界。常见的 chunk 大小有 256、512、1024 tokens。常见策略包括：
+文本块的切分方式直接决定了检索器理论上能够召回的内容边界。常见的 chunk 大小有 256、512、1024 tokens，常见策略包括：
 
 - **Fixed size**：每 $N$ 个 token 切一刀。简单，但会切断语义单元。
 - **Sentence**：按句子边界切分。好一些，但往往太碎。
@@ -75,7 +75,7 @@ chunks = splitter.split_text(document)
 
 在长文档问答任务上的实测效果显示：相较于采用相同文本块边界的朴素切分方法，晚期切分可将 NDCG 指标提升 5–15%，且无需额外存储开销，仅带来轻微的索引延迟增长。 Jina 的 `jina-embeddings-v3` 和 BGE-M3 都原生支持 late chunking。
 
-什么时候 late chunking 有用？只要你的文档长到单个 chunk 内的局部上下文丢失了重要框架信息——研究论文、法律合同、代码库、多章节技术文档。对于短文档语料库（FAQ 条目、产品描述），收益较小。
+什么时候 late chunking 有用？只要你的文档长到单个 chunk 内的局部上下文丢失了重要框架信息——例如研究论文、法律合同、代码库、多章节技术文档。对于短文档语料库（如 FAQ 条目、产品描述），收益较小。
 
 ## Embedding 模型选择
 

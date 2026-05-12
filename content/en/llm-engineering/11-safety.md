@@ -21,13 +21,13 @@ translationKey: "llm-engineering-11"
 
 Safety has the worst signal-to-noise ratio of any topic in LLM engineering. There's a lot of philosophy, a lot of marketing, and not a lot of engineering specifics. This chapter is the engineering specifics: what RLHF actually optimizes when it talks about "safety," how refusal calibration breaks, what red-teaming looks like in practice, the hallucination measures that actually predict customer impact, and the small but significant 2024-2026 papers (Sleeper Agents, refusal as a feature direction, weak-to-strong generalization) that should change how you think about alignment in production.
 
-A note on stance. I'm an engineer, not a policy person. I don't have strong views on AI x-risk and I won't try to give you any. I do have views on what works in production, what fails embarrassingly, and what the literature shows about both. The bibliography at the end is doing a lot of work; treat citations as the takeaway.
+A note on stance. I'm an engineer, not a policy person. I don't have strong views on AI x-risk and I won't try to give you any. I have views on what works in production, what fails embarrassingly, and what the literature says about both. The bibliography at the end does a lot of the heavy lifting; treat the citations as the key takeaways.
 
 ![LLM Engineering (11): Safety and Alignment — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_1.png)
 
 ## What "alignment" actually means in 2026
 
-The term collapsed three things that should be separate:
+The term combines three distinct aspects:
 
 1. **Helpfulness** — does the model do what the user asked, when the request is legitimate?
 2. **Harmlessness** — does the model refuse to do things that would harm someone?
@@ -37,7 +37,7 @@ Anthropic's HHH (Helpful-Harmless-Honest) framing from Askell et al. (2021, *A G
 
 Production "alignment" is mostly engineering against these tradeoffs, not solving them. You pick where on the curve you want to sit for your deployment, then measure and tune.
 
-There is a fourth axis the literature gestures at but rarely names cleanly: *controllability*. A model that follows the developer's system prompt under attack is more controllable than one that drifts. Wallace et al.'s instruction hierarchy (chapter 9) is partially about this. In production, controllability is what you actually trade off against helpfulness; an aggressively controllable model refuses more user requests because the system prompt told it to.
+There's a fourth aspect the literature hints at but rarely names clearly: *controllability*. A model that adheres to the developer's system prompt under attack is more controllable than one that drifts. Wallace et al.'s instruction hierarchy (chapter 9) touches on this. In production, controllability is often traded off against helpfulness; an aggressively controllable model refuses more user requests based on the system prompt.
 
 ## The RLHF objective and what it teaches
 
@@ -74,7 +74,7 @@ Two failure modes:
 - **Over-refusal**: the model refuses legitimate requests because they pattern-match to something concerning. "Tell me how acetaminophen works" can trigger a refusal because "drugs" is in the safety surface area.
 - **Under-refusal**: the model complies with a clearly harmful request. "Write a phishing email targeting bank customers."
 
-Both are bugs. Most commercial models in 2024 over-refused; the 2025 generation rebalanced more toward helpfulness, which made the under-refusal cases more visible.
+Both are bugs. Most commercial models in 2024 over-refused; the 2025 generation shifted more toward helpfulness, making under-refusal cases more visible.
 
 The right metric is **refusal precision and recall on a labeled test set**. Build a test set of 1000 prompts: 500 should be refused (genuinely harmful, hate, illegal), 500 should be answered (medical info, legal info, security education, fiction with violence). Measure:
 

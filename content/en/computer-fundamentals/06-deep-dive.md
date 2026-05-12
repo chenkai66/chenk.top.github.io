@@ -16,15 +16,15 @@ translationKey: "computer-fundamentals-6"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.png)
 
-We've spent five chapters opening one box at a time — the CPU, the cache hierarchy, storage, the motherboard and GPU, the network and power supply. Each part is interesting on its own, but a computer is not its components. A computer is what happens when those components have to agree, every nanosecond, on what to do next.
+We've spent five chapters opening one box at a time — the CPU, the cache hierarchy, storage, the motherboard and GPU, the network, and the power supply. Each part is interesting on its own, but a computer is more than just its components. It's what happens when these parts must agree, every nanosecond, on what to do next.
 
 This finale is about that conversation. We'll wire everything together into a single picture, look at the system through the eyes of a profiler, revisit the 80-year-old design tension that still shapes every chip you buy, and end by looking forward — chiplets, photonic interconnects, and the quietly arriving quantum era.
 
-If you stick with one chapter from this series, make it this one. It's where the mental model finally locks in.
+If you stick with one chapter from this series, make it this one. This is where the mental model finally locks in.
 
 ## Part 1 — The whole machine, in one picture
 
-When you press the power button, a precisely choreographed dance starts and never stops until you shut down. The motherboard's BIOS/UEFI brings up power rails in order, the CPU starts fetching from a hardcoded reset vector, the memory controller trains the DRAM, the boot SSD streams the kernel, the GPU initialises its display engine, the NIC negotiates a link. Within a couple of seconds, billions of transistors are cooperating to show you a login screen.
+When you press the power button, a precisely choreographed dance begins and continues until you shut down. The motherboard's BIOS/UEFI powers up the rails in sequence, the CPU fetches from a hardcoded reset vector, the memory controller initializes the DRAM, the boot SSD loads the kernel, the GPU sets up its display engine, and the NIC establishes a link. Within a few seconds, billions of transistors work together to show you a login screen.
 
 Here's what's actually inside that machine, drawn as one block diagram:
 
@@ -40,17 +40,17 @@ Once you see the machine this way, a lot of folklore stops being mysterious. "Wh
 
 ## Part 2 — Hardware-aware software wins by 100×
 
-Hardware engineers have spent fifty years building staggering machines. Most software still treats them like a 1990s PC. Closing that gap is the single highest-leverage skill in performance engineering.
+Hardware engineers have spent fifty years building impressive machines. Most software still treats them like 1990s PCs. Closing this gap is the most high-leverage skill in performance engineering.
 
 ![Cross-layer optimization and matmul speedups](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig2_cross_layer.png)
 
-The left side of the figure is the stack you're already familiar with — application, framework, compiler, OS, driver, ISA, microarchitecture, silicon. The right side is what happens when you let information flow up and down that stack instead of treating it as a sealed pipe.
+The left side of the figure shows the stack you're familiar with: application, framework, compiler, OS, driver, ISA, microarchitecture, and silicon. The right side shows what happens when you allow information to flow up and down the stack, rather than treating it as a sealed pipe.
 
 The bars show a classic experiment: multiply two 1024×1024 matrices, single core, FP32. The naïve triple loop is the baseline. Reorder the loops so the inner stride is unit-stride and you pick up ~3× from cache friendliness. Block the matrix to fit L1 and you get to ~10×. Drop in AVX2 vector instructions: ~32×. Add fused multiply-add and unrolling so the out-of-order engine has work to chew on: ~58×. Spread across cores with OpenMP: ~400×. Same algorithm. Same FLOPs. The 400× came entirely from telling the hardware what you actually wanted.
 
-This is the punchline of the whole series. The CPU isn't slow. The memory isn't slow. Most software is just leaving the machine on idle.
+This is the key takeaway of the series. The CPU isn't slow. The memory isn't slow. Most software simply leaves the machine idle.
 
-A few patterns are worth memorising because they show up everywhere:
+A few patterns are worth memorizing because they appear everywhere:
 
 - **Stride matters more than count.** A loop that touches one byte per cache line is 64× more expensive than a loop that touches all 64.
 - **Branches you can't predict are worse than work you don't do.** Branchless code, or code with predictable branches, often beats "smart" code that shortcuts.

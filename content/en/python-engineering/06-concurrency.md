@@ -14,9 +14,9 @@ series_order: 6
 translationKey: "python-engineering-6"
 ---
 
-Your script downloads 100 files one at a time. Each download takes 2 seconds, mostly waiting for the server to respond. Total time: 200 seconds. But your CPU is idle for 99% of that time. You are paying for one thing (network latency) and wasting another (compute). Concurrency fixes this.
+Your script downloads 100 files one at a time. Each download takes 2 seconds, mostly waiting for the server to respond. Total time: 200 seconds. But your CPU is idle for 99% of that time. You're paying for network latency and wasting compute. Concurrency fixes this.
 
-Python has three concurrency models, each designed for different problems. Pick the wrong one and your code is either still slow or riddled with race conditions. This article explains when to use each.
+Python has three concurrency models, each designed for different problems. Choose the wrong one, and your code will be either slow or full of race conditions. This article explains when to use each.
 
 ## The GIL: What It Is and Why It Matters
 
@@ -66,7 +66,7 @@ Wait, the GIL does not prevent this? Correct. `counter += 1` compiles to multipl
 
 ## Threading: I/O-Bound Concurrency
 
-Threads share the same memory space and are lightweight. The GIL releases during I/O operations, so threads are effective for network calls, file operations, and database queries.
+Threads share the same memory space and are lightweight. The GIL releases during I/O operations, making threads effective for network calls, file operations, and database queries.
 
 ![Concurrency models comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-concurrency-models.png)
 
@@ -203,7 +203,7 @@ for t in threads:
 
 ## Multiprocessing: CPU-Bound Concurrency
 
-Each process has its own Python interpreter and GIL. This enables true parallelism on multiple CPU cores.
+Each process has its own Python interpreter and GIL, enabling true parallelism on multiple CPU cores.
 
 ![Concurrency decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-decision-tree.png)
 
@@ -282,7 +282,7 @@ Processes are heavier than threads:
 | GIL limitation | Yes (CPU-bound limited) | No (separate interpreters) |
 | Debugging | Harder (shared state bugs) | Easier (isolated state) |
 
-Do not use multiprocessing for small tasks. The serialization and process startup overhead can make it slower than sequential execution.
+Don't use multiprocessing for small tasks. The serialization and process startup overhead can make it slower than sequential execution.
 
 ### Sharing Data Between Processes
 

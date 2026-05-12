@@ -15,15 +15,15 @@ series_order: 8
 translationKey: "python-engineering-8"
 ---
 
-Donald Knuth's famous quote gets half-remembered. The full version is: "We should forget about small efficiencies, say about 97% of the time: premature optimization is the root of all evil. Yet we should not pass up our opportunities in that critical 3%." The missing second sentence is the important one. Performance work is not about making everything fast. It is about finding the 3% that matters and making that fast.
+Donald Knuth's famous quote is often half-remembered. The full version is: "We should forget about small efficiencies, say about 97% of the time: premature optimization is the root of all evil. Yet we should not pass up our opportunities in that critical 3%." The second sentence is the important one. Performance work isn't about making everything fast; it's about finding the 3% that matters and making that fast.
 
-This article is about finding that 3%. You will learn to profile first, optimize second, and measure the impact of every change.
+This article is about finding that 3%. You'll learn to profile first, optimize second, and measure the impact of every change.
 
 ## Manual Benchmarking
 
 ### time.perf_counter()
 
-The simplest profiling tool. Use it to time specific sections:
+The simplest profiling tool. Use it to time specific sections.
 
 ```python
 import time
@@ -74,7 +74,7 @@ Now you know where the time goes. Data loading is the bottleneck, not processing
 
 ### timeit Module
 
-For micro-benchmarks of small code snippets:
+For micro-benchmarks of small code snippets.
 
 ```bash
 # Command line
@@ -139,11 +139,11 @@ Map function.            : 1.5678s
 For loop with append.    : 1.8901s
 ```
 
-List comprehension wins. But the difference is often small enough that readability should win over micro-optimization.
+List comprehension wins, but the difference is often small enough that readability should take precedence over micro-optimization.
 
 ## cProfile: Function-Level Profiling
 
-cProfile tracks every function call, how many times it was called, and how long it took.
+cProfile tracks every function call, including how many times it was called and how long it took.
 
 ![Profiling workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/08-profiling-flow.png)
 
@@ -176,7 +176,7 @@ $ python -m cProfile -s cumtime my_script.py
 | `cumtime` | Cumulative time (including subfunctions) |
 | `percall` | `cumtime / ncalls` |
 
-Sort options:
+Sort options.
 
 ```bash
 $ python -m cProfile -s tottime my_script.py    # By total time in function
@@ -216,7 +216,7 @@ $ python -m cProfile -o profile.prof my_script.py
 $ snakeviz profile.prof
 ```
 
-snakeviz opens an interactive visualization showing a sunburst chart of function call times. Functions that take the most time are immediately visible.
+snakeviz opens an interactive visualization with a sunburst chart of function call times, making the functions that take the most time immediately visible.
 
 ## line_profiler: Per-Line Timing
 
@@ -367,7 +367,7 @@ def fibonacci_fast(n: int) -> int:
 
 ### Python 3.9+ @cache
 
-For unlimited cache:
+For unlimited cache.
 
 ```python
 from functools import cache
@@ -643,7 +643,7 @@ Roughly 3x memory savings. Use `__slots__` when you create millions of instances
 
 ## Cython: When Python Is Not Fast Enough
 
-Cython compiles Python-like code to C. It can speed up CPU-bound code by 10-100x.
+Cython compiles Python-like code to C and can speed up CPU-bound code by 10-100x.
 
 ```bash
 (.venv) $ pip install cython
@@ -676,11 +676,11 @@ setup(ext_modules=cythonize("distance.pyx"))
 $ python setup.py build_ext --inplace
 ```
 
-Cython is a big topic. For most applications, the optimization techniques earlier in this article (vectorization, caching, generators) are sufficient. Reach for Cython when you have verified with profiling that a specific hot loop is the bottleneck, and NumPy cannot help because the computation is not easily vectorizable.
+Cython is a big topic. For most applications, the optimization techniques earlier in this article (vectorization, caching, generators) are sufficient. Use Cython when you've verified with profiling that a specific hot loop is the bottleneck and NumPy cannot help because the computation is not easily vectorizable.
 
 ## Performance Optimization Checklist
 
-Before optimizing, ask these questions in order:
+Before optimizing, ask these questions in order.
 
 ![Optimization checklist](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/08-optimization-checklist.png)
 
@@ -690,13 +690,13 @@ Before optimizing, ask these questions in order:
 | 1 | Is it actually slow? | Measure with `time.perf_counter()` |
 | 2 | Where is it slow? | Profile with cProfile |
 | 3 | Which lines are slow? | Profile with line_profiler |
-| 4 | Is it I/O-bound or CPU-bound? | Check if CPU usage is high or low during the slow part |
+| 4 | Is it I/O-bound or CPU-bound? | Check if CPU usage is high or low during the slow part. |
 | 5 | Can I use a better algorithm? | O(n) vs O(n^2) matters more than any micro-optimization |
 | 6 | Can I cache results? | `@lru_cache` for repeated computations |
 | 7 | Can I vectorize? | NumPy for numerical array operations |
 | 8 | Can I use generators? | Lazy evaluation for memory-bound problems |
-| 9 | Can I use concurrency? | Threading for I/O, multiprocessing for CPU |
-| 10 | Can I use C extensions? | Cython, pybind11 (last resort) |
+| 9 | Can I use concurrency? | Threading for I/O, multiprocessing for CPU. |
+| 10 | Can I use C extensions? | Cython, pybind11 (last resort). |
 
 ### Optimization Approaches by Impact
 

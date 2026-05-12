@@ -16,7 +16,7 @@ translationKey: "time-series-6"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/illustration_1.png)
 
-For most of the 2010s, anyone who said "deep learning for time series" meant LSTM. The story changed in 2018 when Bai, Kolter, and Koltun published *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*. Their result was annoyingly simple: take a stack of 1-D convolutions, make them causal (no peeking at the future), space the filter taps out exponentially (dilation), wrap the whole thing in residual connections, and train. On task after task, the resulting **Temporal Convolutional Network** (TCN) matched or beat LSTM/GRU — while training several times faster because every time step in the forward pass runs in parallel.
+For most of the 2010s, saying "deep learning for time series" meant using LSTM. The story changed in 2018 when Bai, Kolter, and Koltun published *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*. Their result was surprisingly simple: use a stack of 1-D convolutions, make them causal (no peeking at the future), space the filter taps exponentially (dilation), wrap the whole thing in residual connections, and train. Task after task, the resulting **Temporal Convolutional Network** (TCN) matched or beat LSTM/GRU — while training several times faster because every time step in the forward pass runs in parallel.
 
 This chapter unpacks why that recipe works. We will derive the receptive-field formula that makes dilation worth caring about, walk through the residual block step by step, and finish with two production-grade case studies (traffic flow and multivariate sensor forecasting) using a PyTorch implementation you can copy out.
 
@@ -34,12 +34,12 @@ This chapter unpacks why that recipe works. We will derive the receptive-field f
 
 ## Why the recipe of the time (LSTM) was painful
 
-Before TCN, the deep-learning playbook for time series looked like this: stack two LSTM layers, throw in attention if you were feeling fancy, train for a long time. It worked, but every part of the pipeline pushed back:
+Before TCN, the deep-learning playbook for time series involved stacking two LSTM layers, adding attention if desired, and training for a long time. It worked, but every part of the pipeline had issues:
 
 - **Sequential forward pass.** To compute hidden state $h_t$ you need $h_{t-1}$. The GPU sits idle waiting for the previous step. Doubling the sequence length doubles wall-clock time even with infinite parallel hardware.
-- **Vanishing/exploding gradients through time.** Backprop has to traverse $L$ multiplicative steps. LSTMs help via gates, but anything past ~200 steps is fragile. People reach for gradient clipping, layer norm, and careful initialization just to keep training stable.
+- **Vanishing/exploding gradients through time.** Backprop has to traverse $L$ multiplicative steps. LSTMs help via gates, but anything past ~200 steps becomes fragile. People use gradient clipping, layer norm, and careful initialization to keep training stable.
 - **Hidden-state opacity.** "Why did the model predict this?" usually has no good answer because the hidden state mixes everything.
-- **Hyperparameter tax.** The number of layers, hidden dimensions, gate variants, dropout types, and recurrent dropout positions all interact. A bad combination wastes a day of training before you notice.
+- **Hyperparameter tax.** The number of layers, hidden dimensions, gate variants, dropout types, and recurrent dropout positions all interact. A bad combination can waste a day of training before you notice.
 
 TCN's pitch: replace the recurrence with convolutions you can run in parallel, replace the implicit memory of the hidden state with an explicit receptive field, and use residual connections to keep gradients well-behaved. Same expressive power, fewer moving parts.
 
@@ -89,7 +89,7 @@ class CausalConv1d(nn.Module):
         return y
 ```
 
-Two details worth flagging:
+Two important details:
 
 1. The padding amount $(k-1) \cdot d$ depends on the dilation $d$, which we are about to introduce.
 2. We trim the **right** side after the conv. A common bug is trimming the left, which silently destroys the early part of the sequence.
@@ -131,7 +131,7 @@ Calling `required_layers(168, kernel_size=3)` returns `7`, which is what you wan
 
 ## The TCN residual block
 
-Stacking dilated causal convs is half the recipe. The other half is the residual block that wraps them. Bai et al. settled on the following structure (almost identical to the one in Oord et al.'s WaveNet, except for the activation choice):
+Stacking dilated causal convolutions is half the recipe. The other half is the residual block that wraps them. Bai et al. settled on the following structure, which is almost identical to the one in Oord et al.'s WaveNet, except for the activation choice:
 
 ![TCN residual block](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/fig3_residual_block.png)
 

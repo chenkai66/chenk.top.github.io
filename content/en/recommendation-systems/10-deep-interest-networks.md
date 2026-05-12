@@ -14,13 +14,13 @@ disableNunjucks: true
 series_order: 10
 translationKey: "recommendation-systems-10"
 ---
-A good chef doesn't cook the same dish for every guest. She watches you walk in, notes the wine you order, glances at how you eyed the chalkboard — and only then decides whether tonight's special should be the steak or the risotto. Your past visits matter, but only the parts that fit *this* mood.
+A good chef doesn't cook the same dish for every guest. She watches you walk in, notes the wine you order, and glances at how you eye the chalkboard — then decides whether tonight's special should be the steak or the risotto. Your past visits matter, but only the parts that fit *this* mood.
 
-A recommendation model used to be a worse chef. It would take everything the user had ever clicked, average it into a single vector, and serve the same dish to everyone in the room. That vintage leather jacket you viewed last week and the random phone charger you clicked six months ago carried equal weight, regardless of what you were looking at right now.
+A recommendation model used to be a worse chef. It would take everything the user had ever clicked, average it into a single vector, and serve the same dish to everyone in the room. The vintage leather jacket you viewed last week and the random phone charger you clicked six months ago carried equal weight, regardless of what you're looking at now.
 
 **Deep Interest Networks (DIN)** taught the model to read the room. The idea is unreasonably simple: when scoring a candidate item, weight each past behavior by how relevant it is to *that* candidate. The same user gets a different representation for every item — exactly as a chef cooks a different dish for every mood.
 
-This article walks through the family of attention-based CTR models that grew out of that insight: DIN (target attention), DIEN (interest evolution with GRU + AUGRU), DSIN (session-aware), and BST (Transformer over behaviors). We'll keep the math honest, the code runnable, and the intuition sharp.
+This article walks through the family of attention-based CTR models that grew from that insight: DIN (target attention), DIEN (interest evolution with GRU + AUGRU), DSIN (session-aware), and BST (Transformer over behaviors). We'll keep the math honest, the code runnable, and the intuition sharp.
 
 ## What you will learn
 
@@ -43,7 +43,7 @@ This article walks through the family of attention-based CTR models that grew ou
 
 ### The problem with averaging
 
-Consider a user who has clicked five action movies, three rom-coms, two documentaries, and one horror film. When you score a new action movie, those five action clicks should dominate. A simple average treats all eleven equally — the horror outlier pulls the user's representation away from the very thing you're recommending.
+Consider a user who has clicked five action movies, three rom-coms, two documentaries, and one horror film. When scoring a new action movie, those five action clicks should dominate. A simple average treats all eleven equally — the horror outlier pulls the user's representation away from the very thing you're recommending.
 
 Formally, the traditional approach computes a fixed user vector:
 

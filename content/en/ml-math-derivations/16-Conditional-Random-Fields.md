@@ -23,7 +23,7 @@ translationKey: "ml-math-derivations-16"
 
 ## What This Article Covers
 
-Named entity recognition, POS tagging, information extraction — every one of these tasks asks you to label each element of a sequence. HMMs ([Part 15](/en/ml-math-derivations/15-hidden-markov-models/)) attack this problem **generatively** by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether *bank* is a noun or a verb depends on the preceding word, the following word, the suffix, capitalisation, dictionary lookups — all of these features at once.
+Named entity recognition, POS tagging, information extraction — every one of these tasks asks you to label each element of a sequence. HMMs ([Part 15](/en/ml-math-derivations/15-hidden-markov-models/)) attack this problem **generatively** by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether *bank* is a noun or a verb depends on the preceding and following words, the suffix, capitalization, and dictionary lookups — all these features together.
 
 **Conditional Random Fields (CRFs)** drop the generative ambition entirely and model $P(\mathbf{Y}\mid\mathbf{X})$ directly. Once you no longer need a generative story for $\mathbf{X}$, you can pile on as many overlapping features of $\mathbf{X}$ as you like.
 
@@ -51,7 +51,7 @@ To predict labels you go via Bayes' rule: $\mathbf{Y}^* = \arg\max_{\mathbf{Y}} 
 - **Observation independence:** $P(x_t \mid y_{1:T}, x_{\setminus t}) = P(x_t \mid y_t)$. Each token sees only its own label.
 - **First-order Markov:** $P(y_t \mid y_{1:t-1}) = P(y_t \mid y_{t-1})$. Each label sees only the previous label.
 
-The Markov assumption is mostly fine. The observation independence assumption is the killer: it forbids any feature that looks at neighbouring tokens, suffixes, or gazetteers conditionally on the current label.
+The Markov assumption is mostly fine. The observation independence assumption, however, is the real issue: it forbids any feature that considers neighboring tokens, suffixes, or gazetteers based on the current label.
 
 ### 1.2 The CRF idea: model $P(\mathbf{Y}\mid\mathbf{X})$ directly
 

@@ -18,9 +18,9 @@ description: "The complete ML platform on Alibaba Cloud: PAI-DSW for notebooks, 
 disableNunjucks: true
 translationKey: "aliyun-fullstack-11"
 ---
-单卡跑模型很有趣，但要稳定支撑每秒 1000 个请求——这才是真正从实验到生产的跨越。PAI 同时覆盖这两类场景。
+单卡跑模型很有趣，但要稳定支撑每秒 1000 个请求——这才是从实验到生产的真正跨越。PAI 同时覆盖这两类场景。
 
-PAI （Platform for AI）是阿里云的托管式机器学习平台——严格来说，并非单一产品，而是五个独立子产品共享同一控制台的集合。 Notebook 用于交互式探索，分布式训练支撑规模化训练，模型服务承载生产部署，可视化流水线面向拖拽式建模用户，模型库提供开源模型的一键部署能力。历经十八个月的真实 LLM 负载验证，各组件能力表现不一：EAS 表现优秀，Designer 基本可用；理清协同机制后，整体效能显著超越各组件能力的简单叠加。
+PAI （Platform for AI）是阿里云的托管式机器学习平台——严格来说，并非单一产品，而是五个独立子产品共享同一控制台的集合。 Notebook 用于交互式探索，分布式训练支撑规模化训练，模型服务承载生产部署，可视化流水线面向拖拽式建模用户，模型库提供开源模型的一键部署能力。历经十八个月的真实 LLM 负载验证，各组件表现不一：EAS 表现优秀，Designer 基本可用。理清协同机制后，整体效能显著超越各组件能力的简单叠加。
 
 本文将对 PAI 进行广度优先的概览。如果你想要深度优先的处理——比如实例选型策略、 DLC 抢占式实例生存指南、 EAS 冷启动缓解——那边有个专门的 [PAI 系列](/zh/aliyun-pai/01-platform-overview/)，五篇文章深挖每个子产品。本文聚焦核心目标：帮助你快速理解 PAI 是什么、各组件的适用场景，以及如何完成端到端的模型训练与部署。
 
@@ -54,7 +54,7 @@ PAI 全称 Platform for AI，其命名体现了通用性，覆盖从交互式实
                  GPU ECS pool
 ```
 
-PAI 不持有用户数据，数据集、checkpoint 和模型 artifact 均存储在 OSS 或 NAS 中。PAI 为你编排 GPU 计算——DSW Notebook 启动时，会启动一台真实的 GPU ECS 实例；EAS 端点扩容时，会启动真实的 GPU pod。相比直接使用裸 ECS，PAI 的核心价值在于预装 CUDA/PyTorch 等镜像、自动挂载存储、内置监控仪表盘，以及按秒计费（而非按小时）。
+PAI 不持有用户数据，数据集、checkpoint 和模型 artifact 均存储在 OSS 或 NAS 中。PAI 为你编排 GPU 计算——DSW Notebook 启动时，会启动一台真实的 GPU ECS 实例；EAS 端点扩容时，会启动真实的 GPU pod。相比直接使用裸 ECS，PAI 的优势在于预装 CUDA/PyTorch 等镜像、自动挂载存储、内置监控仪表盘，以及按秒计费（而非按小时）。
 
 ### PAI vs SageMaker: the meaningful differences
 
@@ -154,7 +154,7 @@ print(f"Instance ID: {response.body.instance_id}")
 
 ### Storage: the critical part
 
-存储是关键部分。新 PAI 用户最常见的错误是：训练几小时后，实例重启会导致所有数据丢失。 DSW 实例有一个系统盘，在重启时会被重置。因此，你需要将所有重要数据存放在以下位置：
+存储是关键部分。新 PAI 用户常见的错误是：训练几小时后，实例重启会导致所有数据丢失。DSW 实例有一个系统盘，在重启时会被重置。因此，你需要将所有重要数据存放在以下位置：
 
 1. **OSS** -- 在 `/mnt/data` 挂载 OSS bucket。从这里读训练数据，往这里写 checkpoint。
 2. **NAS** -- 挂载 NAS 文件系统获取 POSIX 语义。更适合随机访问负载（许多小文件）。

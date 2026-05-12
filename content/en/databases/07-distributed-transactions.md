@@ -15,7 +15,7 @@ series_order: 7
 translationKey: "databases-7"
 ---
 
-Everything we covered about transactions in Article 3 assumed a single database server. One machine, one transaction log, one lock manager. The moment your data lives on more than one machine — which happens the moment you shard, use microservices with separate databases, or replicate with strong consistency — you face the hardest problem in distributed systems: how do you make multiple machines agree?
+Everything we covered about transactions in Article 3 assumed a single database server: one machine, one transaction log, one lock manager. When your data spans multiple machines—whether through sharding, using microservices with separate databases, or replicating with strong consistency—you face the hardest problem in distributed systems: how do you get multiple machines to agree?
 
 ## The Distributed Transaction Problem
 
@@ -30,7 +30,7 @@ Order Service (DB-1)              Inventory Service (DB-2)
 └─────────────────────┘          └─────────────────────────┘
 ```
 
-If the order insert succeeds but the inventory update fails (network issue, constraint violation, crash), you have a problem: an order exists for a product that was never reserved. Without coordination, you get inconsistency.
+If the order insert succeeds but the inventory update fails (due to a network issue, constraint violation, or crash), you have a problem: an order exists for a product that was never reserved. Without coordination, this leads to inconsistency.
 
 On a single database, wrapping both in a `BEGIN ... COMMIT` solves this. Across two databases, that is not possible — they have separate transaction logs, separate crash recovery, separate clocks.
 
@@ -80,7 +80,7 @@ Coordinator                   Participant A      Participant B
 
 ### The Coordinator Failure Problem
 
-Here is the critical weakness of 2PC: if the coordinator crashes after sending PREPARE but before sending COMMIT/ROLLBACK, the participants are stuck. They have voted "Yes" and hold locks, but they do not know the final decision.
+The critical weakness of 2PC is that if the coordinator crashes after sending PREPARE but before sending COMMIT/ROLLBACK, the participants are stuck. They have voted "Yes" and hold locks, but they don't know the final decision.
 
 ```
 Coordinator                   Participant A      Participant B
@@ -108,7 +108,7 @@ This is called the **blocking problem**. Participants must wait (potentially for
 
 ### 2PC in Practice
 
-Despite its limitations, 2PC is used in practice:
+Despite its limitations, 2PC is still used in practice:
 
 ```sql
 -- PostgreSQL: prepared transactions (2PC participant)
@@ -161,7 +161,7 @@ If coordinator crashes after PRE-COMMIT:
   Participants can time out and commit (they know everyone was ready)
 ```
 
-In theory, 3PC is non-blocking. In practice, it is rarely used because:
+In theory, 3PC is non-blocking, but in practice, it is rarely used because:
 - Network partitions can still cause inconsistency (a participant might not receive PRE-COMMIT)
 - The additional round trip adds latency
 - Raft/Paxos consensus protocols solve the problem more robustly
@@ -192,11 +192,11 @@ Phase 2: Accept
 When a majority of acceptors accept → value is decided
 ```
 
-Paxos is correct but notoriously difficult to implement. In Lamport's own words, it took years for the community to understand his paper. This difficulty led to Raft.
+Paxos is correct but notoriously difficult to implement. As Lamport himself noted, it took years for the community to understand his paper. This difficulty led to Raft.
 
 ### Raft: Understandable Consensus
 
-Raft (2014, Diego Ongaro and John Ousterhout) was designed to be equivalent to Paxos but easier to understand. It decomposes consensus into three sub-problems:
+Raft (2014, by Diego Ongaro and John Ousterhout) was designed to be equivalent to Paxos but easier to understand. It decomposes consensus into three sub-problems:
 
 ![Raft leader election](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-raft-election.png)
 
@@ -207,7 +207,7 @@ Raft (2014, Diego Ongaro and John Ousterhout) was designed to be equivalent to P
 
 #### Leader Election
 
-Every node starts as a **follower**. If a follower does not hear from a leader within a random timeout (150-300 ms), it becomes a **candidate** and starts an election.
+Every node starts as a **follower**. If a follower does not hear from a leader within a random timeout (150-300 ms), it becomes a **candidate** and initiates an election.
 
 ```
 Node States:
@@ -237,7 +237,7 @@ Term 2: Node A crashes. Node B times out.
 
 #### Log Replication
 
-Once elected, the leader accepts client requests and appends them to its log. It then replicates entries to followers:
+Once elected, the leader accepts client requests, appends them to its log, and then replicates the entries to followers:
 
 ```
 Leader Log:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]
@@ -280,7 +280,7 @@ Client ─── "SET x=3" ──► Leader
 
 ## Saga Pattern
 
-When 2PC is too expensive or impractical (which is most of the time in microservices), the Saga pattern provides an alternative. Instead of one big distributed transaction, break it into a sequence of local transactions, each with a **compensating transaction** that undoes its work if a later step fails.
+When 2PC is too expensive or impractical (which is often the case in microservices), the Saga pattern provides an alternative. Instead of one large distributed transaction, it breaks the process into a sequence of local transactions, each with a **compensating transaction** that undoes its work if a later step fails.
 
 ![Saga pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-saga-pattern.png)
 
@@ -326,7 +326,7 @@ Saga Orchestrator
 
 ### Compensating Transactions
 
-Each forward action needs a compensating action:
+Each forward action requires a compensating action:
 
 | Step | Forward Action | Compensating Action |
 |------|---------------|-------------------|

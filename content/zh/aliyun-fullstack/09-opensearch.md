@@ -152,7 +152,7 @@ query_with_agg = {
 | 聚合 | `{"aggs": {"cats": {"terms": {"field": "category"}}}}` | `aggregate=group_key:category,agg_fun:count()` |
 | 分页 | `{"from": 0, "size": 10}` | `start=0&hit=10` |
 
-对于熟悉 Elasticsearch 的用户， OpenSearch 查询语法灵活性较低，但结构更简洁。常规查询均可支持，但深度嵌套查询需适配其语法范式。
+对于熟悉 Elasticsearch 的用户，OpenSearch 查询语法灵活性较低，但结构更简洁。常规查询均可支持，但深度嵌套查询需适配其语法范式。
 
 ### 跟 AWS OpenSearch Service 对比
 
@@ -172,11 +172,11 @@ query_with_agg = {
 阿里云 OpenSearch 的设计倾向性更强，在灵活性上有所取舍，但大幅降低了运维复杂度。以零运维和原生 AI 功能为代价，放弃了 Elasticsearch 庞大的插件生态。
 ## Vector Search for RAG
 
-搜索这事儿到了向量这里才真正变得有意思。传统关键词搜索靠的是倒排索引——它把词映射到文档。要是用户搜"wireless earbuds"，但商品列表里写的是"bluetooth headphones"，关键词搜索直接返回空结果。词对不上嘛。
+搜索这事儿到了向量这里才真正变得有意思。传统关键词搜索靠的是倒排索引——它把词映射到文档。如果用户搜 "wireless earbuds"，但商品列表里写的是 "bluetooth headphones"，关键词搜索会直接返回空结果，因为词对不上。
 
 ![向量嵌入与 ANN 搜索流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_vector_embedding.png)
 
-向量搜索通过把文本转成高维数值表示（embeddings）来解决这个问题，这些向量能捕捉语义含义。"Wireless earbuds"和"bluetooth headphones"在向量空间里会成为相邻的点，因为它们意思相近，哪怕它们没有一个字是重复的。
+向量搜索通过把文本转成高维数值表示（embeddings）来解决这个问题，这些向量能捕捉语义含义。"Wireless earbuds" 和 "bluetooth headphones" 在向量空间里会成为相邻的点，因为它们意思相近，哪怕它们没有一个字是重复的。
 
 ### How Embeddings Work
 
@@ -245,9 +245,9 @@ where A . B = sum(a_i * b_i)  (dot product)
 
 ### HNSW Index
 
-要是把查询向量和每个文档向量都比对一遍，向量搜索会慢到没法用。 100 万文档， 1024 维，每次查询就是 10 亿次乘法。 HNSW （Hierarchical Navigable Small World）就是让这一切变快的索引结构。
+如果把查询向量和每个文档向量都比对一遍，向量搜索会慢到无法使用。100 万文档，1024 维，每次查询就是 10 亿次乘法。HNSW（Hierarchical Navigable Small World）就是让这一切变快的索引结构。
 
-把 HNSW 想象成一个多层图。顶层是一个稀疏图，连接着相距较远的“地标”向量。每一层往下都会增加更多连接。查询从顶层开始，快速导航到正确的邻域，然后层层下钻，通过越来越详细的层级找到最近邻。结果是近似的（可能会错过绝对的最近邻），但速度极快——百万级向量通常能在亚毫秒级完成。
+可以把 HNSW 想象成一个多层图。顶层是一个稀疏图，连接着相距较远的“地标”向量。每一层往下都会增加更多连接。查询从顶层开始，快速导航到正确的邻域，然后层层下钻，通过越来越详细的层级找到最近邻。结果是近似的（可能会错过绝对的最近邻），但速度极快——百万级向量通常能在亚毫秒级完成。
 
 ![HNSW 在分层图中导航：查询从顶层稀疏图（少量地标向量）进入，经过中间层逐步下沉，最终在底层稠密图中定位最近邻。这就是百万向量数据集仍能亚毫秒级 ANN 搜索的原因。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_hnsw_index.png)
 

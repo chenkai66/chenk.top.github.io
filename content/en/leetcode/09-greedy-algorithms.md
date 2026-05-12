@@ -17,7 +17,7 @@ translationKey: "leetcode-10"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/09-greedy/illustration_1.png)
 
-Greedy is the algorithm paradigm that feels too good to be true: at every step, take the choice that looks best right now, never look back, and somehow end up at the global optimum. When it works, the code is almost embarrassingly short. When it doesn't, it produces confidently wrong answers — which is why the real skill is not writing greedy code, but recognising **when greedy is allowed**.
+Greedy is the algorithm paradigm that seems too good to be true: at every step, choose the option that looks best right now, never look back, and somehow reach the global optimum. When it works, the code is almost embarrassingly short. When it doesn't, it produces confidently wrong answers — which is why the real skill is recognizing when greedy is allowed.
 
 This article walks through the structural reason greedy is correct on some problems and broken on others, then applies that lens to seven LeetCode classics: **Jump Game**, **Jump Game II**, **Gas Station**, **Best Time to Buy and Sell Stock II**, **Non-overlapping Intervals**, **Task Scheduler**, and **Partition Labels**.
 
@@ -42,7 +42,7 @@ Most problems satisfy optimal substructure. The greedy choice property is the ra
 | Required structure | Greedy choice + optimal substructure | Optimal substructure + overlapping subproblems | Verifiable solution check |
 | Proof burden | Heavy (must prove correctness) | Mechanical (transition + base case) | None (it tries everything) |
 
-The takeaway: **greedy trades correctness work for runtime**. You pay in proof effort and are rewarded with linear or near-linear time.
+The takeaway: **greedy trades correctness for runtime**. You pay in proof effort and are rewarded with linear or near-linear time.
 
 ### When greedy fails: a concrete warning
 
@@ -50,7 +50,7 @@ The takeaway: **greedy trades correctness work for runtime**. You pay in proof e
 
 Coin change is the canonical cautionary tale. With the canonical US coin set `{1, 5, 10, 25}`, "always take the largest coin that fits" produces an optimal answer for every amount. With a slightly different set `{1, 3, 4}` and amount `6`, greedy picks `4 + 1 + 1` (three coins) while the optimal is `3 + 3` (two coins). Same algorithm, same intuition — but the second instance lacks the structural property (technically: the coin set is not a *matroid*) that makes greedy correct.
 
-The lesson: **greedy correctness is a property of the problem, not the algorithm**. Always either prove it or recognise it from a known pattern.
+The lesson: **greedy correctness is a property of the problem, not the algorithm**. Always either prove it or recognize it from a known pattern.
 
 ## A Vocabulary of Greedy Strategies
 
@@ -64,7 +64,7 @@ Across LeetCode, greedy solutions tend to fall into a small number of recurring 
 - **Frequency / heap-based scheduling** — Task Scheduler, Reorganize String.
 - **Local adjustment in two passes** — Candy, Wiggle Subsequence.
 
-Most of the problems below are instances of one of these patterns. Recognising the pattern is 90% of the solving work.
+Most of the problems below are instances of one of these patterns. Recognizing the pattern is 90% of the solving work.
 
 ## How to Prove Greedy Correctness: Exchange Argument
 

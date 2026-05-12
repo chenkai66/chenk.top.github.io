@@ -17,7 +17,7 @@ disableNunjucks: true
 description: "什么时候 chain-of-thought 真有用、self-consistency、prompt caching 经济学、jailbreak 分类、prompt injection 防御，以及生产里活下来的 prompt。"
 translationKey: "llm-engineering-9"
 ---
-在本地笔记本上跑通 100 个测试样例的 prompt，上线后仍可能有 10% 的输入失败——这与模型是否‘聪明’无关。本章将聚焦于 prompt 的工程化实践：CoT 在哪些任务上有效（哪些无效）、prompt caching 如何重塑成本结构、few-shot/ToT/self-consistency 如何协同增效而非各自承担全量开销，以及如何应对上线首周可能出现的 jailbreak 和注入攻击。
+在本地笔记本上跑通 100 个测试样例的 prompt，上线后仍可能有 10% 的输入失败——这与模型是否‘聪明’无关。本章将聚焦于 prompt 的工程化实践，包括 CoT 在哪些任务上有效或无效、prompt caching 如何重塑成本结构、few-shot/ToT/self-consistency 如何协同增效而非各自承担全量开销，以及如何应对上线首周可能出现的 jailbreak 和注入攻击。
 
 下面的内容贯穿三条主线：首先，到 2026 年，**模型本身**将成为推理的主要载体——RLVR 训练的推理模型（thinking models，见第 4 章）已经吸收了 prompting 社区在 2022-2024 年间发明的许多技巧；其次，**经济账主导技术**，prompt caching、batch APIs 和 KV reuse 改变了哪些“好”的 prompt 模式是用得起的；最后，威胁面（包括注入攻击、jailbreak 和检索污染）已成为 prompt 工程师岗位职责的一部分，而不再仅属于专门的安全团队。
 
@@ -34,7 +34,7 @@ translationKey: "llm-engineering-9"
 
 Kojima 等（2022，《Large Language Models are Zero-Shot Reasoners》）表明，仅需添加触发短语（无需示例），即可在 GSM8K 数据集上显著提升效果（InstructGPT 准确率从 17.7% 提升至 78.7%）。该方法在 MultiArith、AQuA-RAT 和 StrategyQA 等任务上也具有普适性，因此成为生产环境中 zero-shot CoT 的默认配置方案。
 
-到了 2024 年，每个 chat 模型在被 prompt 时默认都会进行某种形式的推理。2026 年，随着推理模型（如 o1-family、Claude-thinking、Qwen3-Reasoning、DeepSeek-R1）的出现，CoT 通过 RLVR（第 4 章）*内置到了模型本身*。对于这类模型，无需额外添加推理提示，模型可自主展开推理。对于非推理模型，CoT 在某些任务上仍然是免费的红利。
+到了 2024 年，每个 chat 模型在被 prompt 时默认都会进行某种形式的推理。2026 年，随着推理模型（如 o1-family、Claude-thinking、Qwen3-Reasoning、DeepSeek-R1）的出现，CoT 通过 RLVR（第 4 章）*内置到了模型本身*。对于这类模型，无需额外添加推理提示，模型可自主展开推理；对于非推理模型，CoT 在某些任务上仍然是免费的红利。
 
 CoT 适用的场景包括：
 
@@ -44,10 +44,10 @@ CoT 适用的场景包括：
 -   **问题非 trivial 时的代码生成**：+5 到 +15 %。
 
 CoT 不适用（甚至可能降低效果）的场景包括：
-- **简单事实 QA**：噪音。
-- **摘要**：让输出变长，但没变得更好。
-- **答案就在 chunk 里的检索 grounded QA**：噪音；有时模型会“把自己推理出”正确答案。
-- **风格迁移**：有害。
+- **简单事实 QA**：噪音
+- **摘要**：让输出变长，但没变得更好
+- **答案就在 chunk 里的检索 grounded QA**：噪音；有时模型会“把自己推理出”正确答案
+- **风格迁移**：有害
 
 2024 年 Sprague 等人的论文（《To CoT or not to CoT? Chain-of-Thought Helps Mainly on Math and Symbolic Reasoning》）在 14 个模型家族、 100 余项任务上评估发现： CoT 在约 30% 的常见任务中显著提升效果，在约 50% 的任务中无明显作用（表现为噪声），在约 20% 的任务中反而降低性能。 CoT 获胜的尖锐集群集中在涉及显式符号操作的任务上——数学、逻辑、形式约束问题，以及中间状态很重要的代码。结论：切勿不加验证便直接添加 'let's think step by step' 提示；务必通过实验验证其有效性。
 

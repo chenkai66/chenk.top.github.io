@@ -18,10 +18,10 @@ description: "RDS MySQL vs PolarDB: when to use which. Instance sizing, read rep
 disableNunjucks: true
 translationKey: "aliyun-fullstack-5"
 ---
-我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期磁盘 I/O 飙升，直接导致服务宕机——InnoDB buffer pool 和 OS page cache 抢内存，binary log 写入磁盘的速度超过了 cron 任务的清理速度，单线程复制到“备份”实例的延迟已达九小时。凌晨三点，我只能靠扩容磁盘救火；两周后，同样的问题再次出现。那天我才真正理解托管数据库的价值：不是因为我不会部署或运维 MySQL，而是不愿在凌晨三点被报警叫醒——只因 MySQL 判定 relay log 损坏，而唯一可行的修复方式，只能依赖一致性无法保障的冷备份重建副本。
+我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期磁盘 I/O 飙升，导致服务宕机——InnoDB buffer pool 和 OS page cache 抢内存，binary log 写入磁盘的速度超过 cron 任务的清理速度，单线程复制到“备份”实例的延迟已达九小时。凌晨三点，我只能靠扩容磁盘救火；两周后，同样的问题再次出现。那天我才真正理解托管数据库的价值：不是因为我不会部署或运维 MySQL，而是不愿在凌晨三点被报警叫醒——只因 MySQL 判定 relay log 损坏，而唯一可行的修复方式，只能依赖一致性无法保障的冷备份重建副本。
 
 
-这篇文章咱们聊聊阿里云的数据库层： RDS 用于托管关系型数据库， PolarDB 用于应对 RDS 的瓶颈，以及规格 sizing、复制、备份、监控和安全等运维实践。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
+这篇文章聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还包括规格 sizing、复制、备份、监控和安全等运维实践。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
 
 ## 为什么选托管数据库？
 
@@ -55,7 +55,7 @@ translationKey: "aliyun-fullstack-5"
 | **OceanBase** | Distributed relational | MySQL/Oracle-compatible | Spanner-like | Financial-grade, strong consistency across zones |
 | **MongoDB** | Document store | MongoDB-compatible | Amazon DocumentDB | Document workloads, flexible schema |
 
-这篇文章咱们重点聊 RDS（主力军）和 PolarDB（RDS 扛不住时的升级路径）。这两个服务覆盖了阿里云上 90% 的生产数据库需求。
+这篇文章重点聊 RDS（主力军）和 PolarDB（RDS 扛不住时的升级路径），这两个服务覆盖了阿里云上 90% 的生产数据库需求。
 
 ![阿里云数据库服务选型决策图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_db_family_map.png)
 
@@ -69,7 +69,7 @@ RDS MySQL 是阿里云上用得最多的数据库服务。它是 fully managed M
 
 RDS MySQL HA 实例在同一地域内以主备对（primary-standby pair）运行。Primary 处理所有读写，Standby 通过半同步复制接收变更。如果 primary 挂掉，Standby 会自动晋升为主节点。故障切换通常在 30 秒内完成，对应用透明（DNS 地址不变，连接仅短暂中断）。
 
-备节点不可读，其唯一作用是支撑故障切换。如果想做读扩容，得加 read replicas（后面会讲）。
+备节点不可读，唯一作用是支撑故障切换。如果想做读扩容，得加 read replicas（后面会讲）。
 
 ![RDS 高可用故障切换时间线（约 30 秒）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_ha_failover_sequence.png)
 
@@ -87,7 +87,7 @@ RDS MySQL 有三个版本：
 
 Basic 版本不包含备用节点。若主节点发生故障，阿里云将基于最近一次备份执行恢复，恢复时间通常为几分钟到几小时，具体取决于数据库规模。**生产环境请勿使用 Basic 版本。**
 
-HA 版是大多数生产负载的正确选择。同地域的 standby 提供接近零的 RPO（半同步复制）和约 30 秒的 RTO。
+HA 版是大多数生产负载的正确选择，同地域的 standby 提供接近零的 RPO（半同步复制）和约 30 秒的 RTO。
 
 Enterprise 版本额外增加一个节点，通过 Paxos 协议实现共识机制，确保故障切换过程中零数据丢失。这对金融系统尤其重要，因为丢一个交易都是不可接受的。
 

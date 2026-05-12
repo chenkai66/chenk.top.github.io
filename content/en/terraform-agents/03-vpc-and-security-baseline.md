@@ -95,7 +95,7 @@ variable "tags" {
 }
 ```
 
-Forcing exactly three zones is opinionated but matches the diagram. If you need two-zone or four-zone, fork the module — don't make it conditional. Conditional modules become unreadable, and unreadable modules get rewritten from scratch six months later.
+Requiring exactly three zones is opinionated but aligns with the diagram. If you need two or four zones, fork the module—don't make it conditional. Conditional modules become unreadable and often get rewritten from scratch six months later.
 
 ## VPC and vSwitches
 

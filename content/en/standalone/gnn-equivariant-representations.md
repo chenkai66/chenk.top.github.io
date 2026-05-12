@@ -13,7 +13,7 @@ disableNunjucks: true
 translationKey: "gnn-equivariant-representations"
 ---
 
-You can shuffle the hidden neurons of a trained MLP and get the *exact* same function back — but the flat parameter vector now looks completely different. This single fact ruins most attempts at "learning over neural networks": naive representations treat two functionally identical models as two unrelated points in parameter space, and the downstream learner wastes capacity rediscovering a symmetry it should have for free. This paper — *Graph Neural Networks for Learning Equivariant Representations of Neural Networks* (Kofinas et al., ICML 2024) — proposes the clean fix: turn the network itself into a graph, then use a GNN whose architecture *natively* respects the relevant permutation symmetry.
+Shuffling the hidden neurons of a trained MLP yields the exact same function, but the flat parameter vector looks entirely different. This fact ruins most attempts at "learning over neural networks": naive representations treat two functionally identical models as unrelated points in parameter space, causing the downstream learner to waste capacity rediscovering a symmetry it should have for free. This paper, *Graph Neural Networks for Learning Equivariant Representations of Neural Networks* (Kofinas et al., ICML 2024), proposes a clean fix: turn the network into a graph and use a GNN whose architecture natively respects the relevant permutation symmetry.
 
 ## What you will learn
 
@@ -34,7 +34,7 @@ You can shuffle the hidden neurons of a trained MLP and get the *exact* same fun
 
 ## Why equivariance matters for "learning over networks"
 
-A growing class of tasks treats an entire trained neural network as a single data point:
+A growing class of tasks treats an entire trained neural network as a single data point.
 
 - **Predicting generalisation** from weights, without re-running validation
 - **Classifying networks** by task, dataset, or training recipe (SGD vs Adam, ResNet vs VGG, ...)
@@ -58,15 +58,15 @@ Figure 1 makes the symmetry concrete. Permute the three hidden units in any orde
 
 ## Why the obvious baselines fail
 
-Three baselines occur to almost everyone, and each fails for a different reason.
+Three common baselines each fail for different reasons.
 
 **Flatten the weights into a vector.** Concatenate every parameter into a single $\theta \in \mathbb{R}^d$ and feed it to an MLP. This is *not* permutation-equivariant: shuffling hidden units changes $\theta$ entirely. It also has no notion of architecture: the dimension $d$ depends on widths and depths, so two networks of different sizes cannot even be compared in the same space.
 
-**Aggregate weight statistics.** Compute means, variances, histograms, or moments of each weight tensor and feed those. This *is* invariant to hidden permutations, but it throws away all relational information — which weights connect which neurons — and collapses functionally distinct networks with similar weight distributions to the same point.
+**Aggregate weight statistics.** Compute means, variances, histograms, or moments of each weight tensor and feed them. This is invariant to hidden permutations but discards all relational information, collapsing functionally distinct networks with similar weight distributions into the same point.
 
 **Treat the weight matrix as an image.** Apply a CNN over the matrix grid. CNNs are translation-equivariant on a 2D grid, but the hidden-unit symmetry is permutation, not translation — the rows and columns of $W$ are *not* arranged on a regular lattice. The architecture also assumes a fixed shape, so it cannot transfer across widths.
 
-The pattern is the same: the wrong symmetry, the wrong invariant, or the wrong topology. We need a representation that *is* the symmetry.
+The pattern is the same: the wrong symmetry, the wrong invariant, or the wrong topology. We need a representation that embodies the symmetry.
 
 ## Neural graphs: turning weights into a typed graph
 

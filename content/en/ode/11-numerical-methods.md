@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 11
 translationKey: "ode-11"
 ---
-Almost every interesting differential equation in science and engineering refuses to yield a closed-form solution. Nonlinear vector fields, variable coefficients, ten thousand coupled state variables — pen and paper give up long before the problem does. Numerical integration is the way through. This chapter builds, evaluates, and compares the small set of algorithms that solve essentially every ODE you will meet, and gives you the diagnostics to know when an integrator is lying to you.
+Almost every interesting differential equation in science and engineering resists a closed-form solution. Nonlinear vector fields, variable coefficients, and ten thousand coupled state variables — pen and paper fail long before the problem does. Numerical integration is the key. This chapter builds, evaluates, and compares a small set of algorithms that can solve almost any ODE you'll encounter, and provides diagnostics to spot when an integrator is misleading you.
 
 ![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_1.png)
 

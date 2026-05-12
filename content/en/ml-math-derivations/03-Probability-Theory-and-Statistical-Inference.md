@@ -20,9 +20,9 @@ translationKey: "ml-math-derivations-3"
 
 ## What This Article Covers
 
-In 1912, Ronald Fisher introduced **maximum likelihood estimation** in a short paper that quietly redefined statistics. His insight was almost embarrassingly simple: *if a parameter setting makes the observed data extremely likely, that parameter setting is probably right*. Almost every modern learning algorithm — from logistic regression to large language models — is a descendant of this idea.
+In 1912, Ronald Fisher introduced **maximum likelihood estimation** in a short paper that quietly redefined statistics. His insight was almost embarrassingly simple: *if a parameter setting makes the observed data extremely likely, it is probably correct*. Almost every modern learning algorithm — from logistic regression to large language models — descends from this idea.
 
-But likelihood alone is not enough. To use it we need a vocabulary for uncertainty (probability spaces, distributions), guarantees that empirical quantities track population ones (laws of large numbers, central limit theorem), and tools for incorporating prior knowledge (Bayesian inference). This article assembles those pieces into a coherent foundation for everything that follows.
+But likelihood alone is not enough. We need a vocabulary for uncertainty (probability spaces, distributions), guarantees that empirical quantities track population ones (laws of large numbers, central limit theorem), and tools for incorporating prior knowledge (Bayesian inference). This article assembles these pieces into a coherent foundation for what follows.
 
 **What you will learn**
 

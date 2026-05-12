@@ -62,15 +62,15 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### permissions
 
-控制 Claude 可调用的工具及其作用目标。
+控制 Claude 可调用的工具及其作用目标
 
 ### env
 
-为所有工具调用（如 Bash、hook 等）设置环境变量。
+为所有工具调用（如 Bash、hook 等）设置环境变量
 
 ### hooks
 
-定义在工具调用前或后运行的脚本。详见第 7 章。
+定义在工具调用前或后运行的脚本，详见第 7 章
 
 ### worktree
 
@@ -176,7 +176,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
-只要合并后的配置中存在任一 deny 规则，该动作即被永久阻断——这是整个权限模型可信赖的核心。
+只要合并后的配置中存在任一 deny 规则，该动作即被永久阻断——这是整个权限模型可信赖的核心
 ![图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)
 
 *图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、 git 历史、敏感文件、配置漂移四大类。*
@@ -313,7 +313,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 }
 ```
 
-匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行，不覆盖，只追加：任一层级新增 hook，均加入执行链末端，不会替换上层已定义的 hook。
+匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行，不覆盖，只追加：任一层级新增 hook 均加入执行链末端，不会替换上层已定义的 hook
 
 ### 钩子（Hook）配置详情
 
@@ -342,7 +342,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### 钩子层级行为
 
-三个配置层级（用户级、项目级、本地级）的钩子**累积生效**，而非覆盖。在更深层级添加钩子，仅向钩子链追加，不会替换上层已定义的钩子。
+三个配置层级（用户级、项目级、本地级）的钩子**累积生效**，而非覆盖。在更深层级添加钩子，仅向钩子链追加，不会替换上层已定义的钩子
 
 ```json
 // ~/.claude/settings.json（用户级）
@@ -571,7 +571,7 @@ Monorepo 特定设计说明：
 claude --debug
 ```
 
-调试输出将明确显示每条规则的来源配置文件及最终匹配的规则。
+调试输出将明确显示每条规则的来源配置文件及最终匹配的规则
 
 ### “我已允许某操作，却仍被阻止”
 
@@ -617,7 +617,7 @@ cat .claude/settings.local.json | jq .
 
 ### “用户级设置中的钩子未运行”
 
-确保钩子脚本路径为绝对路径，或相对于当前工作目录正确。
+确保钩子脚本路径为绝对路径，或相对于当前工作目录正确
 
 ```json
 // 在 ~/.claude/settings.json 中，使用绝对路径：

@@ -12,9 +12,9 @@ disableNunjucks: true
 translationKey: "paper2repo-github-repository-recommendation"
 ---
 
-You read a paper, want the code, and the "code available at" link is dead, missing, or points to a stub. Search engines fall back to keyword matching over the README, which works for popular repos with descriptive names and dies on everything else. paper2repo (WWW 2020) frames this as a cross-platform recommendation problem: learn one embedding space in which a paper abstract and a GitHub repository are directly comparable by dot product, then rank.
+You read a paper, want the code, but the "code available at" link is dead, missing, or points to a stub. Search engines resort to keyword matching in the README, which works for popular repos with descriptive names but fails for others. paper2repo (WWW 2020) frames this as a cross-platform recommendation problem: learn an embedding space where a paper abstract and a GitHub repository can be compared directly using a dot product, then rank them.
 
-The trick is not the text encoder - any reasonable CNN or transformer would do. The trick is that papers and repositories sit on two different graphs (citations on the paper side, co-star and tag overlap on the repo side), and naively running a GCN on each yields embeddings in two unrelated spaces. paper2repo bridges them with a small set of paper-repo pairs that we already know match, and a constraint that pulls those bridged embeddings together. Everything else in the model exists to make that constraint trainable.
+The trick isn't the text encoder—any reasonable CNN or transformer will do. The challenge is that papers and repositories exist on two different graphs (citations for papers, co-star and tag overlap for repositories). Naively running a GCN on each produces embeddings in unrelated spaces. paper2repo bridges these with a small set of known matching paper-repo pairs and a constraint that aligns the embeddings. The rest of the model makes this constraint trainable.
 
 ## What you will learn
 
@@ -38,7 +38,7 @@ Read Figure 1 left-to-right and top-to-bottom. There are two parallel towers. Th
 
 ## The joint heterogeneous graph
 
-The first non-trivial design choice is what graph you actually feed into each tower. Papers have a clean signal - citations - that is directional, sparse, and semantic. Repositories have nothing comparable. paper2repo manufactures a repo graph from two implicit signals.
+The first non-trivial design choice is which graph to feed into each tower. Papers have a clear signal—citations—that is directional, sparse, and semantic. Repositories lack a comparable signal. paper2repo creates a repo graph from two implicit signals.
 
 ![Heterogeneous graph: papers, repos, users, bridged pairs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation/fig2_heterogeneous_graph.png)
 

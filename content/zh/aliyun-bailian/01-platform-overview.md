@@ -15,15 +15,15 @@ description: "一个工程师视角的阿里云百炼（DashScope）导览——
 disableNunjucks: true
 translationKey: "aliyun-bailian-1"
 ---
-只要你的产品面向中文用户，迟早都得调用百炼（Bailian）的模型。 Qwen-Max 是当前中文理解能力对标 GPT-4、性价比最优的 LLM；万相（Wanxiang）是迄今唯一支持中文发票生成且已在生产环境稳定落地的 text-to-video API； Qwen-TTS-Flash 则是目前唯一在粤语与四川话合成中自然度高、无机械感的 TTS 模型。在 AI 营销平台跑了一年生产流量后，我希望入职第一天就能拿到这份指南。
+只要你的产品面向中文用户，迟早都得调用百炼（Bailian）的模型。Qwen-Max 是当前中文理解能力对标 GPT-4 且性价比最优的 LLM；万相（Wanxiang）是迄今唯一支持中文发票生成且已在生产环境稳定落地的 text-to-video API；Qwen-TTS-Flash 则是目前唯一在粤语与四川话合成中自然度高、无机械感的 TTS 模型。在 AI 营销平台跑了一年生产流量后，我希望入职第一天就能拿到这份指南。
 
 第一篇先摸底：百炼是什么、会遇到哪些模型家族、两种接口风格的区别，以及各自的 Hello World，这样后面的文章就不用反复解释基础概念了。
 
 ![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.png)
 
-## 百炼是什么， DashScope 又是什么？
+## 百炼是什么，DashScope 又是什么？
 
-命名体系较为混乱：阿里曾将产品名从 DashScope 统一更改为‘百炼’。官方 "DashScope" 文档是从 API 角度讲的；"百炼" 文档是从控制台角度讲的。其实是同一个产品，两个名字。
+命名体系较为混乱：阿里曾将产品名从 DashScope 统一更改为‘百炼’。官方 'DashScope' 文档是从 API 角度讲的；'百炼' 文档是从控制台角度讲的。其实是同一个产品，两个名字。
 
 ![Bailian (console) vs DashScope (API)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
 
@@ -31,7 +31,7 @@ translationKey: "aliyun-bailian-1"
 
 ## 你真正关心的模型清单
 
-百炼平台上托管了一百多个模型。在生产环境跑了一年，我只为下面这些付过钱：
+百炼平台上托管了一百多个模型。在生产环境跑了一年后，我只为下面这些付过钱：
 
 | Family | Representative model_id | Use it for |
 |---|---|---|
@@ -46,11 +46,11 @@ translationKey: "aliyun-bailian-1"
 
 ## 一句话讲清计费模式
 
-LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍）， TTS 按音频秒数，万相按视频秒数， Embeddings 按调用次数。每个模型都有免费额度，通常是 100 万 Token 或 100 次生成，新模型发布时会重置。这意味着，只要接受模型版本可能自动更新，几乎所有功能都可用于免费原型验证。生产流量必须使用独立的 API Key，并配置预算告警；我曾因调试循环未及时终止、整夜持续运行，收到过一笔四位数账单。
+LLM 按 Token 计费（输入输出分开算，输出贵 2-4 倍），TTS 按音频秒数，万相按视频秒数，Embeddings 按调用次数。每个模型都有免费额度，通常是 100 万 Token 或 100 次生成，新模型发布时会重置。这意味着，只要接受模型版本可能自动更新，几乎所有功能都可用于免费原型验证。生产流量必须使用独立的 API Key，并配置预算告警；我曾因调试循环未及时终止、整夜持续运行，收到过一笔四位数账单。
 
 ## API Key：千万别提交到代码库
 
-在控制台左侧导航栏 **API-KEY** 下获取密钥。有一个默认工作空间 Key 和按工作空间分配的 Key；任何生产项目都要创建工作空间 Key，这样轮换时不会把开发环境搞挂。然后：
+在控制台左侧导航栏 **API-KEY** 下获取密钥。有一个默认工作空间 Key 和按工作空间分配的 Key；任何生产项目都要创建工作空间 Key，这样轮换时不会影响开发环境。然后：
 
 ```bash
 export DASHSCOPE_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
@@ -58,7 +58,7 @@ export DASHSCOPE_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
 
 本系列所有代码片段都读取 `os.environ['DASHSCOPE_API_KEY']`。不要硬编码 Key，不要提交 `.env` 文件，生产环境请把 Key 放进 secrets manager。 DashScope 团队确实会撤销已泄露的密钥，但这一操作通常发生在密钥被公开爬虫捕获之后，此时损失往往已无法挽回。
 
-## 两种接口： OpenAI 兼容 vs DashScope 原生
+## 两种接口：OpenAI 兼容 vs DashScope 原生
 
 这是本文最关键的前提：根据 Qwen API 参考文档，所有百炼文本及多模态模型均支持两种 HTTP 接口方式。
 

@@ -55,7 +55,7 @@ npx @openclaw-china/setup
 
 延迟数据取自业务高峰期北京/上海节点的往返消息耗时，主要瓶颈在于 webhook 投递链路——公众号与企微自建应用需经腾讯 dispatcher 中转，相比长轮询渠道额外增加 500-1000ms。
 
-消息格式支持比看起来更重要。 Markdown 支持意味着 Agent 可发送代码块与格式化列表； DingTalk 和 WeCom 智能机器人对 GitHub-flavored markdown 兼容良好，微信渠道则仅支持纯文本或其私有 card schema。
+消息格式支持比看起来更重要。Markdown 支持意味着 Agent 可发送代码块与格式化列表；DingTalk 和 WeCom 智能机器人对 GitHub-flavored markdown 兼容良好，微信渠道则仅支持纯文本或其私有 card schema。
 
 ## 三道题选型法
 
@@ -128,7 +128,7 @@ npx @openclaw-china/setup
 
 WorkBuddy 是腾讯官方的 QClaw 桥接，运行在你的桌面上，不需要 IP 和应用审核，直接连接你真实的个人微信和 QQ。这是目前唯一能实现‘当晚即在微信中启用 Agent’且无需降级的方案。
 
-局限在于，作为桌面应用，宿主机休眠会导致进程终止，个人助理场景可接受，但不适用于生产环境。
+局限在于，作为桌面应用，宿主机休眠会导致进程终止。这在个人助理场景中可接受，但不适用于生产环境。
 
 **Setup 步骤：**
 1. 用大陆手机号在 `qclaw.tencent.com` 注册。用例选“个人助理”。

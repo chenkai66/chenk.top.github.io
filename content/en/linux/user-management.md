@@ -69,7 +69,7 @@ groups alice
 
 ## The lifecycle commands
 
-Every account passes through the same five stages. Each command edits a specific subset of the files above; once you know which, recovery and auditing become trivial.
+Every account goes through the same five stages. Each command edits a specific subset of the files above; once you know which, recovery and auditing are straightforward.
 
 ![The lifecycle of a Linux account: useradd, usermod, passwd, lock, userdel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/fig4_user_lifecycle_commands.png)
 

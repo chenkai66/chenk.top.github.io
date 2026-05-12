@@ -16,7 +16,7 @@ description: "Claude Code 现在有四种扩展机制：斜杠命令、MCP serve
 disableNunjucks: true
 translationKey: "claude-code-learn-10"
 ---
-Claude Code 提供四种扩展机制：slash commands、MCP servers、hooks 和 skills，功能存在交叉。当你冒出‘Claude 应该知道怎么做 X’这类念头时，首要问题是：该选哪一种？
+Claude Code 提供四种扩展机制：slash commands、MCP servers、hooks 和 skills，它们的功能存在交叉。当你想到‘Claude 应该知道怎么做 X’时，首要问题是：该选哪一种？
 
 作为系列的终篇，本章将直接进入决策树。
 
@@ -47,7 +47,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 5. Build + deploy
 ```
 
-会话启动时，Claude 预先读取所有 skill 的 description，仅当用户提问语义匹配某条 description 时，才按需加载其 body 并注入当前系统提示。
+会话启动时，Claude 会预先读取所有 skill 的 description，只有当用户的提问语义匹配某条 description 时，才会按需加载其 body 并注入当前系统提示。
 
 需注意两点：
 
@@ -69,7 +69,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 
 body 长度无硬性限制——仅在 skill 触发时注入 system prompt，故冗长零开销：未触发即不计成本。我有多个 body 超过 600 行的 skill，每一行都物有所值。
 
-Body 支持自由格式 Markdown，但以下几类结构已被验证为高效：**语气/风格规范**（定义 Claude 在该 skill 激活时的表达方式）、**Schema/格式规范**（明确必须严格遵守的输出格式）、**工作流**（分步执行逻辑）、**规则/约束**（明确禁止行为）。
+Body 支持自由格式的 Markdown，但以下几类结构已被验证为高效：**语气/风格规范**（定义 Claude 在该 skill 激活时的表达方式）、**Schema/格式规范**（明确必须严格遵守的输出格式）、**工作流**（分步执行逻辑）、**规则/约束**（明确禁止行为）。
 
 例如，工作流和规则可以这样组织：
 

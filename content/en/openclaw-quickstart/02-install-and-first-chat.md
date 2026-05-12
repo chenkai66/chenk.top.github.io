@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
 
-The README claims five minutes. I will say ten — the extra five is for the Node version mistake almost everyone makes the first time.
+The README claims five minutes, but I'd say ten. The extra five accounts for the common Node version mistake.
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
@@ -44,11 +44,11 @@ nvm install 24
 nvm use 24
 ```
 
-That is the one foot-gun. From here it's smooth.
+That's the only pitfall. From here, it's smooth sailing.
 
 ### Getting your API key
 
-**DashScope (recommended for first-timers, especially from China)**
+**DashScope (recommended for first-timers, especially in China)**
 
 1. Go to [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com).
 2. Sign up with an Aliyun account — phone number verification is required for mainland accounts.
@@ -56,7 +56,7 @@ That is the one foot-gun. From here it's smooth.
 4. Click "创建新的API-KEY". Copy it immediately; they only show it once.
 5. The free tier gives you a generous quota for `qwen-plus` and `qwen-turbo`. Enough for days of experimentation before you hit any limit.
 
-DashScope is the path of least resistance if you are in mainland China. Latency to their endpoints from any domestic network is under 200ms. No proxy, no VPN, no fuss.
+DashScope is the easiest option if you're in mainland China. Latency to their endpoints from any domestic network is under 200ms. No proxy, no VPN, no fuss.
 
 **Anthropic** — [console.anthropic.com](https://console.anthropic.com), create an account, add a payment method, generate a key under Settings > API Keys. Minimum top-up is $5. Claude Sonnet is the sweet spot for agent use.
 

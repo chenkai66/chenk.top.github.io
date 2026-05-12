@@ -14,9 +14,9 @@ disableNunjucks: true
 series_order: 1
 translationKey: "nlp-1"
 ---
-Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you are touching a stack that took seventy years to assemble. Natural Language Processing is the discipline that taught machines to read, score, transform, and write human language — and the surprising thing is how much of the modern stack still rests on a small set of preprocessing primitives invented decades ago.
+Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you're using a stack that took seventy years to build. Natural Language Processing (NLP) is the field that taught machines to read, score, transform, and write human language. Surprisingly, much of the modern NLP stack still relies on preprocessing techniques invented decades ago.
 
-This first article in the series does two things. First, it draws the map: where the field came from, what it covers today, and why the tools we use look the way they do. Second, it builds the foundational layer — cleaning, tokenization, normalization, and feature extraction — with code that you can lift directly into a project. By the end you will have a reusable preprocessing pipeline and, more importantly, a sense of when each step helps and when it quietly destroys signal.
+This first article in the series does two things. First, it maps out the field's history, current scope, and the reasons behind the tools we use. Second, it builds the foundational layer — cleaning, tokenization, normalization, and feature extraction — with code you can directly use in a project. By the end, you'll have a reusable preprocessing pipeline and, more importantly, an understanding of when each step is helpful and when it can destroy signal.
 
 ![NLP application landscape](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig1_applications_landscape.png)
 

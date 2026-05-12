@@ -68,7 +68,7 @@ A package manager replaces all of that with a database (`/var/lib/dpkg/` or the 
 
 ## The major package toolchains
 
-The Linux ecosystem split into a handful of package families decades ago and has been remarkably stable since. The names you actually need to know:
+The Linux ecosystem split into a few package families decades ago and has remained remarkably stable since. Here are the names you need to know:
 
 | Family       | Distros                              | Format          | Low-level | High-level         |
 |--------------|--------------------------------------|-----------------|-----------|--------------------|

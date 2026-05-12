@@ -19,9 +19,9 @@ disableNunjucks: true
 translationKey: "terraform-agents-5"
 ---
 
-An agent's memory is the part most tutorials hand-wave. "Just put the embeddings in Pinecone, the sessions in Postgres, the screenshots in S3." On Aliyun all three exist as managed services, and Terraform-provisioning them right is the difference between "memory works" and "we lost three weeks of conversation history because the disk filled up at 4am".
+An agent's memory is the part most tutorials gloss over. "Just put the embeddings in Pinecone, the sessions in Postgres, and the screenshots in S3." On Aliyun, all three are managed services, and provisioning them correctly with Terraform can mean the difference between a working memory and losing three weeks of conversation history because the disk filled up at 4 AM.
 
-This article covers all three layers, the Terraform for each, the boring-but-critical backup and DR plumbing, the major-version upgrade story, and the one Saturday outage that taught me everything I now do differently.
+This article covers all three layers, their Terraform configurations, the critical but tedious backup and disaster recovery (DR) setup, the major version upgrade process, and the Saturday outage that taught me everything I now do differently.
 
 ## The three-layer memory model
 
@@ -37,7 +37,7 @@ Don't conflate them. I once watched a team try to put 50 GB of generated PDFs in
 
 ## Layer 1: relational, RDS for PostgreSQL
 
-For session state — turn-by-turn conversation, tool-call traces, user identity — you want a real RDBMS. PostgreSQL is my default; MySQL works fine if your team prefers it. PolarDB is the next step up when you need horizontal scale.
+For session state—turn-by-turn conversation, tool call traces, and user identity—you need a robust RDBMS. PostgreSQL is my go-to, but MySQL is fine if your team prefers it. PolarDB is the next step up when you need horizontal scaling.
 
 ```hcl
 resource "random_password" "rds_admin" {
@@ -107,7 +107,7 @@ What earns its line in this block:
 
 > **Tip.** PolarDB is the right move once your sessions table crosses ~10M rows or you need read replicas without downtime. Migration from RDS to PolarDB is well-documented and Terraform handles both. Don't start there — RDS is simpler and cheaper at small scale.
 
-A small relational layer is the spine. The next layer is what makes the agent feel smart.
+A small relational layer is the backbone. The next layer is what makes the agent feel intelligent.
 
 ## Layer 2: vector store
 
@@ -231,7 +231,7 @@ The `lifecycle_rule` block is the single biggest cost lever in OSS:
 - **Archive** (90–365 days, ~¥0.033/GB/mo) — minutes-to-hours retrieval.
 - **Cold Archive** (365+ days, ~¥0.015/GB/mo) — hours retrieval, the cheapest tier.
 
-For agent artifacts the rule says: keep 30 days hot, IA for two months, Archive for nine, Cold Archive for a year, then delete. For a 1 TB artifact corpus that's the difference between ~¥1500/mo (all Standard) and ~¥250/mo. Codify it in HCL once, save five figures over a year. The IA minimum-storage charge (30 days) and the Archive retrieval latency are the only footguns — don't put hot data in cold tiers and you're fine.
+For agent artifacts, the rule is: keep 30 days in Standard, two months in Infrequent Access, nine months in Archive, and one year in Cold Archive, then delete. For a 1 TB artifact corpus, this means the difference between ~¥1500/mo (all Standard) and ~¥250/mo. Codify this in HCL once to save significantly over a year. The only pitfalls are the 30-day minimum storage charge for IA and the Archive retrieval latency—avoid putting hot data in cold tiers.
 
 ### Versioning
 

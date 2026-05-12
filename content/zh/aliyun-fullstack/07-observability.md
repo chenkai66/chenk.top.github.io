@@ -23,7 +23,7 @@ translationKey: "aliyun-fullstack-7"
 这个教训看似简单，代价却极高：可观测性不是系统稳定后的‘锦上添花’，而是上线前必须就绪的基础设施——理想情况下，甚至应在编写第一行代码前完成搭建，因为它直接决定了日志格式、请求 ID 透传机制与依赖库埋点策略。事后补建往往需要全面重构，而前置建设则可以自然融入开发流程。
 
 
-这篇文章将完整介绍阿里云上的可观测性栈： SLS 负责日志， CloudMonitor 负责指标， ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用将拥有一套可用的监控设置。 ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform 部署 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
+这篇文章将完整介绍阿里云上的可观测性栈：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用将拥有一套可用的监控设置。 ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform 部署 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
 
 ## The Three Pillars of Observability
 

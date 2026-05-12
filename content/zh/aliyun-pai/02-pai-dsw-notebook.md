@@ -23,7 +23,7 @@ translationKey: "aliyun-pai-2"
 
 ## DSW 到底是什么
 
-官方文档说 DSW 是**面向 AI 开发的云端 IDE**，集成了 JupyterLab、 VSCode 和终端，预配了 PyTorch 和 TensorFlow 容器镜像，支持异构计算（CPU / GPU / 灵骏），还能挂载 OSS、 NAS 和 CPFS 数据集。实际操作起来，就是点一下“打开”，一分钟内你就能拿到一个真正的 Jupyter，跑在真正的 GPU 上，`nvidia-smi` 正常， PyTorch 直接 import。
+官方文档说 DSW 是**面向 AI 开发的云端 IDE**，集成了 JupyterLab、VSCode 和终端，预配了 PyTorch 和 TensorFlow 容器镜像，支持异构计算（CPU/GPU/灵骏），还能挂载 OSS、NAS 和 CPFS 数据集。实际操作起来，就是点一下“打开”，一分钟内你就能拿到一个真正的 Jupyter，跑在真正的 GPU 上，`nvidia-smi` 正常， PyTorch 直接 import。
 
 有意思的是**镜像里其实什么都没多装**。 DSW 容器的系统盘生命周期与实例一致。你 `pip install` 的东西能扛过 kernel 重启，但扛不住实例重启，除非你把 conda 环境持久化到 OSS，或者通过快照功能存到 ACR。
 
@@ -31,7 +31,7 @@ translationKey: "aliyun-pai-2"
 
 ## 怎么选实例类型
 
-文档里 DSW 资源分两类：**公共资源**（按量付费）和**专属资源**（包年包月或灵骏）。日常开发选用公共资源即可：按实际使用的 GPU 秒数计费，用多少付多少，运行 10 分钟的实验可随时启停，毫无压力。
+文档里 DSW 资源分两类：**公共资源**（按量付费）和**专属资源**（包年包月或灵骏）。日常开发选用公共资源即可，按实际使用的 GPU 秒数计费，用多少付多少，运行 10 分钟的实验可随时启停，毫无压力。
 
 我自己怎么选：
 

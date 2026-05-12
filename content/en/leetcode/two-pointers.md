@@ -19,7 +19,7 @@ translationKey: "leetcode-2"
 
 Hash tables buy you speed by spending memory. Two pointers is the opposite trade: spend a little structural assumption — the array is sorted, the list might have a cycle, the answer lives in a contiguous window — and you get $O(n)$ time with $O(1)$ extra space. The pattern looks trivial in code (two indices and a `while` loop) but it has more failure modes than any other beginner technique: off-by-one indices, infinite loops, missed duplicates, wrong pointer moved on tie. The cure is to think in **invariants** rather than in moves.
 
-This article walks through four flavors of two-pointer thinking — **collision**, **fast/slow**, **sliding window**, and **partition** — and pins each one to a problem that you will see on a real interview: Two Sum II, 3Sum, Container With Most Water, Linked List Cycle, and Move Zeroes.
+This article explores four types of two-pointer techniques — **collision**, **fast/slow**, **sliding window**, and **partition** — and links each to a problem you might encounter in a real interview: Two Sum II, 3Sum, Container With Most Water, Linked List Cycle, and Move Zeroes.
 
 ## Series Navigation
 
@@ -59,7 +59,7 @@ Two pointers `left` and `right` start at the ends of a sorted array and walk tow
 
 > The answer, if it exists, lies in the closed interval `[left, right]`.
 
-A comparison either confirms the current pair or rules out one of the boundary elements. The pointer pointing at the ruled-out element moves; the other stays.
+A comparison either confirms the current pair or rules out one of the boundary elements. The pointer at the ruled-out element moves; the other stays.
 
 ![Collision pointers walking through Two Sum II](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/two-pointers/fig1_collision_pointers.png)
 

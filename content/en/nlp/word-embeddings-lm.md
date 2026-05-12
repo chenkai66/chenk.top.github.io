@@ -14,10 +14,10 @@ disableNunjucks: true
 series_order: 2
 translationKey: "nlp-2"
 ---
-For decades, machines treated "king" and "queen" as unrelated symbols — nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute
+For decades, machines treated "king" and "queen" as unrelated symbols—nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute
 
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
-and the entire trajectory of NLP turned toward representation learning. This article walks through that turn — from the failure of one-hot vectors, to Word2Vec's shallow networks, to the global statistics that GloVe exploits, to the subword n-grams that let FastText handle words it has never seen — and finally connects embeddings to the language models that gave rise to them.
+and the entire trajectory of NLP shifted toward representation learning. This article walks through that shift—from the failure of one-hot vectors, to Word2Vec's shallow networks, to the global statistics that GloVe exploits, to the subword n-grams that let FastText handle unseen words—and finally connects embeddings to the language models that gave rise to them.
 
 
 <!-- wanx-hero -->
@@ -50,7 +50,7 @@ $$\text{cat} = [1, 0, 0, 0, \ldots], \quad \text{dog} = [0, 1, 0, 0, \ldots]$$
 Three properties make this representation a dead end:
 
 - **Sparsity.** With $V = 50{,}000$, every vector is 99.998% zeros. Storage and compute are wasted on emptiness.
-- **No similarity.** The dot product between any two distinct one-hot vectors is exactly zero. The model literally cannot tell that "cat" is closer to "dog" than to "quantum"; from its point of view, all non-identical words are equally different.
+- **No similarity.** The dot product between any two distinct one-hot vectors is exactly zero. The model can't tell that "cat" is closer to "dog" than to "quantum"; from its perspective, all non-identical words are equally different.
 - **No generalisation.** A linear classifier on top of one-hot input has $V$ independent weights per class. Knowing that "movie" is positive teaches the model nothing about "film".
 
 ### The Embedding Solution
@@ -61,12 +61,12 @@ Now $\text{cat} \cdot \text{dog} \gg \text{cat} \cdot \text{quantum}$, parameter
 
 ### The Distributional Hypothesis
 
-Every embedding method in this article rests on one observation, attributed to the linguist J. R. Firth: **"You shall know a word by the company it keeps."** Concretely, two words that habitually appear in similar contexts probably have similar meanings.
+Every embedding method in this article is based on an observation by the linguist J. R. Firth: **"You shall know a word by the company it keeps."** Specifically, two words that often appear in similar contexts likely have similar meanings.
 
 - "The **cat** sat on the mat" vs. "The **dog** sat on the mat"
 - "The **king** ruled the kingdom" vs. "The **queen** ruled the kingdom"
 
-If we can train any model to predict context from a word — or vice versa — the parameters that succeed at this prediction task will have absorbed distributional regularities. The embeddings emerge as a *byproduct* of the prediction.
+If we can train a model to predict context from a word—or vice versa—the parameters that succeed at this task will have absorbed distributional regularities. The embeddings emerge as a *byproduct* of the prediction.
 
 The payoff of taking this hypothesis seriously is shown below: trained embeddings encode meaningful relations as nearly constant directions in space, which is why the famous analogy arithmetic works.
 

@@ -18,12 +18,12 @@ aliases:
   - /en/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/
 ---
 
-The first eleven articles in this series tackled **continuous convex** problems (or convex relaxations of non-convex ones). This final article confronts two harder regimes:
+The first eleven articles in this series tackled **continuous convex** problems (or convex relaxations of non-convex ones). This final article addresses two harder regimes:
 
-- **Discrete optimization**: variables take integer or combinatorial values. The feasible set is a finite (but exponentially large) collection of points. Linear and convex tools no longer apply directly — there are no derivatives across the integer lattice.
+- **Discrete optimization**: variables take integer or combinatorial values. The feasible set is a finite (but exponentially large) collection of points. Linear and convex tools no longer apply directly because there are no derivatives across the integer lattice.
 - **Global non-convex optimization**: variables are continuous but the function has many local minima, and we want the *global* one. Methods like Newton and L-BFGS only find local minima.
 
-Both regimes share a key feature: **provably optimal algorithms are exponential** in the worst case. Practical solutions come from (a) exact algorithms with smart pruning (branch-and-bound), and (b) heuristics that find good (not optimal) solutions in polynomial time.
+Both regimes share a key feature: **provably optimal algorithms are exponential** in the worst case. Practical solutions come from (a) exact algorithms with smart pruning (branch-and-bound) and (b) heuristics that find good (but not optimal) solutions in polynomial time.
 
 This article:
 

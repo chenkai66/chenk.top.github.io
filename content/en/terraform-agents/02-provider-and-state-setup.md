@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "terraform-agents-2"
 ---
 
-This is the article where you stop reading and start typing. By the end you will have:
+This is the article where you stop reading and start typing. By the end, you will have:
 
 1. The `alicloud` Terraform provider installed and version-pinned.
 2. Authentication wired up — through the right method, not the convenient one.
@@ -25,7 +25,7 @@ This is the article where you stop reading and start typing. By the end you will
 4. Three workspaces (`dev`, `staging`, `prod`) that share a backend but isolate state.
 5. A working `terraform plan` against an empty config.
 
-Nothing here provisions an agent yet. We are laying the foundation that every later article assumes. If you skip this and try to wing it in article 3, you will eat a state-corruption incident inside a week.
+Nothing here provisions an agent yet. We are laying the foundation that every later article assumes. If you skip this and try to wing it in article 3, you'll likely face a state-corruption incident within a week.
 
 ## Step 0: install Terraform
 
@@ -61,11 +61,11 @@ terraform {
 
 The `~> 1.230` constraint allows `1.230.0` through `1.230.x` but blocks `1.231.0`. This is the right default. Once you commit `.terraform.lock.hcl` to git (Terraform creates it on `terraform init`), you also lock the *exact* provider version and its checksum. If a teammate runs `terraform init` later, they get the same provider — bit-identical.
 
-Pinning early is cheap insurance. The alicloud provider has shipped breaking changes between minor versions (the OSS bucket schema rework around 1.220 ate three of my afternoons). You will eventually need to upgrade — do it deliberately, in a PR, with the diff in plan output, not by accident on a teammate's laptop at 11pm.
+Pinning early is cheap insurance. The alicloud provider has introduced breaking changes between minor versions (the OSS bucket schema rework around 1.220 cost me three afternoons). You will eventually need to upgrade — do it deliberately in a PR, with the diff in plan output, not by accident on a teammate's laptop at 11pm.
 
 ## Step 2: authenticate — three options, ranked
 
-The provider needs Aliyun credentials. There are three real choices, in increasing order of professional acceptability:
+The provider needs Aliyun credentials. Here are three options, ranked by professional acceptability:
 
 ![Authentication flow from credentials to API access](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
 
@@ -82,7 +82,7 @@ export ALICLOUD_REGION="cn-shanghai"
 
 The provider auto-discovers these env vars. Do not — under any circumstances — write the keys into your `.tf` files. The state file does not store them; the `provider {}` block does, and that block lives in git.
 
-If the AK/SK is for a RAM sub-account scoped to only the resources Terraform manages, this is acceptable for a solo project. For anything shared, skip to option B.
+If the AK/SK is for a RAM sub-account scoped to only the resources Terraform manages, it's acceptable for a solo project. For anything shared, skip to option B.
 
 ### Option B: AssumeRole (CI runners)
 
@@ -114,7 +114,7 @@ provider "alicloud" {
 }
 ```
 
-Zero secrets in any config, in any env var, in any file. Rotation is automatic. This is the gold standard, and it is the path I push every team toward within their first month.
+Zero secrets in any config, env var, or file. Rotation is automatic. This is the gold standard, and it's the path I push every team toward within their first month.
 
 > **Real-world tip:** Whatever you pick, set `ALICLOUD_REGION` (or `provider { region = ... }`) explicitly. If unset, the provider does not pick a default — you get a confusing "Region must be specified" error on `terraform plan` that has tripped me up more than once.
 
@@ -159,7 +159,7 @@ variable "rds_admin_password" {
 }
 ```
 
-The value still lives in tfstate (encrypted), but at least your GitHub Actions log doesn't paste the password into the world.
+The value still lives in tfstate (encrypted), but at least your GitHub Actions log won't expose the password.
 
 ## Step 4: bootstrap the backend (chicken-and-egg)
 

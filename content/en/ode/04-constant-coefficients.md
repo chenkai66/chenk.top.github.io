@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 4
 translationKey: "ode-4"
 ---
-**The Laplace transform turns calculus into algebra.** Instead of grinding through integration, guessing trial solutions, and bolting on initial conditions at the end, you transform the entire ODE — equation, forcing, and initial data — into a single polynomial equation in a complex variable $s$. You solve it like a high-school problem, then transform back. Along the way, the *shape* of the solution becomes geometry: poles in the left half of the complex plane decay, poles on the right blow up, poles on the imaginary axis ring forever. This chapter develops that picture from first principles and connects it to the engineering tools — transfer functions, Bode plots, PID control — that turned the Laplace transform into the lingua franca of dynamics.
+**The Laplace transform turns calculus into algebra.** Instead of grinding through integration, guessing trial solutions, and bolting on initial conditions at the end, you transform the entire ODE — equation, forcing, and initial data — into a single polynomial equation in a complex variable $s$. You solve it like a high-school problem, then transform back. Along the way, the *shape* of the solution becomes geometry: poles in the left half of the complex plane decay, poles on the right blow up, poles on the imaginary axis ring forever. This chapter develops that picture from first principles and connects it to the engineering tools — transfer functions, Bode plots, PID control — that made the Laplace transform the lingua franca of dynamics.
 
 ![Ordinary Differential Equations (4): The Laplace Transform — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/illustration_1.png)
 
@@ -53,7 +53,7 @@ The Laplace transform offers a single workflow that handles all of these:
 2. **Solve** the resulting algebraic equation for $Y(s)$.
 3. **Inverse transform** back to $y(t)$ using a small table.
 
-The bookkeeping disappears. What is left is a clean separation: *who* drives the system (the transform of the input), *what* the system does to it (the transfer function), and *how* it started (the initial conditions, already woven in).
+The bookkeeping disappears, leaving a clean separation: *who* drives the system (the transform of the input), *what* the system does to it (the transfer function), and *how* it started (the initial conditions, already woven in).
 
 ![Building blocks of the Laplace transform: the unit step, the Dirac impulse, and the decaying probe e^{-st}.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/fig1_step_impulse_kernel.png)
 *The Laplace transform integrates a signal $f(t)$ against the probe $e^{-st}$. The step and the impulse are the two canonical inputs you will see throughout the chapter.*

@@ -29,7 +29,7 @@ This article works through the model from the smallest concept up: bit semantics
 
 ![Mode string anatomy and rwx on files vs directories](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig1_rwx_bits.png)
 
-Linux is a multi-user system, so every inode (file, directory, symlink, device, …) carries three identity hooks:
+Linux is a multi-user system, so every inode (file, directory, symlink, device, etc.) has three identity hooks:
 
 - **Owner (`u`)**: the UID that owns the inode. Usually whoever created it.
 - **Group (`g`)**: a single GID. Members of that group share group-level access.
@@ -134,7 +134,7 @@ chmod 700 ~/.ssh      # rwx------  — private dir
 chmod 777 shared      # rwxrwxrwx  — almost always wrong
 ```
 
-Use it when you want a **known final state**: scripted deploys, fresh files where you don't care what was there before.
+Use it when you need a **known final state**, such as in scripted deploys or for new files where the previous state doesn't matter.
 
 ### Symbolic notation — relative
 
@@ -156,7 +156,7 @@ chmod -R u=rwX,go=rX  project/
 
 `X` adds `x` **only to directories and to files that already have at least one `x` bit**. Without it, `chmod -R 755 project/` makes every `.md`, `.png`, and `.csv` "executable" — harmless but ugly, and a gift to anyone scanning for misconfigured webroots.
 
-Use symbolic when you want to **tweak one dimension** without disturbing the rest.
+Use symbolic notation when you want to **tweak one aspect** without affecting the rest.
 
 ## chown / chgrp: changing ownership
 

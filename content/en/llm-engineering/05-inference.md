@@ -19,9 +19,9 @@ description: "KV cache mechanics, paged attention, continuous batching, speculat
 translationKey: "llm-engineering-5"
 ---
 
-Inference is where the money goes. A single 70B-class model serving 1000 concurrent users at 50 tok/s eats the GPU budget that trained the model in about 3 months. Everything in this chapter is in service of two numbers: time-to-first-token (TTFT) and inter-token latency (ITL). And one ratio: GPU-seconds per million output tokens.
+Inference is where the money goes. A single 70B-class model serving 1000 concurrent users at 50 tok/s consumes the GPU budget that trained the model in about 3 months. This chapter focuses on two key metrics: time-to-first-token (TTFT) and inter-token latency (ITL), and one ratio: GPU-seconds per million output tokens.
 
-Training is a one-time capital expense — you compress the cost over millions of inference calls. Inference is the recurring operating expense, and unlike training it does not amortize. A 0.5x improvement in tokens-per-GPU-second compounds every day for the life of the product. This is why every serious LLM team has at least one full-time engineer on inference, and why the open-source community has shipped four distinct waves of inference engines (FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp) in five years.
+Training is a one-time capital expense, with costs spread over millions of inference calls. Inference, however, is a recurring operating expense that doesn't amortize. A 0.5x improvement in tokens-per-GPU-second compounds daily over the product's lifetime. That's why every serious LLM team has at least one full-time engineer focused on inference, and why the open-source community has released four distinct waves of inference engines (FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp) in five years.
 
 ![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_1.png)
 
@@ -37,9 +37,9 @@ Every LLM inference call is two phases:
 
 The asymmetry is everything. Prefill batches well across users (same kernel, different sequences). Decode batches *poorly* with naive batching because each user is at a different sequence position. The major inference engines are all built around this asymmetry.
 
-A common heuristic: TTFT is dominated by prefill, ITL is dominated by decode memory bandwidth. To reduce TTFT, throw FLOPs at it (more SMs, tensor parallelism). To reduce ITL, throw memory bandwidth at it (HBM3 over GDDR, fewer parameters via quantization).
+A common heuristic: TTFT is dominated by prefill, and ITL is dominated by decode memory bandwidth. To reduce TTFT, increase FLOPs (more SMs, tensor parallelism). To reduce ITL, boost memory bandwidth (HBM3 over GDDR, fewer parameters via quantization).
 
-The arithmetic intensity argument makes this rigorous. Prefill on a 4K prompt of a 70B model: the model weights (140 GB at BF16) get loaded once and operate on 4096 tokens. Arithmetic intensity ≈ 4096 FLOP per parameter byte read. Decode on the same model, single token: weights loaded once, operate on 1 token. Arithmetic intensity ≈ 1 FLOP per byte. An H100 at 989 TFLOPS BF16 and 3.35 TB/s HBM has a ridge point of ~295 FLOP/byte. Prefill at 4096 FLOP/byte sits far above the ridge (compute-bound). Decode at 1 FLOP/byte is two orders of magnitude below (memory-bound). The two phases want different hardware properties, and a serving stack that doesn't separate them leaves performance on the floor.
+The arithmetic intensity argument clarifies this. For prefill on a 4K prompt of a 70B model, the model weights (140 GB at BF16) are loaded once and operate on 4096 tokens, resulting in an arithmetic intensity of ≈ 4096 FLOP per parameter byte read. For decode on the same model, the weights are loaded once to process a single token, leading to an arithmetic intensity of ≈ 1 FLOP per byte. An H100 with 989 TFLOPS BF16 and 3.35 TB/s HBM has a ridge point of ~295 FLOP/byte. Prefill, at 4096 FLOP/byte, is compute-bound, while decode, at 1 FLOP/byte, is memory-bound. These phases require different hardware properties, and a serving stack that doesn't separate them underperforms.
 
 ## KV cache: the data structure that funds long context
 

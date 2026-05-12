@@ -41,14 +41,14 @@ The key insight, due to Hinton, is that a teacher's "wrong" predictions are not 
 
 ### The deployment squeeze
 
-Large models win on benchmarks but lose on phones, cars, and cloud bills. Four constraints push us toward smaller models:
+Large models excel on benchmarks but struggle on phones, cars, and cloud bills. Four constraints drive us toward smaller models:
 
 - **Memory:** mobile and IoT devices simply cannot hold billions of parameters.
 - **Latency:** an autonomous car needs a decision in milliseconds, not seconds.
 - **Cost:** a model served a billion times a day costs real money per FLOP.
 - **Energy:** an edge device runs on a battery, not a power plant.
 
-Pruning and quantisation attack the model directly. Both lose accuracy. Distillation takes a different route: **train a small student to imitate a large teacher's output distribution, not just its argmax**. The student inherits the teacher's inductive biases without inheriting its parameters.
+Pruning and quantization directly reduce the model size. Both can decrease accuracy. Distillation takes a different approach: **train a small student to imitate a large teacher's output distribution, not just its argmax**. The student learns the teacher's inductive biases without inheriting its parameters.
 
 ### Dark knowledge: what soft labels actually teach
 

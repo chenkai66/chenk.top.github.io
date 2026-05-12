@@ -19,9 +19,9 @@ disableNunjucks: true
 translationKey: "terraform-agents-7"
 ---
 
-Agents are non-deterministic, multi-step, and call expensive APIs. The combination means you cannot debug them after the fact unless you instrumented them on day one. This article wires three pipelines through Terraform — logs, traces, metrics — into a unified dashboard, layers six SLS queries that solve real incidents, and provisions four alarms that have actually fired and saved my projects in production.
+Agents are non-deterministic, multi-step, and call expensive APIs. This combination means you can't debug them after the fact unless you instrumented them from the start. This article sets up three pipelines through Terraform — logs, traces, and metrics — into a unified dashboard, adds six SLS queries to solve real incidents, and sets up four alarms that have actually fired and saved my projects in production.
 
-By the end you have one DingTalk channel that pings before the bill explodes, the latency dies, the error rate spikes, or some agent starts looping on itself — plus the SLO budgets that turn ops feel into ops data.
+By the end, you'll have a DingTalk channel that alerts you before the bill explodes, latency increases, the error rate spikes, or an agent starts looping on itself — plus SLO budgets that turn operational feelings into data.
 
 ## The three pipelines
 

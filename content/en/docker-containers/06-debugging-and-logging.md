@@ -20,7 +20,7 @@ A container that works is invisible. A container that doesn't work is a black bo
 
 ## Reading Container Logs
 
-Logs are your first line of investigation. Docker captures anything a container writes to stdout and stderr.
+Logs are your first line of investigation. Docker captures everything a container writes to stdout and stderr.
 
 ![Logging drivers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-log-drivers.png)
 
@@ -66,7 +66,7 @@ Example output with timestamps:
 
 ### Logs from stopped containers
 
-This is critical — when a container crashes, it stops, but its logs are preserved until the container is removed:
+This is critical: when a container crashes, it stops, but its logs are preserved until the container is removed.
 
 ```bash
 # List stopped containers
@@ -94,7 +94,7 @@ psycopg2.OperationalError: could not connect to server: Connection refused
     TCP/IP connections on port 5432?
 ```
 
-The container exited with code 1 (error). The logs reveal it couldn't connect to PostgreSQL. Maybe the database wasn't ready when the app started (a dependency ordering issue), or the hostname is wrong.
+The container exited with code 1 (error). The logs show it couldn't connect to PostgreSQL. This could be because the database wasn't ready when the app started (a dependency ordering issue) or the hostname was incorrect.
 
 ### Exit codes
 
@@ -117,7 +117,7 @@ Common exit codes:
 | 139 | SIGSEGV (128+11) | Segmentation fault |
 | 143 | SIGTERM (128+15) | `docker stop` (graceful shutdown) |
 
-Exit code 137 deserves special attention — it usually means the container was killed by the OOM (Out of Memory) killer because it exceeded its memory limit.
+Exit code 137 deserves special attention; it usually means the container was killed by the OOM (Out of Memory) killer for exceeding its memory limit.
 
 ```bash
 # Check if a container was OOM-killed
@@ -149,7 +149,7 @@ docker exec -u root my-container apt-get update
 docker exec -e DEBUG=true my-container python check.py
 ```
 
-Once inside a container, you can investigate:
+Once inside a container, you can investigate.
 
 ```bash
 # Check environment variables
@@ -185,7 +185,7 @@ netstat -tlnp
 
 ### When bash isn't available
 
-Minimal images (Alpine, distroless) might not have bash or common tools:
+Minimal images (Alpine, distroless) might not have bash or common tools.
 
 ```bash
 # Alpine uses sh, not bash
@@ -195,7 +195,7 @@ docker exec -it alpine-container sh
 docker exec -it alpine-container apk add --no-cache curl bind-tools
 ```
 
-For distroless images, you can't exec into them at all (no shell). Use a debug sidecar instead:
+For distroless images, you can't exec into them at all (no shell). Use a debug sidecar instead.
 
 ```bash
 # Run a debug container that shares the network namespace
@@ -368,7 +368,7 @@ appuser             12352               12345               1                   
 appuser             12353               12345               2                   10:15               ?                   00:01:32            gunicorn: worker [app:app]
 ```
 
-Notice the PID and PPID columns show host PIDs. Inside the container, the master process would be PID 1, but on the host it's PID 12345. This is namespace mapping.
+Notice the PID and PPID columns show host PIDs. Inside the container, the master process is PID 1, but on the host, it's PID 12345. This is namespace mapping.
 
 ```bash
 # Use ps-style formatting
@@ -419,7 +419,7 @@ This works for any stopped container (until you `docker rm` it).
 
 ### Strategy 2: Override the command
 
-If the container crashes on startup, override the command to keep it running:
+If the container crashes on startup, override the command to keep it running.
 
 ```bash
 # Instead of the normal command, just sleep
@@ -466,7 +466,7 @@ docker run -it debug-image:latest bash
 
 ![Debugging inside a container detective with magnifying glass](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-debugging-inside-a-container-detective-with-magnifying-glass.jpg)
 
-Sometimes you need networking tools, strace, or other debugging utilities that aren't in your application image. Run a separate debug container that shares the target's network:
+Sometimes you need networking tools, strace, or other debugging utilities that aren't in your application image. Run a separate debug container that shares the target's network.
 
 ```bash
 # Debug container sharing target's network namespace
@@ -495,7 +495,7 @@ tcpdump -i eth0 -n port 5432
 traceroute postgres
 ```
 
-You can also share other namespaces:
+You can also share other namespaces.
 
 ```bash
 # Share PID namespace (see the target container's processes)
@@ -506,7 +506,7 @@ docker run -it --rm \
 
 ## Log Drivers
 
-By default, Docker stores logs as JSON files on disk. You can configure different log drivers:
+By default, Docker stores logs as JSON files on disk. You can configure different log drivers.
 
 ```bash
 # Check current log driver

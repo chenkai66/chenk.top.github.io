@@ -19,7 +19,7 @@ description: "How RoPE encodes position, why naive extension breaks, NTK-aware a
 translationKey: "llm-engineering-6"
 ---
 
-"1M token context" is one of the most over-claimed numbers in LLMs. A model can attend to 1M tokens — that's an architecture statement. A model can *use* information at position 800K to answer a question — that's a behavior statement, and it's harder. This chapter is about the math of position encoding, the engineering tricks that extend context past the training length, and the reasons most long-context claims don't survive needle-in-a-haystack tests.
+"1M token context" is one of the most over-claimed numbers in LLMs. A model can attend to 1M tokens — that's an architecture statement. A model can *use* information at position 800K to answer a question — that's a behavior statement, and it's more challenging. This chapter covers the math of position encoding, the engineering tricks that extend context beyond the training length, and why most long-context claims fail needle-in-a-haystack tests.
 
 The history of long-context LLMs in three acts. Act one (2017-2021): models were trained at 512-2048 tokens because attention is $O(n^2)$ and that's what fit. Act two (2022-2023): efficient attention kernels (FlashAttention, [Dao 2022][dao-flashattention]) made longer training feasible, and post-hoc context extension techniques (Position Interpolation, NTK-aware scaling, YaRN) let practitioners push pre-trained checkpoints from 4K to 32K and beyond. Act three (2024-2026): native long-context training (Llama 3.1's 128K, Gemini's 1-2M, Claude's 200K) became standard, but the gap between *attendable* context and *useful* context remained — and that's what this chapter is mostly about.
 
@@ -33,9 +33,9 @@ Self-attention is permutation invariant. Without a position signal the model can
 2. **Learned absolute**: learn a position embedding per absolute index up to max length. Used by GPT-2, BERT.
 3. **Rotary (RoPE)**: rotate Q and K vectors by an angle proportional to position, *inside* every attention layer. Used by LLaMA, Qwen, Mistral, DeepSeek.
 
-RoPE won. It's the position encoding of every credible 2026 LLM I know of. Two reasons: it injects position at every layer (better signal), and the relative position falls out naturally from the dot product, which is what attention actually needs.
+RoPE won. It's the position encoding in every credible 2026 LLM I know. Two reasons: it injects position at every layer (better signal), and the relative position naturally emerges from the dot product, which is what attention needs.
 
-A fourth answer, **ALiBi** (attention with linear bias), competed seriously around 2022 and lost; we'll cover it later in this chapter as the most interesting alternative path. A fifth, **xPos** (Sun et al., 2022), is a RoPE refinement that adds a length-dependent decay to make extrapolation more stable; it's used inside DeepSeek and a few other modern models, but the core idea is RoPE plus engineering polish.
+A fourth answer, **ALiBi** (attention with linear bias), competed seriously around 2022 and lost; we'll cover it later in this chapter as the most interesting alternative path. A fifth, **xPos** (Sun et al., 2022), refines RoPE by adding a length-dependent decay for more stable extrapolation. It's used in DeepSeek and a few other modern models, but the core idea remains RoPE with some engineering polish.
 
 ## RoPE: the math
 

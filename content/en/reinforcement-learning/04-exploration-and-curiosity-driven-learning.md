@@ -19,11 +19,11 @@ disableNunjucks: true
 series_order: 4
 translationKey: "reinforcement-learning-4"
 ---
-Drop a fresh agent into Montezuma's Revenge. To score a single point it must walk to the right, jump a skull, climb a rope, leap to a platform, and grab a key — roughly **a hundred precise actions in a row**. Until that key is collected, every reward signal is exactly zero.
+Drop a fresh agent into Montezuma's Revenge. To score a single point, it must walk to the right, jump over a skull, climb a rope, leap to a platform, and grab a key — roughly **a hundred precise actions in a row**. Until the key is collected, every reward signal is exactly zero.
 
 A textbook DQN with $\varepsilon=0.1$ exploration has, by a generous estimate, a $0.1^{100} \approx 10^{-100}$ chance of stumbling onto that key by accident. Unsurprisingly, vanilla DQN scores **0** on this game. Not "low" — literally zero, every episode, for the entire training run.
 
-This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a deep RL algorithm is only as good as its exploration strategy. Even the finest Bellman backup is useless if the agent never observes a non-zero reward to back up. This chapter walks the path from blind random exploration to **curiosity-driven learning** — algorithms that manufacture their own rewards for discovering anything new.
+This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a deep RL algorithm is only as good as its exploration strategy. Even the finest Bellman backup is useless if the agent never observes a non-zero reward. This chapter explores the path from blind random exploration to **curiosity-driven learning** — algorithms that generate their own rewards for discovering new things.
 
 ![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_1.png)
 
@@ -48,11 +48,11 @@ Every introductory RL course starts with **$\varepsilon$-greedy**: with probabil
 
 ![Epsilon-greedy decay schedules and induced action probabilities](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig1_epsilon_greedy_decay.png)
 
-The figure above shows three popular schedules (linear, exponential, piecewise step) on the left, and on the right what the actual action distribution looks like under linear decay with four available actions. Three observations are worth internalising:
+The figure above shows three popular schedules (linear, exponential, piecewise step) on the left, and on the right, the actual action distribution under linear decay with four available actions. Three observations are worth noting:
 
 1. **Different schedules give very different "exploration budgets."** Exponential decay spends most of its random actions in the first 20k steps; linear decay spreads them more evenly; step schedules behave like crude curricula.
 2. **Even at $\varepsilon = 0.05$ a quarter of the random actions still go to the greedy choice** ($1 - \varepsilon + \varepsilon/|\mathcal{A}|$), which surprises people who expect 5% noise to mean 5% off-policy behaviour.
-3. **Nothing in any of these curves looks at the state.** Exploration is purely a function of training step. That is the central weakness we are about to attack.
+3. **None of these curves consider the state.** Exploration is purely a function of the training step. This is the central weakness we will address.
 
 Mathematically:
 
@@ -63,7 +63,7 @@ $$\pi_\varepsilon(a \mid s) = \begin{cases}
 
 ### 1.2 Boltzmann (softmax) exploration: a marginal upgrade
 
-Instead of an all-or-nothing random kick, **Boltzmann** weights actions by their Q-values:
+Instead of an all-or-nothing random kick, **Boltzmann** exploration weights actions by their Q-values:
 
 $$\pi_\tau(a \mid s) = \frac{\exp(Q(s,a)/\tau)}{\sum_{a'} \exp(Q(s,a')/\tau)}.$$
 
@@ -81,7 +81,7 @@ For multi-armed bandits, the classical **UCB1** rule is provably near-optimal:
 
 $$a_t = \arg\max_a \left[ \hat Q(a) + c \sqrt{\frac{\ln t}{N(a)}} \right].$$
 
-The first term *exploits*; the second *explores* — arms pulled fewer times get a larger uncertainty bonus.
+The first term *exploits*; the second *explores* — arms pulled fewer times receive a larger uncertainty bonus.
 
 ![UCB1 score decomposition and arm-pull statistics over a 5-arm bandit](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig3_ucb_bandit.png)
 

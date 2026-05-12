@@ -16,13 +16,13 @@ description: "万相文生视频 / 图生视频上生产：异步任务模式、
 disableNunjucks: true
 translationKey: "aliyun-bailian-4"
 ---
-万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、 URL 会过期，限流方式还特别隐蔽。本文总结了我连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）积累的实战经验。
+万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、 URL 会过期，限流方式还特别隐蔽。本文总结了我连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）所积累的实战经验。
 
 ![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
 ## 模型阵容
 
-三个模型均提供原生接口（不兼容 OpenAI 协议），且全部采用异步调用。
+三个模型均提供原生接口（不兼容 OpenAI 协议），并全部采用异步调用。
 
 ![Wanxiang model lineup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png)
 
@@ -85,7 +85,7 @@ print(url)
 3. 后台 worker 轮询，状态变 `SUCCEEDED` 时更新数据库。
 4. 前端轮询**你的**数据库，而不是万象。
 
-这样就有了重试机制和可观测性，并能在 URL 过期前保存结果地址。
+这样就具备了重试机制和可观测性，并能在 URL 过期前保存结果地址。
 
 ## 立刻保存 URL——它们 24 小时后过期
 
@@ -136,7 +136,7 @@ def archive(result_url: str, key: str) -> str:
 3. I2V 生成 5 秒转盘视频。
 4. 拼接到产品页的核心图后面。
 
-单个片段的成本仅为几元，而替代方案则需要消耗摄影师约半天的工作时间。
+单个片段的成本仅为几元，而替代方案则需要消耗摄影师大约半天的工作时间。
 
 ## SUCCEEDED 但视频看起来不对怎么办
 

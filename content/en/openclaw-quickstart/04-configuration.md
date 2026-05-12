@@ -80,7 +80,7 @@ The mistake people make is putting the most expensive model here, "to be safe." 
 
 ## `providers` — where the models live
 
-You can configure multiple providers and pick per-skill. The four useful options:
+You can configure multiple providers and choose per-skill. Here are the four useful options:
 
 | Provider | Use when |
 |----------|----------|
@@ -129,7 +129,7 @@ Claude Sonnet 4.5 is the strongest reasoning model in OpenClaw today. Use this i
 }
 ```
 
-OpenAI models are useful for two cases: (1) you need GPT-5.4 specifically, or (2) your skill was prototyped against OpenAI and you don't want to rewrite. Otherwise I avoid them — Claude is stronger for reasoning, Qwen is cheaper for bulk work.
+OpenAI models are useful in two cases: (1) you need GPT-5.4 specifically, or (2) your skill was prototyped with OpenAI and you don't want to rewrite. Otherwise, I avoid them — Claude is better for reasoning, and Qwen is cheaper for bulk work.
 
 ### The `compatible` provider type
 
@@ -161,7 +161,7 @@ The `agent.default_model` is your baseline, but individual skills can override i
 }
 ```
 
-This lets you run the planning loop on cheap tokens and switch to expensive reasoning only where needed. A typical pattern:
+This lets you run the planning loop on cheap tokens and switch to expensive reasoning only where needed. A typical setup:
 
 - **Planning loop**: `qwen-plus` (fast, cheap)
 - **Code generation skills**: `qwen3-coder-plus` (specialized for code)
@@ -187,7 +187,7 @@ The provider config is one block:
 
 Then in `agent.default_model`, just point at one of the model IDs the plan exposes (`claude-sonnet-4-5`, `qwen3-max`, etc.) and the requests are billed against your subscription.
 
-I would not recommend the Coding Plan if you are running OpenClaw on a single laptop for personal use — DashScope's free tier is enough. I would absolutely recommend it if you are running anything with cron jobs or multiple channels.
+I wouldn't recommend the Coding Plan if you're running OpenClaw on a single laptop for personal use — DashScope's free tier is sufficient. However, I highly recommend it if you're running anything with cron jobs or multiple channels.
 
 ## `tools` — turning sharp things on
 
@@ -197,7 +197,7 @@ Two tool configs are worth tuning:
 
 **`web_search.engine`** — `bing` (cheap, decent), `serper` (better quality, costs), or `tavily` (best for agentic search, costs more). I default to `bing` and let the agent ask if it needs better.
 
-There are 24 other tools. Most of them have sensible defaults. The ones I have edited:
+There are 24 other tools, most with sensible defaults. The ones I've edited:
 
 - `read.max_bytes` — bumped from 50KB to 500KB so the agent can swallow a config file.
 - `write.allowed_paths` — restricted to `~/openclaw-workspace/` and `~/Documents/`. This is the single most useful safety setting.
@@ -219,7 +219,7 @@ There are 24 other tools. Most of them have sensible defaults. The ones I have e
 
 ## `security` — what the agent cannot touch
 
-Security config is optional but highly recommended if your agent runs unattended (cron jobs) or if you expose it to other users (shared Telegram bot).
+Security config is optional but highly recommended if your agent runs unattended (cron jobs).bs) or if you expose it to other users (shared Telegram bot).
 
 ```json
 "security": {

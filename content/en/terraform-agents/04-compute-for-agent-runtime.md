@@ -19,9 +19,9 @@ disableNunjucks: true
 translationKey: "terraform-agents-4"
 ---
 
-The single most important architecture decision in an agent system is *where the agent loop process actually runs*. There are three good answers on Aliyun, plus a fourth that almost everyone forgets. Picking the wrong one isn't catastrophic — you can migrate later — but it costs you weeks of unnecessary scaffolding and several thousand RMB a month in idle compute.
+The single most important architectural decision in an agent system is *where the agent loop process runs*. There are three good options on Aliyun, plus a fourth that almost everyone forgets. Picking the wrong one isn't catastrophic — you can migrate later — but it costs weeks of unnecessary work and several thousand RMB a month in idle compute.
 
-This article walks through all four with working Terraform, the cost crossover, and the operational gotchas I keep tripping on.
+This article covers all four options with working Terraform, cost crossovers, and operational gotchas I often encounter.
 
 ## The four patterns
 
@@ -47,7 +47,7 @@ Here's the rough monthly cost picture as a function of sustained QPS:
 
 Under ~1 QPS sustained, FC dominates — you pay almost nothing during idle. From ~1 to ~30 QPS sustained, a single ECS box wins. Above that, ACK's higher fixed cost gets amortised over enough load to be cheaper than packing more onto ECS. ECI sits orthogonally: cheaper than ECS below 50% utilisation, more expensive above.
 
-The model is rough — your actual numbers depend on instance family, network, and how chatty the agent is — but the *shape* is reliable. The decision rule I use:
+The model is rough — your actual numbers depend on the instance family, network, and the agent's chattiness — but the *shape* is reliable. Here's the decision rule I use:
 
 > Bursty + low average → Function Compute
 >

@@ -17,11 +17,11 @@ translationKey: "leetcode-8"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/08-backtracking/illustration_1.png)
 
-Backtracking is the algorithm you reach for whenever a problem asks you to *enumerate* something — every permutation, every subset, every legal board, every path through a grid. It is brute force with a brain: you build a candidate solution one decision at a time, abandon it the moment a constraint says "this cannot work", and undo your last move so the next branch sees a clean slate. The whole technique fits in three lines:
+Backtracking is the algorithm you use when a problem asks you to *enumerate* something — every permutation, every subset, every legal board, every path through a grid. It's brute force with a brain: you build a candidate solution one decision at a time, abandon it as soon as a constraint says "this won't work," and undo your last move so the next branch starts fresh. The whole technique fits in three lines:
 
 > **choose** -> **recurse** -> **un-choose**
 
-That single rhythm solves Permutations, Combinations, Subsets, Word Search, N-Queens, and Sudoku, and it is the same template you will use on roughly 90% of "find all..." problems on LeetCode. This article walks you through the template, then applies it to six canonical problems with full implementations, recursion-tree diagrams, complexity proofs, pruning tactics, and a debugging checklist for the bugs you will inevitably hit the first few times you write it.
+This simple pattern solves Permutations, Combinations, Subsets, Word Search, N-Queens, and Sudoku, and it's the same template you'll use for about 90% of "find all..." problems on LeetCode. This article walks you through the template, then applies it to six canonical problems with full implementations, recursion-tree diagrams, complexity proofs, pruning tactics, and a debugging checklist for the bugs you will inevitably hit the first few times you write it.
 
 ## Series Navigation
 
@@ -59,7 +59,7 @@ When **not** to reach for it:
 
 ## The universal template
 
-Every backtracking solution in this article is a thin specialization of one template. Memorize the shape; specialize the four slots.
+Every backtracking solution in this article is a slight variation of one template. Memorize the structure and adapt the four slots.
 
 ![The backtracking template — choose, recurse, un-choose](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/backtracking/fig1_template.png)
 

@@ -17,9 +17,9 @@ description: "The grand finale: codify everything from Parts 1-11 into Terraform
 disableNunjucks: true
 translationKey: "aliyun-fullstack-12"
 ---
-十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉，只用一条 `terraform apply` 重建整个栈。这就是基础设施即代码（IaC）的核心价值。
+十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉，只用一条 `terraform apply` 重建整个栈。这正是基础设施即代码（IaC）的核心价值。
 
-在这个系列的过去十一部分里，我们点击过控制台，敲过 `aliyun` CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这种方式可行：亲手搭建每个资源，对细节了如指掌。但在新地域重建整套栈——三层双可用区 VPC、带 cloud-init 的 ECS 实例、RDS MySQL HA、带生命周期规则与 CORS 配置的 OSS bucket、RAM 策略、SLS 日志管道、Function Compute 事件触发器——至少需要一整天的精细操作。难免会遗漏安全组规则、备份策略或 CORS 配置。
+在这个系列的过去十一部分里，我们点击过控制台，敲过 `aliyun` CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这种方式可行：亲手搭建每个资源，熟悉所有细节。但在新地域重建整套栈——三层双可用区 VPC、带 cloud-init 的 ECS 实例、RDS MySQL HA、带生命周期规则和 CORS 配置的 OSS bucket、RAM 策略、SLS 日志管道、Function Compute 事件触发器——至少需要一整天的精细操作。难免会遗漏安全组规则、备份策略或 CORS 配置。
 
 基础设施即代码（IaC）解决了这个问题：通过声明式配置描述期望状态，工具自动比对现状、计算差异并调用 API 达成目标。我们在十一篇文章中构建的整个栈，现在变成了一个 `.tf` 文件仓库，团队里的任何人都可以阅读、审查、修改和应用。
 

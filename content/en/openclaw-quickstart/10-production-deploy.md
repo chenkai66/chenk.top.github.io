@@ -18,9 +18,9 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-10"
 ---
 
-The local install gets you to "it works on my machine." The server install is what makes it survive a kernel update.
+The local install gets you to 'it works on my machine.' The server install ensures it survives a kernel update.
 
-This chapter walks through the deploy I actually use on a 2-core 4G ECS box, then the failures I have seen often enough to put in writing.
+This chapter walks through the deployment I use on a 2-core 4GB ECS box and the common failures I've documented.
 
 ![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_1.png)
 
@@ -28,21 +28,21 @@ This chapter walks through the deploy I actually use on a 2-core 4G ECS box, the
 
 ![Production deployment stack — from OS to monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/fig_deploy.png)
 
-Before you deploy, pick the right box. Four options worth considering:
+Before deploying, choose the right server. Consider these four options:
 
-**Alibaba Cloud ECS**: The path I use. A 2-core 4GB instance in the cn-beijing region costs around $15/month. The advantage is proximity to DashScope — your API round-trips drop from 200ms to 20ms when both the gateway and the model sit in the same region. The disadvantage is the Great Firewall makes outbound package installs occasionally flaky unless you set up a mirror.
+**Alibaba Cloud ECS**: The path I use. A 2-core 4GB instance in the cn-beijing region costs around $15/month. The advantage is proximity to DashScope, reducing API round-trips from 200ms to 20ms when both the gateway and the model are in the same region. The disadvantage is that the Great Firewall can make outbound package installs flaky unless you set up a mirror.
 
-**DigitalOcean**: Simplest onboarding. The $18/month "Basic" droplet (2vCPU, 4GB) is functionally identical to ECS. The dashboard is cleaner, the docs are better, and package mirrors are unnecessary. The tradeoff is latency — if your model provider is Alibaba or Tencent, you add 150ms per turn.
+**DigitalOcean**: Simplest onboarding. The $18/month "Basic" droplet (2vCPU, 4GB) is functionally identical to ECS. The dashboard is cleaner, the documentation is better, and package mirrors are unnecessary. The tradeoff is increased latency—150ms per turn—if your model provider is Alibaba or Tencent.
 
-**Hetzner**: Best price-to-performance. A CX21 instance (2vCPU, 4GB, Nuremberg) runs $5.83/month. The catch is that Hetzner's network is optimized for Europe, so if your users or your model endpoints sit in Asia, you will see the latency.
+**Hetzner**: Best price-to-performance. A CX21 instance (2vCPU, 4GB, Nuremberg) runs $5.83/month. The catch is that Hetzner's network is optimized for Europe, so if your users or model endpoints are in Asia, you'll experience higher latency.
 
-**Home server**: Free hardware, full control, infinite disk. The problems are uptime (your ISP does not promise five nines), dynamic IPs (you will need DDNS), and port forwarding (which your router may block for inbound 443). A home server works for prototyping; it does not work for production unless you are also your only user.
+**Home server**: Free hardware, full control, and unlimited disk space. The downsides include uptime (your ISP doesn't guarantee five nines), dynamic IPs (you'll need DDNS), and port forwarding (which your router may block for inbound 443). A home server is suitable for prototyping but not for production unless you're the only user.
 
-**Minimum spec: 2-core 4GB.** Why? The gateway itself uses 200MB of resident memory, but model responses buffer in RAM before streaming to the client, and when a sub-agent forks, the OS duplicates the parent process momentarily. I have watched a 2GB instance OOM during a code-review task that spawned three sub-agents in parallel. 4GB gives you headroom. 8GB eliminates the problem entirely.
+**Minimum spec: 2-core 4GB.** Why? The gateway uses 200MB of resident memory, but model responses buffer in RAM before streaming to the client. When a sub-agent forks, the OS temporarily duplicates the parent process. I've seen a 2GB instance run out of memory during a code review task that spawned three sub-agents in parallel. 4GB provides headroom, while 8GB eliminates the problem entirely.
 
 ## The deploy
 
-OS: Ubuntu 22.04. The 4G of RAM matters — 2G works for one agent and chokes the moment a sub-agent spawns.
+OS: Ubuntu 22.04. 4GB of RAM is crucial—2GB is sufficient for one agent but becomes insufficient when a sub-agent spawns.
 
 ```bash
 # 1. Node 22 via nvm
@@ -57,7 +57,7 @@ npm i -g openclaw@latest pm2
 openclaw init
 ```
 
-pm2 supervises the Gateway so that crashes don't take you down:
+pm2 supervises the Gateway to prevent crashes from taking you down:
 
 ```bash
 pm2 start "openclaw gateway" --name openclaw-gateway --time
@@ -65,7 +65,7 @@ pm2 save
 pm2 startup
 ```
 
-For the Web Dashboard (port 18789), nginx in front with certs from acme.sh:
+For the Web Dashboard (port 18789), use nginx with certs from acme.sh:
 
 ```nginx
 server {
@@ -86,11 +86,11 @@ server {
 }
 ```
 
-The 600s read timeout is not optional — long-running agent turns will exceed the nginx default of 60s and fail mid-stream.
+The 600-second read timeout is necessary—long-running agent turns will exceed the nginx default of 60 seconds and fail mid-stream.
 
 ## Docker alternative
 
-If you prefer containers, OpenClaw ships with Docker support. Here is the compose file I use for multi-service deployments:
+If you prefer containers, OpenClaw supports Docker. Here is the compose file I use for multi-service deployments:
 
 ```yaml
 version: '3.8'
@@ -110,11 +110,11 @@ services:
       - NODE_ENV=production
 ```
 
-Three volumes are critical:
+Three volumes are essential:
 
-- `config/` holds API keys, channel credentials, model endpoints. Without this mount, every container restart wipes your setup.
+- `config/` holds API keys, channel credentials, model endpoints. Without this mount, each container restart erases your setup.
 - `workspace/` contains MEMORY.md and session logs. Losing this means the agent forgets everything between restarts.
-- `skills/` stores custom skills. If you mount this read-only, the agent can read skills but cannot write new ones during self-improvement.
+- `skills/` stores custom skills. If you mount this read-only, the agent can read skills but can't write new ones during self-improvement.
 
 **When Docker is better:** You run OpenClaw alongside other services (a database, a vector store, a monitoring stack) and you want one `docker-compose up` to bring everything online. The isolation also makes it easier to test config changes — spin up a second container with a different config, compare behavior, kill the worse one.
 

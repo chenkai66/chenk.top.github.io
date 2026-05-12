@@ -19,7 +19,7 @@ description: "What SFT, DPO, RLHF, and RLAIF each actually optimize, when reward
 translationKey: "llm-engineering-4"
 ---
 
-A base model out of pretraining can complete text. It cannot follow instructions, refuse harmful requests, or maintain a persona — those are post-training behaviors. Post-training is also where the gap between a research paper's claims and a production-grade model lives. This chapter is about what each post-training algorithm actually optimizes, why most reward models are broken in subtle ways, and the recipes that work in 2026.
+A base model from pretraining can complete text but cannot follow instructions, refuse harmful requests, or maintain a persona—these are post-training behaviors. Post-training is where the gap between a research paper's claims and a production-grade model exists. This chapter covers what each post-training algorithm optimizes, why most reward models are subtly flawed, and the effective methods for 2026.
 
 ![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_1.png)
 

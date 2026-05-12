@@ -16,7 +16,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-2"
 ---
 
-快捷键未出现在帮助界面中，这是刻意设计——遵循「用中发现」而非「查文档掌握」的哲学。不过为了方便查阅，我们还是在此完整列出。
+快捷键未出现在帮助界面中，这是刻意设计——遵循「用中发现」而非「查文档掌握」的哲学。但为了方便查阅，我们在此完整列出。
 
 ![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 

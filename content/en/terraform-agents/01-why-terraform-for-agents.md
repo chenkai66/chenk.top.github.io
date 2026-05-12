@@ -23,7 +23,7 @@ The fourth started life as `terraform apply`. It was the only one I haven't lost
 
 This series is the field guide for that fourth pattern: how to use Terraform to provision the cloud infrastructure that an AI agent system actually needs on Alibaba Cloud. It is not a Terraform tutorial — there are good ones online and the official `Get Started` doc covers the basics. It is the senior-engineer playbook for the specific intersection of "I run agents" and "I run them on Aliyun".
 
-Eight articles. One real, working stack at the end. This first one is the why.
+Eight articles. One real, working stack at the end. This first one explains the why.
 
 ![Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
@@ -48,7 +48,7 @@ That is at least nine separate Aliyun services touching each other in specific w
 
 ## The console-vs-IaC moment
 
-Nine services touched by hand is also nine drift surfaces. The pain pattern is universal enough that I have a stock figure for it:
+Nine services managed manually create nine drift surfaces. This pain pattern is so common that I have a standard figure for it:
 
 ![Infrastructure as Code workflow transforming declarative configs into cloud resources](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_iac_workflow.png)
 
@@ -69,7 +69,7 @@ That second paragraph is the entire pitch. Everything else in this series is imp
 
 Terraform is an open-source declarative tool from HashiCorp. You write `.tf` files in **HashiCorp Configuration Language (HCL)** that describe the cloud resources you want; Terraform diffs that desired state against the live state recorded in a **state file** and emits a **plan**; you review the plan; you `apply` it; Terraform translates the plan into provider API calls.
 
-Three things to internalize from that:
+Three key points to remember:
 
 - **Declarative, not imperative.** You don't say "create an instance" — you say "an instance of this shape exists." Re-running the same config is a no-op if nothing changed. This is what makes Terraform safe to run from CI on every commit.
 - **State is real.** The `terraform.tfstate` file is a JSON map from your HCL resource addresses to the cloud's actual resource IDs. Lose the state file and Terraform thinks nothing exists. Article 2 is about putting state somewhere durable — but the implications run deeper than "don't lose the file," and we'll come back to that below.
@@ -79,9 +79,9 @@ Three things to internalize from that:
 
 The "state is real" point deserves more than one bullet, because for an agent stack the state file is doing double duty as your inventory.
 
-Every agent stack I've shipped has at some point been audited — by a security review, by finance reconciling cloud spend, by a new SRE trying to figure out what's actually running. In every case the question is the same: *what exists, who created it, and what is it costing me?*
+Every agent stack I've shipped has been audited at some point—by a security review, by finance reconciling cloud spend, or by a new SRE trying to figure out what's running. The question is always the same: *what exists, who created it, and what is it costing me?*
 
-If your infra lives in a Terraform state file, that question takes 30 seconds to answer:
+If your infrastructure is in a Terraform state file, that question takes 30 seconds to answer:
 
 ```bash
 terraform state list | wc -l                                  # how many resources
@@ -89,7 +89,7 @@ terraform state list | awk -F. '{print $1"."$2}' | sort -u    # what kinds
 terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, type:.type}]'
 ```
 
-For the four agent stacks I run today, those three commands produce a comprehensive inventory in seconds. Before Terraform, the same audit involved opening twelve console tabs across ECS, VPC, RDS, OSS, RAM, KMS, SLS, ARMS, ACK, CloudMonitor, ALB, and OpenSearch — each one filtered by tag if I was lucky and by gut feeling if I wasn't.
+For the four agent stacks I run today, those three commands produce a comprehensive inventory in seconds. Before Terraform, the same audit required opening twelve console tabs across ECS, VPC, RDS, OSS, RAM, KMS, SLS, ARMS, ACK, CloudMonitor, ALB, and OpenSearch—filtered by tags if I was lucky, and by gut feeling if I wasn't.
 
 The state file is also a *bill of materials* in the supply-chain sense. Each resource carries its provider version and module source. When a CVE drops on the alicloud provider — and it does, a couple of times a year — you grep state files across all your projects in minutes:
 

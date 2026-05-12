@@ -17,7 +17,7 @@ translationKey: "leetcode-5"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/05-binary-search/illustration_1.png)
 
-Binary search is the algorithm everyone thinks they understand until they have to write it under interview pressure. The idea is one sentence — *halve the search space at every step* — but the implementation is a minefield of off-by-one errors, infinite loops, and subtly wrong return values. The goal of this article is not to give you yet another recitation of the standard template; it is to give you a **mental model** that explains why each template looks the way it does, and a small toolkit (three templates plus the answer-space pattern) that covers the vast majority of LeetCode problems.
+Binary search is the algorithm everyone thinks they understand until they have to write it under interview pressure. The idea is one sentence — *halve the search space at every step* — but the implementation is a minefield of off-by-one errors, infinite loops, and subtly wrong return values. The goal of this article is not to give you yet another recitation of the standard template. Instead, it aims to provide a **mental model** that explains why each template looks the way it does, along with a small toolkit (three templates plus the answer-space pattern) that covers the vast majority of LeetCode problems.
 
 We will build everything from a single invariant: at every iteration the answer, if it exists, lives inside our current search interval. Once that invariant is internalised, the choice between `<` and `<=`, between `right = mid` and `right = mid - 1`, becomes mechanical instead of mysterious.
 

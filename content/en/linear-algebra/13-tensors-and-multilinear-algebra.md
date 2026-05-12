@@ -17,11 +17,11 @@ translationKey: "linear-algebra-13"
 ---
 If you've used PyTorch or TensorFlow, you've met the word "tensor" hundreds of times. PyTorch calls every array `torch.Tensor`; TensorFlow puts it in the product name. But what *is* a tensor, and why did frameworks borrow this physics-flavored word for what looks like a multi-dimensional array?
 
-The short answer of this chapter:
+The short answer from this chapter:
 
 > A tensor is the natural generalization of a scalar, vector, and matrix to **arbitrary** dimensions. Everything you know about matrices either lifts cleanly to tensors, or breaks in instructive ways.
 
-We'll start from familiar objects, build up the language (fibers, slices, unfolding), then learn the two workhorse decompositions — **CP** and **Tucker** — and see how they compress neural networks and power context-aware recommenders.
+We'll start with familiar objects, build up the language (fibers, slices, unfolding), and then learn the two key decompositions — **CP** and **Tucker** — and see how they compress neural networks and power context-aware recommenders.
 
 > **What you will learn:**
 > - Tensor order, shape, fibers, slices, and unfolding
@@ -39,7 +39,7 @@ We'll start from familiar objects, build up the language (fibers, slices, unfold
 
 ### A number, a row, a table, a cube
 
-Look at how the objects pile up:
+See how the objects stack up:
 
 - **Scalar** (order 0): a single number. Today's temperature, your bank balance. Magnitude only.
 - **Vector** (order 1): a list of numbers. A 2D location $(x, y)$, an RGB color $(r, g, b)$. Magnitude *and* direction.
@@ -56,7 +56,7 @@ The general definition just continues the pattern:
 
 ### Tensors are everywhere
 
-You handle tensors every day, often without naming them:
+You work with tensors every day, often without naming them:
 
 | Data | Shape | Order | What each axis means |
 |---|---|---|---|
@@ -72,7 +72,7 @@ You handle tensors every day, often without naming them:
 
 ### Order vs. shape vs. rank
 
-Three words that beginners confuse. Keep them apart:
+Three terms that beginners often confuse. Keep them distinct:
 
 - **Order** (or "mode"): how many axes there are. A vector is order 1; a $480 \times 640 \times 3$ image is order 3.
 - **Shape**: the size along each axis. The same image has shape $(480, 640, 3)$.
@@ -86,7 +86,7 @@ To work with a tensor, you need ways to "see into" it. Two essential views are *
 
 ### Fibers: toothpicks through a tensor
 
-Picture a Rubik's cube (a 3rd-order tensor). Push a toothpick straight through it along one direction. The string of small cubes you pierce is a **fiber** — a 1-D slice through the tensor.
+Imagine a Rubik's cube (a 3rd-order tensor). Push a toothpick straight through it along one direction. The string of small cubes you pierce is a **fiber** — a 1-D slice through the tensor.
 
 **Definition.** Fix all indices except one; what you get is a vector — that's a fiber.
 
@@ -100,7 +100,7 @@ For an RGB image $\mathcal{X} \in \mathbb{R}^{H \times W \times 3}$, the mode-3 
 
 ### Slices: thin sheets through a tensor
 
-Same Rubik's cube, but now slice it with a knife. Each cut gives you a matrix.
+Consider the same Rubik's cube, but now slice it with a knife. Each cut gives you a matrix.
 
 **Definition.** Fix one index; what you get is a matrix — that's a slice.
 
@@ -114,7 +114,7 @@ For a video $\mathcal{V} \in \mathbb{R}^{H \times W \times T}$, the frontal slic
 
 ![A 3D tensor visualized as a stack of frontal slices (matrices)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/fig2_tensor_as_stack.png)
 
-This stack-of-matrices picture is the right mental model: anywhere you can already work with a matrix, you can lift the operation up by sliding it across the third axis.
+This stack-of-matrices picture is the right mental model: wherever you can work with a matrix, you can extend the operation by sliding it across the third axis.
 
 ### Unfolding (matricization)
 

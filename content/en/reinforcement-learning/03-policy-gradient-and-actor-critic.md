@@ -20,7 +20,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "reinforcement-learning-3"
 ---
-DQN proved that deep RL can master Atari, but it has a hard ceiling: it only works in **discrete action spaces**. Ask it to control a robot arm with seven continuous joint angles and it falls apart — you would have to solve an inner optimisation problem every time you choose an action.
+DQN showed that deep RL can master Atari, but it has a hard ceiling: it only works in **discrete action spaces**. Ask it to control a robot arm with seven continuous joint angles, and it falls apart — you'd have to solve an inner optimization problem every time you choose an action.
 
 **Policy gradient methods** take a fundamentally different route. Instead of learning a value function and *deriving* a policy from it, they **directly optimise the policy**. That single change opens the door to continuous actions, stochastic strategies, and problems where the optimal play is itself random (think rock-paper-scissors).
 
@@ -61,11 +61,11 @@ Either way, the loss machinery is identical: pick an action by sampling from $\p
 
 Let $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G_0]$ be the expected return of the trajectories produced by $\pi_\theta$. We want $\nabla_\theta J(\theta)$ so we can do gradient ascent.
 
-The **Policy Gradient Theorem** (Sutton et al., 2000) gives a clean, sample-able form:
+The **Policy Gradient Theorem** (Sutton et al., 2000) provides a clean, sample-able form:
 
 $$\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\pi_\theta}\!\Big[\sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\;\cdot\;Q^{\pi_\theta}(s_t, a_t)\Big]$$
 
-Three things are worth pausing on:
+Three key points to consider:
 
 - $\nabla_\theta \log \pi_\theta(a|s)$ is called the **score function**. It is the gradient that, on its own, would make action $a$ slightly *more* likely.
 - $Q^\pi(s,a)$ acts as a **scalar weight** on that direction: good actions amplify the score, bad actions invert it.
@@ -209,7 +209,7 @@ def reinforce_with_baseline(env_name="CartPole-v1", episodes=1000,
     return policy, history
 ```
 
-This typically solves CartPole in 100--200 episodes. On harder tasks, though, REINFORCE shows its weakness fast.
+This typically solves CartPole in 100-200 episodes. On harder tasks, REINFORCE quickly shows its weaknesses.
 
 **Strengths:** simple, unbiased, action-space agnostic.
 **Weaknesses:** very high gradient variance, every trajectory is used exactly once (no off-policy reuse), and updates only happen at episode boundaries.

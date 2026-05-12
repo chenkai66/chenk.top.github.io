@@ -17,9 +17,9 @@ disableNunjucks: true
 description: "JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"
 translationKey: "llm-engineering-7"
 ---
-函数调用是大语言模型（LLM）连接外部世界的关健接口——它是 chat template、结构化输出内核与提示工程的交汇点。本章深入剖析底层机制：哪些行为具备可依赖的确定性保证，哪些 agent-loop 模式能在真实生产负载下稳定运行。
+函数调用是大语言模型（LLM）连接外部世界的关健接口，是 chat template、结构化输出内核与提示工程的交汇点。本章深入剖析底层机制，探讨哪些行为具备可依赖的确定性保证，以及哪些 agent-loop 模式能在真实生产负载下稳定运行。
 
-技术渊源至关重要：LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文——**MRKL Systems**（Karpas 等，AI21）提出神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都有了围绕工具使用格式构建的后训练数据，工具调用也从“研究演示”变成了 API 功能。
+技术渊源至关重要：LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文——**MRKL Systems**（Karpas 等，AI21）提出神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都围绕工具使用格式构建了后训练数据，工具调用也从“研究演示”变成了 API 功能。
 
 ![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_1.png)
 
@@ -28,13 +28,13 @@ translationKey: "llm-engineering-7"
 API 提供“函数调用”能力时，其底层实现可能有以下几种形式：
 
 1. **训练行为 + chat template 标记**。模型经后训练后，可在适当时机生成工具调用，并以特殊 token 进行包裹。例如： Qwen3 使用 `tool_call` 标签， Mistral 使用 `[TOOL_CALLS]`。
-2. **JSON-mode 约束解码**。通过语法约束解码（grammar-constrained decoding）强制模型输出合法 JSON。模型本身未必针对该任务进行过专门训练，实际约束由解码器（decoder）在生成阶段施加。
-3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema （包括函数名、参数类型等）。
-4. **自由形式 prompt**。你在 system prompt 中声明‘请以 JSON 格式回复，包含 X 和 Y 字段’，再依赖模型自觉遵守。这对能力强的模型依然有效，但没有任何保证。
+2. **JSON-mode 约束解码**。通过语法约束解码（grammar-constrained decoding）强制模型输出合法 JSON。模型本身未必针对该任务进行过专门训练，实际约束由解码器在生成阶段施加。
+3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema，包括函数名、参数类型等。
+4. **自由形式 prompt**。在 system prompt 中声明‘请以 JSON 格式回复，包含 X 和 Y 字段’，依赖模型自觉遵守。这对能力强的模型依然有效，但没有任何保证。
 
-实际生产系统中，这四类实现常混合采用： OpenAI 与 Anthropic 的 API 结合方案 1 （后训练工具调用）与方案 3 （JSON Schema 强制校验）； vLLM 和 SGLang 为任意模型支持方案 2 （语法约束解码）与方案 3；自由形式（方案 4）则作为兜底策略。
+实际生产系统中，这四类实现常混合采用：OpenAI 与 Anthropic 的 API 结合方案 1（后训练工具调用）与方案 3（JSON Schema 强制校验）；vLLM 和 SGLang 支持任意模型的方案 2（语法约束解码）与方案 3；自由形式（方案 4）则作为兜底策略。
 
-一个关键却常被忽视的区别是工具调用采用 JSON 还是 XML 格式——OpenAI 默认 JSON；Anthropic 的 Claude 模型内部训练使用类 XML 的结构化输出，但对外 API 统一转为 JSON。Anthropic 团队于 2024 年公开指出：XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。实证表明，两种格式均能有效支持工具调用；具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。
+一个关键却常被忽视的区别是工具调用采用 JSON 还是 XML 格式——OpenAI 默认 JSON；Anthropic 的 Claude 模型内部训练使用类 XML 的结构化输出，但对外 API 统一转为 JSON。Anthropic 团队于 2024 年公开指出，XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。实证表明，两种格式均能有效支持工具调用，具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。
 
 ## 一个真实的函数调用请求
 

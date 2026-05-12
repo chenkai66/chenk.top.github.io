@@ -16,11 +16,11 @@ series_order: 4
 translationKey: "docker-containers-4"
 ---
 
-Containers are deliberately isolated. That's the point. But useful applications need to accept connections from the outside world, talk to databases, and store data that survives container restarts. Docker provides two mechanisms for this: networks (how containers communicate) and volumes (how data persists). Getting these right is the difference between a demo and a deployment.
+Containers are deliberately isolated. That's the point. But useful applications need to accept connections from the outside world, talk to databases, and store data that survives container restarts. Docker provides two mechanisms for this: networks (for communication) and volumes (for persistent storage). Getting these right is the difference between a demo and a deployment.
 
 ## Docker Networking
 
-When Docker starts, it creates a virtual network infrastructure on the host. Each container gets its own network namespace (its own IP address, routing table, and network interfaces), and Docker manages how traffic flows between containers and the outside world.
+When Docker starts, it creates a virtual network infrastructure on the host. Each container gets its own network namespace (with its own IP address, routing table, and network interfaces), and Docker manages the traffic flow between containers and the outside world.
 
 ![Container DNS resolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png)
 
@@ -38,7 +38,7 @@ Docker supports several network drivers, each suited to different use cases:
 | `macvlan` | Container gets a MAC address on the physical network | Legacy apps that need to appear as physical hosts | Directly on LAN |
 | `ipvlan` | Like macvlan but shares host's MAC address | Similar to macvlan, fewer switch issues | Directly on LAN |
 
-For most single-host use cases, you'll use **bridge** networks. Let's explore each relevant driver.
+For most single-host use cases, you'll use **bridge** networks. Let's explore the relevant drivers.
 
 ### The Default Bridge Network
 
@@ -106,7 +106,7 @@ docker rm -f container-a container-b
 
 ### Custom Bridge Networks
 
-Custom bridge networks provide automatic DNS resolution between containers — this is what you should use for applications:
+Custom bridge networks provide automatic DNS resolution between containers — this is what you should use for applications.
 
 ```bash
 # Create a custom network
@@ -128,7 +128,7 @@ PING web (172.18.0.2): 56 data bytes
 
 The container name `web` resolves to its IP address. This is Docker's built-in DNS server at work. Docker runs an embedded DNS server at `127.0.0.11` inside each container on a custom network.
 
-Custom networks also provide isolation — containers on different networks can't communicate unless explicitly connected:
+Custom networks also provide isolation — containers on different networks can't communicate unless explicitly connected.
 
 ```bash
 # Create another network
@@ -171,7 +171,7 @@ docker network rm my-app-network other-network
 
 ### Port Mapping
 
-Containers have their own network namespace. To expose a container's port to the host (and thus the outside world), you map ports:
+Containers have their own network namespace. To expose a container's port to the host (and thus the outside world), you map ports.
 
 ![Port mapping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-port-mapping.png)
 
@@ -265,7 +265,7 @@ By default, all data written inside a container is stored in its writable layer.
 
 ### Three Types of Mounts
 
-Docker supports three ways to mount storage into a container:
+Docker supports three ways to mount storage into a container.
 
 | Type | Syntax | Managed By | Location on Host | Use Case |
 |------|--------|-----------|-------------------|----------|
@@ -275,7 +275,7 @@ Docker supports three ways to mount storage into a container:
 
 ### Named Volumes
 
-Named volumes are the recommended way to persist data. Docker manages the storage location, and volumes can be shared between containers:
+Named volumes are the recommended way to persist data. Docker manages the storage location, and volumes can be shared between containers.
 
 ```bash
 # Create a named volume
@@ -344,7 +344,7 @@ docker volume prune
 
 ### Bind Mounts
 
-Bind mounts map a specific host directory into the container. They're essential for development workflows:
+Bind mounts map a specific host directory into the container. They're essential for development workflows.
 
 ```bash
 # Mount current directory into the container

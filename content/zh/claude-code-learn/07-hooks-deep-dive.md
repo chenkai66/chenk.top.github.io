@@ -16,7 +16,7 @@ description: "从参考仓库的 100 个脚本里挑出 10 个，每一个都给
 disableNunjucks: true
 translationKey: "claude-code-learn-7"
 ---
-第五章梳理了 Hook 的基本概念，本章聚焦实战应用：从百余个脚本的参考库中，仅这十个被纳入所有严肃项目的标准配置，逐一介绍并附代码级操作说明。
+第五章梳理了 Hook 的基本概念，本章则聚焦实战应用：从百余个脚本的参考库中，仅这十个被纳入所有严肃项目的标准配置，并逐一介绍附带代码级操作说明。
 
 所有示例默认 Node 18+ 环境，脚本存到 `./hooks/`，加上 `chmod +x` 权限，然后在 `.claude/settings.json` 里这样配置：
 
@@ -30,7 +30,7 @@ translationKey: "claude-code-learn-7"
 }
 ```
 
-先厘清 Hook 生命周期，后续代码会更易读。
+先厘清 Hook 生命周期，这样后续代码会更易读。
 
 - **PreToolUse** 在 Claude 执行工具*之前*触发。退出码 0 表示“放行”，退出码 2 表示“拦截这次调用”。任何写到 stderr 的内容都会作为解释回喂给模型。
 - **PostToolUse** 在工具返回*之后*触发。退出码 1 会把错误暴露给模型；退出码 2 在这里没有特殊含义——副作用已经发生。
@@ -53,7 +53,7 @@ process.stdin.on('end', () => {
 下面的代码清单为了简洁，会跳过这段开头，但每个真实的 Hook 都从这里起步。
 
 ![Hook 的 I/O 契约：stdin 输入 JSON，退出码 + stderr 输出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
-*每个 Hook 都是从 stdin 读取 JSON 载荷的脚本，靠退出码作判决、 stderr 作说明； settings.json 中的 matcher 控制其可见范围——即哪些 Hook 能接收到本次工具调用。*
+*每个 Hook 都是从 stdin 读取 JSON 载荷的脚本，通过退出码进行判决，stderr 提供说明；settings.json 中的 matcher 控制其可见范围——即哪些 Hook 能接收到本次工具调用。*
 
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
@@ -260,7 +260,7 @@ process.stdin.on('end', () => {
 | 部署、生产周边 | 白名单 | 默认拒绝，无清单即拒绝 |
 | 团队共享仓库 | 白名单 | 新成员不会意外引入未审计命令 |
 
-白名单的核心优势在于对*未知*天然安全。新版本工具链里多出来的命令默认走拒绝分支，需要显式审批后才能加入。
+白名单的核心优势在于对*未知*天然安全，新版本工具链里多出来的命令默认走拒绝分支，需要显式审批后才能加入。
 
 ---
 
@@ -348,7 +348,7 @@ process.stdin.on('end', () => {
 
 ### 为什么是 exit 0，不是 exit 1
 
-PostToolUse 在编辑后运行，此时副作用已发生，exit 2 无法回滚；若用 exit 1，错误将暴露给模型，可能引发反复编辑的死循环。格式化属纯辅助操作，记录警告后放行。
+PostToolUse 在编辑后运行，此时副作用已发生，exit 2 无法回滚；若用 exit 1，错误将暴露给模型，可能引发反复编辑的死循环。格式化是纯辅助操作，记录警告后放行。
 
 ### 真实终端输出
 
@@ -422,7 +422,7 @@ process.stdin.on('end', () => {
 
 ### 为什么是 exit 1，不是 exit 2
 
-在 PostToolUse 中，exit 1 会把失败信息回喂给模型，模型读到测试输出后会尝试修复代码，形成一个反馈闭环。
+在 PostToolUse 中，exit 1 会把失败信息回喂给模型，模型读到测试输出后会尝试修复代码，形成反馈闭环。
 
 ```
 Claude: I'll update the validation logic...
@@ -739,7 +739,7 @@ process.stdin.on('end', () => {
 
 ## 把它们串起来
 
-上面这十个 Hook 不是孤立运行的，它们是组合在一起的。下面是它们在真实项目里如何分层。
+上面这十个 Hook 不是孤立运行的，而是组合在一起。下面是它们在真实项目中的分层方式。
 
 ### 完整的 settings.json （含所有十个 Hook）
 

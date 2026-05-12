@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 14
 translationKey: "recommendation-systems-14"
 ---
-> When Netflix launches in a new country, it inherits millions of users with zero history and a catalog with no local ratings. Amazon faces the same problem each time it opens a new product category. Pure collaborative filtering — the workhorse of warm-state recommendation — has nothing to compute on. The discipline that makes recommendations work in this regime is a stack of techniques: bootstrap heuristics for the first request, meta-learning after a handful of interactions, cross-domain transfer when a related domain is rich, and bandits to keep exploring once the model is confident. This post walks through that stack, anchored to the papers it descends from.
+> When Netflix launches in a new country, it inherits millions of users with no history and a catalog with no local ratings. Amazon faces the same issue each time it opens a new product category. Pure collaborative filtering, the workhorse of warm-state recommendations, has nothing to compute. The techniques that make recommendations work in this scenario include: bootstrap heuristics for the first request, meta-learning after a few interactions, cross-domain transfer when a related domain is rich, and bandits to keep exploring once the model is confident. This post walks through these techniques, anchored to the papers they come from.
 
 ![Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/illustration_1.png)
 
@@ -43,11 +43,11 @@ A recommendation system trained on history fails in three distinct ways when his
 
 ### User cold-start
 
-A user signs up. We may know their device, IP region, and the campaign that brought them in — possibly an age band from a sign-up form. We have **zero** explicit interactions. Their row in the rating matrix is blank. Industry data points are blunt: poor first-session recommendations correlate with roughly 3× higher 30-day churn on consumer apps. The lever here is **inference from sparse signals plus aggressive exploration**.
+A user signs up. We may know their device, IP region, and the campaign that brought them in — possibly an age band from a sign-up form. We have zero explicit interactions. Their row in the rating matrix is blank. Industry data shows that poor first-session recommendations correlate with roughly 3× higher 30-day churn on consumer apps. The solution here is **inference from sparse signals plus aggressive exploration**.
 
 ### Item cold-start
 
-A merchant uploads a new SKU. A studio releases a new film. A creator publishes a new video. The column is blank. Collaborative filtering cannot retrieve the item because nobody has co-interacted with it. Without intervention, the item never gets exposure, never accumulates ratings, and stays invisible — the so-called rich-get-richer problem. The lever is **content features**: title, image, embedding from a pretrained encoder, plus seeding via similar warm items.
+A merchant uploads a new SKU, a studio releases a new film, or a creator publishes a new video. The column is blank. Collaborative filtering can't retrieve the item because nobody has interacted with it. Without intervention, the item never gets exposure, never accumulates ratings, and stays invisible — the so-called rich-get-richer problem. The solution is **content features**: title, image, embedding from a pretrained encoder, and seeding via similar warm items.
 
 ### System cold-start
 

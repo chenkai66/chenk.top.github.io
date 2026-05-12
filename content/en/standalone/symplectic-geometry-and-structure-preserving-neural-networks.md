@@ -15,7 +15,7 @@ disableNunjucks: true
 translationKey: "symplectic-geometry-and-structure-preserving-neural-networks"
 ---
 
-Train a vanilla feedforward network to predict a one-dimensional harmonic oscillator. Validate it on the next ten time steps — the error is fine. Now roll it out for a thousand steps. The orbit no longer closes, the energy creeps upward, and what should be a periodic motion turns into a slow spiral. The network learned to fit data points; it never learned the *physics*. Structure-preserving networks fix this by baking geometric invariants — energy conservation, the symplectic 2-form, the Euler-Lagrange equations — directly into the architecture, so the learned model cannot violate them no matter how long you integrate.
+Train a vanilla feedforward network to predict a one-dimensional harmonic oscillator. Validate it on the next ten time steps — the error is fine. Now roll it out for a thousand steps. The orbit no longer closes, the energy creeps upward, and what should be periodic motion turns into a slow spiral. The network learned to fit data points but never learned the *physics*. Structure-preserving networks fix this by incorporating geometric invariants — energy conservation, the symplectic 2-form, and the Euler-Lagrange equations — directly into the architecture, ensuring the learned model cannot violate them no matter how long you integrate.
 
 ## What you will learn
 
@@ -53,7 +53,7 @@ The cause is structural, not statistical. The MLP can represent any smooth $\mat
 
 ### 1.2 The structural fix
 
-Structure-preserving networks restrict the hypothesis class to maps that already obey the conservation law. There are three popular ways to do it; they differ in what the network represents:
+Structure-preserving networks restrict the hypothesis class to maps that already obey the conservation law. There are three popular methods, each differing in what the network represents:
 
 - **HNN** — the network represents the *scalar* Hamiltonian $H_{\theta}(q,p)$. Hamilton's equations are then applied analytically (via autograd) to produce $\dot z$. Energy is conserved by construction whenever $H_{\theta}$ is time-independent.
 - **LNN** — the network represents the *Lagrangian* $L_{\theta}(q, \dot q)$. Acceleration is recovered from the Euler-Lagrange equation. Useful when momenta are awkward (e.g. constrained mechanics).

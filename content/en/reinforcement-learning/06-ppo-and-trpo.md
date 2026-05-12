@@ -19,7 +19,7 @@ translationKey: "reinforcement-learning-6"
 ---
 Policy gradients (Part 3) optimise the policy directly, sidestepping discrete `argmax` operators and naturally handling stochastic strategies. They have one fatal flaw: **a single overlong step can destroy the policy**, and because the data distribution is *coupled* to the policy, recovery is nearly impossible.
 
-**Trust-region methods** make this concrete: bound the change in *behaviour*, not in parameters, at every update. TRPO does it through a hard KL constraint and a second-order solver. PPO mimics the same effect with one line of clipped arithmetic. The cheaper trick won: PPO trains OpenAI Five, ChatGPT's RLHF stage, almost every modern robotics policy, and remains the workhorse of applied deep RL.
+**Trust-region methods** make this concrete: bound the change in *behaviour*, not in parameters, at every update. TRPO does this with a hard KL constraint and a second-order solver. PPO mimics the same effect with one line of clipped arithmetic. The simpler trick won: PPO trains OpenAI Five, ChatGPT's RLHF stage, almost every modern robotics policy, and remains the workhorse of applied deep RL.
 
 ![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
 
@@ -46,7 +46,7 @@ Three pathologies are at play here:
 
 1. **Variance explosion.** The score function carries a $1/\pi$ factor, so rare actions induce gigantic gradient magnitudes — the same reason "off-policy" REINFORCE is unstable.
 2. **Distribution shift.** The next batch of trajectories is collected by the *new* policy. If the new policy is bad, every datapoint we collect from it confirms a worse signal — a feedback loop.
-3. **Irreversibility.** A supervised model only loses *fit* on a bad step; an RL agent loses *data* on a bad step, and policy collapse can take an order of magnitude more samples to undo than to cause.
+3. **Irreversibility.** A supervised model only loses *fit* on a bad step; an RL agent loses *data* on a bad step, and policy collapse can take an order of magnitude more samples to reverse than to cause.
 
 ### Parameter space lies; policy space tells the truth
 
@@ -62,10 +62,10 @@ The figure makes the geometry concrete: the green-to-red surface is a hypothetic
 
 ## Importance sampling: the bridge to off-policy data
 
-On-policy methods throw away every batch after a single gradient step, because the data distribution shifts. **Importance sampling** lets us re-use a batch by reweighting:
+On-policy methods discard each batch after a single gradient step because the data distribution shifts. **Importance sampling** lets us reuse a batch by reweighting:
 
 $$\mathbb{E}_{x \sim q}[f(x)] = \mathbb{E}_{x \sim p}\!\left[\tfrac{q(x)}{p(x)}\, f(x)\right]$$
-Plugging the old and new policies into the policy-gradient objective gives the **surrogate objective**:
+Plugging the old and new policies into the policy-gradient objective yields the **surrogate objective**:
 $$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right]$$
 The probability ratio $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_t)$ is the central object of every algorithm in this post.
 

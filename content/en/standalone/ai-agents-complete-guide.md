@@ -12,9 +12,9 @@ disableNunjucks: true
 translationKey: "ai-agents-complete-guide"
 ---
 
-A chatbot answers questions. An *agent* gets things done — it browses, runs code, calls APIs, queries databases, and iterates until the job is finished. The same LLM sits behind both, but the wrapper is different: an agent runs inside a loop with tools, memory, and the ability to inspect its own work.
+A chatbot answers questions. An *agent* gets things done — it browses, runs code, calls APIs, queries databases, and iterates until the job is complete. The same LLM powers both, but the wrapper differs: an agent runs in a loop with tools, memory, and the ability to inspect its own work.
 
-This guide is the long-form version of that idea. It covers the four core capabilities (planning, memory, tool use, reflection), the major framework families, multi-agent collaboration, evaluation, and the production concerns that decide whether an agent ships or quietly fails on a Tuesday afternoon.
+This guide is the expanded version of that idea. It covers the four core capabilities (planning, memory, tool use, reflection), major framework families, multi-agent collaboration, evaluation, and the production concerns that determine whether an agent succeeds or fails.
 
 ## What you will learn
 
@@ -36,13 +36,13 @@ This guide is the long-form version of that idea. It covers the four core capabi
 
 ## What an AI Agent actually is
 
-An AI agent is a system in which an LLM, given a goal, autonomously decides what to do next, executes that action through tools, observes the result, and repeats until the goal is met or a stopping condition triggers.
+An AI agent is a system where an LLM, given a goal, autonomously decides what to do next, executes that action through tools, observes the result, and repeats until the goal is met or a stopping condition is triggered.
 
-That sentence has four load-bearing words: **goal**, **decide**, **execute**, **observe**. A single LLM call has none of them in any meaningful sense; it produces text and stops. An agent re-enters the model with new context every step, which is why the same underlying LLM can suddenly book a flight, fix a flaky test, or drive a browser.
+That sentence has four key words: **goal**, **decide**, **execute**, **observe**. A single LLM call lacks these in any meaningful way; it produces text and stops. An agent re-enters the model with new context at each step, which is why the same LLM can suddenly book a flight, fix a flaky test, or drive a browser.
 
 ### From one-shot generation to a cognitive loop
 
-The shift from request-response to a loop is the entire story:
+The shift from request-response to a loop is the whole story:
 
 ```python
 # Traditional LLM: one shot, one answer
@@ -63,15 +63,15 @@ def agent_loop(goal: str) -> str:
     return state.best_effort_answer()
 ```
 
-Three things make this loop work in practice: a memory that survives across steps, a tool layer that returns structured results, and a stopping rule that prevents an enthusiastic LLM from ordering 200 pizzas. Everything else in this guide is variations on those three themes.
+Three things make this loop work: a memory that persists across steps, a tool layer that returns structured results, and a stopping rule that prevents an overzealous LLM from ordering 200 pizzas. Everything else in this guide is variations on these themes.
 
 ![Agent cognitive loop: perceive, reason, act, remember](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/ai-agents-complete-guide/fig1_agent_loop.png)
 
 ### Why this matters: a concrete contrast
 
-Consider the goal "find the top three ML conference deadlines for 2026 and schedule reminders two weeks before each."
+Consider the goal: "Find the top three ML conference deadlines for 2026 and schedule reminders two weeks before each."
 
-A standalone LLM call returns whatever it remembers from training — often a year out of date — and physically cannot create calendar events. An agent searches the web for current dates, parses the results, computes the reminder dates, calls a calendar API, and returns confirmation IDs. The LLM is the same; the wiring is what differs.
+A standalone LLM call returns whatever it remembers from training, often a year out of date, and cannot create calendar events. An agent searches the web for current dates, parses the results, computes the reminder dates, calls a calendar API, and returns confirmation IDs. The LLM is the same; the wiring differs.
 
 ![Rule-based system vs LLM-based agent](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/ai-agents-complete-guide/fig2_agent_vs_rule.png)
 
@@ -79,7 +79,7 @@ The diagram above is worth pausing on. A rule-based system is a hard-coded decis
 
 ### The five components of an agent
 
-Every effective agent has the same five parts. The names vary across frameworks; the responsibilities do not.
+Every effective agent has the same five parts. The names vary across frameworks, but the responsibilities do not.
 
 **1. The brain (LLM core).** A reasoning engine that interprets goals, generates plans, and emits tool calls. Choice of model dominates capability and cost.
 
@@ -132,17 +132,17 @@ Production systems layer additional concerns on top — structured logging, retr
 
 ## Capability 1: Planning
 
-Planning is what turns "summarise this 200-page report and email the highlights to the team" into a sequence of steps the agent can actually execute. Three planning patterns dominate.
+Planning turns "summarize this 200-page report and email the highlights to the team" into a sequence of steps the agent can execute. Three planning patterns dominate.
 
 ### Chain-of-Thought (CoT)
 
-The simplest pattern: ask the model to verbalise its reasoning before producing the answer. CoT works well when reasoning is mostly internal — arithmetic, logic puzzles, structured rewriting. It does *not* by itself enable tool use; it only spreads the reasoning over more tokens.
+The simplest pattern: ask the model to verbalise its reasoning before producing the answer. CoT works well for internal reasoning — arithmetic, logic puzzles, structured rewriting. It does *not* enable tool use; it only spreads the reasoning over more tokens.
 
 CoT is a cost-effective default. Use it as a baseline before reaching for anything fancier.
 
 ### ReAct (Reason + Act)
 
-ReAct interleaves reasoning ("Thought") with tool calls ("Action") and tool outputs ("Observation"). It is the de facto standard for tool-using agents because the same LLM call decides both what to think and what to do.
+ReAct interleaves reasoning ("Thought") with tool calls ("Action") and tool outputs ("Observation"). It is the de facto standard for tool-using agents because the same LLM call determines both what to think and what to do.
 
 ```python
 class ReActAgent:
@@ -180,11 +180,11 @@ A typical ReAct trace looks like the figure below. Each row corresponds to one L
 
 ![ReAct trace: interleaved reasoning and acting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/ai-agents-complete-guide/fig5_react_flow.png)
 
-Two practical notes about ReAct. First, the parser is the source of most production bugs — prefer JSON mode or function calling over free-form parsing. Second, observations from tools should be *summarised before being fed back* if they are large; raw HTML pages will blow your context window in three steps.
+Two practical notes about ReAct. First, the parser is the source of most production bugs — prefer JSON mode or function calling over free-form parsing. Second, summarize large tool observations before feeding them back; raw HTML pages will exceed your context window in three steps.
 
 ### Tree of Thoughts (ToT)
 
-ToT generalises CoT to a search tree: at each step the model proposes several candidate thoughts, scores them, and either expands the most promising or backtracks. It is genuinely more capable on problems with combinatorial structure (Game of 24, creative writing, code search) but it costs *N* times more LLM calls, where *N* is the branching factor.
+ToT generalizes CoT to a search tree: at each step, the model proposes several candidate thoughts, scores them, and either expands the most promising or backtracks. It is more capable for problems with combinatorial structure (Game of 24, creative writing, code search) but costs *N* times more LLM calls, where *N* is the branching factor.
 
 A reasonable rule of thumb: only reach for ToT when ReAct fails consistently and you can articulate why. For most production tasks, ReAct with retries beats ToT on cost-effectiveness.
 

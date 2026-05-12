@@ -25,9 +25,9 @@ Before diving into layers, let's clarify a fundamental distinction that trips up
 ![Image registry workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-image-registry.png)
 
 
-An **image** is a read-only template. It contains the filesystem, environment variables, default command, and metadata needed to create a container. Think of it as a class definition in object-oriented programming.
+An **image** is a read-only template containing the filesystem, environment variables, default command, and metadata needed to create a container. Think of it as a class definition in object-oriented programming.
 
-A **container** is a running (or stopped) instance created from an image. It has everything the image has, plus a writable layer on top and runtime state (network, process IDs, etc.). Think of it as an object instantiated from a class.
+A **container** is a running (or stopped) instance created from an image. It includes everything the image has, plus a writable layer and runtime state (network, process IDs, etc.). Think of it as an object instantiated from a class.
 
 ```bash
 # The image (template)
@@ -56,7 +56,7 @@ Notice two containers (`web1` and `web2`) running from the same `nginx` image. T
 
 ## The Layer Model
 
-Every Docker image is built from a stack of layers. Each layer represents a set of filesystem changes — files added, modified, or deleted. Layers are:
+Every Docker image is built from a stack of layers. Each layer represents filesystem changes — files added, modified, or deleted. Layers are:
 
 ![Docker layer building animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/docker-02-layer-building.gif)
 

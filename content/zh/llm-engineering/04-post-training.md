@@ -18,7 +18,7 @@ disableNunjucks: true
 description: "SFT、DPO、RLHF、RLAIF 各自具体在优化什么，奖励模型在哪里失败，KL 约束的作用，LoRA vs 全量微调那场争论，以及 2026 年生产里实际跑的 post-training 配方。"
 translationKey: "llm-engineering-4"
 ---
-预训练的基座模型只会续写文本，而让它听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段。这也是论文中宣称的效果与生产级模型之间差距最大的地方。本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。
+预训练的基座模型只会续写文本，而听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段——这也是论文中宣称的效果与生产级模型之间差距最大的地方。本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。
 
 ![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_1.png)
 

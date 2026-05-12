@@ -18,9 +18,9 @@ description: "Agent 有三种记忆，分别落到三个阿里云服务上：会
 disableNunjucks: true
 translationKey: "terraform-agents-5"
 ---
-大多数教程在讲解 Agent 记忆时都敷衍了事：“把 embeddings、sessions 和截图分别扔进 Pinecone、Postgres 和 S3 就行了。”在阿里云上，这三类服务都有托管方案，但 Terraform 配置是否合理直接影响记忆功能的稳定性——配置不当可能导致凌晨 4 点磁盘告警或三周对话历史永久丢失。
+大多数教程在讲解 Agent 记忆时都敷衍了事：把 embeddings、sessions 和截图分别扔进 Pinecone、Postgres 和 S3 就行了。在阿里云上，这三类服务都有托管方案，但 Terraform 配置是否合理直接影响记忆功能的稳定性——配置不当可能导致凌晨 4 点磁盘告警或三周对话历史永久丢失。
 
-本文系统梳理这三层架构：各层对应的 Terraform 实现、备份与容灾机制（看似枯燥却至关重要）、PostgreSQL 大版本升级的实际操作经验，以及一次真实的周六故障——正是这次事故，直接塑造了后续所有关键架构决策。
+本文系统梳理这三层架构：各层对应的 Terraform 实现、备份与容灾机制（看似枯燥却至关重要）、PostgreSQL 大版本升级的实际操作经验，以及一次真实的周六故障——这次事故直接塑造了后续所有关键架构决策。
 
 ## 三层记忆模型
 
@@ -28,9 +28,9 @@ translationKey: "terraform-agents-5"
 
 我们采用如下三层记忆模型：
 
-- **短期 / 会话（Short-term / session）** —— Agent 在当前 run 和最近几次 run 里做了什么。对话轮次、工具调用、中间状态。 Schema 稳定、读写低延迟、支持事务——适合存入关系型数据库。
-- **长期 / 语义（Long-term / semantic）** —— 文档 embeddings、 prior outputs、 recall corpus。混合 lexical + vector 搜索。扔进向量存储。
-- **Artifact / blob** —— 生成的图片、 PDF、截图、 run 快照。通常很大，写一次读很少。扔进对象存储。
+- **短期 / 会话（Short-term / session）** —— Agent 在当前 run 和最近几次 run 里做了什么，包括对话轮次、工具调用、中间状态。Schema 稳定、读写低延迟、支持事务——适合存入关系型数据库。
+- **长期 / 语义（Long-term / semantic）** —— 文档 embeddings、prior outputs、recall corpus，混合 lexical + vector 搜索，适合存入向量存储。
+- **Artifact / blob** —— 生成的图片、PDF、截图、run 快照，通常很大，写一次读很少，适合存入对象存储。
 
 别把它们混为一谈。我见过有团队想把 50GB 生成的 PDF 塞进 Postgres，理由是“它有 `bytea` 列”。其存储成本可达 OSS 的十倍，查询延迟明显上升，全量备份耗时甚至长达数小时。每层都有专门擅长干这个活的服务——选对服务，账单才能控制在合理范围内。
 

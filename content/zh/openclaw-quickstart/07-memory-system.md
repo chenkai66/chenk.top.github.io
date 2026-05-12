@@ -43,7 +43,7 @@ translationKey: "openclaw-quickstart-7"
 
 ## 四层思维模型
 
-决定某件事该放哪儿时，我脑子里始终装着这张表：
+决定某件事该放哪儿时，我脑子里始终有这张表：
 
 | Tier | Lifespan | Goes in |
 |------|----------|---------|

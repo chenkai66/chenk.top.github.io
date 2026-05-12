@@ -14,7 +14,7 @@ disableNunjucks: true
 translationKey: "tennis-cv-system-design"
 ---
 
-A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory from eight 4K cameras in real time, while simultaneously classifying what stroke each player is making, is a system problem that touches **small-object detection, multi-view geometry, Kalman filtering, physics modelling, and human-pose estimation** — all at once. This post walks the same path you'd walk at deployment time: state the constraints, survey the literature, choose, then build, and finally lay out a millisecond-by-millisecond budget for what runs in production.
+A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory from eight 4K cameras in real time, while also classifying each player's stroke, involves **small-object detection, multi-view geometry, Kalman filtering, physics modeling, and human-pose estimation** — all at once. This post follows the same steps as you would at deployment: state the constraints, survey the literature, choose, build, and lay out a millisecond-by-millisecond budget for production.
 
 ## What you will see
 
@@ -28,13 +28,13 @@ A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory 
 
 ![End-to-end tennis-scene CV pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig1_pipeline.png)
 
-The whole pipeline has **16.7 ms** to spend per frame at 60 fps, so every box above must finish in single-digit milliseconds. Each subsequent section pays one slice of that budget.
+The entire pipeline has **16.7 ms** per frame at 60 fps, so each step must complete in single-digit milliseconds. Each section allocates part of that budget.
 
 ---
 
 ## 1. Requirements: quantify "hard"
 
-Before anything is built, the non-negotiable numbers go on the table.
+Before building, the non-negotiable numbers are laid out.
 
 ### 1.1 Capability matrix
 
@@ -47,13 +47,13 @@ Before anything is built, the non-negotiable numbers go on the table.
 | Player pose | Single-camera frame | 17 keypoints | < 6 ms / person |
 | Action classification | Keypoint sequence | Class + confidence | < 1 ms |
 
-If any single stage blows its budget, the whole pipeline drops from 60 fps to 30 fps and the experience visibly stutters.
+If any stage exceeds its budget, the pipeline drops from 60 fps to 30 fps, causing visible stuttering.
 
 ### 1.2 The physics of "hard"
 
-**Pixel budget for a small target.** A tennis ball seen from the opposite baseline (~28 m away) at a 35 mm-equivalent focal length occupies about 12 px. A one-pixel center error projects back to **2.3 cm of lateral 3D error** — already at the threshold of a baseline line-call decision.
+**Pixel budget for a small target.** A tennis ball seen from the opposite baseline (~28 m away) at a 35 mm-equivalent focal length occupies about 12 px. A one-pixel center error translates to **2.3 cm of lateral 3D error** — already at the threshold for a baseline line call.
 
-**Motion blur.** At 50 m/s ball speed and a 1/250 s shutter, the ball smears across 20 cm in a single frame, producing a 30 px streak. Without sub-1/1000 s global shutters, no detection algorithm fully recovers.
+**Motion blur.** At 50 m/s and a 1/250 s shutter, the ball smears 20 cm in a single frame, creating a 30 px streak. Without sub-1/1000 s global shutters, no detection algorithm can fully recover.
 
 **Synchronisation, geometrically amplified.** A 5 ms offset between two cameras puts the ball at different image positions by ~25 cm. Triangulation degenerates and the recovered 3D point drifts along an "anti-epipolar" line. PTP synchronisation under 1 ms is therefore a hard floor.
 
@@ -67,18 +67,18 @@ Six years of papers, sorted by the four sub-tasks. Each section ends with the ch
 
 ### 2.1 Small-object detection
 
-The collapse of generic detectors on small objects shows up cleanly in the data:
+The failure of generic detectors on small objects is clear in the data:
 
 ![Small-object detection comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig2_detection_compare.png)
 
-Left: AP@0.5 vs object side length in pixels — the tennis-ball regime sits in the 8–22 px shaded band, where **Faster R-CNN scores 0.05–0.2** and even YOLOv8 at 1280 input only reaches 0.3–0.5. Right: latency vs accuracy bubbles. The only models that satisfy both 60 fps (< 16.7 ms) and AP > 0.9 live on the **TrackNet V2/V3 specialised track**.
+Left: AP@0.5 vs. object side length in pixels — the tennis-ball range is 8–22 px, where **Faster R-CNN scores 0.05–0.2** and even YOLOv8 at 1280 input only reaches 0.3–0.5. Right: latency vs. accuracy. The only models meeting both 60 fps (< 16.7 ms) and AP > 0.9 are on the **TrackNet V2/V3 specialized track**.
 
 **TrackNet** (2019–2023) reframes "ball" as a temporal problem rather than per-frame detection:
 - V1 used a VGG-U-Net consuming 3 consecutive frames and produced a heatmap; the first stable solution
 - V2 swapped in MobileNetV2, dropping params from 15 M to 2.8 M, 3× faster, only 1.2 pp worse
 - V3 added Transformer cross-frame self-attention and pushed high-speed detection success from 92.3% to 96.7%
 
-A **coarse-to-fine** alternative (YOLOv5 proposals + ResNet-50 verification) cuts false positives by ~60% but costs another 10 ms — fine for offline replay analysis, not for live broadcast.
+A **coarse-to-fine** alternative (YOLOv5 proposals + ResNet-50 verification) reduces false positives by ~60% but adds 10 ms — suitable for offline replay analysis, not live broadcast.
 
 > **Choice.** Live path: **YOLOv8-l @ 1280 + 3-frame temporal vote.** Offline path: stack TrackNet V3 as a refinement stage.
 

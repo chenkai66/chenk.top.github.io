@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-7"
 ---
 
-The first six pieces got you to a working OpenClaw with a channel and a skill. This one is about the part everyone gets wrong on the first install: memory.
+The first six pieces got you to a working OpenClaw with a channel and a skill. This one focuses on the part everyone gets wrong on the first install: memory.
 
 ![OpenClaw QuickStart (7): The Memory System, Without the Magic — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.png)
 
@@ -44,7 +44,7 @@ The mistake I made for two months: dumping everything into `MEMORY.md`. By the t
 
 ## The four-tier mental model
 
-I keep this in my head when deciding where something belongs:
+I keep this in mind when deciding where something belongs:
 
 | Tier | Lifespan | Goes in |
 |------|----------|---------|
@@ -53,11 +53,11 @@ I keep this in my head when deciding where something belongs:
 | Lesson | years | `lessons.md` |
 | Trace | days | `memory/YYYY-MM-DD.md` |
 
-Anything that doesn't fit one of those is probably noise. Throw it away.
+Anything that doesn't fit one of these is probably noise. Throw it away.
 
 ## Writing good memory entries
 
-The quality of what you store matters more than the quantity. Every memory entry should let the agent make a decision without asking you again.
+The quality of what you store matters more than the quantity. Each memory entry should allow the agent to make a decision without asking you again.
 
 **Bad entries** — vague, undated, no actionable content:
 
@@ -97,7 +97,7 @@ Here's what a well-structured `MEMORY.md` looks like — enough for most solo us
 - memoryFlush on before any long session
 ```
 
-Ten lines. Under 200 tokens to load. The agent knows who you are, what you're working on, where to look, and what not to do. Everything else lives in referenced files and gets pulled via search.
+Ten lines. Under 200 tokens to load. The agent knows who you are, what you're working on, where to look, and what not to do. Everything else is in referenced files and gets pulled via search.
 
 ## Memory types deep dive
 
@@ -141,13 +141,13 @@ Long conversations get compacted automatically when the context window gets tigh
 
 ### What happens without it
 
-Here's a real scenario from before I turned this on. I was 80 turns into a debugging session. Around turn 20, I mentioned switching my embedding provider from OpenAI to SiliconFlow due to rate limits. The agent acknowledged it, we moved on.
+Here's a real scenario from before I turned this on. I was 80 turns into a debugging session. Around turn 20, I mentioned switching my embedding provider from OpenAI to SiliconFlow due to rate limits. The agent acknowledged it, and we moved on.
 
-Around turn 60, context got tight. Compaction trimmed the middle (turns 15-45). The provider switch lived there. Gone. Turn 70, I asked the agent to re-index. It called OpenAI. Failed. Ten minutes burned on something that should have been permanent knowledge.
+Around turn 60, context got tight. Compaction trimmed the middle (turns 15-45), removing the provider switch. At turn 70, I asked the agent to re-index. It called OpenAI and failed. Ten minutes wasted on something that should have been permanent knowledge.
 
 With `memoryFlush` enabled, the flush pass fires first — writing "Embedding provider changed to SiliconFlow, OpenAI deprecated" into `projects.md` before trimming. Post-compaction, the agent reloads and picks it up.
 
-- **Without memoryFlush:** compaction deletes silently. Agent reverts to stale assumptions.
+- **Without memoryFlush:** compaction deletes silently. The agent reverts to stale assumptions.
 - **With memoryFlush:** compaction triggers a write pass first. Critical facts persist.
 
 If you only change one default, change this one.
@@ -172,7 +172,7 @@ You can run semantic search across the memory files. You need an embedding API. 
 }
 ```
 
-You'll only see the win after about a week of usage. Before that there's nothing to search.
+You'll only see the benefit after about a week of usage. Before that, there's nothing to search.
 
 ## Memory budget math
 
@@ -180,7 +180,7 @@ Every token spent on memory is a token not spent on conversation. Here's the mat
 
 `MEMORY.md` at 40 lines costs about 600 tokens — your fixed overhead per turn. Each file chunk from `memorySearch` costs 200-500 tokens. Default retrieval budget is 2000 tokens, meaning 3-4 chunks per turn.
 
-Total overhead per turn: 600 + 2000 = 2600 tokens. On a 128k model, about 2%. Acceptable.
+Total overhead per turn: 600 + 2000 = 2600 tokens. On a 128k model, that's about 2%. Acceptable.
 
 Tune with `max_memory_tokens_per_turn`:
 
@@ -196,9 +196,9 @@ Tune with `max_memory_tokens_per_turn`:
 }
 ```
 
-Why not crank it to 4000 or higher? Because memory competes with the conversation. At 4000, you're spending 4600 tokens on overhead. In a multi-turn conversation with a 6000-token reply budget, nearly half is eaten by retrieval. The agent's responses get squeezed.
+Why not set it to 4000 or higher? Memory competes with the conversation. At 4000, you're spending 4600 tokens on overhead. In a multi-turn conversation with a 6000-token reply budget, nearly half is used for retrieval. The agent's responses get squeezed.
 
-The sweet spot: 1000 for quick tasks (< 10 turns), 2000 for standard sessions (the default), 3000 for long research. Never above 4000 — it crowds out conversation. If the agent misses context at 2000, the fix is better memory entries, not a bigger budget.
+The sweet spot: 1000 for quick tasks (< 10 turns), 2000 for standard sessions (the default), and 3000 for long research. Never go above 4000 — it crowds out conversation. If the agent misses context at 2000, improve the memory entries, not the budget.
 
 ## ContextEngine — the v2026.3.7 shift
 

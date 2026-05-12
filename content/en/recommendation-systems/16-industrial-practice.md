@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 16
 translationKey: "recommendation-systems-16"
 ---
-> The hardest part of a production recommendation system is not the model. It is the **system around the model**: the feature store that prevents training/serving skew, the canary deployment that catches a regression before it hits 100M users, the orchestration that meets a 100ms p95 latency budget while running four ML models in sequence. This final article describes the architecture that every major tech company has converged on — and the trade-offs hiding inside each layer.
+> The hardest part of a production recommendation system isn't the model. It's the **system around the model**: the feature store that prevents training/serving skew, the canary deployment that catches regressions before they hit 100M users, and the orchestration that meets a 100ms p95 latency budget while running four ML models in sequence. This final article describes the architecture that every major tech company has converged on — and the trade-offs within each layer.
 
 ![Recommendation Systems (16): Industrial Architecture and Best Practices — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/illustration_1.png)
 
@@ -50,7 +50,7 @@ Every major tech company — Google, Amazon, Alibaba, ByteDance — has converge
 2. **Training plane** turns samples into models, validates them offline, and writes the result to a model registry.
 3. **Serving plane** is the real-time funnel that the user actually waits on. It is the only plane with a strict latency budget.
 
-The serving plane itself is a **funnel that progressively narrows the candidate set while increasing scoring precision**:
+The serving plane itself is a **funnel that progressively narrows the candidate set and increases scoring precision**:
 
 ```
 User request → Recall (10⁶ → 2K) → Coarse Rank (2K → 200) → Fine Rank (200 → 50) → Re-rank (50 → 20) → Response
@@ -64,11 +64,11 @@ User request → Recall (10⁶ → 2K) → Coarse Rank (2K → 200) → Fine Ran
 | Reranking | ~50 → ~20 | Rules + lightweight ML | 10-20 ms |
 | **Total** | | | **< 100 ms p95** |
 
-Think of it as a hiring funnel: recall is a resume screen (fast, wide net), coarse ranking is the phone screen, fine ranking is the on-site interview, and reranking is the hiring committee that makes the final adjustments for diversity and team fit.
+Think of it as a hiring funnel: recall is like a resume screen (fast, wide net), coarse ranking is the phone screen, fine ranking is the on-site interview, and reranking is the hiring committee that makes the final adjustments for diversity and team fit.
 
 ### Why a Funnel Instead of One Big Model?
 
-The brute-force alternative — score every item with one heavy model — would take seconds per request. The funnel buys orders of magnitude of speed because each stage uses a model that is appropriate to its candidate count: cheap models on many items, expensive models on few. The recall stage typically spends ~5 microseconds per item; the fine ranker spends ~250 microseconds. The product makes the budget work.
+The brute-force alternative — scoring every item with one heavy model — would take seconds per request. The funnel provides orders of magnitude more speed because each stage uses a model appropriate for its candidate count: cheap models for many items, expensive models for fewer. The recall stage typically spends ~5 microseconds per item; the fine ranker spends ~250 microseconds. The product fits within the budget.
 
 ### Key Design Principles
 
@@ -128,7 +128,7 @@ The funnel above shows the order-of-magnitude reduction at each stage. Two desig
 
 ![Recommendation Systems (16): Industrial Architecture and Best Practices — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/illustration_2.png)
 
-A single recall strategy will always miss something. Collaborative filtering misses cold items. Content recall misses serendipitous discoveries. Real-time signals miss the user's longer-term interests. So production systems run **3-5 recall channels in parallel** and merge the results.
+A single recall strategy will always miss something. Collaborative filtering misses cold items, content recall misses serendipitous discoveries, and real-time signals miss the user's longer-term interests. Therefore, production systems run **3-5 recall channels in parallel** and merge the results.
 
 ### Channel 1: Two-Tower Deep Recall
 

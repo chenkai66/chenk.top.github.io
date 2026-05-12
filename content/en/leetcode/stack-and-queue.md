@@ -19,7 +19,7 @@ translationKey: "leetcode-9"
 
 Stacks and queues look unassuming next to graphs or DP, but they sit underneath an astonishing fraction of interview problems. The reason is simple: most algorithmic questions are really questions about *order of access*. Stacks give you LIFO (last in, first out); queues give you FIFO (first in, first out); and once you add the variants — monotonic stack, deque, priority queue — you have efficient answers for bracket matching, next-greater-element, sliding-window extrema, top-K, BFS, and a long tail of "implement X using Y" puzzles.
 
-This part of the series walks the whole landscape end-to-end. We start from the bare data structures, then work through six representative LeetCode problems with full traces, and finish with a comparison table and a Q&A that targets the mistakes I see candidates make most often.
+This part of the series covers the entire landscape. We start with the basic data structures, then work through six representative LeetCode problems with full traces, and conclude with a comparison table and a Q&A addressing common mistakes I see candidates make.
 
 ![Stack vs Queue: same input, opposite output order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/stack-and-queue/fig1_lifo_vs_fifo.png)
 
@@ -42,7 +42,7 @@ This part of the series walks the whole landscape end-to-end. We start from the 
 
 ### Stack — LIFO
 
-A **stack** is a linear container in which the most recently inserted element is the first to leave. Think of a pile of plates: you add to the top and remove from the top. The interface is tiny:
+A **stack** is a linear container where the most recently added element is the first to be removed. Think of a pile of plates: you add to the top and remove from the top. The interface is simple:
 
 - `push(x)` — append `x` on top
 - `pop()` — remove and return the top
@@ -83,7 +83,7 @@ st.pop();
 
 ### Queue — FIFO
 
-A **queue** is the mirror image: the *oldest* element leaves first. Picture a line at a coffee shop. The standard interface is:
+A **queue** is the opposite: the *oldest* element leaves first. Picture a line at a coffee shop. The standard interface includes:
 
 - `enqueue(x)` / `offer(x)` — append at the rear
 - `dequeue()` / `poll()` — remove and return the front
@@ -128,7 +128,7 @@ def isValid(s: str) -> bool:
     return not stack
 ```
 
-Figure 2 traces the algorithm on `({[]})`. Each column is one step: the highlighted character is the one being read, the bottom column shows the stack *after* the action. Notice how the stack grows to depth 3, then unwinds symmetrically.
+Figure 2 traces the algorithm on `({[]})`. Each column represents one step: the highlighted character is the one being read, and the bottom column shows the stack *after* the action. Notice how the stack grows to depth 3, then unwinds symmetrically.
 
 ![Valid Parentheses: stack trace on "({[]})"](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/stack-and-queue/fig2_valid_parentheses.png)
 

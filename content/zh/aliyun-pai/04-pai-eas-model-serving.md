@@ -35,7 +35,7 @@ translationKey: "aliyun-pai-4"
 文档指出，运行时镜像部署包含以下四个关键部件：
 
 1. **运行时镜像** —— 只读模板，包含 OS、 CUDA、 Python 和依赖。用官方的（`vllm:0.11.2-mows0.5.1`，`pytorch:...`）或者推自己的到 ACR。
-2. **代码和模型** —— *不在镜像里*。它们存在 OSS / NAS。解耦后，更新权重不用重 build 镜像。
+2. **代码和模型** —— *不在镜像里*，它们存在 OSS/NAS。解耦后，更新权重不用重新构建镜像。
 3. **存储挂载** —— 启动时， EAS 通过 FUSE 把你指定的 OSS 路径挂载到容器内的目录，比如 `/mnt/data/`。
 4. **运行命令** —— 容器启动后的第一条命令。通常是启动 HTTP 服务（`vllm serve /mnt/data/Qwen/Qwen3-0.6B`）。
 
@@ -43,15 +43,15 @@ translationKey: "aliyun-pai-4"
 
 ## 三种推理模式
 
-文档列了三种。选错模式，要么增加成本，要么升高延迟。
+文档列了三种模式。选错模式会增加成本或提高延迟。
 
 ![EAS 推理模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/fig2_eas_inference_modes.png)
 
 一个实用的启发式规则如下：
 
-- **实时同步** —— 聊天机器人、 RAG 检索、广告排序、搜索。你关心 p99 延迟。
-- **异步** —— 任何耗时 5 秒以上的任务：图像生成、视频生成、 PDF 批量 OCR。内置队列会根据任务积压量自动伸缩副本，这才是处理此类工作负载的合理方式。
-- **批量** —— 任何可以等几分钟的任务：夜间 Embedding、语音转录。用抢占式实例，账单砍半。
+- **实时同步** —— 聊天机器人、RAG 检索、广告排序、搜索。你关心 p99 延迟。
+- **异步** —— 任何耗时 5 秒以上的任务，如图像生成、视频生成、PDF 批量 OCR。内置队列会根据任务积压量自动伸缩副本，这是处理此类工作负载的合理方式。
+- **批量** —— 任何可以等几分钟的任务，如夜间 Embedding、语音转录。使用抢占式实例，账单减半。
 
 ## 真正的 Quick Start
 
@@ -64,7 +64,7 @@ translationKey: "aliyun-pai-4"
 5. **资源：** `ecs.gn7i-c16g1.4xlarge`（1 × A10）。
 6. **点击部署。** 大约 5 分钟变 `Running`。
 
-然后你就能拿到控制台给的那个 OpenAI 兼容端点 URL。调用它：
+然后你就能拿到控制台提供的 OpenAI 兼容端点 URL，并调用它：
 
 ```python
 import os
