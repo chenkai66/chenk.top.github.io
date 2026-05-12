@@ -103,7 +103,10 @@
       panel = buildHelpPanel();
       document.body.appendChild(panel);
     }
-    panel.classList.toggle('open');
+    var willOpen = !panel.classList.contains('open');
+    panel.classList.toggle('open', willOpen);
+    var fab = document.getElementById('kbd-fab');
+    if (fab) fab.classList.toggle('hidden', willOpen);
   }
 
   function buildHelpPanel() {
@@ -111,26 +114,24 @@
     var p = document.createElement('div');
     p.id = 'shortcut-help';
     p.innerHTML =
-      '<div class="sh-card">' +
-        '<div class="sh-head"><span>' + (isZh ? '键盘快捷键' : 'Keyboard shortcuts') + '</span><button class="sh-close" aria-label="Close">×</button></div>' +
-        '<dl class="sh-list">' +
-          row('g g', isZh ? '回到顶部' : 'Go to top') +
-          row('Shift + G', isZh ? '跳到底部' : 'Go to bottom') +
-          row('r', isZh ? '随机一篇文章' : 'Random article') +
-          row('h', isZh ? '回到首页' : 'Back to home') +
-          row('[', isZh ? '上一篇（同系列）' : 'Previous in series') +
-          row(']', isZh ? '下一篇（同系列）' : 'Next in series') +
-          row('t', isZh ? '切换主题' : 'Toggle theme') +
-          row('⌘ + K', isZh ? '搜索（macOS）' : 'Search (macOS)') +
-          row('Ctrl + K', isZh ? '搜索（Win/Linux）' : 'Search (Win/Linux)') +
-          row('?', isZh ? '显示这个面板' : 'Show this panel') +
-          row('Esc', isZh ? '关闭面板' : 'Close panel') +
-          row('↑ ↑ ↓ ↓', isZh ? '彩蛋 ✨' : 'Easter egg ✨') +
-        '</dl>' +
-        '<div class="sh-foot">' + (isZh ? '随时按 ? 调出' : 'Press ? anytime') + '</div>' +
-      '</div>';
-    p.addEventListener('click', function (e) {
-      if (e.target === p || e.target.classList.contains('sh-close')) p.classList.remove('open');
+      '<div class="sh-head"><span>' + (isZh ? '键盘快捷键' : 'Keyboard shortcuts') + '</span><button class="sh-close" aria-label="Close" type="button">×</button></div>' +
+      '<dl class="sh-list">' +
+        row('g g', isZh ? '回到顶部' : 'Go to top') +
+        row('Shift + G', isZh ? '跳到底部' : 'Go to bottom') +
+        row('r', isZh ? '随机一篇' : 'Random article') +
+        row('h', isZh ? '回到首页' : 'Back to home') +
+        row('[', isZh ? '上一篇' : 'Previous in series') +
+        row(']', isZh ? '下一篇' : 'Next in series') +
+        row('t', isZh ? '切换主题' : 'Toggle theme') +
+        row('⌘ + K', isZh ? '搜索（mac）' : 'Search (mac)') +
+        row('Ctrl + K', isZh ? '搜索（Win）' : 'Search (Win)') +
+        row('?', isZh ? '开关本面板' : 'Toggle this panel') +
+        row('↑ ↑ ↓ ↓', isZh ? '彩蛋 ✨' : 'Easter egg ✨') +
+      '</dl>';
+    p.querySelector('.sh-close').addEventListener('click', function () {
+      p.classList.remove('open');
+      var fab = document.getElementById('kbd-fab');
+      if (fab) fab.classList.remove('hidden');
     });
     return p;
   }
