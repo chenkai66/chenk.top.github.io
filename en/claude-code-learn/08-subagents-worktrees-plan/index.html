@@ -20,41 +20,75 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Claude Code Hands-On</a>
 · Chapter 8</div><h1>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</h1><p class=deck>Three features that change what Claude Code can take on at once: sub-agents for parallel research, worktrees for isolation, plan mode for the moments before you let it touch anything. The boundaries between them, and when each is the wrong answer.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-25>April 25, 2026</time> · 30 min read · 3140 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/sub-agents/ class=tag>#sub-agents</a><a href=/en/tags/worktrees/ class=tag>#worktrees</a><a href=/en/tags/plan-mode/ class=tag>#plan-mode</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/08-subagents-worktrees-plan/>阅读中文版 →</a></div></header><div class=prose><p>After hooks, the next thing that changes how Claude Code feels is <em>concurrency control</em>. Not concurrency in the threading sense — in the &ldquo;how many things is the model doing for me, in how much isolation, with how much oversight&rdquo; sense.</p><p>Three features, in escalating order of trust required.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png alt="Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=plan-mode--the-airlock>Plan mode — the airlock</h2><p>Plan mode is the cheapest of the three. Press <code>Shift+Tab</code> until the indicator says <strong>plan</strong>. The model now plans without taking any actions. It will read, think, propose, and stop. You read the plan. You either approve, edit, or kill it. Only then does it execute.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/fig5.png alt="Plan mode lifecycle: read, plan, approve, execute" loading=lazy decoding=async class=content-image></figure><em>Figure 1. Plan mode lifecycle. The airlock between intent and action.</em></p><h3 id=how-to-activate-it>How to activate it</h3><p>There are three ways:</p><ol><li><strong>Keyboard shortcut</strong>: <code>Shift+Tab</code> cycles through modes: <code>auto</code> → <code>plan</code> → <code>auto</code>. The current mode shows in the bottom bar.</li><li><strong>CLI flag</strong>: <code>claude --mode plan</code> starts a session in plan mode.</li><li><strong>Mid-conversation</strong>: Just press <code>Shift+Tab</code> at any point. The mode switch is immediate.</li></ol><h3 id=a-real-plan-mode-walkthrough>A real plan mode walkthrough</h3><p>Let me show exactly what happens. Say I am working on an Express API and I want to add rate limiting:</p><pre tabindex=0><code>You: Add rate limiting to the API. 100 requests per minute per IP.
-
-[Mode: plan]
-
-Claude: Here&#39;s my plan for adding rate limiting:
-
-1. Install `express-rate-limit` (it&#39;s already in package.json
-   as a devDependency but not in dependencies — I&#39;ll move it).
-
-2. Create `src/middleware/rate-limit.ts`:
-   - Export a configurable rate limiter factory
-   - Default: 100 req/min per IP using `req.ip`
-   - Use in-memory store for dev, note Redis store for prod
-
-3. Wire it in `src/app.ts`:
-   - Import the rate limiter
-   - Apply globally with `app.use()` before route handlers
-   - Add after CORS middleware, before body parser
-
-4. Add rate limit headers to responses:
-   - X-RateLimit-Limit
-   - X-RateLimit-Remaining
-   - X-RateLimit-Reset
-
-5. Create `tests/middleware/rate-limit.test.ts`:
-   - Test: allows 100 requests
-   - Test: blocks request 101
-   - Test: resets after window expires
-   - Test: different IPs have independent limits
-
-6. Update `src/types/env.d.ts` to add RATE_LIMIT_MAX
-   and RATE_LIMIT_WINDOW_MS env vars.
-
-Shall I proceed with this plan?
-</code></pre><p>Now I can see: step 1 caught that the package is in devDependencies. Step 3 tells me where exactly in the middleware chain it goes. Step 6 reminds me about env vars. Without plan mode, Claude would have just started writing code, and I would have caught these details in review instead of upfront.</p><h3 id=when-i-use-plan-mode>When I use plan mode</h3><ul><li><strong>The first 30 seconds of any non-trivial task.</strong> &ldquo;Implement the X feature&rdquo; gets a plan first. Almost always, the plan reveals the model misunderstood the codebase.</li><li><strong>Anything touching auth, payments, schema migrations, or production config.</strong> Two seconds of reading a plan saves hours of cleanup.</li><li><strong>When working in a repo I do not know well.</strong> The plan doubles as my own onboarding doc — it shows me the architecture through the model&rsquo;s eyes.</li><li><strong>Before refactoring.</strong> &ldquo;Refactor module X&rdquo; → plan reveals the dependency graph. Sometimes the plan shows me the refactoring is not worth it.</li></ul><h3 id=the-common-mistake>The common mistake</h3><p>Skipping plan mode &ldquo;because the task is small.&rdquo; Small tasks have the highest density of &ldquo;wait, that is not what I meant.&rdquo; A one-line fix that touches the wrong file is worse than a large feature with a clear plan.</p><h3 id=plan-mode-modifiers>Plan mode modifiers</h3><p>You can steer the plan with instructions:</p><pre tabindex=0><code>You: [plan mode] Add authentication. Focus the plan on the database
+<span class=meta-line><time datetime=2026-04-25>April 25, 2026</time> · 30 min read · 3174 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/sub-agents/ class=tag>#sub-agents</a><a href=/en/tags/worktrees/ class=tag>#worktrees</a><a href=/en/tags/plan-mode/ class=tag>#plan-mode</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/08-subagents-worktrees-plan/>阅读中文版 →</a></div></header><div class=prose><p>After hooks, the next thing that changes how Claude Code feels is <em>concurrency control</em>. Not concurrency in the threading sense — in the &ldquo;how many things is the model doing for me, in how much isolation, with how much oversight&rdquo; sense.</p><p>Three features, in escalating order of trust required.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png alt="Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=plan-mode--the-airlock>Plan mode — the airlock</h2><p>Plan mode is the cheapest of the three. Press <code>Shift+Tab</code> until the indicator says <strong>plan</strong>. The model now plans without taking any actions. It will read, think, propose, and stop. You read the plan. You either approve, edit, or kill it. Only then does it execute.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/fig5.png alt="Plan mode lifecycle: read, plan, approve, execute" loading=lazy decoding=async class=content-image></figure><em>Figure 1. Plan mode lifecycle. The airlock between intent and action.</em></p><h3 id=how-to-activate-it>How to activate it</h3><p>There are three ways:</p><ol><li><strong>Keyboard shortcut</strong>: <code>Shift+Tab</code> cycles through modes: <code>auto</code> → <code>plan</code> → <code>auto</code>. The current mode shows in the bottom bar.</li><li><strong>CLI flag</strong>: <code>claude --mode plan</code> starts a session in plan mode.</li><li><strong>Mid-conversation</strong>: Just press <code>Shift+Tab</code> at any point. The mode switch is immediate.</li></ol><h3 id=a-real-plan-mode-walkthrough>A real plan mode walkthrough</h3><p>Let me show exactly what happens. Say I am working on an Express API and I want to add rate limiting:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>You</span><span class=p>:</span><span class=w> </span><span class=l>Add rate limiting to the API. 100 requests per minute per IP.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>[Mode</span><span class=p>:</span><span class=w> </span><span class=l>plan]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Claude</span><span class=p>:</span><span class=w> </span><span class=nt>Here&#39;s my plan for adding rate limiting</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=m>1</span><span class=l>. Install `express-rate-limit` (it&#39;s already in package.json</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span><span class=l>as a devDependency but not in dependencies — I&#39;ll move it).</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>2. Create `src/middleware/rate-limit.ts`</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>Export a configurable rate limiter factory</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=nt>Default</span><span class=p>:</span><span class=w> </span><span class=m>100</span><span class=w> </span><span class=l>req/min per IP using `req.ip`</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>Use in-memory store for dev, note Redis store for prod</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>3. Wire it in `src/app.ts`</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>Import the rate limiter</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>Apply globally with `app.use()` before route handlers</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>Add after CORS middleware, before body parser</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>4. Add rate limit headers to responses</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>X-RateLimit-Limit</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>X-RateLimit-Remaining</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=l>X-RateLimit-Reset</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>5. Create `tests/middleware/rate-limit.test.ts`</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=nt>Test</span><span class=p>:</span><span class=w> </span><span class=l>allows 100 requests</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=nt>Test</span><span class=p>:</span><span class=w> </span><span class=l>blocks request 101</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=nt>Test</span><span class=p>:</span><span class=w> </span><span class=l>resets after window expires</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span>- <span class=nt>Test</span><span class=p>:</span><span class=w> </span><span class=l>different IPs have independent limits</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=m>6</span><span class=l>. Update `src/types/env.d.ts` to add RATE_LIMIT_MAX</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span><span class=l>and RATE_LIMIT_WINDOW_MS env vars.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=l>Shall I proceed with this plan?</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Now I can see: step 1 caught that the package is in devDependencies. Step 3 tells me where exactly in the middleware chain it goes. Step 6 reminds me about env vars. Without plan mode, Claude would have just started writing code, and I would have caught these details in review instead of upfront.</p><h3 id=when-i-use-plan-mode>When I use plan mode</h3><ul><li><strong>The first 30 seconds of any non-trivial task.</strong> &ldquo;Implement the X feature&rdquo; gets a plan first. Almost always, the plan reveals the model misunderstood the codebase.</li><li><strong>Anything touching auth, payments, schema migrations, or production config.</strong> Two seconds of reading a plan saves hours of cleanup.</li><li><strong>When working in a repo I do not know well.</strong> The plan doubles as my own onboarding doc — it shows me the architecture through the model&rsquo;s eyes.</li><li><strong>Before refactoring.</strong> &ldquo;Refactor module X&rdquo; → plan reveals the dependency graph. Sometimes the plan shows me the refactoring is not worth it.</li></ul><h3 id=the-common-mistake>The common mistake</h3><p>Skipping plan mode &ldquo;because the task is small.&rdquo; Small tasks have the highest density of &ldquo;wait, that is not what I meant.&rdquo; A one-line fix that touches the wrong file is worse than a large feature with a clear plan.</p><h3 id=plan-mode-modifiers>Plan mode modifiers</h3><p>You can steer the plan with instructions:</p><pre tabindex=0><code>You: [plan mode] Add authentication. Focus the plan on the database
      schema changes. I already know the API layer.
 
 Claude: Focusing on schema changes only:
@@ -335,5 +369,5 @@ To merge: git merge extract-auth
 <span class=chapter-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3140</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3174</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

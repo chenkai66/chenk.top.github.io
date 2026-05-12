@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Docker and Containers</a>
 · Chapter 1</div><h1>Docker and Containers (1): Why Containers — The Problem VMs Didn't Solve</h1><p class=deck>Containers solve the 'works on my machine' problem that VMs made expensive. Learn what containers actually are, how they differ from VMs, and run your first one.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2023-06-16>June 16, 2023</time> · 26 min read · 2651 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/virtualization/ class=tag>#Virtualization</a><a href=/en/tags/linux/ class=tag>#Linux</a><a href=/en/tags/devops/ class=tag>#DevOps</a></div><a class="pill pill-outline" href=/zh/docker-containers/01-why-containers/>阅读中文版 →</a></div></header><div class=prose><p>Every developer has heard the phrase &ldquo;it works on my machine.&rdquo; Virtual machines were supposed to fix that, and they did — at the cost of gigabytes of RAM, minutes of boot time, and an entire duplicate operating system per application. Containers asked a different question: what if we could isolate applications without duplicating the kernel?</p><h2 id=the-actual-problem>The Actual Problem</h2><p>Consider deploying a Python web application. You need Python 3.11, specific pip packages, a particular version of libssl, and some system-level configuration. Your colleague&rsquo;s app needs Python 3.9 and a conflicting libssl version. The staging server runs Ubuntu 20.04 while production runs Amazon Linux 2.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-vm-vs-container.png alt="VMs vs containers comparison" loading=lazy decoding=async class=content-image></figure></p><p>Virtual machines solve this by giving each application its own entire operating system. It works, but it&rsquo;s wasteful. Each VM carries:</p><ul><li>A full kernel (hundreds of MB)</li><li>System daemons (init, syslog, cron — none of which your app needs)</li><li>Duplicate copies of shared libraries</li><li>Its own memory management overhead</li></ul><p>Containers solve the same isolation problem by sharing the host kernel and isolating only what matters: the filesystem, process tree, network stack, and resource limits.</p><h2 id=what-containers-actually-are>What Containers Actually Are</h2><p>A container is not a lightweight VM. That analogy is convenient but misleading. A container is a regular Linux process (or group of processes) with three kernel features applied to it:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-container-architecture.png alt="Container architecture" loading=lazy decoding=async class=content-image></figure></p><h3 id=namespaces--what-the-process-can-see>Namespaces — What the Process Can See</h3><p>Linux namespaces partition kernel resources so that one set of processes sees one set of resources while another set sees a different set. There are several namespace types:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-namespace-cgroup.png alt="Namespaces and cgroups" loading=lazy decoding=async class=content-image></figure></p><table><thead><tr><th>Namespace</th><th>Isolates</th><th>Effect</th></tr></thead><tbody><tr><td><code>pid</code></td><td>Process IDs</td><td>Container sees only its own processes; PID 1 inside is not PID 1 on host</td></tr><tr><td><code>net</code></td><td>Network stack</td><td>Container gets its own IP address, routing table, ports</td></tr><tr><td><code>mnt</code></td><td>Mount points</td><td>Container has its own filesystem view</td></tr><tr><td><code>uts</code></td><td>Hostname</td><td>Container can have its own hostname</td></tr><tr><td><code>ipc</code></td><td>Inter-process communication</td><td>Shared memory and semaphores are isolated</td></tr><tr><td><code>user</code></td><td>User/group IDs</td><td>Root inside container can map to non-root on host</td></tr><tr><td><code>cgroup</code></td><td>Cgroup root directory</td><td>Container sees only its own cgroup hierarchy</td></tr></tbody></table><p>When you run <code>docker run nginx</code>, Docker creates a new set of these namespaces and launches the nginx process inside them. The process is still a regular process on the host — you can see it with <code>ps aux</code> — but from inside, it thinks it&rsquo;s alone on the machine.</p><h3 id=cgroups--what-the-process-can-use>Cgroups — What the Process Can Use</h3><p>Control groups (cgroups) limit and account for resource usage. While namespaces control visibility, cgroups control consumption:</p><table><thead><tr><th>Resource</th><th>Cgroup Controller</th><th>What It Limits</th></tr></thead><tbody><tr><td>CPU</td><td><code>cpu</code>, <code>cpuacct</code></td><td>CPU time, shares, quota</td></tr><tr><td>Memory</td><td><code>memory</code></td><td>RAM usage, swap, OOM behavior</td></tr><tr><td>Disk I/O</td><td><code>blkio</code></td><td>Read/write rates to block devices</td></tr><tr><td>Network</td><td><code>net_cls</code>, <code>net_prio</code></td><td>Traffic classification and priority</td></tr><tr><td>PIDs</td><td><code>pids</code></td><td>Maximum number of processes</td></tr></tbody></table><p>Without cgroups, a runaway container could consume all host memory and crash everything. With cgroups, you can say &ldquo;this container gets at most 512MB of RAM and 0.5 CPU cores.&rdquo;</p><h3 id=union-filesystem--how-the-filesystem-works>Union Filesystem — How the Filesystem Works</h3><p>Containers use a layered filesystem. Instead of copying an entire OS filesystem for each container, layers are stacked on top of each other using a union filesystem (OverlayFS on modern Linux). The bottom layers are read-only (shared between containers), and each container gets a thin writable layer on top.</p><p>This is why starting a container is fast: there&rsquo;s no filesystem to copy. The container just gets a pointer to existing read-only layers plus a new empty writable layer.</p><h2 id=containers-vs-virtual-machines>Containers vs Virtual Machines</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/01-shipping-containers-stacked-on-a-digital-cargo-ship-represen.jpg alt="Shipping containers stacked on a digital cargo ship represen" loading=lazy decoding=async class=content-image></figure></p><p>The architectural difference is fundamental. Here&rsquo;s how the two stacks compare (imagine this as a diagram):</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-resource-comparison.png alt="Resource overhead comparison" loading=lazy decoding=async class=content-image></figure></p><p><strong>Virtual Machine stack (bottom to top):</strong></p><pre tabindex=0><code>Hardware → Host OS → Hypervisor → [Guest OS + Bins/Libs + App] per VM
+<span class=meta-line><time datetime=2023-06-16>June 16, 2023</time> · 26 min read · 2734 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/virtualization/ class=tag>#Virtualization</a><a href=/en/tags/linux/ class=tag>#Linux</a><a href=/en/tags/devops/ class=tag>#DevOps</a></div><a class="pill pill-outline" href=/zh/docker-containers/01-why-containers/>阅读中文版 →</a></div></header><div class=prose><p>Every developer has heard the phrase &ldquo;it works on my machine.&rdquo; Virtual machines were supposed to fix that, and they did — at the cost of gigabytes of RAM, minutes of boot time, and an entire duplicate operating system per application. Containers asked a different question: what if we could isolate applications without duplicating the kernel?</p><h2 id=the-actual-problem>The Actual Problem</h2><p>Consider deploying a Python web application. You need Python 3.11, specific pip packages, a particular version of libssl, and some system-level configuration. Your colleague&rsquo;s app needs Python 3.9 and a conflicting libssl version. The staging server runs Ubuntu 20.04 while production runs Amazon Linux 2.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-vm-vs-container.png alt="VMs vs containers comparison" loading=lazy decoding=async class=content-image></figure></p><p>Virtual machines solve this by giving each application its own entire operating system. It works, but it&rsquo;s wasteful. Each VM carries:</p><ul><li>A full kernel (hundreds of MB)</li><li>System daemons (init, syslog, cron — none of which your app needs)</li><li>Duplicate copies of shared libraries</li><li>Its own memory management overhead</li></ul><p>Containers solve the same isolation problem by sharing the host kernel and isolating only what matters: the filesystem, process tree, network stack, and resource limits.</p><h2 id=what-containers-actually-are>What Containers Actually Are</h2><p>A container is not a lightweight VM. That analogy is convenient but misleading. A container is a regular Linux process (or group of processes) with three kernel features applied to it:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-container-architecture.png alt="Container architecture" loading=lazy decoding=async class=content-image></figure></p><h3 id=namespaces--what-the-process-can-see>Namespaces — What the Process Can See</h3><p>Linux namespaces partition kernel resources so that one set of processes sees one set of resources while another set sees a different set. There are several namespace types:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-namespace-cgroup.png alt="Namespaces and cgroups" loading=lazy decoding=async class=content-image></figure></p><table><thead><tr><th>Namespace</th><th>Isolates</th><th>Effect</th></tr></thead><tbody><tr><td><code>pid</code></td><td>Process IDs</td><td>Container sees only its own processes; PID 1 inside is not PID 1 on host</td></tr><tr><td><code>net</code></td><td>Network stack</td><td>Container gets its own IP address, routing table, ports</td></tr><tr><td><code>mnt</code></td><td>Mount points</td><td>Container has its own filesystem view</td></tr><tr><td><code>uts</code></td><td>Hostname</td><td>Container can have its own hostname</td></tr><tr><td><code>ipc</code></td><td>Inter-process communication</td><td>Shared memory and semaphores are isolated</td></tr><tr><td><code>user</code></td><td>User/group IDs</td><td>Root inside container can map to non-root on host</td></tr><tr><td><code>cgroup</code></td><td>Cgroup root directory</td><td>Container sees only its own cgroup hierarchy</td></tr></tbody></table><p>When you run <code>docker run nginx</code>, Docker creates a new set of these namespaces and launches the nginx process inside them. The process is still a regular process on the host — you can see it with <code>ps aux</code> — but from inside, it thinks it&rsquo;s alone on the machine.</p><h3 id=cgroups--what-the-process-can-use>Cgroups — What the Process Can Use</h3><p>Control groups (cgroups) limit and account for resource usage. While namespaces control visibility, cgroups control consumption:</p><table><thead><tr><th>Resource</th><th>Cgroup Controller</th><th>What It Limits</th></tr></thead><tbody><tr><td>CPU</td><td><code>cpu</code>, <code>cpuacct</code></td><td>CPU time, shares, quota</td></tr><tr><td>Memory</td><td><code>memory</code></td><td>RAM usage, swap, OOM behavior</td></tr><tr><td>Disk I/O</td><td><code>blkio</code></td><td>Read/write rates to block devices</td></tr><tr><td>Network</td><td><code>net_cls</code>, <code>net_prio</code></td><td>Traffic classification and priority</td></tr><tr><td>PIDs</td><td><code>pids</code></td><td>Maximum number of processes</td></tr></tbody></table><p>Without cgroups, a runaway container could consume all host memory and crash everything. With cgroups, you can say &ldquo;this container gets at most 512MB of RAM and 0.5 CPU cores.&rdquo;</p><h3 id=union-filesystem--how-the-filesystem-works>Union Filesystem — How the Filesystem Works</h3><p>Containers use a layered filesystem. Instead of copying an entire OS filesystem for each container, layers are stacked on top of each other using a union filesystem (OverlayFS on modern Linux). The bottom layers are read-only (shared between containers), and each container gets a thin writable layer on top.</p><p>This is why starting a container is fast: there&rsquo;s no filesystem to copy. The container just gets a pointer to existing read-only layers plus a new empty writable layer.</p><h2 id=containers-vs-virtual-machines>Containers vs Virtual Machines</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/01-shipping-containers-stacked-on-a-digital-cargo-ship-represen.jpg alt="Shipping containers stacked on a digital cargo ship represen" loading=lazy decoding=async class=content-image></figure></p><p>The architectural difference is fundamental. Here&rsquo;s how the two stacks compare (imagine this as a diagram):</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-resource-comparison.png alt="Resource overhead comparison" loading=lazy decoding=async class=content-image></figure></p><p><strong>Virtual Machine stack (bottom to top):</strong></p><pre tabindex=0><code>Hardware → Host OS → Hypervisor → [Guest OS + Bins/Libs + App] per VM
 </code></pre><p><strong>Container stack (bottom to top):</strong></p><pre tabindex=0><code>Hardware → Host OS (shared kernel) → Container Runtime → [Bins/Libs + App] per Container
 </code></pre><p>The key difference: VMs virtualize hardware. Containers virtualize the operating system. VMs run their own kernel. Containers share the host kernel.</p><p>Here&rsquo;s a concrete comparison:</p><table><thead><tr><th>Characteristic</th><th>Virtual Machine</th><th>Container</th></tr></thead><tbody><tr><td>Boot time</td><td>30-60 seconds</td><td>&lt; 1 second</td></tr><tr><td>Disk footprint</td><td>1-20 GB per VM</td><td>10-500 MB per container</td></tr><tr><td>Memory overhead</td><td>512 MB - several GB</td><td>Essentially zero (shared kernel)</td></tr><tr><td>Isolation level</td><td>Hardware-level (strong)</td><td>Process-level (good, not perfect)</td></tr><tr><td>Kernel</td><td>Own kernel per VM</td><td>Shared host kernel</td></tr><tr><td>OS support</td><td>Any OS (Windows on Linux, etc.)</td><td>Same kernel family as host</td></tr><tr><td>Density</td><td>10-20 VMs per host typical</td><td>100s of containers per host</td></tr><tr><td>Live migration</td><td>Supported</td><td>Not natively (orchestrators handle it)</td></tr><tr><td>Performance</td><td>Near-native with hardware virtualization</td><td>Native (no virtualization layer)</td></tr></tbody></table><p>When do you still want VMs? When you need strong security isolation (multi-tenant cloud), when you need a different kernel (running Windows workloads on Linux hosts), or when your compliance requirements mandate hardware-level separation.</p><h2 id=the-container-ecosystem-oci-docker-containerd-podman>The Container Ecosystem: OCI, Docker, containerd, Podman</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/01-virtual-machine-vs-container-architecture-split-screen-compa.jpg alt="Virtual machine vs container architecture split screen compa" loading=lazy decoding=async class=content-image></figure></p><p>Docker popularized containers, but it&rsquo;s not the only player. Understanding the ecosystem prevents confusion later.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-isolation-layers.png alt="Container isolation layers" loading=lazy decoding=async class=content-image></figure></p><h3 id=the-oci-standard>The OCI Standard</h3><p>The Open Container Initiative (OCI) defines two specifications:</p><ol><li><strong>Image Spec</strong>: What a container image looks like (layers, manifests, configuration)</li><li><strong>Runtime Spec</strong>: How to run a container (lifecycle, configuration format)</li></ol><p>Any tool that follows these specs can build images that run anywhere. This is why you can build with Docker, push to any registry, and run with Podman.</p><h3 id=the-container-runtime-stack>The Container Runtime Stack</h3><p>The stack has layers, and Docker sits on top:</p><pre tabindex=0><code>docker CLI → dockerd (Docker daemon) → containerd → runc → Linux kernel
 </code></pre><table><thead><tr><th>Component</th><th>Role</th><th>Can You Use It Alone?</th></tr></thead><tbody><tr><td><code>runc</code></td><td>OCI runtime — actually creates namespaces and cgroups</td><td>Yes, but low-level</td></tr><tr><td><code>containerd</code></td><td>Manages container lifecycle, image pulls, storage</td><td>Yes (used by Kubernetes directly)</td></tr><tr><td><code>dockerd</code></td><td>Docker daemon — adds build, networking, volumes</td><td>Yes (what most people use)</td></tr><tr><td><code>docker</code> CLI</td><td>User-facing command-line tool</td><td>Talks to dockerd</td></tr></tbody></table><h3 id=docker-vs-podman>Docker vs Podman</h3><p>Podman is a daemonless container engine. Instead of talking to a daemon (dockerd), Podman runs containers directly. The commands are almost identical:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
@@ -123,34 +123,61 @@
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>brew install --cask docker
 </span></span></code></pre></td></tr></table></div></div><p>Then open Docker Desktop from Applications to complete the setup.</p><h3 id=verify-installation>Verify Installation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker version
-</span></span></code></pre></td></tr></table></div></div><p>Expected output:</p><pre tabindex=0><code>Client: Docker Engine - Community
- Version:           24.0.6
- API version:       1.43
- Go version:        go1.20.7
- Git commit:        ed223bc
- Built:             Mon Sep  4 12:31:44 2023
- OS/Arch:           linux/amd64
- Context:           default
-
-Server: Docker Engine - Community
- Engine:
-  Version:          24.0.6
-  API version:      1.43 (minimum version 1.12)
-  Go version:       go1.20.7
-  Git commit:       1a79695
-  Built:            Mon Sep  4 12:31:44 2023
-  OS/Arch:          linux/amd64
-  Experimental:     false
- containerd:
-  Version:          1.6.24
-  GitCommit:        61f9fd88f79f081d64d6fa3bb1a0dc71ec870523
- runc:
-  Version:          1.1.9
-  GitCommit:        v1.1.9-0-gccaecfc
- docker-init:
-  Version:          0.19.0
-  GitCommit:        de40ad0
-</code></pre><p>Notice both &ldquo;Client&rdquo; and &ldquo;Server&rdquo; sections. The client is the CLI tool; the server is the daemon that actually manages containers. On macOS, the server runs inside the Docker Desktop VM.</p><h2 id=running-your-first-container>Running Your First Container</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>Expected output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>Client</span><span class=p>:</span><span class=w> </span><span class=l>Docker Engine - Community</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Version</span><span class=p>:</span><span class=w>           </span><span class=m>24.0.6</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>API version</span><span class=p>:</span><span class=w>       </span><span class=m>1.43</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Go version</span><span class=p>:</span><span class=w>        </span><span class=l>go1.20.7</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Git commit</span><span class=p>:</span><span class=w>        </span><span class=l>ed223bc</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Built</span><span class=p>:</span><span class=w>             </span><span class=l>Mon Sep  4 12:31:44 2023</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>OS/Arch</span><span class=p>:</span><span class=w>           </span><span class=l>linux/amd64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Context</span><span class=p>:</span><span class=w>           </span><span class=l>default</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Server</span><span class=p>:</span><span class=w> </span><span class=l>Docker Engine - Community</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Engine</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Version</span><span class=p>:</span><span class=w>          </span><span class=m>24.0.6</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>API version</span><span class=p>:</span><span class=w>      </span><span class=m>1.43</span><span class=w> </span><span class=l>(minimum version 1.12)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Go version</span><span class=p>:</span><span class=w>       </span><span class=l>go1.20.7</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Git commit</span><span class=p>:</span><span class=w>       </span><span class=l>1a79695</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Built</span><span class=p>:</span><span class=w>            </span><span class=l>Mon Sep  4 12:31:44 2023</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>OS/Arch</span><span class=p>:</span><span class=w>          </span><span class=l>linux/amd64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Experimental</span><span class=p>:</span><span class=w>     </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>containerd</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Version</span><span class=p>:</span><span class=w>          </span><span class=m>1.6.24</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>GitCommit</span><span class=p>:</span><span class=w>        </span><span class=l>61f9fd88f79f081d64d6fa3bb1a0dc71ec870523</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>runc</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Version</span><span class=p>:</span><span class=w>          </span><span class=m>1.1.9</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>GitCommit</span><span class=p>:</span><span class=w>        </span><span class=l>v1.1.9-0-gccaecfc</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>docker-init</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Version</span><span class=p>:</span><span class=w>          </span><span class=m>0.19.0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>GitCommit</span><span class=p>:</span><span class=w>        </span><span class=l>de40ad0</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Notice both &ldquo;Client&rdquo; and &ldquo;Server&rdquo; sections. The client is the CLI tool; the server is the daemon that actually manages containers. On macOS, the server runs inside the Docker Desktop VM.</p><h2 id=running-your-first-container>Running Your First Container</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker run hello-world
 </span></span></code></pre></td></tr></table></div></div><p>Output:</p><pre tabindex=0><code>Unable to find image &#39;hello-world:latest&#39; locally
 latest: Pulling from library/hello-world
@@ -177,63 +204,119 @@ For more examples and ideas, visit:
  https://docs.docker.com/get-started/
 </code></pre><p>Let&rsquo;s break down what happened:</p><ol><li><code>docker run</code> told the Docker client to run a container</li><li>The client sent this request to the Docker daemon (dockerd)</li><li>The daemon looked for the <code>hello-world:latest</code> image locally — didn&rsquo;t find it</li><li>The daemon pulled the image from Docker Hub (you can see the layer being downloaded)</li><li>The daemon created a container from the image</li><li>The container ran its program (which printed the message) and exited</li></ol><h2 id=exploring-docker-info>Exploring Docker Info</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker info
-</span></span></code></pre></td></tr></table></div></div><p>This command reveals your Docker installation&rsquo;s configuration:</p><pre tabindex=0><code>Client: Docker Engine - Community
- Version:    24.0.6
- Context:    default
- Debug Mode: false
- Plugins:
-  buildx: Docker Buildx (Docker Inc.)
-    Version:  v0.11.2
-  compose: Docker Compose (Docker Inc.)
-    Version:  v2.21.0
-
-Server:
- Containers: 1
-  Running: 0
-  Paused: 0
-  Stopped: 1
- Images: 1
- Server Version: 24.0.6
- Storage Driver: overlay2
-  Backing Filesystem: extfs
-  Supports d_type: true
-  Using metacopy: false
-  Native Overlay Diff: true
-  userxattr: false
- Logging Driver: json-file
- Cgroup Driver: systemd
- Cgroup Version: 2
- Plugins:
-  Volume: local
-  Network: bridge host ipvlan macvlan null overlay
-  Log: awslogs fluentd gcplogs gelf journald json-file local logentries splunk syslog
- Swarm: inactive
- Runtimes: io.containerd.runc.v2 runc
- Default Runtime: runc
- Init Binary: docker-init
- containerd version: 61f9fd88f79f081d64d6fa3bb1a0dc71ec870523
- runc version: v1.1.9-0-gccaecfc
- init version: de40ad0
- Security Options:
-  apparmor
-  seccomp
-   Profile: builtin
-  cgroupns
- Kernel Version: 5.15.0-82-generic
- Operating System: Ubuntu 22.04.3 LTS
- OSType: linux
- Architecture: x86_64
- CPUs: 4
- Total Memory: 7.748GiB
- Name: docker-host
- ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
- Docker Root Dir: /var/lib/docker
- Debug Mode: false
- Experimental: false
- Insecure Registries:
-  127.0.0.0/8
- Live Restore Enabled: false
-</code></pre><p>Key details to note:</p><ul><li><strong>Storage Driver: overlay2</strong> — the union filesystem driver being used</li><li><strong>Cgroup Driver: systemd</strong> — how resource limits are managed</li><li><strong>Docker Root Dir: /var/lib/docker</strong> — where all images, containers, and volumes live</li><li><strong>Security Options</strong> — AppArmor and seccomp profiles are active</li><li><strong>Runtimes: runc</strong> — the low-level OCI runtime</li></ul><h2 id=running-something-more-interesting>Running Something More Interesting</h2><p>Let&rsquo;s run an interactive Ubuntu container:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>This command reveals your Docker installation&rsquo;s configuration:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>Client</span><span class=p>:</span><span class=w> </span><span class=l>Docker Engine - Community</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Version</span><span class=p>:</span><span class=w>    </span><span class=m>24.0.6</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Context</span><span class=p>:</span><span class=w>    </span><span class=l>default</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Debug Mode</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Plugins</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>buildx</span><span class=p>:</span><span class=w> </span><span class=l>Docker Buildx (Docker Inc.)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>Version</span><span class=p>:</span><span class=w>  </span><span class=l>v0.11.2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>compose</span><span class=p>:</span><span class=w> </span><span class=l>Docker Compose (Docker Inc.)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>Version</span><span class=p>:</span><span class=w>  </span><span class=l>v2.21.0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>Server</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Containers</span><span class=p>:</span><span class=w> </span><span class=m>1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Running</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Paused</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Stopped</span><span class=p>:</span><span class=w> </span><span class=m>1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Images</span><span class=p>:</span><span class=w> </span><span class=m>1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Server Version</span><span class=p>:</span><span class=w> </span><span class=m>24.0.6</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Storage Driver</span><span class=p>:</span><span class=w> </span><span class=l>overlay2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Backing Filesystem</span><span class=p>:</span><span class=w> </span><span class=l>extfs</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Supports d_type</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Using metacopy</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Native Overlay Diff</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>userxattr</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Logging Driver</span><span class=p>:</span><span class=w> </span><span class=l>json-file</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Cgroup Driver</span><span class=p>:</span><span class=w> </span><span class=l>systemd</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Cgroup Version</span><span class=p>:</span><span class=w> </span><span class=m>2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Plugins</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Volume</span><span class=p>:</span><span class=w> </span><span class=l>local</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Network</span><span class=p>:</span><span class=w> </span><span class=l>bridge host ipvlan macvlan null overlay</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>Log</span><span class=p>:</span><span class=w> </span><span class=l>awslogs fluentd gcplogs gelf journald json-file local logentries splunk syslog</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Swarm</span><span class=p>:</span><span class=w> </span><span class=l>inactive</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Runtimes</span><span class=p>:</span><span class=w> </span><span class=l>io.containerd.runc.v2 runc</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Default Runtime</span><span class=p>:</span><span class=w> </span><span class=l>runc</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Init Binary</span><span class=p>:</span><span class=w> </span><span class=l>docker-init</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>containerd version</span><span class=p>:</span><span class=w> </span><span class=l>61f9fd88f79f081d64d6fa3bb1a0dc71ec870523</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>runc version</span><span class=p>:</span><span class=w> </span><span class=l>v1.1.9-0-gccaecfc</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>init version</span><span class=p>:</span><span class=w> </span><span class=l>de40ad0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Security Options</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>apparmor</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>seccomp</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span><span class=nt>Profile</span><span class=p>:</span><span class=w> </span><span class=l>builtin</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=l>cgroupns</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Kernel Version</span><span class=p>:</span><span class=w> </span><span class=m>5.15.0-82</span>-<span class=l>generic</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Operating System</span><span class=p>:</span><span class=w> </span><span class=l>Ubuntu 22.04.3 LTS</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>OSType</span><span class=p>:</span><span class=w> </span><span class=l>linux</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Architecture</span><span class=p>:</span><span class=w> </span><span class=l>x86_64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>CPUs</span><span class=p>:</span><span class=w> </span><span class=m>4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Total Memory</span><span class=p>:</span><span class=w> </span><span class=m>7.</span><span class=l>748GiB</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Name</span><span class=p>:</span><span class=w> </span><span class=l>docker-host</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>ID</span><span class=p>:</span><span class=w> </span><span class=l>a1b2c3d4-e5f6-7890-abcd-ef1234567890</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Docker Root Dir</span><span class=p>:</span><span class=w> </span><span class=l>/var/lib/docker</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Debug Mode</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Experimental</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Insecure Registries</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=m>127.0.0.0</span><span class=l>/8</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=nt>Live Restore Enabled</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Key details to note:</p><ul><li><strong>Storage Driver: overlay2</strong> — the union filesystem driver being used</li><li><strong>Cgroup Driver: systemd</strong> — how resource limits are managed</li><li><strong>Docker Root Dir: /var/lib/docker</strong> — where all images, containers, and volumes live</li><li><strong>Security Options</strong> — AppArmor and seccomp profiles are active</li><li><strong>Runtimes: runc</strong> — the low-level OCI runtime</li></ul><h2 id=running-something-more-interesting>Running Something More Interesting</h2><p>Let&rsquo;s run an interactive Ubuntu container:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker run -it ubuntu bash
 </span></span></code></pre></td></tr></table></div></div><p>You&rsquo;re now inside a container. Let&rsquo;s explore:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
@@ -345,5 +428,5 @@ c5d6e7f8a9b0   nginx   &#34;/docker-entrypoint.…&#34;   5 seconds ago   Up 4 s
 <span class=chapter-title>Docker and Containers (5): Docker Compose — Multi-Container Applications</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/06-debugging-and-logging/><span class=chapter-num>06</span>
 <span class=chapter-title>Docker and Containers (6): Debugging and Logging — When Things Go Wrong Inside a Box</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/07-security-and-best-practices/><span class=chapter-num>07</span>
 <span class=chapter-title>Docker and Containers (7): Security — Running Containers Without Giving Away the Keys</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/08-orchestration-preview/><span class=chapter-num>08</span>
-<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>26 min</strong></div><div class=row><span>Word count</span><strong>2651</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>26 min</strong></div><div class=row><span>Word count</span><strong>2734</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>
