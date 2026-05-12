@@ -94,7 +94,7 @@ psycopg2.OperationalError: could not connect to server: Connection refused
     TCP/IP connections on port 5432?
 ```
 
-The container exited with code 1 (error). The logs show it couldn't connect to PostgreSQL. This could be because the database wasn't ready when the app started (a dependency ordering issue) or the hostname was incorrect.
+The container exited with code 1 (error). The logs show it couldn't connect to PostgreSQL. This could be because the database wasn't ready when the app started (a dependency ordering issue) or the hostname was wrong.
 
 ### Exit codes
 

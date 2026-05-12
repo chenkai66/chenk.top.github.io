@@ -14,9 +14,9 @@ disableNunjucks: true
 series_order: 1
 translationKey: "nlp-1"
 ---
-Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you're using a stack that took seventy years to build. Natural Language Processing (NLP) is the field that taught machines to read, score, transform, and write human language. Surprisingly, much of the modern NLP stack still relies on preprocessing techniques invented decades ago.
+Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you're using a stack that took seventy years to build. Natural Language Processing (NLP) is the field that taught machines to read, score, transform, and write human language. Surprisingly, much of the modern NLP stack still relies on preprocessing techniques from decades ago.
 
-This first article in the series does two things. First, it maps out the field's history, current scope, and the reasons behind the tools we use. Second, it builds the foundational layer — cleaning, tokenization, normalization, and feature extraction — with code you can directly use in a project. By the end, you'll have a reusable preprocessing pipeline and, more importantly, an understanding of when each step is helpful and when it can destroy signal.
+This first article in the series does two things. First, it maps out the field's history, current scope, and the reasons behind the tools we use. Second, it builds the foundational layer — cleaning, tokenization, normalization, and feature extraction — with code you can use directly in a project. By the end, you'll have a reusable preprocessing pipeline and, more importantly, an understanding of when each step is helpful and when it can destroy signal.
 
 ![NLP application landscape](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig1_applications_landscape.png)
 
@@ -43,7 +43,7 @@ This first article in the series does two things. First, it maps out the field's
 
 ## 1. Four Eras of NLP
 
-NLP did not advance smoothly. It moved in jumps, each driven by a new representation of language. Knowing the sequence helps you reach for the right tool: rule systems still beat neural nets for narrow form-filling, statistical methods still drive search ranking, and embeddings dominate everything else.
+NLP did not advance smoothly. It moved in jumps, each driven by a new representation of language. Knowing the sequence helps you choose the right tool: rule systems still beat neural nets for narrow form-filling, statistical methods still drive search ranking, and embeddings dominate everything else.
 
 ### 1.1 Symbolic Era (1950s — late 1980s)
 
@@ -51,7 +51,7 @@ Early systems treated language as a logic problem. ELIZA (1966) matched user inp
 
 ### 1.2 Statistical Revolution (1990s)
 
-The turning point was the realization that you do not need to write rules; you can estimate probabilities from data. The bigram model is the canonical example:
+The turning point was the realization that you don't need to write rules; you can estimate probabilities from data. The bigram model is the canonical example:
 
 $$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$
 This single formula powered IBM's statistical machine translation, the first viable speech recognizers, and probabilistic part-of-speech taggers. Hidden Markov Models extended the same idea to latent state, and probabilistic context-free grammars handled syntax. Features were still hand-engineered, but the rules were learned.

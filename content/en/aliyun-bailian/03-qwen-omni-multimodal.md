@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "aliyun-bailian-3"
 ---
 
-Of all the Bailian models, Qwen-Omni has saved me from the most product-roadmap issues. "Can you tell me what's happening in this 2-minute promo video?" used to take 3 weeks, involving frame extraction, captioning each frame, and stitching them together. With Qwen-Omni, it's just one HTTP request. However, the documentation lacks details on some pitfalls, like the fact that streaming is mandatory, which has cost more than one team a half-day. Let's avoid that for you.
+Of all the Bailian models, Qwen-Omni has saved me the most from product-roadmap issues. "Can you tell me what's happening in this 2-minute promo video?" used to take 3 weeks, involving frame extraction, captioning each frame, and stitching them together. With Qwen-Omni, it's just one HTTP request. However, the documentation lacks details on some pitfalls, such as the requirement for streaming, which has cost more than one team a half-day. Let's avoid that for you.
 
 ![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 
@@ -140,7 +140,7 @@ content = [
 ]
 ```
 
-For pure transcription, Bailian also exposes a dedicated **Paraformer** ASR model that is cheaper. Use Paraformer for transcribe-only and Qwen-Omni when you need understanding (sentiment, summarization, "did the call mention pricing").
+For pure transcription, Bailian also offers a dedicated **Paraformer** ASR model, which is cheaper. Use Paraformer for transcription only and Qwen-Omni when you need understanding (sentiment, summarization, "did the call mention pricing").
 
 ## A real product use case
 

@@ -13,11 +13,11 @@ disableNunjucks: true
 translationKey: "reparameterization-gumbel-softmax"
 ---
 
-一旦模型中引入采样操作，训练便会立即面临一个关键难题：梯度如何流经随机节点？
+一旦模型中引入采样操作，训练便会立即面临一个关键难题：梯度如何流经随机节点
 
 重参数化（reparameterization）给出的答案非常直接——把 $z\sim p_\theta(z)$ 改写成 $z=g_\theta(\epsilon)$，把随机性隔离到与参数无关的噪声 $\epsilon$ 里，于是反向传播可以顺着 $g_\theta$ 走下去。麻烦在于离散变量：$\arg\max$ 一类操作不可导，梯度会断掉。**Gumbel-Softmax**（也叫 Concrete 分布）用"带温度的 softmax + Gumbel 噪声"把离散采样变成可微近似，让你在保留离散结构的同时仍能端到端训练。
 
-本文详细讲解了推导、直觉、实现细节、温度参数下的偏差-方差权衡，以及训练中最常见的问题。
+本文详细讲解了推导、直觉、实现细节、温度参数下的偏差-方差权衡及训练中最常见的问题
 
 ## 你将学到
 

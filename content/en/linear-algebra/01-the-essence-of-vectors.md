@@ -19,18 +19,18 @@ translationKey: "linear-algebra-1"
 
 ## Why Vectors, and Why Care?
 
-A physicist talks about a *force*. A data scientist talks about a *feature*. A game programmer talks about a *velocity*. A quantum theorist talks about a *state*. Different worlds, different languages — but the same underlying object: **a vector**.
+A physicist talks about a *force*. A data scientist talks about a *feature*. A game programmer talks about a *velocity*. A quantum theorist talks about a *state*. Different fields, different terms — but the same underlying object: **a vector**.
 
-That is not a coincidence. A vector is the smallest piece of mathematics flexible enough to describe **anything you can add together and scale**. Once you spot that pattern, you spot it everywhere.
+That's no coincidence. A vector is the simplest mathematical object flexible enough to describe **anything you can add together and scale**. Once you see this pattern, you'll see it everywhere.
 
 Most introductory courses give you two answers to "what is a vector?":
 
 - "An arrow in space, with a length and a direction."
 - "An ordered list of numbers."
 
-Both are correct. Both are also incomplete. The full story is that *a vector is whatever lives in a vector space* — a set of objects that play nicely with addition and scaling. Arrows and number lists are the two famous examples; functions, signals, polynomials and quantum states are equally valid.
+Both are correct but incomplete. The full story is that *a vector is whatever lives in a vector space* — a set of objects that work well with addition and scaling. Arrows and number lists are the most common examples; functions, signals, polynomials, and quantum states are equally valid.
 
-This chapter walks that ladder, from very concrete to genuinely abstract:
+This chapter moves from the concrete to the abstract:
 
 1. **Geometric** — arrows you can draw.
 2. **Numerical** — columns of numbers you can compute with.
@@ -76,9 +76,9 @@ So a vector packages two pieces of geometric information — *length* and *direc
 
 Here is the first idea that surprises beginners: **a vector does not care where it starts**. Whether you draw "4 east, 3 north" from the park centre or from the northeast corner, it is the *same* vector. Direction and length are the only invariants.
 
-Velocity is the cleanest example. A ship sailing east at 20 knots has the same velocity vector whether it is in the middle of the Pacific or hugging the coast of Spain. The position changes from minute to minute; the velocity vector does not.
+Velocity is the clearest example. A ship sailing east at 20 knots has the same velocity vector whether it's in the middle of the Pacific or hugging the coast of Spain. The position changes every minute; the velocity vector does not.
 
-This is why, when we draw vectors, we are free to anchor them at the origin — a convenience, not a constraint.
+This is why, when drawing vectors, we can anchor them at the origin — a convenience, not a constraint.
 
 ![Position vector vs free vector: same arrow, three locations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig4_position_vs_free.png)
 
@@ -88,7 +88,7 @@ Given two vectors$\vec{a}$and$\vec{b}$, the sum$\vec{a} + \vec{b}$can be visuali
 
 **Head-to-tail.** Walk along$\vec{a}$, then walk along$\vec{b}$. The arrow from your starting point to your ending point is the sum. This is how we naturally think about successive displacements.
 
-**Parallelogram.** Draw both vectors from the same point. Complete the parallelogram. The diagonal from that shared point is the sum. This is how physicists combine two forces acting at one location.
+**Parallelogram.** Draw both vectors from the same point. Complete the parallelogram. The diagonal from that shared point is the sum. This is how physicists combine two forces acting at the same location.
 
 **Component-wise.** Just add matching coordinates:
 $$\begin{pmatrix} 3 \\ 1 \end{pmatrix} + \begin{pmatrix} 1 \\ 2.5 \end{pmatrix} = \begin{pmatrix} 4 \\ 3.5 \end{pmatrix}.$$
@@ -105,7 +105,7 @@ Multiplying a vector$\vec{v}$by a number (a *scalar*)$c$rescales it along its ow
 -$c = 0$: it collapses to the **zero vector**.
 -$c < 0$: it **reverses direction** and rescales by$|c|$.
 
-The set of *all* scalar multiples of a single non-zero vector traces out a line through the origin — this is your first taste of a *span*, which we will meet properly in Chapter 2.
+The set of all scalar multiples of a single non-zero vector traces out a line through the origin — this is your first taste of a *span*, which we'll explore in Chapter 2.
 
 ![Scalar multiplication and the line of all multiples (the span)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig3_scalar_multiplication.png)
 

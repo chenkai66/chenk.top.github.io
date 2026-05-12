@@ -20,7 +20,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "reinforcement-learning-3"
 ---
-DQN showed that deep RL can master Atari, but it has a hard ceiling: it only works in **discrete action spaces**. Ask it to control a robot arm with seven continuous joint angles, and it falls apart — you'd have to solve an inner optimization problem every time you choose an action.
+DQN showed that deep RL can master Atari, but it has a hard ceiling: it only works in **discrete action spaces**. Ask it to control a robot arm with seven continuous joint angles, and it fails — you'd have to solve an inner optimization problem every time you choose an action.
 
 **Policy gradient methods** take a fundamentally different route. Instead of learning a value function and *deriving* a policy from it, they **directly optimise the policy**. That single change opens the door to continuous actions, stochastic strategies, and problems where the optimal play is itself random (think rock-paper-scissors).
 
@@ -44,7 +44,7 @@ DQN showed that deep RL can master Atari, but it has a hard ceiling: it only wor
 DQN learns $Q(s,a)$ and acts greedily: $\pi(s) = \arg\max_a Q(s,a)$. That indirect recipe creates four pain points:
 
 1. **Discrete actions only.** Computing $\arg\max$ over a continuous space is itself a non-trivial optimisation, repeated at every environment step.
-2. **No stochastic policies.** Greedy policies are deterministic. But in matching-pennies-style games the **optimal** policy is genuinely random.
+2. **No stochastic policies.** Greedy policies are deterministic. But in matching-pennies-style games, the **optimal** policy is genuinely random.
 3. **Error amplification.** Q-value approximation errors get amplified by the $\max$ operator — the overestimation bias we fixed (partially) with Double DQN in Part 2.
 4. **Ad-hoc exploration.** $\epsilon$-greedy is a hack: it has no principled reason for the noise it injects.
 
@@ -61,7 +61,7 @@ Either way, the loss machinery is identical: pick an action by sampling from $\p
 
 Let $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G_0]$ be the expected return of the trajectories produced by $\pi_\theta$. We want $\nabla_\theta J(\theta)$ so we can do gradient ascent.
 
-The **Policy Gradient Theorem** (Sutton et al., 2000) provides a clean, sample-able form:
+The **Policy Gradient Theorem** (Sutton et al., 2000) provides a clean, sampleable form:
 
 $$\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\pi_\theta}\!\Big[\sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\;\cdot\;Q^{\pi_\theta}(s_t, a_t)\Big]$$
 

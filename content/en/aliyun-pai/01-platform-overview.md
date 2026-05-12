@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "aliyun-pai-1"
 ---
 
-If your team trains or serves any model on Alibaba Cloud, you'll eventually use the PAI console. PAI is the umbrella; underneath it are the actual workhorses — a notebook product, a distributed training service, a model-serving service, and a few GUI/quick-deploy layers. After about eighteen months of running real LLM workloads on it for an AI marketing platform, this series is the field guide I wish I had before shipping my first endpoint.
+If your team trains or serves models on Alibaba Cloud, you'll eventually use the PAI console. PAI is the umbrella; underneath it are the actual workhorses — a notebook product, a distributed training service, a model-serving service, and a few GUI/quick-deploy layers. After about eighteen months of running real LLM workloads on it for an AI marketing platform, this series is the field guide I wish I had before deploying my first endpoint.
 
 This first article is the lay of the land. It is deliberately short on code — articles 2 to 5 are the deep dives. The goal is to help you understand what "DLC job" and "EAS endpoint" mean.
 
@@ -54,13 +54,13 @@ After a year and a half of production work I have only ever paid for these, draw
 | **Designer** | 140+ built-in algorithm components, drag-and-drop pipelines, exportable JSON, schedulable in DataWorks | ETL → train → eval flows handed off to non-coders |
 | **Model Gallery** | Wraps DLC + EAS for zero-code deploy and fine-tune of catalogued open-source models | Evaluating a Qwen / DeepSeek / Llama model in 10 minutes |
 
-There's also **iTAG** (data annotation), **PAI-Lingjun** for large clusters, **PAI-Blade / BladeLLM** for inference optimization, and **FeatureStore**. Unless you're doing >1000-GPU pretraining or building a recommender system, you can ignore them initially.
+There's also **iTAG** (data annotation), **PAI-Lingjun** for large clusters, **PAI-Blade / BladeLLM** for inference optimization, and **FeatureStore**. Unless you're doing >1000-GPU pretraining or building a recommender system, you can initially ignore them.
 
 The product split maps cleanly onto the ML lifecycle:
 
 ![PAI sub-products on the ML lifecycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/fig2_pai_subproducts_lifecycle.png)
 
-Designer and Model Gallery are orthogonal — they sit on top, generating jobs that ultimately run on the same DLC / EAS substrate.
+Designer and Model Gallery are orthogonal — they sit on top, generating jobs that run on the same DLC / EAS substrate.
 
 ## How PAI relates to ECS and OSS
 
@@ -84,7 +84,7 @@ To get started you need three things in this order:
 
 ## Two paths: console vs SDK
 
-Like Bailian, PAI gives you two ways to do everything. The console is good for one-offs and inspecting state; the SDK is what you ship in CI.
+Like Bailian, PAI gives you two ways to do everything. The console is good for one-offs and inspecting state; the SDK is what you use in CI..
 
 The Python SDK is one package:
 

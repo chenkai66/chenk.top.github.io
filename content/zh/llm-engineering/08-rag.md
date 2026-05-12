@@ -19,7 +19,7 @@ translationKey: "llm-engineering-8"
 ---
 RAG 是当前 LLM 应用中部署最广泛，但工程实践最不成熟的范式。 2024 年流行的 Demo 套路——用 `text-embedding-3-large` 把所有内容向量化，扔进 pgvector，然后取 cosine 相似度 top-5——应付千篇量级的文档和对答案容错率较高的演示场景尚可。但当处理十万篇真实业务文档，且客户严格要求答案准确性时，该方案便难以胜任。这一章的内容，我希望更多团队在构建第二代 RAG 系统之前就能掌握。
 
-最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为稠密检索器（DPR）与生成器（BART）联合训练的混合架构，以优化端到端任务的准确率；而 2026 年的生产级 RAG 已显著偏离这一设计，现代系统普遍采用冻结的预训练 embedding 模型、独立重排序器（reranker）和不与检索器联合训练的仅解码器（decoder-only）生成模型。但其核心思想——将知识存储与推理能力解耦——得以保留并发展为主导范式。[Gao et al. (2023) 的 RAG 综述][gao-survey] 是对 2020 年后演进路线（"Naive RAG → Advanced RAG → Modular RAG"）最全面的概述。
+最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为稠密检索器（DPR）与生成器（BART）联合训练的混合架构，以优化端到端任务的准确率。而 2026 年的生产级 RAG 已显著偏离这一设计，现代系统普遍采用冻结的预训练 embedding 模型、独立重排序器（reranker）和不与检索器联合训练的仅解码器（decoder-only）生成模型。但其核心思想——将知识存储与推理能力解耦——得以保留并发展为主导范式。[Gao et al. (2023) 的 RAG 综述][gao-survey] 是对 2020 年后演进路线（"Naive RAG → Advanced RAG → Modular RAG"）最全面的概述。
 
 ![LLM Engineering (8): Retrieval-Augmented Generation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/illustration_1.png)
 
@@ -37,7 +37,7 @@ Context:
 Question: {user_query}
 ```
 
-真正的工程难点在于‘增强’环节之前的构建过程——即构建能精准召回相关文本块（chunk）的检索器（retriever），其核心由文本块切分（chunking）、文本嵌入（embedding）和相关性排序（ranking）三大组件构成。
+真正的工程难点在于‘增强’环节之前的构建过程，即构建能精准召回相关文本块（chunk）的检索器（retriever），其核心由文本块切分（chunking）、文本嵌入（embedding）和相关性排序（ranking）三大组件构成。
 
 ## Chunking 是隐形杀手
 
@@ -53,7 +53,7 @@ Question: {user_query}
 
 正确答案取决于你的语料库。代码：按函数/类切分。法律：按条款切分。 Markdown：按标题切分。 PDF：单独解析表格和图片，别让它们打断正文流。我在调试中遇到的多数失败案例，根本原因在于：文档在表格内部被截断，或答案跨越两个文本块，而任一文本块均无法独立支撑完整语义。
 
-建议通过合理性验证确定文本块大小：选取 20 个典型问题，在语料库中人工定位答案并统计其 token 数量。若多数答案可容纳于 512-token chunk，则选用 512；若多数需要 1500 token 上下文（如法律合同），则选用 1500 并配置 200-token 重叠。
+建议通过合理性验证确定文本块大小：选取 20 个典型问题，在语料库中人工定位答案并统计其 token 数量。如果多数答案可容纳于 512-token chunk，则选用 512；如果多数需要 1500 token 上下文（如法律合同），则选用 1500 并配置 200-token 重叠。
 
 ```python
 # A reasonable default chunker

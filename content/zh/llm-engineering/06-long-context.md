@@ -26,10 +26,10 @@ translationKey: "llm-engineering-6"
 
 ## 位置信息不是免费的
 
-Self-attention 对排列是不变的，没有位置信号，模型无法区分“猫坐在垫子上”和“垫子坐在猫上”。注入位置信息主要有三种方案：
+Self-attention 对排列是不变的，没有位置信号，模型无法区分“猫坐在垫子上”和“垫子坐在猫上”。注入位置信息主要有以下三种方案：
 
 1. **Sinusoidal absolute**（原始 Transformer）：在第 1 层之前把位置的 $\sin/\cos$ 函数加到 token embedding 上。
-2. **Learned absolute**：为每个绝对索引学习一个位置 embedding，直到最大长度。GPT-2 和 BERT 在用。
+2. **Learned absolute**：为每个绝对索引学习一个位置 embedding，直到最大长度。GPT-2 和 BERT 都在用。
 3. **Rotary (RoPE)**：在每个 attention 层内部，按与位置成比例的角度旋转 Q 和 K 向量。LLaMA、Qwen、Mistral 和 DeepSeek 都在用。
 
 RoPE 已成为主流——截至 2026 年，所有主流大模型都采用它作为位置编码，既在每层内部注入位置信号以增强鲁棒性，又让相对位置信息自然浮现于 Q·Kᵀ 点积中，而这正是 attention 机制的本质需求。

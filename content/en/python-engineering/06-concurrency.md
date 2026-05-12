@@ -14,9 +14,9 @@ series_order: 6
 translationKey: "python-engineering-6"
 ---
 
-Your script downloads 100 files one at a time. Each download takes 2 seconds, mostly waiting for the server to respond. Total time: 200 seconds. But your CPU is idle for 99% of that time. You're paying for network latency and wasting compute. Concurrency fixes this.
+Your script downloads 100 files one at a time. Each download takes 2 seconds, mostly waiting for the server to respond. Total time: 200 seconds. Your CPU is idle for 99% of that time, wasting compute and money on network latency. Concurrency can fix this.
 
-Python has three concurrency models, each designed for different problems. Choose the wrong one, and your code will be either slow or full of race conditions. This article explains when to use each.
+Python has three concurrency models, each designed for different problems. Choosing the wrong one can make your code slow or full of race conditions. This article explains when to use each.
 
 ## The GIL: What It Is and Why It Matters
 
@@ -66,7 +66,7 @@ Wait, the GIL does not prevent this? Correct. `counter += 1` compiles to multipl
 
 ## Threading: I/O-Bound Concurrency
 
-Threads share the same memory space and are lightweight. The GIL releases during I/O operations, making threads effective for network calls, file operations, and database queries.
+Threads share the same memory space and are lightweight. The GIL releases during I/O operations, making them effective for network calls, file operations, and database queries.
 
 ![Concurrency models comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-concurrency-models.png)
 
@@ -652,7 +652,7 @@ Threaded    : 1.18s
 Async       : 1.09s
 ```
 
-Both threaded and async complete in about 1 second (the server delay). Async uses fewer system resources because there are no thread stacks or context switches.
+Both threaded and async complete in about 1 second (the server delay). Async uses fewer system resources because it doesn't have thread stacks or context switches.
 
 ## Comparison Table
 

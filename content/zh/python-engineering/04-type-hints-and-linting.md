@@ -17,7 +17,7 @@ translationKey: "python-engineering-4"
 
 代码评审应聚焦于逻辑与架构设计，而不是争论单引号和双引号的使用——这种争论纯粹是浪费工程时间。解决方案很简单：让机器处理风格问题，人则专注于正确性。
 
-本文涵盖三层自动化代码质量保障机制：**类型提示**在运行前捕获逻辑错误，**代码检查器（linter）** 检测风格违规与常见缺陷，而**pre-commit 钩子**则在每次提交时自动执行全部检查。
+本文涵盖三层自动化代码质量保障机制：**类型提示**在运行前捕获逻辑错误，**代码检查器（linter）** 检测风格违规与常见缺陷，**pre-commit 钩子**则在每次提交时自动执行全部检查。
 
 ## 类型提示：基础注解
 
@@ -340,7 +340,7 @@ result = some_untyped_function()  # type: ignore[no-untyped-call]
 
 ![Code quality pipeline raw code passing through linter format](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-code-quality-pipeline-raw-code-passing-through-linter-format.jpg)
 
-ruff 是一款用 Rust 编写的 Python linter，速度比 flake8 快 10–100 倍，并集成了 flake8、 isort、 pyflakes、 pycodestyle、 pydocstyle 及众多 flake8 插件的功能。
+ruff 是一款用 Rust 编写的 Python linter，速度比 flake8 快 10–100 倍，并集成了 flake8、isort、pyflakes、pycodestyle、pydocstyle 及众多 flake8 插件的功能。
 
 ![Ruff vs other linters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-ruff-vs-others.png)
 

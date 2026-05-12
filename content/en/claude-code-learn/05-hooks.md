@@ -17,13 +17,13 @@ disableNunjucks: true
 translationKey: "claude-code-learn-5"
 ---
 
-If MCP is how Claude reaches out, hooks are how you reach in. They enforce the rules you care about, not just hope for them.
+If MCP is how Claude reaches out, hooks are how you reach in. They enforce the rules you care about, not just what you hope for.
 
 ![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.png)
 
 ## The model
 
-A hook is a shell command that Claude Code runs at specific moments. The two you'll use most:
+A hook is a shell command that Claude Code runs at specific moments. The two you'll use most are:
 
 - **`PreToolUse`** — runs before a tool is invoked. Exit code 0 lets the tool proceed; non-zero blocks it.
 - **`PostToolUse`** — runs after a tool returns. Exit code is informational; you can use it to format files, run linters, log.
@@ -141,7 +141,7 @@ A few critical details about how hooks actually run:
 
 But for anything beyond a one-liner, use a script file.
 
-**Hooks have a timeout.** By default, hooks must complete within a few seconds. A hook that hangs will be killed and the tool call proceeds (or is blocked, depending on the hook type). Don't make HTTP calls in hooks unless you set a tight timeout.
+**Hooks have a timeout.** By default, hooks must complete within a few seconds. A hook that hangs will be killed, and the tool call proceeds (or is blocked, depending on the hook type). Don't make HTTP calls in hooks unless you set a tight timeout.
 
 **Hooks run synchronously.** Each hook must finish before the next one starts. Five hooks at 200ms each add up to a full second of delay per tool call. Keep hooks fast.
 
@@ -172,7 +172,7 @@ In `.claude/settings.json` (or its local variant). The minimal example:
 
 The `matcher` decides which tools the hook applies to. `"Bash"` matches the built-in Bash tool. `"Write"` matches file writes. `"mcp__playwright__.*"` matches all Playwright MCP tools. Regex is supported — wildcards are common.
 
-The hook command receives the tool's input as JSON on stdin and gets the conversation context as environment variables. The simplest possible hook is one that reads stdin, decides, and exits with the appropriate code.
+The hook command receives the tool's input as JSON on stdin and gets the conversation context as environment variables. The simplest possible hook reads stdin, decides, and exits with the appropriate code.
 
 ### Matcher patterns
 

@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 13
 translationKey: "ml-math-derivations-13"
 ---
-When data carries hidden structure — a cluster label you never observed, a missing feature, a topic you cannot directly see — maximum likelihood becomes painful. The log of a sum has no closed form, and gradient methods get tangled in the latent variables. The **EM algorithm** sidesteps the difficulty with a deceptively simple idea: alternate between *guessing* the hidden variables under a posterior (E-step) and *fitting* the parameters as if those guesses were true (M-step). Each iteration is mathematically guaranteed to push the likelihood up. This post derives EM from first principles, proves the monotone-ascent property via Jensen's inequality, and works through its most famous application: **Gaussian Mixture Models (GMM)** — the soft, elliptical generalisation of K-means.
+When data has hidden structure — like an unobserved cluster label, a missing feature, or an unseen topic — maximum likelihood becomes challenging. The log of a sum has no closed form, and gradient methods get entangled with the latent variables. The **EM algorithm** sidesteps the difficulty with a deceptively simple idea: alternate between *guessing* the hidden variables under a posterior (E-step) and *fitting* the parameters as if those guesses were true (M-step). Each iteration is mathematically guaranteed to push the likelihood up. This post derives EM from first principles, proves the monotone-ascent property using Jensen's inequality, and explores its most famous application: **Gaussian Mixture Models (GMM)** — the soft, elliptical generalization of K-means.
 
 ![ML Math Derivations (13): EM Algorithm and GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_1.png)
 
@@ -50,7 +50,7 @@ We model observations $\mathbf{x}_1,\dots,\mathbf{x}_N$ together with hidden var
 $$\ell(\boldsymbol{\theta}) \;=\; \sum_{i=1}^{N} \log p(\mathbf{x}_i \mid \boldsymbol{\theta})
 \;=\; \sum_{i=1}^{N} \log \sum_{z} p(\mathbf{x}_i, z \mid \boldsymbol{\theta}).$$
 
-The summation **inside** the logarithm is the source of all the trouble. The log no longer factors over components, so the gradient does not split into per-component pieces and there is no closed-form maximiser.
+The summation inside the logarithm is the source of the problem. The log no longer factors over components, so the gradient doesn't split into per-component pieces, and there is no closed-form maximizer.
 
 ### 1.2 The mixture example
 
@@ -89,7 +89,7 @@ This $\mathcal{L}$ is the **Evidence Lower Bound (ELBO)**. It depends on both th
 
 ### 2.2 The exact decomposition
 
-A direct manipulation — no inequality needed — yields the *equality*
+A direct manipulation — without needing an inequality — yields the *equality*
 
 $$\log p(\mathbf{x}\mid \boldsymbol{\theta})
 \;=\;
@@ -128,7 +128,7 @@ $$Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
 
 ### 3.2 The monotone-ascent proof
 
-Chain three inequalities:
+Chain these three inequalities:
 
 $$\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})
 \;\overset{(a)}{=}\;

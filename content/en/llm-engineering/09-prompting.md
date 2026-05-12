@@ -18,7 +18,7 @@ description: "Chain-of-thought when it actually helps, self-consistency, prompt-
 translationKey: "llm-engineering-9"
 ---
 
-A prompt that works on 100 examples in a notebook can fail on 10% of inputs in production for reasons unrelated to cleverness. This chapter covers prompting as engineering: where chain-of-thought helps (and where it doesn't), how prompt caching affects costs, how to combine few-shot, ToT, and self-consistency without using every trick, and how to defend against jailbreaks and injections that production traffic will generate within a week of launch.
+A prompt that works on 100 examples in a notebook can fail on 10% of inputs in production for reasons unrelated to cleverness. This chapter covers prompting as an engineering task: where chain-of-thought helps (and where it doesn't), how prompt caching affects costs, how to combine few-shot, chain-of-thought, and self-consistency without using every trick, and how to defend against jailbreaks and injections that production traffic will generate within a week of launch.
 
 Three threads run through everything below. First, in 2026 the *model* is increasingly the place where reasoning lives — RLVR-trained thinking models (chapter 4) have absorbed many tricks the prompting community spent 2022-2024 inventing. Second, **economics dominate technique**: prompt caching, batch APIs, and KV reuse change which "good" prompt patterns are affordable. Third, the threat surface (injection, jailbreaks, retrieval poisoning) is now part of the prompt-engineering job description, not a separate "safety" team's problem.
 
@@ -36,7 +36,7 @@ Three threads run through everything below. First, in 2026 the *model* is increa
 
 Kojima et al. (2022, *Large Language Models are Zero-Shot Reasoners*) showed that the trigger phrase alone — no exemplars — works on GSM8K (17.7 % → 78.7 % on InstructGPT) and across MultiArith, AQuA-RAT, and StrategyQA. This is the "zero-shot CoT" version that became the default in production prompts.
 
-By 2024, every chat model defaulted to some form of reasoning when prompted. In 2026, with thinking models (o1-family, Claude-thinking, Qwen3-Reasoning, DeepSeek-R1), CoT is *built into the model* via RLVR (chapter 4). For these models, you don't prompt for reasoning; you let them think. For non-thinking models, CoT is still a free win on certain tasks.
+By 2024, every chat model defaulted to some form of reasoning when prompted. In 2026, with thinking models (o1-family, Claude-thinking, Qwen3-Reasoning, DeepSeek-R1), CoT is *built into the model* via RLVR (chapter 4). For these models, you don't prompt for reasoning; you let them think. For non-thinking models, CoT remains a free win on certain tasks.
 
 Where CoT helps:
 
@@ -65,7 +65,7 @@ Self-consistency (Wang et al., 2022, *Self-Consistency Improves Chain of Thought
 
 For math problems on GSM8K with PaLM-540B, going from $N=1$ to $N=10$ gains ~10 % accuracy. Going to $N=40$ gains another ~5 %. Returns diminish but never quite go negative. The Wang paper plots an accuracy-vs-$N$ curve that looks like a saturating exponential — most of the value is at $N \le 20$, after which you're paying linearly for sub-1 % gains.
 
-The cost is linear in $N$. For high-stakes math/code workloads where you'd accept 10x the cost for +15 % accuracy, this is the easiest win in the playbook. For chat where you can't afford 10 generations, it's not.
+The cost is linear in $N$. For high-stakes math/code workloads where you'd accept 10x the cost for +15% accuracy, this is the easiest win in the playbook. For chat where you can't afford 10 generations, it's not.
 
 ```python
 from collections import Counter

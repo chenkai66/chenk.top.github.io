@@ -43,7 +43,7 @@ What makes this harder than classical collaborative filtering:
 - **Long-range dependencies.** Early clicks often still matter — click "camera" first, click "memory card" twenty steps later.
 - **Repeated transitions.** Users bounce between a few related items; a strict sequence model can underuse this structure.
 
-These four pressures pull in different directions. Sequence-only models (RNN/Transformer) handle order well but treat each step as a fresh token. Graph-only models (SR-GNN) capture loops and repeats but need many hops to reach distant clicks. GC-SAN's design pitch is exactly to combine the two without paying the cost of either alone.
+These four pressures pull in different directions. Sequence-only models (RNN/Transformer) handle order well but treat each step as a new token. Graph-only models (SR-GNN) capture loops and repeats but need many hops to reach distant clicks. GC-SAN's design aims to combine the two without incurring the costs of either.
 
 ## 2. Where GC-SAN sits among prior work
 

@@ -48,7 +48,7 @@ That is at least nine separate Aliyun services touching each other in specific w
 
 ## The console-vs-IaC moment
 
-Nine services managed manually create nine drift surfaces. This pain pattern is so common that I have a standard figure for it:
+Managing nine services manually creates nine drift surfaces. This issue is so common that I have a standard figure for it:
 
 ![Infrastructure as Code workflow transforming declarative configs into cloud resources](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_iac_workflow.png)
 

@@ -24,7 +24,7 @@ translationKey: "openclaw-quickstart-3"
 
 ![The six layers of an OpenClaw agent: Channels, Gateway, Router+Sessions+Pi Agent, Tools+Skills, Memory+ContextEngine, LLM provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/fig1_six_layers.png)
 
-我们将按自上而下的顺序梳理。
+接下来按自上而下的顺序梳理。
 
 ## Channels —— 是适配器，不是传输层
 

@@ -14,7 +14,7 @@ series_order: 3
 translationKey: "python-engineering-3"
 ---
 
-你只改了一行代码，却导致三个完全无关的功能崩溃；重构一个函数后，不得不花两小时手动检查整个应用以确认一切是否依然正常；周五上线部署后，午夜又被报警电话叫醒。所有这些现象，都指向同一个病根：**没有测试**。
+你只改了一行代码，却导致三个完全无关的功能崩溃；重构一个函数后，不得不花两小时手动检查整个应用以确认一切是否依然正常；周五上线部署后，午夜又被报警电话叫醒——所有这些现象，都指向同一个病根：**没有测试**。
 
 测试不是官僚主义流程，而是你**最快验证代码行为是否符合预期**的手段。一套优秀的测试套件能在几秒内完成运行，捕获那些手动排查需要耗费数小时才能发现的缺陷。
 
@@ -368,7 +368,7 @@ def test_filename_from_url(url, expected_filename):
 
 ## Mocking：隔离你的代码
 
-当测试调用外部服务的函数时，你不希望测试真正发起 HTTP 请求。 Mocking 将代码中部分组件替换为可控的模拟对象。
+当测试调用外部服务的函数时，你不希望测试真正发起 HTTP 请求。Mocking 将代码中部分组件替换为可控的模拟对象。
 
 ![Mock architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png)
 

@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 1
 translationKey: "pde-ml-1"
 ---
-> **Series chapter 1 — about a 35-minute read.** This is the foundation of the entire series. Neural operators, variational principles, score matching — every later chapter is, at heart, *the same idea*: how do we encode physical or mathematical constraints directly into the neural network's optimization objective? Get PINNs right, and the rest is just swapping one constraint for another.
+> **Series chapter 1 — about a 35-minute read.** This is the foundation of the entire series. Neural operators, variational principles, score matching — every later chapter is, at heart, *the same idea*: how to encode physical or mathematical constraints directly into the neural network's optimization objective. Master PINNs, and the rest is just swapping one constraint for another.
 
 ---
 
@@ -31,7 +31,7 @@ Suppose you want the temperature distribution $u(x,t)$ along a metal rod. Half a
 
 Both routes are mature beyond reproach but share one painful prerequisite — **first you must build a mesh.** A 1-D rod is fine; an aircraft wing is annoying; a 10-dimensional state space is a death sentence (the curse of dimensionality: $N\propto h^{-d}$ explodes).
 
-In 2019, Raissi, Perdikaris and Karniadakis [^raissi2019] proposed a third route in *Journal of Computational Physics*:
+In 2019, Raissi, Perdikaris, and Karniadakis [^raissi2019] proposed a third approach in *Journal of Computational Physics*:
 
 > **Skip the mesh. Let a neural network $u_\theta(x,t)$ approximate the solution directly, and write "satisfies the PDE" as a loss function.**
 
@@ -40,7 +40,7 @@ The seed of the idea goes back to Lagaris (1998) [^lagaris1998] and even further
 ![PINN architecture: MLP + automatic differentiation + physics-informed loss.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig1_architecture.png)
 *Figure 1: PINN architecture. Inputs $(x,t)$ feed an ordinary MLP that outputs $\hat u$; autodiff extracts $\partial_t\hat u$ and $\partial_x^2\hat u$, which assemble the PDE residual. Together with boundary and initial / data residuals it forms the training objective $\mathcal L=\lambda_r\mathcal L_r+\lambda_b\mathcal L_b+\lambda_i\mathcal L_i$.*
 
-This chapter proceeds as follows: §2 quantifies the pain points of classical methods. §3 provides the minimal complete definition of a PINN and shows its equivalence with Ritz–Galerkin. §4, the heart of the chapter, offers a Neural Tangent Kernel (NTK) view of why PINNs are often hard to train and presents three working remedies. §5 walks through a complete Burgers experiment and an inverse-problem demonstration. §6 lists failure modes and limits. §7 places PINNs on the broader SciML map alongside FEM and neural operators.
+This chapter proceeds as follows: §2 quantifies the pain points of classical methods. §3 provides the minimal complete definition of a PINN and shows its equivalence with Ritz–Galerkin. §4, the core of the chapter, offers a Neural Tangent Kernel (NTK) view of why PINNs are often hard to train and presents three effective remedies. §5 walks through a complete Burgers experiment and an inverse-problem demonstration. §6 lists failure modes and limits. §7 places PINNs on the broader SciML map alongside FEM and neural operators.
 
 ---
 

@@ -17,7 +17,7 @@ disableNunjucks: true
 description: "BPE、SentencePiece、WordPiece 的差别，byte-level fallback，CJK token 膨胀问题，扩词表的真实代价，以及悄悄塑造每个模型行为的 chat template 特殊 token。"
 translationKey: "llm-engineering-2"
 ---
-分词层往往被大家忽视，却是我在生产环境中调试最多的地方——静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）。我希望在发布多语言产品前能彻底掌握这一章的内容。
+分词层常被忽视，却是在生产环境中我调试最多的地方——静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）。我希望在发布多语言产品前彻底掌握这一章的内容。
 
 ![LLM Engineering (2): Tokenization Deep Dive — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/02-tokenization/illustration_1.png)
 
@@ -25,7 +25,7 @@ translationKey: "llm-engineering-2"
 
 分词器（tokenizer）做的事很简单：把字符串映射成一串整数 ID，反过来也能把 ID 还原成字符串。这两个方向都是确定性的，但通常不是双射——`tokenizer.decode(tokenizer.encode(s))` 往返一遍可能会丢失空格、标准化 Unicode 或者合并重复标点，具体取决于算法。
 
-主流方案主要有三类：
+主流方案有三类：
 
 - **WordPiece** [Schuster & Nakajima, 2012; Wu et al., 2016] — BERT 在用。从前向后贪心最长匹配。用 `##` 标记子词 continuation。
 - **BPE (Byte Pair Encoding)** [Sennrich et al., 2016] — GPT-2/3/4、 LLaMA、 Qwen、 DeepSeek 都在用。迭代合并出现频率最高的相邻 pair，直到达到词表大小。原始 BPE 算法来自 Philip Gage 1994 年关于数据压缩的论文； Sennrich 等人把它适配到了 NMT 上。

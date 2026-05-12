@@ -18,7 +18,7 @@ A live e-commerce ranker doesn't optimize just one number. The same model that d
 
 **Multi-task learning (MTL)** is how production systems handle this. Instead of training one model per objective and stitching scores together, we train one neural network with several output heads and let the shared trunk learn representations that serve all of them at once. The hard part is not the architecture diagram — it is making sure the heads cooperate instead of fighting over the shared weights.
 
-This post provides the mental model and working code for the four architectures you'll encounter in industry: **Shared-Bottom, ESMM, MMoE, PLE**. We'll also explain why the simple version fails (negative transfer, gradient conflict, sample selection bias) and how Uncertainty Weighting, GradNorm, and Pareto trade-offs address these issues.
+This post provides the mental model and working code for the four architectures you'll encounter in industry: **Shared-Bottom, ESMM, MMoE, PLE**. It also explains why the simple version fails (negative transfer, gradient conflict, sample selection bias) and how Uncertainty Weighting, GradNorm, and Pareto trade-offs address these issues.
 
 ## What You Will Learn
 
@@ -40,7 +40,7 @@ This post provides the mental model and working code for the four architectures 
 
 ### Optimizing One Number Is the Wrong Game
 
-Picture a restaurant recommender. If you only optimize **clicks**, the model learns that lurid food photos and clickbait names work great — and your conversion rate craters. If you only optimize **bookings**, you surface safe national chains with no upside for discovery. If you only optimize **stars**, you push fancy expensive places that nobody books. The honest objective is a *bundle*:
+Picture a restaurant recommender. If you only optimize **clicks**, the model learns that lurid food photos and clickbait names work great, but your conversion rate plummets. If you only optimize **bookings**, you surface safe national chains with no room for discovery. If you only optimize **stars**, you push fancy, expensive places that few people book. The honest objective is a *bundle*:
 
 - Will the user **click**? (engagement)
 - Will they actually **visit**? (conversion)
@@ -55,7 +55,7 @@ The same pattern shows up everywhere:
 | Short video | CTR, watch time, like/share rate, follow rate |
 | Ads | CTR, CVR, cost per acquisition, lifetime value |
 
-These metrics are **correlated but distinct**. The job of an MTL model is to exploit the correlation (clicks teach the conversion head about user intent) without letting one objective dominate.
+These metrics are **correlated but distinct**. The job of an MTL model is to exploit the correlation (clicks inform the conversion head about user intent) without letting one objective dominate.
 
 ### Sample Selection Bias: Why Naive CVR Is Broken
 
@@ -64,7 +64,7 @@ Here is the subtle problem that motivated ESMM. Suppose you want a *conversion* 
 - **Training labels exist only on clicked items** — you can only observe a buy after a click.
 - **At serving time the model must score every candidate**, including items the user never clicked.
 
-You train on the slice of impressions that were clicked, then deploy on all impressions. That is **sample selection bias**: a textbook covariate shift between train and serve.
+You train on the slice of impressions that were clicked, then deploy on all impressions. This is **sample selection bias**: a textbook covariate shift between training and serving.
 
 ESMM's escape uses the chain rule of probability:
 
@@ -86,7 +86,7 @@ Read it in English: "the probability of buying after seeing an item equals the p
 - *Loss balancing.* CTR loss may sit around 0.3 while a revenue MSE sits at 100 — naive sums let one task drown the others.
 - *Architecture choices.* You have to decide what to share and what to keep private, with surprisingly little theory to guide you.
 
-The architectures below are essentially four answers to the same question: **how much sharing, and where?**
+The architectures below are essentially four answers to the same question: **how much and where to share?**
 
 ---
 

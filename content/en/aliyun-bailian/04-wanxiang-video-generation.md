@@ -73,13 +73,13 @@ print(url)
 
 ## Polling with backoff — pick a sensible schedule
 
-Polling every second is wasteful and gets you rate-limited. Polling every 30 seconds wastes user time. The backoff schedule I use:
+Polling every second is wasteful and leads to rate limiting. Polling every 30 seconds wastes user time. Here’s the backoff schedule I use:
 
 ![Polling schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png)
 
-Start at 5 seconds, multiply by 1.45 each iteration, cap at 60 seconds. A typical 720p 5-second clip finishes in 30-90 seconds, so the median user waits about 4 polls.
+Start at 5 seconds, multiply by 1.45 each iteration, and cap at 60 seconds. A typical 720p 5-second clip finishes in 30-90 seconds, so the median user waits about 4 polls.
 
-For a backend service, the right pattern is often *not* to poll inside the request handler. Instead:
+For a backend service, it's often better not to poll inside the request handler. Instead:
 
 1. User submits prompt → you POST to Wanxiang and store `task_id` in your DB.
 2. Return immediately with a job URL.
@@ -107,7 +107,7 @@ I do this synchronously inside the polling worker, before returning success. If 
 
 ## Prompt patterns that survive
 
-A surprisingly high fraction of Wanxiang quality is in the prompt. After a few months of iteration, the structure that works:
+A surprisingly large part of Wanxiang's quality depends on the prompt. After a few months of iteration, this structure works well:
 
 ```
 [shot type], [subject], [action], [setting / environment],
@@ -152,11 +152,11 @@ Generate three variants per critical prompt with different seeds (`seed` paramet
 
 ## Cost and rate limits
 
-Wanxiang bills per second of video. A 5-second 720p clip costs a few RMB. Concurrent task limits are per API key. For production traffic, request a quota increase via the console before you launch. The default of 5 concurrent tasks per workspace is fine for prototyping but insufficient for a real product.
+Wanxiang bills per second of video. A 5-second 720p clip costs a few RMB. Concurrent task limits are per API key. For production traffic, request a quota increase via the console before launching. The default of 5 concurrent tasks per workspace is fine for prototyping but insufficient for a real product.
 
 ## Async patterns: poll vs callback, queue depth
 
-The polling-with-backoff approach in the previous section is the simplest pattern that works. It's sufficient for a single user-initiated request. For a production marketing pipeline that submits 200 videos a day, polling burns API calls, and engineering simplicity competes with cost. The alternatives:
+The polling-with-backoff approach in the previous section is the simplest and works for a single user-initiated request. For a production marketing pipeline that submits 200 videos a day, polling consumes too many API calls, and engineering simplicity competes with cost. The alternatives are:
 
 **Callback (webhook).** Bailian supports a callback URL on the create request: pass `notification_url` in the request body, and DashScope will POST to that URL when the task finishes. The body of the POST is the same `output` envelope you'd have polled for. This eliminates polling entirely.
 

@@ -16,7 +16,7 @@ series_order: 8
 translationKey: "docker-containers-8"
 ---
 
-本系列此前的内容均围绕**单机版 Docker**展开，即仅在一台机器上运行容器。这种方式非常适合开发、小型项目及流量适中的应用，但在需要在服务器宕机时保持可用、应对突发流量高峰或实现零停机部署更新时，单机版 Docker 的局限性便立即显现。而**容器编排（Container Orchestration）**正是为解决这些问题而生——其中， Kubernetes 已成为事实上的行业标准。
+本系列此前的内容均围绕**单机版 Docker**展开，即仅在一台机器上运行容器。这种方式非常适合开发、小型项目及流量适中的应用，但当需要在服务器宕机时保持可用、应对突发流量高峰或实现零停机部署更新时，其局限性便立即显现。而**容器编排（Container Orchestration）**正是为解决这些问题而生——其中，Kubernetes 已成为事实上的行业标准。需要在服务器宕机时保持可用、应对突发流量高峰或实现零停机部署更新时，单机版 Docker 的局限性便立即显现。而**容器编排（Container Orchestration）**正是为解决这些问题而生——其中， Kubernetes 已成为事实上的行业标准。
 
 ## 为何单机版 Docker 不够用？
 
@@ -89,7 +89,7 @@ ghi789def012                 worker2    Ready    Active                         
 
 ### 部署服务（Services）
 
-Swarm 引入了“服务（Service）”的概念，即对容器运行方式的声明式定义，并负责维持指定数量的副本（replicas）。
+Swarm 引入了“服务（Service）”的概念，即对容器运行方式进行声明式定义，并负责维持指定数量的副本（replicas）。
 
 ```bash
 # 创建一个含 3 个副本的服务
@@ -140,7 +140,7 @@ overall progress: 3 out of 3 tasks
 verify: Service converged
 ```
 
-Swarm 每次仅更新一个容器，并在每次更新之间等待 10 秒；如果新容器健康检查失败，则会自动回滚。
+Swarm 每次仅更新一个容器，并在每次更新之间等待 10 秒；若新容器健康检查失败，则会自动回滚。
 
 ### 部署 Stack （在 Swarm 中运行 Compose 文件）
 

@@ -17,7 +17,7 @@ translationKey: "leetcode-10"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/09-greedy/illustration_1.png)
 
-Greedy is the algorithm paradigm that seems too good to be true: at every step, choose the option that looks best right now, never look back, and somehow reach the global optimum. When it works, the code is almost embarrassingly short. When it doesn't, it produces confidently wrong answers — which is why the real skill is recognizing when greedy is allowed.
+The greedy algorithm paradigm seems too good to be true: at every step, choose the option that looks best right now, never look back, and somehow reach the global optimum. When it works, the code is almost embarrassingly short. When it doesn't, it produces confidently wrong answers — which is why the real skill is recognizing when greedy is allowed.
 
 This article walks through the structural reason greedy is correct on some problems and broken on others, then applies that lens to seven LeetCode classics: **Jump Game**, **Jump Game II**, **Gas Station**, **Best Time to Buy and Sell Stock II**, **Non-overlapping Intervals**, **Task Scheduler**, and **Partition Labels**.
 
@@ -30,7 +30,7 @@ For this strategy to be correct, the problem must have two structural properties
 - **Greedy choice property.** There exists a locally optimal choice that is part of *some* globally optimal solution. (Equivalently: making this choice never destroys the best possible future.)
 - **Optimal substructure.** Once that choice is committed, the remainder of the problem is itself a smaller instance of the same problem, and an optimal solution for it combines with the greedy choice into an optimal solution for the original.
 
-Most problems satisfy optimal substructure. The greedy choice property is the rarer one, and it is the part that needs a proof. **If you cannot prove the greedy choice property, you do not have a greedy algorithm — you have a guess.**
+Most problems satisfy optimal substructure. The greedy choice property is rarer and requires a proof. **If you cannot prove the greedy choice property, you do not have a greedy algorithm — you have a guess.**
 
 ### Greedy vs DP vs Backtracking
 
@@ -42,7 +42,7 @@ Most problems satisfy optimal substructure. The greedy choice property is the ra
 | Required structure | Greedy choice + optimal substructure | Optimal substructure + overlapping subproblems | Verifiable solution check |
 | Proof burden | Heavy (must prove correctness) | Mechanical (transition + base case) | None (it tries everything) |
 
-The takeaway: **greedy trades correctness for runtime**. You pay in proof effort and are rewarded with linear or near-linear time.
+The takeaway: **greedy trades correctness for runtime**. You pay in proof effort and get linear or near-linear time in return.
 
 ### When greedy fails: a concrete warning
 
@@ -50,7 +50,7 @@ The takeaway: **greedy trades correctness for runtime**. You pay in proof effort
 
 Coin change is the canonical cautionary tale. With the canonical US coin set `{1, 5, 10, 25}`, "always take the largest coin that fits" produces an optimal answer for every amount. With a slightly different set `{1, 3, 4}` and amount `6`, greedy picks `4 + 1 + 1` (three coins) while the optimal is `3 + 3` (two coins). Same algorithm, same intuition — but the second instance lacks the structural property (technically: the coin set is not a *matroid*) that makes greedy correct.
 
-The lesson: **greedy correctness is a property of the problem, not the algorithm**. Always either prove it or recognize it from a known pattern.
+The lesson: **greedy correctness is a property of the problem, not the algorithm**. Always prove it or recognize it from a known pattern.
 
 ## A Vocabulary of Greedy Strategies
 

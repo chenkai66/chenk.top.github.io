@@ -23,7 +23,7 @@ This article walks the model end to end. We start with the raw shape of `/etc/pa
 
 ## The mental model: accounts are rows in three text files
 
-Before any command, the data model. Linux accounts live in three flat text files, one row per entity, fields separated by colons:
+First, the data model. Linux accounts are stored in three flat text files, one row per entity, with fields separated by colons:
 
 - `/etc/passwd` — public: one row per account (humans **and** services). World-readable, root-writable.
 - `/etc/shadow` — secret: one row per account holding the password hash and the aging policy. Root-only.
@@ -69,7 +69,7 @@ groups alice
 
 ## The lifecycle commands
 
-Every account goes through the same five stages. Each command edits a specific subset of the files above; once you know which, recovery and auditing are straightforward.
+Every account goes through five stages. Each command edits a specific subset of the files above; knowing which files are edited makes recovery and auditing straightforward.
 
 ![The lifecycle of a Linux account: useradd, usermod, passwd, lock, userdel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/fig4_user_lifecycle_commands.png)
 
@@ -80,7 +80,7 @@ sudo useradd -m -s /bin/bash -c "Alice Wang" alice
 sudo passwd alice
 ```
 
-The flags worth memorising:
+Flags worth memorizing:
 
 | Flag | Effect |
 |------|--------|
@@ -92,7 +92,7 @@ The flags worth memorising:
 | `-r` | Make a *system* user (UID below the normal range, no aging, no `/home`). |
 | `-c "..."` | The GECOS / comment field. |
 
-Two common shapes:
+Two common forms:
 
 ```bash
 # A human, in the developers group, with docker socket access:

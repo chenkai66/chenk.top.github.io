@@ -17,9 +17,9 @@ translationKey: "leetcode-9"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/10-stack-queue/illustration_1.png)
 
-Stacks and queues look unassuming next to graphs or DP, but they sit underneath an astonishing fraction of interview problems. The reason is simple: most algorithmic questions are really questions about *order of access*. Stacks give you LIFO (last in, first out); queues give you FIFO (first in, first out); and once you add the variants — monotonic stack, deque, priority queue — you have efficient answers for bracket matching, next-greater-element, sliding-window extrema, top-K, BFS, and a long tail of "implement X using Y" puzzles.
+Stacks and queues may seem unassuming next to graphs or dynamic programming, but they underpin a surprising number of interview problems. The reason is simple: most algorithmic questions are really about *order of access*. Stacks provide LIFO (last in, first out), while queues offer FIFO (first in, first out). Add variants like monotonic stacks, deques, and priority queues, and you can efficiently solve problems like bracket matching, next-greater-element, sliding-window extrema, top-K, BFS, and a long list of "implement X using Y" puzzles.
 
-This part of the series covers the entire landscape. We start with the basic data structures, then work through six representative LeetCode problems with full traces, and conclude with a comparison table and a Q&A addressing common mistakes I see candidates make.
+This part of the series covers the entire landscape. We start with the basic data structures, work through six representative LeetCode problems with full traces, and conclude with a comparison table and a Q&A addressing common mistakes I see candidates make.
 
 ![Stack vs Queue: same input, opposite output order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/stack-and-queue/fig1_lifo_vs_fifo.png)
 
@@ -103,7 +103,7 @@ val = q.popleft()      # dequeue -> 1
 
 In Java the analogue is `ArrayDeque` again (used as a queue via `offer` / `poll`); in C++ you have `std::queue<int>`.
 
-A practical mental model: **stack = function call history, queue = work to-do list**. That single sentence already tells you which one BFS, DFS, undo/redo, task schedulers, and bracket matchers want.
+A practical mental model: **stack = function call history, queue = work to-do list**. This single sentence tells you which one BFS, DFS, undo/redo, task schedulers, and bracket matchers use.
 
 ## Stack Classics
 
@@ -111,7 +111,7 @@ A practical mental model: **stack = function call history, queue = work to-do li
 
 > Given a string `s` containing only the characters `()[]{}`, decide whether every opening bracket is closed by the same type, in the correct nested order.
 
-The key observation is the *nesting* rule: when a closing bracket arrives, it must match the **most recently opened** one that is still unclosed. "Most recently opened" is exactly what a stack tracks.
+The key observation is the *nesting* rule: when a closing bracket arrives, it must match the **most recently opened** one that is still unclosed. A stack tracks this perfectly.
 
 **Algorithm.** Walk the string. Push opening brackets. On a closing bracket, the stack must be non-empty *and* the top must be the matching opener — otherwise the string is invalid. After the loop, the string is valid iff the stack is empty.
 
@@ -128,7 +128,7 @@ def isValid(s: str) -> bool:
     return not stack
 ```
 
-Figure 2 traces the algorithm on `({[]})`. Each column represents one step: the highlighted character is the one being read, and the bottom column shows the stack *after* the action. Notice how the stack grows to depth 3, then unwinds symmetrically.
+Figure 2 traces the algorithm on `({[]})`. Each column represents one step: the highlighted character is the one being read, and the bottom row shows the stack *after* the action. Notice how the stack grows to depth 3, then unwinds symmetrically.
 
 ![Valid Parentheses: stack trace on "({[]})"](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/stack-and-queue/fig2_valid_parentheses.png)
 

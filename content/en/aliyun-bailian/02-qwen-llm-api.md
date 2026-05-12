@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "aliyun-bailian-2"
 ---
 
-This article in the series covers most of the production wins. The other models are interesting, but the LLMs are what every product I've shipped on Bailian calls every minute of every day. The official Qwen API reference is dense and complete; this article is the readable companion that guides you through it.
+This article in the series covers most of the production wins. While the other models are interesting, the LLMs are what every product I've shipped on Bailian calls every minute of every day. The official Qwen API reference is dense and complete; this article is the readable companion that guides you through it.
 
 ![Aliyun Bailian (2): The Qwen LLM API in Production — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_1.png)
 
@@ -56,7 +56,7 @@ The fields you'll touch most often:
 
 ## Function calling: the round trip
 
-The Qwen function-calling protocol is the OpenAI tool-calls protocol. Two LLM calls plus your code in the middle:
+The Qwen function-calling protocol follows the OpenAI tool-calls protocol. It involves two LLM calls and your code in between:
 
 ![Function calling round-trip](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/fig3_function_calling.png)
 

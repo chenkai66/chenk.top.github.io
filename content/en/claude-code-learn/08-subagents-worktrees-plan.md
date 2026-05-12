@@ -17,9 +17,9 @@ disableNunjucks: true
 translationKey: "claude-code-learn-8"
 ---
 
-After hooks, the next thing that changes how Claude Code feels is *concurrency control*. Not in the threading sense, but in terms of how many tasks the model handles, their isolation, and the level of oversight.
+After hooks, the next thing that changes how Claude Code operates is *concurrency control*. Not in the threading sense, but in terms of how many tasks it handles, their isolation, and the level of oversight.
 
-Three features, in escalating order of trust required.
+Three features, in increasing order of trust required.
 
 ![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
@@ -36,7 +36,7 @@ Plan mode is the cheapest of the three. Press `Shift+Tab` until the indicator sa
 
 ### How to activate it
 
-There are three ways:
+Here are three ways:
 
 1. **Keyboard shortcut**: `Shift+Tab` cycles through modes: `auto` → `plan` → `auto`. The current mode shows in the bottom bar.
 2. **CLI flag**: `claude --mode plan` starts a session in plan mode.
@@ -44,7 +44,7 @@ There are three ways:
 
 ### A real plan mode walkthrough
 
-Let me show exactly what happens. Say I'm working on an Express API and want to add rate limiting:
+Let me show exactly what happens. Say I'm working on an Express API and want to add rate limiting.
 
 ```yaml
 You: Add rate limiting to the API. 100 requests per minute per IP.
@@ -83,7 +83,7 @@ Claude: Here's my plan for adding rate limiting:
 Shall I proceed with this plan?
 ```
 
-Now I can see: step 1 caught that the package is in devDependencies. Step 3 tells me where exactly in the middleware chain it goes. Step 6 reminds me about env vars. Without plan mode, Claude would have just started writing code, and I would have caught these details in review instead of upfront.
+Now I can see: step 1 caught that the package is in devDependencies. Step 3 tells me where exactly in the middleware chain it goes. Step 6 reminds me about env vars. Without plan mode, Claude would have just started writing code, and I would have caught these details in review, not upfront.
 
 ### When I use plan mode
 
@@ -94,11 +94,11 @@ Now I can see: step 1 caught that the package is in devDependencies. Step 3 tell
 
 ### The common mistake
 
-Skipping plan mode because the task is small. Small tasks often lead to misunderstandings. A one-line fix in the wrong file is worse than a large feature with a clear plan.
+Skipping plan mode for small tasks can lead to misunderstandings. A one-line fix in the wrong file is worse than a large feature with a clear plan.
 
 ### Plan mode modifiers
 
-You can steer the plan with instructions:
+You can steer the plan with instructions.
 
 ```
 You: [plan mode] Add authentication. Focus the plan on the database
@@ -111,7 +111,7 @@ Claude: Focusing on schema changes only:
 3. Migration file...
 ```
 
-The model respects the scope constraint. This keeps plans from becoming 20-step novels.
+The model respects the scope constraint, preventing plans from becoming 20-step novels.
 
 ### Approving, editing, and rejecting
 
@@ -125,7 +125,7 @@ After Claude shows the plan:
 
 ## Sub-agents — for things you can run in parallel
 
-A sub-agent is a Claude Code instance spawned by the parent agent to handle a scoped task. It has its own context window, tool set, and instructions. The parent orchestrates, while the sub-agents do the work.
+A sub-agent is a Claude Code instance spawned by the parent agent to handle a scoped task. It has its own context window, tool set, and instructions. The parent orchestrates, and the sub-agents do the work.
 
 
 
@@ -230,7 +230,7 @@ Claude: Based on the research agent's findings, here's how
 
 ### What sub-agents buy you
 
-**Context isolation.** The sub-agent's context window is separate. The parent's remains clean. This is crucial when working on a complex task and need research without cluttering the main context with 30 file reads.
+**Context isolation.** The sub-agent's context window is separate, keeping the parent's clean. This is crucial for complex tasks that require research without cluttering the main context with 30 file reads.
 
 **Tool restriction.** A research agent literally cannot edit files. That is safety as architecture, not as discipline. You do not have to trust the model to avoid editing — it does not have the capability.
 
@@ -259,7 +259,7 @@ Claude: Here are the results from all three agents: ...
 
 **Coordination.** The parent has to merge the results. If sub-agent A finds something that sub-agent B needs to know, they cannot talk to each other. Plan that step explicitly.
 
-**Startup time.** Spawning a sub-agent is not instant. For a 10-second task, the overhead isn't worth it.
+**Startup time.** Spawning a sub-agent takes time. For a 10-second task, the overhead isn't worth it.
 
 ### When sub-agents are the wrong answer
 

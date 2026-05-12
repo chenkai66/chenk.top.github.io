@@ -16,7 +16,7 @@ description: "三个改变 Claude Code 一次能扛多少事的特性：子 Agen
 disableNunjucks: true
 translationKey: "claude-code-learn-8"
 ---
-说完 hooks，Claude Code 使用体验的下一个关键点是*并发控制*。这里的‘并发’不是指线程级并发，而是指模型在同一时间并行处理的任务数量、任务间的上下文隔离程度以及所需的监督注意力。
+说完 hooks，Claude Code 使用体验的下一个关键点是*并发控制*。这里的‘并发’不是指线程级并发，而是指模型在同一时间并行处理的任务数量、任务间的上下文隔离程度及所需的监督注意力。
 
 这三个功能按所需信任度从低到高依次为：Plan mode、Worktrees 和 Sub-agents。
 

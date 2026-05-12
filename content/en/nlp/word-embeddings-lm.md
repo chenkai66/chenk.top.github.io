@@ -14,10 +14,10 @@ disableNunjucks: true
 series_order: 2
 translationKey: "nlp-2"
 ---
-For decades, machines treated "king" and "queen" as unrelated symbols—nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute
+For decades, machines treated "king" and "queen" as unrelated symbols—nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute.
 
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
-and the entire trajectory of NLP shifted toward representation learning. This article walks through that shift—from the failure of one-hot vectors, to Word2Vec's shallow networks, to the global statistics that GloVe exploits, to the subword n-grams that let FastText handle unseen words—and finally connects embeddings to the language models that gave rise to them.
+The entire trajectory of NLP shifted toward representation learning. This article walks through that shift—from the failure of one-hot vectors, to Word2Vec's shallow networks, to the global statistics that GloVe exploits, to the subword n-grams that let FastText handle unseen words—and finally connects embeddings to the language models that gave rise to them.
 
 
 <!-- wanx-hero -->
@@ -50,7 +50,7 @@ $$\text{cat} = [1, 0, 0, 0, \ldots], \quad \text{dog} = [0, 1, 0, 0, \ldots]$$
 Three properties make this representation a dead end:
 
 - **Sparsity.** With $V = 50{,}000$, every vector is 99.998% zeros. Storage and compute are wasted on emptiness.
-- **No similarity.** The dot product between any two distinct one-hot vectors is exactly zero. The model can't tell that "cat" is closer to "dog" than to "quantum"; from its perspective, all non-identical words are equally different.
+- **No similarity.** The dot product between any two distinct one-hot vectors is exactly zero. The model can't tell that "cat" is closer to "dog" than to "quantum." From its perspective, all non-identical words are equally different.
 - **No generalisation.** A linear classifier on top of one-hot input has $V$ independent weights per class. Knowing that "movie" is positive teaches the model nothing about "film".
 
 ### The Embedding Solution
@@ -76,11 +76,11 @@ The payoff of taking this hypothesis seriously is shown below: trained embedding
 
 ## Word2Vec: Learning from Local Context
 
-Word2Vec (Mikolov et al., 2013) was the first method to learn high-quality embeddings cheaply on billions of tokens. It comes in two flavours — **Skip-gram** and **CBOW** — both implemented as one-hidden-layer neural networks with no non-linearity. The simplicity is the point.
+Word2Vec (Mikolov et al., 2013) was the first method to learn high-quality embeddings cheaply on billions of tokens. It comes in two flavors — **Skip-gram** and **CBOW** — both implemented as one-hidden-layer neural networks with no non-linearity. The simplicity is the point.
 
 ### Skip-gram: Predict Context from Target
 
-Given a target word, predict each surrounding context word inside a fixed window. For "the quick **brown** fox jumps" with window size 2, the target "brown" generates four positive training pairs:
+Given a target word, predict each surrounding context word within a fixed window. For "the quick **brown** fox jumps" with window size 2, the target "brown" generates four positive training pairs:
 
 ```
 (brown, the)   (brown, quick)   (brown, fox)   (brown, jumps)

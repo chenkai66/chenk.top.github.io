@@ -13,7 +13,7 @@ series_order: 9
 series: linux
 ---
 
-Most people quit Vim because they try to memorize shortcuts. That is the wrong frame. Vim is a *small language*: learn the grammar — **operator + motion** — and you can express any edit without ever opening a cheat sheet again. This guide walks you through the 80% of Vim you will use daily, then shows how the remaining 20% composes naturally from the same handful of rules.
+Most people quit Vim because they try to memorize shortcuts. That's the wrong approach. Vim is a *small language*: learn the grammar — **operator + motion** — and you can express any edit without ever opening a cheat sheet. This guide covers the 80% of Vim you'll use daily and shows how the remaining 20% naturally follows from the same basic rules.
 
 ## What you will learn
 
@@ -95,7 +95,7 @@ That's the whole game. Memorize the operators (there are five), memorize a dozen
 
 ![Vim Motion Cheat Sheet](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig2_motion_cheatsheet.png)
 
-The cheat sheet above is worth printing once and then never looking at again. The categories matter more than the keys:
+Print the cheat sheet once and never look at it again. The categories matter more than the keys:
 
 - **Char-level** (`h j k l`): only when you have nothing better. If you find yourself pressing `j` more than three times, you should have used a different motion.
 - **Word-level** (`w b e`): jump by tokens.

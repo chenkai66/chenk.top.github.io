@@ -19,7 +19,7 @@ translationKey: "ode-10"
 ---
 A lake stays clear for decades, then turns murky in a single season. A power grid hums along stably, then trips into a cascading blackout in seconds. A column under slowly increasing load is straight, straight, straight — and then suddenly buckles.
 
-These are not prediction failures. The universe is doing exactly what dynamical systems theory says it must: cross a **bifurcation**. When a parameter drifts past a critical value, the topology of phase space rearranges, and what was once impossible becomes inevitable. This chapter classifies these rearrangements. There are only a few, and once you see the catalogue, you'll spot them everywhere.
+These are not prediction failures. The universe is doing exactly what dynamical systems theory says it must: cross a **bifurcation**. When a parameter drifts past a critical value, the topology of phase space rearranges, and what was once impossible becomes inevitable. This chapter classifies these rearrangements. There are only a few, and once you see the catalog, you'll spot them everywhere.
 
 ![Ordinary Differential Equations (10): Bifurcation Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_1.png)
 
@@ -52,12 +52,12 @@ Think of$f(x,\mu)$as a landscape that depends on$\mu$. The fixed points are wher
 
 ## 2. The four codimension-1 normal forms
 
-A miracle of bifurcation theory: near *any* one-parameter bifurcation, the dynamics is locally equivalent (after a smooth change of coordinates) to one of just four canonical equations. These are the **normal forms**.
+A miracle of bifurcation theory: near *any* one-parameter bifurcation, the dynamics are locally equivalent (after a smooth change of coordinates) to one of just four canonical equations. These are the **normal forms**.
 
 ![Catalogue of the four codimension-1 normal forms.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/fig5_normal_forms_overview.png)
 *The four codimension-1 bifurcations on a single page. Solid blue = stable, dashed red = unstable, green band = limit-cycle amplitude. Every bifurcation you encounter in a one-parameter ODE is locally one of these.*
 
-Why "codimension-1"? Because each requires tuning exactly **one** parameter to occur. To meet two of them at once you need to tune two parameters, etc. Codimension-1 events are the ones you bump into generically when sliding a single dial.
+Why "codimension-1"? Because each requires tuning exactly **one** parameter to occur. To meet two of them at once, you need to tune two parameters, etc. Codimension-1 events are the ones you bump into generically when sliding a single dial.
 
 ### 2.1 Saddle-node (fold) bifurcation
 

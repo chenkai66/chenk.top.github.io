@@ -15,7 +15,7 @@ translationKey: "operating-system-fundamentals-deep-dive"
 
 Open a terminal and type `cat hello.txt`. The instant you press Enter, at least seven layers of machinery wake up: bash parses the line, fork+execve launches the cat process, the kernel hands it a virtual address space, cat issues a `read()` syscall, the CPU traps into kernel mode, VFS dispatches to ext4, the block layer queues an NVMe request, the SSD DMA-writes the bytes back, an interrupt wakes cat, the bytes are copied through the page cache into the user buffer, and finally something appears on your screen.
 
-This entire round trip takes about 100 microseconds. You see only the final result. The goal of this article is to break down this path layer by layer, so the next time you debug a strange permission, a stuck process, or unexplained latency, you can pinpoint exactly which layer is responsible.
+This entire round trip takes about 100 microseconds. You see only the final result. This article aims to break down this path layer by layer, so the next time you debug a strange permission, a stuck process, or unexplained latency, you can pinpoint exactly which layer is responsible.
 
 ## What you will be able to do
 
@@ -51,22 +51,22 @@ Keep these four in mind, and every section below builds on them. We start with t
 
 "Kernel mode" and "user mode" are CPU hardware features (ring 0 vs ring 3 on x86). In kernel mode you can execute privileged instructions, touch any physical memory, and control interrupts. In user mode you cannot — your browser, your database, your shell all run in ring 3 and must **borrow** access to hardware through the kernel.
 
-Once that line is drawn, the question is: how much code do you put on the kernel side? This is the monolithic vs. microkernel distinction.
+Once that line is drawn, the question is: how much code goes on the kernel side? This is the monolithic vs. microkernel distinction.
 
 ## 2.1 Monolithic: stuff everything in
 
-Linux, FreeBSD, and Windows NT (technically a hybrid) take this approach. **Scheduler, memory management, file systems, the TCP/IP stack, and device drivers** all live in the kernel address space and call each other as plain functions, with no isolation overhead.
+Linux, FreeBSD, and Windows NT (technically a hybrid) take this approach. **Scheduler, memory management, file systems, the TCP/IP stack, and device drivers** all reside in the kernel address space and call each other as plain functions, with no isolation overhead.
 
-- **Pro: fast.** A file system module passing data to the network stack is a function call. There's no boundary cost.
-- **Con: fragile.** Any driver crash equals a kernel panic. About 70% of Linux source is drivers; every new piece of hardware is a new risk.
+- **Pro: fast.** A file system module passing data to the network stack is a simple function call. No boundary cost.
+- **Con: fragile.** Any driver crash equals a kernel panic. About 70% of the Linux source is drivers; every new piece of hardware introduces a new risk.
 - **Mitigation: modules.** Linux ships drivers as loadable modules (`*.ko`) that you `insmod`/`rmmod` at runtime. But modules **still live in the kernel address space** — a buggy module can still crash the kernel; modules just decouple build and shipping.
 
 ## 2.2 Microkernel: only the bare essentials
 
-Mach, L4, seL4, and QNX take the other approach. The kernel retains only **inter-process communication (IPC), the scheduler, and minimal memory management**. File systems, network stacks, and drivers all become **ordinary user-mode processes**.
+Mach, L4, seL4, and QNX take the other approach. The kernel retains only **inter-process communication (IPC), the scheduler, and minimal memory management**. File systems, network stacks, and drivers all run as **ordinary user-mode processes**.
 
 - **Pro: isolation.** A NIC driver crash is a user process crash; restart it, kernel is fine. seL4 has even been formally proven correct: under its specification, the kernel cannot crash.
-- **Con: slow.** What used to be a function call ("open this file") now involves app -> kernel IPC -> file server -> kernel IPC -> block service. Each step is a context switch.
+- **Con: slow.** What used to be a function call ("open this file") now involves app -> kernel IPC -> file server -> kernel IPC -> block service. Each step requires a context switch.
 - **Where they live in production:** QNX has run cars, medical devices, and industrial controllers for decades; macOS / iOS use XNU, which is Mach (microkernel) plus a BSD layer (monolithic) glued together. Pure microkernels remain a minority on general-purpose desktops and servers.
 
 ## 2.3 Why Linux did not switch

@@ -66,7 +66,7 @@ Three common baselines each fail for different reasons.
 
 **Treat the weight matrix as an image.** Apply a CNN over the matrix grid. CNNs are translation-equivariant on a 2D grid, but the hidden-unit symmetry is permutation, not translation — the rows and columns of $W$ are *not* arranged on a regular lattice. The architecture also assumes a fixed shape, so it cannot transfer across widths.
 
-The pattern is the same: the wrong symmetry, the wrong invariant, or the wrong topology. We need a representation that embodies the symmetry.
+The pattern is the same: the wrong symmetry, the wrong invariant, or the wrong topology. We need a representation that captures the symmetry.
 
 ## Neural graphs: turning weights into a typed graph
 

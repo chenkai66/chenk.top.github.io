@@ -62,15 +62,15 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### permissions
 
-控制 Claude 可调用的工具及其作用目标
+控制 Claude 可调用的工具及其作用目标。
 
 ### env
 
-为所有工具调用（如 Bash、hook 等）设置环境变量
+为所有工具调用（如 Bash、hook 等）设置环境变量。
 
 ### hooks
 
-定义在工具调用前或后运行的脚本，详见第 7 章
+定义在工具调用前或后运行的脚本，详见第 7 章。
 
 ### worktree
 

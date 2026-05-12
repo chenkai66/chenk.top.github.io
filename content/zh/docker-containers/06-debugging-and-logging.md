@@ -16,11 +16,11 @@ series_order: 6
 translationKey: "docker-containers-6"
 ---
 
-正常运行的容器近乎‘隐形’，而出现问题的容器则迅速变成‘黑盒’。容器化的隔离性是其核心价值，但也使调试更加困难。你无法直接通过 `ssh` 登录容器，也无法从宿主机直接浏览其文件系统。 Docker 提供了一套专用工具，用于检查、诊断和理解正在运行或已崩溃的容器内部的情况。
+正常运行的容器近乎‘隐形’，而出现问题的容器则迅速变成‘黑盒’。容器化的隔离性是其核心价值，但也增加了调试难度。你无法直接通过 `ssh` 登录容器，也无法从宿主机直接浏览其文件系统。 Docker 提供了一套专用工具，用于检查、诊断和理解正在运行或已崩溃的容器内部的情况。
 
 ## 查看容器日志
 
-日志是排查问题的第一道防线， Docker 会捕获容器向 stdout 和 stderr 输出的所有内容。
+日志是排查问题的第一道防线，Docker 会捕获容器向 stdout 和 stderr 输出的所有内容。
 
 ![Resource monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-resource-monitoring.png)
 

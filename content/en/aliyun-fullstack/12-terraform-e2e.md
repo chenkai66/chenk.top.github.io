@@ -24,16 +24,16 @@ Over the past eleven parts of this series, we have clicked through consoles, typ
 
 Infrastructure-as-code eliminates that problem entirely. You describe what you want in declarative configuration files, and the tool figures out how to get there. The entire stack we built across eleven articles becomes a single repository of `.tf` files that anyone on your team can read, review, modify, and apply.
 
-This is the grand finale. We are going to take everything from Parts 1 through 11 and encode it into Terraform modules. By the end of this article, you will have a complete, production-grade Terraform project that provisions your entire Alibaba Cloud infrastructure with one command.
+This is the grand finale. We will take everything from Parts 1 through 11 and encode it into Terraform modules. By the end of this article, you will have a complete, production-grade Terraform project that provisions your entire Alibaba Cloud infrastructure with one command.
 
 
 ## Why Infrastructure as Code?
 
-If you're reading the twelfth article in this series, you probably don't need to be convinced. But let me lay out the case precisely, because these are the arguments you'll use when convincing your team to invest the time.
+If you're reading the twelfth article in this series, you probably don't need to be convinced. But let me lay out the case precisely, as these are the arguments you'll use to convince your team to invest the time.
 
 ### The progression
 
-Every team goes through a similar evolution:
+Every team goes through a similar evolution.
 
 **Stage 1: Manual (console clicks).** You click through the web console. It works for one person managing a few resources. It falls apart when you need to recreate something, explain what you did, or hand the environment to a teammate.
 
@@ -43,7 +43,7 @@ Every team goes through a similar evolution:
 
 ### The five pillars
 
-Infrastructure-as-code gives you five things that manual provisioning cannot:
+Infrastructure-as-code provides five benefits that manual provisioning cannot:
 
 | Pillar | What it means | Why it matters |
 |---|---|---|

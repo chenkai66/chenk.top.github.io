@@ -17,7 +17,7 @@ translationKey: "leetcode-6"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/06-binary-tree/illustration_1.png)
 
-A binary tree problem is rarely about the tree itself. It's about *the order in which you visit nodes* and *what you remember from the children before deciding what to do at the parent*. Once these two ideas click, the four traversal orders, iterative rewrites, construction problems, and even classics like Validate BST and Maximum Depth all boil down to variations on the same recipe. This article builds that recipe from start to finish.
+A binary tree problem is rarely about the tree itself. It's about *the order in which you visit nodes* and *what you remember from the children before deciding what to do at the parent*. Once these two ideas click, the four traversal orders, iterative rewrites, construction problems, and even classics like Validate BST and Maximum Depth all boil down to variations of the same recipe. This article builds that recipe from start to finish.
 
 We use a single example tree throughout, so the figures and code align perfectly.
 
@@ -63,7 +63,7 @@ And two numbers describe how "tall" a node sits inside the tree:
 - The **depth** of a node is the number of edges from the root to it. The root has depth `0`.
 - The **height** of a node is the number of edges on the longest downward path to any leaf below it. A leaf has height `0`. The height of the *tree* is the height of the root.
 
-These five terms are enough vocabulary for almost every problem in this article. Figure 1 attaches them to the running example.
+These five terms provide enough vocabulary for almost every problem in this article. Figure 1 attaches them to the running example.
 
 ![Binary tree anatomy: root, internal nodes, leaves, depth, height](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/binary-tree-traversal/fig1_tree_anatomy.png)
 

@@ -17,7 +17,7 @@ translationKey: "linear-algebra-15"
 ---
 Ask any senior ML engineer "what math do you actually use day to day?" and the answer is almost always **linear algebra**. Calculus shows up in derivations; probability shows up in modeling; but the runtime of a real ML system is dominated by matrix-vector multiplies, decompositions, and projections. PyTorch's `Linear`, scikit-learn's `PCA`, Spark MLlib's `ALS`, and a Transformer's attention head are all the same primitive in different costumes.
 
-This chapter walks through the algorithms that production ML systems actually run — PCA, LDA, SVM with kernels, matrix factorization for recommenders, regularized linear regression, neural network layers, attention — and shows the linear algebra that makes each of them tick. We focus on intuition first, geometry second, formulas third.
+This chapter covers the algorithms used in production ML systems — PCA, LDA, SVM with kernels, matrix factorization for recommenders, regularized linear regression, neural network layers, and attention — and explains the linear algebra behind each. We focus on intuition first, then geometry, and finally formulas.
 
 > **What you will learn:**
 > - How raw data (images, text, behavior) becomes vectors, and why feature spaces are geometric
@@ -45,7 +45,7 @@ Before any model can learn, real-world objects must be embedded in $\mathbb{R}^p
 - A user's last 30 days of clicks becomes a feature vector with counts, recency decays, and one-hot category indicators.
 - A protein sequence becomes a 1280-dimensional ESM embedding.
 
-The reason is simple: **vectors are the atom of every linear algebra operation.** Once data is vectorized, you can take inner products (similarity), compute distances (k-NN), apply matrices (linear transforms), and decompose covariances (PCA). Without vectorization, you have to write a custom algorithm per data type; with it, the same SVD routine handles photos and protein sequences.
+The reason is simple: **vectors are the building blocks of every linear algebra operation.** Once data is vectorized, you can take inner products (for similarity), compute distances (for k-NN), apply matrices (for linear transforms), and decompose covariances (for PCA). Without vectorization, you need a custom algorithm for each data type; with it, the same SVD routine can handle photos and protein sequences.
 
 ### 1.2 Geometry of feature space
 
@@ -92,7 +92,7 @@ print(model.similarity('cat', 'dog'))   # 0.76
 print(model.similarity('cat', 'galaxy'))# 0.04
 ```
 
-Caveat: real embeddings are 300- to 4096-dimensional and the analogy property is statistical, not exact. The 2D picture above is a stylized illustration.
+Caveat: real embeddings are 300 to 4096 dimensions, and the analogy property is statistical, not exact. The 2D picture above is a stylized illustration.
 
 ---
 

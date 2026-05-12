@@ -129,7 +129,7 @@ Claude Sonnet 4.5 is the strongest reasoning model in OpenClaw today. Use this i
 }
 ```
 
-OpenAI models are useful in two cases: (1) you need GPT-5.4 specifically, or (2) your skill was prototyped with OpenAI and you don't want to rewrite. Otherwise, I avoid them — Claude is better for reasoning, and Qwen is cheaper for bulk work.
+OpenAI models are useful in two cases: (1) you need GPT-5.4 specifically, or (2) your skill was prototyped with OpenAI and you don't want to rewrite. Otherwise, I avoid them—Claude is better for reasoning, and Qwen is cheaper for bulk work.
 
 ### The `compatible` provider type
 
@@ -187,7 +187,7 @@ The provider config is one block:
 
 Then in `agent.default_model`, just point at one of the model IDs the plan exposes (`claude-sonnet-4-5`, `qwen3-max`, etc.) and the requests are billed against your subscription.
 
-I wouldn't recommend the Coding Plan if you're running OpenClaw on a single laptop for personal use — DashScope's free tier is sufficient. However, I highly recommend it if you're running anything with cron jobs or multiple channels.
+I wouldn't recommend the Coding Plan for personal use on a single laptop—DashScope's free tier is sufficient. However, I highly recommend it for setups with cron jobs or multiple channels.
 
 ## `tools` — turning sharp things on
 

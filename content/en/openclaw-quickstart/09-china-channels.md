@@ -54,9 +54,9 @@ Here are the choices:
 
 Two notes: Feishu is officially deprecated for new openclaw-china installs as of March 2026 — choose DingTalk or WeCom. WeChat public accounts in subscription mode have a 5-second passive reply window and can't push proactively; service accounts and test accounts can.
 
-Latency numbers are round-trip message-to-response timings measured from Beijing/Shanghai during business hours. The main cause of high latency is the webhook delivery path — public accounts and WeCom self-built apps route through Tencent's dispatcher, adding 500-1000ms compared to long-poll channels.
+Latency numbers are round-trip message-to-response timings measured from Beijing and Shanghai during business hours. The main cause of high latency is the webhook delivery path. Public accounts and WeCom self-built apps route through Tencent's dispatcher, adding 500-1000ms compared to long-poll channels.
 
-Message format support is more important than it seems. Markdown allows your agent to send code blocks and formatted lists. DingTalk and WeCom smart bot handle GitHub-flavored markdown well. WeChat channels require plain text or proprietary card schemas.
+Message format support is crucial. Markdown lets your agent send code blocks and formatted lists. DingTalk and WeCom smart bot handle GitHub-flavored markdown well. WeChat channels require plain text or proprietary card schemas.
 
 ## The three-question picker
 

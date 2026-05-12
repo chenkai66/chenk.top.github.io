@@ -32,7 +32,7 @@ What's interesting is *what's not in the box*. The DSW container has a system di
 
 ## Picking an instance type
 
-According to the docs, DSW resource types come in two flavors: **public resources** (pay-as-you-go) and **dedicated resources** (subscription on general-purpose compute or Lingjun). For day-to-day work, public resources are the right choice — you pay for the GPU minutes you actually use, and the per-second metering lets you spin one up for a 10-minute experiment without worry.
+According to the docs, DSW resource types come in two flavors: **public resources** (pay-as-you-go) and **dedicated resources** (subscription on general-purpose compute or Lingjun). For day-to-day work, public resources are the best choice — you pay for the GPU minutes you use, and the per-second metering lets you spin one up for a 10-minute experiment without worry.
 
 What I actually pick:
 
@@ -121,7 +121,7 @@ for epoch in range(3):
     print(f"epoch {epoch} done")
 ```
 
-The Quick Start expects roughly 98% validation accuracy after 3 epochs on a single A10. If you see anything dramatically lower, you've probably mounted OSS wrong and are reading from the wrong directory — not a model bug.
+The Quick Start expects about 98% validation accuracy after 3 epochs on a single A10. If you see significantly lower results, you've likely mounted OSS incorrectly and are reading from the wrong directory — not a model bug.
 
 ## TensorBoard inline
 

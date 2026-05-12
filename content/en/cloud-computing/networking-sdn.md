@@ -18,9 +18,9 @@ translationKey: "cloud-computing-5"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/illustration_1.png)
 
-A cloud platform is, in the end, a network with computers attached. The compute layer scales by adding boxes; the storage layer scales by adding disks; the *network* layer is what makes those boxes and disks behave as a single coherent system. Get the network right and the rest of the stack feels effortless. Get it wrong — a missing route, a 5-tuple mismatch on a security group, an under-provisioned load balancer — and the whole platform goes dark.
+A cloud platform is essentially a network with attached computers. The compute layer scales by adding servers; the storage layer scales by adding disks; the *network* layer integrates these into a single, coherent system. Get the network right, and the rest of the stack feels effortless. Get it wrong — a missing route, a 5-tuple mismatch in a security group, or an under-provisioned load balancer — and the whole platform goes dark.
 
-This article maps the cloud-networking stack from the packet up: how a VPC actually carves an isolated network out of shared infrastructure, what changes when load balancers move from L4 to L7, how a CDN turns geography into latency savings, why SDN reshaped the data centre, and how BGP stitches it all together across regions.
+This article maps the cloud networking stack from the packet up: how a VPC carves an isolated network from shared infrastructure, what changes when load balancers move from L4 to L7, how a CDN converts geography into latency savings, why SDN reshaped the data center, and how BGP stitches it all together across regions.
 
 ## What you will learn
 
@@ -144,7 +144,7 @@ Three production-relevant choices encoded above:
 | **PrivateLink** | service exposure | one VPC publishes a service to many consumer VPCs | one-way; no need to peer entire networks |
 | **Cloud WAN** | global mesh | multi-region, multi-account meshes | newest, simplest at scale, costs accordingly |
 
-The decision driver is mostly the *topology* you need, not the bandwidth — all of these can saturate 10s of Gbps when sized correctly.
+The decision driver is mostly the *topology* you need, not the bandwidth — all of these can handle 10s of Gbps when sized correctly.
 
 ---
 

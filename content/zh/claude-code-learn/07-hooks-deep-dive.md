@@ -141,7 +141,7 @@ echo "Exit code: $?"
 
 ### 触发时 Claude 看到什么
 
-Hook 拦截调用时， stderr 文本会作为反馈交给 Claude。真实会话大致是这样的：
+Hook 拦截调用时，stderr 文本会作为反馈交给 Claude。真实会话大致是这样的：
 
 ```
 Claude: I'll read the environment configuration...
@@ -303,7 +303,7 @@ process.stdin.on('end', () => {
 写错一次 push 的代价，远比我自己手动敲一遍 `git push` 大得多。这条规则配合 `git commit` 不拦截：让模型放心做 commit，但保留人类按下 push 这一步。
 
 ![退出码在 PreToolUse 与 PostToolUse 中的语义差异](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png)
-*同样的退出码在不同生命周期阶段含义完全不同。 exit 2 只在 PreToolUse 阶段阻断调用；在 PostToolUse 阶段副作用已经发生，无法回滚。*
+*同样的退出码在不同生命周期阶段含义完全不同。exit 2 只在 PreToolUse 阶段阻断调用；在 PostToolUse 阶段副作用已经发生，无法回滚。*
 
 ---
 
@@ -669,7 +669,7 @@ process.stdin.on('end', () => {
 
 ### settings.json 接线（两处条目）
 
-这个 Hook 需要在 Read （用于记录）和 Edit/MultiEdit （用于强制）上同时挂载。
+这个 Hook 需要在 Read（用于记录）和 Edit/MultiEdit（用于强制）上同时挂载。
 
 ```json
 {
@@ -793,7 +793,7 @@ process.stdin.on('end', () => {
 ### 执行顺序
 
 ![Edit 调用的 Hook 执行顺序：PreToolUse → 工具执行 → PostToolUse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png)
-*一次 Edit 调用依次流经六个 Hook： 3 个 PreToolUse （策略守门员）、工具本体、 3 个 PostToolUse （卫生作业）；任一 PreToolUse 返回 exit 2，整条链路立即终止。*
+*一次 Edit 调用依次流经六个 Hook：3 个 PreToolUse（策略守门员）、工具本体、3 个 PostToolUse（卫生作业）；任一 PreToolUse 返回 exit 2，整条链路立即终止。*
 
 当 Claude 对一个源文件调用 `Edit`，事件序列是：
 
@@ -805,17 +805,17 @@ process.stdin.on('end', () => {
 6. **test-on-edit** — 跑相关测试。失败就把错误暴露给模型。
 7. **log-tool-calls** — 追加一条 JSONL 日志。
 
-第 1–3 步为 PreToolUse （任一 exit 2 均阻断编辑），第 5–7 步为 PostToolUse （编辑已完成）——顺序即原则：安全优先、卫生次之、可观测性兜底。
+第 1–3 步为 PreToolUse（任一 exit 2 均阻断编辑），第 5–7 步为 PostToolUse（编辑已完成）——顺序即原则：安全优先、卫生次之、可观测性兜底。
 
 ### 组合时常见的坑
 
-**问题： Hook 串行执行，慢的 Hook 拖累整体。**
+**问题：Hook 串行执行，慢的 Hook 拖累整体。**
 如果 `test-on-edit` 跑 60 秒，每次编辑都会感觉很卡。解决：设置超时；对大型测试套件，改走异步触发（比如把测试请求扔到一个独立队列里）。
 
 **问题：单个 Hook 的退出码会终止整条链路。**
 在 PreToolUse 里，如果 `block-env-read` 退出 2，后面的 `backup-before-edit`、`read-before-write` 不会再跑。这是正确行为——一个被拦截的调用不应该被备份或追踪。
 
-**问题： Hook 之间会互相冲突。**
+**问题：Hook 之间会互相冲突。**
 一个会修改文件的格式化 Hook，可能触发 `read-before-write` 的"自上次 Read 后文件已变化"逻辑。解决方案：格式化 Hook 跑在 PostToolUse 阶段，而 PostToolUse 不会再触发 PreToolUse，所以生命周期天然规避了这个冲突。
 
 ---

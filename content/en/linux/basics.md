@@ -17,13 +17,13 @@ translationKey: "linux-1"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/illustration_1.png)
 
-The difficulty of Linux rarely lies in the commands themselves. The hard part is having a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions offer, what changes when switching between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model — philosophy, distributions, the FHS tree — and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; deeper details are in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).
+The difficulty with Linux rarely lies in the commands themselves. The hard part is having a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions offer, what changes when switching between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model — philosophy, distributions, the FHS tree — and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; deeper details are in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).
 
 ## Why Linux, and Why It Looks the Way It Does
 
 Three design decisions explain most Linux quirks a newcomer notices: it was built for **multiple users at once**, it treats **files as the universal interface**, and it prioritizes **automation over clicking**.
 
-- **Open and customisable.** Every component, from the kernel to the init system, can be swapped, recompiled, or stripped down. Both a 5 MB Alpine container and a 12 GB Oracle Linux install call themselves Linux.
+- **Open and customizable.** Every component, from the kernel to the init system, can be swapped, recompiled, or stripped down. Both a 5 MB Alpine container and a 12 GB Oracle Linux install call themselves Linux.
 - **Stable enough to forget about.** Production servers routinely run for years without a reboot. The `uptime` command on a long-lived machine printing `up 412 days` is a normal sight, not a brag.
 - **A package manager is the primary install path.** You almost never download a `.exe`. `apt`, `dnf`, `pacman`, `zypper` resolve dependencies, verify signatures, and let you upgrade the entire system with one command.
 - **Everything is a file.** Disks live in `/dev`, processes appear in `/proc`, kernel knobs are toggled by writing to `/sys`. The same `cat` and `>` operators read CPU info or set LED brightness.
@@ -45,11 +45,11 @@ For cloud, also check what your provider supports: AWS ships **Amazon Linux**, a
 
 ### The Three Ideas That Explain Everything Else
 
-#### 1. Multi-user, multi-task
+#### 1. Multi-user, Multi-task
 
 Dozens of users may log in simultaneously over SSH or local TTYs, each running many processes in parallel. The kernel must isolate their CPU time, memory, files, and network sockets. This is why the permission model is strict: without it, any user could read another user's secrets or kill their processes.
 
-#### 2. File-centric permissions
+#### 2. File-Centric Permissions
 
 Every file (and a directory is just a special file) has three permission groups — **owner**, **group**, **others** — and three bits each: **read (r)**, **write (w)**, **execute (x)**. Read a permission string from left to right:
 
@@ -66,7 +66,7 @@ A common pattern you should recognise immediately: `rw-------` (mode `600`) is t
 
 > Depth on `chmod`/`chown`, numeric vs symbolic notation, SUID/SGID/sticky bit, ACLs, and `umask` lives in the **Linux File Permissions** article. The basics here are enough to read what `ls -l` shows you.
 
-#### 3. Everything is a file
+#### 3. Everything Is a File
 
 Regular files, directories, devices, processes, kernel state, pipes, sockets — all expose the same `read()` / `write()` interface. The payoff is that one set of tools works everywhere:
 

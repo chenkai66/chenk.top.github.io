@@ -38,7 +38,7 @@ But here is what you are also signing up for:
 - **Disk management.** Filesystem choice (XFS vs ext4), I/O scheduler tuning, IOPS provisioning, online disk expansion.
 - **Security.** SSL/TLS configuration, audit logging, encryption at rest, key rotation.
 
-A managed database handles all of this. You lose root OS access and the ability to install arbitrary MySQL plugins (no custom UDFs, no Group Replication topology experiments). In exchange, you get automated backups, one-click HA failover, built-in monitoring, read replicas at the click of a button, and you never get paged at 3 AM because a disk filled up.
+A managed database handles all of this. You lose root OS access and the ability to install arbitrary MySQL plugins (no custom UDFs, no Group Replication topology experiments). In return, you get automated backups, one-click HA failover, built-in monitoring, and read replicas with a click. You also avoid being paged at 3 AM because a disk filled up.
 
 For 95% of production workloads, the trade-off is overwhelmingly in favor of managed.
 

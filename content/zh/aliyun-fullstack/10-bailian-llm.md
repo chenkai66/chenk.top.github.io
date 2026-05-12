@@ -44,7 +44,7 @@ translationKey: "aliyun-fullstack-10"
 | 提示词工程工作室 | **Bailian Prompt Lab** | Bedrock Playground |
 | RAG 服务 | **Bailian Knowledge Base** | Bedrock Knowledge Bases |
 
-与 AWS 的关键区别在于：在阿里云平台上， Qwen 是阿里自研的第一方模型家族。而在 AWS 上，所有模型（Claude、 Llama、 Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能迭代更快、定价更优、中文能力业界领先——训练始终以中文为首要语言，而非后期适配。
+与 AWS 的关键区别在于：在阿里云平台上，Qwen 是阿里自研的第一方模型家族，而在 AWS 上，所有模型（Claude、Llama、Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能迭代更快、定价更优、中文能力业界领先——训练始终以中文为首要语言，而非后期适配。
 
 想深入了解 Bailian 平台本身，可以看我们的专门系列 [Bailian 系列](/zh/aliyun-bailian/01-platform-overview/)。
 

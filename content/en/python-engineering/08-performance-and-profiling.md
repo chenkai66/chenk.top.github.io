@@ -15,9 +15,9 @@ series_order: 8
 translationKey: "python-engineering-8"
 ---
 
-Donald Knuth's famous quote is often half-remembered. The full version is: "We should forget about small efficiencies, say about 97% of the time: premature optimization is the root of all evil. Yet we should not pass up our opportunities in that critical 3%." The second sentence is the important one. Performance work isn't about making everything fast; it's about finding the 3% that matters and making that fast.
+Donald Knuth's famous quote is often half-remembered. The full version is: "We should forget about small efficiencies, say about 97% of the time: premature optimization is the root of all evil. Yet we should not pass up our opportunities in that critical 3%." The second sentence is the key. Performance work isn't about making everything fast; it's about finding the 3% that matters and making that fast.
 
-This article is about finding that 3%. You'll learn to profile first, optimize second, and measure the impact of every change.
+This article is about finding that 3%. You'll learn to profile first, optimize second, and measure the impact of each change.
 
 ## Manual Benchmarking
 
@@ -216,7 +216,7 @@ $ python -m cProfile -o profile.prof my_script.py
 $ snakeviz profile.prof
 ```
 
-snakeviz opens an interactive visualization with a sunburst chart of function call times, making the functions that take the most time immediately visible.
+snakeviz opens an interactive visualization with a sunburst chart of function call times, making the slowest functions immediately visible.
 
 ## line_profiler: Per-Line Timing
 

@@ -23,7 +23,7 @@ A pattern I see repeatedly in immature agent stacks: each agent has its own copy
 
 The real wake-up call hit me two years ago. A contractor finished his three-month engagement on a Friday, his laptop went home, and on the following Tuesday DashScope billing flagged 12 million tokens of `qwen-max` traffic from an IP we didn't recognise. His personal API key — copy-pasted into a side project — was still sitting in our agent's `.env`. Rotating it took six hours: three engineers, four repos, two CI pipelines, one panicked Slack thread. Never again.
 
-This article addresses that pattern. We build one **LLM gateway** that:
+This article addresses that pattern by building one **LLM gateway** that:
 
 - Holds every provider key in KMS Secrets Manager (one bucket, one ACL, one rotation cadence)
 - Authenticates agents via short-lived RAM-issued tokens — zero static AK on agent boxes
@@ -41,12 +41,12 @@ Two days of setup. Permanent operational dividend.
 
 Agents on the left, providers on the right, gateway in the middle. Every agent's HTTP call to "an LLM" actually goes to the gateway, which decides which provider to dispatch to, attaches the right key, enforces quotas, and logs the result.
 
-You have two reasonable options:
+You have two options:
 
 1. **Aliyun API Gateway in front of a custom backend** — most managed, easiest to wire quota plans, native RAM integration. Best when routing is "one model, one provider, just rate-limit me."
 2. **Self-hosted LiteLLM on ECS behind an ALB** — most flexible, supports the long tail of providers (DeepSeek, Moonshot, Zhipu, your fine-tuned PAI endpoint), easier to extend with cost tracking and cross-provider fallback.
 
-I use both, depending on routing complexity. For a simple proxy with quotas, API Gateway is enough. For multi-provider routing with budget guards and circuit breakers — which most teams need within six months — LiteLLM on ECS is better. The rest of this article focuses on LiteLLM because it suits 80% of teams.
+I use both, depending on the routing complexity. For a simple proxy with quotas, API Gateway is sufficient. For multi-provider routing with budget guards and circuit breakers — which most teams need within six months — LiteLLM on ECS is better. The rest of this article focuses on LiteLLM because it suits 80% of teams.
 
 ## Step 1: store every key in KMS Secrets Manager
 
@@ -133,7 +133,7 @@ resource "alicloud_ram_role_policy_attachment" "gateway_kms" {
 }
 ```
 
-Three key points here:
+Three key points:
 
 - **Resource-scoped policy.** Only these secrets, not `kms:GetSecretValue` on `*`. If the gateway box is compromised, the attacker cannot pivot to other KMS secrets — billing keys, RDS passwords, OSS buckets all stay sealed.
 - **No long-lived AK.** The role is assumed by the ECS instance via metadata service. Zero static credentials on disk, in env, or in cloud-init.
@@ -141,7 +141,7 @@ Three key points here:
 
 ## Step 3: deploy LiteLLM on ECS
 
-LiteLLM is the easiest open-source LLM proxy I know. It uses the OpenAI API format on the frontend and translates to each provider's format on the backend. Self-hosting it on ECS keeps things flexible:
+LiteLLM is the easiest open-source LLM proxy I know. It uses the OpenAI API format on the frontend and translates to each provider's format on the backend. Self-hosting it on ECS keeps things flexible.
 
 ```hcl
 resource "alicloud_instance" "gateway" {

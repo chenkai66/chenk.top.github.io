@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "aliyun-bailian-5"
 ---
 
-Every Chinese-language product I've worked on uses Qwen-TTS-Flash, not because it's the cheapest TTS API, but because it's the only one that handles **mainland Chinese dialects** (Cantonese, Sichuanese, Wu) and English in the same SDK, with voices that don't sound like a 2019 customs announcement. After six months of using it for a marketing-video voice-over pipeline, this is what I wish someone had told me on day one.
+Every Chinese-language product I've worked on uses Qwen-TTS-Flash, not because it's the cheapest TTS API, but because it's the only one that handles **mainland Chinese dialects** (Cantonese, Sichuanese, Wu) and English in the same SDK, with voices that don't sound like a 2019 customs announcement. After six months of using it for a marketing video voice-over pipeline, this is what I wish someone had told me on day one.
 
 ![Aliyun Bailian (5): Qwen-TTS for Multilingual Voice — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
 
@@ -126,7 +126,7 @@ Why split? Two reasons: (1) per-call latency is much lower for short utterances,
 
 ## Cost
 
-Billing is per second of output audio. Streaming and non-streaming costs are the same. A 60-second ad spot costs a few RMB—much cheaper than a voice actor's hourly rate and fast enough for the marketing team to iterate dozens of variations in an afternoon.
+Billing is per second of output audio. Streaming and non-streaming costs are the same. A 60-second ad spot costs a few RMB—much cheaper than a voice actor's hourly rate and fast enough for the marketing team to iterate through dozens of variations in an afternoon.
 
 ## Voice cloning vs preset voices vs SSML control: pick the right knob
 

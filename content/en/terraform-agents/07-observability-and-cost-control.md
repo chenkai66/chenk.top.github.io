@@ -41,7 +41,7 @@ Don't pick "just logs" or "just metrics". You need all three:
 
 The cheapest mistake here is shipping with only `print()` to stdout. The most expensive is shipping with all three but never opening the dashboard until the first incident — at which point you discover your `agent` field is sometimes `null` because the SDK didn't propagate context. Wire it on day one, then poke it weekly so you know it works.
 
-## Step 1: SLS project and logstores
+## Step 1: SLS Project and Logstores
 
 Everything observability-related starts with one SLS project. One per environment is right; one per agent is too granular.
 
@@ -100,7 +100,7 @@ Five logstores cover the practical needs:
 
 The `audit` store has a year retention because it's small and you need it years later when "who changed the prod ALB on March 12" comes up. The 90-day window on `gateway-requests` is the one I tune most often — short enough to keep storage under ¥30/mo at 5 GB/day, long enough to do quarter-over-quarter cost trending without a Hive job.
 
-## Step 2: ship logs from ECS
+## Step 2: Ship Logs from ECS
 
 The Logtail agent is the official Aliyun-side log collector. Install it via cloud-init (add to `cloud-init.sh` from article 4):
 
@@ -114,7 +114,7 @@ service ilogtaild start
 echo "${sls_user_id}::${sls_machine_group}" > /etc/ilogtail/user_log_config.json
 ```
 
-The Logtail config — what files to tail, how to parse them — is a Terraform resource:
+The Logtail config — what files to tail and how to parse them — is a Terraform resource:
 
 ```hcl
 resource "alicloud_log_machine_group" "agent" {
@@ -157,7 +157,7 @@ resource "alicloud_logtail_attachment" "agent" {
 
 Now any file matching `/var/log/agents/*.log` on any tagged machine flows into SLS as JSON, queryable by every field. The agent code just does `logger.info(json.dumps({...}))` and the rest is automatic. The trick is being disciplined about the schema — settle on `ts`, `agent`, `session_id`, `step`, `phase`, `tokens`, `latency_ms`, `cost_cny`, `status`, `error_message` early, document it, and reject PRs that emit ad-hoc fields. Every undocumented field is a query you can't write at 3am.
 
-## Step 3: traces via OpenTelemetry → ARMS
+## Step 3: Traces via OpenTelemetry → ARMS
 
 For traces, ARMS APM is OpenTelemetry-compatible. The Terraform side is small — provision an ARMS instance and an environment:
 
@@ -199,7 +199,7 @@ The two env vars come from ARMS — `ARMS_OTLP_ENDPOINT` is in the ARMS console,
 
 The reward: in ARMS you can see "this agent run took 12s; 9s of it was the third LLM call to qwen-max." That's the kind of visibility that actually changes how you build agents. The first time I saw a span tree from a real production session I rewrote the planner to skip retrieval when the user message was short — saved ~30% on p95 the same week.
 
-## Step 4: metrics with CloudMonitor
+## Step 4: Metrics with CloudMonitor
 
 CloudMonitor catches the host-level metrics automatically (CPU, memory, network) once you install the cloud-monitor agent — which the `install_cloud_monitor` flag on the ACK node pool already does. For ECS, add to cloud-init:
 
@@ -210,7 +210,7 @@ chmod +x cms_go_agent_install.sh && ./cms_go_agent_install.sh
 
 For custom application metrics — "tokens consumed by research-agent" — emit them as SLS log entries with structured fields, then alert via SLS query. SLS-as-metrics is the pattern Aliyun pushes; CloudMonitor custom metrics work too but are clunkier to wire from Terraform, and you end up splitting your alerts across two consoles. Pick one. I pick SLS for everything except host CPU/memory/disk.
 
-## Step 5: the cost dashboard
+## Step 5: The Cost Dashboard
 
 Here's where it gets interesting. Every LLM request hits the gateway, and the gateway logs one row per request to `gateway-requests` with fields like:
 
@@ -272,17 +272,17 @@ resource "alicloud_log_dashboard" "cost" {
 }
 ```
 
-Open the SLS console and you have a live dashboard:
+Open the SLS console, and you have a live dashboard:
 
 ![Stacked daily cost by category](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png)
 
 The dashboard is the answer to "which agent is burning my budget?" — a question you will be asked monthly, usually by someone who doesn't know what an agent is.
 
-## Six SLS queries that earn their keep
+## Six SLS Queries That Earn Their Keep
 
-A dashboard answers the long-running questions. Incidents need ad-hoc ones. After two years of agent ops, I have ~12 SLS queries pinned in a personal notes file. Six are worth sharing because they generalise across stacks.
+A dashboard answers the long-running questions. Incidents need ad-hoc ones. After two years of agent ops, I have ~12 SLS queries pinned in a personal notes file. Six are worth sharing because they generalize across stacks.
 
-### Query 1: top offending agents in the last hour
+### Query 1: Top Offending Agents in the Last Hour
 
 ```sql
 * | SELECT agent,
@@ -300,7 +300,7 @@ A dashboard answers the long-running questions. Incidents need ad-hoc ones. Afte
 
 My "who is doing the most" quick board. Run it on the cost-spike alarm and the offender is usually visible in two seconds.
 
-### Query 2: error trace by status code
+### Query 2: Error Trace by Status Code
 
 ```sql
 status >= 400 |
@@ -317,7 +317,7 @@ status >= 400 |
 
 Distinguishes between "DashScope is throwing 500s" and "agents are sending bad requests" within seconds. The `arbitrary(error_message)` plucks one example so you don't have to drill in.
 
-### Query 3: token-per-step distribution to find runaway loops
+### Query 3: Token-Per-Step Distribution to Find Runaway Loops
 
 ```sql
 * | SELECT session_id,
@@ -334,7 +334,7 @@ Distinguishes between "DashScope is throwing 500s" and "agents are sending bad r
 
 Sessions with > 50 steps or > 500k tokens are usually loops. The runaway alarm fires; this query identifies the specific session ID. SSH to the box and `kill -9` the offender, then post-mortem in calm.
 
-### Query 4: latency breakdown by phase
+### Query 4: Latency Breakdown by Phase
 
 If your agent emits structured timing per phase (planning, retrieval, LLM call, tool exec, reflection):
 

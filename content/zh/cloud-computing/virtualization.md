@@ -18,10 +18,10 @@ translationKey: "cloud-computing-2"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/virtualization/illustration_1.png)
 
-没有虚拟化就没有云计算。每一个 EC2 实例、每一次 Lambda 调用、每一个 Kubernetes Pod 都依赖于同一个把戏：**让操作系统对底层硬件深信不疑地撒谎**。本文将从 CPU 指令层（使这个把戏变得廉价的硬件支持）讲到主流四大 Hypervisor，再到生产级调优——决定你的虚拟机性能是达到裸机的 70% 还是 99%。
+没有虚拟化就没有云计算。每个 EC2 实例、每次 Lambda 调用、每个 Kubernetes Pod 都依赖于同一个把戏：**让操作系统对底层硬件深信不疑地撒谎**。本文将从 CPU 指令层（使这个把戏变得廉价的硬件支持）讲到主流四大 Hypervisor，再到生产级调优——决定虚拟机性能是达到裸机的 70% 还是 99%。
 
 ## 你将学到的内容
-- 深入理解 CPU 虚拟化的运行机制（保护环、VT-x、EPT）及 Type 1 和 Type 2 Hypervisor 的各自意义
+- 深入理解 CPU 虚拟化的运行机制（保护环、VT-x、EPT）以及 Type 1 和 Type 2 Hypervisor 的各自意义
 - 实战演练：如何正确配置 VMware ESXi、KVM、Xen 和 Hyper-V，并设置适合生产环境的默认参数
 - 存储虚拟化技术解析：LVM 和 ZFS 的应用，以及磁盘格式选择对 IOPS 性能的影响
 - 网络虚拟化全貌：VLAN 划分、VXLAN 隧道封装、Open vSwitch 的使用及 SR-IOV 的优势
@@ -37,7 +37,7 @@ translationKey: "cloud-computing-2"
 ---
 ## 1. 虚拟化基础
 
-虚拟化技术通过为硬件资源（如 CPU、内存、磁盘和网卡）创建虚拟版本，让多个操作系统能够各自“以为”自己独占整台机器。而实现这一假象的核心组件，就是 **Hypervisor**，也被称为虚拟机监视器（VMM）。
+虚拟化技术通过为硬件资源（如 CPU、内存、磁盘和网卡）创建虚拟版本，让多个操作系统各自“以为”自己独占整台机器。实现这一假象的核心组件是 **Hypervisor**，也称为虚拟机监视器（VMM）。
 
 ### 1.1 为什么需要硬件支持？
 
@@ -48,7 +48,7 @@ translationKey: "cloud-computing-2"
 
 直到 2005-2006 年， Intel VT-x 和 AMD-V 技术引入了一种全新的 CPU 模式： Hypervisor 运行在 **VMX root** 模式，而 Guest 则运行在 **VMX non-root** 模式。硬件负责管理两者的切换（通过 `VMENTER` 和 `VMEXIT` 指令）。这使得任何未经修改的操作系统都能以接近原生的速度运行。几年后，**扩展页表（EPT）** 和 **嵌套页表（NPT）** 的出现进一步解决了第二大性能瓶颈——影子页表的维护问题，将两级地址翻译完全交由硬件完成。
 
-正是这些技术突破，让虚拟化的成本大幅降低，从而为公有云的构建奠定了基础。
+正是这些技术突破，大幅降低了虚拟化的成本，为公有云的构建奠定了基础。
 
 ### 1.2 Type 1 和 Type 2 Hypervisor 的对比
 
@@ -64,11 +64,10 @@ translationKey: "cloud-computing-2"
 KVM 是一个特例：它是一个内核模块，能够将 Linux 本身转变为 Type 1 Hypervisor——也就是说，宿主内核和 Hypervisor 实际上是同一个内核。
 
 ### 1.3 核心概念
-
 - **Hypervisor （VMM）**：负责将虚拟 CPU （vCPU）调度到物理 CPU （pCPU）、分配内存，并拦截 Guest 的特权操作。
 - **客户机操作系统（Guest OS）**：运行在虚拟机中的操作系统，通常对虚拟化过程无感知或仅有少量感知。
 - **vCPU**：宿主机调度器中的一个线程，用于在 VMX non-root 模式下执行 Guest 的代码。
-- **资源超分（Resource Overcommit）**：分配的虚拟资源总量超过实际物理资源。在合理范围内是安全的，因为 Guest 很少同时达到峰值负载。常见安全比例： CPU 4:1~8:1，内存 1.5:1~2:1。
+- **资源超分（Resource Overcommit）**：分配的虚拟资源总量超过实际物理资源。在合理范围内是安全的，因为 Guest 很少同时达到峰值负载。常见安全比例：CPU 4:1~8:1，内存 1.5:1~2:1。
 - **气球驱动（Ballooning）**：一种运行在 Guest 内部的驱动程序，可以按需回收空闲内存并返还给宿主机，从而支持内存超分。
 
 ### 1.4 发展历程中的重要节点

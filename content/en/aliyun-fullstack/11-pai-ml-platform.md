@@ -19,7 +19,7 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-11"
 ---
 
-Training a model on a single GPU is fun. Deploying it to handle 1000 requests per second without failing is what separates experiments from products. PAI handles both.
+Training a model on a single GPU is fun. Deploying it to handle 1,000 requests per second without failing is what separates experiments from products. PAI handles both.
 
 PAI (Platform for AI) is Alibaba Cloud's managed ML platform. It's not just one product; it's five products in a trench coat, sharing a console. These include a notebook environment for exploration, a distributed training service for scale, a model serving platform for production, a visual pipeline designer for those who prefer dragging boxes, and a model gallery for one-click deployment of open-source models. After eighteen months of running real LLM workloads on it, I can say that the individual components range from excellent (EAS) to good enough (Designer). The whole platform is genuinely greater than the sum of its parts once you understand how they connect.
 
@@ -32,7 +32,7 @@ This article is the breadth-first tour. If you want the depth-first treatment â€
 
 PAI stands for Platform for AI. The name is generic because the product is broad â€” it covers the entire ML lifecycle from interactive experimentation to production serving. The closest equivalents on other clouds are AWS SageMaker, Azure Machine Learning, and GCP Vertex AI. However, the comparison is only approximate. SageMaker bundles notebooks, training, and endpoints into a relatively monolithic experience. PAI is more modular, with each sub-product having its own resource model, pricing, and SDK surface, and you can use any one of them independently.
 
-The five components you will actually touch:
+The five components you will actually use:
 
 | Component | What it does | SageMaker equivalent |
 |---|---|---|
@@ -42,7 +42,7 @@ The five components you will actually touch:
 | **PAI-Designer** | Drag-and-drop visual ML pipeline builder | SageMaker Pipelines (visual mode) |
 | **PAI-QuickStart** | One-click deploy of open-source models from a gallery | SageMaker JumpStart |
 
-The mental model that works best for me: code matures from left to right through DSW, DLC, and EAS, while Designer and QuickStart are shortcuts that skip part of that journey.
+The mental model that works best for me: code matures from left to right through DSW, DLC, and EAS, while Designer and QuickStart are shortcuts that skip part of the journey.
 
 ```
     DSW              DLC              EAS
@@ -74,7 +74,7 @@ The biggest practical difference: PAI exposes the underlying ECS instance types 
 
 ## PAI-DSW: interactive notebooks
 
-DSW (Data Science Workshop) is where most ML work begins on PAI. It's JupyterLab and VSCode-in-browser running on a GPU ECS instance managed by PAI. The pitch: skip the CUDA/cuDNN/PyTorch installation and get a working GPU box in about 90 seconds.
+DSW (Data Science Workshop) is where most ML work begins on PAI. It's JupyterLab and VSCode-in-browser running on a GPU ECS instance managed by PAI. The pitch: skip the CUDA, cuDNN, and PyTorch installation and get a working GPU box in about 90 seconds.
 
 ![DSW notebook workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_dsw_workflow.png)
 

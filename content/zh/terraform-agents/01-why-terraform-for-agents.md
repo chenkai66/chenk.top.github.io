@@ -33,7 +33,7 @@ translationKey: "terraform-agents-1"
 ![AI agent workloads running on cloud infrastructure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_agent_infra.png)
 
 
-1. **运行时**：运行 Agent 循环进程的运行时，通常是 Python 或 Node，并且能够承受重启。
+1. **运行时**：运行 Agent 循环进程的运行时，通常是 Python 或 Node，并能承受重启。
 2. **向量存储**：用于语义记忆的向量存储，包括文档嵌入、历史对话和工具输出。
 3. **关系型存储**：存储会话状态的关系型存储，包括轮次对话、工具调用 trace 和用户身份。
 4. **对象存储**：存储制品的对象存储，包括生成的图片、PDF、截图和运行快照。

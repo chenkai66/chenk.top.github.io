@@ -21,7 +21,7 @@ translationKey: "llm-engineering-11"
 
 Safety has the worst signal-to-noise ratio of any topic in LLM engineering. There's a lot of philosophy, a lot of marketing, and not a lot of engineering specifics. This chapter is the engineering specifics: what RLHF actually optimizes when it talks about "safety," how refusal calibration breaks, what red-teaming looks like in practice, the hallucination measures that actually predict customer impact, and the small but significant 2024-2026 papers (Sleeper Agents, refusal as a feature direction, weak-to-strong generalization) that should change how you think about alignment in production.
 
-A note on stance. I'm an engineer, not a policy person. I don't have strong views on AI x-risk and I won't try to give you any. I have views on what works in production, what fails embarrassingly, and what the literature says about both. The bibliography at the end does a lot of the heavy lifting; treat the citations as the key takeaways.
+A note on my stance: I'm an engineer, not a policy expert. I don't have strong views on AI x-risk and won't try to give you any. I focus on what works in production, what fails embarrassingly, and what the literature says about both. The bibliography at the end does most of the heavy lifting; treat the citations as key takeaways.
 
 ![LLM Engineering (11): Safety and Alignment — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_1.png)
 
@@ -37,7 +37,7 @@ Anthropic's HHH (Helpful-Harmless-Honest) framing from Askell et al. (2021, *A G
 
 Production "alignment" is mostly engineering against these tradeoffs, not solving them. You pick where on the curve you want to sit for your deployment, then measure and tune.
 
-There's a fourth aspect the literature hints at but rarely names clearly: *controllability*. A model that adheres to the developer's system prompt under attack is more controllable than one that drifts. Wallace et al.'s instruction hierarchy (chapter 9) touches on this. In production, controllability is often traded off against helpfulness; an aggressively controllable model refuses more user requests based on the system prompt.
+A fourth aspect, *controllability*, is often hinted at but rarely named clearly. A model that adheres to the developer's system prompt under attack is more controllable than one that drifts. Wallace et al.'s instruction hierarchy (Chapter 9) touches on this. In production, controllability often competes with helpfulness; an aggressively controllable model refuses more user requests based on the system prompt.
 
 ## The RLHF objective and what it teaches
 

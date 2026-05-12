@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 15
 translationKey: "ml-math-derivations-15"
 ---
-You hear footsteps behind you in a fog. You cannot see the walker, only the sounds. From the rhythm and pitch — short, soft, hurried — can you guess whether they are walking, running, or limping? And if you observed an entire sequence, which gait sequence is most likely? How likely is *any* sequence of sounds under your model of how walking works?
+You hear footsteps behind you in the fog. You can't see the walker, only the sounds. From the rhythm and pitch — short, soft, hurried — can you guess whether they are walking, running, or limping? And if you observed an entire sequence, which gait sequence is most likely? How likely is *any* sequence of sounds under your model of how walking works?
 
 These are the **three problems of HMMs**, and the surprise is that all three reduce to one trick: write the joint $P(\mathbf{O}, \mathbf{I})$ as a product of local factors along time, then **share sub-computations across time** with dynamic programming. Brute force costs $O(N^T)$. Forward-Backward, Viterbi, and Baum-Welch all cost $O(N^2 T)$. The exponent collapses because the Markov assumption makes the future conditionally independent of the past given the present.
 

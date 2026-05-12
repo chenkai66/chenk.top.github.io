@@ -30,7 +30,7 @@ This chapter walks through the deployment I use on a 2-core 4GB ECS box and the 
 
 Before deploying, choose the right server. Consider these four options:
 
-**Alibaba Cloud ECS**: The path I use. A 2-core 4GB instance in the cn-beijing region costs around $15/month. The advantage is proximity to DashScope, reducing API round-trips from 200ms to 20ms when both the gateway and the model are in the same region. The disadvantage is that the Great Firewall can make outbound package installs flaky unless you set up a mirror.
+**Alibaba Cloud ECS**: The path I use. A 2-core 4GB instance in the cn-beijing region costs around $15/month. The advantage is proximity to DashScope, which reduces API round-trips from 200ms to 20ms when both the gateway and the model are in the same region. The disadvantage is that the Great Firewall can make outbound package installs flaky unless you set up a mirror.
 
 **DigitalOcean**: Simplest onboarding. The $18/month "Basic" droplet (2vCPU, 4GB) is functionally identical to ECS. The dashboard is cleaner, the documentation is better, and package mirrors are unnecessary. The tradeoff is increased latency—150ms per turn—if your model provider is Alibaba or Tencent.
 

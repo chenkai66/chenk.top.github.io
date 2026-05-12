@@ -43,13 +43,13 @@ translationKey: "aliyun-pai-4"
 
 ## 三种推理模式
 
-文档列了三种模式。选错模式会增加成本或提高延迟。
+文档列了三种模式，选错模式会增加成本或提高延迟。
 
 ![EAS 推理模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/fig2_eas_inference_modes.png)
 
 一个实用的启发式规则如下：
 
-- **实时同步** —— 聊天机器人、RAG 检索、广告排序、搜索。你关心 p99 延迟。
+- **实时同步** —— 聊天机器人、RAG 检索、广告排序、搜索，你关心 p99 延迟。
 - **异步** —— 任何耗时 5 秒以上的任务，如图像生成、视频生成、PDF 批量 OCR。内置队列会根据任务积压量自动伸缩副本，这是处理此类工作负载的合理方式。
 - **批量** —— 任何可以等几分钟的任务，如夜间 Embedding、语音转录。使用抢占式实例，账单减半。
 

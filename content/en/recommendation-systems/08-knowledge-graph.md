@@ -15,9 +15,9 @@ disableNunjucks: true
 series_order: 8
 translationKey: "recommendation-systems-8"
 ---
-When you search for *The Dark Knight* on a streaming platform, the system doesn't just log that you watched it. It knows Christian Bale played Batman, Christopher Nolan directed it, it's part of the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** — a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).
+When you search for *The Dark Knight* on a streaming platform, the system doesn't just log that you watched it. It knows that Christian Bale played Batman, Christopher Nolan directed it, it's part of the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** — a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).
 
-Why does this matter for recommendations? Pure collaborative filtering has a blind spot: it can only recommend items with existing interaction history. A brand-new film with zero views is invisible. But if that film shares a director with movies you love, a knowledge graph sees the connection right away. KGs transform recommendation from raw pattern matching into **semantic reasoning**.
+Why does this matter for recommendations? Pure collaborative filtering has a blind spot: it can only recommend items with existing interaction history. A brand-new film with zero views is invisible. But if that film shares a director with movies you love, a knowledge graph sees the connection right away. KGs transform recommendations from raw pattern matching into **semantic reasoning**.
 
 ---
 
@@ -47,7 +47,7 @@ Why does this matter for recommendations? Pure collaborative filtering has a bli
 
 ![Movie knowledge graph: movies, people, genres and collections linked by typed relations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/fig1_knowledge_graph.png)
 
-A knowledge graph stores facts as **(head, relation, tail)** triples. Each triple states one atomic fact:
+A knowledge graph stores facts as **(head, relation, tail)** triples. Each triple represents one atomic fact:
 
 - (The Dark Knight, **directed_by**, Christopher Nolan)
 - (The Dark Knight, **starred**, Christian Bale)
@@ -56,7 +56,7 @@ A knowledge graph stores facts as **(head, relation, tail)** triples. Each tripl
 
 Formally, a knowledge graph is a set $\mathcal{G} = \{(h, r, t)\}$ where $h \in \mathcal{E}$ is the **head entity**, $r \in \mathcal{R}$ is the **relation type**, and $t \in \mathcal{E}$ is the **tail entity**. $\mathcal{E}$ is the set of all entities and $\mathcal{R}$ is the set of all relation types.
 
-**Analogy.** Think of a knowledge graph as a Wikipedia-scale fact database, but stored as a graph instead of prose. Each article is a node, and every link between articles is a *labeled* edge — the label explains *why* they are connected.
+**Analogy.** Think of a knowledge graph as a Wikipedia-scale fact database, but stored as a graph instead of prose. Each article is a node, and every link between articles is a *labeled* edge — the label explains why they are connected.
 
 ### Real-World Knowledge Graphs
 

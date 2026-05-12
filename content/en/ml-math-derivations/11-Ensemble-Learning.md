@@ -19,9 +19,9 @@ disableNunjucks: true
 series_order: 11
 translationKey: "ml-math-derivations-11"
 ---
-Why does a committee of mediocre classifiers outperform a single brilliant one? The answer is unromantic but precise: averaging cuts variance, sequential reweighting cuts bias, and a little randomisation breaks the correlation that would otherwise destroy both effects. This post derives the mathematics behind that picture --- bias--variance decomposition, bootstrap aggregating, AdaBoost as forward stagewise minimisation of exponential loss, and gradient boosting as gradient descent in function space.
+Why do mediocre classifiers in a committee outperform a single brilliant one? The answer is straightforward: averaging reduces variance, sequential reweighting reduces bias, and a bit of randomization breaks the correlation that would otherwise negate these benefits. This post delves into the math behind this — bias-variance decomposition, bootstrap aggregating, AdaBoost as forward stagewise minimization of exponential loss, and gradient boosting as gradient descent in function space.
 
-By the end you should be able to look at any ensemble method and say *what it is reducing, why it works, and when it will fail.*
+By the end, you should be able to look at any ensemble method and say what it reduces, why it works, and when it fails.
 
 ![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_1.png)
 
@@ -55,7 +55,7 @@ Treat each $h_t(\mathbf{x})$ as a random variable (random because the training s
 $$\mathbb{E}[H(\mathbf{x})] = \mu, \qquad
 \operatorname{Var}[H(\mathbf{x})] = \rho\,\sigma^2 + \frac{1-\rho}{T}\,\sigma^2.$$
 
-This single equation is the entire reason ensembles exist. Read it carefully:
+This equation is the core reason ensembles exist. Read it carefully:
 
 - **Bias is preserved.** $\mathbb{E}[H] = \mu$, so averaging cannot fix systematic error of the base learner. If every tree underfits, the ensemble underfits too.
 - **Variance has two pieces.** A floor of $\rho\sigma^2$ that we cannot remove by adding more learners, plus a $\sigma^2/T$ term that vanishes as $T \to \infty$ --- but only when learners are *uncorrelated* ($\rho = 0$).
@@ -72,7 +72,7 @@ $$\mathbb{E}[(y - \hat f(\mathbf{x}))^2]
 \,+\, \underbrace{\mathbb{E}[(\hat f - \mathbb{E}[\hat f])^2]}_{\text{variance}}
 \,+\, \underbrace{\sigma_\epsilon^2}_{\text{irreducible noise}}.$$
 
-Complex models (deep trees, large neural nets) have low bias but huge variance. Simple models (depth-1 stumps, linear regression) have low variance but biting bias. The two ensemble families attack opposite ends:
+Complex models (deep trees, large neural nets) have low bias but high variance. Simple models (depth-1 stumps, linear regression) have low variance but significant bias. The two ensemble families address these issues differently:
 
 - **Bagging / Random Forest** keeps a low-bias high-variance learner and *averages away* the variance.
 - **Boosting** starts from a high-bias low-variance learner and *adds capacity* to drive down the bias.
@@ -95,7 +95,7 @@ With $T = 21$ and $\epsilon = 0.30$ this evaluates to about $0.026$. A 30 % erro
 
 ![Bagging architecture: parallel weak learners on bootstrap samples, then averaged](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig1_bagging_diagram.png)
 
-Bagging (Breiman, 1996) is the cleanest way to apply the variance identity from §1.1.
+Bagging (Breiman, 1996) is the clearest way to apply the variance identity from §1.1.
 
 **Algorithm.**
 
@@ -115,7 +115,7 @@ $$\widehat{\text{Err}}_{\text{OOB}}
 = \frac{1}{N}\sum_{i=1}^N L\!\left(y_i,\; \frac{1}{|\mathcal{S}_i|}\sum_{t \in \mathcal{S}_i} h_t(\mathbf{x}_i)\right),\qquad
 \mathcal{S}_i = \{t : (\mathbf{x}_i, y_i) \notin \mathcal{D}_t\}.$$
 
-This is an (almost) unbiased estimate of generalisation error, computed for free as a side effect of training. No held-out set, no cross-validation loop.
+This is an (almost) unbiased estimate of generalization error, computed for free as a side effect of training. No need for a held-out set or cross-validation loop.
 
 ### 2.2 Random Forest: decorrelating the trees
 

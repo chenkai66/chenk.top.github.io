@@ -13,7 +13,7 @@ disableNunjucks: true
 translationKey: "llmgr"
 ---
 
-Session-based recommendation depends on the click graph. New items have no edges, and long-tail items have a few noisy ones. Every item comes with a title and description, but the model never uses them. **LLMGR** addresses this: it treats the LLM as a "semantic engine" that converts text into representations a graph encoder can use, then lets a GNN handle ranking. On Amazon Music/Beauty/Pantry, the results show HR@20 up ~8.68%, NDCG@20 up ~10.71%, and MRR@20 up ~11.75% over the strongest GNN baseline, with the biggest gains for cold-start items.
+Session-based recommendation relies on the click graph. New items lack edges, and long-tail items have a few noisy ones. Each item has a title and description, but the model never uses them. **LLMGR** addresses this by treating the LLM as a "semantic engine" that converts text into representations a graph encoder can use, then lets a GNN handle ranking. On Amazon Music/Beauty/Pantry, the results show HR@20 up ~8.68%, NDCG@20 up ~10.71%, and MRR@20 up ~11.75% over the strongest GNN baseline, with the biggest gains for cold-start items.
 
 ## What you will learn
 
@@ -43,7 +43,7 @@ A session is a short click stream $s = [v_1, v_2, \dots, v_n]$ — usually only 
 - **Long tail dominates the catalogue.** Most items have a handful of edges, and the edges they do have are unreliable. A GNN trained on these edges learns noise.
 - **IDs carry no semantics.** A neighbour relationship in the click graph could mean *similar*, *complementary*, or *substitute*; transition edges alone cannot tell you which.
 
-Text is often the lifeline. Even a new SKU has a title, description, and category, and long-tail items have the same. But the common trick of "concatenating a frozen BERT embedding with the ID embedding" rarely works, for two reasons:
+Text is often the lifeline. Even a new SKU has a title, description, and category, and long-tail items do too. But the common trick of "concatenating a frozen BERT embedding with the ID embedding" rarely works for two reasons:
 
 1. **Space mismatch.** Text embeddings (768 or 4096-d) and graph embeddings (64-d) live in different geometries. Concatenation gives the optimiser no reason to align them.
 2. **Domain mismatch.** Pre-trained encoders are optimised on Wikipedia and CommonCrawl, not on shopping intent. "iPhone" and "charger" are unrelated in general English but tightly complementary in retail.

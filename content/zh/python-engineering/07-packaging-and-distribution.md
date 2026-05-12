@@ -21,7 +21,7 @@ translationKey: "python-engineering-7"
 
 ## Package vs Module vs Library
 
-这些术语常被混用，但在 Python 生态中有明确定义。
+这些术语常被混用，但在 Python 生态中有明确的定义。
 
 ![Packaging pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png)
 
@@ -102,7 +102,7 @@ Archive:  dist/my_tool-0.1.0-py3-none-any.whl
 
 ![Python packaging journey from script to pypi published packa](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-python-packaging-journey-from-script-to-pypi-published-packa.jpg)
 
-完整的打包配置如下。
+完整的打包配置如下：
 
 ```toml
 [build-system]
@@ -223,8 +223,8 @@ Uploading my_tool-0.1.0.tar.gz [========================================] 100%
 
 ### 创建 PyPI 账户与 API Token
 
-1. 访问 https://pypi.org/account/register/ 注册账户  
-2. 进入 Account Settings > API Tokens  
+1. 访问 https://pypi.org/account/register/ 注册账户。
+2. 进入 Account Settings > API Tokens。
 3. 创建一个作用域限定于你项目的 token（首次上传可选“all projects”）。
 
 配置 `~/.pypirc`：
@@ -377,7 +377,7 @@ CMD ["my-tool", "serve", "--host", "0.0.0.0", "--port", "8000"]
 
 ### 多阶段构建（Multi-Stage Build）
 
-通过分离构建与运行阶段减小最终镜像体积。
+通过分离构建与运行阶段来减小最终镜像体积。
 
 ```dockerfile
 # 第一阶段：构建

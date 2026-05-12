@@ -31,7 +31,7 @@ This simplicity is the point. Because OSS does not need to maintain a filesystem
 
 ### Three types of cloud storage
 
-Alibaba Cloud offers three fundamentally different storage products, and using the wrong one is a mistake I see constantly:
+Alibaba Cloud offers three fundamentally different storage products, and using the wrong one is a common mistake:
 
 | Storage type | Product | Access pattern | Analogy |
 |---|---|---|---|

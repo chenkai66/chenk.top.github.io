@@ -19,7 +19,7 @@ description: "What SFT, DPO, RLHF, and RLAIF each actually optimize, when reward
 translationKey: "llm-engineering-4"
 ---
 
-A base model from pretraining can complete text but cannot follow instructions, refuse harmful requests, or maintain a persona—these are post-training behaviors. Post-training is where the gap between a research paper's claims and a production-grade model exists. This chapter covers what each post-training algorithm optimizes, why most reward models are subtly flawed, and the effective methods for 2026.
+A base model from pretraining can complete text but cannot follow instructions, refuse harmful requests, or maintain a persona—these are post-training behaviors. Post-training is where the gap between a research paper's claims and a production-grade model lies. This chapter covers what each post-training algorithm optimizes, why most reward models are subtly flawed, and the effective methods for 2026.
 
 ![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_1.png)
 
@@ -63,7 +63,7 @@ Two things make-or-break SFT:
 
 **Format consistency.** If half your SFT data uses "Sure, I'll help!" preambles and half doesn't, the model learns to inconsistently use preambles. If your SFT data uses Markdown headers but your test prompts are about plain prose, expect mismatched outputs. Pre-process aggressively to normalize format.
 
-A surprising failure mode: training on too many short responses makes the model refuse to write long ones. The model learns the conditional length distribution from your data. If you want a model that can write 2000-word essays, your SFT mix needs at least 5-10 % long examples. We had a Qwen3-7B fine-tune that would not produce more than 800 tokens because the SFT mix was Q&A-heavy.
+A surprising failure mode: training on too many short responses makes the model reluctant to write long ones. The model learns the conditional length distribution from your data. If you want a model that can write 2000-word essays, your SFT mix needs at least 5-10% long examples. A Qwen3-7B fine-tune we did would not produce more than 800 tokens because the SFT mix was Q&A-heavy.
 
 ## SFT data sources and synthesis
 

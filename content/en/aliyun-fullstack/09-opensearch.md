@@ -19,10 +19,10 @@ disableNunjucks: true
 translationKey: "aliyun-fullstack-9"
 ---
 
-I built my first search engine with Elasticsearch and a pile of synonyms. It took six months to get decent results. Every week, users complained about missing results, I added more synonyms, broke something else, and added exception rules. The relevance tuning spreadsheet grew to 400 rows. I had custom analyzers for three languages, a boosting config that nobody understood (including me), and a reindexing job that took four hours. Then I tried hybrid vector+keyword search on a side project and got better results on day one. Not marginally better — "users stopped complaining" better. That experience changed how I think about search entirely, and it is the reason this article exists.
+I built my first search engine with Elasticsearch and a pile of synonyms. It took six months to get decent results. Every week, users complained about missing results, so I added more synonyms, broke something else, and added exception rules. The relevance tuning spreadsheet grew to 400 rows. I had custom analyzers for three languages, a boosting config that no one understood (including me), and a reindexing job that took four hours. Then I tried hybrid vector+keyword search on a side project and got better results on day one. Not marginally better — "users stopped complaining" better. That experience completely changed how I think about search, and it's the reason this article exists.
 
 
-Search is deceptively hard. Keyword search fails when users use different words than the document author. Vector search fails when users need exact matches like part numbers, error codes, or SKUs. The answer, as the industry has learned over the past three years, is to combine both — and increasingly, to add an LLM for query understanding and answer generation. Alibaba Cloud offers a managed service for this: OpenSearch. This article covers the full spectrum, from basic keyword search to LLM-powered AI Search, and ends with a complete product search engine you can deploy.
+Search is deceptively hard. Keyword search fails when users use different words than the document author. Vector search fails when users need exact matches like part numbers, error codes, or SKUs. The answer, as the industry has learned over the past three years, is to combine both—and increasingly, to add an LLM for query understanding and answer generation. Alibaba Cloud offers a managed service for this: OpenSearch. This article covers the full spectrum, from basic keyword search to LLM-powered AI Search, and ends with a complete product search engine you can deploy.
 
 For generating the embeddings we use throughout this article, see our [Bailian series, Part 2: Qwen LLM API](/en/aliyun-bailian/02-qwen-llm-api/). The database feeding our search index is covered in [Part 5: RDS](/en/aliyun-fullstack/05-rds-database/). For the LLM Engineering perspective on RAG pipelines, see our [LLM Engineering series](/en/llm-engineering/).
 
@@ -51,7 +51,7 @@ That last point often trips people up. I'll say it again: **Alibaba Cloud OpenSe
 
 ## OpenSearch Basics
 
-OpenSearch on Alibaba Cloud is a fully managed search platform. You do not operate clusters, manage shards, or worry about garbage collection pauses. You define your data schema, push data in, and query it out. Alibaba handles indexing, replication, and scaling.
+OpenSearch on Alibaba Cloud is a fully managed search platform. You don't operate clusters, manage shards, or worry about garbage collection pauses. You define your data schema, push data in, and query it out. Alibaba handles indexing, replication, and scaling.
 
 ![OpenSearch cluster architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_opensearch_architecture.png)
 

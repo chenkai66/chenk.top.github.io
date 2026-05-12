@@ -17,13 +17,13 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
 
-The README claims five minutes, but I'd say ten. The extra five accounts for the common Node version mistake.
+The README claims five minutes, but I'd say ten. The extra time accounts for the common Node version mistake.
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
 ## Prerequisites
 
-- Node `v22.16` or newer. The project really means it. Older Node will install but the gateway throws on optional chaining in some places. I run `v24` because that's the recommended track.
+- Node `v22.16` or newer. The project is strict about this. Older Node versions will install, but the gateway will throw errors with optional chaining in some places. I run `v24` because that's the recommended track.
 - About 2 GB free RAM at runtime, more if you load big skills.
 - An LLM API key from one of: DashScope (free tier works), Anthropic, OpenAI, or the Aliyun Bailian Coding Plan (200元/month for eight models).
 
@@ -82,7 +82,7 @@ openclaw --version
 
 ## Troubleshooting the install
 
-Five things that trip people up, in order of frequency:
+Here are the five most common issues, in order of frequency:
 
 **(a) npm permission errors (EACCES on global install)** — Never `sudo npm install -g`. Use `nvm` instead (installs Node into your home directory), or configure npm's prefix to a user-owned path:
 

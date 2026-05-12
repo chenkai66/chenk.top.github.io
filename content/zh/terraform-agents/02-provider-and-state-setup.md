@@ -64,7 +64,7 @@ terraform {
 
 ## Step 2: 认证——三种方案，按靠谱程度排个序
 
-Provider 需要 Aliyun credentials，真正可选的有三种，按专业程度递增：
+Provider 需要阿里云 credentials，真正可选的有三种，按专业程度递增：
 
 ![Authentication flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
 
@@ -99,7 +99,7 @@ provider "alicloud" {
 }
 ```
 
-角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，一旦剥离信任策略就能瞬间撤销。这也是 GitLab CI、GitHub Actions 和 Jenkins 等 CI/CD 环境中推荐的模型。
+角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短期的（默认一小时），在 ActionTrail 里有审计日志，一旦剥离信任策略就能立即撤销。这也是 GitLab CI、GitHub Actions 和 Jenkins 等 CI/CD 环境中推荐的模型。
 
 ### 方案 C: ECS RAM 角色（堡垒机 / IaC 服务 runner）
 

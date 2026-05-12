@@ -54,7 +54,7 @@ process.stdin.on('end', () => {
 I will skip that preamble in some listings below for brevity, but every real hook starts with it.
 
 ![Hook I/O contract: stdin payload in, exit code plus stderr out](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
-*Each hook is a script that reads a JSON payload from stdin and signals back via exit code (verdict) and stderr (explanation). The matcher in settings.json determines which hooks handle each tool call.*
+*Each hook is a script that reads a JSON payload from stdin and signals back with an exit code (verdict) and stderr (explanation). The matcher in settings.json determines which hooks handle each tool call.*
 
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
@@ -279,7 +279,7 @@ process.stdin.on('end', () => {
 
 Whitelists succeed where blocklists fail: you can't accidentally allow something new. New binaries are blocked by default. The tradeoff is maintenance—you need to add every legitimate tool.
 
-I run the blacklist on dev machines and the whitelist on anything production-adjacent.
+I use the blacklist on dev machines and the whitelist on anything production-adjacent.
 
 ### Testing it
 
@@ -442,7 +442,7 @@ process.stdin.on('end', () => {
 ### Why exit 0, not exit 1
 
 ![Exit code semantics differ between PreToolUse and PostToolUse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png)
-*The same exit code means different things depending on the lifecycle phase. Exit 2 only blocks in PreToolUse; in PostToolUse, the side-effect has already occurred.*
+*The same exit code means different things depending on the lifecycle phase. Exit 2 only blocks in PreToolUse. In PostToolUse, the side-effect has already occurred.*
 
 PostToolUse runs *after* the edit. Exit code 2 does not roll anything back — the side-effect already happened. Using exit 1 would surface the error to the model, which might then try to "fix" a formatting issue by re-editing the file, creating a loop. For formatting, just log the warning and move on.
 
@@ -691,7 +691,7 @@ cat .claude/tool-calls.jsonl | jq -r '.tool' | sort | uniq -c | sort -rn
 cat .claude/tool-calls.jsonl | jq -r 'select(.ts > "2026-04-24T10:15") | "\(.ts) \(.tool) \(.file // .cmd // "")"'
 ```
 
-You won't look at this file every day, but when you do, you'll be glad it exists.
+You won't look at this file every day, but when you do, you'll be glad it's there.
 
 ---
 

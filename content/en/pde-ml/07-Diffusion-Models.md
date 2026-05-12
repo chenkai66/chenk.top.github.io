@@ -23,7 +23,7 @@ translationKey: "pde-ml-7"
 
 ## What This Article Covers
 
-Since 2020, **diffusion models** have become the dominant paradigm in generative AI. From DALL·E 2 to Stable Diffusion to Sora, their generation quality and training stability are unmatched by GANs and VAEs. Beneath this success lies a remarkably clean mathematical structure: **diffusion models are numerical solvers for partial differential equations**.
+Since 2020, **diffusion models** have become the dominant paradigm in generative AI. From DALL·E 2 to Stable Diffusion to Sora, their generation quality and training stability surpass those of GANs and VAEs. This success is underpinned by a remarkably clean mathematical structure: **diffusion models are numerical solvers for partial differential equations**.
 
 - Adding Gaussian noise corresponds to integrating the **Fokker–Planck equation** forward in time.
 - Learning to denoise is equivalent to learning the **score function** $\nabla\log p_t$.

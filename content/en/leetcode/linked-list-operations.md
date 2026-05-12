@@ -19,7 +19,7 @@ translationKey: "leetcode-3"
 
 A linked list is the simplest data structure that forces you to **think in pointers**. Arrays let you index in $O(1)$ and forget about layout; linked lists hand you a head pointer and ask, *"now what?"* That single shift — from indices to references — is what makes linked-list problems so common in interviews. They are short to state, brutal to get right, and reward exactly the habits good engineers build: drawing pictures, naming pointers, and **never dereferencing without checking for `None`**.
 
-This article walks through five problems that, taken together, cover every classical linked-list technique you will see in coding interviews:
+This article covers five problems that, together, encompass every classical linked-list technique you'll see in coding interviews:
 
 - **Reverse a linked list** — the canonical pointer-rewiring exercise, both iterative and recursive.
 - **Merge two sorted lists** — the dummy-node pattern and how it eliminates head-case clutter.
@@ -27,7 +27,7 @@ This article walks through five problems that, taken together, cover every class
 - **Remove the nth node from end** — two pointers with a fixed gap, in a single pass.
 - **LRU cache** — the doubly linked list + hash map combo that powers every real-world cache.
 
-Every section keeps the same shape: problem, idea, code, complexity, and a worked example. The figures below show the pointer state before and after each rewiring, because that is how you should solve these in your head and on the whiteboard.
+Each section follows the same format: problem, idea, code, complexity, and a worked example. The figures below show the pointer state before and after each rewiring, which is how you should solve these in your head and on the whiteboard.
 
 ## Series Navigation
 
@@ -56,7 +56,7 @@ That is the entire interface. Every algorithm in this article is just a sequence
 | Cache locality | High | Low |
 | Dynamic growth | Reallocate | Natural |
 
-The trade-off is concrete: arrays win on access and cache behavior, linked lists win when you mutate the structure often and do not need to jump around. Once you internalize this, problem selection becomes obvious — *"can I reach the kth element?"* points to an array; *"do I need to splice out the middle without copying?"* points to a list.
+The trade-off is clear: arrays excel in access and cache behavior, while linked lists are better for frequent mutations and when you don't need to jump around. Once you understand this, problem selection becomes obvious — *"can I reach the kth element?"* suggests an array; *"do I need to splice out the middle without copying?"* suggests a list.
 
 ## Insert and delete: rewire two pointers, never more
 
@@ -75,7 +75,7 @@ If you reverse the order, `A.next` is overwritten before you save it, and `B` is
 A.next = B.next   # A skips B
 ```
 
-This is the entire mental model: **operations on a linked list are pointer assignments performed in a careful order**. Everything else in this article is a variation on that theme.
+This is the core concept: **linked list operations are pointer assignments performed in a specific order**. Everything else in this article is a variation on this theme.
 
 ## LeetCode 206 — Reverse Linked List
 

@@ -16,14 +16,14 @@ translationKey: "time-series-6"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-时序卷积网络TCN/illustration_1.png)
 
-2010 年代的大部分时间里，提到深度学习处理时间序列，默认就是 LSTM。直到 2018 年，Bai、Kolter 和 Koltun 发表了一篇题为 *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling* 的论文。结论简单得让人有些意外：将多个 1D 卷积堆叠起来，确保它们是因果卷积（不偷看未来数据），让卷积核的步距按指数增长（dilation），再加上残差连接，直接训练即可。结果表明，这种称为 **Temporal Convolutional Network**（TCN）的模型在各个任务中要么与 LSTM/GRU 打平，要么直接胜出——而且训练速度提高了好几倍，因为前向传播的每个时间步可以并行计算。
+在 2010 年代的大部分时间里，提到深度学习处理时间序列，默认就是 LSTM。直到 2018 年，Bai、Kolter 和 Koltun 发表了一篇题为 *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling* 的论文。结论简单得让人有些意外：将多个 1D 卷积堆叠起来，确保它们是因果卷积（不偷看未来数据），让卷积核的步距按指数增长（dilation），再加上残差连接，直接训练即可。结果表明，这种称为 **Temporal Convolutional Network**（TCN）的模型在各个任务中要么与 LSTM/GRU 打平，要么直接胜出——而且训练速度提高了好几倍，因为前向传播的每个时间步可以并行计算。
 
 这一章我将解释这种方法为何如此有效：首先推导 dilation 的感受野公式，了解其作用；然后逐步拆解残差块的设计细节；最后通过两个工业级案例——交通流量预测和多变量传感器预测——进行总结。代码基于 PyTorch 实现，可以直接使用。
 ## 你将学到的内容
 
-- 为什么要做“诚实的预测”，因果一维卷积为什么必不可少，左侧 padding 是如何实现这一点的。
+- 为什么要做“诚实的预测”，因果一维卷积为什么必不可少，以及左侧 padding 是如何实现这一点的。
 - 膨胀卷积如何让感受野以 $\mathcal{O}(2^L)$ 的速度增长，而不是 $\mathcal{O}(L)$。
-- TCN 残差块的具体结构：两个膨胀因果卷积 + 权重归一化 + dropout + 1x1 残差连接。
+- TCN 残差块的具体结构：两个膨胀因果卷积、权重归一化、dropout 和 1x1 残差连接。
 - TCN 和 LSTM/GRU/Transformer 的直接对比：训练时间、显存占用和预测精度。
 - 两个实际案例：每小时交通流量预测和多变量 IoT 传感器数据预测。
 

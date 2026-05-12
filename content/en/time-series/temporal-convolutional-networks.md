@@ -18,7 +18,7 @@ translationKey: "time-series-6"
 
 For most of the 2010s, saying "deep learning for time series" meant using LSTM. The story changed in 2018 when Bai, Kolter, and Koltun published *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling*. Their result was surprisingly simple: use a stack of 1-D convolutions, make them causal (no peeking at the future), space the filter taps exponentially (dilation), wrap the whole thing in residual connections, and train. Task after task, the resulting **Temporal Convolutional Network** (TCN) matched or beat LSTM/GRU — while training several times faster because every time step in the forward pass runs in parallel.
 
-This chapter unpacks why that recipe works. We will derive the receptive-field formula that makes dilation worth caring about, walk through the residual block step by step, and finish with two production-grade case studies (traffic flow and multivariate sensor forecasting) using a PyTorch implementation you can copy out.
+This chapter explains why that recipe works. We'll derive the receptive-field formula that makes dilation important, walk through the residual block step by step, and finish with two production-grade case studies (traffic flow and multivariate sensor forecasting) using a PyTorch implementation you can copy out.
 
 ## What you will learn
 

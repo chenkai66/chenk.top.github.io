@@ -34,9 +34,9 @@ translationKey: "terraform-agents-5"
 
 别把它们混为一谈。我见过有团队想把 50GB 生成的 PDF 塞进 Postgres，理由是“它有 `bytea` 列”。其存储成本可达 OSS 的十倍，查询延迟明显上升，全量备份耗时甚至长达数小时。每层都有专门擅长干这个活的服务——选对服务，账单才能控制在合理范围内。
 
-## 第一层：关系型数据库， RDS for PostgreSQL
+## 第一层：关系型数据库，RDS for PostgreSQL
 
-会话状态——逐轮对话、工具调用 trace、用户身份——你得用正经 RDBMS。 PostgreSQL 是我的默认选项；如果团队偏好 MySQL 也没问题。需要水平扩展时，下一步是 PolarDB。
+会话状态——逐轮对话、工具调用 trace、用户身份——你得用正经 RDBMS。PostgreSQL 是我的默认选项；如果团队偏好 MySQL 也没问题。需要水平扩展时，下一步是 PolarDB。
 
 ```hcl
 resource "random_password" "rds_admin" {

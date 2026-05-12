@@ -16,18 +16,26 @@ BASE = '/root/chenk-hugo/content/en'
 LOG_DIR = '/root/chenk-hugo/scripts/audit_en_logs'
 
 API_KEYS = [
-    'sk-6407a4292fd94f24aecd2fcfdaaa7567',
-    'sk-27210a1ca9e74b9796638942da67de1d',
-    'sk-96ab453901c84e4cb802bb38bb15af61',
-    'sk-312d19df5072411492f51b32023ce94e',
-    'sk-b45ff56bcadf4a77a51fbf71e4eb2ecd',
-    'sk-b77b4c7520174aca9e39b1cb0ef415f0',
-    'sk-a28750cc69674a22b7b603e5ef6f92ad',
-    'sk-555ed573299a477d823e994cab356fb8',
-    'sk-f58b74dd85884cffb81e1fd4777ef908',
+    # Domestic (cn) keys -> dashscope.aliyuncs.com
+    ('sk-6407a4292fd94f24aecd2fcfdaaa7567', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-27210a1ca9e74b9796638942da67de1d', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-96ab453901c84e4cb802bb38bb15af61', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-312d19df5072411492f51b32023ce94e', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-b45ff56bcadf4a77a51fbf71e4eb2ecd', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-b77b4c7520174aca9e39b1cb0ef415f0', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-a28750cc69674a22b7b603e5ef6f92ad', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-555ed573299a477d823e994cab356fb8', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-f58b74dd85884cffb81e1fd4777ef908', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    # International keys -> dashscope-intl.aliyuncs.com
+    ('sk-329ee3abadff4192bdafa2f23d145f51', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-e6798c99da7e4fe1a9468bdc95bc2245', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-3682116aa6f74580a5b159b074798b2f', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-1ad1ec7c647b4bd4970604f406c8a8e6', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-52abc92c45004ca48bd8624cfba41966', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-3817926c65c44520b723e184eae42d0a', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'),
+    ('sk-e329a8a6241c456592b944bb2f8b4ba9', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'),
 ]
 
-API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
 SYSTEM_PROMPT = """You are a senior English technical editor for an engineering blog. The author is bilingual; some passages may have subtle non-native phrasings, redundancies, or awkward constructions.
 
@@ -57,10 +65,11 @@ key_index = [0]
 
 
 def get_next_key():
+    """Return (api_key, url) round-robin from the combined CN+INTL pool."""
     with key_lock:
-        key = API_KEYS[key_index[0] % len(API_KEYS)]
+        entry = API_KEYS[key_index[0] % len(API_KEYS)]
         key_index[0] += 1
-        return key
+        return entry
 
 
 def extract_prose(content):
@@ -105,9 +114,9 @@ def extract_prose(content):
 
 def call_qwen(prose, retries=3):
     for attempt in range(retries):
-        key = get_next_key()
+        key, api_url = get_next_key()
         try:
-            resp = requests.post(API_URL, headers={
+            resp = requests.post(api_url, headers={
                 'Authorization': f'Bearer {key}',
                 'Content-Type': 'application/json',
             }, json={
@@ -203,7 +212,7 @@ def process_series(series_name):
             print(f'  [{completed[0]}/{len(articles)}] {basename}... {tag}', flush=True)
         return applied, [{**iss, 'file': basename} for iss in issues]
 
-    with ThreadPoolExecutor(max_workers=30) as ex:
+    with ThreadPoolExecutor(max_workers=50) as ex:
         for applied, file_issues in ex.map(worker, list(enumerate(articles))):
             total_fixes += applied
             all_issues.extend(file_issues)

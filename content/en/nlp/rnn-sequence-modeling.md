@@ -15,7 +15,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "nlp-3"
 ---
-Open Google Translate, swipe-type a message, dictate a memo to your phone — every one of these systems must consume an ordered stream of tokens and produce another. A feed-forward network treats each input independently, but language is fundamentally **sequential**: the meaning of "mat" in *the cat sat on the mat* depends on every word that came before. Recurrent Neural Networks (RNNs) handle this by maintaining a **hidden state** that evolves as they consume each token. The hidden state is the network's running summary of the past — its memory.
+Open Google Translate, swipe-type a message, or dictate a memo to your phone — all these systems consume an ordered stream of tokens and produce another. A feed-forward network processes each input independently, but language is fundamentally **sequential**: the meaning of "mat" in *the cat sat on the mat* depends on every word that came before. Recurrent Neural Networks (RNNs) handle this by maintaining a **hidden state** that evolves as they process each token. The hidden state is the network's running summary of the past — its memory.
 
 This article builds up the family of recurrent architectures from scratch. We start with the vanilla RNN, derive *why* it cannot remember more than a dozen tokens, watch the LSTM and GRU rescue it with gating, and finish with a working English-to-French translator in PyTorch. By the end, you will understand the architectural shift that ultimately motivated attention and Transformers.
 
@@ -76,7 +76,7 @@ Two regimes follow immediately, and you can see both in the left panel of the fi
 - If $\lambda < 1$, the gradient norm **decays exponentially**. Beyond roughly 10–20 steps the signal is numerically zero, so the optimiser cannot tell that token $t$ matters for the loss at $T$. The model literally cannot learn the dependency.
 - If $\lambda > 1$, the gradient **explodes** — finite weight updates become wild, and training diverges in a single step.
 
-The right panel makes this concrete. In *"The cat, which sat on the mat and purred, **was** happy"*, subject ("cat") and verb ("was") are separated by ten tokens. A vanilla RNN cannot route the gradient that far, so it never learns the agreement.
+The right panel illustrates this. In *"The cat, which sat on the mat and purred, **was** happy"*, the subject ("cat") and verb ("was") are separated by ten tokens. A vanilla RNN cannot route the gradient that far, so it never learns the agreement.
 
 **What helps in practice.** *Gradient clipping* — capping the global norm at some threshold like 5.0 — solves explosion but does nothing for vanishing. The real fix requires re-architecting the recurrence so that gradients have a path that *does not* shrink. That path is exactly what LSTMs and GRUs introduce.
 

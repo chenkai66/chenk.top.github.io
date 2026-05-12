@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "KV cache 力学、paged attention、continuous batching、speculative decoding、INT8/INT4/AWQ/GPTQ 量化，以及 vLLM、SGLang、TensorRT-LLM 的取舍。"
 translationKey: "llm-engineering-5"
 ---
-真正的成本压力来自推理。以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——只需运行约 3 个月。本章聚焦两个核心指标：首 token 延迟（TTFT）、token 间延迟（ITL）和一个关键比率：每百万输出 token 消耗的 GPU 秒数。
+真正的成本压力来自推理。以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——只需运行约 3 个月。本章聚焦两个核心指标：首 token 延迟（TTFT）、token 间延迟（ITL）以及一个关键比率：每百万输出 token 消耗的 GPU 秒数。
 
-训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；而推理是持续发生的运营支出（OpEx），无法摊销。tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长。因此，主流 LLM 团队普遍配备专职推理工程师；开源社区在五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。
+训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长。因此，主流 LLM 团队普遍配备专职推理工程师；开源社区在五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。
 
 ![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
 
@@ -30,8 +30,8 @@ translationKey: "llm-engineering-5"
 
 每次 LLM 推理调用分为两个阶段：
 
-1.  **Prefill （提示词处理）**：输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。 70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——能把一张 H100 饱和运行约 70 ms。
-2.  **Decode （生成）**：一次生成一个 token，基于缓存的 key 和 value 做注意力。这是内存密集型（Memory-bound）。每个 decode 步都要读取整个 KV cache （几 GB 大小）才能产出一个 token。
+1.  **Prefill （提示词处理）**：输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——足以使一张 H100 饱和运行约 70 ms。
+2.  **Decode （生成）**：一次生成一个 token，基于缓存的 key 和 value 做注意力。这是内存密集型（Memory-bound）。每个 decode 步都要读取整个 KV cache（几 GB 大小）才能产出一个 token。
 
 这种不对称性是关键：Prefill 阶段天然支持跨用户批处理（同一 kernel 并行处理不同序列），而 Decode 阶段若采用朴素批处理（naive batching），效果通常很差——因为各用户序列长度不一，计算步无法对齐。主流推理引擎都是围绕这种不对称性设计的。
 

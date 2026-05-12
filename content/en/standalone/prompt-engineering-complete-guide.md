@@ -11,7 +11,7 @@ disableNunjucks: true
 translationKey: "prompt-engineering-complete-guide"
 ---
 
-The same model, two prompts: one gets 17% accuracy on grade-school math, the other gets 78%. The difference is not magic — it is prompt engineering. This guide shows you the techniques that work, the research behind them, and how to systematically optimize prompts for production.
+The same model, two prompts: one achieves 17% accuracy on grade-school math, the other 78%. The difference isn't magic—it's prompt engineering. This guide covers the techniques that work, the research behind them, and how to systematically optimize prompts for production.
 
 ## What you will learn
 
@@ -27,9 +27,9 @@ The same model, two prompts: one gets 17% accuracy on grade-school math, the oth
 
 ## Why prompt engineering matters
 
-When OpenAI released GPT-3 in 2020, researchers quickly noticed something surprising: the same model produced wildly different results depending on how you phrased a request. A poorly worded prompt generated nonsense; a carefully crafted one solved complex reasoning tasks. This was not a bug. It is a fundamental property of how these models learn.
+When OpenAI released GPT-3 in 2020, researchers quickly noticed something surprising: the same model produced wildly different results based on how you phrased a request. A poorly worded prompt generated nonsense, while a carefully crafted one solved complex reasoning tasks. This wasn't a bug; it's a fundamental property of how these models learn.
 
-Traditional programming runs on exact instructions: write a function, specify inputs and outputs, and the computer executes deterministically. Language models work differently. They predict the most likely continuation of text given the patterns learned from trillions of tokens. Your prompt does not command the model — it sets up a context that nudges its probability distribution toward useful outputs.
+Traditional programming relies on exact instructions: write a function, specify inputs and outputs, and the computer executes deterministically. Language models work differently. They predict the most likely continuation of text based on patterns learned from trillions of tokens. Your prompt doesn't command the model; it sets up a context that nudges its probability distribution toward useful outputs.
 
 The stakes are high. A well-engineered prompt can reduce API costs by 10x through more efficient context usage. It can boost task accuracy from 40% to 90% on complex reasoning benchmarks. For production systems handling millions of requests, these gains translate to real business value.
 
@@ -57,7 +57,7 @@ Yao et al. (2023) benchmarks:
 
 **The cost.** Breadth-3 depth-4 search is ~80 LLM calls per problem. ToT pays off only when (a) there are multiple plausible solution paths and (b) self-evaluation is reliable for the task. Use it for combinatorial puzzles, planning, and constraint satisfaction. Skip it for straightforward Q&A.
 
-A production-friendly best-first version uses a priority queue with a hard call-count cap so a single problem cannot blow your budget.
+A production-friendly best-first version uses a priority queue with a hard call-count cap to prevent a single problem from blowing your budget.
 
 ### Graph of Thoughts (GoT)
 
@@ -81,7 +81,7 @@ On a 32-number sorting task, Besta et al. reported 89% accuracy at 62% lower cos
 
 ### ReAct (Reason + Act)
 
-ReAct (Yao et al., 2022) interleaves *thinking* with *acting*. The model alternates between reasoning steps and tool calls, observing the result of each action before deciding what to do next.
+ReAct (Yao et al., 2022) interleaves *thinking* with *acting*. The model alternates between reasoning steps and tool calls, observing the result of each action before deciding the next step.
 
 ```
 Thought: I need the population of Paris.

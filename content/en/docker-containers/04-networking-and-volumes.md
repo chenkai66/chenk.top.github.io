@@ -16,7 +16,7 @@ series_order: 4
 translationKey: "docker-containers-4"
 ---
 
-Containers are deliberately isolated. That's the point. But useful applications need to accept connections from the outside world, talk to databases, and store data that survives container restarts. Docker provides two mechanisms for this: networks (for communication) and volumes (for persistent storage). Getting these right is the difference between a demo and a deployment.
+Containers are deliberately isolated. That's the point. But useful applications need to accept connections from the outside world, talk to databases, and store data that survives container restarts. Docker provides two mechanisms for this: networks (for communication) and volumes (for persistent storage). Getting these right makes the difference between a demo and a deployment.
 
 ## Docker Networking
 

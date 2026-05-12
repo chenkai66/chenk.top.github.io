@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 15
 translationKey: "recommendation-systems-15"
 ---
-> A user opens your app at 14:02 and searches for "trail running shoes". By 15:30 they have moved on and are reading kitchen reviews. A model that retrains nightly is still showing them Salomon ads at 16:00 — and that gap is exactly the bug a real-time system fixes. The interesting part is not "make it faster" but "what *should* be fast" — most features add nothing to AUC even when made real-time, and the wrong design point burns money for no lift.
+> A user opens your app at 14:02 and searches for 'trail running shoes'. By 15:30, they've moved on to reading kitchen reviews. A model that retrains nightly still shows them Salomon ads at 16:00 — and that gap is exactly the bug a real-time system fixes. The interesting part isn't 'make it faster' but 'what *should* be fast' — most features add nothing to AUC even when made real-time, and the wrong design point wastes money without improving performance.
 
 ![Recommendation Systems (15): Real-Time Recommendation and Online Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/illustration_1.png)
 
@@ -53,7 +53,7 @@ But "real-time" is not a single thing — it is a spectrum:
 | Hourly | 1 – 24 hours | trending topics, item popularity decay |
 | Batch | 1+ days | user demographics, item embeddings, retrieval index |
 
-The mistake is to make *everything* real-time. As Figure 4 shows, demographics and item metadata gain almost nothing from a real-time pipeline — but recent click sequences gain 2-3 AUC points. **Real-time is a budget you spend on the features that move the metric.**
+The mistake is making *everything* real-time. As Figure 4 shows, demographics and item metadata gain almost nothing from a real-time pipeline, but recent click sequences gain 2-3 AUC points. **Real-time is a budget you spend on the features that move the metric.**
 
 ---
 
@@ -65,7 +65,7 @@ A real-time recommender decomposes cleanly into two paths:
 
 **Write-path (asynchronous, throughput-bound).** Events leave the client, hit a Kafka topic partitioned by `user_id`, get aggregated by a Flink job into rolling windows (last-N clicks, 10-minute CTR, etc.), and land in two places: a *feature store* (Redis or RocksDB) for the read-path to consume, and an *online learner* that updates model weights. A new model snapshot is pushed to a registry every few minutes.
 
-**Read-path (synchronous, latency-bound).** A serving request arrives. We do recall (ANN over embeddings, plus inverted indexes for fresh items), then a *single round-trip* feature fetch from the store, then ranking, then re-ranking for diversity / business rules, then return. Total budget: < 100 ms.
+**Read-path (synchronous, latency-bound).** A serving request arrives. We perform recall (ANN over embeddings, plus inverted indexes for fresh items), fetch features in a *single round-trip* from the store, rank, re-rank for diversity and business rules, and return. Total budget: < 100 ms.
 
 The discipline is keeping these two paths decoupled. The serving path **never** writes to the model, never trains, never blocks on stream processing. If the streaming side falls behind, serving keeps working with slightly stale features — degraded, not down.
 
@@ -100,7 +100,7 @@ Two practical lessons:
 
 ### 4.1 Kafka — the durable transport
 
-Kafka's role is narrow but essential: a durable, partitioned, replayable log. Three properties matter:
+Kafka's role is narrow but essential: a durable, partitioned, and replayable log. Three properties matter:
 
 - **Partitioning by `user_id`** keeps a single user's events on a single partition, which preserves causal order — critical for stateful joins like "did the click come before or after the impression?".
 - **Replication** (typically `replication-factor=3`) means a broker can die without data loss.

@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-9"
 ---
 
-If hooks are how you reach into Claude Code, settings.json is where you tell it what it is allowed to touch in the first place. It is also the file that catches everyone with its precedence rules.
+Hooks let you interact with Claude Code, while settings.json specifies what it can access. This file also confuses many with its precedence rules.
 
 This chapter is the missing reference.
 
@@ -190,7 +190,7 @@ Here is the complete list of tool names you can use in permission rules:
 
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
-Once anything in the merged config denies an action, nothing else can re-allow it. This is the lever you want.
+Once the merged config denies an action, nothing can re-allow it. This is the control you need.
 ![Figure 6: A deny list, organized by what category of damage it prevents.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)
 
 *Figure 6: A deny list, organized by what category of damage it prevents.*

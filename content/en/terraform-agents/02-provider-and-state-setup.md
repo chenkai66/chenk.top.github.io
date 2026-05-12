@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "terraform-agents-2"
 ---
 
-This is the article where you stop reading and start typing. By the end, you will have:
+This article is where you stop reading and start typing. By the end, you'll have:
 
 1. The `alicloud` Terraform provider installed and version-pinned.
 2. Authentication wired up — through the right method, not the convenient one.
@@ -25,7 +25,7 @@ This is the article where you stop reading and start typing. By the end, you wil
 4. Three workspaces (`dev`, `staging`, `prod`) that share a backend but isolate state.
 5. A working `terraform plan` against an empty config.
 
-Nothing here provisions an agent yet. We are laying the foundation that every later article assumes. If you skip this and try to wing it in article 3, you'll likely face a state-corruption incident within a week.
+Nothing here provisions an agent yet. This lays the foundation for all future articles. If you skip this and try to wing it in article 3, you'll likely face a state-corruption incident within a week.
 
 ## Step 0: install Terraform
 
@@ -61,7 +61,7 @@ terraform {
 
 The `~> 1.230` constraint allows `1.230.0` through `1.230.x` but blocks `1.231.0`. This is the right default. Once you commit `.terraform.lock.hcl` to git (Terraform creates it on `terraform init`), you also lock the *exact* provider version and its checksum. If a teammate runs `terraform init` later, they get the same provider — bit-identical.
 
-Pinning early is cheap insurance. The alicloud provider has introduced breaking changes between minor versions (the OSS bucket schema rework around 1.220 cost me three afternoons). You will eventually need to upgrade — do it deliberately in a PR, with the diff in plan output, not by accident on a teammate's laptop at 11pm.
+Pinning early is cheap insurance. The alicloud provider has introduced breaking changes between minor versions (the OSS bucket schema rework around 1.220 cost me three afternoons). When you need to upgrade, do it deliberately in a PR, with the diff in plan output, not by accident on a teammate's laptop at 11pm.
 
 ## Step 2: authenticate — three options, ranked
 
@@ -100,7 +100,7 @@ provider "alicloud" {
 }
 ```
 
-The role has the actual write permissions; the AK only has the right to assume it. STS sessions are short-lived (one hour by default), audit-logged in ActionTrail, and can be revoked instantly by detaching the trust policy. This is the model GitLab CI, GitHub Actions, and Jenkins runners should use.
+The role has the actual write permissions; the AK only has the right to assume it. STS sessions are short-lived (one hour by default), audit-logged in ActionTrail, and can be revoked instantly by detaching the trust policy. This is the recommended model for GitLab CI, GitHub Actions, and Jenkins runners.
 
 ### Option C: ECS RAM role (the bastion / IaC service runner)
 
@@ -120,7 +120,7 @@ Zero secrets in any config, env var, or file. Rotation is automatic. This is the
 
 ## Step 3: state — why local tfstate is a footgun
 
-When you run `terraform apply`, by default Terraform writes `terraform.tfstate` in the current directory. That file is the source of truth for what infrastructure exists. Three things will go wrong:
+When you run `terraform apply`, by default Terraform writes `terraform.tfstate` in the current directory. That file is the source of truth for your infrastructure. Three things can go wrong:
 
 ![Distributed state locking prevents concurrent modifications](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_state_lock.png)
 

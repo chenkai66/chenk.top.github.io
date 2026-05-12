@@ -12,22 +12,22 @@ disableNunjucks: true
 translationKey: "lamp-on-ecs"
 ---
 
-You have a fresh ECS instance and SSH access. Your goal is to run a public website with Apache, PHP, and MySQL. Three types of problems often trip up beginners:
+You have a fresh ECS instance and SSH access. Your goal is to run a public website with Apache, PHP, and MySQL. Three common issues often trip up beginners:
 
-1. **Network reachability** — packets are silently dropped by the cloud security group, the OS firewall, or the listening socket, and the symptom is the same: nothing happens.
-2. **Service wiring** — Apache, PHP, and MySQL are separate processes that need to find each other through file extensions, Unix sockets, and TCP ports. Each interface has its own failure mode.
+1. **Network reachability** — packets are silently dropped by the cloud security group, the OS firewall, or the listening socket, and the symptom is always the same: nothing happens.
+2. **Service wiring** — Apache, PHP, and MySQL are separate processes that need to find each other through file extensions, Unix sockets, and TCP ports. Each interface has its own way to fail.
 3.  **Identity and permissions** — Apache runs as `www-data`, MySQL runs as `mysql`, files are owned by `root` after `wget`. The wrong combination produces 403, "Access denied", or `chmod 777` desperation.
 
-This guide covers these issues in the order you'll encounter them on day one, and continues with topics that arise later, such as TLS, virtual hosts, backups, source compilation, and when to stop running everything on a single box.
+This guide covers these issues in the order you'll encounter them on day one and continues with topics that arise later, such as TLS, virtual hosts, backups, source compilation, and when to stop running everything on a single box.
 
 ## What You Will Be Able to Do After Reading
 
-- Build a mental model of how an HTTP request travels through Linux, Apache, PHP, and MySQL, and predict where it will break.
+- Build a mental model of how an HTTP request travels through Linux, Apache, PHP, and MySQL, and predict where it might break.
 -   Configure Aliyun networking from the security group inwards, with a real defence-in-depth model rather than `0.0.0.0/0` everywhere.
-- Install, verify, and harden each LAMP component on Ubuntu (steps for CentOS/Alibaba Cloud Linux are included).
-- Deploy a non-trivial application end-to-end (Discuz!), including file permissions and database account setup that the documentation often skips.
-- Diagnose the five failures that account for ~90% of "my LAMP doesn't work" issues.
-- Decide when to stay on a single ECS and when to split into SLB + ECS + RDS.
+- Install, verify, and harden each LAMP component on Ubuntu (steps for CentOS/Alibaba Cloud Linux are also included).
+- Deploy a non-trivial application end-to-end (Discuz!), including file permissions and database account setup often skipped in the documentation.
+- Diagnose the five failures that account for about 90% of "my LAMP doesn't work" issues.
+- Decide when to stay on a single ECS and when to split into SLB, ECS, and RDS.
 
 ## Prerequisites
 
@@ -40,31 +40,31 @@ This guide covers these issues in the order you'll encounter them on day one, an
 
 ## 1. Why LAMP still earns its place
 
-LAMP — **L**inux + **A**pache + **M**ySQL + **P**HP — has been declared dead in every web framework cycle since 2010 and refuses to oblige. The reason is not nostalgia, it is fitness for purpose. For content sites, CMS platforms (WordPress, Discuz, Drupal, MediaWiki), customer portals, internal tools and a long tail of small SaaS backends, LAMP is the **most cost-effective, best-documented and lowest-maintenance** way to put dynamic web pages in front of users.
+LAMP — **L**inux + **A**pache + **M**ySQL + **P**HP — has been declared dead in every web framework cycle since 2010 but refuses to oblige. The reason is not nostalgia; it's fitness for purpose. For content sites, CMS platforms (WordPress, Discuz, Drupal, MediaWiki), customer portals, internal tools, and a long tail of small SaaS backends, LAMP is the most cost-effective, best-documented, and lowest-maintenance way to put dynamic web pages in front of users.
 
-What you actually get for free with LAMP that newer stacks make you reassemble:
+What you get for free with LAMP that newer stacks make you reassemble:
 
--   **A mature ecosystem.** Apache is twenty-eight years old, MySQL twenty-eight, PHP thirty. Almost every problem you can have has been hit, written up and indexed.
--   **Shared-hosting parity.** A LAMP app moves between a $5/month shared host and an ECS without a code change.
+- **A mature ecosystem.** Apache is twenty-eight years old, MySQL is twenty-eight, and PHP is thirty. Almost every problem you can have has been encountered, documented, and indexed.
+- **Shared-hosting parity.** A LAMP app can move between a $5/month shared host and an ECS without any code changes.
 -   **A predictable request path.** No service mesh, no sidecar, no orchestrator — one process tree on one machine. When latency rises you can `top` your way to the answer.
--   **A low operational floor.** One server, three services. The cognitive load is a fraction of Kubernetes.
+- **A low operational floor.** One server, three services. The cognitive load is a fraction of what Kubernetes requires.
 
-LAMP is **not** the right answer when your workload is high-fanout APIs (use Nginx + Go/Node/Rust), event-driven and connection-heavy (websockets at scale prefer event loops over Apache prefork), or when your team has already invested in containers and a control plane. Pick LAMP for what it is good at, not as a default.
+LAMP is **not** the right answer for high-fanout APIs (use Nginx + Go/Node/Rust), event-driven and connection-heavy workloads (websockets at scale prefer event loops over Apache prefork), or when your team has already invested in containers and a control plane. Choose LAMP for what it excels at, not as a default.
 
 ## 2. The four-layer architecture
 
 ![The four-layer LAMP stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig1_lamp_architecture.png)
 
-The diagram above is the single most important picture in this guide. Internalise it and most operational problems become "which layer is broken" instead of "the server doesn't work".
+The diagram above is the most important picture in this guide. Internalize it, and most operational problems will become "which layer is broken" instead of "the server doesn't work".
 
 Each layer **owns** something specific:
 
 -   **Linux** owns processes, files and sockets. If `systemctl status apache2` says `inactive`, the rest does not matter.
 -   **Apache** owns the HTTP wire format and the mapping from URL to handler. If Apache is not loaded, port 80 is just a closed socket; if it is loaded but no `VirtualHost` matches your `Host:` header, you fall through to the default page.
 -   **PHP** owns code execution. Apache hands it a `.php` file; PHP parses it, runs it, returns text. If PHP is missing or its module is not enabled, Apache happily serves your source code as plain text — a security incident dressed as a misconfiguration.
--   **MySQL** owns durability. If MySQL is down, PHP scripts that need data raise exceptions; if MySQL is up but the credentials are wrong, the same scripts produce blank pages.
+- **MySQL** owns durability. If MySQL is down, PHP scripts that need data raise exceptions. If MySQL is up but the credentials are wrong, the same scripts produce blank pages.
 
-The interfaces between the layers are the parts that fail:
+The interfaces between the layers are the parts that can fail:
 
 | Interface | What can go wrong | Fast check |
 | --- | --- | --- |
@@ -73,15 +73,15 @@ The interfaces between the layers are the parts that fail:
 | PHP -> MySQL | extension missing, wrong host/socket | `php -r "var_dump(extension_loaded('mysqli'));"` |
 | MySQL -> disk | data directory permissions, full disk | `journalctl -u mysql -n 50` |
 
-Memorise these four checks and you will resolve most LAMP issues without ever opening Stack Overflow.
+Memorize these four checks, and you'll resolve most LAMP issues without ever opening Stack Overflow.
 
 ## 3. Anatomy of an Aliyun ECS instance
 
 ![Anatomy of an Alibaba Cloud ECS instance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig2_aliyun_ecs_overview.png)
 
-Before installing anything, pick the right instance. The console shows hundreds of options; in practice for a starter LAMP server you decide on four things:
+Before installing anything, choose the right instance. The console shows hundreds of options, but for a starter LAMP server, you need to decide on four things:
 
-**Region and zone.** A region is a city (Hangzhou, Beijing, Singapore); a zone is a data centre inside that city. Latency to your users is set by the region; resilience to one DC failure is set by the zone. For a single-instance LAMP you only pick one zone — there is no point pretending to be multi-AZ on one machine.
+**Region and zone.** A region is a city (Hangzhou, Beijing, Singapore), and a zone is a data center within that city. Latency to your users is determined by the region, and resilience to a single data center failure is determined by the zone. For a single-instance LAMP, you only need to pick one zone — there's no point in pretending to be multi-AZ on one machine.
 
 **Instance family.** The naming is `<family><generation>.<size>`. For a public LAMP site:
 
@@ -90,7 +90,7 @@ Before installing anything, pick the right instance. The console shows hundreds 
 -   `r7.large` if your workload is read-heavy and you can win by caching aggressively in MySQL's buffer pool.
 -   `t6` burstable instances cost a fraction of `g7` and are fine for a low-traffic blog — as long as you understand CPU credits run out.
 
-**Disk.** Choose ESSD PL1 over basic cloud disks. The IOPS difference (5000 vs ~1000) is the difference between a snappy admin panel and a slow one, and the price gap on small disks is small. Forty GiB is enough for the OS plus a moderate site — attach a separate data disk if your database will grow past a few gigabytes.
+**Disk.** Choose ESSD PL1. over basic cloud disks. The IOPS difference (5000 vs ~1000) is the difference between a snappy admin panel and a slow one, and the price gap on small disks is small. Forty GiB is enough for the OS plus a moderate site — attach a separate data disk if your database will grow past a few gigabytes.
 
 **Public IP.** You can take the public IP that comes with the instance (cheap, but bound to the instance and lost on release) or attach an Elastic IP (EIP) which survives instance changes. For anything you might rebuild, pay the small EIP fee.
 

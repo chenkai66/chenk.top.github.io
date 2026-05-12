@@ -17,9 +17,9 @@ disableNunjucks: true
 series_order: 7
 translationKey: "nlp-7"
 ---
-The same model can produce a sharp answer or a confident hallucination. The difference lies in the framing, not the weights. A vague request like *"analyze this text"* yields a generic summary; a prompt with a role, two clear examples, and a strict output schema produces something a parser can use. **Prompt engineering turns that gap into a repeatable system rather than a lucky shot.**
+The same model can produce a sharp answer or a confident hallucination. The difference lies in the framing, not the weights. A vague request like *"analyze this text"* yields a generic summary; a prompt with a role, two clear examples, and a strict output schema produces something a parser can use. **Prompt engineering turns that gap into a repeatable system, not just a lucky shot.**
 
-In-Context Learning (ICL) is the mechanism that makes this work. When you include a few examples in the prompt, the model doesn't retrain; it conditions its forward pass on those examples and effectively *infers a task* from them. Understanding ICL's capabilities and limitations distinguishes a developer who struggles with the model from one who guides it.
+In-Context Learning (ICL) is the mechanism that makes this work. When you include a few examples in the prompt, the model doesn't retrain; it conditions its forward pass on those examples and effectively *infers a task* from them. Understanding ICL's capabilities and limitations separates a developer who struggles with the model from one who guides it.
 
 This part is the seventh in the NLP series. It assumes you know roughly how a Transformer decoder generates tokens (Part 4) and what an autoregressive LM is (Part 6). Everything below is grounded in published behaviour — but be warned: the literature on prompt engineering is unusually noisy, and most numbers are model- and dataset-specific. Treat the bars in the figures as illustrative shapes, not benchmark claims.
 
@@ -51,7 +51,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 
 ## 1. Anatomy of a prompt
 
-A prompt is *a single text string the model conditions on*. Everything else — such as "system" vs. "user" roles, function schemas, and retrieval results — is just structured text the API combines into one sequence before tokenization. Treating a prompt as a flat string with named blocks provides the cleanest mental model.
+A prompt is *a single text string the model conditions on*. Everything else — such as "system" vs. "user" roles, function schemas, and retrieval results — is just structured text the API combines into one sequence before tokenization. Treating a prompt as a flat string with named blocks gives the cleanest mental model.
 
 ![Anatomy of a structured prompt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/fig1_prompt_anatomy.png)
 

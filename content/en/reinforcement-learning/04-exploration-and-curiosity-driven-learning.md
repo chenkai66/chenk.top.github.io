@@ -19,7 +19,7 @@ disableNunjucks: true
 series_order: 4
 translationKey: "reinforcement-learning-4"
 ---
-Drop a fresh agent into Montezuma's Revenge. To score a single point, it must walk to the right, jump over a skull, climb a rope, leap to a platform, and grab a key — roughly **a hundred precise actions in a row**. Until the key is collected, every reward signal is exactly zero.
+Drop a fresh agent into Montezuma's Revenge. To score a single point, it must walk to the right, jump over a skull, climb a rope, leap to a platform, and grab a key — roughly **a hundred precise actions in a row**. Until the key is collected, the reward signal is always zero.
 
 A textbook DQN with $\varepsilon=0.1$ exploration has, by a generous estimate, a $0.1^{100} \approx 10^{-100}$ chance of stumbling onto that key by accident. Unsurprisingly, vanilla DQN scores **0** on this game. Not "low" — literally zero, every episode, for the entire training run.
 
@@ -48,7 +48,7 @@ Every introductory RL course starts with **$\varepsilon$-greedy**: with probabil
 
 ![Epsilon-greedy decay schedules and induced action probabilities](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig1_epsilon_greedy_decay.png)
 
-The figure above shows three popular schedules (linear, exponential, piecewise step) on the left, and on the right, the actual action distribution under linear decay with four available actions. Three observations are worth noting:
+The figure above shows three popular schedules (linear, exponential, piecewise step) on the left and, on the right, the actual action distribution under linear decay with four available actions. Three observations are worth noting:
 
 1. **Different schedules give very different "exploration budgets."** Exponential decay spends most of its random actions in the first 20k steps; linear decay spreads them more evenly; step schedules behave like crude curricula.
 2. **Even at $\varepsilon = 0.05$ a quarter of the random actions still go to the greedy choice** ($1 - \varepsilon + \varepsilon/|\mathcal{A}|$), which surprises people who expect 5% noise to mean 5% off-policy behaviour.
@@ -63,7 +63,7 @@ $$\pi_\varepsilon(a \mid s) = \begin{cases}
 
 ### 1.2 Boltzmann (softmax) exploration: a marginal upgrade
 
-Instead of an all-or-nothing random kick, **Boltzmann** exploration weights actions by their Q-values:
+Instead of an all-or-nothing random kick, **Boltzmann** exploration weights actions by their Q-values.
 
 $$\pi_\tau(a \mid s) = \frac{\exp(Q(s,a)/\tau)}{\sum_{a'} \exp(Q(s,a')/\tau)}.$$
 
@@ -77,7 +77,7 @@ But Boltzmann shares $\varepsilon$-greedy's fatal flaw: it spreads probability b
 
 ### 1.3 UCB: the principled approach that does not scale
 
-For multi-armed bandits, the classical **UCB1** rule is provably near-optimal:
+For multi-armed bandits, the classical **UCB1** rule is provably near-optimal.
 
 $$a_t = \arg\max_a \left[ \hat Q(a) + c \sqrt{\frac{\ln t}{N(a)}} \right].$$
 

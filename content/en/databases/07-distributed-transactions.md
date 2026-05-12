@@ -15,7 +15,7 @@ series_order: 7
 translationKey: "databases-7"
 ---
 
-Everything we covered about transactions in Article 3 assumed a single database server: one machine, one transaction log, one lock manager. When your data spans multiple machines—whether through sharding, using microservices with separate databases, or replicating with strong consistency—you face the hardest problem in distributed systems: how do you get multiple machines to agree?
+Everything we covered about transactions in Article 3 assumed a single database server: one machine, one transaction log, one lock manager. When your data spans multiple machines—through sharding, using microservices with separate databases, or replicating with strong consistency—you face the hardest problem in distributed systems: how do you get multiple machines to agree?
 
 ## The Distributed Transaction Problem
 
@@ -30,7 +30,7 @@ Order Service (DB-1)              Inventory Service (DB-2)
 └─────────────────────┘          └─────────────────────────┘
 ```
 
-If the order insert succeeds but the inventory update fails (due to a network issue, constraint violation, or crash), you have a problem: an order exists for a product that was never reserved. Without coordination, this leads to inconsistency.
+If the order insert succeeds but the inventory update fails (because of a network issue, constraint violation, or crash), you have a problem: an order exists for a product that was never reserved. Without coordination, this leads to inconsistency.
 
 On a single database, wrapping both in a `BEGIN ... COMMIT` solves this. Across two databases, that is not possible — they have separate transaction logs, separate crash recovery, separate clocks.
 
@@ -192,7 +192,7 @@ Phase 2: Accept
 When a majority of acceptors accept → value is decided
 ```
 
-Paxos is correct but notoriously difficult to implement. As Lamport himself noted, it took years for the community to understand his paper. This difficulty led to Raft.
+Paxos is correct but notoriously difficult to implement. As Lamport noted, it took years for the community to understand his paper. This difficulty led to Raft.
 
 ### Raft: Understandable Consensus
 
@@ -280,7 +280,7 @@ Client ─── "SET x=3" ──► Leader
 
 ## Saga Pattern
 
-When 2PC is too expensive or impractical (which is often the case in microservices), the Saga pattern provides an alternative. Instead of one large distributed transaction, it breaks the process into a sequence of local transactions, each with a **compensating transaction** that undoes its work if a later step fails.
+When 2PC is too expensive or impractical (often the case in microservices), the Saga pattern provides an alternative. Instead of one large distributed transaction, it breaks the process into a sequence of local transactions, each with a **compensating transaction** that undoes its work if a later step fails.
 
 ![Saga pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-saga-pattern.png)
 
@@ -402,7 +402,7 @@ Client C:                     read() ──► 1   ✓
 
 ![Saga pattern as a chain of compensating transactions domino](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-saga-pattern-as-a-chain-of-compensating-transactions-domino-.jpg)
 
-At the opposite end of the spectrum from linearizability is eventual consistency: if no new writes are made, all replicas will *eventually* converge to the same value.
+At the opposite end of the spectrum from linearizability is eventual consistency: if no new writes are madede, all replicas will *eventually* converge to the same value.
 
 ![Consistency spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-consistency-spectrum.png)
 

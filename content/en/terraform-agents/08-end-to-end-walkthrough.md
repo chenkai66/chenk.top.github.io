@@ -241,7 +241,7 @@ The wall-clock breakdown:
 - **60–380s:** RDS (5 minutes), OpenSearch (5.5 minutes), ECS (~2 minutes), gateway (~1.5 minutes) — all in parallel, gated by the slowest
 - **380–460s:** agent app deploy via cloud-init, observability resources, alarms
 
-About 7 minutes total, dominated by RDS and OpenSearch provisioning. Re-applies on no-change runs take under 30 seconds because Terraform only diffs.
+Total time is about 7 minutes, dominated by RDS and OpenSearch provisioning. Re-applies on no-change runs take under 30 seconds because Terraform only diffs.
 
 A trimmed apply transcript:
 

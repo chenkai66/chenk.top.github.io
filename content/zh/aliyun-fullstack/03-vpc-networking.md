@@ -24,7 +24,7 @@ translationKey: "aliyun-fullstack-3"
 
 ## What Is a VPC?
 
-虚拟私有云（VPC）是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络。IP 地址段由你指定，子网由你划分，防火墙规则由你配置；哪些实例可访问互联网、哪些仅限内网通信，均由你控制。默认情况下，所有入站和出站流量都被拒绝，只有显式允许的流量才能通过。
+虚拟私有云（VPC）是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络。你可以指定 IP 地址段、划分子网、配置防火墙规则，并控制哪些实例可访问互联网、哪些仅限内网通信。默认情况下，所有入站和出站流量都被拒绝，只有显式允许的流量才能通过。
 
 ![VPC architecture overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 

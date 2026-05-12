@@ -17,13 +17,13 @@ disableNunjucks: true
 translationKey: "aliyun-pai-5"
 ---
 
-The first four articles covered the underlying primitives — DSW, DLC, EAS — that you orchestrate with Python. This one focuses on two GUI products that wrap these primitives and provide a runnable solution for users who don't want to write Python: **PAI-Designer** for drag-and-drop tabular pipelines, and **Model Gallery** for zero-code open-source model deployment and fine-tuning. While serious engineers might not reach for them first, they are the right choice in two specific situations.
+The first four articles covered the underlying primitives — DSW, DLC, EAS — that you orchestrate with Python. This one focuses on two GUI products that wrap these primitives and provide a runnable solution for users who don't want to write Python: **PAI-Designer** for drag-and-drop tabular pipelines, and **Model Gallery** for zero-code open-source model deployment and fine-tuning. While serious engineers might not use them first, they are the right choice in two specific situations.
 
 ![Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
 
 ## Designer — the drag-and-drop pipeline composer
 
-According to the docs, Designer implements modeling and model debugging through workflows. Users can build AI development processes by dragging and dropping different components, like building blocks. Key features include 140+ built-in algorithm components, JSON export, scheduling in DataWorks, and support for custom SQL, Python, and PyAlink scripts as nodes.
+According to the docs, Designer implements modeling and model debugging through workflows. Users can build AI development processes by dragging and dropping different components, like building blocks. Key features include over 140 built-in algorithm components, JSON export, scheduling in DataWorks, and support for custom SQL, Python, and PyAlink scripts as nodes.
 
 ![PAI-Designer canvas](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig1_designer_canvas.png)
 

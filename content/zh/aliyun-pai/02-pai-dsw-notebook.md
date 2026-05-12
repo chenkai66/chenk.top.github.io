@@ -23,9 +23,9 @@ translationKey: "aliyun-pai-2"
 
 ## DSW 到底是什么
 
-官方文档说 DSW 是**面向 AI 开发的云端 IDE**，集成了 JupyterLab、VSCode 和终端，预配了 PyTorch 和 TensorFlow 容器镜像，支持异构计算（CPU/GPU/灵骏），还能挂载 OSS、NAS 和 CPFS 数据集。实际操作起来，就是点一下“打开”，一分钟内你就能拿到一个真正的 Jupyter，跑在真正的 GPU 上，`nvidia-smi` 正常， PyTorch 直接 import。
+官方文档说 DSW 是**面向 AI 开发的云端 IDE**，集成了 JupyterLab、VSCode 和终端，预配了 PyTorch 和 TensorFlow 容器镜像，支持异构计算（CPU/GPU/灵骏），并能挂载 OSS、NAS 和 CPFS 数据集。实际操作起来，就是点一下“打开”，一分钟内你就能拿到一个真正的 Jupyter，跑在真正的 GPU 上，`nvidia-smi` 正常， PyTorch 直接 import。
 
-有意思的是**镜像里其实什么都没多装**。 DSW 容器的系统盘生命周期与实例一致。你 `pip install` 的东西能扛过 kernel 重启，但扛不住实例重启，除非你把 conda 环境持久化到 OSS，或者通过快照功能存到 ACR。
+有意思的是**镜像里其实什么都没多装**，DSW 容器的系统盘生命周期与实例一致。你 `pip install` 的东西能扛过 kernel 重启，但扛不住实例重启，除非你把 conda 环境持久化到 OSS，或者通过快照功能存到 ACR。
 
 ![Anatomy of a DSW instance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig1_dsw_anatomy.png)
 
@@ -39,7 +39,7 @@ translationKey: "aliyun-pai-2"
 - **小模型正式训练** — `ecs.gn7i-c16g1.4xlarge` 或 `ecs.gn7e-c12g1.3xlarge` (A10 / A100 40 GB)。运行 CIFAR-10 上的 ResNet、 ImageNet-tiny 或 7B 模型的 SFT + QLoRA 训练都很流畅。
 - **LLM 开发** — `ecs.gn7e-c12g1.6xlarge` 或更高 (A100 80 GB)。若需在不启用 offloading 的前提下直接加载 13–30B 的 BF16 模型，此配置为必需。
 
-> **实战建议：** 如果控制台显示想要的 GPU 类型“缺货”，换个可用区（AZ）。库存是按 AZ 算的，不是按 Region。我见过同一分钟内 `cn-shanghai-h` 的 80 GB A100 没货，但 `cn-shanghai-l` 随便用。
+> **实战建议：** 如果控制台显示想要的 GPU 类型“缺货”，换个可用区（AZ）。库存按 AZ 计算，不是按 Region。我见过同一分钟内 `cn-shanghai-h` 的 80 GB A100 没货，但 `cn-shanghai-l` 随便用。
 
 ## 镜像目录
 

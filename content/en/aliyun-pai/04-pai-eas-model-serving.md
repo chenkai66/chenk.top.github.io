@@ -36,7 +36,7 @@ The official "EAS overview" describes it as: "deploy trained models as online in
 The four components the docs highlight for runtime-image deployment:
 
 1. **Runtime image** — read-only template with OS, CUDA, Python, deps. Use an official one (`vllm:0.11.2-mows0.5.1`, `pytorch:...`) or push your own to ACR.
-2. **Code and model** — *not in the image*. They live in OSS / NAS. Decoupling them allows you to update weights without rebuilding the image.
+2. **Code and model** — *not in the image*. They live in OSS/NAS. Decoupling them allows you to update weights without rebuilding the image.
 3. **Storage mounting** — at startup, EAS FUSE-mounts the OSS path you specified to a directory inside the container, e.g. `/mnt/data/`.
 4. **Run command** — the first command after the container starts. Typically launches your HTTP server (`vllm serve /mnt/data/Qwen/Qwen3-0.6B`).
 
@@ -44,7 +44,7 @@ The four components the docs highlight for runtime-image deployment:
 
 ## Three inference modes
 
-The docs list three. Pick deliberately — the wrong mode wastes either money or latency.
+The docs list three. Choose carefully — the wrong mode wastes either money or latency.
 
 ![EAS inference modes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig2_eas_inference_modes.png)
 
@@ -65,7 +65,7 @@ The official Quick Start deploys Qwen3-0.6B with vLLM. The console process is:
 5. **Resource:** `ecs.gn7i-c16g1.4xlarge` (1 × A10).
 6. **Click Deploy.** ~5 minutes to `Running`.
 
-You then get an OpenAI-compatible endpoint at the URL the console gives you. Calling it:
+You then get an OpenAI-compatible endpoint at the URL the console provides. Call it:
 
 ```python
 import os
@@ -87,11 +87,11 @@ If that returns a sentence, your endpoint is live, and you can return to your co
 
 ## Auto-scaling done right
 
-This is the part the docs don't emphasize. Default autoscaler behavior (scaling on request rate, with a minimum of 1 replica) can lead to cold-start latency issues or unexpected bills.
+This is the part the docs don't emphasize. Default autoscaler behavior (scaling on request rate with a minimum of 1 replica) can lead to cold-start latency issues or unexpected bills.
 
 ![EAS auto-scaling — replicas track QPS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig3_eas_autoscaling.png)
 
-The three settings that actually matter:
+The three settings that matter:
 
 - **`min_replicas`** — never set to zero in production. A cold start on a 7B vLLM container is 60-120 seconds; the user gives up at 5. I default to 2 (one for HA, one for redundancy). For asynchronous services you can do 0 and rely on the queue.
 - **`max_replicas`** — the budget brake. Calculate as: `(p99_qps_per_replica) * 2`. If you don't know your per-replica QPS, run the one-click stress test. The docs cover this under "Service stress testing".
@@ -101,7 +101,7 @@ The three settings that actually matter:
 
 ## Canary, blue/green, and traffic mirroring
 
-EAS does this with **service groups**: a routing front-end that points at multiple service versions and splits traffic by percentage. The same primitive supports **traffic mirroring** — a copy of real traffic gets sent to a candidate version, but the response is discarded so users see no impact. This is the safest possible way to test a new model on production traffic.
+EAS does this with **service groups**: a routing front-end that points to multiple service versions and splits traffic by percentage. The same primitive supports **traffic mirroring** — a copy of real traffic is sent to a candidate version, but the response is discarded so users see no impact. This is the safest way to test a new model on production traffic.
 
 ![EAS service groups — canary and mirror](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig4_eas_canary_release.png)
 
@@ -123,7 +123,7 @@ Cold start is EAS's biggest practical issue. A vLLM Qwen3-7B container takes 60-
 
 The mitigations I've actually shipped, ranked by impact:
 
-**1. Pre-built container with weights baked in (saves 30-60 s).** The default flow downloads the model from OSS at container start. Bake the model into the image instead — 14 GB for Qwen3-7B added to the layer is fine because EAS caches images per-node. First start on a fresh node is the same; second and subsequent starts on the same node skip the OSS pull entirely. Trade-off: image rebuild on every weight change (a Dockerfile + CI job, maybe 10 min build, 5 min push).
+**1. Pre-built container with weights baked in (saves 30-60 s).** The definitionault flow downloads the model from OSS at container start. Bake the model into the image instead — 14 GB for Qwen3-7B added to the layer is fine because EAS caches images per-node. First start on a fresh node is the same; second and subsequent starts on the same node skip the OSS pull entirely. Trade-off: image rebuild on every weight change (a Dockerfile + CI job, maybe 10 min build, 5 min push).
 
 **2. Warmup pings (saves 5-15 s of CUDA / kernel init).** A vLLM container is "running" the moment the HTTP server is up, but the first real request triggers JIT compilation of CUDA kernels for that batch shape. Pre-warm with a synthetic request:
 

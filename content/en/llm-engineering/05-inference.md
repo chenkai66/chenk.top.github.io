@@ -19,7 +19,7 @@ description: "KV cache mechanics, paged attention, continuous batching, speculat
 translationKey: "llm-engineering-5"
 ---
 
-Inference is where the money goes. A single 70B-class model serving 1000 concurrent users at 50 tok/s consumes the GPU budget that trained the model in about 3 months. This chapter focuses on two key metrics: time-to-first-token (TTFT) and inter-token latency (ITL), and one ratio: GPU-seconds per million output tokens.
+Inference is where the money goes. A single 70B-class model serving 1000 concurrent users at 50 tok/s consumes the GPU budget used to train the model in about 3 months. This chapter focuses on two key metrics: time-to-first-token (TTFT) and inter-token latency (ITL), and one ratio: GPU-seconds per million output tokens.
 
 Training is a one-time capital expense, with costs spread over millions of inference calls. Inference, however, is a recurring operating expense that doesn't amortize. A 0.5x improvement in tokens-per-GPU-second compounds daily over the product's lifetime. That's why every serious LLM team has at least one full-time engineer focused on inference, and why the open-source community has released four distinct waves of inference engines (FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp) in five years.
 
@@ -35,7 +35,7 @@ Every LLM inference call is two phases:
 1. **Prefill (prompt processing)**: take the input tokens, run them through the model in parallel, fill the KV cache. Compute-bound. A 4K-token prompt on a 70B model is about 280 TFLOP — saturates an H100 in ~70 ms.
 2. **Decode (generation)**: produce one token at a time, attend over the cached keys and values. Memory-bound. Each decode step reads the entire KV cache (gigabytes) to produce one token.
 
-The asymmetry is everything. Prefill batches well across users (same kernel, different sequences). Decode batches *poorly* with naive batching because each user is at a different sequence position. The major inference engines are all built around this asymmetry.
+The asymmetry is crucial. Prefill batches well across users (same kernel, different sequences). Decode batches poorly with naive batching because each user is at a different sequence position. The major inference engines are all built around this asymmetry.
 
 A common heuristic: TTFT is dominated by prefill, and ITL is dominated by decode memory bandwidth. To reduce TTFT, increase FLOPs (more SMs, tensor parallelism). To reduce ITL, boost memory bandwidth (HBM3 over GDDR, fewer parameters via quantization).
 
@@ -79,7 +79,7 @@ Benefits:
 - **Memory sharing**: prefix-shared requests (system prompt, few-shot examples, tool definitions) can share the same physical blocks. This is where prompt caching comes from.
 - **Easy preemption**: under memory pressure, swap out a request's blocks to CPU; bring them back when we have headroom.
 
-vLLM's measured serving throughput improvement over a naive Hugging Face Transformers loop on LLaMA-13B was 14-24x on the original paper's benchmarks. The numbers have held up — though the realistic production gap depends heavily on workload mix. For batch-1 single-stream serving, the win is closer to 2x; for high-concurrency mixed-length traffic, 5-10x is typical; the 14-24x figure shows up when comparing to *truly* naive HF code with no batching at all. The point isn't the exact multiplier; it's that paged attention makes KV memory a tractable resource instead of a hard constraint.
+vLLM's measured serving throughput improvement over a naive Hugging Face Transformers loop on LLaMA-13B was 14-24x on the original paper's benchmarks. The numbers have held up, though the realistic production gap depends heavily on the workload mix. For batch-1 single-stream serving, the improvement is closer to 2x; for high-concurrency mixed-length traffic, 5-10x is typical. The 14-24x figure appears when comparing to truly naive HF code with no batching at all. The point isn't the exact multiplier; it's that paged attention makes KV memory a manageable resource instead of a hard constraint.
 
 A minimal use:
 
@@ -97,7 +97,7 @@ out = llm.generate(prompts, SamplingParams(max_tokens=200, temperature=0.7))
 
 ### The block manager: how paging actually works
 
-The block manager sits at the heart of every paged-attention engine. It owns a pool of physical KV blocks (typically 16 tokens × 2 (KV) × num_layers × num_heads × head_dim bytes per block), maintains free lists, and atomically allocates blocks for incoming requests. When a request needs to grow (next decode step), the manager pops a free block, appends its physical address to the request's block table, and returns. Under copy-on-write semantics, prefix-shared blocks are reference-counted: forking a sequence (e.g., for parallel sampling, beam search, or speculation rollback) increments the refcount; freeing decrements; physical memory is released only when refcount hits zero.
+The block manager sits at the heart of every paged-attention engine. It manages a pool of physical KV blocks (typically 16 tokens × 2 (KV) × num_layers × num_heads × head_dim bytes per block), maintains free lists, and atomically allocates blocks for incoming requests. When a request needs to grow (next decode step), the manager pops a free block, appends its physical address to the request's block table, and returns. Under copy-on-write semantics, prefix-shared blocks are reference-counted: forking a sequence (e.g., for parallel sampling, beam search, or speculation rollback) increments the refcount; freeing decrements it; physical memory is released only when the refcount hits zero.
 
 The "evict to CPU" path matters in production. When the GPU runs out of free blocks but new requests are queued, the scheduler picks a victim request (usually FIFO or longest-running), copies its blocks to pinned host memory over PCIe, and frees the GPU blocks. When memory becomes available, the request is brought back. Eviction overhead is real (PCIe at 64 GB/s for Gen5 ×16 means 100 ms to evict and reload an 8 GB request) but it lets the system honor latency SLOs by not refusing requests outright.
 

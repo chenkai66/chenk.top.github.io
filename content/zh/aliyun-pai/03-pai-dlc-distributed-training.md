@@ -90,7 +90,7 @@ print(job.id, job.status)
 
 ## 盯着它跑
 
-控制台的“Training Jobs”页面提供任务日志、 GPU 利用率、网络吞吐量以及 AIMaster 事件。通过 SDK 你可以流式获取日志：
+控制台的“Training Jobs”页面提供任务日志、GPU利用率、网络吞吐量以及AIMaster事件。通过 SDK 你可以流式获取日志：
 
 ```python
 for line in job.tail_logs(follow=True):
@@ -111,7 +111,7 @@ for line in job.tail_logs(follow=True):
 
 ## 成本现实
 
-典型的 7B SFT （4 x A10， 6 小时）在通用型按量付费上，花费大概相当于上海一顿还不错的饭。 70B QLoRA （8 x A100 80 GB， 12 小时）接近杭州一个长周末的开销。如果任务能承受每隔几小时被杀掉一次，抢占式实例能省 30-50% — 有了 EasyCKPT 就能做到。
+典型的 7B SFT（4 x A10，6小时）在通用型按量付费上，花费大概相当于上海一顿还不错的饭。 70B QLoRA （8 x A100 80 GB， 12 小时）接近杭州一个长周末的开销。如果任务能承受每隔几小时被杀掉一次，抢占式实例能省 30-50%——有了 EasyCKPT 就能做到。
 
 ## AIMaster 容错，到底重启了什么
 

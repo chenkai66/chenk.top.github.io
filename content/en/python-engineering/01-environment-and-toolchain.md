@@ -16,11 +16,11 @@ translationKey: "python-engineering-1"
 
 Every Python developer has lived through this moment: you run a script on your colleague's machine and it crashes because they have Python 3.8 while you wrote it on 3.11. Or worse, you `pip install` something globally and break a completely unrelated project. Python's environment story is powerful once you understand it, but the default experience is a minefield.
 
-This article walks through the entire toolchain from scratch. By the end, you'll have a reproducible, isolated, version-pinned setup that works the same way on every machine.
+This article walks through the entire toolchain from scratch. By the end, you'll have a reproducible, isolated, and version-pinned setup that works the same way on every machine.
 
 ## The Python Version Problem
 
-Most operating systems come with a system Python. On macOS, it was Python 2.7 (removed in Monterey). On Ubuntu 22.04, it's Python 3.10. This system Python is used by OS-level tools. Installing or upgrading packages in it can break your operating system.
+Most operating systems come with a system Python. On macOS, it was Python 2.7 (removed in Monterey). On Ubuntu 22.04, it's Python 3.10. This system Python is used by OS-level tools, and installing or upgrading packages in it can break your operating system.
 
 ![Version management stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png)
 
@@ -37,7 +37,7 @@ The core problems:
 
 The solution is a three-layer stack:
 
-1. **pyenv** manages Python versions (install 3.9, 3.10, 3.11 side by side)
+1. **pyenv** manages Python versions (install 3.9, 3.10, and 3.11 side by side)
 2. **venv** isolates per-project dependencies
 3. **pip-tools** or **Poetry** pin exact versions for reproducibility
 
@@ -229,7 +229,7 @@ The `.` prefix hides it in file listings. Most tools (VS Code, PyCharm, pytest) 
 echo ".venv/" >> .gitignore
 ```
 
-Never commit the virtual environment; it contains platform-specific binaries and is not portable.
+Never commit the virtual environment, as it contains platform-specific binaries and is not portable.
 
 ### venv vs virtualenv vs conda
 

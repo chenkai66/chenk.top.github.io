@@ -18,11 +18,11 @@ disableNunjucks: true
 series_order: 10
 translationKey: "reinforcement-learning-10"
 ---
-Every algorithm we have studied so far has the same loop at its core: act, observe, update. That loop is what makes RL work, but it is also what stops RL from being deployed. A self-driving stack cannot rehearse intersections by crashing into them. A clinical decision-support model cannot run a randomized policy on actual patients. A factory robot cannot try ten thousand grasp variants on a production line.
+Every algorithm we've studied so far has the same core loop: act, observe, update. This loop makes RL work, but it also prevents RL from being deployed. A self-driving system can't practice intersections by crashing. A clinical decision-support model can't run a randomized policy on real patients. A factory robot can't test ten thousand grasp variants on a production line.
 
-What these settings *do* have is logs — millions of hours of human driving, decades of de-identified patient records, terabytes of behavior cloning data. **Offline RL** (also called *batch RL*) is the subfield that asks: can we squeeze a strong policy out of a fixed dataset, with **zero new interaction** with the environment?
+These settings do have logs — millions of hours of human driving, decades of de-identified patient records, and terabytes of behavior cloning data. **Offline RL** (also called *batch RL*) is the subfield that asks: can we extract a strong policy from a fixed dataset without any new interaction with the environment?
 
-The answer is "yes, but only if we are very careful," and the reason for the caveat is the central theme of this post: distributional shift between the *behavior policy* that produced the data and the *learned policy* that wants to improve on it.
+The answer is "yes, but only if we are very careful." The reason for this caveat is the central theme of this post: distributional shift between the *behavior policy* that generated the data and the *learned policy* that aims to improve on it.
 
 ## What You Will Learn
 

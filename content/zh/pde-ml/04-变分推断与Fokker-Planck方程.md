@@ -20,27 +20,27 @@ translationKey: "pde-ml-4"
 
 ## 本文的七个维度
 
-1. **动机**： VI 和 MCMC 虽看似不同，实则都在解同一个 PDE。
-2. **理论**：从 SDE 推导出 Fokker-Planck 方程。
-3. **几何**： KL 散度是 Wasserstein 空间的梯度流。
-4. **算法**： Langevin Monte Carlo、平均场 VI 和 SVGD。
-5. **收敛**：对数 Sobolev 不等式保证指数 KL 收敛。
-6. **数值实验**： 7 张图，附完整代码脚本。
-7. **应用**：用 Langevin 采样近似贝叶斯神经网络的后验。
+1. **动机**： VI 和 MCMC 尽管看似不同，实际上都在解同一个 PDE。
+2. **理论**：从 SDE 推导出 Fokker-Planck 方程
+3. **几何**： KL 散度是 Wasserstein 空间的梯度流
+4. **算法**： Langevin Monte Carlo、平均场 VI 和 SVGD
+5. **收敛**：对数 Sobolev 不等式保证指数 KL 收敛
+6. **数值实验**： 7 张图，附完整代码脚本
+7. **应用**：用 Langevin 采样近似贝叶斯神经网络的后验
 ## 你将学到
 
-- 任意 It&ocirc; SDE 的概率密度满足 Fokker-Planck 方程。
-- Langevin 动力学是一种实用的采样算法，但存在离散化误差。
+- 任意 It&ocirc; SDE 的概率密度满足 Fokker-Planck 方程
+- Langevin 动力学是一种实用的采样算法，但存在离散化误差
 - 在 Wasserstein 空间最小化 $\mathrm{KL}(q\|p^\star)$ 就是 Fokker-Planck PDE。
-- 在连续时间下，变分推断与 Langevin MCMC 完全等价。
-- Stein 变分梯度下降（SVGD）：用确定性粒子连接两种方法。
-- 贝叶斯神经网络的后验推断实践。
+- 在连续时间下，变分推断与 Langevin MCMC 完全等价
+- Stein 变分梯度下降（SVGD）：用确定性粒子连接两种方法
+- 贝叶斯神经网络的后验推断实践
 ## 前置知识
 
-- 概率论基础：贝叶斯定理、KL 散度和期望。
-- 第 3 篇提到的 Wasserstein 梯度流。
-- 随机分析基本概念：布朗运动和 It&ocirc; 积分。
-- 实验需要 Python 和 PyTorch。
+- 概率论基础：贝叶斯定理、KL 散度和期望
+- 第 3 篇提到的 Wasserstein 梯度流
+- 随机分析基本概念：布朗运动和 It&ocirc; 积分
+- 实验需要 Python 和 PyTorch
 ## 1. 推断问题
 
 贝叶斯推断需要计算后验分布。
@@ -56,7 +56,7 @@ $$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\,p(\theta)}{\int p(x \mid \theta
 
 - **马尔可夫链蒙特卡洛（MCMC）**：构造平稳分布为 $p(\cdot \mid x)$ 的马氏链。**Langevin 动力学**是基于梯度的典型实例。
 
-两者看似不同：VI 是有限维参数优化，而 MCMC 是无限时间随机过程；但从 PDE 视角来看，它们只是同一种概率测度演化的不同采样方式。
+两者看似不同：VI 是有限维参数优化，MCMC 是无限时间随机过程；但从 PDE 视角来看，它们只是同一种概率测度演化的不同采样方式。
 ## 2. 从 SDE 到 Fokker-Planck
 
 考虑 It&ocirc; SDE

@@ -18,11 +18,11 @@ disableNunjucks: true
 series_order: 6
 translationKey: "transfer-learning-6"
 ---
-A self-driving car looking through a single camera needs to do three things at once: detect cars and pedestrians, segment lanes and free space, and estimate how far away each pixel is. You could train three separate networks. You would burn 3x the parameters, run 3x the forward passes at inference, and ignore the obvious fact that all three tasks need the same kind of low-level features (edges, surfaces, occlusion cues).
+A self-driving car using a single camera needs to do three things simultaneously: detect cars and pedestrians, segment lanes and free space, and estimate the distance of each pixel. Training three separate networks would triple the parameters, require three times as many forward passes at inference, and overlook the fact that all three tasks need the same low-level features (edges, surfaces, occlusion cues).
 
 Multi-task learning (MTL) is the alternative: one shared backbone, one task-specific head per output, all trained jointly. Done well, you cut parameters by 60% **and** lift accuracy on every task because each task acts as a regularizer for the others. Done badly, two of your three tasks regress and you waste a week wondering why.
 
-This article is about doing it well. The hard parts are not the architecture — that is one diagram. The hard parts are (1) the loss-scale mismatch between a cross-entropy term and an L2 depth term, (2) the gradient conflicts that arise 30-50% of the time when two tasks pull in different directions, and (3) figuring out which tasks even belong in the same model. We will cover the architectures (hard vs soft sharing, cross-stitch, MTAN), the optimizers that survive contact with real loss landscapes (Uncertainty Weighting, GradNorm, PCGrad, CAGrad), and a runnable PyTorch framework that ties it all together.
+This article is about doing it well. The challenging aspects aren't the architecture — that's just one diagram. The real challenges are (1) the loss-scale mismatch between a cross-entropy term and an L2 depth term, (2) the gradient conflicts that occur 30-50% of the time when two tasks pull in different directions, and (3) determining which tasks should be in the same model. We will cover the architectures (hard vs soft sharing, cross-stitch, MTAN), the optimizers that survive contact with real loss landscapes (Uncertainty Weighting, GradNorm, PCGrad, CAGrad), and a runnable PyTorch framework that ties it all together.
 
 ## What You Will Learn
 

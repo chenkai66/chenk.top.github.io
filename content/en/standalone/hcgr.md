@@ -14,7 +14,7 @@ disableNunjucks: true
 translationKey: "hcgr"
 ---
 
-A user opens a sneaker app, taps "running shoes", drills into a brand, then a price band, then a single SKU. That trajectory is a *tree*: each click narrows the candidate set roughly multiplicatively. In Euclidean space you need many dimensions to keep all the leaves of that tree apart, because Euclidean volume only grows polynomially with radius. In hyperbolic space volume grows *exponentially* with radius, so the tree fits naturally — a few dimensions are enough to keep the whole long tail untangled.
+A user opens a sneaker app, taps "running shoes," drills into a brand, then a price band, and finally a single SKU. This trajectory forms a *tree*: each click narrows the candidate set roughly multiplicatively. In Euclidean space, you need many dimensions to keep all the leaves of the tree apart because the volume grows polynomially with radius. In hyperbolic space, volume grows *exponentially* with radius, so the tree fits naturally — a few dimensions are enough to keep the long tail untangled.
 
 [**HCGR**](https://arxiv.org/abs/2107.05366) (Guo et al., 2021) takes this seriously. It embeds session-graph nodes on the **Lorentz hyperboloid**, runs an attention-weighted GNN aggregator in the tangent space, and adds a contrastive auxiliary loss that pulls together two augmented views of the same session while pushing other sessions away. The result is a session recommender that beats strong Euclidean GNN baselines like SR-GNN and GCE-GNN, with the largest gains exactly where hyperbolic geometry should help: long-tail items and deep-hierarchy datasets like Last.FM.
 
@@ -47,7 +47,7 @@ These are the defining properties of *trees*, and trees do not embed cleanly in 
 
 ![Embedding the same depth-4 binary tree in the Euclidean plane (left) and the Poincaré disk (right). On the disk, every leaf has room because the boundary expands exponentially.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig1_poincare_vs_euclidean.png)
 
-The picture above is the elevator pitch for hyperbolic embeddings. On the left, the Euclidean tree runs out of room at depth 4 — leaves crowd together and the embedding has to either grow the radius or invent extra dimensions. On the right, the Poincaré disk pushes leaves toward the boundary where exponential length absorbs them with even spacing.
+The picture above is the elevator pitch for hyperbolic embeddings. On the left, the Euclidean tree runs out of room at depth 4 — leaves crowd together, and the embedding must either increase the radius or add extra dimensions. On the right, the Poincaré disk pushes leaves toward the boundary, where exponential length accommodates them with even spacing.
 
 ## 2. Session graphs, briefly
 
@@ -60,7 +60,7 @@ This is the SR-GNN-family setup, and HCGR keeps everything that already works ab
 
 ## 3. The Lorentz model in operational form
 
-There are several equivalent models of hyperbolic geometry — the Poincaré ball, the Klein model, and the Lorentz (a.k.a. hyperboloid) model. HCGR uses **Lorentz** because its formulas are more numerically stable than the Poincaré ball's and gradients behave better near the boundary.
+There are several equivalent models of hyperbolic geometry: the Poincaré ball, the Klein model, and the Lorentz (a.k.a. hyperboloid) model. HCGR uses the **Lorentz** model because its formulas are more numerically stable than those of the Poincaré ball, and gradients behave better near the boundary.
 
 ### 3.1 The hyperboloid
 

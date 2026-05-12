@@ -16,13 +16,13 @@ disableNunjucks: true
 translationKey: "claude-code-learn-1"
 ---
 
-This is the first in a six-part field guide to Claude Code. The order is deliberate: each piece unlocks the next. By the end you will be using six features 90% of users never touch.
+This is the first in a six-part field guide to Claude Code. The order is deliberate: each piece unlocks the next. By the end, you'll be using six features that 90% of users never touch.
 
 ![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_1.png)
 
 ## Install
 
-There is one supported install path, and it's the right one:
+There is one supported install path, and it's the right one.
 
 ```bash
 curl -fsSL https://claude.ai/install.sh | bash
@@ -42,9 +42,9 @@ The login flow opens a browser, you authorize the CLI, and you're done. Your aut
 
 ### Troubleshooting the install
 
-The install script is clean, but real machines are messy. Here are the problems I've run into and watched other people run into.
+The install script is clean, but real machines are messy. Here are the problems I've run into and seen others face.
 
-**"command not found: claude" after install.** The script puts the binary in `~/.local/bin/`. If that's not in your PATH, you have two options:
+**"command not found: claude" after install.** The script puts the binary in `~/.local/bin/`. If that's not in your PATH, you have two options.
 
 ```bash
 # Option 1: add to PATH permanently
@@ -98,7 +98,7 @@ If it shows an npm path, uninstall the npm one: `npm uninstall -g @anthropic/cla
 claude
 ```
 
-You get an interactive prompt. Try a round-trip to confirm the install:
+You get an interactive prompt. Try a round-trip to confirm the install.
 
 ```
 > what's in this directory?
@@ -106,7 +106,7 @@ You get an interactive prompt. Try a round-trip to confirm the install:
 
 Claude will use its own tooling to `ls`, summarize, and reply. If that worked, the install is done.
 
-You can also run Claude Code non-interactively from scripts:
+You can also run Claude Code non-interactively from scripts.
 
 ```bash
 # One-shot mode: ask a question, get an answer, exit
@@ -122,7 +122,7 @@ The `-p` flag (print mode) skips the interactive loop. This is useful for script
 
 ![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_2.png)
 
-This is the part most users never read. Claude Code merges configuration from three locations, in order of increasing precedence:
+This is the part most users never read. Claude Code merges configuration from three locations, in order of increasing precedence.
 
 | Layer | Path | Tracked in git? | Used for |
 |-------|------|-----------------|----------|
@@ -248,7 +248,7 @@ This is `<repo>/.claude/settings.local.json`. It's gitignored (add it to `.gitig
 
 Environment variables set here are available to Claude's shell commands in that project. This is the right place for API keys, database URLs, and other sensitive, project-specific data.
 
-A common mistake is putting sensitive values in the project-level config and committing them. The three-layer system exists to prevent this.
+A common mistake is putting sensitive values in the project-level config and committing them. The three-layer system prevents this.
 
 ![The two .claude/ directories at a glance — same name, different roles, different scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig5.png)
 

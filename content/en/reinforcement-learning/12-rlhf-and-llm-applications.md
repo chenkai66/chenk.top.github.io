@@ -18,9 +18,9 @@ disableNunjucks: true
 series_order: 12
 translationKey: "reinforcement-learning-12"
 ---
-GPT-3 (June 2020) and ChatGPT (November 2022) share most of their weights. The base model could write fluent prose, complete code, and continue any pattern you gave it — and yet, asked a plain question, it would happily ramble, refuse for the wrong reasons, hallucinate citations, or produce a paragraph of toxicity. The two and a half years between them were not spent on bigger transformers. They were spent learning **how to ask the model to be useful** — and that turned out to be a reinforcement-learning problem.
+GPT-3 (June 2020) and ChatGPT (November 2022) share most of their weights. The base model could write fluent prose, complete code, and continue any pattern you gave it. Yet, when asked a simple question, it might ramble, refuse for the wrong reasons, hallucinate citations, or produce toxic content. The two and a half years between GPT-3 and ChatGPT weren't spent on larger transformers. Instead, they focused on **how to make the model useful** — a reinforcement-learning problem.
 
-This final installment closes the series where it has been heading the whole time: every concept we built — value functions, policy gradients, PPO's trust region, off-policy corrections, preference learning, intrinsic motivation, and even the imitation→IRL ladder — gets composed into the alignment stack that produced ChatGPT, Claude, Llama-3-Instruct, and every assistant-class model worth talking about. We will derive the **three-stage RLHF pipeline**, the **Bradley-Terry** likelihood underneath every preference dataset on the planet, the **closed-form optimum** that lets DPO skip RL entirely, and the **Goodhart-law failure modes** that make alignment a moving target. Then we will look past language at where RL is going next: embodied agents, constitutional self-supervision, and inference-time search.
+This final installment concludes the series by bringing together all the concepts we've built: value functions, policy gradients, PPO's trust region, off-policy corrections, preference learning, intrinsic motivation, and the imitation→IRL ladder. These form the alignment stack that produced ChatGPT, Claude, Llama-3-Instruct, and other notable assistant-class models. We will derive the **three-stage RLHF pipeline**, the **Bradley-Terry** likelihood underlying every preference dataset, the **closed-form optimum** that allows DPO to skip RL, and the **Goodhart-law failure modes** that make alignment a moving target. We will also explore where RL is headed next: embodied agents, constitutional self-supervision, and inference-time search.
 
 ![Reinforcement Learning (12): RLHF and LLM Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.png)
 
@@ -47,7 +47,7 @@ This final installment closes the series where it has been heading the whole tim
 
 ![RLHF Three-Stage Pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig1_rlhf_three_stage_pipeline.png)
 
-Pretraining gives you a model that knows the *distribution* of internet text — including parts you do not want. RLHF gives you a model that knows what *you* want. The recipe that escaped from OpenAI in 2022 has become an industry standard with three sharp boundaries: a supervised stage, a preference stage, and a reinforcement stage.
+Pretraining gives you a model that understands the *distribution* of internet text, including unwanted parts. RLHF gives you a model that understands what *you* want. The method that emerged from OpenAI in 2022 has become an industry standard, with three clear stages: supervised, preference, and reinforcement.
 
 ### Stage 1 — Supervised Fine-Tuning (SFT)
 

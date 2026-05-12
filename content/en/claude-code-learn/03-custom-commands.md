@@ -22,7 +22,7 @@ Built-in slash commands like `/clear` and `/init` are the visible part of the ic
 
 ## What a slash command is
 
-A file at `.claude/commands/<name>.md`. Contents are a Markdown prompt. Filename becomes the command. After creating the command, you need to restart Claude Code (one of the few places it's not hot-reloaded).
+A file at `.claude/commands/<name>.md`. Contents are a Markdown prompt. Filename becomes the command. After creating the command, you need to restart Claude Code (one of the few places it isn't hot-reloaded).
 
 The simplest possible example. Create `.claude/commands/audit.md`:
 
@@ -39,7 +39,7 @@ Restart, then in any session:
 /audit
 ```
 
-The whole prompt fires. You get a structured audit report without having to remember the three commands and their order.
+The whole prompt runs. You get a structured audit report without having to remember the three commands and their order.
 
 Two things to notice:
 
@@ -57,7 +57,7 @@ When you type `/audit`, Claude Code does the following:
 
 Project commands take precedence over global commands with the same name. This means a team can override your personal `/audit` with a project-specific version.
 
-The command content is treated as a regular prompt. That means:
+The command content is treated as a regular prompt. This means:
 
 - It can reference files with `@`
 - It can include thinking level triggers ("think a lot")
@@ -104,7 +104,7 @@ The split matters. Team commands go in the project's `.claude/commands/`. Person
 
 ### Naming conventions
 
-Names become the slash command, so keep them short and obvious:
+Names become the slash command, so keep them short and clear:
 
 | Good | Bad | Why |
 |------|-----|-----|
@@ -218,11 +218,11 @@ Otherwise, give a general overview:
 /status authentication     # Focused on auth
 ```
 
-This pattern — "if arguments exist, scope to them; otherwise, do everything" — makes commands more flexible without needing separate commands for the general and specific cases.
+This pattern — "if arguments exist, scope to them; otherwise, do everything" — makes commands more flexible without needing separate commands for general and specific cases.
 
 ## The commands I have on every project
 
-After two years of using Claude Code I have settled on a core set. Here they are with the full prompt contents.
+After two years of using Claude Code, I have settled on a core set. Here they are with the full prompt contents.
 
 ### `/audit` — security audit
 
@@ -413,7 +413,7 @@ Here's a non-obvious benefit: your command library documents your team's workflo
 - What the testing strategy is (`/test`)
 - What the common debugging approach is (`/debug`)
 
-Each command file is a runnable specification of a workflow, which is more useful than a wiki page because it's always up to date (if it weren't, people would fix it because they use it every day).
+Each command file is a runnable specification of a workflow, which is more useful than a wiki page because it's always up to date (if it weren't, people would fix it because they use it every day). day).
 
 ### Personal vs. team commands
 

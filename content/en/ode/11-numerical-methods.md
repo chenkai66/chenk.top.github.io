@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 11
 translationKey: "ode-11"
 ---
-Almost every interesting differential equation in science and engineering resists a closed-form solution. Nonlinear vector fields, variable coefficients, and ten thousand coupled state variables — pen and paper fail long before the problem does. Numerical integration is the key. This chapter builds, evaluates, and compares a small set of algorithms that can solve almost any ODE you'll encounter, and provides diagnostics to spot when an integrator is misleading you.
+Almost every interesting differential equation in science and engineering resists a closed-form solution. Nonlinear vector fields, variable coefficients, and thousands of coupled state variables — pen and paper fail long before the problem does. Numerical integration is the key. This chapter builds, evaluates, and compares a small set of algorithms that can solve almost any ODE you'll encounter and provides diagnostics to spot when an integrator is misleading you.
 
 ![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_1.png)
 
@@ -122,7 +122,7 @@ This is not a small effect. Going from order 1 to order 4 means the error budget
 
 ## 4. Convergence orders, made visible
 
-The cleanest way to detect a method's order is to compute the global error at the endpoint for a sequence of step sizes and plot on log-log axes. The slope is the order.
+The cleanest way to detect a method's order is to compute the global error at the endpoint for a sequence of step sizes and plot it on log-log axes. The slope indicates the order.
 
 ![Log-log convergence: Euler O(h), Heun O(h^2), RK4 O(h^4) on the test equation.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig2_error_convergence.png)
 *The dotted reference lines have slopes 1, 2, 4. Each method's error tracks the corresponding line until either round-off (RK4 at the smallest$h$) or stability (Euler at the largest$h$) takes over.*

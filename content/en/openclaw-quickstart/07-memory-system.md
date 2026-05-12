@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-7"
 ---
 
-The first six pieces got you to a working OpenClaw with a channel and a skill. This one focuses on the part everyone gets wrong on the first install: memory.
+The first six pieces got you to a working OpenClaw with a channel and a skill. This one focuses on the part everyone gets wrong on their first install: memory.
 
 ![OpenClaw QuickStart (7): The Memory System, Without the Magic — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.png)
 
@@ -44,7 +44,7 @@ The mistake I made for two months: dumping everything into `MEMORY.md`. By the t
 
 ## The four-tier mental model
 
-I keep this in mind when deciding where something belongs:
+I keep this in mind when deciding where something goes:
 
 | Tier | Lifespan | Goes in |
 |------|----------|---------|
@@ -53,11 +53,11 @@ I keep this in mind when deciding where something belongs:
 | Lesson | years | `lessons.md` |
 | Trace | days | `memory/YYYY-MM-DD.md` |
 
-Anything that doesn't fit one of these is probably noise. Throw it away.
+Anything that doesn't fit one of these is probably noise. Discard it.
 
 ## Writing good memory entries
 
-The quality of what you store matters more than the quantity. Each memory entry should allow the agent to make a decision without asking you again.
+The quality of what you store matters more than the quantity. Each memory entry should enable the agent to make a decision without asking you again.
 
 **Bad entries** — vague, undated, no actionable content:
 

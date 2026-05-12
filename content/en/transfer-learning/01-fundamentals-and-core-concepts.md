@@ -15,11 +15,11 @@ disableNunjucks: true
 series_order: 1
 translationKey: "transfer-learning-1"
 ---
-You spent two weeks training an ImageNet classifier on a rack of GPUs. On Monday morning your team lead asks for a chest-X-ray pneumonia model — and the entire labelled dataset is **two hundred images**. Do you book another two weeks of GPU time and start from scratch?
+You spent two weeks training an ImageNet classifier on a rack of GPUs. On Monday morning, your team lead asks for a chest X-ray pneumonia model, and the entire labeled dataset is **two hundred images**. Do you book another two weeks of GPU time and start from scratch?
 
-Of course not. You take what the ImageNet model already knows about edges, textures and shapes, swap out the last layer, and fine-tune on the X-rays. Two hours later you have a model that beats anything you could have trained from random weights with so little data. That is **transfer learning**, and it is the reason most real-world deep-learning projects ship in days instead of months.
+Of course not. You use what the ImageNet model already knows about edges, textures, and shapes, swap out the last layer, and fine-tune on the X-rays. Two hours later, you have a model that beats anything you could have trained from random weights with so little data. That's **transfer learning**, and it's why most real-world deep learning projects ship in days instead of months.
 
-This article is the foundation for the rest of the series. We will cover the seven things you need before any of the more specialised topics make sense:
+This article is the foundation for the rest of the series. It covers the seven things you need before the more specialized topics make sense:
 
 1. **Why** training from scratch is not always an option;
 2. The **formal definitions** of domain, task, source and target;
@@ -29,7 +29,7 @@ This article is the foundation for the rest of the series. We will cover the sev
 6. The **Ben-David bound** and **MMD** — how to tell whether transfer will work;
 7. A **runnable implementation** of feature transfer with MMD alignment.
 
-**Prerequisites:** basic ML vocabulary (loss, gradient descent, classification) and comfort reading Python.
+**Prerequisites:** basic ML vocabulary (loss, gradient descent, classification) and familiarity with Python.
 
 ---
 
@@ -37,13 +37,13 @@ This article is the foundation for the rest of the series. We will cover the sev
 
 ### The dilemma of training from scratch
 
-A textbook supervised pipeline assumes three things, and none of them holds in real industrial settings:
+A textbook supervised pipeline assumes three things, but none of them hold in real industrial settings:
 
-- **Massive labelled data.** Modern deep networks need tens of thousands to millions of labelled examples to generalise. Few real teams have that.
-- **Plentiful compute.** Training a ResNet-50 from random initialisation costs hundreds of GPU-hours; a Transformer from scratch can run into the tens of thousands.
-- **No knowledge reuse.** Even strongly related tasks — chest X-rays vs. chest CT — start back at zero.
+- **Massive labeled data.** Modern deep networks need tens of thousands to millions of labeled examples to generalize. Few real teams have that.
+- **Plentiful compute.** Training a ResNet-50 from random initialization costs hundreds of GPU-hours; a Transformer from scratch can run into the tens of thousands.
+- **No knowledge reuse.** Even strongly related tasks, like chest X-rays vs. chest CT, start back at zero.
 
-Real medical projects, by contrast, give you a few hundred cases of a rare disease, annotators who must be board-certified physicians, and a deadline measured in weeks. Transfer learning resolves the mismatch with a simple promise: **take a model trained on a large generic dataset, and adapt it cheaply to your data-scarce task.**
+Real medical projects, by contrast, give you a few hundred cases of a rare disease, annotators who must be board-certified physicians, and a deadline measured in weeks. Transfer learning resolves the mismatch with a simple promise: **use a model trained on a large generic dataset and adapt it cheaply to your data-scarce task.**
 
 The picture below shows what "data-scarce, distribution-shifted" actually looks like. Same two classes, but the target domain has been rotated and shifted — a faithful cartoon of the kind of covariate shift you encounter when moving from ImageNet photos to medical scans, or from one hospital's scanner to another's.
 
@@ -51,25 +51,25 @@ The picture below shows what "data-scarce, distribution-shifted" actually looks 
 
 ### The intuition
 
-Humans transfer knowledge constantly:
+Humans constantly transfer knowledge:
 
 - A cyclist learns to ride a motorbike in an afternoon, not a year.
-- A Python programmer reads Java syntax and immediately recognises classes, loops and exceptions.
+- A Python programmer reads Java syntax and immediately recognizes classes, loops, and exceptions.
 - Anyone who has seen a house cat will instantly classify a lion as "some kind of feline".
 
-Deep networks have the same property. The early convolutional layers of a vision model learn near-universal primitives — oriented edges, colour blobs, simple textures. Those primitives are useful for almost any visual task. Higher layers learn more specialised concepts (fur patterns, eye shapes), but even these are recyclable across related domains. Transfer learning is the engineering discipline of exploiting that overlap.
+Deep networks have the same property. The early convolutional layers of a vision model learn near-universal primitives — oriented edges, color blobs, simple textures. These primitives are useful for almost any visual task. Higher layers learn more specialized concepts (fur patterns, eye shapes), but even these are recyclable across related domains. Transfer learning is the engineering discipline that exploits this overlap.
 
-### The core idea, in one sentence
+### The Core Idea, in One Sentence
 
-> Given a **source** with abundant labelled data and a **target** with very little, transfer learning moves knowledge from the source so that the target model performs better than it would in isolation.
+> Given a **source** with abundant labeled data and a **target** with very little, transfer learning moves knowledge from the source so that the target model performs better than it would in isolation.
 
-The only requirement is some correlation between source and target. They do not have to share a feature space, a label set, or even a modality — but the more they share, the more there is to transfer.
+The only requirement is some correlation between the source and target. They don't have to share a feature space, label set, or even a modality, but the more they share, the more there is to transfer.
 
 ---
 
 ## 2. Formal Definitions
 
-To talk about transfer learning precisely, we need to separate two ideas that beginners often confuse: a **domain** is about *the inputs you see*; a **task** is about *what you have to predict*. Pan and Yang's 2010 survey makes this distinction the cornerstone of the whole field.
+To talk about transfer learning precisely, we need to separate two ideas that beginners often confuse: a **domain** is about *the inputs you see*; a **task** is about *what you have to predict*. Pan and Yang's 2010 survey makes this distinction the cornerstone of the field.
 
 ### Domain
 
@@ -95,7 +95,7 @@ A task is a pair $\mathcal{T} = \{\mathcal{Y}, f(\cdot)\}$: a label space and th
 
 Transfer learning explicitly does **not** require source and target to be identical — that is its whole reason for existing. They may differ in any combination of feature space ($\mathcal{X}_S \neq \mathcal{X}_T$), marginal ($P_S(X) \neq P_T(X)$), label space ($\mathcal{Y}_S \neq \mathcal{Y}_T$), or conditional ($P_S(Y\mid X) \neq P_T(Y\mid X)$). Each combination gives rise to a different sub-problem.
 
-### The formal statement
+### The Formal Statement
 
 > Given a source domain $\mathcal{D}_S$ with task $\mathcal{T}_S$ and a target domain $\mathcal{D}_T$ with task $\mathcal{T}_T$, transfer learning aims to improve the target predictive function $f_T(\cdot)$ using knowledge from $\mathcal{D}_S$ and $\mathcal{T}_S$, where $\mathcal{D}_S \neq \mathcal{D}_T$ or $\mathcal{T}_S \neq \mathcal{T}_T$.
 

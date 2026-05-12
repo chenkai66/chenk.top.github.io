@@ -48,7 +48,7 @@ Large models excel on benchmarks but struggle on phones, cars, and cloud bills. 
 - **Cost:** a model served a billion times a day costs real money per FLOP.
 - **Energy:** an edge device runs on a battery, not a power plant.
 
-Pruning and quantization directly reduce the model size. Both can decrease accuracy. Distillation takes a different approach: **train a small student to imitate a large teacher's output distribution, not just its argmax**. The student learns the teacher's inductive biases without inheriting its parameters.
+Pruning and quantization directly reduce the model size but can decrease accuracy. Distillation takes a different approach: **train a small student to imitate a large teacher's output distribution, not just its argmax**. The student learns the teacher's inductive biases without inheriting its parameters.
 
 ### Dark knowledge: what soft labels actually teach
 

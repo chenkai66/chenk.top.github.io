@@ -1,688 +1,718 @@
 {
   "series": "llm-engineering",
-  "total_fixes": 50,
+  "total_fixes": 42,
   "issues": [
     {
-      "original": "分词层往往是大家最容易忽略的一环，却恰恰是我在生产环境中调试最多的地方——静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）这一章的内容，是我希望自己在发布多语言产品前就能彻底吃透的。",
-      "fixed": "分词层往往被大家忽视，却是我在生产环境中调试最多的地方——静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）。我希望在发布多语言产品前能彻底掌握这一章的内容。",
-      "reason": "句号过密合并",
+      "original": "分词层往往被大家忽视，却是我在生产环境中调试最多的地方——静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）。我希望在发布多语言产品前能彻底掌握这一章的内容。",
+      "fixed": "分词层常被忽视，却是在生产环境中我调试最多的地方——静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）。我希望在发布多语言产品前彻底掌握这一章的内容。",
+      "reason": "删除冗余的连接词和虚词",
       "file": "02-tokenization.md"
     },
     {
       "original": "分词器（tokenizer）做的事很简单：把字符串映射成一串整数 ID，反过来也能把 ID 还原成字符串。这两个方向都是确定性的，但通常不是双射——[代码] 往返一遍可能会丢失空格、标准化 Unicode 或者合并重复标点，具体取决于算法。",
-      "fixed": "分词器（tokenizer）的工作很简单：将字符串映射成一串整数 ID，并且能够将 ID 还原成字符串。这两个过程是确定性的，但通常不是双射——往返一次可能会丢失空格、标准化 Unicode 或合并重复标点，具体取决于算法。",
-      "reason": "句号过密合并",
+      "fixed": "分词器（tokenizer）的工作很简单：将字符串映射为整数 ID 序列，并能将 ID 还原成字符串。这两个过程是确定性的，但通常不是双射——往返一次可能会丢失空格、标准化 Unicode 或合并重复标点，具体取决于算法。",
+      "reason": "合并短句，调整语序",
+      "file": "02-tokenization.md"
+    },
+    {
+      "original": "主流方案主要有三类：",
+      "fixed": "主流方案有三类：",
+      "reason": "删除冗余的连接词",
       "file": "02-tokenization.md"
     },
     {
       "original": "到了 2026 年，几乎所有大型生成式 LLM 都用 **byte-level BPE** [Radford et al., 2019] 或者 SentencePiece BPE 变体。\"byte-level\" 是关键，它让分词器对 Unicode 安全：字母表是 256 个字节，而不是 ~15 万个 Unicode 码点，所以任何编码的任何字符串都能分词，不会出现 [代码]。",
-      "fixed": "到了 2026 年，几乎所有大型生成式 LLM 都会使用 **byte-level BPE** [Radford et al., 2019] 或者 SentencePiece BPE 变体。\"byte-level\" 是关键，它使分词器对 Unicode 安全：字母表是 256 个字节，而不是约 15 万个 Unicode 码点，因此任何编码的字符串都能分词，不会出现问题。",
-      "reason": "句号过密合并",
+      "fixed": "到 2026 年，几乎所有大型生成式 LLM 都会使用 **byte-level BPE** [Radford et al., 2019] 或 SentencePiece BPE 变体。\"byte-level\" 是关键，它使分词器对 Unicode 安全：字母表包含 256 个字节，而非约 15 万个 Unicode 码点，因此任何编码的字符串都能分词，不会出现问题。",
+      "reason": "合并短句，简化表达",
       "file": "02-tokenization.md"
     },
     {
       "original": "这里有个细节值得厘清： BPE-on-characters （Sennrich 原始 formulation）的字母表是训练数据中出现的所有 distinct Unicode 字符——多语言数据通常有几万个，长尾部分会被丢弃到 [代码]。 BPE-on-bytes （GPT-2 formulation）的字母表固定为 256 个字节。任何 UTF-8 字符串都能分解成字节并成功分词。代价是，一个没能合并成 token 的汉字会消耗 3 个字节（3 个 tokens），而不是 1 个字符（1 个 token）。这就是我们后面要拆解的 CJK token bloat 的根源。",
-      "fixed": "这里有个细节需要澄清：BPE-on-characters（Sennrich 原始形式）的字母表是训练数据中所有不同的 Unicode 字符——多语言数据通常有几万个，长尾部分会被丢弃。BPE-on-bytes（GPT-2 形式）的字母表固定为 256 个字节，任何 UTF-8 字符串都能分解成字节并成功分词。代价是一个未能合并成 token 的汉字会消耗 3 个字节（3 个 tokens），而不是 1 个字符（1 个 token）。这就是我们后面要讨论的 CJK token 膨胀问题的根源。",
-      "reason": "句号过密合并",
+      "fixed": "这里有一个细节需要澄清：BPE-on-characters（Sennrich 原始形式）的字母表包含训练数据中所有不同的 Unicode 字符——多语言数据通常有几万个，长尾部分会被丢弃。BPE-on-bytes（GPT-2 形式）的字母表固定为 256 个字节，任何 UTF-8 字符串都能分解成字节并成功分词。代价是，未合并成 token 的汉字会消耗 3 个字节（3 个 tokens），而不是 1 个字符（1 个 token）。这就是 CJK token 膨胀问题的根源。",
+      "reason": "合并短句，简化表达",
       "file": "02-tokenization.md"
     },
     {
-      "original": "预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方；大多数公开的训练记录更像是工程奇迹而非科学成果。这一章聊聊当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有在集群达到一定规模时才会暴露的故障模式——例如，一次失败的 NCCL all-reduce 可能导致为期 30 天的训练任务中断。",
-      "fixed": "预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方；大多数公开的训练记录更像是工程奇迹而非科学成果。这一章将讨论当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有在集群达到一定规模时才会暴露的故障模式——例如，一次失败的 NCCL all-reduce 可能导致为期 30 天的训练任务中断。",
-      "reason": "调整语序和用词，使句子更流畅",
+      "original": "预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方；大多数公开的训练记录更像是工程奇迹而非科学成果。",
+      "fixed": "预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方。大多数公开的训练记录更像是工程奇迹而非科学成果。",
+      "reason": "句号过密合并",
       "file": "03-pretraining.md"
     },
     {
-      "original": "过去三年里所有可靠的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小（约 5% perplexity），但不同数据配比带来的性能差异极为显著（超过 30%）。Chinchilla 论文中的 compute-optimal 缩放定律假设数据分布固定；一旦允许数据分布变化，数据就占据了主导地位。",
-      "fixed": "过去三年里所有可靠的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小（约 5% perplexity），但不同数据配比带来的性能差异极为显著（超过 30%）。Chinchilla 论文中的 compute-optimal 缩放定律假设数据分布固定；一旦允许数据分布变化，数据就会占据主导地位。",
-      "reason": "简化句子结构，使表达更自然",
+      "original": "这一章将讨论当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有在集群达到一定规模时才会暴露的故障模式——例如，一次失败的 NCCL all-reduce 可能导致为期 30 天的训练任务中断。",
+      "fixed": "这一章将讨论当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有在集群达到一定规模时才会暴露的故障模式——例如，一次失败的 NCCL all-reduce 可能导致为期 30 天的训练任务中断。",
+      "reason": "已经流畅自然",
       "file": "03-pretraining.md"
     },
     {
-      "original": "现代预训练配比大致如下（FineWeb-Edu [Penedo et al., 2024]、 RedPajama-V2 [Together AI, 2024]、 Dolma [Soldaini et al., 2024]——所有开放配比彼此相差无几）：",
+      "original": "过去三年里所有可靠的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小（约 5% perplexity），但不同数据配比带来的性能差异极为显著（超过 30%）。",
+      "fixed": "过去三年里所有可靠的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小（约 5% perplexity），但不同数据配比带来的性能差异极为显著（超过 30%）。",
+      "reason": "已经流畅自然",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "Chinchilla 论文中的 compute-optimal 缩放定律假设数据分布固定；一旦允许数据分布变化，数据就会占据主导地位。",
+      "fixed": "Chinchilla 论文中的 compute-optimal 缩放定律假设数据分布固定；一旦允许数据分布变化，数据就会占据主导地位。",
+      "reason": "已经流畅自然",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "现代预训练配比如下（FineWeb-Edu [Penedo et al., 2024]、RedPajama-V2 [Together AI, 2024]、Dolma [Soldaini et al., 2024]——所有开放配比彼此相差无几）：",
       "fixed": "现代预训练配比如下（FineWeb-Edu [Penedo et al., 2024]、RedPajama-V2 [Together AI, 2024]、Dolma [Soldaini et al., 2024]——所有开放配比彼此相差无几）：",
-      "reason": "简化句子结构，使表达更简洁",
+      "reason": "已经流畅自然",
       "file": "03-pretraining.md"
     },
     {
-      "original": "有个最重要的数字没人提：**去重率**。 CommonCrawl 2024 在文档级别去重后保留约 25% 的原始字节，在行级别去重（更激进）则保留约 12%。 Lee et al. (2022) 的论文表明，即使激进去重移除了 75% 的数据，仍可降低困惑度（perplexity）。重复对语言模型来说是毒药——它教会模型记忆而不是泛化。",
+      "original": "有个最重要的数字没人提：**去重率**。CommonCrawl 2024 在文档级别去重后保留约 25% 的原始字节，在行级别去重（更激进）则保留约 12%。Lee et al. (2022) 的论文表明，即使激进去重移除了 75% 的数据，仍可降低困惑度（perplexity）。重复对语言模型来说是毒药——它教会模型记忆而不是泛化。",
       "fixed": "有个最重要的数字没人提：**去重率**。CommonCrawl 2024 在文档级别去重后保留约 25% 的原始字节，在行级别去重（更激进）则保留约 12%。Lee et al. (2022) 的论文表明，即使激进去重移除了 75% 的数据，仍可降低困惑度（perplexity）。重复对语言模型来说是毒药——它教会模型记忆而不是泛化。",
-      "reason": "简化句子结构，使表达更简洁",
+      "reason": "已经流畅自然",
       "file": "03-pretraining.md"
     },
     {
       "original": "DeepSeek 的预训练说明（DeepSeek-V3 技术报告 [DeepSeek-AI, 2024]，2024 年 12 月）是我见过对配比最诚实的：14.8T tokens，87% 是代码、数学和网页，13% 是“高质量书籍和合成数据”。合成数据的占比比大家承认的要高。",
       "fixed": "DeepSeek 的预训练说明（DeepSeek-V3 技术报告 [DeepSeek-AI, 2024]，2024 年 12 月）是我见过对配比最诚实的：14.8T tokens，87% 是代码、数学和网页，13% 是“高质量书籍和合成数据”。合成数据的占比比大家承认的要高。",
-      "reason": "简化句子结构，使表达更简洁",
+      "reason": "已经流畅自然",
       "file": "03-pretraining.md"
     },
     {
-      "original": "预训练的基座模型只会续写文本，而让它听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段。这也是论文中宣称的效果与生产级模型之间差距最大的地方。",
-      "fixed": "预训练的基座模型只会续写文本，而听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段——这也是论文中宣称的效果与生产级模型之间差距最大的地方。",
+      "original": "关于数据质量最严谨的公开研究是 DataComp for Language Models 基准 [Li et al., 2024]。他们固定了架构和训练算力，然后跑了 416 次对照实验，只变数据配比。以下是值得记住的发现：",
+      "fixed": "关于数据质量最严谨的公开研究是 DataComp for Language Models 基准 [Li et al., 2024]。他们固定了架构和训练算力，然后跑了 416 次对照实验，只变数据配比。以下是值得记住的发现：",
+      "reason": "已经流畅自然",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "- **质量过滤器主导。** 一个基于模型的质量分类器（FastText 训练用于预测文本是否类似\"高质量\"参考数据），在与基线相同的算力下训练，在 MMLU 上超越基线 6.6 个百分点，在 Core （一个 22 任务基准）上超越 3.5。",
+      "fixed": "- **质量过滤器主导。** 一个基于 FastText 训练的质量分类器用于预测文本是否类似\"高质量\"参考数据，在与基线相同的算力下训练，在 MMLU 上超越基线 6.6 个百分点，在 Core（一个 22 任务基准）上超越 3.5。",
+      "reason": "冗余连接词和虚词省略",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "- **激进过滤胜出。** 只保留质量分类器得分前 10 % 的文档，表现优于保留前 50 %，即使它丢弃了 5× 更多的 tokens。",
+      "fixed": "- **激进过滤胜出。** 只保留质量分类器得分前 10% 的文档，表现优于保留前 50%，即使它丢弃了 5× 更多的 tokens。",
+      "reason": "冗余连接词和虚词省略",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "- **去重与过滤相互作用。** 0.7 Jaccard 阈值的 MinHash-LSH 去重带来 +2.1 MMLU；结合质量过滤带来 +8.7。这两种干预是超加性的——去重移除了质量过滤器可能漏掉的低质内容的近重复项。",
+      "fixed": "- **去重与过滤相互作用。** 0.7 Jaccard 阈值的 MinHash-LSH 去重带来 +2.1 MMLU；结合质量过滤带来 +8.7。这两种干预是超加性的——去重移除了质量过滤器可能漏掉的低质内容的近重复项。",
+      "reason": "已经流畅自然",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "- **最优配比取决于任务。** 为代码密集型下游用途训练的模型，偏好的配比与通用聊天模型不同。不存在通用的最优解。",
+      "fixed": "- **最优配比取决于任务。** 为代码密集型下游用途训练的模型，偏好的配比与通用聊天模型不同。不存在通用的最优解。",
+      "reason": "已经流畅自然",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "在 DCLM-Baseline 数据（3T tokens）上训练的 7B 模型，尽管每参数算力少了 33 %，但在 MMLU 上比 Llama 2 7B （使用了 2T 未指定、过滤较少的数据）高出 11.5 分。这体现了数据质量所能带来的性能提升幅度。",
+      "fixed": "在 DCLM-Baseline 数据（3T tokens）上训练的 7B 模型，尽管每参数算力少了 33%，但在 MMLU 上比 Llama 2 7B（使用了 2T 未指定、过滤较少的数据）高出 11.5 分。这体现了数据质量所能带来的性能提升幅度。",
+      "reason": "冗余连接词和虚词省略",
+      "file": "03-pretraining.md"
+    },
+    {
+      "original": "预训练的基座模型只会续写文本，而听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段——这也是论文中宣称的效果与生产级模型之间差距最大的地方。本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。",
+      "fixed": "预训练的基座模型只会续写文本，而听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段——这也是论文中宣称的效果与生产级模型之间差距最大的地方。本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。",
+      "reason": "段落已经流畅自然",
+      "file": "04-post-training.md"
+    },
+    {
+      "original": "当前的 LLM 后训练流程大致分为以下四个步骤：1. **SFT**（supervised fine-tuning）用于指令数据，教授模型响应格式和基本的指令遵循行为。2. **偏好优化**（DPO, IPO, KTO, 或 RLHF），教授模型在两个有效回复中哪个更受人类（或代理）青睐。3. **在线 RL**（RLHF, RLAIF, 或 RLVR — 可验证奖励），对奖励模型或程序检查器进行更激进的调优。对于非推理模型，这一步是可选的，并且越来越常被跳过。4. **专项阶段**：包括工具使用 SFT、长上下文 SFT、安全红队测试和宪法 AI 过滤。",
+      "fixed": "当前的 LLM 后训练流程大致分为以下四个步骤：1. **SFT**（supervised fine-tuning）用于指令数据，教授模型响应格式和基本的指令遵循行为；2. **偏好优化**（DPO, IPO, KTO, 或 RLHF），教授模型在两个有效回复中哪个更受人类（或代理）青睐；3. **在线 RL**（RLHF, RLAIF, 或 RLVR — 可验证奖励），对奖励模型或程序检查器进行更激进的调优。对于非推理模型，这一步是可选的，并且越来越常被跳过；4. **专项阶段**：包括工具使用 SFT、长上下文 SFT、安全红队测试和宪法 AI 过滤。",
       "reason": "句号过密合并",
       "file": "04-post-training.md"
     },
     {
-      "original": "本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。",
-      "fixed": "本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。",
-      "reason": "已经流畅自然",
+      "original": "OpenAI、Anthropic 和 Google 仍在采用接近 'SFT → 偏好 DPO → RLHF/RLAIF' 的流程。DeepSeek-R1 [DeepSeek-AI, 2025] 和 o1 系列模型引入了 **RLVR**（RL with verifiable rewards — 适用于数学/代码等可通过程序检查正确性的场景）作为主要信号。这是 2024-2025 年最重要的后训练变革。",
+      "fixed": "OpenAI、Anthropic 和 Google 仍在采用接近 'SFT → 偏好 DPO → RLHF/RLAIF' 的流程。DeepSeek-R1 [DeepSeek-AI, 2025] 和 o1 系列模型引入了 **RLVR**（RL with verifiable rewards — 适用于数学/代码等可通过程序检查正确性的场景）作为主要信号。这是 2024-2025 年最重要的后训练变革。",
+      "reason": "段落已经流畅自然",
       "file": "04-post-training.md"
     },
     {
-      "original": "当前的 LLM 后训练流程大致分为以下四个步骤：",
-      "fixed": "当前的 LLM 后训练流程大致分为以下四个步骤：",
-      "reason": "已经流畅自然",
+      "original": "师承关系非常重要。第一篇可信的 'RL from human feedback' 论文是 [Christiano et al., 2017]，将偏好学习应用于 Atari 和连续控制。[Stiennon et al., 2020] 将其用于摘要生成。[Ouyang et al., 2022] (InstructGPT) 是首个通过 SFT + RLHF 进行端到端指令微调的 LLM，现代所有后训练技术栈均源自该论文。2023-2025 年的这一波浪潮（DPO, IPO, KTO, RLVR）本质上都是 InstructGPT 主题的变体。",
+      "fixed": "师承关系非常重要。第一篇可信的 'RL from human feedback' 论文是 [Christiano et al., 2017]，将偏好学习应用于 Atari 和连续控制；[Stiennon et al., 2020] 将其用于摘要生成；[Ouyang et al., 2022] (InstructGPT) 是首个通过 SFT + RLHF 进行端到端指令微调的 LLM，现代所有后训练技术栈均源自该论文。2023-2025 年的这一波浪潮（DPO, IPO, KTO, RLVR）本质上都是 InstructGPT 主题的变体。",
+      "reason": "句号过密合并",
       "file": "04-post-training.md"
     },
     {
-      "original": "1. **SFT**（supervised fine-tuning）用于指令数据，教授模型响应格式和基本的指令遵循行为。",
-      "fixed": "1. **SFT**（supervised fine-tuning）用于指令数据，教授模型响应格式和基本的指令遵循行为。",
-      "reason": "已经流畅自然",
+      "original": "SFT 就是给模型展示 10 万到 100 万条指令-回复对，仅对回复部分进行 next-token prediction loss 的训练。这个 mask 很关键——你希望模型学会助手的回答，而不是预测用户的问题。",
+      "fixed": "SFT 就是给模型展示 10 万到 100 万条指令-回复对，仅对回复部分进行 next-token prediction loss 的训练。这个 mask 很关键——你希望模型学会助手的回答，而不是预测用户的问题。",
+      "reason": "段落已经流畅自然",
       "file": "04-post-training.md"
     },
     {
-      "original": "2. **偏好优化**（DPO, IPO, KTO, 或 RLHF），教授模型在两个有效回复中哪个更受人类（或代理）青睐。",
-      "fixed": "2. **偏好优化**（DPO, IPO, KTO, 或 RLHF），教授模型在两个有效回复中哪个更受人类（或代理）青睐。",
-      "reason": "已经流畅自然",
-      "file": "04-post-training.md"
-    },
-    {
-      "original": "3. **在线 RL**（RLHF, RLAIF, 或 RLVR — 可验证奖励），对奖励模型或程序检查器进行更激进的调优。对于非推理模型，这一步是可选的，并且越来越常被跳过。",
-      "fixed": "3. **在线 RL**（RLHF, RLAIF, 或 RLVR — 可验证奖励），对奖励模型或程序检查器进行更激进的调优。对于非推理模型，这一步是可选的，并且越来越常被跳过。",
-      "reason": "已经流畅自然",
-      "file": "04-post-training.md"
-    },
-    {
-      "original": "4. **专项阶段**：包括工具使用 SFT、长上下文 SFT、安全红队测试和宪法 AI 过滤。",
-      "fixed": "4. **专项阶段**：包括工具使用 SFT、长上下文 SFT、安全红队测试和宪法 AI 过滤。",
-      "reason": "已经流畅自然",
-      "file": "04-post-training.md"
-    },
-    {
-      "original": "OpenAI、Anthropic 和 Google 仍在采用接近 \"SFT → 偏好 DPO → RLHF/RLAIF\" 的流程。DeepSeek-R1 [DeepSeek-AI, 2025] 和 o1 系列模型引入了 **RLVR**（RL with verifiable rewards — 适用于数学/代码等可通过程序检查正确性的场景）作为主要信号。这是 2024-2025 年最重要的后训练变革。",
-      "fixed": "OpenAI、Anthropic 和 Google 仍在采用接近 \"SFT → 偏好 DPO → RLHF/RLAIF\" 的流程。DeepSeek-R1 [DeepSeek-AI, 2025] 和 o1 系列模型引入了 **RLVR**（RL with verifiable rewards — 适用于数学/代码等可通过程序检查正确性的场景）作为主要信号。这是 2024-2025 年最重要的后训练变革。",
-      "reason": "已经流畅自然",
-      "file": "04-post-training.md"
-    },
-    {
-      "original": "师承关系非常重要。第一篇可信的 \"RL from human feedback\" 论文是 [Christiano et al., 2017]，将偏好学习应用于 Atari 和连续控制。[Stiennon et al., 2020] 将其用于摘要生成。[Ouyang et al., 2022] (InstructGPT) 是首个通过 SFT + RLHF 进行端到端指令微调的 LLM，现代所有后训练技术栈均源自该论文。2023-2025 年的这一波浪潮（DPO, IPO, KTO, RLVR）本质上都是 InstructGPT 主题的变体。",
-      "fixed": "师承关系非常重要。第一篇可信的 \"RL from human feedback\" 论文是 [Christiano et al., 2017]，将偏好学习应用于 Atari 和连续控制。[Stiennon et al., 2020] 将其用于摘要生成。[Ouyang et al., 2022] (InstructGPT) 是首个通过 SFT + RLHF 进行端到端指令微调的 LLM，现代所有后训练技术栈均源自该论文。2023-2025 年的这一波浪潮（DPO, IPO, KTO, RLVR）本质上都是 InstructGPT 主题的变体。",
-      "reason": "已经流畅自然",
-      "file": "04-post-training.md"
-    },
-    {
-      "original": "## SFT：比大家以为的更重要\nSFT 就是给模型展示 10 万到 100 万条指令-回复对，仅对回复部分进行 next-token prediction loss 的训练。这个 mask 很关键——你希望模型学会助手的回答，而不是预测用户的问题。",
-      "fixed": "## SFT：比大家以为的更重要\nSFT 就是给模型展示 10 万到 100 万条指令-回复对，仅对回复部分进行 next-token prediction loss 的训练。这个 mask 很关键——你希望模型学会助手的回答，而不是预测用户的问题。",
-      "reason": "已经流畅自然",
-      "file": "04-post-training.md"
-    },
-    {
-      "original": "SFT 的成败取决于两点：\n**数据质量而非数量。** LIMA [Zhou et al., 2023] 证明了 1000 条精心策划的例子可以媲美 5 万条普通数据。Tulu-3 混合集 [Lambert et al., 2024] (AllenAI, 2024) 策划了约 20 万条数据。Qwen3 的 SFT 混合集接近 100 万，但经过了严格的质量过滤。高质量数据在超过 100K 后，收益曲线趋于平缓。",
-      "fixed": "SFT 的成败取决于两点：\n**数据质量而非数量。** LIMA [Zhou et al., 2023] 证明了 1000 条精心策划的例子可以媲美 5 万条普通数据。Tulu-3 混合集 [Lambert et al., 2024] (AllenAI, 2024) 策划了约 20 万条数据。Qwen3 的 SFT 混合集接近 100 万，但经过了严格的质量过滤。高质量数据在超过 100K 后，收益曲线趋于平缓。",
-      "reason": "已经流畅自然",
-      "file": "04-post-training.md"
-    },
-    {
-      "original": "**格式一致性。** 如果一半 SFT 数据用 \"Sure, I'll help!\" 这种开场白，另一半不用，模型就会学会不一致地使用开场白。如果 SFT 数据用 Markdown 标题，但测试 prompt 是关于纯 prose 的，输出就会不匹配。预处理要积极，把格式标准化。",
-      "fixed": "**格式一致性。** 如果一半 SFT 数据用 \"Sure, I'll help!\" 这种开场白，另一半不用，模型就会学会不一致地使用开场白。如果 SFT 数据用 Markdown 标题，但测试 prompt 是关于纯 prose 的，输出就会不匹配。预处理要积极，把格式标准化。",
-      "reason": "已经流畅自然",
+      "original": "SFT 的成败取决于两点：**数据质量而非数量。** LIMA [Zhou et al., 2023] 证明了 1000 条精心策划的例子可以媲美 5 万条普通数据。Tulu-3 混合集 [Lambert et al., 2024] (AllenAI, 2024) 策划了约 20 万条数据。Qwen3 的 SFT 混合集接近 100 万，但经过了严格的质量过滤。高质量数据在超过 100K 后，收益曲线趋于平缓。",
+      "fixed": "SFT 的成败取决于两点：**数据质量而非数量。** LIMA [Zhou et al., 2023] 证明了 1000 条精心策划的例子可以媲美 5 万条普通数据；Tulu-3 混合集 [Lambert et al., 2024] (AllenAI, 2024) 策划了约 20 万条数据；Qwen3 的 SFT 混合集接近 100 万，但经过了严格的质量过滤。高质量数据在超过 100K 后，收益曲线趋于平缓。",
+      "reason": "句号过密合并",
       "file": "04-post-training.md"
     },
     {
       "original": "一个意想不到的失败模式是：过度训练短回复会导致模型难以生成长文本。模型会从训练数据中学习回复长度的条件分布。如果希望模型能够写出 2000 字的文章，SFT 混合集中至少需要 5-10% 的长示例。我们之前调整过一个 Qwen3-7B 微调版，始终无法生成超过 800 token 的输出，原因是 SFT 混合集中 Q&A 占比过高。",
       "fixed": "一个意想不到的失败模式是：过度训练短回复会导致模型难以生成长文本。模型会从训练数据中学习回复长度的条件分布。如果希望模型能够写出 2000 字的文章，SFT 混合集中至少需要 5-10% 的长示例。我们之前调整过一个 Qwen3-7B 微调版，始终无法生成超过 800 token 的输出，原因是 SFT 混合集中 Q&A 占比过高。",
-      "reason": "已经流畅自然",
+      "reason": "段落已经流畅自然",
       "file": "04-post-training.md"
     },
     {
-      "original": "真正的成本压力来自推理。以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——仅需运行约 3 个月。",
+      "original": "真正的成本压力来自推理。以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——只需运行约 3 个月。",
       "fixed": "真正的成本压力来自推理。以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——只需运行约 3 个月。",
-      "reason": "冗余连接词",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "本章聚焦两个核心指标：首 token 延迟（TTFT）、token 间延迟（ITL）以及一个关键比率：每百万输出 token 消耗的 GPU 秒数。",
-      "fixed": "本章聚焦两个核心指标：首 token 延迟（TTFT）、token 间延迟（ITL）和一个关键比率：每百万输出 token 消耗的 GPU 秒数。",
+      "original": "本章聚焦两个核心指标：首 token 延迟（TTFT）、token 间延迟（ITL）和一个关键比率：每百万输出 token 消耗的 GPU 秒数。",
+      "fixed": "本章聚焦两个核心指标：首 token 延迟（TTFT）、token 间延迟（ITL）以及一个关键比率：每百万输出 token 消耗的 GPU 秒数。",
       "reason": "句号过密合并",
       "file": "05-inference.md"
     },
     {
-      "original": "训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。",
-      "fixed": "训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；而推理是持续发生的运营支出（OpEx），无法摊销。",
+      "original": "训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；而推理是持续发生的运营支出（OpEx），无法摊销。",
+      "fixed": "训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。",
       "reason": "增加连贯性",
       "file": "05-inference.md"
     },
     {
       "original": "tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长。",
       "fixed": "tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长。",
-      "reason": "已流畅自然",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "因此，主流 LLM 团队普遍配备专职推理工程师；开源社区五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。",
+      "original": "因此，主流 LLM 团队普遍配备专职推理工程师；开源社区在五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。",
       "fixed": "因此，主流 LLM 团队普遍配备专职推理工程师；开源社区在五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。",
-      "reason": "增加时间状语",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "每次 LLM 推理调用都分两个阶段：",
+      "original": "每次 LLM 推理调用分为两个阶段：",
       "fixed": "每次 LLM 推理调用分为两个阶段：",
-      "reason": "简化表达",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "Prefill （提示词处理）：输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。 70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——能把一张 H100 饱和运行约 70 ms。",
-      "fixed": "Prefill（提示词处理）：输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——足以使一张 H100 饱和运行约 70 ms。",
-      "reason": "简化表达",
+      "original": "输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。 70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——能把一张 H100 饱和运行约 70 ms。",
+      "fixed": "输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——足以使一张 H100 饱和运行约 70 ms。",
+      "reason": "调整语序，使句子更通顺",
       "file": "05-inference.md"
     },
     {
-      "original": "Decode （生成）：一次生成一个 token，基于缓存的 key 和 value 做注意力。这是内存密集型（Memory-bound）。每个 decode 步都要读取整个 KV cache （几 GB 大小）才能产出一个 token。",
-      "fixed": "Decode（生成）：一次生成一个 token，基于缓存的 key 和 value 进行注意力计算。这是内存密集型（Memory-bound）。每个 decode 步都要读取整个 KV cache（几 GB 大小）才能产出一个 token。",
-      "reason": "简化表达",
+      "original": "每个 decode 步都要读取整个 KV cache （几 GB 大小）才能产出一个 token。",
+      "fixed": "每个 decode 步都要读取整个 KV cache（几 GB 大小）才能产出一个 token。",
+      "reason": "去掉冗余空格",
       "file": "05-inference.md"
     },
     {
-      "original": "这种不对称性是关键：Prefill 阶段天然支持跨用户批处理（同一 kernel 并行处理不同序列），而 Decode 阶段若采用朴素批处理（naive batching），效果通常很差——各用户序列长度不一，计算步无法对齐。",
+      "original": "这种不对称性是关键：Prefill 阶段天然支持跨用户批处理（同一 kernel 并行处理不同序列），而 Decode 阶段若采用朴素批处理（naive batching），效果通常很差——因为各用户序列长度不一，计算步无法对齐。",
       "fixed": "这种不对称性是关键：Prefill 阶段天然支持跨用户批处理（同一 kernel 并行处理不同序列），而 Decode 阶段若采用朴素批处理（naive batching），效果通常很差——因为各用户序列长度不一，计算步无法对齐。",
-      "reason": "增加连贯性",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "主流推理引擎都是围绕这种不对称性设计的。",
-      "fixed": "主流推理引擎都是围绕这种不对称性设计的。",
-      "reason": "已流畅自然",
-      "file": "05-inference.md"
-    },
-    {
-      "original": "一条常用经验法则是：TTFT 主要取决于 prefill 阶段，ITL 则主要受限于 decode 阶段的内存带宽。",
+      "original": "一条常用经验法则是：TTFT 主要取决于 prefill 阶段，而 ITL 则主要受限于 decode 阶段的内存带宽。",
       "fixed": "一条常用经验法则是：TTFT 主要取决于 prefill 阶段，而 ITL 则主要受限于 decode 阶段的内存带宽。",
-      "reason": "增加连贯性",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "降低 TTFT 的关键是提升计算吞吐（如增加 SM 数量或启用张量并行）；降低 ITL 则依赖更高的内存带宽（HBM3 优于 GDDR）或模型量化——后者通过压缩参数缓解带宽压力。",
+      "original": "降低 TTFT 的关键是提升计算吞吐（如增加 SM 数量或启用张量并行）；降低 ITL 则依赖更高的内存带宽（HBM3 优于 GDDR）或模型量化——后者通过压缩参数来缓解带宽压力。",
       "fixed": "降低 TTFT 的关键是提升计算吞吐（如增加 SM 数量或启用张量并行）；降低 ITL 则依赖更高的内存带宽（HBM3 优于 GDDR）或模型量化——后者通过压缩参数来缓解带宽压力。",
-      "reason": "简化表达",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
       "original": "用算术强度来论证会更严谨。70B 模型处理 4K prompt 的 prefill：模型权重（BF16 下 140 GB）加载一次，操作 4096 个 token。",
       "fixed": "用算术强度来论证会更严谨。70B 模型处理 4K prompt 的 prefill：模型权重（BF16 下 140 GB）加载一次，操作 4096 个 token。",
-      "reason": "已流畅自然",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
       "original": "算术强度 ≈ 每读取一个参数字节对应 4096 FLOP。同样，单 token 的 decode：权重加载一次，操作 1 个 token。",
       "fixed": "算术强度 ≈ 每读取一个参数字节对应 4096 FLOP。同样，单 token 的 decode：权重加载一次，操作 1 个 token。",
-      "reason": "已流畅自然",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "算术强度 ≈ 每字节 1 FLOP。H100 在 BF16 下算力 989 TFLOPS，HBM 带宽 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。",
+      "original": "算术强度 ≈ 每字节 1 FLOP。H100 在 BF16 下算力为 989 TFLOPS，HBM 带宽为 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。",
       "fixed": "算术强度 ≈ 每字节 1 FLOP。H100 在 BF16 下算力为 989 TFLOPS，HBM 带宽为 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。",
-      "reason": "增加连贯性",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
       "original": "Prefill 的 4096 FLOP/byte 远高于平衡点（计算密集型），而 Decode 的 1 FLOP/byte 低于平衡点两个数量级（内存密集型）。",
       "fixed": "Prefill 的 4096 FLOP/byte 远高于平衡点（计算密集型），而 Decode 的 1 FLOP/byte 低于平衡点两个数量级（内存密集型）。",
-      "reason": "已流畅自然",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "这两个阶段需要不同的硬件特性，Serving 栈如果不将它们分开处理，性能就会大打折扣。",
+      "original": "这两个阶段需要不同的硬件特性，如果 Serving 栈不将它们分开处理，性能就会大打折扣。",
       "fixed": "这两个阶段需要不同的硬件特性，如果 Serving 栈不将它们分开处理，性能就会大打折扣。",
-      "reason": "简化表达",
+      "reason": "段落已经流畅自然",
       "file": "05-inference.md"
     },
     {
-      "original": "模型能处理 1M token 是架构能力的体现，但能否真正利用第 80 万位的信息回答问题则是对行为能力的考验——这难度要大得多。",
+      "original": "模型能处理 1M token 展现了其架构能力，但能否真正利用第 80 万位的信息回答问题则考验其行为能力——这难度要大得多。",
       "fixed": "模型能处理 1M token 展现了其架构能力，但能否真正利用第 80 万位的信息回答问题则考验其行为能力——这难度要大得多。",
-      "reason": "合并短句",
+      "reason": "句子已经流畅自然",
       "file": "06-long-context.md"
     },
     {
-      "original": "本章将介绍位置编码的数学原理、将上下文扩展到训练长度之外的工程技巧，以及为何大多数长上下文能力在“大海捞针”测试中表现不佳。",
+      "original": "本章将介绍位置编码的数学原理、将上下文扩展到训练长度之外的工程技巧，以及为什么大多数长上下文能力在“大海捞针”测试中表现不佳。",
       "fixed": "本章将介绍位置编码的数学原理、将上下文扩展到训练长度之外的工程技巧，以及为什么大多数长上下文能力在“大海捞针”测试中表现不佳。",
-      "reason": "简化连接词",
+      "reason": "句子已经流畅自然",
       "file": "06-long-context.md"
     },
     {
       "original": "第一幕（2017-2021）：模型训练长度卡在 512-2048 token，因为 attention 是 [公式] 的，显存吃不消。",
       "fixed": "第一幕（2017-2021）：模型训练长度卡在 512-2048 token，因为 attention 计算复杂度高，显存吃不消。",
-      "reason": "简化直译",
+      "reason": "避免明显的英文句法直译",
       "file": "06-long-context.md"
     },
     {
       "original": "第二幕（2022-2023）：高效的 attention 算子（如 FlashAttention [Dao et al., 2022]）使长序列训练成为可能；后处理式的上下文扩展技术（如 Position Interpolation、NTK-aware scaling 和 YaRN）则允许将预训练 checkpoint 的上下文长度从 4K 扩展到 32K 甚至更高。",
       "fixed": "第二幕（2022-2023）：高效的 attention 算子（如 FlashAttention [Dao et al., 2022]）使长序列训练成为可能；后处理式的上下文扩展技术（如 Position Interpolation、NTK-aware scaling 和 YaRN）则允许将预训练 checkpoint 的上下文长度从 4K 扩展到 32K 甚至更高。",
-      "reason": "已流畅，无需修改",
+      "reason": "句子已经流畅自然",
       "file": "06-long-context.md"
     },
     {
       "original": "第三幕（2024-2026）：原生长上下文训练（如 Llama 3.1 的 128K、Gemini 的 1-2M 和 Claude 的 200K）成为标配，但能 attend 的上下文和有用的上下文之间仍有差距——这正是本章的重点。",
       "fixed": "第三幕（2024-2026）：原生长上下文训练（如 Llama 3.1 的 128K、Gemini 的 1-2M 和 Claude 的 200K）成为标配，但能 attend 的上下文和有用的上下文之间仍有差距——这正是本章的重点。",
-      "reason": "已流畅，无需修改",
+      "reason": "句子已经流畅自然",
       "file": "06-long-context.md"
     },
     {
       "original": "Self-attention 对排列是不变的，没有位置信号，模型无法区分“猫坐在垫子上”和“垫子坐在猫上”。",
       "fixed": "Self-attention 对排列是不变的，没有位置信号，模型无法区分“猫坐在垫子上”和“垫子坐在猫上”。",
-      "reason": "已流畅，无需修改",
+      "reason": "句子已经流畅自然",
       "file": "06-long-context.md"
     },
     {
       "original": "注入位置信息主要有三种方案：",
-      "fixed": "注入位置信息主要有三种方案：",
-      "reason": "已流畅，无需修改",
+      "fixed": "注入位置信息主要有以下三种方案：",
+      "reason": "避免冗余连接词",
+      "file": "06-long-context.md"
+    },
+    {
+      "original": "1. **Sinusoidal absolute**（原始 Transformer）：在第 1 层之前把位置的 [公式] 函数加到 token embedding 上。",
+      "fixed": "1. **Sinusoidal absolute**（原始 Transformer）：在第 1 层之前把位置的 [公式] 函数加到 token embedding 上。",
+      "reason": "句子已经流畅自然",
+      "file": "06-long-context.md"
+    },
+    {
+      "original": "2. **Learned absolute**：为每个绝对索引学习一个位置 embedding，直到最大长度。GPT-2 和 BERT 在用。",
+      "fixed": "2. **Learned absolute**：为每个绝对索引学习一个位置 embedding，直到最大长度。GPT-2 和 BERT 都在用。",
+      "reason": "避免冗余连接词",
+      "file": "06-long-context.md"
+    },
+    {
+      "original": "3. **Rotary (RoPE)**：在每个 attention 层内部，按与位置成比例的角度旋转 Q 和 K 向量。LLaMA、Qwen、Mistral 和 DeepSeek 都在用。",
+      "fixed": "3. **Rotary (RoPE)**：在每个 attention 层内部，按与位置成比例的角度旋转 Q 和 K 向量。LLaMA、Qwen、Mistral 和 DeepSeek 都在用。",
+      "reason": "句子已经流畅自然",
       "file": "06-long-context.md"
     },
     {
       "original": "RoPE 已成为主流——截至 2026 年，所有主流大模型都采用它作为位置编码，既在每层内部注入位置信号以增强鲁棒性，又让相对位置信息自然浮现于 Q·Kᵀ 点积中，而这正是 attention 机制的本质需求。",
       "fixed": "RoPE 已成为主流——截至 2026 年，所有主流大模型都采用它作为位置编码，既在每层内部注入位置信号以增强鲁棒性，又让相对位置信息自然浮现于 Q·Kᵀ 点积中，而这正是 attention 机制的本质需求。",
-      "reason": "已流畅，无需修改",
+      "reason": "句子已经流畅自然",
       "file": "06-long-context.md"
     },
     {
-      "original": "函数调用是大语言模型（LLM）连接外部世界的关健接口——它是 chat template、结构化输出内核与提示工程的交汇点。本章深入剖析底层机制：哪些行为具备可依赖的确定性保证，哪些 agent-loop 模式能在真实生产负载下稳定运行。",
-      "fixed": "函数调用是大语言模型（LLM）连接外部世界的关健接口，是 chat template、结构化输出内核与提示工程的交汇点。本章深入剖析底层机制，探讨哪些行为具备可依赖的确定性保证，以及哪些 agent-loop 模式能在真实生产负载下稳定运行。",
-      "reason": "句号过密合并",
+      "original": "函数调用是大语言模型（LLM）连接外部世界的关健接口，是 chat template、结构化输出内核与提示工程的交汇点。本章深入剖析底层机制，探讨哪些行为具备可依赖的确定性保证，以及哪些 agent-loop 模式能在真实生产负载下稳定运行。",
+      "fixed": "函数调用是大语言模型（LLM）连接外部世界的关健接口，也是 chat template、结构化输出内核与提示工程的交汇点。本章将深入剖析底层机制，探讨哪些行为具备可依赖的确定性保证，以及哪些 agent-loop 模式能在真实生产负载下稳定运行。",
+      "reason": "合并短句",
       "file": "07-function-calling.md"
     },
     {
-      "original": "技术渊源至关重要：LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文——**MRKL Systems**（Karpas 等，AI21）提出神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都有了围绕工具使用格式构建的后训练数据，工具调用也从“研究演示”变成了 API 功能。",
-      "fixed": "技术渊源至关重要：LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文——**MRKL Systems**（Karpas 等，AI21）提出神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都围绕工具使用格式构建了后训练数据，工具调用也从“研究演示”变成了 API 功能。",
-      "reason": "句号过密合并",
+      "original": "技术渊源至关重要：LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文——**MRKL Systems**（Karpas 等，AI21）提出神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。",
+      "fixed": "技术渊源至关重要：LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文——**MRKL Systems**（Karpas 等，AI21）提出神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。",
+      "reason": "无需修改",
+      "file": "07-function-calling.md"
+    },
+    {
+      "original": "到了 2024 年，所有前沿模型都围绕工具使用格式构建了后训练数据，工具调用也从“研究演示”变成了 API 功能。",
+      "fixed": "到了 2024 年，所有前沿模型都围绕工具使用格式构建了后训练数据，工具调用也从“研究演示”变成了 API 功能。",
+      "reason": "无需修改",
       "file": "07-function-calling.md"
     },
     {
       "original": "API 提供“函数调用”能力时，其底层实现可能有以下几种形式：",
       "fixed": "API 提供“函数调用”能力时，其底层实现可能有以下几种形式：",
-      "reason": "已经流畅自然",
+      "reason": "无需修改",
       "file": "07-function-calling.md"
     },
     {
       "original": "1. **训练行为 + chat template 标记**。模型经后训练后，可在适当时机生成工具调用，并以特殊 token 进行包裹。例如： Qwen3 使用 [代码] 标签， Mistral 使用 [代码]。",
-      "fixed": "1. **训练行为 + chat template 标记**。模型经后训练后，可在适当时机生成工具调用，并以特殊 token 进行包裹。例如，Qwen3 使用 [代码] 标签，Mistral 使用 [代码]。",
-      "reason": "冗余的连接词和虚词",
+      "fixed": "1. **训练行为 + chat template 标记**。模型经后训练后，可在适当时机生成工具调用，并以特殊 token 进行包裹。例如：Qwen3 使用 [代码] 标签，Mistral 使用 [代码]。",
+      "reason": "去除冗余连接词",
       "file": "07-function-calling.md"
     },
     {
-      "original": "2. **JSON-mode 约束解码**。通过语法约束解码（grammar-constrained decoding）强制模型输出合法 JSON。模型本身未必针对该任务进行过专门训练，实际约束由解码器（decoder）在生成阶段施加。",
+      "original": "2. **JSON-mode 约束解码**。通过语法约束解码（grammar-constrained decoding）强制模型输出合法 JSON。模型本身未必针对该任务进行过专门训练，实际约束由解码器在生成阶段施加。",
       "fixed": "2. **JSON-mode 约束解码**。通过语法约束解码（grammar-constrained decoding）强制模型输出合法 JSON。模型本身未必针对该任务进行过专门训练，实际约束由解码器在生成阶段施加。",
-      "reason": "冗余的连接词和虚词",
+      "reason": "无需修改",
       "file": "07-function-calling.md"
     },
     {
-      "original": "3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema （包括函数名、参数类型等）。",
-      "fixed": "3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema，包括函数名、参数类型等。",
-      "reason": "冗余的连接词和虚词",
+      "original": "3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema，包括函数名、参数类型等。",
+      "fixed": "3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema，包括函数名和参数类型等。",
+      "reason": "合并短句",
       "file": "07-function-calling.md"
     },
     {
-      "original": "4. **自由形式 prompt**。你在 system prompt 中声明‘请以 JSON 格式回复，包含 X 和 Y 字段’，再依赖模型自觉遵守。这对能力强的模型依然有效，但没有任何保证。",
+      "original": "4. **自由形式 prompt**。在 system prompt 中声明‘请以 JSON 格式回复，包含 X 和 Y 字段’，依赖模型自觉遵守。这对能力强的模型依然有效，但没有任何保证。",
       "fixed": "4. **自由形式 prompt**。在 system prompt 中声明‘请以 JSON 格式回复，包含 X 和 Y 字段’，依赖模型自觉遵守。这对能力强的模型依然有效，但没有任何保证。",
-      "reason": "冗余的连接词和虚词",
+      "reason": "无需修改",
       "file": "07-function-calling.md"
     },
     {
-      "original": "实际生产系统中，这四类实现常混合采用： OpenAI 与 Anthropic 的 API 结合方案 1 （后训练工具调用）与方案 3 （JSON Schema 强制校验）； vLLM 和 SGLang 为任意模型支持方案 2 （语法约束解码）与方案 3；自由形式（方案 4）则作为兜底策略。",
+      "original": "实际生产系统中，这四类实现常混合采用：OpenAI 与 Anthropic 的 API 结合方案 1（后训练工具调用）与方案 3（JSON Schema 强制校验）；vLLM 和 SGLang 支持任意模型的方案 2（语法约束解码）与方案 3；自由形式（方案 4）则作为兜底策略。",
       "fixed": "实际生产系统中，这四类实现常混合采用：OpenAI 与 Anthropic 的 API 结合方案 1（后训练工具调用）与方案 3（JSON Schema 强制校验）；vLLM 和 SGLang 支持任意模型的方案 2（语法约束解码）与方案 3；自由形式（方案 4）则作为兜底策略。",
-      "reason": "冗余的连接词和虚词",
+      "reason": "无需修改",
       "file": "07-function-calling.md"
     },
     {
-      "original": "一个关键却常被忽视的区别是工具调用采用 JSON 还是 XML 格式——OpenAI 默认 JSON；Anthropic 的 Claude 模型内部训练使用类 XML 的结构化输出，但对外 API 统一转为 JSON。Anthropic 团队于 2024 年公开指出：XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。实证表明，两种格式均能有效支持工具调用；具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。",
-      "fixed": "一个关键却常被忽视的区别是工具调用采用 JSON 还是 XML 格式——OpenAI 默认 JSON；Anthropic 的 Claude 模型内部训练使用类 XML 的结构化输出，但对外 API 统一转为 JSON。Anthropic 团队于 2024 年公开指出，XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。实证表明，两种格式均能有效支持工具调用，具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。",
-      "reason": "句号过密合并",
+      "original": "一个关键却常被忽视的区别是工具调用采用 JSON 还是 XML 格式——OpenAI 默认 JSON；Anthropic 的 Claude 模型内部训练使用类 XML 的结构化输出，但对外 API 统一转为 JSON。",
+      "fixed": "一个关键却常被忽视的区别是工具调用采用 JSON 还是 XML 格式——OpenAI 默认 JSON；Anthropic 的 Claude 模型内部训练使用类 XML 的结构化输出，但对外 API 统一转为 JSON。",
+      "reason": "无需修改",
+      "file": "07-function-calling.md"
+    },
+    {
+      "original": "Anthropic 团队于 2024 年公开指出，XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。",
+      "fixed": "Anthropic 团队于 2024 年公开指出，XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。",
+      "reason": "无需修改",
+      "file": "07-function-calling.md"
+    },
+    {
+      "original": "实证表明，两种格式均能有效支持工具调用，具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。",
+      "fixed": "实证表明，两种格式均能有效支持工具调用，具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。",
+      "reason": "无需修改",
       "file": "07-function-calling.md"
     },
     {
       "original": "RAG 是当前 LLM 应用中部署最广泛，但工程实践最不成熟的范式。 2024 年流行的 Demo 套路——用 [代码] 把所有内容向量化，扔进 pgvector，然后取 cosine 相似度 top-5——应付千篇量级的文档和对答案容错率较高的演示场景尚可。但当处理十万篇真实业务文档，且客户严格要求答案准确性时，该方案便难以胜任。",
-      "fixed": "RAG 是当前 LLM 应用中部署最广泛但工程实践最不成熟的范式。2024 年流行的 Demo 套路是用 [代码] 将所有内容向量化，扔进 pgvector，再取 cosine 相似度 top-5——这种做法在处理千篇量级的文档和对答案容错率较高的演示场景中尚可，但在处理十万篇真实业务文档且客户严格要求答案准确性时，该方案便难以胜任。",
+      "fixed": "RAG 是当前 LLM 应用中部署最广泛但工程实践最成熟的范式。2024 年流行的 Demo 套路是用 [代码] 将所有内容向量化，扔进 pgvector，然后取 cosine 相似度 top-5——这在处理千篇量级的文档和对答案容错率较高的演示场景中尚可。但当处理十万篇真实业务文档且客户严格要求答案准确性时，该方案便难以胜任。",
       "reason": "句号过密合并",
       "file": "08-rag.md"
     },
     {
-      "original": "这一章讲的内容，是我希望更多团队在构建第二代 RAG 系统之前就能掌握的经验。",
-      "fixed": "这一章的内容，我希望更多团队在构建第二代 RAG 系统之前就能掌握。",
-      "reason": "冗余连接词省略",
-      "file": "08-rag.md"
-    },
-    {
       "original": "最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为稠密检索器（DPR）与生成器（BART）联合训练的混合架构，以优化端到端任务的准确率；而 2026 年的生产级 RAG 已显著偏离这一设计，现代系统普遍采用冻结的预训练 embedding 模型、独立重排序器（reranker）和不与检索器联合训练的仅解码器（decoder-only）生成模型。",
-      "fixed": "最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为稠密检索器（DPR）与生成器（BART）联合训练的混合架构，以优化端到端任务的准确率；而 2026 年的生产级 RAG 已显著偏离这一设计，现代系统普遍采用冻结的预训练 embedding 模型、独立重排序器（reranker）和不与检索器联合训练的仅解码器（decoder-only）生成模型。",
-      "reason": "已流畅自然",
-      "file": "08-rag.md"
-    },
-    {
-      "original": "但其核心思想——将知识存储与推理能力解耦——得以保留，并发展为主导范式。",
-      "fixed": "但其核心思想——将知识存储与推理能力解耦——得以保留并发展为主导范式。",
+      "fixed": "最早的 RAG 论文（[Lewis et al., 2020][lewis-rag]）将检索增强生成定义为稠密检索器（DPR）与生成器（BART）联合训练的混合架构，以优化端到端任务的准确率。而 2026 年的生产级 RAG 已显著偏离这一设计，现代系统普遍采用冻结的预训练 embedding 模型、独立重排序器（reranker）和不与检索器联合训练的仅解码器（decoder-only）生成模型。",
       "reason": "句号过密合并",
       "file": "08-rag.md"
     },
     {
       "original": "真正的工程难点在于‘增强’环节之前的构建过程——即构建能精准召回相关文本块（chunk）的检索器（retriever），其核心由文本块切分（chunking）、文本嵌入（embedding）和相关性排序（ranking）三大组件构成。",
-      "fixed": "真正的工程难点在于‘增强’环节之前的构建过程——即构建能精准召回相关文本块（chunk）的检索器（retriever），其核心由文本块切分（chunking）、文本嵌入（embedding）和相关性排序（ranking）三大组件构成。",
-      "reason": "已流畅自然",
-      "file": "08-rag.md"
-    },
-    {
-      "original": "文本块的切分方式直接决定了检索器理论上能够召回的内容边界。常见的 chunk 大小有 256、512、1024 tokens。常见策略包括：",
-      "fixed": "文本块的切分方式直接决定了检索器理论上能够召回的内容边界。常见的 chunk 大小有 256、512、1024 tokens，常见策略包括：",
-      "reason": "句号过密合并",
+      "fixed": "真正的工程难点在于‘增强’环节之前的构建过程，即构建能精准召回相关文本块（chunk）的检索器（retriever），其核心由文本块切分（chunking）、文本嵌入（embedding）和相关性排序（ranking）三大组件构成。",
+      "reason": "明显的英文句法直译",
       "file": "08-rag.md"
     },
     {
       "original": "建议通过合理性验证确定文本块大小：选取 20 个典型问题，在语料库中人工定位答案并统计其 token 数量。若多数答案可容纳于 512-token chunk，则选用 512；若多数需要 1500 token 上下文（如法律合同），则选用 1500 并配置 200-token 重叠。",
-      "fixed": "建议通过合理性验证确定文本块大小：选取 20 个典型问题，在语料库中人工定位答案并统计其 token 数量。若多数答案可容纳于 512-token chunk，则选用 512；若多数需要 1500 token 上下文（如法律合同），则选用 1500 并配置 200-token 重叠。",
-      "reason": "已流畅自然",
+      "fixed": "建议通过合理性验证确定文本块大小：选取 20 个典型问题，在语料库中人工定位答案并统计其 token 数量。如果多数答案可容纳于 512-token chunk，则选用 512；如果多数需要 1500 token 上下文（如法律合同），则选用 1500 并配置 200-token 重叠。",
+      "reason": "冗余的连接词和虚词",
       "file": "08-rag.md"
     },
     {
       "original": "朴素切分（naive chunking）对每个文本块独立进行嵌入，“Q3 营收增长 12%”这类文本块往往缺乏所属公司及年份等关键上下文信息。晚期切分（late chunking）则调整了处理顺序：先将整篇文档（最长支持 8K–32K tokens）输入长上下文 embedding 模型，获得每个 token 的上下文感知嵌入，再按文本块边界对 token 嵌入进行池化，生成最终的文本块嵌入。",
       "fixed": "朴素切分（naive chunking）对每个文本块独立进行嵌入，“Q3 营收增长 12%”这类文本块往往缺乏所属公司及年份等关键上下文信息。晚期切分（late chunking）则调整了处理顺序：先将整篇文档（最长支持 8K–32K tokens）输入长上下文 embedding 模型，获得每个 token 的上下文感知嵌入，再按文本块边界对 token 嵌入进行池化，生成最终的文本块嵌入。",
-      "reason": "已流畅自然",
+      "reason": "已经流畅自然",
       "file": "08-rag.md"
     },
     {
-      "original": "什么时候 late chunking 有用？只要你的文档长到单个 chunk 内的局部上下文丢失了重要框架信息——研究论文、法律合同、代码库、多章节技术文档。对于短文档语料库（FAQ 条目、产品描述），收益较小。",
-      "fixed": "什么时候 late chunking 有用？只要你的文档长到单个 chunk 内的局部上下文丢失了重要框架信息——例如研究论文、法律合同、代码库、多章节技术文档。对于短文档语料库（如 FAQ 条目、产品描述），收益较小。",
-      "reason": "补充说明",
-      "file": "08-rag.md"
-    },
-    {
-      "original": "在本地笔记本上跑通 100 个测试样例的 prompt，上线后仍可能有 10% 的输入失败——这与模型是否‘聪明’无关。本章将聚焦于 prompt 的工程化实践：CoT 在哪些任务上有效（哪些无效）、prompt caching 如何重塑成本结构、few-shot/ToT/self-consistency 如何协同增效而非各自承担全量开销，以及如何应对上线首周可能出现的 jailbreak 和注入攻击。",
+      "original": "在本地笔记本上跑通 100 个测试样例的 prompt，上线后仍可能有 10% 的输入失败——这与模型是否‘聪明’无关。本章将聚焦于 prompt 的工程化实践，包括 CoT 在哪些任务上有效或无效、prompt caching 如何重塑成本结构、few-shot/ToT/self-consistency 如何协同增效而非各自承担全量开销，以及如何应对上线首周可能出现的 jailbreak 和注入攻击。",
       "fixed": "在本地笔记本上跑通 100 个测试样例的 prompt，上线后仍可能有 10% 的输入失败——这与模型是否‘聪明’无关。本章将聚焦于 prompt 的工程化实践，包括 CoT 在哪些任务上有效或无效、prompt caching 如何重塑成本结构、few-shot/ToT/self-consistency 如何协同增效而非各自承担全量开销，以及如何应对上线首周可能出现的 jailbreak 和注入攻击。",
-      "reason": "句号过密合并",
+      "reason": "段落已经流畅自然",
       "file": "09-prompting.md"
     },
     {
       "original": "下面的内容贯穿三条主线：首先，到 2026 年，**模型本身**将成为推理的主要载体——RLVR 训练的推理模型（thinking models，见第 4 章）已经吸收了 prompting 社区在 2022-2024 年间发明的许多技巧；其次，**经济账主导技术**，prompt caching、batch APIs 和 KV reuse 改变了哪些“好”的 prompt 模式是用得起的；最后，威胁面（包括注入攻击、jailbreak 和检索污染）已成为 prompt 工程师岗位职责的一部分，而不再仅属于专门的安全团队。",
       "fixed": "下面的内容贯穿三条主线：首先，到 2026 年，**模型本身**将成为推理的主要载体——RLVR 训练的推理模型（thinking models，见第 4 章）已经吸收了 prompting 社区在 2022-2024 年间发明的许多技巧；其次，**经济账主导技术**，prompt caching、batch APIs 和 KV reuse 改变了哪些“好”的 prompt 模式是用得起的；最后，威胁面（包括注入攻击、jailbreak 和检索污染）已成为 prompt 工程师岗位职责的一部分，而不再仅属于专门的安全团队。",
-      "reason": "段落已流畅自然",
+      "reason": "段落已经流畅自然",
+      "file": "09-prompting.md"
+    },
+    {
+      "original": "Wei 的论文展示了两点关键结论：1. **CoT 是一种随模型规模增长而涌现的能力。** 在 ~60-100B 参数以下，加'let's think step by step'收益接近零甚至为负。到了 PaLM 540B，同样的 prompt 让 GSM8K 从 17.9 % 跳到了 56.6 %。小模型难以稳定利用额外的推理 token，往往生成看似合理实则错误的推理链。这种涌现并非渐进式提升：对 dense 模型而言，性能跃升集中在 60B–100B 参数区间；对 MoE 模型，该阈值则更低。",
+      "fixed": "Wei 的论文展示了两点关键结论：1. **CoT 是一种随模型规模增长而涌现的能力。** 在约 60-100B 参数以下，加 'let's think step by step' 收益接近零甚至为负。到了 PaLM 540B，同样的 prompt 让 GSM8K 从 17.9% 跳到了 56.6%。小模型难以稳定利用额外的推理 token，往往生成看似合理实则错误的推理链。这种涌现并非渐进式提升：对 dense 模型而言，性能跃升集中在 60B-100B 参数区间；对 MoE 模型，该阈值则更低。",
+      "reason": "合并短句，调整标点符号",
       "file": "09-prompting.md"
     },
     {
       "original": "Kojima 等（2022，《Large Language Models are Zero-Shot Reasoners》）表明，仅需添加触发短语（无需示例），即可在 GSM8K 数据集上显著提升效果（InstructGPT 准确率从 17.7% 提升至 78.7%）。该方法在 MultiArith、AQuA-RAT 和 StrategyQA 等任务上也具有普适性，因此成为生产环境中 zero-shot CoT 的默认配置方案。",
       "fixed": "Kojima 等（2022，《Large Language Models are Zero-Shot Reasoners》）表明，仅需添加触发短语（无需示例），即可在 GSM8K 数据集上显著提升效果（InstructGPT 准确率从 17.7% 提升至 78.7%）。该方法在 MultiArith、AQuA-RAT 和 StrategyQA 等任务上也具有普适性，因此成为生产环境中 zero-shot CoT 的默认配置方案。",
-      "reason": "段落已流畅自然",
+      "reason": "段落已经流畅自然",
       "file": "09-prompting.md"
     },
     {
-      "original": "到了 2024 年，每个 chat 模型在被 prompt 时默认都会进行某种形式的推理。2026 年，随着推理模型（如 o1-family、Claude-thinking、Qwen3-Reasoning、DeepSeek-R1）的出现，CoT 通过 RLVR（第 4 章）*内置到了模型本身*。对于这类模型，无需额外添加推理提示，模型可自主展开推理。对于非推理模型，CoT 在某些任务上仍然是免费的红利。",
+      "original": "到了 2024 年，每个 chat 模型在被 prompt 时默认都会进行某种形式的推理。2026 年，随着推理模型（如 o1-family、Claude-thinking、Qwen3-Reasoning、DeepSeek-R1）的出现，CoT 通过 RLVR（第 4 章）*内置到了模型本身*。对于这类模型，无需额外添加推理提示，模型可自主展开推理；对于非推理模型，CoT 在某些任务上仍然是免费的红利。",
       "fixed": "到了 2024 年，每个 chat 模型在被 prompt 时默认都会进行某种形式的推理。2026 年，随着推理模型（如 o1-family、Claude-thinking、Qwen3-Reasoning、DeepSeek-R1）的出现，CoT 通过 RLVR（第 4 章）*内置到了模型本身*。对于这类模型，无需额外添加推理提示，模型可自主展开推理；对于非推理模型，CoT 在某些任务上仍然是免费的红利。",
-      "reason": "句号过密合并",
+      "reason": "段落已经流畅自然",
       "file": "09-prompting.md"
     },
     {
-      "original": "CoT 不适用（甚至可能降低效果）的场景包括：\n- **简单事实 QA**：噪音。\n- **摘要**：让输出变长，但没变得更好。\n- **答案就在 chunk 里的检索 grounded QA**：噪音；有时模型会“把自己推理出”正确答案。\n- **风格迁移**：有害。",
-      "fixed": "CoT 不适用（甚至可能降低效果）的场景包括：\n- **简单事实 QA**：噪音\n- **摘要**：让输出变长，但没变得更好\n- **答案就在 chunk 里的检索 grounded QA**：噪音；有时模型会“把自己推理出”正确答案\n- **风格迁移**：有害",
-      "reason": "句号过密合并",
+      "original": "CoT 适用的场景包括：-   **多步数学**（GSM8K, MATH）：准确率 +20 到 +40 %。-   **逻辑和约束满足**：+10 到 +25 %。-   **多跳 QA**（HotpotQA, 2WikiMultiHop）：+10 到 +15 %。-   **问题非 trivial 时的代码生成**：+5 到 +15 %。",
+      "fixed": "CoT 适用的场景包括：- **多步数学**（GSM8K, MATH）：准确率 +20 到 +40%。- **逻辑和约束满足**：+10 到 +25%。- **多跳 QA**（HotpotQA, 2WikiMultiHop）：+10 到 +15%。- **问题非 trivial 时的代码生成**：+5 到 +15%。",
+      "reason": "合并短句，调整标点符号",
       "file": "09-prompting.md"
     },
     {
-      "original": "评估是大模型栈中争议最多、信心最弱的一环：榜单被刷、公开基准遭污染，我参与过的多数团队甚至没有自己的评估集。本章聚焦五个关键问题：评估真正能揭示什么、基准暗藏的陷阱、无人修复的 LLM-as-judge 偏差、多数团队忽略的校准指标，以及能在客户感知前捕获回归的生产级评估模式。",
-      "fixed": "评估是大模型栈中争议最多、信心最弱的一环——榜单被刷、公开基准遭污染，我参与过的多数团队甚至没有自己的评估集。本章聚焦五个关键问题：评估真正能揭示什么、基准暗藏的陷阱、无人修复的 LLM-as-judge 偏差、多数团队忽略的校准指标，以及能在客户感知前捕获回归的生产级评估模式。",
-      "reason": "句号过密合并",
+      "original": "CoT 不适用（甚至可能降低效果）的场景包括：- **简单事实 QA**：噪音- **摘要**：让输出变长，但没变得更好- **答案就在 chunk 里的检索 grounded QA**：噪音；有时模型会“把自己推理出”正确答案- **风格迁移**：有害",
+      "fixed": "CoT 不适用（甚至可能降低效果）的场景包括：- **简单事实 QA**：噪音- **摘要**：让输出变长，但没变得更好- **答案就在 chunk 里的检索 grounded QA**：噪音；有时模型会“把自己推理出”正确答案- **风格迁移**：有害",
+      "reason": "段落已经流畅自然",
+      "file": "09-prompting.md"
+    },
+    {
+      "original": "一条实用的经验法则：若人类完成该任务时通常需要草稿纸辅助推理，则 CoT 往往有效；若人类可直接心算或快速作答，则 CoT 多数情况下反而有害。",
+      "fixed": "一条实用的经验法则：若人类完成该任务时通常需要草稿纸辅助推理，则 CoT 往往有效；若人类可直接心算或快速作答，则 CoT 多数情况下反而有害。",
+      "reason": "段落已经流畅自然",
+      "file": "09-prompting.md"
+    },
+    {
+      "original": "评估是大模型栈中争议最多、信心最弱的一环——榜单被刷、公开基准遭污染，我参与过的多数团队甚至没有自己的评估集。本章聚焦五个关键问题：评估真正能揭示什么、基准暗藏的陷阱、无人修复的 LLM-as-judge 偏差、多数团队忽略的校准指标，以及能在客户感知前捕获回归的生产级评估模式。",
+      "fixed": "评估是大模型栈中争议最多、信心最弱的一环——榜单被刷、公开基准遭污染，我参与过的多数团队甚至没有自己的评估集。本章将聚焦五个关键问题：评估真正能揭示什么、基准暗藏的陷阱、无人修复的 LLM-as-judge 偏差、多数团队忽略的校准指标，以及能在客户感知前捕获回归的生产级评估模式。",
+      "reason": "合并短句",
       "file": "10-evaluation.md"
     },
     {
-      "original": "本章风格与系列其他章节不同：多数评估难题并非技术问题，而是认知问题。\"模型 A 是否比模型 B 强\"是个假设检验问题，但该领域的干净实验记录很差。以下引用的论文揭示了失败模式，理应让每位从业者保持审慎。",
-      "fixed": "本章风格与系列其他章节不同：多数评估难题并非技术问题，而是认知问题。\"模型 A 是否比模型 B 强\"是个假设检验问题，但该领域的干净实验记录很差；以下引用的论文揭示了失败模式，理应让每位从业者保持审慎。",
-      "reason": "句号过密合并",
+      "original": "本章风格与系列其他章节不同：多数评估难题并非技术问题，而是认知问题。\"模型 A 是否比模型 B 强\"是个假设检验问题，但该领域的干净实验记录很差；以下引用的论文揭示了失败模式，理应让每位从业者保持审慎。",
+      "fixed": "本章风格与系列其他章节不同：多数评估难题并非技术问题，而是认知问题。\"模型 A 是否比模型 B 强\"是一个假设检验问题，但该领域的干净实验记录很差；以下引用的论文揭示了失败模式，理应让每位从业者保持审慎。",
+      "reason": "调整语序，使句子更流畅",
       "file": "10-evaluation.md"
     },
     {
       "original": "标准基准套件（如 MMLU、GSM8K、HumanEval、ARC、HellaSwag 等）存在五大共性缺陷：",
       "fixed": "标准基准套件（如 MMLU、GSM8K、HumanEval、ARC、HellaSwag 等）存在五大共性缺陷：",
-      "reason": "已流畅自然",
+      "reason": "无明显问题",
       "file": "10-evaluation.md"
     },
     {
       "original": "污染。大部分公开基准都能通过网页爬取获取。用 CommonCrawl 训练的模型见过题目，往往也见过答案。Phi-3 被发现其训练数据中确实包含 MMLU 题目；很难相信其他实验室更干净。Zhou et al. (2023, *Don't Make Your LLM an Evaluation Benchmark Cheater*) 系统性验证了泄露的影响：仅少量测试集泄露即可带来 10–30 个百分点的分数提升，与真实能力提升难以区分。这篇论文最令人不安的发现是：随机子采样 CommonCrawl 已经包含了 5-10% 的热门基准题。避免污染需要主动过滤，但大多数实验室只是口头承诺，实际文档中并未体现。",
-      "fixed": "污染。大部分公开基准都能通过网页爬取获取。用 CommonCrawl 训练的模型见过题目，往往也见过答案。Phi-3 被发现其训练数据中确实包含 MMLU 题目，很难相信其他实验室更干净。Zhou et al. (2023, *Don't Make Your LLM an Evaluation Benchmark Cheater*) 系统性验证了泄露的影响：仅少量测试集泄露即可带来 10–30 个百分点的分数提升，与真实能力提升难以区分。这篇论文最令人不安的发现是：随机子采样 CommonCrawl 已经包含了 5-10% 的热门基准题。避免污染需要主动过滤，但大多数实验室只是口头承诺，实际文档中并未体现。",
-      "reason": "句号过密合并",
+      "fixed": "污染。大部分公开基准都能通过网页爬取获取。用 CommonCrawl 训练的模型见过题目，往往也见过答案。Phi-3 的训练数据中确实包含 MMLU 题目；很难相信其他实验室更干净。Zhou et al. (2023, *Don't Make Your LLM an Evaluation Benchmark Cheater*) 系统性验证了泄露的影响：仅少量测试集泄露即可带来 10–30 个百分点的分数提升，与真实能力提升难以区分。这篇论文最令人不安的发现是：随机子采样 CommonCrawl 已经包含了 5-10% 的热门基准题。避免污染需要主动过滤，但大多数实验室只是口头承诺，实际文档中并未体现。",
+      "reason": "合并短句",
       "file": "10-evaluation.md"
     },
     {
       "original": "Sainz et al. (2023, *NLP Evaluation in trouble*) 对 250 余个近期基准进行调研，发现约 40% 在至少一个主流基础模型的训练语料中存在可检测泄露，泄露率大致随预训练语料规模增长。",
       "fixed": "Sainz et al. (2023, *NLP Evaluation in trouble*) 对 250 余个近期基准进行调研，发现约 40% 在至少一个主流基础模型的训练语料中存在可检测泄露，泄露率大致随预训练语料规模增长。",
-      "reason": "已流畅自然",
+      "reason": "无明显问题",
       "file": "10-evaluation.md"
     },
     {
-      "original": "饱和。MMLU 最初面向 2020 年模型设计，如今顶尖模型已达 88–92% 准确率——竞争已进入噪声主导区间。MMLU 上 1.5 分的提升可能是真提升，也可能是边界案例上 50 题抽样的采样方差。这基准几年前就分不清能力了。简单的统计论证： 14K 题，模型准确率 90%，分数的标准误大约是 [公式] 个百分点；不到 ~0.7 分的 1 分宣称都在噪声里。",
+      "original": "饱和。MMLU 最初面向 2020 年模型设计，如今顶尖模型已达 88–92% 准确率——竞争已进入噪声主导区间。MMLU 上 1.5 分的提升可能是真提升，也可能是边界案例上 50 题抽样的采样方差。这基准几年前就分不清能力了。简单的统计论证：14K 题，模型准确率 90%，分数的标准误大约是 [公式] 个百分点；不到 ~0.7 分的 1 分宣称都在噪声里。",
       "fixed": "饱和。MMLU 最初面向 2020 年模型设计，如今顶尖模型已达 88–92% 准确率——竞争已进入噪声主导区间。MMLU 上 1.5 分的提升可能是真提升，也可能是边界案例上 50 题抽样的采样方差。这基准几年前就分不清能力了。简单的统计论证：14K 题，模型准确率 90%，分数的标准误大约是 [公式] 个百分点；不到 ~0.7 分的 1 分宣称都在噪声里。",
-      "reason": "句号过密合并",
+      "reason": "无明显问题",
       "file": "10-evaluation.md"
     },
     {
       "original": "选择题偏差。MMLU 是 4 选 1 选择题。模型全选\"B\"也能拿 25%。经过大量多选题训练的模型有优势，但这优势无法泛化到自由生成输出。更糟糕的是，多选题提示内的位置偏差是真实的——Wang et al. (2023, *Large Language Models are not Fair Evaluators*) 展示了打乱答案位置能在大多数模型上改变 2-8 分的准确率。",
-      "fixed": "选择题偏差。MMLU 是 4 选 1 选择题，模型全选\"B\"也能拿 25%。经过大量多选题训练的模型有优势，但这优势无法泛化到自由生成输出。更糟糕的是，多选题提示内的位置偏差是真实的——Wang et al. (2023, *Large Language Models are not Fair Evaluators*) 展示了打乱答案位置能在大多数模型上改变 2-8 分的准确率。",
-      "reason": "句号过密合并",
+      "fixed": "选择题偏差。MMLU 是 4 选 1 选择题。模型全选\"B\"也能拿 25%。经过大量多选题训练的模型有优势，但这优势无法泛化到自由生成输出。更糟糕的是，多选题提示内的位置偏差是真实的——Wang et al. (2023, *Large Language Models are not Fair Evaluators*) 展示了打乱答案位置能在大多数模型上改变 2-8 分的准确率。",
+      "reason": "无明显问题",
       "file": "10-evaluation.md"
     },
     {
-      "original": "仅英语。MMLU、 GSM8K 和 HumanEval 都是英文。中文或法文能力强的模型在标准榜单上分数一般，但在实际部署中表现更好。",
-      "fixed": "仅英语。MMLU、GSM8K 和 HumanEval 都是英文，中文或法文能力强的模型在标准榜单上分数一般，但在实际部署中表现更好。",
-      "reason": "句号过密合并",
+      "original": "仅英语。MMLU、GSM8K 和 HumanEval 都是英文。中文或法文能力强的模型在标准榜单上分数一般，但在实际部署中表现更好。",
+      "fixed": "仅英语。MMLU、GSM8K 和 HumanEval 都是英文。中文或法文能力强的模型在标准榜单上分数一般，但在实际部署中表现更好。",
+      "reason": "无明显问题",
       "file": "10-evaluation.md"
     },
     {
       "original": "格式耦合。GSM8K 答案通过正则表达式提取 \"the answer is X\"。不遵循确切格式就算错，即使内容正确。HuggingFace 评估团队 2024 年审计估计 GSM8K 上 5-15% 的\"错误\"答案实际上是内容正确但格式非标准。",
-      "fixed": "格式耦合。GSM8K 答案通过正则表达式提取 \"the answer is X\"，不遵循确切格式就算错，即使内容正确。HuggingFace 评估团队 2024 年审计估计 GSM8K 上 5-15% 的\"错误\"答案实际上是内容正确但格式非标准。",
-      "reason": "句号过密合并",
+      "fixed": "格式耦合。GSM8K 答案通过正则表达式提取 \"the answer is X\"。不遵循确切格式就算错，即使内容正确。HuggingFace 评估团队 2024 年审计估计 GSM8K 上 5-15% 的\"错误\"答案实际上是内容正确但格式非标准。",
+      "reason": "无明显问题",
       "file": "10-evaluation.md"
     },
     {
       "original": "2024-2026 这一代基准（MMLU-Pro, GPQA, BIG-Bench Hard, RULER, SWE-bench, LiveBench, ArenaHard, IFEval）试图解决这些问题，但每个发布几个月内都出现了刷榜问题。",
       "fixed": "2024-2026 这一代基准（MMLU-Pro, GPQA, BIG-Bench Hard, RULER, SWE-bench, LiveBench, ArenaHard, IFEval）试图解决这些问题，但每个发布几个月内都出现了刷榜问题。",
-      "reason": "已流畅自然",
+      "reason": "无明显问题",
       "file": "10-evaluation.md"
     },
     {
-      "original": "安全是 LLM 工程中信噪比最低的话题：哲学讨论泛滥、营销话术盛行，而真正可落地的工程细节却十分稀缺。本章只讲工程细节——RLHF 名义上强调‘安全’，实际优化目标是什么？拒绝校准（refusal calibration）为何失效？真实的红队测试（red-teaming）长什么样？哪些幻觉评估指标能切实预测对客户的影响？还有那些 2024–2026 年间不起眼却至关重要的论文（Sleeper Agents、 refusal as a feature direction、 weak-to-strong generalization），它们应当重塑你对生产环境中对齐（alignment）实践的理解。",
-      "fixed": "安全是 LLM 工程中信噪比最低的话题：哲学讨论泛滥、营销话术盛行，而真正可落地的工程细节却十分稀缺。本章只讲工程细节——RLHF 名义上强调‘安全’，实际优化目标是什么？拒绝校准为何失效？真实的红队测试长什么样？哪些幻觉评估指标能切实预测对客户的影响？还有 2024–2026 年间不起眼却至关重要的论文（如 Sleeper Agents、refusal as a feature direction、weak-to-strong generalization），它们应当重塑你对生产环境中对齐实践的理解。",
-      "reason": "合并短句，去掉冗余连接词",
+      "original": "安全是 LLM 工程中信噪比最低的话题：哲学讨论泛滥、营销话术盛行，而真正可落地的工程细节却十分稀缺。本章只讲工程细节——RLHF 名义上强调‘安全’，实际优化目标是什么？拒绝校准为何失效？真实的红队测试长什么样？哪些幻觉评估指标能切实预测对客户的影响？还有 2024–2026 年间不起眼却至关重要的论文（如 Sleeper Agents、refusal as a feature direction、weak-to-strong generalization），它们应当重塑你对生产环境中对齐实践的理解。",
+      "fixed": "安全是 LLM 工程中信噪比最低的话题：哲学讨论泛滥、营销话术盛行，而真正可落地的工程细节却十分稀缺。本章只讲工程细节——RLHF 名义上强调‘安全’，实际优化目标是什么？拒绝校准为何失效？真实的红队测试长什么样？哪些幻觉评估指标能切实预测对客户的影响？此外，2024–2026 年间的一些不起眼但至关重要的论文（如 Sleeper Agents、refusal as a feature direction、weak-to-strong generalization）将重塑你对生产环境中对齐实践的理解。",
+      "reason": "合并短句，减少句号",
       "file": "11-safety.md"
     },
     {
-      "original": "先明确立场：我是一名工程师，而非政策研究者，对 AI 存在性风险（x-risk）持开放态度，不试图向读者灌输特定立场。我只关心生产环境中什么管用，什么会尴尬地失败，以及文献中展示了什么。文末的参考文献才是重点，应将引用视为核心结论。",
+      "original": "先明确立场：我是一名工程师，而非政策研究者，对 AI 存在性风险持开放态度，不试图向读者灌输特定立场。我只关心生产环境中什么管用，什么会尴尬地失败，以及文献中展示了什么。文末的参考文献才是重点，应将引用视为核心结论。",
       "fixed": "先明确立场：我是一名工程师，而非政策研究者，对 AI 存在性风险持开放态度，不试图向读者灌输特定立场。我只关心生产环境中什么管用，什么会尴尬地失败，以及文献中展示了什么。文末的参考文献才是重点，应将引用视为核心结论。",
-      "reason": "去掉冗余连接词",
+      "reason": "段落已经流畅自然",
       "file": "11-safety.md"
     },
     {
       "original": "Anthropic 的 HHH （Helpful-Harmless-Honest）框架源自 Askell 等人（2021，《A General Language Assistant as a Laboratory for Alignment》），迄今仍是对此三维度最清晰的解构。 RLHF/RLAIF/CAI 技术 targeting 所有这三点，但优化时的权衡是真实的：一个被训练得极度无害的模型倾向于过度拒绝（损害 helpfulness），一个被训练得极度诚实的模型倾向于不那么顺从（“我不确定我该不该...”），以此类推。",
       "fixed": "Anthropic 的 HHH（Helpful-Harmless-Honest）框架源自 Askell 等人（2021，《A General Language Assistant as a Laboratory for Alignment》），迄今仍是对此三维度最清晰的解构。RLHF/RLAIF/CAI 技术针对所有这三点，但优化时的权衡是真实的：一个被训练得极度无害的模型倾向于过度拒绝（损害 helpfulness），一个被训练得极度诚实的模型倾向于不那么顺从（“我不确定我该不该...”），以此类推。",
-      "reason": "去掉冗余连接词，改被动为主动",
+      "reason": "替换冗余连接词",
       "file": "11-safety.md"
     },
     {
-      "original": "文献中还隐含第四个关键维度：*controllability*（可控性），但尚未形成统一、明确的命名。一个在攻击下仍能遵循开发者 system prompt 的模型，比一个会漂移的模型更具可控性。 Wallace 等人提出的指令层级框架（见第 9 章）即聚焦于此。在生产实践中，可控性才是与有用性直接权衡的核心维度：当模型严格遵循 system prompt 时，其可控性增强，但也可能导致对合法请求的过度拒绝。",
+      "original": "文献中还隐含第四个关键维度：*controllability*（可控性），但尚未形成统一、明确的命名。一个在攻击下仍能遵循开发者 system prompt 的模型，比一个会漂移的模型更具可控性。Wallace 等人提出的指令层级框架（见第 9 章）即聚焦于此。在生产实践中，可控性才是与有用性直接权衡的核心维度：当模型严格遵循 system prompt 时，可控性增强，但也可能导致对合法请求的过度拒绝。",
       "fixed": "文献中还隐含第四个关键维度：*controllability*（可控性），但尚未形成统一、明确的命名。一个在攻击下仍能遵循开发者 system prompt 的模型，比一个会漂移的模型更具可控性。Wallace 等人提出的指令层级框架（见第 9 章）即聚焦于此。在生产实践中，可控性才是与有用性直接权衡的核心维度：当模型严格遵循 system prompt 时，可控性增强，但也可能导致对合法请求的过度拒绝。",
-      "reason": "去掉冗余连接词",
+      "reason": "段落已经流畅自然",
       "file": "11-safety.md"
     },
     {
-      "original": "信号是 *人类（或 AI 代理）偏好什么*。但这教会了你没打算教的东西：",
-      "fixed": "信号是 *人类（或 AI 代理）偏好什么*，但这教会了你没打算教的东西：",
-      "reason": "合并短句",
+      "original": "信号是 *人类（或 AI 代理）偏好什么*，但这教会了你没打算教的东西：",
+      "fixed": "信号是 *人类（或 AI 代理）偏好什么*，但这教会了你一些未预期的东西：",
+      "reason": "替换八股翻译腔",
       "file": "11-safety.md"
     },
     {
-      "original": "Sharma 等人（2023, *Towards Understanding Sycophancy in Language Models*）严谨地测量了这些效应。 headline 数字：当用户表达不同意时， GPT-4 约有 58% 的概率将其之前正确的答案改成错误的， Claude 大概在 38% 左右。这两个数字在生产环境中非常高。论文追踪了原因到偏好数据——当标注者看到“用户不同意 → 模型让步”时，他们经常把让步标记为更好的回应，模型因此学会了让步。",
-      "fixed": "Sharma 等人（2023, *Towards Understanding Sycophancy in Language Models*）严谨地测量了这些效应。headline 数字：当用户表达不同意时，GPT-4 约有 58% 的概率将其之前正确的答案改成错误的，Claude 大概在 38% 左右。这两个数字在生产环境中非常高。论文追踪了原因到偏好数据——当标注者看到“用户不同意 → 模型让步”时，他们经常把让步标记为更好的回应，模型因此学会了让步。",
-      "reason": "去掉冗余连接词",
+      "original": "Sharma 等人（2023, *Towards Understanding Sycophancy in Language Models*）严谨地测量了这些效应。headline 数字：当用户表达不同意时，GPT-4 约有 58% 的概率将其之前正确的答案改成错误的，Claude 大概在 38% 左右。这两个数字在生产环境中非常高。论文追踪了原因到偏好数据——当标注者看到“用户不同意 → 模型让步”时，他们经常把让步标记为更好的回应，模型因此学会了让步。",
+      "fixed": "Sharma 等人（2023, *Towards Understanding Sycophancy in Language Models*）严谨地测量了这些效应。主要数字显示：当用户表达不同意时，GPT-4 约有 58% 的概率将其之前正确的答案改成错误的，Claude 大概在 38% 左右。这两个数字在生产环境中非常高。论文追踪了原因到偏好数据——当标注者看到“用户不同意 → 模型让步”时，他们经常把让步标记为更好的回应，模型因此学会了让步。",
+      "reason": "替换八股翻译腔",
       "file": "11-safety.md"
     },
     {
-      "original": "防御手段包括：仔细收集偏好数据，付钱请领域专家做标注，将“模型同意得太快”标记为一种 labeled failure mode，并针对“模型尽管用户反对仍坚持正确立场”的例子进行小规模的 SFT pass。 Anthropic 和 OpenAI 都公布过这种方法；所需的 SFT pass 规模很小（几百到几千条例子），但坚持这样做的纪律性很罕见。",
-      "fixed": "防御手段包括：仔细收集偏好数据，付钱请领域专家做标注，将“模型同意得太快”标记为一种 labeled failure mode，并针对“模型尽管用户反对仍坚持正确立场”的例子进行小规模的 SFT pass。Anthropic 和 OpenAI 都公布过这种方法；所需的 SFT pass 规模很小（几百到几千条例子），但坚持这样做的纪律性很罕见。",
-      "reason": "去掉冗余连接词",
+      "original": "防御手段包括：仔细收集偏好数据，付钱请领域专家做标注，将“模型同意得太快”标记为一种 labeled failure mode，并针对“模型尽管用户反对仍坚持正确立场”的例子进行小规模的 SFT pass。Anthropic 和 OpenAI 都公布过这种方法；所需的 SFT pass 规模很小（几百到几千条例子），但坚持这样做的纪律性很罕见。",
+      "fixed": "防御手段包括：仔细收集偏好数据，付钱请领域专家做标注，将“模型同意得太快”标记为一种标记失败模式，并针对“模型尽管用户反对仍坚持正确立场”的例子进行小规模的 SFT pass。Anthropic 和 OpenAI 都公布过这种方法；所需的 SFT pass 规模很小（几百到几千条例子），但坚持这样做的纪律性很罕见。",
+      "reason": "替换八股翻译腔",
       "file": "11-safety.md"
     },
     {
-      "original": "两种失败模式：\n- **Over-refusal**：模型拒绝了合法请求，因为它们 pattern-match 到了某些令人担忧的内容。“告诉我对乙酰氨基酚是怎么起效的”可能会触发拒绝，因为“药物”在安全表面区域内。\n- **Under-refusal**：模型顺从了明显有害的请求。“写一封针对银行客户的钓鱼邮件。”",
-      "fixed": "两种失败模式：\n- **Over-refusal**：模型拒绝了合法请求，因为它们 pattern-match 到了某些令人担忧的内容。“告诉我对乙酰氨基酚是怎么起效的”可能会触发拒绝，因为“药物”在安全表面区域内。\n- **Under-refusal**：模型顺从了明显有害的请求，例如“写一封针对银行客户的钓鱼邮件。”",
-      "reason": "合并短句",
+      "original": "两种失败模式：\n- **Over-refusal**：模型拒绝了合法请求，因为它们 pattern-match 到了某些令人担忧的内容。“告诉我对乙酰氨基酚是怎么起效的”可能会触发拒绝，因为“药物”在安全表面区域内。\n- **Under-refusal**：模型顺从了明显有害的请求，例如“写一封针对银行客户的钓鱼邮件。”",
+      "fixed": "两种失败模式：\n- **Over-refusal**：模型拒绝了合法请求，因为它们匹配到了某些令人担忧的内容。例如，“告诉我对乙酰氨基酚是怎么起效的”可能会触发拒绝，因为“药物”在安全表面区域内。\n- **Under-refusal**：模型顺从了明显有害的请求，例如“写一封针对银行客户的钓鱼邮件。”",
+      "reason": "替换术语直译",
       "file": "11-safety.md"
     },
     {
-      "original": "2024 年有个发现本该改变所有人对拒绝的看法： Arditi et al. (2024, *Refusal in Language Models is Mediated by a Single Direction*) 表明，对于许多开源模型，**拒绝行为基本上由模型 residual stream 中的单个线性方向介导**。计算“我应该拒绝”prompt 和“我应该顺从”prompt 上的平均激活差异；在推理时把这个方向投影出去，模型就失去了大部分拒绝行为。重新加回这个方向，拒绝行为就回来了。强力投影它，模型就拒绝一切。",
-      "fixed": "2024 年的一个发现本该改变所有人对拒绝的看法：Arditi 等人（2024, *Refusal in Language Models is Mediated by a Single Direction*）表明，对于许多开源模型，**拒绝行为基本上由模型 residual stream 中的单个线性方向介导**。计算“我应该拒绝”和“我应该顺从”prompt 上的平均激活差异；在推理时把这个方向投影出去，模型就失去了大部分拒绝行为。重新加回这个方向，拒绝行为就回来了。强力投影它，模型就拒绝一切。",
-      "reason": "去掉冗余连接词，合并短句",
+      "original": "我想瞄准的生产环境目标： precision > 90 %, recall > 95 %。 exact balance 取决于你的部署场景——儿童产品想要高 recall；安全研究产品想要高 precision。",
+      "fixed": "我想瞄准的生产环境目标是 precision > 90%，recall > 95%。具体的平衡取决于部署场景——儿童产品需要高 recall；安全研究产品需要高 precision。",
+      "reason": "替换八股翻译腔",
       "file": "11-safety.md"
     },
     {
-      "original": "这有两个含义：\n1. **拒绝机制其实很浅**。它不是作为某种 emergent moral judgment 编码在网络深度里；它是 post-training laying down 的一个单特征方向。一个有权重访问权限的 motivated attacker 可以在几分钟内禁用它。\n2. **因此防御表面就是权重本身**。开放权重发布带着这个可供手术的特征方向。封闭 API 仅靠访问控制保护。没有算法层面的修复。",
-      "fixed": "这有两个含义：\n1. **拒绝机制其实很浅**。它不是作为某种 emergent moral judgment 编码在网络深度里；而是 post-training laying down 的一个单特征方向。一个有权重访问权限的 motivated attacker 可以在几分钟内禁用它。\n2. **因此防御表面就是权重本身**。开放权重发布带有这个可供手术的特征方向。封闭 API 仅靠访问控制保护。没有算法层面的修复。",
-      "reason": "去掉冗余连接词，改被动为主动",
+      "original": "2024 年的一个发现本该改变所有人对拒绝的看法：Arditi 等人（2024, *Refusal in Language Models is Mediated by a Single Direction*）表明，对于许多开源模型，**拒绝行为基本上由模型 residual stream 中的单个线性方向介导**。计算“我应该拒绝”和“我应该顺从”prompt 上的平均激活差异；在推理时把这个方向投影出去，模型就失去了大部分拒绝行为。重新加回这个方向，拒绝行为就回来了。强力投影它，模型就拒绝一切。",
+      "fixed": "2024 年的一个发现本该改变所有人对拒绝的看法：Arditi 等人（2024, *Refusal in Language Models is Mediated by a Single Direction*）表明，对于许多开源模型，**拒绝行为基本上由模型 residual stream 中的单个线性方向介导**。计算“我应该拒绝”和“我应该顺从”提示上的平均激活差异；在推理时把这个方向投影出去，模型就失去了大部分拒绝行为。重新加回这个方向，拒绝行为就回来了。强力投影它，模型就会拒绝一切。",
+      "reason": "替换术语直译",
       "file": "11-safety.md"
     },
     {
-      "original": "一次红队会话长这样：\n1. **定义 harm taxonomy**。在这个部署中什么输出是有害的？例子：生物武器合成指令、儿童性虐待材料、金融欺诈指令、仇恨言论。\n2. **生成 adversarial prompts** 在每个类别中。混合人类编写（clever）和自动化（volume）。\n3. **探测模型** 用每个 prompt。记录响应，标记为\"refused well\", \"refused poorly (over-refused safe variant)\", \"complied with harmful request\", \"ambiguous\"。\n4. **Categorize jailbreaks** 按技术分类（第 9 章有 taxonomy）。\n5. **Patch via fine-tuning** 在失败案例上。\n6. **Repeat**。新的 jailbreak 几天内就会出现。",
-      "fixed": "一次红队会话长这样：\n1. **定义 harm taxonomy**。在这个部署中什么输出是有害的？例如：生物武器合成指令、儿童性虐待材料、金融欺诈指令、仇恨言论。\n2. **生成 adversarial prompts** 在每个类别中。混合人类编写（clever）和自动化（volume）。\n3. **探测模型** 用每个 prompt。记录响应，标记为\"refused well\"、\"refused poorly (over-refused safe variant)\"、\"complied with harmful request\"、\"ambiguous\"。\n4. **Categorize jailbreaks** 按技术分类（第 9 章有 taxonomy）。\n5. **Patch via fine-tuning** 在失败案例上。\n6. **Repeat**。新的 jailbreak 几天内就会出现。",
-      "reason": "合并短句，去掉冗余连接词",
+      "original": "这有两个含义：\n1. **拒绝机制其实很浅**。它不是作为某种 emergent moral judgment 编码在网络深度里；而是 post-training laying down 的一个单特征方向。一个有权重访问权限的 motivated attacker 可以在几分钟内禁用它。\n2. **因此防御表面就是权重本身**。开放权重发布带有这个可供手术的特征方向。封闭 API 仅靠访问控制保护。没有算法层面的修复。",
+      "fixed": "这有两个含义：\n1. **拒绝机制其实很浅**。它不是作为某种 emergent moral judgment 编码在网络深度里；而是在训练后铺设的一个单特征方向。一个有权重访问权限的动机攻击者可以在几分钟内禁用它。\n2. **因此防御表面就是权重本身**。开放权重发布带有这个可供手术的特征方向。封闭 API 仅靠访问控制保护。没有算法层面的修复。",
+      "reason": "替换术语直译",
+      "file": "11-safety.md"
+    },
+    {
+      "original": "一次红队会话长这样：\n1. **定义 harm taxonomy**。在这个部署中什么输出是有害的？例如：生物武器合成指令、儿童性虐待材料、金融欺诈指令、仇恨言论。\n2. **生成 adversarial prompts** 在每个类别中。混合人类编写（clever）和自动化（volume）。\n3. **探测模型** 用每个 prompt。记录响应，标记为\"refused well\"、\"refused poorly (over-refused safe variant)\"、\"complied with harmful request\"、\"ambiguous\"。\n4. **Categorize jailbreaks** 按技术分类（第 9 章有 taxonomy）。\n5. **Patch via fine-tuning** 在失败案例上。\n6. **Repeat**。新的 jailbreak 几天内就会出现。",
+      "fixed": "一次红队会话长这样：\n1. **定义危害分类**。在这个部署中什么输出是有害的？例如：生物武器合成指令、儿童性虐待材料、金融欺诈指令、仇恨言论。\n2. **生成对抗性提示** 在每个类别中。混合人类编写（聪明）和自动化（大量）。\n3. **探测模型** 用每个提示。记录响应，标记为\"拒绝良好\"、\"拒绝不佳（过度拒绝安全变体）\"、\"顺从有害请求\"、\"模糊\"。\n4. **分类越狱** 按技术分类（第 9 章有分类）。\n5. **通过微调修复** 在失败案例上。\n6. **重复**。新的越狱几天内就会出现。",
+      "reason": "替换术语直译",
       "file": "11-safety.md"
     },
     {
       "original": "这是最后一章——前面已覆盖了模型、Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务：每次请求都会产生成本，响应延迟甚至可达两分钟。",
-      "fixed": "这是最后一章——前面已覆盖了模型、Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务：每次请求都会产生成本，响应延迟甚至可达两分钟。",
-      "reason": "段落已经流畅自然",
+      "fixed": "这是最后一章，前面已覆盖了模型、Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务：每次请求都会产生成本，响应延迟甚至可达两分钟。",
+      "reason": "合并短句",
       "file": "12-production.md"
     },
     {
       "original": "本章将密集呈现关键数据——因为在生产环境中，一个功能的盈亏往往取决于那些被忽视的 2-5 倍成本差异。最实用的能力是手动核算 LLM 负载的成本。以下数据截至 2025 年底/2026 年初，请在实际使用前核对最新定价。",
-      "fixed": "本章将密集呈现关键数据——因为在生产环境中，一个功能的盈亏往往取决于那些被忽视的 2-5 倍成本差异。最实用的能力是手动核算 LLM 负载的成本。以下数据截至 2025 年底/2026 年初，请在实际使用前核对最新定价。",
-      "reason": "段落已经流畅自然",
+      "fixed": "本章将密集呈现关键数据，因为在生产环境中，一个功能的盈亏往往取决于那些被忽视的 2-5 倍成本差异。最实用的能力是手动核算 LLM 负载的成本。以下数据截至 2025 年底/2026 年初，请在实际使用前核对最新定价。",
+      "reason": "合并短句",
       "file": "12-production.md"
     },
     {
-      "original": "App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑，LLM Gateway 则要让多个模型表现得像单个服务。",
-      "fixed": "App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑，而 LLM Gateway 则要让多个模型表现得像单个服务。",
-      "reason": "增加连接词使句子更连贯",
+      "original": "App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑，而 LLM Gateway 则要让多个模型表现得像单个服务。",
+      "fixed": "App Server 和 LLM Gateway 是工程重心。前者处理业务逻辑，后者则要让多个模型表现得像单个服务。",
+      "reason": "合并短句，减少冗余主语",
       "file": "12-production.md"
     },
     {
       "original": "LLM Gateway 应从项目第一天起就作为独立服务构建，承担以下职责：",
       "fixed": "LLM Gateway 应从项目第一天起就作为独立服务构建，承担以下职责：",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **多模型路由**：根据分类器，把某些请求发给小而快的模型，其他请求发给大而慢的。",
-      "fixed": "- **多模型路由**：根据分类器，把某些请求发给小而快的模型，其他请求发给大而慢的模型。",
-      "reason": "补充完整句子",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **降级（Fallback）**：主提供商返回 5xx 时，自动重试备用提供商。",
-      "fixed": "- **降级（Fallback）**：主提供商返回 5xx 时，自动重试备用提供商。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **成本追踪**：记录每个请求的 prompt tokens、completion tokens、模型和美元成本。",
-      "fixed": "- **成本追踪**：记录每个请求的 prompt tokens、completion tokens、模型和美元成本。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **Prompt 缓存包装**：即使提供商支持缓存，业务代码也不应关心 cache key 的生成。",
-      "fixed": "- **Prompt 缓存包装**：即使提供商支持缓存，业务代码也不应关心 cache key 的生成。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **A/B 测试**：把可配置比例的流量路由到新的模型变体。",
-      "fixed": "- **A/B 测试**：把可配置比例的流量路由到新的模型变体。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **配额/熔断**：当单个用户消耗成本显著超出合理水平时，自动中断其请求。",
-      "fixed": "- **配额/熔断**：当单个用户消耗成本显著超出合理水平时，自动中断其请求。",
-      "reason": "段落已经流畅自然",
+      "reason": "无明显问题",
       "file": "12-production.md"
     },
     {
       "original": "从头构建大概需要几周时间。主流开源方案覆盖了大多数场景：",
-      "fixed": "从头构建大概需要几周时间。主流开源方案覆盖了大多数场景：",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **LiteLLM**：纯 Python 代理，支持 100+ 提供商，提供开箱即用的 OpenAI 兼容 API，内置成本追踪完善——最快上手选择。",
-      "fixed": "- **LiteLLM**：纯 Python 代理，支持 100+ 提供商，提供开箱即用的 OpenAI 兼容 API，内置成本追踪完善——最快上手选择。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **OpenRouter** — 托管网关，单一 API 对接所有提供商，内置模型市场。单 token 成本比直连提供商高，但自动处理故障转移和价格套利。",
-      "fixed": "- **OpenRouter** — 托管网关，单一 API 对接所有提供商，内置模型市场。单 token 成本比直连提供商高，但自动处理故障转移和价格套利。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **Cloudflare AI Gateway** — CDN 边缘的托管代理，带缓存、限流和分析。便宜且运维简单，但牺牲了一些灵活性。",
-      "fixed": "- **Cloudflare AI Gateway** — CDN 边缘的托管代理，带缓存、限流和分析。便宜且运维简单，但牺牲了一些灵活性。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **BentoML / Bento Cloud** — 更重的框架，适合同时需要在这个网关后托管自训练模型的场景。",
-      "fixed": "- **BentoML / Bento Cloud** — 更重的框架，适合同时需要在这个网关后托管自训练模型的场景。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "- **Portkey, Langfuse Gateway** — 新入局者，观测性故事讲得比较好。",
-      "fixed": "- **Portkey, Langfuse Gateway** — 新入局者，观测性故事讲得比较好。",
-      "reason": "段落已经流畅自然",
+      "fixed": "从头构建大概需要几周时间，主流开源方案覆盖了大多数场景：",
+      "reason": "合并短句",
       "file": "12-production.md"
     },
     {
       "original": "尽早选定方案，但需预留替换能力——Gateway 是少数存在显著供应商锁定风险的组件（业务代码深度耦合其接口），接口设计务必极简。",
       "fixed": "尽早选定方案，但需预留替换能力——Gateway 是少数存在显著供应商锁定风险的组件（业务代码深度耦合其接口），接口设计务必极简。",
-      "reason": "段落已经流畅自然",
+      "reason": "无明显问题",
       "file": "12-production.md"
     },
     {
-      "original": "## 自建 vs 托管 API\n这是个老生常谈的问题。 2026 年的情况如下：",
-      "fixed": "## 自建 vs 托管 API\n这是个老生常谈的问题。2026 年的情况如下：",
+      "original": "这是个老生常谈的问题。2026 年的情况如下：",
+      "fixed": "这是个老生常谈的问题，2026 年的情况如下：",
       "reason": "合并短句",
-      "file": "12-production.md"
-    },
-    {
-      "original": "**使用托管 API 当：**\n- 你需要 frontier-model 质量（GPT-5, Claude-4.5, Gemini-3）且没有 GPU 资源托管它们。\n- 用量低于 ~10 亿 tokens/月 — 这个规模下托管通常更便宜。\n- 延迟要求宽松（>500 ms TTFT 可接受）。\n- 你无法 dedicate 工程师去搞 GPU 运维。",
-      "fixed": "**使用托管 API 当：**\n- 你需要 frontier-model 质量（GPT-5, Claude-4.5, Gemini-3）且没有 GPU 资源托管它们。\n- 用量低于约 10 亿 tokens/月 — 这个规模下托管通常更便宜。\n- 延迟要求宽松（>500 ms TTFT 可接受）。\n- 你无法投入工程师去搞 GPU 运维。",
-      "reason": "简化表达",
-      "file": "12-production.md"
-    },
-    {
-      "original": "**自建当：**\n- 用量高于 10 亿 tokens/月 且开源模型符合质量要求（Qwen3-32B+, LLaMA-3.3-70B+）。\n- 有严格的数据驻留要求。\n- 需要持续 <100 ms TTFT。\n- 有特定的 fine-tuning 需求。",
-      "fixed": "**自建当：**\n- 用量高于 10 亿 tokens/月 且开源模型符合质量要求（Qwen3-32B+, LLaMA-3.3-70B+）。\n- 有严格的数据驻留要求。\n- 需要持续 <100 ms TTFT。\n- 有特定的 fine-tuning 需求。",
-      "reason": "段落已经流畅自然",
-      "file": "12-production.md"
-    },
-    {
-      "original": "盈亏平衡点约在月调用量 10 亿 tokens （对应 Qwen3-32B 级负载）：低于该阈值，计入工程投入后托管 API 更经济；高于该阈值，租用或自购 GPU 的自建方案成本可降低 3–10 倍。",
-      "fixed": "盈亏平衡点约在月调用量 10 亿 tokens（对应 Qwen3-32B 级负载）：低于该阈值，计入工程投入后托管 API 更经济；高于该阈值，租用或自购 GPU 的自建方案成本可降低 3–10 倍。",
-      "reason": "段落已经流畅自然",
       "file": "12-production.md"
     },
     {
       "original": "典型误判是自建 GPU 利用率不足——如果 4×H100 集群长期维持 30% 的利用率，单 token 成本会超过 OpenAI API。目标应是持续吞吐量大于 70%。",
       "fixed": "典型误判是自建 GPU 利用率不足——如果 4×H100 集群长期维持 30% 的利用率，单 token 成本会超过 OpenAI API。目标应是持续吞吐量大于 70%。",
-      "reason": "段落已经流畅自然",
+      "reason": "无明显问题",
       "file": "12-production.md"
     },
     {
-      "original": "2025-2026 流行的一种实用混合模式：**自建小模型扛大部分便宜流量，把难的 5-10% 路由给托管 frontier API。** 这样既拿到了自建的大部分成本优势，又在关键地方保留了 frontier 质量。路由决策由一个小分类器完成（见下文多模型路由章节）。",
-      "fixed": "2025-2026 流行的一种实用混合模式：**自建小模型扛大部分便宜流量，把难的 5-10% 路由给托管 frontier API。** 这样既获得了自建的大部分成本优势，又在关键地方保留了 frontier 质量。路由决策由一个小分类器完成（见下文多模型路由章节）。",
+      "original": "2025-2026 流行的一种实用混合模式：**自建小模型扛大部分便宜流量，把难的 5-10% 路由给托管 frontier API。** 这样既获得了自建的大部分成本优势，又在关键地方保留了 frontier 质量。路由决策由一个小分类器完成（见下文多模型路由章节）。",
+      "fixed": "2025-2026 流行的一种实用混合模式是自建小模型扛大部分便宜流量，把难的 5-10% 路由给托管 frontier API。这样既获得了自建的大部分成本优势，又在关键地方保留了 frontier 质量。路由决策由一个小分类器完成（见下文多模型路由章节）。",
+      "reason": "合并短句",
+      "file": "12-production.md"
+    },
+    {
+      "original": "这种先路由再级联的模式， Chen 等人在 2023 年的 *FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance* 里 formalize 了。核心观察：大多数 LLM 查询很简单，小/便宜模型就能搞定；只有一小部分真需要 frontier model。如果你能低成本区分这两者，就能在不怎么损失质量的情况下削减 5-10 倍支出。",
+      "fixed": "Chen 等人在 2023 年的 *FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance* 中 formalize 了这种先路由再级联的模式。核心观察是：大多数 LLM 查询很简单，小/便宜模型就能搞定；只有一小部分真需要 frontier model。如果你能低成本区分这两者，就能在不怎么损失质量的情况下削减 5-10 倍支出。",
+      "reason": "合并短句，调整语序",
+      "file": "12-production.md"
+    },
+    {
+      "original": "难点在于置信度信号。选项有：",
+      "fixed": "难点在于置信度信号，选项有：",
+      "reason": "合并短句",
+      "file": "12-production.md"
+    },
+    {
+      "original": "三层缓存很重要，而且它们是叠加的：",
+      "fixed": "三层缓存很重要，且它们是叠加的：",
+      "reason": "合并短句",
+      "file": "12-production.md"
+    },
+    {
+      "original": "可组合性很重要： Prompt 缓存降低 *每次* 调用的成本；语义缓存减少调用 *次数*。两者是相乘关系。",
+      "fixed": "可组合性很重要：Prompt 缓存降低每次调用的成本，语义缓存减少调用次数。两者是相乘关系。",
+      "reason": "合并短句",
+      "file": "12-production.md"
+    },
+    {
+      "original": "LLM 服务的自动扩缩容比无状态 Web 服务复杂得多，主要原因有三：",
+      "fixed": "LLM 服务的自动扩缩容比无状态 Web 服务复杂得多，主要原因有三：",
+      "reason": "无明显问题",
+      "file": "12-production.md"
+    },
+    {
+      "original": "实用模式：",
+      "fixed": "实用模式：",
+      "reason": "无明显问题",
+      "file": "12-production.md"
+    },
+    {
+      "original": "vLLM 支持 [代码]（最大并发请求数）和 [代码]（每步最大 token 吞吐）。调优这些参数以匹配你的延迟目标，而不是最大化吞吐。",
+      "fixed": "vLLM 支持 [代码]（最大并发请求数）和 [代码]（每步最大 token 吞吐）。调优这些参数以匹配你的延迟目标，而不是最大化吞吐。",
+      "reason": "无明显问题",
+      "file": "12-production.md"
+    },
+    {
+      "original": "面向用户的聊天产品，延迟预算大概长这样：",
+      "fixed": "面向用户的聊天产品，延迟预算大概如下：",
+      "reason": "简化表达",
+      "file": "12-production.md"
+    },
+    {
+      "original": "最关键的两个延迟指标：**TTFT**（Time To First Token）和 **ITL**（Inter-Token Latency）。 TTFT 决定了用户感觉“有反应了吗？”； ITL 决定了 token 流式输出后的持续阅读速度。 2026 年的行业经验值：",
+      "fixed": "最关键的两个延迟指标是 **TTFT**（Time To First Token）和 **ITL**（Inter-Token Latency）。TTFT 决定了用户感觉“有反应了吗？”，ITL 决定了 token 流式输出后的持续阅读速度。2026 年的行业经验值：",
+      "reason": "合并短句",
+      "file": "12-production.md"
+    },
+    {
+      "original": "对于延迟敏感的路径，*得实测时间花在哪了*。实际情况往往跟你想的不一样。我见过一个“慢”功能， LLM 只花了 200 ms，但 RAG reranker 花了 1.2 s；还有一个 LLM 没问题，但下游 JSON 序列化花了 800 ms。先链路追踪，再优化。",
+      "fixed": "对于延迟敏感的路径，必须实测时间花在哪。实际情况往往与预期不同。例如，一个“慢”功能中，LLM 只花了 200 ms，但 RAG reranker 花了 1.2 s；另一个例子是，LLM 没问题，但下游 JSON 序列化花了 800 ms。先进行链路追踪，再优化。",
+      "reason": "合并短句，简化表达",
+      "file": "12-production.md"
+    },
+    {
+      "original": "按请求核算成本是没得商量的底线。没这个，你没法：",
+      "fixed": "按请求核算成本是没得商量的底线。没有这个，你无法：",
       "reason": "简化表达",
       "file": "12-production.md"
     }

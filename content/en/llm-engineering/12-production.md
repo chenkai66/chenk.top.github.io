@@ -19,9 +19,9 @@ description: "Serving stack choices in detail, autoscaling LLMs, latency budgets
 translationKey: "llm-engineering-12"
 ---
 
-This is the last chapter. The previous ones covered building the model, the prompt, the retrieval, and the evaluation. This chapter focuses on maintaining it without going broke. Production LLM serving is more like running a high-traffic web service than classical ML serving, except that each web request costs money and can take up to two minutes.
+This is the last chapter. The previous ones covered building the model, the prompt, the retrieval, and the evaluation. This chapter focuses on maintaining it without breaking the bank. Production LLM serving is more like running a high-traffic web service than classical ML serving, except each web request costs money and can take up to two minutes.
 
-I'll focus more on numbers here than in earlier chapters. In production, the difference between a profitable feature and a money pit often comes down to a 2-5x cost factor that no one is tracking. The most useful skill to develop is back-of-envelope cost arithmetic for LLM workloads. The numbers below are accurate as of late 2025 / early 2026; verify against current pricing before committing.
+I'll focus more on numbers here than in earlier chapters. In production, the difference between a profitable feature and a money pit often boils down to a 2-5x cost factor that no one is tracking. The most useful skill to develop is back-of-the-envelope cost arithmetic for LLM workloads. The numbers below are accurate as of late 2025 / early 2026; verify them against current pricing before committing.
 
 ![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.png)
 
@@ -84,11 +84,11 @@ A perennial decision. The honest answer for 2026:
 - You need <100 ms TTFT consistently.
 - You have specific fine-tuning needs.
 
-The break-even is roughly 1B tokens/month for a Qwen3-32B-class workload. Below that, managed API beats self-hosting on cost when you account for engineering time. Above that, self-hosting on dedicated GPUs (rented or owned) wins by 3-10x on cost.
+The break-even point is roughly 1B tokens/month for a Qwen3-32B-class workload. Below that, managed APIs beat self-hosting on cost when you account for engineering time. Above that, self-hosting on dedicated GPUs (rented or owned) wins by 3-10x on cost.
 
 A common mistake is under-utilizing self-hosted GPUs. A 4xH100 deployment running at 30% utilization is more expensive per token than the OpenAI API. Aim for sustained throughput above 70%.
 
-A practical hybrid pattern that gained popularity in 2025-2026: **self-host the bulk of cheap traffic on smaller open models and route the challenging 5-10% to managed frontier APIs.** This captures most of the cost savings of self-hosting while preserving access to frontier quality where it matters. The routing decision is made by a small classifier (chapter on multi-model routing below).
+A practical hybrid pattern that gained popularity in 2025-2026: **self-host the bulk of cheap traffic on smaller open models and route the challenging 5-10% to managed frontier APIs.** This captures most of the cost savings of self-hosting while preserving access to frontier quality where it matters. The routing decision is made by a small classifier (see the chapter on multi-model routing below).
 
 ## Multi-model routing and FrugalGPT
 

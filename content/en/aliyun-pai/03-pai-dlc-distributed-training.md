@@ -18,20 +18,20 @@ disableNunjucks: true
 translationKey: "aliyun-pai-3"
 ---
 
-A DSW notebook is for one engineer on one GPU. When you need eight GPUs across two nodes, or when training runs longer than eight hours, you switch to **DLC**. DLC is PAI's job-submission front-end for a managed Kubernetes cluster: you describe what you want (image, command, resources, data mounts), DLC schedules pods, runs them to completion, persists logs, and tells you what happened. The docs call this *Deep Learning Containers*; we just say "DLC job".
+A DSW notebook is for one engineer on one GPU. When you need eight GPUs across two nodes or training that runs longer than eight hours, you switch to **DLC**. DLC is PAI's job-submission front-end for a managed Kubernetes cluster. You describe what you want (image, command, resources, data mounts), and DLC schedules pods, runs them to completion, persists logs, and reports the results. The docs call this *Deep Learning Containers*; we just say "DLC job".
 
 ![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/illustration_1.png)
 
 ## What the docs actually claim
 
-The official DLC overview lists four bullets I want to highlight, because they matter:
+The official DLC overview highlights four key points that matter:
 
 - **Diverse compute** — Lingjun AI computing service, ECS, ECI, Shenlong bare metal, Lingjun bare metal. Hybrid scheduling.
 - **Multiple distributed job types** — pre-built support for Megatron, DeepSpeed, PyTorch DDP, TensorFlow PS/Worker, Slurm, Ray, MPI, XGBoost. No need to build your own cluster.
 - **Fault tolerance** — AIMaster (the watchdog), EasyCKPT (the async checkpointer), SanityCheck (pre-flight node health), node self-healing.
 - **Training acceleration** — built-in framework with data parallelism, pipeline parallelism, operator splitting, automatic parallel-strategy exploration, topology-aware scheduling, optimized communication.
 
-The first and third points are what make DLC interesting compared to renting GPU ECS yourself.
+The first and third points are what make DLC more interesting than renting GPU ECS yourself.
 
 ## The job lifecycle
 
@@ -47,7 +47,7 @@ You submit to one of three pools. The docs mostly talk about quotas and bills; t
 
 ![DLC resource pools](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/fig3_dlc_resource_pools.png)
 
-For most teams, the best choice is general-purpose, pay-as-you-go. Lingjun is useful when you're training with more than 8 GPUs and need RDMA between nodes. The docs mention that RDMA is configurable on Lingjun and provides "accelerated inter-node communication" (meaning NCCL AllReduce will be 5-10x faster than over standard Ethernet). Preemptible is a cost-effective option for jobs that checkpoint cleanly, which, thanks to EasyCKPT, is true for most jobs.
+For most teams, the best choice is the general-purpose, pay-as-you-go pool. Lingjun is useful when you're training with more than 8 GPUs and need RDMA between nodes. The docs mention that RDMA is configurable on Lingjun and provides "accelerated inter-node communication" (meaning NCCL AllReduce will be 5-10x faster than over standard Ethernet). Preemptible is a cost-effective option for jobs that checkpoint cleanly, which, thanks to EasyCKPT, is true for most jobs.
 
 ## A real distributed job
 
@@ -82,7 +82,7 @@ job.submit(wait=False)
 print(job.id, job.status)
 ```
 
-A few things worth noting that are not obvious from a quick read of the docs:
+A few important points that aren't immediately clear from the docs:
 
 - **`$WORLD_SIZE`, `$RANK`, `$MASTER_ADDR`, `$MASTER_PORT`** are injected by DLC. You do not have to discover peers — DLC handles peer discovery and writes those env vars before your container starts. (See "Built-in environment variables" in the User Guide.)
 - **`fault_tolerance=True`** spins up an AIMaster sidecar that watches every worker. If a worker pod dies, AIMaster marks it, requests a replacement, and the surviving workers wait for it instead of crashing the whole job. This is the *single most important toggle* for jobs longer than a few hours.
@@ -91,7 +91,7 @@ A few things worth noting that are not obvious from a quick read of the docs:
 
 ## Watching it run
 
-The console "Training Jobs" view provides logs, GPU utilization, network throughput, and AIMaster events. You can also stream logs from the SDK:
+The console's "Training Jobs" view provides logs, GPU utilization, network throughput, and AIMaster events. You can also stream logs from the SDK:
 
 ```python
 for line in job.tail_logs(follow=True):

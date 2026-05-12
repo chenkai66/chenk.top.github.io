@@ -17,19 +17,19 @@ series_order: 4
 translationKey: "recommendation-systems-4"
 ---
 
-Every time you scroll through a social-media feed, click a product recommendation, or watch a suggested video, a CTR (click-through rate) model decided what to show you. These models answer one deceptively small question:
+Every time you scroll through a social-media feed, click a product recommendation, or watch a suggested video, a CTR (click-through rate) model decides what to show you. These models answer one deceptively small question:
 
 > **"What is the probability that this specific user will click on this specific item, right now?"**
 
-Behind that question is one of the most economically valuable problems in machine learning. A 1% lift in CTR translates into millions of dollars at Google, Amazon, or Alibaba scale — and the same models also drive video feeds, app stores, news apps, and dating apps. CTR prediction sits at the heart of the **ranking** stage: candidate generation gives you a few thousand items, and the CTR model decides which dozen actually reach the user.
+Behind that question lies one of the most economically valuable problems in machine learning. A 1% lift in CTR translates into millions of dollars at the scale of Google, Amazon, or Alibaba — and the same models also drive video feeds, app stores, news apps, and dating apps. CTR prediction sits at the heart of the **ranking** stage: candidate generation gives you a few thousand items, and the CTR model decides which dozen actually reach the user.
 
-This article is a tour through the decade-long evolution of CTR models, from a single-line logistic regression to attention-based architectures. We will not just look at formulas. For each model we will ask three questions:
+This article tours the decade-long evolution of CTR models, from a single-line logistic regression to attention-based architectures. We won't just look at formulas. For each model, we'll ask three questions:
 
 1. **What problem in the previous model forced this design?**
 2. **What is the geometric or probabilistic intuition?**
 3. **How would you actually implement and ship it?**
 
-By the end you should be able to read any modern CTR paper, sketch its architecture from memory, and pick the right baseline for your own system.
+By the end, you should be able to read any modern CTR paper, sketch its architecture from memory, and pick the right baseline for your own system.
 
 ![Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_1.png)
 
@@ -57,7 +57,7 @@ By the end you should be able to read any modern CTR paper, sketch its architect
 
 ### What Is CTR Prediction?
 
-CTR prediction is **binary classification with extreme structure**. Given a user, an item, and the surrounding context, we estimate
+CTR prediction is **binary classification with extreme structure**. Given a user, an item, and the surrounding context, we estimate the probability of a click.
 
 $$P(y = 1 \mid \mathbf{x}) \quad\text{where } y \in \{0, 1\},\;\; 1 = \text{click}.$$
 The feature vector $\mathbf{x}$ is the concatenation of three families:
@@ -72,7 +72,7 @@ Empirically, $\text{CTR} = \text{clicks} / \text{impressions}$, and the model ou
 
 ### Why CTR Prediction Is Hard
 
-Five properties make CTR prediction look like a standard classification task and behave like nothing of the sort:
+Five properties make CTR prediction look like a standard classification task but behave very differently:
 
 **1. Extreme class imbalance.** Display ads sit at 0.1-2%, e-commerce at 1-5%, news feeds at 2-10%. A "predict no" model gets 95%+ accuracy and is useless — AUC and Logloss replace accuracy.
 
@@ -80,9 +80,9 @@ Five properties make CTR prediction look like a standard classification task and
 
 **3. The signal lives in interactions.** "Young user" alone is a weak signal; "young user x action movie x evening" is gold. Capturing those crosses *automatically* and *cheaply* is the central modelling problem.
 
-**4. Distribution shift is constant.** New items, viral trends, weekday/weekend cycles. Models retrain daily or hourly; offline AUC alone never tells the full story.
+**4. Distribution shift is constant.** New items, viral trends, and weekday/weekend cycles. Models retrain daily or hourly, and offline AUC alone doesn't tell the full story.
 
-**5. Hard latency budget.** Ranking has to score thousands of candidates in well under 100 ms (often under 10 ms p99). Model size, embedding lookup, and batching matter as much as architecture.
+**5. Hard latency budget.** Ranking must score thousands of candidates in under 100 ms (often under 10 ms p99). Model size, embedding lookup, and batching are as important as architecture.
 
 ### The CTR Prediction Pipeline
 

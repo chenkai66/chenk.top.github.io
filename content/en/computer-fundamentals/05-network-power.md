@@ -16,9 +16,9 @@ translationKey: "computer-fundamentals-5"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/illustration_1.png)
 
-Why does the gigabit NIC on your motherboard sometimes negotiate down to 100 Mbps? Why does a brand-new build with a 650 W "Gold" PSU randomly reboot under heavy GPU load? Why does the room next to the server rack always feel warm? These are the everyday consequences of two systems that most people never look at: **the network I/O pipeline** and **the power-and-cooling chain** that keeps the silicon alive.
+Why does the gigabit NIC on your motherboard sometimes drop to 100 Mbps? Why does a brand-new build with a 650 W 'Gold' PSU randomly reboot under heavy GPU load? Why does the room next to the server rack always feel warm? These are everyday consequences of two systems most people never look at: **the network I/O pipeline** and **the power-and-cooling chain** that keep the silicon alive.
 
-This is the finale of the Computer Fundamentals series. Instead of repeating component spec tables, we will follow the data and the energy: from the copper pair on the wall, through the PHY, MAC, and DMA engine into RAM; and from the wall socket, through the PSU's conversion stages, into the 12 V rails powering the GPU. Along the way we will look at how a datacenter quantifies waste with PUE, and how a UPS keeps the lights on when the grid falters.
+This is the finale of the Computer Fundamentals series. Instead of repeating component spec tables, we'll follow the data and energy: from the copper pair on the wall, through the PHY, MAC, and DMA engine into RAM; and from the wall socket, through the PSU's conversion stages, into the 12 V rails powering the GPU. Along the way, we'll look at how a datacenter quantifies waste with PUE and how a UPS keeps the lights on when the grid falters.
 
 ## Series Navigation
 
@@ -37,7 +37,7 @@ A network interface card is not just "the port on the back of the case". Inside 
 
 ![NIC architecture: PHY, MAC, DMA, and offload features](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig1_nic_architecture.png)
 
-## The three layers inside the silicon
+## The three layers inside the silicon:
 
 | Stage | What it does | What can go wrong |
 |-------|-------------|-------------------|
@@ -45,7 +45,7 @@ A network interface card is not just "the port on the back of the case". Inside 
 | **MAC** (Media Access Control) | Frame assembly, CRC, MAC-address filtering, flow control (PAUSE frames), jumbo frames. | Mismatched MTU between switch and NIC; flow-control storms from a misbehaving peer. |
 | **DMA + Ring Buffers** | Transmit and receive descriptor rings; the NIC writes frames straight into a kernel-allocated `skb` (Linux) or `mbuf` (BSD). MSI-X interrupts wake the right CPU core. | Ring overflow (`ifconfig RX-DRP`) when a single core can't drain fast enough — fix with RSS multi-queue. |
 
-Above that sit the **offload engines** that make 25/40/100 GbE practical at all:
+Above that are the **offload engines** that make 25/40/100 GbE practical:
 
 - **Checksum offload** — TCP/IP checksums computed in hardware.
 - **TSO / LRO** — Transmit Segmentation Offload and Large Receive Offload move per-packet work into silicon. The CPU hands the NIC a 64 KB blob; the NIC produces 44 wire-sized frames.
@@ -90,7 +90,7 @@ For a 2024 build, **Wi-Fi 6 or 6E** is the sweet spot: most APs and clients supp
 
 ## Part 2: TCP, the Conversation You Never See
 
-Every web request, every SSH session, every database query begins with a tiny, three-message ritual. Understanding it is the difference between guessing and diagnosing when a connection times out.
+Every web request, SSH session, and database query begins with a tiny, three-message ritual. Understanding it means the difference between guessing and diagnosing when a connection times out.
 
 ![TCP three-way handshake with state transitions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig2_tcp_handshake.png)
 

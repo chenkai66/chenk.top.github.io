@@ -18,7 +18,7 @@ description: "Why MMLU is broken, the contamination problem, LLM-as-judge biases
 translationKey: "llm-engineering-10"
 ---
 
-Evaluation is the part of the LLM stack where everyone has opinions and nobody has confidence. The leaderboards are gamed, the public benchmarks are contaminated, and most teams I've worked with had no eval set at all when I joined. This chapter is about what evaluation actually tells you, what the benchmarks are hiding, the LLM-as-judge biases nobody fixes, the calibration metrics most teams skip, and the production patterns that catch regressions before customers do.
+Evaluation is the part of the LLM stack where everyone has opinions but no one is confident. The leaderboards are gamed, the public benchmarks are contaminated, and most teams I've worked with had no eval set when I joined. This chapter covers what evaluation actually tells you, what the benchmarks hide, the LLM-as-judge biases that go unaddressed, the calibration metrics most teams skip, and the production patterns that catch regressions before customers notice.
 
 The chapter has a slightly different flavor from the others in this series. Most evaluation problems are not technical — they are *epistemic*. The question "is model A better than model B" is a hypothesis-testing question, and the field's collective track record at running clean experiments is poor. The literature I cite below is not a leaderboard; it's a collection of failure-mode papers that should make any practitioner more cautious.
 
@@ -29,11 +29,11 @@ The chapter has a slightly different flavor from the others in this series. Most
 ![fig1: benchmark contamination over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)
 
 
-A short list of issues with the standard benchmark suite (MMLU, GSM8K, HumanEval, ARC, HellaSwag, etc.):
+Here are some issues with the standard benchmark suite (MMLU, GSM8K, HumanEval, ARC, HellaSwag, etc.):
 
 **Contamination.** Most public benchmarks are accessible via web crawl. Models trained on CommonCrawl have seen the questions and often the answers. Phi-3 was caught with literal MMLU questions in its training data; it's hard to believe other labs are cleaner. Zhou et al. (2023, *Don't Make Your LLM an Evaluation Benchmark Cheater*) measured the effect systematically — even small amounts of test-set leakage produce 10-30 percentage point gains, indistinguishable from "legitimate" capability improvements. The paper's most uncomfortable finding: random sub-sampling of CommonCrawl already includes 5-10 % of the popular benchmark questions. Avoiding contamination requires active filtering, which most labs claim and few document.
 
-A related paper, Sainz et al. (2023, *NLP Evaluation in trouble*), surveyed 250+ recent benchmark releases and found that ~40 % had detectable leakage in at least one major foundation model's training corpus. The leakage rate has grown roughly with the size of pre-training corpora.
+A related paper by Sainz et al. (2023, *NLP Evaluation in Trouble*) surveyed over 250 recent benchmark releases and found that about 40% had detectable leakage in at least one major foundation model's training corpus. The leakage rate has increased with the size of pre-training corpora.
 
 **Saturation.** MMLU was designed to be hard for 2020 models. Top models in 2026 score 88-92 % — they're competing in the noise band. A 1.5-point improvement on MMLU may be a real improvement or may be sampling variance from a 50-question pull on the boundary cases. The benchmark stopped discriminating capability years ago. A simple statistical argument: with 14K questions and a model at 90 % accuracy, the standard error on the score is roughly $\sqrt{0.9 \cdot 0.1 / 14000} \approx 0.25$ percentage points; a 1-point claim that doesn't beat ~0.7 points is within noise.
 

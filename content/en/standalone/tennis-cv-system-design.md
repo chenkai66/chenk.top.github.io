@@ -14,7 +14,7 @@ disableNunjucks: true
 translationKey: "tennis-cv-system-design"
 ---
 
-A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory from eight 4K cameras in real time, while also classifying each player's stroke, involves **small-object detection, multi-view geometry, Kalman filtering, physics modeling, and human-pose estimation** — all at once. This post follows the same steps as you would at deployment: state the constraints, survey the literature, choose, build, and lay out a millisecond-by-millisecond budget for production.
+A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory from eight 4K cameras in real time, while also classifying each player's stroke, involves **small-object detection, multi-view geometry, Kalman filtering, physics modeling, and human-pose estimation** — all at once. This post follows the same steps as in deployment: state the constraints, survey the literature, choose, build, and lay out a millisecond-by-millisecond budget for production.
 
 ## What you will see
 
@@ -28,13 +28,13 @@ A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory 
 
 ![End-to-end tennis-scene CV pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig1_pipeline.png)
 
-The entire pipeline has **16.7 ms** per frame at 60 fps, so each step must complete in single-digit milliseconds. Each section allocates part of that budget.
+The entire pipeline has **16.7 ms** per frame at 60 fps, so each step must complete in single-digit milliseconds. Each section allocates part of this budget.
 
 ---
 
 ## 1. Requirements: quantify "hard"
 
-Before building, the non-negotiable numbers are laid out.
+Before building, the non-negotiable numbers are outlined.
 
 ### 1.1 Capability matrix
 
@@ -47,15 +47,15 @@ Before building, the non-negotiable numbers are laid out.
 | Player pose | Single-camera frame | 17 keypoints | < 6 ms / person |
 | Action classification | Keypoint sequence | Class + confidence | < 1 ms |
 
-If any stage exceeds its budget, the pipeline drops from 60 fps to 30 fps, causing visible stuttering.
+If any stage exceeds its budget, the pipeline drops from 60 fps to 30 fps, causing visible stutter.
 
 ### 1.2 The physics of "hard"
 
-**Pixel budget for a small target.** A tennis ball seen from the opposite baseline (~28 m away) at a 35 mm-equivalent focal length occupies about 12 px. A one-pixel center error translates to **2.3 cm of lateral 3D error** — already at the threshold for a baseline line call.
+**Pixel budget for a small target.** A tennis ball seen from the opposite baseline (~28 m away) at a 35 mm-equivalent focal length occupies about 12 px. A one-pixel center error translates to **2.3 cm of lateral 3D error** — already at the threshold for a baseline call.
 
-**Motion blur.** At 50 m/s and a 1/250 s shutter, the ball smears 20 cm in a single frame, creating a 30 px streak. Without sub-1/1000 s global shutters, no detection algorithm can fully recover.
+**Motion blur.** At 50 m/s and a 1/250 s shutter, the ball smears 20 cm in a single frame, creating a 30 px streak. Without sub-1/1000 s global shutters, no detection algorithm can fully recover the ball's position.
 
-**Synchronisation, geometrically amplified.** A 5 ms offset between two cameras puts the ball at different image positions by ~25 cm. Triangulation degenerates and the recovered 3D point drifts along an "anti-epipolar" line. PTP synchronisation under 1 ms is therefore a hard floor.
+**Synchronisation, geometrically amplified.** A 5 ms offset between two cameras puts the ball at different image positions by ~25 cm. Triangulation degenerates and the recovered 3D point drifts along an "anti-epipolar" line. PTP synchronization under 1 ms is therefore a hard requirement.
 
 **Occlusion and brief disappearance.** The ball is occluded by the net band as it crosses, and there is always a blind region right after the bounce. Any single-shot detector misses several consecutive frames, so a tracker with strong physics priors must take over.
 
@@ -67,7 +67,7 @@ Six years of papers, sorted by the four sub-tasks. Each section ends with the ch
 
 ### 2.1 Small-object detection
 
-The failure of generic detectors on small objects is clear in the data:
+The failure of generic detectors on small objects is evident in the data:
 
 ![Small-object detection comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig2_detection_compare.png)
 
@@ -78,7 +78,7 @@ Left: AP@0.5 vs. object side length in pixels — the tennis-ball range is 8–2
 - V2 swapped in MobileNetV2, dropping params from 15 M to 2.8 M, 3× faster, only 1.2 pp worse
 - V3 added Transformer cross-frame self-attention and pushed high-speed detection success from 92.3% to 96.7%
 
-A **coarse-to-fine** alternative (YOLOv5 proposals + ResNet-50 verification) reduces false positives by ~60% but adds 10 ms — suitable for offline replay analysis, not live broadcast.
+A **coarse-to-fine** alternative (YOLOv5 proposals + ResNet-50 verification) reduces false positives by ~60% but adds 10 ms, making it suitable for offline replay analysis, not live broadcast.
 
 > **Choice.** Live path: **YOLOv8-l @ 1280 + 3-frame temporal vote.** Offline path: stack TrackNet V3 as a refinement stage.
 
@@ -105,7 +105,7 @@ Stack into $A_{2n\times4}\mathbf{X}=0$ and take the right singular vector of the
 
 **Automatic Camera Network Calibration (2024)**: board-free re-calibration. SIFT/ORB across views → SfM jointly estimates poses and a sparse cloud → bundle adjustment minimises reprojection error to < 0.5 px. Saves the on-site pain of waving a checkerboard around the venue.
 
-> **Choice.** Use Zhang + checkerboard once at install (precise, one-time effort); run SfM + BA nightly to compensate for thermal and mechanical drift.
+> **Choice.** Use Zhang + checkerboard once at installation (precise, one-time effort); run SfM + BA nightly to compensate for thermal and mechanical drift.
 
 ### 2.3 Multi-object tracking
 
