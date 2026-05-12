@@ -119,3 +119,25 @@
     maybeShowHint();
   }
 })();
+
+// ===== Heading anchor copy-to-clipboard =====
+(function () {
+  document.addEventListener("click", function (e) {
+    var link = e.target.closest(".heading-link");
+    if (!link) return;
+    e.preventDefault();
+    var url = window.location.origin + window.location.pathname + link.getAttribute("href");
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function () {
+        var isZh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
+        var t = document.createElement("div");
+        t.className = "tiny-toast show";
+        t.textContent = isZh ? "✓ 已复制章节链接" : "✓ Section link copied";
+        document.body.appendChild(t);
+        setTimeout(function () { t.classList.remove("show"); setTimeout(function () { t.remove(); }, 300); }, 1400);
+      }).catch(function () {});
+    }
+    // Also update URL hash
+    history.replaceState(null, "", link.getAttribute("href"));
+  });
+})();
