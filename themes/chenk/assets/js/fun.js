@@ -78,7 +78,7 @@
 
   // ===== Konami code easter egg =====
   // ↑ ↑ ↓ ↓ ← → ← → B A → triggers a celebration + secret message
-  var SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  var SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown'];
   var pos = 0;
   document.addEventListener('keydown', function (e) {
     var key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -116,7 +116,7 @@
     }
     // 2) Friendly toast
     var toast = document.createElement('div');
-    toast.textContent = 'You found the Konami code! 🎉  All long-form. Premium prose mode unlocked.';
+    toast.textContent = '↑↑↓↓ — you found it. 🎉';
     toast.style.cssText =
       'position:fixed;left:50%;bottom:32px;transform:translateX(-50%);' +
       'background:var(--ink,#1f2933);color:var(--bg,#fdfcf9);' +
@@ -133,6 +133,6 @@
     var bannerStyle = 'background:#1f6feb;color:#fff;padding:8px 12px;border-radius:4px;font-size:13px;font-family:monospace;';
     console.log('%cHello, fellow developer 👋', bannerStyle);
     console.log('%cBlog source: github.com/chenkai66', 'color:#999;font-family:monospace;');
-    console.log('%cTry the Konami code on the homepage. ↑↑↓↓←→←→ba', 'color:#999;font-family:monospace;font-style:italic;');
+    console.log('%cTry ↑↑↓↓ anywhere on the site for a surprise.', 'color:#999;font-family:monospace;font-style:italic;');
   }
 })();
