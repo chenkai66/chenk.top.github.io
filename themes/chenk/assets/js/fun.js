@@ -135,4 +135,40 @@
     console.log('%cBlog source: github.com/chenkai66', 'color:#999;font-family:monospace;');
     console.log('%cTry ↑↑↓↓ anywhere on the site for a surprise.', 'color:#999;font-family:monospace;font-style:italic;');
   }
+
+  // ===== Tab title playful swap on visibility change =====
+  (function () {
+    var originalTitle = document.title;
+    var isZh = (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0;
+    var awayMessages = isZh
+      ? ['哎呀，页面崩溃了 💥', '诶？怎么没人了', '等等，你别走啊…', '我先眯一会 💤']
+      : ['Oops, page crashed 💥', 'Hello? Anyone there?', "Wait, don't go…", "I'll just nap 💤"];
+    var backMessage = isZh ? '哎呀，又好了 ✨' : 'Phew, fixed it ✨';
+    var awayTitle = null;
+    var backTimer = null;
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        if (backTimer) { clearTimeout(backTimer); backTimer = null; }
+        awayTitle = awayMessages[Math.floor(Math.random() * awayMessages.length)];
+        document.title = awayTitle;
+      } else {
+        if (awayTitle) {
+          document.title = backMessage;
+          backTimer = setTimeout(function () {
+            document.title = originalTitle;
+            backTimer = null;
+            awayTitle = null;
+          }, 1500);
+        }
+      }
+    });
+
+    var titleEl = document.querySelector('title');
+    if (titleEl) {
+      new MutationObserver(function () {
+        if (!document.hidden && !backTimer) originalTitle = document.title;
+      }).observe(titleEl, { childList: true });
+    }
+  })();
 })();
