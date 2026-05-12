@@ -20,7 +20,7 @@ A bank account, a drug clearing the bloodstream, a tank of brine, a charging cap
 
 ![Ordinary Differential Equations (2): First-Order Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - How to spot a **separable** equation and integrate it directly.
 - The **integrating factor** that turns a linear equation into a perfect derivative.

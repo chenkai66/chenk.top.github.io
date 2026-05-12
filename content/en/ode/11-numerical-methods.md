@@ -20,7 +20,7 @@ Almost every interesting differential equation in science and engineering resist
 
 ![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - The geometric idea behind Euler's method, and why it costs you accuracy that classical Runge-Kutta gives back essentially for free
 - A clean derivation of the order of accuracy and what "convergence rate$\mathcal{O}(h^p)$" really means in a log-log plot

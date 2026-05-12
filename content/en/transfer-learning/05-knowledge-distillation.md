@@ -22,7 +22,7 @@ You have a 340M-parameter BERT model that hits 95% accuracy. The product team wa
 
 The key insight, due to Hinton, is that a teacher's "wrong" predictions are not noise — they are information. When the teacher classifies a cat image and assigns 0.14 to "tiger", 0.07 to "dog", and 0.008 to "plane", it is telling you that cats look a lot like tigers, somewhat like dogs, and nothing like aeroplanes. That structure — **dark knowledge** — is invisible in a one-hot label, and learning it is what lets the student punch above its weight.
 
-## What you will learn
+## What You Will Learn
 
 - Why soft labels carry strictly more information than hard labels.
 - Temperature scaling: a single knob that controls how much dark knowledge the teacher reveals.

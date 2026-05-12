@@ -20,7 +20,7 @@ This chapter rebuilds your intuition from scratch. We start with a single cup of
 
 ![Ordinary Differential Equations (1): Origins and Intuition — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - What a differential equation actually *is* — beyond the symbols
 - ODE vs. PDE, order, linearity — and why each distinction earns its keep

@@ -17,7 +17,7 @@ translationKey: "vae-guide"
 
 本文走完整条路径：先讲清楚自编码器为什么不能生成，再从 ELBO 推导出损失函数，接着拆解为什么必须用重参数化技巧让梯度走得通，然后给出可以直接运行的 PyTorch 实现，最后逐一分析每种你一定会遇到的失败模式并给出修复手段。
 
-## 你将学到什么
+## 你将学到
 
 - 自编码器的潜在空间为什么不能采样， VAE 改了哪一步
 - ELBO 目标函数：重建项与 KL 项是怎么从一个似然下界中自然落出来的
@@ -405,7 +405,7 @@ def interpolate(model, x1, x2, steps=10, device="cuda"):
 
 **早晚会踩的坑：** 后验坍塌（用 KL 退火或 free bits）、采样模糊（加大潜在维度或感知损失）、 NaN 损失（钳制 `logvar`、裁剪梯度）。
 
-## 延伸阅读
+## 参考文献
 
 - Kingma, D.P. & Welling, M. (2013). [*Auto-Encoding Variational Bayes*](https://arxiv.org/abs/1312.6114). VAE 的原始论文。
 - Higgins, I. et al. (2017). [*beta-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework*](https://openreview.net/forum?id=Sy2fzU9gl).

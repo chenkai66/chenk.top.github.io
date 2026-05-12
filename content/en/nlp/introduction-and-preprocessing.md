@@ -24,7 +24,7 @@ This first article in the series does two things. First, it maps out the field's
 <!-- wanx-hero -->
 ![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
 
-## What You Will Learn
+## What you will learn
 
 
 <!-- wanx-mid -->

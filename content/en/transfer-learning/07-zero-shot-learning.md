@@ -24,7 +24,7 @@ You have never seen a zebra. I tell you it looks like a horse painted with black
 
 This post derives ZSL from one equation — a compatibility function $F(x, c)$ between an image and a class description — and then walks through every major family that has appeared in the last fifteen years: attribute prototypes, bilinear and deep compatibility, generative feature synthesis, generalised ZSL with calibration, and finally CLIP-style web-scale pretraining that has effectively dissolved the field as a separate problem.
 
-## What you will learn
+## What You Will Learn
 
 - The ZSL problem statement and the seen / unseen split
 - Attribute representations and **Direct Attribute Prediction (DAP)**

@@ -218,7 +218,7 @@ $$V_{uv} \;=\; (\gamma(e_{uv}) \odot V_u) + \beta(e_{uv}),$$
 4. **池化只放在最后一步。** 整条消息传递保持节点级等变，需要图级标量时再做一次不变池化。
 5. **真正的红利在「把网络当数据点」的元任务上**：预测泛化、检索相似模型、合并权重。这些任务以前要么忽略对称性、要么手写一套对称约束，现在都可以省下来。
 
-## 延伸阅读
+## 参考文献
 
 - 原论文：[Graph Neural Networks for Learning Equivariant Representations of Neural Networks](https://arxiv.org/abs/2403.12143)（Kofinas 等， ICML 2024）
 - PNA 的背景：[Principal Neighbourhood Aggregation for Graph Nets](https://arxiv.org/abs/2004.05718)（Corso 等， NeurIPS 2020）

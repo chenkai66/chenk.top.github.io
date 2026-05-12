@@ -22,7 +22,7 @@ translationKey: "optim-05"
 
 贯穿这一切的统一工具是 **Lyapunov 势函数（Lyapunov potential）**——一种非负量，其值在算法每一步严格递减。 Nesterov 方法与重球法均可借助 Lyapunov 函数完成分析；而上述下界本质上表明：不存在任何 Lyapunov 势函数能实现比 $\sqrt{\kappa}$ 更快的衰减速率。
 
-## 你将学到的内容
+## 你将学到
 
 1. Nemirovski–Yudin 下界：对于最坏情形下的光滑强凸问题，任意一阶方法至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代才能达到 $\epsilon$ 精度。
 2. Polyak 重球法、其连续时间极限（一个阻尼二阶常微分方程），及其 Lyapunov 分析。

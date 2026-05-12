@@ -20,7 +20,7 @@ translationKey: "ode-4"
 
 ![Ordinary Differential Equations (4): The Laplace Transform — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - The definition and the intuition behind $e^{-st}$ as a "decay probe"
 - The differentiation property — the key that converts an ODE into algebra

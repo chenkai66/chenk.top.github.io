@@ -179,7 +179,7 @@ $$\nabla_w \log p(w \mid \mathcal{D}) = \nabla_w \log p(\mathcal{D}\mid w) + \na
 
 ![贝叶斯神经网络后验带。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/fig7_bayesian_nn.png)
 *图 7. 左：训练数据有缺口的回归问题， 90% Langevin 后验带在数据缺失处加宽。右：预测标准差在缺口处峰值 -- 这是点估计网络缺失的 **认知不确定性**。*
-## 9. 总结
+## 总结
 
 - 任意 It&ocirc; SDE 都对应一个 Fokker-Planck PDE，描述其密度演化。
 - Langevin 动力学采样自 $p^\star \propto e^{-V}$； ULA/MALA/HMC 是离散实现。

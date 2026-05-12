@@ -28,7 +28,7 @@ translationKey: "pde-ml-4"
 6. **Numerical experiments**: 7 figures with reproducible code.
 7. **Application**: Bayesian neural networks via posterior sampling.
 
-## What You Will Learn
+## What This Article Covers
 
 - How the Fokker-Planck equation governs probability density evolution from any It&ocirc; SDE.
 - Langevin dynamics as a practical sampling algorithm and its discretization error.

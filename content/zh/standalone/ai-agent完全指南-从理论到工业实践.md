@@ -26,7 +26,7 @@ translationKey: "ai-agents-complete-guide"
 - 一套能在 CI 中运行并捕捉真实回归的评估体系
 - 上线检查清单：成本、安全、可观测性、常见失败模式
 
-## 阅读前置
+## 前置知识
 
 - 熟悉 Python，习惯 `requests`/`json` 那种风格的接口代码
 - 至少使用过一种大模型的 API （如 OpenAI、 Anthropic、通义、智谱）

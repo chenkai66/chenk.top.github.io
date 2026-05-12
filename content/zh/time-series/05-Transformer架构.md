@@ -307,7 +307,7 @@ class TimeSeriesTransformer(nn.Module):
 | lookback > 1024 时内存不足              | 使用了普通的 attention                             | 先尝试 patching，必要时改用稀疏或线性方法  |
 | 预测只跟随最近值，忽略趋势              | 位置信息未注入，或者 PE 被特征数值范围压制         | 将 PE 缩放到特征量级，添加日历特征         |
 | "Transformer 效果不如 LSTM"            | 数据集小于 1 万样本，模型正则化不足                | 缩小模型规模，设置 dropout 为 0.2-0.3，启用 weight decay |
-## 12. 总结
+## 小结
 
 Transformer 并不是什么魔法，它只是让每个时间步都能直接访问其他所有时间步的最简单架构，而且是并行处理。在时间序列问题中，有三点最关键：
 

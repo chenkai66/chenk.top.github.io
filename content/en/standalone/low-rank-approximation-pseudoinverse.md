@@ -14,7 +14,7 @@ translationKey: "low-rank-approximation-pseudoinverse"
 ---
 Real data matrices are almost never both square and full rank: correlated features, too few samples, and noise-induced ill-conditioning all make "matrix inverse" either undefined or numerically useless. The **pseudoinverse** (Moore-Penrose inverse) preserves the *spirit* of an inverse while dropping the impossible-to-meet requirements: it redefines the "solution" of a linear system as the **least-squares solution**, breaking ties by picking the one with **minimum norm**. This post derives the pseudoinverse from that least-squares viewpoint, gives the four Penrose conditions, builds it from the SVD, and connects this single object to **the Eckart-Young low-rank approximation theorem**, **PCA**, **recommender-system matrix factorization**, and **LoRA fine-tuning**.
 
-## What You Will Learn
+## What you will learn
 
 - **The optimization view**: why "pseudoinverse = least squares" is the right unifying definition
 - **The SVD recipe**: how$A = U\Sigma V^{\!\top}$ builds$A^{+}$

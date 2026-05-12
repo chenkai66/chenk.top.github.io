@@ -23,7 +23,7 @@ These are not prediction failures. The universe is doing exactly what dynamical 
 
 ![Ordinary Differential Equations (10): Bifurcation Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - What bifurcation means precisely, and why it has to be defined in terms of *topology*, not *quantity*
 - The four codimension-1 normal forms: saddle-node, transcritical, supercritical pitchfork, subcritical pitchfork

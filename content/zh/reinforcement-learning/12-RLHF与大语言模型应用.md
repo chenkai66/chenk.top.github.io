@@ -329,7 +329,7 @@ SFT 的上限由演示作者的能力决定——人类很少写出**最优**答
 
 **问：这些内容和第 7 部分的逆强化学习有什么关系？**  
 直接相关。 RLHF 在结构上就是逆强化学习，只不过做了两个简化：用成对偏好代替完整演示（Bradley-Terry 替代 MaxEnt IRL），用 PPO 作为前向 RL 步骤。奖励模型是 IRL 的输出结果，而 PPO 阶段则是标准的"用恢复的奖励训练新策略"步骤。
-## 12. 参考文献
+## 参考文献
 
 - **Bradley & Terry (1952).** Rank Analysis of Incomplete Block Designs. *Biometrika*. — 偏好似然的来源。
 - **Christiano 等 (2017).** Deep Reinforcement Learning from Human Preferences. *NeurIPS*. — 现代偏好-RL 的开山之作。

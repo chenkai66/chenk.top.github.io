@@ -23,7 +23,7 @@ BERT changed NLP overnight. A model pre-trained on Wikipedia and BookCorpus coul
 
 But *why* does pre-training work? When should you freeze layers, when should you LoRA, and how small does your learning rate need to be? This article unpacks both the theory and the engineering practice behind the most successful transfer paradigm we have.
 
-## What you will learn
+## What You Will Learn
 
 - Why pre-training works, viewed through both a Bayesian and an information-theoretic lens
 - Self-supervised pretext tasks: contrastive learning (SimCLR, MoCo) and masked language modelling (BERT MLM)

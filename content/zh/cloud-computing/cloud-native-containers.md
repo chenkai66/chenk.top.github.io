@@ -23,7 +23,7 @@ polished_by_qwen_max: true
 
 本文按层级走完整个云原生栈。从背后的架构动因开始，深入容器在 Linux 内核层面的真实形态，向上到 Kubernetes 编排，剖析 Service Mesh 在何时值得它的复杂度，最后讲清 Helm 打包与 GitOps 交付。所有示例都是生产可用的：可直接复用的 Dockerfile、真实 manifest，以及生产环境里，真正重要的取舍。
 
-## 你将学到
+## 你将学到的内容
 
 - 12 要素应用方法论，每条要素的设计动机
 - 容器内部： namespace、 cgroup、 union 文件系统、镜像分层

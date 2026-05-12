@@ -19,7 +19,7 @@ translationKey: "pde-ml-5"
 ---
 ![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_1.png)
 
-## What this article covers
+## What This Article Covers
 
 Train an unconstrained neural network on pendulum data and ask it to extrapolate. After a few seconds of integration the prediction is fine; after a minute the pendulum has either crept to a halt or, more often, accelerated to escape velocity. Energy was supposed to be conserved, but the network has no idea what energy is. The bug is not in the data, the optimizer, or the depth of the network. **The bug is in the architecture.** A standard MLP can represent any vector field, including unphysical ones, and a tiny systematic bias in that vector field is amplified into macroscopic energy drift over a long rollout.
 

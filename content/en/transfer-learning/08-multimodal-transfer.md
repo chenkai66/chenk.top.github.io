@@ -23,7 +23,7 @@ The trick is not architecture. The trick is supervision. CLIP scraped 400 millio
 
 This post derives the math behind that alignment, walks through CLIP and its successor BLIP-2, compares the three families of fusion strategies, and ends with a from-scratch CLIP implementation in PyTorch.
 
-## What you will learn
+## What You Will Learn
 
 - The InfoNCE loss as mutual-information maximization, and the role of temperature $\tau$
 - CLIP's dual-encoder design and zero-shot classification protocol

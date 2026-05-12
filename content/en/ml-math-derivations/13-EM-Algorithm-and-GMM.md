@@ -22,7 +22,7 @@ When data has hidden structure — like an unobserved cluster label, a missing f
 
 ![ML Math Derivations (13): EM Algorithm and GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_1.png)
 
-## What you will learn
+## What This Article Covers
 
 - Why latent variables make MLE hard (the log-of-a-sum problem)
 - How Jensen's inequality builds the **Evidence Lower Bound (ELBO)**

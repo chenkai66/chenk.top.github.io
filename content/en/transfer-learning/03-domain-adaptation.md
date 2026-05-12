@@ -22,7 +22,7 @@ Your autonomous-driving stack works perfectly on sunny California freeways. Then
 
 This is the everyday problem of **domain adaptation**: you have abundant labelled data in one distribution (the *source*) and unlabelled data in another (the *target*), and you need the model to perform on the target. This article shows you how, from first-principles theory to a working DANN implementation.
 
-## What you will learn
+## What You Will Learn
 
 - Three flavours of distribution shift — covariate, label, concept — and how each is fixed
 - The Ben-David bound: why adaptation is possible, and the precise quantity it lets you reduce

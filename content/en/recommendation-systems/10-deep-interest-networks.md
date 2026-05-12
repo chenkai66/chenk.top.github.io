@@ -22,7 +22,7 @@ A recommendation model used to be a worse chef. It would take everything the use
 
 This article walks through the family of attention-based CTR models that grew from that insight: DIN (target attention), DIEN (interest evolution with GRU + AUGRU), DSIN (session-aware), and BST (Transformer over behaviors). We'll keep the math honest, the code runnable, and the intuition sharp.
 
-## What you will learn
+## What You Will Learn
 
 - Why averaging user history loses critical information, and how attention fixes it
 - **DIN** — target attention with a Local Activation Unit

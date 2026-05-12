@@ -16,7 +16,7 @@ translationKey: "time-series-2"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png)
 
-## What You Will Learn
+## What you will learn
 
 - Why vanilla RNNs fail on long sequences and how LSTM fixes the gradient problem
 - The intuition behind each gate (forget, input, output) and the cell-state "highway"

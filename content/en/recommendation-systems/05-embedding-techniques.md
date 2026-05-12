@@ -23,7 +23,7 @@ This article unpacks how those vectors get learned and served at production scal
 
 ![Recommendation Systems (5): Embedding and Representation Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - **What an embedding actually is** — and why "low-dimensional" is the entire point
 - **Sequence-based learning** with Word2Vec and Item2Vec, including the Skip-gram derivation

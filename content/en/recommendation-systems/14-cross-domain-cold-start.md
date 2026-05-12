@@ -18,7 +18,7 @@ translationKey: "recommendation-systems-14"
 
 ![Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - **The three cold-start regimes** — new user, new item, new system — and why each demands a different lever
 - **Cross-domain bridges** — from EMCDR's shared MLP to PTUPCDR's per-user meta network

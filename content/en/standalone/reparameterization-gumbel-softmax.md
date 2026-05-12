@@ -19,7 +19,7 @@ The reparameterization trick has a clean answer — rewrite $z\sim p_\theta(z)$ 
 
 This post walks through the derivations, the intuition, the implementation details, the bias-variance trade-off behind the temperature, and the most common training pitfalls.
 
-## What you'll learn
+## What you will learn
 
 - Why gradients cannot flow through $z\sim\mathcal N(\mu,\sigma^2)$, but flow freely through $z=\mu+\sigma\epsilon$.
 - Where the Gumbel distribution comes from and **why** "logits + Gumbel noise + argmax = softmax sampling" is exact.
