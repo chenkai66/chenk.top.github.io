@@ -18,9 +18,9 @@ description: "The complete LLM toolkit on Alibaba Cloud: Qwen model family, Dash
 disableNunjucks: true
 translationKey: "aliyun-fullstack-10"
 ---
-早年我在国内开发生产级 LLM 应用时，可选方案极少，且成本高昂。国际大厂要么未在中国内地部署服务端点（endpoint），要么计费需绑定境外信用卡；若调用其美国 API，首 Token 延迟普遍超过 800ms。后来 Qwen 接入 DashScope，并提供了 OpenAI 兼容接口，国内开发 AI 产品体验就此与海外接轨。SDK 一样，请求结构一样，流式协议也一样——只要改个 `base_url`，再从百炼控制台拿个 Key 就行。该方案已在生产环境稳定运行一年以上。本文系统梳理了我初上手时最急需的实战经验。
+早年在国内开发生产级 LLM 应用时，可选方案极少、成本高昂：国际大厂要么未在中国内地部署服务端点（endpoint），要么计费需绑定境外信用卡；若调用其美国 API，首 Token 延迟普遍超 800ms。后来 Qwen 接入 DashScope，并提供了 OpenAI 兼容接口，国内开发 AI 产品体验就此与海外接轨。SDK 一样，请求结构一样，流式协议也一样——只要改个 `base_url`，再从百炼控制台拿个 Key 就行。该方案已在生产环境稳定运行一年以上。本文系统梳理了我初上手时最急需的实战经验。
 
-本文不是泛泛而谈的概览。读完后，你将：厘清完整的模型目录；掌握全部模态（文本、图像、视频、音频、Embeddings）的调用方法；理解各团队高频遇到的异步任务模式；并动手实现一个端到端多模态流水线——生成文章、配图、语音合成，全程使用 Python。
+本文不是泛泛而谈的概览：你将厘清完整模型目录，掌握文本、图像、视频、音频、Embeddings 等全部模态的调用方法，理解各团队高频遭遇的异步任务模式，并动手实现端到端多模态流水线——生成文章、配图、语音合成，全程基于 Python。
 
 
 ## Bailian vs DashScope：到底啥是啥
@@ -31,7 +31,7 @@ translationKey: "aliyun-fullstack-10"
 
 **DashScope** 是 API 服务。所有 HTTP 请求都打到 `dashscope.aliyuncs.com`。Python SDK 是 `pip install dashscope`。代码调用模型时是在跟 DashScope 对话；查账单或部署微调模型时，用的是 Bailian。
 
-实际操作流程是：在 Bailian 获取 API Key 并配置环境变量，再通过代码调用 DashScope 的模型接口。
+实际流程是：在 Bailian 获取 API Key 并配置环境变量，再用代码调用 DashScope 模型接口。
 
 ### 对应到 AWS 是怎么个概念
 
@@ -44,7 +44,7 @@ translationKey: "aliyun-fullstack-10"
 | 提示词工程工作室 | **Bailian Prompt Lab** | Bedrock Playground |
 | RAG 服务 | **Bailian Knowledge Base** | Bedrock Knowledge Bases |
 
-与 AWS 的关键区别在于：在阿里云平台上，Qwen 是阿里自研的第一方模型家族。而在 AWS 上，所有模型（Claude、Llama、Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能迭代更快、定价更有优势，且中文能力业界领先——因为其训练始终以中文为首要语言，而非后期适配。
+与 AWS 的关键区别在于：在阿里云平台上，Qwen 是阿里自研的第一方模型家族。而在 AWS 上，所有模型（Claude、Llama、Mistral）都是第三方的。这意味着 Qwen 模型在 DashScope 上功能迭代更快、定价更优、中文能力业界领先——训练始终以中文为首要语言，而非后期适配。
 
 想深入了解 Bailian 平台本身，可以看我们的专门系列 [Bailian 系列](/zh/aliyun-bailian/01-platform-overview/)。
 

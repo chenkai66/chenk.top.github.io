@@ -66,11 +66,11 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### env
 
-为所有工具调用（Bash、hook 等）设置环境变量。
+为所有工具调用（如 Bash、hook 等）设置环境变量。
 
 ### hooks
 
-定义在工具调用前或后运行的脚本。详见第 7 章完整说明。
+定义在工具调用前或后运行的脚本。详见第 7 章详细说明。
 
 ### worktree
 
@@ -176,7 +176,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
-一旦合并后的配置里有任何东西 deny 了一个动作，别的都救不回来。这正是你可以依赖的关键机制。
+只要合并后的配置中存在任一 deny 规则，该动作即被永久阻断——这正是整个权限模型可信赖的核心。
 ![图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)
 
 *图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。*
@@ -313,7 +313,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 }
 ```
 
-匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行；hooks 没有覆盖机制。在更深层添加 hook 是追加，永远不会替换。
+匹配器是用管道符分隔的工具名称。所有三层里的 hooks 都会运行，不覆盖，只追加：任一层级新增 hook，均加入执行链末端，绝不会替换上层已定义的 hook。
 
 ### 钩子（Hook）配置详情
 
@@ -354,7 +354,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 // 两者均会运行：用户级 `global-blacklist.js` 先执行，随后执行项目级 `project-blacklist.js`。
 ```
 
-这与权限（deny 优先于 allow）和环境变量（深层级覆盖浅层级）的行为不同——钩子始终是累加的。
+这与权限（deny 优先）、env（深层覆盖）的行为截然不同：hooks 始终累加执行。
 
 ## 一个真实 repo 里的真实 settings.json
 
@@ -571,7 +571,7 @@ Monorepo 特定设计说明：
 claude --debug
 ```
 
-调试输出将明确显示每条规则来源的配置文件及最终匹配的规则。
+调试输出将明确显示每条规则的来源配置文件及最终匹配的规则。
 
 ### “我已允许某操作，却仍被阻止”
 
@@ -617,7 +617,7 @@ cat .claude/settings.local.json | jq .
 
 ### “用户级设置中的钩子未运行”
 
-确保钩子脚本路径为绝对路径，或相对于当前工作目录正确：
+确保钩子脚本路径为绝对路径，或相对于当前工作目录正确。
 
 ```json
 // 在 ~/.claude/settings.json 中，使用绝对路径：
@@ -762,4 +762,4 @@ settings.json      settings.json        settings.local.json
 
 ## 结语
 
-settings.json 就是 Claude 在项目里能做什么的宪法。deny 规则宜简短严苛，allow 规则宜具体明确，hooks 则作为第二道防线。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。
+settings.json 就是 Claude 在项目里能做什么的宪法。deny 规则应简短严苛，allow 规则须具体明确，hooks 作为兜底防护层。一旦你脑子里有了层级和优先级的概念，配置一个新 repo 只要九十秒。在这之前，你会觉得规则很 arbitrary；其实不是。

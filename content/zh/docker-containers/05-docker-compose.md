@@ -254,7 +254,7 @@ services:
 
 ![Docker compose orchestra conductor directing multiple servic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-docker-compose-orchestra-conductor-directing-multiple-servic.jpg)
 
-我们来构建一个完整的应用栈：API 通过 HTTP 接收任务，将其存入 PostgreSQL，并推入 Redis 队列；Worker 异步处理任务。项目结构如下：
+我们来构建一个完整的应用栈：API 通过 HTTP 接收任务，将其存入 PostgreSQL 并推入 Redis 队列；Worker 异步处理任务。项目结构如下：
 
 ```
 myapp/
@@ -621,7 +621,7 @@ myapp-worker-2        myapp-worker           worker     Up
 myapp-worker-3        myapp-worker           worker     Up
 ```
 
-三个 Worker 容器共享同一个 Redis 队列，实现基础的水平扩展。
+三个 Worker 容器共享同一个 Redis 队列，实现基本的水平扩展。
 
 ⚠️ 扩容限制：
 - **不可扩容含固定端口映射的服务**（两个容器无法同时绑定 `8000` 端口）  
@@ -644,7 +644,7 @@ services:
 
 ## Compose Profiles（服务分组）
 
-Profiles 允许定义可选服务，仅在显式启用时才启动：
+Profiles 允许定义可选服务，仅在显式启用时才启动。
 
 ```yaml
 services:

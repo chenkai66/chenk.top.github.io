@@ -17,7 +17,7 @@ description: "Skill 不是 Prompt 模板——它是一套完整的 SOP，包括
 disableNunjucks: true
 translationKey: "openclaw-quickstart-6"
 ---
-学到第五篇，你的 OpenClaw 已经可以正常运行并支持对话了。从这一步起，它就不再只是一个演示原型（Demo）了。
+学到第五篇，你的 OpenClaw 不仅能正常运行、支持对话，而且已经从一个演示原型（Demo）变成了一个可落地的 Agent 系统。
 
 ![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
@@ -32,11 +32,11 @@ translationKey: "openclaw-quickstart-6"
 3. 读取当天的日历安排（通过封装 `gcalcli` 的 Skill）
 4. 把两者总结成一段话，推送到我的 Telegram
 
-这才是一个真实的端到端流程。完成这一步后，你就获得了一个可复用的系统骨架，后续只需替换数据源即可。但在动手构建之前，我们需要先厘清所要整合的两个系统。
+这才是一个真实的端到端流程。完成这一步，你就拥有了一个可复用的系统骨架——后续只需替换数据源，但在动手前，必须先厘清待整合的两个系统。
 
 ## Skills、Tools 与 MCP —— 心智模型
 
-这三个术语常被混用，但它们本质不同：
+这三个术语虽然常被混用，但本质上是不同的：
 
 | 概念 | 是什么 | 谁编写 | 何时加载 |
 |------|--------|--------|----------|
@@ -44,9 +44,9 @@ translationKey: "openclaw-quickstart-6"
 | **Skill（技能）** | 一种知识性名词：一份 Markdown 格式的标准操作流程（SOP），告诉 Agent *如何* 完成特定任务。 | 你 | 懒加载 —— 仅在触发时才实例化，正文按需载入 |
 | **MCP Server（MCP 服务端）** | 一个外部进程，通过 Model Context Protocol（MCP）暴露 *额外* 的工具。 | 第三方 或 你 | 网关启动时加载；其工具与内置工具并列呈现 |
 
-三者关系：**Skills 使用 Tools；MCP Servers 提供 Tools**。例如某 Skill 可能写道："使用 Playwright 工具抓取该网页"——其中 Playwright 工具来自某个 MCP Server，而该 Skill 则指导 Agent 如何组合运用这些工具。
+三者关系：**Skills 调用 Tools；MCP Servers 暴露 Tools**。例如某 Skill 写道：‘用 Playwright 工具抓取该网页’——Playwright 工具来自 MCP Server，Skill 则定义如何组合调用。
 
-类比理解：Tools 是 Agent 的「双手」，Skills 是「操作手册」，MCP 则是为 Agent「增配更多双手」的机制。
+类比来说，Tools 是 Agent 的双手，Skills 是操作手册，而 MCP 则是为 Agent 增配新双手的机制。
 
 ## 第一步：写一个 Skill
 
@@ -86,7 +86,7 @@ Produce a single paragraph summary.
 
 ### SKILL.md 文件结构解析
 
-该文件包含两个部分：YAML 前置元数据（即 **manifest**）和 Markdown 正文（即 **SOP**）。二者均不可或缺，且在不同阶段承担不同职责。
+该文件包含两部分：YAML 前置元数据（即 **manifest**）和 Markdown 正文（即 **SOP**）。二者均不可或缺，并在不同阶段承担不同职责。
 
 **Manifest** 在 gateway 启动时加载。每个 skill 的 manifest 均被注入系统 prompt，供模型判断应调用哪个 skill。各字段说明如下：
 
@@ -116,14 +116,14 @@ Produce a single paragraph summary.
 
 **调试 trigger 问题：** 若 skill 未按预期触发，请设置环境变量 `OPENCLAW_LOG=debug` 并发送测试消息。检查 `gateway.log` 中的 `skill_selection` 日志条目——它会清晰列出模型评估了哪些 skill，以及最终选择（或未选择）某 skill 的原因。
 
-重启网关，确认 Skill 加载成功：
+重启网关以确认 Skill 加载成功：
 
 ```bash
 openclaw skills list | grep summarize
 # summarize-headlines  (loaded)
 ```
 
-你还可以查看模型所见内容：
+你还可以查看模型所见的内容：
 
 ```bash
 openclaw skills inspect summarize-headlines
@@ -145,7 +145,7 @@ npm i -g mcporter
 curl -LsSf https://astral.sh/uv/install.sh | sh   # 用于部分 MCP 服务器的 uvx 运行时
 ```
 
-验证安装：
+验证安装是否成功：
 
 ```bash
 mcporter --version
@@ -189,7 +189,7 @@ Use Playwright to fetch the top 5 stories from
 https://news.ycombinator.com and just give me the titles and URLs.
 ```
 
-如果 Agent 返回了一个列表，链路就通了。若失败，常见原因如下：
+如果 Agent 返回了一个列表，说明链路通畅。若失败，常见原因如下：
 
 1. **MCPorter 未运行**：运行 `mcporter status`，确认 `playwright` 显示为 `running`。若为 `stopped`，手动执行 `mcporter start playwright`，并检查日志 `~/.mcporter/logs/playwright.log` 排查错误。
 2. **端口冲突**：MCPorter 默认监听 `:7890`。若该端口被占用，可设置环境变量 `MCPORTER_PORT=7891`，并同步更新 `openclaw.json` 中的 `porter_endpoint`。

@@ -20,17 +20,17 @@ translationKey: "terraform-agents-6"
 ---
 我在很多还没成熟的 Agent 架构里总看到一个通病：每个 Agent 都在自己的 `.env` 文件里存一份 `OPENAI_API_KEY`。有时候是同一个 key，有时候不一样，甚至还有同事原型阶段留下的个人密钥。等到账单来了，没人说得清是哪个 Agent 烧了多少 token；一旦密钥泄露（迟早的事），你就得在十几个 `.env` 文件里打地鼠。
 
-真正让我警醒的是两年前的一件事。有个外包周五结束三个月的合同， laptop 带走了，结果周二 DashScope 账单报警，显示有 1200 万 `qwen-max` token 的流量来自一个陌生 IP。他个人 API key——当初复制粘贴到侧边项目里的——还留在我们 Agent 的 `.env` 里。轮换该密钥耗时六小时：涉及三名工程师、四个代码仓库、两条 CI 流水线，还有一条迅速失控的 Slack 讨论线程。这类事故，绝不能再发生。
+真正让我警醒的是两年前的一件事。有个外包周五结束三个月的合同， laptop 带走了，结果周二 DashScope 账单报警，显示有 1200 万 `qwen-max` token 的流量来自一个陌生 IP。他个人 API key——当初复制粘贴到侧边项目里的——还留在我们 Agent 的 `.env` 里。轮换该密钥耗时六小时——涉及三名工程师、四个代码仓库、两条 CI 流水线，以及一条迅速失控的 Slack 讨论线程。这类事故，绝不能再发生。
 
-这篇文章就是为了解决这个问题。我们要建一个 **LLM 网关**，做到以下几点：
+这篇文章就是为了解决这个问题。我们构建一个 **LLM 网关**，实现以下目标：
 
 - 把所有厂商的密钥统一收进 KMS Secrets Manager（一个 bucket，一套 ACL，统一的轮换节奏）
 - Agent 通过 RAM 颁发的短期 Token 认证——Agent 机器上零静态 AK
-- 限制每个 Agent 的每分钟请求数（QPM）和每日 token 上限，避免因死循环导致单日费用飙升至 800 元，甚至耗尽整个季度预算。
+- 限制每个 Agent 的每分钟请求数（QPM）与每日 token 上限，防止死循环引发单日费用飙升（最高达 800 元）乃至季度预算耗尽。
 - 所有请求记入 SLS，方便取证、成本分摊和 SOC-2 审计
 - 轮换密钥不用重启或重新部署任何 Agent——一个 PR，一次 apply，搞定
 
-两天即可完成搭建，长期受益。
+两天即可完成部署，长期收益显著。
 
 ![Terraform for AI Agents (6): LLM Gateway and Secrets Management — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
 
@@ -38,9 +38,9 @@ translationKey: "terraform-agents-6"
 
 ![Centralised LLM gateway: one egress, one quota, one audit log](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)
 
-架构中，Agent 位于左侧，模型厂商位于右侧，网关居中作为代理层。每个 Agent 发往 "LLM" 的 HTTP 请求，实际都会先抵达网关。由网关决定 dispatch 给哪个厂商，附上正确的 key，执行配额限制，并记录结果。
+架构上，Agent 在左、模型厂商在右，网关居中充当代理层。每个 Agent 发往 "LLM" 的 HTTP 请求，实际都会先抵达网关。由网关统一分发请求至对应厂商、注入正确密钥、执行配额控制并记录调用结果。
 
-实现方案主要有两种可行选择：
+实现方案有两种主流选择：
 
 1. **Aliyun API Gateway 加自定义后端** —— 最托管，配额策略配置最简单，原生集成 RAM。适合路由逻辑简单的场景：“一个模型，一个厂商，只管限流”。
 2. **ALB 后面自托管 LiteLLM on ECS** —— 最灵活，支持长尾厂商（DeepSeek、Moonshot、Zhipu、你自己微调的 PAI 端点），更容易扩展成本追踪和跨厂商 fallback。

@@ -15,7 +15,7 @@ series_order: 6
 translationKey: "databases-6"
 ---
 
-一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：或许你需要的读吞吐量超出了单颗 CPU 的能力；或许你需要让数据在数据中心火灾中幸存；又或许你的数据集已超出单块磁盘的容量。此时，你就需要**复制（Replication）**与**分片（Partitioning / Sharding）**。
+一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：或许你需要的读吞吐量超出了单颗 CPU 的能力，或者需要让数据在数据中心火灾中幸存，又或者你的数据集已超出单块磁盘的容量。此时，你就需要**复制（Replication）**与**分片（Partitioning / Sharding）**。
 
 这是两种正交的扩展策略：
 - **复制**：将**相同的数据**拷贝到多台机器上（提升可用性与读扩展能力）
@@ -36,7 +36,7 @@ translationKey: "databases-6"
 
 ### 主从复制（Leader-Follower / Master-Slave）
 
-最常用的复制拓扑结构。一个节点（称为主节点/Leader/Master/Primary）负责全部写操作；一个或多个从节点（Follower/Slave/Replica/Standby）接收所有写入的副本，并可服务读请求。
+最常用的复制拓扑结构是一个节点（称为主节点/Leader/Master/Primary）负责全部写操作，一个或多个从节点（Follower/Slave/Replica/Standby）接收所有写入的副本并可服务读请求。
 
 ![Leader-follower replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
 
@@ -84,7 +84,7 @@ SELECT
 FROM pg_stat_replication;
 ```
 
-实践中，多数部署采用**半同步复制（semi-synchronous）**：指定一个从节点为同步（确保零数据丢失），其余为异步（用于读扩展）。
+实践中，多数部署采用**半同步复制（semi-synchronous）**：指定一个从节点为同步以确保零数据丢失，其余为异步以用于读扩展。
 
 ### 复制延迟（Replication Lag）
 
@@ -175,7 +175,7 @@ WHERE user_id = 1;
 
 ### 无主复制（Leaderless Replication，Dynamo 风格）
 
-完全不设主节点。任何节点均可接受读写请求。Amazon DynamoDB、Apache Cassandra 和 Riak 均采用此模型。
+完全不设主节点，任何节点均可接受读写请求。Amazon DynamoDB、Apache Cassandra 和 Riak 均采用此模型。
 
 #### 法定人数读写（Quorum Reads and Writes）
 

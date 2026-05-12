@@ -20,14 +20,14 @@ translationKey: "aliyun-fullstack-6"
 ---
 有一次，我在一个公开的 GitHub 仓库里发现了一个 DashScope API Key——竟是我自己的。有人 fork 了我几个月前上传的一个 Demo，而这个 API Key 就明文存放在未被 .gitignore 排除的配置文件中。等我发现时，这个 Key 已在短短一个周末内被用于发起 14,000 次 Qwen API 调用。所幸账单未超支——这得益于 DashScope 按 token 计费的弹性计费机制——但教训极为深刻。我曾以为云安全可以‘以后再做’，结果这个‘以后’，变成了一条凌晨两点触发的账单告警。
 
-那天我配了 RAM 用户，轮转了所有 access key，开了 MFA，所有涉及前端直连云服务的场景，均改用 STS 临时凭证。本文将我在这一过程中积累的经验系统梳理出来，结构清晰，目标明确：一个下午即可完成基础加固，无需等到事故发生后再补救。
+那天我配了 RAM 用户，轮转了所有 access key，开了 MFA，所有涉及前端直连云服务的场景，均改用 STS 临时凭证。我把这一过程中的经验系统梳理成文：结构清晰、目标明确——一个下午完成基础加固，不必等事故后亡羊补牢。
 
 
 安全组——也就是网络层防火墙——我们在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 讲过了。这篇讲的是身份层：谁能做什么、怎么加密数据、怎么审计所有操作。想用 Terraform 管安全，看 [Terraform Part 6: LLM Gateway and Secrets](/zh/terraform-agents/06-llm-gateway-and-secrets/)。
 
 ## 安全心智模型
 
-云安全不是开个开关就完事的。它由多个相互独立的安全层构成，每层专门防御一类典型故障。即使某一层失效，其余层仍可提供防护——这正是‘纵深防御（defense in depth）’原则的核心要义。
+云安全不是打开一个开关就能搞定的事——它由多个相互独立的安全层构成，各层分别防御一类典型故障。即使某一层失效，其余层仍可提供防护——这正是‘纵深防御（defense in depth）’原则的核心要义。
 
 ![阿里云安全模型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_security_model.png)
 
@@ -40,9 +40,9 @@ translationKey: "aliyun-fullstack-6"
 | **加密 (Encryption)** | 数据静态和传输中是否受保护？ | KMS, SSL certificates | KMS, ACM |
 | **审计 (Auditing)** | 谁在什么时候做了什么？ | ActionTrail | CloudTrail |
 
-你所做的每一项安全决策，都可归入这四个范畴。一旦出现问题（这是不可避免的），审计日志将揭示其余三层中哪一层出现了失效。为新团队设计权限时，应依次覆盖这四个维度：创建身份、分配权限、加密数据、记录操作。
+每一项安全决策，都落在这四个范畴之内；一旦出问题（不可避免），审计日志会指出其余三层中哪一层失守。为新团队设计权限时，应依次覆盖这四个维度：创建身份、分配权限、加密数据、记录操作。
 
-该心智模型与 AWS IAM 高度一致——阿里云在设计 RAM 时正是对标 IAM 进行的。阿里云设计 RAM 的时候就是对标 AWS IAM 做的，概念层级也一样：顶层是 root 账号，下面是 RAM 用户，策略授予权限，角色用于跨服务和跨账号访问。若已熟悉 AWS IAM，RAM 的大部分概念和操作你基本已掌握。剩下两成只是命名差别和几个功能细节不太一样。
+该心智模型与 AWS IAM 高度一致——阿里云在设计 RAM 时正是对标 IAM 进行的。阿里云设计 RAM 时直接对标 AWS IAM：顶层是 root 账号，其下是 RAM 用户；策略授予权限，角色支持跨服务与跨账号访问。若已熟悉 AWS IAM，RAM 的大部分概念和操作你基本已掌握。剩下两成只是命名差别和几个功能细节不太一样。
 
 一个关键区别在于：阿里云将 root 账号称为‘阿里云主账号’（也简称‘主账号’）。控制台中虽不显示‘root’字样，但其权限与 root 完全等同——即对整个云环境拥有完全控制权，因此严禁用于日常操作。
 
@@ -87,7 +87,7 @@ aliyun ram CreateLoginProfile \
   --MFABindRequired true
 ```
 
-`--PasswordResetRequired true` 标志强制 Alice 首次登录时改密码。`--MFABindRequired true` 强制她先配好 MFA 才能操作。任何拥有生产资源写权限的账号，这两项要求均不可妥协。
+`--PasswordResetRequired true` 标志强制 Alice 首次登录时改密码。`--MFABindRequired true` 强制她先配好 MFA 才能操作。凡拥有生产资源写权限的账号，必须强制启用密码修改与 MFA。
 
 创建 AccessKey pair 用于程序访问：
 
@@ -95,7 +95,7 @@ aliyun ram CreateLoginProfile \
 aliyun ram CreateAccessKey --UserName alice
 ```
 
-这会返回一个 AccessKeyId 和 AccessKeySecret。AccessKeySecret 仅在创建时显示一次，一旦丢失，只能通过重新创建密钥对来恢复。请将其存入专用密码管理器；切勿写入配置文件或共享服务器的环境变量，更不可提交到 Git 仓库。
+这会返回一个 AccessKeyId 和 AccessKeySecret。AccessKeySecret 仅在创建时显示一次，一旦丢失，只能通过重新创建密钥对来恢复。务必存入专用密码管理器——严禁写入配置文件、共享服务器环境变量，更不得提交至 Git 仓库。
 
 ### 配置 MFA
 
@@ -177,7 +177,7 @@ aliyun ram RemoveUserFromGroup --UserName alice --GroupName Developers
 aliyun ram AddUserToGroup --UserName alice --GroupName Administrators
 ```
 
-核心原则：禁止直接为 RAM 用户绑定权限策略，所有权限均须通过用户组统一授予。唯一例外是需对组内个别成员施加额外限制的情形；此时，建议为其新建专用用户组并绑定 Deny 策略，而非在原组内混用 Allow/Deny。
+核心原则：禁用直接向 RAM 用户绑定权限策略，所有权限必须经由用户组统一分发。唯一例外是需对组内个别成员施加额外限制的情形；此时，建议为其新建专用用户组并绑定 Deny 策略，而非在原组内混用 Allow/Deny。
 ## 深入理解 RAM 策略
 
 策略是授权的核心引擎。阿里云里的每次 API 调用都要过一遍策略，决定是放行还是拒绝。理解策略机制，是从‘功能可用’迈向‘安全可控’的关键分水岭。

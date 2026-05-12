@@ -18,9 +18,9 @@ description: "Agent 主循环在阿里云上有三个合理落点：长跑 ECS +
 disableNunjucks: true
 translationKey: "terraform-agents-4"
 ---
-做 Agent 系统架构时，最关键的决定其实是*Agent 循环进程到底跑在哪儿*。阿里云上有三个主流选法，还有一个大家容易忘掉的第四选。选错了虽不至于导致系统崩溃（后续仍可迁移），但会多花几周时间搭建基础设施，每月还可能额外浪费数千元算力费用。
+做 Agent 系统架构时，最关键的决策其实是——Agent 循环进程到底跑在哪儿？阿里云上有三大主流方案，外加一个常被忽略的第四种：ECI。选错虽不致系统崩溃（后续仍可迁移），但会多花几周搭基础设施，每月还可能白烧数千元算力。
 
-本文将逐一分析这四种方案，附可直接运行的 Terraform 代码，估算成本拐点，并分享我在实际运维中遇到的关键问题。
+本文逐一分析这四种模式：附可直接运行的 Terraform 代码、成本拐点估算，以及实际运维中踩过的典型坑。
 
 ## The four patterns
 
@@ -29,7 +29,7 @@ translationKey: "terraform-agents-4"
 ![Auto-scaling compute cluster dynamically adjusting to workload](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/wanxiang_compute_scale.png)
 
 
-每种方案都有它的最佳场景：
+每种方案各有所长：
 
 - **ECS** 就是 Linux 虚拟机。长期运行、有状态，调试时可通过 SSH 直接登录，非常方便。适合原型、单租户 Agent，或者需要让机器“热着”缓存模型或本地状态的场景。
 - **ACK**（容器服务 Kubernetes 版）是规模化生产的正解。多种 Agent、自动伸缩、滚动发布、GPU 调度。仅当您同时运行三个以上 Agent 服务，且团队中有熟悉 Kubernetes 的 SRE 时，才建议采用 ACK 方案。

@@ -16,7 +16,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-1"
 ---
 
-这是《Claude Code 实战入门》六篇系列指南的第一篇。各篇顺序经过精心设计：前一篇是后一篇的必要前提。学完全部六篇后，你将能自如使用那些 90% 的用户从未触碰过的进阶功能。
+这是《Claude Code 实战入门》六篇系列指南的第一篇。各篇严格递进，前一篇是后一篇的必要前提。学完全部六篇，你就能自如使用 90% 用户从未触碰的进阶功能。
 
 ![Claude Code 实战入门（1）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/illustration_1.png)
 
@@ -42,7 +42,7 @@ claude login
 
 ### 安装排障指南
 
-安装脚本本身很干净，但真实环境千差万别。以下是我在自己和他人实践中高频遇到的问题及解决方案。
+安装脚本本身很干净，但真实环境千差万别——以下是我和他人实践中高频遇到的问题及解法。
 
 **安装后提示 `command not found: claude`。**  
 脚本默认将二进制文件放在 `~/.local/bin/`。若该路径未加入 `PATH`，你有两个选择：
@@ -86,7 +86,7 @@ curl -fsSL https://claude.ai/install.sh | bash
 ```
 
 **WSL（Windows 子系统 Linux）特别说明。**  
-在 WSL 中，基于浏览器的登录流程无法自动唤起 Windows 浏览器。CLI 会打印一个授权 URL —— 请手动复制该 URL，在 Windows 浏览器中打开并完成授权，CLI 将自动接收并保存 Token。整个过程可行，只是体验稍欠流畅。
+在 WSL 中，基于浏览器的登录流程无法自动唤起 Windows 浏览器。CLI 会打印一个授权 URL，请手动复制该 URL 在 Windows 浏览器中打开并完成授权，CLI 将自动接收并保存 Token。整个过程可行，但体验稍欠流畅。
 
 **重复安装冲突。**  
 如果你既通过 npm 全局安装过（`npm install -g @anthropic/claude-code`），又运行了上述安装脚本，则系统中将存在两个 `claude` 二进制文件，彼此冲突。检查当前生效的是哪一个：
@@ -96,7 +96,7 @@ which claude
 # 正常应显示 ~/.local/bin/claude
 ```
 
-若显示的是 npm 安装路径，请卸载 npm 版本：
+若显示的是 npm 安装路径，请卸载 npm 版本。
 ```bash
 npm uninstall -g @anthropic/claude-code
 ```
@@ -133,7 +133,7 @@ git diff --staged | claude -p "请审查这段差异，指出潜在 bug"
 
 ![Claude Code 实战入门（1）：安装、三层配置体系，以及 `#` `@` `/init` 三剑客 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/illustration_2.png)
 
-这是绝大多数用户从未细读，却至关重要的部分。Claude Code 会从**三个位置**合并加载配置，优先级由低到高依次为：
+这是绝大多数用户从未细读，但至关重要的部分。Claude Code 会从三个位置合并加载配置，优先级由低到高依次为：
 
 | 层级 | 路径 | 是否提交至 Git？ | 适用场景 |
 |------|------|------------------|----------|
@@ -141,7 +141,7 @@ git diff --staged | claude -p "请审查这段差异，指出潜在 bug"
 | 项目层（Project） | `<repo>/.claude/settings.json` | 是 | 团队共享的项目规范（如统一使用的 linter、测试命令） |
 | 本地层（Local） | `<repo>/.claude/settings.local.json` | 否（已 `.gitignore`） | 你个人针对当前项目的私有覆盖项（如 staging 环境的私有 API Key） |
 
-为何需要三层而非两层？因为不同配置项的归属逻辑天然不同：有些是**个人且全局**的（如你偏爱的模型、默认编辑器），有些是**团队且共享**的（如项目约定的测试命令、代码格式化规则），还有些则是**个人但限定于某项目**的（如你自己的 staging 数据库密码）。
+为何需要三层而非两层？因为不同配置项的归属逻辑天然不同：有些是个人且全局的（如你偏爱的模型、默认编辑器），有些是团队且共享的（如项目约定的测试命令、代码格式化规则），还有一些是个人但限定于某项目的（如你自己的 staging 数据库密码）。
 
 ![三层配置由低到高叠加 —— 高层级覆盖低层级，三者最终合并为运行时使用的有效配置](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/fig4.png)
 

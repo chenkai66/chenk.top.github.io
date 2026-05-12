@@ -16,15 +16,15 @@ description: "在 macOS 或 Ubuntu 上装好 OpenClaw，接入模型服务商，
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
-README 声称只需五分钟，但实际往往需要十分钟——多出的时间几乎全花在 Node 版本问题上，新手极易在此卡住。
+README 声称只需五分钟，实际上却常常需要十分钟——多出的时间几乎全耗在 Node 版本兼容性上，新手极易卡在这里。
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
 ## 前置条件
 
 - Node `v22.16` 或更新。项目文档没开玩笑。老版本能装上，但网关会在可选链（optional chaining）的地方报错。我自己跑的是 `v24`，这是推荐轨道。
-- 运行时大概需要 2 GB 空闲内存，加载大技能的话还得更多。
-- 来自以下任一服务的 LLM API Key：DashScope（免费 tier 够用）、Anthropic、OpenAI，或者阿里云百炼编码计划（200 元/月八个模型）。
+- 运行时大约需要 2 GB 空闲内存，如果加载大技能则需要更多。
+- 来自以下任一服务的 LLM API Key：DashScope（免费 tier 够用）、Anthropic、OpenAI 或者阿里云百炼编码计划（200 元/月八个模型）。
 
 先查 Node 版本：
 
@@ -43,7 +43,7 @@ nvm install 24
 nvm use 24
 ```
 
-这是唯一的‘陷阱’（foot-gun）：Node 版本不兼容会引发后续运行时错误，修复后即可顺利进行。
+这是唯一的真正‘陷阱’（foot-gun）：Node 版本不兼容会导致后续运行时错误，修复后流程即可恢复正常。
 
 ### 获取 API Key
 
@@ -55,7 +55,7 @@ nvm use 24
 4. 点击 "创建新的 API-KEY"。立刻复制，他们只显示一次。
 5. 免费 tier 给 `qwen-plus` 和 `qwen-turbo` 的额度很大。够你折腾好几天才会碰到限制。
 
-如果你在国内，DashScope 是最省心的选择：其国内端点延迟通常低于 200ms，无需代理或 VPN。
+国内用户首选 DashScope，其国内端点延迟通常低于 200ms，无需代理或 VPN。
 
 **Anthropic** — [console.anthropic.com](https://console.anthropic.com)，创建账号，添加支付方式，在 Settings > API Keys 下生成 key。最低充值 $5。Claude Sonnet 是 Agent 场景下的理想选择。
 
@@ -63,9 +63,9 @@ nvm use 24
 
 **网络注意事项**
 
-如果你在国内：DashScope 端点在国内，很快。Anthropic 和 OpenAI 端点需要代理、香港 VPS 转发请求，或者 SOCKS5 隧道。OpenClaw 尊重 `HTTPS_PROXY` 和 `ALL_PROXY` 环境变量，所以如果你本地已经跑了代理，启动网关前导出这些变量就行。不要急于调试‘连接超时’错误，先确认你的网络能否实际访问对应提供商的 API 端点。
+如果你在国内，DashScope 端点在国内，速度很快；而 Anthropic 和 OpenAI 端点则需要代理、香港 VPS 转发请求或 SOCKS5 隧道。OpenClaw 尊重 `HTTPS_PROXY` 和 `ALL_PROXY` 环境变量，所以如果你本地已经跑了代理，启动网关前导出这些变量就行。不要急于调试‘连接超时’错误，先确认你的网络能否实际访问对应提供商的 API 端点。
 
-如果你在国内以外：三家提供商都不用额外配置就能用。DashScope 的国际端点可用，但从美欧连延迟稍高。
+如果你不在国内，三家提供商都不需要额外配置即可使用。DashScope 的国际端点可用，但从美欧连接时延迟稍高。
 
 ## 安装 OpenClaw
 
@@ -81,7 +81,7 @@ openclaw --version
 
 ## 安装排错
 
-五个让人栽跟头的地方，按频率排序：
+五大高频踩坑点（按发生频率排序）：
 
 **(a) npm 权限错误（全局安装时的 EACCES）** — 永远别 `sudo npm install -g`。改用 `nvm`（把 Node 装到家目录），或者配置 npm 的 prefix 到用户拥有的路径：
 
@@ -99,11 +99,11 @@ export PATH="$HOME/.npm-global/bin:$PATH"  # add to shell profile
 npm install -g @anthropic-ai/openclaw@latest --registry=https://registry.npmmirror.com
 ```
 
-这只影响包下载，不影响你的 LLM API 调用。
+这仅影响包下载，不影响 LLM API 调用。
 
 **(d) 安装后 `openclaw: command not found`** — nvm 的 bin 目录不在你的 PATH 里。开个新终端，或者跑 `source ~/.nvm/nvm.sh`。另外检查你没把包装到了和当前激活版本不同的 Node 版本里（`nvm list` 能看到这个）。
 
-**(e) 版本不匹配 — 全局 vs 本地** — 当你从某个目录运行时，本地的 `node_modules/@anthropic-ai/openclaw` 优先级高于全局的。这会导致令人困惑的 "feature not found" 错误。删掉本地副本：`rm -rf node_modules/@anthropic-ai/openclaw`。原则：一个全局安装，除非你在开发 OpenClaw 本身，否则不要本地副本。
+**(e) 版本不匹配 — 全局 vs 本地** — 当你从某个目录运行时，本地的 `node_modules/@anthropic-ai/openclaw` 优先级高于全局的。这会导致令人困惑的 "feature not found" 错误。删掉本地副本：`rm -rf node_modules/@anthropic-ai/openclaw`。原则是全局安装一次，除非你在开发 OpenClaw 本身，否则不要创建本地副本。
 
 ## 初始化向导
 
@@ -195,7 +195,7 @@ Run `git log --oneline -5` in ~/my-project and explain what the last five commit
 [tool:exec] cmd="git log --oneline -5" cwd=/Users/you/my-project exit=0
 ```
 
-Agent 会读取命令的标准输出（stdout）并据此推理；若退出码（exit code）非零，它将反馈具体错误原因。
+Agent 会读取命令的标准输出（stdout）进行推理；若退出码（exit code）非零，则直接返回具体错误信息。
 
 来个多步任务：
 
@@ -209,7 +209,7 @@ switch to.
 
 ### 阅读网关日志
 
-实验时让网关终端保持可见。每次工具调用都会打印一行，包含工具名、关键参数和结果状态。如果 TUI 里有什么静默失败了，网关日志是你找出原因的地方。常见要看的：
+实验时让网关终端保持可见。每次工具调用都会打印一行，包含工具名、关键参数和结果状态。如果 TUI 中有静默失败的情况，网关日志可以帮助你找出原因。常见的问题包括：
 
 - `[tool:*] ... exit=1` — shell 命令失败了。
 - `[tool:web_fetch] ... status=403` — 网站 blocked 了请求。

@@ -16,7 +16,7 @@ description: "Gateway、Pi Agent、工具、技能、记忆和渠道——每一
 disableNunjucks: true
 translationKey: "openclaw-quickstart-3"
 ---
-你可能用好几个月 OpenClaw 都不需要看这篇；但当你第一次编写 Skill、调试消息路由异常，或疑惑 Agent 为何突然“失忆”时，就必须厘清各模块的职责。
+你可能用好几个月 OpenClaw 都不需要看这篇——但只要第一次编写 Skill、调试消息路由异常或疑惑 Agent 为何突然“失忆”，就必须厘清各模块的职责。
 
 ![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_1.png)
 
@@ -28,13 +28,9 @@ translationKey: "openclaw-quickstart-3"
 
 ## Channels —— 是适配器，不是传输层
 
-Channel 的代码负责将‘钉钉 Stream 消息’转换为‘标准化的 OpenClaw 消息’，反之亦然。各 Channel 实现机制不同：钉钉通过 WebSocket 接收 Stream 事件，Telegram 采用轮询或 Webhook，Discord 则使用其专属 Gateway WebSocket。Channel 层将这些差异完全屏蔽。
+Channel 的代码负责双向转换：把钉钉 Stream 消息转为标准化 OpenClaw 消息，反之亦然。不同平台实现各异——钉钉通过 WebSocket 接收 Stream 事件，Telegram 用轮询或 Webhook，Discord 则接入其专属 Gateway WebSocket。Channel 层将这些差异完全屏蔽。
 
-需注意以下几点：
-
-- Channel 按实例配置，可部署零个、一个或多个。
-- 消息流向为：Channel → Gateway → Agent → Gateway → Channel；Channel 与 Agent 不直接通信。
-- 每个 Channel 的速率限制及特有行为均实现在适配器中，因此钉钉与 Telegram 的响应行为存在差异。
+需注意三点：Channel 按实例配置，可部署零个、一个或多个；消息严格遵循 Channel → Gateway → Agent → Gateway → Channel 流向，Channel 与 Agent 从不直连；速率限制和平台特有行为均由各 Channel 适配器自行实现，因此钉钉与 Telegram 的响应表现天然不同。
 
 **这里容易出什么问题**：最常见的问题是 WebSocket 连接断开后未触发自动重连。钉钉 Stream 连接空闲 300 秒后会断开；若 Channel 适配器未能及时检测并重连，消息将在 Broker 中积压，最终导致交付延迟从数秒演变为永久失败。去查 `gateway.log` 里的 "channel reconnect" 事件和时间戳间隙。如果看到超过 5 分钟的间隙，说明你的 keep-alive 没起作用。
 
@@ -42,13 +38,13 @@ Channel 的代码负责将‘钉钉 Stream 消息’转换为‘标准化的 Ope
 
 Gateway 跑在 `:18789`。它接收来自任何 Channel 的消息，做去重（钉钉有时会重发），分配或恢复 Session，然后把消息交给 Router。
 
-Gateway 是唯一与模型服务商交互的组件。每个工具结果、每次内存读取、每次 Prompt 组装都经过它。因此，只需配置一套 API Key。
+Gateway 是唯一对接模型服务商的组件，所有工具调用结果、内存读取、Prompt 组装都由它统一处理——因此只需配置一套 API Key。
 
 **这里容易出什么问题**：模型服务商的速率限制被耗尽。如果十个用户同时发消息，Gateway 会对 LLM 调用进行串行化处理，但不对接入流量做限流。你会看到提供商返回 HTTP 429，Gateway 会用指数退避重试（最多 3 次）。如果三次都失败，用户会收到“我现在有点思考困难”，并且这次_turn_会被记录到 `gateway_errors.jsonl`。解决办法要么升级提供商套餐，要么在 `openclaw.json` 里配置 `max_concurrent_llm_calls` 来匹配你的配额。
 
 ## Router 与 Sessions
 
-Router 决定*哪个* Agent 来处理消息——只有当你配置了多个 Agent 时这才 relevant（默认安装只有一个，叫 Pi）。Session 是 OpenClaw 区分微信对话和 Telegram 对话的方式，哪怕它们通向同一个 Agent。Session ID 是 `(channel, conversation_id)`。
+Router 负责路由消息到目标 Agent——仅当配置多个 Agent 时才生效（默认仅 Pi 一个）；Session 则用于区分不同渠道的对话（如微信 vs Telegram），即使它们共用同一 Agent。Session ID 是 `(channel, conversation_id)`。
 
 若出现‘Agent 混淆了两个对话’的情况，通常是 Session ID 冲突所致，根源往往是自定义 Channel 的实现缺陷。
 
@@ -72,7 +68,7 @@ while True:
 
 OpenClaw 在这里做了几个有意思的选择：
 
-- **Skills 懒加载。** 系统 Prompt 中仅包含 manifest。只有当模型触发某个 Skill 时，主体内容才会被分页加载进来。这能降低 Token 成本。
+- **Skills 懒加载。** 系统 Prompt 仅包含 manifest。只有当模型触发某个 Skill 时，主体内容才会被分页加载进来，从而降低 Token 成本。
 - **工具执行错误会返回给模型，而非抛出异常。** 模型有机会恢复。这看似理所当然，但多数 Agent 框架会直接抛出异常。
 - **循环设有硬性_turn_限制。** 默认 30。若 Agent 在第 30 轮仍处于循环中，将主动终止并返回‘我觉得我卡住了’提示，避免持续消耗 Token 预算。
 

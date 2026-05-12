@@ -16,9 +16,9 @@ description: "Claude Code 现在有四种扩展机制：斜杠命令、MCP serve
 disableNunjucks: true
 translationKey: "claude-code-learn-10"
 ---
-Claude Code 现在有四种扩展机制：slash commands、MCP servers、hooks 和 Skills。功能上有重叠。当你产生“Claude 应该知道怎么做 X”这类想法时，首要问题就是：该选用哪一种扩展机制？
+Claude Code 提供四种扩展机制：slash commands、MCP servers、hooks 和 Skills，功能存在交叉。当你冒出‘Claude 应该知道怎么做 X’这类念头时，第一个问题就是：该选哪一种？
 
-这是系列的最后一章。直接上决策树。
+本章是系列终篇，直接进入决策树。
 
 ![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_1.png)
 
@@ -47,7 +47,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 5. Build + deploy
 ```
 
-会话启动时，Claude 会预先读取所有可用 Skill 的 description；仅当用户提问与某 description 匹配时，才按需加载该 Skill 的正文。正文会成为那一轮 system prompt 的一部分。
+会话启动时，Claude 预先读取所有 Skill 的 description，仅当用户提问语义匹配某条 description 时，才按需加载其 body 并注入当前系统提示。
 
 需注意两点：
 
@@ -67,11 +67,11 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 
 ### Body 内容
 
-Body 长度无硬性限制。它**仅在 skill 被触发时**才注入 system prompt，因此冗长不会带来额外开销——除非真正触发，否则不计成本。我有多个 body 超过 600 行的 skill，每一行都物有所值。
+body 长度无硬性限制——仅在 skill 触发时注入 system prompt，故冗长零开销：未触发即不计成本。我有多个 body 超过 600 行的 skill，每一行都物有所值。
 
 Body 支持自由格式 Markdown，但以下几类结构已被验证为高效：**语气/风格规范**（定义 Claude 在该 skill 激活时的表达方式）、**Schema/格式规范**（明确必须严格遵守的输出格式）、**工作流**（分步执行逻辑）、**规则/约束**（明确禁止行为）。
 
-例如，工作流和规则两段可以这样组织：
+例如，工作流与规则可如此组织：
 
 ```markdown
 # Workflow
@@ -131,13 +131,13 @@ my-project/
 
 ## 从零编写一个真实 skill
 
-我们以一个具体用例为例：为团队构建一个将 Node.js 应用部署至预发布（staging）环境的 skill。
+我们以一个具体用例为例：为团队构建一个将 Node.js 应用部署到预发布（staging）环境的 skill。
 
 ### 步骤 1：识别"skill 形态"的使用场景
 
-关键问题是：“这是应在相关话题出现时自动触发的领域知识，还是需显式通过名称调用的命令？”
+关键在于：这是应在相关话题出现时自动触发的领域知识，还是需显式调用的命令？
 
-向 staging 部署是团队在多种上下文中执行的操作——例如 PR 合并后、功能测试时、或排查生产问题时。它不是一个孤立命令，而是一套关于 *“我们如何部署”* 的结构化知识。这正是典型的 skill-shaped 场景。
+向 staging 部署是团队在 PR 合并后、功能测试时、排查生产问题等多种上下文中反复执行的操作——这不是孤立命令，而是关于 *“我们如何部署”* 的结构化知识，属于典型的 skill-shaped 场景。
 
 ### 步骤 2：撰写 description
 
@@ -150,7 +150,7 @@ description: Use when deploying to the staging environment, preparing a staging 
 ---
 ```
 
-务必具体。"Use for deployment" 过于宽泛——会导致 skill 在讨论部署理论时误触发；"Use when deploying to the staging environment" 精准锚定到实际操作动作。
+务必具体。"Use for deployment" 过于宽泛，会导致 skill 在讨论部署理论时误触发；"Use when deploying to the staging environment" 则精准锚定到实际操作。
 
 ### 步骤 3：撰写 body
 
@@ -265,7 +265,7 @@ Apply these standards ONLY when:
 **4. 这是一堆领域知识吗？**（风格、工作流、一套规范）
 → 写一个 **skill**。Skill 是用来让 Claude 自己*识别并应用*的，不用你特意喊它。
 
-若某需求适配多种机制，优先选择实现最简单的一种。Skill 内部调用 slash command 是合理设计；但将本应是 slash command 的功能强行包装为 skill，则会导致触发不可靠、维护困难。
+若某需求适配多种机制，优先选择实现最简单的一种。Skill 内部调用 slash command 是合理设计，但将本应是 slash command 的功能强行包装为 skill 会导致触发不可靠、维护困难。
 
 ![决策树：按顺序走一遍，遇到第一个 YES 就停 —— MCP 加新能力、Hook 做自动策略、Slash command 显式调用、Skill 按话题自动加载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig1.png)
 

@@ -16,11 +16,11 @@ series_order: 6
 translationKey: "docker-containers-6"
 ---
 
-正常运行的容器近乎‘隐形’；而出问题的容器却迅速变成‘黑盒’。容器化的核心价值正是隔离 —— 但恰恰是这种隔离，让调试变得更困难。你无法直接通过 `ssh` 登录容器，也无法从宿主机直接浏览其文件系统。Docker 提供了一套专用工具，用于检查、诊断并理解正在运行（或已崩溃）的容器内部究竟发生了什么。
+正常运行的容器近乎‘隐形’，而出现问题的容器则迅速变成‘黑盒’。容器化的核心价值在于隔离——但这种隔离也使得调试变得更加困难。你无法直接通过 `ssh` 登录容器，也无法从宿主机直接浏览其文件系统。Docker 提供了一套专用工具，用于检查、诊断和理解正在运行或已崩溃的容器内部的情况。
 
 ## 查看容器日志
 
-日志是你排查问题的第一道防线。Docker 会捕获容器向 stdout 和 stderr 写入的所有内容。
+日志是排查问题的第一道防线，Docker 会捕获容器向 stdout 和 stderr 输出的所有内容。
 
 ![Resource monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-resource-monitoring.png)
 
@@ -97,7 +97,7 @@ psycopg2.OperationalError: could not connect to server: Connection refused
     TCP/IP connections on port 5432?
 ```
 
-该容器以退出码 1（错误）终止。日志揭示了它无法连接 PostgreSQL。可能原因包括：应用启动时数据库尚未就绪（依赖顺序问题），或主机名配置错误。
+该容器以退出码 1（错误）终止，日志揭示了它无法连接 PostgreSQL。可能的原因包括应用启动时数据库尚未就绪（依赖顺序问题）或主机名配置错误。
 
 ### 退出码（Exit codes）
 
@@ -120,7 +120,7 @@ docker inspect crashed-app --format '{{.State.ExitCode}}'
 | 139 | SIGSEGV（128+11） | 段错误（Segmentation fault） |
 | 143 | SIGTERM（128+15） | `docker stop`（优雅关闭） |
 
-退出码 137 尤其值得关注：它通常表明容器因超出内存限制而被内核 OOM killer 终止。
+退出码 137 尤其值得关注，它通常意味着容器因超出内存限制而被内核 OOM killer 终止。
 
 ```bash
 # 检查容器是否被 OOM killer 终止
@@ -365,7 +365,7 @@ appuser             12352               12345               1                   
 appuser             12353               12345               2                   10:15               ?                   00:01:32            gunicorn: worker [app:app]
 ```
 
-注意：PID 和 PPID 列显示的是宿主机视角下的进程 ID。容器内主进程 PID 恒为 1，而在宿主机上对应 PID 为 12345——这正是 Linux 命名空间映射的结果。
+注意：PID 和 PPID 列显示的是宿主机视角的进程 ID；容器内主进程 PID 恒为 1，宿主机上对应 PID 为 12345——这正是 Linux 命名空间映射的结果。
 
 ```bash
 # 使用 ps 风格格式化输出
@@ -566,7 +566,7 @@ cat /etc/docker/daemon.json
 | `max-file` | 保留的轮转日志文件数量 | 3 - 5 |
 | `compress` | 是否压缩已轮转的日志文件 | true |
 
-缺少这些配置，繁忙的容器可能在短时间内生成 GB 级日志。
+缺少这些配置时，繁忙容器可能在短时间内生成 GB 级日志。
 
 ### 在 Docker Compose 中配置
 
@@ -600,7 +600,7 @@ services:
 
 ## 调试工作流检查清单
 
-当容器无法正常工作时，请按此顺序执行：
+容器无法正常工作时，按此顺序排查：
 
 ```bash
 # 1. 容器是否正在运行？

@@ -17,9 +17,9 @@ disableNunjucks: true
 description: "JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"
 translationKey: "llm-engineering-7"
 ---
-函数调用是大语言模型（LLM）连接其参数（权重）之外外部世界的关键接口。这一能力层正是 chat template（第 2 章）、结构化输出内核（structured-output kernels，第 5 章）与提示工程（prompt engineering，第 9 章）的交汇点。本章将深入剖析底层机制：哪些行为具备可依赖的确定性保证，哪些 agent-loop 模式能在真实生产负载下稳定运行。
+函数调用是大语言模型（LLM）连接外部世界的关健接口——它是 chat template（第 2 竇）、结构化输出内核（structured-output kernels，第 5 竇）与提示工程（prompt engineering，第 9 竇）的交汇点。本章深入剖析底层机制：哪些行为具备可依赖的确定性保证，哪些 agent-loop 模式能在真实生产负载下稳定运行。
 
-技术渊源很重要。LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文：**MRKL Systems**（Karpas 等，AI21）提出了神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都有了围绕工具使用格式构建的后训练数据，工具调用也从“研究演示”变成了"API 功能”。
+技术渊源至关重要：LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文——**MRKL Systems**（Karpas 等，AI21）提出神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都有了围绕工具使用格式构建的后训练数据，工具调用也从“研究演示”变成了 API 功能。
 
 ![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_1.png)
 
@@ -32,9 +32,9 @@ translationKey: "llm-engineering-7"
 3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema（包括函数名、参数类型等）。
 4. **自由形式 prompt**。你在 system prompt 中声明‘请以 JSON 格式回复，包含 X 和 Y 字段’，再依赖模型自觉遵守。这对能力强的模型依然有效，但没有任何保证。
 
-在实际生产系统中，这四类实现方式常被混合采用。OpenAI 与 Anthropic 的 API 采用方案 1 与方案 3 的组合（即：基于后训练的工具调用能力 + JSON Schema 强制校验）。vLLM 和 SGLang 为任意模型实现 2+3。自由形式（4）则是没有其他选择时的 fallback。
+实际生产系统中，这四类实现常混合采用：OpenAI 与 Anthropic 的 API 结合方案 1（后训练工具调用）与方案 3（JSON Schema 强制校验）；vLLM 和 SGLang 为任意模型支持方案 2（语法约束解码）与方案 3；自由形式（方案 4）则作为兜底策略。
 
-一个关键但易被忽视的区别在于：工具调用采用 JSON 格式还是 XML 格式。OpenAI 默认 JSON 工具调用；Anthropic 的 Claude 模型在内部训练时采用类 XML 的结构化输出格式，但在对外 API 中统一转换为 JSON 格式提供。Anthropic 团队于 2024 年公开指出：XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。实证表明，两种格式均能有效支持工具调用；具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。
+一个关键却常被忽视的区别：工具调用采用 JSON 还是 XML 格式——OpenAI 默认 JSON；Anthropic 的 Claude 模型内部训练使用类 XML 的结构化输出，但对外 API 统一转为 JSON。Anthropic 团队于 2024 年公开指出：XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。实证表明，两种格式均能有效支持工具调用；具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。
 
 ## 一个真实的函数调用请求
 
@@ -95,7 +95,7 @@ response2 = client.messages.create(
 
 工具定义本质上是一种隐式的 prompt。模型在每次推理时都会将工具定义视为 system prompt 的一部分进行理解，其定义质量直接决定了模型能否准确选择工具、正确发起调用，以及在出错时有效恢复。以下实践已被验证能稳定生效：
 
-**描述是你 prompt 里被阅读次数最多的文本。** 优质描述应包含三要素：(a) 一句话概括工具功能；(b) 明确适用场景（含典型不适用情形）；(c) 清晰说明返回结果。低质量描述往往仅机械复述函数名称。“搜索数据库”很糟糕；“搜索客户数据库以匹配给定条件的订单。当用户询问特定订单或订单历史时使用。返回最多 10 条最新匹配项。”这才是好的。
+**描述是 prompt 中被模型读得最多的文本。** 优质描述需涵盖三要素：(a) 一句话概括工具功能；(b) 明确适用与典型不适用场景；(c) 清晰说明返回结果。低质量描述往往仅机械复述函数名称。“搜索数据库”很糟糕；“搜索客户数据库以匹配给定条件的订单。当用户询问特定订单或订单历史时使用。返回最多 10 条最新匹配项。”这才是好的。
 
 **参数描述比参数名更重要。** 模型能从 `location` 这个名字推断出它想要一个地点，但如果没有描述，它不知道格式应该是 "Tokyo"、"Tokyo, Japan" 还是 "JP/Tokyo"。务必包含格式示例。
 

@@ -16,9 +16,9 @@ description: "三个改变 Claude Code 一次能扛多少事的特性：子 Agen
 disableNunjucks: true
 translationKey: "claude-code-learn-8"
 ---
-说完 hooks，Claude Code 使用体验发生显著变化的下一个关键点是*并发控制*。此处的‘并发’并非指线程级并发，而是指模型在同一时间为你并行处理多少任务、各任务间的上下文隔离程度如何，以及你需要投入多少监督注意力。
+说完 hooks，Claude Code 使用体验的下一个关键点是*并发控制*。这里的‘并发’不是指线程级并发，而是指模型在同一时间并行处理的任务数量、任务间的上下文隔离程度，以及所需的监督注意力。
 
-三个功能，按所需信任度从低到高排列。
+这三个功能按所需信任度从低到高依次为：Plan mode、Worktrees、Sub-agents。
 
 ![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
@@ -85,7 +85,7 @@ Claude：以下是添加限流功能的完整计划：
 - 第 3 步明确定义了中间件在调用链中的精确插入位置；  
 - 第 6 步提前提醒了环境变量类型定义的补充需求。  
 
-若未启用 plan 模式，Claude 会直接开始编码，而这些关键上下文细节只能留待后续 Code Review 阶段才发现——plan 模式则确保它们在执行前就被显式对齐。
+若跳过 Plan mode，Claude 将直接编码，关键上下文细节（如依赖位置、中间件插入点、环境变量类型）只能在 Code Review 阶段才暴露；而 Plan mode 则强制在执行前完成显式对齐。
 
 ### 我一般在这些时候用
 
@@ -94,7 +94,7 @@ Claude：以下是添加限流功能的完整计划：
 - 任何涉及 auth、支付、schema 迁移或生产配置的操作。只需花两秒快速浏览，就可能避免数小时的故障修复。
 - 在不熟悉的 repo 里干活。这份计划也自然成为我熟悉该仓库的入门参考。
 
-常见误区：认为任务简单就跳过 plan mode。实际上，小任务反而更容易出现‘等等，这不是我想要的’这类偏差。
+常见误区是认为任务简单就可以跳过 Plan mode——实际上，小任务更容易因理解偏差导致‘等等，这不是我想要的’。
 
 ### Plan mode 修饰符
 
@@ -128,7 +128,7 @@ Claude 输出计划后，你可选择：
 ![Sub-Agent 拓扑：上下文隔离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/fig3.png)
 *图 2. 父 Agent 启动多个子代理；每个子代理拥有独立的 context window 和工具子集。*
 
-子代理是由父 agent 启动的一个独立 Claude Code 实例，用于处理边界明确的子任务。经典写法放在 `.claude/agents/<name>.md`：
+子代理（sub-agent）是父 agent 启动的独立 Claude Code 实例，专用于处理边界清晰、职责明确的子任务。经典写法放在 `.claude/agents/<name>.md`：
 
 ```markdown
 ---
@@ -219,7 +219,7 @@ Claude：根据 research sub-agent 的分析，该代码库中退款流程如下
 - **工具限制。** research agent 确实不具备编辑能力——这是由系统架构保障的安全机制，而非依赖使用者自觉。
 - **并行工作。** 任务独立时，你可以同时 fan out 给三个子代理。
 
-当任务相互独立时，可并行分发至多个 sub-agent：
+当子任务彼此独立时，可并行分发给多个 sub-agent。
 
 ```
 你：我需要并行完成三件事：
@@ -455,7 +455,7 @@ Claude：[ExitWorktree: action="keep"]
 
 整场重构全程在隔离 worktree 中完成。任一环节出错，均可通过 `ExitWorktree: action="remove"` 彻底回退，零污染主分支。
 
-三层信任门，三级 escalation。当模型进入文件修改阶段时，你所投入的注意力程度，恰好与任务复杂度相匹配。
+三层信任门控，对应三级操作升级：Plan mode（审阅）、Worktrees（隔离）、Sub-agents（并行）。当模型进入文件修改阶段时，你所投入的注意力程度，恰好与任务复杂度相匹配。
 
 | 功能 | 信任等级 | 你放弃的 | 你获得的 |
 |------|----------|------------|------------|

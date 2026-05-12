@@ -16,7 +16,7 @@ description: "从参考仓库的 100 个脚本里挑出 10 个，每一个都给
 disableNunjucks: true
 translationKey: "claude-code-learn-7"
 ---
-第五章我们梳理了 Hook 的基本概念，本章则聚焦实战应用。在收录百余个脚本的参考库中，仅有这十个被我纳入所有严肃项目的标准配置。我们逐一介绍这十个 Hook，并附上代码级操作说明。
+第五章梳理了 Hook 的基本概念，本章聚焦实战应用：从百余个脚本的参考库中，仅这十个被纳入所有严肃项目的标准配置——逐一介绍并附代码级操作说明。
 
 所有示例默认 Node 18+ 环境，脚本存到 `./hooks/`，加上 `chmod +x` 权限，然后在 `.claude/settings.json` 里这样配置：
 
@@ -30,10 +30,10 @@ translationKey: "claude-code-learn-7"
 }
 ```
 
-在进入正题前，先把 Hook 的生命周期说清楚，后面的代码才好读：
+先厘清 Hook 生命周期，后续代码才更易读。
 
-- **PreToolUse** 在 Claude 执行工具*之前*触发。退出码 0 表示"放行"，退出码 2 表示"拦截这次调用"。任何写到 stderr 的内容都会作为解释回喂给模型。
-- **PostToolUse** 在工具返回*之后*触发。退出码 1 会把错误暴露给模型；退出码 2 在这里没有特殊含义——副作用已经发生了。
+- **PreToolUse** 在 Claude 执行工具*之前*触发。退出码 0 表示“放行”，退出码 2 表示“拦截这次调用”。任何写到 stderr 的内容都会作为解释回喂给模型。
+- **PostToolUse** 在工具返回*之后*触发。退出码 1 会把错误暴露给模型；退出码 2 在这里没有特殊含义——副作用已经发生。
 - **stdin** 携带一个包含 `tool_name` 和 `tool_input` 的 JSON 载荷。每个 Hook 都从 stdin 读入。
 
 所有 Hook 共用的开头模板：
@@ -50,10 +50,10 @@ process.stdin.on('end', () => {
 });
 ```
 
-下面的代码清单为了简洁，会跳过这段开头，但每个真实 Hook 都从这里起步。
+下面的代码清单为了简洁，会跳过这段开头，但每个真实的 Hook 都从这里起步。
 
 ![Hook 的 I/O 契约：stdin 输入 JSON，退出码 + stderr 输出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
-*每个 Hook 都是一个从 stdin 读取 JSON 载荷的脚本，通过退出码（判决）和 stderr（说明）回传结果。settings.json 里的 matcher 决定哪些 Hook 能看到本次工具调用。*
+*每个 Hook 都是从 stdin 读取 JSON 载荷的脚本，靠退出码作判决、stderr 作说明；settings.json 中的 matcher 控制其可见范围——即哪些 Hook 能接收到本次工具调用。*
 
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
@@ -122,7 +122,7 @@ process.stdin.on('end', () => {
 
 ### 自测
 
-接入前必须先测。给 stdin 喂一个伪造的载荷：
+接入前必须先测试，给 stdin 喂一个伪造的载荷：
 
 ```bash
 # 应当被拦截（exit 2）：
@@ -260,7 +260,7 @@ process.stdin.on('end', () => {
 | 部署、生产周边 | 白名单 | 默认拒绝，无清单即拒绝 |
 | 团队共享仓库 | 白名单 | 新成员不会意外引入未审计命令 |
 
-白名单的核心优势：它对*未知*天然安全。新版本工具链里多出来的命令默认走拒绝分支，需要显式审批后才能加入。
+白名单的核心优势在于对*未知*天然安全。新版本工具链里多出来的命令默认走拒绝分支，需要显式审批后才能加入。
 
 ---
 
@@ -348,7 +348,7 @@ process.stdin.on('end', () => {
 
 ### 为什么是 exit 0，不是 exit 1
 
-PostToolUse 在编辑*之后*运行。退出码 2 不会回滚任何东西——副作用已经发生。如果用 exit 1，错误会暴露给模型，模型可能尝试通过再次编辑文件去"修复"格式问题，从而陷入循环。对于格式化这种纯辅助操作，记一条警告然后放过即可。
+PostToolUse 在编辑后运行，此时副作用已发生，exit 2 无法回滚；若用 exit 1，错误将暴露给模型，可能引发反复编辑的死循环——格式化属纯辅助操作，记录警告后放行。
 
 ### 真实终端输出
 
@@ -422,7 +422,7 @@ process.stdin.on('end', () => {
 
 ### 为什么是 exit 1，不是 exit 2
 
-在 PostToolUse 中，exit 1 会把失败信息回喂给模型。模型读到测试输出后，会尝试修代码。这就形成了一个反馈闭环：
+在 PostToolUse 中，exit 1 会把失败信息回喂给模型。模型读到测试输出后会尝试修复代码，形成一个反馈闭环：
 
 ```
 Claude: I'll update the validation logic...
@@ -449,7 +449,7 @@ Claude: The test shows my regex change broke the @ validation.
 Claude: Fixed. The regex now correctly requires an @ symbol.
 ```
 
-随着会话累积，这个 Hook 在事实上"教"模型一次性写出符合你测试预期的代码。本清单中，单论价值，它排第一。
+随着会话累积，这个 Hook 实际上“教”模型一次性写出符合你测试预期的代码。本清单中，单论价值，它排第一。
 
 ---
 
@@ -574,7 +574,7 @@ process.stdin.on('end', () => {
 
 ### 查询日志
 
-JSONL 格式让分析变得简单：
+JSONL 格式使分析变得简单：
 
 ```bash
 # 今天 Claude 改了哪些文件？
@@ -595,7 +595,7 @@ cat .claude/tool-calls.jsonl | jq -r '.tool' | sort | uniq -c | sort -rn
 cat .claude/tool-calls.jsonl | jq -r 'select(.ts > "2026-04-24T10:15") | "\(.ts) \(.tool) \(.file // .cmd // "")"'
 ```
 
-这个文件你不会每天都看。但需要看的那一天，你会庆幸它在那。
+该日志文件日常静默，但在关键排查时刻，它的存在是可观测性的底线保障。
 
 ![read-before-write 状态机：UNSEEN / FRESH / STALE](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig6.png)
 *Hook 在 `seen.json` 中维护每个文件最近一次 Read 的时间戳。对 UNSEEN 或 STALE 文件的编辑会被 exit 2 阻断，stderr 直接告诉 Claude 该如何补救。*
@@ -669,7 +669,7 @@ process.stdin.on('end', () => {
 
 ### settings.json 接线（两处条目）
 
-这个 Hook 需要在 Read（用于记录）和 Edit/MultiEdit（用于强制）上同时挂载：
+这个 Hook 需要在 Read（用于记录）和 Edit/MultiEdit（用于强制）上同时挂载。
 
 ```json
 {
@@ -733,7 +733,7 @@ process.stdin.on('end', () => {
 
 ### 这玩意儿真正解决的问题
 
-我把这个 Hook 装在专门处理非工作时间告警的机器上。如果一个 bot 凌晨 2 点试图做破坏性操作，那几乎可以判定为误触发。它的目的不是给 Claude"立工作生活平衡"——而是兜住那些根本不该在那个时间运行的失控自动化。
+该 Hook 部署于非工作时间告警专用机器：凌晨 2 点触发的破坏性操作几乎必为误触发——其目标不是为 Claude 设定工作生活边界，而是拦截本不该在此时段运行的失控自动化。
 
 ---
 
@@ -793,7 +793,7 @@ process.stdin.on('end', () => {
 ### 执行顺序
 
 ![Edit 调用的 Hook 执行顺序：PreToolUse → 工具执行 → PostToolUse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png)
-*一次 Edit 会依次穿过六个 Hook：三个 PreToolUse 守门员、工具本体、三个 PostToolUse 卫生作业。任何 PreToolUse 阶段的 exit 2 都会让整条链路中断。*
+*一次 Edit 调用依次流经六个 Hook：3 个 PreToolUse（策略守门员）、工具本体、3 个 PostToolUse（卫生作业）；任一 PreToolUse 返回 exit 2，整条链路立即终止。*
 
 当 Claude 对一个源文件调用 `Edit`，事件序列是：
 
@@ -805,7 +805,7 @@ process.stdin.on('end', () => {
 6. **test-on-edit** — 跑相关测试。失败就把错误暴露给模型。
 7. **log-tool-calls** — 追加一条 JSONL 日志。
 
-第 1-3 步是 PreToolUse（其中任何一个 exit 2 都会阻断编辑）；第 5-7 步是 PostToolUse（编辑已经发生）。这个顺序意味着：先安全，再卫生，最后可观测性。
+第 1–3 步为 PreToolUse（任一 exit 2 均阻断编辑），第 5–7 步为 PostToolUse（编辑已完成）——顺序即原则：安全优先、卫生次之、可观测性兜底。
 
 ### 组合时常见的坑
 
@@ -876,7 +876,7 @@ hooks/work-hours-only.js: exit 0
 
 ## 调试 Hook
 
-Hook 出问题时，按这个顺序排查：
+Hook 故障时，按以下顺序排查：
 
 ![Hook 调试四步法以及最常见的五类错误](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png)
 *在隔离环境里把失败的调用回放给 Hook，捕获 stderr，再用 `claude --debug` 和 JSONL 日志逐层排查。下方表格覆盖了 90% 的 Hook 故障原因。*

@@ -15,9 +15,9 @@ description: "一个工程师视角的阿里云百炼（DashScope）导览——
 disableNunjucks: true
 translationKey: "aliyun-bailian-1"
 ---
-只要你的产品面向中文用户，迟早都得调百炼（Bailian）的模型。Qwen-Max 是目前在中文理解能力上达到 GPT-4 水平、性价比最高的选择；万相（Wanxiang）是目前我所知唯一支持中文发票生成、且已稳定用于生产环境的文生视频 API；而 Qwen-TTS-Flash 是目前唯一在粤语和四川话合成上自然度较高、无明显机械感的 TTS 模型。在一个 AI 营销平台上跑了一年生产流量后，这篇系列文章就是我希望第一天就有人塞给我的那份指南。
+只要你的产品面向中文用户，迟早都得调百炼（Bailian）的模型。Qwen-Max 是当前中文理解能力对标 GPT-4、性价比最优的 LLM；万相（Wanxiang）是迄今唯一支持中文发票生成且已在生产环境稳定落地的 text-to-video API；Qwen-TTS-Flash 则是目前唯一在粤语与四川话合成中自然度高、无机械感的 TTS 模型。在 AI 营销平台跑了一年生产流量后，我最希望入职第一天就拿到的，就是这份指南。
 
-第一篇先摸底：百炼到底是什么，你会碰到哪些模型家族，两种接口风格有什么区别，以及两种风格的 Hello World。这样后面的文章就不用反复解释基础概念了。
+第一篇先摸底：百炼是什么、会遇到哪些模型家族、两种接口风格的区别，以及各自的 Hello World。这样后面的文章就不用反复解释基础概念了。
 
 ![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.png)
 
@@ -27,7 +27,7 @@ translationKey: "aliyun-bailian-1"
 
 ![Bailian (console) vs DashScope (API)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
 
-文档里这两个名字会混着出现，有时甚至在同一段落里。可简单理解为‘控制台’与‘API’两种使用视角的区别。例如，有人称‘部署百炼应用’指在控制台完成配置；而‘DashScope 报错’通常指 API 返回非 200 状态码。
+两套文档中名称混用频繁，甚至同一段落内交替出现——本质是‘控制台操作’与‘API 集成’两种使用视角的差异。例如，有人称‘部署百炼应用’指在控制台完成配置；而‘DashScope 报错’通常指 API 返回非 200 状态码。
 
 ## 你真正关心的模型清单
 

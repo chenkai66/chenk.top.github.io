@@ -17,13 +17,13 @@ description: "PAI-EAS 端到端：基于镜像 + OSS 挂权重的部署方式、
 disableNunjucks: true
 translationKey: "aliyun-pai-4"
 ---
-钱主要花在 EAS 上。DSW 开发每月只需几百元，DLC 训练属于脉冲式消费，而 EAS 是 24/7 持续计费的——服务一旦处于 Running 状态，就会持续产生费用。自动配置里的 `minimum replica count` 这一行，是整个平台杠杆最高的旋钮。这篇文章汇总了我在部署首个生产端点前最希望掌握的关键信息。
+钱主要花在 EAS 上：DSW 开发每月只需几百元，DLC 训练属于脉冲式消费，而 EAS 是 24/7 持续计费——服务一旦进入 Running 状态，费用便持续产生。自动配置里的 `minimum replica count` 这一行，是整个平台杠杆最高的旋钮。这篇文章汇总了我在部署首个生产端点前最希望掌握的关键信息。
 
 ![Aliyun PAI (4): PAI-EAS — 模型服务、冷启动与 TPS 谎言 — 视觉图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/illustration_1.png)
 
 ## 文档里的 EAS 是什么
 
-官方"EAS 概述"把它定义为：“将训练好的模型部署为在线推理服务或 AI Web 应用，支持异构资源、自动伸缩、一键压测、灰度发布和实时监控”。核心要点有两个：
+官方《EAS 概述》将其定义为：“将训练好的模型部署为在线推理服务或 AI Web 应用，支持异构资源、自动伸缩、一键压测、灰度发布与实时监控”——核心要点有两个：
 
 - 它是**容器化服务层** —— 模型在 OSS 里，代码在容器镜像里。EAS 启动时拉镜像、挂载 OSS、运行启动命令，然后监听端口。
 - 它是**按副本数自动伸缩** —— 不是 Serverless 函数模型（有个重要例外，见下文）。副本是真实的 GPU Pod，启动需要 30-120 秒。需据此规划资源配额和伸缩策略。
@@ -32,7 +32,7 @@ translationKey: "aliyun-pai-4"
 
 ![EAS 请求链路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/fig1_eas_request_path.png)
 
-文档里提到了运行时镜像部署的四个关键部件：
+文档指出运行时镜像部署包含四个关键部件：
 
 1. **运行时镜像** —— 只读模板，包含 OS、CUDA、Python 和依赖。用官方的（`vllm:0.11.2-mows0.5.1`，`pytorch:...`）或者推自己的到 ACR。
 2. **代码和模型** —— *不在镜像里*。它们存在 OSS / NAS。解耦后，更新权重不用重 build 镜像。

@@ -17,7 +17,7 @@ disableNunjucks: true
 description: "MHA、GQA、MQA 的取舍，Mixtral 与 Qwen3-MoE 的稀疏路由，滑动窗口注意力，以及 Mamba、RWKV 这条非注意力路径——每条路的代价和适用场景。"
 translationKey: "llm-engineering-1"
 ---
-2017 年的 Transformer 块，到了 2026 年依然是所有生产级 LLM 的轮廓，但内部零件几乎全换了——有的被彻底替换，有的被稀疏化，有的演变为专用模块。本系列教程将端到端覆盖现代大语言模型技术栈：架构、训练、推理、检索增强、评估、安全与部署。第一章咱们就聊这个块本身：2026 年模型中的注意力机制有何演进，MoE 如何解耦参数量与计算量（FLOPs），以及非注意力架构（如 Mamba、RWKV）在哪些任务或场景下展现出对 Transformer 的优势。
+2017 年的 Transformer 块，到 2026 年仍是所有生产级 LLM 的骨架，但内部组件几乎全部迭代：有的被彻底替换，有的被稀疏化，有的演化为专用模块。本系列教程端到端覆盖现代大语言模型技术栈——架构、训练、推理、检索增强、评估、安全与部署。第一章聚焦该模块本身：2026 年注意力机制的演进路径、MoE 如何解耦参数量与计算量（FLOPs），以及 Mamba、RWKV 等非注意力架构在哪些任务或场景中相较 Transformer 具备优势。
 
 我默认你已经熟悉原始 Transformer 块。如果不熟，[NLP 系列第 4 部分](/zh/nlp/attention-transformer/) 里有讲。本章只讲*现在有什么不同*。
 
@@ -38,7 +38,7 @@ def layer(x, kv_cache):
     return h
 ```
 
-相较于《Attention Is All You Need》[Vaswani et al., 2017] 中的原始设计，现代 Decoder 模块主要存在五处关键改进：
+相比《Attention Is All You Need》[Vaswani et al., 2017] 的原始设计，现代 Decoder 模块有五项关键改进：
 
 1. **Pre-norm** 替代 post-norm —— 梯度流过干净的残差恒等路径，不需要 warmup。原始 post-norm Transformer 需要精心设计学习率预热（约 10K 步），否则初始几次梯度更新便可能导致 norm-then-residual 路径不稳定甚至崩溃。Pre-norm 最早由 GPT-2 采用并推广，后经 [Xiong et al., 2020] 严格理论分析，证实其可消除学习率预热需求，实现从训练初始阶段起的稳定收敛。2020 年以后的生产级 LLM 全用 pre-norm。
 2. **RMSNorm** 替代 LayerNorm —— 去掉均值，只留 RMS 除数。每层少一次归约操作。[Zhang & Sennrich, 2019] 证明 RMSNorm 在 Transformer FFN 上能达到 LayerNorm 的质量，墙钟时间快 ~7-64%。T5 和整个 LLaMA  lineage 都采用了它；到了 2026 年，只有少数遗留架构还在做均值中心化。

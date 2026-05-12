@@ -15,13 +15,13 @@ series_order: 4
 translationKey: "python-engineering-4"
 ---
 
-代码评审应当聚焦于逻辑与架构设计，而不应争论某人用了单引号还是双引号。关于格式的争论纯粹是工程时间的浪费。解决方案很简单：让机器处理风格问题，让人专注正确性。
+代码评审应当聚焦于逻辑与架构设计，而不是争论单引号和双引号的使用。关于格式的争论纯粹是浪费工程时间。解决方案很简单：让机器处理风格问题，让人专注于正确性。
 
-本文涵盖三层自动化代码质量保障机制：**类型提示**在运行前捕获逻辑错误；**代码检查器（linter）** 检测风格违规与常见缺陷；**pre-commit 钩子**则在每次提交时自动执行全部检查。
+本文涵盖三层自动化代码质量保障机制：**类型提示**在运行前捕获逻辑错误，**代码检查器（linter）** 检测风格违规与常见缺陷，**pre-commit 钩子**则在每次提交时自动执行全部检查。
 
 ## 类型提示：基础注解
 
-Python 是动态类型语言，但自 3.5 版本起支持可选的类型注解（type annotations）。它们**不影响运行时行为**，仅作为元数据供 mypy 等工具进行静态检查。
+Python 是动态类型语言，但自 3.5 版本起支持可选的类型注解（type annotations），这些注解不影响运行时行为，仅作为元数据供 mypy 等工具进行静态检查。
 
 ### 基础类型
 
@@ -340,7 +340,7 @@ result = some_untyped_function()  # type: ignore[no-untyped-call]
 
 ![Code quality pipeline raw code passing through linter format](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-code-quality-pipeline-raw-code-passing-through-linter-format.jpg)
 
-ruff 是一款用 Rust 编写的 Python linter。其速度比 flake8 快 10–100 倍，且集成了 flake8、isort、pyflakes、pycodestyle、pydocstyle 及众多 flake8 插件的功能。
+ruff 是一款用 Rust 编写的 Python linter，速度比 flake8 快 10–100 倍，并集成了 flake8、isort、pyflakes、pycodestyle、pydocstyle 及众多 flake8 插件的功能。
 
 ![Ruff vs other linters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-ruff-vs-others.png)
 
@@ -437,7 +437,7 @@ dict([(k, v) for k, v in items])  # <-- ruff 建议：{k: v for k, v in items}
 
 ## 使用 black 进行代码格式化
 
-black 是一款「固执己见」的代码格式化工具。它替你做出所有风格决策，从而彻底终结格式之争。
+black 是一款「固执己见」的代码格式化工具，它替你做出所有风格决策，从而彻底终结格式之争。
 
 ```bash
 (.venv) $ pip install black

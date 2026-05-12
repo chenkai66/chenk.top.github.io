@@ -16,11 +16,11 @@ series_order: 8
 translationKey: "docker-containers-8"
 ---
 
-本系列此前所有内容均围绕**单机版 Docker**展开：即仅在一台机器上运行容器。这种方式非常适合开发、小型项目以及流量适中的应用。但一旦你的服务需要在服务器宕机时持续可用、应对突发流量高峰，或实现零停机部署更新，单机版 Docker 的局限性便立刻显现。而**容器编排（Container Orchestration）**正是为解决这些问题而生——其中，Kubernetes 已成为事实上的行业标准。
+本系列此前的内容均围绕**单机版 Docker**展开，即仅在一台机器上运行容器。这种方式非常适合开发、小型项目及流量适中的应用。然而，当服务需要在服务器宕机时保持可用、应对突发流量高峰或实现零停机部署更新时，单机版 Docker 的局限性便立即显现。而**容器编排（Container Orchestration）**正是为解决这些问题而生——其中，Kubernetes 已成为事实上的行业标准。
 
 ## 为何单机版 Docker 不够用？
 
-设想一下你的 Docker 主机意外宕机时会发生什么：
+设想一下，如果 Docker 主机意外宕机会发生什么：
 
 ![Docker to Kubernetes mapping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-docker-to-k8s.png)
 
@@ -36,7 +36,7 @@ translationKey: "docker-containers-8"
 | 监控 | `docker stats`（仅限单机） | 全集群指标采集与告警 |
 | 存储 | 本地卷（主机宕机即丢失数据） | 支持复制的持久化卷（Persistent Volumes） |
 
-这些是**运维层面的问题，而非 Docker 本身的问题**。Docker 完美地完成了它被设计的任务：在单台主机上运行容器。而编排器则在此之上，增加了**跨多主机协同调度**这一关键能力层。
+这些问题属于**运维层面，而非 Docker 本身**。Docker 完美地完成了其设计任务——在单台主机上运行容器。而编排器则在此基础上增加了**跨多主机协同调度**这一关键能力。
 
 ## Docker Swarm：通往编排的极简路径
 
@@ -85,11 +85,11 @@ def456abc789                 worker1    Ready    Active                         
 ghi789def012                 worker2    Ready    Active                          24.0.6
 ```
 
-仅需四条命令，一个三节点集群即告建成。这正是 Swarm 的核心吸引力所在。
+仅需四条命令即可建立一个三节点集群，这正是 Swarm 的核心吸引力。
 
 ### 部署服务（Services）
 
-Swarm 引入了“服务（Service）”的概念——服务是对容器运行方式的声明式定义，Swarm 负责维持指定数量的副本（replicas）：
+Swarm 引入了“服务（Service）”的概念，即对容器运行方式的声明式定义，Swarm 负责维持指定数量的副本（replicas）：
 
 ```bash
 # 创建一个含 3 个副本的服务
@@ -140,7 +140,7 @@ overall progress: 3 out of 3 tasks
 verify: Service converged
 ```
 
-Swarm 每次仅更新一个容器，并在每个更新之间等待 10 秒。若新容器健康检查失败，Swarm 将自动回滚。
+Swarm 每次仅更新一个容器，并在每次更新之间等待 10 秒。若新容器健康检查失败，Swarm 会自动回滚。
 
 ### 部署 Stack（在 Swarm 中运行 Compose 文件）
 

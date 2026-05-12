@@ -17,18 +17,18 @@ description: "Build a production network from scratch: VPC architecture, CIDR pl
 disableNunjucks: true
 translationKey: "aliyun-fullstack-3"
 ---
-我在云上排查过的每一次故障，追根溯源最后都指向了网络。要么是 CIDR 规划没做好，半年后 IP 不够用了；要么是路由缺失，流量在层级间静默丢弃；要么是安全组配置极端，要么对 `0.0.0.0/0` 开放了 22 端口（哈喽，黑客朋友），要么锁得太死导致健康检查失败，负载均衡不停剔除健康实例。网络层是所有部署的前提，必须最先规划、最先落地；但一旦需要调整，其补救成本也最高——修改 VPC 的 CIDR 段将强制重建该 VPC 下的所有资源。
+我在云上排查过的每一次故障，追根溯源最后都指向了网络。要么是 CIDR 规划没做好，半年后 IP 不够用了；要么是路由缺失，流量在层级间静默丢弃；要么是安全组配置极端，要么对 `0.0.0.0/0` 开放了 22 端口（哈喽，黑客朋友），要么锁得太死导致健康检查失败，负载均衡不停剔除健康实例。网络层是所有部署的前提：必须最先规划、最先落地；但一旦需要调整，补救成本也最高——修改 VPC 的 CIDR 段会强制重建其下所有资源。
 
 
-我们在 [Part 1](/zh/aliyun-fullstack/01-ecosystem-map/) 搭建了基础 VPC，现在要深入细节了。读完本文，你将构建一个生产级的多可用区网络：支持层级隔离、具备边界清晰的安全控制、私有子网可通过 NAT 网关访问互联网、公网流量可通过 SLB 实现负载均衡。放入这些子网的 ECS 实例会在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)` 讲解。如果你想用 Terraform setup VPC，参考 [Terraform Part 3: VPC and Security Baseline](/zh/terraform-agents/03-vpc-and-security-baseline/)。
+我们在 [Part 1](/zh/aliyun-fullstack/01-ecosystem-map/) 搭建了基础 VPC，现在要深入细节了。读完本文，你将构建一个生产级多可用区网络：支持层级隔离、边界清晰的安全控制、私有子网通过 NAT 网关访问互联网、公网流量经 SLB 实现负载均衡。放入这些子网的 ECS 实例会在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)` 讲解。如果你想用 Terraform setup VPC，参考 [Terraform Part 3: VPC and Security Baseline](/zh/terraform-agents/03-vpc-and-security-baseline/)。
 
 ## What Is a VPC?
 
-虚拟私有云（VPC）就是你在阿里云上独占的网络段。可将其理解为一个纯软件定义的私有数据中心网络：IP 地址段由你指定，子网由你划分，防火墙规则由你配置；哪些实例可访问互联网、哪些仅限内网通信，均由你控制。默认情况下，所有入站和出站流量均被拒绝；只有显式配置了允许规则的流量才可通过。
+虚拟私有云（VPC）就是你在阿里云上独占的网络段。可将其理解为一个纯软件定义的私有数据中心网络：IP 地址段由你指定，子网由你划分，防火墙规则由你配置；哪些实例可访问互联网、哪些仅限内网通信，均由你控制。默认拒绝所有入站和出站流量；仅显式允许的流量才能通过。
 
 ![VPC architecture overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 
-如果你熟悉 AWS，其 VPC 的心智模型与阿里云基本一致。阿里云的 VPC 功能上等同于 AWS VPC，只是叫法不同：
+如果你熟悉 AWS，阿里云 VPC 的心智模型与其基本一致：功能完全等价，仅术语不同。
 
 | Alibaba Cloud | AWS | What it does |
 |---|---|---|

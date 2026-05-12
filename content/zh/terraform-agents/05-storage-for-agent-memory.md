@@ -20,7 +20,7 @@ translationKey: "terraform-agents-5"
 ---
 大多数教程讲到 Agent 记忆这块都在糊弄。“把 embeddings 扔 Pinecone，sessions 扔 Postgres，截图扔 S3 就完事了。”在阿里云上，这三类服务均有托管方案，但 Terraform 配置是否合理，直接决定了记忆功能的稳定性：配置不当可能导致凌晨 4 点磁盘告警、三周对话历史永久丢失。
 
-本文将系统梳理这三层架构：各层对应的 Terraform 实现、看似枯燥却至关重要的备份与容灾机制、PostgreSQL 大版本升级的实操经验，以及一次真实的周六故障——正是这次事故，直接塑造了我后续所有关键架构决策。
+本文系统梳理这三层架构：各层对应的 Terraform 实现、备份与容灾机制（看似枯燥却至关重要）、PostgreSQL 大版本升级的实操经验，以及一次真实的周六故障——正是这次事故，直接塑造了后续所有关键架构决策。
 
 ## 三层记忆模型
 
@@ -96,11 +96,11 @@ resource "alicloud_db_database" "session" {
 }
 ```
 
-该模块配置中有几个关键点需特别说明：
+该模块配置有若干关键点：
 
 - **密码自创建起即存储于 KMS Secrets Manager。** 由 `random_password` 生成，写入 `alicloud_kms_secret`，Agent 启动时通过 STS 获取。明文永远不会离开 Terraform 的内存，下游通过 `secret_id` 引用而不是值，所以不会留在 tfstate 里。
 - **`encryption_key`** 把磁盘绑定到 `memory` CMK 上。落盘加密，没有额外成本。
-- **`backup_period` + `retention_period`** 创建每周三次的自动备份，prod 保留 30 天，dev 保留 7 天。RDS 自动备份默认存储在 OSS 中，无需额外管理备份 Bucket。
+- **`backup_period` + `retention_period`** 创建每周三次的自动备份，prod 保留 30 天，dev 保留 7 天。RDS 自动备份默认存于 OSS，无需额外维护备份 Bucket。
 - **`zone_id_slave_a`** 在 prod 环境会在第二个可用区创建热备。故障切换时间低于 30 秒；但成本增加一倍——生产环境值得投入，开发环境则无需启用。
 - **`deletion_protection`** 加上 **`lifecycle.prevent_destroy`** 在 prod 环境能挡住 `terraform destroy` 和 provider 驱动的强制替换。下文故障复盘部分我会解释为什么两者都需要——简言之，其中一项防护措施成功避免了那次周六故障。
 

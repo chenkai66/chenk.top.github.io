@@ -16,11 +16,11 @@ series_order: 4
 translationKey: "docker-containers-4"
 ---
 
-容器被刻意设计为相互隔离——这正是其核心价值所在。但实用的应用程序必须能接收来自外部世界的连接、与数据库通信，并保存那些在容器重启后依然存在的数据。Docker 提供了两种机制来满足这些需求：**网络（Networking）**（定义容器如何相互通信）和**卷（Volumes）**（定义数据如何持久化）。能否正确配置这两者，正是一个演示环境（demo）与生产部署（deployment）之间的本质区别。
+容器被刻意设计为相互隔离，这正是其核心价值；但实际应用必须能接收外部连接、与数据库通信，并持久化容器重启后仍需保留的数据。Docker 通过**网络（Networking）**（管理容器间及对外通信）和**卷（Volumes）**（实现数据持久化）来满足这些需求；二者配置是否合理，直接决定了环境是仅供演示（demo）还是可用于生产（deployment）。
 
 ## Docker 网络
 
-Docker 启动时，会在宿主机上创建一套虚拟网络基础设施。每个容器都拥有自己独立的网络命名空间（包括专属 IP 地址、路由表和网络接口），而 Docker 则负责管理容器之间以及容器与外部世界之间的流量转发。
+Docker 启动时自动创建宿主机上的虚拟网络基础设施：每个容器拥有独立的网络命名空间（含专属 IP、路由表和网络接口），Docker 负责调度容器间及容器与外部的流量。
 
 ![Container DNS resolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png)
 
@@ -38,7 +38,7 @@ Docker 支持多种网络驱动，各自适用于不同场景：
 | `macvlan` | 容器在物理网络上获得 MAC 地址 | 需表现为物理主机的遗留应用 | 直连局域网（LAN） |
 | `ipvlan` | 类似 macvlan，但共享宿主机 MAC 地址 | 与 macvlan 类似，交换机兼容性更好 | 直连局域网（LAN） |
 
-对于绝大多数单宿主机场景，你将使用 **bridge** 网络。下面我们逐一探讨相关驱动。
+绝大多数单宿主机场景均采用 **bridge** 网络，下文将逐一解析各驱动。
 
 ### 默认 Bridge 网络
 
@@ -97,7 +97,7 @@ docker exec container-a ping -c 2 container-b
 # 输出：ping: bad address 'container-b'
 ```
 
-这是默认 bridge 的有意限制。若需服务发现（service discovery），必须使用**自定义 bridge 网络**。
+这是默认 bridge 的主动限制——如需服务发现（service discovery），应使用**自定义 bridge 网络**。
 
 ```bash
 # 清理
@@ -128,7 +128,7 @@ PING web (172.18.0.2): 56 data bytes
 
 容器名 `web` 可直接解析为其 IP 地址。这正是 Docker 内置 DNS 服务器在起作用：Docker 会在每个加入自定义网络的容器内部、以 `127.0.0.11` 地址运行一个嵌入式 DNS 服务器。
 
-自定义网络还提供天然隔离能力——不同网络中的容器默认无法通信，除非显式连接：
+自定义网络还提供天然隔离：不同网络的容器默认互不连通，仅当显式连接时才可通信。
 
 ```bash
 # 创建另一个网络
@@ -258,7 +258,7 @@ docker network prune
 
 ## Docker 卷（Volumes）
 
-默认情况下，写入容器内的所有数据均存于其可写层（writable layer）。一旦容器被删除，这些数据即永久丢失。**卷（Volumes）** 提供了一种独立于容器生命周期之外的持久化存储机制。
+默认情况下，容器内写入的数据全部保存在可写层（writable layer）；容器删除后，这些数据即永久丢失。**卷（Volumes）** 提供了一种独立于容器生命周期之外的持久化存储机制。
 
 ![Volume types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-volume-types.png)
 
@@ -275,7 +275,7 @@ Docker 支持三种将存储挂载进容器的方式：
 
 ### 命名卷（Named Volumes）
 
-命名卷是推荐的数据持久化方式。Docker 自动管理存储位置，且卷可在多个容器间共享：
+命名卷是推荐的数据持久化方案：Docker 自动管理存储位置，并支持跨容器共享。
 
 ```bash
 # 创建命名卷
@@ -356,7 +356,7 @@ docker run -d \
     bash -c "cd /app && pip install flask && python app.py"
 ```
 
-宿主机文件的任何修改都会立即在容器内可见（反之亦然），从而实现无需重建镜像的实时开发。
+宿主机文件的任何修改均实时同步至容器（反之亦然），实现无需重建镜像的热重载开发。
 
 **命名卷 vs 绑定挂载对比**：
 
@@ -507,7 +507,7 @@ docker run --rm \
 
 ### 卷权限问题
 
-一个常见痛点：容器进程以特定 UID 运行，但卷内文件却由另一用户（如 root）拥有。
+常见问题：容器进程以特定 UID 运行，而卷中文件归属用户（如 root）不一致。
 
 ```bash
 # 问题：容器以 UID 1000 运行，但卷文件属主为 root
@@ -572,7 +572,7 @@ docker run -d \
 # Redis 数据在容器重启后依然保留
 ```
 
-这种手动配置虽可行，但冗长易错。若需管理 5 个服务，这种方式将迅速失控。这正是 **Docker Compose** 要解决的问题。
+该手动配置虽可行，但冗长且易出错；管理 5 个服务时，复杂度将急剧上升。这正是 **Docker Compose** 要解决的问题。
 
 ```bash
 # 清理全部资源

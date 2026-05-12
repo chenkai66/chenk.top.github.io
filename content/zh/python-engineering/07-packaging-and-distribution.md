@@ -78,7 +78,7 @@ dist/
 
 wheel 文件名编码了元数据：`{name}-{version}-{python}-{abi}-{platform}.whl`。其中 `py3-none-any` 表示“仅支持 Python 3、无 ABI 依赖、跨平台”（即纯 Python 包）。
 
-### 检查 wheel 内容
+### 查看 wheel 内容
 
 ```bash
 # .whl 本质就是 zip 文件
@@ -279,7 +279,7 @@ Checking dist/my_tool-0.1.0.tar.gz: PASSED
 
 ## 私有包索引（Private Package Indexes）
 
-并非所有包都适合公开发布。内部工具应使用私有索引：
+并非所有包都适合公开发布，内部工具应使用私有索引：
 
 ![Private package index](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-private-index.png)
 

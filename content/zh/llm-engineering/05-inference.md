@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "KV cache 力学、paged attention、continuous batching、speculative decoding、INT8/INT4/AWQ/GPTQ 量化，以及 vLLM、SGLang、TensorRT-LLM 的取舍。"
 translationKey: "llm-engineering-5"
 ---
-真正的成本压力来自推理。以单个 70B 模型为例：若需支持 1000 并发用户、每秒生成 50 个 token，其 GPU 开销约等于训练该模型所用预算的总和——仅需运行约 3 个月。本章所有内容都围绕两个指标展开：首 token 延迟（TTFT）和 token 间延迟（ITL）。还有一个比率：每百万输出 token 消耗的 GPU 秒数。
+真正的成本压力来自推理：以单个 70B 模型为例，支撑 1000 并发用户、每秒生成 50 个 token 的 GPU 开销，约等于训练该模型的全部预算——仅需运行约 3 个月。本章聚焦两个核心指标——首 token 延迟（TTFT）和 token 间延迟（ITL），以及一个关键比率：每百万输出 token 消耗的 GPU 秒数。
 
-训练属于一次性资本支出（CapEx），成本可分摊至数百万次推理调用；而推理是持续发生的运营支出（OpEx），无法摊销。tokens-per-GPU-second 提升 50%，其收益将在产品整个生命周期内持续复利增长。正因如此，主流 LLM 团队普遍配备至少一名专职推理工程师；开源社区也在五年内迭代演进了四代推理引擎（FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp）。
+训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长。因此，主流 LLM 团队普遍配备专职推理工程师；开源社区五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。
 
 ![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
 
@@ -33,11 +33,11 @@ translationKey: "llm-engineering-5"
 1.  **Prefill（提示词处理）**：输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——能把一张 H100 饱和运行约 70 ms。
 2.  **Decode（生成）**：一次生成一个 token，基于缓存的 key 和 value 做注意力。这是内存密集型（Memory-bound）。每个 decode 步都要读取整个 KV cache（几 GB 大小）才能产出一个 token。
 
-这种不对称性就是一切。Prefill 阶段天然适合跨用户批处理（同一 kernel 处理不同序列）；而 Decode 阶段若采用朴素批处理（naive batching），效果往往很差——因为各用户当前所处的序列位置不同，难以对齐计算。主流推理引擎全是围绕这种不对称性设计的。
+这种不对称性是关键所在：Prefill 阶段天然支持跨用户批处理（同一 kernel 并行处理不同序列），而 Decode 阶段若采用朴素批处理（naive batching），效果通常很差——各用户序列长度不一，计算步无法对齐。主流推理引擎都是围绕这种不对称性设计的。
 
-有个常用的经验法则：TTFT 主要由 prefill 主导，ITL 主要由 decode 的内存带宽主导。降低 TTFT 的关键是提升计算吞吐（例如增加 SM 数量或采用张量并行）；降低 ITL 则依赖更高的内存带宽（如 HBM3 优于 GDDR），或通过量化压缩模型参数以缓解带宽压力。
+一条常用经验法则是：TTFT 主要取决于 prefill 阶段，ITL 则主要受限于 decode 阶段的内存带宽。降低 TTFT 的关键是提升计算吞吐（如增加 SM 数量或启用张量并行）；降低 ITL 则依赖更高的内存带宽（HBM3 优于 GDDR）或模型量化——后者通过压缩参数缓解带宽压力。
 
-用算术强度来论证就更严谨了。70B 模型处理 4K prompt 的 prefill：模型权重（BF16 下 140 GB）加载一次，操作 4096 个 token。算术强度 ≈ 每读取一个参数字节对应 4096 FLOP。同样是这个模型，单 token 的 decode：权重加载一次，操作 1 个 token。算术强度 ≈ 每字节 1 FLOP。H100 在 BF16 下算力 989 TFLOPS，HBM 带宽 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。Prefill 的 4096 FLOP/byte 远高于平衡点（计算密集型）。Decode 的 1 FLOP/byte 低于平衡点两个数量级（内存密集型）。这两个阶段需要的硬件特性不同， Serving 栈如果不把它们分开处理，性能就会躺在地板上起不来。
+用算术强度来论证会更严谨。70B 模型处理 4K prompt 的 prefill：模型权重（BF16 下 140 GB）加载一次，操作 4096 个 token。算术强度 ≈ 每读取一个参数字节对应 4096 FLOP。同样，单 token 的 decode：权重加载一次，操作 1 个 token。算术强度 ≈ 每字节 1 FLOP。H100 在 BF16 下算力 989 TFLOPS，HBM 带宽 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。Prefill 的 4096 FLOP/byte 远高于平衡点（计算密集型），而 Decode 的 1 FLOP/byte 低于平衡点两个数量级（内存密集型）。这两个阶段需要不同的硬件特性，Serving 栈如果不将它们分开处理，性能就会大打折扣。
 
 ## KV cache：支撑长上下文的数据结构
 

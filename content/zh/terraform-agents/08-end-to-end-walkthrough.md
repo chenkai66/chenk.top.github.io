@@ -22,7 +22,7 @@ translationKey: "terraform-agents-8"
 
 ![research-agent-stack: every box, one terraform apply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png)
 
-一共五层——边缘、计算、记忆、平台、运维——由本系列之前构建的模块组合而成。底层依赖 11 款阿里云服务：VPC、ECS、ALB、OSS、RDS for PostgreSQL、OpenSearch、KMS、SLS、ARMS、CloudMonitor，以及通过网关调用的 DashScope（LLM 接入服务）。
+共五层：边缘、计算、记忆、平台、运维——均由本系列此前构建的模块组合而成；底层依赖 11 款阿里云服务：VPC、ECS、ALB、OSS、RDS for PostgreSQL、OpenSearch、KMS、SLS、ARMS、CloudMonitor，以及通过网关调用的 DashScope（LLM 接入服务）。
 
 ## Project structure
 
@@ -144,7 +144,7 @@ module "compute" {
 
 ![Terraform module dependency DAG](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png)
 
-VPC 和 KMS 位于依赖链顶层，自身不依赖其他模块。Storage 和 gateway 均依赖 VPC 和 KMS，但二者互不依赖，因此 Terraform 会并行创建。Compute 模块依赖前三个模块，因其 cloud-init 模板需引用这些模块输出的端点地址。Observability 资源在最后发散开来，因为它们要引用 compute 的安全组 ID。
+VPC 与 KMS 位于依赖链顶端，不依赖任何其他模块；Storage 与 gateway 均依赖 VPC 和 KMS，但彼此无依赖，故 Terraform 并行创建；Compute 模块依赖前三者，因其 cloud-init 模板需引用其输出的 endpoint 地址；Observability 资源最后部署，需引用 compute 的 security group ID。
 
 `local.is_prod` 里的三元表达式就是全部的环境升级策略，三行代码搞定：生产环境获得高可用 RDS、两个网关实例、三个 Agent ECS、¥800 成本上限、跨地域灾备。开发环境则使用最小可行配置。模块完全相同，仅通过变量调节规模，因此无需为不同环境维护独立代码分支或条件逻辑。
 

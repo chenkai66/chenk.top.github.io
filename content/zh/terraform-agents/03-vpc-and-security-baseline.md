@@ -35,7 +35,7 @@ translationKey: "terraform-agents-3"
 
 ![VPC topology — 3 zones, public + private, NAT egress](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig1_vpc_topology.png)
 
-为什么要三个可用区？因为阿里云随时可能在某个周日进行可用区级维护，单可用区部署意味着整个窗口期你的 Agent 都得下线。VPC 内跨区流量免费；三个可用区带来的唯一额外开销是子网规划的运维复杂度，而这部分由 Terraform 自动处理。
+为什么选三个可用区？阿里云可能在任意周日发起可用区级维护——单可用区部署意味着整个维护窗口期内 Agent 全面不可用；而 VPC 内跨可用区流量免费，唯一额外成本仅是子网规划的运维复杂度，这部分已由 Terraform 自动化解。
 
 为什么要分公网和私网？Agent runtime 应该待在私网 vSwitch 里，这样就算安全组配错，也不会意外把服务暴露在 `0.0.0.0/0` 上。公网 vSwitch 留给 ALB 和 NAT Gateway——这些是*必须*能通互联网的设备。Agent 通过 NAT 上网，绝不直连。
 
@@ -94,7 +94,7 @@ variable "tags" {
 }
 ```
 
-强制要求三个可用区确实有点 opinionated，但符合架构图。如果你需要两区或四区，直接 fork 这个模块——不要把它写成带条件逻辑的模块。带条件的模块会变得难以阅读，而难以阅读的模块半年后就得从头重写。
+强制三可用区虽属强约定（opinionated），但与架构图严格对齐；如需双可用区或四可用区，直接 fork 模块——切勿引入条件逻辑；含条件分支的模块必然损害可读性，而可读性崩塌的模块半年内必被推倒重写。
 
 ## VPC 和 vSwitches
 
@@ -168,7 +168,7 @@ resource "alicloud_snat_entry" "private" {
 }
 ```
 
-Enhanced NAT 是现代类型——Tablestore、PrivateLink 和大多数新服务都要求用它。老式的 "Standard" NAT 迟早会被 deprecated，别在新项目上用。按流量计费（PayByTraffic）更适合 Agent 负载，因其出站带宽具有突发性（如 LLM 流式响应），而非持续稳定。
+Enhanced NAT 是当前标准：Tablestore、PrivateLink 及绝大多数新服务均强制要求；老式 Standard NAT 已进入 deprecation 倒计时，新项目严禁使用。按流量计费（PayByTraffic）更适合 Agent 负载，因其出站带宽具有突发性（如 LLM 流式响应），而非持续稳定。
 
 SNAT 条目才是让私网子网实例能通互联网的关键。少了它们，`private-a` 里的 Agent 解析不了 `dashscope.aliyuncs.com`——第一次遇到这问题你会花一个小时调试。这个问题我亲身遇到过，调试花了一小时。
 

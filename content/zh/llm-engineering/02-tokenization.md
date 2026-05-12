@@ -17,7 +17,7 @@ disableNunjucks: true
 description: "BPE、SentencePiece、WordPiece 的差别，byte-level fallback，CJK token 膨胀问题，扩词表的真实代价，以及悄悄塑造每个模型行为的 chat template 特殊 token。"
 translationKey: "llm-engineering-2"
 ---
-分词层往往是大家最容易忽略的一环，但恰恰是我在生产环境中调试最多的地方：静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）。这一章的内容，是我希望自己在发布多语言产品前就能彻底吃透的。
+分词层往往是大家最容易忽略的一环，却恰恰是我在生产环境中调试最多的地方——静默的质量下降、异常的成本激增、模型无法正确执行指令（通常源于 chat template 格式错误）这一章的内容，是我希望自己在发布多语言产品前就能彻底吃透的。
 
 ![LLM Engineering (2): Tokenization Deep Dive — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/02-tokenization/illustration_1.png)
 

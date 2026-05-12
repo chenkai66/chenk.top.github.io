@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "服务栈选型细化、给 LLM 做 autoscaling、延迟预算、prompt+completion 成本跟踪、多模型路由、FrugalGPT 级联、第一天就要的可观测性，以及能用的 on-call 模式。"
 translationKey: "llm-engineering-12"
 ---
-这是最后一章了。前面我们聊了模型、Prompt、检索、评估，这一章只聚焦两件事：保障服务稳定，控制成本不超支。生产环境的 LLM 服务，其实更像高流量 Web 服务，而不是传统 ML 服务——只不过每次 Web 请求都会产生成本，且响应可能长达两分钟。
+这是最后一章——前面已覆盖模型、Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本不超支。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务：每次请求都产生成本，响应延迟甚至可达两分钟。
 
-这一章我会多摆点数据。原因很简单：在生产环境，一个功能到底赚钱还是亏钱，往往就差在那没人盯的 2-5 倍成本系数上。最实用的能力是手动核算 LLM 负载的成本。下面的数据截止到 2025 年底/2026 年初，真要用之前记得核对最新定价。
+本章将密集呈现关键数据——因为在生产环境中，一个功能的盈亏往往取决于那些被忽视的 2-5 倍成本差异。最实用的能力是手动核算 LLM 负载的成本。以下数据截至 2025 年底/2026 年初，请在实际使用前核对最新定价。
 
 ![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/illustration_1.png)
 
@@ -44,9 +44,9 @@ translationKey: "llm-engineering-12"
 [Observability] ← logs, metrics, traces, eval runs
 ```
 
-App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑；LLM Gateway 则要让一堆模型表现得像单个服务。
+App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑，而 LLM Gateway 则要让多个模型表现得像单个服务。
 
-从项目启动第一天起，就应将 LLM Gateway 作为独立服务构建。你需要它来做这些事：
+LLM Gateway 应从项目第一天起就作为独立服务构建，承担以下职责：
 
 - **多模型路由**：根据分类器，把某些请求发给小而快的模型，其他的发给大而慢的。
 - **降级（Fallback）**：主提供商返回 5xx 时，自动重试备用提供商。
@@ -55,19 +55,19 @@ App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑；LLM
 - **A/B 测试**：把可配置比例的流量路由到新的模型 variant。
 - **配额/熔断**：当单个用户消耗成本显著超出合理水平时，自动中断其请求。
 
-从头构建这个大概需要几周工程量。开源选项覆盖了不少场景：
+从头构建这大概需要几周时间。主流开源方案覆盖了大多数场景：
 
-- **LiteLLM** — 纯 Python 代理，集成 100+ 提供商，提供 drop-in OpenAI 兼容端点，内置成本追踪不错。最快上手方案。
+- **LiteLLM**：纯 Python 代理，支持 100+ provider，提供开箱即用的 OpenAI 兼容 API，内置成本追踪完善——最快上手选择。
 - **OpenRouter** — 托管网关，单一 API 对接所有提供商，内置模型市场。单 token 成本比直连提供商高，但自动处理 failover 和价格套利。
 - **Cloudflare AI Gateway** — CDN 边缘的托管代理，带缓存、限流和分析。便宜且运维 trivial，但牺牲了一些灵活性。
 - **BentoML / Bento Cloud** — 更重的框架，适合同时需要在这个网关后托管自训模型的场景。
 - **Portkey, Langfuse Gateway** — 新入局者，观测性故事讲得比较好。
 
-早点选一个，但也做好以后换掉的准备。Gateway 是少数真正存在厂商锁定风险的组件（业务代码深度依赖其接口）；因此，必须将其接口设计得尽可能简洁。
+尽早选定方案，但需预留替换能力——Gateway 是少数存在显著供应商锁定风险的组件（业务代码深度耦合其接口），接口设计务必极简。
 
 ## 自建 vs 托管 API
 
-这是个老生常谈的问题。2026 年的实话是这样：
+这是个老生常谈的问题。2026 年的情况如下：
 
 **使用托管 API 当：**
 
@@ -83,9 +83,9 @@ App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑；LLM
 - 需要持续 <100 ms TTFT。
 - 有特定的 fine-tuning 需求。
 
-盈亏平衡点大致出现在月调用量 10 亿 tokens 左右（对应 Qwen3-32B 级别负载）。低于这个数，算上工程时间，托管 API 比自建划算。高于这个数， dedicated GPUs（租或买）自建成本能低 3-10 倍。
+盈亏平衡点约在月调用量 10 亿 tokens（对应 Qwen3-32B 级负载）：低于该阈值，计入工程投入后托管 API 更经济；高于该阈值，租用或自购 GPU 的自建方案成本可降低 3–10 倍。
 
-常见错误：自建 GPU 利用率太低。若 4×H100 集群的 GPU 利用率仅为 30%，则单 token 成本甚至高于 OpenAI API。目标得是持续吞吐量 >70%。
+典型误判是自建 GPU 利用率不足——如果 4×H100 集群长期维持 30% 的利用率，单 token 成本会超过 OpenAI API。目标应是持续吞吐量大于 70%。
 
 2025-2026 流行的一种实用混合模式：**自建小模型扛大部分便宜流量，把难的 5-10% 路由给托管 frontier API。** 这样既拿到了自建的大部分成本优势，又在关键地方保留了 frontier 质量。路由决策由一个小分类器完成（见下文多模型路由章节）。
 

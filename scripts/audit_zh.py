@@ -29,24 +29,29 @@ API_KEYS = [
 
 API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
-SYSTEM_PROMPT = """你是中文技术写作编辑。用户会给你一篇技术博客的中文正文（已去除代码和公式）。
-请逐段检查，找出所有不地道的中文表述，包括：
-1. 英文直译腔（如"这个问题咬了我一口"、"X 值得被提到"）
-2. 不自然的语法结构（如被动句过多、定语从句嵌套过深）
-3. 生硬或拗口的表达
-4. 可以更简洁流畅的句子
+SYSTEM_PROMPT = """你是资深中文技术写作编辑，专门修复机器翻译的英译腔。用户会给你一篇技术博客的中文正文（已去除代码和公式）。
 
-注意：
-- 不要修改术语本身（如 embedding、token、BPE 等保留英文）
-- 不要修改引用/出处
-- 保持技术准确性
-- 只改确实有问题的地方，不要过度润色
-- 如果一段话只是稍微生硬但可以接受，不需要改
+**最重要的问题（重点修复）：**
+1. **句号过密、短句过多** —— 英文常用 "X. Y. Z." 的并列短句风格，直译成中文后变成 "X。Y。Z。" 读起来像机器人。要合并为一句自然中文，用顿号、逗号、破折号衔接。
+   反例（机器味）："十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉。"
+   正例（地道）："十一篇文章、几十条 CLI 命令、上百个手动步骤——现在全部扔掉。"
+2. **明显的英文句法直译** —— 如"这是 X 的核心价值所在"、"我们将把 ... 统一封装为 ..."、"读完本文，你将获得 ..."等八股翻译腔。
+3. **冗余的连接词和虚词** —— "我们将"、"我们把"、"它们" 等过度使用代词，中文重视主语省略。
+4. **技术术语应该保留英文**（如 embedding、token、BPE、LSTM、JSON、API 等）—— 不要意译。
 
-对于每个问题，输出 JSON 格式：
-{"issues": [{"original": "原文片段（20-80字，足够定位）", "fixed": "修改后的完整片段", "reason": "简短说明"}]}
+**修改原则：**
+- 优先合并 "X。Y。Z。" 为 "X、Y、Z" 或 "X，Y，Z"
+- 主动语态优先于被动语态
+- 短句优先于长句，但避免过短产生机器味
+- 中文重意合，可大胆省略冗余主语
+- 保持术语原文和数字精确性
+- 不要改变技术含义、引用出处、代码引用
+- 不要过度润色已经流畅的段落
 
-如果文章没有问题或问题很小，返回 {"issues": []}
+**输出格式（严格 JSON）：**
+{"issues": [{"original": "原文片段（20-80字，足够定位）", "fixed": "修改后的完整片段", "reason": "简短说明（如：句号过密合并、被动改主动等）"}]}
+
+如果段落已经流畅自然，返回 {"issues": []}
 只输出 JSON，不要其他内容。"""
 
 key_lock = threading.Lock()
@@ -132,7 +137,7 @@ def call_qwen(prose, retries=3):
                 'Authorization': f'Bearer {key}',
                 'Content-Type': 'application/json',
             }, json={
-                'model': 'qwen-plus',
+                'model': 'qwen-max',
                 'temperature': 0.2,
                 'messages': [
                     {'role': 'system', 'content': SYSTEM_PROMPT},
@@ -247,22 +252,32 @@ def process_series(series_name):
 
     total_fixes = 0
     all_issues = []
+    print_lock = threading.Lock()
+    completed = [0]
 
-    for i, article in enumerate(articles):
+    def worker(idx_article):
+        i, article = idx_article
         basename = os.path.basename(article)
-        print(f'  [{i+1}/{len(articles)}] {basename}...', end=' ', flush=True)
+        try:
+            name, applied, issues = process_article(article)
+        except Exception as e:
+            with print_lock:
+                completed[0] += 1
+                print(f'  [{completed[0]}/{len(articles)}] {basename}... ERROR: {e}', flush=True)
+            return 0, []
+        with print_lock:
+            completed[0] += 1
+            if applied > 0:
+                print(f'  [{completed[0]}/{len(articles)}] {basename}... {applied} fixes', flush=True)
+            else:
+                print(f'  [{completed[0]}/{len(articles)}] {basename}... OK', flush=True)
+        return applied, [{**iss, 'file': basename} for iss in issues]
 
-        name, applied, issues = process_article(article)
-
-        if applied > 0:
-            print(f'{applied} fixes')
+    # 9 API keys → 9 parallel workers (one per key roughly)
+    with ThreadPoolExecutor(max_workers=30) as ex:
+        for applied, file_issues in ex.map(worker, list(enumerate(articles))):
             total_fixes += applied
-            all_issues.extend([{**iss, 'file': basename} for iss in issues])
-        else:
-            print('OK')
-
-        # Rate limiting
-        time.sleep(1.5)
+            all_issues.extend(file_issues)
 
     # Save log
     os.makedirs(LOG_DIR, exist_ok=True)

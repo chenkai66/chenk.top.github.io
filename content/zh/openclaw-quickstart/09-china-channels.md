@@ -17,9 +17,9 @@ description: "钉钉、飞书（已弃用）、企业微信三种模式、微信
 disableNunjucks: true
 translationKey: "openclaw-quickstart-9"
 ---
-第五章咱们快速扫了一眼 Telegram、DingTalk 和 WeChat。本章专为国内需经公司 IT 部门审批后方可落地的场景补充说明。渠道众多，官方文档散落在数十个 README 中，而网上流传的各类‘对比表’大多已过时。
+第五章快速对比了 Telegram、DingTalk 和 WeChat；本章则聚焦国内企业场景——所有渠道落地前均需通过公司 IT 部门审批。渠道众多，官方文档分散在数十个 README 中，网上的各类‘对比表’也大多过时。
 
-下面这张矩阵表，是我向他人推荐方案前必查的清单。
+下方矩阵表是我每次向他人推荐方案前必查的决策清单。
 
 ![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_1.png)
 
@@ -51,21 +51,21 @@ npx @openclaw-china/setup
 | WeChat public account | 粉丝 | yes | yes | no | no | 1500-3000ms | text, news cards | free |
 | WorkBuddy (QClaw) | 个人微信/QQ | no | yes | yes | yes | 500-1000ms | text, images | free |
 
-两点注意：飞书自 2026 年 3 月起，将不再支持新部署的 openclaw-china 实例（标记为 deprecated）。 —— 选 DingTalk 或 WeCom。微信订阅号仅支持在用户发起消息后的 5 秒内被动回复，不支持主动推送消息；服务号及测试号则无此限制。
+两点注意：飞书自 2026 年 3 月起停止支持新部署的 openclaw-china 实例（状态标记为 deprecated），推荐选用 DingTalk 或 WeCom；微信订阅号仅支持用户发起消息后 5 秒内的被动回复，不支持主动推送，而服务号与测试号则无此限制。
 
-延迟数据是业务高峰期从北京/上海测得的往返消息耗时。延迟主要来自 webhook 投递链路：公众号和企微自建应用需经腾讯 dispatcher 中转，相比长轮询渠道多出 500–1000ms。
+延迟数据取自业务高峰期北京/上海节点的往返消息耗时，主要瓶颈在于 webhook 投递链路——公众号与企微自建应用需经腾讯 dispatcher 中转，相比长轮询渠道额外增加 500–1000ms。
 
-消息格式支持比看起来更重要。Markdown 意味着你的 Agent 能发代码块和格式化列表。DingTalk 和 WeCom 智能机器人对 GitHub-flavored markdown 支持很好。微信渠道要求纯文本或私有 card schema。
+消息格式支持比看起来更重要。Markdown 支持意味着 Agent 可发送代码块与格式化列表；DingTalk 和 WeCom 智能机器人对 GitHub-flavored markdown 兼容良好，微信渠道则仅支持纯文本或其私有 card schema。
 
 ## 三道题选型法
 
-请勿逐行对照表格阅读，而应围绕以下三个核心问题做决策：
+请勿逐行对照表格，而应聚焦以下三个核心问题：
 
 1. **目标用户是谁？** 同事 → DingTalk 或 WeCom 长轮询。外部微信用户 → 企微自建应用或微信客服。个人使用者 → WorkBuddy
 2. **有公网 IP 吗？** 没有 → 只能选 DingTalk、WeCom 长轮询和 WorkBuddy。有 → 随便选。
 3. **需要群聊吗？** 要 → DingTalk、WeCom 长轮询或 WorkBuddy。客服和公众号渠道只能 1:1。
 
-实践中，我通常采用以下两种技术栈：
+实践中，我们常用以下两类技术栈：
 
 - **内部团队，无公网 IP：** 主通道 DingTalk，备用 WeCom 长轮询。同时对两条通道进行心跳监控。
 - **触达外部微信：** 企微自建应用作为 Agent 主界面，微信客服接收未打标用户的 inbound。
@@ -74,7 +74,7 @@ npx @openclaw-china/setup
 
 ![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_2.png)
 
-流式模式（long-poll）是钉钉上线快的唯一原因。不需要公网 IP，不需要域名验证，注册个机器人拿两个值就行：
+流式模式（long-poll）是钉钉快速上线的唯一原因：无需公网 IP 和域名验证，注册机器人后获取两个凭证即可。
 
 ```json
 {
@@ -112,7 +112,7 @@ npx @openclaw-china/setup
 - **自建应用（自建应用）。** 能触达外部微信用户 *如果* 组织有企微 - 微信互通 license。需要公网 IP 和已验证域名。不支持流式。
 - **微信客服（微信客服）。** 没有互通 license 的外部微信用户。从公众号菜单、小程序、视频号、直播入口路由。不支持 Markdown。
 
-90% 的“我们团队需要个机器人”的情况，智能机器人就是你要的。
+90% 的情况下，如果你的团队需要一个机器人，智能机器人就是你要的。
 
 ## 企微深潜
 
@@ -126,9 +126,9 @@ npx @openclaw-china/setup
 
 ## WorkBuddy —— 桌面桥接
 
-WorkBuddy。这是腾讯官方的 QClaw 桥接，跑在你的桌面上，不要 IP，不要应用审核，直连你真实的个人微信和 QQ。这是目前唯一能实现‘当晚即在微信中启用 Agent’且无需降级的方案。
+WorkBuddy 是腾讯官方的 QClaw 桥接，运行在你的桌面上，不需要 IP 和应用审核，直接连接你真实的个人微信和 QQ。这是目前唯一能实现‘当晚即在微信中启用 Agent’且无需降级的方案。
 
-局限在于：作为桌面应用，宿主机休眠会导致进程终止：个人助理场景可接受，但不适用于生产环境。
+局限在于，作为桌面应用，宿主机休眠会导致进程终止，个人助理场景可接受，但不适用于生产环境。
 
 **Setup 步骤：**
 1. 用大陆手机号在 `qclaw.tencent.com` 注册。用例选“个人助理”。
@@ -153,7 +153,7 @@ WorkBuddy。这是腾讯官方的 QClaw 桥接，跑在你的桌面上，不要 
 
 ## 迁移指南 —— 切换渠道
 
-你因为快选了钉钉。现在需要企微触达外部用户。怎么切换且不丢历史：
+你选择了钉钉，但现在需要企微触达外部用户。如何切换且不丢失历史记录：
 
 1. **切到持久化会话**（Redis）再迁移 —— 内存会话随进程死亡。
 2. **更新配置**：禁用旧渠道，启用新渠道。
@@ -176,6 +176,6 @@ curl http://localhost:3000/api/channels/dingtalk/health
 
 ## 矩阵背后的教训
 
-渠道是 Agent 真正 *活着* 的地方。渠道不稳定，Agent 再好也不稳定。所以在搞任何花哨功能之前，先选个匹配受众和网络的渠道，然后过度投入把 *那个* 渠道搞稳。再加第二个做冗余。
+渠道是 Agent 真正 *活着* 的地方。渠道不稳定，Agent 再好也不稳定。因此，在搞任何花哨功能之前，先选一个匹配受众和网络的渠道，然后过度投入将其搞稳。再加第二个做冗余。
 
 其他都是瞎折腾。

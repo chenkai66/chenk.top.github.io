@@ -18,7 +18,7 @@ disableNunjucks: true
 description: "数据混合、去重、benchmark 污染、μP，FSDP / ZeRO-3 / Pipeline 并行，实战意义上的 200B token 悬崖，以及 1000 卡以上才会出现的失败模式。"
 translationKey: "llm-engineering-3"
 ---
-预训练是大模型能力的源头，也是榜单成绩和实际表现差距最大的地方。大多数公开的训练记录与其说是科学成果，不如说是工程奇迹。这一章聊聊当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有集群大到一定程度才会暴露的故障模式——比如一次失败的 NCCL all-reduce 就可能导致整个持续 30 天的训练任务中断。
+预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方；大多数公开的训练记录更像是工程奇迹而非科学成果。这一章聊聊当你不是 OpenAI 时，预训练必须搞对的几个部分：数据、并行策略，以及只有在集群达到一定规模时才会暴露的故障模式——例如，一次失败的 NCCL all-reduce 可能导致整个为期 30 天的训练任务中断。
 
 ![LLM Engineering (3): Pretraining at Scale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/illustration_1.png)
 
@@ -26,9 +26,9 @@ translationKey: "llm-engineering-3"
 
 ![fig3: data mixture composition](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/fig3_data_mixture.png)
 
-过去三年里所有靠谱的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小 (~5 % perplexity)，但不同数据配比带来的性能差异极为显著（>30%）。Chinchilla 论文的 compute-optimal 缩放定律假设了数据分布固定；一旦允许这个分布变化，数据就占据了主导地位。
+过去三年里所有可靠的 scaling study 都达成共识：在算力相同的情况下，两个 LLaMA 式架构之间的差异很小（约 5% perplexity），但不同数据配比带来的性能差异极为显著（超过 30%）。Chinchilla 论文中的 compute-optimal 缩放定律假设数据分布固定；一旦允许数据分布变化，数据就占据了主导地位。
 
-现代预训练配比大致如下（FineWeb-Edu [Penedo et al., 2024], RedPajama-V2 [Together AI, 2024], Dolma [Soldaini et al., 2024] — 所有开放配比彼此之间相差无几）：
+现代预训练配比大致如下（FineWeb-Edu [Penedo et al., 2024]、RedPajama-V2 [Together AI, 2024]、Dolma [Soldaini et al., 2024]——所有开放配比彼此相差无几）：
 
 | 来源 | 占比 | 备注 |
 |---|---|---|
@@ -40,9 +40,9 @@ translationKey: "llm-engineering-3"
 | 数学 (证明、教科书) | 2-4 % | 专为推理优化 |
 | 多语言网页 | 5-15 % | 质量因语言差异巨大 |
 
-有个最重要的数字没人提：**去重率**。CommonCrawl 2024 在文档级别去重后保留约 25 % 的原始字节。在行级别去重（更激进），约 12 %。Lee et al. (2022) 的论文表明，激进去重即便移除了 75% 的数据，仍可降低困惑度（perplexity）。重复对语言模型是毒药——它教会模型记忆而不是泛化。
+有个最重要的数字没人提：**去重率**。CommonCrawl 2024 在文档级别去重后保留约 25% 的原始字节，在行级别去重（更激进）则保留约 12%。Lee et al. (2022) 的论文表明，即使激进去重移除了 75% 的数据，仍可降低困惑度（perplexity）。重复对语言模型来说是毒药——它教会模型记忆而不是泛化。
 
-DeepSeek 的预训练说明（DeepSeek-V3 technical report [DeepSeek-AI, 2024], Dec 2024）是我见过对配比最诚实的：14.8T tokens，87 % code+math+web，13 % "high-quality books and synthetic data"。合成数据的占比比大家承认的要高。
+DeepSeek 的预训练说明（DeepSeek-V3 技术报告 [DeepSeek-AI, 2024]，2024 年 12 月）是我见过对配比最诚实的：14.8T tokens，87% 是代码、数学和网页，13% 是“高质量书籍和合成数据”。合成数据的占比比大家承认的要高。
 
 ## DataComp-LM：数据质量胜过数量，且有据可查
 

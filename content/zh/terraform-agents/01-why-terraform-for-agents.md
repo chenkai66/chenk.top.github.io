@@ -47,14 +47,14 @@ translationKey: "terraform-agents-1"
 
 ## The console-vs-IaC moment
 
-九个服务手动操作意味着九个漂移面。这种痛苦模式太普遍了，我甚至有个标准图来形容它：
+九个服务手动操作，等于九个漂移面——这种痛苦太普遍，我甚至画了一张标准图来描述它：
 
 ![Infrastructure as Code workflow transforming declarative configs into cloud resources](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_iac_workflow.png)
 
 
 ![Console clicks vs Terraform — where the divergence happens](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
 
-仔细看左列。每一步都看似合理——都不是蠢 mistake。这是聪明人在几个月里做出微小合理决策后的结果。右列走的是同一条路径，但每一步变更都通过可审查的配置文件记录在 Git 中。两列之间的 diff 就是“我交付了这个”和“凌晨 2 点我被 call 醒因为没人知道 `cn-beijing` 里跑着什么”的区别。
+细看左列：每一步都看似合理，没有一个是愚蠢的 mistake——恰恰是聪明人用数月积累的微小合理决策堆叠而成的结果。右列走的是同一条路径，但每一步变更都通过可审查的配置文件记录在 Git 中。两列之间的 diff 就是“我交付了这个”和“凌晨 2 点我被 call 醒因为没人知道 `cn-beijing` 里跑着什么”的区别。
 
 阿里云 Terraform 官方文档说得更委婉些：
 
@@ -68,7 +68,7 @@ translationKey: "terraform-agents-1"
 
 用两句话概括 Terraform 到底是什么：Terraform 是 HashiCorp 出品的开源声明式工具。你用 **HashiCorp Configuration Language (HCL)** 编写 `.tf` 文件来描述想要的云资源；Terraform 将该期望状态与 **state file** 中记录的 live state 进行 diff 并生成 **plan**；你 review plan；然后 `apply`；Terraform 将 plan 翻译成 provider API 调用。
 
-从中需要内化三点：
+需内化三点：
 
 - **Declarative, not imperative.** 不要写‘创建实例’这样的命令式语句，而要声明‘存在一个符合该规格的实例’这一状态。如果实际状态未发生变化，重复执行配置将不产生任何变更。这让 Terraform 可以安全地在每次 commit 时从 CI 运行。
 - **State is real.** `terraform.tfstate` 文件是从 HCL 资源地址到云实际资源 ID 的 JSON 映射。一旦丢失 state file，Terraform 就会认为所有资源都不存在。第二篇文章会讲把 state 放在哪里才持久——但影响远不止“别丢文件”，我们后面会回来说。
@@ -90,7 +90,7 @@ terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, ty
 
 对于我今天跑的四个 Agent 栈，这三条命令几秒钟就能生成一份综合清单。在用 Terraform 之前，同样的审计需要打开 ECS、VPC、RDS、OSS、RAM、KMS、SLS、ARMS、ACK、CloudMonitor、ALB 和 OpenSearch 的十二个控制台标签页——运气好按 tag 过滤，运气不好全靠直觉。
 
-State 文件在供应链意义上也相当于一份 *物料清单*。每个资源都携带 provider 版本和 module 来源。当 alicloud provider 暴露 CVE 时（此类情况每年发生数次），你可以在几分钟内遍历所有项目的 state 文件并检索相关条目：
+State 文件在供应链意义上就是一份 *物料清单*：每个资源都携带 provider 版本与 module 来源；当 alicloud provider 暴露 CVE（每年数次），几分钟内即可遍历所有项目 state 文件并检索相关条目：
 
 ```bash
 for d in stack-*/; do

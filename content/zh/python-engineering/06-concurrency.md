@@ -14,13 +14,13 @@ series_order: 6
 translationKey: "python-engineering-6"
 ---
 
-你的脚本一次只下载 100 个文件，每个下载耗时约 2 秒——其中绝大部分时间都在等待服务器响应。总耗时：200 秒。但在此期间，CPU 有 99% 的时间处于空闲状态。你为网络延迟付费，却白白浪费了计算资源。并发编程正是为了解决这个问题而诞生的。
+你的脚本一次只下载 100 个文件，每个约耗时 2 秒——绝大部分时间在等待服务器响应；总耗时 200 秒，而 CPU 99% 的时间处于空闲状态：你为网络延迟付费，却白白浪费了计算资源。并发编程正是为了解决这个问题而诞生的。
 
-Python 提供三种并发模型，各自针对不同场景设计。如果选错模型，代码不仅依然缓慢，还可能引发竞态条件（race conditions）。本文将详解每种模型的适用场景。
+Python 提供三种并发模型，分别面向不同场景；选错模型不仅无法提速，还可能引发竞态条件。
 
 ## GIL：它是什么？为何重要？
 
-全局解释器锁（Global Interpreter Lock，GIL）是一个互斥锁（mutex），用于保护对 Python 对象的访问。即使在多核机器上，也**仅允许一个线程执行 Python 字节码**。
+全局解释器锁（Global Interpreter Lock，GIL）是保护 Python 对象访问的互斥锁（mutex）——即使在多核机器上，也仅允许一个线程执行 Python 字节码。
 
 ![GIL impact on parallelism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-gil-impact.png)
 
@@ -66,7 +66,7 @@ print(counter)
 
 ## Threading：面向 I/O 密集型任务的并发
 
-线程共享同一内存空间，开销轻量。由于 GIL 在 I/O 操作期间会释放，因此线程非常适合网络请求、文件操作和数据库查询等场景。
+线程共享同一内存空间，开销轻量。由于 GIL 在 I/O 操作期间会释放，线程非常适合网络请求、文件操作和数据库查询等场景。
 
 ![Concurrency models comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-concurrency-models.png)
 
@@ -272,7 +272,7 @@ with ProcessPoolExecutor(max_workers=4) as executor:
 
 ### Multiprocessing 开销
 
-进程比线程更“重”：
+进程比线程更‘重’——
 
 | 方面 | Threads | Processes |
 |--------|---------|-----------|
@@ -544,7 +544,7 @@ asyncio.run(main())
 
 ## 如何选择正确的并发模型？
 
-决策取决于你的工作负载类型：
+决策取决于工作负载类型：
 
 **I/O 密集型任务（网络、磁盘、数据库）：**
 - 并发任务数较少（< 50）：使用 `ThreadPoolExecutor`
@@ -686,4 +686,4 @@ Async       : 1.09s
 
 ## 下一步
 
-你的代码现已具备并发能力且高效运行。但在将其发布给全世界之前，还需正确打包。下一篇文章中，我们将构建可分发的 Python 包、发布到 PyPI、创建 Docker 镜像，并搭建完整的分发流水线。
+你的代码现已具备并发能力且高效运行。但在发布前，还需正确打包。下一篇文章将介绍如何构建可分发的 Python 包、发布到 PyPI、创建 Docker 镜像，并搭建完整的分发流水线。

@@ -17,9 +17,9 @@ disableNunjucks: true
 description: "为什么 MMLU 坏了、污染问题、LLM-as-judge 偏置、位置偏置缓解、校准、生产里真正能在客户之前抓到回归的 A/B 测试模式。"
 translationKey: "llm-engineering-10"
 ---
-评估是大模型栈里大家意见最多、心里最没底的一环。榜单被刷，公开基准被污染，我加入过的团队里大多数连个评估集都没有。这一章咱们聊聊评估到底能告诉你什么，基准藏了什么，没人修的 LLM-as-judge 偏差，大多数团队跳过的校准指标，以及在客户发现之前就能抓住回归的生产模式。
+评估是大模型栈中争议最多、信心最弱的一环：榜单被刷、公开基准遭污染，我参与过的多数团队甚至没有自己的评估集。本章聚焦五个关键问题：评估真正能揭示什么、基准暗藏的陷阱、无人修复的 LLM-as-judge 偏差、多数团队忽略的校准指标，以及能在客户感知前捕获回归的生产级评估模式。
 
-这一章味道跟系列里其他章节不太一样。大多数评估问题不是技术问题——是*认知*问题。"模型 A 是不是比模型 B 强"是个假设检验问题，但这领域做干净实验的记录很差。下面引用的文献不是榜单；是一堆失败模式论文，应该让任何从业者更谨慎。
+本章风格与系列其他章节不同：多数评估难题并非技术问题，而是认知问题。"模型 A 是否比模型 B 强"是个假设检验问题，但该领域的干净实验记录很差。以下引用的是揭示失败模式的论文——它们理应让每位从业者保持审慎。
 
 ![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_1.png)
 
@@ -28,19 +28,19 @@ translationKey: "llm-engineering-10"
 ![fig1: benchmark contamination over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)
 
 
-标准基准套件（MMLU, GSM8K, HumanEval, ARC, HellaSwag 等）的问题清单：
+标准基准套件（如 MMLU、GSM8K、HumanEval、ARC、HellaSwag 等）存在五大共性缺陷：
 
-**污染。** 大部分公开基准都能通过网页爬取拿到。用 CommonCrawl 训练的模型见过题目，往往也见过答案。Phi-3 被抓包训练数据里 literally 有 MMLU 题；很难相信其他实验室更干净。Zhou et al. (2023, *Don't Make Your LLM an Evaluation Benchmark Cheater*) 系统测了影响——哪怕少量测试集泄露也能带来 10-30 个百分点的提升，跟"合法"的能力提升分不清。这篇论文最让人难受的发现：随机子采样 CommonCrawl 已经包含了 5-10% 的热门基准题。避免污染需要主动过滤，大多数实验室嘴上说有，文档里没见着。
+**污染。** 大部分公开基准都能通过网页爬取获取。用 CommonCrawl 训练的模型见过题目，往往也见过答案。Phi-3 被发现其训练数据中确实包含 MMLU 题目；很难相信其他实验室更干净。Zhou et al. (2023, *Don't Make Your LLM an Evaluation Benchmark Cheater*) 系统性验证了泄露的影响：仅少量测试集泄露即可带来 10–30 个百分点的分数提升，与真实能力提升难以区分。这篇论文最令人不安的发现是：随机子采样 CommonCrawl 已经包含了 5-10% 的热门基准题。避免污染需要主动过滤，但大多数实验室只是口头承诺，实际文档中并未体现。
 
-另一篇相关论文，Sainz et al. (2023, *NLP Evaluation in trouble*)，survey 了 250+ 近期发布的基准，发现 ~40% 在至少一个主流基础模型的训练语料里有可检测的泄露。泄露率大致随预训练语料规模增长。
+Sainz et al. (2023, *NLP Evaluation in trouble*) 对 250 余个近期基准进行调研，发现约 40% 在至少一个主流基础模型的训练语料中存在可检测泄露。泄露率大致随预训练语料规模增长。
 
-**饱和。** MMLU 当初设计是给 2020 年模型难的。2026 年的顶尖模型跑 88-92%——它们在噪声带里竞争。MMLU 上 1.5 分的提升可能是真提升，也可能是边界案例上 50 题抽样的采样方差。这基准几年前就分不清能力了。简单的统计论证：14K 题，模型准确率 90%，分数的标准误大约是 $\sqrt{0.9 \cdot 0.1 / 14000} \approx 0.25$ 个百分点；不到 ~0.7 分的 1 分宣称都在噪声里。
+**饱和。** MMLU 最初面向 2020 年模型设计，如今顶尖模型已达 88–92% 准确率——竞争已进入噪声主导区间。MMLU 上 1.5 分的提升可能是真提升，也可能是边界案例上 50 题抽样的采样方差。这基准几年前就分不清能力了。简单的统计论证：14K 题，模型准确率 90%，分数的标准误大约是 $\sqrt{0.9 \cdot 0.1 / 14000} \approx 0.25$ 个百分点；不到 ~0.7 分的 1 分宣称都在噪声里。
 
-**选择题偏差。** MMLU 是 4 选 1 选择题。模型全选"B"也能拿 25%。 heavily trained on multi-choice 数据的模型有优势，但这泛化不到自由生成输出。更糟的是多选题 prompt 内的位置偏差是真实的——Wang et al. (2023, *Large Language Models are not Fair Evaluators*) 展示了 shuffle 答案位置能在大多数模型上改变 2-8 分的准确率。
+**选择题偏差。** MMLU 是 4 选 1 选择题。模型全选"B"也能拿 25%。经过大量多选题训练的模型有优势，但这优势无法泛化到自由生成输出。更糟糕的是，多选题提示内的位置偏差是真实的——Wang et al. (2023, *Large Language Models are not Fair Evaluators*) 展示了打乱答案位置能在大多数模型上改变 2-8 分的准确率。
 
-**仅英语。** MMLU, GSM8K, HumanEval 都是英文。中文或法文强的模型在标准榜单上分数一般，但在实际部署中赢了。
+**仅英语。** MMLU、GSM8K 和 HumanEval 都是英文。中文或法文能力强的模型在标准榜单上分数一般，但在实际部署中表现更好。
 
-**格式耦合。** GSM8K 答案通过 regex 抓 "the answer is X" 提取。不遵循确切格式就算错，哪怕内容正确。HuggingFace 评估团队 2024 年审计估计 GSM8K 上 5-15% 的"错"答案是内容正确但格式非标准。
+**格式耦合。** GSM8K 答案通过正则表达式提取 "the answer is X"。不遵循确切格式就算错，即使内容正确。HuggingFace 评估团队 2024 年审计估计 GSM8K 上 5-15% 的"错误"答案实际上是内容正确但格式非标准。
 
 2024-2026 这一代基准（MMLU-Pro, GPQA, BIG-Bench Hard, RULER, SWE-bench, LiveBench, ArenaHard, IFEval）试图解决这些问题，但每个发布几个月内都有自己的刷榜问题。
 
@@ -48,7 +48,7 @@ translationKey: "llm-engineering-10"
 
 尽管被批评，MMLU 不是没用。它测的是东西—— broadly, "预训练时模型有没有看到并记住大量大学级别知识？" 这和通用能力 loosely 相关。MMLU 跑 50 分的模型确实比跑 80 分的差；但 88 到 92 的差距 mostly 是噪声。
 
-把 MMLU 当粗过滤器（"这模型在不在那个区间？"）。别用它比 85+ 的两个模型。
+将 MMLU 视为粗粒度过滤器（‘该模型是否处于能力合理区间？’），切勿用于区分准确率 85% 以上的模型。
 
 ## 基准动物园：什么时候用什么
 
