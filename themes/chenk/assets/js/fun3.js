@@ -22,15 +22,47 @@
     }
   });
 
-  // ===== 2. "You finished" celebration when reaching article end =====
+  // ===== 2. "You finished" celebration =====
+  // Trigger as soon as the user reaches the end of the main body — typically right
+  // before the References / Further reading / Summary section.
   var finishShown = false;
+  function findFinishMarker() {
+    // Look for an H2 whose text matches a "wrap up" section
+    var headings = document.querySelectorAll('article.prose h2, .article-main h2');
+    var patterns = [
+      /^summary/i,
+      /^further reading/i,
+      /^references?$/i,
+      /^see also/i,
+      /^where the story continues/i,
+      /^conclusion/i,
+      /^总结/, /^小结/, /^参考/, /^延伸阅读/, /^扩展阅读/, /^结语/, /^结论/,
+    ];
+    for (var i = 0; i < headings.length; i++) {
+      var t = (headings[i].textContent || '').trim();
+      for (var j = 0; j < patterns.length; j++) {
+        if (patterns[j].test(t)) return headings[i];
+      }
+    }
+    return null;
+  }
   function checkFinish() {
     if (finishShown) return;
+    var marker = findFinishMarker();
+    if (marker) {
+      // Trigger when marker is just about to enter viewport
+      var rect = marker.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.85) {
+        finishShown = true;
+        showFinishToast();
+      }
+      return;
+    }
+    // Fallback: no marker found — use bottom-of-article heuristic
     var article = document.querySelector('article.prose, .article-main');
     if (!article) return;
-    var rect = article.getBoundingClientRect();
-    // Trigger when the article's bottom is within 200px of viewport bottom
-    if (rect.bottom <= window.innerHeight + 200 && rect.top < 0) {
+    var rect2 = article.getBoundingClientRect();
+    if (rect2.bottom <= window.innerHeight + 200 && rect2.top < 0) {
       finishShown = true;
       showFinishToast();
     }
