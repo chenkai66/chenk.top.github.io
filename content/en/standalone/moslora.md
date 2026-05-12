@@ -267,7 +267,7 @@ The key insight is that MoSLoRA sits between LoRA and full FT *on the same axis 
 - **Multi-domain adaptation (finance + medical + legal).** Each domain wants its own small set of update directions; the mixer effectively learns a soft per-domain combination without an explicit router.
 - **Continual / additive adaptation.** New subspaces can be introduced for new tasks without touching the existing ones, giving a modular path to capacity expansion. (This goes beyond the original paper but is a natural extension that several follow-ups have explored.)
 
-## Takeaway
+## Conclusion
 
 MoSLoRA is best read as a **structured capacity upgrade** for LoRA, not as a slimmer MoE:
 

@@ -964,7 +964,7 @@ Recent trends include:
 
 ---
 
-## Key Takeaways
+## Summary
 
 - **Knowledge graphs add semantic understanding** to recommendation systems, going beyond pure collaborative signals.
 - **Cold start is the killer app**: KGs enable recommendations for items with zero interaction history.

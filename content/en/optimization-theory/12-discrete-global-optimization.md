@@ -358,11 +358,11 @@ The unconstrained MV portfolio has the highest in-model Sharpe but it shorts ass
 - **Penalty $\rho$ requires re-tuning.** Every new universe means another sweep. Augmented Lagrangian variants help.
 - **Rotation matrix in high dimensions.** Constructing a meaningful rotation in $\mathbb{R}^{500}$ is non-trivial; the original SOA paper proposes Householder-based constructions, but the empirical performance degrades past a few hundred dimensions.
 
-## Conclusion
+## 7. Summary
 
 The paper makes a focused, defensible claim: a modified SOA with quadratic penalties handles cardinality and buy-in constraints competitively against Quasi-Newton and DIRECT on a small benchmark. The figure I would draw from this is more cautious. SOA is not a replacement for commercial MINLP solvers at scale, but it is a useful tool in the band where the universe is too small to warrant Gurobi licences and too constrained for vanilla quadratic programming. The cardinality and buy-in constraints, in turn, are not academic curiosities: they materially regularise out-of-sample risk, as the backtest above shows. The methodological lesson is that the *constraints* often matter more than the *solver*: a good portfolio with the right constraints, found by an okay solver, will usually beat a "perfect" portfolio with the wrong constraints.
 
-## References
+## Further reading
 
 1. Markowitz, H. (1952). *Portfolio Selection*. Journal of Finance, 7(1), 77-91.
 2. Tamura, K., & Yasuda, K. (2011). *Spiral Dynamics Inspired Optimization*. Journal of Advanced Computational Intelligence and Intelligent Informatics, 15(8), 1116-1122.

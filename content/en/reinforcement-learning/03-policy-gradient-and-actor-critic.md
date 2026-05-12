@@ -424,7 +424,7 @@ A few things this picture makes obvious:
 
 ---
 
-## 8. Summary
+## Summary
 
 Policy-gradient methods opened RL to the world beyond discrete actions:
 

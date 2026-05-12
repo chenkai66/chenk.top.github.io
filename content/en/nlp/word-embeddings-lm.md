@@ -419,7 +419,7 @@ The returns diminish quickly: going from 50 to 100 dimensions buys a lot, going 
 
 ---
 
-## Key Takeaways
+## Key takeaways
 
 - **Embeddings encode distributional semantics.** Words that share contexts share geometric neighbourhoods, and that neighbourhood structure is what gives downstream models their generalisation.
 - **Word2Vec, GloVe, and FastText are three answers to the same question.** Word2Vec scans local windows; GloVe factorises the global co-occurrence matrix; FastText decomposes words into character n-grams. They produce embeddings of comparable quality through different routes.

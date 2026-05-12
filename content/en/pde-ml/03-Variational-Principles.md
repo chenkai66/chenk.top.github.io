@@ -282,7 +282,7 @@ A handful of directions where the PDE / variational viewpoint is currently most 
 - **Applications.** Diffusion generative models are reverse Fokker-Planck equations; policy gradients are gradient flows on policy space; Deep Ritz and PINNs turn PDE solving into variational problems.
 - **Cross-fertilisation.** Spin-glass analogies, Pontryagin's maximum principle for end-to-end optimisation, information geometry and symplectic geometry in deep learning.
 
-## Summary
+## 11. Summary
 
 Starting from the calculus of variations, we have built a PDE-centric picture of neural-network optimisation. Functionals and Euler-Lagrange equations connect discrete optimisation to continuous dynamics; Wasserstein geometry provides the natural metric on the space of probability measures and unifies the heat, Fokker-Planck, porous-medium, and Keller-Segel equations as gradient flows of explicit energies; the mean-field limit reduces finite-width neural-network training to a Vlasov-type PDE and yields global convergence under reasonable assumptions; the ELBO, Adam, and Hamiltonian dynamics all fit into the same variational framework. The numerical experiments — the brachistochrone, a 1-D Fokker-Planck simulation, a width sweep on a two-layer net, a non-convex energy landscape, and a small VAE — confirm the theory in each of its key predictions.
 

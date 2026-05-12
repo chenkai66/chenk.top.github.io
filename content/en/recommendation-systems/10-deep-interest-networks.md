@@ -481,7 +481,7 @@ Mostly yes, with caveats. They show *which* past behaviors the model leaned on f
 
 ---
 
-## Conclusion
+## Summary
 
 Deep Interest Networks brought one durable idea to recommendation: **not all past behaviors matter equally, and the model should figure out which ones do, every single time.**
 

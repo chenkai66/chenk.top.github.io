@@ -194,7 +194,7 @@ The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so
 ![Bayesian neural net posterior bands.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig7_bayesian_nn.png)
 *Figure 7. Left: posterior predictive for a regression model with a gap in the training data; the 90% Langevin band widens precisely where data is missing. Right: predictive standard deviation peaks in the data gap — exactly the **epistemic uncertainty** that point-estimate networks lack.*
 
-## 9. Summary
+## 11. Summary
 
 - Any It&ocirc; SDE has a Fokker-Planck PDE describing how its density evolves.
 - Langevin dynamics samples from $p^\star \propto e^{-V}$; the discrete ULA / MALA / HMC algorithms are practical realisations.

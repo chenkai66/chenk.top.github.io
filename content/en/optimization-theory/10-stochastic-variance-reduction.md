@@ -238,7 +238,7 @@ In deep learning, vanilla SGD + momentum + a learning-rate schedule still beats 
 
 ---
 
-## 8. Summary
+## 7. Summary
 
 Stochastic optimization trades per-step cost for noise. The classical SGD rates ($O(1/\sqrt{T})$ convex, $O(1/T)$ strongly convex) come directly from a noise-budget argument. Variance reduction extends SGD's per-step efficiency to the deterministic-rate regime, with Katyusha hitting the matching lower bound.
 

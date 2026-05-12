@@ -934,7 +934,7 @@ aliyun cms PutResourceMetricRule \
 
 That is a complete production deployment: VPC, security group, key pair, ECS instance with cloud-init automation, nginx reverse proxy, Flask app under supervisor, HTTPS with auto-renewal, and monitoring alerts. From zero to production in about 5 minutes of API calls and 3 minutes of cloud-init execution.
 
-## Key takeaways
+## Key Takeaways
 
 **Start small, resize later.** ECS supports online instance type changes. Do not guess what you need — measure and adjust.
 

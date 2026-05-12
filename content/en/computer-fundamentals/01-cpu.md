@@ -232,7 +232,7 @@ Server CPUs make different trade-offs because their workload is different:
 - SMT typically buys +20–30%, not 2×.
 - More cores only helps work that parallelizes; gaming usually doesn't.
 
-## What's Next
+## Series Navigation
 
 Part 2 — **Memory and the Cache Hierarchy** — goes deeper:
 

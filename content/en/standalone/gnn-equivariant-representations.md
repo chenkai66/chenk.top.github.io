@@ -212,7 +212,7 @@ The empirical pattern in the paper is consistent with this table: the GNN approa
 - **Probe design.** Probes are learned, but what *type* of probes — adversarial, random, in-distribution, OOD — is best for which downstream task is mostly empirical so far.
 - **Behaviour under non-symmetric initialisations.** The story assumes parameters that respect $\mathcal{S}$-orbit structure. Specific weight-tying schemes or structured sparsity may break that assumption and need modelling.
 
-## Takeaways
+## Conclusion
 
 1. **The right symmetry to design against is per-layer hidden permutation**, not "all of $\theta$". The neural graph encodes that symmetry exactly.
 2. **GNNs are permutation-equivariant for free**; combining them with a graph that mirrors network topology gives you the right inductive bias automatically — no special parameter-sharing scheme needed.
@@ -220,7 +220,7 @@ The empirical pattern in the paper is consistent with this table: the GNN approa
 4. **Pool *only at the end*.** Keep node-level equivariance through every message-passing layer; collapse with a single invariant pool when (and only when) you need a graph-level scalar.
 5. **The big wins are tasks that meta-process networks**: predicting generalisation, retrieving similar models, merging weights. All of them previously required either ignoring symmetry or hand-coding it.
 
-## Further reading
+## References
 
 - Original paper: [Graph Neural Networks for Learning Equivariant Representations of Neural Networks](https://arxiv.org/abs/2403.12143) (Kofinas et al., ICML 2024).
 - Background on PNA: [Principal Neighbourhood Aggregation for Graph Nets](https://arxiv.org/abs/2004.05718) (Corso et al., NeurIPS 2020).

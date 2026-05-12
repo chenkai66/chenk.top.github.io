@@ -308,7 +308,7 @@ These are the intervals I reach for first when starting a Transformer-class run.
 
 These are first-shot priors. The real number depends on batch size (linear scaling rule for SGD, $\sqrt{}$-ish scaling rule for Adam), warmup length, and dataset noise. But starting outside these intervals is almost always a configuration mistake, not a discovery.
 
-## Summary
+## 7. Summary
 
 Three decades of optimizer evolution compress to two sentences:
 

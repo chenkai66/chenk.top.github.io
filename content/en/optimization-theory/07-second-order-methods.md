@@ -267,7 +267,7 @@ For classical scientific computing — physics simulations, parameter estimation
 
 ---
 
-## 6. Summary
+## 7. Summary
 
 Second-order methods break the $\sqrt{\kappa}$ barrier by using curvature, at a per-iteration cost. The hierarchy:
 

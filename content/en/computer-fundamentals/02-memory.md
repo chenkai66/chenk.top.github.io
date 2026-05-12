@@ -274,6 +274,6 @@ If the bottleneck is genuinely memory bandwidth, the fixes are: blocking/tiling 
 - **ECC** turns silent corruption into a logged event. Essential for servers, optional for desktops.
 - **NUMA** means memory has a topology. Local access is fast; remote access is slower. Modern OSes and runtimes take this seriously, and so should you on multi-socket or chiplet systems.
 
-## What's Next?
+## Series Navigation
 
 In **Computer Fundamentals (3): Storage Systems**, we will follow the data one more level out: the controller and FTL inside an SSD, the SLC/MLC/TLC/QLC trade-off, NVMe queues and PCIe lanes, RAID and erasure coding, and why the storage stack is currently the most rapidly evolving layer of the system. Stay tuned.

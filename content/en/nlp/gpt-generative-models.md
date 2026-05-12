@@ -511,7 +511,7 @@ A useful mental model: **BERT is a search engine**, **GPT is a writer**. Use BER
 
 ---
 
-## 12. Key takeaways
+## Key takeaways
 
 - A GPT model is just a **decoder-only Transformer with a causal mask** trained to predict the next token. The simplicity is the point.
 - **Scale is the multiplier**: parameters, data, and compute together produce a clean power-law improvement in loss, with sudden capability jumps on top.

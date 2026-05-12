@@ -824,7 +824,7 @@ Cosine similarity is direction-only; magnitudes cancel. Dot product also rewards
 
 ---
 
-## 10. Summary
+## Summary
 
 - **Embeddings are dense, learned vectors that turn discrete identity into geometry.** Recommendation becomes nearest-neighbour search.
 - **Choose the method by the shape of your data.** Sequences → Item2Vec. Graphs → Node2Vec. Rich features and large catalogues → two-tower (DSSM, YouTube DNN).

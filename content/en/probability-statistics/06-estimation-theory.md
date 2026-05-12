@@ -507,7 +507,7 @@ where $\eta$ is the learning rate. This is **gradient ascent** on the log-likeli
 
 In stochastic settings (mini-batches), we use stochastic gradient ascent, and the CLT from Article 5 guarantees that the noise in the gradient estimate is approximately Gaussian with variance $O(1/B)$.
 
-## Summary
+## Key Takeaways
 
 | Method | Formula | Key Property |
 |---|---|---|

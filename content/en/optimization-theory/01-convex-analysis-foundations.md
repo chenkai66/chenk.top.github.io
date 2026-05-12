@@ -329,7 +329,7 @@ This is the celebrated **KKT condition for LASSO** — it tells us that any coor
 
 ---
 
-## 6. Summary
+## 7. Summary
 
 | Concept           | What it lets you do                                                            |
 | ----------------- | ------------------------------------------------------------------------------ |

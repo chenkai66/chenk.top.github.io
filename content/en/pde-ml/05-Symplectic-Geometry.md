@@ -339,7 +339,7 @@ A direct calculation shows each shear has a triangular Jacobian with unit diagon
 
 ---
 
-## 10. References
+## References
 
 [1] Greydanus, S., Dzamba, M., & Yosinski, J. (2019). **Hamiltonian Neural Networks.** *NeurIPS.* [arXiv:1906.01563](https://arxiv.org/abs/1906.01563).
 

@@ -21,7 +21,7 @@ A hash table is the cheapest superpower in your toolbox. You spend a constant am
 
 This article is the first installment of the **LeetCode Patterns** series. We will build hash table intuition from scratch, then work through four template problems — **Two Sum**, **Group Anagrams**, **Longest Substring Without Repeating Characters**, and **Top K Frequent Elements** — each illustrating a reusable pattern you will see again and again on harder problems.
 
-## Series navigation
+## Series Navigation
 
 **LeetCode Patterns** (10 articles):
 

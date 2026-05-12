@@ -312,7 +312,7 @@ The eigenvalues of the matrix $\bigl(\begin{smallmatrix} 0 & 1 \\ -b & -a \end{s
 
 ---
 
-## 9. Summary
+## Summary
 
 ### Method selector
 

@@ -243,7 +243,7 @@ For convex problems with strong duality, modern practice is:
 
 ---
 
-## 8. Summary
+## 7. Summary
 
 | Concept                | What it gives you                                                            |
 | ---------------------- | ---------------------------------------------------------------------------- |

@@ -353,7 +353,7 @@ Directly. RLHF is structurally inverse RL with two simplifying choices: pairwise
 
 ---
 
-## 12. References
+## References
 
 - **Bradley & Terry (1952).** Rank Analysis of Incomplete Block Designs. *Biometrika*. — origin of the preference likelihood.
 - **Christiano et al. (2017).** Deep Reinforcement Learning from Human Preferences. *NeurIPS*. — the first modern preference-RL paper.

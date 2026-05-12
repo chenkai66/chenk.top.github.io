@@ -320,7 +320,7 @@ A note of caution: attention weights are **correlated with importance, not ident
 
 ---
 
-## 12. Summary
+## Summary
 
 Attention replaces the **sequential, lossy information channel of an RNN** with a **direct, content-addressable lookup**. The math is two matrix multiplications and a softmax; the consequences are profound:
 

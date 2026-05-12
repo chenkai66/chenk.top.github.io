@@ -687,7 +687,7 @@ sudo systemctl --failed
 If something the unit `Requires=` is itself failed, the symptom moves
 upstream. Fix that first.
 
-## 10. Where to go next
+## Where to go next
 
 You now have, I hope, a working model: PID 1 supervises units, units
 move through a state machine, unit files describe the supervision

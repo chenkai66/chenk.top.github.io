@@ -1019,7 +1019,7 @@ def temporal_aggregate(neighbor_embs, timestamps, current_time, decay_rate=0.1):
 
 ---
 
-## Key Takeaways
+## Summary
 
 - **Recommendation data is inherently graph-structured.** GNNs exploit this structure by propagating collaborative signals through neighbourhood aggregation.
 - **LightGCN proves simplicity wins.** Stripping GCN down to bare aggregation often outperforms heavier architectures on collaborative filtering.

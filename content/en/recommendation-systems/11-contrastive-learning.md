@@ -359,7 +359,7 @@ Standard top-K metrics (Recall@K, NDCG@K, HR@K) for parity with baselines, then 
 
 ---
 
-## Conclusion
+## Summary
 
 Contrastive learning solves a problem that more data cannot: it gives a model a way to learn *geometry* from sparse interactions, by demanding consistency under perturbation. The recipe in 2024 is well-understood:
 

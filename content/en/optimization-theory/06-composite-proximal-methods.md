@@ -458,7 +458,7 @@ This is exactly **projected gradient descent** — ISTA with $h = \iota_C$. Addi
 
 ---
 
-## Summary
+## 7. Summary
 
 The point of the proximal operator is concrete: **isolate "non-smooth" or "constrained" out of the main problem and turn it into a small subproblem**. Concretely:
 

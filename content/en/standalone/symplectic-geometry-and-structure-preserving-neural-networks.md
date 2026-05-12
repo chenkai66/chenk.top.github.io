@@ -279,7 +279,7 @@ This is exactly why machine-learning interatomic potentials — ANI, NequIP, MAC
 - For **dissipative or driven systems**, look at port-Hamiltonian NNs (Desai et al.) or Neural ODEs with explicit damping terms (Chen et al. 2018).
 - Always integrate the trained model with a **symplectic integrator** at inference time — otherwise the discretisation will reintroduce the drift the architecture was designed to remove.
 
-## 10. Summary
+## Conclusion
 
 The argument of this article in two sentences. *Standard neural networks fail at long-horizon physical prediction because the symplectic maps form a thin submanifold of all smooth maps and SGD has no reason to find it. Structure-preserving networks restrict the hypothesis class to that submanifold — by parameterising a Hamiltonian (HNN), a Lagrangian (LNN), or a composition of symplectic shears (SympNet) — and so cannot drift, no matter how long the rollout.*
 

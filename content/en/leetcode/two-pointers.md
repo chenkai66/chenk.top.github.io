@@ -367,6 +367,6 @@ Stating the **invariant** before coding is the single best signal that you under
 - Cormen, Leiserson, Rivest, Stein, *Introduction to Algorithms*, Chapter 8 — the partitioning material that underpins quicksort and Dutch National Flag.
 - Donald Knuth, *TAOCP* Vol. 2, §3.1 — the rho algorithm for cycle finding (the original "tortoise and hare" application).
 
-## What's Next
+## Series Navigation
 
 In **Part 3 — Linked List Operations**, the same fast/slow pointer machinery shows up in disguise: finding the middle, splitting for merge sort, and reversing in groups of $k$. The collision-pointer mindset transfers directly to palindrome detection on a list. The trick that makes everything click is the **dummy head node** — wait for it.

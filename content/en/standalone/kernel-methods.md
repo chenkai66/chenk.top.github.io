@@ -359,7 +359,7 @@ These choices are not mutually exclusive. **Deep kernel learning** uses a neural
 - Searching $\gamma$, $C$ on a linear grid (you waste 90 % of the search budget).
 - Fitting the scaler on the full dataset before CV (leaks test info into training).
 
-## Further Reading
+## References
 
 - Hofmann, Scholkopf, Smola. [*Kernel Methods in Machine Learning*](https://arxiv.org/abs/math/0701907) (Annals of Statistics, 2008). The canonical survey.
 - Rasmussen and Williams. [*Gaussian Processes for Machine Learning*](http://www.gaussianprocess.org/gpml/) (MIT Press, 2006). Free PDF; the GP bible.

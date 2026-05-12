@@ -409,7 +409,7 @@ sudo nginx -s reload    # or: sudo kill -USR1 "$PID"
 
 The same trick works for any deleted-but-still-open file. The moment the last FD is closed, though, the kernel really frees the inode — so do this *now*, before the daemon restarts.
 
-## Recap
+## Summary
 
 - A **process** is a running program with its own address space; **threads** share that space; only `task_struct`s exist as far as the scheduler is concerned.
 - New processes are created by **`fork()` + `exec()`**, never from scratch. PID 1 (`systemd` / `init`) is the root of every process tree.

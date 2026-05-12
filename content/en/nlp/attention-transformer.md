@@ -533,7 +533,7 @@ No. Most production LLMs now use **RoPE** (LLaMA, GPT-NeoX) or **ALiBi** (BLOOM)
 
 ---
 
-## 12. Key takeaways
+## Key takeaways
 
 - Vanilla Seq2Seq fails on long inputs because a single context vector is too small. **Attention** lets the decoder dynamically access every encoder state.
 - **Self-attention** drops recurrence: every position sees every other position in $O(1)$ steps.

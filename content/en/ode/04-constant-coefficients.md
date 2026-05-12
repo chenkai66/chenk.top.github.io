@@ -318,7 +318,7 @@ print(f"stable = {stable}")
 
 ---
 
-## 10. Summary
+## Summary
 
 ### The five-step workflow
 

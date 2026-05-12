@@ -431,7 +431,7 @@ LLMs handle this naturally — translation and cross-lingual reasoning come buil
 
 ---
 
-## Conclusion
+## Summary
 
 LLMs are not replacing recommendation systems — they're filling specific gaps the previous generation could not. The three roles map cleanly to the three gaps:
 

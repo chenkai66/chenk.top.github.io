@@ -193,7 +193,7 @@ The "0.5 M parameters" headline hides three other costs you actually pay at serv
 
 The combined picture: Prefix-Tuning is cheap to *store*, cheap to *swap*, modest to *serve*, and only gets expensive when you push prefix length into the hundreds. A pragmatic deployment posture is "$L_{\text{prefix}} \in [8, 16]$, in-memory LRU of 50 prefixes, S3 as the cold store". You never have to think about it again.
 
-## Takeaway
+## Conclusion
 
 Prefix-Tuning reframes adaptation as *learning a small, layer-wise contextual memory* that is fed into a frozen Transformer's attention. The architecture is simple, the parameter cost is in the sub-percent regime, and the low-data inductive bias is real. Even after LoRA largely took over the practical PEFT landscape, Prefix-Tuning remains the cleanest mental model for "adapting a model by giving it learned context" — and it is still the right tool for several real-world serving scenarios.
 

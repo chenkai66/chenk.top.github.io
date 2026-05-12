@@ -575,7 +575,7 @@ The point of the example is not the accuracy on ten samples — it is the shape 
 
 ---
 
-## Key Takeaways
+## Key takeaways
 
 - Preprocessing is task-specific. Search wants aggressive normalization; neural models want raw text.
 - Subword tokenization (BPE, WordPiece, SentencePiece) is the modern default because it bounds vocabulary and handles unseen words.

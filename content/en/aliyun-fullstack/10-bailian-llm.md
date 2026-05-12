@@ -996,7 +996,7 @@ A typical AI application flow:
 
 Every piece of this stack is covered in this series. DashScope is the brain; the other services are the body.
 
-## Key takeaways
+## Key Takeaways
 
 1. **Bailian is the console, DashScope is the API.** You configure on Bailian, you code against DashScope. Do not confuse them.
 
@@ -1014,6 +1014,6 @@ Every piece of this stack is covered in this series. DashScope is the brain; the
 
 8. **Set budget alerts.** Do it now, before someone leaves a debug loop running overnight.
 
-## What's next
+## What's Next
 
 [Part 11](/en/aliyun-fullstack/11-security/) covers security on Alibaba Cloud: RAM policies, KMS for key management, Security Center, and WAF. Every API key, every DashScope call, every OSS bucket from this article needs proper security — and that is where we are headed next.

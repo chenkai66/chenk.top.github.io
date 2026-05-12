@@ -409,7 +409,7 @@ on the weekly component.
 | Forecast tracks recent value, ignores trend  | Position not injected, or PE swamped by feature scale          | Scale PE to feature norm; add calendar features |
 | "Transformer is worse than LSTM"             | Dataset under 10k samples, model under-regularised             | Smaller model, dropout 0.2-0.3, weight decay   |
 
-## 12. Summary
+## Summary
 
 The Transformer is not magic — it's the simplest architecture that
 gives every time step direct access to every other, in parallel. For

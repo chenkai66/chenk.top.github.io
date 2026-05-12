@@ -1110,7 +1110,7 @@ Here is what this end-to-end workflow costs for a 7B model with 10,000 training 
 
 The serving cost dominates. If your traffic is bursty, auto-scaling from 0 to N replicas (scale-to-zero) is available in EAS but adds cold-start latency of 2-5 minutes. For production services that need instant response, keep `min_replica=1`.
 
-## Key takeaways
+## Key Takeaways
 
 **PAI is five products, not one.** DSW for notebooks, DLC for training, EAS for serving, Designer for visual pipelines, QuickStart for one-click model deployment. Understand which one solves your problem before reaching for it.
 
