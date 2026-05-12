@@ -27,16 +27,17 @@
   // before the References / Further reading / Summary section.
   var finishShown = false;
   function findFinishMarker() {
-    // Look for an H2 whose text matches a "wrap up" section
     var headings = document.querySelectorAll('article.prose h2, .article-main h2');
+    if (!headings.length) return null;
+    // Patterns that mean "the wrap-up section" — toast fires when this enters viewport
     var patterns = [
-      /^summary/i,
-      /^further reading/i,
-      /^references?$/i,
-      /^see also/i,
-      /^where the story continues/i,
-      /^conclusion/i,
-      /^总结/, /^小结/, /^参考/, /^延伸阅读/, /^扩展阅读/, /^结语/, /^结论/,
+      /^summary/i, /^further reading/i, /^references?$/i, /^see also/i,
+      /^where the story continues/i, /^conclusion/i, /^takeaways?\b/i, /^key takeaways/i,
+      /^what to take away/i, /^wrap[\s-]?up/i, /^recap/i, /^final thoughts/i,
+      /^closing thoughts/i, /^closing/i, /^tl;?\s?dr/i, /^next steps/i, /^bibliography/i,
+      /^acknowledgements?/i, /^appendix/i,
+      /^总结/, /^小结/, /^参考/, /^延伸阅读/, /^扩展阅读/, /^结语/, /^结论/, /^结尾/,
+      /^写在最后/, /^要点/, /^收尾/, /^下一步/, /^致谢/, /^附录/,
     ];
     for (var i = 0; i < headings.length; i++) {
       var t = (headings[i].textContent || '').trim();
@@ -44,7 +45,9 @@
         if (patterns[j].test(t)) return headings[i];
       }
     }
-    return null;
+    // Fallback: use the LAST H2 in the article — articles without explicit wrap-up
+    // sections still get a sensible finish trigger right when their final chapter shows up.
+    return headings[headings.length - 1];
   }
   function checkFinish() {
     if (finishShown) return;
