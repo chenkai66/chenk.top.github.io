@@ -159,6 +159,9 @@ GROUP BY time_bucket
 ORDER BY time_bucket
 ```
 
+
+![SLS 查询语法：搜索过滤管道接 SQL 分析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_query_syntax.png)
+
 找出所有 5xx 错误，然后按分钟分组，展示错误计数和受影响唯一用户数随时间的变化。`__time__` 是内置日志时间戳。`approx_distinct` 是 HyperLogLog 近似值——对高基数字段来说快且省内存。
 
 下面是我日常用的真实查询：
@@ -351,6 +354,9 @@ aliyun sls GetLogs \
   --endpoint cn-hangzhou.log.aliyuncs.com
 ```
 
+![Logtail 采集配置与机器组的绑定模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_logtail_binding.png)
+
+
 ### 采集应用日志（推荐 JSON 格式）
 
 采应用日志的话，我强烈建议直接用 JSON 格式。这样就不用写正则解析了，不容易出错，字段索引也是自动的。
@@ -449,6 +455,9 @@ JSON 日志的 Logtail 配置简单多了，根本不需要正则：
 | P99 延迟 | `* \| SELECT date_trunc('minute', __time__) as t, approx_percentile(request_time, 0.99) as p99 GROUP BY t ORDER BY t` | 服务是否变慢？P99 能捕捉到平均值掩盖的长尾延迟。 |
 | 顶部接口 | `* \| SELECT request_uri, count(*) as cnt, approx_percentile(request_time, 0.50) as p50 GROUP BY request_uri ORDER BY cnt DESC LIMIT 10` | 流量去哪了？哪些接口慢？ |
 | 状态码分布 | `* \| SELECT status, count(*) as cnt GROUP BY status ORDER BY cnt DESC` | 有没有异常的 4xx/5xx 模式？ |
+
+![五个核心仪表盘面板示意](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_dashboard_panels_mockup.png)
+
 
 ### 创建仪表盘
 
@@ -727,6 +736,9 @@ aliyun cms PutEventRule \
 3. **正好设三个 severity 级别。** Critical（立刻打电话叫人）、Warning（几小时内需要排查）、Info（记录留档）。超过三个级别，没人搞得清每个级别到底啥意思。
 4. **已知维护期间静音。** 没什么比明明提前通知了要部署，告警却还在狂发更破坏信任的了。
 
+![基于症状告警 vs 基于原因告警](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_symptoms_vs_causes.png)
+
+
 ### 设置告警规则
 
 下面是每个生产系统都该有的四条告警规则：
@@ -892,6 +904,9 @@ aliyun cms PutContact \
 | **Phone call** | 生产不可用的严重程度（慎用） |
 | **Webhook (HTTP)** | 对接 PagerDuty、Slack 或自定义系统 |
 
+![告警严重级别到通知渠道的路由](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_severity_routing.png)
+
+
 > **静音期：** 对于计划内的维护窗口，在告警规则上设置静音期来抑制通知。这比直接禁用告警更好，因为告警依然会触发并记录事件——你只是不会为了已知的事情被吵醒而已。
 
 ## ARMS：应用实时监控服务
@@ -1007,6 +1022,9 @@ traceId: abc-123-def
 ```
 
 在 ARMS 中，每个 trace span 也能链回对应的 SLS 日志条目。这种双向链接才是让生产问题排查变快的关键。
+
+![通过 traceId 实现 trace 与日志的双向关联](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_trace_log_correlation.png)
+
 ## 解决方案：全栈可观测性搭建
 
 咱们把前面几篇的内容串起来，直接上一套完整的搭建流程。这里默认你已经在 SLB 负载均衡后面跑了 ECS 实例，后端挂着 RDS 数据库——也就是本系列前几篇文章里提到的那个架构。

@@ -53,6 +53,9 @@ process.stdin.on('end', () => {
 
 I will skip that preamble in some listings below for brevity, but every real hook starts with it.
 
+![Hook I/O contract: stdin payload in, exit code plus stderr out](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
+*Every hook is a script that reads a JSON payload from stdin and signals back via exit code (verdict) and stderr (explanation). The matcher in settings.json picks which hooks see each tool call.*
+
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
 ---
@@ -438,6 +441,9 @@ process.stdin.on('end', () => {
 
 ### Why exit 0, not exit 1
 
+![Exit code semantics differ between PreToolUse and PostToolUse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png)
+*The same exit code means very different things depending on the lifecycle phase. Exit 2 only blocks in PreToolUse; in PostToolUse the side-effect already landed.*
+
 PostToolUse runs *after* the edit. Exit code 2 does not roll anything back — the side-effect already happened. Using exit 1 would surface the error to the model, which might then try to "fix" a formatting issue by re-editing the file, creating a loop. For formatting, just log the warning and move on.
 
 ### Real terminal output
@@ -693,6 +699,10 @@ You will not look at this file every day. The day you do, you will be glad it ex
 
 PreToolUse on `Edit|MultiEdit`. Forces the model to read a file before editing it.
 
+![read-before-write tracks which files have been seen and how recently](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig6.png)
+*The hook keeps a small `seen.json` map of when each file was last Read. Edits to UNSEEN or STALE files are blocked with a stderr message that tells Claude exactly how to recover.*
+
+
 ### The complete code
 
 ```javascript
@@ -879,6 +889,9 @@ The ten hooks above are not meant to run in isolation. They compose. Here is how
 
 ### Execution order
 
+![Hook execution order across PreToolUse and PostToolUse for one Edit call](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png)
+*A single Edit call fans out across six hooks: three PreToolUse gatekeepers, the tool itself, then three PostToolUse hygiene jobs. Any exit 2 in the Pre band aborts the chain.*
+
 When Claude calls `Edit` on a source file, this is the sequence:
 
 1. **block-env-read** — is the file sensitive? If yes, block.
@@ -961,6 +974,10 @@ hooks/work-hours-only.js: exit 0
 ## Debugging hooks
 
 When a hook misbehaves, here is the debugging sequence:
+
+![Four-step debugging workflow plus the top five hook mistakes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png)
+*Replay the failing call against the hook in isolation, capture stderr, then escalate to `claude --debug` and the JSONL log. The table below it covers the five mistakes that cause 90% of broken hooks.*
+
 
 ### Step 1: test in isolation
 

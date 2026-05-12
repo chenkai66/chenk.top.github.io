@@ -49,6 +49,10 @@ Before installing anything, it helps to understand what's actually happening und
 
 The entire protocol spec is surprisingly short. You can read it at `spec.modelcontextprotocol.io` in about 30 minutes. The key insight is that MCP is stateless between calls — each `tools/call` is independent. The server doesn't need to track conversation context; Claude Code handles that.
 
+![MCP server lifecycle: spawn, initialize handshake, tools/list discovery, tools/call invocation loop, shutdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_lifecycle_sequence.png)
+
+*Four phases of an MCP session. Init and Discover happen once at startup; Invoke is the only loop the model exercises during a conversation; Shutdown fires when Claude Code exits or you remove the server.*
+
 ### Stdio vs SSE transport
 
 MCP supports two transport mechanisms, and understanding the difference matters for how you configure and debug servers:
@@ -80,6 +84,10 @@ Claude Code  ──stdin/stdout──>  MCP Server Process (local)
 Claude Code  ──HTTP POST──>  MCP Server (remote)
              <──SSE──────
 ```
+
+![Side-by-side comparison of stdio and SSE MCP transports, with pros and use cases](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_stdio_vs_sse.png)
+
+*Stdio is the local default — single client, single child process, zero network. SSE inverts the topology: one long-running server, many clients, but you now own the deployment.*
 
 ## Install your first MCP server
 
@@ -295,6 +303,10 @@ MCP servers can be registered at three levels:
 
 Project-level is for servers the whole team should use (Playwright for testing, database for exploration). User-project is for personal productivity servers (your Obsidian vault, your private APIs). Global is for servers you want everywhere (filesystem access to your dotfiles).
 
+![Three configuration scopes stacked from global to project, showing precedence and typical contents](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_config_scopes.png)
+
+*Scopes resolve from most-specific to broadest. Use project-scope for servers you want committed to the repo, user-project for your personal tokens, global for cross-project utilities.*
+
 ## Permissions — the part you must not skip
 
 ![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_2.png)
@@ -330,6 +342,10 @@ The right pattern in `.claude/settings.json`:
 ```
 
 This auto-allows read-only operations and blocks anything that mutates external state. Per-tool granularity.
+
+![Decision tree for MCP tool permission resolution: deny check, allow check, user prompt with three options](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_permission_flow.png)
+
+*Every MCP tool call walks this tree. The deny list short-circuits before anything else; allow-listed tools auto-execute; everything in between hits the three-option prompt.*
 
 ### Permission naming convention
 
@@ -643,6 +659,10 @@ In `.claude/settings.json`:
 ```
 
 Notice I left `rollback_deployment` off the allow list. That one stays on manual confirmation because it mutates production state.
+
+![Anatomy of the deploy-tools custom MCP server: four tools, three auto-allowed reads and one manual-confirm write, with settings.json fragment](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_custom_server_anatomy.png)
+
+*The whole point of building your own server: domain operations become first-class tools, and the permission boundary lives in `settings.json` instead of in the model's judgment.*
 
 ### Using it in practice
 

@@ -58,6 +58,10 @@ translationKey: "aliyun-fullstack-5"
 
 这篇文章咱们重点聊 RDS（主力军）和 PolarDB（RDS 扛不住时的升级路径）。这两个覆盖了阿里云上 90% 的生产数据库需求。
 
+![阿里云数据库服务选型决策图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_db_family_map.png)
+
+*上图展示了每种服务的适用场景——本文集中在 OLTP 分支上。*
+
 ## RDS MySQL 深度解析
 
 RDS MySQL 是阿里云上用得最多的数据库服务。它是 fully managed MySQL 实例，自带自动备份、补丁、监控和高可用。你拿到一个 MySQL-compatible endpoint，连接方式和普通 MySQL 服务器一样——`mysql -h <endpoint> -u <user> -p`。
@@ -67,6 +71,10 @@ RDS MySQL 是阿里云上用得最多的数据库服务。它是 fully managed M
 RDS MySQL HA 实例在同一地域内以主备对（primary-standby pair）运行。Primary 处理所有读写。Standby 通过半同步复制接收变更，如果 primary 挂掉，它会自动 promoted。故障切换通常在 30 秒内完成，对应用透明（DNS 地址不变，连接仅短暂中断）。
 
 备节点不可读——其唯一作用是支撑故障切换。如果想做读扩容，得加 read replicas（后面会讲）。
+
+![RDS 高可用故障切换时间线（约 30 秒）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_ha_failover_sequence.png)
+
+*整个切换流程由 RDS 全托管——你的应用只感知到一次短暂连接中断，DNS 地址不变，重连即可。*
 
 ### 版本
 
@@ -537,6 +545,10 @@ aliyun rds DescribeBackups \
 
 PITR 的原理是结合最近的全量备份和 Binlog，重放变更到指定时间点。
 
+![PITR 按时间点恢复流程：完整快照 + 持续 binlog 回放](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_pitr_flow.png)
+
+*PITR 永远是从快照新建一个实例、然后重放 binlog 到指定那一秒——源库一动不动。*
+
 ```bash
 # Restore to a specific point in time (creates a new instance)
 aliyun rds CreateTempDBInstance \
@@ -581,6 +593,10 @@ aliyun rds ModifyInstanceCrossBackupPolicy \
 ![RDS 监控仪表盘指标](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_monitoring_metrics.png)
 
 RDS 会自动把指标上报给云监控。这几个关键指标要盯紧：
+
+![四个关键 RDS 指标仪表盘及对应告警阈值](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_four_metrics.png)
+
+*每个表盘都设 80% 告警——等到 100% 才反应，用户已经在收报错了。*
 
 | Metric | Warning Threshold | Critical Threshold | What to do |
 |---|---|---|---|
@@ -650,6 +666,10 @@ RDS 实例默认开启 DAS。在 RDS 控制台的“自治服务”下访问。
 ### 慢查询分析
 
 慢查询是数据库性能问题的头号杀手。RDS 会记录所有超过 `long_query_time` 的查询（我们之前设的是 1 秒）。
+
+![从 EXPLAIN 出发的慢查询排查决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_slow_query_flow.png)
+
+*永远先 EXPLAIN——`type` 列基本能告诉你 80% 的问题：执行计划到底健不健康。*
 
 ```sql
 -- Find the slowest queries in the slow log
@@ -817,6 +837,10 @@ aliyun rds DescribeSQLLogRecords \
 ### 从 ECS 建立安全连接
 
 下面是从应用侧 ECS 连到 RDS 的完整安全链条：
+
+![RDS 安全防御的五层同心结构：从 VPC 隔离到 TDE 加密](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_security_layers.png)
+
+*纵深防御——攻击者攻破一层，后面还有四层挡着，才能碰到真实数据。*
 
 1. **VPC 隔离** -- RDS 和 ECS 放在同一个 VPC 里，但要用不同的 VSwitch（数据层 vs 应用层）
 2. **安全组** -- ECS 安全组放开 outbound 3306；RDS 白名单只允许应用层 CIDR 入站

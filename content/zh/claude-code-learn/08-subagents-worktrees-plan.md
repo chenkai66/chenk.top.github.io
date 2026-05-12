@@ -26,6 +26,11 @@ translationKey: "claude-code-learn-8"
 
 Plan mode 成本最低。按 `Shift+Tab` 直到指示器显示 **plan**。这时候模型只规划不行动。它会阅读、思考、提出方案，然后停住。由你审阅该计划：可批准（approve）、修改（edit），或中止（kill）。只有这一步过了，它才会执行。
 
+
+
+![Plan 模式生命周期：阅读、计划、批准、执行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/fig5.png)
+*图 1. Plan mode 生命周期。意图与动作之间的气闸舱。*
+
 我一般在这些时候用：
 
 - 任何非 trivial 任务的前 30 秒。比如“实现 X 功能”→ 先 plan。几乎每次，计划都会暴露出模型对代码库的理解偏差。
@@ -35,6 +40,11 @@ Plan mode 成本最低。按 `Shift+Tab` 直到指示器显示 **plan**。这时
 常见误区：认为任务简单就跳过 plan mode。实际上，小任务反而更容易出现‘等等，这不是我想要的’这类偏差。
 
 ## Sub-agents —— 适合并行跑的任务
+
+
+
+![Sub-Agent 拓扑：上下文隔离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/fig3.png)
+*图 2. 父 Agent 启动多个子代理；每个子代理拥有独立的 context window 和工具子集。*
 
 子代理是由父 agent 启动的一个独立 Claude Code 实例，用于处理边界明确的子任务。经典写法放在 `.claude/agents/<name>.md`：
 
@@ -74,6 +84,11 @@ Do not edit. Do not run shell commands. Stay focused.
 
 git worktree 是同一个 repo 的第二个 working tree，在不同分支，不同目录。Claude Code 认识这东西：`EnterWorktree` 工具会创建新分支 + worktree 并把 session 切换进去。
 
+
+
+![Worktree 文件系统布局：共享 .git，独立 working tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/fig4.png)
+*图 3. 多个 worktree 共享同一个 `.git/` 对象库，但各自拥有独立的工作目录，分别绑定到不同分支。*
+
 这些场景很关键：
 
 - 你正在 `feat/x` 上干活，用户突然要求在 `main` 上修个无关的 quick fix。新建一个 worktree，完成修复后提交（commit），再退出。
@@ -89,6 +104,11 @@ git worktree 是同一个 repo 的第二个 working tree，在不同分支，不
 
 如果 worktree 里有未 commit 的变更，除非你确认 `discard_changes: true`，否则拒绝删除。这是对的。别想着绕过它。
 
+
+
+![三道信任门：自主性与成本逐级递增](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/fig6.png)
+*图 4. 任务值得时再向上爬阶梯。*
+
 ## 组合这三者
 
 处理硬任务时我的模式：
@@ -99,6 +119,11 @@ git worktree 是同一个 repo 的第二个 working tree，在不同分支，不
 4. 回到父 agent，合并结果，commit，退出 worktree（工作暂停用 `keep`，完成了用 `remove`）。
 
 三层信任门，三级 escalation。当模型进入文件修改阶段时，你所投入的注意力程度，恰好与任务复杂度相匹配。
+
+
+
+![决策树：plain / plan / worktree / sub-agent 如何选](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/fig7.png)
+*图 5. 决策树：先问最简单的问题，被迫时才升级。*
 
 ## 什么时候都不用
 

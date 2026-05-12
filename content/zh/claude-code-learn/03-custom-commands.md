@@ -65,6 +65,9 @@ translationKey: "claude-code-learn-3"
 - 编写多步骤复杂指令  
 - 完整保留 Markdown 格式（加粗、列表、表格等）
 
+![斜杠命令查找顺序：项目命令优先、其次用户命令、最后内置命令](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig3.png)
+*图：Claude Code 解析斜杠命令时的查找顺序——先项目级，再用户级，最后内置命令。*
+
 ## 目录结构规范
 
 一个成熟项目的 `.claude/` 目录结构如下：
@@ -140,6 +143,9 @@ translationKey: "claude-code-learn-3"
 ```
 
 `$ARGUMENTS` 即被替换为 `rate limiter`，Claude 将基于真实代码库生成一份三层嵌套的精准解释。
+
+![$ARGUMENTS 替换流程：命令文件 + 用户输入 -> 最终发送给 Claude 的 prompt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig4.png)
+*图：`$ARGUMENTS` 仅做纯字符串替换——命令名后的全部内容会原样拼入 prompt。*
 
 ### `$ARGUMENTS` 的典型用法模式
 
@@ -407,6 +413,9 @@ Think a lot before responding.
 
 ### 个人命令 vs 团队命令：边界必须清晰
 
+![项目作用域 vs 用户作用域：位置、Git 跟踪、可见性、生命周期对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig5.png)
+*图：项目命令随仓库流转，个人命令随机器流转。同名冲突时，项目命令胜出。*
+
 | 类型 | 存放位置 | 是否提交 Git | 示例 |
 |------|----------|--------------|------|
 | 团队命令 | `.claude/commands/` | ✅ 是 | `/review`, `/test`, `/deploy` |
@@ -603,6 +612,9 @@ Explain $ARGUMENTS at three levels:
 4. Claude Code SDK   （编程）→ 全面可控、支持状态、可测试  
 ```
 
+![自动化层级金字塔：CLAUDE.md、斜杠命令、Shell 脚本、SDK，由简至繁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig6.png)
+*图：四级自动化体系。绝大多数团队终其一生只需停留在第 1、2 层。*
+
 **从第 1 层起步，仅当低层无法满足需求时，才向上跃迁。**  
 绝大多数团队终身无需第 4 层；几乎所有团队都能从第 1–2 层显著受益。
 
@@ -624,6 +636,9 @@ Explain $ARGUMENTS at three levels:
 ├── review.md         # 代码评审
 └── test.md           # 测试运行与分析
 ```
+
+![成熟的 .claude/commands 目录按职责分组：质量门禁、知识沉淀、运维操作](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/fig7.png)
+*图：11 条命令按意图分组。每个文件即一条工作流，共同构成团队的“AI 协作语言”。*
 
 共 11 个命令。每一个，都曾是：  
 ✅ 手动执行的多步骤流程，或  

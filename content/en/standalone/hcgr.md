@@ -45,7 +45,7 @@ Three properties of session-recommendation data keep showing up:
 
 These are the defining properties of *trees*, and trees do not embed cleanly in Euclidean space. To see why, take a balanced binary tree of depth $L$. It has $2^L$ leaves but only $L$ "ring" levels. In a 2D Euclidean plane, the number of points that fit at radius $r$ with separation $\delta$ is $O(r/\delta)$ — linear. In hyperbolic space the boundary of the disk at radius $r$ has length $\sinh(r) \sim e^r$, so it fits $O(e^r/\delta)$ separated points — exponential. The tree fits; nothing has to be squeezed.
 
-{% asset_img fig1_poincare_vs_euclidean.png "Embedding the same depth-4 binary tree in the Euclidean plane (left) and the Poincaré disk (right). On the disk, every leaf has room because the boundary expands exponentially." %}
+![Embedding the same depth-4 binary tree in the Euclidean plane (left) and the Poincaré disk (right). On the disk, every leaf has room because the boundary expands exponentially.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig1_poincare_vs_euclidean.png)
 
 The picture above is the elevator pitch for hyperbolic embeddings. On the left, the Euclidean tree runs out of room at depth 4 — leaves crowd together and the embedding has to either grow the radius or invent extra dimensions. On the right, the Poincaré disk pushes leaves toward the boundary where exponential length absorbs them with even spacing.
 
@@ -95,7 +95,7 @@ You don't need the closed forms by heart. The pattern that matters: anything you
 
 Here is the full pipeline before we dive into pieces:
 
-{% asset_img fig2_hcgr_architecture.png "HCGR pipeline: session sequence → session graph → Lorentz embeddings → tangent-space attention aggregation → session readout → next-item scoring (CE) plus a contrastive auxiliary on two augmented views." %}
+![HCGR pipeline: session sequence → session graph → Lorentz embeddings → tangent-space attention aggregation → session readout → next-item scoring (CE) plus a contrastive auxiliary on two augmented views.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig2_hcgr_architecture.png)
 
 Three things are happening in parallel:
 
@@ -125,7 +125,7 @@ This is the standard "tangent-space activation" pattern from hyperbolic neural n
 
 Session graphs are noisy. A real session has accidental clicks, repeated items, exploration, and back-tracks. Pure cross-entropy on the next item amplifies that noise: anything that helps predict the click target is reinforced, even if the *representation* of the session is brittle. Contrastive learning fixes this by enforcing a structural property of the encoder: two perturbations of the *same* session should land in the same place; two *different* sessions should not.
 
-{% asset_img fig3_contrastive_views.png "Two-view contrastive scheme. Edge dropout and node dropout each produce one view; both views go through the HCGR encoder; InfoNCE pulls the positive pair together and pushes negatives apart, all measured by Lorentz distance in the disk." %}
+![Two-view contrastive scheme. Edge dropout and node dropout each produce one view; both views go through the HCGR encoder; InfoNCE pulls the positive pair together and pushes negatives apart, all measured by Lorentz distance in the disk.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig3_contrastive_views.png)
 
 ### 5.1 Augmentations
 
@@ -156,13 +156,13 @@ A typical $\lambda$ is small (0.05–0.2). The contrastive loss is *regularising
 
 Whether HCGR is "really" using hyperbolic geometry or just stacking parameters comes down to one question: does the same hierarchy fit in fewer dimensions?
 
-{% asset_img fig4_distance_growth.png "Left: pairwise distance grows linearly in the Euclidean plane (blue) but exponentially with radius in the hyperbolic plane (purple). Right: capacity for hierarchical structure grows much faster with embedding dimension in hyperbolic space." %}
+![Left: pairwise distance grows linearly in the Euclidean plane (blue) but exponentially with radius in the hyperbolic plane (purple). Right: capacity for hierarchical structure grows much faster with embedding dimension in hyperbolic space.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig4_distance_growth.png)
 
 The left panel is the geometry: $\sinh(r)$ versus $r$. Past $r \approx 1.5$ the curves diverge sharply, so two items at the periphery of the manifold are pushed apart almost for free. The right panel is the practical consequence in a recommender: at $d = 16$ Euclidean embeddings still struggle to keep a deep taxonomy untangled, while a 16-dim hyperbolic embedding has room to spare. This is why HCGR usually wins more on long-tail-heavy datasets (Last.FM) than on shorter, fatter sessions (Yoochoose).
 
 ## 7. What the numbers actually show
 
-{% asset_img fig5_performance.png "Indicative Recall@20 and MRR@20 across three standard session datasets. The hyperbolic-only ablation already beats Euclidean baselines; full HCGR (hyperbolic + contrastive) widens the gap." %}
+![Indicative Recall@20 and MRR@20 across three standard session datasets. The hyperbolic-only ablation already beats Euclidean baselines; full HCGR (hyperbolic + contrastive) widens the gap.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig5_performance.png)
 
 Two patterns are worth flagging from the paper's own ablations:
 

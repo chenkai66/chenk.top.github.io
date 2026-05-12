@@ -29,10 +29,14 @@ A Hook is a shell command. Claude Code runs it at one of a few well-defined mome
 - **`PostToolUse`** — runs after a tool returns. Exit code is informational; you can use it to format files, run linters, log.
 
 There are others (`UserPromptSubmit`, `Stop`, `Notification`, `SubagentStop`). For day-to-day work, those two are 90% of the value.
+![The seven Claude Code hook events grouped by trigger point.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/fig2_taxonomy.png)
+*The seven Claude Code hook events grouped by trigger point.*
 
 ## The complete hook lifecycle
 
 Let me walk through exactly what happens when Claude calls a tool and hooks are configured. Understanding this lifecycle is key to writing hooks that work correctly.
+![Where each hook fires along a single conversation turn.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/fig1_lifecycle.png)
+*Where each hook fires along a single conversation turn.*
 
 ### PreToolUse — the gatekeeper
 
@@ -123,6 +127,9 @@ Runs when a sub-agent (spawned by the main agent for parallel tasks) completes. 
 ## The hook execution model
 
 A few critical details about how hooks actually run:
+![Exit-code semantics differ between PreToolUse and PostToolUse.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/fig3_exitcodes.png)
+*Exit-code semantics differ between PreToolUse and PostToolUse.*
+
 
 **Hooks are shell commands, not scripts.** The `command` field is passed to the system shell (`/bin/sh -c "..."`). This means you can use shell features like pipes and redirects directly:
 
@@ -141,6 +148,8 @@ But for anything beyond a one-liner, use a script file.
 **Hooks inherit the Claude Code process environment.** They have access to your shell's environment variables, PATH, and so on. But they don't run in your interactive shell — no shell aliases, no `.bashrc` functions.
 
 **Stdin is consumed once.** If you have multiple hooks for the same event and matcher, each gets its own copy of stdin. You don't need to worry about one hook consuming the input.
+![Anatomy of a single hook invocation: inputs, outputs, and constraints.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/fig5_anatomy.png)
+*Anatomy of a single hook invocation: inputs, outputs, and constraints.*
 
 ## Where hooks live
 
@@ -264,6 +273,8 @@ exit 1
 The model will typically acknowledge the block and try an alternative approach. If your message is descriptive enough, it often finds the right alternative on the first try.
 
 ## Hook 2: auto-format on write
+![Format-on-write: a PostToolUse hook that routes by file extension.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/fig4_formatflow.png)
+*Format-on-write: a PostToolUse hook that routes by file extension.*
 
 `.claude/hooks/format-on-write.sh`:
 

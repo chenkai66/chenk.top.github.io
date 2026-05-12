@@ -232,6 +232,8 @@ When you query a vector index, the system calculates how "close" the query vecto
 
 **L2 Distance (Euclidean)** -- Measures the straight-line distance between two points in vector space. Returns 0 for identical vectors and increases with dissimilarity. Sensitive to magnitude. Better for cases where the absolute values in the embedding matter (rare for text).
 
+![Cosine similarity measures the angle between two vectors and ignores magnitude — so vector A and vector B are considered close if they point in similar directions. L2 measures straight-line distance and is sensitive to magnitude. For text embeddings (which are usually normalized), cosine is the right default.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_distance_metrics.png)
+
 For text search, use cosine similarity. The math:
 
 ```
@@ -248,6 +250,8 @@ In practice, most embedding models produce normalized vectors (magnitude = 1), s
 Vector search would be unusably slow if it compared the query vector against every document vector. With 1 million documents and 1024 dimensions, that is 1 billion multiplications per query. HNSW (Hierarchical Navigable Small World) is the index structure that makes it fast.
 
 Think of HNSW as a multi-level graph. The top level is a sparse graph connecting distant "landmark" vectors. Each lower level adds more connections. A query starts at the top level, quickly navigates to the right neighborhood, then drills down through increasingly detailed levels to find the nearest neighbors. The result is approximate (it might miss the absolute nearest neighbor) but it is fast -- typically sub-millisecond for millions of vectors.
+
+![HNSW navigates a layered graph: the query enters at sparse top layers (few landmark vectors), descends through medium layers, and finishes at the dense bottom layer where it locates the nearest neighbors. This is what gives sub-millisecond ANN search on millions of vectors.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_hnsw_index.png)
 
 Key HNSW parameters:
 
@@ -448,6 +452,8 @@ RRF_score = 1/(60+3) + 1/(60+3) = 0.01587 + 0.01587 = 0.03175
 
 These are close, which is the point -- RRF balances consistency across methods with strong performance in any single method.
 
+![RRF in action: keyword and vector lists each rank Doc-A and Doc-B in their top results. RRF promotes both to the top of the fused list because they perform consistently across methods. Doc-F appears only in vector search, so it ranks lower despite a #2 in vector.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_rrf_fusion.png)
+
 ### Weighted Combination
 
 If you want more control, you can normalize scores from each method to [0, 1] and apply weights:
@@ -627,6 +633,8 @@ def ai_search(query_text: str) -> dict:
 The re-ranker takes the top N results from hybrid search and re-scores them using a cross-encoder model. Unlike the embedding model (which encodes query and document independently), the re-ranker encodes them together, allowing it to capture fine-grained interactions between query terms and document content.
 
 This is computationally expensive -- you cannot run a cross-encoder on a million documents. But running it on the top 20-50 candidates from hybrid search is fast and dramatically improves precision.
+
+![Bi-encoder vs cross-encoder. The bi-encoder pre-encodes documents and is millisecond-fast at search. The cross-encoder reads query and document jointly for finer relevance, but is too slow to apply to millions of docs — use it on the top 20-50 candidates only.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_reranker.png)
 
 The improvement is most visible on ambiguous queries. "Apple" could mean the fruit or the company. The initial retrieval might return both. The re-ranker, seeing the full query context ("Apple with good battery life"), pushes the electronics results to the top.
 
@@ -925,6 +933,8 @@ DTS (real-time sync from RDS)
     |
 RDS MySQL (source of truth for product data)
 ```
+
+![End-to-end architecture: read path goes Client -> API -> hybrid OpenSearch with LLM rewrite/answer; write path goes RDS -> DTS -> OpenSearch -> Function Compute embedding pipeline.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_solution_arch.png)
 
 ### Step 1: Define the OpenSearch Schema
 
@@ -1396,6 +1406,8 @@ For a product catalog of 100,000 items:
 | DTS sync from RDS | Small instance, continuous | ~200 RMB ($28) |
 | ECS for Flask API | ecs.c6.large (2C 4G) | ~300 RMB ($42) |
 | **Total** | | **~1,615 RMB ($224/month)** |
+
+![Cost breakdown by component, plus how the LLM share scales with the AI-on-every-query strategy.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_cost_breakdown.png)
 
 This is for a moderately trafficked search service. The LLM costs scale linearly with query volume -- if you do not need AI features on every query, add them only for complex queries and cut the LLM cost by 80%.
 

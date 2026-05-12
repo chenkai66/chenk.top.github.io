@@ -51,6 +51,10 @@ Serverless is not a universal solution. It is a tool with a specific sweet spot,
 | **High steady-state throughput** | Continuous execution is cheaper on ECS | ECS with reserved instances |
 | **Large in-memory state** | Functions are stateless, max 3 GiB memory | ECS, Redis |
 
+![Function Compute vs Serverless App Engine vs ECS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_fc_sae_ecs.png)
+
+Before comparing prices, line up the three compute primitives side by side. FC, SAE, and ECS each occupy a distinct point on the granularity / lifecycle spectrum, and most architecture mistakes I see come from picking the wrong one for the workload.
+
 ### The cost crossover point
 
 The question everyone asks: at what traffic level does ECS become cheaper than Function Compute?
@@ -108,6 +112,10 @@ Key limits to know:
 | Max payload (sync) | 32 MiB |
 | Max payload (async) | 128 KiB |
 | Temp disk (`/tmp`) | 10 GiB |
+
+![FC request lifecycle: warm path vs cold start](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_lifecycle.png)
+
+The gap between the warm path and the cold path is the entire performance story of serverless. The warm path costs a few milliseconds; the cold path runs four extra steps before your handler even starts.
 
 ### Runtimes
 
@@ -525,6 +533,10 @@ I measured cold starts for a minimal function (hello world + one import) across 
 Java's cold start is dominated by JVM startup. If you must use Java, GraalVM native image compilation can bring cold starts down to 200-400ms, but the build process is complex.
 
 ### Mitigation strategies
+
+![FC concurrency: on-demand vs provisioned over a day](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_concurrency.png)
+
+This is what concurrency looks like over a typical day. On-demand scaling tracks request rate but pays for it with cold starts on every spike; provisioned concurrency keeps a baseline of warm instances at the cost of idle time during the night. The three mitigation strategies below trade off these two failure modes.
 
 **1. Provisioned concurrency**
 
@@ -1052,6 +1064,10 @@ Let's bring everything together into a production-quality system. The architectu
     └──────────────┘
 ```
 
+![Event-driven image processing pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_image_pipeline.png)
+
+Here is the full pipeline at a glance. One PutObject in the source bucket fans out into six derivative files in the target bucket — three sizes × two formats — and the entire flow runs in 2-3 seconds without a single server to manage.
+
 ### Step 1: The function code
 
 ```python
@@ -1504,6 +1520,10 @@ Six output files from one upload. The whole pipeline runs in about 2-3 seconds a
 
 ### Step 6: Add monitoring and error handling
 
+![FC async invocation: retry policy and dead letter queue](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_async_dlq.png)
+
+Async invocations get a managed retry queue for free. Configure the retry budget and an `onFailure` destination, and any event that exhausts retries lands in MNS for triage instead of being silently dropped.
+
 For production, add a dead letter queue and alerting:
 
 ```bash
@@ -1531,6 +1551,10 @@ aliyun fc PutAsyncInvokeConfig \
 ## Function Compute pricing
 
 FC pricing has three dimensions. Understanding them avoids bill shock.
+
+![Function Compute pricing — three independent dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_pricing.png)
+
+FC bills along three independent axes: how often the function is invoked, how much memory × time it consumes, and how much data leaves the cloud. The free tier covers most hobby and small-business workloads outright.
 
 ![Serverless vs server cost crossover](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_cost_crossover.png)
 

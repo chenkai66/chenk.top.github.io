@@ -225,6 +225,9 @@ In practice you combine them. Deploy with canary; the canary itself uses feature
 
 ---
 
+![Deployment strategies compared (rolling, blue-green, canary)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig2_deployment_strategies.png)
+
+
 ## 2. Infrastructure as Code with Terraform
 
 ![Terraform Workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig_terraform_pipeline_en.png)
@@ -441,6 +444,9 @@ Google's SRE book defines four signals that every service should measure. Promet
 | **Errors** | Fraction of failed requests | `sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))` |
 | **Saturation** | How full the service is | `container_memory_working_set_bytes / container_spec_memory_limit_bytes` |
 
+![The four golden signals of monitoring (latency, traffic, errors, saturation)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig3_four_golden_signals.png)
+
+
 ### 3.3 Instrumenting your application
 
 Every service should expose a `/metrics` endpoint. In Go, this is a few lines:
@@ -640,6 +646,9 @@ import uuid
 structlog.configure(
     processors=[
         structlog.processors.TimeStamper(fmt="iso"),
+
+![Centralised logging pipeline from sources to Elasticsearch and Kibana](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig4_logging_pipeline.png)
+
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
@@ -868,6 +877,9 @@ The `SchedulingBufferTime` of 300 seconds means instances are launched 5 minutes
 
 ---
 
+
+![Asymmetric HPA behaviour: fast scale-up, slow scale-down to prevent flapping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig5_autoscaling_curve.png)
+
 ## 6. Cost Optimisation Without Rewriting Your Application
 
 Cloud bills surprise everyone eventually. The good news is that 30-50% of most cloud bills can be cut without changing application code -- it is about rightsizing, scheduling, and commitment.
@@ -1003,6 +1015,9 @@ The error budget is a management tool, not just a metric. When the budget is hea
 
 ### 7.2 On-call and escalation
 
+![Error budget burndown over a 30-day SLO window](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig6_error_budget.png)
+
+
 A healthy on-call rotation looks like this:
 
 | Aspect | Good | Bad |
@@ -1063,6 +1078,9 @@ the expected 100ms, exhausting the pool during peak traffic.
 | Implement connection pool circuit breaker | Carol | P2 | 2024-03-01 |
 | Add runbook for connection pool exhaustion | Dave | P2 | 2024-02-01 |
 ```
+
+
+![Incident response timeline: detect, triage, mitigate, postmortem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig7_incident_timeline.png)
 
 The action items are the entire point. A postmortem without action items is just a story.
 

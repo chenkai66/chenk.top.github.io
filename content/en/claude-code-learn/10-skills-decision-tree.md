@@ -296,6 +296,8 @@ This is the table I wish I had when I started:
 | **Complexity to write** | Low (just Markdown) | High (server code) | Medium (Node.js scripts) | Low (just Markdown) |
 | **User-level available** | No (project only) | Yes | Yes | Yes |
 
+![Capability matrix: where each of the four mechanisms is a strong fit, partial fit, or not designed for the job](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig2.png)
+
 ### The clearest dividing lines
 
 **Slash commands are commands; skills are knowledge.** A slash command is "do this exact thing." A skill is "here is how I think about this whole class of problem; use this whenever it applies."
@@ -325,6 +327,8 @@ This means:
 - **Descriptions are always loaded** (small cost — just the description lines).
 - **Bodies are loaded on demand** (potentially large, but only when relevant).
 - **Multiple skills can fire** if multiple descriptions match. This can cause context bloat — see "When skills are the wrong answer" below.
+
+![How Claude discovers and loads a skill: descriptions are always in context, bodies load only when their description matches the prompt](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig3.png)
 
 ### Debugging skill loading
 
@@ -428,6 +432,8 @@ Just tell Claude in the conversation.
 
 If a thing fits two boxes, prefer the simpler one. A skill that calls a slash command is fine. A slash command that pretends to be a skill is brittle.
 
+![Decision tree: a linear walk-through. Stop at the first YES — MCP for new tools, hooks for automatic behavior, slash commands for explicit invocation, skills for topic-triggered domain knowledge](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig1.png)
+
 ---
 
 ## Three skills I have actually written
@@ -461,6 +467,8 @@ Why it is a skill and not a command: it is not a procedure. It is a set of value
 ## When skills are the wrong answer
 
 A skill that fires too often is worse than no skill — it pollutes context for tasks that do not need it. Three traps:
+
+![Three skill anti-patterns: vague descriptions that fire on everything, overlapping skills that bloat context, and rules that should have been hooks instead](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig4.png)
 
 ### 1. Vague descriptions
 
@@ -522,6 +530,8 @@ my-project/
 ```
 
 The pattern: user-level for personal taste and universal tools, project-level for team-shared knowledge and project-specific procedures.
+
+![Extension library layout: user-level holds personal taste and universal tools; project-level holds team-shared and project-specific configuration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig5.png)
 
 ---
 

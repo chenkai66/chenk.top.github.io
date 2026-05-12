@@ -98,6 +98,8 @@ $$M_{ij} = \frac{\text{count}(i \to j)}{\text{count}(i)}.$$
 
 In words: how often does $j$ follow $i$, divided by how often $i$ appears (excluding final positions).
 
+![A first-order Markov chain conditions only on the current item. The transition matrix M counts how often each item follows another, normalized into probabilities.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig7.png)
+
 ### Higher-order chains
 
 A $k$-th order chain conditions on the last $k$ items:
@@ -301,6 +303,8 @@ $$$$
 \mathbf{c}_v = \text{ReLU}(\text{Conv}_v(\mathbf{E})) \quad\text{(vertical, full height)}
 $$
 The two outputs are pooled, concatenated, and pushed through a fully-connected head.
+
+![Caser treats the embedded sequence as a T x D image. Horizontal filters slide along the time axis to capture union-level n-grams, while vertical filters aggregate point-level signals across time.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig8.png)
 
 ### Implementation
 
@@ -550,6 +554,8 @@ BST (Chen et al., 2019, Alibaba) extends the Transformer to incorporate **rich s
 
 > **Insight.** Real user behaviour is not a sequence of IDs, it is a sequence of *events*. Each event bundles an item with its category, brand, price bucket, time gap, and so on. BST treats the bundle as the unit of input.
 
+![BST input: each timestep is a bundle of item ID plus side features (category, brand, price, time gap). All field embeddings are concatenated, then fed through a Transformer encoder.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig9.png)
+
 ### Implementation
 
 ```python
@@ -627,6 +633,8 @@ A **session** is a short burst of interactions — one shopping visit, one playl
 SR-GNN (Wu et al., 2019) takes a step sideways: instead of treating a session as a flat sequence, it models it as a **directed graph** where nodes are items and edges are transitions.
 
 > **Why a graph?** Consider a session $[A, B, C, B, D]$ where item $B$ appears twice, creating a loop. A graph captures this naturally; a flat sequence model has to fight to represent it.
+
+![Left: the same session as a flat sequence with item B repeated. Right: SR-GNN collapses repeats into a single node and represents transitions as directed, weighted edges, including the B - C loop.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig10.png)
 
 ### Graph construction
 
@@ -804,6 +812,8 @@ Six levers, used in roughly this order:
 4. **Distillation.** Train a smaller, faster student that mimics a heavyweight teacher.
 5. **Quantization.** FP16 or INT8 inference for tight latency budgets.
 6. **Caching.** Item embeddings, popular sequences, and even predictions for stable users.
+
+![A typical online serving pipeline: incoming request, sequence builder, sequence encoder (SASRec/BST), ANN candidate search, heavy re-ranker, and final response - all under a 50-100 ms budget. The encoder, item embeddings, and ANN index are refreshed offline.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig11.png)
 
 ---
 

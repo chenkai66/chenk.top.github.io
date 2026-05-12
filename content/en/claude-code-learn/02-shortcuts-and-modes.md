@@ -39,6 +39,8 @@ Each state changes what Claude does without asking:
 
 The status bar tells you which state you're in. `Shift+Tab` cycles. There is no state I use most — they correspond to different tasks.
 
+![Shift+Tab — a four-state cycle, not a binary toggle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig3_shifttab_cycle.png)
+
 ### When to use each state — practical scenarios
 
 **Normal mode** is where you start every session and where you should stay for:
@@ -136,6 +138,8 @@ After a few weeks, state switching becomes unconscious. My typical session:
 [Back to Normal when done]
 ```
 
+![Picking a mode — risk vs. autonomy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig6_mode_decision.png)
+
 ## Thinking modes — five levels
 
 ![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
@@ -150,6 +154,8 @@ Type one of these phrases anywhere in your prompt and Claude shifts how much it 
 | `think a lot` | Deep reasoning | ~2x | Noticeably slower |
 | `think longer` | Extended reasoning | ~2.5x | Several seconds |
 | `ultrathink` | Maximum reasoning | ~3x+ | Can take 15-30 seconds |
+
+![Thinking modes — five levels of reasoning depth](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig4_thinking_levels.png)
 
 ### How thinking levels affect output quality
 
@@ -240,6 +246,8 @@ Here's the complete reference for Claude Code keyboard shortcuts:
 ## `Escape` and double-`Escape` — interruption vs. time travel
 
 These deserve their own section because they're the most important shortcuts after `Shift+Tab`.
+
+![Escape vs. Escape Escape — interruption vs. time travel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig5_escape_behavior.png)
 
 ### Single `Escape` — stop generation
 
@@ -388,6 +396,8 @@ My typical layout on a wide monitor:
 ```
 
 Claude writes files in the left pane. The editor auto-reloads on the right. I run tests in the bottom-left. This three-pane layout means I never need to switch contexts.
+
+![A typical tmux layout for Claude Code](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig7_tmux_layout.png)
 
 ### Multiple Claude sessions
 

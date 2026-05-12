@@ -38,6 +38,8 @@ claude login
 
 登录流程会自动打开浏览器，你只需授权 CLI 即可完成。认证凭据将安全地保存在 `~/.claude/auth.json` 中——**注意：这里没有 API Key 被写入 `~/.zshrc` 或其他 shell 配置文件中**。这一点非常关键，因为绝大多数“AI 命令行工具”在此处都存在严重安全隐患。
 
+![Claude Code 安装流程 —— 从 curl 一行命令到 OAuth Token 落盘，共 5 步](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/fig3.png)
+
 ### 安装排障指南
 
 安装脚本本身很干净，但真实环境千差万别。以下是我在自己和他人实践中高频遇到的问题及解决方案。
@@ -141,6 +143,8 @@ git diff --staged | claude -p "请审查这段差异，指出潜在 bug"
 
 为何需要三层而非两层？因为不同配置项的归属逻辑天然不同：有些是**个人且全局**的（如你偏爱的模型、默认编辑器），有些是**团队且共享**的（如项目约定的测试命令、代码格式化规则），还有些则是**个人但限定于某项目**的（如你自己的 staging 数据库密码）。
 
+![三层配置由低到高叠加 —— 高层级覆盖低层级，三者最终合并为运行时使用的有效配置](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/fig4.png)
+
 ### 合并规则详解
 
 配置采用**深度合并（deep merge）**，后加载的层级覆盖前一层级的同名字段。例如：
@@ -151,6 +155,8 @@ git diff --staged | claude -p "请审查这段差异，指出潜在 bug"
 
 对于 `permissions` 对象中的数组（如 `allow` 列表），各层内容**合并叠加**。例如：项目层允许 `Bash(npm test)`，机器层允许 `Bash(docker compose up)`，则两者均被允许。  
 **但 deny 规则永远具有最高优先级**，无论其定义在哪一层，都会无条件屏蔽对应操作。
+
+![单次工具调用的判定流程：命中 deny 即拒；仅命中 allow 则静默执行；两者皆不匹配则交互式询问用户](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/fig6.png)
 
 ### 机器层配置 —— 你的全局默认值
 
@@ -260,6 +266,8 @@ git diff --staged | claude -p "请审查这段差异，指出潜在 bug"
 
 **常见错误**：将敏感值误放至项目层配置并提交到 Git。三层配置体系的设计初衷，正是为了让你**完全避免这种危险操作**。
 
+![两处 .claude/ 目录全景对比 —— 同名却各司其职，作用域与提交策略截然不同](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/fig5.png)
+
 ### 快速参考：各类配置项该放哪一层？
 
 | 配置类型 | 机器层 | 项目层 | 本地层 |
@@ -272,6 +280,8 @@ git diff --staged | claude -p "请审查这段差异，指出潜在 bug"
 | 项目专用的测试/格式化命令 | — | ✅ | — |
 | 钩子（Hooks）与自动化逻辑 | — | ✅ | ✅（可覆盖） |
 | 模型偏好（如默认用 Sonnet） | ✅ | ⚠️（可选） | ✅（可覆盖） |
+
+![三剑客对照表：# 以行为单位写入项目记忆，@ 以消息为单位附加上下文，/init 以仓库为单位生成记忆文件](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/fig7.png)
 
 ## `#` —— 将内容写入上下文（项目记忆）
 
@@ -510,6 +520,8 @@ EOF
 从克隆仓库到拥有完整配置的 Claude Code 环境（含团队规范、正确权限、项目上下文），全程不超过 10 分钟。无需翻阅 Wiki、查找 Notion 文档、或在 Slack 中大海捞针。
 
 **核心洞见**：三层配置体系让入职变成“克隆即用”。所有团队共享内容都在仓库中；所有个人专属配置只需在本地创建一次。**零同步成本**。
+
+![新人入职时序图：安装 → 克隆 → 写本地覆盖 → 必要时 /init —— Claude 自动读取合并后配置，以仓库的“声音”回答](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/fig8.png)
 
 ## 我在每个新仓库中的标准操作
 

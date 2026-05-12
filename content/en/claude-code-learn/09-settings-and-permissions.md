@@ -48,6 +48,10 @@ my-project/
 ```
 
 Practical consequence: keep org policy in `~/.claude/settings.json`, keep project rules in `.claude/settings.json` (committed), keep your "I trust this exact thing on my machine" overrides in `.claude/settings.local.json`.
+![Figure 3: The three settings.json layers and how each key merges across them.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig3.png)
+
+*Figure 3: The three settings.json layers and how each key merges across them.*
+
 
 ---
 
@@ -120,6 +124,10 @@ Controls worktree behavior. `baseRef` can be `"fresh"` (branch from origin/main)
 Every permission entry follows the pattern: `ToolName` or `ToolName(pattern)`.
 
 What goes inside the parentheses is a glob-style matcher specific to the tool:
+![Figure 5: Permission rule grammar at a glance — every entry is ToolName(pattern) with tool-specific match semantics.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig5.png)
+
+*Figure 5: Permission rule grammar at a glance — every entry is ToolName(pattern) with tool-specific match semantics.*
+
 
 | Tool | Pattern type | Example | Matches |
 |------|-------------|---------|---------|
@@ -183,6 +191,10 @@ Here is the complete list of tool names you can use in permission rules:
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
 Once anything in the merged config denies an action, nothing else can re-allow it. This is the lever you want.
+![Figure 6: A deny list, organized by what category of damage it prevents.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)
+
+*Figure 6: A deny list, organized by what category of damage it prevents.*
+
 
 ### Example: project deny overrides local allow
 
@@ -655,6 +667,10 @@ When something does not behave the way you expect:
 1. Is it in any `deny`? Blocked, regardless of allows.
 2. Is it in any `allow`? Permitted without prompting.
 3. Otherwise, Claude will ask before doing it (interactive prompt).
+![Figure 4: How a tool call resolves through deny -> allow -> prompt; deny short-circuits everything else.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig4.png)
+
+*Figure 4: How a tool call resolves through deny -> allow -> prompt; deny short-circuits everything else.*
+
 
 ### Precedence for each config type
 

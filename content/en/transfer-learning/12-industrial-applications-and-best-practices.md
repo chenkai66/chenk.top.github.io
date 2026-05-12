@@ -67,6 +67,10 @@ A healthcare startup with one ML engineer chose to fine-tune BioBERT for clinica
 | Team < 3 people | Use off-the-shelf pretrained models to save time |
 | Deployment latency critical | Use distillation (Part 6) or parameter-efficient methods (Part 8) |
 
+
+![Decision tree for choosing transfer learning over from-scratch training, keyed on pretrained-model availability and labeled-data volume](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications-and-best-practices/fig1_decision_tree.png)
+*Figure 1: A practical decision tree. The sweet spot for transfer learning is 100-10k labeled examples with a relevant pretrained checkpoint; outside that range, few-shot prompting or from-scratch training may win.*
+
 ## 2. The End-to-End Transfer Learning Pipeline
 
 ![End-to-End Transfer Learning Pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications/12-pipeline.png)
@@ -179,6 +183,10 @@ A loan-approval model was retrained quarterly. Six months after launch, approval
 
 Transfer learning's value proposition is **speed** and **sample efficiency**, but it still costs money. Below are benchmarks from real projects.
 
+![Side-by-side bars comparing compute cost and labeling cost for from-scratch training versus full fine-tune, LoRA, and prompt engineering](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications-and-best-practices/fig2_cost_economics.png)
+*Figure 2: Compute cost drops 10-180x moving from scratch to fine-tune to LoRA. Labeling cost drops 10x in the easy case (image classification) and 8x in the expensive case (medical NER with experts) when paired with active learning.*
+
+
 ### 3.1 Compute Costs
 
 **Fine-tuning a pretrained model** (NLP, 110M parameters, 10,000 examples, 5 epochs):
@@ -243,6 +251,10 @@ These numbers are conservative. In practice, from-scratch projects often take lo
 ## 4. Case Studies
 
 Below are four real-world deployments (anonymized). Each shows a different facet of transfer learning in production.
+
+![Comparison matrix of four production case studies showing pretrained model, source data, target task, technique used, and business outcome](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications-and-best-practices/fig3_case_matrix.png)
+*Figure 3: Four production deployments at a glance. Note how each case combines a different pretrained backbone with a different transfer technique; there is no single recipe.*
+
 
 ### 4.1 Medical Imaging: Diabetic Retinopathy Detection
 
@@ -355,6 +367,10 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 
 Not all transfer learning projects succeed. Common failure modes:
 
+![Four-panel grid showing failure modes: negative transfer, catastrophic forgetting, data leakage, distribution shift, each with symptom-cause-fix rows](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications-and-best-practices/fig4_pitfalls.png)
+*Figure 4: The four failure modes you will eventually hit. All are detectable before deployment if you set up a rules baseline, a clean held-out test set, slice evaluation, and drift monitoring.*
+
+
 **5.1 Negative Transfer**
 
 The pretrained model **hurts** performance compared to training from scratch.
@@ -432,6 +448,10 @@ Team fine-tunes a pretrained model, but "enhances" it with custom attention laye
 ## 7. A/B Testing and Evaluation in Production
 
 Offline metrics (accuracy, F1, AUC) are necessary but not sufficient. The model must improve **business outcomes**.
+
+![A/B test design schematic with random 50/50 split feeding control and treatment arms, plus a sample-size table by detectable effect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications-and-best-practices/fig5_ab_test.png)
+*Figure 5: A/B test design and the brutal arithmetic of statistical power. Detecting a 1% relative lift on a 10% baseline needs ~157,000 users per arm; that constraint usually drives the decision of how big a model change to ship.*
+
 
 ### 7.1 Designing the A/B Test
 

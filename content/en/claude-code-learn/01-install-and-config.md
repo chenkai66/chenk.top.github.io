@@ -38,6 +38,8 @@ claude login
 
 The login flow opens a browser, you authorize the CLI, and you're done. Your auth token lives in `~/.claude/auth.json`. There is no API key in `~/.zshrc` to leak — that's worth noting because most "AI CLI" tools get this wrong.
 
+![Claude Code install flow — five steps from curl to a saved OAuth token](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig3.png)
+
 ### Troubleshooting the install
 
 The install script is clean, but real machines are messy. Here are the problems I've run into and watched other people run into.
@@ -130,11 +132,15 @@ This is the part most users never read. Claude Code merges configuration from th
 
 Why three layers and not two? Because some settings are personal-and-global (your default model, your editor command), some are team-and-shared (the linter the project uses, the test command), and some are personal-but-project-scoped (your own API key for the staging server).
 
+![Three layers stack from machine to local; later layers win on conflict, all three feed the merged runtime config](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig4.png)
+
 ### How the merge works
 
 The merge is a deep merge with later layers winning. If your machine config sets `"model": "claude-opus-4-7"` and the project config doesn't mention `model` at all, you get Opus. If the project config sets `"model": "claude-sonnet-4-7"`, the project wins — unless your local config overrides it again.
 
 For the `permissions` object, arrays are concatenated. If the project allows `Bash(npm test)` and your machine config allows `Bash(docker compose up)`, you get both. Deny rules always take precedence over allow rules regardless of layer.
+
+![How a single tool call is resolved: deny wins outright, otherwise allow runs silently, otherwise the user is prompted](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig6.png)
 
 ### Machine-level settings — your global defaults
 
@@ -244,6 +250,8 @@ Environment variables set here are available to Claude's shell commands in that 
 
 A common mistake: putting sensitive values in the project-level config and committing them. The three-layer system exists specifically so you don't have to do that.
 
+![The two .claude/ directories at a glance — same name, different roles, different scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig5.png)
+
 ### Quick reference: what goes where
 
 | Setting | Machine | Project | Local |
@@ -256,6 +264,8 @@ A common mistake: putting sensitive values in the project-level config and commi
 | Project test/lint commands | — | Yes | — |
 | Hooks and automation | — | Yes | Overrides |
 | Model preferences | Yes | Optional | Overrides |
+
+![Comparison of the three primitives: # writes per-line memory, @ attaches per-message context, /init bootstraps a per-repo memory file](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig7.png)
 
 ## `#` — write into context
 
@@ -477,6 +487,8 @@ EOF
 **Step 5: They start working.** Within 10 minutes of cloning, they have a fully configured Claude Code environment with team conventions, proper permissions, and project context. No wiki page to read, no Notion doc to find, no Slack thread to search.
 
 The key insight: the three-layer config system means onboarding is "clone and go." Everything team-shared is in the repo. Everything personal is created once on their machine. There's nothing to synchronize.
+
+![Onboarding sequence: install, clone, write a tiny local override, /init only if needed — Claude reads the merged config and answers in the repo's voice](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/fig8.png)
 
 ## What I do on every new repo
 

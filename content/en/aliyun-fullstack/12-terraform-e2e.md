@@ -251,6 +251,8 @@ terraform {
 
 Remote state in OSS with locking via TableStore. This is critical for team environments -- without locking, two people running `terraform apply` simultaneously will corrupt the state file. TableStore provides a distributed lock that prevents concurrent state modifications.
 
+![Remote state backend topology with OSS storage and Tablestore lock](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_state_backend.png)
+
 To create the state bucket and lock table (a one-time bootstrap step):
 
 ```bash
@@ -1549,6 +1551,8 @@ The root `main.tf` composes all seven modules, wiring outputs from one module as
 
 ### main.tf (root module)
 
+![Inter-module data flow showing how outputs feed into inputs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_module_deps.png)
+
 ```hcl
 # --- Network ---
 module "network" {
@@ -1696,6 +1700,8 @@ output "ssh_command" {
 
 ### terraform.tfvars.example
 
+![Multi-environment strategy: dev, staging, prod from one codebase](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_multi_env.png)
+
 ```hcl
 # Copy this to terraform.tfvars and fill in your values
 # DO NOT commit terraform.tfvars to version control
@@ -1715,6 +1721,8 @@ db_password       = "YourDBPassword456!"
 ```
 
 ### Running It
+
+![Terraform workflow lifecycle from init to destroy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_workflow_lifecycle.png)
 
 ```bash
 # Initialize Terraform (download providers, configure backend)
@@ -1875,6 +1883,8 @@ jobs:
 ```
 
 ### Secrets management
+
+![Secret management with RAM OIDC federation and KMS encryption](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_secrets_ram_kms.png)
 
 Store these secrets in your GitHub repository settings (Settings > Secrets and variables > Actions):
 
@@ -2040,6 +2050,8 @@ This is the inverse of `terraform apply`. It reads the state, determines all man
 
 Two warnings about `terraform destroy`:
 
+![Dependency-aware teardown order in reverse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_teardown_order.png)
+
 1. **It is irreversible.** RDS data, OSS objects, SLS logs -- gone. Terraform will prompt for confirmation, but once you type `yes`, there is no undo button.
 2. **Some resources resist deletion.** OSS buckets must be empty before deletion. RDS instances with `deletion_protection = true` will block the destroy. These are safety features. If you are tearing down for real, you may need to empty buckets manually or set `force_destroy = true` on the bucket resource.
 
@@ -2052,6 +2064,8 @@ resource "alicloud_oss_bucket" "media" {
 ```
 
 ## Common Pitfalls
+
+![Drift detection: when actual cloud state diverges from code](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_drift_detection.png)
 
 After running Terraform against Alibaba Cloud for over a year, here are the issues I hit most often:
 

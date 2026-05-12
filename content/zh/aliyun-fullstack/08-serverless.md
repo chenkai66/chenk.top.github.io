@@ -50,6 +50,10 @@ Serverless 并非银弹。它有明确的适用边界，提前厘清这一点，
 | **高稳态吞吐** | 持续运行在 ECS 上更便宜 | 包年包月 ECS |
 | **大内存状态** | 函数无状态，最大 3 GiB 内存 | ECS, Redis |
 
+![函数计算 vs Serverless 应用引擎 vs ECS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_fc_sae_ecs.png)
+
+比较价格之前，先把三种计算原语并排放在一起看。FC、SAE、ECS 在颗粒度 / 生命周期这条轴上各占一个位置，我见过的多数架构失误，都是把错的工作负载放到了错的原语上。
+
 ### 成本交叉点
 
 大家最爱问：流量大到什么程度 ECS 比函数计算更便宜？
@@ -107,6 +111,10 @@ Serverless 并非银弹。它有明确的适用边界，提前厘清这一点，
 | 最大 Payload (同步) | 32 MiB |
 | 最大 Payload (异步) | 128 KiB |
 | 临时磁盘 (`/tmp`) | 10 GiB |
+
+![FC 请求生命周期：热路径 vs 冷启动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_lifecycle.png)
+
+热路径与冷路径之间的差距，就是 Serverless 性能故事的全部。热路径只要几毫秒；冷路径在你的 handler 真正开始执行之前，要先跑完四个额外步骤。
 
 ### 运行时
 
@@ -523,6 +531,10 @@ def handler(event, context):
 Java 的冷启动耗时主要卡在 JVM 启动上。如果非要用 Java，可以用 GraalVM native image 编译，能把冷启动压到 200-400ms，但构建过程比较麻烦。
 
 ### 缓解策略
+
+![FC 并发：典型一天内 on-demand 与预留对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_concurrency.png)
+
+这就是典型一天里的并发曲线。On-demand 自动扩缩跟着请求速率走，但每次冲峰都要付出冷启动代价；预留实例用一条最低基线让实例常热，代价是夜里空跑也要计费。下面三种缓解策略，本质上都是在这两个失效模式之间做权衡。
 
 **1. 预留实例 (Provisioned concurrency)**
 
@@ -1051,6 +1063,10 @@ def handler(event, context):
     └──────────────┘
 ```
 
+![事件驱动的图片处理流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_image_pipeline.png)
+
+下面这张图是整条流水线的全貌。源 bucket 上一次 PutObject，会在目标 bucket 里扇出 6 个衍生文件——三种尺寸 × 两种格式——整条链路 2-3 秒走完，全程没有一台服务器需要你运维。
+
 ### 第一步：函数代码
 
 核心逻辑都在这个 Python 文件里。注意看 `get_oss_client`，这里直接用 FC 提供的临时 STS 凭证，不用硬编码 AccessKey，安全得多。水印逻辑我也写进去了，自动根据图片大小调整字体，避免小图上水印太大。
@@ -1511,6 +1527,10 @@ webp/thumb/test-image.webp        (150px wide, no watermark)
 
 ### 第六步：监控与异常处理
 
+![FC 异步调用：重试策略与死信队列](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_async_dlq.png)
+
+异步调用自带托管重试队列。配置好重试预算和 `onFailure` 目的地，任何耗尽重试的事件都会落到 MNS 等待人工介入，而不是被静默丢弃。
+
 真要上生产，死信队列和报警机制不能少。万一函数执行失败，事件不能丢，得进 DLQ 等着人工排查。
 
 ```bash
@@ -1537,6 +1557,10 @@ aliyun fc PutAsyncInvokeConfig \
 ## Function Compute 计费
 
 FC 的计费主要看三个维度。搞清楚这些，免得账单出来吓一跳。
+
+![函数计算计费：三个独立维度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_pricing.png)
+
+FC 的账单沿三条独立轴线累加：函数被调用了多少次，消耗了多少 memory × time，以及多少数据离开了云。免费额度对大多数业余项目和中小企业的工作负载都绰绰有余。
 
 ![Serverless 与传统服务器成本对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_cost_crossover.png)
 

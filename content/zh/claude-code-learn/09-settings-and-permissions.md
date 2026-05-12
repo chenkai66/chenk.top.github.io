@@ -33,6 +33,10 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 合并规则很简单：后一层配置会逐键（key-by-key）覆盖前一层。**权限方面**，`allow` 是叠加的，`deny` 是否决性的——一旦任何一层 deny 了某个操作，其他层都无法再重新 allow 它。这种不对称性正是系统安全的基石。
 
 实际建议：把组织策略放在 `~/.claude/settings.json`，把项目规则放在 `.claude/settings.json`（提交），把你那些“我信任我机器上这个特定操作”的覆盖配置放在 `.claude/settings.local.json`。
+![图 3：三层 settings.json 文件，以及每个 key 在合并时遵循的不同规则。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig3.png)
+
+*图 3：三层 settings.json 文件，以及每个 key 在合并时遵循的不同规则。*
+
 
 ## 权限块 —— 语法结构
 
@@ -59,6 +63,10 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 ```
 
 括号里的内容是针对特定工具的 glob 风格匹配器：
+![图 5：权限规则语法速查 —— 每条规则都是 ToolName(pattern)，括号里的匹配规则因工具而异。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig5.png)
+
+*图 5：权限规则语法速查 —— 每条规则都是 ToolName(pattern)，括号里的匹配规则因工具而异。*
+
 
 - `Read(path-glob)` — 文件模式。
 - `Edit(path-glob)` — 同上。
@@ -72,6 +80,10 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 ![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
 一旦合并后的配置里有任何东西 deny 了一个动作，别的都救不回来。这正是你可以依赖的关键机制。
+![图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)
+
+*图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。*
+
 
 举个例子。某个 repo 的 `.claude/settings.json` 写着：
 
@@ -183,6 +195,10 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 1. 在任何 `deny` 里吗？→  blocked，不管有没有 allow。
 2. 在任何 `allow` 里吗？→  permitted。
 3. 否则 → Claude 会在执行前询问。
+![图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig4.png)
+
+*图 4：一次工具调用按 deny -> allow -> prompt 的顺序逐步解析；deny 会短路后续所有判断。*
+
 
 如果你想知道哪条规则赢了，加 `--debug` 运行并查看权限解析日志。它会准确告诉你哪个文件的哪一行做出了裁决。
 

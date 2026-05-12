@@ -47,7 +47,7 @@ translationKey: "hcgr"
 
 这三条，恰好就是**树**的定义性特征。而树在欧氏空间里嵌入会很难看。一棵深度 $L$ 的二叉树有 $2^L$ 个叶子，但只有 $L$ 层"半径"。在 2D 欧氏平面上，半径 $r$ 的圆周长是 $2\pi r$，能放下的间距 $\delta$ 的点数是 $O(r/\delta)$，是**线性**的；而在双曲圆盘上，半径 $r$ 的边界长度是 $\sinh(r) \sim e^r$，能放下的点数是 $O(e^r/\delta)$，是**指数**的。树正好塞得下，各叶子节点之间不会因空间容量不足而被迫相互靠近。
 
-{% asset_img fig1_poincare_vs_euclidean.png "把同一棵 4 层二叉树分别嵌入欧氏平面（左）和庞加莱圆盘（右）。在欧氏平面里，叶子已经开始挤在一起；在庞加莱圆盘里，由于边界长度按指数增长，每一片叶子都还有充裕的空间。" %}
+![把同一棵 4 层二叉树分别嵌入欧氏平面（左）和庞加莱圆盘（右）。在欧氏平面里，叶子已经开始挤在一起；在庞加莱圆盘里，由于边界长度按指数增长，每一片叶子都还有充裕的空间。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig1_poincare_vs_euclidean.png)
 
 上面这张图基本就是双曲嵌入的 Elevator Pitch。左边到第 4 层叶子已经互相打架，要继续展开只能升维或者扩半径；右边把叶子推到接近边界的位置，指数级的边界长度自动把它们均匀地摊开。
 
@@ -97,7 +97,7 @@ $$d_{\mathcal{L}}(\mathbf{x}, \mathbf{y}) \;=\; \mathrm{arcosh}\!\bigl( -\langle
 
 先把整张图摆出来，再分块讲：
 
-{% asset_img fig2_hcgr_architecture.png "HCGR 端到端结构：会话序列 → 会话图 → 洛伦兹嵌入 → 切空间注意力聚合 → 会话表示 → 下一物品打分（CE 损失）+ 双视图对比辅助损失。" %}
+![HCGR 端到端结构：会话序列 → 会话图 → 洛伦兹嵌入 → 切空间注意力聚合 → 会话表示 → 下一物品打分（CE 损失）+ 双视图对比辅助损失。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig2_hcgr_architecture.png)
 
 并行进行的有三件事：
 
@@ -127,7 +127,7 @@ $$\sigma_{\mathbb{H}}^{l \to l+1}(\mathbf{x}) \;=\; \exp_{\mathbf{o}}^{c_{l+1}}\
 
 会话图本身就是吵的：误点、重复点击、试探性浏览、回退……都混在一段会话里。如果只用交叉熵监督下一个物品，模型会把任何"碰巧能预测到点击目标"的特征都强化，哪怕这种特征让会话**表示本身**变得脆弱。对比学习正是用一种结构性的约束反过来要求编码器："同一会话的两次扰动应该落在同一个地方；不同会话不能落在同一个地方。"
 
-{% asset_img fig3_contrastive_views.png "双视图对比方案：边丢弃和节点丢弃各产出一个增强视图，两个视图都过同一个 HCGR 编码器，InfoNCE 在双曲空间里把正对拉近、把负对推远，距离用洛伦兹距离衡量。" %}
+![双视图对比方案：边丢弃和节点丢弃各产出一个增强视图，两个视图都过同一个 HCGR 编码器，InfoNCE 在双曲空间里把正对拉近、把负对推远，距离用洛伦兹距离衡量。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig3_contrastive_views.png)
 
 ### 5.1 数据增强
 
@@ -158,13 +158,13 @@ $$\mathcal{L} \;=\; \mathcal{L}_{\mathrm{rec}} \;+\; \lambda \, \mathcal{L}_{\ma
 
 判断 HCGR 是不是真的因为双曲几何而赢，最干净的角度是**容量问题**：同一棵层级树，是否能在更少维度里塞下来？
 
-{% asset_img fig4_distance_growth.png "左图：欧氏空间里成对距离随半径线性增长（蓝），双曲空间里随半径指数增长（紫）。右图：随着嵌入维度增加，双曲空间能承载的层级容量比欧氏空间快得多。" %}
+![左图：欧氏空间里成对距离随半径线性增长（蓝），双曲空间里随半径指数增长（紫）。右图：随着嵌入维度增加，双曲空间能承载的层级容量比欧氏空间快得多。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig4_distance_growth.png)
 
 左图就是几何本身：$\sinh(r)$ 对 $r$，$r > 1.5$ 之后两条曲线急剧分叉，所以位于流形外围的两个物品之间被几乎免费地推开了。右图是这件事在推荐里的实际后果：$d = 16$ 的欧氏嵌入对深层级类目仍然吃力，但同样 16 维的双曲嵌入还有相当余地。这也解释了 HCGR 为什么在长尾占比更高的 Last.FM 上**赢得更多**，而在会话短、头部权重大的 Yoochoose 上优势没那么夸张——几何带来的边际收益和数据本身的层级深度是耦合的。
 
 ## 7. 实验结果该怎么读
 
-{% asset_img fig5_performance.png "在三个标准会话推荐数据集上的 Recall@20 与 MRR@20：仅替换为双曲编码器（无对比）已经胜过欧氏基线，加上对比辅助后差距进一步拉开。" %}
+![在三个标准会话推荐数据集上的 Recall@20 与 MRR@20：仅替换为双曲编码器（无对比）已经胜过欧氏基线，加上对比辅助后差距进一步拉开。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig5_performance.png)
 
 论文自己的消融里有两个值得划重点的现象：
 

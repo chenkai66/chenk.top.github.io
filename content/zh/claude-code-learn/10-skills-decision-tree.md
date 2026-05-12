@@ -54,6 +54,8 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 - `description` 是承重墙。如果没写清楚什么时候用，skill 就不会被触发。
 - 正文可以较长——由于按需加载，只要未被触发，就不会占用任何上下文（context）资源。
 
+![Skill 加载生命周期：description 始终在上下文中，正文仅在 description 与 prompt 匹配时才加载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig3.png)
+
 ## Skill 和其他三者的区别
 
 | 机制 | 位置 | 加载时机 | 适合场景 |
@@ -62,6 +64,8 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 | MCP server | `mcp.json` 配置 | 一直可用 | 伸手到文件系统之外（浏览器、DB、第三方 API） |
 | Hook | `settings.json` 引用的脚本 | 工具调用前后 | 策略 enforcement，edit/write 的副作用 |
 | Skill | `.claude/skills/<name>/SKILL.md` | Description 匹配 prompt | 领域知识、风格、多步骤流程 |
+
+![能力矩阵：四种扩展机制各自的强项、部分支持与不适用场景](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig2.png)
 
 最核心的界限：**slash commands 是指令，skills 是知识**。Slash command 用于执行具体、明确的操作；Skill 则用于表达一类问题的通用处理思路，由模型自主识别并应用。
 
@@ -85,6 +89,8 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 
 若某需求适配多种机制，优先选择实现最简单的一种。Skill 内部调用 slash command 是合理设计；但将本应是 slash command 的功能强行包装为 Skill，则会导致触发不可靠、维护困难。
 
+![决策树：按顺序走一遍，遇到第一个 YES 就停 —— MCP 加新能力、Hook 做自动策略、Slash command 显式调用、Skill 按话题自动加载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig1.png)
+
 ## 我实际写过的三个 skills
 
 **1. `chenk-blog-write`** — 给这个站点写文章用的。覆盖 front matter、风格、EN/ZH parity、封面生成、部署。只要提到 chenk.top 或 "write a post" 就触发。正文大概 600 行。每一行都值。
@@ -98,6 +104,8 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 ## 什么时候 Skill 不是正确答案
 
 触发过于频繁的 Skill 反而有害：它会将无关知识注入本无需该 Skill 的任务上下文，造成干扰。三个坑：
+
+![三种 Skill 反模式：描述模糊导致触发过频、正文重叠导致上下文膨胀、本该用 Hook 强制的规则被写成 Skill](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig4.png)
 
 - **描述模糊。** "用于一般编程。" 用于一切 = 用于 nothing useful。
 - **正文重叠。** 两个 skill 都响应 "write code" → context 膨胀。选一个。

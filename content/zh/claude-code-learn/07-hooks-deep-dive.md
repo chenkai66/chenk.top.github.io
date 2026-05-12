@@ -32,6 +32,9 @@ translationKey: "claude-code-learn-7"
 
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
+![Hook 的 I/O 契约：stdin 输入 JSON，退出码 + stderr 输出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
+*每个 Hook 都是一个从 stdin 读取 JSON 载荷的脚本，通过退出码（判决）和 stderr（说明）回传结果。settings.json 里的 matcher 决定哪些 Hook 能看到本次工具调用。*
+
 ## 1. block-env-read — 保护 secrets
 
 这是性价比最高（ROI 最高）的一个 Hook。防止 `Read` 和 `Grep` 触碰 `.env`、`id_rsa`、`credentials.json`：
@@ -94,6 +97,9 @@ if (/^\s*git\s+push\b/.test(cmd) || /git.*push.*--force/.test(cmd)) {
 
 写错一次的代价，远比我自己敲一遍 `git push` 麻烦得多。
 
+![退出码在 PreToolUse 与 PostToolUse 中的语义差异](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png)
+*同样的退出码在不同生命周期阶段含义完全不同。exit 2 只在 PreToolUse 阶段阻断调用；在 PostToolUse 阶段副作用已经发生，无法回滚。*
+
 ## 5. format-on-write — 把 Prettier 做成 PostToolUse
 
 挂在 `Write|Edit|MultiEdit` 的 PostToolUse 上：
@@ -145,6 +151,9 @@ fs.appendFileSync('.claude/tool-calls.jsonl', line);
 
 该日志文件日常无需关注，但在排查问题时至关重要。
 
+![read-before-write 状态机：UNSEEN / FRESH / STALE](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig6.png)
+*Hook 在 `seen.json` 中维护每个文件最近一次 Read 的时间戳。对 UNSEEN 或 STALE 文件的编辑会被 exit 2 阻断，stderr 直接告诉 Claude 该如何补救。*
+
 ## 9. read-before-write — 禁止盲改
 
 挂在 `Edit|MultiEdit` 的 PreToolUse 上：
@@ -172,9 +181,16 @@ if (h < 9 || h >= 22) {
 
 该脚本部署在专门处理非工作时间告警的机器上。若 bot 在凌晨 2 点尝试执行操作，极大概率是误触发。
 
+![Edit 调用的 Hook 执行顺序：PreToolUse → 工具执行 → PostToolUse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png)
+*一次 Edit 会依次穿过六个 Hook：三个 PreToolUse 守门员、工具本体、三个 PostToolUse 卫生作业。任何 PreToolUse 阶段的 exit 2 都会让整条链路中断。*
+
 ## 把它们串起来的逻辑
 
 以下三条经验规则源于实际踩坑：
+
+![Hook 调试四步法以及最常见的五类错误](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png)
+*在隔离环境里把失败的调用回放给 Hook，捕获 stderr，再用 `claude --debug` 和 JSONL 日志逐层排查。下方表格覆盖了 90% 的 Hook 故障原因。*
+
 
 1. **PreToolUse 管策略，PostToolUse 管卫生。** 别想在 PostToolUse 里回滚——副作用已经发生了。
 2. **Stderr 是反馈，退出码是判决。** 退出码 2 阻断（仅限 PreToolUse）。stderr 里的内容会原样喂给 Claude。两者配合用。

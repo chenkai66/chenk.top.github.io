@@ -34,6 +34,10 @@ MCP 是 **Model Context Protocol** —— 一个轻量级的开放协议，让 C
 
 MCP 服务器大多是社区建的。目录在 `mcp.so`，Anthropic 文档里也在不断增加。优秀的 MCP 服务器通常轻量简洁，功能边界清晰。
 
+![MCP 服务器生命周期：进程启动、initialize 握手、tools/list 发现、tools/call 调用循环、shutdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_lifecycle_sequence.png)
+
+*一次 MCP 会话的四个阶段。初始化（INIT）和发现（DISCOVER）启动时各执行一次；对话过程中模型反复走的只有调用（INVOKE）这一段；Claude Code 退出或你移除服务器时触发 SHUTDOWN。*
+
 ## 装你的第一个 MCP 服务器
 
 Playwright 是标准的“入门首选”，因为效果直观可见。注意，要在 Shell 里跑，*别*在 Claude Code 里面装：
@@ -41,6 +45,10 @@ Playwright 是标准的“入门首选”，因为效果直观可见。注意，
 ![MCP Server Communication Flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_mcp_arch_en.png)
 
 MCP 服务器是独立进程。Claude Code 通过 stdio（远程场景下使用 HTTP）与其通信。在初始化握手阶段，Claude 会询问“你能提供哪些工具？”，服务器则返回一组工具 Schema。之后模型就能像调用内置工具一样调用它们。
+
+![Stdio 与 SSE 两种 MCP 传输方式的并排对比，含优势与适用场景](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_stdio_vs_sse.png)
+
+*Stdio 是本地默认方式——单客户端、单子进程、零网络配置。SSE 把拓扑反过来：一个长期运行的服务，多个客户端共享，但你需要自己负责部署和运维。*
 
 协议设计简洁，30 分钟即可通读规范。针对特定场景自己写一个，半天就够了。
 
@@ -73,6 +81,14 @@ MCP 服务器是独立进程。Claude Code 通过 stdio（远程场景下使用 
 ```
 
 这样能自动放行安全的 Playwright 工具，直接封杀那个能在浏览器跑任意 JS 的工具。粒度精确到每个工具。
+
+![MCP 工具权限决策树：先查 deny、再查 allow，未命中则弹出三选一确认框](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_permission_flow.png)
+
+*每次 MCP 工具调用都走这棵树。deny 列表最先短路；allow 列表内的工具自动执行；介于两者之间的，全部走三选一弹窗。*
+
+![三层配置作用域：从 GLOBAL 到 PROJECT，越具体优先级越高](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_config_scopes.png)
+
+*作用域按从最具体到最宽泛的顺序解析。需要随仓库共享的服务器放 project，自己的私人 token 放 user-project，跨项目通用的工具放 global。*
 
 ## 我自己真在用的 MCP 服务器
 
@@ -124,6 +140,10 @@ server.setRequestHandler('tools/call', async (req) => {
 
 await server.connect(new StdioServerTransport());
 ```
+
+![自定义 deploy-tools MCP 服务器结构：四个工具，三个只读自动放行，一个写操作手动确认，附 settings.json 片段](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_custom_server_anatomy.png)
+
+*自己写服务器的核心价值：把领域操作变成一等公民工具，把权限边界写进 `settings.json`，而不是寄希望于模型自觉。*
 
 这就是个能跑的 MCP 服务器。存好，注册（`claude mcp add my-echo node my-server.js`），重启，Claude 就多了一个新工具。难点在于选什么工具暴露出来；协议本身不碍事。
 

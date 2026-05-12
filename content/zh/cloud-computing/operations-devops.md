@@ -60,6 +60,11 @@ polished_by_qwen_max: true
 | 部署到 Prod | 金丝雀 -> 全量 | 一次性铺开、缺自动回滚 |
 | 验证 | 部署后 SLO 检查 | "肉眼"验证，未量化 |
 
+
+![部署策略对比：滚动更新、蓝绿、金丝雀](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig2_deployment_strategies.png)
+
+滚动更新逐个替换 v1 Pod；蓝绿在负载均衡层一次切换；金丝雀先放小流量再扩大。三种方式各有适用场景，实际项目里经常组合使用。
+
 ### 1.2 一份真实的 GitHub Actions 流水线
 
 ![Terraform 工作流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig_terraform_pipeline_zh.png)
@@ -100,6 +105,37 @@ spec:
 - **审计** = `git log`。
 - **Staging 和 Prod 差异** = `git diff`。
 - **灾难恢复** = "新集群指向同一个仓库，ArgoCD 自动同步"。
+
+## 3. 监控：四个黄金信号
+
+![监控的四个黄金信号：延迟、流量、错误、饱和度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig3_four_golden_signals.png)
+
+Google SRE 把可观测性归结到四个信号——延迟、流量、错误、饱和度。覆盖这四个，你就能回答：服务慢吗、忙吗、坏了吗、满了吗。Prometheus 用 PromQL 表达它们都是几行的事。
+
+## 4. 集中式日志栈
+
+![集中式日志管道：从应用到 Elasticsearch / Kibana](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig4_logging_pipeline.png)
+
+应用 stdout -> Fluent Bit DaemonSet -> （可选）Kafka 缓冲 -> （可选）Logstash 富化 -> Elasticsearch -> Kibana 查询。每多一跳就多一份延迟，但也多一份韧性。规模小时可以省掉 Kafka 和 Logstash，等日志量超过采集器再加。
+
+## 5. 弹性伸缩：非对称的快上慢下
+
+![HPA 非对称伸缩：快速扩容、慢速缩容以避免抖动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig5_autoscaling_curve.png)
+
+扩容快（60 秒翻倍）保护用户体验，缩容慢（每分钟 10%、5 分钟冷却）避免锯齿抖动。这种非对称是刻意设计的。
+
+## 7. SRE：错误预算
+
+![30 天 SLO 窗口的错误预算燃尽曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig6_error_budget.png)
+
+错误预算是管理工具，不只是指标。预算充足时团队放手发版；预算见底时冻结新功能、专攻稳定性。把『快 vs. 稳』的争论换成一个所有人都看得到的数字。
+
+### 7.3 事故响应时间线
+
+![事故响应时间线：检测、分诊、修复、复盘](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig7_incident_timeline.png)
+
+从告警触发到恢复基线再到复盘行动项落地——MTTR 是发布速度之外最值得追踪的运维指标。无指责复盘的核心是写下『如何避免下次』，而不是『是谁干的』。
+
 ## 9. 运维检查单
 
 **流水线**

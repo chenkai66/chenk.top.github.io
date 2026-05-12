@@ -249,6 +249,8 @@ terraform {
 
 State 文件存储于 OSS，分布式锁由 Table Store 提供。团队协作这是命门——没锁的话，两个人同时跑 `terraform apply`，State 文件直接损坏。TableStore 提供分布式锁，防止并发修改 State。
 
+![远程 state 后端拓扑：OSS 存储 + Tablestore 加锁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_state_backend.png)
+
 创建 State Bucket 和锁表（这是一次性的 bootstrap 步骤）：
 
 ```bash
@@ -1544,6 +1546,8 @@ output "trigger_name" {
 
 ### main.tf (root module)
 
+![模块间数据流：outputs 如何串入下游模块的 inputs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_deps.png)
+
 ```hcl
 # --- Network ---
 module "network" {
@@ -1691,6 +1695,8 @@ output "ssh_command" {
 
 ### terraform.tfvars.example
 
+![多环境策略：同一份代码派生 dev / staging / prod 三套栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_multi_env.png)
+
 ```hcl
 # Copy this to terraform.tfvars and fill in your values
 # DO NOT commit terraform.tfvars to version control
@@ -1710,6 +1716,8 @@ db_password       = "YourDBPassword456!"
 ```
 
 ### 运行部署
+
+![Terraform 工作流生命周期：init -> plan -> apply -> destroy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_workflow_lifecycle.png)
 
 ```bash
 # Initialize Terraform (download providers, configure backend)
@@ -1870,6 +1878,8 @@ jobs:
 ```
 
 ### 密钥管理
+
+![密钥管理：RAM OIDC 联邦 + KMS 加密最小权限链路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_secrets_ram_kms.png)
 
 把这些密钥存到你的 GitHub 仓库设置里（Settings > Secrets and variables > Actions）：
 
@@ -2034,6 +2044,8 @@ terraform destroy -var-file=environments/staging.tfvars
 
 关于 `terraform destroy` 有两个警告：
 
+![按依赖反向顺序销毁资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_teardown_order.png)
+
 1.  **不可逆。** RDS 数据、OSS 对象、SLS 日志——全都没了。Terraform 会让你确认，但一旦输入 `yes`，就没有撤销按钮。
 2.  **有些资源抗拒删除。** OSS Bucket 必须先清空才能删。设置了 `deletion_protection = true` 的 RDS 实例会阻止销毁。这些都是安全机制。如果你真要彻底清理，可能需要手动清空 Bucket，或者在资源上设置 `force_destroy = true`。
 
@@ -2046,6 +2058,8 @@ resource "alicloud_oss_bucket" "media" {
 ```
 
 ## 常见坑点
+
+![漂移检测：当线上实际状态与代码不一致时](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_drift_detection.png)
 
 用 Terraform 跑阿里云一年多，我遇到的高频问题主要有这几个：
 

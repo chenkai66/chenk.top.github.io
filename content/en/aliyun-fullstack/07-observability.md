@@ -162,6 +162,9 @@ ORDER BY time_bucket
 
 This finds all 5xx errors, then groups them by minute to show the error count and number of unique affected users over time. The `__time__` field is the built-in log timestamp. The `approx_distinct` function is a HyperLogLog approximation -- fast and memory-efficient for high-cardinality fields.
 
+![SLS query syntax: search filter piped into SQL analytics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_sls_query_syntax.png)
+
+
 Here are real queries I use daily:
 
 ```
@@ -353,6 +356,9 @@ aliyun sls GetLogs \
   --endpoint cn-hangzhou.log.aliyuncs.com
 ```
 
+![Logtail config-to-machine-group binding model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_logtail_binding.png)
+
+
 ### Collecting Application Logs (JSON Format)
 
 For application logs, I strongly recommend JSON format. It eliminates the regex-parsing fragility and makes field indexing automatic.
@@ -451,6 +457,9 @@ Every production web application needs exactly these panels on the primary dashb
 | P99 latency | `* \| SELECT date_trunc('minute', __time__) as t, approx_percentile(request_time, 0.99) as p99 GROUP BY t ORDER BY t` | Is the service getting slower? P99 catches tail latency that averages hide. |
 | Top endpoints | `* \| SELECT request_uri, count(*) as cnt, approx_percentile(request_time, 0.50) as p50 GROUP BY request_uri ORDER BY cnt DESC LIMIT 10` | Where is traffic going? Which endpoints are slow? |
 | Status code distribution | `* \| SELECT status, count(*) as cnt GROUP BY status ORDER BY cnt DESC` | Are you seeing unusual 4xx/5xx patterns? |
+
+![The five essential dashboard panels](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_dashboard_panels_mockup.png)
+
 
 ### Creating a Dashboard
 
@@ -731,6 +740,9 @@ Alerts are the bridge between observability and action. The right alert wakes yo
 3. **Have exactly three severity levels.** Critical (pages someone now), Warning (needs investigation within hours), Info (logged for review). More than three and nobody knows what each level means.
 4. **Mute during known maintenance.** Nothing destroys alert trust faster than alerts firing during a deployment you announced in advance.
 
+![Symptom-based vs cause-based alert design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_alert_symptoms_vs_causes.png)
+
+
 ### Setting Up Alert Rules
 
 Here are the four alerts every production system needs:
@@ -896,6 +908,9 @@ Supported notification channels:
 | **Phone call** | Production-down severity (use sparingly) |
 | **Webhook (HTTP)** | Integration with PagerDuty, Slack, custom systems |
 
+![Alert severity routing across notification channels](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_alert_severity_routing.png)
+
+
 > **Mute periods:** For scheduled maintenance windows, set a mute period on the alert rule to suppress notifications. This is better than disabling the alert entirely because the alert still fires and records the event -- you just do not get woken up for something you already know about.
 
 ## ARMS: Application Real-Time Monitoring
@@ -1011,6 +1026,9 @@ traceId: abc-123-def
 ```
 
 And in ARMS, each trace span links back to the corresponding SLS log entries. This bidirectional link is what makes debugging production issues fast.
+
+![Bidirectional trace-log correlation via traceId](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_trace_log_correlation.png)
+
 
 ## Solution: Full-Stack Observability Setup
 

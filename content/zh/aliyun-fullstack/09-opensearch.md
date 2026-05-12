@@ -230,6 +230,8 @@ print(f"First 5 values: {embedding[:5]}") # [-0.0234, 0.0891, ...]
 
 **L2 Distance (Euclidean)** —— 测量向量空间中两点之间的直线距离。相同向量返回 0，差异越大值越大。它对 magnitude 敏感。更适合 embedding 中绝对值很重要的场景（文本搜索里很少见）。
 
+![余弦相似度衡量两个向量之间的夹角，忽略向量长度——只要方向接近，A 和 B 就被认为相似。L2 衡量两点之间的直线距离，对向量长度敏感。文本嵌入通常是归一化的，因此余弦是默认且正确的选择。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_distance_metrics.png)
+
 文本搜索直接用 Cosine Similarity。数学公式如下：
 
 ```
@@ -246,6 +248,8 @@ where A . B = sum(a_i * b_i)  (dot product)
 要是把查询向量和每个文档向量都比对一遍，向量搜索会慢到没法用。100 万文档，1024 维，每次查询就是 10 亿次乘法。HNSW（Hierarchical Navigable Small World）就是让这一切变快的索引结构。
 
 把 HNSW 想象成一个多层图。顶层是一个稀疏图，连接着相距较远的“地标”向量。每一层往下都会增加更多连接。查询从顶层开始，快速导航到正确的邻域，然后层层下钻，通过越来越详细的层级找到最近邻。结果是近似的（可能会错过绝对的最近邻），但速度极快——百万级向量通常能在亚毫秒级完成。
+
+![HNSW 在分层图中导航：查询从顶层稀疏图（少量地标向量）进入，经过中间层逐步下沉，最终在底层稠密图中定位最近邻。这就是百万向量数据集仍能亚毫秒级 ANN 搜索的原因。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_hnsw_index.png)
 
 关键的 HNSW 参数：
 
@@ -445,6 +449,8 @@ RRF_score = 1/(60+3) + 1/(60+3) = 0.01587 + 0.01587 = 0.03175
 
 这两个分数很接近，这正是 RRF 的目的——在保证单一方法表现突出的同时，平衡不同方法间的一致性。
 
+![RRF 实战：关键词列表和向量列表各自把 Doc-A 与 Doc-B 排在前列。RRF 将它们提升到融合列表的顶部，因为它们在两种方法中表现一致。Doc-F 只在向量搜索中出现，尽管在向量列表中排第 2，融合后仍然靠后。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_rrf_fusion.png)
+
 ### 加权组合
 
 想要更多控制权，可以把各方法的分数归一化到 [0, 1] 然后加权：
@@ -624,6 +630,8 @@ def ai_search(query_text: str) -> dict:
 重排序模型拿到混合搜索的 top N 结果，用 cross-encoder 模型重新打分。跟 embedding 模型（独立编码 query 和 document）不同，重排序把它们一起编码，能捕捉 query 词和文档内容之间的细粒度交互。
 
 计算开销大——没法在百万文档上跑 cross-encoder。但在混合搜索出来的 top 20-50 候选上跑很快，且显著提升 precision。
+
+![Bi-encoder 与 cross-encoder 对比。Bi-encoder 预编码文档，搜索时毫秒级；cross-encoder 联合编码 query 与 doc 以获得更细粒度的相关性，但太慢，无法应用于百万文档——只对前 20-50 个候选使用。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_reranker.png)
 
 模糊查询上 improvement 最明显。"Apple" 可能是水果也可能是公司。初始检索可能都返回。重排序看到完整上下文（"Apple with good battery life"），会把电子产品结果推到前面。
 
@@ -920,6 +928,8 @@ DTS (real-time sync from RDS)
     |
 RDS MySQL (source of truth for product data)
 ```
+
+![端到端架构：读路径为 Client -> API -> 混合检索的 OpenSearch（含 LLM 改写/回答）；写路径为 RDS -> DTS -> OpenSearch -> Function Compute 嵌入流水线。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_solution_arch.png)
 
 ### 第一步：定义 OpenSearch Schema
 
@@ -1391,6 +1401,8 @@ curl http://localhost:5000/api/health
 | DTS sync from RDS | Small instance, continuous | ~200 RMB ($28) |
 | ECS for Flask API | ecs.c6.large (2C 4G) | ~300 RMB ($42) |
 | **Total** | | **~1,615 RMB ($224/month)** |
+
+![成本按组件分解，以及 LLM 调用份额如何随"每个查询都启用 AI"策略变化。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_cost_breakdown.png)
 
 这套配置适合中等流量的搜索服务。LLM 成本会随着查询量线性增长——如果不需要每次查询都开启 AI 功能，可以只在复杂查询时启用，这样能砍掉 80% 的 LLM 成本。
 ## 核心要点

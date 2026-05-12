@@ -39,6 +39,8 @@ translationKey: "claude-code-learn-2"
 
 状态栏实时显示当前所处状态。按 `Shift+Tab` 即可顺次切换。没有哪个状态是“默认首选”——它们对应着不同场景下的不同需求。
 
+![Shift+Tab —— 四态循环，而非二元开关](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig3_shifttab_cycle.png)
+
 ### 各状态适用场景 —— 实战建议
 
 **常规模式** 是每次会话的起点，也是以下场景的必选模式：
@@ -136,6 +138,8 @@ translationKey: "claude-code-learn-2"
 [任务完成后，回归常规模式]
 ```
 
+![如何选择模式 —— 风险 vs. 自主程度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig6_mode_decision.png)
+
 ## 思考模式 —— 五个推理层级
 
 ![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
@@ -150,6 +154,8 @@ translationKey: "claude-code-learn-2"
 | `think a lot` | 深度推理 | ~2x | 明显变慢 |
 | `think longer` | 延展式推理 | ~2.5x | 数秒以上 |
 | `ultrathink` | 极致推理 | ~3x+ | 可达 15–30 秒 |
+
+![思考模式 —— 五个推理强度档位](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig4_thinking_levels.png)
 
 ### 不同思考层级如何影响输出质量？
 
@@ -242,6 +248,8 @@ translationKey: "claude-code-learn-2"
 ## `Escape` 与双击 `Escape` —— 中断 vs. 时间旅行
 
 这两个快捷键的重要性仅次于 `Shift+Tab`，值得单独展开。
+
+![Escape vs. Escape Escape —— 中断 vs. 时间旅行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig5_escape_behavior.png)
 
 ### 单次 `Escape` —— 中断生成
 
@@ -386,6 +394,8 @@ Claude Code 是终端应用，天然适配终端复用器（如 tmux）工作流
 ```
 
 Claude 在左侧面板写文件 → 编辑器右侧面板自动刷新 → 底部左侧终端运行测试。三屏联动，全程无需切换上下文。
+
+![Claude Code 的典型 tmux 布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/fig7_tmux_layout.png)
 
 ### 多个 Claude 会话并行
 

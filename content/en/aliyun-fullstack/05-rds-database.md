@@ -59,6 +59,10 @@ Before diving into RDS, here is the complete picture of database services on Ali
 
 For this article, we focus on RDS (the workhorse) and PolarDB (the upgrade path when RDS is not enough). These two cover 90% of production database needs on Alibaba Cloud.
 
+![Decision map for choosing the right Alibaba Cloud database service](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_db_family_map.png)
+
+*The decision map above shows where each service fits — most of this article concentrates on the OLTP branch.*
+
 ## RDS MySQL Deep Dive
 
 RDS MySQL is the most commonly used database service on Alibaba Cloud. It is a fully managed MySQL instance with automated backups, patching, monitoring, and high availability. You get a MySQL-compatible endpoint and connect to it the same way you connect to any MySQL server -- `mysql -h <endpoint> -u <user> -p`.
@@ -68,6 +72,10 @@ RDS MySQL is the most commonly used database service on Alibaba Cloud. It is a f
 An RDS MySQL HA instance runs as a primary-standby pair within the same region. The primary handles all reads and writes. The standby receives changes via semi-synchronous replication and is promoted automatically if the primary fails. Failover typically completes in 30 seconds or less and is transparent to the application (the DNS endpoint stays the same, the connection just drops momentarily).
 
 The standby is not readable -- it exists solely for failover. If you want read scaling, you add read replicas (covered later in this article).
+
+![HA failover timeline showing the ~30-second sequence from heartbeat loss to writes resuming](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_ha_failover_sequence.png)
+
+*The failover sequence above is fully managed by RDS — your application sees nothing but a brief connection drop and a reconnect against the unchanged DNS hostname.*
 
 ### Editions
 
@@ -540,6 +548,10 @@ This is the most important backup feature. PITR lets you restore your database t
 
 PITR works by combining the most recent full backup with binary logs to replay changes up to the specified point in time.
 
+![Point-in-time recovery flow combining daily snapshots with continuous binlog replay](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_pitr_flow.png)
+
+*PITR always provisions a new instance from the snapshot, then replays binlog up to the chosen second — the source database is never touched.*
+
 ```bash
 # Restore to a specific point in time (creates a new instance)
 aliyun rds CreateTempDBInstance \
@@ -584,6 +596,10 @@ Cross-region backup adds cost (data transfer + storage in the secondary region),
 ![RDS monitoring dashboard metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_monitoring_metrics.png)
 
 RDS automatically reports metrics to CloudMonitor. The critical ones to watch:
+
+![The four critical RDS metrics shown as gauge charts with action thresholds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_four_metrics.png)
+
+*Set alerts at 80% on each gauge — if you wait until they hit 100% you are already shipping errors to users.*
 
 | Metric | Warning Threshold | Critical Threshold | What to do |
 |---|---|---|---|
@@ -653,6 +669,10 @@ DAS is enabled by default for RDS instances. Access it through the RDS console u
 ### Slow query analysis
 
 Slow queries are the number one cause of database performance issues. RDS logs all queries exceeding `long_query_time` (we set it to 1 second earlier).
+
+![Decision tree for investigating a slow query starting from EXPLAIN output](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_slow_query_flow.png)
+
+*Always start with EXPLAIN — the `type` column tells you 80% of what you need to know about whether the query plan is healthy.*
 
 ```sql
 -- Find the slowest queries in the slow log
@@ -821,6 +841,10 @@ SQL Audit stores logs for up to 30 days. For longer retention, export to SLS (Si
 ### Secure connection from ECS
 
 The complete security chain for connecting to RDS from your application:
+
+![Five concentric layers of RDS security defense from VPC isolation to TDE encryption](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_security_layers.png)
+
+*Defense in depth — an attacker who breaches one layer still has to defeat the next four before touching real data.*
 
 1. **VPC isolation** -- RDS and ECS are in the same VPC, different VSwitches (data tier vs app tier)
 2. **Security groups** -- ECS security group allows outbound 3306; RDS whitelist allows inbound from app tier CIDR
