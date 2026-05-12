@@ -1,5 +1,5 @@
 ---
-title: "Linux（九）：Vim 核心精要——模态编辑、动作命令与可复用工作流"
+title: "Linux（九）：Vim 编辑器精要"
 date: 2022-04-02 10:00:00
 tags:
   - Linux
