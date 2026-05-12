@@ -5,12 +5,13 @@ import time
 import requests
 import dashscope
 from dashscope import ImageSynthesis
+import os
 import oss2
 
 dashscope.api_key = os.environ.get('DASHSCOPE_API_KEY', 'sk-6407a4292fd94f24aecd2fcfdaaa7567')
 
-OSS_AK = "LTAI5tRca9mVeaPEhJeNdTyF"
-OSS_SK = "2chC81YeVxkhSQ8ONMVjfDvc3yyOgK"
+OSS_AK = os.environ["OSS_AK"]
+OSS_SK = os.environ["OSS_SK"]
 auth = oss2.Auth(OSS_AK, OSS_SK)
 bucket = oss2.Bucket(auth, "https://oss-cn-beijing.aliyuncs.com", "blog-pic-ck")
 
