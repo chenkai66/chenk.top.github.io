@@ -7,7 +7,7 @@ title: "关于"
 type: about
 layout: about
 translationKey: "about"
-
+description: "陈锴。工程师与写作者。在阿里云做长周期生产级 Agent 系统——AI4Marketing、AI4Science、llm-elevator、DaaS，并在 chenk.top 写深度技术文章。"
 ---
 
 陈锴。工程师，写作者。以数学与机器学习为根基，近年聚焦于云计算与长周期 Agent 系统的工程落地。

@@ -7,6 +7,7 @@ title: "About"
 type: about
 layout: about
 translationKey: "about"
+description: "Engineer and writer. I build long-running production-grade agent systems at Alibaba Cloud — AI4Marketing, AI4Science, llm-elevator, DaaS — and write deep technical posts at chenk.top."
 ---
 
 ## Chen Kai
