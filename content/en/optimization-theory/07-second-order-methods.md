@@ -1,5 +1,5 @@
 ---
-title: "Optimization (7): Second-Order Methods -- Newton, BFGS, L-BFGS, Trust Region"
+title: 'Optimization (7): Second-Order Methods'
 date: 2022-09-22 09:00:00
 tags:
   - ML

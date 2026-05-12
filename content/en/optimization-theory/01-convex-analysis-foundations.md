@@ -1,5 +1,5 @@
 ---
-title: "Optimization (1): Convex Analysis Foundations"
+title: 'Optimization (1): Convex Analysis Foundations'
 date: 2022-09-14 09:00:00
 tags:
   - ML

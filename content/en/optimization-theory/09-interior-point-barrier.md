@@ -1,5 +1,5 @@
 ---
-title: "Optimization (9): Interior-Point Methods and Self-Concordant Barriers"
+title: 'Optimization (9): Interior-Point Methods and Self-Concordant Barriers'
 date: 2022-09-26 09:00:00
 tags:
   - ML

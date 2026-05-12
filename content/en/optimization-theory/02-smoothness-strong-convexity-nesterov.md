@@ -1,5 +1,5 @@
 ---
-title: "Optimization (2): Smoothness, Strong Convexity and Nesterov Acceleration"
+title: 'Optimization (2): Smoothness, Strong Convexity, and Nesterov Acceleration'
 date: 2022-09-15 09:00:00
 tags:
   - ML
@@ -13,6 +13,8 @@ disableNunjucks: true
 translationKey: "optim-02"
 series: optimization-theory
 series_order: 2
+aliases:
+  - /en/standalone/lipschitz-continuity-strong-convexity-nesterov/
 ---
 
 A surprising amount of "optimizer folklore" collapses into three concepts:

@@ -1,5 +1,5 @@
 ---
-title: "Optimization (11): Non-Convex Optimization -- Saddle Escape, PL Condition, Loss Landscapes"
+title: 'Optimization (11): Non-Convex Optimization and Saddle Escape'
 date: 2022-09-29 09:00:00
 tags:
   - ML

@@ -1,5 +1,5 @@
 ---
-title: "优化理论（十二）：离散与全局优化——IP、分支定界、启发式与 Portfolio 案例"
+title: '优化理论（十二）：离散与全局优化'
 date: 2022-09-30 09:00:00
 tags:
   - Optimization
@@ -14,6 +14,8 @@ disableNunjucks: true
 translationKey: "optim-12"
 series: optimization-theory
 series_order: 12
+aliases:
+  - /zh/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/
 ---
 本系列的前十一篇文章聚焦于**连续凸优化**问题（或非凸问题的凸松弛形式）。而本文作为收官之作，将直面两类更具挑战性的问题：
 

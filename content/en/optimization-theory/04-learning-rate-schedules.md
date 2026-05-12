@@ -1,5 +1,5 @@
 ---
-title: "Optimization (4): Learning Rate and Schedules"
+title: 'Optimization (4): Learning Rate and Schedules'
 date: 2022-09-18 09:00:00
 tags:
   - ML
@@ -14,6 +14,8 @@ disableNunjucks: true
 translationKey: "optim-04"
 series: optimization-theory
 series_order: 4
+aliases:
+  - /en/standalone/learning-rate-guide/
 ---
 
 Your model diverges. You halve the learning rate. Now it trains, but takes forever. You halve again — now the loss is a flat line. Sound familiar? Of all the knobs you can turn, **learning rate** is the one that most often decides whether training converges, crawls, or blows up. This guide gives you the intuition, the minimal math, and a practical workflow to get it right — from a 12-layer CNN on your laptop to a 70B-parameter LLM on a thousand GPUs.

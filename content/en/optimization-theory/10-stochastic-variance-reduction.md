@@ -1,5 +1,5 @@
 ---
-title: "Optimization (10): Stochastic Optimization and Variance Reduction"
+title: 'Optimization (10): Stochastic Optimization and Variance Reduction'
 date: 2022-09-27 09:00:00
 tags:
   - ML

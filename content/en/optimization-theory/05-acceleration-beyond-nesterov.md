@@ -1,5 +1,5 @@
 ---
-title: "Optimization (5): Acceleration Beyond Nesterov -- Heavy-Ball, Lower Bounds, Catalyst"
+title: 'Optimization (5): Acceleration Beyond Nesterov'
 date: 2022-09-20 09:00:00
 tags:
   - ML

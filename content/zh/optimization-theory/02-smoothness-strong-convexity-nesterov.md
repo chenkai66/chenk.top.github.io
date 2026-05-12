@@ -1,5 +1,5 @@
 ---
-title: "优化理论（二）：光滑性、强凸性与 Nesterov 加速"
+title: '优化理论（二）：光滑性、强凸性与 Nesterov 加速'
 date: 2022-09-15 09:00:00
 tags:
   - ML
@@ -13,6 +13,8 @@ disableNunjucks: true
 translationKey: "optim-02"
 series: optimization-theory
 series_order: 2
+aliases:
+  - /zh/standalone/深入解析非线性优化中的lipschitz连续性-强凸性与加速梯度下降算法/
 ---
 
 许多优化中的所谓“玄学”现象，其实都可以用三个核心概念统一解释：

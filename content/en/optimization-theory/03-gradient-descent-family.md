@@ -1,5 +1,5 @@
 ---
-title: "Optimization (3): The Gradient Descent Family -- From SGD to AdamW and Lion"
+title: 'Optimization (3): The Gradient Descent Family from SGD to AdamW'
 date: 2022-09-16 09:00:00
 tags:
   - ML
@@ -14,6 +14,8 @@ disableNunjucks: true
 translationKey: "optim-03"
 series: optimization-theory
 series_order: 3
+aliases:
+  - /en/standalone/optimizer-evolution-gd-to-adam/
 ---
 
 Why is "tuning the LR is an art" a meme for ResNet, while every modern LLM paper just writes "AdamW, $\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$" and moves on? It is not an accident — it is the **end-point of three decades of optimizer evolution**.
@@ -316,4 +318,4 @@ If you only remember one thing: **the LLM-era default is still AdamW + warmup + 
 - Symbolic Discovery of Optimization Algorithms / Lion (Chen et al., 2023) — [arXiv:2302.06675](https://arxiv.org/abs/2302.06675)
 - Sophia: A Scalable Stochastic Second-order Optimizer for Language Model Pre-training (Liu et al., 2023) — [arXiv:2305.14342](https://arxiv.org/abs/2305.14342)
 - The Road Less Scheduled / Schedule-Free (Defazio et al., 2024) — [arXiv:2405.15682](https://arxiv.org/abs/2405.15682)
-- For the **learning-rate side** of training: [Learning Rate: From Basics to Large-Scale Training](../learning-rate-guide/)
+- For the **learning-rate side** of training: [Learning Rate: From Basics to Large-Scale Training](./04-learning-rate-schedules/)

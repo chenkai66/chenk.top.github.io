@@ -1,5 +1,5 @@
 ---
-title: "Optimization (8): Lagrangian Duality and KKT Conditions"
+title: 'Optimization (8): Lagrangian Duality and KKT Conditions'
 date: 2022-09-24 09:00:00
 tags:
   - ML

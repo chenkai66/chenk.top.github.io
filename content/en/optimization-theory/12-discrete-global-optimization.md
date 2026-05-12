@@ -1,5 +1,5 @@
 ---
-title: "Optimization (12): Discrete and Global Optimization -- IP, Branch-and-Bound, Heuristics, and a Portfolio Case Study"
+title: 'Optimization (12): Discrete and Global Optimization'
 date: 2022-09-30 09:00:00
 tags:
   - Optimization
@@ -14,6 +14,8 @@ disableNunjucks: true
 translationKey: "optim-12"
 series: optimization-theory
 series_order: 12
+aliases:
+  - /en/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/
 ---
 
 The first eleven articles in this series tackled **continuous convex** problems (or convex relaxations of non-convex ones). This final article confronts two harder regimes:
@@ -292,7 +294,7 @@ and a $5 \times 5$ positive semidefinite covariance matrix (the precise values a
 
 The figure compares best-so-far variance over iterations for SOA-MINLP, Quasi-Newton, DIRECT, and a PSO baseline I added for context. The shaded blue band is the 10-90 percentile of 30 independent SOA runs; the solid blue curve is the median.
 
-Two things are worth noticing. First, the final values rank consistently with what the paper reports: SOA-MINLP at $V = 0.6969$, Quasi-Newton at $0.7123$, DIRECT at $0.7458$, with PSO landing in between at $0.7250$. Quasi-Newton converges fast in iteration count but to a worse local optimum because the penalty surface is non-smooth and gradient-based methods get stuck. DIRECT (a deterministic Lipschitz-based partition method) is more thorough but pays for it in iterations. Second, the SOA band is narrow by iteration 60 -- the run-to-run variability is small in this regime, which is reassuring for a stochastic method.
+Two things are worth noticing. First, the final values rank consistently with what the paper reports: SOA-MINLP at $V = 0.6969$, Quasi-Newton at $0.7123$, DIRECT at $0.7458$, with PSO landing in between at $0.7250$. Quasi-Newton converges fast in iteration count but to a worse local optimum because the penalty surface is non-smooth and gradient-based methods get stuck. DIRECT (a deterministic Lipschitz-based partition method) is more thorough but pays for it in iterations. Second, the SOA band is narrow by iteration 60 — the run-to-run variability is small in this regime, which is reassuring for a stochastic method.
 
 The catch: this is a five-asset problem. Every claim about SOA's relative ranking should be re-checked at scale.
 

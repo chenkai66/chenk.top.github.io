@@ -1,5 +1,5 @@
 ---
-title: "优化理论（八）：Lagrangian 对偶与 KKT 条件"
+title: '优化理论（八）：Lagrangian 对偶与 KKT 条件'
 date: 2022-09-24 09:00:00
 tags:
   - ML

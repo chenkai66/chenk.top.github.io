@@ -1,5 +1,5 @@
 ---
-title: "优化理论（七）：二阶方法——Newton、BFGS、L-BFGS、信赖域"
+title: '优化理论（七）：二阶方法'
 date: 2022-09-22 09:00:00
 tags:
   - ML

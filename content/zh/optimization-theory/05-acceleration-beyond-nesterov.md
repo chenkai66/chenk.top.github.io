@@ -1,5 +1,5 @@
 ---
-title: "优化理论（五）：Nesterov 之外的加速——Heavy-Ball、下界与 Catalyst"
+title: '优化理论（五）：Nesterov 之外的加速'
 date: 2022-09-20 09:00:00
 tags:
   - ML

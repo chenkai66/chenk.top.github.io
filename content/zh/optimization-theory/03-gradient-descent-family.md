@@ -1,5 +1,5 @@
 ---
-title: "优化理论（三）：梯度下降族——从 SGD 到 AdamW 与 Lion"
+title: '优化理论（三）：梯度下降族——从 SGD 到 AdamW'
 date: 2022-09-16 09:00:00
 tags:
   - ML
@@ -14,6 +14,8 @@ disableNunjucks: true
 translationKey: "optim-03"
 series: optimization-theory
 series_order: 3
+aliases:
+  - /zh/standalone/优化算法的演进-从梯度下降到adam/
 ---
 
 为什么训练 ResNet 时大家都说"调 LR 是手艺活"，到了 GPT/LLaMA 这一代，几乎所有论文却清一色地写 "AdamW，$\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$"？这不是巧合——它是**优化器三十年演进**的最终收敛点。
@@ -318,4 +320,4 @@ bf16 让这件事稍微宽松一点：动态范围够大，可以在某些场景
 - Symbolic Discovery of Optimization Algorithms / Lion（Chen et al., 2023）— [arXiv:2302.06675](https://arxiv.org/abs/2302.06675)
 - Sophia: A Scalable Stochastic Second-order Optimizer for Language Model Pre-training（Liu et al., 2023）— [arXiv:2305.14342](https://arxiv.org/abs/2305.14342)
 - The Road Less Scheduled / Schedule-Free（Defazio et al., 2024）— [arXiv:2405.15682](https://arxiv.org/abs/2405.15682)
-- 进一步看**学习率调度本身**：[学习率：从入门到大模型训练的终极指南](../学习率-从入门到大模型训练的终极指南-2026/)
+- 进一步看**学习率调度本身**：[学习率：从入门到大模型训练的终极指南](./04-learning-rate-schedules/)
