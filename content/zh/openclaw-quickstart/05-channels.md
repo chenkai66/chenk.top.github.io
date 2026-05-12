@@ -25,7 +25,7 @@ OpenClaw 的设计初衷是让 Agent 主动与你交互——目前仅支持 TUI
 
 ![Channel routing architecture — message flow from IM platforms through the gateway](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/fig_channels.png)
 
-哪怕你不打算在生产环境用 Telegram，也强烈推荐它作为首个接入通道：配置最简、零额外依赖，能完整跑通 Agent 的端到端流程。
+即使你不打算在生产环境中使用 Telegram，也强烈推荐它作为首个接入通道——配置简单、无额外依赖，可以完整跑通 Agent 的端到端流程。
 
 **第一步。** 在 Telegram 里找 `@BotFather`。发送 `/newbot`，起个名字，拿到一个形如 `7891234567:AAH...` 的 token。
 
@@ -65,7 +65,7 @@ openclaw gateway restart
 
 ### 排查 Telegram 问题
 
-哪怕配置这么简单，也难免踩坑。这是我反复遇到的五个问题：
+尽管配置简单，也难免会遇到问题。以下是我反复遇到的五个问题：
 
 **1. Bot 不回复 — 检查 `allowed_user_ids`。** 你发了消息，bot 不理你。再三确认 config 里的用户 ID 和 `@userinfobot` 告诉你的完全一致。常见错误包括抄成了用户名而不是数字 ID，或者忘了 JSON 数组的方括号。如果是这个问题，gateway 日志会显示 `[telegram] message from unauthorized user 987654321, ignoring`。
 
@@ -99,13 +99,13 @@ openclaw gateway restart
 }
 ```
 
-Stream Mode 是现代做法 — 它利用从 gateway 到钉钉服务器的长连 WebSocket，所以你不需要公网 webhook。这是钉钉为自托管 bot 做的最大改进。
+Stream Mode 是一种现代做法，通过从 gateway 到钉钉服务器的长连接 WebSocket 实现，因此无需公网 webhook。这是钉钉为自托管 bot 做出的最大改进。
 
 ### Stream Mode WebSocket 到底怎么工作
 
 理解这一架构很重要，因为它使 gateway 能在 NAT 后的笔记本上正常运行。
 
-传统 webhook 模式：钉钉服务器每次有人发消息都向你的 endpoint 发起 HTTPS POST。这意味着你需要公网 IP、域名、有效的 SSL 证书，防火墙还得放行入站 443 端口。
+传统 webhook 模式下，钉钉服务器每次有人发消息都会向你的 endpoint 发起 HTTPS POST 请求，这意味着你需要公网 IP、域名、有效的 SSL 证书，并且防火墙要放行入站 443 端口。
 
 Stream Mode 反过来了：你的 gateway 向 `wss://stream.dingtalk.com` 发起一个 **出站** WebSocket 连接并保持存活。有人发消息时，钉钉通过这个 WebSocket 推送事件帧。你的 gateway 读取帧，解码 JSON，路由给 agent。回复也通过同一个 WebSocket 传回去。不需要入站端口，不需要 DNS，不需要证书管理。
 
@@ -125,13 +125,12 @@ Stream Mode 反过来了：你的 gateway 向 `wss://stream.dingtalk.com` 发起
 
 ### 为什么路径 1 其实很危险
 
-腾讯的检测机制非常复杂。他们不只是看客户端版本字符串里的标记。封禁模式包括：
+腾讯的检测机制非常复杂，不仅限于检查客户端版本字符串中的标记。封禁模式包括：
+- **IP 关联：** 如果你的账号突然开始从数据中心 IP 段发消息，这就是危险信号，因为个人微信主要面向移动设备，服务器 IP 不正常。
+- **协议指纹：** 非官方协议虽然模拟微信客户端，但在包 timing、keepalive 间隔、某些握手字段顺序等小细节上容易出错。
+- **消息速率和模式分析：** 正常人不会在一分钟内回复 50 条格式完美的 markdown 消息，异常检测会标记这种行为。
 
-- **IP 关联：** 如果你的账号突然开始从数据中心 IP 段发消息，这就是危险信号。个人微信是移动优先的，服务器 IP 不正常。
-- **协议指纹：** 非官方协议模拟微信客户端，但会在小细节上出错 — 包 timing、keepalive 间隔、某些握手字段的顺序。
-- **消息速率和模式分析：** 正常人不会在一分钟内回复 50 条格式完美的 markdown 消息。异常检测会标记它。
-
-封禁未必即时触发：腾讯可能先放行账号数日，持续采集行为数据，再集中执行封禁。一旦封禁，通常是永久的。
+封禁不一定立即触发，腾讯可能会先放行账号数日，持续采集行为数据，然后再集中执行封禁。一旦被封禁，通常是永久性的。
 
 **路径 2：企业微信。** 有官方 OpenClaw 集成。 works well，但你需要注册企业微信账号，且 bot 只能在企业渠道内操作。适合团队；个人用很别扭。
 
@@ -246,7 +245,7 @@ Telegram 的 `bot_token` 和钉钉的 `client_secret` 都是长活凭证。每 9
 
 ## “接好线”到底意味着什么
 
-读完本文，你将至少打通一个通道：从真实聊天平台收消息、路由给 TUI 中同款 Pi Agent、并在同一会话中返回回复。
+读完本文后，你将至少打通一个通道，实现从真实聊天平台接收消息、路由给 TUI 中同款 Pi Agent 并在同一会话中返回回复。
 
 正因如此，它才像助手，而非 CLI：所有操作——读文件、跑搜索、总结文档——都经由 gateway 执行；你甚至能在 bot 回复中途，就看到 gateway 日志实时滚动。这种可见性在商业产品里很少见。
 

@@ -22,7 +22,7 @@ translationKey: "terraform-agents-6"
 
 真正让我警醒的是两年前的一件事。有个外包周五结束三个月的合同， laptop 带走了，结果周二 DashScope 账单报警，显示有 1200 万 `qwen-max` token 的流量来自一个陌生 IP。他个人 API key——当初复制粘贴到侧边项目里的——还留在我们 Agent 的 `.env` 里。轮换该密钥耗时六小时——涉及三名工程师、四个代码仓库、两条 CI 流水线，以及一条迅速失控的 Slack 讨论线程。这类事故，绝不能再发生。
 
-这篇文章就是为了解决这个问题。我们构建一个 **LLM 网关**，实现以下目标：
+这篇文章旨在解决这个问题。我们构建了一个 **LLM 网关**，实现以下目标：
 
 - 把所有厂商的密钥统一收进 KMS Secrets Manager（一个 bucket，一套 ACL，统一的轮换节奏）
 - Agent 通过 RAM 颁发的短期 Token 认证——Agent 机器上零静态 AK
@@ -30,7 +30,7 @@ translationKey: "terraform-agents-6"
 - 所有请求记入 SLS，方便取证、成本分摊和 SOC-2 审计
 - 轮换密钥不用重启或重新部署任何 Agent——一个 PR，一次 apply，搞定
 
-两天即可完成部署，长期收益显著。
+两天内即可完成部署，长期收益显著。
 
 ![Terraform for AI Agents (6): LLM Gateway and Secrets Management — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
 
@@ -38,14 +38,14 @@ translationKey: "terraform-agents-6"
 
 ![Centralised LLM gateway: one egress, one quota, one audit log](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)
 
-架构上，Agent 在左、模型厂商在右，网关居中充当代理层。每个 Agent 发往 "LLM" 的 HTTP 请求，实际都会先抵达网关。由网关统一分发请求至对应厂商、注入正确密钥、执行配额控制并记录调用结果。
+架构上，Agent 在左，模型厂商在右，网关居中充当代理层。每个 Agent 发往 "LLM" 的 HTTP 请求实际上都会先到达网关，再由网关统一分发请求至对应厂商、注入正确密钥、执行配额控制并记录调用结果。
 
-实现方案有两种主流选择：
+实现方案主要有两种选择：
 
 1. **Aliyun API Gateway 加自定义后端** —— 最托管，配额策略配置最简单，原生集成 RAM。适合路由逻辑简单的场景：“一个模型，一个厂商，只管限流”。
 2. **ALB 后面自托管 LiteLLM on ECS** —— 最灵活，支持长尾厂商（DeepSeek、Moonshot、Zhipu、你自己微调的 PAI 端点），更容易扩展成本追踪和跨厂商 fallback。
 
-我们建议根据路由复杂度来选择。如果是纯代理加配额，API Gateway 就够了。但如果是多厂商路由，还要带预算 guard 和熔断机制——而这恰恰是大多数团队在半年内就会进入的阶段——此时 LiteLLM on ECS 更具优势。本文剩下部分基于 LiteLLM 展开，因为 80% 的团队都需要这个。
+我们建议根据路由复杂度来选择。如果是纯代理加配额，API Gateway 就足够了。但如果是多厂商路由，还需要带预算 guard 和熔断机制——这通常是大多数团队在半年内会进入的阶段——此时 LiteLLM on ECS 更具优势。本文剩余部分将基于 LiteLLM 展开，因为 80% 的团队都需要这种方案。
 
 ## 第一步：把所有密钥存进 KMS Secrets Manager
 
@@ -129,7 +129,7 @@ resource "alicloud_ram_role_policy_attachment" "gateway_kms" {
 }
 ```
 
-这里有三点设计是刻意的：
+这里的设计有三个关键点：
 
 - **资源级权限控制。** 只针对这些特定密钥，而不是对 `*` 开放 `kms:GetSecretValue`。即使网关机器被攻破，攻击者也无法横向访问其他 KMS 密钥——例如账单密钥、RDS 密码、OSS 存储桶等，均保持隔离状态。
 - **无长期 AK。** 角色由 ECS 实例通过 metadata service 假设。磁盘上、环境变量里、cloud-init 中零静态凭证。

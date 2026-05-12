@@ -18,9 +18,9 @@ description: "Agent 有三种记忆，分别落到三个阿里云服务上：会
 disableNunjucks: true
 translationKey: "terraform-agents-5"
 ---
-大多数教程讲到 Agent 记忆这块都在糊弄。“把 embeddings 扔 Pinecone，sessions 扔 Postgres，截图扔 S3 就完事了。”在阿里云上，这三类服务均有托管方案，但 Terraform 配置是否合理，直接决定了记忆功能的稳定性：配置不当可能导致凌晨 4 点磁盘告警、三周对话历史永久丢失。
+大多数教程在讲解 Agent 记忆时都敷衍了事：“把 embeddings 扔进 Pinecone，sessions 扔进 Postgres，截图扔进 S3 就行了。”在阿里云上，这三类服务都有托管方案，但 Terraform 配置是否合理直接影响记忆功能的稳定性——配置不当可能导致凌晨 4 点磁盘告警或三周对话历史永久丢失。
 
-本文系统梳理这三层架构：各层对应的 Terraform 实现、备份与容灾机制（看似枯燥却至关重要）、PostgreSQL 大版本升级的实操经验，以及一次真实的周六故障——正是这次事故，直接塑造了后续所有关键架构决策。
+本文系统梳理这三层架构：各层对应的 Terraform 实现、备份与容灾机制（看似枯燥却至关重要）、PostgreSQL 大版本升级的实际操作经验，以及一次真实的周六故障——正是这次事故，直接塑造了后续所有关键架构决策。
 
 ## 三层记忆模型
 

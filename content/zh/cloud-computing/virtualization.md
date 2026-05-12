@@ -18,14 +18,13 @@ translationKey: "cloud-computing-2"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/virtualization/illustration_1.png)
 
-没有虚拟化就没有云计算。每一个 EC2 实例、每一次 Lambda 调用、每一个 Kubernetes Pod，本质上都依赖同一个把戏：**让操作系统对底层硬件深信不疑地撒谎**。本文从 CPU 指令层（让这个把戏变便宜的硬件支持），一直走到主流四大 Hypervisor，再到生产级调优——决定你的虚拟机到底跑在裸机性能的 70% 还是 99%。
+没有虚拟化就没有云计算。每一个 EC2 实例、每一次 Lambda 调用、每一个 Kubernetes Pod，本质上都依赖同一个把戏：**让操作系统对底层硬件深信不疑地撒谎**。本文将从 CPU 指令层（使这个把戏变得廉价的硬件支持）讲到主流四大 Hypervisor，再到生产级调优——决定你的虚拟机性能是达到裸机的 70% 还是 99%。
 
 ## 你将学到的内容
-
-- 深入理解 CPU 虚拟化的运行机制（保护环、VT-x、EPT），以及 Type 1 和 Type 2 Hypervisor 各自存在的意义
-- 实战演练：如何正确配置 VMware ESXi、KVM、Xen 和 Hyper-V，并为其设置适合生产环境的默认参数
-- 存储虚拟化技术解析：LVM 和 ZFS 的应用，以及磁盘格式的选择如何让 IOPS 性能相差 4 倍
-- 网络虚拟化全貌：VLAN 划分、VXLAN 隧道封装、Open vSwitch 的使用，以及 SR-IOV 的优势
+- 深入理解 CPU 虚拟化的运行机制（保护环、VT-x、EPT）及 Type 1 和 Type 2 Hypervisor 的各自意义
+- 实战演练：如何正确配置 VMware ESXi、KVM、Xen 和 Hyper-V，并设置适合生产环境的默认参数
+- 存储虚拟化技术解析：LVM 和 ZFS 的应用，以及磁盘格式选择对 IOPS 性能的影响
+- 网络虚拟化全貌：VLAN 划分、VXLAN 隧道封装、Open vSwitch 的使用及 SR-IOV 的优势
 - 性能优化技巧：CPU 绑核、NUMA 亲和性、大页内存、virtio 驱动与 vhost-net 的实践
 - 深入探讨在线热迁移的实现原理、嵌套虚拟化的应用场景，以及 GPU 共享技术（vGPU / MIG）的使用方法
 - 安全加固策略、隔离机制的核心概念，以及一份实用的故障排查指南
@@ -99,7 +98,7 @@ KVM 是一个特例：它是一个内核模块，能够将 Linux 本身转变为
 
 ![虚拟机与容器的资源隔离对比：每个虚拟机自带内核，而容器共享宿主机内核](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/virtualization/fig2_vm_vs_container.png)
 
-这张图是本文的核心。**虚拟机虚拟的是硬件层**——因此每个虚拟机都需要携带自己的操作系统内核；而**容器虚拟的是操作系统层**——它本质上是一个普通的 Linux 进程，通过命名空间（如 PID、mount、network、UTS、IPC、user 等）实现隔离，并利用 cgroups 来限制资源使用。所有容器共享同一个宿主机内核。
+这张图是本文的核心。**虚拟机虚拟的是硬件层**，因此每个虚拟机都需要携带自己的操作系统内核；而**容器虚拟的是操作系统层**，本质上是一个普通的 Linux 进程，通过命名空间（如 PID、mount、network、UTS、IPC、user 等）实现隔离，并利用 cgroups 限制资源使用。所有容器共享同一个宿主机内核。
 
 这种设计带来了几个关键影响：
 

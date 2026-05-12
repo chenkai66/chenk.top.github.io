@@ -14,22 +14,22 @@ description: "理解能保持能量与辛结构的物理感知神经网络。涵
 disableNunjucks: true
 translationKey: "symplectic-geometry-and-structure-preserving-neural-networks"
 ---
-随手训练一个普通 MLP 去拟合一维谐振子的运动。验证集上误差很小，前十步看着也对。然后让它一口气往后推一千步——轨道不再闭合，能量缓慢漂移，本该周期运动的系统变成了一条慢慢张开的螺旋。网络学到了"数据点之间的插值"，没学到"物理"。**结构保持网络**（structure-preserving NN）的做法，是把守恒律——能量守恒、辛 2-形式、欧拉-拉格朗日方程——直接编码进架构里，使得模型从数学结构上就不可能违反这些约束，无论积分多长时间。
+随手训练一个普通的 MLP 来拟合一维谐振子的运动。验证集上的误差很小，前十步看起来也正确。但让它继续预测一千步后——轨道不再闭合，能量缓慢漂移，原本应周期运动的系统变成了一条慢慢张开的螺旋。网络学到了“数据点之间的插值”，却没有学到“物理”。**结构保持网络**（structure-preserving NN）的做法，是把守恒律——能量守恒、辛 2-形式、欧拉-拉格朗日方程——直接编码进架构里，使得模型从数学结构上就不可能违反这些约束，无论积分多长时间。
 
 ## 你将学到
 
-- 为什么短期误差很小的普通 NN，在长时预测里仍然会"漂"
-- 哈密顿力学的最少必需品：相空间、Hamilton 方程、Poisson 括号
-- 读论文够用的辛几何：闭非退化 2-形式、Darboux 定理、Liouville 定理
-- 为什么辛积分器（Verlet、辛 RK）的能量误差是有界振荡，而不是线性增长
-- 三种主流架构与选型：Hamiltonian NN（HNN）、Lagrangian NN（LNN）、Symplectic NN（SympNet）
+- 为什么短期误差很小的普通 NN 在长时预测中仍然会“漂”
+- 哈密顿力学的基本要素：相空间、Hamilton 方程、Poisson 括号
+- 读论文所需的辛几何知识：闭非退化 2-形式、Darboux 定理、Liouville 定理
+- 为什么辛积分器（如 Verlet 和辛 RK）的能量误差是有界振荡而非线性增长
+- 三种主流架构及其选择：Hamiltonian NN（HNN）、Lagrangian NN（LNN）、Symplectic NN（SympNet）
 - 四个经典实验：谐振子、双摆（混沌）、Kepler 问题、Lennard-Jones 分子动力学
 
 ## 前置知识
 
-- 多元微积分与线性代数
-- 用 PyTorch 训过 MLP
-- 经典力学（能量、动量）有概念即可，文中按需补全
+- 多元微积分和线性代数
+- 用 PyTorch 训练过 MLP
+- 经典力学（能量、动量）有基本概念即可，文中会按需补充
 
 ---
 

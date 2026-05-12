@@ -16,13 +16,13 @@ description: "万相文生视频 / 图生视频上生产：异步任务模式、
 disableNunjucks: true
 translationKey: "aliyun-bailian-4"
 ---
-万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、URL 会过期，限流方式还特别隐蔽。本文是我连续六个月应对高频凌晨告警（最晚一次发生于凌晨两点）后沉淀的实战经验总结。
+万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、URL 会过期，限流方式还特别隐蔽。本文总结了我连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）所积累的实战经验。
 
 ![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
 ## 模型阵容
 
-三个模型均提供原生接口（不兼容 OpenAI 协议），全部采用异步调用。
+三个模型均提供原生接口（不兼容 OpenAI 协议），并全部采用异步调用。
 
 ![Wanxiang model lineup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png)
 
@@ -76,7 +76,7 @@ print(url)
 
 ![Polling schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png)
 
-从 5 秒开始，每次轮询间隔按 1.45 倍递增，上限设为 60 秒。典型的 720p 5 秒片段通常在 30-90 秒内完成，所以用户平均等待大约 4 次轮询。
+从 5 秒开始，每次轮询间隔按 1.45 倍递增，上限设为 60 秒。典型的 720p 5 秒片段通常在 30 到 90 秒内完成，因此用户平均需要等待约 4 次轮询。
 
 对后端服务而言，更合理的做法通常**不是**在请求处理函数中直接轮询，而是：
 
@@ -85,7 +85,7 @@ print(url)
 3. 后台 worker 轮询，状态变 `SUCCEEDED` 时更新数据库。
 4. 前端轮询**你的**数据库，而不是万象。
 
-这样你有了重试机制、可观测性，还能在 URL 过期前把结果地址存下来。
+这样就有了重试机制和可观测性，并能在 URL 过期前保存结果地址。
 
 ## 立刻保存 URL——它们 24 小时后过期
 
@@ -113,7 +113,7 @@ def archive(result_url: str, key: str) -> str:
 [lighting], [camera movement], [style], [quality keywords]
 ```
 
-已经上线生产的例子：
+以下是一些已上线的例子：
 
 - `wide angle, a cup of bubble tea, condensation drops sliding down the cup, on a marble table next to a window, soft afternoon backlight, slow dolly in, photorealistic, 4k, shallow depth of field`
 - `medium shot, a young woman wearing a Hanfu dress, walking through a Hangzhou bamboo forest, early morning mist, dappled light, smooth tracking shot from behind, cinematic film look, 35mm`
@@ -136,7 +136,7 @@ def archive(result_url: str, key: str) -> str:
 3. I2V 生成 5 秒转盘视频。
 4. 拼接到产品页的核心图后面。
 
-单个片段成本仅数元，而替代方案需消耗摄影师约半天工时。
+单个片段的成本仅为几元，而替代方案则需要消耗摄影师约半天的工作时间。
 
 ## SUCCEEDED 但视频看起来不对怎么办
 
@@ -215,7 +215,7 @@ async def submit(prompt: str) -> str:
 - 主体通用（"a cup of coffee", "a Hangzhou tea garden"），你要的是氛围而不是特异性。
 - 成本是优先项——T2V 是三个里每秒最便宜的。
 
-T2V 在需保证品牌保真度（brand fidelity）的场景下表现不足：模型无法准确还原具体产品特征，例如输入 "a Nike shoe" 生成的往往只是一双泛化的运动鞋，品牌标识模糊不清。别用 T2V 做产品主图。
+T2V 在需要保证品牌保真度（brand fidelity）的场景下表现不足：模型无法准确还原具体产品特征，例如输入 "a Nike shoe" 生成的往往只是一双泛化的运动鞋，品牌标识模糊不清。别用 T2V 做产品主图。
 
 **图生视频（`wan2.5-i2v-plus`）** 胜出当：
 - 你有产品核心静帧想要动画化（转盘、视差、dolly-in）。
@@ -266,13 +266,13 @@ def extract_last_frame(video_url: str) -> str:
 
 这样片段 N+1 就从片段 N 结束的那一帧 exact 开始，过渡几乎肉眼不可见。光线、主体位置、色彩风格都能完美继承。
 
-另外我还摸索出两个保持色彩和运动连续性的 hack：
+此外，我还摸索出了两个保持色彩和运动连续性的技巧：
 
 - **在 prompt 里锁死光线。** 拼接系列里的每个 prompt 都得带同样的光线描述：`golden hour backlight, warm color palette`。即使使用末帧接力，模型生成超过 30 秒的视频时，色彩仍可能出现偏移。锁住 prompt 能稳住。
 - **锁死镜头语言。** "35mm film grain, shallow depth of field"，系列里每个 prompt 都得一模一样。模型会把这当成风格锚点。
 - **用 ffmpeg 做跨片段色彩匹配。** 全生成完后，跑 `ffmpeg -i clipN.mp4 -vf "colorbalance=rs=0.02:gs=-0.01" out.mp4` 把飘了的片段往系列中位数拉。该步骤需手动执行，但开销很低。
 
-拼接一条 30 秒商业广告（6 个 5 秒片段）时，该方法约 70% 概率实现‘视觉连贯、近乎单镜头’的效果。剩下 30% 的情况，要么换 seed 重跑那个掉链子的片段，要么干脆认怂，加个显性的切场转场。
+拼接一条 30 秒的商业广告（由 6 个 5 秒片段组成）时，该方法约有 70% 的概率实现‘视觉连贯、近乎单镜头’的效果。剩下 30% 的情况，要么换 seed 重跑那个掉链子的片段，要么干脆认怂，加个显性的切场转场。
 
 ## 画幅比例成本矩阵
 
@@ -324,4 +324,4 @@ moderate = client.chat.completions.create(
 
 ## 下一篇预告
 
-系列第 5 篇收尾，讲 **Qwen-TTS-Flash** —— 语音合成，这是我唯一愿意投产的中文方言 voices。也是原生仅支持，所以本文的模式同样适用。
+系列第五篇将介绍 **Qwen-TTS-Flash** —— 语音合成，这是唯一一个我愿意投产的中文方言语音合成工具。也是原生仅支持，所以本文的模式同样适用。

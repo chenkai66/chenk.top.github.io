@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 12
 translationKey: "ml-math-derivations-12"
 ---
-XGBoost 和 LightGBM 是表格数据领域的两大利器——Kaggle 排行榜、风控系统、广告排序、用户流失预测，背后几乎都有它们的身影。两者都基于梯度提升树（Gradient-Boosted Trees，见第 11 篇），但在工程设计上选择了截然不同的方向：
+XGBoost 和 LightGBM 是表格数据领域的两大利器——从 Kaggle 排行榜到风控系统、广告排序和用户流失预测，背后几乎都有它们的身影。两者都基于梯度提升树（Gradient-Boosted Trees，见第 11 篇），但在工程设计上选择了截然不同的方向。
 
 - **XGBoost** 主攻*数学优化*：把损失函数的二阶导数引入目标函数，对树结构本身做正则化，把分裂点选择变成一个闭式解公式。
 - **LightGBM** 主攻*系统效率*：将特征离散化为小直方图，按叶子节点逐层生长，丢弃信息量低的样本（GOSS），并合并互斥的稀疏特征（EFB）。

@@ -16,7 +16,7 @@ description: "钉死 alicloud provider 版本，在 AK/SK、AssumeRole、ECS RAM
 disableNunjucks: true
 translationKey: "terraform-agents-2"
 ---
-读到这儿，把页面关了，打开终端吧。等会儿你回来时，手里应该已经有了：
+读到这里，关闭页面，打开终端吧。等会儿回来时，你应该已经准备好以下内容：
 
 1. 安装好且版本锁定的 `alicloud` Terraform provider。
 2. 配置好的认证流程——用的是正确的方法，不是图省事的方法。
@@ -24,7 +24,7 @@ translationKey: "terraform-agents-2"
 4. 三个工作空间（`dev`, `staging`, `prod`），共用后端但状态隔离。
 5. 能跑通的 `terraform plan`，哪怕配置还是空的。
 
-至此，Agent 尚未部署——本阶段纯属基础设施底座搭建，后续所有文章均以此为前提。若跳过此步、延至第三篇再补，一周内遭遇 tfstate 损坏的概率极高。
+至此，Agent 尚未部署——本阶段仅涉及基础设施底座搭建，后续所有文章均以此为前提。如果跳过此步骤，推迟到第三篇文章再补，一周内遇到 tfstate 损坏的概率极高。
 
 ## Step 0: 安装 Terraform
 
@@ -60,11 +60,11 @@ terraform {
 
 `~> 1.230` 这个约束允许 `1.230.0` 到 `1.230.x`，但会拦住 `1.231.0`。这是默认的最佳实践。一旦你把 `.terraform.lock.hcl` 提交到 git（`terraform init` 时 Terraform 会自动生成），你就锁死了 *确切* 的 provider 版本和校验和。队友 later 跑 `terraform init` 时，拿到的 provider 跟你比特级一致。
 
-尽早锁定 provider 版本是一项低成本但高回报的风险控制措施。例如，alicloud provider 在 1.220 版本附近曾对 OSS Bucket 的 schema 进行重构，导致我花了三个下午排查问题。你最终仍需升级，但必须主动推进：先提交 PR，仔细审查 plan 输出的变更差异，确认无误后再执行 apply；切勿在未经评审的情况下，于深夜 11 点在他人机器上意外触发升级。
+尽早锁定 provider 版本是一项低成本但高回报的风险控制措施。例如，alicloud provider 在 1.220 版本附近对 OSS Bucket 的 schema 进行了重构，导致我花了三个下午排查问题。你最终仍需升级，但必须主动推进：先提交 PR，仔细审查 plan 输出的变更差异，确认无误后再执行 apply；切勿在未经评审的情况下，在深夜 11 点在他人机器上意外触发升级。
 
 ## Step 2: 认证——三种方案，按靠谱程度排个序
 
-Provider 需要 Aliyun  credentials。真正可选的就三种，按专业程度递增：
+Provider 需要 Aliyun credentials。真正可选的有三种，按专业程度递增：
 
 ![Authentication flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
 
@@ -81,7 +81,7 @@ export ALICLOUD_REGION="cn-shanghai"
 
 Provider 会自动发现这些环境变量。千万别——在任何情况下都别——把密钥写进 `.tf` 文件。状态文件不存这玩意儿，但 `provider {}` 块会，而那块代码是进 git 的。
 
-如果这个 AK/SK 属于一个 RAM 子账号，且权限只 scoped 到 Terraform 管理的资源，那 solo 项目还能接受。只要是协作项目，直接看方案 B。
+如果这个 AK/SK 属于一个 RAM 子账号，且权限仅限于 Terraform 管理的资源，那么单人项目可以接受。如果是协作项目，请直接查看方案 B。
 
 ### 方案 B: AssumeRole（CI  runner）
 
@@ -99,7 +99,7 @@ provider "alicloud" {
 }
 ```
 
-角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，而且一旦剥离信任策略就能瞬间撤销。这也是 GitLab CI、GitHub Actions 和 Jenkins 等 CI/CD 环境中推荐采用的模型。
+角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，而且一旦剥离信任策略就能瞬间撤销。这也是 GitLab CI、GitHub Actions 和 Jenkins 等 CI/CD 环境中推荐的模型。
 
 ### 方案 C: ECS RAM 角色（堡垒机 / IaC 服务 runner）
 
@@ -113,7 +113,7 @@ provider "alicloud" {
 }
 ```
 
-配置里、环境变量里、文件里，零密钥。凭证轮换由系统自动完成。这是业界公认的黄金标准，我也建议每个团队在落地 Terraform 的首月内即采用该方案。
+配置、环境变量和文件中都没有密钥。凭证轮换由系统自动完成。这是业界公认的黄金标准，建议每个团队在落地 Terraform 的首月内采用该方案。
 
 > **实战建议：** 不管选哪个，显式设置 `ALICLOUD_REGION`（或者 `provider { region = ... }`）。如果不设，Provider 不会选默认值——你会在 `terraform plan` 时得到一个让人困惑的 "Region must be specified" 错误，该错误我在实践中多次遇到。
 

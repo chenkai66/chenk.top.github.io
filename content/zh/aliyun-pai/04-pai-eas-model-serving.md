@@ -17,13 +17,13 @@ description: "PAI-EAS 端到端：基于镜像 + OSS 挂权重的部署方式、
 disableNunjucks: true
 translationKey: "aliyun-pai-4"
 ---
-钱主要花在 EAS 上：DSW 开发每月只需几百元，DLC 训练属于脉冲式消费，而 EAS 是 24/7 持续计费——服务一旦进入 Running 状态，费用便持续产生。自动配置里的 `minimum replica count` 这一行，是整个平台杠杆最高的旋钮。这篇文章汇总了我在部署首个生产端点前最希望掌握的关键信息。
+钱主要花在 EAS 上：DSW 开发每月只需几百元，DLC 训练属于脉冲式消费，而 EAS 则是 24/7 持续计费——服务一旦进入 Running 状态，费用便持续产生。自动配置里的 `minimum replica count` 这一行，是整个平台杠杆最高的旋钮。这篇文章汇总了我在部署首个生产端点前最希望掌握的关键信息。
 
 ![Aliyun PAI (4): PAI-EAS — 模型服务、冷启动与 TPS 谎言 — 视觉图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/illustration_1.png)
 
 ## 文档里的 EAS 是什么
 
-官方《EAS 概述》将其定义为：“将训练好的模型部署为在线推理服务或 AI Web 应用，支持异构资源、自动伸缩、一键压测、灰度发布与实时监控”——核心要点有两个：
+官方《EAS 概述》将其定义为：“将训练好的模型部署为在线推理服务或 AI Web 应用，支持异构资源、自动伸缩、一键压测、灰度发布与实时监控”——核心要点如下：
 
 - 它是**容器化服务层** —— 模型在 OSS 里，代码在容器镜像里。EAS 启动时拉镜像、挂载 OSS、运行启动命令，然后监听端口。
 - 它是**按副本数自动伸缩** —— 不是 Serverless 函数模型（有个重要例外，见下文）。副本是真实的 GPU Pod，启动需要 30-120 秒。需据此规划资源配额和伸缩策略。
@@ -32,7 +32,7 @@ translationKey: "aliyun-pai-4"
 
 ![EAS 请求链路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/fig1_eas_request_path.png)
 
-文档指出运行时镜像部署包含四个关键部件：
+文档指出，运行时镜像部署包含四个关键部件：
 
 1. **运行时镜像** —— 只读模板，包含 OS、CUDA、Python 和依赖。用官方的（`vllm:0.11.2-mows0.5.1`，`pytorch:...`）或者推自己的到 ACR。
 2. **代码和模型** —— *不在镜像里*。它们存在 OSS / NAS。解耦后，更新权重不用重 build 镜像。
@@ -47,7 +47,7 @@ translationKey: "aliyun-pai-4"
 
 ![EAS 推理模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/fig2_eas_inference_modes.png)
 
-一个实用的启发式规则：
+一个实用的启发式规则如下：
 
 - **实时同步** —— 聊天机器人、RAG 检索、广告排序、搜索。你关心 p99 延迟。
 - **异步** —— 任何耗时 5 秒以上的任务：图像生成、视频生成、PDF 批量 OCR。内置队列会根据任务积压量自动伸缩副本，这才是处理此类工作负载的合理方式。
@@ -55,7 +55,7 @@ translationKey: "aliyun-pai-4"
 
 ## 真正的 Quick Start
 
-官方 Quick Start 是用 vLLM 部署 Qwen3-0.6B。控制台操作流程如下：
+官方 Quick Start 是用 vLLM 部署 Qwen3-0.6B，控制台操作流程如下：
 
 1. **方式：** 基于镜像部署。
 2. **镜像：** `vllm:0.11.2-mows0.5.1`（官方 EAS 镜像 — vLLM ≥ 0.8.5 才支持 OpenAI 兼容聊天）。
@@ -86,7 +86,7 @@ print(resp.choices[0].message.content)
 
 ## 自动伸缩的正确姿势
 
-这部分文档没讲透。默认自动伸缩策略（按请求速率伸缩，最小副本数为 1）易导致两类问题：一是冷启动延迟引发用户投诉，二是低负载时资源闲置推高费用。
+这部分文档没有讲透。默认自动伸缩策略（按请求速率伸缩，最小副本数为 1）容易导致两类问题：冷启动延迟引发用户投诉，低负载时资源闲置推高费用。
 
 ![EAS 自动伸缩 — 副本数跟踪 QPS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/fig3_eas_autoscaling.png)
 
@@ -100,15 +100,15 @@ print(resp.choices[0].message.content)
 
 ## 灰度、蓝绿与流量镜像
 
-EAS 通过**服务组**实现这个功能：一个路由前端指向多个服务版本，按百分比分流。同样的原语支持**流量镜像** —— 真实流量拷贝一份发给候选版本，但响应丢弃，用户无感知。这是在生产流量上测试新模型最安全的方式。
+EAS 通过**服务组**实现这一功能：一个路由前端指向多个服务版本，按百分比分流。同样的原语支持**流量镜像**——真实流量拷贝一份发给候选版本，但响应丢弃，用户无感知。这是在生产流量上测试新模型最安全的方式。
 
 ![EAS 服务组 — 灰度与镜像](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/fig4_eas_canary_release.png)
 
-任何模型切换，前 24 小时我用 90/10 分流，然后 50/50，最后 0/100。如果任何一步成功率或 p99 指标恶化，立刻回滚 —— 服务组改流量权重只要几秒钟。
+任何模型切换，前 24 小时我用 90/10 分流，然后 50/50，最后 0/100。如果任何一步的成功率或 p99 指标恶化，立刻回滚——服务组改流量权重只需几秒钟。
 
 ## 压测——真的要做
 
-文档有一整节讲一键压测器。用它。它会自动提升 QPS，绘制副本扩容曲线，并给出单副本的饱和点。这个数字就是你构建自动伸缩器的基础。未经过压测就上线，是导致‘模型在下午 3 点流量峰值时宕机’这类工单的最常见原因。
+文档有一整节介绍一键压测器。使用它，可以自动提升 QPS，绘制副本扩容曲线，并给出单副本的饱和点。这个数字是你构建自动伸缩器的基础。未经过压测就上线，是导致“模型在下午 3 点流量峰值时宕机”这类工单的最常见原因。
 
 ## 180 天大坑
 

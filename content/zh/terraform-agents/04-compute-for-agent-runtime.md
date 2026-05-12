@@ -18,9 +18,9 @@ description: "Agent 主循环在阿里云上有三个合理落点：长跑 ECS +
 disableNunjucks: true
 translationKey: "terraform-agents-4"
 ---
-做 Agent 系统架构时，最关键的决策其实是——Agent 循环进程到底跑在哪儿？阿里云上有三大主流方案，外加一个常被忽略的第四种：ECI。选错虽不致系统崩溃（后续仍可迁移），但会多花几周搭基础设施，每月还可能白烧数千元算力。
+做 Agent 系统架构时，最关键的是决定 Agent 循环进程跑在哪里。阿里云上有三种主流方案，还有一个常被忽略的 ECI 方案。虽然选错不会导致系统崩溃（后续仍可迁移），但可能会多花几周搭建基础设施，并且每月浪费数千元算力。
 
-本文逐一分析这四种模式：附可直接运行的 Terraform 代码、成本拐点估算，以及实际运维中踩过的典型坑。
+本文将逐一分析这四种模式，附带可直接运行的 Terraform 代码、成本拐点估算及实际运维中的典型坑。
 
 ## The four patterns
 
@@ -44,9 +44,9 @@ translationKey: "terraform-agents-4"
 
 ![Compute cost crossover — rough model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig2_compute_cost_curve.png)
 
-持续 QPS 低于 ~1 时，FC 占优——空闲时几乎不花钱。~1 到 ~30 之间，单台 ECS 胜出。超过这个值，ACK 较高的固定成本被足够的负载分摊，比往 ECS 上硬塞更便宜。ECI 比较特殊：利用率低于 50% 时比 ECS 便宜，高于 50% 则更贵。
+持续 QPS 低于 ~1 时，FC 占优，空闲时几乎不花钱；~1 到 ~30 之间，单台 ECS 更合适。超过这个值，ACK 的较高固定成本会被足够负载分摊，比硬塞到 ECS 上更便宜。ECI 特殊之处在于：利用率低于 50% 时比 ECS 便宜，高于 50% 则更贵。
 
-该成本模型较为粗略：实际费用会受实例规格、网络类型、Agent 通信频率等因素影响，但整体成本变化趋势是可信的。我用的决策规则：
+该成本模型较为粗略，实际费用会受实例规格、网络类型和 Agent 通信频率等因素影响，但整体成本变化趋势是可信的。我的决策规则如下：
 
 > Bursty + low average → Function Compute
 >
@@ -253,7 +253,7 @@ resource "alicloud_cs_kubernetes_node_pool" "agents" {
 真正的 Agent Pod 来自 Kubernetes Deployment manifest——通常由单独的 `kubectl` 步骤或 `kubernetes` Terraform provider 应用。我把集群放在这个 `terraform` 项目里，工作负载放在单独的 Helm chart 里，因为它们发布节奏不同。集群一季度变一次；Agent 镜像一天变十次。
 ## Pattern 3: Function Compute for event-driven agents
 
-有些 Agent 不用常驻，有事才动——比如 webhook 触发、定时任务、OSS 文件上传。这种场景下，FC（函数计算）简直是无敌的存在：闲置零成本，自动弹性，运行时全托管。
+有些 Agent 不用常驻，有事才动，例如 webhook 触发、定时任务或 OSS 文件上传。这种情况下，FC（函数计算）几乎是完美的选择：闲置零成本，自动弹性，运行时全托管。
 
 ```hcl
 resource "alicloud_fc_service" "agent" {

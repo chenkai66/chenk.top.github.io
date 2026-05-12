@@ -168,7 +168,7 @@ resource "alicloud_snat_entry" "private" {
 }
 ```
 
-Enhanced NAT 是当前标准：Tablestore、PrivateLink 及绝大多数新服务均强制要求；老式 Standard NAT 已进入 deprecation 倒计时，新项目严禁使用。按流量计费（PayByTraffic）更适合 Agent 负载，因其出站带宽具有突发性（如 LLM 流式响应），而非持续稳定。
+Enhanced NAT 是当前标准：Tablestore、PrivateLink 及绝大多数新服务均强制要求；老式 Standard NAT 已进入 deprecation 倒计时，新项目严禁使用。按流量计费（PayByTraffic）更适合 Agent 负载，因为其出站带宽具有突发性（如 LLM 流式响应），而非持续稳定。
 
 SNAT 条目才是让私网子网实例能通互联网的关键。少了它们，`private-a` 里的 Agent 解析不了 `dashscope.aliyuncs.com`——第一次遇到这问题你会花一个小时调试。这个问题我亲身遇到过，调试花了一小时。
 
@@ -256,7 +256,7 @@ resource "alicloud_security_group_rule" "vector_from_agent" {
 
 ## 每个数据域配一把 KMS 密钥
 
-静态加密（Encryption-at-rest）是任何合规制度的底线。阿里云的做法是**每个数据域一把 Customer Master Key (CMK)**，这样你可以单独轮换某一把而不影响其他，也能按密钥审计访问记录。
+静态加密（Encryption-at-rest）是任何合规制度的底线。阿里云的做法是每个数据域一把 Customer Master Key (CMK)，这样你可以单独轮换某一把而不影响其他，也能按密钥审计访问记录。
 
 ![Data encryption at rest and in transit with key management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/wanxiang_encryption.png)
 
@@ -315,7 +315,7 @@ output "kms_keys"    { value = { for k, v in alicloud_kms_key.this   : k => v.id
 output "kms_aliases" { value = { for k, v in alicloud_kms_alias.this : k => v.alias_name } }
 ```
 
-接下来五篇文章需要的 ID 全在这儿了。故意把输出的命名和结构设计好，调用方就能这样用：
+接下来五篇文章需要的 ID 都在这儿了。故意把输出的命名和结构设计好，调用方就能这样用：
 
 ```hcl
 module "vpc" {
@@ -357,13 +357,13 @@ module "vpc" {
 Plan: 27 to add, 0 to change, 0 to destroy.
 ```
 
-27 个资源差不多正好（1 个 VPC + 6 个 vSwitch + 1 个 NAT + 1 个 EIP + 1 个 EIP 关联 + 3 个 SNAT + 4 个 SG + 4 个 SG 规则 + 3 个 KMS key + 3 个 KMS alias = 27）。执行 apply，大概 90 秒你就能得到一个生产级网络。
+27 个资源差不多正好（1 个 VPC + 6 个 vSwitch + 1 个 NAT + 1 个 EIP + 1 个 EIP 关联 + 3 个 SNAT + 4 个 SG + 4 个 SG 规则 + 3 个 KMS key + 3 个 KMS alias = 27）。执行 apply，大约 90 秒你就能得到一个生产级网络。
 
 ## 漂移检测：当线上 VPC 跟 HCL 对不上时
 
 网络总会漂移的。半夜 11 点有人为了调试在控制台开了个端口。有人为了测试临时方案加了条 SNAT 规则。路由表里多了条临时条目，后来没人删。半年后生产环境 VPC 和 HCL 静默分叉——直到下次 `terraform apply` 要么回滚了手动变更（害了依赖它的人），要么更糟，把 provider 的更新逻辑搞混，导致资源重建。
 
-解决办法是尽早*发现*漂移，把它当成真实信号来处理。每个 VPC 栈我都跑这三种模式：
+解决办法是尽早发现漂移，把它当成真实信号来处理。每个 VPC 栈我都跑这三种模式：
 
 ### 模式 1：CI 里 nightly 跑 `terraform plan`
 
@@ -411,7 +411,7 @@ jobs:
 
 `-detailed-exitcode` 参数是关键。没它的话，哪怕有变更 `plan` 也总是返回 0。有了它，你才能拿到 0（无变更）、1（错误）或 2（待变更）。CI 只关心 2——这意味着漂移。
 
-我对每个 prod workspace 都 nightly 跑这个。每两周总能抓到点什么——通常是队友忘了写进 HCL 的"快速修复"。
+我对每个 prod workspace 都夜间运行这个。每两周总能抓到点什么——通常是队友忘了写进 HCL 的"快速修复"。
 
 ### 模式 2：怀疑有问题时跑 refresh-only
 
@@ -469,7 +469,7 @@ module "vpc" {
 
 模块每次破坏性变更都升大版本（semver）。消费者 deliberate 升级，一次一个 workspace，每个都 review `plan`。当 `dev` 里出问题，别推到 `prod`——回滚 `?ref=` 标签，提 issue，修模块。
 
-小团队我用单个 repo 存模块，用 git tag 做版本。大组织的话，Terraform Registry 的私有模块支持（或者阿里云托管的等价物）能给你带 UI 的发布产物。不管怎样原则一样：**模块是库，不是代码片段**。得像对待 Python 包一样对待它们的发布纪律。
+小团队我用单个 repo 存模块，用 git tag 做版本。大组织的话，Terraform Registry 的私有模块支持（或者阿里云托管的等价物）能提供带 UI 的发布产物。不管怎样原则一样：模块是库，不是代码片段。得像对待 Python 包一样对待它们的发布纪律。
 
 升级的实际操作手感：
 

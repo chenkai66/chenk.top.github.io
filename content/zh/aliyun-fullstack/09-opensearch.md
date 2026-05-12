@@ -18,16 +18,16 @@ description: "From keyword search to AI-powered retrieval: OpenSearch service, v
 disableNunjucks: true
 translationKey: "aliyun-fullstack-9"
 ---
-我做的第一个搜索引擎是用 Elasticsearch 搭的，配了一堆同义词表。花了六个月才达到基本可用水平，随后陷入重复循环：用户反馈搜不到结果，就加同义词；结果引发其他查询误匹配，又得补例外规则——如此反复。相关性调优配置膨胀到 400 行，三种语言的自定义 analyzer、高度复杂的 boosting 逻辑，早已超出可维护边界；重建索引更需耗时四小时。后来在某个侧边项目中尝试混合向量 + 关键词搜索，首日效果即超越此前所有调优成果，首次达成用户零投诉的搜索体验。这一实践经历重塑了我对搜索系统设计的理解，并直接催生了本文。
+我做的第一个搜索引擎是用 Elasticsearch 搭建的，配了一堆同义词表。花了六个月才达到基本可用水平，随后陷入重复循环：用户反馈搜不到结果，就加同义词；结果引发其他查询误匹配，又得补例外规则——如此反复。相关性调优配置膨胀到 400 行，包括三种语言的自定义 analyzer 和高度复杂的 boosting 逻辑，早已超出可维护边界；重建索引更需耗时四小时。后来在某个侧边项目中尝试了混合向量和关键词搜索，首日效果即超越此前所有调优成果，首次实现用户零投诉的搜索体验。这一实践经历重塑了我对搜索系统设计的理解，直接催生了本文。
 
 
-搜索表面简单，实则暗藏多个易被低估的技术挑战：关键词搜索依赖字面匹配，难应对查询词与文档用词不一致（如术语差异、同义表达）；向量搜索基于语义相似度，却对零件号、错误码、SKU 等需严格字面匹配的场景支持薄弱。过去三年，业界普遍采用混合搜索架构，并集成 LLM 提升 query 理解与答案生成能力。阿里云提供一站式托管服务 OpenSearch，统一解决上述问题；本文将覆盖从基础关键词搜索到 LLM 驱动的 AI Search 全谱系，最终交付一个开箱即用的商品搜索引擎。
+搜索表面简单，实则暗藏多个易被低估的技术挑战：关键词搜索依赖字面匹配，难以应对查询词与文档用词不一致（如术语差异、同义表达）；向量搜索基于语义相似度，但在零件号、错误码、SKU 等需要严格字面匹配的场景支持较弱。过去三年，业界普遍采用混合搜索架构，并集成 LLM 提升查询理解与答案生成能力。阿里云提供一站式托管服务 OpenSearch，统一解决上述问题。本文将覆盖从基础关键词搜索到 LLM 驱动的 AI Search 全谱系，最终交付一个开箱即用的商品搜索引擎。
 
 生成文中用到的 embeddings，请参考 [百炼系列，第二部分：Qwen LLM API](/zh/aliyun-bailian/02-qwen-llm-api/)。喂给搜索索引的数据库内容在 [第五部分：RDS](/zh/aliyun-fullstack/05-rds-database/) 里讲。想了解 RAG pipeline 的 LLM Engineering 视角，去看 [LLM Engineering 系列](/zh/llm-engineering/)。
 
 ## 阿里云上的搜索 landscape
 
-在深入 OpenSearch 之前，得先搞清楚阿里云上到底有哪些搜索选项。方案选型失误可能导致成本浪费，甚至引发耗时数月的系统迁移。
+在深入 OpenSearch 之前，需要先搞清楚阿里云上的搜索选项。方案选型失误可能导致成本浪费，甚至引发耗时数月的系统迁移。
 
 ![阿里云搜索类型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_search_types.png)
 
@@ -46,7 +46,7 @@ translationKey: "aliyun-fullstack-9"
 - **搜索只是数据库的副产品** -- 如果已经在用 Lindorm 或 AnalyticDB 且只需要基础搜索，直接用内置功能，别再加新服务了。
 - **需要 AWS 兼容性** -- 注意，阿里云的 "OpenSearch" 跟 AWS OpenSearch Service 不是一回事（后者是 Elasticsearch 的 fork）。名称相同，但二者是完全不同的产品，API 也不兼容。如果你要从 AWS OpenSearch 迁移，用阿里云的托管 Elasticsearch 服务，别用 OpenSearch。
 
-最后这点最容易把人绕晕。再次强调：**阿里云 OpenSearch 与 AWS OpenSearch Service 并非同一产品。** 这是两套完全不同的系统，查询语言、API、计价模型都不一样。
+这一点最容易让人混淆。再次强调：**阿里云 OpenSearch 与 AWS OpenSearch Service 并非同一产品。** 它们是两套完全不同的系统，查询语言、API 和计价模型都不同。
 
 ## OpenSearch 基础
 

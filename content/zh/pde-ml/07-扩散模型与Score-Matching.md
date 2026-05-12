@@ -23,7 +23,7 @@ translationKey: "pde-ml-7"
 
 ## 本文你会学到
 
-2020 年起，扩散模型成为生成 AI 主流。DALL·E 2、Stable Diffusion、Sora 都是它的应用。背后是一套简洁的数学结构：**扩散模型本质上是偏微分方程（PDE）的数值求解器**。
+自2020年起，扩散模型成为生成AI的主流技术，DALL·E 2、Stable Diffusion和Sora都是其典型应用。这些模型背后是一套简洁的数学结构——扩散模型本质上是偏微分方程（PDE）的数值求解器。
 
 - 加高斯噪声等于正向求解 **Fokker–Planck 方程**；
 - 训练去噪网络就是学习 **score 函数** $\nabla\log p_t$；

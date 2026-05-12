@@ -18,16 +18,16 @@ description: "RDS MySQL vs PolarDB: when to use which. Instance sizing, read rep
 disableNunjucks: true
 translationKey: "aliyun-fullstack-5"
 ---
-我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期磁盘 I/O 飙升，直接导致服务宕机。InnoDB buffer pool 跟 OS page cache 抢内存，binary log 写入磁盘的速度超过了 cron 任务的清理速度，单线程复制到“备份”实例的延迟已高达九小时。凌晨三点，我只能靠扩容磁盘救火。两周后，同样的问题又来了。那天我才真正理解托管数据库的价值：不是因为我不会部署或运维 MySQL，而是不愿在凌晨三点被报警叫醒——只因 MySQL 判定 relay log 损坏，而唯一可行的修复方式，只能依赖一致性无法保障的冷备份重建副本。
+我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期磁盘 I/O 飙升，直接导致服务宕机——InnoDB buffer pool 和 OS page cache 抢内存，binary log 写入磁盘的速度超过了 cron 任务的清理速度，单线程复制到“备份”实例的延迟已达九小时。凌晨三点，我只能靠扩容磁盘救火；两周后，同样的问题再次出现。那天我才真正理解托管数据库的价值：不是因为我不会部署或运维 MySQL，而是不愿在凌晨三点被报警叫醒——只因 MySQL 判定 relay log 损坏，而唯一可行的修复方式，只能依赖一致性无法保障的冷备份重建副本。
 
 
-这篇文章咱们聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还有那些让数据保持存活的运维实践——规格 sizing、复制、备份、监控、安全。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
+这篇文章咱们聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，以及规格 sizing、复制、备份、监控和安全等运维实践。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
 
 ## 为什么选托管数据库？
 
 在裸 ECS 实例上跑数据库，控制权确实全在你手里。MySQL 版本随便选，`my.cnf` 参数随便调，自定义插件随便装，root 权限在手，`perf` 和 `strace` 直接挂在 mysqld 进程上 debug。这种控制权是真实的，偶尔也确实有用。
 
-但你也签下了这份“卖身契”：
+但这也意味着你签下了一份“卖身契”：
 
 - **OS 补丁。** 内核安全更新需要重启——你配置好 failover 了吗？
 - **备份管理。** 用 Percona XtraBackup 做物理备份，每月测试恢复，管理备份文件存储，靠归档 binary log 实现 point-in-time recovery。
@@ -37,9 +37,9 @@ translationKey: "aliyun-fullstack-5"
 - **磁盘管理。** 文件系统选型（XFS vs ext4），I/O scheduler 调优，IOPS provisioning，在线磁盘扩容。
 - **安全。** SSL/TLS 配置，审计日志，静态加密，密钥轮转。
 
-托管数据库把这些活儿全包了。你失去了 root 权限，也无法随意安装 MySQL 插件（例如自定义 UDF，或基于 Group Replication 拓扑进行实验）。但作为交换，你可获得自动备份、一键 HA 故障切换、内置监控、一键创建只读实例，也无需再因磁盘空间耗尽而在深夜被告警唤醒。
+托管数据库把这些工作全包了。你失去了 root 权限，也无法随意安装 MySQL 插件（如自定义 UDF 或基于 Group Replication 拓扑进行实验）。但作为交换，你可获得自动备份、一键 HA 故障切换、内置监控、一键创建只读实例，也无需再因磁盘空间耗尽而在深夜被告警唤醒。
 
-对于 95% 的生产负载，选托管绝对划算。
+对于 95% 的生产负载，选择托管绝对划算。
 
 ### 阿里云数据库家族
 
