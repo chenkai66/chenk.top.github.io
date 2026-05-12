@@ -1,5 +1,7 @@
 // More fun: keyboard shortcuts (g/G/r/?), help panel, image lightbox.
 (function () {
+  function isLangZh() { return (document.documentElement.lang || '').toLowerCase().indexOf('zh') === 0; }
+
   // ---------- Helper: are we typing in an input? ----------
   function isTyping(e) {
     var t = e.target;
@@ -13,6 +15,32 @@
     if (isTyping(e)) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
+    // h → home
+    if (e.key === 'h') {
+      var lang = (document.documentElement.lang || 'en').toLowerCase().slice(0, 2);
+      window.location.href = '/' + lang + '/';
+      return;
+    }
+    // t → toggle theme
+    if (e.key === 't') {
+      var btn = document.querySelector('[data-theme-toggle]');
+      if (btn) btn.click();
+      return;
+    }
+    // [ / ] → previous / next in series
+    if (e.key === '[' || e.key === ']') {
+      var sel = e.key === '['
+        ? '.series-nav-prev-next .prev-item a, .series-nav .prev a'
+        : '.series-nav-prev-next .next-item a, .series-nav .next a';
+      var link = document.querySelector(sel);
+      if (link) {
+        flashToast(e.key === '[' ? (isLangZh() ? '← 上一篇' : '← Previous') : (isLangZh() ? '下一篇 →' : 'Next →'));
+        setTimeout(function () { window.location.href = link.href; }, 250);
+      } else {
+        flashToast(isLangZh() ? '没有更多了' : 'End of series');
+      }
+      return;
+    }
     // gg → top
     if (e.key === 'g') {
       var now = Date.now();
@@ -89,8 +117,12 @@
           row('g g', isZh ? '回到顶部' : 'Go to top') +
           row('Shift + G', isZh ? '跳到底部' : 'Go to bottom') +
           row('r', isZh ? '随机一篇文章' : 'Random article') +
+          row('h', isZh ? '回到首页' : 'Back to home') +
+          row('[', isZh ? '上一篇（同系列）' : 'Previous in series') +
+          row(']', isZh ? '下一篇（同系列）' : 'Next in series') +
+          row('t', isZh ? '切换主题' : 'Toggle theme') +
           row('⌘ K  /  Ctrl K', isZh ? '搜索' : 'Search') +
-          row('?', isZh ? '显示这个面板' : 'Show this panel') +
+          row('Shift + ?', isZh ? '显示这个面板' : 'Show this panel') +
           row('Esc', isZh ? '关闭面板' : 'Close panel') +
           row('↑ ↑ ↓ ↓', isZh ? '彩蛋 ✨' : 'Easter egg ✨') +
         '</dl>' +
@@ -143,4 +175,22 @@
       lb.classList.remove('open');
     }
   });
+
+  // ---------- Floating ? button (always visible, bottom-right) ----------
+  function createHelpButton() {
+    if (document.getElementById('kbd-fab')) return;
+    var b = document.createElement('button');
+    b.id = 'kbd-fab';
+    b.type = 'button';
+    b.setAttribute('aria-label', isLangZh() ? '键盘快捷键' : 'Keyboard shortcuts');
+    b.title = (isLangZh() ? '按 Shift + ? 打开' : 'Press Shift + ? to open');
+    b.textContent = '?';
+    b.addEventListener('click', toggleHelp);
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', createHelpButton);
+  } else {
+    createHelpButton();
+  }
 })();
