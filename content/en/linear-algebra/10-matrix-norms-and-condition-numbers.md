@@ -1,5 +1,5 @@
 ---
-title: "Essence of Linear Algebra (10): Matrix Norms and Condition Numbers -- Is Your Linear System Healthy?"
+title: "Essence of Linear Algebra (10): Matrix Norms and Condition Numbers — Is Your Linear System Healthy?"
 date: 2025-03-05 09:00:00
 tags:
   - Linear Algebra

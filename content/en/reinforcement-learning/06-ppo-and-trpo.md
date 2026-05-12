@@ -1,5 +1,5 @@
 ---
-title: "Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization"
+title: "Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization"
 date: 2025-08-26 09:00:00
 tags:
   - Reinforcement Learning

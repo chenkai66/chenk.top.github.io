@@ -1,5 +1,5 @@
 ---
-title: "Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies"
+title: "Time Series Forecasting (4): Attention Mechanisms — Direct Long-Range Dependencies"
 date: 2024-10-16 09:00:00
 tags:
   - Time Series

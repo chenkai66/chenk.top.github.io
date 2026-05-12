@@ -1,5 +1,5 @@
 ---
-title: "Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting"
+title: "Time Series Forecasting (8): Informer — Efficient Long-Sequence Forecasting"
 date: 2024-12-15 09:00:00
 tags:
   - Time Series

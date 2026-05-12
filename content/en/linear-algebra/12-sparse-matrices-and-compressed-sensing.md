@@ -1,5 +1,5 @@
 ---
-title: "Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing -- Less Is More"
+title: "Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing — Less Is More"
 date: 2025-03-19 09:00:00
 tags:
   - Linear Algebra

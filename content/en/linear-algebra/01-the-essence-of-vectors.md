@@ -1,5 +1,5 @@
 ---
-title: "Essence of Linear Algebra (1): The Essence of Vectors -- More Than Just Arrows"
+title: "Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows"
 date: 2025-01-01 09:00:00
 tags:
   - Linear Algebra

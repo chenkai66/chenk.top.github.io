@@ -1,5 +1,5 @@
 ---
-title: "Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs"
+title: "Time Series Forecasting (3): GRU — Lightweight Gates and Efficiency Trade-offs"
 date: 2024-10-01 09:00:00
 tags:
   - Time Series

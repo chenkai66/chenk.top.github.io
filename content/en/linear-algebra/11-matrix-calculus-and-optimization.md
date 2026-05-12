@@ -1,5 +1,5 @@
 ---
-title: "Essence of Linear Algebra (11): Matrix Calculus and Optimization -- The Engine Behind Machine Learning"
+title: "Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning"
 date: 2025-03-12 09:00:00
 tags:
   - Linear Algebra

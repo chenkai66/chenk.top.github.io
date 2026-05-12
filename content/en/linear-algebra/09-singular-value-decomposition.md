@@ -1,5 +1,5 @@
 ---
-title: "Essence of Linear Algebra (9): Singular Value Decomposition -- The Crown Jewel of Linear Algebra"
+title: "Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra"
 date: 2025-02-26 09:00:00
 tags:
   - Linear Algebra

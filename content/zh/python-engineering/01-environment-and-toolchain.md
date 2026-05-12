@@ -1,5 +1,5 @@
 ---
-title: "Python 工程实践（一）：环境搭建 — pyenv、venv 与依赖地狱"
+title: "Python 工程实践（一）：环境搭建——pyenv、venv 与依赖地狱"
 date: 2022-04-10 09:00:00
 tags:
   - Python
