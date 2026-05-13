@@ -21,191 +21,216 @@ translationKey: "pde-ml-6"
 ![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
 ## 这一篇要讲什么
+\n生成建模归根结底是一个几何问题：**如何将简单分布（比如高斯分布）变换为复杂分布（如人脸、分子或运动轨迹）？** 离散归一化流通过堆叠可逆模块实现这一目标，但每个模块都需要计算 Jacobian 行列式，其代价高达 $O(d^3)$。**Neural ODE** 用连续的常微分方程（ODE）取代离散的网络深度；**连续归一化流（Continuous Normalizing Flows, CNF）** 则借助 *瞬时* 变量替换公式，将密度计算的复杂度降至 $O(d)$；而 **Flow Matching** 更进一步，直接省去了散度积分，将训练简化为对目标速度场的普通回归任务。
+\n全文围绕三条主线交织展开：
 
-生成建模归根结底是个几何问题：**如何把简单分布（高斯）变成复杂分布（人脸、分子、动作）？** 离散归一化流堆叠可逆层，但每层算 Jacobian 行列式代价 $O(d^3)$。**Neural ODE** 用连续 ODE 替代离散深度；**连续归一化流（CNF）** 借助*瞬时*变量替换公式，将密度计算降到 $O(d)$；**Flow Matching** 直接去掉散度积分，训练简化为目标速度场的回归。
+1. **PDE 视角** —— 连续性方程 $\partial_t\rho + \nabla\!\cdot(\rho v) = 0$ 描述了速度场 $v$ 如何输运密度 $\rho$。
+2. **ODE 视角** —— Picard-Lindelöf 定理保证了解的存在性与唯一性；Liouville 定理将体积变化与 $\nabla\!\cdot v$ 联系起来；伴随方程则使反向传播的内存开销降至 $O(1)$。
+3. **机器学习视角** —— Neural ODE、FFJORD 和 Flow Matching 都通过神经网络参数化速度场 $v$，并从数据中学习它。
 
-文章围绕以下三条线展开：
-
-1. **PDE 这边** —— 连续性方程 $\partial_t\rho+\nabla\!\cdot(\rho v)=0$ 描述速度场 $v$ 输运密度 $\rho$ 的规律。
-2. **ODE 这边** —— Picard-Lindelof 保证解的存在唯一性； Liouville 将体积变化与 $\nabla\!\cdot v$ 关联；伴随方程让反向传播内存开销降到 $O(1)$。
-3. **ML 这边** —— Neural ODE、 FFJORD、 Flow Matching 都用神经网络参数化 $v$，从数据中学出模型。
-
-**前置知识**： ODE 基础、概率密度变量替换、自动微分。
+**前置知识**：ODE 基础（解的存在唯一性）、概率密度的变量替换、自动微分（autograd）。
 
 ![连续流把高斯逐步变成两月牙目标分布。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig1_density_transformation.png)
-*图 1：连续时间流把高斯基分布输运成两月牙目标。每个面板是用约 4000 个粒子求解 ODE 到时间 $t$ 后做 KDE 得到的密度 $\rho_t$。所有 $t$ 共用同一个 $v_\theta$，仅积分上限不同。*
+*图 1：连续时间流将高斯基分布输运成“双月牙”目标分布。每个面板是通过对约 4000 个粒子求解 ODE 至时间 $t$ 后，使用核密度估计（KDE）得到的密度 $\rho_t$。所有时间点共享同一个网络 $v_\theta$，仅积分上限不同。*
 
 ---
-## 1. ODE 基础：存在唯一性、体积演化
 
-### 1.1 Picard-Lindelof：解何时存在且唯一？
+## 1. ODE 基础：存在唯一性与体积演化
 
-**定理（Picard-Lindelof）。** 考虑 $\dot{\mathbf{z}}=f(\mathbf{z},t)$，$\mathbf{z}(0)=\mathbf{z}_0$。若 $f$ 关于 $t$ 连续、关于 $\mathbf{z}$ Lipschitz：
-$$\|f(\mathbf{z}_1,t)-f(\mathbf{z}_2,t)\|\le L\,\|\mathbf{z}_1-\mathbf{z}_2\|,$$则在区间 $[0,T]$ 上有唯一解。
+### 1.1 Picard-Lindelöf：解何时存在且唯一？
 
-*ML 为何关心？* 若 $f_\theta$ 是带 Lipschitz 激活（ReLU、 tanh、 GELU）且权重有界的神经网络，局部 Lipschitz 自然成立。只要网络行为正常， Neural ODE 就适定——这是它能稳定反向传播的根本原因。
+**定理（Picard-Lindelöf）**。考虑初值问题 $\dot{\mathbf{z}} = f(\mathbf{z}, t)$，$\mathbf{z}(0) = \mathbf{z}_0$。若 $f$ 关于 $t$ 连续，且关于 $\mathbf{z}$ 满足 Lipschitz 条件：
+$$
+\|f(\mathbf{z}_1, t) - f(\mathbf{z}_2, t)\| \le L\,\|\mathbf{z}_1 - \mathbf{z}_2\|,
+$$\n则在某个区间 $[0, T]$ 上存在唯一解。
+
+*这对机器学习意味着什么？* 如果 $f_\theta$ 是一个使用 Lipschitz 激活函数（如 ReLU、tanh、GELU）且权重有界的神经网络，那么局部 Lipschitz 条件自然成立。因此，只要网络行为良好——这在实践中几乎总是成立——Neural ODE 就是适定的，这也是它能稳定进行反向传播的根本原因。
 
 ### 1.2 Liouville 定理：流如何改变体积
 
-**定理（Liouville）。** 设 $\phi_t$ 是 $\dot{\mathbf{z}}=f(\mathbf{z},t)$ 的流。对任意可测集 $\Omega$：$$\frac{d}{dt}\,\mathrm{vol}(\phi_t(\Omega))=\int_{\phi_t(\Omega)}\nabla\!\cdot f\,d\mathbf{z}.$$$\nabla\!\cdot f=0$ 保体积，$\nabla\!\cdot f<0$ 压缩，$\nabla\!\cdot f>0$ 膨胀。归一化流中，我们希望散度非零——它是重排概率质量的关键。
+**定理（Liouville）**。设 $\phi_t$ 是 ODE $\dot{\mathbf{z}} = f(\mathbf{z}, t)$ 的流映射。对任意可测集合 $\Omega$，有
+$$
+\frac{d}{dt}\,\mathrm{vol}(\phi_t(\Omega)) = \int_{\phi_t(\Omega)} \nabla\!\cdot f\,d\mathbf{z}.
+$$\n因此，$\nabla\!\cdot f = 0$ 保持体积不变，$\nabla\!\cdot f < 0$ 导致压缩，$\nabla\!\cdot f > 0$ 引起膨胀。在归一化流中，我们恰恰希望散度非零——这正是重塑概率质量的关键杠杆。
 
-*直观理解。* 散度为零的 $f$ 像不可压缩流（哈密顿/辛——见第 5 篇）。散度非零的 $f$ 像可压缩流，能把概率质量挤进窄带，再到别处膨胀回来——生成建模正需要这种特性。
+*直观理解*：散度为零的 $f$ 类似不可压缩流体（如第 5 篇讨论的哈密顿或辛系统）；而散度非零的 $f$ 则像可压缩流，能将概率质量挤压成细丝，再在别处重新膨胀——这正是生成建模所需要的特性。
 
 ### 1.3 瞬时变量替换公式
 
-**定理。** 沿 $\dot{\mathbf{z}}=f(\mathbf{z},t)$ 的轨迹 $\mathbf{z}(t)=\phi_t(\mathbf{z}_0)$，密度满足$$\boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t))=-\nabla\!\cdot f(\mathbf{z}(t),t).\;}\tag{1}$$
-*证明思路。* 连续性方程 $\partial_t\rho+\nabla\!\cdot(\rho f)=0$ 展开为 $\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$。左边是沿 $\mathbf{z}(t)$ 的物质导数 $D\rho/Dt$。两边除以 $\rho$ 得 (1)。
+**定理**。沿 ODE $\dot{\mathbf{z}} = f(\mathbf{z}, t)$ 的轨迹 $\mathbf{z}(t) = \phi_t(\mathbf{z}_0)$，密度满足
+$$
+\boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t)) = -\nabla\!\cdot f(\mathbf{z}(t), t).\;}\tag{1}
+$$
+*证明思路*：连续性方程 $\partial_t\rho + \nabla\!\cdot(\rho f) = 0$ 可展开为 $\partial_t\rho + f\!\cdot\!\nabla\rho = -\rho\,\nabla\!\cdot f$。左边正是沿轨迹 $\mathbf{z}(t)$ 的物质导数 $D\rho/Dt$。两边同除以 $\rho$ 即得 (1)。
 
-**这公式为何关键？** 离散归一化流需 $O(d^3)$ 计算 $\log|\det\partial\phi/\partial\mathbf{z}|$。公式 (1) 只需 Jacobian 的迹（即散度），用一次 vector-Jacobian product 即可 $O(d)$ 完成（见 3.2 节）。这是 CNF 存在的核心计算理由。
+**为何这个公式至关重要？** 离散归一化流需要 $O(d^3)$ 的代价来计算 $\log|\det \partial\phi / \partial\mathbf{z}|$，而公式 (1) 仅需 Jacobian 的迹（即散度），借助一次 vector-Jacobian product 即可在 $O(d)$ 时间内完成（见 3.2 节）。这正是连续归一化流（CNF）得以存在的核心计算优势。
+
 ## 2. Neural ODE：从离散到连续深度
 
-### 2.1 残差网络就是前向 Euler
+### 2.1 残差网络即前向 Euler 方法
+\nResNet 的更新规则 $\mathbf{h}_{l+1} = \mathbf{h}_l + f_l(\mathbf{h}_l)$ 正是步长 $\Delta t = 1$ 的前向 Euler 方法，用于求解 ODE $\dot{\mathbf{h}} = f(\mathbf{h}, t)$。取连续极限后，我们得到一个统一的连续时间 ODE：
+$$
+\frac{d\mathbf{h}}{dt} = f_\theta(\mathbf{h}(t), t), \qquad \mathbf{h}(T) = \mathbf{h}(0) + \int_0^T f_\theta(\mathbf{h}(t), t)\,dt. \tag{2}
+$$\n这一转变带来三大优势：
 
-ResNet 更新公式 $\mathbf{h}_{l+1}=\mathbf{h}_l+f_l(\mathbf{h}_l)$，等价于步长 $\Delta t=1$ 的前向 Euler 方法解 $\dot{\mathbf{h}}=f(\mathbf{h},t)$。取连续极限后得到一个 ODE：$$\frac{d\mathbf{h}}{dt}=f_\theta(\mathbf{h}(t),t),\qquad \mathbf{h}(T)=\mathbf{h}(0)+\int_0^T f_\theta(\mathbf{h}(t),t)\,dt. \tag{2}$$
-直接好处有三点：
-
-- **参数效率。** 一个 $f_\theta$ 替代每层不同参数。
-- **自适应深度。** dopri5 等自适应 Runge-Kutta 求解器，动态调整步长，剧烈处加密，平缓处稀疏。
-- **内存节省。** 伴随方法将反向传播内存从 $O(L)$ 降到 $O(1)$——随深度增加的只有时间，不是显存。
+- **参数效率更高**：单个网络 $f_\theta$ 替代了每一层不同的 $f_l$。
+- **自适应深度**：如 dopri5（自适应 Runge-Kutta）等求解器会自动在动力学剧烈处采用小步长，在平缓处采用大步长。
+- **内存占用更低**：伴随方法将反向传播的内存开销从 $O(L)$ 降至 $O(1)$——深度增加带来的只是计算时间，而非显存压力。
 
 ![ResNet（离散深度，固定步）vs Neural ODE（连续深度，自适应求解器）。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig2_neural_ode_vs_resnet.png)
-*图 2：左侧是 ResNet，每层一组参数的 $h_{l+1}=h_l+f_l(h_l)$ Euler 步，反向传播需存所有中间激活。右侧是 Neural ODE，单个 $f_\theta$ 驱动 ODE，自适应求解器决定采样点，伴随方法以 $O(1)$ 内存恢复梯度。*
+*图 2：左侧是 ResNet，由一系列 $h_{l+1} = h_l + f_l(h_l)$ 的 Euler 步组成，每层参数独立，反向传播需存储所有中间激活；右侧是 Neural ODE，由单一 $f_\theta$ 驱动，自适应求解器动态选择评估点，伴随方法仅用 $O(1)$ 内存即可恢复梯度。*
 
-### 2.2 伴随方法
-
-标准 backprop 对 ODE 求解器需存每步中间状态，复杂度 $O(L)$（自适应求解器常上百步）。伴随方法完全避免了这点。
-
-定义**伴随状态** $\mathbf{a}(t)=\partial\mathcal{L}/\partial\mathbf{h}(t)$，满足$$\frac{d\mathbf{a}}{dt}=-\,\mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}$$参数梯度为$$\frac{d\mathcal{L}}{d\theta}=-\int_T^0 \mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}$$
-**算法：**
-1. *前向。* 求解 (2)，从 $0\to T$，只存 $\mathbf{h}(T)$。
-2. *初始化。* $\mathbf{a}(T)=\partial\mathcal{L}/\partial\mathbf{h}(T)$。
-3. *反向。* 将 $\mathbf{h}$ 和 $\mathbf{a}$ 一起从 $T\to 0$ 反向求解，累加 (4)。
-
-内存复杂度 $O(1)$，与求解步数无关。代价是反向多解一次 ODE——约 2 倍计算换无限大内存节省。
+### 2.2 伴随灵敏度方法
+\n标准反向传播在 ODE 求解过程中需存储每一步的中间状态，内存开销为 $O(L)$——而自适应求解器可能执行上百步。伴随方法则完全避免了这一问题。
+\n定义**伴随状态** $\mathbf{a}(t) = \partial\mathcal{L}/\partial\mathbf{h}(t)$，它满足
+$$
+\frac{d\mathbf{a}}{dt} = -\,\mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}
+$$\n而参数梯度为
+$$
+\frac{d\mathcal{L}}{d\theta} = -\int_T^0 \mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}
+$$
+**算法流程如下**：
+1. *前向传递*：求解 (2) 从 $0 \to T$，仅保存最终状态 $\mathbf{h}(T)$。
+2. *初始化*：设 $\mathbf{a}(T) = \partial\mathcal{L}/\partial\mathbf{h}(T)$。
+3. *反向传递*：将 $\mathbf{h}$ 与 $\mathbf{a}$ 联合从 $T \to 0$ 反向求解，并累积 (4) 中的梯度。
+\n该方法的内存开销为 $O(1)$，与求解步数无关。代价是反向过程需额外求解一次 ODE——计算量约为原来的两倍，却换来了近乎无限的内存节省。
 
 ![伴随方法：在二维向量场上的正反两条轨迹，以及不同深度下的内存对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig3_adjoint_method.png)
-*图 3：左：同一螺旋 ODE 先正向积分（蓝）得 $h(T)$，再连同伴随反向积分（红虚线）恢复梯度。右：随求解步数 $L$ 增加的内存代价。标准 backprop 是 $O(L)$；伴随始终 $O(1)$——$L{=}1000$ 时节省 1000 倍。*
+*图 3：左图展示同一螺旋 ODE 先正向积分（蓝色）得到 $h(T)$，再与伴随状态（红色虚线）一同反向积分以恢复梯度；右图对比内存开销随求解步数 $L$ 的增长情况：标准反向传播为 $O(L)$，而伴随方法始终保持 $O(1)$——当 $L=1000$ 时，内存节省达千倍。*
 
 ### 2.3 表达能力
+\nNeural ODE 在 $\mathbb{R}^d$ 上的同胚映射空间中是稠密的（Zhang et al., 2020）。然而，它**无法改变拓扑结构**——例如，单个定义在 $\mathbb{R}^d$ 上的 Neural ODE 无法解开两个互锁的环。这催生了**增广型 Neural ODE（Augmented Neural ODE）**：通过将系统提升至 $\mathbb{R}^{d+k}$，额外维度为流提供了“解扣”的空间。
 
-Neural ODE 在 $\mathbb{R}^d$ 同胚映射空间中稠密 [Zhang et al. 2020]。但它**不能改变拓扑**——单个 $\mathbb{R}^d$ 上的 Neural ODE 无法解开相扣环。这是 **Augmented Neural ODE** 的动机：升维到 $\mathbb{R}^{d+k}$，新增维度让流有空间解扣。
 ## 3. 连续归一化流（CNF）
 
 ### 3.1 从离散流到连续流
+\n离散归一化流通过一系列可逆映射将初始样本 $\mathbf{z}_0 \sim p_0$ 变换为目标分布：
+$$
+\mathbf{z}_K = f_K \circ \cdots \circ f_1(\mathbf{z}_0), \qquad \log p_K = \log p_0 - \sum_{k=1}^K \log\!\bigl|\det \partial f_k / \partial\mathbf{z}_{k-1}\bigr|.
+$$\n每个行列式计算的复杂度为 $O(d^3)$，除非采用特殊架构（如耦合层、自回归结构等）将其降至 $O(d)$——但这会限制模型的表达能力。
+\nCNF 则用一个 ODE 替代整个堆叠结构，并利用瞬时公式 (1)：
+$$
+\frac{d\mathbf{z}}{dt} = f_\theta(\mathbf{z}(t), t), \qquad \frac{d\log p}{dt} = -\nabla\!\cdot f_\theta(\mathbf{z}(t), t). \tag{5}
+$$
+**无需对网络施加可逆性约束**——ODE 本身可通过反向积分实现逆映射；**无需计算行列式**——只需计算迹（即散度）。
 
-离散流通过可逆映射变换 $\mathbf{z}_0\sim p_0$：$$\mathbf{z}_K=f_K\circ\cdots\circ f_1(\mathbf{z}_0),\qquad \log p_K=\log p_0-\sum_{k=1}^K\log\!\bigl|\det\partial f_k/\partial\mathbf{z}_{k-1}\bigr|.$$每个 $\det$ 计算复杂度是 $O(d^3)$，除非用特殊架构（耦合层、自回归等）优化到 $O(d)$——但表达力受限。
-
-CNF 把整个堆叠换成 ODE，使用瞬时公式 (1)：$$\frac{d\mathbf{z}}{dt}=f_\theta(\mathbf{z}(t),t),\qquad \frac{d\log p}{dt}=-\nabla\!\cdot f_\theta(\mathbf{z}(t),t). \tag{5}$$**网络无需可逆约束**——ODE 反向积分就是逆映射。**没有行列式**——只需迹。
-
-### 3.2 FFJORD：用 Hutchinson 估计迹
-
-瓶颈是迹 $\nabla\!\cdot f=\mathrm{tr}(\partial f/\partial\mathbf{z})$。精确计算仍需 $d$ 次 vector-Jacobian product。**FFJORD**（Grathwohl 等 2018）用无偏估计替代：$$\nabla\!\cdot f=\mathbb{E}_{\boldsymbol\epsilon}\!\left[\boldsymbol\epsilon^\top\!\frac{\partial f}{\partial\mathbf{z}}\,\boldsymbol\epsilon\right],\qquad \boldsymbol\epsilon\sim\mathcal{N}(0,\mathbf{I}). \tag{6}$$这是 **Hutchinson 迹估计**：每次采样只需一次 vector-Jacobian product，与 $d$ 无关。
+### 3.2 FFJORD：通过 Hutchinson 估计实现可扩展的迹计算
+\n剩下的瓶颈是散度 $\nabla\!\cdot f = \mathrm{tr}(\partial f / \partial\mathbf{z})$。精确计算仍需 $d$ 次 vector-Jacobian product。**FFJORD**（Grathwohl et al., 2018）提出用无偏估计替代：
+$$
+\nabla\!\cdot f = \mathbb{E}_{\boldsymbol\epsilon}\!\left[\boldsymbol\epsilon^\top\!\frac{\partial f}{\partial\mathbf{z}}\,\boldsymbol\epsilon\right], \qquad \boldsymbol\epsilon \sim \mathcal{N}(0, \mathbf{I}). \tag{6}
+$$\n这就是著名的 **Hutchinson 迹估计器**，每次采样仅需一次 vector-Jacobian product，其计算成本与维度 $d$ 无关。
 
 ![Hutchinson 迹估计：方差以 1/sqrt(K) 收缩，单步代价从 O(d^2) 降为 O(d)。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig4_ffjord_trace.png)
-*图 4：左：$d{=}64$ 下 Hutchinson 估计在 400 次试验的方差，随采样向量数 $K$ 变化，虚线是教科书 $1/\sqrt{K}$ 包络。右：随维度 $d$ 增加的单步散度代价对比。完整 Jacobian 是 $O(d^2)$ 次 AD 调用；$K{=}4$ 的 Hutchinson 是 $O(Kd)$——在 $d{=}1024$ 时便宜三个数量级。*
+*图 4：左图展示在 $d=64$ 下，Hutchinson 估计器在 400 次试验中的方差随探针向量数 $K$ 的变化，虚线表示理论上的 $1/\sqrt{K}$ 收敛速率；右图对比不同维度下的单步散度计算成本：完整 Jacobian 需 $O(d^2)$ 次自动微分调用，而 $K=4$ 的 Hutchinson 方法仅需 $O(Kd)$——在 $d=1024$ 时快三个数量级。*
 
 ### 3.3 训练与采样
+\n给定数据点 $\mathbf{x}$，其对数似然为：
+$$
+\log p_1(\mathbf{x}) = \log p_0(\mathbf{z}_0) + \int_0^1 \nabla\!\cdot f_\theta(\mathbf{z}(t), t)\,dt,
+$$\n其中 $\mathbf{z}_0$ 通过从 $\mathbf{x}$ 反向积分 ODE (5) 得到。我们使用伴随方法最大化对数似然。**采样时**，只需从 $p_0$ 中采样 $\mathbf{z}_0$，然后正向积分即可。
 
-给定数据 $\mathbf{x}$：$$\log p_1(\mathbf{x})=\log p_0(\mathbf{z}_0)+\int_0^1 \nabla\!\cdot f_\theta(\mathbf{z}(t),t)\,dt,$$其中 $\mathbf{z}_0$ 通过反向积分从 $\mathbf{x}$ 得到。用伴随方法最大化对数似然。**采样**时，抽 $\mathbf{z}_0\sim p_0$，正向积分。
+**权衡取舍**：CNF 提供精确的似然估计，但每次前向或反向传递都需要求解 ODE——通常涉及数十至数百次网络评估。训练过程也较为敏感：求解器容差、$f_\theta$ 的正则化强度以及 Hutchinson 估计的方差会相互影响。
 
-**权衡。** CNF 提供精确似然，但每次前向/反向需解 ODE——典型几十到几百次网络评估。训练较脆：求解容差、$f_\theta$ 正则化、 Hutchinson 方差互相影响。
 ## 4. 最优传输与 Flow Matching
 
 ![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
 
 ### 4.1 Benamou-Brenier 联系
+\n二次代价的最优传输问题具有动态形式：
+$$
+\min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
+\quad\text{s.t.}\quad \partial_t\rho + \nabla\!\cdot(\rho v) = 0,\;\rho_0, \rho_1\text{ 给定}.
+$$\n其最优解 $v_t^\star$ 恰好是 CNF 的速度场，且在欧氏最优传输情形下，其轨迹为直线。这为将 CNF 与最优传输结合提供了最清晰的几何动机。
 
-二次代价的最优传输有动态表述： $$\min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
-\quad\text{s.t.}\quad \partial_t\rho+\nabla\!\cdot(\rho v)=0,\;\rho_0,\rho_1\text{ 给定}.$$极小化的 $v_t^\star$ 是 CNF 的速度场，轨迹为直线（欧氏 OT 情形）。这是结合 CNF 和 OT 的几何本质。
+### 4.2 Flow Matching
 
-### 4.2 流量匹配
+**Flow Matching**（Lipman et al., 2022）是一种极具实用价值的简化方案。它既不通过 ODE 求解器优化负对数似然（NLL），也不求解复杂的最优传输问题，而是选定一条条件概率路径，并直接回归对应的速度场。
+\n最简单的选择是：将 $\mathbf{z}_0 \sim p_0$ 与 $\mathbf{z}_1 \sim p_{\text{data}}$ 配对，定义**条件路径** $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_1$，此时条件目标速度为
+$$\nu_t^\star(\mathbf{z}_t \mid \mathbf{z}_0, \mathbf{z}_1) = \mathbf{z}_1 - \mathbf{z}_0. \tag{7}
+$$
+**训练目标为**：
+$$
+\mathcal{L}_{\text{FM}} = \mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t, t) - (\mathbf{z}_1 - \mathbf{z}_0)\|^2\,\Bigr]. \tag{8}
+$$
 
-**Flow Matching**（Lipman 等 2022）是杀手级简化。不通过 ODE 求解器优化 NLL，也不解 OT 问题，而是选一条条件概率路径，回归对应速度场。
-
-最简单的方法：配对 $\mathbf{z}_0\sim p_0$ 和 $\mathbf{z}_1\sim p_{\text{data}}$，定义条件路径 $\mathbf{z}_t=(1-t)\mathbf{z}_0+t\mathbf{z}_1$，目标速度为$$u_t^\star(\mathbf{z}_t\mid\mathbf{z}_0,\mathbf{z}_1)=\mathbf{z}_1-\mathbf{z}_0. \tag{7}$$
-**训练目标：**$$\mathcal{L}_{\text{FM}}=\mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t,t)-(\mathbf{z}_1-\mathbf{z}_0)\|^2\,\Bigr]. \tag{8}$$
-
-**关键定理（Lipman 等）：** 边缘速度 $\mathbb{E}[u_t^\star\mid\mathbf{z}_t]$ 满足连续性方程，将 $p_0$ 输运到 $p_1$。在灵活的 $v_\theta$ 上极小化 (8)，可恢复合法 CNF，且训练时无需计算散度。
+**关键定理（Lipman et al.）**：边缘速度 $\mathbb{E}[u_t^\star \mid \mathbf{z}_t]$ 满足连续性方程，能将 $p_0$ 输运至 $p_1$。因此，只要 $v_\theta$ 足够灵活，最小化 (8) 即可恢复一个有效的 CNF——且训练过程中完全无需计算散度。
 
 ![Flow Matching：成对样本之间的线性条件路径；对比 CNF 的训练曲线。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig5_flow_matching.png)
-*图 5：左：随机样本对 $(\mathbf{z}_0,\mathbf{z}_1)$ 的线性条件路径。任意 $\mathbf{z}_t$ 处目标速度为 $\mathbf{z}_1-\mathbf{z}_0$——训练时无散度，无 ODE 求解。右：损失曲线对比。 FM 收敛快一个数量级，稳定平台更低。*
+*图 5：左图展示随机样本对 $(\mathbf{z}_0, \mathbf{z}_1)$ 之间的线性条件路径，任意 $\mathbf{z}_t$ 处的目标速度就是 $\mathbf{z}_1 - \mathbf{z}_0$——训练时既无散度计算，也无需 ODE 求解；右图对比损失曲线：Flow Matching 收敛速度快近一个数量级，且达到更低的稳定平台。*
 
-### 4.3 2024 年实际怎么用
+### 4.3 2024 年的实际选择
 
 | 方法 | 训练成本 | 优点 | 缺点 |
 |------|---------|------|------|
-| 离散 NF （RealNVP/Glow） | 便宜，无 ODE | 采样和似然快 | 架构受限 |
-| CNF / FFJORD | ODE + Hutchinson | $f_\theta$ 自由形式，精确 NLL | 慢，调参敏感 |
-| OT-Flow | OT 代价 + 匹配 | 路径直、最优 | 两个损失需平衡 |
-| **Flow Matching** | 纯回归 | 稳定、快、扩展性强 | 需设计条件路径 |
-| Rectified Flow / 一致性 | 迭代拉直 | 极少步采样 | 多阶段训练 |
+| 离散 NF（RealNVP/Glow） | 低廉，无需 ODE | 采样和似然计算快 | 架构受限 |
+| CNF / FFJORD | ODE + Hutchinson | $f_\theta$ 形式自由，似然精确 | 训练慢，调参敏感 |
+| OT-Flow | OT 代价 + 匹配 | 路径笔直、最优 | 需平衡两个损失项 |
+| **Flow Matching** | 纯回归 | 稳定、快速、易于扩展至图像等高维数据 | 需设计合适的条件路径 |
+| Rectified Flow / 一致性 | 迭代拉直 | 极少步数即可采样 | 需多阶段训练 |
+\n截至 2024 年，大多数生产级的连续流系统（用于图像、音频、分子生成）都采用了 Flow Matching 或 Rectified Flow 的某种变体。
 
-到 2024 年，生产规模的连续流系统（图像、音频、分子）多为 Flow Matching 或 Rectified Flow 变体。
-## 5. “连续深度”的图像
+## 5. “连续深度”的直观图景
 
-“连续深度”是贯穿全章的核心概念。 Neural ODE 是深度网络的连续极限， CNF 是归一化流的连续极限。两者的图示完全一致。
+“连续深度”是贯穿本章的核心思想：Neural ODE 是深度网络的连续极限，而 CNF 则是归一化流的连续极限。两者背后的图像完全一致。
 
 ![连续轨迹 h(t) 分别由固定深度的 ResNet 和自适应 ODE 求解器近似。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig6_continuous_depth.png)
-*图 6：蓝色是底层 Neural ODE 给出的真实连续轨迹 $h(t)$。红虚线是固定深度 $L{=}4$ 的 ResNet，在 $|\dot h|$ 大的地方欠拟合（红色误差片）。橙色 $L{=}8$ 仍无法捕捉高频振荡。紫色菱形是自适应求解器的检查点：**动力学复杂处多采样，平滑处少采样**，用更少评估达到相同精度，无需手动调参。*
+*图 6：蓝色曲线是底层 Neural ODE 生成的真实连续轨迹 $h(t)$；红色虚线是固定深度 $L=4$ 的 ResNet，在 $|\dot h|$ 较大的区域明显欠拟合（红色误差区域）；橙色曲线（$L=8$）仍无法捕捉高频振荡；紫色菱形是自适应求解器的评估点——**在动力学剧烈处密集采样，在平滑处稀疏采样**，以更少的总评估次数达到相同精度，且无需手动调整“深度”。*
+\n这也解释了为何一个 ODE 函数 $f_\theta$ 能替代深 ResNet 中的数百层：**时间变量**取代了层索引的角色，而离散化策略则交由求解器自动决定。
 
-深 ResNet 中几百层在 Neural ODE 里被一个 $f_\theta$ 替代。时间变量取代层索引，离散化由求解器决定。
 ## 6. 整合全流程：二维密度估计
-
-用经典的两月牙数据，走一遍端到端的密度估计流程。
+\n为使整个流程更具体，我们在经典的“双月牙”玩具数据集上展示端到端的密度估计过程。
 
 ![二维玩具数据上的密度估计：目标样本、经验 KDE、CNF 拟合密度、生成样本与 ODE 轨迹。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig7_density_estimation.png)
-*图 7：(a) 4000 个两月牙目标样本。(b) KDE 经验密度。(c) 连续流学到的密度——通过训练好的 $v_\theta$ 正向输运高斯分布得到。(d) 紫色是生成样本，绿色是若干条 ODE 轨迹，展示基点如何从单位高斯（绿点）流向目标月牙。同一个网络 $v_\theta$ 既用于密度估计（从 $\mathbf{x}$ 反向积分），也用于采样（从噪声正向积分）。*
+*图 7：(a) 4000 个来自“双月牙”目标分布的样本；(b) 通过 KDE 得到的经验密度；(c) 连续流学到的密度——通过将高斯分布沿训练好的 $v_\theta$ 正向输运得到；(d) 紫色为生成样本，绿色为若干条 ODE 轨迹，展示基点如何从单位高斯分布（绿点）流向目标月牙。同一个网络 $v_\theta$ 同时用于密度评估（从 $\mathbf{x}$ 反向积分）和采样（从噪声正向积分）。*
+\n这种双重能力——既能进行**精确似然的密度估计**，又能高效**采样**——仅依赖一个网络 $v_\theta$ 和一个 ODE $\dot{\mathbf{z}} = v_\theta(\mathbf{z}, t)$，正是连续流在理论上极具吸引力的原因。
 
-一个网络 $v_\theta$ 加一个 ODE $\dot{\mathbf{z}}=v_\theta(\mathbf{z},t)$，既能精确估计似然，又能高效采样。这种双重特性正是连续流理论吸引力的核心所在。
 ## 7. 实验
 
 ### 7.1 螺旋 ODE 拟合
+\n使用一个 3 层 MLP（隐藏维 64，tanh 激活）参数化 $f_\theta$，通过伴随方法在二维阻尼螺旋目标上训练，求解器为 dopri5（rtol $=10^{-5}$）。经过 1000 步训练后，平均轨迹误差降至 $<10^{-3}$，峰值 GPU 内存约为 40 MB，与内部约 80 步的求解过程无关。
 
-3 层 MLP （隐藏维 64， tanh）参数化 $f_\theta$。用伴随方法训练，目标是二维阻尼螺旋，求解器 dopri5 （rtol $=10^{-5}$）。 1000 步后，平均轨迹误差降到 $<10^{-3}$。峰值 GPU 内存约 40 MB，与内部 ~80 步无关。
+### 7.2 高斯 → 双月牙 CNF
+\n采用 4 层 MLP（隐藏维 128，softplus 激活），按 FFJORD 方式训练，使用 Hutchinson 迹估计和 dopri5 求解器，共训练 5000 步。生成样本完整覆盖两个月牙，并准确捕捉其弯月状厚度；与目标分布的 KDE 对比显示，Wasserstein-2 距离约为 0.07。
 
-### 7.2 高斯 → 两月牙 CNF
-
-4 层 MLP （隐藏维 128， softplus），按 FFJORD 训练。 Hutchinson 迹估计， dopri5 求解器， 5000 步。生成样本覆盖两条月牙，厚度符合弯月形状。 KDE 对比目标分布， Wasserstein-2 $\approx 0.07$。
-
-### 7.3 伴随 vs 标准 backprop （数据来自 Neural ODE 原文，外推到 1024 维隐藏态）
+### 7.3 伴随方法 vs 标准反向传播（数据源自 Neural ODE 原文，外推至 1024 维隐藏状态）
 
 | 方法 | 内存 (MB) | 时间 (s) | 测试准确率 |
 |------|-----------|---------|-----------|
-| 标准 backprop，固定 $L=100$ | 2450 | 2.3 | 85.2% |
-| 伴随，固定 $L=100$ | 320 | 3.1 | 85.1% |
-| 伴随，自适应（dopri5） | 310 | 2.8 | 85.3% |
+| 标准反向传播，固定 $L=100$ | 2450 | 2.3 | 85.2% |
+| 伴随方法，固定 $L=100$ | 320 | 3.1 | 85.1% |
+| 伴随方法，自适应（dopri5） | 310 | 2.8 | 85.3% |
+\n内存开销降低约 87%，而实际运行时间仅增加 20–30%。
 
-内存减少约 87%，挂钟时间增加 20-30%。
+### 7.4 Flow Matching vs CNF（双月牙数据）
 
-### 7.4 Flow Matching vs CNF （二维 moons）
-
-| 方法 | 样本质量（越低越好） | 收敛迭代数 | 采样时间 |
-|------|--------------------|-----------|---------|
+| 方法 | 样本质量（越低越好） | 收敛所需迭代数 | 采样时间 |
+|------|--------------------|----------------|----------|
 | CNF (FFJORD) | 12.3 | 8000 | 2.1 s / 1k 样本 |
 | Flow Matching | 8.7 | 3000 | 1.8 s / 1k 样本 |
+\nFlow Matching 收敛速度约为 CNF 的 2.7 倍，且生成的月牙形状更清晰。在真实图像数据上，这一差距更为显著——训练时间和采样所需的函数评估次数（NFE）相差一到两个数量级。
 
-FM 收敛快 $2.7\times$，月牙更干净。真实图像上差距更大，训练时间和采样 NFE 差一两个数量级。
 ## 8. 习题
 
 **习题 1.** 从连续性方程直接推导瞬时变量替换公式 (1)。
 
-> *解。* 连续性方程：$\partial_t\rho+\nabla\!\cdot(\rho f)=0$，即 $\partial_t\rho+f\!\cdot\!\nabla\rho+\rho\,\nabla\!\cdot f=0$。沿 $\mathbf{z}(t)$，$\frac{d}{dt}\rho(\mathbf{z}(t),t)=\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$。两边除以 $\rho$ 即得。
+> *解*。连续性方程：$\partial_t\rho + \nabla\!\cdot(\rho f) = 0$，即 $\partial_t\rho + f\!\cdot\!\nabla\rho + \rho\,\nabla\!\cdot f = 0$。沿轨迹 $\mathbf{z}(t)$，有 $\frac{d}{dt}\rho(\mathbf{z}(t), t) = \partial_t\rho + f\!\cdot\!\nabla\rho = -\rho\,\nabla\!\cdot f$。两边同除以 $\rho$ 即得结果。
 
-**习题 2.** 伴随方法的内存为何是 $O(1)$？
+**习题 2.** 为何伴随方法的内存开销为 $O(1)$？
 
-> *解。* 只存当前 $\mathbf{h}(t)$、$\mathbf{a}(t)$ 和参数梯度累加器。反向求解需旧 $\mathbf{h}(s)$ 时，通过前向 ODE 反向积分重新计算，不存中间状态。$O(1)$ 指深度无关，空间维度仍需 $d$。
+> *解*。它仅需存储当前的 $\mathbf{h}(t)$、$\mathbf{a}(t)$ 以及参数梯度的累加器。当反向求解器需要历史状态 $\mathbf{h}(s)$ 时，会通过反向积分前向 ODE 重新生成，而非预先存储。这里的 $O(1)$ 指与深度无关，空间维度 $d$ 的开销依然存在。
 
-**习题 3.** 证明 Hutchinson 估计 (6) 是无偏的。
+**习题 3.** 证明 Hutchinson 估计器 (6) 是无偏的。
 
-> *解。* 对任意矩阵 $A$ 和满足 $\mathbb{E}[\boldsymbol\epsilon]=0$、$\mathrm{Cov}[\boldsymbol\epsilon]=\mathbf{I}$ 的 $\boldsymbol\epsilon$：$\mathbb{E}[\boldsymbol\epsilon^\top A\,\boldsymbol\epsilon]=\sum_{i,j}A_{ij}\mathbb{E}[\epsilon_i\epsilon_j]=\sum_i A_{ii}=\mathrm{tr}\,A$。
+> *解*。对任意矩阵 $A$ 和满足 $\mathbb{E}[\boldsymbol\epsilon] = 0$、$\mathrm{Cov}[\boldsymbol\epsilon] = \mathbf{I}$ 的随机向量 $\boldsymbol\epsilon$，有 $\mathbb{E}[\boldsymbol\epsilon^\top A\,\boldsymbol\epsilon] = \sum_{i,j} A_{ij}\,\mathbb{E}[\epsilon_i\epsilon_j] = \sum_i A_{ii} = \mathrm{tr}\,A$。
 
-**习题 4.** 高层次比较 Flow Matching 与 DDPM。
+**习题 4.** 从高层面对比 Flow Matching 与 DDPM。
 
-> *解。* 两者均实现噪声 → 数据。 DDPM 在随机前向 SDE 加噪过程上用 score matching 学去噪器；采样解反向 SDE 或概率流 ODE。 Flow Matching 在确定性 ODE 上学速度场 $v_\theta$，匹配某条件路径；采样直接积分该 ODE。 FM 训练损失为纯回归，无需时变噪声调度。
+> *解*。两者都实现从噪声到数据的变换。DDPM 在随机前向 SDE 加噪过程中通过 score matching 学习去噪器，采样时需求解反向 SDE 或其对应的概率流 ODE；Flow Matching 则在确定性 ODE 上学习速度场 $v_\theta$，匹配预设的条件路径，采样只需对该 ODE 积分。Flow Matching 的训练损失是纯回归，无需设计时变噪声调度。
 
-**习题 5.** 证明对线性条件路径 $\mathbf{z}_t=(1-t)\mathbf{z}_0+t\mathbf{z}_1$，边缘速度 $\mathbb{E}[\mathbf{z}_1-\mathbf{z}_0\mid\mathbf{z}_t]$ 通过连续性方程将 $p_0$ 推至 $p_1$。
+**习题 5.** 证明对线性条件路径 $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_1$，边缘速度 $\mathbb{E}[\mathbf{z}_1 - \mathbf{z}_0 \mid \mathbf{z}_t]$ 通过连续性方程将 $p_0$ 推至 $p_1$。
 
-> *解（要点）。* 写 $\rho_t(\mathbf{z})=\int q(\mathbf{z}_0,\mathbf{z}_1)\,\delta(\mathbf{z}-(1-t)\mathbf{z}_0-t\mathbf{z}_1)\,d\mathbf{z}_0\,d\mathbf{z}_1$。对 $t$ 求导，用恒等式 $\partial_t\delta=-\nabla\!\cdot[(\mathbf{z}_1-\mathbf{z}_0)\delta]$。给定 $\mathbf{z}_t$ 边缘化 $\mathbf{z}_0,\mathbf{z}_1$ 得 $\partial_t\rho_t+\nabla\!\cdot(\rho_t\,\bar v_t)=0$，其中 $\bar v_t(\mathbf{z})=\mathbb{E}[\mathbf{z}_1-\mathbf{z}_0\mid\mathbf{z}_t=\mathbf{z}]$。
+> *解（要点）*。写出 $\rho_t(\mathbf{z}) = \int q(\mathbf{z}_0, \mathbf{z}_1)\,\delta(\mathbf{z} - (1-t)\mathbf{z}_0 - t\mathbf{z}_1)\,d\mathbf{z}_0\,d\mathbf{z}_1$。对 $t$ 求导，并利用恒等式 $\partial_t\delta = -\nabla\!\cdot[(\mathbf{z}_1 - \mathbf{z}_0)\delta]$。在给定 $\mathbf{z}_t$ 的条件下对 $\mathbf{z}_0, \mathbf{z}_1$ 边缘化，可得 $\partial_t\rho_t + \nabla\!\cdot(\rho_t\,\bar v_t) = 0$，其中 $\bar v_t(\mathbf{z}) = \mathbb{E}[\mathbf{z}_1 - \mathbf{z}_0 \mid \mathbf{z}_t = \mathbf{z}]$。
+
 ## 参考文献
 
 [1] Chen, R. T. Q., Rubanova, Y., Bettencourt, J., & Duvenaud, D. (2018). Neural ordinary differential equations. *NeurIPS*.
