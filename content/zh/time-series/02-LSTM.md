@@ -47,13 +47,17 @@ LSTM（Hochreiter & Schmidhuber, 1997）通过引入**两个状态**（细胞状
 
 每个 LSTM 单元包含四个共享输入 $[h_{t-1}, x_t]$ 的门控单元，分别输出三个 sigmoid 门和一个 $\tanh$ 候选值：
 $$
-\begin{aligned}\nf_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) && \text{遗忘门} \\\ni_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) && \text{输入门} \\
-\tilde C_t &= \tanh(W_C [h_{t-1}, x_t] + b_C) && \text{候选值} \\\no_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) && \text{输出门}
+\begin{aligned}
+f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) && \text{遗忘门} \\
+i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) && \text{输入门} \\
+\tilde C_t &= \tanh(W_C [h_{t-1}, x_t] + b_C) && \text{候选值} \\
+o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) && \text{输出门}
 \end{aligned}
 $$
 这些信号共同完成细胞状态更新与隐藏状态输出：
 $$
-C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad\nh_t = o_t \odot \tanh(C_t).
+C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad
+h_t = o_t \odot \tanh(C_t).
 $$
 其中 $\odot$ 表示逐元素乘法。**通俗理解**：遗忘门 $f_t$ 决定擦除多少旧记忆，输入门 $i_t$ 控制写入多少新候选值，最后通过输出门 $o_t$ 决定对外暴露多少当前记忆。
 *LSTM 单元——三个门作用在一条细胞状态高速公路上。*
