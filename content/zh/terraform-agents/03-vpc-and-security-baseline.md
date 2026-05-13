@@ -494,19 +494,19 @@ terraform apply
 | Item                       | Monthly (cn-shanghai) | Notes |
 |----------------------------|----------------------:|-------|
 | VPC + vSwitch + RT         | ¥0                    | free at any scale |
-| Security groups            | ¥0                    | free, 100 SGs/account hard limit |
+| 安全组 | ¥0 | 免费，每个账号最多100个安全组 |
 | KMS keys (3, software)     | ¥9                    | ¥3/mo per CMK |
-| EIP reservation            | ¥18                   | ¥0.6/day if unattached; attached EIPs are free to hold |
-| NAT (Enhanced) reservation | ¥120                  | ¥4/day for Enhanced NAT |
+| EIP 预留 | ¥18 | 未绑定时¥0.6/天；已绑定的EIP免费持有 |
+| NAT（增强型）预留 | ¥120 | 增强型NAT ¥4/天 |
 | **Fixed total**            | **~¥147/mo**          |       |
 
 变动成本：
 
 | Item                 | Unit price                   | Example |
 |----------------------|-----------------------------:|---------|
-| EIP outbound traffic | ¥0.8/GB BGP, ¥0.3/GB on-peak | 100 GB/mo agent traffic = ¥80 |
-| KMS API calls        | ¥0.005/call after free tier  | 100k calls/mo = ¥500 |
-| NAT inter-zone       | free inside same VPC         | nothing |
+| EIP 出站流量 | BGP ¥0.8/GB，高峰时段¥0.3/GB | 每月100 GB代理流量 = ¥80 |
+| KMS API 调用 | 超出免费额度后¥0.005/次 | 每月10万次调用 = ¥500 |
+| 同VPC内跨可用区NAT | 免费 | 无费用 |
 
 低流量 dev workspace （10 GB 出站， 1k 次 KMS 调用）：¥147 + ¥8 + ¥0 ≈ **¥155/mo**。
 

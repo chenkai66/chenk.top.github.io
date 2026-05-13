@@ -278,7 +278,7 @@ def extract_last_frame(video_url: str) -> str:
 
 万相的 `size` 参数背后藏着成本差异。不同画幅比例内部路由的模型路径不一样，每秒计价也不同。这是我实测的数据（建议你用自己的账单复核一下）：
 
-| Size | Aspect | Use case | Relative cost per second |
+| 大小 | 方面 | 使用场景 | 每秒相对成本 |
 |---|---|---|---|
 | `1280*720` | 16:9 | 标准横屏 (YouTube, 广告位) | 1.0× (baseline) |
 | `1920*1080` | 16:9 | 高分辨率横屏 | 1.4× |

@@ -203,7 +203,7 @@ ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高
 
 下面是 `ecs.c7.large` (2 vCPU, 4 GiB) 在 `cn-beijing` 区域， 24/7 运行一个月的真实成本对比（价格近似，请以当前费率为准）：
 
-| Model | Hourly (CNY) | Monthly (CNY) | Savings vs PAYG |
+| 型号 | 每小时（元） | 每月（元） | 相比按量付费节省 |
 |---|---|---|---|
 | Pay-as-you-go | 0.68 | ~490 | — |
 | Subscription (1 month) | — | ~415 | 15% |
@@ -618,14 +618,14 @@ scp -o ProxyJump=bastion localfile.tar.gz app-internal:/opt/app/
 
 ### 磁盘类型
 
-| Type | IOPS (max) | Throughput (max) | Latency | Best for |
+| 类型 | IOPS (最大) | 吞吐量 (最大) | 延迟 | 适用场景 |
 |---|---|---|---|---|
-| **ESSD PL0** | 10,000 | 180 MB/s | 0.2-0.5 ms | System disks, light workloads |
-| **ESSD PL1** | 50,000 | 350 MB/s | 0.1-0.3 ms | General production, databases |
+| **ESSD PL0** | 10,000 | 180 MB/s | 0.2-0.5 ms | 系统盘，轻负载 |
+| **ESSD PL1** | 50,000 | 350 MB/s | 0.1-0.3 ms | 通用生产环境，数据库 |
 | **ESSD PL2** | 100,000 | 750 MB/s | 0.1-0.3 ms | High-IOPS databases |
-| **ESSD PL3** | 1,000,000 | 4,000 MB/s | 0.1-0.3 ms | Extreme performance, OLTP |
-| **Standard SSD** | 25,000 | 300 MB/s | 0.5-2 ms | Legacy, non-critical |
-| **Ultra Disk** | 5,000 | 140 MB/s | 1-3 ms | Cold storage, archives |
+| **ESSD PL3** | 1,000,000 | 4,000 MB/s | 0.1-0.3 ms | 极致性能，OLTP |
+| **标准 SSD** | 25,000 | 300 MB/s | 0.5-2 ms | 传统应用，非关键业务 |
+| **Ultra Disk** | 5,000 | 140 MB/s | 1-3 ms | 冷存储，归档 |
 
 性能等级（PL0 到 PL3）是你做的最重要的存储决策。数据库跑在 PL0 上会撞 10,000 IOPS 天花板，操作排队；同样的数据库在 PL1 上就有 5 倍余量。 PL0 和 PL1 的差价大概 2 倍——比起计算成本还是很便宜的。
 

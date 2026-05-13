@@ -389,11 +389,11 @@ Terraform 让这事变得很简单——同一个项目里四个 module，共用
 
 | Workload                        | Family               | Why |
 |---------------------------------|----------------------|-----|
-| Conversational agent, no GPU    | `ecs.c7`             | CPU-bound on tokenisation + I/O on LLM calls |
-| Memory-heavy (large context)    | `ecs.r7`             | More RAM per vCPU |
-| Batch / scheduled with bursts   | `ecs.c7a` (AMD)      | ~15% cheaper, slightly slower per core |
-| GPU inference of small models   | `ecs.gn7i`           | T4-class, cheapest GPU on Aliyun |
-| Pretraining / large fine-tune   | Use PAI-DLC, not ECS | Don't reinvent the orchestration |
+| 会话代理，无 GPU    | `ecs.c7`             | 令牌化 + LLM 调用的 I/O 导致 CPU 限制 |
+| 内存密集型（大上下文）    | `ecs.r7`             | 每 vCPU 更多内存 |
+| 批处理/计划任务，有突发流量   | `ecs.c7a` (AMD)      | 约便宜 15%，每核心稍慢 |
+| 小模型的 GPU 推理   | `ecs.gn7i`           | T4 级别，阿里云上最便宜的 GPU |
+| 预训练/大规模微调   | 使用 PAI-DLC，而非 ECS | 不要重复造轮子 |
 
 别选突发型 `ecs.t6` 系列跑 Agent 运行时——持续负载下 CPU 积分耗尽，延迟直接崩盘。拿来跑 `terraform apply` 的堡垒机倒是没问题。
 

@@ -162,13 +162,13 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 |---|---|---|
 | Network in | 50 | Geographic |
 | API gateway / auth | 10 | Should be fast |
-| App server logic | 50 | RAG embedding, tool dispatch |
+| 应用服务器逻辑 | 50 | RAG 嵌入，工具调度 |
 | RAG retrieval | 100 | Vector DB + reranker |
 | LLM gateway overhead | 5 | Just routing |
-| LLM TTFT (queue + prefill) | 300 | The model itself |
+| LLM TTFT (队列 + 预填充) | 300 | 模型本身 |
 | Network out | 50 | Same as in |
-| **Total to first token** | **~565 ms** | Below 1s target |
-| LLM ITL (decode) | 25 | Per-token, sustains 40 tok/s |
+| **总时间到第一个令牌** | **~565 ms** | 低于1秒目标 |
+| LLM ITL (解码) | 25 | 每个令牌，维持40 tok/s |
 | Network buffering | 20 | Smoothing |
 
 最关键的两个延迟指标是 **TTFT**（Time To First Token）和 **ITL**（Inter-Token Latency）。TTFT 决定了用户感觉“有反应了吗？”，ITL 决定了 token 流式输出后的持续阅读速度。2026 年的行业经验值：
@@ -325,11 +325,11 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 | GPT-4o API | $2.50 | $10 | Strong quality |
 | Qwen3-Max API | $1.40 | $5.60 | Strong, cheaper |
 | Gemini-2.5-Pro API | $2.50 | $10 | Strong, long context |
-| DeepSeek-V3 API | $0.14 | $0.28 | Cheap, strong on math/code |
+| DeepSeek-V3 API | $0.14 | $0.28 | 便宜，擅长数学/代码 |
 | Self-host Qwen3-32B FP8 (1xH100) | $0.10 | $0.30 | At 70 % util |
 | Self-host LLaMA-3.3-70B FP8 (2xH100) | $0.30 | $0.90 | At 70 % util |
 | Self-host Qwen3-235B-A22B (8xH100) | $0.50 | $1.50 | At 70 % util |
-| Open-router pooled small models | $0.15 | $0.50 | Cheapest |
+| Open-router 池化小模型 | $0.15 | $0.50 | 最便宜 |
 | Anthropic Batch API (50 % discount) | $1.50 | $7.50 | 24h SLA |
 | OpenAI Batch API (50 % discount) | $1.25 | $5 | 24h SLA |
 

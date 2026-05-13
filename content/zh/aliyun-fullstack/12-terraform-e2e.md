@@ -114,15 +114,15 @@ translationKey: "aliyun-fullstack-12"
 
 资源及其构建出处：
 
-| Resource | Series Part | Terraform Module |
+| 资源 | 系列部分 | Terraform 模块 |
 |---|---|---|
-| VPC, VSwitches, Security Groups, NAT | [Part 3: VPC Networking](/zh/aliyun-fullstack/03-vpc-networking/) | `modules/network` |
-| ECS instance, cloud-init, key pair | [Part 2: ECS Compute](/zh/aliyun-fullstack/02-ecs-compute/) | `modules/compute` |
-| RDS MySQL HA, backups | [Part 5: RDS Database](/zh/aliyun-fullstack/05-rds-database/) | `modules/database` |
-| OSS bucket, lifecycle, CORS, CDN | [Part 4: OSS Storage](/zh/aliyun-fullstack/04-oss-storage/) | `modules/storage` |
-| RAM users, roles, policies, KMS | [Part 6: RAM Security](/zh/aliyun-fullstack/06-ram-security/) | `modules/security` |
-| SLS project, logstore, alerts | [Part 7: SLS Observability](/zh/aliyun-fullstack/07-sls-observability/) | `modules/monitoring` |
-| Function Compute, OSS trigger | [Part 8: Serverless](/zh/aliyun-fullstack/08-serverless/) | `modules/serverless` |
+| VPC, VSwitches, Security Groups, NAT | [第 3 部分：VPC 网络](/zh/aliyun-fullstack/03-vpc-networking/) | `modules/network` |
+| ECS 实例, cloud-init, 密钥对 | [第 2 部分：ECS 计算](/zh/aliyun-fullstack/02-ecs-compute/) | `modules/compute` |
+| RDS MySQL HA, 备份 | [第 5 部分：RDS 数据库](/zh/aliyun-fullstack/05-rds-database/) | `modules/database` |
+| OSS 存储桶, 生命周期, CORS, CDN | [第 4 部分：OSS 存储](/zh/aliyun-fullstack/04-oss-storage/) | `modules/storage` |
+| RAM 用户, 角色, 策略, KMS | [第 6 部分：RAM 安全](/zh/aliyun-fullstack/06-ram-security/) | `modules/security` |
+| SLS 项目, 日志存储, 警报 | [第 7 部分：SLS 可观测性](/zh/aliyun-fullstack/07-sls-observability/) | `modules/monitoring` |
+| Function Compute, OSS 触发器 | [第 8 部分：无服务器](/zh/aliyun-fullstack/08-serverless/) | `modules/serverless` |
 
 对于 [Part 10](/zh/aliyun-fullstack/10-bailian-llm/) 和 [Part 11](/zh/aliyun-fullstack/11-pai-ml-platform/) 中涵盖的 LLM 和 ML 部署， Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 支持的边界所在。
 
@@ -1885,8 +1885,8 @@ jobs:
 
 | Secret Name | Value | Source |
 |---|---|---|
-| `ALICLOUD_ACCESS_KEY` | Your RAM user's Access Key ID | [Part 6: RAM Security](/zh/aliyun-fullstack/06-ram-security/) |
-| `ALICLOUD_SECRET_KEY` | Your RAM user's Access Key Secret | [Part 6: RAM Security](/zh/aliyun-fullstack/06-ram-security/) |
+| `ALICLOUD_ACCESS_KEY` | 您的 RAM 用户的 Access Key ID | [第 6 部分：RAM 安全](/zh/aliyun-fullstack/06-ram-security/) |
+| `ALICLOUD_SECRET_KEY` | 您的 RAM 用户的 Access Key Secret | [第 6 部分：RAM 安全](/zh/aliyun-fullstack/06-ram-security/) |
 
 千万别在 CI/CD 里用根账号的凭证。创建一个专用的 RAM 用户，只给 Terraform 所需的权限（或者更好的做法是用 OIDC 联邦假设 RAM 角色，避免长期凭证——不过这是进阶话题，以后再说）。
 
@@ -2013,7 +2013,7 @@ ecs_instance_type = "ecs.g7.small"  # 原来是：ecs.g7.large
 
 **4. 优化前后成本对比表。**
 
-| Resource | Before (Pay-as-you-go) | After (Optimized) | Savings |
+| 资源 | 之前（按量付费） | 之后（优化后） | 节省 |
 |---|---|---|---|
 | ECS (app server) | $86.14/mo | $43.07/mo (right-sized) | 50% |
 | RDS Primary | $142.35/mo | $85.41/mo (1yr subscription) | 40% |

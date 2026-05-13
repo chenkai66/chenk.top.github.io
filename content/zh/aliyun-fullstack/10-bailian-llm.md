@@ -308,7 +308,7 @@ print(chat("What about cold starts?"))
 
 几个关键参数的调优参考：
 
-| Parameter | Default | Range | What it controls |
+| 参数 | 默认值 | 范围 | 控制内容 |
 |---|---|---|---|
 | `temperature` | 1.0 | 0.0 - 2.0 | 随机性。 0.0 用于确定性任务， 0.7-0.9 用于创意生成 |
 | `top_p` | 1.0 | 0.0 - 1.0 | 核采样。值越低输出越聚焦 |
@@ -560,14 +560,14 @@ with open("demo_narration.mp3", "wb") as f:
 
 | Voice | Gender | Character | Best for |
 |---|---|---|---|
-| Cherry | Female | Warm, natural, positive | Product demos, tutorials |
-| Serena | Female | Gentle, calm | Meditation, soft narration |
-| Ethan | Male | Warm, energetic | Marketing videos |
-| Andre | Male | Deep, steady, magnetic | Professional narration |
-| Neil | Male | News anchor style | Reports, announcements |
-| Maia | Female | Intellectual, gentle | Educational content |
-| Stella | Female | Sweet, youthful | Social media content |
-| Bellona | Female | Loud, powerful | Calls to action |
+| Cherry | 女性 | 温暖、自然、积极 | 产品演示、教程 |
+| Serena | 女性 | 温柔、平静 | 冥想、柔和旁白 |
+| Ethan | 男性 | 温暖、充满活力 | 营销视频 |
+| Andre | 男性 | 深沉、稳重、有磁性 | 专业旁白 |
+| Neil | 男性 | 新闻主播风格 | 报告、公告 |
+| Maia | 女性 | 知性、温柔 | 教育内容 |
+| Stella | 女性 | 甜美、年轻 | 社交媒体内容 |
+| Bellona | 女性 | 响亮、有力 | 行动号召 |
 
 音色名区分大小写。`Cherry` 能用，`cherry` 不行。
 
@@ -974,9 +974,9 @@ curl -s "https://dashscope.aliyuncs.com/compatible-mode/v1/models" \
 
 | 层级 | 服务 | 文章 |
 |---|---|---|
-| Compute | ECS, Function Compute | [Part 2](/zh/aliyun-fullstack/02-ecs-compute/), [Part 8](/zh/aliyun-fullstack/08-serverless/) |
-| Networking | VPC, SLB | [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) |
-| Search & Retrieval | OpenSearch + embeddings | [Part 9](/zh/aliyun-fullstack/09-opensearch/) |
+| 计算 | ECS, Function Compute | [第2部分](/zh/aliyun-fullstack/02-ecs-compute/), [第8部分](/zh/aliyun-fullstack/08-serverless/) |
+| 网络 | VPC, SLB | [第3部分](/zh/aliyun-fullstack/03-vpc-networking/) |
+| 搜索与检索 | OpenSearch + embeddings | [第9部分](/zh/aliyun-fullstack/09-opensearch/) |
 | **AI / LLM** | **DashScope (本文)** | **Part 10** |
 | Storage | OSS (用于媒体资产) | [Part 1](/zh/aliyun-fullstack/01-ecosystem-map/) |
 

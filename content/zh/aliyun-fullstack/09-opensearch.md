@@ -253,11 +253,11 @@ where A . B = sum(a_i * b_i)  (dot product)
 
 关键的 HNSW 参数：
 
-| Parameter | What it controls | Default | Trade-off |
+| 参数 | 控制内容 | 默认值 | 权衡 |
 |---|---|---|---|
-| `ef_construction` | Graph quality during build | 200 | Higher = better recall, slower indexing |
-| `M` | Max connections per node | 16 | Higher = better recall, more memory |
-| `ef_search` | Search quality at query time | 200 | Higher = better recall, slower query |
+| `ef_construction` | 构建时的图质量 | 200 | 较高 = 更好的召回率，索引速度较慢 |
+| `M` | 每个节点的最大连接数 | 16 | 较高 = 更好的召回率，更多内存 |
+| `ef_search` | 查询时的搜索质量 | 200 | 较高 = 更好的召回率，查询速度较慢 |
 
 对大多数应用来说，默认值就够了。如果需要调优：先增加 `ef_search`（成本低），然后是 `M`（消耗内存），最后才是 `ef_construction`（消耗索引时间）。
 
@@ -463,10 +463,10 @@ hybrid_score = alpha * keyword_score_normalized + (1 - alpha) * vector_score_nor
 
 | Use case | Recommended alpha | Why |
 |---|---|---|
-| E-commerce product search | 0.4 | Users often search by model/brand (keyword) |
-| Documentation search | 0.2 | Users describe problems in natural language (vector) |
-| Legal/compliance search | 0.6 | Exact terminology matters more than semantics |
-| Customer support / FAQ | 0.3 | Users describe issues in their own words (vector) |
+| 电商产品搜索 | 0.4 | 用户经常通过型号/品牌（关键词）搜索 |
+| 文档搜索 | 0.2 | 用户用自然语言描述问题（向量） |
+| 法律/合规搜索 | 0.6 | 精确术语比语义更重要 |
+| 客户支持/常见问题 | 0.3 | 用户用自己的话描述问题（向量） |
 
 ### 为什么混合搜索胜过单一方法
 
@@ -1393,12 +1393,12 @@ curl http://localhost:5000/api/health
 
 按 10 万商品目录规模算：
 
-| Component | Specification | Monthly cost (estimate) |
+| 组件 | 规格 | 月费用（估算） |
 |---|---|---|
 | OpenSearch | 2 LCU, 50GB storage | ~800 RMB ($110) |
-| DashScope embeddings | 100K docs x 50 tokens, re-embed weekly | ~15 RMB ($2) |
-| DashScope LLM (query understanding) | 10K queries/day x 200 tokens | ~300 RMB ($42) |
-| DTS sync from RDS | Small instance, continuous | ~200 RMB ($28) |
+| DashScope 嵌入 | 10万文档 x 50个令牌，每周重新嵌入 | ~15 RMB ($2) |
+| DashScope LLM (查询理解) | 每天1万次查询 x 200个令牌 | ~300 RMB ($42) |
+| DTS 从 RDS 同步 | 小实例，持续同步 | ~200 RMB ($28) |
 | ECS for Flask API | ecs.c6.large (2C 4G) | ~300 RMB ($42) |
 | **Total** | | **~1,615 RMB ($224/month)** |
 

@@ -109,14 +109,14 @@ Yao 的论文在 Game of 24、创意写作和 5x5  crossword 上展示了 ToT—
 
 建立一个清晰的心智模型： zero-shot、 few-shot、 CoT 和 ToT 其实都落在一条 *成本 - 质量曲线* 上。
 
-| Pattern | Tokens vs zero-shot | Quality (math) | When to use |
+| 模式 | 与零样本相比的令牌数 | 质量（数学） | 使用场景 |
 |---|---|---|---|
-| Zero-shot | 1x | Baseline | Clear, common tasks |
+| 零样本 | 1x | 基准 | 清晰、常见的任务 |
 | Few-shot (k=5) | 1.5-3x | +5-15 % | Format-sensitive tasks |
-| Zero-shot CoT | 1.5x | +10-30 % | Multi-step reasoning |
-| Few-shot CoT | 3-5x | +15-40 % | Math, formal reasoning |
-| Self-consistency (N=10) | 10x | +5-15 % over CoT | High-stakes verifiable |
-| ToT / GoT | 30-100x | +20-70 % on search | Combinatorial problems |
+| 零样本 CoT | 1.5x | +10-30% | 多步推理 |
+| 少样本 CoT | 3-5x | +15-40% | 数学、形式推理 |
+| 自一致性 (N=10) | 10x | 比 CoT 高 +5-15% | 高风险可验证 |
+| ToT / GoT | 30-100x | 在搜索上 +20-70% | 组合问题 |
 
 对于那些格式或风格不确定的任务， Prompt 里塞 2-5 个示例通常都能打赢 0-shot：
 

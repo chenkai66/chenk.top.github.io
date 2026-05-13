@@ -225,7 +225,7 @@ vLLM 0.6+ 和 SGLang 都支持大部分特性： speculative decoding、 FP8、 
 
 下面是我在 2025 年末测的纯吞吐量数据，单卡 H100 跑 FP8 精度的 Qwen3-32B：
 
-| Engine | Throughput (tok/s) | TTFT p50 (ms) | ITL p50 (ms) |
+| 引擎 | 吞吐量 (tok/s) | TTFT p50 (ms) | ITL p50 (ms) |
 |---|---|---|---|
 | vLLM 0.6 | 7400 | 95 | 13 |
 | SGLang 0.4 | 7800 | 72 | 14 |

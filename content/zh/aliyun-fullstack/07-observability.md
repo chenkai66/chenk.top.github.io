@@ -41,11 +41,11 @@ translationKey: "aliyun-fullstack-7"
 
 在阿里云上，映射关系很清晰：
 
-| Pillar | Alibaba Cloud Service | AWS Equivalent | What It Does |
+| 支柱 | 阿里云服务 | AWS 对应服务 | 功能 |
 |---|---|---|---|
-| **Logs** | SLS (Simple Log Service) | CloudWatch Logs + OpenSearch | Log collection, indexing, querying, analytics |
-| **Metrics** | CloudMonitor | CloudWatch Metrics | Infrastructure and custom metrics, alerting |
-| **Traces** | ARMS (Application Real-Time Monitoring) | X-Ray + CloudWatch APM | APM, distributed tracing, service topology |
+| **日志** | SLS (简单日志服务) | CloudWatch Logs + OpenSearch | 日志收集、索引、查询、分析 |
+| **指标** | CloudMonitor | CloudWatch Metrics | 基础设施和自定义指标、告警 |
+| **跟踪** | ARMS (应用实时监控) | X-Ray + CloudWatch APM | APM、分布式跟踪、服务拓扑 |
 
 这三个服务是互通的。 CloudMonitor 可以基于 SLS 查询结果触发告警。 ARMS 追踪能关联到 SLS 日志条目。 SLS 大盘可以拉取 CloudMonitor 指标数据。集成度虽不如 Datadog 那种统一平台丝滑，但不用第三方工具也能覆盖 90% 的需求。
 
@@ -118,13 +118,13 @@ aliyun sls CreateLogStore \
 
 | Capability | SLS | AWS |
 |---|---|---|
-| Log collection agent | Logtail (SLS-native) | CloudWatch Agent |
-| Full-text search | Built-in, sub-second latency | CloudWatch Logs Insights (slower) |
-| SQL analytics | Full SQL syntax on log data | CloudWatch Logs Insights (limited SQL) |
-| Dashboards | Built into SLS | CloudWatch Dashboards (separate) |
-| Long-term storage | Built-in tiered storage | Export to S3 + Athena |
-| Schema-on-read | Yes, with indexing | Partially (Insights) |
-| Real-time streaming | Built-in consumer groups | Kinesis Data Streams (separate) |
+| 日志收集代理 | Logtail (SLS原生) | CloudWatch Agent |
+| 全文搜索 | 内置，亚秒级延迟 | CloudWatch Logs Insights (较慢) |
+| SQL 分析 | 完整 SQL 语法处理日志数据 | CloudWatch Logs Insights (有限 SQL) |
+| 仪表盘 | 内置于 SLS | CloudWatch 仪表盘 (独立) |
+| 长期存储 | 内置分层存储 | 导出到 S3 + Athena |
+| 读时模式 | 是，带索引 | 部分 (Insights) |
+| 实时流处理 | 内置消费者组 | Kinesis Data Streams (独立) |
 
 最显著的区别在于： SLS 将日志存储、搜索与分析集成于单一服务；而 AWS 生态通常需组合使用 CloudWatch Logs （采集）、 S3 （长期存储）、 OpenSearch （搜索）和 Athena （SQL 分析）。 SLS 在一个地方全干了。代价是厂商锁定： SLS 查询语法并非跨云通用标准。
 
@@ -926,13 +926,13 @@ ARMS 是一个 APM （应用性能监控）平台，提供以下功能：
 
 ARMS 支持自动埋点（automatic instrumentation）的语言包括：
 
-| Language | Agent Type | What Gets Instrumented |
+| 语言 | 代理类型 | 仪器化内容 |
 |---|---|---|
-| Java | ByteBuddy agent | Spring, Dubbo, gRPC, JDBC, Redis, HTTP clients |
-| Node.js | npm package | Express, Koa, MySQL, Redis, HTTP, gRPC |
-| Python | pip package | Django, Flask, SQLAlchemy, Redis, requests |
+| Java | ByteBuddy 代理 | Spring, Dubbo, gRPC, JDBC, Redis, HTTP 客户端 |
+| Node.js | npm 包 | Express, Koa, MySQL, Redis, HTTP, gRPC |
+| Python | pip 包 | Django, Flask, SQLAlchemy, Redis, requests |
 | Go | SDK | net/http, gRPC, database/sql, go-redis |
-| PHP | Extension | Laravel, ThinkPHP, MySQLi, cURL |
+| PHP | 扩展 | Laravel, ThinkPHP, MySQLi, cURL |
 
 所谓自动埋点，意味着你不需要修改应用代码。 Agent 会拦截框架层的调用，自动生成 trace spans。你只需要在启动命令里加上 Agent， trace 就会出现。
 

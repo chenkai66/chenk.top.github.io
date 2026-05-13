@@ -167,7 +167,7 @@ DSW 这里有两个机制，都值得了解：
 
 OSS-FUSE 是默认的挂载方案， 90% 的场景都够用，但它踩坑的方式比较隐蔽。脑子里的模型应该是：对挂载路径的每次 `read()` 都是一次 OSS HTTP 请求，每次 `write()` 先攒在本地 buffer，等到 `close()` 或者攒够几 MB 才刷写。这带来几个影响：
 
-| Operation | Local SSD | OSS-FUSE | NAS | CPFS |
+| 操作 | 本地 SSD | OSS-FUSE | NAS | CPFS |
 |---|---|---|---|---|
 | Sequential read 1 GB | ~250 ms | 600-1200 ms | 400-700 ms | 80-120 ms |
 | Random read 4 KB (cold) | ~0.1 ms | 30-80 ms | 5-15 ms | 1-3 ms |

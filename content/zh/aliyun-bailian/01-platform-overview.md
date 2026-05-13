@@ -33,12 +33,12 @@ translationKey: "aliyun-bailian-1"
 
 百炼平台上托管了一百多个模型。在生产环境跑了一年后，我只为下面这些付过钱：
 
-| Family | Representative model_id | Use it for |
+| 系列 | 代表模型 ID | 用途 |
 |---|---|---|
-| Qwen LLM (text) | `qwen-max`, `qwen-plus`, `qwen-turbo`, `qwen3-max`, `qwen3-coder-plus` | Chat, reasoning, tool use, code |
-| Qwen-Omni (multimodal) | `qwen3-omni-flash`, `qwen3.5-omni-plus` | Video / audio / image understanding |
-| Qwen-VL (visual) | `qwen3-vl-plus` | Image-only understanding (cheaper than Omni) |
-| Wanxiang (video) | `wan2.5-t2v-plus`, `wan2.5-i2v-plus` | Text-to-video, image-to-video |
+| Qwen LLM (文本) | `qwen-max`, `qwen-plus`, `qwen-turbo`, `qwen3-max`, `qwen3-coder-plus` | 聊天、推理、工具使用、代码 |
+| Qwen-Omni (多模态) | `qwen3-omni-flash`, `qwen3.5-omni-plus` | 视频/音频/图像理解 |
+| Qwen-VL (视觉) | `qwen3-vl-plus` | 仅图像理解（比 Omni 更便宜） |
+| Wanxiang (视频) | `wan2.5-t2v-plus`, `wan2.5-i2v-plus` | 文本转视频、图像转视频 |
 | Qwen-TTS | `qwen3-tts-flash` | Speech synthesis, 40+ voices |
 | Embeddings | `text-embedding-v3`, `text-embedding-v4` | Vector search |
 

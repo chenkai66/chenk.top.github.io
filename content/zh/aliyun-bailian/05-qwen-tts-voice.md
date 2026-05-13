@@ -253,12 +253,12 @@ def post_process(parts: list[str], output: str):
 
 官方按秒计价没错，但这里给出一个包含实际开销的每分钟版本。
 
-| Mode | Per-minute base | With ffmpeg post (negligible) | With cloning surcharge |
+| 模式 | 每分钟基础费用 | 使用 ffmpeg 后处理（可忽略） | 克隆附加费 |
 |---|---|---|---|
 | Preset voice, non-stream | ~0.6 RMB / min | +0 | n/a |
 | Preset voice, stream | ~0.6 RMB / min | +0 | n/a |
-| Cloned voice | ~0.6 RMB / min | +0 | one-time clone cost ~5 RMB |
-| With long-form SSML markup | ~0.6 RMB / min | +0 | n/a |
+| 克隆语音 | 约 0.6 RMB/分钟 | +0 | 一次性克隆费用约 5 RMB |
+| 使用长格式 SSML 标记 | 约 0.6 RMB/分钟 | +0 | 不适用 |
 
 60 分钟的有声书按 0.6 RMB/min 算是 36 RMB。 30 秒广告位只要 0.3 RMB。跟真人配音 session fee 比（中级中文配音 talent： 2000-5000 RMB per project）， API 每个产出大概便宜 100-1000x。代价是每次生成只占几分之一秒 CPU 时间，而且零预订摩擦。 决定是否选用 Qwen-TTS 替代真人配音的盈亏平衡点大概是“这是个需要观众熟知的特定人声的品牌英雄 spot"，除此之外几乎没别的情况。
 

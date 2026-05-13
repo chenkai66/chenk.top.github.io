@@ -752,7 +752,7 @@ aliyun kms Decrypt \
 
 大部分阿里云服务原生支持 KMS 加密。你提供 CMK ID，服务内部会自动处理信封加密。
 
-| Service | What gets encrypted | How to enable |
+| 服务 | 加密内容 | 如何启用 |
 |---|---|---|
 | **ECS** | 系统盘，数据盘 | 创建磁盘时加 `--Encrypted true --KMSKeyId <id>` |
 | **OSS** | 静态对象 | Bucket SSE 设置：`x-oss-server-side-encryption: KMS` |

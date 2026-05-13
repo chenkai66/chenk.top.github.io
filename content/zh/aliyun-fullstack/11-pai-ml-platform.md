@@ -33,7 +33,7 @@ PAI 全称 Platform for AI，其命名体现了通用性，覆盖从交互式实
 
 你实际会接触到的五个组件如下：
 
-| Component | What it does | SageMaker equivalent |
+| 组件 | 功能 | SageMaker 对应项 |
 |---|---|---|
 | **PAI-DSW** | 云上的 Jupyter/VSCode，带 GPU、预建镜像、 OSS 挂载 | SageMaker Studio / Notebook Instances |
 | **PAI-DLC** | 托管式分布式训练任务（多卡、多节点） | SageMaker Training Jobs |
@@ -597,13 +597,13 @@ Designer 不适合以下场景：
 
 | Category | Algorithms |
 |---|---|
-| **Classification** | XGBoost, LightGBM, Random Forest, Logistic Regression, SVM, KNN |
-| **Regression** | XGBoost, LightGBM, Linear Regression, GBDT |
+| **分类** | XGBoost, LightGBM, 随机森林, 逻辑回归, SVM, KNN |
+| **回归** | XGBoost, LightGBM, 线性回归, GBDT |
 | **Clustering** | K-Means, DBSCAN |
-| **NLP** | Text classification (BERT-based), tokenization, TF-IDF |
-| **Recommendation** | Collaborative filtering, ALS |
-| **Feature engineering** | Normalization, one-hot encoding, feature hashing, PCA |
-| **Evaluation** | AUC, accuracy, RMSE, confusion matrix, lift chart |
+| **NLP** | 文本分类（基于 BERT），分词，TF-IDF |
+| **推荐** | 协同过滤, ALS |
+| **特征工程** | 归一化, 独热编码, 特征哈希, PCA |
+| **评估** | AUC, 准确率, RMSE, 混淆矩阵, 提升图 |
 
 ### Designer 还是写代码？我的决策树
 

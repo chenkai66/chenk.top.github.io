@@ -1606,7 +1606,7 @@ Total: 5.32 + 11.06 = 16.38 CNY/month
 | 预留并发 | Yes | Yes |
 | 容器支持 | Yes (Custom Container) | Yes (Container Image) |
 | VPC 访问 | Yes (service-level config) | Yes (function-level config) |
-| Layers | Yes (5 per function) | Yes (5 per function) |
+| 层 | 是（每个函数5个） | 是（每个函数5个） |
 | 免费额度 | 1M invocations + 400K GiB-s | 1M invocations + 400K GiB-s |
 | GPU 支持 | No | No (standard), Yes (Bedrock) |
 | SnapStart (Java) | No | Yes |

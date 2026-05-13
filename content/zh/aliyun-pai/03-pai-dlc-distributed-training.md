@@ -139,7 +139,7 @@ AIMaster 以 sidecar Pod 形式与训练 Pod 同驻运行，拥有独立的 Serv
 
 **RDMA vs TCP.** 灵骏节点默认走 RDMA over Converged Ethernet (RoCE)，通用 GPU 节点走 TCP。全数据并行训练 70B 模型，实打实 8-node × 8-A100 任务上测得的 AllReduce 耗时差异：
 
-| Communication | All-reduce 1 GB | Per-step bubble | Tokens/sec/GPU |
+| 通信 | All-reduce 1 GB | 每步等待时间 | 每秒每 GPU 处理的令牌数 |
 |---|---|---|---|
 | TCP (general nodes) | 380-450 ms | ~30% | ~85 |
 | RoCE (Lingjun) | 35-50 ms | ~4% | ~160 |

@@ -106,31 +106,31 @@ Designer 版本： source 节点 → sample → encode → KMeans → 写回 Max
 
 **用例 A：基于 6000 万行 MaxCompute 表的每周用户分群。**
 
-| Approach | Time-to-build | Per-run cost | Monthly cost (4 runs) | Maintenance |
+| 方法 | 构建时间 | 单次运行成本 | 月成本（4次运行） | 维护 |
 |---|---|---|---|---|
-| Designer | 2 hours | ~6 RMB (MaxCompute spot) | ~24 RMB | Negligible |
-| DLC + PySpark | 3 days | ~38 RMB (4-node cluster, 40 min) | ~152 RMB | One engineer-day per quarter for image bumps |
-| Hand-written EMR job | 1 week | ~45 RMB | ~180 RMB | Multiple engineer-days |
+| Designer | 2小时 | ~6元（MaxCompute竞价） | ~24元 | 可忽略 |
+| DLC + PySpark | 3天 | ~38元（4节点集群，40分钟） | ~152元 | 每季度一个工程师日进行镜像更新 |
+| 手写EMR作业 | 1周 | ~45元 | ~180元 | 多个工程师日 |
 
 Designer 在所有维度上都赢。别争了。
 
 **用例 B： 10 分钟评估新开源 LLM （刚发布的 Qwen3-VL-7B）。**
 
-| Approach | Time-to-eval | Cost during eval | Cost if abandoned | Cost if shipped |
+| 方法 | 评估时间 | 评估期间成本 | 放弃成本 | 上线成本 |
 |---|---|---|---|---|
-| Model Gallery | 15 min (deploy) + actual eval time | ~5 RMB/h × eval hours | 0 (delete service) | re-deploy via EAS for prod |
-| Hand-rolled EAS | 1-2 days (figure out vLLM, mount weights, debug) | ~5 RMB/h × eval + setup time | ~50 RMB sunk | already there |
-| DSW notebook | 1 hour (download model, run inference loop) | ~5 RMB/h × eval hours | 0 | nope, can't serve from DSW |
+| Model Gallery | 15分钟（部署）+实际评估时间 | ~5元/小时 × 评估小时数 | 0（删除服务） | 通过EAS重新部署上线 |
+| 自定义EAS | 1-2天（弄清楚vLLM，挂载权重，调试） | ~5元/小时 × 评估+设置时间 | ~50元沉没成本 | 已经存在 |
+| DSW笔记本 | 1小时（下载模型，运行推理循环） | ~5元/小时 × 评估小时数 | 0 | 不能从DSW提供服务 |
 
 Gallery 赢在评估时间。如果放弃，没有后续工作；如果上线，反正你要通过 EAS 重部署，因为 Gallery 默认值不适合生产。手写 EAS 只有在你*确定*要上线且不介意前期成本时才赢。
 
 **用例 C：生产级 LLM 聊天端点，平均 5 QPS，峰值 30 QPS。**
 
-| Approach | Setup | Monthly cost | Latency p99 | Notes |
+| 方法 | 设置 | 月成本 | p99延迟 | 备注 |
 |---|---|---|---|---|
-| Model Gallery (default) | 5 min | ~14,000 RMB | ~2.5 s | min_replicas=2 default, no batching tuning |
-| EAS hand-written (optimized) | 1-2 days | ~10,500 RMB | ~1.2 s | tuned vLLM, scheduled scaling, weights baked |
-| Bailian managed Qwen-Plus | 0 (it's an API) | varies — typically ~3-8 RMB per 1M tokens | ~1.5 s | someone else's GPU, someone else's problem |
+| Model Gallery（默认） | 5分钟 | ~14,000元 | ~2.5秒 | 默认min_replicas=2，无批处理优化 |
+| 自定义EAS（优化） | 1-2天 | ~10,500元 | ~1.2秒 | 调整vLLM，计划扩展，权重预置 |
+| Bailian托管Qwen-Plus | 0（它是API） | 变动—通常~3-8元/百万token | ~1.5秒 | 其他人管理的GPU，其他人的问题 |
 
 这是每次“要不要自托管？”规划会议上该发生的对话。如果用量是每月 5 万 -10 万请求， Bailian 在成本和运维负担上赢。超过每月 100 万请求或有数据驻留要求，自托管 EAS 领先。
 
@@ -138,8 +138,8 @@ Gallery 赢在评估时间。如果放弃，没有后续工作；如果上线，
 
 | Approach | Setup | Run cost | Quality |
 |---|---|---|---|
-| Model Gallery default LoRA | 10 min | ~80 RMB (single A100, ~3 h) | Within 5% of optimal for most tasks |
-| DLC custom Megatron + LoRA | 2-3 days | ~60-100 RMB | Tunable to optimal, worth it for >50K examples |
+| Model Gallery默认LoRA | 10分钟 | ~80元（单个A100，约3小时） | 对大多数任务在最优值的5%以内 |
+| DLC自定义Megatron + LoRA | 2-3天 | ~60-100元 | 可调至最优，适用于超过5万样本的情况 |
 | DSW manual run | 一半 day | ~80 RMB | Same as Gallery, more inspectable |
 
 除非你有特定理由调整循环，否则 Gallery 这里也赢。 Gallery 里的“默认 LoRA 超参数”出奇的好——我跟手写调优配置 benchmark 过，差距 一致地 很小。
