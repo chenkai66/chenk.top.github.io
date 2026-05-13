@@ -50,7 +50,7 @@ translationKey: "openclaw-quickstart-6"
 
 ## 第一步：写一个 Skill
 
-Skill 存放在 `~/.openclaw/skills/<name>/SKILL.md`。我们先写一个负责"总结头条"的：
+Skill 存放在 `~/.openclaw/skills/<name>/SKILL.md`。我们先写一个负责“总结头条”的：
 
 ```bash
 mkdir -p ~/.openclaw/skills/summarize-headlines
@@ -100,7 +100,7 @@ Produce a single paragraph summary.
 | `priority` | 否 | 取值为 `high`、`normal` 或 `low`，用于多 skill 匹配时的优先级裁决；默认为 `normal`。 | `high` |
 | `version` | 否 | 语义化版本号（Semver），仅作信息参考，便于 skill 分享与协作。 | `1.0.0` |
 
-**Body** 仅在模型触发该 skill 时加载，即标准操作流程（SOP）——含指令、模板、边界情况处理及输出格式规范。可将其视作新员工入职文档：越具体，效果越好。模糊指令（如 "summarize well"）将导致不可控输出；而明确指令（如 "最多 4 句，首句必须为信号最强项，跳过付费墙内容"）则保障结果一致性。
+**Body** 仅在模型触发该 skill 时加载，即标准操作流程（SOP）——含指令、模板、边界情况处理及输出格式规范。可将其视作新员工入职文档：越具体，效果越好。模糊指令（如 "summarize well"）将导致不可控输出；而明确指令（如 “最多 4 句，首句必须为信号最强项，跳过付费墙内容”）则保障结果一致性。
 
 ### 如何编写高效的 trigger
 
@@ -158,7 +158,7 @@ mcporter --version
 mcporter add playwright npx @playwright/mcp@latest
 ```
 
-该命令告知 MCPorter："存在一个名为 `playwright` 的 MCP 服务器，启动方式为执行 `npx @playwright/mcp@latest`。" MCPorter 将自动启动并管理该进程的生命周期。
+该命令告知 MCPorter：“存在一个名为 `playwright` 的 MCP 服务器，启动方式为执行 `npx @playwright/mcp@latest`。” MCPorter 将自动启动并管理该进程的生命周期。
 
 接着，在 `openclaw.json` 中配置 OpenClaw 使用 MCPorter：
 
@@ -271,7 +271,7 @@ If there are no events, return "Nothing on the calendar today".
 
 `exec` tool 被标记为 `dangerous` 权限级别，原因即在于此。当 Skill 使用 `exec` 时，请务必考虑以下几点：
 
-1. **固定命令字面量。** 在 Skill 正文中硬编码具体命令，而非写成"运行任意所需 shell 命令"。若留出自由发挥空间，模型可能擅自构造危险命令。
+1. **固定命令字面量。** 在 Skill 正文中硬编码具体命令，而非写成“运行任意所需 shell 命令”。若留出自由发挥空间，模型可能擅自构造危险命令。
 2. **在配置中声明 `trusted_commands`。** 将该 Skill 实际使用的命令显式加入可信列表，避免用户每次调用都收到确认提示：
    ```json
    "tools": {
@@ -352,7 +352,7 @@ cat ~/.openclaw/sessions/<session_id>.jsonl | jq '.tool_calls[].name'
 若输出含 `browser_navigate` 但无 `exec`（对应 `gcalcli` 调用），即表明日历步骤被跳过。修复方案：
 
 1. **显式编号所有步骤**（如上例所示）；
-2. **在 Skill body 末尾添加核对清单**："发送前请确认：日历内容已包含？新闻摘要已包含？日期是否正确？"
+2. **在 Skill body 末尾添加核对清单**：“发送前请确认：日历内容已包含？新闻摘要已包含？日期是否正确？”
 3. **为该 Skill 降低 `max_turns`**，防止循环失控。在 `openclaw.json` 中配置：
    ```json
    "skill_config": {
@@ -406,7 +406,7 @@ openclaw cron list
 Cron 任务在模拟会话（synthetic session）中运行 —— 无真实用户参与。这带来两点关键影响：
 
 1. **无确认提示**：若 Skill 使用 `exec` 且所执行命令未列入 `trusted_commands`， cron 任务将因等待永不出现的用户确认而挂起。请务必把所有 cron 触发的命令加入可信命令列表。
-2. **无后续交互**：若模型响应中包含提问（例如："是否包含加密货币新闻？"），无人可作答；消息发布至 channel 后即结束会话。因此 cron 触发的 Skill 必须自包含 —— 所有决策应由 SOP 明确定义，不可依赖用户实时交互。
+2. **无后续交互**：若模型响应中包含提问（例如：“是否包含加密货币新闻？”），无人可作答；消息发布至 channel 后即结束会话。因此 cron 触发的 Skill 必须自包含 —— 所有决策应由 SOP 明确定义，不可依赖用户实时交互。
 
 调试 cron 任务的实用技巧：
 
@@ -551,7 +551,7 @@ mcporter config playwright
 - 一个长驻 Agent 连着真实的聊天平台
 - 把领域知识和 Agent 循环分离的 Skills
 - 一个提供 OpenClaw 原生没有的能力的 MCP server
-- 一个把"我得去问"变成"它自己来"的 Cron 任务
+- 一个把“我得去问”变成“它自己来”的 Cron 任务
 - 一套出问题时帮你定位原因的调试工具
 
 这就是完整闭环。官方文档里的其他案例——第二大脑、内容 pipeline、 DevOps 自动化——都是这五步的变体。换些 Skill，换些 MCPs，改几行 Cron 配置而已。
@@ -560,8 +560,8 @@ mcporter config playwright
 
 按投入精力从小到大，三件事：
 
-1. **加个反馈循环。** 回复晨间简报进行纠正（比如"跳过 crypto 头条"）。写个 Skill 把这些纠正记入 `~/.openclaw/memory/feedback/morning-briefing.md`。第二天早上的简报会读取这些内容。一周之后，简报会悄无声息地适配你的偏好——你完全不用动 SOP。
-2. **让新闻源可配置。** 写个 Skill 从 `~/openclaw-workspace/sources.yaml` 读取并遍历。这几乎等于免费得了个"Agent 版 RSS 阅读器"。这份 YAML 文件就是简单的 UI——加一行 URL，第二天的简报就有了。
+1. **加个反馈循环。** 回复晨间简报进行纠正（比如“跳过 crypto 头条”）。写个 Skill 把这些纠正记入 `~/.openclaw/memory/feedback/morning-briefing.md`。第二天早上的简报会读取这些内容。一周之后，简报会悄无声息地适配你的偏好——你完全不用动 SOP。
+2. **让新闻源可配置。** 写个 Skill 从 `~/openclaw-workspace/sources.yaml` 读取并遍历。这几乎等于免费得了个“Agent 版 RSS 阅读器”。这份 YAML 文件就是简单的 UI——加一行 URL，第二天的简报就有了。
 3. **接第二个渠道。** 同一个 Agent，工作时间也推送到钉钉。 Skill 不用改——channel 层是解耦的。你可以同时在两个地方收到同样的简报，也可以根据上下文把不同的 Skill 路由到不同 channel。
 
 QuickStart 到此结束。官方文档其余章节将深入讲解各层实现细节。现在你已掌握整体架构，并清楚如何在各模块之间切换与协作。

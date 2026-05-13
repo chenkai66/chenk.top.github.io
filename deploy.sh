@@ -14,7 +14,7 @@ git add -A
 if ! git diff --cached --quiet; then
   MSG="${1:-Update source}"
   git -c user.name=chenkai66 -c user.email=chenkai.nb.666@gmail.com commit -m "$MSG" | tail -3
-  git push origin source 2>&1 | tail -3
+  git push origin source 2>&1 | tail -3 || echo "  (source push blocked — production deploy continues)"
 else
   echo '  (no source changes)'
 fi

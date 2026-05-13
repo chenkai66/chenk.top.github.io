@@ -23,7 +23,7 @@ translationKey: "ml-math-derivations-13"
 ![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_1.png)
 ## 你将学到什么
 
-- 隐变量为什么让 MLE 变得困难（"log 套 sum"问题）
+- 隐变量为什么让 MLE 变得困难（“log 套 sum”问题）
 - 如何用 Jensen 不等式构建**证据下界（ELBO）**
 - EM 算法就是在 $(q, \boldsymbol{\theta})$ 上对 ELBO 进行**交替优化**
 - 严谨证明 $\ell(\boldsymbol{\theta}^{(t+1)}) \geq \ell(\boldsymbol{\theta}^{(t)})$

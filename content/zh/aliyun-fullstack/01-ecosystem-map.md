@@ -44,7 +44,7 @@ translationKey: "aliyun-fullstack-1"
 
 ## 服务地图：阿里云 vs AWS vs Azure vs GCP
 
-这篇文章最有价值的部分就是给你这份对照表。每个阿里云产品映射到你已经知道的服务。描述保持紧凑——每句一句话——因为你不需要一段话来理解"OSS 就是 S3"。
+这篇文章最有价值的部分就是给你这份对照表。每个阿里云产品映射到你已经知道的服务。描述保持紧凑——每句一句话——因为你不需要一段话来理解“OSS 就是 S3”。
 
 ![阿里云服务地图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_service_map.png)
 

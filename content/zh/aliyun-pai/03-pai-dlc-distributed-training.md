@@ -115,7 +115,7 @@ for line in job.tail_logs(follow=True):
 
 ## AIMaster 容错，到底重启了什么
 
-文档说 AIMaster 做 "容错"；没说 Pod 层面具体意味着什么，这才是实际问题。这是我跑了大概 200 个任务逆向摸索出来的。
+文档说 AIMaster 做 “容错”；没说 Pod 层面具体意味着什么，这才是实际问题。这是我跑了大概 200 个任务逆向摸索出来的。
 
 AIMaster 以 sidecar Pod 形式与训练 Pod 同驻运行，拥有独立的 ServiceAccount，具备标记失败 Pod、触发驱逐及重建 worker Pod 所需的 Kubernetes 权限。它做三件事：
 
@@ -146,7 +146,7 @@ AIMaster 以 sidecar Pod 形式与训练 Pod 同驻运行，拥有独立的 Serv
 
 灵骏成本大概贵 1.5 倍，但通信密集型任务吞吐量接近翻倍。 8 卡以上数据并行，灵骏能回本。流水线并行跨阶段通信少，账得细算。
 
-PAI 里开启 RDMA 就是个勾选框（SDK 里 `enable_rdma=True`，控制台叫"RDMA 加速"）。底层还得配几个环境变量：
+PAI 里开启 RDMA 就是个勾选框（SDK 里 `enable_rdma=True`，控制台叫“RDMA 加速”）。底层还得配几个环境变量：
 
 ```bash
 # In your training command, before torchrun:

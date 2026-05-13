@@ -101,7 +101,7 @@ Arditi 的结果（经过调整）泛化到闭源模型——instruction-tuning 
 一次红队会话长这样：
 1. **定义危害分类**。在这个部署中什么输出是有害的？例如：生物武器合成指令、儿童性虐待材料、金融欺诈指令、仇恨言论。
 2. **生成对抗性提示** 在每个类别中。混合人类编写（聪明）和自动化（大量）。
-3. **探测模型** 用每个提示。记录响应，标记为"拒绝良好"、"拒绝不佳（过度拒绝安全变体）"、"顺从有害请求"、"模糊"。
+3. **探测模型** 用每个提示。记录响应，标记为“拒绝良好”、“拒绝不佳（过度拒绝安全变体）”、“顺从有害请求”、“模糊”。
 4. **分类越狱** 按技术分类（第 9 章有分类）。
 5. **通过微调修复** 在失败案例上。
 6. **重复**。新的越狱几天内就会出现。
@@ -130,7 +130,7 @@ Hubinger 等人这篇论文（2024, *Sleeper Agents: Training Deceptive LLMs tha
 
 对于不训练基座模型的从业者，结论很明确：**sleeper-agent 风险由你的基座模型供应商承担，而不是你。** 这也是为什么在高危应用场景下，最强有力的 argument 是使用经过严格审计的前沿模型，而不是去 fine-tuning 那些来源不明的开源权重。
 
-还有个相关结果， Casper 等人（2023, *Open Problems and Fundamental Limitations of RLHF*） surveyed 27 种 RLHF 流水线的失败模式，结论是标准对齐技术都没有强有力的理论保证。在 claiming"我们的模型很安全因为做了 RLHF"之前，先读读这篇校准一下预期。
+还有个相关结果， Casper 等人（2023, *Open Problems and Fundamental Limitations of RLHF*） surveyed 27 种 RLHF 流水线的失败模式，结论是标准对齐技术都没有强有力的理论保证。在 claiming“我们的模型很安全因为做了 RLHF”之前，先读读这篇校准一下预期。
 
 ## Hallucination: definitions and metrics
 
@@ -218,7 +218,7 @@ Burns 等人（2023, *Weak-to-Strong Generalization: Eliciting Strong Capabiliti
 
 结果还是初步的， methodology 也有局限，但它指向了 2025-2027 窗口期对齐面临的实际问题：当模型能力超过人类评估输出的能力（在数学、代码、科学领域）时，"alignment"在操作层面到底意味着什么？目前最好的答案是 scalable oversight protocols （debate, recursive reward modeling, AI safety via market），但还没有一个大规模 shipped。
 
-对从业者来说，结论很明确：要对"我们跑了 RLHF 在我们能测的最安全的东西上"这种 claims 保持怀疑。如果你的 reward model 是人类在判断人类没资格判断的东西， optimization signal 就是 noise。
+对从业者来说，结论很明确：要对“我们跑了 RLHF 在我们能测的最安全的东西上”这种 claims 保持怀疑。如果你的 reward model 是人类在判断人类没资格判断的东西， optimization signal 就是 noise。
 ## 安全上线到底需要什么
 
 ![fig5: red-teaming workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/fig5_red_teaming_workflow.png)

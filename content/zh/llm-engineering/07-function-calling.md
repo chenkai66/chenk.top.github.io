@@ -101,7 +101,7 @@ response2 = client.messages.create(
 
 **尽可能使用 enums。** 带有 `enum: ["celsius", "fahrenheit"]` 的 `unit` 参数比自由字符串 `unit` 难 misuse 得多。 Schema 约束可阻止模型生成非法值，例如 "Kelvin" 或 "C°"。
 
-**对于复杂工具，应在描述中直接提供调用示例。** "示例：`transfer_money({from_account: 'A123', to_account: 'B456', amount: 100, currency: 'USD'})`" 比三段散文更有用。
+**对于复杂工具，应在描述中直接提供调用示例。** “示例：`transfer_money({from_account: 'A123', to_account: 'B456', amount: 100, currency: 'USD'})`” 比三段散文更有用。
 
 **明确记录可能的错误响应格式。** “若账户不存在，则返回 HTTP 404 状态码；若调用者权限不足，则返回 HTTP 403 状态码。”这让模型能正确解释错误响应，并决定是重试还是升级处理。
 
@@ -147,7 +147,7 @@ out = llm.generate(prompts, params)
 # out is guaranteed parseable JSON matching the schema
 ```
 
-这是最强的输出保证：不是“通常是 JSON"，不是“带有正确键的 JSON"，而是“完全符合 schema 的有效 JSON"。延迟成本很小（XGrammar 开销约 3-5%）。
+这是最强的输出保证：不是“通常是 JSON“，不是“带有正确键的 JSON”，而是“完全符合 schema 的有效 JSON"。延迟成本很小（XGrammar 开销约 3-5%）。
 
 ### Token 级 masking：实际工作原理
 
@@ -311,11 +311,11 @@ MCP 重要是因为它把工具开发和 Agent 框架选型解耦了。你要是
 
 **幻觉工具参数。** 模型编了个 schema 里没有的 `force=True` 参数。 Schema 验证能抓到这个；返回清晰的 "parameter X not supported" 错误。
 
-**工具结果错了还自信。** 搜索工具返回 "no results" 但模型还是幻觉出了答案。症状：模型用了工具结果但它的 claim 跟结果矛盾。防御：系统 Prompt 里加明确提醒（"要是工具返回无结果，就这么说"）。高风险用例的话，用另一个模型拿着工具转录事后验证答案。
+**工具结果错了还自信。** 搜索工具返回 "no results" 但模型还是幻觉出了答案。症状：模型用了工具结果但它的 claim 跟结果矛盾。防御：系统 Prompt 里加明确提醒（“要是工具返回无结果，就这么说”）。高风险用例的话，用另一个模型拿着工具转录事后验证答案。
 
 **工具错误死循环。** 上面的模式 3。永远要设上限。
 
-**延迟连锁反应。** 一个 30-second 工具调用会把用户请求卡住。每个工具调用都设超时。暴露 "这工具慢，要不要试着不用它？" 作为 fallback UX。
+**延迟连锁反应。** 一个 30-second 工具调用会把用户请求卡住。每个工具调用都设超时。暴露 “这工具慢，要不要试着不用它？” 作为 fallback UX。
 
 **Schema 漂移。** 工具实际返回形状变了（字段改名、加了新必填字段）但你给模型的 schema 定义没更新。模型按旧 schema 发请求，工具失败得莫名其妙。修复：在 dispatcher 里验证工具输出 against schema，把不匹配作为 version-skew 错误暴露。更好：从工具实现生成 schema 定义（比如 Pydantic 模型反射成 JSON schema），这样就漂不了。
 

@@ -23,7 +23,7 @@ translationKey: "aliyun-bailian-1"
 
 ## 百炼是什么，DashScope 又是什么？
 
-命名体系较为混乱：阿里曾将产品名从 DashScope 统一更改为‘百炼’。官方 'DashScope' 文档是从 API 角度讲的；'百炼' 文档是从控制台角度讲的。其实是同一个产品，两个名字。
+命名体系较为混乱：阿里曾将产品名从 DashScope 统一更改为‘百炼’。官方 'DashScope' 文档是从 API 角度讲的；‘百炼’ 文档是从控制台角度讲的。其实是同一个产品，两个名字。
 
 ![Bailian (console) vs DashScope (API)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
 
@@ -119,9 +119,9 @@ print(resp.output.choices[0].message.content)
 - **OpenAI 兼容**：默认用于普通聊天、函数调用、 JSON 模式、流式输出。改一行代码就能跟 GPT-4 做 A/B 测试。
 - **DashScope 原生**：万相视频必须用， Qwen-TTS 必须用，推荐用于 Qwen-Omni 多模态（兼容层会丢掉一些视频参数），需要异步任务模式必须用，想要还没回迁到兼容层的最新特性必须用。
 
-有个常见的坑：有人看到 "OpenAI 兼容" 就以为 *所有* 模型都支持。并不是。`wan2.5-t2v-plus` 仅原生。`qwen3-tts-flash` 仅原生。第 4 和第 5 篇文章会重点强调这点。
+有个常见的坑：有人看到 “OpenAI 兼容” 就以为 *所有* 模型都支持。并不是。`wan2.5-t2v-plus` 仅原生。`qwen3-tts-flash` 仅原生。第 4 和第 5 篇文章会重点强调这点。
 
-> **Tip:** 当你遇到 400 错误且消息类似 `parameter X is not supported` 时，第一步应该检查你是不是通过兼容接口调用了仅原生支持的模型。我调试过的 "百炼坏了" 的工单里，有一半都是这个问题。
+> **Tip:** 当你遇到 400 错误且消息类似 `parameter X is not supported` 时，第一步应该检查你是不是通过兼容接口调用了仅原生支持的模型。我调试过的 “百炼坏了” 的工单里，有一半都是这个问题。
 
 ## 三个到处出现的概念
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
 
 实际上有三个地方可以驱动百炼，选择的重要性比文档说的要大得多。在项目中同时混用这三种方式长达两个月后，我才逐步理清各自的适用边界。
 
-`bailian.console.aliyun.com` 上的 **控制台** 只做两件事： provisioning （创建工作空间、 API Key、 RAM 授权、应用）和诊断（查看单次请求日志，找出模型为什么返回垃圾）。它不适用于运行时的生产流量分发与调度。控制台中的 Playground 便于提示词快速迭代，但会忽略部分 SDK 调用所需的参数，因此在 Playground 中可用的提示词，上线后仍可能失败。我把 playground 当成 "模型可达" 的标志，而不是 "这个提示词正确" 的保证。
+`bailian.console.aliyun.com` 上的 **控制台** 只做两件事： provisioning （创建工作空间、 API Key、 RAM 授权、应用）和诊断（查看单次请求日志，找出模型为什么返回垃圾）。它不适用于运行时的生产流量分发与调度。控制台中的 Playground 便于提示词快速迭代，但会忽略部分 SDK 调用所需的参数，因此在 Playground 中可用的提示词，上线后仍可能失败。我把 playground 当成 “模型可达” 的标志，而不是 “这个提示词正确” 的保证。
 
 **DashScope 原生 SDK**（`pip install dashscope`）是当你需要任何阿里特有功能时的正确选择：异步任务、视频/TTS/万相、最新模型参数、跨工作空间计费的 workspace-id header，或者 `X-DashScope-DataInspection` 调试 header。原生 SDK 暴露了兼容层会丢掉的 `parameters` 块字段（`incremental_output`，图像生成的 `seed`，联网模型的 `enable_search`）。它也是批量推理和 `RemoteService` 模型部署的唯一路径。
 

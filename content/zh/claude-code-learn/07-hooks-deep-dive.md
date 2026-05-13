@@ -194,7 +194,7 @@ process.stdin.on('end', () => {
 });
 ```
 
-正则列表刻意保持精简。过长的黑名单一旦误报率上升，实际就会被忽略。每条规则都附上 `desc`，触发时 stderr 才能给模型一句明确的"为什么"。
+正则列表刻意保持精简。过长的黑名单一旦误报率上升，实际就会被忽略。每条规则都附上 `desc`，触发时 stderr 才能给模型一句明确的“为什么”。
 
 ### settings.json 接线
 
@@ -365,7 +365,7 @@ Claude: Done. The component now accepts a `subtitle` prop.
 
 ## 6. test-on-edit — 快速失败
 
-挂在源文件的 `Edit|MultiEdit` 的 PostToolUse 上。这是单论效益最高的 Hook——长期使用，它实际上"训练"了 Claude 在我的仓库里写出更靠谱的代码。
+挂在源文件的 `Edit|MultiEdit` 的 PostToolUse 上。这是单论效益最高的 Hook——长期使用，它实际上“训练”了 Claude 在我的仓库里写出更靠谱的代码。
 
 ### 完整代码
 
@@ -690,7 +690,7 @@ process.stdin.on('end', () => {
 
 ### 它能抓住什么
 
-这个 Hook 专治一类隐蔽缺陷：模型基于训练数据的先验，而不是文件当前的实际状态进行编辑。没有这个 Hook，Claude 可能"修复"它在训练里见过的某个函数版本，而那个函数在你当前的仓库里并不相同。
+这个 Hook 专治一类隐蔽缺陷：模型基于训练数据的先验，而不是文件当前的实际状态进行编辑。没有这个 Hook，Claude 可能“修复”它在训练里见过的某个函数版本，而那个函数在你当前的仓库里并不相同。
 
 ---
 
@@ -816,7 +816,7 @@ process.stdin.on('end', () => {
 在 PreToolUse 里，如果 `block-env-read` 退出 2，后面的 `backup-before-edit`、`read-before-write` 不会再跑。这是正确行为——一个被拦截的调用不应该被备份或追踪。
 
 **问题：Hook 之间会互相冲突。**
-一个会修改文件的格式化 Hook，可能触发 `read-before-write` 的"自上次 Read 后文件已变化"逻辑。解决方案：格式化 Hook 跑在 PostToolUse 阶段，而 PostToolUse 不会再触发 PreToolUse，所以生命周期天然规避了这个冲突。
+一个会修改文件的格式化 Hook，可能触发 `read-before-write` 的“自上次 Read 后文件已变化”逻辑。解决方案：格式化 Hook 跑在 PostToolUse 阶段，而 PostToolUse 不会再触发 PreToolUse，所以生命周期天然规避了这个冲突。
 
 ---
 

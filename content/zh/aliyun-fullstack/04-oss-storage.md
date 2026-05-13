@@ -1191,7 +1191,7 @@ Browser                          Your Flask API                OSS Bucket
 
 **默认私有，谨慎开放。** 每个 Bucket 默认都该是私有的。临时访问用签名 URL，客户端上传用 STS Token，公开内容走 CDN 回源。基础设施里永远不该出现 `public-read-write` 这种 ACL。
 
-**生命周期规则就是白捡的钱。** 每个 Bucket 都配上。哪怕只配一条"30 天转 IA"，你不常读的数据能省 40%。配置不要钱，自动运行。
+**生命周期规则就是白捡的钱。** 每个 Bucket 都配上。哪怕只配一条“30 天转 IA”，你不常读的数据能省 40%。配置不要钱，自动运行。
 
 **务必用内网 Endpoint。** ECS 和 OSS 在同地域时，用 `oss-{region}-internal.aliyuncs.com`。内网流量免费。走公网 Endpoint 要付 ~$0.12/GB。这钱积少成多。
 

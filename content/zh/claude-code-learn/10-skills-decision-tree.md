@@ -61,7 +61,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 | 字段 | 是否必需 | 说明 |
 |------|----------|------|
 | `name` | 是 | skill 的唯一标识符，用于日志与调试。请使用小写短横线格式（`lowercase-with-dashes`）。 |
-| `description` | 是 | **核心字段**。 Claude 依据该描述决定是否加载此 skill。若描述中未明确说明"何时使用"，该 skill 将永远不会被触发。 |
+| `description` | 是 | **核心字段**。 Claude 依据该描述决定是否加载此 skill。若描述中未明确说明“何时使用”，该 skill 将永远不会被触发。 |
 
 `description` 是整个文件中最重要的字段。 Claude 在每次会话启动时，会扫描所有可用 skill 的 `description`；仅当你的 prompt 语义匹配某条描述时，才会加载对应 skill 的完整 body。若描述模糊， skill 要么泛化触发（对所有输入都加载），要么完全沉默（永不触发）——二者皆不可取。
 
@@ -127,13 +127,13 @@ my-project/
 | 项目部署流程 | 项目级 | 与该代码库强耦合 |
 | 代码审查偏好 | 用户级 | 反映个人风格，跨项目一致 |
 | API 集成工作流 | 项目级 | 依赖特定 API 和约定 |
-| 通用"简化代码"能力 | 用户级 | 具有普适性 |
+| 通用“简化代码”能力 | 用户级 | 具有普适性 |
 
 ## 从零编写一个真实 skill
 
 以一个具体用例为例：为团队构建一个将 Node.js 应用部署到预发布（staging）环境的 skill。
 
-### 步骤 1：识别"skill 形态"的使用场景
+### 步骤 1：识别“skill 形态”的使用场景
 
 关键在于这是应在相关话题出现时自动触发的领域知识，还是需要显式调用的命令？
 
@@ -204,7 +204,7 @@ Claude 应自动加载该 skill 并严格遵循其中步骤。若未触发，请
 
 ### 最清晰的边界划分
 
-**Slash command 是指令， skill 是知识。** Slash command 表达"请执行这个确定动作"； skill 表达"这是我对某类问题的系统性理解，请在适用时自主调用"。
+**Slash command 是指令， skill 是知识。** Slash command 表达“请执行这个确定动作”； skill 表达“这是我对某类问题的系统性理解，请在适用时自主调用”。
 
 **Hook 是自动的，其余皆为显式启用。** Hook 无需任何授权即可在工具调用时强制运行——这使其成为安全策略、合规审计等强制场景的理想选择，但完全不适合可选工作流。
 
@@ -285,11 +285,11 @@ Apply these standards ONLY when:
 
 ![三种 Skill 反模式：描述模糊导致触发过频、正文重叠导致上下文膨胀、本该用 Hook 强制的规则被写成 Skill](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig4.png)
 
-- **描述模糊。** "用于一般编程。" 用于一切 = 用于 nothing useful。
+- **描述模糊。** “用于一般编程。” 用于一切 = 用于 nothing useful。
 - **正文重叠。** 两个 skill 都响应 "write code" → context 膨胀。选一个。
-- **本该是 Hook。** "总是在 Y 之前做 X" → 这是 hook，不是 skill。 Skill 是建议， hook 是强制。
+- **本该是 Hook。** “总是在 Y 之前做 X” → 这是 hook，不是 skill。 Skill 是建议， hook 是强制。
 
-判别标准：若指令中含 "always" 或 "never" 且应用于某类工具调用的每一次，那就是 hook；若含 "讨论 X 时" 或 "处理 Y 类任务时"，那就是 skill。
+判别标准：若指令中含 "always" 或 "never" 且应用于某类工具调用的每一次，那就是 hook；若含 “讨论 X 时” 或 “处理 Y 类任务时”，那就是 skill。
 
 ## 构建你自己的扩展库
 

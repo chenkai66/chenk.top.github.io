@@ -97,7 +97,7 @@ resource "alicloud_log_store" "this" {
 - `ack-cluster` — Kubernetes 事件和 pod 日志（仅当使用 ACK 时）
 - `audit` — Terraform 做的每一次变更，保留一年用于合规
 
-`audit` 存一年是因为它数据量小，而且几年后当有人问"3 月 12 日谁改了 prod ALB"时你会需要它。`gateway-requests` 的 90 天窗口是我调整最频繁的——短到足以让存储成本控制在 5 GB/天 约¥30/月 以内，又长到足以不做 Hive 任务就能做季度成本趋势分析。
+`audit` 存一年是因为它数据量小，而且几年后当有人问“3 月 12 日谁改了 prod ALB”时你会需要它。`gateway-requests` 的 90 天窗口是我调整最频繁的——短到足以让存储成本控制在 5 GB/天 约¥30/月 以内，又长到足以不做 Hive 任务就能做季度成本趋势分析。
 
 ## Step 2: 从 ECS 投递日志
 
@@ -310,7 +310,7 @@ status >= 400 |
   ORDER BY minute DESC, errors DESC
 ```
 
-几秒钟就能分清是"DashScope 在报 500"还是"Agent 发了坏请求”。`arbitrary(error_message)` 随便抓一条样例，省得你再钻进去查。
+几秒钟就能分清是“DashScope 在报 500”还是"Agent 发了坏请求”。`arbitrary(error_message)` 随便抓一条样例，省得你再钻进去查。
 
 ### Query 3: 单步 Token 分布，揪出死循环
 
@@ -380,7 +380,7 @@ status >= 400 |
     ORDER BY phase
 ```
 
-对于 `start → plan → tool_call → reflect → answer` 这种流程，能看到多少会话走到了每一步。`tool_call` 处突然 drop-off 说明 tool 对大量用户失败——这和"LLM 坏了”或"planner 太蠢”不一样。
+对于 `start → plan → tool_call → reflect → answer` 这种流程，能看到多少会话走到了每一步。`tool_call` 处突然 drop-off 说明 tool 对大量用户失败——这和“LLM 坏了”或”planner 太蠢”不一样。
 
 通过 `alicloud_log_savedsearch` 把这些存成 SLS Saved Queries，控制台搜索栏直接能搜到：
 
@@ -629,7 +629,7 @@ resource "alicloud_log_dashboard" "slo" {
 
 在国内，钉钉是大多数工程团队的默认聊天工具， SLS 也原生支持钉钉 webhook。你也可以分发到邮件、短信，或者（通过 webhook） Slack/Teams/Lark。选那个凌晨 2 点团队还会看的渠道——这是唯一标准。
 
-ARMS 自带报警也有用，适合 trace 级别的条件（比如“任何超过 30 个 span 的 trace"或"`llm.model = qwen-max` 且 duration > 5s 的 span"）。对于上面那四个报警， SLS 侧就够了，避免把报警逻辑拆到两个控制台。只有 SLS 表达不了需求时才用 ARMS 报警——通常是指那些没法简化为扁平日志查询的 span-tree 形状条件。
+ARMS 自带报警也有用，适合 trace 级别的条件（比如“任何超过 30 个 span 的 trace“或”`llm.model = qwen-max` 且 duration > 5s 的 span"）。对于上面那四个报警， SLS 侧就够了，避免把报警逻辑拆到两个控制台。只有 SLS 表达不了需求时才用 ARMS 报警——通常是指那些没法简化为扁平日志查询的 span-tree 形状条件。
 
 ## 成本多少
 

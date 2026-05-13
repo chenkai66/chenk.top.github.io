@@ -50,7 +50,7 @@ translationKey: "reinforcement-learning-6"
 
 考虑两个高斯策略 $\pi_1 = \mathcal{N}(0, 0.01)$ 和 $\pi_2 = \mathcal{N}(0, 10)$。它们的参数（均值与对数标准差）在欧氏距离上非常接近，但行为完全不同：$\pi_1$ 几乎总是输出 0，而 $\pi_2$ 把动作均匀地撒在整个值域上。
 
-关键启示在于：在参数空间中采用固定步长的更新，可能在策略行为层面引发剧烈甚至失控的变化。任何"安全"保证都必须建立在*分布空间*中，而 KL 散度 $D_{KL}(\pi_{\text{old}} \| \pi_\theta)$ 是最自然的度量。
+关键启示在于：在参数空间中采用固定步长的更新，可能在策略行为层面引发剧烈甚至失控的变化。任何“安全”保证都必须建立在*分布空间*中，而 KL 散度 $D_{KL}(\pi_{\text{old}} \| \pi_\theta)$ 是最自然的度量。
 
 ![信任域：许多个 KL 受限的小步保持安全；一次大的参数步会跌下悬崖](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/06-PPO与TRPO-信任域策略优化/fig1_trust_region.png)
 
@@ -86,9 +86,9 @@ $$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \c
 $$\max_\theta \;\; \mathbb{E}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right] \quad\text{s.t.}\quad \bar{D}_{KL}\!\left(\pi_{\text{old}} \,\|\, \pi_\theta\right) \leq \delta$$
 通常取 $\delta \approx 0.01$。这里用的是平均 KL 而不是最大 KL，因为从样本估计平均 KL 更高效。
 
-### 自然梯度：如何定义"小"
+### 自然梯度：如何定义“小”
 
-普通 SGD 在欧氏球 $\|\Delta\theta\|^2 \le c$ 内寻找使线性化目标最大的方向；而**自然梯度**换了一种度量方式，把欧氏球换成"KL 球"。在参数空间局部， KL 散度可以近似为一个二次型，其 Hessian 就是**Fisher 信息矩阵**：
+普通 SGD 在欧氏球 $\|\Delta\theta\|^2 \le c$ 内寻找使线性化目标最大的方向；而**自然梯度**换了一种度量方式，把欧氏球换成“KL 球”。在参数空间局部， KL 散度可以近似为一个二次型，其 Hessian 就是**Fisher 信息矩阵**：
 $$D_{KL}(\pi_\theta \,\|\, \pi_{\theta+\Delta\theta}) \;\approx\; \tfrac{1}{2}\,\Delta\theta^\top F\,\Delta\theta, \qquad F = \mathbb{E}\!\left[\nabla_\theta \log \pi_\theta\,\nabla_\theta \log \pi_\theta^\top\right]$$
 求解这个带约束的优化问题后，得到自然梯度更新公式 $\Delta\theta \propto F^{-1}\nabla J$。它指向的是**策略空间**中的最陡上升方向，而不是参数空间中的方向——这正是我想要的。
 
@@ -161,7 +161,7 @@ $$L^{\text{KL}}(\theta) = \mathbb{E}\!\left[r_t(\theta)\,\hat{A}_t\right] \;-\; 
 
 ![代理目标 vs 真实目标：未裁剪会误导优化器，裁剪能保持诚实](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/06-PPO与TRPO-信任域策略优化/fig6_surrogate_landscape.png)
 
-这张图是视觉上的核心结论。黑线是沿一维切片的*真实*回报 $J(\theta)$，先有一个峰，紧接着是一个掉进低谷的悬崖。橙色虚线是未裁剪的 IS 代理目标，它一路上升，会把 SGD 引到悬崖里。蓝线是 PPO 裁剪后的目标：信任域内（绿色带）紧贴真实曲线；信任域外它被"压平"了，擦掉了那段会把我们带下悬崖的梯度。
+这张图是视觉上的核心结论。黑线是沿一维切片的*真实*回报 $J(\theta)$，先有一个峰，紧接着是一个掉进低谷的悬崖。橙色虚线是未裁剪的 IS 代理目标，它一路上升，会把 SGD 引到悬崖里。蓝线是 PPO 裁剪后的目标：信任域内（绿色带）紧贴真实曲线；信任域外它被“压平”了，擦掉了那段会把我们带下悬崖的梯度。
 
 ### 一个完整的 PPO 实现
 

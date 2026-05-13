@@ -489,7 +489,7 @@ curl http://localhost/health
 
 ![安全组入站和出站规则](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_security_groups.png)
 
-"状态化"是什么意思？比如你放行了入站 TCP 80，响应包会自动允许出站。你不需要为返回流量专门配一条出站规则。
+“状态化”是什么意思？比如你放行了入站 TCP 80，响应包会自动允许出站。你不需要为返回流量专门配一条出站规则。
 
 ### 常见安全组模式
 

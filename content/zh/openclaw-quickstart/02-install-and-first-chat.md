@@ -51,8 +51,8 @@ nvm use 24
 
 1. 访问 [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com)。
 2. 用阿里云账号注册——大陆账号需要手机号验证。
-3. 进入控制台后，点击左侧边栏的 "API-KEY 管理"。
-4. 点击 "创建新的 API-KEY"。立刻复制，他们只显示一次。
+3. 进入控制台后，点击左侧边栏的 “API-KEY 管理”。
+4. 点击 “创建新的 API-KEY”。立刻复制，他们只显示一次。
 5. 免费 tier 给 `qwen-plus` 和 `qwen-turbo` 的额度很大。够你折腾好几天才会碰到限制。
 
 国内用户首选 DashScope，其国内端点延迟通常低于 200ms，无需代理或 VPN。

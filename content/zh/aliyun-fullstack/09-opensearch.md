@@ -417,7 +417,7 @@ for r in results:
 ```
 ## 混合搜索：兼得两者之长
 
-向量搜索擅长语义理解，关键词搜索擅长精确匹配。用户搜"WH-1000XM5"是要 exact product——向量搜索可能会返回语义相似但不是同款的产品。用户搜"适合长途飞行的舒适耳机"是要语义理解——关键词搜索会挂掉，因为没哪个商品列表 exactly 用这些词。
+向量搜索擅长语义理解，关键词搜索擅长精确匹配。用户搜"WH-1000XM5"是要 exact product——向量搜索可能会返回语义相似但不是同款的产品。用户搜“适合长途飞行的舒适耳机”是要语义理解——关键词搜索会挂掉，因为没哪个商品列表 exactly 用这些词。
 
 ![混合搜索：向量+关键词](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_hybrid_search.png)
 

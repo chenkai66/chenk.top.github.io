@@ -15,14 +15,14 @@ translationKey: "reparameterization-gumbel-softmax"
 
 一旦模型中引入采样操作，训练便会立即面临一个关键难题：梯度如何流经随机节点
 
-重参数化（reparameterization）给出的答案非常直接——把 $z\sim p_\theta(z)$ 改写成 $z=g_\theta(\epsilon)$，把随机性隔离到与参数无关的噪声 $\epsilon$ 里，于是反向传播可以顺着 $g_\theta$ 走下去。麻烦在于离散变量：$\arg\max$ 一类操作不可导，梯度会断掉。**Gumbel-Softmax**（也叫 Concrete 分布）用"带温度的 softmax + Gumbel 噪声"把离散采样变成可微近似，让你在保留离散结构的同时仍能端到端训练。
+重参数化（reparameterization）给出的答案非常直接——把 $z\sim p_\theta(z)$ 改写成 $z=g_\theta(\epsilon)$，把随机性隔离到与参数无关的噪声 $\epsilon$ 里，于是反向传播可以顺着 $g_\theta$ 走下去。麻烦在于离散变量：$\arg\max$ 一类操作不可导，梯度会断掉。**Gumbel-Softmax**（也叫 Concrete 分布）用“带温度的 softmax + Gumbel 噪声”把离散采样变成可微近似，让你在保留离散结构的同时仍能端到端训练。
 
 本文详细讲解了推导、直觉、实现细节、温度参数下的偏差-方差权衡及训练中最常见的问题
 
 ## 你将学到
 
 - 为什么梯度无法穿过 $z\sim\mathcal N(\mu,\sigma^2)$，而 $z=\mu+\sigma\epsilon$ 就可以
-- Gumbel 分布从何而来，以及"加 Gumbel 噪声后取 argmax = 从 softmax 中采样"为什么严格成立
+- Gumbel 分布从何而来，以及“加 Gumbel 噪声后取 argmax = 从 softmax 中采样”为什么严格成立
 - Gumbel-Softmax 的温度 $\tau$ 如何在偏差与方差之间权衡，以及退火策略
 - Straight-Through 估计器（ST-GS）：前向硬采样、反向用软梯度
 - 与 REINFORCE / Score Function 估计器对比：方差差几个数量级
@@ -42,7 +42,7 @@ translationKey: "reparameterization-gumbel-softmax"
 
 $$\mathcal L(\theta) \;=\; \mathbb E_{z\sim q_\theta(z)}\,[\,f(z)\,].$$
 
-VAE 里 $f$ 是重建对数似然，强化学习里 $f$ 是回报，离散结构学习里 $f$ 是下游模型的损失。**问题在于**：$\theta$ 同时藏在被积函数和分布里，朴素地"先采一个 $z$，再算 $f(z)$，再 backward"——计算图在采样那一步就断了。
+VAE 里 $f$ 是重建对数似然，强化学习里 $f$ 是回报，离散结构学习里 $f$ 是下游模型的损失。**问题在于**：$\theta$ 同时藏在被积函数和分布里，朴素地“先采一个 $z$，再算 $f(z)$，再 backward”——计算图在采样那一步就断了。
 
 直接看一段 PyTorch：
 
@@ -56,14 +56,14 @@ loss = (recon - x).pow(2).sum()
 loss.backward()                    # mu, sigma 拿不到任何梯度
 ```
 
-`torch.normal(mu, sigma)` 是一个**随机操作**，它的输出 $z$ 与输入 $\mu,\sigma$ 之间没有可微关系——你换一个 $\mu$，同一个 $z$ 不会"平滑地变"，而是整个分布换了一个，梯度无从定义。
+`torch.normal(mu, sigma)` 是一个**随机操作**，它的输出 $z$ 与输入 $\mu,\sigma$ 之间没有可微关系——你换一个 $\mu$，同一个 $z$ 不会“平滑地变”，而是整个分布换了一个，梯度无从定义。
 
 > **核心问题**：训练过程要求 $\nabla_\theta \mathbb E_{q_\theta}[f(z)]$，但采样这一步切断了反向传播。
 
 可行的解法有两类：
 
 1. **Score Function / REINFORCE**：用对数似然的导数把期望写成 $\mathbb E[f(z)\nabla_\theta\log q_\theta(z)]$。通用、不要求 $z$ 可微，但**方差极大**。
-2. **重参数化**：把随机性从参数里"挪出去"，换成与参数无关的噪声，让计算图保持可微。**方差小、可端到端训练，但要求分布形式可重参数化**。
+2. **重参数化**：把随机性从参数里“挪出去”，换成与参数无关的噪声，让计算图保持可微。**方差小、可端到端训练，但要求分布形式可重参数化**。
 
 ## 二、连续分布的重参数化
 
@@ -73,7 +73,7 @@ loss.backward()                    # mu, sigma 拿不到任何梯度
 
 $$z \;=\; g_\theta(\epsilon),\qquad \epsilon \sim p(\epsilon),$$
 
-其中 $p(\epsilon)$ 是一个**与 $\theta$ 无关**的"基准分布"（如 $\mathcal N(0,I)$、$\mathrm{Uniform}(0,1)$）。代回目标：
+其中 $p(\epsilon)$ 是一个**与 $\theta$ 无关**的“基准分布”（如 $\mathcal N(0,I)$、$\mathrm{Uniform}(0,1)$）。代回目标：
 
 $$\mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,[\,f(g_\theta(\epsilon))\,].$$
 
@@ -124,9 +124,9 @@ $$\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),$$
 
 不需要采样。
 
-## 2.4 哪些连续分布"天然可重参数化"？
+## 2.4 哪些连续分布“天然可重参数化”？
 
-凡是能写成"位置-尺度族"或"基础噪声 + 可微变换"的都可以：
+凡是能写成“位置-尺度族”或“基础噪声 + 可微变换”的都可以：
 
 | 分布 | 重参数化形式 |
 |------|--------------|
@@ -136,20 +136,20 @@ $$\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),$$
 | $\mathrm{Exp}(\lambda)$ | $z=-\tfrac1\lambda\log(1-u)$, $u\sim\mathrm U(0,1)$ |
 | $\mathrm{Gumbel}(\mu,\beta)$ | $z=\mu-\beta\log(-\log u)$, $u\sim\mathrm U(0,1)$ |
 
-**反例**： Gamma、 Beta、 Dirichlet、 Student-t 这些没有简单的位置-尺度形式，需要"隐式重参数化（implicit reparameterization gradients）"或路径求导技巧——这是 NeurIPS 2018 Figurnov 等人的工作（详见 §7）。
+**反例**： Gamma、 Beta、 Dirichlet、 Student-t 这些没有简单的位置-尺度形式，需要“隐式重参数化（implicit reparameterization gradients）”或路径求导技巧——这是 NeurIPS 2018 Figurnov 等人的工作（详见 §7）。
 
 ## 三、离散分布的重参数化： Gumbel-Max 技巧
 
 ## 3.1 难点
 
-设 $K$ 类的分类分布 $\mathrm{Cat}(\pi_1,\dots,\pi_K)$，其中 $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$。直接的"采样"是：先算概率 $\pi$，再做多项式采样得到一个类别索引 $k$。这一步**完全不可导**——它的输出是离散的 one-hot，没有平滑变化的概念。
+设 $K$ 类的分类分布 $\mathrm{Cat}(\pi_1,\dots,\pi_K)$，其中 $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$。直接的“采样”是：先算概率 $\pi$，再做多项式采样得到一个类别索引 $k$。这一步**完全不可导**——它的输出是离散的 one-hot，没有平滑变化的概念。
 
 朴素估计器只能依赖 REINFORCE：
 
 $$\nabla_\alpha\,\mathbb E_{k\sim\mathrm{Cat}(\pi)}[f(k)]
 \;=\;\mathbb E_{k}\bigl[f(k)\,\nabla_\alpha\log\pi_k\bigr],$$
 
-通用但方差大到没法稳定训练。能不能像正态分布那样，把"采样"分解成"噪声 + 确定性变换"？答案就是 Gumbel-Max 技巧。
+通用但方差大到没法稳定训练。能不能像正态分布那样，把“采样”分解成“噪声 + 确定性变换”？答案就是 Gumbel-Max 技巧。
 
 ## 3.2 Gumbel 分布速览
 
@@ -204,7 +204,7 @@ $$\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alph
 
 - **采样高效**：只需 $K$ 个独立 Uniform 样本，一次 argmax，没有显式归一化、没有累积分布查找。
 - **数值稳定**：在 logits 上做加法后取 argmax，对常数平移免疫——softmax 中的 $\max$ 减法稳定性同理可得。
-- **更重要的**：这个表达把"采样的随机性"全部装进 $g$ 里， logits $\alpha$ 出现在确定性的 $\alpha+g$ 上——离"可微"只剩最后一步：把 $\arg\max$ 换成可微近似。
+- **更重要的**：这个表达把“采样的随机性”全部装进 $g$ 里， logits $\alpha$ 出现在确定性的 $\alpha+g$ 上——离“可微”只剩最后一步：把 $\arg\max$ 换成可微近似。
 
 ## 四、 Gumbel-Softmax：把 argmax 软化
 
@@ -220,7 +220,7 @@ $$y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bi
 - $\tau\to 0^+$： softmax 退化为 argmax 的指示向量，$y$ 趋于 one-hot，**接近真离散采样**；
 - $\tau\to\infty$：$(\alpha_i+g_i)/\tau\to 0$，$y$ 趋于均匀向量 $(1/K,\dots,1/K)$。
 
-由于 $g$ 与 $\alpha$ 无关、并且 softmax 是处处可微的，$y$ 关于 $\alpha$（也就是关于上游网络参数 $\theta$）**可微**。这就是 Gumbel-Softmax 的核心：用一个连续可微的 $y$ 当作离散 one-hot 的"代理"。
+由于 $g$ 与 $\alpha$ 无关、并且 softmax 是处处可微的，$y$ 关于 $\alpha$（也就是关于上游网络参数 $\theta$）**可微**。这就是 Gumbel-Softmax 的核心：用一个连续可微的 $y$ 当作离散 one-hot 的“代理”。
 
 ## 4.2 温度的偏差-方差权衡
 
@@ -239,7 +239,7 @@ $$y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bi
 
 - 起始 $\tau=1.0\sim 2.0$， end $\tau=0.1\sim 0.5$；
 - 指数退火 $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$，每 $\sim 1000$ 步衰减一次；
-- **不要**直接训到 $\tau\to 0$——softmax 数值会爆掉，且梯度方差会主导；让模型早期"看清楚"分布形状，后期再"硬化"。
+- **不要**直接训到 $\tau\to 0$——softmax 数值会爆掉，且梯度方差会主导；让模型早期“看清楚”分布形状，后期再“硬化”。
 
 ## 4.3 Straight-Through Gumbel-Softmax (ST-GS)
 
@@ -401,7 +401,7 @@ def cat_vae_loss(logits_x, x, q_logits):
 |------|----------|------|
 | **NaN loss** | $\tau$ 退到太小， softmax 上下溢；或 $\log(-\log u)$ 中 $u=0$ | clamp $u\in[\epsilon, 1-\epsilon]$；$\tau_{\min}\ge 0.1$ |
 | **梯度方差炸** | 一次只采 1 个样本 + $\tau$ 过小 | 增加每 batch 的 MC 样本数；$\tau$ 退火节奏放慢 |
-| **离散结构不"硬"** | 一直用 soft 输出做评估 | 推断时 `hard=True` 或 `argmax`；训练后期切 ST-GS |
+| **离散结构不“硬”** | 一直用 soft 输出做评估 | 推断时 `hard=True` 或 `argmax`；训练后期切 ST-GS |
 | **后验坍塌**（连续 VAE） | KL 一开始就太强 | $\beta$ 从 0 退到 1；用 free-bits |
 | **离散 VAE 不学结构** | 解码器太强、 KL 太弱 | 弱化 decoder 容量；降 KL 权重再升回来 |
 | **梯度对 logit 不敏感** | $\tau$ 过大，输出趋均匀 | 降 $\tau$ 或加大学习率 |
@@ -411,14 +411,14 @@ def cat_vae_loss(logits_x, x, q_logits):
 
 - **Implicit Reparameterization Gradients**（Figurnov et al., NeurIPS 2018）：用隐函数定理把 Gamma、 Beta、 Dirichlet、 Student-t 等非位置-尺度族变成可重参数化，公式简洁、误差低。
 - **Rebar / Relax**（Tucker et al., NeurIPS 2017； Grathwohl et al., ICLR 2018）：把 Gumbel-Softmax 与 REINFORCE 结合，用神经网络学习控制变量，方差更低、估计无偏。
-- **Hard Concrete Gates**（Louizos et al., ICLR 2018）：把 Concrete/Gumbel-Softmax 拉伸 + 截断到 $[0,1]$，得到带"严格 0"的可微门控，用于 $L_0$ 正则化与稀疏化。
-- **Top-$k$ Gumbel** 与 **Plackett-Luce**：把 Gumbel-Max 推广到"无放回采样 $k$ 个类别"，用于稀疏注意力与 routing。
+- **Hard Concrete Gates**（Louizos et al., ICLR 2018）：把 Concrete/Gumbel-Softmax 拉伸 + 截断到 $[0,1]$，得到带“严格 0”的可微门控，用于 $L_0$ 正则化与稀疏化。
+- **Top-$k$ Gumbel** 与 **Plackett-Luce**：把 Gumbel-Max 推广到“无放回采样 $k$ 个类别”，用于稀疏注意力与 routing。
 - **Permutation-equivariant relaxations**（Mena et al., ICLR 2018）： Sinkhorn 算子 + Gumbel 噪声，对**置换矩阵**做可微近似。
 
 ## 总结
 
-- 连续场景下，重参数化把"随机变量 $z$"改写为"噪声 $\epsilon$ + 可微变换 $g_\theta$"，让梯度顺着确定性路径回到参数；这是 VAE 等深度生成模型可以用 SGD 稳定训练的关键。
-- 离散场景下， Gumbel-Max 给出"加 Gumbel 噪声后取 argmax = softmax 采样"的精确等价； Gumbel-Softmax 把 argmax 软化成温度 $\tau$ 的 softmax，让整个采样可微。
+- 连续场景下，重参数化把“随机变量 $z$”改写为“噪声 $\epsilon$ + 可微变换 $g_\theta$”，让梯度顺着确定性路径回到参数；这是 VAE 等深度生成模型可以用 SGD 稳定训练的关键。
+- 离散场景下， Gumbel-Max 给出“加 Gumbel 噪声后取 argmax = softmax 采样”的精确等价； Gumbel-Softmax 把 argmax 软化成温度 $\tau$ 的 softmax，让整个采样可微。
 - 温度 $\tau$ 是核心超参：小 $\tau$ 偏差小但方差大；大 $\tau$ 反之。退火策略（先大后小）是训练稳定的关键。
 - 需要严格离散输出时用 ST-GS：前向 hard、反向 soft，是工程上最常用的折中。
 - 与 REINFORCE 相比，重参数化路径估计的梯度方差小 $1\sim 3$ 个数量级，是离散结构能端到端训练的物质基础。

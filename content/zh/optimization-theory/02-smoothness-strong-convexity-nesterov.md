@@ -27,7 +27,7 @@ aliases:
 
 ## 你将学到
 
-- Lipschitz 连续性的几何含义：每一点周围都有一个"斜率锥"约束着函数图像。
+- Lipschitz 连续性的几何含义：每一点周围都有一个“斜率锥”约束着函数图像。
 - $L$-smoothness 的等价刻画：函数被一族二次曲面从上方包住（descent lemma）。
 - 强凸性的等价刻画：函数被一族二次曲面从下方托住，唯一极小存在性自然出现。
 - 条件数 $\kappa = L/\mu$ 如何决定 GD 的迭代复杂度，以及为什么 Nesterov 把它换成了 $\sqrt{\kappa}$。
@@ -48,7 +48,7 @@ aliases:
 
 $$|f(y) - f(x)| \le L\,\|y - x\|.$$
 
-几何上看，这是一个**双向锥约束**：以任一点 $(x_0, f(x_0))$ 为顶点，斜率为 $\pm L$ 的双向锥必须包住整张函数图。一旦在某一点出现"近乎竖直"的切线（如 $\sqrt{|x|}$ 在 $x=0$ 附近），就找不到任何有限的 $L$ 能容纳函数，函数就不再 Lipschitz。
+几何上看，这是一个**双向锥约束**：以任一点 $(x_0, f(x_0))$ 为顶点，斜率为 $\pm L$ 的双向锥必须包住整张函数图。一旦在某一点出现“近乎竖直”的切线（如 $\sqrt{|x|}$ 在 $x=0$ 附近），就找不到任何有限的 $L$ 能容纳函数，函数就不再 Lipschitz。
 
 ![Lipschitz 锥包住整张函数图；含 vertical-tangent 的函数无法被任何有限 L 容纳](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/深入解析非线性优化中的lipschitz连续性-强凸性与加速梯度下降算法/fig1_lipschitz_geometry.png)
 
@@ -79,11 +79,11 @@ $$\boxed{\,f(y) \le f(x) + \langle \nabla f(x), y - x\rangle + \frac{L}{2}\,\|y 
 
 $$f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|\nabla f(x)\|^2.$$
 
-只要 $\eta \le 1/L$，括号项 $\ge 1/2$，**每一步都严格下降**，且下降量被梯度范数平方控制。这就是"步长不要超过 $1/L$"的硬来源——不是经验之谈，而是 descent lemma 的直接推论。
+只要 $\eta \le 1/L$，括号项 $\ge 1/2$，**每一步都严格下降**，且下降量被梯度范数平方控制。这就是“步长不要超过 $1/L$”的硬来源——不是经验之谈，而是 descent lemma 的直接推论。
 
 ![一维二次函数上 GD 在三种步长下的行为：eta=0.8/L 收敛、eta=1/L 一步到位、eta=2.2/L 发散](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig7_stepsize.png)
 
-同一条二次函数 $f(x) = \tfrac{L}{2}x^2$（这里 $L=4$）下的三种情形。左：小步长（$\eta = 0.8/L$）单调爬下来；中：经典 $\eta = 1/L$ 从 $x_0=1$ 一步直达最优——不过冲的最快配置；右：一旦越过 $2/L$ 这条天花板，迭代点就会爆炸， descent lemma 失效。区间 $[1/L, 2/L]$ 正是"既最快又安全"的临界带；低于它浪费迭代，高于它直接发散。
+同一条二次函数 $f(x) = \tfrac{L}{2}x^2$（这里 $L=4$）下的三种情形。左：小步长（$\eta = 0.8/L$）单调爬下来；中：经典 $\eta = 1/L$ 从 $x_0=1$ 一步直达最优——不过冲的最快配置；右：一旦越过 $2/L$ 这条天花板，迭代点就会爆炸， descent lemma 失效。区间 $[1/L, 2/L]$ 正是“既最快又安全”的临界带；低于它浪费迭代，高于它直接发散。
 
 ## 1.3 三个例子算一遍
 
@@ -107,7 +107,7 @@ $$\nabla f(y) - \nabla f(x) = \int_0^1 \nabla^2 f(x + t(y-x))\,(y-x)\,\mathrm dt
 
 $$\|\nabla f(y) - \nabla f(x)\| \le \int_0^1 \|\nabla^2 f(\cdot)\|_2\,\|y-x\|\,\mathrm dt \le L\,\|y-x\|.\quad\blacksquare$$
 
-**实用推论**：对二次函数 $f(x) = \tfrac{1}{2}x^\top H x$，最优步长直接来自 $H$ 的最大特征值——这条结论对任何 $L$-光滑函数都给出"局部二次近似"的步长上限。
+**实用推论**：对二次函数 $f(x) = \tfrac{1}{2}x^\top H x$，最优步长直接来自 $H$ 的最大特征值——这条结论对任何 $L$-光滑函数都给出“局部二次近似”的步长上限。
 
 ---
 
@@ -122,7 +122,7 @@ $$f(y) \ge f(x) + \langle \nabla f(x), y - x\rangle + \frac{\mu}{2}\,\|y - x\|^2
 它有三种完全等价的刻画，分别适用于不同分析场景：
 
 1. **二次下界**（上式本身）：函数被一族开口向上、曲率为 $\mu$ 的二次曲面**从下方托住**。
-2. **$f - \tfrac{\mu}{2}\|x\|^2$ 是凸函数**：把"超出 $\mu$-曲率"的部分扣掉之后还是凸的。
+2. **$f - \tfrac{\mu}{2}\|x\|^2$ 是凸函数**：把“超出 $\mu$-曲率”的部分扣掉之后还是凸的。
 3. **二阶条件**（若 $f$ 二次可微）：$\nabla^2 f(x) \succeq \mu I$。
 
 ![强凸函数被开口为 mu 的二次抛物面从下方托住；凸但非强凸的情形（mu=0）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/深入解析非线性优化中的lipschitz连续性-强凸性与加速梯度下降算法/fig3_strong_convexity.png)
@@ -159,7 +159,7 @@ $$\mu I \preceq \nabla^2 f(x) \preceq L I,$$
 
 $$\boxed{\,\kappa := \frac{L}{\mu} \ge 1\,}$$
 
-称为**条件数**，是后续所有收敛速率的核心量。$\kappa$ 越大，函数"长且窄"，最陡方向已经接近发散、最缓方向却几乎没有信号——这是优化困难的本质来源。
+称为**条件数**，是后续所有收敛速率的核心量。$\kappa$ 越大，函数“长且窄”，最陡方向已经接近发散、最缓方向却几乎没有信号——这是优化困难的本质来源。
 
 ---
 
@@ -177,7 +177,7 @@ $$\|x_t - x^\star\|^2 \le \Big(1 - \frac{1}{\kappa}\Big)^t \|x_0 - x^\star\|^2.$
 
 要把误差缩到 $\varepsilon$，迭代次数 $t = \mathcal O(\kappa\log(1/\varepsilon))$。**条件数线性进入复杂度**——在 $\kappa = 10^4$ 的最小二乘上意味着每次精度提升十倍要再跑约 $2\times 10^4$ 步。
 
-## 3.2 Nesterov 加速：用一个"前瞻点"换 $\sqrt{\kappa}$
+## 3.2 Nesterov 加速：用一个“前瞻点”换 $\sqrt{\kappa}$
 
 经典动量（Polyak Heavy Ball）的更新是
 
@@ -190,7 +190,7 @@ y_t &= x_t + \beta_t (x_t - x_{t-1}), \\
 x_{t+1} &= y_t - \eta\,\nabla f(y_t).
 \end{aligned}$$
 
-直觉上：先按动量"瞄一眼"未来位置 $y_t$，再用那里的梯度修正方向。这一点点前瞻信息让它在所有 $L$-smooth 凸函数上都能保住加速率。
+直觉上：先按动量“瞄一眼”未来位置 $y_t$，再用那里的梯度修正方向。这一点点前瞻信息让它在所有 $L$-smooth 凸函数上都能保住加速率。
 
 **定理 6 （Nesterov 凸情形 $\mathcal O(1/t^2)$）**：对 $L$-smooth 凸函数，取 $\eta = 1/L$ 与经典权重序列 $\beta_t = (t-1)/(t+2)$，
 
@@ -208,9 +208,9 @@ $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 
 ![GD vs Heavy Ball vs Nesterov 在强凸二次型上的收敛曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/深入解析非线性优化中的lipschitz连续性-强凸性与加速梯度下降算法/fig4_convergence_rates.png)
 
-左图（$\kappa=100$）：在严格 log 坐标下，三条算法都呈线性下降，但 Nesterov （紫色）和 Heavy Ball （橙色）的斜率明显比 GD （蓝色）陡——这正是 $\sqrt{\kappa}$ vs $\kappa$ 的差距。虚线是理论速率包络，与实测拟合得很好。右图：把前 80 代放大，可见 Nesterov **不严格单调**——它会沿"低谷"震荡，但震荡始终被理论下界包住，这是加速法的典型行为。
+左图（$\kappa=100$）：在严格 log 坐标下，三条算法都呈线性下降，但 Nesterov （紫色）和 Heavy Ball （橙色）的斜率明显比 GD （蓝色）陡——这正是 $\sqrt{\kappa}$ vs $\kappa$ 的差距。虚线是理论速率包络，与实测拟合得很好。右图：把前 80 代放大，可见 Nesterov **不严格单调**——它会沿“低谷”震荡，但震荡始终被理论下界包住，这是加速法的典型行为。
 
-## 3.3 重启策略：解决"加速副作用"
+## 3.3 重启策略：解决“加速副作用”
 
 加速法的主要缺点是**函数值非单调下降**——部分迭代步的函数值可能上升。这在以下两种情形中尤为不利：
 
@@ -221,7 +221,7 @@ $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 
 **定理 8 （重启 Nesterov 在强凸下达到最优率）**：对 $\mu$-强凸 + $L$-smooth 函数，重启 Nesterov 仍达到 $\mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$ 复杂度，且**不需要预先知道 $\mu$**。
 
-证明思路：在两次重启之间，跑的是凸版 Nesterov，$\mathcal O(1/k^2)$ 的误差结合二次增长 $f - f^\star \ge \tfrac{\mu}{2}\|x - x^\star\|^2$ 得到"每次重启误差至少减半"，几何减半 $\log(1/\varepsilon)$ 次后达成目标。每段长度 $\sim \sqrt{\kappa}$，总迭代数 $\sim \sqrt{\kappa}\log(1/\varepsilon)$。
+证明思路：在两次重启之间，跑的是凸版 Nesterov，$\mathcal O(1/k^2)$ 的误差结合二次增长 $f - f^\star \ge \tfrac{\mu}{2}\|x - x^\star\|^2$ 得到“每次重启误差至少减半”，几何减半 $\log(1/\varepsilon)$ 次后达成目标。每段长度 $\sim \sqrt{\kappa}$，总迭代数 $\sim \sqrt{\kappa}\log(1/\varepsilon)$。
 
 ## 3.4 条件数到底带来多少差距
 
@@ -257,7 +257,7 @@ $$\nabla f(x) = A^\top(Ax - b), \qquad \nabla^2 f(x) = A^\top A.$$
 
 $$L = \lambda_{\max}(A^\top A), \qquad \mu = \lambda_{\min}(A^\top A), \qquad \kappa = \kappa(A^\top A) = \kappa(A)^2.$$
 
-**注意**：条件数是 $A$ 的条件数的**平方**——这就是为什么"看起来还行"的 $A$（$\kappa(A) = 100$）在最小二乘里会变成 $\kappa = 10^4$ 的硬骨头。
+**注意**：条件数是 $A$ 的条件数的**平方**——这就是为什么“看起来还行”的 $A$（$\kappa(A) = 100$）在最小二乘里会变成 $\kappa = 10^4$ 的硬骨头。
 
 ## 4.2 算法实现要点
 
@@ -322,7 +322,7 @@ def nesterov_restart(A, b, n_iter):
 在 $m = 200, n = 100$、$\kappa(A) \approx 100$ 即 $\kappa(A^\top A) \approx 10^4$ 的合成实例上：
 
 - **GD**：$10^{-6}$ 相对梯度范数需 $\sim 4\times 10^4$ 步；曲线平滑但慢。
-- **Nesterov （常数动量）**：$\sim 400$ 步；曲线沿"低谷"周期震荡，与图 4 右图一致。
+- **Nesterov （常数动量）**：$\sim 400$ 步；曲线沿“低谷”周期震荡，与图 4 右图一致。
 - **重启 Nesterov**：$\sim 500$ 步，几乎完全单调，鲁棒性最好。
 
 加速比与图 5 的 $\sqrt{\kappa}$ 预测吻合（$10^4 \to 100\times$）。
@@ -351,7 +351,7 @@ def nesterov_restart(A, b, n_iter):
 
 ## 5.3 延伸阅读
 
-- **非凸 + PL 条件**：放弃强凸，只要 $\tfrac{1}{2}\|\nabla f\|^2 \ge \mu(f - f^\star)$， GD 仍然线性收敛——这是深度学习中"过参数化为何能线性收敛"的理论起点（Karimi et al., 2016）。
+- **非凸 + PL 条件**：放弃强凸，只要 $\tfrac{1}{2}\|\nabla f\|^2 \ge \mu(f - f^\star)$， GD 仍然线性收敛——这是深度学习中“过参数化为何能线性收敛”的理论起点（Karimi et al., 2016）。
 - **加速 + 噪声**： Nesterov 对随机梯度并不天然鲁棒。 SAG / SVRG / Katyusha 等方差缩减方法把强凸下的随机收敛重新拉回 $\sqrt{\kappa}$ 级别。
 - **二阶加速**： Sophia、 Shampoo 用对角或块对角 Hessian 预条件，等价于把有效条件数 $\kappa$ 直接改写——这是 2024 年大模型预训练的活跃方向。
 

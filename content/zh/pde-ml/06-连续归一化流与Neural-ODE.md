@@ -141,9 +141,9 @@ CNF 把整个堆叠换成 ODE，使用瞬时公式 (1)：$$\frac{d\mathbf{z}}{dt
 | Rectified Flow / 一致性 | 迭代拉直 | 极少步采样 | 多阶段训练 |
 
 到 2024 年，生产规模的连续流系统（图像、音频、分子）多为 Flow Matching 或 Rectified Flow 变体。
-## 5. "连续深度"的图像
+## 5. “连续深度”的图像
 
-"连续深度"是贯穿全章的核心概念。 Neural ODE 是深度网络的连续极限， CNF 是归一化流的连续极限。两者的图示完全一致。
+“连续深度”是贯穿全章的核心概念。 Neural ODE 是深度网络的连续极限， CNF 是归一化流的连续极限。两者的图示完全一致。
 
 ![连续轨迹 h(t) 分别由固定深度的 ResNet 和自适应 ODE 求解器近似。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig6_continuous_depth.png)
 *图 6：蓝色是底层 Neural ODE 给出的真实连续轨迹 $h(t)$。红虚线是固定深度 $L{=}4$ 的 ResNet，在 $|\dot h|$ 大的地方欠拟合（红色误差片）。橙色 $L{=}8$ 仍无法捕捉高频振荡。紫色菱形是自适应求解器的检查点：**动力学复杂处多采样，平滑处少采样**，用更少评估达到相同精度，无需手动调参。*

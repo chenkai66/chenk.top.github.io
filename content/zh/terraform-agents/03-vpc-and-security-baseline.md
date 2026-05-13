@@ -367,7 +367,7 @@ Plan: 27 to add, 0 to change, 0 to destroy.
 
 ### 模式 1： CI 里 nightly 跑 `terraform plan`
 
-GitHub Actions workflow 在北京时间凌晨 3 点跑每个 workspace 的 `terraform plan -lock=false -detailed-exitcode`，如果退出码是 `2`（"plan 会有变更"）就发 DingTalk 通知：
+GitHub Actions workflow 在北京时间凌晨 3 点跑每个 workspace 的 `terraform plan -lock=false -detailed-exitcode`，如果退出码是 `2`（“plan 会有变更”）就发 DingTalk 通知：
 
 ```yaml
 # .github/workflows/drift-check.yml
@@ -411,7 +411,7 @@ jobs:
 
 `-detailed-exitcode` 参数是关键。没它的话，哪怕有变更 `plan` 也总是返回 0。有了它，你才能拿到 0 （无变更）、 1 （错误）或 2 （待变更）。 CI 只关心 2——这意味着漂移。
 
-我对每个 prod workspace 都夜间运行这个。每两周总能抓到点什么——通常是队友忘了写进 HCL 的"快速修复"。
+我对每个 prod workspace 都夜间运行这个。每两周总能抓到点什么——通常是队友忘了写进 HCL 的“快速修复”。
 
 ### 模式 2：怀疑有问题时跑 refresh-only
 
@@ -430,7 +430,7 @@ terraform apply -refresh-only
 
 ### 模式 3：`lifecycle { ignore_changes }` 逃生通道
 
-有时候漂移是*合法*的。阿里云会给资源自动打元数据标签（比如 `created_by_console`）。 Auto Scaling 会在 Terraform 管辖范围外调整 `desired_capacity`。正确的做法是告诉 Terraform"这个属性会漂移，没关系"：
+有时候漂移是*合法*的。阿里云会给资源自动打元数据标签（比如 `created_by_console`）。 Auto Scaling 会在 Terraform 管辖范围外调整 `desired_capacity`。正确的做法是告诉 Terraform“这个属性会漂移，没关系”：
 
 ```hcl
 resource "alicloud_security_group" "agent_runtime" {
@@ -453,7 +453,7 @@ resource "alicloud_security_group" "agent_runtime" {
 
 这篇文章的 `vpc-baseline` 是 v1 版。十八个月后它会变成 v4 版。会有新的可用区出现。默认 NAT 类型可能会变。你会发现加了面向公网的 NLB 后，`/28` 的公网子网太小了。
 
-错误的做法是"原地编辑模块然后到处 `terraform apply`"。某个周五下午你把公网子网从 `/28` 改成 `/27`，现有子网需要重建，结果你在三个环境里级联销毁了 NAT 和 EIP。（没错，这也是我的个人血泪史。）
+错误的做法是“原地编辑模块然后到处 `terraform apply`”。某个周五下午你把公网子网从 `/28` 改成 `/27`，现有子网需要重建，结果你在三个环境里级联销毁了 NAT 和 EIP。（没错，这也是我的个人血泪史。）
 
 正确的做法是用 **版本化模块** 配合明确的升级路径：
 
@@ -483,7 +483,7 @@ terraform apply
 
 如果 `dev` 稳一周，再在 `staging` 重复。最后才是 `prod`。整个 rollout 都在 PR 里，每个都小，每个都能通过回滚 commit 撤销。
 
-> **Real-world tip:** 当破坏性的模块变更需要重建资源时（比如我们的 `/28` → `/27` 子网扩容），配合手动数据迁移使用 `moved` 块。`moved` 块告诉 Terraform"这个旧子网的身份现在是这个新的"；迁移则复制状态。具体到 VPC 子网，更简单的路径是*旁边*加新子网，然后逐可用区迁移工作负载——千万别销毁跑着线上 ECS 的生产子网。
+> **Real-world tip:** 当破坏性的模块变更需要重建资源时（比如我们的 `/28` → `/27` 子网扩容），配合手动数据迁移使用 `moved` 块。`moved` 块告诉 Terraform“这个旧子网的身份现在是这个新的”；迁移则复制状态。具体到 VPC 子网，更简单的路径是*旁边*加新子网，然后逐可用区迁移工作负载——千万别销毁跑着线上 ECS 的生产子网。
 
 ## 网络基线的成本算账
 
@@ -514,7 +514,7 @@ terraform apply
 
 杠杆在于出站流量。如果你的 agent 从公网 LLM 端点 stream 长 completion，有条件的话要用 PrivateLink 或 VPC peering 连托管模型——PrivateLink 流量大概 ¥0.1/GB 而不是 ¥0.8/GB。对于 DashScope， PrivateLink 端点是 `com.aliyun.dashscope`；把它接进你的 VPC，出站账单能降 ~80%。
 
-> **Real-world tip:** 给每个资源打上 `Cost-Center` 和 `Owner` 标签。阿里云的计费 dashboard 能按标签透视，季度末你能直接回答"这个团队的网络成本是 ¥X"，不用去求财务。这个模块里的 `tags = var.tags`  plumbing 就是为此准备的。
+> **Real-world tip:** 给每个资源打上 `Cost-Center` 和 `Owner` 标签。阿里云的计费 dashboard 能按标签透视，季度末你能直接回答“这个团队的网络成本是 ¥X”，不用去求财务。这个模块里的 `tags = var.tags`  plumbing 就是为此准备的。
 
 ## 接下来做什么
 

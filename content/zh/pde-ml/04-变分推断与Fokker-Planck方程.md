@@ -175,7 +175,7 @@ $$
 $$\nabla_w \log p(w \mid \mathcal{D}) = \nabla_w \log p(\mathcal{D}\mid w) + \nabla_w \log p(w),$$
 即反向传播算的梯度，再加高斯先验项。**SGLD**（Welling & Teh, 2011）用 mini-batch 梯度代替全批梯度，适配现代规模。
 
-下图用 24 个随机傅里叶特征构建 "贝叶斯 NN"，使权重后验明确，并用全批 Langevin 采样。
+下图用 24 个随机傅里叶特征构建 “贝叶斯 NN”，使权重后验明确，并用全批 Langevin 采样。
 
 ![贝叶斯神经网络后验带。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/04-变分推断与Fokker-Planck方程/fig7_bayesian_nn.png)
 *图 7. 左：训练数据有缺口的回归问题， 90% Langevin 后验带在数据缺失处加宽。右：预测标准差在缺口处峰值 -- 这是点估计网络缺失的 **认知不确定性**。*
@@ -213,7 +213,7 @@ def langevin(grad_U, x0, eta=1e-3, n_steps=10000):
 2. **重尾分布炸梯度。** 若 $U$ 增长慢于二次， EM 在尾部发散。换 Milstein 高阶方法，或截断梯度。神经网络 log-density 必须处理。
 3. **多模态目标卡住。** 朴素 Langevin 进了山谷就出不来。 Replica exchange 开 $K$ 条链，温度 $T_1 < \dots < T_K$，定期交换样本。代价是 $K$ 倍计算，但双峰后验混合速度提升数量级。
 
-论文写"用 Langevin 采样"，背后至少踩一个坑。这些细节通常不提。
+论文写“用 Langevin 采样”，背后至少踩一个坑。这些细节通常不提。
 ## 11. SVGD 的实现：理论藏着三个坑
 
 梯度流公式
@@ -238,7 +238,7 @@ $$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $
 - **Score Matching**：训练 $s_\theta(x, t) \approx \nabla\log p_t(x)$。用 Denoising Score Matching (Vincent, 2011)。关键技巧是 $\nabla_x \log p_t(x) = \mathbb{E}[\nabla_x \log q(x|x_0)\,|\,x]$，条件高斯 $q(x|x_0)$ 的 score 可直接计算。
 - **反向**：用 Anderson (1982) 的时间反演 SDE 和学到的 score。每步是带学习漂移修正的 Langevin。
 
-没人明说的事：**扩散模型 = SVGD 把 kernel 换成学到的 score 场**。 SVGD 手动平衡"斥力 vs 吸引力"，扩散从数据中学。两者都属于"密度上的梯度流"，第 4 节的 Wasserstein 几何正是描述它们的语言。
+没人明说的事：**扩散模型 = SVGD 把 kernel 换成学到的 score 场**。 SVGD 手动平衡“斥力 vs 吸引力”，扩散从数据中学。两者都属于“密度上的梯度流”，第 4 节的 Wasserstein 几何正是描述它们的语言。
 
 PDE-ML 第七章单独展开扩散模型细节，这里只点透 Fokker-Planck 的关系。
 ## 参考文献

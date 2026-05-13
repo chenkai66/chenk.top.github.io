@@ -180,7 +180,7 @@ llm = LLM(model="Qwen/Qwen3-32B-AWQ", quantization="awq",
 
 H100 及更新的 GPU 有 FP8 tensor cores，吞吐量是 BF16 的 2 倍。 FP8 推理是现代路径：权重存 FP8，计算时 activations 转 FP8，累加用 FP32。质量损失忽略不计（<0.1 %），因为 FP8 比 INT8 动态范围更大。
 
-FP8 有两种格式： E4M3 （4 位 exponent， 3 位 mantissa）用于 activations 和权重——范围小，精度高； E5M2 （5 位 exp， 2 位 mantissa）用于 gradients 和 KV cache——范围大，精度低。硬件把反量化 scaling 融合进 matmul，所以没有 "INT4 反量化开销" 成本； FP8 是 H100/H200 上的光速路径。
+FP8 有两种格式： E4M3 （4 位 exponent， 3 位 mantissa）用于 activations 和权重——范围小，精度高； E5M2 （5 位 exp， 2 位 mantissa）用于 gradients 和 KV cache——范围大，精度低。硬件把反量化 scaling 融合进 matmul，所以没有 “INT4 反量化开销” 成本； FP8 是 H100/H200 上的光速路径。
 
 校准对 FP8 很重要，尽管 perplexity 损失很小。标准 recipe：收集 128-512 个 calibration 样本上的 activation 统计信息，计算 per-tensor 或 per-token scales，作为 checkpoint 的一部分存储。 Per-token activation scales （在运行时从实际 batch 计算）能以微小的延迟成本换取最佳质量。 NVIDIA 的 TransformerEngine 和 vLLM 的 `--quantization fp8` 都实现了这个。
 

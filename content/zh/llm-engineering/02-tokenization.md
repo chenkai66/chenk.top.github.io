@@ -137,7 +137,7 @@ LLaMA-3 还在词表末尾加了 28 个保留特殊 token （`<|reserved_special
 
 ![fig2: CJK token bloat by language](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/02-tokenization/fig2_cjk_bloat.png)
 
-我在开发一款中文产品时，曾因这一问题遭遇严重困扰。 GPT-3.5 的分词器（cl100k_base, 100K 词表）把英文字符串 "Hello, how are you?" 分成了 6 个 tokens。中文等价物 "你好，你今天怎么样？" 分成了 17 个 tokens。
+我在开发一款中文产品时，曾因这一问题遭遇严重困扰。 GPT-3.5 的分词器（cl100k_base, 100K 词表）把英文字符串 "Hello, how are you?" 分成了 6 个 tokens。中文等价物 “你好，你今天怎么样？” 分成了 17 个 tokens。
 
 三个因素叠加：
 
@@ -145,7 +145,7 @@ LLaMA-3 还在词表末尾加了 28 个保留特殊 token （`<|reserved_special
 2. **合并频率。** BPE 合并频率最高的 pair。中文预训练数据历史上只占 OpenAI 语料库的一小部分，所以字符级 pair 合并得较少。
 3. **无词边界。** 英文 BPE 受益于 leading-space 约定（`Ġhello`）；中文没有这种标记。
 
-同一 prompt 在不同分词器上的成本，针对这句中文 "你好，请帮我用 Python 写一个快速排序"：
+同一 prompt 在不同分词器上的成本，针对这句中文 “你好，请帮我用 Python 写一个快速排序”：
 
 | Tokenizer | Tokens |
 |---|---|
@@ -170,7 +170,7 @@ print("qwen3:", len(AutoTokenizer.from_pretrained("Qwen/Qwen3-7B").encode(text))
 print("llama3:", len(AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B").encode(text)))
 ```
 
-在选模型前，用你的真实 prompt 跑一下这个。决策结果经常和 "谁在 MMLU 上最强" 不一样。
+在选模型前，用你的真实 prompt 跑一下这个。决策结果经常和 “谁在 MMLU 上最强” 不一样。
 ## 实战案例：算算中文产品的成本账
 
 拿个典型的中文客服机器人场景来说：用户消息平均 80 个汉字，模型回复平均 200 个汉字，系统 Prompt 平均 600 个汉字。每天 100 万轮对话。
