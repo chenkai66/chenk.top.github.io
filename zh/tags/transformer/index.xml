@@ -3,26 +3,26 @@
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer%e9%95%bf%e5%ba%8f%e5%88%97%e9%a2%84%e6%b5%8b/illustration_1.png" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
-&lt;/p>
-&lt;p>Transformer 在序列建模上确实很强大，但只要序列一长，问题就来了。普通自注意力的计算和显存开销都是 $\mathcal{O}(L^2)$。比如，一周小时级窗口（168 步）还能轻松搞定，一个月窗口（720 步）就开始吃力，三个月窗口（2160 步）在单张 GPU 上基本跑不动。而实际应用中的长 horizon 预测，如气象、能源、金融、IoT，偏偏就在这个范围内。&lt;/p></description></item><item><title>时间序列模型（五）：时间序列的 Transformer 架构</title><link>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</link><pubDate>Thu, 31 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</guid><description>&lt;p>&lt;figure class="article-figure">
+
+\nTransformer 在序列建模上确实很强大，但只要序列一变长，问题就来了。普通自注意力机制在计算和显存上的开销都是 $\mathcal{O}(L^2)$ 级别——一周的小时级窗口（168 步）还能轻松处理，一个月窗口（720 步）就已经吃力，而三个月窗口（2160 步）在单张 GPU 上基本无法运行。偏偏现实世界中的长 horizon 预测任务，比如气象、能源、金融和 IoT，恰恰就落在这个区间。&lt;/p></description></item><item><title>时间序列模型（五）：时间序列的 Transformer 架构</title><link>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</link><pubDate>Thu, 31 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;h2 id="本章要点" class="heading-anchor">本章要点&lt;a href="#%e6%9c%ac%e7%ab%a0%e8%a6%81%e7%82%b9" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
 &lt;/h2>&lt;ul>
-&lt;li>详细解析完整的 encoder-decoder Transformer，重新设计用于时间序列&lt;/li>
-&lt;li>为什么必须加入位置信息，正弦编码、学习式编码和时间感知编码各自有什么不同&lt;/li>
-&lt;li>多头注意力在时间序列上到底学到了什么&lt;/li>
-&lt;li>朴素 attention 的瓶颈在哪里（O(n²)），以及四种改进方向：稀疏、线性、分块、仅解码器&lt;/li>
-&lt;li>提供一份清晰的 PyTorch 参考实现，教你如何选择 Autoformer、 FEDformer、 Informer 或 PatchTST&lt;/li>
+&lt;li>完整解析专为时间序列设计的 encoder-decoder Transformer 架构&lt;/li>
+&lt;li>为什么必须注入位置信息，以及正弦编码、可学习编码与时间感知编码的区别&lt;/li>
+&lt;li>多头注意力在时间序列上实际学到的内容&lt;/li>
+&lt;li>朴素 attention 的瓶颈（O(n²)）及四大改进方向：稀疏、线性、分块（patching）、仅解码器&lt;/li>
+&lt;li>提供一份清晰的 PyTorch 参考实现，并指导何时选用 Autoformer / FEDformer / Informer / PatchTST&lt;/li>
 &lt;/ul>
 &lt;h2 id="前置知识" class="heading-anchor">前置知识&lt;a href="#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
 &lt;/h2>&lt;ul>
-&lt;li>自注意力和多头注意力（第 4 篇）&lt;/li>
+&lt;li>自注意力与多头注意力（第 4 篇）&lt;/li>
 &lt;li>编码器-解码器架构与 teacher forcing&lt;/li>
 &lt;li>PyTorch 基础（&lt;code>nn.Module&lt;/code>、训练循环）&lt;/li>
 &lt;/ul>
 &lt;hr>
 &lt;h2 id="1-为什么时间序列要用-transformer" class="heading-anchor">1. 为什么时间序列要用 Transformer&lt;a href="#1-%e4%b8%ba%e4%bb%80%e4%b9%88%e6%97%b6%e9%97%b4%e5%ba%8f%e5%88%97%e8%a6%81%e7%94%a8-transformer" class="heading-link" aria-label="Permalink to this section" title="Copy link to this section">#&lt;/a>
-&lt;/h2>&lt;p>LSTM 和 GRU 按时间步顺序处理序列，由此引发三个固有缺陷：&lt;/p></description></item><item><title>浅谈位置编码：从 Sinusoidal 到 RoPE 与 ALiBi</title><link>https://www.chenk.top/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/</link><pubDate>Fri, 30 Jun 2023 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/</guid><description>&lt;p>第一次手动计算 Self-Attention 时，多数人会惊讶地发现：它&lt;strong>完全不依赖输入顺序&lt;/strong>。若将 token 序列重新排列，各注意力分数也会随之同步重排——该函数严格满足置换等变性。因此，在让 Transformer 完成需要理解序列顺序的任务之前，必须显式注入位置信息。&lt;/p></description></item></channel></rss>
+&lt;/h2>&lt;p>LSTM 和 GRU 按时间步顺序处理序列，由此带来三个根本限制：&lt;/p></description></item><item><title>浅谈位置编码：从 Sinusoidal 到 RoPE 与 ALiBi</title><link>https://www.chenk.top/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/</link><pubDate>Fri, 30 Jun 2023 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/</guid><description>&lt;p>第一次手动计算 Self-Attention 时，多数人会惊讶地发现：它&lt;strong>完全不依赖输入顺序&lt;/strong>。若将 token 序列重新排列，各注意力分数也会随之同步重排——该函数严格满足置换等变性。因此，在让 Transformer 完成需要理解序列顺序的任务之前，必须显式注入位置信息。&lt;/p></description></item></channel></rss>
