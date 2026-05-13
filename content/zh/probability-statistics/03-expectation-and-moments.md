@@ -15,13 +15,11 @@ disableNunjucks: true
 series_order: 3
 translationKey: "probability-statistics-3"
 ---
+概率分布是对随机变量的**完整描述**——它告诉你每个可能结果出现的概率。但“完整”往往意味着繁琐。当有人问：“这座城市的人平均身高是多少？”，你不会递给他一个密度函数，而是说：“大约 170 厘米，上下浮动约 10 厘米。” 平均值与离散程度（spread）就已捕捉了实践中最核心的信息。
 
-概率分布是对随机变量的**完整描述**——它告诉你每个可能结果出现的概率。但“完整”往往意味着繁琐。当有人问：“这座城市的人平均身高是多少？”，你不会递给他一个密度函数；你会说：“大约 170 厘米，上下浮动约 10 厘米。” 平均值与离散程度（spread）就已捕捉了实践中最核心的信息。
-
-本文构建用于**概括分布特征**的数学框架：我们从刻画“中心位置”的**期望**出发，进阶至刻画“离散程度”的**方差**，最后引入**矩生成函数（MGF）**——一个简洁公式，不仅能编码分布的所有矩（moments），更惊人地——**唯一确定该分布本身**。
+本文构建用于**概括分布特征**的数学框架：我们从刻画“中心位置”的**期望**出发，进阶至刻画“离散程度”的**方差**，最后引入**矩生成函数（MGF）**——一个简洁公式，不仅能编码分布的所有矩（moments），更惊人地**唯一确定该分布本身**。
 
 ## 期望
-
 
 ![期望作为平衡点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-expectation.png)
 
@@ -63,7 +61,7 @@ $$= a \sum_x x \, p_X(x) + b \sum_y y \, p_Y(y) + c = aE[X] + bE[Y] + c. \quad \
 
 **例。** 洗匀 $n$ 张牌后，固定点（fixed point）的期望个数是多少？（固定点指某张牌最终仍在其原始位置）
 
-令 $X_i = 1$ 若第 $i$ 张牌在位置 $i$，否则 $X_i = 0$。则 $X = \sum_{i=1}^n X_i$ 表示固定点总数。$E[X_i] = P(\text{第 } i \text{ 张牌不动}) = 1/n$。由线性性：
+令 $X_i = 1$ 若第 $i$ 张牌在位置 $i$，否则 $X_i = 0$。则 $X = \sum_{i=1}^n X_i$ 表示固定点总数。由于每张牌留在原位的概率为 $1/n$，故 $E[X_i] = P(\text{第 } i \text{ 张牌不动}) = 1/n$。由线性性：
 
 $$E[X] = \sum_{i=1}^n E[X_i] = n \cdot \frac{1}{n} = 1.$$
 
@@ -83,7 +81,6 @@ $$E[\text{逆序对个数}] = \binom{n}{2} \cdot \frac{1}{2} = \frac{n(n-1)}{4}.
 
 ![方差可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-variance.png)
 
-
 **定理（LOTUS）。** 若 $X$ 是离散型随机变量，其 PMF 为 $p(x)$，则：
 
 $$E[g(X)] = \sum_x g(x) \, p(x).$$
@@ -102,9 +99,7 @@ $$E[X^2] = \int_0^1 x^2 \cdot 1 \, dx = \frac{x^3}{3}\bigg|_0^1 = \frac{1}{3}.$$
 
 ## 方差
 
-
 ![协方差散点图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-covariance-scatter.png)
-
 
 ![协方差相关性：舞伴一起移动或独立](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-covariance-correlation-dance-partners-moving-together-or-ind.jpg)
 
@@ -162,7 +157,6 @@ $$\text{Var}(X + Y) = \text{Var}(X) + \text{Var}(Y) + 2\text{Cov}(X, Y)$$
 
 ## 协方差
 
-
 ![切比雪夫不等式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-chebyshev-bound.png)
 
 ### 定义
@@ -200,7 +194,6 @@ $$E[XY] = E[X^3] = \int_{-1}^{1} x^3 \cdot \frac{1}{2} dx = 0$$
 **皮尔逊相关系数**将协方差标准化，使其取值范围落在 $[-1, 1]$ 内：
 
 ![矩生成函数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-mgf.png)
-
 
 $$\rho(X, Y) = \frac{\text{Cov}(X, Y)}{\sigma_X \sigma_Y} = \frac{\text{Cov}(X, Y)}{\sqrt{\text{Var}(X)\text{Var}(Y)}}.$$
 
@@ -249,7 +242,7 @@ $$\gamma_2 = \frac{E[(X - \mu)^4]}{\sigma^4}$$
 
 正态分布的 $\gamma_2 = 3$。**超额峰度（Excess kurtosis）** 定义为 $\gamma_2 - 3$，衡量尾部相对于正态分布的厚重程度。正值表示尾部更厚（极端事件发生概率高于高斯分布预测）。
 
-**例。** 自由度为 $\nu$ 的学生 $t$ 分布，其超额峰度为 $6/(\nu - 4)$（当 $\nu > 4$）。当 $\nu \to \infty$ 时，它趋近于 0 （即正态分布）。对较小的 $\nu$，超额峰度很大，反映其厚重尾部。这正是 $t$ 分布在稳健统计中被采用的原因。
+**例。** 自由度为 $\nu$ 的学生 $t$ 分布，其超额峰度为 $6/(\nu - 4)$（当 $\nu > 4$）。当 $\nu \to \infty$ 时，它趋近于 0（即正态分布）。对较小的 $\nu$，超额峰度很大，反映其厚重尾部。这正是 $t$ 分布在稳健统计中被采用的原因。
 
 **例。** 均匀分布的 $\gamma_2 = 1.8$，故其超额峰度为 $-1.2$（尾部比正态分布更轻）。在有界区间上的连续分布中，它是最“低峰态（platykurtic）”的。
 

@@ -15,7 +15,6 @@ disableNunjucks: true
 series_order: 5
 translationKey: "probability-statistics-5"
 ---
-
 若你必须从全部概率论中仅挑选两个定理，那必然是**大数定律（LLN）**与**中心极限定理（CLT）**——它们共同回答了两个根本性问题：LLN 断言“样本均值将收敛至真实均值”，CLT 则进一步指出“这些波动的精确形态”。若无这两个定理，民意调查将失去理论依据，临床试验结果无法令人信服，随机梯度下降（SGD）的收敛性也无从解释。
 
 本文将严谨推导这两个定理，并首先厘清各类“收敛”概念，以使结论更加精确。
@@ -26,23 +25,21 @@ translationKey: "probability-statistics-5"
 
 ![大数定律模拟](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-lln-simulation.png)
 
-
-### 依分布收敛（Convergence in Distribution）
+### 依分布收敛
 
 $X_n \xrightarrow{d} X$ 当且仅当对 $F_X$ 的每一个连续点 $x$，均有  
 $$F_{X_n}(x) \to F_X(x).$$
 
 ![收敛模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-convergence-modes.png)
 
-
 这是最弱的收敛形式。我们仅要求累积分布函数（CDF）逐点收敛；随机变量 $X_n$ 甚至无需与 $X$ 定义在同一概率空间上。
 
-### 依概率收敛（Convergence in Probability）
+### 依概率收敛
 
 $X_n \xrightarrow{P} X$ 当且仅当对任意 $\varepsilon > 0$，有  
 $$\lim_{n \to \infty} P(|X_n - X| > \varepsilon) = 0.$$
 
-强于依分布收敛。此处 $X_n$ 偏离 $X$ 的概率趋于零，但对任一具体试验，$X_n$ 仍可能与 $X$ 不同。
+它比依分布收敛更强：此处 $X_n$ 偏离 $X$ 的概率趋于零，但对任一具体试验，$X_n$ 仍可能与 $X$ 不同。
 
 ### 均方收敛（L² 收敛）
 
@@ -54,7 +51,7 @@ $$\lim_{n \to \infty} E[(X_n - X)^2] = 0.$$
 *均方收敛蕴含依概率收敛的证明。* 对任意 $\varepsilon > 0$：  
 $$P(|X_n - X| > \varepsilon) = P((X_n - X)^2 > \varepsilon^2) \leq \frac{E[(X_n - X)^2]}{\varepsilon^2} \to 0. \quad \blacksquare$$
 
-### 几乎必然收敛（Almost Sure Convergence）
+### 几乎必然收敛
 
 $X_n \xrightarrow{a.s.} X$ 当且仅当  
 $$P\left(\lim_{n \to \infty} X_n = X\right) = 1.$$
@@ -76,7 +73,6 @@ $$\bar{X}_n = \frac{1}{n} \sum_{i=1}^n X_i.$$
 $$\lim_{n \to \infty} P(|\bar{X}_n - \mu| > \varepsilon) = 0.$$
 
 ![中心极限定理收敛](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-clt-convergence.png)
-
 
 ### 利用切比雪夫不等式的证明
 
@@ -104,7 +100,6 @@ $$\lim_{n \to \infty} P(|\bar{X}_n - \mu| > \varepsilon) \leq \lim_{n \to \infty
 
 ## 强大数定律（SLLN）
 
-
 ![多个随机流合并成一个钟形曲线的中心极限定理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-central-limit-theorem-many-random-streams-merging-into-a-bel.jpg)
 
 **定理（SLLN）。** 在与 WLLN 相同（甚至更弱）的条件下（仅需有限均值）：  
@@ -112,7 +107,6 @@ $$\bar{X}_n \xrightarrow{a.s.} \mu.$$
 即，$P\left(\lim_{n \to \infty} \bar{X}_n = \mu\right) = 1$。
 
 ![正态近似](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-normal-approximation.png)
-
 
 SLLN 严格强于 WLLN：它不仅断言偏离概率趋于零，更声称在几乎所有样本路径上，均值序列都以普通微积分意义收敛至 $\mu$。其证明难度显著更高（通常需 Borel-Cantelli 引理或截断论证），故此处仅陈述而不予证明。
 
@@ -158,7 +152,7 @@ $$W_n \xrightarrow{d} \mathcal{N}(0, 1). \quad \blacksquare$$
 经典应用之一。若 $X \sim \text{Binomial}(n, p)$，则 $X = \sum_{i=1}^n X_i$，其中 $X_i \sim \text{Bernoulli}(p)$ 独立同分布。由 CLT：  
 $$\frac{X - np}{\sqrt{np(1-p)}} \approx \mathcal{N}(0, 1) \quad \text{当 } n \text{ 充分大}.$$
 
-### 连续性校正（Continuity Correction）
+### 连续性校正
 
 由于 $X$ 是离散的而正态分布是连续的，为提升精度，需应用**连续性校正**：  
 $$P(X \leq k) \approx \Phi\left(\frac{k + 0.5 - np}{\sqrt{np(1-p)}}\right),$$  
@@ -175,7 +169,6 @@ $$P(X \geq 60) = P(X \geq 59.5) \approx 1 - \Phi\left(\frac{59.5 - 50}{5}\right)
 CLT 的收敛速度如何？ Berry-Esseen 定理给出了定量界。
 
 ![Berry-Esseen 界限](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/05-berry-esseen.png)
-
 
 **定理（Berry-Esseen）。** 在 CLT 条件下，若 $E[|Z_i|^3] = \rho < \infty$，则：  
 $$\sup_x \left|P(W_n \leq x) - \Phi(x)\right| \leq \frac{C \rho}{\sqrt{n}},$$  
@@ -200,7 +193,7 @@ $$\frac{\bar{X}_n - \mu}{\sigma/\sqrt{n}} \xrightarrow{d} \mathcal{N}(0, 1).$$
 
 CLT 要求**有限方差**。若方差无穷，该定理可能彻底失效。
 
-### 重尾分布：柯西分布（Cauchy Distribution）
+### 重尾分布：柯西分布
 
 $\text{Cauchy}(0,1)$ 分布的概率密度函数为 $f(x) = \frac{1}{\pi(1+x^2)}$。其均值与方差均不存在（积分发散）。
 
@@ -224,9 +217,9 @@ $$\bar{X}_n = X_1, \quad \text{Var}(\bar{X}_n) = \text{Var}(X_1),$$
 
 尽管经典 CLT 要求 i.i.d. 数据，若干扩展可处理相依观测：
 
-**鞅 CLT （Martingale CLT）。** 若 $\{S_n\}$ 是满足适当矩条件的鞅，则经缩放的鞅收敛至正态分布。应用于序贯分析与金融数学。
+**鞅 CLT。** 若 $\{S_n\}$ 是满足适当矩条件的鞅，则经缩放的鞅收敛至正态分布。应用于序贯分析与金融数学。
 
-**混合序列 CLT （CLT for mixing sequences）。** 若 $X_i$ 与 $X_j$ 的依赖性随 $|i - j| \to \infty$ 足够快衰减（如 $\alpha$-混合或 $\phi$-混合条件），则仍成立 CLT，但需调整方差缩放。适用于诸多时间序列模型。
+**混合序列 CLT。** 若 $X_i$ 与 $X_j$ 的依赖性随 $|i - j| \to \infty$ 足够快衰减（如 $\alpha$-混合或 $\phi$-混合条件），则仍成立 CLT，但需调整方差缩放。适用于诸多时间序列模型。
 
 **Lindeberg-Feller CLT。** 针对独立（但未必同分布）变量的最一般版本。若 Lindeberg 条件成立（直观而言：无单一变量主导总和），则标准化和收敛至 $\mathcal{N}(0,1)$。
 
@@ -316,7 +309,6 @@ plt.show()
 
 ## Delta 方法：变换量的 CLT
 
-
 ![大数定律硬币翻转收敛到百分之五十](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/05-law-of-large-numbers-coin-flips-converging-to-fifty-percent.jpg)
 
 CLT 告诉我们 $\sqrt{n}(\bar{X}_n - \mu) \xrightarrow{d} \mathcal{N}(0, \sigma^2)$。但若关注均值的函数（如 $g(\bar{X}_n)$）呢？**Delta 方法**将 CLT 推广至此。
@@ -361,7 +353,7 @@ Hoeffding：$P(|\bar{X} - 0.5| \geq 0.1) \leq 2\exp(-2 \times 100 \times 0.01/1)
 $$P(X \geq a) = P(e^{tX} \geq e^{ta}) \leq \frac{E[e^{tX}]}{e^{ta}} = \frac{M_X(t)}{e^{ta}}.$$  
 对 $t$ 优化可得最紧界。此即 **Chernoff 界**， Hoeffding 不等式即由此导出。
 
-## 连续映射定理（Continuous Mapping Theorem）
+## 连续映射定理
 
 **定理。** 若 $X_n \xrightarrow{d} X$ 且 $g$ 连续，则 $g(X_n) \xrightarrow{d} g(X)$。
 
