@@ -20,33 +20,59 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Terraform Agents</a>
 · Chapter 8</div><h1>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</h1><p class=deck>Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, full prod cost arithmetic, and the starter repo to fork.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-03-26>March 26, 2026</time> · 36 min read · 3828 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/terraform/ class=tag>#Terraform</a><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/end-to-end/ class=tag>#End-to-End</a><a href=/en/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/zh/terraform-agents/08-end-to-end-walkthrough/>阅读中文版 →</a></div></header><div class=prose><p>This is where everything from articles 2 through 7 lands in one place. By the end you&rsquo;ll have run <code>terraform apply</code> once and produced a complete, observable, budgeted agent runtime stack on Alibaba Cloud — about 31 resources, ~7 minutes of wall clock, ¥12,530/month all-in at prod sizing.</p><p>The stack we&rsquo;re building:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png alt="research-agent-stack: every box, one terraform apply" loading=lazy decoding=async class=content-image></figure></p><p>Five layers — edge, compute, memory, platform, ops — composed from the modules we built across this series. Eleven Aliyun products under the hood: VPC, ECS, ALB, OSS, RDS for PostgreSQL, OpenSearch, KMS, SLS, ARMS, CloudMonitor, and DashScope (the LLM provider, accessed via the gateway).</p><h2 id=project-structure class=heading-anchor>Project structure<a href=#project-structure class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><pre tabindex=0><code>research-agent-stack/
-├── README.md
-├── versions.tf                  # Terraform + provider pinning
-├── backend.tf                   # OSS + Tablestore remote state
-├── providers.tf                 # alicloud + alicloud.beijing alias
-├── variables.tf                 # top-level inputs
-├── locals.tf                    # workspace-aware computed locals
-├── main.tf                      # module composition
-├── outputs.tf                   # endpoints + connection strings
-├── env/
-│   ├── dev.tfvars
-│   ├── staging.tfvars
-│   └── prod.tfvars
-├── secrets/
-│   └── secrets.auto.tfvars      # gitignored — provider keys
-├── modules/
-│   ├── vpc-baseline/            # article 3
-│   ├── storage/                 # article 5
-│   ├── compute/                 # article 4
-│   ├── llm-gateway/             # article 6
-│   └── observability/           # article 7
-└── scripts/
-    ├── cloud-init/
-    │   ├── agent.sh
-    │   └── gateway.sh
-    └── restore-drill.sh
-</code></pre><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png alt="Infrastructure modules composing together into a complete architecture" loading=lazy decoding=async class=content-image></figure></p><p>Eight <code>*.tf</code> files at the top, five modules in <code>modules/</code>, environment values in <code>env/*.tfvars</code>, secrets out of git in <code>secrets/secrets.auto.tfvars</code>. This is the layout I use on every project — boring is good. The thing I will not negotiate on is the <code>secrets/</code> directory being in <code>.gitignore</code> from commit zero. Every leaked-key incident I&rsquo;ve cleaned up traced back to someone adding the gitignore entry on commit 50 instead of commit 1.</p><h2 id=maintf--the-composition class=heading-anchor>main.tf — the composition<a href=#maintf--the-composition class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-03-26>March 26, 2026</time> · 38 min read · 3854 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/terraform/ class=tag>#Terraform</a><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/end-to-end/ class=tag>#End-to-End</a><a href=/en/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/zh/terraform-agents/08-end-to-end-walkthrough/>阅读中文版 →</a></div></header><div class=prose><p>This is where everything from articles 2 through 7 lands in one place. By the end you&rsquo;ll have run <code>terraform apply</code> once and produced a complete, observable, budgeted agent runtime stack on Alibaba Cloud — about 31 resources, ~7 minutes of wall clock, ¥12,530/month all-in at prod sizing.</p><p>The stack we&rsquo;re building:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png alt="research-agent-stack: every box, one terraform apply" loading=lazy decoding=async class=content-image></figure></p><p>Five layers — edge, compute, memory, platform, ops — composed from the modules we built across this series. Eleven Aliyun products under the hood: VPC, ECS, ALB, OSS, RDS for PostgreSQL, OpenSearch, KMS, SLS, ARMS, CloudMonitor, and DashScope (the LLM provider, accessed via the gateway).</p><h2 id=project-structure class=heading-anchor>Project structure<a href=#project-structure class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>research-agent-stack/
+</span></span><span class=line><span class=cl>├── README.md
+</span></span><span class=line><span class=cl>├── versions.tf                  # Terraform + provider pinning
+</span></span><span class=line><span class=cl>├── backend.tf                   # OSS + Tablestore remote state
+</span></span><span class=line><span class=cl>├── providers.tf                 # alicloud + alicloud.beijing alias
+</span></span><span class=line><span class=cl>├── variables.tf                 # top-level inputs
+</span></span><span class=line><span class=cl>├── locals.tf                    # workspace-aware computed locals
+</span></span><span class=line><span class=cl>├── main.tf                      # module composition
+</span></span><span class=line><span class=cl>├── outputs.tf                   # endpoints + connection strings
+</span></span><span class=line><span class=cl>├── env/
+</span></span><span class=line><span class=cl>│   ├── dev.tfvars
+</span></span><span class=line><span class=cl>│   ├── staging.tfvars
+</span></span><span class=line><span class=cl>│   └── prod.tfvars
+</span></span><span class=line><span class=cl>├── secrets/
+</span></span><span class=line><span class=cl>│   └── secrets.auto.tfvars      # gitignored — provider keys
+</span></span><span class=line><span class=cl>├── modules/
+</span></span><span class=line><span class=cl>│   ├── vpc-baseline/            # article 3
+</span></span><span class=line><span class=cl>│   ├── storage/                 # article 5
+</span></span><span class=line><span class=cl>│   ├── compute/                 # article 4
+</span></span><span class=line><span class=cl>│   ├── llm-gateway/             # article 6
+</span></span><span class=line><span class=cl>│   └── observability/           # article 7
+</span></span><span class=line><span class=cl>└── scripts/
+</span></span><span class=line><span class=cl>    ├── cloud-init/
+</span></span><span class=line><span class=cl>    │   ├── agent.sh
+</span></span><span class=line><span class=cl>    │   └── gateway.sh
+</span></span><span class=line><span class=cl>    └── restore-drill.sh
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png alt="Infrastructure modules composing together into a complete architecture" loading=lazy decoding=async class=content-image></figure></p><p>Eight <code>*.tf</code> files at the top, five modules in <code>modules/</code>, environment values in <code>env/*.tfvars</code>, secrets out of git in <code>secrets/secrets.auto.tfvars</code>. This is the layout I use on every project — boring is good. The thing I will not negotiate on is the <code>secrets/</code> directory being in <code>.gitignore</code> from commit zero. Every leaked-key incident I&rsquo;ve cleaned up traced back to someone adding the gitignore entry on commit 50 instead of commit 1.</p><h2 id=maintf--the-composition class=heading-anchor>main.tf — the composition<a href=#maintf--the-composition class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -689,5 +715,5 @@
 <span class=chapter-title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
 <span class=chapter-title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
 <span class=chapter-title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
-<span class=chapter-title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>36 min</strong></div><div class=row><span>Word count</span><strong>3828</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>38 min</strong></div><div class=row><span>Word count</span><strong>3854</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

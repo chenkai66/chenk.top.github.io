@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Claude Code 实战</a>
 · 第 7 篇</div><h1>Claude Code 实战（七）：十个实用 Hooks 配方</h1><p class=deck>从参考仓库的 100 个脚本里挑出 10 个，每一个都给：它做什么、JS 全文、settings.json 的接线方式、它会咬人的地方。PreToolUse 守安全，PostToolUse 做卫生，那些朴素但救命的脚本。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-24>April 24, 2026</time> · 24 分钟 · 5661 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/hooks/ class=tag>#hooks</a><a href=/zh/tags/security/ class=tag>#Security</a><a href=/zh/tags/workflow/ class=tag>#Workflow</a></div><a class="pill pill-outline" href=/en/claude-code-learn/07-hooks-deep-dive/>Read in English →</a></div></header><div class=prose><p>第五章梳理了 Hook 的基本概念，本章则聚焦实战应用：从百余个脚本的参考库中，仅这十个被纳入所有严肃项目的标准配置，并逐一介绍附带代码级操作说明。</p><p>所有示例默认 Node 18+ 环境，脚本存到 <code>./hooks/</code>，加上 <code>chmod +x</code> 权限，然后在 <code>.claude/settings.json</code> 里这样配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2026-04-24>April 24, 2026</time> · 24 分钟 · 5716 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/claude-code/ class=tag>#claude-code</a><a href=/zh/tags/hooks/ class=tag>#hooks</a><a href=/zh/tags/security/ class=tag>#Security</a><a href=/zh/tags/workflow/ class=tag>#Workflow</a></div><a class="pill pill-outline" href=/en/claude-code-learn/07-hooks-deep-dive/>Read in English →</a></div></header><div class=prose><p>第五章梳理了 Hook 的基本概念，本章则聚焦实战应用：从百余个脚本的参考库中，仅这十个被纳入所有严肃项目的标准配置，并逐一介绍附带代码级操作说明。</p><p>所有示例默认 Node 18+ 环境，脚本存到 <code>./hooks/</code>，加上 <code>chmod +x</code> 权限，然后在 <code>.claude/settings.json</code> 里这样配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -170,12 +170,17 @@
 </span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl><span class=c1># 期望输出：</span>
 </span></span><span class=line><span class=cl><span class=c1># Exit code: 0</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=触发时-claude-看到什么 class=heading-anchor>触发时 Claude 看到什么<a href=#%e8%a7%a6%e5%8f%91%e6%97%b6-claude-%e7%9c%8b%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Hook 拦截调用时，stderr 文本会作为反馈交给 Claude。真实会话大致是这样的：</p><pre tabindex=0><code>Claude: I&#39;ll read the environment configuration...
-[Hook blocked Read on .env.local]
-Claude: I can&#39;t read .env.local directly as it contains sensitive data.
-        Could you share the specific variable names you&#39;d like me to use?
-        For example: DATABASE_URL, API_KEY, etc.
-</code></pre><p>模型能优雅地恢复，因为 stderr 信息明确告诉了它<em>替代方案</em>。</p><hr><h2 id=2-bash-blacklist--阻止-rm--rf- class=heading-anchor>2. bash-blacklist — 阻止 <code>rm -rf /</code><a href=#2-bash-blacklist--%e9%98%bb%e6%ad%a2-rm--rf- class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.png alt="Claude Code 实战 (7)：我实际使用的十个钩子及其代码 —— 图解" loading=lazy decoding=async class=content-image></figure></p><p>最常见的自伤操作。挂在 <code>Bash</code> 的 PreToolUse 上。</p><h3 id=完整代码-1 class=heading-anchor>完整代码<a href=#%e5%ae%8c%e6%95%b4%e4%bb%a3%e7%a0%81-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=触发时-claude-看到什么 class=heading-anchor>触发时 Claude 看到什么<a href=#%e8%a7%a6%e5%8f%91%e6%97%b6-claude-%e7%9c%8b%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Hook 拦截调用时，stderr 文本会作为反馈交给 Claude。真实会话大致是这样的：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Claude: I&#39;ll read the environment configuration...
+</span></span><span class=line><span class=cl>[Hook blocked Read on .env.local]
+</span></span><span class=line><span class=cl>Claude: I can&#39;t read .env.local directly as it contains sensitive data.
+</span></span><span class=line><span class=cl>        Could you share the specific variable names you&#39;d like me to use?
+</span></span><span class=line><span class=cl>        For example: DATABASE_URL, API_KEY, etc.
+</span></span></code></pre></td></tr></table></div></div><p>模型能优雅地恢复，因为 stderr 信息明确告诉了它<em>替代方案</em>。</p><hr><h2 id=2-bash-blacklist--阻止-rm--rf- class=heading-anchor>2. bash-blacklist — 阻止 <code>rm -rf /</code><a href=#2-bash-blacklist--%e9%98%bb%e6%ad%a2-rm--rf- class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.png alt="Claude Code 实战 (7)：我实际使用的十个钩子及其代码 —— 图解" loading=lazy decoding=async class=content-image></figure></p><p>最常见的自伤操作。挂在 <code>Bash</code> 的 PreToolUse 上。</p><h3 id=完整代码-1 class=heading-anchor>完整代码<a href=#%e5%ae%8c%e6%95%b4%e4%bb%a3%e7%a0%81-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -425,11 +430,15 @@ Claude: I can&#39;t read .env.local directly as it contains sensitive data.
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
 </span></span><span class=line><span class=cl><span class=p>});</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=为什么是-exit-0不是-exit-1 class=heading-anchor>为什么是 exit 0，不是 exit 1<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e6%98%af-exit-0%e4%b8%8d%e6%98%af-exit-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>PostToolUse 在编辑后运行，此时副作用已发生，exit 2 无法回滚；若用 exit 1，错误将暴露给模型，可能引发反复编辑的死循环。格式化是纯辅助操作，记录警告后放行。</p><h3 id=真实终端输出 class=heading-anchor>真实终端输出<a href=#%e7%9c%9f%e5%ae%9e%e7%bb%88%e7%ab%af%e8%be%93%e5%87%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><pre tabindex=0><code>Claude: I&#39;ll update the component...
-[Edit applied to src/components/Header.tsx]
-[PostToolUse hook] Formatted: Header.tsx
-Claude: Done. The component now accepts a `subtitle` prop.
-</code></pre><p>格式化静默发生， Claude 自己甚至都不会提及。</p><hr><h2 id=6-test-on-edit--快速失败 class=heading-anchor>6. test-on-edit — 快速失败<a href=#6-test-on-edit--%e5%bf%ab%e9%80%9f%e5%a4%b1%e8%b4%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>挂在源文件的 <code>Edit|MultiEdit</code> 的 PostToolUse 上。这是单论效益最高的 Hook——长期使用，它实际上“训练”了 Claude 在我的仓库里写出更靠谱的代码。</p><h3 id=完整代码-5 class=heading-anchor>完整代码<a href=#%e5%ae%8c%e6%95%b4%e4%bb%a3%e7%a0%81-5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=为什么是-exit-0不是-exit-1 class=heading-anchor>为什么是 exit 0，不是 exit 1<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e6%98%af-exit-0%e4%b8%8d%e6%98%af-exit-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>PostToolUse 在编辑后运行，此时副作用已发生，exit 2 无法回滚；若用 exit 1，错误将暴露给模型，可能引发反复编辑的死循环。格式化是纯辅助操作，记录警告后放行。</p><h3 id=真实终端输出 class=heading-anchor>真实终端输出<a href=#%e7%9c%9f%e5%ae%9e%e7%bb%88%e7%ab%af%e8%be%93%e5%87%ba class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Claude: I&#39;ll update the component...
+</span></span><span class=line><span class=cl>[Edit applied to src/components/Header.tsx]
+</span></span><span class=line><span class=cl>[PostToolUse hook] Formatted: Header.tsx
+</span></span><span class=line><span class=cl>Claude: Done. The component now accepts a `subtitle` prop.
+</span></span></code></pre></td></tr></table></div></div><p>格式化静默发生， Claude 自己甚至都不会提及。</p><hr><h2 id=6-test-on-edit--快速失败 class=heading-anchor>6. test-on-edit — 快速失败<a href=#6-test-on-edit--%e5%bf%ab%e9%80%9f%e5%a4%b1%e8%b4%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>挂在源文件的 <code>Edit|MultiEdit</code> 的 PostToolUse 上。这是单论效益最高的 Hook——长期使用，它实际上“训练”了 Claude 在我的仓库里写出更靠谱的代码。</p><h3 id=完整代码-5 class=heading-anchor>完整代码<a href=#%e5%ae%8c%e6%95%b4%e4%bb%a3%e7%a0%81-5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -525,29 +534,51 @@ Claude: Done. The component now accepts a `subtitle` prop.
 </span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=p>}</span>
 </span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
 </span></span><span class=line><span class=cl><span class=p>});</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=为什么是-exit-1不是-exit-2 class=heading-anchor>为什么是 exit 1，不是 exit 2<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e6%98%af-exit-1%e4%b8%8d%e6%98%af-exit-2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在 PostToolUse 中，exit 1 会把失败信息回喂给模型，模型读到测试输出后会尝试修复代码，形成反馈闭环。</p><pre tabindex=0><code>Claude: I&#39;ll update the validation logic...
-[Edit applied to src/validators/email.ts]
-[Running test:related for email.ts...]
-
-  FAIL  tests/validators/email.test.ts
-    ✕ rejects emails without @ symbol (3ms)
-    Expected: false
-    Received: true
-
-Tests failed after editing email.ts.
-Review the test output above and fix the issue.
-
-Claude: The test shows my regex change broke the @ validation.
-        Let me fix the pattern...
-[Edit applied to src/validators/email.ts]
-[Running test:related for email.ts...]
-
-  PASS  tests/validators/email.test.ts
-    ✓ rejects emails without @ symbol (2ms)
-    ✓ accepts valid emails (1ms)
-
-Claude: Fixed. The regex now correctly requires an @ symbol.
-</code></pre><p>随着会话累积，这个 Hook 实际上“教”模型一次性写出符合你测试预期的代码。本清单中，单论价值，它排第一。</p><hr><h2 id=7-backup-before-edit--安全网 class=heading-anchor>7. backup-before-edit — 安全网<a href=#7-backup-before-edit--%e5%ae%89%e5%85%a8%e7%bd%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>挂在 <code>Edit|Write|MultiEdit</code> 的 PreToolUse 上。便宜的保险。</p><h3 id=完整代码-6 class=heading-anchor>完整代码<a href=#%e5%ae%8c%e6%95%b4%e4%bb%a3%e7%a0%81-6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=为什么是-exit-1不是-exit-2 class=heading-anchor>为什么是 exit 1，不是 exit 2<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e6%98%af-exit-1%e4%b8%8d%e6%98%af-exit-2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>在 PostToolUse 中，exit 1 会把失败信息回喂给模型，模型读到测试输出后会尝试修复代码，形成反馈闭环。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Claude: I&#39;ll update the validation logic...
+</span></span><span class=line><span class=cl>[Edit applied to src/validators/email.ts]
+</span></span><span class=line><span class=cl>[Running test:related for email.ts...]
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  FAIL  tests/validators/email.test.ts
+</span></span><span class=line><span class=cl>    ✕ rejects emails without @ symbol (3ms)
+</span></span><span class=line><span class=cl>    Expected: false
+</span></span><span class=line><span class=cl>    Received: true
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Tests failed after editing email.ts.
+</span></span><span class=line><span class=cl>Review the test output above and fix the issue.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Claude: The test shows my regex change broke the @ validation.
+</span></span><span class=line><span class=cl>        Let me fix the pattern...
+</span></span><span class=line><span class=cl>[Edit applied to src/validators/email.ts]
+</span></span><span class=line><span class=cl>[Running test:related for email.ts...]
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  PASS  tests/validators/email.test.ts
+</span></span><span class=line><span class=cl>    ✓ rejects emails without @ symbol (2ms)
+</span></span><span class=line><span class=cl>    ✓ accepts valid emails (1ms)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Claude: Fixed. The regex now correctly requires an @ symbol.
+</span></span></code></pre></td></tr></table></div></div><p>随着会话累积，这个 Hook 实际上“教”模型一次性写出符合你测试预期的代码。本清单中，单论价值，它排第一。</p><hr><h2 id=7-backup-before-edit--安全网 class=heading-anchor>7. backup-before-edit — 安全网<a href=#7-backup-before-edit--%e5%ae%89%e5%85%a8%e7%bd%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>挂在 <code>Edit|Write|MultiEdit</code> 的 PreToolUse 上。便宜的保险。</p><h3 id=完整代码-6 class=heading-anchor>完整代码<a href=#%e5%ae%8c%e6%95%b4%e4%bb%a3%e7%a0%81-6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -1046,21 +1077,35 @@ Claude: Fixed. The regex now correctly requires an @ symbol.
 </span></span></code></pre></td></tr></table></div></div><h3 id=执行顺序 class=heading-anchor>执行顺序<a href=#%e6%89%a7%e8%a1%8c%e9%a1%ba%e5%ba%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png alt="Edit 调用的 Hook 执行顺序：PreToolUse → 工具执行 → PostToolUse" loading=lazy decoding=async class=content-image></figure><em>一次 Edit 调用依次流经六个 Hook：3 个 PreToolUse（策略守门员）、工具本体、3 个 PostToolUse（卫生作业）；任一 PreToolUse 返回 exit 2，整条链路立即终止。</em></p><p>当 Claude 对一个源文件调用 <code>Edit</code>，事件序列是：</p><ol><li><strong>block-env-read</strong> — 这是敏感文件吗？是就拦截。</li><li><strong>backup-before-edit</strong> — 把当前版本拷到 <code>/tmp/cc-backups/</code>。</li><li><strong>read-before-write</strong> — 这个文件最近被读过吗？没读过就拦截。</li><li><em>（Claude 执行编辑）</em></li><li><strong>format-on-write</strong> — 用 Prettier 格式化结果。</li><li><strong>test-on-edit</strong> — 跑相关测试。失败就把错误暴露给模型。</li><li><strong>log-tool-calls</strong> — 追加一条 JSONL 日志。</li></ol><p>第 1–3 步为 PreToolUse（任一 exit 2 均阻断编辑），第 5–7 步为 PostToolUse（编辑已完成）——顺序即原则：安全优先、卫生次之、可观测性兜底。</p><h3 id=组合时常见的坑 class=heading-anchor>组合时常见的坑<a href=#%e7%bb%84%e5%90%88%e6%97%b6%e5%b8%b8%e8%a7%81%e7%9a%84%e5%9d%91 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>问题：Hook 串行执行，慢的 Hook 拖累整体。</strong>
 如果 <code>test-on-edit</code> 跑 60 秒，每次编辑都会感觉很卡。解决：设置超时；对大型测试套件，改走异步触发（比如把测试请求扔到一个独立队列里）。</p><p><strong>问题：单个 Hook 的退出码会终止整条链路。</strong>
 在 PreToolUse 里，如果 <code>block-env-read</code> 退出 2，后面的 <code>backup-before-edit</code>、<code>read-before-write</code> 不会再跑。这是正确行为——一个被拦截的调用不应该被备份或追踪。</p><p><strong>问题：Hook 之间会互相冲突。</strong>
-一个会修改文件的格式化 Hook，可能触发 <code>read-before-write</code> 的“自上次 Read 后文件已变化”逻辑。解决方案：格式化 Hook 跑在 PostToolUse 阶段，而 PostToolUse 不会再触发 PreToolUse，所以生命周期天然规避了这个冲突。</p><hr><h2 id=起步套件 class=heading-anchor>起步套件<a href=#%e8%b5%b7%e6%ad%a5%e5%a5%97%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>如果你想在新项目里一次配齐这十个 Hook，目录结构如下：</p><pre tabindex=0><code>.claude/
-  settings.json          # 上面给出的接线
-your-project/
-  hooks/
-    block-env-read.js
-    bash-blacklist.js
-    bash-whitelist.js     # 生产仓库里把它和黑名单换掉
-    block-git-push.js
-    format-on-write.js
-    test-on-edit.js
-    backup-before-edit.js
-    log-tool-calls.js
-    read-before-write.js
-    work-hours-only.js
-</code></pre><p>设置可执行权限：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+一个会修改文件的格式化 Hook，可能触发 <code>read-before-write</code> 的“自上次 Read 后文件已变化”逻辑。解决方案：格式化 Hook 跑在 PostToolUse 阶段，而 PostToolUse 不会再触发 PreToolUse，所以生命周期天然规避了这个冲突。</p><hr><h2 id=起步套件 class=heading-anchor>起步套件<a href=#%e8%b5%b7%e6%ad%a5%e5%a5%97%e4%bb%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>如果你想在新项目里一次配齐这十个 Hook，目录结构如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>.claude/
+</span></span><span class=line><span class=cl>  settings.json          # 上面给出的接线
+</span></span><span class=line><span class=cl>your-project/
+</span></span><span class=line><span class=cl>  hooks/
+</span></span><span class=line><span class=cl>    block-env-read.js
+</span></span><span class=line><span class=cl>    bash-blacklist.js
+</span></span><span class=line><span class=cl>    bash-whitelist.js     # 生产仓库里把它和黑名单换掉
+</span></span><span class=line><span class=cl>    block-git-push.js
+</span></span><span class=line><span class=cl>    format-on-write.js
+</span></span><span class=line><span class=cl>    test-on-edit.js
+</span></span><span class=line><span class=cl>    backup-before-edit.js
+</span></span><span class=line><span class=cl>    log-tool-calls.js
+</span></span><span class=line><span class=cl>    read-before-write.js
+</span></span><span class=line><span class=cl>    work-hours-only.js
+</span></span></code></pre></td></tr></table></div></div><p>设置可执行权限：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>chmod +x hooks/*.js
 </span></span></code></pre></td></tr></table></div></div><p>一次性烟雾测试：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
@@ -1072,17 +1117,27 @@ your-project/
 </span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Read&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./src/index.ts&#34;}}&#39;</span> <span class=p>|</span> node <span class=s2>&#34;</span><span class=nv>$hook</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$hook</span><span class=s2>: exit </span><span class=nv>$?</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl><span class=k>done</span>
-</span></span></code></pre></td></tr></table></div></div><p>期望输出：</p><pre tabindex=0><code>hooks/backup-before-edit.js: exit 0
-hooks/bash-blacklist.js: exit 0
-hooks/bash-whitelist.js: exit 0
-hooks/block-env-read.js: exit 0
-hooks/block-git-push.js: exit 0
-hooks/format-on-write.js: exit 0
-hooks/log-tool-calls.js: exit 0
-hooks/read-before-write.js: exit 0
-hooks/test-on-edit.js: exit 0
-hooks/work-hours-only.js: exit 0
-</code></pre><hr><h2 id=调试-hook class=heading-anchor>调试 Hook<a href=#%e8%b0%83%e8%af%95-hook class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Hook 故障时，按以下顺序排查：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png alt="Hook 调试四步法以及最常见的五类错误" loading=lazy decoding=async class=content-image></figure><em>在隔离环境里把失败的调用回放给 Hook，捕获 stderr，再用 <code>claude --debug</code> 和 JSONL 日志逐层排查。下方表格覆盖了 90% 的 Hook 故障原因。</em></p><h3 id=第-1-步隔离测试 class=heading-anchor>第 1 步：隔离测试<a href=#%e7%ac%ac-1-%e6%ad%a5%e9%9a%94%e7%a6%bb%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>期望输出：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>hooks/backup-before-edit.js: exit 0
+</span></span><span class=line><span class=cl>hooks/bash-blacklist.js: exit 0
+</span></span><span class=line><span class=cl>hooks/bash-whitelist.js: exit 0
+</span></span><span class=line><span class=cl>hooks/block-env-read.js: exit 0
+</span></span><span class=line><span class=cl>hooks/block-git-push.js: exit 0
+</span></span><span class=line><span class=cl>hooks/format-on-write.js: exit 0
+</span></span><span class=line><span class=cl>hooks/log-tool-calls.js: exit 0
+</span></span><span class=line><span class=cl>hooks/read-before-write.js: exit 0
+</span></span><span class=line><span class=cl>hooks/test-on-edit.js: exit 0
+</span></span><span class=line><span class=cl>hooks/work-hours-only.js: exit 0
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=调试-hook class=heading-anchor>调试 Hook<a href=#%e8%b0%83%e8%af%95-hook class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Hook 故障时，按以下顺序排查：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png alt="Hook 调试四步法以及最常见的五类错误" loading=lazy decoding=async class=content-image></figure><em>在隔离环境里把失败的调用回放给 Hook，捕获 stderr，再用 <code>claude --debug</code> 和 JSONL 日志逐层排查。下方表格覆盖了 90% 的 Hook 故障原因。</em></p><h3 id=第-1-步隔离测试 class=heading-anchor>第 1 步：隔离测试<a href=#%e7%ac%ac-1-%e6%ad%a5%e9%9a%94%e7%a6%bb%e6%b5%8b%e8%af%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Edit&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./src/app.ts&#34;}}&#39;</span> <span class=p>|</span> node ./hooks/your-hook.js
 </span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
@@ -1116,5 +1171,5 @@ hooks/work-hours-only.js: exit 0
 <span class=chapter-title>Claude Code 实战（七）：十个实用 Hooks 配方</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code 实战（八）：Sub-Agent 与计划模式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code 实战（九）：权限模型与环境变量</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5661</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Claude Code 实战（十）：Skills 与四种扩展机制</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5716</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

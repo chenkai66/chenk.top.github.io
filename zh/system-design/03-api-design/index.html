@@ -20,40 +20,73 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>系统设计</a>
 · 第 3 篇</div><h1>系统设计（三）：API 设计——REST、gRPC、GraphQL 及如何明智选型</h1><p class=deck>REST、gRPC 和 GraphQL 的实用对比 — 涵盖协议设计、真实场景下的权衡取舍、限流算法、幂等性保障，以及一套用于选择合适 API 风格的决策框架。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2025-07-15>July 15, 2025</time> · 24 分钟 · 5657 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/system-design/ class=tag>#System Design</a><a href=/zh/tags/api-design/ class=tag>#API Design</a><a href=/zh/tags/rest/ class=tag>#REST</a><a href=/zh/tags/grpc/ class=tag>#gRPC</a></div><a class="pill pill-outline" href=/en/system-design/03-api-design/>Read in English →</a></div></header><div class=prose><p>2015 年， Facebook 发布了一篇博客文章，正式介绍 GraphQL，并描述了其移动应用正被海量 REST API 调用所“淹没”。单个新闻信息流页面就需要从帖子、用户、评论、点赞和媒体等多个资源获取数据 —— 每个资源对应一个独立端点，且每个端点返回的数据远超客户端实际所需。这种过度获取（over-fetching）在弱网环境下严重拖垮了移动端性能。 GraphQL 是他们的解决方案，但它绝非万能解药。</p><p>每一种 API 风格之所以存在，是因为它能出色地解决某类特定问题；而与此同时，每一种风格也必然引入新的挑战。真正的技术能力，在于将正确的协议匹配到正确的上下文中。</p><h2 id=rest-web-api-的通用语言 class=heading-anchor>REST： Web API 的通用语言<a href=#rest-web-api-%e7%9a%84%e9%80%9a%e7%94%a8%e8%af%ad%e8%a8%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>REST （Representational State Transfer）是一种架构风格，而非具体协议。它由 Roy Fielding 在其 2000 年博士论文中提出，但现实中人们常说的“REST”，往往指的是“基于 HTTP、使用 JSON 的 API”。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png alt="REST、gRPC 和 GraphQL 的比较" loading=lazy decoding=async class=content-image></figure></p><h3 id=核心概念 class=heading-anchor>核心概念<a href=#%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>REST 将一切建模为 <strong>资源（resource）</strong>，每个资源通过 URL 唯一标识。对资源的操作则映射为标准 HTTP 方法。</p><table><thead><tr><th>HTTP 方法</th><th>CRUD 操作</th><th>示例</th></tr></thead><tbody><tr><td>GET</td><td>读取</td><td><code>GET /users/123</code></td></tr><tr><td>POST</td><td>创建</td><td><code>POST /users</code></td></tr><tr><td>PUT</td><td>全量替换</td><td><code>PUT /users/123</code></td></tr><tr><td>PATCH</td><td>局部更新</td><td><code>PATCH /users/123</code></td></tr><tr><td>DELETE</td><td>删除</td><td><code>DELETE /users/123</code></td></tr></tbody></table><h3 id=状态码status-codes class=heading-anchor>状态码（Status Codes）<a href=#%e7%8a%b6%e6%80%81%e7%a0%81status-codes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>状态码用于传达操作结果。正确使用状态码，是区分优秀 API 与令人沮丧 API 的关键。</p><pre tabindex=0><code>2xx 成功
-  200 OK           — 请求成功，响应体包含结果
-  201 Created      — 资源已创建，Location 头指向新资源
-  204 No Content   — 成功，无响应体（常用于 DELETE）
-
-3xx 重定向
-  301 Moved Permanently — 资源已永久迁移至新 URL
-  304 Not Modified      — 缓存版本仍有效
-
-4xx 客户端错误
-  400 Bad Request    — 请求格式错误（校验失败）
-  401 Unauthorized   — 需要身份认证
-  403 Forbidden      — 已认证但无权限
-  404 Not Found      — 资源不存在
-  409 Conflict       — 请求与当前状态冲突
-  429 Too Many Requests — 已触发限流
-
-5xx 服务端错误
-  500 Internal Server Error — 未捕获异常
-  502 Bad Gateway          — 上游服务故障
-  503 Service Unavailable  — 服务暂时过载
-  504 Gateway Timeout      — 上游服务超时
-</code></pre><h3 id=rest-最佳实践 class=heading-anchor>REST 最佳实践<a href=#rest-%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>URL 设计</strong>：使用名词表示资源，而非动词。 HTTP 方法本身即为动词。</p><pre tabindex=0><code>良好实践：
-  GET    /photos              # 列出照片
-  POST   /photos              # 创建照片
-  GET    /photos/456          # 获取指定照片
-  DELETE /photos/456          # 删除照片
-  GET    /users/123/photos    # 列出用户 123 的所有照片
-
-反模式：
-  GET    /getPhotos
-  POST   /createPhoto
-  POST   /deletePhoto?id=456
-</code></pre><p><strong>版本控制</strong>：两种主流方式，各有取舍。</p><p>URL 版本化（<code>/v1/photos</code>）：</p><ul><li>易理解、易实现</li><li>日志与文档中清晰可见</li><li>污染 URL 命名空间</li><li>版本变更时强制客户端更新 URL</li></ul><p>Header 版本化（<code>Accept: application/vnd.example.v1+json</code>）：</p><ul><li>URL 更简洁</li><li>更符合 REST 原则（同一资源，不同表现形式）</li><li>浏览器中难以直接测试</li><li>容易被遗忘，导致隐式版本化 bug</li></ul><p>实践中，公开 API 多采用 URL 版本化，因其简单可靠；内部 API 若可完全掌控所有客户端，则 Header 版本化更合适。</p><p><strong>分页（Pagination）</strong>：切勿返回无界列表。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2025-07-15>July 15, 2025</time> · 24 分钟 · 5701 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/system-design/ class=tag>#System Design</a><a href=/zh/tags/api-design/ class=tag>#API Design</a><a href=/zh/tags/rest/ class=tag>#REST</a><a href=/zh/tags/grpc/ class=tag>#gRPC</a></div><a class="pill pill-outline" href=/en/system-design/03-api-design/>Read in English →</a></div></header><div class=prose><p>2015 年， Facebook 发布了一篇博客文章，正式介绍 GraphQL，并描述了其移动应用正被海量 REST API 调用所“淹没”。单个新闻信息流页面就需要从帖子、用户、评论、点赞和媒体等多个资源获取数据 —— 每个资源对应一个独立端点，且每个端点返回的数据远超客户端实际所需。这种过度获取（over-fetching）在弱网环境下严重拖垮了移动端性能。 GraphQL 是他们的解决方案，但它绝非万能解药。</p><p>每一种 API 风格之所以存在，是因为它能出色地解决某类特定问题；而与此同时，每一种风格也必然引入新的挑战。真正的技术能力，在于将正确的协议匹配到正确的上下文中。</p><h2 id=rest-web-api-的通用语言 class=heading-anchor>REST： Web API 的通用语言<a href=#rest-web-api-%e7%9a%84%e9%80%9a%e7%94%a8%e8%af%ad%e8%a8%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>REST （Representational State Transfer）是一种架构风格，而非具体协议。它由 Roy Fielding 在其 2000 年博士论文中提出，但现实中人们常说的“REST”，往往指的是“基于 HTTP、使用 JSON 的 API”。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png alt="REST、gRPC 和 GraphQL 的比较" loading=lazy decoding=async class=content-image></figure></p><h3 id=核心概念 class=heading-anchor>核心概念<a href=#%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>REST 将一切建模为 <strong>资源（resource）</strong>，每个资源通过 URL 唯一标识。对资源的操作则映射为标准 HTTP 方法。</p><table><thead><tr><th>HTTP 方法</th><th>CRUD 操作</th><th>示例</th></tr></thead><tbody><tr><td>GET</td><td>读取</td><td><code>GET /users/123</code></td></tr><tr><td>POST</td><td>创建</td><td><code>POST /users</code></td></tr><tr><td>PUT</td><td>全量替换</td><td><code>PUT /users/123</code></td></tr><tr><td>PATCH</td><td>局部更新</td><td><code>PATCH /users/123</code></td></tr><tr><td>DELETE</td><td>删除</td><td><code>DELETE /users/123</code></td></tr></tbody></table><h3 id=状态码status-codes class=heading-anchor>状态码（Status Codes）<a href=#%e7%8a%b6%e6%80%81%e7%a0%81status-codes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>状态码用于传达操作结果。正确使用状态码，是区分优秀 API 与令人沮丧 API 的关键。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>2xx 成功
+</span></span><span class=line><span class=cl>  200 OK           — 请求成功，响应体包含结果
+</span></span><span class=line><span class=cl>  201 Created      — 资源已创建，Location 头指向新资源
+</span></span><span class=line><span class=cl>  204 No Content   — 成功，无响应体（常用于 DELETE）
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>3xx 重定向
+</span></span><span class=line><span class=cl>  301 Moved Permanently — 资源已永久迁移至新 URL
+</span></span><span class=line><span class=cl>  304 Not Modified      — 缓存版本仍有效
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>4xx 客户端错误
+</span></span><span class=line><span class=cl>  400 Bad Request    — 请求格式错误（校验失败）
+</span></span><span class=line><span class=cl>  401 Unauthorized   — 需要身份认证
+</span></span><span class=line><span class=cl>  403 Forbidden      — 已认证但无权限
+</span></span><span class=line><span class=cl>  404 Not Found      — 资源不存在
+</span></span><span class=line><span class=cl>  409 Conflict       — 请求与当前状态冲突
+</span></span><span class=line><span class=cl>  429 Too Many Requests — 已触发限流
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>5xx 服务端错误
+</span></span><span class=line><span class=cl>  500 Internal Server Error — 未捕获异常
+</span></span><span class=line><span class=cl>  502 Bad Gateway          — 上游服务故障
+</span></span><span class=line><span class=cl>  503 Service Unavailable  — 服务暂时过载
+</span></span><span class=line><span class=cl>  504 Gateway Timeout      — 上游服务超时
+</span></span></code></pre></td></tr></table></div></div><h3 id=rest-最佳实践 class=heading-anchor>REST 最佳实践<a href=#rest-%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>URL 设计</strong>：使用名词表示资源，而非动词。 HTTP 方法本身即为动词。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=err>良好实践：</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>GET</span><span class=w>    </span><span class=o>/</span><span class=n>photos</span><span class=w>              </span><span class=o>#</span><span class=w> </span><span class=err>列出照片</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>POST</span><span class=w>   </span><span class=o>/</span><span class=n>photos</span><span class=w>              </span><span class=o>#</span><span class=w> </span><span class=err>创建照片</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>GET</span><span class=w>    </span><span class=o>/</span><span class=n>photos</span><span class=o>/</span><span class=mi>456</span><span class=w>          </span><span class=o>#</span><span class=w> </span><span class=err>获取指定照片</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>DELETE</span><span class=w> </span><span class=o>/</span><span class=n>photos</span><span class=o>/</span><span class=mi>456</span><span class=w>          </span><span class=o>#</span><span class=w> </span><span class=err>删除照片</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>GET</span><span class=w>    </span><span class=o>/</span><span class=n>users</span><span class=o>/</span><span class=mi>123</span><span class=o>/</span><span class=n>photos</span><span class=w>    </span><span class=o>#</span><span class=w> </span><span class=err>列出用户</span><span class=w> </span><span class=mi>123</span><span class=w> </span><span class=err>的所有照片</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>反模式：</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>GET</span><span class=w>    </span><span class=o>/</span><span class=n>getPhotos</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>POST</span><span class=w>   </span><span class=o>/</span><span class=n>createPhoto</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>POST</span><span class=w>   </span><span class=o>/</span><span class=n>deletePhoto</span><span class=o>?</span><span class=n>id</span><span class=o>=</span><span class=mi>456</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>版本控制</strong>：两种主流方式，各有取舍。</p><p>URL 版本化（<code>/v1/photos</code>）：</p><ul><li>易理解、易实现</li><li>日志与文档中清晰可见</li><li>污染 URL 命名空间</li><li>版本变更时强制客户端更新 URL</li></ul><p>Header 版本化（<code>Accept: application/vnd.example.v1+json</code>）：</p><ul><li>URL 更简洁</li><li>更符合 REST 原则（同一资源，不同表现形式）</li><li>浏览器中难以直接测试</li><li>容易被遗忘，导致隐式版本化 bug</li></ul><p>实践中，公开 API 多采用 URL 版本化，因其简单可靠；内部 API 若可完全掌控所有客户端，则 Header 版本化更合适。</p><p><strong>分页（Pagination）</strong>：切勿返回无界列表。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -81,8 +114,9 @@
 </span></span><span class=line><span class=cl>    <span class=nt>&#34;has_more&#34;</span><span class=p>:</span> <span class=kc>true</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>对于大规模、高频变更的数据集，游标分页明显优于偏移量分页。后者在两次分页请求之间若发生插入或删除操作，会导致跳过或重复条目。</p><p><strong>过滤与排序</strong>：</p><pre tabindex=0><code>GET /photos?user_id=123&amp;created_after=2025-01-01&amp;sort=-created_at&amp;fields=id,url,caption
-</code></pre><p><code>fields</code> 参数可显著减小响应负载 —— 这是 GraphQL 字段选择机制的一种轻量级替代方案。</p><h3 id=rest-反模式anti-patterns class=heading-anchor>REST 反模式（Anti-Patterns）<a href=#rest-%e5%8f%8d%e6%a8%a1%e5%bc%8fanti-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>RPC 风格 URL</strong>：全部使用 POST，并将操作语义编码进 URL。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>对于大规模、高频变更的数据集，游标分页明显优于偏移量分页。后者在两次分页请求之间若发生插入或删除操作，会导致跳过或重复条目。</p><p><strong>过滤与排序</strong>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>GET /photos?user_id=123&amp;created_after=2025-01-01&amp;sort=-created_at&amp;fields=id,url,caption
+</span></span></code></pre></td></tr></table></div></div><p><code>fields</code> 参数可显著减小响应负载 —— 这是 GraphQL 字段选择机制的一种轻量级替代方案。</p><h3 id=rest-反模式anti-patterns class=heading-anchor>REST 反模式（Anti-Patterns）<a href=#rest-%e5%8f%8d%e6%a8%a1%e5%bc%8fanti-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>RPC 风格 URL</strong>：全部使用 POST，并将操作语义编码进 URL。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=err>POST</span> <span class=err>/api/executeAction</span>
 </span></span><span class=line><span class=cl><span class=err>Body:</span> <span class=p>{</span> <span class=nt>&#34;action&#34;</span><span class=p>:</span> <span class=s2>&#34;getUser&#34;</span><span class=p>,</span> <span class=nt>&#34;userId&#34;</span><span class=p>:</span> <span class=mi>123</span> <span class=p>}</span>
@@ -690,17 +724,27 @@
 </span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
 </span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=kc>True</span>
 </span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>False</span>
-</span></span></code></pre></td></tr></table></div></div><p>简单高效、内存占用极小，但存在边界问题：窗口 N 末尾与窗口 N+1 开头的突发流量可能导致总请求数达限值的 2 倍。滑动窗口计数器变体可通过加权前一窗口计数来修复此问题。</p><h3 id=限流响应头rate-limit-headers class=heading-anchor>限流响应头（Rate Limit Headers）<a href=#%e9%99%90%e6%b5%81%e5%93%8d%e5%ba%94%e5%a4%b4rate-limit-headers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>务必在响应头中明示限流状态：</p><pre tabindex=0><code>HTTP/1.1 200 OK
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 73
-X-RateLimit-Reset: 1689436800
-
-HTTP/1.1 429 Too Many Requests
-Retry-After: 30
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1689436800
-</code></pre><h2 id=幂等性idempotency class=heading-anchor>幂等性（Idempotency）<a href=#%e5%b9%82%e7%ad%89%e6%80%a7idempotency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>若某操作重复执行多次与执行一次效果相同，则称其为幂等操作。这是系统可靠性基石 —— 网络故障必然引发重试，而重试绝不能产生重复副作用。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png alt=幂等键模式 loading=lazy decoding=async class=content-image></figure></p><p>HTTP 方法与幂等性关系：</p><ul><li><strong>GET</strong>：天然幂等（读取不改变状态）</li><li><strong>PUT</strong>：天然幂等（用相同数据替换资源即为无操作）</li><li><strong>DELETE</strong>：天然幂等（删除已不存在的资源即为无操作）</li><li><strong>POST</strong>：<strong>非</strong>天然幂等（重复创建将产生重复资源）</li><li><strong>PATCH</strong>：视具体操作而定（可能幂等，也可能不幂等）</li></ul><h3 id=幂等性密钥idempotency-keys class=heading-anchor>幂等性密钥（Idempotency Keys）<a href=#%e5%b9%82%e7%ad%89%e6%80%a7%e5%af%86%e9%92%a5idempotency-keys class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>针对非幂等操作，客户端生成唯一密钥并随请求携带；服务端据此识别并拒绝重复请求。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><p>简单高效、内存占用极小，但存在边界问题：窗口 N 末尾与窗口 N+1 开头的突发流量可能导致总请求数达限值的 2 倍。滑动窗口计数器变体可通过加权前一窗口计数来修复此问题。</p><h3 id=限流响应头rate-limit-headers class=heading-anchor>限流响应头（Rate Limit Headers）<a href=#%e9%99%90%e6%b5%81%e5%93%8d%e5%ba%94%e5%a4%b4rate-limit-headers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>务必在响应头中明示限流状态：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>HTTP/1.1 200 OK
+</span></span><span class=line><span class=cl>X-RateLimit-Limit: 100
+</span></span><span class=line><span class=cl>X-RateLimit-Remaining: 73
+</span></span><span class=line><span class=cl>X-RateLimit-Reset: 1689436800
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>HTTP/1.1 429 Too Many Requests
+</span></span><span class=line><span class=cl>Retry-After: 30
+</span></span><span class=line><span class=cl>X-RateLimit-Limit: 100
+</span></span><span class=line><span class=cl>X-RateLimit-Remaining: 0
+</span></span><span class=line><span class=cl>X-RateLimit-Reset: 1689436800
+</span></span></code></pre></td></tr></table></div></div><h2 id=幂等性idempotency class=heading-anchor>幂等性（Idempotency）<a href=#%e5%b9%82%e7%ad%89%e6%80%a7idempotency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>若某操作重复执行多次与执行一次效果相同，则称其为幂等操作。这是系统可靠性基石 —— 网络故障必然引发重试，而重试绝不能产生重复副作用。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png alt=幂等键模式 loading=lazy decoding=async class=content-image></figure></p><p>HTTP 方法与幂等性关系：</p><ul><li><strong>GET</strong>：天然幂等（读取不改变状态）</li><li><strong>PUT</strong>：天然幂等（用相同数据替换资源即为无操作）</li><li><strong>DELETE</strong>：天然幂等（删除已不存在的资源即为无操作）</li><li><strong>POST</strong>：<strong>非</strong>天然幂等（重复创建将产生重复资源）</li><li><strong>PATCH</strong>：视具体操作而定（可能幂等，也可能不幂等）</li></ul><h3 id=幂等性密钥idempotency-keys class=heading-anchor>幂等性密钥（Idempotency Keys）<a href=#%e5%b9%82%e7%ad%89%e6%80%a7%e5%af%86%e9%92%a5idempotency-keys class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>针对非幂等操作，客户端生成唯一密钥并随请求携带；服务端据此识别并拒绝重复请求。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -824,5 +868,5 @@ X-RateLimit-Reset: 1689436800
 <span class=chapter-title>系统设计（五）：消息队列与事件驱动架构</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/system-design/06-microservices-vs-monoliths/><span class=chapter-num>06</span>
 <span class=chapter-title>系统设计（六）：微服务 vs 单体架构——坦诚的权衡分析</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/system-design/07-data-pipelines/><span class=chapter-num>07</span>
 <span class=chapter-title>系统设计（七）：数据管道——批处理、流处理与Lambda架构</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/system-design/08-case-studies/><span class=chapter-num>08</span>
-<span class=chapter-title>系统设计（八）：案例分析 —— 网址缩短服务、实时聊天系统、新闻信息流</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5657</strong></div><div class=row><span>写于</span><strong>Jul 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>系统设计（八）：案例分析 —— 网址缩短服务、实时聊天系统、新闻信息流</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5701</strong></div><div class=row><span>写于</span><strong>Jul 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

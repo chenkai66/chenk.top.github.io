@@ -20,29 +20,51 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>System Design</a>
 · Chapter 3</div><h1>System Design (3): API Design — REST, gRPC, GraphQL, and Choosing Wisely</h1><p class=deck>A practical comparison of REST, gRPC, and GraphQL — covering protocol design, real-world trade-offs, rate limiting algorithms, idempotency, and a decision framework for choosing the right API style.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2025-07-15>July 15, 2025</time> · 30 min read · 3078 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/system-design/ class=tag>#System Design</a><a href=/en/tags/api-design/ class=tag>#API Design</a><a href=/en/tags/rest/ class=tag>#REST</a><a href=/en/tags/grpc/ class=tag>#gRPC</a></div><a class="pill pill-outline" href=/zh/system-design/03-api-design/>阅读中文版 →</a></div></header><div class=prose><p>In 2015, Facebook published a blog post introducing GraphQL, describing how their mobile app was drowning in REST API calls. A single news feed screen required data from posts, users, comments, likes, and media — each a separate endpoint, each returning far more data than the client needed. The over-fetching was killing mobile performance on slow networks. GraphQL was their solution, but it was not a universal solution.</p><p>Every API style exists because it solves a specific set of problems well, and every API style creates new problems. The skill is matching the right protocol to the right context.</p><h2 id=rest-the-lingua-franca-of-web-apis class=heading-anchor>REST: The Lingua Franca of Web APIs<a href=#rest-the-lingua-franca-of-web-apis class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>REST (Representational State Transfer) is an architectural style, not a protocol. It was defined by Roy Fielding in his 2000 doctoral dissertation, but what most people call &ldquo;REST&rdquo; is really &ldquo;HTTP-based APIs that use JSON.&rdquo;</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png alt="REST vs gRPC vs GraphQL" loading=lazy decoding=async class=content-image></figure></p><h3 id=core-concepts class=heading-anchor>Core Concepts<a href=#core-concepts class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>REST models everything as a <strong>resource</strong>, identified by a URL. Operations on resources map to HTTP methods.</p><table><thead><tr><th>HTTP Method</th><th>CRUD Operation</th><th>Example</th></tr></thead><tbody><tr><td>GET</td><td>Read</td><td><code>GET /users/123</code></td></tr><tr><td>POST</td><td>Create</td><td><code>POST /users</code></td></tr><tr><td>PUT</td><td>Replace</td><td><code>PUT /users/123</code></td></tr><tr><td>PATCH</td><td>Partial update</td><td><code>PATCH /users/123</code></td></tr><tr><td>DELETE</td><td>Delete</td><td><code>DELETE /users/123</code></td></tr></tbody></table><h3 id=status-codes class=heading-anchor>Status Codes<a href=#status-codes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Status codes communicate the result of an operation. Using them correctly is the difference between a good API and a frustrating one.</p><pre tabindex=0><code>2xx Success
-  200 OK           — Request succeeded, response body contains result
-  201 Created      — Resource created, Location header points to it
-  204 No Content   — Success, no response body (common for DELETE)
-
-3xx Redirection
-  301 Moved Permanently — Resource has a new URL
-  304 Not Modified      — Cached version is still valid
-
-4xx Client Error
-  400 Bad Request    — Malformed request (validation errors)
-  401 Unauthorized   — Authentication required
-  403 Forbidden      — Authenticated but not authorized
-  404 Not Found      — Resource does not exist
-  409 Conflict       — Request conflicts with current state
-  429 Too Many Requests — Rate limited
-
-5xx Server Error
-  500 Internal Server Error — Unhandled exception
-  502 Bad Gateway          — Upstream service failure
-  503 Service Unavailable  — Server temporarily overloaded
-  504 Gateway Timeout      — Upstream service timeout
-</code></pre><h3 id=rest-best-practices class=heading-anchor>REST Best Practices<a href=#rest-best-practices class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>URL Design</strong>: Use nouns for resources, not verbs. The HTTP method is the verb.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2025-07-15>July 15, 2025</time> · 30 min read · 3111 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/system-design/ class=tag>#System Design</a><a href=/en/tags/api-design/ class=tag>#API Design</a><a href=/en/tags/rest/ class=tag>#REST</a><a href=/en/tags/grpc/ class=tag>#gRPC</a></div><a class="pill pill-outline" href=/zh/system-design/03-api-design/>阅读中文版 →</a></div></header><div class=prose><p>In 2015, Facebook published a blog post introducing GraphQL, describing how their mobile app was drowning in REST API calls. A single news feed screen required data from posts, users, comments, likes, and media — each a separate endpoint, each returning far more data than the client needed. The over-fetching was killing mobile performance on slow networks. GraphQL was their solution, but it was not a universal solution.</p><p>Every API style exists because it solves a specific set of problems well, and every API style creates new problems. The skill is matching the right protocol to the right context.</p><h2 id=rest-the-lingua-franca-of-web-apis class=heading-anchor>REST: The Lingua Franca of Web APIs<a href=#rest-the-lingua-franca-of-web-apis class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>REST (Representational State Transfer) is an architectural style, not a protocol. It was defined by Roy Fielding in his 2000 doctoral dissertation, but what most people call &ldquo;REST&rdquo; is really &ldquo;HTTP-based APIs that use JSON.&rdquo;</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png alt="REST vs gRPC vs GraphQL" loading=lazy decoding=async class=content-image></figure></p><h3 id=core-concepts class=heading-anchor>Core Concepts<a href=#core-concepts class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>REST models everything as a <strong>resource</strong>, identified by a URL. Operations on resources map to HTTP methods.</p><table><thead><tr><th>HTTP Method</th><th>CRUD Operation</th><th>Example</th></tr></thead><tbody><tr><td>GET</td><td>Read</td><td><code>GET /users/123</code></td></tr><tr><td>POST</td><td>Create</td><td><code>POST /users</code></td></tr><tr><td>PUT</td><td>Replace</td><td><code>PUT /users/123</code></td></tr><tr><td>PATCH</td><td>Partial update</td><td><code>PATCH /users/123</code></td></tr><tr><td>DELETE</td><td>Delete</td><td><code>DELETE /users/123</code></td></tr></tbody></table><h3 id=status-codes class=heading-anchor>Status Codes<a href=#status-codes class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Status codes communicate the result of an operation. Using them correctly is the difference between a good API and a frustrating one.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>2xx Success
+</span></span><span class=line><span class=cl>  200 OK           — Request succeeded, response body contains result
+</span></span><span class=line><span class=cl>  201 Created      — Resource created, Location header points to it
+</span></span><span class=line><span class=cl>  204 No Content   — Success, no response body (common for DELETE)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>3xx Redirection
+</span></span><span class=line><span class=cl>  301 Moved Permanently — Resource has a new URL
+</span></span><span class=line><span class=cl>  304 Not Modified      — Cached version is still valid
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>4xx Client Error
+</span></span><span class=line><span class=cl>  400 Bad Request    — Malformed request (validation errors)
+</span></span><span class=line><span class=cl>  401 Unauthorized   — Authentication required
+</span></span><span class=line><span class=cl>  403 Forbidden      — Authenticated but not authorized
+</span></span><span class=line><span class=cl>  404 Not Found      — Resource does not exist
+</span></span><span class=line><span class=cl>  409 Conflict       — Request conflicts with current state
+</span></span><span class=line><span class=cl>  429 Too Many Requests — Rate limited
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>5xx Server Error
+</span></span><span class=line><span class=cl>  500 Internal Server Error — Unhandled exception
+</span></span><span class=line><span class=cl>  502 Bad Gateway          — Upstream service failure
+</span></span><span class=line><span class=cl>  503 Service Unavailable  — Server temporarily overloaded
+</span></span><span class=line><span class=cl>  504 Gateway Timeout      — Upstream service timeout
+</span></span></code></pre></td></tr></table></div></div><h3 id=rest-best-practices class=heading-anchor>REST Best Practices<a href=#rest-best-practices class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>URL Design</strong>: Use nouns for resources, not verbs. The HTTP method is the verb.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -92,8 +114,9 @@
 </span></span><span class=line><span class=cl>    <span class=nt>&#34;has_more&#34;</span><span class=p>:</span> <span class=kc>true</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>Cursor-based pagination is superior for large, actively-changing datasets. Offset-based pagination breaks when items are inserted or deleted between page requests (you skip or duplicate items).</p><p><strong>Filtering and Sorting</strong>:</p><pre tabindex=0><code>GET /photos?user_id=123&amp;created_after=2025-01-01&amp;sort=-created_at&amp;fields=id,url,caption
-</code></pre><p>The <code>fields</code> parameter reduces payload size — a lightweight alternative to GraphQL&rsquo;s field selection.</p><h3 id=rest-anti-patterns class=heading-anchor>REST Anti-Patterns<a href=#rest-anti-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>RPC-style URLs</strong>: Using POST for everything and encoding the operation in the URL.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>Cursor-based pagination is superior for large, actively-changing datasets. Offset-based pagination breaks when items are inserted or deleted between page requests (you skip or duplicate items).</p><p><strong>Filtering and Sorting</strong>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>GET /photos?user_id=123&amp;created_after=2025-01-01&amp;sort=-created_at&amp;fields=id,url,caption
+</span></span></code></pre></td></tr></table></div></div><p>The <code>fields</code> parameter reduces payload size — a lightweight alternative to GraphQL&rsquo;s field selection.</p><h3 id=rest-anti-patterns class=heading-anchor>REST Anti-Patterns<a href=#rest-anti-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>RPC-style URLs</strong>: Using POST for everything and encoding the operation in the URL.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=err>POST</span> <span class=err>/api/executeAction</span>
 </span></span><span class=line><span class=cl><span class=err>Body:</span> <span class=p>{</span> <span class=nt>&#34;action&#34;</span><span class=p>:</span> <span class=s2>&#34;getUser&#34;</span><span class=p>,</span> <span class=nt>&#34;userId&#34;</span><span class=p>:</span> <span class=mi>123</span> <span class=p>}</span>
@@ -701,17 +724,27 @@
 </span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
 </span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=kc>True</span>
 </span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>False</span>
-</span></span></code></pre></td></tr></table></div></div><p>Simple and memory-efficient, but has a boundary problem: a burst at the end of window N and start of window N+1 can allow 2x the limit. The sliding window counter variant fixes this by weighting the previous window&rsquo;s count.</p><h3 id=rate-limit-headers class=heading-anchor>Rate Limit Headers<a href=#rate-limit-headers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Always communicate rate limit status in response headers:</p><pre tabindex=0><code>HTTP/1.1 200 OK
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 73
-X-RateLimit-Reset: 1689436800
-
-HTTP/1.1 429 Too Many Requests
-Retry-After: 30
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1689436800
-</code></pre><h2 id=idempotency class=heading-anchor>Idempotency<a href=#idempotency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>An operation is idempotent if performing it multiple times has the same effect as performing it once. This is critical for reliability because network failures cause retries, and retries must not create duplicate side effects.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png alt="Idempotency key pattern" loading=lazy decoding=async class=content-image></figure></p><p>HTTP methods and idempotency:</p><ul><li><strong>GET</strong>: Naturally idempotent (reading data does not change state)</li><li><strong>PUT</strong>: Naturally idempotent (replacing a resource with the same data is a no-op)</li><li><strong>DELETE</strong>: Naturally idempotent (deleting an already-deleted resource is a no-op)</li><li><strong>POST</strong>: NOT naturally idempotent (creating a resource twice creates duplicates)</li><li><strong>PATCH</strong>: May or may not be idempotent (depends on the operation)</li></ul><h3 id=idempotency-keys class=heading-anchor>Idempotency Keys<a href=#idempotency-keys class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>For non-idempotent operations, the client generates a unique key and includes it with the request. The server uses this key to detect duplicates.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><p>Simple and memory-efficient, but has a boundary problem: a burst at the end of window N and start of window N+1 can allow 2x the limit. The sliding window counter variant fixes this by weighting the previous window&rsquo;s count.</p><h3 id=rate-limit-headers class=heading-anchor>Rate Limit Headers<a href=#rate-limit-headers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Always communicate rate limit status in response headers:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>HTTP/1.1 200 OK
+</span></span><span class=line><span class=cl>X-RateLimit-Limit: 100
+</span></span><span class=line><span class=cl>X-RateLimit-Remaining: 73
+</span></span><span class=line><span class=cl>X-RateLimit-Reset: 1689436800
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>HTTP/1.1 429 Too Many Requests
+</span></span><span class=line><span class=cl>Retry-After: 30
+</span></span><span class=line><span class=cl>X-RateLimit-Limit: 100
+</span></span><span class=line><span class=cl>X-RateLimit-Remaining: 0
+</span></span><span class=line><span class=cl>X-RateLimit-Reset: 1689436800
+</span></span></code></pre></td></tr></table></div></div><h2 id=idempotency class=heading-anchor>Idempotency<a href=#idempotency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>An operation is idempotent if performing it multiple times has the same effect as performing it once. This is critical for reliability because network failures cause retries, and retries must not create duplicate side effects.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png alt="Idempotency key pattern" loading=lazy decoding=async class=content-image></figure></p><p>HTTP methods and idempotency:</p><ul><li><strong>GET</strong>: Naturally idempotent (reading data does not change state)</li><li><strong>PUT</strong>: Naturally idempotent (replacing a resource with the same data is a no-op)</li><li><strong>DELETE</strong>: Naturally idempotent (deleting an already-deleted resource is a no-op)</li><li><strong>POST</strong>: NOT naturally idempotent (creating a resource twice creates duplicates)</li><li><strong>PATCH</strong>: May or may not be idempotent (depends on the operation)</li></ul><h3 id=idempotency-keys class=heading-anchor>Idempotency Keys<a href=#idempotency-keys class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>For non-idempotent operations, the client generates a unique key and includes it with the request. The server uses this key to detect duplicates.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -835,5 +868,5 @@ X-RateLimit-Reset: 1689436800
 <span class=chapter-title>System Design (5): Message Queues and Event-Driven Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/06-microservices-vs-monoliths/><span class=chapter-num>06</span>
 <span class=chapter-title>System Design (6): Microservices vs Monoliths — The Honest Tradeoff</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/07-data-pipelines/><span class=chapter-num>07</span>
 <span class=chapter-title>System Design (7): Data Pipelines — Batch, Stream, and the Lambda Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/system-design/08-case-studies/><span class=chapter-num>08</span>
-<span class=chapter-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3078</strong></div><div class=row><span>Published</span><strong>Jul 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>System Design (8): Case Studies — URL Shortener, Chat System, News Feed</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>30 min</strong></div><div class=row><span>Word count</span><strong>3111</strong></div><div class=row><span>Published</span><strong>Jul 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

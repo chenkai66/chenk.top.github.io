@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Claude Code Hands-On</a>
 · Chapter 7</div><h1>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</h1><p class=deck>Picking ten hooks out of the 100 in the reference repo and walking through each: what it does, the actual JS, the settings.json wire-up, and where it bites. PreToolUse for safety, PostToolUse for hygiene, the boring ones that earn their keep.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-24>April 24, 2026</time> · 42 min read · 4388 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/hooks/ class=tag>#hooks</a><a href=/en/tags/security/ class=tag>#Security</a><a href=/en/tags/workflow/ class=tag>#Workflow</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/07-hooks-deep-dive/>阅读中文版 →</a></div></header><div class=prose><p>Chapter 5 provided a conceptual tour of hooks. This chapter is the field guide. From the 100-script reference repo, ten scripts earn their place in every serious project I run. I&rsquo;ll walk through these ten with code.</p><p>All examples assume Node 18+, save scripts to <code>./hooks/</code>, mark them <code>chmod +x</code>, and wire them in <code>.claude/settings.json</code> like:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2026-04-24>April 24, 2026</time> · 42 min read · 4443 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/hooks/ class=tag>#hooks</a><a href=/en/tags/security/ class=tag>#Security</a><a href=/en/tags/workflow/ class=tag>#Workflow</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/07-hooks-deep-dive/>阅读中文版 →</a></div></header><div class=prose><p>Chapter 5 provided a conceptual tour of hooks. This chapter is the field guide. From the 100-script reference repo, ten scripts earn their place in every serious project I run. I&rsquo;ll walk through these ten with code.</p><p>All examples assume Node 18+, save scripts to <code>./hooks/</code>, mark them <code>chmod +x</code>, and wire them in <code>.claude/settings.json</code> like:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -170,12 +170,17 @@
 </span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl><span class=c1># Expected output:</span>
 </span></span><span class=line><span class=cl><span class=c1># Exit code: 0</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=what-claude-sees-when-it-fires class=heading-anchor>What Claude sees when it fires<a href=#what-claude-sees-when-it-fires class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>When this hook blocks a call, Claude receives the stderr text as feedback. A real session looks like this:</p><pre tabindex=0><code>Claude: I&#39;ll read the environment configuration...
-[Hook blocked Read on .env.local]
-Claude: I can&#39;t read .env.local directly as it contains sensitive data.
-        Could you share the specific variable names you&#39;d like me to use?
-        For example: DATABASE_URL, API_KEY, etc.
-</code></pre><p>The model recovers gracefully because the stderr message tells it <em>what to do instead</em>.</p><hr><h2 id=2-bash-blacklist--stop-rm--rf- class=heading-anchor>2. bash-blacklist — stop <code>rm -rf /</code><a href=#2-bash-blacklist--stop-rm--rf- class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.png alt="Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual" loading=lazy decoding=async class=content-image></figure></p><p>The most common foot-gun. PreToolUse on <code>Bash</code>.</p><h3 id=the-complete-code-1 class=heading-anchor>The complete code<a href=#the-complete-code-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=what-claude-sees-when-it-fires class=heading-anchor>What Claude sees when it fires<a href=#what-claude-sees-when-it-fires class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>When this hook blocks a call, Claude receives the stderr text as feedback. A real session looks like this:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Claude: I&#39;ll read the environment configuration...
+</span></span><span class=line><span class=cl>[Hook blocked Read on .env.local]
+</span></span><span class=line><span class=cl>Claude: I can&#39;t read .env.local directly as it contains sensitive data.
+</span></span><span class=line><span class=cl>        Could you share the specific variable names you&#39;d like me to use?
+</span></span><span class=line><span class=cl>        For example: DATABASE_URL, API_KEY, etc.
+</span></span></code></pre></td></tr></table></div></div><p>The model recovers gracefully because the stderr message tells it <em>what to do instead</em>.</p><hr><h2 id=2-bash-blacklist--stop-rm--rf- class=heading-anchor>2. bash-blacklist — stop <code>rm -rf /</code><a href=#2-bash-blacklist--stop-rm--rf- class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.png alt="Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual" loading=lazy decoding=async class=content-image></figure></p><p>The most common foot-gun. PreToolUse on <code>Bash</code>.</p><h3 id=the-complete-code-1 class=heading-anchor>The complete code<a href=#the-complete-code-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -603,11 +608,15 @@ Claude: I can&#39;t read .env.local directly as it contains sensitive data.
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
 </span></span><span class=line><span class=cl><span class=p>});</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=why-exit-0-not-exit-1 class=heading-anchor>Why exit 0, not exit 1<a href=#why-exit-0-not-exit-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png alt="Exit code semantics differ between PreToolUse and PostToolUse" loading=lazy decoding=async class=content-image></figure><em>The same exit code means different things depending on the lifecycle phase. Exit 2 only blocks in PreToolUse. In PostToolUse, the side-effect has already occurred.</em></p><p>PostToolUse runs <em>after</em> the edit. Exit code 2 does not roll anything back — the side-effect already happened. Using exit 1 would surface the error to the model, which might then try to &ldquo;fix&rdquo; a formatting issue by re-editing the file, creating a loop. For formatting, just log the warning and move on.</p><h3 id=real-terminal-output class=heading-anchor>Real terminal output<a href=#real-terminal-output class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><pre tabindex=0><code>Claude: I&#39;ll update the component...
-[Edit applied to src/components/Header.tsx]
-[PostToolUse hook] Formatted: Header.tsx
-Claude: Done. The component now accepts a `subtitle` prop.
-</code></pre><p>The format happens silently. Claude does not even mention it.</p><hr><h2 id=6-test-on-edit--fail-fast class=heading-anchor>6. test-on-edit — fail fast<a href=#6-test-on-edit--fail-fast class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>PostToolUse on <code>Edit|MultiEdit</code> for source files. This hook taught Claude to write better code over time on my repos.</p><h3 id=the-complete-code-5 class=heading-anchor>The complete code<a href=#the-complete-code-5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=why-exit-0-not-exit-1 class=heading-anchor>Why exit 0, not exit 1<a href=#why-exit-0-not-exit-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig4.png alt="Exit code semantics differ between PreToolUse and PostToolUse" loading=lazy decoding=async class=content-image></figure><em>The same exit code means different things depending on the lifecycle phase. Exit 2 only blocks in PreToolUse. In PostToolUse, the side-effect has already occurred.</em></p><p>PostToolUse runs <em>after</em> the edit. Exit code 2 does not roll anything back — the side-effect already happened. Using exit 1 would surface the error to the model, which might then try to &ldquo;fix&rdquo; a formatting issue by re-editing the file, creating a loop. For formatting, just log the warning and move on.</p><h3 id=real-terminal-output class=heading-anchor>Real terminal output<a href=#real-terminal-output class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Claude: I&#39;ll update the component...
+</span></span><span class=line><span class=cl>[Edit applied to src/components/Header.tsx]
+</span></span><span class=line><span class=cl>[PostToolUse hook] Formatted: Header.tsx
+</span></span><span class=line><span class=cl>Claude: Done. The component now accepts a `subtitle` prop.
+</span></span></code></pre></td></tr></table></div></div><p>The format happens silently. Claude does not even mention it.</p><hr><h2 id=6-test-on-edit--fail-fast class=heading-anchor>6. test-on-edit — fail fast<a href=#6-test-on-edit--fail-fast class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>PostToolUse on <code>Edit|MultiEdit</code> for source files. This hook taught Claude to write better code over time on my repos.</p><h3 id=the-complete-code-5 class=heading-anchor>The complete code<a href=#the-complete-code-5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -703,29 +712,51 @@ Claude: Done. The component now accepts a `subtitle` prop.
 </span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=p>}</span>
 </span></span><span class=line><span class=cl>  <span class=nx>process</span><span class=p>.</span><span class=nx>exit</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
 </span></span><span class=line><span class=cl><span class=p>});</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=why-exit-1-not-exit-2 class=heading-anchor>Why exit 1, not exit 2<a href=#why-exit-1-not-exit-2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Exit code 1 in PostToolUse surfaces the failure to the model. The model sees the test output and tries to fix the code, creating a feedback loop:</p><pre tabindex=0><code>Claude: I&#39;ll update the validation logic...
-[Edit applied to src/validators/email.ts]
-[Running test:related for email.ts...]
-
-  FAIL  tests/validators/email.test.ts
-    ✕ rejects emails without @ symbol (3ms)
-    Expected: false
-    Received: true
-
-Tests failed after editing email.ts.
-Review the test output above and fix the issue.
-
-Claude: The test shows my regex change broke the @ validation.
-        Let me fix the pattern...
-[Edit applied to src/validators/email.ts]
-[Running test:related for email.ts...]
-
-  PASS  tests/validators/email.test.ts
-    ✓ rejects emails without @ symbol (2ms)
-    ✓ accepts valid emails (1ms)
-
-Claude: Fixed. The regex now correctly requires an @ symbol.
-</code></pre><p>Over time, across many sessions, this hook trains the model to write code that matches your test expectations on the first try. It is the most valuable hook in this entire list.</p><hr><h2 id=7-backup-before-edit--the-safety-net class=heading-anchor>7. backup-before-edit — the safety net<a href=#7-backup-before-edit--the-safety-net class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>PreToolUse on <code>Edit|Write|MultiEdit</code>. Cheap insurance.</p><h3 id=the-complete-code-6 class=heading-anchor>The complete code<a href=#the-complete-code-6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=why-exit-1-not-exit-2 class=heading-anchor>Why exit 1, not exit 2<a href=#why-exit-1-not-exit-2 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Exit code 1 in PostToolUse surfaces the failure to the model. The model sees the test output and tries to fix the code, creating a feedback loop:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Claude: I&#39;ll update the validation logic...
+</span></span><span class=line><span class=cl>[Edit applied to src/validators/email.ts]
+</span></span><span class=line><span class=cl>[Running test:related for email.ts...]
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  FAIL  tests/validators/email.test.ts
+</span></span><span class=line><span class=cl>    ✕ rejects emails without @ symbol (3ms)
+</span></span><span class=line><span class=cl>    Expected: false
+</span></span><span class=line><span class=cl>    Received: true
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Tests failed after editing email.ts.
+</span></span><span class=line><span class=cl>Review the test output above and fix the issue.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Claude: The test shows my regex change broke the @ validation.
+</span></span><span class=line><span class=cl>        Let me fix the pattern...
+</span></span><span class=line><span class=cl>[Edit applied to src/validators/email.ts]
+</span></span><span class=line><span class=cl>[Running test:related for email.ts...]
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  PASS  tests/validators/email.test.ts
+</span></span><span class=line><span class=cl>    ✓ rejects emails without @ symbol (2ms)
+</span></span><span class=line><span class=cl>    ✓ accepts valid emails (1ms)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Claude: Fixed. The regex now correctly requires an @ symbol.
+</span></span></code></pre></td></tr></table></div></div><p>Over time, across many sessions, this hook trains the model to write code that matches your test expectations on the first try. It is the most valuable hook in this entire list.</p><hr><h2 id=7-backup-before-edit--the-safety-net class=heading-anchor>7. backup-before-edit — the safety net<a href=#7-backup-before-edit--the-safety-net class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>PreToolUse on <code>Edit|Write|MultiEdit</code>. Cheap insurance.</p><h3 id=the-complete-code-6 class=heading-anchor>The complete code<a href=#the-complete-code-6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -1224,21 +1255,35 @@ Claude: Fixed. The regex now correctly requires an @ symbol.
 </span></span></code></pre></td></tr></table></div></div><h3 id=execution-order class=heading-anchor>Execution order<a href=#execution-order class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig5.png alt="Hook execution order across PreToolUse and PostToolUse for one Edit call" loading=lazy decoding=async class=content-image></figure><em>A single Edit call fans out across six hooks: three PreToolUse gatekeepers, the tool itself, then three PostToolUse hygiene jobs. Any exit 2 in the Pre band aborts the chain.</em></p><p>When Claude calls <code>Edit</code> on a source file, this is the sequence:</p><ol><li><strong>block-env-read</strong> — is the file sensitive? If yes, block.</li><li><strong>backup-before-edit</strong> — copy the current version to <code>/tmp/cc-backups/</code>.</li><li><strong>read-before-write</strong> — was the file Read recently? If not, block.</li><li><em>(Claude performs the edit)</em></li><li><strong>format-on-write</strong> — run Prettier on the result.</li><li><strong>test-on-edit</strong> — run related tests. If they fail, surface the error.</li><li><strong>log-tool-calls</strong> — append to the JSONL log.</li></ol><p>Steps 1-3 are PreToolUse (any exit 2 blocks the edit). Steps 5-7 are PostToolUse (the edit already happened). This order means: safety first, then hygiene, then observability.</p><h3 id=common-pitfalls-when-composing class=heading-anchor>Common pitfalls when composing<a href=#common-pitfalls-when-composing class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>Problem: hooks run in series, and a slow hook blocks everything.</strong>
 If <code>test-on-edit</code> takes 60 seconds, every edit feels sluggish. Solution: set a timeout and fall back to async test runs for large suites.</p><p><strong>Problem: one hook&rsquo;s exit code kills the whole chain.</strong>
 In PreToolUse, if <code>block-env-read</code> exits 2, the remaining hooks (<code>backup-before-edit</code>, <code>read-before-write</code>) do not run. This is correct — a blocked call should not be backed up or tracked.</p><p><strong>Problem: hooks can conflict.</strong>
-A format hook that changes a file can trigger the &ldquo;file changed since last read&rdquo; logic in <code>read-before-write</code>. Solution: the format hook runs in PostToolUse, which does not trigger PreToolUse hooks. The lifecycle prevents this conflict.</p><hr><h2 id=the-starter-kit class=heading-anchor>The starter kit<a href=#the-starter-kit class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>If you want to set up all ten hooks in a new project, here is the directory structure:</p><pre tabindex=0><code>.claude/
-  settings.json          # the wiring shown above
-your-project/
-  hooks/
-    block-env-read.js
-    bash-blacklist.js
-    bash-whitelist.js     # swap with blacklist for prod repos
-    block-git-push.js
-    format-on-write.js
-    test-on-edit.js
-    backup-before-edit.js
-    log-tool-calls.js
-    read-before-write.js
-    work-hours-only.js
-</code></pre><p>Set them all executable:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+A format hook that changes a file can trigger the &ldquo;file changed since last read&rdquo; logic in <code>read-before-write</code>. Solution: the format hook runs in PostToolUse, which does not trigger PreToolUse hooks. The lifecycle prevents this conflict.</p><hr><h2 id=the-starter-kit class=heading-anchor>The starter kit<a href=#the-starter-kit class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>If you want to set up all ten hooks in a new project, here is the directory structure:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>.claude/
+</span></span><span class=line><span class=cl>  settings.json          # the wiring shown above
+</span></span><span class=line><span class=cl>your-project/
+</span></span><span class=line><span class=cl>  hooks/
+</span></span><span class=line><span class=cl>    block-env-read.js
+</span></span><span class=line><span class=cl>    bash-blacklist.js
+</span></span><span class=line><span class=cl>    bash-whitelist.js     # swap with blacklist for prod repos
+</span></span><span class=line><span class=cl>    block-git-push.js
+</span></span><span class=line><span class=cl>    format-on-write.js
+</span></span><span class=line><span class=cl>    test-on-edit.js
+</span></span><span class=line><span class=cl>    backup-before-edit.js
+</span></span><span class=line><span class=cl>    log-tool-calls.js
+</span></span><span class=line><span class=cl>    read-before-write.js
+</span></span><span class=line><span class=cl>    work-hours-only.js
+</span></span></code></pre></td></tr></table></div></div><p>Set them all executable:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>chmod +x hooks/*.js
 </span></span></code></pre></td></tr></table></div></div><p>Test them all at once:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
@@ -1250,17 +1295,27 @@ your-project/
 </span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Read&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./src/index.ts&#34;}}&#39;</span> <span class=p>|</span> node <span class=s2>&#34;</span><span class=nv>$hook</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$hook</span><span class=s2>: exit </span><span class=nv>$?</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl><span class=k>done</span>
-</span></span></code></pre></td></tr></table></div></div><p>Expected output:</p><pre tabindex=0><code>hooks/backup-before-edit.js: exit 0
-hooks/bash-blacklist.js: exit 0
-hooks/bash-whitelist.js: exit 0
-hooks/block-env-read.js: exit 0
-hooks/block-git-push.js: exit 0
-hooks/format-on-write.js: exit 0
-hooks/log-tool-calls.js: exit 0
-hooks/read-before-write.js: exit 0
-hooks/test-on-edit.js: exit 0
-hooks/work-hours-only.js: exit 0
-</code></pre><hr><h2 id=debugging-hooks class=heading-anchor>Debugging hooks<a href=#debugging-hooks class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When a hook misbehaves, here is the debugging sequence:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png alt="Four-step debugging workflow plus the top five hook mistakes" loading=lazy decoding=async class=content-image></figure><em>Replay the failing call against the hook in isolation, capture stderr, then escalate to <code>claude --debug</code> and the JSONL log. The table below it covers the five mistakes that cause 90% of broken hooks.</em></p><h3 id=step-1-test-in-isolation class=heading-anchor>Step 1: test in isolation<a href=#step-1-test-in-isolation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>Expected output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>hooks/backup-before-edit.js: exit 0
+</span></span><span class=line><span class=cl>hooks/bash-blacklist.js: exit 0
+</span></span><span class=line><span class=cl>hooks/bash-whitelist.js: exit 0
+</span></span><span class=line><span class=cl>hooks/block-env-read.js: exit 0
+</span></span><span class=line><span class=cl>hooks/block-git-push.js: exit 0
+</span></span><span class=line><span class=cl>hooks/format-on-write.js: exit 0
+</span></span><span class=line><span class=cl>hooks/log-tool-calls.js: exit 0
+</span></span><span class=line><span class=cl>hooks/read-before-write.js: exit 0
+</span></span><span class=line><span class=cl>hooks/test-on-edit.js: exit 0
+</span></span><span class=line><span class=cl>hooks/work-hours-only.js: exit 0
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=debugging-hooks class=heading-anchor>Debugging hooks<a href=#debugging-hooks class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When a hook misbehaves, here is the debugging sequence:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig7.png alt="Four-step debugging workflow plus the top five hook mistakes" loading=lazy decoding=async class=content-image></figure><em>Replay the failing call against the hook in isolation, capture stderr, then escalate to <code>claude --debug</code> and the JSONL log. The table below it covers the five mistakes that cause 90% of broken hooks.</em></p><h3 id=step-1-test-in-isolation class=heading-anchor>Step 1: test in isolation<a href=#step-1-test-in-isolation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;{&#34;tool_name&#34;:&#34;Edit&#34;,&#34;tool_input&#34;:{&#34;file_path&#34;:&#34;./src/app.ts&#34;}}&#39;</span> <span class=p>|</span> node ./hooks/your-hook.js
 </span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Exit code: </span><span class=nv>$?</span><span class=s2>&#34;</span>
@@ -1294,5 +1349,5 @@ hooks/work-hours-only.js: exit 0
 <span class=chapter-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>42 min</strong></div><div class=row><span>Word count</span><strong>4388</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>42 min</strong></div><div class=row><span>Word count</span><strong>4443</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

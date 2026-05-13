@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Linux</a>
 · Chapter 6</div><h1>Linux (6): Service Management: systemd, systemctl, and journald</h1><p class=deck>A working model of systemd: PID 1, units and targets, the service lifecycle, writing your own unit files, journalctl filtering, timers as a cron replacement, and a disciplined troubleshooting workflow.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-03-07>March 7, 2022</time> · 38 min read · 3903 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/linux/ class=tag>#Linux</a><a href=/en/tags/cloud/ class=tag>#Cloud</a><a href=/en/tags/system-administration/ class=tag>#System Administration</a></div><a class="pill pill-outline" href=/zh/linux/%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/>阅读中文版 →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/illustration_1.png alt="Chapter concept illustration" loading=lazy decoding=async class=content-image></figure></p><p>A &ldquo;service&rdquo; on Linux is a long-running background process whose
+<span class=meta-line><time datetime=2022-03-07>March 7, 2022</time> · 38 min read · 3915 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/linux/ class=tag>#Linux</a><a href=/en/tags/cloud/ class=tag>#Cloud</a><a href=/en/tags/system-administration/ class=tag>#System Administration</a></div><a class="pill pill-outline" href=/zh/linux/%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/>阅读中文版 →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/illustration_1.png alt="Chapter concept illustration" loading=lazy decoding=async class=content-image></figure></p><p>A &ldquo;service&rdquo; on Linux is a long-running background process whose
 job is to be there when something needs it: synchronise the clock,
 listen for SSH connections, accept HTTP requests, run a backup at 3 AM.
 You almost never start one of these by hand. Something has to start
@@ -427,15 +427,23 @@ but doesn&rsquo;t apply now. In practice you use both.</p><p>Zones (<code>public
 network this interface is on, apply this ruleset.&rdquo; On a single-homed
 server you usually leave everything in <code>public</code> and just open ports
 there.</p><h3 id=ssh-hardening class=heading-anchor>SSH hardening<a href=#ssh-hardening class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The defaults in <code>/etc/ssh/sshd_config</code> are conservative on Debian and
-Ubuntu, less so elsewhere. The high-value changes:</p><pre tabindex=0><code>Port 22                          # change only if you understand the operational cost
-PermitRootLogin no               # log in as a user, then sudo
-PasswordAuthentication no        # keys only — eliminates the entire brute-force category
-PubkeyAuthentication yes
-PermitEmptyPasswords no
-MaxAuthTries 3
-ClientAliveInterval 300
-ClientAliveCountMax 2
-</code></pre><p>Always validate before reloading — a bad config file can lock you out
+Ubuntu, less so elsewhere. The high-value changes:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Port 22                          # change only if you understand the operational cost
+</span></span><span class=line><span class=cl>PermitRootLogin no               # log in as a user, then sudo
+</span></span><span class=line><span class=cl>PasswordAuthentication no        # keys only — eliminates the entire brute-force category
+</span></span><span class=line><span class=cl>PubkeyAuthentication yes
+</span></span><span class=line><span class=cl>PermitEmptyPasswords no
+</span></span><span class=line><span class=cl>MaxAuthTries 3
+</span></span><span class=line><span class=cl>ClientAliveInterval 300
+</span></span><span class=line><span class=cl>ClientAliveCountMax 2
+</span></span></code></pre></td></tr></table></div></div><p>Always validate before reloading — a bad config file can lock you out
 of a remote machine:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo sshd -t                            <span class=c1># parse and exit</span>
@@ -443,11 +451,15 @@ of a remote machine:</p><div class=highlight><div class=chroma><table class=lnta
 </span></span></code></pre></td></tr></table></div></div><p>Add <code>fail2ban</code> if your SSH port is on the public internet and you
 want IP-level rate limiting; otherwise key-only auth is already
 enough to make brute force pointless.</p><h3 id=cron-when-timers-arent-an-option class=heading-anchor>Cron (when timers aren&rsquo;t an option)<a href=#cron-when-timers-arent-an-option class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>If you&rsquo;re on a system that isn&rsquo;t fully systemd, or you&rsquo;re maintaining
-existing cron jobs:</p><pre tabindex=0><code># m  h  dom  mon  dow   command
-30 1   *    *    *    /usr/local/bin/backup.sh
-*/10 *  *    *    *    /usr/local/bin/health-check.sh
-0  3   *    *    0    /usr/local/bin/weekly-cleanup.sh
-</code></pre><p>Edit per-user crontabs with <code>crontab -e</code>, list with <code>crontab -l</code>.
+existing cron jobs:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># m  h  dom  mon  dow   command</span>
+</span></span><span class=line><span class=cl><span class=m>30</span> <span class=m>1</span>   *    *    *    /usr/local/bin/backup.sh
+</span></span><span class=line><span class=cl>*/10 *  *    *    *    /usr/local/bin/health-check.sh
+</span></span><span class=line><span class=cl><span class=m>0</span>  <span class=m>3</span>   *    *    <span class=m>0</span>    /usr/local/bin/weekly-cleanup.sh
+</span></span></code></pre></td></tr></table></div></div><p>Edit per-user crontabs with <code>crontab -e</code>, list with <code>crontab -l</code>.
 Always use absolute paths inside the command — cron runs with a
 near-empty <code>PATH</code>. Capture both streams (<code>>> /var/log/myjob.log 2>&amp;1</code>)
 or you&rsquo;ll never know why the job stopped working.</p><h2 id=9-troubleshooting-playbook-the-service-wont-start class=heading-anchor>9. Troubleshooting playbook: the service won&rsquo;t start<a href=#9-troubleshooting-playbook-the-service-wont-start class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When a service refuses to come up, work the list in order. Most of
@@ -544,5 +556,5 @@ and a structured log — carries straight through.</p></div><section class=serie
 <span class=chapter-title>Linux (6): Service Management: systemd, systemctl, and journald</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/process-resource-management/><span class=chapter-num>07</span>
 <span class=chapter-title>Linux (7): Process and Resource Management: From `top` to cgroups</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/pipelines/><span class=chapter-num>08</span>
 <span class=chapter-title>Linux (8): Pipelines and File Operations: Composing Tools into Data Flows</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/linux/09-vim-essentials/><span class=chapter-num>09</span>
-<span class=chapter-title>Linux (9): Vim Essentials</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>38 min</strong></div><div class=row><span>Word count</span><strong>3903</strong></div><div class=row><span>Published</span><strong>Mar 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Linux (9): Vim Essentials</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>38 min</strong></div><div class=row><span>Word count</span><strong>3915</strong></div><div class=row><span>Published</span><strong>Mar 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

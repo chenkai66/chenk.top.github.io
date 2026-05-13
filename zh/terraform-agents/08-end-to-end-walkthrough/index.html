@@ -20,33 +20,59 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Terraform 实战</a>
 · 第 8 篇</div><h1>Terraform 实战（八）：一条命令拉起全栈</h1><p class=deck>把七个 module 拼到一个仓库，跑一次 terraform apply，看一个完整的 Agent runtime——VPC、ECS、RDS、OpenSearch、OSS、LLM 网关、SLS 观测、成本告警——七分钟内起来。真实 apply 输出、module DAG、生产环境完整成本核算，以及可 fork 的起手仓库。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-03-26>March 26, 2026</time> · 28 分钟 · 6566 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/end-to-end/ class=tag>#End-to-End</a><a href=/zh/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/en/terraform-agents/08-end-to-end-walkthrough/>Read in English →</a></div></header><div class=prose><p>本系列第 2 至第 7 篇所构建的全部模块，最终在此完成整合与部署。跑一次 <code>terraform apply</code>，你就能在阿里云上得到一套完整、可观测、带预算控制的 Agent 运行时栈——大概 31 个资源，实际耗时 7 分钟左右，生产环境规模下全包成本约 ¥12,530/月。</p><p>我们要搭建的栈结构如下：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png alt="research-agent-stack：每个框，一个 terraform apply" loading=lazy decoding=async class=content-image></figure></p><p>共五层：边缘、计算、记忆、平台、运维——均由本系列此前构建的模块组合而成；底层依赖 11 款阿里云服务： VPC、 ECS、 ALB、 OSS、 RDS for PostgreSQL、 OpenSearch、 KMS、 SLS、 ARMS、 CloudMonitor，以及通过网关调用的 DashScope （LLM 接入服务）。</p><h2 id=项目结构 class=heading-anchor>项目结构<a href=#%e9%a1%b9%e7%9b%ae%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><pre tabindex=0><code>research-agent-stack/
-├── README.md
-├── versions.tf                  # Terraform + provider pinning
-├── backend.tf                   # OSS + Tablestore remote state
-├── providers.tf                 # alicloud + alicloud.beijing alias
-├── variables.tf                 # top-level inputs
-├── locals.tf                    # workspace-aware computed locals
-├── main.tf                      # module composition
-├── outputs.tf                   # endpoints + connection strings
-├── env/
-│   ├── dev.tfvars
-│   ├── staging.tfvars
-│   └── prod.tfvars
-├── secrets/
-│   └── secrets.auto.tfvars      # gitignored — provider keys
-├── modules/
-│   ├── vpc-baseline/            # article 3
-│   ├── storage/                 # article 5
-│   ├── compute/                 # article 4
-│   ├── llm-gateway/             # article 6
-│   └── observability/           # article 7
-└── scripts/
-    ├── cloud-init/
-    │   ├── agent.sh
-    │   └── gateway.sh
-    └── restore-drill.sh
-</code></pre><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png alt=基础设施模块组合成完整的架构 loading=lazy decoding=async class=content-image></figure></p><p>顶层八个 <code>*.tf</code> 文件，<code>modules/</code> 目录下五个模块，环境变量放在 <code>env/*.tfvars</code>，密钥隔离在 <code>secrets/secrets.auto.tfvars</code> 且不进 git。这是我每个项目的标准目录结构：略显刻板，但胜在稳定可靠。唯独 <code>secrets/</code> 目录必须从第一次提交就开始被 <code>.gitignore</code> 忽略，这点我绝不妥协。我处理过的所有密钥泄露事件，根本原因都是 gitignore 文件未在项目初始化时配置，而是在后续（例如第 50 次提交）才临时补充。</p><h2 id=maintf--组成 class=heading-anchor>main.tf — 组成<a href=#maintf--%e7%bb%84%e6%88%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-03-26>March 26, 2026</time> · 28 分钟 · 6592 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/end-to-end/ class=tag>#End-to-End</a><a href=/zh/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/en/terraform-agents/08-end-to-end-walkthrough/>Read in English →</a></div></header><div class=prose><p>本系列第 2 至第 7 篇所构建的全部模块，最终在此完成整合与部署。跑一次 <code>terraform apply</code>，你就能在阿里云上得到一套完整、可观测、带预算控制的 Agent 运行时栈——大概 31 个资源，实际耗时 7 分钟左右，生产环境规模下全包成本约 ¥12,530/月。</p><p>我们要搭建的栈结构如下：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png alt="research-agent-stack：每个框，一个 terraform apply" loading=lazy decoding=async class=content-image></figure></p><p>共五层：边缘、计算、记忆、平台、运维——均由本系列此前构建的模块组合而成；底层依赖 11 款阿里云服务： VPC、 ECS、 ALB、 OSS、 RDS for PostgreSQL、 OpenSearch、 KMS、 SLS、 ARMS、 CloudMonitor，以及通过网关调用的 DashScope （LLM 接入服务）。</p><h2 id=项目结构 class=heading-anchor>项目结构<a href=#%e9%a1%b9%e7%9b%ae%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>research-agent-stack/
+</span></span><span class=line><span class=cl>├── README.md
+</span></span><span class=line><span class=cl>├── versions.tf                  # Terraform + provider pinning
+</span></span><span class=line><span class=cl>├── backend.tf                   # OSS + Tablestore remote state
+</span></span><span class=line><span class=cl>├── providers.tf                 # alicloud + alicloud.beijing alias
+</span></span><span class=line><span class=cl>├── variables.tf                 # top-level inputs
+</span></span><span class=line><span class=cl>├── locals.tf                    # workspace-aware computed locals
+</span></span><span class=line><span class=cl>├── main.tf                      # module composition
+</span></span><span class=line><span class=cl>├── outputs.tf                   # endpoints + connection strings
+</span></span><span class=line><span class=cl>├── env/
+</span></span><span class=line><span class=cl>│   ├── dev.tfvars
+</span></span><span class=line><span class=cl>│   ├── staging.tfvars
+</span></span><span class=line><span class=cl>│   └── prod.tfvars
+</span></span><span class=line><span class=cl>├── secrets/
+</span></span><span class=line><span class=cl>│   └── secrets.auto.tfvars      # gitignored — provider keys
+</span></span><span class=line><span class=cl>├── modules/
+</span></span><span class=line><span class=cl>│   ├── vpc-baseline/            # article 3
+</span></span><span class=line><span class=cl>│   ├── storage/                 # article 5
+</span></span><span class=line><span class=cl>│   ├── compute/                 # article 4
+</span></span><span class=line><span class=cl>│   ├── llm-gateway/             # article 6
+</span></span><span class=line><span class=cl>│   └── observability/           # article 7
+</span></span><span class=line><span class=cl>└── scripts/
+</span></span><span class=line><span class=cl>    ├── cloud-init/
+</span></span><span class=line><span class=cl>    │   ├── agent.sh
+</span></span><span class=line><span class=cl>    │   └── gateway.sh
+</span></span><span class=line><span class=cl>    └── restore-drill.sh
+</span></span></code></pre></td></tr></table></div></div><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png alt=基础设施模块组合成完整的架构 loading=lazy decoding=async class=content-image></figure></p><p>顶层八个 <code>*.tf</code> 文件，<code>modules/</code> 目录下五个模块，环境变量放在 <code>env/*.tfvars</code>，密钥隔离在 <code>secrets/secrets.auto.tfvars</code> 且不进 git。这是我每个项目的标准目录结构：略显刻板，但胜在稳定可靠。唯独 <code>secrets/</code> 目录必须从第一次提交就开始被 <code>.gitignore</code> 忽略，这点我绝不妥协。我处理过的所有密钥泄露事件，根本原因都是 gitignore 文件未在项目初始化时配置，而是在后续（例如第 50 次提交）才临时补充。</p><h2 id=maintf--组成 class=heading-anchor>main.tf — 组成<a href=#maintf--%e7%bb%84%e6%88%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -689,5 +715,5 @@
 <span class=chapter-title>Terraform 实战（五）：向量库、RDS 与对象存储</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
 <span class=chapter-title>Terraform 实战（六）：LLM Gateway 与密钥管理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
 <span class=chapter-title>Terraform 实战（七）：可观测与成本告警</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
-<span class=chapter-title>Terraform 实战（八）：一条命令拉起全栈</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>28 min</strong></div><div class=row><span>字数</span><strong>6566</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Terraform 实战（八）：一条命令拉起全栈</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>28 min</strong></div><div class=row><span>字数</span><strong>6592</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

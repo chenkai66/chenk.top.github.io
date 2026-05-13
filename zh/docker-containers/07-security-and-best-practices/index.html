@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Docker 与容器化</a>
 · 第 7 篇</div><h1>Docker 与容器（七）：安全——运行容器时不必交出全部权限</h1><p class=deck>容器提供隔离性，而非安全性。默认的 Docker 配置以 root 身份运行进程，并赋予其完整的 Linux capabilities。本文介绍如何为生产环境加固容器。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2023-06-22>June 22, 2023</time> · 20 分钟 · 4898 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/docker/ class=tag>#Docker</a><a href=/zh/tags/containers/ class=tag>#Containers</a><a href=/zh/tags/security/ class=tag>#Security</a><a href=/zh/tags/devsecops/ class=tag>#DevSecOps</a><a href=/zh/tags/best-practices/ class=tag>#Best Practices</a></div><a class="pill pill-outline" href=/en/docker-containers/07-security-and-best-practices/>Read in English →</a></div></header><div class=prose><p>Docker 默认配置优先便利性而非安全性：开箱即用时容器以 root （UID 0）运行、拥有大量 Linux capabilities、且根文件系统默认可写。开发环境或可容忍，但生产环境极其危险——若存在容器逃逸（container escape）漏洞且容器以 root 运行，攻击者将直接接管宿主机。让我们来修复这个问题。</p><h2 id=威胁模型 class=heading-anchor>威胁模型<a href=#%e5%a8%81%e8%83%81%e6%a8%a1%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>实施加固前，先明确防御对象：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-security-layers.png alt=安全层 loading=lazy decoding=async class=content-image></figure></p><ol><li><strong>存在漏洞的应用代码</strong>：你的应用存在缺陷（如远程代码执行 RCE、路径遍历、服务端请求伪造 SSRF），攻击者可在容器内获得代码执行能力</li><li><strong>存在漏洞的依赖项</strong>：镜像中某个库存在已知 CVE 漏洞</li><li><strong>容器逃逸</strong>：攻击者利用内核或运行时漏洞突破容器边界</li><li><strong>供应链攻击</strong>：使用了恶意基础镜像或软件包</li><li><strong>密钥泄露</strong>：凭据通过环境变量、镜像历史记录或日志意外暴露</li><li><strong>横向移动</strong>：攻击者从一个容器跳转至其他容器或宿主机</li></ol><p>每种加固技术对应一项或多项威胁，目标是构建纵深防御（defense in depth）：单一手段无法确保安全，但多层防护可显著抬高攻击成本。</p><h2 id=以非-root-用户身份运行 class=heading-anchor>以非 root 用户身份运行<a href=#%e4%bb%a5%e9%9d%9e-root-%e7%94%a8%e6%88%b7%e8%ba%ab%e4%bb%bd%e8%bf%90%e8%a1%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>默认情况下， Docker 容器进程以 root （UID 0）运行——该身份与宿主机 root 相同（启用 user namespaces 除外）；一旦容器逃逸，攻击者即获得宿主机 root 权限。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png alt=无根容器 loading=lazy decoding=async class=content-image></figure></p><h3 id=在-dockerfile-中指定 class=heading-anchor>在 Dockerfile 中指定<a href=#%e5%9c%a8-dockerfile-%e4%b8%ad%e6%8c%87%e5%ae%9a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2023-06-22>June 22, 2023</time> · 20 分钟 · 4920 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/docker/ class=tag>#Docker</a><a href=/zh/tags/containers/ class=tag>#Containers</a><a href=/zh/tags/security/ class=tag>#Security</a><a href=/zh/tags/devsecops/ class=tag>#DevSecOps</a><a href=/zh/tags/best-practices/ class=tag>#Best Practices</a></div><a class="pill pill-outline" href=/en/docker-containers/07-security-and-best-practices/>Read in English →</a></div></header><div class=prose><p>Docker 默认配置优先便利性而非安全性：开箱即用时容器以 root （UID 0）运行、拥有大量 Linux capabilities、且根文件系统默认可写。开发环境或可容忍，但生产环境极其危险——若存在容器逃逸（container escape）漏洞且容器以 root 运行，攻击者将直接接管宿主机。让我们来修复这个问题。</p><h2 id=威胁模型 class=heading-anchor>威胁模型<a href=#%e5%a8%81%e8%83%81%e6%a8%a1%e5%9e%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>实施加固前，先明确防御对象：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-security-layers.png alt=安全层 loading=lazy decoding=async class=content-image></figure></p><ol><li><strong>存在漏洞的应用代码</strong>：你的应用存在缺陷（如远程代码执行 RCE、路径遍历、服务端请求伪造 SSRF），攻击者可在容器内获得代码执行能力</li><li><strong>存在漏洞的依赖项</strong>：镜像中某个库存在已知 CVE 漏洞</li><li><strong>容器逃逸</strong>：攻击者利用内核或运行时漏洞突破容器边界</li><li><strong>供应链攻击</strong>：使用了恶意基础镜像或软件包</li><li><strong>密钥泄露</strong>：凭据通过环境变量、镜像历史记录或日志意外暴露</li><li><strong>横向移动</strong>：攻击者从一个容器跳转至其他容器或宿主机</li></ol><p>每种加固技术对应一项或多项威胁，目标是构建纵深防御（defense in depth）：单一手段无法确保安全，但多层防护可显著抬高攻击成本。</p><h2 id=以非-root-用户身份运行 class=heading-anchor>以非 root 用户身份运行<a href=#%e4%bb%a5%e9%9d%9e-root-%e7%94%a8%e6%88%b7%e8%ba%ab%e4%bb%bd%e8%bf%90%e8%a1%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>默认情况下， Docker 容器进程以 root （UID 0）运行——该身份与宿主机 root 相同（启用 user namespaces 除外）；一旦容器逃逸，攻击者即获得宿主机 root 权限。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png alt=无根容器 loading=lazy decoding=async class=content-image></figure></p><h3 id=在-dockerfile-中指定 class=heading-anchor>在 Dockerfile 中指定<a href=#%e5%9c%a8-dockerfile-%e4%b8%ad%e6%8c%87%e5%ae%9a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -302,29 +302,51 @@
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># 扫描镜像</span>
 </span></span><span class=line><span class=cl>trivy image myapp:latest
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>myapp:latest (debian 12.1)
-===========================
-Total: 45 (UNKNOWN: 0, LOW: 25, MEDIUM: 12, HIGH: 6, CRITICAL: 2)
-
-+-------------------+------------------+----------+-------------------+-------------------+
-|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
-+-------------------+------------------+----------+-------------------+-------------------+
-| libssl3           | CVE-2023-XXXXX   | CRITICAL | 3.0.9-1           | 3.0.11-1          |
-| libcurl4          | CVE-2023-YYYYY   | CRITICAL | 7.88.1-10         | 7.88.1-10+deb12u4 |
-| python3.11        | CVE-2023-ZZZZZ   | HIGH     | 3.11.4            | 3.11.5            |
-+-------------------+------------------+----------+-------------------+-------------------+
-
-Python (requirements.txt)
-==========================
-Total: 3 (HIGH: 2, MEDIUM: 1)
-
-+-------------------+------------------+----------+-------------------+-------------------+
-|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
-+-------------------+------------------+----------+-------------------+-------------------+
-| requests          | CVE-2023-AAAAA   | HIGH     | 2.28.0            | 2.31.0            |
-| flask             | CVE-2023-BBBBB   | MEDIUM   | 2.2.0             | 2.3.3             |
-+-------------------+------------------+----------+-------------------+-------------------+
-</code></pre><p>Trivy 同时扫描操作系统包和应用依赖（pip、 npm、 gem 等）。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>myapp:latest (debian 12.1)
+</span></span><span class=line><span class=cl>===========================
+</span></span><span class=line><span class=cl>Total: 45 (UNKNOWN: 0, LOW: 25, MEDIUM: 12, HIGH: 6, CRITICAL: 2)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>| libssl3           | CVE-2023-XXXXX   | CRITICAL | 3.0.9-1           | 3.0.11-1          |
+</span></span><span class=line><span class=cl>| libcurl4          | CVE-2023-YYYYY   | CRITICAL | 7.88.1-10         | 7.88.1-10+deb12u4 |
+</span></span><span class=line><span class=cl>| python3.11        | CVE-2023-ZZZZZ   | HIGH     | 3.11.4            | 3.11.5            |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Python (requirements.txt)
+</span></span><span class=line><span class=cl>==========================
+</span></span><span class=line><span class=cl>Total: 3 (HIGH: 2, MEDIUM: 1)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>| requests          | CVE-2023-AAAAA   | HIGH     | 2.28.0            | 2.31.0            |
+</span></span><span class=line><span class=cl>| flask             | CVE-2023-BBBBB   | MEDIUM   | 2.2.0             | 2.3.3             |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span></code></pre></td></tr></table></div></div><p>Trivy 同时扫描操作系统包和应用依赖（pip、 npm、 gem 等）。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -694,5 +716,5 @@ Total: 3 (HIGH: 2, MEDIUM: 1)
 <span class=chapter-title>Docker 与容器（五）：Docker Compose——多容器应用</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/06-debugging-and-logging/><span class=chapter-num>06</span>
 <span class=chapter-title>Docker 与容器（六）：调试与日志——当‘盒子’内部出问题时</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>Docker 与容器（七）：安全——运行容器时不必交出全部权限</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/docker-containers/08-orchestration-preview/><span class=chapter-num>08</span>
-<span class=chapter-title>Docker 与容器（八）：超越 Docker —— Kubernetes、Swarm 及未来演进</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>20 min</strong></div><div class=row><span>字数</span><strong>4898</strong></div><div class=row><span>写于</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Docker 与容器（八）：超越 Docker —— Kubernetes、Swarm 及未来演进</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>20 min</strong></div><div class=row><span>字数</span><strong>4920</strong></div><div class=row><span>写于</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

@@ -20,33 +20,47 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Docker and Containers</a>
 · Chapter 8</div><h1>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</h1><p class=deck>Single-host Docker breaks down at scale. This article previews container orchestration — Docker Swarm for simplicity, Kubernetes for everything else — and maps out the broader cloud-native ecosystem.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2023-06-23>June 23, 2023</time> · 28 min read · 2833 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/kubernetes/ class=tag>#Kubernetes</a><a href=/en/tags/docker-swarm/ class=tag>#Docker Swarm</a><a href=/en/tags/orchestration/ class=tag>#Orchestration</a></div><a class="pill pill-outline" href=/zh/docker-containers/08-orchestration-preview/>阅读中文版 →</a></div></header><div class=prose><p>So far, this series has focused on single-host Docker: one machine running containers. This setup works well for development, small projects, and applications with modest traffic. However, when you need your service to survive server failures, handle traffic spikes, or deploy updates without downtime, single-host Docker falls short. Container orchestration addresses these issues, and Kubernetes has become the go-to solution.</p><h2 id=why-single-host-docker-isnt-enough class=heading-anchor>Why Single-Host Docker Isn&rsquo;t Enough<a href=#why-single-host-docker-isnt-enough class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Consider what happens when your Docker host fails:</p><table><thead><tr><th>Problem</th><th>Single-Host Docker</th><th>With Orchestration</th></tr></thead><tbody><tr><td>Server crashes</td><td>All containers die, manual restart</td><td>Containers automatically rescheduled to healthy nodes</td></tr><tr><td>Traffic spike</td><td>Scale up manually with <code>--scale</code></td><td>Auto-scaling based on metrics</td></tr><tr><td>Deployment</td><td><code>docker compose down && up</code> (downtime)</td><td>Rolling update with zero downtime</td></tr><tr><td>Service discovery</td><td>Custom network DNS (single host only)</td><td>Cluster-wide DNS, load balancing</td></tr><tr><td>Secret rotation</td><td>Restart containers with new env vars</td><td>Rolling secret rotation, no restart</td></tr><tr><td>Resource allocation</td><td>Hope you have enough RAM</td><td>Scheduler places containers optimally</td></tr><tr><td>Monitoring</td><td><code>docker stats</code> on one host</td><td>Cluster-wide metrics, alerting</td></tr><tr><td>Storage</td><td>Local volumes (lost if host dies)</td><td>Persistent volumes with replication</td></tr></tbody></table><p>These are operational problems, not Docker problems. Docker does exactly what it&rsquo;s designed to do: run containers on a single host. Orchestrators add the multi-host coordination layer.</p><h2 id=docker-swarm-the-simple-path class=heading-anchor>Docker Swarm: The Simple Path<a href=#docker-swarm-the-simple-path class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Docker Swarm is Docker&rsquo;s built-in orchestration. If you know <code>docker compose</code>, you already know 80% of Swarm. It uses the same YAML format and similar commands.</p><h3 id=initializing-a-swarm class=heading-anchor>Initializing a Swarm<a href=#initializing-a-swarm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2023-06-23>June 23, 2023</time> · 28 min read · 2876 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/kubernetes/ class=tag>#Kubernetes</a><a href=/en/tags/docker-swarm/ class=tag>#Docker Swarm</a><a href=/en/tags/orchestration/ class=tag>#Orchestration</a></div><a class="pill pill-outline" href=/zh/docker-containers/08-orchestration-preview/>阅读中文版 →</a></div></header><div class=prose><p>So far, this series has focused on single-host Docker: one machine running containers. This setup works well for development, small projects, and applications with modest traffic. However, when you need your service to survive server failures, handle traffic spikes, or deploy updates without downtime, single-host Docker falls short. Container orchestration addresses these issues, and Kubernetes has become the go-to solution.</p><h2 id=why-single-host-docker-isnt-enough class=heading-anchor>Why Single-Host Docker Isn&rsquo;t Enough<a href=#why-single-host-docker-isnt-enough class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Consider what happens when your Docker host fails:</p><table><thead><tr><th>Problem</th><th>Single-Host Docker</th><th>With Orchestration</th></tr></thead><tbody><tr><td>Server crashes</td><td>All containers die, manual restart</td><td>Containers automatically rescheduled to healthy nodes</td></tr><tr><td>Traffic spike</td><td>Scale up manually with <code>--scale</code></td><td>Auto-scaling based on metrics</td></tr><tr><td>Deployment</td><td><code>docker compose down && up</code> (downtime)</td><td>Rolling update with zero downtime</td></tr><tr><td>Service discovery</td><td>Custom network DNS (single host only)</td><td>Cluster-wide DNS, load balancing</td></tr><tr><td>Secret rotation</td><td>Restart containers with new env vars</td><td>Rolling secret rotation, no restart</td></tr><tr><td>Resource allocation</td><td>Hope you have enough RAM</td><td>Scheduler places containers optimally</td></tr><tr><td>Monitoring</td><td><code>docker stats</code> on one host</td><td>Cluster-wide metrics, alerting</td></tr><tr><td>Storage</td><td>Local volumes (lost if host dies)</td><td>Persistent volumes with replication</td></tr></tbody></table><p>These are operational problems, not Docker problems. Docker does exactly what it&rsquo;s designed to do: run containers on a single host. Orchestrators add the multi-host coordination layer.</p><h2 id=docker-swarm-the-simple-path class=heading-anchor>Docker Swarm: The Simple Path<a href=#docker-swarm-the-simple-path class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Docker Swarm is Docker&rsquo;s built-in orchestration. If you know <code>docker compose</code>, you already know 80% of Swarm. It uses the same YAML format and similar commands.</p><h3 id=initializing-a-swarm class=heading-anchor>Initializing a Swarm<a href=#initializing-a-swarm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># On the first node (becomes the manager)</span>
 </span></span><span class=line><span class=cl>docker swarm init --advertise-addr 192.168.1.10
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>Swarm initialized: current node (abc123def456) is now a manager.
-
-To add a worker to this swarm, run the following command:
-
-    docker swarm join --token SWMTKN-1-0123456789abcdef-worker-token 192.168.1.10:2377
-
-To add a manager to this swarm, run:
-
-    docker swarm join-token manager
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Swarm initialized: current node (abc123def456) is now a manager.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>To add a worker to this swarm, run the following command:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    docker swarm join --token SWMTKN-1-0123456789abcdef-worker-token 192.168.1.10:2377
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>To add a manager to this swarm, run:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    docker swarm join-token manager
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># On other nodes (join as workers)</span>
 </span></span><span class=line><span class=cl>docker swarm join --token SWMTKN-1-0123456789abcdef-worker-token 192.168.1.10:2377
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>This node joined a swarm as a worker.
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>This node joined a swarm as a worker.
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Check the cluster</span>
 </span></span><span class=line><span class=cl>docker node ls
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>ID                           HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS   ENGINE VERSION
-abc123def456 *               manager1   Ready    Active         Leader           24.0.6
-def456abc789                 worker1    Ready    Active                          24.0.6
-ghi789def012                 worker2    Ready    Active                          24.0.6
-</code></pre><p>Three-node cluster in four commands. That&rsquo;s Swarm&rsquo;s appeal.</p><h3 id=deploying-services class=heading-anchor>Deploying Services<a href=#deploying-services class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Swarm uses the concept of &ldquo;services&rdquo; — a service is a definition of how to run containers, and Swarm manages the desired number of replicas:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-deployment-strategies.png alt="Deployment strategies" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>ID                           HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+</span></span><span class=line><span class=cl>abc123def456 *               manager1   Ready    Active         Leader           24.0.6
+</span></span><span class=line><span class=cl>def456abc789                 worker1    Ready    Active                          24.0.6
+</span></span><span class=line><span class=cl>ghi789def012                 worker2    Ready    Active                          24.0.6
+</span></span></code></pre></td></tr></table></div></div><p>Three-node cluster in four commands. That&rsquo;s Swarm&rsquo;s appeal.</p><h3 id=deploying-services class=heading-anchor>Deploying Services<a href=#deploying-services class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Swarm uses the concept of &ldquo;services&rdquo; — a service is a definition of how to run containers, and Swarm manages the desired number of replicas:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-deployment-strategies.png alt="Deployment strategies" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -68,27 +82,39 @@ ghi789def012                 worker2    Ready    Active                         
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Check the service</span>
 </span></span><span class=line><span class=cl>docker service ls
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>ID             NAME   MODE         REPLICAS   IMAGE          PORTS
-a1b2c3d4e5f6   web    replicated   3/3        nginx:alpine   *:80-&gt;80/tcp
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>ID             NAME   MODE         REPLICAS   IMAGE          PORTS
+</span></span><span class=line><span class=cl>a1b2c3d4e5f6   web    replicated   3/3        nginx:alpine   *:80-&gt;80/tcp
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># See where replicas are placed</span>
 </span></span><span class=line><span class=cl>docker service ps web
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>ID             NAME    IMAGE          NODE       DESIRED STATE   CURRENT STATE           
-b2c3d4e5f6a7   web.1   nginx:alpine   manager1   Running         Running 30 seconds ago
-c3d4e5f6a7b8   web.2   nginx:alpine   worker1    Running         Running 30 seconds ago
-d4e5f6a7b8c9   web.3   nginx:alpine   worker2    Running         Running 30 seconds ago
-</code></pre><p>Swarm distributes the three replicas across all three nodes. It also provides built-in load balancing: any node in the swarm can accept traffic on port 80, and Swarm routes it to a container running the service.</p><h3 id=rolling-updates class=heading-anchor>Rolling Updates<a href=#rolling-updates class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>ID             NAME    IMAGE          NODE       DESIRED STATE   CURRENT STATE           
+</span></span><span class=line><span class=cl>b2c3d4e5f6a7   web.1   nginx:alpine   manager1   Running         Running 30 seconds ago
+</span></span><span class=line><span class=cl>c3d4e5f6a7b8   web.2   nginx:alpine   worker1    Running         Running 30 seconds ago
+</span></span><span class=line><span class=cl>d4e5f6a7b8c9   web.3   nginx:alpine   worker2    Running         Running 30 seconds ago
+</span></span></code></pre></td></tr></table></div></div><p>Swarm distributes the three replicas across all three nodes. It also provides built-in load balancing: any node in the swarm can accept traffic on port 80, and Swarm routes it to a container running the service.</p><h3 id=rolling-updates class=heading-anchor>Rolling Updates<a href=#rolling-updates class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Update the image (rolling update with 10s delay between containers)</span>
 </span></span><span class=line><span class=cl>docker service update --image nginx:1.25-alpine web
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>web
-overall progress: 3 out of 3 tasks
-1/3: running   [==================================================&gt;]
-2/3: running   [==================================================&gt;]
-3/3: running   [==================================================&gt;]
-verify: Service converged
-</code></pre><p>Swarm updates one container at a time, waiting 10 seconds between each. If a new container fails its health check, Swarm rolls back automatically.</p><h3 id=deploying-a-stack-compose-in-swarm class=heading-anchor>Deploying a Stack (Compose in Swarm)<a href=#deploying-a-stack-compose-in-swarm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>You can deploy a compose file directly to Swarm:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>web
+</span></span><span class=line><span class=cl>overall progress: 3 out of 3 tasks
+</span></span><span class=line><span class=cl>1/3: running   [==================================================&gt;]
+</span></span><span class=line><span class=cl>2/3: running   [==================================================&gt;]
+</span></span><span class=line><span class=cl>3/3: running   [==================================================&gt;]
+</span></span><span class=line><span class=cl>verify: Service converged
+</span></span></code></pre></td></tr></table></div></div><p>Swarm updates one container at a time, waiting 10 seconds between each. If a new container fails its health check, Swarm rolls back automatically.</p><h3 id=deploying-a-stack-compose-in-swarm class=heading-anchor>Deploying a Stack (Compose in Swarm)<a href=#deploying-a-stack-compose-in-swarm class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>You can deploy a compose file directly to Swarm:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -172,10 +198,13 @@ verify: Service converged
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Check stack services</span>
 </span></span><span class=line><span class=cl>docker stack services myapp
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>ID             NAME           MODE         REPLICAS   IMAGE             PORTS
-a1b2c3d4e5f6   myapp_web      replicated   3/3        myapp:latest      *:8080-&gt;8080/tcp
-b2c3d4e5f6a7   myapp_redis    replicated   1/1        redis:7-alpine
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>ID             NAME           MODE         REPLICAS   IMAGE             PORTS
+</span></span><span class=line><span class=cl>a1b2c3d4e5f6   myapp_web      replicated   3/3        myapp:latest      *:8080-&gt;8080/tcp
+</span></span><span class=line><span class=cl>b2c3d4e5f6a7   myapp_redis    replicated   1/1        redis:7-alpine
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Remove the stack</span>
 </span></span><span class=line><span class=cl>docker stack rm myapp
@@ -207,16 +236,25 @@ b2c3d4e5f6a7   myapp_redis    replicated   1/1        redis:7-alpine
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>cat /run/secrets/db_password
 </span></span><span class=line><span class=cl><span class=c1># Output: supersecret</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=when-swarm-makes-sense class=heading-anchor>When Swarm Makes Sense<a href=#when-swarm-makes-sense class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Swarm is a good choice when:</p><ul><li>You have a small team (&lt; 5 engineers)</li><li>You have a small cluster (&lt; 10 nodes)</li><li>You want orchestration without the Kubernetes learning curve</li><li>You&rsquo;re already using Docker Compose and want a smooth migration</li><li>You don&rsquo;t need auto-scaling, custom schedulers, or the CNCF ecosystem</li></ul><h2 id=kubernetes-the-industry-standard class=heading-anchor>Kubernetes: The Industry Standard<a href=#kubernetes-the-industry-standard class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/08-container-orchestration-evolution-from-docker-compose-to-kub.jpg alt="Container orchestration evolution from docker compose to kub" loading=lazy decoding=async class=content-image></figure></p><p>Kubernetes (K8s) is the dominant container orchestration platform. It&rsquo;s more complex than Swarm but much more capable. Most cloud providers offer managed Kubernetes services (EKS, GKE, AKS, ACK), eliminating the operational burden of managing the control plane.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-k8s-architecture.png alt="Kubernetes architecture" loading=lazy decoding=async class=content-image></figure></p><h3 id=architecture class=heading-anchor>Architecture<a href=#architecture class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Kubernetes clusters have two types of nodes:</p><p><strong>Control Plane (master) components:</strong></p><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>kube-apiserver</code></td><td>REST API that all components and users interact with</td></tr><tr><td><code>etcd</code></td><td>Distributed key-value store for all cluster state</td></tr><tr><td><code>kube-scheduler</code></td><td>Decides which node to place new pods on</td></tr><tr><td><code>kube-controller-manager</code></td><td>Runs controllers (deployment, replicaset, node, etc.)</td></tr><tr><td><code>cloud-controller-manager</code></td><td>Integrates with cloud provider APIs (optional)</td></tr></tbody></table><p><strong>Worker node components:</strong></p><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>kubelet</code></td><td>Agent that manages pods on the node, communicates with API server</td></tr><tr><td><code>kube-proxy</code></td><td>Network proxy for service routing</td></tr><tr><td>Container runtime</td><td>Runs containers (containerd, CRI-O — not Docker daemon)</td></tr></tbody></table><p>The architecture looks like this (described, not drawn):</p><pre tabindex=0><code>Control Plane:
-  API Server ←→ etcd (cluster state)
-      ↑
-  Scheduler + Controller Manager (watch API, make decisions)
-
-Worker Nodes (N):
-  kubelet ←→ API Server (reports status, receives instructions)
-  kube-proxy (manages iptables/IPVS rules for service routing)
-  containerd (runs containers)
-</code></pre><h3 id=core-kubernetes-objects class=heading-anchor>Core Kubernetes Objects<a href=#core-kubernetes-objects class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Everything in Kubernetes is a declarative object — you describe the desired state, and Kubernetes works to make it real.</p><h4 id=pod class=heading-anchor>Pod<a href=#pod class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>The smallest deployable unit. A pod contains one or more containers that share network and storage:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-pod-lifecycle.png alt="Pod lifecycle" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=when-swarm-makes-sense class=heading-anchor>When Swarm Makes Sense<a href=#when-swarm-makes-sense class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Swarm is a good choice when:</p><ul><li>You have a small team (&lt; 5 engineers)</li><li>You have a small cluster (&lt; 10 nodes)</li><li>You want orchestration without the Kubernetes learning curve</li><li>You&rsquo;re already using Docker Compose and want a smooth migration</li><li>You don&rsquo;t need auto-scaling, custom schedulers, or the CNCF ecosystem</li></ul><h2 id=kubernetes-the-industry-standard class=heading-anchor>Kubernetes: The Industry Standard<a href=#kubernetes-the-industry-standard class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/08-container-orchestration-evolution-from-docker-compose-to-kub.jpg alt="Container orchestration evolution from docker compose to kub" loading=lazy decoding=async class=content-image></figure></p><p>Kubernetes (K8s) is the dominant container orchestration platform. It&rsquo;s more complex than Swarm but much more capable. Most cloud providers offer managed Kubernetes services (EKS, GKE, AKS, ACK), eliminating the operational burden of managing the control plane.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-k8s-architecture.png alt="Kubernetes architecture" loading=lazy decoding=async class=content-image></figure></p><h3 id=architecture class=heading-anchor>Architecture<a href=#architecture class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Kubernetes clusters have two types of nodes:</p><p><strong>Control Plane (master) components:</strong></p><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>kube-apiserver</code></td><td>REST API that all components and users interact with</td></tr><tr><td><code>etcd</code></td><td>Distributed key-value store for all cluster state</td></tr><tr><td><code>kube-scheduler</code></td><td>Decides which node to place new pods on</td></tr><tr><td><code>kube-controller-manager</code></td><td>Runs controllers (deployment, replicaset, node, etc.)</td></tr><tr><td><code>cloud-controller-manager</code></td><td>Integrates with cloud provider APIs (optional)</td></tr></tbody></table><p><strong>Worker node components:</strong></p><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>kubelet</code></td><td>Agent that manages pods on the node, communicates with API server</td></tr><tr><td><code>kube-proxy</code></td><td>Network proxy for service routing</td></tr><tr><td>Container runtime</td><td>Runs containers (containerd, CRI-O — not Docker daemon)</td></tr></tbody></table><p>The architecture looks like this (described, not drawn):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Control Plane:
+</span></span><span class=line><span class=cl>  API Server ←→ etcd (cluster state)
+</span></span><span class=line><span class=cl>      ↑
+</span></span><span class=line><span class=cl>  Scheduler + Controller Manager (watch API, make decisions)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Worker Nodes (N):
+</span></span><span class=line><span class=cl>  kubelet ←→ API Server (reports status, receives instructions)
+</span></span><span class=line><span class=cl>  kube-proxy (manages iptables/IPVS rules for service routing)
+</span></span><span class=line><span class=cl>  containerd (runs containers)
+</span></span></code></pre></td></tr></table></div></div><h3 id=core-kubernetes-objects class=heading-anchor>Core Kubernetes Objects<a href=#core-kubernetes-objects class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Everything in Kubernetes is a declarative object — you describe the desired state, and Kubernetes works to make it real.</p><h4 id=pod class=heading-anchor>Pod<a href=#pod class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>The smallest deployable unit. A pod contains one or more containers that share network and storage:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/08-pod-lifecycle.png alt="Pod lifecycle" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -366,9 +404,11 @@ Worker Nodes (N):
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Check the deployment</span>
 </span></span><span class=line><span class=cl>kubectl get deployments
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>NAME     READY   UP-TO-DATE   AVAILABLE   AGE
-my-app   3/3     3            3           60s
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span class=line><span class=cl>my-app   3/3     3            3           60s
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -384,10 +424,13 @@ my-app   3/3     3            3           60s
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Watch the rollout</span>
 </span></span><span class=line><span class=cl>kubectl rollout status deployment/my-app
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>Waiting for deployment &#34;my-app&#34; rollout to finish: 2 out of 3 new replicas have been updated...
-Waiting for deployment &#34;my-app&#34; rollout to finish: 1 old replicas are pending termination...
-deployment &#34;my-app&#34; successfully rolled out
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Waiting for deployment &#34;my-app&#34; rollout to finish: 2 out of 3 new replicas have been updated...
+</span></span><span class=line><span class=cl>Waiting for deployment &#34;my-app&#34; rollout to finish: 1 old replicas are pending termination...
+</span></span><span class=line><span class=cl>deployment &#34;my-app&#34; successfully rolled out
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Rollback if something goes wrong</span>
 </span></span><span class=line><span class=cl>kubectl rollout undo deployment/my-app
@@ -629,5 +672,5 @@ deployment &#34;my-app&#34; successfully rolled out
 <span class=chapter-title>Docker and Containers (5): Docker Compose — Multi-Container Applications</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/06-debugging-and-logging/><span class=chapter-num>06</span>
 <span class=chapter-title>Docker and Containers (6): Debugging and Logging — When Things Go Wrong Inside a Box</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/07-security-and-best-practices/><span class=chapter-num>07</span>
 <span class=chapter-title>Docker and Containers (7): Security — Running Containers Without Giving Away the Keys</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
-<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2833</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2876</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

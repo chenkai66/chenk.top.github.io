@@ -20,30 +20,53 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Python 工程实践</a>
 · 第 2 篇</div><h1>Python 工程实践（二）：项目结构 —— 从脚本到包</h1><p class=deck>学习如何将 Python 代码组织为规范的包，涵盖导入机制、入口点（entry points）和命令行工具开发。从零构建一个真实的命令行应用。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-04-12>April 12, 2022</time> · 16 分钟 · 3790 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/packaging/ class=tag>#Packaging</a><a href=/zh/tags/cli/ class=tag>#CLI</a></div><a class="pill pill-outline" href=/en/python-engineering/02-project-structure/>Read in English →</a></div></header><div class=prose><p>每个项目都始于单个文件。你写下 <code>main.py</code>，它能运行；你添加功能，某天突然发现这个文件已膨胀至 1500 行——函数调用其他函数，而这些函数又依赖于 800 行之上定义的全局变量。代码虽然能运行，但没人（包括未来的你）能看懂。</p><p><strong>从脚本跃迁至包，是 Python 项目中第一个真正的工程决策</strong>：早期做对，后续测试、打包、部署等所有环节都将变得轻松；若做错，可能耗费数周解开循环导入（circular imports）的死结。</p><h2 id=单文件何时不再够用 class=heading-anchor>单文件何时不再够用？<a href=#%e5%8d%95%e6%96%87%e4%bb%b6%e4%bd%95%e6%97%b6%e4%b8%8d%e5%86%8d%e5%a4%9f%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>单文件脚本适用于以下场景：</p><ul><li>代码量少于 300 行</li><li>逻辑清晰、自上而下线性执行</li><li>仅你一人阅读和维护</li><li>是一次性脚本，而非长期维护的工具</li></ul><p>你需要转向包（package）结构的信号：</p><ul><li>多人协作开发</li><li>需要对独立组件进行单元测试</li><li>需在多个脚本间复用函数</li><li>代码存在明确的逻辑分层（如 config / data / logic / CLI）</li><li>计划分发该工具（例如支持 <code>pip install</code>）</li></ul><h2 id=平铺布局flat-layout-vs-src-布局 class=heading-anchor>平铺布局（Flat Layout） vs <code>src</code> 布局<a href=#%e5%b9%b3%e9%93%ba%e5%b8%83%e5%b1%80flat-layout-vs-src-%e5%b8%83%e5%b1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python 生态中有两种主流的项目结构。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-flat-vs-src.png alt="平铺 vs 源代码布局" loading=lazy decoding=async class=content-image></figure></p><h3 id=平铺布局flat-layout class=heading-anchor>平铺布局（Flat Layout）<a href=#%e5%b9%b3%e9%93%ba%e5%b8%83%e5%b1%80flat-layout class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><pre tabindex=0><code>my_tool/
-  my_tool/
-    __init__.py
-    core.py
-    cli.py
-    utils.py
-  tests/
-    test_core.py
-    test_cli.py
-  pyproject.toml
-  README.md
-</code></pre><p>包目录直接位于项目根目录，结构更简单。Flask 和 Requests 等知名项目均采用这种方式。</p><h3 id=src-布局 class=heading-anchor><code>src</code> 布局<a href=#src-%e5%b8%83%e5%b1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><pre tabindex=0><code>my_tool/
-  src/
-    my_tool/
-      __init__.py
-      core.py
-      cli.py
-      utils.py
-  tests/
-    test_core.py
-    test_cli.py
-  pyproject.toml
-  README.md
-</code></pre><p>包目录置于 <code>src/</code> 子目录内。该布局被 Python 打包权威机构（PyPA）推荐，其关键优势在于：<strong>强制你在测试前先安装包</strong>。这能在发布前就暴露打包错误（如遗漏文件、导入失败）。</p><p>在平铺布局中，<code>import my_tool</code> 会直接解析到本地目录，即使该包根本无法正确安装；而在 <code>src</code> 布局中， Python 根本找不到 <code>my_tool</code>，除非你先执行 <code>pip install -e .</code>。这是设计特性，而非缺陷。</p><h3 id=如何选择 class=heading-anchor>如何选择？<a href=#%e5%a6%82%e4%bd%95%e9%80%89%e6%8b%a9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><table><thead><tr><th>判定维度</th><th>平铺布局</th><th><code>src</code> 布局</th></tr></thead><tbody><tr><td>简洁性</td><td>更简洁</td><td>目录嵌套略深</td></tr><tr><td>测试准确性</td><td>可能掩盖打包缺陷</td><td>提前捕获缺陷</td></tr><tr><td>典型案例</td><td>Flask、 Requests、 FastAPI</td><td>pytest、 pip、 setuptools</td></tr><tr><td>PyPA 推荐程度</td><td>可接受</td><td><strong>推荐</strong></td></tr><tr><td>导入安全性</td><td>可能意外导入本地未安装版本</td><td>必须先安装才能导入</td></tr></tbody></table><p>✅ <strong>发布库（library）请使用 <code>src</code> 布局</strong><br>✅ <strong>部署环境可控的应用（application）可选用平铺布局</strong><br>❓ 不确定时，请优先选择 <code>src</code> 布局。</p><h2 id=__init__py包的标识符 class=heading-anchor><code>__init__.py</code>：包的标识符<a href=#__init__py%e5%8c%85%e7%9a%84%e6%a0%87%e8%af%86%e7%ac%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-package-import-resolution-detective-following-sys-pat.jpg alt="Python 包导入解析流程跟随 sys.path" loading=lazy decoding=async class=content-image></figure></p><p>当一个目录包含 <code>__init__.py</code> 文件时，它即成为一个 Python 包。该文件可以为空，也可包含初始化逻辑。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-init-purpose.png alt="init.py 模式" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2022-04-12>April 12, 2022</time> · 16 分钟 · 3833 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/packaging/ class=tag>#Packaging</a><a href=/zh/tags/cli/ class=tag>#CLI</a></div><a class="pill pill-outline" href=/en/python-engineering/02-project-structure/>Read in English →</a></div></header><div class=prose><p>每个项目都始于单个文件。你写下 <code>main.py</code>，它能运行；你添加功能，某天突然发现这个文件已膨胀至 1500 行——函数调用其他函数，而这些函数又依赖于 800 行之上定义的全局变量。代码虽然能运行，但没人（包括未来的你）能看懂。</p><p><strong>从脚本跃迁至包，是 Python 项目中第一个真正的工程决策</strong>：早期做对，后续测试、打包、部署等所有环节都将变得轻松；若做错，可能耗费数周解开循环导入（circular imports）的死结。</p><h2 id=单文件何时不再够用 class=heading-anchor>单文件何时不再够用？<a href=#%e5%8d%95%e6%96%87%e4%bb%b6%e4%bd%95%e6%97%b6%e4%b8%8d%e5%86%8d%e5%a4%9f%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>单文件脚本适用于以下场景：</p><ul><li>代码量少于 300 行</li><li>逻辑清晰、自上而下线性执行</li><li>仅你一人阅读和维护</li><li>是一次性脚本，而非长期维护的工具</li></ul><p>你需要转向包（package）结构的信号：</p><ul><li>多人协作开发</li><li>需要对独立组件进行单元测试</li><li>需在多个脚本间复用函数</li><li>代码存在明确的逻辑分层（如 config / data / logic / CLI）</li><li>计划分发该工具（例如支持 <code>pip install</code>）</li></ul><h2 id=平铺布局flat-layout-vs-src-布局 class=heading-anchor>平铺布局（Flat Layout） vs <code>src</code> 布局<a href=#%e5%b9%b3%e9%93%ba%e5%b8%83%e5%b1%80flat-layout-vs-src-%e5%b8%83%e5%b1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Python 生态中有两种主流的项目结构。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-flat-vs-src.png alt="平铺 vs 源代码布局" loading=lazy decoding=async class=content-image></figure></p><h3 id=平铺布局flat-layout class=heading-anchor>平铺布局（Flat Layout）<a href=#%e5%b9%b3%e9%93%ba%e5%b8%83%e5%b1%80flat-layout class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>my_tool/
+</span></span><span class=line><span class=cl>  my_tool/
+</span></span><span class=line><span class=cl>    __init__.py
+</span></span><span class=line><span class=cl>    core.py
+</span></span><span class=line><span class=cl>    cli.py
+</span></span><span class=line><span class=cl>    utils.py
+</span></span><span class=line><span class=cl>  tests/
+</span></span><span class=line><span class=cl>    test_core.py
+</span></span><span class=line><span class=cl>    test_cli.py
+</span></span><span class=line><span class=cl>  pyproject.toml
+</span></span><span class=line><span class=cl>  README.md
+</span></span></code></pre></td></tr></table></div></div><p>包目录直接位于项目根目录，结构更简单。Flask 和 Requests 等知名项目均采用这种方式。</p><h3 id=src-布局 class=heading-anchor><code>src</code> 布局<a href=#src-%e5%b8%83%e5%b1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>my_tool/
+</span></span><span class=line><span class=cl>  src/
+</span></span><span class=line><span class=cl>    my_tool/
+</span></span><span class=line><span class=cl>      __init__.py
+</span></span><span class=line><span class=cl>      core.py
+</span></span><span class=line><span class=cl>      cli.py
+</span></span><span class=line><span class=cl>      utils.py
+</span></span><span class=line><span class=cl>  tests/
+</span></span><span class=line><span class=cl>    test_core.py
+</span></span><span class=line><span class=cl>    test_cli.py
+</span></span><span class=line><span class=cl>  pyproject.toml
+</span></span><span class=line><span class=cl>  README.md
+</span></span></code></pre></td></tr></table></div></div><p>包目录置于 <code>src/</code> 子目录内。该布局被 Python 打包权威机构（PyPA）推荐，其关键优势在于：<strong>强制你在测试前先安装包</strong>。这能在发布前就暴露打包错误（如遗漏文件、导入失败）。</p><p>在平铺布局中，<code>import my_tool</code> 会直接解析到本地目录，即使该包根本无法正确安装；而在 <code>src</code> 布局中， Python 根本找不到 <code>my_tool</code>，除非你先执行 <code>pip install -e .</code>。这是设计特性，而非缺陷。</p><h3 id=如何选择 class=heading-anchor>如何选择？<a href=#%e5%a6%82%e4%bd%95%e9%80%89%e6%8b%a9 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><table><thead><tr><th>判定维度</th><th>平铺布局</th><th><code>src</code> 布局</th></tr></thead><tbody><tr><td>简洁性</td><td>更简洁</td><td>目录嵌套略深</td></tr><tr><td>测试准确性</td><td>可能掩盖打包缺陷</td><td>提前捕获缺陷</td></tr><tr><td>典型案例</td><td>Flask、 Requests、 FastAPI</td><td>pytest、 pip、 setuptools</td></tr><tr><td>PyPA 推荐程度</td><td>可接受</td><td><strong>推荐</strong></td></tr><tr><td>导入安全性</td><td>可能意外导入本地未安装版本</td><td>必须先安装才能导入</td></tr></tbody></table><p>✅ <strong>发布库（library）请使用 <code>src</code> 布局</strong><br>✅ <strong>部署环境可控的应用（application）可选用平铺布局</strong><br>❓ 不确定时，请优先选择 <code>src</code> 布局。</p><h2 id=__init__py包的标识符 class=heading-anchor><code>__init__.py</code>：包的标识符<a href=#__init__py%e5%8c%85%e7%9a%84%e6%a0%87%e8%af%86%e7%ac%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-package-import-resolution-detective-following-sys-pat.jpg alt="Python 包导入解析流程跟随 sys.path" loading=lazy decoding=async class=content-image></figure></p><p>当一个目录包含 <code>__init__.py</code> 文件时，它即成为一个 Python 包。该文件可以为空，也可包含初始化逻辑。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-init-purpose.png alt="init.py 模式" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -459,27 +482,47 @@
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ my-tool download https://example.com/data.csv
 </span></span><span class=line><span class=cl>$ my-tool convert data.csv json
 </span></span><span class=line><span class=cl>$ my-tool --help
-</span></span></code></pre></td></tr></table></div></div><h2 id=实战构建一个文件下载器 class=heading-anchor>实战：构建一个文件下载器<a href=#%e5%ae%9e%e6%88%98%e6%9e%84%e5%bb%ba%e4%b8%80%e4%b8%aa%e6%96%87%e4%bb%b6%e4%b8%8b%e8%bd%bd%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我们来搭建一个完整的下载器项目结构。</p><h3 id=项目布局 class=heading-anchor>项目布局<a href=#%e9%a1%b9%e7%9b%ae%e5%b8%83%e5%b1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><pre tabindex=0><code>my-downloader/
-  src/
-    my_downloader/
-      __init__.py         # 包版本号、公共 API
-      __main__.py          # 支持 python -m my_downloader
-      cli.py               # Click CLI 接口
-      core.py              # 下载核心逻辑
-      utils.py             # 工具函数
-      config.py            # 常量与默认值
-  tests/
-    __init__.py
-    conftest.py            # 共享 fixture
-    test_core.py
-    test_cli.py
-    test_utils.py
-  pyproject.toml
-  requirements.txt
-  .python-version
-  .gitignore
-  README.md
-</code></pre><h3 id=configpy--常量定义 class=heading-anchor><code>config.py</code> —— 常量定义<a href=#configpy--%e5%b8%b8%e9%87%8f%e5%ae%9a%e4%b9%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><h2 id=实战构建一个文件下载器 class=heading-anchor>实战：构建一个文件下载器<a href=#%e5%ae%9e%e6%88%98%e6%9e%84%e5%bb%ba%e4%b8%80%e4%b8%aa%e6%96%87%e4%bb%b6%e4%b8%8b%e8%bd%bd%e5%99%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>我们来搭建一个完整的下载器项目结构。</p><h3 id=项目布局 class=heading-anchor>项目布局<a href=#%e9%a1%b9%e7%9b%ae%e5%b8%83%e5%b1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>my-downloader/
+</span></span><span class=line><span class=cl>  src/
+</span></span><span class=line><span class=cl>    my_downloader/
+</span></span><span class=line><span class=cl>      __init__.py         # 包版本号、公共 API
+</span></span><span class=line><span class=cl>      __main__.py          # 支持 python -m my_downloader
+</span></span><span class=line><span class=cl>      cli.py               # Click CLI 接口
+</span></span><span class=line><span class=cl>      core.py              # 下载核心逻辑
+</span></span><span class=line><span class=cl>      utils.py             # 工具函数
+</span></span><span class=line><span class=cl>      config.py            # 常量与默认值
+</span></span><span class=line><span class=cl>  tests/
+</span></span><span class=line><span class=cl>    __init__.py
+</span></span><span class=line><span class=cl>    conftest.py            # 共享 fixture
+</span></span><span class=line><span class=cl>    test_core.py
+</span></span><span class=line><span class=cl>    test_cli.py
+</span></span><span class=line><span class=cl>    test_utils.py
+</span></span><span class=line><span class=cl>  pyproject.toml
+</span></span><span class=line><span class=cl>  requirements.txt
+</span></span><span class=line><span class=cl>  .python-version
+</span></span><span class=line><span class=cl>  .gitignore
+</span></span><span class=line><span class=cl>  README.md
+</span></span></code></pre></td></tr></table></div></div><h3 id=configpy--常量定义 class=heading-anchor><code>config.py</code> —— 常量定义<a href=#configpy--%e5%b8%b8%e9%87%8f%e5%ae%9a%e4%b9%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -719,5 +762,5 @@
 <span class=chapter-title>Python 工程实践（五）：I/O、序列化与数据格式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/06-concurrency/><span class=chapter-num>06</span>
 <span class=chapter-title>Python 工程实践（六）：并发编程 —— 线程、进程与 asyncio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
 <span class=chapter-title>Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
-<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3790</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3833</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

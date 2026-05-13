@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Databases</a>
 · Chapter 7</div><h1>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</h1><p class=deck>How distributed databases coordinate transactions across machines — two-phase commit, Raft consensus, the Saga pattern, and practical patterns like outbox and CDC.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-04-28>April 28, 2024</time> · 24 min read · 2410 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/databases/ class=tag>#Databases</a><a href=/en/tags/distributed-systems/ class=tag>#Distributed Systems</a><a href=/en/tags/consensus/ class=tag>#Consensus</a><a href=/en/tags/transactions/ class=tag>#Transactions</a></div><a class="pill pill-outline" href=/zh/databases/07-distributed-transactions/>阅读中文版 →</a></div></header><div class=prose><p>Everything we covered about transactions in Article 3 assumed a single database server: one machine, one transaction log, one lock manager. When your data spans multiple machines—through sharding, using microservices with separate databases, or replicating with strong consistency—you face the hardest problem in distributed systems: how do you get multiple machines to agree?</p><h2 id=the-distributed-transaction-problem class=heading-anchor>The Distributed Transaction Problem<a href=#the-distributed-transaction-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Consider an e-commerce system with separate services for orders and inventory, each with its own database:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2024-04-28>April 28, 2024</time> · 26 min read · 2558 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/databases/ class=tag>#Databases</a><a href=/en/tags/distributed-systems/ class=tag>#Distributed Systems</a><a href=/en/tags/consensus/ class=tag>#Consensus</a><a href=/en/tags/transactions/ class=tag>#Transactions</a></div><a class="pill pill-outline" href=/zh/databases/07-distributed-transactions/>阅读中文版 →</a></div></header><div class=prose><p>Everything we covered about transactions in Article 3 assumed a single database server: one machine, one transaction log, one lock manager. When your data spans multiple machines—through sharding, using microservices with separate databases, or replicating with strong consistency—you face the hardest problem in distributed systems: how do you get multiple machines to agree?</p><h2 id=the-distributed-transaction-problem class=heading-anchor>The Distributed Transaction Problem<a href=#the-distributed-transaction-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Consider an e-commerce system with separate services for orders and inventory, each with its own database:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -32,50 +32,93 @@
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>total</span><span class=p>)</span><span class=w>     </span><span class=err>│</span><span class=w>          </span><span class=err>│</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>stock</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=w>    </span><span class=err>│</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>99</span><span class=p>.</span><span class=mi>99</span><span class=p>)</span><span class=w>    </span><span class=err>│</span><span class=w>          </span><span class=err>│</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>product_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>42</span><span class=w>    </span><span class=err>│</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────────────────────┘</span><span class=w>          </span><span class=err>└─────────────────────────┘</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><p>If the order insert succeeds but the inventory update fails (because of a network issue, constraint violation, or crash), you have a problem: an order exists for a product that was never reserved. Without coordination, this leads to inconsistency.</p><p>On a single database, wrapping both in a <code>BEGIN ... COMMIT</code> solves this. Across two databases, that is not possible — they have separate transaction logs, separate crash recovery, separate clocks.</p><h2 id=two-phase-commit-2pc class=heading-anchor>Two-Phase Commit (2PC)<a href=#two-phase-commit-2pc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The textbook solution to distributed transactions. A coordinator node orchestrates the protocol with participating nodes.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-two-phase-commit.png alt="Two-phase commit protocol" loading=lazy decoding=async class=content-image></figure></p><h3 id=the-protocol class=heading-anchor>The Protocol<a href=#the-protocol class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><pre tabindex=0><code>Phase 1: PREPARE (Voting Phase)
-  Coordinator → Participant A: &#34;Can you commit transaction T?&#34;
-  Coordinator → Participant B: &#34;Can you commit transaction T?&#34;
-  Participant A → Coordinator: &#34;Yes, I&#39;m prepared&#34; (locks held, WAL flushed)
-  Participant B → Coordinator: &#34;Yes, I&#39;m prepared&#34;
-
-Phase 2: COMMIT (Decision Phase)
-  Coordinator → Participant A: &#34;COMMIT transaction T&#34;
-  Coordinator → Participant B: &#34;COMMIT transaction T&#34;
-  Participant A → Coordinator: &#34;Done&#34;
-  Participant B → Coordinator: &#34;Done&#34;
-</code></pre><p>If any participant votes &ldquo;No&rdquo; in Phase 1, the coordinator sends ROLLBACK to everyone.</p><pre tabindex=0><code>Coordinator                   Participant A      Participant B
-    │                              │                   │
-    ├──── PREPARE ────────────────►│                   │
-    ├──── PREPARE ───────────────────────────────────►│
-    │                              │                   │
-    │◄─── YES (prepared) ─────────┤                   │
-    │◄─── YES (prepared) ──────────────────────────────┤
-    │                              │                   │
-    │  (writes COMMIT to own log)  │                   │
-    │                              │                   │
-    ├──── COMMIT ─────────────────►│                   │
-    ├──── COMMIT ──────────────────────────────────►│
-    │                              │                   │
-    │◄─── ACK ────────────────────┤                   │
-    │◄─── ACK ─────────────────────────────────────────┤
-    │                              │                   │
-</code></pre><h3 id=the-coordinator-failure-problem class=heading-anchor>The Coordinator Failure Problem<a href=#the-coordinator-failure-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The critical weakness of 2PC is that if the coordinator crashes after sending PREPARE but before sending COMMIT/ROLLBACK, the participants are stuck. They have voted &ldquo;Yes&rdquo; and hold locks, but they don&rsquo;t know the final decision.</p><pre tabindex=0><code>Coordinator                   Participant A      Participant B
-    │                              │                   │
-    ├──── PREPARE ────────────────►│                   │
-    ├──── PREPARE ───────────────────────────────────►│
-    │                              │                   │
-    │◄─── YES ────────────────────┤                   │
-    │◄─── YES ─────────────────────────────────────────┤
-    │                              │                   │
-    ╳ CRASH                        │                   │
-                                   │                   │
-                               &#34;I voted YES          &#34;I voted YES
-                                but don&#39;t know        but don&#39;t know
-                                the decision.         the decision.
-                                Can&#39;t commit.         Can&#39;t commit.
-                                Can&#39;t rollback.       Can&#39;t rollback.
-                                Locks held...&#34;        Locks held...&#34;
-</code></pre><p>This is called the <strong>blocking problem</strong>. Participants must wait (potentially forever) until the coordinator recovers and reveals its decision. In practice, this means:</p><ul><li>Locks held indefinitely, blocking other transactions</li><li>Manual intervention may be required</li><li>The protocol is not fault-tolerant</li></ul><h3 id=2pc-in-practice class=heading-anchor>2PC in Practice<a href=#2pc-in-practice class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Despite its limitations, 2PC is still used in practice:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></span></code></pre></td></tr></table></div></div><p>If the order insert succeeds but the inventory update fails (because of a network issue, constraint violation, or crash), you have a problem: an order exists for a product that was never reserved. Without coordination, this leads to inconsistency.</p><p>On a single database, wrapping both in a <code>BEGIN ... COMMIT</code> solves this. Across two databases, that is not possible — they have separate transaction logs, separate crash recovery, separate clocks.</p><h2 id=two-phase-commit-2pc class=heading-anchor>Two-Phase Commit (2PC)<a href=#two-phase-commit-2pc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>The textbook solution to distributed transactions. A coordinator node orchestrates the protocol with participating nodes.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-two-phase-commit.png alt="Two-phase commit protocol" loading=lazy decoding=async class=content-image></figure></p><h3 id=the-protocol class=heading-anchor>The Protocol<a href=#the-protocol class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Phase 1: PREPARE (Voting Phase)
+</span></span><span class=line><span class=cl>  Coordinator → Participant A: &#34;Can you commit transaction T?&#34;
+</span></span><span class=line><span class=cl>  Coordinator → Participant B: &#34;Can you commit transaction T?&#34;
+</span></span><span class=line><span class=cl>  Participant A → Coordinator: &#34;Yes, I&#39;m prepared&#34; (locks held, WAL flushed)
+</span></span><span class=line><span class=cl>  Participant B → Coordinator: &#34;Yes, I&#39;m prepared&#34;
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Phase 2: COMMIT (Decision Phase)
+</span></span><span class=line><span class=cl>  Coordinator → Participant A: &#34;COMMIT transaction T&#34;
+</span></span><span class=line><span class=cl>  Coordinator → Participant B: &#34;COMMIT transaction T&#34;
+</span></span><span class=line><span class=cl>  Participant A → Coordinator: &#34;Done&#34;
+</span></span><span class=line><span class=cl>  Participant B → Coordinator: &#34;Done&#34;
+</span></span></code></pre></td></tr></table></div></div><p>If any participant votes &ldquo;No&rdquo; in Phase 1, the coordinator sends ROLLBACK to everyone.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Coordinator                   Participant A      Participant B
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ────────────────►│                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ───────────────────────────────────►│
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │◄─── YES (prepared) ─────────┤                   │
+</span></span><span class=line><span class=cl>    │◄─── YES (prepared) ──────────────────────────────┤
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │  (writes COMMIT to own log)  │                   │
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ├──── COMMIT ─────────────────►│                   │
+</span></span><span class=line><span class=cl>    ├──── COMMIT ──────────────────────────────────►│
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │◄─── ACK ────────────────────┤                   │
+</span></span><span class=line><span class=cl>    │◄─── ACK ─────────────────────────────────────────┤
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span></code></pre></td></tr></table></div></div><h3 id=the-coordinator-failure-problem class=heading-anchor>The Coordinator Failure Problem<a href=#the-coordinator-failure-problem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The critical weakness of 2PC is that if the coordinator crashes after sending PREPARE but before sending COMMIT/ROLLBACK, the participants are stuck. They have voted &ldquo;Yes&rdquo; and hold locks, but they don&rsquo;t know the final decision.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Coordinator                   Participant A      Participant B
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ────────────────►│                   │
+</span></span><span class=line><span class=cl>    ├──── PREPARE ───────────────────────────────────►│
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    │◄─── YES ────────────────────┤                   │
+</span></span><span class=line><span class=cl>    │◄─── YES ─────────────────────────────────────────┤
+</span></span><span class=line><span class=cl>    │                              │                   │
+</span></span><span class=line><span class=cl>    ╳ CRASH                        │                   │
+</span></span><span class=line><span class=cl>                                   │                   │
+</span></span><span class=line><span class=cl>                               &#34;I voted YES          &#34;I voted YES
+</span></span><span class=line><span class=cl>                                but don&#39;t know        but don&#39;t know
+</span></span><span class=line><span class=cl>                                the decision.         the decision.
+</span></span><span class=line><span class=cl>                                Can&#39;t commit.         Can&#39;t commit.
+</span></span><span class=line><span class=cl>                                Can&#39;t rollback.       Can&#39;t rollback.
+</span></span><span class=line><span class=cl>                                Locks held...&#34;        Locks held...&#34;
+</span></span></code></pre></td></tr></table></div></div><p>This is called the <strong>blocking problem</strong>. Participants must wait (potentially forever) until the coordinator recovers and reveals its decision. In practice, this means:</p><ul><li>Locks held indefinitely, blocking other transactions</li><li>Manual intervention may be required</li><li>The protocol is not fault-tolerant</li></ul><h3 id=2pc-in-practice class=heading-anchor>2PC in Practice<a href=#2pc-in-practice class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Despite its limitations, 2PC is still used in practice:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -133,93 +176,179 @@ Phase 2: COMMIT (Decision Phase)
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=n>conn2</span><span class=p>.</span><span class=na>prepareStatement</span><span class=p>(</span><span class=s>&#34;UPDATE inventory SET stock = stock - 1 ...&#34;</span><span class=p>).</span><span class=na>execute</span><span class=p>();</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ut</span><span class=p>.</span><span class=na>commit</span><span class=p>();</span><span class=w>  </span><span class=c1>// Transaction manager runs 2PC protocol</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><h2 id=three-phase-commit-3pc class=heading-anchor>Three-Phase Commit (3PC)<a href=#three-phase-commit-3pc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-distributed-consensus-protocol-servers-voting-in-a-digital-p.jpg alt="Distributed consensus protocol servers voting in a digital p" loading=lazy decoding=async class=content-image></figure></p><p>3PC adds a PRE-COMMIT phase between PREPARE and COMMIT, which allows participants to recover without the coordinator:</p><pre tabindex=0><code>Phase 1: CAN-COMMIT?  → participants check if they can commit
-Phase 2: PRE-COMMIT   → coordinator tells participants to prepare (but not commit yet)
-Phase 3: DO-COMMIT    → final commit
-
-If coordinator crashes after PRE-COMMIT:
-  Participants can time out and commit (they know everyone was ready)
-</code></pre><p>In theory, 3PC is non-blocking, but in practice, it is rarely used because:</p><ul><li>Network partitions can still cause inconsistency (a participant might not receive PRE-COMMIT)</li><li>The additional round trip adds latency</li><li>Raft/Paxos consensus protocols solve the problem more robustly</li></ul><h2 id=consensus-algorithms class=heading-anchor>Consensus Algorithms<a href=#consensus-algorithms class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Consensus is the problem of getting multiple nodes to agree on a value, even when some nodes fail. It is the foundation of strongly consistent distributed databases.</p><h3 id=paxos-conceptual class=heading-anchor>Paxos (Conceptual)<a href=#paxos-conceptual class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Paxos (invented by Leslie Lamport in 1989) was the first proven consensus algorithm. It uses three roles:</p><ul><li><strong>Proposers</strong>: Propose values</li><li><strong>Acceptors</strong>: Vote on proposals</li><li><strong>Learners</strong>: Learn the decided value</li></ul><p>A simplified view of Single-Decree Paxos:</p><pre tabindex=0><code>Phase 1: Prepare
-  Proposer → Acceptors: &#34;Prepare(proposal_number=5)&#34;
-  Acceptors → Proposer: &#34;Promise: I won&#39;t accept proposals &lt; 5&#34;
-                          + &#34;Last accepted: (proposal=3, value=&#39;X&#39;)&#34; if any
-
-Phase 2: Accept
-  Proposer → Acceptors: &#34;Accept(proposal=5, value=&#39;Y&#39;)&#34;
-  Acceptors → Proposer: &#34;Accepted&#34; (if no higher proposal seen)
-  
-When a majority of acceptors accept → value is decided
-</code></pre><p>Paxos is correct but notoriously difficult to implement. As Lamport noted, it took years for the community to understand his paper. This difficulty led to Raft.</p><h3 id=raft-understandable-consensus class=heading-anchor>Raft: Understandable Consensus<a href=#raft-understandable-consensus class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Raft (2014, by Diego Ongaro and John Ousterhout) was designed to be equivalent to Paxos but easier to understand. It decomposes consensus into three sub-problems:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-raft-election.png alt="Raft leader election" loading=lazy decoding=async class=content-image></figure></p><ol><li><strong>Leader election</strong></li><li><strong>Log replication</strong></li><li><strong>Safety</strong></li></ol><h4 id=leader-election class=heading-anchor>Leader Election<a href=#leader-election class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>Every node starts as a <strong>follower</strong>. If a follower does not hear from a leader within a random timeout (150-300 ms), it becomes a <strong>candidate</strong> and initiates an election.</p><pre tabindex=0><code>Node States:
-  Follower  → times out, no heartbeat  → Candidate
-  Candidate → receives majority votes  → Leader
-  Candidate → discovers higher-term leader → Follower
-  Leader    → discovers higher-term leader → Follower
-
-Election Process:
-  1. Candidate increments its term number
-  2. Votes for itself
-  3. Sends RequestVote RPCs to all other nodes
-  4. If majority responds with vote: becomes Leader
-  5. Starts sending periodic heartbeats to prevent new elections
-</code></pre><pre tabindex=0><code>Term 1: Node A is leader
-         Node A ──heartbeat──► Node B
-         Node A ──heartbeat──► Node C
-
-Term 2: Node A crashes. Node B times out.
-         Node B: &#34;I&#39;m a candidate for term 2. Vote for me.&#34;
-         Node C: &#34;OK, you have my vote for term 2.&#34;
-         Node B: Now leader. Starts sending heartbeats.
-</code></pre><h4 id=log-replication class=heading-anchor>Log Replication<a href=#log-replication class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>Once elected, the leader accepts client requests, appends them to its log, and then replicates the entries to followers:</p><pre tabindex=0><code>Leader Log:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]
-                    │                │               │
-                    ▼                ▼               ▼
-Follower B:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]  ✓ up to date
-Follower C:   [term1:SET x=1] [term1:SET y=2]                  ✗ catching up
-
-A log entry is &#34;committed&#34; when replicated to a majority of nodes.
-The leader then applies the entry to its state machine and responds to the client.
-</code></pre><pre tabindex=0><code>Client ─── &#34;SET x=3&#34; ──► Leader
-                          │
-                 1. Append to log
-                 2. Send AppendEntries RPC to followers
-                          │
-                    ┌──────┼──────┐
-                    ▼      ▼      ▼
-                 Foll.B  Foll.C  Foll.D
-                    │      │      │
-                    └──────┼──────┘
-                 3. Wait for majority acknowledgment
-                          │
-                 4. Commit entry
-                 5. Apply to state machine
-                 6. Respond to client: &#34;OK&#34;
-</code></pre><h4 id=where-raft-is-used class=heading-anchor>Where Raft Is Used<a href=#where-raft-is-used class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><table><thead><tr><th>System</th><th>Use of Raft</th></tr></thead><tbody><tr><td>etcd</td><td>Key-value store (Kubernetes backing store)</td></tr><tr><td>CockroachDB</td><td>Each range (partition) uses a separate Raft group</td></tr><tr><td>TiKV</td><td>Storage layer for TiDB</td></tr><tr><td>Consul</td><td>Service discovery and configuration</td></tr><tr><td>RethinkDB</td><td>Cluster coordination</td></tr></tbody></table><h2 id=saga-pattern class=heading-anchor>Saga Pattern<a href=#saga-pattern class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When 2PC is too expensive or impractical (often the case in microservices), the Saga pattern provides an alternative. Instead of one large distributed transaction, it breaks the process into a sequence of local transactions, each with a <strong>compensating transaction</strong> that undoes its work if a later step fails.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-saga-pattern.png alt="Saga pattern" loading=lazy decoding=async class=content-image></figure></p><h3 id=choreography-vs-orchestration class=heading-anchor>Choreography vs Orchestration<a href=#choreography-vs-orchestration class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>Choreography</strong>: Each service publishes events. The next service listens and acts.</p><pre tabindex=0><code>Order Service              Inventory Service          Payment Service
-     │                          │                          │
-     │ OrderCreated event ──────►                          │
-     │                          │                          │
-     │                    InventoryReserved event ─────────►
-     │                          │                          │
-     │                          │              PaymentProcessed event
-     │◄─────────────────────────────────────────────────────┤
-     │                          │                          │
-     │ OrderConfirmed           │                          │
-</code></pre><p><strong>Orchestration</strong>: A central orchestrator tells each service what to do.</p><pre tabindex=0><code>Saga Orchestrator
-     │
-     ├──── &#34;Create order&#34; ──────► Order Service
-     │◄─── &#34;Order created&#34; ──────┤
-     │
-     ├──── &#34;Reserve inventory&#34; ──► Inventory Service
-     │◄─── &#34;Inventory reserved&#34; ──┤
-     │
-     ├──── &#34;Process payment&#34; ────► Payment Service
-     │◄─── &#34;Payment failed!&#34; ─────┤
-     │
-     │  COMPENSATION:
-     ├──── &#34;Release inventory&#34; ──► Inventory Service
-     │◄─── &#34;Inventory released&#34; ──┤
-     │
-     ├──── &#34;Cancel order&#34; ──────► Order Service
-     │◄─── &#34;Order cancelled&#34; ─────┤
-</code></pre><h3 id=compensating-transactions class=heading-anchor>Compensating Transactions<a href=#compensating-transactions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Each forward action requires a compensating action:</p><table><thead><tr><th>Step</th><th>Forward Action</th><th>Compensating Action</th></tr></thead><tbody><tr><td>1</td><td>Create order (status: pending)</td><td>Cancel order (status: cancelled)</td></tr><tr><td>2</td><td>Reserve inventory (stock - 1)</td><td>Release inventory (stock + 1)</td></tr><tr><td>3</td><td>Charge payment</td><td>Refund payment</td></tr><tr><td>4</td><td>Ship order</td><td>Cancel shipment</td></tr></tbody></table><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=three-phase-commit-3pc class=heading-anchor>Three-Phase Commit (3PC)<a href=#three-phase-commit-3pc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-distributed-consensus-protocol-servers-voting-in-a-digital-p.jpg alt="Distributed consensus protocol servers voting in a digital p" loading=lazy decoding=async class=content-image></figure></p><p>3PC adds a PRE-COMMIT phase between PREPARE and COMMIT, which allows participants to recover without the coordinator:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Phase 1: CAN-COMMIT?  → participants check if they can commit
+</span></span><span class=line><span class=cl>Phase 2: PRE-COMMIT   → coordinator tells participants to prepare (but not commit yet)
+</span></span><span class=line><span class=cl>Phase 3: DO-COMMIT    → final commit
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If coordinator crashes after PRE-COMMIT:
+</span></span><span class=line><span class=cl>  Participants can time out and commit (they know everyone was ready)
+</span></span></code></pre></td></tr></table></div></div><p>In theory, 3PC is non-blocking, but in practice, it is rarely used because:</p><ul><li>Network partitions can still cause inconsistency (a participant might not receive PRE-COMMIT)</li><li>The additional round trip adds latency</li><li>Raft/Paxos consensus protocols solve the problem more robustly</li></ul><h2 id=consensus-algorithms class=heading-anchor>Consensus Algorithms<a href=#consensus-algorithms class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Consensus is the problem of getting multiple nodes to agree on a value, even when some nodes fail. It is the foundation of strongly consistent distributed databases.</p><h3 id=paxos-conceptual class=heading-anchor>Paxos (Conceptual)<a href=#paxos-conceptual class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Paxos (invented by Leslie Lamport in 1989) was the first proven consensus algorithm. It uses three roles:</p><ul><li><strong>Proposers</strong>: Propose values</li><li><strong>Acceptors</strong>: Vote on proposals</li><li><strong>Learners</strong>: Learn the decided value</li></ul><p>A simplified view of Single-Decree Paxos:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Phase 1: Prepare
+</span></span><span class=line><span class=cl>  Proposer → Acceptors: &#34;Prepare(proposal_number=5)&#34;
+</span></span><span class=line><span class=cl>  Acceptors → Proposer: &#34;Promise: I won&#39;t accept proposals &lt; 5&#34;
+</span></span><span class=line><span class=cl>                          + &#34;Last accepted: (proposal=3, value=&#39;X&#39;)&#34; if any
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Phase 2: Accept
+</span></span><span class=line><span class=cl>  Proposer → Acceptors: &#34;Accept(proposal=5, value=&#39;Y&#39;)&#34;
+</span></span><span class=line><span class=cl>  Acceptors → Proposer: &#34;Accepted&#34; (if no higher proposal seen)
+</span></span><span class=line><span class=cl>  
+</span></span><span class=line><span class=cl>When a majority of acceptors accept → value is decided
+</span></span></code></pre></td></tr></table></div></div><p>Paxos is correct but notoriously difficult to implement. As Lamport noted, it took years for the community to understand his paper. This difficulty led to Raft.</p><h3 id=raft-understandable-consensus class=heading-anchor>Raft: Understandable Consensus<a href=#raft-understandable-consensus class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Raft (2014, by Diego Ongaro and John Ousterhout) was designed to be equivalent to Paxos but easier to understand. It decomposes consensus into three sub-problems:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-raft-election.png alt="Raft leader election" loading=lazy decoding=async class=content-image></figure></p><ol><li><strong>Leader election</strong></li><li><strong>Log replication</strong></li><li><strong>Safety</strong></li></ol><h4 id=leader-election class=heading-anchor>Leader Election<a href=#leader-election class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>Every node starts as a <strong>follower</strong>. If a follower does not hear from a leader within a random timeout (150-300 ms), it becomes a <strong>candidate</strong> and initiates an election.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Node States:
+</span></span><span class=line><span class=cl>  Follower  → times out, no heartbeat  → Candidate
+</span></span><span class=line><span class=cl>  Candidate → receives majority votes  → Leader
+</span></span><span class=line><span class=cl>  Candidate → discovers higher-term leader → Follower
+</span></span><span class=line><span class=cl>  Leader    → discovers higher-term leader → Follower
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Election Process:
+</span></span><span class=line><span class=cl>  1. Candidate increments its term number
+</span></span><span class=line><span class=cl>  2. Votes for itself
+</span></span><span class=line><span class=cl>  3. Sends RequestVote RPCs to all other nodes
+</span></span><span class=line><span class=cl>  4. If majority responds with vote: becomes Leader
+</span></span><span class=line><span class=cl>  5. Starts sending periodic heartbeats to prevent new elections
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Term 1: Node A is leader
+</span></span><span class=line><span class=cl>         Node A ──heartbeat──► Node B
+</span></span><span class=line><span class=cl>         Node A ──heartbeat──► Node C
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Term 2: Node A crashes. Node B times out.
+</span></span><span class=line><span class=cl>         Node B: &#34;I&#39;m a candidate for term 2. Vote for me.&#34;
+</span></span><span class=line><span class=cl>         Node C: &#34;OK, you have my vote for term 2.&#34;
+</span></span><span class=line><span class=cl>         Node B: Now leader. Starts sending heartbeats.
+</span></span></code></pre></td></tr></table></div></div><h4 id=log-replication class=heading-anchor>Log Replication<a href=#log-replication class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><p>Once elected, the leader accepts client requests, appends them to its log, and then replicates the entries to followers:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Leader Log:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]
+</span></span><span class=line><span class=cl>                    │                │               │
+</span></span><span class=line><span class=cl>                    ▼                ▼               ▼
+</span></span><span class=line><span class=cl>Follower B:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]  ✓ up to date
+</span></span><span class=line><span class=cl>Follower C:   [term1:SET x=1] [term1:SET y=2]                  ✗ catching up
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>A log entry is &#34;committed&#34; when replicated to a majority of nodes.
+</span></span><span class=line><span class=cl>The leader then applies the entry to its state machine and responds to the client.
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Client ─── &#34;SET x=3&#34; ──► Leader
+</span></span><span class=line><span class=cl>                          │
+</span></span><span class=line><span class=cl>                 1. Append to log
+</span></span><span class=line><span class=cl>                 2. Send AppendEntries RPC to followers
+</span></span><span class=line><span class=cl>                          │
+</span></span><span class=line><span class=cl>                    ┌──────┼──────┐
+</span></span><span class=line><span class=cl>                    ▼      ▼      ▼
+</span></span><span class=line><span class=cl>                 Foll.B  Foll.C  Foll.D
+</span></span><span class=line><span class=cl>                    │      │      │
+</span></span><span class=line><span class=cl>                    └──────┼──────┘
+</span></span><span class=line><span class=cl>                 3. Wait for majority acknowledgment
+</span></span><span class=line><span class=cl>                          │
+</span></span><span class=line><span class=cl>                 4. Commit entry
+</span></span><span class=line><span class=cl>                 5. Apply to state machine
+</span></span><span class=line><span class=cl>                 6. Respond to client: &#34;OK&#34;
+</span></span></code></pre></td></tr></table></div></div><h4 id=where-raft-is-used class=heading-anchor>Where Raft Is Used<a href=#where-raft-is-used class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h4><table><thead><tr><th>System</th><th>Use of Raft</th></tr></thead><tbody><tr><td>etcd</td><td>Key-value store (Kubernetes backing store)</td></tr><tr><td>CockroachDB</td><td>Each range (partition) uses a separate Raft group</td></tr><tr><td>TiKV</td><td>Storage layer for TiDB</td></tr><tr><td>Consul</td><td>Service discovery and configuration</td></tr><tr><td>RethinkDB</td><td>Cluster coordination</td></tr></tbody></table><h2 id=saga-pattern class=heading-anchor>Saga Pattern<a href=#saga-pattern class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When 2PC is too expensive or impractical (often the case in microservices), the Saga pattern provides an alternative. Instead of one large distributed transaction, it breaks the process into a sequence of local transactions, each with a <strong>compensating transaction</strong> that undoes its work if a later step fails.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-saga-pattern.png alt="Saga pattern" loading=lazy decoding=async class=content-image></figure></p><h3 id=choreography-vs-orchestration class=heading-anchor>Choreography vs Orchestration<a href=#choreography-vs-orchestration class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>Choreography</strong>: Each service publishes events. The next service listens and acts.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Order Service              Inventory Service          Payment Service
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │ OrderCreated event ──────►                          │
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │                    InventoryReserved event ─────────►
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │                          │              PaymentProcessed event
+</span></span><span class=line><span class=cl>     │◄─────────────────────────────────────────────────────┤
+</span></span><span class=line><span class=cl>     │                          │                          │
+</span></span><span class=line><span class=cl>     │ OrderConfirmed           │                          │
+</span></span></code></pre></td></tr></table></div></div><p><strong>Orchestration</strong>: A central orchestrator tells each service what to do.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Saga Orchestrator
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Create order&#34; ──────► Order Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Order created&#34; ──────┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Reserve inventory&#34; ──► Inventory Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Inventory reserved&#34; ──┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Process payment&#34; ────► Payment Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Payment failed!&#34; ─────┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     │  COMPENSATION:
+</span></span><span class=line><span class=cl>     ├──── &#34;Release inventory&#34; ──► Inventory Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Inventory released&#34; ──┤
+</span></span><span class=line><span class=cl>     │
+</span></span><span class=line><span class=cl>     ├──── &#34;Cancel order&#34; ──────► Order Service
+</span></span><span class=line><span class=cl>     │◄─── &#34;Order cancelled&#34; ─────┤
+</span></span></code></pre></td></tr></table></div></div><h3 id=compensating-transactions class=heading-anchor>Compensating Transactions<a href=#compensating-transactions class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Each forward action requires a compensating action:</p><table><thead><tr><th>Step</th><th>Forward Action</th><th>Compensating Action</th></tr></thead><tbody><tr><td>1</td><td>Create order (status: pending)</td><td>Cancel order (status: cancelled)</td></tr><tr><td>2</td><td>Reserve inventory (stock - 1)</td><td>Release inventory (stock + 1)</td></tr><tr><td>3</td><td>Charge payment</td><td>Refund payment</td></tr><tr><td>4</td><td>Ship order</td><td>Cancel shipment</td></tr></tbody></table><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -275,22 +404,37 @@ The leader then applies the entry to its state machine and responds to the clien
 </span></span><span class=line><span class=cl>                <span class=k>for</span> <span class=n>completed_step</span> <span class=ow>in</span> <span class=nb>reversed</span><span class=p>(</span><span class=n>completed</span><span class=p>):</span>
 </span></span><span class=line><span class=cl>                    <span class=n>completed_step</span><span class=o>.</span><span class=n>compensation</span><span class=p>(</span><span class=n>context</span><span class=p>)</span>
 </span></span><span class=line><span class=cl>                <span class=k>raise</span> <span class=n>SagaFailedError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Step failed: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><h2 id=linearizability-vs-serializability class=heading-anchor>Linearizability vs Serializability<a href=#linearizability-vs-serializability class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>These two terms are frequently confused but describe different things:</p><p><strong>Serializability</strong> (from transactions): The result of executing concurrent transactions is equivalent to <em>some</em> serial execution of those transactions. This is about transactions and databases.</p><p><strong>Linearizability</strong> (from distributed systems): Every operation appears to take effect instantaneously at some point between its invocation and completion. Once a write is acknowledged, all subsequent reads see it. This is about individual operations and real-time ordering.</p><pre tabindex=0><code>Linearizable system (register with value initially 0):
-
-Client A: write(1)  ─────────────────► OK
-                                        │ (from this point, all reads must return 1)
-Client B:              read() ──────────► 1  ✓
-Client C:                     read() ──► 1   ✓
-
-Non-linearizable:
-Client A: write(1)  ─────────────────► OK
-Client B:              read() ──────────► 0  ✗ (stale!)
-Client C:                     read() ──► 1   ✓
-</code></pre><table><thead><tr><th>Property</th><th>Serializability</th><th>Linearizability</th></tr></thead><tbody><tr><td>Scope</td><td>Multi-operation transactions</td><td>Single operations</td></tr><tr><td>Ordering</td><td>Some serial order (any order is fine)</td><td>Real-time order</td></tr><tr><td>Where it matters</td><td>Databases</td><td>Distributed key-value stores, locks</td></tr><tr><td>Example systems</td><td>Any SERIALIZABLE database</td><td>ZooKeeper, etcd, Spanner</td></tr></tbody></table><p><strong>Strict serializability</strong> = serializability + linearizability. This is the strongest guarantee and what Google Spanner provides.</p><h2 id=eventual-consistency class=heading-anchor>Eventual Consistency<a href=#eventual-consistency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-saga-pattern-as-a-chain-of-compensating-transactions-domino-.jpg alt="Saga pattern as a chain of compensating transactions domino" loading=lazy decoding=async class=content-image></figure></p><p>At the opposite end of the spectrum from linearizability is eventual consistency: if no new writes are madede, all replicas will <em>eventually</em> converge to the same value.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-consistency-spectrum.png alt="Consistency spectrum" loading=lazy decoding=async class=content-image></figure></p><p>&ldquo;Eventually&rdquo; is vague — it could be milliseconds or minutes. In practice:</p><pre tabindex=0><code>Write &#34;x = 5&#34; to Node A
-  t=0ms:  Node A: x=5,  Node B: x=3,  Node C: x=3
-  t=50ms: Node A: x=5,  Node B: x=5,  Node C: x=3
-  t=100ms: Node A: x=5, Node B: x=5,  Node C: x=5  ← converged
-</code></pre><p>Eventual consistency is the default in:</p><ul><li>DynamoDB (unless you request strongly consistent reads)</li><li>Cassandra (with consistency level ONE)</li><li>DNS</li><li>CDN caches</li></ul><p>It is acceptable when:</p><ul><li>Stale data is tolerable (social media feeds, product recommendations)</li><li>The system can detect and resolve conflicts (shopping carts, CRDTs)</li><li>Performance is more important than consistency (analytics, logging)</li></ul><h2 id=real-world-patterns class=heading-anchor>Real-World Patterns<a href=#real-world-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=the-outbox-pattern class=heading-anchor>The Outbox Pattern<a href=#the-outbox-pattern class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>How do you atomically update a database AND publish a message to a message broker? You cannot use a distributed transaction between your database and Kafka.</p><p>The outbox pattern: write the message to an &ldquo;outbox&rdquo; table in the same database transaction. A separate process reads the outbox and publishes to the message broker.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h2 id=linearizability-vs-serializability class=heading-anchor>Linearizability vs Serializability<a href=#linearizability-vs-serializability class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>These two terms are frequently confused but describe different things:</p><p><strong>Serializability</strong> (from transactions): The result of executing concurrent transactions is equivalent to <em>some</em> serial execution of those transactions. This is about transactions and databases.</p><p><strong>Linearizability</strong> (from distributed systems): Every operation appears to take effect instantaneously at some point between its invocation and completion. Once a write is acknowledged, all subsequent reads see it. This is about individual operations and real-time ordering.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Linearizable system (register with value initially 0):
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Client A: write(1)  ─────────────────► OK
+</span></span><span class=line><span class=cl>                                        │ (from this point, all reads must return 1)
+</span></span><span class=line><span class=cl>Client B:              read() ──────────► 1  ✓
+</span></span><span class=line><span class=cl>Client C:                     read() ──► 1   ✓
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Non-linearizable:
+</span></span><span class=line><span class=cl>Client A: write(1)  ─────────────────► OK
+</span></span><span class=line><span class=cl>Client B:              read() ──────────► 0  ✗ (stale!)
+</span></span><span class=line><span class=cl>Client C:                     read() ──► 1   ✓
+</span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>Property</th><th>Serializability</th><th>Linearizability</th></tr></thead><tbody><tr><td>Scope</td><td>Multi-operation transactions</td><td>Single operations</td></tr><tr><td>Ordering</td><td>Some serial order (any order is fine)</td><td>Real-time order</td></tr><tr><td>Where it matters</td><td>Databases</td><td>Distributed key-value stores, locks</td></tr><tr><td>Example systems</td><td>Any SERIALIZABLE database</td><td>ZooKeeper, etcd, Spanner</td></tr></tbody></table><p><strong>Strict serializability</strong> = serializability + linearizability. This is the strongest guarantee and what Google Spanner provides.</p><h2 id=eventual-consistency class=heading-anchor>Eventual Consistency<a href=#eventual-consistency class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/07-saga-pattern-as-a-chain-of-compensating-transactions-domino-.jpg alt="Saga pattern as a chain of compensating transactions domino" loading=lazy decoding=async class=content-image></figure></p><p>At the opposite end of the spectrum from linearizability is eventual consistency: if no new writes are madede, all replicas will <em>eventually</em> converge to the same value.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-consistency-spectrum.png alt="Consistency spectrum" loading=lazy decoding=async class=content-image></figure></p><p>&ldquo;Eventually&rdquo; is vague — it could be milliseconds or minutes. In practice:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Write &#34;x = 5&#34; to Node A
+</span></span><span class=line><span class=cl>  t=0ms:  Node A: x=5,  Node B: x=3,  Node C: x=3
+</span></span><span class=line><span class=cl>  t=50ms: Node A: x=5,  Node B: x=5,  Node C: x=3
+</span></span><span class=line><span class=cl>  t=100ms: Node A: x=5, Node B: x=5,  Node C: x=5  ← converged
+</span></span></code></pre></td></tr></table></div></div><p>Eventual consistency is the default in:</p><ul><li>DynamoDB (unless you request strongly consistent reads)</li><li>Cassandra (with consistency level ONE)</li><li>DNS</li><li>CDN caches</li></ul><p>It is acceptable when:</p><ul><li>Stale data is tolerable (social media feeds, product recommendations)</li><li>The system can detect and resolve conflicts (shopping carts, CRDTs)</li><li>Performance is more important than consistency (analytics, logging)</li></ul><h2 id=real-world-patterns class=heading-anchor>Real-World Patterns<a href=#real-world-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=the-outbox-pattern class=heading-anchor>The Outbox Pattern<a href=#the-outbox-pattern class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>How do you atomically update a database AND publish a message to a message broker? You cannot use a distributed transaction between your database and Kafka.</p><p>The outbox pattern: write the message to an &ldquo;outbox&rdquo; table in the same database transaction. A separate process reads the outbox and publishes to the message broker.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -374,11 +518,15 @@ Client C:                     read() ──► 1   ✓
 </span></span><span class=line><span class=cl>            <span class=s2>&#34;UPDATE outbox SET published_at = NOW() WHERE id = </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span>
 </span></span><span class=line><span class=cl>            <span class=n>row</span><span class=o>.</span><span class=n>id</span>
 </span></span><span class=line><span class=cl>        <span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=change-data-capture-cdc class=heading-anchor>Change Data Capture (CDC)<a href=#change-data-capture-cdc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Instead of writing to an outbox table, capture changes directly from the database&rsquo;s transaction log:</p><pre tabindex=0><code>Database WAL/Binlog ──► CDC Tool (Debezium) ──► Kafka ──► Consumers
-
-PostgreSQL WAL → Debezium → Kafka topic &#34;db.public.orders&#34;
-MySQL Binlog   → Debezium → Kafka topic &#34;db.inventory.products&#34;
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=change-data-capture-cdc class=heading-anchor>Change Data Capture (CDC)<a href=#change-data-capture-cdc class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Instead of writing to an outbox table, capture changes directly from the database&rsquo;s transaction log:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Database WAL/Binlog ──► CDC Tool (Debezium) ──► Kafka ──► Consumers
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>PostgreSQL WAL → Debezium → Kafka topic &#34;db.public.orders&#34;
+</span></span><span class=line><span class=cl>MySQL Binlog   → Debezium → Kafka topic &#34;db.inventory.products&#34;
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -452,5 +600,5 @@ MySQL Binlog   → Debezium → Kafka topic &#34;db.inventory.products&#34;
 <span class=chapter-title>Databases (5): NoSQL — Document, Key-Value, Column, and Graph</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/06-replication-and-partitioning/><span class=chapter-num>06</span>
 <span class=chapter-title>Databases (6): Replication and Partitioning — Scaling Beyond One Machine</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>Databases (7): Distributed Transactions — 2PC, Saga, and Why Consensus Is Hard</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/databases/08-database-in-practice/><span class=chapter-num>08</span>
-<span class=chapter-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>24 min</strong></div><div class=row><span>Word count</span><strong>2410</strong></div><div class=row><span>Published</span><strong>Apr 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Databases (8): Databases in Practice — Migration, Monitoring, and War Stories</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>26 min</strong></div><div class=row><span>Word count</span><strong>2558</strong></div><div class=row><span>Published</span><strong>Apr 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Claude Code Hands-On</a>
 · Chapter 6</div><h1>Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI</h1><p class=deck>The SDK turns Claude Code from a CLI into a library. GitHub Action makes it answer @claude on PRs. Together they let you put Claude inside the same CI pipeline that already runs your tests — without giving up control.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-23>April 23, 2026</time> · 40 min read · 4226 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/sdk/ class=tag>#sdk</a><a href=/en/tags/github-actions/ class=tag>#github-actions</a><a href=/en/tags/automation/ class=tag>#automation</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/06-sdk-and-github/>阅读中文版 →</a></div></header><div class=prose><p>The CLI is the obvious surface. The SDK is the interesting one. The GitHub integration is where it pays off.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png alt="Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=the-sdk-in-one-paragraph class=heading-anchor>The SDK in one paragraph<a href=#the-sdk-in-one-paragraph class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><code>@anthropic-ai/claude-code</code> is the npm package. It exposes the same Claude Code engine the CLI uses, with the same tools and permissions, as a programmatic interface. You give it a prompt; you get an async iterable of conversation events. Plug it into anything — a script, a service, a CI step.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig3_sdk_arch.png alt="SDK and CLI share the same agent engine, tools, and permissions" loading=lazy decoding=async class=content-image></figure><em>Figure: SDK and CLI share the same agent engine, tools, and permissions</em></p><h2 id=sdk-installation-and-setup class=heading-anchor>SDK installation and setup<a href=#sdk-installation-and-setup class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=prerequisites class=heading-anchor>Prerequisites<a href=#prerequisites class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>You need Node.js 18+ and an Anthropic API key. The SDK runs the same agent loop as the CLI, so it needs the same credentials.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2026-04-23>April 23, 2026</time> · 42 min read · 4266 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/claude-code/ class=tag>#claude-code</a><a href=/en/tags/sdk/ class=tag>#sdk</a><a href=/en/tags/github-actions/ class=tag>#github-actions</a><a href=/en/tags/automation/ class=tag>#automation</a></div><a class="pill pill-outline" href=/zh/claude-code-learn/06-sdk-and-github/>阅读中文版 →</a></div></header><div class=prose><p>The CLI is the obvious surface. The SDK is the interesting one. The GitHub integration is where it pays off.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png alt="Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=the-sdk-in-one-paragraph class=heading-anchor>The SDK in one paragraph<a href=#the-sdk-in-one-paragraph class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><code>@anthropic-ai/claude-code</code> is the npm package. It exposes the same Claude Code engine the CLI uses, with the same tools and permissions, as a programmatic interface. You give it a prompt; you get an async iterable of conversation events. Plug it into anything — a script, a service, a CI step.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig3_sdk_arch.png alt="SDK and CLI share the same agent engine, tools, and permissions" loading=lazy decoding=async class=content-image></figure><em>Figure: SDK and CLI share the same agent engine, tools, and permissions</em></p><h2 id=sdk-installation-and-setup class=heading-anchor>SDK installation and setup<a href=#sdk-installation-and-setup class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=prerequisites class=heading-anchor>Prerequisites<a href=#prerequisites class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>You need Node.js 18+ and an Anthropic API key. The SDK runs the same agent loop as the CLI, so it needs the same credentials.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -864,47 +864,87 @@
 </span></span></span><span class=line><span class=cl><span class=sd>            Leave your review as a PR review with specific file/line comments.</span><span class=w>            
 </span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>max-turns</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>
 </span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>timeout-minutes</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><h3 id=action-parameters-reference class=heading-anchor>Action parameters reference<a href=#action-parameters-reference class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>anthropic-api-key</code></td><td>Required</td><td>Your Anthropic API key</td></tr><tr><td><code>prompt</code></td><td>From comment</td><td>Override the prompt (for automated triggers)</td></tr><tr><td><code>max-turns</code></td><td><code>30</code></td><td>Maximum agent turns before stopping</td></tr><tr><td><code>timeout-minutes</code></td><td><code>30</code></td><td>Maximum execution time</td></tr><tr><td><code>model</code></td><td>Default</td><td>Specific model to use</td></tr><tr><td><code>allowed-tools</code></td><td>All</td><td>Restrict which tools Claude can use</td></tr></tbody></table><h3 id=secrets-management class=heading-anchor>Secrets management<a href=#secrets-management class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Store your API key as a GitHub repository secret:</p><ol><li>Go to Settings > Secrets and variables > Actions</li><li>Click &ldquo;New repository secret&rdquo;</li><li>Name: <code>ANTHROPIC_API_KEY</code>, Value: your key</li><li>The workflow references it as <code>${{ secrets.ANTHROPIC_API_KEY }}</code></li></ol><p>Never hardcode API keys in workflow files. They&rsquo;re visible in the repository.</p><p>The Action respects <code>.claude/settings.json</code> from the repo. The hooks you wrote in piece 5 still apply. The slash commands you wrote in piece 3 still work — <code>@claude /review</code> does what you&rsquo;d expect.</p><h2 id=pr-review-workflow--detailed-walkthrough class=heading-anchor>PR review workflow — detailed walkthrough<a href=#pr-review-workflow--detailed-walkthrough class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Let me walk through a complete PR review workflow from start to finish.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig7_pr_sequence.png alt="Sequence of a PR review loop: developer, GitHub, and Claude Action" loading=lazy decoding=async class=content-image></figure><em>Figure: Sequence of a PR review loop: developer, GitHub, and Claude Action</em></p><h3 id=setup-once class=heading-anchor>Setup once<a href=#setup-once class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ol><li>Add the workflow YAML file (above) to <code>.github/workflows/</code></li><li>Add the <code>ANTHROPIC_API_KEY</code> secret</li><li>Commit and push</li></ol><h3 id=the-daily-workflow class=heading-anchor>The daily workflow<a href=#the-daily-workflow class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A developer opens a PR. The auto-review job triggers:</p><pre tabindex=0><code>Claude Code reviews PR #42: &#34;Add user authentication middleware&#34;
-
----
-
-## Review Summary
-
-### Critical Issues
-
-**1. Missing rate limiting (src/middleware/auth.ts:45)**
-The authentication middleware doesn&#39;t rate-limit failed attempts.
-An attacker could brute-force tokens. Consider adding:
-
-    import rateLimit from &#39;express-rate-limit&#39;;
-    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
-
-**2. Token stored in localStorage (src/utils/auth.ts:12)**
-localStorage is vulnerable to XSS. Consider httpOnly cookies instead.
-
-### Suggestions
-
-- Add tests for the token refresh flow (currently untested)
-- The `validateToken` function swallows errors silently — log them
-- Consider extracting the JWT config to environment variables
-
-### What looks good
-- Clean separation of auth middleware from business logic
-- Good use of TypeScript generics in the token types
-- Test coverage for the happy path is solid
-</code></pre><p>The reviewer reads Claude&rsquo;s analysis, addresses the critical issues, and replies:</p><pre tabindex=0><code>@claude good catches. Please fix the rate limiting issue — add express-rate-limit
-to the auth middleware with a 100 requests per 15 minute window. Also add a test
-for it.
-</code></pre><p>Claude reads the comment, checks out the branch, makes the changes, runs tests, and pushes a commit:</p><pre tabindex=0><code>I&#39;ve made the following changes:
-
-1. Added `express-rate-limit` dependency
-2. Applied rate limiting to the auth middleware (100 req / 15 min window)
-3. Added test in `tests/middleware/auth.test.ts` for rate limiting behavior
-
-Commit: abc1234 &#34;Add rate limiting to auth middleware&#34;
-
-All tests pass (47 passed, 0 failed).
-</code></pre><p>This loop — review, request changes, Claude implements — can repeat as many times as needed. The PR conversation becomes the interface.</p><h2 id=ci-integration-patterns class=heading-anchor>CI integration patterns<a href=#ci-integration-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Beyond the GitHub Action, there are patterns for integrating Claude into your existing CI.</p><h3 id=pattern-1-pre-merge-checks class=heading-anchor>Pattern 1: Pre-merge checks<a href=#pattern-1-pre-merge-checks class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Run Claude as a check before merging:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=action-parameters-reference class=heading-anchor>Action parameters reference<a href=#action-parameters-reference class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><table><thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>anthropic-api-key</code></td><td>Required</td><td>Your Anthropic API key</td></tr><tr><td><code>prompt</code></td><td>From comment</td><td>Override the prompt (for automated triggers)</td></tr><tr><td><code>max-turns</code></td><td><code>30</code></td><td>Maximum agent turns before stopping</td></tr><tr><td><code>timeout-minutes</code></td><td><code>30</code></td><td>Maximum execution time</td></tr><tr><td><code>model</code></td><td>Default</td><td>Specific model to use</td></tr><tr><td><code>allowed-tools</code></td><td>All</td><td>Restrict which tools Claude can use</td></tr></tbody></table><h3 id=secrets-management class=heading-anchor>Secrets management<a href=#secrets-management class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Store your API key as a GitHub repository secret:</p><ol><li>Go to Settings > Secrets and variables > Actions</li><li>Click &ldquo;New repository secret&rdquo;</li><li>Name: <code>ANTHROPIC_API_KEY</code>, Value: your key</li><li>The workflow references it as <code>${{ secrets.ANTHROPIC_API_KEY }}</code></li></ol><p>Never hardcode API keys in workflow files. They&rsquo;re visible in the repository.</p><p>The Action respects <code>.claude/settings.json</code> from the repo. The hooks you wrote in piece 5 still apply. The slash commands you wrote in piece 3 still work — <code>@claude /review</code> does what you&rsquo;d expect.</p><h2 id=pr-review-workflow--detailed-walkthrough class=heading-anchor>PR review workflow — detailed walkthrough<a href=#pr-review-workflow--detailed-walkthrough class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Let me walk through a complete PR review workflow from start to finish.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig7_pr_sequence.png alt="Sequence of a PR review loop: developer, GitHub, and Claude Action" loading=lazy decoding=async class=content-image></figure><em>Figure: Sequence of a PR review loop: developer, GitHub, and Claude Action</em></p><h3 id=setup-once class=heading-anchor>Setup once<a href=#setup-once class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ol><li>Add the workflow YAML file (above) to <code>.github/workflows/</code></li><li>Add the <code>ANTHROPIC_API_KEY</code> secret</li><li>Commit and push</li></ol><h3 id=the-daily-workflow class=heading-anchor>The daily workflow<a href=#the-daily-workflow class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>A developer opens a PR. The auto-review job triggers:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>Claude Code reviews PR <span class=ni>#42:</span> &#34;Add user authentication middleware&#34;
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>## Review Summary
+</span></span></span><span class=line><span class=cl><span class=gu></span>
+</span></span><span class=line><span class=cl><span class=gu>### Critical Issues
+</span></span></span><span class=line><span class=cl><span class=gu></span>
+</span></span><span class=line><span class=cl><span class=gs>**1. Missing rate limiting (src/middleware/auth.ts:45)**</span>
+</span></span><span class=line><span class=cl>The authentication middleware doesn&#39;t rate-limit failed attempts.
+</span></span><span class=line><span class=cl>An attacker could brute-force tokens. Consider adding:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    import rateLimit from &#39;express-rate-limit&#39;;
+</span></span><span class=line><span class=cl>    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gs>**2. Token stored in localStorage (src/utils/auth.ts:12)**</span>
+</span></span><span class=line><span class=cl>localStorage is vulnerable to XSS. Consider httpOnly cookies instead.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>### Suggestions
+</span></span></span><span class=line><span class=cl><span class=gu></span>
+</span></span><span class=line><span class=cl><span class=k>-</span> Add tests for the token refresh flow (currently untested)
+</span></span><span class=line><span class=cl><span class=k>-</span> The <span class=sb>`validateToken`</span> function swallows errors silently — log them
+</span></span><span class=line><span class=cl><span class=k>-</span> Consider extracting the JWT config to environment variables
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gu>### What looks good
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> Clean separation of auth middleware from business logic
+</span></span><span class=line><span class=cl><span class=k>-</span> Good use of TypeScript generics in the token types
+</span></span><span class=line><span class=cl><span class=k>-</span> Test coverage for the happy path is solid
+</span></span></code></pre></td></tr></table></div></div><p>The reviewer reads Claude&rsquo;s analysis, addresses the critical issues, and replies:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>@claude good catches. Please fix the rate limiting issue — add express-rate-limit
+</span></span><span class=line><span class=cl>to the auth middleware with a 100 requests per 15 minute window. Also add a test
+</span></span><span class=line><span class=cl>for it.
+</span></span></code></pre></td></tr></table></div></div><p>Claude reads the comment, checks out the branch, makes the changes, runs tests, and pushes a commit:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>I&#39;ve made the following changes:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>1. Added `express-rate-limit` dependency
+</span></span><span class=line><span class=cl>2. Applied rate limiting to the auth middleware (100 req / 15 min window)
+</span></span><span class=line><span class=cl>3. Added test in `tests/middleware/auth.test.ts` for rate limiting behavior
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Commit: abc1234 &#34;Add rate limiting to auth middleware&#34;
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>All tests pass (47 passed, 0 failed).
+</span></span></code></pre></td></tr></table></div></div><p>This loop — review, request changes, Claude implements — can repeat as many times as needed. The PR conversation becomes the interface.</p><h2 id=ci-integration-patterns class=heading-anchor>CI integration patterns<a href=#ci-integration-patterns class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Beyond the GitHub Action, there are patterns for integrating Claude into your existing CI.</p><h3 id=pattern-1-pre-merge-checks class=heading-anchor>Pattern 1: Pre-merge checks<a href=#pattern-1-pre-merge-checks class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Run Claude as a check before merging:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -1372,5 +1412,5 @@ All tests pass (47 passed, 0 failed).
 <span class=chapter-title>Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/08-subagents-worktrees-plan/><span class=chapter-num>08</span>
 <span class=chapter-title>Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/09-settings-and-permissions/><span class=chapter-num>09</span>
 <span class=chapter-title>Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/claude-code-learn/10-skills-decision-tree/><span class=chapter-num>10</span>
-<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>40 min</strong></div><div class=row><span>Word count</span><strong>4226</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>42 min</strong></div><div class=row><span>Word count</span><strong>4266</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

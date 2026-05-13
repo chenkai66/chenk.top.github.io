@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Python 工程实践</a>
 · 第 1 篇</div><h1>Python 工程实践（一）：环境搭建——pyenv、venv 与依赖地狱</h1><p class=deck>掌握使用 pyenv、虚拟环境及现代依赖管理工具进行 Python 环境管理。彻底告别依赖地狱。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-04-10>April 10, 2022</time> · 14 分钟 · 3482 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/environment/ class=tag>#Environment</a><a href=/zh/tags/toolchain/ class=tag>#Toolchain</a></div><a class="pill pill-outline" href=/en/python-engineering/01-environment-and-toolchain/>Read in English →</a></div></header><div class=prose><p>每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上编写的。更糟的是，你执行了 <code>pip install</code> 全局安装，却意外破坏了一个完全无关的项目。尽管 Python 的环境管理体系非常强大，默认体验却像布满地雷的雷区。</p><p>本文将从零开始梳理整套工具链，构建可复现、强隔离且版本锁定的开发环境，确保跨机器行为一致。</p><h2 id=python-版本问题 class=heading-anchor>Python 版本问题<a href=#python-%e7%89%88%e6%9c%ac%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7（Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png alt=依赖解析流程 loading=lazy decoding=async class=content-image></figure></p><p>以下是核心痛点：</p><table><thead><tr><th>问题</th><th>示例</th></tr></thead><tbody><tr><td>系统 Python 过于陈旧</td><td>Ubuntu 20.04 自带 3.8，而你需要 3.11 的新特性</td></tr><tr><td>多个项目需要不同 Python 版本</td><td>项目 A 需要 3.9，项目 B 需要 3.12</td></tr><tr><td>全局 pip 安装引发冲突</td><td>包 X 要求 <code>requests>=2.28</code>，包 Y 却锁定 <code>requests==2.25</code></td></tr><tr><td>可复现性失效</td><td>“在我机器上能跑”——只因各处版本不一致</td></tr><tr><td>系统工具依赖系统 Python</td><td>Ubuntu 的 <code>apt</code> 在内部使用系统 Python</td></tr></tbody></table><p>建议采用以下三层协同架构：</p><ol><li><strong>pyenv</strong>：管理多个 Python 版本（如并行安装 3.9、3.10、3.11 等）</li><li><strong>venv</strong>：为每个项目隔离依赖</li><li><strong>pip-tools</strong> 或 <strong>Poetry</strong>：精确锁定版本，保障可复现性</li></ol><h2 id=pyenv无痛管理多版本-python class=heading-anchor>pyenv：无痛管理多版本 Python<a href=#pyenv%e6%97%a0%e7%97%9b%e7%ae%a1%e7%90%86%e5%a4%9a%e7%89%88%e6%9c%ac-python class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>pyenv 通过拦截 <code>python</code> 命令，并将其重定向至你配置的任意 Python 版本，来实现版本切换。它通过在你的 <code>$PATH</code> 中插入 shim 脚本来完成这一操作。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png alt="pyenv 机制" loading=lazy decoding=async class=content-image></figure></p><h3 id=安装 class=heading-anchor>安装<a href=#%e5%ae%89%e8%a3%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>macOS 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2022-04-10>April 10, 2022</time> · 16 分钟 · 3517 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/python/ class=tag>#Python</a><a href=/zh/tags/environment/ class=tag>#Environment</a><a href=/zh/tags/toolchain/ class=tag>#Toolchain</a></div><a class="pill pill-outline" href=/en/python-engineering/01-environment-and-toolchain/>Read in English →</a></div></header><div class=prose><p>每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上编写的。更糟的是，你执行了 <code>pip install</code> 全局安装，却意外破坏了一个完全无关的项目。尽管 Python 的环境管理体系非常强大，默认体验却像布满地雷的雷区。</p><p>本文将从零开始梳理整套工具链，构建可复现、强隔离且版本锁定的开发环境，确保跨机器行为一致。</p><h2 id=python-版本问题 class=heading-anchor>Python 版本问题<a href=#python-%e7%89%88%e6%9c%ac%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7（Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png alt=依赖解析流程 loading=lazy decoding=async class=content-image></figure></p><p>以下是核心痛点：</p><table><thead><tr><th>问题</th><th>示例</th></tr></thead><tbody><tr><td>系统 Python 过于陈旧</td><td>Ubuntu 20.04 自带 3.8，而你需要 3.11 的新特性</td></tr><tr><td>多个项目需要不同 Python 版本</td><td>项目 A 需要 3.9，项目 B 需要 3.12</td></tr><tr><td>全局 pip 安装引发冲突</td><td>包 X 要求 <code>requests>=2.28</code>，包 Y 却锁定 <code>requests==2.25</code></td></tr><tr><td>可复现性失效</td><td>“在我机器上能跑”——只因各处版本不一致</td></tr><tr><td>系统工具依赖系统 Python</td><td>Ubuntu 的 <code>apt</code> 在内部使用系统 Python</td></tr></tbody></table><p>建议采用以下三层协同架构：</p><ol><li><strong>pyenv</strong>：管理多个 Python 版本（如并行安装 3.9、3.10、3.11 等）</li><li><strong>venv</strong>：为每个项目隔离依赖</li><li><strong>pip-tools</strong> 或 <strong>Poetry</strong>：精确锁定版本，保障可复现性</li></ol><h2 id=pyenv无痛管理多版本-python class=heading-anchor>pyenv：无痛管理多版本 Python<a href=#pyenv%e6%97%a0%e7%97%9b%e7%ae%a1%e7%90%86%e5%a4%9a%e7%89%88%e6%9c%ac-python class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>pyenv 通过拦截 <code>python</code> 命令，并将其重定向至你配置的任意 Python 版本，来实现版本切换。它通过在你的 <code>$PATH</code> 中插入 shim 脚本来完成这一操作。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png alt="pyenv 机制" loading=lazy decoding=async class=content-image></figure></p><h3 id=安装 class=heading-anchor>安装<a href=#%e5%ae%89%e8%a3%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>macOS 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>brew install pyenv
 </span></span></code></pre></td></tr></table></div></div><p>Linux 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>curl https://pyenv.run <span class=p>|</span> bash
@@ -118,12 +118,17 @@
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>$ <span class=nb>cd</span> ~/projects/my-api
 </span></span><span class=line><span class=cl>$ python -m venv .venv
-</span></span></code></pre></td></tr></table></div></div><p>该命令将创建一个 <code>.venv</code> 目录，其结构如下：</p><pre tabindex=0><code>.venv/
-  bin/          # python、pip、activate 等脚本
-  include/      # C 头文件（用于编译扩展）
-  lib/          # 已安装的包存放于此
-  pyvirst.cfg   # 指向基础 Python 的路径
-</code></pre><h3 id=激活虚拟环境 class=heading-anchor>激活虚拟环境<a href=#%e6%bf%80%e6%b4%bb%e8%99%9a%e6%8b%9f%e7%8e%af%e5%a2%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>该命令将创建一个 <code>.venv</code> 目录，其结构如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>.venv/
+</span></span><span class=line><span class=cl>  bin/          # python、pip、activate 等脚本
+</span></span><span class=line><span class=cl>  include/      # C 头文件（用于编译扩展）
+</span></span><span class=line><span class=cl>  lib/          # 已安装的包存放于此
+</span></span><span class=line><span class=cl>  pyvirst.cfg   # 指向基础 Python 的路径
+</span></span></code></pre></td></tr></table></div></div><h3 id=激活虚拟环境 class=heading-anchor>激活虚拟环境<a href=#%e6%bf%80%e6%b4%bb%e8%99%9a%e6%8b%9f%e7%8e%af%e5%a2%83 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -209,18 +214,27 @@
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># 从文件安装</span>
 </span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install -r requirements.txt
-</span></span></code></pre></td></tr></table></div></div><p>典型的 <code>pip freeze</code> 输出 <code>requirements.txt</code>：</p><pre tabindex=0><code>certifi==2023.11.17
-charset-normalizer==3.3.2
-idna==3.6
-requests==2.31.0
-urllib3==2.1.0
-</code></pre><p><code>pip freeze</code> 的问题在于：它会导出所有已安装包（包括传递依赖）。你无法区分哪些是你直接声明的依赖，哪些是间接引入的。卸载某个包后，其依赖项仍会残留。</p><h2 id=pip-tools实现可复现安装 class=heading-anchor>pip-tools：实现可复现安装<a href=#pip-tools%e5%ae%9e%e7%8e%b0%e5%8f%af%e5%a4%8d%e7%8e%b0%e5%ae%89%e8%a3%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>pip-tools 通过分离「你想要什么」和「实际安装什么」，解决了 <code>pip freeze</code> 的缺陷。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-toolchain-comparison.png alt=工具链对比 loading=lazy decoding=async class=content-image></figure></p><h3 id=安装-1 class=heading-anchor>安装<a href=#%e5%ae%89%e8%a3%85-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>典型的 <code>pip freeze</code> 输出 <code>requirements.txt</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>certifi==2023.11.17
+</span></span><span class=line><span class=cl>charset-normalizer==3.3.2
+</span></span><span class=line><span class=cl>idna==3.6
+</span></span><span class=line><span class=cl>requests==2.31.0
+</span></span><span class=line><span class=cl>urllib3==2.1.0
+</span></span></code></pre></td></tr></table></div></div><p><code>pip freeze</code> 的问题在于：它会导出所有已安装包（包括传递依赖）。你无法区分哪些是你直接声明的依赖，哪些是间接引入的。卸载某个包后，其依赖项仍会残留。</p><h2 id=pip-tools实现可复现安装 class=heading-anchor>pip-tools：实现可复现安装<a href=#pip-tools%e5%ae%9e%e7%8e%b0%e5%8f%af%e5%a4%8d%e7%8e%b0%e5%ae%89%e8%a3%85 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>pip-tools 通过分离「你想要什么」和「实际安装什么」，解决了 <code>pip freeze</code> 的缺陷。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-toolchain-comparison.png alt=工具链对比 loading=lazy decoding=async class=content-image></figure></p><h3 id=安装-1 class=heading-anchor>安装<a href=#%e5%ae%89%e8%a3%85-1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip install pip-tools
-</span></span></code></pre></td></tr></table></div></div><h3 id=工作流 class=heading-anchor>工作流<a href=#%e5%b7%a5%e4%bd%9c%e6%b5%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>创建 <code>requirements.in</code>，仅列出你的直接依赖：</p><pre tabindex=0><code># requirements.in
-requests&gt;=2.28
-flask&gt;=3.0
-pydantic&gt;=2.0
-</code></pre><p>编译生成完全锁定的 <code>requirements.txt</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><h3 id=工作流 class=heading-anchor>工作流<a href=#%e5%b7%a5%e4%bd%9c%e6%b5%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>创建 <code>requirements.in</code>，仅列出你的直接依赖：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># requirements.in</span>
+</span></span><span class=line><span class=cl>requests&gt;<span class=o>=</span>2.28
+</span></span><span class=line><span class=cl>flask&gt;<span class=o>=</span>3.0
+</span></span><span class=line><span class=cl>pydantic&gt;<span class=o>=</span>2.0
+</span></span></code></pre></td></tr></table></div></div><p>编译生成完全锁定的 <code>requirements.txt</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -306,13 +320,19 @@ pydantic&gt;=2.0
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># 升级单个包</span>
 </span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip-compile --upgrade-package requests requirements.in
-</span></span></code></pre></td></tr></table></div></div><h3 id=开发依赖 class=heading-anchor>开发依赖<a href=#%e5%bc%80%e5%8f%91%e4%be%9d%e8%b5%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>为开发工具单独建一个文件：</p><pre tabindex=0><code># requirements-dev.in
--c requirements.txt
-pytest&gt;=7.0
-pytest-cov
-mypy
-ruff
-</code></pre><p>其中 <code>-c requirements.txt</code> 表示开发依赖必须与生产依赖兼容。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><h3 id=开发依赖 class=heading-anchor>开发依赖<a href=#%e5%bc%80%e5%8f%91%e4%be%9d%e8%b5%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>为开发工具单独建一个文件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># requirements-dev.in</span>
+</span></span><span class=line><span class=cl>-c requirements.txt
+</span></span><span class=line><span class=cl>pytest&gt;<span class=o>=</span>7.0
+</span></span><span class=line><span class=cl>pytest-cov
+</span></span><span class=line><span class=cl>mypy
+</span></span><span class=line><span class=cl>ruff
+</span></span></code></pre></td></tr></table></div></div><p>其中 <code>-c requirements.txt</code> 表示开发依赖必须与生产依赖兼容。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip-compile requirements-dev.in
 </span></span><span class=line><span class=cl><span class=o>(</span>.venv<span class=o>)</span> $ pip-sync requirements.txt requirements-dev.txt
@@ -478,22 +498,37 @@ ruff
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=nf>run</span><span class=o>:</span>
 </span></span><span class=line><span class=cl>	.venv/bin/python -m my_api
-</span></span></code></pre></td></tr></table></div></div><h2 id=常见陷阱与解决方案 class=heading-anchor>常见陷阱与解决方案<a href=#%e5%b8%b8%e8%a7%81%e9%99%b7%e9%98%b1%e4%b8%8e%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><table><thead><tr><th>陷阱</th><th>表象</th><th>解决方案</th></tr></thead><tbody><tr><td>使用系统 pip</td><td><code>pip install X</code> 修改了系统包</td><td>总是先激活虚拟环境</td></tr><tr><td>忘记版本锁定</td><td><code>pip install requests</code> 安装最新版</td><td>使用 <code>pip-compile</code> 锁定版本</td></tr><tr><td>提交了 <code>.venv</code></td><td>仓库体积暴增，含平台特定二进制</td><td>将 <code>.venv/</code> 加入 <code>.gitignore</code></td></tr><tr><td>pyenv 未加入 PATH</td><td><code>pyenv: command not found</code></td><td>在 shell 配置中添加 init 行</td></tr><tr><td>Linux 缺少构建依赖</td><td><code>pyenv install</code> 期间报 <code>ModuleNotFoundError</code></td><td>安装 <code>build-essential</code>、<code>libssl-dev</code> 等</td></tr><tr><td>全局/本地 Python 冲突</td><td>激活了错误版本</td><td>执行 <code>pyenv version</code> 查看哪个配置生效</td></tr><tr><td>pip 缓存过期</td><td>升级后仍安装旧版本</td><td>使用 <code>pip install --no-cache-dir</code> 或 <code>pip cache purge</code></td></tr><tr><td>混用 conda 与 pip</td><td>环境状态损坏</td><td>二选一：仅用 conda，或仅用 venv+pip</td></tr><tr><td><code>requirements.txt</code> 无哈希校验</td><td>存在供应链攻击风险</td><td><code>pip-compile --generate-hashes</code></td></tr><tr><td>忘记更新锁文件</td><td>新开发者获得不同版本</td><td>CI 应校验锁文件是否最新</td></tr></tbody></table><h2 id=初始化后的目录结构 class=heading-anchor>初始化后的目录结构<a href=#%e5%88%9d%e5%a7%8b%e5%8c%96%e5%90%8e%e7%9a%84%e7%9b%ae%e5%bd%95%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><pre tabindex=0><code>my-api/
-  .python-version        # pyenv 读取（已提交）
-  .venv/                  # 虚拟环境（已加入 .gitignore）
-  pyproject.toml          # 项目元数据与工具配置
-  requirements.in         # 直接依赖声明
-  requirements.txt        # 锁定的完整依赖树
-  requirements-dev.in     # 开发专用直接依赖
-  requirements-dev.txt    # 锁定的开发依赖树
-  .gitignore              # 包含 .venv/
-  src/
-    my_api/
-      __init__.py
-      ...
-  tests/
-    ...
-</code></pre><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当你的开发环境已完全锁定，下一个问题是：如何组织代码？单个 <code>main.py</code> 适合脚本，但超过 200 行的项目就需要合理结构。下一篇文章，我们将从零构建一个规范的 Python 项目，涵盖包目录布局、导入机制、入口点（entry points）以及 CLI 工具开发。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/python-engineering/>Python 工程实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>上一篇</div><span class=title style=color:var(--ink-faint)>—</span></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></div></div><ol class=series-nav-all><li class="series-nav-item is-current"><span class=series-nav-num>01</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=常见陷阱与解决方案 class=heading-anchor>常见陷阱与解决方案<a href=#%e5%b8%b8%e8%a7%81%e9%99%b7%e9%98%b1%e4%b8%8e%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><table><thead><tr><th>陷阱</th><th>表象</th><th>解决方案</th></tr></thead><tbody><tr><td>使用系统 pip</td><td><code>pip install X</code> 修改了系统包</td><td>总是先激活虚拟环境</td></tr><tr><td>忘记版本锁定</td><td><code>pip install requests</code> 安装最新版</td><td>使用 <code>pip-compile</code> 锁定版本</td></tr><tr><td>提交了 <code>.venv</code></td><td>仓库体积暴增，含平台特定二进制</td><td>将 <code>.venv/</code> 加入 <code>.gitignore</code></td></tr><tr><td>pyenv 未加入 PATH</td><td><code>pyenv: command not found</code></td><td>在 shell 配置中添加 init 行</td></tr><tr><td>Linux 缺少构建依赖</td><td><code>pyenv install</code> 期间报 <code>ModuleNotFoundError</code></td><td>安装 <code>build-essential</code>、<code>libssl-dev</code> 等</td></tr><tr><td>全局/本地 Python 冲突</td><td>激活了错误版本</td><td>执行 <code>pyenv version</code> 查看哪个配置生效</td></tr><tr><td>pip 缓存过期</td><td>升级后仍安装旧版本</td><td>使用 <code>pip install --no-cache-dir</code> 或 <code>pip cache purge</code></td></tr><tr><td>混用 conda 与 pip</td><td>环境状态损坏</td><td>二选一：仅用 conda，或仅用 venv+pip</td></tr><tr><td><code>requirements.txt</code> 无哈希校验</td><td>存在供应链攻击风险</td><td><code>pip-compile --generate-hashes</code></td></tr><tr><td>忘记更新锁文件</td><td>新开发者获得不同版本</td><td>CI 应校验锁文件是否最新</td></tr></tbody></table><h2 id=初始化后的目录结构 class=heading-anchor>初始化后的目录结构<a href=#%e5%88%9d%e5%a7%8b%e5%8c%96%e5%90%8e%e7%9a%84%e7%9b%ae%e5%bd%95%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>my-api/
+</span></span><span class=line><span class=cl>  .python-version        # pyenv 读取（已提交）
+</span></span><span class=line><span class=cl>  .venv/                  # 虚拟环境（已加入 .gitignore）
+</span></span><span class=line><span class=cl>  pyproject.toml          # 项目元数据与工具配置
+</span></span><span class=line><span class=cl>  requirements.in         # 直接依赖声明
+</span></span><span class=line><span class=cl>  requirements.txt        # 锁定的完整依赖树
+</span></span><span class=line><span class=cl>  requirements-dev.in     # 开发专用直接依赖
+</span></span><span class=line><span class=cl>  requirements-dev.txt    # 锁定的开发依赖树
+</span></span><span class=line><span class=cl>  .gitignore              # 包含 .venv/
+</span></span><span class=line><span class=cl>  src/
+</span></span><span class=line><span class=cl>    my_api/
+</span></span><span class=line><span class=cl>      __init__.py
+</span></span><span class=line><span class=cl>      ...
+</span></span><span class=line><span class=cl>  tests/
+</span></span><span class=line><span class=cl>    ...
+</span></span></code></pre></td></tr></table></div></div><h2 id=下一步 class=heading-anchor>下一步<a href=#%e4%b8%8b%e4%b8%80%e6%ad%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>当你的开发环境已完全锁定，下一个问题是：如何组织代码？单个 <code>main.py</code> 适合脚本，但超过 200 行的项目就需要合理结构。下一篇文章，我们将从零构建一个规范的 Python 项目，涵盖包目录布局、导入机制、入口点（entry points）以及 CLI 工具开发。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/python-engineering/>Python 工程实践</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>上一篇</div><span class=title style=color:var(--ink-faint)>—</span></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></div></div><ol class=series-nav-all><li class="series-nav-item is-current"><span class=series-nav-num>01</span>
 <span class=series-nav-title>Python 工程实践（一）：环境搭建——pyenv、venv 与依赖地狱</span>
 <span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/02-project-structure/><span class=series-nav-num>02</span>
 <span class=series-nav-title>Python 工程实践（二）：项目结构 —— 从脚本到包</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/python-engineering/03-testing-and-debugging/><span class=series-nav-num>03</span>
@@ -515,5 +550,5 @@ ruff
 <span class=chapter-title>Python 工程实践（五）：I/O、序列化与数据格式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/06-concurrency/><span class=chapter-num>06</span>
 <span class=chapter-title>Python 工程实践（六）：并发编程 —— 线程、进程与 asyncio</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/07-packaging-and-distribution/><span class=chapter-num>07</span>
 <span class=chapter-title>Python 工程实践（七）：打包分发 —— 从 pip install 到 PyPI</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/python-engineering/08-performance-and-profiling/><span class=chapter-num>08</span>
-<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>14 min</strong></div><div class=row><span>字数</span><strong>3482</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>Python 工程实践（八）：性能优化 —— 性能分析、缓存与适时收手</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3517</strong></div><div class=row><span>写于</span><strong>Apr 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

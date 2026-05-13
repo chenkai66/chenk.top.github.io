@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Docker and Containers</a>
 · Chapter 7</div><h1>Docker and Containers (7): Security — Running Containers Without Giving Away the Keys</h1><p class=deck>Containers provide isolation, not security. Default Docker configurations run processes as root with full capabilities. This article shows how to lock containers down for production.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2023-06-22>June 22, 2023</time> · 28 min read · 2940 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/security/ class=tag>#Security</a><a href=/en/tags/devsecops/ class=tag>#DevSecOps</a><a href=/en/tags/best-practices/ class=tag>#Best Practices</a></div><a class="pill pill-outline" href=/zh/docker-containers/07-security-and-best-practices/>阅读中文版 →</a></div></header><div class=prose><p>Docker&rsquo;s default configuration prioritizes convenience over security. Containers run as root, have access to a broad set of Linux capabilities, and can write to their entire filesystem. This is fine for development but dangerous for production. A container escape vulnerability in a root-privileged container means an attacker can take over the host. Let&rsquo;s fix that.</p><h2 id=the-threat-model class=heading-anchor>The Threat Model<a href=#the-threat-model class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Before securing your setup, understand what you&rsquo;re defending against:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png alt="Rootless containers" loading=lazy decoding=async class=content-image></figure></p><ol><li><strong>Vulnerable application code</strong>: Your app has a bug (RCE, path traversal, SSRF) and an attacker gets code execution inside the container</li><li><strong>Vulnerable dependencies</strong>: A library in your image has a known CVE</li><li><strong>Container escape</strong>: An attacker exploits a kernel or runtime vulnerability to break out of the container</li><li><strong>Supply chain attack</strong>: A malicious base image or package is used</li><li><strong>Secrets exposure</strong>: Credentials leak through environment variables, image history, or logs</li><li><strong>Lateral movement</strong>: An attacker in one container pivots to other containers or the host</li></ol><p>Each hardening technique addresses one or more of these threats. The goal is defense in depth: no single measure is sufficient, but layers of hardening make exploitation much harder.</p><h2 id=running-as-non-root class=heading-anchor>Running as Non-Root<a href=#running-as-non-root class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>By default, the process inside a Docker container runs as root (UID 0). This root is the same as on the host (unless user namespaces are enabled). If an attacker escapes the container, they become root on the host.</p><h3 id=in-the-dockerfile class=heading-anchor>In the Dockerfile<a href=#in-the-dockerfile class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2023-06-22>June 22, 2023</time> · 28 min read · 2962 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/security/ class=tag>#Security</a><a href=/en/tags/devsecops/ class=tag>#DevSecOps</a><a href=/en/tags/best-practices/ class=tag>#Best Practices</a></div><a class="pill pill-outline" href=/zh/docker-containers/07-security-and-best-practices/>阅读中文版 →</a></div></header><div class=prose><p>Docker&rsquo;s default configuration prioritizes convenience over security. Containers run as root, have access to a broad set of Linux capabilities, and can write to their entire filesystem. This is fine for development but dangerous for production. A container escape vulnerability in a root-privileged container means an attacker can take over the host. Let&rsquo;s fix that.</p><h2 id=the-threat-model class=heading-anchor>The Threat Model<a href=#the-threat-model class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Before securing your setup, understand what you&rsquo;re defending against:</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png alt="Rootless containers" loading=lazy decoding=async class=content-image></figure></p><ol><li><strong>Vulnerable application code</strong>: Your app has a bug (RCE, path traversal, SSRF) and an attacker gets code execution inside the container</li><li><strong>Vulnerable dependencies</strong>: A library in your image has a known CVE</li><li><strong>Container escape</strong>: An attacker exploits a kernel or runtime vulnerability to break out of the container</li><li><strong>Supply chain attack</strong>: A malicious base image or package is used</li><li><strong>Secrets exposure</strong>: Credentials leak through environment variables, image history, or logs</li><li><strong>Lateral movement</strong>: An attacker in one container pivots to other containers or the host</li></ol><p>Each hardening technique addresses one or more of these threats. The goal is defense in depth: no single measure is sufficient, but layers of hardening make exploitation much harder.</p><h2 id=running-as-non-root class=heading-anchor>Running as Non-Root<a href=#running-as-non-root class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>By default, the process inside a Docker container runs as root (UID 0). This root is the same as on the host (unless user namespaces are enabled). If an attacker escapes the container, they become root on the host.</p><h3 id=in-the-dockerfile class=heading-anchor>In the Dockerfile<a href=#in-the-dockerfile class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -302,29 +302,51 @@
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Scan an image</span>
 </span></span><span class=line><span class=cl>trivy image myapp:latest
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>myapp:latest (debian 12.1)
-===========================
-Total: 45 (UNKNOWN: 0, LOW: 25, MEDIUM: 12, HIGH: 6, CRITICAL: 2)
-
-+-------------------+------------------+----------+-------------------+-------------------+
-|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
-+-------------------+------------------+----------+-------------------+-------------------+
-| libssl3           | CVE-2023-XXXXX   | CRITICAL | 3.0.9-1           | 3.0.11-1          |
-| libcurl4          | CVE-2023-YYYYY   | CRITICAL | 7.88.1-10         | 7.88.1-10+deb12u4 |
-| python3.11        | CVE-2023-ZZZZZ   | HIGH     | 3.11.4            | 3.11.5            |
-+-------------------+------------------+----------+-------------------+-------------------+
-
-Python (requirements.txt)
-==========================
-Total: 3 (HIGH: 2, MEDIUM: 1)
-
-+-------------------+------------------+----------+-------------------+-------------------+
-|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
-+-------------------+------------------+----------+-------------------+-------------------+
-| requests          | CVE-2023-AAAAA   | HIGH     | 2.28.0            | 2.31.0            |
-| flask             | CVE-2023-BBBBB   | MEDIUM   | 2.2.0             | 2.3.3             |
-+-------------------+------------------+----------+-------------------+-------------------+
-</code></pre><p>Trivy scans both OS packages and application dependencies (pip, npm, gem, etc.).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>myapp:latest (debian 12.1)
+</span></span><span class=line><span class=cl>===========================
+</span></span><span class=line><span class=cl>Total: 45 (UNKNOWN: 0, LOW: 25, MEDIUM: 12, HIGH: 6, CRITICAL: 2)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>| libssl3           | CVE-2023-XXXXX   | CRITICAL | 3.0.9-1           | 3.0.11-1          |
+</span></span><span class=line><span class=cl>| libcurl4          | CVE-2023-YYYYY   | CRITICAL | 7.88.1-10         | 7.88.1-10+deb12u4 |
+</span></span><span class=line><span class=cl>| python3.11        | CVE-2023-ZZZZZ   | HIGH     | 3.11.4            | 3.11.5            |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Python (requirements.txt)
+</span></span><span class=line><span class=cl>==========================
+</span></span><span class=line><span class=cl>Total: 3 (HIGH: 2, MEDIUM: 1)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>|      LIBRARY      |  VULNERABILITY   | SEVERITY | INSTALLED VERSION |   FIXED VERSION   |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span><span class=line><span class=cl>| requests          | CVE-2023-AAAAA   | HIGH     | 2.28.0            | 2.31.0            |
+</span></span><span class=line><span class=cl>| flask             | CVE-2023-BBBBB   | MEDIUM   | 2.2.0             | 2.3.3             |
+</span></span><span class=line><span class=cl>+-------------------+------------------+----------+-------------------+-------------------+
+</span></span></code></pre></td></tr></table></div></div><p>Trivy scans both OS packages and application dependencies (pip, npm, gem, etc.).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -694,5 +716,5 @@ Total: 3 (HIGH: 2, MEDIUM: 1)
 <span class=chapter-title>Docker and Containers (5): Docker Compose — Multi-Container Applications</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/06-debugging-and-logging/><span class=chapter-num>06</span>
 <span class=chapter-title>Docker and Containers (6): Debugging and Logging — When Things Go Wrong Inside a Box</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
 <span class=chapter-title>Docker and Containers (7): Security — Running Containers Without Giving Away the Keys</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/08-orchestration-preview/><span class=chapter-num>08</span>
-<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2940</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2962</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>

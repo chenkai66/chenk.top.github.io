@@ -20,99 +20,188 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>阿里云全栈实战</a>
 · 第 12 篇</div><h1>阿里云全栈实战（十二）：Terraform 全栈统一交付</h1><p class=deck>终极整合：将第1-11部分的所有内容编码为Terraform模块。VPC、ECS、RDS、OSS、RAM、SLS、Function Compute — 一键部署。加上GitHub Actions的CI/CD和成本优化。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-05-09>May 9, 2026</time> · 50 分钟 · 12043 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/infrastructure-as-code/ class=tag>#Infrastructure as Code</a><a href=/zh/tags/ci/cd/ class=tag>#CI/CD</a><a href=/zh/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/en/aliyun-fullstack/12-terraform-e2e/>Read in English →</a></div></header><div class=prose><p>十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉，只用一条 <code>terraform apply</code> 重建整个栈。这正是基础设施即代码（IaC）的核心价值。</p><p>在这个系列的过去十一部分里，我们点击过控制台，敲过 <code>aliyun</code> CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这种方式可行：亲手搭建每个资源，熟悉所有细节。但在新地域重建整套栈——三层双可用区 VPC、带 cloud-init 的 ECS 实例、RDS MySQL HA、带生命周期规则和 CORS 配置的 OSS bucket、RAM 策略、SLS 日志管道、Function Compute 事件触发器——至少需要一整天的精细操作。难免会遗漏安全组规则、备份策略或 CORS 配置。</p><p>基础设施即代码（IaC）解决了这个问题：通过声明式配置描述期望状态，工具自动比对现状、计算差异并调用 API 达成目标。我们在十一篇文章中构建的整个栈，现在变成了一个 <code>.tf</code> 文件仓库，团队里的任何人都可以阅读、审查、修改和应用。</p><p>作为本系列的收官篇，本文将前十一期的所有手动配置封装为可复用的 Terraform 模块，使你能够获得一个开箱即用的生产级 Terraform 项目，仅需一条命令即可让全栈阿里云基础设施就绪。</p><h2 id=为什么需要基础设施即代码 class=heading-anchor>为什么需要基础设施即代码？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e5%9f%ba%e7%a1%80%e8%ae%be%e6%96%bd%e5%8d%b3%e4%bb%a3%e7%a0%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>看到第十二篇，你大概率已信服 IaC 的必要性。但要说服团队落地，还得拿出硬核理由——这就是接下来要列的五点。</p><h3 id=演进过程 class=heading-anchor>演进过程<a href=#%e6%bc%94%e8%bf%9b%e8%bf%87%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>每个团队大致都会经历同样的演变：</p><p><strong>阶段 1：手动（控制台点击）。</strong> 你在 Web 控制台点点点。一个人管理几个资源时还行。一旦需要重建什么东西、解释你做了什么，或者把环境交给队友，这就行不通了。</p><p><strong>阶段 2：脚本（CLI 命令）。</strong> 你写 shell 脚本调用 <code>aliyun ecs CreateInstance</code> 这类命令。比点击好，但脚本是命令式的：它描述的是具体执行步骤，而非期望的最终状态。脚本跑两次，要么失败（资源已存在），要么创建重复资源。你最终不得不编写日益复杂的逻辑来保证幂等性——这本质上是在重复造一个简陋版的 Terraform。</p><p><strong>阶段 3：基础设施即代码（声明式）。</strong> 你描述期望状态：“我想要一个 CIDR 为 10.0.0.0/16 且带有三个 VSwitch 的 VPC。”工具比对期望状态与实际状态，计算出达成该状态所需的最少 API 调用。无论执行多少次，最终状态始终一致。</p><h3 id=五大支柱 class=heading-anchor>五大支柱<a href=#%e4%ba%94%e5%a4%a7%e6%94%af%e6%9f%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>基础设施即代码提供了手动部署所不具备的五大能力：</p><table><thead><tr><th>Pillar</th><th>What it means</th><th>Why it matters</th></tr></thead><tbody><tr><td><strong>可复现性</strong></td><td>代码相同 = 基础设施相同，每次皆然</td><td>随时一键创建完全一致的预发/生产环境</td></tr><tr><td><strong>版本控制</strong></td><td>基础设施变更 tracked in Git</td><td>谁改了什么、何时、为何——完整的 diff history</td></tr><tr><td><strong>协作</strong></td><td>基础设施变更走 Pull requests</td><td>基础设施也能像应用代码一样 Code review</td></tr><tr><td><strong>灾难恢复</strong></td><td>几分钟内从代码重建整个栈</td><td>若所在地域发生故障，只需一条命令，即可将整套基础设施重建至新地域。</td></tr><tr><td><strong>成本追踪</strong></td><td>代码定义的基础设施可估算成本</td><td>应用前就知道变更要花多少钱</td></tr></tbody></table><h3 id=terraform-与-alibaba-cloud-ros class=heading-anchor>Terraform 与 Alibaba Cloud ROS<a href=#terraform-%e4%b8%8e-alibaba-cloud-ros class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>阿里云有自己的 IaC 服务： Resource Orchestration Service (ROS)。它基于 JSON 或 YAML 模板定义资源，并与阿里云控制台深度集成。它是免费的。那我为什么还推荐 Terraform？</p><table><thead><tr><th>Criteria</th><th>Terraform</th><th>ROS</th></tr></thead><tbody><tr><td><strong>多云支持</strong></td><td>支持 &ndash; AWS, Azure, GCP, 3000+ providers</td><td>仅限阿里云</td></tr><tr><td><strong>状态管理</strong></td><td>本地或远程 (S3, OSS, Consul 等)</td><td>由 ROS 服务管理</td></tr><tr><td><strong>社区</strong></td><td>庞大 &ndash; 模块、示例、 Stack Overflow</td><td>较小， mostly Chinese-language</td></tr><tr><td><strong>语言</strong></td><td>HCL (专为 IaC 设计，可读性强)</td><td>JSON/YAML (冗长，易错)</td></tr><tr><td><strong>模块生态</strong></td><td>Terraform Registry 上有数千个模块</td><td>有限</td></tr><tr><td><strong>学习投入</strong></td><td>技能可迁移到任何云</td><td>阿里云特定</td></tr><tr><td><strong>漂移检测</strong></td><td><code>terraform plan</code> 显示精确 diff</td><td>漂移检测功能尚不完善</td></tr><tr><td><strong>导入现有资源</strong></td><td><code>terraform import</code></td><td>支持但不够成熟</td></tr></tbody></table><p>如果您的环境仅限阿里云，且不希望引入额外工具， ROS 是一种可行选择。但如果你需要跨云管理、重视社区支持，或希望所掌握的技能具备跨平台可迁移性， Terraform 是更优选择。阿里云 Terraform provider (<code>alicloud</code>) 维护积极，覆盖了我们在这个系列中用到的几乎所有服务。</p><p>关于 Terraform 本身的更深入探讨，请看我们的 <a href=/zh/terraform-agents/01-why-terraform-for-agents/>Terraform 系列</a>
-—— 八篇文章涵盖从第一性原理到高级模式的所有方面。这篇文章假设你已经了解基础，重点在于如何将 Terraform 应用到我们构建的具体阿里云栈上。</p><h2 id=架构概览 class=heading-anchor>架构概览<a href=#%e6%9e%b6%e6%9e%84%e6%a6%82%e8%a7%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>这是我们要编码的完整栈。每个组件都对应我们在之前文章中手动构建的内容：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png alt=阿里云全栈架构 loading=lazy decoding=async class=content-image></figure></p><pre tabindex=0><code>┌─────────────────────────────────────────────────────────────┐
-│                        Alibaba Cloud                        │
-│                                                             │
-│  ┌──────────────────── VPC (10.0.0.0/16) ─────────────────┐ │
-│  │                                                         │ │
-│  │  ┌─── AZ-A ───┐         ┌─── AZ-B ───┐                │ │
-│  │  │ vsw-pub-a  │         │ vsw-pub-b  │  Public Tier    │ │
-│  │  │ 10.0.1.0/24│         │ 10.0.2.0/24│                 │ │
-│  │  └─────┬──────┘         └──────┬─────┘                 │ │
-│  │        │                       │                        │ │
-│  │  ┌─────┴──────┐         ┌──────┴─────┐                │ │
-│  │  │ vsw-app-a  │         │ vsw-app-b  │  App Tier       │ │
-│  │  │10.0.10.0/24│         │10.0.11.0/24│                 │ │
-│  │  │  ┌─────┐   │         │            │                 │ │
-│  │  │  │ ECS │   │         │            │                 │ │
-│  │  └──┴─────┴───┘         └────────────┘                 │ │
-│  │        │                       │                        │ │
-│  │  ┌─────┴──────┐         ┌──────┴─────┐                │ │
-│  │  │ vsw-data-a │         │ vsw-data-b │  Data Tier      │ │
-│  │  │10.0.20.0/24│         │10.0.21.0/24│                 │ │
-│  │  │  ┌─────┐   │         │  ┌─────┐   │                │ │
-│  │  │  │ RDS │◄──┼─────────┼──│ RDS │   │                │ │
-│  │  │  │(pri)│   │         │  │(sec)│   │                 │ │
-│  │  └──┴─────┴───┘         └──┴─────┴───┘                 │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│  ┌─── OSS ───┐  ┌── RAM ──┐  ┌── SLS ──┐  ┌──── FC ────┐  │
-│  │  Media    │  │ Users   │  │ Logs    │  │ Event      │  │
-│  │  Storage  │  │ Roles   │  │ Alerts  │  │ Processing │  │
-│  │  CDN      │  │ Policies│  │ Dashb.  │  │ OSS Trigger│  │
-│  └───────────┘  └─────────┘  └─────────┘  └────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-</code></pre><p>资源及其构建出处：</p><table><thead><tr><th>资源</th><th>系列部分</th><th>Terraform 模块</th></tr></thead><tbody><tr><td>VPC, VSwitches, Security Groups, NAT</td><td><a href=/zh/aliyun-fullstack/03-vpc-networking/>第 3 部分：VPC 网络</a></td><td><code>modules/network</code></td></tr><tr><td>ECS 实例, cloud-init, 密钥对</td><td><a href=/zh/aliyun-fullstack/02-ecs-compute/>第 2 部分：ECS 计算</a></td><td><code>modules/compute</code></td></tr><tr><td>RDS MySQL HA, 备份</td><td><a href=/zh/aliyun-fullstack/05-rds-database/>第 5 部分：RDS 数据库</a></td><td><code>modules/database</code></td></tr><tr><td>OSS 存储桶, 生命周期, CORS, CDN</td><td><a href=/zh/aliyun-fullstack/04-oss-storage/>第 4 部分：OSS 存储</a></td><td><code>modules/storage</code></td></tr><tr><td>RAM 用户, 角色, 策略, KMS</td><td><a href=/zh/aliyun-fullstack/06-ram-security/>第 6 部分：RAM 安全</a></td><td><code>modules/security</code></td></tr><tr><td>SLS 项目, 日志存储, 警报</td><td><a href=/zh/aliyun-fullstack/07-sls-observability/>第 7 部分：SLS 可观测性</a></td><td><code>modules/monitoring</code></td></tr><tr><td>Function Compute, OSS 触发器</td><td><a href=/zh/aliyun-fullstack/08-serverless/>第 8 部分：无服务器</a></td><td><code>modules/serverless</code></td></tr></tbody></table><p>对于 <a href=/zh/aliyun-fullstack/10-bailian-llm/>Part 10</a>
+<span class=meta-line><time datetime=2026-05-09>May 9, 2026</time> · 50 分钟 · 12177 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/infrastructure-as-code/ class=tag>#Infrastructure as Code</a><a href=/zh/tags/ci/cd/ class=tag>#CI/CD</a><a href=/zh/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/en/aliyun-fullstack/12-terraform-e2e/>Read in English →</a></div></header><div class=prose><p>十一篇文章。几十条 CLI 命令。上百个手动步骤。现在我们把它们全部扔掉，只用一条 <code>terraform apply</code> 重建整个栈。这正是基础设施即代码（IaC）的核心价值。</p><p>在这个系列的过去十一部分里，我们点击过控制台，敲过 <code>aliyun</code> CLI 命令，手动配置了从 VPC 到 Function Compute 触发器的一切。这种方式可行：亲手搭建每个资源，熟悉所有细节。但在新地域重建整套栈——三层双可用区 VPC、带 cloud-init 的 ECS 实例、RDS MySQL HA、带生命周期规则和 CORS 配置的 OSS bucket、RAM 策略、SLS 日志管道、Function Compute 事件触发器——至少需要一整天的精细操作。难免会遗漏安全组规则、备份策略或 CORS 配置。</p><p>基础设施即代码（IaC）解决了这个问题：通过声明式配置描述期望状态，工具自动比对现状、计算差异并调用 API 达成目标。我们在十一篇文章中构建的整个栈，现在变成了一个 <code>.tf</code> 文件仓库，团队里的任何人都可以阅读、审查、修改和应用。</p><p>作为本系列的收官篇，本文将前十一期的所有手动配置封装为可复用的 Terraform 模块，使你能够获得一个开箱即用的生产级 Terraform 项目，仅需一条命令即可让全栈阿里云基础设施就绪。</p><h2 id=为什么需要基础设施即代码 class=heading-anchor>为什么需要基础设施即代码？<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e5%9f%ba%e7%a1%80%e8%ae%be%e6%96%bd%e5%8d%b3%e4%bb%a3%e7%a0%81 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>看到第十二篇，你大概率已信服 IaC 的必要性。但要说服团队落地，还得拿出硬核理由——这就是接下来要列的五点。</p><h3 id=演进过程 class=heading-anchor>演进过程<a href=#%e6%bc%94%e8%bf%9b%e8%bf%87%e7%a8%8b class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>每个团队大致都会经历同样的演变：</p><p><strong>阶段 1：手动（控制台点击）。</strong> 你在 Web 控制台点点点。一个人管理几个资源时还行。一旦需要重建什么东西、解释你做了什么，或者把环境交给队友，这就行不通了。</p><p><strong>阶段 2：脚本（CLI 命令）。</strong> 你写 shell 脚本调用 <code>aliyun ecs CreateInstance</code> 这类命令。比点击好，但脚本是命令式的：它描述的是具体执行步骤，而非期望的最终状态。脚本跑两次，要么失败（资源已存在），要么创建重复资源。你最终不得不编写日益复杂的逻辑来保证幂等性——这本质上是在重复造一个简陋版的 Terraform。</p><p><strong>阶段 3：基础设施即代码（声明式）。</strong> 你描述期望状态：“我想要一个 CIDR 为 10.0.0.0/16 且带有三个 VSwitch 的 VPC。”工具比对期望状态与实际状态，计算出达成该状态所需的最少 API 调用。无论执行多少次，最终状态始终一致。</p><h3 id=五大支柱 class=heading-anchor>五大支柱<a href=#%e4%ba%94%e5%a4%a7%e6%94%af%e6%9f%b1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>基础设施即代码提供了手动部署所不具备的五大能力：</p><table><thead><tr><th>Pillar</th><th>What it means</th><th>Why it matters</th></tr></thead><tbody><tr><td><strong>可复现性</strong></td><td>代码相同 = 基础设施相同，每次皆然</td><td>随时一键创建完全一致的预发/生产环境</td></tr><tr><td><strong>版本控制</strong></td><td>基础设施变更 tracked in Git</td><td>谁改了什么、何时、为何——完整的 diff history</td></tr><tr><td><strong>协作</strong></td><td>基础设施变更走 Pull requests</td><td>基础设施也能像应用代码一样 Code review</td></tr><tr><td><strong>灾难恢复</strong></td><td>几分钟内从代码重建整个栈</td><td>若所在地域发生故障，只需一条命令，即可将整套基础设施重建至新地域。</td></tr><tr><td><strong>成本追踪</strong></td><td>代码定义的基础设施可估算成本</td><td>应用前就知道变更要花多少钱</td></tr></tbody></table><h3 id=terraform-与-alibaba-cloud-ros class=heading-anchor>Terraform 与 Alibaba Cloud ROS<a href=#terraform-%e4%b8%8e-alibaba-cloud-ros class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>阿里云有自己的 IaC 服务： Resource Orchestration Service (ROS)。它基于 JSON 或 YAML 模板定义资源，并与阿里云控制台深度集成。它是免费的。那我为什么还推荐 Terraform？</p><table><thead><tr><th>Criteria</th><th>Terraform</th><th>ROS</th></tr></thead><tbody><tr><td><strong>多云支持</strong></td><td>支持 &ndash; AWS, Azure, GCP, 3000+ providers</td><td>仅限阿里云</td></tr><tr><td><strong>状态管理</strong></td><td>本地或远程 (S3, OSS, Consul 等)</td><td>由 ROS 服务管理</td></tr><tr><td><strong>社区</strong></td><td>庞大 &ndash; 模块、示例、 Stack Overflow</td><td>较小， mostly Chinese-language</td></tr><tr><td><strong>语言</strong></td><td>HCL (专为 IaC 设计，可读性强)</td><td>JSON/YAML (冗长，易错)</td></tr><tr><td><strong>模块生态</strong></td><td>Terraform Registry 上有数千个模块</td><td>有限</td></tr><tr><td><strong>学习投入</strong></td><td>技能可迁移到任何云</td><td>阿里云特定</td></tr><tr><td><strong>漂移检测</strong></td><td><code>terraform plan</code> 显示精确 diff</td><td>漂移检测功能尚不完善</td></tr><tr><td><strong>导入现有资源</strong></td><td><code>terraform import</code></td><td>支持但不够成熟</td></tr></tbody></table><p>如果您的环境仅限阿里云，且不希望引入额外工具， ROS 是一种可行选择。但如果你需要跨云管理、重视社区支持，或希望所掌握的技能具备跨平台可迁移性， Terraform 是更优选择。阿里云 Terraform provider (<code>alicloud</code>) 维护积极，覆盖了我们在这个系列中用到的几乎所有服务。</p><p>关于 Terraform 本身的更深入探讨，请看我们的 <a href=/zh/terraform-agents/01-why-terraform-for-agents/>Terraform 系列</a>
+—— 八篇文章涵盖从第一性原理到高级模式的所有方面。这篇文章假设你已经了解基础，重点在于如何将 Terraform 应用到我们构建的具体阿里云栈上。</p><h2 id=架构概览 class=heading-anchor>架构概览<a href=#%e6%9e%b6%e6%9e%84%e6%a6%82%e8%a7%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>这是我们要编码的完整栈。每个组件都对应我们在之前文章中手动构建的内容：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png alt=阿里云全栈架构 loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>┌─────────────────────────────────────────────────────────────┐
+</span></span><span class=line><span class=cl>│                        Alibaba Cloud                        │
+</span></span><span class=line><span class=cl>│                                                             │
+</span></span><span class=line><span class=cl>│  ┌──────────────────── VPC (10.0.0.0/16) ─────────────────┐ │
+</span></span><span class=line><span class=cl>│  │                                                         │ │
+</span></span><span class=line><span class=cl>│  │  ┌─── AZ-A ───┐         ┌─── AZ-B ───┐                │ │
+</span></span><span class=line><span class=cl>│  │  │ vsw-pub-a  │         │ vsw-pub-b  │  Public Tier    │ │
+</span></span><span class=line><span class=cl>│  │  │ 10.0.1.0/24│         │ 10.0.2.0/24│                 │ │
+</span></span><span class=line><span class=cl>│  │  └─────┬──────┘         └──────┬─────┘                 │ │
+</span></span><span class=line><span class=cl>│  │        │                       │                        │ │
+</span></span><span class=line><span class=cl>│  │  ┌─────┴──────┐         ┌──────┴─────┐                │ │
+</span></span><span class=line><span class=cl>│  │  │ vsw-app-a  │         │ vsw-app-b  │  App Tier       │ │
+</span></span><span class=line><span class=cl>│  │  │10.0.10.0/24│         │10.0.11.0/24│                 │ │
+</span></span><span class=line><span class=cl>│  │  │  ┌─────┐   │         │            │                 │ │
+</span></span><span class=line><span class=cl>│  │  │  │ ECS │   │         │            │                 │ │
+</span></span><span class=line><span class=cl>│  │  └──┴─────┴───┘         └────────────┘                 │ │
+</span></span><span class=line><span class=cl>│  │        │                       │                        │ │
+</span></span><span class=line><span class=cl>│  │  ┌─────┴──────┐         ┌──────┴─────┐                │ │
+</span></span><span class=line><span class=cl>│  │  │ vsw-data-a │         │ vsw-data-b │  Data Tier      │ │
+</span></span><span class=line><span class=cl>│  │  │10.0.20.0/24│         │10.0.21.0/24│                 │ │
+</span></span><span class=line><span class=cl>│  │  │  ┌─────┐   │         │  ┌─────┐   │                │ │
+</span></span><span class=line><span class=cl>│  │  │  │ RDS │◄──┼─────────┼──│ RDS │   │                │ │
+</span></span><span class=line><span class=cl>│  │  │  │(pri)│   │         │  │(sec)│   │                 │ │
+</span></span><span class=line><span class=cl>│  │  └──┴─────┴───┘         └──┴─────┴───┘                 │ │
+</span></span><span class=line><span class=cl>│  └─────────────────────────────────────────────────────────┘ │
+</span></span><span class=line><span class=cl>│                                                             │
+</span></span><span class=line><span class=cl>│  ┌─── OSS ───┐  ┌── RAM ──┐  ┌── SLS ──┐  ┌──── FC ────┐  │
+</span></span><span class=line><span class=cl>│  │  Media    │  │ Users   │  │ Logs    │  │ Event      │  │
+</span></span><span class=line><span class=cl>│  │  Storage  │  │ Roles   │  │ Alerts  │  │ Processing │  │
+</span></span><span class=line><span class=cl>│  │  CDN      │  │ Policies│  │ Dashb.  │  │ OSS Trigger│  │
+</span></span><span class=line><span class=cl>│  └───────────┘  └─────────┘  └─────────┘  └────────────┘  │
+</span></span><span class=line><span class=cl>└─────────────────────────────────────────────────────────────┘
+</span></span></code></pre></td></tr></table></div></div><p>资源及其构建出处：</p><table><thead><tr><th>资源</th><th>系列部分</th><th>Terraform 模块</th></tr></thead><tbody><tr><td>VPC, VSwitches, Security Groups, NAT</td><td><a href=/zh/aliyun-fullstack/03-vpc-networking/>第 3 部分：VPC 网络</a></td><td><code>modules/network</code></td></tr><tr><td>ECS 实例, cloud-init, 密钥对</td><td><a href=/zh/aliyun-fullstack/02-ecs-compute/>第 2 部分：ECS 计算</a></td><td><code>modules/compute</code></td></tr><tr><td>RDS MySQL HA, 备份</td><td><a href=/zh/aliyun-fullstack/05-rds-database/>第 5 部分：RDS 数据库</a></td><td><code>modules/database</code></td></tr><tr><td>OSS 存储桶, 生命周期, CORS, CDN</td><td><a href=/zh/aliyun-fullstack/04-oss-storage/>第 4 部分：OSS 存储</a></td><td><code>modules/storage</code></td></tr><tr><td>RAM 用户, 角色, 策略, KMS</td><td><a href=/zh/aliyun-fullstack/06-ram-security/>第 6 部分：RAM 安全</a></td><td><code>modules/security</code></td></tr><tr><td>SLS 项目, 日志存储, 警报</td><td><a href=/zh/aliyun-fullstack/07-sls-observability/>第 7 部分：SLS 可观测性</a></td><td><code>modules/monitoring</code></td></tr><tr><td>Function Compute, OSS 触发器</td><td><a href=/zh/aliyun-fullstack/08-serverless/>第 8 部分：无服务器</a></td><td><code>modules/serverless</code></td></tr></tbody></table><p>对于 <a href=/zh/aliyun-fullstack/10-bailian-llm/>Part 10</a>
 和 <a href=/zh/aliyun-fullstack/11-pai-ml-platform/>Part 11</a>
-中涵盖的 LLM 和 ML 部署， Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 支持的边界所在。</p><h2 id=项目结构 class=heading-anchor>项目结构<a href=#%e9%a1%b9%e7%9b%ae%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>一个组织良好的 Terraform 项目，直接决定该代码库能否被团队长期维护，还是在数月内沦为‘不可触碰、仅能侥幸运行’的技术债务。结构如下：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_layout.png alt="Terraform 模块布局" loading=lazy decoding=async class=content-image></figure></p><pre tabindex=0><code>aliyun-fullstack-terraform/
-├── main.tf                    # Root module: composes all child modules
-├── variables.tf               # Input variables for the root module
-├── outputs.tf                 # Output values (IPs, endpoints, etc.)
-├── versions.tf                # Provider and Terraform version constraints
-├── backend.tf                 # Remote state configuration (OSS)
-├── terraform.tfvars           # Variable values (gitignored)
-├── terraform.tfvars.example   # Example variable values (committed)
-│
-├── modules/
-│   ├── network/
-│   │   ├── main.tf            # VPC, VSwitches, Security Groups, NAT
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   ├── compute/
-│   │   ├── main.tf            # ECS, cloud-init, key pair
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   └── cloud-init.yaml    # Cloud-init template
-│   │
-│   ├── database/
-│   │   ├── main.tf            # RDS MySQL HA
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   ├── storage/
-│   │   ├── main.tf            # OSS, lifecycle, CORS
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   ├── security/
-│   │   ├── main.tf            # RAM users, roles, policies, KMS
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   ├── monitoring/
-│   │   ├── main.tf            # SLS project, logstore, alerts
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   └── serverless/
-│       ├── main.tf            # Function Compute, triggers
-│       ├── variables.tf
-│       ├── outputs.tf
-│       └── functions/         # Function source code
-│           └── image-resize/
-│               └── index.py
-│
-├── environments/
-│   ├── dev.tfvars             # Dev environment overrides
-│   ├── staging.tfvars         # Staging environment overrides
-│   └── prod.tfvars            # Production environment overrides
-│
-└── .github/
-    └── workflows/
-        └── terraform.yml      # CI/CD pipeline
-</code></pre><p>该结构设计的关键决策包括：</p><ul><li><strong>一个根模块，多个子模块。</strong> 每个子模块都是自包含且可复用的。你可以在不同项目中使用 <code>modules/network</code>，而不必拖着 database 模块一起。</li><li><strong>通过 <code>.tfvars</code> 文件隔离环境。</strong> 既不采用独立目录，也不使用 Terraform Workspace——后者因共享同一 state backend，存在并发冲突风险。只是不同的变量文件：<code>terraform apply -var-file=environments/prod.tfvars</code>。</li><li><strong>每个环境独立状态。</strong> 每个环境在单独的 OSS 路径下拥有自己的 state file。我们在 backend 中配置这一点。</li><li><strong>密钥不进版本控制。</strong> <code>terraform.tfvars</code> 被 gitignored。<code>terraform.tfvars.example</code> 展示结构但不含值。</li></ul><h2 id=配置-provider-和-state class=heading-anchor>配置 Provider 和 State<a href=#%e9%85%8d%e7%bd%ae-provider-%e5%92%8c-state class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>动手写模块代码前，有两件事得先安排好：阿里云 Provider 配置和远程 State 后端。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_state_management.png alt="Terraform 状态管理流程" loading=lazy decoding=async class=content-image></figure></p><h3 id=versionstf class=heading-anchor>versions.tf<a href=#versionstf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+中涵盖的 LLM 和 ML 部署， Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 支持的边界所在。</p><h2 id=项目结构 class=heading-anchor>项目结构<a href=#%e9%a1%b9%e7%9b%ae%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>一个组织良好的 Terraform 项目，直接决定该代码库能否被团队长期维护，还是在数月内沦为‘不可触碰、仅能侥幸运行’的技术债务。结构如下：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_layout.png alt="Terraform 模块布局" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>aliyun-fullstack-terraform/
+</span></span><span class=line><span class=cl>├── main.tf                    # Root module: composes all child modules
+</span></span><span class=line><span class=cl>├── variables.tf               # Input variables for the root module
+</span></span><span class=line><span class=cl>├── outputs.tf                 # Output values (IPs, endpoints, etc.)
+</span></span><span class=line><span class=cl>├── versions.tf                # Provider and Terraform version constraints
+</span></span><span class=line><span class=cl>├── backend.tf                 # Remote state configuration (OSS)
+</span></span><span class=line><span class=cl>├── terraform.tfvars           # Variable values (gitignored)
+</span></span><span class=line><span class=cl>├── terraform.tfvars.example   # Example variable values (committed)
+</span></span><span class=line><span class=cl>│
+</span></span><span class=line><span class=cl>├── modules/
+</span></span><span class=line><span class=cl>│   ├── network/
+</span></span><span class=line><span class=cl>│   │   ├── main.tf            # VPC, VSwitches, Security Groups, NAT
+</span></span><span class=line><span class=cl>│   │   ├── variables.tf
+</span></span><span class=line><span class=cl>│   │   └── outputs.tf
+</span></span><span class=line><span class=cl>│   │
+</span></span><span class=line><span class=cl>│   ├── compute/
+</span></span><span class=line><span class=cl>│   │   ├── main.tf            # ECS, cloud-init, key pair
+</span></span><span class=line><span class=cl>│   │   ├── variables.tf
+</span></span><span class=line><span class=cl>│   │   ├── outputs.tf
+</span></span><span class=line><span class=cl>│   │   └── cloud-init.yaml    # Cloud-init template
+</span></span><span class=line><span class=cl>│   │
+</span></span><span class=line><span class=cl>│   ├── database/
+</span></span><span class=line><span class=cl>│   │   ├── main.tf            # RDS MySQL HA
+</span></span><span class=line><span class=cl>│   │   ├── variables.tf
+</span></span><span class=line><span class=cl>│   │   └── outputs.tf
+</span></span><span class=line><span class=cl>│   │
+</span></span><span class=line><span class=cl>│   ├── storage/
+</span></span><span class=line><span class=cl>│   │   ├── main.tf            # OSS, lifecycle, CORS
+</span></span><span class=line><span class=cl>│   │   ├── variables.tf
+</span></span><span class=line><span class=cl>│   │   └── outputs.tf
+</span></span><span class=line><span class=cl>│   │
+</span></span><span class=line><span class=cl>│   ├── security/
+</span></span><span class=line><span class=cl>│   │   ├── main.tf            # RAM users, roles, policies, KMS
+</span></span><span class=line><span class=cl>│   │   ├── variables.tf
+</span></span><span class=line><span class=cl>│   │   └── outputs.tf
+</span></span><span class=line><span class=cl>│   │
+</span></span><span class=line><span class=cl>│   ├── monitoring/
+</span></span><span class=line><span class=cl>│   │   ├── main.tf            # SLS project, logstore, alerts
+</span></span><span class=line><span class=cl>│   │   ├── variables.tf
+</span></span><span class=line><span class=cl>│   │   └── outputs.tf
+</span></span><span class=line><span class=cl>│   │
+</span></span><span class=line><span class=cl>│   └── serverless/
+</span></span><span class=line><span class=cl>│       ├── main.tf            # Function Compute, triggers
+</span></span><span class=line><span class=cl>│       ├── variables.tf
+</span></span><span class=line><span class=cl>│       ├── outputs.tf
+</span></span><span class=line><span class=cl>│       └── functions/         # Function source code
+</span></span><span class=line><span class=cl>│           └── image-resize/
+</span></span><span class=line><span class=cl>│               └── index.py
+</span></span><span class=line><span class=cl>│
+</span></span><span class=line><span class=cl>├── environments/
+</span></span><span class=line><span class=cl>│   ├── dev.tfvars             # Dev environment overrides
+</span></span><span class=line><span class=cl>│   ├── staging.tfvars         # Staging environment overrides
+</span></span><span class=line><span class=cl>│   └── prod.tfvars            # Production environment overrides
+</span></span><span class=line><span class=cl>│
+</span></span><span class=line><span class=cl>└── .github/
+</span></span><span class=line><span class=cl>    └── workflows/
+</span></span><span class=line><span class=cl>        └── terraform.yml      # CI/CD pipeline
+</span></span></code></pre></td></tr></table></div></div><p>该结构设计的关键决策包括：</p><ul><li><strong>一个根模块，多个子模块。</strong> 每个子模块都是自包含且可复用的。你可以在不同项目中使用 <code>modules/network</code>，而不必拖着 database 模块一起。</li><li><strong>通过 <code>.tfvars</code> 文件隔离环境。</strong> 既不采用独立目录，也不使用 Terraform Workspace——后者因共享同一 state backend，存在并发冲突风险。只是不同的变量文件：<code>terraform apply -var-file=environments/prod.tfvars</code>。</li><li><strong>每个环境独立状态。</strong> 每个环境在单独的 OSS 路径下拥有自己的 state file。我们在 backend 中配置这一点。</li><li><strong>密钥不进版本控制。</strong> <code>terraform.tfvars</code> 被 gitignored。<code>terraform.tfvars.example</code> 展示结构但不含值。</li></ul><h2 id=配置-provider-和-state class=heading-anchor>配置 Provider 和 State<a href=#%e9%85%8d%e7%bd%ae-provider-%e5%92%8c-state class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>动手写模块代码前，有两件事得先安排好：阿里云 Provider 配置和远程 State 后端。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_state_management.png alt="Terraform 状态管理流程" loading=lazy decoding=async class=content-image></figure></p><h3 id=versionstf class=heading-anchor>versions.tf<a href=#versionstf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -2783,14 +2872,21 @@
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Connect to your server</span>
 </span></span><span class=line><span class=cl><span class=k>$(</span>terraform output -raw ssh_command<span class=k>)</span>
-</span></span></code></pre></td></tr></table></div></div><p><code>terraform plan</code> 的输出会在你真正提交之前展示所有即将创建的资源。这是 Terraform 最核心的功能——你永远知道接下来会发生什么。根据我的经验，大概每三次计划执行就有一次能 catch 住我没意图的操作，避免把资源创错可用区、开错端口或者选错实例规格。</p><p>我们这套全栈架构的典型 plan 输出长这样：</p><pre tabindex=0><code>Plan: 42 to add, 0 to change, 0 to destroy.
-
-Changes to Outputs:
-  + app_public_ip       = (known after apply)
-  + oss_bucket          = (known after apply)
-  + rds_endpoint        = (known after apply)
-  + ssh_command          = (known after apply)
-</code></pre><p>一条命令搞定四十二个资源。这就是基础设施即代码的威力。</p><h2 id=基于-github-actions-的-cicd class=heading-anchor>基于 GitHub Actions 的 CI/CD<a href=#%e5%9f%ba%e4%ba%8e-github-actions-%e7%9a%84-cicd class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>在自己电脑上手动跑 <code>terraform apply</code> 玩个人项目没问题。但如果是团队协作，你就得自动化了：每次提 PR 都跑 <code>terraform plan</code> 让 Reviewer 看到基础设施的变更差异， PR 合并到 main 分支后自动执行 <code>terraform apply</code>。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_cicd_flow.png alt="基于 GitHub Actions 的 CI/CD 流水线" loading=lazy decoding=async class=content-image></figure></p><h3 id=githubworkflowsterraformyml class=heading-anchor>.github/workflows/terraform.yml<a href=#githubworkflowsterraformyml class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span></span></code></pre></td></tr></table></div></div><p><code>terraform plan</code> 的输出会在你真正提交之前展示所有即将创建的资源。这是 Terraform 最核心的功能——你永远知道接下来会发生什么。根据我的经验，大概每三次计划执行就有一次能 catch 住我没意图的操作，避免把资源创错可用区、开错端口或者选错实例规格。</p><p>我们这套全栈架构的典型 plan 输出长这样：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Plan: 42 to add, 0 to change, 0 to destroy.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Changes to Outputs:
+</span></span><span class=line><span class=cl>  + app_public_ip       = (known after apply)
+</span></span><span class=line><span class=cl>  + oss_bucket          = (known after apply)
+</span></span><span class=line><span class=cl>  + rds_endpoint        = (known after apply)
+</span></span><span class=line><span class=cl>  + ssh_command          = (known after apply)
+</span></span></code></pre></td></tr></table></div></div><p>一条命令搞定四十二个资源。这就是基础设施即代码的威力。</p><h2 id=基于-github-actions-的-cicd class=heading-anchor>基于 GitHub Actions 的 CI/CD<a href=#%e5%9f%ba%e4%ba%8e-github-actions-%e7%9a%84-cicd class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>在自己电脑上手动跑 <code>terraform apply</code> 玩个人项目没问题。但如果是团队协作，你就得自动化了：每次提 PR 都跑 <code>terraform plan</code> 让 Reviewer 看到基础设施的变更差异， PR 合并到 main 分支后自动执行 <code>terraform apply</code>。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_cicd_flow.png alt="基于 GitHub Actions 的 CI/CD 流水线" loading=lazy decoding=async class=content-image></figure></p><h3 id=githubworkflowsterraformyml class=heading-anchor>.github/workflows/terraform.yml<a href=#githubworkflowsterraformyml class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
 </span><span class=lnt>  2
 </span><span class=lnt>  3
 </span><span class=lnt>  4
@@ -3026,45 +3122,83 @@ Changes to Outputs:
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># 生成成本明细</span>
 </span></span><span class=line><span class=cl>infracost breakdown --path<span class=o>=</span>. --terraform-var-file<span class=o>=</span>environments/prod.tfvars
-</span></span></code></pre></td></tr></table></div></div><p>这是我们全栈方案的典型输出：</p><pre tabindex=0><code>Project: aliyun-fullstack-terraform
-
- Name                                     Monthly Qty  Unit         Monthly Cost
-
- module.compute.alicloud_instance.app
- ├─ Instance (ecs.g7.large, linux)            730  hours           $86.14
- └─ System disk (cloud_essd, 40GB)             40  GB               $4.00
-
- module.database.alicloud_db_instance.primary
- ├─ Instance (rds.mysql.s2.large)             730  hours          $142.35
- └─ Storage (cloud_essd, 50GB)                 50  GB               $8.50
-
- module.database.alicloud_db_readonly_instance.replica
- ├─ Instance (rds.mysql.s2.large)             730  hours          $142.35
- └─ Storage (cloud_essd, 50GB)                 50  GB               $8.50
-
- module.network.alicloud_nat_gateway.main
- └─ NAT Gateway (Enhanced)                   730  hours           $13.14
-
- module.network.alicloud_eip_address.nat
- └─ EIP (PayByTraffic)                         1  month            $3.36
-
- module.compute.alicloud_eip_address.app
- └─ EIP (PayByTraffic)                         1  month            $3.36
-
- module.storage.alicloud_oss_bucket.media
- └─ Standard storage                          50  GB               $1.20
-    (estimate, actual varies with usage)
-
- module.monitoring.alicloud_log_project.main
- └─ SLS (estimate)                             1  month            $0.00
-    (free tier covers most dev/small prod usage)
-
- module.serverless.alicloud_fc_function.image_resize
- └─ Function Compute                          1  month            $0.00
-    (free tier: 1M requests + 400K GB-s/month)
-
- OVERALL TOTAL                                                   $412.90
-</code></pre><h3 id=优化策略 class=heading-anchor>优化策略<a href=#%e4%bc%98%e5%8c%96%e7%ad%96%e7%95%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>云厂商的省钱套路都差不多，但 Terraform 让落地变得简单：你只需要改代码里的参数，不用在控制台里点点点。</p><p><strong>1. 非核心负载使用抢占式（Spot）实例。</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p>这是我们全栈方案的典型输出：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Project: aliyun-fullstack-terraform
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> Name                                     Monthly Qty  Unit         Monthly Cost
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.compute.alicloud_instance.app
+</span></span><span class=line><span class=cl> ├─ Instance (ecs.g7.large, linux)            730  hours           $86.14
+</span></span><span class=line><span class=cl> └─ System disk (cloud_essd, 40GB)             40  GB               $4.00
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.database.alicloud_db_instance.primary
+</span></span><span class=line><span class=cl> ├─ Instance (rds.mysql.s2.large)             730  hours          $142.35
+</span></span><span class=line><span class=cl> └─ Storage (cloud_essd, 50GB)                 50  GB               $8.50
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.database.alicloud_db_readonly_instance.replica
+</span></span><span class=line><span class=cl> ├─ Instance (rds.mysql.s2.large)             730  hours          $142.35
+</span></span><span class=line><span class=cl> └─ Storage (cloud_essd, 50GB)                 50  GB               $8.50
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.network.alicloud_nat_gateway.main
+</span></span><span class=line><span class=cl> └─ NAT Gateway (Enhanced)                   730  hours           $13.14
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.network.alicloud_eip_address.nat
+</span></span><span class=line><span class=cl> └─ EIP (PayByTraffic)                         1  month            $3.36
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.compute.alicloud_eip_address.app
+</span></span><span class=line><span class=cl> └─ EIP (PayByTraffic)                         1  month            $3.36
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.storage.alicloud_oss_bucket.media
+</span></span><span class=line><span class=cl> └─ Standard storage                          50  GB               $1.20
+</span></span><span class=line><span class=cl>    (estimate, actual varies with usage)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.monitoring.alicloud_log_project.main
+</span></span><span class=line><span class=cl> └─ SLS (estimate)                             1  month            $0.00
+</span></span><span class=line><span class=cl>    (free tier covers most dev/small prod usage)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> module.serverless.alicloud_fc_function.image_resize
+</span></span><span class=line><span class=cl> └─ Function Compute                          1  month            $0.00
+</span></span><span class=line><span class=cl>    (free tier: 1M requests + 400K GB-s/month)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl> OVERALL TOTAL                                                   $412.90
+</span></span></code></pre></td></tr></table></div></div><h3 id=优化策略 class=heading-anchor>优化策略<a href=#%e4%bc%98%e5%8c%96%e7%ad%96%e7%95%a5 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>云厂商的省钱套路都差不多，但 Terraform 让落地变得简单：你只需要改代码里的参数，不用在控制台里点点点。</p><p><strong>1. 非核心负载使用抢占式（Spot）实例。</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -3178,5 +3312,5 @@ Changes to Outputs:
 <span class=chapter-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=chapter-num>10</span>
 <span class=chapter-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=chapter-num>11</span>
 <span class=chapter-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>12</span>
-<span class=chapter-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>50 min</strong></div><div class=row><span>字数</span><strong>12043</strong></div><div class=row><span>写于</span><strong>May 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>50 min</strong></div><div class=row><span>字数</span><strong>12177</strong></div><div class=row><span>写于</span><strong>May 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

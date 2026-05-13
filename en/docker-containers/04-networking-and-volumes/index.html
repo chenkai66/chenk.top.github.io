@@ -20,16 +20,21 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Docker and Containers</a>
 · Chapter 4</div><h1>Docker and Containers (4): Networking and Volumes — How Containers Talk and Persist</h1><p class=deck>Containers are ephemeral by default — they lose data when deleted and run in isolated networks. Volumes and networks are the two mechanisms that connect containers to the persistent, communicating world.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2023-06-19>June 19, 2023</time> · 28 min read · 2792 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/networking/ class=tag>#Networking</a><a href=/en/tags/volumes/ class=tag>#Volumes</a><a href=/en/tags/storage/ class=tag>#Storage</a></div><a class="pill pill-outline" href=/zh/docker-containers/04-networking-and-volumes/>阅读中文版 →</a></div></header><div class=prose><p>Containers are deliberately isolated. That&rsquo;s the point. But useful applications need to accept connections from the outside world, talk to databases, and store data that survives container restarts. Docker provides two mechanisms for this: networks (for communication) and volumes (for persistent storage). Getting these right makes the difference between a demo and a deployment.</p><h2 id=docker-networking class=heading-anchor>Docker Networking<a href=#docker-networking class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When Docker starts, it creates a virtual network infrastructure on the host. Each container gets its own network namespace (with its own IP address, routing table, and network interfaces), and Docker manages the traffic flow between containers and the outside world.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png alt="Container DNS resolution" loading=lazy decoding=async class=content-image></figure></p><h3 id=network-drivers class=heading-anchor>Network Drivers<a href=#network-drivers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Docker supports several network drivers, each suited to different use cases:</p><table><thead><tr><th>Driver</th><th>Description</th><th>Use Case</th><th>Container Communication</th></tr></thead><tbody><tr><td><code>bridge</code></td><td>Default. Containers on a private virtual network.</td><td>Single-host applications</td><td>Via IP or DNS (custom bridge only)</td></tr><tr><td><code>host</code></td><td>Container shares the host&rsquo;s network namespace</td><td>Performance-critical, single container</td><td>Container uses host&rsquo;s IP directly</td></tr><tr><td><code>overlay</code></td><td>Multi-host networking via VXLAN</td><td>Docker Swarm, multi-node clusters</td><td>Across physical hosts</td></tr><tr><td><code>none</code></td><td>No networking at all</td><td>Batch processing, security isolation</td><td>None</td></tr><tr><td><code>macvlan</code></td><td>Container gets a MAC address on the physical network</td><td>Legacy apps that need to appear as physical hosts</td><td>Directly on LAN</td></tr><tr><td><code>ipvlan</code></td><td>Like macvlan but shares host&rsquo;s MAC address</td><td>Similar to macvlan, fewer switch issues</td><td>Directly on LAN</td></tr></tbody></table><p>For most single-host use cases, you&rsquo;ll use <strong>bridge</strong> networks. Let&rsquo;s explore the relevant drivers.</p><h3 id=the-default-bridge-network class=heading-anchor>The Default Bridge Network<a href=#the-default-bridge-network class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>When you install Docker, it creates a network called <code>bridge</code> (backed by a Linux bridge device called <code>docker0</code>):</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-bridge-network.png alt="Bridge networking" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2023-06-19>June 19, 2023</time> · 28 min read · 2826 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/docker/ class=tag>#Docker</a><a href=/en/tags/containers/ class=tag>#Containers</a><a href=/en/tags/networking/ class=tag>#Networking</a><a href=/en/tags/volumes/ class=tag>#Volumes</a><a href=/en/tags/storage/ class=tag>#Storage</a></div><a class="pill pill-outline" href=/zh/docker-containers/04-networking-and-volumes/>阅读中文版 →</a></div></header><div class=prose><p>Containers are deliberately isolated. That&rsquo;s the point. But useful applications need to accept connections from the outside world, talk to databases, and store data that survives container restarts. Docker provides two mechanisms for this: networks (for communication) and volumes (for persistent storage). Getting these right makes the difference between a demo and a deployment.</p><h2 id=docker-networking class=heading-anchor>Docker Networking<a href=#docker-networking class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>When Docker starts, it creates a virtual network infrastructure on the host. Each container gets its own network namespace (with its own IP address, routing table, and network interfaces), and Docker manages the traffic flow between containers and the outside world.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png alt="Container DNS resolution" loading=lazy decoding=async class=content-image></figure></p><h3 id=network-drivers class=heading-anchor>Network Drivers<a href=#network-drivers class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>Docker supports several network drivers, each suited to different use cases:</p><table><thead><tr><th>Driver</th><th>Description</th><th>Use Case</th><th>Container Communication</th></tr></thead><tbody><tr><td><code>bridge</code></td><td>Default. Containers on a private virtual network.</td><td>Single-host applications</td><td>Via IP or DNS (custom bridge only)</td></tr><tr><td><code>host</code></td><td>Container shares the host&rsquo;s network namespace</td><td>Performance-critical, single container</td><td>Container uses host&rsquo;s IP directly</td></tr><tr><td><code>overlay</code></td><td>Multi-host networking via VXLAN</td><td>Docker Swarm, multi-node clusters</td><td>Across physical hosts</td></tr><tr><td><code>none</code></td><td>No networking at all</td><td>Batch processing, security isolation</td><td>None</td></tr><tr><td><code>macvlan</code></td><td>Container gets a MAC address on the physical network</td><td>Legacy apps that need to appear as physical hosts</td><td>Directly on LAN</td></tr><tr><td><code>ipvlan</code></td><td>Like macvlan but shares host&rsquo;s MAC address</td><td>Similar to macvlan, fewer switch issues</td><td>Directly on LAN</td></tr></tbody></table><p>For most single-host use cases, you&rsquo;ll use <strong>bridge</strong> networks. Let&rsquo;s explore the relevant drivers.</p><h3 id=the-default-bridge-network class=heading-anchor>The Default Bridge Network<a href=#the-default-bridge-network class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>When you install Docker, it creates a network called <code>bridge</code> (backed by a Linux bridge device called <code>docker0</code>):</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-bridge-network.png alt="Bridge networking" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker network ls
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>NETWORK ID     NAME      DRIVER    SCOPE
-a1b2c3d4e5f6   bridge    bridge    local
-b2c3d4e5f6a7   host      host      local
-c3d4e5f6a7b8   none      null      local
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>NETWORK ID     NAME      DRIVER    SCOPE
+</span></span><span class=line><span class=cl>a1b2c3d4e5f6   bridge    bridge    local
+</span></span><span class=line><span class=cl>b2c3d4e5f6a7   host      host      local
+</span></span><span class=line><span class=cl>c3d4e5f6a7b8   none      null      local
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker network inspect bridge --format <span class=s1>&#39;{{range .IPAM.Config}}{{.Subnet}}{{end}}&#39;</span>
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>172.17.0.0/16
-</code></pre><p>Every container that doesn&rsquo;t specify a network joins the default bridge. Let&rsquo;s see it in action:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>172.17.0.0/16
+</span></span></code></pre></td></tr></table></div></div><p>Every container that doesn&rsquo;t specify a network joins the default bridge. Let&rsquo;s see it in action:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -55,10 +60,13 @@ c3d4e5f6a7b8   none      null      local
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># They can reach each other by IP</span>
 </span></span><span class=line><span class=cl>docker <span class=nb>exec</span> container-a ping -c <span class=m>2</span> 172.17.0.3
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>PING 172.17.0.3 (172.17.0.3): 56 data bytes
-64 bytes from 172.17.0.3: seq=0 ttl=64 time=0.108 ms
-64 bytes from 172.17.0.3: seq=1 ttl=64 time=0.090 ms
-</code></pre><p>But DNS doesn&rsquo;t work on the default bridge:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>PING 172.17.0.3 (172.17.0.3): 56 data bytes
+</span></span><span class=line><span class=cl>64 bytes from 172.17.0.3: seq=0 ttl=64 time=0.108 ms
+</span></span><span class=line><span class=cl>64 bytes from 172.17.0.3: seq=1 ttl=64 time=0.090 ms
+</span></span></code></pre></td></tr></table></div></div><p>But DNS doesn&rsquo;t work on the default bridge:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>docker <span class=nb>exec</span> container-a ping -c <span class=m>2</span> container-b
 </span></span><span class=line><span class=cl><span class=c1># Output: ping: bad address &#39;container-b&#39;</span>
@@ -84,10 +92,13 @@ c3d4e5f6a7b8   none      null      local
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># DNS resolution works</span>
 </span></span><span class=line><span class=cl>docker <span class=nb>exec</span> api ping -c <span class=m>2</span> web
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>PING web (172.18.0.2): 56 data bytes
-64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.065 ms
-64 bytes from 172.18.0.2: seq=1 ttl=64 time=0.078 ms
-</code></pre><p>The container name <code>web</code> resolves to its IP address. This is Docker&rsquo;s built-in DNS server at work. Docker runs an embedded DNS server at <code>127.0.0.11</code> inside each container on a custom network.</p><p>Custom networks also provide isolation — containers on different networks can&rsquo;t communicate unless explicitly connected.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>PING web (172.18.0.2): 56 data bytes
+</span></span><span class=line><span class=cl>64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.065 ms
+</span></span><span class=line><span class=cl>64 bytes from 172.18.0.2: seq=1 ttl=64 time=0.078 ms
+</span></span></code></pre></td></tr></table></div></div><p>The container name <code>web</code> resolves to its IP address. This is Docker&rsquo;s built-in DNS server at work. Docker runs an embedded DNS server at <code>127.0.0.11</code> inside each container on a custom network.</p><p>Custom networks also provide isolation — containers on different networks can&rsquo;t communicate unless explicitly connected.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -113,9 +124,11 @@ c3d4e5f6a7b8   none      null      local
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Now it works</span>
 </span></span><span class=line><span class=cl>docker <span class=nb>exec</span> isolated ping -c <span class=m>2</span> web
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>PING web (172.18.0.2): 56 data bytes
-64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.089 ms
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>PING web (172.18.0.2): 56 data bytes
+</span></span><span class=line><span class=cl>64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.089 ms
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Clean up</span>
@@ -261,11 +274,15 @@ c3d4e5f6a7b8   none      null      local
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># List all volumes</span>
 </span></span><span class=line><span class=cl>docker volume ls
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>DRIVER    VOLUME NAME
-local     app-data
-local     postgres-data
-local     redis-data
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>DRIVER    VOLUME NAME
+</span></span><span class=line><span class=cl>local     app-data
+</span></span><span class=line><span class=cl>local     postgres-data
+</span></span><span class=line><span class=cl>local     redis-data
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Inspect a volume</span>
 </span></span><span class=line><span class=cl>docker volume inspect app-data
@@ -377,8 +394,9 @@ local     redis-data
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Wait for MySQL to start (check logs)</span>
 </span></span><span class=line><span class=cl>docker logs -f mysql-server 2&gt;<span class=p>&amp;</span><span class=m>1</span> <span class=p>|</span> grep -m <span class=m>1</span> <span class=s2>&#34;ready for connections&#34;</span>
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>2023-09-22T10:05:23.456789Z 0 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: &#39;8.0.34&#39;  socket: &#39;/var/run/mysqld/mysqld.sock&#39;  port: 3306  MySQL Community Server - GPL.
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>2023-09-22T10:05:23.456789Z 0 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: &#39;8.0.34&#39;  socket: &#39;/var/run/mysqld/mysqld.sock&#39;  port: 3306  MySQL Community Server - GPL.
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
@@ -390,14 +408,21 @@ local     redis-data
 </span></span></span><span class=line><span class=cl><span class=s2>INSERT INTO users (name) VALUES (&#39;Alice&#39;), (&#39;Bob&#39;), (&#39;Charlie&#39;);
 </span></span></span><span class=line><span class=cl><span class=s2>SELECT * FROM users;
 </span></span></span><span class=line><span class=cl><span class=s2>&#34;</span>
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>+----+---------+
-| id | name    |
-+----+---------+
-|  1 | Alice   |
-|  2 | Bob     |
-|  3 | Charlie |
-+----+---------+
-</code></pre><p>Now, simulate a disaster — delete and recreate the container:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>+----+---------+
+</span></span><span class=line><span class=cl>| id | name    |
+</span></span><span class=line><span class=cl>+----+---------+
+</span></span><span class=line><span class=cl>|  1 | Alice   |
+</span></span><span class=line><span class=cl>|  2 | Bob     |
+</span></span><span class=line><span class=cl>|  3 | Charlie |
+</span></span><span class=line><span class=cl>+----+---------+
+</span></span></code></pre></td></tr></table></div></div><p>Now, simulate a disaster — delete and recreate the container:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -425,14 +450,21 @@ local     redis-data
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=c1># Wait for startup, then check data</span>
 </span></span><span class=line><span class=cl>docker <span class=nb>exec</span> -it mysql-server mysql -u appuser -papppass myapp -e <span class=s2>&#34;SELECT * FROM users;&#34;</span>
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>+----+---------+
-| id | name    |
-+----+---------+
-|  1 | Alice   |
-|  2 | Bob     |
-|  3 | Charlie |
-+----+---------+
-</code></pre><p>Data survived. The volume (<code>mysql-data</code>) exists independently of the container. You can delete and recreate containers freely as long as you mount the same volume.</p><h3 id=volume-backup-and-restore class=heading-anchor>Volume Backup and Restore<a href=#volume-backup-and-restore class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>+----+---------+
+</span></span><span class=line><span class=cl>| id | name    |
+</span></span><span class=line><span class=cl>+----+---------+
+</span></span><span class=line><span class=cl>|  1 | Alice   |
+</span></span><span class=line><span class=cl>|  2 | Bob     |
+</span></span><span class=line><span class=cl>|  3 | Charlie |
+</span></span><span class=line><span class=cl>+----+---------+
+</span></span></code></pre></td></tr></table></div></div><p>Data survived. The volume (<code>mysql-data</code>) exists independently of the container. You can delete and recreate containers freely as long as you mount the same volume.</p><h3 id=volume-backup-and-restore class=heading-anchor>Volume Backup and Restore<a href=#volume-backup-and-restore class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -548,9 +580,11 @@ local     redis-data
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># See all port mappings for a container</span>
 </span></span><span class=line><span class=cl>docker port my-container
-</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>80/tcp -&gt; 0.0.0.0:8080
-443/tcp -&gt; 0.0.0.0:8443
-</code></pre><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>80/tcp -&gt; 0.0.0.0:8080
+</span></span><span class=line><span class=cl>443/tcp -&gt; 0.0.0.0:8443
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># See network settings for a container</span>
 </span></span><span class=line><span class=cl>docker inspect my-container --format <span class=s1>&#39;{{json .NetworkSettings.Networks}}&#39;</span> <span class=p>|</span> python3 -m json.tool
@@ -630,5 +664,5 @@ local     redis-data
 <span class=chapter-title>Docker and Containers (5): Docker Compose — Multi-Container Applications</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/06-debugging-and-logging/><span class=chapter-num>06</span>
 <span class=chapter-title>Docker and Containers (6): Debugging and Logging — When Things Go Wrong Inside a Box</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/07-security-and-best-practices/><span class=chapter-num>07</span>
 <span class=chapter-title>Docker and Containers (7): Security — Running Containers Without Giving Away the Keys</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/docker-containers/08-orchestration-preview/><span class=chapter-num>08</span>
-<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2792</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Docker and Containers (8): Beyond Docker — Kubernetes, Swarm, and What Comes Next</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>28 min</strong></div><div class=row><span>Word count</span><strong>2826</strong></div><div class=row><span>Published</span><strong>Jun 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>
