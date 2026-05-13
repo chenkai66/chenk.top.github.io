@@ -34,7 +34,7 @@ translationKey: "ml-math-derivations-9"
 
 - Probability: Bayes' theorem, conditional probability, joint vs. marginal distributions, Gaussian density.
 - Calculus: logarithms, partial derivatives.
-- Familiarity with [Part 8: Support Vector Machines](/en/ml-math-derivations/08-Support-Vector-Machines), especially the discriminative perspective on classification.
+- Familiarity with [Part 8: Support Vector Machines](/en/ml-math-derivations/08-support-vector-machines), especially the discriminative perspective on classification.
 
 ---
 
@@ -491,6 +491,6 @@ When (i) features are heavily correlated *and* the correlation differs across cl
 
 **ML Mathematical Derivations Series**
 
-[< Part 8: Support Vector Machines](/en/ml-math-derivations/08-Support-Vector-Machines) | **Part 9: Naive Bayes** | [Part 10: Semi-Naive Bayes >](/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks)
+[< Part 8: Support Vector Machines](/en/ml-math-derivations/08-support-vector-machines) | **Part 9: Naive Bayes** | [Part 10: Semi-Naive Bayes >](/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks)
 
 </div>

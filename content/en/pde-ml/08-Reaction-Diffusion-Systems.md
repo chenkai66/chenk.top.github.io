@@ -281,10 +281,10 @@ The eight chapters fall into four pairs.
 
 | Pair | Chapters | The PDE in the picture |
 |------|----------|------------------------|
-| Solving PDEs with NNs | [1](/en/pde-ml/01-Physics-Informed-Neural-Networks) PINN, [2](/en/pde-ml/02-Neural-Operator-Theory) Neural Operators | The target equation itself becomes the loss. |
-| Variational view | [3](/en/pde-ml/03-Variational-Principles) Deep Ritz, [4](/en/pde-ml/04-Variational-Inference) VI / Fokker-Planck | Loss $=$ free energy; gradient flow $=$ continuity equation. |
-| Structure-preserving flows | [5](/en/pde-ml/05-Symplectic-Geometry) Symplectic nets, [6](/en/pde-ml/06-Continuous-Normalizing-Flows) Neural ODE / CNF | Network respects the symplectic / volume / divergence structure of the flow. |
-| Generative + graph PDEs | [7](/en/pde-ml/07-Diffusion-Models) Diffusion models, **8** RD + GNN | Forward / reverse Fokker-Planck; reaction-diffusion on graphs. |
+| Solving PDEs with NNs | [1](/en/pde-ml/01-physics-informed-neural-networks) PINN, [2](/en/pde-ml/02-neural-operator-theory) Neural Operators | The target equation itself becomes the loss. |
+| Variational view | [3](/en/pde-ml/03-variational-principles) Deep Ritz, [4](/en/pde-ml/04-variational-inference) VI / Fokker-Planck | Loss $=$ free energy; gradient flow $=$ continuity equation. |
+| Structure-preserving flows | [5](/en/pde-ml/05-symplectic-geometry) Symplectic nets, [6](/en/pde-ml/06-continuous-normalizing-flows) Neural ODE / CNF | Network respects the symplectic / volume / divergence structure of the flow. |
+| Generative + graph PDEs | [7](/en/pde-ml/07-diffusion-models) Diffusion models, **8** RD + GNN | Forward / reverse Fokker-Planck; reaction-diffusion on graphs. |
 
 Underneath every chapter sits one slogan:
 
@@ -352,4 +352,4 @@ The PDE perspective is not the only useful lens on deep learning, but it is unco
 
 ---
 
-*This is Part 8 — the final part — of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Previous: [Part 7 — Diffusion Models and Score Matching](/en/pde-ml/07-Diffusion-Models). Start from the beginning: [Part 1 — Physics-Informed Neural Networks](/en/pde-ml/01-Physics-Informed-Neural-Networks). Thanks for reading.*
+*This is Part 8 — the final part — of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Previous: [Part 7 — Diffusion Models and Score Matching](/en/pde-ml/07-diffusion-models). Start from the beginning: [Part 1 — Physics-Informed Neural Networks](/en/pde-ml/01-physics-informed-neural-networks). Thanks for reading.*

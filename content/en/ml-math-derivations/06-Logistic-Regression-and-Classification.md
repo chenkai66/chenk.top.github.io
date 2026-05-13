@@ -35,7 +35,7 @@ translationKey: "ml-math-derivations-6"
 - Calculus: chain rule, partial derivatives.
 - Linear algebra: matrix multiplication, transpose.
 - Probability: Bernoulli and categorical distributions, likelihood.
-- Familiarity with [Part 5: Linear Regression](/en/ml-math-derivations/05-Linear-Regression).
+- Familiarity with [Part 5: Linear Regression](/en/ml-math-derivations/05-linear-regression).
 
 ---
 
@@ -594,6 +594,6 @@ The Hessian $\nabla^2 \mathcal{L} = \tfrac{1}{N}\mathbf{X}^\top \mathbf{S}\,\mat
 
 **ML Mathematical Derivations Series**
 
-[< Part 5: Linear Regression](/en/ml-math-derivations/05-Linear-Regression) | **Part 6: Logistic Regression** | [Part 7: Decision Trees >](/en/ml-math-derivations/07-Decision-Trees)
+[< Part 5: Linear Regression](/en/ml-math-derivations/05-linear-regression) | **Part 6: Logistic Regression** | [Part 7: Decision Trees >](/en/ml-math-derivations/07-decision-trees)
 
 </div>

@@ -35,7 +35,7 @@ translationKey: "ml-math-derivations-10"
 
 - Joint distributions, conditional independence, mutual information.
 - Spanning trees, dynamic programming on trees.
-- Familiarity with [Part 9: Naive Bayes](/en/ml-math-derivations/09-Naive-Bayes).
+- Familiarity with [Part 9: Naive Bayes](/en/ml-math-derivations/09-naive-bayes).
 
 ---
 
@@ -379,6 +379,6 @@ Modern latent-variable models (VAE, normalising flows, autoregressive models lik
 
 **ML Mathematical Derivations Series**
 
-[< Part 9: Naive Bayes](/en/ml-math-derivations/09-Naive-Bayes) | **Part 10: Semi-Naive Bayes & Bayesian Networks** | [Part 11: Ensemble Learning >](/en/ml-math-derivations/11-Ensemble-Learning)
+[< Part 9: Naive Bayes](/en/ml-math-derivations/09-naive-bayes) | **Part 10: Semi-Naive Bayes & Bayesian Networks** | [Part 11: Ensemble Learning >](/en/ml-math-derivations/11-ensemble-learning)
 
 </div>

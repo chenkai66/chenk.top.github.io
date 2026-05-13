@@ -305,9 +305,9 @@ LSTM 解决了梯度消失问题，靠的是一条加性的**细胞状态通道*
 >
 > - [第 1 篇：传统统计模型](/zh/time-series/01-传统模型/)
 > - **第 2 篇： LSTM —— 门控机制与长期依赖**（当前）
-> - [第 3 篇：GRU —— 轻量门控与效率权衡](/zh/time-series/03-GRU)
-> - [第 4 篇：Attention 机制 —— 直接的长程依赖](/zh/time-series/04-Attention机制)
-> - [第 5 篇：时间序列的 Transformer 架构](/zh/time-series/05-Transformer架构)
-> - [第 6 篇：时序卷积网络 TCN](/zh/time-series/06-时序卷积网络TCN)
-> - [第 7 篇：N-BEATS —— 可解释的深度架构](/zh/time-series/07-N-BEATS深度架构)
-> - [第 8 篇：Informer —— 高效长序列预测](/zh/time-series/08-Informer长序列预测)
+> - [第 3 篇：GRU —— 轻量门控与效率权衡](/zh/time-series/03-gru)
+> - [第 4 篇：Attention 机制 —— 直接的长程依赖](/zh/time-series/04-attention机制)
+> - [第 5 篇：时间序列的 Transformer 架构](/zh/time-series/05-transformer架构)
+> - [第 6 篇：时序卷积网络 TCN](/zh/time-series/06-时序卷积网络tcn)
+> - [第 7 篇：N-BEATS —— 可解释的深度架构](/zh/time-series/07-n-beats深度架构)
+> - [第 8 篇：Informer —— 高效长序列预测](/zh/time-series/08-informer长序列预测)

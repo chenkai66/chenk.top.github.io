@@ -19,7 +19,7 @@ translationKey: "llm-engineering-1"
 ---
 2017 年的 Transformer 块，到 2026 年仍是所有生产级 LLM 的骨架，但内部组件几乎全部迭代：有的被彻底替换，有的被稀疏化，有的演化为专用模块。本系列教程端到端覆盖现代大语言模型技术栈——架构、训练、推理、检索增强、评估、安全与部署。第一章聚焦该模块本身： 2026 年注意力机制的演进路径、 MoE 如何解耦参数量与计算量（FLOPs），以及 Mamba、 RWKV 等非注意力架构在哪些任务或场景中相较 Transformer 具备优势。
 
-我默认你已经熟悉原始 Transformer 块。如果不熟，[NLP 系列第 4 部分](/zh/nlp/04-注意力机制与Transformer) 里有讲。本章只讲*现在有什么不同*。
+我默认你已经熟悉原始 Transformer 块。如果不熟，[NLP 系列第 4 部分](/zh/nlp/04-注意力机制与transformer) 里有讲。本章只讲*现在有什么不同*。
 
 ![LLM 工程（1）：从 Transformer 到 MoE 的架构 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/01-architectures/illustration_1.png)
 

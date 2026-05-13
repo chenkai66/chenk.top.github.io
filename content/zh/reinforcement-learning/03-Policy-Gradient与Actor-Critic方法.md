@@ -34,7 +34,7 @@ DQN 证明了深度强化学习能够成功解决 Atari 游戏，但其能力存
 - 连续控制的经典算法：**DDPG / TD3 / SAC**
 - 一份基于工业实践的**算法选型指南**
 
-**前置知识**：[第 1 篇](/zh/reinforcement-learning/01-基础与核心概念/)（MDP、价值函数、 TD 学习）和 [第 2 篇](/zh/reinforcement-learning/02-Q-Learning与深度Q网络)（DQN、目标网络、经验回放）。
+**前置知识**：[第 1 篇](/zh/reinforcement-learning/01-基础与核心概念/)（MDP、价值函数、 TD 学习）和 [第 2 篇](/zh/reinforcement-learning/02-q-learning与深度q网络)（DQN、目标网络、经验回放）。
 
 ---
 ## 1. 为什么选择策略梯度？
@@ -414,7 +414,7 @@ SAC 的实用性强，主要得益于三项关键工程设计：
 - **GAE($\lambda$)** 把偏差和方差的权衡简化成了一个可调参数。
 - **DDPG / TD3** 把离策略效率引入连续控制，靠的是确定性策略和 DQN 风格的稳定性技巧。
 - **SAC** 加入熵正则化后，迅速成为连续控制的首选方法。
-- **PPO**（[第 6 篇](/zh/reinforcement-learning/06-PPO与TRPO-信任域策略优化) 的主角）把信任域思想简化成 clipped surrogate，成为业界标配。
+- **PPO**（[第 6 篇](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化) 的主角）把信任域思想简化成 clipped surrogate，成为业界标配。
 
 这些方法全是 **model-free** 的：它们从交互中学习，完全不依赖显式的环境建模。这种通用性是它们的优势，但代价是要消耗数百万样本。
 

@@ -284,4 +284,4 @@ The unifying message: **whenever you need to sample from a high-dimensional, mul
 
 ---
 
-*This is Part 7 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 8 — Reaction-Diffusion Systems and GNN](/en/pde-ml/08-Reaction-Diffusion-Systems). Previous: [Part 6 — Continuous Normalizing Flows](/en/pde-ml/06-Continuous-Normalizing-Flows).*
+*This is Part 7 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 8 — Reaction-Diffusion Systems and GNN](/en/pde-ml/08-reaction-diffusion-systems). Previous: [Part 6 — Continuous Normalizing Flows](/en/pde-ml/06-continuous-normalizing-flows).*
