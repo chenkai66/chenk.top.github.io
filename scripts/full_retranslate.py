@@ -143,30 +143,38 @@ def call(prompt, retries=3):
         try:
             r = requests.post(u,
                 headers={"Authorization": f"Bearer {k}", "Content-Type": "application/json"},
-                json={"model": "qwen-max", "temperature": 0.2,
+                json={"model": "qwen3-max", "temperature": 0.2,
                     "messages": [{"role":"system","content":SYS},{"role":"user","content":prompt}],
-                    "max_tokens": 8192,
+                    "max_tokens": 16000,
                 },
-                timeout=300)
+                timeout=600)
             data = r.json()
             if "error" in data:
                 err = data.get("error", {}).get("message", "?")
                 if "rate" in err.lower():
                     time.sleep(5); continue
-                print(f"  api error: {err[:100]}"); time.sleep(2); continue
+                print(f"  api error: {err[:100]}", flush=True); time.sleep(2); continue
             t = data["choices"][0]["message"]["content"].strip()
             if t.startswith("```"):
                 t = re.sub(r"^```(?:json)?\n?", "", t); t = re.sub(r"\n?```$", "", t)
-            return json.loads(t)
+            # Pre-process: escape unescaped backslashes (LaTeX) before JSON parse
+            # JSON requires \\ but LaTeX writes \frac. We'll fix by escaping backslashes
+            # not followed by a valid JSON escape character.
+            try:
+                return json.loads(t)
+            except json.JSONDecodeError:
+                # Sanitize: replace \X (where X is not a valid JSON escape) with \\X
+                fixed = re.sub(r'\\([^"\\/bfnrtu])', r'\\\\\1', t)
+                return json.loads(fixed)
         except json.JSONDecodeError as e:
-            print(f"  json err: {str(e)[:80]}"); time.sleep(2)
+            print(f"  json err: {str(e)[:80]}", flush=True); time.sleep(2)
         except Exception as e:
-            print(f"  err: {str(e)[:100]}"); time.sleep(2)
+            print(f"  err: {str(e)[:100]}", flush=True); time.sleep(2)
     return None
 
 
-def split_into_chunks(body, max_words=2500):
-    """Split markdown body by H2 boundaries, grouping into chunks ~max_words each."""
+def split_into_chunks(body, max_chars=16000):
+    """Split markdown body by H2 boundaries, each chunk up to max_chars."""
     sections = []
     cur = []
     for line in body.split("\n"):
@@ -176,20 +184,51 @@ def split_into_chunks(body, max_words=2500):
             cur.append(line)
     if cur:
         sections.append("\n".join(cur))
-    # Group sections into chunks
     chunks = []
     cur_chunk = []
-    cur_words = 0
+    cur_size = 0
     for sec in sections:
-        wc = len(sec)  # rough char count as proxy
-        if cur_words + wc > max_words * 4 and cur_chunk:
+        if cur_size + len(sec) > max_chars and cur_chunk:
             chunks.append("\n".join(cur_chunk))
-            cur_chunk = [sec]; cur_words = wc
+            cur_chunk = [sec]; cur_size = len(sec)
         else:
-            cur_chunk.append(sec); cur_words += wc
+            cur_chunk.append(sec); cur_size += len(sec)
     if cur_chunk:
         chunks.append("\n".join(cur_chunk))
     return chunks
+
+
+def mask_preserve(body):
+    """Mask image URLs, link URLs, code blocks with placeholders.
+    Returns (masked_text, placeholders) where placeholders are restored after rewrite."""
+    placeholders = []
+    def stash(m):
+        placeholders.append(m.group(0))
+        return f"§§{len(placeholders)-1}§§"
+
+    # Order matters: code blocks first (they may contain links/urls)
+    masked = re.sub(r"```[\s\S]*?```", stash, body)
+    # Images (full ![alt](url) — entire token preserved including alt to keep it intact)
+    masked = re.sub(r"!\[[^\]]*\]\([^)]+\)", stash, masked)
+    # Markdown link URLs only (preserve URL but allow text rewrite): [text](URL)
+    masked = re.sub(r"\(\s*(/[^)\s]+|https?://[^)\s]+)\s*\)", stash, masked)
+    return masked, placeholders
+
+
+def strip_images_for_context(body):
+    """For EN reference content: strip images entirely (model doesn't need them)
+    and strip code blocks (already in ZH, model just needs prose for semantic anchor)."""
+    body = re.sub(r"```[\s\S]*?```", "[code block]", body)
+    body = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", body)
+    body = re.sub(r"\n\n\n+", "\n\n", body)
+    return body
+
+
+def unmask(text, placeholders):
+    def repl(m):
+        i = int(m.group(1))
+        return placeholders[i] if 0 <= i < len(placeholders) else m.group(0)
+    return re.sub(r"§§(\d+)§§", repl, text)
 
 
 def process_article(zh_path, en_path, ctx):
@@ -203,31 +242,42 @@ def process_article(zh_path, en_path, ctx):
     zh_title = get_field(zh_fm, "title") or "?"
     en_title = get_field(en_fm, "title") or "?"
 
-    # Chunk EN and ZH together by H2 to stay within context
-    en_chunks = split_into_chunks(en_body, max_words=2500)
-    zh_chunks = split_into_chunks(zh_body, max_words=2500)
-    if len(en_chunks) != len(zh_chunks):
-        # Fallback: process whole thing as one chunk
-        en_chunks = [en_body]; zh_chunks = [zh_body]
+    # Mask ZH (only the ZH version's placeholders matter for restoration)
+    zh_masked, zh_placeholders = mask_preserve(zh_body)
+    # EN is just for semantic context — strip images, code, etc.
+    en_clean = strip_images_for_context(en_body)
+
+    total_size = len(en_clean) + len(zh_masked)
+    if total_size < 50000:
+        en_chunks = [en_clean]; zh_chunks = [zh_masked]
+    else:
+        en_chunks = split_into_chunks(en_clean, max_chars=16000)
+        zh_chunks = split_into_chunks(zh_masked, max_chars=16000)
+        if len(en_chunks) != len(zh_chunks):
+            n = max(1, min(len(en_chunks), len(zh_chunks)))
+            en_chunks = split_into_chunks(en_clean, max_chars=len(en_clean)//n + 100)
+            zh_chunks = split_into_chunks(zh_masked, max_chars=len(zh_masked)//n + 100)
+        if len(en_chunks) != len(zh_chunks):
+            return False, f"chunk count mismatch {len(en_chunks)} vs {len(zh_chunks)}"
 
     series_titles = "\n".join(
-        f"  EN: {a['order']}. {a['title']}" for a in ctx['en_articles']
-    ) + "\n\n" + "\n".join(
-        f"  ZH: {a['order']}. {a['title']}" for a in ctx['zh_articles']
+        f"  {a['order']}. EN: {a['title']}" for a in ctx['en_articles']
+    ) + "\n" + "\n".join(
+        f"  {a['order']}. ZH: {a['title']}" for a in ctx['zh_articles']
     )
 
     new_chunks = []
     for i, (en_chunk, zh_chunk) in enumerate(zip(en_chunks, zh_chunks)):
         prompt = f"""## 系列上下文
 
-系列：{ctx['series_zh']} ({ctx['series_en']})
+系列：{ctx['series_zh']} / {ctx['series_en']}
 本文 EN 标题：{en_title}
 本文 ZH 标题：{zh_title}
 
 系列内所有文章：
 {series_titles}
 
-## 本文英文版（语义权威）
+## 本文英文版（仅供语义参考，已剥离图片/代码）
 
 {en_chunk}
 
@@ -235,16 +285,35 @@ def process_article(zh_path, en_path, ctx):
 
 {zh_chunk}
 
-请输出改写后的中文版。"""
+请输出改写后的中文版（仅本部分）。
+
+**关键规则**（违反则输出无效）：
+- 所有 §§数字§§ 形式的占位符必须**原封不动**保留在输出中（包括相对位置）—— 这些占位符在后处理时会被替换回原始的图片、链接、代码块
+- 不要在输出中创造任何 ![alt](url) 形式的新图片标签
+- 不要在输出中创造任何 ```...``` 形式的代码块
+- 输出仅基于"本文当前中文版"改写，**不要**直接抄写英文版的图片/链接/代码"""
         result = call(prompt)
         if not result or "rewritten" not in result:
-            return False, f"chunk {i} failed"
-        new_chunks.append(result["rewritten"].strip())
+            return False, f"chunk {i+1}/{len(en_chunks)} failed"
+        rewritten_masked = result["rewritten"].strip()
+        # Verify all placeholders survived
+        original_placeholders = set(re.findall(r"§§(\d+)§§", zh_chunk))
+        rewritten_placeholders = set(re.findall(r"§§(\d+)§§", rewritten_masked))
+        if original_placeholders - rewritten_placeholders:
+            missing = original_placeholders - rewritten_placeholders
+            return False, f"chunk {i+1}: placeholders dropped ({list(missing)[:3]})"
+        # Verify no fresh image/code tokens slipped in
+        if re.search(r"!\[[^\]]*\]\([^)]+\)", rewritten_masked):
+            return False, f"chunk {i+1}: fresh image markdown injected"
+        if "```" in rewritten_masked:
+            return False, f"chunk {i+1}: fresh code fence injected"
+        new_chunks.append(rewritten_masked)
 
-    new_body = "\n\n".join(new_chunks)
+    new_body_masked = "\n\n".join(new_chunks)
+    # Restore placeholders globally
+    new_body = unmask(new_body_masked, zh_placeholders)
     new_full = "---" + zh_fm + "---\n" + new_body + ("\n" if not new_body.endswith("\n") else "")
-    # Sanity check: rough length should be similar
-    if len(new_body) < len(zh_body) * 0.4 or len(new_body) > len(zh_body) * 2.5:
+    if len(new_body) < len(zh_body) * 0.4 or len(new_body) > len(zh_body) * 3.0:
         return False, f"length anomaly (old={len(zh_body)} new={len(new_body)})"
 
     with open(zh_path, "w") as f:
