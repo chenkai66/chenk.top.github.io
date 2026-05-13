@@ -36,8 +36,7 @@ translationKey: "python-engineering-1"
 | 系统工具依赖系统 Python | Ubuntu 的 `apt` 在内部使用系统 Python |
 
 建议采用以下三层协同架构：
-
-1. **pyenv**：管理多个 Python 版本（并行安装 3.9、 3.10、 3.11 等）
+1. **pyenv**：管理多个 Python 版本（如并行安装 3.9、3.10、3.11 等）
 2. **venv**：为每个项目隔离依赖
 3. **pip-tools** 或 **Poetry**：精确锁定版本，保障可复现性
 

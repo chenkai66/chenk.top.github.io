@@ -18,9 +18,9 @@ disableNunjucks: true
 description: "服务栈选型细化、给 LLM 做 autoscaling、延迟预算、prompt+completion 成本跟踪、多模型路由、FrugalGPT 级联、第一天就要的可观测性，以及能用的 on-call 模式。"
 translationKey: "llm-engineering-12"
 ---
-这是最后一章，前面已覆盖了模型、Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务：每次请求都会产生成本，响应延迟甚至可达两分钟。
+这是最后一章，前面已覆盖了模型、Prompt、检索与评估，本章将聚焦于保障服务稳定和控制成本。生产环境的 LLM 服务更接近高流量 Web 服务，而非传统 ML 服务——每次请求都会产生成本，响应延迟甚至可达两分钟。
 
-本章将密集呈现关键数据，因为在生产环境中，一个功能的盈亏往往取决于那些被忽视的 2-5 倍成本差异。最实用的能力是手动核算 LLM 负载的成本。以下数据截至 2025 年底/2026 年初，请在实际使用前核对最新定价。
+本章将密集呈现关键数据，因为在生产环境中，一个功能的盈亏往往取决于那些被忽视的 2-5 倍成本差异；最实用的能力是手动核算 LLM 负载的成本。以下数据截至 2025 年底/2026 年初，请在实际使用前核对最新定价。
 
 ![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/illustration_1.png)
 
@@ -44,7 +44,7 @@ translationKey: "llm-engineering-12"
 [Observability] ← logs, metrics, traces, eval runs
 ```
 
-App Server 和 LLM Gateway 是工程重心。前者处理业务逻辑，后者则要让多个模型表现得像单个服务。
+App Server 和 LLM Gateway 是工程重心——前者处理业务逻辑，后者则要让多个模型表现得像单个服务。
 
 LLM Gateway 应从项目第一天起就作为独立服务构建，承担以下职责：
 

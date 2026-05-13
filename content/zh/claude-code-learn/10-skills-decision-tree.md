@@ -67,7 +67,7 @@ description: Use when writing new content for chenk.top — bilingual EN/ZH post
 
 ### Body 内容
 
-body 长度无硬性限制——仅在 skill 触发时注入 system prompt，故冗长零开销：未触发即不计成本。我有多个 body 超过 600 行的 skill，每一行都物有所值。
+body 长度无硬性限制，仅在 skill 触发时注入 system prompt，因此冗长零开销：未触发即不计成本。我有多个 body 超过 600 行的 skill，每一行都物有所值。
 
 Body 支持自由格式的 Markdown，但以下几类结构已被验证为高效：**语气/风格规范**（定义 Claude 在该 skill 激活时的表达方式）、**Schema/格式规范**（明确必须严格遵守的输出格式）、**工作流**（分步执行逻辑）、**规则/约束**（明确禁止行为）。
 
@@ -150,13 +150,13 @@ description: Use when deploying to the staging environment, preparing a staging 
 ---
 ```
 
-务必具体。“Use for deployment”过于宽泛，会导致 skill 在讨论部署理论时误触发；“Use when deploying to the staging environment”则精准锚定到实际操作。
+务必具体。“Use for deployment”过于宽泛，会导致 skill 在讨论部署理论时误触发；而“Use when deploying to the staging environment”则精准锚定到实际操作。
 
 ### 步骤 3：撰写 body
 
 一个真实的 `deploy-staging` skill 正文应包含以下要素：环境信息（staging URL、 region、 ECS cluster、默认部署分支）；预部署检查清单（测试通过、 TypeScript 编译成功、无未提交变更、当前分支正确）；部署命令流（构建 Docker 镜像 → 为 ECR 打标签 → 推送 → 更新 ECS service）；健康检查（等待 60 秒后调用 `/health` 端点）；回滚流程（定位上一版 task definition ARN，执行 `aws ecs update-service --task-definition ...`）；以及常见故障排查——部署超时查 CloudWatch、健康检查失败查依赖连通性、 ECR 推送失败用 `aws ecr get-login-password` 刷新凭证。
 
-最后一定要有几条硬性规则：禁止从此 skill 直接部署至 production；每次部署后必须执行健康检查；若健康检查失败，立即回滚，不得在 staging 上调试。
+最后一定要有几条硬性规则：禁止从此 skill 直接部署至 production，每次部署后必须执行健康检查，若健康检查失败，立即回滚，不得在 staging 上调试。
 
 ### 步骤 4：测试
 

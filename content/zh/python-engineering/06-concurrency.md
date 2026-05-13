@@ -14,13 +14,13 @@ series_order: 6
 translationKey: "python-engineering-6"
 ---
 
-你的脚本一次只下载 100 个文件，每个约耗时 2 秒——绝大部分时间在等待服务器响应；总耗时 200 秒，而 CPU 99% 的时间处于空闲状态。你为网络延迟付费，却白白浪费了计算资源，并发编程正是为了解决这个问题而诞生的。
+你的脚本一次只下载 100 个文件，每个约耗时 2 秒——绝大部分时间在等待服务器响应，总耗时 200 秒，而 CPU 99% 的时间处于空闲状态。你为网络延迟付费，却白白浪费了计算资源，并发编程正是为了解决这个问题而诞生的。
 
 Python 提供三种并发模型，分别面向不同场景。选错模型不仅无法提速，还可能引发竞态条件。
 
 ## GIL：它是什么？为何重要？
 
-全局解释器锁（Global Interpreter Lock，GIL）是保护 Python 对象访问的互斥锁（mutex）——即使在多核机器上，也仅允许一个线程执行 Python 字节码。
+全局解释器锁（Global Interpreter Lock，GIL）是保护 Python 对象访问的互斥锁（mutex），即使在多核机器上也仅允许一个线程执行 Python 字节码。
 
 ![GIL impact on parallelism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-gil-impact.png)
 
@@ -66,7 +66,7 @@ print(counter)
 
 ## Threading：面向 I/O 密集型任务的并发
 
-线程共享同一内存空间，开销轻量。由于 GIL 在 I/O 操作期间会释放，线程非常适合网络请求、文件操作和数据库查询等场景。
+线程共享同一内存空间，开销轻量，由于 GIL 在 I/O 操作期间会释放，因此线程非常适合网络请求、文件操作和数据库查询等场景。
 
 ![Concurrency models comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-concurrency-models.png)
 
@@ -272,7 +272,7 @@ with ProcessPoolExecutor(max_workers=4) as executor:
 
 ### Multiprocessing 开销
 
-进程比线程更‘重’——
+进程比线程更‘重’，
 
 | 方面 | Threads | Processes |
 |--------|---------|-----------|
@@ -282,7 +282,7 @@ with ProcessPoolExecutor(max_workers=4) as executor:
 | GIL 限制 | 是（CPU 密集型受限） | 否（独立解释器） |
 | 调试难度 | 更难（共享状态引发的 bug） | 更易（状态隔离） |
 
-不要对小任务使用 multiprocessing。序列化与进程启动开销可能导致其比串行执行更慢。
+不要对小任务使用 multiprocessing，因为序列化与进程启动开销可能导致其比串行执行更慢。
 
 ### 进程间共享数据
 
