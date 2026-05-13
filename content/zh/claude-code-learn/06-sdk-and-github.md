@@ -16,35 +16,36 @@ description: "SDK 把 Claude Code 从 CLI 变成库。GitHub Action 让它在 PR
 disableNunjucks: true
 translationKey: "claude-code-learn-6"
 ---
-CLI 是门面，SDK 才是核心，而 GitHub 集成才是真正释放价值的地方。
+CLI 是最显而易见的入口，SDK 才是真正有趣的部分，而 GitHub 集成则是它真正体现价值的地方。
 
-![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
-## 一段话说清 SDK
+## 用一段话介绍 SDK
 
-`@anthropic-ai/claude-code` 就是那个 npm 包。它暴露了 CLI 所用的同一套 Claude Code 引擎——包括相同的工具和权限体系——只不过换成了程序化接口。你传入一个 prompt，它就返回一个异步可迭代对象（async iterable），逐个产出对话事件。你可以把它嵌入任何地方：脚本、服务，甚至 CI 步骤。
+`@anthropic-ai/claude-code` 是 npm 包。它将 CLI 使用的相同 Claude Code 引擎（包括相同的工具和权限）以编程接口的形式暴露出来。你传入一个 prompt，它会返回一个异步可迭代的 conversation events。你可以把它集成到任何地方——脚本、服务、CI 步骤。
 
-![SDK 和 CLI 共享同一个 agent 引擎、工具与权限](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig3_sdk_arch.png)  
-*图：SDK 和 CLI 共享同一个 agent 引擎、工具与权限*
 
-## SDK 安装与配置
+![SDK and CLI share the same agent engine, tools, and permissions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig3_sdk_arch.png)
+*Figure: SDK 和 CLI 共享相同的 agent 引擎、工具和权限*
 
-### 前置条件
+## SDK 安装与设置
 
-你需要 Node.js 18+ 和一个 Anthropic API 密钥。因为 SDK 运行的是和 CLI 完全相同的 agent 循环，所以凭据也必须一致。
+### 前提条件
+
+你需要 Node.js 18+ 和一个 Anthropic API key。SDK 运行的 agent loop 与 CLI 相同，因此需要相同的凭证。
 
 ```bash
-# 检查 Node 版本
-node --version  # 要求 v18+
+# Check Node version
+node --version  # needs v18+
 
-# 安装 SDK
+# Install the SDK
 npm install @anthropic-ai/claude-code
 
-# 设置 API key（必需）
+# Set your API key (required)
 export ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxx
 ```
 
-### TypeScript 项目配置
+### TypeScript 项目设置
 
 ```bash
 mkdir claude-automation && cd claude-automation
@@ -52,7 +53,7 @@ npm init -y
 npm install @anthropic-ai/claude-code
 npm install -D typescript @types/node tsx
 
-# 创建 tsconfig
+# Create tsconfig
 cat > tsconfig.json << 'EOF'
 {
   "compilerOptions": {
@@ -71,7 +72,7 @@ EOF
 mkdir src
 ```
 
-### Hello-world 示例
+### Hello World 示例
 
 ```typescript
 // src/hello.ts
@@ -90,17 +91,17 @@ for await (const event of conversation) {
 }
 ```
 
-运行：
+运行它：
 
 ```bash
 npx tsx src/hello.ts
 ```
 
-你会在终端里看到同样的 agent 循环执行过程——包括所有工具调用。本质上，这就是一个去掉了聊天界面的 CLI。
+你会在终端中看到相同的 agent loop 执行过程——包括所有工具调用。这本质上就是没有聊天 UI 的 CLI。
 
-## 理解对话事件
+## 理解 conversation events
 
-`query()` 返回的异步可迭代对象会产出类型化的事件。要构建真正的自动化流程，理解这些事件至关重要：
+`query()` 返回的异步可迭代对象会生成类型化的事件。理解这些事件对于构建真正的自动化至关重要：
 
 ```typescript
 import { query, type ConversationEvent } from '@anthropic-ai/claude-code';
@@ -113,27 +114,27 @@ const conversation = query({
 for await (const event of conversation) {
   switch (event.type) {
     case 'text':
-      // 模型文本输出，按 token 流式返回
+      // The model's text output, streamed token-by-token
       process.stdout.write(event.text);
       break;
 
     case 'tool_use':
-      // 模型调用工具
+      // The model is calling a tool
       console.log(`\n[Tool] ${event.name}(${JSON.stringify(event.input)})`);
       break;
 
     case 'tool_result':
-      // 工具返回结果
+      // A tool returned its result
       console.log(`[Result] ${event.content?.substring(0, 100)}...`);
       break;
 
     case 'error':
-      // 发生错误
+      // Something went wrong
       console.error(`[Error] ${event.error}`);
       break;
 
     case 'done':
-      // 对话结束
+      // Conversation complete
       console.log('\n[Done]');
       break;
   }
@@ -142,7 +143,7 @@ for await (const event of conversation) {
 
 ### 收集完整响应
 
-很多时候你并不需要流式片段，而是想要完整的文本响应：
+很多时候你想要的是完整的文本响应，而不是流式输出：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
@@ -166,23 +167,24 @@ const analysis = await getResponse('Analyze the error handling in src/api.ts');
 console.log(analysis);
 ```
 
-## 权限，程序化控制
+## 以编程方式处理权限
 
-这一点必须处理妥当：CLI 默认策略是“问人”，但脚本没法交互确认。因此，SDK 提供了几种权限模式：
+这是你必须正确处理的部分。CLI 默认行为是“询问人类”，但脚本无法询问。因此 SDK 提供了多种权限模式：
 
-| Mode | 行为 | 适用场景 |
-|------|------|----------|
-| `default` | 任何通常需要确认的工具都会报错 | 测试、安全探索 |
-| `acceptEdits` | 自动接受文件编辑，Shell 操作仍需确认 | 自动化重构 |
-| `bypassPermissions` | 自动接受所有操作 | 完全可信的 CI（高风险） |
-| Custom callback | 每次调用时由你决定是否放行 | 生产脚本 |
+| Mode | Behavior | Use when |
+|------|----------|----------|
+| `default` | 对任何通常需要确认的工具调用抛出错误 | 测试、安全探索 |
+| `acceptEdits` | 自动接受文件编辑，对 shell 命令仍需确认 | 自动化重构 |
+| `bypassPermissions` | 自动接受所有操作 | 完全可信的 CI（危险） |
+| Custom callback | 每次调用由你决定 | 生产环境脚本 |
 
-![SDK 权限模式：从最安全到最自主的光谱](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig6_permission_modes.png)  
-*图：SDK 权限模式：从最安全到最自主的光谱*
+
+![SDK permission modes form a spectrum from safest to most autonomous](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig6_permission_modes.png)
+*Figure: SDK 权限模式构成一个从最安全到最自主的连续谱*
 
 ### 自定义回调详解
 
-真正投入生产时，建议直接使用回调函数：
+对于实际工作，请使用回调函数：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
@@ -193,25 +195,38 @@ const conversation = query({
     cwd: process.cwd(),
     permissionMode: 'custom',
     permissionCallback: async (toolName, toolInput) => {
-      // 所有读操作放行
+      // Allow all read operations
       if (toolName === 'Read') return 'allow';
 
-      // 仅允许写入 src/ 与 tests/ 范围内的文件
+      // Allow file edits within src/ and tests/
       if (toolName === 'Write' || toolName === 'Edit') {
-        const path = toolInput.path || toolInput.file_path;
-        if (path?.startsWith('src/') || path?.startsWith('tests/')) {
+        const path = toolInput.file_path || toolInput.path || '';
+        if (path.includes('/src/') || path.includes('/tests/') || path.includes('CHANGELOG')) {
           return 'allow';
         }
+        console.warn(`Denied write to: ${path}`);
         return 'deny';
       }
 
-      // 危险的 Shell 命令一律拒绝
+      // Allow specific safe bash commands
       if (toolName === 'Bash') {
         const cmd = toolInput.command || '';
-        if (cmd.startsWith('rm ') || cmd.includes('sudo')) return 'deny';
-        return 'allow';
+        const safePatterns = [
+          /^npm test/,
+          /^npm run/,
+          /^git (status|diff|log|show)/,
+          /^ls /,
+          /^cat /,
+          /^grep /,
+          /^find /,
+        ];
+        if (safePatterns.some(p => p.test(cmd))) return 'allow';
+
+        console.warn(`Denied bash: ${cmd}`);
+        return 'deny';
       }
 
+      // Deny everything else by default
       return 'deny';
     }
   }
@@ -222,11 +237,43 @@ for await (const event of conversation) {
 }
 ```
 
-这样一来，权限策略就实现了程序化控制。脚本可以无人值守运行，而你也清楚它绝不会做你明确禁止的事情。
+现在你拥有了可编程的策略。脚本可以无人值守运行，同时你清楚它无法执行你明确禁止的操作。
 
-## 实战脚本：自动更新 CHANGELOG
+### 权限回调模式
 
-我在好几个项目的 `scripts/update-changelog.ts` 里都用了这段代码：
+以下是一些可复用的权限模式：
+
+```typescript
+// Read-only: no writes, no shell
+const readOnly = async (tool: string) =>
+  tool === 'Read' ? 'allow' : 'deny';
+
+// Edit-only: reads + writes, no shell
+const editOnly = async (tool: string) =>
+  ['Read', 'Write', 'Edit'].includes(tool) ? 'allow' : 'deny';
+
+// Project-scoped: anything within the project, nothing outside
+const projectScoped = async (tool: string, input: any) => {
+  if (tool === 'Read') return 'allow';
+  if (tool === 'Write' || tool === 'Edit') {
+    const path = input.file_path || '';
+    return path.startsWith(process.cwd()) ? 'allow' : 'deny';
+  }
+  if (tool === 'Bash') {
+    const cmd = input.command || '';
+    // Block commands that could escape the project
+    if (/\/(etc|usr|var|root)/.test(cmd)) return 'deny';
+    return 'allow';
+  }
+  return 'deny';
+};
+```
+
+## 真实世界的自动化脚本
+
+### 脚本 1：自动更新 CHANGELOG
+
+我在几个项目的 `scripts/update-changelog.ts` 中使用了这个脚本：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
@@ -235,16 +282,25 @@ import { execSync } from 'child_process';
 const lastTag = execSync('git describe --tags --abbrev=0').toString().trim();
 const commits = execSync(`git log ${lastTag}..HEAD --oneline`).toString();
 
-const result = query({
+if (!commits.trim()) {
+  console.log('No new commits since', lastTag);
+  process.exit(0);
+}
+
+console.log(`Updating CHANGELOG for commits since ${lastTag}...`);
+console.log(`Found ${commits.trim().split('\n').length} commits\n`);
+
+const conversation = query({
   prompt: `
     Update CHANGELOG.md with a new entry for an upcoming release.
     The commits since ${lastTag} are:
 
     ${commits}
 
-    Group them into Added/Changed/Fixed/Removed.
+    Group them into Added/Changed/Fixed/Removed following Keep a Changelog format.
     Use semantic versioning to suggest the next version.
-    Edit CHANGELOG.md in place.
+    Edit CHANGELOG.md in place. Do not create a new file.
+    Today's date is ${new Date().toISOString().split('T')[0]}.
   `,
   options: {
     cwd: process.cwd(),
@@ -252,46 +308,207 @@ const result = query({
   }
 });
 
-for await (const event of result) {
+for await (const event of conversation) {
+  if (event.type === 'text') process.stdout.write(event.text);
+}
+
+console.log('\n\nCHANGELOG updated. Review with: git diff CHANGELOG.md');
+```
+
+每次发布前运行。CHANGELOG 自动生成，提交日志被整理成连贯的文字，我只需审核并提交。每次发布节省五分钟。
+
+### 脚本 2：代码审查机器人
+
+一个审查暂存区变更并将发现写入文件的脚本：
+
+```typescript
+// scripts/review-staged.ts
+import { query } from '@anthropic-ai/claude-code';
+import { execSync } from 'child_process';
+import { writeFileSync } from 'fs';
+
+const diff = execSync('git diff --cached').toString();
+
+if (!diff.trim()) {
+  console.log('No staged changes to review.');
+  process.exit(0);
+}
+
+const filesChanged = execSync('git diff --cached --name-only').toString().trim();
+console.log('Reviewing staged changes in:');
+console.log(filesChanged);
+console.log('---\n');
+
+const parts: string[] = [];
+
+const conversation = query({
+  prompt: `
+    Review the following staged git diff. Focus on:
+    1. Bugs or logic errors
+    2. Security issues (hardcoded secrets, SQL injection, XSS)
+    3. Performance concerns
+    4. Missing error handling
+    5. Breaking API changes
+
+    Be specific. Reference line numbers. Skip style nits.
+
+    Files changed:
+    ${filesChanged}
+
+    Diff:
+    ${diff}
+  `,
+  options: {
+    cwd: process.cwd(),
+    permissionMode: 'default'  // read-only, no tool use needed
+  }
+});
+
+for await (const event of conversation) {
+  if (event.type === 'text') {
+    process.stdout.write(event.text);
+    parts.push(event.text);
+  }
+}
+
+// Save review to file
+writeFileSync('.claude/last-review.md', parts.join(''));
+console.log('\n\nReview saved to .claude/last-review.md');
+```
+
+将其添加到你的工作流中：
+
+```bash
+# Stage your changes
+git add -p
+
+# Get a review before committing
+npx tsx scripts/review-staged.ts
+
+# If the review looks good, commit
+git commit
+```
+
+### 脚本 3：依赖审计
+
+```typescript
+// scripts/audit-deps.ts
+import { query } from '@anthropic-ai/claude-code';
+
+const conversation = query({
+  prompt: `
+    Audit this project's dependencies:
+    1. Read package.json
+    2. Run 'npm audit' and analyze the results
+    3. Check for outdated packages with 'npm outdated'
+    4. Identify any dependencies that are deprecated or unmaintained
+    5. Give me a prioritized list of actions (critical security fixes first)
+  `,
+  options: {
+    cwd: process.cwd(),
+    permissionMode: 'custom',
+    permissionCallback: async (tool, input) => {
+      if (tool === 'Read') return 'allow';
+      if (tool === 'Bash') {
+        const cmd = input.command || '';
+        if (/^npm (audit|outdated|ls|list)/.test(cmd)) return 'allow';
+        if (/^(cat|grep|jq)/.test(cmd)) return 'allow';
+      }
+      return 'deny';
+    }
+  }
+});
+
+for await (const event of conversation) {
   if (event.type === 'text') process.stdout.write(event.text);
 }
 ```
 
-每次发布前运行一次：CHANGELOG 自动生成，commit log 被整理成通顺的叙述文字，你只需审查并提交。每次发布能省下约 5 分钟；过去半年累计下来，节省的时间相当可观。
+### 脚本 4：多文件重构
+
+用于需要修改多个文件的大规模重构任务：
+
+```typescript
+// scripts/refactor.ts
+import { query } from '@anthropic-ai/claude-code';
+
+const task = process.argv[2];
+if (!task) {
+  console.error('Usage: npx tsx scripts/refactor.ts "description of refactoring"');
+  process.exit(1);
+}
+
+console.log(`Starting refactoring: ${task}\n`);
+
+const conversation = query({
+  prompt: `
+    Perform the following refactoring across this codebase:
+
+    ${task}
+
+    Rules:
+    - Make changes file by file
+    - Run tests after each significant change
+    - If tests break, fix them before moving on
+    - Do not change public API signatures unless that's the explicit goal
+    - Commit each logical change separately with a clear message
+  `,
+  options: {
+    cwd: process.cwd(),
+    permissionMode: 'acceptEdits'
+  }
+});
+
+for await (const event of conversation) {
+  if (event.type === 'text') process.stdout.write(event.text);
+}
+
+console.log('\n\nRefactoring complete. Review with: git log --oneline -10');
+```
+
+用法：
+
+```bash
+npx tsx scripts/refactor.ts "Rename UserService to AccountService everywhere"
+npx tsx scripts/refactor.ts "Convert all callback-based functions in src/utils/ to async/await"
+npx tsx scripts/refactor.ts "Add TypeScript strict null checks and fix all resulting errors"
+```
 
 ## SDK 与 CLI 对比
 
-什么时候该用 SDK，什么时候该用 CLI？下面是详细对比：
+![CLI and SDK differ in interface, not capability — same engine underneath](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig5_cli_vs_sdk.png)
+*Figure: CLI 和 SDK 在接口上不同，但底层能力相同——共享同一引擎*
 
-| 方面 | CLI（`claude`） | SDK（`@anthropic-ai/claude-code`） |
-|------|----------------|-------------------------------------|
-| **接口形式** | 终端中的交互式聊天 | 可编程的异步可迭代对象 |
-| **权限控制** | 交互式提示授权 | 基于回调或预设模式 |
-| **适用场景** | 探索性工作、一次性任务 | 自动化、CI/CD、脚本集成 |
-| **会话状态** | 持久化，直到执行 `/clear` | 每次 `query()` 调用都是全新会话 |
-| **启动耗时** | 约 2 秒 | 约 1 秒（无 TUI 开销） |
-| **输出格式** | 面向人类阅读的格式化输出 | 面向代码处理的强类型事件 |
-| **错误处理** | 在聊天界面中直接显示错误 | 抛出异常或产出 error 事件 |
-| **Hooks** | 来自 `settings.json` | 来自 `settings.json`（行为一致） |
-| **MCP servers** | 来自 `settings.json` | 来自 `settings.json`（行为一致） |
-| **CLAUDE.md** | 自动加载 | 自动加载（行为一致） |
-| **多轮对话** | 通过自然聊天流实现 | 需手动构建 conversation 数组 |
-| **并行执行** | 单次运行 | 支持多个并发 `query()` 调用 |
+何时应使用 SDK 而非 CLI？以下是详细对比：
 
-关键在于：SDK 和 CLI 共享同一底层引擎。差异仅在接口形态，不在能力边界。Hooks、MCP servers、CLAUDE.md 以及所有配置项的行为完全一致。
+| Aspect | CLI (`claude`) | SDK (`@anthropic-ai/claude-code`) |
+|--------|---------------|-----------------------------------|
+| **Interface** | 终端中的交互式聊天 | 编程式的异步可迭代对象 |
+| **Permissions** | 交互式提示确认 | 回调函数或模式控制 |
+| **Best for** | 探索性工作、一次性任务 | 自动化、CI、脚本 |
+| **Session state** | 持久化直到 `/clear` | 每次 `query()` 调用都是全新的 |
+| **Startup time** | ~2s | ~1s（无 TUI 开销） |
+| **Output** | 为人类格式化 | 为代码提供类型化事件 |
+| **Error handling** | 在聊天中显示错误 | 抛出异常或生成错误事件 |
+| **Hooks** | 来自 settings.json | 来自 settings.json（相同） |
+| **MCP servers** | 来自 settings.json | 来自 settings.json（相同） |
+| **CLAUDE.md** | 自动加载 | 自动加载（相同） |
+| **Multi-turn** | 通过聊天自然支持 | 需手动构建对话数组 |
+| **Parallel runs** | 一次只能运行一个 | 可发起多个 `query()` 调用 |
+
+关键洞察：SDK 和 CLI 共享同一引擎。区别仅在于接口，而非能力。Hooks、MCP servers、CLAUDE.md 和设置都完全一致。
 
 ## GitHub Action
 
-![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
-![GitHub Action 生命周期：从 @claude 评论到 PR 回复](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig4_action_flow.png)  
-*图：GitHub Action 生命周期：从 @claude 评论到 PR 回复*
+Anthropic 提供了一个官方 Action：`anthropic/claude-code-action@v1`。将其添加到工作流中：
 
-Anthropic 官方提供了 Action：`anthropic/claude-code-action@v1`。
 
-### 基础配置
+![GitHub Action lifecycle: from @claude mention to PR reply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig4_action_flow.png)
+*Figure: GitHub Action 生命周期：从 @claude 提及到 PR 回复*
 
-把它加到你的 workflow 中：
+### 基础设置
 
 ```yaml
 # .github/workflows/claude.yml
@@ -322,35 +539,35 @@ jobs:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-现在，仓库里的任何人只要在 PR 评论里写 `@claude please review the failing test`，Claude 就会：
+现在，仓库中的任何人都可以在 PR 评论中写下 `@claude please review the failing test`，Claude 将会：
 
-1. 检出对应分支  
-2. 读取评论线程获取上下文  
-3. 执行所需操作（运行测试、linter、读取文件等）  
-4. 在 PR 中回复分析结果  
-5. 如果被要求，还能推送新提交  
+1. 检出该分支
+2. 读取评论线程以获取上下文
+3. 执行所需操作（运行测试、linter、读取文件等）
+4. 在 PR 中回复其分析结果
+5. 如果被要求，还可推送提交
 
-### 详细工作流配置
+### 详细的工作流配置
 
-下面是一个支持多种触发条件的完整配置示例：
+以下是包含多个触发器的更完整设置：
 
 ```yaml
 # .github/workflows/claude-full.yml
 name: Claude Code Assistant
 
 on:
-  # 响应 PR 评论中的 @claude 提及
+  # Respond to @claude in PR comments
   pull_request_review_comment:
     types: [created]
   issue_comment:
     types: [created]
 
-  # 自动审查新 PR
+  # Auto-review new PRs
   pull_request:
     types: [opened, synchronize]
 
 jobs:
-  # 任务 1：响应 @claude 提及
+  # Job 1: Respond to @claude mentions
   respond:
     if: >
       (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment')
@@ -372,7 +589,7 @@ jobs:
           max-turns: 20
           timeout-minutes: 15
 
-  # 任务 2：自动审查新 PR
+  # Job 2: Auto-review new PRs
   auto-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -400,105 +617,108 @@ jobs:
 
 ### Action 参数参考
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `anthropic-api-key` | 必填 | Anthropic API 密钥 |
-| `prompt` | 来自评论内容 | 覆盖默认提示词（适用于自动化触发） |
-| `max-turns` | `30` | Agent 最大交互轮数，超限即停止 |
-| `timeout-minutes` | `30` | 最长执行时间（分钟） |
-| `model` | 默认模型 | 指定具体使用的模型 |
-| `allowed-tools` | 全部可用工具 | 限制 Claude 可调用的工具列表 |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `anthropic-api-key` | Required | 你的 Anthropic API key |
+| `prompt` | From comment | 覆盖 prompt（用于自动化触发） |
+| `max-turns` | `30` | agent 最大轮次后停止 |
+| `timeout-minutes` | `30` | 最大执行时间（分钟） |
+| `model` | Default | 指定使用的模型 |
+| `allowed-tools` | All | 限制 Claude 可使用的工具 |
 
-### 密钥管理
+### Secrets 管理
 
-请将 API 密钥以 GitHub 仓库 Secret 的形式存储：
+将你的 API key 存储为 GitHub 仓库 secret：
 
-1. 进入 Settings > Secrets and variables > Actions  
-2. 点击 “New repository secret”  
-3. 名称填 `ANTHROPIC_API_KEY`，值填你的密钥  
-4. 工作流中通过 `${{ secrets.ANTHROPIC_API_KEY }}` 引用  
+1. 进入 Settings > Secrets and variables > Actions
+2. 点击 "New repository secret"
+3. 名称：`ANTHROPIC_API_KEY`，值：你的 key
+4. 工作流中通过 `${{ secrets.ANTHROPIC_API_KEY }}` 引用
 
-**切勿在 workflow 文件中硬编码 API 密钥**——它们会直接暴露在代码仓库中。
+切勿在工作流文件中硬编码 API keys，因为它们对仓库可见。
 
-这个 Action 会读取仓库中的 `.claude/settings.json`。你在第 5 篇写的 hooks 依然生效，第 3 篇定义的斜杠命令也能用——比如 `@claude /review` 会按预期工作。
+该 Action 会尊重仓库中的 `.claude/settings.json`。你在第 5 篇中编写的 hooks 仍然有效。你在第 3 篇中编写的 slash commands 也依然可用——`@claude /review` 的行为符合预期。
 
-![PR 评审序列：开发者、GitHub、Claude Action 三方交互](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig7_pr_sequence.png)  
-*图：PR 评审序列：开发者、GitHub、Claude Action 三方交互*
+## PR 审查工作流 —— 详细演练
 
-## PR 审查工作流 — 详细流程
+让我从头到尾完整演示一个 PR 审查工作流。
 
-下面完整演示一次从开始到结束的 PR 审查流程。
 
-### 初始配置（仅需一次）
+![Sequence of a PR review loop: developer, GitHub, and Claude Action](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig7_pr_sequence.png)
+*Figure: PR 审查循环的序列：开发者、GitHub 和 Claude Action*
 
-1. 将上述 workflow YAML 文件放入 `.github/workflows/` 目录  
-2. 在仓库 Secrets 中添加 `ANTHROPIC_API_KEY`  
-3. 提交并推送变更  
+### 一次性设置
+
+1. 将上述工作流 YAML 文件添加到 `.github/workflows/`
+2. 添加 `ANTHROPIC_API_KEY` secret
+3. 提交并推送
 
 ### 日常工作流
 
-开发者提交 PR 后，自动审查任务随即触发：
+开发者打开一个 PR。自动审查任务被触发：
 
 ```markdown
-Claude Code 正在审查 PR #42："添加用户认证中间件"
+Claude Code reviews PR #42: "Add user authentication middleware"
 
 ---
 
-## 审查摘要
+## Review Summary
 
-### 致命问题
+### Critical Issues
 
-**1. 缺少速率限制（src/middleware/auth.ts:45）**
-认证中间件未对失败尝试做速率限制。攻击者可能暴力枚举令牌。建议添加：
+**1. Missing rate limiting (src/middleware/auth.ts:45)**
+The authentication middleware doesn't rate-limit failed attempts.
+An attacker could brute-force tokens. Consider adding:
 
     import rateLimit from 'express-rate-limit';
     const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100 });
 
-**2. 令牌存于 localStorage（src/utils/auth.ts:12）**
-localStorage 易受 XSS 攻击。建议改用 `httpOnly` Cookie。
+**2. Token stored in localStorage (src/utils/auth.ts:12)**
+localStorage is vulnerable to XSS. Consider httpOnly cookies instead.
 
-### 建议项
+### Suggestions
 
-- 补充令牌刷新流程的测试（当前缺失）
-- `validateToken` 函数静默吞掉了错误 —— 请记录日志
-- 考虑将 JWT 配置提取至环境变量
+- Add tests for the token refresh flow (currently untested)
+- The `validateToken` function swallows errors silently — log them
+- Consider extracting the JWT config to environment variables
 
-### 值得肯定之处
-- 认证中间件与业务逻辑职责分离清晰
-- TypeScript 泛型在令牌类型定义中使用得当
-- 主路径（happy path）测试覆盖率良好
+### What looks good
+- Clean separation of auth middleware from business logic
+- Good use of TypeScript generics in the token types
+- Test coverage for the happy path is solid
 ```
 
-审查者阅读 Claude 的分析，修复关键问题，并回复：
+审查者阅读 Claude 的分析，解决关键问题，并回复：
 
 ```text
-@claude 发现得很准。请修复速率限制问题：在 auth 中间件中集成 express-rate-limit，
-窗口设为 15 分钟、上限 100 次请求；同时补充对应测试。
+@claude good catches. Please fix the rate limiting issue — add express-rate-limit
+to the auth middleware with a 100 requests per 15 minute window. Also add a test
+for it.
 ```
 
-Claude 解析这条评论，检出对应分支，完成修改、运行测试，并推送提交：
+Claude 读取评论，检出分支，进行修改，运行测试，并推送一个提交：
 
 ```text
-我已执行以下变更：
+I've made the following changes:
 
-1. 添加 `express-rate-limit` 依赖
-2. 在 auth 中间件中启用速率限制（15 分钟窗口，100 次请求上限）
-3. 在 `tests/middleware/auth.test.ts` 中新增速率限制行为测试
+1. Added `express-rate-limit` dependency
+2. Applied rate limiting to the auth middleware (100 req / 15 min window)
+3. Added test in `tests/middleware/auth.test.ts` for rate limiting behavior
 
-提交：abc1234 "为 auth 中间件添加速率限制"
+Commit: abc1234 "Add rate limiting to auth middleware"
 
-全部测试通过（47 通过，0 失败）。
+All tests pass (47 passed, 0 failed).
 ```
 
-这个循环——审查 → 请求修改 → Claude 实施——可以按需重复多次。PR 的对话本身就成了交互界面。
+这个循环——审查、请求修改、Claude 实现——可以根据需要重复多次。PR 对话本身成为了交互界面。
 
 ## CI 集成模式
 
-除了 GitHub Action，你还可以将 Claude 集成到现有 CI 流程中。以下是几种常见模式。
+除了 GitHub Action，还有其他将 Claude 集成到现有 CI 的模式。
 
-### 模式 1：预合并检查（Pre-merge checks）
+### 模式 1：合并前检查
 
-在 PR 合并前运行 Claude 执行安全审查：
+在合并前将 Claude 作为检查步骤运行：
 
 ```yaml
 # .github/workflows/claude-check.yml
@@ -540,7 +760,7 @@ jobs:
 
 ### 模式 2：自动化文档更新
 
-当 API 或模型文件变更时，自动同步文档：
+当 API 文件变更时，自动更新文档：
 
 ```yaml
 # .github/workflows/claude-docs.yml
@@ -574,7 +794,7 @@ jobs:
           max-turns: 15
 ```
 
-### 模式 3：发布说明生成（Release notes generation）
+### 模式 3：发布说明生成
 
 ```yaml
 # .github/workflows/release-notes.yml
@@ -608,7 +828,7 @@ jobs:
 
 ### 模式 4：在自定义 CI 步骤中使用 SDK
 
-如果 GitHub Action 不符合你的需求，可以直接调用 SDK：
+如果 GitHub Action 不符合你的工作流，可以直接使用 SDK：
 
 ```yaml
 # .github/workflows/custom-claude.yml
@@ -633,7 +853,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          node --experimental-vm-modules << 'JSEOF'
+          node --experimental-vm-modules << 'EOF'
           import { query } from '@anthropic-ai/claude-code';
 
           const conversation = query({
@@ -647,16 +867,16 @@ jobs:
           for await (const event of conversation) {
             if (event.type === 'text') process.stdout.write(event.text);
           }
-          JSEOF
+          EOF
 ```
 
-这种方式让你完全掌控提示词、权限策略和输出处理逻辑。
+这让你能完全控制 prompt、权限和输出处理。
 
 ## 高级 SDK 模式
 
 ### 多轮对话
 
-基础的 `query()` 是单轮的。如需多轮对话，请自行维护消息历史：
+基础的 `query()` 是单轮的。对于多轮对话，你需要自行管理消息历史：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
@@ -699,7 +919,7 @@ await multiTurn([
 
 ### 并行执行
 
-对于彼此独立的分析任务，可以并行运行多个 Claude 调用：
+为独立分析任务并行运行多个 Claude 任务：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
@@ -721,7 +941,7 @@ async function runTask(name: string, prompt: string): Promise<string> {
   return `## ${name}\n${parts.join('')}`;
 }
 
-// 并行运行分析任务
+// Run analyses in parallel
 const results = await Promise.all([
   runTask('Security', 'Audit this codebase for security vulnerabilities. Read key files.'),
   runTask('Performance', 'Identify performance bottlenecks in the hot paths. Check database queries.'),
@@ -733,7 +953,7 @@ console.log(results.join('\n\n---\n\n'));
 
 ### 流式输出到文件
 
-对于长时间运行的任务，可以一边将输出流式写入文件，一边打印到控制台：
+对于长时间运行的任务，一边将输出流式写入文件，一边显示：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
@@ -760,85 +980,82 @@ outputFile.end();
 console.log('\n\nOutput saved to analysis-output.md');
 ```
 
-## 故障排除
+## 故障排查
 
 ### 常见 SDK 问题
 
-| 问题 | 原因 | 解决方法 |
-|------|------|----------|
-| `ANTHROPIC_API_KEY not set` | 缺少环境变量 | 在 shell 或 CI 中导出该密钥 |
-| 工具调用时报 `Permission denied` | `default` 模式禁止所有操作 | 切换至 `acceptEdits` 模式，或实现自定义回调 |
-| 长任务超时 | 默认超时时间太短 | 在 options 中设置更长的 `timeout` |
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `ANTHROPIC_API_KEY not set` | 缺少环境变量 | 在 shell 或 CI 中导出 key |
+| `Permission denied` on tool use | `default` 模式阻止所有操作 | 切换到 `acceptEdits` 或自定义回调 |
+| Timeout on long tasks | 默认超时太短 | 在选项中设置更长的超时 |
 | `Cannot find module` | 导入路径错误 | 使用 `@anthropic-ai/claude-code`，而非 `claude-code` |
-| 返回空响应 | 模型未生成文本 | 检查流中是否包含 error 事件 |
+| Empty response | 模型未生成文本 | 检查流中的错误事件 |
 
 ### 常见 GitHub Action 问题
 
-| 问题 | 原因 | 解决方法 |
-|------|------|----------|
-| Action 从未触发 | `if` 条件语法错误 | 检查 `contains()` 用法及事件类型 |
-| "Resource not accessible" 错误 | 缺少必要权限 | 在 workflow 中添加 `permissions` 配置块 |
-| Claude 无法推送提交 | `actions/checkout` 未指定 ref | 在 checkout 步骤中加上 `ref: ${{ github.head_ref }}` |
-| 运行 30 分钟后超时 | 任务过于复杂 | 增加 `timeout-minutes`，或缩小任务范围 |
-| PR 上无响应 | Secret 未配置 | 确认仓库 Secrets 中已正确设置 `ANTHROPIC_API_KEY` |
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Action never triggers | `if` 条件错误 | 检查 `contains()` 语法和事件类型 |
+| "Resource not accessible" | 缺少权限 | 添加所需的 permissions block |
+| Claude can't push commits | checkout 时未指定 ref | 在 checkout 中添加 `ref: ${{ github.head_ref }}` |
+| Timeout after 30 min | 任务复杂 | 增加 `timeout-minutes` 或缩小范围 |
+| No response on PR | secret 未配置 | 验证 repo secrets 中的 `ANTHROPIC_API_KEY` |
 
-### 调试 workflow 运行
+### 调试工作流运行
 
 ```bash
-# 查看最近 5 次 workflow 运行
+# Check recent workflow runs
 gh run list --limit 5
 
-# 查看某次运行的完整日志
+# View a specific run's logs
 gh run view RUN_ID --log
 
-# 重新运行失败的 workflow
+# Re-run a failed workflow
 gh run rerun RUN_ID
 ```
 
-## 我拿 GitHub Action 干什么
+## 我如何使用 GitHub Action
 
-有三件事我已经离不开它了：
+有三件事我一直坚持使用：
 
-**1. PR 初审。** 新 PR 一开，workflow 就自动运行 `@claude /review`。等人工审查者点进来时，对话里已经有第一轮分析结果了。每次 PR 能省下 10 分钟，还能抓出那些显而易见的问题。
+**1. PR 分类（triage）**。新 PR 打开时，工作流自动运行 `@claude /review`。当人类审查者查看时，对话中已经有一份初步审查。每次 PR 节省审查者约 10 分钟，并能捕捉明显问题。
 
-**2. Issue 总结。** 新 Issue 触发 workflow，自动打标签、建议修复范围、关联相关代码。报告者更快得到回应，维护者也有了起手式。
+**2. Issue 摘要**。工作流在新 issue 创建时运行，为其打标签、建议修复范围，并关联相关代码。报告者能更快得到响应，维护者也能提前准备。
 
-**3. 文档更新。** Schema 一变，Action 就跑起来让 Claude 同步更新文档。虽然不总是完美，但大约 80% 的工作都是机械性的。
+**3. 文档更新**。当 schema 发生变化时，Action 会运行并让 Claude 更新文档以保持一致。虽然并非完美，但约 80% 的工作是机械性的。
 
-## SDK 和 Action 的边界
+## SDK 与 Action 的边界
 
-![CLI 和 SDK 区别在接口而非能力——底层是同一个引擎](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig5_cli_vs_sdk.png)  
-*图：CLI 和 SDK 区别在接口而非能力——底层是同一个引擎*
+我使用 SDK 的场景：
 
-我用 SDK 的时候：
+- 我想在本地运行的脚本中集成 Claude
+- 触发条件是 cron、文件变更或手动命令
+- 我需要以编程方式检查事件
+- 我希望通过回调实现细粒度的权限控制
 
-- 想在本地脚本里嵌入 Claude  
-- 触发条件是 cron、文件变更或手动命令  
-- 需要程序化检查事件流  
-- 想通过回调实现细粒度权限控制  
+我使用 Action 的场景：
 
-我用 Action 的时候：
+- 触发条件是 GitHub 事件（PR、issue、评论）
+- 输出应出现在 PR 或 issue 评论中
+- 我希望有人类参与，且交互方式是 `@mention`
+- 我希望设置尽可能简单
 
-- 触发条件是 GitHub 事件（PR、Issue、评论）  
-- 输出结果要落在 PR 或 Issue 里  
-- 希望人在环路中，且通过 `@mention` 触发交互  
-- 追求最简单的接入方式  
+当然，两者存在重叠。Action 底层正是基于 SDK 构建的。
 
-当然，两者有重叠——Action 底层就是基于 SDK 构建的。
+## 整合整个系列
 
-## 把系列串起来
+六篇文章，一条清晰的演进路径：
 
-六篇文章构成一条清晰的进阶路径：
+1. 安装 + 三层配置
+2. 快捷键和模式
+3. 用于个人工作流的 Slash Commands
+4. 用于外部集成的 MCP
+5. 用于安全防护的 Hooks
+6. 用于编程和 CI 场景的 SDK + Action
 
-1. 安装与三层 config  
-2. 快捷键与思考模式  
-3. 个人工作流中的斜杠命令  
-4. MCP 实现外部集成  
-5. Hooks 构建安全防线  
-6. SDK 与 GitHub Action 打造程序化基础设施  
+每一篇单独看都能带来具体收益。合在一起，它们将 Claude Code 从一个代码聊天客户端转变为可编程的基础设施，深深嵌入你的代码仓库。
 
-每一篇单独看都能带来具体收益；合在一起，Claude Code 就从一个代码聊天客户端，变成了内嵌于仓库的可编程基础设施。
+我观察到的高级用户有一个共同特征：他们将 `.claude/` 视为代码库的一部分。设置、命令、hooks 都被提交、都在 PR 中被审查、都随项目一起演进。这种肌肉记忆值得培养。
 
-我观察过的高手用户，都有一个共同点：他们把 `.claude/` 当作代码库的一部分。配置、命令、hooks 全部提交、全部走 PR 审查、全部随项目演进。这才是值得长期培养的工程习惯。
-
-放心交付。
+Happy shipping.
