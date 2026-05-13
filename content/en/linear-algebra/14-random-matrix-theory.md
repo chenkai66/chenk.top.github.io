@@ -333,7 +333,7 @@ Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Expa
 ### Basics
 
 1. Write down $\mathbb{E}[\mathbf{W}]$ and $\mathrm{Cov}(w_{ij}, w_{kl})$ for a $3 \times 3$ GOE with diagonal variance $2$ and off-diagonal variance $1$.
-2. Why is the $1/\sqrt{n}$ normalisation necessary? What happens to $\lambda_\max$ without it?
+2. Why is the $1/\sqrt{n}$ normalisation necessary? What happens to $\lambda_{\max}$ without it?
 3. For $\gamma = 0.5$, compute $\lambda_\pm$ and sketch the MP density. Where is its maximum?
 
 ### Computation and proof
