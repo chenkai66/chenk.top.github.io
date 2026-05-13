@@ -63,7 +63,7 @@ translationKey: "aliyun-fullstack-5"
 
 ## RDS MySQL 深度解析
 
-RDS MySQL 是阿里云上用得最多的数据库服务。它是 fully managed MySQL 实例，自带自动备份、补丁、监控和高可用。你拿到一个 MySQL-compatible endpoint，连接方式和普通 MySQL 服务器一样——`mysql -h <endpoint> -u <user> -p`。
+RDS MySQL 是阿里云上用得最多的数据库服务。它是完全托管的 MySQL 实例，自带自动备份、补丁、监控和高可用。你拿到一个与 MySQL 兼容的端点，连接方式和普通 MySQL 服务器一样——`mysql -h <endpoint> -u <user> -p`。
 
 ### 架构
 

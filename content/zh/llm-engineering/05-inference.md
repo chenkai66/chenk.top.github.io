@@ -160,7 +160,7 @@ correctness 上有个细节：验证步骤其实是针对目标分布做 *reject
 
 ### INT4：GPTQ 与 AWQ
 
-INT4 就难多了。 Naive 的 round-to-nearest 会丢 2-5 % perplexity。能用的算法 mainly 两个：
+INT4 就难多了。简单的四舍五入会损失 2-5% 的困惑度。可用的算法主要有两个：
 
 **GPTQ** ([Frantar et al., 2022][frantar-gptq])： OBQ (Optimal Brain Quantization) 的扩展，让它在十亿参数模型上可行。逐列量化权重矩阵；每量化一列后，更新剩余未量化列以补偿引入的误差，使用 Cholesky 分解的 Hessian 逆矩阵。数学上本质是每列做一次结构化 least-squares 求解。计算成本：单张 A100 上 70B 模型需要几小时，峰值显存大约等于小 calibration 集上一层的 activations （通常 128 samples × 2048 tokens）。
 

@@ -2063,7 +2063,7 @@ resource "alicloud_oss_bucket" "media" {
 
 用 Terraform 跑阿里云一年多，我遇到的高频问题主要有这几个：
 
-**1. Provider 版本漂移。** `alicloud` provider 每周都在发更新。务必固定版本，有计划地升级。有一次意外升级 provider，默认的安全组规则属性变了，导致我以为关闭的端口 actually 开了。
+**1. Provider 版本漂移。** `alicloud` provider 每周都在发更新。务必固定版本，有计划地升级。有一次意外升级 provider，默认的安全组规则属性变了，导致我以为关闭的端口实际上开了。
 
 **2. 状态文件损坏。** 永远使用带锁的远程状态。如果两个人同时 apply 且没有锁，状态文件会变得不一致。恢复起来得用 `terraform state pull`，手动编辑，再 `terraform state push`——这种脏活你绝对不想干。
 
