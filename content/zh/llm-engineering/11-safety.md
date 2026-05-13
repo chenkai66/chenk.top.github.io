@@ -170,7 +170,7 @@ RAG 系统里， faithfulness score 低于 0.85 就是大问题；低于 0.7 说
 
 **针对逻辑性**：更难测。 Self-consistency （第 9 章）能 catch 住一部分 —— 采样 $N$ 条 chains，检查是否一致。 Programmatic verification （第 10 章）能 catch 住数学/代码逻辑。有个新兴技术， FActScore （Min et al., 2023, *FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation*），把长文本答案分解为 atomic facts 并独立验证 —— 这对传记、摘要以及任何全局准确性会掩盖局部错误的长文本输出很有用。
 
-## 宪法AI (CAI)
+## 宪法 AI (CAI)
 
 ![图4：宪法 AI 循环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/fig4_constitutional_ai.png)
 

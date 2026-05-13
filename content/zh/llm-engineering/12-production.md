@@ -167,8 +167,8 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 | LLM gateway overhead | 5 | Just routing |
 | LLM TTFT (队列 + 预填充) | 300 | 模型本身 |
 | Network out | 50 | Same as in |
-| **总时间到第一个令牌** | **~565 ms** | 低于1秒目标 |
-| LLM ITL (解码) | 25 | 每个令牌，维持40 tok/s |
+| **总时间到第一个令牌** | **~565 ms** | 低于 1 秒目标 |
+| LLM ITL (解码) | 25 | 每个令牌，维持 40 tok/s |
 | Network buffering | 20 | Smoothing |
 
 最关键的两个延迟指标是 **TTFT**（Time To First Token）和 **ITL**（Inter-Token Latency）。TTFT 决定了用户感觉“有反应了吗？”，ITL 决定了 token 流式输出后的持续阅读速度。2026 年的行业经验值：

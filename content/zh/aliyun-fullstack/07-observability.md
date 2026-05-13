@@ -118,7 +118,7 @@ aliyun sls CreateLogStore \
 
 | Capability | SLS | AWS |
 |---|---|---|
-| 日志收集代理 | Logtail (SLS原生) | CloudWatch Agent |
+| 日志收集代理 | Logtail (SLS 原生) | CloudWatch Agent |
 | 全文搜索 | 内置，亚秒级延迟 | CloudWatch Logs Insights (较慢) |
 | SQL 分析 | 完整 SQL 语法处理日志数据 | CloudWatch Logs Insights (有限 SQL) |
 | 仪表盘 | 内置于 SLS | CloudWatch 仪表盘 (独立) |

@@ -1396,8 +1396,8 @@ curl http://localhost:5000/api/health
 | 组件 | 规格 | 月费用（估算） |
 |---|---|---|
 | OpenSearch | 2 LCU, 50GB storage | ~800 RMB ($110) |
-| DashScope 嵌入 | 10万文档 x 50个令牌，每周重新嵌入 | ~15 RMB ($2) |
-| DashScope LLM (查询理解) | 每天1万次查询 x 200个令牌 | ~300 RMB ($42) |
+| DashScope 嵌入 | 10 万文档 x 50 个令牌，每周重新嵌入 | ~15 RMB ($2) |
+| DashScope LLM (查询理解) | 每天 1 万次查询 x 200 个令牌 | ~300 RMB ($42) |
 | DTS 从 RDS 同步 | 小实例，持续同步 | ~200 RMB ($28) |
 | ECS for Flask API | ecs.c6.large (2C 4G) | ~300 RMB ($42) |
 | **Total** | | **~1,615 RMB ($224/month)** |

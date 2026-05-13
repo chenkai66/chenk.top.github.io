@@ -115,7 +115,7 @@ else:
 - **`tool_choice="auto"`** 是默认值。当你必须强制指定某个 tool 时，用 `tool_choice={"type": "function", "function": {"name": "..."}}` — 在工作流的第一次调用里很有用。
 - **`parallel_tool_calls=True`** 是支持的。当你有独立的 tools 时用这个 — 模型会一次性返回多个 `tool_calls`。
 
-## JSON模式
+## JSON 模式
 
 想要结构化输出，不要依赖 prompt。直接使用：
 

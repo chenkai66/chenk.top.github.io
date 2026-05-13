@@ -45,7 +45,7 @@ translationKey: "terraform-agents-1"
 
 这至少涉及九个相互交互的阿里云服务。每个服务都有独立的控制台入口、 RAM 权限策略、可用区（Region）支持范围和网络配置。指望手动把这些全部连线，并且在三个月的演进后还能让 `dev`、`staging` 和 `prod` 保持一致，概率差不多是零。
 
-## 控制台与IaC的抉择时刻
+## 控制台与 IaC 的抉择时刻
 
 九个服务手动操作，等于九个漂移面——这种痛苦太普遍，我甚至画了一张标准图来描述它：
 
@@ -64,7 +64,7 @@ translationKey: "terraform-agents-1"
 
 第二段就是全部卖点。这个系列里的其他内容都是实现细节。
 
-## 两句话解释Terraform是什么
+## 两句话解释 Terraform 是什么
 
 用两句话概括 Terraform 到底是什么： Terraform 是 HashiCorp 出品的开源声明式工具。你用 **HashiCorp Configuration Language (HCL)** 编写 `.tf` 文件来描述想要的云资源； Terraform 将该期望状态与 **state file** 中记录的 live state 进行 diff 并生成 **plan**；你 review plan；然后 `apply`； Terraform 将 plan 翻译成 provider API 调用。
 
