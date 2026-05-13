@@ -14,226 +14,205 @@ description: "一阶优化方法“最优”究竟意味着什么？我们证明
 disableNunjucks: true
 translationKey: "optim-05"
 ---
-第二篇文章介绍了 Nesterov 加速法，并指出它将每步迭代的收敛代价从 $\kappa$ 改善至 $\sqrt{\kappa}$。本文则深入探讨以下根本性问题：
+文章 02 介绍了 Nesterov 加速，并展示了它将每次迭代的复杂度从 $\kappa$ 改进到 $\sqrt{\kappa}$。本文探讨更深层次的问题：
 
-- **为何是 $\sqrt{\kappa}$，而不能更快？** 我们将证明一个匹配的下界——任何一阶方法均无法超越该速率。
-- **Nesterov 是唯一途径吗？** Polyak 的重球法（Heavy-Ball method）采用完全不同的更新规则，却达到了相同的收敛速率。
-- **能否对任意求解器进行加速？** Catalyst 框架通过封装一个黑箱优化器，在每次迭代中求解一个正则化子问题，即可获得加速速率。
+- **为什么是 $\sqrt{\kappa}$ 而不是更快？** 我们证明了一个匹配的下界——没有任何一阶方法能做得更好。
+- **Nesterov 是唯一的方式吗？** Polyak 的 Heavy-Ball 方法通过完全不同的更新规则达到了相同的速率。
+- **我们能加速任意求解器吗？** Catalyst 框架通过包装一个黑盒优化器来获得加速速率，代价是求解一个正则化的子问题。
 
-贯穿这一切的统一工具是 **Lyapunov 势函数（Lyapunov potential）**——一种非负量，其值在算法每一步严格递减。Nesterov 方法与重球法均可借助 Lyapunov 函数完成分析；而上述下界本质上表明：不存在任何 Lyapunov 势函数能实现比 $\sqrt{\kappa}$ 更快的衰减速率。
+统一的工具是一个 **Lyapunov 势函数（Lyapunov potential）** —— 一种非负量，算法在每一步都会使其减小。Nesterov 和 Heavy-Ball 都有 Lyapunov 证明，而下界本质上说明了 Lyapunov 减小的速度不可能更快。
 
-## 你将学到
+## 你将学到的内容
 
-1. Nemirovski–Yudin 下界：对于最坏情形下的光滑强凸问题，任意一阶方法至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代才能达到 $\epsilon$ 精度。
-2. Polyak 重球法、其连续时间极限（一个阻尼二阶常微分方程），及其 Lyapunov 分析。
-3. 估计序列（estimate-sequence）框架——Nesterov 原始的“簿记技巧”，以及一种更简洁、基于 Lyapunov 风格的推导方式。
-4. 自适应重启（adaptive restart）：为何固定动量的加速策略容易过冲，以及重启机制如何修正这一缺陷。
-5. Catalyst 元算法（meta-algorithm）：通过内层正则化子问题求解，实现对黑箱优化器的通用加速。
-6. 一个完整算例：在病态二次函数上对比梯度下降（GD）、重球法、Nesterov 加速法与 Catalyst 的实际表现。
+1. Nemirovski--Yudin 下界：在最坏情况的光滑强凸问题上，任何一阶方法至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代。
+2. Polyak 的 Heavy-Ball 方法、其连续时间极限（一个阻尼二阶 ODE）及其 Lyapunov 分析。
+3. estimate-sequence 框架 —— Nesterov 最初的记账工具 —— 以及更简洁的 Lyapunov 风格推导。
+4. 自适应重启：为什么固定动量加速会过冲，以及重启如何修复它。
+5. Catalyst 元算法：通过内部正则化求解实现黑盒加速。
+6. 一个具体示例，比较 GD、Heavy-Ball、Nesterov 和 Catalyst 在病态条件二次函数上的表现。
 
-## 前置知识
+## 先修知识
 
-第一篇文章（凸分析基础）、第二篇文章（Lipschitz 光滑性、强凸性及基本 Nesterov 更新公式）。需熟悉二次型运算，并能理解形如“对任意 $L, \mu$，存在某个函数使得……”的构造性证明。
+文章 01（凸分析基础），文章 02（Lipschitz 光滑性、强凸性以及基本的 Nesterov 更新）。熟悉二次型的操作，并能理解“对于任意 $L, \mu$，存在一个函数使得……”这类证明风格。
 
 ---
 
-## 1. 下界：为何 $\sqrt{\kappa}$ 是速度极限？
+## 1. 下界：为什么 $\sqrt{\kappa}$ 是速度极限
 
-所谓“一阶方法”，是指其第 $k$ 步迭代点 $x_k$ 必然属于如下子空间：
+“一阶方法”是指任何其迭代点 $x_k$ 满足以下条件的算法：
 $$
 x_0 + \mathrm{span}\{\nabla f(x_0), \nabla f(x_1), \ldots, \nabla f(x_{k-1})\}.
 $$
-该定义涵盖了梯度下降（GD）、重球法、Nesterov 加速法、共轭梯度法等几乎所有仅依赖于已访问点处梯度 $\nabla f$ 的算法。
+这涵盖了 GD、Heavy-Ball、Nesterov、共轭梯度，以及基本上所有仅在访问过的点上查询 $\nabla f$ 的方法。
 
-> **定理（Nesterov, 1983）**：对任意 $L \geq \mu > 0$ 及任意 $k \leq (n-1)/2$（其中 $n$ 为变量维数），存在一个 $L$-光滑且 $\mu$-强凸的函数 $f$，使得对任意一阶方法均有  
+> **定理（Nesterov, 1983）**。对于任意 $L \geq \mu > 0$ 以及任意 $k \leq (n-1)/2$（其中 $n$ 是维度），存在一个 $L$-光滑 $\mu$-强凸函数 $f$，使得对任意一阶方法，
 > $$
-> f(x_k) - f^\star \geq \frac{\mu (\sqrt{\kappa} - 1)^{2k}}{2 (\sqrt{\kappa} + 1)^{2k}} \|x_0 - x^\star\|_2^2 \cdot \text{（常数因子）}.
+f(x_k) - f^\star \geq \frac{\mu (\sqrt{\kappa} - 1)^{2k}}{2 (\sqrt{\kappa} + 1)^{2k}} \|x_0 - x^\star\|_2^2 \cdot \text{（常数因子）}.
 > $$
-> 特别地，要达到 $\epsilon$ 精度，至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代。
+> 特别地，达到 $\epsilon$-精度至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代。
 
-### 1.1 最坏情形函数
+### 1.1 最坏情况函数
 
-该构造使用一个带状二次函数。令 $A \in \mathbb{R}^{n \times n}$ 为三对角矩阵：
+该构造使用一个带状二次函数。令 $A \in \mathbb{R}^{n \times n}$ 为三对角矩阵
 $$
 A = \begin{pmatrix} 2 & -1 & & & \\ -1 & 2 & -1 & & \\ & -1 & 2 & -1 & \\ & & \ddots & \ddots & \ddots \\ & & & -1 & 2 \end{pmatrix},
 $$
-并定义  
-$$
-f(x) = \frac{L - \mu}{8} (x^\top A x - 2 e_1^\top x) + \frac{\mu}{2} \|x\|_2^2,
-$$
-其中 $e_1$ 是第一个标准基向量。
+并令 $f(x) = \frac{L - \mu}{8} (x^\top A x - 2 e_1^\top x) + \frac{\mu}{2} \|x\|_2^2$，其中 $e_1$ 是第一个标准基向量。
 
-其 Hessian 矩阵为 $\nabla^2 f = \frac{L-\mu}{4} A + \mu I$。由于 $A$ 的特征值为 $4 \sin^2 \frac{j \pi}{2(n+1)}$（$j = 1,\dots,n$），可得 $\nabla^2 f$ 的特征值落在区间 $[\mu, L]$ 内，因此 $f$ 确实是 $L$-光滑且 $\mu$-强凸的。
+Hessian 矩阵为 $\nabla^2 f = \frac{L-\mu}{4} A + \mu I$。计算 $A$ 的特征值——它们是 $4 \sin^2 \frac{j \pi}{2(n+1)}$（$j = 1, \ldots, n$）——表明 $\nabla^2 f$ 的特征值位于 $[\mu, L]$ 区间内，因此 $f$ 是 $L$-光滑且 $\mu$-强凸的。
 
-### 1.2 为何该函数难以优化
+### 1.2 为什么这个函数很难
 
-取初始点 $x_0 = 0$，则梯度  
-$$
-\nabla f(x_0) = -\frac{L - \mu}{4} e_1 + \mu \cdot 0 = -\frac{L-\mu}{4} e_1
-$$  
-仅在第一个坐标方向非零。又因 $A$ 是三对角矩阵，对任一支撑在前 $j$ 个坐标的向量 $v$，乘积 $Av$ 的支撑集至多扩展至前 $j+1$ 个坐标。因此，对任意一阶方法，经 $k$ 步迭代后，$x_k$ 必然位于 $\mathrm{span}\{e_1, e_2, \ldots, e_k\}$ 中——即仅前 $k$ 个坐标可能非零。
+从 $x_0 = 0$ 开始，梯度 $\nabla f(x_0) = -\frac{L - \mu}{4} e_1 + \mu \cdot 0 = -\frac{L-\mu}{4} e_1$ 仅在第一个坐标上非零。经过任意一阶方法的 $k$ 次迭代后，$x_k$ 位于 $\mathrm{span}\{e_1, e_2, \ldots, e_k\}$ 中——即前 $k$ 个坐标。为什么？因为 $A$ 是三对角矩阵，将一个仅在前 $j$ 个坐标上有支撑的向量乘以 $A$，结果向量的支撑最多扩展到前 $j+1$ 个坐标。
 
-换言之，$x_k$ 的后 $n-k$ 个坐标恒为零；此时剩余误差 $f(x_k) - f^\star$ 实际由一个 $(n-k)$ 维子问题决定，且该子问题具有相同的条件数 $\kappa$。细致追踪这一维度衰减过程，即可导出 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 的迭代复杂度下界；此处略去代数细节（完整推导见 Nesterov 2004 年著作 §2.1.2）。
+因此，在 $k$ 次迭代后，$x_k$ 的最后 $n - k$ 个坐标仍为零，残差 $f(x_k) - f^\star$ 由一个 $(n-k)$ 维子问题决定，该子问题具有相同的条件数。仔细追踪这一过程可得到 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 的速率；我们省略代数细节（Nesterov 2004 §2.1.2 提供了完整推导）。
 
-核心结论：**任何仅通过已访问点处梯度 $\nabla f$ 获取信息的一阶方法，在信息论意义上注定受限于 $\sqrt{\kappa}$ 的收敛速率。** 若想突破此极限，则必须引入额外信息：（a）关于 $f$ 的二阶信息（参见第七篇文章），或（b）超出光滑性与强凸性之外的问题结构。
+关键结论：**任何仅在访问点上看到 $\nabla f$ 的一阶方法，在信息论意义上被限制在 $\sqrt{\kappa}$**。要更快，要么 (a) 需要关于 $f$ 的更多信息（二阶方法，见文章 07），要么 (b) 利用超出光滑性 + 强凸性的结构。
 
-![下界与上界对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig3_lowerbound.png "Nemirovski-Yudin 下界与 Nesterov 上界完美匹配")
+![Lower bound vs upper bounds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig3_lowerbound.png "Nemirovski-Yudin lower bound matches Nesterov's upper bound")
 
-上图阴影区域即为最优收敛速率带：任何一阶方法在最坏情形下的误差都不可能低于 Nemirovski-Yudin 曲线，而 Nesterov 加速法恰好能取到这一速率（仅相差常数因子）。普通梯度下降则被压制在远高于此带的区域——其 $(1 - 1/\kappa)^{2k}$ 包络的衰减速率比加速上界慢了大约 $\sqrt{\kappa}$ 倍。
+上图中的阴影带表示最优速率区域：任何一阶方法的最坏情况误差必须位于或高于 Nemirovski-Yudin 曲线，而 Nesterov 方法实际上达到了该速率（相差常数因子）。普通 GD 位于高得多的区域——其 $(1 - 1/\kappa)^{2k}$ 包络的衰减速率大约比加速界慢 $\sqrt{\kappa}$ 倍。
 
-## 2. Polyak 重球法（Heavy-Ball Method）
+---
+
+## 2. Polyak 的 Heavy-Ball 方法
 
 ### 2.1 物理类比
 
-设想一个质量为 $m$ 的小球，在粘性介质中沿曲面 $f$ 向下滚动，介质的摩擦系数为 $\gamma$。根据牛顿第二定律，其运动方程为：
+想象一个质量为 $m$ 的球在粘性介质中沿曲面 $f$ 滚动，摩擦系数为 $\gamma$。牛顿定律给出
 $$
 m \ddot x(t) + \gamma \dot x(t) + \nabla f(x(t)) = 0.
 $$
-“重球”具有惯性：它并非在每一时刻都简单地沿负梯度方向 $-\nabla f$ 移动，而是继承了前几步的运动速度；加速度正源于这种惯性效应。
+重球会积累动量：它不会在每一时刻都简单地沿着 $-\nabla f$ 移动，而是从前几步继承速度。这种惯性带来了加速效果。
 
-采用步长 $h$，并以蛙跳（leapfrog）格式进行离散化，可得：
+使用 leapfrog 格式以步长 $h$ 离散化：
 $$
 x_{k+1} = x_k - \alpha \nabla f(x_k) + \beta (x_k - x_{k-1}),
 $$
-其中 $\alpha = h^2 / m$，$\beta = 1 - \gamma h / m$。此即 **Polyak 重球法** 的迭代更新式：它由一个标准梯度步与一个正比于前一步位移的动量项组成。
+其中 $\alpha = h^2 / m$ 且 $\beta = 1 - \gamma h / m$。这就是 **Polyak 的 Heavy-Ball** 更新：一个梯度步加上一个与前一步成比例的动量项。
 
-### 2.2 最优参数选择
+### 2.2 最优参数
 
-考虑二次函数 $f(x) = \frac{1}{2} x^\top Q x - b^\top x$，其中 $Q$ 满足 $\mu I \preceq Q \preceq L I$。此时迭代可线性化为：
+对于二次函数 $f(x) = \frac{1}{2} x^\top Q x - b^\top x$，其中 $\mu I \preceq Q \preceq L I$，迭代线性化为
 $$
 \begin{pmatrix} x_{k+1} - x^\star \\ x_k - x^\star \end{pmatrix} = M \begin{pmatrix} x_k - x^\star \\ x_{k-1} - x^\star \end{pmatrix}, \quad M = \begin{pmatrix} (1 + \beta) I - \alpha Q & -\beta I \\ I & 0 \end{pmatrix}.
 $$
-收敛速率由矩阵 $M$ 的谱半径 $\rho(M)$ 决定。由于 $Q$ 可对角化，该问题可约化为一系列标量子问题；在最坏特征值上对 $(\alpha, \beta)$ 最小化 $\rho$，可得最优参数：
+收敛速率是 $\rho(M)$（谱半径）。对 $Q$ 对角化后，问题简化为标量情形；在最坏特征值上对 $(\alpha, \beta)$ 最小化 $\rho$ 得到：
 $$
 \alpha^\star = \frac{4}{(\sqrt{L} + \sqrt{\mu})^2}, \quad \beta^\star = \left( \frac{\sqrt{L} - \sqrt{\mu}}{\sqrt{L} + \sqrt{\mu}} \right)^2,
 $$
-对应收敛速率为 $\rho(M) = \frac{\sqrt{\kappa} - 1}{\sqrt{\kappa} + 1}$，其中 $\kappa = L/\mu$。这一加速速率 **与 Nesterov 加速法完全相同**，却仅需一个形式上更简洁的更新公式。
+对应的速率为 $\rho(M) = \frac{\sqrt{\kappa} - 1}{\sqrt{\kappa} + 1}$。这与 **Nesterov 的加速速率相同**，但使用了看起来简单得多的更新规则。
 
-### 2.3 关键限制：重球法不具备全局收敛性
+### 2.3 缺陷：Heavy-Ball 不是全局收敛的
 
-Polyak 所证明的收敛速率仅适用于二次函数。对于一般的光滑强凸函数，若直接套用上述针对二次情形优化所得的参数，算法可能根本无法收敛——Lessard、Recht 与 Packard（2016）构造了一个显式的光滑强凸反例，表明在此类函数上，采用最优二次参数的重球法将永远循环振荡，永不收敛。这与 Nesterov 方法形成鲜明对比：后者对任意 $L$-光滑且 $\mu$-强凸的函数均能保证收敛。
+Polyak 证明了其在二次函数上的速率。但对于一般的光滑强凸函数，相同的参数可能导致不收敛——Lessard、Recht 和 Packard（2016）给出了一个明确的光滑强凸反例，其中使用最优二次参数的 Heavy-Ball 会永远循环。这与 Nesterov 方法形成鲜明对比，后者在每个 $L$-光滑 $\mu$-强凸函数上都收敛。
 
-实际应用中的补救措施包括：采用略为保守（即更小）的参数，或通过实验验证收敛性。事实上，重球法正是 PyTorch 中 `SGD` 优化器默认 `momentum=0.9` 的理论原型，在训练神经网络时表现稳健；尽管其严格理论保障目前仅限于二次情形，工程实践中仍被广泛视为可靠高效的动量方案。
+解决方法是使用稍保守的参数，或通过实验验证收敛性；实践中，Heavy-Ball 是 PyTorch 中 `momentum=0.9` 的核心机制，即使理论保证仅适用于二次函数，它在神经网络中也表现良好。
 
-![椭圆等高线上的二维轨迹](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig2_trajectory.png "GD 在陡方向上反复折返；动量法虽过冲但更快到达  0 ")
+![2D trajectories on ellipse contours](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig2_trajectory.png "GD zig-zags along the steep direction; momentum methods overshoot but reach $x^\star$ much faster")
 
-GD 沿陡峭的 $x_1$ 方向反复“之”字形折返，沿平缓的 $x_2$ 方向爬行极慢。重球法与 Nesterov 法因惯性会**过冲**最优点，再回摆——但每次震荡都是朝正确方向的粗略修正，因此能以远少的迭代次数抵达最优解。
+GD 沿陡峭的 $x_1$ 方向来回震荡，并在平坦的 $x_2$ 方向上缓慢爬行。Heavy-Ball 和 Nesterov 都因惯性而 *过冲* 最优点，然后回摆——但每次振荡都是朝正确方向的粗略修正，因此它们能在少得多的迭代次数内达到最优点。
 
-## 3. 统一的李雅普诺夫（Lyapunov）分析框架
+---
 
-### 3.1 估计序列（Nesterov 的原始技巧）
+## 3. 统一的 Lyapunov 框架
 
-Nesterov 在 1983 年的论文中引入了一组“模型函数”$\phi_k$，它们对目标函数 $f$ 构成下界。定义如下递推关系：
+### 3.1 estimate-sequence（Nesterov 的原始工具）
+
+Nesterov 1983 年的论文使用了一组“模型函数” $\phi_k$ 来下界 $f$。定义
 $$
 \phi_{k+1}(x) = (1 - \alpha_k) \phi_k(x) + \alpha_k \big[ f(y_k) + \langle \nabla f(y_k), x - y_k \rangle + \tfrac{\mu}{2} \|x - y_k\|_2^2 \big],
 $$
-其中初始函数为 $\phi_0(x) = f(x_0) + \frac{\mu}{2} \|x - x_0\|_2^2$，而 $y_k$ 是算法中使用的前视点（lookahead point）。该序列 $\phi_k$ 恒为凸二次函数；记其最小值点为 $v_k$，最小值为 $\phi_k^\star$。通过归纳可得关键不等式：
+其中 $\phi_0(x) = f(x_0) + \frac{\mu}{2} \|x - x_0\|_2^2$，$y_k$ 是前瞻点。序列 $\phi_k$ 是凸二次函数；追踪其最小值点 $v_k$ 和最小值 $\phi_k^\star$。归纳法
 $$
-f(x_k) \leq \phi_k^\star,
+f(x_k) \leq \phi_k^\star
 $$
-再结合 $\phi_k(x^\star) \to f(x^\star)$ 的收敛速率 $(1 - \sqrt{\mu/L})^k$，即可导出加速收敛性。
+结合 $\phi_k(x^\star) \to f(x^\star)$ 的速率 $(1 - \sqrt{\mu/L})^k$，即可得到加速收敛。
 
-估计序列虽功能强大，但构造繁琐。现代分析更倾向于采用李雅普诺夫函数方法，我们将在下文展开。
+estimate-sequence 很强大但设置繁琐。现代表述采用 Lyapunov 函数，我们接下来展开。
 
-### 3.2 李雅普诺夫方法
+### 3.2 Lyapunov 方法
 
-一个**李雅普诺夫函数**是一个非负量 $V_k$，满足算法每步均使其衰减：
+**Lyapunov 函数** 是一个非负量 $V_k$，算法在每一步都使其减小：
 $$
 V_{k+1} \leq (1 - \sqrt{\mu/L}) V_k.
 $$
-难点在于构造恰当的 $V_k$。对于 $L$-光滑且 $\mu$-强凸的目标函数 $f$，Nesterov 方法对应的李雅普诺夫函数取为：
+关键是找到合适的 $V_k$。对于 $L$-光滑 $\mu$-强凸函数 $f$ 上的 Nesterov 方法，取
 $$
 V_k = (f(x_k) - f^\star) + \frac{\mu}{2} \|z_k - x^\star\|_2^2,
 $$
-其中 $z_k$ 是算法所维护的辅助“外推点”（即前述的 $v_k$）。在标准 Nesterov 参数设置下，可以证明——参见 Bansal & Gupta (2019)，Wilson, Recht, Jordan (2021)——有：
+其中 $z_k$ 是算法维护的辅助“外推点”（即上文提到的 $v_k$）。使用标准 Nesterov 参数可以证明——参见 Bansal & Gupta (2019)，Wilson、Recht、Jordan (2021)——
 $$
 V_{k+1} \leq \big( 1 - \sqrt{\mu/L} \big) V_k.
 $$
-迭代后得 $V_k \leq (1 - \sqrt{\mu/L})^k V_0$，从而 $f(x_k) - f^\star \leq V_k = O((1 - 1/\sqrt{\kappa})^k)$，即达到加速收敛速率。
+迭代得到 $V_k \leq (1 - \sqrt{\mu/L})^k V_0$，因此 $f(x_k) - f^\star \leq V_k = O((1 - 1/\sqrt{\kappa})^k)$，即加速速率。
 
-该李雅普诺夫分析具有普适性：对**任意**可表示为阻尼二阶常微分方程  
-$$
-\ddot x + \gamma(t) \dot x + \nabla f(x) = 0
-$$  
-之适当离散化的算法（其中 $\gamma(t)$ 选取合适），均存在对应的李雅普诺夫函数，并能导出加速收敛速率。
+Lyapunov 论证具有普适性：对于 **任意** 可写为阻尼二阶 ODE $\ddot x + \gamma(t) \dot x + \nabla f(x) = 0$ 离散化的算法（只要 $\gamma(t)$ 合适），都存在 Lyapunov 函数并导出加速速率。
 
-### 3.3 镜像下降与加速的间隙
+### 3.3 Mirror descent 与加速的差距
 
-对于仅凸（convex）、但**非强凸**的问题，最优下界退化为 $\Omega(\sqrt{L/\epsilon})$ —— 即对应于 $O(1/k^2)$ 的收敛速率。Nesterov 方法可达此界；FISTA（见第 06 篇文章）亦然。此时对应的李雅普诺夫函数为：
+对于凸但 **非强凸** 问题，下界变为 $\Omega(\sqrt{L/\epsilon})$——即 $\Omega(1/k^2)$ 速率。Nesterov 方法能达到该速率；FISTA（文章 06）也能。仅凸情形下的 Lyapunov 函数为：
 $$
 V_k = \tfrac{k(k+1)}{4 L} (f(x_k) - f^\star) + \tfrac{1}{2} \|z_k - x^\star\|_2^2.
 $$
-验证 $V_{k+1} \leq V_k$ 即可推出 $f(x_k) - f^\star \leq O(1/k^2)$。同一李雅普诺夫模板可统一处理强凸与仅凸两种情形——区别仅在于所采用的具体函数形式。
+证明 $V_{k+1} \leq V_k$ 即可得到 $f(x_k) - f^\star \leq O(1/k^2)$。同一 Lyapunov 模板处理两种情形——只需使用不同的具体函数形式。
 
 ---
 
 ## 4. 自适应重启：何时中断动量
 
-加速方法存在一个棘手问题：在仅凸情形下，动量系数 $\beta_k = (k-1)/(k+2)$ 随 $k$ 增大而趋近于 1。若初始点 $x_0$ 远离最优解 $x^\star$，持续累积动量将导致迭代点严重过冲，函数值反而震荡而非单调下降。
+加速有一个讨厌的特性：凸情形下的动量系数 $\beta_k = (k-1)/(k+2)$ 会趋近于 1。如果你从远离 $x^\star$ 的地方开始并积累了过多动量，迭代点会过冲，导致函数值振荡而非单调下降。
 
-**重启启发式规则**（O'Donoghue & Candès, 2015）：在每一步迭代中，检查以下任一条件是否成立：
-- **函数值重启**：$f(x_{k+1}) > f(x_k)$，或  
-- **梯度重启**：$\langle \nabla f(y_k), x_{k+1} - x_k \rangle > 0$（即当前步沿梯度方向上行），  
+**重启启发式（O'Donoghue & Candès, 2015）**：每次迭代检查是否满足以下任一条件：
+- **函数值重启**：$f(x_{k+1}) > f(x_k)$，或
+- **梯度重启**：$\langle \nabla f(y_k), x_{k+1} - x_k \rangle > 0$（该步在上坡），
 
-若任一条件满足，则重置动量：令 $z_k \leftarrow x_k$，并清零内部计数器。
+若满足，则重置动量：设 $z_k \leftarrow x_k$ 并将内部计数器归零。
 
-梯度重启准则通常更受青睐——它无需计算函数值 $f$，而后者在某些场景中开销高昂。
+梯度重启准则通常更受青睐——它不需要计算 $f$，在某些场景下计算 $f$ 可能很昂贵。
 
-**重启为何有效？**  
-重启将原本单一的 $O(1/k^2)$ 收敛阶段，分解为若干连续子阶段。在每个子阶段内，迭代行为等价于从一个更靠近 $x^\star$ 的新起点 $x_0$ 重新开始。总迭代复杂度仍为 $O(\sqrt{\kappa} \log(1/\epsilon))$，但实际常数显著改善，且实践中完全消除震荡现象。在强凸问题上，重启机制还能自动适配未知的强凸模 $\mu$：即使仅使用仅凸情形下的加速方案，也能自动实现强凸速率，而无需预先知晓 $\mu$。
+**为什么重启有效**。重启将单个 $O(1/k^2)$ 阶段转换为一系列阶段。在每个阶段内，迭代点的行为就像从一个新的、更接近 $x^\star$ 的 $x_0$ 开始。总迭代次数仍为 $O(\sqrt{\kappa} \log(1/\epsilon))$，但常数更好，且实践中无振荡。在强凸问题上，重启能自动适应未知的 $\mu$——你可以运行仅凸加速方案，无需提前知道 $\mu$ 即可达到强凸速率。
 
-![自适应重启 vs 无重启](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig4_restart.png "无重启时凸 Nesterov 方案震荡不已；梯度重启则给出干净的单调下降")
+![Adaptive restart vs no restart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig4_restart.png "Without restart, the convex Nesterov scheme oscillates; gradient restart yields clean monotone descent")
 
-无重启时函数值剧烈震荡（橙色曲线）——动量系数 $\beta_k \to 1$ 不断把迭代点沿平缓方向推过 $x^\star$。自适应梯度重启（蓝色）以廉价的判据 $\langle \nabla f(y_k), x_{k+1} - x_k \rangle > 0$ 检测到这种过冲，并即刻重置动量，从而产生一连串干净的加速段（竖线标示重启时刻）。
-
-## 5. Catalyst：黑箱加速框架
-
-倘若问题过于复杂，无法直接应用 Nesterov 加速——例如梯度难以精确计算，或你希望使用任意的内层求解器（inner solver）？此时，**Catalyst** 框架（Lin, Mairal, Harchaoui, 2015）提供了一种通用方案：它通过求解一系列带正则项的内层子问题，对**任意线性收敛的内层求解器**进行加速。
-
-### 5.1 元算法（meta-algorithm）
-
-设目标函数 $f$ 是 $L$-光滑凸函数。任选 $\kappa > 0$，定义关于参考点 $y$ 的正则化目标函数：
-$$
-g_y(x) := f(x) + \frac{\kappa}{2} \|x - y\|_2^2.
-$$
-注意：即使 $f$ 非强凸，$g_y$ 也必为 $\kappa$-强凸。Catalyst 迭代如下：
-
-1. 初始化 $y_0 = x_0$；
-2. 对 $k = 0, 1, \ldots$：使用任意内层求解器，近似最小化 $g_{y_k}(x)$，得到 $x_{k+1}$，满足精度条件  
-   $$
-   g_{y_k}(x_{k+1}) - g_{y_k}^\star \leq \epsilon_k；
-   $$
-3. 以类 Nesterov 动量更新 $y$：  
-   $$
-   y_{k+1} = x_{k+1} + \beta_k (x_{k+1} - x_k),
-   $$
-   其中 $\beta_k$ 的选取方式与 Nesterov 方法一致。
-
-若内层求解器在 $\kappa$-强凸问题上具有线性收敛率 $\rho$，则 Catalyst 整体达到**加速收敛率**：  
-$$
-O\!\left(\sqrt{L/\kappa} \cdot \rho^{-1} \log(1/\epsilon)\right).
-$$
-
-![Catalyst 元算法流程图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig5_catalyst.png "外层 Nesterov 循环驱动内层正则化求解器")
-
-外层循环以 Nesterov 风格的动量更新**锚点** $y_k$；内层循环则调用任意线性收敛求解器去近似优化正则化子问题 $g_{y_k}(x) = f(x) + \frac{\kappa}{2}\|x - y_k\|^2$。由于 $g_{y_k}$ 在构造上恒为 $\kappa$-强凸，即便原问题非强凸，也能借助内层线性收敛求解器获得加速速率。
-
-
-### 5.2 示例应用
-
-假设原始问题是有限和形式 $f(x) = \frac{1}{n} \sum_i f_i(x)$，且你选用 SVRG（见第 10 篇文章）作为内层求解器。SVRG 在 $\kappa$-强凸问题上的收敛率为 $O\!\left((n + L/\kappa) \log(1/\epsilon)\right)$。经 Catalyst 加速后，Catalyst-SVRG 在原始 $\mu$-强凸问题上的总复杂度为  
-$$
-O\!\left((n + \sqrt{n L / \mu}) \log(1/\epsilon)\right),
-$$  
-当 $L \gg \mu$ 时，该结果严格优于标准 SVRG。  
-
-这正是对**无法自然嵌入 Nesterov 框架**的算法实施加速的系统性方法。
+无重启时，函数值会反弹（橙色曲线）——动量系数 $\beta_k \to 1$ 持续推动迭代点沿平坦方向越过 $x^\star$。自适应梯度重启（蓝色）通过廉价测试 $\langle \nabla f(y_k), x_{k+1} - x_k \rangle > 0$ 检测到这一点并重启动量，产生一系列干净的加速阶段（竖线标记重启事件）。
 
 ---
 
-## 6. 实例对比：病态二次函数
+## 5. Catalyst：黑盒加速
 
-考虑 $f(x) = \frac{1}{2} x^\top Q x$，其中 $Q = \mathrm{diag}(1, 1/\kappa)$，取 $\kappa = 10^4$。最优解为 $x^\star = 0$，初始点为 $x_0 = (1, 1)$。
+如果问题过于复杂而无法直接应用 Nesterov——例如梯度难以精确计算，或你想使用任意内部求解器？**Catalyst** 框架（Lin、Mairal、Harchaoui, 2015）通过正则化内部子问题加速任何线性收敛的内部求解器。
+
+### 5.1 元算法
+
+对于最小化 $L$-光滑凸函数 $f$，选择 $\kappa > 0$ 并定义正则化目标
+$$
+g_y(x) := f(x) + \frac{\kappa}{2} \|x - y\|_2^2.
+$$
+注意即使 $f$ 非强凸，$g_y$ 也是 $\kappa$-强凸的。Catalyst 迭代如下：
+
+1. 设 $y_0 = x_0$。
+2. 对 $k = 0, 1, \ldots$：使用任意内部求解器近似最小化 $g_{y_k}(x)$，得到 $x_{k+1}$，满足 $g_{y_k}(x_{k+1}) - g_{y_k}^\star \leq \epsilon_k$。
+3. 更新 $y_{k+1} = x_{k+1} + \beta_k (x_{k+1} - x_k)$，其中动量 $\beta_k$ 按 Nesterov 方式选择。
+
+如果内部求解器在 $\kappa$-强凸问题上线性收敛速率为 $\rho$，则 Catalyst 以 **加速** 速率 $O(\sqrt{L/\kappa} \cdot \rho^{-1} \log(1/\epsilon))$ 收敛。
+
+![Catalyst meta-algorithm flowchart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig5_catalyst.png "Outer Nesterov loop drives an inner regularized solver")
+
+外层循环在 *锚点* $y_k$ 上运行 Nesterov 风格的动量；内层循环对正则化子问题 $g_{y_k}(x) = f(x) + \frac{\kappa}{2}\|x - y_k\|^2$ 调用任意线性收敛求解器。由于 $g_{y_k}$ 通过构造是 $\kappa$-强凸的，即使原问题非强凸，也能使用线性收敛的内部求解器。
+
+
+### 5.2 应用示例
+
+假设你的内部问题是有限和 $f(x) = \frac{1}{n} \sum_i f_i(x)$，并使用 SVRG（文章 10）作为内部求解器。SVRG 在 $\kappa$-强凸问题上的速率为 $O((n + L/\kappa) \log(1/\epsilon))$。Catalyst-SVRG 在原始 $\mu$-强凸问题上的总复杂度为 $O((n + \sqrt{n L / \mu}) \log(1/\epsilon))$——当 $L \gg \mu$ 时严格优于普通 SVRG。
+
+这就是加速那些无法干净纳入 Nesterov 框架的算法的方法。
+
+---
+
+## 6. 具体比较：一个病态条件二次函数
+
+考虑 $f(x) = \frac{1}{2} x^\top Q x$，其中 $Q = \mathrm{diag}(1, 1/\kappa)$，$\kappa = 10^4$。最优点：$x^\star = 0$。初始点：$x_0 = (1, 1)$。
 
 ```python
 import numpy as np
@@ -280,38 +259,39 @@ hb_hist = heavy_ball(steps)
 nag_hist = nesterov(steps)
 ```
 
-![梯度下降 vs 重球法 vs Nesterov 在  0  二次函数上的收敛对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig1_convergence.png "收敛曲线：动量带来的  1  倍加速")
+![GD vs Heavy-Ball vs Nesterov on a $\kappa = 100$ quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/05-acceleration-beyond-nesterov/fig1_convergence.png "Convergence curves: $\sqrt{\kappa}$ speedup of momentum")
 
-两条加速方法（Heavy-Ball、Nesterov）几乎重合，紧贴 $(1 - 1/\sqrt{\kappa})^{2k}$ 包络；GD 则贴着平缓得多的 $(1 - 1/\kappa)^{2k}$ 包络。从达到 $10^{-6}$ 精度所需的迭代次数读出：GD 需要的迭代次数大约是加速方法的 $\sqrt{\kappa} = 10$ 倍。
+两种加速方法（Heavy-Ball、Nesterov）基本位于同一条线上，都紧贴 $(1 - 1/\sqrt{\kappa})^{2k}$ 包络；GD 则位于更平缓的 $(1 - 1/\kappa)^{2k}$ 包络上。读取达到 $10^{-6}$ 所需的迭代次数：GD 大约需要多 $\sqrt{\kappa} = 10$ 倍的迭代。
 
-典型输出（第 500 次迭代处的函数值）：
-- 标准梯度下降（GD）：$\sim 6 \times 10^{-3}$ —— $\kappa = 10^4$ 下表现极差；
-- 重球法（Heavy-Ball）：$\sim 4 \times 10^{-19}$ —— 实质已达机器精度零点；
-- Nesterov：$\sim 4 \times 10^{-19}$ —— 同样达到加速收敛速率。
+典型输出（第 500 次迭代的函数值）：
+- 普通 GD：$\sim 6 \times 10^{-3}$ —— $\kappa = 10^4$ 非常严酷。
+- Heavy-Ball：$\sim 4 \times 10^{-19}$ —— 实质上为零。
+- Nesterov：$\sim 4 \times 10^{-19}$ —— 相同的加速速率。
 
-为达到相同精度，GD 所需迭代次数比加速方法多出约 $\sqrt{\kappa} = 100$ 倍。这正是加速方法在实践中的核心价值。
+GD 与加速方法在达到相同精度所需的迭代次数上的差距约为 $\sqrt{\kappa} = 100$。这就是加速的实际价值。
 
 ---
 
 ## 7. 总结
 
-| 问题                                      | 回答                                                                 |
-| ----------------------------------------- | -------------------------------------------------------------------- |
-| 能否突破 $\sqrt{\kappa}$ 瓶颈？           | 否——Nemirovski–Yudin 下界已证明其不可能性。                            |
-| 重球法 vs Nesterov？                      | 在二次函数上收敛率相同；但在一般强凸（SC）问题上，重球法可能发散。         |
-| 何时应重启（restart）？                   | 当动量导致过冲时（依据梯度符号变化或函数值上升等判据）。                    |
-| 如何加速一个黑箱求解器？                  | 使用 Catalyst 元算法，辅以带正则项的内层子问题。                          |
-| 统一理论基础是什么？                      | 阻尼二阶常微分方程（ODE）及其离散化所对应的 Lyapunov 函数分析框架。         |
+| 问题                                  | 答案                                                                  |
+| ----------------------------------------- | ----------------------------------------------------------------------- |
+| 能否比 $\sqrt{\kappa}$ 更好？    | 不能 —— Nemirovski--Yudin 下界禁止了这一点。                         |
+| Heavy-Ball vs Nesterov？                   | 二次函数上速率相同；Heavy-Ball 在一般 SC 问题上可能失败。     |
+| 何时重启？                          | 当动量过冲时（梯度或函数值准则）。         |
+| 如何加速黑盒求解器？     | 使用正则化内部子问题的 Catalyst 元算法。              |
+| 统一理论是什么？                | 阻尼二阶 ODE 及其离散化的 Lyapunov 函数。 |
+
 ## 故事的延续
 
-- 第 06 篇文章使用上述 Lyapunov 模板，严格推导出 FISTA——即加速近端梯度法。
-- 第 10 篇文章将 Catalyst 框架与随机内层求解器（SVRG、SAGA）结合，用于有限和优化问题。
-- 第 07 篇文章探讨二阶方法，这类方法通过利用更多曲率信息，突破了 $\sqrt{\kappa}$ 的收敛速率瓶颈。
+- 文章 06 使用上述 Lyapunov 模板推导 FISTA（加速近端梯度方法）。
+- 文章 10 将 Catalyst 与随机内部求解器（SVRG、SAGA）结合用于有限和问题。
+- 文章 07 探索二阶方法，它们通过使用更多信息突破了 $\sqrt{\kappa}$ 壁垒。
 
 ## 延伸阅读
 
-- Nesterov，《凸优化讲义》（第二版），§2 —— 该领域的经典权威论述。  
-- d'Aspremont、Scieur & Taylor，《加速方法》，*Foundations and Trends® in Optimization* 5(1–2), 2021 —— 当代综述，涵盖 Lyapunov 分析框架。  
-- O'Donoghue & Candès，《加速梯度算法的自适应重启策略》，*Foundations of Computational Mathematics* 15, 2015 —— 提出重启机制的奠基性论文。  
-- Lin、Mairal & Harchaoui，《Catalyst：一阶凸优化的加速元算法》，*Journal of Machine Learning Research* 18, 2018 —— Catalyst 元算法的原始文献。  
-- Wilson、Recht & Jordan，《优化中加速方法的 Lyapunov 分析》，*Journal of Machine Learning Research* 22, 2021 —— 提出统一分析框架的重要工作。
+- Nesterov, *Lectures on Convex Optimization* (2nd ed.), §2 —— 权威论述。
+- d'Aspremont, Scieur & Taylor, *Acceleration Methods*, FnT-OPT 5(1-2), 2021 —— 现代综述，包含 Lyapunov 框架。
+- O'Donoghue & Candès, *Adaptive Restart for Accelerated Gradient Schemes*, FoCM 15, 2015 —— 重启论文。
+- Lin, Mairal & Harchaoui, *Catalyst Acceleration for First-Order Convex Optimization*, JMLR 18, 2018 —— 元算法。
+- Wilson, Recht & Jordan, *A Lyapunov Analysis of Accelerated Methods in Optimization*, JMLR 22, 2021 —— 统一框架。
