@@ -233,7 +233,7 @@ aliyun sls CreateIndex \
 
 `line` 部分启用全文索引，指定分词符。`keys` 部分定义字段级索引。设 `doc_value: true` 启用该字段的 SQL 分析。每个索引字段都占存储，只索引你真要查的字段。
 
-> **Cost note:** Indexing roughly doubles your storage cost. For high-volume logs where you only need full-text search, skip per-field indexing and rely on the `line` index. For access logs where you run SQL dashboards, per-field indexing is worth the cost.
+> **成本提示：** 建索引会让存储成本大约翻倍。对于只需要全文检索的高吞吐日志，可以跳过逐字段索引，仅依赖 `line` 索引。对于需要跑 SQL 仪表盘的访问日志，逐字段索引带来的开销是值得的。
 ## 配置 Logtail
 
 Logtail 是 SLS 官方日志采集 agent，运行于 ECS 实例，负责监控日志文件、按配置解析并投递至 SLS。它轻量（通常占用 50–100 MB 内存， CPU 使用率 <1%）、可靠（通过本地缓冲应对网络中断），且与 SLS 深度集成。

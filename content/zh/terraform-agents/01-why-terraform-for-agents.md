@@ -58,9 +58,9 @@ translationKey: "terraform-agents-1"
 
 阿里云 Terraform 官方文档说得更委婉些：
 
-> Console operations: Click and enter parameters step by step. Repeat manual steps — hard to ensure consistency. Rely on documentation and verbal agreements.
+> 控制台操作：一步步点击并输入参数。重复的手动步骤——难以保证一致性。依赖文档和口头约定。
 >
-> Terraform: Describe the desired state of resources in configuration files. Configuration files are reviewable, shareable, and reusable. Store configuration files in version control. Changes are traceable and reversible.
+> Terraform：用配置文件描述资源的目标状态。配置文件可审查、可共享、可复用。把配置文件放进版本控制。所有变更都可追溯、可回滚。
 
 第二段就是全部卖点。这个系列里的其他内容都是实现细节。
 

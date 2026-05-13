@@ -46,10 +46,10 @@ translationKey: "terraform-agents-4"
 持续 QPS 低于 ~1 时，FC 占优，空闲时几乎不花钱；~1 到 ~30 之间，单台 ECS 更合适。超过这个值，ACK 的较高固定成本会被足够负载分摊，比硬塞到 ECS 上更便宜。ECI 的特殊之处在于：利用率低于 50% 时比 ECS 便宜，高于 50% 则更贵。
 
 该成本模型较为粗略，实际费用会受实例规格、网络类型和 Agent 通信频率等因素影响，但整体成本变化趋势是可信的。我的决策规则如下：
-> Bursty + low average → Function Compute
-> Steady + low-to-mid → ECS with pm2
-> Multi-agent + sustained mid-to-high → ACK
-> Bursty batch, 2-30 min per run → ECI
+> 突发流量 + 平均负载低 → Function Compute
+> 稳态 + 中低负载 → ECS 配 pm2
+> 多 Agent + 持续中高负载 → ACK
+> 突发批处理，单次 2-30 分钟 → ECI
 
 架构方案已明确，接下来将逐一详解四种模式及其对应的 Terraform 实现。
 
