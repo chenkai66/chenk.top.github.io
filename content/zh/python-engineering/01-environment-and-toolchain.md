@@ -13,17 +13,15 @@ disableNunjucks: true
 series_order: 1
 translationKey: "python-engineering-1"
 ---
+每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果却崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上写的。更糟的是，你执行了 `pip install` 全局安装某个包，结果意外破坏了一个完全无关的项目。Python 的环境管理体系一旦掌握，其实非常强大，但默认体验却像一片布满地雷的雷区。
 
-每位 Python 开发者都经历过这样的时刻：你在同事的机器上运行一段脚本，结果崩溃了——因为对方用的是 Python 3.8，而你是在 3.11 上编写的。更糟的是，你执行了 `pip install` 全局安装，却意外破坏了一个完全无关的项目。尽管 Python 的环境管理体系非常强大，默认体验却像布满地雷的雷区。
-
-本文将从零开始梳理整套工具链，构建可复现、强隔离且版本锁定的开发环境，确保跨机器行为一致。
+本文将从零开始，带你完整梳理整套工具链。读完后，你将拥有一个可复现、强隔离且版本锁定的开发环境，确保在任何机器上行为一致。
 
 ## Python 版本问题
 
-大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7（Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。
+大多数操作系统都自带一个系统级 Python。macOS 曾长期预装 Python 2.7（Monterey 中已移除），Ubuntu 22.04 则预装 Python 3.10。这个系统 Python 被操作系统内部工具所依赖，向其中安装或升级包可能会导致系统异常。
 
 ![依赖解析流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
-
 
 以下是核心痛点：
 
@@ -35,17 +33,17 @@ translationKey: "python-engineering-1"
 | 可复现性失效 | “在我机器上能跑”——只因各处版本不一致 |
 | 系统工具依赖系统 Python | Ubuntu 的 `apt` 在内部使用系统 Python |
 
-建议采用以下三层协同架构：
-1. **pyenv**：管理多个 Python 版本（如并行安装 3.9、3.10、3.11 等）
-2. **venv**：为每个项目隔离依赖
-3. **pip-tools** 或 **Poetry**：精确锁定版本，保障可复现性
+解决方案是采用三层协同架构：
+
+1. **pyenv** 管理多个 Python 版本（例如并行安装 3.9、3.10 和 3.11）
+2. **venv** 为每个项目隔离依赖
+3. **pip-tools** 或 **Poetry** 精确锁定版本，保障可复现性
 
 ## pyenv：无痛管理多版本 Python
 
-pyenv 通过拦截 `python` 命令，并将其重定向至你配置的任意 Python 版本，来实现版本切换。它通过在你的 `$PATH` 中插入 shim 脚本来完成这一操作。
+pyenv 通过拦截 `python` 命令，并将其重定向到你配置的任意 Python 版本来实现切换。它通过在 `$PATH` 中插入 shim 脚本来完成这一操作。
 
 ![pyenv 机制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png)
-
 
 ### 安装
 
@@ -126,7 +124,7 @@ sudo apt install -y make build-essential libssl-dev zlib1g-dev \
 
 ### 设置当前激活版本
 
-pyenv 按优先级自高到低支持三级版本选择：
+pyenv 按优先级从高到低支持三级版本选择：
 
 ```bash
 # 全局默认（最低优先级）
@@ -161,13 +159,11 @@ $ pyenv versions
 
 ## 虚拟环境：依赖隔离
 
-
 ![依赖地狱：缠绕的线 vs 清晰的依赖关系](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-dependency-hell-tangled-wires-vs-clean-resolved-dependencies.jpg)
 
 即使有了正确的 Python 版本，你仍需依赖隔离。否则，`pip install` 会把包安装到共享位置，而两个需要同一包不同版本的项目就会发生冲突。
 
 ![版本管理栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png)
-
 
 ### 创建虚拟环境
 
@@ -219,10 +215,9 @@ $
 
 ### 为什么叫 `.venv`？
 
-前缀 `.` 使其在文件列表中隐藏。大多数工具（VS Code、 PyCharm、 pytest）都能自动识别 `.venv`。请立即将其加入 `.gitignore`：
+前缀 `.` 使其在文件列表中隐藏。大多数工具（VS Code、PyCharm、pytest）都能自动识别 `.venv`。请立即将其加入 `.gitignore`：
 
 ![虚拟环境隔离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-venv-isolation.png)
-
 
 ```bash
 echo ".venv/" >> .gitignore
@@ -240,12 +235,11 @@ echo ".venv/" >> .gitignore
 | 非 Python 依赖支持 | 否 | 否 | 是（如 C 库等） |
 | 跨平台支持 | 是 | 是 | 是 |
 | 环境体积 | 小 | 小 | 大（200MB+） |
-| 最适用场景 | 通用 Python 项目 | 遗留项目 / 追求速度 | 数据科学（含 CUDA、 MKL 等难编译的 C 依赖） |
+| 最适用场景 | 通用 Python 项目 | 遗留项目 / 追求速度 | 数据科学（含 CUDA、MKL 等难编译的 C 依赖） |
 
-**建议：** 绝大多数项目使用 `venv`；仅当你需要预编译的科学计算库（如 CUDA、 MKL）且源码编译极其困难时，才选用 `conda`。
+**建议：** 绝大多数项目使用 `venv`；仅当你需要预编译的科学计算库（如 CUDA、MKL）且源码编译极其困难时，才选用 `conda`。
 
-## pip： Python 包安装器
-
+## pip：Python 包安装器
 
 ![Python 虚拟环境，每个环境都有不同的隔离气泡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-python-virtual-environment-isolated-bubbles-each-with-differ.jpg)
 
@@ -306,7 +300,6 @@ urllib3==2.1.0
 pip-tools 通过分离「你想要什么」和「实际安装什么」，解决了 `pip freeze` 的缺陷。
 
 ![工具链对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-toolchain-comparison.png)
-
 
 ### 安装
 

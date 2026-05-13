@@ -14,10 +14,9 @@ disableNunjucks: true
 series_order: 4
 translationKey: "python-engineering-4"
 ---
+代码评审应聚焦于逻辑与架构设计，而不是纠结于单引号还是双引号——这类争论纯粹是浪费工程师的时间。解决方案很简单：让机器处理代码风格，让人专注于逻辑正确性。
 
-代码评审应聚焦于逻辑与架构设计，而不是争论单引号和双引号的使用——这种争论纯粹是浪费工程时间。解决方案很简单：让机器处理风格问题，人则专注于正确性。
-
-本文涵盖三层自动化代码质量保障机制：**类型提示**在运行前捕获逻辑错误，**代码检查器（linter）** 检测风格违规与常见缺陷，**pre-commit 钩子**则在每次提交时自动执行全部检查。
+本文涵盖三层自动化代码质量保障机制：**类型提示**能在运行前捕获逻辑错误，**代码检查器（linter）** 能发现风格违规和常见缺陷，而 **pre-commit 钩子**则在每次提交时自动执行全部检查。
 
 ## 类型提示：基础注解
 
@@ -55,7 +54,7 @@ matrix: list[list[int]] = [[1, 2], [3, 4]]
 config: dict[str, list[str]] = {"hosts": ["a.com", "b.com"]}
 ```
 
-对于 Python 3.7–3.8，需从 `typing` 模块导入：
+对于 Python 3.7–3.8，则需从 `typing` 模块导入：
 
 ```python
 from typing import Dict, List, Set, Tuple
@@ -64,7 +63,7 @@ names: List[str] = ["Alice", "Bob"]
 scores: Dict[str, int] = {"Alice": 95}
 ```
 
-或在文件顶部添加 `from __future__ import annotations`，以在旧版本中启用 3.9+ 语法。
+或者在文件顶部加上 `from __future__ import annotations`，即可在旧版本中启用 3.9+ 的语法。
 
 ### Optional 与 Union
 
@@ -88,7 +87,7 @@ def process(value: str | int) -> str:
     return str(value)
 ```
 
-### Any、 Callable 与 Iterator
+### Any、Callable 与 Iterator
 
 ```python
 from typing import Any, Callable, Iterator
@@ -131,7 +130,7 @@ def fetch(url: str, headers: Headers, on_progress: Callback) -> bytes:
     ...
 ```
 
-## 泛型类型： TypeVar 与 Protocol
+## 泛型类型：TypeVar 与 Protocol
 
 ### TypeVar
 
@@ -151,7 +150,7 @@ x: int = first([1, 2, 3])        # T = int
 y: str = first(["a", "b", "c"])  # T = str
 ```
 
-### 有界 TypeVar （Bounded TypeVar）
+### 有界 TypeVar（Bounded TypeVar）
 
 ```python
 from typing import TypeVar
@@ -167,7 +166,7 @@ add(1.0, 2.0)   # OK: float
 add("a", "b")   # Error: str 不是 int 或 float
 ```
 
-### Protocol （结构化子类型）
+### Protocol（结构化子类型）
 
 Protocol 通过结构（而非继承）定义接口：只要对象具备所需方法，即视为匹配。
 
@@ -227,7 +226,6 @@ create_user({"name": "Alice", "age": 30})
 mypy 读取类型注解，在不实际运行代码的情况下报告错误。
 
 ![mypy 类型检查流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-mypy-flow.png)
-
 
 ### 安装与基础用法
 
@@ -324,12 +322,12 @@ ignore_missing_imports = true
 ### 渐进式采用策略
 
 你无需一次性为全部代码添加类型注解。建议按以下顺序推进：
-1. **新代码**：始终添加类型提示  
-2. **公共 API 函数**：标注参数与返回类型  
-3. **核心模块**：逐步补全完整注解  
-4. **测试代码**：为 fixture 和 helper 函数添加注解，测试函数本身可宽松处理  
+1. **新代码**：始终添加类型提示；
+2. **公共 API 函数**：标注参数与返回类型；
+3. **核心模块**：逐步补全完整注解；
+4. **测试代码**：为 fixture 和 helper 函数添加注解，测试函数本身可宽松处理。
 
-使用 `# type: ignore[error-code]` 临时抑制特定错误：
+必要时，可用 `# type: ignore[error-code]` 临时抑制特定错误：
 
 ```python
 result = some_untyped_function()  # type: ignore[no-untyped-call]
@@ -337,13 +335,11 @@ result = some_untyped_function()  # type: ignore[no-untyped-call]
 
 ## 使用 ruff 进行代码检查
 
-
 ![代码质量流水线：原始代码通过格式化工具进行检查](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-code-quality-pipeline-raw-code-passing-through-linter-format.jpg)
 
-ruff 是一款用 Rust 编写的 Python linter，速度比 flake8 快 10–100 倍，并集成了 flake8、isort、pyflakes、pycodestyle、pydocstyle 及众多 flake8 插件的功能。
+ruff 是一款用 Rust 编写的 Python linter，速度比 flake8 快 10–100 倍，并集成了 flake8、isort、pyflakes、pycodestyle、pydocstyle 以及众多 flake8 插件的功能。
 
 ![Ruff 与其他格式化工具的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-ruff-vs-others.png)
-
 
 ### 安装与使用
 
@@ -470,14 +466,13 @@ line-length = 88
 target-version = ["py311"]
 ```
 
-black 的设计哲学是极简配置——它的目的就是终结争论。请直接使用默认值。
+black 的设计哲学是极简配置——它的目的就是终结争论，请直接使用默认值。
 
 ## Pre-commit 钩子
 
 pre-commit 在每次 `git commit` 前自动运行检查。若任一检查失败，提交将被阻止，直至问题修复。
 
 ![预提交钩子](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-precommit.png)
-
 
 ### 安装
 
@@ -537,7 +532,7 @@ check for added large files..............................................Passed
 debug statements.........................................................Passed
 ```
 
-此后每次 `git commit` 都会自动运行这些检查。若 ruff 或 black 修改了文件，提交将失败，你需要 `git add` 修改后的文件再重新提交。
+此后每次 `git commit` 都会自动运行这些检查。如果 ruff 或 black 修改了文件，提交会失败，你需要先 `git add` 修改后的文件，再重新提交。
 
 ### 跳过钩子（仅限紧急情况）
 
@@ -549,9 +544,9 @@ $ git commit --no-verify -m "hotfix: emergency patch"
 $ SKIP=mypy git commit -m "WIP: types incomplete"
 ```
 
-请谨慎使用 `--no-verify`。若频繁跳过钩子， CI 流水线仍会捕获这些问题，反而导致你在事后花费更多时间修复。
+请谨慎使用 `--no-verify`。如果频繁跳过钩子，CI 流水线仍会捕获这些问题，反而导致你在事后花费更多时间修复。
 
-## 对比： ruff vs flake8 vs pylint
+## 对比：ruff vs flake8 vs pylint
 
 | 特性 | ruff | flake8 | pylint |
 |------|------|--------|--------|
@@ -563,16 +558,14 @@ $ SKIP=mypy git commit -m "WIP: types incomplete"
 | 类型检查 | ❌（需搭配 mypy） | ❌ | ✅（基础） |
 | 插件生态 | 快速成长中 | 极其庞大 | 内置丰富 |
 | 配置方式 | `pyproject.toml` | `.flake8` 或 `setup.cfg` | `.pylintrc` |
-| 规则数量 | 800+ | ~200 （核心） | 400+ |
+| 规则数量 | 800+ | ~200（核心） | 400+ |
 | 开发活跃度 | 非常活跃 | 维护阶段 | 活跃 |
 
 ![代码检查流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-linting-pipeline.png)
 
-
-**建议**：选用 ruff。它更快、支持自动修复、并整合了多个工具。类型检查请额外搭配 mypy。
+**建议**：选用 ruff。它更快、支持自动修复，并整合了多个工具；类型检查则额外搭配 mypy。
 
 ## 完整的 `pyproject.toml` 配置示例
-
 
 ![类型注解作为 Python 代码架构的蓝图注释](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-type-hints-as-blueprint-annotations-on-python-code-architect.jpg)
 
@@ -617,7 +610,7 @@ show_missing = true
 fail_under = 80
 ```
 
-## CI 集成： GitHub Actions
+## CI 集成：GitHub Actions
 
 在 CI 中运行全部检查，确保无遗漏：
 
@@ -672,4 +665,4 @@ jobs:
 
 ## 下一步
 
-你的代码现已具备类型安全性、格式一致性，并在每次提交时自动验证。但 Python 程序远不止计算——它们还要读写文件、解析配置、以数十种格式序列化数据。下一篇文章中，我们将深入 I/O 实践，攻克编码难题，并横向对比 JSON、 Parquet 等所有主流序列化格式。
+你的代码现已具备类型安全性、格式一致性，并在每次提交时自动验证。但 Python 程序远不止计算——它们还要读写文件、解析配置、以数十种格式序列化数据。下一篇文章中，我们将深入 I/O 实践，攻克编码难题，并横向对比 JSON、Parquet 等所有主流序列化格式。

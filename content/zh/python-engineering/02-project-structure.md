@@ -13,32 +13,30 @@ disableNunjucks: true
 series_order: 2
 translationKey: "python-engineering-2"
 ---
+每个项目都始于单个文件。你写下 `main.py`，它能运行；接着不断添加功能，直到某天猛然发现：这个文件已经膨胀到 1500 行，函数层层嵌套，彼此调用，而它们依赖的全局变量却定义在 800 行开外。代码虽然能跑，但没人（包括未来的你）看得懂。
 
-每个项目都始于单个文件。你写下 `main.py`，它能运行；你添加功能，某天突然发现这个文件已膨胀至 1500 行——函数调用其他函数，而这些函数又依赖于 800 行之上定义的全局变量。代码虽然能运行，但没人（包括未来的你）能看懂。
-
-**从脚本跃迁至包，是 Python 项目中第一个真正的工程决策**：早期做对，后续测试、打包、部署等所有环节都将变得轻松；若做错，可能耗费数周解开循环导入（circular imports）的死结。
+**从脚本跃迁为包，是 Python 项目中第一个真正的工程决策**。如果早期就做对，测试、打包和部署都会变得轻松；一旦搞错，可能得花上几周时间解开循环导入（circular imports）的死结。
 
 ## 单文件何时不再够用？
 
 单文件脚本适用于以下场景：
-- 代码量少于 300 行
-- 逻辑清晰、自上而下线性执行
-- 仅你一人阅读和维护
-- 是一次性脚本，而非长期维护的工具  
+- 代码少于 300 行
+- 逻辑清晰，自上而下线性执行
+- 只有你自己会读它
+- 是一次性脚本，而非长期维护的工具
 
-你需要转向包（package）结构的信号：
-- 多人协作开发  
-- 需要对独立组件进行单元测试  
-- 需在多个脚本间复用函数  
-- 代码存在明确的逻辑分层（如 config / data / logic / CLI）  
-- 计划分发该工具（例如支持 `pip install`）
+而当你遇到以下情况时，就该考虑转向包（package）结构了：
+- 多人协作开发
+- 需要对独立组件进行单元测试
+- 需要在多个脚本间复用函数
+- 代码已有明显的逻辑分层（如 config、data、logic、CLI）
+- 计划将工具分发出去（例如支持 `pip install`）
 
-## 平铺布局（Flat Layout） vs `src` 布局
+## 平铺布局（Flat Layout）vs `src` 布局
 
 Python 生态中有两种主流的项目结构。
 
 ![平铺 vs 源代码布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-flat-vs-src.png)
-
 
 ### 平铺布局（Flat Layout）
 
@@ -56,7 +54,7 @@ my_tool/
   README.md
 ```
 
-包目录直接位于项目根目录，结构更简单。Flask 和 Requests 等知名项目均采用这种方式。
+包目录直接放在项目根目录下。这种结构更简单，Flask 和 Requests 等知名项目都采用这种方式。
 
 ### `src` 布局
 
@@ -75,9 +73,9 @@ my_tool/
   README.md
 ```
 
-包目录置于 `src/` 子目录内。该布局被 Python 打包权威机构（PyPA）推荐，其关键优势在于：**强制你在测试前先安装包**。这能在发布前就暴露打包错误（如遗漏文件、导入失败）。
+包目录被放在 `src/` 子目录中。该布局被 Python 打包权威机构（PyPA）推荐，其关键优势在于：**强制你在测试前先安装自己的包**。这样可以在发布前就暴露打包问题，比如遗漏文件或导入失败。
 
-在平铺布局中，`import my_tool` 会直接解析到本地目录，即使该包根本无法正确安装；而在 `src` 布局中， Python 根本找不到 `my_tool`，除非你先执行 `pip install -e .`。这是设计特性，而非缺陷。
+在平铺布局中，即使你的包根本无法正确安装，`import my_tool` 仍会成功——因为它直接指向本地目录。而在 `src` 布局下，除非你先运行 `pip install -e .`，否则 Python 根本找不到 `my_tool`。这并非缺陷，而是一项安全机制。
 
 ### 如何选择？
 
@@ -85,23 +83,21 @@ my_tool/
 |----------|-----------|-------------|
 | 简洁性 | 更简洁 | 目录嵌套略深 |
 | 测试准确性 | 可能掩盖打包缺陷 | 提前捕获缺陷 |
-| 典型案例 | Flask、 Requests、 FastAPI | pytest、 pip、 setuptools |
+| 典型案例 | Flask、Requests、FastAPI | pytest、pip、setuptools |
 | PyPA 推荐程度 | 可接受 | **推荐** |
-| 导入安全性 | 可能意外导入本地未安装版本 | 必须先安装才能导入 |
+| 导入安全性 | 可能意外导入未安装的本地版本 | 必须先安装才能导入 |
 
-✅ **发布库（library）请使用 `src` 布局**  
-✅ **部署环境可控的应用（application）可选用平铺布局**  
-❓ 不确定时，请优先选择 `src` 布局。
+✅ **如果你打算发布一个库（library），请使用 `src` 布局**。  
+✅ **如果你开发的是部署环境完全可控的应用（application），可选用平铺布局**。  
+❓ 如果拿不准，优先选择 `src` 布局。
 
 ## `__init__.py`：包的标识符
 
-
 ![Python 包导入解析流程跟随 sys.path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-package-import-resolution-detective-following-sys-pat.jpg)
 
-当一个目录包含 `__init__.py` 文件时，它即成为一个 Python 包。该文件可以为空，也可包含初始化逻辑。
+当一个目录包含 `__init__.py` 文件时，它就成为一个 Python 包。这个文件可以为空，也可以包含初始化代码。
 
 ![__init__.py 模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-init-purpose.png)
-
 
 ```python
 # src/my_tool/__init__.py
@@ -113,9 +109,9 @@ __version__ = "0.1.0"
 
 ### `__init__.py` 的作用
 
-1. **标记目录为包**：使 Python 能从中导入模块  
-2. **导入时自动执行**：当用户执行 `import my_tool` 时，其中代码即运行  
-3. **控制公共 API**：通过 `__all__` 显式声明导出内容  
+1. **标记目录为包**，使 Python 能从中导入模块
+2. **在导入时自动执行**——当用户执行 `import my_tool` 时，其中的代码就会运行
+3. **控制公共 API**，通过 `__all__` 显式声明哪些内容对外暴露
 
 ```python
 # src/my_tool/__init__.py
@@ -126,25 +122,22 @@ from my_tool.utils import format_size
 __all__ = ["download_file", "validate_url", "format_size"]
 ```
 
-此后用户可直接写 `from my_tool import download_file`，无需 `from my_tool.core import download_file`。
+这样一来，用户就可以写 `from my_tool import download_file`，而不必写 `from my_tool.core import download_file`。
 
 ### 何时让 `__init__.py` 保持为空？
 
-保持为空的典型场景：
-- 包内含多个职责分明的子模块  
-- 期望用户显式从具体子模块导入（如 `from my_tool.core import X`）  
-- 子模块间存在循环依赖风险  
+建议在以下情况保持 `__init__.py` 为空：
+- 包内有多个职责清晰的子模块
+- 你希望用户显式地从具体子模块导入（如 `from my_tool.core import X`）
+- 子模块之间存在循环依赖风险
 
-示例对比：  
-- `import numpy` 的 `__init__.py` 极大，负责整合全部功能；  
-- `import sqlalchemy` 的 `__init__.py` 极小，用户需显式 `from sqlalchemy.orm import Session`。
+举个例子：`import numpy` 的 `__init__.py` 非常庞大，负责整合所有功能；而 `import sqlalchemy` 的 `__init__.py` 则极简，用户通常需要写 `from sqlalchemy.orm import Session`。
 
 ### 命名空间包（Namespace Packages，无 `__init__.py`）
 
-自 Python 3.3 起，不含 `__init__.py` 的目录可作为命名空间包（namespace package），允许多个物理目录共同构成一个逻辑包。**除非你在构建插件系统，否则务必包含 `__init__.py`。**
+自 Python 3.3 起，不含 `__init__.py` 的目录可作为命名空间包（namespace package），允许多个物理路径共同构成一个逻辑包。**除非你在构建插件系统，否则务必保留 `__init__.py`。**
 
 ![包结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-package-structure.png)
-
 
 ## 相对导入 vs 绝对导入
 
@@ -169,14 +162,13 @@ from ..other_module import something  # 父包
 | 在直接运行的脚本中（`python script.py`） | **仅限绝对导入** |
 | 在测试文件中 | 绝对导入 |
 
-⚠️ 注意：相对导入在直接运行模块时会失败（如 `python src/my_tool/core.py`），因为 Python 无法推断包上下文。此时应改用 `python -m my_tool.core`。
+⚠️ 注意：相对导入在直接运行模块时会失败（例如 `python src/my_tool/core.py`），因为 Python 无法确定包的上下文。此时应改用 `python -m my_tool.core`。
 
 ### 循环导入（Circular Imports）
 
-当模块 A 导入模块 B，而模块 B 又导入模块 A 时，即发生循环导入：
+当模块 A 导入模块 B，而模块 B 又导入模块 A 时，就会发生循环导入：
 
 ![导入解析顺序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-import-resolution.png)
-
 
 ```python
 # core.py
@@ -186,14 +178,14 @@ from my_tool.utils import format_size  # utils imports from core!
 from my_tool.core import DEFAULT_TIMEOUT  # core imports from utils!
 ```
 
-解决方案：
-1. **将共享常量提取至独立模块**（如 `constants.py` 或 `config.py`）  
-2. **延迟导入**：在函数体内而非模块顶层导入（推迟实际导入时机）  
-3. **重构模块**：若两模块高度耦合，或许它们本该属于同一模块  
+解决方案包括：
+1. **将共享常量提取到独立模块**（如 `constants.py` 或 `config.py`）
+2. **延迟导入**：把导入语句放到函数内部，而不是模块顶层（推迟实际导入时机）
+3. **重构模块**：如果两个模块高度耦合，也许它们本该合并成一个
 
 ## `pyproject.toml`：包元数据配置
 
-完整 `pyproject.toml` 示例：
+完整的 `pyproject.toml` 示例：
 
 ```toml
 [build-system]
@@ -245,20 +237,20 @@ where = ["src"]
 
 ## 入口点（Entry Points）与控制台脚本（Console Scripts）
 
-`pyproject.toml` 中的 `[project.scripts]` 定义了包安装后生成的可执行命令：
+`pyproject.toml` 中的 `[project.scripts]` 节定义了包安装后生成的可执行命令：
 
 ```toml
 [project.scripts]
 my-tool = "my_tool.cli:main"
 ```
 
-执行 `pip install .` 后，你即可在任意位置运行 `my-tool`，它将调用 `my_tool/cli.py` 中的 `main()` 函数。
+执行 `pip install .` 后，你就可以在任意位置运行 `my-tool`，它会调用 `my_tool/cli.py` 中的 `main()` 函数。
 
-这就是 `black`、`ruff`、`pytest`、`flask` 等 CLI 工具的工作原理：`pip install flask` 后，`flask` 命令便自动出现在你的 `PATH` 中。
+这就是 `black`、`ruff`、`pytest`、`flask` 等 CLI 工具的工作原理：你 `pip install flask` 之后，`flask` 命令就自动出现在你的 `PATH` 中。
 
 ### 内部实现原理
 
-`pip install` 会在虚拟环境的 `bin/` 目录下创建一个轻量级包装脚本：
+`pip install` 会在虚拟环境的 `bin/` 目录下生成一个轻量级包装脚本：
 
 ```bash
 $ cat .venv/bin/my-tool
@@ -274,13 +266,13 @@ if __name__ == '__main__':
 
 ## `__main__.py`：让包可直接运行
 
-`__main__.py` 使你能以 `python -m` 方式运行整个包：
+`__main__.py` 允许你通过 `python -m` 直接运行整个包：
 
 ```bash
 $ python -m my_tool
 ```
 
-Python 将查找 `my_tool/__main__.py` 并执行其中代码。
+Python 会查找 `my_tool/__main__.py` 并执行其中的代码。
 
 ```python
 # src/my_tool/__main__.py
@@ -293,17 +285,15 @@ if __name__ == "__main__":
     main()
 ```
 
-该机制在开发阶段（尚未安装包时）非常有用，也适用于那些既需被导入又需直接运行的模块。
+这一机制在开发阶段（尚未安装包时）特别有用，也适用于那些既需要被导入、又需要直接运行的模块。
 
 ## 使用 `argparse` 构建 CLI
 
-
 ![Python 项目结构如同一个井然有序的文件柜](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/02-python-project-structure-as-a-well-organized-filing-cabinet-.jpg)
 
-标准库 `argparse` 是构建命令行接口的基础方案：
+标准库中的 `argparse` 是构建命令行接口的基础方案：
 
 ![CLI 入口点架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/02-cli-architecture.png)
-
 
 ```python
 # src/my_tool/cli.py
@@ -381,7 +371,7 @@ options:
   --timeout TIMEOUT     Request timeout in seconds (default: 30)
 ```
 
-`parse_args` 和 `main` 中的 `argv` 参数极大简化了测试：
+`parse_args` 和 `main` 函数中的 `argv` 参数让测试变得非常简单：
 
 ```python
 def test_parse_args():
@@ -392,7 +382,7 @@ def test_parse_args():
 
 ## 使用 `click` 构建 CLI
 
-对于更复杂的 CLI，`click` 是事实标准。它采用装饰器（decorator）而非命令式解析器构建：
+对于更复杂的 CLI，`click` 是事实上的标准。它使用装饰器（decorator）而非命令式代码来构建解析器：
 
 ```python
 # src/my_tool/cli.py
@@ -423,10 +413,10 @@ def main(url: str, output: str | None, quiet: bool, timeout: int) -> None:
 | 特性 | `argparse` | `click` |
 |------|------------|---------|
 | 子命令（Subcommands） | 支持但冗长 | `@click.group()` 简洁优雅 |
-| 类型校验 | 基础支持 | 可扩展的 `click.Path`, `click.Choice` |
+| 类型校验 | 基础支持 | 可扩展的 `click.Path`、`click.Choice` |
 | 测试 | 需手动构造 `argv` | 内置 `CliRunner` |
-| 彩色输出 | 需手动实现 | `click.style()`, `click.echo()` |
-| 交互式提示 | 需手动实现 | `click.prompt()`, `click.confirm()` |
+| 彩色输出 | 需手动实现 | `click.style()`、`click.echo()` |
+| 交互式提示 | 需手动实现 | `click.prompt()`、`click.confirm()` |
 | 进度条 | 不内置 | `click.progressbar()` |
 
 ### `click` 子命令实战
@@ -467,7 +457,7 @@ $ my-tool --help
 
 ## 实战：构建一个文件下载器
 
-我们来搭建一个完整的下载器项目结构。
+下面我们搭建一个完整的下载器项目结构。
 
 ### 项目布局
 
@@ -620,7 +610,7 @@ $ source .venv/bin/activate
 (.venv) $ pip install -e ".[dev]"
 ```
 
-`-e` 标志启用“可编辑安装”（editable mode），代码修改后立即生效，无需重复安装。
+`-e` 标志启用“可编辑安装”（editable mode），代码修改后立即生效，无需重新安装。
 
 安装完成后，`my-downloader` 命令即可全局使用：
 
@@ -630,7 +620,7 @@ Downloading: data.csv [100.0%] 1.2 KB
 Downloaded: data.csv
 ```
 
-同时 `python -m my_downloader` 也能运行，这得益于 `__main__.py`。
+同时，`python -m my_downloader` 也能运行，这得益于 `__main__.py` 的存在。
 
 ## 常见导入错误及修复方案
 

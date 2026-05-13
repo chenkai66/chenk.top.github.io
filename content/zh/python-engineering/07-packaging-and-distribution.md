@@ -14,17 +14,15 @@ disableNunjucks: true
 series_order: 7
 translationKey: "python-engineering-7"
 ---
+你写了一个实用的小工具，同事找你要。你把文件夹打包成 ZIP 发过去，对方解压后运行 `python main.py`，却报了 `ModuleNotFoundError` —— 因为缺少依赖。他手动装上依赖，结果版本不对；更糟的是，他用的是 Python 3.8，而你的代码里用了 f-string 中的海象运算符（walrus operator），这在 3.8 里根本跑不了。
 
-你写了一个实用的小工具。一位同事向你索要。你把整个文件夹压缩成 ZIP，通过邮件发给他。他解压后运行 `python main.py`，却得到 `ModuleNotFoundError` —— 因为他没有安装依赖。接着他手动安装了依赖，但版本不匹配；随后又发现他使用的是 Python 3.8，而你的代码中使用了 f-string 内的海象运算符（walrus operator），该语法在 Python 3.8 中尚不可用，导致解析失败。
-
-**规范的打包能彻底解决所有这些问题。** 只需执行 `pip install your-tool`，一切就绪：依赖自动安装、版本精确匹配、 CLI 命令开箱即用。
+规范的打包能彻底避免这些问题。只要执行 `pip install your-tool`，一切自动就绪：依赖版本精准匹配、Python 兼容性有保障，还能直接通过命令行调用。
 
 ## 包、模块与库
 
-这些术语常被混用，但在 Python 生态中有明确的定义。
+这些术语常被混用，但在 Python 中其实各有明确定义：
 
 ![打包流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png)
-
 
 | 术语 | 定义 | 示例 |
 |------|------|------|
@@ -34,25 +32,23 @@ translationKey: "python-engineering-7"
 | **Distribution （分发包）** | 可安装的归档文件（wheel 或 sdist），托管于 PyPI | `requests-2.31.0-py3-none-any.whl` |
 | **Script （脚本）** | 可直接运行的独立 `.py` 文件 | `download.py` |
 
-当有人说“安装 requests 库”，其真实含义是：从 PyPI 下载 `requests` 分发包，该包中包含 `requests` 包及其子包。
+当有人说“安装 requests 库”，实际意思是：从 PyPI 下载 `requests` 的分发包，其中包含 `requests` 包及其子包。
 
 ## 构建分发包
 
-Python 包支持两种标准分发格式。
+Python 包有两种标准分发格式：
 
 ![语义化版本控制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png)
 
-
 ### sdist （源码分发包）
 
-`.tar.gz` 格式的源码归档。接收方需具备构建工具链（如 C 扩展所需的编译器等）才能安装。
+一个 `.tar.gz` 格式的源码压缩包。接收方需要完整的构建工具链（比如编译 C 扩展所需的编译器）才能安装。
 
 ### wheel （预编译分发包）
 
-`.whl` 文件（本质是 zip 归档）。已预先构建完成，无需编译，安装更快。`pip` 默认使用 wheel。
+`.whl` 文件（本质是 zip 压缩包），已预先构建好，无需编译，安装更快。`pip` 默认优先使用 wheel。
 
 ![Wheel 与 sdist 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png)
-
 
 ```bash
 # 安装构建工具
@@ -68,7 +64,7 @@ Python 包支持两种标准分发格式。
 Successfully built my_tool-0.1.0.tar.gz and my_tool-0.1.0-py3-none-any.whl
 ```
 
-输出位于 `dist/` 目录下：
+生成的文件会放在 `dist/` 目录下：
 
 ```text
 dist/
@@ -76,7 +72,7 @@ dist/
   my_tool-0.1.0-py3-none-any.whl          # wheel
 ```
 
-wheel 文件名编码了元数据：`{name}-{version}-{python}-{abi}-{platform}.whl`。其中 `py3-none-any` 表示“仅支持 Python 3、无 ABI 依赖、跨平台”（即纯 Python 包）。
+wheel 文件名包含元数据：`{name}-{version}-{python}-{abi}-{platform}.whl`。例如 `py3-none-any` 表示“仅限 Python 3、无 ABI 依赖、适用于所有平台”——也就是纯 Python 包。
 
 ### 查看 wheel 内容
 
@@ -98,7 +94,6 @@ Archive:  dist/my_tool-0.1.0-py3-none-any.whl
 ```
 
 ## 使用 pyproject.toml 进行打包配置
-
 
 ![从脚本到发布到 PyPI 的 Python 打包过程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-python-packaging-journey-from-script-to-pypi-published-packa.jpg)
 
@@ -166,19 +161,19 @@ my_tool = ["py.typed"]
 
 ### 关键配置项说明
 
-**`[build-system]`**：告知 `pip` 使用哪个构建工具。`setuptools` 是默认选项，也可选用 `flit`、`hatchling` 或 `poetry-core`。
+**`[build-system]`**：告诉 `pip` 用哪个构建后端。默认是 `setuptools`，但也可以换成 `flit`、`hatchling` 或 `poetry-core`。
 
-**`[project]`**：遵循 PEP 621 的标准元数据定义，包括名称、版本、依赖等。
+**`[project]`**：遵循 PEP 621 的标准元数据，包括名称、版本、依赖等。
 
-**`[project.scripts]`**：声明 CLI 入口点。`pip install` 后，`my-tool` 命令将自动加入 `PATH`。
+**`[project.scripts]`**：定义命令行入口。安装后，`my-tool` 会自动加入系统 PATH，可直接调用。
 
-**`[project.optional-dependencies]`**：按用途分组的可选依赖。可通过 `pip install my-tool[dev]` 安装。
+**`[project.optional-dependencies]`**：按用途分组的可选依赖。比如 `pip install my-tool[dev]` 就能装上开发所需的所有额外包。
 
-**`[tool.setuptools.packages.find]`**：指示 `setuptools` 在 `src/` 目录下查找包。
+**`[tool.setuptools.packages.find]`**：让 `setuptools` 在 `src/` 目录下自动查找包。
 
 ### 包含非 Python 数据文件
 
-如果包需要加载模板、配置文件或数据文件，必须显式声明。
+如果你的包需要模板、配置或数据文件，必须显式声明：
 
 ```toml
 [tool.setuptools.package-data]
@@ -189,7 +184,7 @@ my_tool = [
 ]
 ```
 
-或创建 `MANIFEST.in` 专用于 sdist：
+或者通过 `MANIFEST.in` 文件专门控制 sdist 包含的内容：
 
 ```text
 include LICENSE
@@ -202,7 +197,7 @@ recursive-include src/my_tool/data *.json
 
 ### 先在 TestPyPI 上测试
 
-**务必先在 TestPyPI 测试，再上传至正式 PyPI。**
+**务必先上传到 TestPyPI 验证流程，确认无误后再发到正式 PyPI。**
 
 ```bash
 # 安装 twine
@@ -223,11 +218,11 @@ Uploading my_tool-0.1.0.tar.gz [========================================] 100%
 
 ### 创建 PyPI 账户与 API Token
 
-1. 访问 https://pypi.org/account/register/ 注册账户。
+1. 访问 https://pypi.org/account/register/ 注册账号。
 2. 进入 Account Settings > API Tokens。
-3. 创建一个作用域限定于你项目的 token（首次上传可选“all projects”）。
+3. 创建一个作用域限定到你项目的 token（首次发布可选“All projects”）。
 
-配置 `~/.pypirc`：
+然后配置 `~/.pypirc`：
 
 ```ini
 [distutils]
@@ -257,7 +252,7 @@ View at:
 https://pypi.org/project/my-tool/0.1.0/
 ```
 
-现在任何人都可一键安装。
+现在任何人都能轻松安装：
 
 ```bash
 $ pip install my-tool
@@ -272,17 +267,16 @@ Checking dist/my_tool-0.1.0-py3-none-any.whl: PASSED
 Checking dist/my_tool-0.1.0.tar.gz: PASSED
 ```
 
-`twine check` 可捕获的典型问题：
-- 缺少 `README`
-- `long_description` 格式非法
-- 必填元数据缺失
+`twine check` 能帮你提前发现常见问题，比如：
+- 缺少 README
+- `long_description` 格式不合法
+- 必填的元数据缺失
 
 ## 私有包索引（Private Package Indexes）
 
-并非所有包都适合公开发布，内部工具应使用私有索引。
+不是所有代码都适合公开。内部工具应使用私有包索引。
 
 ![私有包索引](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-private-index.png)
-
 
 ### devpi
 
@@ -315,7 +309,7 @@ extra-index-url = http://internal-pypi.company.com/simple/
 trusted-host = internal-pypi.company.com
 ```
 
-或在 `pyproject.toml` 中按项目指定（非标准，但 `pip-tools` 支持）：
+也可以在项目级的 `pyproject.toml` 中指定（虽然非标准，但 `pip-tools` 支持）：
 
 ```toml
 # This is not standard but supported by pip-tools
@@ -329,20 +323,19 @@ $ pip install my-internal-tool --extra-index-url http://internal-pypi.company.co
 
 ## 使用 Docker 构建 Python 镜像
 
-
 ![Docker 中的 Python 打包](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-docker-python.png)
 
 ### 基础镜像选择
 
 | 基础镜像 | 大小 | 适用场景 |
 |----------|------|----------|
-| `python:3.11` | ~900MB | 开发环境，含构建工具 |
+| `python:3.11` | ~900MB | 开发环境，自带构建工具 |
 | `python:3.11-slim` | ~150MB | 生产环境，精简版 |
-| `python:3.11-alpine` | ~50MB | 极致精简，但 musl libc 可能引发兼容性问题 |
-| `python:3.11-bookworm` | ~900MB | Debian Bookworm，兼容性佳 |
-| `python:3.11-slim-bookworm` | ~150MB | Debian Bookworm 生产环境 |
+| `python:3.11-alpine` | ~50MB | 极致轻量，但 musl libc 可能导致兼容性问题 |
+| `python:3.11-bookworm` | ~900MB | Debian Bookworm，兼容性好 |
+| `python:3.11-slim-bookworm` | ~150MB | Debian Bookworm 上的生产环境 |
 
-**推荐：生产环境使用 `python:3.11-slim`。除非明确需要极小体积且能处理 musl 兼容性问题（如 numpy、 pandas 等含 C 扩展的包可能失败），否则避免 Alpine。**
+**推荐：生产环境优先用 `python:3.11-slim`。除非你明确需要 Alpine 的极小体积，并且愿意处理 numpy、pandas 等含 C 扩展的包可能无法安装的问题，否则尽量避开 Alpine。**
 
 ### 基础 Dockerfile
 
@@ -377,7 +370,7 @@ CMD ["my-tool", "serve", "--host", "0.0.0.0", "--port", "8000"]
 
 ### 多阶段构建（Multi-Stage Build）
 
-通过分离构建与运行阶段来减小最终镜像体积。
+通过分离构建和运行阶段，大幅减小最终镜像体积：
 
 ```dockerfile
 # 第一阶段：构建
@@ -408,7 +401,7 @@ EXPOSE 8000
 CMD ["my-tool", "serve", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-构建阶段包含 `gcc` 和构建工具；运行阶段仅保留已安装的包。
+构建阶段包含 `gcc` 和其他编译工具；运行阶段只保留已安装的 Python 包。
 
 ### .dockerignore
 
@@ -446,10 +439,9 @@ $ docker run -p 8000:8000 \
 
 ## 使用 Poetry 构建与发布
 
-
 ![Wheel 与 sdist 比较：预组装家具 vs 宜家平板包装](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg)
 
-若项目采用 Poetry 而非 setuptools：
+如果项目用的是 Poetry 而不是 setuptools：
 
 ```bash
 # 安装 Poetry
@@ -463,7 +455,7 @@ $ cd my-tool
 $ poetry init
 ```
 
-Poetry 使用 `pyproject.toml` 中的 `[tool.poetry]` 区块：
+Poetry 使用 `pyproject.toml` 中的 `[tool.poetry]` 区块来管理元数据：
 
 ```toml
 [tool.poetry]
@@ -512,26 +504,26 @@ $ poetry publish
 
 ### 语义化版本（SemVer）
 
-标准格式：`MAJOR.MINOR.PATCH`
+标准格式为 `MAJOR.MINOR.PATCH`：
 
 | 组件 | 何时递增 | 示例 |
 |--------|-----------|--------|
-| MAJOR | API 不兼容变更 | `1.0.0` → `2.0.0` |
-| MINOR | 新功能（向后兼容） | `1.0.0` → `1.1.0` |
-| PATCH | Bug 修复（向后兼容） | `1.0.0` → `1.0.1` |
+| MAJOR | 引入破坏性变更（API 不兼容） | `1.0.0` → `2.0.0` |
+| MINOR | 新增向后兼容的功能 | `1.0.0` → `1.1.0` |
+| PATCH | 向后兼容的 bug 修复 | `1.0.0` → `1.0.1` |
 
-预发布版本：`1.0.0a1`（alpha）、`1.0.0b1`（beta）、`1.0.0rc1`（release candidate）。
+预发布版本写法如：`1.0.0a1`（alpha）、`1.0.0b1`（beta）、`1.0.0rc1`（release candidate）。
 
 ### 版本号设置方式
 
-**方式一：单一信源 —— `pyproject.toml` 中定义**
+**方式一：单一信源 —— 直接在 `pyproject.toml` 中定义**
 
 ```toml
 [project]
 version = "0.1.0"
 ```
 
-运行时读取：
+运行时可通过以下方式读取：
 
 ```python
 from importlib.metadata import version
@@ -546,7 +538,7 @@ __version__ = version("my-tool")
 __version__ = "0.1.0"
 ```
 
-并在 `pyproject.toml` 中引用：
+并在 `pyproject.toml` 中引用它：
 
 ```toml
 [project]
@@ -572,7 +564,7 @@ dynamic = ["version"]
 [tool.setuptools_scm]
 ```
 
-版本号将自动从 Git tag 推导：
+这样版本号会自动从 Git tag 推导出来：
 
 ```bash
 $ git tag v0.1.0
@@ -668,8 +660,8 @@ jobs:
         # Uses trusted publishing (no API token needed)
 ```
 
-启用 Trusted Publishing 后，PyPI 将信任你的 GitHub Actions 工作流，无需手动管理 API Token。
+启用 Trusted Publishing 后，PyPI 会直接信任你的 GitHub Actions 工作流，完全不需要手动管理 API Token。
 
 ## 下一步
 
-你的包已成功发布并可供安装。但它够快吗？在下一篇文章中，我们将学习如何对 Python 代码进行性能剖析、定位瓶颈、应用缓存与向量化优化，并掌握一项关键技能：**判断何时该优化、何时不该优化**。
+你的包已经成功发布，人人都能安装使用。但它够快吗？在下一篇文章中，我们将学习如何对 Python 代码进行性能剖析、定位瓶颈、应用缓存与向量化优化，并掌握一项关键技能：**判断何时该优化、何时不该优化**。

@@ -13,13 +13,11 @@ disableNunjucks: true
 series_order: 5
 translationKey: "python-engineering-5"
 ---
+大多数程序本质上只是在不同数据格式之间搭管道：读一个 CSV，转换一下，写成 JSON；加载配置文件，校验后传给应用。每个 Python 开发者都写过这类代码，而其中大多数人至少踩过一次编码、路径处理或序列化细节的坑。
 
-大多数程序本质上只是不同数据格式之间的“管道”，如读取 CSV 并转换为 JSON，加载配置文件并校验后传给应用程序。每位 Python 开发者都会编写这类代码，而其中多数人曾因编码、路径处理或序列化的细节问题踩过坑。
-
-本文涵盖 Python 中所有常见的 I/O 模式——从基础文件读写到列式数据格式，并重点剖析那些极易耗费大量时间的典型陷阱。
+本文将覆盖 Python 中所有常见的 I/O 模式——从基础文件读写到列式数据格式，并重点剖析那些最容易浪费你时间的陷阱。
 
 ## 文件 I/O：基础操作
-
 
 ![序列化格式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png)
 
@@ -36,7 +34,7 @@ content = f.read()
 f.close()  # 容易遗漏，尤其当上方代码抛出异常时
 ```
 
-`with` 语句能确保即使发生异常，`f.close()` 也一定会执行。**永远不要不用 `with` 打开文件。**
+`with` 语句能确保即使发生异常，`f.close()` 也会被执行。**永远不要不用 `with` 打开文件。**
 
 ### 文件打开模式
 
@@ -101,10 +99,9 @@ with open("output.bin", "wb") as f:
 
 ## `pathlib.Path`：现代路径处理方式
 
-`pathlib` 模块以面向对象 API 替代了 `os.path`。请在所有场景中使用它。
+`pathlib` 模块用面向对象的 API 替代了老旧的 `os.path`，你应该在所有地方使用它。
 
 ![pathlib 与 os.path 对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-pathlib-vs-os.png)
-
 
 ```python
 from pathlib import Path
@@ -185,13 +182,11 @@ p.rmdir()           # 删除空目录
 | Glob 匹配 | `glob.glob("*.txt")` | `Path(".").glob("*.txt")` |
 | 绝对路径 | `os.path.abspath(p)` | `p.resolve()` |
 
-`pathlib` 在所有情况下都更简洁清晰。仅凭 `/` 运算符拼接路径这一点，就值得全面迁移。
+在所有场景下，`pathlib` 都更简洁清晰。光是能用 `/` 操作符拼接路径这一点，就足以让你全面切换。
 
-## 编码： UTF-8 优先原则
-
+## 编码：UTF-8 优先原则
 
 ![编码流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
-
 
 ![数据序列化格式：JSON、YAML、TOML 各有不同](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-data-serialization-formats-json-yaml-toml-as-different-conta.jpg)
 
@@ -204,7 +199,7 @@ with open("data.txt") as f:
 # UnicodeDecodeError: 'cp1252' codec can't decode byte 0xe9
 ```
 
-未显式指定 `encoding` 时， Python 使用平台默认编码： macOS/Linux 通常是 UTF-8，而 Windows 常为 cp1252 （Windows-1252）。这意味着本地能跑通的代码，在生产环境极易崩溃。
+如果你不显式指定 `encoding`，Python 会使用系统默认编码：macOS 和 Linux 通常是 UTF-8，而 Windows 往往是 cp1252（Windows-1252）。这意味着本地跑得好好的代码，一到生产环境就可能崩溃。
 
 ### 解决方案
 
@@ -216,7 +211,7 @@ with open("data.txt", encoding="utf-8") as f:
     content = f.read()
 ```
 
-从 Python 3.15（PEP 686）起，UTF-8 将成为默认编码，在此之前请保持显式声明。
+从 Python 3.15（PEP 686）开始，UTF-8 将成为默认编码。在此之前，请务必显式声明。
 
 ### 处理编码错误
 
@@ -240,9 +235,9 @@ with open("mystery.txt", "rb") as f:
 content = raw.decode(detected["encoding"])
 ```
 
-### BOM （字节顺序标记）
+### BOM（字节顺序标记）
 
-某些 Windows 工具会在 UTF-8 文件开头添加 BOM （`﻿`）。使用 `utf-8-sig` 可自动处理：
+某些 Windows 工具会在 UTF-8 文件开头插入一个 BOM（`﻿`）。此时应使用 `utf-8-sig` 编码来自动处理：
 
 ```python
 # 读取：自动剥离 BOM（如存在）
@@ -256,10 +251,9 @@ with open("output.csv", "w", encoding="utf-8-sig") as f:
 
 ## JSON
 
-JSON 是最常用的数据交换格式。 Python 标准库 `json` 模块原生支持。
+JSON 是最主流的数据交换格式，Python 的 `json` 模块原生支持。
 
 ![I/O 管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png)
-
 
 ### 读写操作
 
@@ -290,11 +284,11 @@ with open("output.json", "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
 ```
 
-`ensure_ascii=False` 对非 ASCII 文本至关重要。否则中文、 emoji 等字符会被转义为 `\uXXXX`。
+`ensure_ascii=False` 对非 ASCII 文本至关重要。否则中文、emoji 等字符会被转义成 `\uXXXX` 形式。
 
 ### 自定义序列化器
 
-JSON 不支持 `datetime`、`Path`、`set`、`bytes` 或自定义对象。可通过 `default` 参数处理：
+JSON 原生不支持 `datetime`、`Path`、`set`、`bytes` 或自定义对象。你可以通过 `default` 参数处理它们：
 
 ```python
 import json
@@ -326,7 +320,7 @@ text = json.dumps(data, default=json_serializer, indent=2)
 
 ### 命令行 JSON 工具
 
-Python 内置 JSON 格式化工具：
+Python 自带一个 JSON 格式化工具：
 
 ```bash
 # 美化打印 JSON 文件
@@ -338,10 +332,9 @@ $ curl -s https://api.example.com/data | python -m json.tool
 
 ## YAML
 
-YAML 因其人类可读性及支持注释，广泛用于配置文件。
+YAML 因其可读性强且支持注释，常被用于配置文件。
 
 ![格式大小对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-format-sizes.png)
-
 
 ```bash
 (.venv) $ pip install pyyaml
@@ -369,7 +362,7 @@ with open("output.yaml", "w", encoding="utf-8") as f:
   args: ["rm -rf /"]
 ```
 
-`safe_load` 会拒绝此类危险标签。除非你**完全信任数据源**，否则没有理由使用 `load`。
+`safe_load` 会拒绝这些危险标签。除非你完全信任数据来源，否则没有任何理由使用 `load`。
 
 ### YAML 的陷阱
 
@@ -385,15 +378,15 @@ norway: "NO"
 version: "3.10"
 ```
 
-这是真实存在的 bug 来源。请坚持使用 `safe_load`，并对所有疑似布尔值或数字的字符串显式加引号。
+这是真实存在的 bug 来源。请坚持使用 `safe_load`，并对任何看起来像布尔值或数字但实际不是的值加上引号。
 
 ## TOML
 
-TOML 是 YAML 的现代替代品，专为配置设计：无类型强制转换、无歧义，也是 Python 打包标准（`pyproject.toml`）。
+TOML 是 YAML 的现代替代方案，专为配置设计：没有类型强制转换的意外，语法清晰明确，也是 Python 打包的标准格式（`pyproject.toml`）。
 
 ### 读取 TOML
 
-Python 3.11+ 内置 `tomllib`：
+Python 3.11+ 内置了 `tomllib`：
 
 ```python
 # Python 3.11+
@@ -415,7 +408,7 @@ pool_size = 5
 """)
 ```
 
-注意：`tomllib` **必须以二进制模式（`"rb"`）打开文件**，而非文本模式。
+注意：`tomllib` **必须以二进制模式（`"rb"`）打开文件**，不能用文本模式。
 
 对于 Python 3.10 及更早版本：
 
@@ -432,7 +425,7 @@ with open("config.toml", "rb") as f:
 
 ### 写入 TOML
 
-标准库不提供 TOML 写入器。请使用 `tomli-w`：
+标准库不提供 TOML 写入器，推荐使用 `tomli-w`：
 
 ```bash
 (.venv) $ pip install tomli-w
@@ -452,7 +445,7 @@ with open("config.toml", "wb") as f:
 
 ## CSV
 
-CSV 在数据工作中无处不在。 Python 的 `csv` 模块能正确处理引号、转义和不同分隔符。
+CSV 在数据工作中无处不在。Python 的 `csv` 模块能正确处理引号、转义和各种分隔符。
 
 ### 读取 CSV
 
@@ -490,7 +483,7 @@ with open("output.csv", "w", encoding="utf-8", newline="") as f:
     writer.writerows(rows)
 ```
 
-`newline=""` 参数在 Windows 上至关重要。缺失它会导致双换行。
+`newline=""` 参数在 Windows 上至关重要。缺少它会导致出现双换行。
 
 ### CSV 边界情况
 
@@ -510,12 +503,11 @@ with open("excel_export.csv", encoding="utf-8-sig") as f:
 
 ## 二进制格式
 
-
 ![文件 I/O 管道：数据从磁盘通过缓冲区流向应用程序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-file-io-pipeline-data-flowing-from-disk-through-buffers-to-a.jpg)
 
-### `pickle`： Python 对象序列化
+### `pickle`：Python 对象序列化
 
-`pickle` 可将任意 Python 对象序列化为字节流并还原，速度快且便捷。
+`pickle` 能将任意 Python 对象序列化为字节流并还原，速度快且方便。
 
 ```python
 import pickle
@@ -531,7 +523,7 @@ with open("data.pkl", "rb") as f:
     loaded = pickle.load(f)
 ```
 
-**`pickle` 极其危险。** 加载不受信任的 pickle 文件会执行任意代码。**切勿反序列化来自不可信来源的数据。** pickle 文件也不跨 Python 版本或跨平台兼容。仅限在你自己的系统内作临时缓存使用。
+**但 `pickle` 极其危险。** 加载不受信任的 pickle 文件会执行任意代码。**切勿反序列化来自不可信来源的数据。** 此外，pickle 文件不保证跨 Python 版本或跨平台兼容。它只适合在你自己控制的系统内做临时缓存。
 
 | 格式 | 人类可读 | 跨语言 | 可安全加载自不可信源 | Python 专用 |
 |------|----------|--------|----------------------|-------------|
@@ -543,7 +535,7 @@ with open("data.pkl", "rb") as f:
 
 ### `struct`：二进制数据打包
 
-用于处理二进制协议或文件格式：
+适用于处理二进制协议或文件格式：
 
 ```python
 import struct
@@ -581,7 +573,7 @@ unpacked = msgpack.unpackb(packed)
 
 ## Parquet 与 Arrow：列式数据
 
-对于大型数据集，行式格式（CSV、JSON）效率低下。Parquet 采用列式存储，支持高效压缩与分析查询。
+对于大型数据集，行式格式（如 CSV、JSON）效率低下且浪费资源。Parquet 采用列式存储，支持高效压缩和快速分析查询。
 
 ```bash
 (.venv) $ pip install pyarrow pandas
@@ -609,7 +601,7 @@ df = pd.read_parquet("large_data.parquet", columns=["name", "age"])
 | JSON | 200 MB | 12.5s | 9.8s | 9.8s （全量读取） |
 | Parquet | 15 MB | 1.8s | 0.4s | 0.1s |
 
-在此例中，Parquet 比 CSV 小 8 倍，读取速度快 12 倍。
+在这个例子中，Parquet 比 CSV 小 8 倍，读取速度提升 12 倍。
 
 ## 配置模式
 
@@ -638,7 +630,7 @@ api_key = os.environ["API_KEY"]
 debug = os.environ.get("DEBUG", "false").lower() == "true"
 ```
 
-务必把 `.env` 加入 `.gitignore`。提交一个带占位符的 `.env.example`：
+务必把 `.env` 加入 `.gitignore`，并提交一个包含占位符的 `.env.example`：
 
 ```bash
 # .env.example
@@ -658,15 +650,15 @@ SECRET_KEY=generate-a-random-key
 | 人类可读性 | 良好 | 良好 | 良好 | 良好 |
 | Python 标准库支持 | 是 | PyYAML | 是（3.11+） | `python-dotenv` |
 | 多行字符串 | 需转义 | 是 | 是 | 有限 |
-| 典型用途 | API、数据交换 | Kubernetes、 Docker Compose | `pyproject.toml`、 Cargo | 密钥、环境变量 |
+| 典型用途 | API、数据交换 | Kubernetes、Docker Compose | `pyproject.toml`、Cargo | 密钥、环境变量 |
 | “陷阱”风险 | 低 | 中（类型强制转换） | 低 | 低 |
 
 **推荐方案：**
-- **应用配置**： TOML （清晰、强类型、无歧义）
+- **应用配置**：TOML（清晰、强类型、无歧义）
 - **密钥与环境变量**：`.env` 文件（**绝不可提交至版本控制**）
-- **数据交换**： JSON （通用性强，所有语言均支持）
-- **避免 YAML**，除非你必须配合要求 YAML 的工具（如 Kubernetes、 GitHub Actions）
+- **数据交换**：JSON（通用性强，所有语言均支持）
+- **避免使用 YAML**，除非你必须配合要求 YAML 的工具（如 Kubernetes、GitHub Actions）
 
 ## 下一步
 
-文件与数据格式构成了 I/O 层，但当你的程序需要同时执行大量 I/O 操作（如下载 100 个文件、并发调用 50 个 API）时，串行执行会把大部分时间浪费在等待上。下一篇文章将深入探讨并发编程：线程（threads）、进程（processes）与异步 I/O（asyncio），并学会为不同场景选择最合适的工具。
+文件与数据格式构成了程序的 I/O 层。但当你的程序需要同时执行大量 I/O 操作——比如下载 100 个文件或并发调用 50 个 API——串行执行会把大部分时间浪费在等待上。下一篇文章将深入探讨并发编程：线程（threads）、进程（processes）与异步 I/O（asyncio），并教你如何为不同场景选择最合适的工具。

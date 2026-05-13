@@ -13,32 +13,30 @@ disableNunjucks: true
 series_order: 3
 translationKey: "python-engineering-3"
 ---
+你只改了一行代码，却导致三个毫不相干的功能崩溃；重构一个函数后，不得不花上两小时手动点击整个应用，只为确认一切是否还正常；周五部署上线，结果半夜就被报警电话叫醒……所有这些，都是同一种病的症状：**没有测试**。
 
-你只改了一行代码，却导致三个完全无关的功能崩溃；重构一个函数后，不得不花两小时手动检查整个应用以确认一切是否依然正常；周五上线部署后，午夜又被报警电话叫醒——所有这些现象，都指向同一个病根：**没有测试**。
-
-测试不是官僚主义流程，而是你**最快验证代码行为是否符合预期**的手段。一套优秀的测试套件能在几秒内完成运行，捕获那些手动排查需要耗费数小时才能发现的缺陷。
+测试不是繁文缛节，而是**最快验证你的代码是否真如你所想那样工作**的方式。一套优秀的测试套件只需几秒钟就能跑完，却能捕获那些手动排查要耗费数小时才能发现的 bug。
 
 ## 为何要写测试
 
-编写测试在前期会消耗时间，但不写测试，后期将付出更多时间。以下是对比：
+写测试前期确实要多花时间，但不写测试，后期付出的代价更大。来看这笔账：
 
 ![测试金字塔](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-test-pyramid.png)
 
-
 | 活动 | 无测试 | 有测试 |
 |----------|--------------|------------|
-| 初始开发 | 更快（无需编写测试） | 更慢（测试增加 20–40% 时间） |
-| 重构 | 令人恐惧（我是否破坏了什么？） | 充满信心（测试可捕获回归问题） |
-| 调试 | 需通读整个代码库 | 运行测试，立即定位具体失败点 |
-| 新成员上手 | “去问 Sarah，她知道怎么运作” | 测试即文档，明确描述预期行为 |
-| 生产环境部署 | 手动 QA，听天由命 | 自动化守门员，自信部署 |
-| 客户报告 Bug | 手动复现 → 修复 → 手动验证 | 编写复现 Bug 的测试 → 修复 → 测试自动验证 |
+| 初始开发 | 更快（不用写测试） | 稍慢（测试增加 20–40% 时间） |
+| 重构 | 提心吊胆（我是不是搞坏了什么？） | 自信从容（测试会揪出回归问题） |
+| 调试 | 得通读整个代码库 | 运行测试，立刻知道哪里出错了 |
+| 新人上手 | “去问 Sarah，只有她懂” | 测试本身就是文档，清晰说明预期行为 |
+| 生产部署 | 手动 QA，听天由命 | 自动化守门，放心上线 |
+| 客户报 bug | 手动复现 → 修复 → 再手动验证 | 写个复现 bug 的测试 → 修复 → 测试自动确认 |
 
-真正的价值体现在对任意一段代码进行**第二次修改时**：第一次你刚写完，自然知道它能工作；但此后每次变更，如果没有测试保障，就无法确信它仍然正确。
+真正的回报出现在对任何一段代码进行**第二次修改时**。第一次你刚写完，自然知道它能跑；但之后每次改动，除非有测试兜底，否则你根本无法确定它是否还正常。
 
 ## pytest 基础
 
-pytest 是 Python 事实上的标准测试框架。它使用原生 `assert` 语句，并支持自动发现测试用例。
+pytest 是 Python 社区事实上的标准测试框架。它直接使用原生 `assert` 语句，并支持自动发现测试用例。
 
 ### 安装
 
@@ -82,11 +80,11 @@ tests/test_math.py ...                                            [100%]
 
 ### 测试发现规则
 
-pytest 通过以下方式自动查找测试：
+pytest 会自动查找符合以下规则的内容：
 
-- 文件名匹配 `test_*.py` 或 `*_test.py`
+- 文件名以 `test_*.py` 或 `*_test.py` 开头
 - 这些文件中，函数名以 `test_*` 开头
-- 类名以 `Test*` 开头，且其方法名以 `test_*` 开头
+- 类名以 `Test*` 开头，且其方法名也以 `test_*` 开头
 
 ### 实用命令行参数
 
@@ -121,7 +119,7 @@ pytest 通过以下方式自动查找测试：
 
 ### 测试异常
 
-使用 `pytest.raises` 验证代码是否抛出预期异常：
+用 `pytest.raises` 验证代码是否会抛出预期的异常：
 
 ```python
 import pytest
@@ -139,7 +137,7 @@ def test_empty_url_raises():
         validate_url("")
 ```
 
-`match` 参数使用正则表达式校验异常消息内容。
+`match` 参数通过正则表达式检查异常消息内容。
 
 ### 测试近似值
 
@@ -152,13 +150,11 @@ def test_float_division():
 
 ## Fixture：可复用的测试准备逻辑
 
-
 ![测试金字塔，古埃及金字塔与单元集成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-testing-pyramid-ancient-egyptian-pyramid-with-unit-integrati.jpg)
 
-Fixture 替代了 unittest 中的 `setUp`/`tearDown` 模式，通过函数参数向测试注入依赖。
+Fixture 取代了 unittest 中的 `setUp`/`tearDown` 模式，通过函数参数向测试注入依赖。
 
 ![固定装置范围](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png)
-
 
 ### 基础 Fixture
 
@@ -182,11 +178,11 @@ def test_download_sets_retries(downloader):
     assert downloader.retries == 1
 ```
 
-pytest 发现测试函数参数列表中的 `downloader`，找到同名 fixture，调用它并将返回值传入测试函数。每个测试均获得一个全新实例。
+pytest 发现测试函数参数中有 `downloader`，就会去找同名的 fixture，调用它，并把返回值传给测试函数。每个测试都会拿到一个全新的实例。
 
 ### 含清理逻辑的 Fixture
 
-使用 `yield` 在测试结束后执行清理代码（即使测试失败也会执行）：
+用 `yield` 在测试结束后执行清理代码（即使测试失败也会执行）：
 
 ```python
 import tempfile
@@ -213,7 +209,7 @@ def test_file_creation(temp_dir):
 
 ### Fixture 作用域（Scope）
 
-默认情况下，fixture 在每个测试函数前运行一次。对开销较大的初始化操作，可调整作用域：
+默认情况下，fixture 每次测试都会重新创建。对于开销较大的初始化操作，可以调整作用域：
 
 ```python
 @pytest.fixture(scope="session")
@@ -251,7 +247,7 @@ def clean_state():
 
 ### conftest.py：共享 Fixture
 
-定义在 `conftest.py` 中的 fixture 对同目录及所有子目录下的测试自动可见，无需显式导入：
+定义在 `conftest.py` 中的 fixture 会自动对同目录及其所有子目录下的测试可见，无需显式导入：
 
 ```text
 tests/
@@ -279,11 +275,11 @@ def sample_headers():
     return {"User-Agent": "test-agent/1.0"}
 ```
 
-`tests/` 下任意测试文件均可直接使用 `sample_url` 和 `sample_headers`，无需导入。
+`tests/` 下的任何测试文件都能直接使用 `sample_url` 和 `sample_headers`，完全不用 import。
 
 ### 内置 Fixture
 
-pytest 提供若干实用内置 fixture：
+pytest 自带几个实用的内置 fixture：
 
 ```python
 def test_capture_output(capsys):
@@ -309,13 +305,11 @@ def test_monkeypatch_env(monkeypatch):
 
 ## Parametrize：批量测试多组用例
 
-
 ![Pytest 固定装置机制工厂生成测试数据集](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-pytest-fixture-mechanism-factory-producing-test-data-assembl.jpg)
 
-无需为每种输入单独编写测试函数，使用 `@pytest.mark.parametrize` 即可：
+与其为每种输入单独写一个测试函数，不如用 `@pytest.mark.parametrize`：
 
 ![参数化测试](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png)
-
 
 ```python
 import pytest
@@ -349,11 +343,11 @@ tests/test_utils.py::test_format_size[1073741824-1.0 GB] PASSED
 tests/test_utils.py::test_format_size[5368709120-5.0 GB] PASSED
 ```
 
-7 组用例， 1 个函数。每组用例在输出中作为独立测试项呈现，各自拥有独立的通过/失败状态。
+7 组用例，1 个函数。每组用例在输出中都作为独立的测试项出现，各自有独立的通过/失败状态。
 
 ### 使用 ID 命名 Parametrize 用例
 
-为提升输出可读性，可以显式指定用例 ID。
+为了让输出更清晰，可以显式指定用例 ID：
 
 ```python
 @pytest.mark.parametrize("url,expected_filename", [
@@ -368,10 +362,9 @@ def test_filename_from_url(url, expected_filename):
 
 ## Mocking：隔离你的代码
 
-当测试调用外部服务的函数时，你不希望测试真正发起 HTTP 请求。Mocking 将代码中部分组件替换为可控的模拟对象。
+当你测试一个会调用外部服务的函数时，肯定不希望测试真的发起 HTTP 请求。Mocking 就是把代码中的某些部分替换成可控的“假货”。
 
 ![模拟架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png)
-
 
 ### unittest.mock.patch
 
@@ -419,11 +412,11 @@ def test_download_file_http_error(mock_get):
 | 时间相关逻辑 | 数学计算 |
 | 外部服务 API | 自己的内部逻辑 |
 
-过度 Mock 是一种常见误区：如果 Mock 了所有依赖，测试实际上只验证了 Mock 的行为，而非你自己的代码逻辑。**只在边界处 Mock（网络、磁盘、时钟），并在真实环境中测试核心逻辑。**
+过度 Mock 是个常见陷阱：如果你把什么都 Mock 了，那测试验证的其实是 Mock 的行为，而不是你自己的代码。**只在边界处 Mock（网络、磁盘、时钟），核心逻辑要用真实代码测试。**
 
 ### Monkeypatch：更简洁的替代方案
 
-对于简单场景，`monkeypatch` 比 `patch` 更轻量：
+对于简单场景，`monkeypatch` 比 `patch` 更清爽：
 
 ```python
 def test_download_with_env_config(monkeypatch):
@@ -437,7 +430,6 @@ def test_download_with_env_config(monkeypatch):
 安装 pytest-cov：
 
 ![覆盖率报告](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-coverage-report.png)
-
 
 ```bash
 (.venv) $ pip install pytest-cov
@@ -464,7 +456,7 @@ TOTAL                          81      8    90%
 ========================= 12 passed in 0.45s ===========================
 ```
 
-`Missing` 列精确指出哪些行未被任何测试覆盖。`41-45` 表示第 41 至 45 行未被执行。
+`Missing` 列会精确告诉你哪些行没被任何测试覆盖到。比如 `41-45` 表示第 41 到 45 行从未被执行。
 
 ### Coverage 配置
 
@@ -485,25 +477,25 @@ exclude_lines = [
 ]
 ```
 
-`branch = true` 启用分支覆盖率，确保 `if/else` 的两个分支均被测试。
+`branch = true` 启用分支覆盖率，确保 `if/else` 的两个分支都被测到。
 
 ### 覆盖率目标建议
 
 | 覆盖率水平 | 含义 | 适用场景 |
 |---------------|---------------|-----------------|
-| < 50% | 几乎未测试 | 正在开始补测的遗留代码 |
+| < 50% | 几乎没测 | 正在补测试的遗留代码 |
 | 50–70% | 基础覆盖 | 内部工具、脚本 |
 | 70–85% | 良好覆盖 | 大多数应用程序 |
 | 85–95% | 强覆盖 | 库、关键服务 |
 | 95–100% | 接近完整 | 支付处理、安全敏感代码 |
 
-**切勿盲目追求 100% 覆盖率**。某些代码（如不可能触发的错误处理器、`__repr__` 方法）不值得测试。应聚焦于业务逻辑和边界条件。
+**别盲目追求 100% 覆盖率**。有些代码（比如理论上不可能触发的错误处理、`__repr__` 方法）根本不值得测。重点应该放在业务逻辑和边界情况上。
 
 ## 测试组织策略
 
 ### 单元测试（Unit Tests）
 
-隔离测试单个函数，快速、专注、数量众多。
+隔离测试单个函数，快速、专注、数量多。
 
 ```python
 # tests/test_utils.py
@@ -517,7 +509,7 @@ def test_format_size_kilobytes():
 
 ### 集成测试（Integration Tests）
 
-测试多个组件如何协同工作，较慢、数量较少。
+测试多个组件如何协同工作，速度较慢，数量较少。
 
 ```python
 # tests/integration/test_download.py
@@ -532,7 +524,7 @@ def test_download_real_file(tmp_path):
     assert result.stat().st_size == 1024
 ```
 
-为集成测试打标记，便于在快速运行中跳过：
+给集成测试打上标记，方便在快速运行时跳过它们：
 
 ```python
 import pytest
@@ -591,7 +583,7 @@ def test_cli_help():
 
 ### `breakpoint()` 与 `pdb`
 
-Python 3.7 引入了内置 `breakpoint()` 函数：
+Python 3.7 引入了内置的 `breakpoint()` 函数：
 
 ```python
 def download_file(url, output=None, quiet=False, timeout=30):
@@ -601,7 +593,7 @@ def download_file(url, output=None, quiet=False, timeout=30):
     ...
 ```
 
-正常运行测试（`-s` 可避免 pytest 捕获 stdin，但 `breakpoint()` 会强制打开）：
+正常运行测试即可（虽然 pytest 默认会捕获 stdin，但 `breakpoint()` 会强制打开交互）：
 
 ```bash
 (.venv) $ pytest -s tests/test_core.py::test_download_file_success
@@ -616,7 +608,7 @@ def download_file(url, output=None, quiet=False, timeout=30):
 |---------|-------|-------------|
 | `next` | `n` | 执行当前行，跳过函数调用（step over） |
 | `step` | `s` | 执行当前行，进入函数调用（step into） |
-| `continue` | `c` | 继续执行至下一个断点 |
+| `continue` | `c` | 继续执行直到下一个断点 |
 | `print expr` | `p expr` | 打印表达式值 |
 | `pp expr` | | 美观打印表达式值 |
 | `list` | `l` | 显示当前行附近的源码 |
@@ -628,7 +620,7 @@ def download_file(url, output=None, quiet=False, timeout=30):
 
 ### ipdb：更强大的调试器
 
-`ipdb` 提供语法高亮与 Tab 补全：
+`ipdb` 提供语法高亮和 Tab 补全：
 
 ```bash
 (.venv) $ pip install ipdb
@@ -638,7 +630,7 @@ def download_file(url, output=None, quiet=False, timeout=30):
 import ipdb; ipdb.set_trace()  # 或设置 PYTHONBREAKPOINT=ipdb.set_trace
 ```
 
-或全局启用：
+或者全局启用：
 
 ```bash
 $ export PYTHONBREAKPOINT=ipdb.set_trace
@@ -654,11 +646,11 @@ $ pytest -s tests/test_core.py  # 此时 breakpoint() 将使用 ipdb
 # 在失败点自动进入 pdb
 ```
 
-这极为强大：你无需手动添加 `breakpoint()`。只需加上 `--pdb` 参数， pytest 就会在断言失败的**精确行号**处启动调试器，并保留所有局部变量。
+这招极其强大：你完全不用手动加 `breakpoint()`。只要加上 `--pdb` 参数，pytest 就会在断言失败的**精确行号**处启动调试器，并保留所有局部变量。
 
 ## 真实案例：测试日志处理器
 
-以下是一个解析日志条目的函数：
+下面是一个处理日志条目的函数：
 
 ```python
 # src/my_tool/processor.py
@@ -788,4 +780,4 @@ tests/test_processor.py::TestParseLogEntry::test_strips_whitespace PASSED
 
 ## 下一步
 
-测试告诉你**代码是否能工作**；类型提示与静态检查则在你运行代码之前就告诉你**代码是否正确**。在下一篇文章中，我们将为代码库添加类型注解，配置 mypy 进行静态类型检查，并设置 ruff 与 black，让风格争议自动化，而非靠争论解决。
+测试告诉你**代码是否能跑起来**；类型提示和静态检查则能在你运行之前就告诉你**代码是否写对了**。下一篇文章中，我们将为代码库添加类型注解，配置 mypy 进行静态类型检查，并设置 ruff 和 black，让代码风格问题自动化解决，不再靠争论。
