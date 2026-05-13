@@ -17,10 +17,10 @@ description: "Master Alibaba Cloud OSS: bucket types, storage classes, access co
 disableNunjucks: true
 translationKey: "aliyun-fullstack-4"
 ---
-以前我把用户上传的文件直接塞进 ECS 磁盘里。头像、 PDF 发票、 CSV 导出文件——统统丢在一台跑着 Flask 应用的 `ecs.g7.large` 实例的 `/var/data/uploads/` 目录下。我写了个 cron 任务，每六小时将数据 rsync 到第二台 ECS 上，这被称为“备份”。直到某个周五凌晨 3 点，批处理任务生成了 40GB 无人下载的报表，系统盘使用率达到 100%，ECS 实例进入只读状态，应用彻底宕机——而 rsync 从前一天晚上起就再未成功执行。我丢失了过去六小时内所有用户上传的数据，整个周末都在向客户致歉。正是那次故障让我意识到，对象存储不是‘锦上添花’的可选项，而是云上架构的基石。应用服务器具有临时性，而数据具有持久性。
+以前我把用户上传的文件直接塞进 ECS 磁盘里。头像、 PDF 发票、 CSV 导出文件——统统丢在一台跑着 Flask 应用的 `ecs.g7.large` 实例的 `/var/data/uploads/` 目录下。我写了个 cron 任务，每六小时将数据 rsync 到第二台 ECS 上，这被称为“备份”。直到某个周五凌晨 3 点，批处理任务生成了 40GB 无人下载的报表，导致系统盘使用率达到 100%，ECS 实例进入只读状态，应用彻底宕机——而 rsync 从前一天晚上起就再未成功执行。我丢失了过去六小时内所有用户上传的数据，整个周末都在向客户致歉。正是那次故障让我意识到，对象存储不仅是‘锦上添花’的可选项，更是云上架构的基石。应用服务器具有临时性，而数据具有持久性。
 
 
-这篇文章会从第一性原理讲到生产部署，带你彻底搞定阿里云对象存储 OSS。读完后，你将拥有一个具备生命周期管理、CDN 加速和 Python API 预签名上传功能的媒体存储后端。我们在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/) 和 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 已经搭好了 VPC 和 ECS 基础——现在加上这个能扛住实例故障、扩展到 PB 级、成本却只有块存储零头的存储层。
+这篇文章将从第一性原理讲到生产部署，带你彻底搞定阿里云对象存储 OSS。读完后，你将拥有一个具备生命周期管理、CDN 加速和 Python API 预签名上传功能的媒体存储后端。我们在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/) 和 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 已经搭好了 VPC 和 ECS 基础——现在加上这个能扛住实例故障、扩展到 PB 级、成本却只有块存储零头的存储层。
 
 ## 什么是 OSS？
 

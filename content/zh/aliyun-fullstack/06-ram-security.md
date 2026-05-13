@@ -18,16 +18,16 @@ description: "Lock down your cloud: RAM users, groups, roles, and policies. STS 
 disableNunjucks: true
 translationKey: "aliyun-fullstack-6"
 ---
-有一次，我在一个公开的 GitHub 仓库里发现了自己的 DashScope API Key——有人 fork 了我几个月前上传的一个 Demo，而这个 API Key 明文存放在未被 .gitignore 排除的配置文件中。等我发现时，这个 Key 已在一个周末内被用于发起 14,000 次 Qwen API 调用。所幸账单未超支——这得益于 DashScope 按 token 计费的弹性计费机制——但教训极为深刻。我曾以为云安全可以“以后再做”，结果这个“以后”变成了凌晨两点触发的账单告警。
+有一次，我在一个公开的 GitHub 仓库里发现了自己的 DashScope API Key——有人 fork 了我几个月前上传的一个 Demo，而这个 API Key 明文存放在未被 .gitignore 排除的配置文件中。等我发现时，这个 Key 已在一个周末内被用于发起 14,000 次 Qwen API 调用，所幸账单未超支，这得益于 DashScope 按 token 计费的弹性计费机制，但教训极为深刻。我曾以为云安全可以“以后再做”，结果这个“以后”变成了凌晨两点触发的账单告警。
 
-那天我配置了 RAM 用户，轮转了所有 access key，开启了 MFA，并将所有涉及前端直连云服务的场景改为使用 STS 临时凭证。我将这一过程的经验系统地梳理成文，结构清晰、目标明确——一个下午就完成了基础加固，不必等到事故发生后再亡羊补牢。
+那天我配置了 RAM 用户，轮转了所有 access key，开启了 MFA，并将所有涉及前端直连云服务的场景改为使用 STS 临时凭证。我将这一过程的经验系统地梳理成文，结构清晰、目标明确，一个下午就完成了基础加固，不必等到事故发生后再亡羊补牢。
 
 
 安全组——也就是网络层防火墙——我们在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 讲过了。这篇讲的是身份层：谁能做什么、怎么加密数据、怎么审计所有操作。想用 Terraform 管安全，看 [Terraform Part 6: LLM Gateway and Secrets](/zh/terraform-agents/06-llm-gateway-and-secrets/)。
 
 ## 安全心智模型
 
-云安全不是打开一个开关就能搞定的事——它由多个相互独立的安全层构成，各层分别防御一类典型故障。即使某一层失效，其余层仍可提供防护，这正是“纵深防御（defense in depth）”原则的核心要义。
+云安全不是打开一个开关就能搞定的事——它由多个相互独立的安全层构成，各层分别防御一类典型故障；即使某一层失效，其余层仍可提供防护，这正是“纵深防御（defense in depth）”原则的核心要义。
 
 ![阿里云安全模型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_security_model.png)
 

@@ -18,7 +18,7 @@ description: "RDS MySQL vs PolarDB: when to use which. Instance sizing, read rep
 disableNunjucks: true
 translationKey: "aliyun-fullstack-5"
 ---
-我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期磁盘 I/O 飙升，导致服务宕机——InnoDB buffer pool 和 OS page cache 抢内存，binary log 写入磁盘的速度超过 cron 任务的清理速度，单线程复制到“备份”实例的延迟已达九小时。凌晨三点，我只能靠扩容磁盘救火；两周后，同样的问题再次出现。那天我才真正理解托管数据库的价值：不是因为我不会部署或运维 MySQL，而是不愿在凌晨三点被报警叫醒——只因 MySQL 判定 relay log 损坏，而唯一可行的修复方式是依赖一致性无法保障的冷备份重建副本。
+我在 ECS 上自建 MySQL 只撑了四个月。在流量高峰期，磁盘 I/O 飙升导致服务宕机：InnoDB buffer pool 和 OS page cache 抢内存，binary log 写入磁盘的速度超过 cron 任务的清理速度，单线程复制到‘备份’实例的延迟已达九小时。凌晨三点，我不得不通过扩容磁盘来救火；两周后，同样的问题再次出现。那天我才真正理解托管数据库的价值：不是因为我不会部署或运维 MySQL，而是不愿在凌晨三点被报警叫醒——只因 MySQL 判定 relay log 损坏，而唯一可行的修复方式是依赖一致性无法保障的冷备份重建副本。
 
 
 这篇文章聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还包括规格 sizing、复制、备份、监控和安全等运维实践。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。

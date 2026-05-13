@@ -30,11 +30,10 @@ translationKey: "terraform-agents-4"
 
 
 每种方案都有其优势：
-
-- **ECS** 就是 Linux 虚拟机。长期运行、有状态，调试时可通过 SSH 直接登录，非常方便。适合原型、单租户 Agent，或者需要让机器“热着”缓存模型或本地状态的场景。
+- **ECS** 是 Linux 虚拟机，长期运行、有状态，调试时可通过 SSH 直接登录，非常方便，适合原型、单租户 Agent 或需要让机器“热着”缓存模型或本地状态的场景。
 - **ACK**（容器服务 Kubernetes 版）是规模化生产的理想选择，支持多种 Agent、自动伸缩、滚动发布和 GPU 调度。只有同时运行三个以上 Agent 服务且团队中有熟悉 Kubernetes 的 SRE 时，才建议采用 ACK 方案。
-- **Function Compute (FC)** 按次调用，缩容到零。冷启动时间为 200-800ms，单次调用硬上限为 24 小时。适用于 webhook 触发的 Agent、定时爬虫及突发性运行、其余时间空闲的任务。
-- **Elastic Container Instance (ECI)** 是容易被忽略的方案——没有底层节点的容器。冷启动约需 5 秒，按实际运行秒数计费，无需管理节点池。最适合突发性批处理任务，每次运行 2-30 分钟，每小时运行几次。
+- **Function Compute (FC)** 按次调用，缩容到零，冷启动时间为 200-800ms，单次调用硬上限为 24 小时，适用于 webhook 触发的 Agent、定时爬虫及突发性运行、其余时间空闲的任务。
+- **Elastic Container Instance (ECI)** 是容易被忽略的方案——没有底层节点的容器，冷启动约需 5 秒，按实际运行秒数计费，无需管理节点池，最适合突发性批处理任务，每次运行 2-30 分钟，每小时运行几次。
 
 前三种方案已覆盖大多数场景，而 ECI 则恰好填补了 FC 运行时长受限与 ECS 在突发性负载下资源闲置之间的空白。
 
@@ -47,13 +46,9 @@ translationKey: "terraform-agents-4"
 持续 QPS 低于 ~1 时，FC 占优，空闲时几乎不花钱；~1 到 ~30 之间，单台 ECS 更合适。超过这个值，ACK 的较高固定成本会被足够负载分摊，比硬塞到 ECS 上更便宜。ECI 的特殊之处在于：利用率低于 50% 时比 ECS 便宜，高于 50% 则更贵。
 
 该成本模型较为粗略，实际费用会受实例规格、网络类型和 Agent 通信频率等因素影响，但整体成本变化趋势是可信的。我的决策规则如下：
-
 > Bursty + low average → Function Compute
->
 > Steady + low-to-mid → ECS with pm2
->
 > Multi-agent + sustained mid-to-high → ACK
->
 > Bursty batch, 2-30 min per run → ECI
 
 架构方案已明确，接下来将逐一详解四种模式及其对应的 Terraform 实现。

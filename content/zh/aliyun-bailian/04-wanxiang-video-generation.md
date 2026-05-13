@@ -16,13 +16,13 @@ description: "万相文生视频 / 图生视频上生产：异步任务模式、
 disableNunjucks: true
 translationKey: "aliyun-bailian-4"
 ---
-万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、 URL 会过期，限流方式还特别隐蔽。本文总结了我连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）所积累的实战经验。
+万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、 URL 会过期，限流方式还特别隐蔽。本文总结了我在连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）过程中积累的实战经验。
 
 ![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
 ## 模型阵容
 
-三个模型均提供原生接口（不兼容 OpenAI 协议），并且全部采用异步调用。
+三个模型均提供原生接口（不兼容 OpenAI 协议），并全部采用异步调用。
 
 ![Wanxiang model lineup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png)
 
@@ -72,7 +72,7 @@ print(url)
 
 ## 带退避的轮询——选个合理的 schedule
 
-每秒轮询太浪费，容易被限流；每 30 秒轮询又太耗用户时间。我用的退避 schedule 是这样的：
+每秒轮询太浪费，容易被限流；每 30 秒轮询又太耗用户时间。我使用的退避 schedule 如下：
 
 ![Polling schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png)
 
@@ -102,11 +102,11 @@ def archive(result_url: str, key: str) -> str:
     return f"oss://your-bucket/{key}"
 ```
 
-轮询 Worker 同步执行归档：仅当文件成功保存至 OSS Bucket 后，才更新任务状态。若归档失败，任务视为未完成。
+轮询 Worker 同步执行归档，仅当文件成功保存至 OSS Bucket 后才更新任务状态；若归档失败，则任务视为未完成。
 
 ## 经得起考验的 Prompt 模式
 
-万象生成质量高度依赖 Prompt 质量。迭代几个月后，这个结构最稳：
+万象生成质量高度依赖 Prompt 的质量。经过几个月的迭代，这个结构最为稳定：
 
 ```
 [shot type], [subject], [action], [setting / environment],
@@ -140,7 +140,7 @@ def archive(result_url: str, key: str) -> str:
 
 ## SUCCEEDED 但视频看起来不对怎么办
 
-最常见的失败情形是：模型虽然生成了视频，但未充分遵循 prompt 中的指令。原因：
+最常见的失败情形是：模型虽然生成了视频，但未充分遵循 prompt 中的指令。原因如下：
 
 - Prompt 太长。万象有软限制；适当截断 prompt 长度有助于提升成功率。
 - Prompt 矛盾（"daytime, dark, neon"）。选一个。
@@ -151,7 +151,7 @@ def archive(result_url: str, key: str) -> str:
 
 ## 成本和限流
 
-万象按视频秒数计费： 5 秒 720p 片段约几元。并发任务限制按 API Key 设置——面向生产流量，上线前必须通过控制台申请配额扩容。默认每个 workspace 有 5 个并发任务，原型验证足够，但实际产品可能不够。
+万象按视频秒数计费： 5 秒 720p 片段约几元。并发任务限制按 API Key 设置，面向生产流量，上线前必须通过控制台申请配额扩容。默认每个 workspace 有 5 个并发任务，原型验证足够，但实际产品可能不够。
 
 ## 异步模式：轮询 vs 回调，队列深度
 
@@ -215,7 +215,7 @@ async def submit(prompt: str) -> str:
 - 主体通用（"a cup of coffee", "a Hangzhou tea garden"），你要的是氛围而不是特异性。
 - 成本是优先项——T2V 是三个里每秒最便宜的。
 
-T2V 在需要保证品牌保真度（brand fidelity）的场景下表现不足：模型无法准确还原具体产品特征，例如输入 "a Nike shoe" 生成的往往只是一双泛化的运动鞋，品牌标识模糊不清。不要用 T2V 做产品主图。
+T2V 在需要保证品牌保真度（brand fidelity）的场景下表现不足：模型无法准确还原具体产品特征，例如输入 "a Nike shoe" 生成的往往只是一双泛化的运动鞋，品牌标识模糊不清。因此，不要用 T2V 做产品主图。
 
 **图生视频（`wan2.5-i2v-plus`）** 胜出当：
 - 你有产品核心静帧想要动画化（转盘、视差、 dolly-in）。
@@ -230,7 +230,7 @@ I2V 难以生成大幅运动：要求静态人像“横穿画面奔跑”（runn
 - 你需要 T2V/I2V 保证不了的时间连续性。
 - 你在拼接多个片段，需要它们之间受控的过渡。
 
-KF2V 是三者中可控性最低的：模型需在用户无法完全掌控的约束下，对两帧间插值。如果帧 A 和帧 B 差别太大（不同背景、不同主体），插值会变得奇怪。最佳实践：用 KF2V 做起止构图大部分共享的转场（同主体、位置微变、同 lighting），别用来做完整场景切换。
+KF2V 是三者中可控性最低的：模型需在用户无法完全掌控的约束下对两帧间进行插值。如果帧 A 和帧 B 差别太大（不同背景、不同主体），插值会变得奇怪。最佳实践是用 KF2V 做起止构图大部分共享的转场（同主体、位置微变、同 lighting），而不是用于完整场景切换。
 ## 多片段拼接：末帧接力与连续性技巧
 
 ![阿里云百炼 (4): 万相视频生成端到端 — 视觉示意](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_2.png)
@@ -272,7 +272,7 @@ def extract_last_frame(video_url: str) -> str:
 - **锁死镜头语言。** "35mm film grain, shallow depth of field"，系列里每个 prompt 都得一模一样。模型会把这当成风格锚点。
 - **用 ffmpeg 做跨片段色彩匹配。** 全生成完后，跑 `ffmpeg -i clipN.mp4 -vf "colorbalance=rs=0.02:gs=-0.01" out.mp4` 把飘了的片段往系列中位数拉。该步骤需手动执行，但开销很低。
 
-拼接一条 30 秒的商业广告（由 6 个 5 秒片段组成）时，该方法约有 70% 的概率实现“视觉连贯、近乎单镜头”的效果。剩下的 30% 情况下，可以更换 seed 重新生成问题片段，或者干脆添加显性的切场转场。
+拼接一条 30 秒的商业广告（由 6 个 5 秒片段组成）时，该方法约有 70% 的概率实现“视觉连贯、近乎单镜头”的效果。在剩下的 30% 情况下，可以更换 seed 重新生成问题片段，或者添加显性的切场转场。
 
 ## 画幅比例成本矩阵
 
@@ -318,7 +318,7 @@ moderate = client.chat.completions.create(
 )
 ```
 
-审核调用每次大约 0.001 元。这比浪费一次万相生成便宜得多，还能保护品牌声誉。
+审核调用每次大约 0.001 元，这比浪费一次万相生成便宜得多，还能保护品牌声誉。
 
 **静默质量降级。** 阿里每季度会在同一个 model_id 下更新模型权重。新权重通常更好，但偶尔对你的特定 prompt 分布反而更差。存 10 个 canonical prompts 每周重跑，监控质量回归；标记任何与历史基线感知哈希距离超过阈值的输出。这招在 2026 年 3 月初 catch 到了一次回归，我们被迫把 `wan2.5-t2v-plus` 换回旧别名 `wan2.5-t2v-plus-2025-12-15` 用了两周，直到上游修复。
 
