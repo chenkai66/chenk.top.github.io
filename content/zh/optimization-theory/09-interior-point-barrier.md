@@ -198,7 +198,11 @@ $$
 
 考虑带不等式约束的线性规划问题：$\min c^\top x$，满足 $Ax = b,\, x \geq 0$。其中心路径条件为：
 $$
-\begin{aligned}\nA x &= b \quad \text{（原始可行性）} \\\nA^\top \nu + \lambda &= c \quad \text{（对偶可行性）} \\\nx_i \lambda_i &= 1/t \quad \text{（扰动互补松弛条件， perturbed CS）} \\\nx, \lambda &\geq 0
+\begin{aligned}
+A x &= b \quad \text{（原始可行性）} \\
+A^\top \nu + \lambda &= c \quad \text{（对偶可行性）} \\
+x_i \lambda_i &= 1/t \quad \text{（扰动互补松弛条件， perturbed CS）} \\
+x, \lambda &\geq 0
 \end{aligned}
 $$
 这是一个关于 $(x, \nu, \lambda)$ 的非线性方程组，以 $1/t$ 为扰动参数。对该系统应用牛顿法，并令 $1/t \to 0$，即可收敛至原始-对偶最优解对。

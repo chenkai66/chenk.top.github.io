@@ -31,7 +31,7 @@ translationKey: "time-series-3"
 
 ---
 
-![GRU 单元结构：重置门、更新门，以及从 h_{t-1} 到 h_t 的 (1 - z) 梯度高速公路。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/03-GRU/fig1_gru_cell_architecture.png)
+![GRU 单元结构：重置门、更新门，以及从 h_{t-1} 到 h_t 的 (1 - z) 梯度高速公路。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/03-GRU/fig1_gru_cell_architecture.png)
 *图 1. GRU 单元。两个门（`r`、`z`）和一个状态（`h`），替代了 LSTM 的三个门和独立细胞状态。橙色的 `(1 - z) ⊙ h_{t-1}` 跳跃路径是让长程依赖可学的线性梯度高速公路。*
 
 如果说 LSTM 是一套拥有**精细三阀控制**的记忆系统，那么 GRU 就是它的**轻量版本**：同样基于加性记忆机制，但仅用两个门和一个隐藏状态就能表达。结果是模型参数减少约四分之一，训练速度提升 10–15%，并且在大量时间序列任务上，预测精度与 LSTM 在统计意义上几乎无法区分。
@@ -91,7 +91,8 @@ $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}(1 - z_t) \;+\; (\t
 
 单层 GRU 包含三个权重块（$W_z$、$W_r$、$W_h$），每个形状为 $h \times (d_{in} + h)$，再加上偏置。而 LSTM 有四个权重块（遗忘门、输入门、候选、输出门）。具体计数如下：
 
-$$P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad\nP_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).$$
+$$P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad
+P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).$$
 
 因此 $P_{\text{GRU}} = \tfrac{3}{4}\,P_{\text{LSTM}}$ —— **参数量正好少 25%**，且这一比例与网络宽度无关。
 
