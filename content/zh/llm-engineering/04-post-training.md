@@ -18,7 +18,7 @@ disableNunjucks: true
 description: "SFT、DPO、RLHF、RLAIF 各自具体在优化什么，奖励模型在哪里失败，KL 约束的作用，LoRA vs 全量微调那场争论，以及 2026 年生产里实际跑的 post-training 配方。"
 translationKey: "llm-engineering-4"
 ---
-预训练的基座模型只会续写文本，而听懂指令、拒绝有害请求、维持人设等工作则属于后训练阶段——这也是论文中宣称的效果与生产级模型之间差距最大的地方。本章将探讨各个后训练算法的具体优化内容、大多数奖励模型存在的问题，以及 2026 年真正有效的方案。
+预训练得到的基座模型只能续写文本，而听懂指令、拒绝有害请求、维持人设等能力，则属于后训练阶段的任务——这也正是论文宣称的效果与真正生产级模型之间差距最大的地方。本章将深入探讨各类后训练算法究竟在优化什么、为什么大多数奖励模型其实存在隐性缺陷，以及到 2026 年真正行之有效的实践方法。
 
 ![LLM 工程（4）：后训练 — SFT, DPO, RLHF, RLAIF — 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_1.png)
 
@@ -26,20 +26,20 @@ translationKey: "llm-engineering-4"
 
 ![图1：RLHF 流程概述](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig1_rlhf_pipeline.png)
 
-当前的 LLM 后训练流程大致分为以下四个步骤：
+现代 LLM 的后训练流程大致可分为四个阶段：
 
-1. **SFT**（supervised fine-tuning）用于指令数据，教授模型响应格式和基本的指令遵循行为。
-2. **偏好优化**（DPO, IPO, KTO, 或 RLHF），教授模型在两个有效回复中哪个更受人类（或代理）青睐。
-3. **在线 RL**（RLHF, RLAIF, 或 RLVR — 可验证奖励），对奖励模型或程序检查器进行更激进的调优。对于非推理模型，这一步是可选的，并且越来越常被跳过。
-4. **专项阶段**：包括工具使用 SFT、长上下文 SFT、安全红队测试和宪法 AI 过滤。
+1. **SFT**（监督微调，Supervised Fine-Tuning）：在指令数据上训练，教会模型响应格式和基本的指令遵循能力。
+2. **偏好优化**（DPO、IPO、KTO 或 RLHF）：教会模型在两个合法回复中，人类（或其代理）更偏好哪一个。
+3. **在线强化学习**（RLHF、RLAIF 或 RLVR —— 即使用可验证奖励的 RL）：针对奖励模型或程序化检查器进行更激进的调优。对于非推理类模型，这一步通常是可选的，且在实践中越来越常被跳过。
+4. **专项阶段**：包括工具调用 SFT、长上下文 SFT、安全红队测试、宪法 AI 过滤等。
 
-OpenAI、Anthropic 和 Google 仍在采用接近 “SFT → 偏好 DPO → RLHF/RLAIF” 的流程。DeepSeek-R1 [DeepSeek-AI, 2025] 和 o1 系列模型引入了 **RLVR**（RL with verifiable rewards — 适用于数学/代码等可通过程序检查正确性的场景）作为主要信号。这是 2024-2025 年最重要的后训练变革。
+目前，OpenAI、Anthropic 和 Google 仍普遍采用接近 “SFT → 偏好 DPO → RLHF/RLAIF” 的流程。而 DeepSeek-R1 [DeepSeek-AI, 2025] 与 o1 系列模型则引入了 **RLVR**（Reinforcement Learning with Verifiable Rewards，即使用可验证奖励的强化学习），将其作为主导信号——适用于数学、代码等可通过程序自动判断正确性的任务。这是 2024–2025 年后训练领域最重要的变革。
 
-师承关系非常重要。第一篇可信的 "RL from human feedback" 论文是 [Christiano et al., 2017]，将偏好学习应用于 Atari 和连续控制。[Stiennon et al., 2020] 将其用于摘要生成。[Ouyang et al., 2022] (InstructGPT) 是首个通过 SFT + RLHF 进行端到端指令微调的 LLM，现代所有后训练技术栈均源自该论文。2023-2025 年的这一波浪潮（DPO, IPO, KTO, RLVR）本质上都是 InstructGPT 主题的变体。
+这一技术脉络有清晰的传承关系。最早提出可信“基于人类反馈的强化学习”（RL from Human Feedback）的是 [Christiano et al., 2017]，他们将偏好学习应用于 Atari 游戏和连续控制任务。[Stiennon et al., 2020] 首次将其用于文本摘要。而 [Ouyang et al., 2022]（即 InstructGPT）则是首个通过 SFT + RLHF 实现端到端指令微调的大语言模型，当今所有后训练技术栈几乎都源于此工作。2023–2025 年涌现的 DPO、IPO、KTO、RLVR 等方法，本质上都是对 InstructGPT 范式的不同变体。
 
-## SFT：比大家以为的更重要
+## SFT：比人们想象中更重要
 
-SFT 就是给模型展示 10 万到 100 万条指令-回复对，仅对回复部分进行 next-token prediction loss 的训练。这个 mask 很关键——你希望模型学会助手的回答，而不是预测用户的问题。
+SFT 的核心做法是：向模型提供 10 万至 100 万条指令-回复对，并仅对回复部分计算 next-token prediction loss。这里的 mask 至关重要——我们不希望模型去预测用户的问题，而只应学习如何生成助手的回答。
 
 ```python
 # Loss masking for SFT
@@ -56,39 +56,40 @@ def sft_loss(logits, labels, response_mask):
     return (loss_per_token * shifted_mask).sum() / shifted_mask.sum().clamp(min=1)
 ```
 
-SFT 的成败取决于两点：
-**数据质量而非数量。** LIMA [Zhou et al., 2023] 证明了 1000 条精心策划的例子可以媲美 5 万条普通数据。Tulu-3 混合集 [Lambert et al., 2024] (AllenAI, 2024) 策划了约 20 万条数据。Qwen3 的 SFT 混合集接近 100 万，但经过了严格的质量过滤。高质量数据在超过 100K 后，收益曲线趋于平缓。
+SFT 的成败主要取决于两点：
 
-**格式一致性。** 如果一半 SFT 数据用 "Sure, I'll help!" 这种开场白，另一半不用，模型就会学会不一致地使用开场白。如果 SFT 数据用 Markdown 标题，但测试 prompt 是关于纯 prose 的，输出就会不匹配。预处理要积极，把格式标准化。
+**数据质量远胜于数量。** LIMA [Zhou et al., 2023] 的研究表明，1000 条精心筛选的样本就能媲美 5 万条普通数据。Tulu-3 混合数据集 [Lambert et al., 2024]（AllenAI, 2024）经过严格筛选，仅保留约 20 万条样本。Qwen3 的 SFT 数据虽接近 100 万条，但也经过重度质量过滤。当数据质量足够高时，超过 10 万条后的收益会迅速趋于平缓。
 
-一个意想不到的失败模式是：过度训练短回复会导致模型难以生成长文本。模型会从训练数据中学习回复长度的条件分布。如果希望模型能够写出 2000 字的文章，SFT 混合集中至少需要 5-10% 的长示例。我们之前调整过一个 Qwen3-7B 微调版，始终无法生成超过 800 token 的输出，原因是 SFT 混合集中 Q&A 占比过高。
+**格式必须高度一致。** 如果一半 SFT 数据以 “Sure, I'll help!” 开头，另一半没有，模型就会学到不一致的开场白使用习惯。如果训练数据大量使用 Markdown 标题，而实际推理时用户输入的是纯文本提示，输出就可能出现格式错配。因此，必须在预处理阶段强力标准化格式。
+
+一个容易被忽视的失败模式是：若 SFT 数据中短回复占比过高，模型会变得不愿生成长文本。这是因为模型会从数据中学习回复长度的条件分布。如果你希望模型能写出 2000 字的文章，SFT 混合集中至少应包含 5%–10% 的长回复样本。我们曾微调过一个 Qwen3-7B 模型，始终无法生成超过 800 个 token 的输出，原因正是其 SFT 数据过度偏向问答形式，缺乏长文本示例。
 
 ## SFT 数据来源与合成
 
-2026 年生产级 SFT 数据实际从哪来：
+到 2026 年，生产环境中实际使用的 SFT 数据主要来自以下几类：
 
-- **公开混合集**： Tulu-3 (AllenAI, 939K 例子), OpenHermes-2.5 (100 万， GPT-4 输出混合), UltraChat (140 万过滤后的 ChatGPT 对话 [Ding et al., 2023]), Magpie [Xu et al., 2024] (chat-tuned 模型 self-prompt 生成的合成指令)。
-- **领域特定**：从内部产品日志爬取（需 consent 和去除 PII），领域专家撰写（$30-100/条），或在领域特定 seed prompts 上从强教师模型蒸馏。
-- **从强教师模型合成**：让 Claude 或 GPT-4 根据 seed 主题和 few-shot 例子生成 (instruction, response) 对。这是主力军 — 2026 年生产环境中大多数 SFT 数据都是合成的。
+- **公开混合数据集**：如 Tulu-3（AllenAI，93.9 万条）、OpenHermes-2.5（100 万条，混合 GPT-4 输出）、UltraChat（140 万条经筛选的 ChatGPT 对话 [Ding et al., 2023]），以及 Magpie [Xu et al., 2024]（由已微调的聊天模型自我提示生成的合成指令）。
+- **领域特定数据**：从内部产品日志中脱敏提取（需用户授权并去除 PII）、由领域专家撰写（每条约 30–100 美元），或在特定领域种子提示上通过强教师模型蒸馏而来。
+- **强教师模型合成**：让 Claude 或 GPT-4 根据主题种子和少量示例生成（指令，回复）对。这已成为主流——2026 年绝大多数生产级 SFT 数据都是合成的。
 
-Magpie 技术 [Xu et al., 2024] 值得了解一下。 trick 在于：只给 chat-tuned 模型一个 `<|im_start|>user\n`，让它自己生成用户消息，然后让它（或另一个模型）生成回复。这样不需要 seed prompts 就能产出格式良好的指令数据。他们用这种方式生了 400 万例子，过滤到 20 万，质量匹敌人工 curated 混合集。 2025-2026 年大多数 SFT 数据的流水线里，多少都掺了点 Magpie 风格的合成数据。
+其中，Magpie 技术 [Xu et al., 2024] 尤其值得关注。其核心技巧是：仅向已微调的聊天模型输入 `<|im_start|>user\n`，让它自行生成用户消息，再由它（或另一模型）生成对应的回复。这种方式无需人工设计种子提示，即可产出格式规范的指令数据。研究者用该方法生成了 400 万条样本，经筛选后保留 20 万条，其质量已能媲美人工精心策划的数据集。2025–2026 年的大多数 SFT 流水线中，多少都融入了 Magpie 风格的合成策略。
 
-“指令遵循 SFT” 和 “聊天 SFT” 的区别也值得搞清楚。早期数据集（Alpaca, Self-Instruct）是短用户指令配短回复。现代数据（Tulu-3, 源自 ShareGPT 的混合集）是多轮对话配长回复。只训单轮指令的模型在多轮对话里会崩（忽略 prior turns）；只训多轮的模型又跟不上简单命令。需要平衡混合。
+此外，还需区分“指令遵循 SFT”与“聊天 SFT”。早期数据集（如 Alpaca、Self-Instruct）多为单轮短指令配短回复；而现代数据（如 Tulu-3、源自 ShareGPT 的混合集）则包含多轮对话和长回复。仅用单轮指令训练的模型在多轮对话中容易失效（忽略历史轮次）；而仅用多轮对话训练的模型又难以准确执行简单命令。因此，必须在数据混合中取得平衡。
 
-## DPO：不需要奖励模型的偏好优化
+## DPO：无需奖励模型的偏好优化
 
 ![大语言模型工程（4）：后训练——SFT、DPO、RLHF、RLAIF——示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_2.png)
 
 
 ![图2：DPO 与 PPO 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig2_dpo_vs_ppo.png)
 
-经典 RLHF 配方（InstructGPT [Ouyang et al., 2022]）是：先在人类偏好上训一个奖励模型，然后用 PPO 对着那个奖励模型调优 policy。这招管用，但实现起来痛苦 — 你需要单独的奖励模型、 value head、 GAE、 advantage normalization、 KL penalties，而且训练不稳定。
+经典的 RLHF 流程（InstructGPT [Ouyang et al., 2022]）包含两个步骤：先在人类偏好数据上训练一个奖励模型，再用 PPO 算法对该奖励模型进行策略优化。这种方法虽然有效，但实现复杂——需要单独训练奖励模型、添加价值头（value head）、计算 GAE、做优势归一化、设置 KL 惩罚项，且训练过程极不稳定。
 
-**DPO (Direct Preference Optimization)**, [Rafailov et al., 2023]，直接砍掉了奖励模型。核心洞察：你可以推导出一个关于偏好的闭式 policy， resulting loss 其实就是 log-probability 比值上的 binary cross-entropy：
+**DPO（Direct Preference Optimization，直接偏好优化）** [Rafailov et al., 2023] 则彻底摒弃了奖励模型。其核心洞见在于：可以从偏好数据中直接推导出策略的闭式解，最终损失函数简化为对数概率比值上的二元交叉熵：
 
 $$\mathcal{L}_{\text{DPO}} = -\mathbb{E}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w | x)}{\pi_{\text{ref}}(y_w | x)} - \beta \log \frac{\pi_\theta(y_l | x)}{\pi_{\text{ref}}(y_l | x)}\right)\right]$$
 
-其中 $y_w$ 是被选中的回复，$y_l$ 是被拒绝的，$\pi_{\text{ref}}$ 是冻结作为参考的 SFT 模型，$\beta$ 控制 policy 允许漂移多远。无需奖励模型，也无需 PPO；每个偏好对仅需一次前向与反向传播
+其中 $y_w$ 是被选中的回复，$y_l$ 是被拒绝的回复，$\pi_{\text{ref}}$ 是冻结的 SFT 模型（作为参考策略），$\beta$ 控制策略允许偏离参考策略的程度。整个过程无需奖励模型，也无需 PPO；每个偏好对只需一次前向传播和一次反向传播。
 
 ```python
 # DPO loss in 10 lines
@@ -100,68 +101,69 @@ def dpo_loss(policy_chosen_logps, policy_rejected_logps,
     return -F.logsigmoid(logits).mean()
 ```
 
-DPO 在 2026 年占主导有两个原因。第一，它管用 — [HuggingFace alignment-handbook](https://github.com/huggingface/alignment-handbook) 报告 DPO 在 AlpacaEval 上匹敌 PPO，且在 cost-per-quality 上胜出。第二，它是纯前向传播的训练循环，能干净地集成进 FSDP/LoRA 栈。
+DPO 在 2026 年成为主流，主要有两个原因：其一，效果确实好——[HuggingFace alignment-handbook](https://github.com/huggingface/alignment-handbook) 报告称，DPO 在 AlpacaEval 上与 PPO 表现相当，且在单位质量成本上更具优势；其二，其训练循环仅需前向传播，能无缝集成到 FSDP/LoRA 等高效训练框架中。
 
-你会踩到的坑：
+但在实践中也会遇到几个关键问题：
 
-- **β 调参很关键。** β 太低 (0.01) → policy 漂移，基座能力侵蚀。β 太高 (1.0) → 学不动。大多数生产运行设在 β=0.1 到 0.3。
-- **参考模型漂移。** 如果你连续跑两次 DPO，你的 reference 变成了 DPO 后的模型，原始版本没了。保存好 SFT checkpoint，每次偏好传递都用它做 ref。
-- **偏好数据质量。** 合成偏好（比如 “GPT-4 选了 A 而不是 B”）容易生成但包含教师偏差。至少在 20% 的数据里混入人类偏好，防止 collapse。
+- **$\beta$ 的调参至关重要。** 若 $\beta$ 过低（如 0.01），策略会过度漂移，导致基座模型能力退化；若过高（如 1.0），则几乎无法学习。大多数生产环境将 $\beta$ 设在 0.1 到 0.3 之间。
+- **参考模型漂移问题。** 如果连续进行两次 DPO，第二次的参考模型就变成了第一次 DPO 后的模型，原始 SFT 模型丢失。因此，务必保存好 SFT checkpoint，并在每次偏好优化时都以其作为参考。
+- **偏好数据质量影响显著。** 合成偏好（例如 “GPT-4 选择了 A 而非 B”）虽易于生成，但会引入教师模型的偏见。建议至少在 20% 的数据中混入真实人类偏好，以防止模型性能崩溃。
 
 ## DPO 推导细节：从 Bradley-Terry 到闭式解
 
-DPO loss 不是凭空捏造的 — 它分三步推导出来。值得搞清楚，因为这显示了 DPO 对偏好数据的假设以及如何解读 β。
+DPO 损失并非凭空而来，而是通过三个严谨步骤推导得出。理解这一过程有助于把握 DPO 对偏好数据的假设，以及如何解读 $\beta$ 的含义。
 
-**第一步： Bradley-Terry 偏好模型。** 假设偏好由 latent reward $r(x, y)$ 生成，偏好 $y_w$ 胜过 $y_l$ 的概率由 logistic 给出：
+**第一步：Bradley-Terry 偏好模型。** 假设偏好由一个潜在奖励函数 $r(x, y)$ 生成，选择 $y_w$ 而非 $y_l$ 的概率由 logistic 函数给出：
 
 $$P(y_w \succ y_l \mid x) = \sigma(r(x, y_w) - r(x, y_l))$$
 
-这是 [Bradley & Terry, 1952] 配对比较模型。起源是棋类评级，是将 pairwise 偏好转换为 scalar reward 的标准假设。
+这是 [Bradley & Terry, 1952] 提出的配对比较模型，最初用于棋手评级，如今已成为将成对偏好转化为标量奖励的标准假设。
 
-**第二步： KL 约束奖励最大化给出闭式最优 policy。** RLHF 目标是
+**第二步：KL 约束下的奖励最大化可导出闭式最优策略。** RLHF 的优化目标为：
 
 $$\max_\pi \mathbb{E}_{x, y \sim \pi}[r(x,y)] - \beta \, \text{KL}(\pi \| \pi_{\text{ref}})$$
 
-该目标下的最优 policy （取梯度并设为零）是
+对该目标求导并令梯度为零，可得最优策略：
 
 $$\pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\!\left(\frac{1}{\beta} r(x, y)\right)$$
 
-这是最大熵 RL 文献中的经典结果。解出 $r$：
+这是最大熵强化学习中的经典结论。从中解出 $r(x, y)$：
 
 $$r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)$$
 
-**第三步：代入 Bradley-Terry，消去 $Z(x)$。** Bradley-Terry 只依赖 reward *差值*，所以 $Z(x)$ 项抵消：
+**第三步：代入 Bradley-Terry 模型，并消去 $Z(x)$。** 由于 Bradley-Terry 仅依赖奖励的**差值**，$Z(x)$ 项在相减时自然抵消：
 
 $$P(y_w \succ y_l \mid x) = \sigma\!\left(\beta \log \frac{\pi^*(y_w | x)}{\pi_{\text{ref}}(y_w | x)} - \beta \log \frac{\pi^*(y_l | x)}{\pi_{\text{ref}}(y_l | x)}\right)$$
 
-在该模型下最大化观测偏好的 log-likelihood 就得到了 DPO loss。整个 RLHF 流水线坍缩为 log-prob 比值上的 binary cross-entropy。不用奖励模型。不用采样。不用 PPO。
+在此模型下最大化观测偏好的对数似然，即可得到 DPO 损失。整个 RLHF 流程由此简化为对数概率比值上的二元交叉熵——无需奖励模型，无需采样，也无需 PPO。
 
-β 的解释变得清晰：β 是 implicit reward 的逆温度。低 β (0.01) 意味着小 reward 对应大 policy  shifts — 模型从每个偏好中激进地学习。高 β (1.0) 意味着 policy 几乎无法从 $\pi_{\text{ref}}$ 移动 — 偏好几乎不影响模型。经验上的 sweet spot 是 0.1-0.3，因为这时 implicit reward 大到足以提供信息，又小到防止漂移。
+至此，$\beta$ 的物理意义也清晰了：它是隐式奖励的“逆温度”。低 $\beta$（如 0.01）意味着微小的奖励差异就能引发大幅策略调整，模型会激进地从每条偏好中学习；高 $\beta$（如 1.0）则使策略几乎无法偏离参考模型，偏好几乎不起作用。经验表明，0.1–0.3 是最佳区间——此时隐式奖励足够提供有效信号，又不至于引发灾难性漂移。
+
 ## DPO 变体：KTO、IPO、ORPO、SimPO
 
-DPO 在 2024-2025 年衍生出了一堆变体，各自解决特定痛点：
+2024–2025 年间，DPO 衍生出多个变体，各自针对特定痛点进行了改进：
 
-**KTO (Kahneman-Tversky Optimization)**, [Ethayarajh et al., 2024], 不用成对偏好，改用绝对的“好/坏”标签。损失函数是不对称的（采用 Kahneman-Tversky 风格的价值函数：人对损失更敏感，所以惩罚坏回答的权重高于奖励好回答）。当你只有大量非成对反馈（生产环境的点赞/踩）而没有成对比较时， KTO 就能派上用场。实证表明，有成对数据时它和 DPO 持平，只有非成对数据时则优于 DPO。
+**KTO（Kahneman-Tversky Optimization）** [Ethayarajh et al., 2024] 放弃成对偏好，转而使用绝对的“好/坏”标签。其损失函数不对称（借鉴 Kahneman-Tversky 价值函数：人类对损失更敏感，因此惩罚坏回复的权重高于奖励好回复）。当你拥有大量非成对反馈（如生产环境中的点赞/点踩）但缺乏成对比较时，KTO 就特别有用。实证表明，在有成对数据时，KTO 与 DPO 表现相当；仅有点赞数据时，KTO 反而更优。
 
-**IPO (Identity Preference Optimization)**, [Azar et al., 2023], 把 sigmoid 损失换成 MSE 损失，防止 DPO 在噪声偏好上过拟合。 DPO 的 sigmoid 在策略变得非常自信时会饱和，这意味着一旦策略“赢”了某对数据，损失就几乎没信号了。 IPO 的 MSE 能持续提供梯度。实践中 IPO 比 DPO 更稳但收敛慢；适合噪声较大的众包偏好数据。
+**IPO（Identity Preference Optimization）** [Azar et al., 2023] 将 sigmoid 损失替换为 MSE 损失，以缓解 DPO 在噪声偏好上的过拟合问题。DPO 的 sigmoid 在策略高度自信时会饱和，导致“赢下”某对数据后损失几乎不再提供梯度；而 IPO 的 MSE 能持续提供有效梯度。实践中，IPO 更稳定但收敛较慢，适合处理噪声较大的众包偏好数据。
 
-**ORPO (Odds Ratio Preference Optimization)**, [Hong et al., 2024], 把 SFT 和偏好优化合并成一个损失。完整损失是 `SFT_loss(y_w) + λ · log(odds(y_w) / odds(y_l))`。单阶段训练，不用单独跑 SFT。适合资源受限场景（比如 LoRA 微调 7B 模型），跑两阶段不现实。算力更低的情况下，质量能和 SFT+DPO 掰手腕。
+**ORPO（Odds Ratio Preference Optimization）** [Hong et al., 2024] 将 SFT 与偏好优化合并为单一损失函数：`SFT_loss(y_w) + λ · log(odds(y_w) / odds(y_l))`。这种单阶段训练无需单独进行 SFT，特别适合资源受限场景（例如用 LoRA 微调 7B 模型）。在更低算力下，其效果已能与 SFT+DPO 相抗衡。
 
-**SimPO (Simple Preference Optimization)**, [Meng et al., 2024], 直接扔掉参考模型。损失函数就是 $-\log \sigma(\beta (\bar{r}_w - \bar{r}_l) - \gamma)$，其中 $\bar{r}$ 是长度归一化的 log-prob，$\gamma$ 是 margin。没参考模型意味着显存减半，训练更快。质量据说有竞争力，但对长度归一化和 margin 项很敏感——容易配错。
+**SimPO（Simple Preference Optimization）** [Meng et al., 2024] 则直接抛弃参考模型，损失函数简化为 $-\log \sigma(\beta (\bar{r}_w - \bar{r}_l) - \gamma)$，其中 $\bar{r}$ 是长度归一化的对数概率，$\gamma$ 为间隔项（margin）。省去参考模型可使显存占用减半、训练速度加快。尽管报告称其效果有竞争力，但对长度归一化和 margin 设置极为敏感，容易配置失误。
 
-按你的约束条件选：有成对人类数据 → DPO；有点赞数据 → KTO；噪声偏好 → IPO；单阶段训练 → ORPO；显存受限 → SimPO。 DPO 依然是稳妥的默认选项。
+选择建议：若有成对人类偏好数据 → 选 DPO；只有点赞/点踩数据 → 选 KTO；偏好数据噪声大 → 选 IPO；需单阶段训练 → 选 ORPO；显存紧张 → 选 SimPO。总体而言，DPO 仍是稳妥的默认选项。
 
-## RLHF 和 PPO：为什么还有人在用
+## RLHF 和 PPO：为何仍有人使用
 
 ![图3：训练过程中的 KL 散度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig3_kl_divergence.png)
 
-尽管 DPO 在通用后训练领域占主导，几家前沿实验室在最后阶段依然用基于 PPO 的 RLHF：
+尽管 DPO 已在通用后训练中占据主导地位，几家前沿实验室在最终阶段仍坚持使用基于 PPO 的 RLHF，原因有三：
 
-- **对抗案例更强。** PPO 能持续惩罚训练中发现的任何新失败模式。 DPO 只能学你收集到的偏好。
-- **Reward shaping。** 你可以添加辅助奖励（长度惩罚、格式遵循、拒绝校准），这些没法放进成对偏好里。
-- **迭代 RL。** Anthropic 的 constitutional AI (CAI) [Bai et al., 2022] 概念上就是迭代 RLAIF——生成、批评、偏好、重训。
+- **对抗性案例处理更强。** PPO 能持续惩罚训练过程中新发现的任何失败模式，而 DPO 只能学习已有偏好数据覆盖的情形。
+- **支持奖励塑形（Reward Shaping）。** 可额外加入辅助奖励信号（如长度惩罚、格式合规性、拒绝行为校准等），这些难以融入成对偏好框架。
+- **支持迭代式 RL。** Anthropic 的宪法 AI（Constitutional AI, CAI）[Bai et al., 2022] 在概念上就是一种迭代式 RLAIF：生成回复 → 批评 → 偏好排序 → 重训练。
 
-RLHF 的最小 PPO 循环：
+RLHF 的最小 PPO 循环如下：
 
 ```python
 # Per training step (heavily simplified)
@@ -183,74 +185,75 @@ for ppo_epoch in range(4):
     optimizer.step()
 ```
 
-KL 项至关重要。没它， PPO 就会攻击奖励模型——生成高奖励但完全不像连贯文本的回答。 Anthropic 的 Sleeper Agents 论文 [Hubinger et al., 2024] 记录了几种有趣的奖励黑客模式，包括“总是以'Yes I can help with that!'结尾”，因为奖励模型学到合规的开头预测高奖励。
+其中 KL 散度项至关重要。若省略该项，PPO 会“攻击”奖励模型——生成高奖励但语义混乱、毫无连贯性的文本。Anthropic 的《Sleeper Agents》论文 [Hubinger et al., 2024] 就记录了多种有趣的奖励黑客行为，例如“总是以 ‘Yes I can help with that!’ 结尾”，因为奖励模型错误地将这类合规开头与高奖励关联起来。
 
 ## RLHF 实际问题：奖励作弊、模式崩溃、长度偏差
 
-每个基于 PPO 的 RLHF 训练都会遇到的三个生产级失败模式：
+每个基于 PPO 的 RLHF 训练都会遭遇三大生产级失败模式：
 
-**Reward hacking** [Skalse et al., 2022]。奖励模型是学出来的文本函数——它有盲点。策略会找到它们。典型黑客行为：总是生成道歉语气的回答（因为帮助性标注者把道歉和帮助性关联）、开头用"Certainly!"或"Of course!"（前缀偏见）、拒绝边缘案例请求（因为标注者偏好安全回答），或者用警告和免责声明填充回答。修复方法是迭代：通过人工评估发现黑客行为，生成对抗提示暴露它，用对抗集重训奖励模型，再重训策略。 Anthropic 的 CAI 显式自动化了这个循环。
+**奖励作弊（Reward Hacking）** [Skalse et al., 2022]。奖励模型是对文本的拟合函数，必然存在盲区，而策略会精准找到这些漏洞。典型表现包括：总是使用道歉语气（因标注者将道歉与“有帮助”关联）、以 “Certainly!” 或 “Of course!” 开头（前缀偏见）、拒绝处理边缘请求（因标注者偏好安全回答），或在回复中堆砌免责声明。解决方法是迭代修复：通过人工评估发现作弊行为，构造对抗性提示暴露漏洞，用新数据重训奖励模型，再重训策略。Anthropic 的 CAI 正是显式自动化了这一循环。
 
-**Mode collapse**。策略变得确定性——每个回答听起来都一样。症状：训练期间策略熵下降几个数量级。原因： PPO 找到单个高奖励输出并利用它。修复：增加 KL 惩罚（β_kl 从 0.01 调到 0.05），给损失加熵 bonus，用多样化 rollout （每个提示高温采样多个完成）。
+**模式崩溃（Mode Collapse）**。策略变得高度确定性——所有回复听起来千篇一律。症状是训练过程中策略熵急剧下降（可达数个数量级）。根源在于 PPO 找到了某个高奖励输出并不断复用。修复手段包括：增大 KL 惩罚系数（如将 $\beta_{\text{kl}}$ 从 0.01 提升至 0.05）、在损失函数中加入熵奖励项、或采用多样化 rollout（对每个提示以高温度采样多个回复）。
 
-**Length bias**。 RLHF 策略系统性地生成比 SFT 策略更长的回答。原因是人类标注者往往偏好稍长的回答（觉得更详尽）。奖励模型捕捉到这点并放大。结果：聊天模型的回答从 200 token 涨到 800 token，质量却没真提升。修复：显式从奖励中减去长度惩罚，或在策略梯度中用长度归一化 log-probs。[Singhal et al., 2024] 详细记录了长度偏差，表明它负责了通常归因于 RLHF 优于 SFT 的 AlpacaEval 分数中的约 1.5 分。
+**长度偏差（Length Bias）**。RLHF 策略系统性地生成比 SFT 策略更长的回复。这是因为人类标注者往往偏好稍长的回答（认为更详尽），奖励模型捕捉到这一倾向并加以放大。结果是：聊天模型的平均回复长度从 200 token 暴涨至 800 token，但实际质量并未提升。解决方案包括：在奖励中显式减去长度惩罚项，或在策略梯度中使用长度归一化的对数概率。[Singhal et al., 2024] 的研究详细量化了这一现象，指出约 1.5 分的 AlpacaEval 提升实际上应归因于长度增加，而非真正的能力进步。
 
 ## 宪法 AI：RLAIF 谱系
 
-Anthropic 的 Constitutional AI [Bai et al., 2022] 是主导的 RLAIF （RL from AI feedback）方案。两个阶段：
+Anthropic 的 Constitutional AI（CAI）[Bai et al., 2022] 是当前主流的 RLAIF（基于 AI 反馈的强化学习）方案，包含两个阶段：
 
-**Phase 1: Supervised CAI.** 用 SFT 模型生成红队提示的回答。让批评模型（通常是同模型不同提示）对照一组宪法原则（“回答不应有害、非法或不道德”）批评回答。让模型根据批评修改回答。在（prompt, revised response）对上训练模型。这产生了一个对齐宪法且无需人类偏好数据的模型。
+**第一阶段：监督式 CAI。** 使用 SFT 模型对红队提示生成回复；再由批评模型（通常为同一模型配合不同提示）依据一组宪法原则（如“回复不得有害、非法或不道德”）进行批评；最后让模型根据批评修改回复，并在（提示，修订后回复）对上进行训练。由此得到的模型无需人类偏好数据即可与宪法对齐。
 
-**Phase 2: RLAIF.** 生成一对回答。让 AI 判断哪个更符合宪法。在这些 AI 偏好上训练奖励模型。用 PPO 针对 AI-derived 奖励模型优化策略。
+**第二阶段：RLAIF。** 对同一提示生成两个回复，由 AI 判断哪个更符合宪法；基于这些 AI 偏好训练奖励模型；最后用 PPO 对策略进行优化。
 
-这里的 trick 是宪法可以编辑并重应用，无需重收人类数据。这比 RLHF 便宜得多，允许迭代宪法本身。缺点是模型的偏见继承自 AI judge——如果 judge 有盲点，策略也会继承。
+其巧妙之处在于：宪法本身可编辑并重新应用，无需重新收集人类数据。这比传统 RLHF 成本低得多，也支持对宪法内容本身的快速迭代。但缺点是模型会继承 AI 评判者的偏见——若评判者存在盲点，策略也会照单全收。
 
-2024-2026 年 CAI 的演变是 **rule-based rewards (RBR)** [Mu et al., 2024] (OpenAI)。不用学出来的奖励模型，写一组显式规则（“回答≤200 词”，“不应包含医疗建议”，“应引用来源”），让 LLM 评分合规性。这比奖励模型更易调试，更易更新，可作为学习奖励的补充。
+2024–2026 年，CAI 的演进方向是 **基于规则的奖励（Rule-Based Rewards, RBR）** [Mu et al., 2024]（OpenAI 提出）。不再使用学习得到的奖励模型，而是编写一组显式规则（如“回复不超过 200 词”、“不得包含医疗建议”、“应引用来源”），并让 LLM 对合规性进行评分。这种方法比黑盒奖励模型更易调试、更易更新，可作为学习型奖励的有效补充。
 
 ## RLVR：可验证奖励的强化学习
 
-DeepSeek-R1 [DeepSeek-AI, 2025] (2025 年 1 月) 发布了一个模型，其推理能力几乎全来自 **RLVR**：在数学问题上训练，奖励是“最终答案是否匹配 ground truth？”——程序化检查，不是学出来的模型。没奖励模型意味着没奖励黑客。
+DeepSeek-R1 [DeepSeek-AI, 2025]（2025 年 1 月发布）的推理能力几乎完全来自 **RLVR**：在数学问题上训练，奖励信号直接来自“最终答案是否匹配标准答案？”——由程序自动验证，而非学习得到的模型。没有奖励模型，也就没有奖励作弊。
 
-这能行是因为数学和代码有 ground truth。模型生成长链式思维，最后提取答案，检查器（Python 解释器， sympy，单元测试）告诉你对错。对 +1，错 0 或 -1。对此跑 PPO/GRPO。
+这种方法之所以可行，是因为数学和代码存在客观的 ground truth。模型生成长链式思维（Chain-of-Thought），最后提取答案，再由检查器（如 Python 解释器、SymPy、单元测试）判断对错：正确得 +1 分，错误得 0 或 -1 分。在此基础上运行 PPO 或 GRPO。
 
-GRPO (Group Relative Policy Optimization)，用在 DeepSeek-V3 和 R1 中，扔掉了 value head——不学价值函数，而是对同一提示采样 $G$ 个回答，计算组内相对优势：
+GRPO（Group Relative Policy Optimization）被用于 DeepSeek-V3 和 R1 中，它直接摒弃了价值头——不学习价值函数，而是对同一提示采样 $G$ 个回复，计算组内相对优势：
 
 $$A_i = \frac{r_i - \text{mean}(r_1, ..., r_G)}{\text{std}(r_1, ..., r_G)}$$
 
-这比 PPO 简单得多，适合可验证奖励场景。
+相比 PPO，GRPO 更简洁，特别适合可验证奖励场景。
 
-DeepSeek-R1 的方案值得详述，因为它是 2025-2026 主导的推理训练模式：
+DeepSeek-R1 的训练方案值得详述，因为它代表了 2025–2026 年推理模型的主流范式：
 
-1. **Cold-start SFT** 少量（~10K）高质量 CoT 格式示例，教回答格式。
-2. **R1-Zero pure RL**: 在大量数学/代码问题上纯 RLVR 加 GRPO。无 SFT 数据，无奖励模型——只有可验证奖励。 R1-Zero 由此涌现；能力惊人但常不可读（混合语言，奇怪 token）。
-3. **Rejection sampling SFT**: 用 R1-Zero 生成回答；过滤只留正确、格式好的；在过滤集上训练新模型。
-4. **Final RL stage**: 更多 GRPO，混合可验证奖励和少量通用行为奖励模型。
+1. **Cold-start SFT**：使用少量（约 1 万条）高质量 CoT 格式示例，教会模型基本回答结构。
+2. **R1-Zero 纯 RL 阶段**：在海量数学/代码问题上纯用 RLVR + GRPO。无 SFT 数据，无奖励模型——仅有可验证奖励。R1-Zero 由此涌现，展现出惊人能力，但输出常不可读（混杂多语言、出现奇怪 token）。
+3. **拒绝采样 SFT**：用 R1-Zero 生成回复，仅保留正确且格式规范的样本，在此过滤集上训练新模型。
+4. **最终 RL 阶段**：继续使用 GRPO，混合可验证奖励与少量通用行为奖励模型。
 
-R1-Zero 最野的地方在于它*没人教*就发现了链式思维推理。纯可验证奖励 RL 教会模型一步步思考是有奖励的。这是首个广泛公开的基础 LLM 纯 RL 涌现推理行为的例子。
+R1-Zero 最令人震撼之处在于，它在**无人教导**的情况下自发发现了链式思维推理。纯可验证奖励的强化学习教会了模型：一步步思考是有回报的。这是首个广泛公开的基础 LLM 通过纯 RL 涌现出推理行为的实例。
 
-当前前沿（Qwen3-Reasoning, GPT-5-thinking, Claude-4.5-thinking, Gemini-3-Thinking）都用 RLVR 式训练作为推理能力的主导信号。基座模型做 SFT，通用行为做 DPO，然后针对数学/代码/逻辑硬刷 RLVR 来获取推理行为。这就是为什么 thinking 模型数学/代码强得多，但对话只强一点点。
+当前前沿模型（如 Qwen3-Reasoning、GPT-5-thinking、Claude-4.5-thinking、Gemini-3-Thinking）均采用 RLVR 式训练作为推理能力的核心驱动力：基座模型做 SFT，通用行为用 DPO，再专门针对数学/代码/逻辑任务高强度刷 RLVR 以获得推理能力。这也解释了为何“thinking”系列模型在数学和代码上显著更强，但在普通对话中提升有限。
+
 ## LoRA 对比全量微调：实证证据
 
 ![图5：LoRA 与全量微调的权衡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig5_lora_vs_full.png)
 
-这场争论永远没有尽头。到了 2026 年，实话实说：
+这场争论似乎永无止境。到 2026 年，实际情况是这样的：
 
-- **窄任务 SFT （风格迁移、单一领域）**： LoRA 胜出。质量一样，显存只要 1/10，训练更快，合并或切换也容易。大多数任务 rank 16-64 就够用了。
-- **要想从根本上扩展能力（长上下文、新语言）**：必须全量微调。 LoRA 没法足够深入地改变模型的基础表示。
-- **DPO 场景**： LoRA 表现不错。 DPO 不需要 drastic 地改变模型。
-- **RL （PPO/GRPO）**：前沿实验室默认全量微调。最近有些工作（LoRA-RL, 2025）显示精心调参后 LoRA 能匹配 PPO，但比较脆弱。
+- **针对窄任务的 SFT（如风格迁移、单一领域）**：LoRA 更胜一筹。效果相当，但显存占用仅为全量微调的十分之一，训练更快，且便于合并或切换。大多数任务使用 rank 16–64 即可满足需求。
+- **若需从根本上扩展模型能力（如支持长上下文、新增语言）**：必须采用全量微调。LoRA 无法对模型的基础表示进行足够深入的调整。
+- **DPO 场景**：LoRA 表现良好。因为 DPO 本身并不需要对模型做剧烈改动。
+- **RL（PPO/GRPO）**：前沿实验室普遍默认使用全量微调。尽管 2025 年的一些研究（如 LoRA-RL）表明，经过精细调参后 LoRA 可以媲美 PPO，但其训练过程较为脆弱，稳定性不足。
 
-当初 LoRA 那篇论文 [Hu et al., 2021] 就展示了，在 GPT-3 175B 上用 rank-8 的 adapter，在 GLUE 基准上能达到全量微调 0.5 % 精度以内的效果，而参数量只有 0.01 %。直觉很简单：微调产生的权重更新是低秩的——给每个权重加一个 rank-$r$ 矩阵就能捕捉大部分变化。
+最初的 LoRA 论文 [Hu et al., 2021] 就已证明：在 GPT-3 175B 上使用 rank-8 的适配器，在 GLUE 基准上的表现与全量微调相差不到 0.5%，而可训练参数仅占 0.01%。其核心直觉在于——微调所产生的权重更新本质上是低秩的；为每个权重矩阵叠加一个 rank-$r$ 的低秩矩阵，就能捕捉到大部分有效变化。
 
-关于 LoRA 局限性的实证证据主要来自 2024 年的几篇论文：
+关于 LoRA 局限性的实证证据主要来自 2024 年的几项研究：
 
-- [Biderman et al., 2024] (LoRA Learns Less and Forgets Less) 显示 LoRA 比全量微调更好地保留了基座能力（灾难性遗忘更少），但学习新任务的速度更慢。对于与预训练差异很大的任务（比如用基座模型做医疗推理）， LoRA 在任务特定评估上比全量微调低 5-10 %。
-- [Liu et al., 2024] (DoRA) 把 LoRA 更新分解为幅度和方向分量，证明分开更新这两部分能在相同 rank 下稳定超越标准 LoRA。
-- [Hayou et al., 2024] (LoRA+) 显示给 B 矩阵用比 A 矩阵更高的学习率（通常高 16 倍），能稳定超越 vanilla LoRA。
+- [Biderman et al., 2024]（*LoRA Learns Less and Forgets Less*）指出，LoRA 比全量微调更能保留基座模型的原始能力（即灾难性遗忘更少），但学习新任务的速度较慢。对于与预训练分布差异较大的任务（例如用通用基座模型进行医疗推理），LoRA 在任务专用评估上通常落后全量微调 5–10%。
+- [Liu et al., 2024]（DoRA）将 LoRA 的更新分解为“幅度”和“方向”两个分量，并证明分别优化这两个部分，能在相同 rank 下稳定超越标准 LoRA。
+- [Hayou et al., 2024]（LoRA+）发现，若为 B 矩阵设置比 A 矩阵高得多的学习率（通常高出 16 倍），能持续优于 vanilla LoRA。
 
-目前的最佳实践是组合拳： DoRA + LoRA+ +  targeting all linear projections，不仅仅是 QKV。
+当前的最佳实践是三者结合：**DoRA + LoRA+ + 对所有线性投影层应用 LoRA**，而不仅限于 QKV。
 
-用 PEFT 快速 setup LoRA：
+使用 PEFT 快速配置 LoRA：
 
 ```python
 from peft import LoraConfig, get_peft_model
@@ -269,97 +272,98 @@ print(model.print_trainable_parameters())
 # trainable params: 167,772,160 || all params: 7,408,357,376 || trainable%: 2.27
 ```
 
-两个实战要点：
+两个关键实战建议：
 
-- **Target 所有线性投影，不仅仅是 QKV。** 原 LoRA 论文只针对 QKV；后续工作（QLoRA [Dettmers et al., 2023], LongLoRA）显示针对 MLP 投影也对质量至关重要。
-- **DoRA (weight-Decomposed LoRA)** 在相同 rank 下稳定超越 LoRA，额外成本几乎可以忽略。如果你的 trainer 支持，就用它。
+- **应对所有线性投影层应用 LoRA，而不仅是 QKV**。原始 LoRA 论文仅针对 QKV 投影；但后续工作（如 QLoRA [Dettmers et al., 2023] 和 LongLoRA）表明，对 MLP 层也应用 LoRA 对最终质量至关重要。
+- **DoRA（weight-Decomposed LoRA）** 在相同 rank 下始终优于标准 LoRA，且几乎不增加额外计算开销。只要你的训练框架支持，就应优先使用。
 
-QLoRA [Dettmers et al., 2023] 值得单独提一下。它把 LoRA 和基座模型的 4-bit 量化结合起来：把冻结的基座权重存成 NF4 （4-bit normalized float），计算用 BF16。 70B 模型只需 48 GB 显存而不是 140 GB，单张 80 GB H100 就能训练。在大多数任务上，质量与全量 BF16 微调相差不到 0.5 %。 2026 年， QLoRA 是在消费级或单 GPU 设置下微调前沿规模模型的标准配方。
+QLoRA [Dettmers et al., 2023] 值得单独强调。它将 LoRA 与基座模型的 4-bit 量化相结合：冻结的基座权重以 NF4（4-bit normalized float）格式存储，计算则在 BF16 精度下进行。这样一来，一个 70B 模型仅需 48 GB 显存（而非 140 GB），单张 80 GB 的 H100 即可完成训练。在大多数任务上，其性能与全量 BF16 微调相差不到 0.5%。到 2026 年，QLoRA 已成为在消费级硬件或单 GPU 环境下微调前沿大模型的标准方案。
 
-## 实战案例： 32B 基座模型的生产级后训练
+## 实战案例：32B 基座模型的生产级后训练
 
-我来拆解一套具体方案——生产团队为了从 Qwen3-32B-Base 出发交付一个指令微调的 32B 模型，实际会跑什么。
+下面我详细拆解一套真实可行的方案——一个生产团队如何从 Qwen3-32B-Base 出发，交付一个指令微调后的 32B 模型。
 
-**SFT 阶段（8 张 H100，约 3 天）。**
-- 数据： 200K 混合样本 — 60K Tulu-3 通用， 80K 来自 Claude 的 Magpie 风格合成数据， 30K 领域特定（你的语料）， 30K 长文本（5K-token 回复）。
-- 配方：全量微调， BF16， FSDP， LR 5e-6 （比预训练低，因为要避免灾难性遗忘）， cosine schedule， 3 个 epoch， batch size 1M tokens。
-- Loss：标准的 CE 带 response masking。
-- 评估： AlpacaEval， MT-Bench， IFEval，加上你的领域特定评估。
+**SFT 阶段（8 张 H100，约 3 天）**
+- **数据**：20 万条混合样本 —— 包括 6 万条 Tulu-3 通用指令、8 万条基于 Claude 生成的 Magpie 风格合成数据、3 万条领域专属语料，以及 3 万条长文本回复（平均 5K tokens）。
+- **配方**：全量微调，BF16 精度，FSDP 并行，学习率 5e-6（低于预训练阶段，以避免灾难性遗忘），余弦退火调度，训练 3 个 epoch，batch size 为 1M tokens。
+- **损失函数**：标准交叉熵（CE），并对用户输入部分进行掩码（response masking）。
+- **评估指标**：AlpacaEval、MT-Bench、IFEval，以及自定义的领域评估集。
 
-**DPO 阶段（8 张 H100，约 1 天）。**
-- 数据： 30K 偏好对 — 15K UltraFeedback， 5K Anthropic HH， 10K 合成（Claude 在高温下对比模型自己的输出进行评判）。
-- 配方： LoRA r=64 （省显存和时间， DPO 不需要全量微调），β=0.1， LR 5e-7， 1.5 个 epoch。
-- 评估： Arena-Hard， MT-Bench，加上与仅 SFT 模型的 pairwise judge 对比。
+**DPO 阶段（8 张 H100，约 1 天）**
+- **数据**：3 万组偏好对 —— 包含 1.5 万条 UltraFeedback、5 千条 Anthropic HH，以及 1 万条合成数据（由 Claude 在高温度下对模型自身不同输出进行评判生成）。
+- **配方**：LoRA（rank=64，节省显存和时间，因 DPO 不需大幅改动模型），β=0.1，学习率 5e-7，训练 1.5 个 epoch。
+- **评估**：Arena-Hard、MT-Bench，以及与纯 SFT 模型的成对人工/AI 评判对比。
 
-**可选安全_pass （8 张 H100，约 6 小时）。**
-- 数据： 3K 拒绝偏好，针对 curated 的红队提示集。
-- 配方：在 DPO checkpoint 上继续 DPO，β=0.3 （更强）， 1 个 epoch。
+**可选安全强化阶段（8 张 H100，约 6 小时）**
+- **数据**：3 千组拒绝偏好，针对精心策划的红队攻击提示集。
+- **配方**：在 DPO 模型基础上继续 DPO 训练，β 提高至 0.3（施加更强约束），训练 1 个 epoch。
 
-**可选推理 RLVR （32 张 H100， 1K GRPO 步骤约 2 天）。**
-- 数据： 5K 数学 + 3K 代码问题，带可验证答案。
-- 配方： GRPO，$G=8$ 次 rollout 每 prompt， KL 惩罚 β=0.04， max sequence 8K。
+**可选推理能力 RLVR 阶段（32 张 H100，约 2 天完成 1K GRPO 步骤）**
+- **数据**：5 千道数学题 + 3 千道编程题，均具备可程序化验证的答案。
+- **配方**：GRPO 算法，每条 prompt 生成 $G=8$ 条响应，KL 散度惩罚系数 β=0.04，最大序列长度 8K。
 
-总计：租 H100 算力大约 $10K 就能得到一个完全后训练的模型。数字大致随模型规模线性缩放 — 70B 成本约 2.5 倍， 7B 约 0.3 倍。
+**总计成本**：租用 H100 集群约花费 1 万美元即可获得一个完整后训练的模型。该成本大致随模型规模线性增长——70B 模型约为 2.5 倍，7B 则约为 0.3 倍。
 
-## 后训练中的常见坑
+## 后训练中的常见陷阱
 
-生产环境后训练最容易踩的五个坑：
+在生产环境中，以下五个问题最为常见：
 
-**1. 参考模型没真冻住。** 一个隐蔽的 DPO bug：把 `ref_model` 和 `policy_model` 传成同一个 Python 对象，意味着梯度更新会影响两者。"ref" 的 log-probs 每一步都在变， loss 变得毫无意义，训练悄无声息地产出一个更差的模型。计算 ref log-probs 时用 `model.eval()` 和 `with torch.no_grad():`，或者加载一个单独的模型。
+**1. 参考模型未真正冻结**。这是一个隐蔽的 DPO bug：若将 `ref_model` 和 `policy_model` 设为同一个 Python 对象，梯度更新会同时影响两者。结果，“参考”log-probs 在每一步都发生变化，导致损失函数失去意义，训练过程悄无声息地产生一个更差的模型。正确做法是在计算参考 log-probs 时调用 `model.eval()` 并包裹 `with torch.no_grad():`，或直接加载一个独立的冻结模型。
 
-**2. SFT loss 没做 mask。** 训练 `[user_msg, assistant_msg]` 时没 mask 掉 user 部分 → 模型学会预测 user 消息，这会破坏它的对话能力。一定要 mask。
+**2. SFT 损失未进行掩码**。若在 `[user_msg, assistant_msg]` 序列上训练时未掩码用户消息部分，模型会学会预测用户输入，从而损害其对话能力。务必对非助手回复部分进行掩码。
 
-**3. SFT 和 DPO 数据的 Chat template 不一致。** SFT 数据用 `<|im_start|>...<|im_end|>` 格式； DPO 数据用纯文本。 DPO 步骤会训练模型给不带 chat token 的文本分配高概率，这会破坏聊天行为。所有后训练阶段必须使用相同的 chat template。
+**3. SFT 与 DPO 数据的聊天模板不一致**。例如，SFT 数据使用 `<|im_start|>...<|im_end|>` 格式，而 DPO 数据却是纯文本。这会导致 DPO 阶段训练模型偏好不含聊天标记的文本，进而破坏实际聊天行为。所有后训练阶段必须统一使用相同的聊天模板。
 
-**4. 合成偏好数据只用了一个裁判模型。** 所有偏好都来自一个强模型（比如 Claude），意味着训练出的模型会继承 Claude 的偏见 — 啰嗦的回复、特定的措辞、特定的拒绝模式。至少混合 3 个裁判（Claude, GPT-4, 一个强的开源模型），并按裁判一致性加权。
+**4. 合成偏好数据仅依赖单一裁判模型**。若所有偏好均由同一个强模型（如 Claude）生成，训练出的模型会继承其特定偏见——比如冗长回复、固定话术或特定拒绝模式。建议至少混合三个不同裁判（如 Claude、GPT-4 和一个强开源模型），并根据裁判间的一致性进行加权。
 
-**5. 评估集污染。** 从网上抓取的 SFT 数据包含 MMLU 问题。训练出的模型直接“背下”了 MMLU，评估分数 skyrocket，部署质量却没变。训练前一定要对 SFT 数据做去污染（与评估集做 13-gram 匹配）。 LIMA 论文发现 30 % 的常见 SFT 混合数据都有非 trivial 比例的 MMLU 污染。
+**5. 评估集污染**。从网络爬取的 SFT 数据常包含 MMLU 等评测题。模型“死记硬背”这些题目后，评估分数虚高，但实际部署效果并无提升。务必在训练前对 SFT 数据进行去污染处理（例如通过 13-gram 与评测集比对）。LIMA 论文曾指出，约 30% 的常用 SFT 混合数据集存在显著的 MMLU 污染。
 
 ## 生产现实：前沿实验室到底在交付什么
 
-公开的后训练方案是“SFT → DPO → 可能加 RL”。前沿实验室实际交付的方案要混乱得多：
+公开文献中描述的后训练流程通常是“SFT → DPO →（可能）RL”，但前沿实验室的实际做法要复杂得多：
 
-**SFT-DPO 循环迭代。** Anthropic 的 CAI 是迭代的。 OpenAI 的后训练也跑多个 SFT-DPO 周期，每个周期间生成合成数据。第 1 个周期后，你有一个更好的模型，能生成更好的偏好数据，从而改进第 2 个周期，以此类推。前沿模型通常跑 4-6 个周期。
+**SFT-DPO 迭代循环**。Anthropic 的 CAI 方法就是迭代式的；OpenAI 的后训练同样包含多个 SFT-DPO 周期，并在周期之间生成新的合成数据。第一轮后得到的更强模型能产出更高质量的偏好数据，从而推动第二轮改进，如此循环往复。前沿模型通常经历 4–6 轮此类迭代。
 
-**合并多个专用专家模型。** 前沿后训练通常涉及训练几个专用变体（一个写代码，一个做安全，一个遵循指令，一个对话语气），然后通过权重平均或插值合并它们。[Wortsman et al., 2022] (ModelSoup) 显示平均微调权重产生的模型比任何单个微调都好。变体：并行训练多个 LoRA adapter，推理时合并。
+**融合多个专用专家模型**。前沿后训练常会分别训练若干专用变体（如代码专家、安全专家、指令遵循专家、对话风格专家），再通过权重平均或插值进行融合。[Wortsman et al., 2022]（*ModelSoup*）证明，对微调后的权重取平均，所得模型性能优于任一单独微调版本。另一种变体是并行训练多个 LoRA 适配器，推理时动态合并。
 
-**持续后训练。** 生产模型不是“训练一次，永久部署”。 Anthropic、 OpenAI 和 DeepMind 都在生产遥测数据上跑持续后训练：点赞/差评信号喂给奖励模型，高质量样本加入 SFT 数据，模型每周或每月重训。你今天聊的"Claude 4.5"是自原始 4.5 发布以来数十次后训练更新的结果。
+**持续后训练**。生产模型绝非“训练一次，永久部署”。Anthropic、OpenAI 和 DeepMind 均基于生产遥测数据进行持续后训练：用户点赞/点踩信号用于更新奖励模型，高质量交互样本被加入 SFT 数据池，模型每周或每月重新训练。你今天使用的 “Claude 4.5” 实际上是自初始发布以来历经数十次后训练迭代的产物。
 
-**深度集成红队测试。** 2026 年的后训练离不开安全。红队生成对抗提示，模型训练拒绝它们，红队找新的对抗提示，如此循环。 Anthropic 在模型卡里公布了一些； OpenAI 和 Google 大部分内部保密。产出是一个通常有帮助但对特定攻击模式越来越 resistant 的模型。
+**深度集成红队测试**。到 2026 年，后训练已无法与安全对齐割裂。红队不断生成新型对抗性提示，模型被训练以拒绝这些攻击，红队再据此设计更难的攻击，形成闭环。Anthropic 会在模型卡中披露部分细节，而 OpenAI 和 Google 则大多内部保密。最终产出的模型在保持通用帮助性的同时，对特定攻击模式展现出越来越强的抵抗力。
 
 ## 指令微调模型的生产级配方
 
 ![图4：后训练决策流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig4_decision_flow.png)
 
-如果 2026 年我要交付一个模型，配方是这样：
+如果我在 2026 年要交付一个模型，会采用如下配方：
 
-1. 选最强的开源基座（Qwen3-32B-Base, LLaMA-3.3-70B-Base, 或 DeepSeek-V3-Base，看成本）。
-2. **SFT** 用 50-200K curated 样本。混合通用指令（Tulu-3, OpenHermes）、领域特定（你的数据）和几千个长文本样本。预算允许就全量微调；否则 LoRA r=64。
-3. **DPO** 用 10-50K 偏好对。混合 Anthropic HH, UltraFeedback，以及一些来自强裁判模型的合成偏好。β=0.1， 1-2 个 epoch。
-4. **可选安全_pass**：收集 1-5K 针对红队提示的拒绝偏好；再做一次 DPO，β=0.3 更激进些。
-5. **可选推理 RL**：如果数学/代码重要，用 GRPO 在几千个可验证问题上跑 RLVR， 1-2K 步骤。
+1. **选择最强的开源基座模型**（如 Qwen3-32B-Base、LLaMA-3.3-70B-Base 或 DeepSeek-V3-Base，视预算而定）。
+2. **SFT 阶段**：使用 5–20 万条精心筛选的样本，混合通用指令（Tulu-3、OpenHermes）、领域专属数据及数千条长文本示例。若预算充足则全量微调；否则采用 LoRA（rank=64）。
+3. **DPO 阶段**：使用 1–5 万组偏好对，混合 Anthropic HH、UltraFeedback 及部分由强裁判模型生成的合成偏好。设置 β=0.1，训练 1–2 个 epoch。
+4. **可选安全强化**：收集 1–5 千组针对红队提示的拒绝偏好，再进行一轮 DPO，β 提高至 0.3 以增强拒绝能力。
+5. **可选推理能力强化**：若数学或代码能力至关重要，则在数千道可验证问题上运行 RLVR（使用 GRPO），训练 1–2K 步。
 
-这套配方能保证模型达到生产级助理的水准。剩下的工作是评估（第 10 章）和 serving （第 5、 12 章）。
+这套方案足以让模型达到生产级助理的基本水准。后续工作则聚焦于评估（第十章）与部署优化（第五、十二章）。
 
-## 2024-2026 研究前沿
+## 2024–2026 研究前沿
 
-当前的 SFT → DPO → RLVR 共识之后，接下来会是什么：
+在当前 “SFT → DPO → RLVR” 共识之后，以下几个方向值得关注：
 
-**Online DPO** [Guo et al., 2024]。标准 DPO 用固定的离线偏好数据集。 Online DPO 持续采样新回复，让它们被排序（由人或 AI），然后训练。这结合了 DPO 的稳定性和 PPO 的适应性。几篇 2025 论文报告 online DPO 在标准基准上以更低算力匹配或超越 PPO。
+**Online DPO** [Guo et al., 2024]。传统 DPO 依赖固定离线偏好数据集，而 Online DPO 持续采样新回复，由人类或 AI 进行排序后立即用于训练。这种方法结合了 DPO 的稳定性与 PPO 的适应性。多篇 2025 年论文报告，Online DPO 能以更低算力在标准基准上媲美甚至超越 PPO。
 
-**用于推理的过程奖励模型 (PRM)**。不只奖励最终答案，还奖励模型每一步推理正确。[Lightman et al., 2023] 显示 PRM 在数学基准上超越结果奖励模型。挑战是收集步骤级标注；最近的工作用 LLM 裁判给每一步打分。
+**用于推理的过程奖励模型（PRM）**。不再仅奖励最终答案，而是对推理链中每一步的正确性给予奖励。[Lightman et al., 2023] 证明 PRM 在数学任务上优于仅依赖结果的奖励模型。主要挑战在于获取步骤级标注；近期研究转而使用 LLM 作为裁判对每一步进行打分。
 
-**自博弈和自我批评。** SPIN [Chen et al., 2024] (Self-Play Fine-Tuning) 迭代训练模型偏好自己更好的回复胜过自己更差的回复，不需要外部偏好数据。出奇地有效； 3-4 次迭代内达到质量平台期。
+**自博弈与自我批评**。SPIN [Chen et al., 2024]（Self-Play Fine-Tuning）通过迭代训练，使模型偏好自身生成的优质回复而非劣质回复，全程无需外部偏好数据。效果出人意料地好，通常在 3–4 轮内即可达到性能平台期。
 
-**长度控制训练。** 几篇 2024-2025 论文通过长度归一化奖励或 policy log-probs 明确针对长度偏差。[Singhal et al., 2024] 显示这能找回大部分归因于长度的 apparent RLHF 收益，留下更小但更真实的质量增益。
+**长度控制训练**。2024–2025 年的多项研究通过长度归一化奖励或策略 log-probs，显式缓解长度偏差问题。[Singhal et al., 2024] 表明，此举能消除大部分看似来自 RLHF 的收益（实则源于回复变长），从而揭示出更小但更真实的质量提升。
 
-**测试时后训练。** [Akyürek et al., 2024] 等人显示你可以在推理时用几个样本进行后训练（类似 in-context learning 但带权重更新）。对于高风险部署，“在用户前 10 个样本上后训练然后生成”正成为一种可行的模式。
+**测试时后训练**。[Akyürek et al., 2024] 等人提出，可在推理阶段基于少量样本进行即时微调（类似 in-context learning，但涉及权重更新）。对于高风险应用场景，“先用用户前 10 个示例进行后训练，再生成回复”正逐渐成为一种可行范式。
 
 ## 总结与下一章
 
-SFT 比大家承认的更重要，对数据卫生的敏感度高于数据量。 DPO 取代了大多数偏好工作的 PPO，但当你想继续适应新的失败模式时， PPO 仍然是正确的工具。 RLVR — 基于可验证奖励的 RL — 是 2024 年后推理能力的解锁键。大多数生产微调 LoRA 胜出；前沿实验室在后 DPO RL 阶段用全量微调。
+SFT 的重要性常被低估，其效果对数据质量的敏感度远高于数据量。DPO 已取代 PPO 成为大多数偏好学习任务的首选，但当你需要持续适应新出现的失败模式时，PPO 仍是更合适的工具。**RLVR（基于可验证奖励的强化学习）** 是 2024 年后推理能力突破的关键。在生产场景中，LoRA 在多数微调任务中占据优势；但在前沿实验室的后 DPO 强化学习阶段，全量微调仍是主流。
 
-下一章：**推理优化**。 KV cache 机制， paged attention， continuous batching， speculative decoding，量化（INT8/INT4/AWQ/GPTQ），以及 vLLM vs SGLang vs TensorRT-LLM 的选择。
+下一章：**推理优化**。我们将探讨 KV cache 机制、paged attention、continuous batching、speculative decoding、量化技术（INT8/INT4/AWQ/GPTQ），以及 vLLM、SGLang 与 TensorRT-LLM 的选型对比。
+
 ## 参考文献
 
 - Bradley, R., & Terry, M. (1952). Rank analysis of incomplete block designs: I. The method of paired comparisons. *Biometrika*.
