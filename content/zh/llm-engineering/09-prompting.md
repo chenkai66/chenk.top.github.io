@@ -158,7 +158,7 @@ Output:
 Claude 4.5 Sonnet 的真实定价（近似值， 2025 年末）：
 
 - Input (no cache): $3 per million tokens
-- Cache write: $3.75 per million tokens (extra 25 % surcharge)
+- 写入缓存：每百万 token $3.75（额外 25% 溢价）
 - Cache read: $0.30 per million tokens (90 % discount)
 - Output: $15 per million tokens
 

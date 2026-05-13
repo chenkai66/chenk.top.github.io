@@ -112,9 +112,9 @@ done
 
 根据官方文档，支持的类别包括：
 
-- **Compute and containers**: ECS, ACK (Kubernetes), Function Compute, Auto Scaling
-- **Networking**: VPC, SLB, ALB, NLB, NAT Gateway, Cloud Enterprise Network
-- **Storage and databases**: OSS, NAS, ApsaraDB RDS, PolarDB, Redis, MongoDB
+- **计算与容器**：ECS、ACK（Kubernetes）、Function Compute、Auto Scaling
+- **网络**：VPC、SLB、ALB、NLB、NAT Gateway、Cloud Enterprise Network
+- **存储与数据库**：OSS、NAS、ApsaraDB RDS、PolarDB、Redis、MongoDB
 - **Security and management**: RAM, KMS, WAF
 - **Observability**: SLS, ARMS, CloudMonitor
 - **Big data and AI**: MaxCompute, PAI

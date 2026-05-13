@@ -879,7 +879,7 @@ ssh -i ~/.ssh/prod-app-key.pem root@"$PUBLIC_IP" \
 
 ### 步骤 7: 使用 certbot 设置 HTTPS
 
-After pointing your domain's DNS A record to the public IP:
+把你域名的 DNS A 记录指向公网 IP 之后：
 
 ```bash
 ssh -i ~/.ssh/prod-app-key.pem root@"$PUBLIC_IP" << 'EOF'
