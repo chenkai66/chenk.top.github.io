@@ -244,7 +244,7 @@ Start-VM -Name  "WindowsServer2022"
 
 | 标准 | KVM | VMware ESXi | Hyper-V | Xen |
 |-----------|-----|-------------|---------|-----|
-| 成本 | 免费 | $$$（按 socket 计费） \vert  随 Windows Server 捆绑 \vert  免费 \vert 
+| 成本 | 免费 | $$$（按 socket 计费） \|随 Windows Server 捆绑 \|免费 \|
 | 管理工具 | virsh、OpenStack | vSphere（优秀 GUI） | PowerShell、Windows Admin Center | xl、XenCenter |
 | 性能 | 优秀 | 优秀 | 良好 | 优秀 |
 | 最佳适用 | Linux 云、OpenStack | 企业数据中心 | 微软生态 | 安全场景、遗留系统 |

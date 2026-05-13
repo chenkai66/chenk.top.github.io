@@ -132,7 +132,7 @@ $$\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),$$
 |------|--------------|
 | $\mathcal N(\mu,\sigma^2)$ | $z=\mu+\sigma\epsilon$, $\epsilon\sim\mathcal N(0,1)$ |
 | $\mathrm{Logistic}(\mu,s)$ | $z=\mu+s\,\log\frac{u}{1-u}$, $u\sim\mathrm U(0,1)$ |
-| $\mathrm{Laplace}(\mu,b)$ | $z=\mu-b\,\mathrm{sign}(u)\log(1-2\vert u\vert )$, $u\sim\mathrm U(-\tfrac12,\tfrac12)$ |
+| $\mathrm{Laplace}(\mu,b)$ | $z=\mu-b\,\mathrm{sign}(u)\log(1-2\|u\|)$, $u\sim\mathrm U(-\tfrac12,\tfrac12)$ |
 | $\mathrm{Exp}(\lambda)$ | $z=-\tfrac1\lambda\log(1-u)$, $u\sim\mathrm U(0,1)$ |
 | $\mathrm{Gumbel}(\mu,\beta)$ | $z=\mu-\beta\log(-\log u)$, $u\sim\mathrm U(0,1)$ |
 

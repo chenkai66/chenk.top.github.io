@@ -488,10 +488,10 @@ monty_hall_sim()
 | 补集法则 | $P(A^c) = 1 - P(A)$ | “至少一个”类问题 |
 | 容斥原理 | $P(A \cup B) = P(A) + P(B) - P(A \cap B)$ | 事件并集概率 |
 | 并界 | $P(\bigcup A_i) \leq \sum P(A_i)$ | 快速上界估计 |
-| 条件概率 | $P(A\vert B) = P(A \cap B)/P(B)$ | 基于新信息更新概率 |
-| 乘法法则 | $P(A \cap B) = P(A\vert B)P(B)$ | 联合事件概率 |
-| 全概率公式 | $P(A) = \sum P(A\vert B_i)P(B_i)$ | 按情形分解计算 |
-| 贝叶斯定理 | $P(B\vert A) = \frac{P(A\vert B)P(B)}{P(A)}$ | 反向条件化 |
+| 条件概率 | $P(A\|B) = P(A \cap B)/P(B)$ | 基于新信息更新概率 |
+| 乘法法则 | $P(A \cap B) = P(A\|B)P(B)$ | 联合事件概率 |
+| 全概率公式 | $P(A) = \sum P(A\|B_i)P(B_i)$ | 按情形分解计算 |
+| 贝叶斯定理 | $P(B\|A) = \frac{P(A\|B)P(B)}{P(A)}$ | 反向条件化 |
 | 独立性 | $P(A \cap B) = P(A)P(B)$ | 简化乘积计算 |
 | 组合数 | $\binom{n}{k} = \frac{n!}{k!(n-k)!}$ | 等可能结果情形 |
 
