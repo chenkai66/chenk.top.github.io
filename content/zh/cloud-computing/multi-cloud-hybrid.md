@@ -17,7 +17,7 @@ series_order: 8
 translationKey: "cloud-computing-8"
 polished_by_qwen_max: true
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/illustration_1.png)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/illustration_1.png)
 
 本系列开篇曾问：“什么是云？它为何重要？”八篇文章之后，问题已演变为更务实的版本：**该用哪些云？如何组合？又该如何管理这套组合而不至于崩溃？** 多云与混合架构，正是成熟组织对这一问题的回答。它们将工作负载分散部署在多个公有云和本地基础设施上，以换取韧性、成本优化与战略灵活性——但同时也引入了单云架构从未面对过的全新挑战。
 
@@ -69,7 +69,7 @@ polished_by_qwen_max: true
 
 ### 架构模式
 
-![多云架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/fig1_multi_cloud_architecture.png)
+![多云架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/fig1_multi_cloud_architecture.png)
 
 上图展示了典型的多云架构：全局流量管理器（GSLB / Anycast DNS / 多 CDN）将用户请求路由至最优区域的后端；每朵云专注于运行其最擅长的工作负载；而身份认证与可观测性层则贯穿所有环境。
 
@@ -112,7 +112,7 @@ polished_by_qwen_max: true
 
 本地数据中心（或一朵云）与另一朵云之间的连接，是混合架构的承重结构。此处一旦出错，下游所有环节都将举步维艰。
 
-![混合云连接](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/fig2_hybrid_connectivity.png)
+![混合云连接](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/fig2_hybrid_connectivity.png)
 
 | 选项 | 带宽 | 延迟 | 开通时间 | 月度成本 | 适用场景 |
 |------|------|------|----------|----------|----------|
@@ -140,7 +140,7 @@ polished_by_qwen_max: true
 
 在多云架构中，数据是最棘手的部分——计算资源易于迁移，而数据却具有强大的“引力”。
 
-![跨云数据同步](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/fig4_cross_cloud_data_sync.png)
+![跨云数据同步](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/fig4_cross_cloud_data_sync.png)
 
 ### 同步模式及其权衡
 
@@ -185,7 +185,7 @@ polished_by_qwen_max: true
 
 ## 厂商锁定：五个维度与应对之道
 
-![厂商锁定规避](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/fig3_lockin_mitigation.png)
+![厂商锁定规避](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/fig3_lockin_mitigation.png)
 
 “避免厂商锁定”若不加拆解，只是一句空话。锁定至少体现在五个维度，每个维度都有具体缓解措施：
 
@@ -245,7 +245,7 @@ polished_by_qwen_max: true
 
 ## 跨云成本优化：FinOps 方法论
 
-![跨云成本优化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/fig5_cost_optimization.png)
+![跨云成本优化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/fig5_cost_optimization.png)
 
 多云架构默认成本更高。而将“多云更贵”转变为“规模化下多云更省”的关键，在于 **FinOps**——一种由财务、工程与业务三方共同对云支出负责的协作机制。以下是可叠加使用的优化杠杆：
 

@@ -18,7 +18,7 @@ translationKey: "aliyun-pai-5"
 ---
 前四篇文章介绍了底层原语——DSW、DLC、EAS——以及如何用 Python 对它们进行编排；本文则聚焦于两个 GUI 产品：**PAI-Designer**（拖拽式表格 pipeline 构建）和 **Model Gallery**（零代码部署与微调开源模型）。这两个工具将底层原语封装为开箱即用的解决方案，专为不想写 Python 的用户设计。尽管资深工程师未必会首选它们，但在两种特定场景下，它们恰恰是最合适的选择。
 
-![阿里云PAI (5)：Designer与Model Gallery — 当图形界面真正发挥作用时 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
+![阿里云PAI (5)：Designer与Model Gallery — 当图形界面真正发挥作用时 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
 
 ## Designer —— 拖拽式 Pipeline 编排工具
 
@@ -64,13 +64,13 @@ Gallery 的短板包括：
 - **无法满足严苛的延迟要求**：Gallery 的默认服务配置虽合理，但未经优化。若需 p99 延迟低于 100ms，你必须手动编写 EAS 部署配置，并调整批处理参数。
 - **不支持隔离网络或跨区域部署**：Gallery 默认假设“在当前区域部署”。
 
-![PAI-Designer 画布](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/fig1_designer_canvas.png)
+![PAI-Designer 画布](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig1_designer_canvas.png)
 
 ## 何时选择哪个？
 
 这是我长期验证有效的决策矩阵：
 
-![Model Gallery 管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/fig2_modelgallery_pipeline.png)
+![Model Gallery 管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig2_modelgallery_pipeline.png)
 
 总结一条经验法则：**在需求允许的前提下，尽可能从技术栈的高层开始**。许多团队在第一天就过度工程化——明明 Model Gallery 部署已足够，却非要构建一套自定义的 DLC + EAS 流水线。应优先优化“首 token 时间”，待真实流量和指标到位后，再针对性重构。
 
@@ -86,11 +86,11 @@ Gallery 的短板包括：
 
 ## 具体的决策树
 
-![决策矩阵](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/fig3_decision_matrix.png)
+![决策矩阵](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig3_decision_matrix.png)
 
 上述矩阵是启发式规则；当队友问“这事该用 Designer / Gallery / DLC / EAS 哪个？”时，我实际遵循的是以下决策树：
 
-![阿里云PAI (5)：Designer与Model Gallery — 当图形界面真正发挥作用时](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/illustration_2.png)
+![阿里云PAI (5)：Designer与Model Gallery — 当图形界面真正发挥作用时](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_2.png)
 
 其中有几个不太明显的判断依据：
 
@@ -146,7 +146,7 @@ Gallery 在“评估速度”上胜出。若放弃，无后续负担；若上线
 
 四个用例共同揭示了一个规律：**Designer 和 Gallery 在“快速产出可用结果”上占优，在大规模下的成本优化或质量极限上略逊一筹**。建议用它们完成前 80% 的工作；仅当有明确证据表明必要时，再迁移到手写的 DLC / EAS 处理最后 20%。
 
-![PAI 产品决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/fig_pai_decision_en.png)
+![PAI 产品决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig_pai_decision_en.png)
 
 ## 突破瓶颈：从 Designer/Gallery 迁移到原生 PAI 资源
 

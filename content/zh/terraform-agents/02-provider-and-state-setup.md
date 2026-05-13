@@ -66,10 +66,10 @@ terraform {
 
 Provider 需要阿里云凭证。以下是三种方案，按专业性和安全性递增排序：
 
-![认证流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
+![认证流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_auth_flow.png)
 
 
-![三种认证阿里云提供商的方法](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png)
+![三种认证阿里云提供商的方法](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png)
 
 ### 方案 A：静态 AK/SK（仅限个人笔记本）
 
@@ -121,7 +121,7 @@ provider "alicloud" {
 
 运行 `terraform apply` 时，默认会在当前目录生成 `terraform.tfstate` 文件。该文件是基础设施当前状态的唯一权威来源，但存在三大风险：
 
-![分布式状态锁定](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_state_lock.png)
+![分布式状态锁定](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_state_lock.png)
 
 1. **丢失**：删除项目目录后，Terraform 会认为基础设施不存在，下次 `apply` 将尝试重建所有资源（或因资源重复而失败）。
 2. **冲突**：两名工程师同时运行 `apply` 可能导致状态文件损坏。
@@ -141,7 +141,7 @@ terraform show -json | jq '.values.root_module.resources[] | select(.values | to
 
 正因如此，本地 tfstate 根本撑不过第一天。解决方案是 **远程状态** 加 **状态锁定**。在阿里云上，标准组合是 OSS + Tablestore：
 
-![使用 Tablestore 锁定的 OSS 远程状态](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig1_state_backend.png)
+![使用 Tablestore 锁定的 OSS 远程状态](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/fig1_state_backend.png)
 
 OSS 存储实际的 `terraform.tfstate` 文件（建议开启版本控制——一旦损坏，一条 CLI 命令即可恢复）；Tablestore 存储一个微小的“锁”记录，Terraform 在 `apply` 前写入，结束后删除。若第一个 `apply` 持有锁时第二个启动，后者会等待或失败——绝不会同时运行。
 
@@ -263,7 +263,7 @@ terraform init
 
 Workspace 本质上是同一后端中的独立状态文件。默认 Workspace 名为 `default`，非常实用。其他环境可手动创建：
 
-![开发、测试和生产环境的多环境工作区隔离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/wanxiang_workspace.png)
+![开发、测试和生产环境的多环境工作区隔离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/wanxiang_workspace.png)
 
 
 ```bash
@@ -319,7 +319,7 @@ terraform plan -var-file=env/prod.tfvars
 
 日常 Terraform 工作流其实只有五个核心命令：
 
-![你将运行数百次的五命令循环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig3_init_apply_loop.png)
+![你将运行数百次的五命令循环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/fig3_init_apply_loop.png)
 
 ```bash
 terraform fmt        # 标准化缩进；预提交 hook

@@ -18,7 +18,7 @@ translationKey: "openclaw-quickstart-2"
 ---
 README 声称只需五分钟，但我觉得十分钟更现实——多出来的几分钟基本都花在常见的 Node 版本问题上了。
 
-![OpenClaw 快速入门（2）：10 分钟内安装并进行首次聊天 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
+![OpenClaw 快速入门（2）：10 分钟内安装并进行首次聊天 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
 ## 前置条件
 
@@ -142,7 +142,7 @@ openclaw gateway start
 
 ## TUI：在终端中与它对话
 
-![OpenClaw 快速入门 (2)：10 分钟内安装和首次聊天 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_2.png)
+![OpenClaw 快速入门 (2)：10 分钟内安装和首次聊天 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_2.png)
 
 另开一个终端，运行：
 
@@ -301,7 +301,7 @@ openclaw web start
 
 ## 刚才发生了什么？（架构视角）
 
-![架构拓扑：终端 -> tui -> gateway -> agent loop / skills index / tool registry -> LLM provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/fig1_topology.png)
+![架构拓扑：终端 -> tui -> gateway -> agent loop / skills index / tool registry -> LLM provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/fig1_topology.png)
 
 `tui` 本质上只是一个轻量级客户端，真正的 Agent Loop 逻辑运行在网关（gateway）中。正是这种前后端分离的设计，使得后续可以轻松接入 Telegram、钉钉或 Web UI 等多种前端，它们都共享同一个 Agent 核心。
 

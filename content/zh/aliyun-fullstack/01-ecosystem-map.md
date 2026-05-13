@@ -24,7 +24,7 @@ translationKey: "aliyun-fullstack-1"
 
 从 AWS 过来的人通常会问：为什么要用阿里云？
 
-![阿里云产品家族树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_product_families.png)
+![阿里云产品家族树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_product_families.png)
 
 原因有三，按实际重要性降序排列：
 
@@ -45,7 +45,7 @@ translationKey: "aliyun-fullstack-1"
 
 本文最有价值的部分，就是这张“罗塞塔石碑”：将每个阿里云产品精准对应到你已知的服务。描述力求简洁——每项一句话——因为你不需要长篇大论才能理解“OSS 就是 S3”。
 
-![阿里云服务地图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_service_map.png)
+![阿里云服务地图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_service_map.png)
 
 ### 计算
 
@@ -253,7 +253,7 @@ aliyun bssopenapi QueryAccountBalance
 
 阿里云在中国大陆的地域数量超过任何其他云厂商。这一点至关重要，因为中国互联网的拓扑结构决定了：深圳用户访问北京服务器的延迟，远高于访问深圳本地服务器——物理距离叠加网络策略，双重影响体验。
 
-![阿里云全球区域与可用区](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_region_map.png)
+![阿里云全球区域与可用区](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_region_map.png)
 
 ### 中国区
 
@@ -304,7 +304,7 @@ aliyun bssopenapi QueryAccountBalance
 
 阿里云的计费模式比 AWS 更灵活，但也更容易让人困惑。共有四种购买方式，你必须全部了解。
 
-![阿里云计费模式对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_billing_comparison.png)
+![阿里云计费模式对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_billing_comparison.png)
 
 ### 按量付费（PAYG, 按量付费）
 
@@ -361,7 +361,7 @@ aliyun ecs RunInstances \
 
 背景介绍到此为止，现在动手部署！
 
-![阿里云免费额度一览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_free_tier.png)
+![阿里云免费额度一览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_free_tier.png)
 
 我们将启动一台运行 Alibaba Cloud Linux 3 的 ECS 实例，通过 SSH 登录，安装 nginx，并托管一个测试页面。整个过程约需 15 分钟。
 
@@ -631,7 +631,7 @@ terraform apply
 
 ECS 实例已运行，现在让它真正发挥作用。
 
-![从注册到访问的首次部署流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_deployment_flow.png)
+![从注册到访问的首次部署流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_deployment_flow.png)
 
 ### 安装必备软件包
 
@@ -720,7 +720,7 @@ terraform destroy
 
 本文是阿里云全栈系列的开篇，共十二篇文章。完整路线图如下：
 
-![12 篇系列文章路线图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_architecture_roadmap.png)
+![12 篇系列文章路线图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_architecture_roadmap.png)
 
 ```text
 Article 01: The Ecosystem Map (you are here)

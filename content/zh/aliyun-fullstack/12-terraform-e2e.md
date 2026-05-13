@@ -75,7 +75,7 @@ translationKey: "aliyun-fullstack-12"
 
 这是我们要编码的完整栈。每个组件都对应我们在之前文章中手动构建的内容：
 
-![阿里云全栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png)
+![阿里云全栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png)
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -130,7 +130,7 @@ translationKey: "aliyun-fullstack-12"
 
 一个组织良好的 Terraform 项目，直接决定该代码库能否被团队长期维护，还是在数月内沦为‘不可触碰、仅能侥幸运行’的技术债务。结构如下：
 
-![Terraform 模块布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_layout.png)
+![Terraform 模块布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_module_layout.png)
 
 ```text
 aliyun-fullstack-terraform/
@@ -202,7 +202,7 @@ aliyun-fullstack-terraform/
 
 动手写模块代码前，有两件事得先安排好：阿里云 Provider 配置和远程 State 后端。
 
-![Terraform 状态管理流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_state_management.png)
+![Terraform 状态管理流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_state_management.png)
 
 ### versions.tf
 
@@ -249,7 +249,7 @@ terraform {
 
 State 文件存储于 OSS，分布式锁由 Table Store 提供。团队协作这是命门——没锁的话，两个人同时跑 `terraform apply`， State 文件直接损坏。 TableStore 提供分布式锁，防止并发修改 State。
 
-![远程 state 后端拓扑：OSS 存储 + Tablestore 加锁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_state_backend.png)
+![远程 state 后端拓扑：OSS 存储 + Tablestore 加锁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_state_backend.png)
 
 创建 State Bucket 和锁表（这是一次性的 bootstrap 步骤）：
 
@@ -347,7 +347,7 @@ variable "db_password" {
 
 网络模块负责部署 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 里设计的 VPC 架构——3 层结构、 2 可用区布局，包含安全组、出向流量的 NAT Gateway 以及公网访问的 EIP。
 
-![网络模块资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_network_module.png)
+![网络模块资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_network_module.png)
 
 ### modules/network/variables.tf
 
@@ -1546,7 +1546,7 @@ output "trigger_name" {
 
 ### main.tf (根模块)
 
-![模块间数据流：outputs 如何串入下游模块的 inputs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_deps.png)
+![模块间数据流：outputs 如何串入下游模块的 inputs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_module_deps.png)
 
 ```hcl
 # --- Network ---
@@ -1695,7 +1695,7 @@ output "ssh_command" {
 
 ### terraform.tfvars.example
 
-![多环境策略：同一份代码派生 dev / staging / prod 三套栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_multi_env.png)
+![多环境策略：同一份代码派生 dev / staging / prod 三套栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_multi_env.png)
 
 ```hcl
 # Copy this to terraform.tfvars and fill in your values
@@ -1717,7 +1717,7 @@ db_password       = "YourDBPassword456!"
 
 ### 运行部署
 
-![Terraform 工作流生命周期：init -> plan -> apply -> destroy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_workflow_lifecycle.png)
+![Terraform 工作流生命周期：init -> plan -> apply -> destroy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_workflow_lifecycle.png)
 
 ```bash
 # Initialize Terraform (download providers, configure backend)
@@ -1760,7 +1760,7 @@ Changes to Outputs:
 
 在自己电脑上手动跑 `terraform apply` 玩个人项目没问题。但如果是团队协作，你就得自动化了：每次提 PR 都跑 `terraform plan` 让 Reviewer 看到基础设施的变更差异， PR 合并到 main 分支后自动执行 `terraform apply`。
 
-![基于 GitHub Actions 的 CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_cicd_flow.png)
+![基于 GitHub Actions 的 CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_cicd_flow.png)
 
 ### .github/workflows/terraform.yml
 
@@ -1879,7 +1879,7 @@ jobs:
 
 ### 密钥管理
 
-![密钥管理：RAM OIDC 联邦 + KMS 加密最小权限链路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_secrets_ram_kms.png)
+![密钥管理：RAM OIDC 联邦 + KMS 加密最小权限链路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_secrets_ram_kms.png)
 
 把这些密钥存到你的 GitHub 仓库设置里（Settings > Secrets and variables > Actions）：
 
@@ -1903,7 +1903,7 @@ jobs:
 
 基础设施即代码最大的好处之一，就是能在花钱之前先把账算清楚。开源工具 `infracost` 可以直接读取你的 Terraform 文件，估算出每月的花费。
 
-![成本优化策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_cost_optimization.png)
+![成本优化策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_cost_optimization.png)
 
 ### 安装并运行 infracost
 
@@ -2030,7 +2030,7 @@ ecs_instance_type = "ecs.g7.small"  # 原来是：ecs.g7.large
 
 环境用完即毁——比如测试完要把 staging 栈撤掉——Terraform 只需要一条命令：
 
-![安全销毁流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_destroy_flow.png)
+![安全销毁流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_destroy_flow.png)
 
 ```bash
 # 预览将要销毁的内容
@@ -2044,7 +2044,7 @@ terraform destroy -var-file=environments/staging.tfvars
 
 关于 `terraform destroy` 有两个警告：
 
-![按依赖反向顺序销毁资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_teardown_order.png)
+![按依赖反向顺序销毁资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_teardown_order.png)
 
 1.  **不可逆。** RDS 数据、 OSS 对象、 SLS 日志——全都没了。 Terraform 会让你确认，但一旦输入 `yes`，就没有撤销按钮。
 2.  **有些资源抗拒删除。** OSS Bucket 必须先清空才能删。设置了 `deletion_protection = true` 的 RDS 实例会阻止销毁。这些都是安全机制。如果你真要彻底清理，可能需要手动清空 Bucket，或者在资源上设置 `force_destroy = true`。
@@ -2059,7 +2059,7 @@ resource "alicloud_oss_bucket" "media" {
 
 ## 常见坑点
 
-![漂移检测：当线上实际状态与代码不一致时](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_drift_detection.png)
+![漂移检测：当线上实际状态与代码不一致时](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_drift_detection.png)
 
 用 Terraform 跑阿里云一年多，我遇到的高频问题主要有这几个：
 

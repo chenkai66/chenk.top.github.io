@@ -20,7 +20,7 @@ Claude Code 提供四种扩展机制：slash commands、MCP servers、hooks 和 
 
 作为本系列的终章，我将直接为你梳理出清晰的决策路径。
 
-![Claude Code 实操 (10)：技能及其适用的扩展机制 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_1.png)
+![Claude Code 实操 (10)：技能及其适用的扩展机制 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_1.png)
 
 ## Skill 到底是什么
 
@@ -259,7 +259,7 @@ Apply these standards ONLY when:
 
 ## 什么时候用哪个
 
-![Claude Code 实操 (10)：技能及其适用的扩展机制 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_2.png)
+![Claude Code 实操 (10)：技能及其适用的扩展机制 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/illustration_2.png)
 
 遇到“Claude 应该知道怎么做 X”时，按以下流程判断：
 

@@ -85,7 +85,7 @@ $$\frac{d f}{dt} \;=\; \{f, H\} + \frac{\partial f}{\partial t}.$$
 
 ## 3. 够用的辛几何
 
-![辛 2-形式与一般 2-形式的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig1_two_forms.png)
+![辛 2-形式与一般 2-形式的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig1_two_forms.png)
 
 ### 3.1 辛形式
 
@@ -105,7 +105,7 @@ $$J_{\Phi}^{\top}\, \Omega\, J_{\Phi} \;=\; \Omega, \qquad \Omega = \begin{pmatr
 
 任意 Hamilton 流 $\varphi_{t}^{H}$ 对每个 $t$ 都是辛映射。直接推论是 **Liouville 定理**：体积形式 $\omega^{n}/n!$ 守恒——相空间里任意一块区域被流推移之后，体积不变。
 
-![Liouville 定理在单摆上的演示：方块变形，但面积守恒](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig2_phase_conservation.png)
+![Liouville 定理在单摆上的演示：方块变形，但面积守恒](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig2_phase_conservation.png)
 
 图 2 在单摆 $H = \tfrac{1}{2}p^2 + \frac{g}{L}(1 - \cos q)$ 上把这件事画了出来。一小块方形被流推动，它逐渐被拉伸、剪切，变成一条又细又弯的“小舌头”，但**沿边界用鞋带公式算出来的面积，到第四位小数都没变**。这就是长时数值方法必须保留、而普通网络几乎注定破坏的那条性质。
 
@@ -192,7 +192,7 @@ LNN 用更高的 autograd 代价（二阶导加上一个矩阵解）换来两个
 
 ## 7. 辛神经网络（SympNet）
 
-![SympNet 架构：剪切型辛模块的复合](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig3_sympnet_arch.png)
+![SympNet 架构：剪切型辛模块的复合](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig3_sympnet_arch.png)
 
 ### 7.1 剪切技巧
 
@@ -226,7 +226,7 @@ $$\mathcal{L}(\theta) \;=\; \sum_{i} \big\| \Phi_{\theta}(z_i) - z_{i+1} \big\|^
 
 ### 8.1 谐振子（健全性检查）
 
-![单摆上的能量守恒：vanilla NN 漂移，SympNet 稳定振荡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig4_energy_drift.png)
+![单摆上的能量守恒：vanilla NN 漂移，SympNet 稳定振荡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig4_energy_drift.png)
 
 图 4 在略丰富一点的系统——单摆 $H = \tfrac{1}{2}p^{2} + (g/L)(1-\cos q)$——上展示了本文最核心的结论。"Vanilla NN"用显式 Euler 作为代理（它的失败模式与一个不带约束的 MLP 在质上一致）：能量沿一条几乎是直线的路线缓慢漂离 $H_0$。 SympNet 这边用同步长的 Verlet 作为代理（受过良好训练的 SympNet **行为相同**）：能量在宽度为 $O(h^2)$ 的窄带里振荡。相图把这件事画得更直观——vanilla 轨道向外旋开， SympNet 轨道闭合。
 
@@ -250,7 +250,7 @@ $$H \;=\; \tfrac{1}{2}\!\left( p_{r}^{2} + \frac{p_{\theta}^{2}}{r^{2}} \right) 
 
 ### 8.4 分子动力学（真正的工业战场）
 
-![结构保持学习在分子动力学中的应用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig5_md_application.png)
+![结构保持学习在分子动力学中的应用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig5_md_application.png)
 
 这是结构保持学习正在改变实际科学的地方。 256 粒子的 Lennard-Jones 流体 Hamilton 量为
 

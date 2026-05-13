@@ -19,11 +19,11 @@ translationKey: "openclaw-quickstart-5"
 ---
 OpenClaw 的核心理念是让 Agent 主动来找你——而目前它还只停留在 TUI（文本用户界面）里。现在，是时候为它接上真正的聊天通道了。
 
-![OpenClaw 快速入门（5）：连接 Telegram、钉钉和微信 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_1.png)
+![OpenClaw 快速入门（5）：连接 Telegram、钉钉和微信 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_1.png)
 
 ## Telegram — 五分钟搞定
 
-![通道路由架构 —— 消息从即时通讯平台通过网关的流动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/fig_channels.png)
+![通道路由架构 —— 消息从即时通讯平台通过网关的流动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/fig_channels.png)
 
 即使你不打算在生产环境中使用 Telegram，我也强烈建议从这里开始。它的配置最为清爽，没有额外依赖，能让你快速验证 Agent 的端到端流程是否通畅。
 
@@ -117,7 +117,7 @@ Stream Mode 是钉钉为自托管机器人提供的现代方案：gateway 会主
 
 ## 微信 — 大实话版本
 
-![OpenClaw 快速入门 (5)：连接 Telegram、DingTalk 和微信 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_2.png)
+![OpenClaw 快速入门 (5)：连接 Telegram、DingTalk 和微信 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_2.png)
 
 微信有三条接入路径，但只有一条真正靠谱。
 

@@ -19,13 +19,13 @@ translationKey: "aliyun-bailian-1"
 
 本文作为系列开篇，先帮你摸清全局：百炼到底是什么、你会接触到哪些核心模型家族、两种 API 接口风格有何区别，并分别给出各自的“Hello World”示例。这样后续文章就无需反复解释这些基础概念了。
 
-![阿里云百链（1）：平台概览和首次请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.png)
+![阿里云百链（1）：平台概览和首次请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_1.png)
 
 ## 百炼是什么，DashScope 又是什么？
 
 命名确实容易让人困惑，因为阿里中途统一了品牌：官方文档中，“DashScope”是从 API 视角编写的，而“百炼”则是从控制台视角出发的——但它们本质上是同一个产品，只是叫法不同。
 
-![百链（控制台）与DashScope（API）对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
+![百链（控制台）与DashScope（API）对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
 
 你经常会在文档里同时看到这两个名字，甚至同一段落中交替出现。简单理解：**“百炼”指控制台操作，“DashScope”指 API 调用**。比如，当有人说“部署一个百炼应用”，指的是在控制台完成配置；而提到“DashScope 报错”，通常是指 API 返回了非 200 的状态码。
 
@@ -62,7 +62,7 @@ export DASHSCOPE_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
 
 这是本文最关键的信息：根据 Qwen API 文档，**所有百炼的文本和多模态模型都可通过两种不同的 HTTP 接口访问**。
 
-![两个HTTP接口，一个模型目录](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig2_two_endpoints.png)
+![两个HTTP接口，一个模型目录](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/fig2_two_endpoints.png)
 
 ### OpenAI 兼容接口
 
@@ -133,7 +133,7 @@ print(resp.output.choices[0].message.content)
 
 任何耗时超过约 30 秒的操作（如视频生成、大批量 embedding、长文本 TTS）都采用异步模式。其标准流程如下：
 
-![异步任务模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig3_async_task_pattern.png)
+![异步任务模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/fig3_async_task_pattern.png)
 
 1. 向创建接口发送 POST 请求，并在 Header 中添加 `X-DashScope-Async: enable`；
 2. 获取返回的 `task_id`；
@@ -148,7 +148,7 @@ LLM 和 Qwen-Omni 均支持 SSE 流式输出。对于启用了 `enable_thinking=
 
 ## 一个完整的第一个请求
 
-![阿里云百链 (1)：平台概览和首次请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_2.png)
+![阿里云百链 (1)：平台概览和首次请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_2.png)
 
 将以下内容保存为 `hello_bailian.py` 并运行。如果成功打印出一句话，说明你的账户、密钥和网络配置均正常，可以继续阅读第 2 篇了。
 

@@ -22,7 +22,7 @@ translationKey: "llm-engineering-11"
 
 先明确立场：我是一名工程师，而非政策研究者，对 AI 存在性风险没有强烈观点，也不会试图灌输任何立场。我只关心生产环境中什么管用，什么会尴尬地失败，以及文献中展示了什么。文末的参考文献才是重点，应将引用视为核心结论。
 
-![LLM 工程（11）：安全与对齐 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/illustration_1.png)
+![LLM 工程（11）：安全与对齐 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_1.png)
 
 ## 2026 年的“对齐”到底指什么
 
@@ -68,7 +68,7 @@ Sharma 等人（2023，《Towards Understanding Sycophancy in Language Models》
 
 ## 拒绝校准：过拒/欠拒轴
 
-![图1：拒绝校准轴](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/fig1_refusal_calibration.png)
+![图1：拒绝校准轴](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/fig1_refusal_calibration.png)
 
 两种典型失败模式：
 
@@ -95,7 +95,7 @@ Sharma 等人（2023，《Towards Understanding Sycophancy in Language Models》
 
 ## 红队测试方法论
 
-![LLM 工程（11）：安全与对齐 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/illustration_2.png)
+![LLM 工程（11）：安全与对齐 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_2.png)
 
 红队测试是一种结构化的对抗性探测。Anthropic 2022 年的论文（Ganguli 等，《Red Teaming Language Models to Reduce Harms》）确立了当前主流实验室采用的方法论。
 
@@ -119,7 +119,7 @@ Sharma 等人（2023，《Towards Understanding Sycophancy in Language Models》
 
 对内部团队而言，即使每季度仅进行一次包含 100 条提示的手动红队测试，也能捕获约 80% 的明显漏洞。这是最低限度的安全实践。
 
-![图2：越狱分类](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/fig2_jailbreak_taxonomy.png)
+![图2：越狱分类](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/fig2_jailbreak_taxonomy.png)
 
 ## 潜伏代理及其事后安全限制
 
@@ -139,7 +139,7 @@ Hubinger 等人（2024，《Sleeper Agents: Training Deceptive LLMs that Persist
 
 ## 幻觉：定义与指标
 
-![图3：幻觉指标概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/fig3_hallucination_metrics.png)
+![图3：幻觉指标概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/fig3_hallucination_metrics.png)
 
 “幻觉”一词已被过度泛化，实则涵盖三种截然不同的现象：
 
@@ -177,7 +177,7 @@ def faithfulness(answer: str, context: str, judge_llm) -> float:
 
 ## 宪法 AI (CAI)
 
-![图4：宪法 AI 循环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/fig4_constitutional_ai.png)
+![图4：宪法 AI 循环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/fig4_constitutional_ai.png)
 
 Bai 等人（2022，《Constitutional AI: Harmlessness from AI Feedback》）提出的核心思路是：用 AI 生成的偏好标签替代人工标注，让 AI 根据一组书面原则（“宪法”）对输出进行评判。
 
@@ -227,7 +227,7 @@ Burns 等人（2023，《Weak-to-Strong Generalization: Eliciting Strong Capabil
 
 ## 安全上线到底需要什么
 
-![图5：红队工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/11-safety/fig5_red_teaming_workflow.png)
+![图5：红队工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/fig5_red_teaming_workflow.png)
 
 要安全地将 LLM 产品推向市场，这份实操清单不可或缺：
 

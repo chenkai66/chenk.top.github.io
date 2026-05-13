@@ -22,11 +22,11 @@ translationKey: "llm-engineering-12"
 
 本章会比之前更侧重具体数字。在生产环境中，一个功能究竟是盈利还是烧钱，往往取决于那些无人追踪的 2–5 倍成本差异。最实用的技能是能快速估算 LLM 工作负载的成本。以下数据基于 2025 年底至 2026 年初的市场情况，请在实际部署前核对最新定价。
 
-![LLM 工程（12）：生产 —— 部署、监控、成本 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/illustration_1.png)
+![LLM 工程（12）：生产 —— 部署、监控、成本 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.png)
 
 ## 端到端的服务栈
 
-![图1：端到端服务堆栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig1_stack_architecture.png)
+![图1：端到端服务堆栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig1_stack_architecture.png)
 
 一个生产级 LLM 应用栈通常包含以下层级：
 
@@ -91,7 +91,7 @@ translationKey: "llm-engineering-12"
 
 ## 多模型路由与 FrugalGPT
 
-![LLM 工程（12）：生产 — 部署、监控、成本 — 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/illustration_2.png)
+![LLM 工程（12）：生产 — 部署、监控、成本 — 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_2.png)
 
 Chen 等人在 2023 年发表的论文《FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance》中正式提出了“先路由、后级联”的模式。其核心洞见是：大多数 LLM 查询其实很简单，小型廉价模型即可胜任；只有少数查询真正需要前沿模型。如果能高效区分这两类请求，就能在几乎不损失质量的前提下，将成本降低 5–10 倍。
 
@@ -137,7 +137,7 @@ GPTCache 值得重点关注。其工作流程是：用小型 embedding 模型对
 
 ## LLM 负载的自动扩缩容
 
-![图4：自动扩展 LLM 工作负载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig4_autoscaling.png)
+![图4：自动扩展 LLM 工作负载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig4_autoscaling.png)
 
 LLM 服务的自动扩缩容比无状态 Web 服务困难得多，原因有三：
 
@@ -157,7 +157,7 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 
 ## 延迟预算拆解
 
-![图2：延迟预算细分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig2_latency_breakdown.png)
+![图2：延迟预算细分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig2_latency_breakdown.png)
 
 面向用户的聊天产品，其典型延迟预算如下：
 
@@ -194,7 +194,7 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 
 ## 从第一天起跟踪成本
 
-![图3：每次请求的成本细分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig3_cost_per_request.png)
+![图3：每次请求的成本细分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig3_cost_per_request.png)
 
 按请求粒度核算成本是不可妥协的底线。没有它，你将无法：
 
@@ -254,7 +254,7 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 
 ## 超越成本的可观测性
 
-![图5：可观测性仪表板](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig5_observability_dashboard.png)
+![图5：可观测性仪表板](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig5_observability_dashboard.png)
 
 除标准可观测性（链路追踪、日志、指标）外，还需关注 LLM 特有指标：
 
@@ -277,7 +277,7 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 
 ## 行之有效的 On-call 模式
 
-![图6：待命升级流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig6_oncall_escalation.png)
+![图6：待命升级流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig6_oncall_escalation.png)
 
 以下是我凌晨 3 点会被叫醒的典型事件及应对预案：
 

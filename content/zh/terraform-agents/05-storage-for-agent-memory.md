@@ -24,7 +24,7 @@ translationKey: "terraform-agents-5"
 
 ## 三层记忆模型
 
-![代理的三种内存映射到三种阿里云服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png)
+![代理的三种内存映射到三种阿里云服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png)
 
 我们采用如下三层记忆模型：
 
@@ -112,7 +112,7 @@ resource "alicloud_db_database" "session" {
 
 在阿里云上，向量层有两个合理选项：
 
-![向量嵌入空间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/wanxiang_vector_search.png)
+![向量嵌入空间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/wanxiang_vector_search.png)
 
 1. **OpenSearch Vector Search Edition** —— 托管服务，基于 Lucene，支持 HNSW + IVF，按 QPS 配额计费。
 2. **带 `pgvector` 插件的 PolarDB 或 RDS PostgreSQL** —— 与关系数据共存，无需新增基础设施，但向量数量超过约 100 万后性能明显下降。
@@ -156,7 +156,7 @@ Terraform 只负责数据库实例本身；表结构应由应用代码管理（A
 
 OSS 用于存储各类 artifacts：生成的图片、PDF、截图、运行轨迹压缩包，以及如果你做微调，还有模型 checkpoints。对于 Agent 栈：
 
-![数据生命周期管理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/wanxiang_data_lifecycle.png)
+![数据生命周期管理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/wanxiang_data_lifecycle.png)
 
 ```hcl
 resource "alicloud_oss_bucket" "artifacts" {
@@ -221,7 +221,7 @@ OSS Bucket 名称在阿里云全局唯一，规则与 AWS S3 相同。通过 `ra
 
 `lifecycle_rule` 是 OSS 中最有效的成本控制杠杆：
 
-![OSS 存储桶中代理工件的生命周期](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig2_oss_lifecycle.png)
+![OSS 存储桶中代理工件的生命周期](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig2_oss_lifecycle.png)
 
 - **Standard**（0–30 天，~¥0.12/GB/月）—— 默认写入层。
 - **Infrequent Access**（30–90 天，~¥0.08/GB/月）—— 存储更便宜，但检索费用约 ¥0.0125/GB。
@@ -243,7 +243,7 @@ OSS Bucket 名称在阿里云全局唯一，规则与 AWS S3 相同。通过 `ra
 
 用 Terraform 管理备份的典型架构如下：
 
-![备份：不是可选项，而是预算内事项](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig3_backup_topology.png)
+![备份：不是可选项，而是预算内事项](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig3_backup_topology.png)
 
 - **RDS** — 内置自动备份（前文 HCL 已配置）。
 - **OSS** — 启用版本控制 + 跨地域复制，用于容灾。

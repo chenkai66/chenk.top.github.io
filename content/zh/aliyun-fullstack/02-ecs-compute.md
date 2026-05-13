@@ -88,7 +88,7 @@ translationKey: "aliyun-fullstack-2"
 
 实例家族是硬件专业化的核心抽象。命名规则如下：
 
-![ECS 实例家族对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_instance_families.png)
+![ECS 实例家族对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_instance_families.png)
 
 ```yaml
 ecs.{family}{generation}.{size}
@@ -154,7 +154,7 @@ Examples:
 
 规格选型的关键原则是：从工作负载需求出发，而非从实例规格出发。
 
-![ECS 实例规格对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_instance_specs.png)
+![ECS 实例规格对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_instance_specs.png)
 
 | 工作负载 | 推荐起步 | 原因 |
 |---|---|---|
@@ -173,7 +173,7 @@ Examples:
 
 ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高到低排个序：
 
-![ECS 计费模式对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_pricing_models.png)
+![ECS 计费模式对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_pricing_models.png)
 
 ### 按量付费 (PAYG)
 
@@ -333,7 +333,7 @@ ssh -i ~/.ssh/app-server-key.pem root@<public-ip>
 
 千万别 SSH 进新实例手动装包。Cloud-init 在首次启动时运行，自动配置实例。每个 ECS 镜像都预装了 cloud-init。
 
-![Cloud-init 开机启动流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_cloud_init.png)
+![Cloud-init 开机启动流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_cloud_init.png)
 
 创建实例时，你把 cloud-init 配置作为 `UserData` 传进去，必须 base64 编码。下面是一个全面的 `cloud-init.yaml`，能 setup 一个生产就绪的应用服务器：
 
@@ -488,7 +488,7 @@ curl http://localhost/health
 
 安全组就是挂在 ENI 层面的状态防火墙。进出 ECS 实例的每个数据包都要过一遍安全组规则；要是没匹配上任何规则，包就直接**丢弃**——默认拒绝。
 
-![安全组入站和出站规则](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_security_groups.png)
+![安全组入站和出站规则](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_security_groups.png)
 
 “状态化”是什么意思？比如你放行了入站 TCP 80，响应包会自动允许出站，你不需要为返回流量专门配一条出站规则。
 
@@ -615,7 +615,7 @@ scp -o ProxyJump=bastion localfile.tar.gz app-internal:/opt/app/
 
 每个 ECS 实例至少有一块磁盘：系统盘，装着 OS。你可以挂载最多 16 块额外数据盘。所有磁盘都是网络附加块存储——配置得当的话，它们独立于实例生命周期持久存在。
 
-![ESSD 磁盘类型 IOPS 与吞吐量对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_disk_types.png)
+![ESSD 磁盘类型 IOPS 与吞吐量对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_disk_types.png)
 
 ### 磁盘类型
 
@@ -689,7 +689,7 @@ aliyun ecs ApplyAutoSnapshotPolicy \
 
 ### 云监控指标
 
-![ECS 实例生命周期](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_lifecycle.png)
+![ECS 实例生命周期](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_lifecycle.png)
 
 每个 ECS 实例自动上报指标给云监控。你要盯着这几个：
 

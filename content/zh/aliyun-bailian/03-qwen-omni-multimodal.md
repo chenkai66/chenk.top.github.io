@@ -19,13 +19,13 @@ translationKey: "aliyun-bailian-3"
 ---
 在所有百炼模型中，Qwen-Omni 帮我规避了最多的产品路线图问题：过去处理“帮我看看这段 2 分钟宣传视频讲了什么”这类需求，往往需要三周时间——先提取视频帧，再为每一帧生成描述，最后拼接成连贯文本；如今只需一个 HTTP 请求即可搞定。但文档对某些关键细节语焉不详，尤其是“必须启用流式传输”这一硬性要求，已让不止一个团队白白耗费半天排查问题。下面帮你避开这个坑。
 
-![阿里云百链（3）：Qwen-Omni 用于视频、音频和图像理解 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
+![阿里云百链（3）：Qwen-Omni 用于视频、音频和图像理解 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 
 ## Qwen-Omni 能接收什么
 
 根据 Qwen 多模态模型的 API 文档，单个用户消息的 `content` 数组可以自由混合文本、图像、音频和视频内容。这才是真正的核心能力——不是“支持图像”，而是“支持任意模态以任意组合输入”：
 
-![Qwen-Omni 输入](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png)
+![Qwen-Omni 输入](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png)
 
 每种类型的结构如下：
 
@@ -70,7 +70,7 @@ for chunk in stream:
 
 文档将流式（streaming）描述为一项功能特性，却隐去了一个关键事实：**对 Qwen-Omni 而言，流式是强制要求**。若设置 `stream=False`，你会直接收到 400 错误，提示该模型必须使用流式。
 
-![流式处理需求](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png)
+![流式处理需求](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png)
 
 原因其实很合理：模型需处理大型视频文件并生成长文本响应，其底层协议默认采用增量传输。若等待完整响应再返回，客户端会卡住数十秒，期间毫无进度反馈。
 
@@ -100,7 +100,7 @@ def call_omni_buffered(messages):
 
 你有两种选择，文档均有覆盖。
 
-![将本地视频发送到 Qwen-Omni](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png)
+![将本地视频发送到 Qwen-Omni](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png)
 
 **路径一（推荐）：上传至 OSS，发送签名 URL。**
 
@@ -197,7 +197,7 @@ def normalize_audio(src: str, dst: str) -> None:
 
 ## 视频帧采样：口播内容 1 fps 足矣，动作内容需 8 fps
 
-![阿里云百链（3）：Qwen-Omni 用于视频、音频和图像理解 —— 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.png)
+![阿里云百链（3）：Qwen-Omni 用于视频、音频和图像理解 —— 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.png)
 
 Qwen-Omni 内部处理视频时，默认按其内置策略采样帧，并将每帧编码为视觉 token 块。视觉 token 消耗量与帧数线性相关，因此帧率（fps）是控制视频成本最关键的调节旋钮。
 

@@ -20,7 +20,7 @@ translationKey: "terraform-agents-8"
 
 我们要搭建的栈结构如下：
 
-![research-agent-stack：每个框，一个 terraform apply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png)
+![research-agent-stack：每个框，一个 terraform apply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png)
 
 共五层：边缘、计算、记忆、平台、运维——均由本系列此前构建的模块组合而成；底层依赖 11 款阿里云服务：VPC、ECS、ALB、OSS、RDS for PostgreSQL、OpenSearch、KMS、SLS、ARMS、CloudMonitor，以及通过网关调用的 DashScope（LLM 接入服务）。
 
@@ -55,7 +55,7 @@ research-agent-stack/
     └── restore-drill.sh
 ```
 
-![基础设施模块组合成完整的架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png)
+![基础设施模块组合成完整的架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_module_composition.png)
 
 顶层包含八个 `*.tf` 文件，`modules/` 目录下有五个模块，环境变量存放在 `env/*.tfvars`，密钥则隔离在 `secrets/secrets.auto.tfvars` 中且不纳入 Git。这是我每个项目的标准目录结构：略显刻板，但胜在稳定可靠。唯独 `secrets/` 目录必须从第一次提交起就被 `.gitignore` 忽略，这点我绝不妥协。我处理过的所有密钥泄露事件，根本原因都是团队未在项目初始化时配置 `.gitignore`，而是在后续（例如第 50 次提交）才临时补充。
 
@@ -67,7 +67,7 @@ locals {
   name      = "agents-${terraform.workspace}"
   zones     = ["cn-shanghai-l", "cn-shanghai-m", "cn-shanghai-n"]
 
-![Complete cloud architecture stack from network to application layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_full_stack.png)
+![Complete cloud architecture stack from network to application layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_full_stack.png)
 
 
   common_tags = {
@@ -141,7 +141,7 @@ module "compute" {
 
 这里调用了五个模块。每个模块都以*前一个*模块的输出作为输入——例如 `module.compute` 会读取 `module.vpc`、`module.storage`、`module.gateway` 和 `module.observability` 的输出。正是这些依赖关系，让 Terraform 能构建出 apply 执行的有向无环图（DAG）。
 
-![Terraform 模块依赖 DAG](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png)
+![Terraform 模块依赖 DAG](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png)
 
 VPC 与 KMS 位于依赖链顶端，不依赖任何其他模块；Storage 与 Gateway 均依赖 VPC 和 KMS，但彼此独立，因此 Terraform 会并行创建；Compute 模块依赖前三者，因为其 cloud-init 模板需要引用它们输出的 endpoint 地址；Observability 资源最后部署，需引用 Compute 模块的安全组 ID。
 
@@ -231,7 +231,7 @@ terraform apply tfplan
 
 全新 apply 的实际耗时如下：
 
-![实际应用时间线 — RDS/OpenSearch 占主导，其余并行执行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig3_apply_timeline.png)
+![实际应用时间线 — RDS/OpenSearch 占主导，其余并行执行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig3_apply_timeline.png)
 
 - **0–60 秒**：VPC、vSwitch、NAT、EIP、KMS 密钥等快速资源
 - **60–380 秒**：RDS（约 5 分钟）、OpenSearch（约 5.5 分钟）、ECS（约 2 分钟）、Gateway（约 1.5 分钟）——这些资源并行创建，整体耗时由最慢的一项决定
@@ -297,7 +297,7 @@ total_estimated_cost = "~¥2060/month at dev sizing"
 
 栈已就绪，接下来呢？以下是我对每个长期运行栈都会执行的操作——虽未在正文中详述，却是 on-call 工程师日常必备的实践。
 
-![CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/wanxiang_cicd_pipeline.png)
+![CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/wanxiang_cicd_pipeline.png)
 
 ### 添加新 Agent
 

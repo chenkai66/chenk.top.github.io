@@ -25,7 +25,7 @@ translationKey: "aliyun-fullstack-3"
 
 虚拟私有云（VPC）是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络。你可以指定 IP 地址段、划分子网、配置防火墙规则，并控制哪些实例可访问互联网或仅限内网通信。默认情况下，所有入站和出站流量都被拒绝，只有显式允许的流量才能通过。
 
-![VPC 架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
+![VPC 架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 
 如果你熟悉 AWS，阿里云 VPC 的心智模型与其基本一致，功能完全等价，只是术语有所不同。
 
@@ -56,7 +56,7 @@ translationKey: "aliyun-fullstack-3"
 
 CIDR（无类别域间路由）用于定义 VPC 的 IP 地址空间。如果这一步规划失误，将不得不重建整个 VPC 并迁移所有资源。
 
-![VPC 子网 CIDR 规划指南](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
+![VPC 子网 CIDR 规划指南](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
 
 记法逻辑是这样：`10.0.0.0/16` 意味着“从 `10.0.0.0` 到 `10.0.255.255` 的所有 IP”。斜杠后面的数字是前缀长度——有多少位是固定的。剩下的位归你分配。
 
@@ -88,7 +88,7 @@ VPC 本身用 `10.0.0.0/16`，给我们 65,534 个可用 IP，以后加子网也
 
 VSwitch 即子网，每个 VSwitch 仅隶属于一个可用区，不能拉伸到多个可用区。这是设计使然：单个可用区发生故障时，仅影响该可用区内的 VSwitch 所承载的实例，不会波及其他可用区。
 
-![多可用区 VSwitch 拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vswitch_layout.png)
+![多可用区 VSwitch 拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_vswitch_layout.png)
 
 典型模式是：每一层、每一个可用区各部署一个 VSwitch。2 个可用区 3 层架构需要 6 个 VSwitch，3 个可用区则需要 9 个。单个应用通常不需要超过 3 个可用区。
 
@@ -172,7 +172,7 @@ aliyun vpc DescribeVSwitches \
 
 每个 VPC 自带一个系统路由表，删不掉。里面有一条你关心的条目：本地路由，自动启用 VPC 内所有 VSwitch 互相通信。这是隐式的——控制台里你看不到，但 `10.0.1.0/24` 和 `10.0.20.0/24` 之间的流量就是能通。
 
-![路由表决策流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_route_table.png)
+![路由表决策流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_route_table.png)
 
 系统路由表也处理默认路由（`0.0.0.0/0`），起初它哪儿也不通。要给实例互联网访问权，你得把这条默认路由指向 NAT 网关或者面向互联网的路由器。
 
@@ -408,7 +408,7 @@ aliyun vpc UnassociateEipAddress \
 
 私有子网里的实例（比如我们规划里的 App 层和数据层）没有公网 IP，默认上不了网。但它们往往需要上网——拉 Docker 镜像、调用外部 API、下载安全补丁。NAT 网关就是解决这个问题的。
 
-![NAT 网关架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_nat_gateway.png)
+![NAT 网关架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_nat_gateway.png)
 
 NAT 网关部署在公共子网，提供两个功能：
 
@@ -491,7 +491,7 @@ aliyun vpc CreateSnatEntry \
 
 Server Load Balancer 就是把流量分摊到多台后端实例上。任何想要高可用的服务，它都是必经之门。有了它，你才算从“我有两台服务器”进化到了“我有生产环境部署”。
 
-![SLB 第 4 层与第 7 层对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_slb_comparison.png)
+![SLB 第 4 层与第 7 层对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_slb_comparison.png)
 
 阿里云有三个 SLB 产品，名字一开始容易让人晕：
 
@@ -654,7 +654,7 @@ CEN 计费主要看跨地域带宽。同地域流量经过 Transit Router 免费
 
 咱们把前面的碎片拼起来。这是一套能直接上生产环境的网络架构，跑在 cn-hangzhou 的两个可用区上，典型的三层 Web 应用。
 
-![完整网络拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_network_topology.png)
+![完整网络拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_network_topology.png)
 
 目标架构长这样：
 

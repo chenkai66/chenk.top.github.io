@@ -28,7 +28,7 @@ translationKey: "aliyun-fullstack-7"
 
 业界已普遍认同，以下三种信号组合起来，才能完整还原系统运行状态：
 
-![可观测性的三大支柱](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_three_pillars.png)
+![可观测性的三大支柱](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_three_pillars.png)
 
 **日志（Logs）** 告诉你“发生了什么”。例如：“14:32:07，用户 abc123 请求了 /api/orders，因数据库连接超时 30 秒而返回 500。” 日志是带时间戳的离散事件，结构化且可追溯，是故障发生后的关键证据。
 
@@ -52,7 +52,7 @@ translationKey: "aliyun-fullstack-7"
 
 SLS 是阿里云可观测体系的基石。尽管名字里有 “Simple”，它实则是一个功能完备的日志分析平台，集采集、存储、索引、查询、可视化与告警于一体。你可以把它看作 AWS CloudWatch Logs 与 Elasticsearch 的结合体，还额外内置了 SQL 查询引擎。
 
-![SLS 日志收集管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_pipeline.png)
+![SLS 日志收集管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
 ### 核心概念
 
@@ -158,7 +158,7 @@ GROUP BY time_bucket
 ORDER BY time_bucket
 ```
 
-![SLS 查询语法：搜索过滤管道接 SQL 分析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_query_syntax.png)
+![SLS 查询语法：搜索过滤管道接 SQL 分析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_sls_query_syntax.png)
 
 此查询先筛选出所有 5xx 错误，再按分钟聚合，展示每分钟的错误数量及受影响的唯一用户数。`__time__` 是内置时间戳字段，`approx_distinct` 基于 HyperLogLog 算法，对高基数字段高效且节省内存。
 
@@ -237,7 +237,7 @@ aliyun sls CreateIndex \
 
 Logtail 是 SLS 官方日志采集代理，运行于 ECS 实例，负责监控日志文件、按配置解析并投递至 SLS。它轻量（通常占用 50–100 MB 内存，CPU 使用率低于 1%）、可靠（通过本地缓冲应对网络中断），并与 SLS 深度集成。
 
-![Logtail 采集器部署架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_logtail_architecture.png)
+![Logtail 采集器部署架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_logtail_architecture.png)
 
 ### 安装
 
@@ -353,7 +353,7 @@ aliyun sls GetLogs \
   --endpoint cn-hangzhou.log.aliyuncs.com
 ```
 
-![Logtail 采集配置与机器组的绑定模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_logtail_binding.png)
+![Logtail 采集配置与机器组的绑定模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_logtail_binding.png)
 
 ### 采集应用日志（JSON 格式）
 
@@ -440,7 +440,7 @@ module.exports = logger;
 
 无人查看的仪表盘比没有更危险——它会带来虚假的安全感。关键在于围绕故障排查时真正关心的问题来设计，而非堆砌看似炫酷的指标。
 
-![SLS 仪表盘布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_dashboard_layout.png)
+![SLS 仪表盘布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_dashboard_layout.png)
 
 ### 五个核心面板
 
@@ -454,7 +454,7 @@ module.exports = logger;
 | 热门接口 | `* \| SELECT request_uri, count(*) as cnt, approx_percentile(request_time, 0.50) as p50 GROUP BY request_uri ORDER BY cnt DESC LIMIT 10` | 流量集中在哪些接口？哪些接口响应较慢？ |
 | 状态码分布 | `* \| SELECT status, count(*) as cnt GROUP BY status ORDER BY cnt DESC` | 是否出现异常的 4xx/5xx 模式？ |
 
-![五个核心仪表盘面板示意](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_dashboard_panels_mockup.png)
+![五个核心仪表盘面板示意](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_dashboard_panels_mockup.png)
 
 ### 创建仪表盘
 
@@ -726,7 +726,7 @@ aliyun cms PutEventRule \
 
 告警是连接可观测性与行动的桥梁。合理的告警能在错误率飙升时凌晨 3 点叫醒你；糟糕的告警也会在同样时间把你吵醒，只因备份期间 CPU 短暂冲高至 81% 后迅速回落。设定恰当的告警阈值是一门艺术，以下经验法则经实践验证有效：
 
-![告警配置与通知流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_flow.png)
+![告警配置与通知流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_alert_flow.png)
 
 ### 告警设计原则
 
@@ -735,7 +735,7 @@ aliyun cms PutEventRule \
 3. **仅设三个严重级别**：Critical（立即通知）、Warning（数小时内处理）、Info（记录备查）。超过三级将导致团队混淆。
 4. **维护期间静音**：在已知维护窗口内抑制告警，避免破坏告警可信度。
 
-![基于症状告警 vs 基于原因告警](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_symptoms_vs_causes.png)
+![基于症状告警 vs 基于原因告警](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_alert_symptoms_vs_causes.png)
 
 ### 设置告警规则
 
@@ -902,7 +902,7 @@ aliyun cms PutContact \
 | **电话** | 生产完全不可用（慎用） |
 | **Webhook (HTTP)** | 集成 PagerDuty、Slack 或自定义系统 |
 
-![告警严重级别到通知渠道的路由](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_severity_routing.png)
+![告警严重级别到通知渠道的路由](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_alert_severity_routing.png)
 
 > **静音期**：对计划内维护窗口，应在告警规则上设置静音期。这优于直接禁用告警——事件仍会被记录，只是不会在已知时段打扰你。
 
@@ -910,7 +910,7 @@ aliyun cms PutContact \
 
 ARMS 补全了可观测性的最后一环：链路追踪。SLS 告诉你“发生了什么”，CloudMonitor 告诉你“系统层面的影响”，而 ARMS 则精准定位“问题出在应用的哪个环节”。
 
-![ARMS 分布式链路追踪](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_arms_traces.png)
+![ARMS 分布式链路追踪](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_arms_traces.png)
 
 ### ARMS 的核心能力
 
@@ -1020,7 +1020,7 @@ traceId: abc-123-def
 
 同时，ARMS 中每个 span 也会反向链接至 SLS 日志条目。这种双向跳转极大加速了生产问题排查。
 
-![通过 traceId 实现 trace 与日志的双向关联](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_trace_log_correlation.png)
+![通过 traceId 实现 trace 与日志的双向关联](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_trace_log_correlation.png)
 
 ## 解决方案：全栈可观测性搭建
 
@@ -1283,7 +1283,7 @@ aliyun cms PutResourceMetricRule \
 
 可观测性并非免费，成本容易在不经意间累积。以下为小型生产环境（2 台 ECS，中等流量）的月度成本估算：
 
-![可观测性成本分解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_cost_model.png)
+![可观测性成本分解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_cost_model.png)
 
 | 组件 | 免费额度 | 典型月成本 |
 |---|---|---|

@@ -49,7 +49,7 @@ Serverless 并非万能解药，它有明确的适用边界。提前厘清这一
 | **高稳态吞吐量** | 持续运行在 ECS 上更经济 | 包年包月 ECS 实例 |
 | **大内存状态依赖** | 函数无状态，最大仅 3 GiB 内存 | ECS、Redis |
 
-![函数计算 vs Serverless 应用引擎 vs ECS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_fc_sae_ecs.png)
+![函数计算 vs Serverless 应用引擎 vs ECS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_fc_sae_ecs.png)
 
 在比较价格前，先明确三种计算原语的定位：FC、SAE 和 ECS 在“资源粒度”与“生命周期”光谱上各占一席。我见过的多数架构失误，都源于为工作负载选错了计算模型。
 
@@ -77,7 +77,7 @@ Serverless 并非万能解药，它有明确的适用边界。提前厘清这一
 
 函数计算是阿里云的 Serverless 执行服务，对标 AWS Lambda，核心概念一一对应：
 
-![函数计算架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_fc_architecture.png)
+![函数计算架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_fc_architecture.png)
 
 | FC 概念 | 说明 | AWS 等价物 |
 |---|---|---|
@@ -111,7 +111,7 @@ Serverless 并非万能解药，它有明确的适用边界。提前厘清这一
 | 最大异步载荷 | 128 KiB |
 | 临时磁盘（`/tmp`） | 10 GiB |
 
-![FC 请求生命周期：热路径 vs 冷启动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_lifecycle.png)
+![FC 请求生命周期：热路径 vs 冷启动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_lifecycle.png)
 
 热路径与冷路径的性能差距，构成了 Serverless 的全部性能故事：热路径仅需几毫秒；而冷路径在你的 handler 开始执行前，还需完成四个额外步骤。
 
@@ -293,7 +293,7 @@ s logs --request-id "1-6789abcd-..."
 
 触发器才是 Serverless 实现事件驱动的核心，而非仅仅是“廉价托管”。每种触发器将函数连接到不同事件源。以下是全部触发器类型及配置示例。
 
-![函数计算触发器类型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_trigger_types.png)
+![函数计算触发器类型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_trigger_types.png)
 
 ### HTTP 触发器
 
@@ -438,7 +438,7 @@ aliyun fc CreateTrigger \
 
 最灵活的选项。EventBridge 将在后文深入探讨，此处仅展示触发器配置：
 
-![EventBridge 事件路由管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_event_pipeline.png)
+![EventBridge 事件路由管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_event_pipeline.png)
 
 ```bash
 aliyun fc CreateTrigger \
@@ -467,7 +467,7 @@ aliyun fc CreateTrigger \
 
 冷启动是 Serverless 最受关注的短板。要在生产环境可靠使用，必须理解其成因及缓解策略。
 
-![函数计算冷启动分析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_cold_start.png)
+![函数计算冷启动分析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_cold_start.png)
 
 ### 冷启动成因
 
@@ -532,7 +532,7 @@ Java 的冷启动主要受 JVM 启动拖累。若必须使用 Java，GraalVM 原
 
 ### 缓解策略
 
-![FC 并发：典型一天内 on-demand 与预留对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_concurrency.png)
+![FC 并发：典型一天内 on-demand 与预留对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_concurrency.png)
 
 典型一天的并发曲线呈现两种模式：按需扩缩容虽能贴合请求速率，但每次流量突增都伴随冷启动代价；预留并发则维持基线温热实例，代价是夜间空转仍需付费。以下策略本质上是在这两种模式间权衡。
 
@@ -625,7 +625,7 @@ def handler(event, context):
 
 ### Layers：共享依赖
 
-![函数层架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_layer_architecture.png)
+![函数层架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_layer_architecture.png)
 
 Layer 是包含库、自定义运行时或其他依赖的 ZIP 包，支持版本管理并可跨函数共享，主要解决两大问题：
 
@@ -924,7 +924,7 @@ client.put_events(event_bus_name="my-app-bus", event_list=[event])
 
 构建生产级 REST API 时，需在函数前部署 API Gateway——它提供 FC 原生 HTTP 触发器缺失的关键能力：认证鉴权、限流、请求校验和版本管理。
 
-![API Gateway 与函数计算集成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_api_gateway.png)
+![API Gateway 与函数计算集成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_api_gateway.png)
 
 ### 创建 FC 后端 API
 
@@ -1066,7 +1066,7 @@ def handler(event, context):
     └──────────────┘
 ```
 
-![事件驱动的图片处理流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_image_pipeline.png)
+![事件驱动的图片处理流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_image_pipeline.png)
 
 下图展示了完整流水线：源 Bucket 一次 PutObject 操作，将在目标 Bucket 生成 6 个衍生文件（3 种尺寸 × 2 种格式），全程 2–3 秒完成，且无需管理任何服务器。
 
@@ -1530,7 +1530,7 @@ webp/thumb/test-image.webp        (150px wide, no watermark)
 
 ### 第六步：监控与异常处理
 
-![FC 异步调用：重试策略与死信队列](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_async_dlq.png)
+![FC 异步调用：重试策略与死信队列](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_async_dlq.png)
 
 异步调用自带托管重试队列。配置重试预算和 `onFailure` 目标后，耗尽重试的事件将进入 MNS 待人工处理，而非静默丢失。
 
@@ -1562,11 +1562,11 @@ aliyun fc PutAsyncInvokeConfig \
 
 FC 计费沿三个独立维度展开，理解它们可避免账单意外。
 
-![函数计算计费：三个独立维度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_pricing.png)
+![函数计算计费：三个独立维度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_pricing.png)
 
 FC 费用由三部分构成：调用次数、内存×时间消耗量、公网出流量。免费额度足以覆盖多数个人项目及中小企业负载。
 
-![Serverless 与传统服务器成本对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_cost_crossover.png)
+![Serverless 与传统服务器成本对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_cost_crossover.png)
 
 | 计费维度 | 单价（cn-beijing） | 免费额度（每月） |
 |---|---|---|

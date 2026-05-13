@@ -20,11 +20,11 @@ translationKey: "openclaw-quickstart-4"
 
 `~/.openclaw/openclaw.json` 负责管理模型、工具、通信渠道、记忆模块、定时任务和技能加载。初始化向导会生成一套默认配置，本文聚焦于你通常需要手动调整的关键配置项。
 
-![OpenClaw 快速入门（4）：配置、模型提供者和编码计划技巧 — 视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_1.png)
+![OpenClaw 快速入门（4）：配置、模型提供者和编码计划技巧 — 视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_1.png)
 
 ## 最小可用配置
 
-![配置层次结构和提供者解析顺序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/fig_config.png)
+![配置层次结构和提供者解析顺序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/fig_config.png)
 
 剔除注释和未使用的默认配置后，一个最小可用配置约 25 行：
 
@@ -171,7 +171,7 @@ OpenAI 模型主要适用于两种情况：(1) 你明确需要 GPT-5.4，或 (2)
 
 ## Coding Plan 技巧
 
-![OpenClaw 快速入门 (4)：配置、模型提供者和编码计划技巧 —— 视觉化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_2.png)
+![OpenClaw 快速入门 (4)：配置、模型提供者和编码计划技巧 —— 视觉化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_2.png)
 
 阿里云百炼提供一种“Coding Plan”订阅：每月 200 元即可获得八个模型——包括 Claude Sonnet 4.5、Qwen3-Max、Qwen3-Coder-Plus、DeepSeek V3.1、GLM-4.6 等——工作时间用量不限。对于每天循环数百次的 Agent 来说，这个定价堪称超值。
 

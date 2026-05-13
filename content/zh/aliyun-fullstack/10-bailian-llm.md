@@ -51,7 +51,7 @@ translationKey: "aliyun-fullstack-10"
 
 Qwen 不是一个模型，而是一个覆盖文本、视觉、音频、代码、数学和多模态理解的完整家族。以下是生产环境中值得关注的核心成员：
 
-![Qwen 模型家族概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_model_family.png)
+![Qwen 模型家族概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_model_family.png)
 
 ### 文本生成模型
 
@@ -84,7 +84,7 @@ Qwen 不是一个模型，而是一个覆盖文本、视觉、音频、代码、
 
 这是关于 DashScope 最重要的一点：它提供了 OpenAI 兼容的 endpoint。只需两行配置，即可直接使用官方 OpenAI Python SDK：
 
-![DashScope API 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_api_comparison.png)
+![DashScope API 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_api_comparison.png)
 
 ```python
 import os
@@ -323,7 +323,7 @@ print(chat("What about cold starts?"))
 
 Embeddings 将文本转化为向量，是 RAG（检索增强生成）、语义搜索、聚类和去重的基础。DashScope 提供 `text-embedding-v3` 和更新的 `text-embedding-v4`。
 
-![嵌入向量与 RAG 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_embedding_pipeline.png)
+![嵌入向量与 RAG 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_embedding_pipeline.png)
 
 ```python
 response = client.embeddings.create(
@@ -396,9 +396,9 @@ for text, score in similarities[:3]:
 
 万相（Wanxiang）是 DashScope 旗下的生成式媒体家族，覆盖文生图、图生视频和文生视频。所有媒体生成均使用 DashScope 原生 API（非 OpenAI 兼容接口），并遵循异步任务模式。
 
-![万象异步生成流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_wanxiang_pipeline.png)
+![万象异步生成流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_wanxiang_pipeline.png)
 
-![媒体生成的异步任务模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
+![媒体生成的异步任务模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
 
 ### 异步任务模式
 
@@ -616,7 +616,7 @@ Qwen TTS 的完整深度解析（含声音克隆和 instruct 模式）见 [Baili
 
 微调是最后的杀手锏。在决定使用前，请先自问：提示词工程、few-shot 示例或 RAG 能否解决问题？据我观察，80% 喊着“我们需要微调”的讨论，最终都以“其实换个更好的 system prompt 就搞定了”收场。
 
-![百炼平台概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_bailian_platform.png)
+![百炼平台概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_bailian_platform.png)
 
 ### 什么时候才真的需要微调
 
@@ -732,7 +732,7 @@ print(f"Status: {status.output.status}")
 
 下面整合所有能力，实现一个完整流水线：输入主题，自动生成文章草稿、配图和语音解说——全部由 Python 编排。
 
-![多模态 AI 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_multimodal_flow.png)
+![多模态 AI 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_multimodal_flow.png)
 
 ```python
 """

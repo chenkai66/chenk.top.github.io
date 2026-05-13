@@ -18,13 +18,13 @@ translationKey: "claude-code-learn-6"
 ---
 CLI 是门面，SDK 才是核心，而 GitHub 集成才是真正释放价值的地方。
 
-![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
+![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
 ## 一段话说清 SDK
 
 `@anthropic-ai/claude-code` 就是那个 npm 包。它暴露了 CLI 所用的同一套 Claude Code 引擎——包括相同的工具和权限体系——只不过换成了程序化接口。你传入一个 prompt，它就返回一个异步可迭代对象（async iterable），逐个产出对话事件。你可以把它嵌入任何地方：脚本、服务，甚至 CI 步骤。
 
-![SDK 和 CLI 共享同一个 agent 引擎、工具与权限](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/fig3_sdk_arch.png)  
+![SDK 和 CLI 共享同一个 agent 引擎、工具与权限](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig3_sdk_arch.png)  
 *图：SDK 和 CLI 共享同一个 agent 引擎、工具与权限*
 
 ## SDK 安装与配置
@@ -177,7 +177,7 @@ console.log(analysis);
 | `bypassPermissions` | 自动接受所有操作 | 完全可信的 CI（高风险） |
 | Custom callback | 每次调用时由你决定是否放行 | 生产脚本 |
 
-![SDK 权限模式：从最安全到最自主的光谱](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/fig6_permission_modes.png)  
+![SDK 权限模式：从最安全到最自主的光谱](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig6_permission_modes.png)  
 *图：SDK 权限模式：从最安全到最自主的光谱*
 
 ### 自定义回调详解
@@ -282,9 +282,9 @@ for await (const event of result) {
 
 ## GitHub Action
 
-![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_2.png)
+![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
-![GitHub Action 生命周期：从 @claude 评论到 PR 回复](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/fig4_action_flow.png)  
+![GitHub Action 生命周期：从 @claude 评论到 PR 回复](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig4_action_flow.png)  
 *图：GitHub Action 生命周期：从 @claude 评论到 PR 回复*
 
 Anthropic 官方提供了 Action：`anthropic/claude-code-action@v1`。
@@ -422,7 +422,7 @@ jobs:
 
 这个 Action 会读取仓库中的 `.claude/settings.json`。你在第 5 篇写的 hooks 依然生效，第 3 篇定义的斜杠命令也能用——比如 `@claude /review` 会按预期工作。
 
-![PR 评审序列：开发者、GitHub、Claude Action 三方交互](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/fig7_pr_sequence.png)  
+![PR 评审序列：开发者、GitHub、Claude Action 三方交互](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig7_pr_sequence.png)  
 *图：PR 评审序列：开发者、GitHub、Claude Action 三方交互*
 
 ## PR 审查工作流 — 详细流程
@@ -807,7 +807,7 @@ gh run rerun RUN_ID
 
 ## SDK 和 Action 的边界
 
-![CLI 和 SDK 区别在接口而非能力——底层是同一个引擎](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/fig5_cli_vs_sdk.png)  
+![CLI 和 SDK 区别在接口而非能力——底层是同一个引擎](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/fig5_cli_vs_sdk.png)  
 *图：CLI 和 SDK 区别在接口而非能力——底层是同一个引擎*
 
 我用 SDK 的时候：

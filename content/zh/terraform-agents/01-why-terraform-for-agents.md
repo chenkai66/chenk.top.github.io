@@ -24,13 +24,13 @@ translationKey: "terraform-agents-1"
 
 八篇文章最终交付一个真实可用的栈，第一篇将解释原因。
 
-![Terraform for AI Agents (1): 为什么 IaC 是部署代理的唯一明智方式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
+![Terraform for AI Agents (1): 为什么 IaC 是部署代理的唯一明智方式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
 ## “代理系统”实际需要什么
 
 聊基础设施之前，我们先明确 Agent 系统到底包含哪些组件——那些 `pip install langgraph` 的 README 通常会略过的部分：
 
-![AI 代理工作负载在云基础设施上运行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_agent_infra.png)
+![AI 代理工作负载在云基础设施上运行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_agent_infra.png)
 
 1. **运行时**：运行 Agent 循环进程的运行时，通常是 Python 或 Node，并能承受重启。
 2. **向量存储**：用于语义记忆的向量存储，包括文档嵌入、历史对话和工具输出。
@@ -48,9 +48,9 @@ translationKey: "terraform-agents-1"
 
 九个服务手动操作，等于九个漂移面——这种痛苦太普遍，我甚至画了一张标准图来描述它：
 
-![基础架构即代码工作流将声明式配置转换为云资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_iac_workflow.png)
+![基础架构即代码工作流将声明式配置转换为云资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_iac_workflow.png)
 
-![控制台点击与 Terraform —— 分歧点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
+![控制台点击与 Terraform —— 分歧点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
 
 细看左列：每一步都看似合理，没有一个是愚蠢的 mistake——恰恰是聪明人用数月积累的微小合理决策堆叠而成的结果。右列走的是同一条路径，但每一步变更都通过可审查的配置文件记录在 Git 中。两列之间的 diff 就是“我交付了这个”和“凌晨 2 点我被 call 醒因为没人知道 `cn-beijing` 里跑着什么”的区别。
 
@@ -106,7 +106,7 @@ done
 
 只有当 provider 能真正创建你声明的东西时，state 才有用。云平台通过 **provider plug-ins** 与 Terraform 对话。官方 `alicloud` provider 是中国第一个官方 Terraform provider，由阿里维护。截至撰写时，它在大约六个域中提供了 **300+ 资源类型**：
 
-![alicloud 提供商覆盖范围](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig2_provider_coverage.png)
+![alicloud 提供商覆盖范围](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig2_provider_coverage.png)
 
 根据官方文档，支持的类别包括：
 
@@ -181,7 +181,7 @@ module "vpc" {
 
 在把 Terraform 和其他工具拉出来对比之前，得先搞清楚你到底买的是什么。市面上讲 IaC 总爱提“一致性”和“可复现”——话没错，但听着没劲。折腾这套系统三年下来，最让我头疼的故障模式都跟 Agent 有关，而每一个都有对应的 Terraform 解法：
 
-![基础架构漂移检测](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/wanxiang_drift_detection.png)
+![基础架构漂移检测](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/wanxiang_drift_detection.png)
 
 **1. 凌晨 3 点的 Token 泄露**。Agent 自己死循环了——停止条件写烂了、工具无限重试、规划状态 hallucinated——一夜之间烧掉 40,000 元的 LLM 预算。手动在控制台点出来的栈没有程序化的预算 guard，因为没人写。Terraform 栈从第一天就 provision 了 `alicloud_log_alert`（见文章 7），因为模块默认自带。告警的成本不过是计划里多一个资源；没有告警的成本是财务打来的电话。
 
@@ -199,7 +199,7 @@ module "vpc" {
 
 承认了 IaC 的价值，为什么偏偏是 Terraform？快速扫一眼 alternatives。都没错；选适合团队的，别搞宗教斗争：
 
-![IaC 工具比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig3_iac_tools_compare.png)
+![IaC 工具比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig3_iac_tools_compare.png)
 
 用完这四个之后我的 honest read：
 

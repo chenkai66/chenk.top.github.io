@@ -18,7 +18,7 @@ series_order: 7
 translationKey: "cloud-computing-7"
 polished_by_qwen_max: true
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/illustration_1.png)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/illustration_1.png)
 
 2017 年，GitLab 丢失了六个小时的数据库状态。一位疲惫不堪的工程师在处理事故时，误对生产服务器执行了 `rm -rf` 命令。更糟的是，备份流程其实早已静默失效数月之久，却无人察觉——因为从来没人真正尝试过从备份恢复数据。这次事件的教训绝非“用 `rm` 要小心”，而是：**运维是一个系统**——它由工具、运行手册、监控、自动化以及围绕它们建立的协作仪式共同构成。当这个系统健康运转时，再疲惫的工程师也无法单枪匹马搞垮生产环境；而一旦系统腐朽，每一次深夜救火都可能因一次误操作滑向深渊。
 
@@ -42,7 +42,7 @@ polished_by_qwen_max: true
 
 ## 1. CI/CD 流水线：发布的“系统记录”
 
-![CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig1_cicd_pipeline.png)
+![CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig1_cicd_pipeline.png)
 
 现代 CI/CD 流水线远不止是“自动化”那么简单。它是代码进入生产的**唯一合法通道**，也因此成为每次发布的权威记录：谁发布了什么内容？哪些测试通过了？基于哪个基础设施版本？上线后发生了什么？整个运维体系都以此为主干延伸展开。
 
@@ -202,7 +202,7 @@ jobs:
 | **重建式（Recreate）** | 先停止所有旧实例，再启动所有新实例 | 较慢（需完整重启） | 开发/测试环境、批处理任务、单实例有状态服务 |
 
 实践中，这些策略常组合使用：以金丝雀方式部署服务，该金丝雀版本内部又通过功能开关仅向 1% 用户开放新逻辑；而承载功能开关能力的服务本身也采用蓝绿部署，确保其高可用与可回滚性。  
-![部署策略对比：滚动更新、蓝绿、金丝雀](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig2_deployment_strategies.png)
+![部署策略对比：滚动更新、蓝绿、金丝雀](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig2_deployment_strategies.png)
 
 滚动更新逐个替换 v1 Pod，蓝绿在负载均衡层一次切换，金丝雀先放小流量再扩大。三种方式各有适用场景，实际项目里经常组合使用。
 
@@ -451,7 +451,7 @@ func main() {
     http.ListenAndServe(":8080", nil)
 }
 ```  
-![监控的四个黄金信号：延迟、流量、错误、饱和度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig3_four_golden_signals.png)
+![监控的四个黄金信号：延迟、流量、错误、饱和度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig3_four_golden_signals.png)
 
 Google SRE 把可观测性归结到四个信号——延迟、流量、错误、饱和度。覆盖这四个，你就能回答：服务慢吗、忙吗、坏了吗、满了吗。Prometheus 用 PromQL 表达它们都是几行的事。
 
@@ -647,7 +647,7 @@ def handle_request(request):
   "duration_ms": 42
 }
 ```  
-![集中式日志管道：从应用到 Elasticsearch / Kibana](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig4_logging_pipeline.png)
+![集中式日志管道：从应用到 Elasticsearch / Kibana](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig4_logging_pipeline.png)
 
 应用 stdout → Fluent Bit DaemonSet → （可选）Kafka 缓冲 → （可选）Logstash 富化 → Elasticsearch → Kibana 查询。每多一跳就多一份延迟，但也多一份韧性。规模小时可以省掉 Kafka 和 Logstash，等日志量超过采集器再加。
 
@@ -830,7 +830,7 @@ aws autoscaling put-scaling-policy \
 ```
 
 其中 `SchedulingBufferTime: 300` 表示系统会在预测到流量高峰前 **5 分钟** 启动新实例，确保它们完成初始化、预热及健康检查，从容承接真实流量。  
-![HPA 非对称伸缩：快速扩容、慢速缩容以避免抖动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig5_autoscaling_curve.png)
+![HPA 非对称伸缩：快速扩容、慢速缩容以避免抖动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig5_autoscaling_curve.png)
 
 扩容快（60 秒翻倍）保护用户体验，缩容慢（每分钟 10%、5 分钟冷却）避免锯齿抖动。这种非对称是刻意设计的。
 
@@ -980,7 +980,7 @@ echo "非生产环境已启动，时间：$(date)"
 | 补偿机制 | 调休或额外值班津贴 | “这是岗位职责的一部分” |
 | 升级路径 | 明确层级：主责人 → 备岗人 → 工程经理 → 技术副总裁 | “随便打给谁，有人接就行” |
 
-![30 天 SLO 窗口的错误预算燃尽曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig6_error_budget.png)
+![30 天 SLO 窗口的错误预算燃尽曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig6_error_budget.png)
 
 错误预算是管理工具，不只是指标。预算充足时团队放手发版；预算见底时冻结新功能、专攻稳定性。把『快 vs. 稳』的争论换成一个所有人都看得到的数字。
 
@@ -1033,7 +1033,7 @@ echo "非生产环境已启动，时间：$(date)"
 ```
 
 **改进项是复盘的唯一目的。没有明确 Action Items 的复盘，只是一则故事，而非工程改进。**  
-![事故响应时间线：检测、分诊、修复、复盘](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/operations-devops/fig7_incident_timeline.png)
+![事故响应时间线：检测、分诊、修复、复盘](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig7_incident_timeline.png)
 
 从告警触发到恢复基线再到复盘行动项落地——MTTR 是发布速度之外最值得追踪的运维指标。无指责复盘的核心是写下『如何避免下次』，而不是『是谁干的』。
 

@@ -22,11 +22,11 @@ translationKey: "llm-engineering-5"
 
 训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。若 tokens-per-GPU-second 提升 50%，这一收益将在产品整个生命周期内日复一日地复利增长。正因如此，每个严肃的 LLM 团队至少配备一名全职推理工程师；过去五年里，开源社区也已迭代出四代推理引擎：FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp。
 
-![LLM 工程（5）：推理优化 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
+![LLM 工程（5）：推理优化 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_1.png)
 
 ## 两个特性截然不同的阶段
 
-![图1：预填充与解码计算模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig1_prefill_vs_decode.png)
+![图1：预填充与解码计算模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig1_prefill_vs_decode.png)
 
 每次 LLM 推理调用都包含两个阶段：
 
@@ -41,7 +41,7 @@ translationKey: "llm-engineering-5"
 
 ## KV 缓存：支撑长上下文的数据结构
 
-![图2：KV 缓存大小增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig2_kv_cache_growth.png)
+![图2：KV 缓存大小增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig2_kv_cache_growth.png)
 
 KV 缓存存储了每一层中每个历史 token 的投影 K 和 V 向量。以第一章提到的 70B 模型（GQA-8，32K 上下文）为例：
 
@@ -58,7 +58,7 @@ $$\text{KV} = 2 \cdot 80 \cdot 2 \cdot 8 \cdot 128 \cdot 32{,}768 \cdot 2 \text{
 
 ## 分页注意力
 
-![图3：分页注意力块表](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig3_paged_attention.png)
+![图3：分页注意力块表](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig3_paged_attention.png)
 
 vLLM 的杀手锏源自 2023 年的论文 [Kwon et al.][kwon-vllm]，即 **分页注意力（paged attention）**。其核心思想是：将 KV 缓存按固定大小的 **块（block）** 分配（通常为 16 个 token 的容量），并通过每个请求专属的 **块表（block table）** 将逻辑位置映射到物理块——这与操作系统的虚拟内存机制高度相似。
 
@@ -99,7 +99,7 @@ out = llm.generate(prompts, SamplingParams(max_tokens=200, temperature=0.7))
 
 ## 连续批处理
 
-![图4：连续批处理与静态批处理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig4_batching_timeline.png)
+![图4：连续批处理与静态批处理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig4_batching_timeline.png)
 
 另一场革命来自 **连续批处理（continuous batching）**（[Yu et al., Orca, OSDI 2022][yu-orca]，由 vLLM 推广）。传统静态批处理（static batching）需等待批次中最慢的序列完成后才启动下一批，面对变长输出（这几乎是常态），会导致大量 GPU 时间空转。
 
@@ -120,9 +120,9 @@ Orca 论文提出的两项机制至今仍被广泛采用。**迭代级调度（i
 
 ## 推测解码
 
-![LLM 工程（5）：推理优化 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_2.png)
+![LLM 工程（5）：推理优化 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_2.png)
 
-![图5：推测解码树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig5_speculative_tree.png)
+![图5：推测解码树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig5_speculative_tree.png)
 
 这是一个巧妙且如今已成为标配的技术。由于 decode 阶段通常是内存密集型的——每一步都需读取整个模型权重才能生成一个 token——若能一次性验证 *N* 个 token，效率将大幅提升。
 

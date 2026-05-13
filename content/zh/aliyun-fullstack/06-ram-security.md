@@ -29,7 +29,7 @@ translationKey: "aliyun-fullstack-6"
 
 云安全不是打开一个开关就能搞定的事——它由多个相互独立的安全层构成，各层分别防御一类典型故障；即使某一层失效，其余层仍可提供防护，这正是“纵深防御（defense in depth）”原则的核心要义。
 
-![阿里云安全模型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_security_model.png)
+![阿里云安全模型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_security_model.png)
 
 我把它看作四大支柱：
 
@@ -50,7 +50,7 @@ translationKey: "aliyun-fullstack-6"
 
 RAM 就是阿里云的身份和访问管理系统。每个 API 调用、每次控制台点击、每条 CLI 命令都通过 RAM 认证和授权。理解 RAM 不是选修课，而是必修课——后文所有内容都以此为基础。
 
-![RAM 用户、组与角色层次](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_ram_hierarchy.png)
+![RAM 用户、组与角色层次](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_ram_hierarchy.png)
 
 ### 阿里云主账号 (Root)
 
@@ -182,7 +182,7 @@ aliyun ram AddUserToGroup --UserName alice --GroupName Administrators
 
 策略是授权的核心引擎。阿里云里的每次 API 调用都要过一遍策略，决定是放行还是拒绝。理解策略机制，是从‘功能可用’迈向‘安全可控’的关键分水岭。
 
-![RAM 策略评估流程图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_policy_evaluation.png)
+![RAM 策略评估流程图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_policy_evaluation.png)
 
 ### 系统策略 vs 自定义策略
 
@@ -413,7 +413,7 @@ aliyun ram AttachPolicyToGroup \
 
 RAM 用户是给真人（和 CI/CD 流水线）用的永久身份。 RAM 角色是临时身份，专为这三种场景设计：
 
-![ABAC vs RBAC 对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_abac_rbac.png)
+![ABAC vs RBAC 对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_abac_rbac.png)
 
 1. **服务角色**：阿里云服务（ECS、 Function Compute 等）需要访问另一个服务（OSS、 RDS 等）
 2. **跨账号访问**：账号 A 的用户需要访问账号 B 的资源
@@ -542,7 +542,7 @@ Condition 块要求 MFA，为跨账号访问加了一层二次验证。
 
 STS 生成的临时 AccessKey  pair 会附带一个安全令牌。用起来跟普通 AccessKey 没区别，但会自动过期。 RAM 角色底层就是这套机制，你也可以直接拿来用，比如移动端上传或者前端直连场景。
 
-![STS 临时凭证流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_sts_flow.png)
+![STS 临时凭证流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_sts_flow.png)
 
 ### 为什么临时凭证优于永久凭证
 
@@ -682,7 +682,7 @@ const result = await client.put(
 
 KMS 负责加密这块硬骨头。它管理 cryptographic keys，用来加密/解密数据。你根本接触不到原始密钥材料——KMS 把它存在硬件安全模块（HSMs）里，代表你执行加密操作。
 
-![KMS 信封加密流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_kms_encryption.png)
+![KMS 信封加密流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_kms_encryption.png)
 
 ### 核心概念
 
@@ -803,7 +803,7 @@ aliyun kms CreateKeyVersion --KeyId <your-cmk-id>
 
 ActionTrail 是审计体系的基石。它会记录针对你阿里云账户发出的每一次 API 调用——谁操作的、什么时候、来自哪个 IP、带了什么参数，以及是否成功。你就把它当成云上的黑匣子飞行记录仪。
 
-![ActionTrail 审计流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_audit_trail.png)
+![ActionTrail 审计流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_audit_trail.png)
 
 ### 记录的内容
 

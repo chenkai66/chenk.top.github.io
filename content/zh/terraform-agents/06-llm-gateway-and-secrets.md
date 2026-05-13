@@ -32,11 +32,11 @@ translationKey: "terraform-agents-6"
 
 两天的初始投入，换来长期的运维红利。
 
-![Terraform for AI Agents (6)：LLM Gateway 和密钥管理 — 视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
+![Terraform for AI Agents (6)：LLM Gateway 和密钥管理 — 视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
 
 ## 架构形态
 
-![集中式 LLM 网关：一个出口，一个配额，一个审计日志](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)
+![集中式 LLM 网关：一个出口，一个配额，一个审计日志](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)
 
 整体架构上，Agent 在左侧，模型提供商在右侧，网关居中作为代理层。每个 Agent 发往“LLM”的 HTTP 请求实际上都会先到达网关，由网关决定路由到哪家提供商、注入正确的密钥、执行配额限制，并记录完整的调用日志。
 
@@ -51,7 +51,7 @@ translationKey: "terraform-agents-6"
 
 首要原则：模型提供商的密钥绝不能出现在 `.env` 文件、`provider {}` 配置块、Agent 代码，或以明文形式存在于 tfstate 中。它们只应存在于 KMS Secrets Manager 中，并由网关在启动时通过 STS 动态拉取。
 
-![用于管理 API 密钥和凭证的安全保险库](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/wanxiang_secret_vault.png)
+![用于管理 API 密钥和凭证的安全保险库](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/wanxiang_secret_vault.png)
 
 ```hcl
 locals {
@@ -290,7 +290,7 @@ Agent 现在只需访问 `http://<alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/c
 
 LiteLLM 原生支持按 API Key 设置配额。最清晰的做法是通过 Terraform 为每个 Agent 创建一个 LiteLLM “虚拟密钥”，并为其单独配置 QPM 和每日 token 预算。由于这些配额信息存储在 LiteLLM 自身的数据库中，我们需要在 `terraform apply` 阶段通过其 API 动态创建，可借助 `null_resource` 实现：
 
-![每个代理的配额策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/fig3_quota_table.png)
+![每个代理的配额策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig3_quota_table.png)
 
 ```hcl
 locals {
@@ -333,11 +333,11 @@ resource "null_resource" "agent_keys" {
 
 ## 步骤 5：密钥轮换流程
 
-![Terraform for AI Agents (6)：LLM Gateway 和密钥管理 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_2.png)
+![Terraform for AI Agents (6)：LLM Gateway 和密钥管理 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_2.png)
 
 将密钥存入 KMS Secrets Manager 的核心价值就在于安全轮换：
 
-![密钥轮换流程 — KMS 作为单一可信源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/fig2_secret_rotation.png)
+![密钥轮换流程 — KMS 作为单一可信源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig2_secret_rotation.png)
 
 其生命周期如下：
 

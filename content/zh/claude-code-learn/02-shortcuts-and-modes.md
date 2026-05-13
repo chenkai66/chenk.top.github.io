@@ -17,7 +17,7 @@ translationKey: "claude-code-learn-2"
 ---
 快捷键之所以没放进帮助界面，是有意为之——设计哲学是“用着用着就发现了”，而不是靠文档死记硬背。不过既然你都看到这儿了，我们就把它们一次性列清楚。
 
-![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
+![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
 ## `Shift+Tab` —— 四态循环切换
 
@@ -141,7 +141,7 @@ translationKey: "claude-code-learn-2"
 
 ## 思考模式 —— 五个推理层级
 
-![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
+![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
 
 在提示词里加上下面任意一个短语，就能控制 Claude 在回复前花多少力气思考：
 

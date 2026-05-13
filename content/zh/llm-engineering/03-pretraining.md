@@ -20,11 +20,11 @@ translationKey: "llm-engineering-3"
 ---
 预训练是大模型能力的源头，也是榜单成绩与实际表现差距最大的地方。大多数公开的训练记录更像是工程奇迹，而非科学成果。本章将聚焦于当你不是 OpenAI 时，预训练中真正必须做对的关键环节：数据、并行策略，以及那些只有在集群规模足够大时才会暴露的故障模式——比如一次失败的 NCCL all-reduce 就可能让为期 30 天的训练任务功亏一篑。
 
-![LLM 工程（3）：大规模预训练 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/illustration_1.png)
+![LLM 工程（3）：大规模预训练 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/illustration_1.png)
 
 ## 数据配比比架构更重要
 
-![图3：数据混合组成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/fig3_data_mixture.png)
+![图3：数据混合组成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/fig3_data_mixture.png)
 \n过去三年所有可信的缩放研究都达成共识：在相同算力下，两个 LLaMA 式架构之间的性能差异很小（约 5% 困惑度），但不同数据配比带来的差距却极为显著（超过 30%）。Chinchilla 论文提出的计算最优缩放定律假设数据分布固定；一旦允许数据分布变化，数据质量便成为主导因素。
 \n现代预训练数据配比大致如下（FineWeb-Edu [Penedo et al., 2024]、RedPajama-V2 [Together AI, 2024]、Dolma [Soldaini et al., 2024]——所有开源配比彼此相差无几）：
 
@@ -51,7 +51,7 @@ translationKey: "llm-engineering-3"
 
 ## 合成数据：不可告人的秘密
 
-![LLM 工程（3）：大规模预训练 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/illustration_2.png)
+![LLM 工程（3）：大规模预训练 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/illustration_2.png)
 \n直到 2023 年左右，主流观点仍是“合成数据即污染，绝不可用”。这一认知在 Phi-1 [Gunasekar et al., 2023]（Microsoft, 2023）发布后彻底改变——该研究证明，一个 1.3B 模型若完全在 GPT-4 生成的合成教科书式数据上训练，性能可媲美更大的代码专用模型。Phi 系列顺势而为，其他团队则悄然跟进。
 \n到 2026 年，顶级开源模型普遍采用合成数据：
 
@@ -92,7 +92,7 @@ translationKey: "llm-engineering-3"
 
 ## μP：让你能在小规模上调参的参数化方法
 
-![图4：μP 在不同宽度下的扩展](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/fig4_mup_scaling.png)
+![图4：μP 在不同宽度下的扩展](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/fig4_mup_scaling.png)
 \n大规模训练的一大痛点是：在 1B 模型上调优的超参数无法直接迁移到 70B 模型，尤其是学习率。标准参数化失效的原因在于激活值的量级随模型宽度变化而变化。
 
 **μP（Maximal Update Parameterization）** [Yang et al., 2022] 正是为解决此问题而生。在 μP 下，通过按层宽缩放初始化方差和学习率，使得不同规模模型的激活值与梯度保持一致量级。其效果立竿见影：在 1 亿参数模型上调好的学习率，可直接用于 1000 亿参数模型。
@@ -113,7 +113,7 @@ def mup_lr(base_lr, fan_in, base_fan_in=256):
 
 ## 并行策略：FSDP、ZeRO、Pipeline、Tensor
 
-![图1：ZeRO/FSDP 内存阶段](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/fig1_zero_stages.png)
+![图1：ZeRO/FSDP 内存阶段](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/fig1_zero_stages.png)
 \n当模型超出单 GPU 显存时，需考虑四个正交的并行维度：
 
 1. **数据并行（DP）** —— 每张 GPU 复制完整模型，切分批次。
@@ -150,7 +150,7 @@ model = FSDP(model,
 
 ## 实战案例：64 张 H100 上跑 70B 的并行选择
 
-![图2：流水线并行调度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/fig2_pipeline_parallelism.png)
+![图2：流水线并行调度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/fig2_pipeline_parallelism.png)
 \n为何在此配置下 TP=8、PP=2、DP=4 是最优解？每张 H100 拥有 80 GB HBM，总计 5120 GB。
 
 **单卡显存预算**。每个 rank 需占用：
@@ -188,7 +188,7 @@ model = FSDP(model,
 
 ## 训练期间实际发生了什么
 
-![图5：训练损失曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/03-pretraining/fig5_loss_curve.png)
+![图5：训练损失曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/fig5_loss_curve.png)
 \n现代 70B 预训练运行（如 LLaMA-3 70B，15T tokens，约 1900 张 H100 运行 60 天）大致消耗：
 
 - **Tokens**：15T 输入，batch size ≈ 16M tokens

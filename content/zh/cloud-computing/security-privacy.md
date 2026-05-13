@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 6
 translationKey: "cloud-computing-6"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/security-privacy/illustration_1.png)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/illustration_1.png)
 
 2019 年，Capital One 泄露了一亿条客户记录。整个攻击链非常简短：一个配置错误的 WAF 允许攻击者对 EC2 元数据端点发起服务端请求伪造（SSRF），该端点随即返回了 IAM 临时凭证，而该 IAM 角色对账户内所有 S3 存储桶都拥有通配符权限 `s3:*`。一处配置失误、一个权限过宽的角色、一条安全团队漏写的防护规则——仅此而已。事件造成的直接经济损失（不含法律费用）超过 8000 万美元。
 
@@ -43,7 +43,7 @@ translationKey: "cloud-computing-6"
 
 ## 1. 共享责任，说透本质
 
-![共担责任模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/security-privacy/fig1_shared_responsibility.png)
+![共担责任模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig1_shared_responsibility.png)
 
 云厂商都会发布共享责任模型，原因很简单：每次事故复盘，第一句话总是“这到底该谁负责？”答案取决于你使用的服务层级。
 
@@ -78,7 +78,7 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 
 ## 3. IAM：不容有失的核心子系统
 
-![IAM 架构图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/security-privacy/fig2_iam_model.png)
+![IAM 架构图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig2_iam_model.png)
 
 ### 3.1 模型基础
 
@@ -170,7 +170,7 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 
 ## 4. 加密：静态、传输中与使用中
 
-![数据的三种状态](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/security-privacy/fig3_encryption_layers.png)
+![数据的三种状态](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig3_encryption_layers.png)
 
 数据有三种状态，每种需不同防护机制，对应不同威胁。
 
@@ -362,7 +362,7 @@ SIEM 规则实际消费的字段：`userIdentity.arn`、`mfaAuthenticated`、`so
 
 ## 7. 零信任，具体落地
 
-![零信任架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/security-privacy/fig4_zero_trust.png)
+![零信任架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig4_zero_trust.png)
 
 “零信任”虽是营销术语，但核心原则简单：**网络位置不赋予特权**。身处公司 VPN、生产 VPC 或集群网络，并不自动获得授权。
 
@@ -378,7 +378,7 @@ SIEM 规则实际消费的字段：`userIdentity.arn`、`mfaAuthenticated`、`so
 
 ## 8. 合规框架
 
-![合规框架](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/security-privacy/fig5_compliance_frameworks.png)
+![合规框架](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig5_compliance_frameworks.png)
 
 合规不等于安全，但能强制建立基线控制与文档链。五大框架覆盖多数工程团队义务：
 

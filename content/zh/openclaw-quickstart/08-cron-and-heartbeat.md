@@ -20,11 +20,11 @@ translationKey: "openclaw-quickstart-8"
 
 本文将介绍实现这种主动行为的两种机制。
 
-![OpenClaw 快速入门（8）：心跳、定时任务和早上7点的提醒 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
+![OpenClaw 快速入门（8）：心跳、定时任务和早上7点的提醒 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
 
 ## Heartbeat 还是 Cron —— 心里得有数
 
-![心跳与定时任务调度模型比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/fig_hb_vs_cron.png)
+![心跳与定时任务调度模型比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/fig_hb_vs_cron.png)
 
 两者都能调度任务，但本质不同。
 
@@ -231,7 +231,7 @@ openclaw cron add \
 
 ## 凌晨 3 点的反模式
 
-![OpenClaw 快速入门（8）：心跳、定时任务和早上7点的 ping 检测 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.png)
+![OpenClaw 快速入门（8）：心跳、定时任务和早上7点的 ping 检测 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.png)
 
 那个把你吵醒的典型错误是：给 Heartbeat 设置了 `target: "all"`，却没配 `activeHours`，同时 `HEARTBEAT.md` 在无事发生时也不返回 `HEARTBEAT_OK`。
 

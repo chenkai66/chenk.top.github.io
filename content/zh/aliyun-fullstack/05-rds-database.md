@@ -118,7 +118,7 @@ RDS MySQL 提供三种连接端点：
 
 PolarDB 是阿里云的云原生数据库。如果说 RDS 是“托管的 MySQL 实例”，那么 PolarDB 则是一种底层架构迥异、仅在协议层面兼容 MySQL 的全新系统。
 
-![RDS 与 PolarDB 功能对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_rds_vs_polardb.png)
+![RDS 与 PolarDB 功能对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_rds_vs_polardb.png)
 
 ### PolarDB 与 RDS 的核心差异
 
@@ -180,7 +180,7 @@ PolarDB 提供 Serverless 模式，计算资源可根据负载自动伸缩。你
 
 选择合适的 RDS 实例规格是影响成本最关键的决策：规格过小会导致高负载下查询变慢，过大则造成资源闲置浪费。
 
-![RDS 实例规格选择指南](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_sizing_guide.png)
+![RDS 实例规格选择指南](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_sizing_guide.png)
 
 ### 核心选型指标
 
@@ -382,11 +382,11 @@ aliyun rds ModifyParameter \
 
 ### 添加只读副本
 
-![数据库代理读写分离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_proxy_architecture.png)
+![数据库代理读写分离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_proxy_architecture.png)
 
-![只读副本 binlog 复制架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_replica_flow.png)
+![只读副本 binlog 复制架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_replica_flow.png)
 
-![RDS 高可用架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_ha_architecture.png)
+![RDS 高可用架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_ha_architecture.png)
 
 只读副本是主实例的异步拷贝，专用于处理 `SELECT` 查询，从而卸载主库读压力。对读多写少的 Web 应用而言，这是最主要的扩展手段。
 
@@ -485,7 +485,7 @@ engine = create_engine(
 
 备份是唯一不可省略的防线。当遭遇部署失误、数据损坏或误执行 `DROP TABLE` 时，备份是你最后的救命稻草。
 
-![备份时间线与时间点恢复](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_backup_timeline.png)
+![备份时间线与时间点恢复](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_backup_timeline.png)
 
 ### 自动备份
 
@@ -580,7 +580,7 @@ aliyun rds ModifyInstanceCrossBackupPolicy \
 
 ### 云监控核心指标
 
-![RDS 监控仪表盘指标](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_monitoring_metrics.png)
+![RDS 监控仪表盘指标](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_monitoring_metrics.png)
 
 RDS 自动上报指标至 CloudMonitor，以下关键指标需重点监控：
 

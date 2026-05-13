@@ -19,13 +19,13 @@ translationKey: "aliyun-bailian-5"
 ---
 我经手的所有中文产品最终都选用了 Qwen-TTS-Flash。这并非因为它是最便宜的 TTS API（市面上确实有更低价的选择），而是因为它是目前唯一能在同一 SDK 中同时支持**中国大陆方言**（如粤语、四川话、吴语）和英语的方案，且合成语音自然流畅，完全不像 2019 年那种机械感十足的海关广播音。在将它用于营销视频配音流水线半年后，我总结出一些早期容易踩的坑——这些正是我希望自己第一天就被告知的内容。
 
-![阿里云百链 (5)：多语言语音 — Qwen-TTS 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
+![阿里云百链 (5)：多语言语音 — Qwen-TTS 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
 
 ## 声音目录
 
 根据模型卡片，Qwen-TTS-Flash 提供了 40 多种声音。我最常用的是以下几种：
 
-![Qwen-TTS 语音目录](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/fig1_tts_voice_map.png)
+![Qwen-TTS 语音目录](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig1_tts_voice_map.png)
 
 中文产品旁白方面，营销内容默认使用 `Cherry`（温暖、30 多岁女性），教程或解说类内容则用 `Ethan`（沉稳、40 多岁男性）。粤语广告通常选择 `Sunny`，效果稳妥可靠。虽然声音名称（voice ID）本身是稳定的，但阿里云会定期新增声音——因此，在生产代码中硬编码某个声音前，请务必从模型卡片获取最新权威列表进行核对。
 
@@ -33,7 +33,7 @@ translationKey: "aliyun-bailian-5"
 
 Qwen-TTS 不走 OpenAI 兼容层，必须通过 DashScope 原生 SDK 调用。
 
-![Qwen-TTS 原生调用结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/fig2_tts_request_flow.png)
+![Qwen-TTS 原生调用结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig2_tts_request_flow.png)
 
 最小化请求示例如下：
 
@@ -64,7 +64,7 @@ with open("/tmp/out.mp3", "wb") as f:
 
 在语音机器人等实时对话界面中，流式传输必不可少。返回的 delta 是原始音频字节，可直接写入播放器或文件。
 
-![流式 TTS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/fig3_tts_streaming.png)
+![流式 TTS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig3_tts_streaming.png)
 
 ```python
 from dashscope.audio.qwen_tts import SpeechSynthesizer
@@ -171,7 +171,7 @@ resp = SpeechSynthesizer.call(model="qwen3-tts-flash", text=text, voice="Cherry"
 
 ## 延迟预算：流式分块与口型同步窗口
 
-![阿里云百链（5）：Qwen-TTS 多语言语音 — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/illustration_2.png)
+![阿里云百链（5）：Qwen-TTS 多语言语音 — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_2.png)
 
 对于交互式语音产品（如语音机器人、实时虚拟人），延迟比边际音质更重要。流式 TTS 的延迟构成如下：
 

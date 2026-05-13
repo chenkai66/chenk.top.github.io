@@ -28,7 +28,7 @@ translationKey: "aliyun-fullstack-9"
 
 在深入 OpenSearch 之前，需要先搞清楚阿里云上的搜索选项。方案选型失误可能导致成本浪费，甚至引发耗时数月的系统迁移。
 
-![阿里云搜索类型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_search_types.png)
+![阿里云搜索类型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_search_types.png)
 
 | Service | 是什么 | 最适合 | 托管？ | 向量支持 |
 |---|---|---|---|---|
@@ -51,7 +51,7 @@ translationKey: "aliyun-fullstack-9"
 
 阿里云 OpenSearch 是全托管搜索平台。不用运维集群，不用管分片，也不用担心 GC 停顿。定义好数据 schema，推数据进去，查出来就行。索引、复制、扩容阿里云全包。
 
-![OpenSearch 集群架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_opensearch_architecture.png)
+![OpenSearch 集群架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_opensearch_architecture.png)
 
 核心概念：
 
@@ -174,7 +174,7 @@ query_with_agg = {
 
 搜索这事儿到了向量这里才真正变得有意思。传统关键词搜索靠的是倒排索引——它把词映射到文档。如果用户搜 "wireless earbuds"，但商品列表里写的是 "bluetooth headphones"，关键词搜索会直接返回空结果，因为词对不上。
 
-![向量嵌入与 ANN 搜索流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_vector_embedding.png)
+![向量嵌入与 ANN 搜索流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_vector_embedding.png)
 
 向量搜索通过把文本转成高维数值表示（embeddings）来解决这个问题，这些向量能捕捉语义含义。"Wireless earbuds" 和 "bluetooth headphones" 在向量空间里会成为相邻的点，因为它们意思相近，哪怕它们没有一个字是重复的。
 
@@ -230,7 +230,7 @@ print(f"First 5 values: {embedding[:5]}") # [-0.0234, 0.0891, ...]
 
 **L2 Distance (Euclidean)** —— 测量向量空间中两点之间的直线距离。相同向量返回 0，差异越大值越大。它对 magnitude 敏感。更适合 embedding 中绝对值很重要的场景（文本搜索里很少见）。
 
-![余弦相似度衡量两个向量之间的夹角，忽略向量长度——只要方向接近，A 和 B 就被认为相似。L2 衡量两点之间的直线距离，对向量长度敏感。文本嵌入通常是归一化的，因此余弦是默认且正确的选择。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_distance_metrics.png)
+![余弦相似度衡量两个向量之间的夹角，忽略向量长度——只要方向接近，A 和 B 就被认为相似。L2 衡量两点之间的直线距离，对向量长度敏感。文本嵌入通常是归一化的，因此余弦是默认且正确的选择。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_distance_metrics.png)
 
 文本搜索直接用 Cosine Similarity。数学公式如下：
 
@@ -249,7 +249,7 @@ where A . B = sum(a_i * b_i)  (dot product)
 
 可以把 HNSW 想象成一个多层图。顶层是一个稀疏图，连接着相距较远的“地标”向量。每一层往下都会增加更多连接。查询从顶层开始，快速导航到正确的邻域，然后层层下钻，通过越来越详细的层级找到最近邻。结果是近似的（可能会错过绝对的最近邻），但速度极快——百万级向量通常能在亚毫秒级完成。
 
-![HNSW 在分层图中导航：查询从顶层稀疏图（少量地标向量）进入，经过中间层逐步下沉，最终在底层稠密图中定位最近邻。这就是百万向量数据集仍能亚毫秒级 ANN 搜索的原因。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_hnsw_index.png)
+![HNSW 在分层图中导航：查询从顶层稀疏图（少量地标向量）进入，经过中间层逐步下沉，最终在底层稠密图中定位最近邻。这就是百万向量数据集仍能亚毫秒级 ANN 搜索的原因。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_hnsw_index.png)
 
 关键的 HNSW 参数：
 
@@ -420,7 +420,7 @@ for r in results:
 
 向量搜索擅长语义理解，关键词搜索擅长精确匹配。用户搜 "WH-1000XM5" 是要 exact product——向量搜索可能会返回语义相似但不是同款的产品。用户搜“适合长途飞行的舒适耳机”是要语义理解——关键词搜索会挂掉，因为没哪个商品列表 exactly 用这些词。
 
-![混合搜索：向量+关键词](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_hybrid_search.png)
+![混合搜索：向量+关键词](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_hybrid_search.png)
 
 混合搜索把两者结合起来。问题是怎么把两套打分系统合并成一个排序列表？
 
@@ -450,7 +450,7 @@ RRF_score = 1/(60+3) + 1/(60+3) = 0.01587 + 0.01587 = 0.03175
 
 这两个分数很接近，这正是 RRF 的目的——在保证单一方法表现突出的同时，平衡不同方法间的一致性。
 
-![RRF 实战：关键词列表和向量列表各自把 Doc-A 与 Doc-B 排在前列。RRF 将它们提升到融合列表的顶部，因为它们在两种方法中表现一致。Doc-F 只在向量搜索中出现，尽管在向量列表中排第 2，融合后仍然靠后。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_rrf_fusion.png)
+![RRF 实战：关键词列表和向量列表各自把 Doc-A 与 Doc-B 排在前列。RRF 将它们提升到融合列表的顶部，因为它们在两种方法中表现一致。Doc-F 只在向量搜索中出现，尽管在向量列表中排第 2，融合后仍然靠后。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_rrf_fusion.png)
 
 ### 加权组合
 
@@ -538,7 +538,7 @@ def hybrid_search(
 
 OpenSearch AI Search 是上一层级的能力。它在三个阶段用 LLM 能力包裹搜索管道：查询理解、重排序、答案生成。这是直接 built-in 到搜索平台里的 RAG 模式。
 
-![基于 OpenSearch 的 RAG 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_rag_pipeline.png)
+![基于 OpenSearch 的 RAG 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_rag_pipeline.png)
 
 ### AI 搜索管道
 
@@ -632,7 +632,7 @@ def ai_search(query_text: str) -> dict:
 
 计算开销大——没法在百万文档上跑 cross-encoder。但在混合搜索出来的 top 20-50 候选上跑很快，且显著提升 precision。
 
-![Bi-encoder 与 cross-encoder 对比。Bi-encoder 预编码文档，搜索时毫秒级；cross-encoder 联合编码 query 与 doc 以获得更细粒度的相关性，但太慢，无法应用于百万文档——只对前 20-50 个候选使用。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_reranker.png)
+![Bi-encoder 与 cross-encoder 对比。Bi-encoder 预编码文档，搜索时毫秒级；cross-encoder 联合编码 query 与 doc 以获得更细粒度的相关性，但太慢，无法应用于百万文档——只对前 20-50 个候选使用。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_reranker.png)
 
 模糊查询上 improvement 最明显。"Apple" 可能是水果也可能是公司。初始检索可能都返回。重排序看到完整上下文（"Apple with good battery life"），会把电子产品结果推到前面。
 
@@ -676,7 +676,7 @@ response = {
 
 哪怕混合搜索和 LLM 能力都配齐了，相关性调优这关还是得过。LLM 擅长处理硬骨头，但像同义词、停用词、字段加权这种基础活儿，传统配置反而更快、更便宜、结果也更可控。
 
-![查询改写流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_query_rewrite.png)
+![查询改写流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_query_rewrite.png)
 
 ### 同义词与停用词
 
@@ -815,7 +815,7 @@ def search_with_ab_test(query: str, user_id: str) -> dict:
 
 搜索索引只有反映当前数据才有用。如果用户在 RDS 改了价格，搜索索引还显示旧价格，体验很差，甚至可能有合规风险。
 
-![MySQL 到 OpenSearch 的实时数据同步](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_data_sync.png)
+![MySQL 到 OpenSearch 的实时数据同步](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_data_sync.png)
 
 ### 数据同步方案
 
@@ -932,7 +932,7 @@ DTS (real-time sync from RDS)
 RDS MySQL (source of truth for product data)
 ```
 
-![端到端架构：读路径为 Client -> API -> 混合检索的 OpenSearch（含 LLM 改写/回答）；写路径为 RDS -> DTS -> OpenSearch -> Function Compute 嵌入流水线。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_solution_arch.png)
+![端到端架构：读路径为 Client -> API -> 混合检索的 OpenSearch（含 LLM 改写/回答）；写路径为 RDS -> DTS -> OpenSearch -> Function Compute 嵌入流水线。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_solution_arch.png)
 
 ### 第一步：定义 OpenSearch Schema
 
@@ -1405,7 +1405,7 @@ curl http://localhost:5000/api/health
 | ECS for Flask API | ecs.c6.large (2C 4G) | ~300 RMB ($42) |
 | **Total** | | **~1,615 RMB ($224/month)** |
 
-![成本按组件分解，以及 LLM 调用份额如何随"每个查询都启用 AI"策略变化。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_cost_breakdown.png)
+![成本按组件分解，以及 LLM 调用份额如何随"每个查询都启用 AI"策略变化。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_cost_breakdown.png)
 
 这套配置适合中等流量的搜索服务。LLM 成本会随着查询量线性增长——如果不需要每次查询都开启 AI 功能，可以只在复杂查询时启用，这样能砍掉 80% 的 LLM 成本。
 

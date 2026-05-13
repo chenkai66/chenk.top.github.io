@@ -601,7 +601,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 -   Apache `mod_status` 暴露在 `127.0.0.1:80/server-status`——QPS、忙的 worker 数、慢请求。
 -   MySQL `performance_schema` 找慢查询：`SELECT digest_text, count_star, avg_timer_wait FROM events_statements_summary_by_digest ORDER BY sum_timer_wait DESC LIMIT 10`。
 
-每��花五分钟看一眼，能在容量真出事之前几周就发现端倪。
+每天花五分钟看一眼，能在容量真出事之前几周就发现端倪。
 
 ## 11. 一个应用，两种拓扑
 
