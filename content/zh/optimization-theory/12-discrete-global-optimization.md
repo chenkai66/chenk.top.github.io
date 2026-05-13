@@ -51,6 +51,7 @@ aliases:
 ### A.1 整数规划问题
 
 一个通用的**混合整数线性规划**（MILP）问题形式如下：
+
 $$
 \begin{aligned}
 \min_{x, z} \quad & c^\top x + d^\top z \\
@@ -58,6 +59,7 @@ $$
 & x \in \mathbb{R}^n_+, \quad z \in \mathbb{Z}^p_+.
 \end{aligned}
 $$
+
 整数变量 $z$ 的引入使该问题成为 NP-难问题：即使是纯 0–1 整数规划的可行性判定本身也是 NP-完全的（它可归约于 3SAT）。连续变量 $x$ 可用于建模产量、价格等量，而整数变量则刻画离散决策（例如“是否开设该设施？”、“是否选用该路径？”）。
 
 最朴素的方法——枚举 $z$ 的全部 $2^p$ 种取值，并对每种取值求解一个线性规划（LP）——在 $p > 30$ 时即已完全不可行。**分支定界法**（branch-and-bound）正是让大规模 MILP 在实践中可解的核心技术。
@@ -65,9 +67,11 @@ $$
 ### A.2 线性规划松弛
 
 去掉整数约束，得到**线性规划松弛**（LP relaxation）：
+
 $$
 \min \, c^\top x + d^\top z \quad \text{s.t.} \quad A x + B z \leq b, \ x, z \geq 0.
 $$
+
 该 LP 提供了原 MILP 最优值的一个**下界**（任何 MILP 可行解也必为该 LP 的可行解）。利用多项式时间算法（如内点法，见第 09 篇文章）高效求解该松弛问题，是所有主流 MILP 求解器的基础模块。
 
 若该 LP 松弛的最优解 $z^\star_{LP}$ 恰好为整数值，则问题已解决。否则，选取某个非整数分量 $z^\star_{LP, j} \notin \mathbb{Z}$ 进行**分支**（branching）。
@@ -107,9 +111,11 @@ $$
 一个**割平面**（cutting plane）是一类线性不等式 $\alpha^\top z \leq \beta$，它对所有整数可行解 $z$ 成立，但被当前 LP 松弛的最优解所违反。添加割平面可收紧 LP 松弛，提升下界，从而更早、更广泛地实施剪枝。
 
 **Gomory 割**：设 LP 最优解对应的单纯形表中，某个基变量 $z_j$ 的取值为 $\bar z_j = \lfloor \bar z_j \rfloor + f_j$，其中 $0 < f_j < 1$，则以下不等式对所有整数解 $z$ 成立，但被当前分数最优解违反：
+
 $$
 \sum_k \mathrm{frac}(\bar a_{jk}) \cdot z_k \geq f_j
 $$
+
 （其中 $\bar a_{jk}$ 为单纯形表中的系数，$\mathrm{frac}(x) = x - \lfloor x \rfloor$ 表示小数部分。）
 
 现代 MILP 求解器（如 Gurobi、CPLEX、SCIP）综合运用十余类割平面：Gomory 割、混合整数舍入割（MIR）、提升与投影割（lift-and-project）、团割（clique cut）、流覆盖割（flow cover cut）等。当前主流算法为**分支割平面法**（branch-and-cut）：在每个搜索节点处，先尝试生成并添加被违反的割平面，再决定是否分支。
@@ -153,9 +159,11 @@ $$
 **遗传算法（Genetic Algorithm, GA）**：维护一组候选解（种群）；通过交叉（crossover）与变异（mutation）操作组合个体；依据适应度保留优质后代。天然适用于二元变量与类别型决策变量。但其性能对算子（如选择、交叉、变异策略）的设计高度敏感。
 
 **粒子群优化（Particle Swarm Optimization, PSO）**：在连续空间中部署 $N$ 个粒子，每个粒子具有位置 $x_i$ 和速度 $v_i$；其速度按如下规则更新，使粒子同时向自身历史最优 $p_i^{\text{best}}$ 和群体当前最优 $p^{\text{global best}}$ 聚拢：
+
 $$
 v_i \leftarrow w v_i + c_1 r_1 (p_i^{\text{best}} - x_i) + c_2 r_2 (p^{\text{global best}} - x_i).
 $$
+
 其中 $w$ 为惯性权重，$c_1,c_2$ 为学习因子，$r_1,r_2 \sim \text{Uniform}(0,1)$。PSO 在具有多个吸引盆（basin）的连续优化问题上表现强劲。
 
 **螺旋优化（Spiral Optimization Algorithm, SOA）**：与 PSO 类似，但每个粒子不再直奔最优位置，而是沿一条对数螺旋线（logarithmic spiral）向当前最优解（incumbent）收敛，且螺旋半径按几何级数收缩。我们将在下文的案例研究中详述该算法。

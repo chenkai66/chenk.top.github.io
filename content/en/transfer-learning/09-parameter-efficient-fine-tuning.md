@@ -43,10 +43,13 @@ How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of
 Full fine-tuning updates every parameter $\boldsymbol{\theta}$:
 
 $$\boldsymbol{\theta}^* = \arg\min_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta})$$
+
 For GPT-3 (175B params) this means roughly **700 GB of FP32 weights**, plus gradients, plus optimiser states — and one full copy per task. Even after the model fits, the per-task storage and serving cost is brutal: 100 customers means 100 copies of a 700 GB checkpoint.
 
 PEFT replaces this with an additive decomposition:
+
 $$\boldsymbol{\theta}^* = \boldsymbol{\theta}_0 + \Delta\boldsymbol{\theta}, \qquad |\Delta\boldsymbol{\theta}| \ll |\boldsymbol{\theta}_0|.$$
+
 Freeze $\boldsymbol{\theta}_0$, ship a tiny task-specific $\Delta\boldsymbol{\theta}$. The pretrained weights become a shared backbone, and adaptation becomes a thin delta you can store, version and route per request.
 
 | Method | Trainable params | Storage saving |
@@ -131,7 +134,9 @@ Two follow-ups are worth knowing. *Pfeiffer adapters* keep only one adapter per 
 ![Prefix-Tuning: learnable virtual tokens at every layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/fig4_prefix_tuning.png)
 
 Prefix-Tuning (Li & Liang, 2021) does not touch any model weights at all. Instead it prepends $m$ **learnable "virtual tokens"** to the key/value sequence at every layer:
+
 $$\bigl[\mathbf{P}_1, \ldots, \mathbf{P}_m,\; \mathbf{x}_1, \ldots, \mathbf{x}_n\bigr] \to \text{Transformer}.$$
+
 Only the prefix matrices are trained, $m \times d \times L \times 2$ parameters in total (key + value at $L$ layers). Two practical notes:
 
 - Direct optimisation of the prefix is unstable. The original paper trains the prefix through a small MLP, then drops the MLP at inference.

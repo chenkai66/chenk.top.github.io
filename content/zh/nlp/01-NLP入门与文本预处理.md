@@ -379,6 +379,7 @@ print(pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out()))
 TF-IDF 给那些“在本文档中频繁、在整个语料中罕见”的词加权——这是个简单但有效的启发式规则：“对当前文档重要，但不是通用词”。
 
 $$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$
+
 $$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$
 
 其中 $N$ 是文档总数，$\text{df}(t)$ 是包含词 $t$ 的文档数。`+1` 是平滑项，确保某个词在所有文档中都出现（或都不出现）时 IDF 仍有定义。

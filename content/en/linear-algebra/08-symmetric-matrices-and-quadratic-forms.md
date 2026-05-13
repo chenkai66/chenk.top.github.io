@@ -224,23 +224,29 @@ In numerical practice, attempting a Cholesky factorization is the **most reliabl
 ### Definition
 
 For a positive definite $A$, the **Cholesky decomposition** is
+
 $$
 A = L L^T,
 $$
+
 where $L$ is lower triangular with strictly positive diagonal. It exists and is unique. Think of it as $\sqrt{4} = 2$ generalized to matrices: a PD matrix splits as $L \times L^T$.
 
 ### Computing It in 2D
 
 For $A = \bigl(\begin{smallmatrix} a & b \\ b & c \end{smallmatrix}\bigr)$,
+
 $$
 L = \begin{pmatrix} \sqrt{a} & 0 \\ b/\sqrt{a} & \sqrt{c - b^2/a} \end{pmatrix}.
 $$
+
 **Worked example.** $A = \bigl(\begin{smallmatrix} 4 & 2 \\ 2 & 3 \end{smallmatrix}\bigr)$:
+
 $$
 l_{11} = 2, \quad l_{21} = 1, \quad l_{22} = \sqrt{3 - 1} = \sqrt{2},
 \qquad
 L = \begin{pmatrix} 2 & 0 \\ 1 & \sqrt{2} \end{pmatrix}.
 $$
+
 Verify $LL^T = A$.
 
 ### Why Cholesky Matters
@@ -268,9 +274,11 @@ The same principle in 3D is what makes **moment of inertia** computations tracta
 ### Definition
 
 For a symmetric matrix $A$, the **Rayleigh quotient** is
+
 $$
 R(\vec{x}) \;=\; \frac{\vec{x}^T A \vec{x}}{\vec{x}^T \vec{x}}.
 $$
+
 Numerator measures how much $A$ "stretches" in the direction $\vec{x}$; denominator normalizes for length.
 
 ### Min--Max Property
@@ -289,13 +297,17 @@ This is exactly the **PCA** statement: the direction of maximum variance is the 
 ## Whitening and Decorrelation
 
 If a covariance matrix $\Sigma$ is PD, the spectral theorem gives $\Sigma = Q\Lambda Q^T$, hence
+
 $$
 \Sigma^{-1/2} \;=\; Q \Lambda^{-1/2} Q^T.
 $$
+
 The **whitening transform** $\vec{z} = \Sigma^{-1/2} \vec{x}$ produces uncorrelated, unit-variance features:
+
 $$
 \mathrm{Cov}(\vec{z}) \;=\; \Sigma^{-1/2} \, \Sigma \, \Sigma^{-1/2} \;=\; I.
 $$
+
 Many ML algorithms (linear regression, naive Bayes with Gaussian features, ICA) implicitly assume whitened inputs. Whitening is a one-line preprocessing step that often dramatically improves numerical conditioning and convergence speed.
 
 ---
@@ -309,9 +321,11 @@ The sample covariance $\Sigma = \tfrac{1}{n} X^T X$ is symmetric and PSD. Its sp
 ### Hessian and Optimization
 
 Near a critical point of a smooth function $f$, the second-order Taylor expansion is
+
 $$
 f(\vec{x}_0 + \vec{h}) \;\approx\; f(\vec{x}_0) + \tfrac{1}{2} \vec{h}^T H \vec{h}.
 $$
+
 The Hessian $H$ is symmetric, and its eigenvalues classify the critical point:
 
 - $H$ PD $\Longrightarrow$ local minimum.
@@ -323,9 +337,11 @@ This is the multivariable second derivative test, in three lines.
 ### Ridge Regression
 
 The Ridge estimator is
+
 $$
 \hat{\vec{w}} \;=\; (X^T X + \lambda I)^{-1} X^T \vec{y}.
 $$
+
 Adding $\lambda I$ shifts every eigenvalue of the symmetric PSD matrix $X^T X$ up by $\lambda$, making the matrix strictly PD and well-conditioned. Geometrically, ridge regression replaces a flat valley in the loss surface with a strict bowl, restoring a unique global minimum.
 
 ### Vibrating Systems
@@ -341,6 +357,7 @@ Markowitz's mean--variance portfolio minimizes risk $\vec{w}^T \Sigma \vec{w}$ s
 ## SVD: A First Look
 
 What if $A$ is not symmetric, or not even square? The spectral theorem fails, but its closest cousin is the **Singular Value Decomposition**:
+
 $$
 A \;=\; U \Sigma V^T,
 $$

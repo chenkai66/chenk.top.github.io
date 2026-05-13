@@ -86,8 +86,11 @@ The metric-learning recipe is one sentence long: learn an embedding $f_\theta$ s
 The earliest member of the family. Two weight-shared encoders $f_\theta$ embed a pair of inputs and the distance is
 
 $$d(x_1, x_2) = \|f_\theta(x_1) - f_\theta(x_2)\|_2.$$
+
 Training uses the **contrastive loss**
+
 $$\mathcal{L} = y \cdot d^2 + (1 - y) \cdot \max(0, m - d)^2,$$
+
 with $y = 1$ for same-class pairs (pull together) and $y = 0$ for different-class pairs (push apart until the distance exceeds margin $m$). At test time, classify a query by the label of its nearest support sample.
 
 ### Prototypical Networks
@@ -97,13 +100,17 @@ Prototypical networks improve on the pairwise picture by collapsing each support
 #### Computing prototypes
 
 For class $c$ with support examples $\{x_1^c, \ldots, x_K^c\}$, the prototype is the mean embedding:
+
 $$\mathbf{c}_c = \frac{1}{K} \sum_{k=1}^{K} f_\theta(x_k^c).$$
+
 Geometrically it is the centroid of the class in embedding space.
 
 #### Classification
 
 Score each class by the negative squared Euclidean distance from the query embedding to the prototype, then take a softmax:
+
 $$P(y = c \mid x_q) = \frac{\exp\bigl(-d(f_\theta(x_q), \mathbf{c}_c)\bigr)}{\sum_{c'} \exp\bigl(-d(f_\theta(x_q), \mathbf{c}_{c'})\bigr)}, \qquad d(u, v) = \|u - v\|_2^2.$$
+
 Train end-to-end with cross-entropy on the query predictions of each episode.
 
 #### Why prototypes are principled
@@ -119,7 +126,9 @@ Matching networks replace the hard nearest-prototype rule with a soft attention 
 ![Matching Network attention: cosine similarity becomes a softmax weight over support samples](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig3_matching.png)
 
 The prediction is a label-weighted sum:
+
 $$P(y \mid x_q, \mathcal{S}) = \sum_{i=1}^{NK} a(x_q, x_i) \cdot y_i, \qquad a(x_q, x_i) = \mathrm{softmax}_i\bigl(\cos(f(x_q), g(x_i))\bigr).$$
+
 Here $y_i$ is a one-hot label vector, so the prediction is a convex combination of one-hots weighted by attention.
 
 The other contribution of the paper is **full context embeddings**: a bidirectional LSTM is run over the support set so each support embedding is aware of every other support sample. The intuition is that what counts as a discriminative feature depends on the other classes you are trying to separate from — and the LSTM lets the network express that.
@@ -127,7 +136,9 @@ The other contribution of the paper is **full context embeddings**: a bidirectio
 ### Relation Networks
 
 Relation networks take the next step: instead of choosing a fixed metric (Euclidean, cosine), they *learn* one. A small network $g_\phi$ takes the concatenated embeddings and outputs a scalar similarity:
+
 $$r_{q, c} = g_\phi\bigl(\mathrm{concat}(f_\theta(x_q),\, \mathbf{c}_c)\bigr) \in [0, 1].$$
+
 ![Relation Network: shared embedding + learned relation module](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig5_relation.png)
 
 The training target is $r_{q, c} = \mathbb{1}\{y_q = c\}$ with mean-squared-error loss; both modules are trained jointly. Why bother? Fixed metrics implicitly assume the embedding space is isotropic — every dimension counts equally. A learned metric lets the network downweight dimensions that turn out to be uninformative for the task at hand.
@@ -149,8 +160,11 @@ MAML's idea is simple and surprisingly effective: search for an initialization $
 For each sampled task $\mathcal{T}_i$ (with its own support and query sets):
 
 1. **Inner loop (per-task adaptation).** Take one (or a few) gradient steps on the support loss:
+
    $$\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).$$
+
 2. **Outer loop (meta-update).** Evaluate the *adapted* parameters on the query set and update the initialization:
+
    $$\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').$$
 
 The outer-loop gradient differentiates *through* the inner-loop update, which involves second derivatives of the support loss with respect to $\theta$ — a Hessian-vector product.
@@ -158,7 +172,9 @@ The outer-loop gradient differentiates *through* the inner-loop update, which in
 #### First-order approximation (FOMAML)
 
 The exact second-order MAML update costs $O(d^2)$ memory in the parameter dimension $d$ and is fiddly to implement. FOMAML drops the second-order term and approximates
+
 $$\nabla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),$$
+
 which is just the gradient at the adapted point, evaluated as if $\theta_i'$ did not depend on $\theta$. Cost drops to $O(d)$, and reported accuracies barely change.
 
 #### Geometric intuition
@@ -168,6 +184,7 @@ MAML pushes $\theta$ toward a region of the loss landscape that is *flat with re
 ### Reptile: Even Simpler
 
 Reptile drops the inner-loop differentiation entirely. Sample a task, run $k$ ordinary SGD steps on it to get $\tilde{\theta}$, then nudge the meta-parameters toward the result:
+
 $$\theta \leftarrow \theta + \epsilon \,(\tilde{\theta} - \theta).$$
 
 That's the whole algorithm. Despite the simplicity it works almost as well as MAML, because moving the meta-parameters toward task-specific solutions across many tasks ends up locating $\theta$ near a shared sweet spot.

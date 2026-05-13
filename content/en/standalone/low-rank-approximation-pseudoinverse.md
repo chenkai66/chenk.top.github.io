@@ -47,12 +47,15 @@ The pseudoinverse$A^{+}$ **handles all three uniformly**: it always exists, it i
 For$A \in \mathbb{R}^{m \times n}$, the pseudoinverse$A^{+}$ is defined by
 
 $$A^{+} \;=\; \arg\min_{X \in \mathbb{R}^{n \times m}} \; \|AX - I_m\|_F^2.$$
+
 When the minimizer is not unique (because$A$ does not have full row rank), we add a second tie-breaker: among all minimizers, take the one with the smallest Frobenius norm$\|X\|_F$.
 
 > **Intuition.** When$A$ is square and invertible,$AX = I$ has the exact solution$A^{-1}$. Otherwise no$X$ makes$AX$ exactly$I$, so the pseudoinverse settles for *as close to identity as possible*.
 
 ## Frobenius norm in one line
+
 $$\|M\|_F^2 \;=\; \sum_{i,j} M_{ij}^2 \;=\; \mathrm{tr}(M^{\!\top} M).$$
+
 It treats a matrix as one long vector. The trace form is what makes matrix calculus tractable — you avoid expanding everything element by element.
 
 ## Solving the optimization (full column rank case)
@@ -124,7 +127,9 @@ The pseudoinverse is just one consequence of the SVD. The SVD's bigger payoff is
 ## The theorem (Eckart-Young, 1936)
 
 Let$A = U\Sigma V^{\!\top}$, and define the **truncated SVD**
+
 $$A_k \;=\; \sum_{i=1}^{k} \sigma_i\, u_i v_i^{\!\top} \;=\; U_{:,1:k} \,\Sigma_{1:k,1:k}\, V_{:,1:k}^{\!\top}.$$
+
 Then for *every* matrix$B$ with$\mathrm{rank}(B) \le k$,
 $$\|A - A_k\|_F \;\le\; \|A - B\|_F, \qquad
 \|A - A_k\|_F \;=\; \sqrt{\sum_{i=k+1}^{r} \sigma_i^2}.$$
@@ -165,21 +170,29 @@ The Netflix-Prize idea: the user-item rating matrix$R$ is **sparse but low rank*
 ## How small singular values explode the answer
 
 Inside$A^{+} = V \Sigma^{+} U^{\!\top}$ sits$\Sigma^{+}_{ii} = 1/\sigma_i$. If some$\sigma_i$ is near zero, then$1/\sigma_i$ is huge, and **any tiny noise component in the$u_i$ direction is amplified into a numerical disaster**. The standard quantitative measure is the **condition number**
+
 $$\kappa(A) \;=\; \frac{\sigma_{\max}}{\sigma_{\min}}.$$
+
 When$\kappa(A)$ is large (say$10^{10}$), the relative error in solving$Ax = b$ scales like$\kappa(A)$ times the input error — you lose roughly 10 digits of precision.
 
 ## Fix 1: truncated SVD (hard threshold)
 
 The simplest cure: **drop singular values that are numerically too small**.
+
 $$\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i, & \sigma_i > \tau \\ 0, & \sigma_i \le \tau. \end{cases}$$
+
 Standard choice:$\tau = \mathrm{rcond} \cdot \sigma_1$. This is what `np.linalg.pinv`'s `rcond` parameter does. Truncated SVD treats "signal in small-singular-value directions" as **noise** — only safe when you actually believe nothing real lives there.
 
 ## Fix 2: Tikhonov regularization (soft threshold = ridge regression)
 
 Modify the objective:
+
 $$\min_{x} \;\|Ax - b\|_2^2 \;+\; \lambda \|x\|_2^2,$$
+
 so the normal equations become
+
 $$x_\lambda \;=\; (A^{\!\top}A + \lambda I)^{-1} A^{\!\top} b \;=\; V \,\mathrm{diag}\!\left(\tfrac{\sigma_i}{\sigma_i^2 + \lambda}\right)\, U^{\!\top}\, b.$$
+
 Compared with the hard$1/\sigma_i$, Tikhonov uses the **soft filter**$\sigma_i / (\sigma_i^2 + \lambda)$:
 
 - large singular values ($\sigma_i^2 \gg \lambda$):$\sigma_i / (\sigma_i^2 + \lambda) \approx 1/\sigma_i$, essentially unchanged;
@@ -213,6 +226,7 @@ The most striking modern application of low-rank approximation is **parameter-ef
 ## LoRA's core hypothesis
 
 A pretrained weight$W \in \mathbb{R}^{d \times k}$ (e.g.,$d = k = 4096$, giving$1.7 \times 10^7$ parameters per layer). Full fine-tuning updates all of$W$. **LoRA hypothesizes** that the *task-specific* update$\Delta W$ is itself **low rank**:
+
 $$W' \;=\; W + \Delta W, \qquad \Delta W \;=\; B A, \qquad B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d,k).$$
 
 Parameter count drops from$dk$ to$r(d + k)$. The middle panel above: at$r = 8$, only 0.07 M parameters are trained — **256x fewer** than full fine-tuning of one layer.

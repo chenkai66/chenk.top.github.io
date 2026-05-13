@@ -57,11 +57,15 @@ We assume an unknown joint distribution $\mathcal{D}$ over an input space $\math
 **Definition 1 (Loss function).** A loss is any measurable map $\ell: \mathcal{Y} \times \mathcal{Y} \to \mathbb{R}_{\geq 0}$ assigning to a prediction $h(x)$ and a truth $y$ a non-negative penalty $\ell(h(x), y)$.
 
 **Definition 2 (Generalization error / risk).** The risk of a hypothesis $h$ under $\mathcal{D}$ is
+
 $$L_{\mathcal{D}}(h) \;=\; \mathbb{E}_{(x,y)\sim \mathcal{D}}\bigl[\ell(h(x), y)\bigr]. \tag{1}$$
+
 This is the quantity we *care about*: average loss on a fresh draw from the same distribution that generated the training data.
 
 **Definition 3 (Empirical error / empirical risk).** Given a sample $S$,
+
 $$L_S(h) \;=\; \frac{1}{m}\sum_{i=1}^{m} \ell(h(x_i), y_i). \tag{2}$$
+
 This is the quantity we can *measure*.
 
 **The central paradox of statistical learning.** We optimize $L_S$ but are graded on $L_{\mathcal{D}}$. Almost every theorem in this chapter is a statement about how, when, and how much $L_S(h) \approx L_{\mathcal{D}}(h)$.
@@ -135,6 +139,7 @@ When we say a problem is *learnable* we are making three concessions:
 These three weakenings — *Probably Approximately Correct* — were formalized by Valiant (1984).
 
 **Definition 4 (PAC learnability).** A hypothesis class $\mathcal{H}$ is *PAC learnable* with respect to a loss $\ell$ if there exists a function $m_{\mathcal{H}}: (0,1)^2 \to \mathbb{N}$ and an algorithm $\mathcal{A}$ such that for every distribution $\mathcal{D}$, every accuracy $\varepsilon \in (0,1)$ and every confidence $\delta \in (0,1)$, whenever $m \geq m_{\mathcal{H}}(\varepsilon, \delta)$, the hypothesis $h_S = \mathcal{A}(S)$ produced from an i.i.d. sample $S$ of size $m$ satisfies
+
 $$\Pr_{S \sim \mathcal{D}^m}\!\bigl[\, L_{\mathcal{D}}(h_S) \;\leq\; \min_{h \in \mathcal{H}} L_{\mathcal{D}}(h) + \varepsilon \,\bigr] \;\geq\; 1 - \delta. \tag{3}$$
 
 The function $m_{\mathcal{H}}(\varepsilon, \delta)$ is the **sample complexity**. Read in plain English: "with at most $m_{\mathcal{H}}(\varepsilon, \delta)$ examples, we can guarantee, with probability $\geq 1 - \delta$, a hypothesis whose true error is within $\varepsilon$ of the best in $\mathcal{H}$."
@@ -144,18 +149,23 @@ The function $m_{\mathcal{H}}(\varepsilon, \delta)$ is the **sample complexity**
 Begin with the simplest non-trivial setting: $\mathcal{H}$ is finite, and there exists $h^\star \in \mathcal{H}$ with $L_{\mathcal{D}}(h^\star) = 0$ (the *realizable* assumption). We use the 0-1 loss.
 
 **Theorem 1 (Sample complexity, finite realizable case).** *For any $\varepsilon, \delta \in (0,1)$, if*
+
 $$m \;\geq\; \frac{1}{\varepsilon}\Bigl(\ln |\mathcal{H}| + \ln \tfrac{1}{\delta}\Bigr), \tag{4}$$
+
 *then with probability at least $1 - \delta$ over the sample $S$, every hypothesis $h \in \mathcal{H}$ with $L_S(h) = 0$ satisfies $L_{\mathcal{D}}(h) \leq \varepsilon$. In particular, ERM is a PAC learner for $\mathcal{H}$.*
 
 **Proof.** Let $\mathcal{H}_{\text{bad}} = \{h \in \mathcal{H} : L_{\mathcal{D}}(h) > \varepsilon\}$. We bound the probability of the bad event "ERM returns a bad hypothesis", which is contained in the event "some bad hypothesis has zero training error".
 
 *Step 1 — single bad hypothesis.* Fix $h \in \mathcal{H}_{\text{bad}}$. For a single i.i.d. example $(x, y) \sim \mathcal{D}$, the probability of correct classification is $1 - L_{\mathcal{D}}(h) < 1 - \varepsilon$. By independence,
+
 $$\Pr_{S}\!\bigl[L_S(h) = 0\bigr] \;=\; \prod_{i=1}^{m} \Pr\!\bigl[h(x_i) = y_i\bigr] \;\leq\; (1 - \varepsilon)^m. \tag{5}$$
 
 *Step 2 — union bound.* The probability that *any* bad hypothesis has zero training error is bounded by the sum:
+
 $$\Pr_{S}\!\bigl[\exists h \in \mathcal{H}_{\text{bad}} : L_S(h) = 0\bigr] \;\leq\; \sum_{h \in \mathcal{H}_{\text{bad}}} (1 - \varepsilon)^m \;\leq\; |\mathcal{H}|\,(1 - \varepsilon)^m. \tag{6}$$
 
 *Step 3 — exponential bound.* Use the elementary inequality $1 - x \leq e^{-x}$ for all $x \in \mathbb{R}$:
+
 $$|\mathcal{H}|\,(1 - \varepsilon)^m \;\leq\; |\mathcal{H}|\, e^{-\varepsilon m}. \tag{7}$$
 
 *Step 4 — solve for $m$.* Demand the right-hand side be at most $\delta$ and take logarithms:
@@ -176,11 +186,15 @@ When $m$ satisfies (8), the bad event has probability at most $\delta$, and the 
 Realizability is a strong assumption. **Agnostic PAC** drops it: we no longer require any $h^\star$ to be perfect, only that we want to compete with the best $h^\star \in \mathcal{H}$.
 
 **Theorem 2 (Sample complexity, finite agnostic case).** *For finite $\mathcal{H}$ with the 0-1 loss,*
+
 $$m \;\geq\; \frac{2}{\varepsilon^2}\Bigl(\ln |\mathcal{H}| + \ln \tfrac{2}{\delta}\Bigr) \tag{9}$$
+
 *suffices for $L_{\mathcal{D}}(h_{\text{ERM}}) \leq \min_{h \in \mathcal{H}} L_{\mathcal{D}}(h) + \varepsilon$ with probability $\geq 1 - \delta$.*
 
 The proof, deferred to the probability chapter, uses **Hoeffding's inequality** to control $|L_S(h) - L_{\mathcal{D}}(h)|$ uniformly over $\mathcal{H}$:
+
 $$\Pr\!\bigl[\, |L_S(h) - L_{\mathcal{D}}(h)| > t \,\bigr] \;\leq\; 2 e^{-2 m t^2}. \tag{10}$$
+
 A union bound over $\mathcal{H}$ and a substitution $t = \varepsilon / 2$ yield (9).
 
 ### 2.4 Why $1/\varepsilon^2$, not $1/\varepsilon$?
@@ -190,7 +204,9 @@ The shift from realizable to agnostic costs a quadratic factor in $\varepsilon$.
 In the realizable case, we only need to *eliminate* bad hypotheses: a single counter-example destroys them, and the probability of having no counter-example decays exponentially in $\varepsilon m$.
 
 In the agnostic case we cannot eliminate anyone — every hypothesis has some genuine error. We have to *estimate* each $L_{\mathcal{D}}(h)$ from $L_S(h)$. Estimating a probability to within $\varepsilon$ from $m$ Bernoulli samples has standard error $\sigma/\sqrt{m}$, which forces
+
 $$\frac{\sigma}{\sqrt{m}} \;\lesssim\; \varepsilon \;\;\Longrightarrow\;\; m \;\gtrsim\; \frac{\sigma^2}{\varepsilon^2}.$$
+
 This is the fingerprint of the **Central Limit Theorem**. Improving $\varepsilon$ by $10\times$ costs $100\times$ more samples. The two regimes are visualized below.
 
 ![PAC sample complexity bounds](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/fig6_pac_bounds.png)
@@ -212,6 +228,7 @@ The right measure is combinatorial, not cardinal: it counts how many *distinct l
 ### 3.2 Shattering
 
 **Definition 5 (Shattering).** Let $C = \{x_1, \ldots, x_m\} \subset \mathcal{X}$. The class $\mathcal{H}$ **shatters** $C$ if, for every binary labeling $(y_1, \ldots, y_m) \in \{0,1\}^m$, some $h \in \mathcal{H}$ realizes it:
+
 $$\bigl|\{(h(x_1), \ldots, h(x_m)) : h \in \mathcal{H}\}\bigr| \;=\; 2^m. \tag{11}$$
 
 Intuition: shattering means $\mathcal{H}$ has enough flexibility to produce *every* dichotomy on those particular points. Its expressive power on $C$ is maximal.
@@ -219,7 +236,9 @@ Intuition: shattering means $\mathcal{H}$ has enough flexibility to produce *eve
 ### 3.3 Definition
 
 **Definition 6 (VC dimension).** The VC dimension of $\mathcal{H}$ is
+
 $$\mathrm{VCdim}(\mathcal{H}) \;=\; \sup\bigl\{\, m : \exists\, C \subseteq \mathcal{X},\; |C| = m,\; \mathcal{H}\text{ shatters } C \,\bigr\}. \tag{12}$$
+
 If the supremum is infinite we write $\mathrm{VCdim}(\mathcal{H}) = \infty$.
 
 **Two important asymmetries.**
@@ -234,13 +253,19 @@ If the supremum is infinite we write $\mathrm{VCdim}(\mathcal{H}) = \infty$.
 **Proof.**
 
 *Lower bound: $\mathrm{VCdim} \geq d + 1$.* Take the $d+1$ points $\{0, e_1, \ldots, e_d\}$, where $e_i$ is the $i$-th standard basis vector. Given any labeling $(y_0, y_1, \ldots, y_d) \in \{-1, +1\}^{d+1}$, set
+
 $$w \;=\; \sum_{i=1}^{d} y_i\, e_i, \qquad b \;=\; \tfrac12 y_0. \tag{13}$$
+
 Then $w^\top 0 + b = b = \tfrac12 y_0$ has the sign of $y_0$, and for $i \geq 1$, $w^\top e_i + b = y_i + \tfrac12 y_0$, whose sign is determined by $y_i$ (the $\tfrac12 y_0$ term is too small to flip it). Every labeling is realizable, so the set is shattered.
 
 *Upper bound: $\mathrm{VCdim} < d + 2$.* Let $C = \{x_1, \ldots, x_{d+2}\}$ be any $d+2$ points. Form the augmented vectors $\tilde{x}_i = (x_i, 1) \in \mathbb{R}^{d+1}$. Since we have $d+2$ vectors in a $(d+1)$-dimensional space, **Radon's theorem** guarantees a non-trivial relation
+
 $$\sum_{i=1}^{d+2} a_i \tilde{x}_i \;=\; 0, \qquad \text{not all } a_i = 0. \tag{14}$$
+
 Let $I^+ = \{i : a_i > 0\}$ and $I^- = \{i : a_i \leq 0\}$, both non-empty. Consider the labeling $y_i = +1$ for $i \in I^+$ and $y_i = -1$ for $i \in I^-$. Suppose, for contradiction, some affine classifier $(w, b)$ achieves $y_i (w^\top x_i + b) > 0$ for all $i$. Multiply (14) by $\tilde{w} = (w, b)$ on the left and split by sign:
+
 $$\underbrace{\sum_{i \in I^+} a_i (w^\top x_i + b)}_{>\,0} \;+\; \underbrace{\sum_{i \in I^-} a_i (w^\top x_i + b)}_{>\,0} \;=\; 0,$$
+
 because for $i \in I^+$ both factors are positive, and for $i \in I^-$ both factors are negative (so their product is positive). The sum of strictly positive terms equals zero — contradiction. $\blacksquare$
 
 The geometry behind the bound is exactly what one would guess: a hyperplane in $\mathbb{R}^d$ has $d+1$ free parameters, and one parameter "buys" exactly one labeling degree of freedom.
@@ -252,10 +277,13 @@ The eight panels on the left enumerate every labeling of three generic points in
 ### 3.5 The VC bound on sample complexity
 
 **Theorem 4 (VC sample complexity).** *Let $\mathrm{VCdim}(\mathcal{H}) = d < \infty$. The agnostic PAC sample complexity satisfies*
+
 $$m_{\mathcal{H}}(\varepsilon, \delta) \;=\; O\!\left(\frac{d + \ln(1/\delta)}{\varepsilon^2}\right). \tag{15}$$
 
 The proof rests on the **Sauer-Shelah lemma**, which controls the *growth function* $\Pi_{\mathcal{H}}(m) = \max_{|C| = m} |\{(h(x_1), \ldots, h(x_m)) : h \in \mathcal{H}\}|$:
+
 $$\mathrm{VCdim}(\mathcal{H}) = d \;\;\Longrightarrow\;\; \Pi_{\mathcal{H}}(m) \;\leq\; \sum_{i=0}^{d} \binom{m}{i} \;\leq\; \left(\frac{e\,m}{d}\right)^d. \tag{16}$$
+
 The exponential $2^m$ collapses to a polynomial $m^d$ as soon as $m$ exceeds $d$. Plugging this polynomial growth into a uniform-convergence argument (which we will give in the probability chapter) yields (15).
 
 **Application.** A linear classifier in $\mathbb{R}^{100}$ has $\mathrm{VCdim} = 101$. To reach $\varepsilon = 0.05$, $\delta = 0.05$ in the agnostic setting we need on the order of $m \approx 10^5$ samples — entirely feasible. By contrast, a class with $\mathrm{VCdim} = \infty$ (e.g. the class of all measurable functions) is not PAC learnable, regardless of sample size.
@@ -288,9 +316,13 @@ $$\mathbb{E}_{S,\varepsilon}\!\Bigl[(\hat{f}_S(x) - y)^2\Bigr]
 ### 4.2 Proof
 
 Abbreviate $\hat{f} = \hat{f}_S(x)$, $\bar{f} = \bar{f}(x)$, $f^\star = f^\star(x)$. Decompose the error:
+
 $$\hat{f} - y \;=\; \underbrace{(\hat{f} - \bar{f})}_{A} \;+\; \underbrace{(\bar{f} - f^\star)}_{B} \;+\; \underbrace{(f^\star - y)}_{C}. \tag{18}$$
+
 Here $A$ depends only on $S$, $B$ is a deterministic constant, and $C = -\varepsilon$ depends only on the noise. Expanding the square gives
+
 $$(\hat{f} - y)^2 \;=\; A^2 + B^2 + C^2 + 2AB + 2AC + 2BC.$$
+
 Take expectations over $S$ and $\varepsilon$. The three cross-terms vanish:
 
 - $\mathbb{E}_S[2 A B] = 2 B \cdot \mathbb{E}_S[\hat{f} - \bar{f}] = 2 B \cdot 0 = 0$ because $\mathbb{E}_S[\hat{f}] = \bar{f}$.
@@ -343,6 +375,7 @@ The degree-3 polynomial wins because it is the only one that simultaneously keep
 Wolpert and Macready (1997) and Wolpert (1996) made precise an idea that practitioners had long suspected: there is no universally best learner.
 
 **Theorem 6 (No Free Lunch, simplified).** *Fix finite $\mathcal{X}$ and $\mathcal{Y} = \{0, 1\}$, and consider all $2^{|\mathcal{X}|}$ possible target functions $f: \mathcal{X} \to \mathcal{Y}$. For any two algorithms $\mathcal{A}_1, \mathcal{A}_2$ producing predictors from a fixed sample size $m$, the expected 0-1 risk averaged uniformly over all targets is identical:*
+
 $$\frac{1}{|\mathcal{F}|} \sum_{f \in \mathcal{F}} \mathbb{E}_S\!\bigl[L_f(\mathcal{A}_1(S))\bigr] \;=\; \frac{1}{|\mathcal{F}|} \sum_{f \in \mathcal{F}} \mathbb{E}_S\!\bigl[L_f(\mathcal{A}_2(S))\bigr]. \tag{19}$$
 
 The argument is short. For any unseen $x \notin S$, the labels under a random target $f$ chosen uniformly from $\mathcal{F}$ are an unbiased fair coin: half the targets in $\mathcal{F}$ assign $f(x) = 0$ and half assign $f(x) = 1$. So *any* prediction strategy is right on exactly half the targets. Both sides of (19) equal $\tfrac12$ on the unseen part, regardless of the algorithm.

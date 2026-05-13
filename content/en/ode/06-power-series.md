@@ -43,12 +43,17 @@ The miracle of the linear case is this: the scalar formula $y(t)=e^{at}y_0$ gene
 Consider a deliberately simple ecology model: $x(t)$ is a rabbit population in suitable units, $y(t)$ a wolf population. Rabbits multiply on their own and are eaten by wolves; wolves grow only when rabbits are present:
 
 $$x' = 2x - y, \qquad y' = x + 0.5\,y.$$
+
 Stack the unknowns into a vector $\mathbf{x}=(x,y)^\top$ and the coefficients into a matrix:
+
 $$\mathbf{x}' = A\mathbf{x}, \qquad A = \begin{pmatrix} 2 & -1 \\ 1 & 0.5 \end{pmatrix}.$$
+
 This is not just notation. It is a *change of viewpoint*: a single trajectory $\mathbf{x}(t)$ in the plane replaces two coupled time series. Geometry takes over from algebra.
 
 The scalar ODE $y'=ay$ has solution $y=e^{at}y_0$. Brute analogy suggests
+
 $$\mathbf{x}(t) = e^{At}\,\mathbf{x}_0,$$
+
 but this is only meaningful once we say what *the exponential of a matrix* is. That is the central object of the chapter.
 
 ---
@@ -58,7 +63,9 @@ but this is only meaningful once we say what *the exponential of a matrix* is. T
 ### 2.1 Definition by power series
 
 Mimicking $e^x = \sum x^k/k!$:
+
 $$e^{At} \;=\; I + At + \frac{(At)^2}{2!} + \frac{(At)^3}{3!} + \cdots \;=\; \sum_{k=0}^{\infty} \frac{(At)^k}{k!}.$$
+
 This series converges in operator norm for *every* square matrix $A$ and every $t\in\mathbb{R}$, because $\|(At)^k/k!\| \le (\|A\|t)^k/k!$ and the scalar series converges.
 
 ![Partial sums of the matrix exponential applied to a vector, converging to the true rotation; the spectral-norm error decays super-exponentially in the number of terms.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/fig1_matrix_exponential_series.png)
@@ -80,7 +87,9 @@ A subtle warning: $e^{A+B} = e^A e^B$ holds **only** when $AB=BA$. This is the m
 
 1. **Power series**, truncated. Cheap conceptually, terrible numerically when $\|At\|$ is large.
 2. **Eigendecomposition.** If $A$ is diagonalizable as $A=PDP^{-1}$ with $D=\mathrm{diag}(\lambda_i)$, then
+
    $$e^{At} = P\,\mathrm{diag}(e^{\lambda_1 t},\dots,e^{\lambda_n t})\,P^{-1}.$$
+
    This is the structural formula every theoretical argument leans on.
 3. **Padé with scaling and squaring.** The industrial method — used by `scipy.linalg.expm`, MATLAB's `expm`, etc. Compute $e^{At/2^s}$ from a Padé rational approximant, then square $s$ times. Robust for large $\|At\|$.
 
@@ -125,7 +134,9 @@ The flow $e^{At}$ does the same thing but with $e^{\lambda_i t}$ stretches.
 ### 3.2 Complex eigenvalues give rotations
 
 Real matrices can have complex eigenvalues, and they always come in conjugate pairs $\lambda = \alpha\pm\beta i$ with conjugate eigenvectors $\mathbf{v}=\mathbf{a}\pm i\mathbf{b}$. Taking real and imaginary parts of $e^{\lambda t}\mathbf{v}$ produces two real solutions:
+
 $$\mathbf{x}_1(t) = e^{\alpha t}(\mathbf{a}\cos\beta t - \mathbf{b}\sin\beta t), \qquad \mathbf{x}_2(t) = e^{\alpha t}(\mathbf{a}\sin\beta t + \mathbf{b}\cos\beta t).$$
+
 Read this geometrically: $\beta$ is the angular frequency of rotation in the $(\mathbf a,\mathbf b)$-plane, and $\alpha$ controls whether the orbit spirals outward ($\alpha>0$), inward ($\alpha<0$), or stays on a closed curve ($\alpha=0$).
 
 ---
@@ -153,7 +164,9 @@ For $\mathbf{x}'=A\mathbf{x}$ on the plane, the eigenvalues $\lambda_1,\lambda_2
 ### 4.1 The trace–determinant trick
 
 You don't always need the eigenvalues themselves; for a $2\times 2$ matrix the characteristic polynomial is
+
 $$\lambda^2 - \tau\lambda + \delta = 0, \qquad \tau = \mathrm{tr}\,A = \lambda_1+\lambda_2, \quad \delta = \det A = \lambda_1\lambda_2,$$
+
 so the discriminant is $\Delta = \tau^2 - 4\delta$. The position of $(\tau,\delta)$ in the plane already classifies the equilibrium:
 
 - $\delta < 0$ → real eigenvalues of opposite sign → **saddle**.
@@ -172,9 +185,13 @@ so the discriminant is $\Delta = \tau^2 - 4\delta$. The position of $(\tau,\delt
 The classification table above quietly hides a complication. A repeated eigenvalue $\lambda$ with algebraic multiplicity $2$ may have either *two* linearly independent eigenvectors (rare — this happens iff $A=\lambda I$ on that subspace; the result is a **star node**) or only *one* (the generic defective case — a **degenerate node**).
 
 In the defective case, the eigenvalue method gives only one solution $e^{\lambda t}\mathbf{v}$. The trick: solve
+
 $$(A - \lambda I)\,\mathbf{w} = \mathbf{v}$$
+
 for a **generalized eigenvector** $\mathbf{w}$. Then
+
 $$\mathbf{x}_2(t) \;=\; e^{\lambda t}\bigl(t\,\mathbf{v} + \mathbf{w}\bigr)$$
+
 is a second, linearly independent solution. The polynomial-times-exponential growth of the $t$ factor is the algebraic fingerprint of degeneracy.
 
 This is exactly the Jordan-block phenomenon: $A$ acts like $\lambda I + N$ where $N$ is nilpotent, and $e^{(\lambda I + N)t} = e^{\lambda t}(I + tN + \tfrac12 t^2 N^2 + \cdots)$. The series terminates because $N$ is nilpotent, leaving a polynomial in $t$.
@@ -187,13 +204,19 @@ This is exactly the Jordan-block phenomenon: $A$ acts like $\lambda I + N$ where
 ## 6. Non-Homogeneous Systems: Duhamel's Formula
 
 Add a forcing term:
+
 $$\mathbf{x}' = A\mathbf{x} + \mathbf{g}(t), \qquad \mathbf{x}(0)=\mathbf{x}_0.$$
+
 The solution is the matrix version of variation of parameters:
+
 $$\boxed{\;\mathbf{x}(t) \;=\; e^{At}\mathbf{x}_0 \;+\; \int_0^t e^{A(t-\tau)}\,\mathbf{g}(\tau)\,d\tau.\;}$$
+
 This is **Duhamel's formula**. Read the integrand $e^{A(t-\tau)}\mathbf{g}(\tau)$ this way: at time $\tau$ the forcing kicks the system by $\mathbf{g}(\tau)d\tau$, and that kick then propagates freely under the flow $e^{A(t-\tau)}$ for the remaining time. The full state is the superposition of all such delayed responses — a continuous-time impulse response.
 
 In control theory the same formula appears with $\mathbf{g}(t) = B\mathbf u(t)$:
+
 $$\mathbf{x}(t) = e^{At}\mathbf{x}_0 + \int_0^t e^{A(t-\tau)} B\,\mathbf u(\tau)\,d\tau,$$
+
 and we are one short step from controllability and the matrix $\bigl[B,\,AB,\,A^2B,\dots\bigr]$.
 
 ---
@@ -208,8 +231,11 @@ Wall —/\/\/— [m] —/\/\/— [m] —/\/\/— Wall
 ```
 
 Newton's laws give
+
 $$\ddot x_1 = -k\,x_1 + \kappa(x_2 - x_1), \qquad \ddot x_2 = -k\,x_2 + \kappa(x_1 - x_2).$$
+
 A clean change of variables is $u=\tfrac{x_1+x_2}{\sqrt 2}$, $v=\tfrac{x_1-x_2}{\sqrt 2}$. The equations *decouple*:
+
 $$\ddot u = -k\,u, \qquad \ddot v = -(k+2\kappa)\,v.$$
 
 These are the **normal modes**: an in-phase mode at angular frequency $\omega_s=\sqrt{k}$ (the coupling spring never stretches) and an out-of-phase mode at $\omega_a=\sqrt{k+2\kappa}$ (the coupling spring is doing extra work). Every motion is a superposition of the two.

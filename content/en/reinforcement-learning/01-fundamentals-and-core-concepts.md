@@ -64,6 +64,7 @@ Reinforcement learning is the mathematical formalism of this loop. The "you" in 
 Formally, the bicycle loop is a **Markov Decision Process (MDP)**, a five-tuple
 
 $$\langle \mathcal{S}, \mathcal{A}, P, R, \gamma \rangle.$$
+
 The figure above shows a deliberately tiny MDP: just three states (*Balanced*, *Wobbling*, *Fallen*), a few actions, and the transition probabilities and rewards labelled directly on the edges. Every real RL problem — robot control, Go, large-language-model fine-tuning — is a (much larger) instance of this same structure.
 
 ### The Five Components
@@ -73,7 +74,9 @@ The figure above shows a deliberately tiny MDP: just three states (*Balanced*, *
 **Action space** $\mathcal{A}$: everything the agent can do. Discrete (`{lean-left, lean-right, hold}`) or continuous (apply a torque of 0.37 Nm to the handlebars).
 
 **Transition probability** $P(s' \mid s, a)$: the probability of landing in state $s'$ after taking action $a$ in state $s$. This is the environment's *physics*:
+
 $$P(s' \mid s, a) = \Pr(S_{t+1} = s' \mid S_t = s, A_t = a),\qquad \sum_{s'} P(s' \mid s, a) = 1.$$
+
 A perfectly balanced bicycle is *not* a deterministic system: a gust of wind, a pebble, or a slightly uneven pedal stroke can each push you to a different next state. The transition probability captures all of that uncertainty.
 
 **Reward function** $R(s, a, s')$: the immediate payoff for the transition $s \xrightarrow{a} s'$. Rewards are the agent's **only** learning signal. Get them wrong and the agent will obediently optimise the wrong thing — a phenomenon known as *reward hacking*.
@@ -83,7 +86,9 @@ A perfectly balanced bicycle is *not* a deterministic system: a gust of wind, a 
 ### The Markov Property
 
 The defining assumption of an MDP is delightfully simple: **the future depends only on the present, not on how you got here.**
+
 $$P(S_{t+1} \mid S_t, A_t, S_{t-1}, A_{t-1}, \ldots) = P(S_{t+1} \mid S_t, A_t).$$
+
 For the bicycle this looks suspicious — surely *which way I was leaning a moment ago* matters? It does, but the trick is to *fold history into the state itself*. If we redefine the state as `(tilt, angular velocity, speed)` instead of just `tilt`, the Markov property holds again. In Atari, DeepMind famously stacked the last 4 frames into the state for exactly this reason.
 
 ### Policy: From States to Actions
@@ -98,7 +103,9 @@ Stochastic policies matter for two reasons: they let the agent **explore** new b
 ### Return and Value Functions
 
 The agent's goal is not to maximise *the next* reward but the *cumulative discounted return* from time $t$:
+
 $$G_t = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \cdots = \sum_{k=0}^{\infty} \gamma^k r_{t+k}.$$
+
 Why discount? Three independent reasons all point the same way:
 
 - **Mathematical**: when $|r| \le R_{\max}$ the geometric sum stays finite, $|G_t| \le R_{\max} / (1 - \gamma)$. Without it, infinite-horizon tasks would blow up.
@@ -106,9 +113,13 @@ Why discount? Three independent reasons all point the same way:
 - **Operational**: without discount, an agent could rationally do *nothing forever* and still claim infinite return. Discounting forces it to *get on with it*.
 
 We then define two value functions, one for states and one for state-action pairs:
+
 $$V^\pi(s) = \mathbb{E}_\pi[G_t \mid S_t = s], \qquad Q^\pi(s, a) = \mathbb{E}_\pi[G_t \mid S_t = s, A_t = a].$$
+
 In words: $V^\pi(s)$ is "how good is it to be here, if I follow $\pi$?", and $Q^\pi(s, a)$ is "how good is it to take *this specific action* here, then follow $\pi$?". They are linked by
+
 $$V^\pi(s) = \sum_a \pi(a \mid s) \, Q^\pi(s, a),\qquad Q^\pi(s, a) = \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^\pi(s')\right].$$
+
 ### Bellman Equations: The Recursive Heart of RL
 
 ![Bellman backup tree: today's value built from tomorrow's](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/fig3_bellman_recursion.png)
@@ -116,13 +127,19 @@ $$V^\pi(s) = \sum_a \pi(a \mid s) \, Q^\pi(s, a),\qquad Q^\pi(s, a) = \sum_{s'} 
 Value functions have a beautiful recursive structure. This is the single most important idea in RL theory — once it clicks, every algorithm in the rest of the series will feel like a variation on a theme.
 
 **Bellman expectation equation** (for any policy $\pi$):
+
 $$V^\pi(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^\pi(s')\right].$$
+
 Read it out loud: *the value of being here equals the expected immediate reward plus the discounted value of where I land next*. The tree in the figure is exactly this equation drawn out — the root is the current state, the middle layer is the actions weighted by $\pi$, the leaves are the next states weighted by $P$, and the rewards live on the arrows.
 
 **Bellman optimality equation** (for the best possible policy $\pi^*$):
+
 $$V^*(s) = \max_a \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^*(s')\right],$$$$Q^*(s, a) = \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma \max_{a'} Q^*(s', a')\right].$$
+
 The change is small but everything: the expectation over $\pi$ is replaced by a $\max$. Once you have $Q^*$, the optimal policy falls out trivially:
+
 $$\pi^*(s) = \arg\max_{a} Q^*(s, a).$$
+
 ### A Numerical Example
 
 Let us pin this down with a small two-state MDP, $\{s_1, s_2\}$, one action $a_1$ that we always pick, and $\gamma = 0.9$.
@@ -135,9 +152,13 @@ Let us pin this down with a small two-state MDP, $\{s_1, s_2\}$, one action $a_1
 | $s_2$ | $a_1$ | $s_2$ | 0.3 | 8 |
 
 Plug into Bellman:
+
 $$V(s_1) = 0.5\,[5 + 0.9 V(s_1)] + 0.5\,[10 + 0.9 V(s_2)],$$$$V(s_2) = 0.7\,[2 + 0.9 V(s_1)] + 0.3\,[8 + 0.9 V(s_2)].$$
+
 Rearranging gives a linear system
+
 $$0.55\,V(s_1) - 0.45\,V(s_2) = 7.5,\qquad -0.63\,V(s_1) + 0.73\,V(s_2) = 3.8,$$
+
 with solution $V(s_1) \approx 52.3$ and $V(s_2) \approx 50.4$. The values are large because the rewards keep coming forever and $\gamma$ is close to 1; that is the geometric-series effect at work.
 
 ---
@@ -149,13 +170,17 @@ When the environment model ($P$ and $R$) is fully known, **dynamic programming (
 ### Policy Evaluation
 
 Given a fixed policy $\pi$, repeatedly apply the Bellman expectation operator:
+
 $$V_{k+1}(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V_k(s')\right].$$
+
 Start with $V_0 \equiv 0$ and iterate. The Bellman operator is a $\gamma$-contraction in the sup-norm, so $V_k \to V^\pi$ exponentially fast.
 
 ### Policy Improvement
 
 Given $V^\pi$, build a *greedier* policy:
+
 $$\pi'(s) = \arg\max_{a} \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V^\pi(s')\right].$$
+
 The **policy improvement theorem** guarantees $V^{\pi'}(s) \ge V^\pi(s)$ for every state. You never get worse by being greedier with respect to a correct value function.
 
 ### Policy Iteration
@@ -170,7 +195,9 @@ Alternate between the two:
 ### Value Iteration
 
 Why fully evaluate before improving? Skip it. Iterate the optimality equation directly:
+
 $$V_{k+1}(s) = \max_a \sum_{s'} P(s' \mid s, a)\!\left[R(s, a, s') + \gamma V_k(s')\right].$$
+
 Each sweep contracts the error by a factor of $\gamma$. The figure below shows what the converged value function and the resulting greedy policy look like on a small grid world.
 
 ![Value heatmap and greedy policy on GridWorld](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/fig5_value_vs_policy.png)
@@ -269,7 +296,9 @@ When we do not know $P$ and $R$, we must learn from experience. The most direct 
 ### Core Idea
 
 A value function is, by definition, an *expected* return. Replace the expectation with a sample mean:
+
 $$V(s) \approx \frac{1}{N} \sum_{i=1}^{N} G_t^{(i)},$$
+
 where $G_t^{(i)}$ is the return observed in the $i$-th episode that passed through $s$. As $N \to \infty$ this is unbiased and consistent.
 
 The recipe is brutally simple:
@@ -361,9 +390,13 @@ def mc_control(env, num_episodes=10000, gamma=0.9, epsilon=0.1):
 ### TD(0): One-Step Updates
 
 The update rule:
+
 $$V(S_t) \leftarrow V(S_t) + \alpha\,\big[\,r_t + \gamma V(S_{t+1}) - V(S_t)\,\big].$$
+
 The bracketed quantity is the **TD error**:
+
 $$\delta_t = r_t + \gamma V(S_{t+1}) - V(S_t).$$
+
 It is the difference between *what just happened* ($r_t + \gamma V(S_{t+1})$) and *what we expected* ($V(S_t)$). The agent nudges its estimate towards reality, by an amount controlled by the learning rate $\alpha$.
 
 Three things are special about this rule:
@@ -379,13 +412,17 @@ The figure above shows how the choice of $\gamma$ alone reshapes how fast a Q-le
 ### Sarsa: On-Policy TD Control
 
 Sarsa updates $Q$ using the action the agent *actually takes* next:
+
 $$Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha\,\big[\,r_t + \gamma Q(S_{t+1}, A_{t+1}) - Q(S_t, A_t)\,\big].$$
+
 The name spells out the quintuple it depends on: $(S_t, A_t, R_t, S_{t+1}, A_{t+1})$.
 
 ### Q-Learning: Off-Policy TD Control
 
 Q-learning (Watkins, 1989) replaces the actual next action with the *best* next action:
+
 $$Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha\,\big[\,r_t + \gamma \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t)\,\big].$$
+
 The single-character difference — $A_{t+1}$ versus $\max_{a'}$ — changes everything. Sarsa evaluates the policy it follows (**on-policy**); Q-learning evaluates the *greedy* policy regardless of what it actually does (**off-policy**). Q-learning can therefore learn the optimal policy *while* exploring randomly.
 
 ### Sarsa vs Q-Learning: Cliff Walking
@@ -407,10 +444,13 @@ This is the cleanest possible illustration of the on-policy/off-policy trade-off
 ### TD($\lambda$) and Eligibility Traces
 
 TD(0) only looks one step ahead. **TD($\lambda$)** blends multi-step returns:
+
 $$G_t^\lambda = (1 - \lambda) \sum_{n=1}^{\infty} \lambda^{n-1} G_t^{(n)},$$
+
 where $G_t^{(n)}$ is the $n$-step return. The interpolation parameter $\lambda \in [0, 1]$ lets you smoothly trade between TD(0) ($\lambda = 0$) and Monte Carlo ($\lambda = 1$).
 
 **Eligibility traces** implement this efficiently by maintaining a "credit memory" $e_t(s)$ that decays exponentially:
+
 $$e_t(s) = \gamma \lambda \, e_{t-1}(s) + \mathbf{1}[S_t = s], \qquad V(s) \leftarrow V(s) + \alpha \, \delta_t \, e_t(s)\quad\text{for all } s.$$
 
 Recently visited states get more credit when a reward arrives, propagating information backwards through the entire trajectory in a single step.

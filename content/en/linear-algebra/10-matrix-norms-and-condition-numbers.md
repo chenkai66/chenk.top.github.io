@@ -79,7 +79,9 @@ As $p$ grows from $1$ to $\infty$, the unit ball morphs from diamond to circle t
 ### Norm equivalence
 
 **Theorem.** In a finite-dimensional space, all norms are *equivalent*: there exist constants $c, C > 0$ such that
+
 $$c\|\vec{x}\|_a \leq \|\vec{x}\|_b \leq C\|\vec{x}\|_a.$$
+
 Different norms are different rulers measuring the same vector. If a sequence converges in one norm, it converges in all of them. The choice is purely a matter of convenience or physical meaning — until we get to the *speed* of convergence, where the choice of norm starts to matter again.
 
 ---

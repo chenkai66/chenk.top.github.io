@@ -68,9 +68,11 @@ The good news: **most saddles are escapable**.
 ### 2.1 Strict saddle property
 
 A function $f$ has the **strict saddle property** if at every stationary point $x^\star$,
+
 $$
 \nabla^2 f(x^\star) \succ 0 \quad \text{or} \quad \lambda_{\min}(\nabla^2 f(x^\star)) < 0.
 $$
+
 That is, every stationary point is either a strict local min or has a strictly negative eigenvalue (a "strict" saddle, no flat directions).
 
 Many machine-learning problems have the strict saddle property: orthogonal tensor decomposition, generalized phase retrieval, low-rank matrix completion, dictionary learning. For these problems, escaping saddles automatically reaches a local minimum, which is often global.
@@ -111,6 +113,7 @@ In the stochastic setting, the noise from $\nabla f_{i_t}$ already perturbs the 
 ## 3. The Polyak--Łojasiewicz (PL) condition
 
 A function $f$ satisfies the **PL inequality** with parameter $\mu > 0$ if
+
 $$
 \tfrac{1}{2} \|\nabla f(x)\|_2^2 \geq \mu (f(x) - f^\star) \quad \forall x.
 $$
@@ -132,10 +135,13 @@ PL is **weaker than strong convexity** — every $\mu$-strongly convex function 
 > $$
 
 **Proof.** By smoothness,
+
 $$
 f(x_{t+1}) \leq f(x_t) + \nabla f(x_t)^\top (x_{t+1} - x_t) + \tfrac{L}{2} \|x_{t+1} - x_t\|_2^2 = f(x_t) - \tfrac{1}{2 L} \|\nabla f(x_t)\|_2^2.
 $$
+
 By PL, $\|\nabla f(x_t)\|_2^2 \geq 2 \mu (f(x_t) - f^\star)$. Substituting:
+
 $$
 f(x_{t+1}) - f^\star \leq (1 - \mu / L) (f(x_t) - f^\star). \quad \blacksquare
 $$
@@ -163,9 +169,11 @@ This is the modern "**over-parameterization helps optimization**" theme: with mo
 ### 4.2 The NTK regime
 
 The **Neural Tangent Kernel** (Jacot, Gabriel, Hongler 2018) shows that a wide enough network behaves linearly in its parameters around initialization:
+
 $$
 f(x; \theta) \approx f(x; \theta_0) + \nabla_\theta f(x; \theta_0)^\top (\theta - \theta_0).
 $$
+
 GD on the squared loss in this regime converges at the eigenvalues of the NTK — the gradient flow becomes a linear ODE. The smallest eigenvalue is bounded away from zero with high probability (over the random init), giving the linear rate.
 
 NTK is descriptive of "lazy training" — wide networks where weights barely change. Real-world networks operate beyond this regime, with feature learning and qualitative weight changes.
@@ -193,6 +201,7 @@ This is part of a larger story — **implicit bias** — where the choice of opt
 ## 5. Cubic regularization: a non-convex Newton
 
 The non-convex analogue of damped Newton (article 07) is **cubic regularization**:
+
 $$
 x_{t+1} = \arg\min_x \, f(x_t) + \nabla f(x_t)^\top (x - x_t) + \tfrac{1}{2} (x - x_t)^\top \nabla^2 f(x_t) (x - x_t) + \tfrac{M}{6} \|x - x_t\|^3.
 $$

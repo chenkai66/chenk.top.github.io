@@ -195,8 +195,11 @@ LNN 用更高的 autograd 代价（二阶导加上一个矩阵解）换来两个
 Jin、 Zhang、 Zhu、 Zhang 与 Karniadakis （2020）走的是另一条路：**不学 Hamilton 量，直接学流映射本身**，但把架构造得每一层都从结构上就是辛的。两种基本模块就够了：
 
 - **G-module （梯度 / 动能剪切）**
+
 $$(q, p) \;\mapsto\; \big(q,\; p + \nabla V_{\theta}(q)\big),$$
+
 - **L-module （提升 / 势能剪切）**
+
 $$(q, p) \;\mapsto\; \big(q + \nabla K_{\phi}(p),\; p\big),$$
 
 其中 $V_\theta$、$K_\phi$ 是标量网络。每一块的 Jacobian 都是分块上三角或下三角，对角线上是单位矩阵，直接代入就能验证 $J^\top \Omega J = \Omega$。辛映射的复合仍是辛映射，所以任何 G-、 L- 块的交替堆叠都是辛映射。

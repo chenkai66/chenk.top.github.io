@@ -91,9 +91,13 @@ Conservation of energy in a thin rod with cross-section $A$ and density-specific
 ### Separation of variables
 
 Take $u(0, t) = u(L, t) = 0$ and a smooth initial condition $u(x, 0) = f(x)$. Try the product ansatz $u(x, t) = X(x)\,T(t)$:$$\frac{T'}{\alpha T} = \frac{X''}{X} = -\lambda \quad (\text{constant}).$$The two sides depend on *different* variables, so the only way they can be equal is to be *the same constant*. We get
+
 $$X'' + \lambda X = 0, \qquad T' + \alpha\lambda\,T = 0.$$
+
 The Dirichlet boundary conditions select $\lambda_n = (n\pi/L)^2$ with eigenfunctions $X_n(x) = \sin(n\pi x / L)$, and the time factor is $T_n(t) = e^{-\alpha \lambda_n t}$. Superposition recovers the full solution as a Fourier sine series:
+
 $$\boxed{\;u(x, t) = \sum_{n=1}^\infty b_n\,\sin\!\frac{n\pi x}{L}\,e^{-\alpha (n\pi / L)^2 t},\quad b_n = \frac{2}{L}\int_0^L f(x)\sin\!\frac{n\pi x}{L}\,dx.\;}$$
+
 Two structural lessons:
 
 1. **The heat equation is a Fourier filter.** High modes (large $n$) decay much faster than low modes — mode $n$ has half-life $\propto 1/n^2$. Sharp features in the initial condition are erased almost immediately; smooth features linger.

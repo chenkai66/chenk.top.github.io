@@ -204,8 +204,11 @@ For unconstrained conservative systems LNN and HNN are formally equivalent via t
 Jin, Zhang, Zhu, Zhang & Karniadakis (2020) propose a different bargain: don't learn a Hamiltonian, learn the *flow map* itself, but constrain the architecture so the map is symplectic by construction. Two elementary blocks suffice:
 
 - **G-module** (gradient / kinetic shear)
+
 $$(q, p) \;\mapsto\; \big(q,\; p + \nabla V_{\theta}(q)\big),$$
+
 - **L-module** (lift / potential shear)
+
 $$(q, p) \;\mapsto\; \big(q + \nabla K_{\phi}(p),\; p\big),$$
 
 where $V_{\theta}$ and $K_{\phi}$ are scalar networks. Each block is symplectic: the Jacobian is upper- or lower-triangular with identity blocks on the diagonal, and a direct check gives $J^{\top} \Omega J = \Omega$. Composition of symplectic maps is symplectic, so any alternating stack of G- and L-blocks is symplectic too.

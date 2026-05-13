@@ -59,10 +59,13 @@ To see *why*, look at what each classical method can express.
 **Matrix factorization** predicts a rating with a dot product:
 
 $$\hat{r}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$
+
 In plain terms: each user and each item is a short vector; the prediction is their alignment. Beautiful, but linear — it cannot capture that you love sci-fi *and* action *together* while disliking either alone.
 
 **Factorization machines** add pairwise feature interactions:
+
 $$\hat{y}(\mathbf{x}) = w_0 + \sum_i w_i x_i + \sum_{i<j} \langle \mathbf{v}_i, \mathbf{v}_j\rangle x_i x_j$$
+
 This is a strict superset of MF — but it stops at second order. A "young user × Friday night × thriller" three-way effect requires manual cross-feature engineering.
 
 **Collaborative filtering** sidesteps modeling entirely and just looks for similar users or items. It works well until the matrix gets sparse, which it always does in production.
@@ -88,7 +91,9 @@ Before diving into named architectures, it helps to internalize what an MLP buys
 A dot product $\mathbf{p}^\top \mathbf{q} = \sum_k p_k q_k$ adds up coordinate-wise products. It is symmetric, linear, and incapable of expressing "feature A matters *only when* feature B is also present."
 
 Concatenate $[\mathbf{p}; \mathbf{q}]$ and pass through `Linear → ReLU → Linear`:
+
 $$f(\mathbf{p}, \mathbf{q}) = \mathbf{w}^\top \, \text{ReLU}\!\big(\mathbf{W} [\mathbf{p}; \mathbf{q}] + \mathbf{b}\big)$$
+
 Now the ReLU gates each hidden unit on or off depending on which combination of input dimensions is active. With enough hidden units, this is exactly the universal-approximation result. **The interaction is no longer a fixed formula — it is learned.**
 
 This single substitution — replace dot product with MLP — is the seed from which NeuMF, YouTube DNN, and Wide & Deep all grow.
@@ -212,8 +217,11 @@ Read the diagram bottom-up:
 2. **GMF path.** Element-wise product $\mathbf{p}_u^\text{GMF} \odot \mathbf{q}_i^\text{GMF}$. With a learned weight on top, this is a generalization of the standard dot product.
 3. **MLP path.** Concatenate $[\mathbf{p}_u^\text{MLP}; \mathbf{q}_i^\text{MLP}]$, then 2--3 dense + ReLU layers (typical: $128 \to 64 \to 32$).
 4. **Fusion.** Concatenate the two path outputs and project to a scalar through sigmoid:
+
 $$\hat{y}_{ui} = \sigma\!\left(\mathbf{h}^\top \begin{bmatrix} \mathbf{p}_u^\text{GMF} \odot \mathbf{q}_i^\text{GMF} \\ \mathbf{z}_L^\text{MLP} \end{bmatrix}\right)$$
+
 For implicit feedback (clicks, plays, purchases), the loss is binary cross-entropy:
+
 $$\mathcal{L} = -\sum_{(u, i) \in \mathcal{D}^+ \cup \mathcal{D}^-} \big[ y_{ui} \log \hat{y}_{ui} + (1 - y_{ui}) \log(1 - \hat{y}_{ui}) \big]$$
 
 The negative set $\mathcal{D}^-$ is built by sampling — typically 4 negatives per positive.

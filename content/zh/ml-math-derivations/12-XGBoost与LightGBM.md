@@ -196,6 +196,7 @@ GOSS 通过 $a, b \in (0, 1)$ 分三步完成：
 $$
 \widetilde{\text{Gain}} \;=\; \frac{1}{2}\!\left[\frac{(G_L^A + \tfrac{1-a}{b}G_L^B)^2}{H_L^A + \tfrac{1-a}{b}H_L^B + \lambda} + \frac{(G_R^A + \tfrac{1-a}{b}G_R^B)^2}{H_R^A + \tfrac{1-a}{b}H_R^B + \lambda} - \cdots \right].
 $$
+
 LightGBM 论文证明，这种子采样引入的方差是 $O(1/\sqrt{n_l})$，比叶子内部本身的采样噪声衰减得更快。
 
 ![GOSS 保留信息丰富的尾部，对小梯度样本重加权](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/fig3_goss.png)

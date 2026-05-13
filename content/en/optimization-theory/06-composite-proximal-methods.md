@@ -49,10 +49,13 @@ Before getting to the prox we need to settle three pieces — convex sets, conve
 **Convex set**: $C \subseteq \mathbb{R}^n$ is convex iff for any $x, y \in C$ and $\theta \in [0, 1]$,
 
 $$\theta x + (1 - \theta) y \in C.$$
+
 The line segment between any two points stays in $C$.
 
 **Convex function**: $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is convex iff its effective domain $\mathrm{dom}\,f$ is convex and for any $x, y \in \mathrm{dom}\,f$ and $\theta \in [0, 1]$,
+
 $$f\!\left(\theta x + (1 - \theta) y\right) \le \theta f(x) + (1 - \theta) f(y).$$
+
 Geometrically, the chord above any two points sits above the function ("cup-shaped").
 
 **Two facts to keep in your head**:
@@ -65,10 +68,13 @@ Geometrically, the chord above any two points sits above the function ("cup-shap
 A differentiable convex function has a unique gradient $\nabla f(x)$ everywhere. Functions like $|x|$ or hinge $\max(0, 1 - t)$ have **kinks** — no gradient at the kink. We need **subgradients**.
 
 **Definition**: $g \in \mathbb{R}^n$ is a subgradient of a convex $f$ at $x$ iff for any $y$,
+
 $$f(y) \ge f(x) + \langle g,\, y - x \rangle.$$
+
 That is, $g$ defines a supporting hyperplane lying below the graph of $f$ that touches $f$ at $x$. The set of all such $g$ is the **subdifferential** $\partial f(x)$.
 
 **Worked example (absolute value)**: take $f(t) = |t|$.
+
 $$
 \partial |t| =
 \begin{cases}
@@ -77,6 +83,7 @@ $$
 [-1, +1], & t = 0.
 \end{cases}
 $$
+
 At $t = 0$ the subdifferential is an **interval** — exactly the source of the soft-threshold's "dead zone" later on.
 
 **Properties**:
@@ -92,9 +99,11 @@ At $t = 0$ the subdifferential is an **interval** — exactly the source of the 
 ## Definition and geometric intuition
 
 For a closed proper convex function $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ and $\lambda > 0$, the **proximal operator** is
+
 $$
 \mathrm{prox}_{\lambda f}(v) \;=\; \arg\min_{x \in \mathbb{R}^n}\left\{\, f(x) + \frac{1}{2\lambda} \|x - v\|_2^2 \,\right\}.
 $$
+
 The minimiser is **unique** when $f$ is closed proper convex (strongly convex objective).
 
 **Intuition**: $\mathrm{prox}_{\lambda f}(v)$ trades off "make $f$ small" against "stay near $v$". $\lambda$ controls the trade-off:
@@ -111,15 +120,21 @@ The left panel makes the trade-off visible: blue $f$, grey quadratic anchor, pur
 These four facts are the bricks for every later analysis.
 
 **(1) Existence, uniqueness, and the optimality condition**. $\mathrm{prox}_{\lambda f}(v)$ exists and is unique. Moreover, $x^\star = \mathrm{prox}_{\lambda f}(v)$ iff
+
 $$\frac{1}{\lambda}(v - x^\star) \in \partial f(x^\star) \;\;\Longleftrightarrow\;\; v \in x^\star + \lambda\, \partial f(x^\star).$$
+
 **(2) Fixed-point characterisation**. $x^\star$ minimises $f$ iff $x^\star = \mathrm{prox}_{\lambda f}(x^\star)$. This is what lets us turn minimisation into a fixed-point iteration.
 
 **(3) Firmly non-expansive**. For any $u, v$,
+
 $$\|\mathrm{prox}_{\lambda f}(u) - \mathrm{prox}_{\lambda f}(v)\|_2 \le \|u - v\|_2.$$
+
 The stronger "firm" version says $\mathrm{prox}_{\lambda f}$ is a $\tfrac{1}{2}$-averaged map — the main hammer behind ISTA's convergence.
 
 **(4) Separability**. If $f(x) = \sum_i f_i(x_i)$, then
+
 $$\bigl[\mathrm{prox}_{\lambda f}(v)\bigr]_i = \mathrm{prox}_{\lambda f_i}(v_i).$$
+
 Coordinate-wise functions like $\ell_1$ and box constraints have **embarrassingly parallel** proxes — this is *the* reason LASSO scales to millions of features.
 
 ---
@@ -129,11 +144,15 @@ Coordinate-wise functions like $\ell_1$ and box constraints have **embarrassingl
 ## L1 norm: the soft-threshold
 
 Let $f(x) = \|x\|_1 = \sum_i |x_i|$. By separability, the problem reduces to one dimension:
+
 $$\min_{x_i} |x_i| + \frac{1}{2\lambda}(x_i - v_i)^2.$$
+
 Splitting on the sign of $x_i$ and applying $0 \in \partial(\cdot)$ gives the **soft-threshold operator**:
+
 $$
 \bigl[\mathrm{prox}_{\lambda \|\cdot\|_1}(v)\bigr]_i \;=\; \mathrm{soft}_\lambda(v_i) \;=\; \mathrm{sign}(v_i) \cdot \max\!\bigl(|v_i| - \lambda,\, 0\bigr).
 $$
+
 ![Figure 2 - Soft-thresholding: the prox of the L1 norm](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/proximal-operator/fig2_soft_threshold.png)
 
 - Left: inside the dead zone $|v| \le \lambda$ the output is exactly zero; outside, $v$ is **shrunk** toward zero by $\lambda$ (note: shrinkage, not truncation).
@@ -144,9 +163,13 @@ $$
 ## Indicator function: the projection
 
 For a convex set $C$, the indicator
+
 $$\iota_C(x) = \begin{cases} 0, & x \in C, \\ +\infty, & x \notin C, \end{cases}$$
+
 is convex. Its prox is the **Euclidean projection**:
+
 $$\mathrm{prox}_{\lambda \iota_C}(v) = \arg\min_{x \in C} \tfrac{1}{2}\|x - v\|_2^2 = P_C(v).$$
+
 Note the result is **independent of $\lambda$** (the indicator is either $0$ or $+\infty$). This makes "projected gradient descent" a special case of "proximal gradient" — a hard constraint is just an infinitely strong penalty.
 
 Common projections:
@@ -159,11 +182,15 @@ Common projections:
 ## Squared norm: linear shrinkage
 
 Let $f(x) = \tfrac{1}{2}\|x\|_2^2$. The first-order condition $x + \tfrac{1}{\lambda}(x - v) = 0$ gives
+
 $$\mathrm{prox}_{\lambda f}(v) = \frac{v}{1 + \lambda}.$$
+
 Pure linear shrinkage toward the origin — this is the proximal form of ridge regularisation.
 
 **More general quadratic** $f(x) = \tfrac{1}{2}x^\top Q x + b^\top x$ ($Q \succeq 0$):
+
 $$\mathrm{prox}_{\lambda f}(v) = (I + \lambda Q)^{-1}(v - \lambda b),$$
+
 requiring a single linear solve — still very practical when $Q$ is sparse or structured.
 
 ## When there is no closed form
@@ -181,7 +208,9 @@ Not every $f$ has a closed-form prox. Standard fall-backs:
 ## Definition and picture
 
 For a closed proper convex $f$ and $\lambda > 0$, the **Moreau envelope** is
+
 $$\widehat{f}_\lambda(x) \;=\; \min_{y \in \mathbb{R}^n}\left\{ f(y) + \frac{1}{2\lambda}\|y - x\|_2^2 \right\}.$$
+
 The envelope is the **value** (a scalar), the prox is the **arg min** (a vector). They are born from the same minimisation, hence the tight relation that follows.
 
 Back to Figure 1 right panel: purple and green are the Moreau envelopes of $f(x) = |x|$ at $\lambda = 0.5$ and $\lambda = 1.5$ — this is the Huber function. The kink at zero is rounded into a smooth arc, and **the minimum value and the minimiser are preserved**.
@@ -189,11 +218,15 @@ Back to Figure 1 right panel: purple and green are the Moreau envelopes of $f(x)
 ## Three key properties
 
 **(1) Same minimum value, same minimiser**.
+
 $$\inf_x f(x) = \inf_x \widehat{f}_\lambda(x), \qquad \arg\min f = \arg\min \widehat{f}_\lambda.$$
+
 **(2) $\widehat{f}_\lambda$ is convex and $\tfrac{1}{\lambda}$-smooth**. Even when $f$ is non-differentiable everywhere, $\widehat{f}_\lambda$ is everywhere differentiable with $\tfrac{1}{\lambda}$-Lipschitz gradient.
 
 **(3) Gradient identity (the workhorse)**:
+
 $$\nabla \widehat{f}_\lambda(x) \;=\; \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$
+
 **Why this matters**: it turns "do gradient descent on the envelope" into "compute one prox" — the algorithmic content of ISTA below.
 
 **Short derivation**: let $y^\star = \mathrm{prox}_{\lambda f}(x)$. First-order optimality gives $0 \in \partial f(y^\star) + \tfrac{1}{\lambda}(y^\star - x)$, i.e. $\tfrac{1}{\lambda}(x - y^\star) \in \partial f(y^\star)$. Differentiate $\widehat{f}_\lambda(x) = f(y^\star) + \tfrac{1}{2\lambda}\|y^\star - x\|^2$ in $x$ via the envelope theorem — the inner partial in $y$ vanishes by optimality, leaving $\nabla_x \tfrac{1}{2\lambda}\|y - x\|^2 \big|_{y = y^\star} = \tfrac{1}{\lambda}(x - y^\star)$.
@@ -201,7 +234,9 @@ $$\nabla \widehat{f}_\lambda(x) \;=\; \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{
 ## Moreau decomposition
 
 A useful duality identity: for a closed proper convex $f$ with conjugate $f^*$,
+
 $$v = \mathrm{prox}_{\lambda f}(v) + \lambda \cdot \mathrm{prox}_{f^* / \lambda}(v / \lambda).$$
+
 In practice: if $f$'s prox is hard but $f^*$'s prox is easy (or vice versa), compute on the easy side. The classic application is the nuclear-norm prox (an SVD soft-threshold) versus a spectral-norm projection.
 
 ---
@@ -211,7 +246,9 @@ In practice: if $f$'s prox is hard but $f^*$'s prox is easy (or vice versa), com
 ## Setup
 
 Consider the **composite optimisation** problem
+
 $$\min_{x \in \mathbb{R}^n} F(x) \;=\; g(x) + h(x),$$
+
 where
 
 - $g$ is convex and differentiable with $L$-Lipschitz gradient (the "smooth part"),
@@ -222,15 +259,19 @@ LASSO is the prototypical case: $g(x) = \tfrac{1}{2}\|Ax - y\|_2^2$ smooth, $h(x
 ## ISTA iteration
 
 **ISTA (Iterative Shrinkage-Thresholding Algorithm)** combines "one gradient step on $g$" with "one prox on $h$":
+
 $$
 \boxed{\;x_{k+1} \;=\; \mathrm{prox}_{\eta h}\!\bigl(x_k - \eta \nabla g(x_k)\bigr).\;}
 $$
+
 **Majorisation view**: replace $g$ by its quadratic upper bound $\widetilde{g}(x; x_k) = g(x_k) + \langle \nabla g(x_k), x - x_k \rangle + \tfrac{1}{2\eta}\|x - x_k\|_2^2$, then minimise $\widetilde{g}(x; x_k) + h(x)$ — this is exactly the prox above. ISTA is therefore an instance of MM (majorisation-minimisation).
 
 **Step-size**: $\eta \le 1 / L$ where $L$ is the Lipschitz constant of $\nabla g$. For LASSO, $L = \|A\|_2^2$ (squared largest singular value). Two or three power iterations suffice in practice.
 
 **Rate**: for convex $F$,
+
 $$F(x_k) - F^\star \le \frac{\|x_0 - x^\star\|_2^2}{2\eta k} = O(1 / k).$$
+
 ![Figure 3 - ISTA on a 2-D LASSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/proximal-operator/fig3_ista_iterations.png)
 
 Figure 3 runs ISTA on a 2-D LASSO. The grey contours are the objective; the orange line is the sparse axis ($x_2 = 0$). Starting from the purple star in the upper right, ISTA's iterates (blue polyline) march toward the optimum and **land exactly on $x_2 = 0$** — the sparsity-inducing effect of the soft-threshold made visible.
@@ -242,6 +283,7 @@ Figure 3 runs ISTA on a 2-D LASSO. The grey contours are the objective; the oran
 ## The algorithm
 
 ISTA's $O(1/k)$ rate is slow on large problems. **FISTA** (Beck & Teboulle, 2009) borrows Nesterov momentum: take the gradient at an extrapolated point, not at the current iterate.
+
 $$
 \begin{aligned}
 y_k &= x_k + \frac{t_{k-1} - 1}{t_k}\bigl(x_k - x_{k-1}\bigr), \\
@@ -249,6 +291,7 @@ x_{k+1} &= \mathrm{prox}_{\eta h}\!\bigl(y_k - \eta \nabla g(y_k)\bigr), \\
 t_{k+1} &= \frac{1 + \sqrt{1 + 4 t_k^2}}{2}.
 \end{aligned}
 $$
+
 Initialise $t_0 = 1$, $x_0 = x_{-1}$.
 
 **Rate**: $F(x_k) - F^\star \le \dfrac{2 \|x_0 - x^\star\|_2^2}{\eta (k + 1)^2} = O(1/k^2)$.
@@ -270,7 +313,9 @@ Figure 4 plots the suboptimality gap of ISTA vs FISTA on a 60-D LASSO in log-log
 ## Problem and the geometry of the solution
 
 LASSO:
+
 $$\min_x \;\tfrac{1}{2}\|Ax - y\|_2^2 + \mu \|x\|_1.$$
+
 **The key phenomenon**: as $\mu$ increases, more and more coefficients are pushed to **exactly** zero — this is what makes LASSO simultaneously a fitting and a feature-selection tool.
 
 ![Figure 5 - LASSO solution path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/proximal-operator/fig5_lasso_path.png)
@@ -327,7 +372,9 @@ def lasso_fista(A, y, mu, n_iter=500, tol=1e-8):
 ## Subgradient Method vs Proximal Method
 
 The subgradient method is the "raw" tool for non-smooth problems:
+
 $$x_{k+1} = x_k - \eta_k g_k, \quad g_k \in \partial F(x_k),$$
+
 but its rate is only $O(1/\sqrt{k})$ and it needs diminishing step-sizes $\eta_k = O(1/\sqrt{k})$ for convergence.
 
 **Comparison**:
@@ -346,8 +393,11 @@ but its rate is only $O(1/\sqrt{k})$ and it needs diminishing step-sizes $\eta_k
 ## ADMM in One Page
 
 When the problem has **two** non-smooth terms or **linear equality constraints**, ISTA / FISTA alone is not enough. **ADMM (Alternating Direction Method of Multipliers)** writes the problem as
+
 $$\min_{x, z}\; g(x) + h(z) \quad \text{s.t.}\quad Ax + Bz = c,$$
+
 and alternates:
+
 $$
 \begin{aligned}
 x_{k+1} &= \arg\min_x\; g(x) + \tfrac{\rho}{2}\|Ax + Bz_k - c + u_k\|_2^2, \\
@@ -355,6 +405,7 @@ z_{k+1} &= \arg\min_z\; h(z) + \tfrac{\rho}{2}\|Ax_{k+1} + Bz - c + u_k\|_2^2, \
 u_{k+1} &= u_k + Ax_{k+1} + Bz_{k+1} - c.
 \end{aligned}
 $$
+
 Each subproblem now contains **only one** non-smooth term, so each can be solved by a single prox.
 
 **LASSO via ADMM**: rewrite the constraint as $x = z$. The $x$-update is the closed-form ridge solution; the $z$-update is the soft-threshold. Clean.
@@ -399,23 +450,31 @@ Compute $\mathrm{prox}_{\lambda f}$ for each:
 (a) $f(x) = \|x\|_1$.
 
 **Solution**: by separability + 1-D subgradient analysis,
+
 $$\bigl[\mathrm{prox}_{\lambda f}(v)\bigr]_i = \mathrm{sign}(v_i)\max(|v_i| - \lambda, 0).$$
+
 (b) $f(x) = \iota_{B_\infty}(x)$ where $B_\infty = \{x : \|x\|_\infty \le 1\}$.
 
 **Solution**: project to the $\ell_\infty$ ball, coordinate-wise clip:
+
 $$\bigl[\mathrm{prox}_{\lambda f}(v)\bigr]_i = \min\bigl(\max(v_i, -1),\, 1\bigr).$$
+
 Note the result is independent of $\lambda$.
 
 (c) $f(x) = \tfrac{\beta}{3}\|x\|_3^3$ ($\beta > 0$).
 
 **Solution**: separable. For $v_i \ge 0$ the minimiser $x_i \ge 0$ solves $\beta x_i^2 + \tfrac{1}{\lambda}(x_i - v_i) = 0$, i.e. $\lambda \beta x_i^2 + x_i - v_i = 0$:
+
 $$\bigl[\mathrm{prox}_{\lambda f}(v)\bigr]_i = \mathrm{sign}(v_i) \cdot \frac{-1 + \sqrt{1 + 4\lambda\beta |v_i|}}{2\lambda\beta}.$$
+
 A rare case where an $\ell_p$ norm with $p > 2$ has a closed-form prox.
 
 ## Exercise 2: differentiability of the Moreau envelope
 
 Show that the Moreau envelope $\widehat{f}_\lambda$ of a closed proper convex $f$ is differentiable everywhere with
+
 $$\nabla \widehat{f}_\lambda(x) = \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$
+
 **Sketch**:
 
 1. The minimiser is unique, so $y(x) := \mathrm{prox}_{\lambda f}(x)$ is single-valued. By non-expansiveness, $y(x)$ is 1-Lipschitz in $x$.
@@ -431,6 +490,7 @@ Take a linear SVM $f(w) = \sum_i \max(0, 1 - y_i x_i^\top w) + \tfrac{\lambda}{2
 (a) Give a subgradient of $f$ at $w$.
 
 **Solution**: for hinge $\ell_i(w) = \max(0, 1 - y_i x_i^\top w)$,
+
 $$
 \partial \ell_i(w) =
 \begin{cases}
@@ -439,12 +499,15 @@ $$
 [-y_i x_i, 0], & y_i x_i^\top w = 1.
 \end{cases}
 $$
+
 Total: $\partial f(w) \ni \sum_i g_i + \lambda w$ for any $g_i \in \partial \ell_i(w)$.
 
 (b) Show that computing $\mathrm{prox}_{\alpha f}(0)$ is essentially as hard as solving the SVM itself.
 
 **Solution**: by definition,
+
 $$\mathrm{prox}_{\alpha f}(0) = \arg\min_w \;\sum_i \max(0, 1 - y_i x_i^\top w) + \tfrac{1}{2}\!\left(\lambda + \tfrac{1}{\alpha}\right)\|w\|_2^2.$$
+
 This is itself an SVM, just with regularisation strength $\lambda + 1/\alpha$ instead of $\lambda$. The takeaway: **don't try to compute the prox of an entire complicated objective** — proximal methods only buy you something when there is a non-smooth piece that can be cleanly split out.
 
 ## Exercise 4: projected gradient is a special case of ISTA
@@ -452,6 +515,7 @@ This is itself an SVM, just with regularisation strength $\lambda + 1/\alpha$ in
 Show that constrained optimisation $\min_{x \in C} g(x)$ ($g$ smooth, $C$ closed convex) is equivalent to the composite $\min_x g(x) + \iota_C(x)$, and write down the ISTA iteration.
 
 **Solution**: with $h = \iota_C$, $\mathrm{prox}_{\eta h}(v) = P_C(v)$. Plug into ISTA:
+
 $$x_{k+1} = P_C\!\bigl(x_k - \eta \nabla g(x_k)\bigr).$$
 
 This is exactly **projected gradient descent** — ISTA with $h = \iota_C$. Adding momentum gives accelerated projected gradient.

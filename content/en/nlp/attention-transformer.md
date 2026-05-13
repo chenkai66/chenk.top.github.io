@@ -70,12 +70,19 @@ At decoder step $t$, with previous decoder state $s_{t-1}$ and encoder states $h
 **Step 1 — score.** A small feed-forward network rates how relevant each encoder state is to the current decoder state.
 
 $$e_{tj} = \mathbf{v}^\top \tanh(W_s s_{t-1} + W_h h_j)$$
+
 **Step 2 — normalise.** A softmax over $j$ turns scores into a probability distribution that sums to 1.
+
 $$\alpha_{tj} = \frac{\exp(e_{tj})}{\sum_{k=1}^{n} \exp(e_{tk})}$$
+
 **Step 3 — combine.** The context vector is a convex combination of encoder states.
+
 $$c_t = \sum_{j=1}^{n} \alpha_{tj}\, h_j$$
+
 **Step 4 — decode.** The RNN consumes the context vector together with the previous output.
+
 $$s_t = \text{RNN}(s_{t-1}, [c_t; y_{t-1}])$$
+
 The figure above shows what these $\alpha_{tj}$ look like for a small English-to-French example. Each row sums to 1 and the bright cells follow the linguistic alignment (Le ↔ The, chat ↔ cat, tapis ↔ mat). Crucially, **nobody told the model these alignments**. They emerged from training to minimise translation loss. Suddenly, attention was not just a performance trick; it was an interpretable, linguistically meaningful object.
 
 ---
@@ -114,7 +121,9 @@ To represent **it** correctly, the model must know **it** refers to the animal, 
 ### The Query, Key, Value abstraction
 
 For each token embedding $x_i$ we learn three linear projections:
+
 $$q_i = W_Q\, x_i, \qquad k_i = W_K\, x_i, \qquad v_i = W_V\, x_i$$
+
 The roles parallel a dictionary lookup:
 
 - **Query** $q_i$: "What am I looking for?" — the question this token is asking.
@@ -128,7 +137,9 @@ When we compute attention for position $i$, we score $q_i$ against every key $k_
 ![Scaled dot-product attention pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig2_qkv_computation.png)
 
 Stack all queries, keys, and values into matrices $Q, K, V \in \mathbb{R}^{n \times d_k}$. Then:
+
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V$$
+
 Walk through the four panels above:
 
 1. **Compatibility scores** $Q K^\top$ produce an $n \times n$ matrix where entry $(i, j)$ is the dot product $q_i \cdot k_j$. Larger means "more similar".
@@ -139,7 +150,9 @@ Walk through the four panels above:
 ### Why divide by $\sqrt{d_k}$?
 
 This is the most-asked detail in interviews. Suppose the components of $q$ and $k$ are independent with mean 0 and variance 1. Then:
+
 $$\text{Var}(q \cdot k) = \text{Var}\!\left(\sum_{i=1}^{d_k} q_i k_i\right) = d_k$$
+
 For $d_k = 64$, dot products end up with standard deviation 8. Pumping numbers of that scale into a softmax pushes the distribution toward a one-hot vector, where the gradient with respect to all but one position is essentially zero. Training stalls.
 
 Dividing by $\sqrt{d_k}$ rescales the variance back to 1, keeping softmax in the regime where it has useful gradients. It is one line of code with an outsized effect on training stability.
@@ -153,9 +166,13 @@ Dividing by $\sqrt{d_k}$ rescales the variance back to 1, keeping softmax in the
 A single attention operation produces one weighted view of the sequence. But language has many simultaneous structures: subject-verb agreement, coreference, dependency syntax, semantic similarity, positional adjacency. One head cannot serve all of them.
 
 Multi-head attention runs $h$ attention operations in parallel, each with its own learned projections:
+
 $$\text{head}_i = \text{Attention}(Q W_i^Q, K W_i^K, V W_i^V)$$
+
 The outputs are concatenated and passed through a final linear layer:
+
 $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\, W^O$$
+
 In the original paper, $d_{\text{model}} = 512$ and $h = 8$, so each head has $d_k = d_v = 512 / 8 = 64$. The total compute per layer is the same as one big head, but the model can specialise: probing studies have shown different heads end up tracking different relationships, including syntactic dependencies and coreference.
 
 ### Causal masking
@@ -163,7 +180,9 @@ In the original paper, $d_{\text{model}} = 512$ and $h = 8$, so each head has $d
 ![Causal mask visualisation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig5_causal_mask.png)
 
 In an autoregressive decoder we cannot let position $i$ attend to positions $j > i$ during training, or the model would simply copy the right answer. We enforce this with an **additive mask**:
+
 $$\text{MaskedAttention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}} + M\right) V$$
+
 with $M_{ij} = 0$ when $j \le i$ (allowed) and $M_{ij} = -\infty$ when $j > i$ (blocked). Adding $-\infty$ before softmax sends those entries to exactly zero in the resulting weights — the right column of the figure shows the upper triangle wiped out perfectly.
 
 This single trick is what lets GPT-style models train on the entire sequence in one forward pass while behaving, at inference time, exactly as if they were generating left-to-right.
@@ -181,7 +200,9 @@ We fix this by adding a **positional encoding** $\text{PE}(\text{pos}) \in \math
 ### Sinusoidal encoding
 
 The original Transformer uses a fixed (non-learned) sinusoidal scheme:
+
 $$PE_{(\text{pos},\, 2i)} = \sin\!\left(\frac{\text{pos}}{10000^{2i / d_{\text{model}}}}\right), \qquad PE_{(\text{pos},\, 2i+1)} = \cos\!\left(\frac{\text{pos}}{10000^{2i / d_{\text{model}}}}\right)$$
+
 The left panel above shows the encoding matrix as a heatmap. The right panel plots a few individual dimensions: low-index dimensions oscillate fast (fine-grained position), high-index dimensions oscillate very slowly (coarse position). The combination gives every position a unique fingerprint, and because $\sin$ and $\cos$ obey simple linear identities, the model can in principle learn relative offsets like "three positions ahead".
 
 ### Learned positional embeddings
@@ -208,8 +229,11 @@ Each of the $N$ encoder layers contains two sublayers:
 
 1. **Multi-head self-attention** over the source sequence.
 2. **Position-wise feed-forward network** applied independently to every position.
+
 $$\text{FFN}(x) = \max(0,\, x W_1 + b_1)\, W_2 + b_2$$
+
 The FFN expands to $d_{\text{ff}} = 4 \cdot d_{\text{model}}$ (typically 2048) and projects back. It is where most parameters live and where token-level non-linear processing happens. Each sublayer is wrapped as:
+
 $$\text{output} = \text{LayerNorm}(x + \text{Sublayer}(x))$$
 
 The residual connection lets gradients flow directly from any layer to any earlier layer, which is critical at depth 6, 12, 24, 96.

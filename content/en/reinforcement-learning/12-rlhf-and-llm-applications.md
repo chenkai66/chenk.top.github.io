@@ -52,7 +52,9 @@ Pretraining gives you a model that understands the *distribution* of internet te
 ### Stage 1 — Supervised Fine-Tuning (SFT)
 
 Take the pretrained base $\pi_{\text{base}}$, collect a small set of high-quality `(prompt, response)` demonstrations written by humans (InstructGPT used about 13K), and minimise standard next-token cross-entropy:
+
 $$\mathcal{L}_{\text{SFT}}(\theta) \;=\; -\,\mathbb{E}_{(x,y)\sim\mathcal{D}_{\text{demo}}}\sum_t \log \pi_\theta(y_t \mid x, y_{<t}).$$
+
 This stage is cheap, well understood, and absolutely necessary. It pulls the policy from "complete the next token of arbitrary internet text" to "respond helpfully to instructions". Most importantly, it produces $\pi_{\text{SFT}}$, which becomes the **reference policy** $\pi_{\text{ref}}$ that the next two stages anchor against. Everything after this point is a correction term on top of SFT.
 
 ### Stage 2 — Reward Model Training
@@ -60,13 +62,17 @@ This stage is cheap, well understood, and absolutely necessary. It pulls the pol
 Demonstrations are expensive — humans have to *write* the ideal answer. Preferences are cheap: humans only have to *compare* two model outputs and say which is better. Stage 2 trades demonstration quality for comparison quantity (InstructGPT collected about 33K comparisons).
 
 For each prompt $x$, sample two completions $y_A, y_B \sim \pi_{\text{SFT}}$, ask annotators to pick the winner, label them $(y_w, y_l)$ with $y_w \succ y_l$, and train a reward model $r_\phi(x, y)$ — usually the SFT model with the language head replaced by a scalar — to assign higher score to $y_w$ via the **Bradley-Terry** loss:
+
 $$\mathcal{L}_{\text{RM}}(\phi) \;=\; -\,\mathbb{E}_{(x,y_w,y_l)}\!\left[\log \sigma\!\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right)\right].$$
+
 This is exactly the preference-learning objective from [Part 7](/en/reinforcement-learning/07-imitation-learning/) — RLHF is, structurally, **inverse RL on language models**. A counter-intuitive empirical finding from InstructGPT: a **6B reward model is more stable** than a 175B one for downstream RL. The reward model only has to be good enough that PPO does not drift outside its support; if it is too capable, PPO finds adversarial inputs that exploit its blind spots.
 
 ### Stage 3 — PPO with a KL Anchor
 
 Now the actual reinforcement learning. We treat $r_\phi$ as the environment reward and optimise the policy to maximise expected reward — but with a **KL penalty** keeping us close to $\pi_{\text{ref}}$:
+
 $$\max_{\pi_\theta}\; \mathbb{E}_{x\sim\mathcal{D},\,y\sim\pi_\theta(\cdot|x)}\!\left[\,r_\phi(x, y) \,-\, \beta\,\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}\,\right].$$
+
 The bracketed term is the per-token reward used by PPO; the second piece is the KL anchor. Without it, the policy will eventually find tokens that score high under $r_\phi$ but read like word salad — that is reward hacking, and we will return to it in §6.
 
 PPO is the algorithm of choice for three reasons familiar from [Part 6](/en/reinforcement-learning/06-ppo-and-trpo/):
@@ -86,7 +92,9 @@ Each stage compresses the previous artifact into a more compact signal. SFT comp
 ![Bradley-Terry preference model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig5_bradley_terry.png)
 
 If you ask a hundred annotators to rate completions on a 1–10 scale, you will find that one annotator's 7 is another's 4. Absolute scores are non-stationary across people, across days, and even across consecutive prompts (calibration drift). The Bradley-Terry model — proposed in 1952 for ranking sports teams — assumes there is a latent score $s(y)$ per item, and that pairwise outcomes follow:
+
 $$P(y_A \succ y_B) \;=\; \frac{e^{s(y_A)}}{e^{s(y_A)} + e^{s(y_B)}} \;=\; \sigma\!\big(s(y_A) - s(y_B)\big).$$
+
 Two consequences shape every modern RLHF system:
 
 - **The reward is identifiable only up to a constant.** Adding a constant to all scores leaves all preferences unchanged. The reward model's absolute scale is meaningless; only differences matter. This is also why the partition function $Z(x)$ vanishes in the DPO derivation below.
@@ -130,15 +138,25 @@ The single most influential RLHF result of the post-InstructGPT era is **Direct 
 ### The Derivation
 
 Start from the KL-regularised RL objective:
+
 $$\max_\pi\; \mathbb{E}_{x,y\sim\pi}\big[r(x,y)\big] \,-\, \beta\, D_{\mathrm{KL}}\!\big[\pi(\cdot|x)\,\|\,\pi_{\text{ref}}(\cdot|x)\big].$$
+
 This is a constrained convex problem in the per-prompt distribution $\pi(\cdot|x)$. Lagrangian calculus (or just guessing and checking) gives a closed-form optimum:
+
 $$\pi^*(y|x) \;=\; \frac{1}{Z(x)}\,\pi_{\text{ref}}(y|x)\,\exp\!\left(\frac{r(x,y)}{\beta}\right),$$
+
 where $Z(x)$ is the partition function over $y$. Now invert this to express the reward in terms of the optimal policy:
+
 $$r(x,y) \;=\; \beta\,\log\frac{\pi^*(y|x)}{\pi_{\text{ref}}(y|x)} \;+\; \beta\,\log Z(x).$$
+
 The crucial observation: **plug this expression for $r$ into the Bradley-Terry preference likelihood**:
+
 $$P(y_w \succ y_l \mid x) \;=\; \sigma\!\big(r(x,y_w) - r(x,y_l)\big),$$
+
 and the $\beta\log Z(x)$ terms cancel — they depend only on $x$, not on $y_w$ vs $y_l$. What is left is a loss that depends only on $\pi_\theta$, $\pi_{\text{ref}}$, and the preference data:
+
 $$\boxed{\;\mathcal{L}_{\text{DPO}}(\theta) \;=\; -\,\mathbb{E}_{(x,y_w,y_l)}\!\left[\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} \,-\, \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\right)\right].\;}$$
+
 This is just cross-entropy on a sigmoid of two log-likelihood ratios. No rollouts. No value head. No reward model. No PPO clipping. **Two forward passes, one backward pass, done.**
 
 ### What DPO Actually Buys You

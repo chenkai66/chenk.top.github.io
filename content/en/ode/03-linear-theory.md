@@ -99,7 +99,9 @@ For $n = 2$: $W(y_1, y_2) = y_1 y_2' - y_2 y_1'$.
 **The test.** If $W(x_0) \neq 0$ at *any one point* $x_0$ in the interval, the solutions are linearly independent (and Abel's identity then forces $W \neq 0$ everywhere on the interval).
 
 **Worked example.** Take $y_1 = \sin x, y_2 = \cos x$:
+
 $$W = \sin x \cdot (-\sin x) - \cos x \cdot \cos x = -1 \neq 0.$$
+
 Independent everywhere — they form a basis for solutions of $y'' + y = 0$.
 
 **A dependent example.** $y_1 = \sin x, y_2 = 2\sin x$ gives $W = 2\sin x\cos x - 2\sin x\cos x = 0$ identically. They are scalar multiples; the dimension of the span is one, not two.
@@ -126,17 +128,23 @@ Every root $r$ contributes a building block. The map *roots $\to$ basis solution
 ### 3.2 The three cases
 
 **Case 1: Distinct real roots $r_1, \dots, r_n$.**
+
 $$y \;=\; c_1 e^{r_1 x} + c_2 e^{r_2 x} + \cdots + c_n e^{r_n x}.$$
+
 *Example.* $y'' - 5y' + 6y = 0$ gives $(r-2)(r-3) = 0$, so $y = c_1 e^{2x} + c_2 e^{3x}$.
 
 **Case 2: Repeated root $r$ of multiplicity $k$.** A multiplicity-$k$ root only gives one exponential, but the missing $k-1$ basis functions come from multiplying by $x$:
+
 $$y \;=\; (c_1 + c_2 x + c_3 x^2 + \cdots + c_k x^{k-1})\,e^{rx}.$$
+
 The reason: when $P(r)$ has a double root, the operator $L$ factors as $(D - r)^2 \cdot Q(D)$, and $(D-r)^2[x e^{rx}] = 0$ by direct calculation.
 
 *Example.* $y'' - 4y' + 4y = 0$ gives $(r-2)^2 = 0$, so $y = (c_1 + c_2 x)e^{2x}$.
 
 **Case 3: Complex conjugate pair $r = \alpha \pm i\beta$.** Real coefficients force complex roots to come in conjugate pairs. The real-valued basis is
+
 $$y \;=\; e^{\alpha x}\bigl(c_1 \cos\beta x + c_2 \sin\beta x\bigr).$$
+
 *Why this works.* The complex pair contributes $C_1 e^{(\alpha+i\beta)x} + C_2 e^{(\alpha-i\beta)x}$, and Euler's formula $e^{i\beta x} = \cos\beta x + i\sin\beta x$ rearranges this into the real form. Concretely, $\alpha$ controls the exponential envelope and $\beta$ controls the oscillation rate.
 
 *Example.* $y'' + 2y' + 5y = 0$ gives $r = -1 \pm 2i$, so $y = e^{-x}(c_1\cos 2x + c_2\sin 2x)$ — a sinusoid trapped inside a shrinking exponential envelope.

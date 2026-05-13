@@ -52,6 +52,7 @@ Articles 08 (Lagrangian duality), 09 (interior-point) for the LP/QP solver menti
 ### A.1 The integer programming problem
 
 A general **mixed-integer linear program** (MILP) is
+
 $$
 \begin{aligned}
 \min_{x, z} \quad & c^\top x + d^\top z \\
@@ -59,6 +60,7 @@ $$
 & x \in \mathbb{R}^n_+, \quad z \in \mathbb{Z}^p_+.
 \end{aligned}
 $$
+
 The integer variables $z$ make this NP-hard: even feasibility of pure 0-1 integer programs is NP-complete (it encodes 3SAT). The continuous variables $x$ can model production levels, prices, etc., while integer variables model decisions ("open this facility?", "use this route?").
 
 The naive approach — enumerate all $2^p$ values of $z$, solve an LP for each — is hopeless for $p > 30$. Branch-and-bound is what makes practical MILPs solvable.
@@ -66,9 +68,11 @@ The naive approach — enumerate all $2^p$ values of $z$, solve an LP for each �
 ### A.2 LP relaxation
 
 Drop the integrality constraint to get the **LP relaxation**:
+
 $$
 \min \, c^\top x + d^\top z \quad \text{s.t.} \quad A x + B z \leq b, \ x, z \geq 0.
 $$
+
 This LP gives a **lower bound** on the MILP optimum (any MILP-feasible solution is also LP-feasible). Solving it in polynomial time (interior-point methods, article 09) is the building block of all serious MILP solvers.
 
 If the LP relaxation happens to have integer-valued $z^\star_{LP}$, we are done. Otherwise, pick a fractional $z^\star_{LP, j} \notin \mathbb{Z}$ and **branch**.
@@ -107,9 +111,11 @@ The figure above traces a small B&B run with two integer variables. The root LP 
 A **cutting plane** is an inequality $\alpha^\top z \leq \beta$ that is satisfied by every integer-feasible $z$ but violated by the current LP relaxation optimum. Adding cuts tightens the LP relaxation, raising the lower bound and pruning more aggressively.
 
 **Gomory cut**. From the simplex tableau of the LP optimum, if a basic variable $z_j$ has value $\bar z_j = \lfloor \bar z_j \rfloor + f_j$ with $0 < f_j < 1$, then
+
 $$
 \sum_k \mathrm{frac}(\bar a_{jk}) \cdot z_k \geq f_j
 $$
+
 holds for every integer $z$ but not for the fractional LP optimum. (Here $\bar a_{jk}$ are the tableau entries and $\mathrm{frac}(x) = x - \lfloor x \rfloor$.)
 
 Modern MILP solvers (Gurobi, CPLEX, SCIP) use 10+ kinds of cuts: Gomory, mixed-integer rounding, lift-and-project, clique cuts, flow cover cuts. The modern algorithm is **branch-and-cut**: at each node, try to add violated cuts before branching.
@@ -153,9 +159,11 @@ The four families above are the standard cuts in the metaheuristic literature. T
 **Genetic algorithm (GA)**: maintain a population of solutions; combine pairs via crossover and mutation; keep the best. Handles binary and categorical decision variables naturally. Notoriously sensitive to operator design.
 
 **Particle swarm (PSO)**: $N$ particles each with position $x_i$ and velocity $v_i$ in continuous space; velocity updates pull each particle toward the swarm-best and its own best:
+
 $$
 v_i \leftarrow w v_i + c_1 r_1 (p_i^{\text{best}} - x_i) + c_2 r_2 (p^{\text{global best}} - x_i).
 $$
+
 Strong on continuous problems with multiple basins.
 
 **Spiral optimization (SOA)**: similar to PSO but each particle follows a logarithmic spiral toward the current incumbent, with the spiral's radius shrinking geometrically. We treat this in detail in the case study below.

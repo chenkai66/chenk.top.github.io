@@ -90,6 +90,7 @@ Before feeding a knowledge graph into a recommendation model, we must convert en
 **TransE** — the simplest and most intuitive method — says: for any valid triple $(h, r, t)$, the vector equation $\mathbf{h} + \mathbf{r} \approx \mathbf{t}$ should hold.
 
 $$\mathcal{L} = \sum_{(h,r,t) \in \mathcal{G}}\; \sum_{(h',r,t') \notin \mathcal{G}} \bigl[\gamma + \|\mathbf{h} + \mathbf{r} - \mathbf{t}\|_2 - \|\mathbf{h}' + \mathbf{r} - \mathbf{t}'\|_2\bigr]_+$$
+
 **Plain English.** "Push valid triples close together ($\mathbf{h} + \mathbf{r} \approx \mathbf{t}$) and invalid triples far apart. The margin $\gamma$ controls how much separation you require." The right panel of the figure above shows this: the green dot (valid tail) is pulled inside the margin circle, while gray negatives are pushed outside.
 
 | Method | Scoring function | Best for |
@@ -232,13 +233,19 @@ Given user $u$ with historical items $V_u = \{v_1, v_2, \ldots\}$:
 4. **Aggregate:** Compute the user's enhanced embedding by attention-weighting entities at each hop.
 
 At hop $h$, the relevance of a tail entity $t$ to candidate item $v$ is:
+
 $$p_i^h = \text{softmax}(\mathbf{v}^T \mathbf{R}_i\, \mathbf{t})$$
+
 **Plain English.** "How relevant is this KG entity to the item we are scoring? Use the relation matrix $\mathbf{R}$ to measure compatibility."
 
 The user's preference vector at hop $h$:
+
 $$\mathbf{o}_u^h = \sum_{(h,r,t) \in \mathcal{S}_u^h} p_i^h\, \mathbf{t}$$
+
 The final user embedding combines all hops:
+
 $$\mathbf{u} = \sum_{h=0}^{H} \alpha_h\, \mathbf{o}_u^h$$
+
 **Walkthrough.** A user watched *The Dark Knight*:
 
 - Hop 0: {Dark Knight}
@@ -356,9 +363,13 @@ For an item $i$ with KG neighbors $\mathcal{N}_i$, KGCN:
 4. **Combines** the aggregate with the item's own embedding.
 
 At layer $l$:
+
 $$\mathbf{e}_{\mathcal{N}_i}^{(l)} = \sum_{(r,e) \in \mathcal{N}_i} \pi_r(i, e)\; \mathbf{e}_e^{(l-1)}$$
+
 where $\pi_r(i, e)$ is a relation-aware attention weight. The item embedding then updates as:
+
 $$\mathbf{e}_i^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}[\mathbf{e}_i^{(l-1)} \,\|\, \mathbf{e}_{\mathcal{N}_i}^{(l)}] + \mathbf{b}^{(l)}\bigr)$$
+
 **Plain English.** "Look at what is connected to this item in the KG (actors, directors, genres). Weight each connection by how important that relation type is. Blend the neighborhood signal with the item's own embedding."
 
 ### Implementation: KGCN
@@ -455,21 +466,29 @@ class KGCN(nn.Module):
 ### What KGAT Adds
 
 KGAT (Wang et al., KDD 2019) goes further than KGCN by building a **Collaborative Knowledge Graph (CKG)** that merges user-item interactions with the knowledge graph into one unified graph. It then applies attention-based aggregation over this combined structure.
+
 $$\mathcal{G}_\text{CKG} = \underbrace{\{(u, \text{interact}, i)\}}_{\text{user-item edges}} \;\cup\; \underbrace{\{(h, r, t)\}}_{\text{KG edges}}$$
+
 **Why this matters.** In KGCN, user and item embeddings live in separate spaces. In KGAT, they are all nodes in the same graph, so collaborative signals and semantic signals propagate together.
 
 ### Attention Mechanism
 
 For an entity $e$ (which may be a user, item, or attribute), KGAT computes attention over neighbors:
+
 $$\pi(e, r, e') = \frac{\exp\!\bigl(\text{LeakyReLU}(\mathbf{a}^T [\mathbf{e}_e \,\|\, \mathbf{e}_r \,\|\, \mathbf{e}_{e'}])\bigr)}{\sum_{(r'', e'') \in \mathcal{N}(e)} \exp\!\bigl(\text{LeakyReLU}(\mathbf{a}^T [\mathbf{e}_e \,\|\, \mathbf{e}_{r''} \,\|\, \mathbf{e}_{e''}])\bigr)}$$
+
 **Plain English.** "For each neighbor, concatenate the entity, relation, and neighbor embeddings, run them through a learned scoring function, and normalize with softmax. This tells the model which connections matter most." The figure above visualizes this: edges to *Nolan* and *DiCaprio* are thick (high attention) while the edge to *2010* (release year) is thin.
 
 The entity update:
+
 $$\mathbf{e}_e^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}[\mathbf{e}_e^{(l-1)} \,\|\, \mathbf{e}_{\mathcal{N}(e)}^{(l-1)}] + \mathbf{b}^{(l)}\bigr)$$
+
 ### Multi-Head Attention
 
 Like GAT (Part 7), KGAT uses multiple attention heads to capture different aspects of the relationships:
+
 $$\mathbf{e}_{\mathcal{N}(e)} = \big\|_{k=1}^{K}\; \sum_{(r,e') \in \mathcal{N}(e)} \pi^{(k)}(e, r, e')\, \mathbf{e}_{e'}^{(k)}$$
+
 ### Implementation: KGAT
 
 ```python
@@ -559,7 +578,9 @@ class KGAT(nn.Module):
 ### The Multi-Signal Approach
 
 CKE (Zhang et al., KDD 2016) takes a different philosophy: instead of propagating through the graph at inference time, it **pre-learns** embeddings from three complementary sources and combines them additively.
+
 $$\mathbf{i} = \mathbf{i}_\text{CF} + \mathbf{i}_\text{KG} + \mathbf{i}_\text{text}$$
+
 | Component | Source | Learning method |
 |---|---|---|
 | $\mathbf{i}_\text{CF}$ | User-item interactions | Matrix factorization |
@@ -575,6 +596,7 @@ $$\mathbf{i} = \mathbf{i}_\text{CF} + \mathbf{i}_\text{KG} + \mathbf{i}_\text{te
 ### Joint Training
 
 CKE trains all three components together with a combined loss:
+
 $$\mathcal{L} = \mathcal{L}_\text{CF} + \lambda_1 \mathcal{L}_\text{KG} + \lambda_2 \mathcal{L}_\text{text} + \lambda_3 \mathcal{L}_\text{reg}$$
 
 The CF loss is standard matrix factorization with $\hat{r}_{ui} = \mathbf{u}^T \mathbf{i}$. The KG loss uses TransR: push valid triples together and invalid triples apart.

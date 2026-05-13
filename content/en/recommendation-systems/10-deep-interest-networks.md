@@ -48,6 +48,7 @@ Consider a user who has clicked five action movies, three rom-coms, two document
 Formally, the traditional approach computes a fixed user vector:
 
 $$\mathbf{v}_u = \frac{1}{T} \sum_{j=1}^{T} \mathbf{e}_{b_j}$$
+
 where $\mathbf{e}_{b_j}$ is the embedding of behavior $b_j$. The vector ignores the candidate entirely. Whether you're scoring an action movie or a documentary, the user looks the same.
 
 ### The attention fix
@@ -55,9 +56,13 @@ where $\mathbf{e}_{b_j}$ is the embedding of behavior $b_j$. The vector ignores 
 ![DIN attention weights — same user, different weights for different candidates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/10-deep-interest-networks/fig1_attention_weights.png)
 
 Attention computes a relevance score $\alpha_j$ for each historical behavior $b_j$ with respect to the candidate item $i$:
+
 $$\alpha_j = \text{score}(\mathbf{e}_{b_j}, \mathbf{e}_i)$$
+
 The user representation becomes a **weighted** sum:
+
 $$\mathbf{v}_u(i) = \sum_{j=1}^{T} \alpha_j \, \mathbf{e}_{b_j}$$
+
 Now $\mathbf{v}_u(i)$ depends on $i$. Score an action movie and the action clicks light up. Score a rom-com and the rom-com clicks take over. Same history, different reading. The figure above shows exactly this: ten clicks from one user, two candidates, two completely different attention profiles. The model didn't change. The question did.
 
 ### Choosing a scoring function
@@ -86,7 +91,9 @@ Given a user's behavior sequence $[b_1, b_2, \ldots, b_T]$ and a candidate item 
 4. **Concatenate** with other features and pass through an MLP for CTR prediction.
 
 The activation unit's score is:
+
 $$\text{score}(\mathbf{e}_{b_j}, \mathbf{e}_i) = \text{MLP}\big([\,\mathbf{e}_{b_j};\ \mathbf{e}_i;\ \mathbf{e}_{b_j} - \mathbf{e}_i;\ \mathbf{e}_{b_j} \odot \mathbf{e}_i\,]\big)$$
+
 A subtle but important detail: **DIN does not apply softmax** in the original paper. The authors found that letting weights sum to anything (not just 1) preserves the *intensity* of interest — a user with many strong matches should produce a larger user vector than a user with weak matches. We'll show both forms in the code.
 
 ### Implementation
@@ -184,7 +191,9 @@ print(logits.shape, attn.shape)   # torch.Size([32]) torch.Size([32, 20])
 ### Training and the Alibaba production tricks
 
 DIN is trained with binary cross-entropy on logits:
+
 $$\mathcal{L} = -\frac{1}{N} \sum_{i=1}^{N} \big[ y_i \log \sigma(\hat{y}_i) + (1 - y_i) \log(1 - \sigma(\hat{y}_i)) \big]$$
+
 Three tricks the paper credits with most of the lift:
 
 - **Dice activation** — a data-adaptive PReLU that shifts its inflection point with the batch distribution (Section 7).
@@ -206,17 +215,23 @@ The figure tells the story DIN cannot. A user's "interests" aren't a single vect
 ![DIEN: GRU extracts interest at each time step, AUGRU evolves it toward the candidate](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/10-deep-interest-networks/fig2_dien_architecture.png)
 
 **Layer 1 — Interest Extractor (GRU).** A standard GRU over the behavior sequence:
+
 $$\mathbf{h}_t = \text{GRU}(\mathbf{e}_{b_t}, \mathbf{h}_{t-1})$$
+
 Each hidden state $\mathbf{h}_t$ is the user's interest at time $t$.
 
 **Layer 2 — Interest Evolution (AUGRU).** A modified GRU whose update gate is multiplied by an attention weight $a_t$ — the relevance of $\mathbf{h}_t$ to the candidate:
+
 $$\tilde{u}_t = a_t \cdot u_t \qquad \mathbf{h}'_t = (1 - \tilde{u}_t) \odot \mathbf{h}'_{t-1} + \tilde{u}_t \odot \tilde{\mathbf{h}}_t$$
+
 Read it as: when a past interest is highly relevant to the candidate, let it drive the evolution. When it's irrelevant, freeze the state — don't let noise wash out the signal. The arrows in the figure are drawn with thickness proportional to $a_t$; thick arrows pump information forward, thin arrows leave the previous state mostly unchanged.
 
 ### The auxiliary loss trick
 
 A bare GRU can learn lazy hidden states that minimize the CTR loss without actually representing interest. DIEN solves this with an **auxiliary loss** that forces $\mathbf{h}_t$ to predict the *next* behavior $b_{t+1}$:
+
 $$\mathcal{L}_{\text{aux}} = -\frac{1}{T-1}\sum_{t=1}^{T-1} \Big[ \log \sigma(\mathbf{h}_t^\top \mathbf{e}_{b_{t+1}}^+) + \log\big(1 - \sigma(\mathbf{h}_t^\top \mathbf{e}_{b_{t+1}}^-)\big)\Big]$$
+
 Plain English: if the hidden state at time $t$ can predict what the user clicks at time $t+1$ (positive sample) and *can't* predict a randomly sampled negative, then it has captured something real.
 
 The total objective is $\mathcal{L} = \mathcal{L}_{\text{ctr}} + \lambda \cdot \mathcal{L}_{\text{aux}}$ with $\lambda$ typically in $[0.1, 1.0]$.
@@ -347,7 +362,9 @@ By 2019 the Transformer had eaten NLP. Alibaba's Taobao team asked: what if we j
 **BST** (Chen et al., DLP-KDD'19) treats the behavior sequence + the candidate item as a single token sequence and runs a Transformer encoder over it. Multi-head self-attention lets every behavior attend to every other behavior *and* to the candidate. Position embeddings encode time order.
 
 The whole architecture is essentially:
+
 $$\mathbf{Z} = \text{TransformerBlock}\big(\,[\mathbf{e}_{b_1} + \mathbf{p}_1,\, \ldots,\, \mathbf{e}_{b_T} + \mathbf{p}_T,\, \mathbf{e}_i + \mathbf{p}_{T+1}]\,\big)$$
+
 Then concat $\mathbf{Z}$ with side features and feed an MLP. The reported lift on Taobao logs over a WDL baseline was ~7.5% AUC at the time. Notice what BST is *not* doing: it doesn't have an explicit "target attention" step. It doesn't need one. Self-attention over `[history, candidate]` already gives the candidate token direct access to every behavior — and, less obviously, gives every behavior direct access to every other behavior, which DIN never modeled.
 
 ```python
@@ -407,7 +424,9 @@ A reasonable rule of thumb: start with DIN. It captures 80% of the lift with 20%
 ![PReLU vs Dice — Dice shifts its inflection point with the batch distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/10-deep-interest-networks/fig7_activation_functions.png)
 
 PReLU has a hard switch at $x = 0$ — fine if your activations are centered there, awkward if the batch distribution is shifted. Dice (Data-adaptive Activation) replaces the hard switch with a smooth sigmoid centered on the batch's running mean:
+
 $$\text{Dice}(x) = p(x) \cdot x + (1 - p(x)) \cdot \alpha x, \qquad p(x) = \sigma\!\left(\frac{x - \mathbb{E}[x]}{\sqrt{\text{Var}[x] + \epsilon}}\right)$$
+
 The transition point now follows the data. The right panel of the figure shows three batches with different means — Dice's inflection rides along, while PReLU's stays nailed to zero. Different layers, different distributions, different effective activations — for free.
 
 ```python
@@ -426,6 +445,7 @@ class Dice(nn.Module):
 ### Mini-batch aware regularization
 
 L2-regularizing 100M item embeddings every step is wasteful — the gradient hits ~99.99% zeros. Restrict the regularization to embeddings that appear in this batch, scaled by their batch frequency:
+
 $$\mathcal{L}_{\text{reg}} = \frac{\lambda}{2} \sum_{j \in \mathcal{B}} \frac{n_{j,\mathcal{B}}}{n_j} \|\mathbf{e}_j\|^2$$
 
 where $n_{j,\mathcal{B}}$ is item $j$'s count in batch $\mathcal{B}$ and $n_j$ is its global count. Same effect, orders of magnitude cheaper.

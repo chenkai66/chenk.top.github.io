@@ -239,9 +239,11 @@ Concretely, RND keeps two networks (right half of the architecture figure above)
 - A **predictor network $\hat f$**, trained by gradient descent to minimise $\| \hat f(s) - f(s) \|^2$ on observed states.
 
 Intrinsic reward is the predictor's residual:
+
 $$
 r^{\text{int}}(s) = \bigl\| \hat f(s) - f(s) \bigr\|^2.
 $$
+
 For a state the predictor has seen many times, training has driven the loss to near zero — low reward. For a novel state, the predictor has never been trained there, so its output is random and the residual is large — high reward. The frozen target acts like a deterministic hash function: structurally similar states map to similar targets, so generalisation comes for free.
 
 The same trick neutralises the noisy-TV problem. Random static frames are visually different but **structurally similar** in the eyes of a random CNN; the predictor learns to match them after a handful of updates and the reward decays to zero. ICM and RND therefore handle "noisy TV" by completely different mechanisms — ICM by filtering the *features*, RND by exploiting the *consistency of a random map*.
@@ -313,6 +315,7 @@ RND has a quiet assumption: once a state's predictor error has been driven to ze
 - **Backtracking.** After exploring the right half of a level, the agent must return through the start and head left. The start has been visited thousands of times; RND sees no reason to ever go through it again.
 
 **Never Give Up (NGU)** (Badia et al., ICLR 2020) repairs this by combining two novelty signals:
+
 $$
 r^{\text{int}}_t = r^{\text{episodic}}_t \cdot \min\bigl(r^{\text{lifetime}}_t,\; L\bigr).
 $$

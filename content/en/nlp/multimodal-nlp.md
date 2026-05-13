@@ -64,6 +64,7 @@ CLIP (Radford et al., OpenAI 2021) trains two encoders side by side. An **image 
 Concretely, with $N$ image–text pairs in a batch and similarity matrix $s_{ij} = (I_i \cdot T_j)/\tau$, CLIP minimises a symmetric InfoNCE loss:
 
 $$\mathcal{L} = -\frac{1}{2N}\sum_{i=1}^{N}\Bigg[\log\frac{e^{s_{ii}}}{\sum_{j} e^{s_{ij}}} + \log\frac{e^{s_{ii}}}{\sum_{j} e^{s_{ji}}}\Bigg].$$
+
 The two terms are the image-to-text and text-to-image classification losses — softmax over the $N$ candidates in the batch, with the diagonal as the correct class. The temperature $\tau \approx 0.07$ is a *learnable* scalar; it is initialised to $\log(1/\tau) = \log 100$ and clipped to prevent collapse. Larger batches give a harder negative pool: CLIP's 400 M-pair training used batches of 32 768 across hundreds of GPUs.
 
 Three properties fall out of this objective:
@@ -146,6 +147,7 @@ BLIP-2 pre-trains a clever bridge. LLaVA (Liu et al., NeurIPS 2023) does somethi
 ![LLaVA — vision encoder, projector, LLM, and connector comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig3_llava_architecture.png)
 
 The pipeline is almost embarrassingly simple. Take a frozen CLIP ViT-L/14, dump its 256 patch features $Z_v \in \mathbb{R}^{256 \times 1024}$, push them through a learned projector $W$ to land in the LLM's 4096-dim embedding space:
+
 $$H_v = W \cdot Z_v.$$
 
 Concatenate $H_v$ with the user's text token embeddings, feed everything to Vicuna, and predict the assistant's response autoregressively. Training proceeds in two stages:

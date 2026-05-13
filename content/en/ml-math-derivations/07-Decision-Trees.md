@@ -516,7 +516,9 @@ Show that for binary classification with natural log, $H_\mathrm{nat}(p) \approx
 A subtree $T_t$ has 4 leaves and training error $0.10$; collapsing it to a leaf gives error $0.25$. Compute $\alpha_\text{eff}(t)$ and decide whether to prune at $\alpha = 0.06$.
 
 *Solution.*
+
 $$\alpha_\text{eff} = \frac{0.25 - 0.10}{4 - 1} = 0.05.$$
+
 At $\alpha = 0.06 > 0.05$, the cost of keeping the subtree exceeds the benefit, so we **prune**: $R_\alpha(\text{leaf}) = 0.25 + 0.06 = 0.31$ vs $R_\alpha(T_t) = 0.10 + 4(0.06) = 0.34$.
 
 **Exercise 4. Missing-value penalty.**

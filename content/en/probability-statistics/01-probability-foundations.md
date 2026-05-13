@@ -434,7 +434,9 @@ No article on probability foundations is complete without this classic.
 *Proof via the law of total probability.* Let $C_i$ be the event that the car is behind Door $i$, each with $P(C_i) = 1/3$. Let $H_3$ be the event that the host opens Door 3. We want $P(C_2 | H_3)$.
 
 $$P(H_3 | C_1) = 1/2 \quad \text{(host chooses randomly between 2 and 3)}$$
+
 $$P(H_3 | C_2) = 1 \quad \text{(host must open 3, since 2 has the car)}$$
+
 $$P(H_3 | C_3) = 0 \quad \text{(host never reveals the car)}$$
 
 By Bayes' theorem:

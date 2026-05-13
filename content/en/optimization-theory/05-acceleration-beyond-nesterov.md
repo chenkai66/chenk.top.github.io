@@ -41,9 +41,11 @@ Article 01 (convex analysis basics), article 02 (Lipschitz smoothness, strong co
 ## 1. The lower bound: why $\sqrt{\kappa}$ is the speed limit
 
 A "first-order method" is any algorithm whose iterate $x_k$ lies in
+
 $$
 x_0 + \mathrm{span}\{\nabla f(x_0), \nabla f(x_1), \ldots, \nabla f(x_{k-1})\}.
 $$
+
 This captures GD, Heavy-Ball, Nesterov, conjugate gradient, and basically every method that only queries $\nabla f$ at the visited points.
 
 > **Theorem (Nesterov, 1983).** For every $L \geq \mu > 0$ and every $k \leq (n-1)/2$ (where $n$ is the dimension), there exists an $L$-smooth $\mu$-strongly convex function $f$ such that for any first-order method,
@@ -55,9 +57,11 @@ This captures GD, Heavy-Ball, Nesterov, conjugate gradient, and basically every 
 ### 1.1 The worst-case function
 
 The construction uses a banded quadratic. Let $A \in \mathbb{R}^{n \times n}$ be the tridiagonal matrix
+
 $$
 A = \begin{pmatrix} 2 & -1 & & & \\ -1 & 2 & -1 & & \\ & -1 & 2 & -1 & \\ & & \ddots & \ddots & \ddots \\ & & & -1 & 2 \end{pmatrix},
 $$
+
 and let $f(x) = \frac{L - \mu}{8} (x^\top A x - 2 e_1^\top x) + \frac{\mu}{2} \|x\|_2^2$, where $e_1$ is the first standard basis vector.
 
 The Hessian is $\nabla^2 f = \frac{L-\mu}{4} A + \mu I$. Computing the eigenvalues of $A$ — they are $4 \sin^2 \frac{j \pi}{2(n+1)}$ for $j = 1, \ldots, n$ — shows $\nabla^2 f$ has eigenvalues in $[\mu, L]$, so $f$ is $L$-smooth and $\mu$-strongly convex.
@@ -81,27 +85,35 @@ The shaded band above shows the optimal-rate region: any first-order method's wo
 ### 2.1 The physical analogy
 
 Imagine a ball with mass $m$ rolling down the surface $f$ in a viscous medium with friction coefficient $\gamma$. Newton's law gives
+
 $$
 m \ddot x(t) + \gamma \dot x(t) + \nabla f(x(t)) = 0.
 $$
+
 A heavy ball gathers momentum: it does not simply follow $-\nabla f$ at every instant but inherits velocity from previous steps. Acceleration arises from this inertia.
 
 Discretize with step size $h$ using the leapfrog scheme:
+
 $$
 x_{k+1} = x_k - \alpha \nabla f(x_k) + \beta (x_k - x_{k-1}),
 $$
+
 where $\alpha = h^2 / m$ and $\beta = 1 - \gamma h / m$. This is **Polyak's Heavy-Ball** update: a gradient step plus a momentum term proportional to the previous step.
 
 ### 2.2 The optimal parameters
 
 For a quadratic $f(x) = \frac{1}{2} x^\top Q x - b^\top x$ with $\mu I \preceq Q \preceq L I$, the iteration linearizes to
+
 $$
 \begin{pmatrix} x_{k+1} - x^\star \\ x_k - x^\star \end{pmatrix} = M \begin{pmatrix} x_k - x^\star \\ x_{k-1} - x^\star \end{pmatrix}, \quad M = \begin{pmatrix} (1 + \beta) I - \alpha Q & -\beta I \\ I & 0 \end{pmatrix}.
 $$
+
 The convergence rate is $\rho(M)$, the spectral radius. Diagonalizing $Q$ reduces this to scalar problems; minimizing $\rho$ over $(\alpha, \beta)$ on the worst eigenvalue gives:
+
 $$
 \alpha^\star = \frac{4}{(\sqrt{L} + \sqrt{\mu})^2}, \quad \beta^\star = \left( \frac{\sqrt{L} - \sqrt{\mu}}{\sqrt{L} + \sqrt{\mu}} \right)^2,
 $$
+
 with rate $\rho(M) = \frac{\sqrt{\kappa} - 1}{\sqrt{\kappa} + 1}$. This is **the same accelerated rate as Nesterov**, achieved with a much simpler-looking update.
 
 ### 2.3 The catch: Heavy-Ball is not globally convergent
@@ -121,13 +133,17 @@ GD zig-zags along the steep $x_1$ direction and crawls along the flat $x_2$ dire
 ### 3.1 The estimate-sequence (Nesterov's original device)
 
 Nesterov's 1983 paper used a sequence of "model functions" $\phi_k$ that lower bound $f$. Define
+
 $$
 \phi_{k+1}(x) = (1 - \alpha_k) \phi_k(x) + \alpha_k \big[ f(y_k) + \langle \nabla f(y_k), x - y_k \rangle + \tfrac{\mu}{2} \|x - y_k\|_2^2 \big],
 $$
+
 with $\phi_0(x) = f(x_0) + \frac{\mu}{2} \|x - x_0\|_2^2$ and $y_k$ the lookahead point. The sequence $\phi_k$ is convex quadratic; track its minimizer $v_k$ and minimum value $\phi_k^\star$. The induction
+
 $$
 f(x_k) \leq \phi_k^\star
 $$
+
 combined with $\phi_k(x^\star) \to f(x^\star)$ at rate $(1 - \sqrt{\mu/L})^k$ gives the accelerated convergence.
 
 Estimate sequences are powerful but laborious to set up. The modern presentation is via Lyapunov functions, which we develop next.
@@ -135,17 +151,23 @@ Estimate sequences are powerful but laborious to set up. The modern presentation
 ### 3.2 The Lyapunov approach
 
 A **Lyapunov function** is a non-negative quantity $V_k$ that the algorithm decreases at every step:
+
 $$
 V_{k+1} \leq (1 - \sqrt{\mu/L}) V_k.
 $$
+
 The trick is finding the right $V_k$. For Nesterov's method on $L$-smooth $\mu$-strongly convex $f$, take
+
 $$
 V_k = (f(x_k) - f^\star) + \frac{\mu}{2} \|z_k - x^\star\|_2^2,
 $$
+
 where $z_k$ is the auxiliary "extrapolation point" maintained by the algorithm (the same point we called $v_k$ above). With the standard Nesterov parameters one can show — see Bansal & Gupta (2019), Wilson, Recht, Jordan (2021) — that
+
 $$
 V_{k+1} \leq \big( 1 - \sqrt{\mu/L} \big) V_k.
 $$
+
 Iterating gives $V_k \leq (1 - \sqrt{\mu/L})^k V_0$, hence $f(x_k) - f^\star \leq V_k = O((1 - 1/\sqrt{\kappa})^k)$, which is the accelerated rate.
 
 The Lyapunov argument generalizes: for **any** algorithm whose update can be written as a discretization of a damped second-order ODE $\ddot x + \gamma(t) \dot x + \nabla f(x) = 0$ with appropriate $\gamma(t)$, a Lyapunov function exists and yields the accelerated rate.
@@ -153,9 +175,11 @@ The Lyapunov argument generalizes: for **any** algorithm whose update can be wri
 ### 3.3 Mirror descent and the gap to acceleration
 
 For convex but **not strongly convex** problems, the lower bound becomes $\Omega(\sqrt{L/\epsilon})$ — that is, $\Omega(1/k^2)$ rate. Nesterov's method achieves it; so does FISTA (article 06). The Lyapunov function in the convex-only case is:
+
 $$
 V_k = \tfrac{k(k+1)}{4 L} (f(x_k) - f^\star) + \tfrac{1}{2} \|z_k - x^\star\|_2^2.
 $$
+
 Showing $V_{k+1} \leq V_k$ then yields $f(x_k) - f^\star \leq O(1/k^2)$. The same Lyapunov template handles both regimes — it just uses a different specific functional.
 
 ---
@@ -187,9 +211,11 @@ What if the problem is too complicated to apply Nesterov directly — maybe the 
 ### 5.1 The meta-algorithm
 
 For minimizing $L$-smooth convex $f$, choose $\kappa > 0$ and define the regularized objective
+
 $$
 g_y(x) := f(x) + \frac{\kappa}{2} \|x - y\|_2^2.
 $$
+
 Note $g_y$ is $\kappa$-strongly convex even if $f$ is not. The Catalyst iteration is:
 
 1. Set $y_0 = x_0$.

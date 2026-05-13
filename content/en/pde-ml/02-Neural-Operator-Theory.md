@@ -31,17 +31,25 @@ This article is a deep dive into how that is possible. We start from the functio
 ### 1.1 The PINN ceiling
 
 Consider the 1D viscous Burgers equation,
+
 $$u_t + u\,u_x = \nu\,u_{xx},\qquad x\in[0,2\pi],\ t\in[0,T],$$
+
 with periodic boundary conditions and an initial condition $u(\cdot,0)=u_0$. A finite-difference solver hands you $u(\cdot,T)$ in milliseconds *for one specific* $u_0$ and one specific $\nu$. A PINN replaces the discretisation with a neural network $u_\theta(x,t)$ trained to minimise the residual
+
 $$\mathcal{L}_{\mathrm{PINN}}(\theta) = \big\| \partial_t u_\theta + u_\theta\,\partial_x u_\theta - \nu\,\partial_{xx} u_\theta \big\|^2 + \big\|u_\theta(\cdot,0) - u_0 \big\|^2 .$$
+
 Notice how $u_0$ appears explicitly inside the loss. **Change $u_0$ and the loss landscape changes; the optimiser has to start over.** For a design study with a thousand candidate inflow profiles, that is a thousand training runs.
 
 ### 1.2 Operator learning, formally
 
 Let $\mathcal{A}$ be the space of admissible inputs (e.g. initial conditions in some Sobolev class) and $\mathcal{U}$ the space of solutions. The PDE defines a *solution operator*
+
 $$\mathcal{G} : \mathcal{A} \to \mathcal{U},\qquad \mathcal{G}(u_0) = u(\cdot, T).$$
+
 Both $\mathcal{A}$ and $\mathcal{U}$ are infinite dimensional. The goal of operator learning is to fit a parametric surrogate $\mathcal{G}_\theta \approx \mathcal{G}$ from a finite training set $\{(a^{(i)}, \mathcal{G}(a^{(i)}))\}_{i=1}^N$, so that for every new input $a$,
+
 $$u(\cdot, T) \approx \mathcal{G}_\theta(a) \quad \text{(one forward pass).}$$
+
 The training cost is amortised over the entire family of instances. This is the trade we want.
 
 ## 2. Function-space foundations (the bare minimum)
@@ -49,8 +57,11 @@ The training cost is amortised over the entire family of instances. This is the 
 ### 2.1 Banach, Hilbert, Sobolev — what each one buys you
 
 A **Banach space** is a normed vector space in which every Cauchy sequence converges. The norm gives us a notion of "size of a function," and completeness gives us limits — without it we cannot even talk about convergence of a learning algorithm. The two everyday examples are
+
 $$C(K) \;=\; \{u:K\to\mathbb{R} \text{ continuous}\}, \quad \|u\|_\infty = \sup_{x\in K} |u(x)|,$$
+
 and
+
 $$L^p(\Omega) \;=\; \Big\{u:\Omega\to\mathbb{R} \;:\; \int_\Omega |u|^p < \infty\Big\}, \quad \|u\|_{L^p} = \Big(\int |u|^p\Big)^{1/p}.$$
 
 A **Hilbert space** is a Banach space whose norm comes from an inner product. The inner product gives us **angles, orthogonality and projections** — the entire machinery of Fourier series and spectral decomposition. The canonical example is $L^2(\Omega)$ with $\langle u, v\rangle = \int u\bar v$.
@@ -66,6 +77,7 @@ When a CNN ingests a $256\times 256$ image, it really sees a vector in $\mathbb{
 The theoretical seed of operator learning was planted in 1995 by Chen and Chen.
 
 **Theorem (Chen–Chen, 1995).** *Let $K_1\subset C(D_1)$ and $K_2\subset D_2$ be compact, and let $\mathcal{G}: K_1 \to C(K_2)$ be continuous. For every $\varepsilon>0$ there exist a non-polynomial continuous activation $\sigma$, an integer $p$, sensor points $\{x_j\}_{j=1}^m\subset D_1$, and parameters $\{c_{ij}, w_{kj}, \zeta_k, \theta_i\}$ such that*
+
 $$\sup_{u\in K_1,\,y\in K_2}\;\bigg|\,\mathcal{G}(u)(y) \;-\; \sum_{k=1}^{p} \underbrace{\sigma\!\Big(\textstyle\sum_{j=1}^m c_{kj}\,u(x_j) + \theta_k\Big)}_{=\,b_k(u)} \cdot \underbrace{\sigma(w_k\cdot y + \zeta_k)}_{=\,t_k(y)} \,\bigg| \;<\;\varepsilon.$$
 
 Two things are remarkable:
@@ -86,6 +98,7 @@ DeepONet (Lu et al., 2019) is the direct architectural realisation of Chen–Che
 - **Trunk network** $t_\psi : \mathbb{R}^d \to \mathbb{R}^p$ ingests a query coordinate $y$ and emits a basis vector $t(y)$.
 
 The prediction is their inner product (plus an optional bias):
+
 $$\mathcal{G}_\theta(u)(y) \;=\; \sum_{k=1}^{p} b_k(u)\, t_k(y) \;+\; b_0.$$
 
 ![DeepONet architecture: branch encodes the input function, trunk encodes the query location, the inner product produces the answer at that location.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/fig2_deeponet_architecture.png)
@@ -117,9 +130,13 @@ Where DeepONet decomposes the operator as a sum of rank-one terms in the spatial
 ### 5.1 Why spectral
 
 For a translation-invariant linear operator $K$, the Schwartz kernel theorem gives
+
 $$(K v)(x) = \int \kappa(x - x')\,v(x')\,\mathrm{d}x',$$
+
 i.e. a convolution. The convolution theorem turns this into pointwise multiplication after Fourier transform:
+
 $$\widehat{K v}(k) \;=\; \widehat{\kappa}(k)\cdot \widehat{v}(k).$$
+
 So instead of learning the kernel $\kappa$ in space — costly, with a large support — we learn $\widehat{\kappa}(k)$ directly in frequency. Each frequency mode is just one complex multiplication.
 
 For nonlinear PDEs the operator is no longer a global convolution, but the **local-nonlinearity / global-linearity** decomposition is extremely common: dissipation, dispersion and propagation are all linear and translation-invariant; reaction and advection terms are pointwise nonlinear. FNO bakes this split into the architecture.
@@ -127,7 +144,9 @@ For nonlinear PDEs the operator is no longer a global convolution, but the **loc
 ### 5.2 The Fourier layer
 
 A single FNO block computes
+
 $$v_{\ell+1}(x) \;=\; \sigma\!\Big(\;W\,v_\ell(x) \;+\; \mathcal{F}^{-1}\!\big( R_\theta \cdot \mathcal{F}(v_\ell)\big)(x) \;\Big),$$
+
 where $\mathcal{F}$ is the FFT, $R_\theta$ is a learnable complex tensor that multiplies each retained Fourier mode, $W$ is a $1\times 1$ convolution that handles the residual contribution from truncated and aliased modes, and $\sigma$ is a pointwise nonlinearity (typically GELU). The lifting layer $P:\mathbb{R}^{d_{\mathrm{in}}}\to\mathbb{R}^{d_v}$ embeds the input into a higher-dimensional channel space and a final projection $Q:\mathbb{R}^{d_v}\to\mathbb{R}^{d_{\mathrm{out}}}$ recovers the answer.
 
 ![FNO spectral convolution: take the FFT of the channel, keep the lowest k_max modes, multiply by a learnable filter, inverse-FFT, and add the local residual W v.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/fig3_fno_spectral_layer.png)
@@ -268,7 +287,9 @@ The cleanest results are about FNO and were established by Kovachki and collabor
 **Approximation (Kovachki et al., 2021).** For any continuous operator $\mathcal{G}: H^s(\mathbb{T}^d)\to H^{s'}(\mathbb{T}^d)$ on a torus and any compact $K\subset H^s$, and any $\varepsilon>0$, there exists an FNO $\mathcal{G}_\theta$ with finite width and depth such that $\sup_{u\in K}\|\mathcal{G}(u)-\mathcal{G}_\theta(u)\|_{H^{s'}} < \varepsilon$.
 
 **Statistical (Lanthaler et al., 2022 for DeepONet).** With $N$ i.i.d. training pairs and a $p$-dimensional latent, the expected test error decomposes as
+
 $$\mathbb{E}\,\|\mathcal{G}-\mathcal{G}_\theta\|^2 \;\lesssim\; \underbrace{p^{-2\alpha}}_{\text{approx}} \;+\; \underbrace{\frac{p}{N}}_{\text{stat}} \;+\; \underbrace{\sigma^2}_{\text{noise}},$$
+
 for an operator with smoothness exponent $\alpha$. Choosing $p\sim N^{1/(2\alpha+1)}$ balances approximation against statistics.
 
 What is **not** guaranteed in the same generality:

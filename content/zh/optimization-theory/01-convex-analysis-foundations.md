@@ -40,9 +40,11 @@ translationKey: "optim-01"
 ### 1.1 定义与基本例子
 
 集合 $C \subseteq \mathbb{R}^n$ 称为**凸集**，若对任意 $x, y \in C$ 及任意 $\lambda \in [0, 1]$，均有  
+
 $$
 \lambda x + (1 - \lambda) y \in C.
 $$  
+
 几何含义：连接 $C$ 中任意两点的线段完全落在 $C$ 内部。
 
 以下例子应熟记于心：
@@ -80,29 +82,39 @@ $$
 > $$
 
 **存在性证明**．令 $d = \inf_{x \in C} \|x - y\|_2$，并取序列 $\{x_k\} \subseteq C$ 满足 $\|x_k - y\|_2 \to d$。我们证明 $\{x_k\}$ 是 Cauchy 列。对向量 $x_k - y$ 与 $x_m - y$ 应用平行四边形恒等式：  
+
 $$
 \|x_k - x_m\|_2^2 = 2 \|x_k - y\|_2^2 + 2 \|x_m - y\|_2^2 - 4 \left\| \tfrac{x_k + x_m}{2} - y \right\|_2^2.
 $$  
+
 由于 $C$ 是凸集，故 $\frac{x_k + x_m}{2} \in C$，从而 $\|\frac{x_k + x_m}{2} - y\|_2 \geq d$。因此  
+
 $$
 \|x_k - x_m\|_2^2 \leq 2 \|x_k - y\|_2^2 + 2 \|x_m - y\|_2^2 - 4 d^2 \to 0,
 $$  
+
 当 $k,m \to \infty$ 时成立。于是 $\{x_k\}$ 收敛于某点 $z$；又因 $C$ 是闭集，故 $z \in C$，且满足 $\|z - y\|_2 = d$。
 
 **唯一性证明**．假设 $z_1$ 与 $z_2$ 均达到最小值。在上述平行四边形恒等式中取 $x_k = z_1$、$x_m = z_2$，得  
+
 $$
 \|z_1 - z_2\|_2^2 \leq 2 d^2 + 2 d^2 - 4 d^2 = 0,
 $$  
+
 故 $z_1 = z_2$。
 
 **变分不等式证明**．设 $z = \pi_C(y)$。对任意 $x \in C$ 及 $\lambda \in (0, 1]$，点 $z + \lambda (x - z) = (1 - \lambda) z + \lambda x$ 属于 $C$（由凸性），故  
+
 $$
 \|y - z\|_2^2 \leq \|y - z - \lambda (x - z)\|_2^2 = \|y - z\|_2^2 - 2 \lambda \langle y - z,\, x - z \rangle + \lambda^2 \|x - z\|_2^2.
 $$  
+
 整理并两边除以 $\lambda$ 得：  
+
 $$
 2 \langle y - z,\, x - z \rangle \leq \lambda \|x - z\|_2^2.
 $$  
+
 令 $\lambda \to 0^+$ 即得所需不等式。反之，若该不等式对所有 $x \in C$ 成立，展开 $\|x - y\|_2^2 = \|(x - z) - (y - z)\|_2^2 \geq \|y - z\|_2^2$，即可推出 $z = \pi_C(y)$。$\blacksquare$
 
 投影定理具有优美的几何解释：$\pi_C(y)$ 是 $C$ 中使得线段 $y \to z$ 与 $C$ 内任一方向夹角均不超过 $90^\circ$ 的唯一点。
@@ -116,6 +128,7 @@ $$
 设 $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$，其**有效定义域**为 $\mathrm{dom}(f) = \{x : f(x) < +\infty\}$，并假设该集合是凸集。以下四条性质彼此等价，后续我们将不加区分地使用它们：
 
 **定义式（凸性原始定义）**：对任意 $x, y \in \mathrm{dom}(f)$ 及 $\lambda \in [0, 1]$，
+
 $$
 f(\lambda x + (1 - \lambda) y) \leq \lambda f(x) + (1 - \lambda) f(y). \tag{D}
 $$
@@ -123,11 +136,13 @@ $$
 **上镜图刻画**：集合 $\mathrm{epi}(f) = \{(x, t) \in \mathbb{R}^{n+1} : f(x) \leq t\}$ 是 $\mathbb{R}^{n+1}$ 中的凸集。
 
 **一阶条件（要求 $f$ 可微）**：对任意 $x, y \in \mathrm{dom}(f)$，
+
 $$
 f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle. \tag{F1}
 $$
 
 **二阶条件（要求 $f$ 二阶可微）**：对任意 $x \in \mathrm{int}(\mathrm{dom}(f))$，
+
 $$
 \nabla^2 f(x) \succeq 0. \tag{F2}
 $$
@@ -135,21 +150,27 @@ $$
 **(D) 与上镜图刻画的等价性**：对任意 $(x, s), (y, t) \in \mathrm{epi}(f)$，点 $(\lambda x + (1 - \lambda) y,\, \lambda s + (1 - \lambda) t)$ 属于 $\mathrm{epi}(f)$ 当且仅当不等式 (D) 成立（取 $s = f(x),\, t = f(y)$ 即得）。
 
 **(D) $\Rightarrow$ (F1)**：将 (D) 式改写为  
+
 $$
 \frac{f(x + \lambda (y - x)) - f(x)}{\lambda} \leq f(y) - f(x).
 $$  
+
 令 $\lambda \to 0^+$，左边趋于方向导数 $\langle \nabla f(x), y - x \rangle$。
 
 **(F1) $\Rightarrow$ (F2)**：令 $y = x + t v$，其中 $t > 0$ 很小、$v$ 为任意向量。则 (F1) 给出  
+
 $$
 f(x + tv) \geq f(x) + t \langle \nabla f(x), v \rangle.
 $$  
+
 由 Taylor 展开 $f(x + tv) = f(x) + t \langle \nabla f(x), v \rangle + \tfrac{t^2}{2} v^\top \nabla^2 f(x) v + o(t^2)$，比较两边可得 $v^\top \nabla^2 f(x) v \geq 0$。
 
 **(F2) $\Rightarrow$ (D)**：沿直线积分两次。具体地，定义 $g(\lambda) = f((1 - \lambda) x + \lambda y)$，则  
+
 $$
 g''(\lambda) = (y - x)^\top \nabla^2 f((1 - \lambda) x + \lambda y) (y - x) \geq 0,
 $$  
+
 故 $g$ 在 $[0,1]$ 上是凸函数，这正是 (D)。
 
 ![凸性的两种等价视角：（左）一阶条件——任意点处的切线都是 0 的全局下界；（右）上镜图 1 本身是 2 中的凸集。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig3_convex_function.png)
@@ -158,6 +179,7 @@ $$
 
 - **严格凸函数**：当 $x \neq y$ 且 $\lambda \in (0,1)$ 时，(D) 中不等式严格成立。
 - **$\mu$-强凸函数**（$\mu > 0$）：函数 $f - \frac{\mu}{2} \|x\|_2^2$ 是凸函数。等价地，
+
   $$
   f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \frac{\mu}{2} \|y - x\|_2^2.
   $$
@@ -193,6 +215,7 @@ $$
 ## 3. 共轭函数
 
 对任意函数 $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$（未必凸），定义其**共轭函数**（或称**Legendre–Fenchel 变换**）为：
+
 $$
 f^*(y) = \sup_{x \in \mathbb{R}^n} \big[ \langle y, x \rangle - f(x) \big].
 $$
@@ -208,9 +231,11 @@ $$
 ### 3.2 Fenchel–Young 不等式
 
 由定义直接可得：
+
 $$
 f(x) + f^*(y) \geq \langle x, y \rangle. \tag{FY}
 $$
+
 等号成立当且仅当 $y \in \partial f(x)$（该次梯度概念将在后文引入）。这是凸分析中 AM-GM 不等式与 Young 不等式的统一推广；例如取 $f(x) = \frac{1}{p} |x|^p$（其中 $p > 1$），计算其共轭可精确导出经典 Young 不等式 $\frac{|x|^p}{p} + \frac{|y|^q}{q} \geq xy$，其中 $\frac{1}{p} + \frac{1}{q} = 1$。
 
 ### 3.3 常见共轭函数示例
@@ -238,12 +263,15 @@ $$
 ### 4.1 次微分
 
 对凸函数 $f$，其在点 $x$ 处的**次微分**定义为  
+
 $$
 \partial f(x) = \{g \in \mathbb{R}^n : f(y) \geq f(x) + \langle g, y - x \rangle \text{ 对所有 } y\}.
 $$  
+
 属于 $\partial f(x)$ 的向量 $g$ 称为 $f$ 在 $x$ 处的一个**次梯度**。与条件 (F1) 对比：当 $f$ 可微时，$\partial f(x) = \{\nabla f(x)\}$，即为单点集。
 
 当 $f$ 不可微时，$\partial f(x)$ 可能是非单点集。次梯度的核心意义在于：*任意* 凸函数在其定义域的每个内点（更准确地说，相对内点）处都存在次梯度——即使该点处无经典导数；且“$g = 0$”这一条件取代了“$\nabla f = 0$”，成为最优性判据：  
+
 $$
 x^\star \in \arg\min f \iff 0 \in \partial f(x^\star).
 $$
@@ -266,9 +294,11 @@ $$
 ### 4.3 具体示例
 
 **例 1：$f(x) = |x|$ 在 $\mathbb{R}$ 上。**  
+
 $$
 \partial f(x) = \begin{cases} \{1\} & x > 0 \\ \{-1\} & x < 0 \\ [-1, 1] & x = 0. \end{cases}
 $$  
+
 在 $x = 0$ 处，任意斜率介于 $-1$ 与 $1$ 之间的直线均为 $|x|$ 的支撑线，且整体位于其下方。
 
 ![0 在尖点 1 处的次梯度集合：2 中的每个斜率都对应一条过原点且位于 3 下方的支撑直线，故 4。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig5_subgradient.png)
@@ -276,52 +306,67 @@ $$
 **例 2：$f(x) = \|x\|_1$ 在 $\mathbb{R}^n$ 上。**  
 
 按分量独立处理：$g \in \partial \|\cdot\|_1(x)$ 当且仅当  
+
 $$
 g_i = \begin{cases} \mathrm{sign}(x_i) & x_i \neq 0 \\ \in [-1, 1] & x_i = 0. \end{cases}
 $$  
+
 这正是 ISTA 算法利用以生成稀疏解的结构。
 
 **例 3：$f(x) = \|x\|_2$ 在 $\mathbb{R}^n$ 上。**  
+
 $$
 \partial \|\cdot\|_2(x) = \begin{cases} \{x / \|x\|_2\} & x \neq 0 \\ \{g : \|g\|_2 \leq 1\} & x = 0. \end{cases}
 $$
 
 **例 4：合页损失（hinge loss）$f(x) = \max\{0, 1 - x\}$。**  
+
 $$
 \partial f(x) = \begin{cases} \{0\} & x > 1 \\ \{-1\} & x < 1 \\ [-1, 0] & x = 1. \end{cases}
 $$  
+
 点 $x = 1$ 是“拐点”（kink）——在此间隔边界上，损失函数可被赋予任意斜率 $[-1, 0]$ 中的值，这正是支撑 SVM 对偶理论成立的关键。
 
 ### 4.4 最优性：从 $\nabla f = 0$ 到 $0 \in \partial f$
 
 我们将最常依赖的核心结论是：若 $f$ 是凸函数，则  
+
 $$
 x^\star \in \arg\min f \iff 0 \in \partial f(x^\star).
 $$  
+
 正向推导直接由次梯度定义 (D) 应用于 $y = x^\star$ 与任意 $x$ 得到；反向推导中，$0 \in \partial f(x^\star)$ 意味着对所有 $y$ 均有 $f(y) \geq f(x^\star)$。
 
 对于带约束的优化问题 $\min_{x \in C} f(x)$，其中 $C$ 是闭凸集、$f$ 是凸函数，最优性条件推广为：  
+
 $$
 0 \in \partial f(x^\star) + N_C(x^\star),
 $$  
+
 其中 $N_C(x^\star) = \{g : \langle g, y - x^\star \rangle \leq 0 \ \forall y \in C\}$ 称为集合 $C$ 在 $x^\star$ 处的**法锥**（normal cone）。我们将在第 08 篇文章中结合 KKT 条件再次深入讨论此式。
 
 ## 5. 综合应用：一个完整求解示例
 
 考虑 LASSO 问题：
+
 $$
 \min_x F(x) := \tfrac{1}{2} \|Ax - b\|_2^2 + \lambda \|x\|_1,
 $$
+
 其中 $A \in \mathbb{R}^{m \times n}$，$b \in \mathbb{R}^m$，$\lambda > 0$。
 
 第一项是凸函数（其 Hessian 矩阵 $A^\top A$ 半正定，故为凸二次函数）；第二项也是凸函数（范数恒为凸）。因此 $F$ 是凸函数。由最优性条件可得：
+
 $$
 0 \in A^\top (Ax^\star - b) + \lambda \, \partial \|\cdot\|_1(x^\star).
 $$
+
 逐分量展开，记残差 $r = A^\top (Ax^\star - b)$，则有：
+
 $$
 r_i = -\lambda \, \mathrm{sign}(x^\star_i) \quad \text{若 } x^\star_i \neq 0, \qquad r_i \in [-\lambda, \lambda] \quad \text{若 } x^\star_i = 0.
 $$
+
 这正是著名的 **LASSO 的 KKT 条件**——它表明：对任意坐标 $i$，只要 $|r_i| < \lambda$，就必有 $x^\star_i = 0$。这正是 $\ell_1$ 正则化诱导稀疏性的根本原因。我们在第 06 篇文章中将通过软阈值算子的不动点重新推导该条件。
 
 ---

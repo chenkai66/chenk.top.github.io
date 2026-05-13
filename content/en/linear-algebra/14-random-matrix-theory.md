@@ -87,7 +87,9 @@ and $f(x) = 0$ outside $[-2, 2]$.
 **1) Method of moments (the rigorous route).** Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Each term in the trace is a closed walk on $n$ vertices using $k$ steps, weighted by the corresponding product of Gaussian moments. Independence and zero mean force the only surviving walks to be **pair-matched non-crossing walks** — exactly the structure counted by Catalan numbers $C_{k/2}$. The Catalan numbers are precisely the moments of the semicircle, so the limits match.
 
 **2) Coulomb gas (the physicist's route).** The joint density of GOE eigenvalues is
+
 $$\rho(\lambda_1, \dots, \lambda_n) \;\propto\; \prod_{i<j} |\lambda_i - \lambda_j|\;\exp\!\Big(-\tfrac{n}{4}\sum_i \lambda_i^2\Big),$$
+
 which describes $n$ charged particles on a line with logarithmic repulsion (the Vandermonde factor) confined by a harmonic potential. The equilibrium density that balances repulsion against confinement is the semicircle.
 
 **3) Free CLT (the algebraic route).** A symmetric random matrix can be written as a sum of many "free" rank-one perturbations. In free probability the analogue of "sum of independent variables" is the **free additive convolution**, and its central limit theorem yields the semicircle distribution — not the Gaussian. Section 7 expands on this.
@@ -307,7 +309,9 @@ Every probability measure $\mu$ on $\mathbb{R}$ has a **Stieltjes transform**
 $$m_\mu(z) \;=\; \int \frac{d\mu(\lambda)}{\lambda - z}, \qquad z \in \mathbb{C}^+.$$
 
 You recover the density via the inversion formula
+
 $$f(\lambda) \;=\; -\frac{1}{\pi}\lim_{\eta \to 0^+}\operatorname{Im}\,m_\mu(\lambda + i\eta).$$
+
 Why bother? Because the Stieltjes transform of an empirical spectral distribution equals $\frac{1}{n}\operatorname{tr}(\mathbf{M} - z\mathbf{I})^{-1}$, and resolvents are easy to manipulate algebraically. Most modern proofs in RMT happen entirely on the level of the Stieltjes transform: write down a self-consistent equation for $m(z)$, solve it, invert.
 
 For the semicircle, the equation is $m(z)^2 + zm(z) + 1 = 0$, solving to $m(z) = (-z + \sqrt{z^2 - 4})/2$. For Marchenko-Pastur the equation is similarly small.

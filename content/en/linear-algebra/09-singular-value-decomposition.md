@@ -137,7 +137,9 @@ In numerical practice nobody computes SVD this way: forming $A^{\!\top}\!A$ squa
 ### Worked example
 
 For $A = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$:
+
 $$A^{\!\top}\!A = \begin{pmatrix} 1 & 1 \\ 1 & 2 \end{pmatrix}, \qquad \det(A^{\!\top}\!A - \lambda I) = \lambda^2 - 3\lambda + 1.$$
+
 So $\lambda = \frac{3 \pm \sqrt{5}}{2}$, giving$$\sigma_1 = \sqrt{\tfrac{3+\sqrt 5}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt{\tfrac{3-\sqrt 5}{2}} \approx 0.618.$$
 Find the eigenvectors of $A^{\!\top}\!A$ to assemble $V$, then $u_i = A v_i / \sigma_i$ gives $U$. (The product $\sigma_1 \sigma_2 = 1 = |\det A|$ is a useful sanity check.)
 

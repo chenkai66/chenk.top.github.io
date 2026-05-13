@@ -65,8 +65,11 @@ The figure makes the geometry concrete: the green-to-red surface is a hypothetic
 On-policy methods discard each batch after a single gradient step because the data distribution shifts. **Importance sampling** lets us reuse a batch by reweighting:
 
 $$\mathbb{E}_{x \sim q}[f(x)] = \mathbb{E}_{x \sim p}\!\left[\tfrac{q(x)}{p(x)}\, f(x)\right]$$
+
 Plugging the old and new policies into the policy-gradient objective yields the **surrogate objective**:
+
 $$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right]$$
+
 The probability ratio $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_t)$ is the central object of every algorithm in this post.
 
 Two facts to keep in mind:
@@ -85,19 +88,25 @@ The left panel histograms the ratio $r_t$ as the new and old policies drift apar
 ### The monotonic-improvement bound
 
 Schulman et al. (2015) showed — generalising Kakade & Langford (2002) — that the true return of the new policy can be bounded below by the surrogate plus a KL penalty:
+
 $$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \cdot D_{KL}^{\max}\!\left(\pi_{\text{old}} \,\|\, \pi_{\text{new}}\right)$$
+
 where $C = 4\varepsilon\gamma/(1-\gamma)^2$ depends on the maximum advantage magnitude $\varepsilon$ and the discount factor $\gamma$. The corollary is striking: **as long as we improve the surrogate while keeping $D_{KL}^{\max}$ small, monotonic policy improvement is guaranteed.**
 
 In practice the constant $C$ is too pessimistic to be useful; TRPO replaces the penalty with a hard constraint and tunes it empirically.
 
 ### The constrained problem
+
 $$\max_\theta \;\; \mathbb{E}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right] \quad\text{s.t.}\quad \bar{D}_{KL}\!\left(\pi_{\text{old}} \,\|\, \pi_\theta\right) \leq \delta$$
+
 with $\delta \approx 0.01$. The mean KL is used in place of the maximum because it is much cheaper to estimate from samples.
 
 ### Natural gradient: the right notion of "small"
 
 Standard SGD chooses the direction that maximises the linearised objective subject to a Euclidean ball $\|\Delta\theta\|^2 \le c$. **Natural gradient** changes the metric: it constrains the *KL ball* in distribution space, which is locally a quadratic form with the **Fisher information matrix** as its Hessian:
+
 $$D_{KL}(\pi_\theta \,\|\, \pi_{\theta+\Delta\theta}) \;\approx\; \tfrac{1}{2}\,\Delta\theta^\top F\,\Delta\theta, \qquad F = \mathbb{E}\!\left[\nabla_\theta \log \pi_\theta\,\nabla_\theta \log \pi_\theta^\top\right]$$
+
 Solving the constrained problem yields the natural gradient update $\Delta\theta \propto F^{-1}\nabla J$. It is the steepest ascent direction in **policy space**, not parameter space, which is exactly what we want.
 
 ### Implementation: conjugate gradient + line search
@@ -146,7 +155,9 @@ In 2017 Schulman and colleagues asked: *can we get TRPO-like stability using onl
 ### PPO-Clip: the central trick
 
 Define the clipped surrogate:
+
 $$L^{\text{CLIP}}(\theta) = \mathbb{E}\!\left[\min\!\Big(r_t(\theta)\,\hat{A}_t,\;\; \mathrm{clip}\!\left(r_t(\theta),\,1\!-\!\varepsilon,\,1\!+\!\varepsilon\right)\hat{A}_t\Big)\right]$$
+
 with $\varepsilon \approx 0.2$. The construction is asymmetric on purpose: the `min` makes the objective **pessimistic**, picking whichever of the clipped and unclipped quantities is smaller.
 
 ![PPO clipped surrogate split by sign of advantage](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig2_ppo_clipping.png)
@@ -161,7 +172,9 @@ The deeper question is: *why use `min`, not `max`?* If we always take whichever 
 ### PPO-Penalty: the adaptive cousin
 
 A second variant — less popular but useful in some domains — adds an explicit KL penalty and adapts its coefficient:
+
 $$L^{\text{KL}}(\theta) = \mathbb{E}\!\left[r_t(\theta)\,\hat{A}_t\right] \;-\; \beta\,\mathbb{E}\!\left[D_{KL}(\pi_{\text{old}}\,\|\,\pi_\theta)\right]$$
+
 with $\beta$ adjusted after every iteration: doubled when measured KL exceeds $1.5\,\delta_{\text{target}}$, halved when below $\delta_{\text{target}}/1.5$.
 
 ![Adaptive KL penalty: objective shape and beta schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig3_kl_penalty.png)
@@ -311,6 +324,7 @@ PPO's most consequential application is **Reinforcement Learning from Human Feed
 3. **PPO fine-tuning.** Treat the LLM as a policy, the prompt $x$ as state, the response $y$ as action, and $R_\phi(x, y)$ as reward. Run PPO.
 
 ### The RLHF objective
+
 $$J(\theta) = \mathbb{E}_{x \sim \mathcal{D},\,y \sim \pi_\theta(\cdot|x)}\!\left[R_\phi(x, y) - \beta\, D_{KL}\!\left(\pi_\theta(\cdot|x)\,\|\,\pi_{\text{ref}}(\cdot|x)\right)\right]$$
 
 Two trust regions are at work:

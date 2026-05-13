@@ -68,14 +68,19 @@ $$r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{
 
 1. **特征提取器**——四层宽度为 256–512 的全连接 ReLU 层：
    $$   h_1 = \mathrm{ReLU}(W_1 r + b_1), \quad \ldots, \quad h_4 = \mathrm{ReLU}(W_4 h_3 + b_4).
+
    $$
 2. **系数投影**——两个线性头分别输出 backcast 与 forecast 的系数：
    $$
+
    \theta^{b} = W_b h_4, \qquad \theta^{f} = W_f h_4.
+
    $$
 3. **基函数映射**——通过固定或可学习矩阵 $V$ 将系数映射回时域：
    $$
+
    \hat{x} = V_b \, \theta^{b}, \qquad \hat{y} = V_f \, \theta^{f}.
+
    $$
 
 两种变体的区别仅在于 $V$ 的定义。
@@ -84,14 +89,18 @@ $$r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{
 
 趋势块使用低阶多项式基。设阶数为 $p$，归一化时间索引 $\tau / H \in [0, 1]$：
 $$
+
 V_{\text{trend}} = \begin{pmatrix} 1 & \tau & \tau^{2} & \cdots & \tau^{p} \end{pmatrix}, \qquad
 \hat{y}_{\text{trend}} = \sum_{i=0}^{p} \theta_i \, \tau^{i}.
+
 $$
 通常取 $p = 2$ 或 $3$，足以拟合“先平缓上升后加速”的趋势，又避免过拟合抖动。
 
 季节性块采用傅里叶基：
 $$
+
 V_{\text{seas}} = \begin{pmatrix} \sin(2\pi \cdot 1 \cdot \tau / T) & \cos(2\pi \cdot 1 \cdot \tau / T) & \cdots & \sin(2\pi K \tau / T) & \cos(2\pi K \tau / T) \end{pmatrix}.
+
 $$
 
 其中 $K = 1, 2, 3$ 为谐波数量，$T$ 为已知周期（月度数据 $T=12$，小时数据 $T=24$），可捕捉任意形状的周期信号。

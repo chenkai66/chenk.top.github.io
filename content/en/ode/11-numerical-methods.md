@@ -93,6 +93,7 @@ Local error$\mathcal{O}(h^3)$, global error$\mathcal{O}(h^2)$. Halve$h$, cut the
 The four-stage workhorse:
 
 $$k_1 = f(x_n, y_n)$$$$k_2 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_1\right)$$$$k_3 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_2\right)$$$$k_4 = f(x_n + h,\; y_n + h k_3)$$$$y_{n+1} = y_n + \tfrac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)$$
+
 The weights$(1, 2, 2, 1)/6$mirror Simpson's rule for integration; that is not a coincidence. Global error$\mathcal{O}(h^4)$, four function evaluations per step, one of the great practical bargains in scientific computing. For non-stiff problems with smooth right-hand sides, this single algorithm has been the engineering default for over a century.
 
 ```python

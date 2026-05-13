@@ -42,9 +42,11 @@ translationKey: "pde-ml-6"
 ### 1.1 Picard-Lindelöf：解何时存在且唯一？
 
 **定理（Picard-Lindelöf）**。考虑初值问题 $\dot{\mathbf{z}} = f(\mathbf{z}, t)$，$\mathbf{z}(0) = \mathbf{z}_0$。若 $f$ 关于 $t$ 连续，且关于 $\mathbf{z}$ 满足 Lipschitz 条件：
+
 $$
 \|f(\mathbf{z}_1, t) - f(\mathbf{z}_2, t)\| \le L\,\|\mathbf{z}_1 - \mathbf{z}_2\|,
 $$
+
 则在某个区间 $[0, T]$ 上存在唯一解。
 
 *这对机器学习意味着什么？* 如果 $f_\theta$ 是一个使用 Lipschitz 激活函数（如 ReLU、tanh、GELU）且权重有界的神经网络，那么局部 Lipschitz 条件自然成立。因此，只要网络行为良好——这在实践中几乎总是成立——Neural ODE 就是适定的，这也是它能稳定进行反向传播的根本原因。
@@ -52,9 +54,11 @@ $$
 ### 1.2 Liouville 定理：流如何改变体积
 
 **定理（Liouville）**。设 $\phi_t$ 是 ODE $\dot{\mathbf{z}} = f(\mathbf{z}, t)$ 的流映射。对任意可测集合 $\Omega$，有
+
 $$
 \frac{d}{dt}\,\mathrm{vol}(\phi_t(\Omega)) = \int_{\phi_t(\Omega)} \nabla\!\cdot f\,d\mathbf{z}.
 $$
+
 因此，$\nabla\!\cdot f = 0$ 保持体积不变，$\nabla\!\cdot f < 0$ 导致压缩，$\nabla\!\cdot f > 0$ 引起膨胀。在归一化流中，我们恰恰希望散度非零——这正是重塑概率质量的关键杠杆。
 
 *直观理解*：散度为零的 $f$ 类似不可压缩流体（如第 5 篇讨论的哈密顿或辛系统）；而散度非零的 $f$ 则像可压缩流，能将概率质量挤压成细丝，再在别处重新膨胀——这正是生成建模所需要的特性。
@@ -62,9 +66,11 @@ $$
 ### 1.3 瞬时变量替换公式
 
 **定理**。沿 ODE $\dot{\mathbf{z}} = f(\mathbf{z}, t)$ 的轨迹 $\mathbf{z}(t) = \phi_t(\mathbf{z}_0)$，密度满足
+
 $$
 \boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t)) = -\nabla\!\cdot f(\mathbf{z}(t), t).\;}\tag{1}
 $$
+
 *证明思路*：连续性方程 $\partial_t\rho + \nabla\!\cdot(\rho f) = 0$ 可展开为 $\partial_t\rho + f\!\cdot\!\nabla\rho = -\rho\,\nabla\!\cdot f$。左边正是沿轨迹 $\mathbf{z}(t)$ 的物质导数 $D\rho/Dt$。两边同除以 $\rho$ 即得 (1)。
 
 **为何这个公式至关重要？** 离散归一化流需要 $O(d^3)$ 的代价来计算 $\log|\det \partial\phi / \partial\mathbf{z}|$，而公式 (1) 仅需 Jacobian 的迹（即散度），借助一次 vector-Jacobian product 即可在 $O(d)$ 时间内完成（见 3.2 节）。这正是连续归一化流（CNF）得以存在的核心计算优势。
@@ -74,9 +80,11 @@ $$
 ### 2.1 残差网络即前向 Euler 方法
 
 ResNet 的更新规则 $\mathbf{h}_{l+1} = \mathbf{h}_l + f_l(\mathbf{h}_l)$ 正是步长 $\Delta t = 1$ 的前向 Euler 方法，用于求解 ODE $\dot{\mathbf{h}} = f(\mathbf{h}, t)$。取连续极限后，我们得到一个统一的连续时间 ODE：
+
 $$
 \frac{d\mathbf{h}}{dt} = f_\theta(\mathbf{h}(t), t), \qquad \mathbf{h}(T) = \mathbf{h}(0) + \int_0^T f_\theta(\mathbf{h}(t), t)\,dt. \tag{2}
 $$
+
 这一转变带来三大优势：
 
 - **参数效率更高**：单个网络 $f_\theta$ 替代了每一层不同的 $f_l$。
@@ -91,13 +99,17 @@ $$
 标准反向传播在 ODE 求解过程中需存储每一步的中间状态，内存开销为 $O(L)$——而自适应求解器可能执行上百步。伴随方法则完全避免了这一问题。
 
 定义**伴随状态** $\mathbf{a}(t) = \partial\mathcal{L}/\partial\mathbf{h}(t)$，它满足
+
 $$
 \frac{d\mathbf{a}}{dt} = -\,\mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}
 $$
+
 而参数梯度为
+
 $$
 \frac{d\mathcal{L}}{d\theta} = -\int_T^0 \mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}
 $$
+
 **算法流程如下**：
 1. *前向传递*：求解 (2) 从 $0 \to T$，仅保存最终状态 $\mathbf{h}(T)$。
 2. *初始化*：设 $\mathbf{a}(T) = \partial\mathcal{L}/\partial\mathbf{h}(T)$。
@@ -117,23 +129,29 @@ Neural ODE 在 $\mathbb{R}^d$ 上的同胚映射空间中是稠密的（Zhang et
 ### 3.1 从离散流到连续流
 
 离散归一化流通过一系列可逆映射将初始样本 $\mathbf{z}_0 \sim p_0$ 变换为目标分布：
+
 $$
 \mathbf{z}_K = f_K \circ \cdots \circ f_1(\mathbf{z}_0), \qquad \log p_K = \log p_0 - \sum_{k=1}^K \log\!\bigl|\det \partial f_k / \partial\mathbf{z}_{k-1}\bigr|.
 $$
+
 每个行列式计算的复杂度为 $O(d^3)$，除非采用特殊架构（如耦合层、自回归结构等）将其降至 $O(d)$——但这会限制模型的表达能力。
 
 CNF 则用一个 ODE 替代整个堆叠结构，并利用瞬时公式 (1)：
+
 $$
 \frac{d\mathbf{z}}{dt} = f_\theta(\mathbf{z}(t), t), \qquad \frac{d\log p}{dt} = -\nabla\!\cdot f_\theta(\mathbf{z}(t), t). \tag{5}
 $$
+
 **无需对网络施加可逆性约束**——ODE 本身可通过反向积分实现逆映射；**无需计算行列式**——只需计算迹（即散度）。
 
 ### 3.2 FFJORD：通过 Hutchinson 估计实现可扩展的迹计算
 
 剩下的瓶颈是散度 $\nabla\!\cdot f = \mathrm{tr}(\partial f / \partial\mathbf{z})$。精确计算仍需 $d$ 次 vector-Jacobian product。**FFJORD**（Grathwohl et al., 2018）提出用无偏估计替代：
+
 $$
 \nabla\!\cdot f = \mathbb{E}_{\boldsymbol\epsilon}\!\left[\boldsymbol\epsilon^\top\!\frac{\partial f}{\partial\mathbf{z}}\,\boldsymbol\epsilon\right], \qquad \boldsymbol\epsilon \sim \mathcal{N}(0, \mathbf{I}). \tag{6}
 $$
+
 这就是著名的 **Hutchinson 迹估计器**，每次采样仅需一次 vector-Jacobian product，其计算成本与维度 $d$ 无关。
 
 ![Hutchinson 迹估计：方差以 1/sqrt(K) 收缩，单步代价从 O(d^2) 降为 O(d)。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig4_ffjord_trace.png)
@@ -142,9 +160,11 @@ $$
 ### 3.3 训练与采样
 
 给定数据点 $\mathbf{x}$，其对数似然为：
+
 $$
 \log p_1(\mathbf{x}) = \log p_0(\mathbf{z}_0) + \int_0^1 \nabla\!\cdot f_\theta(\mathbf{z}(t), t)\,dt,
 $$
+
 其中 $\mathbf{z}_0$ 通过从 $\mathbf{x}$ 反向积分 ODE (5) 得到。我们使用伴随方法最大化对数似然。**采样时**，只需从 $p_0$ 中采样 $\mathbf{z}_0$，然后正向积分即可。
 
 **权衡取舍**：CNF 提供精确的似然估计，但每次前向或反向传递都需要求解 ODE——通常涉及数十至数百次网络评估。训练过程也较为敏感：求解器容差、$f_\theta$ 的正则化强度以及 Hutchinson 估计的方差会相互影响。
@@ -156,10 +176,12 @@ $$
 ### 4.1 Benamou-Brenier 联系
 
 二次代价的最优传输问题具有动态形式：
+
 $$
 \min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
 \quad\text{s.t.}\quad \partial_t\rho + \nabla\!\cdot(\rho v) = 0,\;\rho_0, \rho_1\text{ 给定}.
 $$
+
 其最优解 $v_t^\star$ 恰好是 CNF 的速度场，且在欧氏最优传输情形下，其轨迹为直线。这为将 CNF 与最优传输结合提供了最清晰的几何动机。
 
 ### 4.2 Flow Matching
@@ -167,10 +189,13 @@ $$
 **Flow Matching**（Lipman et al., 2022）是一种极具实用价值的简化方案。它既不通过 ODE 求解器优化负对数似然（NLL），也不求解复杂的最优传输问题，而是选定一条条件概率路径，并直接回归对应的速度场。
 
 最简单的选择是：将 $\mathbf{z}_0 \sim p_0$ 与 $\mathbf{z}_1 \sim p_{\text{data}}$ 配对，定义**条件路径** $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_1$，此时条件目标速度为
+
 $$
 u_t^\star(\mathbf{z}_t \mid \mathbf{z}_0, \mathbf{z}_1) = \mathbf{z}_1 - \mathbf{z}_0. \tag{7}
 $$
+
 **训练目标为**：
+
 $$
 \mathcal{L}_{\text{FM}} = \mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t, t) - (\mathbf{z}_1 - \mathbf{z}_0)\|^2\,\Bigr]. \tag{8}
 $$

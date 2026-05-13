@@ -100,7 +100,9 @@ Transfer learning explicitly does **not** require source and target to be identi
 > Given a source domain $\mathcal{D}_S$ with task $\mathcal{T}_S$ and a target domain $\mathcal{D}_T$ with task $\mathcal{T}_T$, transfer learning aims to improve the target predictive function $f_T(\cdot)$ using knowledge from $\mathcal{D}_S$ and $\mathcal{T}_S$, where $\mathcal{D}_S \neq \mathcal{D}_T$ or $\mathcal{T}_S \neq \mathcal{T}_T$.
 
 Letting $\epsilon_0$ be the target error you would achieve without transfer and $\epsilon_T$ the error with transfer, success means
+
 $$\epsilon_T < \epsilon_0$$
+
 or, equivalently, *the same accuracy with fewer target labels*. This second framing is usually the more honest measure of value: transfer learning rarely lifts a saturated model, but it dramatically cuts the labelling bill at every operating point below saturation.
 
 ---
@@ -154,6 +156,7 @@ This single picture explains most of the practical advice in the rest of the ser
 ## 5. Negative Transfer
 
 Transfer learning is not free. When the source and target are too different, the inherited weights become a liability rather than an asset. We call this **negative transfer**: the transferred model performs *worse* than a model trained on the target alone.
+
 $$\epsilon_T > \epsilon_0$$
 
 The diagram below makes the regime visible. As source-target divergence grows, transfer accuracy crosses below the from-scratch baseline. Past that crossover, you are paying to import bad inductive biases.
@@ -184,7 +187,9 @@ Two tools let you predict, before training, whether transfer is likely to help.
 ### The Ben-David bound
 
 For any hypothesis $h$ in a class $\mathcal{H}$, the target-domain error decomposes as
+
 $$\epsilon_T(h) \;\leq\; \epsilon_S(h) \;+\; \tfrac{1}{2}\, d_{\mathcal{H}\Delta\mathcal{H}}(\mathcal{D}_S, \mathcal{D}_T) \;+\; \lambda^{*}.$$
+
 The three terms are independent levers:
 
 - $\epsilon_S(h)$ — source error, reducible by **better training**.
@@ -196,9 +201,13 @@ The bound's practical implication is brutal: if either the divergence or $\lambd
 ### Maximum Mean Discrepancy
 
 To estimate divergence in practice, MMD compares the means of source and target features after mapping into a Reproducing Kernel Hilbert Space:
+
 $$\mathrm{MMD}(\mathcal{D}_S, \mathcal{D}_T) \;=\; \big\lVert \mathbb{E}[\phi(X_S)] - \mathbb{E}[\phi(X_T)] \big\rVert_{\mathcal{H}}.$$
+
 With an RBF kernel, this has a closed-form unbiased estimator that you can compute from a single mini-batch and add directly to your loss:
+
 $$\mathcal{L} \;=\; \mathcal{L}_{\mathrm{task}} \;+\; \lambda \cdot \mathrm{MMD}^{2}.$$
+
 Minimising the second term aligns the source and target feature distributions, which is exactly what the Ben-David bound asks you to do.
 
 A useful rule of thumb after pretraining: MMD below 0.1 in the embedding space is a strong positive sign; above 0.5 you are firmly in negative-transfer territory.

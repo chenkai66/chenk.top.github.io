@@ -123,6 +123,7 @@ Sometimes you want to flatten a tensor into a matrix so existing matrix tools ap
 **Mode-$n$ unfolding.** Reshape the tensor so that the mode-$n$ fibers become the *columns* of the resulting matrix. For $\mathcal{X} \in \mathbb{R}^{I_1 \times I_2 \times \cdots \times I_N}$ this gives:
 
 $$\mathbf{X}_{(n)} \in \mathbb{R}^{I_n \times (I_1 \cdots I_{n-1} I_{n+1} \cdots I_N)}$$
+
 For $\mathcal{X} \in \mathbb{R}^{3 \times 4 \times 2}$ the three unfoldings have shape $3 \times 8$, $4 \times 6$, and $2 \times 12$ respectively.
 
 ![Mode-1 unfolding: each mode-1 fiber becomes one column of the resulting matrix](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/fig6_mode_n_unfolding.png)
@@ -136,7 +137,9 @@ Why bother? Because most tensor algorithms reduce some sub-step to "do an SVD on
 ### Addition and scalar multiplication
 
 These work exactly like vectors and matrices: same-shape tensors add elementwise, and scalar multiplication scales every entry.
+
 $$(\mathcal{X} + \mathcal{Y})_{i_1 \cdots i_N} = x_{i_1 \cdots i_N} + y_{i_1 \cdots i_N}, \qquad (\alpha \mathcal{X})_{i_1 \cdots i_N} = \alpha\, x_{i_1 \cdots i_N}$$
+
 The skip connection in ResNet, $\mathbf{y} = F(\mathbf{x}) + \mathbf{x}$, is just tensor addition.
 
 ### Tensor contraction (Einstein summation)
@@ -146,11 +149,15 @@ Contraction is the single most important tensor operation, and it's just the gen
 **The idea.** Pick one axis from each of two tensors that have the *same length*. Multiply paired entries, sum along that shared axis, and the axis disappears.
 
 For matrix multiplication this is the familiar
+
 $$C_{ik} = \sum_j A_{ij} B_{jk}$$
+
 The shared index $j$ is contracted away.
 
 **General contraction.** If $\mathcal{A} \in \mathbb{R}^{I_1 \times I_2 \times J}$ and $\mathcal{B} \in \mathbb{R}^{J \times K_1 \times K_2}$, contracting along the shared mode $J$ gives a 4th-order tensor:
+
 $$\mathcal{C}_{i_1 i_2 k_1 k_2} = \sum_j \mathcal{A}_{i_1 i_2 j}\, \mathcal{B}_{j k_1 k_2}$$
+
 ![Tensor contraction: pick a shared index, multiply, sum it away](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/13-tensors-and-multilinear-algebra/fig3_contraction_einsum.png)
 
 This is exactly the rule behind `np.einsum` and `torch.einsum`: write the input axes, write the output axes, and any index that appears on the input but not the output is summed away.
@@ -172,7 +179,9 @@ A tensor that can be written as a single outer product of vectors is called **ra
 The n-mode product applies a matrix to one axis of a tensor.
 
 **Definition.** For $\mathcal{X} \in \mathbb{R}^{I_1 \times \cdots \times I_N}$ and $\mathbf{U} \in \mathbb{R}^{J \times I_n}$:
+
 $$(\mathcal{X} \times_n \mathbf{U})_{i_1 \cdots i_{n-1} j i_{n+1} \cdots i_N} = \sum_{i_n} x_{i_1 \cdots i_N}\, u_{j i_n}$$
+
 The result has the same shape as $\mathcal{X}$ except mode $n$ has size $J$ instead of $I_n$.
 
 **Matrix view.** In terms of mode-$n$ unfolding it's just a matrix multiply: $\mathbf{Y}_{(n)} = \mathbf{U}\, \mathbf{X}_{(n)}$.
@@ -189,11 +198,15 @@ The result has the same shape as $\mathcal{X}$ except mode $n$ has size $J$ inst
 These two appear constantly in tensor decompositions; learn to recognise them.
 
 **Kronecker product** $\mathbf{A} \otimes \mathbf{B}$. For $\mathbf{A} \in \mathbb{R}^{I \times J}$ and $\mathbf{B} \in \mathbb{R}^{K \times L}$, the result lives in $\mathbb{R}^{IK \times JL}$:
+
 $$\mathbf{A} \otimes \mathbf{B} = \begin{bmatrix} a_{11}\mathbf{B} & \cdots & a_{1J}\mathbf{B} \\ \vdots & \ddots & \vdots \\ a_{I1}\mathbf{B} & \cdots & a_{IJ}\mathbf{B} \end{bmatrix}$$
+
 Think of it as "replace each entry of $\mathbf{A}$ by that entry times the whole matrix $\mathbf{B}$."
 
 **Khatri-Rao product** $\mathbf{A} \odot \mathbf{B}$ (column-wise Kronecker). For $\mathbf{A} \in \mathbb{R}^{I \times R}$ and $\mathbf{B} \in \mathbb{R}^{K \times R}$ (same number of columns):
+
 $$\mathbf{A} \odot \mathbf{B} = [\mathbf{a}_1 \otimes \mathbf{b}_1, \; \mathbf{a}_2 \otimes \mathbf{b}_2, \; \ldots, \; \mathbf{a}_R \otimes \mathbf{b}_R]$$
+
 The Khatri-Rao product is the algebraic glue holding the CP-ALS update formulas together.
 
 ---
@@ -203,13 +216,17 @@ The Khatri-Rao product is the algebraic glue holding the CP-ALS update formulas 
 ### Frobenius norm
 
 Same recipe as for matrices: square every entry, add, square-root.
+
 $$\|\mathcal{X}\|_F = \sqrt{\sum_{i_1, \ldots, i_N} x_{i_1 \cdots i_N}^2}$$
+
 **Useful invariant.** The Frobenius norm is preserved by unfolding: $\|\mathcal{X}\|_F = \|\mathbf{X}_{(n)}\|_F$ for any mode $n$. So you can compute it on whichever shape is convenient.
 
 ### Inner product
 
 For two tensors of the same shape:
+
 $$\langle \mathcal{X}, \mathcal{Y} \rangle = \sum_{i_1, \ldots, i_N} x_{i_1 \cdots i_N}\, y_{i_1 \cdots i_N}, \qquad \|\mathcal{X}\|_F = \sqrt{\langle \mathcal{X}, \mathcal{X} \rangle}$$
+
 ---
 
 ## Tensors as Multilinear Maps
@@ -219,7 +236,9 @@ A more abstract view that pays off: tensors *are* multilinear maps.
 **Linear maps** are the familiar $f(\mathbf{x}) = \mathbf{A}\mathbf{x}$, satisfying $f(\alpha \mathbf{x} + \beta \mathbf{y}) = \alpha f(\mathbf{x}) + \beta f(\mathbf{y})$.
 
 **Bilinear maps** take two vector inputs and are linear in each one separately:
+
 $$f(\mathbf{x}, \mathbf{y}) = \mathbf{x}^T \mathbf{A} \mathbf{y}$$
+
 is bilinear because $f(\alpha \mathbf{x}_1 + \beta \mathbf{x}_2, \mathbf{y}) = \alpha f(\mathbf{x}_1, \mathbf{y}) + \beta f(\mathbf{x}_2, \mathbf{y})$ and similarly in $\mathbf{y}$.
 
 **Multilinear maps** continue the pattern: linear in each of $N$ vector inputs.
@@ -240,13 +259,17 @@ The payoff: tensors let you turn a multilinear problem into a linear one, which 
 ### What is CP decomposition?
 
 **CP decomposition** (CANDECOMP / PARAFAC) writes a tensor as a weighted sum of rank-1 tensors:
+
 $$\mathcal{X} \approx \sum_{r=1}^{R} \lambda_r \, \mathbf{a}_r \circ \mathbf{b}_r \circ \mathbf{c}_r$$
+
 Collecting the vectors into **factor matrices** $\mathbf{A} = [\mathbf{a}_1, \ldots, \mathbf{a}_R]$, $\mathbf{B} = [\mathbf{b}_1, \ldots, \mathbf{b}_R]$, $\mathbf{C} = [\mathbf{c}_1, \ldots, \mathbf{c}_R]$, the standard shorthand is $\mathcal{X} \approx [\![\boldsymbol{\lambda}; \mathbf{A}, \mathbf{B}, \mathbf{C}]\!]$.
 
 ### The intuition: superimposing simple patterns
 
 Take the user--movie--time rating tensor. CP decomposition says
+
 $$\text{Rating}(u, m, t) \approx \sum_{r=1}^{R} \lambda_r \cdot \text{user}_r(u) \cdot \text{movie}_r(m) \cdot \text{time}_r(t)$$
+
 and each component $r$ is one "simple pattern" you can almost name out loud:
 
 - Component 1: *young users, action movies, weekend evenings*.
@@ -258,7 +281,9 @@ Sum a handful of these and you reconstruct most of what users actually do. The d
 ### Tensor rank: where it stops behaving like the matrix kind
 
 The **rank** of a tensor is the smallest number of rank-1 components needed to represent it exactly:
+
 $$\operatorname{rank}(\mathcal{X}) = \min\bigl\{ R : \mathcal{X} = \sum_{r=1}^{R} \mathbf{a}_r \circ \mathbf{b}_r \circ \mathbf{c}_r \bigr\}$$
+
 Three things that look like the matrix story but aren't:
 
 - **Computing tensor rank is NP-hard.** SVD gives matrix rank for free; tensors have no analogue.
@@ -279,7 +304,9 @@ The standard recipe for fitting CP is **Alternating Least Squares (ALS)**: hold 
 
 1. Randomly initialize $\mathbf{A}, \mathbf{B}, \mathbf{C}$.
 2. Update $\mathbf{A}$ holding $\mathbf{B}, \mathbf{C}$ fixed:
+
    $$\mathbf{A} \leftarrow \mathbf{X}_{(1)}\, (\mathbf{C} \odot \mathbf{B})\, \bigl[(\mathbf{C}^T \mathbf{C}) * (\mathbf{B}^T \mathbf{B})\bigr]^{\dagger}$$
+
 3. Update $\mathbf{B}$ similarly, then $\mathbf{C}$.
 4. Repeat until the reconstruction error stops shrinking.
 
@@ -318,9 +345,13 @@ Each row of `user_factors` is a 5-D embedding of one user; rows of `movie_factor
 ### The definition
 
 **Tucker decomposition** is the more general form:
+
 $$\mathcal{X} \approx \mathcal{G} \times_1 \mathbf{A} \times_2 \mathbf{B} \times_3 \mathbf{C}$$
+
 In components:
+
 $$x_{ijk} \approx \sum_{p=1}^{P} \sum_{q=1}^{Q} \sum_{r=1}^{R} g_{pqr}\, a_{ip}\, b_{jq}\, c_{kr}$$
+
 Here $\mathcal{G} \in \mathbb{R}^{P \times Q \times R}$ is the **core tensor** — a small tensor that holds the *interaction structure* — and $\mathbf{A}, \mathbf{B}, \mathbf{C}$ are the factor matrices that map back out to the original sizes.
 
 ### Tucker vs. CP
@@ -365,7 +396,9 @@ print(f"Compression: {original_size / compressed_size:.2f}x")
 ### Multilinear rank
 
 Tucker comes with its own notion of rank, the **multilinear rank**:
+
 $$\operatorname{rank}_{\text{ml}}(\mathcal{X}) = \bigl(\operatorname{rank}(\mathbf{X}_{(1)}),\, \operatorname{rank}(\mathbf{X}_{(2)}),\, \operatorname{rank}(\mathbf{X}_{(3)})\bigr)$$
+
 Each entry is the rank of one mode-$n$ unfolding, i.e. how many independent directions the data uses along that axis. Unlike CP rank, multilinear rank is *easy* to compute — one matrix SVD per mode.
 
 ---
@@ -418,19 +451,25 @@ This "bottleneck" pattern looks suspiciously like the building block of MobileNe
 ### From matrix factorization to tensor factorization
 
 Classical collaborative filtering uses a **user-item matrix** $\mathbf{R} \in \mathbb{R}^{U \times M}$ where $r_{um}$ is user $u$'s rating of item $m$. Matrix factorization — SVD, NMF, ALS — finds embeddings
+
 $$\mathbf{R} \approx \mathbf{P} \mathbf{Q}^T,\quad \mathbf{P} \in \mathbb{R}^{U \times K},\; \mathbf{Q} \in \mathbb{R}^{M \times K}$$
+
 so that $\hat{r}_{um} = \mathbf{p}_u^T \mathbf{q}_m$.
 
 This loses something important: people's preferences depend on context. You don't want the same movie on a Tuesday morning commute as on a Saturday night.
 
 **The tensor lift.** Add a context axis (time, location, device, mood, ...) to get a third-order tensor $\mathcal{R} \in \mathbb{R}^{U \times M \times T}$ and CP-decompose it:
+
 $$r_{umt} \approx \sum_{r=1}^{R} \lambda_r\, p_{ur}\, q_{mr}\, t_{tr}$$
+
 The new factor $\mathbf{t}_r$ tells you how component $r$ is modulated over time. Thanks to CP's essential uniqueness, you can actually *interpret* what each component captures.
 
 ### Sparse data: only fit what you observed
 
 Real rating data is brutally sparse — often well below 0.1% of entries are observed. So you don't fit the full tensor, you fit only the observed positions:
+
 $$\min_{\mathbf{A}, \mathbf{B}, \mathbf{C}} \sum_{(i,j,k) \in \Omega} \left( x_{ijk} - \sum_{r=1}^{R} a_{ir} b_{jr} c_{kr} \right)^2 + \lambda \bigl(\|\mathbf{A}\|_F^2 + \|\mathbf{B}\|_F^2 + \|\mathbf{C}\|_F^2\bigr)$$
+
 where $\Omega$ is the set of observed indices and $\lambda$ is a regularization parameter that prevents the embeddings from blowing up.
 
 This is exactly how production context-aware recommenders work — only with neural extensions on top.
@@ -452,7 +491,9 @@ Once you see images this way, it's clear why so much of computer vision is just 
 ### Tensor Train (TT)
 
 For very high-order tensors — think quantum many-body wavefunctions or the natural representation of an order-50 tensor with each axis of size 2 — both CP and Tucker complexity blow up. **Tensor Train** factors the tensor as a chain of small "carriages":
+
 $$\mathcal{X}(i_1, i_2, \ldots, i_N) = \mathbf{G}_1(i_1)\, \mathbf{G}_2(i_2)\, \cdots\, \mathbf{G}_N(i_N)$$
+
 where each $\mathbf{G}_k(i_k)$ is a matrix of size $r_{k-1} \times r_k$. Wins:
 
 - Parameter count grows as $O(N\, d\, r^2)$ — linear in the order $N$, not exponential.
@@ -462,7 +503,9 @@ where each $\mathbf{G}_k(i_k)$ is a matrix of size $r_{k-1} \times r_k$. Wins:
 ### Non-negative tensor factorization (NTF)
 
 When entries are physically non-negative — pixel intensities, word counts, chemical concentrations — you usually want non-negative factors as well:
+
 $$\mathcal{X} \approx \sum_{r=1}^{R} \mathbf{a}_r \circ \mathbf{b}_r \circ \mathbf{c}_r,\quad \text{with } \mathbf{a}_r, \mathbf{b}_r, \mathbf{c}_r \geq 0$$
+
 The non-negativity constraint forces components to look like *parts* (additive features that build up into the whole) instead of a mix of positive and negative cancellation. This is why NMF / NTF gives interpretable topics and parts-based decompositions while plain SVD often does not.
 
 ---
@@ -501,6 +544,7 @@ The non-negativity constraint forces components to look like *parts* (additive f
 ### Decomposition
 
 **Exercise 5.** Consider the rank-2 tensor $\mathcal{X} = \mathbf{a}_1 \circ \mathbf{b}_1 \circ \mathbf{c}_1 + \mathbf{a}_2 \circ \mathbf{b}_2 \circ \mathbf{c}_2$ with
+
 $$\mathbf{a}_1 = [1, 0]^T,\; \mathbf{b}_1 = [1, 1, 0]^T,\; \mathbf{c}_1 = [1, 0]^T$$$$\mathbf{a}_2 = [0, 1]^T,\; \mathbf{b}_2 = [0, 1, 1]^T,\; \mathbf{c}_2 = [0, 1]^T$$
 
 (a) Compute several entries of $\mathcal{X}$.

@@ -266,6 +266,7 @@ $$\min_{x\in\mathbb{R}^n} f(x) = \frac{1}{2}\|Ax - b\|^2, \qquad A\in\mathbb{R}^
 求导：
 
 $$
+
 abla f(x) = A^\top(Ax - b), \qquad 
 abla^2 f(x) = A^\top A,$$
 

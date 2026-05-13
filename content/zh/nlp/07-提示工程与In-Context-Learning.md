@@ -267,6 +267,7 @@ def evaluate(
 ![自洽性：多路径采样、多数投票](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-提示工程与In-Context-Learning/fig7_self_consistency.png)
 
 具体来说，假设我们有一个问题 $x$，并从中采样了 $k$ 条推理路径 $z_1, \dots, z_k$，每条路径都会得出一个答案 $a_i$。最终答案 $\hat{a}$ 的计算公式为：  
+
 $$\hat{a} \;=\; \arg\max_a \sum_{i=1}^{k} \mathbb{1}[a_i = a].$$  
 
 这种方法可以看作是对边际分布 $\sum_z P(z \mid x)\, P(a \mid x, z)$ 的蒙特卡洛近似。其背后的原理是：**错误往往是分散的，而正确答案通常是收敛的**——错误的推理路径往往指向不同的错误答案，而正确的推理路径则会汇聚到同一个正确答案上。

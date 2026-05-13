@@ -49,6 +49,7 @@ Split the population into three compartments:
 Mass-action transmission and exponential recovery give the **Kermack-McKendrick SIR system**:
 
 $$\boxed{\;\dot S = -\frac{\beta\,S\,I}{N},\qquad \dot I = \frac{\beta\,S\,I}{N} - \gamma I,\qquad \dot R = \gamma I.\;}$$
+
 Two parameters carry all the physics:
 
 - $\beta$ — transmission coefficient: average effective contacts per unit time, times probability of transmission per contact.
@@ -134,7 +135,9 @@ The picture also justifies the public-health emphasis on getting **the laggards*
 ## The SEIR Model
 
 Many diseases have an **incubation period** — people are infected but not yet infectious. Add a latent compartment $E$ (exposed):
+
 $$\dot S = -\frac{\beta SI}{N}, \quad \dot E = \frac{\beta SI}{N} - \sigma E, \quad \dot I = \sigma E - \gamma I, \quad \dot R = \gamma I.$$
+
 The transition rate $\sigma$ has $1/\sigma$ = average latent duration. The basic reproduction number is unchanged: $R_0 = \beta/\gamma$. So, *do incubation periods matter?*
 
 For the **final size**, no — it is identical to SIR because the long-run dynamics is set by $R_0$ alone. For the **growth rate**, very much yes. Linearising around the disease-free equilibrium gives a 2x2 system with characteristic equation$$r^2 + (\sigma + \gamma)\,r + \sigma(\gamma - \beta) = 0.$$For $R_0 > 1$ the positive root is$$r_{\text{SEIR}} = \frac{1}{2}\!\left[-(\sigma + \gamma) + \sqrt{(\sigma + \gamma)^2 + 4\sigma\gamma(R_0 - 1)}\right] < r_{\text{SIR}} = \beta - \gamma.$$The latent stage **slows the early exponential growth**, even though $R_0$ is unchanged. So at fixed $R_0$, SEIR predicts a later, slightly lower peak than SIR. Equivalently: doubling time depends on the *generation interval* $T_g \approx 1/\sigma + 1/\gamma$, not just on $R_0$.

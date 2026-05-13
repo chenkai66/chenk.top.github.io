@@ -69,6 +69,7 @@ You train on the slice of impressions that were clicked, then deploy on all impr
 ESMM's escape uses the chain rule of probability:
 
 $$P(\text{buy} \mid \text{imp}) = P(\text{click} \mid \text{imp}) \cdot P(\text{buy} \mid \text{click})$$
+
 Read it in English: "the probability of buying after seeing an item equals the probability of clicking it times the probability of buying given that you clicked." The first factor (CTR) and the product (CTCVR) are both observable on the *whole* impression space. So we train those two and let CVR fall out as a free byproduct — no biased slice required.
 
 ### What MTL Buys You (and What It Costs)
@@ -95,7 +96,9 @@ The architectures below are essentially four answers to the same question: **how
 ![Shared-Bottom architecture: one shared MLP feeds three independent task towers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig1_shared_bottom.png)
 
 The starting point. One MLP trunk produces a representation $h$, then each task gets its own small tower:
+
 $$h = f_{\text{shared}}(x), \qquad \hat{y}_k = f_k(h), \quad k=1,\dots,K$$
+
 Every task sees the *same* $h$. That is the single design assumption — and the single failure mode.
 
 ### Implementation
@@ -262,7 +265,9 @@ You are organizing a dinner party with three jobs: cooking, decor, music. Instea
 ### The Math
 
 For task $k$ the representation is a gated mixture of all $n$ experts:
+
 $$f_k(x) = \sum_{i=1}^{n} g_k^{(i)}(x) \cdot E_i(x), \qquad g_k(x) = \mathrm{softmax}(W_k x)$$
+
 Each gate is just a tiny linear-then-softmax network. Conflicting tasks learn to point at different experts; cooperative tasks learn to share.
 
 ### Implementation
@@ -470,6 +475,7 @@ CTR loss might sit around 0.3, CVR around 0.05, a revenue MSE around 100. If you
 ### Uncertainty Weighting (Kendall et al., 2018)
 
 Treat each task as a noisy regression / classification with its own variance $\sigma_k^2$, and learn the variances:
+
 $$\mathcal{L}_{\text{total}} = \sum_k \frac{1}{2\sigma_k^2}\, \mathcal{L}_k + \log \sigma_k$$
 
 Hard tasks naturally inflate $\sigma_k$, which down-weights them; the $\log \sigma_k$ term stops $\sigma_k$ from running off to infinity. The picture is what you'd hope for — the easy task's normalized weight grows as the hard task's shrinks:

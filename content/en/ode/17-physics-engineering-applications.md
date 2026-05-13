@@ -222,10 +222,13 @@ A symbolic equation is mathematics; an equation with units attached is engineeri
 **Step 1: spec to coefficients.**
 
 $$ \omega_0 = 2\pi f_0 = 6283\ \text{rad/s},\quad Q = \frac{f_0}{\Delta f} = 10. $$
+
 For $L\ddot q + R\dot q + q/C = V(t)$, $\omega_0 = 1/\sqrt{LC}$ and $Q = \omega_0 L/R$.
 
 **Step 2: pick components.** Three unknowns, three constraints — but we have only two physical specs, so fix $L = 10\,\text{mH}$ (a stocked inductor value).
+
 $$ C = \frac{1}{\omega_0^2 L} = \frac{1}{(6283)^2 \cdot 0.01} \approx 2.53\,\mu\text{F}. $$$$ R = \frac{\omega_0 L}{Q} = \frac{6283 \cdot 0.01}{10} = 6.28\,\Omega. $$
+
 **Step 3: check units.** $\omega_0^2 L C = (\text{s}^{-2})(\text{H})(\text{F}) = (\text{s}^{-2})(\text{V}\cdot\text{s/A})(\text{A}\cdot\text{s/V}) = 1$. Dimensionless, correct.
 
 **Step 4: physical reading.** $Q = 10$ means after the source disconnects, oscillation amplitude takes about $Q/\pi \approx 3.2$ periods to fall by $1/e$ — about 3.2 ms of ringing. In math language, damping ratio $\zeta = 1/(2Q) = 0.05$, deep underdamped.
@@ -253,6 +256,7 @@ Lesson: **a parameter going to zero rarely simplifies the numerics**. This is th
 Section 6 made the case that one ODE skeleton describes five phenomena. In real engineering, when a new system shows up the equation may not be derivable. You go from data to equation.
 
 **SINDy (Sparse Identification of Nonlinear Dynamics).** Brunton et al. (2016). Given a time series $\{x(t_i)\}$, numerically differentiate to get $\dot x$. Build a feature library $\Theta(x) = [1, x, x^2, \sin x, \dots]$ and solve
+
 $$ \dot x = \Theta(x)\,\xi,\quad \min \|\dot x - \Theta(x)\xi\|_2^2 + \lambda \|\xi\|_1. $$
 
 Most components of $\xi$ collapse to zero; the survivors give you the equation form. With `pysindy`, 1000 samples of Lorenz data recover the three RHS terms with their coefficients $\sigma, \rho, \beta$ — provided the library includes the correct basis.

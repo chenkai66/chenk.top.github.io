@@ -172,6 +172,7 @@ Its level sets are ellipsoids whose principal axes are the eigenvectors of $\Sig
 These are crude but always-true bounds — useful when you know nothing but a moment.
 
 **Markov's inequality.** For non-negative $X$ and $a > 0$:
+
 $$P(X \ge a) \le \frac{\mathbb{E}[X]}{a}. \tag{11}$$
 
 **Chebyshev's inequality.** Apply Markov to $(X - \mu)^2$:
@@ -217,7 +218,9 @@ An **estimator** $\hat{\theta}_n$ is any function of the sample. Three propertie
 The famous *bias–variance trade-off* in ML is precisely this decomposition applied to predictions instead of parameters.
 
 **Why does sample variance divide by $n - 1$?** Because the naive $\frac{1}{n}\sum (X_i - \bar{X})^2$ is biased. Expanding,
+
 $$\mathbb{E}\!\left[\frac{1}{n}\sum (X_i - \bar{X})^2\right] = \frac{n - 1}{n}\,\sigma^2.$$
+
 Dividing by $n - 1$ corrects the bias. The intuition: estimating $\bar{X}$ from the same data "uses up" one degree of freedom, leaving $n - 1$ effectively independent residuals.
 
 ### 5.2 Maximum Likelihood Estimation (MLE)
@@ -229,11 +232,15 @@ $$L(\theta) = \prod_{i=1}^n f(x_i; \theta), \qquad \ell(\theta) = \log L(\theta)
 The MLE is $\hat{\theta}_{\mathrm{MLE}} = \arg\max_\theta \ell(\theta)$.
 
 **Example 1 — Bernoulli.** If $x_i \in \{0, 1\}$,
+
 $$\ell(p) = \left(\sum x_i\right) \log p + \left(n - \sum x_i\right) \log(1 - p).$$
+
 Setting $\ell'(p) = 0$ gives $\hat{p}_{\mathrm{MLE}} = \bar{x}$ — the empirical fraction of successes. Logistic regression is essentially this same computation, parameterized by features.
 
 **Example 2 — Gaussian.** For $x_i \sim \mathcal{N}(\mu, \sigma^2)$,
+
 $$\hat{\mu}_{\mathrm{MLE}} = \bar{x}, \qquad \hat{\sigma}^2_{\mathrm{MLE}} = \frac{1}{n}\sum (x_i - \bar{x})^2. \tag{16}$$
+
 Note that $\hat{\sigma}^2_{\mathrm{MLE}}$ is *biased* — it divides by $n$, not $n - 1$. MLE optimizes likelihood, not unbiasedness.
 
 **Asymptotic guarantees.** Under mild regularity conditions, the MLE is
@@ -255,9 +262,13 @@ The figure below walks through one such update for a Beta–Bernoulli model — 
 ![Bayesian update: prior multiplied by likelihood gives posterior](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/fig2_bayes_update.png)
 
 **Beta–Bernoulli conjugacy.** With prior $p \sim \mathrm{Beta}(\alpha, \beta)$ and data of $k$ heads in $n$ flips,
+
 $$p \mid D \sim \mathrm{Beta}(\alpha + k,\;\beta + n - k). \tag{18}$$
+
 The posterior mean,
+
 $$\hat{p}_{\mathrm{Bayes}} = \frac{\alpha + k}{\alpha + \beta + n},$$
+
 is the MLE plus "pseudo-observations" $\alpha$ and $\beta$ contributed by the prior. As $n \to \infty$ the posterior mean converges to the MLE — data overwhelms the prior in the limit.
 
 **MAP (Maximum A Posteriori)** estimation takes the posterior mode:
@@ -342,7 +353,9 @@ The Bernoulli entropy peaks at $p = 0.5$ — a fair coin is maximally unpredicta
 **Exercise 1 (Base rate fallacy).** A disease has prevalence 0.1%. A test has sensitivity 99% and specificity 95%. Given a positive result, what is $P(\text{disease})$?
 
 *Solution.* By Bayes,
+
 $$P(D \mid +) = \frac{0.99 \times 0.001}{0.99 \times 0.001 + 0.05 \times 0.999} \approx 0.0194.$$
+
 Only about 2% — low base rate dominates. This is why screening tests for rare conditions need extremely high specificity to be useful.
 
 **Exercise 2 (MLE for Uniform).** $X_i \sim \mathrm{Uniform}(0, \theta)$, find the MLE.

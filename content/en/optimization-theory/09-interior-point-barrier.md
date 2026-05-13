@@ -42,20 +42,26 @@ Articles 02 (smoothness), 07 (Newton's method), 08 (Lagrangian, KKT). Some comfo
 ## 1. The barrier method
 
 Consider the convex problem
+
 $$
 \min_x f_0(x) \quad \text{s.t. } f_i(x) \leq 0, \ i = 1, \ldots, m, \quad Ax = b.
 $$
+
 Replace the inequalities with a **logarithmic barrier**
+
 $$
 \phi(x) = -\sum_{i=1}^m \log(-f_i(x)),
 $$
+
 which is finite on the strict interior $\{x : f_i(x) < 0\}$ and blows up at the boundary.
 ![Logarithmic barrier on a 1D interval](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig1.png)
 *Figure 1. The logarithmic barrier $-\log x - \log(4-x)$ on the open interval $(0,4)$. It is smooth and strictly convex inside the feasible set and diverges to $+\infty$ as $x$ approaches either boundary. The minimizer of the barrier alone is the **analytic center** of the feasible set.*
  For each $t > 0$, solve
+
 $$
 \min_x \quad t f_0(x) + \phi(x), \quad Ax = b. \tag{$P_t$}
 $$
+
 This is an equality-constrained convex problem; its solution $x^\star(t)$ traces out the **central path**.
 
 ### 1.1 Central path properties
@@ -64,15 +70,19 @@ For each $t > 0$:
 
 - $x^\star(t)$ is the unique minimizer of ($P_t$) (under mild conditions).
 - The KKT conditions for ($P_t$) give $\lambda_i(t) := 1/(t \cdot (-f_i(x^\star(t)))) \geq 0$ and they satisfy a **perturbed complementary slackness**:
+
   $$
   \lambda_i(t) (-f_i(x^\star(t))) = 1/t.
   $$
+
   This is the classical KKT system except complementarity is shifted by $1/t$ instead of being exactly zero.
 
 - The duality gap on the central path is exactly $m/t$:
+
   $$
   f_0(x^\star(t)) - p^\star \leq m / t.
   $$
+
   Why? Define $\nu(t) = (\nu_1(t), \ldots, \nu_p(t))$ from the equality constraints. Then $(\lambda(t), \nu(t))$ is dual feasible and the Lagrangian evaluated at this dual point is exactly $f_0(x^\star(t)) - m/t$, by direct calculation.
 
 So **as $t \to \infty$, $x^\star(t) \to x^\star$**, and the duality gap shrinks like $1/t$.
@@ -103,9 +113,11 @@ Each outer iteration multiplies $t$ by $\mu$. The number of outer iterations is 
 ## 2. Self-concordance
 
 A convex function $\phi : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is **self-concordant** if for every $x \in \mathrm{dom}(\phi)$ and every direction $u$,
+
 $$
 \Big| \frac{d^3}{dt^3} \phi(x + tu) \Big|_{t=0} \Big| \leq 2 \big(u^\top \nabla^2 \phi(x) u \big)^{3/2}.
 $$
+
 That is, the third directional derivative is controlled by the Hessian metric.
 
 The most important examples:
@@ -119,24 +131,31 @@ The most important examples:
 Self-concordance has three magical consequences:
 
 **1. The Newton decrement is meaningful.** Define
+
 $$
 \lambda_\phi(x) := \sqrt{\nabla \phi(x)^\top [\nabla^2 \phi(x)]^{-1} \nabla \phi(x)}.
 $$
+
 This is the natural scale-invariant measure of distance-to-optimum for $\phi$. For self-concordant $\phi$,
+
 $$
 \phi(x) - \phi^\star \leq \lambda_\phi(x)^2 \quad \text{whenever} \quad \lambda_\phi(x) \leq 0.68.
 $$
 
 **2. Damped Newton makes progress with $O(1)$-sized constants.** Consider damped Newton: $x_+ = x - \frac{1}{1 + \lambda} \, [\nabla^2 \phi(x)]^{-1} \nabla \phi(x)$ with $\lambda = \lambda_\phi(x)$. For self-concordant $\phi$,
+
 $$
 \phi(x_+) \leq \phi(x) - \omega(\lambda),
 $$
+
 where $\omega(\lambda) = \lambda - \log(1 + \lambda)$. As long as $\lambda \geq \frac{1}{4}$, we have $\omega(\lambda) \geq 0.02$, so each Newton step decreases $\phi$ by at least a constant.
 
 **3. Quadratic convergence in a constant region.** If $\lambda_\phi(x) \leq \frac{1}{4}$, then a *full* Newton step gives
+
 $$
 \lambda_\phi(x_+) \leq 2 \lambda_\phi(x)^2.
 $$
+
 This is quadratic convergence — and the convergence radius $\frac{1}{4}$ is **independent of conditioning**.
 
 These properties are what makes Newton's method robust on a self-concordant function: "damped Newton phase" with constant decrease until $\lambda \leq 1/4$, then "quadratic phase" finishing in $O(\log \log(1/\epsilon))$ steps.
@@ -157,21 +176,27 @@ But there is a subtlety: we need a sharper bound to capture the effect of the **
 ## 3. The barrier parameter and the $\sqrt{\nu}$ rate
 
 A self-concordant function $\phi$ has **barrier parameter** $\nu \geq 1$ if for all $x \in \mathrm{dom}(\phi)$,
+
 $$
 \nabla \phi(x)^\top [\nabla^2 \phi(x)]^{-1} \nabla \phi(x) \leq \nu.
 $$
+
 Equivalently: $\lambda_\phi(x)^2 \leq \nu$ everywhere.
 
 For $\phi = -\sum_{i=1}^m \log(-f_i(x))$ with affine $f_i$, $\nu = m$. For $\phi = -\log \det X$ on $n \times n$ PSD matrices, $\nu = n$.
 
 The barrier parameter controls how much the central path moves with $t$:
+
 $$
 \|x^\star(t) - x^\star(t')\|_{\nabla^2 \phi} \leq O(\sqrt{\nu} \log(t'/t)).
 $$
+
 If we update $t$ by a factor $\mu = 1 + 1/\sqrt{\nu}$ (much smaller than $\mu = 10$), the warm start stays inside the quadratic-convergence region for the new central path point. The total number of outer iterations becomes
+
 $$
 \frac{\log(m / (t_0 \epsilon))}{\log(1 + 1/\sqrt{\nu})} = O(\sqrt{\nu} \log(\nu / \epsilon)),
 $$
+
 and each inner solve takes $O(1)$ Newton steps. This is the **short-step interior-point algorithm** with celebrated complexity.
 
 > **Theorem (Nesterov--Nemirovski, 1994).** Solving a convex program with self-concordant barrier of parameter $\nu$ to accuracy $\epsilon$ requires $O(\sqrt{\nu} \log(\nu/\epsilon))$ Newton iterations.
@@ -196,6 +221,7 @@ The barrier method updates the primal $x$ explicitly and recovers the dual $(\la
 ### 4.1 The primal-dual system
 
 For the inequality-constrained LP $\min c^\top x$ s.t. $Ax = b, x \geq 0$, the central-path conditions are:
+
 $$
 \begin{aligned}
 A x &= b \quad \text{(primal feasibility)} \\
@@ -204,6 +230,7 @@ x_i \lambda_i &= 1/t \quad \text{(perturbed CS)} \\
 x, \lambda &\geq 0
 \end{aligned}
 $$
+
 This is a system in $(x, \nu, \lambda)$ with $1/t$ as a perturbation. Newton's method on this system, with $1/t \to 0$, converges to the primal-dual optimal pair.
 
 ### 4.2 Why primal-dual is preferred
@@ -241,13 +268,17 @@ The classical workflow in convex modeling: write the problem in CVXPY, the model
 ## 6. Worked example: LP via the barrier
 
 Consider minimizing $c^\top x$ s.t. $Ax \leq b$ with $A \in \mathbb{R}^{m \times n}$. The barrier objective for parameter $t$:
+
 $$
 B_t(x) = t c^\top x - \sum_{i=1}^m \log(b_i - a_i^\top x).
 $$
+
 The gradient and Hessian:
+
 $$
 \nabla B_t(x) = t c + A^\top \frac{1}{b - Ax}, \quad \nabla^2 B_t(x) = A^\top \mathrm{diag}\big( (b - Ax)^{-2} \big) A.
 $$
+
 (Here division is componentwise.)
 
 The Newton direction is the solution of the linear system $\nabla^2 B_t(x) \, \Delta x = -\nabla B_t(x)$. For sparse $A$, this is solved via sparse Cholesky factorization in $O(n^3)$ worst case but typically much less.

@@ -41,13 +41,17 @@ Articles 01--02 (convex analysis, smoothness, strong convexity). Linear algebra 
 ### 1.1 Derivation
 
 For a twice-differentiable $f$, the second-order Taylor expansion around $x_k$ is
+
 $$
 f(x_k + d) \approx f(x_k) + \nabla f(x_k)^\top d + \tfrac{1}{2} d^\top \nabla^2 f(x_k) d.
 $$
+
 Minimizing the right-hand side over $d$ (assuming $\nabla^2 f(x_k) \succ 0$) gives
+
 $$
 d_k^N = -[\nabla^2 f(x_k)]^{-1} \nabla f(x_k).
 $$
+
 This is the **Newton direction**. The pure Newton iteration is $x_{k+1} = x_k + d_k^N$.
 
 Geometrically: Newton's method approximates $f$ by the local quadratic and jumps to the minimum of that quadratic. If $f$ is itself a quadratic, Newton converges in one step.
@@ -64,17 +68,23 @@ Geometrically: Newton's method approximates $f$ by the local quadratic and jumps
 > $$
 
 **Proof.** By definition of the Newton step,
+
 $$
 x_{k+1} - x^\star = x_k - x^\star - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k).
 $$
+
 Since $\nabla f(x^\star) = 0$,
+
 $$
 \nabla f(x_k) = \nabla f(x_k) - \nabla f(x^\star) = \int_0^1 \nabla^2 f(x^\star + t(x_k - x^\star)) (x_k - x^\star) \, dt.
 $$
+
 Substituting:
+
 $$
 x_{k+1} - x^\star = [\nabla^2 f(x_k)]^{-1} \int_0^1 [\nabla^2 f(x_k) - \nabla^2 f(x^\star + t(x_k - x^\star))] (x_k - x^\star) \, dt.
 $$
+
 The integrand is bounded in norm by $L (1 - t) \|x_k - x^\star\|_2$. Integrating gives $\|\cdot\| \leq \frac{L}{2} \|x_k - x^\star\|_2^2$. Combined with $\|[\nabla^2 f(x_k)]^{-1}\| \leq 1/\mu$ (for $x_k$ close enough to $x^\star$), we get the claim. $\blacksquare$
 
 The "doubling of digits" is concrete: if $\|x_k - x^\star\| = 10^{-3}$, then $\|x_{k+1} - x^\star\| \leq C \cdot 10^{-6}$, then $C^2 \cdot 10^{-12}$, etc. To go from $10^{-3}$ to $10^{-12}$ takes 2 iterations, not the $\log(10^9) / \log(\sqrt{\kappa})$ a first-order method would need.
@@ -114,13 +124,17 @@ Newton needs $\nabla^2 f$, which costs $O(n^2)$ to store and $O(n^3)$ to invert 
 ### 2.1 The secant condition
 
 For a quadratic $f(x) = \frac{1}{2} x^\top A x - b^\top x$,
+
 $$
 \nabla f(x_{k+1}) - \nabla f(x_k) = A (x_{k+1} - x_k).
 $$
+
 Defining $s_k = x_{k+1} - x_k$ and $y_k = \nabla f(x_{k+1}) - \nabla f(x_k)$, we have $A s_k = y_k$. For non-quadratic $f$ this becomes the **secant condition**:
+
 $$
 B_{k+1} s_k = y_k. \tag{Sec}
 $$
+
 Any quasi-Newton update should preserve this: the new approximation $B_{k+1}$ should reproduce the curvature observed in the most recent step.
 
 ### 2.2 BFGS: the canonical quasi-Newton update
@@ -133,14 +147,17 @@ The BFGS (Broyden--Fletcher--Goldfarb--Shanno) update is the unique rank-2 updat
 4. Minimizes a weighted Frobenius norm $\|B_{k+1} - B_k\|$ subject to (Sec) and symmetry.
 
 The closed form is:
+
 $$
 B_{k+1} = B_k - \frac{B_k s_k s_k^\top B_k}{s_k^\top B_k s_k} + \frac{y_k y_k^\top}{y_k^\top s_k}.
 $$
 
 For algorithmic purposes we usually want the inverse $H_k = B_k^{-1}$ directly (so we can compute $d_k = -H_k \nabla f(x_k)$ without solving a linear system). Applying the Sherman--Morrison--Woodbury identity twice gives
+
 $$
 H_{k+1} = (I - \rho_k s_k y_k^\top) H_k (I - \rho_k y_k s_k^\top) + \rho_k s_k s_k^\top, \quad \rho_k = \frac{1}{y_k^\top s_k}. \tag{BFGS}
 $$
+
 This is the form actually implemented.
 
 ### 2.3 Why BFGS works in one paragraph
@@ -207,17 +224,23 @@ Line search asks "in which direction?" then "how far?". Trust region asks both a
 ### 4.1 The subproblem
 
 At iterate $x_k$ with gradient $g_k$ and Hessian (or approximation) $B_k$, define the model
+
 $$
 m_k(d) = f(x_k) + g_k^\top d + \tfrac{1}{2} d^\top B_k d.
 $$
+
 The trust-region subproblem is
+
 $$
 d_k^\star = \arg\min_{\|d\|_2 \leq \Delta_k} m_k(d),
 $$
+
 where $\Delta_k > 0$ is the trust radius. After computing $d_k^\star$, evaluate the **agreement ratio**
+
 $$
 \rho_k = \frac{f(x_k) - f(x_k + d_k^\star)}{m_k(0) - m_k(d_k^\star)}.
 $$
+
 If $\rho_k$ is close to 1 the model is good; expand the trust region. If $\rho_k$ is poor or negative, contract the region and reject the step. Standard schedule: shrink $\Delta_k$ by 4 if $\rho_k < 0.25$, expand by 2 if $\rho_k > 0.75$ and the step lies on the boundary.
 
 ### 4.2 Solving the subproblem
@@ -227,9 +250,11 @@ The exact solution requires the **Moré--Sorensen** algorithm: find $\lambda \ge
 Two cheap approximations:
 
 **Cauchy point.** Step along $-g_k$ as far as the model allows or the trust region permits:
+
 $$
 d_k^C = -\tau \frac{\Delta_k}{\|g_k\|_2} g_k, \quad \tau = \begin{cases} 1 & g_k^\top B_k g_k \leq 0 \\ \min\big(\frac{\|g_k\|_2^3}{\Delta_k g_k^\top B_k g_k}, 1\big) & \text{otherwise.} \end{cases}
 $$
+
 The Cauchy point gives at most a Cauchy decrease — comparable to gradient descent — but is always defined.
 
 **Dogleg.** When $B_k \succ 0$, compute the unconstrained Newton step $d_k^N = -B_k^{-1} g_k$ and the steepest-descent step $d_k^{SD} = -\frac{g_k^\top g_k}{g_k^\top B_k g_k} g_k$. The dogleg path is

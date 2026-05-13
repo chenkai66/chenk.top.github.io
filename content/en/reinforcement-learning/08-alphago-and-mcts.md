@@ -63,10 +63,13 @@ After a fixed simulation budget (AlphaGo Zero uses 800 per move), the algorithm 
 The selection rule is the *Upper Confidence bound for Trees* (UCT), Kocsis & Szepesvári (2006). At a node $s$, choose the child action $a$ that maximises
 
 $$\text{UCT}(s, a) = \underbrace{\frac{W(s, a)}{N(s, a)}}_{\text{exploitation}} \;+\; \underbrace{c \sqrt{\frac{\ln N(s)}{N(s, a)}}}_{\text{exploration}}.$$
+
 The first term is the empirical mean value — a node that has won often gets visited more. The second is an Auer–Cesa-Bianchi–Fischer confidence bound: small visit counts inflate it, encouraging the search to *try* less-visited children. As $N(s,a) \to \infty$ the bonus shrinks, and the rule converges to greedy exploitation. UCT is **asymptotically optimal**: in the limit of infinite simulations the visit distribution concentrates on the optimal action.
 
 In AlphaGo's PUCT variant the bonus is also weighted by the network's prior $p(a\mid s)$:
+
 $$\text{PUCT}(s, a) = Q(s, a) \;+\; c_{\text{puct}} \cdot p(a \mid s) \cdot \frac{\sqrt{N(s)}}{1 + N(s, a)}.$$
+
 The prior tells the search *where to look first*; the visit count tells it *where to stop looking*.
 
 ---
@@ -86,6 +89,7 @@ The original AlphaGo trained in three stages:
 **Stage 3 — Value network $v_\theta$.** A separate CNN was regressed on game outcomes. To avoid overfitting from highly correlated within-game positions, only *one* position per self-play game was used, yielding 30 M independent (state, outcome) pairs.
 
 At play time, MCTS combined the two networks. The leaf evaluation mixed the value-network estimate with a fast random rollout:
+
 $$V(s_L) \;=\; (1 - \lambda)\, v_\theta(s_L) \;+\; \lambda\, z_L, \qquad \lambda = 0.5.$$
 
 Why mix at all? In 2016 the value network was strong but not perfect — rollouts averaged out its systematic errors. By 2017 networks had improved enough that the rollout term hurt more than it helped, and AlphaGo Zero dropped it entirely.

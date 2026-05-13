@@ -34,7 +34,9 @@ translationKey: "time-series-2"
 ## 1. The Problem LSTM Solves
 
 A vanilla RNN updates its hidden state recursively:
+
 $$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$
+
 When you backpropagate the loss at step $T$ to a much earlier step $k$, the gradient picks up a long product of Jacobians:$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$
 Two regimes appear:
 
@@ -46,6 +48,7 @@ LSTM (Hochreiter & Schmidhuber, 1997) replaces the single recurrent state with *
 ## 2. Anatomy of an LSTM Cell
 
 Inside one cell, four gating units share the same input $[h_{t-1}, x_t]$ and emit three sigmoid gates plus one $\tanh$ candidate:
+
 $$
 \begin{aligned}
 f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) && \text{forget gate} \\
@@ -54,11 +57,14 @@ i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) && \text{input gate} \\
 o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) && \text{output gate}
 \end{aligned}
 $$
+
 These four signals combine into the cell-state update and the hidden output:
+
 $$
 C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad
 h_t = o_t \odot \tanh(C_t).
 $$
+
 The product $\odot$ is element-wise. **Read this in plain English**: erase the fraction $1 - f_t$ of old memory, write the fraction $i_t$ of fresh candidate, then look at the result through the lens $o_t$.
 
 ![LSTM cell architecture: three sigmoid gates plus a tanh candidate sit beneath a horizontal cell-state highway. The forget gate multiplies the incoming cell state, the input gate scales the candidate, and the output gate exposes a filtered view as the hidden state.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig1_lstm_cell.png)
