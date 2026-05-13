@@ -557,7 +557,7 @@ STS tokens expire. The maximum lifetime is 12 hours (default 1 hour, minimum 15 
 
 The flow is: trusted backend assumes a role, gets temporary credentials, passes them to the untrusted client (mobile app, browser, third-party service), client uses the credentials until they expire.
 
-```
+```text
 ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
 │             │  1. AssumeRole        │         │             │
 │  Your App   │ ──────────────────►   │   STS   │             │
@@ -870,7 +870,7 @@ aliyun actiontrail StartLogging --Name production-audit
 
 The logs arrive in the OSS bucket as gzipped JSON files, partitioned by date:
 
-```
+```text
 actiontrail/
   AliyunLogs/
     1234567890/

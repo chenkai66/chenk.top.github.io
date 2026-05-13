@@ -77,7 +77,7 @@ translationKey: "aliyun-fullstack-12"
 
 ![阿里云全栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                        Alibaba Cloud                        │
 │                                                             │
@@ -132,7 +132,7 @@ translationKey: "aliyun-fullstack-12"
 
 ![Terraform 模块布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_layout.png)
 
-```
+```text
 aliyun-fullstack-terraform/
 ├── main.tf                    # Root module: composes all child modules
 ├── variables.tf               # Input variables for the root module
@@ -1744,7 +1744,7 @@ $(terraform output -raw ssh_command)
 
 我们这套全栈架构的典型 plan 输出长这样：
 
-```
+```text
 Plan: 42 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
@@ -1920,7 +1920,7 @@ infracost breakdown --path=. --terraform-var-file=environments/prod.tfvars
 
 这是我们全栈方案的典型输出：
 
-```
+```text
 Project: aliyun-fullstack-terraform
 
  Name                                     Monthly Qty  Unit         Monthly Cost

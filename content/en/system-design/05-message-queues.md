@@ -112,7 +112,7 @@ A Kafka cluster consists of:
 
 Kafka partitions are stored as a sequence of segment files on disk. Each segment is a file containing messages in order. New messages are appended to the active segment. Old segments are retained based on a time or size policy and eventually deleted or compacted.
 
-```
+```text
 Topic: orders (3 partitions)
 
 Partition 0: [msg0, msg1, msg2, msg3, msg4, ...]  → Broker 1 (leader)
@@ -458,7 +458,7 @@ Command Query Responsibility Segregation separates the write model (commands) fr
 ![CQRS pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-cqrs.png)
 
 
-```
+```text
 Write Side (Command):
   Client → Command Handler → Event Store (Kafka)
   
@@ -575,7 +575,7 @@ The system processes an order through these stages:
 
 Data flow:
 
-```
+```text
 User places order
   → Order Service validates and publishes to Kafka topic "orders"
     → Payment Service reads from "orders", processes payment

@@ -551,7 +551,7 @@ there.
 The defaults in `/etc/ssh/sshd_config` are conservative on Debian and
 Ubuntu, less so elsewhere. The high-value changes:
 
-```
+```text
 Port 22                          # change only if you understand the operational cost
 PermitRootLogin no               # log in as a user, then sudo
 PasswordAuthentication no        # keys only — eliminates the entire brute-force category
@@ -579,7 +579,7 @@ enough to make brute force pointless.
 If you're on a system that isn't fully systemd, or you're maintaining
 existing cron jobs:
 
-```
+```bash
 # m  h  dom  mon  dow   command
 30 1   *    *    *    /usr/local/bin/backup.sh
 */10 *  *    *    *    /usr/local/bin/health-check.sh

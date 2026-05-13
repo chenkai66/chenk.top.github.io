@@ -27,7 +27,7 @@ The first six pieces got you to a working OpenClaw with a channel and a skill. T
 
 Open `~/.openclaw/workspace/`. You should see:
 
-```
+```text
 ~/.openclaw/workspace/
 ├── MEMORY.md              # the index — keep it under 40 lines
 ├── HEARTBEAT.md           # rules the agent re-reads on a cron
@@ -206,7 +206,7 @@ The sweet spot: 1000 for quick tasks (< 10 turns), 2000 for standard sessions (t
 
 Up to v2026.3.6, memory was an explicit tool the agent had to call. If it forgot, it operated without context. From v2026.3.7, memory moved into a hooks lifecycle the harness runs around the agent:
 
-```
+```text
 bootstrap   → load priors before turn 1
 ingest      → soak up new facts as they appear
 assemble    → build the final prompt slice

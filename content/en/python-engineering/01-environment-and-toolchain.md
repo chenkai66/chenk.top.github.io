@@ -179,7 +179,7 @@ $ python -m venv .venv
 
 This creates a `.venv` directory containing:
 
-```
+```text
 .venv/
   bin/          # python, pip, activate scripts
   include/      # C headers for building extensions
@@ -292,7 +292,7 @@ The traditional way to record dependencies:
 
 A typical `requirements.txt` from `pip freeze`:
 
-```
+```text
 certifi==2023.11.17
 charset-normalizer==3.3.2
 idna==3.6
@@ -319,7 +319,7 @@ pip-tools solves the `pip freeze` problem by separating what you want from what 
 
 Create `requirements.in` with your direct dependencies:
 
-```
+```bash
 # requirements.in
 requests>=2.28
 flask>=3.0
@@ -390,7 +390,7 @@ Every line shows where each dependency comes from. Sync your environment exactly
 
 Create a separate file for development tools:
 
-```
+```bash
 # requirements-dev.in
 -c requirements.txt
 pytest>=7.0
@@ -540,7 +540,7 @@ run:
 
 ## Directory Structure After Setup
 
-```
+```text
 my-api/
   .python-version        # pyenv reads this (committed)
   .venv/                  # virtual environment (gitignored)

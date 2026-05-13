@@ -100,7 +100,7 @@ WHERE category = 'Electronics'
 
 Output:
 
-```
+```text
  product_id |         name          | price  
 ------------+-----------------------+--------
           3 | Wireless Mouse        |  29.99
@@ -152,7 +152,7 @@ ORDER BY o.order_id;
 
 Output:
 
-```
+```text
   full_name   | order_id |    product_name     | quantity | unit_price | line_total
 --------------+----------+---------------------+----------+------------+------------
  Alice Chen   |        1 | Mechanical Keyboard |        1 |     149.99 |     149.99
@@ -193,7 +193,7 @@ ORDER BY total_revenue DESC;
 
 Output:
 
-```
+```text
   category    | order_count | total_units | total_revenue
 --------------+-------------+-------------+--------------
  Electronics  |          47 |         132 |      18432.50
@@ -262,7 +262,7 @@ Normalization is the process of organizing columns and tables to reduce data red
 
 Imagine storing everything in one table:
 
-```
+```text
 | order_id | customer_name | customer_email      | product_name | product_price | quantity |
 |----------|---------------|---------------------|--------------|---------------|----------|
 | 1        | Alice Chen    | alice@example.com   | Keyboard     | 149.99        | 1        |
@@ -282,7 +282,7 @@ Problems:
 
 A violation:
 
-```
+```text
 | order_id | products                |
 |----------|-------------------------|
 | 1        | Keyboard, USB Hub       |  -- comma-separated = NOT 1NF
@@ -302,7 +302,7 @@ This applies to tables with composite primary keys. If `(order_id, product_id)` 
 
 Violation example:
 
-```
+```text
 | user_id | zip_code | city       | state |
 |---------|----------|------------|-------|
 | 1       | 94105    | San Francisco | CA |
@@ -417,7 +417,7 @@ ORDER BY us.total_spent DESC;
 
 Output:
 
-```
+```text
   full_name    | total_spent | avg_spent | spending_ratio
 ---------------+-------------+-----------+----------------
  David Park    |     4523.90 |    892.34 |           5.07
@@ -479,7 +479,7 @@ ORDER BY month, spend_rank;
 
 Output:
 
-```
+```text
   full_name    |   month    | monthly_spend | spend_rank | row_num
 ---------------+------------+---------------+------------+---------
  David Park    | 2023-10-01 |       1245.00 |          1 |       1
@@ -520,7 +520,7 @@ ORDER BY month;
 
 Output:
 
-```
+```text
    month    |  revenue  | prev_month_revenue | growth_pct
 ------------+-----------+--------------------+------------
  2023-08-01 |  12450.00 |                    |
@@ -582,7 +582,7 @@ ORDER BY revenue DESC;
 
 Output:
 
-```
+```text
   category    |    product_name     | revenue  | category_total | pct_of_category
 --------------+---------------------+----------+----------------+-----------------
  Electronics  | Mechanical Keyboard |  8934.50 |      18432.50  |            48.5

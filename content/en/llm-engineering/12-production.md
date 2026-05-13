@@ -31,7 +31,7 @@ I'll focus more on numbers here than in earlier chapters. In production, the dif
 
 A production LLM-app stack typically has these layers:
 
-```
+```text
 [CDN / WAF]
    ↓
 [API Gateway]   ← rate limiting, auth, request normalization

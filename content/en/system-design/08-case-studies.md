@@ -47,13 +47,13 @@ A URL shortener takes a long URL and produces a short alias (e.g., `https://shor
 ### Estimation
 
 **Write QPS (URL creation)**:
-```
+```text
 100M URLs/day ÷ 86,400 sec/day ≈ 1,160 writes/sec
 Peak (3x): ~3,500 writes/sec
 ```
 
 **Read QPS (redirects)**:
-```
+```text
 10B redirects/day ÷ 86,400 sec/day ≈ 115,000 reads/sec
 Peak (3x): ~350,000 reads/sec
 ```
@@ -61,7 +61,7 @@ Peak (3x): ~350,000 reads/sec
 This is an extremely read-heavy system. Caching will be essential.
 
 **Storage**:
-```
+```text
 Per URL record:
   Short code: 7 bytes
   Long URL: 500 bytes (average)
@@ -76,7 +76,7 @@ Yearly: 53 GB × 365 = 19.3 TB/year
 ```
 
 **Cache memory** (using the 80/20 rule — 20% of URLs handle 80% of traffic):
-```
+```text
 Daily unique URLs accessed: ~1B (estimate)
 Hot set (20%): 200M URLs
 Cache per entry: 530 bytes
@@ -183,7 +183,7 @@ Components:
 5. **Analytics pipeline** — records click events for analytics
 
 Data flow for URL creation:
-```
+```text
 Client → Load Balancer → API Server
   → Generate unique ID (Snowflake)
   → Encode as base62 short code
@@ -192,7 +192,7 @@ Client → Load Balancer → API Server
 ```
 
 Data flow for redirect:
-```
+```text
 Client → Load Balancer → API Server
   → Look up short code in Redis cache
   → Cache hit: redirect immediately
@@ -264,7 +264,7 @@ Most URL shorteners use 302 because analytics is a core feature. Some offer both
 
 **Database partitioning**: Hash the short code to determine the partition. This distributes writes evenly and allows lookups without scanning.
 
-```
+```text
 Partition 0: short codes starting with [0-9]
 Partition 1: short codes starting with [a-m]
 Partition 2: short codes starting with [n-z]
@@ -308,14 +308,14 @@ A chat application requires real-time bidirectional communication, persistent me
 ### Estimation
 
 **Message volume**:
-```
+```text
 50M DAU × 40 messages/user/day = 2B messages/day
 2B ÷ 86,400 = ~23,000 messages/sec
 Peak (3x): ~70,000 messages/sec
 ```
 
 **Connection count**:
-```
+```text
 50M DAU, assume 30% are connected simultaneously = 15M concurrent WebSocket connections
 Each connection: ~10 KB memory overhead
 Total memory for connections: 15M × 10 KB = 150 GB
@@ -324,7 +324,7 @@ Total memory for connections: 15M × 10 KB = 150 GB
 150 GB of connection state requires multiple servers. If each server handles 500K connections, you need ~30 connection servers.
 
 **Storage**:
-```
+```text
 Average message size: 200 bytes (text) + 100 bytes (metadata) = 300 bytes
 Daily: 2B × 300 bytes = 600 GB/day
 Yearly: 600 GB × 365 = 219 TB/year
@@ -584,19 +584,19 @@ A news feed system displays a personalized, ranked stream of content from users 
 ### Estimation
 
 **Post creation QPS**:
-```
+```text
 200M DAU × 1 post/day ÷ 86,400 = ~2,300 posts/sec
 Peak (3x): ~7,000 posts/sec
 ```
 
 **Feed read QPS**:
-```
+```text
 200M DAU × 10 reads/day ÷ 86,400 = ~23,000 reads/sec
 Peak (3x): ~70,000 reads/sec
 ```
 
 **Fan-out volume**:
-```
+```text
 Each post fans out to the poster's followers.
 Average followers per user: 200
 2,300 posts/sec × 200 followers = 460,000 fan-out writes/sec
@@ -610,7 +610,7 @@ The central design challenge: how to build each user's feed from the posts of th
 
 **Fan-Out on Write (Push Model)**: When a user publishes a post, immediately write it to each follower's feed cache.
 
-```
+```text
 User A publishes a post:
   → For each of A's 200 followers:
     → Add post to follower's pre-computed feed cache
@@ -630,7 +630,7 @@ Disadvantages:
 
 **Fan-Out on Read (Pull Model)**: When a user opens their feed, query the posts from everyone they follow in real-time.
 
-```
+```text
 User opens their feed:
   → Get list of followed users (200 users)
   → Query recent posts from each followed user
@@ -650,7 +650,7 @@ Disadvantages:
 
 **Hybrid Model (the practical choice)**: Use fan-out on write for regular users and fan-out on read for celebrities.
 
-```
+```text
 User with < 10,000 followers: fan-out on write (push to followers' feeds)
 User with >= 10,000 followers: fan-out on read (followers pull at read time)
 ```
@@ -865,7 +865,7 @@ When a user with 50 million followers publishes a post, fan-out on write would r
 
 The hybrid model solves this: celebrities are handled via fan-out on read. But there is a spectrum between "regular user" and "celebrity." Some practical thresholds:
 
-```
+```text
 Followers < 10,000:    Fan-out on write (pre-compute feed)
 Followers 10K-1M:      Fan-out on write with lower priority (async, may be delayed)
 Followers > 1M:        Fan-out on read only (pull at query time)

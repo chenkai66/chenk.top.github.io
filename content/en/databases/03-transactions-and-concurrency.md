@@ -421,7 +421,7 @@ WHERE id = 2;  -- WAITS for B's lock
 
 Databases detect deadlocks using a **wait-for graph**. When a cycle is detected, one transaction is chosen as the victim and rolled back:
 
-```
+```text
 ERROR:  deadlock detected
 DETAIL: Process 12345 waits for ShareLock on transaction 67890;
         blocked by process 67891.

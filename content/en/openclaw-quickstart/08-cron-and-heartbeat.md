@@ -205,7 +205,7 @@ openclaw cron add \
 
 Example output:
 
-```
+```text
 Competitor watch — Apr 10, 9:00pm
 
 Changes detected (2 of 8 pages):

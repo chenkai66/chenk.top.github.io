@@ -42,7 +42,7 @@ translationKey: "aliyun-fullstack-2"
 
 每个实例都会经过一个定义明确的状态机：
 
-```
+```text
                   ┌──────────┐
          create   │          │  start
     ────────────► │ Stopped  │ ──────────┐

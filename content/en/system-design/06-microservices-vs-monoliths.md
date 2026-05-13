@@ -50,7 +50,7 @@ A monolith is a single deployable unit that contains all the application's funct
 
 Before jumping to microservices, consider the modular monolith — a single deployable unit with strict internal module boundaries.
 
-```
+```text
 project/
 ├── modules/
 │   ├── orders/
@@ -171,7 +171,7 @@ Example: In an e-commerce system, "Order" means different things in different co
 
 Each bounded context is a natural candidate for a service boundary. The key insight: services should be organized around business capabilities, not technical layers.
 
-```
+```text
 Bad (technical layers — every request crosses all services):
   API Gateway → Authentication Service → Business Logic Service → Data Service
 
@@ -441,7 +441,7 @@ An API gateway sits between external clients and internal services, providing a 
 
 ### Gateway Responsibilities
 
-```
+```text
 Client → API Gateway → Internal Services
 
 The gateway handles:
@@ -511,7 +511,7 @@ server {
 
 Each service owns its data exclusively. No other service can read from or write to its database directly.
 
-```
+```text
 Orders Service  → orders_db  (PostgreSQL)
 Users Service   → users_db   (PostgreSQL)
 Search Service  → search_idx (Elasticsearch)
@@ -535,7 +535,7 @@ Without distributed transactions, maintaining consistency across services requir
 
 **Choreography-based saga** (event-driven):
 
-```
+```text
 1. Order Service: Create order (status: PENDING)
    → Publish OrderCreated event
 

@@ -608,7 +608,7 @@ time echo '{"tool_name":"Bash","tool_input":{"command":"ls"}}' \
 
 ### 性能预算建议
 
-```
+```text
 PreToolUse 钩子总耗时： < 200ms  
 PostToolUse 钩子总耗时： < 500ms（非关键路径，工具调用后执行）
 ```

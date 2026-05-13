@@ -43,7 +43,7 @@ PAI 全称 Platform for AI，其命名体现了通用性，覆盖从交互式实
 
 一种直观的理解方式是：代码通过 DSW → DLC → EAS 流程逐步走向生产就绪，而 Designer 和 QuickStart 提供了跳过中间环节的快捷路径。
 
-```
+```text
     DSW              DLC              EAS
      |                |                |
  [explore]     [train at scale]    [serve]
@@ -623,7 +623,7 @@ PAI 不是孤立存在的。它连接 OSS 做存储，连接 DashScope 调用模
 
 ### 完整数据流转
 
-```
+```text
   [Your local machine]
         |
         | (upload training data)

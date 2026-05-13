@@ -261,7 +261,7 @@ Register it:
 
 When a PreToolUse hook blocks a tool call, the model receives the stderr message as an error. A well-written error message helps the model recover:
 
-```
+```bash
 # Bad: model doesn't know what to do
 exit 1
 
@@ -524,7 +524,7 @@ echo '{"tool_output": "Bearer sk-abc123456789012345678901234567890 and password=
 
 Expected output:
 
-```
+```text
 Bearer sk-[REDACTED] and password=[REDACTED]
 ```
 
@@ -795,7 +795,7 @@ Target: under 50ms per hook. Anything over 200ms is noticeable.
 
 A reasonable budget:
 
-```
+```text
 PreToolUse hooks total:  < 200ms
 PostToolUse hooks total: < 500ms (less critical, runs after the call)
 ```

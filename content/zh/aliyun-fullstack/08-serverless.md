@@ -153,7 +153,7 @@ s config add \
 
 ### 项目结构
 
-```
+```text
 image-processor/
   ├── s.yaml              # Serverless Devs config
   ├── code/
@@ -1031,7 +1031,7 @@ def handler(event, context):
 
 咱们把前面聊的都串起来，搞个能直接上生产环境的系统。架构大概长这样：
 
-```
+```text
   User uploads image to OSS
            │
            ▼
@@ -1516,7 +1516,7 @@ s logs --tail
 
 上传一张图，吐出六个文件。整套流水线跑下来大概 2-3 秒，单张成本大概 0.0001 元。就算处理 10,000 张图片，也就 1 块钱左右。
 
-```
+```text
 resized/large/test-image.jpg      (1200px wide, watermarked)
 resized/medium/test-image.jpg     (600px wide, watermarked)
 resized/thumb/test-image.jpg      (150px wide, no watermark)

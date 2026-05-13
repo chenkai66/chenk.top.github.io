@@ -82,7 +82,7 @@ Word2Vec (Mikolov et al., 2013) was the first method to learn high-quality embed
 
 Given a target word, predict each surrounding context word within a fixed window. For "the quick **brown** fox jumps" with window size 2, the target "brown" generates four positive training pairs:
 
-```
+```text
 (brown, the)   (brown, quick)   (brown, fox)   (brown, jumps)
 ```
 

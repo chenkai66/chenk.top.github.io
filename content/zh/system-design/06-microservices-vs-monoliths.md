@@ -50,7 +50,7 @@ translationKey: "system-design-6"
 
 在跃向微服务前，请先考虑**模块化单体**——即一个可独立部署的单元，但内部具备严格模块边界。
 
-```
+```text
 project/
 ├── modules/
 │   ├── orders/
@@ -171,7 +171,7 @@ def check_module_boundaries():
 
 每个限界上下文天然适合作为服务边界。关键洞见：**服务应围绕业务能力组织，而非技术分层**。
 
-```
+```text
 错误方式（技术分层 —— 每次请求穿越全部服务）：
   API 网关 → 认证服务 → 业务逻辑服务 → 数据服务
 
@@ -441,7 +441,7 @@ API 网关位于外部客户端与内部服务之间，提供统一入口点。
 
 ### 网关职责
 
-```
+```text
 客户端 → API 网关 → 内部服务
 
 网关承担以下职责：
@@ -511,7 +511,7 @@ server {
 
 每个服务**独占其数据**，其他服务不得直接读写其数据库。
 
-```
+```text
 订单服务  → orders_db  （PostgreSQL）  
 用户服务  → users_db   （PostgreSQL）  
 搜索服务  → search_idx （Elasticsearch）  
@@ -535,7 +535,7 @@ server {
 
 **基于编排的 Saga （Choreography-based saga）**（事件驱动）：
 
-```
+```text
 1. 订单服务：创建订单（状态：PENDING）  
    → 发布 OrderCreated 事件  
 

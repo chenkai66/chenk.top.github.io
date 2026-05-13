@@ -43,7 +43,7 @@ When you "create an ECS instance" in the console, you are actually configuring a
 
 Every instance passes through a well-defined state machine:
 
-```
+```text
                   ┌──────────┐
          create   │          │  start
     ────────────► │ Stopped  │ ──────────┐

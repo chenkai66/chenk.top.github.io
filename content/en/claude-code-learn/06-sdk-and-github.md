@@ -658,7 +658,7 @@ Let me walk through a complete PR review workflow from start to finish.
 
 A developer opens a PR. The auto-review job triggers:
 
-```
+```markdown
 Claude Code reviews PR #42: "Add user authentication middleware"
 
 ---
@@ -691,7 +691,7 @@ localStorage is vulnerable to XSS. Consider httpOnly cookies instead.
 
 The reviewer reads Claude's analysis, addresses the critical issues, and replies:
 
-```
+```text
 @claude good catches. Please fix the rate limiting issue — add express-rate-limit
 to the auth middleware with a 100 requests per 15 minute window. Also add a test
 for it.
@@ -699,7 +699,7 @@ for it.
 
 Claude reads the comment, checks out the branch, makes the changes, runs tests, and pushes a commit:
 
-```
+```text
 I've made the following changes:
 
 1. Added `express-rate-limit` dependency

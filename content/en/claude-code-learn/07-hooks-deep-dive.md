@@ -144,7 +144,7 @@ echo "Exit code: $?"
 
 When this hook blocks a call, Claude receives the stderr text as feedback. A real session looks like this:
 
-```
+```text
 Claude: I'll read the environment configuration...
 [Hook blocked Read on .env.local]
 Claude: I can't read .env.local directly as it contains sensitive data.
@@ -448,7 +448,7 @@ PostToolUse runs *after* the edit. Exit code 2 does not roll anything back — t
 
 ### Real terminal output
 
-```
+```text
 Claude: I'll update the component...
 [Edit applied to src/components/Header.tsx]
 [PostToolUse hook] Formatted: Header.tsx
@@ -520,7 +520,7 @@ process.stdin.on('end', () => {
 
 Exit code 1 in PostToolUse surfaces the failure to the model. The model sees the test output and tries to fix the code, creating a feedback loop:
 
-```
+```text
 Claude: I'll update the validation logic...
 [Edit applied to src/validators/email.ts]
 [Running test:related for email.ts...]
@@ -921,7 +921,7 @@ A format hook that changes a file can trigger the "file changed since last read"
 
 If you want to set up all ten hooks in a new project, here is the directory structure:
 
-```
+```text
 .claude/
   settings.json          # the wiring shown above
 your-project/
@@ -956,7 +956,7 @@ done
 
 Expected output:
 
-```
+```text
 hooks/backup-before-edit.js: exit 0
 hooks/bash-blacklist.js: exit 0
 hooks/bash-whitelist.js: exit 0

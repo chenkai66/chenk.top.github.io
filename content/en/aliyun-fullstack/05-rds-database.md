@@ -215,7 +215,7 @@ InnoDB performance is dominated by one thing: whether your data fits in the buff
 
 The formula:
 
-```
+```text
 Buffer Pool Size ≈ 75% of instance memory
 Working Set = frequently accessed data + all indexes
 If Working Set ≤ Buffer Pool Size → fast
@@ -1130,7 +1130,7 @@ SQL
 
 What we built:
 
-```
+```text
                     ┌────────────────────────┐
                     │   Application (ECS)    │
                     │   app tier VPC subnet  │

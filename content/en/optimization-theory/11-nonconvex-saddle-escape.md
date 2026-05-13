@@ -77,7 +77,7 @@ Many machine-learning problems have the strict saddle property: orthogonal tenso
 
 ### 2.2 Perturbed GD
 
-```
+```text
 Algorithm: PGD (perturbed gradient descent)
 Input: x_0, step η, perturbation radius r, threshold ε
 for t = 0, 1, 2, ...:

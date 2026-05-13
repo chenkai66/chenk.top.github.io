@@ -442,7 +442,7 @@ Action 會認倉庫裡的 `.claude/settings.json`。你在第 5 篇寫的 hooks 
 
 开发者提交 PR 后，自动审查任务随即触发：
 
-```
+```markdown
 Claude Code 正在审查 PR #42："添加用户认证中间件"
 
 ---
@@ -474,14 +474,14 @@ localStorage 易受 XSS 攻击。建议改用 `httpOnly` Cookie。
 
 审查者阅读 Claude 的分析后，修复关键问题，并回复：
 
-```
+```text
 @claude 发现得很准。请修复速率限制问题：在 auth 中间件中集成 express-rate-limit，
 窗口设为 15 分钟、上限 100 次请求；同时补充对应测试。
 ```
 
 Claude 解析该评论，检出对应分支，完成修改、运行测试并推送提交：
 
-```
+```text
 我已执行以下变更：
 
 1. 添加 `express-rate-limit` 依赖

@@ -204,7 +204,7 @@ openclaw cron add \
 
 输出示例。
 
-```
+```text
 Competitor watch — Apr 10, 9:00pm
 
 Changes detected (2 of 8 pages):

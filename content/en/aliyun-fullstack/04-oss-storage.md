@@ -725,7 +725,7 @@ aliyun cdn AddCdnDomain \
 
 After adding the CDN domain, Alibaba Cloud gives you a CNAME value like `cdn.example.com.w.kunlunsl.com`. Add a CNAME record in your DNS:
 
-```
+```text
 cdn.example.com  CNAME  cdn.example.com.w.kunlunsl.com
 ```
 
@@ -1167,7 +1167,7 @@ curl "http://localhost:8080/api/image/uploads/u123/2026/05/14/a1b2c3d4e5f6.jpg?w
 
 ### Architecture summary
 
-```
+```text
 Browser                          Your Flask API                OSS Bucket
   │                                   │                           │
   │  1. POST /api/upload/presign      │                           │

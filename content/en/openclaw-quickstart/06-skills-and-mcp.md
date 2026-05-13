@@ -185,7 +185,7 @@ Restart the gateway. The Playwright MCP server exposes browser-automation tools 
 
 From the TUI:
 
-```
+```text
 Use Playwright to fetch the top 5 stories from
 https://news.ycombinator.com and just give me the titles and URLs.
 ```
@@ -320,7 +320,7 @@ skills_required: [today-calendar, summarize-headlines]
 
 ### News
 [output of summarize-headlines]
-```
+```text
 
 Send the result to the default channel.
 ```
@@ -540,7 +540,7 @@ If the server crashes more than `max_restarts` times in 60 seconds, MCPorter giv
 
 You can also force a specific skill:
 
-```
+```text
 /skill morning-briefing
 ```
 

@@ -61,7 +61,7 @@ If you have ever seen "the agent confused two of my conversations", that is a se
 
 This is the actual agent loop. It is the bit that looks like:
 
-```
+```text
 while True:
     plan = LLM(messages, tools=enabled_tools, skills=hot_skills)
     if plan.is_terminal:

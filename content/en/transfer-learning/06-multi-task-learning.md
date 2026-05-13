@@ -231,7 +231,7 @@ After projection $g_i' \cdot g_j = 0$ — no remaining conflict. The green arrow
 
 Pseudocode:
 
-```
+```text
 for each task i:
     g_i = backward pass on loss_i
     for each other task j:

@@ -42,7 +42,7 @@ REST models everything as a **resource**, identified by a URL. Operations on res
 
 Status codes communicate the result of an operation. Using them correctly is the difference between a good API and a frustrating one.
 
-```
+```text
 2xx Success
   200 OK           — Request succeeded, response body contains result
   201 Created      — Resource created, Location header points to it
@@ -124,7 +124,7 @@ Cursor-based pagination is superior for large, actively-changing datasets. Offse
 
 **Filtering and Sorting**:
 
-```
+```text
 GET /photos?user_id=123&created_after=2025-01-01&sort=-created_at&fields=id,url,caption
 ```
 
@@ -588,7 +588,7 @@ Simple and memory-efficient, but has a boundary problem: a burst at the end of w
 
 Always communicate rate limit status in response headers:
 
-```
+```text
 HTTP/1.1 200 OK
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 73

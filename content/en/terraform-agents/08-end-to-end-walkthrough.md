@@ -27,7 +27,7 @@ Five layers — edge, compute, memory, platform, ops — composed from the modul
 
 ## Project structure
 
-```
+```text
 research-agent-stack/
 ├── README.md
 ├── versions.tf                  # Terraform + provider pinning

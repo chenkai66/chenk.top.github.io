@@ -41,7 +41,7 @@ The most common replication topology. One node (the leader/master/primary) handl
 ![Leader-follower replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
 
 
-```
+```text
                     Writes
 Client ────────────► Leader (Primary)
                        │
@@ -136,7 +136,7 @@ Each of several leaders accepts writes independently. Changes are replicated bet
 ![Multi-leader replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-multi-leader.png)
 
 
-```
+```text
 Data Center A              Data Center B
 ┌──────────────┐          ┌──────────────┐
 │   Leader A   │◄────────►│   Leader B   │
@@ -185,7 +185,7 @@ With N replicas, you configure:
 
 The rule: **W + R > N** guarantees you will read at least one node that has the latest write.
 
-```
+```text
 N = 3 (three replicas of each piece of data)
 W = 2 (write must be acknowledged by 2 nodes)
 R = 2 (read must be answered by 2 nodes)
@@ -219,7 +219,7 @@ Common configurations:
 
 When a read detects stale data on a node, the client can write the latest value back to the stale node. This is called **read repair**:
 
-```
+```text
 Read key "account:1":
   Node 1: balance = 500 (version 2) ✓ latest
   Node 3: balance = 1000 (version 1) ✗ stale
@@ -243,7 +243,7 @@ Replication puts the same data on multiple machines. Partitioning puts *differen
 
 Assign contiguous ranges of the partition key to each shard:
 
-```
+```text
 Shard 1: user_id    1 - 1,000,000
 Shard 2: user_id    1,000,001 - 2,000,000
 Shard 3: user_id    2,000,001 - 3,000,000
@@ -279,7 +279,7 @@ SELECT * FROM orders WHERE created_at = '2023-11-15';
 
 Apply a hash function to the partition key and assign hash ranges to shards:
 
-```
+```text
 partition = hash(user_id) % num_shards
 
 hash("user:1")  = 0x3A2B... → shard 2
@@ -318,7 +318,7 @@ The problem with `hash(key) % N`: when you add or remove a shard, almost every k
 
 Consistent hashing solves this by mapping both keys and nodes onto a ring (0 to 2^32):
 
-```
+```text
                     0 / 2^32
                       │
               Node C  ●
@@ -338,7 +338,7 @@ Adding Node D:
 
 With **virtual nodes** (vnodes), each physical node appears at multiple positions on the ring, improving balance:
 
-```
+```text
 Physical Node A → Virtual nodes: A1, A2, A3, A4, A5 (5 positions on ring)
 Physical Node B → Virtual nodes: B1, B2, B3, B4, B5
 
@@ -352,7 +352,7 @@ When you add or remove nodes, data must move. There are two approaches:
 
 **Fixed number of partitions**: Create many more partitions than nodes (e.g., 1,000 partitions for 10 nodes). When adding a node, move entire partitions to it.
 
-```
+```text
 Before (10 nodes, 1000 partitions):
   Node 1: partitions 0-99
   Node 2: partitions 100-199
@@ -382,7 +382,7 @@ Two approaches:
 
 **Local (document-partitioned) index**: Each shard maintains its own secondary index covering only its data.
 
-```
+```text
 Shard 1: local index on email → {alice@...: row 1, bob@...: row 2}
 Shard 2: local index on email → {carol@...: row 3, dave@...: row 4}
 
@@ -392,7 +392,7 @@ Query by email → scatter to ALL shards, gather results
 
 **Global (term-partitioned) index**: The secondary index itself is partitioned across shards.
 
-```
+```text
 Email index shard A (emails a-m): alice@... → shard 1, carol@... → shard 2
 Email index shard B (emails n-z): zara@... → shard 3
 

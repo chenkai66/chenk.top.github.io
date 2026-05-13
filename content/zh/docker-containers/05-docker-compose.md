@@ -256,7 +256,7 @@ services:
 
 我们来构建一个完整的应用栈：API 通过 HTTP 接收任务，将其存入 PostgreSQL 并推入 Redis 队列；Worker 异步处理任务。项目结构如下：
 
-```
+```text
 myapp/
   docker-compose.yml
   .env
@@ -505,7 +505,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-```
+```text
 NAME                  IMAGE                  COMMAND                  SERVICE    CREATED          STATUS                    PORTS
 myapp-api-1           myapp-api              "gunicorn --bind 0.0…"   api        2 minutes ago    Up 2 minutes (healthy)    0.0.0.0:8000->8000/tcp
 myapp-postgres-1      postgres:16-alpine     "docker-entrypoint.s…"   postgres   2 minutes ago    Up 2 minutes (healthy)    0.0.0.0:5432->5432/tcp
@@ -611,7 +611,7 @@ docker compose up -d --scale worker=3
 docker compose ps
 ```
 
-```
+```text
 NAME                  IMAGE                  SERVICE    STATUS          PORTS
 myapp-api-1           myapp-api              api        Up (healthy)    0.0.0.0:8000->8000/tcp
 myapp-postgres-1      postgres:16-alpine     postgres   Up (healthy)    0.0.0.0:5432->5432/tcp

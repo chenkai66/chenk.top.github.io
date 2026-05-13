@@ -184,7 +184,7 @@ mcporter add playwright npx @playwright/mcp@latest
 
 在 TUI 里测试一下：
 
-```
+```text
 Use Playwright to fetch the top 5 stories from
 https://news.ycombinator.com and just give me the titles and URLs.
 ```
@@ -319,7 +319,7 @@ skills_required: [today-calendar, summarize-headlines]
 
 ### 新闻
 [output of summarize-headlines]
-```
+```text
 
 Send the result to the default channel.
 ```
@@ -540,7 +540,7 @@ mcporter config playwright
 
 你也可强制指定 Skill：
 
-```
+```text
 /skill morning-briefing
 ```
 

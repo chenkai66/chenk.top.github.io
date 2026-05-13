@@ -619,7 +619,7 @@ df = pd.read_parquet("large_data.parquet", columns=["name", "age"])
 (.venv) $ pip install python-dotenv
 ```
 
-```
+```bash
 # .env
 DATABASE_URL=postgresql://localhost/mydb
 API_KEY=sk-abc123
@@ -640,7 +640,7 @@ debug = os.environ.get("DEBUG", "false").lower() == "true"
 
 务必把 `.env` 加入 `.gitignore`。提交一个带占位符的 `.env.example`：
 
-```
+```bash
 # .env.example
 DATABASE_URL=postgresql://localhost/mydb
 API_KEY=your-api-key-here

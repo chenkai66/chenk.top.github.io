@@ -83,7 +83,7 @@ Even DRAM at 100 ns is **300×** slower than the CPU. To hide that latency, mode
 
 The hit rates compound. With 95% L1 hit, 85% L2 hit on misses, 70% L3 hit on remaining misses:
 
-```
+```text
 average latency
   = 0.95   * 1 ns
   + 0.05  * 0.85 * 4 ns

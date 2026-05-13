@@ -146,7 +146,7 @@ Cerebras 和微软研究院都做过实验，μP 调优后的 7B、 70B 到 700B
 
 对于 64 张 H100 上的 70B 模型，典型配置是：
 
-```
+```text
 TP=8 within node (NVLink)
 PP=2 across nodes (200 Gbps Infiniband)
 DP=4 with FSDP across the remaining axis

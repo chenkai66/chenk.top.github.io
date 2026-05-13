@@ -238,7 +238,7 @@ class VectorMemory:
 
 记忆不能无限增长。一个简单可用的保留分数：
 
-```
+```text
 score = 0.5 * importance + 0.3 * normalised_access_count - 0.2 * days_since_last_access
 ```
 

@@ -30,7 +30,7 @@ translationKey: "llm-engineering-12"
 
 生产环境的 LLM 应用栈通常长这样：
 
-```
+```text
 [CDN / WAF]
    ↓
 [API Gateway]   ← rate limiting, auth, request normalization

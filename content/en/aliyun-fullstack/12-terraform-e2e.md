@@ -78,7 +78,7 @@ Here is the complete stack we are codifying. Every component corresponds to some
 
 ![Full-stack architecture on Alibaba Cloud](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                        Alibaba Cloud                        │
 │                                                             │
@@ -133,7 +133,7 @@ A well-organized Terraform project is the difference between a codebase your tea
 
 ![Terraform module layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_module_layout.png)
 
-```
+```text
 aliyun-fullstack-terraform/
 ├── main.tf                    # Root module: composes all child modules
 ├── variables.tf               # Input variables for the root module
@@ -1749,7 +1749,7 @@ The `terraform plan` output will show you every resource that will be created be
 
 A typical plan output for our full stack looks like this:
 
-```
+```text
 Plan: 42 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
@@ -1926,7 +1926,7 @@ infracost breakdown --path=. --terraform-var-file=environments/prod.tfvars
 
 A typical output for our full stack:
 
-```
+```text
 Project: aliyun-fullstack-terraform
 
  Name                                     Monthly Qty  Unit         Monthly Cost

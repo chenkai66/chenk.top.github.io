@@ -111,7 +111,7 @@ series: string (optional, must match series name in config)
 
 ### User-level skills
 
-```
+```text
 ~/.claude/
   skills/
     chenk-blog-write/
@@ -126,7 +126,7 @@ User-level skills are available in every project on your machine.
 
 ### Project-level skills
 
-```
+```text
 my-project/
   .claude/
     skills/
@@ -212,7 +212,7 @@ aws ecs update-service \
   --cluster acme-staging-ecs \
   --service acme-api \
   --force-new-deployment
-```
+```bash
 
 # Health check
 
@@ -221,7 +221,7 @@ After deploy, wait 60 seconds, then verify:
 ```bash
 curl -s https://staging.acme.dev/health | jq .
 # Expected: {"status":"ok","version":"<new-version>"}
-```
+```bash
 
 # Rollback
 
@@ -237,7 +237,7 @@ aws ecs update-service \
   --cluster acme-staging-ecs \
   --service acme-api \
   --task-definition acme-api:<previous-revision>
-```
+```bash
 
 # Common issues
 
@@ -382,7 +382,7 @@ This is not enforcement — Claude can still deviate. But it gives Claude clear 
 
 When you have a "Claude should know how to do X" thought, walk through this:
 
-```
+```text
 START: "I want Claude to do X"
   |
   v
@@ -500,7 +500,7 @@ The litmus test: if the instruction contains "always" or "never" and applies to 
 
 Over time, you will accumulate extensions across all four mechanisms. Here is how I organize mine:
 
-```
+```text
 ~/.claude/
   settings.json                  # Global deny rules, global hooks
   skills/

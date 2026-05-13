@@ -387,7 +387,7 @@ LIMIT 20;
 - **节点（Nodes / vertices）**：带标签（label）和属性（properties）的实体  
 - **关系（Relationships / edges）**：有类型的节点间连接，同样可携带属性  
 
-```
+```text
 (Alice:Person {name: "Alice", age: 30})
     -[:FRIENDS_WITH {since: 2020}]->
 (Bob:Person {name: "Bob", age: 28})

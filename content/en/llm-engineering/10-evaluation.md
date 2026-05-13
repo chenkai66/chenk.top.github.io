@@ -261,7 +261,7 @@ The per-dimension view is critical. A model that gains 5 points on completeness 
 
 A mature evaluation system has the same operational hygiene as a CI pipeline:
 
-```
+```text
 [eval_set.jsonl in version control]
      ↓
 [runner: parallelize across N candidates × M questions]

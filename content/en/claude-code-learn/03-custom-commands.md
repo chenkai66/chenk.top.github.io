@@ -35,7 +35,7 @@ Report which CVEs were patched and which remain.
 
 Restart, then in any session:
 
-```
+```text
 /audit
 ```
 
@@ -72,7 +72,7 @@ The command content is treated as a regular prompt. This means:
 
 Here's the full layout for a mature project:
 
-```
+```text
 .claude/
 ├── commands/               # Project commands (committed to git)
 │   ├── audit.md
@@ -90,7 +90,7 @@ Here's the full layout for a mature project:
 
 And for personal global commands:
 
-```
+```text
 ~/.claude/
 ├── commands/               # Personal global commands
 │   ├── standup.md
@@ -136,7 +136,7 @@ If the term is ambiguous, list the meanings and ask which one I want.
 
 Then:
 
-```
+```text
 /explain rate limiter
 ```
 
@@ -158,7 +158,7 @@ Group by: direct usage, re-export, test usage.
 Show the file path and line number for each.
 ```
 
-```
+```text
 /find UserService
 ```
 
@@ -172,7 +172,7 @@ Include: API surface, performance characteristics, bundle size impact.
 Recommend which one to use for our project and explain why.
 ```
 
-```
+```text
 /compare axios vs fetch vs ky for HTTP requests
 ```
 
@@ -192,7 +192,7 @@ Analyze test coverage for $ARGUMENTS.
 Do not modify existing tests. Only create new ones.
 ```
 
-```
+```text
 /coverage src/services/payment.ts
 ```
 
@@ -213,7 +213,7 @@ Otherwise, give a general overview:
 5. TODO comments added in the last week
 ```
 
-```
+```text
 /status                    # General overview
 /status authentication     # Focused on auth
 ```
@@ -607,7 +607,7 @@ For those cases you want the SDK (piece 6). Slash commands are for the workflow 
 
 ### The hierarchy of automation in Claude Code
 
-```
+```text
 Simple → Complex:
 
 1. CLAUDE.md conventions    (passive — Claude follows them automatically)
@@ -625,7 +625,7 @@ Start at level 1. Move up only when the lower level can't handle your use case. 
 
 Let me show what a mature `.claude/commands/` directory looks like for a production API project:
 
-```
+```text
 .claude/commands/
 ├── audit.md          # Security audit
 ├── debug.md          # Structured debugging

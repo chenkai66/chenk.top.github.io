@@ -154,7 +154,7 @@ s config add \
 
 ### Project structure
 
-```
+```text
 image-processor/
   ├── s.yaml              # Serverless Devs config
   ├── code/
@@ -1032,7 +1032,7 @@ def handler(event, context):
 
 Let's bring everything together into a production-quality system. The architecture:
 
-```
+```text
   User uploads image to OSS
            │
            ▼
@@ -1507,7 +1507,7 @@ s logs --tail
 
 Expected output after uploading one image:
 
-```
+```text
 resized/large/test-image.jpg      (1200px wide, watermarked)
 resized/medium/test-image.jpg     (600px wide, watermarked)
 resized/thumb/test-image.jpg      (150px wide, no watermark)

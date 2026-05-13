@@ -721,7 +721,7 @@ terraform destroy
 
 ![12 篇系列文章路线图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_architecture_roadmap.png)
 
-```
+```text
 Article 01: The Ecosystem Map (you are here)
     |
     v

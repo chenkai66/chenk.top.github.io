@@ -91,12 +91,12 @@ The architectural difference is fundamental. Here's how the two stacks compare (
 
 
 **Virtual Machine stack (bottom to top):**
-```
+```text
 Hardware → Host OS → Hypervisor → [Guest OS + Bins/Libs + App] per VM
 ```
 
 **Container stack (bottom to top):**
-```
+```text
 Hardware → Host OS (shared kernel) → Container Runtime → [Bins/Libs + App] per Container
 ```
 
@@ -141,7 +141,7 @@ Any tool that follows these specs can build images that run anywhere. This is wh
 
 The stack has layers, and Docker sits on top:
 
-```
+```bash
 docker CLI → dockerd (Docker daemon) → containerd → runc → Linux kernel
 ```
 
@@ -318,7 +318,7 @@ docker run hello-world
 
 Output:
 
-```
+```text
 Unable to find image 'hello-world:latest' locally
 latest: Pulling from library/hello-world
 c1ec31eb5944: Pull complete
@@ -473,7 +473,7 @@ After exiting, the container stops but isn't deleted:
 docker ps -a
 ```
 
-```
+```text
 CONTAINER ID   IMAGE         COMMAND   CREATED          STATUS                     PORTS   NAMES
 a3f8b2c1d4e5   ubuntu        "bash"    2 minutes ago    Exited (0) 30 seconds ago          hopeful_nobel
 b7c9e1f2a3d4   hello-world   "/hello"  5 minutes ago    Exited (0) 5 minutes ago           festive_darwin
@@ -499,7 +499,7 @@ Breaking down the flags:
 docker ps
 ```
 
-```
+```text
 CONTAINER ID   IMAGE   COMMAND                  CREATED         STATUS         PORTS                  NAMES
 c5d6e7f8a9b0   nginx   "/docker-entrypoint.…"   5 seconds ago   Up 4 seconds   0.0.0.0:8080->80/tcp   my-nginx
 ```
@@ -522,7 +522,7 @@ curl http://localhost:8080
 docker logs my-nginx
 ```
 
-```
+```text
 /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
 /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
 ...

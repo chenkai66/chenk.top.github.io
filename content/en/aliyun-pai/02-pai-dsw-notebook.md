@@ -66,7 +66,7 @@ The single most important diagram in the entire DSW docs:
 
 The mount path I use everywhere:
 
-```
+```text
 /mnt/data/
 ├── datasets/      # read-only OSS mount (the bucket lives forever)
 ├── checkpoints/   # writeable OSS prefix (save every N steps)

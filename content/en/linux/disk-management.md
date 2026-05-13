@@ -235,7 +235,7 @@ sudo blkid /dev/sdb1
 
 Add a line to `/etc/fstab`:
 
-```
+```bash
 # <device>             <mount>   <fs>   <options>           <dump> <pass>
 UUID=8f1c-...-3a       /mnt/data ext4   defaults,noatime    0      2
 ```

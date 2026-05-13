@@ -34,7 +34,7 @@ translationKey: "docker-containers-2"
 docker images
 ```
 
-```
+```text
 REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
 nginx        latest    61395b4c586d   2 weeks ago   187MB
 ubuntu       22.04     c6b84b685f35   3 weeks ago   77.8MB
@@ -45,7 +45,7 @@ ubuntu       22.04     c6b84b685f35   3 weeks ago   77.8MB
 docker ps -a
 ```
 
-```
+```text
 CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS                     NAMES
 a1b2c3d4e5f6   nginx          "/docker-entrypoint.…"   10 minutes ago   Up 10 minutes              web1
 b2c3d4e5f6a7   nginx          "/docker-entrypoint.…"   8 minutes ago    Up 8 minutes               web2
@@ -83,7 +83,7 @@ CMD ["python3", "/app/app.py"]  # 仅元数据（不生成新分层）
 
 当容器从此镜像启动时， Docker 会在最上方额外添加一层：
 
-```
+```toml
 [可写容器层]  ← 运行时的修改发生于此
 [第 4 层：COPY app.py]      ← 只读
 [第 3 层：apt install curl]  ← 只读
@@ -104,7 +104,7 @@ CMD ["python3", "/app/app.py"]  # 仅元数据（不生成新分层）
 docker pull nginx
 ```
 
-```
+```text
 Using default tag: latest
 latest: Pulling from library/nginx
 a2abf6c4d29d: Pull complete
@@ -126,7 +126,7 @@ docker.io/library/nginx:latest
 docker pull nginx:alpine
 ```
 
-```
+```text
 Using default tag: latest
 alpine: Pulling from library/nginx
 59bf1c3509f3: Already exists
@@ -157,7 +157,7 @@ docker.io/library/nginx:alpine
 docker history nginx
 ```
 
-```
+```text
 IMAGE          CREATED       CREATED BY                                      SIZE      COMMENT
 61395b4c586d   2 weeks ago   /bin/sh -c #(nop)  CMD ["nginx" "-g" "daemon…   0B
 <missing>      2 weeks ago   /bin/sh -c #(nop)  STOPSIGNAL SIGQUIT           0B
@@ -215,7 +215,7 @@ Docker 镜像遵循如下命名约定：
 ![镜像仓库工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-image-registry.png)
 
 
-```
+```text
 [registry/][namespace/]repository[:tag][@digest]
 ```
 
@@ -248,7 +248,7 @@ Docker Hub 是默认的公共镜像仓库。当你运行 `docker pull nginx` 时
 docker search python --limit 5
 ```
 
-```
+```text
 NAME                  DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
 python                Python is an interpreted, interactive, objec…   9283      [OK]
 pypy                  PyPy is a fast, compliant alternative implem…   380       [OK]
@@ -307,7 +307,7 @@ docker pull gcr.io/distroless/static-debian12
 docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 ```
 
-```
+```text
 REPOSITORY                          TAG                 SIZE
 ubuntu                              22.04               77.8MB
 debian                              bookworm-slim       74.8MB
@@ -345,7 +345,7 @@ ls -lh nginx-latest.tar
 docker load -i nginx-latest.tar
 ```
 
-```
+```text
 Loaded image: nginx:latest
 ```
 
@@ -355,7 +355,7 @@ tar 文件包含所有分层（各自为独立 tar 文件）及清单（manifest
 tar tf nginx-latest.tar | head -20
 ```
 
-```
+```text
 2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f/
 2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f/VERSION
 2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f/json
@@ -408,7 +408,7 @@ docker tag nginx:latest registry.example.com/team/nginx:v1.0
 docker images | grep -E "nginx|my-nginx"
 ```
 
-```
+```text
 REPOSITORY                        TAG          IMAGE ID       CREATED       SIZE
 nginx                             latest       61395b4c586d   2 weeks ago   187MB
 my-nginx                          v1.0         61395b4c586d   2 weeks ago   187MB
@@ -447,7 +447,7 @@ docker pull myapp@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c2
 docker system df
 ```
 
-```
+```text
 TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
 Images          5         2         450.2MB   312.4MB (69%)
 Containers      3         1         12.5kB    12.5kB (100%)
@@ -486,7 +486,7 @@ docker cp peek:/etc/nginx/nginx.conf ./nginx.conf
 docker export peek | tar tf - | head -30
 ```
 
-```
+```text
 .dockerenv
 bin
 boot/
@@ -531,7 +531,7 @@ docker info --format '{{.Driver}}'
 ls /var/lib/docker/overlay2/ | head -5
 ```
 
-```
+```text
 2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f
 backingFsBlockDev
 e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10

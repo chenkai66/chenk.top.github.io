@@ -26,7 +26,7 @@ translationKey: "terraform-agents-8"
 
 ## 项目结构
 
-```
+```text
 research-agent-stack/
 ├── README.md
 ├── versions.tf                  # Terraform + provider pinning

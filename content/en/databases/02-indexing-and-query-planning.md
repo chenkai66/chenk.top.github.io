@@ -81,7 +81,7 @@ To find `email = 'alice@example.com'`:
 4. The leaf contains a pointer to the actual row on disk (a tuple ID or row ID).
 5. Fetch the row from the heap (the main table data).
 
-```
+```text
 Root Node: [charlie@... | mike@... | zara@...]
                 |              |           |
           Child < charlie  charlie-mike  mike-zara   > zara
@@ -255,7 +255,7 @@ LIMIT 10;
 
 Output:
 
-```
+```text
  Limit  (cost=1845.23..1845.26 rows=10 width=40) (actual time=12.456..12.461 rows=10 loops=1)
    ->  Sort  (cost=1845.23..1857.45 rows=4889 width=40) (actual time=12.454..12.458 rows=10 loops=1)
          Sort Key: (count(*)) DESC
@@ -302,7 +302,7 @@ ORDER BY order_count DESC
 LIMIT 10;
 ```
 
-```
+```text
 +----+-------------+-------+------+------------------+---------+---------+------------------+-------+----------------------------------------------+
 | id | select_type | table | type | possible_keys    | key     | key_len | ref              | rows  | Extra                                        |
 +----+-------------+-------+------+------------------+---------+---------+------------------+-------+----------------------------------------------+
@@ -333,7 +333,7 @@ WHERE status = 'pending'
   AND created_at > '2023-01-01';
 ```
 
-```
+```text
  Seq Scan on orders  (cost=0.00..2456.00 rows=245 width=48) (actual time=0.034..18.567 rows=234 loops=1)
    Filter: (((status)::text = 'pending'::text) AND (created_at > '2023-01-01'))
    Rows Removed by Filter: 49766
@@ -353,7 +353,7 @@ CREATE INDEX idx_orders_status_created ON orders (status, created_at);
 
 After creating the index:
 
-```
+```text
  Index Scan using idx_orders_status_created on orders  (cost=0.29..12.45 rows=245 width=48) (actual time=0.023..0.189 rows=234 loops=1)
    Index Cond: (((status)::text = 'pending'::text) AND (created_at > '2023-01-01'))
  Planning Time: 0.102 ms
@@ -520,7 +520,7 @@ CREATE INDEX idx_events_timerange ON events USING gist (time_range);
 
 When you have a slow query, follow this process:
 
-```
+```text
 1. Run EXPLAIN ANALYZE on the slow query
 2. Look for Seq Scans with high "Rows Removed by Filter"
 3. Identify which WHERE/JOIN/ORDER BY columns lack indexes

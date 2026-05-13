@@ -253,7 +253,7 @@ def clean_state():
 
 Fixtures in `conftest.py` are available to all tests in the same directory and subdirectories without importing:
 
-```
+```text
 tests/
   conftest.py          # fixtures available to all tests
   test_core.py

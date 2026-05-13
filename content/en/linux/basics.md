@@ -104,7 +104,7 @@ Every Linux command line is parsed by the shell into three types of tokens, sepa
 
 ![Anatomy of a shell command](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/basics/fig2_command_anatomy.png)
 
-```
+```bash
 $ ls -l -a -h --color=auto /var/log /etc
   ^^ ^^^^^^^^ ^^^^^^^^^^^^^ ^^^^^^^^^^^^^
   |    |          |             |

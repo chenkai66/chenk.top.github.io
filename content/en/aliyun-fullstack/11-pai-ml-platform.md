@@ -44,7 +44,7 @@ The five components you will actually use:
 
 The mental model that works best for me: code matures from left to right through DSW, DLC, and EAS, while Designer and QuickStart are shortcuts that skip part of the journey.
 
-```
+```text
     DSW              DLC              EAS
      |                |                |
  [explore]     [train at scale]    [serve]
@@ -626,7 +626,7 @@ PAI does not exist in isolation. It connects to OSS for storage, to DashScope fo
 
 ### The complete data flow
 
-```
+```text
   [Your local machine]
         |
         | (upload training data)

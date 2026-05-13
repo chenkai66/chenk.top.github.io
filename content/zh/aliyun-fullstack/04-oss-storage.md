@@ -724,7 +724,7 @@ aliyun cdn AddCdnDomain \
 
 添加 CDN 域名后，阿里云会给你一个 CNAME 值，比如 `cdn.example.com.w.kunlunsl.com`。在你的 DNS 里加一条 CNAME 记录：
 
-```
+```text
 cdn.example.com  CNAME  cdn.example.com.w.kunlunsl.com
 ```
 
@@ -1165,7 +1165,7 @@ curl "http://localhost:8080/api/image/uploads/u123/2026/05/14/a1b2c3d4e5f6.jpg?w
 
 ### 架构总结
 
-```
+```text
 Browser                          Your Flask API                OSS Bucket
   │                                   │                           │
   │  1. POST /api/upload/presign      │                           │

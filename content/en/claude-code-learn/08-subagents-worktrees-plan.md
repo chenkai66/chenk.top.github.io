@@ -100,7 +100,7 @@ Skipping plan mode for small tasks can lead to misunderstandings. A one-line fix
 
 You can steer the plan with instructions.
 
-```
+```text
 You: [plan mode] Add authentication. Focus the plan on the database
      schema changes. I already know the API layer.
 
@@ -208,7 +208,7 @@ Rules:
 
 In conversation, you can direct Claude to use a sub-agent:
 
-```
+```text
 You: Use the research agent to understand how the payment
      module processes refunds.
 
@@ -236,7 +236,7 @@ Claude: Based on the research agent's findings, here's how
 
 **Parallel work.** You can fan out to multiple sub-agents when the work is independent:
 
-```
+```text
 You: I need three things done in parallel:
      1. Research agent: how does auth work in this project?
      2. Test-writer agent: write tests for src/utils/validator.ts
@@ -294,7 +294,7 @@ The key insight: the worktree shares the same `.git` object store as the origina
 
 ### Creating and entering a worktree
 
-```
+```text
 You: Create a worktree called "refactor-auth" and switch to it.
 
 Claude: [EnterWorktree: name="refactor-auth"]
@@ -326,7 +326,7 @@ The `worktree.baseRef` setting controls this:
 Two options:
 
 **Keep the worktree:**
-```
+```text
 You: Exit the worktree but keep it around.
 
 Claude: [ExitWorktree: action="keep"]
@@ -338,7 +338,7 @@ Branch "refactor-auth" preserved with 3 commits.
 Use `keep` when the work is partial, when you want to come back later, or when you want to review the changes before merging.
 
 **Remove the worktree:**
-```
+```text
 You: Done with the worktree. Remove it.
 
 Claude: [ExitWorktree: action="remove"]
@@ -387,7 +387,7 @@ The task: extract the authentication logic from a monolith Express app into a st
 
 #### Step 1: Plan mode
 
-```
+```text
 You: [plan mode] I want to extract the auth logic into
      its own package. Plan the approach.
 
@@ -425,7 +425,7 @@ I review the plan. The circular dependency risk is real — I did not think of i
 
 #### Step 2: Worktree
 
-```
+```text
 You: Create a worktree called "extract-auth" for this work.
 
 Claude: [EnterWorktree: name="extract-auth"]
@@ -437,7 +437,7 @@ Now everything happens in isolation. If the extraction fails, I remove the workt
 
 #### Step 3: Sub-agents for research
 
-```
+```text
 You: Use the research agent to map all auth dependencies.
 
 Claude: Spawning research agent...
@@ -465,7 +465,7 @@ The research confirms the circular dependency. Now I know to extract shared type
 
 Claude proceeds with the extraction, working entirely in the worktree. Each step gets its own commit:
 
-```
+```text
 You: Start the extraction. Shared types first, then the auth
      module, then update imports.
 
@@ -480,7 +480,7 @@ Commit 5: "test: all 47 auth tests passing in new location"
 
 #### Step 5: Exit and merge
 
-```
+```text
 You: Tests pass. Exit the worktree and merge to main.
 
 Claude: [ExitWorktree: action="keep"]

@@ -92,7 +92,7 @@ Body 支持自由格式的 Markdown，但以下几类结构已被验证为高效
 
 ### 用户级 skill
 
-```
+```text
 ~/.claude/
   skills/
     chenk-blog-write/
@@ -107,7 +107,7 @@ Body 支持自由格式的 Markdown，但以下几类结构已被验证为高效
 
 ### 项目级 skill
 
-```
+```text
 my-project/
   .claude/
     skills/
@@ -295,7 +295,7 @@ Apply these standards ONLY when:
 
 随着时间推移，你会通过全部四种扩展机制（slash command、 hook、 MCP、 skill）积累大量扩展。以下是我组织它们的方式：
 
-```
+```text
 ~/.claude/
   settings.json                  # 全局拒绝规则、全局 hook
   skills/

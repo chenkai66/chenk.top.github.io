@@ -57,7 +57,7 @@ Replace mode (`R`) exists too, but most people only enter it by accident. If you
 
 A Vim command reads like a tiny English sentence:
 
-```
+```toml
 [count] operator motion
 ```
 
@@ -190,7 +190,7 @@ The cursor does **not** need to be on the boundary — `ci"` works from anywhere
 
 Replace follows the classic ed/sed syntax:
 
-```
+```text
 :s/old/new/        " first match on this line
 :s/old/new/g       " all matches on this line
 :%s/old/new/g      " all matches in the buffer
@@ -216,7 +216,7 @@ Useful flags inside the search pattern itself:
 
 Macros are the highest-ROI "advanced" feature in Vim because they turn any repetitive edit into a one-time recording.
 
-```
+```text
 qa            " start recording into register a
 ... edits ... " do the edit you want to repeat (move + operate)
 q             " stop recording
@@ -241,7 +241,7 @@ Every yank and delete goes into a *register*. There is more than one:
 
 Use them like this:
 
-```
+```text
 "ayy   " yank this line into register a
 "ap    " paste from register a
 "+yy   " yank to system clipboard
@@ -255,7 +255,7 @@ Pro habit: when you are about to paste then immediately delete something else (w
 
 ## 8. Marks — bookmarks across a file or project
 
-```
+```text
 ma     " set mark a at the cursor
 'a     " jump to the line of mark a
 `a     " jump to the exact position of mark a
@@ -282,7 +282,7 @@ Three flavours:
 
 Visual Block solves the "edit the same column on twenty lines" problem that requires regex or macros in most other editors:
 
-```
+```sql
 Comment out 5 lines:    Ctrl-v  jjjj  I  #  Esc
 Append ; to 10 lines:   Ctrl-v  9j    A  ;  Esc
 Delete a column of 4:   Ctrl-v  jjj   d
@@ -332,7 +332,7 @@ A file is **always** a buffer the moment you open it, even if no window is curre
 
 If you open a file Vim is already editing somewhere else, or if Vim crashed, you'll see a `.swp` warning. Vim is asking whether you want to *recover* the unsaved changes from the crash, or carry on regardless. If you don't need the recovery, deleting the orphaned `.swp` file silences the warning:
 
-```
+```bash
 find . -name ".*.swp" -delete
 ```
 
@@ -385,7 +385,7 @@ These two flows account for most of the time you'll spend in Vim once you've got
 
 **Project-wide search and replace**
 
-```
+```text
 /oldName             " step through hits to confirm
 :%s//newName/gc      " '' reuses last search, c = confirm each
 :noh                 " clear leftover highlight
@@ -393,7 +393,7 @@ These two flows account for most of the time you'll spend in Vim once you've got
 
 **Multi-file editing**
 
-```
+```text
 :e src/api.py        " open file 1
 :vsp src/main.py     " vertical split with file 2
 :sp README.md        " horizontal split with file 3
@@ -407,7 +407,7 @@ Ctrl-w h/j/k/l       " jump between windows
 
 **1. Pasted code is over-indented.** Vim's auto-indent re-indents each pasted line. Fix:
 
-```
+```text
 :set paste       " disable auto-indent
 " ... paste ...
 :set nopaste

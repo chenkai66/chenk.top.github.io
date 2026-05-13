@@ -201,7 +201,7 @@ Logging in directly as root is wrong for two reasons. First, `rm -rf /` deserves
 
 A `sudoers` rule has to match on **five** dimensions before the command runs:
 
-```
+```text
 user_or_%group  host=(runas_user:runas_group)  TAG=  command_list
 ```
 

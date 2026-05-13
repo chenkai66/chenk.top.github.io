@@ -47,13 +47,13 @@ translationKey: "system-design-8"
 ### 规模估算
 
 **写入 QPS （URL 创建）**：
-```
+```text
 100M URLs/day ÷ 86,400 sec/day ≈ 1,160 writes/sec
 峰值（3×）：~3,500 writes/sec
 ```
 
 **读取 QPS （重定向）**：
-```
+```text
 10B redirects/day ÷ 86,400 sec/day ≈ 115,000 reads/sec
 峰值（3×）：~350,000 reads/sec
 ```
@@ -61,7 +61,7 @@ translationKey: "system-design-8"
 这是一个极度读密集型系统，缓存将是其可扩展性的基石。
 
 **存储估算**：
-```
+```text
 每条 URL 记录：
   短码（short code）：7 字节
   长 URL：500 字节（平均值）
@@ -76,7 +76,7 @@ translationKey: "system-design-8"
 ```
 
 **缓存内存估算**（采用 80/20 法则 —— 20% 的 URL 承载 80% 的流量）：
-```
+```text
 每日唯一访问 URL 数：~10 亿（估算）
 热点集（hot set，20%）：2 亿条 URL
 每条缓存项：530 字节
@@ -183,7 +183,7 @@ class KeyGenerationService:
 5. **分析流水线** —— 记录点击事件用于数据分析  
 
 URL 创建的数据流：
-```
+```text
 客户端 → 负载均衡器 → API 服务器
   → 生成唯一 ID（Snowflake）
   → Base62 编码为短码
@@ -192,7 +192,7 @@ URL 创建的数据流：
 ```
 
 重定向的数据流：
-```
+```text
 客户端 → 负载均衡器 → API 服务器
   → 在 Redis 缓存中查找短码
   → 缓存命中：立即重定向
@@ -264,7 +264,7 @@ async def redirect(short_code: str):
 
 **数据库分片**：按短码哈希确定分片。这能均匀分散写入，并支持免扫描查询。
 
-```
+```text
 分片 0：短码首字符 ∈ [0-9]
 分片 1：短码首字符 ∈ [a-m]
 分片 2：短码首字符 ∈ [n-z]
@@ -308,14 +308,14 @@ async def redirect(short_code: str):
 ### 规模估算
 
 **消息总量**：
-```
+```text
 50M DAU × 40 messages/user/day = 2B messages/day
 2B ÷ 86,400 = ~23,000 messages/sec
 峰值（3×）：~70,000 messages/sec
 ```
 
 **连接数**：
-```
+```text
 50M DAU，假设 30% 同时在线 = 1500 万并发 WebSocket 连接
 每连接内存开销：~10 KB
 连接状态总内存：15M × 10 KB = 150 GB
@@ -324,7 +324,7 @@ async def redirect(short_code: str):
 150 GB 连接状态需多台服务器承载。若单台服务器支持 50 万连接，则需约 30 台连接服务器。
 
 **存储**：
-```
+```text
 单条消息平均大小：200 字节（文本） + 100 字节（元数据） = 300 字节
 每日：2B × 300 字节 = 600 GB/day
 每年：600 GB × 365 = 219 TB/year
@@ -583,19 +583,19 @@ class PresenceService:
 ### 规模估算
 
 **发帖 QPS**：
-```
+```text
 200M DAU × 1 post/day ÷ 86,400 = ~2,300 posts/sec
 峰值（3×）：~7,000 posts/sec
 ```
 
 **信息流读取 QPS**：
-```
+```text
 200M DAU × 10 reads/day ÷ 86,400 = ~23,000 reads/sec
 峰值（3×）：~70,000 reads/sec
 ```
 
 **广播量（Fan-Out Volume）**：
-```
+```text
 每条帖子需广播至作者的所有粉丝。
 人均粉丝数：200
 2,300 posts/sec × 200 followers = 460,000 fan-out writes/sec
@@ -609,7 +609,7 @@ class PresenceService:
 
 **写时广播（Push Model）**：用户发帖时，立即将该帖写入其每位粉丝的信息流缓存。
 
-```
+```text
 用户 A 发布帖子：
   → 对其 200 位粉丝中的每一位：
     → 将帖子加入该粉丝的预计算信息流缓存
@@ -629,7 +629,7 @@ class PresenceService:
 
 **读时广播（Pull Model）**：用户打开信息流时，实时查询其所有关注对象的最新帖子。
 
-```
+```text
 用户打开信息流：
   → 获取其关注的用户列表（200 人）
   → 实时查询每位关注用户的最新帖子
@@ -649,7 +649,7 @@ class PresenceService:
 
 **混合模型（Hybrid Model，实用之选）**：对普通用户采用写时广播，对名人用户采用读时广播。
 
-```
+```text
 粉丝数 < 10,000：写时广播（推送到粉丝信息流）
 粉丝数 ≥ 10,000：读时广播（粉丝在读取时拉取）
 ```
@@ -864,7 +864,7 @@ class RankingService:
 
 混合模型解决了此问题：名人交由“读时广播”，但“普通用户”与“名人”之间存在连续谱。一些实用阈值如下：
 
-```
+```text
 粉丝数 < 10,000：      写时广播（预计算信息流）
 粉丝数 10K–1M：       写时广播（低优先级，异步，允许延迟）
 粉丝数 > 1M：         仅读时广播（查询时拉取）

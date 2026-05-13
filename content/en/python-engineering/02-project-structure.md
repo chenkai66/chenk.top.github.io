@@ -42,7 +42,7 @@ There are two dominant project structures in the Python ecosystem.
 
 ### Flat Layout
 
-```
+```text
 my_tool/
   my_tool/
     __init__.py
@@ -60,7 +60,7 @@ The package directory sits at the project root. This is simpler and used by many
 
 ### src Layout
 
-```
+```text
 my_tool/
   src/
     my_tool/
@@ -467,7 +467,7 @@ Let us build the complete project structure for the downloader tool.
 
 ### Project Layout
 
-```
+```text
 my-downloader/
   src/
     my_downloader/

@@ -44,7 +44,7 @@ Modern systems have caches at every layer. Understanding each layer prevents you
 
 The browser caches HTTP responses based on `Cache-Control` headers.
 
-```
+```text
 Cache-Control: public, max-age=31536000    # CDN + browser cache for 1 year
 Cache-Control: private, max-age=3600       # Browser only, 1 hour
 Cache-Control: no-cache                    # Always revalidate with server
@@ -74,7 +74,7 @@ Client-side caching is free performance. Configure it first.
 
 As covered in the previous article, CDNs cache static assets at edge locations worldwide. For API responses, CDN caching is possible but requires careful `Cache-Control` headers and `Vary` headers to avoid serving one user's data to another.
 
-```
+```bash
 # Cacheable at CDN (public data)
 Cache-Control: public, max-age=300, s-maxage=600
 Vary: Accept-Encoding
@@ -95,7 +95,7 @@ Databases have their own internal caches:
 
 **PostgreSQL shared buffers**: Caches frequently accessed table and index pages in memory. Default is 128 MB; production systems typically set this to 25% of available RAM.
 
-```
+```bash
 # postgresql.conf
 shared_buffers = 8GB          # 25% of 32GB RAM
 effective_cache_size = 24GB   # 75% of RAM (OS + PG cache combined)
@@ -103,7 +103,7 @@ effective_cache_size = 24GB   # 75% of RAM (OS + PG cache combined)
 
 **MySQL InnoDB Buffer Pool**: Caches table data and indexes. Should be 70-80% of available memory on a dedicated database server.
 
-```
+```bash
 # my.cnf
 innodb_buffer_pool_size = 24G   # 75% of 32GB RAM
 innodb_buffer_pool_instances = 8  # Reduce contention
@@ -503,7 +503,7 @@ When a popular cache entry expires, hundreds of concurrent requests simultaneous
 
 ### Visualization
 
-```
+```text
 Normal operation:
   1000 req/sec → Cache (hit) → Response   [DB load: 0]
 
@@ -632,7 +632,7 @@ Caching is not always beneficial. Here are cases where it hurts.
 
 **Write-heavy workloads**: If data changes more often than it is read, cache invalidation overhead exceeds the benefit. A cache that is invalidated on every write and read once provides zero benefit and adds latency (the invalidation step).
 
-```
+```text
 Read:Write ratio 100:1 → Cache helps (100 reads served from cache per invalidation)
 Read:Write ratio   1:1 → Cache breaks even at best
 Read:Write ratio   1:5 → Cache hurts (5 invalidations per read)

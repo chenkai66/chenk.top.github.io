@@ -212,7 +212,7 @@ InnoDB 性能就看一点：数据能不能放进 buffer pool。 buffer pool 是
 
 公式如下：
 
-```
+```text
 Buffer Pool Size ≈ 75% of instance memory
 Working Set = frequently accessed data + all indexes
 If Working Set ≤ Buffer Pool Size → fast
@@ -1124,7 +1124,7 @@ SQL
 
 咱们到底搭建了个啥：
 
-```
+```text
                     ┌────────────────────────┐
                     │   Application (ECS)    │
                     │   app tier VPC subnet  │

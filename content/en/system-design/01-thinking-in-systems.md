@@ -112,7 +112,7 @@ The key takeaways from this table:
 
 Keep these handy for estimation:
 
-```
+```text
 1 day    = 86,400 seconds   ≈ 100,000 seconds (10^5)
 1 month  = 2,592,000 seconds ≈ 2.5 million seconds (2.5 × 10^6)
 1 year   = 31,536,000 seconds ≈ 30 million seconds (3 × 10^7)
@@ -135,7 +135,7 @@ Each user might upload 2 photos and view 50 photos per day.
 
 **Step 3: Calculate requests per second**
 
-```
+```text
 Write QPS:
   10M users × 2 uploads/day = 20M uploads/day
   20M / 100,000 seconds/day = 200 writes/sec
@@ -156,7 +156,7 @@ A single photo might be stored in multiple sizes:
 
 **Step 5: Calculate storage growth**
 
-```
+```text
 Daily:   20M photos × 2.2 MB = 44 TB/day
 Monthly: 44 TB × 30 = 1.3 PB/month
 Yearly:  44 TB × 365 = 16 PB/year
@@ -173,7 +173,7 @@ Now you know you need a distributed object storage system, not a single database
 
 Bandwidth estimation follows directly from your QPS and payload size estimates.
 
-```
+```text
 Write bandwidth:
   200 writes/sec × 2.2 MB = 440 MB/sec = 3.5 Gbps
 
@@ -211,7 +211,7 @@ Memory estimation determines how much data you can keep in RAM, which directly i
 
 In most systems, 20% of the data is responsible for 80% of the requests. Caching that hot 20% in memory can serve 80% of traffic without hitting the database.
 
-```
+```text
 Total data: 10 TB
 Hot set (20%): 2 TB
 RAM cost: ~$10/GB/month (cloud pricing)
@@ -277,7 +277,7 @@ Availability is expressed as a percentage of uptime over a given period. The ind
 
 When components are in series (all must work for the system to work):
 
-```
+```text
 Overall availability = A1 × A2 × A3 × ...
 
 Example: Web server (99.9%) → App server (99.9%) → Database (99.9%)
@@ -288,7 +288,7 @@ Three nines on each component gives you less than three nines overall. This is w
 
 When components are in parallel (any one working means the system works):
 
-```
+```text
 Overall availability = 1 - (1 - A1) × (1 - A2)
 
 Example: Two database replicas, each at 99.9%
@@ -425,14 +425,14 @@ Non-functional:
 ### Estimation
 
 **Write QPS (uploads)**:
-```
+```text
 100M DAU × 1 upload/day = 100M uploads/day
 100M / 86,400 = ~1,200 uploads/sec
 Peak (3x): ~3,600 uploads/sec
 ```
 
 **Read QPS (feed views)**:
-```
+```text
 100M DAU × 10 views/day × 20 photos/view = 20B photo reads/day
 20B / 86,400 = ~230,000 reads/sec
 Peak (3x): ~700,000 reads/sec
@@ -441,7 +441,7 @@ Peak (3x): ~700,000 reads/sec
 This is a read-heavy system with a read:write ratio of about 200:1.
 
 **Storage**:
-```
+```text
 Photo sizes:
   Original: 2 MB
   Display: 500 KB
@@ -454,7 +454,7 @@ With 3x replication: ~273 PB/year
 ```
 
 **Bandwidth**:
-```
+```text
 Write: 1,200/sec × 2.5 MB = 3 GB/sec = 24 Gbps
 Read: 230,000/sec × 500 KB = 115 GB/sec = 920 Gbps
 ```
@@ -466,7 +466,7 @@ Read: 230,000/sec × 500 KB = 115 GB/sec = 920 Gbps
 
 **Memory for cache**:
 Following the 80/20 rule (20% of photos generate 80% of traffic), we cache the hot set:
-```
+```text
 Daily unique photos viewed: ~1B (rough estimate)
 Hot set (20%): 200M photos
 Cache per photo (metadata + thumbnail URL): 1 KB
@@ -505,7 +505,7 @@ The estimation drove us toward the right architecture without drawing a single d
 
 Here is a quick reference for common system design estimates. Keep these numbers in your head for rapid reasoning.
 
-```
+```text
 Daily active users to QPS:
   QPS ≈ DAU × (actions per user per day) / 100,000
 

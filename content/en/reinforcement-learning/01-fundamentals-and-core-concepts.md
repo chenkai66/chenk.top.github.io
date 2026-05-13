@@ -392,7 +392,7 @@ The single-character difference — $A_{t+1}$ versus $\max_{a'}$ — changes eve
 
 The classic illustration is *cliff walking*:
 
-```
+```text
 S . . . . . . G
 C C C C C C C C
 ```

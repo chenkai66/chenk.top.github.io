@@ -253,7 +253,7 @@ def clean_state():
 
 定义在 `conftest.py` 中的 fixture 对同目录及所有子目录下的测试自动可见，无需显式导入：
 
-```
+```text
 tests/
   conftest.py          # fixture 对所有测试可用
   test_core.py

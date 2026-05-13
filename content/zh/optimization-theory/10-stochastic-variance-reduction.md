@@ -149,7 +149,7 @@ $$
 
 （随机方差缩减梯度法， Stochastic Variance-Reduced Gradient， Johnson & Zhang， 2013）
 
-```
+```text
 SVRG（epoch 长度为 m，学习率为 η）：
 初始化 w̃_0
 for s = 0, 1, 2, ...:                        # 外层 epoch

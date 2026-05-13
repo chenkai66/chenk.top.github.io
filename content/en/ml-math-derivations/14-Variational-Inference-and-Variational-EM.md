@@ -110,7 +110,7 @@ This is the central formula of mean-field VI. The optimal factor for coordinate 
 
 Because each factor's optimum depends on the others, we solve cyclically:
 
-```
+```text
 initialize q_1, ..., q_M
 repeat
     for j = 1, ..., M:

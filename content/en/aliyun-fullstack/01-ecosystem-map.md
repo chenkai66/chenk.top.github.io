@@ -724,7 +724,7 @@ This article is the first of twelve in the Alibaba Cloud Full Stack series. Here
 
 ![12-article series roadmap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_architecture_roadmap.png)
 
-```
+```text
 Article 01: The Ecosystem Map (you are here)
     |
     v

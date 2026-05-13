@@ -179,7 +179,7 @@ BERT 并不直接处理完整的单词，而是采用了一种名为 **WordPiece
 
 WordPiece 的解决思路是：通过贪心算法不断合并字符对，优先选择那些合并后能够最大程度提升训练语料似然性的组合，最终生成一个包含 30K 个词条的词表。在实际分词时，它会将每个单词拆分为词表中最长的匹配片段；对于单词内部的片段，则会在前面加上 `##` 标记，表示这是单词的延续部分：
 
-```
+```text
 playing       -> play  ##ing
 unbelievable  -> un    ##bel  ##iev  ##able
 transformer   -> transform  ##er

@@ -164,7 +164,7 @@ Given:
 
 The recursion computes $H_k g$ in $O(mn)$:
 
-```
+```text
 q ← g
 for i = k-1, k-2, ..., k-m:           # first loop, "going backward"
     α_i ← ρ_i s_i^T q

@@ -131,7 +131,7 @@ openclaw gateway start
 
 你应该看到类似这样的输出：
 
-```
+```toml
 [gateway] listening on http://127.0.0.1:18789
 [agent] loaded skills: 17
 [memory] index ready (0 entries)
@@ -152,7 +152,7 @@ openclaw tui
 
 你会得到一个聊天式的终端 UI。按顺序试几个东西：
 
-```
+```text
 Hi — introduce yourself in one sentence.
 
 Read the file ~/.zshrc and tell me what aliases I have.
@@ -173,25 +173,25 @@ notes.md inside with the words "first run" in it.
 
  basics 跑通后，推进一步：
 
-```
+```text
 Fetch https://news.ycombinator.com and tell me the top 3 stories right now.
 ```
 
 这会触发 `web_fetch` 工具。在网关日志里你会看到类似这样的一行：
 
-```
+```text
 [tool:web_fetch] url=https://news.ycombinator.com status=200 bytes=48231
 ```
 
 这表明 Agent 已发出出站 HTTP 请求、成功获取响应，并正在对内容进行总结。
 
-```
+```text
 Run `git log --oneline -5` in ~/my-project and explain what the last five commits did.
 ```
 
 这用到了 `exec` 工具。网关日志显示：
 
-```
+```text
 [tool:exec] cmd="git log --oneline -5" cwd=/Users/you/my-project exit=0
 ```
 
@@ -199,7 +199,7 @@ Agent 会读取命令的标准输出（stdout）进行推理；若退出码（ex
 
 来个多步任务：
 
-```
+```text
 In ~/my-project, find all files that import lodash, then tell me which lodash
 functions are used and whether any of them have native ES equivalents I should
 switch to.
@@ -221,7 +221,7 @@ switch to.
 
 **1. 纯 LLM — 不用工具**
 
-```
+```text
 What is the difference between a coroutine and a thread? Two sentences max.
 ```
 
@@ -229,7 +229,7 @@ What is the difference between a coroutine and a thread? Two sentences max.
 
 **2. 读本地文件**
 
-```
+```text
 Read /etc/hosts and tell me if there are any custom entries beyond localhost.
 ```
 
@@ -237,7 +237,7 @@ Agent 调用 `read` 工具。你在测试网关有没有文件系统访问权，
 
 **3. 搜网页**
 
-```
+```text
 Search the web for "OpenClaw changelog 2026" and summarize what shipped in March.
 ```
 
@@ -245,7 +245,7 @@ Search the web for "OpenClaw changelog 2026" and summarize what shipped in March
 
 **4. 创建并编辑文件**
 
-```
+```text
 Create a file ~/openclaw-test/shopping.md with a grocery list: eggs, milk, bread.
 Then add "butter" to the list.
 ```
@@ -254,7 +254,7 @@ Then add "butter" to the list.
 
 **5. 多步推理 — exec + read**
 
-```
+```text
 Find all TODO comments in ~/my-project/src and list them grouped by file,
 with the line number and the text of each TODO.
 ```
@@ -265,7 +265,7 @@ with the line number and the text of each TODO.
 
 成功安装并首次运行后，`~/.openclaw/` 长这样：
 
-```
+```text
 ~/.openclaw/
 ├── openclaw.json          # Main config: provider, model, agent name, preferences
 ├── workspace/

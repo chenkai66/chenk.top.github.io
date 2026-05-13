@@ -49,7 +49,7 @@ docker logs -t my-container
 
 Example output with timestamps:
 
-```
+```text
 2023-09-30T10:15:23.456789012Z [INFO] Server starting on port 8080
 2023-09-30T10:15:23.567890123Z [INFO] Connected to database at postgres:5432
 2023-09-30T10:15:24.678901234Z [INFO] Loading configuration from /app/config.yaml
@@ -73,7 +73,7 @@ This is critical: when a container crashes, it stops, but its logs are preserved
 docker ps -a --filter "status=exited"
 ```
 
-```
+```text
 CONTAINER ID   IMAGE       COMMAND            CREATED          STATUS                     NAMES
 a1b2c3d4e5f6   myapp:v2    "python app.py"    10 minutes ago   Exited (1) 8 minutes ago   crashed-app
 ```
@@ -83,7 +83,7 @@ a1b2c3d4e5f6   myapp:v2    "python app.py"    10 minutes ago   Exited (1) 8 minu
 docker logs crashed-app
 ```
 
-```
+```text
 Traceback (most recent call last):
   File "/app/app.py", line 12, in <module>
     db = psycopg2.connect(os.environ['DATABASE_URL'])
@@ -239,7 +239,7 @@ docker inspect my-container --format '{{range .NetworkSettings.Networks}}IP: {{.
 docker inspect my-container --format '{{range .Config.Env}}{{println .}}{{end}}'
 ```
 
-```
+```text
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 DATABASE_URL=postgresql://postgres:secret@postgres:5432/myapp
 REDIS_URL=redis://redis:6379
@@ -323,7 +323,7 @@ docker inspect -f '{{.State.Running}}' my-container
 docker stats
 ```
 
-```
+```text
 CONTAINER ID   NAME              CPU %   MEM USAGE / LIMIT     MEM %   NET I/O           BLOCK I/O         PIDS
 a1b2c3d4e5f6   myapp-api-1       2.34%   125.4MiB / 512MiB     24.49%  15.2kB / 8.9kB    4.1MB / 0B        12
 b2c3d4e5f6a7   myapp-postgres-1  0.45%   89.2MiB / 1GiB        8.71%   12.1kB / 9.8kB    28.5MB / 12.3MB   15
@@ -359,7 +359,7 @@ docker top my-container
 ![Troubleshooting decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-troubleshooting.png)
 
 
-```
+```text
 UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
 appuser             12345               12330               0                   10:15               ?                   00:00:05            gunicorn: master [app:app]
 appuser             12350               12345               2                   10:15               ?                   00:01:30            gunicorn: worker [app:app]
@@ -383,7 +383,7 @@ docker top my-container -o pid,ppid,user,%cpu,%mem,comm
 docker diff my-container
 ```
 
-```
+```text
 C /tmp
 A /tmp/cache
 A /tmp/cache/session_abc123
@@ -643,7 +643,7 @@ docker network inspect $(docker inspect my-container --format '{{range $k, $v :=
 docker events
 ```
 
-```
+```text
 2023-09-30T10:30:15.123456789Z container start a1b2c3d4e5f6 (image=myapp:v2, name=api)
 2023-09-30T10:30:45.234567890Z container die a1b2c3d4e5f6 (exitCode=1, image=myapp:v2, name=api)
 2023-09-30T10:30:46.345678901Z container start a1b2c3d4e5f6 (image=myapp:v2, name=api)

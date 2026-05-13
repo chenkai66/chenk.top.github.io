@@ -42,7 +42,7 @@ REST 将一切建模为 **资源（resource）**，每个资源通过 URL 唯一
 
 状态码用于传达操作结果。正确使用状态码，是区分优秀 API 与令人沮丧 API 的关键。
 
-```
+```text
 2xx 成功
   200 OK           — 请求成功，响应体包含结果
   201 Created      — 资源已创建，Location 头指向新资源
@@ -71,7 +71,7 @@ REST 将一切建模为 **资源（resource）**，每个资源通过 URL 唯一
 
 **URL 设计**：使用名词表示资源，而非动词。 HTTP 方法本身即为动词。
 
-```
+```sql
 良好实践：
   GET    /photos              # 列出照片
   POST   /photos              # 创建照片
@@ -124,7 +124,7 @@ GET /photos?cursor=eyJpZCI6MTAwfQ&limit=10
 
 **过滤与排序**：
 
-```
+```text
 GET /photos?user_id=123&created_after=2025-01-01&sort=-created_at&fields=id,url,caption
 ```
 
@@ -588,7 +588,7 @@ class FixedWindowCounter:
 
 务必在响应头中明示限流状态：
 
-```
+```text
 HTTP/1.1 200 OK
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 73

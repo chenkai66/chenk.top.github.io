@@ -37,7 +37,7 @@ The merge rule: later layers override earlier ones, key by key. **Permissions ar
 
 ### Where each file lives
 
-```
+```text
 ~/.claude/
   settings.json              # User-level (all projects)
   
@@ -684,7 +684,7 @@ When something does not behave the way you expect:
 
 ### The merge visualized
 
-```
+```text
 User settings        Project settings       Local settings
 ~/.claude/           .claude/               .claude/
 settings.json        settings.json          settings.local.json

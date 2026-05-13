@@ -67,7 +67,7 @@ Successfully built my_tool-0.1.0.tar.gz and my_tool-0.1.0-py3-none-any.whl
 
 The output goes to `dist/`:
 
-```
+```text
 dist/
   my_tool-0.1.0.tar.gz                    # sdist
   my_tool-0.1.0-py3-none-any.whl          # wheel
@@ -188,7 +188,7 @@ my_tool = [
 
 Or create a `MANIFEST.in` for sdist-specific includes:
 
-```
+```text
 include LICENSE
 include README.md
 recursive-include src/my_tool/templates *.html
@@ -409,7 +409,7 @@ The builder stage includes gcc and build tools. The runtime stage only has the i
 
 ### .dockerignore
 
-```
+```text
 .venv/
 .git/
 .mypy_cache/

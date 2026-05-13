@@ -44,7 +44,7 @@ translationKey: "system-design-4"
 
 浏览器依据 `Cache-Control` HTTP 响应头缓存响应内容。
 
-```
+```text
 Cache-Control: public, max-age=31536000    # CDN + 浏览器缓存 1 年
 Cache-Control: private, max-age=3600       # 仅浏览器缓存，1 小时
 Cache-Control: no-cache                    # 每次均向服务器重新验证
@@ -74,7 +74,7 @@ Response:
 
 如前文所述， CDN 在全球边缘节点缓存静态资源。对于 API 响应， CDN 缓存虽可行，但需谨慎设置 `Cache-Control` 和 `Vary` 头，避免将某个用户的响应错误返回给其他用户。
 
-```
+```bash
 # CDN 可缓存（公开数据）
 Cache-Control: public, max-age=300, s-maxage=600
 Vary: Accept-Encoding
@@ -95,7 +95,7 @@ Cache-Control: private, max-age=60
 
 **PostgreSQL 共享缓冲区（shared buffers）**：将频繁访问的表和索引页缓存在内存中。默认大小为 128 MB；生产环境通常设为可用内存的 25%。
 
-```
+```bash
 # postgresql.conf
 shared_buffers = 8GB          # 32GB 内存的 25%
 effective_cache_size = 24GB   # 内存的 75%（OS 缓存 + PG 缓存总和）
@@ -103,7 +103,7 @@ effective_cache_size = 24GB   # 内存的 75%（OS 缓存 + PG 缓存总和）
 
 **MySQL InnoDB 缓冲池（Buffer Pool）**：缓存表数据与索引。在专用数据库服务器上，建议设为可用内存的 70–80%。
 
-```
+```bash
 # my.cnf
 innodb_buffer_pool_size = 24G   # 32GB 内存的 75%
 innodb_buffer_pool_instances = 8  # 减少锁竞争
@@ -504,7 +504,7 @@ cached = r.get(f"user:{user_id}:v{version}")
 
 ### 可视化示意
 
-```
+```text
 正常情况：
   1000 req/sec → 缓存（命中）→ 响应   [DB 负载：0]
 
@@ -633,7 +633,7 @@ register_with_load_balancer()
 
 **写密集型工作负载（Write-heavy workloads）**：若数据变更频率高于读取频率，缓存失效开销将超过收益。一个每次写入即失效、每次读取仅命中一次的缓存，毫无价值，还额外增加延迟（失效步骤）。
 
-```
+```text
 读:写比例 100:1 → 缓存有益（每次失效服务 100 次读）
 读:写比例   1:1 → 缓存最多打平
 读:写比例   1:5 → 缓存有害（每次读伴随 5 次失效）

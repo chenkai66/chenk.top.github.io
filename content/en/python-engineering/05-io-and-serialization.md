@@ -619,7 +619,7 @@ Parquet is 8x smaller and 12x faster to read than CSV for this example.
 (.venv) $ pip install python-dotenv
 ```
 
-```
+```bash
 # .env
 DATABASE_URL=postgresql://localhost/mydb
 API_KEY=sk-abc123
@@ -640,7 +640,7 @@ debug = os.environ.get("DEBUG", "false").lower() == "true"
 
 Always add `.env` to `.gitignore`. Commit a `.env.example` with placeholder values:
 
-```
+```bash
 # .env.example
 DATABASE_URL=postgresql://localhost/mydb
 API_KEY=your-api-key-here

@@ -37,7 +37,7 @@ Linux is a multi-user system, so every inode (file, directory, symlink, device, 
 
 The kernel's access check is not "add up the matching bits." It is a strict **first-match cascade**:
 
-```
+```text
 if  caller.uid == file.uid          -> use OWNER bits, decision is final
 elif caller.gid_set ∩ {file.gid}    -> use GROUP bits, decision is final
 else                                 -> use OTHERS bits

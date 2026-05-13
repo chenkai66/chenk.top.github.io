@@ -419,7 +419,7 @@ WHERE id = 2;  -- 等待事务 B 的锁
 
 数据库通过**等待图（wait-for graph）** 检测死锁。一旦发现环路，便选择一个事务作为牺牲者（victim）并将其回滚：
 
-```
+```text
 ERROR:  deadlock detected
 DETAIL: Process 12345 waits for ShareLock on transaction 67890;
         blocked by process 67891.

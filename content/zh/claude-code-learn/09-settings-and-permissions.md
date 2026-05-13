@@ -653,7 +653,7 @@ cat .claude/settings.local.json | jq .
 
 ### 合并过程可视化
 
-```
+```text
 用户级设置         项目级设置           本地设置
 ~/.claude/         .claude/             .claude/
 settings.json      settings.json        settings.local.json

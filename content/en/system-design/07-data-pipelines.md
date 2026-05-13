@@ -205,7 +205,7 @@ Stream processing handles data continuously as it arrives, producing results wit
 
 **Tumbling window**: Fixed-size, non-overlapping time intervals. Every event belongs to exactly one window.
 
-```
+```text
 Time:    |----1min----|----1min----|----1min----|
 Events:  [e1, e2, e3] [e4, e5]    [e6, e7, e8, e9]
 Windows: [  Window 1 ] [ Window 2 ] [  Window 3   ]
@@ -213,7 +213,7 @@ Windows: [  Window 1 ] [ Window 2 ] [  Window 3   ]
 
 **Sliding window**: Fixed-size windows that advance by a fixed step. Windows overlap.
 
-```
+```text
 Time:    |----1min-----------|
          |     |----1min----|------|
 Events:  [e1, e2, e3, e4, e5, e6, e7]
@@ -224,7 +224,7 @@ Windows: [  Window 1 (0-60s)      ]
 
 **Session window**: Dynamic windows based on activity gaps. A window closes when no events arrive for a specified gap duration.
 
-```
+```text
 Events:  e1..e2..e3........e4..e5..e6............e7..e8
          |--- session 1 ---|--- session 2 ------|--session 3--|
          (gap < threshold)  (gap < threshold)    (gap > threshold)
@@ -234,7 +234,7 @@ Events:  e1..e2..e3........e4..e5..e6............e7..e8
 
 In a distributed system, events can arrive out of order. An event with timestamp T=100 might arrive after an event with timestamp T=105. Watermarks track the progress of event time and tell the system when it is safe to close a window.
 
-```
+```text
 A watermark of W=100 means: "All events with timestamp <= 100 have arrived."
 
 If the current watermark is W=100:
@@ -339,7 +339,7 @@ The Lambda architecture, proposed by Nathan Marz, combines batch and stream proc
 
 **Serving layer**: Merges batch and real-time views to answer queries. Queries check the batch view for historical data and the speed view for recent data.
 
-```
+```text
                     ┌──────────────┐
 All Data ──────────→│  Batch Layer │ → Batch Views ─────┐
      │              │  (Spark)     │                     │
@@ -355,7 +355,7 @@ All Data ──────────→│  Batch Layer │ → Batch Views �
 
 ### Lambda Example: Page View Counter
 
-```
+```text
 Batch layer (runs every hour):
   - Read all page view events from data lake
   - Count page views per URL for all time
@@ -384,7 +384,7 @@ The Kappa architecture, proposed by Jay Kreps (co-creator of Kafka), simplifies 
 
 ### How It Works
 
-```
+```text
 All Data → Kafka (retained for months/years) → Stream Processor → Serving Layer
 
 For historical reprocessing:
@@ -626,7 +626,7 @@ for event in stream:
 
 ### Architecture
 
-```
+```text
 Web/Mobile App → Event Collector (API) → Kafka → Flink → PostgreSQL → Grafana Dashboard
                                            ↓
                                       S3 Data Lake (raw events for batch reprocessing)
@@ -651,7 +651,7 @@ Components:
 
 ### Estimation
 
-```
+```text
 Peak: 50,000 events/sec
 Average event size: 500 bytes
 

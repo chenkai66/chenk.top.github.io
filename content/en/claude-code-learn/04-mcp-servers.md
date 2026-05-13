@@ -76,7 +76,7 @@ Advantages of SSE:
 
 In practice, 90% of the MCP servers you'll use are stdio. SSE is for when you need a shared service — a company-wide database proxy, a centralized tool server, etc.
 
-```
+```bash
 # Stdio: Claude Code spawns the process
 Claude Code  ──stdin/stdout──>  MCP Server Process (local)
 
@@ -111,7 +111,7 @@ claude mcp list
 
 After adding, restart Claude Code (or start a new session). You should see the Playwright tools in the tool list. Try a simple prompt:
 
-```
+```text
 Navigate to https://news.ycombinator.com and tell me the top 3 stories
 ```
 
@@ -119,7 +119,7 @@ Claude will call `browser_navigate`, then `browser_snapshot` to read the page co
 
 Here's what the actual tool calls look like in a session:
 
-```
+```text
 Claude wants to use mcp tool: mcp__playwright__browser_navigate
   url: "https://news.ycombinator.com"
 > Allow? (y/n/always)
@@ -144,11 +144,11 @@ claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem \
 
 Now you can ask Claude things like:
 
-```
+```text
 Read my SSH config and tell me which hosts I have configured
 ```
 
-```
+```text
 Check my git config in ~/.config/git/config and suggest improvements
 ```
 
@@ -168,15 +168,15 @@ claude mcp add github -- npx -y @modelcontextprotocol/server-github
 
 Now Claude can:
 
-```
+```text
 List all open issues in this repo labeled "bug"
 ```
 
-```
+```text
 Show me the review comments on PR #42
 ```
 
-```
+```text
 Create a new issue titled "Fix login timeout" with the label "backend"
 ```
 
@@ -194,15 +194,15 @@ claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres \
 
 Now you can have conversations like:
 
-```
+```text
 Show me the schema of the users table
 ```
 
-```
+```text
 How many orders were placed in the last 7 days, grouped by status?
 ```
 
-```
+```text
 Find any users who signed up but never placed an order
 ```
 
@@ -230,15 +230,15 @@ claude mcp add slack -- npx -y @anthropic-ai/mcp-slack
 
 Useful prompts:
 
-```
+```text
 Search Slack for messages about the deployment failure yesterday
 ```
 
-```
+```text
 Summarize the #engineering channel from the last 24 hours
 ```
 
-```
+```text
 Post a standup update to #team-backend summarizing what I committed today
 ```
 
@@ -431,7 +431,7 @@ npx @anthropic-ai/mcp-playwright
 
 When a server fails inside Claude Code, the error often shows up in Claude Code's own output. Look for lines like:
 
-```
+```text
 MCP server 'playwright' failed to start: Error: spawn npx ENOENT
 ```
 
@@ -668,7 +668,7 @@ Notice I left `rollback_deployment` off the allow list. That one stays on manual
 
 Now in Claude Code, you can have conversations like:
 
-```
+```toml
 > Show me the last 5 production deployments
 
 Claude calls list_deployments(environment="production", limit=5)
@@ -771,7 +771,7 @@ The Python SDK uses type hints and docstrings to auto-generate the tool schemas.
 
 With Playwright MCP installed, you can ask Claude to test your app like a real user:
 
-```
+```text
 I just deployed a change to the login page. Go to http://localhost:3000/login,
 try logging in with test@example.com / password123, and tell me if the
 redirect to /dashboard works correctly.
@@ -783,7 +783,7 @@ Claude will navigate, fill in the form, click submit, check the resulting URL, a
 
 With Postgres MCP:
 
-```
+```text
 A user reported they can't see their orders. Their email is jane@example.com.
 Check the users table for their account, then the orders table, and tell me
 if there's a data issue.
@@ -795,7 +795,7 @@ Claude runs the queries, correlates the data, and gives you a diagnosis. No cont
 
 With both GitHub and Slack MCP:
 
-```
+```text
 Find all GitHub issues labeled "regression" that were opened this week,
 then search Slack #incidents for any related discussion, and give me a
 summary of what broke and whether it's been addressed.

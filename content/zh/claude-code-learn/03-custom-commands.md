@@ -35,7 +35,7 @@ translationKey: "claude-code-learn-3"
 
 重启后，在任意会话中输入：
 
-```
+```text
 /audit
 ```
 
@@ -72,7 +72,7 @@ translationKey: "claude-code-learn-3"
 
 一个成熟项目的 `.claude/` 目录结构如下：
 
-```
+```text
 .claude/
 ├── commands/               # 项目级命令（提交至 Git）
 │   ├── audit.md
@@ -90,7 +90,7 @@ translationKey: "claude-code-learn-3"
 
 个人全局命令则存放于：
 
-```
+```text
 ~/.claude/
 ├── commands/               # 个人全局命令
 │   ├── standup.md
@@ -136,7 +136,7 @@ translationKey: "claude-code-learn-3"
 
 然后输入：
 
-```
+```text
 /explain rate limiter
 ```
 
@@ -162,7 +162,7 @@ translationKey: "claude-code-learn-3"
 每处引用均标注文件路径与行号。
 ```
 
-```
+```text
 /find UserService
 ```
 
@@ -178,7 +178,7 @@ translationKey: "claude-code-learn-3"
 最后给出建议：针对本项目，应选用哪一个？为什么？
 ```
 
-```
+```text
 /compare axios vs fetch vs ky for HTTP requests
 ```
 
@@ -198,7 +198,7 @@ translationKey: "claude-code-learn-3"
 ⚠️ 不得修改现有测试，仅允许新增。
 ```
 
-```
+```text
 /coverage src/services/payment.ts
 ```
 
@@ -219,7 +219,7 @@ translationKey: "claude-code-learn-3"
 5. 近一周新增的 TODO 注释
 ```
 
-```
+```text
 /status                    # 全局概览
 /status authentication     # 聚焦鉴权模块
 ```
@@ -601,7 +601,7 @@ Explain $ARGUMENTS at three levels:
 
 ### Claude Code 自动化层级金字塔
 
-```
+```text
 由简至繁：
 
 1. CLAUDE.md 约定    （被动）→ Claude 自动遵循  
@@ -620,7 +620,7 @@ Explain $ARGUMENTS at three levels:
 
 来看一个成熟 `.claude/commands/` 目录的实际结构：
 
-```
+```text
 .claude/commands/
 ├── audit.md          # 安全审计
 ├── debug.md          # 结构化调试

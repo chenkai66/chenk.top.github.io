@@ -362,7 +362,7 @@ curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/inst
 trivy image myapp:latest
 ```
 
-```
+```text
 myapp:latest (debian 12.1)
 ===========================
 Total: 45 (UNKNOWN: 0, LOW: 25, MEDIUM: 12, HIGH: 6, CRITICAL: 2)

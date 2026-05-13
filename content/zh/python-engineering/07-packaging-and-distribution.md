@@ -70,7 +70,7 @@ Successfully built my_tool-0.1.0.tar.gz and my_tool-0.1.0-py3-none-any.whl
 
 输出位于 `dist/` 目录下：
 
-```
+```text
 dist/
   my_tool-0.1.0.tar.gz                    # sdist
   my_tool-0.1.0-py3-none-any.whl          # wheel
@@ -191,7 +191,7 @@ my_tool = [
 
 或创建 `MANIFEST.in` 专用于 sdist：
 
-```
+```text
 include LICENSE
 include README.md
 recursive-include src/my_tool/templates *.html
@@ -412,7 +412,7 @@ CMD ["my-tool", "serve", "--host", "0.0.0.0", "--port", "8000"]
 
 ### .dockerignore
 
-```
+```text
 .venv/
 .git/
 .mypy_cache/

@@ -24,7 +24,7 @@ The shortcuts are not in the help screen for a reason — they're discoverable t
 
 Most people think `Shift+Tab` toggles auto-accept on and off. It doesn't. It cycles four states in order:
 
-```
+```text
 Normal  →  Accept edits  →  Plan mode  →  Bypass permissions  →  Normal
 ```
 
@@ -54,7 +54,7 @@ I stay in Normal mode about 40% of the time. The permission prompts aren't just 
 
 **Accept edits mode** is my default for active development. The typical session looks like:
 
-```
+```text
 [Shift+Tab → Accept edits]
 > refactor the UserService class to separate validation from persistence
 
@@ -72,7 +72,7 @@ The trap: don't turn on Accept edits and then walk away from the terminal. The p
 
 **Plan mode** is underrated. It turns Claude into an architect instead of a builder:
 
-```
+```text
 [Shift+Tab twice → Plan mode]
 > I need to add WebSocket support to this Express app for real-time
 > notifications. The current notification system polls every 30 seconds.
@@ -101,7 +101,7 @@ Now I can review the plan, ask questions ("why not Socket.io?"), adjust ("skip s
 - Quick prototyping where I'll `git stash` or discard everything anyway
 - Automated workflows where I'm piping output and don't want interactive prompts
 
-```
+```text
 [Shift+Tab three times → Bypass permissions]
 > rename all .jsx files in src/components/ to .tsx and fix the imports
 
@@ -120,7 +120,7 @@ If you're new to Claude Code, ignore Yolo mode for the first month. You need to 
 
 After a few weeks, state switching becomes unconscious. My typical session:
 
-```
+```text
 [Start in Normal — orient myself]
 > what changed since yesterday? check git log and the open PRs.
 
@@ -169,7 +169,7 @@ The difference isn't just "more time." Each level changes the structure of Claud
 
 **`think a lot`** — This is my default for anything I'd describe as "non-trivial." Architecture questions, refactoring decisions, security reviews. Claude at this level will often identify issues you didn't ask about:
 
-```
+```text
 > @src/auth/middleware.ts
 > think a lot — review this auth middleware for security issues.
 
@@ -253,7 +253,7 @@ These deserve their own section because they're the most important shortcuts aft
 
 A single `Escape` interrupts the current generation. Use it the moment you realize you gave the wrong instruction. The agent stops, you correct.
 
-```
+```text
 > refactor all the controllers to—
 [Wait, I meant just the payment controller]
 [Press Escape]
@@ -268,7 +268,7 @@ Timing matters. If Claude has already started writing files when you press Escap
 
 Double-`Escape` (press it twice quickly) opens a history view of the last few exchanges. You pick one to "rewind" to, and the conversation forks from there. Anything after the picked turn is dropped from context.
 
-```
+```text
 > add caching to the getUser function
 [Claude adds Redis caching]
 [The implementation is over-engineered — I wanted in-memory caching]
@@ -330,7 +330,7 @@ Claude Code has a context window. As your conversation grows, you burn more of i
 
 When you notice these, run `/compact`. Claude summarizes the entire conversation into a few paragraphs and continues from the summary. You lose the exact wording of earlier messages but keep the gist.
 
-```
+```text
 > /compact
 
 [Claude produces a summary:]
@@ -356,7 +356,7 @@ src/websocket/server.ts, src/websocket/auth.ts, src/middleware/ws.ts.
 
 A pattern I use: at the end of a complex decision, before it gets compacted away:
 
-```
+```bash
 # Architecture decision: chose WebSocket over SSE because we need
 # bidirectional communication for the collaborative editing feature.
 ```
@@ -367,7 +367,7 @@ Now the reasoning survives compaction because it's in the persistent memory.
 
 You can guide what `/compact` preserves by adding a prompt after it:
 
-```
+```text
 > /compact focus on the database schema changes and migration plan
 ```
 
@@ -381,7 +381,7 @@ Claude Code is a terminal application, which means it fits into terminal multipl
 
 My typical layout on a wide monitor:
 
-```
+```text
 ┌──────────────────────┬──────────────────────┐
 │                      │                      │
 │  Claude Code         │  Editor (vim/vscode) │
@@ -405,7 +405,7 @@ You can run multiple Claude Code instances in the same project. Each has its own
 
 Useful when you're working on two unrelated tasks in the same repo:
 
-```
+```bash
 # Terminal 1 (tmux pane or tab)
 claude
 > work on the authentication refactor
@@ -421,7 +421,7 @@ They won't conflict as long as they're working on different files. If they touch
 
 A real workflow I had this morning:
 
-```
+```text
 > @src/api/handlers.ts
 > think a lot — the team wants to add idempotency keys to the
 > three POST handlers in this file. propose an approach that
@@ -457,7 +457,7 @@ That whole flow uses every primitive in this piece. None of them are individuall
 
 ### Another example: debugging with mode switches
 
-```
+```text
 [Normal mode]
 > the /api/orders endpoint is returning 500 in staging.
 > here's the error log:
@@ -497,7 +497,7 @@ Notice how the mode switches match the risk level. Investigation in Normal. Code
 
 Print this, tape it to your monitor for the first week:
 
-```
+```text
 Shift+Tab          Cycle: Normal → Accept → Plan → Yolo → Normal
 Escape             Stop generation
 Escape Escape      Fork/rewind conversation

@@ -214,7 +214,7 @@ jobs:
 
 ### 2.1 核心工作流
 
-```
+```text
 terraform init      # 下载 Provider 插件，配置远程后端
 terraform plan      # 预览：即将创建 / 修改 / 销毁的资源清单
 terraform apply     # 执行变更，使真实环境与代码保持一致
@@ -574,7 +574,7 @@ receivers:
 - Logstash 基于 JVM，功能强大但资源开销大；  
 - Fluent Bit 用 C 编写，轻量高效，非常适合以 DaemonSet 方式在 Kubernetes 中部署。
 
-```
+```text
 +-----------+     +------------+     +---------------+     +---------+
 | 应用 Pod  | --> | Fluent Bit | --> | Elasticsearch | --> | Kibana  |
 | (stdout)  |     | (DaemonSet)|     | (3 节点高可用) |     | (查询界面) |
@@ -1073,7 +1073,7 @@ spec:
 
 ### 8.2 GitOps 仓库结构
 
-```
+```text
 k8s-config/
   apps/
     web/

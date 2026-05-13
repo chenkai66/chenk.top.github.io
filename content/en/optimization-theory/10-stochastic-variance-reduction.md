@@ -152,7 +152,7 @@ SGD's $\sigma^2$ noise budget is unavoidable as long as we use a single $\nabla 
 
 (Stochastic Variance-Reduced Gradient, Johnson & Zhang, 2013)
 
-```
+```text
 SVRG (with epoch length m, learning rate η):
 Initialize w̃_0
 for s = 0, 1, 2, ...:                        # outer epochs

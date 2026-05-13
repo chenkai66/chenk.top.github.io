@@ -236,7 +236,7 @@ When you query a vector index, the system calculates how "close" the query vecto
 
 For text search, use cosine similarity. The math:
 
-```
+```text
 cosine_similarity(A, B) = (A . B) / (|A| * |B|)
 
 where A . B = sum(a_i * b_i)  (dot product)
@@ -432,7 +432,7 @@ RRF is the simplest and most robust fusion method. It does not try to combine sc
 
 The formula:
 
-```
+```text
 RRF_score(doc) = sum( 1 / (k + rank_i(doc)) ) for each retrieval method i
 ```
 
@@ -440,13 +440,13 @@ Where `k` is a constant (typically 60) that prevents top-ranked documents from d
 
 Example: If a document is ranked 1st by keyword search and 5th by vector search:
 
-```
+```text
 RRF_score = 1/(60+1) + 1/(60+5) = 0.01639 + 0.01538 = 0.03177
 ```
 
 A document ranked 3rd by both methods:
 
-```
+```text
 RRF_score = 1/(60+3) + 1/(60+3) = 0.01587 + 0.01587 = 0.03175
 ```
 
@@ -458,7 +458,7 @@ These are close, which is the point — RRF balances consistency across methods 
 
 If you want more control, you can normalize scores from each method to [0, 1] and apply weights:
 
-```
+```text
 hybrid_score = alpha * keyword_score_normalized + (1 - alpha) * vector_score_normalized
 ```
 
@@ -544,7 +544,7 @@ OpenSearch AI Search is the next layer up. It wraps the search pipeline with LLM
 
 ### The AI Search Pipeline
 
-```
+```text
 User Query
     |
     v
@@ -918,7 +918,7 @@ Let us build a complete product search API. This ties together everything from t
 
 ### Architecture
 
-```
+```text
 Client (browser/app)
     |
     v

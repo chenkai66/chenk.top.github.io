@@ -42,7 +42,7 @@ Python 生态中有两种主流的项目结构。
 
 ### 平铺布局（Flat Layout）
 
-```
+```text
 my_tool/
   my_tool/
     __init__.py
@@ -60,7 +60,7 @@ my_tool/
 
 ### `src` 布局
 
-```
+```text
 my_tool/
   src/
     my_tool/
@@ -471,7 +471,7 @@ $ my-tool --help
 
 ### 项目布局
 
-```
+```text
 my-downloader/
   src/
     my_downloader/

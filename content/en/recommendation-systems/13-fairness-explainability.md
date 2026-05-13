@@ -257,7 +257,7 @@ MACR (Wei et al., KDD 2021) is the cleanest production fix for popularity bias I
 
 Architecturally MACR adds two side towers:
 
-```
+```text
 score(u, i) = main(u, i) - alpha * item_tower(i) - beta * user_tower(u)
 ```
 

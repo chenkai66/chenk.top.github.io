@@ -43,7 +43,7 @@ Plan mode 成本最低。按 `Shift+Tab` 直到指示器显示 **plan**。这时
 
 下面以在 Express API 中添加限流功能为例，完整展示 plan 模式下的交互流程：
 
-```
+```text
 你：为 API 添加限流功能，要求每 IP 每分钟最多 100 次请求。
 
 [Mode: plan]
@@ -98,7 +98,7 @@ Claude：以下是添加限流功能的完整计划：
 
 你可以通过指令引导 plan mode 的规划方向：
 
-```
+```text
 你：[plan mode] 添加认证功能。聚焦于数据库 schema 变更。
      我已熟悉 API 层。
 
@@ -194,7 +194,7 @@ tools: Read, Grep, Glob, Write
 
 在对话中，你可以直接指示 Claude 启用某个 sub-agent：
 
-```
+```text
 你：请使用 research agent，调研 payment 模块如何处理退款。
 
 Claude：我将启动 research sub-agent，分析 payment/refund 流程。
@@ -218,7 +218,7 @@ Claude：根据 research sub-agent 的分析，该代码库中退款流程如下
 
 当子任务彼此独立时，可并行分发给多个 sub-agent。
 
-```
+```text
 你：我需要并行完成三件事：
      1. Research agent：该项目的认证（auth）机制是如何工作的？
      2. Test-writer agent：为 src/utils/validator.ts 编写测试
@@ -267,7 +267,7 @@ git worktree 是同一个 repo 的第二个 working tree，在不同分支，不
 
 ### 创建并进入 worktree
 
-```
+```text
 你：创建一个名为 “refactor-auth” 的 worktree，并切换到它。
 
 Claude：[EnterWorktree: name="refactor-auth"]
@@ -349,7 +349,7 @@ git branch -d refactor-auth
 
 #### 第一步： Plan mode （计划模式）
 
-```
+```text
 你：[plan mode] 我想把 auth 逻辑抽离为独立包，请规划整体方案。
 
 Claude：auth 抽离计划如下：
@@ -386,7 +386,7 @@ Claude：auth 抽离计划如下：
 
 #### 第二步： Worktree （工作树）
 
-```
+```text
 你：为此任务创建名为 `extract-auth` 的 git worktree。
 
 Claude：[EnterWorktree: name="extract-auth"]
@@ -398,7 +398,7 @@ Claude：[EnterWorktree: name="extract-auth"]
 
 #### 第三步： Sub-agent （子 Agent）执行调研
 
-```
+```text
 你：调用 research sub-agent，绘制 auth 的全部依赖关系图。
 
 Claude：启动 research sub-agent...
@@ -426,7 +426,7 @@ Claude：启动 research sub-agent...
 
 Claude 在 `extract-auth` worktree 内完整执行抽离，每步生成独立 commit：
 
-```
+```text
 你：开始抽离：先共享类型，再 auth 模块，最后更新导入路径。
 
 Claude：[Working in worktree extract-auth]
@@ -440,7 +440,7 @@ Commit 5：`test: all 47 auth tests passing in new location`
 
 #### 第五步：退出 worktree 并合并
 
-```
+```text
 你：测试全部通过。退出 worktree，并合并至 main。
 
 Claude：[ExitWorktree: action="keep"]

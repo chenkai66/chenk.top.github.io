@@ -84,7 +84,7 @@ So **as $t \to \infty$, $x^\star(t) \to x^\star$**, and the duality gap shrinks 
 
 For very large $t$, ($P_t$) becomes badly conditioned — the term $t f_0$ dominates near the boundary and Newton's method has trouble. The fix is to solve a sequence of problems with increasing $t$, **warm-started** from the previous solution:
 
-```
+```sql
 Algorithm: Barrier method
 Input: strictly feasible x_0, initial t_0 > 0, target tolerance ε
        update factor μ > 1 (typical: μ = 10 or 100)

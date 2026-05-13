@@ -57,7 +57,7 @@ openclaw gateway restart
 
 重启后，日志中应显示：
 
-```
+```toml
 [telegram] polling started, listening as @your_bot_name
 ```
 
@@ -196,7 +196,7 @@ Stream Mode 反过来了：你的 gateway 向 `wss://stream.dingtalk.com` 发起
 
 每个通道都会写启动和定期心跳日志：
 
-```
+```toml
 [telegram] polling started, listening as @your_bot_name
 [telegram] heartbeat: 142 messages processed, 0 errors
 [dingtalk] stream connected, session_id=abc123

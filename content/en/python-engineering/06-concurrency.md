@@ -114,7 +114,7 @@ print(f"Threaded: {threaded_time:.2f}s")
 
 Output:
 
-```
+```text
 Sequential: 4.12s
 Threaded: 1.08s
 ```
@@ -239,7 +239,7 @@ print(f"Parallel:   {time.perf_counter() - start:.2f}s")
 
 Output on a 4-core machine:
 
-```
+```text
 Sequential: 8.45s
 Parallel:   2.31s
 ```
@@ -423,7 +423,7 @@ asyncio.run(main())
 
 Output:
 
-```
+```text
 Start: https://example.com/0
 Start: https://example.com/1
 Start: https://example.com/2
@@ -478,7 +478,7 @@ asyncio.run(main())
 
 Output:
 
-```
+```text
 Downloaded 10 URLs in 1.15s
 Total bytes: 4230
 ```
@@ -646,7 +646,7 @@ benchmark("Async", lambda: asyncio.run(async_download()))
 
 Results:
 
-```
+```text
 Sequential  : 21.34s
 Threaded    : 1.18s
 Async       : 1.09s

@@ -188,7 +188,7 @@ The two-phase recipe:
 
 The constitution is just a list of natural-language principles:
 
-```
+```text
 1. Choose the response that is most helpful to the user.
 2. Choose the response that least encourages or assists in any
    form of crime, harm, or unethical activity.

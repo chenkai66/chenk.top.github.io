@@ -51,7 +51,7 @@ When you install Docker, it creates a network called `bridge` (backed by a Linux
 docker network ls
 ```
 
-```
+```text
 NETWORK ID     NAME      DRIVER    SCOPE
 a1b2c3d4e5f6   bridge    bridge    local
 b2c3d4e5f6a7   host      host      local
@@ -62,7 +62,7 @@ c3d4e5f6a7b8   none      null      local
 docker network inspect bridge --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
 ```
 
-```
+```text
 172.17.0.0/16
 ```
 
@@ -84,7 +84,7 @@ docker inspect container-b --format '{{.NetworkSettings.IPAddress}}'
 docker exec container-a ping -c 2 172.17.0.3
 ```
 
-```
+```text
 PING 172.17.0.3 (172.17.0.3): 56 data bytes
 64 bytes from 172.17.0.3: seq=0 ttl=64 time=0.108 ms
 64 bytes from 172.17.0.3: seq=1 ttl=64 time=0.090 ms
@@ -120,7 +120,7 @@ docker run -d --name api --network my-app-network alpine sleep 3600
 docker exec api ping -c 2 web
 ```
 
-```
+```text
 PING web (172.18.0.2): 56 data bytes
 64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.065 ms
 64 bytes from 172.18.0.2: seq=1 ttl=64 time=0.078 ms
@@ -146,7 +146,7 @@ docker network connect my-app-network isolated
 docker exec isolated ping -c 2 web
 ```
 
-```
+```text
 PING web (172.18.0.2): 56 data bytes
 64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.089 ms
 ```
@@ -308,7 +308,7 @@ Volume lifecycle commands:
 docker volume ls
 ```
 
-```
+```text
 DRIVER    VOLUME NAME
 local     app-data
 local     postgres-data
@@ -430,7 +430,7 @@ docker run -d \
 docker logs -f mysql-server 2>&1 | grep -m 1 "ready for connections"
 ```
 
-```
+```text
 2023-09-22T10:05:23.456789Z 0 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: '8.0.34'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server - GPL.
 ```
 
@@ -443,7 +443,7 @@ SELECT * FROM users;
 "
 ```
 
-```
+```text
 +----+---------+
 | id | name    |
 +----+---------+
@@ -472,7 +472,7 @@ docker run -d \
 docker exec -it mysql-server mysql -u appuser -papppass myapp -e "SELECT * FROM users;"
 ```
 
-```
+```text
 +----+---------+
 | id | name    |
 +----+---------+
@@ -588,7 +588,7 @@ docker volume rm redis-data mysql-data
 docker port my-container
 ```
 
-```
+```text
 80/tcp -> 0.0.0.0:8080
 443/tcp -> 0.0.0.0:8443
 ```

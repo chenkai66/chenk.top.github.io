@@ -64,7 +64,7 @@ SLS organizes everything into two levels:
 
 **Logstore** — A table of log data within a project. Each logstore has its own schema, retention period, and indexing configuration. You typically create one logstore per log source: one for nginx access logs, one for application logs, one for system logs.
 
-```
+```text
 SLS Project: prod-webapp
 ├── Logstore: nginx-access-log     (30-day retention)
 ├── Logstore: app-log              (30-day retention)
@@ -135,7 +135,7 @@ SLS supports three query modes, and understanding them saves a lot of frustratio
 
 **Full-text search** — Just type a keyword. SLS searches across all indexed fields.
 
-```
+```text
 ERROR
 ```
 
@@ -143,7 +143,7 @@ This returns every log line containing the word "ERROR" anywhere.
 
 **Key-value search** — Use field names with operators for precise filtering.
 
-```
+```text
 status >= 500 and request_method: POST
 ```
 
@@ -151,7 +151,7 @@ This returns log entries where the HTTP status code is 500 or above AND the requ
 
 **SQL analytics** — Append a pipe `|` after a search expression and write standard SQL.
 
-```
+```text
 status >= 500 | SELECT 
   date_format(__time__, '%H:%i') as time_bucket,
   count(*) as error_count,
@@ -167,7 +167,7 @@ This finds all 5xx errors, then groups them by minute to show the error count an
 
 Here are real queries I use daily:
 
-```
+```bash
 # Error rate over the last hour (as percentage)
 * | SELECT 
   round(count_if(status >= 500) * 100.0 / count(*), 2) as error_rate_pct,
@@ -1021,7 +1021,7 @@ app.post('/api/orders', async (req, res) => {
 
 Now in SLS, you can search for all logs associated with a specific trace:
 
-```
+```text
 traceId: abc-123-def
 ```
 
@@ -1252,7 +1252,7 @@ aliyun cms PutResourceMetricRule \
 
 After completing all five steps, your observability stack looks like this:
 
-```
+```text
                         ┌───────────────────────────────────────────┐
                         │              SLS Dashboard                │
                         │  QPS | Errors | Latency | Top Endpoints  │

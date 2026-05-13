@@ -251,7 +251,7 @@ service_group = {
 
 我评估新服务时都用这个公式：
 
-```
+```text
 monthly_cost = min_replicas × replica_price_per_hour × 720
              + avg_burst_replicas × replica_price_per_hour × business_hours_month
              + total_requests × per_request_fee

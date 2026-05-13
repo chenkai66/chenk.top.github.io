@@ -215,14 +215,14 @@ location /api/me {
 
 NFV 是 SDN 的姊妹概念：*用 x86 服务器上的软件替代专用硬件*。防火墙、负载均衡、 WAN 加速器，都变成 VNF，弹性拉起、扩缩、串链。
 
-```
+```text
 传统：    [路由器硬件] -> [防火墙硬件] -> [LB 硬件] -> [WAN-opt 硬件]
 NFV：    x86 服务器：[路由器 VNF] -> [防火墙 VNF] -> [LB VNF] -> [WAN-opt VNF]
 ```
 
 一个典型 VNF —— HAProxy 在服务链中做负载均衡：
 
-```
+```text
 frontend public_https
     bind *:443 ssl crt /etc/haproxy/star.example.com.pem alpn h2,http/1.1
     http-request set-header X-Forwarded-Proto https

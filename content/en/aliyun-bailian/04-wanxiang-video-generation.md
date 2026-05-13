@@ -109,7 +109,7 @@ I do this synchronously inside the polling worker, before returning success. If 
 
 A surprisingly large part of Wanxiang's quality depends on the prompt. After a few months of iteration, this structure works well:
 
-```
+```toml
 [shot type], [subject], [action], [setting / environment],
 [lighting], [camera movement], [style], [quality keywords]
 ```

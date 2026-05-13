@@ -148,7 +148,7 @@ Once a model exceeds single-GPU memory, you have four orthogonal axes of paralle
 
 For a 70B model on 64 H100s the typical recipe is:
 
-```
+```text
 TP=8 within node (NVLink)
 PP=2 across nodes (200 Gbps Infiniband)
 DP=4 with FSDP across the remaining axis

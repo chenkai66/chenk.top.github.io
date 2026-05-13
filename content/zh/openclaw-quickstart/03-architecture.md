@@ -56,7 +56,7 @@ Router 负责路由消息到目标 Agent——仅当配置多个 Agent 时才生
 
 这才是 Agent 的核心执行循环。代码如下：
 
-```
+```text
 while True:
     plan = LLM(messages, tools=enabled_tools, skills=hot_skills)
     if plan.is_terminal:

@@ -41,7 +41,7 @@ translationKey: "databases-6"
 ![主从复制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
 
 
-```
+```text
                     Writes
 Client ────────────► Leader (Primary)
                        │
@@ -94,7 +94,7 @@ FROM pg_stat_replication;
 
 用户刚写入数据，随即发起读取，但该读请求被路由到了尚未收到该写入的从节点。
 
-```
+```text
 时间线：
 1. 用户发布一条评论（请求发往主节点）
 2. 主节点写入成功：OK
@@ -136,7 +136,7 @@ def get_comments(post_id, last_write_ts=None):
 ![多主复制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-multi-leader.png)
 
 
-```
+```text
 数据中心 A              数据中心 B
 ┌──────────────┐          ┌──────────────┐
 │   主节点 A   │◄────────►│   主节点 B   │
@@ -185,7 +185,7 @@ WHERE user_id = 1;
 
 核心规则：**W + R > N** 可保证至少一次读取能命中包含最新写入的节点。
 
-```
+```text
 N = 3（每份数据有 3 个副本）
 W = 2（写入需获 2 个节点确认）
 R = 2（读取需从 2 个节点获取响应）
@@ -219,7 +219,7 @@ R = 2（读取需从 2 个节点获取响应）
 
 当读取发现某节点数据陈旧时，客户端可将最新值回写至该节点，称为**读修复**：
 
-```
+```text
 读取 key "account:1"：
   节点 1：balance = 500（版本 2）✓ 最新
   节点 3：balance = 1000（版本 1）✗ 陈旧
@@ -243,7 +243,7 @@ R = 2（读取需从 2 个节点获取响应）
 
 按分区键的连续区间分配数据至各分片：
 
-```
+```text
 分片 1：user_id    1 - 1,000,000
 分片 2：user_id    1,000,001 - 2,000,000
 分片 3：user_id    2,000,001 - 3,000,000
@@ -279,7 +279,7 @@ SELECT * FROM orders WHERE created_at = '2023-11-15';
 
 对分区键应用哈希函数，再按哈希值取模分配至分片：
 
-```
+```text
 分片编号 = hash(user_id) % 分片总数
 
 hash("user:1")  = 0x3A2B... → 分片 2
@@ -318,7 +318,7 @@ CREATE TABLE sessions_p3 PARTITION OF sessions
 
 一致性哈希通过将键与节点共同映射到一个环（0 到 2^32）来解决：
 
-```
+```text
                     0 / 2^32
                       │
               节点 C  ●
@@ -338,7 +338,7 @@ CREATE TABLE sessions_p3 PARTITION OF sessions
 
 引入**虚拟节点（vnodes）**：每个物理节点在环上占据多个位置，显著提升负载均衡：
 
-```
+```text
 物理节点 A → 虚拟节点：A1, A2, A3, A4, A5（环上 5 个位置）
 物理节点 B → 虚拟节点：B1, B2, B3, B4, B5
 
@@ -352,7 +352,7 @@ Cassandra 默认：每物理节点 256 个 vnode
 
 **固定分区数（Fixed number of partitions）**：预先创建远超当前节点数的分区（如 1000 个分区配 10 个节点）。扩容时，将部分完整分区迁移至新节点。
 
-```
+```text
 扩容前（10 节点，1000 分区）：
   节点 1：分区 0–99
   节点 2：分区 100–199
@@ -382,7 +382,7 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 
 **本地索引（Local / document-partitioned index）**：每个分片仅维护自身数据的二级索引。
 
-```
+```text
 分片 1：email 本地索引 → {alice@...: row 1, bob@...: row 2}
 分片 2：email 本地索引 → {carol@...: row 3, dave@...: row 4}
 
@@ -392,7 +392,7 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 
 **全局索引（Global / term-partitioned index）**：二级索引本身也按某种规则（如 email 字母范围）分片。
 
-```
+```text
 Email 索引分片 A（a–m）：alice@... → 分片 1，carol@... → 分片 2
 Email 索引分片 B（n–z）：zara@... → 分片 3
 

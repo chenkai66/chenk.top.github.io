@@ -41,7 +41,7 @@ Your schema will change. New features require new columns, new tables, new index
 
 ### Migration File Structure
 
-```
+```text
 migrations/
 ├── 001_create_users.up.sql
 ├── 001_create_users.down.sql
@@ -96,7 +96,7 @@ alembic current
 
 Never break the current running application. This means migrations must be compatible with both the old and new code:
 
-```
+```text
 Deployment timeline:
   1. Run migration (add column, make nullable)
   2. Deploy new code (writes to new column)
@@ -215,7 +215,7 @@ Every database connection consumes resources: memory (5-10 MB per connection in 
 
 ### The Problem
 
-```
+```text
 Without pooling:
   100 app servers × 20 threads each = 2,000 database connections
   PostgreSQL default max_connections = 100
@@ -476,7 +476,7 @@ log_queries_not_using_indexes = 1
 
 ### Query Optimization Workflow
 
-```
+```text
 Step 1: Find the slow query
   → slow query log, pg_stat_statements, or monitoring tool
 
@@ -678,7 +678,7 @@ Running your own database is educational but operationally expensive. Managed se
 
 ### When to Scale Up vs Scale Out
 
-```
+```text
 Scale UP (vertical):
   More CPU, RAM, faster storage on the same server
   + Simpler (no application changes)

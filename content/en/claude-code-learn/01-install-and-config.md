@@ -100,7 +100,7 @@ claude
 
 You get an interactive prompt. Try a round-trip to confirm the install.
 
-```
+```text
 > what's in this directory?
 ```
 
@@ -271,7 +271,7 @@ A common mistake is putting sensitive values in the project-level config and com
 
 Type `#` at the start of a line and the rest of the line is appended to the project's memory file (`CLAUDE.md`) instead of being sent as a prompt. Example:
 
-```
+```bash
 # When working on this repo, never use yarn — npm only.
 ```
 
@@ -285,7 +285,7 @@ The `#` command is more flexible than it looks. Here are patterns I've found use
 
 **Multi-line additions.** You can add multi-line content by typing `#` and then a longer instruction. Claude opens the CLAUDE.md file in an editor view where you can write or refine the content before saving:
 
-```
+```bash
 # Testing conventions:
 # - Unit tests go in __tests__/ adjacent to the source file
 # - Integration tests go in tests/integration/
@@ -322,7 +322,7 @@ The `#` command is more flexible than it looks. Here are patterns I've found use
 
 Type `@` and you get a fuzzy file picker. Pick a file, it gets attached to the next message:
 
-```
+```text
 @src/router.ts
 explain how the route matcher handles trailing slashes
 ```
@@ -333,7 +333,7 @@ The file is sent as a tool result, not pasted into your prompt. That means it co
 
 You're not limited to single files. `@` supports several patterns:
 
-```
+```bash
 # Reference a single file
 @src/utils/auth.ts
 
@@ -355,7 +355,7 @@ When you reference a directory, Claude reads the file listing and may selectivel
 
 **Bug investigation.** When a bug report comes in, I attach the relevant files and the error:
 
-```
+```text
 @src/api/payments.ts @src/services/stripe.ts
 The webhook handler is returning 500 on checkout.session.completed events.
 Here's the error from the logs: "Cannot read property 'metadata' of undefined"
@@ -365,7 +365,7 @@ Claude has both files in context and can trace the data flow between them withou
 
 **Code review.** For reviewing a specific module:
 
-```
+```text
 @src/auth/
 review this auth module. focus on token expiry handling and
 whether there are any race conditions in the refresh flow.
@@ -373,7 +373,7 @@ whether there are any race conditions in the refresh flow.
 
 **Understanding unfamiliar code.** When I join a new project or look at code I didn't write:
 
-```
+```text
 @src/core/scheduler.ts
 think a lot — explain this scheduler's algorithm.
 what's the worst-case latency for a high-priority task?
@@ -505,7 +505,7 @@ Five minutes. Pays back the first time anyone — me or a teammate — opens the
 
 Make sure your `.gitignore` includes:
 
-```
+```text
 .claude/settings.local.json
 .claude/todos/
 ```

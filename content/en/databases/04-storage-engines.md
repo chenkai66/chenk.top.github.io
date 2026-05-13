@@ -24,7 +24,7 @@ Databases do not read or write individual rows from disk. Disk I/O operates on *
 ![Database page structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-page-structure.png)
 
 
-```
+```text
 Tablespace (logical container)
   └── Data File (physical file on disk)
        └── Extent (group of contiguous pages, e.g., 64 pages = 1 MB)
@@ -53,7 +53,7 @@ InnoDB is a B-tree engine with some distinctive characteristics.
 
 In InnoDB, the table data itself *is* a B+tree, organized by the primary key. This is called the **clustered index** (or primary index).
 
-```
+```text
 Clustered Index (primary key = id)
 Root: [id=500 | id=1000 | id=1500]
        |          |           |
@@ -128,7 +128,7 @@ SHOW STATUS LIKE 'Innodb_buffer_pool_read%';
 
 The buffer pool uses a modified **LRU (Least Recently Used)** algorithm with two sublists:
 
-```
+```text
 Buffer Pool LRU:
 ┌─────────────────────────────────────────────────────────────┐
 │  Young sublist (hot pages, 5/8)  │  Old sublist (3/8)      │
@@ -143,7 +143,7 @@ New pages enter at the head of the old sublist. If accessed again (within a conf
 
 PostgreSQL uses a different approach. Tables are stored as **heap files** — unordered collections of pages. There is no clustered index by default.
 
-```
+```text
 Table "users" (heap):
 Page 0: [row: id=7, ...] [row: id=3, ...] [row: id=12, ...]
 Page 1: [row: id=1, ...] [row: id=9, ...] [dead tuple] [row: id=5, ...]
@@ -152,7 +152,7 @@ Page 2: [row: id=15, ...] [row: id=2, ...] [row: id=11, ...]
 
 Rows are not in any particular order. Every index (including the primary key index) stores a physical tuple ID `(page_number, offset)` pointing to the heap.
 
-```
+```text
 Primary Key Index (B+tree):
   id=1 -> (page 1, offset 0)
   id=2 -> (page 2, offset 1)
@@ -184,7 +184,7 @@ LSM-tree engines include: RocksDB, LevelDB, Cassandra's storage engine, HBase, C
 
 ### How LSM-Trees Work
 
-```
+```text
 Write Path:
 1. Write to WAL (append-only, sequential)
 2. Insert into MemTable (in-memory sorted structure, usually a skip list or red-black tree)
@@ -198,7 +198,7 @@ Read Path:
 3. Merge results (most recent version wins)
 ```
 
-```
+```text
                     ┌─────────────┐
   Write ──────────► │  MemTable   │ (in-memory, sorted)
                     └──────┬──────┘
@@ -224,7 +224,7 @@ Read Path:
 
 An SSTable is an immutable, sorted file on disk. Once written, it is never modified — only replaced during compaction.
 
-```
+```text
 SSTable format:
 ┌───────────────────────────────────────────────────┐
 │  Data Block 1: [key1=val1, key2=val2, ...]        │
@@ -265,7 +265,7 @@ A Bloom filter is a probabilistic data structure that tells you:
 - **Definitely not in the set** — skip this SSTable (no disk read needed)
 - **Possibly in the set** — must check this SSTable
 
-```
+```text
 Looking for key "user:42":
   SSTable-1 Bloom Filter: "user:42" → NO  → skip (saved a disk read!)
   SSTable-2 Bloom Filter: "user:42" → MAYBE → read SSTable-2 → found it!
@@ -306,7 +306,7 @@ The WAL (also called redo log in MySQL) is the foundation of durability. Before 
 ![Write-ahead log flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/04-wal-flow.png)
 
 
-```
+```text
 Write flow with WAL:
 1. Application: INSERT INTO users (name) VALUES ('Alice')
 2. Engine writes to WAL: "Page 42, offset 3: insert row {name='Alice'}"
@@ -354,7 +354,7 @@ Without checkpoints, crash recovery would need to replay the entire WAL from the
 
 ## InnoDB Architecture: The Big Picture
 
-```
+```text
 Client Connection
        │
        ▼
@@ -503,7 +503,7 @@ When evaluating storage engines, three amplification metrics matter most. Let us
 
 Write amplification is the ratio of total bytes written to storage versus the logical bytes written by the application.
 
-```
+```text
 Example: Insert a 1 KB row
 
 B-tree engine (InnoDB):
@@ -558,7 +558,7 @@ sysbench oltp_read_write \
 
 Sample output:
 
-```
+```text
 SQL statistics:
     queries performed:
         read:                            560420

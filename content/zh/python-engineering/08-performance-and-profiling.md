@@ -64,7 +64,7 @@ with timer("Writing output"):
 
 输出：
 
-```
+```text
 Data loading: 2.3451s
 Processing: 0.0123s
 Writing output: 0.8901s
@@ -133,7 +133,7 @@ for func in [approach_a, approach_b, approach_c]:
 
 输出：
 
-```
+```text
 List comprehension.      : 1.2345s
 Map function.            : 1.5678s
 For loop with append.    : 1.8901s
@@ -488,7 +488,7 @@ print(f"Speedup: {py_time/np_time:.1f}x")
 
 输出：
 
-```
+```text
 Python: 3.4521s
 NumPy:  0.0234s
 Speedup: 147.5x
@@ -622,7 +622,7 @@ print(f"Slots object: {sys.getsizeof(p_slots)} bytes (no dict)")
 
 输出：
 
-```
+```text
 Dict object:  48 bytes + 104 dict
 Slots object: 56 bytes (no dict)
 ```

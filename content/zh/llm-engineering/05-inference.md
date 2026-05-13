@@ -62,7 +62,7 @@ Naive 实现会为每个请求分配一个大小为 `max_context` 的连续 tens
 
 vLLM 的杀手锏，来自 2023 年的论文 [Kwon et al.][kwon-vllm]，就是 **paged attention**。 KV cache 按固定大小的 **block** 分配（通常是 16 个 token 的量），每个请求通过 **block table** 映射逻辑位置到物理 block。就像操作系统的虚拟内存。
 
-```
+```text
 Request A: needs 47 tokens of KV → 3 blocks (16+16+15)
 Request B: needs 200 tokens of KV → 13 blocks
 Block table for A: [0x47, 0x12, 0x3a]

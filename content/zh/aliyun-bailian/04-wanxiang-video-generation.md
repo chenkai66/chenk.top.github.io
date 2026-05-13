@@ -108,7 +108,7 @@ def archive(result_url: str, key: str) -> str:
 
 万象生成质量高度依赖 Prompt 的质量。经过几个月的迭代，这个结构最为稳定：
 
-```
+```toml
 [shot type], [subject], [action], [setting / environment],
 [lighting], [camera movement], [style], [quality keywords]
 ```

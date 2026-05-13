@@ -254,7 +254,7 @@ gateway 往 stdout 写日志， pm2 负责捕获。要是不做轮转，`~/.pm2/
 
 创建 `/etc/logrotate.d/openclaw`：
 
-```
+```text
 /home/ubuntu/.pm2/logs/openclaw-gateway-out.log {
   daily
   rotate 7

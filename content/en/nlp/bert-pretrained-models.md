@@ -186,7 +186,7 @@ BERT does not work with whole words. Instead, it uses **WordPiece**, a subword s
 
 WordPiece picks a 30K-token vocabulary by greedily merging the character pairs whose merger most increases the likelihood of the training corpus. At tokenization time, it segments each word into the longest pieces it has in the vocabulary; pieces inside a word are prefixed with `##` to mark them as continuations:
 
-```
+```text
 playing       -> play  ##ing
 unbelievable  -> un    ##bel  ##iev  ##able
 transformer   -> transform  ##er

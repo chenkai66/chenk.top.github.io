@@ -256,7 +256,7 @@ The gateway writes to stdout, pm2 captures it, and without rotation, `~/.pm2/log
 
 Create `/etc/logrotate.d/openclaw`:
 
-```
+```text
 /home/ubuntu/.pm2/logs/openclaw-gateway-out.log {
   daily
   rotate 7

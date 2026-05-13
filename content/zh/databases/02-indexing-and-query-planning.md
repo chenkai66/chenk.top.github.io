@@ -77,7 +77,7 @@ B 树是一种自平衡树，具有以下特征：
 4. 叶子节点中包含指向磁盘上实际行（元组 ID 或行 ID）的指针；
 5. 从堆（主表数据区）中获取该行。
 
-```
+```text
 Root Node: [charlie@... | mike@... | zara@...]
                 |              |           |
           Child < charlie  charlie-mike  mike-zara   > zara
@@ -251,7 +251,7 @@ LIMIT 10;
 
 输出示例：
 
-```
+```text
  Limit  (cost=1845.23..1845.26 rows=10 width=40) (actual time=12.456..12.461 rows=10 loops=1)
    ->  Sort  (cost=1845.23..1857.45 rows=4889 width=40) (actual time=12.454..12.458 rows=10 loops=1)
          Sort Key: (count(*)) DESC
@@ -298,7 +298,7 @@ ORDER BY order_count DESC
 LIMIT 10;
 ```
 
-```
+```text
 +----+-------------+-------+------+------------------+---------+---------+------------------+-------+----------------------------------------------+
 | id | select_type | table | type | possible_keys    | key     | key_len | ref              | rows  | Extra                                        |
 +----+-------------+-------+------+------------------+---------+---------+------------------+-------+----------------------------------------------+
@@ -329,7 +329,7 @@ WHERE status = 'pending'
   AND created_at > '2023-01-01';
 ```
 
-```
+```text
  Seq Scan on orders  (cost=0.00..2456.00 rows=245 width=48) (actual time=0.034..18.567 rows=234 loops=1)
    Filter: (((status)::text = 'pending'::text) AND (created_at > '2023-01-01'))
    Rows Removed by Filter: 49766
@@ -349,7 +349,7 @@ CREATE INDEX idx_orders_status_created ON orders (status, created_at);
 
 建索引后：
 
-```
+```text
  Index Scan using idx_orders_status_created on orders  (cost=0.29..12.45 rows=245 width=48) (actual time=0.023..0.189 rows=234 loops=1)
    Index Cond: (((status)::text = 'pending'::text) AND (created_at > '2023-01-01'))
  Planning Time: 0.102 ms
@@ -508,7 +508,7 @@ CREATE INDEX idx_events_timerange ON events USING gist (time_range);
 
 遇到慢查询时，请遵循以下流程：
 
-```
+```text
 1. 对慢查询运行 EXPLAIN ANALYZE
 2. 寻找带有高 "Rows Removed by Filter" 的 Seq Scan
 3. 识别 WHERE/JOIN/ORDER BY 中缺失索引的列

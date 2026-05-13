@@ -66,7 +66,7 @@ This entire chain typically completes in 20-120ms for uncached queries. Cached q
 
 Every DNS record has a TTL (Time To Live) in seconds. When a resolver caches a record, it honors the TTL before re-querying.
 
-```
+```text
 ; Example DNS zone file entries
 photos.example.com.   300   IN  A      93.184.216.34
 photos.example.com.   300   IN  A      93.184.216.35
@@ -84,7 +84,7 @@ DNS can distribute traffic across multiple servers by returning different IP add
 
 **Round Robin DNS**: Return multiple A records. Clients pick one (usually the first). Simple but provides no health checking — DNS will happily return the IP of a dead server.
 
-```
+```text
 photos.example.com.  300  IN  A  10.0.1.1
 photos.example.com.  300  IN  A  10.0.1.2
 photos.example.com.  300  IN  A  10.0.1.3
@@ -148,7 +148,7 @@ CDN cache invalidation is notoriously difficult. Common strategies:
 
 **TTL-based**: Set Cache-Control headers on your responses.
 
-```
+```text
 Cache-Control: public, max-age=31536000  # 1 year for immutable assets
 Cache-Control: public, max-age=300       # 5 minutes for semi-dynamic content
 Cache-Control: no-store                  # Never cache (fully dynamic)
@@ -156,7 +156,7 @@ Cache-Control: no-store                  # Never cache (fully dynamic)
 
 **Versioned URLs**: Append a version or hash to the URL. When content changes, the URL changes, so old cached versions are never served.
 
-```
+```text
 /static/app.a1b2c3d4.js    # Hash in filename
 /img/photo.jpg?v=20250712  # Version query parameter
 ```
@@ -244,7 +244,7 @@ Layer 7 load balancers operate at the application layer. They parse HTTP request
 
 **URL-based routing**: Route requests to different backend pools based on the URL path.
 
-```
+```text
 /api/*        → API server pool
 /static/*     → Static file server pool
 /ws/*         → WebSocket server pool
@@ -252,7 +252,7 @@ Layer 7 load balancers operate at the application layer. They parse HTTP request
 
 **Header-based routing**: Route based on HTTP headers.
 
-```
+```text
 Host: api.example.com     → API servers
 Host: www.example.com     → Web servers
 X-API-Version: v2         → V2 API servers
@@ -389,7 +389,7 @@ server {
 
 For open-source Nginx, health checks rely on real traffic (passive checks). HAProxy offers active health checks in its free version:
 
-```
+```text
 backend api_servers
     option httpchk GET /health
     http-check expect status 200
@@ -452,7 +452,7 @@ A typical GSLB setup:
 
 The data flow for a multi-region deployment:
 
-```
+```text
 User in Tokyo
   → DNS query for photos.example.com
   → GeoDNS returns IP of Tokyo load balancer
@@ -469,7 +469,7 @@ If Tokyo region fails:
 
 The speed of regional failover depends on DNS TTL:
 
-```
+```text
 TTL = 300s (5 min): Users may hit dead region for up to 5 minutes
 TTL = 60s (1 min):  Faster failover, but 60x more DNS queries
 TTL = 10s:          Near-instant failover, very high DNS query volume
@@ -495,7 +495,7 @@ This is why many large-scale systems use anycast instead of GeoDNS for critical 
 
 In practice, many architectures use both layers:
 
-```
+```text
 Internet
   → Layer 4 LB (NLB) — handles TLS termination and raw TCP distribution
     → Layer 7 LB (Nginx/Envoy) — handles HTTP routing and application logic

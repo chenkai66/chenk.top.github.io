@@ -171,7 +171,7 @@ A practical pattern in modern stacks: **L4 (NLB) -> L7 (Envoy/ALB) -> services**
 
 ### 2.2 Algorithms
 
-```
+```text
 Round robin           A, B, C, A, B, C, ...
 Weighted RR           A(3), B(1)  ->  A, A, A, B, A, A, A, B, ...
 Least connections     pick the backend with fewest in-flight requests (best for variable-cost requests)
@@ -335,14 +335,14 @@ Inside a hyperscaler's region, **everything** is SDN: Hyper-V Virtual Switch, Op
 
 NFV is SDN's sibling: *replace dedicated network appliances with software running on commodity x86 servers*. A firewall, a load balancer, a WAN optimiser — each becomes a VNF that you can spin up, scale, and chain like any other workload.
 
-```
+```text
 Traditional:   [Router HW] -> [Firewall HW] -> [LB HW] -> [WAN-opt HW]
 NFV:           x86 server: [Router VNF] -> [Firewall VNF] -> [LB VNF] -> [WAN-opt VNF]
 ```
 
 A representative VNF — HAProxy as the load balancer in a service chain:
 
-```
+```text
 frontend public_https
     bind *:443 ssl crt /etc/haproxy/star.example.com.pem alpn h2,http/1.1
     http-request set-header X-Forwarded-Proto https

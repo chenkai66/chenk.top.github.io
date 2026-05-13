@@ -83,7 +83,7 @@ On a 32-number sorting task, Besta et al. reported 89% accuracy at 62% lower cos
 
 ReAct (Yao et al., 2022) interleaves *thinking* with *acting*. The model alternates between reasoning steps and tool calls, observing the result of each action before deciding the next step.
 
-```
+```text
 Thought: I need the population of Paris.
 Action: search("Paris population")
 Observation: 2.16 million (2019)

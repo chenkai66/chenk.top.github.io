@@ -56,7 +56,7 @@ translationKey: "terraform-agents-3"
 
 创建目录结构：
 
-```
+```text
 modules/vpc-baseline/
 ├── main.tf
 ├── variables.tf
@@ -353,7 +353,7 @@ module "vpc" {
 
 在项目根目录跑 `terraform plan`，输出大概是这样：
 
-```
+```text
 Plan: 27 to add, 0 to change, 0 to destroy.
 ```
 

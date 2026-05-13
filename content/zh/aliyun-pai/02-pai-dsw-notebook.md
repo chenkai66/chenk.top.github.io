@@ -65,7 +65,7 @@ DSW 镜像都是官方维护、带版本号和标签的。快速入门用的是 
 
 这是我通用的挂载路径：
 
-```
+```text
 /mnt/data/
 ├── datasets/      # 只读 OSS 挂载（Bucket 永久存在）
 ├── checkpoints/   # 可写 OSS 前缀（每 N 步保存一次）

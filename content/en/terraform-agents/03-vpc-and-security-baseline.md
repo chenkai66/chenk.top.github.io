@@ -57,7 +57,7 @@ Public is `/28` because it only holds a NAT and an ALB IP. Private is `/24` beca
 
 Create the directory layout:
 
-```
+```text
 modules/vpc-baseline/
 ├── main.tf
 ├── variables.tf
@@ -358,7 +358,7 @@ module "vpc" {
 
 `terraform plan` from the project root will produce something like:
 
-```
+```text
 Plan: 27 to add, 0 to change, 0 to destroy.
 ```
 

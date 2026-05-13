@@ -89,7 +89,7 @@ In Python, `set` and `dict` share the same hash machinery, so use whichever expr
 
 > **LeetCode 1.** Given an array `nums` and an integer `target`, return the indices of the two numbers that add up to `target`. You may assume exactly one solution exists, and you may not use the same element twice.
 
-```
+```text
 Input:  nums = [2, 7, 11, 15], target = 9
 Output: [0, 1]      # because 2 + 7 == 9
 ```
@@ -159,7 +159,7 @@ Whenever you are looking for **pairs that satisfy a relation involving the other
 
 > **LeetCode 49.** Given an array of strings, group the anagrams together.
 
-```
+```text
 Input:  ["eat", "tea", "tan", "ate", "nat", "bat"]
 Output: [["eat", "tea", "ate"], ["tan", "nat"], ["bat"]]
 ```
@@ -222,7 +222,7 @@ Whenever a problem says "group / find / count things that are equal up to some s
 
 > **LeetCode 3.** Given a string `s`, find the length of the longest substring with no repeated characters.
 
-```
+```text
 Input:  s = "abcabcbb"
 Output: 3            # "abc"
 ```
@@ -287,7 +287,7 @@ Variants you will meet later: minimum window substring (LeetCode 76), longest su
 
 > **LeetCode 347.** Given an integer array `nums` and an integer `k`, return the `k` most frequent elements.
 
-```
+```text
 Input:  nums = [1, 1, 1, 2, 2, 3], k = 2
 Output: [1, 2]
 ```

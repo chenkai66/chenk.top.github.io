@@ -58,7 +58,7 @@ openclaw gateway restart
 
 You should see in the log:
 
-```
+```toml
 [telegram] polling started, listening as @your_bot_name
 ```
 
@@ -198,7 +198,7 @@ Both channels route to the same Pi Agent. You can also route different channels 
 
 Each channel writes startup and periodic heartbeat logs:
 
-```
+```toml
 [telegram] polling started, listening as @your_bot_name
 [telegram] heartbeat: 142 messages processed, 0 errors
 [dingtalk] stream connected, session_id=abc123

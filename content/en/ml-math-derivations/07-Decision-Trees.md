@@ -177,7 +177,7 @@ The descriptions below follow CART because that is what scikit-learn implements.
 
 ### Greedy Recursive Construction
 
-```
+```python
 def build_tree(S, depth):
     if stop(S, depth): return Leaf(predict(S))
     j*, tau* = argmax_{j, tau} delta_impurity(S, j, tau)

@@ -280,7 +280,7 @@ class Solution:
 
 Let `f_max` be the frequency of the most common task, and let `k` be the number of tasks tied at that frequency. Then the answer is
 
-```
+```text
 max(len(tasks), (f_max - 1) * (n + 1) + k)
 ```
 
@@ -337,7 +337,7 @@ class Solution:
 
 **Worked example** (`s = "ababcbacadefegdehijhklij"`):
 
-```
+```text
 last occurrences: a→8, b→5, c→7, d→14, e→15, f→11, g→13, h→19, i→22, j→23, k→20, l→21
 i=0..8  end stays at 8 → segment "ababcbaca"   length 9
 i=9..15 end = 15        → segment "defegde"     length 7

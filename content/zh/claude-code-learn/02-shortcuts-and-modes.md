@@ -24,7 +24,7 @@ translationKey: "claude-code-learn-2"
 
 多数人以为 `Shift+Tab` 只是「开启/关闭自动确认」的二元开关。其实不然——它按固定顺序在**四个状态间循环**：
 
-```
+```text
 常规模式 → 自动接受编辑 → 计划模式 → 绕过权限 → 常规模式
 ```
 
@@ -54,7 +54,7 @@ translationKey: "claude-code-learn-2"
 
 **自动接受编辑模式** 是我日常开发的主力模式。典型工作流如下：
 
-```
+```text
 [Shift+Tab → 切换至自动接受编辑]
 > 将 UserService 类重构，分离校验逻辑与持久化逻辑
 
@@ -72,7 +72,7 @@ translationKey: "claude-code-learn-2"
 
 **计划模式** 常被低估。它让 Claude 从「执行者」转变为「架构师」：
 
-```
+```text
 [Shift+Tab 两次 → 进入计划模式]
 > 我需要为这个 Express 应用添加 WebSocket 支持，实现通知的实时推送。
 > 当前系统每 30 秒轮询一次。
@@ -101,7 +101,7 @@ translationKey: "claude-code-learn-2"
 - 快速原型开发（后续会用 `git stash` 或直接丢弃）  
 - 自动化流水线中，需屏蔽交互式提示  
 
-```
+```text
 [Shift+Tab 三次 → 进入 Yolo 模式]
 > 将 src/components/ 下所有 .jsx 文件重命名为 .tsx，并同步修正 import 路径
 
@@ -120,7 +120,7 @@ translationKey: "claude-code-learn-2"
 
 几周后，状态切换将变成下意识动作，我的典型日间流程如下：
 
-```
+```text
 [起始于常规模式 — 先理清上下文]
 > 查看昨日变更：`git log` 与待审 PR
 
@@ -169,7 +169,7 @@ translationKey: "claude-code-learn-2"
 
 **`think a lot`**：这是我处理「非平凡任务」的默认档位。架构设计、重构决策、安全审查皆属此类。在此层级， Claude 常主动指出你未提及的问题：
 
-```
+```text
 > @src/auth/middleware.ts
 > think a lot — 审查此鉴权中间件的安全隐患
 
@@ -255,7 +255,7 @@ translationKey: "claude-code-learn-2"
 
 单击 `Escape` 会立即中断当前生成。当你意识到指令有误时，立刻按下。
 
-```
+```text
 > 将所有 Controller 重构为——
 [等等，我只想改 PaymentController]
 [按 Escape]
@@ -270,7 +270,7 @@ translationKey: "claude-code-learn-2"
 
 快速双击 `Escape` 会打开最近几轮对话的历史视图，供你选择某一轮作为「回退点」。选定后，对话从此处分叉，之后的所有交互将从上下文中移除。
 
-```
+```text
 > 为 getUser 函数添加缓存
 [Claude 引入 Redis 缓存]
 [实现过度复杂 —— 我本意是内存缓存]
@@ -332,7 +332,7 @@ Claude Code 有上下文窗口限制。随着对话增长，历史占用的 Toke
 
 此时执行 `/compact`， Claude 将整段对话浓缩为数段摘要，并以此继续对话。你将丢失原始措辞，但保留核心要点。
 
-```
+```text
 > /compact
 
 [Claude 生成摘要：]
@@ -355,7 +355,7 @@ Claude Code 有上下文窗口限制。随着对话增长，历史占用的 Toke
 
 我的实践模式：在复杂决策收尾时，趁未被压缩前固化：
 
-```
+```bash
 # 架构决策：选用 WebSocket 而非 SSE，因协同编辑功能需双向通信能力。
 ```
 
@@ -365,7 +365,7 @@ Claude Code 有上下文窗口限制。随着对话增长，历史占用的 Toke
 
 你可在 `/compact` 后追加提示，引导摘要聚焦重点：
 
-```
+```text
 > /compact 重点关注数据库 Schema 变更与迁移方案
 ```
 
@@ -379,7 +379,7 @@ Claude Code 是终端应用，天然适配终端复用器（如 tmux）工作流
 
 宽屏显示器上的典型布局：
 
-```
+```text
 ┌──────────────────────┬──────────────────────┐
 │                      │                      │
 │  Claude Code         │  编辑器（vim/VS Code）│
@@ -403,7 +403,7 @@ Claude 在左侧面板写文件 → 编辑器右侧面板自动刷新 → 底部
 
 适用于同一仓库中并行处理两个无关任务：
 
-```
+```bash
 # 终端 1（tmux 面板或标签页）
 claude
 > 处理鉴权模块重构
@@ -419,7 +419,7 @@ claude
 
 今早的真实工作流：
 
-```
+```text
 > @src/api/handlers.ts
 > think a lot — 团队希望为此文件中三个 POST Handler 添加幂等性 Key。
 > 请提出复用现有中间件模式的方案。
@@ -454,7 +454,7 @@ claude
 
 ### 另一案例：调试中的模式切换
 
-```
+```toml
 [常规模式]
 > /api/orders 接口在 Staging 环境返回 500 错误。
 > 错误日志如下：
@@ -494,7 +494,7 @@ claude
 
 打印出来，贴在显示器边框上，坚持一周：
 
-```
+```text
 Shift+Tab          循环切换：常规 → 自动接受 → 计划 → Yolo → 常规
 Escape             中断当前生成
 Escape Escape      对话分叉 / 时间回溯

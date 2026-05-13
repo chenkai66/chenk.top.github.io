@@ -259,7 +259,7 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
 ```
 
-```
+```bash
 # requirements.txt
 flask==3.0.0
 redis==5.0.1
@@ -287,7 +287,7 @@ docker build -t flask-naive -f Dockerfile.naive .
 docker images flask-naive
 ```
 
-```
+```text
 REPOSITORY    TAG       IMAGE ID       CREATED          SIZE
 flask-naive   latest    a1b2c3d4e5f6   10 seconds ago   1.02GB
 ```
@@ -340,7 +340,7 @@ CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "app:app"]
 
 And the `.dockerignore`:
 
-```
+```text
 .git
 .gitignore
 __pycache__
@@ -365,7 +365,7 @@ docker build -t flask-optimized -f Dockerfile.optimized .
 docker images | grep flask
 ```
 
-```
+```text
 REPOSITORY        TAG       IMAGE ID       CREATED          SIZE
 flask-optimized   latest    f6e5d4c3b2a1   5 seconds ago    167MB
 flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
@@ -387,7 +387,7 @@ flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
 
 The `.dockerignore` file works like `.gitignore` but for the Docker build context. When you run `docker build .`, Docker sends the entire directory (the "build context") to the daemon. Without `.dockerignore`, this includes everything.
 
-```
+```bash
 # .dockerignore
 
 # Version control
@@ -476,7 +476,7 @@ You can verify cache behavior in the build output:
 docker build -t myapp .
 ```
 
-```
+```text
 [+] Building 45.2s (10/10) FINISHED
  => [1/5] FROM python:3.11-slim                                      0.0s
  => [2/5] WORKDIR /app                                               0.0s
@@ -490,7 +490,7 @@ docker build -t myapp .
 docker build -t myapp .
 ```
 
-```
+```text
 [+] Building 1.8s (10/10) FINISHED
  => [1/5] FROM python:3.11-slim                                      0.0s
  => CACHED [2/5] WORKDIR /app                                        0.0s
@@ -566,7 +566,7 @@ Size comparison for a Go HTTP server:
 docker images | grep go-server
 ```
 
-```
+```text
 REPOSITORY        TAG          IMAGE ID       CREATED          SIZE
 go-server         single       a1b2c3d4e5f6   10 seconds ago   845MB
 go-server         multistage   b2c3d4e5f6a7   5 seconds ago    12.4MB

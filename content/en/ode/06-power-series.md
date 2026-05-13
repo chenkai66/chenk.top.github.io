@@ -202,7 +202,7 @@ and we are one short step from controllability and the matrix $\bigl[B,\,AB,\,A^
 
 Two equal masses on a line, each tied to a wall by a spring of stiffness $k$ and to each other by a coupling spring of stiffness $\kappa$:
 
-```
+```text
 Wall —/\/\/— [m] —/\/\/— [m] —/\/\/— Wall
        k        κ        k
 ```

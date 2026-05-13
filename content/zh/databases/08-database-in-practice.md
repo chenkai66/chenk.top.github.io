@@ -38,7 +38,7 @@ translationKey: "databases-8"
 
 ### 迁移文件结构示例
 
-```
+```text
 migrations/
 ├── 001_create_users.up.sql
 ├── 001_create_users.down.sql
@@ -93,7 +93,7 @@ alembic current
 
 **永远不要破坏正在运行的应用程序。** 迁移必须同时兼容旧代码和新代码：
 
-```
+```text
 部署时间线：
   1. 执行迁移（新增字段，设为 NULLABLE）
   2. 部署新代码（开始写入新字段）
@@ -209,7 +209,7 @@ ALTER TABLE users DROP COLUMN name;
 
 ### 问题场景
 
-```
+```text
 无连接池：
   100 台应用服务器 × 每台 20 线程 = 2,000 数据库连接
   PostgreSQL 默认 max_connections = 100
@@ -473,7 +473,7 @@ log_queries_not_using_indexes = 1
 
 ### 查询优化工作流
 
-```
+```text
 步骤 1：定位慢查询  
   → 慢日志、pg_stat_statements 或监控工具  
 
@@ -674,7 +674,7 @@ echo "Backup restore test passed: $(date)"
 
 ### 垂直扩展（Scale Up） vs 水平扩展（Scale Out）
 
-```
+```text
 垂直扩展（Scale UP）：
   同一服务器升级 CPU、RAM、更快存储
   + 简单（无需应用改造）
@@ -692,7 +692,7 @@ echo "Backup restore test passed: $(date)"
 
 ### 容量估算示例
 
-```
+```text
 示例：SaaS 应用数据库容量估算
 
 用户数：100 万  

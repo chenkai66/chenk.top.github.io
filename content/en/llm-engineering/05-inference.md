@@ -66,7 +66,7 @@ A third failure shows up under load: **external fragmentation**. Requests arrive
 
 vLLM's killer feature, from the 2023 paper [Kwon et al.][kwon-vllm], is **paged attention**. KV cache is allocated in fixed-size **blocks** (typically 16 tokens worth) and a per-request **block table** maps logical positions to physical blocks. Like virtual memory in an OS.
 
-```
+```text
 Request A: needs 47 tokens of KV → 3 blocks (16+16+15)
 Request B: needs 200 tokens of KV → 13 blocks
 Block table for A: [0x47, 0x12, 0x3a]

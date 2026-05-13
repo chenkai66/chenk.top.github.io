@@ -132,7 +132,7 @@ openclaw gateway start
 
 You should see something like:
 
-```
+```toml
 [gateway] listening on http://127.0.0.1:18789
 [agent] loaded skills: 17
 [memory] index ready (0 entries)
@@ -153,7 +153,7 @@ openclaw tui
 
 You get a chat-like terminal UI. Try a few things in order:
 
-```
+```text
 Hi — introduce yourself in one sentence.
 
 Read the file ~/.zshrc and tell me what aliases I have.
@@ -174,25 +174,25 @@ If all three worked, the install is done. If only the first worked, the agent is
 
 Once the basics work, push it further:
 
-```
+```text
 Fetch https://news.ycombinator.com and tell me the top 3 stories right now.
 ```
 
 This triggers the `web_fetch` tool. In the gateway log you will see a line like:
 
-```
+```text
 [tool:web_fetch] url=https://news.ycombinator.com status=200 bytes=48231
 ```
 
 That confirms the agent made an outbound HTTP request, got a response, and is now summarizing it.
 
-```
+```text
 Run `git log --oneline -5` in ~/my-project and explain what the last five commits did.
 ```
 
 This uses the `exec` tool. The gateway log shows:
 
-```
+```text
 [tool:exec] cmd="git log --oneline -5" cwd=/Users/you/my-project exit=0
 ```
 
@@ -200,7 +200,7 @@ The agent sees the stdout and reasons over it. If the exit code is non-zero, it 
 
 For a multi-step task:
 
-```
+```text
 In ~/my-project, find all files that import lodash, then tell me which lodash
 functions are used and whether any of them have native ES equivalents I should
 switch to.
@@ -222,7 +222,7 @@ Five tasks in increasing order of complexity. Each one exercises a different par
 
 **1. Pure LLM — no tools**
 
-```
+```text
 What is the difference between a coroutine and a thread? Two sentences max.
 ```
 
@@ -230,7 +230,7 @@ This round-trips through the model and back. No tools involved. If this works, y
 
 **2. Read a local file**
 
-```
+```text
 Read /etc/hosts and tell me if there are any custom entries beyond localhost.
 ```
 
@@ -238,7 +238,7 @@ The agent calls the `read` tool. You are testing that the gateway has filesystem
 
 **3. Search the web**
 
-```
+```text
 Search the web for "OpenClaw changelog 2026" and summarize what shipped in March.
 ```
 
@@ -246,7 +246,7 @@ This exercises `web_search`. If it fails with "tool not found", the web skill ma
 
 **4. Create and edit a file**
 
-```
+```text
 Create a file ~/openclaw-test/shopping.md with a grocery list: eggs, milk, bread.
 Then add "butter" to the list.
 ```
@@ -255,7 +255,7 @@ Two tool calls: `write` then `edit`. The agent should handle both in a single tu
 
 **5. Multi-step reasoning — exec + read**
 
-```
+```text
 Find all TODO comments in ~/my-project/src and list them grouped by file,
 with the line number and the text of each TODO.
 ```
@@ -266,7 +266,7 @@ This typically produces an `exec` call (`grep -rn "TODO" src/`), then the agent 
 
 After a successful install and first run, `~/.openclaw/` looks like this:
 
-```
+```text
 ~/.openclaw/
 ├── openclaw.json          # Main config: provider, model, agent name, preferences
 ├── workspace/

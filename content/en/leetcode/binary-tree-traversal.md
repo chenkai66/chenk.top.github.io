@@ -21,7 +21,7 @@ A binary tree problem is rarely about the tree itself. It's about *the order in 
 
 We use a single example tree throughout, so the figures and code align perfectly.
 
-```
+```text
         3
       /   \
      9    20

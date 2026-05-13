@@ -46,7 +46,7 @@ Docker Swarm is Docker's built-in orchestration. If you know `docker compose`, y
 docker swarm init --advertise-addr 192.168.1.10
 ```
 
-```
+```text
 Swarm initialized: current node (abc123def456) is now a manager.
 
 To add a worker to this swarm, run the following command:
@@ -63,7 +63,7 @@ To add a manager to this swarm, run:
 docker swarm join --token SWMTKN-1-0123456789abcdef-worker-token 192.168.1.10:2377
 ```
 
-```
+```text
 This node joined a swarm as a worker.
 ```
 
@@ -72,7 +72,7 @@ This node joined a swarm as a worker.
 docker node ls
 ```
 
-```
+```text
 ID                           HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS   ENGINE VERSION
 abc123def456 *               manager1   Ready    Active         Leader           24.0.6
 def456abc789                 worker1    Ready    Active                          24.0.6
@@ -102,7 +102,7 @@ docker service create \
 docker service ls
 ```
 
-```
+```text
 ID             NAME   MODE         REPLICAS   IMAGE          PORTS
 a1b2c3d4e5f6   web    replicated   3/3        nginx:alpine   *:80->80/tcp
 ```
@@ -112,7 +112,7 @@ a1b2c3d4e5f6   web    replicated   3/3        nginx:alpine   *:80->80/tcp
 docker service ps web
 ```
 
-```
+```text
 ID             NAME    IMAGE          NODE       DESIRED STATE   CURRENT STATE           
 b2c3d4e5f6a7   web.1   nginx:alpine   manager1   Running         Running 30 seconds ago
 c3d4e5f6a7b8   web.2   nginx:alpine   worker1    Running         Running 30 seconds ago
@@ -128,7 +128,7 @@ Swarm distributes the three replicas across all three nodes. It also provides bu
 docker service update --image nginx:1.25-alpine web
 ```
 
-```
+```text
 web
 overall progress: 3 out of 3 tasks
 1/3: running   [==================================================>]
@@ -191,7 +191,7 @@ docker stack deploy -c docker-compose.yml myapp
 docker stack services myapp
 ```
 
-```
+```text
 ID             NAME           MODE         REPLICAS   IMAGE             PORTS
 a1b2c3d4e5f6   myapp_web      replicated   3/3        myapp:latest      *:8080->8080/tcp
 b2c3d4e5f6a7   myapp_redis    replicated   1/1        redis:7-alpine
@@ -271,7 +271,7 @@ Kubernetes clusters have two types of nodes:
 
 The architecture looks like this (described, not drawn):
 
-```
+```text
 Control Plane:
   API Server ←→ etcd (cluster state)
       ↑
@@ -384,7 +384,7 @@ kubectl apply -f deployment.yaml
 kubectl get deployments
 ```
 
-```
+```text
 NAME     READY   UP-TO-DATE   AVAILABLE   AGE
 my-app   3/3     3            3           60s
 ```
@@ -400,7 +400,7 @@ kubectl set image deployment/my-app app=myapp:v2.0
 kubectl rollout status deployment/my-app
 ```
 
-```
+```text
 Waiting for deployment "my-app" rollout to finish: 2 out of 3 new replicas have been updated...
 Waiting for deployment "my-app" rollout to finish: 1 old replicas are pending termination...
 deployment "my-app" successfully rolled out

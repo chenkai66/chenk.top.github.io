@@ -243,7 +243,7 @@ Two failure modes to watch for: **retrieval drift** (semantic search retrieves t
 
 Memory cannot grow without bound. A useful retention score combines importance (assigned at write time), access frequency, and recency:
 
-```
+```text
 score = 0.5 * importance + 0.3 * normalised_access_count - 0.2 * days_since_last_access
 ```
 

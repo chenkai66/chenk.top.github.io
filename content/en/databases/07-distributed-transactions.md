@@ -43,7 +43,7 @@ The textbook solution to distributed transactions. A coordinator node orchestrat
 
 ### The Protocol
 
-```
+```text
 Phase 1: PREPARE (Voting Phase)
   Coordinator → Participant A: "Can you commit transaction T?"
   Coordinator → Participant B: "Can you commit transaction T?"
@@ -59,7 +59,7 @@ Phase 2: COMMIT (Decision Phase)
 
 If any participant votes "No" in Phase 1, the coordinator sends ROLLBACK to everyone.
 
-```
+```text
 Coordinator                   Participant A      Participant B
     │                              │                   │
     ├──── PREPARE ────────────────►│                   │
@@ -82,7 +82,7 @@ Coordinator                   Participant A      Participant B
 
 The critical weakness of 2PC is that if the coordinator crashes after sending PREPARE but before sending COMMIT/ROLLBACK, the participants are stuck. They have voted "Yes" and hold locks, but they don't know the final decision.
 
-```
+```text
 Coordinator                   Participant A      Participant B
     │                              │                   │
     ├──── PREPARE ────────────────►│                   │
@@ -152,7 +152,7 @@ ut.commit();  // Transaction manager runs 2PC protocol
 
 3PC adds a PRE-COMMIT phase between PREPARE and COMMIT, which allows participants to recover without the coordinator:
 
-```
+```text
 Phase 1: CAN-COMMIT?  → participants check if they can commit
 Phase 2: PRE-COMMIT   → coordinator tells participants to prepare (but not commit yet)
 Phase 3: DO-COMMIT    → final commit
@@ -179,7 +179,7 @@ Paxos (invented by Leslie Lamport in 1989) was the first proven consensus algori
 
 A simplified view of Single-Decree Paxos:
 
-```
+```text
 Phase 1: Prepare
   Proposer → Acceptors: "Prepare(proposal_number=5)"
   Acceptors → Proposer: "Promise: I won't accept proposals < 5"
@@ -209,7 +209,7 @@ Raft (2014, by Diego Ongaro and John Ousterhout) was designed to be equivalent t
 
 Every node starts as a **follower**. If a follower does not hear from a leader within a random timeout (150-300 ms), it becomes a **candidate** and initiates an election.
 
-```
+```text
 Node States:
   Follower  → times out, no heartbeat  → Candidate
   Candidate → receives majority votes  → Leader
@@ -224,7 +224,7 @@ Election Process:
   5. Starts sending periodic heartbeats to prevent new elections
 ```
 
-```
+```text
 Term 1: Node A is leader
          Node A ──heartbeat──► Node B
          Node A ──heartbeat──► Node C
@@ -239,7 +239,7 @@ Term 2: Node A crashes. Node B times out.
 
 Once elected, the leader accepts client requests, appends them to its log, and then replicates the entries to followers:
 
-```
+```text
 Leader Log:   [term1:SET x=1] [term1:SET y=2] [term2:SET x=3]
                     │                │               │
                     ▼                ▼               ▼
@@ -250,7 +250,7 @@ A log entry is "committed" when replicated to a majority of nodes.
 The leader then applies the entry to its state machine and responds to the client.
 ```
 
-```
+```text
 Client ─── "SET x=3" ──► Leader
                           │
                  1. Append to log
@@ -289,7 +289,7 @@ When 2PC is too expensive or impractical (often the case in microservices), the 
 
 **Choreography**: Each service publishes events. The next service listens and acts.
 
-```
+```text
 Order Service              Inventory Service          Payment Service
      │                          │                          │
      │ OrderCreated event ──────►                          │
@@ -304,7 +304,7 @@ Order Service              Inventory Service          Payment Service
 
 **Orchestration**: A central orchestrator tells each service what to do.
 
-```
+```text
 Saga Orchestrator
      │
      ├──── "Create order" ──────► Order Service
@@ -374,7 +374,7 @@ These two terms are frequently confused but describe different things:
 
 **Linearizability** (from distributed systems): Every operation appears to take effect instantaneously at some point between its invocation and completion. Once a write is acknowledged, all subsequent reads see it. This is about individual operations and real-time ordering.
 
-```
+```text
 Linearizable system (register with value initially 0):
 
 Client A: write(1)  ─────────────────► OK
@@ -409,7 +409,7 @@ At the opposite end of the spectrum from linearizability is eventual consistency
 
 "Eventually" is vague — it could be milliseconds or minutes. In practice:
 
-```
+```text
 Write "x = 5" to Node A
   t=0ms:  Node A: x=5,  Node B: x=3,  Node C: x=3
   t=50ms: Node A: x=5,  Node B: x=5,  Node C: x=3
@@ -489,7 +489,7 @@ while True:
 
 Instead of writing to an outbox table, capture changes directly from the database's transaction log:
 
-```
+```text
 Database WAL/Binlog ──► CDC Tool (Debezium) ──► Kafka ──► Consumers
 
 PostgreSQL WAL → Debezium → Kafka topic "db.public.orders"

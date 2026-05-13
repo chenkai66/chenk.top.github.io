@@ -236,7 +236,7 @@ Infrastructure as code (IaC) means the production environment is described in ve
 
 ### 2.1 The core workflow
 
-```
+```text
 terraform init      # download providers, configure backend
 terraform plan      # preview: what will be created / changed / destroyed
 terraform apply     # make reality match the code
@@ -622,7 +622,7 @@ Metrics tell you *that* something is wrong. Logs tell you *why*. A centralised l
 
 The two dominant stacks are **ELK** (Elasticsearch, Logstash, Kibana) and **EFK** (Elasticsearch, Fluentd/Fluent Bit, Kibana). The difference is the shipper: Logstash is JVM-based and powerful but heavy; Fluent Bit is C-based, lightweight, and runs well as a DaemonSet.
 
-```
+```text
 +-----------+     +------------+     +---------------+     +---------+
 | App pods  | --> | Fluent Bit | --> | Elasticsearch | --> | Kibana  |
 | (stdout)  |     | (DaemonSet)|     | (3-node HA)   |     | (query) |
@@ -1125,7 +1125,7 @@ The properties this gives you for free:
 
 ### 8.2 Repository structure for GitOps
 
-```
+```text
 k8s-config/
   apps/
     web/

@@ -100,7 +100,7 @@ That is the entire decision. Skip the long list of features and confirm.
 
 Every "I can't reach my server" question on the Aliyun forum has the same root cause — packets are dropped at one of the four points in the path:
 
-```
+```text
 client laptop ---internet---> [security group] ---> [OS firewall] ---> [listen socket] ---> Apache
 ```
 

@@ -99,7 +99,7 @@ Before any model, raw text has to become numerical features. The standard pipeli
 
 ![Text preprocessing pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig2_preprocessing_pipeline.png)
 
-```
+```text
 Raw text
   -> Cleaning      (strip HTML, URLs, emails, junk characters)
   -> Tokenization  (split into words / subwords)
@@ -214,7 +214,7 @@ Modern models — GPT, BERT, Llama, Claude — do not tokenize on words. They us
 3. Merge the most frequent pair into a new symbol.
 4. Repeat until the vocabulary reaches a target size (commonly 30k — 100k).
 
-```
+```text
 Corpus: "low" x5, "lower" x2, "newest" x6, "widest" x3
 Initial:  l o w  /  l o w e r  /  n e w e s t  /  w i d e s t
 
@@ -377,7 +377,7 @@ X = vectorizer.fit_transform(docs)
 print(pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out()))
 ```
 
-```
+```text
    amazing  and  deep  is  learning  love  machine
 0        0    0     0   0         1     1        1
 1        1    0     0   1         1     0        1

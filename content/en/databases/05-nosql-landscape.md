@@ -387,7 +387,7 @@ Graphs have two primitives:
 - **Nodes** (vertices): entities with labels and properties
 - **Relationships** (edges): typed connections between nodes, also with properties
 
-```
+```text
 (Alice:Person {name: "Alice", age: 30})
     -[:FRIENDS_WITH {since: 2020}]->
 (Bob:Person {name: "Bob", age: 28})

@@ -182,7 +182,7 @@ ss -tnlp | grep nginx
 
 IPv4 has roughly 4.2 billion addresses. There are far more devices than that. **Network Address Translation** is the trick that makes the math work: every device in your home shares a single public IP, with the router rewriting source addresses on the way out and reverse-mapping responses on the way back.
 
-```
+```text
 Internal: 192.168.1.100:54321  --SNAT-->  PublicIP:60001  -->  8.8.8.8:53
 Internal: 192.168.1.101:33333  --SNAT-->  PublicIP:60002  -->  1.1.1.1:443
 ```
@@ -229,7 +229,7 @@ A virtual cable between guest and host with nothing else attached. No internet, 
 
 Network problems break down into seven layers, but you debug them in the opposite order from how they're drawn: start at the bottom (cables, link, IP) and work up (TCP, TLS, application).
 
-```
+```text
 Layer 7  Application      curl works? wrong URL? auth?
 Layer 6  Presentation     TLS cert valid? SNI right?
 Layer 4  Transport        port open? firewall? service bound to 0.0.0.0?
@@ -281,7 +281,7 @@ The most common fixes are: restart the VMware NAT service on the host, or replac
 
 `/etc/hosts` (or `C:\Windows\System32\drivers\etc\hosts`) is checked **before** any DNS query. It is a flat text file mapping IPs to names:
 
-```
+```text
 127.0.0.1     dev.example.com
 127.0.0.1     api.example.com
 0.0.0.0       ads.tracker.example

@@ -52,7 +52,7 @@ Every major tech company — Google, Amazon, Alibaba, ByteDance — has converge
 
 The serving plane itself is a **funnel that progressively narrows the candidate set and increases scoring precision**:
 
-```
+```text
 User request → Recall (10⁶ → 2K) → Coarse Rank (2K → 200) → Fine Rank (200 → 50) → Re-rank (50 → 20) → Response
 ```
 

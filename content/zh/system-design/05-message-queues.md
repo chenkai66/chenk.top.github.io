@@ -28,7 +28,7 @@ translationKey: "system-design-5"
 ![同步与异步通信](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-sync-vs-async.png)
 
 
-```
+```text
 同步（REST）：
   客户端 → 订单服务 → 支付服务 → 库存服务 → 通知服务
   
@@ -40,7 +40,7 @@ translationKey: "system-design-5"
 
 在异步系统中，调用方发送消息后即刻返回，被调方独立地异步处理该消息。
 
-```
+```text
 异步（消息队列）：
   客户端 → 订单服务 → 消息队列
                                 ↓
@@ -112,7 +112,7 @@ Kafka 集群由以下组件构成：
 
 Kafka 的 Partition 以一系列段文件（segment files）形式存储于磁盘。每个段文件按顺序存放消息。新消息被追加到当前活跃段（active segment）。旧段根据时间或大小策略保留，并最终被删除或压缩（compacted）。
 
-```
+```text
 Topic: orders（3 个分区）
 
 Partition 0: [msg0, msg1, msg2, msg3, msg4, ...]  → Broker 1（Leader）
@@ -458,7 +458,7 @@ CQRS 将写模型（Commands）与读模型（Queries）彻底分离。它天然
 ![CQRS 模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-cqrs.png)
 
 
-```
+```text
 写侧（Command）：
   客户端 → 命令处理器 → 事件存储（Kafka）
   
@@ -575,7 +575,7 @@ def produce_with_backpressure(producer, topic, message):
 
 数据流向：
 
-```
+```text
 用户下单
   → 订单服务校验并发布至 Kafka 主题 "orders"
     → 支付服务从 "orders" 读取，执行支付

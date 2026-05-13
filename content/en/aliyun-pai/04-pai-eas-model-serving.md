@@ -253,7 +253,7 @@ Three observations from this table that took me a while to internalize:
 
 The formula I use for any new service:
 
-```
+```text
 monthly_cost = min_replicas × replica_price_per_hour × 720
              + avg_burst_replicas × replica_price_per_hour × business_hours_month
              + total_requests × per_request_fee
