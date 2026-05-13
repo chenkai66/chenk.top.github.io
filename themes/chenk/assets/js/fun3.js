@@ -141,3 +141,25 @@
     history.replaceState(null, "", link.getAttribute("href"));
   });
 })();
+
+// ===== Article share — copy link button =====
+(function () {
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".share-copy");
+    if (!btn) return;
+    e.preventDefault();
+    var url = btn.dataset.shareUrl || window.location.href;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function () {
+        btn.classList.add("done");
+        var isZh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
+        var t = document.createElement("div");
+        t.className = "tiny-toast show";
+        t.textContent = isZh ? "✓ 链接已复制" : "✓ Link copied";
+        document.body.appendChild(t);
+        setTimeout(function () { t.classList.remove("show"); setTimeout(function () { t.remove(); }, 300); }, 1300);
+        setTimeout(function () { btn.classList.remove("done"); }, 1500);
+      });
+    }
+  });
+})();
