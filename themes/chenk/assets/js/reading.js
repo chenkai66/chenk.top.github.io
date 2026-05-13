@@ -41,3 +41,20 @@
     });
   }
 })();
+
+// ===== Arrow-key series navigation =====
+(function () {
+  var nav = document.querySelector('.series-nav-block[data-prev-url], .series-nav-block[data-next-url]');
+  if (!nav) return;
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (e.key === 'ArrowLeft') {
+      var url = nav.getAttribute('data-prev-url');
+      if (url) window.location.href = url;
+    } else if (e.key === 'ArrowRight') {
+      var url = nav.getAttribute('data-next-url');
+      if (url) window.location.href = url;
+    }
+  });
+})();
