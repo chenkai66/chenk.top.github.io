@@ -479,7 +479,7 @@ At inference time, batch norm with stored running statistics and learned $(\gamm
 2. Prove for 2D rotation matrices: (a) $\det \mathbf{R} = 1$, (b) $\mathbf{R}^{-1} = \mathbf{R}^\top$, (c) $\mathbf{R}(\alpha)\mathbf{R}(\beta) = \mathbf{R}(\alpha + \beta)$.
 3. Express in $3 \times 3$ homogeneous form and combine into a single matrix: translate by $(2, 3)$, then rotate $45^\circ$ around the origin, then scale by $2$.
 
-### Intermediate
+### Advanced
 
 4. Why do four point correspondences suffice (in principle) to estimate a homography? Set up the $\mathbf{A}\mathbf{h} = \mathbf{0}$ system that the DLT algorithm solves.
 5. Show that the essential matrix factorises as $\mathbf{E} = [\mathbf{t}]_\times \mathbf{R}$. Use the SVD $\mathbf{E} = \mathbf{U} \boldsymbol{\Sigma} \mathbf{V}^\top$ to recover $\mathbf{R}$ and $\mathbf{t}$ up to sign.
@@ -498,7 +498,7 @@ At inference time, batch norm with stored running statistics and learned $(\gamm
 
 ---
 
-## Chapter Summary
+## Summary
 
 Computer vision and linear algebra are inseparable.
 

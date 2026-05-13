@@ -31,8 +31,7 @@ $$
 3. 推导 SVRG 算法，并证明其在强凸目标函数上的线性收敛性；  
 4. 简述 SAGA 与 Katyusha，并介绍催生这些算法的下界结果。
 
-## 你将学到
-
+## 你将学到什么
 1. SGD 的两类收敛行为：凸情形下的 $O(1/\sqrt{T})$ 速率，以及强凸情形下的 $O(1/T)$ 速率；  
 2. SGD 的方差控制界，为何步长 $\eta = 1/L$ 过于激进，以及 $\eta_t = 1/(\mu t)$ 这一调度策略的来源；  
 3. SVRG 算法及其线性收敛性；  
@@ -285,7 +284,7 @@ $$
 
 第 11 篇文章标志着下一前沿：**非凸**优化问题——此时全局收敛不可保证，但仍存在局部性质保障（例如：逃离鞍点、收敛至平坦极小值点）。
 
-## 延伸阅读
+## 参考文献
 
 - Bottou, Curtis & Nocedal, *Optimization Methods for Large-Scale Machine Learning*, SIAM Review 60, 2018 —— 关于 SGD 及其变体的全面综述。  
 - Johnson & Zhang, *Accelerating Stochastic Gradient Descent using Predictive Variance Reduction*, NeurIPS 2013 —— SVRG 原始论文。  

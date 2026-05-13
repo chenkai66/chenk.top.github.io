@@ -17,7 +17,7 @@ translationKey: "symplectic-geometry-and-structure-preserving-neural-networks"
 
 Train a vanilla feedforward network to predict a one-dimensional harmonic oscillator. Validate it on the next ten time steps — the error is fine. Now roll it out for a thousand steps. The orbit no longer closes, the energy creeps upward, and what should be periodic motion turns into a slow spiral. The network learned to fit data points but never learned the *physics*. Structure-preserving networks fix this by incorporating geometric invariants — energy conservation, the symplectic 2-form, and the Euler-Lagrange equations — directly into the architecture, ensuring the learned model cannot violate them no matter how long you integrate.
 
-## What you will learn
+## What You Will Learn
 
 - Why a vanilla NN drifts on long-horizon physical predictions even when its short-horizon error is tiny
 - Hamiltonian mechanics on phase space: Hamilton's equations, Poisson brackets, conserved quantities
@@ -282,7 +282,7 @@ This is exactly why machine-learning interatomic potentials — ANI, NequIP, MAC
 - For **dissipative or driven systems**, look at port-Hamiltonian NNs (Desai et al.) or Neural ODEs with explicit damping terms (Chen et al. 2018).
 - Always integrate the trained model with a **symplectic integrator** at inference time — otherwise the discretisation will reintroduce the drift the architecture was designed to remove.
 
-## Conclusion
+## Summary
 
 The argument of this article in two sentences. *Standard neural networks fail at long-horizon physical prediction because the symplectic maps form a thin submanifold of all smooth maps and SGD has no reason to find it. Structure-preserving networks restrict the hypothesis class to that submanifold — by parameterising a Hamiltonian (HNN), a Lagrangian (LNN), or a composition of symplectic shears (SympNet) — and so cannot drift, no matter how long the rollout.*
 

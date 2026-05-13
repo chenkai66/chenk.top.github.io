@@ -26,7 +26,7 @@ This article develops:
 
 Each result is proved or carefully cited. We close with the SVM example, where the dual cuts the problem dimension from $d$ (number of features) to $n$ (number of training points) — the original kernel-method magic.
 
-## What you will learn
+## What You Will Learn
 
 1. Constructing the Lagrangian and the dual function.
 2. Proving weak duality (one-line argument).
@@ -280,7 +280,7 @@ For convex problems with strong duality, modern practice is:
 
 Article 09 takes the constrained problem and solves it via **interior-point methods**: replace the inequality constraints with a barrier and apply Newton's method. We will see that the central-path complexity is $O(\sqrt{n} \log(1/\epsilon))$, which makes interior-point methods the gold standard for medium-scale convex programming.
 
-## Further reading
+## References
 
 - Boyd & Vandenberghe, *Convex Optimization*, Ch. 5 — the canonical treatment, every example worked.
 - Bertsekas, *Convex Optimization Theory*, Ch. 5 — proofs from a more abstract duality theory.

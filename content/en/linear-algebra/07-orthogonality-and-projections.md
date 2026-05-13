@@ -438,13 +438,13 @@ plt.show()
 
 ## Exercises
 
-### Warm-Up
+### Basics
 
 1. Verify whether$\vec{u}=(1,2,-1)$and$\vec{v}=(2,-1,0)$are orthogonal. If so, normalize them.
 2. Compute the projection of$\vec{b}=(3,4)$onto$\vec{a}=(1,0)$. Verify that the error vector is orthogonal to$\vec{a}$.
 3. Apply Gram-Schmidt to$\vec{a}_1=(1,1,0)$,$\vec{a}_2=(1,0,1)$and check that the result is orthogonal.
 
-### Going Deeper
+### Advanced
 
 4. Prove that an orthogonal set of nonzero vectors is linearly independent.
 5. Prove$P^2=P$for$P=A(A^TA)^{-1}A^T$. Explain geometrically why "the projection of a projection is itself."
@@ -452,14 +452,14 @@ plt.show()
 7. Use least squares to fit$(1,1),(2,3),(3,2),(4,4)$with$y=\beta_0+\beta_1 x$.
 8. Prove that the product of two orthogonal matrices is again orthogonal.
 
-### Coding Challenges
+### Programming
 
 9. Implement Modified Gram-Schmidt and compare its orthogonality error against classical Gram-Schmidt on nearly dependent vectors (e.g. columns of the Hilbert matrix).
 10. Simulate a 3-user CDMA system with orthogonal codes of length 4. Show that you can separate each user's signal from the mixture by dot-producting with their code.
 
 ---
 
-## Chapter Summary
+## Summary
 
 | Concept | Key Formula | One-Sentence Intuition |
 |---|---|---|

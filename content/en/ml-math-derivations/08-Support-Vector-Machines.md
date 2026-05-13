@@ -22,7 +22,7 @@ translationKey: "ml-math-derivations-8"
 
 ![ML Math Derivations (8): Support Vector Machines — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 - How "widest corridor" becomes a convex quadratic program with linear constraints
 - Why the dual problem is more useful than the primal, and how KKT conditions force sparsity
@@ -372,7 +372,7 @@ since both terms are $\ge 0$ by Mercer applied to $K_1$ and $K_2$. Hence $K$ is 
 
 ---
 
-## Q&A
+## FAQ
 
 ### Why maximise the margin?
 

@@ -438,13 +438,13 @@ plt.show()
 
 ## Exercises
 
-### Warm-Up
+### Basics
 
 1. Determine whether $A = \bigl(\begin{smallmatrix} 2 & 1 \\ 1 & 2 \end{smallmatrix}\bigr)$ is positive definite using both the eigenvalue test and Sylvester's criterion.
 2. Write $Q(x_1,x_2) = 5x_1^2 + 4x_1x_2 + 2x_2^2$ as $\vec{x}^T A \vec{x}$ and decide whether $A$ is positive definite.
 3. Compute the Cholesky factor of $A = \bigl(\begin{smallmatrix} 9 & 6 \\ 6 & 5 \end{smallmatrix}\bigr)$.
 
-### Going Deeper
+### Advanced
 
 4. Prove that if $A$ is PD then $A^{-1}$ is PD.
 5. Prove that $X^T X$ is always PSD, and PD if and only if $X$ has full column rank.
@@ -452,7 +452,7 @@ plt.show()
 7. Show that $\mathrm{tr}(A) = \sum \lambda_i$ and $\det(A) = \prod \lambda_i$ for any symmetric $A$.
 8. Show that a PSD matrix is PD iff it is invertible.
 
-### Coding Challenges
+### Programming
 
 9. Implement Cholesky from scratch (no `numpy.linalg.cholesky`). Test on a random PD matrix.
 10. Verify the spectral theorem numerically: generate a random symmetric matrix, decompose it, and check $\| A - Q \Lambda Q^T \|$.
@@ -461,7 +461,7 @@ plt.show()
 
 ---
 
-## Chapter Summary
+## Summary
 
 | Concept | Key fact | Why it matters |
 |---|---|---|

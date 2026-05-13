@@ -504,7 +504,7 @@ Fairness is not a launch checkbox — it is an ongoing measurement. Set up dashb
 
 ---
 
-## Q&A
+## FAQ
 
 ### I am a small team. What is the minimum debiasing I should do?
 

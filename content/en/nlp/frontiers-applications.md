@@ -26,7 +26,7 @@ Capability brings new failure modes. Models hallucinate confidently, generate ha
 <!-- wanx-hero -->
 ![NLP (12): Frontiers and Practical Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - **Agents**: the Function Calling protocol and the ReAct reason-act loop, with worked Python.
 - **Code generation**: where Codex / Code Llama / DeepSeek-Coder sit on HumanEval, and how a self-repair loop works.
@@ -429,7 +429,7 @@ Sensible launch targets for a 7-8B model on a single A100 80GB with vLLM and bf1
 
 ---
 
-## 8. Frequently asked questions
+## 8. FAQ
 
 **When should I pick Function Calling vs. ReAct vs. a graph framework?** Single tool, deterministic invocation: Function Calling. Multi-step tasks with branching, retries and intermediate inspection: ReAct or a graph framework like LangGraph. If you find yourself writing a state machine on top of ReAct strings, switch to a graph — it makes the control flow explicit and testable.
 
@@ -443,7 +443,7 @@ Sensible launch targets for a 7-8B model on a single A100 80GB with vLLM and bf1
 
 ---
 
-## Series wrap-up
+## Series Wrap-Up
 
 ![The 12-chapter NLP journey](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/fig7_series_journey.png)
 
@@ -479,7 +479,7 @@ Thank you for reading all twelve parts. Now go build something.
 
 ---
 
-## Series navigation
+## Series Navigation
 
 - **Previous**: [Part 11 — Multimodal NLP](/en/nlp/multimodal-nlp/)
 - **Series complete!** This concludes the 12-part NLP series.

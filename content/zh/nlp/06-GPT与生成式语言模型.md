@@ -509,7 +509,7 @@ print(gen("User: What is deep learning?\nAssistant:",
 
 ---
 
-## 核心要点
+## 总结
 
 - GPT 模型本质是**仅含解码器的 Transformer 加因果掩码**，目标为预测下一 token。简洁即是精髓。
 - **规模是乘数**：参数、数据、算力共同推动损失以幂律下降，并在临界点触发能力跃迁。

@@ -18,7 +18,7 @@ translationKey: "ml-math-derivations-3"
 ---
 ![ML Math Derivations (3): Probability Theory and Statistical Inference — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 In 1912, Ronald Fisher introduced **maximum likelihood estimation** in a short paper that quietly redefined statistics. His insight was almost embarrassingly simple: *if a parameter setting makes the observed data extremely likely, it is probably correct*. Almost every modern learning algorithm — from logistic regression to large language models — descends from this idea.
 

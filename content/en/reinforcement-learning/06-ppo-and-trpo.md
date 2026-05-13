@@ -23,7 +23,7 @@ Policy gradients (Part 3) optimise the policy directly, sidestepping discrete `a
 
 ![Reinforcement Learning (6): PPO and TRPO — Trust Region Policy Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - Why vanilla policy gradient is **catastrophically** unstable, with a worked example
 - **Importance sampling** as the bridge that lets us reuse off-policy data

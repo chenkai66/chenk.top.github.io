@@ -931,7 +931,7 @@ aliyun cms PutResourceMetricRule \
 
 这就搞定了一套完整的生产部署：VPC、安全组、密钥对、带 cloud-init 自动化的 ECS 实例、nginx 反向代理、supervisor 托管的 Flask 应用、自动续期的 HTTPS，还有监控告警。从零到生产环境，API 调用大概 5 分钟，cloud-init 执行 3 分钟。
 
-## 关键要点
+## 总结
 
 **先小后大，随时扩容**：ECS 支持在线变配实例规格。别靠猜来决定配置，先跑起来，看监控数据再调整。
 

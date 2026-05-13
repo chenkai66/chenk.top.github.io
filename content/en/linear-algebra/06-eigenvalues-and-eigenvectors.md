@@ -346,7 +346,7 @@ The geometric multiplicity is always $\le$ the algebraic multiplicity. A matrix 
 
 ---
 
-## Chapter Summary
+## Summary
 
 Eigenvalues and eigenvectors uncover the skeleton of a linear transformation:
 
@@ -401,7 +401,7 @@ So when this chapter says "the dominant eigenvalue controls long-term behaviour 
 
 ---
 
-## What Comes Next
+## What's Next
 
 - **Chapter 7:** Orthogonality and projections — the geometry that makes PCA and least squares possible.
 - **Chapter 8:** Symmetric matrices and quadratic forms — a deep dive into the spectral theorem.

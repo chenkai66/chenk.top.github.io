@@ -20,7 +20,7 @@ The 2018 M4 forecasting competition served 100,000 series across six frequencies
 
 This chapter unpacks why such a stripped-down architecture beats both LSTMs and ARIMA-style ensembles, and how to implement and tune it for your own series.
 
-## What you will learn
+## What You Will Learn
 
 - How double residual stacking turns a plain MLP into a hierarchical decomposer.
 - Basis-function expansion: polynomial bases for trend, Fourier bases for seasonality, learned bases for the "generic" variant.
@@ -468,7 +468,7 @@ A pragmatic starting point for a new dataset:
 
 ---
 
-## Q&A
+## FAQ
 
 ### Why polynomials and Fourier specifically?
 
@@ -509,7 +509,7 @@ Next chapter we close the series with **Informer**, which solves a different pro
 
 ---
 
-## References and further reading
+## References
 
 - Oreshkin, B. N., Carpov, D., Chapados, N., & Bengio, Y. (2020). *N-BEATS: Neural Basis Expansion Analysis for Interpretable Time Series Forecasting.* ICLR.
 - Makridakis, S., Spiliotis, E., & Assimakopoulos, V. (2020). *The M4 Competition: 100,000 Time Series and 61 Forecasting Methods.* International Journal of Forecasting, 36(1).

@@ -15,7 +15,7 @@ series_order: 4
 translationKey: "time-series-4"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
-## 本章要点
+## 总结
 
 - 循环模型在处理长程依赖时为何遭遇瓶颈，而注意力机制又是如何彻底打破这一限制的。
 - Query / Key / Value 机制、缩放点积注意力（scaled dot-product attention）的原理，以及为何要除以 $\sqrt{d_k}$。
@@ -307,7 +307,7 @@ class LSTMAttention(nn.Module):
 - **窗口过短**：若有效历史仅需 10 步，LSTM 往往更快且效果不输。
 
 ---
-## 小结
+## 总结
 
 注意力机制以 **直接、按内容寻址的查找**，取代了 RNN 的 **顺序、有损信息通道**。其数学形式仅为两次矩阵乘法加一个 softmax，却带来深远影响：
 
@@ -321,7 +321,7 @@ class LSTMAttention(nn.Module):
 > **记忆口诀** —— *Q 提问，K 回答，V 携带；除以 $\sqrt{d_k}$，softmax 转权重，乘 V 得结果；多个头，多个视角。*
 
 ---
-## 参考资料
+## 参考文献
 
 1. Vaswani et al., *Attention Is All You Need*, NeurIPS 2017.
 2. Bahdanau, Cho, Bengio, *Neural Machine Translation by Jointly Learning to Align and Translate*, ICLR 2015.

@@ -770,7 +770,7 @@ def hit_rate_ndcg(user_vec: dict, item_vec: dict, test, k: int = 10):
 
 ---
 
-## 9. Frequently asked questions
+## 9. FAQ
 
 ### Q1. Item2Vec vs. matrix factorisation — when do I pick which?
 
@@ -835,7 +835,7 @@ Cosine similarity is direction-only; magnitudes cancel. Dot product also rewards
 
 ---
 
-## Series navigation
+## Series Navigation
 
 - **Previous:** [Part 4 — CTR Prediction and Click-Through Rate Modeling](/en/recommendation-systems/04-ctr-prediction/)
 - **Next:** [Part 6 — Sequential Recommendation and Session-based Modeling](/en/recommendation-systems/06-sequential-recommendation/)

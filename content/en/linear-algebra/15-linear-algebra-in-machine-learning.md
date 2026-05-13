@@ -493,7 +493,7 @@ Newton's method preconditions by $\mathbf{H}^{-1}$, transforming the geometry so
 
 ## 9. Exercises
 
-### Conceptual Understanding
+### Conceptual
 
 **Exercise 1.** Explain why PCA's principal components are mutually orthogonal. Hint: spectral theorem for symmetric matrices.
 
@@ -503,7 +503,7 @@ Newton's method preconditions by $\mathbf{H}^{-1}$, transforming the geometry so
 
 **Exercise 4.** Use a 2D picture of the unit $\ell_1$ vs $\ell_2$ balls to explain why LASSO produces sparse solutions but ridge does not.
 
-### Computational Problems
+### Computation
 
 **Exercise 5.** Take $\mathbf{X} = \begin{bmatrix}1 & 2\\ -1 & 0\\ 0 & -2\end{bmatrix}$ (rows already centered).
 (a) Compute $\mathbf{C} = \tfrac{1}{3}\mathbf{X}^\top\mathbf{X}$.
@@ -514,7 +514,7 @@ Newton's method preconditions by $\mathbf{H}^{-1}$, transforming the geometry so
 
 **Exercise 7.** Show that ridge regression on $(\mathbf{X}, \mathbf{y})$ is equivalent to OLS on the augmented data $\tilde{\mathbf{X}} = \begin{bmatrix}\mathbf{X}\\\sqrt{\lambda}\mathbf{I}\end{bmatrix}, \; \tilde{\mathbf{y}} = \begin{bmatrix}\mathbf{y}\\\mathbf{0}\end{bmatrix}$.
 
-### Programming Problems
+### Programming
 
 **Exercise 8.** Implement PCA from scratch in NumPy (centering + SVD), apply it to MNIST, and plot the first two PCs colored by digit.
 
@@ -528,7 +528,7 @@ def my_pca(X, n_components):
 
 **Exercise 10.** Write a two-layer MLP for MNIST in PyTorch using only `torch.matmul` (no `nn.Linear`); train to >97% test accuracy.
 
-### Proof Problems
+### Proofs
 
 **Exercise 11.** Prove that a Gram matrix is positive semidefinite iff there exists a feature map $\phi$ with $K_{ij} = \langle\phi(\mathbf{x}_i), \phi(\mathbf{x}_j)\rangle$.
 
@@ -536,7 +536,7 @@ def my_pca(X, n_components):
 
 **Exercise 13.** State and prove the Gauss-Markov theorem: under $\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}$ with $\mathbb{E}[\boldsymbol{\epsilon}] = 0$ and $\text{Cov}(\boldsymbol{\epsilon}) = \sigma^2\mathbf{I}$, the OLS estimator is BLUE.
 
-### Application Problems
+### Applications
 
 **Exercise 14.** Design a recommender for 10,000 users, 1,000 movies, with 50 ratings/user. Pick $k$, justify the choice, propose a cold-start strategy, and define an evaluation protocol.
 
@@ -544,7 +544,7 @@ def my_pca(X, n_components):
 
 ---
 
-## 10. Chapter Summary
+## 10. Summary
 
 - **Vectorize first.** Every ML pipeline starts by mapping data into $\mathbb{R}^p$. Once there, geometry tells you which algorithm to reach for.
 - **PCA = top eigenvectors of the covariance.** Compute via SVD for stability. Kernel PCA generalizes to nonlinear manifolds.

@@ -20,7 +20,7 @@ translationKey: "pde-ml-6"
 ---
 ![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
-## 这一篇要讲什么
+## 你将学到什么
 
 生成建模归根结底是一个几何问题：**如何将简单分布（比如高斯分布）变换为复杂分布（如人脸、分子或运动轨迹）？** 离散归一化流通过堆叠可逆模块实现这一目标，但每个模块都需要计算 Jacobian 行列式，其代价高达 $O(d^3)$。**Neural ODE** 用连续的常微分方程（ODE）取代离散的网络深度；**连续归一化流（Continuous Normalizing Flows, CNF）** 则借助 *瞬时* 变量替换公式，将密度计算的复杂度降至 $O(d)$；而 **Flow Matching** 更进一步，直接省去了散度积分，将训练简化为对目标速度场的普通回归任务。
 
@@ -264,7 +264,7 @@ $$
 
 Flow Matching 收敛速度约为 CNF 的 2.7 倍，且生成的月牙形状更清晰。在真实图像数据上，这一差距更为显著——训练时间和采样所需的函数评估次数（NFE）相差一到两个数量级。
 
-## 8. 习题
+## 8. 练习题
 
 **习题 1.** 从连续性方程直接推导瞬时变量替换公式 (1)。
 

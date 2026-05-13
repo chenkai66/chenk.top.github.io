@@ -31,7 +31,7 @@ aliases:
 - AdamW vs Adam：一旦在分母中引入自适应缩放，“L2 == weight decay” 就不再成立
 - Lion / Sophia / Schedule-Free：三种在 AdamW 之后真正实现扩展的方向
 
-## 先备知识
+## 前置知识
 
 - 基础微积分（梯度、Hessian、泰勒展开）
 - 一些神经网络训练经验（任意框架）
@@ -316,7 +316,7 @@ bf16 略有不同：其动态范围足够宽，有时可全程保留 bf16 梯度
 
 若你只记住一点：**LLM 时代的默认仍是 AdamW + warmup + cosine/WSD + gradient clipping**。除非你有明确瓶颈（内存、实际耗时、调度灵活性），否则任何声称超越 AdamW 的论文都应在你自己的任务上复现基线后再做决定。
 
-## 延伸阅读
+## 参考文献
 
 - Adam: A Method for Stochastic Optimization (Kingma & Ba, 2014) — [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
 - Decoupled Weight Decay Regularization (Loshchilov & Hutter, 2017) — [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)

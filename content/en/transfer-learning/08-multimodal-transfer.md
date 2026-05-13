@@ -346,7 +346,7 @@ Fix: always resize to the model's training resolution before feeding it. If you 
 
 The CLIP era taught us that contrastive pretraining can produce extraordinary general-purpose visual representations. The post-CLIP era is teaching us that the rough edges — modality bias, hallucination, resolution brittleness — are deeply baked in. If you are deploying a vision-language model in production, the work is not picking the right model; it is building the guardrails around its known failure modes.
 
-## 9. Q&A
+## 9. FAQ
 
 **Q1: Where does CLIP's zero-shot ability really come from?** Three things stacked: (i) 400M web pairs cover an enormous concept distribution; (ii) natural language is a far richer label space than discrete classes — you supervise on a *description*, not a category; (iii) contrastive learning aligns the modalities so that any text becomes a usable "prototype" for classification.
 

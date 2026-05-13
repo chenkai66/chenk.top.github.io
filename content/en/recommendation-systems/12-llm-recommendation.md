@@ -399,7 +399,7 @@ For conversational systems, also track:
 
 ---
 
-## Frequently Asked Questions
+## FAQ
 
 ### When should I use an LLM at all?
 

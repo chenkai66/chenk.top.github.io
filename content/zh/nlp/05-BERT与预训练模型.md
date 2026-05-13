@@ -22,7 +22,7 @@ polished_by_qwen_max: true
 
 <!-- wanx-hero -->
 ![自然语言处理（五）：BERT与预训练模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.png)
-## 这一篇你会学到
+## 你将学到什么
 
 - 预训练技术的发展历程：从 Word2Vec 到 ELMo，再到 GPT-1 和 BERT  
 - BERT 的核心架构：基于 WordPiece 分词的双向 Transformer 编码器  
@@ -515,7 +515,7 @@ MLM 只在 15% 的位置计算损失，其余 85% 的 token 被浪费了。ELECT
 
 直接对 BERT 的 token 向量取平均值，得到的句向量质量通常不尽如人意。如果需要计算句子相似度，建议使用 Sentence-BERT，这是通过 Siamese 对比损失微调后的变体，专为相似度任务设计，效果显著优于原始 BERT。
 
-## 核心要点
+## 总结
 
 - BERT 通过 Masked Language Modeling（MLM）实现了**双向预训练**，让每个 token 在单次前向传播中就能感知到完整的上下文信息。
 - 80/10/10 的掩码分配比例经过精心设计，不仅避免了训练和测试之间的分布差异，还迫使模型在输入看似未被遮盖的情况下依然依赖上下文信息。

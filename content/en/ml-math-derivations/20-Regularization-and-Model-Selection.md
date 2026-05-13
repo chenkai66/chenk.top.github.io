@@ -22,7 +22,7 @@ translationKey: "ml-math-derivations-20"
 ---
 ![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 A 100-million-parameter network trained on 50,000 images *should* overfit catastrophically. Modern deep networks generalise anyway. **Why?** Two ingredients: *regularisation* (techniques that constrain capacity) and *generalisation theory* (mathematics that says when learning works at all). This article is the closing chapter of the series, and we use it to gather every tool we have built — least squares, MAP estimation, optimisation, EM, neural networks — and turn them on the deepest open question in the field: *why does learning generalise?*
 

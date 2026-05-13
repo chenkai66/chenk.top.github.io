@@ -24,7 +24,7 @@ This post derives VI from a single identity, builds the mean-field algorithm and
 
 ![ML Math Derivations (14): Variational Inference and Variational EM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 - Why VI turns inference into optimization through the ELBO identity
 - The mean-field assumption and the closed-form coordinate-ascent updates it produces
@@ -319,7 +319,7 @@ The algorithmic shape mirrors the EM-GMM from Part 13 — alternate responsibili
 
 ---
 
-## 9. Q&A
+## 9. FAQ
 
 **Q1: Why reverse KL and not forward KL?**
 Reverse $\mathrm{KL}(q\|p)$ only requires expectations under $q$, which we control. Forward $\mathrm{KL}(p\|q)$ requires expectations under the intractable $p$. The price is mode-seeking behavior — see Figure 6.

@@ -20,7 +20,7 @@ For most of the 2010s, saying "deep learning for time series" meant using LSTM. 
 
 This chapter explains why that recipe works. We'll derive the receptive-field formula that makes dilation important, walk through the residual block step by step, and finish with two production-grade case studies (traffic flow and multivariate sensor forecasting) using a PyTorch implementation you can copy out.
 
-## What you will learn
+## What You Will Learn
 
 - Why a causal 1-D convolution is required for honest forecasting and how left-padding implements it.
 - How dilated convolutions grow the receptive field as $\mathcal{O}(2^L)$ instead of $\mathcal{O}(L)$.
@@ -468,7 +468,7 @@ In every other forecasting situation, TCN is the boring, fast, reliable first th
 
 ---
 
-## Q&A
+## FAQ
 
 ### How is TCN different from WaveNet?
 
@@ -502,7 +502,7 @@ Next chapter we move from convolutions to **N-BEATS**, which throws away both co
 
 ---
 
-## References and further reading
+## References
 
 - Bai, S., Kolter, J. Z., & Koltun, V. (2018). *An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling.* [arXiv:1803.01271](https://arxiv.org/abs/1803.01271).
 - van den Oord, A. et al. (2016). *WaveNet: A Generative Model for Raw Audio.* [arXiv:1609.03499](https://arxiv.org/abs/1609.03499).

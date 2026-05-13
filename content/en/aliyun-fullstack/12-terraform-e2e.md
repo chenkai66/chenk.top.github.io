@@ -2094,7 +2094,7 @@ terraform import module.compute.alicloud_instance.app i-bp1xxxxxxxxxxxxx
 
 After importing, run `terraform plan` to see if your configuration matches the actual resource. Expect to iterate a few times until the plan shows no changes.
 
-## Key Takeaways
+## Summary
 
 This article — and this series — boils down to a few principles:
 

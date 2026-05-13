@@ -25,7 +25,7 @@ DQN was not invented from scratch. It is **Q-Learning** — a 1989 tabular algor
 
 ![Reinforcement Learning (2): Q-Learning and Deep Q-Networks (DQN) — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - Why tabular Q-Learning collapses in high-dimensional state spaces
 - The **Deadly Triad** — the three ingredients that make naive deep RL diverge

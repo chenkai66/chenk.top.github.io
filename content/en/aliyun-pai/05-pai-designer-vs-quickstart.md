@@ -176,7 +176,7 @@ The pattern: don't rewrite, *export and refactor*. Both Designer and Gallery emi
 
 **The reverse migration (raw → Gallery) is rare but possible.** If you've built a custom EAS deployment for what is fundamentally an open-source model with a standard config, you can collapse it back to a Gallery deployment to reduce operational surface. I've done this once: a custom DeepSeek deployment that grew to 600 lines of YAML, simplified back to a Gallery service plus a small EAS-side proxy for the parts Gallery couldn't express. Nobody on the team missed the YAML.
 
-## What's next
+## What's Next
 
 That is the series. To recap:
 

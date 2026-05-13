@@ -246,7 +246,7 @@ The papers describe the architecture; the production system is mostly logistics.
 
 **On-the-fly tokenization vs pre-tokenized.** Pre-tokenizing 15T tokens takes weeks and 100+ TB of storage. Streaming tokenization during training requires the tokenizer to keep up with the data loader, which means highly optimized Rust tokenizers. Most production setups precompute token IDs but stream them from a distributed file system rather than loading raw text.
 
-## Common pitfalls
+## Common Pitfalls
 
 Five things I've personally seen wreck pretraining runs.
 
@@ -272,7 +272,7 @@ What's coming after the current Llama-style "filter + dedup + train" recipe:
 
 **Continual pretraining.** Most production models are now updated, not retrained from scratch. Llama 3.1 was Llama 3 + continued pretraining on additional data + post-training. Continued pretraining is much cheaper but requires careful learning-rate scheduling to avoid catastrophic forgetting.
 
-## Takeaway and what's next
+## What's Next
 
 Pretraining is 70 % data engineering and 30 % distributed-systems engineering. The architecture choice is the smallest of the three. Get the data mix right, dedup hard, train past Chinchilla for inference-cost reasons, use μP so your hyperparameters transfer, pick FSDP plus TP plus PP based on your hardware topology, and write defensive code for the failure modes that only appear at scale.
 

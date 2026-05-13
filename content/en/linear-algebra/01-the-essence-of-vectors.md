@@ -355,7 +355,7 @@ In the plane, two such equations leave you with two intersection points; a third
 
 ---
 
-## 7. Common Misconceptions
+## 7. Common Pitfalls
 
 **"A vector must start at the origin."** No. Vectors are translation-invariant; we draw them from the origin only for convenience.
 
@@ -367,7 +367,7 @@ In the plane, two such equations leave you with two intersection points; a third
 
 ---
 
-## 8. Chapter Summary
+## 8. Summary
 
 | Concept | Key Idea |
 |---------|----------|
@@ -428,7 +428,7 @@ So: when this chapter says "the inner product is just $\sum u_i v_i$", that is t
 
 ---
 
-## 9. What Comes Next
+## 9. What's Next
 
 In **Chapter 2: Linear Combinations and Vector Spaces**, we ask the next natural questions:
 

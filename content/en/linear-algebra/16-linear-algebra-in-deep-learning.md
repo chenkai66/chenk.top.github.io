@@ -464,21 +464,21 @@ The same handful of ideas â€” linear maps, transposes, ranks, singular values â€
 
 ## Exercises
 
-### Warm-up
+### Basics
 
 1. Show that if $\mathbf{W}$ is orthogonal ($\mathbf{W}^{\top}\mathbf{W} = \mathbf{I}$), the linear layer $\mathbf{h} = \mathbf{W}\mathbf{x}$ preserves the $\ell_2$ norm both forward and backward.
 2. Input $\mathbb{R}^{100}$ feeds an MLP $100 \to 256 \to 128 \to 10$. Write each weight matrix's shape and the total parameter count (don't forget biases).
 3. Why does multi-head attention use $d_k = d_{\rm model}/h$ instead of full $d_{\rm model}$ per head? Compare parameter counts and expressive power.
 4. For a convolutional feature map of shape $(B, C, H, W)$, list the dimensions BatchNorm and LayerNorm normalise over.
 
-### Deeper
+### Advanced
 
 5. Suppose every entry of $\mathbf{Q}$ and $\mathbf{K}$ is i.i.d. $\mathcal{N}(0,1)$. Compute the mean and variance of an entry of $\mathbf{Q}\mathbf{K}^{\top}$, and use the result to justify the $\sqrt{d_k}$ scaling.
 6. For an im2col implementation with input $(1, 3, 8, 8)$, kernel $(16, 3, 3, 3)$, stride 1, padding 1: compute the shape of $\mathbf{X}_{\rm col}$ and the memory blow-up factor over the original input.
 7. Prove that $\Delta\mathbf{W} = \mathbf{B}\mathbf{A}$ with $\mathbf{B}\in\mathbb{R}^{m\times r}$, $\mathbf{A}\in\mathbb{R}^{r\times n}$ has $\mathrm{rank}(\Delta\mathbf{W}) \le r$.
 8. Analyse the gradient flow through a ResNet block $\mathbf{y} = \mathbf{x} + F(\mathbf{x})$. Show that there is always a "shortcut" path along which the gradient flows without passing through $F$.
 
-### Code
+### Programming
 
 9. Implement a complete Transformer encoder (multi-layer) and use it for a toy sequence-classification task.
 10. Apply LoRA to a small pretrained model. Report parameter counts, training memory, and downstream accuracy versus full fine-tuning.
@@ -493,7 +493,7 @@ The same handful of ideas â€” linear maps, transposes, ranks, singular values â€
 
 ---
 
-## Chapter Summary
+## Summary
 
 - Every neural network layer is a matrix multiplication wrapped in a nonlinearity. Batches turn this into one big GEMM, the operation GPUs were born to run.
 - Backpropagation is the matrix chain rule. The forward map's transpose is the backward map â€” this is the adjoint duality, full stop.

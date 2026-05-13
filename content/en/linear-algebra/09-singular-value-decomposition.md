@@ -408,13 +408,13 @@ def plot_compression(img, ks):
 
 ## Exercises
 
-### Warm-up
+### Basics
 
 1. Explain why singular values are always non-negative, while eigenvalues can be negative or complex.
 2. Compute the SVD of $A = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$ by hand.
 3. If $A$ is $3 \times 5$, what are the shapes of $U$, $\Sigma$, and $V^{\!\top}$ in the full SVD? In the economy SVD?
 
-### Going deeper
+### Advanced
 
 4. Prove that $\operatorname{rank}(A)$ equals the number of nonzero singular values.
 5. Prove $\|A\|_F^2 = \sigma_1^2 + \cdots + \sigma_r^2$.
@@ -422,7 +422,7 @@ def plot_compression(img, ks):
 7. Show that $U_r U_r^{\!\top}$ is the projection matrix onto the column space, and $V_r V_r^{\!\top}$ is the projection onto the row space.
 8. Prove the operator-norm version of Eckart--Young: $\|A - A_k\|_2 = \sigma_{k+1}$.
 
-### Coding challenges
+### Programming
 
 9. **Compression curve.** Load a grayscale image, compute its SVD, and plot rank-$k$ reconstructions for $k \in \{5, 20, 50, 100\}$ together with the singular-value decay on a log scale.
 10. **PCA on Iris.** Apply PCA to the Iris dataset. Plot the first two components, colour-coded by species, and report the explained-variance ratio.
@@ -430,7 +430,7 @@ def plot_compression(img, ks):
 
 ---
 
-## Chapter Summary
+## Summary
 
 | Concept | Key formula | Intuition |
 |---|---|---|

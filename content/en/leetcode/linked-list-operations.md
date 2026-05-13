@@ -474,13 +474,13 @@ Sorted roughly by difficulty within each group.
 - LeetCode 146 — LRU Cache (covered)
 - LeetCode 460 — LFU Cache
 
-## Closing Thoughts
+## Summary
 
 Linked-list problems are not really about linked lists. They are about being precise with mutation — naming the pointers, ordering the assignments, and never assuming the next field is non-null. The five problems above cover every technique you need: pointer rewiring, dummy nodes, fast/slow traversal, gap pointers, and the hash-map + list combination.
 
 Once you can write `reverseList` from memory and explain why Floyd's algorithm works on a napkin, the rest of the linked-list canon falls out as variations on those themes. In the next article we move from one-dimensional pointer chains to **binary trees**, where recursion finally feels like the natural tool instead of a clever trick.
 
-## Further Reading
+## References
 
 - *Introduction to Algorithms* — Chapter 10, Elementary Data Structures.
 - *Cracking the Coding Interview* — Chapter 2, Linked Lists.

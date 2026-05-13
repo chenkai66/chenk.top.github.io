@@ -27,7 +27,7 @@ The Transformer is wonderful at sequence modeling — right up to the moment you
 
 Combined, the three changes deliver about a 6-10x speedup and 5-10% better MSE than a vanilla Transformer on long-horizon ETT/weather/electricity benchmarks. This chapter unpacks the math behind each one and walks through the implementation.
 
-## What you will learn
+## What You Will Learn
 
 - The exact $\mathcal{O}(L^2)$ pain points in vanilla self-attention for long sequences.
 - ProbSparse's KL-divergence sparsity measure and its $\max - \mathrm{mean}$ approximation.
@@ -412,7 +412,7 @@ Two takeaways:
 
 ---
 
-## Common pitfalls
+## Common Pitfalls
 
 - **Forgetting to mask the decoder self-attention.** Without the causal mask, the decoder can peek at future placeholder tokens during training. Output looks miraculous at training time and garbage at test time.
 - **Distilling on a too-short input.** If `seq_len` is short (e.g. 24), three layers of distilling collapse the encoder output to a length of 3, throwing away most of the context. Turn off distilling when `seq_len < 96`.
@@ -432,7 +432,7 @@ Two takeaways:
 
 ---
 
-## Q&A
+## FAQ
 
 ### Why $u = c \log L$ specifically?
 
@@ -477,7 +477,7 @@ This concludes the time-series forecasting series. Across eight chapters we walk
 
 ---
 
-## References and further reading
+## References
 
 - Zhou, H. et al. (2021). *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting.* AAAI Best Paper.
 - Wu, H. et al. (2021). *Autoformer: Decomposition Transformers with Auto-Correlation for Long-Term Series Forecasting.* NeurIPS.

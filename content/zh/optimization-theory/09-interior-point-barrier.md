@@ -24,8 +24,7 @@ translationKey: "optim-09"
 
 我们完整给出中心路径复杂度的严格证明。
 
-## 你将学到
-
+## 你将学到什么
 1. 对数障碍函数与中心路径的定义与几何意义；
 2. 自和谐性的定义、三个关键推论，以及参数 $\sqrt{\nu}$ 的来源与作用；
 3. 在自和谐函数上执行**阻尼牛顿法**（damped Newton）——可在常数大小区域内实现二次收敛；
@@ -306,7 +305,7 @@ $$
 
 至此，我们完成了**确定性、精确信息**下的优化理论主线。第 10 和 11 篇文章将转向 **随机方法**（含噪声的梯度）与 **非凸景观**（不再具备全局收敛保证）——这正是深度学习所处的典型优化范式。
 
-## 延伸阅读
+## 参考文献
 
 - Nesterov & Nemirovski，《Convex Programming 中的内点多项式算法》（*Interior-Point Polynomial Algorithms in Convex Programming*），SIAM，1994 —— 奠基性专著。  
 - Boyd & Vandenberghe，《凸优化》（*Convex Optimization*），第 11 章 —— 面向工程师最清晰的讲解。  

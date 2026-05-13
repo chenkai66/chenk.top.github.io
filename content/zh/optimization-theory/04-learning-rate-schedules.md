@@ -21,8 +21,7 @@ aliases:
 
 这篇文章把学习率从最简单的一维抛物线讲起，一路讲到 LLM 预训练的真实配方。目标很明确：一是建立清晰的直觉，二是提供一套可立即落地的操作流程。
 
-## 你将学到
-
+## 你将学到什么
 - 为什么“太大就炸、太小就慢”——从最干净的模型推出来
 - batch size、动量、权重衰减为什么必须和学习率一起调
 - 调度大全：constant、step、cosine、WSD、schedule-free 各自适合什么场景
@@ -629,7 +628,7 @@ Schaipp et al. 2025（[arXiv:2501.18965](https://arxiv.org/abs/2501.18965)）证
 
 ---
 
-## 延伸阅读
+## 参考文献
 
 - [Learning-Rate-Free Learning by D-Adaptation (2023)](https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/)
 - [Schedule-Free AdamW (2024)](https://arxiv.org/abs/2405.15682)

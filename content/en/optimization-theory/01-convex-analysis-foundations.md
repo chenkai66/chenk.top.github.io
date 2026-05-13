@@ -23,7 +23,7 @@ If you only remember three things from this article, make it these:
 - The **conjugate** $f^*$ is the Legendre transform generalized — it converts pointwise inequalities into linear ones and is the bridge between primal and dual problems.
 - The **subdifferential** $\partial f(x)$ is the right notion of "gradient" for non-smooth convex functions; it is non-empty whenever $x$ lies in the relative interior of $\mathrm{dom}(f)$.
 
-## What you will learn
+## What You Will Learn
 
 1. Convex sets, convex hulls, the projection theorem (with proof).
 2. Convex functions and the four equivalent characterizations (definition, epigraph, first-order condition, second-order condition).
@@ -382,13 +382,13 @@ This is the celebrated **KKT condition for LASSO** — it tells us that any coor
 
 The next article makes this concrete: we show that adding two extra assumptions — Lipschitz smoothness and strong convexity — gives quantitative convergence rates for gradient descent.
 
-## Where the story continues
+## What's Next
 
 - Article 02 builds smoothness and strong convexity on top of these foundations and proves the convergence of GD in three regimes.
 - Article 06 uses subgradients and the conjugate to derive ISTA, FISTA, and ADMM.
 - Article 08 generalizes the optimality condition $0 \in \partial f$ to constrained problems via the KKT system.
 
-## Further reading
+## References
 
 - Boyd & Vandenberghe, *Convex Optimization*, Ch. 2--3 — the canonical reference for sets and functions.
 - Rockafellar, *Convex Analysis* — the deeper monograph; everything about subgradients and conjugates is here.

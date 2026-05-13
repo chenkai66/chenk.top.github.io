@@ -22,7 +22,7 @@ translationKey: "optim-05"
 
 统一的工具是一个 **Lyapunov 势函数（Lyapunov potential）** —— 一种非负量，算法在每一步都会使其减小。Nesterov 和 Heavy-Ball 都有 Lyapunov 证明，而下界本质上说明了 Lyapunov 减小的速度不可能更快。
 
-## 你将学到的内容
+## 你将学到什么
 
 1. Nemirovski--Yudin 下界：在最坏情况的光滑强凸问题上，任何一阶方法至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代。
 2. Polyak 的 Heavy-Ball 方法、其连续时间极限（一个阻尼二阶 ODE）及其 Lyapunov 分析。
@@ -314,7 +314,7 @@ GD 与加速方法在达到相同精度所需的迭代次数上的差距约为 $
 - 文章 10 将 Catalyst 与随机内部求解器（SVRG、SAGA）结合用于有限和问题。
 - 文章 07 探索二阶方法，它们通过使用更多信息突破了 $\sqrt{\kappa}$ 壁垒。
 
-## 延伸阅读
+## 参考文献
 
 - Nesterov, *Lectures on Convex Optimization* (2nd ed.), §2 —— 权威论述。
 - d'Aspremont, Scieur & Taylor, *Acceleration Methods*, FnT-OPT 5(1-2), 2021 —— 现代综述，包含 Lyapunov 框架。

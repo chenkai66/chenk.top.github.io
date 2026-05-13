@@ -793,6 +793,6 @@ Run a session and see what prompts you get. If Claude keeps asking for permissio
 
 ---
 
-## Closing
+## Summary
 
 settings.json is the constitution for what Claude can do in a project. Keep deny short and merciless, keep allow specific, keep hooks as the second line of defense. Once you have the layers and precedence in your head, configuring a new repo takes ninety seconds. Until then it will feel like the rules are arbitrary; they are not.

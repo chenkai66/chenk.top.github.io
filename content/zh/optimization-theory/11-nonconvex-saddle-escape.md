@@ -24,8 +24,7 @@ translationKey: "optim-11"
 
 上述每项结论在其适用范围内都有严格的理论支撑。但本文也指出当前**尚未解决的问题**：目前并不存在一个普适定理，能断言“SGD 总能找到深度神经网络的全局最优解”。
 
-## 你将学到
-
+## 你将学到什么
 1. 平稳点及其分类（依据 Hessian 矩阵 $\nabla^2 f$ 的特征值符号）；
 2. 严格鞍点性质，以及 Ge–Huang–Jin–Yuan（2015）关于带扰动 GD 鞍点逃逸的证明；
 3. Polyak–Łojasiewicz（PL）条件及其对收敛性的含义；
@@ -229,7 +228,7 @@ $$
 
 至此，本系列关于连续优化理论的四篇文章已全部完成。第 12 篇将收尾本系列，主题是**离散与全局优化**——包括分支定界法、整数规划和各类启发式算法——适用于那些缺乏光滑性等良好结构的问题。
 
-## 延伸阅读
+## 参考文献
 
 - Jin, Ge, Netrapalli, Kakade, Jordan, *How to Escape Saddle Points Efficiently*, ICML 2017 —— 提出扰动 GD 的经典论文。
 - Liu, Zhu & Belkin, *Loss landscapes and optimization in over-parameterized non-linear systems and neural networks*, ACHA 59, 2022 —— PL 与神经网络的现代理论成果。

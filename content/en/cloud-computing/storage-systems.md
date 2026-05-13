@@ -529,7 +529,7 @@ The point is not the exact numbers — list pricing changes — but the order of
 
 ---
 
-## 10. Common questions
+## 10. FAQ
 
 **Q: HDFS or S3 for a new data lake?**
 

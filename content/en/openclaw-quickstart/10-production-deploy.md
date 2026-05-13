@@ -297,7 +297,7 @@ ls ~/.openclaw/agents/main/sessions/*.jsonl | wc -l
 df -h /
 ```
 
-## Closing
+## Summary
 
 A production OpenClaw is not a clever piece of software; it is a boring piece of software that has been left running for thirty days. Do the deploy by the book, set up the supervisor, put a stable proxy in front, fix the eight failures above before they hit you, automate the monitoring, and you'll get there.
 

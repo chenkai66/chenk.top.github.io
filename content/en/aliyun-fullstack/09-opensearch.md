@@ -1411,7 +1411,7 @@ For a product catalog of 100,000 items:
 
 This is for a moderately trafficked search service. The LLM costs scale linearly with query volume — if you do not need AI features on every query, add them only for complex queries and cut the LLM cost by 80%.
 
-## Key Takeaways
+## Summary
 
 **Hybrid search is not optional.** If you are building search in 2026 and using only keywords or only vectors, you are leaving 15-25% of relevance on the table. The implementation cost of hybrid is minimal once you have either one working.
 

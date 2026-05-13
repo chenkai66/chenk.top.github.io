@@ -13,7 +13,7 @@ translationKey: "prompt-engineering-complete-guide"
 
 The same model, two prompts: one achieves 17% accuracy on grade-school math, the other 78%. The difference isn't magic—it's prompt engineering. This guide covers the techniques that work, the research behind them, and how to systematically optimize prompts for production.
 
-## What you will learn
+## What You Will Learn
 
 - **Foundations** — zero-shot, few-shot, many-shot, task decomposition, and the five-block prompt skeleton.
 - **Reasoning techniques** — Chain-of-Thought, Self-Consistency, Tree of Thoughts, Graph of Thoughts, ReAct.
@@ -520,7 +520,7 @@ def categorize_error(pred: str, truth: str) -> str:
 
 Then attack the largest bucket first.
 
-## Common pitfalls
+## Common Pitfalls
 
 | Pitfall                        | Fix                                                                             |
 |--------------------------------|---------------------------------------------------------------------------------|
@@ -576,7 +576,7 @@ Plain text for simple prompts. JSON for structured I/O. XML for complex multi-pa
 
 Multimodal prompting, tighter automation (DSPy, APE), aggressive compression, meta-prompting (prompts that generate prompts), embodied agents. The skill will not disappear — it will shift from manual crafting to designing optimization objectives, evaluation harnesses, and orchestration.
 
-## Closing
+## Summary
 
 Prompt engineering started as trial-and-error and has matured into a discipline backed by research and reusable frameworks. The fundamentals — clear instructions, well-chosen examples, structured output — apply universally. Advanced techniques like Chain-of-Thought and Tree of Thoughts unlock capabilities that look impossible with naive prompting. APE and DSPy scale these practices to production.
 

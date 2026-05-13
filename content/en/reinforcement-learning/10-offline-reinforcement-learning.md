@@ -24,7 +24,7 @@ These settings do have logs — millions of hours of human driving, decades of d
 
 The answer is "yes, but only if we are very careful." The reason for this caveat is the central theme of this post: distributional shift between the *behavior policy* that generated the data and the *learned policy* that aims to improve on it.
 
-## What you will learn
+## What You Will Learn
 
 - **Why naive off-policy RL fails offline**: extrapolation error, value overestimation, and the death spiral.
 - **CQL** (Conservative Q-Learning): a pessimistic regularizer that lower-bounds the true value.
@@ -328,7 +328,7 @@ When in doubt, start with **IQL** for stability or **CQL** for simplicity, and r
 
 ---
 
-## 7. Frequently Asked Questions
+## 7. FAQ
 
 **Q: When does offline RL fail outright?**
 Three failure modes are well-documented: (i) *narrow data coverage* — only expert trajectories with no recovery examples, so the policy cannot learn to handle its own mistakes; (ii) *very low data quality* — random-policy data on long-horizon tasks; (iii) *evaluation-environment shift* — the test MDP's transition dynamics differ from those that produced $\mathcal{D}$.

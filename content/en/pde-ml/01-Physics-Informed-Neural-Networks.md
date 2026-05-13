@@ -317,7 +317,7 @@ After this chapter, you should be able to give the one-sentence answer:
 
 ---
 
-## Series navigation
+## Series Navigation
 
 | part | topic |
 |------|------|

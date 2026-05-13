@@ -15,7 +15,7 @@ series_order: 3
 translationKey: "time-series-3"
 ---
 
-## 本章要点
+## 总结
 
 ![GRU 章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
 
@@ -355,7 +355,7 @@ class StreamingGRU(nn.Module):
 
 ---
 
-## 小结
+## 总结
 
 GRU 是处理“非极端困难”序列建模问题的理性默认选择。它比 LSTM 少一个门和一个状态，却保留了线性插值 $h_t = (1 - z_t)\odot h_{t-1} + z_t \odot \tilde h_t$ 构成的梯度高速公路，并以更快的训练速度和更高的参数效率回馈用户。
 

@@ -661,7 +661,7 @@ Prometheus scrape, Grafana dashboard, alerts on:
 
 ---
 
-## Conclusion
+## Summary
 
 The thing that makes this system actually ship is the acceptance that **no single module hits production accuracy on its own**. It's a relay where the next stage's prior covers the previous stage's weakness:
 

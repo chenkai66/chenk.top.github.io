@@ -26,7 +26,7 @@ DQN showed that deep RL can master Atari, but it has a hard ceiling: it only wor
 
 ![Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - Why policy gradients exist, and what the **Policy Gradient Theorem** actually says
 - **REINFORCE**: the simplest policy-gradient algorithm and why its variance is so painful

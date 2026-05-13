@@ -393,7 +393,7 @@ Why does this work but preorder + postorder *not* work? Because inorder is the o
 
 **Practical advice.** Reach for recursion first; rewrite to iterative only when (a) the interviewer asks, (b) the tree can be pathologically deep, or (c) you need to bail out mid-traversal in a way that's awkward to express as a recursive return. The iterative inorder template is worth memorising because it appears verbatim in BST-iterator and $k$-th-smallest problems.
 
-## Q&A
+## FAQ
 
 ### Why does inorder of a BST come out sorted?
 

@@ -24,7 +24,7 @@ Imitation learning takes that intuition seriously: instead of optimising a hand-
 
 ![Reinforcement Learning (7): Imitation Learning and Inverse RL — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - **Behavioral cloning (BC)**: imitation as supervised learning, why it works on short tasks, and the precise reason it breaks on long ones.
 - **DAgger**: how interactive relabelling turns BC's quadratic error into a linear one, with the no-regret theorem behind it.
@@ -375,7 +375,7 @@ A short decision rule:
 
 ---
 
-## 8. Frequently asked questions
+## 8. FAQ
 
 **Can imitation learning exceed the expert?**
 Pure imitation cannot, by construction — the optimal imitator matches the expert. The standard fix is _imitation as initialisation_: start from the BC/GAIL policy and fine-tune with RL on whatever reward you _can_ specify (or with RLHF). Most large-scale systems use exactly this two-stage recipe.
@@ -406,7 +406,7 @@ Partly. The supervised fine-tuning stage of RLHF is BC on human-written demonstr
 
 ---
 
-## Series navigation
+## Series Navigation
 
 - **Previous**: [Part 6 — Advanced Policy Optimization](/en/reinforcement-learning/06-ppo-and-trpo/)
 - **Next**: [Part 8 — AlphaGo and Monte Carlo Tree Search](/en/reinforcement-learning/08-alphago-and-mcts/)

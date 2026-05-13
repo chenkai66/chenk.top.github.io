@@ -517,19 +517,19 @@ optimize_comparison()
 
 ## Exercises
 
-### Warm-Up
+### Basics
 
 1. Compute the gradient of$f(\vec{x}) = 3x_1^2 + 2x_1x_2 + x_2^2$.
 2. Find all critical points of$f(x,y) = x^3 - 3xy + y^3$and classify each one using the Hessian.
 3. Prove:$\nabla(\vec{x}^TA\vec{x}) = (A + A^T)\vec{x}$, working from the partial-derivative definition.
 
-### Going Deeper
+### Advanced
 
 4. Derive the backpropagation formulas for a two-layer network$f = \sigma_2(W_2\sigma_1(W_1\vec{x} + \vec{b}_1) + \vec{b}_2)$. Pay attention to shapes at every step.
 5. Prove that Newton's method converges in *one* step on any quadratic function.
 6. Prove: any local minimum of a convex function is a global minimum (use the chord-above-graph definition).
 
-### Coding Challenges
+### Programming
 
 7. Implement the gradient checker above and verify it on three different functions, including one matrix-valued.
 8. Implement SGD, Momentum, and Adam from scratch and compare their convergence on the Rosenbrock function. Plot the paths.
@@ -537,7 +537,7 @@ optimize_comparison()
 
 ---
 
-## Chapter Summary
+## Summary
 
 | Concept | Key fact | Role in ML |
 |---|---|---|

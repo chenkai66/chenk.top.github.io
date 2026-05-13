@@ -32,7 +32,7 @@ This article:
 3. Derives SVRG and proves its linear convergence on strongly convex objectives.
 4. Mentions SAGA and Katyusha and the lower bound that motivated their development.
 
-## What you will learn
+## What You Will Learn
 
 1. The two SGD regimes: convex ($O(1/\sqrt{T})$ rate) and strongly convex ($O(1/T)$ rate).
 2. The variance bound for SGD, why $\eta = 1/L$ is too aggressive, and where the $\eta_t = 1/(\mu t)$ schedule comes from.
@@ -270,7 +270,7 @@ Stochastic optimization trades per-step cost for noise. The classical SGD rates 
 
 Article 11 is the next frontier: **non-convex** problems where global convergence is impossible but local guarantees (escape from saddle points, convergence to flat minima) still exist.
 
-## Further reading
+## References
 
 - Bottou, Curtis & Nocedal, *Optimization Methods for Large-Scale Machine Learning*, SIAM Review 60, 2018 — comprehensive survey of SGD and its variants.
 - Johnson & Zhang, *Accelerating Stochastic Gradient Descent using Predictive Variance Reduction*, NeurIPS 2013 — the SVRG paper.

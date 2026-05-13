@@ -18,7 +18,7 @@ translationKey: "ml-math-derivations-4"
 ---
 ![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 In 1947, George Dantzig proposed the simplex method for linear programming, and a working theory of optimization was born. Eight decades later, optimization has become the engine of machine learning: every model you train, from a one-line linear regression to a 70B-parameter language model, is the answer to *some* optimization problem.
 
@@ -422,7 +422,7 @@ print(f"ADMM:   nonzeros = {int(np.sum(np.abs(z) > 1e-4))}/10, "
 
 ---
 
-## 8. Q&A
+## 8. FAQ
 
 **Q1: Why study convex optimization if deep learning is non-convex?**
 

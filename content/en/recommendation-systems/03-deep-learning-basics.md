@@ -596,7 +596,7 @@ NeuMF showed that a learned interaction beats a fixed inner product. YouTube DNN
 
 ---
 
-## Series navigation
+## Series Navigation
 
 | Part | Topic | Link |
 |---|---|---|

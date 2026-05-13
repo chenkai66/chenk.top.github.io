@@ -318,7 +318,7 @@ white  = red + green + blue   # [255, 255, 255]
 
 ---
 
-## 8. Common Misconceptions
+## 8. Common Pitfalls
 
 > **"$\vec{v}_1=(1,2)$ and $\vec{v}_2=(2,4)$ span $\mathbb{R}^2$."**
 > No. $\vec{v}_2=2\vec{v}_1$, so they span only the line $y=2x$.
@@ -391,7 +391,7 @@ print(len(extract_basis(vs)))   # 3 -> {v1, v2, v4}
 
 ---
 
-## 10. Chapter Summary
+## 10. Summary
 
 | Concept | Definition | Picture |
 |---------|-----------|---------|
@@ -450,7 +450,7 @@ So when this chapter says *basis* and *dimension*, the ML reading is: a basis is
 
 ---
 
-## What Comes Next
+## What's Next
 
 **Chapter 3 — Matrices as Linear Transformations.** A matrix is not a passive table of numbers; it is an *agent of transformation*. We will see that:
 

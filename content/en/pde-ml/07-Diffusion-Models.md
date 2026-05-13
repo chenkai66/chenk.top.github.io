@@ -21,7 +21,7 @@ translationKey: "pde-ml-7"
 ---
 ![PDE and ML (7): Diffusion Models and Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 Since 2020, **diffusion models** have become the dominant paradigm in generative AI. From DALL·E 2 to Stable Diffusion to Sora, their generation quality and training stability surpass those of GANs and VAEs. This success is underpinned by a remarkably clean mathematical structure: **diffusion models are numerical solvers for partial differential equations**.
 

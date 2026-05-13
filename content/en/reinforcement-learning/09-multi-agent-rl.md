@@ -24,7 +24,7 @@ The payoff for solving this is large. AlphaStar reached Grandmaster on the StarC
 
 ![Reinforcement Learning (9): Multi-Agent Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - The four hard problems unique to MARL: **non-stationarity**, **credit assignment**, **partial observability**, and **scalability**
 - The game-theoretic vocabulary you actually need: Markov games, Nash equilibria, Pareto fronts, social dilemmas
@@ -260,7 +260,7 @@ For competitive MARL, the standard recipe is **fictitious self-play**: at each i
 
 MARL is *much* more sensitive to hyperparameters than single-agent RL. The same QMIX implementation, with all defaults, converges on StarCraft II micromanagement at one learning rate and diverges on a multi-particle environment at a 2× different learning rate. The community lore is that the right starting point is roughly half the learning rate you would use for single-agent PPO — and to keep the entropy bonus higher for longer, because exploration is a public good in MARL: when one agent stops exploring, all the others lose information.
 
-## Frequently asked questions
+## FAQ
 
 ### Why does QMIX need the monotonicity constraint?
 

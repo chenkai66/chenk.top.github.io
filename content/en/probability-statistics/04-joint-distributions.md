@@ -502,7 +502,7 @@ For independent random variables, the distribution of the maximum and minimum ca
 - Series: $\min(X,Y) \sim \text{Exponential}(2\lambda)$ — fails twice as fast.
 - Parallel: $F_{\max}(z) = (1-e^{-\lambda z})^2$, which is not exponential. Mean lifetime = $3/(2\lambda)$ — a 50% improvement over a single component.
 
-## Key Takeaways
+## Summary
 
 | Concept | Key Formula | Interpretation |
 |---|---|---|

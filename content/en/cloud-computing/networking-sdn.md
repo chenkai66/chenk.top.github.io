@@ -558,7 +558,7 @@ ping -M do -s 1472 8.8.8.8              # detect black-holed PMTUD
 
 ---
 
-## 9. Common questions
+## 9. FAQ
 
 **Q: Should we run our own load balancer (HAProxy / NGINX) or use the cloud LB?**
 

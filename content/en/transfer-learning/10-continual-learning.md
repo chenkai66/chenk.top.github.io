@@ -321,7 +321,7 @@ Three takeaways:
 
 ---
 
-## Q&A
+## FAQ
 
 ### How should I pick EWC's $\lambda$?
 

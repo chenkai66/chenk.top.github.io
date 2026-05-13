@@ -763,7 +763,7 @@ max_connections = 200
 
 The numbers are not magic; the principle is. Each layer's worker pool must be able to absorb the layer above it without queueing for too long.
 
-## Conclusion
+## Summary
 
 LAMP on Aliyun ECS reduces to a five-step recipe:
 

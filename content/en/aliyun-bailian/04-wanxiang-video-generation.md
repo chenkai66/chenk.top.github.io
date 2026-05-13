@@ -325,6 +325,6 @@ The moderation call costs about 0.001 RMB per check. Vastly cheaper than a waste
 **Silent quality degradations.** Once a quarter Alibaba ships a model update under the same model_id. The new weights are usually better, occasionally worse for your specific prompt distribution. Track quality regressions by saving 10 canonical prompts and re-running them weekly; flag any output that diverges from the historical baseline by more than a perceptual-hash distance threshold. This caught a regression in early March 2026 that had us swap `wan2.5-t2v-plus` for the dated alias `wan2.5-t2v-plus-2025-12-15` for two weeks until the regression was fixed upstream.
 
 
-## What's next
+## What's Next
 
 Article 5 closes the series with **Qwen-TTS-Flash** — speech synthesis with the only Chinese-dialect voices I'd ship to production. It's also native-only, so the patterns from this article apply.

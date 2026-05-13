@@ -215,7 +215,7 @@ The single most important change in DDR5 is splitting each 64-bit DIMM into **tw
 
 DDR6 (in standardisation) is targeting 8.8-17.6 GT/s and four subchannels per DIMM.
 
-## 10. Q & A
+## 10. FAQ
 
 ### Q1. If caches make memory access "average ~1 ns", why does memory speed still matter?
 

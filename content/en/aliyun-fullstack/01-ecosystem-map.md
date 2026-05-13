@@ -771,7 +771,7 @@ Some of these topics have dedicated deep-dive series on this blog already:
 
 This Full Stack series is the breadth-first tour. Those series are the depth-first dives. They complement each other — I will point you to the right deep-dive article when we reach each topic.
 
-## Key Takeaways
+## Summary
 
 1. **Alibaba Cloud has a near-1:1 mapping to AWS.** If you know AWS, you already know 80% of Alibaba Cloud. The remaining 20% is naming, console layout, and China-specific features. Use the service map table in this article as your Rosetta Stone.
 

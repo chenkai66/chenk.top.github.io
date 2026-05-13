@@ -23,7 +23,7 @@ Article 02 introduced Nesterov acceleration and showed it improves the per-itera
 
 The unifying tool is a **Lyapunov potential** — a non-negative quantity that the algorithm decreases at every step. Both Nesterov and Heavy-Ball admit Lyapunov proofs, and the lower bound essentially says no Lyapunov decrease can happen faster.
 
-## What you will learn
+## What You Will Learn
 
 1. The Nemirovski--Yudin lower bound: $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ iterations are necessary for any first-order method on the worst-case smooth strongly convex problem.
 2. Polyak's Heavy-Ball method, its continuous-time limit (a damped second-order ODE), and its Lyapunov analysis.
@@ -309,13 +309,13 @@ The gap between GD and the accelerated methods is roughly $\sqrt{\kappa} = 100$ 
 | How to accelerate a black-box solver?     | Catalyst meta-algorithm with regularized inner subproblems.              |
 | What's the unified theory?                | Lyapunov functions on damped second-order ODEs and their discretizations. |
 
-## Where the story continues
+## What's Next
 
 - Article 06 derives FISTA, the accelerated proximal gradient method, using exactly the Lyapunov template above.
 - Article 10 uses Catalyst with stochastic inner solvers (SVRG, SAGA) for finite-sum problems.
 - Article 07 explores second-order methods, which break the $\sqrt{\kappa}$ barrier by using more information.
 
-## Further reading
+## References
 
 - Nesterov, *Lectures on Convex Optimization* (2nd ed.), §2 — the canonical treatment.
 - d'Aspremont, Scieur & Taylor, *Acceleration Methods*, FnT-OPT 5(1-2), 2021 — the modern survey, includes Lyapunov framework.

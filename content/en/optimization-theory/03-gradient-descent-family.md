@@ -22,7 +22,7 @@ Why is "tuning the LR is an art" a meme for ResNet, while every modern LLM paper
 
 This post walks the lineage end-to-end on a single thread: each step exists because of a **specific failure** of the previous one. We end with the three directions that have actually entered the post-2023 large-model toolkit: Lion, Sophia, and Schedule-Free.
 
-## What you will learn
+## What You Will Learn
 
 - Why GD zig-zags on ill-conditioned losses, and how momentum fixes it physically
 - The exact mathematical difference between Nesterov "lookahead" and classical momentum
@@ -317,7 +317,7 @@ Three decades of optimizer evolution compress to two sentences:
 
 If you only remember one thing: **the LLM-era default is still AdamW + warmup + cosine/WSD + gradient clipping**. Until you have a concrete bottleneck (memory, wall-clock, schedule flexibility), every paper claiming to beat AdamW deserves a baseline reproduction on your own task before you commit.
 
-## Further reading
+## References
 
 - Adam: A Method for Stochastic Optimization (Kingma & Ba, 2014) — [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
 - Decoupled Weight Decay Regularization (Loshchilov & Hutter, 2017) — [arXiv:1711.05101](https://arxiv.org/abs/1711.05101)

@@ -28,8 +28,7 @@ translationKey: "pde-ml-4"
 6. **数值实验**：7 张可复现的图表，附完整代码。
 7. **应用**：通过后验采样实现贝叶斯神经网络。
 
-## 你将学到
-
+## 你将学到什么
 - 任意 Itô SDE 所诱导的概率密度演化均受 Fokker-Planck 方程支配。
 - Langevin 动力学是一种实用的采样算法，但其离散化会引入误差。
 - 在 Wasserstein 空间中最小化 $\mathrm{KL}(q \| p^\star)$，本质上就是在求解 Fokker-Planck PDE。

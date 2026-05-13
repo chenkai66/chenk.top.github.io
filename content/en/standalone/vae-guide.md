@@ -17,7 +17,7 @@ A plain autoencoder compresses and reconstructs. A variational autoencoder learn
 
 This guide walks the full path: why autoencoders fail at generation, how the ELBO derivation gets you to the loss function, why the reparameterization trick is the trick that makes everything trainable, a complete PyTorch implementation, and a tour of every common failure mode with concrete fixes.
 
-## What you will learn
+## What You Will Learn
 
 - Why an autoencoder's latent space is unusable for sampling, and what VAEs change
 - The ELBO objective: how reconstruction and KL fall out of a single likelihood bound

@@ -229,7 +229,7 @@ module "vpc" {
 - 教你怎么写 Agent 本身。LangGraph、AutoGen、MetaGPT、Claude Code 都有系列教程了；选一个就行。
 - 逐功能对比阿里云 against AWS 或 GCP。IaC 模式跨云通用；资源名字不一样而已。
 
-## 接下来是什么
+## 下一步
 
 文章 2 是第一次 hands-on：安装 alicloud provider，挑选认证方法（三种选择——静态 AK/SK、AssumeRole、ECS RAM role——并不等价），在 OSS 上设置 remote state 并用 Tablestore 做 locking，以及 `dev`/`staging`/`prod` 的 workspace 模式。
 

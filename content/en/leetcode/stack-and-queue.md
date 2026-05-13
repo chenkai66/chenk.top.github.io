@@ -444,7 +444,7 @@ Algorithm-level summary:
 - sliding-window extremum via monotonic deque — O(n) time, O(k) space
 - top-K frequent via min-heap of size K — O(n log k) time, O(n) space
 
-## Q&A
+## FAQ
 
 **Q1. Why use `deque` instead of `list` for queues in Python?**
 

@@ -1306,7 +1306,7 @@ Cost optimization tips:
 - **Use sampling for ARMS.** In high-traffic applications, trace 10% of requests instead of 100%. You still catch anomalies, but at 1/10 the cost.
 - **Aggregate before storing.** For metrics you only need at 5-minute granularity, aggregate in your application and push the aggregate rather than pushing per-request data points.
 
-## Key Takeaways
+## Summary
 
 1. **Set up observability before you deploy your application, not after.** The cost of instrumenting retroactively — restructuring logs, adding trace propagation, rebuilding dashboards — is always higher than doing it from the start. Install Logtail, CloudMonitor agent, and ARMS agent as part of your instance provisioning script.
 

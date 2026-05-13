@@ -361,7 +361,7 @@ Stating the **invariant** before coding is the single best signal that you under
 | 209        | Minimum Size Subarray Sum                     | Sliding window      | Medium     |
 | 76         | Minimum Window Substring                      | Sliding window      | Hard       |
 
-## Further Reading
+## References
 
 - Robert Floyd, *Nondeterministic Algorithms*, J. ACM 14(4), 1967 — the original cycle-detection paper.
 - Cormen, Leiserson, Rivest, Stein, *Introduction to Algorithms*, Chapter 8 — the partitioning material that underpins quicksort and Dutch National Flag.

@@ -16,7 +16,7 @@ translationKey: "time-series-4"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - Why recurrent models hit a wall on long-range dependencies, and how attention removes it.
 - The Query / Key / Value mechanism, scaled dot-product attention, and the role of $1/\sqrt{d_k}$.
@@ -310,7 +310,7 @@ A note of caution: attention weights are **correlated with importance, not ident
 
 ---
 
-## 11. Common pitfalls
+## 11. Common Pitfalls
 
 - **Forgetting to scale by $\sqrt{d_k}$** — training stalls within a few steps.
 - **Wrong masking** — subtle data leakage that inflates training metrics and crashes at deployment.

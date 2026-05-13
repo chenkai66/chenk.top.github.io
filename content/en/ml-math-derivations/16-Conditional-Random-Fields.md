@@ -21,7 +21,7 @@ translationKey: "ml-math-derivations-16"
 ---
 ![ML Math Derivations (16): Conditional Random Fields — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 Named entity recognition, POS tagging, information extraction — every one of these tasks asks you to label each element of a sequence. HMMs ([Part 15](/en/ml-math-derivations/15-hidden-markov-models)) attack this problem **generatively** by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether *bank* is a noun or a verb depends on the preceding and following words, the suffix, capitalization, and dictionary lookups — all these features together.
 

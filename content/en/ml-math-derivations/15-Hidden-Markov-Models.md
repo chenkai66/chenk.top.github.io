@@ -24,7 +24,7 @@ These are the **three problems of HMMs**, and the surprise is that all three red
 
 ![ML Math Derivations (15): Hidden Markov Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 - The HMM joint distribution and its **two conditional-independence assumptions**
 - **Forward / Backward**: $P(\mathbf{O}\mid\lambda)$ and posterior smoothing $\gamma_t(i), \xi_t(i,j)$
@@ -292,7 +292,7 @@ For everything else — long sequences, large labelled corpora, complex emission
 
 ---
 
-## Q&A
+## FAQ
 
 ### Forward vs. Viterbi — why does swapping operators matter?
 

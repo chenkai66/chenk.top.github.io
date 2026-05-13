@@ -1110,7 +1110,7 @@ aliyun oss bucket-encryption --method put \
 走完这六步，你就有了：三个权限范围恰当的 user 组，每个用户都强制 MFA， ECS 通过服务角色访问 OSS 无需存储凭证，前端上传用 STS 且 token 15 分钟过期，数据 Bucket 落地加密，还有一套投递到版本控制 OSS Bucket 的完整审计 trail。
 
 通过 CLI 配置完这套东西大概只要 30 分钟。要是没配好，后续补救花的可就是事故响应的小时数，和数据清理的天数了。
-## 核心要点
+## 总结
 
 1. **别拿 root 账号干日常活儿。** 创建 RAM 用户，强制上 MFA，用用户组管权限。 root 账号得锁进保险柜里，最好别动。
 
@@ -1126,6 +1126,6 @@ aliyun oss bucket-encryption --method put \
 
 这篇文章起因的那个硬编码 API Key，让我赔上了一个周末和一笔不小的账单。要是生产库泄露或者 root 账号被攻陷，代价得翻好几个数量级。解决方案里那六步操作，半小时就能搞定。现在就做，别等“以后”。
 
-## 下期预告
+## 下一步
 
 在 [第 7 部分](/zh/aliyun-fullstack/07-observability) 里，我们要进入存储层了：对象存储 OSS、共享文件系统 NAS，以及支撑 ECS 的块存储选项。我们会沿用本文打下的安全基础——每个 Bucket 都开 SSE-KMS，所有访问走 RAM 角色，绝不用永久 AccessKey。

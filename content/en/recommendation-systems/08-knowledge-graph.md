@@ -932,7 +932,7 @@ if __name__ == "__main__":
 
 ---
 
-## Frequently Asked Questions
+## FAQ
 
 ### How do knowledge graphs help with the cold-start problem?
 

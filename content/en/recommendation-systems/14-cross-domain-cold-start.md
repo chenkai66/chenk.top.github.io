@@ -352,7 +352,7 @@ Keep a popularity baseline running in parallel as a circuit breaker — if any o
 
 ---
 
-## Q&A
+## FAQ
 
 ### My platform has no related domain to transfer from. Where do I start?
 

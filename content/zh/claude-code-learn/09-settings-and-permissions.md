@@ -751,6 +751,6 @@ settings.json      settings.json        settings.local.json
 - 若发生不期望行为 → 加入 `deny`；
 - 持续微调，直至符合预期。
 
-## 结语
+## 总结
 
 `settings.json` 就是 Claude 在项目里能做什么的宪法。deny 规则应简短严苛，allow 规则须具体明确，hooks 作为兜底防护层。一旦你理解了层级和优先级的概念，配置一个新 repo 只需九十秒。在此之前，你可能会觉得规则很任意；其实不然。

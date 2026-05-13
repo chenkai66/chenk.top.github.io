@@ -20,7 +20,7 @@ When your objective contains a non-smooth piece (sparse regularisation, total va
 
 This guide builds the minimum convex-analysis toolkit, derives the Moreau envelope and the core properties of the prox map, lists the closed-form proxes you actually use, and plugs them into ISTA, FISTA, ADMM, SVM, and sparse optimisation — with an emphasis on why each piece works, when one method beats another, and the implementation traps that hurt the most.
 
-## What you will learn
+## What You Will Learn
 
 - Minimum convex-analysis toolkit: convex sets, convex functions, subgradients
 - The proximal operator: definition, geometric intuition, four core properties
@@ -539,7 +539,7 @@ The minimum operational checklist:
 
 Keep these tools at hand. Next time $\|\cdot\|_1$, $\iota_C$, total variation, or a nuclear norm shows up in your objective, none of it will feel scary — it is all just one prox away.
 
-## Further reading
+## References
 
 - N. Parikh, S. Boyd. *Proximal Algorithms*. Foundations and Trends in Optimization, 2014. (The canonical survey.)
 - A. Beck, M. Teboulle. *A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems*. SIAM J. Imaging Sciences, 2009. (FISTA original paper.)

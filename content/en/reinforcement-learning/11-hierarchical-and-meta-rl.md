@@ -24,7 +24,7 @@ A second weakness of standard RL is that every new task is learned from scratch.
 
 This post unifies the two ideas: hierarchy buys temporal abstraction, meta-learning buys task abstraction. Both reduce the effective dimensionality of the learning problem, and the modern frontier (FuN, HIRO, MAML, RL$^2$) combines them aggressively.
 
-## What you will learn
+## What You Will Learn
 
 - **Options framework** --- semi-Markov decision processes and intra-option Q-learning
 - **MAXQ** --- value-function decomposition along a task hierarchy
@@ -329,7 +329,7 @@ RL$^2$ has two attractive properties: (i) zero gradient computation at test time
 
 ---
 
-## 5. Frequently asked questions
+## 5. FAQ
 
 **Why does the Options framework actually accelerate learning?**
 Three compounding effects: (i) the effective horizon shrinks from $T$ to roughly $T/\bar k$; (ii) the high-level branching factor $|\mathcal{O}|$ is usually much smaller than $|\mathcal{A}|$; (iii) intra-option learning means every primitive transition contributes to the value of *every* compatible option, not just the one in control.

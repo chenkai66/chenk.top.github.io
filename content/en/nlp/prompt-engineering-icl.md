@@ -27,7 +27,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 <!-- wanx-hero -->
 ![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - **Prompt anatomy**: the five composable blocks (system, instruction, examples, query, format spec) and what each one buys you.
 - **Three paradigms**: zero-shot, few-shot, and chain-of-thought — when each is the right choice, and what it costs in tokens.

@@ -592,7 +592,7 @@ Yes (continual learning, Part 9). Key challenges: catastrophic forgetting and da
 
 ---
 
-## Closing Thoughts
+## Summary
 
 Transfer learning is not a research technique waiting for production. It is already the default in most applied ML. The question is not "should we use transfer learning?" but "which pretrained model, how much fine-tuning, and how do we keep it running?"
 

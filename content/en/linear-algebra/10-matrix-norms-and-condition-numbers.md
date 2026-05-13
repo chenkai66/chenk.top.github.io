@@ -402,20 +402,20 @@ compare_methods()
 
 ## Exercises
 
-### Warm-up
+### Basics
 
 1. Compute $\|\vec{x}\|_1$, $\|\vec{x}\|_2$, $\|\vec{x}\|_\infty$ for $\vec{x} = (3, -4, 0, 1)$.
 2. Compute the Frobenius norm and spectral norm of $A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}$.
 3. For a diagonal matrix $D = \text{diag}(d_1, \ldots, d_n)$, prove $\kappa_2(D) = \max|d_i| / \min|d_i|$.
 
-### Going deeper
+### Advanced
 
 4. Prove $\rho(A) \leq \|A\|$ for any matrix norm.
 5. Show that if $\|A\| < 1$ (induced norm), then $I - A$ is invertible.
 6. Prove that for an orthogonal matrix $Q$, $\kappa_2(Q) = 1$.
 7. Using `np.linalg.cond`, estimate $\kappa(H_n)$ for $n = 2, \ldots, 15$ and fit a line on a log scale. What is the empirical growth rate?
 
-### Coding challenges
+### Programming
 
 8. Implement $\|A\|_1$, $\|A\|_2$, $\|A\|_\infty$ from scratch (no `np.linalg.norm`).
 9. Reproduce the stability plot in this chapter: error vs condition number for normal equations, QR, and SVD on a least-squares problem.
@@ -434,7 +434,7 @@ compare_methods()
 
 ---
 
-## Chapter Summary
+## Summary
 
 | Concept | Key formula | Intuition |
 |---|---|---|

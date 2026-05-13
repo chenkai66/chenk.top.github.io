@@ -17,7 +17,7 @@ Most LLM tutorials end where the interesting work begins. They show you how to c
 
 This article is about everything that comes after the demo. It is opinionated on purpose: production LLM systems are mostly plain distributed systems with one non-deterministic component bolted on, and most of the engineering effort goes into containing that non-determinism. We will work through seven dimensions — application architecture, workflow patterns, the RAG-vs-fine-tune decision, deployment topology, cost, observability, and enterprise integration — keeping each one short, concrete, and grounded in the levers that actually move the needle.
 
-## What you will learn
+## What You Will Learn
 
 - How to layer an LLM application so that only one layer is probabilistic
 - Four workflow patterns (chain, branch, loop, parallel) and when each is the wrong choice
@@ -172,7 +172,7 @@ This article does not include 600 lines of FastAPI scaffolding for a "complete R
 
 If you want concrete reference implementations, the official LangChain, LlamaIndex, and Anthropic cookbooks are kept current in a way that no static article can be. Skim them for code; come back here for the trade-offs.
 
-## Closing
+## Summary
 
 A production LLM application is a normal distributed system that calls a non-deterministic function. Most of the work is on the deterministic side: getting the right context to the model, routing the right request to the right model, and observing what comes back well enough to know when something has changed.
 

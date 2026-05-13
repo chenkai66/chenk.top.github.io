@@ -21,7 +21,7 @@ translationKey: "ml-math-derivations-9"
 
 ![ML Math Derivations (9): Naive Bayes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 - Bayes' theorem as the foundation of probabilistic classification, and why the Bayes-optimal rule is the *target* every classifier secretly imitates.
 - The conditional-independence assumption — what it costs us geometrically, and what it buys us statistically.
@@ -448,7 +448,7 @@ So $\hat\sigma_1 = \hat\sigma_2 = \sqrt{2/3} \approx 0.816$. Gaussian NB has *no
 
 ---
 
-## Q&A
+## FAQ
 
 ### Why "naive"?
 

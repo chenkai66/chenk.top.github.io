@@ -2057,7 +2057,7 @@ resource "alicloud_oss_bucket" "media" {
 }
 ```
 
-## 常见坑点
+## 常见陷阱
 
 ![漂移检测：当线上实际状态与代码不一致时](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_drift_detection.png)
 
@@ -2088,7 +2088,7 @@ terraform import module.compute.alicloud_instance.app i-bp1xxxxxxxxxxxxx
 
 导入后，跑 `terraform plan` 看看配置是否匹配实际资源。通常得迭代几次，直到 plan 显示无变更。
 
-## 核心要点
+## 总结
 
 写到这儿，整个系列的核心其实就几条原则：
 

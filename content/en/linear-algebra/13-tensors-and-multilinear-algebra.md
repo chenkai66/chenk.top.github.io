@@ -625,7 +625,7 @@ def simple_cp_als(X, rank, n_iter=100):
 
 ---
 
-## Chapter Summary
+## Summary
 
 **Concepts.** Tensors generalize scalars, vectors, and matrices to arbitrary order. Fibers, slices, and unfolding are the basic tools for "looking inside" a tensor. The core operations — addition, scalar multiplication, contraction, outer product, n-mode product — are all natural lifts of matrix operations.
 

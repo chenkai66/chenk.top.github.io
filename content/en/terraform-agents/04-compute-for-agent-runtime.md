@@ -454,7 +454,7 @@ The general principle for any "Terraform doesn't have it yet" situation: **Terra
 
 > **Real-world tip:** `alicloud_ros_stack` is genuinely underrated. When the alicloud Terraform provider lags, ROS often has the API a quarter ahead. Embedding ROS templates inside Terraform gives you the best of both.
 
-## What's next
+## What's Next
 
 Article 5 fills in the storage layer — vector store, relational, object store, backups — that everything we just provisioned needs to talk to. ECS instances, ACK pods, FC functions, and ECI containers are all useless until they have somewhere to put memory.
 

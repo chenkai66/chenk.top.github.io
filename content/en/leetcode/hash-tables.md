@@ -364,7 +364,7 @@ def is_anagram(s: str, t: str) -> bool:
 
 Frequency maps power: anagram checks, majority element, first unique character, sort by frequency, top-K, and any "how often does X happen?" problem.
 
-## Common pitfalls
+## Common Pitfalls
 
 A short but high-yield list — most hash table bugs in interviews fall into one of these:
 

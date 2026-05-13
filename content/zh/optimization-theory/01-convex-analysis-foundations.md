@@ -22,8 +22,7 @@ translationKey: "optim-01"
 - **共轭函数（conjugate）** $f^*$ 是广义化的勒让德变换（Legendre transform）：它将逐点不等式转化为线性不等式，是连接原始问题（primal problem）与对偶问题（dual problem）的关键桥梁。
 - **次微分（subdifferential）** $\partial f(x)$ 是非光滑凸函数在点 $x$ 处“梯度”的恰当推广；只要 $x$ 位于 $\mathrm{dom}(f)$ 的相对内部（relative interior），$\partial f(x)$ 就非空。
 
-## 你将学到
-
+## 你将学到什么
 1. 凸集、凸包（convex hull）、投影定理（含严格证明）；
 2. 凸函数及其四种等价刻画方式（定义、上镜图、一阶条件、二阶条件）；
 3. 保持凸性的运算：逐点上确界（pointwise sup）、复合（composition）、透视变换（perspective）；
@@ -389,7 +388,7 @@ $$
 - 第 06 篇文章利用次梯度与共轭函数，系统推导 ISTA、FISTA 与 ADMM 等经典算法。
 - 第 08 篇文章将最优性条件 $0 \in \partial f$ 推广至带约束的问题，导出完整的 KKT 系统。
 
-## 延伸阅读
+## 参考文献
 
 - Boyd & Vandenberghe，《Convex Optimization》，第 2–3 章——关于凸集与凸函数的标准权威参考。
 - Rockafellar，《Convex Analysis》——更深入的专著；所有关于次梯度与共轭函数的理论根基尽在于此。

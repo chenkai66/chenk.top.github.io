@@ -15,7 +15,7 @@ translationKey: "gcsan"
 
 In session-based recommendation you only see a short anonymous click sequence — no user profile, no long history, no demographics. Every signal you have lives inside that single window. **GC-SAN** (IJCAI 2019) takes the strongest two ideas of the time — SR-GNN's session graph and the Transformer's self-attention — and stacks them: a *graph* view captures local transition patterns and loops, a *sequence* view captures long-range intent, and a tiny weighted sum decides how much of each to trust. The result is a clean "best of both worlds" baseline that is genuinely hard to beat at its parameter budget.
 
-## What you will learn
+## What You Will Learn
 
 - Why session recommendation is structurally harder than classical CF
 - How a click sequence becomes a directed weighted graph

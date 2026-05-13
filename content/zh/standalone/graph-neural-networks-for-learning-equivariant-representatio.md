@@ -15,7 +15,7 @@ translationKey: "gnn-equivariant-representations"
 
 把一个 MLP 的隐藏单元换个顺序，函数本身不变，但参数向量却完全不同——这是「在网络空间里做学习」绕不开的第一道坎。如果不尊重这种置换对称性，下游模型就需要大量容量来记忆同一个函数的不同写法，从而影响泛化和迁移。 Kofinas 等人在 ICML 2024 的论文 *Graph Neural Networks for Learning Equivariant Representations of Neural Networks* 提出了一种简洁的解决方案：将网络视为有向图（神经元为节点，权重为边），并使用对节点置换等变的 GNN 来读取。下面依次介绍为什么需要等变、神经图怎么构造、等变的意义、模型搭建方法以及四类下游任务及其细节与坑。
 
-## 你会学到什么
+## 你将学到什么
 
 - 为什么「逐层隐藏单元置换」才是这件事真正的对称群
 - 怎样把 MLP / CNN / Transformer 都映射到同一种「神经图」上

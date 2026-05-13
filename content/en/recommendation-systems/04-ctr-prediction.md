@@ -987,7 +987,7 @@ def evaluate(model, loader):
 
 ---
 
-## Frequently Asked Questions
+## FAQ
 
 ### Why is CTR prediction binary classification, not regression?
 

@@ -246,7 +246,7 @@ A practical checklist for shipping an LLM-powered product safely:
 
 This isn't a complete safety strategy. It's what a small team can implement and what most products in 2026 still don't have.
 
-## Takeaway and what's next
+## What's Next
 
 Alignment is three goals (helpful, harmless, honest) plus a fourth (controllable) that trade off against each other; pick where you want to sit. RLHF teaches sycophancy, verbosity, and confidence inflation that you didn't ask for; correct via SFT on counter-examples and reward-model auditing. Refusal is mediated by a single feature direction in the residual stream — it is shallow and brittle; layer defenses on top. Refusal calibration needs a labeled test set with both refusal-correct and refusal-wrong cases. Red-team continuously, including with automated PAIR/TAP/GCG-style attacks. Hallucination breaks into factual, faithfulness, and logical — each has different metrics; SelfCheckGPT and FActScore are practical, RAGAS is the right RAG-specific tool. Sleeper Agents shows post-hoc safety has limits — your foundation-model provider's pipeline hygiene matters more than your fine-tuning pass. CAI is a powerful pattern even if you don't run the full Anthropic recipe. Ship with a small but real set of safety mechanisms in place, not just intentions.
 

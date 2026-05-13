@@ -25,7 +25,7 @@ Three positive results:
 
 Each is rigorous in its setting. The article also discusses what is **not** known — there is no general theorem saying "SGD finds the global optimum of a deep network."
 
-## What you will learn
+## What You Will Learn
 
 1. Stationary points and the saddle-point classification ($\nabla^2 f$ eigenvalue signs).
 2. The strict saddle property and the Ge--Huang--Jin--Yuan (2015) perturbed-GD escape proof.
@@ -242,7 +242,7 @@ The successes of saddle escape, PL, and NTK all rely on **specific structure** o
 
 This concludes the four-part series on continuous optimization theory. Article 12 closes the series with **discrete and global optimization** — branch-and-bound, integer programming, heuristics — for problems where smoothness is unavailable.
 
-## Further reading
+## References
 
 - Jin, Ge, Netrapalli, Kakade, Jordan, *How to Escape Saddle Points Efficiently*, ICML 2017 — the perturbed GD paper.
 - Liu, Zhu & Belkin, *Loss landscapes and optimization in over-parameterized non-linear systems and neural networks*, ACHA 59, 2022 — the modern PL+NN result.

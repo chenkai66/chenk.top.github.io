@@ -996,7 +996,7 @@ A typical AI application flow:
 
 Every piece of this stack is covered in this series. DashScope is the brain; the other services are the body.
 
-## Key Takeaways
+## Summary
 
 1. **Bailian is the console, DashScope is the API.** You configure on Bailian, you code against DashScope. Do not confuse them.
 

@@ -24,7 +24,7 @@ This final installment concludes the series by bringing together all the concept
 
 ![Reinforcement Learning (12): RLHF and LLM Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - The **three-stage RLHF pipeline**: supervised fine-tuning, reward-model training, and PPO with a KL anchor — and why each stage exists
 - The **Bradley-Terry model**: why preferences (not absolute scores) are the right currency and what it implies about the reward you can recover
@@ -346,7 +346,7 @@ Two things this code clarifies that prose tends to obscure: (1) the "reward" PPO
 
 ---
 
-## 11. Frequently Asked Questions
+## 11. FAQ
 
 **Q: Why does RLHF beat SFT given enough demonstrations?**
 SFT is bounded by demonstration writers — humans rarely write the *optimal* answer, just a *good* one. RLHF lets the model explore beyond the demonstration distribution and rank its own samples. Comparisons are also cheaper than demonstrations, so you collect more signal per dollar.

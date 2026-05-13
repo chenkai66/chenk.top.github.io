@@ -19,7 +19,7 @@ The reparameterization trick has a clean answer — rewrite $z\sim p_\theta(z)$ 
 
 This post walks through the derivations, the intuition, the implementation details, the bias-variance trade-off behind the temperature, and the most common training pitfalls.
 
-## What you will learn
+## What You Will Learn
 
 - Why gradients cannot flow through $z\sim\mathcal N(\mu,\sigma^2)$, but flow freely through $z=\mu+\sigma\epsilon$.
 - Where the Gumbel distribution comes from and **why** "logits + Gumbel noise + argmax = softmax sampling" is exact.
@@ -415,7 +415,7 @@ def cat_vae_loss(logits_x, x, q_logits):
 - **Top-$k$ Gumbel** and **Plackett–Luce** — extend Gumbel-Max to **without-replacement** sampling of $k$ classes; useful for sparse attention and routing.
 - **Permutation-equivariant relaxations** (Mena et al., ICLR 2018) — Sinkhorn operator + Gumbel noise to differentiate through permutation matrices.
 
-## Conclusion
+## Summary
 
 - In continuous settings, reparameterization rewrites a random variable $z$ as a deterministic, differentiable transform $g_\theta(\epsilon)$ of a fixed noise — gradients flow through the deterministic path back to the parameters. This is what makes VAEs trainable with SGD.
 - In discrete settings, Gumbel-Max gives the exact equivalence "logits + Gumbel noise + argmax = softmax sample"; Gumbel-Softmax then softens the argmax into a temperature-scaled softmax, making the entire sampling step differentiable.

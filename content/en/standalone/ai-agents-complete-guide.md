@@ -16,7 +16,7 @@ A chatbot answers questions. An *agent* gets things done — it browses, runs co
 
 This guide is the expanded version of that idea. It covers the four core capabilities (planning, memory, tool use, reflection), major framework families, multi-agent collaboration, evaluation, and the production concerns that determine whether an agent succeeds or fails.
 
-## What you will learn
+## What You Will Learn
 
 - Why an agent is more than "GPT-4 in a `while` loop"
 - The four capabilities every serious agent implements
@@ -694,7 +694,7 @@ Hosted (OpenAI Assistants, Bedrock Agents, etc.) for prototypes and low-traffic 
 
 ---
 
-## Conclusion
+## Summary
 
 The most important thing to internalise about agents is that they are infrastructure, not magic. The LLM is a single component. What makes an agent useful is the loop around it: a planner that decomposes work, a memory that survives steps, a tool layer that grounds the model in reality, and a critic that catches mistakes before they ship.
 

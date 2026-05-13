@@ -317,7 +317,7 @@ If a single adapter is hot enough that 95 %+ of your traffic uses it, the right 
 
 The decision tree: if adapters are roughly equal in QPS, keep them separate and serve via S-LoRA-style batching; if one dominates, merge it; if you have hundreds of low-QPS adapters, go fully hot-swap with a CPU-side cache.
 
-## Q&A
+## FAQ
 
 ### How much do you give up vs full fine-tuning?
 

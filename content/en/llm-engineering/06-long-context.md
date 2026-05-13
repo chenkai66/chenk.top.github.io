@@ -259,7 +259,7 @@ The hybrid approach (RAG to find candidates, long context to synthesize) is the 
 - **Watch the prefill latency curve.** TTFT scales roughly linearly with prompt length on a single GPU, but more steeply with TP (all-reduces dominate) and on cross-node setups. A 200K-token prompt on TP=2 H100 takes 6-8 seconds to prefill; users notice.
 - **Benchmark on your domain.** A model that scores 90 on RULER might score 70 on your medical-records task because medical text has different distribution from RULER's synthetic needles. Domain-specific eval is the only honest signal.
 
-## Takeaway and what's next
+## What's Next
 
 RoPE made long context tractable; YaRN extended it past training length; sinks made it stable for streaming; but the working context is always less than the claimed context. Test on your workload. For most production tasks, RAG wins on cost. Long context wins for holistic reading and short-running interactive workflows.
 

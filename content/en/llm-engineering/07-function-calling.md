@@ -325,7 +325,7 @@ A practical observation: MCP servers can be embedded in existing apps (you write
 
 **Ambiguous tool selection.** Two tools with overlapping descriptions ("search documents" vs "find documents") cause the model to oscillate. Fix: write distinct, mutually exclusive descriptions, or merge into one tool with a parameter that disambiguates.
 
-## Takeaway and what's next
+## What's Next
 
 Function calling is trained behavior plus chat template plus optional grammar enforcement. Use the strongest guarantee available (schema-constrained decoding > JSON mode > prompted JSON). Parallel tool calls when the model supports them; serial when there's data dependence. Surface tool errors *as* tool results so the model can recover. Always cap loops; always timeout tools; always truncate large outputs. The intellectual lineage runs ReAct → Toolformer → Voyager → modern production agents; the protocol lineage is converging on MCP.
 

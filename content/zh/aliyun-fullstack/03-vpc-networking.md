@@ -864,7 +864,7 @@ ssh bastion "ssh web-server-a 'nc -zv 10.0.20.5 3306'"
 
 最后那个测试最关键。要是 Web 层能直连 Data 层，说明你的安全组链式规则失效了。
 
-## 关键要点
+## 总结
 
 **CIDR 规划一旦定稿就无法更改。** VPC 或 VSwitch 创建后没法调整大小。现在就把 IP 空间预留充足。一个 /16 的 VPC 配上 /24 的 VSwitch，足够你折腾几十年。unused IP 不要钱，但不够用会很麻烦。
 

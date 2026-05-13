@@ -243,7 +243,7 @@ Part 2 — **Memory and the Cache Hierarchy** — goes deeper:
 
 **Thinking question for the gap:** if the CPU already has L1/L2/L3 cache, why do we need DRAM at all? (Hint: capacity per dollar, and what SRAM costs to build.)
 
-## Further Reading
+## References
 
 - Hennessy & Patterson, *Computer Architecture: A Quantitative Approach* — the canonical text.
 - Bryant & O'Hallaron, *Computer Systems: A Programmer's Perspective* (CSAPP) — the canonical undergrad text.

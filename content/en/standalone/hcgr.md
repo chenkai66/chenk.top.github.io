@@ -18,7 +18,7 @@ A user opens a sneaker app, taps "running shoes," drills into a brand, then a pr
 
 [**HCGR**](https://arxiv.org/abs/2107.05366) (Guo et al., 2021) takes this seriously. It embeds session-graph nodes on the **Lorentz hyperboloid**, runs an attention-weighted GNN aggregator in the tangent space, and adds a contrastive auxiliary loss that pulls together two augmented views of the same session while pushing other sessions away. The result is a session recommender that beats strong Euclidean GNN baselines like SR-GNN and GCE-GNN, with the largest gains exactly where hyperbolic geometry should help: long-tail items and deep-hierarchy datasets like Last.FM.
 
-## What you will learn
+## What You Will Learn
 
 - Why session intent has the structure that hyperbolic geometry was built for
 - The Lorentz model: distance, tangent space, exponential and logarithmic maps in a form you can implement

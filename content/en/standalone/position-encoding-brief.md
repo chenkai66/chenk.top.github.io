@@ -18,7 +18,7 @@ Self-attention has a strange property that surprises most people the first time 
 
 That single design decision — *how* to inject it — has spawned a remarkable amount of research. Sinusoidal, learned, relative, T5-style buckets, RoPE, ALiBi, NoPE, and more. This post is a practitioner's brief: enough math to know why each scheme works, enough comparison to choose one, and a clear focus on the property that matters most in the LLM era — **length extrapolation**, the ability to handle sequences longer than anything seen in training.
 
-## What you will learn
+## What You Will Learn
 
 - Why attention is permutation-equivariant and what that means for design
 - The two big families: **absolute** vs. **relative** position encoding
@@ -249,7 +249,7 @@ A short decision tree for picking a scheme:
 
 ---
 
-## Common Misconceptions
+## Common Pitfalls
 
 A few things that confused me, and seem to confuse a lot of others:
 

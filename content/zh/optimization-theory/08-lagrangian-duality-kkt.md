@@ -25,8 +25,7 @@ translationKey: "optim-08"
 
 每一项结论均给出严格证明或明确引用。最后以 SVM 为例收尾：其对偶问题将问题维度从 $d$（特征维数）降至 $n$（训练样本数）——这正是核方法（kernel method）最初展现的“魔法”。
 
-## 你将学到
-
+## 你将学到什么
 1. 如何构造拉格朗日函数与对偶函数；  
 2. 弱对偶性的证明（仅需一行推导）；  
 3. Slater 条件及其在凸问题中导出强对偶性的简洁证明；  
@@ -273,7 +272,7 @@ $$
 
 第 09 篇文章将从带约束优化问题出发，介绍**内点法（interior-point methods）**：通过引入障碍函数（barrier）将不等式约束光滑化，并应用牛顿法求解。我们将看到，中心路径（central path）的迭代复杂度为 $O(\sqrt{n} \log(1/\epsilon))$，这使得内点法成为中等规模凸规划的黄金标准。
 
-## 延伸阅读
+## 参考文献
 
 - Boyd & Vandenberghe, *Convex Optimization*, 第 5 章 —— 经典教材，所有例子均有详尽推导；
 - Bertsekas, *Convex Optimization Theory*, 第 5 章 —— 从更抽象的对偶理论视角给出严格证明；

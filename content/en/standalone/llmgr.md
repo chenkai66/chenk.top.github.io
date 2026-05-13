@@ -15,7 +15,7 @@ translationKey: "llmgr"
 
 Session-based recommendation relies on the click graph. New items lack edges, and long-tail items have a few noisy ones. Each item has a title and description, but the model never uses them. **LLMGR** addresses this by treating the LLM as a "semantic engine" that converts text into representations a graph encoder can use, then lets a GNN handle ranking. On Amazon Music/Beauty/Pantry, the results show HR@20 up ~8.68%, NDCG@20 up ~10.71%, and MRR@20 up ~11.75% over the strongest GNN baseline, with the biggest gains for cold-start items.
 
-## What you will learn
+## What You Will Learn
 
 - Why pure GNN session recommenders break on cold-start and long-tail items
 - The LLMGR architecture: LLM semantic stream + GNN structural stream + hybrid fusion
@@ -235,7 +235,7 @@ LLaMA2-7B + LoRA on 2x A100 is not free. If cost matters:
 - Use LLMGR only on cold and long-tail slices; let traditional GNN handle head items
 - Re-embed on a slower schedule
 
-## 9. Q&A
+## 9. FAQ
 
 ### Why not let the LLM generate the next item?
 

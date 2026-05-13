@@ -1171,7 +1171,7 @@ Total monthly cost for this setup (approximate):
 
 For a production database with HA, read scaling, automated backup, and cross-region DR, that is remarkably inexpensive.
 
-## Key Takeaways
+## Summary
 
 **Use managed databases.** Unless you have a very specific reason to self-manage (custom plugins, exotic replication topologies, regulatory requirements that mandate OS-level control), RDS saves you from an enormous operational burden.
 

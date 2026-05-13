@@ -23,7 +23,7 @@ If you have used a sentiment-analysis API, a search engine that understands inte
 <!-- wanx-hero -->
 ![NLP (5): BERT and Pretrained Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - How pretraining evolved: Word2Vec to ELMo to GPT-1 to BERT
 - BERT's architecture: a bidirectional Transformer encoder with WordPiece input
@@ -506,7 +506,7 @@ It is just as important to know BERT's limits.
 
 ---
 
-## Common questions
+## FAQ
 
 **Why use `[CLS]` for classification?** It is placed at position 0 of every input, so attention naturally lets it aggregate information from the whole sequence by the final layer. The pretraining NSP objective also conditions `[CLS]` to act as a sequence summary.
 
@@ -520,7 +520,7 @@ It is just as important to know BERT's limits.
 
 ---
 
-## Key takeaways
+## Summary
 
 - BERT introduced **bidirectional pretraining** via Masked Language Modeling, letting every token see its full context in a single forward pass.
 - The 80/10/10 mask split is engineered to avoid train-test mismatch and to force the model to use context even when the input looks unmasked.

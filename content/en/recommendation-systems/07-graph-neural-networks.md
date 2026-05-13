@@ -968,7 +968,7 @@ print("Training complete!")
 
 ---
 
-## Frequently Asked Questions
+## FAQ
 
 ### Why do GNNs outperform matrix factorisation for recommendation?
 

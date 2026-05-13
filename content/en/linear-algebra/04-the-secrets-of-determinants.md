@@ -356,7 +356,7 @@ Try a few more matrices on your own — in particular, try one with $\det = 0$ a
 
 ---
 
-## Chapter Summary
+## Summary
 
 ### The mental model
 
@@ -421,6 +421,6 @@ A related habit: when comparing two determinants for sign or relative size, comp
 
 ---
 
-## What Comes Next
+## What's Next
 
 **Chapter 5: Linear Systems and Column Space.** We bring together everything so far — matrices, transformations, and determinants — to understand when $A\vec{x} = \vec{b}$ has solutions, how many, and what their structure looks like. The key concepts are the **column space** ("what can $A$ reach?"), the **null space** ("what gets crushed?"), and the **rank** ("how many effective dimensions remain?"). Determinants will play a starring role in the square case; for non-square or rank-deficient $A$ we will need a more refined toolkit.

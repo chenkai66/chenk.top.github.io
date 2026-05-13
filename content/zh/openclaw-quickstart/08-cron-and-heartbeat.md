@@ -312,6 +312,6 @@ openclaw cron add \
 
 **建议：** Heartbeat 的提示词务必精简——系统提示词和 `HEARTBEAT.md` 每次巡逻都会加载，多一行就等于每天多付 17 次费用。把重活交给 Cron（如复杂技能、长篇总结），因为它们只运行一次。如果你的 Heartbeat 开销超过了 Cron，说明任务分工出了问题。
 
-## 结语
+## 总结
 
 OpenClaw 的核心价值在于：Agent 会主动来找你。Heartbeat 和 Cron 就是实现这一点的两扇门。用 Cron 处理那些无论发生什么都必须按时执行的任务；用 Heartbeat 处理那些只在异常发生时才需要你注意的事情。别把它们搞混了。

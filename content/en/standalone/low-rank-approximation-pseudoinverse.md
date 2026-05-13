@@ -14,7 +14,7 @@ translationKey: "low-rank-approximation-pseudoinverse"
 ---
 Real data matrices are almost never both square and full rank: correlated features, too few samples, and noise-induced ill-conditioning all make "matrix inverse" either undefined or numerically useless. The **pseudoinverse** (Moore-Penrose inverse) preserves the *spirit* of an inverse while dropping the impossible-to-meet requirements: it redefines the "solution" of a linear system as the **least-squares solution**, breaking ties by picking the one with **minimum norm**. This post derives the pseudoinverse from that least-squares viewpoint, gives the four Penrose conditions, builds it from the SVD, and connects this single object to **the Eckart-Young low-rank approximation theorem**, **PCA**, **recommender-system matrix factorization**, and **LoRA fine-tuning**.
 
-## What you will learn
+## What You Will Learn
 
 - **The optimization view**: why "pseudoinverse = least squares" is the right unifying definition
 - **The SVD recipe**: how$A = U\Sigma V^{\!\top}$ builds$A^{+}$
@@ -256,7 +256,7 @@ All four are children of **Eckart-Young**: keep signal in the dominant direction
 - For matrix factorization (recommenders), pick the rank$r$ via held-out RMSE and add an$\ell_2$ regularizer.
 - For LoRA, start at$r = 8$ with$\alpha = 2r$. Lower only if you've measured task complexity.
 
-## Conclusion
+## Summary
 
 The pseudoinverse extends "matrix inverse" to arbitrary matrices through one unifying optimization: **least-squares solution + minimum-norm tie-breaker**. The **SVD simultaneously gives the stable algorithm for$A^{+}$ and the optimal low-rank approximation (Eckart-Young).** Real-world ill-conditioning almost always traces back to small singular values, and there are exactly two cures: truncate (hard threshold) or Tikhonov (soft filter). The same low-rank thread runs from least squares through ridge regression, PCA, recommender-system matrix factorization, all the way to modern LoRA fine-tuning. They look like different methods; underneath, they are all variations on the same Eckart-Young theme: **keep the dominant directions, let the noisy ones go**.
 

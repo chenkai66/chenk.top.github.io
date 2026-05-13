@@ -298,7 +298,7 @@ Before reporting numbers:
 
 These four lines added to a paper would clear up most of the cross-lingual literature.
 
-## Q&A
+## FAQ
 
 ### mBERT has no parallel corpus — why does cross-lingual work?
 

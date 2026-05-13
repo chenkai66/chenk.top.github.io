@@ -23,7 +23,7 @@ If BERT (Part 5) is the king of *understanding*, GPT is the king of *generation*
 <!-- wanx-hero -->
 ![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - How a decoder-only Transformer turns "predict the next token" into a general-purpose AI
 - The role of **causal (masked) self-attention** — the one design choice that separates GPT from BERT
@@ -511,7 +511,7 @@ A useful mental model: **BERT is a search engine**, **GPT is a writer**. Use BER
 
 ---
 
-## Key takeaways
+## Summary
 
 - A GPT model is just a **decoder-only Transformer with a causal mask** trained to predict the next token. The simplicity is the point.
 - **Scale is the multiplier**: parameters, data, and compute together produce a clean power-law improvement in loss, with sudden capability jumps on top.
@@ -521,7 +521,7 @@ A useful mental model: **BERT is a search engine**, **GPT is a writer**. Use BER
 
 ---
 
-## Series navigation
+## Series Navigation
 
 | Part | Topic | Link |
 |------|-------|------|

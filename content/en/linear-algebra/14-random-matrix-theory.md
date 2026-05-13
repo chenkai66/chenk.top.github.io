@@ -336,7 +336,7 @@ Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Expa
 2. Why is the $1/\sqrt{n}$ normalisation necessary? What happens to $\lambda_{\max}$ without it?
 3. For $\gamma = 0.5$, compute $\lambda_\pm$ and sketch the MP density. Where is its maximum?
 
-### Computation and proof
+### Computation
 
 4. Show $\int_{-2}^{2}\frac{1}{2\pi}\sqrt{4 - x^2}\,dx = 1$ using $x = 2\sin\theta$.
 5. Compute the second and fourth semicircle moments and check they equal the Catalan numbers $C_1$ and $C_2$.
@@ -364,7 +364,7 @@ Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Expa
 
 ---
 
-## 9. Chapter Summary
+## 9. Summary
 
 **Models:** Wigner matrices model symmetric noise; Wishart matrices model sample covariance. The Gaussian variants — GOE, GUE, GSE — correspond to different symmetry classes.
 

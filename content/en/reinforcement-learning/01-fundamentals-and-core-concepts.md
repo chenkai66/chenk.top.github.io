@@ -25,7 +25,7 @@ This article builds RL from the ground up. We will use the bicycle as our runnin
 
 ![Reinforcement Learning (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - The **Markov Decision Process** (MDP) — the mathematical skeleton of every RL problem
 - **Bellman equations** and why they make value functions tractable

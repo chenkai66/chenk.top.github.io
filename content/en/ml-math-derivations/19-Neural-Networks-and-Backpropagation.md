@@ -20,7 +20,7 @@ translationKey: "ml-math-derivations-19"
 ---
 ![ML Math Derivations (19): Neural Networks and Backpropagation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 A single perceptron cannot solve XOR. Stack enough of them with nonlinear activations and you obtain a *universal function approximator*. The remaining question is how such a network learns from data. The answer — **backpropagation**, an efficient application of the chain rule that recycles intermediate results during a single backward sweep — is the engine behind every deep learning library written in the last forty years. Understanding it mathematically reveals two further truths: why deep networks suffer from vanishing or exploding gradients, and why the choice of weight initialization is much less arbitrary than it first appears.
 

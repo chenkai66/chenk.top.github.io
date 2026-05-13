@@ -26,7 +26,7 @@ The idea is one paragraph. The engineering is the rest of this article. A real R
 <!-- wanx-hero -->
 ![NLP (10): RAG and Knowledge Enhancement Systems — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - The probabilistic decomposition $P(y\mid q)=\sum_d P(d\mid q)P(y\mid q,d)$ and what each term costs you
 - Why ANN indexes (HNSW, IVF-PQ, ScaNN) trade recall for latency, and when to pay the price

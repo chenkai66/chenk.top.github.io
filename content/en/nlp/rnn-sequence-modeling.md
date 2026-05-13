@@ -23,7 +23,7 @@ This article builds up the family of recurrent architectures from scratch. We st
 <!-- wanx-hero -->
 ![NLP (3): RNN and Sequence Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - How RNNs maintain memory through recurrent connections and parameter sharing
 - A first-principles derivation of vanishing and exploding gradients
@@ -489,7 +489,7 @@ The context vector becomes a *time-varying* weighted sum of encoder states. This
 
 ---
 
-## Common questions
+## FAQ
 
 **Why tanh instead of ReLU in vanilla RNNs?** Tanh outputs values in $[-1, 1]$, which keeps the hidden state bounded across time. ReLU has unbounded positive output, so a recurrent application can blow up exponentially. LSTMs use sigmoid for gates (a soft 0–1 switch) and tanh for candidates (zero-centred values that can both add and subtract from the cell state).
 
@@ -501,7 +501,7 @@ The context vector becomes a *time-varying* weighted sum of encoder states. This
 
 ---
 
-## Key takeaways
+## Summary
 
 - **RNNs process sequences with memory** via recurrent connections and parameter sharing — the same weights at every step.
 - **Vanilla RNNs fail on long sequences** because the chained Jacobian product $\prod \partial h_{k+1} / \partial h_k$ shrinks (or explodes) exponentially.

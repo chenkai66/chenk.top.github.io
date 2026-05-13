@@ -31,7 +31,7 @@ This article:
 2. Surveys the heuristic landscape — particle swarm, genetic algorithms, simulated annealing, spiral optimization — and where each fits.
 3. Walks through a substantial case study: applying the Spiral Optimization Algorithm to a constrained mean-variance portfolio problem (a mixed-integer nonlinear program, MINLP).
 
-## What you will learn
+## What You Will Learn
 
 - The integer programming formulation and how branch-and-bound prunes the search tree using LP relaxation bounds.
 - Cutting planes, Gomory cuts, and the modern branch-and-cut framework that powers commercial MIP solvers.
@@ -370,7 +370,7 @@ The unconstrained MV portfolio has the highest in-model Sharpe but it shorts ass
 
 The paper makes a focused, defensible claim: a modified SOA with quadratic penalties handles cardinality and buy-in constraints competitively against Quasi-Newton and DIRECT on a small benchmark. The figure I would draw from this is more cautious. SOA is not a replacement for commercial MINLP solvers at scale, but it is a useful tool in the band where the universe is too small to warrant Gurobi licences and too constrained for vanilla quadratic programming. The cardinality and buy-in constraints, in turn, are not academic curiosities: they materially regularise out-of-sample risk, as the backtest above shows. The methodological lesson is that the *constraints* often matter more than the *solver*: a good portfolio with the right constraints, found by an okay solver, will usually beat a "perfect" portfolio with the wrong constraints.
 
-## Further reading
+## References
 
 1. Markowitz, H. (1952). *Portfolio Selection*. Journal of Finance, 7(1), 77-91.
 2. Tamura, K., & Yasuda, K. (2011). *Spiral Dynamics Inspired Optimization*. Journal of Advanced Computational Intelligence and Intelligent Informatics, 15(8), 1116-1122.

@@ -335,20 +335,20 @@ A$k$-sparse vector in$\mathbb{R}^n$has roughly$k \log(n/k)$bits of structural in
 
 ## Exercises
 
-### Warm-up
+### Basics
 
 1. Compute$\|\vec{x}\|_0$,$\|\vec{x}\|_1$, and$\|\vec{x}\|_2$for$\vec{x} = (0, 3, -1, 0, 0, 2, 0)$.
 2. In one paragraph, explain why$L_0$minimization is NP-hard. Why does the convex relaxation help?
 3. Derive the soft-thresholding formula by minimizing$\tfrac{1}{2}(z-a)^2 + \lambda|z|$.
 
-### Going deeper
+### Advanced
 
 4. Prove that the$L_1$unit ball in$\mathbb{R}^n$has exactly$2n$vertices, and that each vertex lies on a coordinate axis.
 5. Show: if$\Phi$satisfies$\delta_{2k} < 1$, then any two distinct$k$-sparse vectors are mapped to distinct measurements.
 6. Derive the coordinate-descent update for LASSO and explain why the per-coordinate problem reduces to soft thresholding.
 7. Prove the LASSO path is piecewise linear in$\lambda$.
 
-### Coding
+### Programming
 
 8. Implement FISTA and ISTA on the same compressed-sensing problem. Plot the objective vs iteration on log-scale and read off the$O(1/t)$ vs $O(1/t^2)$rates.
 9. Compare OMP, IHT, and LASSO recovery success on synthetic problems with$k$ranging from 1 to$m/2$. Plot success rate vs$k$.

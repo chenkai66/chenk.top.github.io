@@ -18,7 +18,7 @@ translationKey: "time-series-1"
 
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - Why **stationarity** is the entry ticket for the whole ARIMA family, and how differencing buys it.
 - How to read **ACF and PACF** plots like a Box-Jenkins practitioner: cut-off vs. tail-off as the rule for identifying $p$ and $q$.

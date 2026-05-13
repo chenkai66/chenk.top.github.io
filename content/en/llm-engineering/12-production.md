@@ -360,7 +360,7 @@ If I were starting a production LLM product in mid-2026:
 
 This is enough to ship and grow without the technical debt that kills most LLM products.
 
-## Series wrap-up
+## Series Wrap-Up
 
 Twelve chapters on what it takes to build a modern LLM product end-to-end:
 

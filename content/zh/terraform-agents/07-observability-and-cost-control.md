@@ -643,6 +643,5 @@ ARMS 自带告警适用于 Trace 级条件（如“任一 Trace 超过 30 个 Sp
 
 真实生产 Agent 栈的全量可观测性预算约为 ¥1000–1500/月。相比漏掉一次成本失控事故，这非常划算——仅 Token 泄漏告警一项，在我的项目中就已省回两年 SLS 费用。
 
-## 接下来
-
+## 下一步
 第 8 篇是端到端实战。我们将第 2 至 7 篇的所有模块——vpc-baseline、compute、storage、gateway、observability——组合成一个 `research-agent-stack` 项目，通过单次 `terraform apply` 一键拉起。包含真实 apply 输出、实际耗时及完整模块 DAG。文末的 starter repo 可供你自由 fork。

@@ -27,7 +27,7 @@ This article walks through those changes in the order they actually matter when 
 <!-- wanx-hero -->
 ![NLP (9): Deep Dive into LLM Architecture — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/llm-architecture-deep-dive/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - **Modern block layout** — pre-norm + RMSNorm + SwiGLU + RoPE + GQA, and why each replacement happened.
 - **KV cache mechanics** — how it converts the attention prefix from $O(n^2)$ recompute to $O(n)$ amortized cost, and what it costs in memory.
@@ -420,7 +420,7 @@ In practice, a single A100 80 GB serves a 7B AWQ model at 3000–5000 tokens/s a
 
 ---
 
-## Frequently asked questions
+## FAQ
 
 ### Why decoder-only and not encoder–decoder?
 
@@ -448,7 +448,7 @@ Cache size scales as $2 \cdot L \cdot H_{kv} \cdot d_h \cdot T \cdot \mathrm{byt
 
 ---
 
-## Series navigation
+## Series Navigation
 
 - **Previous**: [Part 8 — Model Fine-tuning and PEFT](/en/nlp/fine-tuning-peft/)
 - **Next**: [Part 10 — RAG and Knowledge Enhancement](/en/nlp/rag-knowledge-enhancement/)

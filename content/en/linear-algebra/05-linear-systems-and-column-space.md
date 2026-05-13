@@ -398,7 +398,7 @@ analyze_system(np.array([[1, 2, 3], [2, 4, 6]], dtype=float),
 
 ---
 
-## Chapter Summary
+## Summary
 
 | Concept | What it tells you |
 |---------|-------------------|
@@ -461,6 +461,6 @@ The principle: every piece of structure you can name about $A$ has a faster solv
 
 ---
 
-## What Comes Next
+## What's Next
 
 **Chapter 6: Eigenvalues and Eigenvectors.** Most vectors change direction under a transformation. A few special ones do not — they only get scaled. These eigenvectors are the natural axes of $A$, the directions in which the matrix becomes a simple stretch. Find them and you understand the long-term behaviour of any linear system.

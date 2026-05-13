@@ -317,7 +317,7 @@ Before contrastive training, the item embeddings cluster weakly — the dominant
 
 ---
 
-## Frequently asked questions
+## FAQ
 
 ### Why not just use more data instead of contrastive learning?
 

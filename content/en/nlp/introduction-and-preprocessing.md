@@ -24,7 +24,7 @@ This first article in the series does two things. First, it maps out the field's
 <!-- wanx-hero -->
 ![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 
 <!-- wanx-mid -->
@@ -585,7 +585,7 @@ The point of the example is not the accuracy on ten samples — it is the shape 
 
 ---
 
-## Key takeaways
+## Summary
 
 - Preprocessing is task-specific. Search wants aggressive normalization; neural models want raw text.
 - Subword tokenization (BPE, WordPiece, SentencePiece) is the modern default because it bounds vocabulary and handles unseen words.

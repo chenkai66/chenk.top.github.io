@@ -25,7 +25,7 @@ The road from "RNN with attention" to the full Transformer is not long, but ever
 <!-- wanx-hero -->
 ![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 - Why fixed-size context vectors broke vanilla Seq2Seq, and how attention rescued it
 - Bahdanau and Luong attention as the conceptual bridge to self-attention
@@ -538,7 +538,7 @@ print(tok.decode(out[0], skip_special_tokens=True))
 
 ---
 
-## 11. Frequently asked questions
+## 11. FAQ
 
 **Why do we need masking only in the decoder, not the encoder?**
 The encoder sees the entire source sentence and is supposed to look at everything bidirectionally. The decoder generates one token at a time and would otherwise cheat by attending to future ground-truth tokens during training. Encoder-only models like BERT are bidirectional precisely because they have no causal mask.
@@ -557,7 +557,7 @@ No. Most production LLMs now use **RoPE** (LLaMA, GPT-NeoX) or **ALiBi** (BLOOM)
 
 ---
 
-## Key takeaways
+## Summary
 
 - Vanilla Seq2Seq fails on long inputs because a single context vector is too small. **Attention** lets the decoder dynamically access every encoder state.
 - **Self-attention** drops recurrence: every position sees every other position in $O(1)$ steps.

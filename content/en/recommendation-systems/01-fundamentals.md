@@ -786,7 +786,7 @@ class ItemBasedCF:
 
 ---
 
-## 8. Frequently Asked Questions
+## 8. FAQ
 
 **When should I use CF vs. content-based?**
 

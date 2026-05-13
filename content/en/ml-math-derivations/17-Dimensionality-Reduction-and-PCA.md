@@ -22,7 +22,7 @@ translationKey: "ml-math-derivations-17"
 ---
 ![ML Math Derivations (17): Dimensionality Reduction and PCA — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 Feed a clustering algorithm $10{,}000$-dimensional data and it will most likely fail — not because the algorithm is broken, but because **high-dimensional space is a hostile environment for distance-based learning**. Volumes evaporate into thin shells, the ratio of nearest- to farthest-neighbour distances tends to $1$, and "closeness" stops carrying information. Dimensionality reduction is the response: project the data into a lower-dimensional space while keeping the structure that actually matters.
 

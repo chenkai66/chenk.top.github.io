@@ -304,7 +304,7 @@ Architecture papers describe the public 1 % of what shipping models do. The othe
 
 The fact that "Mixtral 8x7B" is one model with one architecture is partly a fiction. The deployed Mistral API runs Mixtral with several inference-time tricks (paged attention, speculative decoding via a small draft model, FP8 KV cache) that aren't part of the architecture proper but do affect quality and latency. When you read benchmark numbers, you're seeing a deployment, not just an architecture.
 
-## Common pitfalls
+## Common Pitfalls
 
 Five things I've seen go wrong with these architectures.
 
@@ -344,7 +344,7 @@ What's coming after the current "MoE Transformer with GQA" consensus:
 
 The choice is rarely "pick the best architecture." It's "pick the architecture whose constraints match my serving constraints." MoE wins when you have many GPUs and are FLOPs-bound. Dense wins on a single GPU where total VRAM is the cap. Hybrids win when context is the bottleneck.
 
-## Takeaway and what's next
+## What's Next
 
 Modern LLMs are still Transformers, but the block has been re-engineered piece by piece for stability (pre-norm, RMSNorm), quality (SwiGLU, RoPE), inference cost (GQA, sliding window), and parameter efficiency (MoE). Pure non-attention models (Mamba, RWKV) underperform in general but win on long context when hybridized.
 

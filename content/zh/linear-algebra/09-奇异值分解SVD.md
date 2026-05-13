@@ -454,13 +454,13 @@ def plot_compression(img, ks):
 
 ## 练习题
 
-### 基础练习
+### 基础题
 
 1. 解释为何奇异值恒为非负，而特征值可为负或复数。
 2. 手动计算 $A = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$ 的 SVD。
 3. 若 $A$ 为 $3 \times 5$ 矩阵，完整 SVD 与经济型 SVD 中 $U$、$\Sigma$、$V^{\!\top}$ 的形状分别为何？
 
-### 深入思考
+### 进阶题
 
 4. 证明 $\operatorname{rank}(A)$ 等于非零奇异值的个数。
 5. 证明 $\|A\|_F^2 = \sigma_1^2 + \cdots + \sigma_r^2$。
@@ -468,7 +468,7 @@ def plot_compression(img, ks):
 7. 证明 $U_r U_r^{\!\top}$ 为列空间投影矩阵，$V_r V_r^{\!\top}$ 为行空间投影矩阵。
 8. 证明 Eckart–Young 定理的算子范数形式：$\|A - A_k\|_2 = \sigma_{k+1}$。
 
-### 编程挑战
+### 编程题
 
 9. **压缩曲线**：加载灰度图像，计算 SVD，绘制 $k \in \{5, 20, 50, 100\}$ 的重建图，并在对数坐标下绘制奇异值衰减曲线。
 10. **Iris 数据集上的 PCA**：对 Iris 数据做 PCA，绘制前两主成分散点图（按物种着色），报告解释方差比。
@@ -476,7 +476,7 @@ def plot_compression(img, ks):
 
 ---
 
-## 十三、本章小结
+## 十三、总结
 
 | 概念 | 核心公式 | 直观理解 |
 |---|---|---|
@@ -489,7 +489,7 @@ def plot_compression(img, ks):
 
 ---
 
-## 参考资料
+## 参考文献
 
 - Strang, G. (2019). *Introduction to Linear Algebra*, 第 7 章。
 - Trefethen, L. N. & Bau, D. (1997). *Numerical Linear Algebra*. SIAM.

@@ -190,7 +190,7 @@ This took me longer to figure out than it should have. Click *Run* on a Designer
 
 Once you know Designer is just a UI for emitting MaxCompute SQL + DLC pod submissions, the entire product becomes much less mysterious — and you can route around it cleanly when needed.
 
-## What's next
+## What's Next
 
 Article 2 is **PAI-DSW** end-to-end: picking the right GPU instance, the image catalog, OSS-FUSE mounting, and a working MNIST notebook (the one straight out of the official Quick Start). Article 3 is **PAI-DLC** distributed training — a real multi-GPU job with AIMaster fault tolerance. Article 4 is **PAI-EAS** model serving, including the cold-start trap that has bitten me more than once. Article 5 is the honest comparison of **Designer vs Model Gallery** for the "I just want to ship something" cases.
 

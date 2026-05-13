@@ -16,7 +16,7 @@ You read a paper, want the code, but the "code available at" link is dead, missi
 
 The trick isn't the text encoder—any reasonable CNN or transformer will do. The challenge is that papers and repositories exist on two different graphs (citations for papers, co-star and tag overlap for repositories). Naively running a GCN on each produces embeddings in unrelated spaces. paper2repo bridges these with a small set of known matching paper-repo pairs and a constraint that aligns the embeddings. The rest of the model makes this constraint trainable.
 
-## What you will learn
+## What You Will Learn
 
 - How the joint heterogeneous graph is assembled from three asymmetric signals (citations, co-stars, tag overlap)
 - Why two GCNs that never see each other's data still need a shared metric, and how the cosine constraint enforces one
@@ -146,7 +146,7 @@ A pure dual-encoder (e.g., a sentence-transformer fine-tuned on bridged paper-re
 
 A modern restatement of paper2repo would replace the CNN encoder with a sentence-transformer, the WARP loss with InfoNCE, and likely keep the constrained-GCN backbone but swap the full-batch propagation for GraphSAGE neighbor sampling. The multiplicative Lagrangian trick is the part that has aged best — it is essentially a dynamic loss-balancing technique and shows up under different names in modern multi-task literature.
 
-## Conclusion
+## Summary
 
 The interesting idea in paper2repo is not the GCN, the WARP loss, or the CNN encoder - all of which were standard by 2020. It is the *constrained* GCN: the recognition that two independent towers can be tied together by a small set of bridged pairs and a single multiplicative term in the loss. That same recipe transfers cleanly to other cross-platform problems where you have abundant structure on each side and a small bridge between them: paper-to-dataset, paper-to-author, product-to-review, query-to-document with click logs as the bridge. The text encoders and graph types change; the constraint stays.
 

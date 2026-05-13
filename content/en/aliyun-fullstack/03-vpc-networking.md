@@ -866,7 +866,7 @@ ssh bastion "ssh web-server-a 'nc -zv 10.0.20.5 3306'"
 
 That last test is the most important. If the web tier can reach the data tier directly, your security group chain is broken.
 
-## Key Takeaways
+## Summary
 
 **CIDR planning is permanent.** You cannot resize a VPC or VSwitch after creation. Over-allocate now. A /16 VPC with /24 VSwitches gives you room for decades of growth. The cost of unused IP space is zero.
 

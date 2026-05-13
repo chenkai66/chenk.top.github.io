@@ -480,7 +480,7 @@ for m in sample_sizes:
 
 ---
 
-## 7. Q&A
+## 7. FAQ
 
 **Q1. If ERM is so simple, why not just use it?**
 

@@ -27,7 +27,7 @@ The result is two tools that look interchangeable from the API but behave very d
 
 ![ML Math Derivations (12): XGBoost and LightGBM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 - How XGBoost's second-order Taylor expansion produces a closed-form optimal leaf weight and a structure score for any tree.
 - Why the split-gain formula carries a built-in pruning penalty $\gamma$.

@@ -277,7 +277,7 @@ This works. Sort of. The model has never seen that format during post-training. 
 
 The chat template is also what makes function calling work. Qwen3's chat template includes `<tool_call>...</tool_call>` tags around JSON tool calls, and the model is trained to emit them. Mistral uses `[TOOL_CALLS]`. OpenAI's format uses no special tokens at all and does it via JSON in the message payload. Chapter 7 covers function calling end to end.
 
-## Common pitfalls
+## Common Pitfalls
 
 The five tokenization gotchas I've personally lost the most time to:
 
@@ -327,7 +327,7 @@ What's coming after the byte-level BPE consensus:
 
 **Multimodal tokenizers.** Models that handle text, images, audio, and video need a unified tokenization scheme. The current dominant approach (LLaVA, Qwen-VL, Gemini) tokenizes images with a separate vision encoder and inserts vision tokens into the text stream. Whether the next generation moves to a unified tokenizer for all modalities is an open question. [Team, 2024] (Chameleon) showed early-fusion all-modality tokenization can work.
 
-## Takeaway and what's next
+## What's Next
 
 Tokenization is invisible until it bites: 2x cost on CJK workloads if you pick the wrong tokenizer; instruction-following degradation if you skip the chat template; a fine-tuned model that's worse than the base if you naively expanded the vocab. Always measure tokens on your actual prompts before picking a model. Always use the model's official chat template via `apply_chat_template`. Don't expand vocabularies unless you have hundreds of billions of training tokens to spare.
 

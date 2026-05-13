@@ -1115,7 +1115,7 @@ After these six steps, you have: three groups with properly scoped permissions, 
 
 The total time to set this up is about 30 minutes via CLI. The total time to recover from not setting it up is measured in incident-response hours and compromised-data cleanup days.
 
-## Key Takeaways
+## Summary
 
 1. **Never use the root account for daily work.** Create RAM users, enforce MFA, use groups for permission management. The root account should be locked in a metaphorical safe.
 

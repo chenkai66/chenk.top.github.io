@@ -311,7 +311,7 @@ This is roughly the recipe behind every well-engineered LLM product I've seen. E
 
 **Token efficiency is a moral property of prompts.** Every unnecessary token in your system prompt costs across every request. A 200-token cleanup is worth $20 / month at modest scale, $20K / month at large scale.
 
-## Takeaway and what's next
+## What's Next
 
 CoT helps on multi-step reasoning, hurts on simple tasks; test before adding. Self-consistency is a real quality boost when you can pay for $N$ samples. Tree of Thoughts and Graph of Thoughts unlock combinatorial-search problems but cost 30-100x. Few-shot examples teach format and distribution; order them carefully and pin the order. Prompt caching is the biggest cost lever for repeated long prompts. Prompt injection is undefeated as a class; defense is layered (constrain action, distrust retrieved content, spotlight, instruction hierarchy, validate outputs, sandbox tools). Jailbreak defense is layered classifiers + RLHF + low-impact action space. System prompts should be specific, cached at the prefix, and end with the most important constraint.
 

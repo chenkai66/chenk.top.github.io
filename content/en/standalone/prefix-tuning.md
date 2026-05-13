@@ -14,7 +14,7 @@ translationKey: "prefix-tuning"
 
 Fine-tuning a 1.5B-parameter GPT-2 model for each downstream task means saving a fresh 1.5B-parameter checkpoint every time. Across a dozen tasks that is a substantial storage and serving headache, and it makes sharing a single base model essentially impossible. *Prefix-Tuning* (Li & Liang, 2021) takes the opposite stance: freeze every weight of the language model, and learn a tiny block of continuous vectors — the *prefix* — that is fed into the attention layers as if it were context the model already attended to. The model never changes; only the prefix does, and a different prefix produces a different "personality" on demand.
 
-## What you will learn
+## What You Will Learn
 
 - What a prefix actually *is*, and why injecting it as K/V at every layer is more powerful than prepending soft tokens at the input
 - The exact attention math, parameter count, and the role of the reparameterization MLP
@@ -193,7 +193,7 @@ The "0.5 M parameters" headline hides three other costs you actually pay at serv
 
 The combined picture: Prefix-Tuning is cheap to *store*, cheap to *swap*, modest to *serve*, and only gets expensive when you push prefix length into the hundreds. A pragmatic deployment posture is "$L_{\text{prefix}} \in [8, 16]$, in-memory LRU of 50 prefixes, S3 as the cold store". You never have to think about it again.
 
-## Conclusion
+## Summary
 
 Prefix-Tuning reframes adaptation as *learning a small, layer-wise contextual memory* that is fed into a frozen Transformer's attention. The architecture is simple, the parameter cost is in the sub-percent regime, and the low-data inductive bias is real. Even after LoRA largely took over the practical PEFT landscape, Prefix-Tuning remains the cleanest mental model for "adapting a model by giving it learned context" — and it is still the right tool for several real-world serving scenarios.
 

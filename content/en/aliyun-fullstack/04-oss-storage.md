@@ -1187,7 +1187,7 @@ Browser                          Your Flask API                OSS Bucket
 
 The beauty of this architecture: your application server handles zero file I/O. Upload bytes flow directly from the browser to OSS. Download bytes flow from CDN edge nodes. Your Flask API is just a coordinator that generates signed URLs and constructs CDN paths. It stays lightweight, easy to scale, and cheap to run.
 
-## Key Takeaways
+## Summary
 
 **OSS is not a filesystem.** It is a flat key-value store accessed over HTTP. Do not try to use it like a mounted disk. Do not store millions of tiny files where NAS or a database would be better. Use it for what it excels at: storing blobs of any size with extreme durability, served over HTTP.
 

@@ -498,7 +498,7 @@ A short checklist of the bugs that show up over and over:
 - **Optimizing space too early**: bug-prone, hard to debug, and
   usually unnecessary on a whiteboard. Space-optimize last.
 
-## Q&A
+## FAQ
 
 ### How do I recognize a DP problem?
 

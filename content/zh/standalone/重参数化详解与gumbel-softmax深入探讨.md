@@ -19,8 +19,7 @@ translationKey: "reparameterization-gumbel-softmax"
 
 本文详细讲解了推导、直觉、实现细节、温度参数下的偏差-方差权衡以及训练中最常见的问题。
 
-## 你将学到
-
+## 你将学到什么
 - 为什么梯度无法穿过 $z\sim\mathcal N(\mu,\sigma^2)$，而 $z=\mu+\sigma\epsilon$ 就可以
 - Gumbel 分布从何而来，以及“加 Gumbel 噪声后取 argmax = 从 softmax 中采样”为什么严格成立
 - Gumbel-Softmax 的温度 $\tau$ 如何在偏差与方差之间权衡，以及退火策略

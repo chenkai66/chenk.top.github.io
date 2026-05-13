@@ -1609,7 +1609,7 @@ If you are evaluating Function Compute against Lambda, here are the differences 
 
 The products are functionally similar. FC's advantages are lower pricing in Chinese regions, higher memory ceiling (32 GiB vs 10 GiB), and the Service abstraction for grouping related functions. Lambda's advantages are ARM support (lower cost per compute), SnapStart for Java, and a more mature ecosystem of extensions and integrations.
 
-## Key Takeaways
+## Summary
 
 **Serverless is not always the answer.** It excels at event-driven, bursty, short-lived workloads. It fails at long-running processes, GPU tasks, and ultra-low-latency requirements. Know the crossover point for your traffic pattern.
 

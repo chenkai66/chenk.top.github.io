@@ -15,7 +15,7 @@ series_order: 5
 translationKey: "time-series-5"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
-## 本章要点
+## 总结
 
 - 完整解析专为时间序列设计的 encoder-decoder Transformer 架构
 - 为什么必须注入位置信息，以及正弦编码、可学习编码与时间感知编码的区别
@@ -328,7 +328,7 @@ class TimeSeriesTransformer(nn.Module):
 | 预测仅跟随最近值，忽略长期趋势          | 位置信息缺失，或 PE 被特征尺度压制                 | 将 PE 缩放至特征量级，添加日历特征         |
 | “Transformer 效果不如 LSTM”            | 数据集 < 1 万样本，模型正则化不足                  | 缩小模型，设置 dropout 0.2–0.3，启用 weight decay |
 
-## 小结
+## 总结
 
 Transformer 并非魔法——它只是让每个时间步都能**并行地、直接地**访问其他所有时间步的最简架构。在时间序列任务中，三点至关重要：
 

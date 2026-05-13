@@ -336,6 +336,6 @@ A well-structured RAG endpoint with a stable system prompt hits 70-80%. An endpo
 For truncation when you do exceed the window: the safe pattern is "preserve the system prompt and the most recent user/assistant pair, then sliding-window the middle". I keep the first system message and the last 6 messages verbatim, and summarize anything in between with a cheap `qwen-turbo` call when the conversation crosses a threshold. The summary goes back into the messages array as a synthetic system message (`"role": "system", "content": "Earlier in this conversation: ..."`). Quality loss is small for chat-style workloads, dramatic for code-context workloads where you can't lossy-compress the file content — for those, prefer a longer-context model over summarization.
 
 
-## What's next
+## What's Next
 
 Article 3 is **Qwen-Omni** — the multimodal sibling. The big differences are: streaming is *required* (not optional), the content array gets typed parts for image / audio / video, and you have to think about pixel budgets and frame rates. It's the highest-leverage capability in Bailian if your product touches non-text content.

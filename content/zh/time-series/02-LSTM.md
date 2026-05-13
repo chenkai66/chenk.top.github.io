@@ -15,7 +15,7 @@ series_order: 2
 translationKey: "time-series-2"
 ---
 
-## 本章要点
+## 总结
 
 ![时间序列与 LSTM 章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png)
 
@@ -226,7 +226,7 @@ $$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
 
 实证表明，在多数预测任务中，LSTM 与 GRU 的性能差距通常在噪声范围内。**建议默认使用 GRU** 以加速迭代；仅当数据量极大且依赖跨度达数百步时，才考虑切换至 LSTM。对于超过 500 步的超长序列，时序卷积网络（TCN，第 6 篇）或 Informer 类稀疏 Transformer（第 8 篇）往往表现更优。
 
-## 8. 常见坑点
+## 8. 常见陷阱
 
 - **未对每个特征单独标准化**：LSTM 对尺度敏感，混合原始股价与百分比回报会导致训练失败。
 - **跨训练/测试边界打乱时序窗口**：必须使用 `TimeSeriesSplit` 或严格按时间切分。
@@ -320,13 +320,13 @@ class WrappedForecaster(nn.Module):
 
 LSTM 不会主动报告性能退化。仪表盘中至少监控三项指标：hold-out 尾部的滚动 RMSE、输入特征分布漂移（今日直方图 vs 训练直方图的 KL 散度）、以及残差的自相关函数（ACF）。一旦残差在 lag=1 处出现显著自相关，说明模型已失效——该重新训练了。
 
-## 小结
+## 总结
 
 LSTM 通过一条近似加性的**细胞状态高速公路**解决了梯度消失问题，由三个乘法门控机制协同管理：遗忘门决定丢弃什么，输入门决定写入什么，输出门决定暴露什么。由于长程梯度是遗忘门的乘积而非循环雅可比矩阵的乘积，模型得以捕捉数百步的依赖关系。
 
 在时间序列任务中，这转化为一套实用准则：使用合理回望窗口、堆叠 1～3 层中等宽度 LSTM、结合 dropout 与早停进行正则化、长视野预测优先采用直接多步而非递归方式、BiLSTM 仅用于离线任务。下一篇将介绍 GRU——LSTM 的轻量表亲，它用更少参数实现了几乎同等的性能。
 
-## 参考资料
+## 参考文献
 
 - Hochreiter & Schmidhuber, *Long Short-Term Memory*, Neural Computation (1997)
 - Gers, Schmidhuber & Cummins, *Learning to Forget: Continual Prediction with LSTM* (2000)——遗忘门偏置 +1 技巧的出处

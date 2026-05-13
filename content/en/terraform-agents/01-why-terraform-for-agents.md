@@ -233,7 +233,7 @@ What it won't:
 - Teach you how to write the agent itself. There are series for LangGraph, AutoGen, MetaGPT, Claude Code already; pick one.
 - Compare Aliyun against AWS or GCP feature-by-feature. The IaC patterns translate across clouds; the resource names don't.
 
-## What's next
+## What's Next
 
 Article 2 is the first hands-on: installing the alicloud provider, picking your authentication method (the three choices — static AK/SK, AssumeRole, ECS RAM role — are not equivalent), setting up remote state on OSS with Tablestore for locking, and the workspace pattern for `dev`/`staging`/`prod`.
 

@@ -20,7 +20,7 @@ translationKey: "pde-ml-8"
 ---
 ![PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
 
-## What This Article Covers
+## What You Will Learn
 
 Stack 32 layers of GCN on a citation graph and accuracy collapses from 81 % to 20 %. Every node converges to the same vector. This is **over-smoothing**, the GNN equivalent of heat death — and the diagnosis comes straight from PDE theory. **A GCN layer is one explicit-Euler step of the heat equation on a graph**, and the heat equation has exactly one fixed point: the constant. The cure was published in 1952. Alan Turing showed that adding a *reaction* term to a diffusion equation can make a uniform state spontaneously break apart into stripes, spots, or labyrinths. The same trick — a learned reaction term — keeps deep GNNs alive.
 

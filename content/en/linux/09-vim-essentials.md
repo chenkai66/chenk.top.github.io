@@ -15,7 +15,7 @@ series: linux
 
 Most people quit Vim because they try to memorize shortcuts. That's the wrong approach. Vim is a *small language*: learn the grammar — **operator + motion** — and you can express any edit without ever opening a cheat sheet. This guide covers the 80% of Vim you'll use daily and shows how the remaining 20% naturally follows from the same basic rules.
 
-## What you will learn
+## What You Will Learn
 
 - The single core idea: **modes** plus **composable operations** (operator + motion)
 - The handful of motions, text objects, and operators that cover almost everything
@@ -471,7 +471,7 @@ Once the grammar lives in your fingers, Vim stops being a tool you "operate" and
 
 ---
 
-## Where to go next
+## What's Next
 
 - `vimtutor` — run it in your terminal. Thirty minutes, built into Vim.
 - *Practical Vim* by Drew Neil — the best book for going from beginner to fluent.

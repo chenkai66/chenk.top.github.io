@@ -25,7 +25,7 @@ This article unpacks the machinery in three layers:
 
 We give the central-path complexity proof in full.
 
-## What you will learn
+## What You Will Learn
 
 1. The logarithmic barrier and the central path.
 2. Self-concordance: definition, three key implications, the $\sqrt{\nu}$ parameter.
@@ -299,7 +299,7 @@ A small worked instance with $n = 100$, $m = 200$ to high precision typically ta
 
 This completes the deterministic, exact-information optimization story. Articles 10 and 11 turn to **stochastic** methods (gradients with noise) and **non-convex** landscapes (no convergence-to-global guarantees) — the regimes where deep learning lives.
 
-## Further reading
+## References
 
 - Nesterov & Nemirovski, *Interior-Point Polynomial Algorithms in Convex Programming*, SIAM, 1994 — the foundational monograph.
 - Boyd & Vandenberghe, *Convex Optimization*, Ch. 11 — the cleanest exposition for engineers.

@@ -421,7 +421,7 @@ This is exactly the "TRS" pattern (Translate * Rotate * Scale) used by Unity, Un
 
 ---
 
-## Frequently Asked Questions
+## FAQ
 
 ### Is translation a linear transformation?
 
@@ -446,7 +446,7 @@ Look at the determinant and the columns:
 
 ---
 
-## Chapter Summary
+## Summary
 
 The single sentence to remember:
 
@@ -464,6 +464,6 @@ We have done this all in 2D for visual clarity. In Chapter 4 we will quantify *h
 
 ---
 
-## What Comes Next
+## What's Next
 
 **Chapter 4: The Secrets of Determinants.** The determinant is a single number that captures the volume-scaling factor of a transformation. We will see why it multiplies under composition, why a sign flip means orientation reversal, and why $\det = 0$ is precisely the singular case we just met.

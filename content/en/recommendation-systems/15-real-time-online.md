@@ -521,7 +521,7 @@ A few things that look like trivia but matter in production:
 
 ---
 
-## Q & A
+## FAQ
 
 **Q: How do I A/B test an online learning system?**
 Standard A/B tests assume independent observations, but online learners *learn from their treatment group*. The fix is to use **interleaved comparisons** (Chapelle et al., 2012) or to hold a separate "frozen" model in one arm and the live online model in the other, then compare *cumulative* reward, not per-request CTR.

@@ -21,7 +21,7 @@ The cost is in the per-iteration work: Newton solves an $n \times n$ linear syst
 
 This article gives the convergence proofs, derives the BFGS update from the secant condition, walks through the L-BFGS two-loop recursion line by line, and explains trust-region methods (which use the same Hessian information but with a different globalization strategy).
 
-## What you will learn
+## What You Will Learn
 
 1. Newton's method: derivation from second-order Taylor approximation, proof of local quadratic convergence under standard assumptions.
 2. Globalization via line search (Wolfe conditions) and via trust regions.
@@ -303,7 +303,7 @@ Second-order methods break the $\sqrt{\kappa}$ barrier by using curvature, at a 
 
 The next article (08) tackles constrained optimization using Lagrangian duality — the same Newton machinery applies, just to the augmented system.
 
-## Further reading
+## References
 
 - Nocedal & Wright, *Numerical Optimization* (2nd ed.), Ch. 3 (line search), 4 (trust region), 6 (BFGS), 7 (L-BFGS) — the canonical reference.
 - Boyd & Vandenberghe, *Convex Optimization*, §9.5 (Newton with damping) and §9.6 (self-concordance).

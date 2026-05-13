@@ -294,7 +294,7 @@ The `gamma` argument to `gzsl_evaluate` implements calibrated stacking — the s
 
 ---
 
-## 8. Q&A
+## 8. FAQ
 
 **Q1. When should I reach for ZSL instead of few-shot or active learning?**
 When (a) the long tail is wide and unstable — new classes appear faster than you can label them; (b) you already have rich semantics — attribute taxonomies, product catalogues, textual descriptions; or (c) you can use a pretrained vision-language model (CLIP, SigLIP, OpenCLIP) and skip ZSL-specific machinery entirely.

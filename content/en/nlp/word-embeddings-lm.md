@@ -24,7 +24,7 @@ The entire trajectory of NLP shifted toward representation learning. This articl
 <!-- wanx-hero -->
 ![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_1.png)
 
-## What you will learn
+## What You Will Learn
 
 
 <!-- wanx-mid -->
@@ -443,7 +443,7 @@ The returns diminish quickly: going from 50 to 100 dimensions buys a lot, going 
 
 ---
 
-## Key takeaways
+## Summary
 
 - **Embeddings encode distributional semantics.** Words that share contexts share geometric neighbourhoods, and that neighbourhood structure is what gives downstream models their generalisation.
 - **Word2Vec, GloVe, and FastText are three answers to the same question.** Word2Vec scans local windows; GloVe factorises the global co-occurrence matrix; FastText decomposes words into character n-grams. They produce embeddings of comparable quality through different routes.

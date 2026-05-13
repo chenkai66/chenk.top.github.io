@@ -313,6 +313,6 @@ Scheduled jobs cost tokens. Here is the math.
 
 **Recommendation:** Keep heartbeat prompts short — the system prompt and HEARTBEAT.md load on every single patrol, so every extra line costs 17x per day. Use cron for heavy lifting (complex skills, long summaries) because those run once. If your heartbeat costs more than your cron, you have the division of labor backwards.
 
-## Closing
+## Summary
 
 The whole point of OpenClaw is the agent comes to you. Heartbeat and Cron are the two doors that make it possible. Use Cron for things that should happen on a schedule no matter what; use Heartbeat for things you want noticed only when they break. Don't mix them up.

@@ -994,7 +994,7 @@ DashScope 在典型阿里云架构中的位置如下：
 
 本系列已覆盖该架构的每一环节。DashScope 是大脑，其余服务是躯干。
 
-## 核心要点
+## 总结
 
 1. **百炼是控制台，DashScope 是 API。** 配置在百炼，代码对接 DashScope——切勿混淆。
 2. **默认使用 OpenAI 兼容端点。** `base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"` 配合 `openai` SDK 可覆盖文本、embeddings、视觉和多模态；仅 TTS、生图、生视频需切换至原生 API。

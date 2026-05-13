@@ -22,7 +22,7 @@ Stuffing pixels, audio, and video into a language model so it can "see," "hear,"
 
 This post follows the natural research arc — architecture, model families, downstream tasks, fine-tuning, evaluation, deployment — and tries to be specific enough at each stop that you can act on it. Less "what's possible," more "what to actually pick."
 
-## What you will learn
+## What You Will Learn
 
 - The standard MLLM architecture (vision encoder + projector + LLM) and the trade-offs at each block
 - The essential differences between the CLIP, BLIP-2, and LLaVA families
@@ -531,7 +531,7 @@ As MLLMs enter healthcare and finance, interpretability stops being a nice-to-ha
 
 ---
 
-## 12. Closing
+## 12. Summary
 
 The least intuitive lesson from shipping multimodal LLMs in production: **picking a model is not the finish line. Prompting, data, and evaluation are the engineering battle.** A LLaVA-13B that's been carefully prompt-engineered, domain-fine-tuned, paired with a hallucination detector and an evaluation harness will usually beat a raw GPT-4V hookup on your specific business — and at a fraction of the cost.
 

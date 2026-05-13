@@ -647,6 +647,6 @@ Observability has a real cost — usually 10-15% of the rest of your bill:
 
 Budget ¥1000-1500/mo for full observability on a real production agent stack. Cheap compared to one missed cost-runaway alarm — the token-leak alert alone has paid for two years of SLS in my projects.
 
-## What's next
+## What's Next
 
 Article 8 is the end-to-end walkthrough. We compose every module from articles 2-7 — vpc-baseline, compute, storage, gateway, observability — into one `research-agent-stack` project and watch it come up with a single `terraform apply`. Real apply output, real timing, the full module DAG. The starter repo at the end is yours to fork.
