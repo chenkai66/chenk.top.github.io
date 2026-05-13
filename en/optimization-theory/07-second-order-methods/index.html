@@ -20,7 +20,7 @@
 <input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Optimization Theory</a>
 · Chapter 7</div><h1>Optimization (7): Second-Order Methods</h1><p class=deck>Second-order methods break the sqrt(kappa) barrier by using curvature. We prove Newton's quadratic local convergence, derive BFGS from a secant condition + low-rank update, walk through L-BFGS's two-loop recursion that makes it the workhorse for medium-scale ML, and analyze trust-region subproblems with the dogleg solution.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-09-22>September 22, 2022</time> · 24 min read · 2500 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/ml/ class=tag>#ML</a><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/numerical-methods/ class=tag>#Numerical Methods</a></div><a class="pill pill-outline" href=/zh/optimization-theory/07-second-order-methods/>阅读中文版 →</a></div></header><div class=prose><p>First-order methods top out at <span class=math-inline>$O(\sqrt{\kappa})$</span>
+<span class=meta-line><time datetime=2022-09-22>September 22, 2022</time> · 22 min read · 2327 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/ml/ class=tag>#ML</a><a href=/en/tags/optimization/ class=tag>#Optimization</a><a href=/en/tags/numerical-methods/ class=tag>#Numerical Methods</a></div><a class="pill pill-outline" href=/zh/optimization-theory/07-second-order-methods/>阅读中文版 →</a></div></header><div class=prose><p>First-order methods top out at <span class=math-inline>$O(\sqrt{\kappa})$</span>
 iterations to reach <span class=math-inline>$\epsilon$</span>
 -accuracy (article 05). Second-order methods break this barrier by using curvature: Newton&rsquo;s method has <strong>quadratic</strong> local convergence — the number of correct digits doubles every iteration — and quasi-Newton methods retain most of this speed without computing the Hessian explicitly.</p><p>The cost is in the per-iteration work: Newton solves an <span class=math-inline>$n \times n$</span>
 linear system per step (<span class=math-inline>$O(n^3)$</span>
@@ -32,32 +32,29 @@ memory for a chosen history <span class=math-inline>$m$</span>
 (typically 5&ndash;20).</p><p>This article gives the convergence proofs, derives the BFGS update from the secant condition, walks through the L-BFGS two-loop recursion line by line, and explains trust-region methods (which use the same Hessian information but with a different globalization strategy).</p><h2 id=what-you-will-learn class=heading-anchor>What You Will Learn<a href=#what-you-will-learn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ol><li>Newton&rsquo;s method: derivation from second-order Taylor approximation, proof of local quadratic convergence under standard assumptions.</li><li>Globalization via line search (Wolfe conditions) and via trust regions.</li><li>The secant condition and how it constrains a quasi-Newton update.</li><li>BFGS as the unique rank-2 update satisfying the secant condition + symmetry + positive-definiteness, plus a quick derivation.</li><li>L-BFGS two-loop recursion: why it computes <span class=math-inline>$H_k g_k$</span>
 in <span class=math-inline>$O(mn)$</span>
 time without ever forming <span class=math-inline>$H_k$</span>
-.</li><li>Trust-region methods: subproblem, Cauchy point, dogleg, when to use them.</li></ol><h2 id=prerequisites class=heading-anchor>Prerequisites<a href=#prerequisites class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Articles 01&ndash;02 (convex analysis, smoothness, strong convexity). Linear algebra fluency: matrix inverse, rank-1 updates, Sherman&ndash;Morrison formula.</p><hr><h2 id=1-newtons-method class=heading-anchor>1. Newton&rsquo;s method<a href=#1-newtons-method class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=11-derivation class=heading-anchor>1.1 Derivation<a href=#11-derivation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>For a twice-differentiable <span class=math-inline>$f$</span>
-, the second-order Taylor expansion around <span class=math-inline>$x_k$</span>
-is</p><span class=math-block>$$
+.</li><li>Trust-region methods: subproblem, Cauchy point, dogleg, when to use them.</li></ol><h2 id=prerequisites class=heading-anchor>Prerequisites<a href=#prerequisites class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Articles 01&ndash;02 (convex analysis, smoothness, strong convexity). Linear algebra fluency: matrix inverse, rank-1 updates, Sherman&ndash;Morrison formula.</p><hr><h2 id=1-newtons-method class=heading-anchor>1. Newton&rsquo;s method<a href=#1-newtons-method class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=11-derivation class=heading-anchor>1.1 Derivation<a href=#11-derivation class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 f(x_k + d) \approx f(x_k) + \nabla f(x_k)^\top d + \tfrac{1}{2} d^\top \nabla^2 f(x_k) d.
-$$</span><p>Minimizing the right-hand side over <span class=math-inline>$d$</span>
-(assuming <span class=math-inline>$\nabla^2 f(x_k) \succ 0$</span>
-) gives</p><span class=math-block>$$
+$$</span>
+<span class=math-block>$$
 d_k^N = -[\nabla^2 f(x_k)]^{-1} \nabla f(x_k).
 $$</span><p>This is the <strong>Newton direction</strong>. The pure Newton iteration is <span class=math-inline>$x_{k+1} = x_k + d_k^N$</span>
 .</p><p>Geometrically: Newton&rsquo;s method approximates <span class=math-inline>$f$</span>
 by the local quadratic and jumps to the minimum of that quadratic. If <span class=math-inline>$f$</span>
-is itself a quadratic, Newton converges in one step.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig1.png alt="Newton&rsquo;s method local quadratic model" loading=lazy decoding=async class=content-image></figure><em>Figure 1. Newton&rsquo;s method approximates f by the local quadratic at x_k and jumps to that quadratic&rsquo;s minimum. If f is itself quadratic, one step suffices.</em></p><h3 id=12-quadratic-local-convergence class=heading-anchor>1.2 Quadratic local convergence<a href=#12-quadratic-local-convergence class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><blockquote><span class=math-block>$$
-> \|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.
-> $$</span></blockquote><p><strong>Proof.</strong> By definition of the Newton step,</p><span class=math-block>$$
+is itself a quadratic, Newton converges in one step.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig1.png alt="Newton&rsquo;s method local quadratic model" loading=lazy decoding=async class=content-image></figure><em>Figure 1. Newton&rsquo;s method approximates f by the local quadratic at x_k and jumps to that quadratic&rsquo;s minimum. If f is itself quadratic, one step suffices.</em></p><h3 id=12-quadratic-local-convergence class=heading-anchor>1.2 Quadratic local convergence<a href=#12-quadratic-local-convergence class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><blockquote><span class=math-block>$$\|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.$$</span>
+<span class=math-block>$$
 x_{k+1} - x^\star = x_k - x^\star - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k).
-$$</span><p>Since <span class=math-inline>$\nabla f(x^\star) = 0$</span>
-,</p><span class=math-block>$$
+$$</span>
+<span class=math-block>$$
 \nabla f(x_k) = \nabla f(x_k) - \nabla f(x^\star) = \int_0^1 \nabla^2 f(x^\star + t(x_k - x^\star)) (x_k - x^\star) \, dt.
-$$</span><p>Substituting:</p><span class=math-block>$$
+$$</span>
+<span class=math-block>$$
 x_{k+1} - x^\star = [\nabla^2 f(x_k)]^{-1} \int_0^1 [\nabla^2 f(x_k) - \nabla^2 f(x^\star + t(x_k - x^\star))] (x_k - x^\star) \, dt.
 $$</span><p>The integrand is bounded in norm by <span class=math-inline>$L (1 - t) \|x_k - x^\star\|_2$</span>
 . Integrating gives <span class=math-inline>$\|\cdot\| \leq \frac{L}{2} \|x_k - x^\star\|_2^2$</span>
 . Combined with <span class=math-inline>$\|[\nabla^2 f(x_k)]^{-1}\| \leq 1/\mu$</span>
 (for <span class=math-inline>$x_k$</span>
 close enough to <span class=math-inline>$x^\star$</span>
-), we get the claim. <span class=math-inline>$\blacksquare$</span></p><p>The &ldquo;doubling of digits&rdquo; is concrete: if <span class=math-inline>$\|x_k - x^\star\| = 10^{-3}$</span>
+), we get the claim. <span class=math-inline>$\blacksquare$</span></p></blockquote><p>The &ldquo;doubling of digits&rdquo; is concrete: if <span class=math-inline>$\|x_k - x^\star\| = 10^{-3}$</span>
 , then <span class=math-inline>$\|x_{k+1} - x^\star\| \leq C \cdot 10^{-6}$</span>
 , then <span class=math-inline>$C^2 \cdot 10^{-12}$</span>
 , etc. To go from <span class=math-inline>$10^{-3}$</span>
@@ -84,14 +81,10 @@ instead. This has global convergence to second-order critical points.</li></ul><
 to store and <span class=math-inline>$O(n^3)$</span>
 to invert per step. <strong>Quasi-Newton</strong> methods build an approximation <span class=math-inline>$B_k \approx \nabla^2 f(x_k)$</span>
 from gradient differences alone, mimicking the curvature implicit in <span class=math-inline>$\nabla f(x_k) - \nabla f(x_{k-1})$</span>
-.</p><h3 id=21-the-secant-condition class=heading-anchor>2.1 The secant condition<a href=#21-the-secant-condition class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>For a quadratic <span class=math-inline>$f(x) = \frac{1}{2} x^\top A x - b^\top x$</span>
-,</p><span class=math-block>$$
+.</p><h3 id=21-the-secant-condition class=heading-anchor>2.1 The secant condition<a href=#21-the-secant-condition class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \nabla f(x_{k+1}) - \nabla f(x_k) = A (x_{k+1} - x_k).
-$$</span><p>Defining <span class=math-inline>$s_k = x_{k+1} - x_k$</span>
-and <span class=math-inline>$y_k = \nabla f(x_{k+1}) - \nabla f(x_k)$</span>
-, we have <span class=math-inline>$A s_k = y_k$</span>
-. For non-quadratic <span class=math-inline>$f$</span>
-this becomes the <strong>secant condition</strong>:</p><span class=math-block>$$
+$$</span>
+<span class=math-block>$$
 B_{k+1} s_k = y_k. \tag{Sec}
 $$</span><p>Any quasi-Newton update should preserve this: the new approximation <span class=math-inline>$B_{k+1}$</span>
 should reproduce the curvature observed in the most recent step.</p><h3 id=22-bfgs-the-canonical-quasi-newton-update class=heading-anchor>2.2 BFGS: the canonical quasi-Newton update<a href=#22-bfgs-the-canonical-quasi-newton-update class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The BFGS (Broyden&ndash;Fletcher&ndash;Goldfarb&ndash;Shanno) update is the unique rank-2 update of <span class=math-inline>$B_k$</span>
@@ -99,11 +92,10 @@ that:</p><ol><li>Satisfies (Sec).</li><li>Is symmetric: <span class=math-inline>
 .</li><li>Stays positive definite if <span class=math-inline>$B_k$</span>
 is and <span class=math-inline>$y_k^\top s_k > 0$</span>
 (which holds whenever the step satisfies the curvature Wolfe condition).</li><li>Minimizes a weighted Frobenius norm <span class=math-inline>$\|B_{k+1} - B_k\|$</span>
-subject to (Sec) and symmetry.</li></ol><p>The closed form is:</p><span class=math-block>$$
+subject to (Sec) and symmetry.</li></ol><span class=math-block>$$
 B_{k+1} = B_k - \frac{B_k s_k s_k^\top B_k}{s_k^\top B_k s_k} + \frac{y_k y_k^\top}{y_k^\top s_k}.
-$$</span><p>For algorithmic purposes we usually want the inverse <span class=math-inline>$H_k = B_k^{-1}$</span>
-directly (so we can compute <span class=math-inline>$d_k = -H_k \nabla f(x_k)$</span>
-without solving a linear system). Applying the Sherman&ndash;Morrison&ndash;Woodbury identity twice gives</p><span class=math-block>$$
+$$</span>
+<span class=math-block>$$
 H_{k+1} = (I - \rho_k s_k y_k^\top) H_k (I - \rho_k y_k s_k^\top) + \rho_k s_k s_k^\top, \quad \rho_k = \frac{1}{y_k^\top s_k}. \tag{BFGS}
 $$</span><p>This is the form actually implemented.</p><h3 id=23-why-bfgs-works-in-one-paragraph class=heading-anchor>2.3 Why BFGS works in one paragraph<a href=#23-why-bfgs-works-in-one-paragraph class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>If <span class=math-inline>$B_k$</span>
 approximates <span class=math-inline>$\nabla^2 f$</span>
@@ -176,16 +168,13 @@ does not help past a point because old curvature pairs become irrelevant.</li><l
 (say <span class=math-inline>$\epsilon = 10^{-8}$</span>
 ), the curvature condition fails and including the pair would damage positive definiteness; skip it.</li><li><strong>Line search.</strong> L-BFGS needs a proper Wolfe-condition line search to maintain <span class=math-inline>$y_k^\top s_k > 0$</span>
 . A pure Armijo backtracking can break BFGS.</li></ul><p>L-BFGS is the default solver for many ML problems: PyTorch&rsquo;s <code>torch.optim.LBFGS</code>, scikit-learn&rsquo;s <code>LogisticRegression</code> for moderate-scale problems, scipy&rsquo;s <code>minimize</code> family. It dominates first-order methods for problems that fit in memory and are not too noisy.</p><hr><h2 id=4-trust-region-methods class=heading-anchor>4. Trust-region methods<a href=#4-trust-region-methods class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>Line search asks &ldquo;in which direction?&rdquo; then &ldquo;how far?&rdquo;. Trust region asks both at once: <strong>within a region of trust around <span class=math-inline>$x_k$</span>
-, what is the best step?</strong></p><h3 id=41-the-subproblem class=heading-anchor>4.1 The subproblem<a href=#41-the-subproblem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>At iterate <span class=math-inline>$x_k$</span>
-with gradient <span class=math-inline>$g_k$</span>
-and Hessian (or approximation) <span class=math-inline>$B_k$</span>
-, define the model</p><span class=math-block>$$
+, what is the best step?</strong></p><h3 id=41-the-subproblem class=heading-anchor>4.1 The subproblem<a href=#41-the-subproblem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 m_k(d) = f(x_k) + g_k^\top d + \tfrac{1}{2} d^\top B_k d.
-$$</span><p>The trust-region subproblem is</p><span class=math-block>$$
+$$</span>
+<span class=math-block>$$
 d_k^\star = \arg\min_{\|d\|_2 \leq \Delta_k} m_k(d),
-$$</span><p>where <span class=math-inline>$\Delta_k > 0$</span>
-is the trust radius. After computing <span class=math-inline>$d_k^\star$</span>
-, evaluate the <strong>agreement ratio</strong></p><span class=math-block>$$
+$$</span>
+<span class=math-block>$$
 \rho_k = \frac{f(x_k) - f(x_k + d_k^\star)}{m_k(0) - m_k(d_k^\star)}.
 $$</span><p>If <span class=math-inline>$\rho_k$</span>
 is close to 1 the model is good; expand the trust region. If <span class=math-inline>$\rho_k$</span>
@@ -195,8 +184,7 @@ by 4 if <span class=math-inline>$\rho_k &lt; 0.25$</span>
 and the step lies on the boundary.</p><h3 id=42-solving-the-subproblem class=heading-anchor>4.2 Solving the subproblem<a href=#42-solving-the-subproblem class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>The exact solution requires the <strong>Moré&ndash;Sorensen</strong> algorithm: find <span class=math-inline>$\lambda \geq 0$</span>
 such that <span class=math-inline>$(B_k + \lambda I) d = -g_k$</span>
 and <span class=math-inline>$\lambda (\|d\|_2 - \Delta_k) = 0$</span>
-. This is exact but expensive.</p><p>Two cheap approximations:</p><p><strong>Cauchy point.</strong> Step along <span class=math-inline>$-g_k$</span>
-as far as the model allows or the trust region permits:</p><span class=math-block>$$
+. This is exact but expensive.</p><p>Two cheap approximations:</p><span class=math-block>$$
 d_k^C = -\tau \frac{\Delta_k}{\|g_k\|_2} g_k, \quad \tau = \begin{cases} 1 & g_k^\top B_k g_k \leq 0 \\ \min\big(\frac{\|g_k\|_2^3}{\Delta_k g_k^\top B_k g_k}, 1\big) & \text{otherwise.} \end{cases}
 $$</span><p>The Cauchy point gives at most a Cauchy decrease — comparable to gradient descent — but is always defined.</p><p><strong>Dogleg.</strong> When <span class=math-inline>$B_k \succ 0$</span>
 , compute the unconstrained Newton step <span class=math-inline>$d_k^N = -B_k^{-1} g_k$</span>
@@ -253,5 +241,5 @@ memory; the modern default.</li><li><strong>Trust region</strong> — robustness
 <span class=chapter-title>Optimization (9): Interior-Point Methods and Self-Concordant Barriers</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/10-stochastic-variance-reduction/><span class=chapter-num>10</span>
 <span class=chapter-title>Optimization (10): Stochastic Optimization and Variance Reduction</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/11-nonconvex-saddle-escape/><span class=chapter-num>11</span>
 <span class=chapter-title>Optimization (11): Non-Convex Optimization and Saddle Escape</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/optimization-theory/12-discrete-global-optimization/><span class=chapter-num>12</span>
-<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>24 min</strong></div><div class=row><span>Word count</span><strong>2500</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=chapter-title>Optimization (12): Discrete and Global Optimization</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>22 min</strong></div><div class=row><span>Word count</span><strong>2327</strong></div><div class=row><span>Published</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
 <span class=signature>Hangzhou.</span></div></div></footer></body></html>
