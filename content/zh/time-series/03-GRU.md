@@ -17,6 +17,9 @@ translationKey: "time-series-3"
 
 ## 本章要点
 
+![GRU 章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
+
+
 - GRU 的**更新门** $z_t$ 和**重置门** $r_t$ 如何仅凭两个门和一个状态，就实现与 LSTM 相当的记忆能力。
 - GRU 的参数量比 LSTM 少了整整 **25%**，这在实际应用中能带来哪些切实好处。
 - 如何通过观察 GRU 的**门激活值**，理解模型关注的重点，辅助调试。
@@ -44,6 +47,8 @@ translationKey: "time-series-3"
 ---
 
 ## 1. 四个公式讲清楚 GRU 单元
+
+![GRU 单元架构：重置门和更新门，以及从 h_{t-1} 到 h_t 的 (1-z) 梯度高速通道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig1_gru_cell_architecture.png)
 
 设输入为 $x_t \in \mathbb{R}^{d_{in}}$，上一时刻的隐藏状态为 $h_{t-1} \in \mathbb{R}^{h}$。GRU 通过以下四步计算下一隐藏状态 $h_t$。
 
@@ -87,6 +92,9 @@ $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}(1 - z_t) \;+\; (\t
 
 ## 2. GRU 为什么更轻：参数分析
 
+
+![GRU 与 LSTM 在不同隐藏层大小下的参数量对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig2_param_count_comparison.png)
+
 单层 GRU 包含三个权重块（$W_z$、$W_r$、$W_h$），每个形状为 $h \times (d_{in} + h)$，再加上偏置。而 LSTM 有四个权重块（遗忘门、输入门、候选、输出门）。具体计数如下：
 
 $$P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad
@@ -105,6 +113,9 @@ P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).$$
 
 ## 3. 隐藏状态到底长什么样
 
+
+![16 个 GRU 隐藏单元在 80 个时间步上的热力图，叠加输入信号](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig3_hidden_state_evolution.png)
+
 公式是否可信，最好亲眼看看。图 3 展示了一个 16 单元 GRU 处理复合信号的过程：信号包含慢速振荡、$t=27$ 附近的噪声爆发，以及 $t=45$ 的阶跃变化。
 *图 3. 不同单元专注于不同时间尺度。第 3、5、12 行像**慢积分器**——其颜色随信号趋势同步漂移；第 8、11、15 行在 $t=45$ 阶跃处符号翻转，表现为**变化检测器**。$t=27$ 的噪声爆发仅扰动高频单元，而慢速单元因 $z_t \approx 0$ 得到保护。*
 
@@ -114,6 +125,9 @@ P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).$$
 
 ## 4. 预测质量：GRU 真的不如 LSTM 吗？
 
+
+![真实值、GRU 预测和 LSTM 预测在测试集上的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig4_forecast_quality.png)
+
 Chung et al. (2014) 与 Jozefowicz et al. (2015) 的核心发现——并被多次复现——是：**在大多数序列任务上，GRU 与 LSTM 的表现统计上无显著差异**。图 4 在一个合成但贴近现实的“季节性+趋势”信号上验证了这一点。
 *图 4. 两种架构均紧密跟踪测试区域。RMSE 差异小于 0.02（信号幅度为 1），远小于随机初始化带来的波动范围。*
 
@@ -122,11 +136,16 @@ LSTM **确实占优**的情况通常有三种：一是处理极长序列（>200 
 ### 训练速度
 *图 5. 加速比异常稳定：GRU 在跨越两个数量级的序列长度上，均带来约 12% 的实际耗时节省。右图表明这不是某个配置的偶然结果，而是每步少一次门控计算的必然产物。*
 
+![GRU 与 LSTM 每个 epoch 的训练时间和加速比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig5_training_speed.png)
+
+
 在原型开发或超参搜索阶段，这 12% 的加速会快速累积：原本需一周完成的 LSTM 调参，改用 GRU 后仅需六天，省出的一天可用于深入分析。
 
 ---
 
 ## 5. 读懂门：GRU 的诊断工具
+
+![三面板图：输入信号、响应最强的重置门单元、响应最强的更新门单元](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig6_gate_activations.png)
 
 门控 RNN 最被低估的特性是：**门的激活值本身就是可解释信号**，可直接绘图分析。图 6 展示了一个 GRU 处理含 regime 切换（$t=40$）和瞬态尖峰（$t \in [68, 72]$）信号时，平均重置门与更新门的轨迹。
 *图 6. 在 $t=40$ 发生 regime 切换后，两个门均**饱和趋近于 0**。低 $z_t$ 告诉单元“停止更新，新水平才是重点”——单元锁定在抬升后的基线上；低 $r_t$ 告诉单元“构造候选时忽略旧隐藏状态”——使模型快速遗忘切换前的振荡。在 $t \in [68, 72]$ 的尖峰期间，饱和进一步加深，模型更坚决地无视历史。*
@@ -229,6 +248,9 @@ def train_one_epoch(model, loader, opt, max_grad_norm=1.0, device="cuda"):
 | 常见失败模式 | 难任务上容量不足 | 小数据上容易过拟合 |
 
 ### 何时选择无关紧要
+
+
+![GRU 与 LSTM 选择指南：六项标准的两栏对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig7_decision_guide.png)
 
 在约一半的合理预测问题中，两者表现差异都在噪声范围内。此时**优先选 GRU**——迭代速度就是免费生产力。除非你有实测证据支持切换，否则别折腾。
 

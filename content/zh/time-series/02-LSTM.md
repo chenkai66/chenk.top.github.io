@@ -17,6 +17,9 @@ translationKey: "time-series-2"
 
 ## 本章要点
 
+![时间序列与 LSTM 章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/illustration_1.png)
+
+
 - 普通 RNN 为何难以处理长序列，以及 LSTM 如何解决梯度消失与爆炸问题
 - 遗忘门、输入门和输出门的直观作用，以及细胞状态这条“高速公路”如何维持长期记忆
 - 在单步与多步时间序列预测中，如何合理设计 LSTM 的输入输出结构
@@ -49,6 +52,9 @@ LSTM（Hochreiter & Schmidhuber, 1997）通过引入**两个状态**（细胞状
 
 ## 2. LSTM 单元的内部结构
 
+
+![LSTM 单元架构：三个 sigmoid 门和一个 tanh 候选值，位于水平的细胞状态通道之下](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig1_lstm_cell.png)
+
 每个 LSTM 单元包含四个共享输入 $[h_{t-1}, x_t]$ 的门控单元，分别输出三个 sigmoid 门和一个 $\tanh$ 候选值：
 
 $$
@@ -71,6 +77,8 @@ $$
 *LSTM 单元——三个门作用在一条细胞状态高速公路上。*
 
 ### 为什么细胞状态如此特殊
+
+![两条平行的状态流：绿色细胞状态通道承载长期记忆，紫色虚线隐藏状态是经过门控过滤的视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig2_state_highway.png)
 
 隐藏状态 $h_t$ 是网络其他部分可见的输出，但真正的长期记忆存储在**细胞状态** $C_t$ 中。它像一条贯穿时间的水平通道，仅通过逐元素乘法（$f_t$）和加法（$i_t \odot \tilde C_t$）进行更新，**从未经过新的矩阵乘法**。正是这一设计让梯度得以跨越数百步稳定传播。
 *细胞状态 vs 隐藏状态——两条并行的信息流。*
@@ -129,6 +137,9 @@ for name, p in model.lstm.named_parameters():
 
 ## 4. 从单元到预测器
 
+
+![单步 LSTM 预测与实际序列对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig3_forecast.png)
+
 时间序列预测的标准流程如下：
 
 1. **划分窗口**：将原始序列切分为长度为 $L$ 的重叠片段（即*回望窗口*）。
@@ -140,6 +151,9 @@ for name, p in model.lstm.named_parameters():
 *带噪季节信号上的单步 LSTM 预测 vs 实际值。*
 
 ### 多步预测：递归 vs 直接
+
+
+![多步预测：递归预测的不确定性扇形展开，而直接预测保持大致恒定的不确定性带宽](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig4_multistep.png)
 
 当预测视野 $H > 1$ 时，常用两种策略：
 
@@ -194,6 +208,8 @@ $$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
 绘制自相关函数（ACF），找到自相关系数 $|\rho_k|$ 仍高于小阈值（如 0.1）的最大滞后 $k$，再向上取整至最近的主季节周期。例如，对含日/周双重周期的小时级数据，168（一周）是自然上限。
 
 ### 一次健康训练的表现
+
+![60 个 epoch 的训练和验证损失曲线，绿色虚线标记最佳验证 epoch，紫色虚线标记早停触发](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig7_training_curves.png)
 
 健康的 LSTM 训练曲线中，验证损失会紧贴训练损失下降，直至达到最低点后开始回升（表明过拟合）。早停机制会在最优验证损失出现后继续等待若干 epoch，随后恢复该时刻的权重：
 *带早停的 LSTM 训练曲线——恢复绿色虚线处的权重，而不是紫色点划线处。*

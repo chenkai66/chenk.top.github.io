@@ -245,7 +245,7 @@ Start-VM -Name  "WindowsServer2022"
 
 | Criterion | KVM | VMware ESXi | Hyper-V | Xen |
 |-----------|-----|-------------|---------|-----|
-| Cost | Free | $$$ per socket | Bundled with WS | Free |
+| Cost | Free | \$\$\$ per socket | Bundled with WS | Free |
 | Management | virsh, OpenStack | vSphere (excellent GUI) | PowerShell, Windows Admin Center | xl, XenCenter |
 | Performance | Excellent | Excellent | Very good | Excellent |
 | Best fit | Linux clouds, OpenStack | Enterprise data centers | Microsoft shops | Security niches, legacy |

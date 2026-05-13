@@ -146,7 +146,7 @@ The bifurcations above are scalar. The first genuinely two-dimensional bifurcati
 - For$\mu \le 0$, the only attractor is$r=0$-- a stable spiral.
 - For$\mu > 0$, the origin is an unstable spiral and a **stable limit cycle** of radius$r=\sqrt{\mu}$encircles it.
 
-In Cartesian form,$\dot{x} = \mu x - \omega y - x(x^2+y^2),$$\dot{y} = \omega x + \mu y - y(x^2+y^2).$The Jacobian at the origin is$\bigl(\begin{smallmatrix}\mu & -\omega \\ \omega & \mu\end{smallmatrix}\bigr)$, with eigenvalues$\lambda = \mu \pm i\omega$. As$\mu$crosses zero from below, the complex pair crosses the imaginary axis transversally — this is the **Hopf condition**.
+In Cartesian form, $\dot{x} = \mu x - \omega y - x(x^2+y^2),$ $\dot{y} = \omega x + \mu y - y(x^2+y^2).$The Jacobian at the origin is$\bigl(\begin{smallmatrix}\mu & -\omega \\ \omega & \mu\end{smallmatrix}\bigr)$, with eigenvalues$\lambda = \mu \pm i\omega$. As$\mu$crosses zero from below, the complex pair crosses the imaginary axis transversally — this is the **Hopf condition**.
 
 ![Hopf bifurcation: phase portraits before, at, and after, plus the 3D paraboloid of limit-cycle amplitudes.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/fig4_hopf_bifurcation.png)
 *Top row: trajectories spiral inward to the origin for$\mu=-0.4$, hover indecisively at$\mu=0$, and converge onto a limit cycle of radius$\sqrt{0.4}\approx 0.63$for$\mu=+0.4$. Bottom: the family of limit cycles forms a paraboloid$r = \sqrt{\mu}$opening to the right.*

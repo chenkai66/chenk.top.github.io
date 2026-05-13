@@ -321,7 +321,7 @@ Markowitz portfolios are dense — you would have to hold a sliver of every asse
 
 ### High-dimensional geometry helps
 
-A$k$-sparse vector lives in the union of$\binom{n}{k}$$k$-dimensional coordinate subspaces — a vanishingly small fraction of$\mathbb{R}^n$. The set of sparse vectors is so thin that a random low-dimensional projection separates pairs of them with overwhelming probability. That is the geometric heart of RIP.
+A $k$-sparse vector lives in the union of $\binom{n}{k}$ $k$-dimensional coordinate subspaces — a vanishingly small fraction of $\mathbb{R}^n$. The set of sparse vectors is so thin that a random low-dimensional projection separates pairs of them with overwhelming probability. That is the geometric heart of RIP.
 
 ### Johnson-Lindenstrauss connection
 
