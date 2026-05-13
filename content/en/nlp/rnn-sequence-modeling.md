@@ -46,9 +46,7 @@ This article builds up the family of recurrent architectures from scratch. We st
 ![Vanilla RNN unrolled across five time steps, showing recurrent weight sharing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig1_unrolled_rnn.png)
 
 At every time step $t$, an RNN consumes input $x_t$ and the previous hidden state $h_{t-1}$, then produces a new hidden state and an output:
-
 $$h_t = \tanh(W_h h_{t-1} + W_x x_t + b), \qquad y_t = W_y h_t + b_y.$$
-
 The crucial property — visible in the figure as the same arrows repeating at each step — is that **the matrices $W_h$, $W_x$, $W_y$ are reused at every position**. This single design choice gives RNNs three nice features at once:
 
 - **Generalisation across positions**: a pattern learned at position 3 transfers to position 30, because the same weights see both.
@@ -64,13 +62,9 @@ Mentally, picture the network reading one token at a time, updating its "running
 ![Gradient norm decay vs. distance, with a long-range dependency illustrated on a sample sentence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig2_vanishing_gradient.png)
 
 The trouble starts when we train. To compute gradients we *unroll* the network through time and run backpropagation — a procedure called Backpropagation Through Time (BPTT). The gradient of the loss at step $T$ with respect to the hidden state at step $t$ is a chain product:
-
 $$\frac{\partial h_T}{\partial h_t} \;=\; \prod_{k=t}^{T-1} \frac{\partial h_{k+1}}{\partial h_k}.$$
-
 Each Jacobian factor in that product is roughly $W_h^{\top}\,\mathrm{diag}(\tanh'(\cdot))$. Because $\tanh' \le 1$, the factor's spectral norm is bounded above by the largest singular value of $W_h$, call it $\lambda$. Multiplying $T-t$ such factors gives
-
 $$\left\| \frac{\partial h_T}{\partial h_t} \right\| \;\lesssim\; \lambda^{\,T-t}.$$
-
 Two regimes follow immediately, and you can see both in the left panel of the figure:
 
 - If $\lambda < 1$, the gradient norm **decays exponentially**. Beyond roughly 10–20 steps the signal is numerically zero, so the optimiser cannot tell that token $t$ matters for the loss at $T$. The model literally cannot learn the dependency.
@@ -93,35 +87,25 @@ The LSTM (Hochreiter & Schmidhuber, 1997) replaces the simple recurrent unit wit
 Let $[h_{t-1}, x_t]$ denote the concatenation of the previous hidden state and current input. All gates share this same input.
 
 **Forget gate** — what to discard from the long-term memory:
-
 $$f_t = \sigma(W_f [h_{t-1}, x_t] + b_f).$$
-
 **Input gate** + **candidate** — what new information to write:
-
 $$
 i_t = \sigma(W_i [h_{t-1}, x_t] + b_i), \qquad
 \tilde{C}_t = \tanh(W_C [h_{t-1}, x_t] + b_C).
 $$
-
 **Cell-state update** — combine old memory with new content:
-
 $$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$
-
 **Output gate** — what slice of the cell to expose as the new hidden state:
-
 $$
 o_t = \sigma(W_o [h_{t-1}, x_t] + b_o), \qquad
 h_t = o_t \odot \tanh(C_t).
 $$
-
 Here $\sigma$ is the sigmoid (a soft 0–1 switch) and $\odot$ is element-wise multiplication. Each gate is a learned, position-dependent decision: *forget this, write that, expose the rest*.
 
 ### Why this fixes vanishing gradients
 
 The cell-state line in the diagram is the key. Its update is **additive**:
-
 $$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$
-
 Differentiating gives $\partial C_t / \partial C_{t-1} = f_t$, an element-wise scalar in $[0,1]$. When the forget gate stays near 1, the chain product $\prod f_k$ stays near 1 too — gradients flow through the cell-state highway essentially unchanged, even over hundreds of steps. Compare this with the vanilla RNN's *multiplicative* update through $W_h$, which compounds toward zero. The LSTM trades one shared $W_h$ for a learnable, time-varying $f_t$, and that single change is what lets it model long contexts.
 
 ### The conveyor-belt analogy
@@ -135,7 +119,6 @@ Picture the cell state as a conveyor belt running the length of the sequence. Th
 ![GRU cell with reset and update gates — simpler than LSTM](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig4_gru_cell.png)
 
 The GRU (Cho et al., 2014) keeps the gating idea but trims the design. It merges forget and input into a single **update gate**, drops the separate cell state, and works directly on $h_t$:
-
 $$
 z_t = \sigma(W_z [h_{t-1}, x_t]), \qquad
 r_t = \sigma(W_r [h_{t-1}, x_t]),
@@ -143,7 +126,6 @@ $$$$
 \tilde{h}_t = \tanh(W [r_t \odot h_{t-1}, x_t]), \qquad
 h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t.
 $$
-
 The **reset gate** $r_t$ controls how much of the past leaks into the candidate. The **update gate** $z_t$ does linear interpolation between the old state and the new candidate — when $z_t \approx 0$, the GRU just copies $h_{t-1}$ forward, which is exactly the same gradient-preserving trick as the LSTM's cell highway.
 
 ### LSTM vs. GRU
@@ -167,14 +149,12 @@ The **reset gate** $r_t$ controls how much of the past leaks into the candidate.
 In many tasks, the future is just as informative as the past. *"He said the food was **not** good"* — without seeing "not", a left-to-right reader would label "good" as positive sentiment.
 
 A Bidirectional RNN (Schuster & Paliwal, 1997) runs two independent recurrences and concatenates their states:
-
 $$
 \overrightarrow{h}_t = \mathrm{RNN}_\text{fwd}(x_t, \overrightarrow{h}_{t-1}), \qquad
 \overleftarrow{h}_t = \mathrm{RNN}_\text{bwd}(x_t, \overleftarrow{h}_{t+1}),
 $$$$
 h_t = \big[\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\big].
 $$
-
 Each per-position representation now sees both directions of context.
 
 **Use it for**: named entity recognition, part-of-speech tagging, machine-translation encoders, anything where you have the whole input up front.
@@ -186,12 +166,10 @@ Each per-position representation now sees both directions of context.
 ## 6. Stacked RNNs
 
 Depth helps: stacking RNN layers lets each layer build on the previous layer's per-step output:
-
 $$
 h_t^{(1)} = \mathrm{RNN}^{(1)}(x_t,\, h_{t-1}^{(1)}), \qquad
 h_t^{(2)} = \mathrm{RNN}^{(2)}(h_t^{(1)},\, h_{t-1}^{(2)}).
 $$
-
 Empirically the lower layers learn local patterns (character n-grams, word boundaries, morphology), while the higher layers capture syntax and longer-range semantics. Two to four layers is the sweet spot for most NLP tasks; beyond that, residual connections become essential to keep optimisation stable.
 
 ---
@@ -204,12 +182,10 @@ The Seq2Seq architecture (Sutskever et al., 2014) maps an input sequence to an o
 
 - An **encoder** reads the entire input and compresses it into a single context vector $c = h_T^{\text{enc}}$.
 - A **decoder** generates the output one token at a time, conditioned on $c$ and on the tokens it has already emitted:
-
 $$
 s_t = \mathrm{RNN}_\text{dec}(y_{t-1}, s_{t-1}), \qquad
 P(y_t \mid y_{<t}, x) = \mathrm{softmax}(W_o s_t).
 $$
-
 **The bottleneck.** The whole input — possibly 50 words of context — must squeeze through the single fixed-size vector $c$. For short sentences this is fine; for long ones, the encoder simply runs out of room. Sutskever's original paper found that BLEU scores fell sharply once the input exceeded about 30 tokens, and that *reversing* the source sentence helped (which is itself a hint that the bottleneck was the problem).
 
 This bottleneck is the direct motivation for **attention**, the topic of Part 4: instead of forcing the decoder to live on a single $c$, attention lets it look back at *every* encoder hidden state at each decoding step.
@@ -479,12 +455,10 @@ The two panels above tell the story qualitatively. On a long-dependency task, va
 ## Attention preview
 
 The encoder squeezes everything into one vector $c$. For long sentences, this bottleneck loses information. **Attention** lets the decoder consult *every* encoder hidden state, with learned weights:
-
 $$
 \alpha_{tj} = \frac{\exp(\mathrm{score}(s_t, h_j))}{\sum_k \exp(\mathrm{score}(s_t, h_k))}, \qquad
 c_t = \sum_j \alpha_{tj}\, h_j.
 $$
-
 The context vector becomes a *time-varying* weighted sum of encoder states. This was the bridge from RNNs to Transformers, which we cover in Part 4.
 
 ---

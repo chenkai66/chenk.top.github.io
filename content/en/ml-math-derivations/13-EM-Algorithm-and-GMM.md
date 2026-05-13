@@ -46,18 +46,16 @@ When data has hidden structure — like an unobserved cluster label, a missing f
 ### 1.1 Setup
 
 We model observations $\mathbf{x}_1,\dots,\mathbf{x}_N$ together with hidden variables $z_1,\dots,z_N$ via a joint $p(\mathbf{x}, z \mid \boldsymbol{\theta})$. We see $\mathbf{X}$, never $\mathbf{Z}$. The **incomplete-data log-likelihood** is
-
-$$\ell(\boldsymbol{\theta}) \;=\; \sum_{i=1}^{N} \log p(\mathbf{x}_i \mid \boldsymbol{\theta})
-\;=\; \sum_{i=1}^{N} \log \sum_{z} p(\mathbf{x}_i, z \mid \boldsymbol{\theta}).$$
-
+$$
+\ell(\boldsymbol{\theta}) \;=\; \sum_{i=1}^{N} \log p(\mathbf{x}_i \mid \boldsymbol{\theta})
+\;=\; \sum_{i=1}^{N} \log \sum_{z} p(\mathbf{x}_i, z \mid \boldsymbol{\theta}).
+$$
 The summation inside the logarithm is the source of the problem. The log no longer factors over components, so the gradient doesn't split into per-component pieces, and there is no closed-form maximizer.
 
 ### 1.2 The mixture example
 
 For a Gaussian mixture with $K$ components,
-
 $$p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}(\mathbf{x}\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).$$
-
 If we *knew* which component each point came from, fitting would reduce to $K$ independent weighted-Gaussian MLEs — trivial. We do not know, and that is exactly what EM patches up.
 
 ![GMM components with covariance ellipses](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig1_gmm_clusters.png)
@@ -71,32 +69,32 @@ The figure above shows three Gaussian clusters fit by `sklearn.mixture.GaussianM
 ### 2.1 Introducing an auxiliary distribution $q$
 
 Pick **any** distribution $q(z)$ over the latent variable. Multiply and divide:
-
-$$\log p(\mathbf{x}\mid \boldsymbol{\theta})
-= \log \sum_{z} q(z)\, \frac{p(\mathbf{x}, z\mid \boldsymbol{\theta})}{q(z)}.$$
-
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
+= \log \sum_{z} q(z)\, \frac{p(\mathbf{x}, z\mid \boldsymbol{\theta})}{q(z)}.
+$$
 Because $\log$ is concave, **Jensen's inequality** gives
-
-$$\boxed{\;
+$$
+\boxed{\;
 \log p(\mathbf{x}\mid \boldsymbol{\theta})
 \;\geq\;
 \sum_{z} q(z)\, \log \frac{p(\mathbf{x}, z\mid \boldsymbol{\theta})}{q(z)}
 \;\equiv\;
 \mathcal{L}(q,\boldsymbol{\theta}).
-\;}$$
-
+\;}
+$$
 This $\mathcal{L}$ is the **Evidence Lower Bound (ELBO)**. It depends on both the variational distribution $q$ and the parameters $\boldsymbol{\theta}$.
 
 ### 2.2 The exact decomposition
 
 A direct manipulation — without needing an inequality — yields the *equality*
-
-$$\log p(\mathbf{x}\mid \boldsymbol{\theta})
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
 \;=\;
 \mathcal{L}(q,\boldsymbol{\theta})
 \;+\;
-\mathrm{KL}\bigl[q(z)\,\Vert\, p(z\mid \mathbf{x},\boldsymbol{\theta})\bigr].$$
-
+\mathrm{KL}\bigl[q(z)\,\Vert\, p(z\mid \mathbf{x},\boldsymbol{\theta})\bigr].
+$$
 Two consequences are immediate:
 
 1. The ELBO is **always** $\leq \log p(\mathbf{x}\mid\boldsymbol{\theta})$ because $\mathrm{KL}\geq 0$.
@@ -115,33 +113,29 @@ EM repeatedly raises $\mathcal{L}$ by alternating in its two arguments.
 ### 3.1 The two steps
 
 **E-step.** Hold $\boldsymbol{\theta}^{(t)}$ fixed. Maximise $\mathcal{L}(q, \boldsymbol{\theta}^{(t)})$ over $q$. The maximiser is the posterior:
-
 $$q^{(t)}(z) \;=\; p\bigl(z \mid \mathbf{x}, \boldsymbol{\theta}^{(t)}\bigr).$$
-
 After this step the bound is **tight**: $\mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)}) = \log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})$.
 
 **M-step.** Hold $q^{(t)}$ fixed. Maximise $\mathcal{L}(q^{(t)}, \boldsymbol{\theta})$ over $\boldsymbol{\theta}$. Dropping the entropy of $q^{(t)}$ (constant in $\boldsymbol{\theta}$), this is the same as maximising the **Q-function**
-
-$$Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
+$$
+Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
 \;=\;
-\mathbb{E}_{z\sim q^{(t)}}\!\bigl[\log p(\mathbf{x}, z\mid \boldsymbol{\theta})\bigr].$$
-
+\mathbb{E}_{z\sim q^{(t)}}\!\bigl[\log p(\mathbf{x}, z\mid \boldsymbol{\theta})\bigr].
+$$
 ### 3.2 The monotone-ascent proof
 
 Chain these three inequalities:
-
-$$\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})
 \;\overset{(a)}{=}\;
 \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)})
 \;\overset{(b)}{\leq}\;
 \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t+1)})
 \;\overset{(c)}{\leq}\;
-\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t+1)}).$$
-
+\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t+1)}).
+$$
 (a) holds because the E-step makes the bound tight; (b) by definition of the M-step; (c) because the ELBO is *always* $\leq \log p$. Therefore
-
 $$\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{(t)})\;}$$
-
 at every iteration, with equality only at fixed points. EM converges to a stationary point of $\ell$ — typically a local maximum, occasionally a saddle point. **It is not guaranteed to reach the global maximum**, which is why multiple random restarts matter.
 
 ### 3.3 Visualising the two views
@@ -168,15 +162,15 @@ The parameters are $\boldsymbol{\theta} = \{\pi_k, \boldsymbol{\mu}_k, \boldsymb
 ### 4.2 The E-step: responsibilities
 
 The latent posterior is just Bayes' rule on a finite alphabet. Define the **responsibility** of component $k$ for sample $i$:
-
-$$\boxed{\;
+$$
+\boxed{\;
 \gamma_{ik}
 \;=\;
 p\bigl(z_i = k \mid \mathbf{x}_i, \boldsymbol{\theta}^{(t)}\bigr)
 \;=\;
 \frac{\pi_k\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)}{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j)}.
-\;}$$
-
+\;}
+$$
 Each row $(\gamma_{i1},\dots,\gamma_{iK})$ sums to 1 — the soft cluster membership.
 
 ![E-step soft assignments](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig2_e_step.png)
@@ -186,13 +180,13 @@ On the left every grid point is coloured by mixing the three component colours a
 ### 4.3 The M-step: weighted MLE
 
 Plugging the Gaussian density into $Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})$ and maximising (with a Lagrange multiplier for $\sum_k \pi_k = 1$) gives the closed-form updates. Let $N_k = \sum_{i=1}^{N} \gamma_{ik}$ be the *effective* sample size of component $k$:
-
-$$\boxed{\;
+$$
+\boxed{\;
 \pi_k = \frac{N_k}{N},\qquad
 \boldsymbol{\mu}_k = \frac{1}{N_k}\sum_{i=1}^{N} \gamma_{ik}\,\mathbf{x}_i,\qquad
 \boldsymbol{\Sigma}_k = \frac{1}{N_k}\sum_{i=1}^{N} \gamma_{ik}\,(\mathbf{x}_i - \boldsymbol{\mu}_k)(\mathbf{x}_i - \boldsymbol{\mu}_k)^{\!\top}.
-\;}$$
-
+\;}
+$$
 These are exactly the standard Gaussian MLE formulas, but with each sample re-weighted by its responsibility.
 
 ![One M-step update — before vs after](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig3_m_step.png)
@@ -222,11 +216,11 @@ On anisotropic data the difference is stark: K-means (left) imposes spherical Vo
 ## 6. Choosing the number of components
 
 The likelihood always increases with $K$ (more flexibility), so $\ell$ alone cannot pick $K$. Use a complexity-penalised criterion:
-
-$$\mathrm{BIC}(K) = -2\,\hat{\ell}(K) + p_K\,\log N,
+$$
+\mathrm{BIC}(K) = -2\,\hat{\ell}(K) + p_K\,\log N,
 \qquad
-\mathrm{AIC}(K) = -2\,\hat{\ell}(K) + 2\,p_K,$$
-
+\mathrm{AIC}(K) = -2\,\hat{\ell}(K) + 2\,p_K,
+$$
 where $p_K$ is the parameter count: for full-covariance GMM in $d$ dimensions,
 $p_K = (K-1) + Kd + K\frac{d(d+1)}{2}$.
 
@@ -302,9 +296,7 @@ class GMM:
 The EM iteration above is mathematically clean but numerically dangerous. Three failure modes hit me repeatedly in production.
 
 **Underflow in the responsibilities.** The log-likelihood of a high-dimensional Gaussian is a large negative number. Directly exponentiating $\pi_k \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)$ produces zero in float32 once $D \gtrsim 50$, and the responsibility becomes $0/0$. The fix is the log-sum-exp trick:
-
 $$\log \gamma_{ik} = \log\pi_k + \log\mathcal{N}_k(\mathbf{x}_i) - \mathrm{logsumexp}_j\big(\log\pi_j + \log\mathcal{N}_j(\mathbf{x}_i)\big),$$
-
 then $\gamma_{ik} = \exp(\log \gamma_{ik})$. Always work in log-space until the very last subtraction.
 
 **Singular covariance matrices.** When a component captures a single point, $\boldsymbol{\Sigma}_k$ collapses toward the rank-zero matrix and the determinant goes to zero. The likelihood then explodes to $+\infty$. This is not a bug — it is the correct MLE — but it is useless. The two practical mitigations are (1) add a ridge $\boldsymbol{\Sigma}_k \leftarrow \boldsymbol{\Sigma}_k + \lambda \mathbf{I}$ with $\lambda \approx 10^{-6} \cdot \mathrm{tr}(\boldsymbol{\Sigma}_k)/D$, and (2) re-initialise any component whose effective count $N_k = \sum_i \gamma_{ik}$ falls below some threshold (I use $N_k < 1$).

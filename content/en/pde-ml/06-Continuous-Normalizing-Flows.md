@@ -42,7 +42,8 @@ Three threads are braided together throughout the chapter:
 ### 1.1 Picard-Lindelof: when do ODEs have unique solutions?
 
 **Theorem (Picard-Lindelof).** Consider $\dot{\mathbf{z}}=f(\mathbf{z},t)$ with $\mathbf{z}(0)=\mathbf{z}_0$. If $f$ is continuous in $t$ and Lipschitz in $\mathbf{z}$,
-$$\|f(\mathbf{z}_1,t)-f(\mathbf{z}_2,t)\|\le L\,\|\mathbf{z}_1-\mathbf{z}_2\|,$$then a unique solution exists on some interval $[0,T]$.
+$$
+\|f(\mathbf{z}_1,t)-f(\mathbf{z}_2,t)\|\le L\,\|\mathbf{z}_1-\mathbf{z}_2\|,$$then a unique solution exists on some interval $[0,T]$.
 
 *Why this matters for ML.* If $f_\theta$ is a neural network with Lipschitz activations (ReLU, tanh, GELU) and bounded weights, the Lipschitz condition holds locally. So a Neural ODE is well-posed as long as the network is well-behaved — which is almost always true in practice and which is why Neural ODEs are robust enough to backprop through.
 
@@ -54,7 +55,8 @@ $$\|f(\mathbf{z}_1,t)-f(\mathbf{z}_2,t)\|\le L\,\|\mathbf{z}_1-\mathbf{z}_2\|,$$
 
 ### 1.3 Instantaneous change of variables
 
-**Theorem.** Along a trajectory $\mathbf{z}(t)=\phi_t(\mathbf{z}_0)$ of $\dot{\mathbf{z}}=f(\mathbf{z},t)$, the density satisfies$$\boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t))=-\nabla\!\cdot f(\mathbf{z}(t),t).\;}\tag{1}$$
+**Theorem.** Along a trajectory $\mathbf{z}(t)=\phi_t(\mathbf{z}_0)$ of $\dot{\mathbf{z}}=f(\mathbf{z},t)$, the density satisfies$$\boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t))=-\nabla\!\cdot f(\mathbf{z}(t),t).\;}\tag{1}
+$$
 *Proof sketch.* The continuity equation $\partial_t\rho+\nabla\!\cdot(\rho f)=0$ expands to $\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$. The left-hand side is the material derivative $D\rho/Dt$ along $\mathbf{z}(t)$. Dividing by $\rho$ gives (1).
 
 **Why this single equation matters.** Discrete normalizing flows pay $O(d^3)$ for $\log|\det\partial\phi/\partial\mathbf{z}|$. Equation (1) only ever needs the **trace** of the Jacobian (i.e. the divergence), which costs $O(d)$ with a vector-Jacobian product (Section 3.2 below). This is the central computational reason CNFs exist.
@@ -65,7 +67,8 @@ $$\|f(\mathbf{z}_1,t)-f(\mathbf{z}_2,t)\|\le L\,\|\mathbf{z}_1-\mathbf{z}_2\|,$$
 
 ### 2.1 Residual networks as forward Euler
 
-A ResNet block $\mathbf{h}_{l+1}=\mathbf{h}_l+f_l(\mathbf{h}_l)$ is exactly forward Euler with $\Delta t=1$ on $\dot{\mathbf{h}}=f(\mathbf{h},t)$. Take the limit and we get a single continuous-time ODE$$\frac{d\mathbf{h}}{dt}=f_\theta(\mathbf{h}(t),t),\qquad \mathbf{h}(T)=\mathbf{h}(0)+\int_0^T f_\theta(\mathbf{h}(t),t)\,dt. \tag{2}$$
+A ResNet block $\mathbf{h}_{l+1}=\mathbf{h}_l+f_l(\mathbf{h}_l)$ is exactly forward Euler with $\Delta t=1$ on $\dot{\mathbf{h}}=f(\mathbf{h},t)$. Take the limit and we get a single continuous-time ODE$$\frac{d\mathbf{h}}{dt}=f_\theta(\mathbf{h}(t),t),\qquad \mathbf{h}(T)=\mathbf{h}(0)+\int_0^T f_\theta(\mathbf{h}(t),t)\,dt. \tag{2}
+$$
 Three immediate wins:
 
 - **Parameter efficiency.** One network $f_\theta$ replaces a different $f_l$ at every depth.
@@ -79,7 +82,8 @@ Three immediate wins:
 
 A standard backprop through the ODE solver stores every intermediate state, which is $O(L)$ in the number of solver steps — and adaptive solvers can take hundreds of them. The adjoint method avoids that completely.
 
-Define the **adjoint state** $\mathbf{a}(t)=\partial\mathcal{L}/\partial\mathbf{h}(t)$. It satisfies$$\frac{d\mathbf{a}}{dt}=-\,\mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}$$and the parameter gradient is$$\frac{d\mathcal{L}}{d\theta}=-\int_T^0 \mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}$$
+Define the **adjoint state** $\mathbf{a}(t)=\partial\mathcal{L}/\partial\mathbf{h}(t)$. It satisfies$$\frac{d\mathbf{a}}{dt}=-\,\mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}$$and the parameter gradient is$$\frac{d\mathcal{L}}{d\theta}=-\int_T^0 \mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}
+$$
 **Algorithm.**
 1. *Forward.* Solve (2) from $0\to T$. Store only $\mathbf{h}(T)$.
 2. *Initialise.* $\mathbf{a}(T)=\partial\mathcal{L}/\partial\mathbf{h}(T)$.
@@ -132,9 +136,10 @@ Optimal transport with quadratic cost has a *dynamic* formulation:$$\min_{v_t}\,
 
 **Flow Matching** (Lipman et al. 2022) is the killer-app simplification. Instead of optimising NLL through an ODE solver — and instead of solving an OT problem — it picks a *conditional probability path* and regresses on the corresponding velocity.
 
-The simplest choice: pair $\mathbf{z}_0\sim p_0$ with $\mathbf{z}_1\sim p_{\text{data}}$ and define the **conditional path** $\mathbf{z}_t=(1-t)\mathbf{z}_0+t\mathbf{z}_1$. The conditional target velocity is$$u_t^\star(\mathbf{z}_t\mid\mathbf{z}_0,\mathbf{z}_1)=\mathbf{z}_1-\mathbf{z}_0. \tag{7}$$
-**Training objective.**$$\mathcal{L}_{\text{FM}}=\mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t,t)-(\mathbf{z}_1-\mathbf{z}_0)\|^2\,\Bigr]. \tag{8}$$
-
+The simplest choice: pair $\mathbf{z}_0\sim p_0$ with $\mathbf{z}_1\sim p_{\text{data}}$ and define the **conditional path** $\mathbf{z}_t=(1-t)\mathbf{z}_0+t\mathbf{z}_1$. The conditional target velocity is$$u_t^\star(\mathbf{z}_t\mid\mathbf{z}_0,\mathbf{z}_1)=\mathbf{z}_1-\mathbf{z}_0. \tag{7}
+$$
+**Training objective.**$$\mathcal{L}_{\text{FM}}=\mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t,t)-(\mathbf{z}_1-\mathbf{z}_0)\|^2\,\Bigr]. \tag{8}
+$$
 **Key theorem (Lipman et al.).** The *marginal* velocity $\mathbb{E}[u_t^\star\mid\mathbf{z}_t]$ satisfies the continuity equation transporting $p_0\to p_1$. So minimising (8) over a flexible $v_\theta$ recovers a valid CNF — without ever computing a divergence at training time.
 
 ![Flow Matching: pairs of samples and the linear conditional paths between them; loss curves vs CNF.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig5_flow_matching.png)

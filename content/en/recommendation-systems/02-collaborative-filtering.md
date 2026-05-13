@@ -89,15 +89,11 @@ Matrix factorization, which we meet later, attacks the second problem head-on.
 Let $I_{uv}$ be the items both users $u$ and $v$ have rated. Three metrics dominate the literature.
 
 **Cosine similarity** treats each user as a vector and measures the angle between them:
-
 $$\text{sim}(u, v) = \frac{\sum_{i \in I_{uv}} r_{ui}\, r_{vi}}{\sqrt{\sum_{i \in I_{uv}} r_{ui}^2}\;\sqrt{\sum_{i \in I_{uv}} r_{vi}^2}}$$
-
 It only cares about *direction*. If User A rates everything 4–5 and User B rates everything 1–2, but in the same shape, cosine still says they agree.
 
 **Pearson correlation** subtracts each user's mean rating first, so "I always rate high" can no longer fake agreement:
-
 $$\text{sim}(u, v) = \frac{\sum_{i \in I_{uv}} (r_{ui} - \bar{r}_u)(r_{vi} - \bar{r}_v)}{\sqrt{\sum_{i \in I_{uv}} (r_{ui} - \bar{r}_u)^2}\;\sqrt{\sum_{i \in I_{uv}} (r_{vi} - \bar{r}_v)^2}}$$
-
 **Adjusted cosine** does the same de-meaning trick; mathematically it is Pearson under another name when the same items are aligned.
 
 The picture below makes the difference visceral. User A is a generous rater; User B is strict. Their shapes are identical, only the level differs.
@@ -113,9 +109,7 @@ Running Pearson over the toy matrix gives the heatmap below. Alice and Bob are t
 ### Predicting a rating
 
 Once we have the $k$ nearest neighbours $N_k(u)$ of user $u$:
-
 $$\hat{r}_{ui} = \bar{r}_u + \frac{\sum_{v \in N_k(u)} \text{sim}(u, v) \cdot (r_{vi} - \bar{r}_v)}{\sum_{v \in N_k(u)} |\text{sim}(u, v)|}$$
-
 Read it as: *"start at my average rating, then nudge up or down based on how my neighbours felt about this item, weighted by how much I trust each neighbour."* The $r_{vi} - \bar{r}_v$ term is what each neighbour does *relative to their own baseline* — exactly the same de-meaning idea as Pearson.
 
 ### A working implementation
@@ -215,15 +209,11 @@ Amazon's 2003 paper made Item-CF the industry default, for three boring but deci
 ### Adjusted cosine: the metric of choice
 
 For items $i$ and $j$ rated by the shared user set $U_{ij}$:
-
 $$\text{sim}(i, j) = \frac{\sum_{u \in U_{ij}} (r_{ui} - \bar{r}_u)(r_{uj} - \bar{r}_u)}{\sqrt{\sum_{u \in U_{ij}} (r_{ui} - \bar{r}_u)^2}\;\sqrt{\sum_{u \in U_{ij}} (r_{uj} - \bar{r}_u)^2}}$$
-
 Critical detail: we subtract the **user** mean, not the item mean. That removes the noise of "who tends to rate high"; what is left is whether two items provoke the same reaction in the same person.
 
 ### Predicting
-
 $$\hat{r}_{ui} = \bar{r}_u + \frac{\sum_{j \in N_k(i)} \text{sim}(i, j) \cdot (r_{uj} - \bar{r}_u)}{\sum_{j \in N_k(i)} |\text{sim}(i, j)|}$$
-
 The $k$ nearest neighbours of *item* $i$ now do the voting.
 
 ### Implementation
@@ -296,13 +286,9 @@ Item-CF is the workhorse, but on million-item catalogues even the precomputed si
 The rating matrix $R \in \mathbb{R}^{m \times n}$ is huge and almost empty. Yet the *signal* is low-rank: a handful of underlying "taste dimensions" explain most of the variance. Matrix factorization captures that intuition explicitly.
 
 We approximate
-
 $$R \approx P \cdot Q^{\!T}$$
-
 where $P \in \mathbb{R}^{m \times k}$ is a row per user and $Q \in \mathbb{R}^{n \times k}$ is a row per item. The dimension $k$ — typically 20–200 — is the number of latent factors. The predicted rating is just an inner product:
-
 $$\hat{r}_{ui} = \mathbf{p}_u \cdot \mathbf{q}_i = \sum_{f=1}^{k} p_{uf}\, q_{if}$$
-
 ![A sparse rating matrix R approximated by the product of two thin matrices P and Qᵀ; the question marks are the missing entries we want to fill](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/02-collaborative-filtering/fig4_matrix_factorization.png)
 
 ### Why this is so much better than neighbourhoods
@@ -323,19 +309,15 @@ A user vector $\mathbf{p}_u$ records *how much you care* about each axis; an ite
 ### The objective
 
 We fit $P$ and $Q$ to minimise squared error on observed ratings, with L2 regularization to stop the factors blowing up:
-
 $$\mathcal{L} = \sum_{(u,i) \in \mathcal{R}} (r_{ui} - \mathbf{p}_u \cdot \mathbf{q}_i)^2 + \lambda \big(\|\mathbf{p}_u\|^2 + \|\mathbf{q}_i\|^2\big)$$
-
 Two algorithms dominate the optimisation: SGD and ALS.
 
 ### Optimisation 1 — Stochastic gradient descent
 
 For one observed rating $(u, i)$ define the error $e_{ui} = r_{ui} - \hat{r}_{ui}$, then take a small step against the gradient:
-
 $$\mathbf{p}_u \leftarrow \mathbf{p}_u + \alpha\, (e_{ui}\, \mathbf{q}_i - \lambda\, \mathbf{p}_u)$$
 
 $$\mathbf{q}_i \leftarrow \mathbf{q}_i + \alpha\, (e_{ui}\, \mathbf{p}_u - \lambda\, \mathbf{q}_i)$$
-
 SGD is dead simple, easy to make online, and tiny in memory. Its weakness is that each update touches one cell at a time, so it converges slowly.
 
 ```python
@@ -385,13 +367,9 @@ class MatrixFactorization:
 ALS exploits a beautiful fact: **fix one of $P$ or $Q$ and the loss becomes a regularized linear regression with a closed-form solution.** So we alternate.
 
 Fixing $Q$, the optimal user vector is
-
 $$\mathbf{p}_u = (Q_u^{\!T} Q_u + \lambda I)^{-1} Q_u^{\!T} \mathbf{r}_u$$
-
 where $Q_u$ stacks the item vectors that user $u$ rated. By symmetry, fixing $P$:
-
 $$\mathbf{q}_i = (P_i^{\!T} P_i + \lambda I)^{-1} P_i^{\!T} \mathbf{r}_i$$
-
 Each half-step is a small linear solve, and crucially **the per-user updates are independent of each other** — perfect for distributed engines like Spark MLlib.
 
 ### SGD vs. ALS in practice
@@ -417,16 +395,14 @@ Plain factorization assumes ratings come purely from the user–item interaction
 - The whole platform has an average rating level (~3.5 on a 1–5 scale is typical).
 
 Adding bias terms costs almost nothing and usually drops RMSE by 10–20 %:
-
 $$\hat{r}_{ui} = \mu + b_u + b_i + \mathbf{p}_u \cdot \mathbf{q}_i$$
-
 where $\mu$ is the global mean, $b_u$ is the user offset, and $b_i$ is the item offset. The factor vectors are then free to model only the *interaction* — the part of the rating that is genuinely about taste.
 
 Initialise the biases from data, then learn them jointly with the factors:
-
-$$b_u^{(0)} = \frac{1}{|I_u|}\sum_{i \in I_u}(r_{ui} - \mu), \qquad
-b_i^{(0)} = \frac{1}{|U_i|}\sum_{u \in U_i}(r_{ui} - \mu - b_u^{(0)})$$
-
+$$
+b_u^{(0)} = \frac{1}{|I_u|}\sum_{i \in I_u}(r_{ui} - \mu), \qquad
+b_i^{(0)} = \frac{1}{|U_i|}\sum_{u \in U_i}(r_{ui} - \mu - b_u^{(0)})
+$$
 The SGD update gains two extra lines:
 
 ```python
@@ -443,9 +419,7 @@ That is the "SVD" of the Netflix Prize era — not the textbook singular value d
 Most user behaviour is *implicit*: clicks, scrolls, dwell time, purchases without rating. SVD++ uses these silent signals to build a richer user vector.
 
 Let $I_u$ be the items user $u$ has *touched in any way* (rated or not). For each such item we learn an additional vector $\mathbf{y}_j$. The user's representation becomes
-
 $$\hat{r}_{ui} = \mu + b_u + b_i + \mathbf{q}_i^{\!T} \left(\mathbf{p}_u + |I_u|^{-1/2}\sum_{j \in I_u} \mathbf{y}_j\right)$$
-
 The bracketed term reads: *"start from your explicit factors, then add the average of all the implicit-feedback embeddings of items you've interacted with."* The $|I_u|^{-1/2}$ keeps power users from dominating.
 
 ```python
@@ -476,9 +450,7 @@ In the Netflix Prize, going from biased MF → SVD++ shaved another ~2 % off RMS
 Squared error is the wrong loss if your real metric is *Did the user click the top item?* RMSE penalises a 4.6 prediction for a true 5 just as much as it penalises ranking *Pursuit* above *Shawshank*.
 
 Bayesian Personalized Ranking (BPR) reframes the problem. Build triples $(u, i, j)$ where user $u$ has interacted with item $i$ but not item $j$. Then maximise the probability that the model scores $i$ above $j$:
-
 $$\mathcal{L} = \sum_{(u, i, j) \in D_S} \ln \sigma(\hat{r}_{ui} - \hat{r}_{uj}) - \lambda \|\Theta\|^2$$
-
 where $\sigma$ is the logistic function. Because BPR only uses the *order* of pairs, it shrugs off the absence of negative samples — exactly the situation in implicit-feedback data.
 
 The SGD updates fall out of the gradient. For one triple $(u, i, j)$ with $x_{uij} = \sigma(\hat{r}_{uj} - \hat{r}_{ui})$:
@@ -496,13 +468,9 @@ Empirically, BPR pushes AUC 5–10 % above plain MF on implicit data. It is the 
 ## 8 · Factorization Machines — when you have side features
 
 Pure MF only knows about user IDs and item IDs. But you usually have more: the user's age, the item's category, the time of day. Factorization Machines (Rendle, 2010) generalise MF to any sparse feature vector $\mathbf{x}$:
-
 $$\hat{y}(\mathbf{x}) = w_0 + \sum_{i=1}^{n} w_i x_i + \sum_{i=1}^{n}\sum_{j=i+1}^{n} \langle \mathbf{v}_i, \mathbf{v}_j \rangle\, x_i\, x_j$$
-
 Every feature gets a latent vector $\mathbf{v}_i$, and pairwise interactions are scored by inner products. The clever bit is that the seemingly $O(n^2)$ interaction term collapses to $O(kn)$:
-
 $$\sum_{i<j} \langle \mathbf{v}_i, \mathbf{v}_j \rangle x_i x_j = \tfrac{1}{2}\sum_{f=1}^{k}\!\left[\Big(\sum_i v_{i,f} x_i\Big)^2 - \sum_i v_{i,f}^2 x_i^2\right]$$
-
 Linear in features and factors, so FM scales to industrial CTR datasets with millions of one-hot features.
 
 If you set $\mathbf{x}$ to be just `[user_one_hot ; item_one_hot]`, FM reduces exactly to matrix factorization — MF is the special case where features are only IDs.

@@ -55,20 +55,16 @@ LSTM 和 GRU 按时间步顺序处理序列，由此带来三个根本限制：
 | 输出头       | 对词汇表做 softmax                | 使用**线性层**输出实值预测向量                        |
 
 其余部分——多头自注意力、前馈网络、残差连接、LayerNorm、解码器 cross-attention、因果掩码——均保持不变。每个 block 包含四个子层：
-
 $$
 \begin{aligned}
 h_1 &= \text{LayerNorm}(x + \text{MHSA}(x)) \\
 h_2 &= \text{LayerNorm}(h_1 + \text{FFN}(h_1))
 \end{aligned}
 $$
-
 注意力机制仍采用第 4 篇介绍的标准缩放点积形式：
-
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
 $$
-
 ### 2.1 编码器
 
 编码器读取 lookback 窗口 $x_{t-L+1:t}$，输出上下文矩阵 $M \in \mathbb{R}^{L \times d_{\text{model}}}$。此处不使用掩码，即每个位置可关注窗口内所有其他位置。
@@ -87,12 +83,10 @@ $$
 ## 3. 时间序列的位置编码
 
 自注意力具有排列不变性——打乱输入顺序，输出不变。这对语言建模已是问题，对时间序列更是灾难。为此，我们注入位置信息，最经典的方式是正弦编码：
-
 $$
 \text{PE}_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right), \quad
 \text{PE}_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).
 $$
-
 每个位置 $p$ 获得一个由几何级数频率构成的**唯一签名**：低维分量高频振荡（编码短程位置），高维分量低频振荡（编码长程位置）。
 
 ![正弦位置编码。左：完整编码矩阵，每一行都是唯一标识。右：四个代表性维度，频率各不相同。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig2_positional_encoding.png)
@@ -157,11 +151,9 @@ class TemporalPositionalEncoding(nn.Module):
 ## 5. O(n²) 瓶颈
 
 朴素注意力每层每头需存储 $n \times n$ 的得分矩阵。以 fp16 精度、8 个头计算，单层注意力内存占用为：
-
 $$
 M_{\text{attn}} = h \cdot n^2 \cdot 2 \;\text{bytes}.
 $$
-
 当 $n=512$ 时仅占 4 MB，尚可接受；$n=4096$ 时达 256 MB，已显吃力；$n=16384$ 时单层注意力矩阵就超过 4 GB。计算复杂度同样为 $O(n^2 d_{\text{model}})$ FLOPs。
 
 ![注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步后就跑不动了；稀疏、线性、Patching 三类方案能把开销压回可控范围。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig5_quadratic_bottleneck.png)
@@ -337,9 +329,7 @@ Transformer 并非魔法——它只是让每个时间步都能**并行地、直
 3. **按数据特性选模型**：多元预测首选 PatchTST 或 iTransformer；强周期性数据适用 FEDformer / Autoformer；基础模型迁移任务则倾向 decoder-only 架构。
 
 无论何种变体，核心注意力公式始终如一：
-
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
 $$
-
 本文所有内容，本质上都是在此公式之上的工程实践。

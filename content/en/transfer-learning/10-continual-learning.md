@@ -55,16 +55,16 @@ Three scenarios make the difficulty concrete (van de Ven & Tolias, 2019):
 - **Class-IL.** Each task introduces *new classes* and the learner must classify across **all** classes seen so far without knowing which task a sample came from. This is the hardest setting and the one most relevant to deployment.
 
 **Standard metrics.** Let $R_{i,j}$ be the accuracy on task $j$ after training on task $i$. After all $T$ tasks:
-
-$$\mathrm{Avg} \;=\; \frac{1}{T}\sum_{j=1}^{T} R_{T,j}, \qquad
-\mathrm{Forgetting} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1}\!\left(\max_{t \le T} R_{t,j} - R_{T,j}\right).$$
-
+$$
+\mathrm{Avg} \;=\; \frac{1}{T}\sum_{j=1}^{T} R_{T,j}, \qquad
+\mathrm{Forgetting} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1}\!\left(\max_{t \le T} R_{t,j} - R_{T,j}\right).
+$$
 Lopez-Paz & Ranzato (2017) add two more, made for measuring transfer rather than retention:
-
-$$\mathrm{BWT} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1} (R_{T,j} - R_{j,j}),
+$$
+\mathrm{BWT} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1} (R_{T,j} - R_{j,j}),
 \qquad
-\mathrm{FWT} \;=\; \frac{1}{T-1}\sum_{j=2}^{T} (R_{j-1,j} - b_j),$$
-
+\mathrm{FWT} \;=\; \frac{1}{T-1}\sum_{j=2}^{T} (R_{j-1,j} - b_j),
+$$
 where $b_j$ is a random/untrained baseline on task $j$. **BWT < 0** is forgetting; **BWT > 0** is the rare and desirable phenomenon of *positive backward transfer* (learning later tasks helps earlier ones). **FWT > 0** means earlier tasks pre-shape representations that help future tasks zero-shot.
 
 ![Transfer matrix R[i,j] with FWT and BWT regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig6_transfer_matrix.png)
@@ -78,9 +78,7 @@ where $b_j$ is a random/untrained baseline on task $j$. **BWT < 0** is forgettin
 ### Gradient interference
 
 For two tasks, write the gradients $\mathbf{g}_1 = \nabla_\theta \mathcal{L}_1$ and $\mathbf{g}_2 = \nabla_\theta \mathcal{L}_2$. A single SGD step on task 2 changes $\mathcal{L}_1$ to first order by
-
 $$\Delta \mathcal{L}_1 \approx -\eta\, \mathbf{g}_1 \cdot \mathbf{g}_2.$$
-
 If $\mathbf{g}_1 \cdot \mathbf{g}_2 < 0$, every step on task 2 *increases* the task-1 loss. In high-dimensional networks gradients of unrelated tasks are typically nearly orthogonal but the negative-cosine fraction is large enough to be devastating after thousands of steps.
 
 ### Loss-landscape view
@@ -92,9 +90,7 @@ The optima $\theta_1^{*}$ and $\theta_2^{*}$ live in different low-loss basins. 
 ### Fisher information = parameter importance
 
 The Fisher information matrix of the model's predictive distribution $p_\theta(y \mid x)$ is
-
 $$F(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D},\, y \sim p_\theta(\cdot \mid x)}\!\left[\nabla_\theta \log p_\theta(y \mid x)\, \nabla_\theta \log p_\theta(y \mid x)^{\top}\right].$$
-
 At a local optimum the Fisher equals the (positive semi-definite) Hessian of the negative log-likelihood, so the diagonal $F_i$ measures how steeply the loss rises when $\theta_i$ is perturbed. A large $F_i$ means $\theta_i$ is *load-bearing* for the task — protect it. A small $F_i$ means the loss is flat in that direction — it is safe to repurpose the parameter for a new task. Every regularisation method below is a specific answer to "how should we pick which parameters to protect?".
 
 ---
@@ -104,29 +100,21 @@ At a local optimum the Fisher equals the (positive semi-definite) Hessian of the
 ### Elastic Weight Consolidation (EWC)
 
 Kirkpatrick et al. (2017) approximate the posterior over $\theta$ after task A by a Gaussian centred at $\theta_A^{*}$ with precision proportional to the Fisher diagonal. A second-order Taylor expansion of the task-A negative log-likelihood around $\theta_A^{*}$ then gives
-
 $$\mathcal{L}_A(\theta) \;\approx\; \mathcal{L}_A(\theta_A^{*}) + \tfrac{1}{2} (\theta - \theta_A^{*})^{\top} F_A\, (\theta - \theta_A^{*}).$$
-
 Adding this as a penalty when learning task B yields the EWC objective:
-
 $$\boxed{\;\mathcal{L}(\theta) \;=\; \mathcal{L}_B(\theta) \;+\; \frac{\lambda}{2} \sum_i F_{A,i}\, (\theta_i - \theta_{A,i}^{*})^{2}\;}$$
-
 Geometrically EWC anchors a quadratic well at the old optimum whose curvature matches the *true* curvature of the old loss. Updates are cheap in directions where $F_i$ is small (the loss was flat anyway) and expensive where $F_i$ is large.
 
 ![EWC penalty as a quadratic well in parameter space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig2_ewc_penalty.png)
 
 For a sequence of tasks one can either accumulate Fisher matrices, $F_{1:t} = \sum_{k \le t} F_k$, or use **Online EWC** (Schwarz et al., 2018) with a discount $\gamma \in (0, 1)$:
-
 $$\tilde F_t \;=\; \gamma\, \tilde F_{t-1} + F_t, \qquad \theta^{*}_{1:t} = \theta^{*}_t.$$
-
 Picking $\lambda$ matters. Too small and forgetting wins; too large and the model becomes plastic-blind ("rigidity"). Typical ranges are $\lambda \in [10^2, 10^4]$ for Permuted MNIST and $\lambda \in [1, 10]$ for Split CIFAR.
 
 ### Memory Aware Synapses (MAS)
 
 EWC needs labels (the log-likelihood). Aljundi et al. (2018) replace it with the gradient of the squared output norm:
-
 $$\Omega_i \;=\; \mathbb{E}_{x}\!\left[\, \left| \frac{\partial \, \tfrac{1}{2}\|f(x;\theta)\|_2^{2}}{\partial \theta_i} \right| \, \right].$$
-
 This is **unsupervised** — you can compute it on unlabelled data, even on the test stream — which is a real advantage in deployed settings.
 
 ### Synaptic Intelligence (SI)
@@ -136,9 +124,7 @@ Zenke et al. (2017) compute importance *online* during training as the path inte
 ### Learning without Forgetting (LwF)
 
 Li & Hoiem (2017) take a different angle: instead of penalising parameter drift, penalise *output* drift. Snapshot the old model $f_{\text{old}}$ before training on the new task. For each new-task input $x$, compute soft targets $\sigma(z^{\text{old}}/T)$ and distill them into the new model on the *old* output heads, while training the new heads on the new task's labels:
-
 $$\mathcal{L} \;=\; \underbrace{\mathcal{L}_{\text{CE}}\bigl(y,\, z^{\text{new}}_{\text{new heads}}\bigr)}_{\text{learn new task}} \;+\; \alpha\, \underbrace{T^{2}\, \mathrm{KL}\!\bigl(\sigma(z^{\text{old}}/T)\,\Vert\,\sigma(z^{\text{new}}_{\text{old heads}}/T)\bigr)}_{\text{don't move old outputs}}.$$
-
 LwF needs no old data and no Fisher matrix — only the old model. The temperature $T$ (typically 2-4) softens the distributions so the distillation signal carries shape information beyond the argmax.
 
 ![LwF: knowledge distillation from frozen old model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig5_lwf_distillation.png)
@@ -154,22 +140,18 @@ A different philosophy: *keep* a small slice of the past around. With even a tin
 ### Experience Replay (ER)
 
 Maintain a memory $\mathcal{M}$ of size $N$. At every step sample $B_{\text{new}}$ from the new stream and $B_{\text{mem}}$ from $\mathcal{M}$, optimise
-
 $$\mathcal{L} \;=\; \mathcal{L}_{\text{new}}(B_{\text{new}}) \;+\; \alpha\, \mathcal{L}_{\text{mem}}(B_{\text{mem}}),$$
-
 then write some new samples back into $\mathcal{M}$. **Reservoir sampling** keeps a uniform sample over the entire past stream with a fixed-size buffer (Vitter, 1985); **class-balanced** sampling guarantees coverage of every class. Empirically $|B_{\text{mem}}| = |B_{\text{new}}|$ already recovers most of the joint-training accuracy on Split-CIFAR-style benchmarks.
 
 ### GEM and A-GEM
 
 Lopez-Paz & Ranzato (2017) frame the gradient step itself as a constrained optimisation: pick the new gradient $\tilde{\mathbf{g}}$ closest to $\mathbf{g}_{\text{new}}$ that does not increase the loss on any past task represented in memory:
-
-$$\min_{\tilde{\mathbf{g}}} \tfrac{1}{2}\|\tilde{\mathbf{g}} - \mathbf{g}_{\text{new}}\|^{2}
-\quad \text{s.t.} \quad \tilde{\mathbf{g}} \cdot \mathbf{g}_{k} \;\ge\; 0 \quad \forall k = 1, \ldots, t-1.$$
-
+$$
+\min_{\tilde{\mathbf{g}}} \tfrac{1}{2}\|\tilde{\mathbf{g}} - \mathbf{g}_{\text{new}}\|^{2}
+\quad \text{s.t.} \quad \tilde{\mathbf{g}} \cdot \mathbf{g}_{k} \;\ge\; 0 \quad \forall k = 1, \ldots, t-1.
+$$
 This is a quadratic program with one constraint per past task — it scales poorly. **A-GEM** (Chaudhry et al., 2019) keeps a single reference gradient $\mathbf{g}_{\text{ref}}$ averaged over a random batch from $\mathcal{M}$ and projects only when the cosine is negative:
-
 $$\tilde{\mathbf{g}} \;=\; \mathbf{g}_{\text{new}} \;-\; \frac{\mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}}}{\|\mathbf{g}_{\text{ref}}\|^{2}}\, \mathbf{g}_{\text{ref}} \quad \text{if } \mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}} < 0,$$
-
 otherwise $\tilde{\mathbf{g}} = \mathbf{g}_{\text{new}}$. The cost is one extra forward/backward on the reference batch and a single dot product — a thousand times cheaper than GEM and almost as accurate.
 
 ### DER and DER++

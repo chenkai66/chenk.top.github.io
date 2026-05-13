@@ -49,9 +49,7 @@ The naive workaround is to **engineer features by hand**: add polynomial terms, 
 ## The kernel trick: implicit feature mapping
 
 Here is the central observation. Suppose your algorithm only ever touches the data through inner products $\langle \phi(x_i), \phi(x_j) \rangle$. Then, instead of computing $\phi$ at all, you can pick a function
-
 $$K(x_i, x_j) = \langle \phi(x_i), \phi(x_j) \rangle$$
-
 that returns the inner product directly. The algorithm gets the same answer it would have computed in the high-dimensional space, but it never builds $\phi(x)$.
 
 > **The kernel trick** trades an explicit map $x \mapsto \phi(x)$ for an implicit one defined by a similarity function $K(x, y)$.
@@ -65,9 +63,7 @@ Three results turn the kernel trick from a clever hack into a theory: positive-d
 ## Positive-definite kernels
 
 A symmetric function $K: \mathcal{X} \times \mathcal{X} \to \mathbb{R}$ is **positive definite** if for every finite set $\{x_1, \dots, x_n\}$ and every real vector $c \in \mathbb{R}^n$,
-
 $$\sum_{i,j=1}^n c_i c_j \, K(x_i, x_j) \;\geq\; 0.$$
-
 Equivalently, the **Gram matrix** $K_{ij} = K(x_i, x_j)$ is positive semi-definite (PSD) for any sample of points.
 
 Why this matters: positive-definite kernels are exactly the functions that arise as inner products in *some* Hilbert space. So picking a PD kernel is equivalent to picking an implicit feature map — you just don't have to write it down.
@@ -75,13 +71,9 @@ Why this matters: positive-definite kernels are exactly the functions that arise
 ## Mercer's theorem
 
 If $K$ is continuous, symmetric, and positive definite on a compact set, then it has a spectral decomposition
-
 $$K(x, y) \;=\; \sum_{k=1}^{\infty} \lambda_k \, \phi_k(x) \, \phi_k(y), \qquad \lambda_k \geq 0,$$
-
 where the $\phi_k$ are orthonormal eigenfunctions and the $\lambda_k$ are non-negative eigenvalues. The implicit feature map is
-
 $$\phi(x) \;=\; \big(\sqrt{\lambda_1}\,\phi_1(x),\; \sqrt{\lambda_2}\,\phi_2(x),\; \dots\big).$$
-
 ![Mercer's theorem: the RBF kernel as a sum of eigenfunctions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/kernel-methods/fig4_mercer.png)
 
 Two things to read off the figure:
@@ -101,13 +93,9 @@ The Moore-Aronszajn theorem says: every positive-definite kernel uniquely define
 The reproducing property is what makes RKHS theory powerful: function evaluation is a *bounded* linear operation, given by an inner product against $K(x, \cdot)$.
 
 The practical consequence is the **representer theorem**. When you minimise a regularised risk
-
 $$\min_{f \in \mathcal{H}_K} \;\frac{1}{n}\sum_i L(y_i, f(x_i)) \;+\; \lambda \|f\|_{\mathcal{H}_K}^2,$$
-
 the optimal $f^*$ always lies in the finite-dimensional subspace spanned by $\{K(x_i, \cdot)\}_{i=1}^n$:
-
 $$f^*(x) \;=\; \sum_{i=1}^n \alpha_i \, K(x_i, x).$$
-
 You only ever need $n$ coefficients $\alpha_i$, no matter how infinite-dimensional $\mathcal{H}_K$ is. That is the structural reason kernel SVMs and Gaussian processes are tractable.
 
 ## The Kernel Trick in Action
@@ -115,27 +103,19 @@ You only ever need $n$ coefficients $\alpha_i$, no matter how infinite-dimension
 ## Kernel SVM
 
 The dual of the soft-margin SVM is
-
 $$\max_{\alpha} \;\sum_i \alpha_i \;-\; \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j \,\langle x_i, x_j \rangle, \qquad 0 \leq \alpha_i \leq C.$$
-
 The data appears only through the inner product $\langle x_i, x_j\rangle$. Replace it with $K(x_i, x_j)$ and you have a non-linear classifier with the *same* optimisation problem, *same* number of variables, *same* solver. The decision function becomes
-
 $$f(x) \;=\; \sum_{i \in \mathrm{SV}} \alpha_i y_i \, K(x_i, x) + b.$$
-
 ## Kernel PCA
 
 Standard PCA eigendecomposes the $d \times d$ covariance matrix. Kernel PCA eigendecomposes the $n \times n$ centred Gram matrix instead. The top eigenvectors $\alpha^{(k)}$ give projections
-
 $$z_k(x) \;=\; \sum_{i=1}^n \alpha_i^{(k)} \, K(x_i, x),$$
-
 which extract non-linear principal components without ever materialising $\phi(x)$.
 
 ## Kernel ridge regression
 
 The minimiser of $\sum_i (y_i - f(x_i))^2 + \lambda \|f\|^2_{\mathcal{H}_K}$ has a closed form,
-
 $$\hat{f}(x) = \mathbf{k}(x)^\top (K + \lambda I)^{-1} \mathbf{y},$$
-
 where $\mathbf{k}(x)_i = K(x_i, x)$. This is also the posterior mean of a Gaussian process with covariance $K$ and noise $\lambda$.
 
 ## Common Kernels: Theory and Practice
@@ -145,9 +125,7 @@ where $\mathbf{k}(x)_i = K(x_i, x)$. This is also the posterior mean of a Gaussi
 Pick one dataset, swap the kernel, and the decision boundary changes character entirely. Linear can't bend, polynomial bends in algebraic shapes, RBF wraps tightly around the data, sigmoid often misbehaves. Below is the working manual.
 
 ## 1. RBF (Gaussian) kernel
-
 $$K(x, y) = \exp\!\left(-\gamma \,\|x - y\|^2\right) \quad \text{or} \quad \exp\!\left(-\frac{\|x-y\|^2}{2\sigma^2}\right).$$
-
 (scikit-learn uses $\gamma$; many textbooks use $\sigma$. The relation is $\gamma = 1/(2\sigma^2)$.)
 
 **Properties.** Infinite-dimensional feature space, infinitely differentiable, *universal* (it can approximate any continuous function on a compact set, given enough data and the right bandwidth).
@@ -163,9 +141,7 @@ $$K(x, y) = \exp\!\left(-\gamma \,\|x - y\|^2\right) \quad \text{or} \quad \exp\
 - **Sweet spot.** Found by cross-validation on a *log* grid. A reasonable starting point is the **median heuristic**: $\sigma \approx \mathrm{median}(\|x_i - x_j\|)$, equivalently $\gamma \approx 1/(2 \cdot \mathrm{median}^2)$.
 
 ## 2. Polynomial kernel
-
 $$K(x, y) = (\gamma\, \langle x, y \rangle + c)^d.$$
-
 **Properties.** Finite-dimensional feature space (all monomials up to degree $d$). Captures explicit interactions of order up to $d$.
 
 **When to use.** Sparse high-dimensional data with known interactions (text classification with bigrams; genomics with epistasis). Avoid for dense low-dimensional data — RBF usually wins.
@@ -173,23 +149,17 @@ $$K(x, y) = (\gamma\, \langle x, y \rangle + c)^d.$$
 **Hyperparameters.** $d \in \{2, 3\}$ in practice; degree-$5+$ polynomials almost always overfit. $\gamma$ scales the inner product (sensitive to feature magnitudes; *normalise first*). $c$ controls the trade-off between low- and high-order terms; $c = 0$ keeps only top-order monomials, $c = 1$ mixes all orders.
 
 ## 3. Linear kernel
-
 $$K(x, y) = \langle x, y \rangle.$$
-
 The trivial kernel. No feature mapping, $O(d)$ per evaluation, equivalent to running the linear algorithm directly.
 
 **When to use.** Linearly separable data, very high-dimensional sparse data (text, gene expression), or as a baseline. For text in particular, linear SVMs often beat RBF — the curse of dimensionality is on your side here, since random points in high-$d$ space are nearly orthogonal.
 
 ## 4. Sigmoid kernel
-
 $$K(x, y) = \tanh(\gamma\, \langle x, y \rangle + c).$$
-
 Modelled after a neural network activation, but **not always positive definite** — only for certain ranges of $\gamma, c$. Modern practice has largely abandoned it: if you want neural-network-style nonlinearity, train a neural network. Keeping it here mostly so you recognise it in legacy code.
 
 ## 5. Matern kernel (Gaussian processes)
-
 $$K_\nu(r) = \frac{2^{1-\nu}}{\Gamma(\nu)} \left(\frac{\sqrt{2\nu}\, r}{\ell}\right)^{\!\nu} \! K_\nu\!\left(\frac{\sqrt{2\nu}\, r}{\ell}\right), \qquad r = \|x - y\|.$$
-
 The Matern kernel has a **tunable smoothness parameter** $\nu$:
 
 - $\nu = 1/2$: exponential kernel; sample paths are continuous but nowhere differentiable. Good for rough functions.
@@ -200,9 +170,7 @@ The Matern kernel has a **tunable smoothness parameter** $\nu$:
 **When to use.** Almost always preferable to RBF for Gaussian-process regression. RBF's infinite smoothness is unrealistically strong for most real functions; Matern with $\nu = 5/2$ is the workhorse default.
 
 ## 6. Periodic kernel (time series)
-
 $$K(x, y) = \exp\!\left(-\frac{2 \sin^2(\pi \|x - y\| / p)}{\ell^2}\right).$$
-
 Captures **strict periodicity** with period $p$. Combine additively with an RBF or linear kernel to model "trend + seasonality".
 
 **When to use.** Time series with seasonality (temperature, electricity load, sales). Audio pitch tracking. Any signal with a known periodic component.
@@ -251,9 +219,7 @@ rs.fit(X_train, y_train)
 ## Marginal likelihood (Gaussian processes)
 
 For GP regression you can tune $\theta$ (the kernel hyperparameters) by maximising the log marginal likelihood
-
 $$\log p(\mathbf{y} \mid \theta) = -\tfrac{1}{2} \mathbf{y}^\top (K_\theta + \sigma^2 I)^{-1} \mathbf{y} \;-\; \tfrac{1}{2} \log |K_\theta + \sigma^2 I| \;-\; \tfrac{n}{2}\log(2\pi).$$
-
 This is **principled** (no held-out set needed) and decomposes into a fit term, a complexity penalty, and a constant — Occam's razor falls out of the math. Caveat: with noisy data and many hyperparameters, marginal-likelihood optimisation can overfit; add weak priors (e.g., log-normal) on length scales.
 
 ## Diagnostics: Read the Gram Matrix

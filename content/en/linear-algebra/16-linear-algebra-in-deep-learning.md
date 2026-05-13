@@ -38,25 +38,19 @@ This chapter rebuilds the modern stack from that single language. We follow one 
 ### 1.1 One neuron, one inner product
 
 A neuron does the simplest thing imaginable: take a weighted sum, add a bias, squash it.
-
 $$h \;=\; \sigma(\mathbf{w}^{\top}\mathbf{x} + b)$$
-
 That is **one inner product plus one nonlinearity**. Stop here and the rest of deep learning is just stacking and broadcasting this primitive.
 
 ### 1.2 Stack neurons — get a matrix
 
 Pack $m$ neurons' weight vectors as the rows of a matrix $\mathbf{W} \in \mathbb{R}^{m \times d}$:
-
 $$\mathbf{h} \;=\; \sigma(\mathbf{W}\mathbf{x} + \mathbf{b})$$
-
 Geometrically, $\mathbf{W}$ is a linear map from a $d$-dimensional input space into an $m$-dimensional feature space; $\sigma$ then bends that space so it is no longer flat. Without $\sigma$ a stack of layers would collapse to a single matrix product — the nonlinearity is what breaks the closure of matrix multiplication and makes universal approximation possible.
 
 ### 1.3 Batch is not optional
 
 GPUs are GEMM machines. A single sample wastes nearly all of their FLOPs. Stack $B$ samples as rows of $\mathbf{X} \in \mathbb{R}^{B \times d}$ and a layer becomes one giant matmul:
-
 $$\mathbf{H} \;=\; \sigma(\mathbf{X}\mathbf{W}^{\top} + \mathbf{1}\mathbf{b}^{\top})$$
-
 Bigger $B$ means bigger matrices means higher arithmetic intensity means happier silicon.
 
 ![Neural network as a chain of matrix multiplications](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/fig1_network_as_matmul.png)
@@ -93,25 +87,17 @@ Consider $\mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b}$, $\mathbf{h} = \sigma(
 
 1. **Receive** the upstream gradient $\partial L/\partial \mathbf{h}$ from the next layer.
 2. **Push through the activation** (Hadamard product with the elementwise derivative):
-
 $$\frac{\partial L}{\partial \mathbf{z}} \;=\; \frac{\partial L}{\partial \mathbf{h}} \odot \sigma'(\mathbf{z})$$
-
 3. **Compute parameter gradients** (outer products):
-
 $$\frac{\partial L}{\partial \mathbf{W}} \;=\; \frac{\partial L}{\partial \mathbf{z}}\,\mathbf{x}^{\top}, \qquad \frac{\partial L}{\partial \mathbf{b}} \;=\; \frac{\partial L}{\partial \mathbf{z}}$$
-
 4. **Pass to the previous layer** (transposed map):
-
 $$\frac{\partial L}{\partial \mathbf{x}} \;=\; \mathbf{W}^{\top}\,\frac{\partial L}{\partial \mathbf{z}}$$
-
 Why $\mathbf{W}^{\top}$? Because $\mathbf{W}$ pushes $\mathbf{x}$ forward; its transpose — the **adjoint** — pulls gradients back. This is exactly the duality theorem for linear maps, dressed up in calculus notation.
 
 ### 2.2 Batched form
 
 For a batch $\mathbf{X} \in \mathbb{R}^{B \times d}$ with post-activation gradient $\boldsymbol{\Delta}$:
-
 $$\frac{\partial L}{\partial \mathbf{W}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{X}, \qquad \frac{\partial L}{\partial \mathbf{b}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{1}, \qquad \frac{\partial L}{\partial \mathbf{X}} \;=\; \boldsymbol{\Delta}\,\mathbf{W}$$
-
 Notice the parameter gradient is a **sum of outer products** — contributions from every sample, all packaged in a single matmul.
 
 ```python
@@ -139,9 +125,7 @@ class ManualLinear:
 ### 2.3 The Jacobian view
 
 For any $\mathbf{y} = f(\mathbf{x})$ the Jacobian $\mathbf{J}_{ij} = \partial y_i / \partial x_j$ is the local linear approximation. The chain rule then reads as a product of Jacobians:
-
 $$\nabla_{\!\mathbf{x}} L \;=\; \mathbf{J}^{\top}\,\nabla_{\!\mathbf{y}} L$$
-
 For a linear layer $\mathbf{y} = \mathbf{W}\mathbf{x}$ the Jacobian is literally $\mathbf{W}$. For a deep network it is $\mathbf{J}_L \mathbf{J}_{L-1} \cdots \mathbf{J}_1$, and the gradient norm is bounded by the product of the operator norms. That single observation explains every "vanishing/exploding gradient" pathology you have ever read about.
 
 ---
@@ -151,9 +135,7 @@ For a linear layer $\mathbf{y} = \mathbf{W}\mathbf{x}$ the Jacobian is literally
 ### 3.1 One dimension: a Toeplitz matrix
 
 A 1D convolution with kernel $\mathbf{w} = [w_0, w_1, w_2]$ acting on a length-5 input is the same as multiplying by a banded **Toeplitz matrix**:
-
 $$\mathbf{T} \;=\; \begin{bmatrix} w_2 & w_1 & w_0 & 0 & 0 \\ 0 & w_2 & w_1 & w_0 & 0 \\ 0 & 0 & w_2 & w_1 & w_0 \end{bmatrix}, \qquad \mathbf{y} = \mathbf{T}\mathbf{x}$$
-
 So convolution was always a matrix product. The only reason we don't write it that way is that $\mathbf{T}$ is enormous and almost entirely zero.
 
 ### 3.2 Two dimensions: im2col
@@ -239,9 +221,7 @@ You walk into a library with a question. Each book has a **key** (its keywords) 
 That is the entire mechanism. The clever part is that all of it is matmuls.
 
 ### 4.2 Scaled dot-product attention, four steps
-
 $$\mathrm{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) \;=\; \mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{\top}}{\sqrt{d_k}}\right)\mathbf{V}$$
-
 Read the four panels left to right:
 
 ![Scaled dot-product attention as four matrix steps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/fig4_attention.png)
@@ -269,9 +249,7 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
 ### 4.3 Multi-head: many subspaces in parallel
 
 One attention head learns one notion of "relevance". Real language wants many — syntactic, semantic, positional. Multi-head attention runs $h$ heads in parallel, each in a $d_k = d_{\rm model}/h$ subspace, then mixes them.
-
 $$\mathrm{MultiHead}(\mathbf{X}) = \mathrm{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}^O$$$$\text{head}_i = \mathrm{Attention}(\mathbf{X}\mathbf{W}_i^Q,\,\mathbf{X}\mathbf{W}_i^K,\,\mathbf{X}\mathbf{W}_i^V)$$
-
 The projection matrices $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V$ carve up the $d_{\rm model}$-dimensional embedding into $h$ disjoint subspaces; $\mathbf{W}^O$ glues the head outputs back together.
 
 ```python
@@ -306,9 +284,7 @@ A Transformer encoder layer is just four ingredients in a fixed pattern.
 
 - **Multi-head self-attention** (Section 4).
 - **Position-wise FFN.** A two-layer MLP, applied independently at each token position, that expands and re-projects:
-
 $$\mathrm{FFN}(\mathbf{x}) = \mathbf{W}_2\,\mathrm{ReLU}(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2$$
-
 - **Residual connections.** Every sublayer outputs $\mathbf{x} + \mathrm{sublayer}(\mathbf{x})$. The Jacobian becomes $\mathbf{I} + \mathbf{J}$, with eigenvalues clustered near 1 — gradients always have an unobstructed shortcut backwards.
 - **Layer normalization** (Section 6).
 
@@ -320,9 +296,7 @@ def causal_mask(seq_len):
 ```
 
 Because there is no recurrence, the model needs **positional encoding** to know where each token sits. Sinusoidal encodings,
-
 $$\mathrm{PE}_{(\mathrm{pos}, 2i)} = \sin(\mathrm{pos}/10000^{2i/d}), \qquad \mathrm{PE}_{(\mathrm{pos}, 2i+1)} = \cos(\mathrm{pos}/10000^{2i/d})$$
-
 have the elegant property that $\mathrm{PE}_{\mathrm{pos}+k}$ is a **linear function** of $\mathrm{PE}_{\mathrm{pos}}$ — relative position is encoded as a fixed rotation in feature space.
 
 ---
@@ -343,9 +317,7 @@ Reading the matrix mental model: BatchNorm standardises **columns** of the activ
 ### 6.2 RMSNorm: drop the mean
 
 LLaMA-style models simplify further. Skip the mean subtraction and just rescale by the root-mean-square:
-
 $$\hat{x} = \frac{x}{\mathrm{RMS}(x)} \cdot \gamma, \qquad \mathrm{RMS}(x) = \sqrt{\tfrac{1}{d}\sum_i x_i^2}$$
-
 Roughly half the FLOPs of LayerNorm, comparable downstream quality. Modern LLMs adopt it almost universally.
 
 ---
@@ -359,13 +331,9 @@ Every issue with training depth ultimately reduces to one quantity: **the singul
 Want signals to neither explode nor vanish through $L$ layers? Then every layer should approximately preserve variance. For a linear layer $\mathbf{y} = \mathbf{W}\mathbf{x}$ with i.i.d. zero-mean inputs and weights, $\mathrm{Var}(y_i) = n_{\rm in}\,\mathrm{Var}(W_{ij})\,\mathrm{Var}(x)$. Setting this equal to $\mathrm{Var}(x)$ gives the initialization rules.
 
 - **Xavier (Glorot)**, designed for $\tanh$/sigmoid:
-
 $$w_{ij} \sim \mathcal{U}\!\left[-\sqrt{\tfrac{6}{n_{\rm in} + n_{\rm out}}},\;\sqrt{\tfrac{6}{n_{\rm in} + n_{\rm out}}}\right]$$
-
 - **He (Kaiming)**, designed for ReLU (which kills half the units, halving the variance, so we double the scale):
-
 $$w_{ij} \sim \mathcal{N}\!\left(0,\,\tfrac{2}{n_{\rm in}}\right)$$
-
 ### 7.2 What the spectrum says
 
 The product $\mathbf{W}_L \mathbf{W}_{L-1} \cdots \mathbf{W}_1$ has top singular value roughly $\prod_\ell \sigma_{\max}(\mathbf{W}_\ell)$. If each factor has $\sigma_{\max} > 1$ the product blows up; if each has $\sigma_{\max} < 1$ it crashes to zero. He / Xavier are calibrated so each factor sits around 1.
@@ -391,9 +359,7 @@ Frontier LLMs have hundreds of billions of parameters. Full fine-tuning is waste
 ### 8.1 The formula
 
 Freeze the pretrained $\mathbf{W}_0$. Learn an additive update factored into two skinny matrices:
-
 $$\mathbf{W}' \;=\; \mathbf{W}_0 + \Delta\mathbf{W}, \qquad \Delta\mathbf{W} = \mathbf{B}\mathbf{A}$$
-
 with $\mathbf{A} \in \mathbb{R}^{r \times d_{\rm in}}$, $\mathbf{B} \in \mathbb{R}^{d_{\rm out} \times r}$, and $r \ll \min(d_{\rm in}, d_{\rm out})$.
 
 | | parameters |

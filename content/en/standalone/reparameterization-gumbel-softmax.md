@@ -39,9 +39,7 @@ This post walks through the derivations, the intuition, the implementation detai
 ## 1. Why we need reparameterization
 
 The general training objective looks like
-
 $$\mathcal L(\theta) \;=\; \mathbb E_{z\sim q_\theta(z)}\,[\,f(z)\,].$$
-
 In a VAE, $f$ is the reconstruction log-likelihood; in RL, it's a return; in discrete structure learning, it's the downstream loss. **The trouble**: $\theta$ appears both inside $f$ and inside the distribution. Naively "sample $z$, evaluate $f(z)$, call `.backward()`" breaks because the computation graph is severed at the sampling step.
 
 A blunt PyTorch example:
@@ -70,17 +68,11 @@ Two families of fixes exist:
 ## 2.1 The general form
 
 Express $z$ as a deterministic, differentiable function of a parameter-free noise $\epsilon$:
-
 $$z \;=\; g_\theta(\epsilon),\qquad \epsilon \sim p(\epsilon),$$
-
 where $p(\epsilon)$ is a fixed base distribution (e.g. $\mathcal N(0,I)$ or $\mathrm{Uniform}(0,1)$). Substituting back,
-
 $$\mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,[\,f(g_\theta(\epsilon))\,].$$
-
 Now $\theta$ no longer appears inside the expectation, so we can swap differentiation and expectation:
-
 $$\nabla_\theta\,\mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,[\,\nabla_\theta\, f(g_\theta(\epsilon))\,].$$
-
 A Monte Carlo estimate is just: draw one (or a few) $\epsilon$, run autograd through $f(g_\theta(\epsilon))$.
 
 ![Reparameterization trick](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig1_reparam_trick.png)
@@ -90,9 +82,7 @@ A Monte Carlo estimate is just: draw one (or a few) $\epsilon$, run autograd thr
 ## 2.2 The Gaussian case
 
 The textbook example: for $z\sim\mathcal N(\mu,\sigma^2)$,
-
 $$z \;=\; \mu \;+\; \sigma \odot \epsilon,\qquad \epsilon \sim \mathcal N(0,I).$$
-
 Verify on both sides: (i) $\mathbb E[z]=\mu$, $\mathrm{Var}(z)=\sigma^2$; (ii) since linear transforms preserve normality, $z$'s marginal is exactly $\mathcal N(\mu,\sigma^2)$. **Crucially**, $\partial z/\partial\mu=1$ and $\partial z/\partial\sigma=\epsilon$ — both trivial expressions, gradients are unobstructed.
 
 In PyTorch, predict $\log\sigma^2$ rather than $\sigma$ for numerical stability:
@@ -108,20 +98,18 @@ def reparameterize(mu: Tensor, logvar: Tensor) -> Tensor:
 ## 2.3 In the VAE
 
 The VAE optimizes the evidence lower bound (ELBO):
-
-$$\mathcal L_{\text{ELBO}}(\theta,\phi;x)
+$$
+\mathcal L_{\text{ELBO}}(\theta,\phi;x)
 \;=\; \mathbb E_{q_\phi(z|x)}\!\bigl[\log p_\theta(x|z)\bigr]
-\;-\;\mathrm{KL}\!\bigl(q_\phi(z|x)\,\Vert\,p(z)\bigr).$$
-
+\;-\;\mathrm{KL}\!\bigl(q_\phi(z|x)\,\Vert\,p(z)\bigr).
+$$
 The expectation in the first term is taken w.r.t. $q_\phi(z|x)$, which has $\phi$ inside. **Reparameterization is what makes this term differentiable**: writing $z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon$,
-
-$$\nabla_\phi\,\mathbb E_{q_\phi(z|x)}[\log p_\theta(x|z)]
-\;=\;\mathbb E_{\epsilon\sim\mathcal N(0,I)}\!\bigl[\,\nabla_\phi\log p_\theta(x\mid \mu_\phi+\sigma_\phi\epsilon)\,\bigr].$$
-
+$$
+\nabla_\phi\,\mathbb E_{q_\phi(z|x)}[\log p_\theta(x|z)]
+\;=\;\mathbb E_{\epsilon\sim\mathcal N(0,I)}\!\bigl[\,\nabla_\phi\log p_\theta(x\mid \mu_\phi+\sigma_\phi\epsilon)\,\bigr].
+$$
 The gradient w.r.t. $\phi$ flows through the decoder all the way back into the encoder. The KL term has a closed form when $q_\phi=\mathcal N(\mu,\sigma^2)$ and $p=\mathcal N(0,I)$:
-
 $$\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),$$
-
 so no Monte Carlo is needed there.
 
 ## 2.4 Which continuous distributions are "naturally" reparameterizable?
@@ -132,7 +120,7 @@ Anything that admits a location-scale form, or a base-noise + differentiable tra
 |--------------|--------------------|
 | $\mathcal N(\mu,\sigma^2)$ | $z=\mu+\sigma\epsilon$, $\epsilon\sim\mathcal N(0,1)$ |
 | $\mathrm{Logistic}(\mu,s)$ | $z=\mu+s\,\log\frac{u}{1-u}$, $u\sim\mathrm U(0,1)$ |
-| $\mathrm{Laplace}(\mu,b)$ | $z=\mu-b\,\mathrm{sign}(u)\log(1-2|u|)$, $u\sim\mathrm U(-\tfrac12,\tfrac12)$ |
+| $\mathrm{Laplace}(\mu,b)$ | $z=\mu-b\,\mathrm{sign}(u)\log(1-2\lvert u\rvert)$, $u\sim\mathrm U(-\tfrac12,\tfrac12)$ |
 | $\mathrm{Exp}(\lambda)$ | $z=-\tfrac1\lambda\log(1-u)$, $u\sim\mathrm U(0,1)$ |
 | $\mathrm{Gumbel}(\mu,\beta)$ | $z=\mu-\beta\log(-\log u)$, $u\sim\mathrm U(0,1)$ |
 
@@ -145,24 +133,20 @@ Anything that admits a location-scale form, or a base-noise + differentiable tra
 Take a $K$-class categorical $\mathrm{Cat}(\pi_1,\dots,\pi_K)$ with $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$. The naive "sample" is: compute $\pi$, draw a class index $k$ from a multinomial. That step is **completely non-differentiable** — its output is a one-hot vector, with no notion of smooth variation.
 
 The fallback is the score-function estimator:
-
-$$\nabla_\alpha\,\mathbb E_{k\sim\mathrm{Cat}(\pi)}[f(k)]
-\;=\;\mathbb E_{k}\bigl[f(k)\,\nabla_\alpha\log\pi_k\bigr],$$
-
+$$
+\nabla_\alpha\,\mathbb E_{k\sim\mathrm{Cat}(\pi)}[f(k)]
+\;=\;\mathbb E_{k}\bigl[f(k)\,\nabla_\alpha\log\pi_k\bigr],
+$$
 universal but with variance large enough to wreck training stability. Can we, like in the Gaussian case, factor sampling into "noise + deterministic transform"? The answer is the Gumbel-Max trick.
 
 ## 3.2 A quick tour of the Gumbel distribution
 
 The standard Gumbel $\mathrm{Gumbel}(0,1)$ has CDF/PDF
-
 $$F(g)=\exp(-e^{-g}),\qquad f(g)=\exp\!\bigl(-(g+e^{-g})\bigr).$$
-
 Mode at $0$, mean at the Euler–Mascheroni constant $\gamma\approx 0.5772$. Crucially, it is the **extreme-value distribution** for maxima of iid samples (under suitable scaling). Gumbel-Max exploits exactly this property.
 
 Inverse-CDF sampling is one line:
-
 $$u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).$$
-
 ![Gumbel distribution PDF/CDF/empirical](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig2_gumbel_pdf.png)
 
 > **Left**: the Gumbel(0,1) PDF; **middle**: inverse-CDF sampling visualized; **right**: 20k samples drawn via $-\log(-\log u)$, with the empirical histogram matching the analytic PDF.
@@ -170,9 +154,7 @@ $$u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).$
 ## 3.3 The Gumbel-Max trick
 
 **Claim.** Let $g_1,\dots,g_K\overset{iid}{\sim}\mathrm{Gumbel}(0,1)$ and define
-
 $$k^\star \;=\; \arg\max_i\,(\alpha_i + g_i).$$
-
 Then $k^\star\sim\mathrm{Cat}(\mathrm{softmax}(\alpha))$. In words, **adding Gumbel noise to logits and taking argmax is equivalent to sampling from the softmax distribution**.
 
 ### Proof (probability of class 1)
@@ -180,22 +162,20 @@ Then $k^\star\sim\mathrm{Cat}(\mathrm{softmax}(\alpha))$. In words, **adding Gum
 $\Pr[k^\star=1] = \Pr\bigl[\,\forall i\neq 1:\;\alpha_1+g_1>\alpha_i+g_i\,\bigr] = \Pr\bigl[\,\forall i\neq 1:\;g_i<\alpha_1-\alpha_i+g_1\,\bigr]$.
 
 Conditioning on $g_1=t$:
-
-$$\Pr[k^\star=1\mid g_1=t]=\prod_{i\neq 1}F(\alpha_1-\alpha_i+t)
+$$
+\Pr[k^\star=1\mid g_1=t]=\prod_{i\neq 1}F(\alpha_1-\alpha_i+t)
 =\prod_{i\neq 1}\exp\!\bigl(-e^{-(\alpha_1-\alpha_i+t)}\bigr)
-=\exp\!\Bigl(-e^{-t}\!\!\sum_{i\neq 1}e^{\alpha_i-\alpha_1}\Bigr).$$
-
+=\exp\!\Bigl(-e^{-t}\!\!\sum_{i\neq 1}e^{\alpha_i-\alpha_1}\Bigr).
+$$
 Let $S=\sum_{i\neq 1}e^{\alpha_i-\alpha_1}$ and integrate over $g_1$:
-
-$$\Pr[k^\star=1]=\int e^{-(t+e^{-t})}\cdot\exp(-S e^{-t})\,dt
-=\int e^{-t}\exp\!\bigl(-(1+S)e^{-t}\bigr)\,dt.$$
-
+$$
+\Pr[k^\star=1]=\int e^{-(t+e^{-t})}\cdot\exp(-S e^{-t})\,dt
+=\int e^{-t}\exp\!\bigl(-(1+S)e^{-t}\bigr)\,dt.
+$$
 Substituting $u=(1+S)e^{-t}$, $du=-(1+S)e^{-t}dt$ gives $\frac{1}{1+S}\int_0^\infty e^{-u}du=\frac{1}{1+S}$.
 
 But $1+S=1+\sum_{i\neq 1}e^{\alpha_i-\alpha_1}=e^{-\alpha_1}\sum_i e^{\alpha_i}$, so
-
 $$\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alpha)_1. \quad\blacksquare$$
-
 ![Gumbel-Max trick](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig3_gumbel_max_trick.png)
 
 > **Left**: target categorical distribution; **middle**: a single draw — adding Gumbel noise to logits and taking the argmax selects class c2; **right**: 8000 draws — the empirical frequencies match the target softmax probabilities, confirming exact equivalence in expectation.
@@ -211,10 +191,10 @@ $$\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alph
 ## 4.1 Definition
 
 Replace $\arg\max$ with a temperature-scaled softmax to obtain a sample from the **Gumbel-Softmax / Concrete** distribution:
-
-$$y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bigl((\alpha_j + g_j)/\tau\bigr)},
-\qquad g_i\overset{iid}{\sim}\mathrm{Gumbel}(0,1).$$
-
+$$
+y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bigl((\alpha_j + g_j)/\tau\bigr)},
+\qquad g_i\overset{iid}{\sim}\mathrm{Gumbel}(0,1).
+$$
 Here $y\in\Delta^{K-1}$, the $(K-1)$-simplex — a continuous vector. The two limits give intuition:
 
 - $\tau\to 0^+$: softmax degenerates into the indicator of the argmax, $y$ becomes one-hot — **a true discrete sample**;
@@ -244,13 +224,13 @@ You can read this off the gradient estimator directly: smaller $\tau$ makes $y$ 
 ## 4.3 Straight-Through Gumbel-Softmax (ST-GS)
 
 Many tasks — hard attention, discrete token selection, sparse routing — **must** use a strict one-hot in the forward pass (e.g. the downstream is an embedding lookup expecting an integer index). The fix is the **Straight-Through estimator**:
-
-$$\boxed{
+$$
+\boxed{
 \;\;y_{\text{hard}}=\mathrm{onehot}(\arg\max_i y_i),
 \qquad
 \tilde y \;=\; y_{\text{hard}}\;-\;\mathrm{stop\_grad}(y_{\text{soft}})\;+\;y_{\text{soft}}.\;\;
-}$$
-
+}
+$$
 Forward: $\tilde y=y_{\text{hard}}$ (strict one-hot). Backward: $\partial\tilde y/\partial\alpha=\partial y_{\text{soft}}/\partial\alpha$ (the soft Jacobian). It's a **biased but low-variance** estimator: hard sample for the loss, soft sample for the gradient.
 
 In PyTorch:
@@ -279,10 +259,10 @@ PyTorch ships `torch.nn.functional.gumbel_softmax(logits, tau, hard)` with the s
 ## 5.1 Score-function / REINFORCE estimator
 
 General form:
-
-$$\nabla_\theta\,\mathbb E_{z\sim q_\theta}[f(z)]
-=\mathbb E_{z\sim q_\theta}\!\bigl[f(z)\,\nabla_\theta\log q_\theta(z)\bigr].$$
-
+$$
+\nabla_\theta\,\mathbb E_{z\sim q_\theta}[f(z)]
+=\mathbb E_{z\sim q_\theta}\!\bigl[f(z)\,\nabla_\theta\log q_\theta(z)\bigr].
+$$
 Its strength: it makes **no assumption** about differentiability of $z$ in $\theta$ — discrete, control-flow, even black-box external calls all work. Its weakness: very high variance. Intuitively, the entire scalar value $f(z)$ rides on the gradient with no differentiable path to cancel signs.
 
 Standard variance reductions:

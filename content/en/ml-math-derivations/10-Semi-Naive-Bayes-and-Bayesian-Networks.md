@@ -44,9 +44,7 @@ translationKey: "ml-math-derivations-10"
 ### 1.1 The convenient lie
 
 Recall the Naive Bayes factorisation:
-
 $$P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k).$$
-
 The lie is that, conditioned on the class, features are unrelated. Three places it almost always breaks:
 
 - **Text.** The bigram "machine learning" is far more frequent than $P(\text{machine})\,P(\text{learning})$ would suggest, even within the "ML article" class.
@@ -73,24 +71,22 @@ Here $S$ is the average number of values per feature and $K$ the number of class
 ### 2.1 SPODE: a single super-parent
 
 Pick one feature $x^{(p)}$ — the *super-parent* — and let every other feature condition on both the class and $x^{(p)}$:
-
 $$P(\mathbf{x}\mid c_k) \;=\; P(x^{(p)}\mid c_k)\prod_{j\neq p} P(x^{(j)}\mid c_k,\,x^{(p)}).$$
-
 **Reading the model.** Instead of "all features are independent given the class", SPODE says "all features share *one* hidden moderator beyond the class". For spam detection that moderator might be the token *free*: knowing whether *free* appears changes the probabilities of *click*, *offer*, *winner*.
 
 **Maximum-likelihood estimate** (with Laplace smoothing $\alpha$):
-
-$$\hat{P}(x^{(j)}{=}v\mid c_k,\,x^{(p)}{=}u)
+$$
+\hat{P}(x^{(j)}{=}v\mid c_k,\,x^{(p)}{=}u)
 \;=\;
 \frac{\#\{x^{(j)}{=}v,\,c_k,\,x^{(p)}{=}u\}+\alpha}
-     {\#\{c_k,\,x^{(p)}{=}u\}+\alpha\,S_j}.$$
-
+     {\#\{c_k,\,x^{(p)}{=}u\}+\alpha\,S_j}.
+     $$
 **Choosing the super-parent.** Two standard criteria:
-
-$$p^{*} \;=\; \arg\max_{p}\, I(X^{(p)};Y),
+$$
+p^{*} \;=\; \arg\max_{p}\, I(X^{(p)};Y),
 \qquad
-p^{*} \;=\; \arg\max_{p}\,\sum_{j\neq p} I(X^{(j)};Y\mid X^{(p)}).$$
-
+p^{*} \;=\; \arg\max_{p}\,\sum_{j\neq p} I(X^{(j)};Y\mid X^{(p)}).
+$$
 The first picks the feature most informative about $Y$; the second picks the feature whose conditioning maximally explains the rest. Both are heuristics — and the next two models exist precisely because this single choice is fragile.
 
 ### 2.2 AODE: average all eligible super-parents
@@ -98,10 +94,10 @@ The first picks the feature most informative about $Y$; the second picks the fea
 ![AODE: each super-parent yields a SPODE; AODE averages them](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig4_aode.png)
 
 **Idea.** Rather than betting on a single super-parent, AODE averages over *all* of them whose support is large enough to estimate reliably:
-
-$$\hat{P}(c_k\mid\mathbf{x})\;\propto\;
-\sum_{i:\;n_i\geq m} P(c_k)\,P(x^{(i)}\mid c_k)\prod_{j\neq i} P(x^{(j)}\mid c_k,\,x^{(i)}).$$
-
+$$
+\hat{P}(c_k\mid\mathbf{x})\;\propto\;
+\sum_{i:\;n_i\geq m} P(c_k)\,P(x^{(i)}\mid c_k)\prod_{j\neq i} P(x^{(j)}\mid c_k,\,x^{(i)}).
+$$
 Here $n_i$ is the number of training samples with attribute value $x^{(i)}$ and $m$ (typically 30) is the minimum support for a super-parent to be trusted.
 
 **Why it works.**
@@ -141,20 +137,18 @@ print("Naive Bayes 5-fold CV:",
 ![Naive Bayes (star) vs TAN (star + augmenting tree)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig3_nb_vs_tan.png)
 
 Where SPODE forces every feature to share one super-parent, TAN lets each feature choose its own *single* extra parent — a feature-level tree:
-
 $$P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k,\,x^{(\pi_j)}),$$
-
 where $\pi_j$ is the unique parent of feature $j$ in the augmenting tree (the root has no parent, reducing to $P(x^{(j)}\mid c_k)$).
 
 ### 3.2 Learning the tree — Chow-Liu
 
 **Theorem (Chow & Liu 1968; Friedman, Geiger, Goldszmidt 1997).** Among all tree-shaped augmenting structures, the one that maximises the conditional log-likelihood is the **maximum spanning tree** with edge weights
-
-$$w_{jk} \;=\; I(X^{(j)};X^{(k)}\mid Y)
+$$
+w_{jk} \;=\; I(X^{(j)};X^{(k)}\mid Y)
 \;=\;
 \sum_{y,x_j,x_k} P(x_j,x_k,y)\,
-\log\frac{P(x_j,x_k\mid y)}{P(x_j\mid y)\,P(x_k\mid y)}.$$
-
+\log\frac{P(x_j,x_k\mid y)}{P(x_j\mid y)\,P(x_k\mid y)}.
+$$
 **Reading the weight.** $I(X^{(j)};X^{(k)}\mid Y)$ measures the residual correlation between $X^{(j)}$ and $X^{(k)}$ that the class has *not* already explained. Edges with high weight are exactly the dependencies most worth modelling.
 
 **Algorithm.**
@@ -198,9 +192,7 @@ Both NB and TAN are special cases of a general object: a Bayesian network. We no
 ![Toy Bayesian network: Cloudy / Sprinkler / Rain / WetGrass](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig1_dag.png)
 
 A **Bayesian network** is a directed acyclic graph $\mathcal{G}=(V,E)$ in which each node carries a *conditional probability table* (CPT). The joint distribution factors as
-
 $$P(X_1,\dots,X_n) \;=\; \prod_{i=1}^{n} P\bigl(X_i\mid \mathrm{Pa}(X_i)\bigr).$$
-
 **Why factorisation matters.** In the four-variable network above, the joint over four binary variables would have $2^4 - 1 = 15$ free parameters. The factored form needs $1+2+2+4 = 9$. With $n=20$ binary variables and average parent count 3, the joint has $\approx 10^{6}$ entries while the factored form has $\sim 20\cdot 2^{3}=160$.
 
 **Special cases we have already met:**
@@ -225,9 +217,7 @@ A path is **blocked** if any chain or fork node on it is observed, *or* any coll
 ![Markov blanket = parents + children + co-parents](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig6_markov_blanket.png)
 
 The **Markov blanket** $\mathrm{MB}(X)$ is the *smallest* set such that $X$ is independent of everything outside $\mathrm{MB}(X)$ given $\mathrm{MB}(X)$. In a Bayesian network it is exactly:
-
 $$\mathrm{MB}(X) \;=\; \mathrm{Pa}(X)\;\cup\;\mathrm{Ch}(X)\;\cup\;\bigl\{\text{other parents of }X\text{'s children}\bigr\}.$$
-
 The co-parents are easy to forget but essential — they appear because, by the collider rule, conditioning on a child *activates* the path through that child to its other parents. The blanket is the minimal set of features a Gibbs sampler needs to resample $X$, and in causal terms it is the smallest sufficient statistic for predicting $X$ from the rest of the network.
 
 ### 4.4 Inference: variable elimination
@@ -261,9 +251,7 @@ The cost is exponential in the largest clique size, i.e. treewidth $+\,1$ — th
 The DAG itself can be learned. Two main families:
 
 - **Score + search.** Hill-climb over DAGs by adding/deleting/reversing edges; score each candidate with a likelihood-plus-penalty criterion. The standard one is **BIC**:
-
 $$\mathrm{BIC}(\mathcal{G}) \;=\; \log p(\mathcal{D}\mid\hat{\theta},\mathcal{G}) \;-\; \tfrac{|\theta|}{2}\log N.$$
-
 The first term rewards fit, the second penalises parameter count — BIC is consistent (selects the true graph as $N\to\infty$) under standard assumptions.
 
 - **Constraint-based** (PC algorithm, FCI). Run conditional-independence tests, build the skeleton, then orient v-structures using the collider rule.
@@ -277,9 +265,7 @@ A hard fact: *exact* structure learning is NP-hard (Chickering, Heckerman & Meek
 The structural decomposition $P(\mathbf{x}) = \prod_i P(x_i \mid \mathrm{pa}(x_i))$ buys you compact storage, but inference — answering $P(X_q \mid \mathbf{x}_e)$ — is in general #P-hard. The complexity hides in how nicely the network factorises along an elimination order.
 
 **Variable elimination.** Pick an elimination order $\sigma$ over the non-query, non-evidence variables. At each step, sum out one variable, multiplying together every factor that mentions it:
-
 $$\phi'(\mathbf{Y}) = \sum_{x_k} \prod_{f \in \mathcal{F}_k} f(x_k, \mathbf{Y}).$$
-
 The cost of one elimination step is exponential in the *width* — the size of the largest scope $\mathbf{Y} \cup \{x_k\}$ encountered. The optimal elimination order minimises the *induced treewidth*, which is in general NP-hard to compute. In practice, min-fill or min-neighbour heuristics work well on networks with hundreds of nodes.
 
 For tree-structured networks (no undirected cycles in the moralised graph), treewidth is 1 and exact inference is $O(N \cdot K^2)$ for $N$ variables of cardinality $K$ — exactly the forward-backward cost of HMMs, which are the chain-structured special case. For dense networks like fully connected medical diagnosis BNs, treewidth grows linearly with $N$ and exact inference becomes infeasible by $N \approx 30$.
@@ -291,9 +277,7 @@ For tree-structured networks (no undirected cycles in the moralised graph), tree
 Given fixed structure $G$, MLE for the conditional probability tables is trivial — count and divide. The genuinely hard problem is *learning $G$ itself* from data. Two families dominate.
 
 **Score-based search.** Define a score $\mathrm{score}(G, \mathcal{D})$ that trades off fit against complexity, then search the space of DAGs. The two standard scores are BIC,
-
 $$\mathrm{BIC}(G, \mathcal{D}) = \log P(\mathcal{D} \mid \hat\theta_G, G) - \frac{|\theta_G|}{2}\log N,$$
-
 and BDeu (Bayesian Dirichlet equivalent uniform), the marginal likelihood under a uniform Dirichlet prior. Both are *decomposable* — the score factorises over families $(x_i, \mathrm{pa}(x_i))$ — so local edge changes only require rescoring affected families. Even so, the space of DAGs on $n$ nodes is super-exponential ($\sim n! \cdot 2^{\binom{n}{2}}$), so search is greedy: hill-climbing with random restarts, tabu search, or for small $n$ ($\lesssim 25$) the dynamic-programming exact algorithm of Silander-Myllymäki.
 
 **Constraint-based search.** Test conditional independencies in the data and orient edges accordingly. The PC algorithm starts from the complete graph, removes edge $(X, Y)$ whenever it finds a separating set $\mathbf{Z}$ such that $X \perp Y \mid \mathbf{Z}$, then orients colliders using the Meek rules. Cleaner theoretical guarantees than score-based search (under faithfulness, recovers the Markov equivalence class), but very sensitive to the conditional independence test's Type-I error on finite samples. I have only ever seen PC work well on toy datasets; on real noisy data, score-based hill-climbing wins.
@@ -307,9 +291,7 @@ and BDeu (Bayesian Dirichlet equivalent uniform), the marginal likelihood under 
 ### Exercise 1 — SPODE parameter estimate
 
 100 samples; class $c_1$ has 60. In $c_1$, 30 samples have $x^{(p)}{=}1$, of which 18 have $x^{(j)}{=}1$. With Laplace smoothing $\alpha=1$ and $|x^{(j)}|=3$,
-
 $$\hat{P}\bigl(x^{(j)}{=}1\mid c_1, x^{(p)}{=}1\bigr) \;=\; \frac{18+1}{30+1\cdot 3} \;=\; \frac{19}{33} \;\approx\; 0.576.$$
-
 ### Exercise 2 — TAN parameter count
 
 For binary features and $K$ classes:

@@ -39,9 +39,7 @@ Imitation learning takes that intuition seriously: instead of optimising a hand-
 ## 1. Problem setting
 
 Given expert demonstrations
-
 $$\mathcal{D} = \{(s_1, a_1), (s_2, a_2), \ldots, (s_N, a_N)\},$$
-
 the goal is to learn a policy $\pi_\theta$ whose behaviour is close to that of an unknown expert policy $\pi^*$. We never observe $\pi^*$ directly — only its samples — and there is no reward signal. Sometimes we can also _query_ the expert on new states (DAgger); often we cannot.
 
 | Aspect | Reinforcement learning | Imitation learning |
@@ -61,9 +59,7 @@ The methods we cover trade these axes against each other. The five-rung ladder i
 ## 2. Behavioral cloning
 
 The simplest imitation algorithm is also the most-deployed one: treat $\mathcal{D}$ as a supervised dataset and minimise
-
 $$\mathcal{L}(\theta) \;=\; \mathbb{E}_{(s,a)\sim \mathcal{D}}\big[ \ell\big(\pi_\theta(s),\, a\big) \big],$$
-
 where $\ell$ is cross-entropy for discrete actions or MSE / negative log-likelihood for continuous ones. The historical first instance is **ALVINN** (Pomerleau, 1989), which trained a fully connected network to steer a van from camera images.
 
 ```python
@@ -150,9 +146,7 @@ BC is trained under the expert's state distribution $d_{\pi^*}$ but, at deployme
 ![BC vs DAgger state distributions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig1_bc_vs_dagger.png)
 
 The classical bound formalises the cascade. If $\pi_\theta$ has expected per-step error $\varepsilon$ on the expert distribution, then over a $T$-step rollout the worst-case total error is
-
 $$J(\pi^*) - J(\pi_\theta) \;\le\; \mathcal{O}\!\left( \varepsilon \, T^2 \right),$$
-
 quadratic in horizon (Ross & Bagnell, 2010). Even a 99% accurate policy fails on a 200-step task, because the 1% probability of a mistake compounds and the policy lands in states the expert never visited — where it has no useful training signal.
 
 You can see the cascade clearly when you roll the trained policy forward:
@@ -179,9 +173,7 @@ DAgger (Ross, Gordon & Bagnell, 2011) breaks the cascade by collecting expert la
    - Retrain $\pi_{i+1}$ on all of $\mathcal{D}$.
 
 **No-regret guarantee.** Treat the sequence of policies as a no-regret online learner against the loss family induced by the visited distributions. Then
-
 $$J(\pi^*) - J(\pi_{\hat{i}}) \;\le\; \mathcal{O}\!\left( \varepsilon \, T \right) + \mathcal{O}\!\left( \tfrac{T \sqrt{\log N}}{\sqrt{N}} \right),$$
-
 i.e. _linear_ in horizon. The right way to read this is: every additional iteration buys back the recovery information that BC discarded.
 
 ```python
@@ -244,13 +236,9 @@ Why bother going through reward? Two reasons:
 ### 4.1 Maximum-entropy IRL
 
 A purely "match the expert's value" objective is ill-posed — many rewards explain the same behaviour. **Maximum-entropy IRL** (Ziebart et al., 2008) breaks the tie by requiring the recovered policy to maximise $r$ subject to maximum entropy. Concretely, the expert's distribution over trajectories $\tau$ takes the Boltzmann form
-
 $$p_\theta(\tau) \;\propto\; \exp\!\left( \sum_t r_\theta(s_t, a_t) \right).$$
-
 Maximising the log-likelihood of the demonstrations gives the elegant gradient
-
 $$\nabla_\theta \mathcal{L}(\theta) \;=\; \mathbb{E}_{\tau \sim \pi^*}\!\left[\nabla_\theta r_\theta(\tau)\right] \;-\; \mathbb{E}_{\tau \sim \pi_\theta}\!\left[\nabla_\theta r_\theta(\tau)\right].$$
-
 Read this as a contrastive update: _push reward up where the expert goes, push it down where the current policy goes_. At convergence, the two expectations match and the policy reproduces the expert occupancy.
 
 The cost is the second expectation. Computing $\mathbb{E}_{\pi_\theta}$ requires solving an RL problem (or doing trajectory sampling) at every reward update — a nested loop that limited classical IRL to small grid worlds. **Guided cost learning** (Finn, Levine & Abbeel, 2016) replaces the inner RL solve with sampled importance-weighted trajectories, scaling MaxEnt IRL to continuous control.
@@ -266,20 +254,18 @@ Even with the max-entropy regulariser, $\hat r$ is recovered up to **shaping inv
 The IRL inner loop is expensive. **GAIL** (Ho & Ermon, 2016) noticed that for imitation we don't actually need $r$ — we only need the policy whose state-action _occupancy_ matches the expert's. So GAIL replaces "recover reward, then re-solve RL" with a single adversarial game.
 
 A discriminator $D_\phi(s, a)$ tries to tell expert pairs from policy pairs; the policy tries to fool it. The minimax objective is
-
-$$\min_\theta \max_\phi \;\;
+$$
+\min_\theta \max_\phi \;\;
 \mathbb{E}_{(s,a)\sim \pi^*}\!\left[\log D_\phi(s, a)\right]
 \,+\, \mathbb{E}_{(s,a)\sim \pi_\theta}\!\left[\log\big(1 - D_\phi(s, a)\big)\right]
-\,-\, \lambda H(\pi_\theta).$$
-
+\,-\, \lambda H(\pi_\theta).
+$$
 The entropy term $\lambda H(\pi_\theta)$ stabilises the generator and discourages mode collapse. At the saddle point, $\pi_\theta$'s occupancy measure equals $\pi^*$'s — which is exactly what BC was trying to do but without the supervision-vs-rollout mismatch.
 
 ![GAIL discriminator-generator architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig4_gail_architecture.png)
 
 In practice, the discriminator's score doubles as the per-step reward fed to a PPO update of the policy:
-
 $$\hat r(s, a) \;=\; -\log\!\big(1 - D_\phi(s, a)\big) \quad\text{or}\quad \hat r(s, a) \;=\; -\log D_\phi(s, a).$$
-
 Both forms appear in the literature; the first is the reward used in the original GAIL paper, the second has lower variance early in training.
 
 ```python
@@ -335,11 +321,11 @@ GAIL is not minimising an action-prediction loss; it is minimising the Jensen-Sh
 ### 5.2 AIRL: disentangling reward from shaping
 
 The discriminator GAIL learns is great for imitation but is _not_ a reusable reward. **AIRL** (Fu, Luo & Levine, 2018) restructures the discriminator as
-
-$$D_\phi(s, a, s') \;=\; \frac{\exp\big(f_\phi(s, a, s')\big)}{\exp\big(f_\phi(s, a, s')\big) + \pi_\theta(a \mid s)},
+$$
+D_\phi(s, a, s') \;=\; \frac{\exp\big(f_\phi(s, a, s')\big)}{\exp\big(f_\phi(s, a, s')\big) + \pi_\theta(a \mid s)},
 \qquad
-f_\phi(s, a, s') \;=\; r_\psi(s) + \gamma \Phi_\xi(s') - \Phi_\xi(s),$$
-
+f_\phi(s, a, s') \;=\; r_\psi(s) + \gamma \Phi_\xi(s') - \Phi_\xi(s),
+$$
 so that $r_\psi$ is the _state-only_ reward and $\Phi_\xi$ absorbs the shaping. Training with this parameterisation yields a recovered reward $\hat r = r_\psi$ that transfers across dynamics changes — the empirical headline result of the AIRL paper.
 
 ---

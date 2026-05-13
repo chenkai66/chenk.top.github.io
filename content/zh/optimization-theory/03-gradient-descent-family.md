@@ -59,9 +59,7 @@ aliases:
 ## 1. Gradient descent (GD)：起源
 
 给定一个可微损失函数 $J(\theta)$，最简单的更新方式是
-
 $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
-
 **收敛性**：若 $J$ 是凸函数且梯度满足 $L$-Lipschitz 条件，则当 $\eta \le 1/L$ 时，能保证（次）线性收敛到全局最小值。
 
 **催生后续所有方法的根本弱点**：
@@ -72,9 +70,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
 ## 2. SGD：噪声的代价与红利
 
 当数据集无法装入内存时，你用小批量估计替代全梯度：
-
 $$g_t = \nabla J(\theta_t) + \xi_t,\qquad \mathbb{E}[\xi_t]=0.$$
-
 噪声 $\xi_t$ 既是诅咒也是祝福：
 - **诅咒**：稍大的步长会被噪声放大，导致发散。
 - **祝福**：噪声有助于 **逃离尖锐局部极小值** —— 后来 Keskar 等人将其与“平坦极小值”的泛化理论联系起来。
@@ -84,9 +80,7 @@ $$g_t = \nabla J(\theta_t) + \xi_t,\qquad \mathbb{E}[\xi_t]=0.$$
 ## 3. Momentum：赋予优化器惯性
 
 心理模型：把 $\theta$ 想象成 **沿山谷滚动的球**。GD 是一只“无质量的虫子”——每一步只看到局部斜率，因此在狭窄方向来回弹跳。给虫子加上质量和惯性，**惯性会沿山谷长轴累积，而垂直方向的震荡相互抵消**。
-
 $$v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t.$$
-
 典型 $\gamma = 0.9$ —— 对过去梯度进行几何加权，有效记忆长度约为 $1/(1-\gamma) = 10$ 步。
 
 **关键洞见**：动量 **将有效步长放大了约 $1/(1-\gamma)$ 倍**。因此当你开启动量时，必须 **缩小** 之前不用动量时的学习率。这是最常见的新手陷阱。
@@ -100,9 +94,7 @@ $$v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t.$$
 经典动量在接近最小值时会 **过冲**：它在当前点计算梯度，因此只有在多走一步后才意识到“哎呀，走太远了”。
 
 NAG 只改了一行：
-
 $$v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta_{t+1} = \theta_t - v_t.$$
-
 **唯一区别在于梯度计算的位置**：经典动量在 $\theta_t$ 处计算，NAG 在 **前瞻点** $\theta_t - \gamma v_{t-1}$ 处计算——即“仅靠动量步我会走到哪里”。
 
 **为何有效**：这是一种单步前瞻。如果斜率即将变平，NAG 能提前察觉并减速；反之亦然。Nesterov (1983) 证明这能将凸光滑优化的收敛速度从 $O(1/t)$ 加速到 $O(1/t^2)$。
@@ -117,11 +109,9 @@ $$v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta
 - 常见词参数：梯度大且频繁，更希望 **更小的步长**。
 
 Duchi 提出了 AdaGrad——基于每个坐标的梯度历史进行 **逐坐标自适应**：
-
 $$G_t = G_{t-1} + g_t^2 \quad(\text{element-wise})$$
 
 $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t.$$
-
 **直觉**：累积的 $g^2$ 越大 → 分母越大 → 有效步长越小。罕见但突然变大的坐标 → 分母小 → 有效步长大。**学习率按频率自动分配**。
 
 **致命缺陷**：$G_t$ 是一个 **单调递增的和**。在深度网络中训练数十万步后，分母会使所有有效学习率趋近于零。模型“窒息”。Fig 3 右侧面板清晰展示了这一点。
@@ -131,11 +121,9 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t.$$
 ## 6. RMSProp：用 EMA 替代累积和
 
 在 2012 年 Coursera 课程幻灯片中，Hinton **只改了一处** 就拯救了 AdaGrad：将累积和 $\sum g_t^2$ 替换为指数移动平均：
-
 $$E[g^2]_t = \rho\,E[g^2]_{t-1} + (1-\rho)\,g_t^2$$
 
 $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t.$$
-
 典型 $\rho = 0.9$ —— “大致记住最近 10 步的梯度幅度”。
 
 **关键区别**：
@@ -153,17 +141,13 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t.$$
 - **RMSProp** 提供良好的 **逐坐标缩放**。
 
 Kingma & Ba (2014) 直接将它们拼接起来：
-
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t \quad\text{(1st moment = momentum)}$$
 
 $$v_t = \beta_2 v_{t-1} + (1-\beta_2)\,g_t^2 \quad\text{(2nd moment = RMSProp)}$$
-
 **偏差校正** —— 最被低估的细节。由于 $m_0=v_0=0$，前几步中 $m_t$ 和 $v_t$ 都严重偏向零。修正方法：
-
 $$\hat m_t = \frac{m_t}{1-\beta_1^t},\qquad \hat v_t = \frac{v_t}{1-\beta_2^t}$$
 
 $$\theta_{t+1} = \theta_t - \frac{\eta\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}.$$
-
 默认值：$\beta_1 = 0.9,\ \beta_2 = 0.999,\ \epsilon = 10^{-8}$。
 
 **为何 $\beta_2$ 远大于 $\beta_1$**：方差估计比均值估计更嘈杂，需要更长的平均窗口。$1/(1-0.999) = 1000$ 步——这正是 Adam 通常需要约 1000 步预热才能让 $v_t$ “热起来”的原因。
@@ -177,9 +161,7 @@ $$\theta_{t+1} = \theta_t - \frac{\eta\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}.$$
 但 Loshchilov & Hutter (2017) 发现，在 **Adam** 中这两种操作 **不再等价**。原因很直接：Adam 将梯度除以 $\sqrt{\hat v_t}$。如果你将 $\lambda\theta$ 折入梯度，**它也会被 $\sqrt{\hat v_t}$ 除** —— 这意味着 **梯度历史大的参数获得更少的 weight decay**，而这与正则化的目标背道而驰。
 
 AdamW 的修复方法是将 weight decay **移出梯度**，直接作用于参数：
-
 $$\theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \eta\lambda\,\theta_t.$$
-
 效果：在相同 $\lambda$ 和 LR 下，AdamW 在 ImageNet/Transformer 上的泛化差距明显小于 Adam+L2。这就是为何 **2018 年后所有大模型预训练默认使用 AdamW**。
 
 ![AdamW (decoupled) vs Adam+L2 (coupled): where weight decay enters the update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig6_adamw_vs_adam.png)
@@ -191,11 +173,9 @@ $$\theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \e
 ## 9.1 Lion (Google, 2023)：只保留符号
 
 由 AutoML 程序搜索发现；更新只保留 **符号**：
-
 $$m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t$$
 
 $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_1)\,g_t\bigr).$$
-
 **显著特性**：
 - **优化器状态减半**：无需 $v_t$ —— 对百亿参数模型而言能省下真金白银。
 - **恒定更新幅度 $\eta$**：因为 sign 返回 $\pm 1$。因此 Lion 的 LR 必须比 AdamW **小约 10 倍**，wd 则需大 10 倍。
@@ -204,13 +184,11 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_
 ## 9.2 Sophia (Stanford, 2023)：廉价二阶方法
 
 Sophia 将廉价的对角 Hessian 估计插入分母：
-
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t$$
 
 $$h_t \approx \mathrm{diag}(H_t) \quad\text{(Hutchinson estimate, every } k \text{ steps)}$$
 
 $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_t,\,\varepsilon)},\,1\right).$$
-
 **核心技巧**：
 - 使用 $\mathrm{diag}(H)$ 而非 $g^2$ 作为分母 —— 这才是 **真实的曲率**。
 - `clip` 至关重要：在非凸损失中 $h_t$ 可能为负，裁剪可保证更新有界。
@@ -223,13 +201,11 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_
 学习率调度（cosine、WSD 等）都有一个烦人之处：**你必须提前知道总步数**。研究中通常不知道，因此承诺一个调度会束缚手脚。
 
 Schedule-Free AdamW 用 **迭代平均** 替代调度：
-
 $$y_t = (1-\beta) z_t + \beta x_t \quad\text{(point at which the gradient is taken)}$$
 
 $$z_{t+1} = z_t - \eta\,\nabla J(y_t)$$
 
 $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" parameters)}$$
-
 结果：在 **无显式衰减** 的情况下匹配 cosine 调度的最终性能，并可在 **训练中途扩展** 而无需重新设计。
 
 ![Lion / Sophia / Schedule-Free: the three post-AdamW directions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig7_modern_optimizers.png)

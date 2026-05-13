@@ -45,9 +45,7 @@ Prefix-Tuning is one of the earliest PEFT methods designed specifically for *gen
 ![Prefix-Tuning architecture: learnable K/V prefixes injected into every frozen attention layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig1_architecture.png)
 
 A Transformer is a stack of *attention + MLP* blocks. At each block, attention projects the hidden states into queries, keys, and values $Q, K, V \in \mathbb{R}^{n \times d}$ and computes
-
 $$\text{Attn}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^\top}{\sqrt{d}}\right) V .$$
-
 There are two natural places to insert *learned* parameters that look like additional context:
 
 - **Input-prefix model.** Prepend learnable embeddings to the token embeddings. This is what *prompt tuning* (Lester et al., 2021) does. Only the input layer sees them; later layers receive their influence indirectly.
@@ -58,20 +56,18 @@ The second formulation is strictly more expressive: it adds capacity at every la
 ## 3. The attention-prefix formulation
 
 Let layer $\ell$ have a learnable prefix matrix $P^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times 2 d}$, which we split into per-layer prefix keys and values:
-
-$$P^{(\ell)} = \big[\, P^{(\ell)}_K \;\Vert\; P^{(\ell)}_V \,\big],
-\quad P^{(\ell)}_K, P^{(\ell)}_V \in \mathbb{R}^{L_{\text{prefix}} \times d}.$$
-
+$$
+P^{(\ell)} = \big[\, P^{(\ell)}_K \;\Vert\; P^{(\ell)}_V \,\big],
+\quad P^{(\ell)}_K, P^{(\ell)}_V \in \mathbb{R}^{L_{\text{prefix}} \times d}.
+$$
 At each forward pass we concatenate them with the real keys and values produced by the frozen model:
-
-$$\tilde{K}^{(\ell)} = \big[\, P^{(\ell)}_K \;;\; K^{(\ell)} \,\big],
+$$
+\tilde{K}^{(\ell)} = \big[\, P^{(\ell)}_K \;;\; K^{(\ell)} \,\big],
 \qquad
-\tilde{V}^{(\ell)} = \big[\, P^{(\ell)}_V \;;\; V^{(\ell)} \,\big],$$
-
+\tilde{V}^{(\ell)} = \big[\, P^{(\ell)}_V \;;\; V^{(\ell)} \,\big],
+$$
 and replace the standard attention with
-
 $$\text{Attn}\!\big(Q^{(\ell)},\, \tilde{K}^{(\ell)},\, \tilde{V}^{(\ell)}\big).$$
-
 Two things are worth noting:
 
 1. The queries $Q^{(\ell)}$ are *not* augmented. The prefix only ever appears on the "context" side of attention, so token positions still attend to it but it does not produce its own output.
@@ -80,9 +76,7 @@ Two things are worth noting:
 ## 4. Parameter count: why it is efficient
 
 With $L$ Transformer layers, hidden size $d$, and prefix length $L_{\text{prefix}}$, the number of trainable parameters is
-
 $$| \theta_{\text{prefix}} | = 2 \cdot L \cdot d \cdot L_{\text{prefix}} .$$
-
 For GPT-2 medium ($L = 24$, $d = 1024$) and a typical $L_{\text{prefix}} = 10$, this is about **0.5 M** parameters versus the full model's **355 M** — roughly a 700× reduction. For GPT-2 XL the ratio gets even more dramatic.
 
 Per-task storage drops from gigabytes to a few hundred kilobytes. That is the practical hook: you can ship one base model and a directory of small prefix files, one per task.
@@ -90,9 +84,7 @@ Per-task storage drops from gigabytes to a few hundred kilobytes. That is the pr
 ## 5. Why reparameterization helps
 
 Optimizing $P$ directly is surprisingly fragile, especially for longer prefixes: training is unstable and the final quality is below what the same parameter budget *should* be able to express. Li & Liang propose to *reparameterize* the prefix through a small MLP:
-
 $$P^{(\ell)}_K, P^{(\ell)}_V = \text{MLP}_\phi\!\big( P'^{(\ell)} \big),$$
-
 where $P'^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times d'}$ is a smaller latent prefix and $d' \ll d$. Why this helps:
 
 - The MLP smooths the optimization landscape; gradients flowing into a low-dimensional latent are better-conditioned than those landing on a wide $L_{\text{prefix}} \times 2d$ matrix.

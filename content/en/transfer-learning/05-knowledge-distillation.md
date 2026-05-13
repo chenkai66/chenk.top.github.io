@@ -69,21 +69,15 @@ The hard label says "cat" and nothing more (entropy zero). The soft label says "
 ### Distribution matching, not label matching
 
 Standard supervised training minimises cross-entropy with hard labels:
-
 $$\mathcal{L}_{\text{hard}} \;=\; -\sum_c y_c \log \sigma(z_c^S).$$
-
 Distillation replaces $y_c$ with the teacher's softmax:
-
 $$\mathcal{L}_{\text{KD}} \;=\; -\sum_c \sigma(z_c^T / \tau) \, \log \sigma(z_c^S / \tau).$$
-
 Because the teacher is fixed, this is equivalent to minimising $\mathrm{KL}\!\left(\sigma(z^T/\tau) \,\|\, \sigma(z^S/\tau)\right)$. The student is no longer learning a label — it is learning a probability distribution.
 
 ### Temperature: a knob for dark knowledge
 
 Raw softmax outputs tend to be peaky — the top class gets 0.99, everything else collapses into the noise floor, and the dark knowledge disappears. A **temperature** $\tau$ flattens the distribution:
-
 $$\sigma(z_i; \tau) \;=\; \frac{\exp(z_i / \tau)}{\sum_j \exp(z_j / \tau)}.$$
-
 | Temperature | Effect |
 | --- | --- |
 | $\tau \to 0$ | One-hot (argmax) |
@@ -97,9 +91,7 @@ For logits $z = [5, 3, 1]$:
 - $\tau = 3$: $[0.51, 0.31, 0.18]$ — class 3 is back in play.
 
 At high temperature the softmax is approximately linear in the logits,
-
 $$\sigma(z_i; \tau) \;\approx\; \frac{1}{C} + \frac{z_i - \bar z}{C \tau},$$
-
 so the student can learn the relative magnitudes of the teacher's logits without the exponential's distortion.
 
 ![Same logits, three temperatures: from peaked to flat](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/05-knowledge-distillation/fig3_temperature_effect.png)
@@ -107,9 +99,7 @@ so the student can learn the relative magnitudes of the teacher's logits without
 ### The combined loss
 
 In practice you want both: distil from the teacher *and* anchor on the ground truth.
-
 $$\mathcal{L} \;=\; \alpha \cdot \tau^2 \cdot \mathcal{L}_{\text{KD}} \;+\; (1 - \alpha) \cdot \mathcal{L}_{\text{hard}}.$$
-
 - $\alpha \in [0.5, 0.9]$: how much you trust the teacher.
 - $\tau^2$: compensates for the gradient shrinkage at high temperature (the soft-target gradient scales as $1/\tau^2$, so we multiply the loss by $\tau^2$ to keep the two terms comparable).
 - $\mathcal{L}_{\text{hard}}$: standard cross-entropy with the true label.
@@ -142,9 +132,7 @@ A free 1.6 points for changing the loss function.
 ### Distillation versus label smoothing
 
 Label smoothing also softens the target:
-
 $$y_c' \;=\; (1 - \epsilon) \, y_c + \epsilon / C.$$
-
 The difference is *where the softness comes from*. Label smoothing applies the **same** uniform smoothing to every example. Distillation applies a **per-example** soft distribution drawn from the teacher. A photo of a Persian cat gets weight on "tiger" and "leopard"; a photo of a sedan gets weight on "truck" and "wagon". That is why distillation consistently beats label smoothing.
 
 ---
@@ -158,9 +146,7 @@ Response-based KD only matches the top layer. Feature-based KD also matches the 
 ### FitNets: hint learning
 
 Match the student's intermediate features to the teacher's:
-
 $$\mathcal{L}_{\text{hint}} \;=\; \| W_r \, F_S^l - F_T^l \|_F^2,$$
-
 where $W_r$ is a learnable 1x1 projection that aligns the student's channel dimension to the teacher's. Romero et al. trained this in two stages:
 
 1. Train the student's lower layers + projection to match the teacher's chosen "hint" layer.
@@ -169,13 +155,9 @@ where $W_r$ is a learnable 1x1 projection that aligns the student's channel dime
 ### Attention transfer
 
 Instead of matching feature values, match **where** the teacher is looking. Define a spatial attention map by collapsing the channel dimension:
-
 $$A(F) \;=\; \sum_c |F_c|^p, \quad p = 2.$$
-
 Then minimise
-
 $$\mathcal{L}_{\text{AT}} \;=\; \sum_l \left\| \frac{A_S^l}{\|A_S^l\|_2} - \frac{A_T^l}{\|A_T^l\|_2} \right\|_2^2.$$
-
 On CIFAR-10, distilling ResNet-110 -> ResNet-20:
 
 | Method | Acc |
@@ -187,9 +169,7 @@ On CIFAR-10, distilling ResNet-110 -> ResNet-20:
 ### Gram matrix distillation (NST)
 
 Borrowing from neural style transfer, match Gram matrices
-
 $$G \;=\; F^\top F,$$
-
 so $G_{ij}$ captures the correlation between channels $i$ and $j$. This is a second-order statistic — "texture" rather than "content" — that pointwise matching cannot capture.
 
 ---
@@ -203,21 +183,15 @@ Match the **relationships between samples**, not the samples themselves.
 Two flavours:
 
 **Distance-wise.** For sample pair $(x_i, x_j)$, preserve their pairwise distance in embedding space:
-
 $$\mathcal{L}_{\text{dist}} \;=\; \sum_{(i,j)} \ell_\delta\!\left(d_S(i,j),\, d_T(i,j)\right).$$
-
 **Angle-wise.** For triplet $(x_i, x_j, x_k)$, preserve the angle at $x_j$:
-
 $$\mathcal{L}_{\text{angle}} \;=\; \sum_{(i,j,k)} \ell_\delta\!\left(\angle_S(i,j,k),\, \angle_T(i,j,k)\right).$$
-
 Empirically, angles matter more than distances ($\lambda_{\text{angle}} = 2$, $\lambda_{\text{dist}} = 1$), because angles are scale-invariant and capture relative geometry.
 
 ### CRD: contrastive representation distillation
 
 Treat the teacher's representation as the "positive" view and other samples as negatives:
-
 $$\mathcal{L}_{\text{CRD}} \;=\; -\log \frac{\exp\!\left(f_S(x)^\top f_T(x) / \tau\right)}{\sum_{x'} \exp\!\left(f_S(x)^\top f_T(x') / \tau\right)}.$$
-
 This maximises the mutual information between student and teacher features. For very small students (e.g. ResNet-8 distilled from ResNet-32), CRD beats response-only KD by 2% or more on CIFAR-100.
 
 ---
@@ -251,9 +225,7 @@ Two complementary explanations: soft labels supply smoother gradients (reducing 
 ### Deep mutual learning
 
 Train $M$ students simultaneously, each treating the others as teachers:
-
 $$\mathcal{L}_i \;=\; \mathcal{L}_{\text{CE}}^i + \frac{1}{M-1} \sum_{j \neq i} \mathrm{KL}\!\left(P_j \,\|\, P_i\right).$$
-
 No pretraining. Different random seeds make different errors; mutual supervision lets each model absorb the others' strengths. On CIFAR-100, two ResNet-32s trained jointly each reach 72.1% versus 70.2% trained alone.
 
 ---

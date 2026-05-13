@@ -206,9 +206,7 @@ The watermark is the part most people get wrong. It says "I will not see any eve
 ### 5.1 The core update
 
 For a logistic ranker with parameters $\theta$ and a single example $(x_t, y_t)$:
-
 $$\theta_{t+1} = \theta_t - \eta_t \, \nabla_\theta \mathcal{L}(\sigma(\theta_t^\top x_t), y_t)$$
-
 That is plain SGD. It works, but on web-scale CTR data — millions of sparse features, each appearing in a small fraction of examples — it has two problems:
 
 1. **No per-feature learning rate**: a feature that fires 1 in 10 000 needs bigger steps than one that fires every example.
@@ -217,15 +215,12 @@ That is plain SGD. It works, but on web-scale CTR data — millions of sparse fe
 ### 5.2 AdaGrad — adaptive per-feature step
 
 AdaGrad fixes the first problem by accumulating squared gradients per feature:
-
 $$\theta_{t+1, i} = \theta_{t, i} - \frac{\eta}{\sqrt{G_{t, i} + \varepsilon}} g_{t, i}, \quad G_{t, i} = \sum_{s=1}^{t} g_{s, i}^2$$
-
 A rare feature has small $G$, so it gets a big step the few times it does fire. A common feature has large $G$ and is updated cautiously.
 
 ### 5.3 FTRL-Proximal — the production workhorse
 
 FTRL-Proximal (McMahan et al., *Ad Click Prediction: a View from the Trenches*, KDD 2013 — the paper Google published describing the algorithm running their ad system) combines AdaGrad's per-feature scaling with $L_1$ regularization that produces *exact* zeros, not just small weights. The per-coordinate update:
-
 $$
 z_{t,i} \leftarrow z_{t-1,i} + g_{t,i} - \frac{\sigma_{t,i}}{\eta} \theta_{t-1,i},
 \qquad
@@ -235,7 +230,6 @@ z_{t,i} \leftarrow z_{t-1,i} + g_{t,i} - \frac{\sigma_{t,i}}{\eta} \theta_{t-1,i
 -\frac{1}{\eta_{t,i}} \big(z_{t,i} - \mathrm{sign}(z_{t,i}) \lambda_1\big) & \text{otherwise}
 \end{cases}
 $$
-
 where $\sigma_{t,i} = \frac{1}{\eta_{t,i}} - \frac{1}{\eta_{t-1,i}}$ and $\eta_{t,i} = \alpha / (\beta + \sqrt{\sum_s g_{s,i}^2})$.
 
 The crucial property: the model is genuinely sparse. Google reported FTRL-Proximal cutting model size by an order of magnitude versus naive SGD with $L_2$ — at the same AUC.
@@ -309,25 +303,19 @@ This shapes the architecture: do not pay the streaming cost for features that do
 ### 7.1 The problem in one sentence
 
 You have $K$ items to choose from. Each item has an unknown click probability $\mu_i$. Each round you pick one, observe its click, and update. Over $T$ rounds, **regret** is what you lost relative to always picking the best:
-
 $$R_T = T \mu^* - \mathbb{E}\!\left[\sum_{t=1}^T \mu_{a_t}\right]$$
-
 A "good" algorithm has *sublinear regret*: $R_T = o(T)$, i.e. average per-round loss → 0.
 
 ### 7.2 UCB1 — be optimistic in the face of uncertainty
 
 UCB1 (Auer et al., 2002) picks the arm with the highest *upper confidence bound*:
-
 $$a_t = \arg\max_i \left( \hat\mu_i + \sqrt{\frac{2 \ln t}{n_i}} \right)$$
-
 where $n_i$ is how many times arm $i$ has been pulled. The bonus shrinks as $n_i$ grows — explore until you're sure, then exploit. UCB1 achieves $O(\log T)$ regret, which is provably optimal up to constants for stationary bandits (Lai-Robbins lower bound).
 
 ### 7.3 Thompson Sampling — the Bayesian way
 
 Maintain a posterior over each arm's success rate. For Bernoulli rewards, the conjugate prior is Beta:
-
 $$\theta_i \sim \text{Beta}(\alpha_i, \beta_i), \quad \text{update: } (\alpha_i, \beta_i) \leftarrow (\alpha_i + r, \beta_i + 1 - r)$$
-
 Each round, *sample* one $\theta_i$ from each arm's posterior and pick the highest sample. Wide posteriors get explored (their samples are noisy and occasionally land high); narrow posteriors get exploited. Thompson Sampling matches UCB1's $O(\log T)$ asymptotically (Agrawal & Goyal, 2012) and beats it in practice on most benchmarks, while being simpler to extend to delayed feedback, batched updates, and complex reward models.
 
 ```python
@@ -353,13 +341,9 @@ class ThompsonSampling:
 ### 7.4 LinUCB — context that actually matters
 
 Plain bandits learn a global ranking. The whole point of recommendation is *personalization*. LinUCB (Li et al., *A Contextual-Bandit Approach to Personalized News Article Recommendation*, WWW 2010 — the algorithm Yahoo used for front-page personalization) assumes the expected reward is linear in a context vector $x_t$:
-
 $$\mathbb{E}[r_a \mid x_t] = x_t^\top \theta_a$$
-
 Each arm maintains a ridge regression model $(A_a, b_a)$ where $A_a = I + \sum X X^\top$ and $b_a = \sum r X$. The selection rule:
-
 $$a_t = \arg\max_a \left( x_t^\top \hat\theta_a + \alpha \sqrt{x_t^\top A_a^{-1} x_t} \right), \quad \hat\theta_a = A_a^{-1} b_a$$
-
 The bonus term $\sqrt{x_t^\top A_a^{-1} x_t}$ is the predictive standard deviation of ridge regression — large when the current context is unlike anything we've seen for this arm. Regret is $\tilde O(\sqrt{d T})$ where $d$ is the context dimension.
 
 ```python

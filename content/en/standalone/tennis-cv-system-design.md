@@ -86,20 +86,18 @@ A **coarse-to-fine** alternative (YOLOv5 proposals + ResNet-50 verification) red
 Hartley & Zisserman's *Multiple View Geometry* is still, eighteen years on, the right book to read. Three things to internalise:
 
 **Pinhole projection**:
-
 $$s\,\mathbf{x} = K\,[R \mid t]\,\mathbf{X}$$
-
 where $K$ is the $3\times3$ intrinsic matrix, $[R \mid t]$ is the $3\times4$ extrinsic, and $\mathbf{X}$ is the world-frame 3D homogeneous point.
 
 **Zhang's method** (1998): solve $K$ from a checkerboard. Need at least 10 images at varied angles, and the reprojection error must be < 0.5 px to be production-grade.
 
 **DLT triangulation**: from $n$ camera observations $\mathbf{x}_i$, recover $\mathbf{X}$. Each observation contributes two linear constraints:
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 x_i\,P_i^{(3)} - P_i^{(1)} &= 0 \\
 y_i\,P_i^{(3)} - P_i^{(2)} &= 0
-\end{aligned}$$
-
+\end{aligned}
+$$
 Stack into $A_{2n\times4}\mathbf{X}=0$ and take the right singular vector of the smallest singular value via SVD.
 
 **Automatic Camera Network Calibration (2024)**: board-free re-calibration. SIFT/ORB across views → SfM jointly estimates poses and a sparse cloud → bundle adjustment minimises reprojection error to < 0.5 px. Saves the on-site pain of waving a checkerboard around the venue.
@@ -121,9 +119,7 @@ The SORT family solves data association. Tennis has a single ball but many of th
 ### 2.4 Trajectory prediction
 
 **Physics-Informed Neural Networks (Raissi 2019)** add a physics-residual loss term:
-
 $$\mathcal{L} = \underbrace{\sum_i \|\hat{\mathbf{p}}(t_i) - \mathbf{p}_i\|^2}_{\text{data}} + \lambda\,\underbrace{\sum_j \|\ddot{\hat{\mathbf{p}}}(t_j) - \mathbf{f}(\hat{\mathbf{p}}, \dot{\hat{\mathbf{p}}})\|^2}_{\text{physics}}$$
-
 In the data-poor regime that is one serve (30–50 observations), PINNs cut landing-point error by ~30% versus a pure LSTM.
 
 **TrackNetV2 + bidirectional LSTM** is the more engineering-friendly version: forward LSTM for live prediction, backward LSTM for offline correction. Landing-point error drops from 32 cm (pure physics) to 18 cm.
@@ -418,9 +414,7 @@ class TennisTrajectoryPredictor:
 ```
 
 The model carries all three forces:
-
 $$m\,\ddot{\mathbf{p}} = \underbrace{-\tfrac{1}{2}\rho\,C_d\,A\,\|\dot{\mathbf{p}}\|\,\dot{\mathbf{p}}}_{\text{drag}} + \underbrace{C_m\,(\boldsymbol{\omega}\times\dot{\mathbf{p}})}_{\text{Magnus}} + m\,\mathbf{g}$$
-
 The qualitative output — **topspin dives, backspin floats** — matches real rallies:
 
 ![3D trajectories under three spins, with landing zones](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig3_trajectory_3d.png)
@@ -471,9 +465,7 @@ For tennis — few classes, geometrically distinctive — the rule approach wins
 - **Backhand (two-handed)**: left wrist on the body's right side, wrists within 50 px of each other (two-handed grip), left foot forward
 
 Template matching is a weighted vote:
-
 $$\text{score}(\text{action}) = \frac{\sum_i w_i\,\mathbf{1}[\text{feature}_i \text{ matched}]}{\sum_i w_i}$$
-
 Threshold at 0.6, then add a 5-frame majority vote for temporal smoothing. The resulting confusion matrix:
 
 ![Action recognition confusion matrix and per-class metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig6_action_recognition.png)

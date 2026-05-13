@@ -93,9 +93,7 @@ def format_example(ex):
 ```
 
 **RLHF**（Ouyang 等人 2022 年的 InstructGPT 论文）。在 SFT 之后，基于人类偏好对训练奖励模型，并用 PPO 算法优化策略以匹配该奖励。其 Bradley–Terry 偏好损失如下：
-
 $$\mathcal{L}_{\text{RM}} = -\log \sigma\bigl(r_\theta(x, y_{\text{chosen}}) - r_\theta(x, y_{\text{rejected}})\bigr).$$
-
 ```python
 class RewardModel(nn.Module):
     def __init__(self, base):

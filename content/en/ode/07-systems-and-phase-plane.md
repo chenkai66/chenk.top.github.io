@@ -56,7 +56,8 @@ For nonlinear systems, the same six pictures still appear — but only locally, 
 Consider $\mathbf{x}' = \mathbf{f}(\mathbf{x})$ with equilibrium $\mathbf{x}^*$ (so $\mathbf{f}(\mathbf{x}^*) = \mathbf{0}$).
 
 **Lyapunov stable.** For every $\varepsilon > 0$, there exists $\delta > 0$ such that
-$$\|\mathbf{x}(0) - \mathbf{x}^*\| < \delta \;\Longrightarrow\; \|\mathbf{x}(t) - \mathbf{x}^*\| < \varepsilon \;\;\text{for all } t > 0.$$*Intuition: nearby trajectories stay nearby forever.*
+$$
+\|\mathbf{x}(0) - \mathbf{x}^*\| < \delta \;\Longrightarrow\; \|\mathbf{x}(t) - \mathbf{x}^*\| < \varepsilon \;\;\text{for all } t > 0.$$*Intuition: nearby trajectories stay nearby forever.*
 
 **Asymptotically stable.** Lyapunov stable **and** $\mathbf{x}(t) \to \mathbf{x}^*$ as $t \to \infty$.
 *Intuition: nearby trajectories not only stay nearby but eventually return.*
@@ -71,7 +72,8 @@ The **basin of attraction** is the set of all initial conditions that converge t
 
 ## Linearization: The Jacobian Method
 
-Near equilibrium $\mathbf{x}^*$, Taylor-expand and keep the linear part:$$\mathbf{x}' \;\approx\; J(\mathbf{x} - \mathbf{x}^*), \qquad J_{ij} = \frac{\partial f_i}{\partial x_j}\bigg|_{\mathbf{x}^*}.$$
+Near equilibrium $\mathbf{x}^*$, Taylor-expand and keep the linear part:$$\mathbf{x}' \;\approx\; J(\mathbf{x} - \mathbf{x}^*), \qquad J_{ij} = \frac{\partial f_i}{\partial x_j}\bigg|_{\mathbf{x}^*}.
+$$
 ### Hartman-Grobman theorem
 
 If every eigenvalue of $J$ has **nonzero real part** (a *hyperbolic* equilibrium), then the nonlinear system is locally **topologically equivalent** to its linearization $\mathbf{u}' = J\mathbf{u}$.
@@ -81,9 +83,7 @@ If every eigenvalue of $J$ has **nonzero real part** (a *hyperbolic* equilibrium
 - Purely imaginary eigenvalues: **linearization fails** — use Lyapunov methods
 
 ### Example: damped pendulum
-
 $$\theta'' + \gamma\theta' + \omega_0^2\sin\theta = 0$$
-
 | Equilibrium | Jacobian | Verdict |
 |-----------|----------|---------|
 | $(0,0)$ hanging | $\begin{pmatrix}0 & 1 \\ -\omega_0^2 & -\gamma\end{pmatrix}$ | Both eigenvalues have $\operatorname{Re}<0$ when $\gamma>0$: **stable focus** |
@@ -148,9 +148,7 @@ Trajectories cross level sets of $V$ inward. Since $V$ has a minimum at $\mathbf
 - **Trial:** start with $V = x^2 + y^2$, compute $\dot V$, adjust coefficients
 
 ### Example: pendulum energy
-
 $$V(\theta, \omega) = \tfrac{1}{2}\omega^2 + (1 - \cos\theta), \qquad \dot V = -\gamma\omega^2 \leq 0.$$
-
 The hanging position is stable. LaSalle's principle (next) upgrades this to asymptotic.
 
 ---
@@ -207,9 +205,7 @@ Hopf is the mechanism behind every self-sustained oscillation in nature — from
 ---
 
 ## Application 1: Lotka-Volterra Predator-Prey
-
 $$x' = ax - bxy, \qquad y' = -cy + dxy$$
-
 The non-trivial equilibrium $(c/d,\ a/b)$ has Jacobian eigenvalues $\pm i\sqrt{ac}$ — a **center**. The Hartman-Grobman theorem does *not* apply (eigenvalues are imaginary), but a conserved quantity$$H(x,y) = dx - c\ln x + by - a\ln y$$makes every orbit closed. The system has periodic population cycles (right panel of fig 2).
 
 ## Application 2: Inverted Pendulum Control
@@ -314,9 +310,7 @@ Toy case: $\dot x = -x^3$. The Jacobian at $0$ is $0$, so linear analysis is sil
 ## ML Connection: Lyapunov Neural Networks and Stability-Constrained Training
 
 Classical control engineering chooses Lyapunov candidates by inspection — a quadratic, an energy. Recent work parametrises $V_\theta$ with a neural net subject to
-
 $$ V_\theta(x) > 0,\quad V_\theta(0) = 0,\quad \nabla V_\theta(x)^\top f(x) < 0. $$
-
 Two implementation tricks I have actually used:
 
 1. **Bake positivity into the architecture.** Write $V_\theta(x) = \|\phi_\theta(x)\|^2 + \epsilon \|x\|^2$ with $\phi_\theta$ a standard MLP. Then $V_\theta \ge \epsilon\|x\|^2$ holds by construction, no penalty term needed.

@@ -43,14 +43,12 @@ This post derives why that is even possible. We start from the bilingual-embeddi
 ## Problem Setup
 
 Let $\ell_s$ be a **source** language with abundant labeled data $\mathcal{D}_s = \{(x_i^{(s)}, y_i)\}$, and $\ell_t$ a **target** language for which we have no labels. The classical zero-shot cross-lingual objective is
-
-$$\theta^* = \arg\min_\theta \mathbb{E}_{(x,y)\sim \mathcal{D}_s}\,\mathcal{L}\!\left(f_\theta(x), y\right),
-\qquad \text{evaluate on } \mathcal{D}_t.$$
-
+$$
+\theta^* = \arg\min_\theta \mathbb{E}_{(x,y)\sim \mathcal{D}_s}\,\mathcal{L}\!\left(f_\theta(x), y\right),
+\qquad \text{evaluate on } \mathcal{D}_t.
+$$
 The number we report is the **transfer gap**
-
 $$\Delta(\ell_s \to \ell_t) = \operatorname{Acc}(\ell_s) - \operatorname{Acc}(\ell_t).$$
-
 A perfectly language-agnostic representation has $\Delta = 0$. In practice $\Delta$ ranges from a few points (English -> German) to twenty-plus (English -> Swahili), and most of this post is about why.
 
 ---
@@ -62,9 +60,7 @@ The hypothesis behind cross-lingual transfer is simple to state and surprisingly
 > Different languages encode the same underlying concepts; with the right encoder $f_\theta$, semantically equivalent inputs land at nearby points in $\mathbb{R}^d$.
 
 Formally, for sentences $s^{(\ell_1)}$ and $s^{(\ell_2)}$ with the same meaning,
-
 $$\bigl\| f_\theta\!\left(s^{(\ell_1)}\right) - f_\theta\!\left(s^{(\ell_2)}\right) \bigr\| \approx 0.$$
-
 ![Multilingual embedding space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/fig1_embedding_space.png)
 
 The figure above is the cartoon: each cluster is one concept, and the three markers inside it are the same word in three languages. If your encoder achieves something like this, a classifier head trained on the English markers will fire on the Chinese and French ones too — you never had to translate.
@@ -74,10 +70,10 @@ The figure above is the cartoon: each cluster is one concept, and the three mark
 Before multilingual Transformers, this hypothesis was tested on **static word embeddings**. Train word2vec on English, train it again on French, and you get two unrelated embedding matrices $\mathbf{X}_s, \mathbf{X}_t \in \mathbb{R}^{n \times d}$ (rows aligned via a small bilingual dictionary). The question is: does there exist a single linear map taking one space onto the other?
 
 The answer turned out to be yes, and the map should be **orthogonal** — rotations and reflections preserve dot products, hence preserve the geometric relationships word2vec learned. This is the **Orthogonal Procrustes** problem:
-
-$$\mathbf{W}^* = \arg\min_{\mathbf{W}} \bigl\|\mathbf{X}_s\mathbf{W} - \mathbf{X}_t\bigr\|_F^2
-\quad\text{s.t.}\quad \mathbf{W}^\top \mathbf{W} = \mathbf{I}.$$
-
+$$
+\mathbf{W}^* = \arg\min_{\mathbf{W}} \bigl\|\mathbf{X}_s\mathbf{W} - \mathbf{X}_t\bigr\|_F^2
+\quad\text{s.t.}\quad \mathbf{W}^\top \mathbf{W} = \mathbf{I}.
+$$
 It has a closed-form solution. Compute the SVD $\mathbf{X}_t^\top \mathbf{X}_s = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top$, then $\mathbf{W}^* = \mathbf{V}\mathbf{U}^\top$. Conneau et al. (2018) later showed you can drop the dictionary entirely and recover $\mathbf{W}$ adversarially, which is what made unsupervised bilingual lexicons possible.
 
 The Procrustes story matters because **multilingual Transformers can be read as doing this alignment implicitly, end-to-end, in a much higher-dimensional space**.
@@ -195,9 +191,7 @@ For pairs where neither direction has decent MT (e.g., Yoruba -> Hausa), pivot t
 Two ideas that show up in modern systems and are worth knowing.
 
 **Language-agnostic continuous prompts.** Instead of writing a prompt template per language, prepend $m$ learnable prefix vectors $\mathbf{P} = [\mathbf{p}_1, \dots, \mathbf{p}_m]$ to every input and train them on multiple languages simultaneously:
-
 $$\min_{\mathbf{P}} \; \sum_{\ell} \mathbb{E}_{(x,y)\sim \mathcal{D}_\ell}\,\mathcal{L}\!\left(f_\theta\!\left([\mathbf{P}; x^{(\ell)}]\right), y\right).$$
-
 The frozen encoder stays cross-lingual; the prompt learns a task-specific anchor that doesn't favor any single language.
 
 **Code-switching augmentation.** During training, randomly replace a fraction of source-language words with their target-language translations while preserving syntax. This teaches the encoder to treat a token's *meaning* as more important than its *language*, and reliably improves robustness on code-mixed benchmarks (GLUECoS, LinCE) by 5-10 points.

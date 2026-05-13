@@ -44,31 +44,19 @@ Three running examples will recur throughout this post:
 The fundamental question is: **among all functions satisfying given boundary conditions, which one extremizes $J$?**
 
 **Definition (Gateaux derivative).** The Gateaux derivative of $J$ at $y$ in the direction $\eta$ is
-
 $$\delta J[y; \eta] = \lim_{\varepsilon \to 0} \frac{J[y + \varepsilon \eta] - J[y]}{\varepsilon}.$$
-
 When this limit exists and depends linearly on $\eta$, we write
-
 $$\delta J[y; \eta] = \int \frac{\delta J}{\delta y}(x)\, \eta(x)\, dx,$$
-
 and call $\delta J / \delta y$ the **functional derivative** of $J$.
 
 **Theorem (Euler-Lagrange equation).** For
-
 $$J[y] = \int_a^b F(x, y(x), y'(x))\, dx,$$
-
 any extremum $y^*$ that satisfies fixed boundary conditions $y^*(a)=y_a, y^*(b)=y_b$ obeys
-
 $$\frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'} = 0.$$
-
 **Sketch.** Pick a perturbation $\eta$ with $\eta(a)=\eta(b)=0$ and define $\Phi(\varepsilon) := J[y^* + \varepsilon \eta]$. Extremality gives $\Phi'(0) = 0$, i.e.
-
 $$\int_a^b \left(\frac{\partial F}{\partial y}\eta + \frac{\partial F}{\partial y'}\eta'\right) dx = 0.$$
-
 Integrate the second term by parts; the boundary contribution vanishes because $\eta$ does, leaving
-
 $$\int_a^b \left(\frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'}\right)\eta\, dx = 0$$
-
 for *every* admissible $\eta$. The fundamental lemma of the calculus of variations then forces the parenthesised expression to vanish identically, which is the Euler-Lagrange equation. $\square$
 
 ![Euler-Lagrange in pictures: a perturbation $y + \varepsilon\eta$ with $\eta(a)=\eta(b)=0$ on the left; the value $J(\varepsilon) = J[y+\varepsilon\eta]$ on the right, with the extremum manifesting itself as $J'(0)=0$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig2_euler_lagrange.png)
@@ -79,43 +67,29 @@ for *every* admissible $\eta$. The fundamental lemma of the calculus of variatio
 **Problem.** Under uniform gravity, what frictionless curve from $A=(0,0)$ to $B$ minimises the descent time?
 
 Place the $y$-axis pointing downward. Energy conservation gives the speed at height $y$ as $v = \sqrt{2gy}$. The arc-length element is $ds = \sqrt{1 + y'^2}\, dx$, so the time element is $dt = ds/v$ and the total time is the functional
-
 $$T[y] = \int_0^{x_B} \frac{\sqrt{1 + y'(x)^2}}{\sqrt{2 g\, y(x)}}\, dx.$$
-
 The integrand $F(y, y') = \sqrt{(1+y'^2)/(2gy)}$ has no explicit $x$-dependence, so the **Beltrami identity** $F - y' \, \partial F/\partial y' = C$ holds. After simplification one finds
-
 $$y(1 + y'^2) = \frac{1}{2gC^2} =: 2R.$$
-
 Parametrising via $y' = \cot(\theta/2)$ and integrating produces the **cycloid**
-
 $$x(\theta) = R(\theta - \sin\theta), \qquad y(\theta) = R(1 - \cos\theta) ,$$
-
 the trajectory of a point on a circle of radius $R$ rolling along a straight line. Figure 1 shows that competing curves — straight lines, parabolas, circular arcs — all yield strictly larger descent times.
 
 ### 1.3 Hamilton's Principle and the Symplectic View
 
 Among all imaginable trajectories of a mechanical system, the actual one extremises the action $S[q] = \int L(q, \dot q)\, dt$. The Euler-Lagrange equation,
-
 $$\frac{d}{dt}\frac{\partial L}{\partial \dot q} - \frac{\partial L}{\partial q} = 0 ,$$
-
 recovers Newton's laws. Defining the conjugate momentum $p := \partial L / \partial \dot q$ and the Hamiltonian $H(q,p) := p\,\dot q - L$, this second-order equation becomes the first-order canonical system
-
 $$\dot q = \frac{\partial H}{\partial p}, \qquad \dot p = -\frac{\partial H}{\partial q} .$$
-
 The **symplectic two-form** $\omega = dp \wedge dq$ is preserved along the flow. We will see this structure again when comparing Hamiltonian dynamics to gradient flows in Section 7.
 
 ### 1.4 From Functional Derivatives to Gradient Flows
 
 For functionals of the form $J[y] = \int F(x, y, y')\,dx$ the functional derivative is
-
 $$\frac{\delta J}{\delta y} = \frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'} .$$
-
 **Example (Dirichlet energy).** For $J[u] = \tfrac12 \int |\nabla u|^2\, dx$ one finds $\delta J/\delta u = -\Delta u$, so the extremality condition is **Laplace's equation** $\Delta u = 0$.
 
 **Gradient flow on function space.** Following the negative functional derivative produces a PDE,
-
 $$\partial_t u = -\frac{\delta J}{\delta u} .$$
-
 For Dirichlet energy this is the **heat equation** $\partial_t u = \Delta u$. Many of the most important PDEs in physics have an interpretation of this kind, and we are about to see that this remains true even when the underlying state is not a function but a *probability measure*.
 
 ## 2. Gradient Flows and Wasserstein Geometry
@@ -123,9 +97,7 @@ For Dirichlet energy this is the **heat equation** $\partial_t u = \Delta u$. Ma
 ### 2.1 Gradient Flows in $\mathbb{R}^n$
 
 In a finite-dimensional Euclidean space, the gradient flow of a smooth $f : \mathbb{R}^n \to \mathbb{R}$ is the ODE
-
 $$\dot x(t) = -\nabla f(x(t)),$$
-
 i.e. the continuous-time analogue of steepest descent. Three properties matter for everything that follows:
 
 1. **Energy dissipation.** $\frac{d}{dt} f(x(t)) = -\|\nabla f(x(t))\|^2 \leq 0.$
@@ -137,9 +109,7 @@ i.e. the continuous-time analogue of steepest descent. Three properties matter f
 When the state of the system is a *probability density*, the Euclidean metric is no longer the natural one. The right replacement is the **Wasserstein-2 distance**, which measures how much mass must be moved (and how far) to convert one distribution into another.
 
 **Definition.** For probability measures $\rho_0, \rho_1$ on $\mathbb{R}^d$ with finite second moment,
-
 $$W_2^2(\rho_0, \rho_1) = \inf_{\gamma \in \Pi(\rho_0, \rho_1)} \int_{\mathbb{R}^d \times \mathbb{R}^d} |x - y|^2 \, d\gamma(x, y),$$
-
 where $\Pi(\rho_0, \rho_1)$ is the set of couplings with marginals $\rho_0, \rho_1$.
 
 **Brenier's theorem.** If $\rho_0$ is absolutely continuous, the optimal coupling is concentrated on the graph of a map $T = \nabla \varphi$ with $\varphi$ convex, and $\rho_1 = T_\# \rho_0$.
@@ -151,17 +121,13 @@ where $\Pi(\rho_0, \rho_1)$ is the set of couplings with marginals $\rho_0, \rho
 How should one define a *gradient flow* on the space of probability measures? Jordan, Kinderlehrer, and Otto (1998) gave the answer: just imitate implicit Euler with the Wasserstein distance in place of $\|\cdot\|$.
 
 **Definition (JKO scheme).** Given a functional $\mathcal{E}$ and time step $\tau > 0$,
-
 $$\rho_{k+1}^\tau \in \arg\min_{\rho} \left\{\mathcal{E}[\rho] + \frac{1}{2\tau} W_2^2(\rho, \rho_k^\tau)\right\}.$$
-
 The continuous-time limit (when it exists) is called the **Wasserstein gradient flow** of $\mathcal{E}$.
 
 ### 2.4 The Heat Equation as a Gradient Flow of Entropy
 
 **Theorem (Otto).** The Wasserstein gradient flow of the Boltzmann entropy
-
 $$\mathcal{H}[\rho] = \int \rho \log \rho\, dx$$
-
 is the heat equation $\partial_t \rho = \Delta \rho$.
 
 *Why this is true, in one paragraph.* The first-order JKO optimality condition reads $\delta \mathcal{H}/\delta \rho + \varphi/\tau = \text{const.}$, where $\varphi$ is the Brenier potential pushing $\rho_k$ to $\rho_{k+1}$. Since $\delta \mathcal{H}/\delta\rho = \log\rho + 1$, the velocity field that the optimal map induces is $v = -\nabla \log \rho$. Plugging into the continuity equation $\partial_t \rho + \nabla\cdot(\rho v) = 0$ yields $\partial_t \rho = \nabla\cdot(\rho \nabla \log \rho) = \Delta \rho$.
@@ -178,21 +144,15 @@ The same machine produces other classical PDEs. With the free-energy $\mathcal{F
 ### 3.1 From Finite to Infinite Width
 
 Take a two-layer network
-
 $$f_\theta(x) = \frac{1}{m} \sum_{i=1}^m a_i\, \sigma(w_i^\top x + b_i),$$
-
 with parameters $\theta_i = (a_i, w_i, b_i)$ and width $m$. Given data $\{(x_k, y_k)\}_{k=1}^n$, the training loss is the empirical risk $\hat R(\theta) = \frac{1}{n}\sum_k \ell(f_\theta(x_k), y_k)$, and gradient descent updates each $\theta_i$ by $-\eta \nabla_{\theta_i}\hat R$.
 
 **Particle picture.** Treating each neuron as a particle in parameter space, training is an interacting particle system: the $m$ particles are coupled because the loss depends on *all* of them through $f_\theta$.
 
 **Empirical measure.** The state of the system is captured by
-
 $$\rho_t^m := \frac{1}{m} \sum_{i=1}^m \delta_{\theta_i(t)} ,$$
-
 and the network output factors through this measure as
-
 $$f_{\rho_t^m}(x) = \int a\,\sigma(w^\top x + b)\, d\rho_t^m(\theta) .$$
-
 **Mean-field limit.** Under appropriate scaling (lr $\propto 1/\sqrt{m}$ or $1/m$ depending on the parametrisation), if the initial parameters are i.i.d. samples from $\rho_0$, then $\rho_t^m \xrightharpoonup{} \rho_t$ as $m \to \infty$, where $\rho_t$ solves the **mean-field equation** (a Vlasov / continuity PDE).
 
 ![Mean-field limit on a two-layer ReLU network: histograms of first-layer weights at three training snapshots, for widths $m=20, 200, 2000$, with KDE overlays.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig4_mean_field_limit.png)
@@ -201,17 +161,11 @@ $$f_{\rho_t^m}(x) = \int a\,\sigma(w^\top x + b)\, d\rho_t^m(\theta) .$$
 ### 3.2 Deriving the Mean-Field Equation
 
 Write the loss as a functional of the measure:
-
 $$\mathcal{L}[\rho] = \frac{1}{n} \sum_{k=1}^n \ell(f_\rho(x_k), y_k), \quad f_\rho(x) = \int a \, \sigma(w^\top x + b)\, d\rho(\theta) .$$
-
 The gradient-descent dynamics of one particle is $\dot\theta_i = -\nabla_{\theta_i} \hat R$, and a short computation (using $\partial f_\rho/\partial a_i = \tfrac{1}{m}\sigma(w_i^\top x + b_i)$ and so on) shows that this is equivalent to
-
 $$\dot \theta_i = -\nabla_{\theta_i} \frac{\delta \mathcal{L}}{\delta \rho}\bigg|_{\rho = \rho_t^m}(\theta_i).$$
-
 Passing to the limit yields the continuity equation
-
 $$\partial_t \rho + \nabla_\theta\cdot(\rho\, v_t) = 0, \qquad v_t(\theta) = -\nabla_\theta \frac{\delta \mathcal{L}}{\delta \rho}[\rho_t](\theta) .$$
-
 This is the mean-field PDE: a deterministic, nonlinear evolution of the *density* of neurons.
 
 ### 3.3 Global Convergence
@@ -227,9 +181,7 @@ This is the mean-field PDE: a deterministic, nonlinear evolution of the *density
 ### 3.4 Wasserstein Gradient-Flow Form
 
 When the loss can be written as
-
 $$\mathcal{L}[\rho] = \tfrac12 \int K(\theta, \theta')\, d\rho(\theta)\, d\rho(\theta') + \int g(\theta)\, d\rho(\theta) ,$$
-
 the mean-field equation is *exactly* the Wasserstein gradient flow of $\mathcal{L}$. This is the cleanest possible justification for the slogan "training is a gradient flow on $\mathcal{P}_2$": even though the loss is non-convex in $\theta$, in measure space it can be **displacement convex**, which gives global convergence.
 
 ![A non-convex 2-D energy landscape with a gradient-flow trajectory from a poor initialisation to the basin minimum. Bottom-right: the energy decays monotonically along the flow, illustrating the universal dissipation identity $\dot E = -\|\nabla E\|^2$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig5_energy_landscape.png)
@@ -238,21 +190,15 @@ the mean-field equation is *exactly* the Wasserstein gradient flow of $\mathcal{
 ### 3.5 Continuous-Time Limit of Deep Networks
 
 Residual networks
-
 $$h_{\ell + 1} = h_\ell + \tau\, F(h_\ell, \theta_\ell)$$
-
 become an ODE $\dot h = F(h, \theta(t))$ as the depth grows and the step shrinks — the foundation of **Neural ODEs** (Chen et al. 2018). Onken et al. (2024) push this further: training a deep ResNet is essentially solving a *conditional optimal-transport* problem,
-
 $$\min_F \int c(x, F(x))\, d\rho_X(x), \quad \text{subject to } F_\# \rho_X = \rho_Y ,$$
-
 i.e. learning an optimal map that progressively flattens the data distribution toward a target distribution that the classifier head can read off easily.
 
 ## 4. Variational Inference and the ELBO
 
 The variational worldview is not confined to physics. The **evidence lower bound** at the heart of variational autoencoders is itself a variational principle: one chooses an approximate posterior $q(z|x)$ within a family $\mathcal{Q}$ to maximise
-
 $$\mathrm{ELBO}(q) = \mathbb{E}_{q(z|x)}[\log p(x|z)] - \mathrm{KL}\!\left(q(z|x) \,\Vert\, p(z)\right) ,$$
-
 which is equivalent to minimising $\mathrm{KL}(q(z|x)\,\Vert\,p(z|x))$ — the KL distance to the *true* posterior. This is a constrained variational problem, and in the limit $\mathcal{Q}$ = all densities, the maximiser is the exact posterior.
 
 In the Wasserstein view of the previous sections, the gradient flow of the KL divergence $\mathrm{KL}(\cdot\,\Vert\,p)$ is precisely the Fokker-Planck equation of Section 2.4, which is why diffusion-based generative models can be analysed with the same tools as the VAE.
@@ -275,9 +221,7 @@ We pick the extremal $y(x) = \sin(\pi x)$ of the Dirichlet energy on $[0, 1]$ (w
 ### 5.3 Wasserstein Gradient Flow (Figure 3)
 
 We integrate the 1-D Fokker-Planck equation
-
 $$\partial_t \rho = \nabla\cdot(\rho \nabla V) + \Delta \rho, \qquad V(x) = \tfrac12 (x - \mu_\ast)^2 ,$$
-
 with explicit finite differences. The initial density is a sharp Gaussian far from the target. The simulation shows three things at once:
 - $\rho_t$ travels through measure space toward the Gibbs target $\rho_\ast = \mathcal{N}(\mu_\ast, 1)$;
 - the free energy $F[\rho_t]$ decreases monotonically (energy dissipation along a gradient flow);
@@ -296,9 +240,7 @@ A deliberately non-convex 2-D energy with a tilt and trigonometric "bumps" demon
 ### 6.1 Fisher-Rao and Natural Gradient
 
 The Wasserstein metric is not the only Riemannian structure on probability space. The **Fisher information matrix**
-
 $$I(\theta) = \mathbb{E}_{p_\theta}\!\left[\nabla_\theta \log p_\theta(x)\, \nabla_\theta \log p_\theta(x)^\top\right]$$
-
 defines a different metric — the **Fisher-Rao metric** — and the corresponding **natural gradient flow** $\dot\theta = -I(\theta)^{-1} \nabla_\theta J(\theta)$ (Amari 1998) often converges far faster than vanilla gradient descent because it accounts for the intrinsic curvature of the parameter space. Wasserstein and Fisher-Rao see the world differently:
 - **Wasserstein** measures *transport cost*; it is the right metric when the support of the distribution moves.
 - **Fisher-Rao** measures *information-geometric distance*; it is the right metric when the distribution reshapes itself in place.
@@ -308,9 +250,7 @@ Recent work on [Kernel Approximation of Fisher-Rao Gradient Flows](https://arxiv
 ### 6.2 Adam as a Reparametrised Gradient Flow
 
 The continuous-time limit of Adam takes the form
-
 $$\dot\theta = -\frac{m_t}{\sqrt{v_t} + \epsilon}, \qquad \dot m_t = \alpha_1\big(\nabla J(\theta) - m_t\big), \qquad \dot v_t = \alpha_2\big(\|\nabla J(\theta)\|^2 - v_t\big) ,$$
-
 which is the **gradient flow of $J$ in a coordinate-dependent Riemannian metric** $g_{ii}(\theta) = (\sqrt{v_i(\theta)} + \epsilon)$. This is a diagonal approximation to a natural gradient — adaptive learning rates are, fundamentally, a *change of metric*.
 
 ## 7. Hamiltonian vs. Gradient Flow

@@ -47,14 +47,12 @@ By the end, you should be able to look at any ensemble method and say what it re
 ### 1.1 The variance reduction identity
 
 Pick any regression problem and any base learner that produces $h_t(\mathbf{x})$ on training set $\mathcal{D}_t$. The simplest ensemble is a flat average:
-
 $$H(\mathbf{x}) = \frac{1}{T}\sum_{t=1}^T h_t(\mathbf{x}).$$
-
 Treat each $h_t(\mathbf{x})$ as a random variable (random because the training set is random). Suppose every $h_t$ has the same mean $\mu$ and the same variance $\sigma^2$, and that distinct learners have pairwise correlation $\rho$. Then a textbook calculation gives
-
-$$\mathbb{E}[H(\mathbf{x})] = \mu, \qquad
-\operatorname{Var}[H(\mathbf{x})] = \rho\,\sigma^2 + \frac{1-\rho}{T}\,\sigma^2.$$
-
+$$
+\mathbb{E}[H(\mathbf{x})] = \mu, \qquad
+\operatorname{Var}[H(\mathbf{x})] = \rho\,\sigma^2 + \frac{1-\rho}{T}\,\sigma^2.
+$$
 This equation is the core reason ensembles exist. Read it carefully:
 
 - **Bias is preserved.** $\mathbb{E}[H] = \mu$, so averaging cannot fix systematic error of the base learner. If every tree underfits, the ensemble underfits too.
@@ -66,12 +64,12 @@ So every ensemble method is, at heart, an answer to two questions: *how do I gen
 ### 1.2 Bias--variance decomposition
 
 For squared loss the generalisation error of any predictor decomposes as
-
-$$\mathbb{E}[(y - \hat f(\mathbf{x}))^2]
+$$
+\mathbb{E}[(y - \hat f(\mathbf{x}))^2]
 = \underbrace{(\mathbb{E}[\hat f] - f)^2}_{\text{bias}^2}
 \,+\, \underbrace{\mathbb{E}[(\hat f - \mathbb{E}[\hat f])^2]}_{\text{variance}}
-\,+\, \underbrace{\sigma_\epsilon^2}_{\text{irreducible noise}}.$$
-
+\,+\, \underbrace{\sigma_\epsilon^2}_{\text{irreducible noise}}.
+$$
 Complex models (deep trees, large neural nets) have low bias but high variance. Simple models (depth-1 stumps, linear regression) have low variance but significant bias. The two ensemble families address these issues differently:
 
 - **Bagging / Random Forest** keeps a low-bias high-variance learner and *averages away* the variance.
@@ -82,9 +80,7 @@ That is the entire taxonomy in two sentences.
 ### 1.3 Why a committee of mediocre voters works
 
 For binary classification with $T$ independent classifiers, each with error rate $\epsilon < 1/2$, the majority vote is wrong only when more than half the voters are wrong. The exact probability is binomial:
-
 $$P_{\text{ensemble}} = \sum_{k > T/2} \binom{T}{k}\,\epsilon^k(1-\epsilon)^{T-k}.$$
-
 With $T = 21$ and $\epsilon = 0.30$ this evaluates to about $0.026$. A 30 % error rate is mediocre; a 2.6 % ensemble error rate is excellent. The catch is the word *independent* --- which, again, points back to the decorrelation problem.
 
 ---
@@ -104,17 +100,15 @@ Bagging (Breiman, 1996) is the clearest way to apply the variance identity from 
 3. **Aggregate.** Regression: $H(\mathbf{x}) = \tfrac{1}{T}\sum_t h_t(\mathbf{x})$. Classification: majority vote.
 
 **Bootstrap leaves about 36.8 % of the data out.** The probability that a given sample is *not* picked in $N$ draws with replacement is
-
 $$\left(1 - \tfrac{1}{N}\right)^N \xrightarrow{N \to \infty} e^{-1} \approx 0.368.$$
-
 These leftover points are the **out-of-bag (OOB) samples** for tree $t$.
 
 **OOB error is a free validation set.** For each training point $(\mathbf{x}_i, y_i)$, predict using only the trees that did *not* see it during training:
-
-$$\widehat{\text{Err}}_{\text{OOB}}
+$$
+\widehat{\text{Err}}_{\text{OOB}}
 = \frac{1}{N}\sum_{i=1}^N L\!\left(y_i,\; \frac{1}{|\mathcal{S}_i|}\sum_{t \in \mathcal{S}_i} h_t(\mathbf{x}_i)\right),\qquad
-\mathcal{S}_i = \{t : (\mathbf{x}_i, y_i) \notin \mathcal{D}_t\}.$$
-
+\mathcal{S}_i = \{t : (\mathbf{x}_i, y_i) \notin \mathcal{D}_t\}.
+$$
 This is an (almost) unbiased estimate of generalization error, computed for free as a side effect of training. No need for a held-out set or cross-validation loop.
 
 ### 2.2 Random Forest: decorrelating the trees
@@ -131,9 +125,7 @@ Random Forest (Breiman, 2001) adds a second source of randomness. **At every nod
 Forcing each tree to use different features at each split breaks the dominant-feature trap and pushes $\rho$ down. The figure above makes the effect visible: a single deep tree carves the input space into rectangular blocks and overfits the noise; a Random Forest with $m=1$ averages 80 such blocky surfaces and produces a smooth, generalising boundary.
 
 **Generalisation bound (Breiman, 2001).** Define $s$ as the average margin of the trees and $\bar\rho$ as the average pairwise correlation. Then
-
 $$\text{Generalisation error} \;\le\; \frac{\bar\rho\,(1 - s^2)}{s^2}.$$
-
 This is the variance-reduction identity dressed up. To improve a forest you have exactly two knobs:
 
 1. Strengthen each tree (raise $s$): grow deeper, use more features per split, use more samples.
@@ -193,15 +185,15 @@ Three things to notice in the formulas:
 ### 4.2 The exponential training-error bound
 
 A short calculation shows the training error is bounded by the product of normalisers:
-
-$$\frac{1}{N}\sum_{i=1}^N \mathbf{1}[H(\mathbf{x}_i) \neq y_i]
-\;\le\; \prod_{t=1}^T Z_t.$$
-
+$$
+\frac{1}{N}\sum_{i=1}^N \mathbf{1}[H(\mathbf{x}_i) \neq y_i]
+\;\le\; \prod_{t=1}^T Z_t.
+$$
 If each round satisfies the **weak learning condition** $\epsilon_t \le \tfrac{1}{2} - \gamma_t$ (i.e. each learner beats random by at least $\gamma_t$), then $Z_t \le \sqrt{1 - 4\gamma_t^2}$, so
-
-$$\text{train err}(H) \;\le\; \prod_{t=1}^T \sqrt{1 - 4\gamma_t^2}
-\;\le\; \exp\!\left(-2\sum_{t=1}^T \gamma_t^2\right).$$
-
+$$
+\text{train err}(H) \;\le\; \prod_{t=1}^T \sqrt{1 - 4\gamma_t^2}
+\;\le\; \exp\!\left(-2\sum_{t=1}^T \gamma_t^2\right).
+$$
 Training error decays *exponentially* in $T$. The figure below shows this on a synthetic problem with a handful of intentionally hard borderline points:
 
 ![AdaBoost shifts focus toward hard samples; training error vanishes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig5_adaboost_weights.png)
@@ -213,17 +205,11 @@ This is also AdaBoost's failure mode: with genuinely *mislabelled* points the sa
 ### 4.3 Why exponential weights? The forward stagewise view
 
 AdaBoost looks like a clever heuristic until you realise it is exactly **forward stagewise additive modelling under exponential loss**. The model is
-
 $$F(\mathbf{x}) = \sum_{t=1}^T \alpha_t\, h_t(\mathbf{x}),$$
-
 and the loss is $\mathcal{L}(F) = \sum_i \exp(-y_i F(\mathbf{x}_i))$. We refuse to optimise all $T$ terms jointly --- instead, at round $t$ we hold $F_{t-1}$ fixed and solve
-
 $$(\alpha_t, h_t) \;=\; \arg\min_{\alpha, h}\sum_{i=1}^N \exp\bigl(-y_i\,(F_{t-1}(\mathbf{x}_i) + \alpha\, h(\mathbf{x}_i))\bigr).$$
-
 Defining $w_t(i) = \exp(-y_i F_{t-1}(\mathbf{x}_i))$ pulls $w_t(i)$ outside the new exponential and reduces the problem to
-
 $$\min_{\alpha, h}\sum_{i=1}^N w_t(i)\exp(-\alpha\, y_i\, h(\mathbf{x}_i)).$$
-
 Solving for the optimal $h_t$ first (it minimises weighted error) and then for $\alpha_t$ (one-dimensional calculus) recovers *exactly* AdaBoost's update formulas. Nothing is heuristic; it is coordinate descent in function space, with one new basis function added per iteration.
 
 ---
@@ -235,9 +221,7 @@ Solving for the optimal $h_t$ first (it minimises weighted error) and then for $
 Exponential loss is fragile. The key insight of Friedman (2001) was that the forward-stagewise idea works for *any* differentiable loss if we recast it as gradient descent.
 
 Let $F(\mathbf{x}) = \sum_{t=0}^T h_t(\mathbf{x})$ be the additive model and $\mathcal{L}(F) = \sum_i L(y_i, F(\mathbf{x}_i))$ the loss. At round $t$ we want a step $h_t$ that decreases $\mathcal{L}$. The negative functional gradient at the current iterate $F_{t-1}$, evaluated on the training points, is the vector
-
 $$r_{ti} \;=\; -\!\left[\frac{\partial L(y_i, F)}{\partial F}\right]_{F = F_{t-1}(\mathbf{x}_i)},\qquad i = 1,\dots,N.$$
-
 These $r_{ti}$ are the **pseudo-residuals**. A single regression tree fit to $\{(\mathbf{x}_i, r_{ti})\}$ is a finite-dimensional approximation of the steepest-descent direction in function space.
 
 **Algorithm (Friedman, 2001).**
@@ -463,9 +447,7 @@ Three independent regression models each have $\text{bias}^2 = 4$ and $\text{Var
 Twenty-one independent binary classifiers, each with error rate $\epsilon = 0.30$. Compute the majority-vote error.
 
 **Solution.** Majority vote fails iff $> 10$ classifiers err:
-
 $$P_{\text{ensemble}} = \sum_{k=11}^{21} \binom{21}{k}(0.3)^k(0.7)^{21-k} \approx 0.026.$$
-
 A 30 % individual error becomes 2.6 %.
 
 ### Exercise 3 — AdaBoost weight update by hand

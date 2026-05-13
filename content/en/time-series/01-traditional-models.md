@@ -49,9 +49,7 @@ If your series is short, smooth, or has clean calendar structure, a traditional 
 ## 2. The decomposition view
 
 A good mental picture before any modelling: most series can be written as
-
 $$y_t = T_t + S_t + R_t,$$
-
 a slowly moving **trend** $T_t$, a periodic **seasonal** component $S_t$ (period $s$), and a **residual** $R_t$ that should look like noise once the structure is removed. The classical additive decomposition makes this concrete:
 
 ![Classical additive decomposition of a synthetic monthly series into trend, seasonality and residual.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig1_components.png)
@@ -62,9 +60,7 @@ The whole ARIMA programme can be summarised in one sentence: **transform the dat
 ### Stationarity, formally
 
 A series is **(weakly) stationary** if its mean, variance and autocovariances do not depend on $t$:
-
 $$\mathbb{E}[y_t] = \mu, \qquad \mathrm{Var}(y_t) = \sigma^2, \qquad \mathrm{Cov}(y_t, y_{t-k}) = \gamma_k.$$
-
 Most real series are *not* stationary — they trend, drift, or have variance that grows with the level. The two standard remedies are:
 
 - **Differencing**: $\nabla y_t = y_t - y_{t-1}$ removes a linear trend; $\nabla^2 y_t$ removes a quadratic one.
@@ -82,34 +78,26 @@ ARIMA is built from two atomic ingredients. They look similar but encode very di
 *Fig. 2 — AR remembers past values, MA remembers past shocks, ARMA does both. The qualitative differences are visible in the sample paths even before any formal statistic is computed.*
 
 ### Autoregressive: AR($p$)
-
 $$y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + \cdots + \phi_p y_{t-p} + \varepsilon_t.$$
-
 Today's value is a linear combination of the previous $p$ values plus a white-noise shock $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$. Persistence is encoded directly in the coefficients $\phi_k$. AR(1) with $\phi_1$ near 1 produces a very smooth, slowly mean-reverting path.
 
 ### Moving average: MA($q$)
-
 $$y_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} + \theta_2 \varepsilon_{t-2} + \cdots + \theta_q \varepsilon_{t-q}.$$
-
 Today's value is a linear combination of the *last $q$ shocks*. The memory window is finite: an event that happened more than $q$ steps ago has zero direct effect.
 
 ### Combining: ARMA($p$, $q$)
-
 $$\phi(B)\, y_t = \theta(B)\, \varepsilon_t,$$
-
 where $B$ is the **lag operator** ($B y_t = y_{t-1}$) and
-
-$$\phi(B) = 1 - \phi_1 B - \cdots - \phi_p B^p, \qquad
-\theta(B) = 1 + \theta_1 B + \cdots + \theta_q B^q.$$
-
+$$
+\phi(B) = 1 - \phi_1 B - \cdots - \phi_p B^p, \qquad
+\theta(B) = 1 + \theta_1 B + \cdots + \theta_q B^q.
+$$
 ARMA is *parsimonious*: a small $(p, q)$ can imitate the autocorrelation of an MA($\infty$) or AR($\infty$). For stationarity all roots of $\phi(B) = 0$ must lie outside the unit circle; for invertibility the same holds for $\theta(B)$.
 
 ### From ARMA to ARIMA
 
 If the raw series is non-stationary, take $d$-th differences and fit ARMA on the result. The full notation is **ARIMA($p, d, q$)**:
-
 $$\phi(B)\, (1-B)^d\, y_t = \theta(B)\, \varepsilon_t.$$
-
 In practice $d = 1$ handles linear drift, $d = 2$ handles curvature; rarely do you need $d > 2$.
 
 ---
@@ -135,10 +123,10 @@ The Box-Jenkins identification rules:
 When neither plot has a clean cut-off, you are looking at an ARMA process; the cleanest path is then to grid-search $(p, q)$ and pick the pair that minimises an information criterion.
 
 ### AIC and BIC
-
-$$\mathrm{AIC} = -2\,\ell(\hat{\theta}) + 2k, \qquad
-\mathrm{BIC} = -2\,\ell(\hat{\theta}) + k\log n,$$
-
+$$
+\mathrm{AIC} = -2\,\ell(\hat{\theta}) + 2k, \qquad
+\mathrm{BIC} = -2\,\ell(\hat{\theta}) + k\log n,
+$$
 with $\ell$ the maximised log-likelihood, $k$ the number of free parameters, $n$ the sample size. BIC penalises complexity more harshly and is the safer default when $n$ is small.
 
 ---
@@ -209,9 +197,7 @@ The forecast on a held-out tail looks like this:
 ## 7. Seasonality: SARIMA
 
 Many series have a calendar that ARIMA on its own cannot exploit — monthly retail with a December peak, daily traffic with a weekly cycle, hourly load with a 24-hour cycle. **SARIMA** ($p, d, q$)($P, D, Q$)$_s$ folds in seasonal lags of period $s$:
-
 $$\Phi(B^s)\, \phi(B)\, (1-B)^d (1-B^s)^D y_t \;=\; \Theta(B^s)\, \theta(B)\, \varepsilon_t.$$
-
 You apply two kinds of differencing — regular ($1-B$) for trend and seasonal ($1-B^s$) for the period — and then attach AR/MA terms at both regular lags and lags that are multiples of $s$.
 
 ```python
@@ -242,9 +228,7 @@ The ideas above generalise in four useful directions. They are not separate worl
 ### 8.1 VAR — multivariate dynamics
 
 When you have several series that influence each other (GDP and unemployment, electricity demand and temperature), promote the scalar AR to a **vector autoregression**:
-
 $$\mathbf{y}_t = \mathbf{c} + A_1 \mathbf{y}_{t-1} + A_2 \mathbf{y}_{t-2} + \cdots + A_p \mathbf{y}_{t-p} + \boldsymbol{\varepsilon}_t.$$
-
 Each entry of the matrix $A_k$ has an interpretation: $(A_k)_{ij}$ is the marginal effect of variable $j$ at lag $k$ on variable $i$ today. This makes VAR popular in macroeconomics where **Granger causality** ("does $x$ help predict $y$ beyond $y$'s own past?") is the central question.
 
 A practical caveat: with $K$ series and lag $p$ the model has $K + pK^2$ free parameters. For $K = 10, p = 4$ that is already 410 numbers from probably a few hundred observations. Hence the regularised cousins — Bayesian VAR, factor models — exist for high-dimensional settings.
@@ -252,10 +236,10 @@ A practical caveat: with $K$ series and lag $p$ the model has $K + pK^2$ free pa
 ### 8.2 GARCH — variance dynamics
 
 ARIMA models the **mean**; GARCH models the **conditional variance**. The basic GARCH(1,1) is:
-
-$$\sigma_t^2 = \omega + \alpha\, \varepsilon_{t-1}^2 + \beta\, \sigma_{t-1}^2,
-\qquad \varepsilon_t = \sigma_t\, z_t,\quad z_t \sim \mathcal{N}(0, 1).$$
-
+$$
+\sigma_t^2 = \omega + \alpha\, \varepsilon_{t-1}^2 + \beta\, \sigma_{t-1}^2,
+\qquad \varepsilon_t = \sigma_t\, z_t,\quad z_t \sim \mathcal{N}(0, 1).
+$$
 The $\alpha$ term lets a large shock yesterday push variance up today (the "ARCH" effect); the $\beta$ term lets variance be persistent. Stationarity requires $\alpha + \beta < 1$, and in financial data $\alpha + \beta$ typically lands near 0.95-0.99 — volatility is a slow-moving thing.
 
 GARCH is *the* standard tool for risk management (VaR, options pricing) and pairs naturally with an ARIMA mean model: fit ARIMA to the returns, then GARCH to the squared residuals.
@@ -263,15 +247,13 @@ GARCH is *the* standard tool for risk management (VaR, options pricing) and pair
 ### 8.3 Exponential smoothing and Holt-Winters
 
 If ARIMA is the "explicitly stochastic" view, exponential smoothing is the "weighted-average" view. Simple exponential smoothing assumes a level $\ell_t$ that drifts with new information:
-
 $$\ell_t = \alpha\, y_t + (1-\alpha)\, \ell_{t-1}.$$
-
 **Holt** adds a trend $b_t$; **Holt-Winters** adds a seasonal $s_t$. The additive variant is:
-
-$$\ell_t = \alpha (y_t - s_{t-s}) + (1-\alpha)(\ell_{t-1} + b_{t-1}),\\
+$$
+\ell_t = \alpha (y_t - s_{t-s}) + (1-\alpha)(\ell_{t-1} + b_{t-1}),\\
 b_t = \beta(\ell_t - \ell_{t-1}) + (1-\beta) b_{t-1},\\
-s_t = \gamma(y_t - \ell_t) + (1-\gamma) s_{t-s}.$$
-
+s_t = \gamma(y_t - \ell_t) + (1-\gamma) s_{t-s}.
+$$
 This is the workhorse behind the **ETS** family in R / `statsmodels`, and many of the methods that won the M-competitions are sophisticated descendants of it.
 
 ![Holt-Winters additive forecast and the underlying level / trend / seasonal components.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig7_holt_winters.png)
@@ -280,26 +262,24 @@ This is the workhorse behind the **ETS** family in R / `statsmodels`, and many o
 ### 8.4 Prophet
 
 Prophet (Facebook, 2017) is a deliberately simple **additive** decomposition aimed at business analysts:
-
 $$y(t) = g(t) + s(t) + h(t) + \varepsilon_t,$$
-
 where $g(t)$ is a piecewise-linear or logistic trend with **changepoints**, $s(t)$ is a Fourier expansion for multiple seasonalities, and $h(t)$ encodes user-supplied holidays. It is fitted with Stan via MAP or full Bayesian sampling, exposes only a handful of tunables, and is robust to missing data and outliers. In practice it is *not* state of the art on benchmarks, but the API quality and the holiday handling are why it remains a default in product analytics.
 
 ### 8.5 The Kalman filter and the state-space view
 
 Everything above is a special case of a **linear Gaussian state-space model**:
-
-$$\mathbf{x}_t = F_t \mathbf{x}_{t-1} + \mathbf{w}_t, \qquad \mathbf{w}_t \sim \mathcal{N}(0, Q_t),\\
-\mathbf{y}_t = H_t \mathbf{x}_t + \mathbf{v}_t, \qquad \mathbf{v}_t \sim \mathcal{N}(0, R_t).$$
-
+$$
+\mathbf{x}_t = F_t \mathbf{x}_{t-1} + \mathbf{w}_t, \qquad \mathbf{w}_t \sim \mathcal{N}(0, Q_t),\\
+\mathbf{y}_t = H_t \mathbf{x}_t + \mathbf{v}_t, \qquad \mathbf{v}_t \sim \mathcal{N}(0, R_t).
+$$
 The **Kalman filter** is the exact Bayesian recursion that maintains $p(\mathbf{x}_t \mid \mathbf{y}_{1:t}) = \mathcal{N}(\hat{\mathbf{x}}_t, P_t)$ as data arrive:
-
-$$\hat{\mathbf{x}}_{t|t-1} = F_t\, \hat{\mathbf{x}}_{t-1},\\
+$$
+\hat{\mathbf{x}}_{t|t-1} = F_t\, \hat{\mathbf{x}}_{t-1},\\
 P_{t|t-1} = F_t\, P_{t-1}\, F_t^\top + Q_t,\\
 K_t = P_{t|t-1} H_t^\top (H_t P_{t|t-1} H_t^\top + R_t)^{-1},\\
 \hat{\mathbf{x}}_t = \hat{\mathbf{x}}_{t|t-1} + K_t (\mathbf{y}_t - H_t \hat{\mathbf{x}}_{t|t-1}),\\
-P_t = (I - K_t H_t)\, P_{t|t-1}.$$
-
+P_t = (I - K_t H_t)\, P_{t|t-1}.
+$$
 Why this matters: ARIMA, exponential smoothing, dynamic linear regressions, structural models with seasonal dummies — all of them can be cast in the form above and inherit the Kalman recursion for free. That is exactly how `statsmodels`'s `SARIMAX` works under the hood, and why it can handle missing observations and exogenous regressors with no extra effort.
 
 ---

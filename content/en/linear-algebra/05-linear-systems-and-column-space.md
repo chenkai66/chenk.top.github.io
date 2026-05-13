@@ -53,9 +53,7 @@ Once these three are clear, every linear-systems result — existence, uniquenes
 ### Row Perspective: Intersecting Hyperplanes
 
 Consider the system
-
 $$\begin{cases} x + 2y = 5 \\ 3x - y = 1 \end{cases}$$
-
 Each equation describes a **line** in the plane. A solution is a point that lies on **both** lines simultaneously — their intersection $(1, 2)$. In three variables, each equation describes a plane and the solution set is the intersection of those planes (a point, a line, a plane, or nothing).
 
 This is the picture most students meet first. It is geometric and concrete, but it hides what really matters: **the structure of the matrix itself**.
@@ -63,9 +61,7 @@ This is the picture most students meet first. It is geometric and concrete, but 
 ### Column Perspective: Combining Vectors
 
 The same system can be written
-
 $$x \begin{pmatrix} 1 \\ 3 \end{pmatrix} + y \begin{pmatrix} 2 \\ -1 \end{pmatrix} = \begin{pmatrix} 5 \\ 1 \end{pmatrix}$$
-
 Now the question becomes: **can we mix the columns of $A$ to produce $\vec{b}$?** Solving the system is choosing the right amounts of each column.
 
 This single shift in viewpoint is the most important idea in the whole chapter. From it, the column space, rank, and existence of solutions fall out for free.
@@ -93,13 +89,13 @@ Why are these legal? Because each one is **invertible**: any sequence of operati
 ### A Worked Example
 
 Solve
-
-$$\begin{cases}
+$$
+\begin{cases}
 x + 2y + z = 2 \\
 3x + 8y + z = 12 \\
 4y + z = 2
-\end{cases}$$
-
+\end{cases}
+$$
 Write the augmented matrix and eliminate downward, one pivot at a time.
 
 ![Gaussian elimination: turning a system into a triangular ladder](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig4_gaussian_elimination.png)
@@ -130,9 +126,7 @@ This split decides everything:
 ### LU Decomposition: Elimination, Stored
 
 Each "subtract a multiple of one row from another" is itself a matrix multiplication on the left by a simple lower-triangular matrix. Multiply them all together and you get a single matrix $L$ such that
-
 $$A = L \cdot U$$
-
 where $U$ is the upper-triangular matrix you ended up with, and $L$ is lower-triangular with the elimination multipliers stored in its entries. **LU decomposition is just Gaussian elimination, packaged for re-use:** once you have $L$ and $U$, you can solve $A\vec{x}=\vec{b}$ for any new $\vec{b}$ in $O(n^2)$ instead of $O(n^3)$.
 
 ![LU decomposition as two simple shears in sequence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig7_lu_decomposition.png)
@@ -159,9 +153,7 @@ print(f"Verify Ax = {A @ x}")
 ### Definition
 
 The **column space** of $A$ (written $C(A)$ or $\text{Col}(A)$) is the set of all vectors $A$ can produce:
-
 $$C(A) = \{ A\vec{x} \mid \vec{x} \in \mathbb{R}^n \} = \text{span}\{ \text{columns of } A \}$$
-
 Two equivalent ways to read this: it is **everything you can output**, and it is **the span of the columns**.
 
 ### The Existence Theorem
@@ -195,9 +187,7 @@ The pattern generalises: for an $m \times n$ matrix, the column space is some $r
 ### Definition
 
 The **null space** of $A$ (written $N(A)$ or $\ker A$) is the set of inputs that get sent to zero:
-
 $$N(A) = \{ \vec{x} \mid A\vec{x} = \vec{0} \}$$
-
 The null space always contains the zero vector (since $A\vec{0} = \vec{0}$ for any matrix). The interesting question is whether it contains anything *else*.
 
 ![Null space N(A) = directions A annihilates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig3_null_space.png)
@@ -207,13 +197,9 @@ The figure shows the geometric punchline. **Left**: the matrix $A=\begin{pmatrix
 ### Why the Null Space Controls Uniqueness
 
 If $\vec{x}_p$ is *any* particular solution to $A\vec{x}=\vec{b}$, then for any $\vec{n} \in N(A)$:
-
 $$A(\vec{x}_p + \vec{n}) = A\vec{x}_p + A\vec{n} = \vec{b} + \vec{0} = \vec{b}$$
-
 So $\vec{x}_p + \vec{n}$ is also a solution. The **complete solution set** is always
-
 $$\{ \vec{x}_p + \vec{n} \mid \vec{n} \in N(A) \}$$
-
 The geometric picture is simple: take the null space (a subspace through the origin) and shift it by one particular solution. The result is an **affine subspace** parallel to the null space — exactly the solution set.
 
 - If $N(A) = \{\vec{0}\}$: the solution is **unique** (when it exists).
@@ -226,9 +212,7 @@ The geometric picture is simple: take the null space (a subspace through the ori
 ## Rank: Effective Dimension
 
 The **rank** of $A$ is
-
 $$\text{rank}(A) = \dim C(A) = \text{number of pivots after elimination}$$
-
 It is also the maximum number of linearly independent columns, and (a small miracle) the maximum number of linearly independent **rows**. Row rank equals column rank for any matrix — it is one of those theorems that looks almost trivial once proved, but says something deep about the symmetry between rows and columns.
 
 ### What Rank Tells You
@@ -259,9 +243,7 @@ print(f"Rank: {np.linalg.matrix_rank(A)}")  # 2  (row 3 = 2*row 2 - row 1)
 ## The Rank-Nullity Theorem
 
 For any $m \times n$ matrix $A$,
-
 $$\boxed{\;\text{rank}(A) + \dim N(A) = n\;}$$
-
 In words: **the dimensions you keep plus the dimensions you crush equal the number of input dimensions you started with.** Nothing is created and nothing is lost.
 
 ![Rank-Nullity Theorem: every input dimension is either preserved or crushed](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/fig5_rank_nullity.png)
@@ -271,9 +253,7 @@ The bar chart on the left is the theorem in pictures: for every matrix, the blue
 ### Worked Example
 
 Suppose $A$ is $3 \times 5$ with rank $r=2$. Then
-
 $$\dim N(A) = n - r = 5 - 2 = 3$$
-
 Three free variables, a 3-dimensional null space, and a 2-dimensional column space living inside $\mathbb{R}^3$ — the full structure decoded from a single number.
 
 ---
@@ -327,9 +307,7 @@ The matrix $A$ acts as a clean bijection from the row space to the column space 
 ### Least Squares: When There Is No Exact Solution
 
 When $A\vec{x}=\vec{b}$ has no exact solution (overdetermined), we minimise the residual $\|A\vec{x}-\vec{b}\|^2$. The minimiser satisfies the **normal equations**:
-
 $$A^T A \hat{x} = A^T \vec{b}$$
-
 Geometrically, $A\hat{x}$ is the orthogonal projection of $\vec{b}$ onto the column space — the closest reachable point.
 
 ```python
@@ -346,9 +324,7 @@ print(f"Best fit: y = {x[0]:.2f}x + {x[1]:.2f}")
 ### Computer Graphics: Projection
 
 Projecting 3D points onto a 2D screen is a matrix product:
-
 $$P = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \end{pmatrix}$$
-
 Its null space is the entire $z$-axis: depth is destroyed, which is why recovering 3D from a single 2D image is genuinely ambiguous (and why you need stereo, motion, or learned priors).
 
 ### Circuit Analysis

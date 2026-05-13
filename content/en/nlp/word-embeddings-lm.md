@@ -15,9 +15,7 @@ series_order: 2
 translationKey: "nlp-2"
 ---
 For decades, machines treated "king" and "queen" as unrelated symbols—nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute.
-
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
-
 The entire trajectory of NLP shifted toward representation learning. This article walks through that shift—from the failure of one-hot vectors, to Word2Vec's shallow networks, to the global statistics that GloVe exploits, to the subword n-grams that let FastText handle unseen words—and finally connects embeddings to the language models that gave rise to them.
 
 
@@ -47,9 +45,7 @@ The entire trajectory of NLP shifted toward representation learning. This articl
 ### The Problem with One-Hot Encoding
 
 Given a vocabulary of $V$ words, one-hot encoding maps each word to a $V$-dimensional indicator vector:
-
 $$\text{cat} = [1, 0, 0, 0, \ldots], \quad \text{dog} = [0, 1, 0, 0, \ldots]$$
-
 Three properties make this representation a dead end:
 
 - **Sparsity.** With $V = 50{,}000$, every vector is 99.998% zeros. Storage and compute are wasted on emptiness.
@@ -59,9 +55,7 @@ Three properties make this representation a dead end:
 ### The Embedding Solution
 
 A word embedding maps each word to a dense vector of $d \ll V$ dimensions (typically 100--300):
-
 $$\text{cat} = [0.21, -0.34, 0.78, \ldots], \quad \text{dog} = [0.18, -0.29, 0.71, \ldots]$$
-
 Now $\text{cat} \cdot \text{dog} \gg \text{cat} \cdot \text{quantum}$, parameters are shared across semantically related words, and downstream models suddenly need orders of magnitude fewer examples to generalise. The challenge becomes: where do the numbers in those vectors come from?
 
 ### The Distributional Hypothesis
@@ -96,13 +90,9 @@ The network has three layers: a one-hot input, an embedding lookup matrix $W \in
 ![Skip-gram architecture: one-hot input, embedding lookup, softmax over the vocabulary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig1_skipgram_architecture.png)
 
 The training objective averages log-probabilities of the true context words:
-
 $$J = \frac{1}{T}\sum_{t=1}^{T} \sum_{-m \le j \le m,\, j \neq 0} \log P(w_{t+j} \mid w_t)$$
-
 with
-
 $$P(c \mid w) = \frac{\exp(\mathbf{v}_w^\top \mathbf{v}'_c)}{\sum_{i=1}^{V} \exp(\mathbf{v}_w^\top \mathbf{v}'_i)}.$$
-
 Notice the asymmetry: $\mathbf{v}_w$ is read from the input matrix $W$ ("input" or "target" embedding), while $\mathbf{v}'_c$ is read from the output matrix $W'$ ("context" embedding). After training, most pipelines keep only $W$ — but as we will see, GloVe argues that combining the two matrices is even better.
 
 **Why it works.** If "cat" and "dog" both predict "sat", "mat", and "runs" in their contexts, gradient descent must push $\mathbf{v}_{\text{cat}}$ and $\mathbf{v}_{\text{dog}}$ in similar directions — otherwise they cannot produce similar output distributions. Distributional similarity is *forced* into geometric similarity.
@@ -110,9 +100,7 @@ Notice the asymmetry: $\mathbf{v}_w$ is read from the input matrix $W$ ("input" 
 ### CBOW: Predict Target from Context
 
 CBOW reverses the roles: average the context embeddings, then predict the centre word.
-
 $$\mathbf{h} = \frac{1}{2m} \sum_{j=-m,\, j\neq 0}^{m} \mathbf{v}_{w_{t+j}}, \qquad P(w_t \mid \text{context}) = \mathrm{softmax}(W'\mathbf{h}).$$
-
 Practical differences:
 
 - **Skip-gram** generates $2m$ training examples per centre word, so it sees rare words $2m$ times as often. It is slower per epoch but better on infrequent vocabulary.
@@ -127,9 +115,7 @@ Both architectures have the same wall: the softmax denominator sums over the ent
 ### Negative Sampling: The Key Trick
 
 Instead of asking "which of the $V$ words is the true context?", negative sampling asks the easier binary question: "is this (word, context) pair real, or am I lying to you?". For each positive pair $(w, c)$, draw $k$ random "negative" words from a noise distribution $P_n$ and minimise
-
 $$J = \log \sigma(\mathbf{v}_w^\top \mathbf{v}'_c) + \sum_{i=1}^{k} \mathbb{E}_{n_i \sim P_n}\!\left[\log \sigma(-\mathbf{v}_w^\top \mathbf{v}'_{n_i})\right]$$
-
 where $\sigma$ is the sigmoid. Geometrically, the gradient pulls the target and the true context together while pushing the target away from $k$ unrelated words.
 
 ![Negative sampling: pull one positive context closer, push k random negatives away](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig6_negative_sampling.png)
@@ -163,17 +149,11 @@ Raw probabilities mix two signals: how related the probe is to either word, and 
 ### The GloVe Objective
 
 Let $X_{ij}$ be the number of times word $j$ appears in the context of word $i$. GloVe seeks word vectors $\mathbf{w}_i$ and context vectors $\tilde{\mathbf{w}}_j$ (plus biases) such that
-
 $$\mathbf{w}_i^\top \tilde{\mathbf{w}}_j + b_i + \tilde{b}_j \;\approx\; \log X_{ij}.$$
-
 The full loss is a weighted least-squares regression on the log-counts:
-
 $$J = \sum_{i,j=1}^{V} f(X_{ij}) \left(\mathbf{w}_i^\top \tilde{\mathbf{w}}_j + b_i + \tilde{b}_j - \log X_{ij}\right)^2,$$
-
 with
-
 $$f(x) = \begin{cases} (x/x_{\max})^\alpha & \text{if } x < x_{\max} \\ 1 & \text{otherwise} \end{cases}$$
-
 (Pennington et al. use $x_{\max} = 100$, $\alpha = 0.75$.) The weighting function does two jobs: it caps the influence of extremely frequent pairs (so "the the" cannot dominate the loss), and it down-weights rare pairs whose counts are statistically noisy.
 
 This is literally a low-rank factorisation: a $V \times V$ matrix of log-counts is approximated by the product of a $V \times d$ word matrix and a $d \times V$ context matrix.
@@ -209,9 +189,7 @@ For the word "where", FastText pads it with boundary markers `<` and `>` and ext
 - Full word: `<where>`
 
 Each n-gram has its own embedding $\mathbf{z}_g$. The word vector is the sum:
-
 $$\mathbf{v}_w = \sum_{g \in G(w)} \mathbf{z}_g$$
-
 Training otherwise looks identical to Word2Vec skip-gram with negative sampling — only the input "embedding" is replaced with this sum.
 
 ![FastText: every word is the sum of its character n-gram embeddings, which gives free OOV support](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/fig7_subword_fasttext.png)
@@ -251,17 +229,13 @@ A language model assigns a probability to a sequence of words. Training one well
 ### N-gram Language Models
 
 A classical n-gram model estimates the next-word distribution by counting:
-
 $$P(w_t \mid w_{t-n+1}, \ldots, w_{t-1}) = \frac{\text{count}(w_{t-n+1}, \ldots, w_t)}{\text{count}(w_{t-n+1}, \ldots, w_{t-1})}.$$
-
 The trouble is data sparsity. With a 50k vocabulary, a 4-gram model has $50{,}000^4 \approx 6 \times 10^{18}$ possible contexts — the vast majority of which never appear in any corpus. Decades of clever smoothing techniques (Kneser-Ney, Witten-Bell, modified back-off) chip away at this problem, but they cannot share information across *similar* contexts: "the cat ate" and "the kitten ate" remain unrelated bins.
 
 ### Neural Language Models
 
 The Bengio et al. (2003) neural language model fixed the sparsity problem in one move: replace counting with a parametric function whose first layer is a word embedding lookup.
-
 $$\mathbf{h} = \tanh\left(W_h \cdot [\mathbf{v}_{w_{t-n+1}}; \ldots; \mathbf{v}_{w_{t-1}}] + \mathbf{b}_h\right), \quad P(w_t \mid \text{context}) = \mathrm{softmax}(W_o \mathbf{h} + \mathbf{b}_o).$$
-
 Now "the cat ate" and "the kitten ate" produce *almost the same* hidden state because $\mathbf{v}_{\text{cat}} \approx \mathbf{v}_{\text{kitten}}$, and the model generalises to combinations it has never seen.
 
 The empirical consequence is dramatic. As corpus size grows, n-gram perplexity flattens out — there are simply not enough counts to keep improving. Neural LMs keep getting better, and Transformer LMs better still:

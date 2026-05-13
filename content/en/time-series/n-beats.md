@@ -53,9 +53,7 @@ Picture two parallel pipes running top-down through the network. The left pipe i
 ![Double residual stacking in N-BEATS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/fig1_stacked_residual_blocks.png)
 
 Mathematically, for blocks $b = 1, \ldots, B$:
-
 $$r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{(b)},$$
-
 with $r^{(0)} = x$. Each block sees a smaller and smaller residual, so it ends up specialising on whatever frequency or shape was left over. Coarse patterns (overall trend, dominant seasonal cycle) get picked up by early blocks; fine corrections by later blocks.
 
 This is the same idea as gradient boosting, but inside a single end-to-end differentiable network. And just like in boosting, ordering matters: the block that runs first has the easiest job (full signal available) and the block that runs last gets the hardest job (only noise plus subtle structure left).
@@ -67,42 +65,32 @@ This is the same idea as gradient boosting, but inside a single end-to-end diffe
 Every N-BEATS block is the same shape. Given a residual input $r \in \mathbb{R}^{H}$:
 
 1. **Feature extractor** — four fully-connected ReLU layers of width 256-512:
-   $$   h_1 = \mathrm{ReLU}(W_1 r + b_1), \quad \ldots, \quad h_4 = \mathrm{ReLU}(W_4 h_3 + b_4).
-
+   $$
+   h_1 = \mathrm{ReLU}(W_1 r + b_1), \quad \ldots, \quad h_4 = \mathrm{ReLU}(W_4 h_3 + b_4).
    $$
 2. **Coefficient projections** — two linear heads produce backcast and forecast coefficients:
    $$
-
    \theta^{b} = W_b h_4, \qquad \theta^{f} = W_f h_4.
-
    $$
 3. **Basis multiplication** — a fixed or learned matrix $V$ maps coefficients to time-domain outputs:
    $$
-
    \hat{x} = V_b \, \theta^{b}, \qquad \hat{y} = V_f \, \theta^{f}.
-
    $$
-
 Two flavours exist, distinguished only by what $V$ is.
 
 ### Interpretable: trend + seasonality bases
 
 The trend block uses a low-degree polynomial basis. With degree $p$ and time index $\tau / H \in [0, 1]$:
 $$
-
 V_{\text{trend}} = \begin{pmatrix} 1 & \tau & \tau^{2} & \cdots & \tau^{p} \end{pmatrix}, \qquad
 \hat{y}_{\text{trend}} = \sum_{i=0}^{p} \theta_i \, \tau^{i}.
-
 $$
 Typical choice: $p = 2$ or $3$. That is enough to model "smoothly increasing then accelerating" without overfitting wiggles.
 
 The seasonality block uses Fourier bases:
 $$
-
 V_{\text{seas}} = \begin{pmatrix} \sin(2\pi \cdot 1 \cdot \tau / T) & \cos(2\pi \cdot 1 \cdot \tau / T) & \cdots & \sin(2\pi K \tau / T) & \cos(2\pi K \tau / T) \end{pmatrix}.
-
 $$
-
 With $K = 1, 2, 3$ harmonics and $T = $ the data's known period (12 for monthly, 24 for hourly), this captures arbitrarily-shaped periodic signals.
 
 The interpretable architecture stacks one trend stack (a few trend blocks) followed by one seasonality stack (a few seasonal blocks). After training you can plot each stack's contribution and explain to a stakeholder which part of the forecast came from "the underlying trend" versus "the recurring weekly cycle."

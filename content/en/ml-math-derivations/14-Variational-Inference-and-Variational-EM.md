@@ -44,9 +44,7 @@ This post derives VI from a single identity, builds the mean-field algorithm and
 ## 1. The Posterior Bottleneck
 
 Bayesian inference with observations $\mathbf{x}$, latent variables $\mathbf{z}$ and parameters $\boldsymbol{\theta}$ produces the posterior
-
 $$p(\mathbf{z}\mid\mathbf{x}) \;=\; \frac{p(\mathbf{x},\mathbf{z})}{p(\mathbf{x})},\qquad p(\mathbf{x}) \;=\; \int p(\mathbf{x},\mathbf{z})\,d\mathbf{z}.$$
-
 The numerator is cheap — it is just the model's joint density. The denominator, the **evidence** $p(\mathbf{x})$, is the integral of the joint over the entire latent space. For anything but conjugate exponential-family pairs, that integral is intractable.
 
 Two strategies dominate the literature:
@@ -66,16 +64,16 @@ VI's bias is the price you pay for its speed. The rest of this post quantifies t
 ## 2. The ELBO Identity
 
 Pick **any** distribution $q(\mathbf{z})$ over the latent variables. Then
-
 $$
 \log p(\mathbf{x})
 \;=\; \underbrace{\mathbb{E}_q\!\left[\log\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\right]}_{\displaystyle \mathcal{L}(q)\;\text{(ELBO)}}
 \;+\; \underbrace{\mathrm{KL}\!\big(q(\mathbf{z})\,\big\|\,p(\mathbf{z}\mid\mathbf{x})\big)}_{\displaystyle \geq 0}.
 $$
-
 The derivation takes one line. Multiply and divide the joint by $q(\mathbf{z})$, take logs, and split:
-$$\log p(\mathbf{x}) = \log\!\int q(\mathbf{z})\,\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\,d\mathbf{z}
-= \mathbb{E}_q\!\left[\log\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\right] + \mathrm{KL}(q\,\|\,p(\cdot\mid\mathbf{x})).$$
+$$
+\log p(\mathbf{x}) = \log\!\int q(\mathbf{z})\,\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\,d\mathbf{z}
+= \mathbb{E}_q\!\left[\log\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\right] + \mathrm{KL}(q\,\|\,p(\cdot\mid\mathbf{x})).
+$$
 Because $\log p(\mathbf{x})$ does not depend on $q$, **maximizing the ELBO with respect to $q$ is exactly the same as minimizing the KL divergence to the true posterior**.
 
 ![ELBO decomposition: log-evidence splits into ELBO and KL gap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig1_elbo_decomposition.png)
@@ -91,9 +89,7 @@ It is worth pausing on what we have done. We replaced an intractable integral (t
 ![ML Math Derivations (14): Variational Inference and Variational EM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_2.png)
 
 The optimization is still infinite-dimensional. The simplest restriction — and the one Jordan, Ghahramani, Jaakkola and Saul popularized in the 90s — is the **mean-field** assumption: $q$ factorizes across coordinates,
-
 $$q(\mathbf{z}) \;=\; \prod_{j=1}^{M} q_j(z_j).$$
-
 Each factor lives in its own family. We make no further parametric commitment.
 
 ![Mean-field collapses the joint into independent marginals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig2_mean_field.png)
@@ -103,16 +99,12 @@ Each factor lives in its own family. We make no further parametric commitment.
 ### 3.1 The optimal factor
 
 Plug the factorization into the ELBO and isolate one factor $q_j$. Treating the others as fixed,
-
 $$
 \mathcal{L}(q) = \int q_j(z_j) \,\mathbb{E}_{q_{-j}}\!\big[\log p(\mathbf{x},\mathbf{z})\big]\,dz_j
 \;-\; \int q_j(z_j)\log q_j(z_j)\,dz_j \;+\; \text{const}.
 $$
-
 The bracketed expectation is a function of $z_j$ alone — call it $\log\tilde{p}(z_j)$. Maximizing over $q_j$ subject to $\int q_j = 1$ is a textbook variational calculus problem; the optimum is
-
 $$\boxed{\;\log q_j^\star(z_j) \;=\; \mathbb{E}_{q_{-j}}\!\big[\log p(\mathbf{x},\mathbf{z})\big] \;+\; \text{const}.\;}$$
-
 This is the central formula of mean-field VI. The optimal factor for coordinate $j$ is the geometric average of the joint with respect to all other factors, normalized.
 
 ### 3.2 Coordinate-Ascent Variational Inference (CAVI)
@@ -186,25 +178,17 @@ In Variational EM the ELBO is no longer tight after the E-step (the KL gap is no
 ## 6. Black-Box VI and the Reparameterization Trick
 
 Outside conjugate models, neither the closed-form CAVI updates nor the variational E-step are available. **Black-box VI (BBVI)** parameterizes $q_\phi$ with a neural network and optimizes the ELBO with stochastic gradients:
-
 $$\nabla_\phi\,\mathcal{L}(\phi) \;=\; \nabla_\phi\,\mathbb{E}_{q_\phi(\mathbf{z})}\!\left[\log p(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z})\right].$$
-
 The expectation is over $q_\phi$, whose distribution depends on $\phi$ — the gradient does not move inside the expectation for free.
 
 **Score-function (REINFORCE) estimator.** Differentiate the density:
-
 $$\nabla_\phi \mathcal{L} \;=\; \mathbb{E}_{q_\phi}\!\left[\big(\log p(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z})\big)\nabla_\phi \log q_\phi(\mathbf{z})\right].$$
-
 Unbiased, but high variance — needs control variates and large sample sizes to be practical.
 
 **Reparameterization trick.** Whenever we can write $\mathbf{z}$ as a deterministic transform of a parameter-free noise variable,
-
 $$\mathbf{z} \;=\; g_\phi(\boldsymbol{\epsilon}),\qquad \boldsymbol{\epsilon}\sim p(\boldsymbol{\epsilon}),$$
-
 the expectation moves to a fixed measure and the gradient slides inside:
-
 $$\nabla_\phi \mathcal{L} \;=\; \mathbb{E}_{p(\boldsymbol{\epsilon})}\!\left[\nabla_\phi\big(\log p(\mathbf{x},g_\phi(\boldsymbol{\epsilon})) - \log q_\phi(g_\phi(\boldsymbol{\epsilon}))\big)\right].$$
-
 For a diagonal Gaussian $q_\phi(\mathbf{z}) = \mathcal{N}(\boldsymbol{\mu}_\phi,\,\mathrm{diag}(\boldsymbol{\sigma}_\phi^2))$, the transform is $g_\phi(\boldsymbol{\epsilon}) = \boldsymbol{\mu}_\phi + \boldsymbol{\sigma}_\phi\odot\boldsymbol{\epsilon}$ with $\boldsymbol{\epsilon}\sim\mathcal{N}(\mathbf{0},\mathbf{I})$. The whole computation graph is differentiable, autodiff handles the rest, and the resulting gradient has dramatically lower variance than REINFORCE. This is the engine inside the **variational autoencoder** and almost every modern continuous-latent variational model.
 
 For discrete latent variables the trick fails (you cannot write $z\in\{0,1\}$ as a smooth function of $\epsilon$). The standard remedies are REINFORCE with control variates, the Gumbel-Softmax / Concrete relaxation, or a continuous relaxation followed by straight-through estimation.
@@ -224,9 +208,7 @@ For discrete latent variables the trick fails (you cannot write $z\in\{0,1\}$ as
 ## 7. Application: VI for LDA
 
 Latent Dirichlet Allocation (Blei, Ng, Jordan 2003) is the canonical large-scale VI success story. The model has per-document topic proportions $\theta_d$ and per-topic word distributions $\beta_k$, both Dirichlet-distributed. The posterior is intractable, but the model is conjugate-exponential, so mean-field CAVI gives closed-form updates:
-
 $$q(\theta,\beta,z) \;=\; \prod_d q(\theta_d\mid\gamma_d) \prod_k q(\beta_k\mid\lambda_k) \prod_{d,n} q(z_{d,n}\mid\phi_{d,n}),$$
-
 with Dirichlet variational factors for $\theta_d$ and $\beta_k$, and categorical factors for the per-word topic assignments.
 
 ![Variational LDA: per-document topics and per-topic words](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig7_lda_topics.png)

@@ -294,9 +294,7 @@ The hidden states$s_k$do not have to correspond to anything in the real environm
 ### Training Loss
 
 For a trajectory unrolled $K$ steps with MCTS targets$z^v, z^p$and observed rewards$z^r$:
-
 $$\mathcal{L} = \sum_{k=0}^{K} \Big[ \ell^p(p_k, z_k^p) + \ell^v(v_k, z_k^v) + \ell^r(r_k, z_k^r)\Big].$$
-
 Crucially, no reconstruction term ever appears. The model is *implicit* — it is whatever makes the MCTS targets self-consistent.
 
 ### Results

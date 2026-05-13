@@ -41,25 +41,19 @@ A single perceptron cannot solve XOR. Stack enough of them with nonlinear activa
 ### 1.1 Model
 
 Given an input $\mathbf{x}\in\mathbb{R}^d$, weights $\mathbf{w}\in\mathbb{R}^d$, and bias $b\in\mathbb{R}$, the perceptron computes
-
 $$z = \mathbf{w}^{T}\mathbf{x} + b, \qquad \hat{y} = \operatorname{sign}(z) = \begin{cases} +1 & z \geq 0,\\ -1 & z < 0.\end{cases}$$
-
 Geometrically, the equation $\mathbf{w}^{T}\mathbf{x} + b = 0$ defines a hyperplane that splits the input space into two half-spaces, and $\hat y$ records which side the point falls on.
 
 ### 1.2 Learning Algorithm
 
 For a misclassified point $(\mathbf{x}_i, y_i)$ — meaning $y_i(\mathbf{w}^{T}\mathbf{x}_i + b) \leq 0$ — Rosenblatt's update is
-
 $$\mathbf{w} \leftarrow \mathbf{w} + \eta\, y_i\, \mathbf{x}_i, \qquad b \leftarrow b + \eta\, y_i.$$
-
 Equivalently, this is stochastic subgradient descent on the *perceptron loss* $\sum_{i \in M} -y_i(\mathbf{w}^{T}\mathbf{x}_i + b)$, where $M$ is the set of currently misclassified points.
 
 ### 1.3 Convergence Theorem
 
 **Theorem (Novikoff, 1962).** If the data is linearly separable — i.e. there exist $\mathbf{w}^{*}$ and $\gamma > 0$ such that $y_i\,\mathbf{w}^{*\,T}\mathbf{x}_i \geq \gamma$ for all $i$ — then the perceptron converges in at most
-
 $$\frac{\|\mathbf{w}^{*}\|^{2}\, R^{2}}{\gamma^{2}} \qquad \text{updates,}$$
-
 where $R = \max_i \|\mathbf{x}_i\|$. The proof bounds $\mathbf{w}_k^{T}\mathbf{w}^{*}$ from below (it grows at least linearly in $k$) and $\|\mathbf{w}_k\|$ from above (it grows at most like $\sqrt{k}$); combining them gives a finite cap on $k$.
 
 ### 1.4 The XOR Problem
@@ -85,11 +79,9 @@ A feedforward network is a chain of affine maps interleaved with element-wise no
 ![Forward propagation flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig2_forward_propagation.png)
 
 At layer $l$,
-
 $$\mathbf{z}^{(l)} = \mathbf{W}^{(l)}\,\mathbf{h}^{(l-1)} + \mathbf{b}^{(l)}, \tag{1}$$
 
 $$\mathbf{h}^{(l)} = \sigma\!\left(\mathbf{z}^{(l)}\right), \tag{2}$$
-
 with $\mathbf{W}^{(l)}\in\mathbb{R}^{d_l\times d_{l-1}}$ and $\mathbf{b}^{(l)}\in\mathbb{R}^{d_l}$. During the forward pass we **cache** $\mathbf{h}^{(l-1)}$ and $\mathbf{z}^{(l)}$ at every layer; backpropagation will need them.
 
 ### 2.3 Activation Functions
@@ -112,9 +104,7 @@ The right panel of the figure makes one fact obvious: sigmoid's derivative never
 ![Universal approximation: a 1-hidden-layer ReLU MLP fits diverse targets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig5_universal_approx.png)
 
 **Theorem (Cybenko 1989; Hornik 1991).** For any continuous $f$ on a compact subset of $\mathbb{R}^d$ and any $\varepsilon > 0$, there exists a single-hidden-layer network
-
 $$g(\mathbf{x}) = \sum_{j=1}^{M} v_j\, \sigma\!\left(\mathbf{w}_j^{T}\mathbf{x} + b_j\right)$$
-
 with $\|f - g\|_\infty < \varepsilon$. The figure above shows the theorem in action: a tiny 64-unit ReLU MLP comfortably fits a smooth wave, an absolute value, and even a discontinuous step function.
 
 **Caveat.** The theorem is an *existence* result: it does not bound how large $M$ must be, nor does it guarantee that gradient descent will find a good $g$. In practice, **depth is exponentially more efficient than width** — a depth-$L$ network can express functions that would require a width $\Omega(2^{L})$ in a shallow one (Telgarsky, 2016).
@@ -128,13 +118,9 @@ with $\|f - g\|_\infty < \varepsilon$. The figure above shows the theorem in act
 ### 3.1 Loss Functions
 
 For regression we typically use mean-squared error,
-
 $$\mathcal{L} = \tfrac{1}{2}\,\bigl\|\hat{\mathbf{y}} - \mathbf{y}\bigr\|^{2},$$
-
 while for classification we use cross-entropy on top of softmax,
-
 $$\mathcal{L} = -\sum_{c} y_c \log \hat{y}_c, \qquad \hat{\mathbf{y}} = \operatorname{softmax}(\mathbf{z}^{(L)}).$$
-
 ### 3.2 The Key Idea
 
 ![Backpropagation gradient flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig3_backprop_chain.png)
@@ -144,29 +130,21 @@ We need $\partial\mathcal{L}/\partial\mathbf{W}^{(l)}$ and $\partial\mathcal{L}/
 ### 3.3 Deriving the Error Signal
 
 Define the error signal at layer $l$:
-
 $$\boldsymbol{\delta}^{(l)} \;=\; \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}. \tag{3}$$
-
 **Output layer ($l = L$, softmax + cross-entropy).** A short calculation (multiplying by $\partial\hat{\mathbf{y}}/\partial \mathbf{z}^{(L)}$ and using $\sum_c y_c = 1$) collapses to
-
 $$\boldsymbol{\delta}^{(L)} \;=\; \hat{\mathbf{y}} - \mathbf{y}. \tag{4}$$
-
 This algebraic miracle is one of the main reasons softmax + cross-entropy is the default classification head: the gradient is *prediction minus target*, full stop.
 
 **Hidden layers (backward recursion).** For $l < L$ apply the chain rule through $\mathbf{z}^{(l+1)} = \mathbf{W}^{(l+1)}\sigma(\mathbf{z}^{(l)}) + \mathbf{b}^{(l+1)}$:
-
 $$\boldsymbol{\delta}^{(l)} \;=\; \bigl(\mathbf{W}^{(l+1)\,T}\boldsymbol{\delta}^{(l+1)}\bigr) \,\odot\, \sigma'\!\left(\mathbf{z}^{(l)}\right). \tag{5}$$
-
 In words: take the error from the layer above, push it back through the transposed weight matrix, then *gate* it element-wise by the local activation derivative.
 
 ### 3.4 Parameter Gradients
 
 Once the $\boldsymbol{\delta}^{(l)}$'s are in hand the parameter gradients are immediate:
-
 $$\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}\, \mathbf{h}^{(l-1)\,T}, \tag{6}$$
 
 $$\frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}. \tag{7}$$
-
 Each weight gradient is the **outer product** of the error signal at the layer's output with the activations that arrived at its input — a quantity we already cached during the forward pass.
 
 ```python
@@ -203,9 +181,7 @@ The whole algorithm is essentially three lines: one outer product, one sum, one 
 ### 4.1 The Vanishing Gradient Problem
 
 Iterating equation (5) from layer $L$ down to layer $1$ shows that the gradient at layer $1$ is a *product* of $L-1$ Jacobian-like factors:
-
 $$\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(1)}} \;\propto\; \prod_{l=2}^{L} \Bigl[\mathbf{W}^{(l)\,T}\, \operatorname{diag}\bigl(\sigma'(\mathbf{z}^{(l-1)})\bigr)\Bigr].$$
-
 For sigmoid, $\sigma'(z)\leq 0.25$. If each weight matrix has spectral norm near $1$, the magnitude of the gradient at layer $1$ is roughly $0.25^{L-1}$. At depth $L=20$ that is about $3.6\times 10^{-12}$ — gradient updates are numerically zero, and the early layers stop learning.
 
 ### 4.2 The Exploding Gradient Problem
@@ -243,25 +219,17 @@ The goal is therefore to *preserve the variance of activations and gradients acr
 ### 5.2 Xavier (Glorot) Initialization
 
 Consider a single neuron in layer $l$ with fan-in $n_{\text{in}}$ and fan-out $n_{\text{out}}$:
-
 $$z_j = \sum_{i=1}^{n_{\text{in}}} w_{ji}\, h_i.$$
-
 If $w_{ji}$ and $h_i$ are independent with zero mean,
-
 $$\operatorname{Var}(z_j) = n_{\text{in}}\cdot \operatorname{Var}(w)\cdot \operatorname{Var}(h).$$
-
 Demanding $\operatorname{Var}(z) = \operatorname{Var}(h)$ on the *forward* pass gives $\operatorname{Var}(w) = 1/n_{\text{in}}$; the same analysis on the *backward* pass yields $\operatorname{Var}(w) = 1/n_{\text{out}}$. Glorot and Bengio (2010) compromise:
-
 $$\operatorname{Var}(w) = \frac{2}{n_{\text{in}} + n_{\text{out}}}, \qquad w \sim \mathcal{U}\!\left(-\sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}},\; \sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}}\right). \tag{8}$$
-
 Best for **sigmoid and tanh** activations.
 
 ### 5.3 He Initialization
 
 For ReLU, half of the units are zeroed out in expectation, halving the variance contribution of $h$. He et al. (2015) therefore scale up by a factor of two:
-
 $$\operatorname{Var}(w) = \frac{2}{n_{\text{in}}}, \qquad w \sim \mathcal{N}\!\left(0,\, \tfrac{2}{n_{\text{in}}}\right). \tag{9}$$
-
 Best for **ReLU and its variants**.
 
 ### 5.4 Summary Table

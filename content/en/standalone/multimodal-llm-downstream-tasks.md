@@ -103,9 +103,7 @@ The three open-source families embody three distinct design philosophies. Unders
 **Architecture.** Independent image and text encoders, both projecting to a shared L2-normalized vector space.
 
 **Objective.** Contrastive loss — inside a batch, pull matched (image, text) pairs together by cosine similarity, push everything else apart.
-
 $$\mathcal{L}_{\text{CLIP}} = -\frac{1}{N} \sum_{i=1}^{N} \log \frac{\exp(\langle v_i, t_i \rangle / \tau)}{\sum_{j=1}^{N} \exp(\langle v_i, t_j \rangle / \tau)}$$
-
 where $v_i, t_i$ is a matched image-text pair and $\tau$ is the temperature (CLIP uses 0.07).
 
 **Good at.**
@@ -287,9 +285,7 @@ Once you pick an open MLLM, you almost always have to fine-tune for your domain.
 ## 5.2 LoRA specifics for MLLMs
 
 LoRA decomposes the weight update into low-rank matrices:
-
 $$W' = W + \Delta W = W + \alpha \cdot B A, \quad B \in \mathbb{R}^{d \times r}, A \in \mathbb{R}^{r \times d}, r \ll d$$
-
 Three MLLM-specific notes:
 
 1. **Where to attach.** Default is q_proj and v_proj of every attention layer. If your fine-tune mostly aims to "understand a new image domain," **strongly consider also attaching LoRA to the projector or fully training it** — otherwise the visual signal never reaches the LLM in a usable form.
@@ -440,15 +436,11 @@ Standard PPO-route RLHF:
 1. Collect human preference data: A/B comparisons of two answers to the same prompt.
 2. Train a reward model $R(x, y)$: takes prompt + answer, outputs a scalar.
 3. PPO-optimize policy $\pi$ with:
-
 $$\mathcal{L}_{\text{PPO}} = \mathbb{E}_{x \sim D, y \sim \pi}\left[ R(x, y) - \beta \cdot \text{KL}(\pi(y|x) \,\|\, \pi_{\text{ref}}(y|x)) \right]$$
-
 The KL term is the brake: it prevents the policy from drifting too far from the SFT baseline and producing weird outputs.
 
 **The LLAMA2 trick** (pre-MLLM but the pattern transfers): two reward models — helpfulness $R_h$ and safety $R_s$ — with prompt-type-conditional selection:
-
 $$R(x, y) = \begin{cases} R_s(x, y) & \text{if } x \text{ is safety-sensitive} \\ R_h(x, y) & \text{otherwise} \end{cases}$$
-
 Reward whitening (subtract mean, divide by std) is necessary for training stability.
 
 ## 8.4 Rejection sampling: the engineer's RLHF

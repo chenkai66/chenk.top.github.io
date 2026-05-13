@@ -40,23 +40,19 @@ translationKey: "optim-09"
 ## 1. 障碍法
 
 考虑如下凸优化问题：
-
 $$
 \min_x f_0(x) \quad \text{s.t. } f_i(x) \leq 0, \ i = 1, \ldots, m, \quad Ax = b.
 $$
-
 我们将不等式约束替换为**对数障碍函数**（logarithmic barrier）：
-
 $$
 \phi(x) = -\sum_{i=1}^m \log(-f_i(x)),
 $$
-
 该函数在严格可行域 $\{x : f_i(x) < 0\}$ 上取有限值，且在边界处趋于 $+\infty$。
 ![一维区间上的对数障碍函数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/09-interior-point-barrier/fig1.png)
 *图 1. 开区间 $(0,4)$ 上的对数障碍函数 $-\log x - \log(4-x)$。其在可行域内部光滑、严格凸；当 $x$ 趋近任一端点时迅速发散至 $+\infty$。障碍函数自身的极小点即为可行域的**解析中心**（analytic center）。*
 对每个 $t > 0$，求解带等式约束的无约束化子问题：
-$$\min_x \quad t f_0(x) + \phi(x), \quad Ax = b. \tag{$P_t$}
-
+$$
+\min_x \quad t f_0(x) + \phi(x), \quad Ax = b. \tag{$P_t$}
 $$
 这是一个等式约束凸优化问题；其唯一最优解记为 $x^\star(t)$，当 $t$ 变化时，$x^\star(t)$ 的轨迹即为**中心路径**（central path）。
 
@@ -67,17 +63,13 @@ $$
 - $x^\star(t)$ 是 ($P_t$) 的唯一极小点；
 - ($P_t$) 的 KKT 条件给出对偶变量 $\lambda_i(t) := 1/(t \cdot (-f_i(x^\star(t)))) \geq 0$，并满足**扰动互补松弛条件**（perturbed complementary slackness）：
   $$
-
   \lambda_i(t) (-f_i(x^\star(t))) = 1/t.
-
   $$
   这正是经典 KKT 系统，只是互补松弛条件由精确为零变为偏移 $1/t$。
 
 - 中心路径上的对偶间隙（duality gap）**恰好等于** $m/t$：
   $$
-
   f_0(x^\star(t)) - p^\star \leq m / t.
-
   $$
   为什么？令 $\nu(t) = (\nu_1(t), \ldots, \nu_p(t))$ 为对应等式约束 $Ax = b$ 的拉格朗日乘子向量，则 $(\lambda(t), \nu(t))$ 是一个对偶可行点；直接计算可知，拉格朗日函数在此对偶点处的取值恰为 $f_0(x^\star(t)) - m/t$。
 
@@ -108,9 +100,7 @@ for k = 0, 1, 2, ...:
 
 凸函数 $\phi : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ 称为**自和谐的**，若对任意 $x \in \mathrm{dom}(\phi)$ 及任一方向 $u$，均有  
 $$
-
 \Big| \frac{d^3}{dt^3} \phi(x + tu) \Big|_{t=0} \Big| \leq 2 \big(u^\top \nabla^2 \phi(x) u \big)^{3/2}.
-
 $$  
 即：三阶方向导数受 Hessian 度量控制。
 
@@ -126,36 +116,25 @@ $$
 
 **1. 牛顿减量（Newton decrement）具有明确意义。** 定义  
 $$
-
 \lambda_\phi(x) := \sqrt{\nabla \phi(x)^\top [\nabla^2 \phi(x)]^{-1} \nabla \phi(x)}.
-
 $$  
 这是 $\phi$ 的自然尺度不变的“距最优解距离”度量。若 $\phi$ 自和谐，则当 $\lambda_\phi(x) \leq 0.68$ 时，有  
 $$
-
 \phi(x) - \phi^\star \leq \lambda_\phi(x)^2.
-
 $$
-
 **2. 阻尼牛顿法（damped Newton）以 $O(1)$ 量级常数保证进展。** 考虑阻尼牛顿迭代：  
 $$
-
 x_+ = x - \frac{1}{1 + \lambda} \, [\nabla^2 \phi(x)]^{-1} \nabla \phi(x), \quad \text{其中 } \lambda = \lambda_\phi(x).
-
 $$  
 若 $\phi$ 自和谐，则  
 $$
-
 \phi(x_+) \leq \phi(x) - \omega(\lambda),
-
 $$  
 其中 $\omega(\lambda) = \lambda - \log(1 + \lambda)$。只要 $\lambda \geq \frac{1}{4}$，就有 $\omega(\lambda) \geq 0.02$，故每步牛顿迭代使 $\phi$ 至少下降一个绝对常数。
 
 **3. 在常数半径区域内实现二次收敛。** 若 $\lambda_\phi(x) \leq \frac{1}{4}$，则执行**完整牛顿步**可得  
 $$
-
 \lambda_\phi(x_+) \leq 2 \lambda_\phi(x)^2.
-
 $$  
 此即二次收敛——且该收敛半径 $\frac{1}{4}$ **与问题条件数无关**。
 
@@ -176,9 +155,7 @@ $$
 
 若一个自和谐函数 $\phi$ 满足：对所有 $x \in \mathrm{dom}(\phi)$，有  
 $$
-
 \nabla \phi(x)^\top [\nabla^2 \phi(x)]^{-1} \nabla \phi(x) \leq \nu,
-
 $$  
 则称其具有**障碍参数** $\nu \geq 1$。
 等价地：$\lambda_\phi(x)^2 \leq \nu$ 在定义域内处处成立。
@@ -188,15 +165,11 @@ $$
 
 障碍参数控制中心路径随参数 $t$ 变化的“剧烈程度”：  
 $$
-
 \|x^\star(t) - x^\star(t')\|_{\nabla^2 \phi} \leq O(\sqrt{\nu} \log(t'/t)).
-
 $$  
 若将 $t$ 按因子 $\mu = 1 + 1/\sqrt{\nu}$（远小于 $\mu = 10$）更新，则热启动点仍位于新中心路径点的二次收敛区域内。此时外层迭代总次数为  
 $$
-
 \frac{\log(m / (t_0 \epsilon))}{\log(1 + 1/\sqrt{\nu})} = O(\sqrt{\nu} \log(\nu / \epsilon)),
-
 $$  
 而每次内层求解仅需 $O(1)$ 次牛顿迭代。这即著名的**短步长内点算法**，具备最优复杂度保证。
 
@@ -224,14 +197,12 @@ $$
 
 考虑带不等式约束的线性规划问题：$\min c^\top x$，满足 $Ax = b,\, x \geq 0$。其中心路径条件为：
 $$
-
 \begin{aligned}
 A x &= b \quad \text{（原始可行性）} \\
 A^\top \nu + \lambda &= c \quad \text{（对偶可行性）} \\
 x_i \lambda_i &= 1/t \quad \text{（扰动互补松弛条件， perturbed CS）} \\
 x, \lambda &\geq 0
 \end{aligned}
-
 $$
 这是一个关于 $(x, \nu, \lambda)$ 的非线性方程组，以 $1/t$ 为扰动参数。对该系统应用牛顿法，并令 $1/t \to 0$，即可收敛至原始-对偶最优解对。
 
@@ -269,23 +240,17 @@ $$
 
 考虑最小化 $c^\top x$，满足约束 $Ax \leq b$，其中 $A \in \mathbb{R}^{m \times n}$。对应参数 $t$ 的障碍目标函数为：
 $$
-
 B_t(x) = t c^\top x - \sum_{i=1}^m \log(b_i - a_i^\top x).
-
 $$
 其梯度与 Hessian 矩阵为：
 $$
-
 \nabla B_t(x) = t c + A^\top \frac{1}{b - Ax}, \quad \nabla^2 B_t(x) = A^\top \mathrm{diag}\big( (b - Ax)^{-2} \big) A.
-
 $$
 （此处除法为按分量进行。）
 
 牛顿方向 $\Delta x$ 是如下线性方程组的解：
 $$
-
 \nabla^2 B_t(x) \, \Delta x = -\nabla B_t(x).
-
 $$
 当 $A$ 稀疏时，该系统通常采用稀疏 Cholesky 分解求解；最坏时间复杂度为 $O(n^3)$，但实践中往往显著更低。
 

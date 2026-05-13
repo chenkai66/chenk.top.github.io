@@ -50,15 +50,11 @@ Before BERT, every NLP task started from a freshly initialized model trained on 
 **Word2Vec (2013).** Static word embeddings learned from raw text. The same vector represented "bank" in *river bank* and in *bank account* — there was no way for context to change a word's meaning.
 
 **ELMo (early 2018).** A bidirectional LSTM produced context-dependent vectors by combining hidden states from every layer:
-
 $$\text{ELMo}_k = \gamma \sum_{j=0}^{L} s_j \, h_{k,j}$$
-
 where $h_{k,j}$ is the hidden state of layer $j$ at token position $k$ and $s_j$ are learned softmax weights. ELMo proved that contextual representations dramatically improve almost every downstream task — but it was still RNN-based, so training was slow and hard to parallelize.
 
 **GPT-1 (June 2018).** The first system to scale a Transformer through pretraining. It used a left-to-right language model:
-
 $$P(w_1, \ldots, w_n) = \prod_{i=1}^{n} P(w_i \mid w_1, \ldots, w_{i-1})$$
-
 GPT-1 was strong but unidirectional: when reading "the bank is closed," it could not use "closed" to disambiguate "bank," because at the position of "bank" the model has not yet seen "closed."
 
 **BERT (October 2018).** The breakthrough: change the pretraining objective so every token can attend to its full context, in *both* directions, simultaneously. That single decision unlocked an across-the-board jump in benchmark scores.
@@ -89,9 +85,7 @@ BERT is the **encoder** half of the original Transformer, repeated 12 or 24 time
 ### Input representation: three embeddings, summed
 
 For every token, BERT adds three learned embeddings of the same dimension:
-
 $$\text{Input}_i = E^{\text{tok}}_{w_i} + E^{\text{seg}}_{s_i} + E^{\text{pos}}_{i}$$
-
 - **Token embedding** — the WordPiece sub-token id, drawn from a 30K vocabulary.
 - **Segment embedding** — $E_A$ for tokens belonging to the first sentence, $E_B$ for the second. This lets BERT model sentence-pair tasks (NLI, QA) without any architectural change.
 - **Position embedding** — a *learned* vector for each absolute position from 0 to 511. (Unlike the original Transformer's sinusoidal positions, BERT learns its own.)
@@ -104,9 +98,7 @@ Two special tokens carry most of the protocol:
 ### Bidirectional self-attention
 
 Inside every encoder layer, multi-head self-attention lets every token look at every other token:
-
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V$$
-
 Crucially, $Q$, $K$, and $V$ all come from the same input sequence (self-attention) and there is **no causal mask** (bidirectional). So the representation of "bank" at position 3 can simultaneously incorporate "river" on its left and "is closed" on its right within a single forward pass.
 
 ### Two sizes
@@ -139,9 +131,7 @@ For each input sequence, randomly select 15% of the token positions. At each cho
 - with probability **10%**, leave it unchanged.
 
 The model is trained to predict the *original* token at every chosen position by minimising
-
 $$\mathcal{L}_{\text{MLM}} = -\sum_{i \in \mathcal{M}} \log P(w_i \mid \tilde{x})$$
-
 where $\mathcal{M}$ is the set of masked positions and $\tilde{x}$ is the corrupted input.
 
 **Why the 80/10/10 mix?** It is engineered to prevent two failure modes:
@@ -162,9 +152,7 @@ NSP was added so that BERT could learn sentence-pair semantics for tasks like NL
 - 50% of the time, B is a *random* sentence from a different document (label `NotNext`).
 
 A linear-plus-softmax head reads the final `[CLS]` vector and predicts the label:
-
 $$P(\text{IsNext}) = \text{softmax}(W \, h_{\text{[CLS]}} + b)$$
-
 The total pretraining loss is just the sum of the MLM and NSP losses.
 
 > A footnote that aged badly: subsequent work (RoBERTa, ALBERT) found NSP contributes very little, and removing or replacing it actually *helps*. We will return to this in the variants section.

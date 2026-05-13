@@ -128,9 +128,7 @@ plt.tight_layout(); plt.show()
 ![Ordinary Differential Equations (8): Nonlinear Systems and Phase Portraits — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/illustration_2.png)
 
 ### The model
-
 $$x' = \alpha x - \beta xy, \qquad y' = \delta xy - \gamma y$$
-
 - $x$: prey population, $y$: predator population
 - Trivial equilibrium $(0,0)$: saddle
 - Coexistence equilibrium $(\gamma/\delta,\ \alpha/\beta)$: Jacobian eigenvalues $\pm i\sqrt{\alpha\gamma}$ (a center)
@@ -158,9 +156,7 @@ These flaws drove the development of the more realistic models in the next secti
 ---
 
 ## Competition Model: Four Outcomes
-
 $$\begin{aligned} x' &= r_1 x\!\left(1 - \frac{x + \alpha_{12}y}{K_1}\right), \\ y' &= r_2 y\!\left(1 - \frac{y + \alpha_{21}x}{K_2}\right). \end{aligned}$$
-
 The product $\alpha_{12}\,\alpha_{21}$ — the strength of mutual interference — determines which of four pictures you get.
 
 ![Four competition phase portraits with nullclines: species 1 wins, species 2 wins, coexistence, bistability.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/fig5_competition_outcomes.png)
@@ -178,9 +174,7 @@ This is **competitive exclusion** in mathematical clothing.
 ---
 
 ## Van der Pol: Limit Cycles from Nonlinear Damping
-
 $$x'' - \mu(1 - x^2)x' + x = 0$$
-
 The genius is in the damping coefficient $-\mu(1 - x^2)$:
 
 - Inside $|x| < 1$: damping is *negative* — the system pumps energy in.
@@ -292,9 +286,7 @@ def rk4_step(f, x, t, h):
 Equilibria are judged by Jacobian eigenvalues. Limit cycles $\gamma(t)$ are judged by **Floquet multipliers** — the answer to "if I nudge a trajectory sideways, how much is the nudge amplified after one period?".
 
 Given a $T$-periodic orbit, perturbations $\delta(t)$ satisfy the variational equation
-
 $$ \dot\delta = J\!\bigl(\gamma(t)\bigr)\,\delta. $$
-
 Integrate over one period to get the monodromy matrix $\Phi(T)$. Its eigenvalues $\mu_i$ are the Floquet multipliers. One is forced to be $\mu_1 = 1$ (sliding along the orbit is just a phase shift); the rest decide stability:
 
 - All other $|\mu_i| < 1$ → **stable limit cycle** (attracting).

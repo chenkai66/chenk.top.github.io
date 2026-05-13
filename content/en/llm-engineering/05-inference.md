@@ -47,9 +47,7 @@ The arithmetic intensity argument clarifies this. For prefill on a 4K prompt of 
 
 
 The KV cache stores the projected K and V vectors for every prior token in every layer. For a 70B model with GQA-8 at 32K context (numbers from chapter 1):
-
 $$\text{KV} = 2 \cdot 80 \cdot 2 \cdot 8 \cdot 128 \cdot 32{,}768 \cdot 2 \text{ bytes} = 8.6 \text{ GB}$$
-
 Per request. With 50 concurrent requests, that's 430 GB of KV cache — far more than your model weights. KV cache is the bottleneck, not weights.
 
 The naive implementation allocates a contiguous tensor per request sized to `max_context`. Two failures:

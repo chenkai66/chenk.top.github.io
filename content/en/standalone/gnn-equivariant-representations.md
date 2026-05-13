@@ -43,13 +43,9 @@ A growing class of tasks treats an entire trained neural network as a single dat
 - **Model merging**: combining the weights of independently trained models that solve the same task
 
 All five share the same nuisance: an MLP has a *huge* discrete symmetry group acting on its parameters that leaves the function unchanged. For a single hidden layer with permutation matrix $P$,
-
 $$f(x;\,W_1, b_1, W_2, b_2) \;=\; f(x;\,P W_1, P b_1, W_2 P^\top, b_2),$$
-
 and the same applies, independently, to every hidden layer. With per-layer widths $n_1, \ldots, n_L$, the symmetry group is the direct product
-
 $$\mathcal{S} \;=\; S_{n_1} \times S_{n_2} \times \cdots \times S_{n_L},$$
-
 so the number of equivalent parameter vectors representing the same function explodes combinatorially. A learner that ignores $\mathcal{S}$ either has to (i) memorise all its orbits, which is hopeless, or (ii) hope that its training distribution happens to cover them, which is naive.
 
 ![Permutation equivariance: hidden-unit symmetry of an MLP](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gnn-equivariant-representations/fig1_permutation_equivariance.png)
@@ -118,9 +114,7 @@ For a function $f$ on graphs and a permutation $\pi$ of node labels:
 - $f$ is **equivariant** if $f(\pi \cdot G) = \pi \cdot f(G)$. Use this for *node-level* outputs (one prediction per neuron).
 
 Standard message-passing GNNs are equivariant by construction: the update at node $v$,
-
 $$h_v^{(\ell+1)} \;=\; \mathrm{UPDATE}\!\left(\,h_v^{(\ell)},\;\bigoplus_{u \in \mathcal{N}(v)} \mathrm{MSG}(h_u^{(\ell)}, e_{uv})\,\right),$$
-
 is identical for every node and uses a permutation-invariant aggregator $\bigoplus$ (sum / mean / max / attention). Relabelling the nodes therefore commutes with the GNN: permuted input graph $\Rightarrow$ permuted node embeddings, same edge structure $\Rightarrow$ same scalar functions of those embeddings.
 
 ![Invariance vs equivariance: same symmetry, different output](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gnn-equivariant-representations/fig4_equivariant_vs_invariant.png)
@@ -136,21 +130,15 @@ The paper considers two backbones, both adapted to the unusual fact that *edge* 
 ## NG-GNN: PNA with edge updates and FiLM modulation
 
 The base is **PNA** (Principal Neighborhood Aggregation), chosen because it supports edge features and combines several aggregators in parallel (mean, max, std, scaled by node degree). The standard PNA does not *update* edges; the paper adds a per-layer edge MLP
-
 $$e_{uv}^{(\ell+1)} \;=\; \phi^{(\ell)}_E\!\left(\,e_{uv}^{(\ell)},\, h_u^{(\ell)},\, h_v^{(\ell)}\,\right),$$
-
 so that edge features evolve through depth alongside node features. To strengthen the multiplicative interaction between the weight (edge) and the neuron states (nodes), the message uses **FiLM** modulation:
-
 $$\mathrm{MSG}(h_u, e_{uv}) \;=\; (\gamma(e_{uv}) \odot h_u) + \beta(e_{uv}),$$
-
 where $\gamma, \beta$ are small MLPs. This lets the *weight* gate the message coming from the *source neuron*, which mirrors what a real network actually does at inference.
 
 ## NG-T: a relational Transformer
 
 The Transformer variant treats the neural graph as a fully connected graph and uses **relational attention**: edge features enter the attention computation as a bias on the value matrix,
-
 $$V_{uv} \;=\; (\gamma(e_{uv}) \odot V_u) + \beta(e_{uv}),$$
-
 so the attention from $v$ to $u$ is conditioned on the *weight* connecting them. This is the same FiLM trick, ported to attention. Empirically NG-T tends to be stronger on dense graphs (small networks) and NG-GNN scales better to large, sparse ones.
 
 ## End-to-end pipeline

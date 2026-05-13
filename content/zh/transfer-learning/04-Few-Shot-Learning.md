@@ -84,13 +84,9 @@ translationKey: "transfer-learning-4"
 ### Siamese 网络
 
 这是该家族的早期代表。两个权重共享的编码器 $f_\theta$ 分别嵌入一对输入，其距离定义为：
-
 $$d(x_1, x_2) = \|f_\theta(x_1) - f_\theta(x_2)\|_2.$$
-
 训练采用**对比损失**（contrastive loss）：
-
 $$\mathcal{L} = y \cdot d^2 + (1 - y) \cdot \max(0, m - d)^2,$$
-
 其中 $y = 1$ 表示同类对（拉近），$y = 0$ 表示异类对（推开，直至距离超过间隔 $m$）。测试时，查询样本被赋予其最近邻支持样本的标签。
 
 ### Prototypical 网络（原型网络）
@@ -100,17 +96,13 @@ $$\mathcal{L} = y \cdot d^2 + (1 - y) \cdot \max(0, m - d)^2,$$
 #### 计算原型
 
 对于类别 $c$ 的支持样本 $\{x_1^c, \ldots, x_K^c\}$，其原型为嵌入均值：
-
 $$\mathbf{c}_c = \frac{1}{K} \sum_{k=1}^{K} f_\theta(x_k^c).$$
-
 几何上，这相当于该类在嵌入空间中的质心。
 
 #### 分类
 
 对查询样本 $x_q$，以负平方欧氏距离作为 logit，再经 softmax 得到概率：
-
 $$P(y = c \mid x_q) = \frac{\exp\bigl(-d(f_\theta(x_q), \mathbf{c}_c)\bigr)}{\sum_{c'} \exp\bigl(-d(f_\theta(x_q), \mathbf{c}_{c'})\bigr)}, \qquad d(u, v) = \|u - v\|_2^2.$$
-
 训练时对每个 episode 的查询预测使用交叉熵损失，端到端优化。
 
 #### 为何原型方法合理？
@@ -126,9 +118,7 @@ $$P(y = c \mid x_q) = \frac{\exp\bigl(-d(f_\theta(x_q), \mathbf{c}_c)\bigr)}{\su
 ![Matching 网络：余弦相似度经过 softmax，得到对支持样本的注意力权重](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig3_matching.png)
 
 预测结果是对标签的加权求和：
-
 $$P(y \mid x_q, \mathcal{S}) = \sum_{i=1}^{NK} a(x_q, x_i) \cdot y_i, \qquad a(x_q, x_i) = \mathrm{softmax}_i\bigl(\cos(f(x_q), g(x_i))\bigr).$$
-
 其中 $y_i$ 为 one-hot 标签向量，因此预测是若干 one-hot 向量的凸组合。
 
 该论文另一贡献是**全上下文嵌入**（full context embeddings）：通过双向 LSTM 遍历整个支持集，使每个支持嵌入都能感知其他所有支持样本。其直觉在于，判别性特征取决于你试图区分的其他类别——而 LSTM 能让网络表达这种依赖关系。
@@ -136,9 +126,7 @@ $$P(y \mid x_q, \mathcal{S}) = \sum_{i=1}^{NK} a(x_q, x_i) \cdot y_i, \qquad a(x
 ### Relation 网络（关系网络）
 
 关系网络更进一步：不再使用固定度量（如欧氏或余弦距离），而是**学习一个度量函数**。一个小网络 $g_\phi$ 接收拼接后的查询嵌入与类原型，输出标量相似度：
-
 $$r_{q, c} = g_\phi\bigl(\mathrm{concat}(f_\theta(x_q),\, \mathbf{c}_c)\bigr) \in [0, 1].$$
-
 ![Relation 网络：共享嵌入模块 + 学习出来的关系模块](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig5_relation.png)
 
 训练目标为 $r_{q, c} = \mathbb{1}\{y_q = c\}$，使用均方误差损失，两个模块联合训练。为何要这样做？固定度量隐含假设嵌入空间各向同性——即每个维度同等重要。而学习度量允许网络自动降低对当前任务无信息量的维度的权重。
@@ -160,22 +148,17 @@ MAML 的思想简单却惊人有效：寻找一个初始化参数 $\theta$，使
 对每个采样任务 $\mathcal{T}_i$（含支持集与查询集）：
 
 1. **内环**（任务自适应）：在支持集损失上执行一步（或几步）梯度更新：
-
    $$\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).$$
-
 2. **外环**（元更新）：用适配后的参数 $\theta_i'$ 在查询集上评估损失，并更新初始化：
-
    $$\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').$$
-
 外环梯度需穿过内环更新，涉及支持集损失对 $\theta$ 的二阶导数——即 Hessian-向量乘积。
 
 #### 一阶近似（FOMAML）
 
 精确的二阶 MAML 在参数维度 $d$ 上内存开销为 $O(d^2)$，且实现复杂。FOMAML 直接忽略二阶项，近似为：
-
 $$
-abla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),$$
-
+abla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),
+$$
 即直接使用适配点处的梯度，假装 $\theta_i'$ 与 $\theta$ 无关。此举将开销降至 $O(d)$，而准确率几乎不变。
 
 #### 几何直觉
@@ -185,9 +168,7 @@ MAML 将 $\theta$ 推向损失景观中一个**适合快速适应的平坦区域
 ### Reptile：更简单的方案
 
 Reptile 完全省去内环求导。采样一个任务，在其上运行 $k$ 步普通 SGD 得到 $\tilde{\theta}$，然后将元参数向该结果微调：
-
 $$\theta \leftarrow \theta + \epsilon \,(\tilde{\theta} - \theta).$$
-
 算法仅此而已。尽管简单，其效果却几乎与 MAML 相当——因为在大量任务上反复将元参数推向任务特定解，最终会使其落在所有任务解的公共“甜点”附近。
 
 | 方法    | 梯度阶数 | 单步代价       | 实现难度 | miniImageNet (5w-5s)* |

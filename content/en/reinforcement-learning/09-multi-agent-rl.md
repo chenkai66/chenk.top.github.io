@@ -77,13 +77,9 @@ CTDE works because the things that make MARL hard (non-stationarity, credit assi
 ## 3. Markov games and Nash equilibria, just enough to be useful
 
 A **Markov game** generalises the MDP to $n$ agents:
-
 $$\langle \mathcal{N}, \mathcal{S}, \{A_i\}_{i\in\mathcal{N}}, P, \{r_i\}_{i\in\mathcal{N}}, \gamma \rangle.$$
-
 Each agent $i$ has its own action set $A_i$ and its own reward $r_i(s, a_1, \ldots, a_n)$. A **Nash equilibrium** is a joint policy $\pi^* = (\pi_1^*, \ldots, \pi_n^*)$ where no single agent can improve unilaterally:
-
 $$V_i(\pi_i^*, \pi_{-i}^*) \;\geq\; V_i(\pi_i, \pi_{-i}^*) \qquad \forall \pi_i,\, \forall i.$$
-
 Two facts make Nash equilibria a slippery target. First, they are typically not unique; second, they are not always Pareto optimal. In the *fully cooperative* case, where $r_1 = \cdots = r_n$, the picture simplifies dramatically — the problem reduces to maximising a single team return, and Nash equilibrium and Pareto optimality collapse onto the same set. That is why most of the algorithmic machinery in this chapter targets the cooperative setting first; competitive and mixed-motive cases borrow from it but layer additional ideas (self-play, opponent modelling, regularisation) on top.
 
 ---
@@ -93,23 +89,17 @@ Two facts make Nash equilibria a slippery target. First, they are typically not 
 ![QMIX architecture and monotonic factorisation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig3_qmix.png)
 
 Value decomposition is a CTDE recipe for the cooperative case. We learn a per-agent value function $Q_i(o_i, a_i)$ for execution and a *combined* $Q_\text{tot}(s, \mathbf{a})$ for training, then we constrain the relationship between them so that decentralised greedy action selection on $Q_i$ is equivalent to joint greedy selection on $Q_\text{tot}$. This is the **Individual-Global-Max (IGM)** property:
-
 $$\arg\max_{\mathbf{a}} Q_\text{tot}(s, \mathbf{a}) \;=\; \big(\arg\max_{a_1} Q_1(o_1, a_1),\; \ldots,\; \arg\max_{a_n} Q_n(o_n, a_n)\big).$$
-
 ### VDN: additive decomposition
 
 [Sunehag et al., 2017](https://arxiv.org/abs/1706.05296) take the simplest sufficient condition:
-
 $$Q_\text{tot}(s, \mathbf{a}) \;=\; \sum_{i=1}^{n} Q_i(o_i, a_i).$$
-
 Sums are monotonic in each summand, so IGM holds trivially. The cost is expressivity: VDN cannot represent any non-additive interaction between agents.
 
 ### QMIX: monotonic mixing
 
 [QMIX](https://arxiv.org/abs/1803.11485) keeps IGM but generalises *additive* to *monotonic*. A neural **mixing network** combines the $Q_i$ into $Q_\text{tot}$ subject to
-
 $$\frac{\partial Q_\text{tot}}{\partial Q_i} \;\geq\; 0 \qquad \forall i.$$
-
 The constraint is enforced by *constructing* the mixer's weights to be non-negative — by passing them through an absolute value or a softplus. Crucially, the weights themselves are produced by a **hypernetwork** conditioned on the global state $s$, so different states can reweight agents differently (and the mixer can express interactions that pure summation cannot). The right panel of the figure shows the resulting $Q_\text{tot}$ surface: monotone in each $Q_i$, so the joint argmax aligns with the pair of per-agent argmaxes.
 
 ```python
@@ -167,9 +157,7 @@ A practical note: QMIX cannot represent every IGM-decomposable function (its mon
 - a **critic** $Q_i(s, a_1, \ldots, a_n)$ that conditions on the full state and *every* agent's action.
 
 The actor is updated with the deterministic policy gradient through its own critic; the critic is updated with a TD target that uses target actors of all agents:
-
 $$y \;=\; r_i \;+\; \gamma \, Q_i^{\text{tgt}}\!\left(s', \mu_1^{\text{tgt}}(o_1'), \ldots, \mu_n^{\text{tgt}}(o_n')\right).$$
-
 Because the critic conditions on $a_{-i}$, the environment looks stationary *to the critic* — its inputs include the very thing that was changing under it. The actor remains decentralised, so deployment is unchanged. MADDPG works in cooperative, competitive, and mixed-motive settings; the replay buffer simply stores joint trajectories.
 
 ### COMA: counterfactual credit assignment
@@ -177,9 +165,7 @@ Because the critic conditions on $a_{-i}$, the environment looks stationary *to 
 ![COMA counterfactual baseline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig4_coma.png)
 
 [COMA](https://arxiv.org/abs/1705.08926) attacks the credit-assignment problem head-on. It uses a single centralised critic $Q(s, \mathbf{a})$ and, for each agent $i$, a **counterfactual baseline** that holds everyone else's actions fixed and averages out $i$'s action under its own policy:
-
 $$A_i(s, \mathbf{a}) \;=\; Q(s, \mathbf{a}) \;-\; \sum_{a_i'} \pi_i(a_i' \mid o_i) \, Q\!\left(s, (a_i', a_{-i})\right).$$
-
 Read this carefully. The first term is the value of what actually happened. The second is the *expected* value if agent $i$ had sampled some other action *while everyone else did exactly what they did*. The difference is precisely $i$'s marginal contribution. When the team reward is shared, this is the right object to do policy gradient on — it removes the noise from $a_{-i}$ without introducing bias. The figure shows the four-action case: only the chosen action receives a non-trivial advantage.
 
 The trick that makes COMA tractable is that the centralised critic outputs a vector of $Q$-values for all candidate actions of agent $i$ at once, so the baseline is a single dot product against the policy probabilities — no extra environment rollouts needed.
@@ -229,11 +215,13 @@ Three families of solutions, in order of complexity.
 ### Difference rewards
 
 The simplest fix is to compute, for each agent $i$, the **counterfactual difference**
-$$D_i = R(s, a) - R(s, (a_{-i}, c_i)),$$where $c_i$ is a default action (e.g. "do nothing"). Each agent's effective reward is what the team got *because* of agent $i$'s actual choice, marginalised over a baseline. Difference rewards predate deep RL by 15 years (Wolpert & Tumer, 2002) and remain shockingly effective when you can compute the counterfactual cheaply — for example in any simulator you can roll back.
+$$
+D_i = R(s, a) - R(s, (a_{-i}, c_i)),$$where $c_i$ is a default action (e.g. "do nothing"). Each agent's effective reward is what the team got *because* of agent $i$'s actual choice, marginalised over a baseline. Difference rewards predate deep RL by 15 years (Wolpert & Tumer, 2002) and remain shockingly effective when you can compute the counterfactual cheaply — for example in any simulator you can roll back.
 
 ### Counterfactual baselines (COMA)
 
-When the counterfactual cannot be cheaply rolled, you can *learn* it. COMA computes its advantage as$$A_i(s, a) = Q(s, a) - \sum_{a_i'} \pi_i(a_i' | \tau_i)\, Q(s, (a_{-i}, a_i')),$$
+When the counterfactual cannot be cheaply rolled, you can *learn* it. COMA computes its advantage as$$A_i(s, a) = Q(s, a) - \sum_{a_i'} \pi_i(a_i' | \tau_i)\, Q(s, (a_{-i}, a_i')),
+$$
 which marginalises over agent $i$'s alternative actions while holding the rest fixed. The magic is that the marginal $Q$-value uses the *centralised* critic — at training time you have everyone's observation — so the baseline is well-defined even though each agent acts on its own history at test time.
 
 ### Reward shaping with potentials

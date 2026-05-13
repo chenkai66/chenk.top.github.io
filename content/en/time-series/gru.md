@@ -51,39 +51,27 @@ This article walks through GRU end-to-end:
 Let $x_t \in \mathbb{R}^{d_{in}}$ be the input and $h_{t-1} \in \mathbb{R}^{h}$ the previous hidden state. GRU computes the next hidden state $h_t$ in four steps.
 
 **(1) Update gate** — "how much of the past should I keep?"
-
 $$z_t = \sigma\!\left(W_z\,[h_{t-1},\, x_t] + b_z\right)$$
-
 A sigmoid in $[0,1]$. When $z_t \to 0$ the cell **freezes** (keeps $h_{t-1}$ untouched); when $z_t \to 1$ it **fully refreshes** with new content.
 
 **(2) Reset gate** — "how much of the past should I let in when forming the candidate?"
-
 $$r_t = \sigma\!\left(W_r\,[h_{t-1},\, x_t] + b_r\right)$$
-
 This gate gates the *input* to the candidate, not the final mix. Setting $r_t \to 0$ effectively says "ignore history when proposing $\tilde h_t$".
 
 **(3) Candidate hidden state** — a fresh proposal mixing reset history with new input:
-
 $$\tilde h_t = \tanh\!\left(W_h\,[\,r_t \odot h_{t-1},\; x_t\,] + b_h\right)$$
-
 The element-wise product $r_t \odot h_{t-1}$ is the only place the reset gate appears.
 
 **(4) Linear interpolation** — the output is a convex combination of "old" and "new":
-
 $$h_t = (1 - z_t)\odot h_{t-1} \;+\; z_t \odot \tilde h_t$$
-
 This last equation is the heart of GRU. It is **linear in $h_{t-1}$**, which means the gradient $\partial h_t / \partial h_{t-1}$ contains the term $(1 - z_t)$ — a direct, additive path that does not pass through any nonlinearity. That is the gradient highway in Figure 1.
 
 ### Why this fixes vanishing gradients
 
 A vanilla RNN has $h_t = \tanh(W h_{t-1} + U x_t)$, so
-
 $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}\!\left(1 - \tanh^2(\cdot)\right) W.$$
-
 Across $T$ steps this product is bounded by $\|\,W\,\|^T$ times a small derivative — decaying exponentially. In GRU,
-
 $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}(1 - z_t) \;+\; (\text{nonlinear terms via } \tilde h_t).$$
-
 Whenever the model **wants** to remember (learns $z_t \approx 0$), the Jacobian is essentially the identity and the gradient flows back through hundreds of steps with no attenuation.
 
 ---
@@ -91,10 +79,10 @@ Whenever the model **wants** to remember (learns $z_t \approx 0$), the Jacobian 
 ## 2. Why GRU is Lighter: A Parameter Accounting
 
 A single GRU layer has three weight blocks ($W_z$, $W_r$, $W_h$), each of shape $h \times (d_{in} + h)$, plus biases. LSTM has four blocks (forget, input, candidate, output). Counting:
-
-$$P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad
-P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).$$
-
+$$
+P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad
+P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).
+$$
 So $P_{\text{GRU}} = \tfrac{3}{4}\,P_{\text{LSTM}}$ — **exactly 25% fewer parameters**, regardless of width.
 
 ![Parameter counts for GRU vs LSTM at hidden sizes 32 to 512.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig2_param_count_comparison.png)

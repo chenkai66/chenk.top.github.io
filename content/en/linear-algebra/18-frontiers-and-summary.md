@@ -52,9 +52,7 @@ Notice two things. First, the graph is not a chain — it is a thin layered netw
 ### Qubits as unit vectors
 
 A classical bit is either $|0\rangle$ or $|1\rangle$. A qubit is a unit vector in $\mathbb{C}^2$,
-
 $$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle, \qquad |\alpha|^2 + |\beta|^2 = 1,$$
-
 with computational basis $|0\rangle = \begin{bmatrix}1\\0\end{bmatrix}$ and $|1\rangle = \begin{bmatrix}0\\1\end{bmatrix}$. The Bloch sphere on the left of the figure is the geometric picture: the north pole is $|0\rangle$, the south pole is $|1\rangle$, and every other point on the sphere is a legitimate quantum state. Tensoring $n$ qubits gives a unit vector in $\mathbb{C}^{2^n}$, and *that* is the vector space in which quantum algorithms operate.
 
 ### Gates as unitary matrices
@@ -62,23 +60,15 @@ with computational basis $|0\rangle = \begin{bmatrix}1\\0\end{bmatrix}$ and $|1\
 A gate is a linear map that preserves the unit-norm condition. That is exactly the definition of a **unitary matrix**: $\mathbf{U}^{\dagger}\mathbf{U} = \mathbf{I}$. Unitarity preserves inner products, which preserves probability — the linear-algebraic origin of physical reversibility.
 
 The Hadamard gate creates equal superposition,
-
 $$\mathbf{H} = \frac{1}{\sqrt{2}}\begin{bmatrix}1 & 1\\ 1 & -1\end{bmatrix}, \qquad \mathbf{H}|0\rangle = \tfrac{1}{\sqrt{2}}(|0\rangle + |1\rangle),$$
-
 which the middle panel of the figure shows as a bar chart: a probability-one state at $|0\rangle$ becomes amplitude $1/\sqrt{2}$ on each basis state. The Pauli matrices
-
 $$\mathbf{X} = \begin{bmatrix}0 & 1\\ 1 & 0\end{bmatrix},\quad \mathbf{Y} = \begin{bmatrix}0 & -i\\ i & 0\end{bmatrix},\quad \mathbf{Z} = \begin{bmatrix}1 & 0\\ 0 & -1\end{bmatrix}$$
-
 are the three basic rotations — and an arbitrary single-qubit gate is the matrix exponential $e^{-i\theta(\mathbf{n}\cdot\boldsymbol{\sigma})/2}$, which we will revisit in the Lie-algebra section.
 
 The two-qubit CNOT gate
-
 $$\text{CNOT} = \begin{bmatrix}1&0&0&0\\0&1&0&0\\0&0&0&1\\0&0&1&0\end{bmatrix}$$
-
 is the engine of entanglement. Apply Hadamard to the first qubit, then CNOT, and an unentangled $|00\rangle$ becomes the **Bell state**
-
 $$|\Phi^+\rangle = \tfrac{1}{\sqrt{2}}(|00\rangle + |11\rangle),$$
-
 shown in the right panel of the figure as the amplitude vector after each gate. No tensor product of single-qubit states equals $|\Phi^+\rangle$ — entanglement is a property of multi-qubit vector spaces that has no classical analogue.
 
 ### Two emblematic algorithms
@@ -94,9 +84,7 @@ shown in the right panel of the figure as the amplitude vector after each gate. 
 ### Three matrices for one graph
 
 A graph $G = (V, E)$ supports three matrices that you will see everywhere: the adjacency matrix $\mathbf{A}$ ($A_{ij}=1$ if $i \sim j$), the diagonal degree matrix $\mathbf{D}$, and the **graph Laplacian** $\mathbf{L} = \mathbf{D} - \mathbf{A}$. The Laplacian is positive semi-definite, has $\mathbf{1}$ as a zero eigenvector, the multiplicity of zero counts connected components, and
-
 $$\mathbf{x}^{T}\mathbf{L}\mathbf{x} = \sum_{(i,j)\in E}(x_i - x_j)^2$$
-
 is a *smoothness measure* of the signal $\mathbf{x}$ on the graph. The normalised Laplacian $\tilde{\mathbf{L}} = \mathbf{D}^{-1/2}\mathbf{L}\mathbf{D}^{-1/2}$ has eigenvalues in $[0,2]$.
 
 ### A Fourier transform on a graph
@@ -106,9 +94,7 @@ Eigendecomposing $\mathbf{L} = \mathbf{U}\boldsymbol{\Lambda}\mathbf{U}^{T}$ giv
 ### From spectral filters to GCN
 
 Spectral convolution costs $O(n^3)$ because of the eigendecomposition. ChebNet replaces the filter by a degree-$K$ Chebyshev polynomial in $\mathbf{L}$, which only needs $K$-hop neighbours and costs $O(K|E|)$. Take $K = 1$ and a careful renormalisation, and you obtain the GCN layer
-
 $$\mathbf{H}' = \sigma\!\left(\tilde{\mathbf{D}}^{-1/2}\tilde{\mathbf{A}}\tilde{\mathbf{D}}^{-1/2}\,\mathbf{H}\,\mathbf{W}\right),$$
-
 with $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ adding a self-loop. Reading the layer from right to left it is "linear transform $\mathbf{W}$, aggregate normalised neighbour features, apply nonlinearity" — a one-line message-passing scheme that powers everything from molecular property prediction (atoms as nodes, bonds as edges) to recommender systems (user-item bipartite graphs) to the structural side of AlphaFold.
 
 ---
@@ -120,9 +106,7 @@ with $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ adding a self-loop. Reading 
 ### Self-attention as soft retrieval
 
 Self-attention — the inner loop of every modern Transformer — is
-
 $$\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{T}}{\sqrt{d_k}}\right)\mathbf{V}.$$
-
 The $n \times n$ matrix $\mathbf{Q}\mathbf{K}^{T}$ holds every pairwise similarity between tokens. The softmax turns each row into a probability distribution over keys, and multiplying by $\mathbf{V}$ takes the corresponding weighted sum of values. Geometrically: query is "what I am looking for," key is "what I have," value is "what I provide." Attention is differentiable database lookup. Multi-head attention runs the same operation in several learned subspaces in parallel so that one head can pick up syntax while another picks up co-reference.
 
 ### Position information as rotation
@@ -132,9 +116,7 @@ Pure self-attention is permutation-equivariant, which would be a disaster for la
 ### LoRA: low-rank adaptation
 
 The biggest practical idea from the LLM era is that fine-tuning is intrinsically low-rank. Instead of updating $\mathbf{W}_0 \in \mathbb{R}^{d_\text{out}\times d_\text{in}}$, LoRA freezes $\mathbf{W}_0$ and learns
-
 $$\mathbf{W} = \mathbf{W}_0 + \mathbf{B}\mathbf{A}, \qquad \mathbf{B} \in \mathbb{R}^{d_\text{out}\times r}, \quad \mathbf{A} \in \mathbb{R}^{r\times d_\text{in}}, \quad r \ll d.$$
-
 For $d = 4096$ and $r = 8$ this is a 256x parameter reduction, and at inference time you can fold $\mathbf{B}\mathbf{A}$ back into $\mathbf{W}_0$ for free. **QLoRA** combines this with 4-bit quantisation of $\mathbf{W}_0$ and lets you fine-tune 65B models on a single consumer GPU.
 
 ### KV cache and the cost of memory
@@ -148,9 +130,7 @@ In autoregressive generation the keys and values for past tokens never change, s
 ### Sparse, linear, and approximate attention
 
 Standard attention is $O(n^2)$ in sequence length, which is prohibitive for documents and long videos. Sparse attention sets most entries of $\mathbf{Q}\mathbf{K}^{T}$ to $-\infty$ — locally-windowed (Longformer), strided (Sparse Transformer), or local plus a few global tokens (BigBird). Linear attention takes a different route: replace softmax by a kernel feature map $\phi$ so that
-
 $$\text{Attn}(\mathbf{Q},\mathbf{K},\mathbf{V}) \approx \phi(\mathbf{Q})\bigl(\phi(\mathbf{K})^{T}\mathbf{V}\bigr),$$
-
 which is $O(nd^2)$ instead of $O(n^2 d)$ because the parenthesised product is a small $d \times d$ matrix.
 
 ### Quantisation
@@ -170,9 +150,7 @@ Remove the small-magnitude weights. Unstructured pruning gives 90%+ sparsity but
 A tensor with $N$ indices each of size $d$ has $d^N$ entries. You cannot store it. **Tensor networks** are the right factorisation language for these objects, and — as the figure shows — they have a beautiful diagrammatic calculus where each node is a small tensor, each edge is a contracted bond, and each open leg is a remaining physical index.
 
 The simplest tensor network is the **Matrix Product State** (also called Tensor Train),
-
 $$\mathcal{X}(i_1,\ldots,i_N) = \mathbf{G}_1(i_1)\,\mathbf{G}_2(i_2) \cdots \mathbf{G}_N(i_N),$$
-
 with each $\mathbf{G}_k(i_k)$ a small matrix. Storage drops from $d^N$ to $N d r^{2}$, where $r$ is the bond dimension. MPS is the structure underneath the **DMRG** algorithm in quantum many-body physics, and — as randomised tensor train sketches — in machine learning compression. **PEPS** generalises to two-dimensional lattices; **MERA** stacks isometries and disentanglers in a hierarchy that captures critical (scale-free) systems. The same picture also explains why deep networks can represent functions exponentially efficiently: each layer is one renormalisation step.
 
 ---

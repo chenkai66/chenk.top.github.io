@@ -46,13 +46,15 @@ translationKey: "ml-math-derivations-8"
 ### 1.1 Functional and geometric margin
 
 Take binary labels $y_i \in \{-1, +1\}$ and a linear decision rule $\hat{y} = \operatorname{sign}(w^\top x + b)$. Two notions of "how far" a point sits from the boundary:
+$$
+\hat{\gamma}_i \;=\; y_i\,(w^\top x_i + b)
+\qquad\text{(functional margin)}
+$$
 
-$$\hat{\gamma}_i \;=\; y_i\,(w^\top x_i + b)
-\qquad\text{(functional margin)}$$
-
-$$\gamma_i \;=\; \frac{y_i\,(w^\top x_i + b)}{\lVert w \rVert}
-\qquad\text{(geometric margin)}$$
-
+$$
+\gamma_i \;=\; \frac{y_i\,(w^\top x_i + b)}{\lVert w \rVert}
+\qquad\text{(geometric margin)}
+$$
 The functional margin is positive on correctly classified points but is *not* scale-invariant: doubling $(w, b)$ doubles it. The geometric margin is the actual Euclidean distance from $x_i$ to the hyperplane, signed by the label, and is invariant to rescaling. That invariance is what makes the optimization well-posed — without it, "make the margin bigger" has no fixed-point answer, you can always shrink $\lVert w \rVert$.
 
 *Why this formula?* For any point $x_0$, the closest point on $w^\top x + b = 0$ is its orthogonal projection, and the displacement is $-(w^\top x_0 + b)/\lVert w \rVert^2 \cdot w$. Its norm is $\lvert w^\top x_0 + b\rvert / \lVert w \rVert$. Multiplying by $y_i$ keeps it positive whenever the prediction is correct.
@@ -62,14 +64,12 @@ The functional margin is positive on correctly classified points but is *not* sc
 ![Hard-margin SVM: the maximum-margin hyperplane and its support vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig1_max_margin.png)
 
 We want the hyperplane that maximises the *worst-case* geometric margin:
-
 $$\max_{w, b}\; \min_i\; \frac{y_i\,(w^\top x_i + b)}{\lVert w \rVert}$$
-
 This looks awkward because $(w, b)$ is only defined up to a positive rescaling. We pin the scale down by demanding that the closest points have functional margin exactly $1$. Equivalent program:
-
-$$\boxed{\;\min_{w, b}\; \tfrac{1}{2}\lVert w \rVert^2
-\quad \text{s.t.} \quad y_i(w^\top x_i + b) \;\ge\; 1, \quad i = 1, \dots, N.\;}$$
-
+$$
+\boxed{\;\min_{w, b}\; \tfrac{1}{2}\lVert w \rVert^2
+\quad \text{s.t.} \quad y_i(w^\top x_i + b) \;\ge\; 1, \quad i = 1, \dots, N.\;}
+$$
 This is a **convex quadratic program** with linear constraints. Strict convexity of the objective gives a unique optimal $w^\*$; the bias $b^\*$ is unique whenever the data span both classes.
 
 The points where the constraint is tight, $y_i(w^\top x_i + b) = 1$, are the **support vectors**. Geometrically they sit on the two parallel margin lines flanking the boundary; algebraically, they are the only points that determine $w^\*$.
@@ -77,24 +77,20 @@ The points where the constraint is tight, $y_i(w^\top x_i + b) = 1$, are the **s
 ### 1.3 The dual via Lagrange
 
 Attach multipliers $\alpha_i \ge 0$ to each constraint:
-
 $$L(w, b, \alpha) \;=\; \tfrac{1}{2}\lVert w \rVert^2 \;-\; \sum_{i=1}^N \alpha_i \bigl[\,y_i(w^\top x_i + b) - 1\,\bigr].$$
-
 **Step 1 — minimise over $w$ and $b$.** Setting $\partial_w L = 0$ and $\partial_b L = 0$:
-
-$$w^\* \;=\; \sum_{i=1}^N \alpha_i y_i x_i,
+$$
+w^\* \;=\; \sum_{i=1}^N \alpha_i y_i x_i,
 \qquad
-\sum_{i=1}^N \alpha_i y_i \;=\; 0.$$
-
+\sum_{i=1}^N \alpha_i y_i \;=\; 0.
+$$
 **Step 2 — substitute back.** Using $w^\* = \sum_i \alpha_i y_i x_i$ inside $L$:
-
 $$W(\alpha) \;=\; \sum_{i=1}^N \alpha_i \;-\; \tfrac{1}{2} \sum_{i, j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j.$$
-
 The dual program:
-
-$$\boxed{\;\max_{\alpha}\; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j
-\quad \text{s.t.} \quad \alpha_i \ge 0, \;\; \sum_i \alpha_i y_i = 0.\;}$$
-
+$$
+\boxed{\;\max_{\alpha}\; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j
+\quad \text{s.t.} \quad \alpha_i \ge 0, \;\; \sum_i \alpha_i y_i = 0.\;}
+$$
 Two consequences are doing all the heavy lifting here:
 
 1. The data only enter through inner products $x_i^\top x_j$. Replace this with $K(x_i, x_j)$ and the entire derivation goes through unchanged — this is the kernel trick before we even introduce it.
@@ -115,9 +111,7 @@ The last line is the punchline. For each $i$ exactly one of these holds:
 - $y_i(w^{\*\top} x_i + b^\*) = 1$ — the point sits *on* the margin and can carry $\alpha_i^\* > 0$.
 
 Therefore the optimal classifier is supported by only the second group:
-
 $$f(x) \;=\; \sum_{i \in \mathrm{SV}} \alpha_i^\* y_i\, x_i^\top x \;+\; b^\*.$$
-
 For prediction, you can throw away every non-SV training point. That is the model's defining sparsity.
 
 ```python
@@ -146,10 +140,10 @@ for i in clf.support_:
 ### 2.1 Slack variables and the $C$ knob
 
 Real data overlap. We let each point misbehave by a non-negative amount $\xi_i$:
-
-$$\min_{w, b, \xi}\; \tfrac{1}{2}\lVert w \rVert^2 \;+\; C \sum_i \xi_i
-\quad \text{s.t.} \quad y_i(w^\top x_i + b) \ge 1 - \xi_i,\; \xi_i \ge 0.$$
-
+$$
+\min_{w, b, \xi}\; \tfrac{1}{2}\lVert w \rVert^2 \;+\; C \sum_i \xi_i
+\quad \text{s.t.} \quad y_i(w^\top x_i + b) \ge 1 - \xi_i,\; \xi_i \ge 0.
+$$
 Reading $\xi_i$:
 
 - $\xi_i = 0$: outside the margin, classified correctly.
@@ -163,10 +157,10 @@ $C > 0$ trades two evils. Big $C$ punishes slack heavily, narrows the margin and
 ### 2.2 Dual: the box constraint
 
 Repeat the Lagrangian recipe, this time with multipliers $\alpha_i \ge 0$ for the margin constraints and $\mu_i \ge 0$ for $\xi_i \ge 0$. Setting $\partial_\xi L = 0$ gives $\alpha_i + \mu_i = C$, hence $0 \le \alpha_i \le C$. The dual:
-
-$$\boxed{\;\max_{\alpha}\; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j
-\quad \text{s.t.} \quad 0 \le \alpha_i \le C, \;\; \sum_i \alpha_i y_i = 0.\;}$$
-
+$$
+\boxed{\;\max_{\alpha}\; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j
+\quad \text{s.t.} \quad 0 \le \alpha_i \le C, \;\; \sum_i \alpha_i y_i = 0.\;}
+$$
 Only difference from hard margin: an upper bound $\alpha_i \le C$. The KKT conditions now define **three regimes**:
 
 | Regime | Conditions | Interpretation |
@@ -182,9 +176,7 @@ The bias is recovered from any boundary support vector: $b^\* = y_i - \sum_j \al
 ### 2.3 Hinge loss view
 
 Eliminate $\xi_i$ from the primal by noting that the optimal slack is $\xi_i^\* = \max(0,\, 1 - y_i(w^\top x_i + b))$. Substituting:
-
 $$\min_{w, b}\; \tfrac{1}{2}\lVert w \rVert^2 + C \sum_i \max\bigl(0,\, 1 - y_i(w^\top x_i + b)\bigr).$$
-
 The right-hand sum is the **hinge loss**. So soft-margin SVM is exactly *L2-regularised empirical risk minimisation with hinge loss*. This view makes SVM look like every other linear classifier you know — only the loss function differs.
 
 ![Surrogate losses on the margin axis: hinge upper-bounds 0/1 loss and is convex; squared loss penalises confident-correct examples](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig5_loss_comparison.png)
@@ -200,13 +192,9 @@ The hinge has a kink at $m = 1$ and is exactly zero beyond, which is what create
 ### 3.1 The kernel trick
 
 Map inputs to some feature space $\phi: \mathbb{R}^d \to \mathcal{H}$. Run linear SVM in $\mathcal{H}$. The dual objective becomes
-
 $$W(\alpha) \;=\; \sum_i \alpha_i \;-\; \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j \;\phi(x_i)^\top \phi(x_j).$$
-
 We never used $\phi$ outside an inner product. Define a **kernel** as that inner product:
-
 $$K(x, z) \;=\; \phi(x)^\top \phi(z).$$
-
 Anywhere $x_i^\top x_j$ appeared in the dual or in the prediction, write $K(x_i, x_j)$. We never construct $\phi$, never store features, never even need $\dim \mathcal{H}$ to be finite.
 
 ![The kernel trick: rings that no line can separate become flat-plane separable in $(x_1, x_2, x_1^2 + x_2^2)$](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig3_kernel_trick_3d.png)
@@ -229,9 +217,7 @@ The lifted picture shows *why* this works. The inner two-class data on the left 
 ### 3.3 Mercer's condition
 
 **Theorem.** A symmetric function $K(x, z)$ corresponds to some inner product $\phi(x)^\top \phi(z)$ in a Hilbert space if and only if for every finite point set $\{x_i\}_{i=1}^N$, the kernel matrix $\mathbf{K}_{ij} = K(x_i, x_j)$ is positive semi-definite, i.e.
-
 $$\sum_{i, j} c_i c_j\, K(x_i, x_j) \;\ge\; 0 \quad \text{for all } c \in \mathbb{R}^N.$$
-
 This is what licenses the trick: PSD kernels *are* inner products, by construction of the reproducing-kernel Hilbert space (RKHS).
 
 **Useful closure rules.** If $K_1$ and $K_2$ are kernels, so are: $K_1 + K_2$, $\lambda K_1$ ($\lambda \ge 0$), $K_1 \cdot K_2$, $f(x) K_1(x, z) f(z)$, polynomials of $K_1$ with non-negative coefficients, and $\exp(K_1)$. RBF arises from these closure rules applied to the linear kernel.
@@ -268,34 +254,31 @@ A naive coordinate-descent strategy (fix all but one $\alpha_i$ and optimise) is
 ### 4.2 The two-variable sub-problem
 
 Pick indices $1, 2$ and freeze the others. The equality constraint reduces to
-
 $$\alpha_1 y_1 + \alpha_2 y_2 \;=\; -\sum_{i \ge 3} \alpha_i y_i \;=:\; \zeta \quad (\text{constant}).$$
-
 So $\alpha_1$ is determined by $\alpha_2$, and the dual objective collapses to a one-variable quadratic in $\alpha_2$. Differentiating and setting to zero gives the **unconstrained update**
-
 $$\alpha_2^{\text{new, unc}} \;=\; \alpha_2^{\text{old}} \;+\; \frac{y_2(E_1 - E_2)}{\eta},$$
-
 where
-
-$$E_i \;=\; f(x_i) - y_i, \qquad
-\eta \;=\; K(x_1, x_1) + K(x_2, x_2) - 2K(x_1, x_2) \;\ge\; 0.$$
+$$
+E_i \;=\; f(x_i) - y_i, \qquad
+\eta \;=\; K(x_1, x_1) + K(x_2, x_2) - 2K(x_1, x_2) \;\ge\; 0.
+$$
 
 $\eta$ is the squared distance $\lVert \phi(x_1) - \phi(x_2) \rVert^2$ in feature space, hence non-negative.
 
 ### 4.3 Clipping to $[L, H]$
 
 The pair must respect $0 \le \alpha_1, \alpha_2 \le C$ *and* the equality constraint. Combining them restricts $\alpha_2$ to an interval $[L, H]$ that depends on the sign agreement of the two labels:
-
-$$\begin{cases}
+$$
+\begin{cases}
 y_1 \neq y_2: & L = \max(0,\, \alpha_2^{\text{old}} - \alpha_1^{\text{old}}), \quad H = \min(C,\, C + \alpha_2^{\text{old}} - \alpha_1^{\text{old}}). \\[2pt]
 y_1 = y_2: & L = \max(0,\, \alpha_1^{\text{old}} + \alpha_2^{\text{old}} - C), \quad H = \min(C,\, \alpha_1^{\text{old}} + \alpha_2^{\text{old}}).
-\end{cases}$$
-
+\end{cases}
+$$
 Clip and back-substitute:
-
-$$\alpha_2^{\text{new}} \;=\; \operatorname{clip}(\alpha_2^{\text{new, unc}},\, L,\, H), \qquad
-\alpha_1^{\text{new}} \;=\; \alpha_1^{\text{old}} + y_1 y_2\,(\alpha_2^{\text{old}} - \alpha_2^{\text{new}}).$$
-
+$$
+\alpha_2^{\text{new}} \;=\; \operatorname{clip}(\alpha_2^{\text{new, unc}},\, L,\, H), \qquad
+\alpha_1^{\text{new}} \;=\; \alpha_1^{\text{old}} + y_1 y_2\,(\alpha_2^{\text{old}} - \alpha_2^{\text{new}}).
+$$
 ![One step of SMO in the $(\alpha_1, \alpha_2)$ plane: the feasibility line, the box $[0,C]^2$, the unconstrained optimum and the clipped result](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig7_smo_step.png)
 
 ### 4.4 Heuristics and convergence
@@ -325,9 +308,7 @@ Each step strictly improves the dual objective unless the chosen pair is already
 **Problem.** Hyperplane $w = (3, 4)^\top$, $b = -1$. Point $x_0 = (1, 1)^\top$ with label $y = +1$. Compute the geometric margin.
 
 **Solution.**
-
 $$\gamma = \frac{y\,(w^\top x_0 + b)}{\lVert w \rVert} = \frac{1 \cdot (3 + 4 - 1)}{\sqrt{9 + 16}} = \frac{6}{5} = 1.2.$$
-
 ```python
 import numpy as np
 w, b, x, y = np.array([3, 4]), -1, np.array([1, 1]), 1
@@ -339,9 +320,7 @@ print(y * (w @ x + b) / np.linalg.norm(w))   # 1.2
 **Problem.** Show that if $K_1, K_2$ are valid kernels, so is $K = K_1 + K_2$.
 
 **Solution.** For any finite $\{x_i\}$ and any $c \in \mathbb{R}^N$,
-
 $$\sum_{i, j} c_i c_j K(x_i, x_j) = \sum_{i, j} c_i c_j K_1(x_i, x_j) + \sum_{i, j} c_i c_j K_2(x_i, x_j) \ge 0,$$
-
 since both terms are $\ge 0$ by Mercer applied to $K_1$ and $K_2$. Hence $K$ is PSD and therefore a valid kernel.
 
 ### Exercise 3 — Reading $C$ from the SV count

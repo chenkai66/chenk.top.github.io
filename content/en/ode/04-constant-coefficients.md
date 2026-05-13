@@ -43,9 +43,7 @@ translationKey: "ode-4"
 ## 1. Why the Laplace transform exists
 
 Consider an RC circuit driven by a voltage source:
-
 $$RC\,V_c'(t) + V_c(t) = V_s(t), \qquad V_c(0) = V_0.$$
-
 If $V_s$ is a constant, you can solve this with an integrating factor in two lines. But the moment $V_s$ becomes a switched-on step, a brief impulse, a ramp, or some piecewise waveform from a real signal generator, the elementary methods grow tedious. You end up with a forest of integration constants, side-condition matching, and case analysis.
 
 The Laplace transform offers a single workflow that handles all of these:
@@ -64,9 +62,7 @@ The bookkeeping disappears, leaving a clean separation: *who* drives the system 
 ## 2. Definition and the core transform table
 
 ### 2.1 The forward transform
-
 $$F(s) = \mathcal{L}\{f(t)\} = \int_0^\infty f(t)\,e^{-st}\,dt.$$
-
 **Intuition.** Think of $e^{-st}$ as a probe that, for each complex frequency $s$, asks: *how much of $f$ survives if I weight it by an exponential that decays at rate $\operatorname{Re}(s)$?* When $s$ is large and positive, the probe sees only the behaviour of $f$ near $t = 0$. When $\operatorname{Re}(s)$ is small, it sees the long-term tail. The full function $F(s)$ is the answer at every $s$ at once — a fingerprint of $f$.
 
 ### 2.2 A working transform table
@@ -88,13 +84,9 @@ This is enough to invert nearly every problem in the chapter.
 ### 2.3 Two derivations from the definition
 
 **$\mathcal{L}\{1\}$.** Direct integration:
-
 $$\int_0^\infty e^{-st}\,dt = \left[-\frac{1}{s}\,e^{-st}\right]_0^\infty = \frac{1}{s}, \qquad \operatorname{Re}(s) > 0.$$
-
 **$\mathcal{L}\{e^{at}\}$.** Combine the exponentials before integrating:
-
 $$\int_0^\infty e^{at}\,e^{-st}\,dt = \int_0^\infty e^{-(s-a)t}\,dt = \frac{1}{s-a}, \qquad \operatorname{Re}(s) > a.$$
-
 The same trick — fold $e^{at}$ into the kernel — is what makes the *frequency-shift* property below trivially obvious.
 
 ---
@@ -102,43 +94,29 @@ The same trick — fold $e^{at}$ into the kernel — is what makes the *frequenc
 ## 3. The properties that do all the work
 
 ### 3.1 Linearity
-
 $$\mathcal{L}\{a f + b g\} = a F(s) + b G(s).$$
-
 ### 3.2 Differentiation — the key to the whole subject
-
 $$\mathcal{L}\{f'(t)\} = sF(s) - f(0),$$$$\mathcal{L}\{f''(t)\} = s^2 F(s) - s f(0) - f'(0),$$$$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - s^{n-1} f(0) - \cdots - f^{(n-1)}(0).$$
-
 **Why this matters.** Differentiation in $t$ becomes multiplication by $s$, and the initial conditions appear *as part of the formula*, not as side constraints to be matched later. An $n$-th order linear ODE turns into an $n$-th degree polynomial equation in $s$ that already knows about $y(0), y'(0), \dots$.
 
 The proof is one integration by parts:
-
 $$\int_0^\infty f'(t)\,e^{-st}\,dt = \left[f(t)\,e^{-st}\right]_0^\infty + s\int_0^\infty f(t)\,e^{-st}\,dt = sF(s) - f(0),$$
-
 provided $f(t)\,e^{-st}\to 0$ at infinity, which is the meaning of the region of convergence.
 
 ### 3.3 Frequency shift
-
 $$\mathcal{L}\{e^{at}f(t)\} = F(s-a).$$
-
 Multiplying by $e^{at}$ in the time domain shifts the entire transform by $a$. This is why every "damped" entry in the table is just an undamped entry with $s\to s-a$.
 
 ### 3.4 Time shift (delay)
-
 $$\mathcal{L}\{f(t-a)\,u(t-a)\} = e^{-as}F(s), \qquad a > 0.$$
-
 A delay in time becomes a multiplicative phase $e^{-as}$ in the $s$-domain. Use the gate $u(t-a)$ to make sure you are transforming the *delayed-and-truncated* signal, not the original.
 
 ### 3.5 Convolution
-
 $$\mathcal{L}\{(f * g)(t)\} = F(s)\,G(s), \qquad (f * g)(t) = \int_0^t f(\tau)\,g(t-\tau)\,d\tau.$$
-
 In the time domain, the response of an LTI system to an input is a convolution; in the $s$-domain it is just a product. This is the algebraic statement that makes block diagrams work.
 
 ### 3.6 Final value theorem
-
 $$\lim_{t\to\infty} f(t) = \lim_{s\to 0} sF(s),$$
-
 provided the limit exists and all poles of $sF(s)$ lie in the open left half-plane. Use it to read steady-state values straight off $Y(s)$, without inverting.
 
 ---
@@ -150,21 +128,13 @@ provided the limit exists and all poles of $sF(s)$ lie in the open left half-pla
 Solve $y' + 2y = e^{-t}$, $y(0) = 1$.
 
 **Transform.** Apply $\mathcal{L}$ to both sides. Using the differentiation property,
-
 $$sY(s) - 1 + 2Y(s) = \frac{1}{s+1}.$$
-
 **Solve algebraically.** Group and divide:
-
 $$(s+2)Y(s) = 1 + \frac{1}{s+1}, \qquad Y(s) = \frac{1}{s+2} + \frac{1}{(s+1)(s+2)}.$$
-
 **Partial fractions.** Decompose $\dfrac{1}{(s+1)(s+2)} = \dfrac{1}{s+1} - \dfrac{1}{s+2}$, so
-
 $$Y(s) = \frac{1}{s+2} + \frac{1}{s+1} - \frac{1}{s+2} = \frac{1}{s+1}.$$
-
 **Invert.** Read $\mathcal{L}^{-1}\{1/(s+1)\} = e^{-t}$ from the table.
-
 $$\boxed{\; y(t) = e^{-t}.\;}$$
-
 **Verify.** $y' + 2y = -e^{-t} + 2e^{-t} = e^{-t}$, and $y(0) = 1$. Done.
 
 ### 4.2 Second-order with resonance
@@ -172,13 +142,9 @@ $$\boxed{\; y(t) = e^{-t}.\;}$$
 Solve $y'' + \omega_0^2\,y = \cos\omega_0 t$, with $y(0) = y'(0) = 0$.
 
 **Transform.** Using $\mathcal{L}\{y''\} = s^2 Y - sy(0) - y'(0)$ and $\mathcal{L}\{\cos\omega_0 t\} = s/(s^2+\omega_0^2)$,
-
 $$s^2 Y + \omega_0^2 Y = \frac{s}{s^2 + \omega_0^2}, \qquad Y(s) = \frac{s}{(s^2 + \omega_0^2)^2}.$$
-
 **Invert.** This is a tabulated inverse,
-
 $$y(t) = \frac{t}{2\omega_0}\,\sin\omega_0 t.$$
-
 The crucial feature is the explicit factor of $t$. Algebraically, it comes from the **repeated** pole pair at $s = \pm j\omega_0$: a higher-multiplicity pole produces a polynomial-times-sinusoid in time. Physically, it means the amplitude grows without bound — this is **resonance**.
 
 ![On-resonance forcing produces linear growth; off-resonance forcing produces a bounded beat pattern.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/fig5_resonance_buildup.png)
@@ -191,23 +157,17 @@ The crucial feature is the explicit factor of $t$. Algebraically, it comes from 
 Once you have $Y(s)$ as a rational function, almost all of the inversion work is splitting it into a sum of pieces that match table entries.
 
 ### 5.1 Distinct real poles
-
 $$\frac{P(s)}{(s-a)(s-b)} = \frac{A}{s-a} + \frac{B}{s-b}.$$
-
 Use the **cover-up rule**: $A$ equals $P(s)/(s-b)$ evaluated at $s = a$. (Geometrically, you "cover" the $(s-a)$ factor and plug in the pole.)
 
 ### 5.2 Repeated poles
-
 $$\frac{P(s)}{(s-a)^3} = \frac{A_1}{s-a} + \frac{A_2}{(s-a)^2} + \frac{A_3}{(s-a)^3}.$$
-
 Each multiplicity-$k$ pole produces a term of the form $t^{k-1}\,e^{at}/(k-1)!$ in the time domain.
 
 ### 5.3 Complex conjugate poles
 
 For an irreducible quadratic factor, complete the square:
-
 $$\frac{B s + C}{(s-\alpha)^2 + \beta^2}\;\xrightarrow{\;\mathcal{L}^{-1}\;}\; e^{\alpha t}\big(B \cos\beta t + D \sin\beta t\big),$$
-
 where $D = (C + \alpha B)/\beta$ after rewriting the numerator as $B(s-\alpha) + (C + \alpha B)$.
 
 ![Inverse-Laplace as a sum of simple modes: split the rational F(s) into table-lookup pieces, then add the time-domain components.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/fig3_partial_fractions.png)
@@ -222,15 +182,12 @@ where $D = (C + \alpha B)/\beta$ after rewriting the numerator as $B(s-\alpha) +
 ### 6.1 Definition
 
 For a linear time-invariant (LTI) system relating input $u(t)$ to output $y(t)$, define
-
 $$H(s) \;=\; \frac{Y(s)}{U(s)}\quad\text{at zero initial conditions.}$$
 
 $H(s)$ is the **transfer function**. It depends only on the system, not on what you feed in or how it started.
 
 **Example — RC low-pass filter.** From $RC\,V_c' + V_c = V_s$ with $V_c(0) = 0$,
-
 $$H(s) = \frac{1}{RCs + 1} = \frac{1}{\tau s + 1}, \qquad \tau = RC.$$
-
 A single real pole at $s = -1/\tau$.
 
 ### 6.2 Poles, zeros, and stability
@@ -270,9 +227,7 @@ Once you know $h(t)$, the response to *any* input is the convolution $y(t) = (h 
 Substituting $s = j\omega$ in $H(s)$ gives the **frequency response** $H(j\omega)$. The magnitude $|H(j\omega)|$ tells you how much each sinusoidal frequency is amplified; the phase $\arg H(j\omega)$ tells you how much it is delayed. Plotted on a log–log scale, these are the **Bode plots**.
 
 For the canonical second-order system
-
 $$H(s) = \frac{\omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2},$$
-
 the damping ratio $\zeta$ controls everything. With $\zeta < 1$ the poles are complex and the step response overshoots and rings; with $\zeta = 1$ they coalesce into a double real pole at $-\omega_n$ and the response rises as fast as it can without overshoot; with $\zeta > 1$ the poles split apart on the real axis and the response is sluggish.
 
 ![Step response and Bode plots for under-, critically, and over-damped second-order systems.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/fig4_transfer_function.png)
@@ -302,13 +257,9 @@ plt.tight_layout()
 ## 8. PID control: each term fixes what the others cannot
 
 The PID controller is the workhorse of industrial control. It produces an actuation $u(t)$ from the tracking error $e(t) = r(t) - y(t)$:
-
 $$u(t) = K_p\,e(t) + K_i\!\int_0^t e(\tau)\,d\tau + K_d\,\frac{de}{dt}.$$
-
 In the $s$-domain,
-
 $$C(s) = K_p + \frac{K_i}{s} + K_d\,s.$$
-
 Each term covers a specific failure mode of the others.
 
 | Term | What it does | Strength | Failure mode |
@@ -318,9 +269,7 @@ Each term covers a specific failure mode of the others.
 | **D** (derivative) | Predicts where the error is going | Damps overshoot | Amplifies measurement noise |
 
 Closing the loop with the PID controller around a plant $G(s)$ produces
-
 $$T(s) = \frac{C(s)\,G(s)}{1 + C(s)\,G(s)}.$$
-
 Tuning $K_p, K_i, K_d$ moves the closed-loop poles around the $s$-plane. The art is to push them deep into the left half-plane (for stability and speed) without making the imaginary parts too large (which would cause ringing).
 
 ![Closed-loop step responses with P-only, PI, and tuned PID controllers driving a lightly damped second-order plant.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/fig6_pid_control.png)

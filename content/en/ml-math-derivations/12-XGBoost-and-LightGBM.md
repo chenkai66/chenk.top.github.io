@@ -58,59 +58,41 @@ After one tree the fit is a coarse step function and residuals are huge; after a
 ### Regularised objective
 
 Plain GBDT minimises empirical loss only. XGBoost adds a tree-complexity term so that the optimiser knows what a "good" tree looks like *as a function*:
-
 $$\mathcal{L}^{(t)} \;=\; \sum_{i=1}^N L\bigl(y_i,\; \hat y_i^{(t-1)} + f_t(\mathbf{x}_i)\bigr) \;+\; \Omega(f_t),$$
-
 where $\hat y_i^{(t-1)}$ is the prediction from the first $t-1$ rounds, $f_t$ is the new tree to be fitted, and
-
 $$\Omega(f_t) \;=\; \gamma\, T \;+\; \tfrac{1}{2}\lambda \sum_{j=1}^T w_j^2.$$
-
 - $T$ is the number of leaves; the $\gamma T$ term is a **per-leaf cost** that acts as a soft pruning threshold.
 - $w_j$ is the prediction stored at leaf $j$; the $\tfrac{1}{2}\lambda \sum w_j^2$ term is **L2 shrinkage on leaf weights**.
 
 ### Second-order Taylor expansion
 
 Expand the per-sample loss around the current prediction $\hat y_i^{(t-1)}$:
-
-$$L\bigl(y_i,\; \hat y_i^{(t-1)} + f_t(\mathbf{x}_i)\bigr)
-\;\approx\; L\bigl(y_i,\; \hat y_i^{(t-1)}\bigr) + g_i\, f_t(\mathbf{x}_i) + \tfrac{1}{2}h_i\, f_t(\mathbf{x}_i)^2,$$
-
+$$
+L\bigl(y_i,\; \hat y_i^{(t-1)} + f_t(\mathbf{x}_i)\bigr)
+\;\approx\; L\bigl(y_i,\; \hat y_i^{(t-1)}\bigr) + g_i\, f_t(\mathbf{x}_i) + \tfrac{1}{2}h_i\, f_t(\mathbf{x}_i)^2,
+$$
 with the gradient and Hessian
-
 $$g_i \;=\; \partial L / \partial \hat y_i^{(t-1)}, \qquad h_i \;=\; \partial^2 L / \partial (\hat y_i^{(t-1)})^2.$$
-
 Dropping the constant zeroth-order term, the surrogate objective for round $t$ is purely quadratic in $f_t$:
-
 $$\widetilde{\mathcal{L}}^{(t)} \;=\; \sum_{i=1}^N \Bigl[g_i\, f_t(\mathbf{x}_i) + \tfrac{1}{2}h_i\, f_t(\mathbf{x}_i)^2\Bigr] + \Omega(f_t).$$
-
 This is the single design choice that separates XGBoost from classic GBDT: the second derivative $h_i$ enters the objective, giving Newton-style curvature information *for free*.
 
 ### Optimal leaf weight and structure score
 
 Represent the tree by a leaf-assignment $q : \mathbb{R}^d \to \{1,\ldots,T\}$ and weights $\mathbf{w}$. Group samples by their leaf, $I_j = \{ i : q(\mathbf{x}_i) = j \}$, and let
-
 $$G_j = \sum_{i \in I_j} g_i, \qquad H_j = \sum_{i \in I_j} h_i.$$
-
 The objective decouples across leaves:
-
 $$\widetilde{\mathcal{L}}^{(t)} \;=\; \sum_{j=1}^T \Bigl[G_j\, w_j + \tfrac{1}{2}(H_j + \lambda)\, w_j^2\Bigr] + \gamma T.$$
-
 Each leaf is now an independent quadratic in $w_j$. Setting $\partial / \partial w_j = 0$:
-
 $$\boxed{\,w_j^{*} \;=\; -\frac{G_j}{H_j + \lambda}\,}$$
-
 Substituting back gives the **structure score** --- the best loss this tree shape can possibly achieve:
-
 $$\widetilde{\mathcal{L}}^{*}(q) \;=\; -\frac{1}{2}\sum_{j=1}^{T}\frac{G_j^2}{H_j + \lambda} \;+\; \gamma T.$$
-
 Lower is better. The score is a property of the *structure* $q$ alone --- weights are already optimised away. This converts tree learning into a structure search.
 
 ### Split gain
 
 When considering whether to split a leaf into a left ($I_L$) and right ($I_R$) child, the change in structure score is
-
 $$\boxed{\;\text{Gain} \;=\; \frac{1}{2}\!\left[\frac{G_L^2}{H_L+\lambda} + \frac{G_R^2}{H_R+\lambda} - \frac{(G_L+G_R)^2}{H_L+H_R+\lambda}\right] - \gamma\;}$$
-
 Two consequences worth pausing on:
 
 1. The bracket is the **drop in the structure-score sum**; it is always $\ge 0$ (Cauchy--Schwarz / variance reduction) before subtracting $\gamma$.
@@ -143,9 +125,7 @@ The left panel scans every distinct value ($N-1$ candidates). The right panel bu
 ### Histogram algorithm
 
 LightGBM discretises every feature into $K$ integer bins (default 255) once, before training. For each leaf and each feature it then builds a histogram of $(G_b, H_b)$:
-
 $$G_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} g_i, \qquad H_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} h_i.$$
-
 Per-feature complexity collapses from $O(N)$ to $O(K)$ for both memory and split search:
 
 | Aspect | Exact (XGBoost) | Histogram (LightGBM) |
@@ -175,9 +155,7 @@ GOSS does this in three steps with constants $a, b \in (0, 1)$:
 3. When computing $G_L, H_L, G_R, H_R$, weight every sample in $B$ by $\dfrac{1-a}{b}$ to undo the subsampling.
 
 The effective gain estimator becomes
-
 $$\widetilde{\text{Gain}} \;=\; \frac{1}{2}\!\left[\frac{(G_L^A + \tfrac{1-a}{b}G_L^B)^2}{H_L^A + \tfrac{1-a}{b}H_L^B + \lambda} + \frac{(G_R^A + \tfrac{1-a}{b}G_R^B)^2}{H_R^A + \tfrac{1-a}{b}H_R^B + \lambda} - \cdots \right].$$
-
 The LightGBM paper proves that the variance introduced by this subsampling is $O(1/\sqrt{n_l})$ for a leaf with $n_l$ samples --- it shrinks faster than the natural sampling noise of the tree itself.
 
 ![GOSS keeps the informative tail and reweights the rest](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig3_goss.png)
@@ -191,9 +169,7 @@ High-dimensional sparse features (one-hot category dummies, bag-of-words, click 
 Concretely, EFB constructs a *conflict graph*: features are nodes, and an edge between $f_i$ and $f_j$ is weighted by the number of rows where they are *both* non-zero. Bundling features with no edges between them is a graph-colouring problem, solved greedily: visit features in descending degree order and place each one in the first existing bundle that contains no conflicting neighbour.
 
 Once a bundle $\{f_{i_1}, f_{i_2}, \ldots\}$ is chosen, its members are merged into one column $\tilde f$ via integer offsets so their bins remain disjoint:
-
 $$\tilde f_n \;=\; \begin{cases} \text{bin}(x_{n, i_k}) + o_k & \text{if } x_{n, i_k} \neq 0 \\ 0 & \text{otherwise} \end{cases}, \qquad o_k = \sum_{r < k} K_{i_r}.$$
-
 ![EFB merges sparse exclusive features into one bundle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig4_efb.png)
 
 Panel A shows a near-exclusive sparse block (think: 6 one-hot dummies). Panel B's red edges mark features that violate exclusivity; nodes are coloured by the bundle the greedy colourer assigned. Panel C shows the merged column: each original feature occupies a disjoint slice of the bin space, so the histogram for $\tilde f$ recovers exactly the per-feature statistics --- but now there is *one* feature instead of three or four.
@@ -385,9 +361,7 @@ For squared loss $L = \tfrac{1}{2}(y - \hat y)^2$ with $y = 5$ and $\hat y = 3$:
 
 **Exercise 2 — split gain.**
 A leaf has $G = -2$, $H = 10$. A candidate split sends $G_L = -1.5, H_L = 6$ left and $G_R = -0.5, H_R = 4$ right. With $\lambda = 1, \gamma = 0.5$:
-
 $$\text{Gain} = \tfrac{1}{2}\!\left[\tfrac{2.25}{7} + \tfrac{0.25}{5} - \tfrac{4}{11}\right] - 0.5 \approx -0.50.$$
-
 The structural improvement does not pay for $\gamma$ --- skip the split. Increasing $\gamma$ tightens the threshold; decreasing $\lambda$ relaxes it.
 
 **Exercise 3 — GOSS sample budget.**

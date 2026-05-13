@@ -41,15 +41,11 @@ How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of
 ## The Full Fine-Tuning Problem
 
 Full fine-tuning updates every parameter $\boldsymbol{\theta}$:
-
 $$\boldsymbol{\theta}^* = \arg\min_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta})$$
-
 For GPT-3 (175B params) this means roughly **700 GB of FP32 weights**, plus gradients, plus optimiser states — and one full copy per task. Even after the model fits, the per-task storage and serving cost is brutal: 100 customers means 100 copies of a 700 GB checkpoint.
 
 PEFT replaces this with an additive decomposition:
-
 $$\boldsymbol{\theta}^* = \boldsymbol{\theta}_0 + \Delta\boldsymbol{\theta}, \qquad |\Delta\boldsymbol{\theta}| \ll |\boldsymbol{\theta}_0|.$$
-
 Freeze $\boldsymbol{\theta}_0$, ship a tiny task-specific $\Delta\boldsymbol{\theta}$. The pretrained weights become a shared backbone, and adaptation becomes a thin delta you can store, version and route per request.
 
 | Method | Trainable params | Storage saving |
@@ -73,10 +69,12 @@ Freeze $\boldsymbol{\theta}_0$, ship a tiny task-specific $\Delta\boldsymbol{\th
 ### The Idea in One Equation
 
 LoRA assumes the *update* $\Delta\mathbf{W}$ has low rank, so it parameterises it as a product of two thin matrices:
-$$\mathbf{W}' = \mathbf{W}_0 + \frac{\alpha}{r}\, \mathbf{B}\mathbf{A},
+$$
+\mathbf{W}' = \mathbf{W}_0 + \frac{\alpha}{r}\, \mathbf{B}\mathbf{A},
 \qquad \mathbf{A} \in \mathbb{R}^{r \times d_{\text{in}}},\;
         \mathbf{B} \in \mathbb{R}^{d_{\text{out}} \times r},\;
-        r \ll \min(d_{\text{in}}, d_{\text{out}}).$$
+        r \ll \min(d_{\text{in}}, d_{\text{out}}).
+        $$
 The frozen $\mathbf{W}_0$ has $d_{\text{in}} d_{\text{out}}$ parameters; the trainable update has only $r(d_{\text{in}} + d_{\text{out}})$. For $d=4096, r=8$ that is **0.39%** of the original.
 
 ### Why Low Rank Works
@@ -111,9 +109,11 @@ On a 175B base, the difference between Full FT and LoRA $r=8$ is roughly **five 
 ![Adapter placement in a Transformer block](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/fig3_adapter_placement.png)
 
 Houlsby et al. (2019) take a different route: instead of editing existing weights, **insert** small trainable modules into each Transformer block. Each adapter is a residual bottleneck:
-$$\text{Adapter}(\mathbf{h}) = \mathbf{h} + \mathbf{W}_{\text{up}}\, \sigma(\mathbf{W}_{\text{down}}\, \mathbf{h}),
+$$
+\text{Adapter}(\mathbf{h}) = \mathbf{h} + \mathbf{W}_{\text{up}}\, \sigma(\mathbf{W}_{\text{down}}\, \mathbf{h}),
 \qquad \mathbf{W}_{\text{down}} \in \mathbb{R}^{m \times d},\;
-        \mathbf{W}_{\text{up}} \in \mathbb{R}^{d \times m},\; m \ll d.$$
+        \mathbf{W}_{\text{up}} \in \mathbb{R}^{d \times m},\; m \ll d.
+        $$
 The "down then up" projection is the same trick as in LoRA, but applied as an additional layer rather than a delta to an existing one. Initialising $\mathbf{W}_{\text{up}}$ near zero again makes the block start as identity.
 
 **Adapter vs LoRA** — a useful side-by-side:
@@ -134,9 +134,7 @@ Two follow-ups are worth knowing. *Pfeiffer adapters* keep only one adapter per 
 ![Prefix-Tuning: learnable virtual tokens at every layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/fig4_prefix_tuning.png)
 
 Prefix-Tuning (Li & Liang, 2021) does not touch any model weights at all. Instead it prepends $m$ **learnable "virtual tokens"** to the key/value sequence at every layer:
-
 $$\bigl[\mathbf{P}_1, \ldots, \mathbf{P}_m,\; \mathbf{x}_1, \ldots, \mathbf{x}_n\bigr] \to \text{Transformer}.$$
-
 Only the prefix matrices are trained, $m \times d \times L \times 2$ parameters in total (key + value at $L$ layers). Two practical notes:
 
 - Direct optimisation of the prefix is unstable. The original paper trains the prefix through a small MLP, then drops the MLP at inference.
@@ -286,7 +284,8 @@ LoRA dominated 2022–2024 because the recipe was simple and the numbers held up
 
 ### DoRA: decompose the weight, then LoRA the direction
 
-DoRA (Liu et al., 2024) starts from the observation that any weight matrix can be written as a magnitude-times-direction pair: $W = m \cdot \frac{V}{\|V\|}$. Full fine-tuning updates *both*; LoRA implicitly conflates them. DoRA freezes the magnitude $m$ as a learnable scalar per output channel and applies low-rank updates to $V$ alone:$$W' = (m + \Delta m) \cdot \frac{W + \Delta V}{\|W + \Delta V\|}.$$
+DoRA (Liu et al., 2024) starts from the observation that any weight matrix can be written as a magnitude-times-direction pair: $W = m \cdot \frac{V}{\|V\|}$. Full fine-tuning updates *both*; LoRA implicitly conflates them. DoRA freezes the magnitude $m$ as a learnable scalar per output channel and applies low-rank updates to $V$ alone:$$W' = (m + \Delta m) \cdot \frac{W + \Delta V}{\|W + \Delta V\|}.
+$$
 On Llama-2-7B reasoning benchmarks DoRA closes about half the gap between LoRA and full fine-tuning at the same parameter count. Cost: a single extra `Linear(out_dim, 1)` per adapted matrix and a normalisation in the forward pass — negligible at inference because you can fuse it back into $W$ once training stops.
 
 ### OFT: orthogonal fine-tuning that preserves geometry

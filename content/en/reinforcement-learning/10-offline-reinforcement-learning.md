@@ -51,9 +51,7 @@ In **online** RL the policy and the data distribution are coupled. As soon as th
 ### 1.1 Distributional Shift
 
 Let $\pi_\beta$ be the behavior policy that produced the dataset $\mathcal{D}=\{(s_i,a_i,r_i,s_i')\}_{i=1}^N$, and let $\pi_\theta$ be the policy we are learning. The state-action visitation distributions are usually different,
-
 $$d_{\pi_\theta}(s,a)\neq d_{\pi_\beta}(s,a).$$
-
 This becomes a problem the moment $\pi_\theta$ wants to take an action $a$ for which $\pi_\beta(a\mid s)\approx 0$. The Q-network has *never* seen a target for that action; whatever value it returns is pure extrapolation from a neural net that has been trained to fit a completely different region of the input space.
 
 ### 1.2 Extrapolation Error and the Death Spiral
@@ -61,9 +59,7 @@ This becomes a problem the moment $\pi_\theta$ wants to take an action $a$ for w
 ![Distribution shift produces over-optimistic Q-values on OOD actions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/fig2_distribution_shift.png)
 
 The Q-learning update is
-
 $$Q(s,a)\leftarrow r + \gamma\,\max_{a'}Q(s',a').$$
-
 The `max` operator selects the *most optimistic* extrapolation. If $Q$ overestimates even one out-of-distribution action by $\epsilon$, that bias becomes the bootstrap target for the previous timestep, then for the timestep before that, and so on. Empirically this **diverges within a few thousand gradient steps** on standard benchmarks ([Fujimoto et al., 2019](https://arxiv.org/abs/1812.02900)). The right panel of the figure above is the picture to keep in mind: the green curve is reality, the red curve is what the network believes, and the policy walks straight off the cliff at the OOD peak.
 
 The three families of algorithms below all attack this problem; they differ in *what they constrain*.
@@ -90,15 +86,11 @@ CQL ([Kumar et al., 2020](https://arxiv.org/abs/2006.04779)) is the most widely 
 ### 2.2 The Objective
 
 On top of the usual TD loss $\mathcal{L}_{\mathrm{TD}}$, CQL adds
-
 $$\mathcal{L}_{\mathrm{CQL}} \;=\; \alpha\,\Big[\,\underbrace{\log\sum_{a}\exp Q(s,a)}_{\text{push down everywhere}} \;-\; \underbrace{\mathbb{E}_{a\sim\mathcal{D}}\big[Q(s,a)\big]}_{\text{push up on data}}\Big] \;+\; \mathcal{L}_{\mathrm{TD}}.$$
-
 The `logsumexp` is a soft maximum over actions: minimizing it pulls *all* Q-values down. Subtracting the expectation under the data distribution lets the in-data actions float back up. Out-of-distribution actions only feel the downward force.
 
 The headline theorem ([Kumar et al., 2020, Thm 3.2](https://arxiv.org/abs/2006.04779)) is that for sufficiently large $\alpha$,
-
 $$\hat{Q}^{\pi}(s,a)\;\leq\;Q^{\pi}(s,a)\quad\forall (s,a).$$
-
 A pessimistic estimate is exactly what we need: any policy that maximizes a *lower bound* on the true value cannot pick a catastrophic action because it has no incentive to.
 
 ![CQL: the regularizer pushes OOD Q-values down so argmax stays inside the data](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/fig4_cql_penalty.png)
@@ -270,21 +262,15 @@ The clever part is that the perturbation network is trained *to maximize Q*. So 
 IQL ([Kostrikov et al., 2022](https://arxiv.org/abs/2110.06169)) is the most elegant of the three. Its observation: every offline-RL pathology comes from the $\max_{a'}Q(s',a')$ in the Bellman target, because that is where OOD actions enter. So... just don't use it.
 
 IQL learns a separate state-value function $V(s)$ via **expectile regression** on the in-data actions only:
-
 $$\mathcal{L}_V \;=\; \mathbb{E}_{(s,a)\sim\mathcal{D}}\big[L_2^{\tau}\big(Q(s,a)-V(s)\big)\big],\qquad L_2^{\tau}(u)=\big|\tau-\mathbb{1}(u<0)\big|\,u^{2}.$$
-
 When $\tau=0.5$ this is plain MSE and $V$ learns the *mean*. When $\tau\to 1$ it asymmetrically penalizes under-estimates much more than over-estimates, so $V$ converges to the *upper expectile* of $Q(s,a)$ over the actions seen in the data.
 
 ![IQL: the expectile loss is asymmetric; pushing tau toward 1 pulls V toward max_a Q without ever leaving the data](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/fig5_iql_expectile.png)
 
 For $\tau\approx 0.7$-$0.9$, $V(s)$ is an excellent proxy for $\max_a Q(s,a)$ — *and it was computed from in-data actions only*. The Bellman target then becomes
-
 $$y \;=\; r + \gamma\,V(s'),$$
-
 with no `max`, no policy sampling, no extrapolation. The actor is recovered via **advantage-weighted regression**:
-
 $$\mathcal{L}_\pi \;=\; -\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\exp\big(\beta\,(Q(s,a)-V(s))\big)\,\log\pi_\theta(a\mid s)\big].$$
-
 IQL has the smallest moving-parts surface of any modern offline-RL algorithm, and it consistently tops the D4RL leaderboard on AntMaze and Adroit — environments where good data is sparse and bootstrapping with `max` is most dangerous.
 
 ---

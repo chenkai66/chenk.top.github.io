@@ -62,9 +62,7 @@ A chaotic system satisfies **all four** of:
 ## The Lorenz System
 
 Lorenz simplified atmospheric convection into three coupled ODEs:
-
 $$\dot x = \sigma(y - x), \quad \dot y = x(\rho - z) - y, \quad \dot z = xy - \beta z$$
-
 - $x$: convection intensity
 - $y$: horizontal temperature difference
 - $z$: vertical temperature deviation
@@ -124,7 +122,9 @@ A single trajectory tells you the worst case. An *ensemble* tells you the distri
 
 ## Lyapunov Exponents: Quantifying Chaos
 
-The **largest Lyapunov exponent** measures the average exponential rate of separation:$$\lambda_1 \;=\; \lim_{t\to\infty}\frac{1}{t}\,\ln\frac{|\delta\mathbf{x}(t)|}{|\delta\mathbf{x}(0)|}.$$
+The **largest Lyapunov exponent** measures the average exponential rate of separation:$$\lambda_1 \;=\; \lim_{t\to\infty}\frac{1}{t}\,\ln\frac{|\delta\mathbf{x}(t)|}{|\delta\mathbf{x}(0)|}.
+$$
+
 | Sign | Behaviour |
 |---|---|
 | $\lambda_1 > 0$ | **Chaos** (exponential divergence) |
@@ -137,9 +137,7 @@ For Lorenz at the canonical parameters, the spectrum is approximately $\{0.91,\ 
 *Left: numerically estimated $\lambda_1(\rho)$ — crosses zero into chaos around $\rho \approx 25$. Green dots are regular dynamics, red dots are chaotic. Right: full spectrum at $\rho = 28$. The sum is negative ($\sum \lambda_i = -13.66$), confirming volume contraction onto a fractal of Kaplan-Yorke dimension $\approx 2.062$.*
 
 ### Kaplan-Yorke (Lyapunov) dimension
-
 $$D_{KY} \;=\; 2 + \frac{\lambda_1 + \lambda_2}{|\lambda_3|} \;\approx\; 2 + \frac{0.91}{14.57} \;\approx\; 2.062.$$
-
 The attractor is *almost* a surface, but with infinitely many fractal layers stacked together.
 
 ---
@@ -170,9 +168,7 @@ The route from order to chaos shows up classically in the **logistic map** $x_{n
 ## Other Chaotic Systems
 
 ### Rossler system
-
 $$\dot x = -y - z, \qquad \dot y = x + a y, \qquad \dot z = b + z(x - c)$$
-
 With $a = b = 0.2,\ c = 5.7$ this gives a "folded ribbon" attractor that exposes the *stretching-and-folding* mechanism more cleanly than Lorenz.
 
 ### Double pendulum

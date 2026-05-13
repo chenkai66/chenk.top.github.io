@@ -44,15 +44,11 @@ This chapter is a deliberate tour through five canonical applications. Each one 
 ## 1. The Nonlinear Pendulum — the Hello World of nonlinear ODEs
 
 A point mass on a rigid rod of length $L$ in gravity $g$ obeys
-
 $$\ddot\theta + \frac{g}{L}\sin\theta = 0.$$
-
 For small $\theta$ we replace $\sin\theta \approx \theta$ and recover simple harmonic motion with period $T_0 = 2\pi\sqrt{L/g}$ — *independent* of amplitude. That isochronism is the small-angle miracle Galileo exploited.
 
 The full equation is *not* isochronous: the period depends on amplitude. The exact answer involves the complete elliptic integral of the first kind:
-
 $$T(\theta_0) = \frac{4}{\omega_0}\,K\!\bigl(\sin(\theta_0/2)\bigr), \qquad \omega_0 = \sqrt{g/L}.$$
-
 ![Pendulum: large-angle vs linearised time histories, period vs amplitude, and the global phase portrait with libration / separatrix / rotation regions.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/fig1_pendulum_motion.png)
 *Top-left: from the same large initial angle ($\theta_0 = 1.5$ rad), the linear and full equations agree for one half-period and then drift apart — the linear model loses *phase* first, then amplitude. Top-right: $T(\theta_0)$ from numerical integration; below 0.5 rad the small-angle constant period is essentially perfect, but as $\theta_0 \to \pi$ the period diverges because the unstable equilibrium has been reached. Bottom: the full phase portrait $(\theta, \dot\theta)$. Inside the separatrix (red) the pendulum swings (libration); outside it goes over the top (rotation). The pattern repeats $2\pi$-periodically along $\theta$.*
 
@@ -83,15 +79,11 @@ for v0 in [1.5, 4.0, 6.5, 7.5]:    # last two go over the top
 ![Ordinary Differential Equations (17): Physics and Engineering Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/illustration_2.png)
 
 A series resistor-inductor-capacitor loop driven by voltage $V(t)$ obeys, for charge $q$ on the capacitor:
-
 $$L\ddot q + R\dot q + \frac{1}{C}\,q = V(t).$$
-
 Compare with the mass-spring-damper $m\ddot x + c\dot x + kx = F(t)$. They are the *same* equation — so all our intuition about damping ratio and natural frequency carries over directly.
 
 Define $\omega_n = 1/\sqrt{LC}$ (natural frequency) and $\zeta = (R/2)\sqrt{C/L}$ (damping ratio). The transfer function from $V$ to $q$ is
-
 $$H(s) = \frac{1/L}{s^2 + (R/L)\,s + 1/(LC)},$$
-
 with the same three step-response regimes from Chapter 16: underdamped, critical, overdamped.
 
 ![Series RLC circuit: schematic, step responses, frequency response, and the Q-factor / bandwidth trade-off.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/fig2_rlc_circuit.png)
@@ -104,9 +96,7 @@ The peak amplitude of an undamped oscillator driven at resonance grows linearly 
 ## 3. Planetary Orbits — where Newton meets Kepler
 
 Newton's gravitational law gives, in two dimensions,
-
 $$\ddot{\mathbf r} \;=\; -\frac{GM\,\mathbf r}{|\mathbf r|^3}.$$
-
 The conserved quantities are total energy $E = \tfrac12|\mathbf v|^2 - GM/|\mathbf r|$ and angular momentum $\mathbf L = \mathbf r \times \mathbf v$. Together they prove Kepler's three laws — without solving the ODE in closed form.
 
 ```python
@@ -137,13 +127,13 @@ for v0 in [1.0, 0.85, 0.55]:
 ## 4. Structural Vibration — buildings, bridges, tuned mass dampers
 
 A multi-storey building is, to first approximation, a chain of masses connected by stiff springs (the columns). For two storeys with masses $m_1, m_2$ and stiffnesses $k_1, k_2$:
-
-$$M\ddot{\mathbf x} + C\dot{\mathbf x} + K\mathbf x = \mathbf F(t),
+$$
+M\ddot{\mathbf x} + C\dot{\mathbf x} + K\mathbf x = \mathbf F(t),
 \qquad
 M = \begin{pmatrix} m_1 & 0 \\ 0 & m_2 \end{pmatrix},
 \;
-K = \begin{pmatrix} k_1+k_2 & -k_2 \\ -k_2 & k_2 \end{pmatrix}.$$
-
+K = \begin{pmatrix} k_1+k_2 & -k_2 \\ -k_2 & k_2 \end{pmatrix}.
+$$
 **Modal analysis.** The eigenproblem $K\,\boldsymbol\phi = \omega^2 M\,\boldsymbol\phi$ yields natural frequencies $\omega_i$ and mode shapes $\boldsymbol\phi_i$. Decomposing $\mathbf x = \sum_i q_i(t)\,\boldsymbol\phi_i$ decouples the equations into $n$ independent SDOF oscillators — the multi-degree-of-freedom problem becomes $n$ scalar problems.
 
 ![2-DOF building: mode shapes, free vibration, frequency response, resonant growth, and the effect of a tuned mass damper.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/fig4_structural_vibration.png)
@@ -158,9 +148,7 @@ The pattern is universal: whether the system is a violin string, a wing, a turbi
 ### Steady pipe flow (Poiseuille)
 
 For incompressible viscous flow in a long circular pipe, the steady Navier-Stokes equations reduce to an ODE in the radial coordinate:
-
 $$\frac{1}{r}\frac{d}{dr}\!\Bigl(r\,\frac{du}{dr}\Bigr) = -\frac{1}{\mu}\frac{dp}{dz},$$
-
 with boundary conditions $u(R) = 0$ (no-slip) and $u(0)$ finite. The solution is the parabolic profile $u(r) = u_{\max}(1 - r^2/R^2)$, and total volume flow $Q = \pi R^4 \Delta p / (8\mu L)$ — the Hagen-Poiseuille law. The fourth-power dependence on radius explains why arteries dilate to drop blood pressure: doubling radius eightfold-improves flow at the same pressure gradient.
 
 ### Reynolds number and the laminar-turbulent transition
@@ -174,9 +162,7 @@ Behind a bluff body in steady flow, alternating vortices shed at frequency $f$ s
 ### Settling sphere (Stokes drag)
 
 A small dense sphere falling in viscous fluid satisfies
-
 $$m\dot v = (\rho_p - \rho_f) V g - 6\pi\mu R\,v,$$
-
 a first-order linear ODE with terminal velocity $v_t = (\rho_p - \rho_f) V g / (6\pi\mu R)$ and time constant $\tau = m/(6\pi\mu R)$.
 
 ![Fluid mechanics composite: parabolic Poiseuille profile, laminar/turbulent flow-rate scaling, Strouhal number across Re regimes, and Stokes settling.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/fig5_fluid_flow.png)
@@ -200,7 +186,7 @@ Master this loop and a vast portion of physics and engineering is unified.
 |---|---|---|
 | Mechanics | $\ddot\theta + (g/L)\sin\theta = 0$ | — |
 | Electrical | $L\ddot q + R\dot q + q/C = V(t)$ | $Q = (1/R)\sqrt{L/C}$ |
-| Orbital | $\ddot{\mathbf r} = -GM\mathbf r/|\mathbf r|^3$ | eccentricity $e$ |
+| Orbital | $\ddot{\mathbf r} = -GM\mathbf r/\lvert \mathbf r\rvert^3$ | eccentricity $e$ |
 | Structural | $M\ddot x + C\dot x + Kx = F$ | modal damping $\zeta_i$ |
 | Fluid (pipe) | $\nabla \cdot \boldsymbol\sigma = 0$ -> radial ODE | Re |
 | Fluid (wake) | — (empirical) | St $\approx 0.21$ |
@@ -220,15 +206,11 @@ The next chapter, the finale, looks beyond this classical menu: Neural ODEs, sto
 A symbolic equation is mathematics; an equation with units attached is engineering. Design a series RLC bandpass with centre frequency $f_0 = 1\,\text{kHz}$ and bandwidth $\Delta f = 100\,\text{Hz}$.
 
 **Step 1: spec to coefficients.**
-
 $$ \omega_0 = 2\pi f_0 = 6283\ \text{rad/s},\quad Q = \frac{f_0}{\Delta f} = 10. $$
-
 For $L\ddot q + R\dot q + q/C = V(t)$, $\omega_0 = 1/\sqrt{LC}$ and $Q = \omega_0 L/R$.
 
 **Step 2: pick components.** Three unknowns, three constraints — but we have only two physical specs, so fix $L = 10\,\text{mH}$ (a stocked inductor value).
-
 $$ C = \frac{1}{\omega_0^2 L} = \frac{1}{(6283)^2 \cdot 0.01} \approx 2.53\,\mu\text{F}. $$$$ R = \frac{\omega_0 L}{Q} = \frac{6283 \cdot 0.01}{10} = 6.28\,\Omega. $$
-
 **Step 3: check units.** $\omega_0^2 L C = (\text{s}^{-2})(\text{H})(\text{F}) = (\text{s}^{-2})(\text{V}\cdot\text{s/A})(\text{A}\cdot\text{s/V}) = 1$. Dimensionless, correct.
 
 **Step 4: physical reading.** $Q = 10$ means after the source disconnects, oscillation amplitude takes about $Q/\pi \approx 3.2$ periods to fall by $1/e$ — about 3.2 ms of ringing. In math language, damping ratio $\zeta = 1/(2Q) = 0.05$, deep underdamped.
@@ -256,9 +238,7 @@ Lesson: **a parameter going to zero rarely simplifies the numerics**. This is th
 Section 6 made the case that one ODE skeleton describes five phenomena. In real engineering, when a new system shows up the equation may not be derivable. You go from data to equation.
 
 **SINDy (Sparse Identification of Nonlinear Dynamics).** Brunton et al. (2016). Given a time series $\{x(t_i)\}$, numerically differentiate to get $\dot x$. Build a feature library $\Theta(x) = [1, x, x^2, \sin x, \dots]$ and solve
-
 $$ \dot x = \Theta(x)\,\xi,\quad \min \|\dot x - \Theta(x)\xi\|_2^2 + \lambda \|\xi\|_1. $$
-
 Most components of $\xi$ collapse to zero; the survivors give you the equation form. With `pysindy`, 1000 samples of Lorenz data recover the three RHS terms with their coefficients $\sigma, \rho, \beta$ — provided the library includes the correct basis.
 
 **Koopman operator methods.** Lift a nonlinear map $x_{t+1} = F(x_t)$ to a linear operator $\mathcal{K}\,g = g \circ F$ on observable functions. Combined with DMD (Dynamic Mode Decomposition), you read off dominant oscillation modes and decay constants. Schmid's *DMD with Control* has been applied to PIV data of Kármán vortex streets.

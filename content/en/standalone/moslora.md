@@ -36,14 +36,14 @@ LoRA is the default tool for adapting a frozen base model: cheap, stable, mergea
 ## 1. LoRA recap: why low-rank updates work, and where they don't
 
 Take any linear projection $W \in \mathbb{R}^{d_{out}\times d_{in}}$ inside a Transformer (Q/K/V/O or up/down/gate of the MLP). LoRA freezes $W_0$ and learns the update $\Delta W$ in factorised form:
-
-$$W \;=\; W_0 \;+\; \Delta W,
+$$
+W \;=\; W_0 \;+\; \Delta W,
 \qquad
 \Delta W \;=\; \frac{\alpha}{r}\, B\, A,
 \qquad
 B \in \mathbb{R}^{d_{out}\times r},\;
-A \in \mathbb{R}^{r\times d_{in}}.$$
-
+A \in \mathbb{R}^{r\times d_{in}}.
+$$
 With $r \ll \min(d_{in}, d_{out})$ the trainable cost drops from $d_{in}\!\cdot\!d_{out}$ to $r(d_{in}+d_{out})$, often $0.1\%$--$1\%$ of full FT. Initialising $B = 0$ ensures the adapted model starts identical to the base, and at inference the merged $W_0 + \frac{\alpha}{r} B A$ has the same shape as $W_0$ — so deployment is exactly as cheap as the base model.
 
 ![LoRA recap: one frozen base + one low-rank update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig1_lora_recap.png)
@@ -69,13 +69,13 @@ What you actually want is **structured capacity**: a small set of distinct rank-
 ## 3. Core idea of MoSLoRA: mixture of subspaces, written as $B\, W\, A$
 
 MoSLoRA factorises the update through a learnable **mixer**:
-
-$$\Delta W
+$$
+\Delta W
 \;=\;
 \sum_{i=1}^{k} W_{ii}\, B_i\, A_i
 \;=\;
-B\, W\, A,$$
-
+B\, W\, A,
+$$
 where $A \in \mathbb{R}^{kr\times d_{in}}$ stacks the $k$ "down" maps, $B \in \mathbb{R}^{d_{out}\times kr}$ stacks the $k$ "up" maps, and $W \in \mathbb{R}^{kr\times kr}$ is the **mixer**. The diagonal of $W$ recovers a sum of independent LoRAs; the off-diagonal entries let the model **mix** subspaces — the up-projection of subspace $i$ can be paired with the down-projection of subspace $j$. This is the source of the extra expressivity.
 
 ![MoSLoRA architecture: k low-rank subspaces with a learnable mixer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig2_subspace_mixing.png)

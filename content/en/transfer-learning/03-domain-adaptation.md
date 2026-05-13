@@ -50,24 +50,18 @@ A **domain** is a feature space $\mathcal{X}$ with a marginal distribution $P(X)
 The figure is the entire game in one picture: before adaptation, the source-trained boundary slices through empty target space; after adaptation, both domains share a feature manifold and the same boundary works.
 
 ### 1.1 Covariate shift — the input distribution moved
-
 $$P_S(X) \neq P_T(X), \qquad P_S(Y \mid X) = P_T(Y \mid X)$$
-
 The *labelling rule* is unchanged; only what you observe is different. Examples:
 
 - A spam filter trained on 2020 email and deployed in 2026: topics drift, but spam is still spam.
 - CT scans from a Siemens scanner used to evaluate scans from a GE machine: the imaging characteristics differ, but radiologists score them the same way.
 
 **Standard fix — importance weighting.** Reweight every source sample by the density ratio $w(x) = P_T(x) / P_S(x)$. The weighted source ERM then estimates the *target* risk:
-
 $$\mathbb{E}_{P_T}[\ell(f(X), Y)] = \mathbb{E}_{P_S}\!\left[\frac{P_T(X)}{P_S(X)}\,\ell(f(X), Y)\right].$$
-
 Estimating densities in high dimensions is hopeless, so practitioners estimate the *ratio* directly with KLIEP, uLSIF, or a probabilistic classifier (Bayes-optimal classifier between source and target gives you the ratio for free).
 
 ### 1.2 Label shift — the prevalence moved
-
 $$P_S(Y) \neq P_T(Y), \qquad P_S(X \mid Y) = P_T(X \mid Y)$$
-
 Class-conditional appearance is unchanged; only base rates differ. Examples:
 
 - An ICU model deployed in outpatient clinics where disease prevalence is much lower.
@@ -76,9 +70,7 @@ Class-conditional appearance is unchanged; only base rates differ. Examples:
 **Standard fix.** Estimate the target prior $P_T(Y)$ by EM on unlabelled target data (BBSE / RLLS work well), then rescale each source-trained probability by $P_T(y) / P_S(y)$ and renormalise.
 
 ### 1.3 Concept shift — the rule itself moved
-
 $$P_S(Y \mid X) \neq P_T(Y \mid X)$$
-
 This is the hard case. "Sick" is positive in a music review and negative in a product review even though the *word* is identical. With no target labels at all, no method can untangle this — concept shift demands at least a few labelled target examples (the *semi-supervised* DA setting).
 
 ---
@@ -86,7 +78,6 @@ This is the hard case. "Sick" is positive in a music review and negative in a pr
 ## 2. Theory: the Ben-David Bound
 
 Why is adaptation possible at all? The classical answer is the bound of Ben-David et al. (2010). For any hypothesis $h$ in class $\mathcal{H}$:
-
 $$
 \epsilon_T(h) \;\leq\; \epsilon_S(h) \;+\; \tfrac{1}{2}\, d_{\mathcal{H}\Delta\mathcal{H}}(\mathcal{D}_S, \mathcal{D}_T) \;+\; \lambda^{*}.
 $$
@@ -119,7 +110,6 @@ Two takeaways:
 | **Domain discriminator** $G_d$ | classifies $f \to$ source/target | both domains |
 
 The objective is a minimax:
-
 $$
 \min_{G_f,\, G_y}\; \max_{G_d}\quad \mathcal{L}_y(G_y \circ G_f) \;-\; \lambda\, \mathcal{L}_d(G_d \circ G_f).
 $$
@@ -129,12 +119,10 @@ $G_d$ wants to tell the domains apart; $G_f$ wants to fool $G_d$ while still let
 ### 3.2 The Gradient Reversal Layer (GRL)
 
 A naive minimax requires alternating optimisation, which is fragile (think early GANs). DANN's contribution is to make the whole system trainable in **one** backward pass via the Gradient Reversal Layer:
-
 $$
 \text{forward: }\; \text{GRL}(x) = x, \qquad
 \text{backward: }\; \frac{\partial\,\text{GRL}}{\partial x} = -\lambda\, I.
 $$
-
 GRL sits on the path from features to the domain head. During backprop, the discriminator's gradient flips sign before reaching $G_f$, so the same `loss.backward()` call:
 
 - updates $G_y$ to classify better (normal gradients),
@@ -146,9 +134,7 @@ No alternating training, no separate optimisers, no manual freezing.
 ### 3.3 The adversarial weight schedule
 
 DANN does not turn $\lambda$ on at full strength — that destroys early learning. Instead it follows a sigmoid ramp:
-
 $$\lambda_p = \frac{2}{1 + \exp(-\gamma p)} - 1, \qquad \gamma \approx 10,$$
-
 where $p \in [0, 1]$ is training progress. Early on ($\lambda \approx 0$), the network just learns good source features. As training proceeds ($\lambda \to 1$), domain alignment kicks in. Skipping this schedule is the single most common cause of "DANN trains but does worse than source-only".
 
 ---
@@ -162,27 +148,19 @@ Adversarial alignment is powerful but unstable. The non-adversarial alternative 
 ### 4.1 The idea
 
 A kernel $k(x, y) = \langle \phi(x), \phi(y) \rangle_{\mathcal{H}}$ implicitly maps each sample into a (possibly infinite-dimensional) RKHS $\mathcal{H}$. The **kernel mean embedding** of a distribution $P$ is the average feature
-
 $$\mu_P = \mathbb{E}_{X \sim P}[\phi(X)] \;\in\; \mathcal{H}.$$
-
 For *characteristic* kernels (the Gaussian RBF being the canonical example), the map $P \mapsto \mu_P$ is injective — two distributions are equal iff their kernel means are. So we can measure how different two distributions are by the RKHS distance of their means:
-
 $$\text{MMD}^2(P_S, P_T) = \|\mu_{P_S} - \mu_{P_T}\|_{\mathcal{H}}^2.$$
-
 The figure shows this graphically: even when raw histograms overlap a little, the kernel mean embeddings make the gap explicit, and the shaded area is exactly $\text{MMD}^2$.
 
 ### 4.2 The estimator you actually compute
 
 Because the embedding is implicit, expand the squared norm and the inner product becomes a kernel evaluation:
-
 $$
 \widehat{\text{MMD}}^2 = \frac{1}{n_s^2}\sum_{i,j} k(x_i^s, x_j^s) + \frac{1}{n_t^2}\sum_{i,j} k(x_i^t, x_j^t) - \frac{2}{n_s n_t}\sum_{i,j} k(x_i^s, x_j^t).
 $$
-
 This is differentiable in the features, so you can drop it straight into a deep network as an extra loss:
-
 $$\mathcal{L} = \mathcal{L}_{\text{task}} + \lambda \cdot \widehat{\text{MMD}}^2\!\big(G_f(X_S),\, G_f(X_T)\big).$$
-
 This is **DAN / DDC** (Long et al., 2015; Tzeng et al., 2014).
 
 ### 4.3 Practical tips
@@ -212,9 +190,7 @@ If matching means is good, matching means and *covariances* is often better. **C
 ![CORAL covariance alignment](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig4_coral_covariance.png)
 
 Let $C_S$ and $C_T$ be the feature covariance matrices in source and target. The CORAL loss is
-
 $$\mathcal{L}_{\text{CORAL}} = \frac{1}{4 d^2} \|C_S - C_T\|_F^2.$$
-
 **Intuition — whitening + recolouring.** Multiplying the source features by $C_S^{-1/2} C_T^{1/2}$ first removes the source's covariance fingerprint, then paints on the target's. Deep CORAL just adds the loss above to a deep network and lets the gradients do the same job implicitly.
 
 CORAL is dirt cheap (one matrix and one Frobenius norm per batch), entirely deterministic, and surprisingly competitive on mild shifts. It is a great baseline before reaching for MMD or DANN.

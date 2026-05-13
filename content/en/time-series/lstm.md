@@ -34,10 +34,9 @@ translationKey: "time-series-2"
 ## 1. The Problem LSTM Solves
 
 A vanilla RNN updates its hidden state recursively:
-
 $$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$
-
-When you backpropagate the loss at step $T$ to a much earlier step $k$, the gradient picks up a long product of Jacobians:$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$
+When you backpropagate the loss at step $T$ to a much earlier step $k$, the gradient picks up a long product of Jacobians:$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.
+$$
 Two regimes appear:
 
 - If the dominant singular value of $W_h$ is below 1, the product **vanishes** exponentially and the network cannot learn from anything more than ~10 steps in the past.
@@ -48,7 +47,6 @@ LSTM (Hochreiter & Schmidhuber, 1997) replaces the single recurrent state with *
 ## 2. Anatomy of an LSTM Cell
 
 Inside one cell, four gating units share the same input $[h_{t-1}, x_t]$ and emit three sigmoid gates plus one $\tanh$ candidate:
-
 $$
 \begin{aligned}
 f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) && \text{forget gate} \\
@@ -57,14 +55,11 @@ i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) && \text{input gate} \\
 o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) && \text{output gate}
 \end{aligned}
 $$
-
 These four signals combine into the cell-state update and the hidden output:
-
 $$
 C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad
 h_t = o_t \odot \tanh(C_t).
 $$
-
 The product $\odot$ is element-wise. **Read this in plain English**: erase the fraction $1 - f_t$ of old memory, write the fraction $i_t$ of fresh candidate, then look at the result through the lens $o_t$.
 
 ![LSTM cell architecture: three sigmoid gates plus a tanh candidate sit beneath a horizontal cell-state highway. The forget gate multiplies the incoming cell state, the input gate scales the candidate, and the output gate exposes a filtered view as the hidden state.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig1_lstm_cell.png)
@@ -79,7 +74,8 @@ The hidden state $h_t$ is what the rest of the network sees, but the **cell stat
 
 ### Gradient flow, made explicit
 
-Differentiating the cell update with respect to a much earlier cell state gives$$\frac{\partial C_t}{\partial C_{t-1}} = f_t,$$so the long-range gradient is a **product of forget gates**, not a product of $\tanh$ derivatives times a recurrent matrix:$$\frac{\partial C_T}{\partial C_k} = \prod_{t=k+1}^{T} f_t.$$
+Differentiating the cell update with respect to a much earlier cell state gives$$\frac{\partial C_t}{\partial C_{t-1}} = f_t,$$so the long-range gradient is a **product of forget gates**, not a product of $\tanh$ derivatives times a recurrent matrix:$$\frac{\partial C_T}{\partial C_k} = \prod_{t=k+1}^{T} f_t.
+$$
 Whenever the model wants to remember, it can learn to push $f_t$ close to 1 for the relevant coordinates, and the corresponding gradient stays close to 1 too. That is the entire trick.
 
 ## 3. A Minimal PyTorch Implementation
@@ -154,8 +150,8 @@ A useful hybrid is **seq2seq with teacher forcing**: an LSTM encoder reads the l
 
 ### Bidirectional LSTM
 
-A BiLSTM runs one LSTM forward and a second one backward, then concatenates the two hidden states at each step:$$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
-
+A BiLSTM runs one LSTM forward and a second one backward, then concatenates the two hidden states at each step:$$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].
+$$
 ![Bidirectional LSTM: forward purple chain reads left-to-right, backward amber chain reads right-to-left, and the output at each step is the concatenation of both hidden states.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig5_bilstm.png)
 *Bidirectional LSTM — combines past and future context per step.*
 

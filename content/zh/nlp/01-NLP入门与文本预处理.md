@@ -47,25 +47,19 @@ polished_by_qwen_max: true
 ### 1.2 统计革命（1990 年代）
 
 真正的转折点在于一个简单却深刻的洞见：不用再费力编写规则，直接从数据中估计概率就行。最经典的例子是 bigram 模型：
-
 $$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$
-
 就是这么一个公式，撑起了 IBM 的统计机器翻译、第一代真正可用的语音识别系统，以及概率词性标注器。隐马尔可夫模型（HMM）将这套思想扩展到隐状态，概率上下文无关文法（PCFG）则进一步覆盖了句法分析。虽然特征仍然需要人工设计，但规则已经能够自动学习了。
 
 ### 1.3 深度学习时代（2013 — 2016）
 
 2013 年，Mikolov 等人提出的 Word2Vec 展示了一个令人惊叹的现象：训练一个小型神经网络预测上下文词，得到的词向量竟然自带“算术”能力——
-
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
-
 从此，词不再是孤立的标识符，而是住进了一个连续空间，相似度可以用余弦距离轻松计算。随后，RNN 和 LSTM 登场，让模型能够沿着序列传递上下文，终于学会了利用顺序信息，而不仅仅是依赖词袋统计。
 
 ### 1.4 Transformer 革命（2017 — 至今）
 
 2017 年，《Attention Is All You Need》用自注意力机制彻底取代了循环结构：
-
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
-
 这一改变带来了两个关键的工程优势。首先，序列各位置可以完全并行计算，训练规模取决于 GPU 内存，而不是序列长度。其次，任意两个 token 都能直接互相注意，长程依赖问题迎刃而解。BERT、GPT 以及今天的所有大模型，都是它的直系后代。
 
 | 时代         | 时间          | 核心思想           | 被什么瓶颈打破       |
@@ -312,9 +306,7 @@ for token in doc:
 停用词是指那些高频但语义信息较少的词汇，比如英文中的 `the`、`is`、`at`，或者中文里的“的”“了”“是”。这些词虽然常见，但在具体任务中往往贡献不大。去掉它们后，词汇表规模可以减少大约三分之一，同时让信息更加集中在真正有意义的内容词上。
 
 为什么少数几个词会占据主导地位？这背后的原因是 Zipf 定律：在自然语言中，一个词的出现频率大致与其排名成反比。
-
 $$f(\text{rank}) \propto \frac{1}{\text{rank}}$$
-
 ![Zipf 分布：头部由停用词主导，尾部是大量的低频词](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/01-NLP入门与文本预处理/fig5_zipf_distribution.png)
 
 排名前十的词，通常就能占到整个语料中 25% 到 30% 的 token。这就是分布的“头部”，主要由停用词构成。而“长尾”部分——那些成千上万只出现一两次的词——才是语义最丰富的区域，但也是模型最难处理的地方。正因如此，子词分词方法才显得尤为重要。
@@ -377,11 +369,9 @@ print(pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out()))
 ### 8.3 TF-IDF
 
 TF-IDF 给那些“在本文档中频繁、在整个语料中罕见”的词加权——这是个简单但有效的启发式规则：“对当前文档重要，但不是通用词”。
-
 $$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$
 
 $$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$
-
 其中 $N$ 是文档总数，$\text{df}(t)$ 是包含词 $t$ 的文档数。`+1` 是平滑项，确保某个词在所有文档中都出现（或都不出现）时 IDF 仍有定义。
 
 ![同一组玩具语料下，词袋计数与 TF-IDF 加权的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/01-NLP入门与文本预处理/fig3_bow_vs_tfidf.png)
@@ -424,9 +414,7 @@ tfidf = TfidfVectorizer(
 ## 9. 第六步——n-gram 语言模型
 
 在完成分词（tokenization）之后，下一步可以尝试建模这些词之间的前后关系。n-gram 模型的核心思想是将一个句子分解为一系列条件概率的连乘形式：
-
 $$P(w_1, \ldots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_{t-n+1}, \ldots, w_{t-1})$$
-
 简单来说，bigram 模型只考虑前一个词的上下文，trigram 则会看前两个词，依此类推。
 
 ![n-gram 的滑动窗口、bigram 公式，以及困惑度与稀疏性之间的权衡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/01-NLP入门与文本预处理/fig7_ngram_language_models.png)

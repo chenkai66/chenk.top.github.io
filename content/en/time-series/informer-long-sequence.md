@@ -42,9 +42,7 @@ Combined, the three changes deliver about a 6-10x speedup and 5-10% better MSE t
 ## Why long sequences kill the vanilla Transformer
 
 Self-attention computes, for each query $q_i$:
-
 $$\mathrm{Attn}(q_i, K, V) = \sum_{j=1}^{L} \mathrm{softmax}\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right) v_j.$$
-
 To do this for every query you need the full $L \times L$ score matrix. Three costs scale as $\mathcal{O}(L^2)$:
 
 - $L$ query-key dot products of dimension $d$: $L^2 d$ FLOPs.
@@ -77,23 +75,15 @@ Peaked queries can be approximated very efficiently by computing attention only 
 ### The KL-based sparsity measure
 
 A natural way to measure how peaked a distribution is to compare it to uniform via KL divergence. Let
-
 $$p(k_j \mid q_i) = \mathrm{softmax}_j\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right).$$
-
 Then
-
 $$\mathrm{KL}(q_i \,\|\, U) = \log L + \frac{1}{L}\sum_{j=1}^{L} \log p(k_j \mid q_i).$$
-
 After dropping constants and substituting the softmax, Zhou et al. show that
-
 $$\mathrm{KL}(q_i \,\|\, U) \;\propto\; \log\!\left(\sum_{j=1}^{L} e^{q_i^\top k_j / \sqrt{d}}\right) - \frac{1}{L}\sum_{j=1}^{L} \frac{q_i^\top k_j}{\sqrt{d}}.$$
-
 Call this quantity $M(q_i, K)$. High $M$ means peaked distribution — selective query, deserves full attention. Low $M$ means uniform — vague query, can be skipped.
 
 But computing $M$ exactly still requires the $L$ inner products, defeating the point. Informer's second trick is to approximate $M$ from a **random sample** of $u = c \log L$ keys (with $c$ a constant, typically 5):
-
 $$\bar{M}(q_i, K) \;=\; \max_{j \in \mathcal{S}} \frac{q_i^\top k_j}{\sqrt{d}} \;-\; \frac{1}{|\mathcal{S}|} \sum_{j \in \mathcal{S}} \frac{q_i^\top k_j}{\sqrt{d}}.$$
-
 The $\max$ here replaces the LogSumExp because under the concentration of measure that holds for high-dimensional Gaussian-like vectors, LogSumExp is dominated by its largest term. Empirically, $\bar{M}$ ranks queries almost identically to the exact $M$ at a fraction of the cost.
 
 ### What ProbSparse actually computes
@@ -197,9 +187,7 @@ A few subtleties:
 ## Encoder distilling: pyramidal sequence compression
 
 Even with ProbSparse, three encoder layers each operating on $L = 720$ are expensive. Informer adds a **distilling** operation between encoder layers that halves the sequence length:
-
 $$X_{\ell+1} = \mathrm{MaxPool}_{k=3, s=2}\!\Big(\mathrm{ELU}\big(\mathrm{Conv1d}_{k=3, s=2}(X_\ell)\big)\Big).$$
-
 The Conv1d with stride 2 acts as a learned downsampler; the MaxPool keeps the dominant value at each pair of adjacent positions; the ELU non-linearity in between gives the operator some expressivity beyond pure pooling.
 
 ![Encoder distilling pyramid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig3_encoder_distilling.png)
@@ -235,9 +223,7 @@ class DistillingLayer(nn.Module):
 A vanilla Transformer decoder generates the forecast autoregressively: predict $\hat{y}_1$, feed it back, predict $\hat{y}_2$, and so on. For a horizon of $H = 168$ that means 168 sequential decoder forward passes. Latency aside, this also makes errors compound: a mistake at step 5 is fed back as input for step 6.
 
 Informer's generative decoder takes a different approach. The decoder input is constructed as
-
 $$X_\text{dec} = \big[\, X_\text{token} \;;\; X_0 \,\big],$$
-
 where $X_\text{token}$ is the last `label_len` time steps of the encoder input (acting as a "prompt") and $X_0$ is `out_len` placeholder tokens (typically zero vectors of the right dimension). The decoder runs **once** over this entire $\text{label\_len} + \text{out\_len}$ sequence, and the last `out_len` outputs are the forecast.
 
 ![Autoregressive vs generative decoder](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig2_generative_decoder.png)

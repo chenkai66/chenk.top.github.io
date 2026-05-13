@@ -53,39 +53,27 @@ translationKey: "time-series-3"
 设输入为 $x_t \in \mathbb{R}^{d_{in}}$，上一时刻的隐藏状态为 $h_{t-1} \in \mathbb{R}^{h}$。GRU 通过以下四步计算下一隐藏状态 $h_t$。
 
 **(1) 更新门** —— “过去的信息要保留多少？”
-
 $$z_t = \sigma\!\left(W_z\,[h_{t-1},\, x_t] + b_z\right)$$
-
 这是一个 sigmoid 输出，取值在 $[0,1]$ 区间。当 $z_t \to 0$ 时，单元会**冻结**（完全保留 $h_{t-1}$）；当 $z_t \to 1$ 时，则**彻底刷新**，用新内容完全替换旧状态。
 
 **(2) 重置门** —— “生成候选状态时，该引入多少历史信息？”
-
 $$r_t = \sigma\!\left(W_r\,[h_{t-1},\, x_t] + b_r\right)$$
-
 这个门控制的是**候选状态的输入**，而非最终输出。若 $r_t \to 0$，相当于告诉模型：“在提出 $\tilde h_t$ 时，忽略历史信息。”
 
 **(3) 候选隐藏状态** —— 一个融合了重置后历史与当前输入的新提案：
-
 $$\tilde h_t = \tanh\!\left(W_h\,[\,r_t \odot h_{t-1},\; x_t\,] + b_h\right)$$
-
 其中逐元素乘积 $r_t \odot h_{t-1}$ 是重置门唯一发挥作用的地方。
 
 **(4) 线性插值** —— 最终输出是“旧状态”与“新提案”的凸组合：
-
 $$h_t = (1 - z_t)\odot h_{t-1} \;+\; z_t \odot \tilde h_t$$
-
 这最后一个公式是 GRU 的核心。它对 $h_{t-1}$ 是**线性的**，因此梯度 $\partial h_t / \partial h_{t-1}$ 中包含 $(1 - z_t)$ 这一项——一条不经过任何非线性的直接加性路径。这正是图 1 中所示的“梯度高速公路”。
 
 ### 为什么这能解决梯度消失问题？
 
 普通 RNN 的更新式为 $h_t = \tanh(W h_{t-1} + U x_t)$，其梯度为：
-
 $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}\!\left(1 - \tanh^2(\cdot)\right) W.$$
-
 经过 $T$ 步传播后，该梯度会被 $\|\,W\,\|^T$ 与一个小导数共同限制，呈指数衰减。而在 GRU 中：
-
 $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}(1 - z_t) \;+\; (\text{经 } \tilde h_t \text{ 的非线性项}).$$
-
 当模型**希望记住信息**（即学到 $z_t \approx 0$）时，雅可比矩阵近似为单位阵，梯度便能无衰减地回传数百步。
 
 ---
@@ -96,10 +84,10 @@ $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}(1 - z_t) \;+\; (\t
 ![GRU 与 LSTM 在不同隐藏层大小下的参数量对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig2_param_count_comparison.png)
 
 单层 GRU 包含三个权重块（$W_z$、$W_r$、$W_h$），每个形状为 $h \times (d_{in} + h)$，再加上偏置。而 LSTM 有四个权重块（遗忘门、输入门、候选、输出门）。具体计数如下：
-
-$$P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad
-P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).$$
-
+$$
+P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad
+P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).
+$$
 因此 $P_{\text{GRU}} = \tfrac{3}{4}\,P_{\text{LSTM}}$ —— **参数量正好少 25%**，且这一比例与网络宽度无关。
 *图 2. 这 25% 的节省源于结构设计，而非实验现象：GRU 有 3 组权重块，LSTM 有 4 组。当隐藏层大小为 256 时，GRU 节省约 7 万参数；512 时节省约 27 万。在嵌入式推理场景中，这往往直接决定模型能否部署。*
 

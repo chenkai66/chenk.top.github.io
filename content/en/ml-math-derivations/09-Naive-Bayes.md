@@ -45,9 +45,7 @@ Before we add the "naive" piece, we need to be honest about what an *optimal* pr
 ### 1.1 Bayes' Theorem, Reread as a Belief Update
 
 For a class label $c_k \in \{c_1, \dots, c_K\}$ and a feature vector $\mathbf{x} \in \mathbb{R}^d$:
-
 $$P(c_k \mid \mathbf{x}) \;=\; \frac{P(\mathbf{x} \mid c_k)\, P(c_k)}{P(\mathbf{x})}.$$
-
 Each term has a job:
 
 | Term | Name | What it answers |
@@ -62,14 +60,12 @@ Each term has a job:
 ### 1.2 The Bayes-Optimal Classifier
 
 Pick the class with the largest posterior:
-
-$$\hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k} P(c_k \mid \mathbf{x})
-\;=\; \arg\max_{c_k} P(\mathbf{x} \mid c_k)\, P(c_k),$$
-
+$$
+\hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k} P(c_k \mid \mathbf{x})
+\;=\; \arg\max_{c_k} P(\mathbf{x} \mid c_k)\, P(c_k),
+$$
 dropping $P(\mathbf{x})$ because it does not depend on $c_k$. This rule **minimises the 0-1 loss**: no classifier — not the deepest network, not the largest ensemble — can do better in expectation. The remaining error,
-
 $$R^\star(\mathbf{x}) \;=\; 1 - \max_k P(c_k \mid \mathbf{x}),$$
-
 is the **Bayes risk**, and the data-set-level $\mathbb{E}_{\mathbf{x}}[R^\star(\mathbf{x})]$ is the **Bayes error rate** — the irreducible noise floor of the problem itself.
 
 Every probabilistic classifier we will study is, in one way or another, an *approximation* of this rule under finite data.
@@ -103,9 +99,7 @@ Estimating $P(\mathbf{x} \mid c_k)$ for $\mathbf{x} \in \{0,1\}^d$ requires $2^d
 ### 2.2 The Conditional-Independence Assumption
 
 Naive Bayes cuts the Gordian knot by assuming that, *conditional on the class*, all features are independent:
-
 $$P(\mathbf{x} \mid c_k) \;=\; \prod_{j=1}^{d} P\!\left(x^{(j)} \mid c_k\right).$$
-
 Two readings of this:
 
 1. **Causal.** Treat the class as a hidden cause that produces each feature independently. Once you know the patient has the flu, fever and cough are no longer informative about each other.
@@ -120,13 +114,9 @@ The two densities can disagree dramatically, yet — as we will see in §5 — t
 ### 2.3 The Classification Rule
 
 Combining Bayes' theorem with conditional independence and dropping the constant $P(\mathbf{x})$:
-
 $$\hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k}\; P(c_k) \prod_{j=1}^{d} P\!\left(x^{(j)} \mid c_k\right).$$
-
 Multiplying $d$ small probabilities will underflow to $0$ for any non-trivial $d$. Always work in log-space:
-
 $$\boxed{\;\hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k} \left[\, \ln P(c_k) \;+\; \sum_{j=1}^{d} \ln P\!\left(x^{(j)} \mid c_k\right) \right].\;}$$
-
 This is the entire algorithm. Everything else — three "variants", smoothing, calibration — is just a discussion of how to estimate the per-feature conditionals $P(x^{(j)} \mid c_k)$.
 
 For a 2D toy problem with two Gaussian classes, the picture is concrete:
@@ -146,24 +136,20 @@ The right panel makes the soft transition explicit: along a slice through the da
 Given training data $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^{N}$ with $N_k$ samples in class $c_k$:
 
 **Class prior (MLE).** The fraction of training samples in each class:
-
 $$\hat{P}(c_k) \;=\; \frac{N_k}{N}.$$
-
 **Discrete features (MLE).** For a feature taking values in $\{v_1, \dots, v_{S_j}\}$:
-
-$$\hat{P}\!\left(x^{(j)} = v \mid c_k\right) \;=\;
-\frac{\#\{i : x_i^{(j)} = v \text{ and } y_i = c_k\}}{N_k}.$$
-
+$$
+\hat{P}\!\left(x^{(j)} = v \mid c_k\right) \;=\;
+\frac{\#\{i : x_i^{(j)} = v \text{ and } y_i = c_k\}}{N_k}.
+$$
 **Continuous features (Gaussian).** Fit one Gaussian per (feature, class):
-
 $$P\!\left(x^{(j)} \mid c_k\right) \;=\; \frac{1}{\sqrt{2\pi}\,\sigma_{jk}} \exp\!\left(-\frac{(x^{(j)} - \mu_{jk})^2}{2\sigma_{jk}^2}\right),$$
-
 with the standard estimators
-
-$$\hat{\mu}_{jk} \;=\; \frac{1}{N_k}\!\sum_{i:\, y_i=c_k}\! x_i^{(j)},
+$$
+\hat{\mu}_{jk} \;=\; \frac{1}{N_k}\!\sum_{i:\, y_i=c_k}\! x_i^{(j)},
 \qquad
-\hat{\sigma}_{jk}^2 \;=\; \frac{1}{N_k}\!\sum_{i:\, y_i=c_k}\! \bigl(x_i^{(j)} - \hat{\mu}_{jk}\bigr)^2.$$
-
+\hat{\sigma}_{jk}^2 \;=\; \frac{1}{N_k}\!\sum_{i:\, y_i=c_k}\! \bigl(x_i^{(j)} - \hat{\mu}_{jk}\bigr)^2.
+$$
 That is *all* the training. There is no iterative optimiser, no learning rate, no convergence check.
 
 ### 2.5 Laplace Smoothing — and Its Bayesian Soul
@@ -171,11 +157,11 @@ That is *all* the training. There is no iterative optimiser, no learning rate, n
 **The catastrophe of zero counts.** Suppose the word *excellent* never appears in your spam training set. Then $\hat{P}(\text{excellent} \mid \text{spam}) = 0$, and a *single* occurrence of *excellent* in a future email forces $P(\text{spam} \mid \mathbf{x}) = 0$ regardless of how spammy the other 199 words are. One missing word kills everything.
 
 **The fix.** Add a pseudocount $\alpha > 0$ to every cell:
-
-$$\hat{P}\!\left(x^{(j)} = v \mid c_k\right) \;=\; \frac{\#\{i : x_i^{(j)} = v,\, y_i=c_k\} + \alpha}{N_k + \alpha\, S_j},
+$$
+\hat{P}\!\left(x^{(j)} = v \mid c_k\right) \;=\; \frac{\#\{i : x_i^{(j)} = v,\, y_i=c_k\} + \alpha}{N_k + \alpha\, S_j},
 \qquad
-\hat{P}(c_k) \;=\; \frac{N_k + \alpha}{N + \alpha K}.$$
-
+\hat{P}(c_k) \;=\; \frac{N_k + \alpha}{N + \alpha K}.
+$$
 With $\alpha = 1$ this is **Laplace (add-one) smoothing**; smaller $\alpha$ is sometimes called Lidstone smoothing.
 
 **Why it works.** Place a symmetric Dirichlet prior $\mathrm{Dir}(\alpha, \dots, \alpha)$ on the multinomial $P(\cdot \mid c_k)$. The Dirichlet is conjugate to the multinomial, so the posterior is also Dirichlet, with parameters $\alpha + \text{counts}$. The MAP estimate of that posterior is exactly the smoothed formula above. Laplace smoothing is **MAP estimation under a uniform Dirichlet prior** — every category has been "seen" $\alpha$ times before any data arrives.
@@ -204,13 +190,9 @@ The classification rule never changes. Only the model for $P(x^{(j)} \mid c_k)$ 
 Use when features are non-negative integer counts: term frequencies, $n$-grams, hashed buckets.
 
 **Generative story.** Each document of class $c_k$ is a bag of words drawn i.i.d. from a vocabulary distribution $\boldsymbol{\theta}_k = (\theta_{1k}, \dots, \theta_{dk})$ with $\sum_j \theta_{jk} = 1$. The likelihood of word counts $\mathbf{x}$ is
-
 $$P(\mathbf{x} \mid c_k) \;\propto\; \prod_{j=1}^{d} \theta_{jk}^{x^{(j)}}.$$
-
 **Smoothed estimator.** Total occurrences of word $j$ in class $c_k$, smoothed by $\alpha$:
-
 $$\hat{\theta}_{jk} \;=\; \frac{\sum_{i:\, y_i=c_k} x_i^{(j)} + \alpha}{\sum_{j'=1}^{d}\sum_{i:\, y_i=c_k} x_i^{(j')} + \alpha d}.$$
-
 In words: the fraction of all word tokens in class-$c_k$ documents that happen to be word $j$.
 
 ### 3.2 Bernoulli Naive Bayes — for word presence
@@ -218,9 +200,7 @@ In words: the fraction of all word tokens in class-$c_k$ documents that happen t
 Use when features are binary: word *present* (1) or *absent* (0). Especially good for short texts.
 
 **Generative story.** For each word in the vocabulary, flip a coin with bias $p_{jk} = P(x^{(j)} = 1 \mid c_k)$:
-
 $$P(\mathbf{x} \mid c_k) \;=\; \prod_{j=1}^{d} p_{jk}^{x^{(j)}} (1 - p_{jk})^{1 - x^{(j)}}.$$
-
 **The crucial difference from Multinomial.** Bernoulli explicitly multiplies in $(1 - p_{jk})$ for every absent word. Absence is *evidence*. If "free" is missing from an email and "free" is normally present in 85% of spam, that absence is strong evidence *against* spam. Multinomial NB simply ignores absent words.
 
 **Rule of thumb.** Short, sparse documents (tweets, log lines, short queries): Bernoulli usually wins. Long documents (news, reviews): Multinomial is typically better because frequency carries real information.
@@ -230,9 +210,7 @@ $$P(\mathbf{x} \mid c_k) \;=\; \prod_{j=1}^{d} p_{jk}^{x^{(j)}} (1 - p_{jk})^{1 
 Use when features are real-valued and roughly unimodal per class: physical measurements, embeddings, sensor readings.
 
 **Generative story.** Each feature within each class is Gaussian:
-
 $$P(x^{(j)} \mid c_k) \;=\; \mathcal{N}\!\left(x^{(j)};\, \mu_{jk},\, \sigma_{jk}^2\right).$$
-
 The total per-class density is the product of $d$ univariate Gaussians — i.e. a multivariate Gaussian with **diagonal covariance**. This is exactly the picture in Figure 1: axis-aligned ellipses.
 
 A surprising fact: when the two classes have the same per-feature variances ($\sigma_{jk}^2 = \sigma_j^2$ for all $k$), the log-posterior ratio becomes linear in $\mathbf{x}$, and Gaussian NB reproduces the same boundary as **logistic regression** — but estimated generatively rather than discriminatively.
@@ -386,9 +364,7 @@ if __name__ == "__main__":
 **Problem.** Given $P(c_1) = 0.6$, $P(x_1=1 \mid c_1) = 0.8$, $P(x_2=1 \mid c_1) = 0.5$, compute $P(x_1=1, x_2=1 \mid c_1)$ under the Naive Bayes assumption.
 
 **Solution.** By conditional independence given $c_1$, joints factorise:
-
 $$P(x_1=1, x_2=1 \mid c_1) = P(x_1=1 \mid c_1)\, P(x_2=1 \mid c_1) = 0.8 \times 0.5 = 0.4.$$
-
 The prior $P(c_1)$ is irrelevant *inside the conditional* — it would only enter if we also wanted $P(x_1, x_2)$ unconditionally.
 
 ### Exercise 2 — Laplace smoothing in numbers
@@ -412,13 +388,9 @@ Notice how aggressively smoothing flattens the distribution when $\alpha V \gg N
 **Solution.**
 
 Multinomial uses counts:
-
 $$\ln L_{\mathrm{mult}} = 5\ln(0.05) + 3\ln(0.03) = 5(-2.996) + 3(-3.507) = -25.5.$$
-
 Bernoulli uses presence only:
-
 $$\ln L_{\mathrm{bern}} = \ln(0.7) + \ln(0.6) = -0.357 + (-0.511) = -0.87.$$
-
 These numbers are not directly comparable (different probabilistic objects), but the *shape* tells the story: Multinomial amplifies repeated occurrences linearly with count, while Bernoulli flattens 5 occurrences and 1 occurrence into the same evidence. For long documents that dynamic range matters; for tweets it usually does not.
 
 ### Exercise 4 — Gaussian NB parameters by hand
@@ -426,13 +398,15 @@ These numbers are not directly comparable (different probabilistic objects), but
 **Problem.** Class $+1$ contains three 2D points: $(1, 2), (2, 3), (3, 1)$. Compute the Gaussian NB parameters.
 
 **Solution.** Per-feature MLE means and variances:
+$$
+\hat\mu_1 = \tfrac{1+2+3}{3} = 2, \quad
+\hat\sigma_1^2 = \tfrac{(1{-}2)^2 + (2{-}2)^2 + (3{-}2)^2}{3} = \tfrac{2}{3},
+$$
 
-$$\hat\mu_1 = \tfrac{1+2+3}{3} = 2, \quad
-\hat\sigma_1^2 = \tfrac{(1{-}2)^2 + (2{-}2)^2 + (3{-}2)^2}{3} = \tfrac{2}{3},$$
-
-$$\hat\mu_2 = \tfrac{2+3+1}{3} = 2, \quad
-\hat\sigma_2^2 = \tfrac{(2{-}2)^2 + (3{-}2)^2 + (1{-}2)^2}{3} = \tfrac{2}{3}.$$
-
+$$
+\hat\mu_2 = \tfrac{2+3+1}{3} = 2, \quad
+\hat\sigma_2^2 = \tfrac{(2{-}2)^2 + (3{-}2)^2 + (1{-}2)^2}{3} = \tfrac{2}{3}.
+$$
 So $\hat\sigma_1 = \hat\sigma_2 = \sqrt{2/3} \approx 0.816$. Gaussian NB has *no* off-diagonal covariance term; the (1,3) sample being on the "wrong" diagonal does not enter the model.
 
 ### Exercise 5 — Why does Naive Bayes work?

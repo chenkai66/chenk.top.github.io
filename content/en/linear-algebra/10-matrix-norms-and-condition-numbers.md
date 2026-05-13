@@ -79,9 +79,7 @@ As $p$ grows from $1$ to $\infty$, the unit ball morphs from diamond to circle t
 ### Norm equivalence
 
 **Theorem.** In a finite-dimensional space, all norms are *equivalent*: there exist constants $c, C > 0$ such that
-
 $$c\|\vec{x}\|_a \leq \|\vec{x}\|_b \leq C\|\vec{x}\|_a.$$
-
 Different norms are different rulers measuring the same vector. If a sequence converges in one norm, it converges in all of them. The choice is purely a matter of convenience or physical meaning — until we get to the *speed* of convergence, where the choice of norm starts to matter again.
 
 ---
@@ -98,16 +96,17 @@ For an $m\times n$ matrix $A$,$$\|A\|_F = \sqrt{\sum_{i,j} a_{ij}^2}.$$Just flat
 
 ### Induced norms — the maximum amplification
 
-The **induced norm** (or operator norm) measures the largest factor by which $A$ can stretch a unit vector:$$\|A\| = \max_{\|\vec{x}\| = 1} \|A\vec{x}\|.$$
+The **induced norm** (or operator norm) measures the largest factor by which $A$ can stretch a unit vector:$$\|A\| = \max_{\|\vec{x}\| = 1} \|A\vec{x}\|.
+$$
 Think of $A$ as a magnifying lens: the induced norm asks *what is the biggest zoom this lens can apply?* If $\|A\|_2 = 3$, there exists some input direction whose length triples after applying $A$.
 
 The three induced norms you will see most often:
 
 | Norm | Formula | How to compute |
 |---|---|---|
-| $\|A\|_1$ (column sum) | $\max_j \sum_i |a_{ij}|$ | Sum the absolute values in each column, take the maximum |
+| $\|A\|_1$ (column sum) | $\max_j \sum_i \lvert a_{ij}\rvert$ | Sum the absolute values in each column, take the maximum |
 | $\|A\|_2$ (spectral) | $\sigma_{\max}(A)$ | Largest singular value |
-| $\|A\|_\infty$ (row sum) | $\max_i \sum_j |a_{ij}|$ | Sum the absolute values in each row, take the maximum |
+| $\|A\|_\infty$ (row sum) | $\max_i \sum_j \lvert a_{ij}\rvert$ | Sum the absolute values in each row, take the maximum |
 
 **Memory trick:** $1$ → column sum, $\infty$ → row sum.
 
@@ -218,7 +217,8 @@ The left panel shows two 20×20 matrices: a benign one with a flat singular spec
 
 Suppose we solve $A\vec{x} = \vec{b}$ but the right-hand side is contaminated by a small $\delta\vec{b}$. How much does the solution change?
 
-The classical bound:$$\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\,\frac{\|\delta\vec{b}\|}{\|\vec{b}\|}.$$
+The classical bound:$$\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\,\frac{\|\delta\vec{b}\|}{\|\vec{b}\|}.
+$$
 The condition number is the **maximum amplification factor** for relative error.
 
 Concretely:
@@ -334,7 +334,8 @@ The fixes — Batch Normalization, careful initialisation (Xavier, He), residual
 
 ### Regularisation in machine learning
 
-Ridge regression adds $\lambda I$ to $X^TX$:$$\kappa(X^TX + \lambda I) = \frac{\sigma_1^2 + \lambda}{\sigma_n^2 + \lambda}.$$
+Ridge regression adds $\lambda I$ to $X^TX$:$$\kappa(X^TX + \lambda I) = \frac{\sigma_1^2 + \lambda}{\sigma_n^2 + \lambda}.
+$$
 Even a modest $\lambda$ can cut the condition number by orders of magnitude. The same idea (Levenberg–Marquardt, trust regions, weight decay) reappears all over optimisation.
 
 ---
@@ -438,11 +439,11 @@ compare_methods()
 
 | Concept | Key formula | Intuition |
 |---|---|---|
-| Vector norm | $\|\vec{x}\|_p = (\sum |x_i|^p)^{1/p}$ | "How big is this vector?" |
+| Vector norm | $\|\vec{x}\|_p = (\sum \lvert x_i\rvert^p)^{1/p}$ | "How big is this vector?" |
 | Frobenius norm | $\|A\|_F = \sqrt{\sum a_{ij}^2}$ | Total energy of the matrix |
 | Spectral norm | $\|A\|_2 = \sigma_{\max}$ | Maximum amplification |
 | Condition number | $\kappa = \sigma_{\max}/\sigma_{\min}$ | Bound on error amplification |
-| Spectral radius | $\rho(A) = \max|\lambda_i|$ | Controls iterative convergence |
+| Spectral radius | $\rho(A) = \max\lvert\lambda_i\rvert$ | Controls iterative convergence |
 | Normal equations | $\kappa(A^TA) = \kappa(A)^2$ | Why they are dangerous |
 
 ---

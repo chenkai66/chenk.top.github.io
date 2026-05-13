@@ -68,16 +68,14 @@ small but consequential changes:
 Everything else — multi-head self-attention, feed-forward, residual
 connections, LayerNorm, decoder cross-attention, causal masking — is
 unchanged. The four sub-layers per block are:
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 h_1 &= \text{LayerNorm}(x + \text{MHSA}(x)) \\
 h_2 &= \text{LayerNorm}(h_1 + \text{FFN}(h_1))
-\end{aligned}$$
-
+\end{aligned}
+$$
 with the standard scaled dot-product attention from Part 4:
-
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
-
 ### 2.1 Encoder
 
 Reads the lookback window $x_{t-L+1:t}$ and produces context vectors
@@ -110,10 +108,10 @@ state and rolls forward into the unknown.
 Self-attention is permutation invariant — shuffle the input, you get
 the same output. For language that's a bug; for time series it's
 catastrophic. We inject position with sinusoidal encodings:
-
-$$\text{PE}_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right), \qquad
-\text{PE}_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).$$
-
+$$
+\text{PE}_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right), \qquad
+\text{PE}_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).
+$$
 Each position $p$ ends up with a **unique signature** built from a
 geometric series of frequencies. Low-index dimensions oscillate fast
 (they encode short-range position), high-index dimensions oscillate
@@ -192,9 +190,7 @@ forecast actually depends on.
 
 Vanilla attention stores an $n \times n$ score matrix per head per
 layer. In fp16 with 8 heads, the per-layer attention memory is
-
 $$M_{\text{attn}} = h \cdot n^2 \cdot 2 \;\text{bytes}.$$
-
 This is fine at $n=512$ (4 MB) and uncomfortable at $n=4096$ (256 MB);
 at $n=16384$ a single layer needs over 4 GB just for the attention
 matrices. Compute scales the same way: each layer is
@@ -427,7 +423,5 @@ time series, three things matter:
    transfer.
 
 The fundamental attention formula stays the same throughout:
-
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
-
 Everything in this article is just engineering on top of that.

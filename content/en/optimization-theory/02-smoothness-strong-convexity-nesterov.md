@@ -45,9 +45,7 @@ This post lays them out on a single thread: nail the geometric intuition with th
 ## 1.1 The geometric picture of Lipschitz continuity
 
 **Definition (Lipschitz continuous).** A function $f:\mathbb{R}^n\to\mathbb{R}$ is $L$-Lipschitz if there exists $L\ge 0$ such that for all $x, y$,
-
 $$|f(y) - f(x)| \le L\,\|y - x\|.$$
-
 Geometrically, this is a **two-sided cone constraint**: at any anchor $(x_0, f(x_0))$, the double cone of slope $\pm L$ must enclose the entire function graph. As soon as the function develops a near-vertical tangent (e.g. $\sqrt{|x|}$ near the origin), no finite $L$ can contain it and $f$ stops being Lipschitz.
 
 ![Lipschitz cone contains the graph; functions with vertical tangents cannot fit inside any finite-L cone](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig1_lipschitz_geometry.png)
@@ -62,13 +60,9 @@ Left: $\sin x$ is 1-Lipschitz; the orange cones at three sample anchors fully co
 ## 1.2 Gradient-Lipschitz = $L$-smoothness
 
 In practice we care less about Lipschitz $f$ and more about Lipschitz $\nabla f$, because that is what bounds the step size:
-
 $$\|\nabla f(y) - \nabla f(x)\| \le L\,\|y - x\|.$$
-
 A differentiable function satisfying this is called **$L$-smooth**. It admits a more practical equivalent statement, the **descent lemma**:
-
 $$\boxed{\,f(y) \le f(x) + \langle \nabla f(x), y - x\rangle + \frac{L}{2}\,\|y - x\|^2.\,}$$
-
 That is: **$f$ is sandwiched from above by a family of upward parabolas with curvature $L$**. The tangent line is the worst-case lower envelope; the parabola is the actual upper envelope.
 
 ![An L-smooth function is bounded above by a family of quadratic upper models](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig2_l_smooth_quadratic.png)
@@ -76,9 +70,7 @@ That is: **$f$ is sandwiched from above by a family of upward parabolas with cur
 The blue curve is $f(x) = \tfrac{1}{2}\sin(2x) + \tfrac{1}{2}x^2$. At each of the three anchor points the dashed quadratic $f(x_0) + f'(x_0)(x-x_0) + \tfrac{L}{2}(x-x_0)^2$ stays above $f$ globally, while the dotted tangent line only stays below where $f$ is locally convex.
 
 **Why is this inequality so important?** Plug $y = x - \eta\nabla f(x)$ into it:
-
 $$f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|\nabla f(x)\|^2.$$
-
 As long as $\eta \le 1/L$, the bracket is $\ge 1/2$, so **every step strictly decreases $f$**, with the decrease lower-bounded by a constant times $\|\nabla f\|^2$. This is the *real* origin of "step size at most $1/L$" — not folklore, but a direct corollary of the descent lemma.
 
 ![GD on a 1D quadratic at three step sizes: contracting at eta=0.8/L, exact at eta=1/L, divergent at eta=2.2/L](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig7_stepsize.png)
@@ -100,13 +92,9 @@ The third row gives the standard $L = \tfrac{1}{4n}\sum_i\|x_i\|^2$ for logistic
 **Theorem 1 (Hessian spectral norm $\Rightarrow$ Lipschitz gradient).** If $f$ is twice differentiable with $\sup_x \|\nabla^2 f(x)\|_2 \le L$, then $\nabla f$ is $L$-Lipschitz.
 
 **Proof.** By Newton-Leibniz,
-
 $$\nabla f(y) - \nabla f(x) = \int_0^1 \nabla^2 f(x + t(y-x))\,(y-x)\,\mathrm dt.$$
-
 Take 2-norms:
-
 $$\|\nabla f(y) - \nabla f(x)\| \le \int_0^1 \|\nabla^2 f(\cdot)\|_2\,\|y-x\|\,\mathrm dt \le L\,\|y-x\|.\quad\blacksquare$$
-
 For a quadratic $f(x) = \tfrac{1}{2}x^\top H x$ this gives $L = \lambda_{\max}(H)$ exactly — the same $L$ that the descent lemma uses, so the step rule $\eta \le 1/\lambda_{\max}(H)$ is tight.
 
 ---
@@ -116,9 +104,7 @@ For a quadratic $f(x) = \tfrac{1}{2}x^\top H x$ this gives $L = \lambda_{\max}(H
 ## 2.1 Three equivalent definitions
 
 **Definition ($\mu$-strongly convex).** A differentiable $f$ is $\mu$-strongly convex ($\mu>0$) if for all $x, y$,
-
 $$f(y) \ge f(x) + \langle \nabla f(x), y - x\rangle + \frac{\mu}{2}\,\|y - x\|^2.$$
-
 It has three equivalent forms, each handier in a different context:
 
 1. **Quadratic lower bound** (the inequality above): $f$ sits *above* a family of upward parabolas with curvature $\mu$.
@@ -138,27 +124,19 @@ This is just Weierstrass: closed + bounded = compact, and lsc functions attain t
 **Theorem 3 (uniqueness from strong convexity).** A $\mu$-strongly convex function ($\mu > 0$) on $\mathbb{R}^n$ has at most one global minimizer.
 
 **Proof.** Suppose $x^\star, y^\star$ are both minimizers. Then $\nabla f(x^\star) = 0$, so the lower bound at $x = x^\star, y = y^\star$ gives
-
 $$f(y^\star) \ge f(x^\star) + 0 + \frac{\mu}{2}\|y^\star - x^\star\|^2.$$
-
 But $f(y^\star) = f(x^\star)$, so $\|y^\star - x^\star\| = 0$. $\blacksquare$
 
 **Corollary (PL / quadratic growth).** Setting $x = x^\star$ in the lower bound,
-
 $$f(y) - f^\star \ge \frac{\mu}{2}\|y - x^\star\|^2,$$
-
 i.e. **the cost grows at least quadratically away from the minimizer**. This is the lever that turns "small function value" into "small distance to optimum" in every convergence proof below.
 
 ## 2.3 $L$-smooth and $\mu$-strongly convex together: the condition number
 
 If $f$ satisfies both
-
 $$\mu I \preceq \nabla^2 f(x) \preceq L I,$$
-
 then all directional curvatures are squeezed into $[\mu, L]$. The ratio
-
 $$\boxed{\,\kappa := \frac{L}{\mu} \ge 1\,}$$
-
 is the **condition number**, and it controls every rate that follows. Large $\kappa$ means the function is "long and narrow" — the steepest direction is on the verge of instability while the flattest direction barely contributes any signal. That is the structural source of optimization difficulty.
 
 ---
@@ -168,38 +146,28 @@ is the **condition number**, and it controls every rate that follows. Large $\ka
 ## 3.1 Two upper bounds for plain GD
 
 **Theorem 4 (GD on convex + $L$-smooth, sublinear rate).** Take $\eta = 1/L$:
-
 $$f(x_t) - f^\star \le \frac{L\,\|x_0 - x^\star\|^2}{2t} = \mathcal O(1/t).$$
-
 **Theorem 5 (GD on $\mu$-strongly convex + $L$-smooth, linear rate).** Take $\eta = 1/L$:
-
 $$\|x_t - x^\star\|^2 \le \Big(1 - \frac{1}{\kappa}\Big)^t \|x_0 - x^\star\|^2.$$
-
 Reaching error $\varepsilon$ takes $t = \mathcal O(\kappa\log(1/\varepsilon))$. **The condition number enters linearly**: on a least-squares problem with $\kappa = 10^4$, every additional factor of 10 in precision costs about another $2\times 10^4$ iterations.
 
 ## 3.2 Nesterov: lookahead trades $\kappa$ for $\sqrt{\kappa}$
 
 Classical Polyak Heavy Ball is
-
 $$x_{t+1} = x_t - \alpha\nabla f(x_t) + \beta(x_t - x_{t-1}).$$
-
 It does hit the $\sqrt{\kappa}$ rate on strictly convex *quadratics*, but **does not provably accelerate on general strongly convex functions** — counterexamples blow it up. Nesterov's key tweak is to **evaluate the gradient at the lookahead point**, not at $x_t$:
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 y_t &= x_t + \beta_t (x_t - x_{t-1}), \\
 x_{t+1} &= y_t - \eta\,\nabla f(y_t).
-\end{aligned}$$
-
+\end{aligned}
+$$
 Intuition: take a momentum-extrapolated peek at where you are about to land, then correct using the gradient there. That bit of foresight is enough to preserve acceleration on every $L$-smooth convex function.
 
 **Theorem 6 (Nesterov, convex case, $\mathcal O(1/t^2)$).** For $L$-smooth convex $f$, with $\eta = 1/L$ and the classical weights $\beta_t = (t-1)/(t+2)$,
-
 $$f(x_t) - f^\star \le \frac{2L\,\|x_0 - x^\star\|^2}{(t+1)^2}.$$
-
 **Theorem 7 (Nesterov, strongly convex case, $\mathcal O((1 - 1/\sqrt{\kappa})^t)$).** For $\mu$-strongly convex + $L$-smooth $f$, with $\eta = 1/L$ and constant momentum
-
 $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
-
 we get $f(x_t) - f^\star \le \big(1 - \sqrt{1/\kappa}\big)^t (f(x_0) - f^\star)$, hence $t = \mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$.
 
 ![Trajectories on a rotated ill-conditioned quadratic: GD zigzags across the steep direction while Nesterov rolls smoothly along the valley](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig6_trajectories.png)
@@ -246,17 +214,11 @@ Left (log-log): on synthetic least squares, the iterations to reach $10^{-6}$ re
 ## 4.1 Problem and exact constants
 
 Consider
-
 $$\min_{x\in\mathbb{R}^n} f(x) = \frac{1}{2}\|Ax - b\|^2, \qquad A\in\mathbb{R}^{m\times n},\; b\in\mathbb{R}^m.$$
-
 Differentiate:
-
 $$\nabla f(x) = A^\top(Ax - b), \qquad \nabla^2 f(x) = A^\top A,$$
-
 so
-
 $$L = \lambda_{\max}(A^\top A), \qquad \mu = \lambda_{\min}(A^\top A), \qquad \kappa = \kappa(A^\top A) = \kappa(A)^2.$$
-
 **Critical caveat.** The condition number is the *square* of $A$'s condition number. So an $A$ that "looks fine" with $\kappa(A) = 100$ becomes a hard $\kappa = 10^4$ instance for least squares — and for the normal-equation gradient, no less.
 
 ## 4.2 Implementation

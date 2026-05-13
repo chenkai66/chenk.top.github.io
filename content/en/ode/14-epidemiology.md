@@ -47,9 +47,7 @@ Split the population into three compartments:
 - $R$ — **removed** (recovered with immunity, isolated, or dead)
 
 Mass-action transmission and exponential recovery give the **Kermack-McKendrick SIR system**:
-
 $$\boxed{\;\dot S = -\frac{\beta\,S\,I}{N},\qquad \dot I = \frac{\beta\,S\,I}{N} - \gamma I,\qquad \dot R = \gamma I.\;}$$
-
 Two parameters carry all the physics:
 
 - $\beta$ — transmission coefficient: average effective contacts per unit time, times probability of transmission per contact.
@@ -135,9 +133,7 @@ The picture also justifies the public-health emphasis on getting **the laggards*
 ## The SEIR Model
 
 Many diseases have an **incubation period** — people are infected but not yet infectious. Add a latent compartment $E$ (exposed):
-
 $$\dot S = -\frac{\beta SI}{N}, \quad \dot E = \frac{\beta SI}{N} - \sigma E, \quad \dot I = \sigma E - \gamma I, \quad \dot R = \gamma I.$$
-
 The transition rate $\sigma$ has $1/\sigma$ = average latent duration. The basic reproduction number is unchanged: $R_0 = \beta/\gamma$. So, *do incubation periods matter?*
 
 For the **final size**, no — it is identical to SIR because the long-run dynamics is set by $R_0$ alone. For the **growth rate**, very much yes. Linearising around the disease-free equilibrium gives a 2x2 system with characteristic equation$$r^2 + (\sigma + \gamma)\,r + \sigma(\gamma - \beta) = 0.$$For $R_0 > 1$ the positive root is$$r_{\text{SEIR}} = \frac{1}{2}\!\left[-(\sigma + \gamma) + \sqrt{(\sigma + \gamma)^2 + 4\sigma\gamma(R_0 - 1)}\right] < r_{\text{SIR}} = \beta - \gamma.$$The latent stage **slows the early exponential growth**, even though $R_0$ is unchanged. So at fixed $R_0$, SEIR predicts a later, slightly lower peak than SIR. Equivalently: doubling time depends on the *generation interval* $T_g \approx 1/\sigma + 1/\gamma$, not just on $R_0$.
@@ -157,7 +153,8 @@ Real epidemics need more than SEIR. COVID-19 introduced four mathematical wrinkl
 3. **Reporting iceberg.** Only a fraction of true cases gets detected; reported = $\rho \cdot I_s$ with $\rho < 1$.
 4. **Variants.** New strains restart the dynamics with a fresh $R_0$.
 
-A minimal model splits $I$ into $I_a$ (asymptomatic) and $I_s$ (symptomatic):$$\dot S = -\frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N}, \quad \dot E = \frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N} - \sigma E,$$$$\dot I_a = p\,\sigma E - \gamma I_a, \quad \dot I_s = (1 - p)\sigma E - \gamma I_s, \quad \dot R = \gamma(I_a + I_s).$$
+A minimal model splits $I$ into $I_a$ (asymptomatic) and $I_s$ (symptomatic):$$\dot S = -\frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N}, \quad \dot E = \frac{\beta(t)\,(I_s + \kappa I_a)\,S}{N} - \sigma E,$$$$\dot I_a = p\,\sigma E - \gamma I_a, \quad \dot I_s = (1 - p)\sigma E - \gamma I_s, \quad \dot R = \gamma(I_a + I_s).
+$$
 The instantaneous **effective reproduction number** is$$R_e(t) = \frac{\beta(t)\,(1 - p + \kappa p)}{\gamma}\,\frac{S(t)}{N}.$$We want $R_e(t) < 1$. Two ways: shrink $\beta$ (interventions) or shrink $S/N$ (immunity).
 
 ![COVID-style scenario: compartments with intervention timeline, R_e(t), reporting iceberg, counterfactual cumulative incidence.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/fig5_covid_example.png)
@@ -170,7 +167,8 @@ This is *not* a fit to real data — it is a clean cartoon of the structure that
 
 ## Network and Heterogeneous Models
 
-A homogeneous mean-field SIR is wildly optimistic about who can be reached. Real contacts are highly heterogeneous: most people have a handful of regular contacts; a small minority have hundreds. On a contact network with degree distribution $P(k)$, the basic reproduction number generalises:$$R_0 = \frac{\beta}{\gamma}\,\frac{\langle k^2 \rangle - \langle k \rangle}{\langle k \rangle}.$$
+A homogeneous mean-field SIR is wildly optimistic about who can be reached. Real contacts are highly heterogeneous: most people have a handful of regular contacts; a small minority have hundreds. On a contact network with degree distribution $P(k)$, the basic reproduction number generalises:$$R_0 = \frac{\beta}{\gamma}\,\frac{\langle k^2 \rangle - \langle k \rangle}{\langle k \rangle}.
+$$
 For **scale-free networks** ($P(k) \propto k^{-\alpha}$ with $2 < \alpha < 3$), $\langle k^2 \rangle$ diverges with system size. This means the epidemic threshold goes to *zero* — on such networks, even very low transmissibility can sustain an outbreak. **Super-spreaders** dominate the early dynamics in real epidemics; targeting them with contact tracing is disproportionately effective.
 
 Two conceptual lessons:

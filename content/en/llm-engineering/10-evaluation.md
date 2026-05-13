@@ -193,9 +193,7 @@ Production A/B: route 5-10 % of traffic to the new model variant, compare outcom
 Surface metrics like "engagement" can mislead — a model that goes off-topic in interesting ways drives more turns but solves fewer problems. Pair turn count with resolution rate.
 
 For statistical significance: 10K traffic is enough to detect a 2 % shift in a binary metric at 95 % confidence. The relevant power calculation:
-
 $$n \approx \frac{16 \cdot p (1-p)}{\delta^2}$$
-
 where $p$ is the baseline rate and $\delta$ is the minimum detectable effect. For $p = 0.5$, $\delta = 0.02$, that's $n \approx 10{,}000$ per arm; for $\delta = 0.005$ (catching half-percent shifts), $n \approx 160{,}000$. Run experiments at least 7 days to wash out day-of-week effects. Stratify by traffic segment if your traffic is heterogeneous (free vs paid, mobile vs desktop, language).
 
 Two production patterns worth knowing:
@@ -224,9 +222,7 @@ A useful invariant: the *interquartile range* of model accuracy across your eval
 A model is **calibrated** if its stated confidence matches actual accuracy. A model that says "I'm 90 % confident" should be right 90 % of the time. Most LLMs are systematically overconfident — they'll say "I'm sure" and be wrong 30 % of the time.
 
 For high-stakes deployments (medical, legal, financial), calibration matters as much as accuracy. Measure with the Expected Calibration Error (Guo et al., 2017, *On Calibration of Modern Neural Networks*):
-
 $$\text{ECE} = \sum_{m=1}^{M} \frac{|B_m|}{n} |\text{acc}(B_m) - \text{conf}(B_m)|$$
-
 Bin predictions by confidence into $M$ buckets, compute |accuracy - average confidence| per bucket, weighted by bucket size. A reliability diagram plots accuracy on the y-axis against confidence on the x-axis; a perfectly calibrated model lies on the diagonal.
 
 The Guo paper showed that *accuracy improvements often come at the cost of calibration* — the techniques (deep networks, label smoothing, temperature scaling) that boost accuracy on classification benchmarks tend to harm calibration unless explicitly corrected. The same lesson transferred to LLMs: post-training (RLHF, DPO) reliably degrades calibration, because the reward model rewards confident-sounding answers more than hedged ones.

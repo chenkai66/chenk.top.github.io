@@ -49,13 +49,9 @@ This chapter proceeds as follows: §2 quantifies the pain points of classical me
 ### 2.1 Finite differences — intuition at the price of stability
 
 Consider the 1-D heat equation
-
 $$u_t=\nu u_{xx},\qquad x\in(0,1),\ t>0,$$
-
 with $u(0,t)=u(1,t)=0$ and $u(x,0)=\sin(\pi x)$. Let $h$ be the spatial step and $\tau$ the time step. Forward Euler gives
-
 $$\frac{u_i^{n+1}-u_i^n}{\tau}=\nu\frac{u_{i-1}^n-2u_i^n+u_{i+1}^n}{h^2}.$$
-
 A **Von Neumann analysis** yields the stability condition $\tau\le h^2/(2\nu)$ — the time step must scale like the *square* of the space step. Refining $h$ tenfold demands $\tau$ refined a hundredfold; total cost grows by a factor of one thousand. The implicit Crank–Nicolson scheme is unconditionally stable but pays for it with a tridiagonal solve at every step; in higher dimensions you are at the mercy of sparse direct solvers or multigrid.
 
 **Bottom line.** FDM has a clean global error of $O(\tau+h^2)$ guaranteed by Lax equivalence. It is unbeatable on structured grids and **completely helpless on irregular geometries.**
@@ -63,10 +59,10 @@ A **Von Neumann analysis** yields the stability condition $\tau\le h^2/(2\nu)$ �
 ### 2.2 Finite elements — weak forms and the Ritz functional
 
 The weak form of $-\Delta u=f$: find $u\in H_0^1(\Omega)$ such that
-
-$$\underbrace{\int_\Omega\nabla u\cdot\nabla v\,\mathrm dx}_{a(u,v)}
-=\underbrace{\int_\Omega fv\,\mathrm dx}_{\ell(v)},\qquad\forall v\in H_0^1(\Omega).$$
-
+$$
+\underbrace{\int_\Omega\nabla u\cdot\nabla v\,\mathrm dx}_{a(u,v)}
+=\underbrace{\int_\Omega fv\,\mathrm dx}_{\ell(v)},\qquad\forall v\in H_0^1(\Omega).
+$$
 This is **equivalent** to minimising the Dirichlet energy $J(u)=\tfrac12 a(u,u)-\ell(u)$. In a piecewise-linear subspace $V_h\subset H_0^1$, write $u_h=\sum c_j\phi_j$ and solve $Kc=f$ with $K_{ij}=a(\phi_i,\phi_j)$ — a sparse symmetric positive-definite stiffness matrix.
 
 Céa's lemma supplies the optimal error bound $\|u-u_h\|_{H^1}\le Ch^k\|u\|_{H^{k+1}}$. **FEM's strengths** are textbook: convergence proofs, error control, adaptive mesh refinement. **The weakness**, again, is the mesh — moving boundaries, porous media and high-dimensional parameter spaces are all hard.
@@ -93,19 +89,19 @@ PINNs aim at the last three rows simultaneously: **mesh-free, dimension-friendly
 ### 3.1 The mathematical statement
 
 Consider a generic PDE
-
-$$\mathcal N[u](x,t)=0,\quad(x,t)\in\Omega\times(0,T],\qquad
+$$
+\mathcal N[u](x,t)=0,\quad(x,t)\in\Omega\times(0,T],\qquad
 \mathcal B[u]=g\ \text{on}\ \partial\Omega,\qquad
-u(x,0)=u_0(x).$$
-
+u(x,0)=u_0(x).
+$$
 A parameterised network $u_\theta:\mathbb R^{d+1}\to\mathbb R$ (typically a tanh-MLP) approximates $u$. Define the composite loss
-
-$$\boxed{\;
+$$
+\boxed{\;
 \mathcal L(\theta)=\lambda_r\underbrace{\frac1{N_r}\sum_{i=1}^{N_r}|\mathcal N[u_\theta](x_i^r,t_i^r)|^2}_{\mathcal L_r:\,\text{PDE residual}}
 +\lambda_b\underbrace{\frac1{N_b}\sum|\mathcal B[u_\theta]-g|^2}_{\mathcal L_b}
 +\lambda_i\underbrace{\frac1{N_i}\sum|u_\theta-u_0|^2}_{\mathcal L_i}
-+\lambda_d\underbrace{\frac1{N_d}\sum|u_\theta-u^{\mathrm{obs}}|^2}_{\mathcal L_d}\;}$$
-
++\lambda_d\underbrace{\frac1{N_d}\sum|u_\theta-u^{\mathrm{obs}}|^2}_{\mathcal L_d}\;}
+$$
 The last term $\mathcal L_d$ is absent in **forward problems** but central to **inverse problems**. Training is $\theta^\star=\arg\min_\theta\mathcal L(\theta)$ via Adam or L-BFGS.
 
 ![Three loss components and a balanced-weighting comparison.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig2_loss_decomposition.png)
@@ -114,9 +110,7 @@ The last term $\mathcal L_d$ is absent in **forward problems** but central to **
 ### 3.2 Why automatic differentiation matters
 
 Naive numerical differentiation,
-
 $$\partial_x u\approx\frac{u(x+\varepsilon)-u(x-\varepsilon)}{2\varepsilon},$$
-
 has two killers: $\varepsilon$ too small drowns in floating-point round-off, and high-order derivatives compound the error. Reverse-mode autodiff is symbolic-exact: every elementary operation has a known derivative, the chain rule is automatically composed, and the **result equals the analytic derivative to machine precision.**
 
 ```python
@@ -166,16 +160,14 @@ Wang & Perdikaris (2021) [^wang2021] used backprop gradient statistics to expose
 *Figure 6, left: per-layer norms of $\nabla_\theta\mathcal L_r$ and $\nabla_\theta\mathcal L_b$ on a logarithmic scale, separated by 3–4 orders of magnitude — typical for a vanilla PINN. Right: the same network approximating a multi-scale signal $u=\sin(\pi x)+0.5\sin(8\pi x)+0.3\sin(20\pi x)$. The low-frequency mode is essentially perfect; the $20\pi$ mode has all but vanished — this is "spectral bias".*
 
 **Fix 1: adaptive weights.** Reset every few hundred steps:
-
-$$\hat\lambda_b=\frac{\max_\theta|\nabla_\theta\mathcal L_r|}{\overline{|\nabla_\theta\mathcal L_b|}},\qquad
-\lambda_b\leftarrow(1-\alpha)\lambda_b+\alpha\hat\lambda_b.$$
-
+$$
+\hat\lambda_b=\frac{\max_\theta|\nabla_\theta\mathcal L_r|}{\overline{|\nabla_\theta\mathcal L_b|}},\qquad
+\lambda_b\leftarrow(1-\alpha)\lambda_b+\alpha\hat\lambda_b.
+$$
 This is Wang's *learning-rate annealing* recipe; a few lines of code turn an unconvergent PINN into a healthy one.
 
 **Fix 2: hard constraints.** Bake the boundary directly into the architecture. For 1-D Dirichlet zero conditions, use
-
 $$u_\theta(x,t)=x(1-x)\,\tilde u_\theta(x,t)+B(x,t),$$
-
 where $B$ satisfies the boundary by construction and $\tilde u_\theta$ is unconstrained. Then $\mathcal L_b\equiv 0$ and there is nothing to balance.
 
 **Fix 3: NTK balancing.** Wang–Yu–Perdikaris (2022) [^wang2022ntk] proved PINN training dynamics are governed by three Neural Tangent Kernels; weighting by the trace of each NTK is the principled choice.
@@ -194,9 +186,7 @@ Neural network training has a well-known bias: **low frequencies are learned fir
 Time-dependent PDEs respect "the past determines the future". But PINNs sample $\Omega\times[0,T]$ *all at once*, asking the network to fit $t=T$ before $t<T$ has been learned correctly. Krishnapriyan et al. (2021) [^krish2021] coined this *failure mode* on the convection equation.
 
 **Fix**: causal training (Wang 2024) weights the residual by time-respecting factors,
-
 $$w_n=\exp\bigl(-\varepsilon\sum_{k<n}\mathcal L_r(t_k)\bigr).$$
-
 Late-time residuals are admitted into the loss only after early-time residuals have decayed.
 
 ### 4.4 Convergence comparison
@@ -213,10 +203,10 @@ Combining the fixes on a Burgers experiment:
 ### 5.1 Forward problem: the Burgers shock
 
 Consider
-
-$$u_t+uu_x=\nu u_{xx},\quad x\in[-1,1],\ t\in[0,1],\quad
-u(\pm 1,t)=0,\ u(x,0)=-\sin(\pi x),\ \nu=\frac{0.01}{\pi}.$$
-
+$$
+u_t+uu_x=\nu u_{xx},\quad x\in[-1,1],\ t\in[0,1],\quad
+u(\pm 1,t)=0,\ u(x,0)=-\sin(\pi x),\ \nu=\frac{0.01}{\pi}.
+$$
 The reference solution is obtained via the Cole–Hopf transform $u=-2\nu(\ln\phi)_x$ which reduces Burgers to the heat equation (the script's `burgers_cole_hopf` does exactly this). With $\nu$ this small, a near-discontinuous shock forms near $x=0$ from $t\approx 0.4$ onward.
 
 ![PINN solving Burgers' equation: prediction vs. exact solution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig3_burgers_pred_vs_exact.png)

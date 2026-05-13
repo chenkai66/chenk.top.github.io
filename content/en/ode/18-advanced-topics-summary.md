@@ -65,13 +65,9 @@ Read it as a journey, not a hierarchy:
 In 2018 a single NeurIPS paper, "Neural Ordinary Differential Equations" by Chen, Rubanova, Bettencourt and Duvenaud, made deep-learning practitioners pick up ODE textbooks. The trick is so clean it is almost unfair.
 
 A residual network updates a hidden state by
-
 $$h_{t+1} = h_t + f(h_t,\; \theta_t).$$
-
 Take the layer index as a continuous "time" variable and shrink the step. The discrete update becomes
-
 $$\frac{d h(t)}{dt} = f\!\bigl(h(t),\; t,\; \theta\bigr).$$
-
 That is a learnable ODE. The forward pass is now an ODE solve; the network has *adaptive depth*; and the memory cost of backpropagation drops to $O(1)$ via the **adjoint method** (the same Pontryagin-style equations you would meet in optimal control, Chapter 16).
 
 ![Neural ODE: ResNet stack of layers vs continuous-depth ODE, learned vector field, adjoint backward pass, and convergence as the number of layers grows.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/fig2_neural_odes.png)
@@ -110,17 +106,13 @@ Neural ODEs naturally handle **irregularly sampled time series** (medical record
 Many real systems do not respond to the *current* state alone; they respond to a *delayed* state. The delivery van's response to a price change today depends on the order book of two weeks ago. A red blood cell count today reflects the bone-marrow signal of days past. A laser cavity feeds back light that was emitted picoseconds earlier.
 
 The general first-order delay equation is
-
 $$\dot x(t) = f\bigl(x(t),\; x(t - \tau)\bigr).$$
-
 The state space is now *infinite-dimensional*: we need the entire history $\{x(s) : s \in [t-\tau, t]\}$ as initial data, not a single number.
 
 ### Hutchinson's equation
 
 A delayed logistic model:
-
 $$\dot N(t) = r N(t)\,\Bigl(1 - \frac{N(t-\tau)}{K}\Bigr).$$
-
 Without delay ($\tau = 0$) it is the smooth Verhulst sigmoid. With delay it can become *unstable* and produce limit cycles — specifically, when $r\tau > \pi/2$ the equilibrium loses stability through a Hopf bifurcation (Chapter 10) and oscillations emerge.
 
 ```python
@@ -159,26 +151,20 @@ The **Mackey-Glass equation** with $\tau = 17$ produces low-dimensional chaos �
 ![Ordinary Differential Equations (18): Frontiers and Series Finale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/illustration_2.png)
 
 Real systems experience *random* forcing — thermal molecular kicks, market microstructure noise, mutation. The natural object is the **Ito stochastic differential equation**
-
 $$dX_t = f(X_t, t)\,dt + g(X_t, t)\,dW_t,$$
-
 where $W_t$ is a standard Wiener process (Brownian motion) and $dW_t$ is the formal Gaussian increment with variance $dt$.
 
 Two canonical examples:
 
 **Geometric Brownian motion** (the Black-Scholes asset model)
-
-$$dS = \mu S\,dt + \sigma S\,dW, \qquad
-S(t) = S_0\exp\!\Bigl[(\mu - \tfrac12\sigma^2)\,t + \sigma W(t)\Bigr].$$
-
+$$
+dS = \mu S\,dt + \sigma S\,dW, \qquad
+S(t) = S_0\exp\!\Bigl[(\mu - \tfrac12\sigma^2)\,t + \sigma W(t)\Bigr].
+$$
 **Ornstein-Uhlenbeck process** (mean-reverting)
-
 $$dX = \theta(\mu - X)\,dt + \sigma\,dW.$$
-
 The probability density $\rho(x, t)$ of an SDE evolves under the **Fokker-Planck equation**
-
 $$\partial_t \rho = -\partial_x(f\rho) + \tfrac12\,\partial_x^2(g^2\rho),$$
-
 a deterministic PDE. So the stochastic and deterministic worlds are linked: an SDE for individual trajectories *is* a PDE for the ensemble.
 
 ```python
@@ -202,17 +188,11 @@ SDEs form the foundation of mathematical finance, statistical physics, neuroscie
 ## 5. Fractional Differential Equations — derivatives of order 0.7
 
 What if the order of a derivative were a continuous parameter? The Caputo fractional derivative ${}^C\!D^\alpha$ for $0 < \alpha < 1$ is, loosely, a "convolutional smoothing" of the ordinary derivative,
-
 $${}^C\!D^\alpha f(t) \;=\; \frac{1}{\Gamma(1-\alpha)}\int_0^t \frac{f'(\tau)}{(t-\tau)^\alpha}\,d\tau.$$
-
 The fractional relaxation equation
-
 $${}^C\!D^\alpha y(t) = -\lambda\,y(t)$$
-
 solves to the **Mittag-Leffler function**
-
 $$y(t) = E_\alpha\!\bigl(-\lambda t^\alpha\bigr) = \sum_{k=0}^\infty \frac{(-\lambda t^\alpha)^k}{\Gamma(1 + k\alpha)}.$$
-
 For $\alpha = 1$ this reduces to $e^{-\lambda t}$. For $\alpha < 1$ the early decay is *faster* than exponential but the long-time tail is a *power law* $\sim t^{-\alpha}/\Gamma(1-\alpha)$ — the system "remembers" its history.
 
 That memory makes fractional ODEs the natural language for:

@@ -29,7 +29,8 @@ The spectral theorem of [Chapter 8](/en/linear-algebra/08-symmetric-matrices-and
 - a gene-expression matrix in bioinformatics.
 
 **Singular Value Decomposition (SVD)** handles every one of them. For *any* $m \times n$ matrix $A$,
-$$A = U\,\Sigma\,V^{\!\top}.$$This is the most powerful, most universally applicable decomposition in all of linear algebra.
+$$
+A = U\,\Sigma\,V^{\!\top}.$$This is the most powerful, most universally applicable decomposition in all of linear algebra.
 
 ### A photography analogy
 
@@ -69,7 +70,8 @@ Think of a band recording: lead vocal, guitar, bass, drums. Drop a background ha
 - $V \in \mathbb{R}^{n\times n}$ is orthogonal (its columns are the **right singular vectors** $v_1, \ldots, v_n$);
 - $\Sigma \in \mathbb{R}^{m\times n}$ has the **singular values** $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ on its main diagonal and zeros elsewhere.
 
-The "economy" form, used in practice for tall matrices, keeps only the $r = \operatorname{rank}(A)$ nonzero singular values:$$A = U_r\,\Sigma_r\,V_r^{\!\top},\qquad U_r \in \mathbb{R}^{m\times r},\ \Sigma_r \in \mathbb{R}^{r\times r},\ V_r \in \mathbb{R}^{n\times r}.$$
+The "economy" form, used in practice for tall matrices, keeps only the $r = \operatorname{rank}(A)$ nonzero singular values:$$A = U_r\,\Sigma_r\,V_r^{\!\top},\qquad U_r \in \mathbb{R}^{m\times r},\ \Sigma_r \in \mathbb{R}^{r\times r},\ V_r \in \mathbb{R}^{n\times r}.
+$$
 Three facts make the singular values special:
 
 - They are **non-negative real numbers** — always. (Eigenvalues can be negative or complex.)
@@ -114,7 +116,8 @@ There is a wonderful equivalent way to write SVD as a sum of rank-1 building blo
 
 ### The bridge to $A^{\!\top}\!A$ and $AA^{\!\top}$
 
-Eigenvectors of two symmetric matrices give us $V$ and $U$. Multiply out $A = U\Sigma V^{\!\top}$ both ways:$$A^{\!\top}\!A = V\,\Sigma^{\!\top}\!\Sigma\,V^{\!\top}, \qquad AA^{\!\top} = U\,\Sigma\Sigma^{\!\top}\,U^{\!\top}.$$
+Eigenvectors of two symmetric matrices give us $V$ and $U$. Multiply out $A = U\Sigma V^{\!\top}$ both ways:$$A^{\!\top}\!A = V\,\Sigma^{\!\top}\!\Sigma\,V^{\!\top}, \qquad AA^{\!\top} = U\,\Sigma\Sigma^{\!\top}\,U^{\!\top}.
+$$
 Both $A^{\!\top}\!A$ and $AA^{\!\top}$ are **symmetric and positive semidefinite**, so the spectral theorem applies. Reading these as spectral decompositions:
 
 - columns of $V$ = orthonormal eigenvectors of $A^{\!\top}\!A$ (the **right singular vectors**),
@@ -137,10 +140,9 @@ In numerical practice nobody computes SVD this way: forming $A^{\!\top}\!A$ squa
 ### Worked example
 
 For $A = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$:
-
 $$A^{\!\top}\!A = \begin{pmatrix} 1 & 1 \\ 1 & 2 \end{pmatrix}, \qquad \det(A^{\!\top}\!A - \lambda I) = \lambda^2 - 3\lambda + 1.$$
-
-So $\lambda = \frac{3 \pm \sqrt{5}}{2}$, giving$$\sigma_1 = \sqrt{\tfrac{3+\sqrt 5}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt{\tfrac{3-\sqrt 5}{2}} \approx 0.618.$$
+So $\lambda = \frac{3 \pm \sqrt{5}}{2}$, giving$$\sigma_1 = \sqrt{\tfrac{3+\sqrt 5}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt{\tfrac{3-\sqrt 5}{2}} \approx 0.618.
+$$
 Find the eigenvectors of $A^{\!\top}\!A$ to assemble $V$, then $u_i = A v_i / \sigma_i$ gives $U$. (The product $\sigma_1 \sigma_2 = 1 = |\det A|$ is a useful sanity check.)
 
 ### Eigenvalues vs singular values: side by side
@@ -182,7 +184,8 @@ The orthonormal basis $\{v_1, \ldots, v_r\}$ of the row space is mapped onto the
 
 ### The Eckart--Young theorem
 
-Truncate the outer-product expansion at $k$ terms:$$A_k = \sigma_1 u_1 v_1^{\!\top} + \cdots + \sigma_k u_k v_k^{\!\top}.$$
+Truncate the outer-product expansion at $k$ terms:$$A_k = \sigma_1 u_1 v_1^{\!\top} + \cdots + \sigma_k u_k v_k^{\!\top}.
+$$
 **Theorem (Eckart--Young, 1936).** Among all matrices $B$ of rank at most $k$,$$\|A - A_k\|_F \;=\; \min_{\operatorname{rank}(B) \le k} \|A - B\|_F \;=\; \sqrt{\sigma_{k+1}^{\,2} + \cdots + \sigma_r^{\,2}}.$$The same statement holds in the operator (2-)norm with $\|A - A_k\|_2 = \sigma_{k+1}$.
 
 So $A_k$ isn't just *a* low-rank approximation — it is **provably optimal**. No clever rank-$k$ matrix can do better.
@@ -311,8 +314,8 @@ Netflix, Amazon, and Spotify all face the same question: **how do we predict rat
 
 ### Matrix factorisation
 
-The modelling assumption is that ratings are driven by a small number of **latent factors** — for movies, perhaps "action level," "romance," "humour," "art-house depth." Then$$R \approx U_k \Sigma_k V_k^{\!\top}.$$
-
+The modelling assumption is that ratings are driven by a small number of **latent factors** — for movies, perhaps "action level," "romance," "humour," "art-house depth." Then$$R \approx U_k \Sigma_k V_k^{\!\top}.
+$$
 - A row of $U_k \Sigma_k$ is one user's taste vector.
 - A row of $V_k$ is one item's characteristic vector.
 - The predicted rating is just their dot product.

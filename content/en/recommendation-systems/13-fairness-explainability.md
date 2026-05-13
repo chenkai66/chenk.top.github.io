@@ -46,9 +46,7 @@ Bias in a recommender is not one problem. It is at least seven, and they compoun
 A small fraction of items captures the bulk of interactions, and the recommender amplifies that concentration further still. The right panel above is the giveaway: even when the catalog is uniform, the top 20 items collect over 60% of all recommendation slots.
 
 A clean way to measure it is the gap between the average popularity of recommended items and the catalog average:
-
 $$\text{PopBias@K} = \frac{1}{|U|}\sum_{u \in U} \frac{\sum_{i \in R_u^K} \log(1 + p_i)}{K} - \frac{1}{|I|}\sum_{i \in I} \log(1 + p_i)$$
-
 The log dampens the head's influence so the metric is not dominated by a handful of mega-popular items. Track this per slate, not just globally — global averages hide per-user concentration.
 
 ### 2. Position bias — clicks follow the cursor, not the intent
@@ -56,9 +54,7 @@ The log dampens the head's influence so the metric is not dominated by a handful
 ![CTR drops sharply with position even when underlying relevance is held constant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/fig2_position_bias.png)
 
 Users examine top positions far more than bottom ones. The classic *examination hypothesis* (Richardson et al., Joachims et al.) factorises a click as
-
 $$P(\text{click} \mid u, i, k) = P(\text{examine} \mid k) \cdot P(\text{relevant} \mid u, i)$$
-
 If you train naively on logged clicks you will conflate "shown at position 1" with "actually relevant." Position bias is the single most-studied bias in industrial learning-to-rank, and the fix — **Inverse Propensity Scoring** — is the one debiasing technique you can deploy this quarter.
 
 ### 3. Selection bias — the data you have is not the data you want
@@ -194,9 +190,7 @@ The **potential outcomes** framework makes the claim explicit. For user $u$ and 
 - $Y_{ui}(0)$: outcome if we do not
 
 The **individual treatment effect** is $\text{ITE}_{ui} = Y_{ui}(1) - Y_{ui}(0)$. We never observe both — that is the *fundamental problem of causal inference*. The best we can do is the average over many users:
-
 $$\text{ATE} = \mathbb{E}_{u,i}[Y_{ui}(1) - Y_{ui}(0)]$$
-
 A **confounder** is a variable that drives both treatment (what the system shows) and outcome (what the user does). User taste is the obvious confounder: tasteful users get good recommendations *and* are more likely to click, regardless of who recommends what.
 
 ### Inverse Propensity Scoring (IPS)
@@ -206,9 +200,7 @@ IPS is the workhorse of debiasing. The idea: if a click was produced under condi
 ![Inverse propensity scoring conceptually: divide each click by P(observed) to recover unbiased relevance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/fig5_ips_reweighting.png)
 
 For a learning-to-rank loss, the IPS-corrected estimator is
-
 $$\hat{\mathcal{L}}_{\text{IPS}}(f) = \frac{1}{|D|} \sum_{(u,i,k) \in D} \frac{c_{ui}}{\pi_k} \cdot \ell(f(u, i))$$
-
 where $c_{ui} \in \{0,1\}$ is the click and $\pi_k$ is the position-bias propensity at rank $k$. Joachims, Swaminathan, and Schnabel showed in their 2017 SIGIR paper that this is unbiased *if* $\pi_k > 0$ everywhere — which is why production teams add $\epsilon$ to small propensities and clip extreme weights. Saito et al. (2020) proposed *self-normalised IPS* and *doubly robust* variants that trade a touch of bias for far lower variance.
 
 ```python
@@ -243,9 +235,7 @@ The two failure modes you will hit:
 ### Doubly robust estimators
 
 If you have *either* a correct propensity model *or* a correct outcome model, the doubly robust (DR) estimator is unbiased. Belt and braces:
-
 $$\hat{Y}_{\text{DR}} = \hat{Y}(X) + \frac{T}{\pi(X)} \big( Y - \hat{Y}(X) \big)$$
-
 where $\hat{Y}(X)$ is your imputation model and $T$ is the treatment indicator. In practice DR has lower variance than pure IPS and lower bias than pure imputation. Wang et al. (2019, *Doubly Robust Joint Learning*) is the canonical recommender adaptation.
 
 ### Randomised data: the gold standard
@@ -284,9 +274,7 @@ At inference, the score uses only the interest embedding, stripping out the conf
 ### FairCo — Amortising fairness across many slates
 
 FairCo (Morik et al., SIGIR 2020) targets *exposure fairness* over time: each item or item-group should accumulate exposure proportional to its merit, summed across all users. The trick is a controller that keeps a running tally of the exposure debt for each group and adds a corrective bonus to the ranking score:
-
 $$s'(u, i) = s(u, i) + \lambda \cdot \big( \text{deserved}_g(t) - \text{received}_g(t) \big)$$
-
 where $g$ is the group of item $i$. Groups that are behind get a boost; groups that are ahead get penalised. The beautiful property: amortised over time, the system converges to merit-proportional exposure even though every individual slate may look biased. This matters for two-sided marketplaces (Airbnb, Uber, Etsy) where producer fairness is a business requirement.
 
 ### Three families, one combined recipe
@@ -309,9 +297,7 @@ A reasonable combined recipe for a new launch:
 ## Part 4 — Counterfactual Fairness and Adversarial Training
 
 A recommender is **counterfactually fair** if the recommendations would not change had the user been a different gender, race, or other protected attribute. Formally, for protected attribute $A$ and prediction $f$:
-
 $$P\big(f_{Y \leftarrow a}(U, X) = y \mid X = x, A = a\big) = P\big(f_{Y \leftarrow a'}(U, X) = y \mid X = x, A = a\big)$$
-
 The notation $f_{Y \leftarrow a}$ is Pearl's *do-operator*: we *intervene* on $A$, holding everything else fixed. This is stronger than statistical parity, which only requires equal marginal distributions.
 
 ### Adversarial debiasing — the CFairER pattern
@@ -432,9 +418,7 @@ Caveats: LIME is not stable. Ribeiro himself notes that two runs on the same ins
 ### SHAP — game theory's contribution
 
 SHAP (Lundberg & Lee, NeurIPS 2017) computes Shapley values: the unique attribution scheme satisfying *efficiency* (attributions sum to prediction minus baseline), *symmetry*, *dummy*, and *additivity*. For a model $f$ and feature set $N$:
-
 $$\phi_j = \sum_{S \subseteq N \setminus \{j\}} \frac{|S|! (|N| - |S| - 1)!}{|N|!} \big( f(S \cup \{j\}) - f(S) \big)$$
-
 Exact Shapley values are exponential in the number of features. Production uses approximations:
 
 - **TreeSHAP** (polynomial time for tree ensembles) — first-line tool for GBDT-based recommenders
@@ -455,9 +439,7 @@ The practical difference vs LIME: SHAP attributions sum to the prediction, which
 ![Counterfactual: the smallest change to the user profile that would have flipped the recommendation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/fig7_counterfactual.png)
 
 A counterfactual answers "what would have to change for the recommendation to flip?" It is more actionable than feature attribution because it points to a *minimal intervention*. Wachter et al. (2017) formulated it as
-
 $$x^{\text{cf}} = \arg\min_{x'} \; d(x, x') \quad \text{s.t.} \quad f(x') \neq f(x)$$
-
 where $d$ is a distance penalising changes that are unrealistic (changing many features at once, or changing immutable ones like age). Modern implementations (DiCE, Mothilal et al. 2020) optimise a relaxed version with gradient descent and add a *diversity* term so you get several different counterfactuals to choose from.
 
 The killer use case is *auditability*. "We did not recommend this loan product to user X because their declared income was below the threshold; had it been $5000 higher, the model would have surfaced it" is the kind of explanation that satisfies a regulator.

@@ -107,9 +107,7 @@ def format_example(ex):
 ```
 
 **RLHF** (Ouyang et al., 2022, the InstructGPT paper). After SFT, train a reward model on human preference pairs and optimize the policy with PPO against that reward. The Bradley–Terry preference loss:
-
 $$\mathcal{L}_{\text{RM}} = -\log \sigma\bigl(r_\theta(x, y_{\text{chosen}}) - r_\theta(x, y_{\text{rejected}})\bigr).$$
-
 ```python
 class RewardModel(nn.Module):
     def __init__(self, base):

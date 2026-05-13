@@ -80,15 +80,11 @@ A LLaMA-style block (LLaMA, LLaMA-2, Mistral, Qwen, Yi, DeepSeek, ...) differs f
 **1. Pre-norm instead of post-norm.** The original block applies LayerNorm *after* the residual add (`x + Sublayer(x)` then norm). Modern blocks normalize *before* the sublayer (`x + Sublayer(Norm(x))`). Pre-norm leaves a clean identity path through the residual, which keeps gradients well-scaled in deep stacks and removes the need for the famous Transformer learning-rate warmup.
 
 **2. RMSNorm instead of LayerNorm.** LayerNorm subtracts the mean and divides by the standard deviation. RMSNorm only divides by the root-mean-square — no mean, no bias term:
-
 $$\mathrm{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_i x_i^2 + \varepsilon}} \cdot g.$$
-
 It saves a reduction and a parameter per layer with no measurable quality loss.
 
 **3. SwiGLU instead of GELU.** The standard FFN is `Linear → GELU → Linear`. SwiGLU adds a gating linear:
-
 $$\mathrm{SwiGLU}(x) = \big(\mathrm{Swish}(W_1 x) \odot (W_3 x)\big) W_2.$$
-
 The element-wise product gives the FFN a multiplicative interaction, which empirically improves perplexity by 1–2% at iso-parameters. To keep the parameter budget the same as a vanilla FFN, the hidden dimension is shrunk by a factor of $2/3$.
 
 **4. RoPE instead of learned absolute positions.** Position is injected by *rotating* the query and key vectors at attention time, not added to the embedding. We expand on this in the next section.
@@ -169,9 +165,7 @@ def attention_step(q_new, cache: KVCache, k_new, v_new, scale):
 ```
 
 The cost is real: cache memory grows linearly with sequence length and is the dominant memory term during decoding. For a LLaMA-2-70B-shape model with 80 layers, 64 KV heads, head_dim=128, fp16, vanilla MHA needs
-
 $$2 \cdot 80 \cdot 64 \cdot 128 \cdot 2\text{ B} = 2.6\text{ MB per token},$$
-
 so a 32K context would cost 84 GB just for the cache — more than the weights themselves. This is the pressure that motivated GQA, MQA, and PagedAttention (vLLM).
 
 ---
@@ -185,9 +179,7 @@ Self-attention has no built-in notion of order: permuting the inputs permutes th
 **Sinusoidal absolute (Vaswani et al., 2017).** A fixed $\sin / \cos$ vector is *added* to the token embedding at the input layer. Information about position has to survive every subsequent linear projection. Works fine in-distribution but extrapolates poorly past the training length.
 
 **RoPE — rotary position embedding (Su et al., 2021).** Instead of adding to the embedding, RoPE *rotates* the Q and K vectors at attention time. Pair the $d$ head dimensions into $d/2$ 2D planes. In plane $i$, define a frequency $\theta_i = 10000^{-2i/d}$, and at position $m$ rotate the $i$-th plane by angle $m\theta_i$. The key identity is that
-
 $$\langle R_m q,\; R_n k \rangle = \langle q,\; R_{n-m} k \rangle,$$
-
 so the dot product depends only on the *relative* offset $n - m$. This is why RoPE generalizes to longer contexts than seen in training, and why every modern model (LLaMA, Qwen, Mistral, Yi, DeepSeek, GPT-NeoX) uses it.
 
 ```python
@@ -302,9 +294,7 @@ The takeaway is that FlashAttention does not change what your model computes —
 ![Figure 6 — Sparse MoE: top-k routing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/llm-architecture-deep-dive/fig6_moe.png)
 
 A dense Transformer spends most of its parameters and most of its FLOPs in the FFN. MoE replaces the single FFN with $N$ "expert" FFNs and a tiny router that, *per token*, picks the top-$k$ experts to run:
-
 $$y = \sum_{i \in \mathrm{TopK}(W_g x)} g_i(x)\, E_i(x),\qquad g(x) = \mathrm{softmax}(W_g x).$$
-
 Per-token FLOPs grow with $k$ (typically 2), not $N$ — so an 8-expert model has roughly $8\times$ the FFN parameters of a dense model but spends only $2 \times$ the FFN compute. Mixtral 8×7B has 47B total parameters but activates ~13B per token, giving 70B-class quality at 13B-class inference cost.
 
 The honest cost is elsewhere:

@@ -55,26 +55,22 @@ Given input tokens $x_1, \ldots, x_t$:
 
 1. **Embed**: $h^0_i = E_{\text{tok}}(x_i) + E_{\text{pos}}(i)$
 2. **Repeat $L$ times** (one Transformer block):
-
 $$\tilde h = h + \text{MaskedMHA}(\text{LN}(h)), \quad h \leftarrow \tilde h + \text{FFN}(\text{LN}(\tilde h))$$
-
 3. **Project**: logits $z_i = W_o\,h^L_i$, then $P(x_{i+1}\mid x_{\le i}) = \text{softmax}(z_i)$.
 
 ### Causal mask, made concrete
 
 The masked attention is the same scaled dot-product as before, with a $-\infty$ added to forbidden positions before the softmax:
-
-$$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}} + M\right) V,
-\quad M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}$$
-
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}} + M\right) V,
+\quad M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}
+$$
 The $-\infty$ becomes $0$ after softmax, so future tokens contribute nothing. The right panel above visualises this: each row is a query position, each column a key, and only the lower triangle (the past) is alive.
 
 ### Training objective
 
 Maximise the log-likelihood of the corpus — which is just per-position cross-entropy summed over the sequence:
-
 $$\mathcal{L} = -\sum_{i=1}^{n} \log P(x_i \mid x_1, \ldots, x_{i-1})$$
-
 That single loss, applied to terabytes of text, is the entire training story.
 
 ---
@@ -243,9 +239,7 @@ In panel (c) above the nucleus has 5 tokens because the top 5 already cover 85% 
 ### 4.5 Temperature
 
 Temperature $T$ rescales the logits *before* the softmax:
-
 $$P_T(w) = \text{softmax}(z / T)$$
-
 Panel (d) above shows the same logits at $T = 0.5$ and $T = 1.5$. Intuitively, $T$ controls how *peaky* the distribution is:
 
 - $T \to 0$: distribution collapses to a one-hot at the argmax (equivalent to greedy).
@@ -270,9 +264,7 @@ A practical rule of thumb: **top-$p$ = 0.9 with $T$ = 0.7-0.9** is the default f
 ![Scaling laws: loss decreases as a power law](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig3_scaling_laws.png)
 
 In 2020 Kaplan et al. discovered that test loss decreases as a *clean power law* in three quantities — model parameters $N$, dataset size $D$, and training compute $C$ — as long as none of the three is the bottleneck:
-
 $$L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N},\quad L(C) \approx \left(\frac{C_c}{C}\right)^{\alpha_C}$$
-
 with empirically tiny exponents ($\alpha_N \approx 0.076$, $\alpha_C \approx 0.050$). On log-log axes these become straight lines, which is why both panels above are linear. Two consequences:
 
 1. **You can predict** the loss of a 175 B-parameter model from runs at $\le 1$ B. This is what made the leap to GPT-3 economically defensible — the team knew, before spending millions of dollars on GPUs, roughly where the loss curve would land.
@@ -353,9 +345,7 @@ There is no perfect metric — but knowing which approximate metric to use, and 
 ### BLEU (translation)
 
 Measures n-gram precision of the generation against one or more references, with a brevity penalty:
-
 $$\text{BLEU} = \text{BP}\cdot\exp\!\left(\sum_{n=1}^{N} w_n \log p_n\right)$$
-
 ```python
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 def bleu(generated: str, reference: str) -> float:
@@ -380,9 +370,7 @@ def rouge(generated: str, reference: str) -> dict:
 ### Perplexity (intrinsic)
 
 How "surprised" the model is by held-out text. Lower is better:
-
 $$\text{PPL} = \exp\!\left(-\frac{1}{N}\sum_{i=1}^{N}\log P(w_i\mid w_{<i})\right)$$
-
 ```python
 def perplexity(model, tokenizer, text: str) -> float:
     enc = tokenizer(text, return_tensors="pt")

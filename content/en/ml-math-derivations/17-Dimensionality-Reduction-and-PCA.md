@@ -45,19 +45,13 @@ Feed a clustering algorithm $10{,}000$-dimensional data and it will most likely 
 ### 1.1 Two phenomena that break intuition
 
 **Volume concentrates near the surface.** The volume of a $d$-dimensional unit hyperball is
-
 $$V_d = \frac{\pi^{d/2}}{\Gamma(d/2 + 1)}$$
-
 What matters more than the constant is the *shape*: as $d$ grows, almost all of that volume sits in a thin shell at the surface. The fraction of volume inside radius $0.99$ is
-
 $$(0.99)^d \xrightarrow{d \to \infty} 0.$$
-
 For $d=100$ only about $36.6\%$ of the volume is inside that inner ball; for $d=1000$ it is essentially zero. Most of a high-dimensional ball is "skin".
 
 **Distances concentrate too.** For broad classes of distributions the ratio of the maximum to the minimum pairwise distance among i.i.d. samples converges to $1$:
-
 $$\frac{\max_{i \ne j}\|\mathbf{x}_i - \mathbf{x}_j\|}{\min_{i \ne j}\|\mathbf{x}_i - \mathbf{x}_j\|} \xrightarrow{d \to \infty} 1.$$
-
 When every point is roughly equidistant from every other, $k$-NN, kernel density, and clustering algorithms lose their grip. This is why preprocessing high-dimensional data through a learned low-dimensional representation is so often the single most useful step in a pipeline.
 
 ### 1.2 What dimensionality reduction is for
@@ -83,7 +77,6 @@ We can categorise the methods we will study:
 ### 2.1 Setup
 
 Given data $\{\mathbf{x}_1, \dots, \mathbf{x}_N\}$ with each $\mathbf{x}_i \in \mathbb{R}^d$, **centre** them by subtracting the sample mean $\bar{\mathbf{x}} = \tfrac{1}{N}\sum_i \mathbf{x}_i$. We will assume $\bar{\mathbf{x}} = \mathbf{0}$ from here on. Stack the samples as rows of $\mathbf{X} \in \mathbb{R}^{N \times d}$; the **sample covariance** is then
-
 $$\mathbf{S} = \frac{1}{N} \mathbf{X}^\top \mathbf{X} \in \mathbb{R}^{d \times d}.$$
 
 $\mathbf{S}$ is symmetric and positive semidefinite, so by the spectral theorem it has an orthonormal eigenbasis with non-negative eigenvalues.
@@ -91,17 +84,11 @@ $\mathbf{S}$ is symmetric and positive semidefinite, so by the spectral theorem 
 ### 2.2 The first principal component
 
 Look for the unit direction $\mathbf{w}_1 \in \mathbb{R}^d$ along which the projected data has the largest variance. The projections are scalars $z_i = \mathbf{w}_1^\top \mathbf{x}_i$ and (since the data is centred) their variance is
-
 $$\mathrm{Var}(z) = \frac{1}{N}\sum_{i=1}^{N} (\mathbf{w}_1^\top \mathbf{x}_i)^2 = \mathbf{w}_1^\top \mathbf{S}\, \mathbf{w}_1.$$
-
 Maximise this subject to $\mathbf{w}_1^\top \mathbf{w}_1 = 1$. The Lagrangian is
-
 $$\mathcal{L}(\mathbf{w}_1, \lambda_1) = \mathbf{w}_1^\top \mathbf{S}\, \mathbf{w}_1 - \lambda_1 (\mathbf{w}_1^\top \mathbf{w}_1 - 1).$$
-
 Setting $\partial \mathcal{L} / \partial \mathbf{w}_1 = 2\mathbf{S}\mathbf{w}_1 - 2\lambda_1 \mathbf{w}_1 = 0$ gives the **eigenvalue equation**
-
 $$\mathbf{S}\, \mathbf{w}_1 = \lambda_1\, \mathbf{w}_1, \tag{1}$$
-
 and the projected variance is exactly $\mathbf{w}_1^\top \mathbf{S}\, \mathbf{w}_1 = \lambda_1$. To maximise variance we therefore pick the eigenvector associated with the **largest** eigenvalue of $\mathbf{S}$.
 
 ![PCA on a 2D Gaussian cloud](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig1_pca_2d_gaussian.png)
@@ -111,9 +98,7 @@ The figure makes the geometry concrete on a correlated $2$D Gaussian cloud. In p
 ### 2.3 The full set of principal components
 
 Repeating the argument while requiring orthogonality to previously chosen directions gives the rest: the top $k$ principal components are the eigenvectors $\mathbf{w}_1, \dots, \mathbf{w}_k$ of $\mathbf{S}$ ordered by $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_k$. Stack them into the projection matrix
-
 $$\mathbf{W}_k = [\mathbf{w}_1, \dots, \mathbf{w}_k] \in \mathbb{R}^{d \times k},$$
-
 and the reduced representation of $\mathbf{x}_i$ is $\mathbf{z}_i = \mathbf{W}_k^\top \mathbf{x}_i \in \mathbb{R}^k$.
 
 ### 2.4 Choosing $k$ in practice
@@ -127,9 +112,7 @@ The **scree plot** shows the eigenvalues themselves. On data generated from a ra
 ![Cumulative variance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig3_cumulative_variance.png)
 
 The **cumulative variance ratio**
-
 $$R(k) \;=\; \frac{\sum_{i=1}^{k} \lambda_i}{\sum_{i=1}^{d} \lambda_i} \tag{2}$$
-
 is more decision-friendly: pick the smallest $k$ that crosses your retention target. On the UCI digits dataset (above), $90\%$ retention needs only $k=21$ out of $D=64$ features, $95\%$ needs $k=29$, and $99\%$ still only needs $k=41$. Almost two-thirds of the original features are redundant for representing the digit images.
 
 ```python
@@ -150,17 +133,11 @@ print(f"Components for 95% variance: {k_95}")
 There is a second, equally natural way to derive PCA. Forget variance for a moment; instead ask: among all rank-$k$ projections, which one **best approximates** the original data?
 
 Given an orthonormal $\mathbf{W}_k$, the rank-$k$ approximation of $\mathbf{x}_i$ is
-
 $$\hat{\mathbf{x}}_i = \mathbf{W}_k\, \mathbf{W}_k^\top \mathbf{x}_i,$$
-
 and the reconstruction error is
-
 $$J_{\mathrm{recon}}(\mathbf{W}_k) = \frac{1}{N} \sum_{i=1}^{N} \big\| \mathbf{x}_i - \mathbf{W}_k \mathbf{W}_k^\top \mathbf{x}_i \big\|^2.$$
-
 A short calculation (using $\mathrm{tr}(AB)=\mathrm{tr}(BA)$ and orthonormality of $\mathbf{W}_k$) gives the **variance decomposition**
-
 $$\underbrace{\mathrm{tr}(\mathbf{S})}_{\text{total variance}} \;=\; \underbrace{\mathrm{tr}(\mathbf{W}_k^\top \mathbf{S}\, \mathbf{W}_k)}_{\text{captured variance}} \;+\; \underbrace{J_{\mathrm{recon}}(\mathbf{W}_k)}_{\text{lost = reconstruction error}}. \tag{3}$$
-
 The total is fixed, so **maximising captured variance is exactly the same problem as minimising reconstruction error**. The two derivations land on the same eigenvalue equation (1), and the optimal $\mathbf{W}_k$ is the same matrix in both cases.
 
 ![Reconstruction quality vs k](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig4_reconstruction_vs_k.png)
@@ -180,21 +157,15 @@ Linear PCA can only ever rotate and project; it cannot bend. If the data lies on
 ### 4.2 PCA in feature space
 
 Apply the [kernel trick](/en/ml-math-derivations/08-support-vector-machines): map each point through a feature map $\phi: \mathbb{R}^d \to \mathcal{H}$ into a (possibly infinite-dimensional) feature space, and do PCA there. We never form $\phi$ explicitly; we only need inner products
-
 $$k(\mathbf{x}_i, \mathbf{x}_j) = \phi(\mathbf{x}_i)^\top \phi(\mathbf{x}_j).$$
-
 Common choices:
 - **Polynomial:** $k(\mathbf{x}, \mathbf{y}) = (\mathbf{x}^\top \mathbf{y} + c)^p$
 - **RBF (Gaussian):** $k(\mathbf{x}, \mathbf{y}) = \exp(-\gamma \|\mathbf{x} - \mathbf{y}\|^2)$
 
 Form the $N \times N$ Gram matrix $K_{ij} = k(\mathbf{x}_i, \mathbf{x}_j)$, centre it in feature space via
-
 $$\tilde{\mathbf{K}} = \mathbf{K} - \mathbf{1}_N \mathbf{K} - \mathbf{K}\,\mathbf{1}_N + \mathbf{1}_N \mathbf{K}\,\mathbf{1}_N, \qquad \mathbf{1}_N = \tfrac{1}{N}\mathbf{1}\mathbf{1}^\top,$$
-
 and eigendecompose $\tilde{\mathbf{K}}\, \boldsymbol{\alpha}_k = N \tilde{\lambda}_k\, \boldsymbol{\alpha}_k$. The $k$-th feature-space PC of a new point $\mathbf{x}$ is
-
 $$z_k(\mathbf{x}) = \sum_{i=1}^{N} \alpha_{k,i}\, k(\mathbf{x}_i, \mathbf{x}).$$
-
 ![Kernel PCA on a swiss roll](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig6_kernel_pca_swissroll.png)
 
 The Swiss roll is the canonical illustration. The original $3$D manifold is a $2$D sheet rolled up in space; colour encodes position along the sheet. Linear PCA (middle) projects the roll onto a flat plane, **folding distant parts of the manifold on top of each other** — yellow ends up next to red. Kernel PCA with an RBF kernel (right) effectively performs PCA in the high-dimensional feature space where the roll becomes more linear, and unrolls the sheet so neighbouring colours end up next to each other in $2$D.
@@ -210,23 +181,15 @@ PCA ignores labels. If your downstream task is classification, this is wasteful:
 ### 5.1 Two-class derivation
 
 With two classes $C_1, C_2$ of sizes $N_1, N_2$ and class means $\boldsymbol{\mu}_1, \boldsymbol{\mu}_2$, define
-
 $$\mathbf{S}_B = (\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)^\top \quad \text{(between-class scatter)}$$$$\mathbf{S}_W = \sum_{c=1}^{2} \sum_{i \in C_c}(\mathbf{x}_i - \boldsymbol{\mu}_c)(\mathbf{x}_i - \boldsymbol{\mu}_c)^\top \quad \text{(within-class scatter)}$$
-
 Maximise **Fisher's criterion** — the ratio of the projected between-class to within-class variance:
-
 $$J(\mathbf{w}) = \frac{\mathbf{w}^\top \mathbf{S}_B\, \mathbf{w}}{\mathbf{w}^\top \mathbf{S}_W\, \mathbf{w}}. \tag{4}$$
-
 Setting $\nabla J = 0$ gives the generalised eigenvalue problem $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$; using the rank-$1$ structure of $\mathbf{S}_B$ this collapses to the closed form
-
 $$\mathbf{w}^* \propto \mathbf{S}_W^{-1}(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2). \tag{5}$$
-
 ### 5.2 Multi-class
 
 For $C$ classes, generalise $\mathbf{S}_B$ with the global mean $\boldsymbol{\mu}$:
-
 $$\mathbf{S}_B = \sum_{c=1}^{C} N_c\, (\boldsymbol{\mu}_c - \boldsymbol{\mu})(\boldsymbol{\mu}_c - \boldsymbol{\mu})^\top.$$
-
 Solve $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$ for the top eigenvectors. Because $\mathbf{S}_B$ is a sum of $C$ rank-$1$ matrices whose summands are constrained by $\sum_c N_c (\boldsymbol{\mu}_c - \boldsymbol{\mu}) = 0$, $\mathrm{rank}(\mathbf{S}_B) \le C - 1$ — so **LDA can output at most $C - 1$ components**. This is a hard ceiling that is easy to forget in practice.
 
 ### 5.3 PCA vs LDA at a glance
@@ -249,25 +212,19 @@ PCA preserves *global* structure (variance, distances); for $2$D visualisation t
 ### 6.1 High-dimensional similarities
 
 For each pair $(i, j)$ define a symmetric similarity from per-point Gaussians:
-
 $$p_{j \mid i} = \frac{\exp(-\|\mathbf{x}_i - \mathbf{x}_j\|^2 / 2\sigma_i^2)}{\sum_{k \ne i} \exp(-\|\mathbf{x}_i - \mathbf{x}_k\|^2 / 2\sigma_i^2)}, \qquad p_{ij} = \frac{p_{j \mid i} + p_{i \mid j}}{2N}.$$
-
 The bandwidth $\sigma_i$ is set per point by binary search so that the **perplexity**, $2^{H(P_i)}$, matches a user-chosen value — effectively the number of effective neighbours each point should have.
 
 ### 6.2 Low-dimensional similarities and the heavy tail
 
 In the embedding space use a Student-$t$ (Cauchy) kernel:
-
 $$q_{ij} = \frac{(1 + \|\mathbf{y}_i - \mathbf{y}_j\|^2)^{-1}}{\sum_{k \ne l}(1 + \|\mathbf{y}_k - \mathbf{y}_l\|^2)^{-1}}. \tag{6}$$
-
 Why a heavy tail? In $2$D there is far less "room" than in the original space, so moderately distant points have to crowd together. The Cauchy distribution decays as $\|y\|^{-2}$ instead of the Gaussian's $\exp(-\|y\|^2)$, which gives those distant points more space to spread out — this is the **crowding problem** fix.
 
 ### 6.3 Optimisation
 
 Minimise $C = \mathrm{KL}(P \,\|\, Q) = \sum_{i \ne j} p_{ij} \log (p_{ij}/q_{ij})$. The gradient has a clean physical reading:
-
 $$\frac{\partial C}{\partial \mathbf{y}_i} = 4\sum_{j}(p_{ij} - q_{ij})(1 + \|\mathbf{y}_i - \mathbf{y}_j\|^2)^{-1}(\mathbf{y}_i - \mathbf{y}_j). \tag{7}$$
-
 If $p_{ij} > q_{ij}$ the term is **attractive** (the points are similar in the original space but too far apart in the embedding); if $p_{ij} < q_{ij}$ it is **repulsive**.
 
 ![PCA vs LDA vs t-SNE](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig5_pca_lda_tsne.png)
@@ -283,9 +240,7 @@ The figure runs all three methods on the digits dataset. PCA (left) packs the va
 PCA finds **orthogonal** directions of maximum variance. Two PCA components are uncorrelated — but uncorrelated is much weaker than independent. If the underlying signals are truly independent and non-Gaussian, you can recover them with **Independent Component Analysis (ICA)**.
 
 The classical setup is the **cocktail-party problem**: $K$ microphones record linear mixtures of $K$ independent sources
-
 $$\mathbf{x} = A\, \mathbf{s},$$
-
 and you want to recover $\mathbf{s}$ given only $\mathbf{x}$ and the assumption that the $s_j$ are mutually independent and at most one of them is Gaussian. ICA solves this by finding an unmixing matrix $W$ that maximises the **non-Gaussianity** of the recovered components $\mathbf{y} = W\mathbf{x}$ — typically via a contrast function such as negentropy or kurtosis. The intuition is the central limit theorem: any linear mixture of independent variables is "more Gaussian" than the variables themselves, so the un-mixed components should be the *least* Gaussian directions you can find.
 
 ![ICA vs PCA on source separation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA/fig7_ica_vs_pca.png)

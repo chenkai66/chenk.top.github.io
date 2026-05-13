@@ -101,9 +101,7 @@ Every GNN, however dressed up, is a variation of the same three-step recipe:
 3. **Update.** The target blends the aggregate with its own previous state.
 
 Formally, at layer $l$, node $v$ updates as:
-
 $$\mathbf{m}_v^{(l)} = \mathrm{AGGREGATE}^{(l)}\!\bigl(\{\mathbf{h}_u^{(l-1)} : u\in\mathcal{N}(v)\}\bigr)$$$$\mathbf{h}_v^{(l)} = \mathrm{UPDATE}^{(l)}\!\bigl(\mathbf{h}_v^{(l-1)},\; \mathbf{m}_v^{(l)}\bigr)$$
-
 In plain English: *"Look at what your neighbours know, summarise it, then blend it with what you already know."* Stack $L$ layers and each node sees its $L$-hop neighbourhood.
 
 **Telephone analogy.** Imagine a game of telephone where every person whispers to all their friends simultaneously. After one round you know what your friends think; after two, what your friends' friends think. GNNs do exactly that with learned, differentiable functions.
@@ -121,9 +119,7 @@ GCN (Kipf & Welling, 2017) defines a convolution-like operation on graphs. Just 
 ### The GCN Layer
 
 A single GCN layer computes:
-
 $$\mathbf{H}^{(l+1)} = \sigma\!\Bigl(\tilde{D}^{-1/2}\, \tilde{A}\, \tilde{D}^{-1/2}\, \mathbf{H}^{(l)}\, \mathbf{W}^{(l)}\Bigr)$$
-
 That looks dense. Here is what each piece does:
 
 | Symbol | Meaning |
@@ -136,9 +132,7 @@ That looks dense. Here is what each piece does:
 | $\sigma$ | Nonlinearity, typically ReLU |
 
 For a single node $v$ this unfolds to:
-
 $$\mathbf{h}_v^{(l+1)} = \sigma\!\left(\sum_{u\in\mathcal{N}(v)\cup\{v\}} \frac{1}{\sqrt{d_v\,d_u}}\; \mathbf{h}_u^{(l)}\, \mathbf{W}^{(l)}\right)$$
-
 1. **Gather** the embeddings of all neighbours (plus yourself).
 2. **Normalise** each contribution by $1/\sqrt{d_v\cdot d_u}$ — popular nodes are scaled down so they do not shout over everyone else.
 3. **Transform** with a shared weight matrix $\mathbf{W}$.
@@ -237,25 +231,17 @@ GCN treats every neighbour equally (up to degree normalisation). But not all nei
 ### How GAT Works
 
 For each edge from $j$ to $i$, GAT computes an attention logit:
-
 $$e_{ij} = \mathrm{LeakyReLU}\!\bigl(\mathbf{a}^\top [\mathbf{W}\mathbf{h}_i \,\|\, \mathbf{W}\mathbf{h}_j]\bigr)$$
-
 where $\mathbf{W}$ projects node features into a shared space, $\|$ is concatenation, and $\mathbf{a}$ is a learnable attention vector. Logits are normalised across neighbours with softmax:
-
 $$\alpha_{ij} = \frac{\exp(e_{ij})}{\sum_{k\in\mathcal{N}(i)} \exp(e_{ik})}$$
-
 The updated embedding is a weighted sum:
-
 $$\mathbf{h}_i^{(l+1)} = \sigma\!\left(\sum_{j\in\mathcal{N}(i)\cup\{i\}} \alpha_{ij}\, \mathbf{W}^{(l)}\, \mathbf{h}_j^{(l)}\right)$$
-
 In plain English: *"For each neighbour, learn how relevant they are to me, then take a weighted average of their features."*
 
 ### Multi-Head Attention
 
 As in Transformers, GAT uses multiple heads to stabilise learning. Each head computes its own attention and aggregation; results are concatenated (intermediate layers) or averaged (final layer):
-
 $$\mathbf{h}_i^{(l+1)} = \big\|_{k=1}^{K}\; \sigma\!\left(\sum_{j\in\mathcal{N}(i)\cup\{i\}} \alpha_{ij}^{(k)}\, \mathbf{W}^{(k)}\, \mathbf{h}_j^{(l)}\right)$$
-
 ### Implementation: GAT Layer
 
 ```python
@@ -316,14 +302,12 @@ GraphSAGE has two key ideas:
 2. **Learned aggregation.** Apply a trainable function (mean, LSTM, max-pool) to the sampled neighbours.
 
 For node $v$ at layer $l$:
-
 $$\mathbf{h}_{\mathcal{N}(v)}^{(l)} = \mathrm{AGGREGATE}^{(l)}\!\bigl(\{\mathbf{h}_u^{(l-1)} : u\in\mathcal{N}_{\text{sampled}}(v)\}\bigr)$$$$\mathbf{h}_v^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}\cdot[\mathbf{h}_v^{(l-1)} \,\|\, \mathbf{h}_{\mathcal{N}(v)}^{(l)}]\bigr)$$
-
 In plain English: *"Sample some neighbours, summarise their features, concatenate with your own, push through a linear layer."*
 
 | Aggregator | How it works |
 |---|---|
-| **Mean** | Average neighbour embeddings: $\tfrac{1}{|\mathcal{N}|}\sum_u \mathbf{h}_u$ |
+| **Mean** | Average neighbour embeddings: $\tfrac{1}{\lvert \mathcal{N}\rvert}\sum_u \mathbf{h}_u$ |
 | **Max-pool** | Element-wise max after a shared MLP: $\max(\sigma(\mathbf{W}_{\text{pool}}\mathbf{h}_u + \mathbf{b}))$ |
 | **LSTM** | Run an LSTM over neighbours (order-sensitive) |
 
@@ -376,9 +360,7 @@ Instead of sampling neighbours uniformly, PinSage runs short random walks from e
 ### 2. Importance-Weighted Aggregation
 
 Neighbour features are weighted by random-walk visit counts:
-
 $$\mathbf{h}_v^{(l)} = \sigma\!\Bigl(\mathbf{W}^{(l)}\cdot \bigl[\mathbf{h}_v^{(l-1)} \,\big\|\, \mathrm{AGG}\bigl(\{\alpha_{uv}\, \mathbf{h}_u^{(l-1)} : u\in\mathcal{N}_{\text{top-}k}(v)\}\bigr)\bigr]\Bigr)$$
-
 ### 3. Hard Negative Mining
 
 During training, PinSage samples *hard negatives* — items that score high but are not actual positives. This forces the model to make finer distinctions instead of just separating obviously irrelevant items from positives.
@@ -461,15 +443,11 @@ The answer, on collaborative filtering, is **it works better.** The graph struct
 ### Architecture
 
 LightGCN uses the simplest possible aggregation:
-
 $$\mathbf{e}_u^{(l+1)} = \sum_{i\in\mathcal{N}(u)} \frac{1}{\sqrt{|\mathcal{N}(u)|\cdot|\mathcal{N}(i)|}}\; \mathbf{e}_i^{(l)}$$$$\mathbf{e}_i^{(l+1)} = \sum_{u\in\mathcal{N}(i)} \frac{1}{\sqrt{|\mathcal{N}(u)|\cdot|\mathcal{N}(i)|}}\; \mathbf{e}_u^{(l)}$$
-
 In plain English: *"Average your neighbours' embeddings (normalised by degrees). No activation, no weight matrix. That is one layer."*
 
 The final embedding combines all layers:
-
 $$\mathbf{e}_u = \sum_{l=0}^{L} \alpha_l\, \mathbf{e}_u^{(l)}, \qquad \mathbf{e}_i = \sum_{l=0}^{L} \alpha_l\, \mathbf{e}_i^{(l)}$$
-
 with $\alpha_l = \tfrac{1}{L+1}$ (equal weighting). Layer 0 is the raw embedding, layer 1 is one-hop, layer 2 is two-hop, and so on. Combining them gives a multi-scale representation without committing to a single depth.
 
 ### Why It Works
@@ -545,15 +523,11 @@ NGCF (Wang et al., 2019) takes the opposite philosophy: explicit feature transfo
 ### Message Construction
 
 At each layer, messages include a **feature interaction** term:
-
 $$\mathbf{m}_{u\leftarrow i} = \frac{1}{\sqrt{|\mathcal{N}(u)|\cdot|\mathcal{N}(i)|}}\;\bigl(\mathbf{W}_1\, \mathbf{e}_i^{(l)} + \mathbf{W}_2\, (\mathbf{e}_i^{(l)} \odot \mathbf{e}_u^{(l)})\bigr)$$
-
 The $\odot$ (element-wise product) captures how user and item features interact. If a user dimension is high for "action" and the item dimension is high for the same, the product amplifies the signal.
 
 After aggregation:
-
 $$\mathbf{e}_u^{(l+1)} = \mathrm{LeakyReLU}\!\bigl(\mathbf{m}_{u\leftarrow u} + \sum_{i\in\mathcal{N}(u)} \mathbf{m}_{u\leftarrow i}\bigr)$$
-
 ### Implementation: NGCF
 
 ```python
@@ -788,9 +762,7 @@ class NeighborSampler:
 ### BPR Loss (Bayesian Personalised Ranking)
 
 The default loss for implicit-feedback recommendation:
-
 $$\mathcal{L}_{\text{BPR}} = -\sum_{(u,i,j)} \ln\, \sigma(\hat{r}_{ui} - \hat{r}_{uj}) + \lambda \|\Theta\|^2$$
-
 In plain English: *"For each user $u$, make the score of a positive item $i$ (one they interacted with) higher than a negative item $j$ (one they did not). The sigmoid and log turn this into a smooth, differentiable objective."*
 
 - $(u,i,j)$ = (user, positive item, negative item) triplet
@@ -1008,9 +980,9 @@ See the cold-start figure above for the inductive case.
 
 | Model | Forward pass | Memory |
 |---|---|---|
-| GCN / LightGCN | $O(L\cdot|E|\cdot d)$ | $O(|V|\cdot d + |E|)$ |
-| GAT | $O(L\cdot|E|\cdot d\cdot H)$ | $O(|V|\cdot d\cdot H + |E|)$ |
-| GraphSAGE (sampled) | $O(L\cdot|V|\cdot k\cdot d)$ | $O(|V|\cdot d + k\cdot|V|)$ |
+| GCN / LightGCN | $O(L\cdot\lvert E\rvert\cdot d)$ | $O(\lvert V\rvert\cdot d + \lvert E\rvert)$ |
+| GAT | $O(L\cdot\lvert E\rvert\cdot d\cdot H)$ | $O(\lvert V\rvert\cdot d\cdot H + \lvert E\rvert)$ |
+| GraphSAGE (sampled) | $O(L\cdot\lvert V\rvert\cdot k\cdot d)$ | $O(\lvert V\rvert\cdot d + k\cdot\lvert V\rvert)$ |
 
 with $L$ = layers, $|E|$ = edges, $d$ = embedding dim, $H$ = attention heads, $k$ = sampled neighbours. For graphs with billions of edges, sampling (GraphSAGE, PinSage) or subgraph partitioning (Cluster-GCN) is mandatory.
 

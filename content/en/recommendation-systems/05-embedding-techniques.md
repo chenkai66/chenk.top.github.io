@@ -99,20 +99,16 @@ Item2Vec (Barkan & Koenigstein, 2016) is the trivial-looking but powerful adapta
 ### 2.2 The Skip-gram objective, derived
 
 Given a sequence $S = [i_1, i_2, \dots, i_T]$ and a window size $c$, Skip-gram maximises the log-probability of seeing each context item given its centre:
-
 $$\mathcal{L} \;=\; \sum_{t=1}^{T} \;\sum_{\substack{-c \le j \le c \\ j \ne 0}} \log p\!\left(i_{t+j}\,\middle|\,i_t\right).$$
-
 The naïve probability is a softmax over the whole catalogue:
-
 $$p\!\left(i_{t+j}\,\middle|\,i_t\right) \;=\; \frac{\exp\!\left(\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_{t+j}}\right)}{\displaystyle\sum_{k=1}^{|\mathcal{I}|} \exp\!\left(\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{k}\right)}.$$
-
 Here $\mathbf{e}_i$ is the **input** (centre) embedding and $\mathbf{e}'_i$ is the **output** (context) embedding. Two sets of vectors per item — a small surprise the first time you see it.
 
 Computing that denominator over millions of items is unworkable. **Negative sampling** replaces it with a binary classification problem: for each true (centre, context) pair, sample $K$ random "noise" items and ask the model to discriminate them. The objective becomes
-
-$$\mathcal{L} \;=\; \sum_{(i_t,\,i_c)} \!\left[\, \log\sigma(\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_c})
-\;+\; \sum_{k=1}^{K} \mathbb{E}_{i_k \sim P_n}\!\big[\log\sigma(-\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_k})\big]\right],$$
-
+$$
+\mathcal{L} \;=\; \sum_{(i_t,\,i_c)} \!\left[\, \log\sigma(\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_c})
+\;+\; \sum_{k=1}^{K} \mathbb{E}_{i_k \sim P_n}\!\big[\log\sigma(-\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_k})\big]\right],
+$$
 where $\sigma$ is the sigmoid. The noise distribution $P_n$ is the unigram frequency raised to the $3/4$ power — a famous Mikolov heuristic that nudges rarer items into the negative pool more than pure frequency would.
 
 ![Item2Vec Skip-gram architecture: a sliding context window selects a centre item, an embedding lookup produces a vector, and the model contrasts the positive context items against K negatives sampled from the 3/4-power unigram distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig2_item2vec_skipgram.png)
@@ -296,13 +292,14 @@ Node2Vec (Grover & Leskovec, 2016) takes a graph and produces "sentences" by wal
 > **Analogy.** Imagine exploring a city. BFS-style is "every shop on this street, then the next street" — you map out one neighbourhood thoroughly. DFS-style is "follow the main road for ten kilometres" — you discover how neighbourhoods connect to each other. Node2Vec lets you dial between the two.
 
 Two parameters do the work. After arriving at node $v$ from $t$, the unnormalised probability of moving to a neighbour $x$ is
-
-$$\alpha_{p, q}(t, x) \;=\;
+$$
+\alpha_{p, q}(t, x) \;=\;
 \begin{cases}
 1/p & \text{if } d_{t,x} = 0 \;\;\text{(go back to } t\text{)} \\
 1   & \text{if } d_{t,x} = 1 \;\;\text{(}x\text{ is also a neighbour of } t\text{)} \\
 1/q & \text{if } d_{t,x} = 2 \;\;\text{(}x\text{ is one step further away)}
-\end{cases}$$
+\end{cases}
+$$
 
 | Setting | Walk behaviour | Captures |
 |---|---|---|
@@ -426,11 +423,11 @@ def co_occurrence_graph(interactions, min_jaccard=0.1, max_users=None):
 Concatenate user features with item features, push them through a single network, get a score. Why not? **Because at serving time you would have to run the network for every (user, candidate) pair.** With ten million candidates that is ten million forward passes per request.
 
 Two-tower architectures factor the model into a **user tower** $f_u(\mathbf{x}_u)$ and an **item tower** $f_i(\mathbf{x}_i)$, then predict with a similarity function — usually cosine — on the two outputs:
-
-$$\mathbf{e}_u = f_u(\mathbf{x}_u; \theta_u), \qquad
+$$
+\mathbf{e}_u = f_u(\mathbf{x}_u; \theta_u), \qquad
 \mathbf{e}_i = f_i(\mathbf{x}_i; \theta_i), \qquad
-s(u, i) = \cos(\mathbf{e}_u, \mathbf{e}_i).$$
-
+s(u, i) = \cos(\mathbf{e}_u, \mathbf{e}_i).
+$$
 > **Analogy.** Think of a dating app. One tower writes everyone's profile; the other tower writes everyone's "what I look for" preferences. At match time you just compare profiles — you do not re-run the matching algorithm from scratch for every potential pair.
 
 The architectural payoff is enormous:

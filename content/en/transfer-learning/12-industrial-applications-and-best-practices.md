@@ -464,9 +464,7 @@ Offline metrics (accuracy, F1, AUC) are necessary but not sufficient. The model 
 **Sample size calculation:**
 
 To detect a 2% relative improvement in conversion rate (e.g., from 10% to 10.2%) with 80% power and 5% significance:
-
 $$n = \frac{2 (Z_{\alpha/2} + Z_\beta)^2 \bar{p} (1 - \bar{p})}{(\Delta p)^2}$$
-
 where $\bar{p} = 0.10$, $\Delta p = 0.002$, $Z_{\alpha/2} = 1.96$, $Z_\beta = 0.84$. This gives $n \approx 30{,}000$ users per group.
 
 ### 7.2 Iterating Based on User Feedback

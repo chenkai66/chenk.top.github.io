@@ -65,21 +65,15 @@ There are several equivalent models of hyperbolic geometry: the Poincaré ball, 
 ### 3.1 The hyperboloid
 
 Define the Lorentzian inner product on $\mathbb{R}^{d+1}$:
-
 $$\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \;=\; -x_0 y_0 + \sum_{i=1}^{d} x_i y_i.$$
-
 The hyperboloid (curvature $c = -1$ for simplicity) is the upper sheet:
-
 $$\mathbb{H}^d \;=\; \bigl\{\, \mathbf{x} \in \mathbb{R}^{d+1} \;:\; \langle \mathbf{x}, \mathbf{x} \rangle_{\mathcal{L}} = -1,\; x_0 > 0 \,\bigr\}.$$
-
 Concretely, an embedding is a $(d+1)$-vector that lives on this curved surface. The "extra" dimension is the price you pay to write hyperbolic operations as clean linear algebra in an ambient Euclidean space.
 
 ### 3.2 Distance
 
 The Lorentz distance is
-
 $$d_{\mathcal{L}}(\mathbf{x}, \mathbf{y}) \;=\; \mathrm{arcosh}\!\bigl( -\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \bigr).$$
-
 The key qualitative fact: $d_{\mathcal{L}}$ grows roughly like $\mathrm{arcosh}$ of an inner product that itself can grow exponentially with how far points are pushed up the hyperboloid. So distances expand fast, which is exactly what we want when we are trying to keep an exponentially branching tree apart.
 
 ### 3.3 Tangent space, exp and log
@@ -106,9 +100,7 @@ Three things are happening in parallel:
 ### 4.1 Hyperbolic GNN aggregation
 
 In a vanilla GAT-style aggregator you would do $\mathbf{h}_i = \sigma\!\bigl(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} W \mathbf{h}_j\bigr)$. You cannot sum points on the hyperboloid directly: their sum doesn't lie on the manifold. HCGR does the obvious workaround:
-
 $$\mathbf{h}_i^{(l+1)} \;=\; \exp_{\mathbf{o}}\!\Biggl( \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^{(l)} \, \log_{\mathbf{o}}\!\bigl(\mathbf{h}_j^{(l)}\bigr) \Biggr).$$
-
 Read it from inside out: bring neighbours into the tangent space, attention-weighted-sum them there, exp them back. Attention weights $\alpha_{ij}$ are computed from the tangent vectors with the standard GAT trick (a learned linear layer on concatenated features, softmax over neighbours).
 
 A separate parallel-transport step is needed if you want to move tangent vectors between different base points — HCGR uses it to keep multi-layer aggregation consistent — but conceptually nothing changes.
@@ -116,9 +108,7 @@ A separate parallel-transport step is needed if you want to move tangent vectors
 ### 4.2 Non-linearity that respects curvature
 
 Plain ReLU on a hyperboloid coordinate vector is meaningless. HCGR threads the activation through the tangent map of one layer's curvature and the exp map of the next layer's:
-
 $$\sigma_{\mathbb{H}}^{l \to l+1}(\mathbf{x}) \;=\; \exp_{\mathbf{o}}^{c_{l+1}}\!\Bigl(\, \sigma\!\bigl(\, \log_{\mathbf{o}}^{c_l}(\mathbf{x})\,\bigr)\, \Bigr).$$
-
 This is the standard "tangent-space activation" pattern from hyperbolic neural networks. It lets you stack layers with different curvatures while keeping every intermediate state on a valid manifold.
 
 ## 5. The contrastive auxiliary
@@ -139,17 +129,13 @@ Two independent augmentations of $G_s$ produce views $G_s^a$ and $G_s^b$. Both a
 ### 5.2 InfoNCE in hyperbolic space
 
 The contrastive loss is the standard InfoNCE form, but with similarity defined through hyperbolic distance:
-
 $$\mathcal{L}_{\mathrm{cl}} \;=\; -\, \log \frac{\exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b) / \tau \bigr)}{\sum_{k} \exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b_k) / \tau \bigr)},$$
-
 where $\mathrm{sim}(\mathbf{u}, \mathbf{v}) = -\, d_{\mathcal{L}}(\mathbf{u}, \mathbf{v})$ (or, for stability, an inner product in the tangent space at $\mathbf{o}$) and $\tau$ is the InfoNCE temperature. The denominator runs over all sessions in the mini-batch, treating other sessions as negatives.
 
 ### 5.3 Total objective
 
 The recommendation cross-entropy and contrastive auxiliary are simply added:
-
 $$\mathcal{L} \;=\; \mathcal{L}_{\mathrm{rec}} \;+\; \lambda \, \mathcal{L}_{\mathrm{cl}}.$$
-
 A typical $\lambda$ is small (0.05–0.2). The contrastive loss is *regularising* the encoder, not replacing the supervision; making it too large hurts ranking quality.
 
 ## 6. Distance and dimension: the capacity argument

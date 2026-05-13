@@ -54,9 +54,7 @@ The idea is one paragraph. The engineering is the rest of this article. A real R
 ![End-to-end RAG pipeline showing offline indexing and online query path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig1_rag_pipeline.png)
 
 A RAG system answers a query $q$ by marginalising over a small set of retrieved documents $\mathcal{D}_k$:
-
 $$P(y \mid q) \;=\; \sum_{d \in \mathcal{D}_k}\; \underbrace{P(d \mid q)}_{\text{retriever}}\; \cdot \; \underbrace{P(y \mid q, d)}_{\text{generator}}$$
-
 In practice we approximate the sum two ways. The cheap and dominant approach (**stuff** in LangChain terms) concatenates the top-$k$ documents into the LLM context and lets attention do the marginalisation implicitly. The principled but expensive approach (**Fusion-in-Decoder**, used in Atlas and the original RAG paper) encodes each $(q,d)$ pair separately and fuses in the decoder. For most production systems, stuff with $k\in[3,8]$ and a good reranker is the right answer.
 
 This factorisation is what makes RAG attractive:
@@ -128,9 +126,7 @@ RAG shines when the knowledge is **large, volatile, or auditable**: docs that ch
 ![Vector similarity in embedding space and recall vs latency for FAISS index families](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig2_vector_similarity.png)
 
 A bi-encoder $E_\theta:\text{text}\to\mathbb{R}^d$ maps query and document into the same space. Retrieval is then a nearest-neighbour search under cosine similarity:
-
 $$\operatorname{sim}(q,d) \;=\; \frac{E_\theta(q)\cdot E_\theta(d)}{\lVert E_\theta(q)\rVert \, \lVert E_\theta(d)\rVert}.$$
-
 Exact search costs $O(N d)$ per query — fine at $10^5$, painful at $10^7$, impossible at $10^9$. Approximate Nearest Neighbour (ANN) indexes give up exactness for orders of magnitude in latency. The two families that dominate production:
 
 - **HNSW** (Hierarchical Navigable Small World) — a multi-layer proximity graph. Greedy descent from a top-layer entry point converges in $O(\log N)$ hops. Tunables: $M$ (graph degree, memory) and $\textit{efSearch}$ (beam width, recall vs latency). Sweet spot for most RAG workloads.
@@ -159,10 +155,10 @@ The right panel of the figure shows the Pareto frontier on a 1 M × 768-d corpus
 Dense retrieval understands paraphrase but loses to BM25 on three classes of query: rare named entities (`CVE-2024-3094`), exact identifiers (`order #482915`), and queries shorter than the embedding model's effective receptive field. Sparse retrieval is the opposite: literal but blind to synonyms.
 
 **BM25** scores a document $d$ for query $q$ as
-
-$$\operatorname{BM25}(q,d) \;=\; \sum_{t \in q} \operatorname{IDF}(t)\cdot
-\frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\!\left(1-b+b\,\frac{|d|}{\overline{|d|}}\right)}$$
-
+$$
+\operatorname{BM25}(q,d) \;=\; \sum_{t \in q} \operatorname{IDF}(t)\cdot
+\frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\!\left(1-b+b\,\frac{|d|}{\overline{|d|}}\right)}
+$$
 with $k_1\!\approx\!1.2$, $b\!\approx\!0.75$. The IDF term rewards rare matches; the length-normalisation term prevents long documents from dominating.
 
 ```python
@@ -186,9 +182,7 @@ class BM25Retriever:
 ### Why RRF beats linear blending
 
 The naïve approach $\alpha\cdot s_\text{dense} + (1-\alpha)\cdot s_\text{sparse}$ requires the two scores to be on commensurate scales, which they emphatically are not — BM25 scores are unbounded, cosine sits in $[-1,1]$. **Reciprocal Rank Fusion** (Cormack et al., 2009) sidesteps the calibration problem by working on *ranks*:
-
 $$\operatorname{RRF}(d) \;=\; \sum_{r \in R} \frac{1}{k + \operatorname{rank}_r(d)}, \qquad k \!=\! 60.$$
-
 The constant $k=60$ damps the contribution of any single retriever's top result, so a document that lands at rank 1 in *both* lists outranks one that is rank 1 in only one. The bottom-right panel of the figure shows the typical lift on heterogeneous query mixes: BM25-only ≈ 54, dense-only ≈ 62, RRF ≈ 71, RRF + cross-encoder rerank ≈ 78.
 
 ```python

@@ -58,9 +58,7 @@ By the end, you should be able to read any modern CTR paper, sketch its architec
 ### What Is CTR Prediction?
 
 CTR prediction is **binary classification with extreme structure**. Given a user, an item, and the surrounding context, we estimate the probability of a click.
-
 $$P(y = 1 \mid \mathbf{x}) \quad\text{where } y \in \{0, 1\},\;\; 1 = \text{click}.$$
-
 The feature vector $\mathbf{x}$ is the concatenation of three families:
 
 | Family | Examples |
@@ -108,15 +106,11 @@ Despite living next to giant neural networks in production, Logistic Regression 
 ### How It Works
 
 LR models the click probability as a single linear scoring function passed through a sigmoid:
-
 $$P(y = 1 \mid \mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b) = \frac{1}{1 + e^{-(\mathbf{w}^\top \mathbf{x} + b)}}.$$
-
 > **Plain English:** "Take a weighted sum of every feature, add a bias, then squash to $[0, 1]$."
 
 We train it by minimising binary cross-entropy:
-
 $$\mathcal{L} = -\frac{1}{N} \sum_{i=1}^{N} \big[ y_i \log \hat{y}_i + (1 - y_i) \log(1 - \hat{y}_i) \big].$$
-
 ### Why LR Is Both Beloved and Insufficient
 
 The geometry tells the whole story. LR can only learn a hyperplane in feature space. Any pattern that requires "feature A is good *only when* feature B is also active" is invisible to it. The classic illustration is XOR-shaped click behaviour:
@@ -192,21 +186,15 @@ Steffen Rendle's 2010 Factorization Machines were the first model that made auto
 A naive "interaction-aware LR" would learn a separate weight $w_{ij}$ for every pair of features. With $d$ features that is $O(d^2)$ parameters — and most pairs are *never observed together* in the training set, so they cannot be learned anyway.
 
 FM replaces the per-pair weight with the dot product of two learnable vectors:
-
 $$w_{ij} \approx \langle \mathbf{v}_i, \mathbf{v}_j \rangle = \sum_{f=1}^{k} v_{i,f} \, v_{j,f}.$$
-
 > **Analogy.** Imagine 1,000 movies. Storing a weight for every pair needs a million numbers, most never observed. Instead, give each movie a $k$-dimensional "personality vector". Two movies interact strongly iff their vectors point similarly. We now have $1000 \cdot k$ numbers, and we can predict an interaction even for a pair we have *never seen together* — because each vector was learned from many other co-occurrences.
 
 That last property — generalisation to unseen pairs — is the real magic. It is why FM still works on extreme sparsity where decision trees and linear models stall.
 
 ### Mathematical Formulation
-
 $$\hat{y}(\mathbf{x}) = \underbrace{w_0}_{\text{bias}} + \underbrace{\sum_{i=1}^{d} w_i x_i}_{\text{linear}} + \underbrace{\sum_{i=1}^{d} \sum_{j=i+1}^{d} \langle \mathbf{v}_i, \mathbf{v}_j \rangle x_i x_j}_{\text{pairwise interactions}}.$$
-
 The interaction term *looks* $O(d^2)$ but admits a beautiful $O(k \cdot d)$ closed form:
-
 $$\sum_{i<j} \langle \mathbf{v}_i, \mathbf{v}_j \rangle x_i x_j = \frac{1}{2} \left[ \left(\sum_i \mathbf{v}_i x_i \right)^2 - \sum_i (\mathbf{v}_i x_i)^2 \right].$$
-
 > **Why this works.** Squaring the sum gives all $i \cdot j$ products including $i = j$; subtracting the sum of squares removes the diagonal; halving removes the double-count.
 
 ### Implementation
@@ -273,9 +261,7 @@ FFM (2016) extends FM with one targeted change: **each feature gets a separate e
 ### The Intuition
 
 In FM, the embedding for "action movie" is the same vector regardless of whether it is interacting with "user age" or "time of day". But intuitively, age-vs-genre and hour-vs-genre are different stories. FFM gives every feature one embedding *per opposite field*.
-
 $$\hat{y}(\mathbf{x}) = w_0 + \sum_i w_i x_i + \sum_{i<j} \langle \mathbf{v}_{i, f_j}, \mathbf{v}_{j, f_i} \rangle x_i x_j.$$
-
 The notation $\mathbf{v}_{i, f_j}$ reads "feature $i$'s embedding *when interacting with field* $f_j$".
 
 ### Implementation
@@ -352,13 +338,9 @@ The architecture diagram makes the parallel structure obvious:
 ![DeepFM architecture: shared embedding feeding parallel FM and Deep branches, summed before the sigmoid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/fig3_deepfm_arch.png)
 
 ### Mathematical Formulation
-
 $$\hat{y}(\mathbf{x}) = \sigma\big(y_{\text{FM}} + y_{\text{Deep}}\big),$$
-
 where $y_{\text{FM}}$ is the standard FM expression and $y_{\text{Deep}}$ flows through an MLP over the concatenated embeddings:
-
 $$\mathbf{h}_0 = [\mathbf{v}_1; \mathbf{v}_2; \ldots; \mathbf{v}_m], \quad \mathbf{h}_l = \text{ReLU}(\mathbf{W}_l \mathbf{h}_{l-1} + \mathbf{b}_l), \quad y_{\text{Deep}} = \mathbf{w}^\top \mathbf{h}_L + b.$$
-
 ### Implementation
 
 ```python
@@ -435,9 +417,7 @@ Think of CIN as a pyramid of interactions:
 - ...
 
 At each layer, the cross is followed by a learnable convolutional compression:
-
 $$\mathbf{X}^k_{h, *} = \sum_{i=1}^{H_{k-1}} \sum_{j=1}^{m} W^{k,h}_{i,j} \big(\mathbf{X}^{k-1}_{i,*} \circ \mathbf{X}^0_{j,*}\big),$$
-
 where $\circ$ is the Hadamard (elementwise) product and $W$ are learned weights.
 
 > **Plain English.** "Take every feature map from the previous layer, cross it elementwise with every original embedding, then apply a learned 1x1 convolution to compress all those crosses back down to a manageable number of feature maps. Stack."
@@ -542,9 +522,7 @@ class xDeepFM(nn.Module):
 DCN (Google, 2017) takes a different route. Instead of stacking elementwise products with learnable convolutions, it adds a tiny module called the **Cross Network** that increases the polynomial degree of the interaction by exactly one per layer, with O($d$) parameters per layer.
 
 ### The Cross Layer
-
 $$\mathbf{x}_{l+1} = \mathbf{x}_0 \cdot (\mathbf{w}_l^\top \mathbf{x}_l) + \mathbf{b}_l + \mathbf{x}_l.$$
-
 > **Plain English.** "Take a learned scalar projection of the current state, multiply it by the *original* input vector, add a bias, plus a residual." Each step injects $\mathbf{x}_0$ once more, raising the interaction degree by one.
 
 After $L$ cross layers you have learned a polynomial of degree $L+1$ in the original features — but with only $L \cdot d$ parameters in the cross stack.
@@ -632,9 +610,7 @@ AutoInt (2019) brings **multi-head self-attention** — the engine inside Transf
 ### How It Works
 
 Treat each field's embedding as a token. Project to query, key, value:
-
 $$\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q} \mathbf{K}^\top}{\sqrt{d_k}}\right) \mathbf{V}.$$
-
 > **Plain English.** "Each feature asks 'whose embedding should I read from?' (Q), advertises what it knows (K), and offers content to be aggregated (V). Softmax over similarity gives the routing weights."
 
 With $H$ heads, the model learns $H$ parallel notions of feature relatedness. Stacking $L$ AutoInt blocks lets information flow more than once, building deeper compositions.

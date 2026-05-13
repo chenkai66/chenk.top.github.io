@@ -71,10 +71,10 @@ For each session $s$ build a directed graph $G_s = (V_s, E_s)$:
 This step is where you trade richness for compactness. The same item appearing twice in the session collapses into one node; only the *transitions* between them carry repetition. Loops — click A then B then A — show up as cycles in the graph, which a pure sequence model only sees as "two separate occurrences of A".
 
 Two adjacency matrices are then built and row-normalised:
-
-$$A^{out}_{ij} = \frac{w(v_i \to v_j)}{\sum_k w(v_i \to v_k)}, \quad
-A^{in}_{ij}  = \frac{w(v_j \to v_i)}{\sum_k w(v_k \to v_i)}.$$
-
+$$
+A^{out}_{ij} = \frac{w(v_i \to v_j)}{\sum_k w(v_i \to v_k)}, \quad
+A^{in}_{ij}  = \frac{w(v_j \to v_i)}{\sum_k w(v_k \to v_i)}.
+$$
 Figure 2 walks through one example end-to-end.
 
 ![Session graph construction from clicks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig2_session_graph.png)
@@ -86,20 +86,18 @@ Note that the click sequence `v1 v2 v3 v2 v4` produces a 4-node graph with a `v2
 GC-SAN reuses the SR-GNN gated graph neural network cell. Each node carries a $d$-dim embedding $h_i$. One propagation step has three parts.
 
 **(i) Aggregate in/out neighbours.** For node $v_i$ at step $t$:
-
 $$a_i^{(t)} \;=\; A^{in}_{i,:} \, H^{(t-1)} W^{in} \;+\; A^{out}_{i,:} \, H^{(t-1)} W^{out} \;+\; b,$$
-
 where $H^{(t-1)} = [h_1^{(t-1)}, \dots, h_{|V_s|}^{(t-1)}]^\top$ stacks all node embeddings for the session and $W^{in}, W^{out} \in \mathbb{R}^{d \times d}$ are learnable. The two terms separate "evidence flowing into me" from "evidence flowing out of me", which matters for directional transitions.
 
 **(ii) GRU gates.** Combine the aggregated message with the previous state:
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 z_i^{(t)} &= \sigma(W_z a_i^{(t)} + U_z h_i^{(t-1)}), \\
 r_i^{(t)} &= \sigma(W_r a_i^{(t)} + U_r h_i^{(t-1)}), \\
 \tilde h_i^{(t)} &= \tanh\!\bigl(W_h a_i^{(t)} + U_h (r_i^{(t)} \odot h_i^{(t-1)})\bigr), \\
 h_i^{(t)} &= (1 - z_i^{(t)}) \odot h_i^{(t-1)} \;+\; z_i^{(t)} \odot \tilde h_i^{(t)}.
-\end{aligned}$$
-
+\end{aligned}
+$$
 The update gate $z$ decides how much of the new graph signal to write in; the reset gate $r$ decides how much of the old state to forget when forming the candidate. Figure 3 shows this on a single node.
 
 ![GGNN message passing on one node](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig3_ggnn_message_passing.png)
@@ -113,13 +111,9 @@ After $T$ propagation steps (the paper uses $T=1$, sometimes 2), each node embed
 GGNN is strong locally, but reaching a distant click requires many hops, and stacking too many GGNN layers leads to oversmoothing — node embeddings collapse toward each other. Self-attention sidesteps this entirely: every position can attend to every other position in one step.
 
 Let $E^{(0)} \in \mathbb{R}^{n \times d}$ be the per-position representation after scattering GGNN node states back to the sequence. One self-attention layer computes:
-
 $$F = \mathrm{softmax}\!\left(\frac{(E W^Q)(E W^K)^\top}{\sqrt{d}}\right)(E W^V),$$
-
 followed by a position-wise feed-forward block with a residual connection:
-
 $$E^{(1)} = \mathrm{ReLU}(F W_1 + b_1) W_2 + b_2 + F.$$
-
 Stacking $k$ such blocks produces $E^{(k)}$, the **graph-contextualised** sequence representation. Figure 4 shows what attention typically learns and why GGNN alone struggles to reach the same connections.
 
 ![Self-attention captures long-range dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig4_self_attention.png)
@@ -134,25 +128,17 @@ Session recommendation almost always benefits from explicitly mixing two signals
 - **Global intent** $a_t$: the last-position output of the self-attention stack, which has integrated the whole session.
 
 GC-SAN combines them with a single scalar weight:
-
 $$s_f \;=\; w \cdot a_t \;+\; (1 - w) \cdot h_t,$$
-
 then scores every candidate by dot product with the item embedding table and normalises:
-
 $$\hat y \;=\; \mathrm{softmax}\!\bigl(s_f \, V^\top\bigr).$$
-
 The weight $w$ is a hyperparameter (typical sweet spot $w \in [0.4, 0.6]$). Set $w = 0$ and you get last-click only, set $w = 1$ and you discard the strong short-term signal. Figure 5(b) shows the typical sweep — forgiving in the middle, painful at the extremes.
 
 ## 7. Training and evaluation
 
 Most session recommenders train with cross-entropy over the next-item softmax:
-
 $$\mathcal{L} \;=\; -\sum_{i=1}^{|V|} y_i \log \hat y_i \;+\; \lambda \|\Theta\|^2,$$
-
 where $y$ is the one-hot label and $\Theta$ are all learnable parameters. When $|V|$ is large, BPR with negative sampling is a common alternative:
-
 $$\mathcal{L}_{\text{BPR}} \;=\; -\sum_{(u, i, j)} \log \sigma(\hat r_{ui} - \hat r_{uj}) + \lambda \|\Theta\|^2,$$
-
 with $i$ a positive (clicked) item and $j$ sampled negatives.
 
 Standard benchmarks are **Yoochoose1/64** and **Diginetica**, reported with **Recall@20** and **MRR@20**. Figure 5 summarises the gap pattern reported in the paper.

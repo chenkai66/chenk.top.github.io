@@ -55,18 +55,16 @@ The figure above shows three popular schedules (linear, exponential, piecewise s
 3. **None of these curves consider the state.** Exploration is purely a function of the training step. This is the central weakness we will address.
 
 Mathematically:
-
-$$\pi_\varepsilon(a \mid s) = \begin{cases}
+$$
+\pi_\varepsilon(a \mid s) = \begin{cases}
 1 - \varepsilon + \dfrac{\varepsilon}{|\mathcal{A}|} & a = \arg\max_{a'} Q(s, a') \\[4pt]
 \dfrac{\varepsilon}{|\mathcal{A}|} & \text{otherwise}
-\end{cases}$$
-
+\end{cases}
+$$
 ### 1.2 Boltzmann (softmax) exploration: a marginal upgrade
 
 Instead of an all-or-nothing random kick, **Boltzmann** exploration weights actions by their Q-values.
-
 $$\pi_\tau(a \mid s) = \frac{\exp(Q(s,a)/\tau)}{\sum_{a'} \exp(Q(s,a')/\tau)}.$$
-
 The temperature $\tau$ replaces $\varepsilon$ as the exploration knob. As $\tau \to 0$ the policy becomes greedy; as $\tau \to \infty$ it becomes uniform.
 
 ![Boltzmann action distribution and policy entropy for several temperatures](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig2_boltzmann_softmax.png)
@@ -78,9 +76,7 @@ But Boltzmann shares $\varepsilon$-greedy's fatal flaw: it spreads probability b
 ### 1.3 UCB: the principled approach that does not scale
 
 For multi-armed bandits, the classical **UCB1** rule is provably near-optimal.
-
 $$a_t = \arg\max_a \left[ \hat Q(a) + c \sqrt{\frac{\ln t}{N(a)}} \right].$$
-
 The first term *exploits*; the second *explores* — arms pulled fewer times receive a larger uncertainty bonus.
 
 ![UCB1 score decomposition and arm-pull statistics over a 5-arm bandit](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig3_ucb_bandit.png)
@@ -115,9 +111,7 @@ The conceptual leap of the modern era is to stop computing exploration as a *fun
 ![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_2.png)
 
 Every modern method we will discuss adds a **intrinsic reward** $r^{\text{int}}_t$ on top of the environment's external reward:
-
 $$r^{\text{total}}_t = r^{\text{ext}}_t + \beta \cdot r^{\text{int}}_t.$$
-
 The agent is then trained on $r^{\text{total}}$ with whatever RL algorithm you like (DQN, PPO, IMPALA, ...). All the design effort goes into a single question:
 
 > **How do we compute $r^{\text{int}}_t$ so it is large for genuinely novel experiences and small for stale ones, without requiring us to count pixels?**
@@ -129,15 +123,11 @@ We now look at three increasingly elegant answers.
 ## 3. Count-based methods: when counting still works
 
 The cleanest definition of novelty is "states I have visited fewer times." For tabular MDPs this gives the MBIE-EB bonus
-
 $$r^{\text{int}}(s) = \frac{\beta}{\sqrt{N(s)}},$$
-
 which has matching theoretical guarantees to UCB. The headache is that $N(s) = 0$ for almost every state in pixel-based environments.
 
 Bellemare et al. (2016) replaced the literal count with a **pseudo-count** derived from a density model $\rho(s)$:
-
 $$\hat N(s) = \frac{\rho(s)\bigl(1 - \rho_{\text{new}}(s)\bigr)}{\rho_{\text{new}}(s) - \rho(s)},$$
-
 where $\rho_{\text{new}}$ is the model's density after training on one extra observation of $s$. The construction pretends $\rho$ is the empirical distribution of a giant counter and inverts it. With a strong density model (PixelCNN, neural autoregressive models) this delivers the first non-trivial scores on Montezuma's Revenge — but the model is expensive to train, fragile, and the noisy-TV problem is still wide open: random pixel noise looks low-density, hence high-novelty, hence highly rewarded. Modern systems abandoned pseudo-counts for the more robust prediction-error methods we cover next.
 
 ---
@@ -157,7 +147,8 @@ The left half of the figure above shows the three components:
 
 1. **Encoder $\phi$** (CNN) maps $s_t$ to a feature vector $\phi(s_t)$.
 2. **Forward model $\hat f$** predicts the next features from current features and action: $\hat\phi_{t+1} = \hat f(\phi(s_t), a_t)$. Its squared error
-   $$r^{\text{int}}_t = \eta \,\bigl\| \hat\phi_{t+1} - \phi(s_{t+1}) \bigr\|^2$$   *is* the intrinsic reward.
+   $$
+   r^{\text{int}}_t = \eta \,\bigl\| \hat\phi_{t+1} - \phi(s_{t+1}) \bigr\|^2$$   *is* the intrinsic reward.
 3. **Inverse model $g$** predicts the action from a pair of consecutive features: $\hat a_t = g(\phi(s_t), \phi(s_{t+1}))$. Its loss flows back into the encoder $\phi$.
 
 Step 3 is the magic ingredient. The inverse model can only succeed if $\phi$ retains information that *changes between $s_t$ and $s_{t+1}$ as a function of the agent's action*. Static background pixels, TV noise, and other action-independent distractions get filtered out of $\phi$ because they do not help predict $a_t$. Once they are gone, the forward model cannot mistake them for novelty.
@@ -239,11 +230,9 @@ Concretely, RND keeps two networks (right half of the architecture figure above)
 - A **predictor network $\hat f$**, trained by gradient descent to minimise $\| \hat f(s) - f(s) \|^2$ on observed states.
 
 Intrinsic reward is the predictor's residual:
-
 $$
 r^{\text{int}}(s) = \bigl\| \hat f(s) - f(s) \bigr\|^2.
 $$
-
 For a state the predictor has seen many times, training has driven the loss to near zero — low reward. For a novel state, the predictor has never been trained there, so its output is random and the residual is large — high reward. The frozen target acts like a deterministic hash function: structurally similar states map to similar targets, so generalisation comes for free.
 
 The same trick neutralises the noisy-TV problem. Random static frames are visually different but **structurally similar** in the eyes of a random CNN; the predictor learns to match them after a handful of updates and the reward decays to zero. ICM and RND therefore handle "noisy TV" by completely different mechanisms — ICM by filtering the *features*, RND by exploiting the *consistency of a random map*.
@@ -315,11 +304,9 @@ RND has a quiet assumption: once a state's predictor error has been driven to ze
 - **Backtracking.** After exploring the right half of a level, the agent must return through the start and head left. The start has been visited thousands of times; RND sees no reason to ever go through it again.
 
 **Never Give Up (NGU)** (Badia et al., ICLR 2020) repairs this by combining two novelty signals:
-
 $$
 r^{\text{int}}_t = r^{\text{episodic}}_t \cdot \min\bigl(r^{\text{lifetime}}_t,\; L\bigr).
 $$
-
 - **Episodic novelty** $r^{\text{episodic}}$. Maintain an episodic memory of state embeddings *for the current episode only*. The reward is large when the current state is far (in embedding space) from anything in this memory. Crucially, the memory **resets on each new episode**, so even a state that has been visited millions of times across training still feels novel within a fresh run.
 - **Lifetime novelty** $r^{\text{lifetime}}$. The classic RND signal, capped at $L$ to prevent run-away.
 

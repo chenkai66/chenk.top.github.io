@@ -49,15 +49,11 @@ translationKey: "pde-ml-4"
 ## 1. The Inference Problem
 
 Bayesian inference asks for the posterior
-
 $$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\, p(\theta)}{\int p(x \mid \theta')\, p(\theta')\, d\theta'},$$
-
 but the marginal likelihood in the denominator is intractable for any non-trivial model. Two large families of approximation algorithms address this:
 
 - **Variational inference (VI)**: pick a tractable family $\{q_\phi\}$ and minimise
-
   $$\mathrm{KL}\bigl(q_\phi \,\|\, p(\cdot\mid x)\bigr) \;=\; \mathbb{E}_{q_\phi}\!\left[\log \tfrac{q_\phi(\theta)}{p(\theta\mid x)}\right],$$
-
   equivalently maximising the **Evidence Lower Bound** $\mathrm{ELBO}(\phi) = \mathbb{E}_{q_\phi}[\log p(x\mid\theta)] - \mathrm{KL}(q_\phi \| p(\theta))$.
 
 - **Markov Chain Monte Carlo (MCMC)**: build a Markov chain whose stationary distribution is exactly $p(\cdot\mid x)$. **Langevin dynamics** is the canonical gradient-based instance.
@@ -67,19 +63,13 @@ These look like very different objects: VI is a finite-dimensional optimisation 
 ## 2. From SDE to Fokker-Planck
 
 Consider an It&ocirc; SDE
-
 $$dX_t = \mu(X_t, t)\, dt + \sigma(X_t, t)\, dW_t.$$
-
 For any smooth test function $f$, It&ocirc;'s lemma plus integration by parts (assuming the density and its derivatives vanish at infinity) gives the **Fokker-Planck (FP) equation**:
-
 $$
 \boxed{\;\partial_t p \;=\; -\nabla\!\cdot\!(\mu\, p) \;+\; \tfrac{1}{2}\,\nabla\!\cdot\!\nabla\!\cdot\!(D\, p),\qquad D = \sigma\sigma^\top.\;}
 $$
-
 The first term is **drift** (transport), the second is **diffusion** (spreading). For the **overdamped Langevin SDE** with $\mu = -\nabla V$, $\sigma = \sqrt{2\tau} I$:
-
 $$\partial_t p \;=\; \nabla\!\cdot\!\bigl(p\,\nabla V\bigr) + \tau\, \Delta p,$$
-
 whose unique stationary solution (under mild regularity) is the **Gibbs distribution** $p_\infty \propto e^{-V/\tau}$. Setting $V = -\log p^\star$ and $\tau = 1$, the stationary distribution becomes the target $p^\star$ exactly.
 
 ![Density evolution under the Fokker-Planck equation in a double-well potential.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig1_fokker_planck_evolution.png)
@@ -90,13 +80,9 @@ whose unique stationary solution (under mild regularity) is the **Gibbs distribu
 ![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.png)
 
 The **overdamped Langevin equation** for sampling from $p^\star \propto e^{-V}$ is
-
 $$dX_t = -\nabla V(X_t)\, dt + \sqrt{2\tau}\, dW_t.$$
-
 The discrete-time **Unadjusted Langevin Algorithm (ULA)** is the Euler-Maruyama scheme
-
 $$X_{k+1} \;=\; X_k - \eta\, \nabla V(X_k) + \sqrt{2\eta\tau}\, \xi_k, \qquad \xi_k \sim \mathcal{N}(0, I).$$
-
 ```python
 import torch, numpy as np
 
@@ -120,13 +106,9 @@ ULA's bias is $O(\eta)$; **MALA** (Metropolis-Adjusted Langevin) restores exactn
 ## 4. KL Divergence is a Wasserstein Gradient Flow
 
 Decompose the KL divergence relative to $p^\star \propto e^{-V}$:
-
 $$\mathcal{F}[p] \;=\; \mathrm{KL}(p\,\|\,p^\star) \;=\; \underbrace{\int p\log p\,dx}_{\text{neg-entropy }\mathcal{H}[p]} \;+\; \underbrace{\int p\, V\,dx}_{\text{potential energy}} \;+\; \text{const}.$$
-
 This is the **free energy functional** from Part 3. The Jordan-Kinderlehrer-Otto (JKO) theorem (1998) tells us its **Wasserstein-2 gradient flow** is
-
 $$\partial_t p \;=\; \nabla\!\cdot\!\bigl(p \nabla V\bigr) + \Delta p,$$
-
 which is exactly the FP equation for Langevin with $\tau = 1$. Hence:
 
 > **Equivalence**. Minimising $\mathrm{KL}(\cdot \| p^\star)$ in Wasserstein space and running Langevin dynamics targeting $p^\star$ are the **same PDE**. VI and Langevin MCMC are two algorithmic discretisations of one continuous-time gradient flow.
@@ -156,9 +138,7 @@ VI and MCMC may be equivalent in the continuous limit, but their finite-time beh
 ## 6. Stein Variational Gradient Descent
 
 SVGD (Liu and Wang, 2016) is a **deterministic** particle method that occupies the sweet spot between VI and MCMC. Maintain particles $\{x_i\}_{i=1}^n$ and update
-
 $$x_i \;\leftarrow\; x_i + \eta\, \hat\phi^*(x_i),\qquad \hat\phi^*(x) = \tfrac{1}{n}\sum_{j=1}^n \Bigl[\,k(x_j, x)\,\nabla_{x_j}\log p^\star(x_j) \;+\; \nabla_{x_j} k(x_j, x)\,\Bigr],$$
-
 with RBF kernel $k(x, y) = \exp(-\|x-y\|^2 / 2h^2)$ (median heuristic for $h$). The update has two terms with opposite roles:
 
 - **Drift** $k\,\nabla\log p^\star$ pushes particles toward high probability.
@@ -179,9 +159,7 @@ def svgd_step(x, score, eta=0.05):
 ```
 
 In the infinite-particle limit SVGD obeys
-
 $$\partial_t p \;=\; -\nabla\!\cdot\!\bigl(p\, v[p]\bigr),\qquad v[p](x) = \mathbb{E}_{y \sim p}\!\bigl[k(y,x)\nabla\log p^\star(y) + \nabla_y k(y,x)\bigr],$$
-
 and as the bandwidth $h \to 0$ this PDE collapses to the standard Fokker-Planck equation. SVGD is therefore a **kernel-smoothed FP solver**.
 
 ![SVGD particles on a bimodal target.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig5_svgd_particles.png)
@@ -190,19 +168,13 @@ and as the bandwidth $h \to 0$ this PDE collapses to the standard Fokker-Planck 
 ## 7. Convergence Theory
 
 **Definition (LSI).** $p^\star$ satisfies a **log-Sobolev inequality** with constant $\lambda > 0$ if for all smooth probability densities $p \ll p^\star$:
-
 $$\mathrm{KL}(p \,\|\, p^\star) \;\leq\; \frac{1}{2\lambda}\, I(p \,\|\, p^\star),\qquad I(p\|p^\star) = \int p\, \bigl\|\nabla \log \tfrac{p}{p^\star}\bigr\|^2 dx.$$
-
 The right-hand side is the **Fisher information** — which is also the dissipation rate of the FP equation:
-
 $$\frac{d}{dt}\,\mathrm{KL}(p_t\,\|\,p^\star) \;=\; -\, I(p_t\,\|\,p^\star).$$
-
 Combining, $\frac{d}{dt}\mathrm{KL}(p_t \| p^\star) \leq -2\lambda\, \mathrm{KL}(p_t \| p^\star)$, hence Gr&ouml;nwall:
-
 $$
 \boxed{\;\mathrm{KL}(p_t\,\|\,p^\star) \;\leq\; e^{-2\lambda t}\, \mathrm{KL}(p_0\,\|\,p^\star).\;}
 $$
-
 Strongly log-concave targets ($\nabla^2 V \succeq mI$) automatically satisfy LSI with $\lambda \geq m$ (Bakry-&Eacute;mery). Multimodal targets typically have tiny $\lambda$, predicting the exponentially slow mixing observed empirically.
 
 ![Convergence rates.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig6_convergence_analysis.png)
@@ -211,9 +183,7 @@ Strongly log-concave targets ($\nabla^2 V \succeq mI$) automatically satisfy LSI
 ## 8. Application: Bayesian Neural Networks
 
 A Bayesian neural network places a prior $p(w)$ on the weights and seeks the posterior $p(w \mid \mathcal{D}) \propto p(\mathcal{D} \mid w)\, p(w)$. Even for tiny architectures the posterior is intractable, but Langevin dynamics on $w$ requires only
-
 $$\nabla_w \log p(w \mid \mathcal{D}) \;=\; \nabla_w \log p(\mathcal{D} \mid w) + \nabla_w \log p(w),$$
-
 i.e. exactly the gradient computed during normal back-propagation, plus a Gaussian prior term. **Stochastic Gradient Langevin Dynamics** (Welling and Teh, 2011) replaces the full-data gradient with a mini-batch estimate, making this practical at modern scale.
 
 The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so that the posterior over weights is well defined, and samples it with full-batch Langevin.
@@ -235,9 +205,7 @@ The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so
 ## 10. Numerical Implementation: SDE Simulation You Can Actually Run
 
 The continuous Langevin SDE $dX = -\nabla U(X)\,dt + \sqrt{2}\,dW$ becomes the discrete update
-
 $$ X_{k+1} = X_k - \eta\,\nabla U(X_k) + \sqrt{2\eta}\,\xi_k,\quad \xi_k \sim \mathcal{N}(0, I). $$
-
 This is **Euler-Maruyama**, and it is the entire algorithm. Python:
 
 ```python
@@ -262,9 +230,7 @@ Anywhere you read "we sample with Langevin", one of these three caveats applies.
 ## 11. SVGD in Practice: Where the Theory Hides Three Bugs
 
 The gradient flow
-
 $$ \dot x_i = \frac{1}{n}\sum_j \bigl[k(x_j, x_i)\nabla\log p(x_j) + \nabla_{x_j}k(x_j, x_i)\bigr] $$
-
 is elegant. Implementing it correctly is not.
 
 **Bug 1: bandwidth choice.** The RBF kernel $k(x, y) = \exp(-\|x-y\|^2/h)$ collapses if $h$ is wrong. The standard heuristic is the median trick: $h = \text{med}(\{\|x_i-x_j\|^2\})/\log n$. Without it, in $d > 20$ dimensions the kernel is effectively zero for all pairs and the repulsive force vanishes. Particles collapse to the mode.
@@ -278,9 +244,7 @@ If you only remember one thing: **measure the mean pairwise kernel value periodi
 ## 12. Score-Based Diffusion: Same Fokker-Planck, Reversed
 
 Diffusion models train a network to approximate $\nabla \log p_t(x)$ at every noise level $t$. Sampling then runs a *reverse-time* SDE:
-
 $$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $$
-
 The whole pipeline is a Fokker-Planck story:
 
 - **Forward**: pure noising. Density evolves from data $p_0$ to Gaussian $p_T$. Standard FP equation, $\sigma$ chosen so that $T$ is large enough.

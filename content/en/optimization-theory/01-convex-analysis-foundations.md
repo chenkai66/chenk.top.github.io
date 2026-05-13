@@ -43,11 +43,9 @@ Linear algebra (inner products, norms), basic real analysis (limits, continuity,
 ### 1.1 Definition and basic examples
 
 A set $C \subseteq \mathbb{R}^n$ is **convex** if for every $x, y \in C$ and every $\lambda \in [0, 1]$,
-
 $$
 \lambda x + (1 - \lambda) y \in C.
 $$
-
 Geometrically: the segment connecting any two points of $C$ stays inside $C$.
 
 Examples worth knowing by heart:
@@ -80,44 +78,31 @@ The intersection rule is the most useful in practice — it is the reason a poly
 A theorem we will use repeatedly:
 
 > **Projection theorem.** Let $C \subseteq \mathbb{R}^n$ be a non-empty closed convex set and $y \in \mathbb{R}^n$. There exists a unique point $\pi_C(y) \in C$ minimizing $\|x - y\|_2$ over $x \in C$. Moreover, $z = \pi_C(y)$ if and only if
-> $$
-> \langle y - z, x - z \rangle \leq 0 \quad \text{for all } x \in C.
-> $$
-
+> $$\langle y - z, x - z \rangle \leq 0 \quad \text{for all } x \in C.$$
 **Proof of existence.** Let $d = \inf_{x \in C} \|x - y\|_2$ and pick a sequence $\{x_k\} \subseteq C$ with $\|x_k - y\|_2 \to d$. We show $\{x_k\}$ is Cauchy. By the parallelogram identity applied to $x_k - y$ and $x_m - y$,
-
 $$
 \|x_k - x_m\|_2^2 = 2 \|x_k - y\|_2^2 + 2 \|x_m - y\|_2^2 - 4 \left\| \tfrac{x_k + x_m}{2} - y \right\|_2^2.
 $$
-
 Since $C$ is convex, $\frac{x_k + x_m}{2} \in C$, so $\|\frac{x_k + x_m}{2} - y\|_2 \geq d$. Thus
-
 $$
 \|x_k - x_m\|_2^2 \leq 2 \|x_k - y\|_2^2 + 2 \|x_m - y\|_2^2 - 4 d^2 \to 0
 $$
-
 as $k, m \to \infty$. The sequence converges to some $z$, which lies in $C$ because $C$ is closed and satisfies $\|z - y\|_2 = d$.
 
 **Proof of uniqueness.** Suppose $z_1$ and $z_2$ both achieve the minimum. By the same parallelogram argument with $x_k = z_1$ and $x_m = z_2$:
-
 $$
 \|z_1 - z_2\|_2^2 \leq 2 d^2 + 2 d^2 - 4 d^2 = 0,
 $$
-
 so $z_1 = z_2$.
 
 **Proof of the variational inequality.** Suppose $z = \pi_C(y)$. For any $x \in C$ and $\lambda \in (0, 1]$, the point $z + \lambda (x - z) = (1 - \lambda) z + \lambda x \in C$, so
-
 $$
 \|y - z\|_2^2 \leq \|y - z - \lambda (x - z)\|_2^2 = \|y - z\|_2^2 - 2 \lambda \langle y - z, x - z \rangle + \lambda^2 \|x - z\|_2^2.
 $$
-
 Rearranging and dividing by $\lambda$:
-
 $$
 2 \langle y - z, x - z \rangle \leq \lambda \|x - z\|_2^2.
 $$
-
 Letting $\lambda \to 0^+$ gives the inequality. The converse is a similar calculation: assume the inequality holds for all $x \in C$ and expand $\|x - y\|_2^2 = \|(x - z) - (y - z)\|_2^2 \geq \|y - z\|_2^2$. $\blacksquare$
 
 The projection theorem has a beautiful geometric reading: $\pi_C(y)$ is the point of $C$ where the segment $y \to z$ meets $C$ at an angle of at most $90^\circ$ to every other direction inside $C$.
@@ -133,41 +118,31 @@ The projection theorem has a beautiful geometric reading: $\pi_C(y)$ is the poin
 Let $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ with **effective domain** $\mathrm{dom}(f) = \{x : f(x) < +\infty\}$ assumed convex. The following are equivalent and we will use them interchangeably:
 
 **Definition.** For all $x, y \in \mathrm{dom}(f)$ and $\lambda \in [0, 1]$:
-
 $$
 f(\lambda x + (1 - \lambda) y) \leq \lambda f(x) + (1 - \lambda) f(y). \tag{D}
 $$
-
 **Epigraph characterization.** The set $\mathrm{epi}(f) = \{(x, t) \in \mathbb{R}^{n+1} : f(x) \leq t\}$ is a convex subset of $\mathbb{R}^{n+1}$.
 
 **First-order condition (assumes $f$ differentiable).** For all $x, y \in \mathrm{dom}(f)$:
-
 $$
 f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle. \tag{F1}
 $$
-
 **Second-order condition (assumes $f$ twice differentiable).** For all $x \in \mathrm{int}(\mathrm{dom}(f))$:
-
 $$
 \nabla^2 f(x) \succeq 0. \tag{F2}
 $$
-
 Equivalence of (D) and the epigraph: $(\lambda x + (1 - \lambda) y, \lambda s + (1 - \lambda) t) \in \mathrm{epi}(f)$ for any $(x, s), (y, t) \in \mathrm{epi}(f)$ is exactly inequality (D) when we take $s = f(x), t = f(y)$.
 
 (D) $\Rightarrow$ (F1): rearrange (D) as
-
 $$
 \frac{f(x + \lambda (y - x)) - f(x)}{\lambda} \leq f(y) - f(x).
 $$
-
 Letting $\lambda \to 0^+$ on the left yields the directional derivative $\langle \nabla f(x), y - x \rangle$.
 
 (F1) $\Rightarrow$ (F2): set $y = x + t v$ for small $t$ and a direction $v$. Then (F1) says
-
 $$
 f(x + tv) \geq f(x) + t \langle \nabla f(x), v \rangle.
 $$
-
 Taylor expansion gives $f(x + tv) = f(x) + t \langle \nabla f(x), v \rangle + \tfrac{t^2}{2} v^\top \nabla^2 f(x) v + o(t^2)$. Comparing yields $v^\top \nabla^2 f(x) v \geq 0$.
 
 (F2) $\Rightarrow$ (D): integrate twice. Specifically, for the line $g(\lambda) = f((1 - \lambda) x + \lambda y)$, $g''(\lambda) = (y - x)^\top \nabla^2 f((1 - \lambda) x + \lambda y) (y - x) \geq 0$, so $g$ is convex on $[0, 1]$, which is exactly (D).
@@ -178,11 +153,9 @@ Taylor expansion gives $f(x + tv) = f(x) + t \langle \nabla f(x), v \rangle + \t
 
 - **Strictly convex**: (D) holds with strict inequality whenever $x \neq y$ and $\lambda \in (0, 1)$.
 - **$\mu$-strongly convex** (for $\mu > 0$): $f - \frac{\mu}{2} \|x\|_2^2$ is convex. Equivalently,
-
   $$
   f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \frac{\mu}{2} \|y - x\|_2^2.
   $$
-
 Strong convexity is to convexity what "uniformly continuous" is to continuous — it gives a quantitative gap and is what makes optimization rates concrete. We unpack it in detail in article 02.
 
 ### 2.3 Examples
@@ -216,11 +189,9 @@ The pointwise supremum rule is the secret weapon: it explains why the **support 
 ## 3. The conjugate function
 
 For any $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ (not necessarily convex), define the **conjugate** (or **Legendre--Fenchel transform**):
-
 $$
 f^*(y) = \sup_{x \in \mathbb{R}^n} \big[ \langle y, x \rangle - f(x) \big].
 $$
-
 The conjugate $f^*$ is **always convex**, even if $f$ is not — it is the pointwise supremum of affine functions of $y$.
 
 ### 3.1 Geometric reading
@@ -232,11 +203,9 @@ For a fixed slope $y$, $f^*(y)$ is the largest value of $\langle y, x \rangle - 
 ### 3.2 Fenchel--Young inequality
 
 Directly from the definition:
-
 $$
 f(x) + f^*(y) \geq \langle x, y \rangle. \tag{FY}
 $$
-
 Equality holds iff $y \in \partial f(x)$ (introduced below). This is the convex-analytic generalization of the AM-GM and Young inequalities; setting $f(x) = \frac{1}{p} |x|^p$ for $p > 1$ and computing $f^*$ recovers the classical Young inequality $\frac{|x|^p}{p} + \frac{|y|^q}{q} \geq xy$ with $\frac{1}{p} + \frac{1}{q} = 1$.
 
 ### 3.3 Worked conjugates
@@ -266,19 +235,15 @@ The biconjugate $f^{**} = (f^*)^*$ satisfies $f^{**} \leq f$ pointwise. The two 
 ### 4.1 The subdifferential
 
 For convex $f$, the **subdifferential** at $x$ is
-
 $$
 \partial f(x) = \{g \in \mathbb{R}^n : f(y) \geq f(x) + \langle g, y - x \rangle \text{ for all } y\}.
 $$
-
 A vector $g$ in $\partial f(x)$ is a **subgradient** at $x$. Compare with (F1): when $f$ is differentiable, $\partial f(x) = \{\nabla f(x)\}$, a singleton.
 
 When $f$ is not differentiable, $\partial f(x)$ can be a non-singleton set. The point of subgradients is that *every* convex function has them at every interior point of its domain — even if it has no derivative — and the "$g = 0$" condition replaces "$\nabla f = 0$" as the optimality criterion:
-
 $$
 x^\star \in \arg\min f \iff 0 \in \partial f(x^\star).
 $$
-
 ### 4.2 Existence and basic calculus
 
 > **Theorem.** If $f$ is convex and $x \in \mathrm{relint}(\mathrm{dom}(f))$, then $\partial f(x)$ is non-empty.
@@ -297,11 +262,9 @@ Calculus rules — these are the workhorses of proximal methods:
 ### 4.3 Worked examples
 
 **Example 1: $f(x) = |x|$ on $\mathbb{R}$.**
-
 $$
 \partial f(x) = \begin{cases} \{1\} & x > 0 \\ \{-1\} & x < 0 \\ [-1, 1] & x = 0. \end{cases}
 $$
-
 At $x = 0$, every slope between $-1$ and $1$ defines a tangent line that lies below $|x|$ everywhere.
 
 ![Subgradients of $|x|$ at the kink: every slope in $[-1, 1]$ produces a line through the origin that stays below $|x|$, so $\partial f(0) = [-1, 1]$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig5_subgradient.png)
@@ -309,25 +272,19 @@ At $x = 0$, every slope between $-1$ and $1$ defines a tangent line that lies be
 **Example 2: $f(x) = \|x\|_1$ on $\mathbb{R}^n$.**
 
 Componentwise the same: $g \in \partial \|\cdot\|_1(x)$ iff
-
 $$
 g_i = \begin{cases} \mathrm{sign}(x_i) & x_i \neq 0 \\ \in [-1, 1] & x_i = 0. \end{cases}
 $$
-
 This is exactly the structure ISTA exploits to produce sparse solutions.
 
 **Example 3: $f(x) = \|x\|_2$ on $\mathbb{R}^n$.**
-
 $$
 \partial \|\cdot\|_2(x) = \begin{cases} \{x / \|x\|_2\} & x \neq 0 \\ \{g : \|g\|_2 \leq 1\} & x = 0. \end{cases}
 $$
-
 **Example 4: hinge loss $f(x) = \max\{0, 1 - x\}$.**
-
 $$
 \partial f(x) = \begin{cases} \{0\} & x > 1 \\ \{-1\} & x < 1 \\ [-1, 0] & x = 1. \end{cases}
 $$
-
 The point $x = 1$ is the kink — at this margin boundary, the loss can be assigned any slope in $[-1, 0]$, which is what lets SVM duality go through cleanly.
 
 ### 4.4 Optimality: from $\nabla f = 0$ to $0 \in \partial f$
@@ -335,11 +292,9 @@ The point $x = 1$ is the kink — at this margin boundary, the loss can be assig
 The result we will rely on most: if $f$ is convex, then $x^\star \in \arg\min f$ iff $0 \in \partial f(x^\star)$. The forward direction is (D) applied to $y = x^\star$ and arbitrary $x$. For the reverse, $0 \in \partial f(x^\star)$ means $f(y) \geq f(x^\star)$ for all $y$.
 
 For constrained problems $\min_{x \in C} f(x)$ with $C$ closed convex and $f$ convex, the optimality condition becomes:
-
 $$
 0 \in \partial f(x^\star) + N_C(x^\star),
 $$
-
 where $N_C(x^\star) = \{g : \langle g, y - x^\star \rangle \leq 0 \ \forall y \in C\}$ is the **normal cone** of $C$ at $x^\star$. We will revisit this with KKT in article 08.
 
 ---
@@ -347,25 +302,19 @@ where $N_C(x^\star) = \{g : \langle g, y - x^\star \rangle \leq 0 \ \forall y \i
 ## 5. Putting it together: a worked problem
 
 Consider LASSO:
-
 $$
 \min_x F(x) := \tfrac{1}{2} \|Ax - b\|_2^2 + \lambda \|x\|_1,
 $$
-
 with $A \in \mathbb{R}^{m \times n}$, $b \in \mathbb{R}^m$, $\lambda > 0$.
 
 The first term is convex (quadratic with PSD Hessian $A^\top A$); the second is convex (norm). So $F$ is convex. By the optimality condition,
-
 $$
 0 \in A^\top (Ax^\star - b) + \lambda \, \partial \|\cdot\|_1(x^\star).
 $$
-
 Componentwise, defining $r = A^\top (Ax^\star - b)$:
-
 $$
 r_i = -\lambda \, \mathrm{sign}(x^\star_i) \text{ if } x^\star_i \neq 0, \quad r_i \in [-\lambda, \lambda] \text{ if } x^\star_i = 0.
 $$
-
 This is the celebrated **KKT condition for LASSO** — it tells us that any coordinate with $|r_i| < \lambda$ must have $x^\star_i = 0$, i.e. why $\ell_1$ regularization produces sparsity. We rederive it as a fixed point of the soft-threshold operator in article 06.
 
 ---

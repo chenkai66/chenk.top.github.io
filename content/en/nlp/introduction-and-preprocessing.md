@@ -52,25 +52,19 @@ Early systems treated language as a logic problem. ELIZA (1966) matched user inp
 ### 1.2 Statistical Revolution (1990s)
 
 The turning point was the realization that you don't need to write rules; you can estimate probabilities from data. The bigram model is the canonical example:
-
 $$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$
-
 This single formula powered IBM's statistical machine translation, the first viable speech recognizers, and probabilistic part-of-speech taggers. Hidden Markov Models extended the same idea to latent state, and probabilistic context-free grammars handled syntax. Features were still hand-engineered, but the rules were learned.
 
 ### 1.3 Deep Learning Era (2013 — 2016)
 
 Word2Vec (Mikolov et al., 2013) showed that a tiny neural network trained to predict context words produces vectors with a remarkable property: semantic relationships become arithmetic.
-
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
-
 For the first time, words were no longer atomic identifiers. They lived in a continuous space where similarity was a cosine away. RNNs and LSTMs followed, letting models thread context through a sequence and finally learn from order, not just bag-of-tokens counts.
 
 ### 1.4 Transformer Revolution (2017 — present)
 
 The 2017 paper "Attention Is All You Need" replaced recurrence with self-attention:
-
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
-
 Two practical consequences mattered. First, the model is fully parallel across positions, so training scales with GPU memory rather than sequence length. Second, every token can attend directly to every other token, which finally solved the long-range dependency problem. BERT, GPT, and every modern LLM are direct descendants.
 
 | Era | Years | Core idea | What broke it |
@@ -329,9 +323,7 @@ A useful default: use lemmatization unless you are running a high-throughput ret
 Stopwords are common closed-class words such as `the`, `is`, `at` that carry little task-specific meaning. Removing them shrinks vocabulary by roughly a third and concentrates signal in content words.
 
 The reason a small set of words dominates is Zipf's law: in any natural-language corpus, a word's frequency is roughly inversely proportional to its rank.
-
 $$f(\text{rank}) \propto \frac{1}{\text{rank}}$$
-
 ![Zipf distribution: head dominated by stopwords, long tail of rare words](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig5_zipf_distribution.png)
 
 The top ten words alone often account for 25 — 30% of all tokens. That is the head of the distribution, and it is mostly stopwords. The tail — thousands of words appearing once or twice — is where most semantic content lives, but it is also where models struggle and where subword tokenization earns its keep.
@@ -396,9 +388,7 @@ The fatal limitation: `dog bites man` and `man bites dog` produce identical vect
 ### 8.3 TF-IDF
 
 TF-IDF up-weights words that are frequent in a document but rare in the corpus — a heuristic for "important to this document, but not generic":
-
 $$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$
-
 where $N$ is the number of documents and $\text{df}(t)$ is the number of documents containing term $t$. The `+1` smoothing keeps the IDF defined when a term appears in every document (or in none).
 
 ![Bag of Words counts versus TF-IDF weights on the same toy corpus](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig3_bow_vs_tfidf.png)
@@ -443,9 +433,7 @@ tfidf = TfidfVectorizer(
 ## 9. Step 6 — N-gram Language Models
 
 Once you have tokens, you can also model how they follow each other. An n-gram model factors a sentence into a chain of conditional probabilities:
-
 $$P(w_1, \ldots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_{t-n+1}, \ldots, w_{t-1})$$
-
 A bigram model uses one word of context, a trigram uses two, and so on.
 
 ![N-gram windows, the bigram formula, and the perplexity vs sparsity trade-off](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig7_ngram_language_models.png)

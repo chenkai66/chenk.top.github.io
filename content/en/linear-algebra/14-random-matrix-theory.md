@@ -59,9 +59,7 @@ The **Gaussian Orthogonal Ensemble** (GOE) is the special case where all entries
 ### 2.2 Wishart matrices: sample covariance
 
 Let $\mathbf{X} \in \mathbb{R}^{n \times p}$ have i.i.d. entries with mean $0$ and variance $1$. The **Wishart matrix** (or sample covariance matrix) is
-
 $$\mathbf{S} \;=\; \frac{1}{n}\,\mathbf{X}^\top \mathbf{X} \;\in\; \mathbb{R}^{p\times p}.$$
-
 If $n \gg p$, $\mathbf{S}$ is a good estimator of the true covariance. If $n$ and $p$ are *both* large with their ratio fixed, $\mathbf{S}$ is wildly off — in a structured, predictable way that the Marchenko-Pastur law describes.
 
 **Mental picture.** Track the daily returns of $p = 500$ stocks for one trading year ($n \approx 252$). The "covariance matrix" you compute has $125{,}000$ free parameters but only $\approx 126{,}000$ data points; the resulting estimate is essentially a random matrix and its eigenvalues are spread out by RMT laws even when the true covariance is the identity.
@@ -73,13 +71,9 @@ If $n \gg p$, $\mathbf{S}$ is a good estimator of the true covariance. If $n$ an
 ### 3.1 Statement
 
 Let $\mathbf{W}$ be an $n \times n$ Wigner matrix with off-diagonal variance $\sigma^2$. Form the normalised matrix
-
 $$\hat{\mathbf{W}} \;=\; \frac{\mathbf{W}}{\sigma\sqrt{n}}.$$
-
 As $n \to \infty$, the **empirical spectral distribution** $\frac{1}{n}\sum_i \delta_{\lambda_i(\hat{\mathbf{W}})}$ converges almost surely (in the weak sense) to the **semicircle density**
-
 $$f(x) \;=\; \frac{1}{2\pi}\sqrt{4 - x^2}, \qquad x \in [-2, 2],$$
-
 and $f(x) = 0$ outside $[-2, 2]$.
 
 ### 3.2 Three ways to see why it has to be a semicircle
@@ -87,9 +81,7 @@ and $f(x) = 0$ outside $[-2, 2]$.
 **1) Method of moments (the rigorous route).** Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Each term in the trace is a closed walk on $n$ vertices using $k$ steps, weighted by the corresponding product of Gaussian moments. Independence and zero mean force the only surviving walks to be **pair-matched non-crossing walks** — exactly the structure counted by Catalan numbers $C_{k/2}$. The Catalan numbers are precisely the moments of the semicircle, so the limits match.
 
 **2) Coulomb gas (the physicist's route).** The joint density of GOE eigenvalues is
-
 $$\rho(\lambda_1, \dots, \lambda_n) \;\propto\; \prod_{i<j} |\lambda_i - \lambda_j|\;\exp\!\Big(-\tfrac{n}{4}\sum_i \lambda_i^2\Big),$$
-
 which describes $n$ charged particles on a line with logarithmic repulsion (the Vandermonde factor) confined by a harmonic potential. The equilibrium density that balances repulsion against confinement is the semicircle.
 
 **3) Free CLT (the algebraic route).** A symmetric random matrix can be written as a sum of many "free" rank-one perturbations. In free probability the analogue of "sum of independent variables" is the **free additive convolution**, and its central limit theorem yields the semicircle distribution — not the Gaussian. Section 7 expands on this.
@@ -132,13 +124,9 @@ The fit is essentially perfect already at $n = 200$.
 ### 4.1 Statement
 
 Let $\mathbf{X}$ be $n \times p$ with i.i.d. entries of mean $0$ and variance $1$, and set $\gamma = p/n$ (the **aspect ratio**). As $n, p \to \infty$ with $\gamma$ fixed, the empirical spectral distribution of $\mathbf{S} = \frac{1}{n}\mathbf{X}^\top\mathbf{X}$ converges to the **Marchenko-Pastur density**
-
 $$f(\lambda) \;=\; \frac{1}{2\pi\gamma\,\lambda}\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)},\qquad \lambda \in [\lambda_-, \lambda_+],$$
-
 with edges
-
 $$\lambda_\pm \;=\; (1 \pm \sqrt{\gamma})^2.$$
-
 If $\gamma > 1$ the matrix has rank $n < p$ and there are $p - n$ exact zero eigenvalues in addition to the bulk on $[\lambda_-, \lambda_+]$.
 
 ### 4.2 What the density tells you
@@ -186,9 +174,7 @@ The semicircle and MP densities describe the *bulk* — the macroscopic shape. R
 ### 5.1 Spacings: eigenvalues repel
 
 Fix a generic point in the bulk and look at the distribution of the gap to the nearest neighbour, normalised by the local mean spacing. For GOE matrices the gap distribution is closely approximated by the **Wigner surmise**
-
 $$p(s) \;=\; \frac{\pi s}{2}\,\exp\!\Big(-\frac{\pi s^2}{4}\Big).$$
-
 The crucial feature is $p(0) = 0$: eigenvalues do not coincide. They actively *repel*, with quadratic vanishing at $s=0$ for GOE (and cubic for GUE — different symmetry classes have different repulsion exponents).
 
 Compare this to **independent** levels: their spacings would be exponential, $p(s) = e^{-s}$, with **maximum** at $s = 0$. The clustering you would expect from independence is exactly what eigenvalues refuse to do.
@@ -198,9 +184,7 @@ Compare this to **independent** levels: their spacings would be exponential, $p(
 ### 5.2 The edge: Tracy-Widom
 
 The largest eigenvalue $\lambda_{\max}$ of an $n \times n$ GOE sits near $2$ for large $n$, but its fluctuations are tiny — of order $n^{-2/3}$ rather than the $n^{-1/2}$ you would naively guess. Specifically,
-
 $$n^{2/3}\big(\lambda_{\max} - 2\big) \;\xrightarrow{d}\; \mathrm{TW}_1,$$
-
 where $\mathrm{TW}_1$ is the **Tracy-Widom distribution** for $\beta = 1$. It is highly asymmetric: the left tail decays super-exponentially (you almost never see $\lambda_{\max}$ much smaller than $2$), the right tail decays like $\exp(-\frac{2}{3} t^{3/2})$ (large outliers do occur, but rarely). The same TW law governs the longest increasing subsequence of a random permutation, the height of growing crystals, and the largest singular value of large random matrices used in modern statistics.
 
 ### 5.3 Random vs deterministic spectra
@@ -216,9 +200,7 @@ A picture summarises everything: a random Wigner spectrum is a *smooth bulk* wit
 ### 6.1 Wireless: MIMO capacity scales linearly in antennas
 
 A MIMO channel with $n_t$ transmit and $n_r$ receive antennas has capacity
-
 $$C \;=\; \sum_i \log_2\!\Big(1 + \frac{\mathrm{SNR}}{n_t}\,\lambda_i\Big),$$
-
 where $\lambda_i$ are eigenvalues of $\mathbf{H}\mathbf{H}^\dagger$ and $\mathbf{H}$ is the random channel matrix. The MP law tells you the limiting density of $\lambda_i$, and integrating against $\log_2(1 + \mathrm{SNR}\cdot\lambda)$ gives the ergodic capacity. The conclusion — that capacity scales **linearly** with $\min(n_t, n_r)$ — is the theoretical reason every modern phone, base station and Wi-Fi router uses multiple antennas.
 
 ```python
@@ -305,13 +287,9 @@ Initialising weights so that $\mathbf{W}^\top\mathbf{W}$ has eigenvalues concent
 ### 7.1 Stieltjes transform
 
 Every probability measure $\mu$ on $\mathbb{R}$ has a **Stieltjes transform**
-
 $$m_\mu(z) \;=\; \int \frac{d\mu(\lambda)}{\lambda - z}, \qquad z \in \mathbb{C}^+.$$
-
 You recover the density via the inversion formula
-
 $$f(\lambda) \;=\; -\frac{1}{\pi}\lim_{\eta \to 0^+}\operatorname{Im}\,m_\mu(\lambda + i\eta).$$
-
 Why bother? Because the Stieltjes transform of an empirical spectral distribution equals $\frac{1}{n}\operatorname{tr}(\mathbf{M} - z\mathbf{I})^{-1}$, and resolvents are easy to manipulate algebraically. Most modern proofs in RMT happen entirely on the level of the Stieltjes transform: write down a self-consistent equation for $m(z)$, solve it, invert.
 
 For the semicircle, the equation is $m(z)^2 + zm(z) + 1 = 0$, solving to $m(z) = (-z + \sqrt{z^2 - 4})/2$. For Marchenko-Pastur the equation is similarly small.

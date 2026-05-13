@@ -65,23 +65,19 @@ Two consequences of feedback we will derive precisely:
 ## 2. Transfer Functions
 
 For a linear time-invariant (LTI) system with input $u(t)$ and output $y(t)$, the transfer function
-
 $$G(s) \;=\; \frac{Y(s)}{U(s)}$$
-
 is the Laplace ratio at zero initial conditions. ODE differentiation becomes multiplication by $s$, integration becomes division — algebra replaces calculus.
 
 ### First-order plant
-
 $$\tau\dot y + y = K u \quad\Longleftrightarrow\quad G(s) = \frac{K}{\tau s + 1}.$$
-
 Step response: $y(t) = K(1 - e^{-t/\tau})$. Time constant $\tau$ governs how quickly the system tracks a setpoint change.
 
 ### Second-order plant
-
-$$\ddot y + 2\zeta\omega_n \dot y + \omega_n^2 y = K\omega_n^2 u
+$$
+\ddot y + 2\zeta\omega_n \dot y + \omega_n^2 y = K\omega_n^2 u
 \;\;\Longleftrightarrow\;\;
-G(s) = \frac{K\omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2}.$$
-
+G(s) = \frac{K\omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2}.
+$$
 The damping ratio $\zeta$ controls the *qualitative* shape of the response:
 
 | $\zeta$ | Pole structure | Step response |
@@ -98,10 +94,10 @@ These four cases recur everywhere — circuits, mechanical systems, biology — 
 ## 3. PID Controllers
 
 The most widely deployed controller in industry, by an enormous margin. The control law:
-
-$$u(t) \;=\; K_p\,e(t) \;+\; K_i\!\int_0^t e(\tau)\,d\tau \;+\; K_d\,\dot e(t),
-\qquad e = r - y.$$
-
+$$
+u(t) \;=\; K_p\,e(t) \;+\; K_i\!\int_0^t e(\tau)\,d\tau \;+\; K_d\,\dot e(t),
+\qquad e = r - y.
+$$
 Each term has a clean physical role:
 
 - **Proportional ($K_p$)** — a "spring" pulling the output toward the setpoint. Fast but cannot eliminate steady-state error against a constant disturbance.
@@ -156,9 +152,7 @@ class PIDController:
 ## 4. Root Locus — where the closed-loop poles go
 
 For a unity-feedback loop with open-loop transfer function $K\,L(s)$, the closed-loop characteristic equation is
-
 $$1 + K\,L(s) = 0.$$
-
 The **root locus** plots the closed-loop pole positions in the complex plane as the gain $K$ sweeps from $0$ to $\infty$. It tells you, *visually*, the trade-off between speed (poles further left) and damping (poles closer to the real axis).
 
 ![Root locus of $K/(s(s+2)(s+5))$ and the corresponding step responses for three gains.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/fig2_root_locus.png)
@@ -189,10 +183,10 @@ Rules of thumb: **GM > 6 dB** (a factor of 2) and **PM > 30 deg** (preferably > 
 ## 6. State-Space Representation
 
 For multi-input multi-output (MIMO) systems we drop the transfer-function fiction and write the dynamics directly:
-
-$$\dot{\mathbf x} = A\mathbf x + B\mathbf u, \qquad
-\mathbf y = C\mathbf x + D\mathbf u.$$
-
+$$
+\dot{\mathbf x} = A\mathbf x + B\mathbf u, \qquad
+\mathbf y = C\mathbf x + D\mathbf u.
+$$
 Here $\mathbf x \in \mathbb R^n$ is the **state vector** — enough information to predict the future given $\mathbf u(t)$. $A$ is the dynamics matrix, $B$ couples the inputs in, $C$ extracts the measured outputs, and $D$ is direct feedthrough (often zero).
 
 ![State-space block diagram, the controllability/observability tests, and an LQR vs pole-placement comparison on the inverted pendulum.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/fig4_state_space.png)
@@ -232,13 +226,9 @@ print('Closed-loop eigenvalues =', np.linalg.eigvals(A - B @ K_pp))
 ```
 
 **LQR** (linear quadratic regulator) instead chooses $K$ to *minimise* a quadratic cost
-
 $$J \;=\; \int_0^\infty \bigl(\mathbf x^T Q \mathbf x + \mathbf u^T R \mathbf u\bigr)\,dt,$$
-
 trading state error against control effort. The solution comes from the **algebraic Riccati equation**
-
 $$A^T P + P A - P B R^{-1} B^T P + Q = 0, \qquad K = R^{-1} B^T P.$$
-
 ```python
 from scipy.linalg import solve_continuous_are
 
@@ -255,9 +245,7 @@ Compared to pole placement, LQR almost always uses less actuator effort to achie
 ## 8. Observers and the Separation Principle
 
 State feedback presupposes you can *measure* every component of $\mathbf x$. In reality you only see $\mathbf y$. A **Luenberger observer** estimates the unmeasured state from the measured output:
-
 $$\dot{\hat{\mathbf x}} \;=\; A\hat{\mathbf x} + B\mathbf u + L\bigl(\mathbf y - C\hat{\mathbf x}\bigr).$$
-
 The estimation error $\tilde{\mathbf x} = \mathbf x - \hat{\mathbf x}$ obeys $\dot{\tilde{\mathbf x}} = (A - LC)\tilde{\mathbf x}$. If $(A, C)$ is observable, we can place the eigenvalues of $A - LC$ wherever we like — pick them faster than the controller poles so that estimation settles before the controller acts.
 
 The miraculous **separation principle** says that the closed-loop poles of *controller + observer* are exactly the union of the controller poles (eigenvalues of $A - BK$) and the observer poles (eigenvalues of $A - LC$). You can design the two pieces independently.
@@ -267,16 +255,16 @@ The miraculous **separation principle** says that the closed-loop poles of *cont
 ## 9. Worked Example: Inverted Pendulum on a Cart
 
 The cart-pendulum has linearised state $\mathbf x = [x,\; \dot x,\; \theta,\; \dot\theta]^T$ with
-
-$$A = \begin{pmatrix}
+$$
+A = \begin{pmatrix}
 0 & 1 & 0 & 0 \\
 0 & -b/M & -mg/M & 0 \\
 0 & 0 & 0 & 1 \\
 0 & b/(ML) & (M+m)g/(ML) & 0
 \end{pmatrix},
 \quad
-B = \begin{pmatrix} 0 \\ 1/M \\ 0 \\ -1/(ML) \end{pmatrix}.$$
-
+B = \begin{pmatrix} 0 \\ 1/M \\ 0 \\ -1/(ML) \end{pmatrix}.
+$$
 Look at $\mathbf{eigvals}(A)$: one of them sits in the right half-plane (the open-loop pendulum falls). We compute $K_{\text{LQR}}$ from the Riccati equation (above), then simulate $\dot{\mathbf x} = (A - BK)\mathbf x$ from a $0.2$-rad initial tilt. The bottom row of the state-space figure shows the angle decaying smoothly to zero, the cart settling to the origin, and the actuator effort dropping to a small steady push — the full design loop in fewer than 30 lines of Python.
 
 ---

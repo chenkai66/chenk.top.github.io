@@ -63,9 +63,7 @@ The model is fully described by three parameter blocks $\lambda=(\boldsymbol{\pi
 2. **Observation independence** — $o_t$ depends only on $i_t$, not on other states or observations.
 
 These two together let us factorise the full joint along time:
-
 $$P(\mathbf{O}, \mathbf{I} \mid \lambda) = \pi_{i_1}\,b_{i_1}(o_1) \prod_{t=2}^{T} a_{i_{t-1},i_t}\,b_{i_t}(o_t).$$
-
 Every algorithm in this article is a clever way to **sum or maximise** this product without enumerating the $N^T$ hidden paths.
 
 ### The 3-State Weather Toy
@@ -93,27 +91,23 @@ A naive approach to (1) sums the joint over all $N^T$ hidden sequences — alrea
 ![Forward algorithm trellis: alpha values flow left-to-right; each node sums incoming paths and multiplies by the local emission probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig3_forward_trellis.png)
 
 Define the **forward variable**
-
 $$\alpha_t(i) = P(o_1, o_2, \dots, o_t,\; i_t = i \mid \lambda).$$
-
 It is the joint probability of having generated the observations seen *so far* and ending up in state $i$ at time $t$.
 
 **Initialisation.** At $t=1$ there is no transition yet, only the initial distribution and the first emission:
-
 $$\alpha_1(i) = \pi_i\, b_i(o_1).$$
-
 **Recursion.** To extend $\alpha$ from $t-1$ to $t$, condition on the previous state and marginalise:
-$$\begin{aligned}
+$$
+\begin{aligned}
 \alpha_t(j) &= P(o_1,\dots,o_t,\, i_t=j) \\
 &= \sum_{i=1}^N P(o_1,\dots,o_{t-1},\, i_{t-1}=i)\,P(i_t=j\mid i_{t-1}=i)\,P(o_t\mid i_t=j)\\
 &= \left[\sum_{i=1}^N \alpha_{t-1}(i)\, a_{ij}\right] b_j(o_t).
-\end{aligned}$$
+\end{aligned}
+$$
 The bracketed sum is the **only** computation that crosses the time boundary; everything else is local. This is dynamic programming in the cleanest possible form.
 
 **Termination.** Sum out the final hidden state:
-
 $$P(\mathbf{O}\mid\lambda) = \sum_{i=1}^N \alpha_T(i).$$
-
 **Cost.** Each of $T$ steps has $N$ targets, each requires summing over $N$ predecessors: $O(N^2 T)$. For $N{=}50, T{=}100$ this is $2.5\times 10^{5}$ operations — about $10^{165}\times$ faster than the brute-force sum.
 
 **Underflow.** Probabilities multiply geometrically, so $\alpha_t$ eventually underflows. Two standard fixes:
@@ -130,33 +124,23 @@ The forward sweep alone evaluates $P(\mathbf{O})$. To compute the **posterior ov
 ![Backward algorithm trellis: beta flows right-to-left from the boundary beta_T(i) = 1](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig4_backward_trellis.png)
 
 Define the **backward variable**
-
 $$\beta_t(i) = P(o_{t+1}, o_{t+2}, \dots, o_T \mid i_t = i, \lambda).$$
-
 Note the conditioning: $\beta$ is a *conditional* probability of the *future*, while $\alpha$ is a *joint* probability of the *past*. They mirror each other.
 
 **Boundary.** Past time $T$ there are no observations, so $\beta_T(i) = 1$ for all $i$.
 
 **Recursion.** Step from $t+1$ back to $t$ by summing over the next state:
-
 $$\beta_t(i) = \sum_{j=1}^N a_{ij}\, b_j(o_{t+1})\, \beta_{t+1}(j).$$
-
 **Sanity check.** Combining both sweeps must recover the marginal:
-
 $$P(\mathbf{O}\mid\lambda) = \sum_i \pi_i\,b_i(o_1)\,\beta_1(i) = \sum_i \alpha_T(i).$$
-
 ### Two Posteriors That Drive Learning
 
 Once both $\alpha$ and $\beta$ are tabulated we can read off, in $O(1)$ extra work per cell:
 
 **State posterior (smoothing):**
-
 $$\gamma_t(i) = P(i_t=i \mid \mathbf{O},\lambda) = \frac{\alpha_t(i)\,\beta_t(i)}{P(\mathbf{O}\mid\lambda)}.$$
-
 **Pairwise posterior (transition responsibility):**
-
 $$\xi_t(i,j) = P(i_t=i, i_{t+1}=j \mid \mathbf{O},\lambda) = \frac{\alpha_t(i)\,a_{ij}\,b_j(o_{t+1})\,\beta_{t+1}(j)}{P(\mathbf{O}\mid\lambda)}.$$
-
 These are the two statistics Baum-Welch needs in its E-step.
 
 ---
@@ -168,31 +152,21 @@ These are the two statistics Baum-Welch needs in its E-step.
 ![Viterbi trellis: the max-product DP highlights the single most-likely state path through time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig5_viterbi_path.png)
 
 Decoding asks for the **most likely state path** rather than the total probability:
-
 $$\mathbf{I}^* = \arg\max_{\mathbf{I}}\, P(\mathbf{I}\mid\mathbf{O},\lambda) = \arg\max_{\mathbf{I}}\, P(\mathbf{O},\mathbf{I}\mid\lambda).$$
-
 (The denominator $P(\mathbf{O})$ does not depend on $\mathbf{I}$, so it can be dropped.)
 
 Define
-
 $$\delta_t(j) = \max_{i_1,\dots,i_{t-1}} P(i_1,\dots,i_{t-1}, i_t=j,\, o_1,\dots,o_t\mid \lambda),$$
-
 the probability of the **best** path of length $t$ ending in state $j$. The recursion mirrors Forward, with one operator swapped:
-
 $$\boxed{\;\delta_t(j) = \max_{i}\big[\delta_{t-1}(i)\, a_{ij}\big]\, b_j(o_t).\;}$$
-
 To recover the path itself, store back-pointers
-
 $$\psi_t(j) = \arg\max_i\big[\delta_{t-1}(i)\, a_{ij}\big].$$
-
 After the forward pass, terminate at $i_T^* = \arg\max_i \delta_T(i)$ and **backtrack**: $i_t^* = \psi_{t+1}(i_{t+1}^*)$.
 
 **Why does swapping `sum` for `max` work?** Both operators distribute over the time-factorised joint — "max-times" forms a commutative semiring, just like "sum-times". The dynamic-programming bookkeeping is identical; only the local reduction changes.
 
 **Numerical form.** In practice always run Viterbi in log-space:
-
 $$\log\delta_t(j) = \max_i\big[\log\delta_{t-1}(i) + \log a_{ij}\big] + \log b_j(o_t).$$
-
 Now everything is an addition, so underflow is impossible.
 
 ---
@@ -208,27 +182,23 @@ When $\lambda$ is unknown, learn it by maximising $\log P(\mathbf{O}\mid\lambda)
 Given the current $\lambda^{(k)}$, run **forward-backward** to obtain $\gamma_t(i)$ and $\xi_t(i,j)$. These are the *expected* values, under the current model, of the indicator variables $\mathbb{1}[i_t=i]$ and $\mathbb{1}[i_t=i, i_{t+1}=j]$.
 
 The complete-data log-likelihood factorises as
-
 $$\log P(\mathbf{O},\mathbf{I}\mid\lambda) = \log\pi_{i_1} + \sum_{t=1}^{T-1}\log a_{i_t i_{t+1}} + \sum_{t=1}^{T}\log b_{i_t}(o_t).$$
-
 Taking the expectation under $P(\mathbf{I}\mid \mathbf{O},\lambda^{(k)})$ replaces each $\mathbb{1}[\cdot]$ by its posterior probability:
-
 $$Q(\lambda;\lambda^{(k)}) = \sum_i \gamma_1(i)\log\pi_i + \sum_{t=1}^{T-1}\sum_{i,j}\xi_t(i,j)\log a_{ij} + \sum_{t=1}^{T}\sum_{j,k}\gamma_t(j)\,\mathbb{1}[o_t=v_k]\log b_j(k).$$
-
 The three terms are **decoupled** in $\boldsymbol{\pi}, \mathbf{A}, \mathbf{B}$ — the M-step solves three independent constrained maximisations.
 
 ### M-step: Three Closed-Form Updates
 
 Each block has a normalisation constraint (rows sum to 1). With Lagrange multipliers, every update reduces to
-
 $$\text{parameter} = \frac{\text{expected count of the event}}{\text{expected count of its conditioning context}}.$$
-
 Concretely:
-$$\boxed{\;
+$$
+\boxed{\;
 \hat\pi_i = \gamma_1(i),\qquad
 \hat a_{ij} = \frac{\sum_{t=1}^{T-1}\xi_t(i,j)}{\sum_{t=1}^{T-1}\gamma_t(i)},\qquad
 \hat b_j(k) = \frac{\sum_{t:\,o_t=v_k}\gamma_t(j)}{\sum_{t=1}^{T}\gamma_t(j)}.
-\;}$$
+\;}
+$$
 Read each ratio as expected-transitions-from-$i$-to-$j$ over expected-departures-from-$i$, and similarly for emissions. Identical in spirit to MLE on observed counts; only "observed" is replaced by "expected under the posterior".
 
 ### Convergence
@@ -254,25 +224,19 @@ The same engine appears in **speech recognition** (states = phonemes, observatio
 The forward variables $\alpha_t(i) = P(\mathbf{o}_{1:t}, q_t = s_i \mid \lambda)$ shrink geometrically: each step multiplies by transition and emission probabilities, both bounded by 1. After $T = 200$ tokens with average factor $0.1$, $\alpha_T \sim 10^{-200}$, well below the float32 underflow threshold $\approx 10^{-38}$ and below float64's $\approx 10^{-308}$ for any non-trivial sequence length.
 
 The standard fix is *scaled forward-backward*. Define a scaling factor at each step:
-
 $$
 c_t = \sum_i \tilde\alpha_t(i), \qquad \hat\alpha_t(i) = \tilde\alpha_t(i) / c_t,
 $$
-
 where $\tilde\alpha_t$ is the unnormalised forward variable. Then $\hat\alpha_t(i)$ is the normalised filtering posterior $P(q_t = s_i \mid \mathbf{o}_{1:t})$. The full likelihood factorises through the scales:
-
 $$
 \log P(\mathbf{o}_{1:T} \mid \lambda) = \sum_{t=1}^{T} \log c_t.
 $$
-
 The backward pass uses the *same* $c_t$ for normalisation, which keeps the smoothed posterior $\gamma_t(i) = \hat\alpha_t(i)\hat\beta_t(i)$ correct without further bookkeeping.
 
 The alternative is pure log-space:
-
 $$
 \log\alpha_{t+1}(j) = \log b_j(\mathbf{o}_{t+1}) + \mathrm{logsumexp}_i\big(\log\alpha_t(i) + \log a_{ij}\big).
 $$
-
 Log-space costs an extra `exp` and `log` per step but cleanly handles emission probabilities that are already log-densities (e.g. continuous Gaussian emissions). Most production HMM libraries — `hmmlearn`, `pomegranate` — use log-space by default. Viterbi already lives in log-space because $\max$ commutes with monotone transforms, so there is no scaling subtlety there.
 
 ## 8. Cost, complexity, and when to reach for HMMs
@@ -327,19 +291,44 @@ Replace the emission matrix with a density: a single Gaussian, a Gaussian mixtur
 ## Exercises
 
 **E1.** With $N=2$, $\boldsymbol{\pi}=(0.6, 0.4)$, $\mathbf{B} = \begin{pmatrix}0.5 & 0.5 \\ 0.4 & 0.6\end{pmatrix}$, and $o_1 = v_1$, compute $\alpha_1$.
-<details><summary>Solution</summary>$\alpha_1(1) = 0.6 \cdot 0.5 = 0.30$, $\alpha_1(2) = 0.4 \cdot 0.4 = 0.16$.</details>
+<details>
+<summary>Solution</summary>
+
+$\alpha_1(1) = 0.6 \cdot 0.5 = 0.30$, $\alpha_1(2) = 0.4 \cdot 0.4 = 0.16$.
+
+</details>
 
 **E2.** For $N{=}50, T{=}100$, compare Forward to brute-force enumeration.
-<details><summary>Solution</summary>Forward: $N^2 T = 2.5\times 10^{5}$ multiplications. Brute force: $N^T \approx 10^{170}$ paths — intractable.</details>
+<details>
+<summary>Solution</summary>
+
+Forward: $N^2 T = 2.5\times 10^{5}$ multiplications. Brute force: $N^T \approx 10^{170}$ paths — intractable.
+
+</details>
 
 **E3.** Interpret $\hat a_{ij} = \frac{\sum_t \xi_t(i,j)}{\sum_t \gamma_t(i)}$.
-<details><summary>Solution</summary>Expected number of $i\to j$ transitions divided by expected number of departures from state $i$. Soft generalisation of MLE counts.</details>
+<details>
+<summary>Solution</summary>
+
+Expected number of $i\to j$ transitions divided by expected number of departures from state $i$. Soft generalisation of MLE counts.
+
+</details>
 
 **E4.** Show that running Forward then Backward gives the same $P(\mathbf{O}\mid\lambda)$ as Forward alone.
-<details><summary>Solution</summary>$\sum_i \pi_i b_i(o_1)\beta_1(i) = \sum_i \alpha_1(i)\beta_1(i)/1 = \sum_i \alpha_t(i)\beta_t(i)$ for any $t$ (a consequence of the chain rule); at $t = T$, $\beta_T \equiv 1$ gives $\sum_i \alpha_T(i)$.</details>
+<details>
+<summary>Solution</summary>
+
+$\sum_i \pi_i b_i(o_1)\beta_1(i) = \sum_i \alpha_1(i)\beta_1(i)/1 = \sum_i \alpha_t(i)\beta_t(i)$ for any $t$ (a consequence of the chain rule); at $t = T$, $\beta_T \equiv 1$ gives $\sum_i \alpha_T(i)$.
+
+</details>
 
 **E5.** Explain why Viterbi requires only $O(N^2 T)$ time but $O(NT)$ memory for back-pointers.
-<details><summary>Solution</summary>The same trellis as Forward (cost $O(N^2 T)$) plus an integer back-pointer per (cell, time) — $NT$ slots — consulted during the linear-time backtrack.</details>
+<details>
+<summary>Solution</summary>
+
+The same trellis as Forward (cost $O(N^2 T)$) plus an integer back-pointer per (cell, time) — $NT$ slots — consulted during the linear-time backtrack.
+
+</details>
 
 ---
 

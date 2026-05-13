@@ -41,7 +41,8 @@ translationKey: "ode-5"
 ## 1. Why Power Series?
 
 You are studying heat conduction inside a cylinder and, after separation of variables, arrive at
-$$x^2 y'' + xy' + (x^2 - n^2)y = 0.$$This is the **Bessel equation**. None of our previous methods (characteristic equations for constant coefficients, integrating factors, variation of parameters) reach it because the coefficients are *functions of $x$*, not constants. Worse, the equation is singular at $x = 0$ — precisely where the cylinder's axis lies and precisely where the answer must be physically well-defined.
+$$
+x^2 y'' + xy' + (x^2 - n^2)y = 0.$$This is the **Bessel equation**. None of our previous methods (characteristic equations for constant coefficients, integrating factors, variation of parameters) reach it because the coefficients are *functions of $x$*, not constants. Worse, the equation is singular at $x = 0$ — precisely where the cylinder's axis lies and precisely where the answer must be physically well-defined.
 
 **The strategy.** Postulate a series ansatz, plug it in, and let the differential equation generate its own coefficients through a recurrence. We will need *two* flavours of series:
 
@@ -56,7 +57,8 @@ The same machinery unlocks Bessel, Legendre, Hermite, Airy, Chebyshev, Laguerre,
 
 ### 2.1 The method
 
-Write the equation in standard form$$y'' + P(x)\,y' + Q(x)\,y = 0.$$
+Write the equation in standard form$$y'' + P(x)\,y' + Q(x)\,y = 0.
+$$
 A point $x_0$ is **ordinary** if both $P$ and $Q$ are analytic there. The recipe is then:
 
 1. Verify $x_0$ is ordinary.
@@ -75,7 +77,8 @@ A theorem of Fuchs guarantees that the resulting series converges in any open di
 Solve $y' = y$ by power series. Let $y = \sum a_k x^k$, then $y' = \sum (k+1) a_{k+1} x^k$. Matching coefficients gives$$(k+1)\,a_{k+1} = a_k, \qquad a_k = \frac{a_0}{k!}.$$So$$y = a_0 \sum_{k=0}^{\infty} \frac{x^k}{k!} = a_0\,e^x.$$The series method "rediscovered" the exponential. The lesson: even when we already know the answer, the recurrence is a mechanical procedure that cannot fail.
 
 ### 2.3 The Airy equation
-$$y'' - x\,y = 0.$$This appears whenever a wave (light, quantum probability, water) meets a turning point where the local wavenumber smoothly changes from real to imaginary — the prototype example is quantum tunnelling near a linear potential barrier.
+$$
+y'' - x\,y = 0.$$This appears whenever a wave (light, quantum probability, water) meets a turning point where the local wavenumber smoothly changes from real to imaginary — the prototype example is quantum tunnelling near a linear potential barrier.
 
 Both $P(x) = 0$ and $Q(x) = -x$ are entire, so $x = 0$ is ordinary. Substituting $y = \sum a_k x^k$ and matching powers gives the recurrence$$a_{k+2} = \frac{a_{k-1}}{(k+1)(k+2)} \qquad (k \geq 1), \qquad a_2 = 0.$$The coefficients split into two independent chains starting from $a_0$ and $a_1$, and the resulting two linearly independent solutions are the **Airy functions** $\text{Ai}(x)$ and $\text{Bi}(x)$. Airy decays exponentially for $x > 0$ (the classically forbidden region) and oscillates for $x < 0$ (the classically allowed region) — a crisp visualisation of quantum tunnelling.
 
@@ -132,7 +135,8 @@ The recurrence on $a_k$, obtained from the higher-order coefficient matches, is 
 ![Ordinary Differential Equations (5): Power Series and Special Functions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/illustration_2.png)
 
 ### 4.1 The Bessel equation
-$$x^2 y'' + x y' + (x^2 - n^2) y = 0.$$The three places this equation appears in physics:
+$$
+x^2 y'' + x y' + (x^2 - n^2) y = 0.$$The three places this equation appears in physics:
 
 - **Vibrating circular drumheads** — the radial part of $\nabla^2 u + k^2 u = 0$ in polar coordinates.
 - **Cylindrical waveguides** — electromagnetic modes inside a metal pipe.
@@ -142,7 +146,8 @@ The point $x = 0$ is a regular singular point with $p_0 = 1$ and $q_0 = -n^2$, s
 
 ### 4.2 The Bessel function of the first kind
 
-Taking $r = n$ (with $n \geq 0$) and solving the recurrence yields$$\boxed{\; J_n(x) = \sum_{m=0}^{\infty} \frac{(-1)^m}{m!\,\Gamma(m+n+1)} \left(\frac{x}{2}\right)^{2m+n}.\;}$$
+Taking $r = n$ (with $n \geq 0$) and solving the recurrence yields$$\boxed{\; J_n(x) = \sum_{m=0}^{\infty} \frac{(-1)^m}{m!\,\Gamma(m+n+1)} \left(\frac{x}{2}\right)^{2m+n}.\;}
+$$
 Three properties we will use repeatedly:
 
 - **Recurrence:** $\displaystyle J_{n-1}(x) + J_{n+1}(x) = \frac{2n}{x}\,J_n(x)$ — lets us slide between orders.
@@ -192,7 +197,8 @@ For the negative root $r = -n$ when $n$ is a non-negative integer, the recurrenc
 ## 5. Legendre Polynomials
 
 ### 5.1 The Legendre equation
-$$(1 - x^2)\,y'' - 2x\,y' + n(n+1)\,y = 0.$$This appears every time you separate variables in spherical coordinates: the angular part of the Laplacian, hydrogen-atom wavefunctions, gravitational and electrostatic multipole expansions, antenna radiation patterns. Here $x$ stands in for $\cos\theta$, so the natural domain is $[-1,1]$.
+$$
+(1 - x^2)\,y'' - 2x\,y' + n(n+1)\,y = 0.$$This appears every time you separate variables in spherical coordinates: the angular part of the Laplacian, hydrogen-atom wavefunctions, gravitational and electrostatic multipole expansions, antenna radiation patterns. Here $x$ stands in for $\cos\theta$, so the natural domain is $[-1,1]$.
 
 The points $x = \pm 1$ are regular singular points (where the leading coefficient $1-x^2$ vanishes), while $x = 0$ is ordinary.
 
@@ -238,7 +244,8 @@ plt.tight_layout(); plt.show()
 ## 6. Hermite Polynomials and the Quantum Harmonic Oscillator
 
 ### 6.1 The Hermite equation
-$$y'' - 2x\,y' + 2n\,y = 0.$$For non-negative integer $n$, the polynomial solutions are the **Hermite polynomials** $H_n(x)$:$$H_0 = 1, \quad H_1 = 2x, \quad H_2 = 4x^2 - 2, \quad H_3 = 8x^3 - 12x, \ldots$$They satisfy the orthogonality $\int_{-\infty}^{\infty} H_m(x) H_n(x) e^{-x^2} dx = \sqrt{\pi}\,2^n n!\,\delta_{mn}$ — with the Gaussian weight that will become the wavefunction envelope in a moment.
+$$
+y'' - 2x\,y' + 2n\,y = 0.$$For non-negative integer $n$, the polynomial solutions are the **Hermite polynomials** $H_n(x)$:$$H_0 = 1, \quad H_1 = 2x, \quad H_2 = 4x^2 - 2, \quad H_3 = 8x^3 - 12x, \ldots$$They satisfy the orthogonality $\int_{-\infty}^{\infty} H_m(x) H_n(x) e^{-x^2} dx = \sqrt{\pi}\,2^n n!\,\delta_{mn}$ — with the Gaussian weight that will become the wavefunction envelope in a moment.
 
 ### 6.2 The quantum harmonic oscillator
 
@@ -275,7 +282,8 @@ plt.grid(True, alpha=0.3); plt.tight_layout(); plt.show()
 
 ## 7. The Sturm-Liouville Unifying Framework
 
-All the families above are eigenfunctions of self-adjoint **Sturm-Liouville problems**:$$\frac{d}{dx}\!\left[p(x)\,\frac{dy}{dx}\right] + \bigl[q(x) + \lambda\,w(x)\bigr]\,y = 0,$$
+All the families above are eigenfunctions of self-adjoint **Sturm-Liouville problems**:$$\frac{d}{dx}\!\left[p(x)\,\frac{dy}{dx}\right] + \bigl[q(x) + \lambda\,w(x)\bigr]\,y = 0,
+$$
 with appropriate boundary conditions. Different choices of $p$, $q$, $w$, and the interval reproduce each special function:
 
 | Function | $p(x)$ | $w(x)$ | Interval |

@@ -128,11 +128,9 @@ HNSW 已成为 pgvector、Milvus、Qdrant、Weaviate 等现代向量数据库的
 **密集检索（Dense retrieval）**（基于神经嵌入的 cosine 相似度）擅长捕捉语义相似性，但在精确匹配（如缩写、ID、罕见术语）上表现较弱。
 
 **稀疏检索（Sparse retrieval）**（如 BM25 或其现代变体 SPLADE）则在精确匹配和罕见词上表现优异，但难以处理同义词或 paraphrase。**BM25**（[Robertson et al., 1995][robertson-bm25]）是一种经典的概率相关性模型，通过词频 × 逆文档频率并结合长度归一化进行评分，其公式为：
-
 $$
 \text{BM25}(q, d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{f(t,d) \cdot (k_1+1)}{f(t,d) + k_1 \cdot (1 - b + b \cdot |d|/\text{avgdl})}
 $$
-
 其中 $k_1 \approx 1.5$、$b \approx 0.75$ 为标准参数。过去 30 年，BM25 一直是词法检索的主流算法，即便在密集嵌入兴起后仍未被取代——因为它在依赖特定 token 的查询（如产品 SKU、错误代码、命名实体）上仍是同类最佳。
 
 **混合检索（Hybrid retrieval）** 结合两者优势后再融合。2026 年几乎所有生产级 RAG 系统均采用混合方案——相比纯密集检索，其在多数基准测试上可将 NDCG@10 提升 10–30%，而额外成本极低（BM25 计算廉价，且 chunk 数据已存在）。
@@ -188,11 +186,9 @@ def rerank(query, candidates, top_k=5):
 ![图5：ColBERT 后期交互](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/fig5_colbert_late_interaction.png)
 
 介于 bi-encoder 的速度与 cross-encoder 的质量之间，**晚期交互（late interaction）**（ColBERT, [Khattab & Zaharia, 2020][khattab-colbert]）提供了一种折中方案：query 与 document 分别编码为 per-token 向量（不进行池化），相似度通过 token 级匹配计算：
-
 $$
 \text{score}(q, d) = \sum_{i} \max_j \langle q_i, d_j \rangle
 $$
-
 ColBERT 既保留了 token 级匹配能力（利于罕见词检索），又支持并行计算。ColBERTv2 与 PLAID（Santhanam et al., 2022）通过残差压缩和近似检索，使其在百万文档规模上具备可行性。BGE-M3 也内置了 ColBERT 风格组件，可免费使用。
 
 在 2025–2026 年的生产系统中，晚期交互正逐步应用于高精度检索场景——当重排序 50 个候选仍不足，但全量 cross-encoding 成本过高时。2024 年提出的 **ColPali** 更将该原理扩展至视觉-语言模型，用于文档图像检索，证明 token 级匹配在 PDF/扫描件检索上显著优于“先 OCR 再嵌入”的传统流程。

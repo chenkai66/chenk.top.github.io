@@ -47,9 +47,7 @@ This is also Part 8 of the *PDE + Machine Learning* series. We have spent seven 
 ### 1.1 The General Form
 
 A reaction-diffusion (RD) equation couples spatial diffusion with local nonlinear reactions:
-
 $$\frac{\partial \mathbf{u}}{\partial t} = \mathbf{D}\,\nabla^2\mathbf{u} + \mathbf{R}(\mathbf{u}). \tag{1}$$
-
 - The diffusion term $\mathbf{D}\nabla^2\mathbf{u}$ is **linear** and **smoothing** — it always reduces gradients.
 - The reaction term $\mathbf{R}(\mathbf{u})$ is **local** (no spatial derivatives) and **nonlinear** — it can either reinforce or oppose the smoothing.
 
@@ -60,8 +58,10 @@ The remarkable thing — and Turing's insight — is that the *competition* betw
 ### 1.2 Gray-Scott
 
 Gray-Scott is the canonical two-component model:
-$$\partial_t u = D_u \nabla^2 u - u v^2 + F(1-u),\qquad
-\partial_t v = D_v \nabla^2 v + u v^2 - (F+k)\,v.$$
+$$
+\partial_t u = D_u \nabla^2 u - u v^2 + F(1-u),\qquad
+\partial_t v = D_v \nabla^2 v + u v^2 - (F+k)\,v.
+$$
 - $u$ is a substrate fed in at rate $F$; $v$ is an autocatalyst that consumes $u$ via $u + 2v \to 3v$ and decays at rate $k$.
 - With $D_u > D_v$ (substrate diffuses faster than the catalyst), small patches of $v$ stabilise into the morphologies of Fig. 1.
 
@@ -70,8 +70,10 @@ The same equation, with different $(F, k)$, gives **spots**, **stripes**, **laby
 ### 1.3 FitzHugh-Nagumo
 
 Originally a simplified neuron model:
-$$\partial_t v = D \nabla^2 v + v - \tfrac{v^3}{3} - w + I,\qquad
-\partial_t w = \varepsilon\,(v + \beta - \gamma w),\quad \varepsilon \ll 1.$$
+$$
+\partial_t v = D \nabla^2 v + v - \tfrac{v^3}{3} - w + I,\qquad
+\partial_t w = \varepsilon\,(v + \beta - \gamma w),\quad \varepsilon \ll 1.
+$$
 - $v$ is the fast membrane potential; $w$ is a slow recovery variable.
 - The cubic nonlinearity makes $v$ excitable: a super-threshold push sets off a stereotyped pulse that the slow $w$ then resets.
 
@@ -90,8 +92,10 @@ The naive answer is no — diffusion only smooths, surely it can only *help* sta
 ### 2.2 The Argument
 
 Linearise (1) around $\bar{\mathbf{u}}$ with perturbation $\delta\mathbf{u}(\mathbf{x}, t) = \mathbf{q}\,e^{i\mathbf{k}\cdot\mathbf{x}}\,e^{\sigma t}$:
-$$\sigma\,\mathbf{q} \;=\; \underbrace{\bigl(\mathbf{J} - |\mathbf{k}|^2\,\mathbf{D}\bigr)}_{\mathbf{A}(|\mathbf{k}|^2)}\,\mathbf{q},\qquad
-\mathbf{J} = \nabla_{\mathbf{u}}\mathbf{R}(\bar{\mathbf{u}}). \tag{2}$$
+$$
+\sigma\,\mathbf{q} \;=\; \underbrace{\bigl(\mathbf{J} - |\mathbf{k}|^2\,\mathbf{D}\bigr)}_{\mathbf{A}(|\mathbf{k}|^2)}\,\mathbf{q},\qquad
+\mathbf{J} = \nabla_{\mathbf{u}}\mathbf{R}(\bar{\mathbf{u}}). \tag{2}
+$$
 The mode $\mathbf{q}\,e^{i\mathbf{k}\cdot\mathbf{x}}$ grows when $\mathbf{A}(|\mathbf{k}|^2)$ has an eigenvalue with positive real part. The full **Turing condition** is then a list of four inequalities (Fig. 2, right):
 
 1. $\mathrm{tr}\,\mathbf{J} < 0$ and $\det\,\mathbf{J} > 0$ — **the well-mixed system is stable**.
@@ -132,9 +136,7 @@ For a weighted, undirected graph with adjacency matrix $\mathbf{A}$ and degree m
 | Random-walk | $\mathbf{L}_{\text{rw}} = \mathbf{I} - \mathbf{D}^{-1}\mathbf{A}$ | $[0, 2]$ |
 
 All three share a defining property:
-
 $$\mathbf{x}^{\!\top}\!\mathbf{L}\mathbf{x} \;=\; \tfrac{1}{2}\sum_{(i,j) \in E} w_{ij}\,(x_i - x_j)^2 \;\geq\; 0. \tag{3}$$
-
 The Laplacian is the discrete analogue of $-\nabla^2$ in the sense that it integrates the squared gradient. It is symmetric positive semi-definite, with spectral decomposition $\mathbf{L} = \mathbf{U}\boldsymbol{\Lambda}\mathbf{U}^{\!\top}$, eigenvalues $0 = \lambda_1 \leq \lambda_2 \leq \cdots \leq \lambda_n$.
 
 The smallest eigenvalue is always zero, with eigenvector proportional to $\mathbf{1}$ (the constant). The second smallest, $\lambda_2$ — the *algebraic connectivity* — measures how well-connected the graph is.
@@ -142,13 +144,9 @@ The smallest eigenvalue is always zero, with eigenvector proportional to $\mathb
 ### 3.3 The Graph Heat Equation
 
 Write down the obvious continuous-time dynamics
-
 $$\frac{d\mathbf{X}}{dt} = -\mathbf{L}\mathbf{X}. \tag{4}$$
-
 This is the graph heat equation. Its closed-form solution is $\mathbf{X}(t) = e^{-\mathbf{L}t}\mathbf{X}(0)$, and in spectral coordinates the dynamics decouple completely:
-
 $$\hat x_k(t) = e^{-\lambda_k t}\,\hat x_k(0),\qquad \hat x_k = \mathbf{u}_k^{\!\top}\mathbf{X}(0).$$
-
 Every mode decays exponentially at its own rate $\lambda_k$ — except $\lambda_1 = 0$, which is preserved forever. As $t \to \infty$ only the constant survives.
 
 ![Graph heat equation in action. A random initial signal on a 50-node small-world graph is annihilated by diffusion: by $t = 6$ every node carries the same value. The right panel shows why — the $k$-th mode decays as $e^{-\lambda_k t}$, and only $\lambda_1 = 0$ survives.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/fig4_graph_laplacian.png)
@@ -165,30 +163,29 @@ This is **over-smoothing in its purest form**, and we have not even mentioned ne
 ### 4.1 The Identification
 
 The standard GCN layer (Kipf & Welling, 2017) is
-$$\mathbf{H}^{(\ell+1)} = \sigma\bigl(\tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}\,\mathbf{W}^{(\ell)}\bigr),
-\qquad \tilde{\mathbf{A}} = \tilde{\mathbf{D}}^{-1/2}(\mathbf{A} + \mathbf{I})\tilde{\mathbf{D}}^{-1/2}.$$
+$$
+\mathbf{H}^{(\ell+1)} = \sigma\bigl(\tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}\,\mathbf{W}^{(\ell)}\bigr),
+\qquad \tilde{\mathbf{A}} = \tilde{\mathbf{D}}^{-1/2}(\mathbf{A} + \mathbf{I})\tilde{\mathbf{D}}^{-1/2}.
+$$
 Strip away the nonlinearity and the linear projection ($\sigma = \mathrm{id}$, $\mathbf{W} = \mathbf{I}$). What remains is
-$$\mathbf{H}^{(\ell+1)} = \tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}
+$$
+\mathbf{H}^{(\ell+1)} = \tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}
 \;=\; \bigl(\mathbf{I} - \tilde{\mathbf{L}}_{\text{sym}}\bigr)\mathbf{H}^{(\ell)}.
-\tag{5}$$
+\tag{5}
+$$
 This is exactly the **explicit Euler step** of the graph heat equation $\dot{\mathbf{H}} = -\tilde{\mathbf{L}}_{\text{sym}}\mathbf{H}$ with step size $h = 1$. The "self-loops" trick $\mathbf{A} + \mathbf{I}$ is just the standard FDM stabilisation that pushes the spectrum of $\tilde{\mathbf{L}}_{\text{sym}}$ into $[0, 2)$ so the explicit scheme remains stable.
 
 ### 4.2 The Spectral Proof of Over-Smoothing
 
 After $L$ layers (still ignoring nonlinearities and weight matrices),
-
 $$\mathbf{H}^{(L)} = \tilde{\mathbf{A}}^L\,\mathbf{H}^{(0)}.$$
-
 The eigenvalues of $\tilde{\mathbf{A}}$ lie in $(-1, 1]$, with the eigenvalue $1$ corresponding to the constant eigenvector. Take a power and everything except the leading eigenspace dies:
-
 $$\tilde{\mathbf{A}}^L \xrightarrow[L \to \infty]{} \pi_{\text{const}}.$$
-
 Every node feature collapses onto the same vector. **This is not a quirk of GCN — it is a theorem about iterating any low-pass filter.** Adding ReLU and learning the weight matrices delays the collapse but does not prevent it: Oono & Suzuki (2020) proved that for an arbitrary weight matrix sequence with bounded singular values, GCN features still converge to a low-dimensional subspace.
 
 ### 4.3 Continuous-Depth GNNs
 
 If GCN is one Euler step, why not solve the ODE properly? **GRAND** (Chamberlain et al., 2021) is the continuous-time GNN:
-
 $$\frac{d\mathbf{X}}{dt} = -\mathcal{L}_\theta(\mathbf{X})\,\mathbf{X},\qquad \mathbf{X}(T) = \text{output.}$$
 
 $\mathcal{L}_\theta$ is a learned attention-weighted Laplacian, and the integration is done with an off-the-shelf ODE solver (Dormand-Prince, etc.). This does *not* fix over-smoothing — solving a heat equation more accurately is still solving a heat equation. **GRAND++** (Thorpe et al., 2022) adds a *source* term, and **RDGNN** (Eliasof et al., 2024 and predecessors) adds a full *reaction* term. We now build the latter.
@@ -200,12 +197,12 @@ $\mathcal{L}_\theta$ is a learned attention-weighted Laplacian, and the integrat
 ### 5.1 The Architecture
 
 The continuous-time RD-GNN is the natural graph version of (1):
-$$\frac{d\mathbf{H}}{dt} = -\epsilon_d\,\mathbf{L}\,\mathbf{H} \;+\; \epsilon_r\,R_\theta(\mathbf{H}, \mathbf{H}^{(0)}).
-\tag{6}$$
+$$
+\frac{d\mathbf{H}}{dt} = -\epsilon_d\,\mathbf{L}\,\mathbf{H} \;+\; \epsilon_r\,R_\theta(\mathbf{H}, \mathbf{H}^{(0)}).
+\tag{6}
+$$
 One Lie-Trotter (operator-splitting) step gives the discrete update:
-
 $$\boxed{\;\mathbf{H}^{(\ell+1)} = \mathbf{H}^{(\ell)} \;-\; \epsilon_d\,\mathbf{L}\,\mathbf{H}^{(\ell)} \;+\; \epsilon_r\,R_\theta\bigl(\mathbf{H}^{(\ell)},\,\mathbf{H}^{(0)}\bigr).\;} \tag{7}$$
-
 Three blocks (Fig. 5):
 
 - **Diffusion** $-\epsilon_d \mathbf{L}\mathbf{H}^{(\ell)}$: standard graph smoothing. Step size constraint: $\epsilon_d < 1/\lambda_{\max}(\mathbf{L})$ for explicit-Euler stability.
@@ -213,9 +210,7 @@ Three blocks (Fig. 5):
 - **Skip** $\mathbf{H}^{(\ell)}$ in the update: keeps the dynamics close to the identity, which is what makes large $L$ stable in practice.
 
 A common reaction-term design is the FitzHugh-style activator-decay pair
-
 $$R_\theta(\mathbf{H}, \mathbf{H}^{(0)}) = \mathrm{MLP}_\theta\bigl([\mathbf{H} \,\Vert\, \mathbf{H}^{(0)}]\bigr) \;-\; \alpha\,\mathbf{H}.$$
-
 ![A reaction-diffusion GNN layer. The diffusion branch performs the usual graph-Laplacian smoothing; the reaction branch is a learned, node-wise nonlinear update; an input skip from $\mathbf{H}^{(0)}$ provides the standard "anchor" against drift. Repeating the block $L$ times yields a deep GNN that, unlike GCN, does not collapse.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/fig5_rdgnn_architecture.png)
 *A reaction-diffusion GNN layer. The diffusion branch performs the usual graph-Laplacian smoothing; the reaction branch is a learned, node-wise nonlinear update; an input skip from $\mathbf{H}^{(0)}$ provides the standard "anchor" against drift. Repeating the block $L$ times yields a deep GNN that, unlike GCN, does not collapse.*
 

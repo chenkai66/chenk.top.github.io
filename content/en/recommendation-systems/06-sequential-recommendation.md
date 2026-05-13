@@ -50,9 +50,7 @@ Compare two friends recommending shows. The first knows your favourite genres bu
 A **sequential recommender** models user preferences using the **temporal order** of interactions. Where traditional collaborative filtering treats a user's history as a bag of items, a sequential model treats it as a stream — and that stream carries information.
 
 Formally, given a user $u$ with interaction sequence $S_u = [i_1, i_2, \dots, i_t]$, we want to estimate
-
 $$P(i_{t+1} \mid S_u) = P(i_{t+1} \mid i_1, i_2, \dots, i_t).$$
-
 In plain English: *given everything the user has done so far, in order, what comes next?* The probability depends not just on which items appeared but on **how they were arranged in time**.
 
 ### Why this matters
@@ -87,15 +85,11 @@ There are four reasons sequential modelling pays off in production:
 ### First-order chains
 
 The simplest sequential model is a **first-order Markov chain**, which assumes the next item depends only on the current one:
-
 $$P(i_{t+1} \mid i_1, \dots, i_t) = P(i_{t+1} \mid i_t).$$
-
 > **Analogy.** This is like predicting the next word in a sentence using only the current word. If the current word is "ice," you might guess "cream" — but you have no idea whether the conversation is about dessert or hockey.
 
 We learn a transition matrix $M \in \mathbb{R}^{|I| \times |I|}$, where $M_{ij} = P(j \mid i)$ is estimated from counts:
-
 $$M_{ij} = \frac{\text{count}(i \to j)}{\text{count}(i)}.$$
-
 In words: how often does $j$ follow $i$, divided by how often $i$ appears (excluding final positions).
 
 ![A first-order Markov chain conditions only on the current item. The transition matrix M counts how often each item follows another, normalized into probabilities.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig7.png)
@@ -103,9 +97,7 @@ In words: how often does $j$ follow $i$, divided by how often $i$ appears (exclu
 ### Higher-order chains
 
 A $k$-th order chain conditions on the last $k$ items:
-
 $$P(i_{t+1} \mid i_1, \dots, i_t) = P(i_{t+1} \mid i_{t-k+1}, \dots, i_t).$$
-
 Higher orders capture more context but burn through your data: with 10,000 items a second-order model has $10^8$ possible transitions, most of which are never observed. This is the **curse of dimensionality** in disguise.
 
 ### Implementation
@@ -186,21 +178,13 @@ GRU4Rec (Hidasi et al., 2015) was the first deep model to take session-based rec
 A GRU cell maintains hidden state $h_t$. Given the input $x_t$ (embedding of item $i_t$) and the previous hidden state $h_{t-1}$:
 
 **Reset gate** (what to forget):
-
 $$r_t = \sigma(W_r x_t + U_r h_{t-1} + b_r)$$
-
 **Update gate** (how much to refresh):
-
 $$z_t = \sigma(W_z x_t + U_z h_{t-1} + b_z)$$
-
 **Candidate activation** (proposed new memory):
-
 $$\tilde{h}_t = \tanh(W_h x_t + U_h (r_t \odot h_{t-1}) + b_h)$$
-
 **Hidden state** (blend old and new):
-
 $$h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t$$
-
 > **Plain English.** The GRU reads items one at a time and keeps a "memory" vector. The reset gate decides how much of the old memory to wipe; the update gate decides how much new information to mix in. The final hidden state is a learned summary of the whole session.
 
 The full pipeline is: **Embedding → GRU → Linear projection → Softmax** over the item vocabulary, trained with a ranking loss (BPR or TOP1) for implicit feedback.
@@ -304,13 +288,11 @@ Caser stacks two filter families on the $t \times d$ embedding matrix $\mathbf{E
 
 - **Horizontal filters** slide along the sequence to capture **union-level n-gram patterns**. Heights of 2, 3, 4 give bigram, trigram, and 4-gram detectors.
 - **Vertical filters** sweep the embedding dimension to capture **point-level patterns** — latent features of individual items aggregated across time.
-
 $$
 \mathbf{c}_h = \text{ReLU}(\text{Conv}_h(\mathbf{E})) \quad\text{(horizontal, height } h\text{)}
 $$$$
 \mathbf{c}_v = \text{ReLU}(\text{Conv}_v(\mathbf{E})) \quad\text{(vertical, full height)}
 $$
-
 The two outputs are pooled, concatenated, and pushed through a fully-connected head.
 
 ![Caser treats the embedded sequence as a T x D image. Horizontal filters slide along the time axis to capture union-level n-grams, while vertical filters aggregate point-level signals across time.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig8.png)
@@ -373,22 +355,18 @@ The heatmap above shows a typical attention pattern. Each row is one position ac
 ### Building blocks
 
 **1. Self-attention.** Each position attends to all previous positions:
-
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V.
 $$
-
 The $\sqrt{d_k}$ scaling keeps the dot products from saturating the softmax as the dimension grows.
 
 **2. Causal mask.** Position $t$ may only attend to positions $1, \dots, t$. Without this mask the model would trivially solve the prediction task by reading the answer.
 
 **3. Positional encoding.** Self-attention is permutation-equivariant — by itself it does not know the order of inputs. We inject order through positional encodings, classically sinusoidal:
-
 $$
 PE_{(p, 2i)} = \sin(p / 10000^{2i/d}), \qquad
 PE_{(p, 2i+1)} = \cos(p / 10000^{2i/d}).
 $$
-
 The next figure shows what this addition looks like in practice.
 
 ![Item embeddings (left) plus positional encodings (centre) yield the input the Transformer actually consumes (right). The position term is what turns a bag of items into a sequence.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig5_position_plus_item.png)
@@ -662,13 +640,10 @@ For session $S = [i_1, i_2, \dots, i_t]$:
 SR-GNN runs a **Gated Graph Neural Network** to propagate information between neighbouring items. The update equations look like a GRU but operate on graph neighbours:
 
 **Message passing.** Each node aggregates from its neighbours:
-
 $$
 \mathbf{m}_v^{(l)} = \sum_{u \in \mathcal{N}(v)} \mathbf{A}_{uv}\,\mathbf{h}_u^{(l-1)}
 $$
-
 **Gated update.** The node updates its representation with GRU-style gates:
-
 $$
 \mathbf{z}_v = \sigma(\mathbf{W}_z \mathbf{m}_v + \mathbf{U}_z \mathbf{h}_v),\quad
 \mathbf{r}_v = \sigma(\mathbf{W}_r \mathbf{m}_v + \mathbf{U}_r \mathbf{h}_v)
@@ -677,7 +652,6 @@ $$$$
 $$$$
 \mathbf{h}_v = (1 - \mathbf{z}_v) \odot \mathbf{h}_v + \mathbf{z}_v \odot \tilde{\mathbf{h}}_v
 $$
-
 > **Plain English.** Each item "talks" to the items that appeared right before or after it in the session. After a few rounds of message passing, every item's representation has absorbed information about its local neighbourhood in the session graph. The session is then summarised by attention-pooling the node embeddings.
 
 ### Implementation (simplified)
@@ -760,23 +734,17 @@ The cost picture is the mirror image. RNNs cannot parallelize across time, so co
 ### Three you need to know
 
 **Hit Rate (HR@K).** What fraction of test cases have the correct next item in the top-$K$ predictions?
-
 $$
 \text{HR@K} = \frac{1}{|T|} \sum_{t \in T} \mathbb{1}\!\left[\text{rank}(i_t^*) \leq K\right]
 $$
-
 **NDCG@K.** Like HR@K, but rewards higher ranks logarithmically:
-
 $$
 \text{NDCG@K} = \frac{1}{|T|} \sum_{t \in T} \frac{\mathbb{1}\!\left[\text{rank}(i_t^*) \leq K\right]}{\log_2(\text{rank}(i_t^*) + 1)}
 $$
-
 **MRR.** The mean reciprocal rank of the correct item:
-
 $$
 \text{MRR} = \frac{1}{|T|} \sum_{t \in T} \frac{1}{\text{rank}(i_t^*)}
 $$
-
 > **Which to use?** HR@K is the most interpretable ("did we get it right at all?"). NDCG@K is the right metric for ranking quality ("how high did we put it?"). MRR is great when there is exactly one relevant item per query.
 
 ### Implementation

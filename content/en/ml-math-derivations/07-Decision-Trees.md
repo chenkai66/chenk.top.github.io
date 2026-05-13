@@ -35,13 +35,9 @@ translationKey: "ml-math-derivations-7"
 ### Model Representation
 
 A decision tree partitions the feature space $\mathcal{X} \subseteq \mathbb{R}^d$ into $M$ disjoint regions $R_1, \dots, R_M$ and assigns a constant prediction $c_m$ to each region:
-
 $$f(x) = \sum_{m=1}^{M} c_m \, \mathbb{1}[x \in R_m].$$
-
 For classification, $c_m \in \{1, \dots, K\}$ is the majority class in $R_m$; for regression, $c_m \in \mathbb{R}$ is the mean of the targets in $R_m$. The regions are *axis-aligned hyperrectangles* because each internal node tests a single feature against a threshold:
-
 $$\text{node test:} \quad x_j \leq \tau \quad \text{vs.} \quad x_j > \tau.$$
-
 The tree itself is a hierarchical structure of:
 
 - **Root node**: contains all training samples.
@@ -69,9 +65,7 @@ The variance problem is exactly what bagging (random forests) and boosting (GBDT
 ### Entropy: Uncertainty as a Function of a Distribution
 
 For a discrete random variable $Y$ taking values in $\{1, \dots, K\}$ with probabilities $p_1, \dots, p_K$, the **Shannon entropy** is
-
 $$H(Y) = -\sum_{k=1}^{K} p_k \log_2 p_k, \qquad 0 \log_2 0 \triangleq 0.$$
-
 In bits, $H$ measures the average number of yes/no questions needed to identify $Y$.
 
 **Three properties we will use repeatedly.**
@@ -83,13 +77,9 @@ In bits, $H$ measures the average number of yes/no questions needed to identify 
 ### Conditional Entropy and Information Gain
 
 Suppose feature $X$ takes values $\{v_1, \dots, v_V\}$. The **conditional entropy**
-
 $$H(Y \mid X) = \sum_{v=1}^{V} p(X = v) \, H(Y \mid X = v)$$
-
 is the average remaining uncertainty in $Y$ once we know $X$. The **information gain** of splitting on $X$ is the reduction in uncertainty:
-
 $$IG(Y, X) \;=\; H(Y) - H(Y \mid X) \;\geq\; 0.$$
-
 Non-negativity follows from concavity of $H$ (Jensen's inequality), and $IG = 0$ iff $X$ is independent of $Y$.
 
 ID3 chooses the feature with the largest $IG$ at every node.
@@ -99,13 +89,9 @@ ID3 chooses the feature with the largest $IG$ at every node.
 Information gain has a well-known pathology: a feature with one unique value per sample (e.g. an ID column) sends every sample into its own bucket, makes every child entropy zero, and so wins every split — yet it has zero generalisation value.
 
 C4.5 fixes this by dividing by the *intrinsic value* of the feature,
-
 $$IV(X) = -\sum_{v=1}^{V} \frac{|S_v|}{|S|} \log_2 \frac{|S_v|}{|S|},$$
-
 which itself is the entropy of the split sizes. The **gain ratio** is
-
 $$GR(Y, X) = \frac{IG(Y, X)}{IV(X)}.$$
-
 Many-valued features have large $IV$ and so are penalised. C4.5's actual heuristic is to first restrict to features whose $IG$ is above the average, then pick the highest gain ratio inside that pool — this avoids favouring under-informative features whose tiny $IV$ artificially inflates $GR$.
 
 ## Splitting Criteria
@@ -115,31 +101,21 @@ Many-valued features have large $IV$ and so are penalised. C4.5's actual heurist
 ### Gini Index
 
 The CART algorithm uses the **Gini index**:
-
 $$G(S) = 1 - \sum_{k=1}^{K} p_k^2 = \sum_{k=1}^{K} p_k (1 - p_k),$$
-
 where $p_k$ is the proportion of class $k$ in node $S$. It is the probability that two samples drawn at random from $S$ belong to different classes. Like entropy, it is zero for a pure node and maximal at the uniform distribution.
 
 The **Gini gain** of splitting $S$ into children $S_1, \dots, S_V$ mirrors information gain:
-
 $$\Delta G = G(S) - \sum_{v=1}^{V} \frac{|S_v|}{|S|} G(S_v).$$
-
 CART picks the split that maximises $\Delta G$.
 
 ### Why Gini and Entropy Behave Almost Identically
 
 For binary classification with positive-class probability $p$,
-
 $$G(p) = 2p(1-p), \qquad H(p) = -p \log_2 p - (1-p) \log_2 (1-p).$$
-
 A second-order Taylor expansion of $H$ around $p = \tfrac{1}{2}$ in *natural* log gives
-
 $$H_\mathrm{nat}(p) \;\approx\; \ln 2 \;-\; 2\,(p - \tfrac{1}{2})^2,$$
-
 while Gini expands as
-
 $$G(p) = \tfrac{1}{2} - 2\,(p - \tfrac{1}{2})^2.$$
-
 After the constant scaling $H_\mathrm{nat}/(2 \ln 2)$, the two functions have the same leading-order shape near $p = \tfrac{1}{2}$. In practice CART trained with Gini and with entropy almost always splits the same way.
 
 ![Three impurity functions and the Taylor argument](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/fig2_impurity_curves.png)
@@ -149,17 +125,11 @@ The left panel compares all three: Gini, entropy, and the classification error r
 ### Mean Squared Error for Regression Trees
 
 For a regression task, the prediction at a leaf $R_m$ is the mean of its target values,
-
 $$\hat{c}_m = \frac{1}{|R_m|} \sum_{i \in R_m} y_i,$$
-
 which minimises the in-leaf squared loss. The split criterion picks $(j, \tau)$ to minimise the post-split sum of squared errors:
-
 $$\min_{j, \tau} \;\Big[\sum_{i: x_{ij} \leq \tau} (y_i - \hat{c}_L)^2 \;+\; \sum_{i: x_{ij} > \tau} (y_i - \hat{c}_R)^2\Big].$$
-
 Equivalently, the criterion is the *weighted variance reduction*:
-
 $$\Delta = \mathrm{Var}(y_S) - \frac{|S_L|}{|S|}\mathrm{Var}(y_{S_L}) - \frac{|S_R|}{|S|}\mathrm{Var}(y_{S_R}).$$
-
 ## Decision Tree Algorithms
 
 ### ID3, C4.5, CART at a Glance
@@ -200,15 +170,11 @@ A well-known property: *the optimal threshold always lies between two adjacent s
 C4.5 and CART handle missing values without imputation.
 
 **During training.** When evaluating feature $j$, only use samples where $x_j$ is observed. The information gain is multiplied by the *fraction of observed samples*
-
 $$IG_\text{adj}(Y, X_j) = \frac{|S_\text{obs}|}{|S|} \cdot IG(Y_\text{obs}, X_j),$$
-
 so features with many missing values are automatically discounted.
 
 **Routing missing samples.** When a sample with $x_j$ missing reaches a node that splits on $j$, the sample is sent to *both* children with weights proportional to the observed split sizes:
-
 $$w_L = \frac{|S_L^\text{obs}|}{|S^\text{obs}|}, \qquad w_R = \frac{|S_R^\text{obs}|}{|S^\text{obs}|}.$$
-
 CART additionally stores **surrogate splits** at each node — backup features that approximate the primary split — and uses the best surrogate when the primary feature is missing at prediction time.
 
 ### Categorical Features
@@ -255,15 +221,11 @@ Pre-pruning is fast — it avoids ever building the full tree — but myopic. A 
 ### Post-Pruning: Cost-Complexity
 
 CART's classic remedy is **cost-complexity pruning** (also called *minimal cost-complexity pruning* or *weakest-link pruning*). For a tree $T$, define
-
 $$R_\alpha(T) = R(T) + \alpha \, |T|,$$
-
 where $R(T)$ is the training risk (sum of leaf impurities weighted by leaf size) and $|T|$ is the number of leaves. Larger $\alpha$ favours simpler trees.
 
 **The key derivation.** Consider a non-leaf node $t$ with subtree $T_t$. Replacing $T_t$ by a leaf at $t$ leaves cost $R(t) + \alpha$, while keeping the subtree costs $R(T_t) + \alpha |T_t|$. The two are equal at the *critical alpha*
-
 $$\boxed{\;\alpha_\text{eff}(t) \;=\; \frac{R(t) - R(T_t)}{|T_t| - 1}\;}$$
-
 For $\alpha$ above this threshold, collapsing the subtree strictly improves $R_\alpha$. Sweeping $\alpha$ from $0$ upward and repeatedly collapsing the *weakest link* (smallest $\alpha_\text{eff}$) produces a finite, nested sequence of trees $T_0 \supset T_1 \supset \dots \supset T_\text{root}$. The corresponding $\alpha$ values are exactly what scikit-learn returns from `cost_complexity_pruning_path`.
 
 The final $\alpha$ is selected by cross-validation on the training set.
@@ -277,13 +239,9 @@ The left and middle panels show the resulting decision regions — pre-pruning a
 ### VC Dimension
 
 For binary trees over $d$ continuous features with $L$ leaves, the VC dimension is
-
 $$\text{VCdim} = O(L \log L).$$
-
 A standard PAC-style generalisation bound gives, with probability at least $1 - \delta$,
-
 $$R(T) \leq \hat{R}(T) + \mathcal{O}\!\left(\sqrt{\frac{L \log L \cdot \log n + \log(1/\delta)}{n}}\right).$$
-
 The leaf count $L$ is the natural complexity term — exactly what cost-complexity pruning is regularising.
 
 ### Why Trees Are Unstable
@@ -293,9 +251,7 @@ If two features have nearly equal information gain at the root, an arbitrarily s
 ### Feature Interactions and Tree Depth
 
 A root-to-leaf path of length $d$ encodes a $d$-way feature interaction:
-
 $$[x_{j_1} \leq \tau_1] \wedge [x_{j_2} \leq \tau_2] \wedge \dots \wedge [x_{j_d} \leq \tau_d].$$
-
 So a depth-$d$ tree expresses interactions of order at most $d$. This is why even shallow trees beat linear models on data where two features only become predictive *together*.
 
 ## Implementation: A Minimal CART
@@ -411,9 +367,7 @@ if __name__ == "__main__":
 ## Feature Importance
 
 For each internal node $t$ that splits on feature $j$, the **mean decrease in impurity** (MDI) attributed to that node is
-
 $$\Delta I(t) \;=\; \frac{N_t}{N} \left( I(t) - \frac{N_{t,L}}{N_t} I(t_L) - \frac{N_{t,R}}{N_t} I(t_R) \right).$$
-
 The importance of feature $j$ is the sum of $\Delta I(t)$ over all nodes that split on $j$, normalised so the importances sum to one.
 
 ![Feature importance on Iris](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/fig7_feature_importance.png)
@@ -429,9 +383,7 @@ On Iris, petal-length and petal-width dominate, in agreement with the depth-2 tr
 ## Multivariate Decision Trees
 
 Standard splits use a single feature at a time, so boundaries are axis-aligned. **Oblique** trees allow
-
 $$\text{node test:} \quad w^\top x \leq \tau,$$
-
 a hyperplane in the feature space. They can represent diagonal boundaries with one node instead of dozens of axis-aligned steps. The trade-off:
 
 - Finding the optimal $w$ at each node is NP-hard in general (heuristics: linear discriminant, perceptron, soft optimisation).
@@ -516,9 +468,7 @@ Show that for binary classification with natural log, $H_\mathrm{nat}(p) \approx
 A subtree $T_t$ has 4 leaves and training error $0.10$; collapsing it to a leaf gives error $0.25$. Compute $\alpha_\text{eff}(t)$ and decide whether to prune at $\alpha = 0.06$.
 
 *Solution.*
-
 $$\alpha_\text{eff} = \frac{0.25 - 0.10}{4 - 1} = 0.05.$$
-
 At $\alpha = 0.06 > 0.05$, the cost of keeping the subtree exceeds the benefit, so we **prune**: $R_\alpha(\text{leaf}) = 0.25 + 0.06 = 0.31$ vs $R_\alpha(T_t) = 0.10 + 4(0.06) = 0.34$.
 
 **Exercise 4. Missing-value penalty.**

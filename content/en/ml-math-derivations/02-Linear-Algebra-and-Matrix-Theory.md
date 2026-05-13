@@ -49,9 +49,7 @@ A line through the origin is a 1D subspace of $\mathbb{R}^2$. A plane through th
 Pick a few vectors $v_1, \ldots, v_k$. The set of all linear combinations $\sum \alpha_i v_i$ is their **span** — it is *always* a subspace.
 
 Those vectors are **linearly independent** when none of them lives in the span of the others, equivalently:
-
 $$\alpha_1 v_1 + \cdots + \alpha_k v_k = 0 \;\implies\; \alpha_1 = \cdots = \alpha_k = 0. \tag{1}$$
-
 A **basis** is an independent spanning set. Its size is the **dimension** of the subspace.
 
 ![Independence vs dependence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/fig2_linear_dependence.png)
@@ -93,9 +91,9 @@ The **$\ell_p$ family** is the workhorse for regularisation:
 
 | Norm | Formula | Unit ball | ML use |
 |------|---------|-----------|--------|
-| $\ell_1$ | $\sum_i |x_i|$ | diamond | Lasso, sparsity |
+| $\ell_1$ | $\sum_i \lvert x_i\rvert$ | diamond | Lasso, sparsity |
 | $\ell_2$ | $\sqrt{\sum_i x_i^2}$ | circle / sphere | Ridge, weight decay |
-| $\ell_\infty$ | $\max_i |x_i|$ | square / cube | adversarial bounds |
+| $\ell_\infty$ | $\max_i \lvert x_i\rvert$ | square / cube | adversarial bounds |
 
 ### 2.1 Cauchy-Schwarz and the cosine
 
@@ -122,9 +120,7 @@ The spectral norm is the right thing for Lipschitz analysis (e.g. spectral norma
 ### 3.1 Definition and intuition
 
 A nonzero vector $v$ is an **eigenvector** of $A \in \mathbb{R}^{n \times n}$ with **eigenvalue** $\lambda$ when
-
 $$A v = \lambda v. \tag{2}$$
-
 Geometrically: $A$ usually rotates inputs, but along an eigenvector all $A$ does is rescale. The eigenvector's direction *survives* the transformation.
 
 ![Eigendecomposition: directions that survive](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/fig3_eigendecomposition.png)
@@ -145,9 +141,7 @@ Eigenvalues solve the characteristic polynomial $\det(A - \lambda I) = 0$. Two f
 *Sketch (eigenvalues real).* Take $A v = \lambda v$ with $v \neq 0$. Compute $\bar v^\top A v$ two ways and use $A = A^\top$: you get $\lambda = \bar\lambda$. $\square$
 
 Equivalently, in **rank-1 form**:
-
 $$A = \sum_{i=1}^n \lambda_i\, q_i q_i^\top. \tag{3}$$
-
 Read this carefully — $A$ is *literally* a weighted sum of projections onto orthogonal directions. This is the ML lens on every symmetric matrix: covariance, Gram, Hessian, graph Laplacian.
 
 ### 3.3 Positive (semi-)definite matrices
@@ -174,9 +168,7 @@ Where PD matrices show up:
 ### 4.1 The theorem
 
 **Theorem (SVD).** Every $A \in \mathbb{R}^{m \times n}$ of rank $r$ factors as
-
 $$A = U \Sigma V^\top, \tag{4}$$
-
 with $U \in \mathbb{R}^{m \times m}$, $V \in \mathbb{R}^{n \times n}$ orthogonal, and $\Sigma$ diagonal with **singular values** $\sigma_1 \ge \cdots \ge \sigma_r > 0$ (and zeros after).
 
 **Why SVD always exists.** $A^\top A$ is symmetric PSD, so the spectral theorem gives an orthonormal eigenbasis $V$ with eigenvalues $\sigma_i^2$. Define $u_i = A v_i / \sigma_i$ for $\sigma_i > 0$ and complete to an orthonormal basis $U$. Then $A v_i = \sigma_i u_i$, i.e. $A V = U \Sigma$, i.e. $A = U \Sigma V^\top$. $\square$
@@ -204,9 +196,7 @@ A rank-1 matrix $A = u v^\top$ sends *all of $\mathbb{R}^n$* onto the single lin
 ### 4.4 Eckart-Young: best low-rank approximation
 
 **Theorem (Eckart-Young).** The best rank-$k$ approximation to $A$ in both Frobenius and spectral norm is
-
 $$A_k = \sum_{i=1}^k \sigma_i u_i v_i^\top, \tag{5}$$
-
 with errors $\|A - A_k\|_F = \sqrt{\sum_{i>k} \sigma_i^2}$ and $\|A - A_k\|_2 = \sigma_{k+1}$.
 
 This is the **mathematical engine of PCA**. Center your data matrix $X$, take its SVD; the top-$k$ right singular vectors are the principal components, and the singular values squared (over $n$) are the explained variances. It is also the engine of every low-rank technique you have heard of: image compression, latent semantic analysis, recommender systems, LoRA.
@@ -253,23 +243,17 @@ This is where most ML readers want a clean reference. We use **numerator layout*
 ### 5.2 Chain rule and backprop
 
 **Theorem (chain rule).** For $L : \mathbb{R}^n \to \mathbb{R}$ written as $L(x) = f(g(x))$ with $g : \mathbb{R}^n \to \mathbb{R}^m$:
-
 $$\nabla_x L = J_g^\top \cdot \nabla_g f, \tag{6}$$
-
 where $J_g$ is the $m \times n$ Jacobian of $g$.
 
 This *is* backpropagation. For one neural-net layer $z = Wx + b$, $a = \sigma(z)$, with downstream loss $L$:
-
 $$\delta := \frac{\partial L}{\partial a} \odot \sigma'(z), \quad \frac{\partial L}{\partial W} = \delta\, x^\top, \quad \frac{\partial L}{\partial b} = \delta. \tag{7}$$
-
 That's the entire algorithm — everything PyTorch's autograd engine does is run (6) on a computation graph.
 
 ### 5.3 Sanity check by finite differences
 
 Whenever you derive a gradient, you owe yourself a numerical check:
-
 $$\hat g_i = \frac{f(x + \varepsilon e_i) - f(x - \varepsilon e_i)}{2 \varepsilon}.$$
-
 Match against the analytic $\nabla f$ to relative error $\approx 10^{-6}$ at $\varepsilon = 10^{-5}$. The code in section 7 does exactly this.
 
 ---

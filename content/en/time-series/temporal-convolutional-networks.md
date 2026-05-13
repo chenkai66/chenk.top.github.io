@@ -48,15 +48,11 @@ TCN's pitch: replace the recurrence with convolutions you can run in parallel, r
 ## 1-D convolution, but causal
 
 A standard 1-D convolution slides a length-$k$ filter $f$ over an input sequence $x$:
-
 $$y_t = \sum_{i=0}^{k-1} f_i \, x_{t-i+\lfloor k/2 \rfloor}.$$
-
 That centred form lets the output at time $t$ read both past and future inputs. For forecasting that is **information leakage** — you cannot learn to predict tomorrow's traffic by peeking at tomorrow's traffic.
 
 A **causal** convolution shifts the filter so the output at $t$ only uses inputs from $1, \ldots, t$:
-
 $$y_t = \sum_{i=0}^{k-1} f_i \, x_{t-i}.$$
-
 Implementation-wise, you pad the input on the **left** with $k - 1$ zeros and run a vanilla `nn.Conv1d`. After the convolution you slice the right-hand padding back off so the output length equals the input length.
 
 ![Causal vs non-causal 1-D convolution at t = 6](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/fig2_causal_convolution.png)
@@ -101,13 +97,9 @@ Two important details:
 A causal convolution of kernel $k = 3$ stacked $L$ times has receptive field $1 + 2L$. Linear growth. To see 200 steps back you need 100 layers. That is unworkable.
 
 **Dilated convolution** spreads the filter taps apart by a factor $d$:
-
 $$y_t = \sum_{i=0}^{k-1} f_i \, x_{t-d \cdot i}.$$
-
 If you double the dilation in every layer ($d_\ell = 2^{\ell-1}$), the receptive field of an $L$-layer stack becomes
-
 $$\text{RF}(L) = 1 + (k - 1)\sum_{\ell=1}^{L} d_\ell = 1 + (k - 1)(2^L - 1).$$
-
 For $k = 3$ and $L = 8$, that is **511 time steps** — more than enough for a week of hourly data. Same parameter count as 8 ordinary layers, exponential coverage.
 
 ![Dilated causal convolution receptive field](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/fig1_dilated_convolution.png)
@@ -136,11 +128,9 @@ Stacking dilated causal convolutions is half the recipe. The other half is the r
 ![TCN residual block](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/temporal-convolutional-networks/fig3_residual_block.png)
 
 Mathematically, given input $x$:
-
 $$F(x) = \mathrm{Dropout}\!\big(\mathrm{ReLU}(\mathrm{WN}(\mathrm{Conv}_2 \, \mathrm{Dropout}(\mathrm{ReLU}(\mathrm{WN}(\mathrm{Conv}_1 \, x))))) \big),$$
 
 $$o = \mathrm{ReLU}\!\big( F(x) + W_{\text{skip}} \, x \big).$$
-
 Three deliberate choices:
 
 - **Two convolutions per block.** One conv barely changes anything. Two gives the block enough capacity to learn a non-trivial transformation while keeping the depth count low.

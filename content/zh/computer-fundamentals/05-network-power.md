@@ -353,9 +353,7 @@ sudo systemd-resolve --flush-caches
 ## 第九部分：数据中心 PUE——每一瓦电都用在了哪里？
 
 单个机房的问题其实很简单：从电表进来的电，到底有多少真正跑到了芯片上？业界用 **PUE**（Power Usage Effectiveness，电源使用效率）来衡量这一点：
-
 $$ \text{PUE} = \frac{\text{设施总功耗}}{\text{IT 设备功耗}} $$
-
 PUE = 1.0 是理论上的完美值：电网的每一度电都用来干计算的活儿。但现实情况是这样的：
 
 ![数据中心 PUE 构成与不同运营商对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig5_datacenter_pue.png)

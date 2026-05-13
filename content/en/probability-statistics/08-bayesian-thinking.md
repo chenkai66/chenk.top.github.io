@@ -49,17 +49,11 @@ In practice, the two often agree — especially with large samples, where the da
 We've already seen Bayes' theorem for events. The Bayesian engine applies the same logic to distributions.
 
 Given data $\mathbf{x} = (x_1, \ldots, x_n)$ and a parameter $\theta$:
-
 $$\underbrace{p(\theta | \mathbf{x})}_{\text{posterior}} = \frac{\underbrace{p(\mathbf{x} | \theta)}_{\text{likelihood}} \cdot \underbrace{p(\theta)}_{\text{prior}}}{\underbrace{p(\mathbf{x})}_{\text{marginal likelihood}}}$$
-
 where the marginal likelihood (also called the **evidence**) is:
-
 $$p(\mathbf{x}) = \int p(\mathbf{x} | \theta) \, p(\theta) \, d\theta.$$
-
 Since $p(\mathbf{x})$ is a constant with respect to $\theta$, we often write:
-
 $$\boxed{p(\theta | \mathbf{x}) \propto p(\mathbf{x} | \theta) \cdot p(\theta)}$$
-
 **Posterior is proportional to Likelihood times Prior.**
 
 This is the fundamental equation of Bayesian statistics. Everything else is a consequence.
@@ -109,27 +103,19 @@ You're flipping a coin and want to estimate the probability of heads $\theta$.
 - **Prior:** $\theta \sim \text{Beta}(\alpha, \beta)$, so $p(\theta) = \frac{\theta^{\alpha-1}(1-\theta)^{\beta-1}}{B(\alpha, \beta)}$.
 
 ### Deriving the Posterior
-
 $$p(\theta | x) \propto p(x | \theta) \cdot p(\theta) = \binom{n}{x} \theta^x (1-\theta)^{n-x} \cdot \frac{\theta^{\alpha-1}(1-\theta)^{\beta-1}}{B(\alpha, \beta)}$$
 
 $$\propto \theta^{x + \alpha - 1} (1-\theta)^{n - x + \beta - 1}.$$
-
 This is the kernel of a Beta distribution:
-
 $$\boxed{\theta | x \sim \text{Beta}(\alpha + x, \beta + n - x)}$$
-
 ### Interpretation
 
 The prior parameters $\alpha$ and $\beta$ act as "pseudo-counts" — as if you had already observed $\alpha - 1$ heads and $\beta - 1$ tails before the experiment. The data adds $x$ heads and $n - x$ tails.
 
 The posterior mean is:
-
 $$E[\theta | x] = \frac{\alpha + x}{\alpha + \beta + n}.$$
-
 This is a weighted average of the prior mean $\frac{\alpha}{\alpha + \beta}$ and the sample proportion $\frac{x}{n}$:
-
 $$E[\theta | x] = \frac{\alpha + \beta}{\alpha + \beta + n} \cdot \underbrace{\frac{\alpha}{\alpha + \beta}}_{\text{prior mean}} + \frac{n}{\alpha + \beta + n} \cdot \underbrace{\frac{x}{n}}_{\text{sample proportion}}.$$
-
 As $n \to \infty$, the weight on the prior shrinks to zero, and the posterior mean converges to the MLE $x/n$. **With enough data, the prior is irrelevant.**
 
 ### Worked Example
@@ -163,33 +149,23 @@ The strength of the prior is controlled by $\alpha + \beta$. Larger values mean 
 Observe $X_1, \ldots, X_n \sim \mathcal{N}(\mu, \sigma^2)$ with $\sigma^2$ known. Prior: $\mu \sim \mathcal{N}(\mu_0, \tau^2)$.
 
 ### Posterior
-
 $$p(\mu | \mathbf{x}) \propto \exp\left(-\frac{1}{2\sigma^2}\sum(x_i - \mu)^2\right) \cdot \exp\left(-\frac{(\mu - \mu_0)^2}{2\tau^2}\right).$$
-
 Completing the square in $\mu$ (combining the exponents):
-
 $$\mu | \mathbf{x} \sim \mathcal{N}\left(\mu_n, \sigma_n^2\right)$$
-
 where:
-
 $$\mu_n = \frac{\frac{n}{\sigma^2}\bar{x} + \frac{1}{\tau^2}\mu_0}{\frac{n}{\sigma^2} + \frac{1}{\tau^2}}, \qquad \sigma_n^2 = \frac{1}{\frac{n}{\sigma^2} + \frac{1}{\tau^2}}.$$
-
 *Derivation.* The log-posterior (ignoring constants in $\mu$) is:
-
 $$-\frac{1}{2}\left[\frac{n(\mu - \bar{x})^2}{\sigma^2} + \frac{(\mu - \mu_0)^2}{\tau^2}\right]$$
 
 $$= -\frac{1}{2}\left[\left(\frac{n}{\sigma^2} + \frac{1}{\tau^2}\right)\mu^2 - 2\left(\frac{n\bar{x}}{\sigma^2} + \frac{\mu_0}{\tau^2}\right)\mu + \text{const}\right].$$
-
 This is a quadratic in $\mu$, so the posterior is Normal with precision (inverse variance) $\frac{n}{\sigma^2} + \frac{1}{\tau^2}$ and mean given by the precision-weighted average above. $\blacksquare$
 
 ### Precision Form
 
 Define **precision** as the reciprocal of variance: $\lambda = 1/\sigma^2$, $\lambda_0 = 1/\tau^2$.
-
 $$\text{Posterior precision} = n\lambda + \lambda_0 \qquad \text{(precisions add)}$$
 
 $$\text{Posterior mean} = \frac{n\lambda \bar{x} + \lambda_0 \mu_0}{n\lambda + \lambda_0} \qquad \text{(precision-weighted average)}$$
-
 Precision is additive, making it the natural parameterization for Bayesian updating with Gaussians.
 
 ## Credible Intervals vs Confidence Intervals
@@ -200,9 +176,7 @@ A **credible interval** is the Bayesian analog of a confidence interval.
 
 
 **Definition.** A $100(1-\alpha)\%$ credible interval $[a, b]$ for $\theta$ satisfies:
-
 $$P(\theta \in [a, b] | \mathbf{x}) = 1 - \alpha.$$
-
 The **highest posterior density (HPD) interval** is the shortest such interval: it includes all points with posterior density above some threshold.
 
 ### The Crucial Difference
@@ -222,9 +196,9 @@ The posterior $p(\theta | \mathbf{x})$ is a full distribution. To get a single n
 
 | Estimator | Definition | Optimal for |
 |---|---|---|
-| Posterior mean | $E[\theta | \mathbf{x}]$ | Minimizes $E[(\hat\theta - \theta)^2 | \mathbf{x}]$ (squared error) |
-| Posterior median | Median of $p(\theta | \mathbf{x})$ | Minimizes $E[|\hat\theta - \theta| \, | \mathbf{x}]$ (absolute error) |
-| MAP | $\arg\max_\theta p(\theta | \mathbf{x})$ | Mode of posterior (= penalized MLE) |
+| Posterior mean | $E[\theta \mid \mathbf{x}]$ | Minimizes $E[(\hat\theta - \theta)^2 \mid \mathbf{x}]$ (squared error) |
+| Posterior median | Median of $p(\theta \mid \mathbf{x})$ | Minimizes $E[\lvert \hat\theta - \theta\rvert \mid \mathbf{x}]$ (absolute error) |
+| MAP | $\arg\max_\theta p(\theta \mid \mathbf{x})$ | Mode of posterior (= penalized MLE) |
 
 For symmetric, unimodal posteriors (like the Normal), all three coincide. For skewed posteriors, they differ, and the choice depends on your loss function.
 
@@ -233,29 +207,21 @@ For symmetric, unimodal posteriors (like the Normal), all three coincide. For sk
 Often, we don't care about $\theta$ itself — we want to predict a future observation $\tilde{X}$.
 
 The **posterior predictive distribution** integrates out the parameter:
-
 $$p(\tilde{x} | \mathbf{x}) = \int p(\tilde{x} | \theta) \, p(\theta | \mathbf{x}) \, d\theta.$$
-
 This accounts for **parameter uncertainty**: we don't plug in a single estimate of $\theta$; instead, we average predictions over all possible $\theta$ values, weighted by the posterior.
 
 ### Beta-Binomial Predictive
 
 After observing $x$ heads in $n$ flips with posterior $\theta | x \sim \text{Beta}(\alpha + x, \beta + n - x)$:
-
 $$P(\tilde{X} = 1 | x) = E[\theta | x] = \frac{\alpha + x}{\alpha + \beta + n}.$$
-
 This is **Laplace's rule of succession**. With a uniform prior ($\alpha = \beta = 1$) and $x$ successes in $n$ trials:
-
 $$P(\text{next success}) = \frac{x + 1}{n + 2}.$$
-
 If you've seen 7 heads in 10 flips, the predictive probability of heads on the next flip is $8/12 = 2/3$, not the MLE of $7/10$.
 
 ### Normal Predictive
 
 With posterior $\mu | \mathbf{x} \sim \mathcal{N}(\mu_n, \sigma_n^2)$ and $\tilde{X} | \mu \sim \mathcal{N}(\mu, \sigma^2)$:
-
 $$\tilde{X} | \mathbf{x} \sim \mathcal{N}(\mu_n, \sigma^2 + \sigma_n^2).$$
-
 The predictive variance $\sigma^2 + \sigma_n^2$ is **larger** than the sampling variance $\sigma^2$ alone, because it includes uncertainty about $\mu$. Plug-in predictions (using $\hat\mu$ as if it were the true $\mu$) underestimate uncertainty.
 
 ## MCMC: When Conjugacy Isn't Enough
@@ -272,9 +238,7 @@ Most realistic models don't have conjugate priors. The posterior $p(\theta | \ma
 1. Start at some $\theta^{(0)}$.
 2. **Propose** a new value $\theta^*$ from a proposal distribution $q(\theta^* | \theta^{(t)})$.
 3. **Accept** with probability:
-
 $$\alpha = \min\left(1, \frac{p(\theta^* | \mathbf{x}) \, q(\theta^{(t)} | \theta^*)}{p(\theta^{(t)} | \mathbf{x}) \, q(\theta^* | \theta^{(t)})}\right) = \min\left(1, \frac{p(\mathbf{x} | \theta^*) p(\theta^*) \, q(\theta^{(t)} | \theta^*)}{p(\mathbf{x} | \theta^{(t)}) p(\theta^{(t)}) \, q(\theta^* | \theta^{(t)})}\right).$$
-
 4. If accepted, $\theta^{(t+1)} = \theta^*$. Otherwise, $\theta^{(t+1)} = \theta^{(t)}$.
 
 The normalizing constant $p(\mathbf{x})$ cancels in the ratio. The resulting Markov chain has $p(\theta | \mathbf{x})$ as its stationary distribution, so after a burn-in period, the samples are (approximately) from the posterior.
@@ -291,11 +255,9 @@ With a **symmetric** proposal ($q(\theta^*|\theta) = q(\theta|\theta^*)$), the r
 We saw in Article 6 that MAP estimation with a Gaussian prior yields L2 regularization. Let's make this precise.
 
 **Neural network weight prior:** Place $w \sim \mathcal{N}(0, \tau^2 I)$ on the weight vector. The MAP objective becomes:
-
 $$\hat{w}_{\text{MAP}} = \arg\max_w \left[\sum_{i=1}^n \ln p(y_i | x_i, w) - \frac{\|w\|^2}{2\tau^2}\right]$$
 
 $$= \arg\min_w \left[-\sum_{i=1}^n \ln p(y_i | x_i, w) + \frac{1}{2\tau^2}\|w\|^2\right].$$
-
 This is exactly the loss function with L2 regularization (weight decay), where $\lambda = 1/\tau^2$.
 
 A vague prior ($\tau \to \infty$) gives no regularization (MLE). A strong prior ($\tau$ small) gives strong regularization, pulling weights toward zero.
@@ -307,9 +269,7 @@ Gal and Ghahramani (2016) showed that training with dropout is equivalent to app
 ### Bayesian Neural Networks
 
 Instead of finding a single weight vector $\hat{w}$, maintain a full posterior $p(w | \mathbf{x}, \mathbf{y})$ and predict by averaging:
-
 $$p(y^* | x^*, \mathbf{x}, \mathbf{y}) = \int p(y^* | x^*, w) \, p(w | \mathbf{x}, \mathbf{y}) \, dw.$$
-
 This is the gold standard for uncertainty quantification, but the integral is intractable for large networks. Practical approaches use variational inference or MCMC approximations.
 
 ## When Bayesian and Frequentist Agree
@@ -527,14 +487,14 @@ The MCMC histogram closely matches the exact Beta posterior, verifying that the 
 ## Summary
 | Concept | Formula | Role |
 |---|---|---|
-| Bayes' rule | $p(\theta|\mathbf{x}) \propto p(\mathbf{x}|\theta)p(\theta)$ | Fundamental update |
+| Bayes' rule | $p(\theta\lvert \mathbf{x}) \propto p(\mathbf{x}\rvert\theta)p(\theta)$ | Fundamental update |
 | Conjugate prior | Prior and posterior in same family | Closed-form posterior |
 | Beta-Binomial | $\text{Beta}(\alpha+x, \beta+n-x)$ | Estimating proportions |
 | Normal-Normal | Precision-weighted average | Estimating means |
-| Posterior mean | $E[\theta|\mathbf{x}]$ | Optimal under squared loss |
-| MAP | $\arg\max p(\theta|\mathbf{x})$ | = MLE + regularization |
-| Credible interval | $P(\theta \in [a,b]|\mathbf{x}) = 0.95$ | Direct probability statement |
-| Predictive | $p(\tilde{x}|\mathbf{x}) = \int p(\tilde{x}|\theta)p(\theta|\mathbf{x})d\theta$ | Prediction with uncertainty |
+| Posterior mean | $E[\theta\mid \mathbf{x}]$ | Optimal under squared loss |
+| MAP | $\arg\max p(\theta\mid \mathbf{x})$ | = MLE + regularization |
+| Credible interval | $P(\theta \in [a,b]\mid \mathbf{x}) = 0.95$ | Direct probability statement |
+| Predictive | $p(\tilde{x}\lvert \mathbf{x}) = \int p(\tilde{x}\rvert\theta)p(\theta\mid \mathbf{x})d\theta$ | Prediction with uncertainty |
 | MCMC | Sample from posterior | When no closed form |
 
 ## The Series in Retrospect

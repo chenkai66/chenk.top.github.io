@@ -40,15 +40,13 @@ A bank account, a drug clearing the bloodstream, a tank of brine, a charging cap
 ### 1.1 The shape
 
 A first-order ODE is **separable** when the right-hand side factors into "something in $x$" times "something in $y$":
-
 $$\frac{dy}{dx} \;=\; g(x)\,h(y).$$
-
 That factorisation is exactly what lets us put all the $y$'s on one side and all the $x$'s on the other:
-
-$$\frac{dy}{h(y)} \;=\; g(x)\,dx
+$$
+\frac{dy}{h(y)} \;=\; g(x)\,dx
 \qquad\Longrightarrow\qquad
-\int \frac{dy}{h(y)} \;=\; \int g(x)\,dx + C.$$
-
+\int \frac{dy}{h(y)} \;=\; \int g(x)\,dx + C.
+$$
 The constant $C$ is the family parameter — every choice picks out one solution curve. In the figure below, separating $\frac{dy}{dx} = -x/y$ gives $y\,dy + x\,dx = 0$, which integrates to $x^2 + y^2 = C$: a one-parameter family of circles. The slope-field arrows are tangent to these circles everywhere — exactly what "solution" means.
 
 ![Solution curves of dy/dx = -x/y are concentric circles, tangent to the slope field everywhere.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/fig1_separable_solution_curves.png)
@@ -70,13 +68,9 @@ What just happened? The growth rate $k$ controls the *time scale*, not the shape
 ### 1.3 Application: drug metabolism and the half-life rule
 
 Most drugs follow first-order elimination: the rate at which they leave the bloodstream is proportional to how much is in there:
-
 $$\frac{dC}{dt} = -kC, \qquad C(t) = C_0 e^{-kt}.$$
-
 The half-life $t_{1/2}$ is the time for $C$ to fall to $C_0/2$. Setting $C_0/2 = C_0 e^{-k t_{1/2}}$ and solving gives the universal formula
-
 $$t_{1/2} = \frac{\ln 2}{k} \approx \frac{0.693}{k}.$$
-
 For ibuprofen $t_{1/2} \approx 2$ h. Starting from a 400 mg dose:
 
 | Time | Remaining | What it means |
@@ -91,17 +85,11 @@ That's why ibuprofen is dosed every 4–6 h: any longer and the level falls belo
 ### 1.4 Application: the logistic equation
 
 Pure exponential growth $P' = rP$ is a fantasy: nothing grows forever. Verhulst (1838) added a brake — a *carrying capacity* $K$ — and got the equation that still anchors mathematical ecology:
-
 $$\frac{dP}{dt} = r P\left(1 - \frac{P}{K}\right).$$
-
 It is separable. Partial fractions on the left give
-
 $$\int \!\left(\frac{1}{P} + \frac{1/K}{1 - P/K}\right)\,dP \;=\; \int r\,dt,$$
-
 and exponentiating produces the **logistic curve**
-
 $$P(t) \;=\; \frac{K}{1 + \left(\dfrac{K}{P_0} - 1\right)e^{-rt}}.$$
-
 Three structural facts fall out of the equation itself, before you ever solve it:
 
 - $P \ll K$: the bracket is $\approx 1$, so growth is nearly exponential.
@@ -118,25 +106,17 @@ The right-hand panel below visualises this: the growth rate $\dot P$ as a functi
 ## 2. First-order linear equations: the integrating factor
 
 ### 2.1 Standard form
-
 $$\frac{dy}{dx} + P(x)\,y \;=\; Q(x).$$
-
 This is the workhorse of applied math. Whenever a quantity changes in proportion to itself plus an external forcing term, you get this shape.
 
 ### 2.2 The trick
 
 Multiply through by
-
 $$\mu(x) \;=\; e^{\int P(x)\,dx},$$
-
 the **integrating factor**. The product rule then collapses the left side into a single derivative:
-
 $$\frac{d}{dx}\bigl[\mu(x)\,y\bigr] \;=\; \mu(x)\,Q(x).$$
-
 Integrate once and divide by $\mu$:
-
 $$\boxed{\,y(x) \;=\; \frac{1}{\mu(x)} \left[\int \mu(x)\,Q(x)\,dx + C\right].\,}$$
-
 That's the entire method. Why does it work? $\mu$ is engineered so that $\mu' = \mu P$, exactly what the product rule demands.
 
 ### 2.3 Worked example: $y' + 2xy = x$
@@ -161,13 +141,9 @@ Three side-by-side panels make it obvious. We pick $y' + 2y = 4$ (so $P = 2$, $\
 ### 2.5 Application: charging an RC circuit
 
 Kirchhoff's voltage law on a series resistor $R$ and capacitor $C$ driven by source $V_s$ gives
-
 $$RC\,\frac{dV_c}{dt} + V_c \;=\; V_s.$$
-
 Compare with the standard form: $P(t) = 1/RC$, $Q(t) = V_s/RC$. The integrating factor is $\mu(t) = e^{t/RC}$. With $V_c(0)=0$ this works out to
-
 $$V_c(t) \;=\; V_s\bigl(1 - e^{-t/\tau}\bigr), \qquad \tau = RC.$$
-
 The time constant $\tau$ is what every electrical engineer memorises:
 
 | Time | $V_c/V_s$ | Practical reading |
@@ -185,25 +161,17 @@ Same formula, with a sign flip and $V_s = 0$, governs *discharging* — and expl
 ### 3.1 The geometric idea
 
 Write the ODE in the differential form
-
 $$M(x,y)\,dx + N(x,y)\,dy = 0.$$
-
 Suppose there exists a "potential" $F(x,y)$ such that
-
 $$\frac{\partial F}{\partial x} = M, \qquad \frac{\partial F}{\partial y} = N.$$
-
 Then $M\,dx + N\,dy$ is precisely the total differential $dF$, the equation $dF = 0$ says $F$ is constant along solutions, and the entire solution family is
-
 $$F(x,y) \;=\; C.$$
-
 The solution curves are the **level sets** of $F$. That is the whole picture, and it is profound: solving the ODE has been replaced by recovering a scalar function whose contour map *is* the solution family.
 
 ### 3.2 The exactness test
 
 A potential exists iff mixed partials match — that's just $F_{xy} = F_{yx}$:
-
 $$\boxed{\,\dfrac{\partial M}{\partial y} \;=\; \dfrac{\partial N}{\partial x}.\,}$$
-
 If this fails, the equation is not exact (yet — see §3.4).
 
 ### 3.3 Solving an exact equation, step by step
@@ -235,17 +203,13 @@ This is the same construction as the linear-equation integrating factor — in f
 ## 4. Bernoulli equations
 
 ### 4.1 The shape
-
 $$\frac{dy}{dx} + P(x)\,y \;=\; Q(x)\,y^{n}, \qquad n \neq 0, 1.$$
-
 When $n = 0$ it's already linear; when $n = 1$ it's separable. The interesting range is everything else, where the $y^n$ term ruins linearity.
 
 ### 4.2 The substitution
 
 Let $v = y^{1-n}$. Then $\dfrac{dv}{dx} = (1-n)\,y^{-n}\,\dfrac{dy}{dx}$. Multiply the original equation by $(1-n) y^{-n}$ and rewrite:
-
 $$\frac{dv}{dx} + (1-n)P(x)\,v \;=\; (1-n)Q(x).$$
-
 That is **linear** in $v$. Solve it with the integrating factor of §2, then convert back via $y = v^{1/(1-n)}$.
 
 ### 4.3 What the substitution does geometrically
@@ -268,17 +232,15 @@ This is the classic "compartment model" — the same skeleton you will meet agai
 **Setup.** A 1000 L tank starts with pure water. Brine with concentration $2$ g/L flows in at $5$ L/min. The tank is well-stirred and drains at the same rate, so the volume stays constant. Find the salt mass $Q(t)$.
 
 **Model.** Salt in minus salt out:
-
-$$\underbrace{\frac{dQ}{dt}}_{\text{rate of change}}
+$$
+\underbrace{\frac{dQ}{dt}}_{\text{rate of change}}
 = \underbrace{5 \cdot 2}_{\text{in: g/min}}
 \,-\, \underbrace{5 \cdot \tfrac{Q}{1000}}_{\text{out: g/min}}
 = 10 - \tfrac{Q}{200},
-\qquad Q(0) = 0.$$
-
+\qquad Q(0) = 0.
+$$
 **Solve.** This is linear: $Q' + \tfrac{1}{200}Q = 10$. Integrating factor $\mu = e^{t/200}$ gives
-
 $$Q(t) \;=\; 2000\bigl(1 - e^{-t/200}\bigr).$$
-
 **Read the answer.** The equilibrium is $Q^\ast = 2000$ g, i.e. concentration $2$ g/L — *exactly* the inflow concentration. The time constant $\tau = 200$ min controls how fast we get there. The same equation with $Q(0) > Q^\ast$ describes a salty tank being washed clean — the curves below show both regimes converging to the same equilibrium.
 
 ![Salt mass Q(t) approaching 2000 g for two initial conditions, with concentration panel.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/fig5_mixing_tank.png)
@@ -293,9 +255,7 @@ Closed-form tricks fail the moment $f(x,y)$ is messy enough — and most real-wo
 ### 6.1 Euler's method
 
 The simplest possible idea: replace the curve with its tangent on each step.
-
 $$y_{n+1} \;=\; y_n + h\,f(t_n, y_n).$$
-
 - Local truncation error per step: $O(h^2)$.
 - Global error after $1/h$ steps: $O(h)$. Hence "first-order method".
 
@@ -304,15 +264,17 @@ Cheap, easy, often inadequate.
 ### 6.2 Runge–Kutta 4 (RK4)
 
 The standard workhorse. Combine four slope evaluations per step:
+$$
+k_1 = f(t_n, y_n), \qquad
+k_2 = f\!\left(t_n + \tfrac{h}{2},\, y_n + \tfrac{h}{2}k_1\right),
+$$
 
-$$k_1 = f(t_n, y_n), \qquad
-k_2 = f\!\left(t_n + \tfrac{h}{2},\, y_n + \tfrac{h}{2}k_1\right),$$
-
-$$k_3 = f\!\left(t_n + \tfrac{h}{2},\, y_n + \tfrac{h}{2}k_2\right), \qquad
-k_4 = f(t_n + h,\, y_n + h k_3),$$
+$$
+k_3 = f\!\left(t_n + \tfrac{h}{2},\, y_n + \tfrac{h}{2}k_2\right), \qquad
+k_4 = f(t_n + h,\, y_n + h k_3),
+$$
 
 $$y_{n+1} \;=\; y_n + \frac{h}{6}\bigl(k_1 + 2k_2 + 2k_3 + k_4\bigr).$$
-
 Global error $O(h^4)$ — four orders of magnitude better than Euler at the same step size, for the cost of three extra evaluations.
 
 ### 6.3 Slope fields tell you what the integrator will see

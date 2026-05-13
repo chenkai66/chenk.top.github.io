@@ -43,9 +43,7 @@ These five words are the working vocabulary of linear algebra. Every later chapt
 ### The recipe
 
 Given vectors $\vec{v}_1, \vec{v}_2, \ldots, \vec{v}_k$ and real numbers $c_1, c_2, \ldots, c_k$, their **linear combination** is
-
 $$c_1 \vec{v}_1 + c_2 \vec{v}_2 + \cdots + c_k \vec{v}_k.$$
-
 Two operations, nothing more: **scale** each vector, then **add**. The word *linear* means **no squares, no products of components, no nonlinear functions** — just the two basic operations of a vector space.
 
 ### Three everyday pictures
@@ -59,9 +57,7 @@ You want a drink with profile $\vec{t}=(0.30,\,20)$. Solving $x\vec{a}+y\vec{b}=
 **Walking directions.** "300 m east, then 400 m north." Your displacement is the linear combination $300\,\vec{e}_\text{east}+400\,\vec{e}_\text{north}$.
 
 **Pixels on your screen.** Every pixel is
-
 $$\text{color}=r\!\begin{pmatrix}255\\0\\0\end{pmatrix}+g\!\begin{pmatrix}0\\255\\0\end{pmatrix}+b\!\begin{pmatrix}0\\0\\255\end{pmatrix}.$$
-
 Three primary colors, infinitely many results.
 
 ### Why the word "linear"?
@@ -81,9 +77,7 @@ The left panel shows one specific combination $1.5\vec{v}+1.2\vec{w}$ built by t
 ### Definition
 
 The **span** of $\vec{v}_1,\ldots,\vec{v}_k$ is the set of *all* their linear combinations:
-
 $$\operatorname{span}(\vec{v}_1,\ldots,\vec{v}_k)=\{c_1\vec{v}_1+\cdots+c_k\vec{v}_k\mid c_i\in\mathbb{R}\}.$$
-
 Imagine each vector as a dial on a remote control. Turn the dials however you like; the set of all positions you can reach is the span.
 
 ### A catalogue of shapes
@@ -127,9 +121,7 @@ Sometimes adding a vector buys you nothing because it was *already* in the span.
 ### Definition
 
 Vectors $\vec{v}_1,\ldots,\vec{v}_k$ are **linearly independent** if the *only* way to write the zero vector as a combination of them is to use all-zero coefficients:
-
 $$c_1\vec{v}_1+\cdots+c_k\vec{v}_k=\vec{0}\;\;\Longrightarrow\;\; c_1=\cdots=c_k=0.$$
-
 If some non-trivial combination produces $\vec{0}$, the set is **linearly dependent** — at least one vector is a combination of the others, so it is redundant.
 
 ### Geometric translation
@@ -180,10 +172,11 @@ Remove anything and you lose coverage. Add anything and you gain redundancy. A b
 
 ### The standard basis of $\mathbb{R}^n$
 
-$$\vec{e}_1=\!\begin{pmatrix}1\\0\\\vdots\\0\end{pmatrix},\;
+$$
+\vec{e}_1=\!\begin{pmatrix}1\\0\\\vdots\\0\end{pmatrix},\;
 \vec{e}_2=\!\begin{pmatrix}0\\1\\\vdots\\0\end{pmatrix},\;\ldots,\;
-\vec{e}_n=\!\begin{pmatrix}0\\\vdots\\0\\1\end{pmatrix}.$$
-
+\vec{e}_n=\!\begin{pmatrix}0\\\vdots\\0\\1\end{pmatrix}.
+$$
 When you write $\vec{v}=(3,5)$, what you really mean is $\vec{v}=3\vec{e}_1+5\vec{e}_2$. The standard basis is so familiar that we forget it is a *choice*.
 
 ![Standard basis vs a rotated basis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/fig4_basis_examples.png)
@@ -193,19 +186,17 @@ The same point $\vec{u}=(3,2)$ has coordinates $(3,2)$ in the standard basis on 
 ### Bases are not unique
 
 Each of these is a perfectly valid basis of $\mathbb{R}^2$:
-
-$$\left\{\!\begin{pmatrix}1\\0\end{pmatrix},\!\begin{pmatrix}0\\1\end{pmatrix}\!\right\},\quad
+$$
+\left\{\!\begin{pmatrix}1\\0\end{pmatrix},\!\begin{pmatrix}0\\1\end{pmatrix}\!\right\},\quad
 \left\{\!\begin{pmatrix}1\\1\end{pmatrix},\!\begin{pmatrix}1\\-1\end{pmatrix}\!\right\},\quad
-\left\{\!\begin{pmatrix}2\\0\end{pmatrix},\!\begin{pmatrix}0\\3\end{pmatrix}\!\right\}.$$
-
+\left\{\!\begin{pmatrix}2\\0\end{pmatrix},\!\begin{pmatrix}0\\3\end{pmatrix}\!\right\}.
+$$
 Different bases give different coordinates for the same vector — but the vector (the geometric arrow) is the same in all of them.
 
 ### Coordinates depend on the basis
 
 The vector $(3,5)$ in the standard basis becomes $(4,-1)$ in the basis $\{(1,1),(1,-1)\}$, because
-
 $$4\!\begin{pmatrix}1\\1\end{pmatrix}+(-1)\!\begin{pmatrix}1\\-1\end{pmatrix}=\begin{pmatrix}3\\5\end{pmatrix}.$$
-
 A "vector" is the geometric object. A "coordinate tuple" is what the vector looks like *after* you commit to a basis. This distinction is one of the most freeing ideas in linear algebra — and it's exactly what change of basis is about.
 
 ![The same point, two coordinate grids](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/fig5_change_of_basis.png)
@@ -285,9 +276,7 @@ This is why affine geometry (translations) is *not* the same as linear algebra (
 ### Dimension formula for sums
 
 For two subspaces $U,W\subseteq V$:
-
 $$\dim(U+W)=\dim(U)+\dim(W)-\dim(U\cap W).$$
-
 It is the inclusion–exclusion principle, ported to vector spaces. We will see this formula again in Chapter 5 when we count solutions of linear systems.
 
 ---

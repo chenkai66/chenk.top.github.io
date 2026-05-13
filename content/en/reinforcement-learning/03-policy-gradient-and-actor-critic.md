@@ -62,9 +62,7 @@ Either way, the loss machinery is identical: pick an action by sampling from $\p
 Let $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G_0]$ be the expected return of the trajectories produced by $\pi_\theta$. We want $\nabla_\theta J(\theta)$ so we can do gradient ascent.
 
 The **Policy Gradient Theorem** (Sutton et al., 2000) provides a clean, sampleable form:
-
 $$\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\pi_\theta}\!\Big[\sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\;\cdot\;Q^{\pi_\theta}(s_t, a_t)\Big]$$
-
 Three key points to consider:
 
 - $\nabla_\theta \log \pi_\theta(a|s)$ is called the **score function**. It is the gradient that, on its own, would make action $a$ slightly *more* likely.
@@ -82,13 +80,9 @@ The left panel shows $\pi_\theta(a|s)$ before and after one (large, illustrative
 The raw estimator above is **unbiased**, but its variance is horrible. $Q^\pi$ can be hundreds or thousands; one lucky episode can shove $\theta$ in any direction.
 
 A simple identity rescues us. For **any function** $b(s)$ that does *not* depend on the action,
-
 $$\mathbb{E}_{a \sim \pi_\theta}\!\big[\,\nabla_\theta \log \pi_\theta(a|s)\,\cdot\,b(s)\,\big] \;=\; 0,$$
-
 so subtracting $b(s)$ from $Q$ leaves the gradient unchanged in expectation but can drastically shrink variance. The optimal choice is the state-value function $V^\pi(s)$, which gives us the **advantage function**:
-
 $$A^\pi(s,a) \;=\; Q^\pi(s,a) - V^\pi(s).$$
-
 "Advantage" is exactly what it sounds like: how much better is action $a$ than the average action in state $s$? Centred around zero, the gradient signal stops swinging wildly.
 
 ![Q(s,a), the value baseline V(s), and the resulting advantage](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig4_advantage_decomposition.png)
@@ -228,9 +222,7 @@ REINFORCE waits until the end of the episode to compute $G_t$. That return conta
 - **Critic** $V_\phi(s)$: scores how good a state is.
 
 The crucial substitution is the **TD-error advantage**:
-
 $$\hat A_t \;=\; r_t + \gamma\,V_\phi(s_{t+1}) - V_\phi(s_t).$$
-
 This depends on **only one step** of randomness instead of the entire tail of the trajectory. The variance collapses; in exchange we accept some bias from the imperfect critic.
 
 The two networks usually share a backbone:
@@ -272,9 +264,10 @@ A3C (Mnih et al., 2016) parallelised this across asynchronous workers. Modern pr
 ### 3.3 GAE: A Dial Between TD and Monte Carlo
 
 One-step TD has low variance but high bias; Monte Carlo has the opposite. **Generalised Advantage Estimation** (Schulman et al., 2016) interpolates between them with a single hyperparameter $\lambda \in [0, 1]$:
-
-$$\hat A_t^{\text{GAE}(\lambda)} \;=\; \sum_{k=0}^{\infty} (\gamma\lambda)^k\,\delta_{t+k},
-\quad \delta_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t).$$
+$$
+\hat A_t^{\text{GAE}(\lambda)} \;=\; \sum_{k=0}^{\infty} (\gamma\lambda)^k\,\delta_{t+k},
+\quad \delta_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t).
+$$
 
 $\lambda = 0$ recovers the one-step TD advantage; $\lambda = 1$ recovers the full Monte Carlo return (minus the baseline). Practitioners almost always pick something in $[0.9, 0.97]$.
 
@@ -294,9 +287,7 @@ DDPG (Lillicrap et al., 2016) couples DQN-style stability tricks with an Actor-C
 
 - **Replay buffer + target networks** (inherited from DQN).
 - The **deterministic policy gradient** (Silver et al., 2014):
-
 $$\nabla_\theta J \;=\; \mathbb{E}_{s \sim \rho^\beta}\!\Big[\,\nabla_a Q_\phi(s,a)\big|_{a=\mu_\theta(s)}\;\nabla_\theta \mu_\theta(s)\,\Big].$$
-
 Read it from right to left: shift $\theta$ in whatever direction $\mu_\theta(s)$ moves, weighted by how steeply $Q$ rises in $a$ at that point. Pure chain rule.
 
 Exploration is added externally as action noise: $a_t = \mu_\theta(s_t) + \mathcal{N}(0,\sigma)$.
@@ -375,9 +366,7 @@ These three changes turn DDPG from "sometimes works after careful tuning" into a
 ## 5. SAC: Maximum Entropy RL
 
 Even TD3 has a failure mode: the policy can collapse to a narrow distribution and stop exploring. **Soft Actor-Critic** (Haarnoja et al., 2018) attacks the problem at its root by **changing the objective**:
-
 $$J(\pi) \;=\; \mathbb{E}\!\Big[\sum_t \gamma^t\big(r_t + \alpha\,\mathcal H[\pi(\cdot|s_t)]\big)\Big].$$
-
 The entropy term $\mathcal H[\pi]$ pays the agent for being uncertain. The temperature $\alpha$ controls the trade-off. The Bellman backups are modified to match: the "soft" Q-target adds an expected log-policy term.
 
 Three engineering details make SAC the workhorse it is:

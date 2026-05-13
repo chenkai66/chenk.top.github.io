@@ -42,9 +42,7 @@ This guide walks the full path: why autoencoders fail at generation, how the ELB
 ## The autoencoder baseline
 
 An autoencoder pairs an encoder $f_\phi$ with a decoder $g_\theta$. It learns to compress input $x$ into a code $z = f_\phi(x)$ and then reconstruct $\hat{x} = g_\theta(z)$. The training objective is just reconstruction error:
-
 $$\mathcal{L}_{\text{AE}}(x) = \|x - g_\theta(f_\phi(x))\|^2.$$
-
 This works fine for compression and denoising, but it gives you a latent space that is *deterministic* and *unstructured*. Concretely:
 
 - **You cannot sample.** The decoder has only ever seen codes that the encoder produced. A random $z$ drawn from anywhere in the space will likely fall in a hole the decoder never visited and produce garbage.
@@ -54,9 +52,7 @@ This works fine for compression and denoising, but it gives you a latent space t
 ## What VAEs change: a probabilistic latent
 
 A VAE replaces the deterministic encoding with a *distribution*. The encoder outputs the parameters of a Gaussian:
-
 $$q_\phi(z \mid x) = \mathcal{N}\!\left(\mu_\phi(x),\, \sigma^2_\phi(x)\, I\right).$$
-
 The decoder defines a likelihood $p_\theta(x \mid z)$, and we impose a fixed prior $p(z) = \mathcal{N}(0, I)$.
 
 Three benefits flow from this single change:
@@ -70,19 +66,17 @@ Three benefits flow from this single change:
 ## Deriving the bound
 
 We want to maximize the data log-likelihood $\log p_\theta(x)$, but it involves an intractable integral over $z$. The trick is to introduce the variational posterior $q_\phi(z \mid x)$ and apply Jensen's inequality:
-
 $$\log p_\theta(x) \;\geq\; \mathbb{E}_{q_\phi(z\mid x)}\!\left[\log p_\theta(x \mid z)\right] - D_{\mathrm{KL}}\!\left(q_\phi(z\mid x)\,\|\,p(z)\right).$$
-
 This right-hand side is the **Evidence Lower BOund (ELBO)**. Maximizing it does two things at once:
 
 - **Reconstruction term** $\mathbb{E}_{q_\phi}[\log p_\theta(x \mid z)]$: the decoder must explain $x$ well from a code sampled by the encoder.
 - **KL term** $D_{\mathrm{KL}}(q_\phi(z\mid x)\,\|\,p(z))$: the encoder cannot wander wherever it likes; it must stay close to the prior.
 
 In code, we minimize the negative ELBO. With a Gaussian encoder and a standard normal prior, the KL term has a closed form per dimension:
-
-$$D_{\mathrm{KL}}\!\left(\mathcal{N}(\mu, \sigma^2)\,\|\,\mathcal{N}(0,1)\right)
-= \tfrac{1}{2}\!\left(\mu^2 + \sigma^2 - \log \sigma^2 - 1\right).$$
-
+$$
+D_{\mathrm{KL}}\!\left(\mathcal{N}(\mu, \sigma^2)\,\|\,\mathcal{N}(0,1)\right)
+= \tfrac{1}{2}\!\left(\mu^2 + \sigma^2 - \log \sigma^2 - 1\right).
+$$
 ## Why the KL term is load-bearing
 
 Without KL regularization, two pathologies appear immediately:
@@ -103,9 +97,7 @@ To estimate the reconstruction term we need to draw $z \sim q_\phi(z \mid x)$ an
 ## The fix: move randomness outside the parameter path
 
 Rewrite the sample as a deterministic function of the parameters and an *external* noise source:
-
 $$z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \qquad \epsilon \sim \mathcal{N}(0, I).$$
-
 Now $\epsilon$ has no parameters, and the path from $\phi$ to $z$ is fully differentiable. Gradients flow cleanly through $\mu$ and $\sigma$.
 
 ```python
@@ -287,17 +279,13 @@ torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 ## Beta-VAE: explicit disentanglement
 
 Push $\beta$ above 1 to bias the model toward latent dimensions that capture *independent* factors of variation. The ELBO becomes
-
 $$\mathcal{L} = \mathbb{E}_{q_\phi}[\log p_\theta(x\mid z)] - \beta \cdot D_{\mathrm{KL}}(q_\phi(z\mid x)\,\|\,p(z)),$$
-
 with $\beta \in [2, 10]$ typical for disentanglement experiments. The trade-off is exactly what you'd expect: reconstruction degrades as $\beta$ rises.
 
 ## Conditional VAE: control what gets generated
 
 Condition both encoder and decoder on a label $y$ (digit class, attribute vector, anything):
-
 $$q_\phi(z \mid x, y), \qquad p_\theta(x \mid z, y).$$
-
 In code, just concatenate a one-hot $y$ into the encoder input and into $z$ before the decoder. To generate a specific class, sample $z \sim \mathcal{N}(0, I)$ and feed it together with the desired label.
 
 ## Hierarchical VAE: latents at multiple scales

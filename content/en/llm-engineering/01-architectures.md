@@ -54,9 +54,7 @@ A historical note worth holding in mind: the *names* of these techniques (pre-no
 ## The attention math, properly
 
 The scaled dot-product attention from [Vaswani et al., 2017]:
-
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V$$
-
 Three things in this formula deserve more than the standard one-line treatment.
 
 **Why $\sqrt{d_k}$ in the denominator.** $Q$ and $K$ are projections of a unit-variance input through linear layers initialized so each column has unit variance. The dot product $q \cdot k = \sum_{i=1}^{d_k} q_i k_i$ is then a sum of $d_k$ unit-variance terms, so its variance is $d_k$ and its standard deviation is $\sqrt{d_k}$. Without the divisor, dot products grow as $d_k$ grows, the softmax saturates at one row, and the gradient through the softmax vanishes (the Jacobian of softmax at a one-hot input is zero). Dividing by $\sqrt{d_k}$ keeps the pre-softmax logits at unit variance regardless of head dimension. This is the single most important detail in the entire Transformer paper — the model does not train without it.
@@ -75,9 +73,7 @@ The online softmax trick at the heart of FlashAttention is worth understanding. 
 Multi-head attention (MHA) projects every token to $h$ separate Q, K, V vectors of dimension $d_{\text{head}}$. Multi-query attention (MQA) projects $h$ Q vectors but only **one** K and one V, shared across heads. Grouped-query attention (GQA) is the middle: $g$ groups, each sharing one K/V across $h/g$ heads.
 
 The KV cache memory is what matters at long context. For LLaMA-3-70B with $h=64$, $d_{\text{head}}=128$, $L=80$ layers, FP16:
-
 $$\text{KV bytes per token} = 2 \cdot L \cdot 2 \cdot h_{\text{kv}} \cdot d_{\text{head}}$$
-
 For a 32K-token context:
 
 | Variant | $h_{\text{kv}}$ | KV / token | KV / 32K context |
@@ -191,17 +187,13 @@ The sharp edge of MoE: total VRAM scales with total params, even though only $k$
 The router is a linear map $g(x) = W_g x \in \mathbb{R}^E$ followed by softmax over a top-$k$ subset. Top-$k$ specifically — not "pick all experts above a threshold," because the FLOPs per token must be deterministic for the kernels to work. Mixtral uses $k=2$, DeepSeek-V3 uses $k=8$ out of 256 experts plus 1 always-on shared expert, Qwen3-MoE uses $k=8$ out of 128.
 
 The Switch Transformer auxiliary loss decomposes into two factors. Let $T$ be the batch of tokens, $E$ the number of experts. Define $f_e = \frac{1}{|T|} \sum_{t \in T} \mathbb{1}[\arg\max_e g(x_t) = e]$ (the fraction of tokens whose top-1 went to expert $e$) and $p_e = \frac{1}{|T|} \sum_{t \in T} \text{softmax}(g(x_t))_e$ (the average router probability for expert $e$). The loss is
-
 $$\ell_{\text{aux}} = \alpha \cdot E \cdot \sum_{e=1}^{E} f_e \cdot p_e.$$
-
 This is minimized when both $f_e = 1/E$ and $p_e = 1/E$ for all $e$. The clever part is using both quantities: $f_e$ alone has a non-differentiable arg-max, $p_e$ alone is differentiable but doesn't penalize hard imbalance. Multiplying makes the router learn to be balanced both in soft probability and in the actual hard assignment.
 
 **Expert capacity** is the maximum tokens any one expert can receive in a batch. If capacity is $c \cdot |T| \cdot k / E$ (capacity factor $c$), tokens routed to a full expert are *dropped* — they bypass the FFN with a zero contribution. Switch Transformer used $c=1.25$. Lower $c$ saves memory and all-to-all bandwidth but drops more tokens; higher $c$ avoids drops but wastes capacity. Modern training (DeepSeek-V3, Qwen3) often uses $c=1.0$ during training plus aux-loss-free balancing, then $c=\infty$ at inference (which is fine because batch sizes are small enough that capacity is rarely hit).
 
 The auxiliary-loss-free approach from [Wang et al., 2024], adopted by DeepSeek-V3, replaces the aux loss with a per-expert bias added to the routing logits before top-$k$:
-
 $$g'_e(x) = g_e(x) + b_e,\qquad b_e \leftarrow b_e - \eta \cdot \text{sign}(f_e - 1/E)$$
-
 The bias updates after each batch to push tokens toward under-utilized experts. The softmax weights used for the convex combination of expert outputs still come from the un-biased $g_e(x)$ — only the assignment uses $g'_e$. This decouples "which expert" from "how strongly" and avoids the quality penalty that aux-loss imposes when it fights the model's natural routing preference.
 
 ## Mixtral vs Qwen3-MoE vs DeepSeek-V3 architecture comparison
@@ -247,9 +239,7 @@ The empirical lesson from all three: **a small fraction (10-50 %) of attention l
 Attention is $O(n^2)$ in sequence length. Linear-time alternatives keep coming back: linear attention [Katharopoulos et al., 2020], Performer [Choromanski et al., 2021], Linformer, Reformer. None of them stuck — they were all worse than vanilla attention at scale.
 
 Then Mamba happened. Mamba [Gu & Dao, 2023] is a **selective state-space model**: each layer maintains a fixed-size hidden state $h_t \in \mathbb{R}^N$ and updates it with a recurrence:
-
 $$h_t = \bar{A}_t \, h_{t-1} + \bar{B}_t \, x_t, \quad y_t = C_t \, h_t.$$
-
 The "selective" part: $A$, $B$, $C$ are *input-dependent*, computed from $x_t$. This was the missing piece — earlier SSMs (S4 [Gu et al., 2022]) had time-invariant dynamics and couldn't do content-based memory. Mamba can.
 
 Mamba-2 [Dao & Gu, 2024] made $\bar{A}_t$ scalar-times-identity, which lets the recurrence be expressed as a structured matmul (the State Space Duality, SSD) and run efficiently on GPUs. At 2.7B params it matches Pythia-2.8B perplexity with 5× faster inference and constant memory per token — no KV cache.

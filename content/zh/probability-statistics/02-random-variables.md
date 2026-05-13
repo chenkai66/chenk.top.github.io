@@ -26,10 +26,7 @@ translationKey: "probability-statistics-2"
 **定义。** 一个**随机变量** $X$ 是从样本空间到实数集的函数：
 
 ![离散与连续](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-discrete-vs-continuous.png)
-
-
 $$X: \Omega \to \mathbb{R}$$
-
 且对任意实数 $x$，集合 $\{\omega \in \Omega : X(\omega) \leq x\}$ 是 $\mathcal{F}$ 中的一个事件。
 
 可测性条件（定义的第二部分）确保诸如“$X$ 不超过 3 的概率是多少？”这类问题有明确定义的答案。对于有限或可数的样本空间，该条件自动满足。
@@ -48,9 +45,7 @@ $$X: \Omega \to \mathbb{R}$$
 ### 概率质量函数（PMF）
 
 离散型随机变量 $X$ 的**概率质量函数（Probability Mass Function, PMF）** 定义为：
-
 $$p_X(x) = P(X = x)$$
-
 其中 $x$ 取遍 $X$ 支撑集（support）中的所有值。其性质如下：
 
 1. 对所有 $x$，有 $p_X(x) \geq 0$
@@ -61,9 +56,8 @@ $$p_X(x) = P(X = x)$$
 任意随机变量（离散或连续）的**累积分布函数（Cumulative Distribution Function, CDF）** 定义为：
 
 ![CDF 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-cdf-comparison.png)
-
-
-$$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(离散情形)}.$$CDF 是右连续、非减函数，且满足 $\lim_{x \to -\infty} F(x) = 0$ 与 $\lim_{x \to \infty} F(x) = 1$。
+$$
+F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(离散情形)}.$$CDF 是右连续、非减函数，且满足 $\lim_{x \to -\infty} F(x) = 0$ 与 $\lim_{x \to \infty} F(x) = 1$。
 
 ## 关键离散分布
 
@@ -76,9 +70,7 @@ $$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(离散情形)}.$$CD
 ### Bernoulli 分布
 
 最简单的随机变量：单次试验，仅两种结果。
-
 $$X \sim \text{Bernoulli}(p), \quad p_X(x) = p^x (1-p)^{1-x} \text{ for } x \in \{0, 1\}.$$
-
 - **均值（Mean）：** $E[X] = p$
 - **方差（Variance）：** $\text{Var}(X) = p(1-p)$
 
@@ -87,9 +79,7 @@ $$X \sim \text{Bernoulli}(p), \quad p_X(x) = p^x (1-p)^{1-x} \text{ for } x \in 
 ### Binomial 分布
 
 $n$ 次独立 Bernoulli 试验中成功的次数。
-
 $$X \sim \text{Binomial}(n, p), \quad p_X(k) = \binom{n}{k} p^k (1-p)^{n-k} \text{ for } k = 0, 1, \ldots, n.$$
-
 *推导。* 恰好含 $k$ 次成功的某一特定序列的概率为 $p^k(1-p)^{n-k}$；此类序列总数为 $\binom{n}{k}$。
 
 - **均值：** $E[X] = np$
@@ -100,23 +90,17 @@ $$X \sim \text{Binomial}(n, p), \quad p_X(k) = \binom{n}{k} p^k (1-p)^{n-k} \tex
 ### Geometric 分布
 
 首次成功所需的试验次数。
-
 $$X \sim \text{Geometric}(p), \quad p_X(k) = (1-p)^{k-1} p \text{ for } k = 1, 2, 3, \ldots$$
-
 *归一化验证：*
-
 $$\sum_{k=1}^{\infty} (1-p)^{k-1} p = p \sum_{j=0}^{\infty} (1-p)^j = p \cdot \frac{1}{1-(1-p)} = p \cdot \frac{1}{p} = 1. \quad \checkmark$$
-
 - **均值：** $E[X] = 1/p$
 - **方差：** $\text{Var}(X) = (1-p)/p^2$Geometric 分布具有**无记忆性（memoryless property）**：$P(X > s + t \mid X > s) = P(X > t)$。也就是说，即使你已经等待了 $s$ 次仍未成功，剩余等待时间的分布仍与重新开始时完全相同。
 
 *证明。* $P(X > n) = (1-p)^n$（前 $n$ 次全失败）。于是：
-
 $$P(X > s+t \mid X > s) = \frac{P(X > s+t)}{P(X > s)} = \frac{(1-p)^{s+t}}{(1-p)^s} = (1-p)^t = P(X > t). \quad \blacksquare$$
-
 **负二项分布（Negative Binomial Distribution）。** 其推广形式：第 $r$ 次成功所需的试验次数。
-
-$$X \sim \text{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} \text{ for } k = r, r+1, \ldots$$Geometric 分布是 $r = 1$ 的特例。当建模过离散计数数据（方差大于均值）时，负二项分布自然出现，因此在实践中常作为 Poisson 的替代选择。
+$$
+X \sim \text{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} \text{ for } k = r, r+1, \ldots$$Geometric 分布是 $r = 1$ 的特例。当建模过离散计数数据（方差大于均值）时，负二项分布自然出现，因此在实践中常作为 Poisson 的替代选择。
 
 - **均值：** $E[X] = r/p$
 - **方差：** $\text{Var}(X) = r(1-p)/p^2$
@@ -124,24 +108,18 @@ $$X \sim \text{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} \t
 ### Poisson 分布
 
 单位时间内事件发生次数，假设事件以恒定平均速率发生。
-
 $$X \sim \text{Poisson}(\lambda), \quad p_X(k) = \frac{\lambda^k e^{-\lambda}}{k!} \text{ for } k = 0, 1, 2, \ldots$$
-
 - **均值：** $E[X] = \lambda$
 - **方差：** $\text{Var}(X) = \lambda$（均值等于方差——Poisson 的标志性特征）
 
 *均值证明。*
-
 $$E[X] = \sum_{k=0}^{\infty} k \frac{\lambda^k e^{-\lambda}}{k!} = \lambda e^{-\lambda} \sum_{k=1}^{\infty} \frac{\lambda^{k-1}}{(k-1)!} = \lambda e^{-\lambda} \cdot e^{\lambda} = \lambda. \quad \blacksquare$$
-
 ### Poisson 对 Binomial 的近似
 
 当 $n$ 很大、$p$ 很小、且 $\lambda = np$ 适中时，有 $\text{Binomial}(n, p) \approx \text{Poisson}(\lambda)$。
 
 *证明概要。* 对固定 $k$：
-
 $$\binom{n}{k} p^k (1-p)^{n-k} = \frac{n!}{k!(n-k)!} \left(\frac{\lambda}{n}\right)^k \left(1 - \frac{\lambda}{n}\right)^{n-k}.$$
-
 当 $n \to \infty$ 且 $\lambda = np$ 固定时：
 - $\frac{n!}{(n-k)! \cdot n^k} \to 1$
 - $(1 - \lambda/n)^n \to e^{-\lambda}$
@@ -154,9 +132,7 @@ $$\binom{n}{k} p^k (1-p)^{n-k} = \frac{n!}{k!(n-k)!} \left(\frac{\lambda}{n}\rig
 ## 连续型随机变量
 
 若存在一个非负函数 $f_X$（称为**概率密度函数（Probability Density Function, PDF）**），使得
-
 $$P(a \leq X \leq b) = \int_a^b f_X(x) \, dx,$$
-
 则称该随机变量为**连续型随机变量（Continuous Random Variable）**。
 
 其性质如下：
@@ -166,19 +142,13 @@ $$P(a \leq X \leq b) = \int_a^b f_X(x) \, dx,$$
 **关键区别：** 对连续型随机变量，任一单点 $x$ 的概率 $P(X = x) = 0$。这并非矛盾——密度 $f(x)$ 可为正值，而单点概率却为零。概率存在于区间上，而非点上。
 
 CDF 定义为：
-
 $$F_X(x) = P(X \leq x) = \int_{-\infty}^{x} f_X(t) \, dt$$
-
 且（在可导处）PDF 是 CDF 的导数：
-
 $$f_X(x) = F_X'(x).$$
-
 ## 关键连续分布
 
 ### 均匀分布（Uniform Distribution）
-
 $$X \sim \text{Uniform}(a, b), \quad f_X(x) = \frac{1}{b-a} \text{ for } x \in [a, b].$$
-
 ![主要分布图库](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-gallery.png)
 
 
@@ -189,36 +159,26 @@ $$X \sim \text{Uniform}(a, b), \quad f_X(x) = \frac{1}{b-a} \text{ for } x \in [
 这是“最大无知”分布——区间 $[a,b]$ 内每个值出现概率均等。
 
 ### 指数分布（Exponential Distribution）
-
 $$X \sim \text{Exponential}(\lambda), \quad f_X(x) = \lambda e^{-\lambda x} \text{ for } x \geq 0.$$
-
 - **均值：** $E[X] = 1/\lambda$
 - **方差：** $\text{Var}(X) = 1/\lambda^2$
 - **CDF：** $F_X(x) = 1 - e^{-\lambda x}$
 
 它是 Geometric 分布的连续类比，也是**唯一**具备无记忆性的连续分布：
-
 $$P(X > s + t \mid X > s) = P(X > t).$$
-
 *证明。* $P(X > x) = e^{-\lambda x}$。于是：
-
 $$P(X > s+t \mid X > s) = \frac{P(X > s+t)}{P(X > s)} = \frac{e^{-\lambda(s+t)}}{e^{-\lambda s}} = e^{-\lambda t} = P(X > t). \quad \blacksquare$$
-
 这使得指数分布在建模无记忆过程的等待时间时极为自然——如放射性衰变、泊松过程中的事件到达间隔、服务器请求间的时间间隔。
 
 ### 高斯（正态）分布（Gaussian / Normal Distribution）
 
 统计学中最重要的分布。
-
 $$X \sim \mathcal{N}(\mu, \sigma^2), \quad f_X(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\left(-\frac{(x - \mu)^2}{2\sigma^2}\right).$$
-
 - **均值：** $E[X] = \mu$
 - **方差：** $\text{Var}(X) = \sigma^2$
 
 **标准正态分布（standard normal）** $Z \sim \mathcal{N}(0, 1)$ 满足 $\mu = 0$, $\sigma = 1$。任意正态变量均可标准化：
-
 $$Z = \frac{X - \mu}{\sigma}.$$
-
 **68–95–99.7 法则（经验法则）：**
 
 | 区间 | 概率 |
@@ -236,30 +196,22 @@ $$Z = \frac{X - \mu}{\sigma}.$$
 ### 对数正态分布（Log-Normal Distribution）
 
 若 $X \sim \mathcal{N}(\mu, \sigma^2)$，则 $Y = e^X$ 服从**对数正态分布（log-normal）**。其 PDF 为：
-
 $$f_Y(y) = \frac{1}{y\sigma\sqrt{2\pi}} \exp\left(-\frac{(\ln y - \mu)^2}{2\sigma^2}\right) \quad \text{for } y > 0.$$
-
 - **均值：** $E[Y] = e^{\mu + \sigma^2/2}$
 - **方差：** $\text{Var}(Y) = (e^{\sigma^2} - 1) e^{2\mu + \sigma^2}$
 
 对数正态分布用于建模多个正因子乘积构成的量（如收入、股价、颗粒尺寸），正如正态分布建模多个加性因子之和。它恒为右偏且取值恒为正。
 
 *PDF 归一化证明。* 令 $I = \int_{-\infty}^{\infty} e^{-x^2/2} dx$。则：
-
 $$I^2 = \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} e^{-(x^2 + y^2)/2} dx \, dy.$$
-
 转换为极坐标：$x^2 + y^2 = r^2$, $dx \, dy = r \, dr \, d\theta$：
-
 $$I^2 = \int_0^{2\pi} \int_0^{\infty} e^{-r^2/2} r \, dr \, d\theta = 2\pi \int_0^{\infty} r e^{-r^2/2} dr = 2\pi \left[-e^{-r^2/2}\right]_0^{\infty} = 2\pi.$$
-
 故 $I = \sqrt{2\pi}$，从而确认 $\frac{1}{\sqrt{2\pi}} e^{-x^2/2}$ 积分为 1。$\blacksquare$
 
 ### Gamma 分布
 
 指数分布的推广：$\alpha$ 个独立同分布 $\text{Exponential}(\beta)$ 随机变量之和。
-
 $$X \sim \text{Gamma}(\alpha, \beta), \quad f_X(x) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} \text{ for } x > 0$$
-
 其中 $\Gamma(\alpha) = \int_0^{\infty} t^{\alpha-1} e^{-t} dt$ 为伽马函数。当 $\alpha$ 为正整数时，$\Gamma(\alpha) = (\alpha - 1)!$。
 
 - **均值：** $E[X] = \alpha/\beta$
@@ -268,9 +220,7 @@ $$X \sim \text{Gamma}(\alpha, \beta), \quad f_X(x) = \frac{\beta^\alpha}{\Gamma(
 特例：$\text{Gamma}(1, \lambda) = \text{Exponential}(\lambda)$；$\text{Gamma}(n/2, 1/2) = \chi^2(n)$（自由度为 $n$ 的卡方分布）。
 
 ### Beta 分布
-
 $$X \sim \text{Beta}(\alpha, \beta), \quad f_X(x) = \frac{x^{\alpha-1}(1-x)^{\beta-1}}{B(\alpha, \beta)} \text{ for } x \in (0, 1)$$
-
 其中 $B(\alpha, \beta) = \frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha+\beta)}$ 为贝塔函数。
 
 - **均值：** $E[X] = \frac{\alpha}{\alpha + \beta}$
@@ -428,9 +378,7 @@ plt.show()
 ## 分位函数与逆 CDF
 
 **分位函数（quantile function）**（或称**逆 CDF （inverse CDF）**）$F^{-1}(p)$ 对 $p \in (0, 1)$ 定义为：
-
 $$F^{-1}(p) = \inf\{x : F(x) \geq p\}.$$
-
 对 CDF 严格递增的连续分布，此式简化为：$F^{-1}(p)$ 是唯一满足 $F(x) = p$ 的 $x$。
 
 关键分位点有专有名称：
@@ -449,9 +397,7 @@ $$F^{-1}(p) = \inf\{x : F(x) \geq p\}.$$
 ## 混合分布（Mixtures of Distributions）
 
 并非所有分布都能完美契合单一命名族。**混合分布（mixture distribution）** 组合多个成分：
-
 $$f(x) = \sum_{k=1}^{K} w_k f_k(x), \qquad \sum_{k=1}^K w_k = 1, \quad w_k \geq 0$$
-
 其中 $f_k$ 为各成分密度，$w_k$ 为混合权重。
 
 **示例。** 人口由两组构成：70% 收入 $\sim \mathcal{N}(50000, 10000^2)$，30% 收入 $\sim \mathcal{N}(90000, 15000^2)$。整体收入分布即为双成分高斯混合——呈双峰，非正态。
@@ -514,9 +460,7 @@ plt.show()
 **示例。** 若 $X \sim \mathcal{N}(\mu, \sigma^2)$，则 $Y = aX + b$ 的分布为何？
 
 因正态分布经线性变换后仍为正态（第 3 篇中将用矩生成函数 MGFs 证明）：
-
 $$Y = aX + b \sim \mathcal{N}(a\mu + b, a^2\sigma^2).$$
-
 这正是标准化成立的原因：$Z = (X - \mu)/\sigma$ 满足 $\mu_Z = 0$ 且 $\sigma_Z^2 = 1$。
 
 **示例。** 若 $X \sim \text{Uniform}(0, 1)$，则 $Y = X^2$ 的分布为何？

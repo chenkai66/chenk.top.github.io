@@ -91,9 +91,7 @@ Local error$\mathcal{O}(h^3)$, global error$\mathcal{O}(h^2)$. Halve$h$, cut the
 ### Classical RK4, order 4
 
 The four-stage workhorse:
-
 $$k_1 = f(x_n, y_n)$$$$k_2 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_1\right)$$$$k_3 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_2\right)$$$$k_4 = f(x_n + h,\; y_n + h k_3)$$$$y_{n+1} = y_n + \tfrac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)$$
-
 The weights$(1, 2, 2, 1)/6$mirror Simpson's rule for integration; that is not a coincidence. Global error$\mathcal{O}(h^4)$, four function evaluations per step, one of the great practical bargains in scientific computing. For non-stiff problems with smooth right-hand sides, this single algorithm has been the engineering default for over a century.
 
 ```python
@@ -252,7 +250,8 @@ sol = solve_ivp(rhs, [0, T], y0, method='LSODA')
 
 1. **Order verification.** Implement `euler`, `heun`, and `rk4`. Solve$\dot y = -2y$,$y(0)=1$on$[0, 3]$at$h \in \{0.5, 0.25, 0.125, 0.0625\}$, plot the global error log-log, and confirm slopes 1, 2, 4.
 2. **Stability boundary, by experiment.** For Euler applied to$\dot y = \lambda y$with$\lambda = -10$, find the critical step size$h_*$at which Euler stops being stable, and verify it agrees with$2/|\lambda|$.
-3. **A stiff system, both ways.** Solve the Robertson chemical kinetics problem$$\dot y_1 = -0.04 y_1 + 10^4 y_2 y_3,$$$$\dot y_2 = 0.04 y_1 - 10^4 y_2 y_3 - 3\times 10^7 y_2^2,$$$$\dot y_3 = 3\times 10^7 y_2^2,$$
+3. **A stiff system, both ways.** Solve the Robertson chemical kinetics problem$$\dot y_1 = -0.04 y_1 + 10^4 y_2 y_3,$$$$\dot y_2 = 0.04 y_1 - 10^4 y_2 y_3 - 3\times 10^7 y_2^2,$$$$\dot y_3 = 3\times 10^7 y_2^2,
+$$
 with$y(0) = (1, 0, 0)$on$[0, 10^{11}]$using both `'RK45'` and `'BDF'`. Compare run time and step count.
 4. **Adaptive vs fixed.** Use `solve_ivp` to integrate$\dot y = -y + 100\,e^{-(t-1)^2/0.005}$on$[0, 3]$at `rtol=1e-6`. Then redo with a fixed-step RK4 fine enough to match the accuracy. Report the step counts.
 5. **Symplectic vs RK4 on the Kepler orbit.** Integrate a circular Kepler orbit for$10^4$periods using leapfrog and using RK4 at the same step size. Plot energy vs time for each.

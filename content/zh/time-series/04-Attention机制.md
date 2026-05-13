@@ -47,9 +47,7 @@ translationKey: "time-series-4"
 ## 2. 从第一性原理理解缩放点积注意力
 
 将输入序列堆叠为矩阵 $X \in \mathbb{R}^{n \times d}$，每行对应一个时间步。通过三个可学习的线性变换，生成对同一数据的三种“视角”：
-
 $$Q = X W^Q, \qquad K = X W^K, \qquad V = X W^V,$$
-
 其中 $W^Q, W^K \in \mathbb{R}^{d \times d_k}$，$W^V \in \mathbb{R}^{d \times d_v}$。
 
 - **Query** $Q$ —— “当前时间步在寻找什么？”
@@ -57,9 +55,7 @@ $$Q = X W^Q, \qquad K = X W^K, \qquad V = X W^V,$$
 - **Value** $V$ —— “当前时间步实际携带了什么信息？”
 
 查询 $i$ 与键 $j$ 的兼容性由点积衡量。整体公式为：
-
 $$\text{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
-
 ### 为何要除以 $\sqrt{d_k}$？
 
 若 $Q$ 和 $K$ 的元素独立同分布且方差为 1，则每个点积 $q_i^\top k_j$ 的方差为 $d_k$。当 $d_k$ 较大时，softmax 输入值幅度过大，导致输出饱和——几乎所有梯度坍缩至零，仅剩一个位置有响应。除以 $\sqrt{d_k}$ 可将方差重新归一化为 1，从而维持健康的梯度流。
@@ -128,11 +124,11 @@ scores = scores.masked_fill(~causal_mask(n, scores.device), float("-inf"))
 ## 5. 多头注意力：为时间序列量身定制的“分工协作”
 
 单头注意力会将多种模式混合在同一张注意力图中。多头注意力则并行运行 $h$ 个独立的注意力机制，每个作用于嵌入维度的一个子空间，最后拼接并通过线性投影融合：
-
-$$\text{MultiHead}(X) = [\text{head}_1; \dots; \text{head}_h] \, W^O,
+$$
+\text{MultiHead}(X) = [\text{head}_1; \dots; \text{head}_h] \, W^O,
 \qquad
-\text{head}_j = \text{Attention}(X W^{Q}_j, X W^{K}_j, X W^{V}_j).$$
-
+\text{head}_j = \text{Attention}(X W^{Q}_j, X W^{K}_j, X W^{V}_j).
+$$
 每个头拥有独立的 $W^Q_j, W^K_j, W^V_j \in \mathbb{R}^{d \times (d/h)}$，可自由专业化。在时间序列任务中，训练后通常观察到四类典型头：
 
 ![四个注意力头在同一个 18 步窗口上的权重图：分别对应近期、长程趋势、周期 7、以及对 t=4 异常事件的持续记忆。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/04-Attention机制/fig6_multihead_for_time.png)
@@ -188,11 +184,11 @@ class MultiHeadAttention(nn.Module):
 ### 正弦位置编码
 
 原始 Transformer 使用几何间隔频率的正弦与余弦函数：
-
-$$PE_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right),
+$$
+PE_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right),
 \qquad
-PE_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).$$
-
+PE_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).
+$$
 为何选择此形式？
 
 - **有界性**：所有值落在 $[-1, 1]$ 内，与位置 $p$ 无关；

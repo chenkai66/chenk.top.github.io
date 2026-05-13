@@ -71,9 +71,7 @@ The figure above captures the entire intuition. The blue anchor is one user. The
 ![Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/illustration_2.png)
 
 Almost every contrastive recommender uses some variant of the **InfoNCE** loss (van den Oord et al., 2018). Given an anchor $x$, a positive $x^+$, and a set of negatives $\{x_i^-\}$, with encoder $f$ and similarity $\mathrm{sim}(\cdot,\cdot) = z\cdot z'$ on $\ell_2$-normalised embeddings:
-
 $$\mathcal{L}_{\text{InfoNCE}} = -\log \frac{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big)}{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big) + \sum_{i} \exp\!\big(\mathrm{sim}(f(x), f(x_i^-)) / \tau\big)}$$
-
 This is exactly the cross-entropy of an $(N+1)$-way classifier whose correct class is "the positive". The numerator says "make the positive likely"; the denominator forces the model to *rank* the positive above every negative. That ranking pressure is what prevents the trivial solution where all embeddings collapse to the same vector.
 
 ### Temperature: the most under-appreciated knob
@@ -336,9 +334,7 @@ Start at $\tau = 0.2$. If your hardest negatives are reliably real negatives (e.
 For SimCLR / SGL on top of a GNN, yes — discard it after pretraining. The projection head lets the encoder's intermediate representation stay general while the head specialises for the contrastive metric. XSimGCL is the notable exception: it contrasts the propagated GNN embeddings directly without a projection head, and works fine.
 
 ### How do I combine contrastive and recommendation losses?
-
 $$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{rec}} + \lambda \cdot \mathcal{L}_{\text{CL}}$$
-
 Start with $\lambda = 0.1$. Sweep $\{0.01, 0.05, 0.1, 0.5, 1.0\}$ on validation if results matter. Sensitivity to $\lambda$ is much lower than sensitivity to $\tau$ — don't burn your hyperparameter budget here.
 
 ### Does this work with implicit feedback?

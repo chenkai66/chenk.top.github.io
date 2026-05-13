@@ -39,14 +39,14 @@ LoRA 将全量微调压缩为一个低秩更新，在工程上近乎零成本：
 ## 1. LoRA 回顾：为什么低秩管用，又是在哪里失效
 
 设 Transformer 中任意一个线性投影 $W \in \mathbb{R}^{d_{out}\times d_{in}}$。 LoRA 把 $W_0$ 冻住，把更新写成低秩分解：
-
-$$W \;=\; W_0 + \Delta W,
+$$
+W \;=\; W_0 + \Delta W,
 \qquad
 \Delta W \;=\; \frac{\alpha}{r}\, B\, A,
 \qquad
 B \in \mathbb{R}^{d_{out}\times r},\;
-A \in \mathbb{R}^{r\times d_{in}}.$$
-
+A \in \mathbb{R}^{r\times d_{in}}.
+$$
 当 $r \ll \min(d_{in}, d_{out})$ 时，可训练参数量从 $d_{in}\!\cdot\!d_{out}$ 降到 $r(d_{in}+d_{out})$，通常只占全量微调的 $0.1\%$ 到 $1\%$。$B$ 初始化为 $0$ 保证微调起步等价于原模型；推理时把 $W_0 + \frac{\alpha}{r} B A$ 合并成同形状的稠密矩阵，所以**部署成本和原模型完全一致**。
 
 LoRA 隐含了一个很强的假设：**一个**秩为 $r$ 的子空间就是更新的合理形状。在窄场景下这条假设没问题；一旦数据变得多样，这条假设就开始失效，原因有三：
@@ -68,13 +68,13 @@ LoRA 隐含了一个很强的假设：**一个**秩为 $r$ 的子空间就是更
 我们真正想要的是**结构化容量**：几个互相区分的低秩子空间，让模型按需组合。 MoSLoRA 给出的正是这种结构，且边际成本几乎为零。
 
 ## 3. MoSLoRA 的核心结构：$\Delta W = B\, W\, A$MoSLoRA 用一个**可学习的 mixer 矩阵**把 $k$ 个低秩子空间组合起来：
-
-$$\Delta W
+$$
+\Delta W
 \;=\;
 \sum_{i=1}^{k} W_{ii}\, B_i\, A_i
 \;=\;
-B\, W\, A,$$
-
+B\, W\, A,
+$$
 其中 $A \in \mathbb{R}^{kr\times d_{in}}$ 把 $k$ 个 down-projection 堆在一起，$B \in \mathbb{R}^{d_{out}\times kr}$ 把 $k$ 个 up-projection 堆在一起，$W \in \mathbb{R}^{kr\times kr}$ 就是 mixer。$W$ 取对角时退化为“$k$ 个独立 LoRA 之和”；非对角项的关键作用是**让子空间 $i$ 的 up-projection 与子空间 $j$ 的 down-projection 配对**——额外的表达能力就来自这里。
 
 这个写法直接带来三个性质：

@@ -63,17 +63,11 @@ translationKey: "probability-statistics-1"
 
 
 **公理 1 （非负性）**：对任意事件 $A \in \mathcal{F}$，
-
 $$P(A) \geq 0.$$
-
 **公理 2 （归一化）**：整个样本空间的概率为 1：
-
 $$P(\Omega) = 1.$$
-
 **公理 3 （可数可加性）**：若 $A_1, A_2, \ldots$ 是两两不相交的事件（即当 $i \neq j$ 时 $A_i \cap A_j = \emptyset$），则
-
 $$P\left(\bigcup_{i=1}^{\infty} A_i\right) = \sum_{i=1}^{\infty} P(A_i).$$
-
 仅此而已。三条公理。其余一切——贝叶斯定理、大数定律、中心极限定理——皆为其逻辑推论。
 
 ### 直接推论
@@ -81,15 +75,11 @@ $$P\left(\bigcup_{i=1}^{\infty} A_i\right) = \sum_{i=1}^{\infty} P(A_i).$$
 仅从这三条公理出发，即可推出：
 
 **补集法则**：由于 $A$ 与 $A^c$ 不相交，且 $A \cup A^c = \Omega$，
-
 $$P(A) + P(A^c) = P(\Omega) = 1 \implies P(A^c) = 1 - P(A).$$
-
 **不可能事件**：$P(\emptyset) = 1 - P(\Omega) = 0$。
 
 **容斥原理（两个事件）**：
-
 $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
-
 *证明*：将 $A \cup B$ 写作 $A \cup (B \setminus A)$，其中 $A$ 与 $B \setminus A$ 不相交。于是 $P(A \cup B) = P(A) + P(B \setminus A)$。又因 $B = (A \cap B) \cup (B \setminus A)$（不相交），故 $P(B) = P(A \cap B) + P(B \setminus A)$，从而 $P(B \setminus A) = P(B) - P(A \cap B)$。代入即得结论。$\blacksquare$
 
 **单调性**：若 $A \subseteq B$，则 $P(A) \leq P(B)$。
@@ -107,27 +97,19 @@ $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
 
 
 **定义**：若 $P(B) > 0$，则在 $B$ 发生条件下 $A$ 的条件概率为
-
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}.$$
-
 直观上，我们“聚焦”于 $B$ 已发生的那个世界：$B$ 成为新的样本空间，并重新归一化。
 
 ### 乘法法则
 
 重排上述定义可得：
-
 $$P(A \cap B) = P(A \mid B) \, P(B) = P(B \mid A) \, P(A).$$
-
 该法则可推广至链式情形：
-
 $$P(A_1 \cap A_2 \cap \cdots \cap A_n) = P(A_1) \, P(A_2 \mid A_1) \, P(A_3 \mid A_1 \cap A_2) \cdots P(A_n \mid A_1 \cap \cdots \cap A_{n-1}).$$
-
 ### 示例：抽牌
 
 一副标准扑克牌共 52 张。连续无放回地抽出两张 A 的概率是多少？
-
 $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid \text{Ace}_1) = \frac{4}{52} \cdot \frac{3}{51} = \frac{12}{2652} = \frac{1}{221} \approx 0.00452.$$
-
 ## 全概率公式
 
 
@@ -136,14 +118,9 @@ $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid 
 设 $B_1, B_2, \ldots, B_n$ 是 $\Omega$ 的一个**划分**——即各 $B_i$ 两两不相交，且 $\bigcup_i B_i = \Omega$，同时对所有 $i$ 都有 $P(B_i) > 0$。那么对任意事件 $A$，有：
 
 ![贝叶斯定理决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-bayes-tree.png)
-
-
 $$P(A) = \sum_{i=1}^{n} P(A \mid B_i) \, P(B_i).$$
-
 *证明*：$A = A \cap \Omega = A \cap \left(\bigcup_i B_i\right) = \bigcup_i (A \cap B_i)$。由于 $A \cap B_i$ 两两不相交，由公理 3 得：
-
 $$P(A) = \sum_i P(A \cap B_i) = \sum_i P(A \mid B_i) P(B_i). \quad \blacksquare$$
-
 该公式极为实用。当你无法直接计算 $P(A)$ 时，可将整个世界按情形拆分，再分别处理每一部分。
 
 ## 贝叶斯定理
@@ -151,16 +128,11 @@ $$P(A) = \sum_i P(A \cap B_i) = \sum_i P(A \mid B_i) P(B_i). \quad \blacksquare$
 **定理（贝叶斯）**：若 $P(A) > 0$ 且 $P(B) > 0$，则
 
 ![生日问题曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-birthday-problem.png)
-
-
 $$P(B \mid A) = \frac{P(A \mid B) \, P(B)}{P(A)}.$$
-
 *证明*：由乘法法则，$P(A \mid B) P(B) = P(A \cap B) = P(B \mid A) P(A)$。两边同除以 $P(A)$ 即得。$\blacksquare$
 
 结合全概率公式（使用划分 $B_1, \ldots, B_n$）：
-
 $$P(B_k \mid A) = \frac{P(A \mid B_k) \, P(B_k)}{\sum_{i=1}^{n} P(A \mid B_i) \, P(B_i)}.$$
-
 ### 医学检测示例
 
 某种疾病在人群中发病率为千分之一。一种检测方法的灵敏度（真阳性率）为 99%，特异度（真阴性率）为 95%。你检测结果为阳性，那么你实际患病的概率是多少？
@@ -173,13 +145,9 @@ $$P(B_k \mid A) = \frac{P(A \mid B_k) \, P(B_k)}{\sum_{i=1}^{n} P(A \mid B_i) \,
 - $P(T^+ \mid D^c) = 0.05$（1 − 特异度 = 假阳性率）
 
 由全概率公式：
-
 $$P(T^+) = P(T^+ \mid D)P(D) + P(T^+ \mid D^c)P(D^c) = 0.99 \times 0.001 + 0.05 \times 0.999 = 0.00099 + 0.04995 = 0.05094.$$
-
 由贝叶斯定理：
-
 $$P(D \mid T^+) = \frac{P(T^+ \mid D) P(D)}{P(T^+)} = \frac{0.99 \times 0.001}{0.05094} \approx 0.0194.$$
-
 **不足 2%。** 即便面对一个“准确率达 99%”的检测，当疾病罕见时，阳性结果极大概率是假阳性。这就是**基础比率谬误**（base rate fallacy）——忽略先验概率 $P(D)$ 会导致严重错误的结论。
 
 关键洞见在于：当疾病罕见时，健康人产生的假阳性（$0.05 \times 999 \approx 50$）远超患者产生的真阳性（$0.99 \times 1 \approx 1$）。
@@ -187,11 +155,8 @@ $$P(D \mid T^+) = \frac{P(T^+ \mid D) P(D)}{P(T^+)} = \frac{0.99 \times 0.001}{0
 ### 序贯检测：若你连续两次检测呈阳性呢？
 
 假设你第一次检测呈阳性后，再次独立接受同一检测，结果仍为阳性。此时：
-
 $$P(D \mid T_1^+, T_2^+) = \frac{P(T_1^+, T_2^+ \mid D) P(D)}{P(T_1^+, T_2^+)}.$$
-
 由于在已知患病状态下两次检测相互独立：
-
 $$P(T_1^+, T_2^+ \mid D) = 0.99^2 = 0.9801$$
 
 $$P(T_1^+, T_2^+ \mid D^c) = 0.05^2 = 0.0025$$
@@ -199,7 +164,6 @@ $$P(T_1^+, T_2^+ \mid D^c) = 0.05^2 = 0.0025$$
 $$P(T_1^+, T_2^+) = 0.9801 \times 0.001 + 0.0025 \times 0.999 = 0.000980 + 0.002498 = 0.003478$$
 
 $$P(D \mid T_1^+, T_2^+) = \frac{0.000980}{0.003478} \approx 0.282.$$
-
 两次阳性将患病概率从 1.9% 提升至 28.2%；第三次阳性将进一步推高至约 88%。这体现了**序贯更新**（sequential updating）的力量——每一份证据都会乘性地更新赔率（odds），即使单次检测较弱，累积起来也极具说服力。
 
 等价地，你可将第一次检测后的后验概率（$P(D|T_1^+) \approx 0.0194$）作为第二次检测的先验——这正是我们在第 8 篇文章中将形式化的序贯贝叶斯更新。
@@ -207,21 +171,15 @@ $$P(D \mid T_1^+, T_2^+) = \frac{0.000980}{0.003478} \approx 0.282.$$
 ## 独立性
 
 两个事件 $A$ 和 $B$ 称为**独立的**，若
-
 $$P(A \cap B) = P(A) \, P(B).$$
-
 等价地，$P(A \mid B) = P(A)$ —— 已知 $B$ 发生，对 $A$ 的概率毫无影响。
 
 ### 两两独立 vs. 相互独立
 
 对三个事件 $A, B, C$，**两两独立**指：
-
 $$P(A \cap B) = P(A)P(B), \quad P(A \cap C) = P(A)P(C), \quad P(B \cap C) = P(B)P(C).$$
-
 **相互独立**则额外要求：
-
 $$P(A \cap B \cap C) = P(A) P(B) P(C).$$
-
 两两独立**不能推出**相互独立。
 
 **反例**：掷两颗均匀骰子。令 $A$ = “第一颗骰子点数为奇数”，$B$ = “第二颗骰子点数为奇数”，$C$ = “点数和为奇数”。则 $P(A) = P(B) = P(C) = 1/2$。三组两两独立（练习：验证之）。但 $A \cap B \cap C = \emptyset$（两个奇数之和必为偶数），故 $P(A \cap B \cap C) = 0 \neq 1/8 = P(A)P(B)P(C)$。
@@ -233,21 +191,15 @@ $$P(A \cap B \cap C) = P(A) P(B) P(C).$$
 ## 容斥原理：一般情形
 
 双事件公式可推广至 $n$ 个事件：
-
 $$P\left(\bigcup_{i=1}^n A_i\right) = \sum_{i} P(A_i) - \sum_{i < j} P(A_i \cap A_j) + \sum_{i < j < k} P(A_i \cap A_j \cap A_k) - \cdots + (-1)^{n+1} P(A_1 \cap \cdots \cap A_n).$$
-
 *证明*：用数学归纳法。基础情形 $n = 2$ 已证。假设公式对 $n-1$ 个事件成立。记 $\bigcup_{i=1}^n A_i = \left(\bigcup_{i=1}^{n-1} A_i\right) \cup A_n$，应用双事件公式：
-
 $$P\left(\bigcup_{i=1}^n A_i\right) = P\left(\bigcup_{i=1}^{n-1} A_i\right) + P(A_n) - P\left(\left(\bigcup_{i=1}^{n-1} A_i\right) \cap A_n\right).$$
-
 最后一项等于 $P\left(\bigcup_{i=1}^{n-1} (A_i \cap A_n)\right)$，由归纳假设展开后符号交替。合并同类项即得通式。$\blacksquare$
 
 尽管一般容斥公式含 $2^n - 1$ 项，但它对计算涉及“至少一个”事件的概率至关重要——如下文的生日问题，以及后续的并界（union bound，即弱化版容斥，仅保留首项求和）。
 
 **并界（布尔不等式）**：由于所有减去的项均非负，
-
 $$P\left(\bigcup_{i=1}^n A_i\right) \leq \sum_{i=1}^n P(A_i).$$
-
 这个简单界虽宽松，却极为实用——它支撑了多重检验中的邦费罗尼校正（第 7 篇文章）及学习理论中的诸多结论。
 
 ## 条件概率本身是一种概率测度
@@ -269,17 +221,13 @@ $$P\left(\bigcup_{i=1}^n A_i\right) \leq \sum_{i=1}^n P(A_i).$$
 ### 排列
 
 从 $n$ 个不同对象中选出 $k$ 个并排序（顺序重要）的方式数：
-
 $$P(n, k) = \frac{n!}{(n-k)!}.$$
-
 **示例**： 8 名选手参加赛跑，前三名的可能排列数？$P(8, 3) = 8!/5! = 8 \times 7 \times 6 = 336$。
 
 ### 组合
 
 从 $n$ 个对象中选出 $k$ 个（顺序无关）的方式数：
-
 $$\binom{n}{k} = \frac{n!}{k!(n-k)!} = \frac{P(n,k)}{k!}.$$
-
 除以 $k!$ 是为了消除顺序——每个大小为 $k$ 的无序集合对应 $k!$ 种有序排列。
 
 关键性质：
@@ -293,27 +241,19 @@ $$\binom{n}{k} = \frac{n!}{k!(n-k)!} = \frac{P(n,k)}{k!}.$$
 ### 二项式定理
 
 帕斯卡法则将组合数与展开式联系起来：
-
 $$(a + b)^n = \sum_{k=0}^{n} \binom{n}{k} a^k b^{n-k}.$$
-
 令 $a = b = 1$，得 $\sum \binom{n}{k} = 2^n$（子集总数）；令 $a = 1, b = -1$，得 $\sum (-1)^k \binom{n}{k} = 0$，即偶数大小子集数等于奇数大小子集数。
 
 ### 多项式系数
 
 将 $n$ 个对象划分为大小分别为 $n_1, n_2, \ldots, n_r$ 的 $r$ 组（满足 $\sum n_i = n$）的方式数：
-
 $$\binom{n}{n_1, n_2, \ldots, n_r} = \frac{n!}{n_1! \, n_2! \cdots n_r!}.$$
-
 **示例**：“MISSISSIPPI”一词有多少种不同排列？共 11 个字母： 1 个 M、 4 个 I、 4 个 S、 2 个 P。
-
 $$\frac{11!}{1! \cdot 4! \cdot 4! \cdot 2!} = \frac{39916800}{1 \cdot 24 \cdot 24 \cdot 2} = 34650.$$
-
 ### 星与条（Stars and Bars）
 
 将 $k$ 个相同物品分配到 $n$ 个不同容器中有多少种方式？即经典的“星与条”问题：
-
 $$\binom{k + n - 1}{n - 1} = \binom{k + n - 1}{k}.$$
-
 **示例**：将 10 块相同饼干分给 4 个孩子：$\binom{13}{3} = 286$ 种方式。
 
 *证明*：用 $k$ 颗星表示物品，$n-1$ 根竖线表示容器分隔符。有效分配对应任意一个由 $k$ 颗星与 $n-1$ 根竖线组成的序列，此类序列总数为 $\binom{k+n-1}{n-1}$。$\blacksquare$
@@ -323,23 +263,15 @@ $$\binom{k + n - 1}{n - 1} = \binom{k + n - 1}{k}.$$
 **问题**：一个 $n$ 人的房间里，至少有两人同一天生日的概率是多少？（假设一年 365 天，生日等可能，忽略闰年。）
 
 更易通过补集计算：令 $A$ 表示“至少有一对生日相同”，则 $A^c$ 表示“所有人生日均不同”。
-
 $$P(A^c) = \frac{365}{365} \cdot \frac{364}{365} \cdot \frac{363}{365} \cdots \frac{365 - n + 1}{365} = \prod_{k=0}^{n-1} \frac{365 - k}{365}.$$
-
 因此：
-
 $$P(A) = 1 - \prod_{k=0}^{n-1} \left(1 - \frac{k}{365}\right).$$
-
 ### 近似解法
 
 利用小 $x$ 下 $\ln(1-x) \approx -x$：
-
 $$\ln P(A^c) = \sum_{k=0}^{n-1} \ln\left(1 - \frac{k}{365}\right) \approx -\sum_{k=0}^{n-1} \frac{k}{365} = -\frac{n(n-1)}{2 \cdot 365}.$$
-
 故：
-
 $$P(A^c) \approx e^{-n(n-1)/730}.$$
-
 令 $P(A) = 0.5$：$e^{-n(n-1)/730} = 0.5$，解得 $n(n-1) = 730 \ln 2 \approx 506$，即 $n \approx 23$。
 
 **仅需 23 人，就有 50% 的概率出现生日匹配。** 大多数人会猜一个高得多的数字（如 183），因为他们混淆了“有人和我同一天生日”与“某两人同一天生日”。配对数量呈二次增长：$\binom{23}{2} = 253$ 对，每对匹配概率虽小，但 253 次机会叠加起来速度极快。
@@ -347,9 +279,7 @@ $$P(A^c) \approx e^{-n(n-1)/730}.$$
 ### 广义生日问题
 
 生日问题可推广：若共有 $d$ 种等可能的“生日”（未必是 365），且有 $n$ 人，则碰撞阈值近似为：
-
 $$n \approx \sqrt{2d \ln 2} \approx 1.177 \sqrt{d}.$$
-
 该结论的应用远不止派对游戏：
 
 - **哈希碰撞**：一个输出空间为 $d = 2^{128}$ 的哈希函数，在约 $2^{64}$ 次输入后即大概率发生碰撞——这解释了为何 128 位哈希对数十亿对象安全，但对 $2^{64}$ 个对象则不安全。
@@ -431,21 +361,17 @@ plt.show()
 **正确答案**：换门。换门获胜概率为 $2/3$。
 
 *用全概率公式证明*：令 $C_i$ 表示汽车在第 $i$ 扇门后，$P(C_i) = 1/3$。令 $H_3$ 表示主持人打开第 3 扇门。我们需求 $P(C_2 | H_3)$。
-
 $$P(H_3 | C_1) = 1/2 \quad \text{（主持人在 2、3 中随机选一扇）}$$
 
 $$P(H_3 | C_2) = 1 \quad \text{（主持人必须开 3，因 2 后是车）}$$
 
 $$P(H_3 | C_3) = 0 \quad \text{（主持人绝不会揭示汽车）}$$
-
 由贝叶斯定理：
-
 $$P(C_2 | H_3) = \frac{P(H_3 | C_2) P(C_2)}{P(H_3)} = \frac{1 \cdot 1/3}{P(H_3)}.$$
 
 $$P(H_3) = P(H_3|C_1)P(C_1) + P(H_3|C_2)P(C_2) + P(H_3|C_3)P(C_3) = \frac{1}{2}\cdot\frac{1}{3} + 1\cdot\frac{1}{3} + 0 = \frac{1}{2}.$$
 
 $$P(C_2 | H_3) = \frac{1/3}{1/2} = \frac{2}{3}. \quad \blacksquare$$
-
 主持人的行为提供了信息。在他开门前，第 1 扇门有 $1/3$ 概率正确。他揭示第 3 扇门后是山羊，并未改变第 1 扇门后的情况——它仍是 $1/3$。但原本分布在第 2、 3 扇门上的 $2/3$ 概率，现在全部集中到了第 2 扇门。
 
 **为何此问题超越游戏秀的意义**：三门问题阐明了一个普适原则——**基于信息进行条件化会以依赖于信息生成机制的方式改变概率**。主持人的选择受约束（绝不揭示汽车），正是这一约束使换门变得有利。在机器学习中，类似情形出现在选择偏差（selection bias）、幸存者偏差（survivorship bias）及因果推断中的混杂器偏差（collider bias）中。

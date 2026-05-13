@@ -44,9 +44,7 @@ You brew coffee at $T_0 = 90^\circ\mathrm{C}$ and put it in a $T_\text{env} = 20
 2. *How fast is it cooling right now?* — a calculus question.
 
 The first question seems easier, but in physics the second one is almost always the one nature answers. Newton wrote down the answer in 1701: **the rate of cooling is proportional to the gap between the object and its surroundings.**
-
 $$\frac{dT}{dt} = -k\,\bigl(T - T_\text{env}\bigr).$$
-
 That single line is a **differential equation** — an equation that relates a function $T(t)$ to its own derivative. The unknown is the *function*, not a number.
 
 | Symbol | Meaning |
@@ -96,9 +94,7 @@ print(f"After 30 min: {T_sol[np.abs(t-30).argmin()][0]:.1f} °C")
 ### The closed-form answer
 
 This particular equation is friendly enough to solve by hand. Substitute $u = T - T_\text{env}$, so $du/dt = -ku$, separate variables, and re-substitute:
-
 $$\boxed{\,T(t) = T_\text{env} + \bigl(T_0 - T_\text{env}\bigr)\,e^{-kt}.\,}$$
-
 Three things are worth memorising:
 
 - The departure $T - T_\text{env}$ decays as a pure **exponential**.
@@ -115,9 +111,7 @@ Three things are worth memorising:
 ![Ordinary Differential Equations (1): Origins and Intuition — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/illustration_2.png)
 
 Here is a profound little trick that took mathematics 200 years to fully appreciate. For any first-order ODE
-
 $$\frac{dy}{dt} = f(t, y),$$
-
 the function $f$ tells you the **slope** of the solution at every point in the $(t, y)$-plane *without* actually solving anything. Plot a tiny arrow with that slope at each grid point and you have a **direction field** (also called a slope field or vector field). Solution curves are the trajectories that flow tangent to the arrows.
 
 ![Direction field for dy/dt = -y with several solution curves overlaid.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/fig1_direction_field.png)
@@ -159,9 +153,7 @@ Why does the order matter? Because to pin down a unique solution you need exactl
 ### Linear vs. nonlinear
 
 A differential equation is **linear** if $y$ and its derivatives appear only to the first power and are not multiplied together. The general $n$-th order linear form is
-
 $$a_n(t)\,y^{(n)} + a_{n-1}(t)\,y^{(n-1)} + \dots + a_0(t)\,y = g(t).$$
-
 If anything else shows up — $y^2$, $\sin y$, $y\,y'$, $\sqrt{y}$ — the equation is **nonlinear**.
 
 Why obsess over the distinction? Because **linearity is a superpower**:
@@ -205,21 +197,21 @@ The reason ODEs feel ubiquitous is that a small number of equations show up *ove
 ### 5.1 Radioactive decay — the universe's stopwatch
 
 Each radioactive atom has the same probability of decaying per unit time, so the total decay rate is proportional to how many atoms remain:
-
-$$\frac{dN}{dt} = -\lambda N
+$$
+\frac{dN}{dt} = -\lambda N
 \qquad\Longrightarrow\qquad
-N(t) = N_0\,e^{-\lambda t}.$$
-
+N(t) = N_0\,e^{-\lambda t}.
+$$
 The **half-life** $t_{1/2} = (\ln 2)/\lambda$ is a single number that summarises the whole curve. Carbon-14 has $t_{1/2} = 5730\,\text{yr}$, which is exactly why archaeologists can date a piece of charcoal: measure the surviving $^{14}\mathrm{C}$ ratio, take the log, and read off the age. The same equation also describes capacitor discharge in an RC circuit and drug clearance from the bloodstream.
 
 ### 5.2 Malthusian population growth
 
 If a population of size $P$ has a constant per-capita birth rate minus death rate $r$, then
-
-$$\frac{dP}{dt} = rP
+$$
+\frac{dP}{dt} = rP
 \qquad\Longrightarrow\qquad
-P(t) = P_0\,e^{rt}.$$
-
+P(t) = P_0\,e^{rt}.
+$$
 This is the *exact same equation* as decay, with $r$ replacing $-\lambda$. The mathematics doesn't care whether something is dying or breeding; it cares about the sign of the rate constant.
 
 It also predicts **unbounded** exponential growth, which any biologist will tell you is nonsense — eventually you run out of food, space, or hosts. The fix, the **logistic equation**, is so important we plot it next to its naive cousin.
@@ -230,12 +222,12 @@ It also predicts **unbounded** exponential growth, which any biologist will tell
 ### 5.3 Simple harmonic motion
 
 A mass $m$ on a spring with stiffness $k$ obeys Hooke's law $F = -kx$ combined with Newton's $F = ma$:
-
-$$m\,\frac{d^2 x}{dt^2} = -kx
+$$
+m\,\frac{d^2 x}{dt^2} = -kx
 \qquad\Longleftrightarrow\qquad
 x'' + \omega_0^2\,x = 0,
-\quad \omega_0 = \sqrt{k/m}.$$
-
+\quad \omega_0 = \sqrt{k/m}.
+$$
 The general solution is $x(t) = A\cos(\omega_0 t + \varphi)$ — a pure sinusoid with **natural angular frequency** $\omega_0$. You meet this equation in pendulums (small swings), LC circuits, vibrating molecules, and the eigenmodes of essentially every linear system in physics.
 
 ```python
@@ -271,9 +263,7 @@ The right panel is a **phase portrait**, our first glimpse of how second-order s
 ## 6. Initial value problems and the question of existence
 
 A bare ODE has *infinitely many* solutions — an entire one-parameter (or $n$-parameter) family. To pick out *one*, you supply an **initial condition**:
-
 $$\frac{dy}{dt} = f(t, y), \qquad y(t_0) = y_0.$$
-
 Together they form an **initial value problem (IVP)**. The natural follow-up question is one mathematicians took two centuries to take seriously:
 
 > *Does the IVP actually have a solution? If so, is it unique?*
@@ -305,9 +295,7 @@ The takeaway is sharp: **a "law of physics" written as an ODE is only a law if P
 In a graduate physics course you might solve a dozen ODEs by hand. In professional engineering and science, **the overwhelming majority of ODEs are solved numerically** — there is no shame in this; in fact most modern modelling depends on it.
 
 The simplest numerical method, **Euler's method**, is just the discretised definition of the derivative:
-
 $$y_{n+1} = y_n + h\,f(t_n, y_n).$$
-
 ```python
 import numpy as np
 import matplotlib.pyplot as plt

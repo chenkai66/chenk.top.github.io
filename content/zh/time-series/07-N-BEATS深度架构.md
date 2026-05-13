@@ -53,9 +53,7 @@ translationKey: "time-series-7"
 ![N-BEATS 的双重残差堆叠](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS深度架构/fig1_stacked_residual_blocks.png)
 
 数学上，对第 $b = 1, \ldots, B$ 个模块：
-
 $$r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{(b)},$$
-
 其中 $r^{(0)} = x$。每个模块面对的残差越来越小，因此会专注于剩余未被解释的模式。宏观结构（如整体趋势、主季节周期）由早期模块捕获，精细修正则由后期模块完成。
 
 这与梯度提升思想一致，但被嵌入到一个端到端可微的网络中。顺序至关重要：第一个模块任务最简单（信号完整），最后一个模块任务最难（只剩噪声与细微结构）。
@@ -67,42 +65,32 @@ $$r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{
 每个 N-BEATS 块结构相同。给定残差输入 $r \in \mathbb{R}^{H}$：
 
 1. **特征提取器**——四层宽度为 256–512 的全连接 ReLU 层：
-   $$   h_1 = \mathrm{ReLU}(W_1 r + b_1), \quad \ldots, \quad h_4 = \mathrm{ReLU}(W_4 h_3 + b_4).
-
+   $$
+   h_1 = \mathrm{ReLU}(W_1 r + b_1), \quad \ldots, \quad h_4 = \mathrm{ReLU}(W_4 h_3 + b_4).
    $$
 2. **系数投影**——两个线性头分别输出 backcast 与 forecast 的系数：
    $$
-
    \theta^{b} = W_b h_4, \qquad \theta^{f} = W_f h_4.
-
    $$
 3. **基函数映射**——通过固定或可学习矩阵 $V$ 将系数映射回时域：
    $$
-
    \hat{x} = V_b \, \theta^{b}, \qquad \hat{y} = V_f \, \theta^{f}.
-
    $$
-
 两种变体的区别仅在于 $V$ 的定义。
 
 ### 可解释：趋势 + 季节性基
 
 趋势块使用低阶多项式基。设阶数为 $p$，归一化时间索引 $\tau / H \in [0, 1]$：
 $$
-
 V_{\text{trend}} = \begin{pmatrix} 1 & \tau & \tau^{2} & \cdots & \tau^{p} \end{pmatrix}, \qquad
 \hat{y}_{\text{trend}} = \sum_{i=0}^{p} \theta_i \, \tau^{i}.
-
 $$
 通常取 $p = 2$ 或 $3$，足以拟合“先平缓上升后加速”的趋势，又避免过拟合抖动。
 
 季节性块采用傅里叶基：
 $$
-
 V_{\text{seas}} = \begin{pmatrix} \sin(2\pi \cdot 1 \cdot \tau / T) & \cos(2\pi \cdot 1 \cdot \tau / T) & \cdots & \sin(2\pi K \tau / T) & \cos(2\pi K \tau / T) \end{pmatrix}.
-
 $$
-
 其中 $K = 1, 2, 3$ 为谐波数量，$T$ 为已知周期（月度数据 $T=12$，小时数据 $T=24$），可捕捉任意形状的周期信号。
 
 可解释架构先堆叠若干趋势块，再接若干季节性块。训练后可分别绘制各栈贡献，向业务方清晰解释：“这部分来自底层趋势，那部分源于每周循环。”

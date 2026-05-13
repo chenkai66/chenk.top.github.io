@@ -351,9 +351,7 @@ A useful diagnostic when a system reboots under load: if it always happens durin
 ## Part 9: Datacenter PUE — Where Every Watt Goes
 
 A single server room is just a bigger version of the same problem: how much of the power going through the meter actually reaches the silicon? The industry metric is **PUE** (Power Usage Effectiveness):
-
 $$ \text{PUE} = \frac{\text{Total facility power}}{\text{IT equipment power}} $$
-
 A PUE of 1.0 is the theoretical perfect: every watt drawn from the grid ends up doing computation. Reality looks like this:
 
 ![Datacenter PUE breakdown and operator comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig5_datacenter_pue.png)

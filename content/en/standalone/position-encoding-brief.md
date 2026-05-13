@@ -36,10 +36,10 @@ That single design decision — *how* to inject it — has spawned a remarkable 
 ## Why Attention Needs Position At All
 
 Given input embeddings $X = [x_1, x_2, \ldots, x_n] \in \mathbb{R}^{n \times d}$, scaled dot-product attention computes
-
-$$\text{Attn}(X) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}}\right) V,
-\quad Q = XW_Q,\; K = XW_K,\; V = XW_V.$$
-
+$$
+\text{Attn}(X) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}}\right) V,
+\quad Q = XW_Q,\; K = XW_K,\; V = XW_V.
+$$
 If we permute the rows of $X$ by any permutation matrix $P$, then $Q$, $K$, and $V$ permute the same way, and the attention output is also permuted by $P$. In symbols, $\text{Attn}(PX) = P\,\text{Attn}(X)$.
 
 That's what "the model has no sense of order" means precisely: the function is **equivariant** to permutations of the input. It treats "the cat sat on the mat" the same as "the mat sat on the cat" — same multiset of token embeddings in, same multiset of vectors out, just shuffled. We must inject order somehow, or the model can never tell the two sentences apart.
@@ -51,9 +51,7 @@ The space of solutions divides into two clean families.
 ## Family 1: Absolute Position Encoding
 
 The idea is the simplest one possible: assign each position $p$ its own vector $e_p \in \mathbb{R}^d$, and add it to the token embedding before the first attention layer:
-
 $$\tilde{x}_p = x_p + e_p.$$
-
 Now the input at position 1 is genuinely different from the input at position 2, even if both are the word "the". Attention can read these distinct vectors and pick up order.
 
 The question is: where do the $e_p$ come from?
@@ -79,10 +77,10 @@ The right panel above is the punchline: an absolute learned PE is a good in-dist
 ## 1.2 Sinusoidal Position Encoding
 
 The "Attention Is All You Need" paper proposes a hand-designed alternative. For position $p$ and dimension index $i$ (with $d$ even), define
-
-$$\text{PE}(p, 2i)   = \sin\!\bigl(p / 10000^{2i/d}\bigr), \qquad
-\text{PE}(p, 2i+1) = \cos\!\bigl(p / 10000^{2i/d}\bigr).$$
-
+$$
+\text{PE}(p, 2i)   = \sin\!\bigl(p / 10000^{2i/d}\bigr), \qquad
+\text{PE}(p, 2i+1) = \cos\!\bigl(p / 10000^{2i/d}\bigr).
+$$
 Each pair of dimensions $(2i, 2i+1)$ is a sine/cosine at a frequency that decreases geometrically with $i$. The lowest dimensions wiggle fast (period $2\pi$); the highest dimensions barely move over the entire sequence (period $\sim 2\pi \cdot 10000$). Each position thus gets a *unique multi-scale fingerprint*.
 
 ![Sinusoidal positional encoding: heatmap of dim x position (left), and the per-dimension fingerprint of a single position (right)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig1_sinusoidal.png)
@@ -125,9 +123,7 @@ The shift in viewpoint that powers everything modern: in language, **what matter
 ## 2.1 The Original Shaw-Style Formulation
 
 Shaw et al. (2018) introduced relative position into the attention dot product as a learned bias on the keys:
-
 $$\text{score}(i, j) = \frac{q_i^\top \bigl(k_j + r_{i-j}\bigr)}{\sqrt{d_k}},$$
-
 where $r_{i-j} \in \mathbb{R}^{d_k}$ is a learned vector indexed by the *signed offset* $i - j$. Offsets larger than some clipping radius $K$ collapse to a single bucket, so a finite vocabulary of offsets covers any sequence length.
 
 **Why this works.** The model can directly learn things like "tokens 1 step away matter more than tokens 5 steps away" without ever needing the absolute position. And because offsets repeat across the sequence, training data for "offset = 3" comes from every position pair separated by 3, not just one.
@@ -137,9 +133,7 @@ where $r_{i-j} \in \mathbb{R}^{d_k}$ is a learned vector indexed by the *signed 
 ## 2.2 T5 Bias: As Simple As It Gets
 
 T5 (Raffel et al., 2020) takes the simplification one step further. Drop the vector $r_{i-j}$ and use a *scalar* bias added directly to the score:
-
 $$\text{score}(i, j) = \frac{q_i^\top k_j}{\sqrt{d_k}} + b_{B(i-j)},$$
-
 where $B(\cdot)$ is a "bucketing" function that maps small offsets to themselves and large offsets logarithmically into a small number of bins (typically 32). Each head learns its own table of $\sim 32$ bias scalars. That's it.
 
 T5 also drops the position bias on the value vectors entirely. Empirically nothing breaks, and the math is dramatically simpler.
@@ -159,23 +153,21 @@ RoPE (Su et al., 2021) is the position encoding that powers most modern open-sou
 ## 3.1 The Construction
 
 Treat each pair of dimensions in the query/key vectors as a 2-D plane. For position $m$, rotate that plane by an angle $m \theta_g$, where $\theta_g$ is a fixed frequency for the $g$-th pair (chosen on a geometric schedule, just like sinusoidal):
-
-$$R_m^{(g)} =
+$$
+R_m^{(g)} =
 \begin{pmatrix}
   \cos m\theta_g & -\sin m\theta_g \\
   \sin m\theta_g &  \cos m\theta_g
-\end{pmatrix}.$$
-
+\end{pmatrix}.
+$$
 Apply these block-diagonal rotations to $q$ and $k$:
-
 $$\tilde q_m = R_m\, q_m, \qquad \tilde k_n = R_n\, k_n.$$
-
 Now compute the inner product:
-
-$$\tilde q_m^\top \tilde k_n
+$$
+\tilde q_m^\top \tilde k_n
 = q_m^\top R_m^\top R_n\, k_n
-= q_m^\top R_{n-m}\, k_n.$$
-
+= q_m^\top R_{n-m}\, k_n.
+$$
 The two absolute rotations collapse into a *single* rotation by the relative offset $n - m$. The attention score now depends only on the gap.
 
 ![RoPE rotates each (q, k) pair by an angle proportional to its absolute position; the resulting inner product depends only on the relative offset](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig3_rope.png)
@@ -205,9 +197,7 @@ These are a major reason every new LLM ships with "RoPE base = 10000" in its con
 ## ALiBi: The Most Pragmatic Choice for Extrapolation
 
 ALiBi (Press et al., 2022) might be the most surprising entry in the list because it is so simple. No embeddings. No rotations. Just add a fixed, head-specific *linear penalty* to the attention scores:
-
 $$\text{score}(i, j) = \frac{q_i^\top k_j}{\sqrt{d_k}} - m_h \cdot |i - j|.$$
-
 The slope $m_h$ is fixed per head on a geometric schedule (head 1: $m_1 = 1/2$; head 2: $m_2 = 1/4$; ...); nothing is learned.
 
 ![ALiBi: per-head linear distance bias added to attention scores; different heads decay at different rates](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig4_alibi.png)

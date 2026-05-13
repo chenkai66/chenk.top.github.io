@@ -44,7 +44,6 @@ Articles 01--02 (convex sets, convex functions, subgradients, smoothness, strong
 ## 1. The setup
 
 Consider the **primal problem**
-
 $$
 \begin{aligned}
 \text{minimize}\quad & f_0(x) \\
@@ -52,29 +51,22 @@ $$
 & h_j(x) = 0, \quad j = 1, \ldots, p,
 \end{aligned} \tag{P}
 $$
-
 with optimal value $p^\star$. Define the **Lagrangian**
-
 $$
 L(x, \lambda, \nu) = f_0(x) + \sum_{i=1}^m \lambda_i f_i(x) + \sum_{j=1}^p \nu_j h_j(x),
 $$
-
 with **dual variables** $\lambda \in \mathbb{R}^m_+$ (non-negative for inequalities) and $\nu \in \mathbb{R}^p$ (free for equalities).
 
 Define the **dual function**
-
 $$
 g(\lambda, \nu) = \inf_x L(x, \lambda, \nu).
 $$
-
 The dual function is **always concave** in $(\lambda, \nu)$, regardless of whether $f_0, f_i, h_j$ are convex — it is a pointwise infimum of affine functions of $(\lambda, \nu)$.
 
 The **dual problem** is
-
 $$
 \text{maximize}\quad g(\lambda, \nu) \quad \text{subject to } \lambda \geq 0, \tag{D}
 $$
-
 with optimal value $d^\star$.
 
 ---
@@ -84,17 +76,13 @@ with optimal value $d^\star$.
 > **Theorem (Weak duality).** $d^\star \leq p^\star$.
 
 **Proof.** For any feasible $x$ for (P) and any $(\lambda, \nu)$ with $\lambda \geq 0$,
-
 $$
 L(x, \lambda, \nu) = f_0(x) + \underbrace{\sum_i \lambda_i f_i(x)}_{\leq 0} + \underbrace{\sum_j \nu_j h_j(x)}_{= 0} \leq f_0(x).
 $$
-
 Taking the infimum over $x$ on the left,
-
 $$
 g(\lambda, \nu) = \inf_x L(x, \lambda, \nu) \leq L(x, \lambda, \nu) \leq f_0(x).
 $$
-
 Taking the infimum over feasible $x$ on the right gives $g(\lambda, \nu) \leq p^\star$. Maximizing the left-hand side over $\lambda \geq 0, \nu$ gives $d^\star \leq p^\star$. $\blacksquare$
 
 This theorem requires **no convexity** — it holds for any constrained optimization problem, however ugly. The dual gives a certificate of optimality: if you find primal-feasible $x$ and dual-feasible $(\lambda, \nu)$ with $f_0(x) = g(\lambda, \nu)$, then $x$ is optimal. This is the basis of branch-and-bound for integer programs.
@@ -116,17 +104,13 @@ The gap $p^\star - d^\star \geq 0$ is the **duality gap**. When it is zero, **st
 > **Theorem (Strong duality, convex case).** If (P) is convex (i.e., $f_0, f_i$ are convex and $h_j$ are affine) and Slater's condition holds, then $d^\star = p^\star$ and the dual optimum is attained.
 
 **Proof sketch.** The proof uses a separating hyperplane argument applied to the **value function**
-
 $$
 V(u, v) = \inf\{f_0(x) : f_i(x) \leq u_i, h_j(x) = v_j\}.
 $$
-
 Convexity of (P) makes $V$ convex on its domain. Slater's condition guarantees $0 \in \mathrm{relint}(\mathrm{dom}(V))$. The dual function is the conjugate of $V$ restricted to non-negative multipliers:
-
 $$
 g(\lambda, \nu) = -V^*(-\lambda, -\nu) \quad \text{for } \lambda \geq 0.
 $$
-
 Conjugacy and the fact that $V$ is convex and lower-semicontinuous near $0$ give $V(0) = -V^{**}(0)$, which unwinds to $p^\star = d^\star$.
 
 The full proof is in Boyd & Vandenberghe §5.3.2; the key step is to apply the supporting hyperplane theorem at the boundary point $(0, V(0))$ of the convex set $\{(u, t) : t \geq V(u)\}$. Slater's condition ensures the supporting hyperplane is non-vertical, which gives a finite multiplier. $\blacksquare$
@@ -168,11 +152,9 @@ If $x^\star$ is primal-optimal and $(\lambda^\star, \nu^\star)$ is dual-optimal 
 > **Theorem.** Suppose (P) is convex and $(x^\star, \lambda^\star, \nu^\star)$ satisfies the KKT conditions. Then $x^\star$ is primal-optimal and $(\lambda^\star, \nu^\star)$ is dual-optimal.
 
 **Proof.** Stationarity says $\nabla_x L(x^\star, \lambda^\star, \nu^\star) = 0$. Since $L(\cdot, \lambda^\star, \nu^\star)$ is convex (sum of convex $f_0, \lambda_i^\star f_i$ with $\lambda_i^\star \geq 0$, and affine $\nu_j^\star h_j$), the stationarity condition implies $x^\star$ globally minimizes $L(\cdot, \lambda^\star, \nu^\star)$. Hence
-
 $$
 g(\lambda^\star, \nu^\star) = L(x^\star, \lambda^\star, \nu^\star) = f_0(x^\star) + \underbrace{\sum_i \lambda_i^\star f_i(x^\star)}_{= 0 \text{ by CS}} + \underbrace{\sum_j \nu_j^\star h_j(x^\star)}_{= 0} = f_0(x^\star).
 $$
-
 Thus weak duality is tight: $f_0(x^\star) = g(\lambda^\star, \nu^\star) \leq p^\star \leq f_0(x^\star)$, so $x^\star$ is optimal. $\blacksquare$
 
 This is the result that makes KKT the practical workhorse: for convex problems, KKT gives a finite system of equations + inequalities whose solution is the optimum.
@@ -190,10 +172,7 @@ For non-convex problems, KKT is necessary (with constraint qualification) but no
 The Lagrangian gives a **min-max** game between primal player ($x$, minimizing) and dual player ($\lambda, \nu$, maximizing).
 
 > **Theorem (Saddle-point principle).** Strong duality holds and $(x^\star, \lambda^\star, \nu^\star)$ is a primal-dual optimum iff $(x^\star, \lambda^\star, \nu^\star)$ is a saddle point of $L$:
-> $$
-> L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x, \forall \lambda \geq 0, \nu.
-> $$
-
+> $$L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x, \forall \lambda \geq 0, \nu.$$
 The right inequality is primal optimality of $x^\star$ given the multipliers; the left is dual optimality.
 
 
@@ -212,36 +191,27 @@ Saddle-point characterization is the foundation of:
 ## 6. Worked example: the SVM dual
 
 The hard-margin support vector machine on linearly separable data $\{(x_i, y_i)\}_{i=1}^n$ with $y_i \in \{-1, +1\}$:
-
 $$
 \begin{aligned}
 \min_{w, b} \quad & \tfrac{1}{2} \|w\|_2^2 \\
 \text{s.t.} \quad & y_i (w^\top x_i + b) \geq 1, \quad i = 1, \ldots, n.
 \end{aligned}
 $$
-
 Lagrangian:
-
 $$
 L(w, b, \alpha) = \tfrac{1}{2} \|w\|_2^2 - \sum_i \alpha_i [y_i (w^\top x_i + b) - 1].
 $$
-
 Setting $\nabla_w L = 0$: $w^\star = \sum_i \alpha_i y_i x_i$. Setting $\partial_b L = 0$: $\sum_i \alpha_i y_i = 0$. Substituting back:
-
 $$
 g(\alpha) = -\tfrac{1}{2} \sum_{i,j} \alpha_i \alpha_j y_i y_j x_i^\top x_j + \sum_i \alpha_i,
 $$
-
 giving the dual
-
 $$
 \begin{aligned}
 \max_\alpha \quad & \sum_i \alpha_i - \tfrac{1}{2} \sum_{i,j} \alpha_i \alpha_j y_i y_j x_i^\top x_j \\
 \text{s.t.} \quad & \alpha_i \geq 0, \quad \sum_i \alpha_i y_i = 0.
 \end{aligned}
 $$
-
-
 ![SVM dual and support vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig5.png)
 *Figure 5 — SVM duality. The maximum-margin separator (black) is determined entirely by support vectors (purple rings); complementary slackness forces $\alpha_i^\star = 0$ for all interior points, and $w^\star = \sum_i \alpha_i^\star y_i x_i$ is a sparse weighted sum.*
 

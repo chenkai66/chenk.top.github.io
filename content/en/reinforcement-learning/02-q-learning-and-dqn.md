@@ -42,9 +42,7 @@ DQN was not invented from scratch. It is **Q-Learning** — a 1989 tabular algor
 ### The Bellman optimality equation, reread
 
 Recall from Part 1 that for the optimal policy $\pi^*$, the action-value function satisfies the Bellman optimality equation:
-
 $$Q^*(s, a) \;=\; \mathbb{E}_{s' \sim P(\cdot|s,a)}\Big[R(s,a,s') + \gamma \max_{a'} Q^*(s', a')\Big]$$
-
 Read it as a contract: the value of taking action $a$ in state $s$ today equals the immediate reward plus the discounted best future you can achieve from $s'$. Once you know $Q^*$, the optimal policy is just $\pi^*(s) = \arg\max_a Q^*(s, a)$ — no planning, no search, just a table lookup.
 
 So the entire problem reduces to: **estimate $Q^*$**. Q-Learning is one way.
@@ -52,9 +50,7 @@ So the entire problem reduces to: **estimate $Q^*$**. Q-Learning is one way.
 ### The Q-Learning update rule
 
 After taking action $A_t$ in state $S_t$, observing reward $r_t$ and next state $S_{t+1}$, Q-Learning (Watkins, 1989) updates the table entry for the visited cell:
-
 $$Q(S_t, A_t) \;\leftarrow\; Q(S_t, A_t) + \alpha \underbrace{\Big[r_t + \gamma \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t)\Big]}_{\text{TD error } \delta_t}$$
-
 The bracketed quantity is the **TD error** — the gap between a one-step bootstrapped estimate and the current value. Positive $\delta_t$ means we underestimated and should nudge up; negative means the opposite.
 
 Two properties make Q-Learning special:
@@ -206,9 +202,7 @@ DQN keeps **two copies** of the network:
 - The **target network** $Q(\cdot; \theta^-)$, a frozen copy that the online network is periodically reset to.
 
 The loss is computed against the frozen copy:
-
 $$\mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s')\sim \mathcal{D}}\Big[\big(r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta)\big)^2\Big]$$
-
 Every $C$ steps (10,000 in the Nature paper), copy: $\theta^- \leftarrow \theta$. Between copies the target is *constant*, turning each $C$-step window into a near-supervised regression problem.
 
 ![Target network: a lagging copy of the online weights stabilises the TD target](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/fig5_target_network.png)
@@ -327,15 +321,11 @@ The original DQN was published in 2013 (workshop) and 2015 (*Nature*). In the ye
 ### Double DQN: removing the maximisation bias
 
 Even with a perfect target network, the $\max_{a'}$ operator induces a systematic upward bias. The reason is short and elegant. Suppose the true Q-values are $Q^*(s, a)$ and the network's estimates are $Q^*(s, a) + \varepsilon_a$ with zero-mean noise. Then:
-
 $$\mathbb{E}\Big[\max_a \big(Q^*(s, a) + \varepsilon_a\big)\Big] \;\geq\; \max_a Q^*(s, a)$$
-
 The max preferentially picks whichever action got a *positive* error. Through bootstrapping, this overestimation seeps into every other state's target. Empirically, vanilla DQN's predicted Q-values drift far above the true return.
 
 van Hasselt et al. (2016) proposed **Double DQN**: decouple the action *selection* from the action *evaluation*. The online network picks the next action; the target network evaluates it.
-
 $$y_t = r_t + \gamma\, Q\big(s_{t+1},\; \arg\max_{a'} Q(s_{t+1}, a'; \theta);\; \theta^-\big)$$
-
 Errors in the two networks are partially independent, so the systematic bias largely cancels.
 
 ![Double DQN tracks the true Q-value; vanilla DQN inflates it](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/fig6_double_vs_vanilla.png)
@@ -356,9 +346,7 @@ with torch.no_grad():
 In a great many Atari frames, the choice of action barely matters — the ball is far away, the enemies are off-screen, you cannot influence anything for a few frames. Lumping state value and action advantage into one Q-head wastes capacity learning the same $V(s)$ over and over.
 
 Wang et al. (2016) factor the head into two streams:
-
 $$Q(s, a) \;=\; V(s) + \Big(A(s, a) - \tfrac{1}{|\mathcal{A}|} \sum_{a'} A(s, a')\Big)$$
-
 - $V(s)$ — "How good is it to be in this state?" — is action-independent.
 - $A(s, a)$ — "How much better is action $a$ than average?" — is action-specific.
 
@@ -390,13 +378,9 @@ Dueling pairs especially well with Double DQN — the two changes attack differe
 Uniform sampling treats every transition as equally informative, but that is plainly false: a transition where the prediction was already correct teaches almost nothing, while one with a large TD error contains a strong learning signal.
 
 Prioritized Experience Replay (Schaul et al., 2016) samples transition $i$ with probability proportional to a power of its absolute TD error:
-
 $$p_i \;\propto\; \big(|\delta_i| + \varepsilon\big)^\alpha$$
-
 The exponent $\alpha \in [0, 1]$ trades off prioritisation strength ($\alpha = 0$ recovers uniform sampling). Because non-uniform sampling biases the gradient, each sample is reweighted by an importance-sampling correction:
-
 $$w_i = \Big(\tfrac{1}{N \cdot p_i}\Big)^\beta$$
-
 with $\beta$ annealed from 0.4 toward 1.0 across training — low $\beta$ early when the bias hurts less, full correction late when stability matters more.
 
 ### Multi-step targets, distributional RL, NoisyNets
@@ -404,11 +388,9 @@ with $\beta$ annealed from 0.4 toward 1.0 across training — low $\beta$ early 
 Three more pieces complete Rainbow:
 
 - **n-step returns** ($n=3$ in Rainbow) replace the one-step bootstrap with a partial Monte-Carlo target, reducing bias at the cost of variance:
-
   $$
   y_t = \sum_{k=0}^{n-1} \gamma^k r_{t+k} + \gamma^n \max_{a'} Q(s_{t+n}, a'; \theta^-)
   $$
-
 - **Distributional RL (C51)**, from Bellemare et al. (2017), learns the entire distribution of returns rather than just the mean. The categorical projection onto a fixed support of 51 atoms gives the method its name. The full distribution carries information that the mean discards, especially in stochastic environments.
 
 - **NoisyNet** replaces epsilon-greedy with parameterised noise injected directly into the FC layer weights. Exploration is thus state-dependent and learned, rather than a hand-tuned schedule.

@@ -36,13 +36,9 @@ translationKey: "time-series-2"
 ## 1. LSTM 要解决的问题
 
 普通 RNN 的隐藏状态按如下方式递归更新：
-
 $$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$
-
 当从第 $T$ 步将损失反向传播至更早的第 $k$ 步时，梯度会累积一连串雅可比矩阵的乘积：
-
 $$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$
-
 这会导致两种极端情况：
 
 - 若 $W_h$ 的主奇异值小于 1，梯度会**指数级衰减**，模型几乎无法学习超过约 10 步的历史信息；
@@ -56,7 +52,6 @@ LSTM（Hochreiter & Schmidhuber, 1997）通过引入**两个状态**（细胞状
 ![LSTM 单元架构：三个 sigmoid 门和一个 tanh 候选值，位于水平的细胞状态通道之下](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig1_lstm_cell.png)
 
 每个 LSTM 单元包含四个共享输入 $[h_{t-1}, x_t]$ 的门控单元，分别输出三个 sigmoid 门和一个 $\tanh$ 候选值：
-
 $$
 \begin{aligned}
 f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) && \text{遗忘门} \\
@@ -65,14 +60,11 @@ i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) && \text{输入门} \\
 o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) && \text{输出门}
 \end{aligned}
 $$
-
 这些信号共同完成细胞状态更新与隐藏状态输出：
-
 $$
 C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad
 h_t = o_t \odot \tanh(C_t).
 $$
-
 其中 $\odot$ 表示逐元素乘法。**通俗理解**：遗忘门 $f_t$ 决定擦除多少旧记忆，输入门 $i_t$ 控制写入多少新候选值，最后通过输出门 $o_t$ 决定对外暴露多少当前记忆。
 *LSTM 单元——三个门作用在一条细胞状态高速公路上。*
 
@@ -86,13 +78,9 @@ $$
 ### 梯度流动的显式表达
 
 对细胞状态求导可得：
-
 $$\frac{\partial C_t}{\partial C_{t-1}} = f_t,$$
-
 因此长程梯度是**遗忘门的连乘积**，而非 $\tanh$ 导数与循环权重矩阵的乘积：
-
 $$\frac{\partial C_T}{\partial C_k} = \prod_{t=k+1}^{T} f_t.$$
-
 当模型需要记住某段信息时，只需将对应维度的 $f_t$ 学习为接近 1，相应梯度也会保持接近 1。这便是 LSTM 的核心奥秘。
 
 ## 3. 一个最简的 PyTorch 实现
@@ -170,9 +158,7 @@ for name, p in model.lstm.named_parameters():
 ### 双向 LSTM（BiLSTM）
 
 BiLSTM 同时运行一个前向 LSTM 和一个后向 LSTM，并在每一步拼接两者隐藏状态：
-
 $$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
-
 ![双向 LSTM：紫色正向链从左到右读取，琥珀色反向链从右到左读取，每一步的输出是两个隐藏状态的拼接。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig5_bilstm.png)
 *双向 LSTM——每一步结合过去和未来的上下文信息。*
 

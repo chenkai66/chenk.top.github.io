@@ -42,7 +42,6 @@ translationKey: "optim-08"
 ## 1. 问题设定
 
 考虑如下**原始问题（primal problem）**
-
 $$
 \begin{aligned}
 \text{最小化}\quad & f_0(x) \\
@@ -50,29 +49,22 @@ $$
 & h_j(x) = 0, \quad j = 1, \ldots, p,
 \end{aligned} \tag{P}
 $$
-
 其最优值记为 $p^\star$。定义**拉格朗日函数（Lagrangian）**
-
 $$
 L(x, \lambda, \nu) = f_0(x) + \sum_{i=1}^m \lambda_i f_i(x) + \sum_{j=1}^p \nu_j h_j(x),
 $$
-
 其中**对偶变量（dual variables）** $\lambda \in \mathbb{R}^m_+$（不等式约束对应非负乘子），$\nu \in \mathbb{R}^p$（等式约束对应自由乘子）。
 
 定义**对偶函数（dual function）**
-
 $$
 g(\lambda, \nu) = \inf_x L(x, \lambda, \nu).
 $$
-
 该对偶函数关于 $(\lambda, \nu)$ **恒为凹函数**——无论 $f_0, f_i, h_j$ 是否为凸函数，它都是关于 $(\lambda, \nu)$ 的一族仿射函数的逐点下确界。
 
 **对偶问题（dual problem）** 为：
-
 $$
 \text{最大化}\quad g(\lambda, \nu) \quad \text{满足 } \lambda \geq 0, \tag{D}
 $$
-
 其最优值记为 $d^\star$。
 
 ---
@@ -82,17 +74,13 @@ $$
 > **定理（弱对偶性）**：$d^\star \leq p^\star$。
 
 **证明**：对任意原始可行解 $x$（即满足 (P) 中所有约束）及任意满足 $\lambda \geq 0$ 的 $(\lambda, \nu)$，有  
-
 $$
 L(x, \lambda, \nu) = f_0(x) + \underbrace{\sum_i \lambda_i f_i(x)}_{\leq 0} + \underbrace{\sum_j \nu_j h_j(x)}_{= 0} \leq f_0(x).
-$$  
-
+$$
 对左侧关于 $x$ 取下确界，得  
-
 $$
 g(\lambda, \nu) = \inf_x L(x, \lambda, \nu) \leq L(x, \lambda, \nu) \leq f_0(x).
-$$  
-
+$$
 再对右侧关于所有原始可行 $x$ 取下确界，即得 $g(\lambda, \nu) \leq p^\star$。最后对左侧关于所有 $\lambda \geq 0, \nu$ 取上确界，即得 $d^\star \leq p^\star$。$\blacksquare$
 
 该定理**不依赖任何凸性假设**——对任意（无论多么病态的）约束优化问题均成立。对偶问题提供了最优性的认证机制：若能找到原始可行解 $x$ 和对偶可行解 $(\lambda, \nu)$，使得 $f_0(x) = g(\lambda, \nu)$，则 $x$ 必为原始问题的最优解。这正是整数规划分支定界法（branch-and-bound）的理论基础。
@@ -111,17 +99,13 @@ $$
 > **定理（强对偶性，凸情形）。** 若原问题（P）是凸的（即目标函数 $f_0$ 和不等式约束函数 $f_i$ 均为凸函数，等式约束函数 $h_j$ 均为仿射函数），且斯莱特条件成立，则对偶最优值等于原问题最优值，即 $d^\star = p^\star$，且对偶最优解可达。
 
 **证明概要。** 该证明采用分离超平面方法，作用于如下**值函数**：
-
 $$
 V(u, v) = \inf\{f_0(x) : f_i(x) \leq u_i,\; h_j(x) = v_j\}.
 $$
-
 由于（P）是凸的，故 $V$ 在其定义域上是凸函数。斯莱特条件保证了 $0 \in \mathrm{relint}(\mathrm{dom}(V))$。对偶函数即为 $V$ 在非负乘子上的共轭函数之负：
-
 $$
 g(\lambda, \nu) = -V^*(-\lambda, -\nu) \quad \text{其中 } \lambda \geq 0.
 $$
-
 借助共轭函数性质，以及 $V$ 在 $0$ 附近是凸且下半连续的事实，可得 $V(0) = -V^{**}(0)$，进而推出 $p^\star = d^\star$。
 
 完整证明见 Boyd 与 Vandenberghe 《凸优化》第 5.3.2 节；关键步骤是在凸集 $\{(u, t) : t \geq V(u)\}$ 的边界点 $(0, V(0))$ 处应用支撑超平面定理。斯莱特条件确保所得到的支撑超平面非竖直，从而导出有限的拉格朗日乘子。$\blacksquare$
@@ -162,11 +146,9 @@ $$
 > **定理。** 设原始问题 (P) 是凸的，且 $(x^\star, \lambda^\star, \nu^\star)$ 满足 KKT 条件，则 $x^\star$ 是原始最优解，$(\lambda^\star, \nu^\star)$ 是对偶最优解。
 
 **证明。** 平稳性条件表明 $\nabla_x L(x^\star, \lambda^\star, \nu^\star) = 0$。由于 $L(\cdot, \lambda^\star, \nu^\star)$ 是凸函数（它是凸函数 $f_0$、非负加权的凸函数 $\lambda_i^\star f_i$（因 $\lambda_i^\star \geq 0$）以及仿射函数 $\nu_j^\star h_j$ 的和），平稳性即意味着 $x^\star$ 全局最小化 $L(\cdot, \lambda^\star, \nu^\star)$。因此  
-
 $$
 g(\lambda^\star, \nu^\star) = L(x^\star, \lambda^\star, \nu^\star) = f_0(x^\star) + \underbrace{\sum_i \lambda_i^\star f_i(x^\star)}_{= 0 \text{ 由互补松弛性}} + \underbrace{\sum_j \nu_j^\star h_j(x^\star)}_{= 0} = f_0(x^\star).
-$$  
-
+$$
 于是弱对偶性取等：$f_0(x^\star) = g(\lambda^\star, \nu^\star) \leq p^\star \leq f_0(x^\star)$，故 $x^\star$ 为最优解。$\blacksquare$
 
 这正是使 KKT 成为实用核心工具的关键结论：对凸问题而言，KKT 给出一个有限的方程与不等式系统，其解即为最优解。
@@ -184,10 +166,7 @@ KKT 条件在最优解处成立**仅当满足某种约束规范（constraint qua
 拉格朗日函数定义了一个**极小-极大博弈**（min-max game）：原始玩家 $x$ 力求最小化，对偶玩家 $(\lambda, \nu)$ 力求最大化。
 
 > **定理（鞍点原理）。** 强对偶性成立，且 $(x^\star, \lambda^\star, \nu^\star)$ 是原始-对偶最优解，**当且仅当** $(x^\star, \lambda^\star, \nu^\star)$ 是 $L$ 的一个鞍点：
-> $$
-> L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x,\ \forall \lambda \geq 0,\ \nu.
-> $$
-
+> $$L(x^\star, \lambda, \nu) \leq L(x^\star, \lambda^\star, \nu^\star) \leq L(x, \lambda^\star, \nu^\star) \quad \forall x,\ \forall \lambda \geq 0,\ \nu.$$
 右侧不等式表示：给定乘子 $(\lambda^\star, \nu^\star)$，$x^\star$ 是原始最优；左侧不等式表示：$(\lambda^\star, \nu^\star)$ 是对偶最优。
 
 
@@ -204,36 +183,27 @@ KKT 条件在最优解处成立**仅当满足某种约束规范（constraint qua
 ## 6. 实例详解：SVM 对偶问题
 
 线性可分数据 $\{(x_i, y_i)\}_{i=1}^n$（其中 $y_i \in \{-1, +1\}$）上的硬间隔支持向量机（Hard-margin SVM）：
-
 $$
 \begin{aligned}
 \min_{w, b} \quad & \tfrac{1}{2} \|w\|_2^2 \\
 \text{s.t.} \quad & y_i (w^\top x_i + b) \geq 1, \quad i = 1, \ldots, n.
 \end{aligned}
 $$
-
 其拉格朗日函数为：
-
 $$
 L(w, b, \alpha) = \tfrac{1}{2} \|w\|_2^2 - \sum_i \alpha_i [y_i (w^\top x_i + b) - 1].
 $$
-
 令 $\nabla_w L = 0$，得最优解 $w^\star = \sum_i \alpha_i y_i x_i$；令 $\partial_b L = 0$，得约束 $\sum_i \alpha_i y_i = 0$。代回原式可得对偶函数：
-
 $$
 g(\alpha) = -\tfrac{1}{2} \sum_{i,j} \alpha_i \alpha_j y_i y_j x_i^\top x_j + \sum_i \alpha_i,
 $$
-
 从而得到对偶问题：
-
 $$
 \begin{aligned}
 \max_\alpha \quad & \sum_i \alpha_i - \tfrac{1}{2} \sum_{i,j} \alpha_i \alpha_j y_i y_j x_i^\top x_j \\
 \text{s.t.} \quad & \alpha_i \geq 0, \quad \sum_i \alpha_i y_i = 0.
 \end{aligned}
 $$
-
-
 ![SVM 对偶与支持向量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig5.png)
 *图 5 —— SVM 对偶问题。最大间隔分离超平面（黑色）完全由支持向量（紫色圆圈）决定；互补松弛性使得所有内部样本 $\alpha_i^\star = 0$，而 $w^\star = \sum_i \alpha_i^\star y_i x_i$ 是一个稀疏加权和。*
 

@@ -49,9 +49,7 @@ polished_by_qwen_max: true
 ![RAG 端到端流程图，展示离线索引与在线查询路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG与知识增强系统/fig1_rag_pipeline.png)
 
 RAG 系统通过在检索到的文档集合 $\mathcal{D}_k$ 上边缘化来回答查询 $q$：
-
 $$P(y \mid q) \;=\; \sum_{d \in \mathcal{D}_k}\; \underbrace{P(d \mid q)}_{\text{retriever}}\; \cdot \; \underbrace{P(y \mid q, d)}_{\text{generator}}$$
-
 实践中，我们通常用两种方式近似该求和。主流且低成本的方法（LangChain 中称为 **stuff**）将 top-$k$ 文档拼接到 LLM 上下文中，让注意力机制隐式完成边缘化。理论上更严谨但昂贵的方法（**Fusion-in-Decoder**，见 Atlas 和原始 RAG 论文）则对每个 $(q,d)$ 对单独编码，并在解码器中融合。对大多数生产系统而言，使用 stuff 方法（$k\in[3,8]$）并搭配优质重排序器是最佳选择。
 
 这种分解使 RAG 具备三大优势：
@@ -123,9 +121,7 @@ RAG 在知识**体量大、频繁变动或需审计溯源**时表现最佳：如
 ![Embedding 空间中的向量相似性及 FAISS 索引族的召回率与延迟权衡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG与知识增强系统/fig2_vector_similarity.png)
 
 双塔编码器 $E_\theta:\text{text}\to\mathbb{R}^d$ 将查询与文档映射至同一空间，检索即基于余弦相似度的最近邻搜索：
-
 $$\operatorname{sim}(q,d) \;=\; \frac{E_\theta(q)\cdot E_\theta(d)}{\lVert E_\theta(q)\rVert \, \lVert E_\theta(d)\rVert}.$$
-
 精确搜索复杂度为 $O(N d)$ 每查询——$10^5$ 规模尚可，$10^7$ 已吃力，$10^9$ 则不可行。**近似最近邻（ANN）** 索引以精度换数量级延迟下降。生产中最常用的两类：
 
 - **HNSW**（分层可导航小世界图）—— 多层邻近图结构，从顶层入口贪心下降，$O(\log N)$ 步收敛。可调参数：$M$（图度数，影响内存）与 $\textit{efSearch}$（束宽，权衡召回与延迟）。对多数 RAG 场景是甜点。
@@ -154,10 +150,10 @@ $$\operatorname{sim}(q,d) \;=\; \frac{E_\theta(q)\cdot E_\theta(d)}{\lVert E_\th
 稠密检索理解释义，但在三类查询上败给 BM25：罕见命名实体（`CVE-2024-3094`）、精确标识符（`订单 #482915`），以及短于 Embedding 模型有效感受野的查询。稀疏检索则相反：字面匹配强，但对同义词盲。
 
 **BM25** 对查询 $q$ 与文档 $d$ 的评分公式为：
-
-$$\operatorname{BM25}(q,d) \;=\; \sum_{t \in q} \operatorname{IDF}(t)\cdot
-\frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\!\left(1-b+b\,\frac{|d|}{\overline{|d|}}\right)}$$
-
+$$
+\operatorname{BM25}(q,d) \;=\; \sum_{t \in q} \operatorname{IDF}(t)\cdot
+\frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\!\left(1-b+b\,\frac{|d|}{\overline{|d|}}\right)}
+$$
 其中 $k_1\!\approx\!1.2$，$b\!\approx\!0.75$。IDF 项奖励稀有词匹配，长度归一化项防止长文档主导。
 
 ```python
@@ -181,7 +177,6 @@ class BM25Retriever:
 ### 为何 RRF 优于线性混合
 
 朴素方法 $\alpha\cdot s_\text{dense} + (1-\alpha)\cdot s_\text{sparse}$ 要求分数同尺度，但 BM25 无界而余弦在 $[-1,1]$。**Reciprocal Rank Fusion**（Cormack 等，2009）绕过校准问题，直接基于 *排名* 融合：
-
 $$\operatorname{RRF}(d) \;=\; \sum_{r \in R} \frac{1}{k + \operatorname{rank}_r(d)}, \qquad k \!=\! 60.$$
 
 $k=60$ 抑制单一检索器顶部结果的影响，故在两个列表均排第一的文档优于仅在一个列表排第一者。图右下角显示典型提升：BM25-only ≈ 54，稠密-only ≈ 62，RRF ≈ 71，RRF + Cross-encoder 重排序 ≈ 78。

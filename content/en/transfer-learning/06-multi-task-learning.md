@@ -54,9 +54,7 @@ Three tasks, one set of underlying features. Training three encoders separately 
 ### Regularization view
 
 Given $T$ tasks with losses $\mathcal{L}_1, \ldots, \mathcal{L}_T$, shared parameters $\theta_{\text{sh}}$, and task-specific parameters $\theta_t$, the joint objective is
-
 $$\mathcal{L}_{\text{MTL}} \;=\; \sum_{t=1}^{T} w_t \cdot \mathcal{L}_t(\theta_{\text{sh}}, \theta_t).$$
-
 The shared parameters $\theta_{\text{sh}}$ must lie in the intersection of the "good for task $t$" regions for *every* $t$. That intersection is much smaller than any single task's region, which acts as an **implicit prior** on $\theta_{\text{sh}}$. Empirically the model overfits less to any one task's noise — exactly the kind of regularization Caruana (1997) showed in the original MTL paper.
 
 ### Data-augmentation view
@@ -92,10 +90,10 @@ Forcing both through the same backbone gives you a backbone that is mediocre at 
 ### Hard parameter sharing
 
 The default and still the strongest baseline. All tasks share the backbone; each gets its own head:
-
-$$\text{features} \;=\; G_{\text{shared}}(x), \qquad
-\hat{y}_t \;=\; G_t^{\text{head}}(\text{features}) \quad \forall\, t.$$
-
+$$
+\text{features} \;=\; G_{\text{shared}}(x), \qquad
+\hat{y}_t \;=\; G_t^{\text{head}}(\text{features}) \quad \forall\, t.
+$$
 **Design rules of thumb:**
 
 - Share the first 70-80% of layers (general features).
@@ -107,9 +105,7 @@ Hard sharing gives you the strongest regularization, the smallest parameter coun
 ### Soft parameter sharing
 
 Each task has its own backbone, but a coupling term encourages the parallel parameters to stay similar:
-
 $$\mathcal{L} \;=\; \sum_t \mathcal{L}_t(\theta_t) \;+\; \lambda \!\!\sum_{i \neq j} \! \lVert \theta_i - \theta_j \rVert^2.$$
-
 The dashed yellow lines on the right of Figure 1 show those coupling terms. The model can break the symmetry layer by layer — useful when tasks need similar but not identical features.
 
 ### Cross-Stitch Networks
@@ -117,20 +113,20 @@ The dashed yellow lines on the right of Figure 1 show those coupling terms. The 
 ![Cross-stitch networks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig2_cross_stitch.png)
 
 Cross-stitch networks (Misra et al., 2016) sit between hard and soft sharing. Each task has its own column of layers, but at every layer a small **cross-stitch unit** lets the two activations mix:
-
-$$\tilde{x}_A^{\,l} \;=\; \alpha_{AA}\, x_A^{\,l} + \alpha_{AB}\, x_B^{\,l},
+$$
+\tilde{x}_A^{\,l} \;=\; \alpha_{AA}\, x_A^{\,l} + \alpha_{AB}\, x_B^{\,l},
 \qquad
-\tilde{x}_B^{\,l} \;=\; \alpha_{BA}\, x_A^{\,l} + \alpha_{BB}\, x_B^{\,l}.$$
-
+\tilde{x}_B^{\,l} \;=\; \alpha_{BA}\, x_A^{\,l} + \alpha_{BB}\, x_B^{\,l}.
+$$
 The four scalars $\alpha_{\bullet\bullet}$ per layer are learned. Their values are interpretable: large $\alpha_{AB}$ at a given layer means task $A$ leans heavily on task $B$'s features at that depth — useful as a diagnostic, not just an architectural trick.
 
 ### Multi-Task Attention Network (MTAN)
 
 MTAN (Liu et al., 2019) shares a single backbone but lets each task carve out its own subset of the shared features through a sigmoid attention mask:
-
-$$\text{mask}_t = \sigma(W_t \cdot F_{\text{shared}} + b_t), \qquad
-F_t = \text{mask}_t \odot F_{\text{shared}}.$$
-
+$$
+\text{mask}_t = \sigma(W_t \cdot F_{\text{shared}} + b_t), \qquad
+F_t = \text{mask}_t \odot F_{\text{shared}}.
+$$
 The mask is per-task and per-layer, so each task can "tune in" to different channels at different depths. MTAN is usually the strongest soft-sharing variant for vision MTL.
 
 ### Choosing between them
@@ -168,9 +164,7 @@ This is where most MTL projects bleed performance. The architecture is fine; the
 ### What "conflict" means precisely
 
 Two tasks' gradients on the shared parameters conflict when
-
 $$\nabla \mathcal{L}_1 \cdot \nabla \mathcal{L}_2 \;<\; 0.$$
-
 Figure 3 (left) makes the geometry obvious. Task 1's gradient $g_1$ points right-and-up; task 2's $g_2$ points left-and-up. Their average $\bar{g}$ has nearly zero component along $g_1$ — i.e. **the naive sum-of-losses gradient barely helps task 1 at all**. The cosine similarity between $g_1$ and $g_2$ is $-0.43$ in this example.
 
 How often does this happen in practice? Figure 3 (right) shows a representative empirical distribution of $\cos$ values during a multi-task training run: roughly **45% of updates conflict**, often persistently across epochs.
@@ -186,9 +180,7 @@ How often does this happen in practice? Figure 3 (right) shows a representative 
 ![Uncertainty weighting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig5_uncertainty_weighting.png)
 
 Treat each task's output as a Gaussian with learned noise $\sigma_t$. The negative log-likelihood becomes
-
 $$\mathcal{L} \;=\; \sum_t \frac{1}{2\sigma_t^2}\, \mathcal{L}_t \;+\; \log \sigma_t.$$
-
 Two things to notice from Figure 5:
 
 - **Left panel.** For a fixed task loss $\mathcal{L}$, the combined objective has a unique minimum at $\sigma^* = \sqrt{\mathcal{L}}$. Without the $\log \sigma$ term the optimizer would push $\sigma_t \to \infty$ to drive the weighted loss to zero — the regularizer is what keeps the trick honest.
@@ -203,13 +195,9 @@ Typical gain over uniform weights: 2-5%. Cost: $T$ extra scalar parameters. Chea
 Uncertainty weighting balances *loss magnitudes*. GradNorm (Chen et al., 2018) balances *gradient magnitudes*, conditioned on each task's training progress.
 
 Define each task's relative inverse training rate
-
 $$\tilde{r}_t \;=\; \frac{\mathcal{L}_t(t)\,/\,\mathcal{L}_t(0)}{\overline{\mathcal{L}(t)\,/\,\mathcal{L}(0)}}.$$
-
 A value of $\tilde{r}_t > 1$ means task $t$ has shrunk its loss less than average — it is *falling behind*. GradNorm then nudges $w_t$ so that
-
 $$\lVert w_t \nabla \mathcal{L}_t \rVert \;\approx\; \overline{G}\cdot \tilde{r}_t^{\,\alpha},$$
-
 where $\overline{G}$ is the mean shared-parameter gradient norm and $\alpha \!\approx\! 1.5$ controls aggressiveness.
 
 Figure 4 walks through a 60-epoch simulation:
@@ -223,10 +211,10 @@ Reported gains over uniform weights: 3-8% across multiple benchmarks.
 ### PCGrad: project away the conflicting component
 
 PCGrad (Yu et al., 2020) tackles direction, not magnitude. Whenever two task gradients conflict, project one onto the *normal plane* of the other, removing the part that actively hurts:
-
-$$g_i' \;=\; g_i \;-\; \frac{g_i \cdot g_j}{\lVert g_j \rVert^2}\, g_j
-\qquad \text{when } g_i \cdot g_j < 0.$$
-
+$$
+g_i' \;=\; g_i \;-\; \frac{g_i \cdot g_j}{\lVert g_j \rVert^2}\, g_j
+\qquad \text{when } g_i \cdot g_j < 0.
+$$
 After projection $g_i' \cdot g_j = 0$ — no remaining conflict. The green arrow $g_1^{PC}$ in Figure 3 (left) shows the result: it preserves the part of $g_1$ that does not hurt $g_2$.
 
 Pseudocode:
@@ -250,9 +238,7 @@ Reported on NYUv2 (segmentation + depth + normals):
 ### CAGrad: globally optimal conflict resolution
 
 CAGrad (Liu et al., 2021) generalises PCGrad by solving a single QP that finds the smallest update vector still aligned with every task gradient:
-
 $$g^{*} \;=\; \arg\min_g \lVert g \rVert^2 \quad \text{s.t.}\quad g \cdot g_t \geq 0 \;\; \forall t.$$
-
 This is the *Pareto-optimal* descent direction — guaranteed not to harm any task, and globally rather than pairwise. Cost is $\mathcal{O}(T^2)$ per step instead of pairwise PCGrad. For $T \leq 5$ tasks, just use CAGrad.
 
 ### Comparison and combinability

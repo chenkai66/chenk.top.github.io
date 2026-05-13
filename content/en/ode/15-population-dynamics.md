@@ -45,7 +45,8 @@ Let $N(t)$ be a population size.
 **Malthus** (1798). $\dot N = r N$, so $N(t) = N_0 e^{rt}$. Mathematically clean, biologically a fantasy beyond a few generations.
 
 **Logistic** (Verhulst 1838). Add density-dependent crowding:
-$$\boxed{\;\dot N = r N\!\left(1 - \frac{N}{K}\right).\;}$$The carrying capacity $K$ is a stable fixed point; $0$ is unstable. The closed-form solution is the famous S-curve $N(t) = K / (1 + ((K - N_0)/N_0) e^{-rt})$, with maximum growth rate $rK/4$ at $N = K/2$.
+$$
+\boxed{\;\dot N = r N\!\left(1 - \frac{N}{K}\right).\;}$$The carrying capacity $K$ is a stable fixed point; $0$ is unstable. The closed-form solution is the famous S-curve $N(t) = K / (1 + ((K - N_0)/N_0) e^{-rt})$, with maximum growth rate $rK/4$ at $N = K/2$.
 
 **Allee effect** (1931). Some species need a *minimum* density to grow at all — mate finding, group defence, cooperative hunting. The strong-Allee logistic:$$\dot N = r N\!\left(1 - \frac{N}{K}\right)\!\left(\frac{N}{A} - 1\right).$$Now $0$ is stable, $A$ is an unstable threshold, and $K$ is stable. Below $A$ the population goes extinct; above $A$ it grows toward $K$. This is **bistability**: a single equation with two basins of attraction.
 
@@ -190,7 +191,8 @@ The lesson for conservation: even if every individual habitat patch is healthy, 
 
 ![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_2.png)
 
-The **Fisher equation** (Fisher 1937; Kolmogorov-Petrovskii-Piskunov 1937) marries logistic growth to diffusion:$$\boxed{\;\partial_t N = D\,\partial_x^2 N + r N\!\left(1 - \frac{N}{K}\right).\;}$$With initial condition compactly supported, the front of the population spreads at a deterministic asymptotic speed:$$c_{\min} = 2\sqrt{D r}.$$
+The **Fisher equation** (Fisher 1937; Kolmogorov-Petrovskii-Piskunov 1937) marries logistic growth to diffusion:$$\boxed{\;\partial_t N = D\,\partial_x^2 N + r N\!\left(1 - \frac{N}{K}\right).\;}$$With initial condition compactly supported, the front of the population spreads at a deterministic asymptotic speed:$$c_{\min} = 2\sqrt{D r}.
+$$
 The proof, in two lines: linearise the leading edge ($N \ll K$); a travelling-wave ansatz $N = e^{-\lambda(x - ct)}$ requires $c = D\lambda + r/\lambda$, minimised over $\lambda$ at $c_{\min} = 2\sqrt{Dr}$. (The actual selected speed *is* the linear minimum — this is the celebrated *KPP selection principle*.)
 
 This formula is everywhere in ecology: it predicts the speed of plant-range expansion under climate change, the muskrat invasion of Europe (literally measured at $\approx \sqrt{Dr}$ in the 1920s), and the wave speed of advantageous-allele fixation in genetics.

@@ -85,9 +85,7 @@ A real matrix $A$ is **symmetric** if $A = A^T$, i.e. $a_{ij} = a_{ji}$ for ever
 A general matrix can spin space, and rotation eigenvalues are complex (a $90^\circ$ rotation has eigenvalues $\pm i$). Symmetric matrices never spin — they only stretch — so their eigenvalues stay on the real line.
 
 **Proof sketch.** Let $A\vec{v} = \lambda \vec{v}$ with $\vec{v}$ possibly complex. Take $\vec{v}^* A \vec{v}$. Since $A$ is real and symmetric, $A^* = A^T = A$, so
-
 $$\overline{\vec{v}^* A \vec{v}} = \vec{v}^T A^T \overline{\vec{v}} = \vec{v}^T A \overline{\vec{v}} = \vec{v}^* A \vec{v}.$$
-
 The number $\vec{v}^* A \vec{v} = \lambda \vec{v}^* \vec{v}$ equals its own conjugate, and $\vec{v}^* \vec{v} > 0$, so $\lambda = \overline{\lambda}$. Hence $\lambda$ is real.
 
 ### Superpower 2: Orthogonal Eigenvectors
@@ -95,15 +93,13 @@ The number $\vec{v}^* A \vec{v} = \lambda \vec{v}^* \vec{v}$ equals its own conj
 > **Theorem.** Eigenvectors of a symmetric matrix from **distinct** eigenvalues are orthogonal.
 
 **Proof.** Let $A\vec{v}_1 = \lambda_1 \vec{v}_1$ and $A\vec{v}_2 = \lambda_2 \vec{v}_2$. Compute $\vec{v}_1^T A \vec{v}_2$ two ways:
-
-$$\vec{v}_1^T (A \vec{v}_2) = \lambda_2 \, \vec{v}_1^T \vec{v}_2,
+$$
+\vec{v}_1^T (A \vec{v}_2) = \lambda_2 \, \vec{v}_1^T \vec{v}_2,
 \qquad
-(A \vec{v}_1)^T \vec{v}_2 = \lambda_1 \, \vec{v}_1^T \vec{v}_2.$$
-
+(A \vec{v}_1)^T \vec{v}_2 = \lambda_1 \, \vec{v}_1^T \vec{v}_2.
+$$
 Both expressions equal $\vec{v}_1^T A \vec{v}_2$ because $A^T = A$. Subtracting,
-
 $$(\lambda_1 - \lambda_2)\, \vec{v}_1^T \vec{v}_2 = 0.$$
-
 Since $\lambda_1 \ne \lambda_2$, we must have $\vec{v}_1 \perp \vec{v}_2$.
 
 When eigenvalues repeat, the eigenspace has dimension equal to the multiplicity, and we can hand-pick an orthonormal basis inside it. Either way, **a full orthonormal basis of eigenvectors always exists**.
@@ -124,9 +120,7 @@ Combine the previous two and you get the centerpiece of the chapter.
 3. Computing $A^k$, $A^{-1}$, $e^A$, $A^{1/2}$, $\ldots$ all collapse to the same operations on the diagonal $\Lambda$.
 
 **Outer-product form.** The same theorem can be written as a sum of rank-1 pieces:
-
 $$A = \lambda_1 \vec{q}_1 \vec{q}_1^T + \lambda_2 \vec{q}_2 \vec{q}_2^T + \cdots + \lambda_n \vec{q}_n \vec{q}_n^T.$$
-
 Each $\vec{q}_i \vec{q}_i^T$ is the rank-1 projector onto the $i$-th eigenvector, and $\lambda_i$ is its weight. The word "spectral" is a deliberate analogy with optics: white light is decomposed into pure colours (frequencies); a symmetric matrix is decomposed into pure directions weighted by intensities.
 
 ---
@@ -136,15 +130,11 @@ Each $\vec{q}_i \vec{q}_i^T$ is the rank-1 projector onto the $i$-th eigenvector
 ### Definition
 
 A **quadratic form** in $n$ variables is a homogeneous polynomial of degree two:
-
 $$Q(\vec{x}) \;=\; \vec{x}^T A \vec{x} \;=\; \sum_{i, j} a_{ij}\, x_i x_j.$$
-
 We can always assume $A$ is symmetric, because $\vec{x}^T B \vec{x} = \vec{x}^T \tfrac{B + B^T}{2} \vec{x}$.
 
 **Example.** $Q(x_1, x_2) = 3 x_1^2 + 4 x_1 x_2 + x_2^2$ comes from
-
 $$A = \begin{pmatrix} 3 & 2 \\ 2 & 1 \end{pmatrix},$$
-
 where the cross-term coefficient $4$ is split symmetrically into two $2$s.
 
 **Physics.** Elastic potential energy of a coupled-spring system is $E = \tfrac{1}{2} \vec{x}^T K \vec{x}$. The matrix $K$ is the stiffness; the energy is its quadratic form.
@@ -152,9 +142,7 @@ where the cross-term coefficient $4$ is split symmetrically into two $2$s.
 ### Reading the Eigenvalues
 
 Drop $\vec{x}$ into the eigenbasis: $\vec{x} = Q\vec{y}$ gives
-
 $$Q(\vec{x}) \;=\; \vec{y}^T \Lambda \vec{y} \;=\; \lambda_1 y_1^2 + \lambda_2 y_2^2 + \cdots + \lambda_n y_n^2.$$
-
 All cross terms vanish. The shape of the level set $Q = \mathrm{const}$ is now read directly from the **signs of the eigenvalues** — this is the **principal axis theorem**.
 
 | Eigenvalue signs | Name | 2D shape | Mental picture |
@@ -173,9 +161,7 @@ A more complete tour of the four cases, with each panel labeled by its eigenvalu
 ### Worked Standardization
 
 Take $Q = 3x_1^2 + 2 x_1 x_2 + 3 x_2^2$, so $A = \bigl(\begin{smallmatrix} 3 & 1 \\ 1 & 3 \end{smallmatrix}\bigr)$. Solving $\det(A - \lambda I) = 0$ gives $\lambda_1 = 4$ and $\lambda_2 = 2$. The standard form is
-
 $$Q = 4 y_1^2 + 2 y_2^2,$$
-
 an ellipse whose principal axes are tilted at $45^\circ$ relative to the original $x$-axes.
 
 ---
@@ -187,9 +173,7 @@ an ellipse whose principal axes are tilted at $45^\circ$ relative to the origina
 ### Definition
 
 A symmetric matrix $A$ is **positive definite** (PD) if for every nonzero $\vec{x}$,
-
 $$\vec{x}^T A \vec{x} > 0.$$
-
 Geometrically, the energy increases in every direction away from the origin — the surface is a true bowl, and the origin is its unique minimum.
 
 Related cousins:
@@ -203,7 +187,8 @@ For a real symmetric matrix $A$, the following are equivalent.
 
 1. **Eigenvalue test.** All $\lambda_i > 0$.
 2. **Sylvester's criterion.** Every leading principal minor is positive:
-   $$a_{11} > 0, \quad \begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22}\end{vmatrix} > 0, \quad \ldots, \quad \det(A) > 0.$$3. **Cholesky exists.** $A = L L^T$ for some lower-triangular $L$ with positive diagonal.
+   $$
+   a_{11} > 0, \quad \begin{vmatrix} a_{11} & a_{12} \\ a_{21} & a_{22}\end{vmatrix} > 0, \quad \ldots, \quad \det(A) > 0.$$3. **Cholesky exists.** $A = L L^T$ for some lower-triangular $L$ with positive diagonal.
 4. **Pivot test.** Gaussian elimination on $A$ produces $n$ positive pivots.
 
 In numerical practice, attempting a Cholesky factorization is the **most reliable** test: it succeeds if and only if $A$ is PD, and it gives you a useful factorization for free.
@@ -224,29 +209,23 @@ In numerical practice, attempting a Cholesky factorization is the **most reliabl
 ### Definition
 
 For a positive definite $A$, the **Cholesky decomposition** is
-
 $$
 A = L L^T,
 $$
-
 where $L$ is lower triangular with strictly positive diagonal. It exists and is unique. Think of it as $\sqrt{4} = 2$ generalized to matrices: a PD matrix splits as $L \times L^T$.
 
 ### Computing It in 2D
 
 For $A = \bigl(\begin{smallmatrix} a & b \\ b & c \end{smallmatrix}\bigr)$,
-
 $$
 L = \begin{pmatrix} \sqrt{a} & 0 \\ b/\sqrt{a} & \sqrt{c - b^2/a} \end{pmatrix}.
 $$
-
 **Worked example.** $A = \bigl(\begin{smallmatrix} 4 & 2 \\ 2 & 3 \end{smallmatrix}\bigr)$:
-
 $$
 l_{11} = 2, \quad l_{21} = 1, \quad l_{22} = \sqrt{3 - 1} = \sqrt{2},
 \qquad
 L = \begin{pmatrix} 2 & 0 \\ 1 & \sqrt{2} \end{pmatrix}.
 $$
-
 Verify $LL^T = A$.
 
 ### Why Cholesky Matters
@@ -274,11 +253,9 @@ The same principle in 3D is what makes **moment of inertia** computations tracta
 ### Definition
 
 For a symmetric matrix $A$, the **Rayleigh quotient** is
-
 $$
 R(\vec{x}) \;=\; \frac{\vec{x}^T A \vec{x}}{\vec{x}^T \vec{x}}.
 $$
-
 Numerator measures how much $A$ "stretches" in the direction $\vec{x}$; denominator normalizes for length.
 
 ### Min--Max Property
@@ -297,17 +274,13 @@ This is exactly the **PCA** statement: the direction of maximum variance is the 
 ## Whitening and Decorrelation
 
 If a covariance matrix $\Sigma$ is PD, the spectral theorem gives $\Sigma = Q\Lambda Q^T$, hence
-
 $$
 \Sigma^{-1/2} \;=\; Q \Lambda^{-1/2} Q^T.
 $$
-
 The **whitening transform** $\vec{z} = \Sigma^{-1/2} \vec{x}$ produces uncorrelated, unit-variance features:
-
 $$
 \mathrm{Cov}(\vec{z}) \;=\; \Sigma^{-1/2} \, \Sigma \, \Sigma^{-1/2} \;=\; I.
 $$
-
 Many ML algorithms (linear regression, naive Bayes with Gaussian features, ICA) implicitly assume whitened inputs. Whitening is a one-line preprocessing step that often dramatically improves numerical conditioning and convergence speed.
 
 ---
@@ -321,11 +294,9 @@ The sample covariance $\Sigma = \tfrac{1}{n} X^T X$ is symmetric and PSD. Its sp
 ### Hessian and Optimization
 
 Near a critical point of a smooth function $f$, the second-order Taylor expansion is
-
 $$
 f(\vec{x}_0 + \vec{h}) \;\approx\; f(\vec{x}_0) + \tfrac{1}{2} \vec{h}^T H \vec{h}.
 $$
-
 The Hessian $H$ is symmetric, and its eigenvalues classify the critical point:
 
 - $H$ PD $\Longrightarrow$ local minimum.
@@ -337,11 +308,9 @@ This is the multivariable second derivative test, in three lines.
 ### Ridge Regression
 
 The Ridge estimator is
-
 $$
 \hat{\vec{w}} \;=\; (X^T X + \lambda I)^{-1} X^T \vec{y}.
 $$
-
 Adding $\lambda I$ shifts every eigenvalue of the symmetric PSD matrix $X^T X$ up by $\lambda$, making the matrix strictly PD and well-conditioned. Geometrically, ridge regression replaces a flat valley in the loss surface with a strict bowl, restoring a unique global minimum.
 
 ### Vibrating Systems
@@ -357,11 +326,9 @@ Markowitz's mean--variance portfolio minimizes risk $\vec{w}^T \Sigma \vec{w}$ s
 ## SVD: A First Look
 
 What if $A$ is not symmetric, or not even square? The spectral theorem fails, but its closest cousin is the **Singular Value Decomposition**:
-
 $$
 A \;=\; U \Sigma V^T,
 $$
-
 where $U, V$ are orthogonal and $\Sigma$ is diagonal with non-negative entries (the **singular values**). The decomposition exists for **any** matrix.
 
 ![SVD preview: any matrix maps a unit circle to an ellipse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/fig7_svd_preview.png)

@@ -126,9 +126,7 @@ For 100K-1M vector deployments, the choice barely matters — HNSW in pgvector i
 **Dense retrieval** (cosine on neural embeddings): great at semantic similarity, weak at exact-match (acronyms, IDs, rare terms).
 
 **Sparse retrieval** (BM25 or its modern variants like SPLADE): great at exact-match and rare terms, weak at synonym/paraphrase. **BM25** ([Robertson et al., 1995][robertson-bm25]) is a probabilistic relevance model that scores documents by term frequency × inverse document frequency with length normalization. The formula:
-
 $$\text{BM25}(q, d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{f(t,d) \cdot (k_1+1)}{f(t,d) + k_1 \cdot (1 - b + b \cdot |d|/\text{avgdl})}$$
-
 with $k_1 \approx 1.5$ and $b \approx 0.75$ as standard parameters. BM25 has been the dominant lexical retrieval algorithm for 30 years; modern dense embedders did not displace it because it remains best-in-class for queries that hinge on specific tokens (product SKUs, error codes, named entities).
 
 **Hybrid retrieval** combines both, then merges. Almost every production RAG system in 2026 is hybrid — the win over pure dense is large (10-30 % NDCG@10 on most benchmarks), the cost is small (BM25 is cheap, you already have the chunks).
@@ -185,9 +183,7 @@ The pipeline becomes: embed/sparse retrieve top-50 → rerank to top-5 → stuff
 ![fig5: ColBERT late interaction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/fig5_colbert_late_interaction.png)
 
 Between the speed of bi-encoders and the quality of cross-encoders sits **late interaction** (ColBERT, [Khattab & Zaharia, 2020][khattab-colbert]). The query and document are independently encoded into per-token vectors (not pooled). Similarity is computed token-by-token:
-
 $$\text{score}(q, d) = \sum_{i} \max_j \langle q_i, d_j \rangle$$
-
 ColBERT preserves token-level matching (good for rare terms) while staying parallelizable. ColBERTv2 (Santhanam et al., 2022) and PLAID (Santhanam et al., 2022) make it feasible at million-document scale through residual compression and approximate retrieval. BGE-M3 includes a ColBERT-style component you can use for free.
 
 Late interaction is appearing in 2025-2026 production stacks for high-precision retrieval where reranking 50 candidates isn't enough but full cross-encoding all candidates is too expensive. The 2024 update **ColPali** extended ColBERT's late-interaction principle to vision-language models for document image retrieval, finding that token-level matching dramatically improves PDF/scan retrieval over OCR-then-embed pipelines.

@@ -42,13 +42,9 @@ A fourth aspect, *controllability*, is often hinted at but rarely named clearly.
 ## The RLHF objective and what it teaches
 
 The Bradley-Terry model behind RLHF (chapter 4 covered the algorithm; this is the objective):
-
 $$\Pr(y_w \succ y_l | x) = \sigma(r_\phi(x, y_w) - r_\phi(x, y_l))$$
-
 Train a reward model $r_\phi$ from preference pairs $(x, y_w, y_l)$ where $y_w$ is the chosen and $y_l$ the rejected. Then PPO or DPO the policy to maximize $r_\phi$ subject to a KL constraint:
-
 $$\max_\theta \; \mathbb{E}_{x \sim D, y \sim \pi_\theta(\cdot|x)} \big[ r_\phi(x, y) \big] - \beta \cdot \mathrm{KL}\big(\pi_\theta \,\|\, \pi_\text{ref}\big)$$
-
 The KL term keeps the policy close to a reference (usually the SFT initialization). This term is doing more work than it gets credit for — it's the only thing preventing the policy from finding pathological shortcuts in the reward model. Set $\beta$ too low and you get reward hacking; set it too high and the policy doesn't move.
 
 The signal is *what humans (or AI proxies) prefer*. What this teaches that you didn't intend:

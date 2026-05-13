@@ -44,22 +44,22 @@ A 100-million-parameter network trained on 50,000 images *should* overfit catast
 ### 1.1 Empirical vs Expected Risk
 
 The training error and the *true* error you actually care about are not the same object:
-
-$$\hat{R}(f) = \frac{1}{N}\sum_{i=1}^{N} \ell(f(\mathbf{x}_i), y_i),
+$$
+\hat{R}(f) = \frac{1}{N}\sum_{i=1}^{N} \ell(f(\mathbf{x}_i), y_i),
 \qquad
-R(f) = \mathbb{E}_{(\mathbf{x},y)\sim\mathcal D}\bigl[\ell(f(\mathbf{x}), y)\bigr]. \tag{1}$$
-
+R(f) = \mathbb{E}_{(\mathbf{x},y)\sim\mathcal D}\bigl[\ell(f(\mathbf{x}), y)\bigr]. \tag{1}
+$$
 The **generalisation gap** is $R(f) - \hat{R}(f)$. Overfitting means the gap is large; underfitting means even $\hat R$ is large.
 
 ### 1.2 Bias-Variance Decomposition
 
 Pick a fixed test point $\mathbf{x}$, draw a fresh training set $S$, fit a regressor $f_S$, and look at the expected squared error. Define the average prediction $\bar f(\mathbf{x}) = \mathbb{E}_S[f_S(\mathbf{x})]$. Adding and subtracting $\bar f$:
-
-$$\mathbb{E}_S\bigl[(f_S(\mathbf{x}) - y)^2\bigr]
+$$
+\mathbb{E}_S\bigl[(f_S(\mathbf{x}) - y)^2\bigr]
 = \underbrace{(\bar f(\mathbf{x}) - f^\star(\mathbf{x}))^2}_{\text{Bias}^2}
 \,+\, \underbrace{\mathbb{E}_S\bigl[(f_S(\mathbf{x}) - \bar f(\mathbf{x}))^2\bigr]}_{\text{Variance}}
-\,+\, \underbrace{\sigma^2}_{\text{Noise}}. \tag{2}$$
-
+\,+\, \underbrace{\sigma^2}_{\text{Noise}}. \tag{2}
+$$
 The cross terms vanish because $\mathbb{E}_S[f_S - \bar f] = 0$ and the noise is independent of $f_S$.
 
 | Term | Driven by | High when... |
@@ -81,26 +81,22 @@ The U-shape on the test curve is the entire story of classical model selection: 
 ### 2.1 Three Equivalent Views
 
 **Penalised loss.** Add $\tfrac{\lambda}{2}\|\mathbf{w}\|_2^2$ to the empirical risk. For squared loss this gives the closed form
-
 $$\hat{\mathbf{w}}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y}. \tag{3}$$
-
 The added $\lambda\mathbf{I}$ guarantees invertibility even when features are colinear.
 
 **Constrained form.** By Lagrange duality, equivalently solve $\min \hat R(\mathbf{w})\ \text{s.t.}\ \|\mathbf{w}\|_2 \le t$. The feasible region is a Euclidean ball.
 
 **Bayesian (MAP).** With Gaussian likelihood $y\mid\mathbf{w} \sim \mathcal N(\mathbf{x}^\top\mathbf{w}, \sigma^2)$ and Gaussian prior $\mathbf{w} \sim \mathcal N(\mathbf 0, \tau^2 \mathbf I)$,
-
-$$\hat{\mathbf{w}}_{\text{MAP}} = \arg\min_{\mathbf{w}}\Bigl[\hat R(\mathbf{w}) + \tfrac{\sigma^2}{2\tau^2}\|\mathbf{w}\|^2\Bigr],
-\qquad \lambda = \tfrac{\sigma^2}{\tau^2}.$$
-
+$$
+\hat{\mathbf{w}}_{\text{MAP}} = \arg\min_{\mathbf{w}}\Bigl[\hat R(\mathbf{w}) + \tfrac{\sigma^2}{2\tau^2}\|\mathbf{w}\|^2\Bigr],
+\qquad \lambda = \tfrac{\sigma^2}{\tau^2}.
+$$
 Larger prior variance ($\tau^2 \uparrow$) means weaker regularisation.
 
 ### 2.2 SVD View: Shrinking Small Singular Directions
 
 Decompose $\mathbf{X} = \mathbf{U}\boldsymbol\Sigma\mathbf{V}^\top$. Then
-
 $$\hat{\mathbf{w}}_{\text{ridge}} = \sum_j \frac{\sigma_j^2}{\sigma_j^2 + \lambda}\,\frac{\mathbf{u}_j^\top\mathbf{y}}{\sigma_j}\,\mathbf{v}_j. \tag{4}$$
-
 The shrinkage factor $\sigma_j^2/(\sigma_j^2+\lambda)$ is $\approx 1$ for large $\sigma_j$ (signal) and $\approx 0$ for small $\sigma_j$ (noise direction). Ridge is **soft principal-component truncation**.
 
 ### 2.3 Weight Decay
@@ -124,9 +120,7 @@ This is *not* a numerical artefact. The L1 sub-differential at zero is the inter
 ### 3.2 Soft-Thresholding
 
 The proximal operator for $\lambda\|\mathbf{w}\|_1$ has a beautifully simple form, the **soft-threshold**:
-
 $$\hat w_j = \mathrm{sign}(w_j^\star)\,\max\bigl(|w_j^\star| - \lambda,\ 0\bigr). \tag{5}$$
-
 Coordinate descent applies (5) coordinate-by-coordinate; this is essentially how `glmnet` works.
 
 ### 3.3 Lasso as Embedded Feature Selection
@@ -142,9 +136,7 @@ The path itself is piecewise linear (LARS algorithm of Efron et al.) — a non-t
 L1 = MAP under a **Laplace prior** $p(w_j) \propto \exp(-|w_j|/b)$. The Laplace distribution has a *cusp* at zero, putting more prior mass exactly there than the Gaussian — hence sparsity.
 
 When features are strongly correlated, pure LASSO behaves erratically (it picks one of a correlated group at random). The **elastic net** mixes both penalties:
-
 $$\mathcal L_{\text{enet}} = \hat R(\mathbf{w}) + \lambda_1\|\mathbf{w}\|_1 + \lambda_2\|\mathbf{w}\|_2^2,$$
-
 inheriting the sparsity of L1 and the grouping effect of L2.
 
 ---
@@ -154,9 +146,7 @@ inheriting the sparsity of L1 and the grouping effect of L2.
 ### 4.1 The Mechanism
 
 At every training step, each hidden unit is independently zeroed with probability $p$ and the survivors are scaled by $1/(1-p)$:
-
 $$\tilde h_j = \frac{m_j}{1-p}\,h_j,\qquad m_j \sim \mathrm{Bernoulli}(1-p).$$
-
 The scaling keeps the expected activation unchanged: $\mathbb E[\tilde h_j] = h_j$. At test time we use the full network with no mask (this is *inverted dropout*, the modern convention).
 
 ### 4.2 Two Mathematical Stories
@@ -166,10 +156,10 @@ The scaling keeps the expected activation unchanged: $\mathbb E[\tilde h_j] = h_
 ![Dropout as random sub-network sampling: the full MLP plus three thinned samples sharing weights](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/fig6_dropout_concept.png)
 
 **Story 2 — Adaptive L2.** Apply dropout to the *input* of a linear regressor. The expected loss is
-
-$$\mathbb E_{\mathbf m}\bigl[\|y - (\mathbf m \odot \mathbf x)^\top\mathbf w\|^2\bigr]
-= \|y - \mathbf x^\top\mathbf w\|^2 + \frac{p}{1-p}\sum_j w_j^2 x_j^2. \tag{6}$$
-
+$$
+\mathbb E_{\mathbf m}\bigl[\|y - (\mathbf m \odot \mathbf x)^\top\mathbf w\|^2\bigr]
+= \|y - \mathbf x^\top\mathbf w\|^2 + \frac{p}{1-p}\sum_j w_j^2 x_j^2. \tag{6}
+$$
 The extra term is an L2 penalty *weighted by feature variance*: large-magnitude inputs are regularised more aggressively. Wager, Wang & Liang (2013) extended this to GLMs and showed dropout is approximately *adaptive ridge*.
 
 ### 4.3 Variants
@@ -189,13 +179,9 @@ Hold out a validation set. Stop when validation error has not improved for $P$ e
 ### 5.2 Why It Equals Ridge (in the Quadratic Case)
 
 For least squares with gradient descent from $\mathbf{w}_0 = \mathbf 0$, expand in the eigenbasis of $\mathbf{X}^\top\mathbf{X}$. After $t$ steps,
-
 $$\hat{\mathbf{w}}_t = \sum_j \bigl[1 - (1 - \eta\lambda_j)^t\bigr]\,\frac{\mathbf{u}_j^\top \mathbf{X}^\top\mathbf{y}}{\lambda_j}\,\mathbf{u}_j, \tag{7}$$
-
 while ridge gives $\sum_j \frac{\lambda_j}{\lambda_j + \alpha}\cdot(\cdot)$. Comparing the two shrinkage factors,
-
 $$1 - (1-\eta\lambda_j)^t \ \approx\ \frac{\lambda_j}{\lambda_j + 1/(\eta t)},$$
-
 so **early stopping at iteration $t$ is approximately ridge with $\alpha_{\text{eff}} \sim 1/(\eta t)$**: longer training $\Leftrightarrow$ weaker regularisation. Intuitively, gradient descent fits high-eigenvalue (low-frequency, "signal") directions first; the noise lives in the small-eigenvalue tail and only gets fitted late. Stop early, lose only the noise.
 
 ---
@@ -205,9 +191,7 @@ so **early stopping at iteration $t$ is approximately ridge with $\alpha_{\text{
 ### 6.1 K-Fold Cross-Validation
 
 Partition the data into $K$ folds; for each $k$, train on the other $K-1$ and validate on fold $k$:
-
 $$\hat R_{\text{CV}} = \frac{1}{K}\sum_{k=1}^K \hat R_{\text{val}, k}. \tag{8}$$
-
 ![5-fold cross-validation: each row is a fold, the coloured tile is the validation set, every sample validates exactly once](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/fig3_kfold_cv.png)
 
 $K = 5$ or $10$ is the practical sweet spot (small bias, manageable variance, $K$ training runs). $K = N$ is **leave-one-out** — unbiased but expensive (and surprisingly *high-variance* in small samples). For time series, never shuffle; use blocked, expanding-window CV that respects causality.
@@ -215,11 +199,11 @@ $K = 5$ or $10$ is the practical sweet spot (small bias, manageable variance, $K
 ### 6.2 Information Criteria
 
 Both criteria penalise the negative log-likelihood by a function of the parameter count $p$:
-
-$$\mathrm{AIC} = -2\log p(\mathcal D \mid \hat{\mathbf w}) + 2p,
+$$
+\mathrm{AIC} = -2\log p(\mathcal D \mid \hat{\mathbf w}) + 2p,
 \qquad
-\mathrm{BIC} = -2\log p(\mathcal D \mid \hat{\mathbf w}) + p\log N. \tag{9}$$
-
+\mathrm{BIC} = -2\log p(\mathcal D \mid \hat{\mathbf w}) + p\log N. \tag{9}
+$$
 For $N \ge 8$ we have $\log N > 2$, so BIC penalises complexity more strongly. Statistically:
 
 - **BIC is consistent**: as $N \to \infty$, BIC selects the true model with probability one (when it is in the candidate set).
@@ -238,17 +222,13 @@ In small samples, the three criteria can disagree by 1-2 degrees. In large sampl
 ### 7.1 VC Dimension
 
 A hypothesis class $\mathcal H$ **shatters** a set of $m$ points if it can realise all $2^m$ binary labelings. The **VC dimension** is the largest such $m$:
-
 $$\mathrm{VC}(\mathcal H) = \max\{m : \exists\, S\ \text{of size}\ m\ \text{shattered by}\ \mathcal H\}.$$
-
 For linear classifiers in $\mathbb R^d$, $\mathrm{VC} = d + 1$.
 
 ### 7.2 The VC Generalisation Bound
 
 With probability $\ge 1 - \delta$, simultaneously for every $h \in \mathcal H$,
-
 $$R(h) \le \hat R(h) + O\!\left(\sqrt{\frac{\mathrm{VC}(\mathcal H)\log\!\bigl(N/\mathrm{VC}(\mathcal H)\bigr) + \log(1/\delta)}{N}}\right). \tag{10}$$
-
 Higher VC dimension demands more data; more data tightens the bound. This bound is **distribution-free** — it holds for *any* data distribution, which is also why it tends to be pessimistic.
 
 ### 7.3 PAC Learnability
@@ -279,13 +259,9 @@ The math for ridge and lasso is clean; the implementation choices that follow fr
 **Standardise before regularising.** L2 and L1 penalties act on the parameter magnitudes, but those magnitudes only mean something relative to the scale of the corresponding feature. A weight of $10$ on a feature in $[0, 1]$ is huge; the same weight on a feature in $[10^4, 10^5]$ is invisible. Without standardisation, the penalty effectively regularises only the small-scale features and lets the large-scale ones do whatever they want. Always centre and scale ($\mu = 0,\ \sigma = 1$) before fitting, and *fit the scaler on the training set only* — fitting on the full data leaks test statistics into training.
 
 **Ridge has a closed form; lasso does not.** Ridge is
-
 $$\hat{\boldsymbol\beta}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y},$$
-
 cost $O(p^3 + np^2)$. For $p \lesssim 10^4$ this is fine on a single machine. Lasso has no closed form because $\Vert\boldsymbol\beta\Vert_1$ is non-differentiable at zero; the standard solver is *coordinate descent*, which cycles through coordinates and applies the soft-thresholding operator
-
 $$S_\lambda(z) = \mathrm{sign}(z) \cdot \max(|z| - \lambda, 0).$$
-
 Each sweep is $O(np)$, and well-implemented coordinate descent (`sklearn.linear_model.Lasso`) converges in 10-50 sweeps on typical data.
 
 **Cross-validation tells you $\lambda$, not whether to regularise.** The CV-optimal $\lambda$ may be tiny — meaning the data already constrains the fit. This is information: it says you have enough data and not enough features to need regularisation. Do not force a non-zero $\lambda$ because "best practice" says so. Conversely, if the CV curve is monotone decreasing as $\lambda \to \infty$, your model is unidentifiable and you have a bigger problem than tuning.

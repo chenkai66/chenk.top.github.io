@@ -58,7 +58,8 @@ Why exactly these three? Because *every* linear second-order PDE in two variable
 ## Classification
 
 For the general second-order operator
-$$A\,u_{xx} + 2B\,u_{xy} + C\,u_{yy} + (\text{lower order}) = 0,$$form the discriminant $\Delta = B^2 - AC$. Then:
+$$
+A\,u_{xx} + 2B\,u_{xy} + C\,u_{yy} + (\text{lower order}) = 0,$$form the discriminant $\Delta = B^2 - AC$. Then:
 
 | $\Delta$ | Type | Canonical example | Real characteristics? |
 |---|---|---|---|
@@ -91,13 +92,9 @@ Conservation of energy in a thin rod with cross-section $A$ and density-specific
 ### Separation of variables
 
 Take $u(0, t) = u(L, t) = 0$ and a smooth initial condition $u(x, 0) = f(x)$. Try the product ansatz $u(x, t) = X(x)\,T(t)$:$$\frac{T'}{\alpha T} = \frac{X''}{X} = -\lambda \quad (\text{constant}).$$The two sides depend on *different* variables, so the only way they can be equal is to be *the same constant*. We get
-
 $$X'' + \lambda X = 0, \qquad T' + \alpha\lambda\,T = 0.$$
-
 The Dirichlet boundary conditions select $\lambda_n = (n\pi/L)^2$ with eigenfunctions $X_n(x) = \sin(n\pi x / L)$, and the time factor is $T_n(t) = e^{-\alpha \lambda_n t}$. Superposition recovers the full solution as a Fourier sine series:
-
 $$\boxed{\;u(x, t) = \sum_{n=1}^\infty b_n\,\sin\!\frac{n\pi x}{L}\,e^{-\alpha (n\pi / L)^2 t},\quad b_n = \frac{2}{L}\int_0^L f(x)\sin\!\frac{n\pi x}{L}\,dx.\;}$$
-
 Two structural lessons:
 
 1. **The heat equation is a Fourier filter.** High modes (large $n$) decay much faster than low modes — mode $n$ has half-life $\propto 1/n^2$. Sharp features in the initial condition are erased almost immediately; smooth features linger.
@@ -158,7 +155,8 @@ def crank_nicolson_heat(f, alpha, L, T_end, Nx=101, Nt=400):
 
 ### d'Alembert and the light cone
 
-For the infinite line $u_{tt} = c^2 u_{xx}$ with $u(x, 0) = f(x),\ u_t(x, 0) = g(x)$,$$\boxed{\;u(x, t) = \frac{1}{2}\bigl[f(x - ct) + f(x + ct)\bigr] + \frac{1}{2c}\int_{x - ct}^{x + ct} g(s)\,ds.\;}$$
+For the infinite line $u_{tt} = c^2 u_{xx}$ with $u(x, 0) = f(x),\ u_t(x, 0) = g(x)$,$$\boxed{\;u(x, t) = \frac{1}{2}\bigl[f(x - ct) + f(x + ct)\bigr] + \frac{1}{2c}\int_{x - ct}^{x + ct} g(s)\,ds.\;}
+$$
 Two observations rewrite the meaning of "wave":
 
 1. The solution at $(x, t)$ depends only on data inside the **interval of dependence** $[x - ct, x + ct]$. Anything outside that interval is invisible — finite signal speed.
@@ -170,7 +168,8 @@ For a finite string with $u(0, t) = u(L, t) = 0$, separation of variables gives 
 
 ### Numerical scheme and the CFL condition
 
-The leapfrog scheme, $O(\Delta t^2, \Delta x^2)$:$$u_j^{n+1} = 2u_j^n - u_j^{n-1} + \sigma^2(u_{j+1}^n - 2u_j^n + u_{j-1}^n), \qquad \sigma = \frac{c\,\Delta t}{\Delta x}.$$
+The leapfrog scheme, $O(\Delta t^2, \Delta x^2)$:$$u_j^{n+1} = 2u_j^n - u_j^{n-1} + \sigma^2(u_{j+1}^n - 2u_j^n + u_{j-1}^n), \qquad \sigma = \frac{c\,\Delta t}{\Delta x}.
+$$
 Von Neumann analysis gives the famous **CFL condition** $\sigma \leq 1$. The geometric reading is gorgeous: the *numerical* domain of dependence at $(x, t)$ — the lattice points the scheme can possibly use — must contain the *physical* domain of dependence $[x - ct, x + ct]$. If $\sigma > 1$, the physical signal arrives faster than the numerical mesh can carry it, and the scheme blows up.
 
 ![Wave equation: d'Alembert split, standing wave with nodes, spacetime light cone, finite-difference snapshots, CFL violation, and characteristics.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/13-pde-introduction/fig2_wave_propagation.png)
@@ -193,7 +192,8 @@ $\nabla^2 u = u_{xx} + u_{yy} = 0$ describes a steady distribution — temperatu
 
 ### Numerics: the five-point stencil
 
-Approximating both second derivatives by central differences gives$$u_{i, j} = \frac{1}{4}\bigl(u_{i+1, j} + u_{i-1, j} + u_{i, j+1} + u_{i, j-1}\bigr).$$
+Approximating both second derivatives by central differences gives$$u_{i, j} = \frac{1}{4}\bigl(u_{i+1, j} + u_{i-1, j} + u_{i, j+1} + u_{i, j-1}\bigr).
+$$
 The discrete maximum principle is just an averaging statement — and it gives the recipe: starting from any guess, repeatedly replace each interior value by the average of its neighbours (Jacobi / Gauss-Seidel). For square grids of size $N$ this needs $O(N^2)$ iterations; **SOR** with optimal relaxation parameter brings it down to $O(N \log N)$. For real work one uses multigrid or sparse direct solvers, but the iterative method is what the maximum principle *suggests*.
 
 ![Laplace equation on the unit square: solution heatmap, equipotentials with heat-flux arrows, and a scatter check of the maximum principle.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/13-pde-introduction/fig3_laplace_equation.png)

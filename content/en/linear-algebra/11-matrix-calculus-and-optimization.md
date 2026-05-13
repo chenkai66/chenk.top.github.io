@@ -59,13 +59,9 @@ The two partial derivatives answer half the question each:
 -$\partial f/\partial x_2$-- holding price fixed, profit per dollar of ad spend.
 
 Pack them into a vector and you get the **gradient**:
-
 $$\nabla f = \begin{pmatrix} \partial f/\partial x_1 \\ \partial f/\partial x_2 \end{pmatrix}$$
-
 For a general function$f: \mathbb{R}^n \to \mathbb{R}$:
-
 $$\nabla f(\vec{x}) = \begin{pmatrix} \partial f/\partial x_1 \\ \vdots \\ \partial f/\partial x_n \end{pmatrix} \in \mathbb{R}^n$$
-
 ### Three Geometric Meanings That Justify the Whole Story
 
 The gradient is more than a stack of partial derivatives; three geometric facts explain why this particular packaging is the right one.
@@ -99,9 +95,7 @@ Every quadratic loss in this book reduces to this formula. If$A$is not symmetric
 ## Directional Derivative: Slope Along Any Path
 
 You don't have to walk straight uphill. The **directional derivative** tells you the slope along any unit direction$\vec{d}$:
-
 $$D_{\vec{d}}f = \nabla f \cdot \vec{d} = \|\nabla f\| \cos\theta$$
-
 where$\theta$is the angle between$\nabla f$and$\vec{d}$. Three values of$\theta$matter:
 
 -$\theta = 0°$(walk *along* the gradient): maximum increase$\|\nabla f\|$.
@@ -123,25 +117,19 @@ Three seasonings$(x_1, x_2, x_3)$control three taste metrics$(f_1, f_2, f_3)$: s
 ### Definition
 
 For$\vec{f}: \mathbb{R}^n \to \mathbb{R}^m$, the **Jacobian** is the$m \times n$matrix
-
 $$J = \frac{\partial \vec{f}}{\partial \vec{x}} = \begin{pmatrix} \partial f_1/\partial x_1 & \cdots & \partial f_1/\partial x_n \\ \vdots & \ddots & \vdots \\ \partial f_m/\partial x_1 & \cdots & \partial f_m/\partial x_n \end{pmatrix}$$
-
 Row$i$is the gradient of$f_i$. Entry$(i, j)$is "how much does output$i$change when input$j$is nudged?"
 
 ### Geometric Meaning: Best Linear Approximation
 
 Near$\vec{x}_0$, the Jacobian is the best linear approximation to$\vec{f}$:
-
 $$\vec{f}(\vec{x}_0 + \Delta\vec{x}) \approx \vec{f}(\vec{x}_0) + J\,\Delta\vec{x}$$
-
 Geometrically,$J$tells you how the function deforms space locally: a small square in input space becomes a small parallelogram in output space, and$J$is exactly the matrix that performs that deformation.
 
 ### Classic Example: Polar Coordinates
 
 The change of variables$(r, \theta) \to (x, y) = (r\cos\theta, r\sin\theta)$has Jacobian
-
 $$J = \begin{pmatrix} \cos\theta & -r\sin\theta \\ \sin\theta & r\cos\theta \end{pmatrix}$$
-
 Its determinant is$\det(J) = r$-- the Jacobian factor that turns$dx\,dy$into$r\,dr\,d\theta$in polar integrals. Calculus students meet that$r$as a mysterious extra factor; here it is, derived directly.
 
 ---
@@ -153,17 +141,13 @@ The gradient tells you the slope; the Hessian tells you how the slope changes �
 ### Definition
 
 For$f: \mathbb{R}^n \to \mathbb{R}$, the Hessian is the$n \times n$matrix of second partial derivatives:
-
 $$H = \begin{pmatrix} \partial^2 f/\partial x_1^2 & \cdots & \partial^2 f/\partial x_1 \partial x_n \\ \vdots & \ddots & \vdots \\ \partial^2 f/\partial x_n \partial x_1 & \cdots & \partial^2 f/\partial x_n^2 \end{pmatrix}$$
-
 If second partials are continuous,$H$is **symmetric** (Schwarz/Clairaut). That symmetry is what makes the rest of the chapter work — it lets us talk about eigenvalues of$H$.
 
 ### Second-Order Taylor Expansion
 
 The Hessian appears in the second-order Taylor expansion:
-
 $$f(\vec{x}_0 + \Delta\vec{x}) \approx f(\vec{x}_0) + \nabla f^T \Delta\vec{x} + \frac{1}{2}\Delta\vec{x}^T H \Delta\vec{x}$$
-
 Three terms: current value, linear correction (gradient), quadratic correction (curvature).
 
 ### Classifying Critical Points
@@ -192,9 +176,7 @@ In neural networks, parameters are usually matrices (weight matrices). We need "
 ### Definition
 
 For$f: \mathbb{R}^{m \times n} \to \mathbb{R}$:
-
 $$\frac{\partial f}{\partial X} = \begin{pmatrix} \partial f/\partial x_{11} & \cdots & \partial f/\partial x_{1n}\\ \vdots & \ddots & \vdots\\ \partial f/\partial x_{m1} & \cdots & \partial f/\partial x_{mn} \end{pmatrix}$$
-
 The result has the **same shape** as$X$. This shape rule is the single most useful sanity check in the whole chapter — if your derivation produces an answer with the wrong shape, you've made an algebra mistake.
 
 ### Identities You Will Actually Use
@@ -221,13 +203,9 @@ The trace appears constantly because *any* scalar function of a matrix can be wr
 ### The Chain Rule, in Matrix Form
 
 If$\vec{u} = \vec{h}(\vec{x})$and$y = g(\vec{u})$with$g$scalar:
-
 $$\frac{\partial (g \circ \vec{h})}{\partial \vec{x}} = J_h^T \nabla g$$
-
 If both stages are vector-valued, Jacobians simply *multiply* along the chain:
-
 $$J_{\text{total}} = J_k\,J_{k-1}\,\cdots\,J_1$$
-
 **River pollution analogy.** An upstream factory's discharge changes by$\delta_1$; mid-stream concentration responds by$\delta_2 = J_1\delta_1$; downstream ecology responds by$\delta_3 = J_2\delta_2$. The total response is$\delta_3 = J_2 J_1 \delta_1$-- one multiplication per stage.
 
 ### Backpropagation: the Chain Rule Done Efficiently
@@ -248,9 +226,7 @@ For deep learning, "$n$" is "every parameter in the model" — so reverse-mode i
 This is the workhorse derivation; if you internalize one calculation in the chapter, make it this one.
 
 **Forward.**
-
 $$\vec{z} = W\vec{x} + \vec{b}, \qquad \vec{a} = \sigma(\vec{z})\quad(\text{element-wise})$$
-
 **Backward.** Suppose later layers have already produced$\delta_a := \partial L / \partial \vec{a}$. Then:
 
 1. **Through the activation:**$\delta_z = \delta_a \odot \sigma'(\vec{z})$($\odot$is element-wise product).
@@ -267,9 +243,7 @@ Every modern framework (PyTorch, JAX, TensorFlow) executes exactly this recipe, 
 **Sigmoid.**$\sigma(z) = 1/(1+e^{-z})$, with the elegant identity$\sigma'(z) = \sigma(z)(1 - \sigma(z))$. Output in$(0,1)$, interpretable as probability. Downside: saturates at both ends, so gradients vanish in deep networks.
 
 **Softmax + cross-entropy.** Used at the output of a classifier. The combined gradient simplifies beautifully:
-
 $$\frac{\partial L}{\partial \vec{z}} = \hat{\vec{y}} - \vec{y}$$
-
 "Predicted probability minus true label." That cleanliness is exactly why softmax + cross-entropy is the default for classification — the gradient is local, cheap, and well-scaled.
 
 ---
@@ -279,9 +253,7 @@ $$\frac{\partial L}{\partial \vec{z}} = \hat{\vec{y}} - \vec{y}$$
 ### What "Convex" Means
 
 A function$f$is **convex** if the chord between any two points on its graph lies above the graph:
-
 $$f(\alpha\vec{x} + (1-\alpha)\vec{y}) \leq \alpha f(\vec{x}) + (1-\alpha)f(\vec{y}), \quad \alpha \in [0,1]$$
-
 The single fact that makes convexity precious:
 
 > **Theorem.** Every local minimum of a convex function is a global minimum.
@@ -324,9 +296,7 @@ KKT is the workhorse of constrained optimization — and the Lagrangian framewor
 ## Optimization Algorithms
 
 ### Gradient Descent
-
 $$\vec{x}_{k+1} = \vec{x}_k - \alpha \nabla f(\vec{x}_k)$$
-
 Walk downhill. The step size$\alpha$is the **learning rate**: too small and you crawl, too large and you diverge.
 
 For a convex quadratic with condition number$\kappa$, the convergence rate is roughly$\bigl(\tfrac{\kappa - 1}{\kappa + 1}\bigr)^k$-- so an ill-conditioned problem ($\kappa \gg 1$) can be brutally slow, and the trajectory zig-zags across the long axis of the bowl.
@@ -334,9 +304,7 @@ For a convex quadratic with condition number$\kappa$, the convergence rate is ro
 ![Gradient descent trajectory: well-conditioned (left) vs ill-conditioned zig-zag (right)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/fig3_gradient_descent_path.png)
 
 ### Newton's Method
-
 $$\vec{x}_{k+1} = \vec{x}_k - H^{-1}\nabla f(\vec{x}_k)$$
-
 Approximate$f$by its second-order Taylor expansion and jump straight to the minimum of that quadratic. The result is **quadratic convergence**: the number of correct digits roughly doubles per step.
 
 The catch: forming and inverting$H$costs$O(n^3)$, prohibitive when$n$is in the millions. And on non-convex losses, Newton's method may steer toward a saddle or even a maximum — it goes wherever$\nabla f$is zero.
@@ -346,27 +314,21 @@ The catch: forming and inverting$H$costs$O(n^3)$, prohibitive when$n$is in the m
 ### Stochastic Gradient Descent (SGD)
 
 When the loss is a sum over$N$samples,$L = \tfrac{1}{N}\sum_i \ell_i$, an exact gradient costs$O(N)$. Replace it with a single sample's (or mini-batch's) gradient:
-
 $$\vec{x}_{k+1} = \vec{x}_k - \alpha \nabla \ell_{i_k}$$
-
 Massively cheaper per step. The injected noise also helps escape narrow saddles and shallow basins — a feature, not a bug, for non-convex deep learning.
 
 ### Momentum
 
 Plain SGD jitters. Momentum smooths it by accumulating an exponential moving average of past gradients:
-
 $$\vec{v}_{k+1} = \beta\vec{v}_k + \nabla f(\vec{x}_k), \qquad \vec{x}_{k+1} = \vec{x}_k - \alpha\vec{v}_{k+1}$$
-
 The standard mental picture: a heavy ball rolling downhill. Inertia smooths out the path and lets it coast through small bumps.
 
 ### Adam
 
 Combines momentum (first moment) with per-parameter adaptive step sizes (second moment):
-
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\nabla f \qquad v_t = \beta_2 v_{t-1} + (1-\beta_2)(\nabla f)^2$$
 
 $$\vec{x}_{t+1} = \vec{x}_t - \frac{\alpha}{\sqrt{\hat{v}_t} + \epsilon}\hat{m}_t$$
-
 Parameters with consistently large gradients get a smaller effective learning rate; quiet parameters get a larger one. With$\beta_1 = 0.9$,$\beta_2 = 0.999$,$\alpha = 10^{-3}$it is the default optimizer for most modern deep learning workflows.
 
 ---
@@ -380,25 +342,19 @@ Objective:$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2$.
 Gradient:$\nabla L = 2X^T(X\vec{w} - \vec{y})$.
 
 Setting it to zero gives the **normal equation**:
-
 $$\vec{w}^* = (X^TX)^{-1}X^T\vec{y}$$
-
 This closed form exists exactly because the loss is a convex quadratic in$\vec{w}$.
 
 ### Ridge Regression
 
 Add an$\ell_2$regularizer:$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2 + \lambda\|\vec{w}\|^2$.
-
 $$\vec{w}^* = (X^TX + \lambda I)^{-1}X^T\vec{y}$$
-
 The$\lambda I$term shifts every eigenvalue of$X^TX$by$\lambda$, which guarantees invertibility and tames the condition number — a direct application of Chapter 10's intuition.
 
 ### PCA as Optimization
 
 PCA can be stated as the constrained problem
-
 $$\max_{\|\vec{w}\|=1} \vec{w}^T\Sigma\vec{w}$$
-
 The Lagrangian is$\vec{w}^T\Sigma\vec{w} - \lambda(\vec{w}^T\vec{w} - 1)$, and setting its gradient to zero gives$\Sigma\vec{w} = \lambda\vec{w}$. PCA is an eigenvalue problem — *because* of the KKT stationarity condition. The optimizer is the leading eigenvector of$\Sigma$.
 
 ---

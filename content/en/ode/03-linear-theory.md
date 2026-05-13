@@ -43,13 +43,9 @@ This chapter builds the entire toolkit. We will derive it once, prove the struct
 ## 1. Why second-order is the natural unit
 
 Any time a system has both **inertia** (kinetic content, momentum, current in an inductor) and a **restoring force** (a spring, gravity, a capacitor's voltage), Newton's $F = ma$ produces a second derivative on the left and a position on the right:
-
 $$m\,\ddot x \;=\; -\,k x \;-\; b\,\dot x \;+\; F_\text{ext}(t).$$
-
 Dividing by $m$ and adopting the standard normalisation gives the equation we will keep returning to:
-
 $$\boxed{\;\ddot x + 2\zeta\omega_0\,\dot x + \omega_0^2\,x \;=\; f(t)\;}$$
-
 with **natural frequency** $\omega_0 = \sqrt{k/m}$ and **damping ratio** $\zeta = b/(2\sqrt{mk})$. Almost every example in this chapter is a special case.
 
 > **What second order really buys you.** A first-order ODE $\dot x = F(x,t)$ at time $t$ is determined by the single number $x(t)$. A second-order ODE needs *two* initial conditions, $x(0)$ and $\dot x(0)$ — you can specify position and velocity independently, so the system can store and exchange two kinds of "stuff" (kinetic and potential energy, voltage and current, etc.). Oscillation is the visible signature of that exchange.
@@ -61,9 +57,7 @@ with **natural frequency** $\omega_0 = \sqrt{k/m}$ and **damping ratio** $\zeta 
 ### 2.1 Standard form
 
 An $n$-th order linear ODE looks like
-
 $$y^{(n)} + p_{n-1}(x)\,y^{(n-1)} + \cdots + p_1(x)\,y' + p_0(x)\,y \;=\; g(x).$$
-
 It is **homogeneous** when $g \equiv 0$, otherwise **non-homogeneous**.
 
 ### 2.2 Three theorems that organise everything
@@ -71,37 +65,31 @@ It is **homogeneous** when $g \equiv 0$, otherwise **non-homogeneous**.
 **(T1) Superposition.** If $y_1, y_2$ both solve the homogeneous equation, so does $c_1 y_1 + c_2 y_2$ for any constants $c_1, c_2$. (Linearity of derivatives — write it out.)
 
 **(T2) Dimension of the homogeneous solution space.** An $n$-th order linear homogeneous ODE on an interval where the coefficients $p_i$ are continuous has *exactly* $n$ linearly independent solutions $y_1, \dots, y_n$, and every solution is
-
 $$y_h(x) \;=\; c_1 y_1(x) + c_2 y_2(x) + \cdots + c_n y_n(x).$$
-
 This is the existence-uniqueness theorem in disguise: the $n$ initial conditions $y(x_0), y'(x_0), \dots, y^{(n-1)}(x_0)$ pick out a unique element of an $n$-dimensional vector space.
 
 **(T3) Non-homogeneous structure.** The general solution of $L[y] = g$ is
-
 $$y \;=\; y_h \;+\; y_p,$$
-
 where $y_p$ is *any one* particular solution. The reason is that if $y, \tilde y$ are two solutions, $L[y - \tilde y] = 0$, so they differ by a homogeneous solution.
 
 ### 2.3 The Wronskian: a determinant test for independence
 
 How do we *check* that $n$ candidate solutions are linearly independent? Differentiate them $n-1$ times and form the **Wronskian**:
-
-$$W(y_1, \dots, y_n)(x) \;=\; \det
+$$
+W(y_1, \dots, y_n)(x) \;=\; \det
 \begin{pmatrix}
 y_1 & y_2 & \cdots & y_n \\
 y_1' & y_2' & \cdots & y_n' \\
 \vdots & \vdots & & \vdots \\
 y_1^{(n-1)} & y_2^{(n-1)} & \cdots & y_n^{(n-1)}
-\end{pmatrix}.$$
-
+\end{pmatrix}.
+$$
 For $n = 2$: $W(y_1, y_2) = y_1 y_2' - y_2 y_1'$.
 
 **The test.** If $W(x_0) \neq 0$ at *any one point* $x_0$ in the interval, the solutions are linearly independent (and Abel's identity then forces $W \neq 0$ everywhere on the interval).
 
 **Worked example.** Take $y_1 = \sin x, y_2 = \cos x$:
-
 $$W = \sin x \cdot (-\sin x) - \cos x \cdot \cos x = -1 \neq 0.$$
-
 Independent everywhere — they form a basis for solutions of $y'' + y = 0$.
 
 **A dependent example.** $y_1 = \sin x, y_2 = 2\sin x$ gives $W = 2\sin x\cos x - 2\sin x\cos x = 0$ identically. They are scalar multiples; the dimension of the span is one, not two.
@@ -116,35 +104,25 @@ Independent everywhere — they form a basis for solutions of $y'' + y = 0$.
 ### 3.1 The trick
 
 For
-
 $$a_n y^{(n)} + a_{n-1} y^{(n-1)} + \cdots + a_1 y' + a_0 y \;=\; 0$$
-
 guess $y = e^{rx}$. Each derivative pulls down one factor of $r$, so the equation reduces to the **characteristic polynomial**
-
 $$P(r) \;\equiv\; a_n r^n + a_{n-1} r^{n-1} + \cdots + a_1 r + a_0 \;=\; 0.$$
-
 Every root $r$ contributes a building block. The map *roots $\to$ basis solutions* is the entire content of this section.
 
 ### 3.2 The three cases
 
 **Case 1: Distinct real roots $r_1, \dots, r_n$.**
-
 $$y \;=\; c_1 e^{r_1 x} + c_2 e^{r_2 x} + \cdots + c_n e^{r_n x}.$$
-
 *Example.* $y'' - 5y' + 6y = 0$ gives $(r-2)(r-3) = 0$, so $y = c_1 e^{2x} + c_2 e^{3x}$.
 
 **Case 2: Repeated root $r$ of multiplicity $k$.** A multiplicity-$k$ root only gives one exponential, but the missing $k-1$ basis functions come from multiplying by $x$:
-
 $$y \;=\; (c_1 + c_2 x + c_3 x^2 + \cdots + c_k x^{k-1})\,e^{rx}.$$
-
 The reason: when $P(r)$ has a double root, the operator $L$ factors as $(D - r)^2 \cdot Q(D)$, and $(D-r)^2[x e^{rx}] = 0$ by direct calculation.
 
 *Example.* $y'' - 4y' + 4y = 0$ gives $(r-2)^2 = 0$, so $y = (c_1 + c_2 x)e^{2x}$.
 
 **Case 3: Complex conjugate pair $r = \alpha \pm i\beta$.** Real coefficients force complex roots to come in conjugate pairs. The real-valued basis is
-
 $$y \;=\; e^{\alpha x}\bigl(c_1 \cos\beta x + c_2 \sin\beta x\bigr).$$
-
 *Why this works.* The complex pair contributes $C_1 e^{(\alpha+i\beta)x} + C_2 e^{(\alpha-i\beta)x}$, and Euler's formula $e^{i\beta x} = \cos\beta x + i\sin\beta x$ rearranges this into the real form. Concretely, $\alpha$ controls the exponential envelope and $\beta$ controls the oscillation rate.
 
 *Example.* $y'' + 2y' + 5y = 0$ gives $r = -1 \pm 2i$, so $y = e^{-x}(c_1\cos 2x + c_2\sin 2x)$ — a sinusoid trapped inside a shrinking exponential envelope.
@@ -168,9 +146,7 @@ The location of the roots in the complex plane *is* the qualitative behaviour:
 ![Ordinary Differential Equations (3): Higher-Order Linear Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/illustration_2.png)
 
 Consider the canonical second-order homogeneous equation in normalised form:
-
 $$\ddot x + 2\zeta\omega_0\,\dot x + \omega_0^2\,x \;=\; 0.$$
-
 Its characteristic equation $r^2 + 2\zeta\omega_0 r + \omega_0^2 = 0$ has discriminant $4\omega_0^2(\zeta^2 - 1)$. The sign of $\zeta^2 - 1$ determines which of the three cases we land in:
 
 | Regime | Condition | Roots | Behaviour |
@@ -214,13 +190,9 @@ To solve $L[y] = f(x)$ with constant coefficients:
 Solve $y'' + y' + y = e^{-x/2}\cos x$.
 
 **Homogeneous part.** Roots of $r^2 + r + 1 = 0$ are $r = -\tfrac12 \pm \tfrac{\sqrt 3}{2} i$, so
-
 $$y_h \;=\; e^{-x/2}\bigl(c_1\cos\tfrac{\sqrt 3}{2}x + c_2\sin\tfrac{\sqrt 3}{2}x\bigr).$$
-
 **Trial form.** The forcing is $e^{-x/2}\cos x$ — the exponential envelope matches $y_h$ but the inner frequency $\beta = 1$ does *not* match $\sqrt 3/2$, so there is no resonance and we may try
-
 $$y_p \;=\; e^{-x/2}(A\cos x + B\sin x).$$
-
 **Solving for $A, B$.** Substituting and collecting $\cos$ and $\sin$ terms gives the linear system $\tfrac14 A + \tfrac32 B = 1,\ -\tfrac32 A + \tfrac14 B = 0$, whose solution is $A = \tfrac{2}{37},\ B = \tfrac{24}{37}$.
 
 ![The undetermined-coefficients workflow as three stacked panels: forcing, trial basis, fitted particular solution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig6_undetermined_coefficients.png)
@@ -229,13 +201,9 @@ $$y_p \;=\; e^{-x/2}(A\cos x + B\sin x).$$
 ### 5.4 Resonance: when the trial form lies inside $y_h$
 
 Force a frictionless oscillator at exactly its natural frequency:
-
 $$\ddot x + \omega_0^2 x \;=\; F_0\cos\omega_0 t.$$
-
 The naive trial $A\cos\omega_0 t + B\sin\omega_0 t$ already solves the homogeneous equation, so we multiply by $t$:
-
 $$x_p \;=\; \frac{F_0}{2\omega_0}\,t\,\sin\omega_0 t.$$
-
 The amplitude grows linearly with time — energy is pumped in every cycle and never removed. Add even a sliver of damping and the unbounded growth becomes a finite peak at $\omega_r = \omega_0\sqrt{1 - 2\zeta^2}$, with peak amplitude $\propto 1/\zeta$.
 
 ![Steady-state amplitude versus driving frequency for several damping ratios; the resonance peak sharpens dramatically as zeta tends to zero.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig3_resonance_curve.png)
@@ -252,27 +220,25 @@ The undetermined-coefficients table only contains exponentials, polynomials, sin
 ### 6.2 The formula (second order)
 
 Given $y'' + p(x)y' + q(x)y = f(x)$ and a basis $y_1, y_2$ for the homogeneous equation, look for a particular solution of the form $y_p = u_1(x)\,y_1(x) + u_2(x)\,y_2(x)$ — promoting the "constants" of the homogeneous solution to functions (hence the name). Imposing the constraint $u_1' y_1 + u_2' y_2 = 0$ to keep things tractable, substitution yields the linear system
-
-$$\begin{pmatrix} y_1 & y_2 \\ y_1' & y_2' \end{pmatrix}
+$$
+\begin{pmatrix} y_1 & y_2 \\ y_1' & y_2' \end{pmatrix}
 \begin{pmatrix} u_1' \\ u_2' \end{pmatrix} =
-\begin{pmatrix} 0 \\ f \end{pmatrix},$$
-
+\begin{pmatrix} 0 \\ f \end{pmatrix},
+$$
 whose determinant is the Wronskian $W$. Cramer's rule then gives the closed-form
-
 $$\boxed{\;y_p \;=\; -\,y_1 \int \frac{y_2\,f}{W}\,dx \;+\; y_2 \int \frac{y_1\,f}{W}\,dx\;}.$$
-
 ### 6.3 Worked example: $y'' + y = \sec x$
 
 Homogeneous basis: $y_1 = \cos x,\ y_2 = \sin x,\ W = 1$. The integrands simplify nicely:
-
-$$\frac{y_2\,f}{W} = \sin x\,\sec x = \tan x, \qquad
-\frac{y_1\,f}{W} = \cos x\,\sec x = 1.$$
-
+$$
+\frac{y_2\,f}{W} = \sin x\,\sec x = \tan x, \qquad
+\frac{y_1\,f}{W} = \cos x\,\sec x = 1.
+$$
 Integrating,
-
-$$y_p \;=\; -\cos x\int\tan x\,dx + \sin x\int 1\,dx
-       \;=\; \cos x\,\ln|\cos x| + x\,\sin x.$$
-
+$$
+y_p \;=\; -\cos x\int\tan x\,dx + \sin x\int 1\,dx
+       \;=\; \cos x\,\ln|\cos x| + x\,\sin x.
+       $$
 ![Variation of parameters on y''+y = sec(x): the homogeneous basis, the antiderivatives u1 and u2, and the reconstructed particular solution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig7_variation_of_parameters.png)
 *Variation of parameters on $y'' + y = \sec x$. Top row: the homogeneous basis $y_1, y_2$ and the singular forcing $\sec x$. Bottom row: the antiderivatives $u_1(x) = \ln|\cos x|$ and $u_2(x) = x$, and the assembled particular solution $y_p = \cos x \ln|\cos x| + x\sin x$.*
 
@@ -283,9 +249,7 @@ $$y_p \;=\; -\cos x\int\tan x\,dx + \sin x\int 1\,dx
 ## 7. RLC circuits: the same equation in disguise
 
 A series resistor-inductor-capacitor circuit with applied voltage $V(t)$ obeys Kirchhoff's voltage law:
-
 $$L\,\ddot q \;+\; R\,\dot q \;+\; \frac{q}{C} \;=\; V(t),$$
-
 where $q(t)$ is the charge on the capacitor and $\dot q = i(t)$ is the current. Match coefficients with the mechanical normal form:
 
 | Mechanical | Electrical |
@@ -306,16 +270,14 @@ The standard parameters become $\omega_0 = 1/\sqrt{LC}$ (resonant angular freque
 ## 8. Reduction to a first-order system
 
 Numerical solvers (and the matrix theory of [Chapter 6](/en/ode/07-systems-and-phase-plane/)) want first-order systems. Any $n$-th order ODE can be flattened by introducing one variable per derivative. For
-
 $$y'' + a\,y' + b\,y = f(x), \qquad y_1 := y,\ y_2 := y',$$
-
 the equivalent system is
-
-$$\begin{pmatrix} y_1' \\ y_2' \end{pmatrix} \;=\;
+$$
+\begin{pmatrix} y_1' \\ y_2' \end{pmatrix} \;=\;
 \begin{pmatrix} 0 & 1 \\ -b & -a \end{pmatrix}
 \begin{pmatrix} y_1 \\ y_2 \end{pmatrix} +
-\begin{pmatrix} 0 \\ f(x) \end{pmatrix}.$$
-
+\begin{pmatrix} 0 \\ f(x) \end{pmatrix}.
+$$
 The eigenvalues of the matrix $\bigl(\begin{smallmatrix} 0 & 1 \\ -b & -a \end{smallmatrix}\bigr)$ are *exactly* the roots of the characteristic polynomial $r^2 + ar + b$ — so everything we said about characteristic roots is just two-dimensional linear algebra in disguise. We will exploit this fully in Chapter 6.
 
 ---

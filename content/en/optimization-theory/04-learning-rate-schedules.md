@@ -38,9 +38,7 @@ Your model diverges. You halve the learning rate. Now it trains, but takes forev
 **Learning rate $\eta$ controls how far you move along the direction the gradient suggests, each step.**
 
 The basic update rule is
-
 $$\theta_{t+1} = \theta_t - \eta \cdot \tilde g_t,$$
-
 where $\tilde g_t$ is usually a mini-batch (stochastic) estimate of the true gradient $\nabla L(\theta_t)$.
 
 The core trade-off:
@@ -56,13 +54,9 @@ The rest of this article is, essentially, the story of how researchers and engin
 ## 2.1 A 1-D quadratic — the cleanest possible intuition
 
 Take the simplest non-trivial loss:
-
 $$L(\theta) = \tfrac{1}{2} a \theta^2, \qquad a > 0.$$
-
 The gradient is $\nabla L(\theta) = a\theta$, so gradient descent gives
-
 $$\theta_{t+1} = \theta_t - \eta a \theta_t = (1 - \eta a)\,\theta_t.$$
-
 The whole trajectory is now a geometric sequence with ratio $r = 1 - \eta a$. Three regimes pop out:
 
 - $|r| < 1 \Leftrightarrow 0 < \eta < 2/a$ — converges to 0.
@@ -78,9 +72,7 @@ Notice in the right panel that the iterate doesn't just overshoot — it bounces
 ## 2.2 In high dimensions: the steepest direction sets the ceiling
 
 Real losses are not 1-D quadratics, but locally a quadratic approximation $L(\theta) \approx \tfrac{1}{2} (\theta - \theta^\star)^\top H (\theta - \theta^\star)$ is a fine model. The Hessian $H$ has eigenvalues $\lambda_1 \geq \dots \geq \lambda_n \geq 0$, and stability now requires
-
 $$\eta < \frac{2}{\lambda_{\max}(H)}.$$
-
 **Key insight**: it does not matter how gentle most directions are — a single sharp direction (the largest eigenvalue) sets the ceiling for the entire optimizer. You're walking a wide valley, but one cliff edge is enough to make you fall.
 
 This is also why training feels harder than it "should": the **largest eigenvalue grows during training** (this phenomenon is called *progressive sharpening*, see Cohen et al. 2021), so the LR you got away with at step 100 may blow up at step 10 000.
@@ -88,13 +80,9 @@ This is also why training feels harder than it "should": the **largest eigenvalu
 ## 2.3 $L$-smoothness: where the textbook bound $\eta \leq 1/L$ comes from
 
 Generalize beyond quadratics. A function is **$L$-smooth** if its gradient is $L$-Lipschitz:
-
 $$\|\nabla L(\theta) - \nabla L(\theta')\| \leq L \,\|\theta - \theta'\|.$$
-
 Intuitively: the loss surface has no "infinitely sharp" direction; curvature is bounded by $L$. Under this assumption, classical analysis shows that **gradient descent with $\eta \leq 1/L$ never increases the loss**. The exact form is the *descent lemma*
-
 $$L(\theta_{t+1}) \leq L(\theta_t) - \eta\left(1 - \tfrac{\eta L}{2}\right) \|\nabla L(\theta_t)\|^2,$$
-
 which is monotonically decreasing for $\eta < 2/L$ and most aggressively decreasing at $\eta = 1/L$. This is the "safe choice" — it's also why $L$ and the maximum eigenvalue $\lambda_{\max}(H)$ play essentially the same role.
 
 ## 2.4 Why schedules exist at all
@@ -135,9 +123,7 @@ Left: empirically, the linear rule $\eta \propto B$ holds to within a few percen
 ## 3.2 Momentum: a hidden LR amplifier
 
 SGD with momentum (Polyak / heavy-ball form):
-
 $$v_{t+1} = \beta v_t + g_t, \qquad \theta_{t+1} = \theta_t - \eta \, v_{t+1}.$$
-
 In steady state, $v_t \approx g / (1 - \beta)$, so the effective step size is roughly $\eta / (1 - \beta)$. With the typical $\beta = 0.9$, **momentum multiplies your effective LR by 10×.** That's why SGD-with-momentum recipes often use a smaller $\eta$ than what bare SGD could tolerate — the momentum is doing half the gas-pedal work.
 
 Adam's first moment is similar in spirit.
@@ -145,9 +131,7 @@ Adam's first moment is similar in spirit.
 ## 3.3 Weight decay: a coupled regularizer
 
 Decoupled weight decay (AdamW) is
-
 $$\theta_{t+1} = \theta_t - \eta \, (\text{adaptive update}) - \eta \lambda \theta_t,$$
-
 so the "shrinkage" applied per step is $\eta \lambda$. Doubling LR also doubles your effective weight decay. The *steady-state weight norm* is roughly $\propto \sqrt{1/\lambda}$, independent of $\eta$, but *how fast* you reach it depends on $\eta$. This is why "lower $\eta$ → less regularization" is a real and frequently-overlooked effect.
 
 **Practical rule**: when retuning LR, retune weight decay in the same sweep.
@@ -159,14 +143,14 @@ so the "shrinkage" applied per step is $\eta \lambda$. Doubling LR also doubles 
 If SGD's LR is one big hammer, Adam is a workshop full of small hammers — each parameter gets its own.
 
 ## 4.1 The Adam update
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 m_t &= \beta_1 m_{t-1} + (1-\beta_1) g_t, \\
 v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
 \hat m_t &= m_t / (1 - \beta_1^t), \quad \hat v_t = v_t / (1 - \beta_2^t), \\
 \theta_{t+1} &= \theta_t - \eta \cdot \frac{\hat m_t}{\sqrt{\hat v_t} + \varepsilon}.
-\end{aligned}$$
-
+\end{aligned}
+$$
 The key term is $\eta / \sqrt{\hat v_t}$ — the **effective per-parameter LR** scales like $\eta / |g|$. Parameters with consistently large gradients get small steps; quiet parameters get full $\eta$. That is why Adam works out-of-the-box on dramatically different scales (embeddings, attention, layer norms) where SGD would need careful per-layer LR.
 
 ## 4.2 Why Adam still needs warmup
@@ -197,9 +181,7 @@ Simple. Almost always wrong. Either too slow early or too noisy late — you can
 Multiply $\eta$ by $\gamma$ (typically 0.1) at fixed milestones. The classic ResNet recipe. Pros: easy to implement, easy to tune by hand. Cons: the abrupt drop can cause loss spikes if your weight decay or batch normalization is sensitive.
 
 ## 5.3 Cosine decay (the deep-learning workhorse)
-
 $$\eta_t = \eta_{\min} + (\eta_{\max} - \eta_{\min}) \cdot \tfrac{1}{2}\left[1 + \cos\left(\pi \cdot \tfrac{t - t_w}{T - t_w}\right)\right],$$
-
 after a linear warmup of length $t_w$. The shape — slow decay early, fast decay late — matches the intuition: explore at high $\eta$ for as long as possible, then settle.
 
 This was the schedule of choice for almost every "big model" paper between 2019 and 2023 (BERT, RoBERTa, GPT-3, ViT, ResNet on ImageNet at scale). Its main drawback is **rigidity**: the cosine half-period is set by the *known* total step count $T$. If you want to extend the run, you have to redesign the schedule.

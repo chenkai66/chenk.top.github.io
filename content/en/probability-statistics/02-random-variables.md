@@ -27,10 +27,7 @@ This article catalogs the distributions you'll encounter most often and shows ex
 **Definition.** A **random variable** $X$ is a function from the sample space to the real numbers:
 
 ![Quantile function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-quantile-function.png)
-
-
 $$X: \Omega \to \mathbb{R}$$
-
 such that for every real number $x$, the set $\{\omega \in \Omega : X(\omega) \leq x\}$ is an event in $\mathcal{F}$.
 
 The measurability condition (the second part of the definition) ensures that questions like "what is the probability that $X$ is at most 3?" have well-defined answers. For finite and countable sample spaces, this condition is automatically satisfied.
@@ -49,9 +46,7 @@ A random variable is **discrete** if it takes values in a countable set (finite 
 ### Probability Mass Function (PMF)
 
 The **PMF** of a discrete random variable $X$ is
-
 $$p_X(x) = P(X = x)$$
-
 for each value $x$ in the support of $X$. Properties:
 
 1. $p_X(x) \geq 0$ for all $x$
@@ -62,10 +57,7 @@ for each value $x$ in the support of $X$. Properties:
 The **CDF** of any random variable (discrete or continuous) is
 
 ![Key distributions gallery](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-distribution-gallery.png)
-
-
 $$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad \text{(discrete case)}.$$
-
 The CDF is right-continuous, non-decreasing, with $\lim_{x \to -\infty} F(x) = 0$ and $\lim_{x \to \infty} F(x) = 1$.
 
 ## Key Discrete Distributions
@@ -76,9 +68,7 @@ The CDF is right-continuous, non-decreasing, with $\lim_{x \to -\infty} F(x) = 0
 ### Bernoulli Distribution
 
 The simplest random variable: a single trial with two outcomes.
-
 $$X \sim \text{Bernoulli}(p), \quad p_X(x) = p^x (1-p)^{1-x} \text{ for } x \in \{0, 1\}.$$
-
 - **Mean:** $E[X] = p$
 - **Variance:** $\text{Var}(X) = p(1-p)$
 
@@ -87,9 +77,7 @@ Every binary outcome — coin flip, click/no-click, spam/not-spam — is a Berno
 ### Binomial Distribution
 
 The number of successes in $n$ independent Bernoulli trials.
-
 $$X \sim \text{Binomial}(n, p), \quad p_X(k) = \binom{n}{k} p^k (1-p)^{n-k} \text{ for } k = 0, 1, \ldots, n.$$
-
 *Derivation.* A specific sequence with exactly $k$ successes has probability $p^k(1-p)^{n-k}$. The number of such sequences is $\binom{n}{k}$.
 
 - **Mean:** $E[X] = np$
@@ -100,26 +88,18 @@ $$X \sim \text{Binomial}(n, p), \quad p_X(k) = \binom{n}{k} p^k (1-p)^{n-k} \tex
 ### Geometric Distribution
 
 The number of trials until the first success.
-
 $$X \sim \text{Geometric}(p), \quad p_X(k) = (1-p)^{k-1} p \text{ for } k = 1, 2, 3, \ldots$$
-
 *Verification of normalization:*
-
 $$\sum_{k=1}^{\infty} (1-p)^{k-1} p = p \sum_{j=0}^{\infty} (1-p)^j = p \cdot \frac{1}{1-(1-p)} = p \cdot \frac{1}{p} = 1. \quad \checkmark$$
-
 - **Mean:** $E[X] = 1/p$
 - **Variance:** $\text{Var}(X) = (1-p)/p^2$
 
 The Geometric distribution has the **memoryless property**: $P(X > s + t \mid X > s) = P(X > t)$. Given that you've already waited $s$ trials without success, the distribution of remaining wait time is the same as if you started fresh.
 
 *Proof.* $P(X > n) = (1-p)^n$ (all $n$ trials are failures). Then:
-
 $$P(X > s+t \mid X > s) = \frac{P(X > s+t)}{P(X > s)} = \frac{(1-p)^{s+t}}{(1-p)^s} = (1-p)^t = P(X > t). \quad \blacksquare$$
-
 **The Negative Binomial Distribution.** A generalization: the number of trials until the $r$-th success.
-
 $$X \sim \text{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} \text{ for } k = r, r+1, \ldots$$
-
 The Geometric is the special case $r = 1$. The Negative Binomial arises naturally when modeling overdispersed count data (variance exceeds mean), making it a popular alternative to Poisson in practice.
 
 - **Mean:** $E[X] = r/p$
@@ -128,24 +108,18 @@ The Geometric is the special case $r = 1$. The Negative Binomial arises naturall
 ### Poisson Distribution
 
 The number of events occurring in a fixed interval when events happen at a constant average rate.
-
 $$X \sim \text{Poisson}(\lambda), \quad p_X(k) = \frac{\lambda^k e^{-\lambda}}{k!} \text{ for } k = 0, 1, 2, \ldots$$
-
 - **Mean:** $E[X] = \lambda$
 - **Variance:** $\text{Var}(X) = \lambda$ (mean equals variance — a signature of Poisson)
 
 *Proof of mean.*
-
 $$E[X] = \sum_{k=0}^{\infty} k \frac{\lambda^k e^{-\lambda}}{k!} = \lambda e^{-\lambda} \sum_{k=1}^{\infty} \frac{\lambda^{k-1}}{(k-1)!} = \lambda e^{-\lambda} \cdot e^{\lambda} = \lambda. \quad \blacksquare$$
-
 ### Poisson Approximation to Binomial
 
 When $n$ is large, $p$ is small, and $\lambda = np$ is moderate, $\text{Binomial}(n, p) \approx \text{Poisson}(\lambda)$.
 
 *Proof sketch.* For fixed $k$:
-
 $$\binom{n}{k} p^k (1-p)^{n-k} = \frac{n!}{k!(n-k)!} \left(\frac{\lambda}{n}\right)^k \left(1 - \frac{\lambda}{n}\right)^{n-k}.$$
-
 As $n \to \infty$ with $\lambda = np$ fixed:
 - $\frac{n!}{(n-k)! \cdot n^k} \to 1$
 - $(1 - \lambda/n)^n \to e^{-\lambda}$
@@ -158,9 +132,7 @@ So the whole expression converges to $\frac{\lambda^k e^{-\lambda}}{k!}$. $\blac
 ## Continuous Random Variables
 
 A random variable is **continuous** if there exists a non-negative function $f_X$ (the **probability density function** or **PDF**) such that
-
 $$P(a \leq X \leq b) = \int_a^b f_X(x) \, dx.$$
-
 Properties:
 1. $f_X(x) \geq 0$ for all $x$
 2. $\int_{-\infty}^{\infty} f_X(x) \, dx = 1$
@@ -168,19 +140,13 @@ Properties:
 **Critical distinction:** For continuous random variables, $P(X = x) = 0$ for any single value $x$. This is not a contradiction — the density $f(x)$ can be positive even though the probability of any specific point is zero. Probability lives in intervals, not points.
 
 The CDF is:
-
 $$F_X(x) = P(X \leq x) = \int_{-\infty}^{x} f_X(t) \, dt$$
-
 and the PDF is the derivative of the CDF (where it exists):
-
 $$f_X(x) = F_X'(x).$$
-
 ## Key Continuous Distributions
 
 ### Uniform Distribution
-
 $$X \sim \text{Uniform}(a, b), \quad f_X(x) = \frac{1}{b-a} \text{ for } x \in [a, b].$$
-
 - **Mean:** $E[X] = (a+b)/2$
 - **Variance:** $\text{Var}(X) = (b-a)^2/12$
 - **CDF:** $F_X(x) = (x-a)/(b-a)$ for $x \in [a,b]$
@@ -188,36 +154,26 @@ $$X \sim \text{Uniform}(a, b), \quad f_X(x) = \frac{1}{b-a} \text{ for } x \in [
 The "maximum ignorance" distribution — every value in $[a,b]$ is equally likely.
 
 ### Exponential Distribution
-
 $$X \sim \text{Exponential}(\lambda), \quad f_X(x) = \lambda e^{-\lambda x} \text{ for } x \geq 0.$$
-
 - **Mean:** $E[X] = 1/\lambda$
 - **Variance:** $\text{Var}(X) = 1/\lambda^2$
 - **CDF:** $F_X(x) = 1 - e^{-\lambda x}$
 
 The continuous analog of the Geometric distribution. It is the **only** continuous distribution with the memoryless property:
-
 $$P(X > s + t \mid X > s) = P(X > t).$$
-
 *Proof.* $P(X > x) = e^{-\lambda x}$. Then:
-
 $$P(X > s+t \mid X > s) = \frac{P(X > s+t)}{P(X > s)} = \frac{e^{-\lambda(s+t)}}{e^{-\lambda s}} = e^{-\lambda t} = P(X > t). \quad \blacksquare$$
-
 This makes the Exponential distribution natural for modeling waiting times in processes with no memory — radioactive decay, inter-arrival times in a Poisson process, time between server requests.
 
 ### Gaussian (Normal) Distribution
 
 The most important distribution in all of statistics.
-
 $$X \sim \mathcal{N}(\mu, \sigma^2), \quad f_X(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\left(-\frac{(x - \mu)^2}{2\sigma^2}\right).$$
-
 - **Mean:** $E[X] = \mu$
 - **Variance:** $\text{Var}(X) = \sigma^2$
 
 The **standard normal** $Z \sim \mathcal{N}(0, 1)$ has $\mu = 0$, $\sigma = 1$. Any normal can be standardized:
-
 $$Z = \frac{X - \mu}{\sigma}.$$
-
 **The 68-95-99.7 Rule:**
 
 | Interval | Probability |
@@ -235,30 +191,22 @@ $$Z = \frac{X - \mu}{\sigma}.$$
 ### The Log-Normal Distribution
 
 If $X \sim \mathcal{N}(\mu, \sigma^2)$, then $Y = e^X$ follows a **log-normal** distribution. Its PDF is:
-
 $$f_Y(y) = \frac{1}{y\sigma\sqrt{2\pi}} \exp\left(-\frac{(\ln y - \mu)^2}{2\sigma^2}\right) \quad \text{for } y > 0.$$
-
 - **Mean:** $E[Y] = e^{\mu + \sigma^2/2}$
 - **Variance:** $\text{Var}(Y) = (e^{\sigma^2} - 1) e^{2\mu + \sigma^2}$
 
 The log-normal models quantities that are products of many positive factors (incomes, stock prices, particle sizes), just as the Normal models sums. It is always right-skewed and positive-valued.
 
 *Proof that the PDF integrates to 1.* Let $I = \int_{-\infty}^{\infty} e^{-x^2/2} dx$. Then:
-
 $$I^2 = \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} e^{-(x^2 + y^2)/2} dx \, dy.$$
-
 Switch to polar coordinates: $x^2 + y^2 = r^2$, $dx \, dy = r \, dr \, d\theta$:
-
 $$I^2 = \int_0^{2\pi} \int_0^{\infty} e^{-r^2/2} r \, dr \, d\theta = 2\pi \int_0^{\infty} r e^{-r^2/2} dr = 2\pi \left[-e^{-r^2/2}\right]_0^{\infty} = 2\pi.$$
-
 So $I = \sqrt{2\pi}$, confirming $\frac{1}{\sqrt{2\pi}} e^{-x^2/2}$ integrates to 1. $\blacksquare$
 
 ### Gamma Distribution
 
 A generalization of the Exponential: the sum of $\alpha$ independent $\text{Exponential}(\beta)$ random variables.
-
 $$X \sim \text{Gamma}(\alpha, \beta), \quad f_X(x) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x} \text{ for } x > 0$$
-
 where $\Gamma(\alpha) = \int_0^{\infty} t^{\alpha-1} e^{-t} dt$ is the gamma function. When $\alpha$ is a positive integer, $\Gamma(\alpha) = (\alpha - 1)!$.
 
 - **Mean:** $E[X] = \alpha/\beta$
@@ -267,9 +215,7 @@ where $\Gamma(\alpha) = \int_0^{\infty} t^{\alpha-1} e^{-t} dt$ is the gamma fun
 Special cases: $\text{Gamma}(1, \lambda) = \text{Exponential}(\lambda)$; $\text{Gamma}(n/2, 1/2) = \chi^2(n)$ (chi-squared with $n$ degrees of freedom).
 
 ### Beta Distribution
-
 $$X \sim \text{Beta}(\alpha, \beta), \quad f_X(x) = \frac{x^{\alpha-1}(1-x)^{\beta-1}}{B(\alpha, \beta)} \text{ for } x \in (0, 1)$$
-
 where $B(\alpha, \beta) = \frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha+\beta)}$ is the beta function.
 
 - **Mean:** $E[X] = \frac{\alpha}{\alpha + \beta}$
@@ -434,10 +380,7 @@ These connections are not accidents. They reflect deep structural relationships 
 The **quantile function** (or **inverse CDF**) $F^{-1}(p)$ is defined for $p \in (0, 1)$ as:
 
 ![CDF comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-cdf-comparison.png)
-
-
 $$F^{-1}(p) = \inf\{x : F(x) \geq p\}.$$
-
 For continuous distributions with strictly increasing CDFs, this simplifies to: $F^{-1}(p)$ is the unique $x$ such that $F(x) = p$.
 
 Key quantiles have special names:
@@ -456,9 +399,7 @@ The quantile function is essential for generating random samples from any distri
 ## Mixtures of Distributions
 
 Not every distribution fits neatly into a single named family. A **mixture distribution** combines multiple components:
-
 $$f(x) = \sum_{k=1}^{K} w_k f_k(x), \qquad \sum_{k=1}^K w_k = 1, \quad w_k \geq 0$$
-
 where $f_k$ are the component densities and $w_k$ are the mixing weights.
 
 **Example.** A population consists of two groups: 70% have income $\sim \mathcal{N}(50000, 10000^2)$ and 30% have income $\sim \mathcal{N}(90000, 15000^2)$. The overall income distribution is a two-component Gaussian mixture — bimodal, not Normal.
@@ -521,9 +462,7 @@ Given $X$ with known distribution, what is the distribution of $Y = g(X)$? This 
 **Example.** If $X \sim \mathcal{N}(\mu, \sigma^2)$, what is the distribution of $Y = aX + b$?
 
 Since a linear transformation of a Normal is Normal (proved via MGFs in Article 3):
-
 $$Y = aX + b \sim \mathcal{N}(a\mu + b, a^2\sigma^2).$$
-
 This is why standardization works: $Z = (X - \mu)/\sigma$ has $\mu_Z = 0$ and $\sigma_Z^2 = 1$.
 
 **Example.** If $X \sim \text{Uniform}(0, 1)$, what is the distribution of $Y = X^2$?

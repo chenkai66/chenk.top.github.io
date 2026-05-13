@@ -55,24 +55,18 @@ Meanwhile, the internet stores petabytes of *unlabelled* text, images, and video
 ### A Bayesian view: pre-training is a prior
 
 Let $\theta$ be the model parameters, $\mathcal{D}_{\mathrm{pre}}$ the pre-training corpus, and $\mathcal{D}_{\mathrm{task}}$ the labelled task data. Standard supervised training looks for
-
 $$\theta^{*} = \arg\max_{\theta} \log P(\mathcal{D}_{\mathrm{task}} \mid \theta).$$
-
 Pre-training plus fine-tuning instead does two stages of inference:
 
 1. **Pre-train:** estimate the prior $P(\theta \mid \mathcal{D}_{\mathrm{pre}})$.
 2. **Fine-tune:** Bayesian update with the task likelihood,
-
 $$P(\theta \mid \mathcal{D}_{\mathrm{task}}, \mathcal{D}_{\mathrm{pre}}) \;\propto\; P(\mathcal{D}_{\mathrm{task}} \mid \theta) \cdot P(\theta \mid \mathcal{D}_{\mathrm{pre}}).$$
-
 When $\mathcal{D}_{\mathrm{task}}$ is small, the likelihood is noisy and the posterior is dominated by the prior. A *good* prior - one that already concentrates probability in plausible regions of parameter space - dramatically improves the posterior estimate. That is exactly what a pre-trained checkpoint gives you.
 
 ### An information-theoretic view: features that transfer
 
 Define a feature extractor $f_{\theta}: \mathcal{X} \to \mathbb{R}^{d}$. Pre-training searches for a $\theta$ such that the mutual information
-
 $$I(f_{\theta}(X); Y_{i})$$
-
 is high for many downstream label spaces $Y_{1}, Y_{2}, \dots$. ImageNet edges, textures, and object parts are useful far beyond classification - they help detection, segmentation, and even medical imaging. BERT's syntactic and semantic representations help across NLP. **A pre-trained model is, in effect, a compression of the data into features that retain transferable information.**
 
 ### Faster convergence, better minima
@@ -92,9 +86,7 @@ Core idea: **pull representations of similar samples together and push dissimila
 #### SimCLR
 
 For each image $x$ in a batch, apply two random augmentations (crop, colour jitter, blur) to get a positive pair $(x_{i}, x_{i'})$. Let $f$ be the encoder and $g$ a small projection head; write $z = g(f(x))$. The NT-Xent loss for one positive pair is
-
 $$\mathcal{L}_{i} = -\log \frac{\exp(\operatorname{sim}(z_{i}, z_{i'}) / \tau)}{\sum_{k \neq i} \exp(\operatorname{sim}(z_{i}, z_{k}) / \tau)},$$
-
 where $\operatorname{sim}$ is cosine similarity and $\tau$ is a temperature.
 
 - **Numerator:** wants the positive pair to be similar.
@@ -106,9 +98,7 @@ The catch: you need lots of negatives. SimCLR uses batch sizes of 4096--8192 and
 #### MoCo: momentum-updated queue
 
 MoCo decouples the negative count from the batch size. Two encoders are kept: a *query* encoder $f_{q}$ updated by gradients, and a *key* encoder $f_{k}$ updated by exponential moving average,
-
 $$\theta_{k} \leftarrow m \cdot \theta_{k} + (1 - m) \cdot \theta_{q}, \qquad m \approx 0.999.$$
-
 Old keys are stashed in a **queue** of size 65 536. The dictionary is large *and* the encoder is consistent (because $f_{k}$ moves slowly). You get SimCLR-quality contrastive learning on a single GPU.
 
 ### Masked language modelling (NLP)
@@ -116,9 +106,7 @@ Old keys are stashed in a **queue** of size 65 536. The dictionary is large *and
 #### BERT's MLM objective
 
 Take a sentence, replace 15 % of the tokens with a special `[MASK]`, and ask the model to recover the originals from the surrounding context:
-
 $$\mathcal{L}_{\mathrm{MLM}} = -\sum_{i \in \mathcal{M}} \log P(x_{i} \mid x_{\setminus \mathcal{M}}).$$
-
 The 15 % is split as **80 % `[MASK]`, 10 % random token, 10 % unchanged**. That mixture is not aesthetic; it closes the train-test distribution gap. At fine-tuning time there are no `[MASK]` tokens, so a model that has only ever seen `[MASK]` would underperform. The 10 % random and 10 % unchanged force the model to build a representation that is robust whether the position is masked or not.
 
 **Why 15 % and not 5 % or 50 %?** Too few masks gives a weak learning signal per sentence; too many destroys the context the model needs to predict from. Empirically, 15 % is the sweet spot, although recent work (Wettig et al., 2023) shows you can push to 40 % with the right architecture.
@@ -144,9 +132,7 @@ Now the practical question: how exactly do you adapt hundreds of millions of pre
 ### Full fine-tuning
 
 The simplest recipe: unfreeze everything and train end-to-end on the downstream task. To stop the parameters from drifting too far from the pre-trained checkpoint, you can add an L2 anchor:
-
 $$\theta^{*} = \arg\min_{\theta} \; \mathcal{L}_{\mathrm{task}}(\theta) + \lambda \lVert \theta - \theta_{\mathrm{pre}} \rVert^{2}.$$
-
 This is a simplified Elastic Weight Consolidation. In practice the implicit regularisation from a small learning rate plus early stopping is usually enough.
 
 ### Discriminative learning rates
@@ -157,9 +143,7 @@ Different layers carry different kinds of knowledge:
 - **Top layers** (the classifier, the last block or two) are task-specific. Train them aggressively.
 
 ULMFiT formalised this as **discriminative fine-tuning**. For an $L$-layer model, layer $\ell$ gets
-
 $$\eta_{\ell} = \frac{\eta_{L}}{\xi^{\,L - \ell}}, \qquad \xi \approx 2.6.$$
-
 The bottom layer ends up roughly $\xi^{L}$ times smaller than the top.
 
 ### Warmup, then decay
@@ -218,17 +202,13 @@ Three families of remedies:
 ### Adapters: parameter-efficient fine-tuning
 
 Insert a small bottleneck module into each Transformer block:
-
 $$\operatorname{Adapter}(h) = h + W_{\mathrm{up}}\, \sigma\big(W_{\mathrm{down}}\, h\big),$$
-
 with $W_{\mathrm{down}} \in \mathbb{R}^{m \times d}$, $W_{\mathrm{up}} \in \mathbb{R}^{d \times m}$, and $m \ll d$ (typically $m = 64$, $d = 768$). The residual connection means an untrained adapter is the identity, so you start exactly where the pre-trained model left off. You only train the adapter - per task you store $\sim 1\%$ of the full model's parameters.
 
 ### LoRA: low-rank weight updates
 
 LoRA goes one step further. Instead of inserting a non-linear bottleneck, it directly decomposes the *update* to a frozen weight matrix:
-
 $$W' = W_{0} + \Delta W = W_{0} + B A, \qquad A \in \mathbb{R}^{r \times d}, \; B \in \mathbb{R}^{d \times r}, \; r \ll d.$$
-
 During fine-tuning $W_{0}$ is frozen and only $A, B$ are trained. Three properties make LoRA the de-facto PEFT method today:
 
 - **Tiny.** Only $2dr$ parameters per adapted matrix - usually $r = 4$--$16$.
@@ -272,9 +252,7 @@ BERT is a stack of bidirectional Transformer encoder blocks. Given input tokens,
 ### GPT: the autoregressive cousin
 
 GPT pre-trains by left-to-right next-token prediction:
-
 $$\mathcal{L}_{\mathrm{GPT}} = -\sum_{t} \log P(x_{t} \mid x_{< t}).$$
-
 For *understanding* tasks BERT's bidirectional context wins. For *generation* tasks GPT's autoregressive structure is the natural fit. Modern decoder-only LLMs (LLaMA, Qwen, GPT-4) are GPT's lineage - and the same fine-tuning principles transfer almost entirely, just with smaller LRs and heavier reliance on LoRA.
 
 ---

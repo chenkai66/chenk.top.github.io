@@ -52,7 +52,6 @@ Articles 08 (Lagrangian duality), 09 (interior-point) for the LP/QP solver menti
 ### A.1 The integer programming problem
 
 A general **mixed-integer linear program** (MILP) is
-
 $$
 \begin{aligned}
 \min_{x, z} \quad & c^\top x + d^\top z \\
@@ -60,7 +59,6 @@ $$
 & x \in \mathbb{R}^n_+, \quad z \in \mathbb{Z}^p_+.
 \end{aligned}
 $$
-
 The integer variables $z$ make this NP-hard: even feasibility of pure 0-1 integer programs is NP-complete (it encodes 3SAT). The continuous variables $x$ can model production levels, prices, etc., while integer variables model decisions ("open this facility?", "use this route?").
 
 The naive approach — enumerate all $2^p$ values of $z$, solve an LP for each — is hopeless for $p > 30$. Branch-and-bound is what makes practical MILPs solvable.
@@ -68,11 +66,9 @@ The naive approach — enumerate all $2^p$ values of $z$, solve an LP for each �
 ### A.2 LP relaxation
 
 Drop the integrality constraint to get the **LP relaxation**:
-
 $$
 \min \, c^\top x + d^\top z \quad \text{s.t.} \quad A x + B z \leq b, \ x, z \geq 0.
 $$
-
 This LP gives a **lower bound** on the MILP optimum (any MILP-feasible solution is also LP-feasible). Solving it in polynomial time (interior-point methods, article 09) is the building block of all serious MILP solvers.
 
 If the LP relaxation happens to have integer-valued $z^\star_{LP}$, we are done. Otherwise, pick a fractional $z^\star_{LP, j} \notin \mathbb{Z}$ and **branch**.
@@ -111,11 +107,9 @@ The figure above traces a small B&B run with two integer variables. The root LP 
 A **cutting plane** is an inequality $\alpha^\top z \leq \beta$ that is satisfied by every integer-feasible $z$ but violated by the current LP relaxation optimum. Adding cuts tightens the LP relaxation, raising the lower bound and pruning more aggressively.
 
 **Gomory cut**. From the simplex tableau of the LP optimum, if a basic variable $z_j$ has value $\bar z_j = \lfloor \bar z_j \rfloor + f_j$ with $0 < f_j < 1$, then
-
 $$
 \sum_k \mathrm{frac}(\bar a_{jk}) \cdot z_k \geq f_j
 $$
-
 holds for every integer $z$ but not for the fractional LP optimum. (Here $\bar a_{jk}$ are the tableau entries and $\mathrm{frac}(x) = x - \lfloor x \rfloor$.)
 
 Modern MILP solvers (Gurobi, CPLEX, SCIP) use 10+ kinds of cuts: Gomory, mixed-integer rounding, lift-and-project, clique cuts, flow cover cuts. The modern algorithm is **branch-and-cut**: at each node, try to add violated cuts before branching.
@@ -159,11 +153,9 @@ The four families above are the standard cuts in the metaheuristic literature. T
 **Genetic algorithm (GA)**: maintain a population of solutions; combine pairs via crossover and mutation; keep the best. Handles binary and categorical decision variables naturally. Notoriously sensitive to operator design.
 
 **Particle swarm (PSO)**: $N$ particles each with position $x_i$ and velocity $v_i$ in continuous space; velocity updates pull each particle toward the swarm-best and its own best:
-
 $$
 v_i \leftarrow w v_i + c_1 r_1 (p_i^{\text{best}} - x_i) + c_2 r_2 (p^{\text{global best}} - x_i).
 $$
-
 Strong on continuous problems with multiple basins.
 
 **Spiral optimization (SOA)**: similar to PSO but each particle follows a logarithmic spiral toward the current incumbent, with the spiral's radius shrinking geometrically. We treat this in detail in the case study below.
@@ -197,14 +189,14 @@ Markowitz's mean-variance model is elegant until you add real trading constraint
 ### 4.1 The classical mean-variance problem
 
 Let $\mathbf{y} \in \mathbb{R}^n$ be the vector of capital fractions, $\overline{\mathbf{r}} \in \mathbb{R}^n$ the vector of expected asset returns, and $Q \in \mathbb{R}^{n \times n}$ the positive semidefinite covariance matrix of returns. For a target portfolio return $R_p$, the *long-only* mean-variance problem is
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 \min_{\mathbf{y}} \quad & V(\mathbf{y}) = \mathbf{y}^\top Q \mathbf{y} \\
 \text{s.t.} \quad & \overline{\mathbf{r}}^\top \mathbf{y} = R_p, \\
 & \mathbf{e}^\top \mathbf{y} = 1, \\
 & y_i \geq 0, \quad i = 1, \dots, n,
-\end{aligned}$$
-
+\end{aligned}
+$$
 where $\mathbf{e}$ is the all-ones vector. This is a convex quadratic program. Sweep $R_p$ across an interval and you trace the *efficient frontier*: the locus of portfolios that minimise variance for each return level.
 
 ![Mean-variance frontier with cardinality constraint](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig1_efficient_frontier.png)
@@ -214,28 +206,24 @@ The figure above shows the geometry on a five-asset universe. The cloud of dots 
 ### 4.2 Adding the buy-in threshold
 
 Real desks rarely hold a 0.3% position in a stock. The buy-in threshold says: if you hold asset $i$ at all, hold at least $l_i$. Introduce a binary indicator $z_i \in \{0, 1\}$ for inclusion and link it to $y_i$ via box constraints:
-
 $$l_i z_i \leq y_i \leq u_i z_i, \qquad 0 < l_i < u_i \leq 1, \qquad z_i \in \{0, 1\}.$$
-
 When $z_i = 0$ the entire row collapses to $y_i = 0$. When $z_i = 1$ the weight is forced into $[l_i, u_i]$. This is the precise mathematical instant at which the problem becomes mixed-integer: the feasible set is now a finite union of polytopes (one per choice of $\mathbf{z}$), and convexity is gone.
 
 ### 4.3 Adding the cardinality constraint
 
 The cardinality constraint pins the portfolio to exactly $K$ assets:
-
 $$\sum_{i=1}^{n} z_i = K.$$
-
 Combining everything yields the full MINLP studied in the paper:
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 \min_{\mathbf{y}, \mathbf{z}} \quad & V(\mathbf{y}) = \mathbf{y}^\top Q \mathbf{y} \\
 \text{s.t.} \quad & \overline{\mathbf{r}}^\top \mathbf{y} = R_p, \\
 & \mathbf{e}^\top \mathbf{y} = 1, \\
 & \sum_{i=1}^{n} z_i = K, \\
 & l_i z_i \leq y_i \leq u_i z_i, \\
 & z_i \in \{0, 1\}, \quad i = 1, \dots, n.
-\end{aligned}$$
-
+\end{aligned}
+$$
 This object has $\binom{n}{K}$ combinatorial branches. Even at $n = 100, K = 10$ that is $1.7 \times 10^{13}$ subsets, well outside what brute-force enumeration can touch. Branch-and-bound MINLP solvers (BARON, SCIP, Bonmin) can attack it but their wall clock grows quickly; this is the scale at which metaheuristics become attractive.
 
 ## 5. The Spiral Optimization Algorithm
@@ -243,9 +231,7 @@ This object has $\binom{n}{K}$ combinatorial branches. Even at $n = 100, K = 10$
 ### 5.1 Update rule
 
 SOA, introduced by Tamura and Yasuda (2011), is a population-based metaheuristic inspired by the logarithmic spirals seen in plant phyllotaxis and galactic arms. At iteration $k$, each candidate $\mathbf{x}_k^{(j)}$ is updated toward the current best $\mathbf{x}^*$ via
-
 $$\mathbf{x}_{k+1}^{(j)} \;=\; \mathbf{x}^* \;+\; r \cdot R(\theta) \, \big(\mathbf{x}_k^{(j)} - \mathbf{x}^*\big),$$
-
 where $R(\theta)$ is a $d$-dimensional rotation matrix with angle $\theta$, and $r \in (0, 1)$ is a contraction factor. The composition of rotation and contraction traces a logarithmic spiral inward.
 
 ![SOA spiral trajectory and radius schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig2_spiral_trajectory.png)
@@ -271,17 +257,15 @@ After each candidate is moved, the population is re-evaluated and $\mathbf{x}^*$
 ### 6.1 Quadratic penalty
 
 The paper handles all constraints with a quadratic penalty:
-
 $$\min_{\mathbf{y}, \mathbf{z}} \; F(\mathbf{y}, \mathbf{z}) = V(\mathbf{y}) + \rho \cdot P(\mathbf{y}, \mathbf{z}),$$
-
 where $P$ measures total constraint violation:
-
-$$P = \big(\overline{\mathbf{r}}^\top \mathbf{y} - R_p\big)^2
+$$
+P = \big(\overline{\mathbf{r}}^\top \mathbf{y} - R_p\big)^2
   \,+\, \big(\mathbf{e}^\top \mathbf{y} - 1\big)^2
   \,+\, \sum_{i=1}^{n} \max(0, l_i z_i - y_i)^2
   \,+\, \sum_{i=1}^{n} \max(0, y_i - u_i z_i)^2
-  \,+\, \Big(\sum_i z_i - K\Big)^2.$$
-
+  \,+\, \Big(\sum_i z_i - K\Big)^2.
+  $$
 The integer constraint $z_i \in \{0,1\}$ is enforced by *rounding*: SOA searches over $z_i \in [0,1]$ continuously and rounds to the nearest integer when evaluating $P$.
 
 ![Penalty pulls the optimum into the feasible band, plus 2-D feasibility map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig3_constraint_handling.png)
@@ -307,9 +291,7 @@ After each spiral update, candidates can drift outside the unit box. The paper a
 ### 7.1 The benchmark
 
 Following Bartholomew-Biggs and Kane (2009), the paper uses a five-asset universe with mean return vector
-
 $$\overline{\mathbf{r}} = (0.10, 0.13, 0.085, 0.155, 0.07)^\top$$
-
 and a $5 \times 5$ positive semidefinite covariance matrix (the precise values are in the paper). Target return $R_p = 0.05$, buy-in $l_i = 0.05$, cardinality $K = 5$ (all assets active), penalty $\rho = 10^4$, 50 iterations.
 
 ### 7.2 Convergence comparison

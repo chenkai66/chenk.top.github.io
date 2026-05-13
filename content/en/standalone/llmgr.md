@@ -79,9 +79,7 @@ Both tasks share the same LLM weights, the same hybrid encoding layer, and the s
 ## 4. The hybrid encoding layer: one linear map bridges two spaces
 
 The plumbing problem is concrete: GNN ID embeddings are 64-d, LLaMA2-7B's hidden state is 4096-d, and the LLM expects token-shaped inputs. LLMGR solves this with a single learnable projection $W_p \in \mathbb{R}^{D \times d}$:
-
 $$\tilde{x}_v = W_p\, x_v, \quad x_v \in \mathbb{R}^{d=64}, \quad \tilde{x}_v \in \mathbb{R}^{D=4096}$$
-
 Projected ID vectors are then concatenated with text token embeddings and fed to the LLM as if they were extra tokens.
 
 ![Hybrid encoding: project ID embeddings to LLM hidden dim, then concatenate with text tokens](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llmgr/fig3_hybrid_encoding.png)
@@ -115,31 +113,21 @@ For a click stream $s = [v_1, \dots, v_n]$, build $G_s = (V_s, E_s)$ where $V_s$
 ### GNN message passing
 
 For node $v$ with neighbour set $N(v)$ and layer-$l$ embedding $x_v^{(l)}$:
-
 $$t_v^{(l+1)} = f_{\text{agg}}\!\left(\{x_u^{(l)} : u \in N(v)\}\right), \qquad x_v^{(l+1)} = f_{\text{upd}}\!\left(x_v^{(l)}, t_v^{(l+1)}\right)$$
-
 After $L$ layers, $x_v^{(L)}$ has aggregated information from $L$-hop neighbours.
 
 ### Graph readout
-
 $$z_s = f_{\text{readout}}\!\left(\{x_v^{(L)} : v \in V_s\}\right)$$
-
 Common choices: mean / max pooling, or attention pooling that puts most weight on the last clicked node.
 
 ### Hybrid encoding and ranking head
 
 Project IDs and concatenate with text:
-
 $$\tilde{x}_v = W_p\, x_v, \qquad H = \mathrm{LLM}\!\left([\tilde{x}_{v_1}, \dots, \tilde{x}_{v_n};\; e_{t_1}, \dots, e_{t_m}]\right)$$
-
 A linear or MLP head turns the LLM's last hidden state into a distribution over the candidate set:
-
 $$p(v_{n+1} \mid s) = \mathrm{softmax}(W_o\, H)$$
-
 Both stages optimise the same cross-entropy:
-
 $$\mathcal{L} = -\sum_{i} y_i \log p_i$$
-
 with $y$ the one-hot true next item.
 
 ## 7. Experiments: what the paper reports

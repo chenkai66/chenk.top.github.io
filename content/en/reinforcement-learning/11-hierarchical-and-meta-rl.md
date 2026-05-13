@@ -59,21 +59,15 @@ Beyond the asymptotic argument, hierarchies offer three practical benefits:
 ### The option triple
 
 Following Sutton, Precup & Singh (1999), an **option** is a temporally extended action
-
 $$o = \langle \mathcal{I}, \pi_o, \beta \rangle,$$
-
 where $\mathcal{I} \subseteq \mathcal{S}$ is the set of states from which the option may be initiated, $\pi_o(a \mid s)$ is the option's internal policy and $\beta(s) \in [0, 1]$ is its termination probability. Once options are introduced, the underlying MDP becomes a **semi-MDP**: the high-level policy $\mu(o \mid s)$ chooses an option, the option runs until $\beta$ fires, and only then does the next high-level decision happen.
 
 ### Intra-option Q-learning
 
 The naive way to learn $Q(s, o)$ is to wait until the option terminates, observe the cumulative reward and bootstrap. This is wasteful: an option may run for dozens of steps and we throw away the intermediate transitions. **Intra-option Q-learning** (Sutton et al., 1999) updates $Q(s, o)$ at *every* step, exploiting the fact that the same transition $(s, a, r, s')$ is consistent with every option that would have taken action $a$ in state $s$:
-
 $$Q(s, o) \leftarrow Q(s, o) + \alpha \big[r + \gamma U(s', o) - Q(s, o)\big],$$
-
 with the **continuation value**
-
 $$U(s', o) = (1 - \beta(s'))\, Q(s', o) + \beta(s')\, \max_{o'} Q(s', o').$$
-
 The continuation value is the elegant piece: if the option keeps going we keep its Q-value, otherwise we hand control back to the high-level policy and take the best alternative.
 
 ```python
@@ -146,9 +140,7 @@ In the canonical Four Rooms benchmark, intra-option Q-learning with four hand-cr
 ### MAXQ: value decomposition along a task tree
 
 Where Options leaves the hierarchy *implicit* in the option set, **MAXQ** (Dietterich, 2000) makes it explicit. The agent is given a directed acyclic graph of subtasks; for each composite task $i$ and each child $a$ the value decomposes as
-
 $$Q_i(s, a) = V_a(s) + C_i(s, a),$$
-
 where $V_a(s)$ is the value of completing the *child* subtask and $C_i(s, a)$ is the **completion function** --- the value of finishing the parent task once the child returns. Because $V_a$ depends only on $a$, it can be reused across every parent that invokes $a$, which is where the sample-efficiency win comes from.
 
 ![MAXQ-style hierarchy with shared primitives](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig6_task_decomposition.png)
@@ -164,17 +156,13 @@ Discrete options scale poorly: in continuous-control or pixel-input domains we c
 ![Feudal RL: Manager sets goals every c steps, Worker executes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig2_feudal_architecture.png)
 
 The Manager sees state $s_t$ and emits a goal $g_t \in \mathbb{R}^d$ every $c$ steps (FuN uses $c = 10$). The Worker is a goal-conditioned policy $\pi_\phi(a \mid s, g)$ that earns an **intrinsic reward** for moving in the direction of the goal:
-
 $$r^{\text{int}}_t = \cos\!\big(s_{t+c} - s_t,\, g_t\big),$$
-
 while the Manager is trained on the *extrinsic* environment reward. This decoupling is what makes Feudal architectures so attractive: the Worker learns motor control on a dense, geometric reward, and the Manager focuses on long-horizon credit assignment with a much smaller effective horizon ($T/c$).
 
 ### HIRO's relabelling trick
 
 Feudal training has a chicken-and-egg problem: the Worker is non-stationary (because it is still learning), so old goals stored in the replay buffer no longer correspond to what the Worker actually achieves. HIRO fixes this with **subgoal relabelling**: when sampling a transition $(s_t, g_t, a_{t:t+c}, s_{t+c})$, replace $g_t$ with the goal that maximises the Worker's likelihood of producing the action sequence we actually saw,
-
 $$\tilde g_t = \arg\max_{g} \log \pi_\phi(a_{t:t+c} \mid s_{t:t+c},\, g).$$
-
 This keeps the Worker's training data on-policy with respect to its current parameters and dramatically stabilises off-policy learning of the Manager.
 
 ---
@@ -188,9 +176,7 @@ Goal-conditioned policies $\pi(a \mid s, g)$ deserve a section of their own, bec
 The classical formalisation is **Universal Value Function Approximators** (UVFA, Schaul et al., 2015): learn $V(s, g)$ or $Q(s, a, g)$ instead of $V(s), Q(s, a)$. Without further tricks UVFAs suffer badly from sparse rewards: most goals are never reached during exploration, so the reward signal is essentially zero.
 
 **Hindsight Experience Replay** (HER, Andrychowicz et al., 2017) is the standard fix. After running an episode that *failed* to reach goal $g$, we relabel the trajectory with a goal it *did* reach (typically the final state), turning a failure into a successful demonstration for a different task:
-
 $$(s_t, a_t, r, s_{t+1}, g) \;\longrightarrow\; (s_t, a_t, r', s_{t+1},\, g' = s_T).$$
-
 Combined with off-policy methods (DDPG, SAC), HER turns sparse-reward goal reaching from "essentially impossible" into "routine".
 
 ---
@@ -211,11 +197,11 @@ The two dominant families are:
 ### MAML --- learning a good initialisation
 
 The meta-objective of **Model-Agnostic Meta-Learning** (MAML, Finn et al., 2017) is to find parameters $\theta$ such that one (or a few) inner-loop SGD steps on any task $\mathcal{T}_i$ produce strong performance:
-
-$$\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}(\theta),
+$$
+\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}(\theta),
 \qquad
-\theta \leftarrow \theta - \beta \nabla_\theta \sum_{i} \mathcal{L}_{\mathcal{T}_i}(\theta_i').$$
-
+\theta \leftarrow \theta - \beta \nabla_\theta \sum_{i} \mathcal{L}_{\mathcal{T}_i}(\theta_i').
+$$
 The outer gradient differentiates *through* the inner update, so it contains a Hessian term $\nabla^2 \mathcal{L}$. That is what makes MAML expensive --- and what motivates **FOMAML**, which simply ignores the second-order term. Empirically FOMAML is roughly $10\times$ faster per outer step and loses less than 5% of the final return.
 
 ![MAML in parameter space and as a two-loop algorithm](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig4_maml_inner_outer_loop.png)
@@ -318,9 +304,7 @@ The implementation above swaps adapted weights into the network for the meta-eva
 ### RL$^2$ --- folding the algorithm into an RNN
 
 **RL$^2$** (Duan et al., 2016; Wang et al., 2016) takes a different route: keep the agent's parameters fixed at meta-test time and let the RNN's hidden state do the adaptation. The recurrent policy receives the augmented input
-
 $$x_t = (s_t,\, a_{t-1},\, r_{t-1},\, d_{t-1}),$$
-
 i.e. state plus *the previous action, reward and done-flag*. Across episodes within a meta-trial the hidden state $h_t$ accumulates information about the current task --- effectively performing Bayesian belief updates implicitly. At meta-train time the outer optimiser (PPO or A2C) shapes the RNN weights so that this implicit "inner algorithm" is sample-efficient on $p(\mathcal{T})$.
 
 ![RL² unrolled across a meta-trial spanning multiple episodes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig7_rl_squared.png)

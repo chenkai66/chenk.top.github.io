@@ -60,9 +60,7 @@ The sections below follow this order.
 ## 1. Gradient descent (GD): the origin
 
 Given a differentiable loss $J(\theta)$, the simplest update is
-
 $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
-
 **Convergence**: if $J$ is convex with $L$-Lipschitz gradient, $\eta \le 1/L$ guarantees (sub)linear convergence to the global minimum.
 
 **The fatal weakness that motivates everything else**:
@@ -73,9 +71,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
 ## 2. SGD: the price and bonus of noise
 
 Once datasets do not fit in memory, you replace the full gradient with a mini-batch estimate:
-
 $$g_t = \nabla J(\theta_t) + \xi_t,\qquad \mathbb{E}[\xi_t]=0.$$
-
 The noise $\xi_t$ is both a curse and a blessing:
 - **Curse**: a slightly larger step gets amplified by noise into divergence.
 - **Blessing**: noise helps **escape sharp local minima** — later linked by Keskar et al. to the "flat-minima" generalization story.
@@ -85,9 +81,7 @@ The noise $\xi_t$ is both a curse and a blessing:
 ## 3. Momentum: give the optimizer some inertia
 
 Mental model: think of $\theta$ as a **ball rolling down the valley**. GD is a "massless bug" — every step only sees the local slope, so it bounces around the narrow direction. Give the bug some mass and inertia **accumulates along the long axis** of the valley while the perpendicular bounces cancel out.
-
 $$v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t.$$
-
 Typical $\gamma = 0.9$ — geometrically weights past gradients with effective memory $\approx 1/(1-\gamma) = 10$ steps.
 
 **Key insight**: momentum **amplifies the effective step size** by roughly $1/(1-\gamma)$. So when you turn momentum on, you must **shrink** the LR you used without it. This is the most common beginner trap.
@@ -101,9 +95,7 @@ Typical $\gamma = 0.9$ — geometrically weights past gradients with effective m
 Classical momentum **overshoots** near the minimum: it computes the gradient at the current point, so it only learns "oops, I went too far" one step too late.
 
 NAG changes one line:
-
 $$v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta_{t+1} = \theta_t - v_t.$$
-
 **The only difference is where you evaluate the gradient**: classical momentum at $\theta_t$, NAG at the **lookahead point** $\theta_t - \gamma v_{t-1}$ — i.e. "where the momentum step alone would have taken me".
 
 **Why it works**: it is a one-step look-ahead. If the slope is about to flatten, NAG sees that early and decelerates; the converse for steepening. Nesterov (1983) proved this accelerates convex smooth optimization from $O(1/t)$ to $O(1/t^2)$.
@@ -118,11 +110,9 @@ By 2011, NLP was drowning in **sparse features** — think word2vec where a rare
 - Frequent-word parameters: big and frequent gradients, would prefer **smaller** steps.
 
 Duchi proposed AdaGrad — **per-coordinate** adaptation based on each coordinate's own gradient history:
-
 $$G_t = G_{t-1} + g_t^2 \quad(\text{element-wise})$$
 
 $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t.$$
-
 **Intuition**: large accumulated $g^2$ -> large denominator -> small effective step. Rare-but-suddenly-large coordinate -> small denominator -> large effective step. **LR is auto-distributed by frequency.**
 
 **The fatal flaw**: $G_t$ is a **monotonically growing sum**. Train deep nets for hundreds of thousands of steps and the denominator drives every effective LR toward zero. The model "suffocates". The right panel of Fig 3 makes this concrete.
@@ -132,11 +122,9 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t.$$
 ## 6. RMSProp: replace cumulative sum with EMA
 
 In his 2012 Coursera slides, Hinton **changed exactly one thing** and rescued AdaGrad: replace the cumulative sum $\sum g_t^2$ with an exponential moving average:
-
 $$E[g^2]_t = \rho\,E[g^2]_{t-1} + (1-\rho)\,g_t^2$$
 
 $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t.$$
-
 Typical $\rho = 0.9$ — "remember roughly the last 10 steps of gradient magnitude".
 
 **The crucial difference**:
@@ -154,17 +142,13 @@ By now both threads were mature:
 - **RMSProp** gives a good **per-coordinate scale**.
 
 Kingma & Ba (2014) just bolted them together:
-
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t \quad\text{(1st moment = momentum)}$$
 
 $$v_t = \beta_2 v_{t-1} + (1-\beta_2)\,g_t^2 \quad\text{(2nd moment = RMSProp)}$$
-
 **Bias correction** — the most under-appreciated detail. Because $m_0=v_0=0$, both $m_t$ and $v_t$ are heavily biased toward zero in the first few steps. Fix:
-
 $$\hat m_t = \frac{m_t}{1-\beta_1^t},\qquad \hat v_t = \frac{v_t}{1-\beta_2^t}$$
 
 $$\theta_{t+1} = \theta_t - \frac{\eta\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}.$$
-
 Defaults: $\beta_1 = 0.9,\ \beta_2 = 0.999,\ \epsilon = 10^{-8}$.
 
 **Why $\beta_2$ is much larger than $\beta_1$**: variance estimates are noisier than mean estimates and need a longer averaging window. $1/(1-0.999) = 1000$ steps — and that is exactly why Adam typically needs ~1000 warmup steps before $v_t$ "warms up".
@@ -178,9 +162,7 @@ Adding L2 regularization $\frac{\lambda}{2}\|\theta\|^2$ to the loss adds a term
 But Loshchilov & Hutter (2017) noticed that in **Adam** these two operations are **no longer equivalent**. The reason is direct: Adam divides the gradient by $\sqrt{\hat v_t}$. If you fold $\lambda\theta$ into the gradient, **it also gets divided by $\sqrt{\hat v_t}$** — meaning **parameters with large gradient history get less weight decay**, which is the opposite of what regularization wants.
 
 AdamW's fix is to take weight decay **out of the gradient** and apply it directly to the parameters:
-
 $$\theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \eta\lambda\,\theta_t.$$
-
 The effect: at the same $\lambda$ and LR, AdamW's generalization gap on ImageNet/Transformer is meaningfully smaller than Adam+L2. This is why **post-2018 every large-model pretrain defaults to AdamW**.
 
 ![AdamW (decoupled) vs Adam+L2 (coupled): where weight decay enters the update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig6_adamw_vs_adam.png)
@@ -192,11 +174,9 @@ After AdamW reigned for ~6 years, three directions have actually **proven themse
 ## 9.1 Lion (Google, 2023): only the sign
 
 Discovered by AutoML program search; the update keeps **only the sign**:
-
 $$m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t$$
 
 $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_1)\,g_t\bigr).$$
-
 **Notable properties**:
 - **Half the optimizer state**: no $v_t$ needed — meaningful real money for hundred-billion-parameter models.
 - **Constant update magnitude $\eta$**: because sign returns $\pm 1$. So Lion's LR must be **about 10x smaller** than AdamW's, and wd about 10x larger.
@@ -205,13 +185,11 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_
 ## 9.2 Sophia (Stanford, 2023): cheap second-order
 
 Sophia plugs a cheap diagonal-Hessian estimate into the denominator:
-
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t$$
 
 $$h_t \approx \mathrm{diag}(H_t) \quad\text{(Hutchinson estimate, every } k \text{ steps)}$$
 
 $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_t,\,\varepsilon)},\,1\right).$$
-
 **Core tricks**:
 - Use $\mathrm{diag}(H)$ instead of $g^2$ as the denominator — that is the **actual curvature**.
 - The `clip` is essential: $h_t$ can be negative in non-convex losses, and clipping keeps the update bounded.
@@ -224,13 +202,11 @@ Reported results: roughly halves the wall-clock to reach a given perplexity at G
 LR schedules (cosine, WSD, etc.) all share one annoyance: **you must know the total step count in advance**. During research you usually do not, so committing to a schedule ties your hands.
 
 Schedule-Free AdamW replaces the schedule with **iterate averaging**:
-
 $$y_t = (1-\beta) z_t + \beta x_t \quad\text{(point at which the gradient is taken)}$$
 
 $$z_{t+1} = z_t - \eta\,\nabla J(y_t)$$
 
 $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" parameters)}$$
-
 The result: matches the final performance of cosine schedules **without any explicit decay**, and can be **extended mid-training** without redesigning anything.
 
 ![Lion / Sophia / Schedule-Free: the three post-AdamW directions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig7_modern_optimizers.png)

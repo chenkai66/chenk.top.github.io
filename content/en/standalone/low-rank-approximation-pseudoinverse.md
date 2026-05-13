@@ -45,36 +45,36 @@ The pseudoinverse$A^{+}$ **handles all three uniformly**: it always exists, it i
 ## Definition
 
 For$A \in \mathbb{R}^{m \times n}$, the pseudoinverse$A^{+}$ is defined by
-
 $$A^{+} \;=\; \arg\min_{X \in \mathbb{R}^{n \times m}} \; \|AX - I_m\|_F^2.$$
-
 When the minimizer is not unique (because$A$ does not have full row rank), we add a second tie-breaker: among all minimizers, take the one with the smallest Frobenius norm$\|X\|_F$.
 
 > **Intuition.** When$A$ is square and invertible,$AX = I$ has the exact solution$A^{-1}$. Otherwise no$X$ makes$AX$ exactly$I$, so the pseudoinverse settles for *as close to identity as possible*.
 
 ## Frobenius norm in one line
-
 $$\|M\|_F^2 \;=\; \sum_{i,j} M_{ij}^2 \;=\; \mathrm{tr}(M^{\!\top} M).$$
-
 It treats a matrix as one long vector. The trace form is what makes matrix calculus tractable — you avoid expanding everything element by element.
 
 ## Solving the optimization (full column rank case)
 
 If$A$ has full column rank, then$A^{\!\top}A$ is invertible. Setting the gradient to zero,
-$$\frac{\partial}{\partial X}\|AX - I\|_F^2 = 2 A^{\!\top}(AX - I) = 0
+$$
+\frac{\partial}{\partial X}\|AX - I\|_F^2 = 2 A^{\!\top}(AX - I) = 0
 \;\Longrightarrow\;
-X = (A^{\!\top}A)^{-1} A^{\!\top}.$$
+X = (A^{\!\top}A)^{-1} A^{\!\top}.
+$$
 This is the **left pseudoinverse**$A^{+} = (A^{\!\top}A)^{-1}A^{\!\top}$, satisfying$A^{+}A = I_n$. The full-row-rank case gives the **right pseudoinverse**$A^{+} = A^{\!\top}(AA^{\!\top})^{-1}$ analogously.
 
 ## Penrose's four conditions (the unifying definition)
 
 For *any* matrix$A$, the pseudoinverse$A^{+}$ is the **unique** matrix satisfying
-$$\begin{aligned}
+$$
+\begin{aligned}
 &\text{(i)}\;\; A A^{+} A = A
 &&\text{(ii)}\;\; A^{+} A A^{+} = A^{+} \\
 &\text{(iii)}\;\; (A A^{+})^{\!\top} = A A^{+}
 &&\text{(iv)}\;\; (A^{+} A)^{\!\top} = A^{+} A.
-\end{aligned}$$
+\end{aligned}
+$$
 (i)-(ii) say$A$ and$A^{+}$ are mutual pseudoinverses; (iii)-(iv) say both$AA^{+}$ and$A^{+}A$ are **symmetric projection matrices**. That last fact is precisely what gives the pseudoinverse its geometric interpretation.
 
 ## Computing the pseudoinverse via SVD
@@ -84,11 +84,15 @@ The formula$(A^{\!\top}A)^{-1}A^{\!\top}$ blows up when$A$ has linearly dependen
 ## Recipe
 
 For any$A \in \mathbb{R}^{m \times n}$, the SVD is
-$$A \;=\; U \Sigma V^{\!\top}, \qquad
-\Sigma = \mathrm{diag}(\sigma_1, \sigma_2, \ldots, \sigma_r, 0, \ldots, 0),$$
+$$
+A \;=\; U \Sigma V^{\!\top}, \qquad
+\Sigma = \mathrm{diag}(\sigma_1, \sigma_2, \ldots, \sigma_r, 0, \ldots, 0),
+$$
 where$U \in \mathbb{R}^{m \times m}$ and$V \in \mathbb{R}^{n \times n}$ are orthogonal,$r = \mathrm{rank}(A)$, and$\sigma_1 \ge \sigma_2 \ge \cdots \ge \sigma_r > 0$. Then
-$$\boxed{\;A^{+} \;=\; V \Sigma^{+} U^{\!\top}, \qquad
-\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0 \\ 0 & \sigma_i = 0\end{cases}\;}$$
+$$
+\boxed{\;A^{+} \;=\; V \Sigma^{+} U^{\!\top}, \qquad
+\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0 \\ 0 & \sigma_i = 0\end{cases}\;}
+$$
 A direct check verifies all four Penrose conditions, which is why SVD is the **canonical** way to compute the pseudoinverse.
 
 ## Geometry: projection onto the column space
@@ -127,12 +131,12 @@ The pseudoinverse is just one consequence of the SVD. The SVD's bigger payoff is
 ## The theorem (Eckart-Young, 1936)
 
 Let$A = U\Sigma V^{\!\top}$, and define the **truncated SVD**
-
 $$A_k \;=\; \sum_{i=1}^{k} \sigma_i\, u_i v_i^{\!\top} \;=\; U_{:,1:k} \,\Sigma_{1:k,1:k}\, V_{:,1:k}^{\!\top}.$$
-
 Then for *every* matrix$B$ with$\mathrm{rank}(B) \le k$,
-$$\|A - A_k\|_F \;\le\; \|A - B\|_F, \qquad
-\|A - A_k\|_F \;=\; \sqrt{\sum_{i=k+1}^{r} \sigma_i^2}.$$
+$$
+\|A - A_k\|_F \;\le\; \|A - B\|_F, \qquad
+\|A - A_k\|_F \;=\; \sqrt{\sum_{i=k+1}^{r} \sigma_i^2}.
+$$
 The same statement holds in spectral norm:$\|A - A_k\|_2 = \sigma_{k+1}$. So the truncated SVD is the **unique (up to ties) optimal rank-$k$ approximation**, and it is the theoretical foundation behind nearly every dimensionality-reduction or matrix-compression method in ML.
 
 ![Eckart-Young: truncated SVD is provably the best rank-k approximation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/low-rank-approximation-pseudoinverse/fig3_eckart_young.png)
@@ -170,29 +174,21 @@ The Netflix-Prize idea: the user-item rating matrix$R$ is **sparse but low rank*
 ## How small singular values explode the answer
 
 Inside$A^{+} = V \Sigma^{+} U^{\!\top}$ sits$\Sigma^{+}_{ii} = 1/\sigma_i$. If some$\sigma_i$ is near zero, then$1/\sigma_i$ is huge, and **any tiny noise component in the$u_i$ direction is amplified into a numerical disaster**. The standard quantitative measure is the **condition number**
-
 $$\kappa(A) \;=\; \frac{\sigma_{\max}}{\sigma_{\min}}.$$
-
 When$\kappa(A)$ is large (say$10^{10}$), the relative error in solving$Ax = b$ scales like$\kappa(A)$ times the input error — you lose roughly 10 digits of precision.
 
 ## Fix 1: truncated SVD (hard threshold)
 
 The simplest cure: **drop singular values that are numerically too small**.
-
 $$\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i, & \sigma_i > \tau \\ 0, & \sigma_i \le \tau. \end{cases}$$
-
 Standard choice:$\tau = \mathrm{rcond} \cdot \sigma_1$. This is what `np.linalg.pinv`'s `rcond` parameter does. Truncated SVD treats "signal in small-singular-value directions" as **noise** — only safe when you actually believe nothing real lives there.
 
 ## Fix 2: Tikhonov regularization (soft threshold = ridge regression)
 
 Modify the objective:
-
 $$\min_{x} \;\|Ax - b\|_2^2 \;+\; \lambda \|x\|_2^2,$$
-
 so the normal equations become
-
 $$x_\lambda \;=\; (A^{\!\top}A + \lambda I)^{-1} A^{\!\top} b \;=\; V \,\mathrm{diag}\!\left(\tfrac{\sigma_i}{\sigma_i^2 + \lambda}\right)\, U^{\!\top}\, b.$$
-
 Compared with the hard$1/\sigma_i$, Tikhonov uses the **soft filter**$\sigma_i / (\sigma_i^2 + \lambda)$:
 
 - large singular values ($\sigma_i^2 \gg \lambda$):$\sigma_i / (\sigma_i^2 + \lambda) \approx 1/\sigma_i$, essentially unchanged;
@@ -226,9 +222,7 @@ The most striking modern application of low-rank approximation is **parameter-ef
 ## LoRA's core hypothesis
 
 A pretrained weight$W \in \mathbb{R}^{d \times k}$ (e.g.,$d = k = 4096$, giving$1.7 \times 10^7$ parameters per layer). Full fine-tuning updates all of$W$. **LoRA hypothesizes** that the *task-specific* update$\Delta W$ is itself **low rank**:
-
 $$W' \;=\; W + \Delta W, \qquad \Delta W \;=\; B A, \qquad B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d,k).$$
-
 Parameter count drops from$dk$ to$r(d + k)$. The middle panel above: at$r = 8$, only 0.07 M parameters are trained — **256x fewer** than full fine-tuning of one layer.
 
 ## Why does it work?

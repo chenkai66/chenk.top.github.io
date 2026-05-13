@@ -48,9 +48,7 @@ Pure sequence models compress these clicks into a single hidden state and inevit
 ## 2. Session graph construction
 
 For each session $s$, SR-GNN builds a directed graph $G_s = (V_s, E_s)$ where $V_s$ are the unique items clicked in this session and $E_s$ contains a directed edge $u \to v$ for every observed transition. **Repeated nodes are deduplicated** (each item appears once as a node, no matter how many times it is clicked), but every transition is preserved as an edge. Edge weights are normalised by the source's out-degree:
-
 $$w_{u \to v} \;=\; \frac{\#(u \to v)}{\mathrm{outdeg}(u)} \, .$$
-
 Two adjacency matrices fall out of this construction: the **incoming** adjacency $A^{(\text{in})}$ (row $i$ tells node $i$ which other nodes feed it) and the **outgoing** adjacency $A^{(\text{out})}$ (row $i$ tells node $i$ which nodes it feeds). They are concatenated into a single $|V_s| \times 2|V_s|$ matrix $A_s$ that the GGNN uses for message passing.
 
 ![Session graph construction: click stream A,B,C,B,D becomes a directed weighted graph; transitions persist even after a revisit](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/session-based-recommendation-with-graph-neural-networks/fig1_session_graph.png)
@@ -71,18 +69,16 @@ A pure GRU over the same stream would compress the second visit to `B` *into* th
 Each item $v$ in the session has a $d$-dimensional embedding $h_v$ pulled from a global **item table** $V \in \mathbb{R}^{|V|\times d}$. SR-GNN runs $T$ rounds of message passing over the session graph using a **Gated Graph Neural Network** (Li et al., 2016), which is essentially a GRU cell driven by an aggregated message rather than a sequential input.
 
 For node $i$ at step $t$ the message is
-
 $$a_t^{(i)} \;=\; A_{s,i:}\, \big[h_1^{(t-1)}, \dots, h_n^{(t-1)}\big]^\top\, W_a \;+\; b,$$
-
 where $A_{s,i:}$ is row $i$ of the concatenated $[A^{(\text{in})}\,|\,A^{(\text{out})}]$ adjacency. The aggregated message then drives a GRU-style update:
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 z_t &\;=\; \sigma\!\big(W_z\, a_t + U_z\, h_{t-1}\big), \\
 r_t &\;=\; \sigma\!\big(W_r\, a_t + U_r\, h_{t-1}\big), \\
 \tilde h_t &\;=\; \tanh\!\big(W\, a_t + U\, (r_t \odot h_{t-1})\big), \\
 h_t &\;=\; (1 - z_t)\, h_{t-1} \;+\; z_t\, \tilde h_t \, .
-\end{aligned}$$
-
+\end{aligned}
+$$
 The reset gate $r_t$ controls how much of the previous state contributes to the candidate; the update gate $z_t$ then blends old and new. The intuition is the same as in a GRU sequence model, but the "next input" is now the *graph* message $a_t$, not the next item in a list.
 
 ![SR-GNN end-to-end: session graph in, GGNN propagation, per-item embeddings, attention pooling, softmax over the catalog](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/session-based-recommendation-with-graph-neural-networks/fig2_architecture.png)
@@ -102,22 +98,18 @@ A few practical notes on the propagation:
 After propagation, SR-GNN turns the per-item embeddings $\{h_1, \dots, h_n\}$ into a single session vector $s_h$. A naive choice — "use the last $h_n$" — works surprisingly well on short sessions but throws away everything else the graph learned. The paper's design uses **two views**, fused linearly.
 
 **Local intent.** The embedding of the last clicked item:
-
 $$s_l \;=\; h_n \, .$$
-
 This is the strongest single signal of the user's *current* mood in the session.
 
 **Global context.** A soft-attention sum over all per-item embeddings, where the attention is *anchored on $h_n$*:
-
-$$\alpha_i \;=\; q^\top\, \sigma\!\big(W_1\, h_n \;+\; W_2\, h_i \;+\; c\big), \qquad
-s_g \;=\; \sum_{i=1}^{n} \alpha_i\, h_i \, .$$
-
+$$
+\alpha_i \;=\; q^\top\, \sigma\!\big(W_1\, h_n \;+\; W_2\, h_i \;+\; c\big), \qquad
+s_g \;=\; \sum_{i=1}^{n} \alpha_i\, h_i \, .
+$$
 Here $q \in \mathbb{R}^d$ is a learnable query and $W_1, W_2 \in \mathbb{R}^{d\times d}$ project both the last click and each item into a shared scoring space. Items that look "relevant to where the user just was" earn more weight; items that have been overshadowed earn less.
 
 **Final session vector.** Concatenate and project:
-
 $$s_h \;=\; W_3\, [\,s_l \,;\, s_g\,], \qquad W_3 \in \mathbb{R}^{d \times 2d} \, .$$
-
 ![Session pooling: per-item attention weights anchored on the last click; local + global fused into the session vector](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/session-based-recommendation-with-graph-neural-networks/fig4_attention_pooling.png)
 
 The local + global split is the same idea you see in NARM and STAMP, but with one important difference: SR-GNN's per-item embeddings already encode *graph structure*, so the global term aggregates structurally aware vectors rather than raw item embeddings. This is most of the empirical win.
@@ -125,14 +117,12 @@ The local + global split is the same idea you see in NARM and STAMP, but with on
 ## 5. Scoring and training
 
 Given $s_h$ and the item table $V \in \mathbb{R}^{|V|\times d}$, candidate scores are dot products:
-
-$$\hat z_i \;=\; s_h^\top\, v_i, \qquad
-\hat y \;=\; \mathrm{softmax}(\hat z) \, .$$
-
+$$
+\hat z_i \;=\; s_h^\top\, v_i, \qquad
+\hat y \;=\; \mathrm{softmax}(\hat z) \, .
+$$
 Training minimises cross-entropy against the one-hot ground-truth next item:
-
 $$\mathcal{L} \;=\; -\sum_{i=1}^{|V|} y_i \log \hat y_i \, .$$
-
 A few details that matter in practice:
 
 - **BPTT, but for a tiny graph**: gradients flow through $T$ GGNN steps. Because $T$ is typically 1 and graphs have at most a dozen nodes, this is cheap — nothing like sequence-model BPTT over hundreds of tokens.
@@ -231,18 +221,16 @@ A few extensions are worth knowing because they recur in follow-up SBR papers an
 ### 9.1 Attention-weighted message passing
 
 Replace the fixed $A_s$ with attention weights computed per-edge:
-
-$$\alpha_{ij} \;=\; \mathrm{softmax}_j\!\big(\mathrm{LeakyReLU}(a^\top [W h_i \,||\, W h_j])\big),
-\qquad a_t^{(i)} \;=\; \sum_{j \in \mathcal N(i)} \alpha_{ij}\, W h_j \, .$$
-
+$$
+\alpha_{ij} \;=\; \mathrm{softmax}_j\!\big(\mathrm{LeakyReLU}(a^\top [W h_i \,||\, W h_j])\big),
+\qquad a_t^{(i)} \;=\; \sum_{j \in \mathcal N(i)} \alpha_{ij}\, W h_j \, .
+$$
 This is essentially GAT inside the GGNN cell. Helps when transitions are not equally informative.
 
 ### 9.2 Time-gap edges
 
 Sessions span seconds to minutes; a click that happens 2 seconds after the previous one is a stronger signal than one 5 minutes later. Encode the time gap $\Delta t_{u \to v}$ into the edge weight:
-
 $$w_{u \to v} \;=\; \exp\!\big(-\beta \cdot \Delta t_{u \to v}\big) \cdot \frac{\#(u \to v)}{\mathrm{outdeg}(u)} \, .$$
-
 A learnable $\beta$ usually settles around $0.05$--$0.2$ when $\Delta t$ is in seconds.
 
 ### 9.3 Multi-task heads
@@ -263,7 +251,7 @@ These regularise the session vector and tend to help when the next-click loss al
 | Very short sessions ($n \le 3$)           | Item-KNN or co-click; SR-GNN has no graph to exploit                 |
 | Heavy cold-start                          | Two-tower with content features; SR-GNN as a re-ranker only          |
 | Real-time latency budget $< 5$ ms         | Cache per-item neighbour reps; consider a distilled MLP head         |
-| Catalog $|V| > 10^6$                      | SR-GNN body + sampled softmax / two-tower retrieval                  |
+| Catalog $\lvert V\rvert > 10^6$                      | SR-GNN body + sampled softmax / two-tower retrieval                  |
 | Data with strong long-term user history   | Look at sequential models with user embeddings (SASRec, BERT4Rec)    |
 
 ## Summary: SR-GNN in five points

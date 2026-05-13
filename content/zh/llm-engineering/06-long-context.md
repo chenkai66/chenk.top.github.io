@@ -41,19 +41,15 @@ RoPE 已成为事实标准——截至 2026 年，所有主流大模型都使用
 ![图1：RoPE 旋转可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/fig1_rope_rotation.png)
 
 对于位于位置 $m$ 和 $n$ 的查询向量 $q$ 与键向量 $k$，RoPE 分别将其乘以旋转矩阵 $R(m\theta)$ 和 $R(n\theta)$，其中 $\theta$ 依赖于维度（[Su et al., 2021][su-rope]）：
-
 $$
 \theta_i = b^{-2i/d}, \quad i = 0, 1, ..., d/2 - 1
 $$
-
 其中 $b$ 为 **rope base**（默认值为 10,000）。每对维度 $(2i, 2i+1)$ 以频率 $\theta_i$ 旋转：低索引对旋转快，承载细粒度位置信息；高索引对旋转慢，承载粗粒度位置信息。
 
 关键性质在于：旋转后的点积 $q \cdot k$ 仅依赖于 *相对位置* $m - n$：
-
 $$
 \langle R(m\theta) q, R(n\theta) k \rangle = \langle q, R((n-m)\theta) k \rangle.
 $$
-
 这正是 RoPE 能有效外推的原因：模型看到的并非绝对位置 50K，而是相对于当前 token 的 $-3$ 偏移——这种模式在训练中已出现数十亿次。
 
 ```python
@@ -130,11 +126,9 @@ YaRN 虽好，但仍假设同一频段内所有维度采用统一缩放公式。
 ## ALiBi：更简单的替代方案
 
 ALiBi（[Press et al., 2022][press-alibi]）完全跳过位置旋转，转而在注意力得分中加入线性偏置：
-
 $$
 \text{attn}_{ij} = \text{softmax}\left(\frac{q_i k_j^T}{\sqrt{d}} - m_h \cdot |i - j|\right)
 $$
-
 其中 $m_h$ 为每头斜率，通常按头索引几何衰减（如 $H$ 个头时 $m_h = 2^{-8h/H}$）。越近的 token 获得越高注意力；该偏置在训练时固定，无需旋转操作。
 
 优点：无需微调即可外推至远超训练长度的上下文。ALiBi 论文展示了在 1024 长度训练、2048 长度测试时性能无损。缺点：多数实验表明，ALiBi 在需精确长程检索的任务上逊于 RoPE——因其线性衰减偏置导致极远 token 的注意力呈指数级下降，无论其相关性如何。

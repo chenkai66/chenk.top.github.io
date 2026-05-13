@@ -44,9 +44,7 @@ translationKey: "llm-engineering-5"
 ![图2：KV 缓存大小增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig2_kv_cache_growth.png)
 
 KV 缓存存储了每一层中每个历史 token 的投影 K 和 V 向量。以第一章提到的 70B 模型（GQA-8，32K 上下文）为例：
-
 $$\text{KV} = 2 \cdot 80 \cdot 2 \cdot 8 \cdot 128 \cdot 32{,}768 \cdot 2 \text{ bytes} = 8.6 \text{ GB}$$
-
 这是单个请求的开销。若有 50 个并发请求，总 KV 缓存将达到 430 GB——远超模型权重本身。此时真正的瓶颈并非模型参数，而是 KV 缓存。
 
 朴素实现会为每个请求分配一个大小为 `max_context` 的连续张量，这会带来两大问题：

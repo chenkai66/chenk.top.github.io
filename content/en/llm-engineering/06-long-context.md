@@ -43,15 +43,11 @@ A fourth answer, **ALiBi** (attention with linear bias), competed seriously arou
 
 
 For a query vector $q$ and key vector $k$ at positions $m$ and $n$, RoPE multiplies each by a rotation matrix $R(m\theta)$ and $R(n\theta)$, where $\theta$ depends on the dimension ([Su et al., 2021][su-rope]):
-
 $$\theta_i = b^{-2i/d}, \quad i = 0, 1, ..., d/2 - 1$$
-
 with $b$ the **rope base** (default 10,000). Each pair of dimensions $(2i, 2i+1)$ rotates at frequency $\theta_i$. Lower-index pairs rotate fast (carry fine-grained position), higher-index pairs rotate slow (carry coarse position).
 
 The key property: after rotation, the dot product $q \cdot k$ depends only on the *relative* position $m - n$:
-
 $$\langle R(m\theta) q, R(n\theta) k \rangle = \langle q, R((n-m)\theta) k \rangle.$$
-
 This is what makes RoPE work at extrapolation: the model doesn't see absolute position 50K, it sees a relative offset of $-3$ from the current token, which it has seen a billion times during training.
 
 ```python
@@ -128,9 +124,7 @@ A practical implication: when you see "context extended to 1M" in a model card, 
 ## ALiBi: the simpler alternative
 
 ALiBi ([Press et al., 2022][press-alibi]) skips position rotation entirely and adds a linear bias to the attention scores:
-
 $$\text{attn}_{ij} = \text{softmax}\left(\frac{q_i k_j^T}{\sqrt{d}} - m_h \cdot |i - j|\right)$$
-
 where $m_h$ is a per-head slope, geometric in the head index (typically $m_h = 2^{-8h/H}$ for $H$ heads). Closer tokens get higher attention; the bias is fixed at training time and no rotation is needed.
 
 Pros: extrapolates to longer contexts than seen at training with no fine-tuning. The ALiBi paper showed train-at-1024 / test-at-2048 with no quality drop. Cons: most experiments find ALiBi underperforms RoPE on tasks that need precise long-range retrieval — the linear-decay bias means very distant tokens get exponentially less attention regardless of relevance.

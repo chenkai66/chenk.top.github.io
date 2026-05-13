@@ -55,9 +55,7 @@ The fix is a **link function** that squashes the linear score into $[0, 1]$. The
 ![Sigmoid function with tangent at z=0 and its derivative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig1_sigmoid.png)
 
 The sigmoid (logistic) function is
-
 $$\sigma(z) = \frac{1}{1 + e^{-z}}.$$
-
 Think of it as a "soft switch": it is essentially $0$ for very negative $z$, essentially $1$ for very positive $z$, and crosses $0.5$ at the origin. The picture above also shows the tangent at $z = 0$, whose slope is exactly $1/4$ — this is the *steepest* the sigmoid can ever be, a fact we will use over and over.
 
 Three properties make the sigmoid mathematically delightful.
@@ -67,17 +65,15 @@ Three properties make the sigmoid mathematically delightful.
 **Property 2 — Symmetry.** $\sigma(-z) = 1 - \sigma(z)$. This is what lets us write $P(y=0\mid \mathbf{x})$ in the same form as $P(y=1\mid \mathbf{x})$.
 
 *Proof.*
-
 $$\sigma(-z) = \frac{1}{1 + e^{z}} = \frac{e^{-z}}{1 + e^{-z}} = 1 - \sigma(z). \quad\square$$
-
 **Property 3 — Self-expressing derivative.** $\sigma'(z) = \sigma(z)\bigl(1 - \sigma(z)\bigr)$. This is the property that makes the cross-entropy gradient collapse to one line.
 
 *Proof.*
-
-$$\sigma'(z) = \frac{e^{-z}}{(1 + e^{-z})^2}
+$$
+\sigma'(z) = \frac{e^{-z}}{(1 + e^{-z})^2}
 = \frac{1}{1 + e^{-z}} \cdot \frac{e^{-z}}{1 + e^{-z}}
-= \sigma(z)\bigl(1 - \sigma(z)\bigr). \quad\square$$
-
+= \sigma(z)\bigl(1 - \sigma(z)\bigr). \quad\square
+$$
 ```python
 import numpy as np
 
@@ -104,15 +100,15 @@ print(f"derivative err: {np.max(np.abs(num - ana)):.2e}")
 ![Decision boundary on 2D classification data with probability contours](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig2_decision_boundary.png)
 
 For binary classification ($y \in \{0, 1\}$) we model
-
-$$P(y = 1 \mid \mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x}), \qquad
-P(y = 0 \mid \mathbf{x}) = 1 - \sigma(\mathbf{w}^\top \mathbf{x}).$$
-
+$$
+P(y = 1 \mid \mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x}), \qquad
+P(y = 0 \mid \mathbf{x}) = 1 - \sigma(\mathbf{w}^\top \mathbf{x}).
+$$
 A single compact form for both cases (Bernoulli pmf):
-
-$$P(y \mid \mathbf{x}) = \hat y^{\,y} (1 - \hat y)^{1 - y},
-\qquad \hat y = \sigma(\mathbf{w}^\top \mathbf{x}).$$
-
+$$
+P(y \mid \mathbf{x}) = \hat y^{\,y} (1 - \hat y)^{1 - y},
+\qquad \hat y = \sigma(\mathbf{w}^\top \mathbf{x}).
+$$
 When $y = 1$ this returns $\hat y$; when $y = 0$ it returns $1 - \hat y$. The figure above shows what this model looks like geometrically: the boundary $\mathbf{w}^\top\mathbf{x} = 0$ is a hyperplane, and the orange arrow $\mathbf{w}$ is its normal — moving along $\mathbf{w}$ pushes the predicted probability from $0.5$ toward $1$.
 
 ---
@@ -122,22 +118,18 @@ When $y = 1$ this returns $\hat y$; when $y = 0$ it returns $1 - \hat y$. The fi
 ### 2.1 Building the Likelihood
 
 For an i.i.d. training set $\{(\mathbf{x}_i, y_i)\}_{i=1}^N$, the joint likelihood is
-
-$$L(\mathbf{w}) = \prod_{i=1}^N P(y_i \mid \mathbf{x}_i; \mathbf{w})
-              = \prod_{i=1}^N \hat y_i^{\,y_i}(1 - \hat y_i)^{1 - y_i}.$$
-
+$$
+L(\mathbf{w}) = \prod_{i=1}^N P(y_i \mid \mathbf{x}_i; \mathbf{w})
+              = \prod_{i=1}^N \hat y_i^{\,y_i}(1 - \hat y_i)^{1 - y_i}.
+              $$
 We want the $\mathbf{w}$ that makes the observed labels most probable.
 
 ### 2.2 From Log-Likelihood to Cross-Entropy
 
 Take the log (monotone, same optimum):
-
 $$\ell(\mathbf{w}) = \sum_{i=1}^N \bigl[\, y_i \ln \hat y_i + (1 - y_i)\ln(1 - \hat y_i) \,\bigr].$$
-
 Maximising $\ell$ is the same as minimising the **negative** average log-likelihood, also known as the **binary cross-entropy loss**:
-
 $$\boxed{\;\mathcal{L}(\mathbf{w}) = -\frac{1}{N} \sum_{i=1}^N \bigl[\, y_i \ln \hat y_i + (1 - y_i)\ln(1 - \hat y_i) \,\bigr].\;}$$
-
 **Information-theoretic view.** Cross-entropy $H(p, q) = -\sum_x p(x) \ln q(x)$ measures the extra bits needed to encode samples from $p$ using a code optimised for $q$. Here $p$ is the hard one-hot label and $q$ is the sigmoid output, so minimising $\mathcal{L}$ is literally pulling our predicted distribution toward the data distribution.
 
 ### 2.3 Why Not MSE?
@@ -145,15 +137,11 @@ $$\boxed{\;\mathcal{L}(\mathbf{w}) = -\frac{1}{N} \sum_{i=1}^N \bigl[\, y_i \ln 
 ![Cross-entropy vs MSE: loss curve and gradient magnitude when y=1](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig3_loss_landscape.png)
 
 Suppose we naively used mean squared error $\mathcal{L}_{\text{MSE}} = \tfrac12(\hat y - y)^2$. The gradient w.r.t. the logit $z = \mathbf{w}^\top\mathbf{x}$ is
-
 $$\frac{\partial \mathcal{L}_{\text{MSE}}}{\partial z} = (\hat y - y)\,\sigma'(z) = (\hat y - y)\,\hat y(1 - \hat y).$$
-
 The extra factor $\hat y(1-\hat y)$ is bounded by $1/4$ and **vanishes** when $\hat y$ is near $0$ or $1$. So if the model is *confidently wrong* ($\hat y \approx 0$ but $y = 1$), MSE produces almost no gradient and learning stalls.
 
 Cross-entropy has no such factor:
-
 $$\frac{\partial \mathcal{L}_{\text{CE}}}{\partial z} = \hat y - y.$$
-
 The right panel above makes this concrete: when $y = 1$ and the model predicts $\hat y \approx 0$, the CE gradient is near its maximum (push hard!) while the MSE gradient is essentially zero (give up).
 
 ```python
@@ -171,43 +159,35 @@ grad_ce  = np.abs(y_hat - 1)
 ### 3.1 The Key Cancellation
 
 For one sample, $\mathcal{L} = -\bigl[y \ln \hat y + (1 - y)\ln(1 - \hat y)\bigr]$ with $\hat y = \sigma(z)$, $z = \mathbf{w}^\top\mathbf{x}$. Chain rule:
-
-$$\frac{\partial \mathcal{L}}{\partial \mathbf{w}}
-= \frac{\partial \mathcal{L}}{\partial \hat y} \cdot \frac{\partial \hat y}{\partial z} \cdot \frac{\partial z}{\partial \mathbf{w}}.$$
-
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{w}}
+= \frac{\partial \mathcal{L}}{\partial \hat y} \cdot \frac{\partial \hat y}{\partial z} \cdot \frac{\partial z}{\partial \mathbf{w}}.
+$$
 - **Loss w.r.t. prediction:** $\dfrac{\partial \mathcal{L}}{\partial \hat y} = -\dfrac{y}{\hat y} + \dfrac{1 - y}{1 - \hat y}$.
 - **Sigmoid derivative (Property 3):** $\dfrac{\partial \hat y}{\partial z} = \hat y(1 - \hat y)$.
 - **Linear part:** $\dfrac{\partial z}{\partial \mathbf{w}} = \mathbf{x}$.
 
 Multiply them:
-
-$$\frac{\partial \mathcal{L}}{\partial \mathbf{w}}
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{w}}
 = \left(-\frac{y}{\hat y} + \frac{1 - y}{1 - \hat y}\right) \cdot \hat y(1 - \hat y) \cdot \mathbf{x}
 = \bigl[-y(1 - \hat y) + (1 - y)\hat y\bigr]\mathbf{x}
-= (\hat y - y)\,\mathbf{x}.$$
-
+= (\hat y - y)\,\mathbf{x}.
+$$
 The sigmoid derivative cancels with the $1/\hat y$ and $1/(1-\hat y)$ poles in $\partial \mathcal{L}/\partial \hat y$, leaving the famously clean result
-
 $$\boxed{\;\frac{\partial \mathcal{L}}{\partial \mathbf{w}} = (\hat y - y)\,\mathbf{x}.\;}$$
-
 ### 3.2 Full Batch Gradient
 
 Averaging over $N$ samples and stacking:
-
 $$\nabla_{\mathbf{w}} \mathcal{L} = \frac{1}{N}\sum_{i=1}^N (\hat y_i - y_i)\,\mathbf{x}_i = \frac{1}{N}\,\mathbf{X}^\top(\hat{\mathbf{y}} - \mathbf{y}),$$
-
 where $\mathbf{X} \in \mathbb{R}^{N \times d}$ is the data matrix.
 
 ### 3.3 Hessian and Convexity
 
 Differentiating $(\hat y_i - y_i)\mathbf{x}_i$ once more:
-
 $$\nabla^2 \mathcal{L} = \frac{1}{N}\sum_{i=1}^N \hat y_i(1 - \hat y_i)\,\mathbf{x}_i \mathbf{x}_i^\top = \frac{1}{N}\,\mathbf{X}^\top \mathbf{S}\, \mathbf{X},$$
-
 with $\mathbf{S} = \operatorname{diag}\bigl(\hat y_i(1-\hat y_i)\bigr)$. For any vector $\mathbf{v} \neq \mathbf{0}$,
-
 $$\mathbf{v}^\top \nabla^2 \mathcal{L}\, \mathbf{v} = \frac{1}{N} \sum_i \hat y_i(1 - \hat y_i)(\mathbf{v}^\top \mathbf{x}_i)^2 \geq 0,$$
-
 so the Hessian is positive semi-definite and **the loss is convex**. There is a single global optimum and any reasonable optimiser will find it.
 
 ```python
@@ -247,9 +227,7 @@ print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
 ### 4.1 From Binary to $K$ Classes
 
 For $K \geq 3$ we learn one weight vector $\mathbf{w}_k$ per class. The class-$k$ score is $z_k = \mathbf{w}_k^\top \mathbf{x}$, and the softmax turns scores into a probability distribution:
-
 $$P(y = k \mid \mathbf{x}) = \frac{e^{z_k}}{\sum_{j=1}^K e^{z_j}}.$$
-
 Softmax is a *soft argmax*: it exponentiates each score (so they are positive) and normalises (so they sum to one). The biggest score wins the most mass, but every class still gets a non-zero share.
 
 ![Softmax probability simplex for K=3 with sample logits](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig4_softmax_simplex.png)
@@ -259,10 +237,10 @@ Geometrically, every softmax output is a point in the **probability simplex** �
 ### 4.2 Cross-Entropy with One-Hot Labels
 
 If the true class is $c$, encode it as a one-hot vector $\mathbf{t}$ with $t_k = \mathbb{1}[k = c]$. The loss is
-
-$$\mathcal{L} = -\sum_{k=1}^K t_k \ln P(y = k \mid \mathbf{x}) = -\ln P(y = c \mid \mathbf{x})
-= -z_c + \ln \sum_{j=1}^K e^{z_j}.$$
-
+$$
+\mathcal{L} = -\sum_{k=1}^K t_k \ln P(y = k \mid \mathbf{x}) = -\ln P(y = c \mid \mathbf{x})
+= -z_c + \ln \sum_{j=1}^K e^{z_j}.
+$$
 This is the multi-class **negative log-likelihood**.
 
 ### 4.3 The Softmax Gradient — Same Form Again
@@ -273,13 +251,9 @@ Differentiating $\mathcal{L}$ w.r.t. $z_k$:
 - If $k \neq c$: $\dfrac{\partial \mathcal{L}}{\partial z_k} = P_k$.
 
 Both cases combine into a single, beautiful expression:
-
 $$\boxed{\;\frac{\partial \mathcal{L}}{\partial z_k} = P_k - t_k.\;}$$
-
 This is structurally identical to the binary case — predicted probability minus true label. Pulling weights through $z_k = \mathbf{w}_k^\top \mathbf{x}$:
-
 $$\nabla_{\mathbf{W}} \mathcal{L} = \frac{1}{N}\,\mathbf{X}^\top(\hat{\mathbf{Y}} - \mathbf{T}),$$
-
 where $\mathbf{W} \in \mathbb{R}^{d \times K}$ stacks the per-class weight vectors.
 
 ```python
@@ -307,27 +281,19 @@ print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
 ## 5. Regularisation
 
 ### 5.1 L2 (Ridge)
-
 $$\mathcal{L}_{\text{reg}} = \mathcal{L} + \frac{\lambda}{2}\|\mathbf{w}\|_2^2.$$
-
 The gradient picks up a $\lambda \mathbf{w}$ term, and the SGD update becomes a *weight-decay* update:
-
 $$\mathbf{w} \leftarrow (1 - \eta\lambda)\mathbf{w} - \frac{\eta}{N}\mathbf{X}^\top(\hat{\mathbf{y}} - \mathbf{y}).$$
-
 **Bayesian view.** L2 is MAP estimation under a Gaussian prior $\mathbf{w} \sim \mathcal{N}(\mathbf{0}, \tfrac{1}{\lambda}\mathbf{I})$.
 
 ### 5.2 L1 (Lasso)
-
 $$\mathcal{L}_{\text{reg}} = \mathcal{L} + \lambda \|\mathbf{w}\|_1.$$
-
 L1 is non-differentiable at zero; using the subgradient $\partial_{w_j}\|\mathbf{w}\|_1 = \operatorname{sign}(w_j)$ gives the proximal / soft-thresholding update. The penalty's sharp corner at the origin pushes many coefficients **exactly** to zero, producing automatic feature selection.
 
 **Bayesian view.** L1 corresponds to a Laplace prior $p(w_j) \propto e^{-\lambda |w_j|}$, whose peak at zero is the source of sparsity.
 
 ### 5.3 Elastic Net
-
 $$\mathcal{L}_{\text{reg}} = \mathcal{L} + \lambda_1 \|\mathbf{w}\|_1 + \frac{\lambda_2}{2}\|\mathbf{w}\|_2^2.$$
-
 Combines L1's sparsity with L2's stability when features are correlated.
 
 ---
@@ -337,13 +303,9 @@ Combines L1's sparsity with L2's stability when features are correlated.
 ### 6.1 Binary Boundary
 
 Logistic regression predicts class 1 when $\hat y \geq 0.5$, i.e. when $\mathbf{w}^\top \mathbf{x} \geq 0$. So the decision boundary is the hyperplane
-
 $$\mathbf{w}^\top \mathbf{x} + b = 0.$$
-
 The signed distance from a point $\mathbf{x}_0$ to the boundary is
-
 $$d = \frac{\mathbf{w}^\top \mathbf{x}_0 + b}{\|\mathbf{w}\|},$$
-
 and $|d|$ is exactly how confidently the model classifies $\mathbf{x}_0$.
 
 ![Logistic regression as a linear classifier with weight vector and signed distance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig7_feature_space.png)
@@ -356,9 +318,7 @@ The figure makes three things explicit:
 ### 6.2 Multi-Class Regions
 
 For softmax regression, the decision rule "argmax over $z_k$" partitions feature space into $K$ convex regions. The boundary between class $j$ and class $k$ is the hyperplane
-
 $$(\mathbf{w}_j - \mathbf{w}_k)^\top \mathbf{x} + (b_j - b_k) = 0,$$
-
 so all pairwise boundaries are still linear.
 
 ---
@@ -374,11 +334,12 @@ For binary classification:
 | Actually Positive | TP                 | FN                 |
 | Actually Negative | FP                 | TN                 |
 
-$$\text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}, \quad
+$$
+\text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}, \quad
 \text{Precision} = \frac{TP}{TP + FP}, \quad
 \text{Recall} = \frac{TP}{TP + FN}, \quad
-F_1 = \frac{2 \cdot \text{Prec} \cdot \text{Rec}}{\text{Prec} + \text{Rec}}.$$
-
+F_1 = \frac{2 \cdot \text{Prec} \cdot \text{Rec}}{\text{Prec} + \text{Rec}}.
+$$
 **Read precision as** "of those I flagged, how many were real?" and **recall as** "of the real ones, how many did I catch?" Optimising one without the other is almost always wrong.
 
 ### 7.2 Class Imbalance: Why Accuracy Lies
@@ -505,27 +466,23 @@ class SoftmaxRegression:
 **Problem.** Prove $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ and $\sigma(-z) = 1 - \sigma(z)$.
 
 *Solution.*
-
-$$\sigma'(z) = \frac{e^{-z}}{(1+e^{-z})^2} = \sigma(z)\bigl(1-\sigma(z)\bigr),
+$$
+\sigma'(z) = \frac{e^{-z}}{(1+e^{-z})^2} = \sigma(z)\bigl(1-\sigma(z)\bigr),
 \qquad
-\sigma(-z) = \frac{1}{1+e^{z}} = 1 - \sigma(z). \quad\square$$
-
+\sigma(-z) = \frac{1}{1+e^{z}} = 1 - \sigma(z). \quad\square
+$$
 ### Exercise 2 — Cross-Entropy from MLE
 
 **Problem.** Derive binary cross-entropy from maximum likelihood estimation.
 
 *Solution.* Likelihood $L = \prod_i \hat y_i^{y_i}(1-\hat y_i)^{1-y_i}$. Take logs, negate, average:
-
 $$\mathcal{L} = -\frac{1}{N}\sum_i \bigl[y_i \ln \hat y_i + (1 - y_i)\ln(1 - \hat y_i)\bigr]. \quad\square$$
-
 ### Exercise 3 — Softmax Gradient
 
 **Problem.** Derive $\partial \mathcal{L} / \partial z_k$ for softmax cross-entropy.
 
 *Solution.* With $P_k = e^{z_k}/\sum_j e^{z_j}$ and $\mathcal{L} = -\ln P_c$,
-
 $$\frac{\partial \mathcal{L}}{\partial z_k} = P_k - \mathbb{1}[k = c] = P_k - t_k,$$
-
 structurally identical to the binary gradient.
 
 ### Exercise 4 — Regularisation as a Bayesian Prior

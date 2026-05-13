@@ -296,15 +296,11 @@ def detectCycle(head):
 Let $a$ = distance from head to the entrance, $b$ = distance from the entrance to the meeting point along the cycle, $c$ = the rest of the cycle (so cycle length $L = b + c$).
 
 When `slow` and `fast` first meet:
-
 $$\text{slow walked: } a + b$$
 
 $$\text{fast walked: } a + b + kL \quad \text{(for some integer } k \geq 1\text{)}$$
-
 Since `fast` moves at twice the speed of `slow`, $\text{fast} = 2 \cdot \text{slow}$, giving:
-
 $$2(a + b) = a + b + kL \implies a = kL - b = (k-1)L + c$$
-
 That last equality is the punchline. It says: *walking $a$ steps from the head lands on the entrance, and walking $a$ steps from the meeting point also lands on the entrance* (because $(k-1)L$ is just whole loops). So if we reset `slow` to `head` and step both pointers one node at a time, they meet at the entrance.
 
 ## LeetCode 19 — Remove Nth Node From End

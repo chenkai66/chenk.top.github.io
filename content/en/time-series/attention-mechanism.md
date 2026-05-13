@@ -50,9 +50,7 @@ Attention proposes a radically different geometry: every step has a **direct, le
 ## 2. Scaled dot-product attention from first principles
 
 Stack the input sequence as a matrix $X \in \mathbb{R}^{n \times d}$, one row per time step. Three learned linear maps produce three "views" of the same data:
-
 $$Q = X W^Q, \qquad K = X W^K, \qquad V = X W^V,$$
-
 with $W^Q, W^K \in \mathbb{R}^{d \times d_k}$ and $W^V \in \mathbb{R}^{d \times d_v}$.
 
 - **Query** $Q$ — "what is this step looking for?"
@@ -60,9 +58,7 @@ with $W^Q, W^K \in \mathbb{R}^{d \times d_k}$ and $W^V \in \mathbb{R}^{d \times 
 - **Value** $V$ — "what does this step actually carry?"
 
 The compatibility between query $i$ and key $j$ is a dot product. Stacking:
-
 $$\text{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
-
 ### Why divide by $\sqrt{d_k}$?
 
 If the entries of $Q$ and $K$ are i.i.d. with variance $1$, then each dot product $q_i^\top k_j$ has variance $d_k$. As $d_k$ grows, the softmax inputs become large in magnitude and the softmax saturates — gradients collapse to near zero on all but one position. Dividing by $\sqrt{d_k}$ rescales the variance back to $1$ and keeps gradients healthy.
@@ -134,11 +130,11 @@ This is the only line that distinguishes a forecasting Transformer from a sequen
 ## 5. Multi-head attention, specialised for time
 
 A single attention map averages whatever patterns it finds. Multi-head attention runs $h$ independent attentions in parallel, each on a slice of the embedding, then concatenates and projects:
-
-$$\text{MultiHead}(X) = [\text{head}_1; \dots; \text{head}_h] \, W^O,
+$$
+\text{MultiHead}(X) = [\text{head}_1; \dots; \text{head}_h] \, W^O,
 \qquad
-\text{head}_j = \text{Attention}(X W^{Q}_j, X W^{K}_j, X W^{V}_j).$$
-
+\text{head}_j = \text{Attention}(X W^{Q}_j, X W^{K}_j, X W^{V}_j).
+$$
 Each head has its own $W^Q_j, W^K_j, W^V_j \in \mathbb{R}^{d \times (d/h)}$ and is free to specialise. In time series we typically observe four families of heads after training:
 
 ![Four attention heads, each specialising in a different temporal pattern: local recency, long-range trend, lag-7 periodicity, and persistent memory of an anomaly at t=4.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig6_multihead_for_time.png)
@@ -195,11 +191,11 @@ Self-attention is **permutation-invariant** — shuffling the input shuffles the
 ### Sinusoidal encoding
 
 The original Transformer adds fixed sinusoids of geometrically spaced frequencies:
-
-$$PE_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right),
+$$
+PE_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right),
 \qquad
-PE_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).$$
-
+PE_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).
+$$
 Why this exact form?
 
 - **Boundedness**: every entry sits in $[-1, 1]$, regardless of $p$.

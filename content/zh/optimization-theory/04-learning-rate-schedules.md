@@ -38,9 +38,7 @@ aliases:
 **学习率 $\eta$ 决定了你每一步沿梯度方向迈多远。**
 
 最基础的更新公式：
-
 $$\theta_{t+1} = \theta_t - \eta \cdot \tilde g_t,$$
-
 其中 $\tilde g_t$ 通常是 mini-batch 下对真实梯度 $\nabla L(\theta_t)$ 的随机估计。
 
 核心矛盾：
@@ -59,13 +57,9 @@ $$\theta_{t+1} = \theta_t - \eta \cdot \tilde g_t,$$
 ![Three learning-rate regimes on a 1-D quadratic loss](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig1_lr_regimes.png)
 
 考虑最简单的非平凡损失：
-
 $$L(\theta) = \tfrac{1}{2} a \theta^2, \qquad a > 0.$$
-
 梯度是 $\nabla L(\theta) = a\theta$，所以梯度下降的递推为：
-
 $$\theta_{t+1} = \theta_t - \eta a \theta_t = (1 - \eta a)\,\theta_t.$$
-
 整条轨迹其实就是一个公比 $r = 1 - \eta a$ 的等比数列。三种情况一目了然：
 
 - $|r| < 1 \Leftrightarrow 0 < \eta < 2/a$ —— 收敛到 0；
@@ -81,9 +75,7 @@ $$\theta_{t+1} = \theta_t - \eta a \theta_t = (1 - \eta a)\,\theta_t.$$
 ## 2.2 高维情况：最陡的方向决定上限
 
 真实损失当然不是一维抛物线，但局部用二次近似 $L(\theta) \approx \tfrac{1}{2} (\theta - \theta^\star)^\top H (\theta - \theta^\star)$ 就够用了。Hessian $H$ 的特征值排成 $\lambda_1 \geq \dots \geq \lambda_n \geq 0$，稳定条件就变成：
-
 $$\eta < \frac{2}{\lambda_{\max}(H)}.$$
-
 **关键洞察**：大多数方向再缓也没用——只要有一个特别陡的方向（最大特征值），它就独自决定了整个优化器的上限。即使多数方向曲率平缓，只要存在一个曲率极大（即 Hessian 最大特征值很大）的方向，优化过程就可能失稳。
 
 这也解释了为什么训练比“理论上”更难：**最大特征值会随训练单调上涨**（Cohen et al. 2021 把这种现象叫做 *progressive sharpening*）。第 100 步还安全的学习率，到了第 10 000 步可能就直接爆炸。
@@ -91,13 +83,9 @@ $$\eta < \frac{2}{\lambda_{\max}(H)}.$$
 ## 2.3 $L$-光滑：教科书里 $\eta \leq 1/L$ 的来源
 
 把场景从二次推广到一般情形。函数被称为 **$L$-光滑**（$L$-smooth）当其梯度是 $L$-Lipschitz 的：
-
 $$\|\nabla L(\theta) - \nabla L(\theta')\| \leq L \,\|\theta - \theta'\|.$$
-
 直觉：损失曲面没有“无穷尖锐”的方向，曲率被 $L$ 上界。在这个假设下，经典分析给出：**$\eta \leq 1/L$ 时梯度下降不会让损失上升**。完整形式叫 *descent lemma*：
-
 $$L(\theta_{t+1}) \leq L(\theta_t) - \eta\left(1 - \tfrac{\eta L}{2}\right) \|\nabla L(\theta_t)\|^2.$$
-
 这个表达式在 $\eta < 2/L$ 时单调下降，在 $\eta = 1/L$ 时下降最快。这就是优化教材里“安全选择”的由来——你也能看出 $L$ 和 $\lambda_{\max}(H)$ 在这件事上扮演的是同一个角色。
 
 ## 2.4 为什么必须有调度
@@ -141,9 +129,7 @@ mini-batch 梯度 $\tilde g_t$ 是真实梯度 $\nabla L(\theta_t)$ 的无偏估
 ## 3.2 动量：藏在背后的 LR 放大器
 
 带动量的 SGD（Polyak / heavy-ball 形式）：
-
 $$v_{t+1} = \beta v_t + g_t, \qquad \theta_{t+1} = \theta_t - \eta \, v_{t+1}.$$
-
 稳态时 $v_t \approx g / (1 - \beta)$，所以**等效步长大约是 $\eta / (1 - \beta)$**。常用的 $\beta = 0.9$ 意味着动量把你的有效 LR 放大了 **10 倍**。这就是为什么 "SGD + momentum" 配方里的 $\eta$ 通常比裸 SGD 用的更小——动量已经替它踩了一脚油门。
 
 Adam 的一阶矩本质上是同样的事情。
@@ -151,9 +137,7 @@ Adam 的一阶矩本质上是同样的事情。
 ## 3.3 权重衰减：耦合得很紧的正则化
 
 decoupled weight decay（AdamW）是这样写的：
-
 $$\theta_{t+1} = \theta_t - \eta \, (\text{自适应更新}) - \eta \lambda \theta_t,$$
-
 每步施加的“收缩”是 $\eta \lambda$。**LR 加倍 = 有效权重衰减加倍**。稳态权重模长大致是 $\propto \sqrt{1/\lambda}$，与 $\eta$ 无关；但**多快达到稳态**取决于 $\eta$。所以“LR 越小，正则化越弱”是真实存在、却经常被忽视的效应。
 
 **实操结论**：重新调 LR 的时候，把 weight decay 也一起再扫一遍。
@@ -165,14 +149,14 @@ $$\theta_{t+1} = \theta_t - \eta \, (\text{自适应更新}) - \eta \lambda \the
 如果说 SGD 的 LR 是一把大锤，Adam 就是装了一柜子小锤的工具箱——每个参数都有自己的步长。
 
 ## 4.1 Adam 的更新式
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 m_t &= \beta_1 m_{t-1} + (1-\beta_1) g_t, \\
 v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
 \hat m_t &= m_t / (1 - \beta_1^t), \quad \hat v_t = v_t / (1 - \beta_2^t), \\
 \theta_{t+1} &= \theta_t - \eta \cdot \frac{\hat m_t}{\sqrt{\hat v_t} + \varepsilon}.
-\end{aligned}$$
-
+\end{aligned}
+$$
 关键就在 $\eta / \sqrt{\hat v_t}$ 这一项——**每个参数的有效 LR 大约是 $\eta / |g|$**。梯度持续大的参数被自动调小步长，梯度小的参数仍然能走完整 $\eta$。这就是 Adam 在不同尺度的参数（embedding、attention、layer norm）上都能开箱即用、而 SGD 必须靠 per-layer LR 才能勉强跟上的原因。
 
 ## 4.2 为什么 Adam 仍然需要 warmup
@@ -203,9 +187,7 @@ v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
 到达指定 milestone 时把 $\eta$ 乘以 $\gamma$（通常 0.1）。经典 ResNet 配方就用这个。优点：实现简单、手工调参直观。缺点：突然的下台阶可能让 weight decay 或 BN 敏感的网络出现 loss spike。
 
 ## 5.3 Cosine decay（深度学习的工作马）
-
 $$\eta_t = \eta_{\min} + (\eta_{\max} - \eta_{\min}) \cdot \tfrac{1}{2}\left[1 + \cos\left(\pi \cdot \tfrac{t - t_w}{T - t_w}\right)\right],$$
-
 前面再接一段长度 $t_w$ 的线性 warmup。它的形状——前期降得慢、后期降得快——刚好契合直觉：**在高 $\eta$ 上探索得越久越好，最后再快速收敛。**
 
 2019 到 2023 年间几乎所有“大模型”论文（BERT、RoBERTa、GPT-3、ViT、ImageNet 上的大规模 ResNet）默认就是它。最大的缺点是**死板**：cosine 半周期由**已知的**总步数 $T$ 决定。想延长训练？整条曲线得重做。

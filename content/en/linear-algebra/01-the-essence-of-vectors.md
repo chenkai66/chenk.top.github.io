@@ -60,19 +60,13 @@ This chapter moves from the concrete to the abstract:
 Stand at the centre of a park (call it the origin). A friend says: *"Walk 4 steps east, then 3 steps north."*
 
 That instruction **is** a vector. We write it as
-
 $$\vec{v} = \begin{pmatrix} 4 \\ 3 \end{pmatrix},$$
-
 with$4$pointing east (the$x$component) and$3$pointing north (the$y$component).
 
 Two facts fall out immediately. The **magnitude** — how far you actually end up from the start — is just Pythagoras:
-
 $$\|\vec{v}\| = \sqrt{4^2 + 3^2} = 5.$$
-
 And the **direction** is the angle north of east:
-
 $$\theta = \arctan\!\left(\frac{3}{4}\right) \approx 37^\circ.$$
-
 So a vector packages two pieces of geometric information — *length* and *direction* — into a single object.
 
 ![A 2D vector as a directed arrow with length, angle, and components](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig1_vector_as_arrow.png)
@@ -96,9 +90,7 @@ Given two vectors$\vec{a}$and$\vec{b}$, the sum$\vec{a} + \vec{b}$can be visuali
 **Parallelogram.** Draw both vectors from the same point. Complete the parallelogram. The diagonal from that shared point is the sum. This is how physicists combine two forces acting at the same location.
 
 **Component-wise.** Just add matching coordinates:
-
 $$\begin{pmatrix} 3 \\ 1 \end{pmatrix} + \begin{pmatrix} 1 \\ 2.5 \end{pmatrix} = \begin{pmatrix} 4 \\ 3.5 \end{pmatrix}.$$
-
 Use the geometric pictures to *understand*; use components to *compute*. They are two faces of one coin.
 
 ![Vector addition: head-to-tail and parallelogram both yield the same sum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig2_vector_addition.png)
@@ -130,9 +122,7 @@ A driving analogy makes this stick. If$\vec{v}$is your current velocity, then$2\
 ### 1.5 Vector Subtraction: "From Here to There"
 
 If$\vec{a}$and$\vec{b}$are position vectors of two points$A$and$B$(arrows from the origin), then
-
 $$\vec{b} - \vec{a} \;=\; \text{the vector that takes you from } A \text{ to } B.$$
-
 Game engines use this constantly: the displacement from a player to a target, the direction a bullet should travel, the offset between two waypoints — all are subtractions of position vectors.
 
 ---
@@ -142,9 +132,7 @@ Game engines use this constantly: the displacement from a player to a target, th
 ### 2.1 Beyond 2D and 3D
 
 Drawing arrows works fine in two or three dimensions. The real power of the vector concept is that the *algebra* keeps working in **any number of dimensions**:
-
 $$\vec{v} = \begin{pmatrix} v_1 \\ v_2 \\ \vdots \\ v_n \end{pmatrix} \in \mathbb{R}^n.$$
-
 You cannot picture a 100-dimensional arrow, but every operation — addition, scaling, dot products, norms — carries over unchanged. This is the bridge from "geometry you can see" to "geometry you can only compute."
 
 ### 2.2 The Same Object, Three Viewpoints
@@ -198,13 +186,9 @@ The inner product (or *dot product* in$\mathbb{R}^n$) is the deepest single oper
 ### 3.1 Two Definitions, One Operation
 
 **Algebraic:**
-
 $$\vec{a} \cdot \vec{b} \;=\; \sum_{i=1}^{n} a_i b_i \;=\; a_1 b_1 + a_2 b_2 + \cdots + a_n b_n.$$
-
 **Geometric** (in$\mathbb{R}^2$or$\mathbb{R}^3$):
-
 $$\vec{a} \cdot \vec{b} \;=\; \|\vec{a}\|\,\|\vec{b}\|\,\cos\theta,$$
-
 where$\theta$is the angle between$\vec{a}$and$\vec{b}$.
 
 The algebraic form tells you *how to compute*. The geometric form tells you *what it means*: the dot product measures how much two vectors **agree in direction**. Same direction$\Rightarrow$large positive number. Perpendicular$\Rightarrow$exactly zero. Opposite directions$\Rightarrow$large negative number.
@@ -212,9 +196,7 @@ The algebraic form tells you *how to compute*. The geometric form tells you *wha
 ### 3.2 Projection: The Best Approximation
 
 A picture turns the dot product from formula into geometry. Drop a perpendicular from the tip of$\vec{a}$onto the line through$\vec{b}$. The shadow you create is the **projection** of$\vec{a}$onto$\vec{b}$:
-
 $$\operatorname{proj}_{\vec{b}}\vec{a} \;=\; \frac{\vec{a}\cdot\vec{b}}{\vec{b}\cdot\vec{b}}\,\vec{b}.$$
-
 This is *the closest point on the line through$\vec{b}$to the tip of$\vec{a}$*. That is not a coincidence — it is the same idea behind least-squares regression, principal components, signal filtering, and a dozen other "best linear approximation" problems we will meet again and again.
 
 ![Dot product as projection: positive when angle is acute, negative when obtuse](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig5_dot_product_projection.png)
@@ -239,9 +221,7 @@ When$\vec{a} \cdot \vec{b} = 0$, the two vectors are **orthogonal** (perpendicul
 ### 3.4 The Cauchy--Schwarz Inequality
 
 For any two vectors,
-
 $$|\vec{a}\cdot\vec{b}| \;\leq\; \|\vec{a}\|\,\|\vec{b}\|,$$
-
 with equality only when one is a scalar multiple of the other. In words: *the dot product can never exceed the product of the lengths*. It is the algebraic shadow of$|\cos\theta| \leq 1$, and it is the single most-used inequality in all of analysis.
 
 ---
@@ -348,9 +328,7 @@ RGB colours live in$\mathbb{R}^3$. Mixing them is literally vector arithmetic.
 ### 6.3 GPS, Reduced to Vector Equations
 
 GPS positioning is **trilateration**: your receiver measures its distance$d_i$to each of several satellites at known positions$\vec{s}_i$, giving equations
-
 $$\|\vec{x} - \vec{s}_i\| \;=\; d_i.$$
-
 In the plane, two such equations leave you with two intersection points; a third pins the answer down. In 3D, you need four satellites (a fourth for clock-bias correction). That is it — billion-dollar infrastructure, expressed as vector equations.
 
 ---
@@ -405,9 +383,7 @@ print(np.arccos(c2)) # 0.0  -- WRONG, the true angle is 1e-9
 What happened? Squaring the components inside `norm` destroyed the small coordinate ($10^{-9}$ became $10^{-18}$, below double-precision resolution near 1). Then $c$ rounded to exactly $1$, and `arccos(1) = 0`.
 
 The numerically stable form uses the cross-product magnitude in the numerator and the dot product in the denominator, then `atan2`:
-
 $$\theta = \operatorname{atan2}\bigl(\|\vec{u}\times\vec{v}\|,\ \vec{u}\cdot\vec{v}\bigr).$$
-
 `atan2` keeps full precision for both tiny and near-$\pi$ angles. The same lesson applies to Gram-Schmidt (use *modified* Gram-Schmidt or Householder, never classical), to computing variance (use Welford's online formula, not $E[X^2] - (E[X])^2$), and to softmax (subtract the max first).
 
 The takeaway: the algebra you learned in this chapter is exact over $\mathbb{R}$, but every line of code lives in $\mathbb{F}_{64}$, a finite set of about $2^{64}$ rational numbers. Cancellation, overflow, and rounding are not edge cases — they decide whether your model trains.

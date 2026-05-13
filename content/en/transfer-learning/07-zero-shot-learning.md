@@ -44,9 +44,7 @@ This post derives ZSL from one equation — a compatibility function $F(x, c)$ b
 ## 1. Problem definition
 
 Let $\mathcal{C}^s$ be the set of **seen classes** (labelled training data available) and $\mathcal{C}^u$ the set of **unseen classes** (no labelled data at all). The defining constraint of ZSL is
-
 $$\mathcal{C}^s \cap \mathcal{C}^u = \emptyset.$$
-
 Each class $c$ — seen or unseen — is paired with a **semantic descriptor** $a_c \in \mathbb{R}^M$. This descriptor is the only way information can leak from the seen classes to the unseen ones. It can be:
 
 - a **binary or continuous attribute vector** (e.g. *striped*, *has wings*, *aquatic*);
@@ -62,11 +60,11 @@ We then face two flavours of the task:
 | **Generalised ZSL (GZSL)** | $y \in \mathcal{C}^s \cup \mathcal{C}^u$ | What you actually need in production; much harder because of bias toward seen classes. |
 
 The single equation that organises every method below is the **compatibility function**
-
-$$F: \mathcal{X} \times \mathcal{C} \to \mathbb{R},
+$$
+F: \mathcal{X} \times \mathcal{C} \to \mathbb{R},
 \qquad
-\hat{y} = \arg\max_{c \in \mathcal{C}_{\text{test}}} F(x, c; \theta).$$
-
+\hat{y} = \arg\max_{c \in \mathcal{C}_{\text{test}}} F(x, c; \theta).
+$$
 We learn $F$ on seen classes and *trust* the semantic geometry to extend it to unseen ones.
 
 ![Supervised vs few-shot vs zero-shot supervision](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig1_zsl_vs_fsl_vs_supervised.png)
@@ -78,21 +76,15 @@ We learn $F$ on seen classes and *trust* the semantic geometry to extend it to u
 Attributes are the most interpretable semantic descriptor. They are short, human-defined predicates such as *striped*, *four-legged*, *has wings*, *aquatic*. The widely used **Animals with Attributes 2** (AwA2) dataset gives every one of its 50 animal classes an 85-dimensional attribute vector; **CUB-200-2011** uses 312 attributes for fine-grained bird recognition.
 
 A class becomes a row in the $|\mathcal{C}| \times M$ **attribute prototype matrix**. For example,
-
 $$a_{\text{zebra}} = (\underbrace{1}_{\text{striped}}, \underbrace{1}_{\text{four-legs}}, \underbrace{0}_{\text{wings}}, \underbrace{1}_{\text{hooves}}, \ldots).$$
-
 ### Direct Attribute Prediction (DAP)
 
 Lampert et al. (2009) — the paper that *defined* the modern ZSL problem — proposed a clean two-stage pipeline:
 
 **Stage 1.** Train one binary classifier per attribute on the seen-class images:
-
 $$\hat{a}_m(x) = P(\text{attribute } m \mid x), \qquad m = 1, \ldots, M.$$
-
 **Stage 2.** At test time, run all $M$ attribute classifiers on $x$ to get a predicted attribute vector $\hat{a}(x)$, then pick the unseen class whose prototype is closest:
-
 $$\hat{y} = \arg\min_{c \in \mathcal{C}^u} d\bigl(\hat{a}(x),\, a_c\bigr).$$
-
 A worked example: the query is a zebra. The attribute classifiers fire strongly on *striped*, *four-legs*, *hooves* and *mane*, weakly on *wings* and *aquatic*. Cosine similarity against the prototype matrix puts *zebra* on top, with *horse* and *tiger* trailing.
 
 ![Attribute-based zero-shot pipeline (DAP)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig2_attribute_classification.png)
@@ -116,21 +108,15 @@ Stop predicting attributes as an intermediate step and learn the compatibility $
 ### Bilinear (ALE, SJE)
 
 The simplest form is bilinear:
-
 $$F(x, c) = \phi(x)^\top W\, a_c,$$
-
 with a CNN backbone $\phi(\cdot)$ producing a $d$-dimensional visual feature and $W \in \mathbb{R}^{d \times M}$ the only trainable matrix. Train it on seen classes with a standard softmax cross-entropy:
-
 $$\mathcal{L}(x, y) = -\log \frac{\exp F(x, y)}{\sum_{c \in \mathcal{C}^s} \exp F(x, c)}.$$
-
 Akata et al.'s **ALE** (2013) and **SJE** (2015) replace cross-entropy with a structured **ranking loss** — *the score of the correct class must beat every wrong class by a margin* — which empirically generalises better to unseen classes than vanilla softmax.
 
 ### Deep compatibility / two-tower
 
 To capture non-linear visual-semantic interactions, project both modalities into a shared $d$-dimensional space with two small MLPs:
-
 $$F(x, c) = \frac{f_v(\phi(x))^\top f_s(a_c)}{\|f_v(\phi(x))\|\, \|f_s(a_c)\|} \cdot \tau,$$
-
 with a learned temperature $\tau$. This **two-tower** design is the same structure that powers DeViSE, CLIP and modern dense retrieval — only the data and scale differ.
 
 ![Shared semantic embedding space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig3_semantic_embedding_space.png)
@@ -140,9 +126,7 @@ The geometric picture is the punchline. Seen-class features cluster around their
 ### DeViSE: word embeddings as the semantic side
 
 Frome et al. (2013) proposed **DeViSE** — *Deep Visual–Semantic Embedding* — which replaces hand-defined attributes with **word embeddings of class names** (Word2Vec / GloVe). The architecture is a two-tower model trained with a hinge ranking loss
-
 $$\mathcal{L} = \sum_{c' \neq y} \max\bigl(0,\; m - F(x, y) + F(x, c')\bigr),$$
-
 and at inference the score is computed against *every* class embedding, including ones never seen in image form.
 
 ![DeViSE: visual encoder + Word2Vec text encoder in a shared space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig4_devise_visual_text_embedding.png)
@@ -164,10 +148,10 @@ The model is a conditional Wasserstein GAN with a classifier-guidance loss:
 - **Auxiliary classifier** $\mathrm{cls}$ on top of generated features, trained on real seen-class features.
 
 The total objective is
-
-$$\mathcal{L} = \underbrace{\mathbb{E}[D(\tilde{x})] - \mathbb{E}[D(x)] + \lambda\,\mathrm{GP}}_{\text{WGAN-GP}}
-\;+\; \beta \cdot \underbrace{\mathbb{E}\bigl[-\log P(y \mid \tilde{x})\bigr]}_{\text{classification}},$$
-
+$$
+\mathcal{L} = \underbrace{\mathbb{E}[D(\tilde{x})] - \mathbb{E}[D(x)] + \lambda\,\mathrm{GP}}_{\text{WGAN-GP}}
+\;+\; \beta \cdot \underbrace{\mathbb{E}\bigl[-\log P(y \mid \tilde{x})\bigr]}_{\text{classification}},
+$$
 where $\mathrm{GP}$ is the standard gradient penalty $\mathbb{E}[(\|\nabla_{\hat{x}} D(\hat{x})\|_2 - 1)^2]$. The classification loss is the key trick — it forces synthetic features to be *class-discriminative*, not just realistic.
 
 **At test time,** sample $\tilde{x}^{(u)} \sim G(z, a_u)$ for every unseen class, train softmax on $\{(x, y) : y \in \mathcal{C}^s\} \cup \{(\tilde{x}^{(u)}, u)\}$, and predict normally. On AwA2 this jumps GZSL harmonic mean from ~22 (vanilla embedding) to ~58.
@@ -185,9 +169,7 @@ Conventional-ZSL benchmarks restrict the test label space to $\mathcal{C}^u$, wh
 When you open the label space to $\mathcal{C}^s \cup \mathcal{C}^u$, every method trained only on seen-class images develops a strong **bias toward seen classes**. Their visual features lie inside the regions $F$ already knows; unseen-class features look slightly off-distribution and almost always lose the argmax.
 
 The standard metric is the **harmonic mean** of seen and unseen accuracies:
-
 $$H = \frac{2 \cdot S \cdot U}{S + U}.$$
-
 It punishes any method that wins on one side at the cost of the other. A model that scores $S = 88, U = 12$ has $H = 21$ — terrible.
 
 ![GZSL bias problem and three remedies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig6_gzsl_vs_zsl.png)
@@ -195,9 +177,7 @@ It punishes any method that wins on one side at the cost of the other. A model t
 Three families of remedies:
 
 **1. Calibrated stacking (Chao et al., 2016).** Subtract a constant from every seen-class score:
-
 $$F_{\text{cal}}(x, c) = F(x, c) - \gamma \cdot \mathbb{1}[c \in \mathcal{C}^s].$$
-
 Tune $\gamma$ on a held-out validation set. Cheap, effective, and a strong baseline.
 
 **2. Generative feature synthesis** (Section 4). Once you can fabricate unseen-class features, GZSL is just supervised classification on a balanced training set.
@@ -209,9 +189,7 @@ Tune $\gamma$ on a held-out validation set. Cheap, effective, and a strong basel
 ## 6. CLIP and the vision-language pretraining era
 
 **CLIP** (Radford et al., 2021) is, in retrospect, exactly the deep-compatibility two-tower of Section 3 — but trained on **400 million image–text pairs** scraped from the web, with the cross-entropy contrastive loss
-
 $$\mathcal{L} = -\sum_i \log \frac{\exp\bigl(I_i \cdot T_i / \tau\bigr)}{\sum_j \exp\bigl(I_i \cdot T_j / \tau\bigr)} \;+\; (\text{symmetric term over text}).$$
-
 At zero-shot inference time you build a classifier *from text* on the fly. For a $K$-class problem, write a prompt template such as `"a photo of a {class}"`, encode all $K$ prompts with the text tower, and classify a new image by picking the prompt embedding closest to its image embedding.
 
 ![CLIP zero-shot classification](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig5_clip_zero_shot.png)

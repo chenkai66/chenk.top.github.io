@@ -44,9 +44,7 @@ Named entity recognition, POS tagging, information extraction — every one of t
 ### 1.1 What HMM forces you to assume
 
 HMM models the **joint** probability of observations $\mathbf{X}$ and labels $\mathbf{Y}$:
-
 $$P(\mathbf{X}, \mathbf{Y}) = P(y_1) \prod_{t=2}^{T} P(y_t \mid y_{t-1}) \prod_{t=1}^{T} P(x_t \mid y_t)$$
-
 To predict labels you go via Bayes' rule: $\mathbf{Y}^* = \arg\max_{\mathbf{Y}} P(\mathbf{Y}\mid\mathbf{X})$. Two assumptions make the joint tractable but also restrictive:
 
 - **Observation independence:** $P(x_t \mid y_{1:T}, x_{\setminus t}) = P(x_t \mid y_t)$. Each token sees only its own label.
@@ -59,9 +57,7 @@ The Markov assumption is mostly fine. The observation independence assumption, h
 ![Linear-chain CRF vs HMM structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig1_chain_structure.png)
 
 A linear-chain CRF defines
-
 $$P(\mathbf{Y} \mid \mathbf{X}) \;=\; \frac{1}{Z(\mathbf{X})} \exp\!\left(\sum_{t=1}^{T} \Psi_t(y_{t-1}, y_t, \mathbf{X})\right)$$
-
 The figure above shows the structural difference. In HMM (top) every $x_t$ is a child of $y_t$, so the model has to **explain** the observations — and to keep the joint factorisable each $x_t$ may depend only on $y_t$. In CRF (bottom) the entire observation sequence $\mathbf{X}$ sits in a shared "context strip"; every clique $(y_{t-1}, y_t, \mathbf{X})$ is allowed to inspect any function of the whole $\mathbf{X}$. We never write down $P(\mathbf{X})$, so we never have to assume anything about how observations were generated.
 
 **What you gain:**
@@ -74,9 +70,7 @@ The figure above shows the structural difference. In HMM (top) every $x_t$ is a 
 ### 1.3 The path from HMM through MEMM to CRF
 
 The **Maximum Entropy Markov Model (MEMM)** was the natural intermediate step between HMM and CRF:
-
 $$P(\mathbf{Y} \mid \mathbf{X}) = \prod_{t=1}^{T} P(y_t \mid y_{t-1}, \mathbf{X})$$
-
 MEMM is discriminative *and* allows arbitrary features of $\mathbf{X}$, but it normalises **locally** at each position. This causes the **label-bias problem**: states with few outgoing transitions concentrate probability mass simply because their per-position softmax has fewer competitors — regardless of whether the observation supports them.
 
 ![HMM vs MEMM vs CRF graphical models](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig5_hmm_memm_crf.png)
@@ -103,9 +97,7 @@ Input: observation sequence $\mathbf{X} = (x_1, x_2, \dots, x_T)$.
 Output: label sequence $\mathbf{Y} = (y_1, y_2, \dots, y_T)$ with each $y_t \in \mathcal{Y} = \{1, 2, \dots, L\}$.
 
 The conditional probability is
-
 $$P(\mathbf{Y} \mid \mathbf{X}) = \frac{1}{Z(\mathbf{X})} \prod_{t=1}^{T} \Psi_t(y_{t-1}, y_t, \mathbf{X}) \tag{1}$$
-
 where
 
 - $\Psi_t(y_{t-1}, y_t, \mathbf{X}) > 0$ is the **potential** at position $t$,
@@ -120,51 +112,33 @@ By convention $y_0$ is a special `START` symbol so the first transition is well 
 CRF parameterises the potential through two flavours of feature function:
 
 **Transition features** depend on the previous and current label:
-
 $$t_k(y_{t-1}, y_t, \mathbf{X}, t), \qquad k = 1, \dots, K_1$$
-
 *Example:* $t_1 = \mathbb{1}[y_{t-1}=\text{B-PER},\, y_t=\text{I-PER}]$ — "person name continues".
 
 **State features** (emission-style features) depend on the current label and observations:
-
 $$s_l(y_t, \mathbf{X}, t), \qquad l = 1, \dots, K_2$$
-
 *Example:* $s_1 = \mathbb{1}[y_t=\text{B-LOC},\, x_t \text{ is capitalized}]$.
 
 The figure shows what this looks like at one position on the sentence "Barack Obama visited New York". For position $t=4$ ("New" $\to$ B-LOC), the state-feature panel collects every property of $\mathbf{X}$ that fires on label B-LOC at that position (capitalisation, the next word being "York", the suffix `ew`), and the transition-feature panel records every (prev tag, current tag) configuration consistent with that decision. Crucially, these features can overlap freely.
 
 The potential bundles them with weights $\lambda_k$ and $\mu_l$:
-
 $$\Psi_t(y_{t-1}, y_t, \mathbf{X}) = \exp\!\left(\sum_k \lambda_k\, t_k(y_{t-1}, y_t, \mathbf{X}, t) + \sum_l \mu_l\, s_l(y_t, \mathbf{X}, t)\right)$$
-
 ### 2.3 Unified parameterisation
 
 Stack all feature functions into one vector $\mathbf{f}$ and all weights into $\mathbf{w}$:
-
 $$\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t) = (t_1, \dots, t_{K_1}, s_1, \dots, s_{K_2})^\top, \quad \mathbf{w} = (\lambda_1, \dots, \lambda_{K_1}, \mu_1, \dots, \mu_{K_2})^\top$$
-
 Then
-
 $$\Psi_t(y_{t-1}, y_t, \mathbf{X}) = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)\big) \tag{2}$$
-
 Define the **global feature vector** as the sum over positions:
-
 $$\mathbf{F}(\mathbf{Y}, \mathbf{X}) = \sum_{t=1}^{T} \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$$
-
 The model collapses to a clean log-linear form:
-
 $$P(\mathbf{Y} \mid \mathbf{X}) = \frac{\exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})\big)}{Z(\mathbf{X})}, \quad Z(\mathbf{X}) = \sum_{\mathbf{Y}'} \exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}', \mathbf{X})\big) \tag{3}$$
-
 ### 2.4 Matrix form
 
 For each position $t$ define an $L \times L$ score matrix
-
 $$[\mathbf{M}_t(\mathbf{X})]_{i,j} = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}=i, y_t=j, \mathbf{X}, t)\big)$$
-
 Then the unnormalised path score factors as a matrix product, and
-
 $$Z(\mathbf{X}) = \mathbf{1}^\top \!\left(\prod_{t=1}^{T} \mathbf{M}_t(\mathbf{X})\right)\! \mathbf{1}$$
-
 This is exactly $T$ multiplications of $L\times L$ matrices, hence $O(TL^2)$ — the same shape as forward-backward.
 
 ---
@@ -176,17 +150,11 @@ This is exactly $T$ multiplications of $L\times L$ matrices, hence $O(TL^2)$ —
 Define the **forward variable** $\alpha_t(j)$ as the unnormalised total score of all partial paths ending in label $j$ at position $t$.
 
 **Initialisation** ($t = 1$):
-
 $$\alpha_1(j) = \Psi_1(y_0 = \text{START},\, y_1 = j,\, \mathbf{X})$$
-
 **Recursion** ($t = 2, \dots, T$):
-
 $$\alpha_t(j) = \sum_{i=1}^{L} \alpha_{t-1}(i) \cdot \Psi_t(y_{t-1}=i,\, y_t=j,\, \mathbf{X}) \tag{4}$$
-
 **Termination:**
-
 $$Z(\mathbf{X}) = \sum_{j=1}^{L} \alpha_T(j)$$
-
 Intuitively, $\alpha_t(j)$ accumulates the (unnormalised) probability mass of every partial sequence of length $t$ that lands on label $j$. The recursion just says: to land on $j$ at time $t$, you must have come from some label $i$ at time $t-1$.
 
 **Complexity:** $O(TL^2)$ — at each of $T$ steps you sum over $L \times L$ transitions. Compared to the brute-force $O(L^T)$, this is the difference between practical and impossible.
@@ -202,21 +170,15 @@ Symmetrically, $\beta_t(i)$ is the unnormalised total score of all partial paths
 Once you have both passes, marginal probabilities fall out for free:
 
 **Single-label marginal:**
-
 $$P(y_t = j \mid \mathbf{X}) = \frac{\alpha_t(j) \cdot \beta_t(j)}{Z(\mathbf{X})}$$
-
 **Adjacent-pair marginal:**
-
 $$P(y_{t-1} = i, y_t = j \mid \mathbf{X}) = \frac{\alpha_{t-1}(i) \cdot \Psi_t(i, j, \mathbf{X}) \cdot \beta_t(j)}{Z(\mathbf{X})} \tag{5}$$
-
 The trellis figure shows the geometry: every cell $(t, j)$ collects forward arrows from the left (blue) and backward arrows from the right (purple). Their product, normalised by $Z(\mathbf{X})$, is the per-position marginal that we are about to plug into the gradient.
 
 ### 3.4 Numerical stability: log-space
 
 Multiplying many positive numbers underflows quickly, so all of forward-backward is done in log space using `logsumexp`:
-
 $$\log\!\sum_i e^{x_i} = \max_i x_i + \log\!\sum_i e^{x_i - \max_i x_i}$$
-
 This is the same trick that makes softmax stable.
 
 ---
@@ -226,29 +188,21 @@ This is the same trick that makes softmax stable.
 ### 4.1 Objective
 
 Given training data $\mathcal{D} = \{(\mathbf{X}^{(n)}, \mathbf{Y}^{(n)})\}_{n=1}^N$, maximise the log-likelihood
-
 $$\ell(\mathbf{w}) = \sum_{n=1}^{N} \log P(\mathbf{Y}^{(n)} \mid \mathbf{X}^{(n)}; \mathbf{w}) = \sum_{n=1}^{N}\!\left[\mathbf{w}^\top \mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)}) - \log Z(\mathbf{X}^{(n)})\right] \tag{6}$$
-
 The first term is linear in $\mathbf{w}$ and trivial; all the difficulty is in $\log Z$.
 
 In practice we add L2 regularisation (which, importantly, also keeps the objective strictly concave so optimisation has a unique global maximum):
-
 $$\ell_{\text{reg}}(\mathbf{w}) = \ell(\mathbf{w}) - \tfrac{\lambda}{2} \|\mathbf{w}\|^2$$
-
 ### 4.2 Gradient: empirical minus expected
 
 Differentiating (6) gives the standard log-linear gradient:
-
 $$\nabla_{\mathbf{w}} \ell = \sum_{n=1}^{N}\!\left[\underbrace{\mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)})}_{\text{empirical feature counts}} - \underbrace{\mathbb{E}_{P(\mathbf{Y}'\mid \mathbf{X}^{(n)})}\!\big[\mathbf{F}(\mathbf{Y}', \mathbf{X}^{(n)})\big]}_{\text{model-expected feature counts}}\right] \tag{7}$$
-
 This is the same shape as the gradient of any maximum-entropy model: **how often the feature actually fired in the data, minus how often the current model thinks it should fire**. Training pushes the model's expectations onto the empirical ones; at convergence they match exactly (the maximum-entropy condition).
 
 ### 4.3 Computing the expectation in $O(TL^2)$
 
 The expectation in (7) looks intractable — it's a sum over $L^T$ sequences — but linearity plus the chain structure save us. Substituting the per-position decomposition of $\mathbf{F}$ and exchanging sums,
-
 $$\mathbb{E}\big[\mathbf{F}(\mathbf{Y}, \mathbf{X})\big] = \sum_{t=1}^{T} \sum_{i,j} P(y_{t-1}=i, y_t=j \mid \mathbf{X}) \cdot \mathbf{f}(i, j, \mathbf{X}, t) \tag{8}$$
-
 The pair-marginals on the right are exactly the ones we computed in (5), at $O(TL^2)$ cost. So one sweep of forward-backward gives us $\log Z$ and **every gradient component at once**.
 
 ### 4.4 Optimisation: L-BFGS
@@ -268,21 +222,15 @@ The objective is concave (and strictly concave once you add L2), so any first-or
 ### 5.1 The decoding problem
 
 Given a trained CRF and a new $\mathbf{X}$, find
-
 $$\mathbf{Y}^* = \arg\max_{\mathbf{Y}} P(\mathbf{Y} \mid \mathbf{X}) = \arg\max_{\mathbf{Y}} \mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})$$
-
 The denominator $Z(\mathbf{X})$ doesn't depend on $\mathbf{Y}$, so we never need to compute it for decoding.
 
 ### 5.2 Dynamic programming
 
 Define $\delta_t(j)$ as the score of the best partial path ending in label $j$ at position $t$. The recursion is forward-backward with $\sum$ replaced by $\max$:
-
 $$\delta_t(j) = \max_{i \in \{1,\dots,L\}}\!\left[\delta_{t-1}(i) + \mathbf{w}^\top \mathbf{f}(i, j, \mathbf{X}, t)\right] \tag{9}$$
-
 Store the back-pointer
-
 $$\psi_t(j) = \arg\max_{i}\!\left[\delta_{t-1}(i) + \mathbf{w}^\top \mathbf{f}(i, j, \mathbf{X}, t)\right]$$
-
 so that after reaching position $T$, $y_T^* = \arg\max_j \delta_T(j)$, and tracing back $y_{t-1}^* = \psi_t(y_t^*)$ recovers the full best sequence.
 
 ![Viterbi decoding trellis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig4_viterbi_decoding.png)
@@ -296,9 +244,7 @@ The trellis above shows it visually: faint grey arrows are all candidate transit
 ![ML Math Derivations (16): Conditional Random Fields — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_2.png)
 
 Modern sequence labelling typically pairs a neural feature extractor with a CRF output layer:
-
 $$\text{Input} \xrightarrow{\text{Embedding}} \text{BiLSTM} \xrightarrow{\text{emission scores}} \text{CRF layer} \xrightarrow{\text{Viterbi}} \text{Labels}$$
-
 - **BiLSTM** (or a Transformer encoder) learns a contextual representation of every token, replacing handcrafted state features with learned ones.
 - **CRF layer** keeps a learnable transition matrix $A_{ij}$ over labels. This matters because constraints like "I-PER must follow B-PER, never O" are sequential and a token-wise softmax cannot enforce them.
 - **Training** jointly optimises both halves end-to-end via the same negative log-likelihood objective.

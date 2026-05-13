@@ -79,17 +79,13 @@ For a batch of $B$ image-text pairs $\{(\mathbf{v}_i, \mathbf{t}_i)\}$, all $B \
 ![Contrastive image-text alignment: diagonal of the batch similarity matrix is pulled up, off-diagonal is pushed down.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig2_contrastive_alignment.png)
 
 The image-to-text InfoNCE loss is a row-wise softmax cross-entropy over this matrix, with the diagonal as the target:
-
 $$\mathcal{L}_{i \to t} \;=\; -\frac{1}{B}\sum_{i=1}^{B} \log \frac{\exp(\mathbf{v}_i^\top \mathbf{t}_i / \tau)}{\sum_{j=1}^{B} \exp(\mathbf{v}_i^\top \mathbf{t}_j / \tau)}$$
-
 The text-to-image loss $\mathcal{L}_{t \to i}$ is the column-wise version. CLIP minimizes the symmetric average $\mathcal{L} = \tfrac{1}{2}(\mathcal{L}_{i \to t} + \mathcal{L}_{t \to i})$.
 
 ### Why it works: a mutual-information lower bound
 
 InfoNCE is not just a heuristic; it is a tractable lower bound on the mutual information $I(V; T)$ between the two modalities (Oord et al., 2018):
-
 $$I(V; T) \;\geq\; \log B \;-\; \mathcal{L}_{\text{InfoNCE}}$$
-
 So minimizing the loss directly *maximizes* a lower bound on how much knowing the image tells you about the text (and vice versa). The bound tightens as $B$ grows — which is exactly why CLIP uses an enormous batch size of 32,768.
 
 ### Temperature $\tau$: focus vs. spread
@@ -198,9 +194,7 @@ Whenever you mix two modalities, you have to decide *where* to fuse them. Three 
 **Late fusion.** Encode each modality independently, then combine: $\mathbf{h} = g(f_v(\mathbf{v}), f_t(\mathbf{t}))$. This is CLIP. Modular, scalable, retrieval-friendly, but interaction between modalities is shallow — the encoders don't "see" each other.
 
 **Cross-attention (deep) fusion.** Encoders interleave cross-attention layers where queries from one modality attend to keys/values from the other:
-
 $$\text{CrossAttn}(\mathbf{V}, \mathbf{T}) = \text{softmax}\!\left(\frac{(\mathbf{V}\mathbf{W}_Q)(\mathbf{T}\mathbf{W}_K)^\top}{\sqrt{d}}\right) \mathbf{T}\mathbf{W}_V$$
-
 Used in ViLBERT, LXMERT, BLIP. Richer interaction, better on tasks needing fine-grained reasoning (VQA, grounding); slower at retrieval because every (image, text) pair must be re-scored.
 
 | Strategy | Pretrained encoders | Interaction depth | Retrieval cost |

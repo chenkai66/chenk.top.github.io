@@ -64,17 +64,11 @@ A **probability measure** $P$ on $(\Omega, \mathcal{F})$ is a function $P: \math
 
 
 **Axiom 1 (Non-negativity).** For every event $A \in \mathcal{F}$,
-
 $$P(A) \geq 0.$$
-
 **Axiom 2 (Normalization).** The probability of the entire sample space is 1:
-
 $$P(\Omega) = 1.$$
-
 **Axiom 3 (Countable Additivity).** If $A_1, A_2, \ldots$ are pairwise disjoint events (i.e., $A_i \cap A_j = \emptyset$ for $i \neq j$), then
-
 $$P\left(\bigcup_{i=1}^{\infty} A_i\right) = \sum_{i=1}^{\infty} P(A_i).$$
-
 That's it. Three axioms. Everything else — Bayes' theorem, the law of large numbers, the central limit theorem — is a logical consequence.
 
 ### Immediate Consequences
@@ -82,15 +76,11 @@ That's it. Three axioms. Everything else — Bayes' theorem, the law of large nu
 From these axioms alone, we can derive:
 
 **Complement Rule.** Since $A$ and $A^c$ are disjoint and $A \cup A^c = \Omega$:
-
 $$P(A) + P(A^c) = P(\Omega) = 1 \implies P(A^c) = 1 - P(A).$$
-
 **Impossible Event.** $P(\emptyset) = 1 - P(\Omega) = 0$.
 
 **Inclusion-Exclusion (two events).**
-
 $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
-
 *Proof.* Write $A \cup B = A \cup (B \setminus A)$, where $A$ and $B \setminus A$ are disjoint. Then $P(A \cup B) = P(A) + P(B \setminus A)$. Now $B = (A \cap B) \cup (B \setminus A)$, disjoint, so $P(B) = P(A \cap B) + P(B \setminus A)$, giving $P(B \setminus A) = P(B) - P(A \cap B)$. Substituting yields the result. $\blacksquare$
 
 **Monotonicity.** If $A \subseteq B$, then $P(A) \leq P(B)$.
@@ -108,40 +98,28 @@ Knowing that some event $B$ has occurred changes our beliefs about other events.
 
 
 **Definition.** If $P(B) > 0$, the conditional probability of $A$ given $B$ is
-
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}.$$
-
 Intuitively, we "zoom in" to the world where $B$ has happened: $B$ becomes our new sample space, and we re-normalize.
 
 ### The Multiplication Rule
 
 Rearranging the definition:
-
 $$P(A \cap B) = P(A \mid B) \, P(B) = P(B \mid A) \, P(A).$$
-
 This extends to chains:
-
 $$P(A_1 \cap A_2 \cap \cdots \cap A_n) = P(A_1) \, P(A_2 \mid A_1) \, P(A_3 \mid A_1 \cap A_2) \cdots P(A_n \mid A_1 \cap \cdots \cap A_{n-1}).$$
-
 ### Example: Drawing Cards
 
 A standard deck has 52 cards. What is the probability of drawing two aces in a row (without replacement)?
-
 $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid \text{Ace}_1) = \frac{4}{52} \cdot \frac{3}{51} = \frac{12}{2652} = \frac{1}{221} \approx 0.00452.$$
-
 ## The Law of Total Probability
 
 
 ![Bayes theorem detective updating beliefs with new evidence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-bayes-theorem-detective-updating-beliefs-with-new-evidence.jpg)
 
 Let $B_1, B_2, \ldots, B_n$ be a **partition** of $\Omega$ — that is, the $B_i$ are pairwise disjoint and $\bigcup B_i = \Omega$, with $P(B_i) > 0$ for all $i$. Then for any event $A$:
-
 $$P(A) = \sum_{i=1}^{n} P(A \mid B_i) \, P(B_i).$$
-
 *Proof.* $A = A \cap \Omega = A \cap \left(\bigcup_i B_i\right) = \bigcup_i (A \cap B_i)$. The sets $A \cap B_i$ are pairwise disjoint, so by Axiom 3:
-
 $$P(A) = \sum_i P(A \cap B_i) = \sum_i P(A \mid B_i) P(B_i). \quad \blacksquare$$
-
 This is enormously useful. When you can't compute $P(A)$ directly, break the world into cases and handle each one separately.
 
 ## Bayes' Theorem
@@ -149,16 +127,11 @@ This is enormously useful. When you can't compute $P(A)$ directly, break the wor
 **Theorem (Bayes).** If $P(A) > 0$ and $P(B) > 0$, then
 
 ![Bayes theorem decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-bayes-tree.png)
-
-
 $$P(B \mid A) = \frac{P(A \mid B) \, P(B)}{P(A)}.$$
-
 *Proof.* From the multiplication rule, $P(A \mid B) P(B) = P(A \cap B) = P(B \mid A) P(A)$. Divide both sides by $P(A)$. $\blacksquare$
 
 Combined with the law of total probability (using a partition $B_1, \ldots, B_n$):
-
 $$P(B_k \mid A) = \frac{P(A \mid B_k) \, P(B_k)}{\sum_{i=1}^{n} P(A \mid B_i) \, P(B_i)}.$$
-
 ### Medical Testing Example
 
 A disease affects 1 in 1000 people. A test detects the disease with 99% sensitivity (true positive rate) and 95% specificity (true negative rate). You test positive. What is the probability you actually have the disease?
@@ -171,13 +144,9 @@ Define:
 - $P(T^+ \mid D^c) = 0.05$ (1 - specificity = false positive rate)
 
 By the law of total probability:
-
 $$P(T^+) = P(T^+ \mid D)P(D) + P(T^+ \mid D^c)P(D^c) = 0.99 \times 0.001 + 0.05 \times 0.999 = 0.00099 + 0.04995 = 0.05094.$$
-
 By Bayes' theorem:
-
 $$P(D \mid T^+) = \frac{P(T^+ \mid D) P(D)}{P(T^+)} = \frac{0.99 \times 0.001}{0.05094} \approx 0.0194.$$
-
 **Less than 2%.** Even with a "99% accurate" test, a positive result in a rare disease is overwhelmingly likely to be a false positive. This is the **base rate fallacy** — ignoring the prior probability $P(D)$ leads to wildly wrong conclusions.
 
 The key insight: when the disease is rare, the false positives from healthy people ($0.05 \times 999 \approx 50$) vastly outnumber the true positives from sick people ($0.99 \times 1 \approx 1$).
@@ -185,11 +154,8 @@ The key insight: when the disease is rare, the false positives from healthy peop
 ### Sequential Testing: What If You Test Positive Twice?
 
 Suppose you test positive and then take the test again (independently), testing positive a second time. Now:
-
 $$P(D \mid T_1^+, T_2^+) = \frac{P(T_1^+, T_2^+ \mid D) P(D)}{P(T_1^+, T_2^+)}.$$
-
 Since the tests are independent given disease status:
-
 $$P(T_1^+, T_2^+ \mid D) = 0.99^2 = 0.9801$$
 
 $$P(T_1^+, T_2^+ \mid D^c) = 0.05^2 = 0.0025$$
@@ -197,7 +163,6 @@ $$P(T_1^+, T_2^+ \mid D^c) = 0.05^2 = 0.0025$$
 $$P(T_1^+, T_2^+) = 0.9801 \times 0.001 + 0.0025 \times 0.999 = 0.000980 + 0.002498 = 0.003478$$
 
 $$P(D \mid T_1^+, T_2^+) = \frac{0.000980}{0.003478} \approx 0.282.$$
-
 Two positive tests raise the probability from 1.9% to 28.2%. A third positive test would push it to about 88%. This illustrates the power of **sequential updating** — each piece of evidence multiplies the odds, and even weak individual tests become compelling when combined.
 
 Equivalently, you can use the posterior from the first test ($P(D|T_1^+) \approx 0.0194$) as the prior for the second test — this is sequential Bayesian updating, which we'll formalize in Article 8.
@@ -205,21 +170,15 @@ Equivalently, you can use the posterior from the first test ($P(D|T_1^+) \approx
 ## Independence
 
 Two events $A$ and $B$ are **independent** if
-
 $$P(A \cap B) = P(A) \, P(B).$$
-
 Equivalently, $P(A \mid B) = P(A)$ — knowing $B$ occurred tells you nothing about $A$.
 
 ### Pairwise vs Mutual Independence
 
 For three events $A, B, C$, **pairwise independence** means:
-
 $$P(A \cap B) = P(A)P(B), \quad P(A \cap C) = P(A)P(C), \quad P(B \cap C) = P(B)P(C).$$
-
 **Mutual independence** additionally requires:
-
 $$P(A \cap B \cap C) = P(A) P(B) P(C).$$
-
 Pairwise independence does **not** imply mutual independence.
 
 **Counterexample.** Roll two fair dice. Let $A$ = "first die is odd," $B$ = "second die is odd," $C$ = "sum is odd." Then $P(A) = P(B) = P(C) = 1/2$. The three pairs are pairwise independent (exercise: check it). But $A \cap B \cap C = \emptyset$ (two odd numbers never give an odd sum), so $P(A \cap B \cap C) = 0 \neq 1/8 = P(A)P(B)P(C)$.
@@ -231,21 +190,15 @@ For $n$ events, mutual independence requires $2^n - n - 1$ conditions (all possi
 ## Inclusion-Exclusion: The General Case
 
 The two-event formula generalizes to $n$ events:
-
 $$P\left(\bigcup_{i=1}^n A_i\right) = \sum_{i} P(A_i) - \sum_{i < j} P(A_i \cap A_j) + \sum_{i < j < k} P(A_i \cap A_j \cap A_k) - \cdots + (-1)^{n+1} P(A_1 \cap \cdots \cap A_n).$$
-
 *Proof.* By induction. The base case ($n = 2$) was proved above. Assume the formula holds for $n-1$ events. Write $\bigcup_{i=1}^n A_i = \left(\bigcup_{i=1}^{n-1} A_i\right) \cup A_n$ and apply the two-event formula:
-
 $$P\left(\bigcup_{i=1}^n A_i\right) = P\left(\bigcup_{i=1}^{n-1} A_i\right) + P(A_n) - P\left(\left(\bigcup_{i=1}^{n-1} A_i\right) \cap A_n\right).$$
-
 The last term equals $P\left(\bigcup_{i=1}^{n-1} (A_i \cap A_n)\right)$, which by the inductive hypothesis expands with alternating signs. Collecting terms yields the general formula. $\blacksquare$
 
 While the general inclusion-exclusion formula involves $2^n - 1$ terms, it's invaluable for computing probabilities that involve "at least one" events — like the birthday problem below, and later, the union bound (a weakening that drops all but the first sum).
 
 **The Union Bound (Boole's Inequality).** Since all the subtracted terms are non-negative:
-
 $$P\left(\bigcup_{i=1}^n A_i\right) \leq \sum_{i=1}^n P(A_i).$$
-
 This simple bound is loose but extremely useful — it underlies the Bonferroni correction in multiple testing (Article 7) and many results in learning theory.
 
 ## Conditional Probability as a New Probability Measure
@@ -267,17 +220,13 @@ When all outcomes in a finite $\Omega$ are equally likely, $P(A) = |A|/|\Omega|$
 ### Permutations
 
 The number of ways to arrange $k$ objects chosen from $n$ distinct objects (order matters):
-
 $$P(n, k) = \frac{n!}{(n-k)!}.$$
-
 **Example.** How many ways can 3 runners finish a race with 8 competitors? $P(8, 3) = 8!/5! = 8 \times 7 \times 6 = 336$.
 
 ### Combinations
 
 The number of ways to choose $k$ objects from $n$ (order doesn't matter):
-
 $$\binom{n}{k} = \frac{n!}{k!(n-k)!} = \frac{P(n,k)}{k!}.$$
-
 The division by $k!$ removes the ordering — each unordered group of $k$ objects corresponds to $k!$ ordered arrangements.
 
 Key properties:
@@ -291,27 +240,19 @@ Key properties:
 ### The Binomial Theorem
 
 Pascal's rule connects combinations to the expansion:
-
 $$(a + b)^n = \sum_{k=0}^{n} \binom{n}{k} a^k b^{n-k}.$$
-
 Setting $a = b = 1$ gives $\sum \binom{n}{k} = 2^n$, the total number of subsets. Setting $a = 1, b = -1$ gives $\sum (-1)^k \binom{n}{k} = 0$, so the number of even-sized subsets equals the number of odd-sized subsets.
 
 ### Multinomial Coefficients
 
 The number of ways to partition $n$ objects into groups of sizes $n_1, n_2, \ldots, n_r$ with $\sum n_i = n$:
-
 $$\binom{n}{n_1, n_2, \ldots, n_r} = \frac{n!}{n_1! \, n_2! \cdots n_r!}.$$
-
 **Example.** How many distinct arrangements of the letters in MISSISSIPPI? We have 11 letters: 1 M, 4 I's, 4 S's, 2 P's.
-
 $$\frac{11!}{1! \cdot 4! \cdot 4! \cdot 2!} = \frac{39916800}{1 \cdot 24 \cdot 24 \cdot 2} = 34650.$$
-
 ### Stars and Bars
 
 How many ways can $k$ identical items be distributed among $n$ distinct bins? This is the "stars and bars" problem:
-
 $$\binom{k + n - 1}{n - 1} = \binom{k + n - 1}{k}.$$
-
 **Example.** Distribute 10 identical cookies among 4 children: $\binom{13}{3} = 286$ ways.
 
 *Proof.* Represent the items as $k$ stars and the bin separators as $n-1$ bars. A valid arrangement is any sequence of $k$ stars and $n-1$ bars, and the number of such sequences is $\binom{k+n-1}{n-1}$. $\blacksquare$
@@ -324,23 +265,15 @@ $$\binom{k + n - 1}{n - 1} = \binom{k + n - 1}{k}.$$
 
 
 This is easier to compute via the complement: let $A$ be "at least one shared birthday," so $A^c$ is "all birthdays distinct."
-
 $$P(A^c) = \frac{365}{365} \cdot \frac{364}{365} \cdot \frac{363}{365} \cdots \frac{365 - n + 1}{365} = \prod_{k=0}^{n-1} \frac{365 - k}{365}.$$
-
 Therefore:
-
 $$P(A) = 1 - \prod_{k=0}^{n-1} \left(1 - \frac{k}{365}\right).$$
-
 ### The Approximation
 
 Using $\ln(1-x) \approx -x$ for small $x$:
-
 $$\ln P(A^c) = \sum_{k=0}^{n-1} \ln\left(1 - \frac{k}{365}\right) \approx -\sum_{k=0}^{n-1} \frac{k}{365} = -\frac{n(n-1)}{2 \cdot 365}.$$
-
 So:
-
 $$P(A^c) \approx e^{-n(n-1)/730}.$$
-
 Setting $P(A) = 0.5$: $e^{-n(n-1)/730} = 0.5$, giving $n(n-1) = 730 \ln 2 \approx 506$, so $n \approx 23$.
 
 **With just 23 people, there's a 50% chance of a birthday match.** Most people guess something much higher (like 183) because they confuse "someone shares MY birthday" with "some pair shares A birthday." The number of pairs grows quadratically: $\binom{23}{2} = 253$ pairs, each with a small chance of matching, but 253 chances add up fast.
@@ -348,9 +281,7 @@ Setting $P(A) = 0.5$: $e^{-n(n-1)/730} = 0.5$, giving $n(n-1) = 730 \ln 2 \appro
 ### The Generalized Birthday Problem
 
 The birthday problem generalizes: if there are $d$ equally likely "birthdays" (not necessarily 365) and $n$ people, the collision threshold is approximately:
-
 $$n \approx \sqrt{2d \ln 2} \approx 1.177 \sqrt{d}.$$
-
 This has important applications beyond party tricks:
 
 - **Hash collisions:** A hash function with $d = 2^{128}$ possible outputs. Collisions become likely after about $2^{64}$ inputs — this is why 128-bit hashes are considered secure for billions of objects but not for $2^{64}$.
@@ -432,21 +363,17 @@ No article on probability foundations is complete without this classic.
 **Correct answer:** Switch. Switching wins with probability 2/3.
 
 *Proof via the law of total probability.* Let $C_i$ be the event that the car is behind Door $i$, each with $P(C_i) = 1/3$. Let $H_3$ be the event that the host opens Door 3. We want $P(C_2 | H_3)$.
-
 $$P(H_3 | C_1) = 1/2 \quad \text{(host chooses randomly between 2 and 3)}$$
 
 $$P(H_3 | C_2) = 1 \quad \text{(host must open 3, since 2 has the car)}$$
 
 $$P(H_3 | C_3) = 0 \quad \text{(host never reveals the car)}$$
-
 By Bayes' theorem:
-
 $$P(C_2 | H_3) = \frac{P(H_3 | C_2) P(C_2)}{P(H_3)} = \frac{1 \cdot 1/3}{P(H_3)}.$$
 
 $$P(H_3) = P(H_3|C_1)P(C_1) + P(H_3|C_2)P(C_2) + P(H_3|C_3)P(C_3) = \frac{1}{2}\cdot\frac{1}{3} + 1\cdot\frac{1}{3} + 0 = \frac{1}{2}.$$
 
 $$P(C_2 | H_3) = \frac{1/3}{1/2} = \frac{2}{3}. \quad \blacksquare$$
-
 The host's action gives you information. Before the host opens a door, Door 1 has a 1/3 chance of being correct. The host revealing a goat behind Door 3 doesn't change what's behind Door 1 — it's still 1/3. But the 2/3 probability that was split between Doors 2 and 3 is now concentrated entirely on Door 2.
 
 **Why this problem matters beyond game shows:** The Monty Hall problem illustrates a general principle: **conditioning on information changes probabilities in ways that depend on the mechanism generating the information.** The host's choice was constrained (never reveal the car), and this constraint is what makes switching advantageous. In machine learning, analogous situations arise in selection bias, survivorship bias, and collider bias in causal inference.
@@ -490,10 +417,10 @@ Here is a reference table of the key formulas developed in this article:
 | Complement | $P(A^c) = 1 - P(A)$ | "At least one" problems |
 | Inclusion-exclusion | $P(A \cup B) = P(A) + P(B) - P(A \cap B)$ | Union of events |
 | Union bound | $P(\bigcup A_i) \leq \sum P(A_i)$ | Quick upper bounds |
-| Conditional | $P(A|B) = P(A \cap B)/P(B)$ | Updating with information |
-| Multiplication | $P(A \cap B) = P(A|B)P(B)$ | Joint event probability |
-| Total probability | $P(A) = \sum P(A|B_i)P(B_i)$ | Decompose by cases |
-| Bayes' theorem | $P(B|A) = \frac{P(A|B)P(B)}{P(A)}$ | Reverse conditioning |
+| Conditional | $P(A\mid B) = P(A \cap B)/P(B)$ | Updating with information |
+| Multiplication | $P(A \cap B) = P(A\mid B)P(B)$ | Joint event probability |
+| Total probability | $P(A) = \sum P(A\mid B_i)P(B_i)$ | Decompose by cases |
+| Bayes' theorem | $P(B\lvert A) = \frac{P(A\rvertB)P(B)}{P(A)}$ | Reverse conditioning |
 | Independence | $P(A \cap B) = P(A)P(B)$ | Simplify products |
 | Combinations | $\binom{n}{k} = \frac{n!}{k!(n-k)!}$ | Equally likely outcomes |
 

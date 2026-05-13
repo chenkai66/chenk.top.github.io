@@ -78,9 +78,7 @@ The bridge is **global** — every user is mapped through the same $f_\phi$.
 ### PTUPCDR — personalize the bridge itself
 
 EMCDR's weakness is that one mapping cannot capture how different users translate across domains. A horror-movie fan and a documentary fan probably need very different mappings into the book domain. [Zhu et al., WSDM 2022](https://arxiv.org/abs/2110.11154) propose **PTUPCDR (Personalized Transfer of User Preferences for Cross-Domain Recommendation)**: instead of one $\phi$, generate a per-user $\phi_i$ from the user's source-domain behavior using a meta network.
-
 $$\phi_i = h_\theta\bigl(\{\mathbf{v}_j^S : j \in \mathcal{H}_i^S\}\bigr), \qquad \hat{\mathbf{u}}_i^T = f_{\phi_i}(\mathbf{u}_i^S)$$
-
 In words: read the user's source-domain history, summarize it into a small set of bridge weights, then apply that personalized bridge to the user's source embedding. PTUPCDR reports MAE reductions of 5–10% over EMCDR on the standard Amazon cross-category benchmarks.
 
 ![Side-by-side: EMCDR uses a single shared MLP for all users; PTUPCDR generates per-user bridge parameters via a meta network](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig3_emcdr_ptupcdr.png)
@@ -132,13 +130,9 @@ The cross-domain story assumes you have a related rich domain. Meta-learning tak
 ### MAML in one paragraph
 
 [Finn, Abbeel, and Levine (ICML 2017)](https://arxiv.org/abs/1703.03400) proposed **MAML (Model-Agnostic Meta-Learning)**: instead of learning parameters $\theta$ that minimize expected loss across tasks, learn $\theta$ that, after a few gradient steps on any task, performs well on that task. It's a bilevel optimization. The inner loop adapts:
-
 $$\theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{T_i}(f_\theta, \mathcal{S}_i)$$
-
 The outer loop optimizes the initialization through the adapted parameters:
-
 $$\theta \leftarrow \theta - \beta \nabla_\theta \sum_{T_i \sim p(\mathcal{T})} \mathcal{L}_{T_i}(f_{\theta'_i}, \mathcal{Q}_i)$$
-
 Geometrically, MAML pushes $\theta$ to a region of parameter space where every task's optimum is just a few gradient steps away.
 
 ![MAML loss landscape with three task minima and a meta-initialization equidistant from all three; right panel shows inner and outer loop equations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig4_maml_meta_learning.png)
@@ -229,9 +223,7 @@ Once a model has *some* confidence about a user, the next question is what to ac
 ### UCB1 — confidence bounds
 
 [Auer, Cesa-Bianchi, and Fischer (2002)](http://aima.eecs.berkeley.edu/~russell/classes/cs294/s11/readings/Auer+al:2002.pdf) prove that the UCB1 rule
-
 $$a_t = \arg\max_a \left[ \hat\mu_a + \sqrt{\frac{2 \ln t}{n_a}} \right]$$
-
 achieves $O(\log t)$ cumulative regret — i.e., the gap between UCB and an oracle that always picks the best arm grows only logarithmically in the number of rounds. The formula has a clean interpretation: pick the item whose **upper confidence bound** is highest. Items with few pulls $n_a$ get a large exploration bonus and are tried; items with many pulls have tight bounds and are picked only if their estimated mean is genuinely high.
 
 ![Left: bar chart of estimated rewards with UCB whiskers showing items with few pulls have wide uncertainty bonuses; right: cumulative regret curves showing UCB and Thompson achieve logarithmic regret while greedy and random grow linearly](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig5_ucb_exploration.png)
@@ -297,9 +289,7 @@ The recipe is mechanical:
 1. **Encode the new item** with a domain-appropriate encoder. Text → BERT / sentence-transformers. Images → CLIP. Tabular → handcrafted features + a small MLP.
 2. **Find the K nearest warm items** by cosine similarity on the content embedding.
 3. **Predict the rating** as a similarity-weighted average of those neighbors' ratings:
-
 $$\hat r_{u,i} = \frac{\sum_{j \in N_K(i)} \mathrm{sim}(i, j) \cdot r_{u,j}}{\sum_{j \in N_K(i)} \mathrm{sim}(i, j)}$$
-
 ```python
 import numpy as np
 

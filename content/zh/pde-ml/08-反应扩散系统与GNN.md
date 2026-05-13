@@ -47,11 +47,9 @@ translationKey: "pde-ml-8"
 ### 1.1 一般形式
 
 反应扩散（Reaction-Diffusion, RD）方程将空间扩散与局部非线性反应耦合在一起：
-
 $$
 \frac{\partial \mathbf{u}}{\partial t} = \mathbf{D}\,\nabla^2\mathbf{u} + \mathbf{R}(\mathbf{u}). \tag{1}
 $$
-
 - 扩散项 $\mathbf{D}\nabla^2\mathbf{u}$ 是**线性**且**平滑**的——它总是削弱梯度；
 - 反应项 $\mathbf{R}(\mathbf{u})$ 是**局部**（不含空间导数）且**非线性**的——它可以强化或对抗平滑效应。
 
@@ -62,12 +60,10 @@ $$
 ### 1.2 Gray-Scott 模型
 
 Gray-Scott 是经典的双组分模型：
-
 $$
 \partial_t u = D_u \nabla^2 u - u v^2 + F(1-u),\qquad
 \partial_t v = D_v \nabla^2 v + u v^2 - (F+k)\,v.
 $$
-
 - $u$ 是底物，以速率 $F$ 持续注入；$v$ 是自催化剂，通过反应 $u + 2v \to 3v$ 消耗 $u$，并以速率 $k$ 衰减；
 - 当 $D_u > D_v$（底物扩散快于催化剂）时，$v$ 的微小扰动会稳定下来，形成图 1 所示的各种形态。
 
@@ -76,12 +72,10 @@ $$
 ### 1.3 FitzHugh-Nagumo 模型
 
 该模型最初用于简化神经元动力学：
-
 $$
 \partial_t v = D \nabla^2 v + v - \tfrac{v^3}{3} - w + I,\qquad
 \partial_t w = \varepsilon\,(v + \beta - \gamma w),\quad \varepsilon \ll 1.
 $$
-
 - $v$ 是快速变化的膜电位，$w$ 是缓慢的恢复变量；
 - 三次非线性使 $v$ 具有“可激发性”：一旦扰动超过阈值，就会触发一个标准脉冲，随后被慢变量 $w$ 复位。
 
@@ -98,12 +92,10 @@ $$
 ### 2.2 线性稳定性分析
 
 将方程 (1) 在 $\bar{\mathbf{u}}$ 附近线性化，设扰动为 $\delta\mathbf{u}(\mathbf{x}, t) = \mathbf{q}\,e^{i\mathbf{k}\cdot\mathbf{x}}\,e^{\sigma t}$，可得：
-
 $$
 \sigma\,\mathbf{q} \;=\; \underbrace{\bigl(\mathbf{J} - |\mathbf{k}|^2\,\mathbf{D}\bigr)}_{\mathbf{A}(|\mathbf{k}|^2)}\,\mathbf{q},\qquad
 \mathbf{J} = \nabla_{\mathbf{u}}\mathbf{R}(\bar{\mathbf{u}}). \tag{2}
 $$
-
 当 $\mathbf{A}(|\mathbf{k}|^2)$ 存在正实部特征值时，对应模态 $\mathbf{q}\,e^{i\mathbf{k}\cdot\mathbf{x}}$ 将增长。完整的**图灵条件**包含以下四条不等式（见图 2 右侧）：
 
 1. $\mathrm{tr}\,\mathbf{J} < 0$ 且 $\det\,\mathbf{J} > 0$ —— **无扩散系统稳定**；
@@ -142,11 +134,9 @@ $$
 | 随机游走 | $\mathbf{L}_{\text{rw}} = \mathbf{I} - \mathbf{D}^{-1}\mathbf{A}$ | $[0, 2]$ |
 
 三者共享一个关键性质：
-
 $$
 \mathbf{x}^{\!\top}\!\mathbf{L}\mathbf{x} \;=\; \tfrac{1}{2}\sum_{(i,j) \in E} w_{ij}\,(x_i - x_j)^2 \;\geq\; 0. \tag{3}
 $$
-
 图拉普拉斯是 $-\nabla^2$ 的离散类比——它对梯度的平方进行积分。它是对称半正定矩阵，具有谱分解 $\mathbf{L} = \mathbf{U}\boldsymbol{\Lambda}\mathbf{U}^{\!\top}$，特征值满足 $0 = \lambda_1 \leq \lambda_2 \leq \cdots \leq \lambda_n$。
 
 最小特征值恒为 0，对应的特征向量与常向量 $\mathbf{1}$ 成比例。第二小特征值 $\lambda_2$（即**代数连通度**）衡量了图的整体连通性。
@@ -154,17 +144,13 @@ $$
 ### 3.3 图热方程
 
 考虑如下连续时间动力学：
-
 $$
 \frac{d\mathbf{X}}{dt} = -\mathbf{L}\mathbf{X}. \tag{4}
 $$
-
 这就是图上的热方程。其解析解为 $\mathbf{X}(t) = e^{-\mathbf{L}t}\mathbf{X}(0)$，在谱坐标下完全解耦：
-
 $$
 \hat x_k(t) = e^{-\lambda_k t}\,\hat x_k(0),\qquad \hat x_k = \mathbf{u}_k^{\!\top}\mathbf{X}(0).
 $$
-
 每个模态都以自身速率 $\lambda_k$ 指数衰减，唯独 $\lambda_1 = 0$ 对应的常数模态被永久保留。当 $t \to \infty$ 时，所有节点值趋于一致。
 
 ![图热方程实战。50 节点小世界图上的随机初始信号被扩散抹平：0 时所有节点取同一值。右图解释原因——第 1 个模按 2 衰减，只有 3 存活。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-反应扩散系统与GNN/fig4_graph_laplacian.png)
@@ -179,46 +165,36 @@ $$
 ### 4.1 等价性
 
 标准 GCN 层（Kipf & Welling, 2017）定义为：
-
 $$
 \mathbf{H}^{(\ell+1)} = \sigma\bigl(\tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}\,\mathbf{W}^{(\ell)}\bigr),
 \qquad \tilde{\mathbf{A}} = \tilde{\mathbf{D}}^{-1/2}(\mathbf{A} + \mathbf{I})\tilde{\mathbf{D}}^{-1/2}.
 $$
-
 若去掉非线性激活和线性投影（即令 $\sigma = \mathrm{id}$，$\mathbf{W} = \mathbf{I}$），剩余部分为：
-
 $$
 \mathbf{H}^{(\ell+1)} = \tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}
 \;=\; \bigl(\mathbf{I} - \tilde{\mathbf{L}}_{\text{sym}}\bigr)\mathbf{H}^{(\ell)}.
 \tag{5}
 $$
-
 这正是图热方程 $\dot{\mathbf{H}} = -\tilde{\mathbf{L}}_{\text{sym}}\mathbf{H}$ 的**显式欧拉步**，步长 $h = 1$。其中“加自环”技巧 $\mathbf{A} + \mathbf{I}$ 是标准的 FDM 稳定化方法，它将 $\tilde{\mathbf{L}}_{\text{sym}}$ 的谱压缩至 $[0, 2)$ 区间，确保显式格式稳定。
 
 ### 4.2 过度平滑的谱证明
 
 忽略非线性和权重矩阵，经过 $L$ 层后：
-
 $$
 \mathbf{H}^{(L)} = \tilde{\mathbf{A}}^L\,\mathbf{H}^{(0)}.
 $$
-
 由于 $\tilde{\mathbf{A}}$ 的特征值位于 $(-1, 1]$ 区间，且特征值 1 对应常向量，取高次幂后所有非常数分量都会消失：
-
 $$
 \tilde{\mathbf{A}}^L \xrightarrow[L \to \infty]{} \pi_{\text{const}}.
 $$
-
 所有节点特征最终坍缩到同一向量。**这并非 GCN 特有的缺陷，而是任何低通滤波器迭代的必然结果**。加入 ReLU 和可学习权重矩阵只能延缓这一过程：Oono & Suzuki (2020) 证明，只要权重矩阵序列的奇异值有界，GCN 的特征仍会收敛到一个低维子空间。
 
 ### 4.3 连续深度 GNN
 
 既然 GCN 对应一个欧拉步，为何不直接求解 ODE？**GRAND**（Chamberlain et al., 2021）提出了连续时间 GNN：
-
 $$
 \frac{d\mathbf{X}}{dt} = -\mathcal{L}_\theta(\mathbf{X})\,\mathbf{X},\qquad \mathbf{X}(T) = \text{输出}.
 $$
-
 其中 $\mathcal{L}_\theta$ 是一个带注意力机制的可学习拉普拉斯算子，积分通过现成的 ODE 求解器（如 Dormand-Prince）完成。但这**并未解决**过度平滑问题——更精确地求解热方程，终究还是在求解热方程。**GRAND++**（Thorpe et al., 2022）引入了源项，而 **RDGNN**（Eliasof et al., 2024 及前期工作）则加入了完整的**反应项**。我们将在下一节构建后者。
 
 ## 5. RDGNN：反应扩散图神经网络
@@ -226,18 +202,14 @@ $$
 ### 5.1 架构设计
 
 连续时间 RD-GNN 是方程 (1) 在图上的自然推广：
-
 $$
 \frac{d\mathbf{H}}{dt} = -\epsilon_d\,\mathbf{L}\,\mathbf{H} \;+\; \epsilon_r\,R_\theta(\mathbf{H}, \mathbf{H}^{(0)}).
 \tag{6}
 $$
-
 采用 Lie-Trotter（算子分裂）方法进行一步离散，得到更新公式：
-
 $$
 \boxed{\;\mathbf{H}^{(\ell+1)} = \mathbf{H}^{(\ell)} \; - \; \epsilon_d\,\mathbf{L}\,\mathbf{H}^{(\ell)} \; + \; \epsilon_r\,R_\theta\bigl(\mathbf{H}^{(\ell)},\,\mathbf{H}^{(0)}\bigr).\;} \tag{7}
 $$
-
 该层包含三个模块（见图 5）：
 
 - **扩散项** $-\epsilon_d \mathbf{L}\mathbf{H}^{(\ell)}$：标准的图平滑操作。为保证显式欧拉稳定性，需满足步长约束 $\epsilon_d < 1/\lambda_{\max}(\mathbf{L})$；
@@ -245,11 +217,9 @@ $$
 - **跳跃项** $\mathbf{H}^{(\ell)}$：使整体动力学贴近恒等映射，这是实现深层网络数值稳定的关键。
 
 一种常见的反应项设计借鉴了 FitzHugh-Nagumo 的激活-衰减结构：
-
 $$
 R_\theta(\mathbf{H}, \mathbf{H}^{(0)}) = \mathrm{MLP}_\theta\bigl([\mathbf{H} \,\Vert\, \mathbf{H}^{(0)}]\bigr) \; - \; \alpha\,\mathbf{H}.
 $$
-
 ![RDGNN 单层：扩散分支做图拉普拉斯平滑，反应分支是学得的逐节点非线性，输入跳跃避免漂移。重复 0 次得到深层 GNN，不像 GCN 会塌陷。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-反应扩散系统与GNN/fig5_rdgnn_architecture.png)
 *一个反应扩散 GNN 层。扩散分支执行标准的图拉普拉斯平滑；反应分支是一个可学习的逐节点非线性更新；来自 $\mathbf{H}^{(0)}$ 的输入跳跃提供了防止漂移的“锚点”。重复该模块 $L$ 次，即可构建深层 GNN，且不会像 GCN 那样发生坍缩。*
 

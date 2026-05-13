@@ -46,7 +46,8 @@ Chapter 3 (matrices as transformations), Chapter 4 (determinants), and Chapter 5
 ### The formal statement
 
 For an $n \times n$ matrix $A$, if there exists a **non-zero** vector $\vec{v}$ and a scalar $\lambda$ such that
-$$A\vec{v} = \lambda\vec{v},$$then $\vec{v}$ is an **eigenvector** of $A$ and $\lambda$ is the corresponding **eigenvalue**.
+$$
+A\vec{v} = \lambda\vec{v},$$then $\vec{v}$ is an **eigenvector** of $A$ and $\lambda$ is the corresponding **eigenvalue**.
 
 The word "eigen" is German for "own" or "intrinsic." Eigenvectors are the matrix's own private set of directions.
 
@@ -113,13 +114,16 @@ Rearranging $A\vec{v} = \lambda\vec{v}$ gives$$(A - \lambda I)\vec{v} = \vec{0}.
 
 Find the eigenvalues and eigenvectors of $A = \bigl(\begin{smallmatrix}4&2\\1&3\end{smallmatrix}\bigr)$.
 
-**Step 1 — characteristic polynomial.**$$\det\begin{pmatrix}4-\lambda&2\\1&3-\lambda\end{pmatrix} = (4-\lambda)(3-\lambda) - 2 = \lambda^2 - 7\lambda + 10 = 0.$$
+**Step 1 — characteristic polynomial.**$$\det\begin{pmatrix}4-\lambda&2\\1&3-\lambda\end{pmatrix} = (4-\lambda)(3-\lambda) - 2 = \lambda^2 - 7\lambda + 10 = 0.
+$$
 **Step 2 — solve.** $(\lambda - 5)(\lambda - 2) = 0$, so $\lambda_1 = 5$ and $\lambda_2 = 2$.
 
 **Step 3 — eigenvectors.**
 
-For $\lambda_1 = 5$:$$(A - 5I)\vec{v} = \begin{pmatrix}-1&2\\1&-2\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = 2v_2,\;\; \vec{v}_1 = (2, 1).$$
-For $\lambda_2 = 2$:$$(A - 2I)\vec{v} = \begin{pmatrix}2&2\\1&1\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = -v_2,\;\; \vec{v}_2 = (-1, 1).$$
+For $\lambda_1 = 5$:$$(A - 5I)\vec{v} = \begin{pmatrix}-1&2\\1&-2\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = 2v_2,\;\; \vec{v}_1 = (2, 1).
+$$
+For $\lambda_2 = 2$:$$(A - 2I)\vec{v} = \begin{pmatrix}2&2\\1&1\end{pmatrix}\vec{v} = \vec{0}\;\Longrightarrow\; v_1 = -v_2,\;\; \vec{v}_2 = (-1, 1).
+$$
 **Verification.** $A(2,1)^T = (10,5)^T = 5\,(2,1)^T$. ✓
 
 ### Two free sanity checks
@@ -240,7 +244,8 @@ print(qr_algorithm(np.array([[4, 2], [1, 3]])))   # [5, 2]
 
 Split a species into age classes; let $\vec{p}_t$ count the population in each class at time $t$. The **Leslie matrix** $L$ has fertilities along the top row and survival probabilities on the sub-diagonal, and the model is just $\vec{p}_{t+1} = L\vec{p}_t$.
 
-For three age classes (juvenile, adult, elderly):$$L = \begin{pmatrix}0&2&0.5\\0.6&0&0\\0&0.8&0\end{pmatrix}.$$
+For three age classes (juvenile, adult, elderly):$$L = \begin{pmatrix}0&2&0.5\\0.6&0&0\\0&0.8&0\end{pmatrix}.
+$$
 ```python
 import numpy as np
 L = np.array([[0, 2, 0.5], [0.6, 0, 0], [0, 0.8, 0]])
@@ -332,7 +337,8 @@ In optimisation, the Hessian of an objective at a critical point being positive 
 | $cA$ | $c\lambda_i$ | $\vec{v}_i$ (same) |
 | $A^T$ (real) | $\lambda_i$ | generally different |
 
-And the global identities:$$\operatorname{tr}(A) = \sum_i \lambda_i, \qquad \det(A) = \prod_i \lambda_i, \qquad A \text{ invertible} \iff \text{all } \lambda_i \neq 0.$$
+And the global identities:$$\operatorname{tr}(A) = \sum_i \lambda_i, \qquad \det(A) = \prod_i \lambda_i, \qquad A \text{ invertible} \iff \text{all } \lambda_i \neq 0.
+$$
 ### Similar matrices
 
 If $B = P^{-1}AP$ then $A$ and $B$ are **similar**, and they have the same characteristic polynomial — hence the same eigenvalues with the same multiplicities. Diagonalisation is just the lucky case where the similarity makes $B$ diagonal.
@@ -372,9 +378,7 @@ The textbook way to find eigenvalues is: form $\det(A - \lambda I) = 0$, expand 
 The roots of a polynomial are an *exquisitely* ill-conditioned function of its coefficients. Wilkinson's classic example: the polynomial $\prod_{k=1}^{20}(x - k)$ has roots at $1, 2, \ldots, 20$. Perturb the coefficient of $x^{19}$ by $2^{-23}$ — a single bit at the end of a single coefficient — and the roots near $x=15$ explode into complex pairs scattered across radius $> 2$. A microscopic input error becomes a macroscopic output error. The condition number of root-finding for this polynomial is roughly $10^{14}$.
 
 Now imagine the round-trip:
-
 $$A \;\longrightarrow\; \text{characteristic poly coefficients} \;\longrightarrow\; \text{roots}.$$
-
 The first arrow involves cancellations during the determinant expansion — already an error amplifier. The second arrow is the Wilkinson disaster. Even for a $20\times 20$ matrix with perfectly reasonable entries, the eigenvalues you get back can be off in the leading digit.
 
 Real eigenvalue solvers — LAPACK's `dgeev` for general matrices, `dsyev` for symmetric ones, behind `np.linalg.eig` and `np.linalg.eigh` — never form the polynomial. They use the **QR algorithm**: iteratively factor $A_k = Q_k R_k$, then set $A_{k+1} = R_k Q_k$. The matrix $A_{k+1}$ has the same eigenvalues as $A_k$ (it's a similarity transform), and under mild assumptions $A_k$ converges to upper-triangular, with eigenvalues on the diagonal. With shifts and Hessenberg pre-reduction, the cost is $\Theta(n^3)$ and the algorithm is *backward stable*: the computed eigenvalues are the exact eigenvalues of $A + \delta A$ where $\|\delta A\| \le c\,\varepsilon\,\|A\|$.
@@ -384,9 +388,7 @@ For the symmetric case, `dsyev` uses tridiagonal reduction plus divide-and-conqu
 ## Connection to Deep Learning: Jacobian Eigenvalues and Vanishing/Exploding Gradients
 
 The most consequential appearance of this chapter in modern ML is in the analysis of recurrent and very deep networks. Consider a simple recurrent network where the hidden state evolves as $h_{t+1} = W h_t + (\text{nonlinearity})$. After $T$ steps, the gradient of the loss with respect to $h_0$ involves the product
-
 $$\frac{\partial h_T}{\partial h_0} \;\approx\; \prod_{t=0}^{T-1} J_t,$$
-
 where $J_t$ is the Jacobian at step $t$. For long sequences ($T = 100, 1000$), the *long-term* behaviour of this product is governed by the eigenvalues of the average Jacobian — exactly the dominant-eigenvalue analysis you just read.
 
 Three consequences:

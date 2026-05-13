@@ -41,9 +41,7 @@ DQN 并非凭空创造，而是对 Chris Watkins 在 1989 年提出的 **Q-Learn
 ### 再读 Bellman 最优方程
 
 回顾第 1 部分，对于最优策略 $\pi^*$，其动作价值函数满足 Bellman 最优方程：
-
 $$Q^*(s, a) \;=\; \mathbb{E}_{s' \sim P(\cdot|s,a)}\Big[R(s,a,s') + \gamma \max_{a'} Q^*(s', a')\Big]$$
-
 可以将其理解为一份契约：在状态 $s$ 下执行动作 $a$ 的价值，等于即时奖励加上折扣后的最佳未来收益。一旦我们得到了 $Q^*$，最优策略就很简单：$\pi^*(s) = \arg\max_a Q^*(s, a)$——无需规划，也无需搜索，只需查表取最大值。
 
 于是整个问题就归结为：**估计 $Q^*$**。Q-Learning 正是实现这一目标的一种方法。
@@ -51,9 +49,7 @@ $$Q^*(s, a) \;=\; \mathbb{E}_{s' \sim P(\cdot|s,a)}\Big[R(s,a,s') + \gamma \max_
 ### Q-Learning 更新规则
 
 当智能体在状态 $S_t$ 执行动作 $A_t$，观察到奖励 $r_t$ 和下一状态 $S_{t+1}$ 后，Q-Learning（Watkins, 1989）会更新该状态-动作对的估值：
-
 $$Q(S_t, A_t) \;\leftarrow\; Q(S_t, A_t) + \alpha \underbrace{\Big[r_t + \gamma \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t)\Big]}_{\text{TD 误差 } \delta_t}$$
-
 方括号内的量即 **TD 误差**，表示一步自举估计与当前估值之间的差距。若 $\delta_t > 0$，说明低估了，应上调；反之则下调。
 
 Q-Learning 有两个关键特性：
@@ -205,9 +201,7 @@ DQN 的对策是维护**两个网络副本**：
 - **目标网络（target network）** $Q(\cdot; \theta^-)$：一个冻结副本，定期从在线网络同步参数。
 
 损失函数基于目标网络计算：
-
 $$\mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s')\sim \mathcal{D}}\Big[\big(r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta)\big)^2\Big]$$
-
 每隔 $C$ 步（Nature 论文中为 10,000 步），执行一次硬同步：$\theta^- \leftarrow \theta$。在此期间，目标保持恒定，使每个 $C$ 步窗口近似于一个有监督的回归问题。
 
 ![目标网络：一份滞后的副本，稳住 TD 目标](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning与深度Q网络/fig5_target_network.png)
@@ -322,15 +316,11 @@ class DQNAgent:
 ### Double DQN：消除最大化偏差
 
 即使目标网络设计完美，$\max_{a'}$ 操作本身也会引入系统性高估偏差。原因简洁而深刻：假设真实 Q 值为 $Q^*(s, a)$，网络估计为 $Q^*(s, a) + \varepsilon_a$，其中噪声 $\varepsilon_a$ 均值为零。那么：
-
 $$\mathbb{E}\Big[\max_a \big(Q^*(s, a) + \varepsilon_a\big)\Big] \;\geq\; \max_a Q^*(s, a)$$
-
 max 操作倾向于选择带有**正向误差**的动作。通过自举机制，这种高估会逐步污染所有状态的目标值。实践中，原版 DQN 的预测 Q 值常显著高于真实回报。
 
 van Hasselt 等人（2016）提出 **Double DQN**：将动作的**选择**与**评估**解耦。在线网络选择动作，目标网络评估其价值：
-
 $$y_t = r_t + \gamma\, Q\big(s_{t+1},\; \arg\max_{a'} Q(s_{t+1}, a'; \theta);\; \theta^-\big)$$
-
 由于两个网络的误差部分独立，系统性偏差得以大幅抵消。
 
 ![Double DQN 紧贴真实 Q 值；原版 DQN 显著高估](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning与深度Q网络/fig6_double_vs_vanilla.png)
@@ -351,9 +341,7 @@ with torch.no_grad():
 在许多 Atari 帧中，动作选择其实无关紧要——球尚未飞近、敌人仍在屏幕外，几帧内任何操作都无法影响结果。若将状态价值与动作优势混在同一 Q 头中，会浪费大量容量反复学习相同的 $V(s)$。
 
 Wang 等人（2016）将输出头拆分为两条流：
-
 $$Q(s, a) \;=\; V(s) + \Big(A(s, a) - \tfrac{1}{|\mathcal{A}|} \sum_{a'} A(s, a')\Big)$$
-
 - $V(s)$ —— “当前状态有多好？” 与动作无关。
 - $A(s, a)$ —— “动作 $a$ 比平均水平好多少？” 与动作相关。
 
@@ -385,13 +373,9 @@ Dueling 与 Double DQN 配合极佳——二者解决不同问题，效果可干
 均匀采样假设所有转移同等重要，但这显然不成立：预测已准确的转移几乎无学习价值，而 TD 误差大的转移则蕴含强信号。
 
 优先经验回放（Schaul 等人，2016）按 TD 误差绝对值的幂次进行采样：
-
 $$p_i \;\propto\; \big(|\delta_i| + \varepsilon\big)^\alpha$$
-
 指数 $\alpha \in [0, 1]$ 控制优先级强度（$\alpha = 0$ 退化为均匀采样）。由于非均匀采样会引入偏差，需用重要性采样权重校正：
-
 $$w_i = \Big(\tfrac{1}{N \cdot p_i}\Big)^\beta$$
-
 其中 $\beta$ 从 0.4 逐渐增至 1.0——早期容忍偏差，后期强调稳定性。
 
 ### 多步回报、分布式 RL、NoisyNet
@@ -399,11 +383,9 @@ $$w_i = \Big(\tfrac{1}{N \cdot p_i}\Big)^\beta$$
 Rainbow 还整合了三项关键技术：
 
 - **n 步回报**（Rainbow 中 $n=3$）：用部分 Monte-Carlo 目标替代单步自举，在增加方差的同时降低偏差：
-
   $$
   y_t = \sum_{k=0}^{n-1} \gamma^k r_{t+k} + \gamma^n \max_{a'} Q(s_{t+n}, a'; \theta^-)
   $$
-
 - **分布式 RL（C51）**（Bellemare 等人，2017）：不再仅学习回报均值，而是建模整个回报分布。通过将分布投影到 51 个固定“原子”上得名 C51。完整分布保留了均值丢失的信息，尤其在随机环境中更为关键。
 
 - **NoisyNet**：用注入全连接层权重的可学习噪声替代 $\varepsilon$-greedy 探索。探索由此变为状态相关且可学习，无需手动调整衰减表。

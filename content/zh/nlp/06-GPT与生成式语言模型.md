@@ -54,26 +54,23 @@ polished_by_qwen_max: true
 
 1. **嵌入**：$h^0_i = E_{\text{tok}}(x_i) + E_{\text{pos}}(i)$
 2. **重复 $L$ 次**（一个 Transformer 块）：
-
 $$\tilde h = h + \text{MaskedMHA}(\text{LN}(h)), \quad h \leftarrow \tilde h + \text{FFN}(\text{LN}(\tilde h))$$
-
 3. **投影**：logits $z_i = W_o\,h^L_i$，随后 $P(x_{i+1}\mid x_{\le i}) = \text{softmax}(z_i)$。
 
 ### 因果掩码，具体呈现
 
 掩码注意力仍是缩放点积形式，只是在 softmax 前对禁止位置加上 $-\infty$：
-
-$$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}} + M\right) V,
-\quad M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}$$
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}} + M\right) V,
+\quad M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}
+$$
 
 $-\infty$ 经 softmax 后变为 0，因此未来 token 完全无贡献。上图右侧面板直观展示了这一点：每行是一个查询位置，每列是一个键，只有下三角（过去）是活跃的。
 
 ### 训练目标
 
 最大化语料库的对数似然——即对序列中每个位置的交叉熵求和：
-
 $$\mathcal{L} = -\sum_{i=1}^{n} \log P(x_i \mid x_1, \ldots, x_{i-1})$$
-
 仅凭这一个损失函数，在 TB 级文本上训练，便是 GPT 的全部故事。
 
 ---
@@ -241,9 +238,7 @@ def top_p_sample(model, tokenizer, prompt, p=0.9, T=1.0, max_new=100):
 ### 4.5 温度
 
 温度 $T$ 在 softmax **前**对 logits 缩放：
-
 $$P_T(w) = \text{softmax}(z / T)$$
-
 上图 (d) 展示了同一 logits 在 $T = 0.5$ 与 $T = 1.5$ 下的效果。直观上，$T$ 控制分布的“尖锐度”：
 
 - $T \to 0$：分布塌缩至 argmax 的 one-hot（等价贪心）。
@@ -268,9 +263,7 @@ $$P_T(w) = \text{softmax}(z / T)$$
 ![缩放定律：损失随规模幂律下降](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT与生成式语言模型/fig3_scaling_laws.png)
 
 2020 年 Kaplan 等人发现，测试损失随三个量——模型参数 $N$、数据集大小 $D$、训练算力 $C$——呈**清晰幂律**下降，前提是三者均非瓶颈：
-
 $$L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N},\quad L(C) \approx \left(\frac{C_c}{C}\right)^{\alpha_C}$$
-
 实测指数极小（$\alpha_N \approx 0.076$，$\alpha_C \approx 0.050$）。在双对数坐标下呈直线，故上图两面板均为线性。两大推论：
 
 1. **可预测大模型表现**：从 $\le 1$ B 参数实验即可预估 1750 亿模型的损失。这使 GPT-3 的巨额投入变得经济可行——团队在花数百万美元买 GPU 前，就大致知道损失曲线会落在何处。
@@ -351,9 +344,7 @@ def few_shot_prompt(task, examples, query):
 ### BLEU（翻译）
 
 衡量生成文本对参考文本的 n-gram 精确率，带长度惩罚：
-
 $$\text{BLEU} = \text{BP}\cdot\exp\!\left(\sum_{n=1}^{N} w_n \log p_n\right)$$
-
 ```python
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 def bleu(generated: str, reference: str) -> float:
@@ -378,9 +369,7 @@ def rouge(generated: str, reference: str) -> dict:
 ### 困惑度（内在指标）
 
 模型对保留文本的“惊讶度”。越低越好：
-
 $$\text{PPL} = \exp\!\left(-\frac{1}{N}\sum_{i=1}^{N}\log P(w_i\mid w_{<i})\right)$$
-
 ```python
 def perplexity(model, tokenizer, text: str) -> float:
     enc = tokenizer(text, return_tensors="pt")

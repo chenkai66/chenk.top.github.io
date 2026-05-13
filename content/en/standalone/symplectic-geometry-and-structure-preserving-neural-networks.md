@@ -39,9 +39,7 @@ Train a vanilla feedforward network to predict a one-dimensional harmonic oscill
 ### 1.1 The failure mode of a vanilla NN
 
 Take the simplest possible Hamiltonian system, the 1-D harmonic oscillator,
-
 $$H(q, p) \;=\; \tfrac{1}{2} p^{2} + \tfrac{1}{2}\omega^{2} q^{2},$$
-
 with Hamilton's equations $\dot q = p$, $\dot p = -\omega^{2} q$ and exact solution $q(t) = A\cos(\omega t + \varphi)$. Energy is identically conserved.
 
 Train a feedforward MLP $f_{\theta}(q, p) \approx (\dot q, \dot p)$ on a dense, noiseless trajectory. After training the per-step error is, say, $10^{-4}$. Integrate the model for 1000 steps and two pathologies appear:
@@ -66,26 +64,20 @@ The next sections build up the geometry needed to understand these constructions
 ### 2.1 Phase space and Hamilton's equations
 
 For a system with $n$ degrees of freedom, the **phase space** $M$ is a $2n$-dimensional manifold with local coordinates $z = (q, p) = (q_1, \dots, q_n, p_1, \dots, p_n)$. The **Hamiltonian** $H : M \times \mathbb{R} \to \mathbb{R}$ is a smooth function — usually the total energy. **Hamilton's equations** are
-
 $$\dot{q}_{i} \;=\; \frac{\partial H}{\partial p_{i}}, \qquad \dot{p}_{i} \;=\; -\frac{\partial H}{\partial q_{i}}.$$
-
 In vector form, with $z = (q, p)^\top$,
-
-$$\dot{z} \;=\; J \,\nabla H(z), \qquad
-J \;=\; \begin{pmatrix} 0 & I_n \\ -I_n & 0 \end{pmatrix}.$$
-
+$$
+\dot{z} \;=\; J \,\nabla H(z), \qquad
+J \;=\; \begin{pmatrix} 0 & I_n \\ -I_n & 0 \end{pmatrix}.
+$$
 The matrix $J$ is the **canonical symplectic matrix**. It satisfies $J^\top = -J$ and $J^2 = -I_{2n}$.
 
 ### 2.2 Poisson brackets
 
 For two smooth observables $f, g : M \to \mathbb{R}$ the **Poisson bracket** is
-
 $$\{f, g\} \;=\; \sum_{i=1}^{n} \left( \frac{\partial f}{\partial q_i}\frac{\partial g}{\partial p_i} - \frac{\partial f}{\partial p_i}\frac{\partial g}{\partial q_i} \right) \;=\; (\nabla f)^\top J\, \nabla g.$$
-
 It is bilinear, antisymmetric ($\{f, g\} = -\{g, f\}$), satisfies the Leibniz rule and the Jacobi identity. The function space $C^{\infty}(M)$ together with $\{\cdot,\cdot\}$ is a Lie algebra. The dynamics of any observable along the flow is
-
 $$\frac{d f}{dt} \;=\; \{f, H\} + \frac{\partial f}{\partial t}.$$
-
 In particular for time-independent $H$, $\dot H = \{H, H\} = 0$: **energy is conserved**, immediately.
 
 ## 3. Just enough symplectic geometry
@@ -95,9 +87,7 @@ In particular for time-independent $H$, $\dot H = \{H, H\} = 0$: **energy is con
 ### 3.1 The symplectic form
 
 A **symplectic form** $\omega$ on a $2n$-manifold $M$ is a closed ($d\omega = 0$) and non-degenerate 2-form. Non-degeneracy means: for every nonzero tangent vector $u \in T_z M$ there exists $v \in T_z M$ with $\omega(u, v) \ne 0$. In canonical coordinates,
-
 $$\omega \;=\; \sum_{i=1}^{n} dq_{i} \wedge dp_{i}.$$
-
 Geometrically, $\omega(u, v)$ is the **oriented area** of the parallelogram spanned by $u$ and $v$ in each $(q_i, p_i)$-plane, summed across planes (Figure 1, left). The right panel shows what goes wrong without non-degeneracy: $\eta = x\, dx \wedge dy$ vanishes identically along $x = 0$, so it cannot define a Hamiltonian flow there.
 
 **Darboux's theorem** says this canonical form is the *only* form, locally: near any point of any symplectic manifold there exist coordinates in which $\omega = \sum_i dq_i \wedge dp_i$. There is no local symplectic invariant beyond dimension. All the interesting structure is global (capacities, cohomology, ...) but for our purposes the local picture is enough.
@@ -105,9 +95,7 @@ Geometrically, $\omega(u, v)$ is the **oriented area** of the parallelogram span
 ### 3.2 Symplectic maps and Liouville's theorem
 
 A diffeomorphism $\Phi : M \to M$ is **symplectic** (or canonical) if $\Phi^{*}\omega = \omega$, equivalently if its Jacobian satisfies
-
 $$J_{\Phi}^{\top}\, \Omega\, J_{\Phi} \;=\; \Omega, \qquad \Omega = \begin{pmatrix} 0 & I_n \\ -I_n & 0 \end{pmatrix}.$$
-
 The flow $\varphi_{t}^{H}$ of any Hamiltonian is symplectic for every $t$. A direct corollary is **Liouville's theorem**: the volume form $\omega^{n}/n!$ is preserved, so any region of phase space transported by the flow keeps its volume.
 
 ![Liouville's theorem on the pendulum: the patch deforms, area is preserved](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig2_phase_conservation.png)
@@ -119,37 +107,29 @@ Figure 2 shows this on the pendulum $H = \tfrac{1}{2}p^2 + \frac{g}{L}(1 - \cos 
 ### 4.1 Why standard integrators drift
 
 Forward Euler, classical RK4, and all explicit Runge-Kutta methods are **non-symplectic**. They produce a discrete map whose Jacobian fails the symplectic condition. The energy error then grows roughly linearly in time:
-
 $$|\,H(z_{n}) - H(z_{0})\,| \;\sim\; C\, t \, h^{p} \quad (\text{non-symplectic}),$$
-
 where $h$ is the step and $p$ the order. For a symplectic method the situation is qualitatively different: backward error analysis shows that the method exactly integrates a slightly perturbed Hamiltonian $\tilde H = H + h^{p} H_{1} + \cdots$, so the *true* energy oscillates around $H_0$ in a band of width $O(h^{p})$ for exponentially long times,
-
 $$|\,H(z_{n}) - H(z_{0})\,| \;\le\; C\, h^{p} \quad (\text{symplectic, integrable case}).$$
-
 That single inequality is the reason every molecular dynamics code in production uses a symplectic integrator.
 
 ### 4.2 Verlet (Stormer / leapfrog)
 
 For a separable Hamiltonian $H(q, p) = \tfrac{1}{2}p^{\top} M^{-1} p + V(q)$, the **velocity-Verlet** step is
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 p_{n + \tfrac{1}{2}} &= p_{n} - \tfrac{h}{2}\,\nabla V(q_{n}), \\
 q_{n+1} &= q_{n} + h\, M^{-1} p_{n+\tfrac{1}{2}}, \\
 p_{n+1} &= p_{n+\tfrac{1}{2}} - \tfrac{h}{2}\,\nabla V(q_{n+1}).
-\end{aligned}$$
-
+\end{aligned}
+$$
 It is second-order, symmetric, explicit (no implicit solve), and symplectic — the discrete map is a composition of two shears and a translation, each obviously volume-preserving. Verlet is the workhorse of LAMMPS, GROMACS, and every other large-scale MD package.
 
 ### 4.3 Symplectic Runge-Kutta
 
 For non-separable Hamiltonians one needs implicit methods. An $s$-stage Runge-Kutta with coefficients $(a_{ij}, b_{i})$ is symplectic if
-
 $$b_{i}\, a_{ij} + b_{j}\, a_{ji} \;=\; b_{i}\, b_{j} \qquad \text{for all } i, j.$$
-
 The Gauss-Legendre collocation methods satisfy this for every order. The simplest case ($s=1$) is the **implicit midpoint rule**
-
 $$z_{n+1} \;=\; z_{n} + h\, J\, \nabla H\!\left(\tfrac{z_{n} + z_{n+1}}{2}\right),$$
-
 second-order, symplectic, and unconditionally B-stable.
 
 ## 5. Hamiltonian Neural Networks (HNN)
@@ -157,17 +137,13 @@ second-order, symplectic, and unconditionally B-stable.
 ### 5.1 The idea
 
 Greydanus, Dzamba & Yosinski (2019) made the following observation: instead of regressing $\dot z$ directly, train a network $H_{\theta} : \mathbb{R}^{2n} \to \mathbb{R}$ to approximate the Hamiltonian, then derive the dynamics analytically:
-
 $$\dot z \;=\; J \,\nabla_{z} H_{\theta}(z).$$
-
 The right-hand side is computed at *training* time by autograd. Because $\dot H_{\theta} = (\nabla H_{\theta})^\top J \nabla H_{\theta} = 0$ for any scalar $H_{\theta}$, energy is exactly conserved along the model's continuous-time flow.
 
 ### 5.2 Architecture and loss
 
 Standard MLP: input $z \in \mathbb{R}^{2n}$, two or three hidden layers (tanh or softplus — needs to be $C^{1}$), scalar output. Loss is
-
 $$\mathcal{L}(\theta) \;=\; \frac{1}{N} \sum_{i=1}^{N} \big\| J \,\nabla H_{\theta}(z_{i}) - \dot z_{i} \big\|^{2}.$$
-
 If you only have state pairs $(z_t, z_{t+1})$ and not derivatives, replace $\dot z_i$ with a finite difference, or roll out a few steps with a symplectic integrator and minimise multi-step prediction error.
 
 ### 5.3 What it buys you
@@ -184,13 +160,9 @@ If you only have state pairs $(z_t, z_{t+1})$ and not derivatives, replace $\dot
 ## 6. Lagrangian Neural Networks (LNN)
 
 Cranmer et al. (2020) make the analogous move on the Lagrangian side. The network represents $L_{\theta}(q, \dot q)$, and acceleration is recovered from the Euler-Lagrange equation:
-
 $$\ddot q \;=\; \big(\nabla_{\dot q \dot q}^{2} L_{\theta}\big)^{-1} \Big[ \nabla_{q} L_{\theta} - \nabla_{q \dot q}^{2} L_{\theta}\, \dot q \Big].$$
-
 The matrix inverse is computed inside the forward pass (small system; you typically have $n \le 20$). Loss matches predicted to observed accelerations:
-
 $$\mathcal{L}(\theta) \;=\; \frac{1}{N} \sum_{i=1}^{N} \big\| \ddot q_{i} - \ddot q_{\theta}(q_{i}, \dot q_{i}) \big\|^{2}.$$
-
 LNN trades extra autograd cost (second derivatives, matrix solve) for two genuine advantages: (i) it works directly in configuration space, so constrained mechanics (a pendulum on a track) is natural; (ii) it does not need a Legendre transform that might be ill-defined.
 
 For unconstrained conservative systems LNN and HNN are formally equivalent via the Legendre transform $H = p^\top \dot q - L$ with $p = \nabla_{\dot q} L$.
@@ -204,13 +176,9 @@ For unconstrained conservative systems LNN and HNN are formally equivalent via t
 Jin, Zhang, Zhu, Zhang & Karniadakis (2020) propose a different bargain: don't learn a Hamiltonian, learn the *flow map* itself, but constrain the architecture so the map is symplectic by construction. Two elementary blocks suffice:
 
 - **G-module** (gradient / kinetic shear)
-
 $$(q, p) \;\mapsto\; \big(q,\; p + \nabla V_{\theta}(q)\big),$$
-
 - **L-module** (lift / potential shear)
-
 $$(q, p) \;\mapsto\; \big(q + \nabla K_{\phi}(p),\; p\big),$$
-
 where $V_{\theta}$ and $K_{\phi}$ are scalar networks. Each block is symplectic: the Jacobian is upper- or lower-triangular with identity blocks on the diagonal, and a direct check gives $J^{\top} \Omega J = \Omega$. Composition of symplectic maps is symplectic, so any alternating stack of G- and L-blocks is symplectic too.
 
 This is a structural analogue of normalising flows: just as RealNVP forces invertibility through coupling layers, SympNet forces symplecticity through shear layers.
@@ -218,9 +186,7 @@ This is a structural analogue of normalising flows: just as RealNVP forces inver
 ### 7.2 Training
 
 Given pairs $(z_i, z_{i+1})$ sampled at a fixed time step $\tau$, define $\Phi_{\theta} = \mathrm{block}_K \circ \cdots \circ \mathrm{block}_1$ and minimise the one-step rollout loss
-
 $$\mathcal{L}(\theta) \;=\; \sum_{i} \big\| \Phi_{\theta}(z_i) - z_{i+1} \big\|^{2}.$$
-
 For longer-horizon stability, sum over $k$-step rollouts $\| \Phi_{\theta}^{k}(z_i) - z_{i+k} \|^{2}$.
 
 ### 7.3 Trade-offs
@@ -249,9 +215,7 @@ HNN and SympNet preserve those statistics; a vanilla MLP destroys them within a 
 ### 8.3 Kepler problem (extra conservation laws)
 
 The planar two-body problem in polar coordinates has Hamiltonian
-
 $$H \;=\; \tfrac{1}{2}\!\left( p_{r}^{2} + \frac{p_{\theta}^{2}}{r^{2}} \right) - \frac{k}{r},$$
-
 with two conserved quantities: energy $H$ and angular momentum $p_{\theta}$. HNN guarantees the first by construction. The second is conserved if and only if the learnt $H_{\theta}$ does not depend on $\theta$ — something you can either enforce by symmetry-equivariant layers or hope to recover from data. Finzi, Wang & Wilson (2020) show how to add explicit conservation constraints via Lagrange multipliers.
 
 The diagnostic plot to make: relative drift of $H$ and $p_{\theta}$ over $10^{4}$ orbits. Vanilla NN: both drift. HNN: $H$ exact, $p_{\theta}$ small drift. HNN + symmetry constraint: both exact.
@@ -261,9 +225,7 @@ The diagnostic plot to make: relative drift of $H$ and $p_{\theta}$ over $10^{4}
 ![Structure-preserving learning in molecular dynamics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig5_md_application.png)
 
 This is where structure-preserving learning is changing real science. A 256-particle Lennard-Jones fluid has Hamiltonian
-
 $$H \;=\; \sum_{i=1}^{N} \frac{p_{i}^{2}}{2 m} + \sum_{i < j} 4\varepsilon \!\left[ \left(\frac{\sigma}{r_{ij}}\right)^{12} - \left(\frac{\sigma}{r_{ij}}\right)^{6} \right].$$
-
 Figure 5 shows the three things that matter:
 
 (a) the LJ pair potential, with its $r_{\min} = 2^{1/6}\sigma$ minimum at depth $-\varepsilon$,

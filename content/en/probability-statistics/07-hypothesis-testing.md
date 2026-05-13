@@ -55,9 +55,7 @@ The **rejection region** $R$ is a set of values of $T$ for which we reject $H_0$
 ### Significance Level
 
 The **significance level** $\alpha$ is the maximum probability of rejecting $H_0$ when it is actually true:
-
 $$\alpha = P(\text{reject } H_0 \mid H_0 \text{ is true}) = P(T \in R \mid H_0).$$
-
 Common choices: $\alpha = 0.05, 0.01, 0.001$. The rejection region is chosen to satisfy this constraint.
 
 ## Errors in Hypothesis Testing
@@ -92,11 +90,9 @@ Decreasing $\alpha$ reduces false positives but increases false negatives ($\bet
 ### Definition
 
 The **p-value** is the probability, under $H_0$, of observing a test statistic at least as extreme as the one actually observed:
-
 $$p\text{-value} = P(T \geq t_{\text{obs}} \mid H_0) \quad \text{(one-sided)}$$
 
 $$p\text{-value} = P(|T| \geq |t_{\text{obs}}| \mid H_0) \quad \text{(two-sided)}$$
-
 **Decision rule:** Reject $H_0$ if $p\text{-value} \leq \alpha$.
 
 The p-value is a random variable (it depends on the data). Under $H_0$, the p-value has a $\text{Uniform}(0, 1)$ distribution — this is why $P(p\text{-value} \leq 0.05 \mid H_0) = 0.05$.
@@ -120,11 +116,8 @@ These are common and dangerous misinterpretations:
 ### The Z-Test
 
 When $\sigma$ is known and the population is Normal (or $n$ is large enough for the CLT):
-
 $$Z = \frac{\bar{X} - \mu_0}{\sigma / \sqrt{n}} \sim \mathcal{N}(0, 1) \quad \text{under } H_0: \mu = \mu_0.$$
-
 **Example.** A factory claims bolts have mean length 10.0 mm with known $\sigma = 0.5$ mm. A sample of $n = 25$ gives $\bar{x} = 10.2$. Test $H_0: \mu = 10$ vs $H_1: \mu \neq 10$ at $\alpha = 0.05$.
-
 $$Z = \frac{10.2 - 10.0}{0.5/\sqrt{25}} = \frac{0.2}{0.1} = 2.0.$$
 
 $p\text{-value} = 2 \cdot P(Z > 2.0) = 2 \times 0.0228 = 0.0456 < 0.05$.
@@ -134,9 +127,7 @@ Reject $H_0$. There is statistically significant evidence that the mean length d
 ### The t-Test
 
 When $\sigma$ is unknown (the usual case), replace it with the sample standard deviation $S$:
-
 $$T = \frac{\bar{X} - \mu_0}{S / \sqrt{n}} \sim t_{n-1} \quad \text{under } H_0$$
-
 where $t_{n-1}$ is the Student's t-distribution with $n-1$ degrees of freedom.
 
 The t-distribution has heavier tails than the Normal, reflecting the additional uncertainty from estimating $\sigma$. As $n \to \infty$, $t_{n-1} \to \mathcal{N}(0, 1)$.
@@ -144,9 +135,7 @@ The t-distribution has heavier tails than the Normal, reflecting the additional 
 ### Two-Sample t-Test
 
 Compare means of two groups. If $X_1, \ldots, X_{n_1} \sim \mathcal{N}(\mu_1, \sigma^2)$ and $Y_1, \ldots, Y_{n_2} \sim \mathcal{N}(\mu_2, \sigma^2)$ (equal variance assumed):
-
 $$T = \frac{\bar{X} - \bar{Y}}{S_p \sqrt{1/n_1 + 1/n_2}}, \quad S_p^2 = \frac{(n_1-1)S_1^2 + (n_2-1)S_2^2}{n_1 + n_2 - 2}$$
-
 where $S_p$ is the pooled standard deviation. Under $H_0: \mu_1 = \mu_2$, $T \sim t_{n_1 + n_2 - 2}$.
 
 **Welch's t-test** handles unequal variances by adjusting the degrees of freedom — use this as the default in practice.
@@ -154,17 +143,13 @@ where $S_p$ is the pooled standard deviation. Under $H_0: \mu_1 = \mu_2$, $T \si
 ### Paired t-Test
 
 When observations come in natural pairs (before/after, left/right), compute the differences $D_i = X_i - Y_i$ and perform a one-sample t-test on $D_i$:
-
 $$T = \frac{\bar{D}}{S_D / \sqrt{n}} \sim t_{n-1}.$$
-
 ### Chi-Squared Test for Independence
 
 For categorical data in a contingency table, test whether two variables are independent.
 
 **Test statistic:**
-
 $$\chi^2 = \sum_{\text{cells}} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$$
-
 where $O_{ij}$ is the observed count and $E_{ij} = \frac{(\text{row } i \text{ total})(\text{col } j \text{ total})}{n}$ is the expected count under independence.
 
 Under $H_0$, $\chi^2 \sim \chi^2_{(r-1)(c-1)}$ where $r$ and $c$ are the number of rows and columns.
@@ -174,19 +159,13 @@ Under $H_0$, $\chi^2 \sim \chi^2_{(r-1)(c-1)}$ where $r$ and $c$ are the number 
 ### Construction
 
 A **confidence interval** (CI) at level $1 - \alpha$ is a random interval $[L, U]$ (functions of the data) such that
-
 $$P(\theta \in [L, U]) = 1 - \alpha.$$
-
 For a Normal mean with known $\sigma$:
-
 $$\bar{X} \pm z_{\alpha/2} \frac{\sigma}{\sqrt{n}}$$
-
 where $z_{\alpha/2}$ is the $1 - \alpha/2$ quantile of $\mathcal{N}(0, 1)$. For 95% CI: $z_{0.025} = 1.96$.
 
 For unknown $\sigma$ (using the t-distribution):
-
 $$\bar{X} \pm t_{\alpha/2, n-1} \frac{S}{\sqrt{n}}.$$
-
 ### Interpretation (Frequentist)
 
 "If we repeated the experiment many times and computed a 95% CI each time, approximately 95% of those intervals would contain the true parameter $\theta$."
@@ -196,9 +175,7 @@ $$\bar{X} \pm t_{\alpha/2, n-1} \frac{S}{\sqrt{n}}.$$
 ### Relationship Between CI and Hypothesis Test
 
 There is an exact duality:
-
 $$\text{Reject } H_0: \theta = \theta_0 \text{ at level } \alpha \iff \theta_0 \notin \text{CI at level } 1-\alpha.$$
-
 A 95% confidence interval contains exactly those values of $\theta_0$ that would **not** be rejected at $\alpha = 0.05$.
 
 *Proof.* The CI is $\{\theta_0 : |T(\theta_0)| \leq z_{\alpha/2}\}$ and the test rejects when $|T(\theta_0)| > z_{\alpha/2}$. These are complements. $\blacksquare$
@@ -208,9 +185,7 @@ A 95% confidence interval contains exactly those values of $\theta_0$ that would
 ### The Problem
 
 If you test 20 independent hypotheses at $\alpha = 0.05$, and all null hypotheses are true, the probability of at least one false positive is:
-
 $$P(\text{at least one Type I error}) = 1 - (1 - 0.05)^{20} = 1 - 0.95^{20} \approx 0.64.$$
-
 A 64% chance of a false discovery. With 100 tests: $1 - 0.95^{100} \approx 0.994$.
 
 This is the **multiple testing problem** or **look-elsewhere effect**. It explains many of the "replication crises" across scientific fields.
@@ -222,9 +197,7 @@ The simplest fix: use significance level $\alpha/m$ for each of $m$ tests.
 **Theorem (Bonferroni).** If each of $m$ tests uses level $\alpha/m$, then the **family-wise error rate** (FWER) — the probability of any false rejection — is at most $\alpha$.
 
 *Proof.* By the union bound:
-
 $$P(\text{any false rejection}) = P\left(\bigcup_{i=1}^{m_0} \{p_i \leq \alpha/m\}\right) \leq \sum_{i=1}^{m_0} P(p_i \leq \alpha/m) = m_0 \cdot \frac{\alpha}{m} \leq \alpha$$
-
 where $m_0 \leq m$ is the number of true nulls. $\blacksquare$
 
 Bonferroni is conservative — it controls FWER but can have very low power when $m$ is large.
@@ -250,23 +223,17 @@ This controls $\text{FDR} \leq \alpha$ and is much more powerful than Bonferroni
 Compare two versions (A = control, B = treatment) of a web page, ad, or product feature. Observe conversion rates $\hat{p}_A = k_A/n_A$ and $\hat{p}_B = k_B/n_B$.
 
 ### Test Statistic
-
 $$Z = \frac{\hat{p}_B - \hat{p}_A}{\sqrt{\hat{p}(1-\hat{p})(1/n_A + 1/n_B)}}$$
-
 where $\hat{p} = (k_A + k_B)/(n_A + n_B)$ is the pooled proportion.
 
 ### Sample Size Calculation
 
 To detect a minimum detectable effect $\delta = p_B - p_A$ with power $1 - \beta$ at significance level $\alpha$ (two-sided):
-
 $$n \geq \left(\frac{z_{\alpha/2} + z_\beta}{\delta}\right)^2 \cdot 2\bar{p}(1-\bar{p})$$
-
 where $\bar{p} = (p_A + p_B)/2$ is the average proportion.
 
 **Example.** Baseline conversion $p_A = 0.10$, minimum detectable effect $\delta = 0.02$ (i.e., detect a lift to $p_B = 0.12$), $\alpha = 0.05$, power $= 0.80$.
-
 $$n \geq \left(\frac{1.96 + 0.84}{0.02}\right)^2 \cdot 2 \times 0.11 \times 0.89 \approx \frac{19600}{1} \times 0.1958 \approx 3838$$
-
 per group. You need about 3,838 users per group — roughly 7,700 total.
 
 ### Practical vs Statistical Significance
@@ -438,9 +405,7 @@ A p-value tells you whether an effect is statistically distinguishable from zero
 ### Cohen's d
 
 For comparing two group means:
-
 $$d = \frac{\bar{X}_1 - \bar{X}_2}{S_p}$$
-
 where $S_p$ is the pooled standard deviation. This is a **standardized effect size** — it measures the difference in units of standard deviations.
 
 | $d$ | Interpretation |
@@ -458,9 +423,7 @@ The antidote: **always report confidence intervals for effect sizes**, not just 
 ## The Neyman-Pearson Lemma
 
 **Theorem (Neyman-Pearson).** For testing $H_0: \theta = \theta_0$ vs $H_1: \theta = \theta_1$ (simple vs simple), the most powerful test at level $\alpha$ rejects $H_0$ when:
-
 $$\Lambda(\mathbf{x}) = \frac{L(\theta_1; \mathbf{x})}{L(\theta_0; \mathbf{x})} > c$$
-
 where $c$ is chosen so that $P(\Lambda > c | H_0) = \alpha$.
 
 The **likelihood ratio** $\Lambda$ is the optimal test statistic: no other test at the same significance level can have higher power. This theoretical result justifies the widespread use of likelihood ratio tests in parametric statistics.
@@ -468,13 +431,9 @@ The **likelihood ratio** $\Lambda$ is the optimal test statistic: no other test 
 ### Generalized Likelihood Ratio Test
 
 For composite hypotheses ($H_0: \theta \in \Theta_0$ vs $H_1: \theta \notin \Theta_0$):
-
 $$\Lambda = \frac{\max_{\theta \in \Theta_0} L(\theta)}{\max_{\theta \in \Theta} L(\theta)} = \frac{L(\hat{\theta}_0)}{L(\hat{\theta}_{\text{MLE}})}.$$
-
 Under $H_0$ and regularity conditions:
-
 $$-2 \ln \Lambda \xrightarrow{d} \chi^2_r$$
-
 where $r = \dim(\Theta) - \dim(\Theta_0)$ is the difference in the number of free parameters.
 
 This is **Wilks' theorem**, and it's the foundation for comparing nested models — from testing whether a regression coefficient is zero to comparing hierarchical Bayesian models.

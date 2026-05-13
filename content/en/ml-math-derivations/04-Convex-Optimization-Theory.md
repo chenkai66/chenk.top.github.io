@@ -44,9 +44,7 @@ This article builds the convex toolkit from the ground up. We start with the geo
 ### 1.1 Convex Sets
 
 **Definition 1 (Convex Set).** A set $C \subseteq \mathbb{R}^n$ is **convex** if for any two points $x, y \in C$ and any $\lambda \in [0, 1]$,
-
 $$\lambda x + (1 - \lambda) y \in C. \tag{1}$$
-
 In words: the line segment between any two points of $C$ stays inside $C$. No dents, no holes, no missing chunks. The picture below makes the definition concrete: a chord across a convex set never escapes; a chord across a non-convex set can poke right through a gap.
 
 ![Convex vs non-convex sets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/fig1_convex_sets.png)
@@ -67,9 +65,7 @@ This single fact is the workhorse of practical convex modeling: complicated feas
 ### 1.2 Convex Functions
 
 **Definition 2 (Convex Function).** $f : C \to \mathbb{R}$ is **convex** if its domain $C$ is convex and for all $x, y \in C$ and $\lambda \in [0, 1]$,
-
 $$f(\lambda x + (1-\lambda)y) \;\leq\; \lambda f(x) + (1-\lambda) f(y). \tag{2}$$
-
 Geometrically, the chord between any two points on the graph of $f$ lies on or above the graph itself. The bowl-shaped surface on the left below is convex; the egg-carton on the right is not. The difference is consequential: the convex bowl has exactly one minimum that any descent method will find, while the egg-carton has many local minima where descent methods get permanently stuck.
 
 ![Convex vs non-convex functions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/fig2_convex_functions.png)
@@ -84,15 +80,11 @@ Two strengthenings of convexity matter often enough to name:
 Definition 2 is geometric and clean, but it is hard to *check*. The next two theorems give equivalent conditions in terms of derivatives, which is what we actually use in practice.
 
 **Theorem 2 (First-Order Condition).** If $f$ is differentiable, then $f$ is convex if and only if for all $x, y$,
-
 $$f(y) \;\geq\; f(x) + \nabla f(x)^T (y - x). \tag{3}$$
-
 In other words, every tangent hyperplane is a *global* lower bound on $f$. This is the deep structural reason gradient descent works on convex problems: the linear approximation $f(x) + \nabla f(x)^T (y-x)$ never overestimates $f$, so following its negative gradient really does decrease $f$ — at least for a small enough step.
 
 **Theorem 3 (Second-Order Condition).** If $f$ is twice differentiable, then $f$ is convex if and only if its Hessian is positive semidefinite everywhere:
-
 $$\nabla^2 f(x) \;\succeq\; 0 \qquad \text{for all } x. \tag{4}$$
-
 If $\nabla^2 f \succ 0$ everywhere, $f$ is strictly convex. If $\nabla^2 f \succeq \mu I$ everywhere, $f$ is $\mu$-strongly convex. The Hessian test is by far the most common way to certify convexity in practice — for instance, the loss in linear regression is $\nabla^2 = X^T X$, which is automatically PSD.
 
 ### 1.4 Jensen's Inequality
@@ -100,9 +92,7 @@ If $\nabla^2 f \succ 0$ everywhere, $f$ is strictly convex. If $\nabla^2 f \succ
 The convexity inequality (2) is a statement about a two-point average. Pushing it to general probability distributions gives what is arguably the single most-used inequality in machine learning.
 
 **Theorem 4 (Jensen's Inequality).** If $f$ is convex and $X$ is an integrable random variable,
-
 $$f(\mathbb{E}[X]) \;\leq\; \mathbb{E}[f(X)]. \tag{5}$$
-
 If $f$ is strictly convex and $X$ is non-degenerate, the inequality is strict.
 
 *Proof sketch (discrete case).* Iterate Definition 2 by induction: if $X$ takes values $x_1, \ldots, x_n$ with probabilities $p_1, \ldots, p_n$, then $f(\sum p_i x_i) \leq \sum p_i f(x_i)$ by repeated application of the chord inequality. The continuous case follows by approximation. $\square$
@@ -123,23 +113,17 @@ Many of the most useful objectives in machine learning are *not* differentiable 
 ### 2.1 Subgradients
 
 **Definition 3 (Subgradient).** A vector $g \in \mathbb{R}^n$ is a **subgradient** of $f$ at $x$ if for all $y$,
-
 $$f(y) \;\geq\; f(x) + g^T (y - x). \tag{6}$$
-
 The set of all such $g$ is the **subdifferential** $\partial f(x)$. When $f$ is differentiable at $x$, $\partial f(x) = \{\nabla f(x)\}$ — a single element. At non-differentiable points the subdifferential is typically a non-trivial set, encoding all the "valid" linear lower bounds that touch $f$ at $x$.
 
 **Example (absolute value).** For $f(x) = |x|$,
-
 $$\partial f(x) = \begin{cases} \{-1\} & x < 0, \\ [-1, 1] & x = 0, \\ \{+1\} & x > 0. \end{cases} \tag{7}$$
-
 **Optimality.** $x^\star$ is a global minimizer of a convex $f$ if and only if $0 \in \partial f(x^\star)$. This is the non-smooth analogue of $\nabla f(x^\star) = 0$.
 
 ### 2.2 Subgradient Method
 
 Replacing the gradient with any subgradient yields the **subgradient method**:
-
 $$x^{(k+1)} = x^{(k)} - \alpha_k g^{(k)}, \quad g^{(k)} \in \partial f(x^{(k)}). \tag{8}$$
-
 A subtle but important warning: a subgradient is *not* in general a descent direction — the function value may go up on a single step. To ensure convergence the step size must shrink, e.g. $\alpha_k = 1/\sqrt{k}$. The price for working with non-smooth functions is a slower rate, $O(1/\sqrt{k})$ instead of the $O(1/k)$ rate of gradient descent on smooth problems.
 
 For composite problems of the form $f(x) + h(x)$ where $f$ is smooth and $h$ is non-smooth (Lasso fits this exactly), the **proximal gradient method** recovers the smooth $O(1/k)$ rate by handling $h$ exactly through its proximal operator.
@@ -151,23 +135,17 @@ For composite problems of the form $f(x) + h(x)$ where $f$ is smooth and $h$ is 
 ### 3.1 Gradient Descent
 
 Gradient descent is the most fundamental algorithm in continuous optimization: at each step, move in the direction of steepest local decrease.
-
 $$x^{(k+1)} \;=\; x^{(k)} - \alpha \, \nabla f(x^{(k)}). \tag{9}$$
-
 Why does this work? Because of the first-order condition (3): on a convex function, the negative gradient really is a descent direction, and the linear approximation underestimates $f$, so we cannot "overshoot the bottom" by following gradients carefully. The next figure shows the consequence in two dimensions — a clean monotone path to the minimum on the convex side, and a path that gets pinned to a local minimum on the non-convex side.
 
 ![Gradient descent on convex vs non-convex landscapes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/fig3_gd_convex_vs_nonconvex.png)
 
 **Theorem 5 (Convergence — convex + smooth).** If $f$ is convex with $L$-Lipschitz gradient ($\|\nabla f(x) - \nabla f(y)\| \leq L \|x - y\|$) and we take constant step size $\alpha = 1/L$,
-
 $$f(x^{(k)}) - f(x^\star) \;\leq\; \frac{L\, \|x^{(0)} - x^\star\|^2}{2k} \;=\; O(1/k). \tag{10}$$
-
 *Proof sketch.* The Lipschitz-gradient assumption gives the descent inequality $f(y) \leq f(x) + \nabla f(x)^T(y - x) + \tfrac{L}{2}\|y - x\|^2$. Plug in $y = x - \tfrac{1}{L}\nabla f(x)$ and combine with the convexity bound (3); telescoping over $k$ iterations yields (10). $\square$
 
 **Theorem 6 (Convergence — strongly convex).** If in addition $f$ is $\mu$-strongly convex,
-
 $$f(x^{(k)}) - f(x^\star) \;\leq\; \left(1 - \frac{\mu}{L}\right)^k \big[f(x^{(0)}) - f(x^\star)\big]. \tag{11}$$
-
 This is **linear convergence**: the error shrinks by a fixed factor each step. The factor depends on the **condition number** $\kappa = L / \mu$. A well-conditioned problem ($\kappa$ near 1) converges in a handful of steps; a badly-conditioned one ($\kappa \sim 10^6$) needs millions. Improving conditioning — through preconditioning, normalization, or regularization — is one of the most effective practical tricks in optimization.
 
 ### 3.2 The Learning Rate is a Choice You Cannot Avoid
@@ -190,17 +168,11 @@ The same dichotomy holds in many dimensions, with $L$ replaced by the largest He
 On long, narrow valleys gradient descent zig-zags across the walls instead of running down the floor. Momentum methods fix this by averaging past gradients, damping the oscillations and accumulating speed in consistent directions.
 
 **Heavy ball (Polyak, 1964):**
-
 $$v^{(k+1)} = \beta v^{(k)} - \alpha \nabla f(x^{(k)}), \qquad x^{(k+1)} = x^{(k)} + v^{(k+1)}. \tag{12}$$
-
 **Nesterov accelerated gradient (NAG):** evaluate the gradient at a *lookahead* point that anticipates where momentum will carry you,
-
 $$x^{(k+1)} = y^{(k)} - \alpha \nabla f(y^{(k)}), \qquad y^{(k+1)} = x^{(k+1)} + \beta_k\big(x^{(k+1)} - x^{(k)}\big). \tag{13}$$
-
 **Theorem 7 (Nesterov acceleration).** For $L$-smooth convex $f$,
-
 $$f(x^{(k)}) - f(x^\star) \;=\; O(1/k^2). \tag{14}$$
-
 The bound (14) is **provably optimal**: no first-order method (one that only queries $\nabla f$) can do asymptotically better in the worst case. This is one of the genuine surprises of convex optimization — a tiny algorithmic twist (look ahead, then step) gets you from $O(1/k)$ to $O(1/k^2)$ for free.
 
 ### 3.4 Adaptive Learning Rates and Adam
@@ -208,13 +180,13 @@ The bound (14) is **provably optimal**: no first-order method (one that only que
 Plain gradient descent uses one global step size for every coordinate. In practice, different coordinates have wildly different effective curvatures — for instance, in a text model, common-word embeddings receive frequent gradient updates while rare-word embeddings receive almost none. **Adaptive methods** give each coordinate its own learning rate, scaled by the recent magnitude of its gradient.
 
 **Adam** combines two ideas: a momentum-style first moment, and an RMSProp-style adaptive second moment.
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 m^{(k+1)} &= \beta_1 m^{(k)} + (1-\beta_1)\, g^{(k)}  \\
 v^{(k+1)} &= \beta_2 v^{(k)} + (1-\beta_2)\, (g^{(k)})^{\odot 2}  \\
 x^{(k+1)} &= x^{(k)} \;-\; \frac{\alpha\, \hat m^{(k+1)}}{\sqrt{\hat v^{(k+1)}} + \varepsilon} 
-\end{aligned}$$
-
+\end{aligned}
+$$
 with bias-corrected estimates $\hat m^{(k+1)} = m^{(k+1)} / (1 - \beta_1^{k+1})$ and $\hat v^{(k+1)} = v^{(k+1)} / (1 - \beta_2^{k+1})$. The standard hyperparameters $(\beta_1, \beta_2, \alpha, \varepsilon) = (0.9, 0.999, 10^{-3}, 10^{-8})$ work astonishingly well across deep learning workloads, which is part of why Adam became the default optimizer for transformers.
 
 ### 3.5 Stochastic Gradient Descent
@@ -234,17 +206,11 @@ For convex objectives, SGD converges at $O(1/\sqrt{k})$ with constant step size 
 ### 4.1 Newton's Method
 
 If a first-order method models $f$ locally as a tangent plane, Newton's method models it as a tangent paraboloid and jumps straight to that paraboloid's minimum. The second-order Taylor expansion at $x^{(k)}$ is
-
 $$f(x) \;\approx\; f(x^{(k)}) + \nabla f^T (x - x^{(k)}) + \tfrac{1}{2} (x - x^{(k)})^T \nabla^2 f \,(x - x^{(k)}).$$
-
 Setting the gradient of this quadratic to zero gives the **Newton step**:
-
 $$\Delta x = -\big[\nabla^2 f(x^{(k)})\big]^{-1} \nabla f(x^{(k)}). \tag{18}$$
-
 **Theorem 8 (Quadratic convergence).** Near a strongly convex minimum with Lipschitz Hessian,
-
 $$\|x^{(k+1)} - x^\star\| \;\leq\; C\, \|x^{(k)} - x^\star\|^2. \tag{19}$$
-
 Quadratic convergence is qualitatively different from anything we have seen so far: roughly, *the number of correct digits doubles each iteration*. Once you are close, Newton finishes in five or six steps to machine precision.
 
 The catch is in three places. (i) Per-iteration cost is $O(n^3)$ to factor the Hessian — prohibitive for $n > 10^4$. (ii) Storage is $O(n^2)$ for the Hessian itself. (iii) If $\nabla^2 f$ is not PD (which happens away from convex regions), the Newton step may not even decrease $f$, so it has to be regularized into something like a trust-region step.
@@ -254,9 +220,7 @@ The catch is in three places. (i) Per-iteration cost is $O(n^3)$ to factor the H
 Quasi-Newton methods aim for "almost" Newton-like behavior at first-order cost. Instead of computing the Hessian, they *approximate* its inverse using only the gradients we have already seen.
 
 The BFGS update for the inverse-Hessian approximation $H^{(k)}$ is
-
 $$H^{(k+1)} = (I - \rho_k s_k y_k^T)\, H^{(k)} \,(I - \rho_k y_k s_k^T) + \rho_k s_k s_k^T, \tag{20}$$
-
 where $s_k = x^{(k+1)} - x^{(k)}$, $y_k = \nabla f^{(k+1)} - \nabla f^{(k)}$, and $\rho_k = 1/(y_k^T s_k)$. The update is engineered so that $H^{(k+1)}$ satisfies the *secant equation* $H^{(k+1)} y_k = s_k$ (the inverse-Hessian analogue of how the true inverse Hessian relates gradient differences to step differences) and remains symmetric positive definite.
 
 For large $n$, even storing $H$ is impractical, so **L-BFGS** keeps only the last $m \approx 5$–$20$ pairs $(s_i, y_i)$ and applies $H g$ implicitly through a recursive two-loop formula. This is the standard workhorse for medium-to-large smooth convex problems where you want better-than-GD convergence without the Hessian cost.
@@ -279,23 +243,17 @@ For large $n$, even storing $H$ is impractical, so **L-BFGS** keeps only the las
 ### 5.1 Problem Setup
 
 The general constrained convex problem has the form
-
 $$\min_x f(x) \quad \text{s.t.} \quad g_i(x) \leq 0 \;\; (i = 1, \ldots, m), \quad h_j(x) = 0 \;\; (j = 1, \ldots, p). \tag{21}$$
-
 We assume $f$ and $g_i$ are convex, and $h_j$ are affine.
 
 ### 5.2 The Lagrangian and the Dual Problem
 
 The Lagrangian rolls the constraints into the objective with multipliers $\lambda_i \geq 0$ (for inequalities) and $\nu_j \in \mathbb{R}$ (for equalities):
-
 $$\mathcal{L}(x, \lambda, \nu) = f(x) + \sum_{i=1}^m \lambda_i g_i(x) + \sum_{j=1}^p \nu_j h_j(x). \tag{22}$$
-
 The **dual function** $d(\lambda, \nu) = \min_x \mathcal{L}(x, \lambda, \nu)$ is concave in $(\lambda, \nu)$ regardless of whether the original problem is convex (it is the pointwise minimum of affine functions of $(\lambda, \nu)$).
 
 **Theorem 9 (Weak duality).** For any feasible $\lambda \geq 0$ and any $\nu$,
-
 $$d(\lambda, \nu) \;\leq\; f(x^\star). \tag{23}$$
-
 *Proof.* For any feasible $x$, $\sum_i \lambda_i g_i(x) \leq 0$ (because $\lambda_i \geq 0$ and $g_i(x) \leq 0$) and $\sum_j \nu_j h_j(x) = 0$, so $\mathcal{L}(x, \lambda, \nu) \leq f(x)$. Taking the infimum over $x$ gives $d(\lambda, \nu) \leq f(x)$, and since this holds for every feasible $x$, $d(\lambda, \nu) \leq f(x^\star)$. $\square$
 
 The dual problem $\max_{\lambda \geq 0, \nu}\, d(\lambda, \nu)$ has optimal value $d^\star \leq f^\star$. The gap $f^\star - d^\star \geq 0$ is the **duality gap**. When $f^\star = d^\star$ we say **strong duality** holds.
@@ -330,26 +288,22 @@ The geometry of the stationarity condition is striking. At the optimum, $-\nabla
 ## 6. ADMM: Splitting Hard Problems Into Easy Ones
 
 Some problems have a structure where a *joint* optimization over $(x, z)$ is hard, but optimizing $x$ alone (with $z$ fixed) and $z$ alone (with $x$ fixed) are both easy. **ADMM** — the Alternating Direction Method of Multipliers — exploits exactly this structure:
-
 $$\min_{x, z}\, f(x) + g(z) \quad \text{s.t.} \quad A x + B z = c. \tag{24}$$
-
 The augmented Lagrangian adds a quadratic penalty to the standard Lagrangian, $\mathcal{L}_\rho(x, z, u) = f(x) + g(z) + u^T(Ax + Bz - c) + \tfrac{\rho}{2}\|Ax + Bz - c\|^2$. ADMM minimizes alternately over $x$ and $z$, then takes a gradient *ascent* step on the dual variable $u$:
-
-$$\begin{aligned}
+$$
+\begin{aligned}
 x^{(k+1)} &= \arg\min_x\, \Big[f(x) + \tfrac{\rho}{2}\|Ax + Bz^{(k)} - c + u^{(k)}\|^2\Big],  \\
 z^{(k+1)} &= \arg\min_z\, \Big[g(z) + \tfrac{\rho}{2}\|Ax^{(k+1)} + Bz - c + u^{(k)}\|^2\Big],  \\
 u^{(k+1)} &= u^{(k)} + Ax^{(k+1)} + Bz^{(k+1)} - c. 
-\end{aligned}$$
-
+\end{aligned}
+$$
 ADMM is not the fastest algorithm in any single regime, but it is remarkably *robust* and naturally distributable, which is why it dominates large-scale structured problems.
 
 **Application: Lasso.** The Lasso problem $\min \tfrac{1}{2}\|y - X\beta\|^2 + \lambda\|\beta\|_1$ becomes an ADMM problem by introducing a copy: $\min \tfrac{1}{2}\|y - X\beta\|^2 + \lambda\|z\|_1$ s.t. $\beta = z$. Then
 
 - the $\beta$-update is a **ridge regression** with closed form,
 - the $z$-update is the **soft-thresholding** operator, applied coordinate-wise:
-
 $$S_\kappa(a) = \mathrm{sign}(a) \cdot \max(|a| - \kappa, 0). \tag{28}$$
-
 Both subproblems are essentially free, and the iteration produces the exact Lasso solution. The same recipe works for nuclear-norm minimization, total-variation denoising, consensus optimization across many machines, and more.
 
 ---

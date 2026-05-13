@@ -117,17 +117,13 @@ Item-based CF tends to win in production, for two reasons. Items move slowly (a 
 - $R \in \mathbb{R}^{m \times n}$ be the user-item rating matrix, with $r_{ui}$ user $u$'s rating for item $i$
 
 $R$ is extremely **sparse** — typically less than 0.1% of entries are observed. The goal is to predict the missing ones. For user-based CF:
-
 $$\hat{r}_{ui} = \bar{r}_u + \frac{\sum_{v \in N(u)} \text{sim}(u, v) \cdot (r_{vi} - \bar{r}_v)}{\sum_{v \in N(u)} |\text{sim}(u, v)|}$$
-
 In words: start from user $u$'s personal baseline $\bar r_u$, then nudge it by what similar users thought, weighted by *how* similar.
 
 **Choosing a similarity.** Two metrics dominate:
-
 $$\text{sim}_{\cos}(u, v) = \frac{\sum_{i \in I_{uv}} r_{ui} r_{vi}}{\sqrt{\sum r_{ui}^2}\sqrt{\sum r_{vi}^2}}$$
 
 $$\text{sim}_{\text{pearson}}(u, v) = \frac{\sum_{i \in I_{uv}} (r_{ui} - \bar r_u)(r_{vi} - \bar r_v)}{\sqrt{\sum (r_{ui} - \bar r_u)^2}\sqrt{\sum (r_{vi} - \bar r_v)^2}}$$
-
 The crucial difference: Alice rates everything 4–5 and Bob rates everything 2–3. Cosine sees them as different. Pearson centres each user first, recognises that their *relative* preferences may be identical, and rates them as twins.
 
 **Strengths and weaknesses.**
@@ -152,13 +148,9 @@ The algorithm builds a profile of *your* taste from the **attributes** of items 
 - **Structured** (movies, products): one-hot genres, prices, knowledge-graph features
 
 **The math.** Let $\mathbf{x}_i \in \mathbb{R}^d$ be the feature vector for item $i$ and $\mathbf{w}_u \in \mathbb{R}^d$ be user $u$'s learned preference weights. Then:
-
 $$\hat{r}_{ui} = \mathbf{w}_u^\top \mathbf{x}_i + b_u$$
-
 Each item is a list of feature scores; each user has a weight per feature; multiply, sum, done. We learn $\mathbf{w}_u$ by minimising squared error on the items that user has rated:
-
 $$\min_{\mathbf{w}_u, b_u} \sum_{i \in I_u} (r_{ui} - \mathbf{w}_u^\top \mathbf{x}_i - b_u)^2 + \lambda \|\mathbf{w}_u\|^2$$
-
 The $\lambda \|\mathbf{w}_u\|^2$ term is **L2 regularisation** — a tax on large weights that prevents the model from over-fitting on a handful of ratings.
 
 **Strengths and weaknesses.**
@@ -178,9 +170,7 @@ Pure CF and pure content-based each have predictable failure modes. Hybrids comb
 There are five common ways to combine them:
 
 **1. Weighted.** Linear blend of two scores:
-
 $$\hat{r}_{ui} = \alpha \cdot \hat{r}_{ui}^{\text{CF}} + (1 - \alpha) \cdot \hat{r}_{ui}^{\text{CB}}$$
-
 The weight $\alpha$ can be fixed, learned on a validation set, or made adaptive (more CF for power users, more content for newcomers).
 
 **2. Switching.** Pick a method based on context.
@@ -219,29 +209,21 @@ MF assumes user preferences and item characteristics can be summarised by a smal
 The picture says it best: every user and every item lives at a point in a $k$-dimensional space (typically $k = 20$–$200$ in practice). For movies, the axes might end up looking like *blockbuster ↔ art-house* or *light ↔ serious*, but you never tell the model that — it discovers them.
 
 The predicted rating is a **dot product**:
-
 $$\hat{r}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$
-
 If user and item vectors point in similar directions, the dot product is large, and the model predicts a high rating.
 
 ### 3.2 The optimisation problem
 
 We factor $R \approx P Q^\top$ with $P \in \mathbb{R}^{m \times k}$ holding user vectors and $Q \in \mathbb{R}^{n \times k}$ holding item vectors. Train by minimising squared error on observed ratings, with L2 regularisation:
-
 $$\min_{P, Q} \sum_{(u, i) \in \Omega} (r_{ui} - \mathbf{p}_u^\top \mathbf{q}_i)^2 + \lambda (\|\mathbf{p}_u\|^2 + \|\mathbf{q}_i\|^2)$$
-
 In production we add bias terms to capture systematic effects:
-
 $$\hat{r}_{ui} = \mu + b_u + b_i + \mathbf{p}_u^\top \mathbf{q}_i$$
-
 where $\mu$ is the global mean, $b_u$ is "this user rates everything high", and $b_i$ is "this item is universally loved (or hated)". With those biases pulled out, the latent factors only have to model the *interaction*, which is what we actually want them to learn.
 
 ### 3.3 Two ways to optimise
 
 **Stochastic Gradient Descent (SGD).** For each observed rating, compute the error $e_{ui} = r_{ui} - \hat{r}_{ui}$ and step:
-
 $$\mathbf{p}_u \leftarrow \mathbf{p}_u + \eta (e_{ui} \mathbf{q}_i - \lambda \mathbf{p}_u), \quad \mathbf{q}_i \leftarrow \mathbf{q}_i + \eta (e_{ui} \mathbf{p}_u - \lambda \mathbf{q}_i)$$
-
 **Alternating Least Squares (ALS).** Fix $Q$, solve a closed-form least-squares problem for each $\mathbf{p}_u$, then swap. ALS parallelises trivially across users (and items), which is why Spark MLlib's recommender ships with it.
 
 ### 3.4 Implementation
@@ -337,9 +319,7 @@ if __name__ == "__main__":
 In production you rarely have explicit 1-to-5 ratings. You have **implicit feedback**: clicks, watch time, dwell time, purchases. The trouble is that *no interaction* doesn't mean *dislike* — the user may simply never have seen the item.
 
 The standard fix is **weighted matrix factorization** (Hu, Koren & Volinsky 2008):
-
 $$\min_{P, Q} \sum_{u, i} c_{ui} (p_{ui} - \mathbf{p}_u^\top \mathbf{q}_i)^2 + \lambda(\|\mathbf{p}_u\|^2 + \|\mathbf{q}_i\|^2)$$
-
 with $p_{ui} \in \{0, 1\}$ (interacted or not) and $c_{ui} = 1 + \alpha f_{ui}$ a confidence that grows with interaction frequency $f_{ui}$. We optimise over *all* user-item pairs, but observed interactions get high confidence ("definitely a positive") and unobserved ones get low confidence ("probably negative, but we are not sure").
 
 ---
@@ -361,9 +341,7 @@ Honest evaluation needs **multiple metrics** measuring different things.
 ### 4.2 Classification metrics
 
 For each user $u$, let $R_u$ be the items we recommended (top-$K$) and $T_u$ the items they actually liked.
-
 $$\text{Precision@}K = \frac{|R_u \cap T_u|}{|R_u|}, \quad \text{Recall@}K = \frac{|R_u \cap T_u|}{|T_u|}$$
-
 **Precision@K** asks: of what we recommended, how much was relevant?
 
 **Recall@K** asks: of what was relevant, how much did we surface?
@@ -375,15 +353,11 @@ These are intuitive but they ignore *order* within the top-$K$ list — a releva
 In real interfaces, position 1 is worth dramatically more than position 10. Two metrics dominate.
 
 **Mean Average Precision (MAP).** For one user:
-
 $$\text{AP@}K = \frac{1}{|T_u|} \sum_{k=1}^{K} \text{Precision@}k \cdot \text{rel}(k)$$
-
 where $\text{rel}(k) = 1$ when item at rank $k$ is relevant. MAP is the mean over users. It rewards putting hits early.
 
 **Normalised Discounted Cumulative Gain (NDCG).** The gold standard when you have graded relevance:
-
 $$\text{DCG@}K = \sum_{k=1}^{K} \frac{2^{\text{rel}_k} - 1}{\log_2(k + 1)}, \quad \text{NDCG@}K = \frac{\text{DCG@}K}{\text{IDCG@}K}$$
-
 The $\log_2(k+1)$ term *discounts* lower positions — rank 1 gets full credit, rank 10 gets about a third. IDCG is the DCG of the perfectly sorted list, so NDCG always lands in $[0, 1]$.
 
 The same ranked list can look very different through these three lenses:
@@ -587,9 +561,7 @@ A new user has no history. A new item has no interactions. Both look invisible t
 For **new users** — onboard with a few quick taste choices, fall back to demographics, lean on popular and trending until a few signals accumulate.
 
 For **new items** — use content features (embedding the item from text/image/audio puts it near similar items), and use *exploration*: deliberately surface new items with an upper-confidence-bound bonus
-
 $$\text{score}(i) = \hat{r}_i + \beta \sqrt{\frac{\log N}{n_i}}$$
-
 so items with few impressions get a chance to prove themselves.
 
 ```python
