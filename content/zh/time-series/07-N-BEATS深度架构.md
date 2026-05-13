@@ -85,7 +85,8 @@ $$r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{
 趋势块使用低阶多项式基。设阶数为 $p$，归一化时间索引 $\tau / H \in [0, 1]$：
 $$\nV_{\text{trend}} = \begin{pmatrix} 1 & \tau & \tau^{2} & \cdots & \tau^{p} \end{pmatrix}, \qquad
 \hat{y}_{\text{trend}} = \sum_{i=0}^{p} \theta_i \, \tau^{i}.
-$$\n通常取 $p = 2$ 或 $3$，足以拟合“先平缓上升后加速”的趋势，又避免过拟合抖动。
+$$
+通常取 $p = 2$ 或 $3$，足以拟合“先平缓上升后加速”的趋势，又避免过拟合抖动。
 
 季节性块采用傅里叶基：
 $$\nV_{\text{seas}} = \begin{pmatrix} \sin(2\pi \cdot 1 \cdot \tau / T) & \cos(2\pi \cdot 1 \cdot \tau / T) & \cdots & \sin(2\pi K \tau / T) & \cos(2\pi K \tau / T) \end{pmatrix}.

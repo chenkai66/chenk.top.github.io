@@ -90,7 +90,8 @@ $$f_X(x) = \int_{-\infty}^{\infty} f_{X,Y}(x, y) \, dy, \qquad f_Y(y) = \int_{-\
 $$f_{X|Y}(x | y) = \frac{f_{X,Y}(x, y)}{f_Y(y)}, \quad \text{要求 } f_Y(y) > 0.$$
 
 **示例。** 设 $(X, Y)$ 的联合 PDF 为  
-$$f(x, y) = 6(1 - y), \quad \text{当 } 0 < x < y < 1,$$  \n其余区域 $f(x,y) = 0$。
+$$f(x, y) = 6(1 - y), \quad \text{当 } 0 < x < y < 1,$$  
+其余区域 $f(x,y) = 0$。
 
 *验证其为合法 PDF：*
 

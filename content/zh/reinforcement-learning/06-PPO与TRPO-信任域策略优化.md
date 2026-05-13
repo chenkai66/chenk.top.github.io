@@ -63,8 +63,10 @@ translationKey: "reinforcement-learning-6"
 
 在策略方法在单次梯度更新后就会丢弃数据，因为数据分布发生了偏移。**重要性采样**通过重新加权，使我们能够复用同一批数据：
 
-$$\mathbb{E}_{x \sim q}[f(x)] = \mathbb{E}_{x \sim p}\!\left[\tfrac{q(x)}{p(x)}\, f(x)\right]$$\n将旧策略和新策略代入策略梯度目标，就得到了**代理目标**：
-$$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right]$$\n其中概率比 $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_t)$ 是本文所有算法的核心对象。
+$$\mathbb{E}_{x \sim q}[f(x)] = \mathbb{E}_{x \sim p}\!\left[\tfrac{q(x)}{p(x)}\, f(x)\right]$$
+将旧策略和新策略代入策略梯度目标，就得到了**代理目标**：
+$$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right]$$
+其中概率比 $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_t)$ 是本文所有算法的核心对象。
 
 需要记住两点：
 
@@ -81,17 +83,20 @@ $$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac
 
 ### 单调改进下界
 \nSchulman 等人（2015）在 Kakade & Langford（2002）工作的基础上证明，新策略的真实回报可以被代理目标加上一个 KL 惩罚项所下界：
-$$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \cdot D_{KL}^{\max}\!\left(\pi_{\text{old}} \,\|\, \pi_{\text{new}}\right)$$\n其中 $C = 4\varepsilon\gamma/(1-\gamma)^2$，依赖于最大优势幅值 $\varepsilon$ 和折扣因子 $\gamma$。其推论令人震惊：**只要我们在提升代理目标的同时保持 $D_{KL}^{\max}$ 足够小，就能保证策略单调改进**。
+$$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \cdot D_{KL}^{\max}\!\left(\pi_{\text{old}} \,\|\, \pi_{\text{new}}\right)$$
+其中 $C = 4\varepsilon\gamma/(1-\gamma)^2$，依赖于最大优势幅值 $\varepsilon$ 和折扣因子 $\gamma$。其推论令人震惊：**只要我们在提升代理目标的同时保持 $D_{KL}^{\max}$ 足够小，就能保证策略单调改进**。
 
 实践中，常数 $C$ 过于悲观而难以使用；TRPO 将惩罚项替换为硬约束，并通过实验调整。
 
 ### 带约束的优化问题
-$$\max_\theta \;\; \mathbb{E}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right] \quad\text{s.t.}\quad \bar{D}_{KL}\!\left(\pi_{\text{old}} \,\|\, \pi_\theta\right) \leq \delta$$\n通常取 $\delta \approx 0.01$。这里使用平均 KL 而非最大 KL，因为前者更容易从样本中估计。
+$$\max_\theta \;\; \mathbb{E}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right] \quad\text{s.t.}\quad \bar{D}_{KL}\!\left(\pi_{\text{old}} \,\|\, \pi_\theta\right) \leq \delta$$
+通常取 $\delta \approx 0.01$。这里使用平均 KL 而非最大 KL，因为前者更容易从样本中估计。
 
 ### 自然梯度：何为“小”
 
 标准 SGD 在欧氏球 $\|\Delta\theta\|^2 \le c$ 内选择使线性化目标最大的方向。**自然梯度**则改变了度量方式：它约束的是分布空间中的 *KL 球*，在局部可近似为一个二次型，其 Hessian 即为 **Fisher 信息矩阵**：
-$$D_{KL}(\pi_\theta \,\|\, \pi_{\theta+\Delta\theta}) \;\approx\; \tfrac{1}{2}\,\Delta\theta^\top F\,\Delta\theta, \qquad F = \mathbb{E}\!\left[\nabla_\theta \log \pi_\theta\,\nabla_\theta \log \pi_\theta^\top\right]$$\n求解该约束问题可得自然梯度更新 $\Delta\theta \propto F^{-1}\nabla J$。这是**策略空间**中的最速上升方向，而非参数空间中的方向——这正是我们想要的。
+$$D_{KL}(\pi_\theta \,\|\, \pi_{\theta+\Delta\theta}) \;\approx\; \tfrac{1}{2}\,\Delta\theta^\top F\,\Delta\theta, \qquad F = \mathbb{E}\!\left[\nabla_\theta \log \pi_\theta\,\nabla_\theta \log \pi_\theta^\top\right]$$
+求解该约束问题可得自然梯度更新 $\Delta\theta \propto F^{-1}\nabla J$。这是**策略空间**中的最速上升方向，而非参数空间中的方向——这正是我们想要的。
 
 ### 实现：共轭梯度 + 线搜索
 
@@ -139,7 +144,8 @@ step = torch.sqrt(2 * delta / (x.dot(fisher_vector_product(x)) + 1e-8)) * x
 ### PPO-Clip：核心技巧
 
 定义裁剪后的代理目标：
-$$L^{\text{CLIP}}(\theta) = \mathbb{E}\!\left[\min\!\Big(r_t(\theta)\,\hat{A}_t,\;\; \mathrm{clip}\!\left(r_t(\theta),\,1\!-\!\varepsilon,\,1\!+\!\varepsilon\right)\hat{A}_t\Big)\right]$$\n其中 $\varepsilon \approx 0.2$。该设计故意不对称：`min` 使目标变得**悲观**，总是选取裁剪值与未裁剪值中较小的一个。
+$$L^{\text{CLIP}}(\theta) = \mathbb{E}\!\left[\min\!\Big(r_t(\theta)\,\hat{A}_t,\;\; \mathrm{clip}\!\left(r_t(\theta),\,1\!-\!\varepsilon,\,1\!+\!\varepsilon\right)\hat{A}_t\Big)\right]$$
+其中 $\varepsilon \approx 0.2$。该设计故意不对称：`min` 使目标变得**悲观**，总是选取裁剪值与未裁剪值中较小的一个。
 
 ![按优势符号拆分的 PPO 裁剪代理目标](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/06-PPO与TRPO-信任域策略优化/fig2_ppo_clipping.png)
 
@@ -153,7 +159,8 @@ $$L^{\text{CLIP}}(\theta) = \mathbb{E}\!\left[\min\!\Big(r_t(\theta)\,\hat{A}_t,
 ### PPO-Penalty：自适应变体
 
 另一种变体（虽不流行但在某些领域有用）显式添加 KL 惩罚项并自适应调整其系数：
-$$L^{\text{KL}}(\theta) = \mathbb{E}\!\left[r_t(\theta)\,\hat{A}_t\right] \;-\; \beta\,\mathbb{E}\!\left[D_{KL}(\pi_{\text{old}}\,\|\,\pi_\theta)\right]$$\n其中 $\beta$ 在每次迭代后调整：若实测 KL 超过 $1.5\,\delta_{\text{target}}$ 则翻倍，低于 $\delta_{\text{target}}/1.5$ 则减半。
+$$L^{\text{KL}}(\theta) = \mathbb{E}\!\left[r_t(\theta)\,\hat{A}_t\right] \;-\; \beta\,\mathbb{E}\!\left[D_{KL}(\pi_{\text{old}}\,\|\,\pi_\theta)\right]$$
+其中 $\beta$ 在每次迭代后调整：若实测 KL 超过 $1.5\,\delta_{\text{target}}$ 则翻倍，低于 $\delta_{\text{target}}/1.5$ 则减半。
 
 ![自适应 KL 罚项：目标形状与 beta 的调度过程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/06-PPO与TRPO-信任域策略优化/fig3_kl_penalty.png)
 

@@ -66,7 +66,8 @@ translationKey: "optim-11"
 若函数 $f$ 在每个平稳点 $x^\star$ 处满足
 $$
 \nabla^2 f(x^\star) \succ 0 \quad \text{或} \quad \lambda_{\min}(\nabla^2 f(x^\star)) < 0,
-$$\n则称其具有**严格鞍点性质**。也就是说，每个平稳点要么是严格局部极小值，要么其 Hessian 至少有一个严格负特征值（即“严格”鞍点，没有平坦方向）。
+$$
+则称其具有**严格鞍点性质**。也就是说，每个平稳点要么是严格局部极小值，要么其 Hessian 至少有一个严格负特征值（即“严格”鞍点，没有平坦方向）。
 
 许多机器学习问题都满足这一性质，例如正交张量分解、广义相位恢复、低秩矩阵补全和字典学习。对这些问题而言，只要能逃离鞍点，算法就会自动收敛到局部极小值——而该极小值往往就是全局最优解。
 
@@ -123,7 +124,8 @@ $$\nPL 条件**弱于强凸性**：每个 $\mu$-强凸函数都满足相同 $\mu
 
 **证明**：由光滑性，
 $$\nf(x_{t+1}) \leq f(x_t) + \nabla f(x_t)^\top (x_{t+1} - x_t) + \tfrac{L}{2} \|x_{t+1} - x_t\|_2^2 = f(x_t) - \tfrac{1}{2 L} \|\nabla f(x_t)\|_2^2.
-$$\n再由 PL 条件，$\|\nabla f(x_t)\|_2^2 \geq 2 \mu (f(x_t) - f^\star)$。代入得：
+$$
+再由 PL 条件，$\|\nabla f(x_t)\|_2^2 \geq 2 \mu (f(x_t) - f^\star)$。代入得：
 $$\nf(x_{t+1}) - f^\star \leq (1 - \mu / L) (f(x_t) - f^\star). \quad \blacksquare
 $$
 
@@ -149,7 +151,8 @@ $$
 
 **神经正切核**（NTK，Jacot, Gabriel & Hongler 2018）指出：足够宽的网络在其初始化 $\theta_0$ 附近，输出关于参数近似线性：
 $$\nf(x; \theta) \approx f(x; \theta_0) + \nabla_\theta f(x; \theta_0)^\top (\theta - \theta_0).
-$$\n在此区域中，对平方损失执行 GD，其收敛速率由 NTK 的特征值决定——梯度流退化为线性常微分方程（ODE）。在随机初始化下，NTK 的最小特征值以高概率远离零，从而保证线性收敛。
+$$
+在此区域中，对平方损失执行 GD，其收敛速率由 NTK 的特征值决定——梯度流退化为线性常微分方程（ODE）。在随机初始化下，NTK 的最小特征值以高概率远离零，从而保证线性收敛。
 \nNTK 描述的是“懒训练”现象：宽网络权重几乎不变。而真实网络通常运行于该区域之外，具备显著的**特征学习**能力与权重的**定性变化**。
 
 ![NTK 区域：宽网络停留在初始化附近，GD 线性收敛](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/11-nonconvex-saddle-escape/fig4.png)

@@ -30,7 +30,8 @@ polished_by_qwen_max: true
 - 生物信息学中的基因表达矩阵。
 
 **奇异值分解（Singular Value Decomposition, SVD）** 却能处理所有这些情况。对于**任意** $m \times n$ 矩阵 $A$，都有
-$$A = U\,\Sigma\,V^{\!\top}.$$\n这堪称线性代数中最强大、适用范围最广的矩阵分解。
+$$A = U\,\Sigma\,V^{\!\top}.$$
+这堪称线性代数中最强大、适用范围最广的矩阵分解。
 
 ### 一个摄影类比
 
@@ -65,7 +66,8 @@ $$A = U\,\Sigma\,V^{\!\top}.$$\n这堪称线性代数中最强大、适用范围
 ### 基本定理
 
 **SVD 定理**：任意 $m \times n$ 实矩阵 $A$ 都可分解为
-$$A = U\,\Sigma\,V^{\!\top},$$\n其中
+$$A = U\,\Sigma\,V^{\!\top},$$
+其中
 
 - $U \in \mathbb{R}^{m\times m}$ 是正交矩阵，其列向量为**左奇异向量** $u_1, \ldots, u_m$；
 - $V \in \mathbb{R}^{n\times n}$ 是正交矩阵，其列向量为**右奇异向量** $v_1, \ldots, v_n$；
@@ -107,11 +109,13 @@ $$A = U_r\,\Sigma_r\,V_r^{\!\top},\qquad U_r \in \mathbb{R}^{m\times r},\ \Sigma
 - **奇异值** $\sigma_1, \sigma_2$ 正是椭圆半轴的长度。
 
 一句话概括：
-$$A\,v_i \;=\; \sigma_i\, u_i.$$\n这就是 SVD 的核心等式，一切性质皆由此衍生。
+$$A\,v_i \;=\; \sigma_i\, u_i.$$
+这就是 SVD 的核心等式，一切性质皆由此衍生。
 
 ### 外积展开
 \nSVD 还可等价地写成秩-1 矩阵的加权和：
-$$A = \sigma_1 u_1 v_1^{\!\top} + \sigma_2 u_2 v_2^{\!\top} + \cdots + \sigma_r u_r v_r^{\!\top}.$$\n每个 $u_i v_i^{\!\top}$ 是秩为 1 的矩阵，奇异值为其权重。这一视角是低秩逼近的关键：保留大权重项，舍弃小权重项。
+$$A = \sigma_1 u_1 v_1^{\!\top} + \sigma_2 u_2 v_2^{\!\top} + \cdots + \sigma_r u_r v_r^{\!\top}.$$
+每个 $u_i v_i^{\!\top}$ 是秩为 1 的矩阵，奇异值为其权重。这一视角是低秩逼近的关键：保留大权重项，舍弃小权重项。
 
 ---
 
@@ -144,8 +148,10 @@ $A^{\!\top}\!A$ 与 $AA^{\!\top}$ 均为**对称半正定矩阵**，故可应用
 ### 手算示例
 
 设 $A = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}$，则
-$$A^{\!\top}\!A = \begin{pmatrix} 1 & 1 \\ 1 & 2 \end{pmatrix}, \qquad \det(A^{\!\top}\!A - \lambda I) = \lambda^2 - 3\lambda + 1.$$\n解得 $\lambda = \frac{3 \pm \sqrt{5}}{2}$，故
-$$\sigma_1 = \sqrt{\tfrac{3+\sqrt{5}}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt{\tfrac{3-\sqrt{5}}{2}} \approx 0.618.$$\n求出 $A^{\!\top}\!A$ 的特征向量得 $V$，再由 $u_i = A v_i / \sigma_i$ 得 $U$。（验证：$\sigma_1 \sigma_2 = 1 = |\det A|$，结果自洽。）
+$$A^{\!\top}\!A = \begin{pmatrix} 1 & 1 \\ 1 & 2 \end{pmatrix}, \qquad \det(A^{\!\top}\!A - \lambda I) = \lambda^2 - 3\lambda + 1.$$
+解得 $\lambda = \frac{3 \pm \sqrt{5}}{2}$，故
+$$\sigma_1 = \sqrt{\tfrac{3+\sqrt{5}}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt{\tfrac{3-\sqrt{5}}{2}} \approx 0.618.$$
+求出 $A^{\!\top}\!A$ 的特征向量得 $V$，再由 $u_i = A v_i / \sigma_i$ 得 $U$。（验证：$\sigma_1 \sigma_2 = 1 = |\det A|$，结果自洽。）
 
 ### 特征值 vs 奇异值：直观对比
 
@@ -189,7 +195,8 @@ $$\sigma_1 = \sqrt{\tfrac{3+\sqrt{5}}{2}} \approx 1.618, \qquad \sigma_2 = \sqrt
 $$A_k = \sigma_1 u_1 v_1^{\!\top} + \cdots + \sigma_k u_k v_k^{\!\top}.$$
 
 **定理（Eckart–Young, 1936）**：在所有秩不超过 $k$ 的矩阵 $B$ 中，
-$$\|A - A_k\|_F \;=\; \min_{\operatorname{rank}(B) \le k} \|A - B\|_F \;=\; \sqrt{\sigma_{k+1}^{\,2} + \cdots + \sigma_r^{\,2}}.$$\n在算子（2-）范数下，有 $\|A - A_k\|_2 = \sigma_{k+1}$。
+$$\|A - A_k\|_F \;=\; \min_{\operatorname{rank}(B) \le k} \|A - B\|_F \;=\; \sqrt{\sigma_{k+1}^{\,2} + \cdots + \sigma_r^{\,2}}.$$
+在算子（2-）范数下，有 $\|A - A_k\|_2 = \sigma_{k+1}$。
 
 因此，$A_k$ 不仅是一个低秩近似，更是**理论上最优**的——没有任何秩-$k$ 矩阵能比它更接近原矩阵。
 
@@ -206,13 +213,16 @@ $$\|A - A_k\|_F \;=\; \min_{\operatorname{rank}(B) \le k} \|A - B\|_F \;=\; \sqr
 ### 能量视角
 
 定义矩阵“能量”为其 Frobenius 范数的平方：
-$$\|A\|_F^2 = \sigma_1^2 + \sigma_2^2 + \cdots + \sigma_r^2.$$\n秩-$k$ 近似保留的能量比例为
-$$\text{能量保留率} = \frac{\sigma_1^2 + \cdots + \sigma_k^2}{\sigma_1^2 + \cdots + \sigma_r^2}.$$\n对大多数自然数据，奇异值衰减迅速：一张 $1000 \times 1000$ 的照片，前 50 个奇异值常可保留 95% 以上的能量。
+$$\|A\|_F^2 = \sigma_1^2 + \sigma_2^2 + \cdots + \sigma_r^2.$$
+秩-$k$ 近似保留的能量比例为
+$$\text{能量保留率} = \frac{\sigma_1^2 + \cdots + \sigma_k^2}{\sigma_1^2 + \cdots + \sigma_r^2}.$$
+对大多数自然数据，奇异值衰减迅速：一张 $1000 \times 1000$ 的照片，前 50 个奇异值常可保留 95% 以上的能量。
 
 ### 图像压缩的实际收益
 
 存储秩-$k$ 近似需保存 $k$ 个奇异值及 $U$、$V$ 的前 $k$ 列，总计
-$$\text{存储量} = k\,(m + n + 1).$$\n以 $500 \times 500$ 图像为例，取 $k = 50$：原图需 $250{,}000$ 个数，压缩后仅需 $50{,}050$ 个——压缩率达 5 倍，且视觉损失通常难以察觉。
+$$\text{存储量} = k\,(m + n + 1).$$
+以 $500 \times 500$ 图像为例，取 $k = 50$：原图需 $250{,}000$ 个数，压缩后仅需 $50{,}050$ 个——压缩率达 5 倍，且视觉损失通常难以察觉。
 
 ![原图与 k=5, 20, 50 的对比；奇异值谱与累积能量曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/fig5_image_compression.png)
 
@@ -243,7 +253,8 @@ for k in [5, 20, 50, 100]:
 
 若 $A = U \Sigma V^{\!\top}$，则
 $$A^{+} = V \Sigma^{+} U^{\!\top}, \qquad
-\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0,\\ 0 & \sigma_i = 0,\end{cases}$$\n且 $\Sigma^{+}$ 转置为 $n \times m$ 形状。当 $A$ 可逆时，$A^{+} = A^{-1}$。
+\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0,\\ 0 & \sigma_i = 0,\end{cases}$$
+且 $\Sigma^{+}$ 转置为 $n \times m$ 形状。当 $A$ 可逆时，$A^{+} = A^{-1}$。
 
 ### 伪逆的作用
 
@@ -280,7 +291,8 @@ print(f"斜率={coef[0]:.3f}  截距={coef[1]:.3f}")
 主成分分析（PCA）本质上就是披着统计外衣的 SVD。
 
 将数据矩阵 $X \in \mathbb{R}^{n\times p}$ 按列中心化（每列均值为零），记为 $X_c$，对其做 SVD：
-$$X_c = U \Sigma V^{\!\top}.$$\n则有：
+$$X_c = U \Sigma V^{\!\top}.$$
+则有：
 
 - **主成分方向** = $V$ 的列（右奇异向量），即最大方差的正交轴；
 - **主成分得分** = $X_c V = U \Sigma$，即数据在新基下的坐标；
