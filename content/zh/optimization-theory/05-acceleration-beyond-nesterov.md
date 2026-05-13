@@ -31,8 +31,7 @@ translationKey: "optim-05"
 5. Catalyst 元算法：通过内部正则化求解实现黑盒加速。
 6. 一个具体示例，比较 GD、Heavy-Ball、Nesterov 和 Catalyst 在病态条件二次函数上的表现。
 
-## 先修知识
-
+## 前置知识
 文章 01（凸分析基础），文章 02（Lipschitz 光滑性、强凸性以及基本的 Nesterov 更新）。熟悉二次型的操作，并能理解“对于任意 $L, \mu$，存在一个函数使得……”这类证明风格。
 
 ---

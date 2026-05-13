@@ -524,8 +524,7 @@ plt.show()
 
 The MCMC histogram closely matches the exact Beta posterior, verifying that the sampler works. The trace plot shows the chain exploring the parameter space, and the autocorrelation plot reveals how quickly successive samples become independent (shorter correlation = more efficient sampling).
 
-## Summary: The Bayesian Toolkit
-
+## Summary
 | Concept | Formula | Role |
 |---|---|---|
 | Bayes' rule | $p(\theta|\mathbf{x}) \propto p(\mathbf{x}|\theta)p(\theta)$ | Fundamental update |

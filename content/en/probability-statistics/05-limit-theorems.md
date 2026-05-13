@@ -513,8 +513,7 @@ plt.show()
 
 Each panel shows 10 independent sample paths of the running average $\bar{X}_n$. Early on, the paths are noisy and far from the true mean (red dashed line). As $n$ grows, all paths converge — this is the LLN in action. The Exponential distribution has the most initial volatility (due to its heavy right tail), but even it settles down by $n \approx 500$.
 
-## Convergence Summary
-
+## Summary
 | Theorem | Statement | Requirements | Rate |
 |---|---|---|---|
 | WLLN | $\bar{X}_n \xrightarrow{P} \mu$ | i.i.d., finite mean and variance | $O(1/n)$ via Chebyshev |

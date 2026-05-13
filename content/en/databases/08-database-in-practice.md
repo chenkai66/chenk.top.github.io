@@ -761,8 +761,7 @@ ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '60s';
 
 8. **The database is not a queue.** If you are polling a table with `SELECT ... WHERE status = 'pending' FOR UPDATE SKIP LOCKED`, you should probably be using an actual message queue.
 
-## Series Wrap-Up
-
+## Summary
 Over these eight articles, we have gone from the relational model and SQL basics all the way to distributed transactions and production operations. The path was intentional: you cannot understand why replication lag matters until you understand isolation levels, and you cannot appreciate the Saga pattern until you understand why 2PC blocks.
 
 Databases are one of those areas where superficial knowledge is dangerous. A developer who does not understand indexing will build systems that work perfectly on small datasets and fail catastrophically in production. A team that does not understand isolation levels will ship concurrency bugs that only appear under load. An organization that does not test its backups will discover they are useless precisely when they are needed most.

@@ -22,8 +22,7 @@ This is the first part of a six-part series. By the end, you should have a worki
 
 ![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
-## Prerequisites and assumptions
-
+## Prerequisites
 Before diving in, here's what I expect you to already have:
 
 **Technical baseline.** You should be comfortable with a terminal, editing config files, and reading TypeScript or JavaScript stack traces. You don't need to write code for this series, but when something breaks, you should be able to read an error and determine if it's a network timeout or a syntax issue.

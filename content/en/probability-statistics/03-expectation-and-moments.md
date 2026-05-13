@@ -508,8 +508,7 @@ $$P(X - \mu \geq t) \leq \frac{\sigma^2}{\sigma^2 + t^2}.$$
 
 This is tighter than Chebyshev for one-sided deviations and requires no symmetry assumption.
 
-## Summary of Key Formulas
-
+## Summary
 | Quantity | Formula | Notes |
 |---|---|---|
 | $E[X]$ | $\sum x \, p(x)$ or $\int x \, f(x) \, dx$ | Center of distribution |

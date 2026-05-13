@@ -523,8 +523,7 @@ run:
 	.venv/bin/python -m my_api
 ```
 
-## Common Pitfalls and Solutions
-
+## Common Pitfalls
 | Pitfall | Symptom | Solution |
 |---------|---------|----------|
 | Using system pip | `pip install X` modifies system packages | Always activate venv first |

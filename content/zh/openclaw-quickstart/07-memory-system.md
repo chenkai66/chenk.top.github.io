@@ -310,8 +310,7 @@ ls ~/.openclaw/agents/main/sessions/*.jsonl | wc -l
 
 如果 `MEMORY.md` 悄悄超过 40 行，说明有些内容该移到 `projects.md` 或 `lessons.md` 里了。如果会话文件堆了几百个，赶紧归档——启动速度会变慢。
 
-## 重点总结
-
+## 总结
 - `MEMORY.md` 是索引，不是数据库。
 - 第一天就打开 `memoryFlush`。
 - 等有值得搜索的内容后再加 `memorySearch`。

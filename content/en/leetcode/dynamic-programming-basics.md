@@ -479,8 +479,7 @@ Most problems you will see fit into one of four buckets:
 When you face a new problem, classify it first; the category tells you
 what shape the state should have.
 
-## Common Mistakes
-
+## Common Pitfalls
 A short checklist of the bugs that show up over and over:
 
 - **Vague state**: you can't write the transition cleanly because

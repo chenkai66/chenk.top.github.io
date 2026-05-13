@@ -305,8 +305,7 @@ Let me walk through a concrete recipe — what a production team would actually 
 
 Total: about $10K of compute on rented H100s for a fully post-trained model. The numbers scale roughly linearly with model size — 70B costs ~2.5×, 7B costs ~0.3×.
 
-## Common pitfalls in post-training
-
+## Common Pitfalls
 The five gotchas I see most often in production post-training runs:
 
 **1. Reference model not actually frozen.** A subtle DPO bug: passing `ref_model` and `policy_model` as the same Python object means gradient updates affect both. The "ref" log-probs change every step, the loss becomes nonsense, training silently produces a worse model. Use `model.eval()` and `with torch.no_grad():` when computing ref log-probs, or load a separate model.

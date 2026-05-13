@@ -356,8 +356,7 @@ A$k$-sparse vector in$\mathbb{R}^n$has roughly$k \log(n/k)$bits of structural in
 
 ---
 
-## Chapter summary
-
+## Summary
 | Concept | Key fact | Why it matters |
 |---|---|---|
 | Sparsity | Most natural signals are sparse in some basis | Foundation for compression and CS |

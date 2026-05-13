@@ -17,8 +17,7 @@ Open a terminal and type `cat hello.txt`. The instant you press Enter, at least 
 
 This entire round trip takes about 100 microseconds. You see only the final result. This article aims to break down this path layer by layer, so the next time you debug a strange permission, a stuck process, or unexplained latency, you can pinpoint exactly which layer is responsible.
 
-## What you will be able to do
-
+## What You Will Learn
 - Explain monolithic vs microkernel honestly, and why Linux still has not gone microkernel after thirty years.
 - Read a `D`/`S`/`R`/`Z` in `ps` output and say which slot in the process lifecycle it sits in and what event releases it.
 - Trace one variable access through the MMU, TLB, page table, page-fault handler, and (if needed) swap, and quote the latency at each level.

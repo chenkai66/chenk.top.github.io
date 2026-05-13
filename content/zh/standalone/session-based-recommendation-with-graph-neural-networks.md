@@ -24,7 +24,7 @@ translationKey: "session-based-recommendation-with-graph-neural-networks"
 - 几类典型失败模式（短会话、流行度坍塌、冷启动物品、超大物品池）及其解决方法
 - 几个值得关注的常见变体（attention 化的 GGNN、时间间隔边、多任务头），以及它们在什么场景下真正有用
 
-## 前置准备
+## 前置知识
 - 熟悉消息传递与 GNN 基础术语（邻接矩阵、传播步数）
 - 了解 GRU/LSTM 的门控结构
 - 掌握推荐评测指标 Recall@K 和 MRR@K，了解 sampled softmax 的作用

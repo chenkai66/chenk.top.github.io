@@ -427,8 +427,7 @@ print(feature_ablation(model, Xm[:200], ym[:200],
 
 ---
 
-## 常见陷阱与调试方法
-
+## 常见陷阱
 - **输出整体右移**：忘记裁剪卷积后右侧 padding。检查因果卷积中是否有 `y[:, :, : -self.padding]`。
 - **训练 loss 降但验证 loss 不降**：感受野小于数据主周期。用正确 horizon 重跑 `required_layers`。
 - **loss 过早停滞**：通道太窄或学习率太低。尝试加倍通道或设 `lr=3e-3`。

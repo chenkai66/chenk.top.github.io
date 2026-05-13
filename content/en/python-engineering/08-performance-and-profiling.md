@@ -716,8 +716,7 @@ Before optimizing, ask these questions in order.
 
 Profile before you optimize. Measure the impact after you optimize. If the optimization makes the code harder to read and the speedup is less than 2x, revert it. Readable code that takes 0.2 seconds is better than clever code that takes 0.15 seconds, because the person who maintains it (including future you) will spend more time understanding the clever version than the 0.05 seconds it saves per execution.
 
-## Series Wrap-Up
-
+## Summary
 Over eight articles, we have built a complete Python engineering toolkit:
 
 1. **Environment** — pyenv, venv, pip-tools for reproducible setups

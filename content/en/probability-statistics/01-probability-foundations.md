@@ -482,8 +482,7 @@ We've treated probability axiomatically — as a function satisfying three rules
 
 All three interpretations use the same axioms. The difference is philosophical, but it has practical consequences: it determines whether you use frequentist statistics (confidence intervals, p-values) or Bayesian statistics (priors, posteriors, credible intervals). We'll return to this debate in Article 8.
 
-## A Summary of the Probability Toolkit
-
+## Summary
 Here is a reference table of the key formulas developed in this article:
 
 | Rule | Formula | When to Use |
@@ -498,8 +497,7 @@ Here is a reference table of the key formulas developed in this article:
 | Independence | $P(A \cap B) = P(A)P(B)$ | Simplify products |
 | Combinations | $\binom{n}{k} = \frac{n!}{k!(n-k)!}$ | Equally likely outcomes |
 
-## Common Probability Pitfalls
-
+## Common Pitfalls
 Before we move on, here are mistakes that even experienced practitioners make:
 
 **1. The Gambler's Fallacy.** "The roulette wheel landed on red 5 times in a row, so black is due." If spins are independent, the probability of black on the next spin is exactly the same as it always is. Past outcomes don't affect future ones.

@@ -388,8 +388,7 @@ SFT 受限于示范作者——人类极少写出**最优**答案，通常仅是
 - **Skalse et al. (2022).** Defining and Characterizing Reward Hacking. *NeurIPS*.
 - **Brohan et al. (2023).** RT-2: Vision-Language-Action Models. *Google DeepMind*.
 
-## 系列总结
-
+## 总结
 这是第十二篇，亦是终章。系列始于马尔可夫决策过程与简易 GridWorld，终于构建 ChatGPT 与 Claude 的对齐技术栈。一路走来，我们构建了：
 
 - **基础** —— MDP、Bellman 方程、价值迭代（[第 1 部分](/zh/reinforcement-learning/01-基础与核心概念/)）

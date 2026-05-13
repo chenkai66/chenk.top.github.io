@@ -16,8 +16,7 @@ translationKey: "tennis-cv-system-design"
 
 A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory from eight 4K cameras in real time, while also classifying each player's stroke, involves **small-object detection, multi-view geometry, Kalman filtering, physics modeling, and human-pose estimation** — all at once. This post follows the same steps as in deployment: state the constraints, survey the literature, choose, build, and lay out a millisecond-by-millisecond budget for production.
 
-## What you will see
-
+## What You Will Learn
 - Why traditional detectors collapse on 10–20 px tennis balls and how the TrackNet line fixes it
 - Multi-camera calibration, PTP synchronisation, and DLT triangulation in code and math
 - A 9-state Kalman filter coupled with a drag-plus-Magnus ODE for trajectory prediction

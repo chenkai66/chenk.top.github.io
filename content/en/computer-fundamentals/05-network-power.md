@@ -37,8 +37,7 @@ A network interface card is not just "the port on the back of the case". Inside 
 
 ![NIC architecture: PHY, MAC, DMA, and offload features](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig1_nic_architecture.png)
 
-## The three layers inside the silicon:
-
+## The Three Layers Inside the Silicon
 | Stage | What it does | What can go wrong |
 |-------|-------------|-------------------|
 | **PHY** (Physical Layer) | SerDes, signal conditioning, magnetics. Encodes 1000BASE-T over 4 twisted pairs at 125 MHz. | Bad cabling (CAT5 instead of CAT5e+), kinked patch leads, EMI from a PSU sitting next to the cable. |
@@ -436,8 +435,7 @@ The "reseat the RAM" reflex feels superstitious but is grounded in real physics:
 - **Wi-Fi slow** — switch from 2.4 GHz to 5 GHz, change channel (use a Wi-Fi analyzer to find a quiet one), check for microwave/Bluetooth interference.
 - **Cannot get DHCP** — confirm the link light, check `ip addr` for an APIPA address (`169.254.x.x`), restart the DHCP client.
 
-## Series Recap
-
+## Summary
 What this series covered, in five sentences:
 
 1. The CPU is the bottleneck for serial work; the GPU for parallel work; everything else is feeding them.

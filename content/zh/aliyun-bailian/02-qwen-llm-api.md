@@ -21,7 +21,7 @@ translationKey: "aliyun-bailian-2"
 
 ![阿里云百链（2）：生产环境中的Qwen LLM API —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_1.png)
 
-## 选对适合工作负载的 Qwen  variant
+## 选对适合工作负载的 Qwen variant
 
 Qwen 家族很大。很多团队默认全用 `qwen-max`，结果钱花多了；有的默认全用 `qwen-turbo`，结果质量差了。正确的策略是‘按需选型’：
 
@@ -157,7 +157,7 @@ for chunk in stream:
     delta = chunk.choices[0].delta
     # Qwen3 streams the reasoning chain in delta.reasoning_content
     rc = getattr(delta, "reasoning_content", None)
-    if rc:  reasoning.append(rc)
+    if rc: reasoning.append(rc)
     if delta.content: answer.append(delta.content)
 
 print("ANSWER:", "".join(answer))
@@ -331,7 +331,7 @@ print(f"cache hit rate over last {len(window)} calls: {hit_rate:.1%}")
 
 结构良好的 RAG 端点配合稳定的 system prompt，命中率能达到 70-80%。如果把请求特定的元数据插进 system prompt，命中率就是 0%。账单上的输入 Token 费用会差两倍。
 
-当确实超过窗口需要截断时：安全模式是“保留 system prompt 和最近的 user/assistant  pair，中间部分滑动窗口”。我保留第一条 system message 和最后 6 条消息原样，当对话超过阈值时，用便宜的 `qwen-turbo` 调用总结中间内容。总结内容作为合成 system message 放回 messages 数组（`"role": "system", "content": "Earlier in this conversation: ..."`）。对于聊天类负载，质量损失很小；但对于代码上下文负载，不能对有损压缩文件内容——这种情况下，优选更长上下文的模型而不是总结。
+当确实超过窗口需要截断时：安全模式是“保留 system prompt 和最近的 user/assistant pair，中间部分滑动窗口”。我保留第一条 system message 和最后 6 条消息原样，当对话超过阈值时，用便宜的 `qwen-turbo` 调用总结中间内容。总结内容作为合成 system message 放回 messages 数组（`"role": "system", "content": "Earlier in this conversation: ..."`）。对于聊天类负载，质量损失很小；但对于代码上下文负载，不能对有损压缩文件内容——这种情况下，优选更长上下文的模型而不是总结。
 
 ## 下一步
 

@@ -275,8 +275,7 @@ class AttnHead(nn.Module):
 
 ---
 
-## 9. Common Pitfalls and Their Fixes
-
+## 9. Common Pitfalls
 **Loss explodes after a few hundred steps.** Lower the learning rate to `1e-4`, double-check that gradient clipping is actually being called *before* `optimizer.step()`, and verify input normalisation. If inputs have unit variance and gradients still explode, the recurrent weights were not initialised orthogonally.
 
 **Loss decreases then plateaus high.** Usually under-capacity. Try doubling `hidden_size` or stacking 2 layers before adding fancy variants. If that does not help, this is your signal to try LSTM.

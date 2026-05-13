@@ -494,8 +494,7 @@ $$f_Z(z) = \int_0^{\infty} y \, f_X(zy) f_Y(y) \, dy.$$
 - 串联：$\min(X,Y) \sim \text{Exponential}(2\lambda)$ —— 失效速度翻倍；
 - 并联：$F_{\max}(z) = (1-e^{-\lambda z})^2$，非指数分布；平均寿命 = $3/(2\lambda)$ —— 比单个部件提升 50%。
 
-## 核心要点总结（Key Takeaways）
-
+## 总结
 | 概念 | 关键公式 | 解释 |
 |---|---|---|
 | 联合 PMF/PDF | $p(x,y)$ 或 $f(x,y)$ | $(X,Y)$ 的完整概率描述 |

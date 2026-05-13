@@ -452,8 +452,7 @@ class LRUCache:
 4. **Off-by-one on gaps.** Two-pointer gap problems live and die on whether you advance `fast` by `n` or `n + 1` first.
 5. **Skipping the dummy node.** Anytime the head can change, a dummy will collapse 5 lines of edge-case branching into 0.
 
-## Practice Problems
-
+## Exercises
 Sorted roughly by difficulty within each group.
 
 **Basics**
