@@ -20,11 +20,13 @@ series_order: 5
 translationKey: "reinforcement-learning-5"
 ---
 到目前为止，我们介绍的所有算法——DQN、REINFORCE、A2C、PPO、SAC——都属于 **Model-Free**（无模型）类型。智能体将环境视为黑盒，不断尝试动作并根据返回的奖励更新策略，完全不关心环境内部如何运作。这种方法确实有效，但代价高昂：DQN 需要大约 **1000 万帧**才能掌握 Atari Pong；OpenAI Five 在 Dota 2 上的训练量相当于 **约 4.5 万年**的自我对弈；AlphaStar 则消耗了数年的 StarCraft 对局数据来训练单个智能体。
-\n人类显然不是这样学习的。棋手会向前推演几步，主动排除明显失误；小孩只需一次观察或推理就能明白“悬崖危险”，而不需要真的摔下去。两者都依赖一个内在的 **模型**——即对世界如何响应动作的预测机制，并且大部分认知资源都花在**模型内部**的推理上，而非真实世界中反复试错。
+
+人类显然不是这样学习的。棋手会向前推演几步，主动排除明显失误；小孩只需一次观察或推理就能明白“悬崖危险”，而不需要真的摔下去。两者都依赖一个内在的 **模型**——即对世界如何响应动作的预测机制，并且大部分认知资源都花在**模型内部**的推理上，而非真实世界中反复试错。
 
 **Model-Based RL（基于模型的强化学习，MBRL）** 正是将这一思想形式化：先学习一个近似的动态模型 $\hat{P}(s'\mid s, a)$ 和奖励模型 $\hat{R}(s, a)$，再将它们作为廉价的模拟器，用于规划、策略改进或价值估计。在适用的任务上，这种方法能将真实环境交互所需的样本量减少 **10 到 100 倍**——这意味着机器人的物理训练时间可以从三个月缩短到一个下午。
-\n本文梳理了 MBRL 的现代发展脉络：Dyna（1990）→ MBPO（2019）→ World Models（2018）→ Dreamer（2020–23）→ MuZero（2020）。每种方法都围绕一个核心洞见展开，文中的七幅图将逐一可视化这些思想。
-![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
+
+本文梳理了 MBRL 的现代发展脉络：Dyna（1990）→ MBPO（2019）→ World Models（2018）→ Dreamer（2020–23）→ MuZero（2020）。每种方法都围绕一个核心洞见展开，文中的七幅图将逐一可视化这些思想。
+![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
 
 ## 你将学到什么
 
@@ -43,7 +45,8 @@ translationKey: "reinforcement-learning-5"
 ## 一、两种范式，一个目标
 
 ![Model-free 与 model-based 控制循环对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig1_mf_vs_mb_loops.png)
-\n在无模型强化学习中，唯一的学习循环是 *执行 → 观察 → 学习*。而在基于模型的方法中，我们插入了第二个循环：*学习模型 → 在模型内规划 → 改进策略*。一次真实交互现在可以支撑成千上万次“想象”中的更新，大幅摊薄样本成本。
+
+在无模型强化学习中，唯一的学习循环是 *执行 → 观察 → 学习*。而在基于模型的方法中，我们插入了第二个循环：*学习模型 → 在模型内规划 → 改进策略*。一次真实交互现在可以支撑成千上万次“想象”中的更新，大幅摊薄样本成本。
 
 ### 核心权衡
 
@@ -66,7 +69,8 @@ translationKey: "reinforcement-learning-5"
 | **MBPO**       | Model-Based | MuJoCo HalfCheetah      | **~8–10 万步**       |
 | **Dreamer**    | Model-Based | DMControl Walker        | **~10 万步**         |
 | **DreamerV3**  | Model-Based | Minecraft（挖钻石）     | 首个从零完成的算法   |
-\n差距约为 **一个数量级**，在连续控制任务中尤为显著；当模拟器本身昂贵（如真实机器人或慢速物理仿真）时，优势更为突出。
+
+差距约为 **一个数量级**，在连续控制任务中尤为显著；当模拟器本身昂贵（如真实机器人或慢速物理仿真）时，优势更为突出。
 
 ### 何时选用 Model-Based 方法？
 
@@ -92,7 +96,8 @@ translationKey: "reinforcement-learning-5"
 1. **直接学习** —— 用真实的 $(s, a, r, s')$ 更新 Q 值；
 2. **模型学习** —— 将转移存入表格模型 $M(s, a) \to (r, s')$；
 3. **规划** —— 随机采样 $n$ 个曾见过的 $(s, a)$ 对，查询模型，并基于这些“想象”的转移额外执行 $n$ 次 Q 更新。
-\n右侧的收敛曲线展示了其效果：在确定性 GridWorld 中，将规划步数 $n$ 从 0（即普通 Q-Learning）增至 50，收敛所需的 episode 数量骤降一个数量级——因为每次真实交互现在触发了 51 次 Bellman 更新，而非仅 1 次。
+
+右侧的收敛曲线展示了其效果：在确定性 GridWorld 中，将规划步数 $n$ 从 0（即普通 Q-Learning）增至 50，收敛所需的 episode 数量骤降一个数量级——因为每次真实交互现在触发了 51 次 Bellman 更新，而非仅 1 次。
 
 ### 参考实现
 
@@ -144,7 +149,8 @@ class DynaQ:
 ![MBPO 短分支 rollout 与模型误差随长度增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig4_mbpo_short_rollouts.png)
 
 **Model-Based Policy Optimization（MBPO）**（Janner et al., NeurIPS 2019）是 Dyna 思想在连续控制中最简洁的现代实现。其核心洞见只有两个字：**短 rollout**。
-\n右图清晰展示了问题所在：状态预测的累积误差随 rollout 长度 $k$ 近似几何增长。当 $k = 20$ 时，即使使用由 5 个动力学模型组成的集成（ensemble），预测结果也已严重偏离，无法用于信用分配。MBPO 的解决方案是：仅从真实状态出发**扩展 1–5 步**（左图），然后将生成的转移交给 SAC 处理——这正是无模型方法擅长的长时程信用分配。
+
+右图清晰展示了问题所在：状态预测的累积误差随 rollout 长度 $k$ 近似几何增长。当 $k = 20$ 时，即使使用由 5 个动力学模型组成的集成（ensemble），预测结果也已严重偏离，无法用于信用分配。MBPO 的解决方案是：仅从真实状态出发**扩展 1–5 步**（左图），然后将生成的转移交给 SAC 处理——这正是无模型方法擅长的长时程信用分配。
 
 ### 算法流程
 
@@ -152,7 +158,8 @@ class DynaQ:
 2. 在 $\mathcal{D}_{\text{real}}$ 上拟合一个由 **5 个**概率动力学模型组成的集成 $f_\theta(s, a) \to (s', r)$。
 3. 反复从 $\mathcal{D}_{\text{real}}$ 中采样初始状态，在随机选择的集成成员中进行 $k$ 步 rollout，并将想象出的转移加入 $\mathcal{D}_{\text{model}}$。
 4. 在 $\mathcal{D}_{\text{real}}$ 与 $\mathcal{D}_{\text{model}}$ 的混合数据上训练 SAC。
-\n集成至关重要：成员间的分歧不仅起到**正则化**作用（在数据稀疏区域分歧最大），还隐式提供了**认知不确定性**，使策略能自动避开不可靠区域。
+
+集成至关重要：成员间的分歧不仅起到**正则化**作用（在数据稀疏区域分歧最大），还隐式提供了**认知不确定性**，使策略能自动避开不可靠区域。
 
 ### 简化代码
 
@@ -187,42 +194,48 @@ class EnsembleDynamics(nn.Module):
 ```
 
 ### 实验结果
-\n在 MuJoCo HalfCheetah 上，MBPO 仅用 **~10 万步**真实交互就达到约 10,000 的回报，而 SAC 需 ~100 万步，PPO 需 ~160 万步。实验发现，大多数任务的最优 rollout 长度为 **$k=1$**；更长的 rollout 反而有害，因为累积误差迅速压倒了额外的信用分配深度。
+
+在 MuJoCo HalfCheetah 上，MBPO 仅用 **~10 万步**真实交互就达到约 10,000 的回报，而 SAC 需 ~100 万步，PPO 需 ~160 万步。实验发现，大多数任务的最优 rollout 长度为 **$k=1$**；更长的 rollout 反而有害，因为累积误差迅速压倒了额外的信用分配深度。
 
 ---
 
 ## 四、纯规划：模型预测控制（MPC）
 
 ![模型预测控制：采样 -> 评分 -> 执行第一步 -> 重新规划](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig5_mpc_planning.png)
-\n如果模型足够可靠，甚至可以完全跳过“策略”学习，**每一步都从头规划**。**模型预测控制（MPC）** 是经典控制工程的主力方法，而学习到的动力学模型可直接嵌入其中。
-\n其循环如下：
+
+如果模型足够可靠，甚至可以完全跳过“策略”学习，**每一步都从头规划**。**模型预测控制（MPC）** 是经典控制工程的主力方法，而学习到的动力学模型可直接嵌入其中。
+
+其循环如下：
 
 1. 采样 $N$ 条候选动作序列 $a_{t:t+H}$（均匀、高斯，或来自 CEM/iCEM 提议分布）。
 2. 在**学习到的模型**中将每条序列前推 $H$ 步，并按预测回报打分。
 3. **仅执行最优序列的第一个动作**。
 4. 观测真实下一状态，并重新规划。
-\n图中展示了 12 条候选轨迹（灰色）、最优轨迹（绿色），以及实际发送给执行器的那个高亮动作。关键在于：每次只执行一步，意味着模型只需**局部准确**——累积误差根本没有机会破坏长时程开环计划。
+
+图中展示了 12 条候选轨迹（灰色）、最优轨迹（绿色），以及实际发送给执行器的那个高亮动作。关键在于：每次只执行一步，意味着模型只需**局部准确**——累积误差根本没有机会破坏长时程开环计划。
 \nMPC 是**高风险场景**（如真实机器人、手术、自动驾驶）的首选。它也是连接学习模型与经典规划文献的桥梁：PETS、PlaNet、TD-MPC 和 Dreamer 的策略改进循环，本质上都是“在学习模型中运行 MPC”的变体。
 
 ---
 
 ## 五、World Models：在潜空间里做梦
 
-![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.png)
+![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.png)
 
 
 ![World Model V/M/C 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig2_world_model_vmc.png)
 \nMBPO 之所以有效，是因为 MuJoCo 状态仅有 11–23 维。但要预测下一帧 $84 \times 84 \times 3$ 的 Atari 图像则困难得多——而且大部分像素（如天空、计分板）与控制无关。**World Models**（Ha & Schmidhuber, 2018）提出了另一种思路：
 
 > 将观测压缩为低维潜码，然后直接在该潜空间中学习动力学。
-\n如上图从左至右所示，包含三个组件：
+
+如上图从左至右所示，包含三个组件：
 
 - **V（Vision）** —— 变分自编码器（VAE）将每帧 $o_t$ 映射为约 32 维潜变量 $z_t$，重建损失迫使 $z_t$ 保留足够场景信息。
 - **M（Memory）** —— 混合密度网络 RNN 建模 $P(z_{t+1} \mid z_t, a_t, h_t)$，其中 $h_t$ 为 RNN 隐状态。M 本身即为世界模型。
 - **C（Controller）** —— 一个刻意设计得极小的线性策略，将 $(z_t, h_t)$ 映射为 $a_t$。在 CarRacing 上，它仅有 **867 个参数**，远少于 DQN 的 170 万。
 
 ### 为何有效——以及为何令人惊讶
-\n控制器可**完全在“梦境”中训练**：从采样的 $z$ 开始，用 M 生成伪轨迹，通过 CMA-ES 优化 C，直到评估阶段才接触真实环境。这个仅 867 参数的控制器在 CarRacing-v0 上达到了接近人类的水平。更深层的启示是：**学习有用表示已解决大半问题**——一旦 V 和 M 就位，控制几乎变得微不足道。这一思想被 Dreamer / DreamerV3 / TD-MPC 全面继承。
+
+控制器可**完全在“梦境”中训练**：从采样的 $z$ 开始，用 M 生成伪轨迹，通过 CMA-ES 优化 C，直到评估阶段才接触真实环境。这个仅 867 参数的控制器在 CarRacing-v0 上达到了接近人类的水平。更深层的启示是：**学习有用表示已解决大半问题**——一旦 V 和 M 就位，控制几乎变得微不足道。这一思想被 Dreamer / DreamerV3 / TD-MPC 全面继承。
 
 ---
 
@@ -232,19 +245,23 @@ class EnsembleDynamics(nn.Module):
 \nWorld Models 分阶段训练 V、M、C，导致 VAE 优化目标是像素重建，而非控制器真正需要的信息。**Dreamer**（Hafner et al., ICLR 2020；DreamerV2 2021；DreamerV3 2023）则端到端联合训练整个系统，并引入关键架构：**循环状态空间模型（RSSM）**。
 
 ### RSSM 一图解
-\n图中展示三个时间步。每个时刻的潜状态分为两部分：
+
+图中展示三个时间步。每个时刻的潜状态分为两部分：
 
 - $h_t$ **（确定性）** —— GRU 隐状态，承载长程记忆：$h_t = \mathrm{GRU}(h_{t-1}, z_{t-1}, a_{t-1})$。
 - $z_t$ **（随机性）** —— 小型离散或高斯潜变量，想象时从先验 $p(z_t \mid h_t)$ 采样，训练时从后验 $q(z_t \mid h_t, o_t)$ 采样。
-\n这种分离至关重要：确定性 $h$ 负责记忆，随机性 $z$ 建模真实不确定性（如 Pong 中飞出屏幕的球，或 Minecraft 中箱子的随机掉落物）。接在 $(h_t, z_t)$ 上的预测头（reward、value，训练时还有 observation）使解码损失能反向传播至动力学与表示模块。
+
+这种分离至关重要：确定性 $h$ 负责记忆，随机性 $z$ 建模真实不确定性（如 Pong 中飞出屏幕的球，或 Minecraft 中箱子的随机掉落物）。接在 $(h_t, z_t)$ 上的预测头（reward、value，训练时还有 observation）使解码损失能反向传播至动力学与表示模块。
 
 ### 行为学习完全在想象中进行
-\n世界模型拟合真实数据后，Dreamer 按以下方式训练 actor 与 critic：
+
+世界模型拟合真实数据后，Dreamer 按以下方式训练 actor 与 critic：
 
 1. 从真实 buffer 中采样一批 $(h_t, z_t)$ 作为起点；
 2. 使用 **prior** 动力学前推 15 步，每步由 actor 采样动作；
 3. 在想象轨迹上构建价值目标，并通过重参数化策略梯度更新 actor。
-\n此过程无需任何真实交互。一个真实 batch 可驱动成千上万次想象梯度更新——仍是 Dyna 的思想，但如今运行在学习到的潜空间中。
+
+此过程无需任何真实交互。一个真实 batch 可驱动成千上万次想象梯度更新——仍是 Dyna 的思想，但如今运行在学习到的潜空间中。
 
 ### 实验结果
 
@@ -262,18 +279,22 @@ class EnsembleDynamics(nn.Module):
 - **表示网络**：$s_0 = h(o_0)$ —— 将真实观测编码为隐状态。
 - **动力学网络**：$s_{k+1}, r_{k+1} = g(s_k, a_k)$ —— 完全在隐空间中转移。
 - **预测网络**：$p_k, v_k = f(s_k)$ —— 输出策略 logits 与价值。
-\n隐状态 $s_k$ 无需对应真实世界的任何实体，只要能支持其上的蒙特卡洛树搜索（MCTS）即可。
+
+隐状态 $s_k$ 无需对应真实世界的任何实体，只要能支持其上的蒙特卡洛树搜索（MCTS）即可。
 
 ### 训练损失
-\n对一条展开 $K$ 步的轨迹，设 MCTS 目标为 $z^v, z^p$，观测奖励为 $z^r$，损失为：
+
+对一条展开 $K$ 步的轨迹，设 MCTS 目标为 $z^v, z^p$，观测奖励为 $z^r$，损失为：
 
 $$
 \mathcal{L} = \sum_{k=0}^{K} \Big[ \ell^p(p_k, z_k^p) + \ell^v(v_k, z_k^v) + \ell^r(r_k, z_k^r) \Big].
 $$
-\n关键在于：**从未出现重建项**。模型是**隐式的**——只要能使 MCTS 目标自洽即可。
+
+关键在于：**从未出现重建项**。模型是**隐式的**——只要能使 MCTS 目标自洽即可。
 
 ### 实验结果
-\n单一算法、统一超参数即实现：
+
+单一算法、统一超参数即实现：
 
 - **围棋、国际象棋、将棋**：媲美或超越 AlphaZero —— **且无需提供游戏规则**。
 - **Atari 57**：刷新 R2D2 的 SOTA。
@@ -285,8 +306,10 @@ $$
 ## 八、大局观：样本效率
 
 ![MuJoCo HalfCheetah 上的样本效率曲线和达标步数对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig6_sample_efficiency.png)
-\n将各方法置于同一图表，核心结论一目了然。在 HalfCheetah 上，MBPO 与 Dreamer 仅用 **8–15 万**真实步就达到了 SAC（~60 万步）和 PPO（~160 万步）的水平。所有基于模型的方法曲线形状相似：初期增长缓慢（模型尚在学习），一旦想象更新开始提供有效梯度，性能便迅速攀升。
-\n但该图也坦诚揭示了一个局限：基于模型的方法通常**无法超越**无模型方法的渐近性能上限，只是更快抵达同一水平。当样本廉价时，无模型方法因简单而胜出；但当样本昂贵时——这正是实践中更值得关注的情形——基于模型的方法优势巨大。
+
+将各方法置于同一图表，核心结论一目了然。在 HalfCheetah 上，MBPO 与 Dreamer 仅用 **8–15 万**真实步就达到了 SAC（~60 万步）和 PPO（~160 万步）的水平。所有基于模型的方法曲线形状相似：初期增长缓慢（模型尚在学习），一旦想象更新开始提供有效梯度，性能便迅速攀升。
+
+但该图也坦诚揭示了一个局限：基于模型的方法通常**无法超越**无模型方法的渐近性能上限，只是更快抵达同一水平。当样本廉价时，无模型方法因简单而胜出；但当样本昂贵时——这正是实践中更值得关注的情形——基于模型的方法优势巨大。
 
 ---
 
@@ -304,7 +327,8 @@ $$
 ---
 
 ## 十、开放问题
-\n当前有三个前沿方向尤为活跃：
+
+当前有三个前沿方向尤为活跃：
 
 1. **长尾任务中的模型误差**。现有方法要么限制时程（MBPO、MPC），要么将问题藏于潜空间（Dreamer），均难以优雅扩展至需 1000 步信用分配且具逼真动力学的任务。
 2. **随机性与多模态世界**。RSSM 的随机 $z$ 是进步，但预测真正多模态未来（如驾驶、对话）仍极具挑战。
@@ -321,7 +345,8 @@ $$
 - **World Models** 将动力学移至压缩潜空间，使像素环境变得可控。
 - **Dreamer / RSSM** 联合训练表示、动力学与策略，行为完全在想象中学习。
 - **MuZero** 彻底放弃重建：模型只需在 MCTS 下自洽。
-\n统一教训是：**预测内容应匹配使用方式**。若任务依赖像素，就预测像素；若规划仅需 $(r, v, p)$，那就只预测这些。正是这一原则，使 DreamerV3、EfficientZero、TD-MPC2 等现代方法展现出真正的通用性。
+
+统一教训是：**预测内容应匹配使用方式**。若任务依赖像素，就预测像素；若规划仅需 $(r, v, p)$，那就只预测这些。正是这一原则，使 DreamerV3、EfficientZero、TD-MPC2 等现代方法展现出真正的通用性。
 
 **下一篇：**[第 6 部分](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化)深入 **PPO 和 TRPO**——这些信任域策略梯度方法默默支撑着工业级 RL，从机器人操控到 ChatGPT 的 RLHF。
 

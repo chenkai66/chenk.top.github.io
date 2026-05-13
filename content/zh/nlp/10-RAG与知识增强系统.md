@@ -21,9 +21,9 @@ polished_by_qwen_max: true
 理念一句话就能说清，工程实现才是本文的重点。一个真正落地的 RAG 系统通常有十几个可调参数：分块大小、Embedding 模型、索引类型、$k$、混合权重、重排序深度、提示模板、引用格式、拒答策略……而且它们彼此耦合。接下来，我们将逐一剖析每个参数背后的数学原理、权衡取舍，并附上可运行的代码。
 
 <!-- wanx-hero -->
-![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rag-knowledge-enhancement/illustration_1.png)
+![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_1.png)
 ## 你将学到什么
-![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rag-knowledge-enhancement/illustration_2.png)
+![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_2.png)
 
 - 概率分解公式 $P(y\mid q)=\sum_d P(d\mid q)P(y\mid q,d)$ 的含义，以及每一项的实际代价
 - 为何 ANN 索引（HNSW、IVF-PQ、ScaNN）要在召回率和延迟之间权衡，以及何时值得为此付费

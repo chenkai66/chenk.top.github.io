@@ -52,7 +52,7 @@ $$\mathcal{S} \;=\; S_{n_1} \times S_{n_2} \times \cdots \times S_{n_L},$$
 
 也就是说，「同一个函数」在参数空间里对应着指数级多的等价点。一个无视 $\mathcal{S}$ 的下游学习器要么得自己把所有等价类都见过一遍（不现实），要么只能祈祷训练分布刚好覆盖到（同样不现实）。
 
-![置换等变性：MLP 的隐藏单元对称](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig1_permutation_equivariance.png)
+![置换等变性：MLP 的隐藏单元对称](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig1_permutation_equivariance.png)
 
 图 1 把这个对称画了出来。把三个隐藏单元随便换个顺序，再相应地把 $W_1$ 的行和 $W_2$ 的列也按同样的顺序换一下，函数 $f(x)$ 一字不差，可 `vec(W_1, b_1, W_2, b_2)` 在 $\mathbb{R}^d$ 里却变到了另外一个完全不同的点上。
 
@@ -81,7 +81,7 @@ $$\mathcal{S} \;=\; S_{n_1} \times S_{n_2} \times \cdots \times S_{n_L},$$
 - **边**：每条权重一条，方向从源神经元指向目标神经元。
 - **边特征 $E$**：该权重的标量值；可选地拼上边类型嵌入（前向/残差、卷积/线性等）。
 
-![把 MLP 的参数张量翻译成神经图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig2_neural_graph.png)
+![把 MLP 的参数张量翻译成神经图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig2_neural_graph.png)
 
 图 2 把两种表示放在一起对照。左边是「张量视角」：$(W_1, b_1, W_2, b_2)$ 各自是几个独立矩阵和向量，喂给下游学习器最自然的方式就是 `vec(...)`，但拓扑也就一并被丢掉了。右边是「图视角」：完全一样的参数被组织成一张图，$h_1$ 的偏置写在节点上，$x_1 \to h_1$ 的权重写在边上。作为一个**结构化对象**，这张图在重新给隐藏节点编号时是不变的——图的同一性本来就是「同构意义下」的，标签 `h1, h2, h3` 不过是临时贴的便条。
 
@@ -121,7 +121,7 @@ $$h_v^{(\ell+1)} \;=\; \mathrm{UPDATE}\!\left(\,h_v^{(\ell)},\;\bigoplus_{u \in 
 
 并用一个对置换不变的聚合算子 $\bigoplus$（求和、均值、最大、注意力都行）。给节点重新编号和走 GNN 这两件事是可以交换次序的：输入图换标号 $\Rightarrow$ 节点嵌入按相同方式换标号，边结构没变 $\Rightarrow$ 任何只看节点嵌入集合的标量函数也都没变。
 
-![不变与等变：同一个对称，输出形式不同](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig4_equivariant_vs_invariant.png)
+![不变与等变：同一个对称，输出形式不同](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig4_equivariant_vs_invariant.png)
 
 图 4 把这两件事的实际差别拍了出来。左边，做一次图级池化（求和 / 均值 / 注意力）把节点嵌入压成一个向量 $z_G$，无论原图有没有被置换，得到的 $z_G$ **都是同一个**——这是「预测泛化」「分类任务」这类要图级标量的场合该用的。右边，节点嵌入矩阵 $Z(G)$ 跟着输入一起被置换——这是「跨网络对齐神经元」必须有的性质，模型合并和架构编辑都靠它。
 
@@ -153,7 +153,7 @@ $$V_{uv} \;=\; (\gamma(e_{uv}) \odot V_u) + \beta(e_{uv}),$$
 
 ## 整体流水线
 
-![GNN 处理神经网络参数的端到端流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig3_gnn_pipeline.png)
+![GNN 处理神经网络参数的端到端流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig3_gnn_pipeline.png)
 
 图 3 把五个阶段一字排开：训好的网络 → 神经图 → $L$ 层带边更新的等变消息传递 → 图级池化 → 一个小 MLP 输出头。等变性是在第三步**写进架构**的：之前都是数据，之后要么继续保持等变，要么有意做一次塌缩（最后那一次池化）。
 
@@ -175,7 +175,7 @@ $$V_{uv} \;=\; (\gamma(e_{uv}) \odot V_u) + \beta(e_{uv}),$$
 
 设定：拿一组训好的网络（每个都知道测试精度），训 GNN 直接从权重回归测试精度。
 
-![只看权重就预测泛化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig5_generalization_prediction.png)
+![只看权重就预测泛化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-neural-networks-for-learning-equivariant-representatio/fig5_generalization_prediction.png)
 
 图 5 直观地体现了两条路线的差别：等变版的预测点紧贴 $y = x$，而把权重展平喂 MLP 的版本则是一团飘忽的散点。等变性让模型不必把样本效率浪费在「同一个函数的不同写法」上，可以专心去拟合真正和泛化相关的量——谱、层间对齐、 sharpness 代理之类。
 

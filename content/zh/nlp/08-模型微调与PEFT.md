@@ -24,7 +24,7 @@ polished_by_qwen_max: true
 本文将从第一性原理出发，系统重建 PEFT 的逻辑脉络。我们会先审视全量微调能回答什么问题、又遗漏了哪些关键挑战，继而推导 LoRA 的低秩假设，拆解 QLoRA 如何通过精巧的内存设计将 7B 模型塞进 6 GB 显存，并最终落脚于实践决策：选哪种方法、设多大秩、改哪些模块。
 
 <!-- wanx-hero -->
-![自然语言处理（八）：模型微调与PEFT — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/fine-tuning-peft/illustration_1.png)
+![自然语言处理（八）：模型微调与PEFT — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_1.png)
 ## 你将学到什么
 
 - **为什么** 在大语言模型（LLM）时代，全量微调是一种资源浪费——过参数化现象与内在低秩性的启示  
@@ -68,7 +68,7 @@ polished_by_qwen_max: true
 
 在 PEFT 出现前，最简单的节省成本方式是冻结模型主体，只训练分类头，或仅解冻顶部几层。例如：
 
-![微调策略决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/fine-tuning-peft/fig_finetuning_decision_zh.png)
+![微调策略决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig_finetuning_decision_zh.png)
 
 ### 如何选择秩 $r$
 

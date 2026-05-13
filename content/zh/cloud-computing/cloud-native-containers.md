@@ -118,7 +118,7 @@ Dockerfile 中的每一条指令都会生成一个新层。这些层通过联合
 **1. 按缓存复用效率排列 Dockerfile 指令顺序。**  
 将变动频率低的内容（如系统包、语言运行时）放在前面；将每次提交都会变化的内容（如应用代码）放在最后。命中缓存的构建只需几秒，而冷构建则可能耗时数分钟。
 
-![GitOps 部署流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig_gitops_pipeline_zh.png)
+![GitOps 部署流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/fig_gitops_pipeline_zh.png)
 
 这里的核心范式是 **GitOps**：集群的期望状态由 Git 仓库定义。ArgoCD（或 Flux）会持续将集群实际状态与 Git 中的声明进行调和。这带来两大显著优势：
 

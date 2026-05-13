@@ -23,7 +23,8 @@ translationKey: "time-series-8"
 1. **ProbSparse 自注意力**仅保留 $\mathcal{O}(\log L)$ 个最具信息量的查询，将每层的时间和空间复杂度从 $\mathcal{O}(L^2)$ 降至 $\mathcal{O}(L \log L)$。
 2. **自注意力蒸馏**在编码器各层之间将序列长度减半，使显存占用随网络深度呈几何级数下降。
 3. **生成式解码器**只需一次前向传播即可预测整个 forecast horizon，无需像传统方式那样执行 $H$ 次自回归步骤。
-\n这三项改进组合起来，在 ETT、气象和电力等长 horizon 基准测试中，比原始 Transformer 快 6–10 倍，MSE 还能提升 5–10%。本章将深入剖析每一项技术背后的数学原理，并逐步实现其核心逻辑。
+
+这三项改进组合起来，在 ETT、气象和电力等长 horizon 基准测试中，比原始 Transformer 快 6–10 倍，MSE 还能提升 5–10%。本章将深入剖析每一项技术背后的数学原理，并逐步实现其核心逻辑。
 
 ## 这一篇你会学到
 
@@ -38,70 +39,87 @@ translationKey: "time-series-8"
 ---
 
 ## 长序列为何让原始 Transformer 崩溃
-\n自注意力对每个查询 $q_i$ 的计算为：
+
+自注意力对每个查询 $q_i$ 的计算为：
 
 $$
 \mathrm{Attn}(q_i, K, V) = \sum_{j=1}^{L} \mathrm{softmax}\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right) v_j.
 $$
-\n要为所有查询完成这一计算，必须先构建完整的 $L \times L$ 注意力分数矩阵。这里有三个主要开销，均随 $L^2$ 增长：
+
+要为所有查询完成这一计算，必须先构建完整的 $L \times L$ 注意力分数矩阵。这里有三个主要开销，均随 $L^2$ 增长：
 
 - $L$ 个维度为 $d$ 的 query-key 点积，总计 $L^2 d$ FLOPs；
 - $L^2$ 次 softmax 运算；
 - 反向传播时需存储 $L^2$ 个浮点数的注意力权重矩阵。
-\n以 $L = 720$、$d = 64$、8 个注意力头、单样本为例：
+
+以 $L = 720$、$d = 64$、8 个注意力头、单样本为例：
 
 - 每层每头的注意力分数条目数为 $720 \times 720 = 518\text{K}$；
 - batch size 为 32 时，仅注意力权重就占用约 16 MB 显存（float32，8 头，3 层），反向传播中的激活值还会使显存需求再增加一个数量级；
 - 每层每头的 FLOPs 约为 33 M，主要来自 $L^2 d$ 的矩阵乘法。
-\n若将 $L$ 提升至 2160，每头的注意力条目数接近 500 万，这足以让一张 24 GB 显存的 GPU 在常规训练 batch size 下发生显存溢出（OOM）。
-\n此前已有多种尝试缓解此问题：Longformer 和 BigBird 引入结构化稀疏（如局部+全局窗口或随机+全局连接），Linformer 和 Performer 则采用低秩近似。而 Informer 的思路截然不同：**让数据自己告诉我们哪些查询值得分配完整注意力资源**。
+
+若将 $L$ 提升至 2160，每头的注意力条目数接近 500 万，这足以让一张 24 GB 显存的 GPU 在常规训练 batch size 下发生显存溢出（OOM）。
+
+此前已有多种尝试缓解此问题：Longformer 和 BigBird 引入结构化稀疏（如局部+全局窗口或随机+全局连接），Linformer 和 Performer 则采用低秩近似。而 Informer 的思路截然不同：**让数据自己告诉我们哪些查询值得分配完整注意力资源**。
 
 ---
 
 ## ProbSparse：哪些查询重要，哪些不重要
 
 ### 直觉
-\n若绘制典型查询 $q_i$ 在所有键上的注意力分布，通常会看到两种截然不同的形态：
+
+若绘制典型查询 $q_i$ 在所有键上的注意力分布，通常会看到两种截然不同的形态：
 
 - **尖峰型**：少数几个键占据了绝大部分概率质量。这类查询“目标明确”，知道该关注什么。
 - **均匀型**：概率几乎均匀分布在所有键上。这类查询“模糊不清”，需要参考全部信息。
-\n尖峰型查询可通过仅计算其 top 几个键的注意力来高效近似；均匀型则不行。关键挑战在于：**如何在不预先计算完整注意力矩阵的前提下，区分这两类查询？**
+
+尖峰型查询可通过仅计算其 top 几个键的注意力来高效近似；均匀型则不行。关键挑战在于：**如何在不预先计算完整注意力矩阵的前提下，区分这两类查询？**
 
 ### 基于 KL 的稀疏性度量
-\n衡量一个分布是否“尖锐”的自然方式，是将其与均匀分布通过 KL 散度进行比较。设
+
+衡量一个分布是否“尖锐”的自然方式，是将其与均匀分布通过 KL 散度进行比较。设
 
 $$\np(k_j \mid q_i) = \mathrm{softmax}_j\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right),
 $$
-\n则
+
+则
 
 $$
 \mathrm{KL}(q_i \,\|\, U) = \log L + \frac{1}{L}\sum_{j=1}^{L} \log p(k_j \mid q_i).
 $$
-\n去掉常数项并代入 softmax 表达式后，Zhou 等人证明：
+
+去掉常数项并代入 softmax 表达式后，Zhou 等人证明：
 
 $$
 \mathrm{KL}(q_i \,\|\, U) \;\propto\; \log\!\left(\sum_{j=1}^{L} e^{q_i^\top k_j / \sqrt{d}}\right) - \frac{1}{L}\sum_{j=1}^{L} \frac{q_i^\top k_j}{\sqrt{d}}.
 $$
-\n将该量记为 $M(q_i, K)$。$M$ 越大，说明分布越尖锐——属于“选择性强”的查询，值得完整计算；$M$ 越小，则越接近均匀——可安全跳过。
-\n但精确计算 $M$ 仍需 $L$ 次内积，违背了初衷。Informer 的第二项技巧是从 $u = c \log L$ 个键中**随机采样**（$c$ 为常数，通常取 5）来近似：
+
+将该量记为 $M(q_i, K)$。$M$ 越大，说明分布越尖锐——属于“选择性强”的查询，值得完整计算；$M$ 越小，则越接近均匀——可安全跳过。
+
+但精确计算 $M$ 仍需 $L$ 次内积，违背了初衷。Informer 的第二项技巧是从 $u = c \log L$ 个键中**随机采样**（$c$ 为常数，通常取 5）来近似：
 
 $$
 \bar{M}(q_i, K) \;=\; \max_{j \in \mathcal{S}} \frac{q_i^\top k_j}{\sqrt{d}} \; - \; \frac{1}{|\mathcal{S}|} \sum_{j \in \mathcal{S}} \frac{q_i^\top k_j}{\sqrt{d}}.
 $$
-\n此处用 $\max$ 替代 LogSumExp，依据是高维近高斯向量的“测度集中性”：LogSumExp 主要由最大项主导。实验表明，$\bar{M}$ 对查询的排序与精确 $M$ 几乎完全一致，但计算成本大幅降低。
+
+此处用 $\max$ 替代 LogSumExp，依据是高维近高斯向量的“测度集中性”：LogSumExp 主要由最大项主导。实验表明，$\bar{M}$ 对查询的排序与精确 $M$ 几乎完全一致，但计算成本大幅降低。
 
 ### ProbSparse 实际计算的内容
-\n单个注意力头的操作流程如下：
+
+单个注意力头的操作流程如下：
 
 1. 从全部键中均匀随机采样 $u = c \log L$ 个；
 2. 对每个查询 $q_i$ 计算 $\bar{M}(q_i, K)$，复杂度为 $\mathcal{O}(L \log L)$；
 3. 按 $\bar{M}$ 值选出 top $u$ 个查询；
 4. 对这 $u$ 个查询，在**全部** $L$ 个键上计算完整注意力；对其余 $L - u$ 个查询，输出直接设为 $V$ 的均值。
-\n总计算和显存复杂度均为 $\mathcal{O}(L \log L)$。
+
+总计算和显存复杂度均为 $\mathcal{O}(L \log L)$。
 
 ![ProbSparse 注意力 vs 完整注意力](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig1_probsparse_vs_full.png)
-\n如图所示，右侧仅保留高 $M$ 查询对应的行。其余行并非置零，而是填充 $V$ 的均值——这对均匀注意力分布而言是一个合理且数学上正确的近似。
-\n参考实现如下：
+
+如图所示，右侧仅保留高 $M$ 查询对应的行。其余行并非置零，而是填充 $V$ 的均值——这对均匀注意力分布而言是一个合理且数学上正确的近似。
+
+参考实现如下：
 
 ```python
 import math
@@ -175,7 +193,8 @@ class ProbSparseAttention(nn.Module):
         ctx = ctx.transpose(1, 2).contiguous().view(B, L_Q, self.d_model)
         return self.W_o(ctx)
 ```
-\n几个细节需注意：
+
+几个细节需注意：
 
 - 公式 $u = c \ln L$ 使用自然对数；在 `numpy` 中应使用 `np.log` 并向上取整。
 - “未选中查询用 $V$ 均值填充”并非 hack，而是数学上唯一满足“未选查询具有均匀注意力”约束且最大化熵的分布。
@@ -184,15 +203,18 @@ class ProbSparseAttention(nn.Module):
 ---
 
 ## 编码器蒸馏：金字塔式序列压缩
-\n即便使用 ProbSparse，三层编码器每层处理 $L = 720$ 的序列依然昂贵。Informer 在编码器层间引入**蒸馏**操作，将序列长度减半：
+
+即便使用 ProbSparse，三层编码器每层处理 $L = 720$ 的序列依然昂贵。Informer 在编码器层间引入**蒸馏**操作，将序列长度减半：
 
 $$\nX_{\ell+1} = \mathrm{MaxPool}_{k=3, s=2}\!\Big(\mathrm{ELU}\big(\mathrm{Conv1d}_{k=3, s=2}(X_\ell)\big)\Big).
 $$
 \nstride=2 的 Conv1d 作为可学习的下采样器，MaxPool 保留相邻位置中的主导值，中间的 ELU 非线性激活则赋予该操作超越纯池化的表达能力。
 
 ![编码器蒸馏金字塔](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig3_encoder_distilling.png)
-\n效果是累积的：一个 3 层编码器将 720 步输入依次压缩为 $720 \to 360 \to 180 \to 90$。显存占用随深度呈几何级下降，而非线性增长。由于底层能看到更长的历史，顶层的感受野轻松覆盖数千个原始时间步。
-\n需注意两点：
+
+效果是累积的：一个 3 层编码器将 720 步输入依次压缩为 $720 \to 360 \to 180 \to 90$。显存占用随深度呈几何级下降，而非线性增长。由于底层能看到更长的历史，顶层的感受野轻松覆盖数千个原始时间步。
+
+需注意两点：
 
 - **最后一层不应蒸馏**。解码器的交叉注意力直接读取编码器输出；若最后一层也蒸馏，分辨率再次减半，会丢失关键信息。标准做法是“除最后一层外，每层后都进行蒸馏”。
 - **并行双编码器提升鲁棒性**。原论文同时运行两个编码器：一个处理完整输入，另一个处理半长输入，最后拼接输出。这种冗余设计可避免因特定序列的蒸馏决策失误导致性能下降。
@@ -217,15 +239,18 @@ class DistillingLayer(nn.Module):
 ---
 
 ## 生成式解码器：一次搞定整个预测范围
-\n标准 Transformer 解码器采用自回归方式：先预测 $\hat{y}_1$，将其作为输入再预测 $\hat{y}_2$，依此类推。若预测 horizon 为 $H = 168$，则需 168 次顺序前向传播。这不仅带来高延迟，还会导致误差累积——第 5 步的错误会作为输入影响第 6 步的预测。
+
+标准 Transformer 解码器采用自回归方式：先预测 $\hat{y}_1$，将其作为输入再预测 $\hat{y}_2$，依此类推。若预测 horizon 为 $H = 168$，则需 168 次顺序前向传播。这不仅带来高延迟，还会导致误差累积——第 5 步的错误会作为输入影响第 6 步的预测。
 \nInformer 的生成式解码器另辟蹊径。其输入构造为：
 
 $$\nX_\text{dec} = \big[\, X_\text{token} \;;\; X_0 \,\big],
 $$
-\n其中 $X_\text{token}$ 是编码器输入的最后 `label_len` 个时间步（作为“提示”），$X_0$ 是 `out_len` 个占位符（通常为零向量）。解码器**仅需一次前向传播**处理整个 $\text{label\_len} + \text{out\_len}$ 序列，最后 `out_len` 个输出即为预测结果。
+
+其中 $X_\text{token}$ 是编码器输入的最后 `label_len` 个时间步（作为“提示”），$X_0$ 是 `out_len` 个占位符（通常为零向量）。解码器**仅需一次前向传播**处理整个 $\text{label\_len} + \text{out\_len}$ 序列，最后 `out_len` 个输出即为预测结果。
 
 ![自回归解码器 vs 生成式解码器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig2_generative_decoder.png)
-\n该设计带来三大优势：
+
+该设计带来三大优势：
 
 - **速度极快**：从 $H$ 次前向传播降至 1 次，推理延迟减少 $H$ 倍。
 - **无误差累积**：所有预测均基于同一编码器上下文，彼此独立。
@@ -236,7 +261,8 @@ $$
 ---
 
 ## 拼起来：Informer 完整模型
-\n完整模型由编码器和解码器组成，嵌入层融合了数值、位置和时间特征信息。
+
+完整模型由编码器和解码器组成，嵌入层融合了数值、位置和时间特征信息。
 
 ```python
 class TemporalEmbedding(nn.Module):
@@ -340,7 +366,8 @@ class Informer(nn.Module):
 
         return self.head(dec[:, -self.out_len:, :])  # (B, out_len, c_out)
 ```
-\n训练时，解码器输入由最后 `label_len` 个真实值与 `out_len` 个零占位符拼接而成：
+
+训练时，解码器输入由最后 `label_len` 个真实值与 `out_len` 个零占位符拼接而成：
 
 ```python
 def build_decoder_input(x_enc, label_len, out_len):
@@ -355,14 +382,18 @@ def build_decoder_input(x_enc, label_len, out_len):
 ---
 
 ## 长 horizon 表现
-\n主图展示了真实值、原始 Transformer 与 Informer 在 480 步预测上的对比。
+
+主图展示了真实值、原始 Transformer 与 Informer 在 480 步预测上的对比。
 
 ![长 horizon 预测：原始 Transformer 漂移，Informer 贴合真实值](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig4_long_sequence_forecast.png)
-\n原始 Transformer 的自回归误差从第 100 步左右开始显著累积，预测逐渐偏离真实轨迹。而 Informer 的生成式解码器因所有输出 token 联合优化，能在整个窗口内保持连贯预测。
-\n在经典的 ETT（Electricity Transformer Temperature）基准测试中，论文报告了如下结果：
+
+原始 Transformer 的自回归误差从第 100 步左右开始显著累积，预测逐渐偏离真实轨迹。而 Informer 的生成式解码器因所有输出 token 联合优化，能在整个窗口内保持连贯预测。
+
+在经典的 ETT（Electricity Transformer Temperature）基准测试中，论文报告了如下结果：
 
 ![ETTh1 单变量 MSE 与 L = 720 时的资源消耗](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig5_ett_benchmark.png)
-\n两个关键结论：
+
+两个关键结论：
 
 - **长 horizon 精度优势**：在 horizon=720 时，Informer 的 MSE 为 0.235，优于原始 Transformer 的 0.269。虽然绝对差距不大，但此时原始 Transformer 已接近可训练极限。
 - **资源效率碾压**：当 $L = 720$ 时，Informer 在单张 V100 上峰值显存仅 1.8 GB，每轮训练耗时 9.5 秒；而原始 Transformer 需 10.5 GB 显存和 104 秒。正是这一差距，让 Informer 成为长序列预测的实用之选。
@@ -412,13 +443,16 @@ def build_decoder_input(x_enc, label_len, out_len):
 ## Q&A
 
 ### 为什么是 $u = c \log L$？
-\n该设定源于概率分析：当 $u = c \log L$ 且 $c = 5$ 时，任意查询漏掉其 top-1 键的概率不超过 $1/L^4$。实践中 $c = 3$ 也足够有效。
+
+该设定源于概率分析：当 $u = c \log L$ 且 $c = 5$ 时，任意查询漏掉其 top-1 键的概率不超过 $1/L^4$。实践中 $c = 3$ 也足够有效。
 
 ### ProbSparse 能选出正确的查询吗？
-\n实验证明可以。$\max - \mathrm{mean}$ 近似值与精确 KL 散度的 Spearman 相关系数超过 0.95。论文提供了完整消融研究。
+
+实验证明可以。$\max - \mathrm{mean}$ 近似值与精确 KL 散度的 Spearman 相关系数超过 0.95。论文提供了完整消融研究。
 
 ### 为何非选中查询用 $V$ 均值而非零？
-\n因为均匀注意力分布的期望输出正是 $\frac{1}{L}\sum_j v_j$。对被判定为“均匀”的查询，均值是数学上最合理的填充值。
+
+因为均匀注意力分布的期望输出正是 $\frac{1}{L}\sum_j v_j$。对被判定为“均匀”的查询，均值是数学上最合理的填充值。
 
 ### Informer 与 Reformer / Performer / Linformer 有何不同？
 
@@ -428,20 +462,25 @@ def build_decoder_input(x_enc, label_len, out_len):
 - **Informer**：根据数据自适应选择查询，复杂度 $\mathcal{O}(L \log L)$，在时序基准上精度最优。
 
 ### 多变量输入时，编码器和解码器特征维度能否不同？
-\n可以。`enc_in` 与 `dec_in` 独立。常见做法是将所有变量输入编码器，仅目标变量输入解码器。
+
+可以。`enc_in` 与 `dec_in` 独立。常见做法是将所有变量输入编码器，仅目标变量输入解码器。
 
 ### Autoformer 和 FEDformer 呢？
-\n二者均为 Informer 的直接后继。Autoformer（2021）用自相关替代 self-attention 并引入显式分解；FEDformer（2022）加入频域注意力。两者在相同基准上表现更优，但实现更复杂——Informer 仍是理想的入门起点。
+
+二者均为 Informer 的直接后继。Autoformer（2021）用自相关替代 self-attention 并引入显式分解；FEDformer（2022）加入频域注意力。两者在相同基准上表现更优，但实现更复杂——Informer 仍是理想的入门起点。
 
 ### 是否需在大规模多序列数据上预训练？
-\n有帮助但非必需。与 NLP 不同，时序数据集间领域差异大，盲目预训练常适得其反。针对具体任务从头训练通常是更优默认选择。
+
+有帮助但非必需。与 NLP 不同，时序数据集间领域差异大，盲目预训练常适得其反。针对具体任务从头训练通常是更优默认选择。
 
 ---
 
 ## 小结
 \nInformer 是首个让 Transformer 在长 horizon 时间序列预测中真正实用的架构。其三大核心创新——ProbSparse 自注意力、编码器蒸馏和生成式解码器——共同构成一个端到端 $\mathcal{O}(L \log L)$ 系统，在所有长序列基准上，无论精度还是实际运行速度，均全面超越原始 $\mathcal{O}(L^2)$ Transformer。
-\n对于 $L > 96$ 且仅使用单 GPU 的预测任务，Informer 是当之无愧的首选起点。后续架构（如 Autoformer、FEDformer、PatchTST）虽进一步优化了方案，但都建立在 Informer 的两大洞见之上：**并非每个查询都需要完整注意力**，以及**自回归解码实为自我设限的瓶颈**。
-\n至此，时间序列预测系列正式完结。八章内容从经典 ARIMA 出发，历经 LSTM、Transformer、TCN、N-BEATS，最终抵达 Informer。请根据你的数据特性选择合适架构，关键任务可考虑集成，并始终铭记：面对小规模问题，简洁的基线模型往往胜过时髦的复杂方案。
+
+对于 $L > 96$ 且仅使用单 GPU 的预测任务，Informer 是当之无愧的首选起点。后续架构（如 Autoformer、FEDformer、PatchTST）虽进一步优化了方案，但都建立在 Informer 的两大洞见之上：**并非每个查询都需要完整注意力**，以及**自回归解码实为自我设限的瓶颈**。
+
+至此，时间序列预测系列正式完结。八章内容从经典 ARIMA 出发，历经 LSTM、Transformer、TCN、N-BEATS，最终抵达 Informer。请根据你的数据特性选择合适架构，关键任务可考虑集成，并始终铭记：面对小规模问题，简洁的基线模型往往胜过时髦的复杂方案。
 
 ---
 

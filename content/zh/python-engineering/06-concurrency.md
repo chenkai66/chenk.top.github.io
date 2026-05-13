@@ -85,9 +85,6 @@ def download(url: str) -> int:
 
 urls = [
     "https://httpbin.org/delay/1",
-    "https://httpbin.org/delay/1",
-    "https://httpbin.org/delay/1",
-    "https://httpbin.org/delay/1",
 ]
 
 # 串行执行：约 4 秒

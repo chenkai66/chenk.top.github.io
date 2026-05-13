@@ -222,9 +222,7 @@ $$P(\text{at least one Type I error}) = 1 - (1 - 0.05)^{20} = 1 - 0.95^{20} \app
 
 $$P(\text{any false rejection}) = P\left(\bigcup_{i=1}^{m_0} \{p_i \leq \alpha/m\}\right) \leq \sum_{i=1}^{m_0} P(p_i \leq \alpha/m) = m_0 \cdot \frac{\alpha}{m} \leq \alpha$$
 
-其中 $m_0 \leq m$ 是真实零假设的数量。$\blacksquare$
-
-Bonferroni 方法偏保守——它控制 FWER，但在 $m$ 很大时功效极低。
+其中 $m_0 \leq m$ 是真实零假设的数量。$\blacksquare$Bonferroni 方法偏保守——它控制 FWER，但在 $m$ 很大时功效极低。
 
 ### 错误发现率（FDR）： Benjamini-Hochberg 方法
 

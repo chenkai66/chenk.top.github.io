@@ -33,7 +33,7 @@ paper2repo（WWW 2020）将这一过程系统化：将论文摘要和 GitHub 仓
 
 ## 系统总览
 
-![paper2repo 系统架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig1_system_architecture.png)
+![paper2repo 系统架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig1_system_architecture.png)
 
 图 1 从左右两边、自上而下读。模型是两座并行的塔。左塔把论文摘要喂进 CNN，再用 GCN 在引用图上传播，输出论文嵌入 $h^p$。右塔对仓库描述和标签做同样的事，在仓库关联图上传播，输出 $h^r$。两座塔不共享任何权重，但训练阶段被两股跨塔的力量拽在一起：一是桥接对上的余弦对齐约束，二是用论文-仓库正样本对喂的 WARP 排序损失。推理阶段两座塔各自独立运行，排序就是 $h^p$ 和预先算好的仓库嵌入索引做一次稠密内积。
 
@@ -41,7 +41,7 @@ paper2repo（WWW 2020）将这一过程系统化：将论文摘要和 GitHub 仓
 
 模型设计中首个关键决策，是为每座塔选择适配的图结构。论文这边有一个干净的现成信号——引用——它是有向、稀疏、语义明确的。仓库这边没有可以直接对应的东西， paper2repo 用两种隐式信号把它造出来。
 
-![异构图：论文、仓库、用户与桥接对](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig2_heterogeneous_graph.png)
+![异构图：论文、仓库、用户与桥接对](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig2_heterogeneous_graph.png)
 
 **论文引用图。** 节点是论文，边是引用关系（按无向处理）。节点特征是 CNN 在摘要上算出的向量。
 
@@ -74,7 +74,7 @@ paper2repo（WWW 2020）将这一过程系统化：将论文摘要和 GitHub 仓
 
 ## 两股训练力
 
-![WARP 排序 + 余弦对齐约束](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig3_embedding_objectives.png)
+![WARP 排序 + 余弦对齐约束](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig3_embedding_objectives.png)
 
 图 3(a) 展示排序力。归一化之后所有嵌入都活在单位球面上。对一个 “论文-正样本仓库” 对 $(p, r^+)$，损失把 $h^{r^+}$ 朝 $h^p$ 的方向拉，把任何落在正样本附近 margin $\gamma$ 之内的负样本 $r^-$ 推开。图 3(b) 展示对齐力。如果没有跨塔约束，两座 GCN 各自训练得到的 “论文云” 和 “仓库云” 会以椭球状漂在 $\mathbb{R}^d$ 的不同区域里，互不接壤。约束把桥接对捆在一起，相当于把整片仓库云拽进论文云的坐标系。
 
@@ -101,7 +101,7 @@ WARP （Weighted Approximate-Rank Pairwise）是一种带 rank-aware 权重的 m
 
 ## 推理流程
 
-![检索时的推荐流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig4_recommendation_flow.png)
+![检索时的推荐流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig4_recommendation_flow.png)
 
 线上来一篇新论文，左塔跑一遍： CNN 编码摘要，再用 GCN 在它已知的引用邻居上传播一次（如果这篇论文还没被引用，就只用编码器输出）。结果是单个向量 $h^p$。排序就是 $h^p$ 和预算好的仓库嵌入矩阵做一次稠密矩阵-向量乘， top-K 是一次 argpartition。整套系统没有重排器、没有二段过滤——这是个有意识的工程取舍：方便上线，方便做消融。
 
@@ -115,7 +115,7 @@ WARP （Weighted Approximate-Rank Pairwise）是一种带 rank-aware 权重的 m
 
 **基线。** 七个跨域或图感知推荐方法： BPR、 MF、 LINE、 NCF、 CDL、 KGCN、 NSCR。它们都没有显式的跨塔对齐目标。
 
-![paper2repo 与七个基线在 HR@10 / MAP@10 / MRR@10 上的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig5_evaluation_results.png)
+![paper2repo 与七个基线在 HR@10 / MAP@10 / MRR@10 上的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation-for-academic-pap/fig5_evaluation_results.png)
 
 图 5 里这种排布正好是 “对齐约束在干实事” 该有的样子。完全不利用图结构的 BPR、 MF 垫底；只用一侧结构的 LINE、 NCF 上来一截；两侧结构都用、再加外部知识图谱的 CDL、 KGCN、 NSCR 接近 paper2repo。 paper2repo 拉开一个稳定的差距，**HR@10 上的差距最大**——这个指标只看 “正确仓库有没有进 shortlist”，不在意它是不是排第一。这正好对应了对齐约束在干的事：把桥接仓库拽进嵌入空间里 “对” 的那个区域，但区域内部的精排留给排序损失继续打磨。
 

@@ -22,9 +22,9 @@ polished_by_qwen_max: true
 从“带注意力机制的 RNN”到完整的 Transformer，这条路并不算长，但每一步都至关重要。接下来，我们将一步步仔细拆解。
 
 <!-- wanx-hero -->
-![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/illustration_1.png)
+![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_1.png)
 ## 你将学到什么
-![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/illustration_2.png)
+![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
 
 - 为什么固定长度的上下文向量会让传统的 Seq2Seq 模型在处理长句子时力不从心，而注意力机制又是如何扭转这一局面的
 - Bahdanau 和 Luong 注意力：从经典注意力到自注意力的思想桥梁
@@ -210,7 +210,7 @@ $$\text{output} = \text{LayerNorm}(x + \text{Sublayer}(x))$$
 
 ### 整体流程
 
-![Transformer 编码器-解码器架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/fig_transformer_arch_zh.png)
+![Transformer 编码器-解码器架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig_transformer_arch_zh.png)
 
 以基础版 Transformer 为例（$N = 6$、$d_{\text{model}} = 512$、$h = 8$、$d_{\text{ff}} = 2048$），整个模型大约有 6500 万个参数。而 GPT-3 的改进思路非常直接：把 $N$、$d_{\text{model}}$ 和 $h$ 这些超参数大幅放大，去掉编码器部分，然后用互联网上的海量数据进行训练。
 ## 8. 用 PyTorch 从零实现

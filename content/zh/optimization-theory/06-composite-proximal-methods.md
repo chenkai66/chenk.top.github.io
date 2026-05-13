@@ -61,8 +61,7 @@ $$f\!\left(	heta x + (1 - 	heta) y\right) \le 	heta f(x) + (1 - 	heta) f(y).$$
 
 ## 子梯度
 
-可微凸函数处处有唯一梯度 $
-abla f(x)$。但像 $|x|$ 或 hinge 损失 $\max(0, 1 - t)$ 这类函数在“折点”处不可导，此时需引入**子梯度**。
+可微凸函数处处有唯一梯度 $abla f(x)$。但像 $|x|$ 或 hinge 损失 $\max(0, 1 - t)$ 这类函数在“折点”处不可导，此时需引入**子梯度**。
 
 **定义**：向量 $g \in \mathbb{R}^n$ 是凸函数 $f$ 在点 $x$ 处的一个子梯度，当且仅当对任意 $y$，
 $$f(y) \ge f(x) + \langle g,\, y - x \rangle.$$
@@ -196,12 +195,10 @@ $$\inf_x f(x) = \inf_x \widehat{f}_\lambda(x), \qquad \arg\min f = \arg\min \wid
 **(2) $\widehat{f}_\lambda$ 是凸且 $	frac{1}{\lambda}$-光滑的**。即使 $f$ 处处不可导，$\widehat{f}_\lambda$ 也处处可微，且其梯度为 $	frac{1}{\lambda}$-Lipschitz。
 
 **(3) 梯度恒等式（核心工具）**：
-$$
-abla \widehat{f}_\lambda(x) \;=\; \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$
+$$abla \widehat{f}_\lambda(x) \;=\; \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$
 **为何重要**：它将“对包络做梯度下降”转化为“计算一次近端”——这正是 ISTA 的算法本质。
 
-**简要推导**：令 $y^\star = \mathrm{prox}_{\lambda f}(x)$。一阶最优性给出 $0 \in \partial f(y^\star) + 	frac{1}{\lambda}(y^\star - x)$，即 $	frac{1}{\lambda}(x - y^\star) \in \partial f(y^\star)$。对 $\widehat{f}_\lambda(x) = f(y^\star) + 	frac{1}{2\lambda}\|y^\star - x\|^2$ 应用包络定理——因内层关于 $y$ 的偏导在最优处为零，仅剩 $
-abla_x 	frac{1}{2\lambda}\|y - x\|^2 \big|_{y = y^\star} = 	frac{1}{\lambda}(x - y^\star)$。
+**简要推导**：令 $y^\star = \mathrm{prox}_{\lambda f}(x)$。一阶最优性给出 $0 \in \partial f(y^\star) + 	frac{1}{\lambda}(y^\star - x)$，即 $	frac{1}{\lambda}(x - y^\star) \in \partial f(y^\star)$。对 $\widehat{f}_\lambda(x) = f(y^\star) + 	frac{1}{2\lambda}\|y^\star - x\|^2$ 应用包络定理——因内层关于 $y$ 的偏导在最优处为零，仅剩 $abla_x 	frac{1}{2\lambda}\|y - x\|^2 \big|_{y = y^\star} = 	frac{1}{\lambda}(x - y^\star)$。
 
 ## Moreau 分解
 
@@ -219,8 +216,7 @@ $$v = \mathrm{prox}_{\lambda f}(v) + \lambda \cdot \mathrm{prox}_{f^* / \lambda}
 $$\min_{x \in \mathbb{R}^n} F(x) \;=\; g(x) + h(x),$$
 其中
 
-- $g$ 凸、可微，且 $
-abla g$ 为 $L$-Lipschitz（“光滑部分”），
+- $g$ 凸、可微，且 $abla g$ 为 $L$-Lipschitz（“光滑部分”），
 - $h$ 凸、可能不可微，但 $\mathrm{prox}_{\lambda h}$ **易计算**（“非光滑部分”）。
 
 LASSO 是典型例子：$g(x) = 	frac{1}{2}\|Ax - y\|_2^2$ 光滑，$h(x) = \mu \|x\|_1$ 可通过软阈值计算。
@@ -235,8 +231,7 @@ $$
 **主化视角**：用二次上界 $\widetilde{g}(x; x_k) = g(x_k) + \langle 
 abla g(x_k), x - x_k \rangle + 	frac{1}{2\eta}\|x - x_k\|_2^2$ 替代 $g$，然后最小化 $\widetilde{g}(x; x_k) + h(x)$——这恰好就是上述近端步骤。因此 ISTA 是 MM（主化-最小化）方法的一个实例。
 
-**步长选择**：$\eta \le 1 / L$，其中 $L$ 是 $
-abla g$ 的 Lipschitz 常数。对 LASSO，$L = \|A\|_2^2$（最大奇异值平方），实践中两三次幂迭代即可足够准确。
+**步长选择**：$\eta \le 1 / L$，其中 $L$ 是 $abla g$ 的 Lipschitz 常数。对 LASSO，$L = \|A\|_2^2$（最大奇异值平方），实践中两三次幂迭代即可足够准确。
 
 **收敛速率**：对凸 $F$，
 $$F(x_k) - F^\star \le \frac{\|x_0 - x^\star\|_2^2}{2\eta k} = O(1 / k).$$
@@ -426,17 +421,14 @@ $$\bigl[\mathrm{prox}_{\lambda f}(v)\bigr]_i = \mathrm{sign}(v_i) \cdot \frac{-1
 ## 习题 2：Moreau 包络的可微性
 
 证明闭真凸函数 $f$ 的 Moreau 包络 $\widehat{f}_\lambda$ 处处可微，且
-$$
-abla \widehat{f}_\lambda(x) = \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$
+$$abla \widehat{f}_\lambda(x) = \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$
 **思路**：
 
 1. 最小化点唯一，记 $y(x) := \mathrm{prox}_{\lambda f}(x)$。由非扩张性，$y(x)$ 关于 $x$ 是 1-Lipschitz 的。
 2. 一阶条件给出 $	frac{1}{\lambda}(x - y(x)) \in \partial f(y(x))$。
-3. 对 $\widehat{f}_\lambda(x) = f(y(x)) + 	frac{1}{2\lambda}\|y(x) - x\|^2$ 应用包络定理：内层关于 $y$ 的偏导因最优性为零，仅剩 $
-abla_x 	frac{1}{2\lambda}\|y - x\|^2 \big|_{y = y(x)} = 	frac{1}{\lambda}(x - y(x))$。
+3. 对 $\widehat{f}_\lambda(x) = f(y(x)) + 	frac{1}{2\lambda}\|y(x) - x\|^2$ 应用包络定理：内层关于 $y$ 的偏导因最优性为零，仅剩 $abla_x 	frac{1}{2\lambda}\|y - x\|^2 \big|_{y = y(x)} = 	frac{1}{\lambda}(x - y(x))$。
 
-因 $y(x)$ 1-Lipschitz，$
-abla \widehat{f}_\lambda$ 为 $	frac{1}{\lambda}$-Lipschitz——故包络自动光滑。
+因 $y(x)$ 1-Lipschitz，$abla \widehat{f}_\lambda$ 为 $	frac{1}{\lambda}$-Lipschitz——故包络自动光滑。
 
 ## 习题 3：为何 SVM 近端“无用”
 

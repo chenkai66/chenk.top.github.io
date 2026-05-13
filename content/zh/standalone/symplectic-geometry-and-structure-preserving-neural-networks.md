@@ -35,9 +35,7 @@ translationKey: "symplectic-geometry-and-structure-preserving-neural-networks"
 
 最简单的 Hamilton 系统——一维谐振子：
 
-$$H(q, p) \;=\; \tfrac{1}{2} p^{2} + \tfrac{1}{2}\omega^{2} q^{2},$$
-
-Hamilton 方程 $\dot q = p$、$\dot p = -\omega^{2} q$，精确解 $q(t) = A\cos(\omega t + \varphi)$，能量恒定。
+$$H(q, p) \;=\; \tfrac{1}{2} p^{2} + \tfrac{1}{2}\omega^{2} q^{2},$$Hamilton 方程 $\dot q = p$、$\dot p = -\omega^{2} q$，精确解 $q(t) = A\cos(\omega t + \varphi)$，能量恒定。
 
 用一个 MLP $f_{\theta}(q, p) \approx (\dot q, \dot p)$ 在干净的轨迹上训练。训完单步误差也许只有 $10^{-4}$。但只要把它当成动力系统积上一千步，两件事就会发生：
 
@@ -139,9 +137,7 @@ p_{n+1} &= p_{n+\tfrac{1}{2}} - \tfrac{h}{2}\,\nabla V(q_{n+1}).
 
 非可分 Hamilton 量需要隐式方法。$s$ 阶 Runge-Kutta （系数 $a_{ij}$、$b_i$）是辛的，当且仅当
 
-$$b_{i}\, a_{ij} + b_{j}\, a_{ji} \;=\; b_{i}\, b_{j}, \quad \forall i, j.$$
-
-Gauss-Legendre 配点法对所有阶都满足这个条件。最简单的 $s=1$ 即**隐式中点法**：
+$$b_{i}\, a_{ij} + b_{j}\, a_{ji} \;=\; b_{i}\, b_{j}, \quad \forall i, j.$$Gauss-Legendre 配点法对所有阶都满足这个条件。最简单的 $s=1$ 即**隐式中点法**：
 
 $$z_{n+1} \;=\; z_{n} + h\, J\, \nabla H\!\left(\tfrac{z_{n} + z_{n+1}}{2}\right),$$
 

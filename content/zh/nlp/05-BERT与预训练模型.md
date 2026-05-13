@@ -21,7 +21,7 @@ polished_by_qwen_max: true
 如果你近几年接触过情感分析 API、能理解用户意图的搜索引擎或智能客服机器人，那么背后的核心技术很可能是 BERT 或其改进版本。
 
 <!-- wanx-hero -->
-![自然语言处理（五）：BERT与预训练模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/bert-pretrained-models/illustration_1.png)
+![自然语言处理（五）：BERT与预训练模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.png)
 ## 这一篇你会学到
 
 - 预训练技术的发展历程：从 Word2Vec 到 ELMo，再到 GPT-1 和 BERT  
@@ -37,7 +37,7 @@ polished_by_qwen_max: true
 ## 预训练-微调范式的崛起
 
 <!-- wanx-mid -->
-![自然语言处理（五）：BERT与预训练模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/bert-pretrained-models/illustration_2.png)
+![自然语言处理（五）：BERT与预训练模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_2.png)
 
 在 BERT 出现之前，每个 NLP 任务都得从零开始：模型随机初始化后，用专门标注的数据集进行训练。这种方式不仅计算成本高，还存在明显弊端——不同任务之间无法共享知识，且由于标注数据量有限，模型的稳定性也难以保证。此后，预训练技术历经四个关键发展阶段，最终重塑了这一格局。
 

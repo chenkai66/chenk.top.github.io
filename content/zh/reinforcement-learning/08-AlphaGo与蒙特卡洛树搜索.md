@@ -19,7 +19,7 @@ translationKey: "reinforcement-learning-8"
 2016 年 3 月，AlphaGo 在首尔以 4 比 1 击败了围棋世界冠军李世石。这不仅是一场体育赛事的爆冷，更标志着人工智能领域一个长达 60 年的目标——让机器击败人类顶尖围棋选手——比大多数预测提前整整十年达成。围棋的合法局面数约为 $10^{170}$，远超可观测宇宙中的原子总数。无论多少暴力搜索都无法破解它。AlphaGo 的胜利源于一种全新思路：用深度神经网络提供“哪些着法值得尝试”的直觉，再由蒙特卡洛树搜索（MCTS）进行深思熟虑式的推演，验证并精炼这种直觉。
 
 仅仅 18 个月后，AlphaGo Zero 仅凭游戏规则和三天的自我对弈，就从零开始学会了围棋，并以 100 比 0 的战绩彻底碾压了当年战胜李世石的版本。AlphaZero 将同一套方法推广至国际象棋和将棋，而 MuZero 更进一步，连游戏规则都不再需要预先提供。本章将完整追溯这一技术路线的演进历程——涵盖算法设计、数学原理，以及一个可实际训练的完整实现。
-![强化学习（八）：AlphaGo与蒙特卡洛树搜索 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-alphago-and-mcts/illustration_1.png)
+![强化学习（八）：AlphaGo与蒙特卡洛树搜索 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_1.png)
 
 ## 你将学到什么
 - **MCTS 基础**：四阶段循环、UCT 探索与利用平衡、渐近最优性
@@ -73,7 +73,7 @@ $$
 
 ## 2. AlphaGo （2016）：网络遇上搜索
 
-![强化学习（八）：AlphaGo与蒙特卡洛树搜索 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-alphago-and-mcts/illustration_2.png)
+![强化学习（八）：AlphaGo与蒙特卡洛树搜索 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_2.png)
 
 ![AlphaGo 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig3_alphago_architecture.png)
 
@@ -213,7 +213,6 @@ class PolicyValueNet(nn.Module):
         self.size = board_size
         self.shared = nn.Sequential(
             nn.Conv2d(3, channels, 3, padding=1), nn.ReLU(),
-            nn.Conv2d(channels, channels, 3, padding=1), nn.ReLU(),
             nn.Conv2d(channels, channels, 3, padding=1), nn.ReLU(),
         )
         self.policy_head = nn.Sequential(

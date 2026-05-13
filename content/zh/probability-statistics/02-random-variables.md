@@ -63,9 +63,7 @@ $$p_X(x) = P(X = x)$$
 ![CDF 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/02-cdf-comparison.png)
 
 
-$$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad 	ext{(离散情形)}.$$
-
-CDF 是右连续、非减函数，且满足 $\lim_{x 	o -\infty} F(x) = 0$ 与 $\lim_{x 	o \infty} F(x) = 1$。
+$$F_X(x) = P(X \leq x) = \sum_{t \leq x} p_X(t) \quad 	ext{(离散情形)}.$$CDF 是右连续、非减函数，且满足 $\lim_{x 	o -\infty} F(x) = 0$ 与 $\lim_{x 	o \infty} F(x) = 1$。
 
 ## 关键离散分布
 
@@ -110,9 +108,7 @@ $$X \sim 	ext{Geometric}(p), \quad p_X(k) = (1-p)^{k-1} p 	ext{ for } k = 1, 2, 
 $$\sum_{k=1}^{\infty} (1-p)^{k-1} p = p \sum_{j=0}^{\infty} (1-p)^j = p \cdot \frac{1}{1-(1-p)} = p \cdot \frac{1}{p} = 1. \quad \checkmark$$
 
 - **均值：** $E[X] = 1/p$
-- **方差：** $	ext{Var}(X) = (1-p)/p^2$
-
-Geometric 分布具有**无记忆性（memoryless property）**：$P(X > s + t \mid X > s) = P(X > t)$。也就是说，即使你已经等待了 $s$ 次仍未成功，剩余等待时间的分布仍与重新开始时完全相同。
+- **方差：** $	ext{Var}(X) = (1-p)/p^2$Geometric 分布具有**无记忆性（memoryless property）**：$P(X > s + t \mid X > s) = P(X > t)$。也就是说，即使你已经等待了 $s$ 次仍未成功，剩余等待时间的分布仍与重新开始时完全相同。
 
 *证明。* $P(X > n) = (1-p)^n$（前 $n$ 次全失败）。于是：
 
@@ -120,9 +116,7 @@ $$P(X > s+t \mid X > s) = \frac{P(X > s+t)}{P(X > s)} = \frac{(1-p)^{s+t}}{(1-p)
 
 **负二项分布（Negative Binomial Distribution）。** 其推广形式：第 $r$ 次成功所需的试验次数。
 
-$$X \sim 	ext{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} 	ext{ for } k = r, r+1, \ldots$$
-
-Geometric 分布是 $r = 1$ 的特例。当建模过离散计数数据（方差大于均值）时，负二项分布自然出现，因此在实践中常作为 Poisson 的替代选择。
+$$X \sim 	ext{NegBin}(r, p), \quad p_X(k) = \binom{k-1}{r-1} p^r (1-p)^{k-r} 	ext{ for } k = r, r+1, \ldots$$Geometric 分布是 $r = 1$ 的特例。当建模过离散计数数据（方差大于均值）时，负二项分布自然出现，因此在实践中常作为 Poisson 的替代选择。
 
 - **均值：** $E[X] = r/p$
 - **方差：** $	ext{Var}(X) = r(1-p)/p^2$
@@ -280,9 +274,7 @@ $$X \sim 	ext{Beta}(\alpha, \beta), \quad f_X(x) = \frac{x^{\alpha-1}(1-x)^{\bet
 其中 $B(\alpha, \beta) = \frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha+\beta)}$ 为贝塔函数。
 
 - **均值：** $E[X] = \frac{\alpha}{\alpha + \beta}$
-- **方差：** $	ext{Var}(X) = \frac{\alpha \beta}{(\alpha+\beta)^2(\alpha+\beta+1)}$
-
-Beta 分布定义域为 $[0,1]$，天然适用于对概率本身建模。它是 Bernoulli 与 Binomial 似然函数的共轭先验（conjugate prior）——这一性质将在第 8 篇（贝叶斯统计）中被大量使用。
+- **方差：** $	ext{Var}(X) = \frac{\alpha \beta}{(\alpha+\beta)^2(\alpha+\beta+1)}$Beta 分布定义域为 $[0,1]$，天然适用于对概率本身建模。它是 Bernoulli 与 Binomial 似然函数的共轭先验（conjugate prior）——这一性质将在第 8 篇（贝叶斯统计）中被大量使用。
 
 特例：$	ext{Beta}(1,1) = 	ext{Uniform}(0,1)$。
 

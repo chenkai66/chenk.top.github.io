@@ -60,8 +60,7 @@ $$|f(y) - f(x)| \le L\,\|y - x\|.$$
 
 ## 1.2 梯度-Lipschitz = $L$-光滑性
 
-实践中，我们更关心 $
-abla f$ 的 Lipschitz 性质，而非 $f$ 本身，因为它直接限制步长：
+实践中，我们更关心 $abla f$ 的 Lipschitz 性质，而非 $f$ 本身，因为它直接限制步长：
 
 $$\|
 abla f(y) - 
@@ -104,8 +103,7 @@ abla f\|^2$。这才是“步长至多为 $1/L$”的真正来源——并非传
 ## 1.4 Hessian 谱范数蕴含梯度 Lipschitz
 
 **定理 1（Hessian 谱范数 $\Rightarrow$ Lipschitz 梯度）**。若 $f$ 二阶可微且 $\sup_x \|
-abla^2 f(x)\|_2 \le L$，则 $
-abla f$ 是 $L$-Lipschitz 的。
+abla^2 f(x)\|_2 \le L$，则 $abla f$ 是 $L$-Lipschitz 的。
 
 **证明**。由 Newton-Leibniz 公式，
 
@@ -138,8 +136,7 @@ abla f(x), y - x\rangle + \frac{\mu}{2}\,\|y - x\|^2.$$
 
 1. **二次下界**（上述不等式）：$f$ 位于一族曲率为 $\mu$ 的向上抛物线上方。
 2. **$f - \tfrac{\mu}{2}\|x\|^2$ 是凸的**：减去“$\mu$-曲率质量”后剩下凸函数。
-3. **二阶条件**（若 $f$ 是 $C^2$）：$
-abla^2 f(x) \succeq \mu I$。
+3. **二阶条件**（若 $f$ 是 $C^2$）：$abla^2 f(x) \succeq \mu I$。
 
 ![A strongly convex function is bounded BELOW by a family of mu-quadratics; convex but not strongly convex (mu = 0) for contrast](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig3_strong_convexity.png)
 
@@ -153,8 +150,7 @@ abla^2 f(x) \succeq \mu I$。
 
 **定理 3（强凸性蕴含唯一性）**。$\mathbb{R}^n$ 上的 $\mu$-强凸函数（$\mu > 0$）至多有一个全局最小值点。
 
-**证明**。设 $x^\star, y^\star$ 均为最小值点，则 $
-abla f(x^\star) = 0$，代入下界不等式（$x = x^\star, y = y^\star$）得
+**证明**。设 $x^\star, y^\star$ 均为最小值点，则 $abla f(x^\star) = 0$，代入下界不等式（$x = x^\star, y = y^\star$）得
 
 $$f(y^\star) \ge f(x^\star) + 0 + \frac{\mu}{2}\|y^\star - x^\star\|^2.$$
 
