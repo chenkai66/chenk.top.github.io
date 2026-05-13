@@ -18,7 +18,7 @@ translationKey: "reinforcement-learning-8"
 ---
 2016 年 3 月，AlphaGo 在首尔以 4 比 1 击败了围棋世界冠军李世石，这不仅是体育界的一次震撼事件，更提前十年为人工智能领域长达 60 年的课题——“让机器击败人类顶尖围棋选手”——画上了句号。围棋的合法局面数量大约是 $10^{170}$，比可观测宇宙中的原子总数还多。靠暴力搜索根本不可能破解。 AlphaGo 的胜利源于一种全新的思路：用深度网络提供“哪些着法可能有戏”的直觉，再用蒙特卡洛树搜索（MCTS）进行推演，验证并优化这种直觉。
 
-仅仅 18 个月后，AlphaGo Zero 完全不依赖任何人类棋谱，仅凭规则和三天的自我对弈，就以 100 比 0 的战绩碾压了当年战胜李世石的版本。AlphaZero 将同样的方法推广到了国际象棋和将棋，而 MuZero 更进一步，连规则都不需要输入。这一章完整追溯了这条技术路线的演变过程——从算法、数学原理到可以直接训练的实现代码。
+仅仅 18 个月后，AlphaGo Zero 完全不依赖任何人类棋谱，仅凭规则和三天的自我对弈，就以 100 比 0 的战绩碾压了当年战胜李世石的版本；AlphaZero 将同样的方法推广到了国际象棋和将棋，而 MuZero 更进一步，连规则都不需要输入。这一章完整追溯了这条技术路线的演变过程——从算法、数学原理到可以直接训练的实现代码。
 ![强化学习（八）：AlphaGo与蒙特卡洛树搜索 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-alphago-and-mcts/illustration_1.png)
 
 ## 你将学到什么
@@ -37,7 +37,7 @@ translationKey: "reinforcement-learning-8"
 ---
 ## 1. 蒙特卡洛树搜索
 
-经典博弈树搜索（minimax + alpha-beta 剁枝）需要评估函数和可控的分支因子。国际象棋两者都有，而围棋则没有——分支因子高达 250，既没有简洁的评估函数，也没有有效的启发式方法。MCTS 绕开了这些问题：它用采样代替枚举，将计算资源集中在树中最有潜力的部分。
+经典博弈树搜索（minimax + alpha-beta 剁枝）需要评估函数和可控的分支因子。国际象棋两者都有，而围棋则没有——分支因子高达 250，既没有简洁的评估函数，也没有有效的启发式方法。MCTS 绕开了这些问题，用采样代替枚举，将计算资源集中在树中最有潜力的部分。
 
 ![MCTS 四个阶段](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig1_mcts_four_phases.png)
 
