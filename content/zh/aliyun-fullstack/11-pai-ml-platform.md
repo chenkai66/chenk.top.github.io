@@ -14,7 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 11
-description: "阿里云完整ML平台：PAI-DSW笔记本、PAI-DLC分布式训练、PAI-EAS模型服务、Designer可视化工作流、Model Gallery。端到端训练和部署自定义模型。"
+description: "阿里云完整 ML 平台：PAI-DSW 笔记本、PAI-DLC 分布式训练、PAI-EAS 模型服务、Designer 可视化工作流、Model Gallery。端到端训练和部署自定义模型。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-11"
 ---

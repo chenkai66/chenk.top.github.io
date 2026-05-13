@@ -1,5 +1,5 @@
 ---
-title: "强化学习（八）：AlphaGo与蒙特卡洛树搜索"
+title: "强化学习（八）：AlphaGo 与蒙特卡洛树搜索"
 date: 2025-09-05 09:00:00
 tags:
   - Reinforcement Learning

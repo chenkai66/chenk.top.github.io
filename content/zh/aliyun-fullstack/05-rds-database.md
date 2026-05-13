@@ -14,7 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 5
-description: "RDS MySQL与PolarDB对比：何时使用哪个。实例规格、读副本、代理端点、备份/恢复、监控、慢查询分析。构建高可用性和读扩展的生产数据库。"
+description: "RDS MySQL 与 PolarDB 对比：何时使用哪个。实例规格、读副本、代理端点、备份/恢复、监控、慢查询分析。构建高可用性和读扩展的生产数据库。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-5"
 ---

@@ -13,7 +13,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 8
-description: "在阿里云上无服务器化：Function Compute触发器、运行时、冷启动、定价。EventBridge事件路由。API Gateway集成。构建事件驱动的图像处理流水线。"
+description: "在阿里云上无服务器化：Function Compute 触发器、运行时、冷启动、定价。EventBridge 事件路由。API Gateway 集成。构建事件驱动的图像处理流水线。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-8"
 ---

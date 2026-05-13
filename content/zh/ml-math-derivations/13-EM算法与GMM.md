@@ -1,5 +1,5 @@
 ---
-title: "机器学习数学推导（十三）：EM算法与GMM"
+title: "机器学习数学推导（十三）：EM 算法与 GMM"
 date: 2026-02-01 09:00:00
 tags:
   - EM Algorithm

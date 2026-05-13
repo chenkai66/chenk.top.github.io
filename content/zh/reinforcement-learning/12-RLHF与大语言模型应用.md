@@ -1,5 +1,5 @@
 ---
-title: "强化学习（十二）：RLHF与大语言模型应用"
+title: "强化学习（十二）：RLHF 与大语言模型应用"
 date: 2025-09-25 09:00:00
 tags:
   - Reinforcement Learning

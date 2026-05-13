@@ -14,7 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 6
-description: "锁定云安全：RAM用户、组、角色和策略。STS临时凭证。KMS加密。ActionTrail审计日志。构建最小权限的多团队访问模型。"
+description: "锁定云安全：RAM 用户、组、角色和策略。STS 临时凭证。KMS 加密。ActionTrail 审计日志。构建最小权限的多团队访问模型。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-6"
 ---

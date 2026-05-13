@@ -1,5 +1,5 @@
 ---
-title: "偏微分方程与机器学习（六）：连续归一化流与Neural ODE"
+title: "偏微分方程与机器学习（六）：连续归一化流与 Neural ODE"
 date: 2024-07-15 09:00:00
 tags:
   - PDE

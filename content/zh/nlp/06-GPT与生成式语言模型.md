@@ -1,5 +1,5 @@
 ---
-title: "自然语言处理（六）：GPT与生成式语言模型"
+title: "自然语言处理（六）：GPT 与生成式语言模型"
 date: 2025-10-26 09:00:00
 tags:
   - NLP
@@ -10,7 +10,7 @@ categories: 自然语言处理
 series: nlp
 lang: zh
 mathjax: true
-description: "从GPT-1到GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用HuggingFace构建聊天机器人。"
+description: "从 GPT-1 到 GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用 HuggingFace 构建聊天机器人。"
 disableNunjucks: true
 series_order: 6
 translationKey: "nlp-6"

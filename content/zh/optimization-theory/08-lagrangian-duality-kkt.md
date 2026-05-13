@@ -10,7 +10,7 @@ series: optimization-theory
 series_order: 8
 lang: zh
 mathjax: true
-description: "约束如何转化为价格：拉格朗日函数、弱对偶性、保证强对偶性的Slater条件、KKT条件作为最优性的充要条件，以及为何SVM的对偶问题远小于其原始问题；包含完整证明与鞍点表征。"
+description: "约束如何转化为价格：拉格朗日函数、弱对偶性、保证强对偶性的 Slater 条件、KKT 条件作为最优性的充要条件，以及为何 SVM 的对偶问题远小于其原始问题；包含完整证明与鞍点表征。"
 disableNunjucks: true
 translationKey: "optim-08"
 ---

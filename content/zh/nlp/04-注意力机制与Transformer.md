@@ -1,5 +1,5 @@
 ---
-title: "自然语言处理（四）：注意力机制与Transformer"
+title: "自然语言处理（四）：注意力机制与 Transformer"
 date: 2025-10-16 09:00:00
 tags:
   - 注意力机制

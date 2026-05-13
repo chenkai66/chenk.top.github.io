@@ -1,5 +1,5 @@
 ---
-title: "强化学习（三）：Policy Gradient与Actor-Critic方法"
+title: "强化学习（三）：Policy Gradient 与 Actor-Critic 方法"
 date: 2025-08-11 09:00:00
 tags:
   - Reinforcement Learning
@@ -15,7 +15,7 @@ categories: 强化学习
 series: reinforcement-learning
 lang: zh
 mathjax: true
-description: "从REINFORCE到SAC——策略梯度方法如何直接优化策略，自然处理连续动作，驱动PPO、TD3和SAC等现代算法。"
+description: "从 REINFORCE 到 SAC——策略梯度方法如何直接优化策略，自然处理连续动作，驱动 PPO、TD3 和 SAC 等现代算法。"
 disableNunjucks: true
 series_order: 3
 translationKey: "reinforcement-learning-3"

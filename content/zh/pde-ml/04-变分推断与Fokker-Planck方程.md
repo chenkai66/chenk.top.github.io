@@ -1,5 +1,5 @@
 ---
-title: "偏微分方程与机器学习（四）：变分推断与Fokker-Planck方程"
+title: "偏微分方程与机器学习（四）：变分推断与 Fokker-Planck 方程"
 date: 2024-06-15 09:00:00
 tags:
   - PDE

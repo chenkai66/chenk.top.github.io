@@ -1,5 +1,5 @@
 ---
-title: "系统设计（七）：数据管道——批处理、流处理与Lambda架构"
+title: "系统设计（七）：数据管道——批处理、流处理与 Lambda 架构"
 date: 2025-07-24 09:00:00
 tags:
   - System Design
@@ -9,7 +9,7 @@ tags:
 categories: System Design
 series: system-design
 lang: zh
-description: "一份实用的数据管道架构指南——涵盖ETL vs ELT、Spark批处理、Flink流处理、Lambda vs Kappa架构、变更数据捕获（CDC），以及端到端实时分析管道设计。"
+description: "一份实用的数据管道架构指南——涵盖 ETL vs ELT、Spark 批处理、Flink 流处理、Lambda vs Kappa 架构、变更数据捕获（CDC），以及端到端实时分析管道设计。"
 disableNunjucks: true
 series_order: 7
 translationKey: "system-design-7"
