@@ -16,7 +16,7 @@ description: "Gateway、Pi Agent、工具、技能、记忆和渠道——每一
 disableNunjucks: true
 translationKey: "openclaw-quickstart-3"
 ---
-你可能用好几个月 OpenClaw 都不需要看这篇，但只要第一次编写 Skill、调试消息路由异常或疑惑 Agent 为何突然“失忆”，就必须厘清各模块的职责。
+尽管你可能在使用 OpenClaw 的前几个月都不需要阅读这篇文章，但当你第一次编写 Skill、调试消息路由异常或疑惑 Agent 为何突然“失忆”时，就必须厘清各模块的职责。
 
 ![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_1.png)
 
@@ -28,9 +28,9 @@ translationKey: "openclaw-quickstart-3"
 
 ## Channels —— 是适配器，不是传输层
 
-Channel 的代码负责双向转换：把钉钉 Stream 消息转为标准化 OpenClaw 消息，反之亦然。不同平台实现各异——钉钉通过 WebSocket 接收 Stream 事件，Telegram 用轮询或 Webhook，Discord 则接入其专属 Gateway WebSocket。Channel 层将这些差异完全屏蔽。
+Channel 的代码负责双向转换，将钉钉 Stream 消息转为标准化 OpenClaw 消息，反之亦然。不同平台实现方式各异：钉钉通过 WebSocket 接收 Stream 事件，Telegram 用轮询或 Webhook，Discord 则接入其专属 Gateway WebSocket。Channel 层将这些差异完全屏蔽。
 
-需注意三点：Channel 按实例配置，可部署零个、一个或多个；消息严格遵循 Channel → Gateway → Agent → Gateway → Channel 流向，Channel 与 Agent 从不直连；速率限制和平台特有行为均由各 Channel 适配器自行实现，因此钉钉与 Telegram 的响应表现天然不同。
+需要注意的是：Channel 按实例配置，可以部署零个、一个或多个；消息严格遵循 Channel → Gateway → Agent → Gateway → Channel 的流向，Channel 与 Agent 从不直连；速率限制和平台特有行为均由各 Channel 适配器自行实现，因此钉钉与 Telegram 的响应表现天然不同。
 
 **这里容易出什么问题**：最常见的问题是 WebSocket 连接断开后未触发自动重连。钉钉 Stream 连接空闲 300 秒后会断开；若 Channel 适配器未能及时检测并重连，消息将在 Broker 中积压，最终导致交付延迟从数秒演变为永久失败。去查 `gateway.log` 里的 "channel reconnect" 事件和时间戳间隙。如果看到超过 5 分钟的间隙，说明你的 keep-alive 没起作用。
 
@@ -38,7 +38,7 @@ Channel 的代码负责双向转换：把钉钉 Stream 消息转为标准化 Ope
 
 Gateway 跑在 `:18789`。它接收来自任何 Channel 的消息，做去重（钉钉有时会重发），分配或恢复 Session，然后把消息交给 Router。
 
-Gateway 是唯一对接模型服务商的组件，所有工具调用结果、内存读取、Prompt 组装都由它统一处理——因此只需配置一套 API Key。
+Gateway 是唯一对接模型服务商的组件，负责统一处理所有工具调用结果、内存读取和 Prompt 组装，因此只需配置一套 API Key。
 
 **这里容易出什么问题**：模型服务商的速率限制被耗尽。如果十个用户同时发消息， Gateway 会对 LLM 调用进行串行化处理，但不对接入流量做限流。你会看到提供商返回 HTTP 429， Gateway 会用指数退避重试（最多 3 次）。如果三次都失败，用户会收到“我现在有点思考困难”，并且这次_turn_会被记录到 `gateway_errors.jsonl`。解决办法要么升级提供商套餐，要么在 `openclaw.json` 里配置 `max_concurrent_llm_calls` 来匹配你的配额。
 
@@ -46,7 +46,7 @@ Gateway 是唯一对接模型服务商的组件，所有工具调用结果、内
 
 Router 负责路由消息到目标 Agent——仅当配置多个 Agent 时才生效（默认仅 Pi 一个）； Session 则用于区分不同渠道的对话（如微信 vs Telegram），即使它们共用同一 Agent。 Session ID 是 `(channel, conversation_id)`。
 
-若出现‘Agent 混淆了两个对话’的情况，通常是 Session ID 冲突所致，根源往往是自定义 Channel 的实现缺陷。
+若出现‘Agent 混淆了两个对话’的情况，通常是由于 Session ID 冲突所致，根源往往是自定义 Channel 的实现缺陷。
 
 **这里容易出什么问题**：自定义 Channel 没提供稳定的 `conversation_id` 导致 Session ID 冲突。典型表现为 Agent 将两个独立对话的上下文混淆。钉钉用 Webhook payload 里的 `conversationId`； Telegram 用 `chat.id`。如果你在写自定义 Channel 并且哈希多个字段来创建 ID，确保*每种*消息类型（文本、图片、回调）都包含这些字段，否则你会为同一个逻辑对话生成不同的 ID。诊断命令是 `openclaw debug --session <user_id>`，这会 dump 出该用户的所有 Session。
 
@@ -67,10 +67,9 @@ while True:
 ```
 
 OpenClaw 在这里做了几个有意思的选择：
-
-- **Skills 懒加载。** 系统 Prompt 仅包含 manifest。只有当模型触发某个 Skill 时，主体内容才会被分页加载，从而降低 Token 成本。
-- **工具执行错误会返回给模型，而非抛出异常。** 模型有机会恢复。这看似理所当然，但多数 Agent 框架会直接抛出异常。
-- **循环设有硬性_turn_限制。** 默认 30。若 Agent 在第 30 轮仍处于循环中，将主动终止并返回‘我觉得我卡住了’提示，避免持续消耗 Token 预算。
+- **Skills 懒加载。** 系统 Prompt 仅包含 manifest，只有当模型触发某个 Skill 时，主体内容才会被分页加载，从而降低 Token 成本。
+- **工具执行错误会返回给模型，而非抛出异常。** 模型有机会恢复，这看似理所当然，但多数 Agent 框架会直接抛出异常。
+- **循环设有硬性_turn_限制。** 默认 30 轮。若 Agent 在第 30 轮仍处于循环中，将主动终止并返回‘我觉得我卡住了’提示，避免持续消耗 Token 预算。
 
 **这里容易出什么问题**：工具返回成功，但实际状态未改变，从而引发无限工具调用循环。经典案例是 `web_search` 返回零结果：模型看到 "success: []"，决定细化查询，再次调用 `web_search` 换个查询词，又拿到空列表，重复直到第 30 轮。循环保护机制会捕获这个，但你白白浪费了 30 次 LLM 调用。解决办法是让工具返回语义化错误——"success: false, reason: no results for query"——这样模型可以早点放弃。如果你注意到这种模式，也可以在 Agent 配置里调低 `max_turns`。
 

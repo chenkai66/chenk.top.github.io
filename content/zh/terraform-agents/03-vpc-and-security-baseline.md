@@ -168,7 +168,7 @@ resource "alicloud_snat_entry" "private" {
 }
 ```
 
-Enhanced NAT 是当前标准，Tablestore、PrivateLink 及绝大多数新服务均强制要求。老式 Standard NAT 已进入 deprecation 倒计时，新项目严禁使用。按流量计费（PayByTraffic）更适合 Agent 负载，因为其出站带宽具有突发性（如 LLM 流式响应），而不是持续稳定。
+Enhanced NAT 是当前标准，Tablestore、PrivateLink 及绝大多数新服务均强制要求；老式 Standard NAT 已进入 deprecation 倒计时，新项目严禁使用。按流量计费（PayByTraffic）更适合 Agent 负载，因为其出站带宽具有突发性（如 LLM 流式响应），而不是持续稳定。
 
 SNAT 条目才是让私网子网实例能通互联网的关键。少了它们，`private-a` 里的 Agent 解析不了 `dashscope.aliyuncs.com`——第一次遇到这问题你会花一个小时调试。这个问题我亲身遇到过，调试花了一小时。
 
@@ -256,7 +256,7 @@ resource "alicloud_security_group_rule" "vector_from_agent" {
 
 ## 每个数据域配一把 KMS 密钥
 
-静态加密（Encryption-at-rest）是任何合规制度的底线。阿里云的做法是每个数据域使用一把 Customer Master Key (CMK)，这样可以单独轮换某一把而不影响其他，并且可以按密钥审计访问记录。
+静态加密（Encryption-at-rest）是任何合规制度的底线，阿里云的做法是每个数据域使用一把 Customer Master Key (CMK)，这样可以单独轮换某一把而不影响其他，并且可以按密钥审计访问记录。
 
 ![Data encryption at rest and in transit with key management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/wanxiang_encryption.png)
 

@@ -25,7 +25,7 @@ OpenClaw 的设计初衷是让 Agent 主动与你交互——目前仅支持 TUI
 
 ![Channel routing architecture — message flow from IM platforms through the gateway](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/fig_channels.png)
 
-即使你不打算在生产环境中使用 Telegram，也强烈推荐它作为首个接入通道——配置简单、无额外依赖，能完整跑通 Agent 的端到端流程。
+即使你不打算在生产环境中使用 Telegram，也强烈推荐它作为首个接入通道，因为其配置简单、无额外依赖，并能完整跑通 Agent 的端到端流程。
 
 **第一步。** 在 Telegram 里找 `@BotFather`。发送 `/newbot`，起个名字，拿到一个形如 `7891234567:AAH...` 的 token。
 
@@ -65,7 +65,7 @@ openclaw gateway restart
 
 ### 排查 Telegram 问题
 
-尽管配置简单，也难免会遇到问题。以下是常见的五个问题：
+尽管配置简单，但难免会遇到问题。以下是常见的五个问题：
 
 **1. Bot 不回复 — 检查 `allowed_user_ids`。** 你发了消息， bot 不理你。再三确认 config 里的用户 ID 和 `@userinfobot` 告诉你的完全一致。常见错误包括抄成了用户名而不是数字 ID，或者忘了 JSON 数组的方括号。如果是这个问题， gateway 日志会显示 `[telegram] message from unauthorized user 987654321, ignoring`。
 
@@ -73,7 +73,7 @@ openclaw gateway restart
 
 **3. Bot 回复但说到一半断了 — 检查 agent config 里的 `max_tokens`。** 如果 Agent 开始回复却突然停止，问题通常在 `agents.json` 而不是 Telegram 通道配置。找找 Pi Agent 块里的 `max_tokens`。对话场景把它调到 2048 或 4096。
 
-**4. 不支持媒体 — 哪些文件类型可用。** Telegram bot 能接收文本、图片（JPEG/PNG）、文档（PDF/TXT/JSON）和语音消息。如果没有额外处理，它们无法原生处理视频或贴纸。如果你发一个 PDF，gateway 会下载它并把文件路径传给 agent，但 agent 需要一个知道怎么读 PDF 的 skill。
+**4. 不支持媒体 — 哪些文件类型可用。** Telegram bot 能接收文本、图片（JPEG/PNG）、文档（PDF/TXT/JSON）和语音消息。如果没有额外处理，它们无法原生处理视频或贴纸。例如，如果你发送一个 PDF，gateway 会下载它并将文件路径传递给 agent，但 agent 需要具备读取 PDF 的 skill。
 
 **5. 群聊 — 如何开启群模式。** 默认情况下， bot 仅响应私聊消息。要把它加进群，告诉 BotFather 允许群访问：发送 `/setjoingroups`，选中你的 bot，选 "Enable"。在群里， bot 只能看到提及它的消息（`@your_bot_name what's the weather`），除非你在 BotFather 里用 `/setprivacy` 关闭 Privacy Mode。
 
@@ -126,8 +126,8 @@ Stream Mode 反过来了：你的 gateway 向 `wss://stream.dingtalk.com` 发起
 ### 为什么路径 1 其实很危险
 
 腾讯的检测机制非常复杂，不仅限于检查客户端版本字符串中的标记。封禁模式包括：
-- **IP 关联：** 如果你的账号突然开始从数据中心 IP 段发消息，这就是危险信号，因为个人微信主要面向移动设备，服务器 IP 不正常。
-- **协议指纹：** 非官方协议虽然模拟微信客户端，但在包 timing、 keepalive 间隔、某些握手字段顺序等小细节上容易出错。
+- **IP 关联：** 如果你的账号突然开始从数据中心 IP 段发消息，这是危险信号，因为个人微信主要面向移动设备，服务器 IP 不正常。
+- **协议指纹：** 非官方协议虽然模拟微信客户端，但在在包 timing、keepalive 间隔、某些握手字段顺序等小细节上容易出错。
 - **消息速率和模式分析：** 正常人不会在一分钟内回复 50 条格式完美的 markdown 消息，异常检测会标记这种行为。
 
 封禁不一定立即触发，腾讯可能会先放行账号数日，持续采集行为数据，然后再集中执行封禁。一旦被封禁，通常是永久性的。

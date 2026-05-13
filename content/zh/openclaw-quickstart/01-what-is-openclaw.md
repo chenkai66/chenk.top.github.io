@@ -29,7 +29,7 @@ translationKey: "openclaw-quickstart-1"
 
 **Node.js 环境。** OpenClaw 跑在 Node 18 或更高版本上。如果你尚未安装 Node，或版本低于 18，下一篇将手把手指导安装。现在你只需要知道，`node --version` 至少得显示 `v18.0.0`。
 
-**LLM API Key。** 你手头得有一个能用的大模型 API 密钥。系列文章里我会演示三种方案：阿里云百炼 Coding Plan（学生和认证开发者免费）、Claude 直连（付费，需要 Anthropic API 权限）以及 DashScope 免费层（额度有限但不需要信用卡）。选适合你的就行。如果现在还没有，第二篇文章会告诉你去哪里注册。
+**LLM API Key。** 你手头得有一个能用的大模型 API 密钥。系列文章里我会演示三种方案：阿里云百炼 Coding Plan（学生和认证开发者免费）、Claude 直连（付费，需要 Anthropic API 权限）以及 DashScope 免费层（额度有限但不需要信用卡）。选适合你的方案即可。如果现在还没有，第二篇文章会告诉你去哪里注册。
 
 **聊天平台账号。** 本系列以 Telegram 为例，因其接入最简单：通过 BotFather 创建机器人并获取 Token 即可完成配置。你现在还不需要 Telegram 账号，但到第四篇时最好有一个。如果你更想用钉钉、微信或 Discord，概念是通用的，只是我不会手把手带你走它们的注册流程。
 

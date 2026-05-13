@@ -16,7 +16,7 @@ description: "在 macOS 或 Ubuntu 上装好 OpenClaw，接入模型服务商，
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
-README 声称只需五分钟，但实际上常常需要十分钟——多出的时间几乎全耗在 Node 版本兼容性上，新手极易卡在这里。
+README 声称只需五分钟，但实际上常常需要十分钟，多出的时间几乎全耗在 Node 版本兼容性上，新手极易卡在这里。
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 

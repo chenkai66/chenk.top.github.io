@@ -24,7 +24,7 @@ translationKey: "terraform-agents-2"
 4. 三个工作空间（`dev`, `staging`, `prod`），共用后端但状态隔离。
 5. 能跑通的 `terraform plan`，哪怕配置还是空的。
 
-至此，Agent 尚未部署——本阶段仅涉及基础设施底座搭建，后续所有文章均以此为前提。如果跳过此步骤，推迟到第三篇文章再补，一周内遇到 tfstate 损坏的概率极高。
+至此，Agent 尚未部署——本阶段仅涉及基础设施底座搭建，后续所有文章均以此为前提；如果跳过此步骤，推迟到第三篇文章再补，一周内遇到 tfstate 损坏的概率极高。
 
 ## Step 0: 安装 Terraform
 
@@ -60,7 +60,7 @@ terraform {
 
 `~> 1.230` 这个约束允许 `1.230.0` 到 `1.230.x`，但会拦住 `1.231.0`。这是默认的最佳实践。一旦你把 `.terraform.lock.hcl` 提交到 git （`terraform init` 时 Terraform 会自动生成），你就锁死了 *确切* 的 provider 版本和校验和。队友 later 跑 `terraform init` 时，拿到的 provider 跟你比特级一致。
 
-尽早锁定 provider 版本是一项低成本但高回报的风险控制措施。例如，alicloud provider 在 1.220 版本附近对 OSS Bucket 的 schema 进行了重构，导致我花了三个下午排查问题。你最终仍需升级，但必须主动推进：先提交 PR，仔细审查 plan 输出的变更差异，确认无误后再执行 apply；切勿在未经评审的情况下，在深夜 11 点在他人机器上意外触发升级。
+尽早锁定 provider 版本是一项低成本但高回报的风险控制措施。例如，alicloud provider 在 1.220 版本附近对 OSS Bucket 的 schema 进行了重构，导致我花了三个下午排查问题。你最终仍需升级，但必须主动推进：先提交 PR，仔细审查 plan 输出的变更差异，确认无误后再执行 apply，切勿在未经评审的情况下，在深夜 11 点在他人机器上意外触发升级。
 
 ## Step 2: 认证——三种方案，按靠谱程度排个序
 
