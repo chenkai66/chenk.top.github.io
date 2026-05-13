@@ -20,7 +20,7 @@ translationKey: "claude-code-learn-8"
 
 这三个功能按所需信任度从低到高依次为：Plan mode、Worktrees 和 Sub-agents。
 
-![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
+![Claude Code 实战（8）：子代理、工作树和计划模式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
 ## Plan mode —— 气闸舱
 
@@ -244,7 +244,7 @@ Claude：以下是三个 sub-agent 的结果：...
 
 ## Worktrees —— 并行分支且不至于搞疯自己
 
-![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_2.png)
+![Claude Code 实战 (8)：子代理、工作树和计划模式 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_2.png)
 
 git worktree 是同一个 repo 的第二个 working tree，在不同分支，不同目录。 Claude Code 认识这东西：`EnterWorktree` 工具会创建新分支 + worktree 并把 session 切换进去。
 

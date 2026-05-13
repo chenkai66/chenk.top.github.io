@@ -23,7 +23,7 @@ translationKey: "databases-1"
 
 1970 年，埃德加·F·科德（Edgar F. Codd）发表了论文《大型共享数据库的关系数据模型》（"A Relational Model of Data for Large Shared Data Banks"）。其核心洞见在当时极为激进：将数据的 **逻辑表示** 与 **物理存储** 彻底分离。应用程序无需关心数据究竟存于磁盘、内存，还是跨十台机器分布，只需看到 **表（tables）**——仅此而已。
 
-![Normalization forms comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-normalization-forms.png)
+![规范化形式比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-normalization-forms.png)
 
 
 关系型数据库将数据组织为 **关系（relations）**（即表），每张表包含：
@@ -39,7 +39,7 @@ translationKey: "databases-1"
 
 理论结合具体表结构更易理解。以下是一个极简的电商 Schema，本文后续将反复使用。
 
-![Entity-Relationship diagram](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-er-diagram.png)
+![实体-关系图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-er-diagram.png)
 
 
 ```sql
@@ -79,11 +79,11 @@ CREATE TABLE order_items (
 ## SQL 基础要点
 
 
-![Abstract visualization of relational database tables connect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-abstract-visualization-of-relational-database-tables-connect.jpg)
+![关系数据库表连接的抽象可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-abstract-visualization-of-relational-database-tables-connect.jpg)
 
 SQL （Structured Query Language）是与关系型数据库对话的语言，它是**声明式（declarative）**的：你只需描述 *想要什么数据*，而非 *如何获取它*，执行计划由数据库引擎自行推导。
 
-![SQL query execution pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
+![SQL 查询执行流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
 
 
 ### SELECT、FROM、WHERE
@@ -123,7 +123,7 @@ LIMIT 5;
 
 JOIN 将多张表的行组合起来。你需要掌握四种类型：
 
-![SQL join types visualized](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-join-types.png)
+![SQL 连接类型可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-join-types.png)
 
 
 | JOIN 类型 | 返回结果 |
@@ -231,7 +231,7 @@ ORDER BY total_revenue DESC;
 
 Schema 必然随业务演进，新功能常需新增列：
 
-![The relational model in action](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-relational-model.png)
+![关系模型的应用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-relational-model.png)
 
 
 ```sql
@@ -323,7 +323,7 @@ ALTER TABLE users DROP COLUMN phone;
 ## 何时反范式化（Denormalize）
 
 
-![Sql query processing engine mechanical gears and data pipes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-sql-query-processing-engine-mechanical-gears-and-data-pipes-.jpg)
+![SQL 查询处理引擎的机械齿轮和数据管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-sql-query-processing-engine-mechanical-gears-and-data-pipes-.jpg)
 
 范式化消除了冗余，但读取常需 JOIN 多张表——而 JOIN 有开销。有时你**主动反范式化以换取性能**：
 

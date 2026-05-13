@@ -21,11 +21,11 @@ translationKey: "openclaw-quickstart-10"
 
 本章介绍我在 2 核 4G ECS 实例上的实际部署方案，以及实践中高频出现且必须记录和防范的八类典型故障模式。
 
-![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/illustration_1.png)
+![OpenClaw 快速入门 (10)：生产部署及那些没人告诉你的故障模式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/illustration_1.png)
 
 ## 选服务器
 
-![Production deployment stack — from OS to monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/fig_deploy.png)
+![生产部署堆栈 —— 从操作系统到监控](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/fig_deploy.png)
 
 部署前先选对机器。下面这四个选项值得考虑：
 
@@ -121,7 +121,7 @@ services:
 
 ## 八大故障
 
-![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/illustration_2.png)
+![OpenClaw 快速入门 (10)：生产部署及那些没人提醒你的故障模式 — 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/illustration_2.png)
 
 ### 1. 重启后 `command not found: openclaw`
 

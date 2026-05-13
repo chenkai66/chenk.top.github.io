@@ -55,7 +55,7 @@ process.stdin.on('end', () => {
 ![Hook 的 I/O 契约：stdin 输入 JSON，退出码 + stderr 输出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/fig3.png)
 *每个 Hook 都是从 stdin 读取 JSON 载荷的脚本，通过退出码进行判决，stderr 提供说明；settings.json 中的 matcher 控制其可见范围——即哪些 Hook 能接收到本次工具调用。*
 
-![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
+![Claude Code 实战（7）：我实际使用的十个钩子及其代码 —— 视觉呈现](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
 ---
 
@@ -157,7 +157,7 @@ Claude: I can't read .env.local directly as it contains sensitive data.
 
 ## 2. bash-blacklist — 阻止 `rm -rf /`
 
-![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
+![Claude Code 实战 (7)：我实际使用的十个钩子及其代码 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
 
 最常见的自伤操作。挂在 `Bash` 的 PreToolUse 上。
 

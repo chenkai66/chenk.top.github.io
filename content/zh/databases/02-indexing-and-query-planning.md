@@ -21,7 +21,7 @@ translationKey: "databases-2"
 
 想象一张包含 1,000 万行的表，以堆文件（heap file）形式存储在磁盘上。每一行都位于一系列 8 KB 数据页中的某个位置。当你执行：
 
-![Hash index structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-hash-index.png)
+![哈希索引结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-hash-index.png)
 
 
 ```sql
@@ -42,7 +42,7 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 | CPU 开销 | 每行开销低（仅过滤） | 每行开销较高（树遍历 + 堆获取） |
 | 触发条件 | 无合适索引；或优化器估算扫描更便宜 | 存在合适索引且查询具备高选择性 |
 
-![B-tree index structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-btree-index.png)
+![B-树索引结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-btree-index.png)
 
 
 数据库的查询优化器会自动做出这一决策。有时顺序扫描确实更快——例如当 `WHERE` 条件匹配了表中 80% 的行时，索引带来的随机 I/O 反而比一次性顺序读取全部数据更慢。
@@ -51,7 +51,7 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 
 B 树（平衡树）几乎是所有关系型数据库的默认索引类型，其工作原理如下。
 
-![Query cost model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-query-cost-model.png)
+![查询成本模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-query-cost-model.png)
 
 
 ### 结构
@@ -108,11 +108,11 @@ SHOW INDEX FROM users;
 ## B+ 树：为何数据库更偏爱它？
 
 
-![Btree index structure as a futuristic city skyline branching](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-btree-index-structure-as-a-futuristic-city-skyline-branching.jpg)
+![B-树索引结构如未来城市天际线分支](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-btree-index-structure-as-a-futuristic-city-skyline-branching.jpg)
 
 大多数数据库实现实际上使用的是 **B+ 树**——B 树的一种变体：
 
-![Index selectivity impact](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-index-selectivity.png)
+![索引选择性影响](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-index-selectivity.png)
 
 
 | 特性 | B 树 | B+ 树 |
@@ -203,7 +203,7 @@ WHERE status = 'pending';
 1. 遍历索引以定位匹配项；
 2. 从堆（主表数据）中获取剩余所需列（即“堆获取”， heap fetch）。
 
-![Index scan vs sequential scan](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-scan-comparison.png)
+![索引扫描与顺序扫描](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-scan-comparison.png)
 
 
 第 2 步涉及随机 I/O。而 **覆盖索引（covering index）** 包含查询所需的所有列，从而完全避免堆获取：
@@ -387,7 +387,7 @@ CREATE INDEX idx_orders_status_created ON orders (status, created_at);
 ## 过度索引：隐藏的成本
 
 
-![Magnifying glass over database index revealing optimized que](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-magnifying-glass-over-database-index-revealing-optimized-que.jpg)
+![放大镜下的数据库索引揭示优化查询](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-magnifying-glass-over-database-index-revealing-optimized-que.jpg)
 
 每个索引都附带成本：写放大（每次 INSERT/UPDATE/DELETE 都要同步更新所有相关索引）、存储开销（索引体积常达表的 10–30%）、内存争用（与表共享 buffer pool）、规划延迟（索引越多，优化器评估路径越耗时）以及维护负担（如 VACUUM、 REINDEX、统计更新等）。
 

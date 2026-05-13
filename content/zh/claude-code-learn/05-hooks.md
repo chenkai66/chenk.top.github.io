@@ -18,7 +18,7 @@ translationKey: "claude-code-learn-5"
 ---
 如果说 MCP 是 Claude 向外扩展能力的机制，那么 Hooks 则是向内施加约束的手段——强制执行你关心的规则，而不依赖模型自觉遵守。
 
-![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_1.png)
+![Claude Code 实战 (5)：Hooks，或如何不再担心 Yolo 模式 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_1.png)
 
 ## 模型
 
@@ -689,7 +689,7 @@ PostToolUse 钩子总耗时： < 500ms（非关键路径，工具调用后执行
 
 ## 反模式：相对路径
 
-![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_2.png)
+![Claude Code 实操 (5)：Hooks，或如何不再担心 Yolo 模式 —— 视觉呈现](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_2.png)
 
 最常见的 hook bug 是使用相对命令路径：
 

@@ -22,7 +22,7 @@ translationKey: "python-engineering-1"
 
 大多数操作系统都自带一个系统级 Python，例如 macOS 曾长期预装 Python 2.7（Monterey 中已移除），而 Ubuntu 22.04 预装的是 Python 3.10。这个系统 Python 被 OS 层工具依赖，向其中安装包或升级都可能导致操作系统异常。
 
-![Dependency resolution flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
+![依赖解析流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-dep-resolution.png)
 
 
 以下是核心痛点：
@@ -44,7 +44,7 @@ translationKey: "python-engineering-1"
 
 pyenv 通过拦截 `python` 命令，并将其重定向至你配置的任意 Python 版本，来实现版本切换。它通过在你的 `$PATH` 中插入 shim 脚本来完成这一操作。
 
-![pyenv shim mechanism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png)
+![pyenv 机制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-pyenv-shim.png)
 
 
 ### 安装
@@ -162,11 +162,11 @@ $ pyenv versions
 ## 虚拟环境：依赖隔离
 
 
-![Dependency hell tangled wires vs clean resolved dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-dependency-hell-tangled-wires-vs-clean-resolved-dependencies.jpg)
+![依赖地狱：缠绕的线 vs 清晰的依赖关系](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-dependency-hell-tangled-wires-vs-clean-resolved-dependencies.jpg)
 
 即使有了正确的 Python 版本，你仍需依赖隔离。否则，`pip install` 会把包安装到共享位置，而两个需要同一包不同版本的项目就会发生冲突。
 
-![Version management stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png)
+![版本管理栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-version-stack.png)
 
 
 ### 创建虚拟环境
@@ -221,7 +221,7 @@ $
 
 前缀 `.` 使其在文件列表中隐藏。大多数工具（VS Code、 PyCharm、 pytest）都能自动识别 `.venv`。请立即将其加入 `.gitignore`：
 
-![Virtual environment isolation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-venv-isolation.png)
+![虚拟环境隔离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-venv-isolation.png)
 
 
 ```bash
@@ -247,7 +247,7 @@ echo ".venv/" >> .gitignore
 ## pip： Python 包安装器
 
 
-![Python virtual environment isolated bubbles each with differ](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-python-virtual-environment-isolated-bubbles-each-with-differ.jpg)
+![Python 虚拟环境，每个环境都有不同的隔离气泡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-python-virtual-environment-isolated-bubbles-each-with-differ.jpg)
 
 在虚拟环境激活状态下，`pip` 将把包安装到该隔离环境中。
 
@@ -305,7 +305,7 @@ urllib3==2.1.0
 
 pip-tools 通过分离「你想要什么」和「实际安装什么」，解决了 `pip freeze` 的缺陷。
 
-![Toolchain comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-toolchain-comparison.png)
+![工具链对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/01-toolchain-comparison.png)
 
 
 ### 安装

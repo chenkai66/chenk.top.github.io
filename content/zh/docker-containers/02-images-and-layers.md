@@ -22,7 +22,7 @@ translationKey: "docker-containers-2"
 
 在深入分层机制之前，我们先厘清一个常令初学者困惑的基础概念。
 
-![Union filesystem](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-union-fs.png)
+![联合文件系统](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-union-fs.png)
 
 
 **镜像（Image）** 是一个只读模板，包含构建容器所需的全部内容：文件系统、环境变量、默认命令及元数据。你可以把它类比为面向对象编程中的「类定义（class definition）」。
@@ -58,10 +58,10 @@ c3d4e5f6a7b8   ubuntu:22.04   "bash"                   5 minutes ago    Exited (
 
 每个 Docker 镜像均由一组分层堆叠而成。每一层代表一组文件系统变更 —— 文件的新增、修改或删除。这些分层具有以下特性：
 
-![Docker layer building animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/docker-02-layer-building.gif)
+![Docker 层构建动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/docker-02-layer-building.gif)
 
 
-![Docker image layer stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-stack.png)
+![Docker 镜像层堆栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-stack.png)
 
 
 1. **只读性（Read-only）**：一旦创建，分层永不更改；
@@ -97,7 +97,7 @@ CMD ["python3", "/app/app.py"]  # 仅元数据（不生成新分层）
 
 我们来追踪 `docker pull nginx` 的实际执行过程：
 
-![Layer sharing between containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-sharing.png)
+![容器间的层共享](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-sharing.png)
 
 
 ```bash
@@ -144,10 +144,10 @@ docker.io/library/nginx:alpine
 ## 检查镜像分层
 
 
-![Build cache mechanism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-build-cache.png)
+![构建缓存机制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-build-cache.png)
 
 
-![Container registry as a futuristic vending machine dispensin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-container-registry-as-a-futuristic-vending-machine-dispensin.jpg)
+![容器镜像仓库如同未来的自动售货机](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-container-registry-as-a-futuristic-vending-machine-dispensin.jpg)
 
 ### `docker history`
 
@@ -212,7 +212,7 @@ docker image inspect nginx --format '{{json .RootFS}}' | python3 -m json.tool
 
 Docker 镜像遵循如下命名约定：
 
-![Image registry workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-image-registry.png)
+![镜像仓库工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-image-registry.png)
 
 
 ```
@@ -438,7 +438,7 @@ docker pull myapp@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c2
 ## 清理镜像
 
 
-![Docker image layers as geological rock strata each layer a d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-docker-image-layers-as-geological-rock-strata-each-layer-a-d.jpg)
+![Docker 镜像层如同地质岩层，每一层代表一个差异](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-docker-image-layers-as-geological-rock-strata-each-layer-a-d.jpg)
 
 镜像会快速累积。以下是释放磁盘空间的方法：
 

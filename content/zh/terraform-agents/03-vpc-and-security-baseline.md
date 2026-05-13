@@ -33,7 +33,7 @@ translationKey: "terraform-agents-3"
 
 先别急着写代码，先看图：
 
-![VPC topology — 3 zones, public + private, NAT egress](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig1_vpc_topology.png)
+![VPC 拓扑 — 3 个可用区，公有 + 私有，NAT 出口](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig1_vpc_topology.png)
 
 为什么选三个可用区？因为阿里云可能在任意周日发起可用区级维护，单可用区部署会导致整个维护窗口期内 Agent 全面不可用。而 VPC 内跨可用区流量免费，唯一的额外成本是子网规划的运维复杂度，这部分已由 Terraform 自动处理。
 
@@ -176,7 +176,7 @@ SNAT 条目才是让私网子网实例能通互联网的关键。少了它们，
 
 在阿里云上，正确的安全组做法是每层一个 SG，规则引用 SG ID 而不是 CIDR：
 
-![Security group strategy — tight ingress, loose egress, layered](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig2_sg_layers.png)
+![安全组策略 — 严格的入站，宽松的出站，分层](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig2_sg_layers.png)
 
 ```hcl
 resource "alicloud_security_group" "alb_public" {
@@ -258,10 +258,10 @@ resource "alicloud_security_group_rule" "vector_from_agent" {
 
 静态加密（Encryption-at-rest）是任何合规制度的底线，阿里云的做法是每个数据域使用一把 Customer Master Key (CMK)，这样可以单独轮换某一把而不影响其他，并且可以按密钥审计访问记录。
 
-![Data encryption at rest and in transit with key management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/wanxiang_encryption.png)
+![数据在存储和传输过程中加密，并进行密钥管理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/wanxiang_encryption.png)
 
 
-![KMS encryption — one CMK per data domain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig3_kms_encrypt.png)
+![KMS 加密 — 每个数据域一个 CMK](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/03-vpc-and-security-baseline/fig3_kms_encrypt.png)
 
 ```hcl
 locals {

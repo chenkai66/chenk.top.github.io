@@ -21,7 +21,7 @@ translationKey: "databases-3"
 
 事务是一组被数据库视为单一逻辑单元的操作。这些操作要么**全部成功**，要么**全部失败**。
 
-![Isolation level anomalies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-isolation-anomalies.png)
+![隔离级别异常](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-isolation-anomalies.png)
 
 
 ```sql
@@ -72,7 +72,7 @@ INSERT INTO orders (order_id, user_id) VALUES (999, 12345);
 
 **定义**：多个并发执行的事务，其效果等价于以某种顺序串行执行。
 
-![Isolation levels comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-isolation-levels.png)
+![隔离级别比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-isolation-levels.png)
 
 
 **缺失隔离性时会发生什么**：
@@ -103,7 +103,7 @@ SELECT balance FROM accounts WHERE account_id = 1;  -- 返回 500！
 ## 事务生命周期
 
 
-![Mvcc timeline visualization parallel universes of database s](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-mvcc-timeline-visualization-parallel-universes-of-database-s.jpg)
+![MVCC时间线可视化：数据库的平行宇宙](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-mvcc-timeline-visualization-parallel-universes-of-database-s.jpg)
 
 ```sql
 -- 启动事务
@@ -144,7 +144,7 @@ COMMIT;
 ## 隔离级别
 
 
-![Database transaction locks as golden padlocks on digital vau](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-database-transaction-locks-as-golden-padlocks-on-digital-vau.jpg)
+![数据库事务锁如同数字金库上的金色挂锁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-database-transaction-locks-as-golden-padlocks-on-digital-vau.jpg)
 
 SQL 标准定义了四种隔离级别，各自允许不同类型的并发异常。更强的隔离性 → 更少的异常，但吞吐量更低。
 
@@ -246,7 +246,7 @@ PostgreSQL 默认使用 READ COMMITTED； MySQL （InnoDB）默认使用 REPEATA
 
 多版本并发控制（Multi-Version Concurrency Control, MVCC）是让隔离级别具备实用性的核心机制。它不采用“写时阻塞读”的低效方式（这会严重损害性能），而是为每一行维护多个版本。
 
-![Multi-version concurrency control](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-mvcc-timeline.png)
+![多版本并发控制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-mvcc-timeline.png)
 
 
 ### PostgreSQL 的 MVCC 实现
@@ -300,7 +300,7 @@ InnoDB 采用不同策略：
 
 尽管有 MVCC，当多个事务尝试写入相同数据时，数据库仍需加锁。
 
-![Lock types hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-lock-types.png)
+![锁类型层次结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-lock-types.png)
 
 
 ### 行级锁（Row-Level Locks）
@@ -396,7 +396,7 @@ SELECT pg_advisory_lock(hashtext('process_daily_report'));
 
 当两个事务各自持有对方所需锁时，即发生死锁。
 
-![Deadlock detection](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-deadlock-detection.png)
+![死锁检测](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/03-deadlock-detection.png)
 
 
 ```sql

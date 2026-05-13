@@ -24,7 +24,7 @@ Agent 具备非确定性、多步骤执行特性，并且频繁调用高成本 A
 
 ## 三条管线
 
-![Three signals, three pipelines: logs, traces, metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig1_obs_pipeline.png)
+![三个信号，三个管道：日志、跟踪、指标](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig1_obs_pipeline.png)
 
 三种信号类型对应三个阿里云服务，最终都汇聚到 SLS 方便查看：
 
@@ -44,7 +44,7 @@ Agent 具备非确定性、多步骤执行特性，并且频繁调用高成本 A
 
 所有可观测性相关的工作都始于一个 SLS 项目。每个环境一个是对的，每个 agent 一个则过于细化。
 
-![Cloud monitoring command center with real-time metrics dashboards](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/wanxiang_monitoring.png)
+![带有实时指标仪表板的云监控指挥中心](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/wanxiang_monitoring.png)
 
 
 ```hcl
@@ -270,7 +270,7 @@ resource "alicloud_log_dashboard" "cost" {
 
 打开 SLS 控制台，你就能看到一个实时仪表盘：
 
-![Stacked daily cost by category](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png)
+![按类别堆叠的每日成本](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png)
 
 这个仪表盘回答了“哪个 agent 在烧我的预算？”这个问题，每月都会被提出，提问者通常是不熟悉 Agent 架构的相关方（如财务或业务团队）。
 ## 六个真正派得上用场的 SLS 查询
@@ -401,7 +401,7 @@ resource "alicloud_log_savedsearch" "top_offenders" {
 
 查询回答 *what*，告警告诉你是 *when*。我交付过的多个 Agent 栈里，这四个告警真正派上了用场：
 
-![Four alerts you should provision on day one](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig3_alert_rules.png)
+![第一天应配置的四个警报](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig3_alert_rules.png)
 
 ### 告警 1：成本封顶
 

@@ -19,13 +19,13 @@ translationKey: "aliyun-bailian-1"
 
 第一篇先摸底：百炼是什么、会遇到哪些模型家族、两种接口风格的区别，以及各自的 Hello World，这样后面的文章就不用反复解释基础概念。
 
-![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.png)
+![阿里云百链（1）：平台概览和首次请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.png)
 
 ## 百炼是什么，DashScope 又是什么？
 
 命名体系较为混乱：阿里曾将产品名从 DashScope 统一更改为‘百炼’——官方 'DashScope' 文档是从 API 角度讲的，而‘百炼’文档是从控制台角度讲的，其实它们是同一个产品，只是名称不同。
 
-![Bailian (console) vs DashScope (API)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
+![百链（控制台）与DashScope（API）对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig1_bailian_dashscope_split.png)
 
 两套文档中名称混用频繁，甚至同一段落内交替出现，本质上是因为‘控制台操作’与‘API 集成’两种使用视角的差异——例如，‘部署百炼应用’指的是在控制台完成配置，而‘DashScope 报错’通常指 API 返回非 200 状态码。
 
@@ -62,7 +62,7 @@ export DASHSCOPE_API_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
 
 根据 Qwen API 参考文档，所有百炼文本及多模态模型均支持两种 HTTP 接口方式，这是本文最关键的前提。
 
-![Two HTTP surfaces, one model catalog](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig2_two_endpoints.png)
+![两个HTTP接口，一个模型目录](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig2_two_endpoints.png)
 
 ### OpenAI 兼容接口
 
@@ -133,7 +133,7 @@ print(resp.output.choices[0].message.content)
 
 任何耗时超过 ~30 秒的操作（视频生成、大批量 embedding、长表单 TTS）都是异步的。模式永远是：
 
-![Async task pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig3_async_task_pattern.png)
+![异步任务模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/fig3_async_task_pattern.png)
 
 1. POST 到创建接口， header 带 `X-DashScope-Async: enable`。
 2. 拿到 `task_id`。
@@ -148,7 +148,7 @@ LLM 和 Qwen-Omni 支持 SSE 流式。对于开启 `enable_thinking=True` 的 Qw
 
 ## 一个完整的第一个请求
 
-![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_2.png)
+![阿里云百链 (1)：平台概览和首次请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_2.png)
 
 保存为 `hello_bailian.py` 并运行。如果打印出一句话，说明你的账户、 Key 和网络都没问题，可以进入第 2 篇了。
 

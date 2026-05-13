@@ -22,7 +22,7 @@ translationKey: "docker-containers-4"
 
 Docker 启动时自动创建宿主机上的虚拟网络基础设施：每个容器拥有独立的网络命名空间（含专属 IP、路由表和网络接口）， Docker 负责调度容器间及容器与外部的流量。
 
-![Container DNS resolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png)
+![容器 DNS 解析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png)
 
 
 ### 网络驱动（Network Drivers）
@@ -44,7 +44,7 @@ Docker 支持多种网络驱动，各自适用于不同场景：
 
 安装 Docker 后，它会自动创建一个名为 `bridge` 的网络（底层由 Linux 桥接设备 `docker0` 实现）：
 
-![Bridge networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-bridge-network.png)
+![桥接网络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-bridge-network.png)
 
 
 ```bash
@@ -173,7 +173,7 @@ docker network rm my-app-network other-network
 
 容器拥有自己的网络命名空间。要将容器端口暴露给宿主机（进而暴露给外部世界），需进行端口映射：
 
-![Port mapping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-port-mapping.png)
+![端口映射](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-port-mapping.png)
 
 
 ```bash
@@ -260,7 +260,7 @@ docker network prune
 
 默认情况下，容器内写入的数据全部保存在可写层（writable layer）；容器删除后，这些数据即永久丢失。**卷（Volumes）** 提供了一种独立于容器生命周期之外的持久化存储机制。
 
-![Volume types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-volume-types.png)
+![卷类型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-volume-types.png)
 
 
 ### 三种挂载类型（Mount Types）
@@ -402,11 +402,11 @@ docker run -d \
 ## 真实案例： MySQL 与持久化数据
 
 
-![Docker network bridge connecting containers like islands con](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-network-bridge-connecting-containers-like-islands-con.jpg)
+![Docker 网络桥连接容器，如同岛屿相连](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-network-bridge-connecting-containers-like-islands-con.jpg)
 
 本例展示卷为何至关重要。若不使用卷，删除 MySQL 容器将导致所有数据彻底丢失。
 
-![Overlay network](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-overlay-network.png)
+![覆盖网络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-overlay-network.png)
 
 
 ```bash
@@ -542,7 +542,7 @@ docker run --user 1000:1000 -v mydata:/data myapp
 ## 综合实践：带网络与持久化的应用
 
 
-![Docker volumes as floating storage crystals connected to con](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-volumes-as-floating-storage-crystals-connected-to-con.jpg)
+![Docker 卷作为浮动存储晶体连接到容器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-volumes-as-floating-storage-crystals-connected-to-con.jpg)
 
 以下是一个完整示例——Python 应用连接 Redis，二者均运行于自定义网络，且 Redis 数据持久化：
 

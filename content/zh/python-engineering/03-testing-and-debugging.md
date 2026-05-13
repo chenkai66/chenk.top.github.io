@@ -22,7 +22,7 @@ translationKey: "python-engineering-3"
 
 编写测试在前期会消耗时间，但不写测试，后期将付出更多时间。以下是对比：
 
-![Testing pyramid](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-test-pyramid.png)
+![测试金字塔](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-test-pyramid.png)
 
 
 | 活动 | 无测试 | 有测试 |
@@ -153,11 +153,11 @@ def test_float_division():
 ## Fixture：可复用的测试准备逻辑
 
 
-![Testing pyramid ancient egyptian pyramid with unit integrati](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-testing-pyramid-ancient-egyptian-pyramid-with-unit-integrati.jpg)
+![测试金字塔，古埃及金字塔与单元集成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-testing-pyramid-ancient-egyptian-pyramid-with-unit-integrati.jpg)
 
 Fixture 替代了 unittest 中的 `setUp`/`tearDown` 模式，通过函数参数向测试注入依赖。
 
-![Fixture scopes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png)
+![固定装置范围](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-fixture-scope.png)
 
 
 ### 基础 Fixture
@@ -310,11 +310,11 @@ def test_monkeypatch_env(monkeypatch):
 ## Parametrize：批量测试多组用例
 
 
-![Pytest fixture mechanism factory producing test data assembl](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-pytest-fixture-mechanism-factory-producing-test-data-assembl.jpg)
+![Pytest 固定装置机制工厂生成测试数据集](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-pytest-fixture-mechanism-factory-producing-test-data-assembl.jpg)
 
 无需为每种输入单独编写测试函数，使用 `@pytest.mark.parametrize` 即可：
 
-![Parametrized tests](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png)
+![参数化测试](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png)
 
 
 ```python
@@ -370,7 +370,7 @@ def test_filename_from_url(url, expected_filename):
 
 当测试调用外部服务的函数时，你不希望测试真正发起 HTTP 请求。Mocking 将代码中部分组件替换为可控的模拟对象。
 
-![Mock architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png)
+![模拟架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-mock-architecture.png)
 
 
 ### unittest.mock.patch
@@ -436,7 +436,7 @@ def test_download_with_env_config(monkeypatch):
 
 安装 pytest-cov：
 
-![Coverage report](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-coverage-report.png)
+![覆盖率报告](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-coverage-report.png)
 
 
 ```bash

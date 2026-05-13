@@ -24,7 +24,7 @@ translationKey: "probability-statistics-7"
 ## 框架
 
 
-![Rejection regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-rejection-region.png)
+![拒绝域](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-rejection-region.png)
 
 ### 设定假设
 
@@ -64,7 +64,7 @@ $$\alpha = P(\text{reject } H_0 \mid H_0 \text{ is true}) = P(T \in R \mid H_0).
 | **拒绝 $H_0$** | I 类错误（假阳性） | 正确（真阳性） |
 | **不拒绝 $H_0$** | 正确（真阴性） | II 类错误（假阴性） |
 
-![Statistical power curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-power-curve.png)
+![统计功效曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-power-curve.png)
 
 
 - **I 类错误率** = $\alpha$ = P(拒绝 $H_0$ | $H_0$ 为真)
@@ -84,10 +84,10 @@ $$\alpha = P(\text{reject } H_0 \mid H_0 \text{ is true}) = P(T \in R \mid H_0).
 ## p 值
 
 
-![Type I and Type II errors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-error-types.png)
+![第一类和第二类错误](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-error-types.png)
 
 
-![Ab testing laboratory two beakers being compared scientific](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-ab-testing-laboratory-two-beakers-being-compared-scientific-.jpg)
+![A/B 测试实验室中两个烧杯的比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-ab-testing-laboratory-two-beakers-being-compared-scientific-.jpg)
 
 ### 定义
 
@@ -118,7 +118,7 @@ p 值是：在**假设 $H_0$ 为真**的前提下，观察到如此极端或更�
 ## 常见检验方法
 
 
-![Effect size visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-effect-size.png)
+![效应量可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-effect-size.png)
 
 ### Z 检验
 
@@ -246,7 +246,7 @@ Bonferroni 方法偏保守——它控制 FWER，但在 $m$ 很大时功效极�
 ## A/B 测试
 
 
-![A/B test design](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-ab-test.png)
+![A/B 测试设计](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-ab-test.png)
 
 ### 设置方式
 
@@ -431,7 +431,7 @@ print(f"{'Benjamini-Hochberg':<25} {bh_reject.sum():>10} "
 ## 效应量： p 值无法告诉你的信息
 
 
-![Hypothesis testing courtroom trial null hypothesis on trial](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-hypothesis-testing-courtroom-trial-null-hypothesis-on-trial.jpg)
+![假设检验法庭审判，零假设受审](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/07-hypothesis-testing-courtroom-trial-null-hypothesis-on-trial.jpg)
 
 p 值仅说明效应是否在统计上可与零区分。它**无法**告诉你效应有多大，或是否具有实际意义。
 

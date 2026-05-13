@@ -119,7 +119,7 @@ RDS MySQL 提供三种连接方式：
 
 PolarDB 是阿里云的云原生数据库。如果说 RDS 是“托管的 MySQL 实例”，那 PolarDB 就是骨子里完全不同的架构，只不过恰好兼容 MySQL 协议而已。
 
-![RDS vs PolarDB feature comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_rds_vs_polardb.png)
+![RDS 与 PolarDB 功能对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_rds_vs_polardb.png)
 
 ### PolarDB 与 RDS 的区别
 
@@ -186,7 +186,7 @@ PolarDB 提供 Serverless 模式，计算资源随负载自动伸缩。你设定
 
 选对 RDS 实例规格是成本控制最关键的一步。选小了，负载一高查询就慢；选大了，闲置资源全是钱。
 
-![RDS instance sizing decision guide](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_sizing_guide.png)
+![RDS 实例规格选择指南](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_sizing_guide.png)
 
 ### 关键指标
 

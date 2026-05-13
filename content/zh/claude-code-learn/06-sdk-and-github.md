@@ -18,7 +18,7 @@ translationKey: "claude-code-learn-6"
 ---
 CLI 是門面， SDK 提供核心能力， GitHub 集成才是價值真正釋放的關鍵環節。
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
+![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
 ## 一段話說清 SDK
 
@@ -283,7 +283,7 @@ for await (const event of result) {
 
 ## GitHub Action
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_2.png)
+![Claude Code 实战 (6)：SDK、GitHub 集成和 CI 中的 Claude — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
 
 ![GitHub Action 生命周期：从 @claude 评论到 PR 回复](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/fig4_action_flow.png)

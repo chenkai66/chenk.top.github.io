@@ -22,7 +22,7 @@ translationKey: "docker-containers-6"
 
 日志是排查问题的第一道防线，Docker 会捕获容器向 stdout 和 stderr 输出的所有内容。
 
-![Resource monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-resource-monitoring.png)
+![资源监控](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-resource-monitoring.png)
 
 
 ### docker logs
@@ -132,7 +132,7 @@ docker inspect crashed-app --format '{{.State.OOMKilled}}'
 
 `docker exec` 可在运行中的容器内执行命令，是交互式调试的主要方式：
 
-![exec vs attach](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-exec-vs-attach.png)
+![exec 与 attach 的区别](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-exec-vs-attach.png)
 
 
 ```bash
@@ -213,11 +213,11 @@ docker run -it --rm \
 ## docker inspect — 获取完整视图
 
 
-![Container logging pipeline data streams flowing from contain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-container-logging-pipeline-data-streams-flowing-from-contain.jpg)
+![容器日志流水线数据流从容器中流出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-container-logging-pipeline-data-streams-flowing-from-contain.jpg)
 
 `docker inspect` 返回关于容器的详细 JSON 元数据。虽然输出冗长，但它包含了你能想到的一切信息：
 
-![Troubleshooting decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-troubleshooting.png)
+![故障排查决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-troubleshooting.png)
 
 
 ```bash
@@ -461,11 +461,11 @@ docker run -it debug-image:latest bash
 ## 临时调试容器（Ephemeral Debug Containers）
 
 
-![Debugging inside a container detective with magnifying glass](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-debugging-inside-a-container-detective-with-magnifying-glass.jpg)
+![容器内部调试：侦探拿着放大镜](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-debugging-inside-a-container-detective-with-magnifying-glass.jpg)
 
 有时你需要网络工具、`strace` 或其他不在应用镜像中的调试工具。此时可运行一个独立的调试容器，并共享目标容器的网络：
 
-![Debugging workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-debug-workflow.png)
+![调试工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-debug-workflow.png)
 
 
 ```bash

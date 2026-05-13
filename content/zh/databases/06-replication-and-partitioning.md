@@ -38,7 +38,7 @@ translationKey: "databases-6"
 
 最常用的复制拓扑结构是主节点（Leader/Master/Primary）负责全部写操作，一个或多个从节点（Follower/Slave/Replica/Standby）接收所有写入的副本并可服务读请求。
 
-![Leader-follower replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
+![主从复制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-leader-follower.png)
 
 
 ```
@@ -133,7 +133,7 @@ def get_comments(post_id, last_write_ts=None):
 
 多个主节点均可独立接受写入，彼此之间双向同步变更。常见于多数据中心架构。
 
-![Multi-leader replication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-multi-leader.png)
+![多主复制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-multi-leader.png)
 
 
 ```
@@ -236,7 +236,7 @@ R = 2（读取需从 2 个节点获取响应）
 - 将写负载分散至多台机器
 - 将热点数据就近部署给特定用户（地理分片）
 
-![Partitioning strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-partition-strategies.png)
+![分区策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-partition-strategies.png)
 
 
 ### 基于范围的分片（Range-Based Partitioning）
@@ -313,7 +313,7 @@ CREATE TABLE sessions_p3 PARTITION OF sessions
 
 传统 `hash(key) % N` 的问题：增减分片时，几乎所有键都会映射到新分片，引发海量数据迁移。
 
-![Consistent hashing ring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-consistent-hashing.png)
+![一致性哈希环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-consistent-hashing.png)
 
 
 一致性哈希通过将键与节点共同映射到一个环（0 到 2^32）来解决：
@@ -408,7 +408,7 @@ Email 索引分片 B（n–z）：zara@... → 分片 3
 ## MySQL 主从复制实操指南
 
 
-![Consistent hashing ring as a futuristic carousel with data d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-consistent-hashing-ring-as-a-futuristic-carousel-with-data-d.jpg)
+![一致性哈希环，形如带有数据的未来旋转木马](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-consistent-hashing-ring-as-a-futuristic-carousel-with-data-d.jpg)
 
 下面我们搭建一个基础的 MySQL 主从复制环境。
 
@@ -549,6 +549,6 @@ START REPLICA;
 ## 下一步
 
 
-![Distributed database replication data streams flowing betwee](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)
+![分布式数据库复制数据流在节点间流动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)
 
 复制与分片解决了数据跨多机部署的问题。但当一个事务需要同时更新多个机器上的数据时，又该如何保证原子性与一致性？这就是**分布式事务（Distributed Transactions）** 的挑战——两阶段提交（2PC）、 Saga 模式、共识算法（Consensus），以及为何大多数工程师在可行时都尽量规避它。我们将在下一篇文章中深入探讨。

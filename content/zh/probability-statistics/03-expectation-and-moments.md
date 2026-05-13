@@ -23,7 +23,7 @@ translationKey: "probability-statistics-3"
 ## 期望
 
 
-![Expectation as balance point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-expectation.png)
+![期望作为平衡点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-expectation.png)
 
 ### 定义
 
@@ -81,7 +81,7 @@ $$E[\text{逆序对个数}] = \binom{n}{2} \cdot \frac{1}{2} = \frac{n(n-1)}{4}.
 
 要计算 $E[g(X)]$（$g$ 为某函数），你或许会认为必须先求出 $Y = g(X)$ 的分布。其实不必。
 
-![Variance visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-variance.png)
+![方差可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-variance.png)
 
 
 **定理（LOTUS）。** 若 $X$ 是离散型随机变量，其 PMF 为 $p(x)$，则：
@@ -103,10 +103,10 @@ $$E[X^2] = \int_0^1 x^2 \cdot 1 \, dx = \frac{x^3}{3}\bigg|_0^1 = \frac{1}{3}.$$
 ## 方差
 
 
-![Covariance scatter plots](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-covariance-scatter.png)
+![协方差散点图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-covariance-scatter.png)
 
 
-![Covariance correlation dance partners moving together or ind](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-covariance-correlation-dance-partners-moving-together-or-ind.jpg)
+![协方差相关性：舞伴一起移动或独立](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-covariance-correlation-dance-partners-moving-together-or-ind.jpg)
 
 ### 定义
 
@@ -163,7 +163,7 @@ $$\text{Var}(X + Y) = \text{Var}(X) + \text{Var}(Y) + 2\text{Cov}(X, Y)$$
 ## 协方差
 
 
-![Chebyshev inequality](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-chebyshev-bound.png)
+![切比雪夫不等式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-chebyshev-bound.png)
 
 ### 定义
 
@@ -199,7 +199,7 @@ $$E[XY] = E[X^3] = \int_{-1}^{1} x^3 \cdot \frac{1}{2} dx = 0$$
 
 **皮尔逊相关系数**将协方差标准化，使其取值范围落在 $[-1, 1]$ 内：
 
-![Moment generating function](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-mgf.png)
+![矩生成函数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-mgf.png)
 
 
 $$\rho(X, Y) = \frac{\text{Cov}(X, Y)}{\sigma_X \sigma_Y} = \frac{\text{Cov}(X, Y)}{\sqrt{\text{Var}(X)\text{Var}(Y)}}.$$
@@ -349,7 +349,7 @@ $$P((X - \mu)^2 \geq k^2 \sigma^2) \leq \frac{E[(X - \mu)^2]}{k^2 \sigma^2} = \f
 ## Python：可视化矩与切比雪夫上界
 
 
-![Expectation as center of mass balance point on probability d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-expectation-as-center-of-mass-balance-point-on-probability-d.jpg)
+![期望作为概率分布的质量中心平衡点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/03-expectation-as-center-of-mass-balance-point-on-probability-d.jpg)
 
 ```python
 import numpy as np

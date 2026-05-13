@@ -38,7 +38,7 @@ polished_by_qwen_max: true
 **前置知识**：第三篇（RNN 和 Seq2Seq），基本线性代数知识（矩阵乘法、 softmax），以及对 PyTorch 的基本使用能力。
 ## 1. 驱动注意力机制的瓶颈问题
 
-![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
+![NLP (4)：注意力机制与Transformer —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
 
 回顾一下第三部分提到的基础编解码模型。编码器 RNN 按顺序逐个读取源句子的 token，最终把所有信息压缩成一个固定长度的向量 $c = h_T^{\text{enc}}$。解码器则完全依赖这个向量来生成目标语言序列。
 

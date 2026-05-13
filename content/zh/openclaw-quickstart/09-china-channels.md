@@ -21,11 +21,11 @@ translationKey: "openclaw-quickstart-9"
 
 下方矩阵表是我每次向他人推荐方案前必查的决策清单。
 
-![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_1.png)
+![OpenClaw 快速入门（9）：中国 IM 选择器，权衡利弊 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_1.png)
 
 ## 值得了解的七个渠道
 
-![China IM channel selection decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/fig_picker.png)
+![中国 IM 频道选择决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/fig_picker.png)
 
 下文默认你都用了 `openclaw-china` 插件：
 
@@ -72,7 +72,7 @@ npx @openclaw-china/setup
 
 ## 钉钉 —— 永远能走通的路
 
-![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_2.png)
+![OpenClaw 快速入门（9）：中国 IM 选择器，权衡利弊 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_2.png)
 
 流式模式（long-poll）是钉钉快速上线的唯一原因——无需公网 IP 和域名验证，注册机器人后获取两个凭证即可。
 

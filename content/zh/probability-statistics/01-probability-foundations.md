@@ -25,7 +25,7 @@ translationKey: "probability-statistics-1"
 ## 样本空间、事件与 σ-代数
 
 
-![Sample space visualization](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-sample-space.png)
+![样本空间可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-sample-space.png)
 
 ### 样本空间
 
@@ -60,7 +60,7 @@ translationKey: "probability-statistics-1"
 
 定义在 $(\Omega, \mathcal{F})$ 上的**概率测度** $P$ 是一个函数 $P: \mathcal{F} \to \mathbb{R}$，满足：
 
-![Kolmogorov axioms](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-kolmogorov-axioms.png)
+![柯尔莫哥洛夫公理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-kolmogorov-axioms.png)
 
 
 **公理 1 （非负性）**：对任意事件 $A \in \mathcal{F}$，
@@ -100,11 +100,11 @@ $$P(A \cup B) = P(A) + P(B) - P(A \cap B).$$
 ## 条件概率
 
 
-![Probability sample space as a cosmic universe of possible ou](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-probability-sample-space-as-a-cosmic-universe-of-possible-ou.jpg)
+![概率样本空间作为所有可能结果的宇宙](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-probability-sample-space-as-a-cosmic-universe-of-possible-ou.jpg)
 
 当我们得知某事件 $B$ 已发生时，我们对其他事件的信念会发生变化。这种更新由**条件概率**刻画。
 
-![Conditional probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-conditional-probability.png)
+![条件概率](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-conditional-probability.png)
 
 
 **定义**：若 $P(B) > 0$，则在 $B$ 发生条件下 $A$ 的条件概率为
@@ -132,11 +132,11 @@ $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid 
 ## 全概率公式
 
 
-![Bayes theorem detective updating beliefs with new evidence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-bayes-theorem-detective-updating-beliefs-with-new-evidence.jpg)
+![贝叶斯定理：侦探根据新证据更新信念](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-bayes-theorem-detective-updating-beliefs-with-new-evidence.jpg)
 
 设 $B_1, B_2, \ldots, B_n$ 是 $\Omega$ 的一个**划分**——即各 $B_i$ 两两不相交，且 $\bigcup_i B_i = \Omega$，同时对所有 $i$ 都有 $P(B_i) > 0$。那么对任意事件 $A$，有：
 
-![Bayes theorem decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-bayes-tree.png)
+![贝叶斯定理决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-bayes-tree.png)
 
 
 $$P(A) = \sum_{i=1}^{n} P(A \mid B_i) \, P(B_i).$$
@@ -151,7 +151,7 @@ $$P(A) = \sum_i P(A \cap B_i) = \sum_i P(A \mid B_i) P(B_i). \quad \blacksquare$
 
 **定理（贝叶斯）**：若 $P(A) > 0$ 且 $P(B) > 0$，则
 
-![Birthday problem curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-birthday-problem.png)
+![生日问题曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-birthday-problem.png)
 
 
 $$P(B \mid A) = \frac{P(A \mid B) \, P(B)}{P(A)}.$$

@@ -19,11 +19,11 @@ translationKey: "openclaw-quickstart-5"
 ---
 OpenClaw 的设计初衷是让 Agent 主动与你交互——目前仅支持 TUI（文本界面）。接入聊天通道是让它真正‘活起来’的第一步。
 
-![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_1.png)
+![OpenClaw 快速入门（5）：连接 Telegram、钉钉和微信 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_1.png)
 
 ## Telegram — 五分钟搞定
 
-![Channel routing architecture — message flow from IM platforms through the gateway](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/fig_channels.png)
+![通道路由架构 —— 消息从即时通讯平台通过网关的流动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/fig_channels.png)
 
 即使你不打算在生产环境中使用 Telegram，也强烈推荐它作为首个接入通道，因为其配置简单、无额外依赖，并能完整跑通 Agent 的端到端流程。
 
@@ -117,7 +117,7 @@ Stream Mode 反过来了：你的 gateway 向 `wss://stream.dingtalk.com` 发起
 
 ## 微信 — 大实话版本
 
-![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_2.png)
+![OpenClaw 快速入门 (5)：连接 Telegram、DingTalk 和微信 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_2.png)
 
 有三条接入路径，其中仅 WorkBuddy 是官方支持且可靠的选择。
 

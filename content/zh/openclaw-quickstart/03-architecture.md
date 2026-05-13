@@ -18,11 +18,11 @@ translationKey: "openclaw-quickstart-3"
 ---
 尽管你可能在使用 OpenClaw 的前几个月都不需要阅读这篇文章，但当你第一次编写 Skill、调试消息路由异常或疑惑 Agent 为何突然“失忆”时，就必须厘清各模块的职责。
 
-![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_1.png)
+![OpenClaw 快速入门（3）：使代理循环工作的六层结构 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_1.png)
 
 ## 六层架构
 
-![The six layers of an OpenClaw agent: Channels, Gateway, Router+Sessions+Pi Agent, Tools+Skills, Memory+ContextEngine, LLM provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/fig1_six_layers.png)
+![OpenClaw 代理的六层结构：通道、网关、路由+会话+Pi 代理、工具+技能、内存+上下文引擎、LLM 提供商](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/fig1_six_layers.png)
 
 接下来按自上而下的顺序梳理。
 
@@ -52,7 +52,7 @@ Router 负责路由消息到目标 Agent——仅当配置多个 Agent 时才生
 
 ## Pi Agent —— 核心执行循环
 
-![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_2.png)
+![OpenClaw 快速入门 (3)：使代理循环工作的六个层级 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_2.png)
 
 这才是 Agent 的核心执行循环。代码如下：
 

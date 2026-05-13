@@ -26,7 +26,7 @@ translationKey: "probability-statistics-4"
 
 若 $X$ 和 $Y$ 是定义在同一概率空间上的离散型随机变量，则其 **联合 PMF** 定义为：
 
-![Joint PMF table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-joint-pmf.png)
+![联合概率质量函数表](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-joint-pmf.png)
 
 
 $$p_{X,Y}(x, y) = P(X = x, Y = y)$$
@@ -43,7 +43,7 @@ $$p_{X,Y}(x, y) = P(X = x, Y = y)$$
 
 $X$ 的 **边缘 PMF** 通过对 $Y$ 求和得到：
 
-![Marginal projections](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-marginal-projection.png)
+![边缘投影](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-marginal-projection.png)
 
 
 $$p_X(x) = \sum_y p_{X,Y}(x, y).$$
@@ -119,7 +119,7 @@ $$f_{X|Y}(x | y) = \frac{6(1-y)}{6y(1-y)} = \frac{1}{y} \quad \text{对 } 0 < x 
 ## 独立性（Independence）
 
 
-![Independence vs dependence linked chains vs free floating ev](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-independence-vs-dependence-linked-chains-vs-free-floating-ev.jpg)
+![独立与依赖链 vs 自由浮动变量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-independence-vs-dependence-linked-chains-vs-free-floating-ev.jpg)
 
 随机变量 $X$ 和 $Y$ **相互独立**，当且仅当其联合分布可分解为边缘分布的乘积：
 
@@ -136,11 +136,11 @@ $$f_{X,Y}(x, y) = f_X(x) \, f_Y(y) \quad \text{对所有 } (x, y) \text{ 成立}
 ## 二元正态分布（The Bivariate Normal Distribution）
 
 
-![Joint probability distribution as 3d terrain map with margin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-joint-probability-distribution-as-3d-terrain-map-with-margin.jpg)
+![作为3D地形图的联合概率分布及其边缘](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-joint-probability-distribution-as-3d-terrain-map-with-margin.jpg)
 
 最重要的多元分布。若 $(X, Y)$ 服从二元正态分布，则其联合 PDF 为：
 
-![Bivariate normal contour](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-bivariate-normal.png)
+![二元正态分布等高线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-bivariate-normal.png)
 
 
 $$f(x, y) = \frac{1}{2\pi \sigma_X \sigma_Y \sqrt{1 - \rho^2}} \exp\left(-\frac{1}{2(1-\rho^2)} \left[\frac{(x-\mu_X)^2}{\sigma_X^2} - \frac{2\rho(x-\mu_X)(y-\mu_Y)}{\sigma_X \sigma_Y} + \frac{(y-\mu_Y)^2}{\sigma_Y^2}\right]\right)$$
@@ -208,7 +208,7 @@ $$J = \det \begin{pmatrix} \frac{\partial x_1}{\partial y_1} & \frac{\partial x_
 
 若 $X$ 与 $Y$ 独立， PDF 分别为 $f_X$ 和 $f_Y$，则 $Z = X + Y$ 的 PDF 为 **卷积**：
 
-![Convolution of random variables](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-convolution.png)
+![随机变量的卷积](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-convolution.png)
 
 
 $$f_Z(z) = \int_{-\infty}^{\infty} f_X(x) f_Y(z - x) \, dx = (f_X * f_Y)(z).$$
@@ -251,7 +251,7 @@ $$P(X_1 = n_1, \ldots, X_k = n_k) = \frac{n!}{n_1! \cdots n_k!} p_1^{n_1} \cdots
 
 给定 $n$ 个 i.i.d. 随机变量 $X_1, \ldots, X_n$，其 **次序统计量** 为排序后的值 $X_{(1)} \leq X_{(2)} \leq \cdots \leq X_{(n)}$。
 
-![Order statistics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-order-statistics.png)
+![顺序统计量](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-order-statistics.png)
 
 
 - $X_{(1)} = \min(X_1, \ldots, X_n)$；

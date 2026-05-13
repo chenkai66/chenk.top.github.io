@@ -83,7 +83,7 @@ $$\nabla_\theta\,\mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,
 
 蒙特卡洛估计就是采一个或几个 $\epsilon$，对 $f(g_\theta(\epsilon))$ 反向传播即可。
 
-![Reparameterization trick](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig1_reparam_trick.png)
+![重参数技巧](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig1_reparam_trick.png)
 
 > **图示对比**：左图 $z$ 从 $\mathcal N(\mu,\sigma^2)$ 直接采样，是计算图里的随机节点，梯度无法穿过；右图 $z=\mu+\sigma\epsilon$ 是关于 $\mu,\sigma$ 的确定性函数，梯度顺利沿绿色路径回到 encoder。
 
@@ -163,7 +163,7 @@ $$F(g)=\exp(-e^{-g}),\qquad f(g)=\exp\!\bigl(-(g+e^{-g})\bigr).$$
 
 $$u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).$$
 
-![Gumbel distribution PDF/CDF/empirical](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig2_gumbel_pdf.png)
+![Gumbel 分布的概率密度函数/累积分布函数/经验分布](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig2_gumbel_pdf.png)
 
 > **左**： Gumbel(0,1) 的 PDF；**中**：通过 inverse-CDF 采样的几何示意；**右**：用 $-\log(-\log u)$ 生成 2 万样本，直方图与解析 PDF 完美吻合。
 
@@ -196,7 +196,7 @@ $$\Pr[k^\star=1]=\int e^{-(t+e^{-t})}\cdot\exp(-S e^{-t})\,dt
 
 $$\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alpha)_1. \quad\blacksquare$$
 
-![Gumbel-Max trick](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig3_gumbel_max_trick.png)
+![Gumbel-Max 技巧](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig3_gumbel_max_trick.png)
 
 > **左**：目标 categorical 分布；**中**：单次实验，加 Gumbel 噪声后的 argmax 选中 c2；**右**： 8000 次重复采样的经验频率与目标 softmax 高度吻合，验证了 Gumbel-Max 在期望意义下严格等价。
 
@@ -224,7 +224,7 @@ $$y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bi
 
 ## 4.2 温度的偏差-方差权衡
 
-![Gumbel-Softmax temperature effect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig4_gumbel_softmax_temp.png)
+![Gumbel-Softmax 温度效应](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig4_gumbel_softmax_temp.png)
 
 > **四个温度下的样本**：每个面板里浅蓝柱是目标 softmax，橙色折线是 5 次独立的 Gumbel-Softmax 采样。
 >
@@ -296,7 +296,7 @@ $$\nabla_\theta\,\mathbb E_{z\sim q_\theta}[f(z)]
 
 我们在合成 8 类 categorical 上估计 $\nabla_{\alpha_0}\,\mathbb E_z[r^\top z]$（其中 $r$ 是固定 reward 向量）。每条曲线对 200 次重复试验取梯度方差：
 
-![Variance: REINFORCE vs Gumbel-Softmax](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig5_discrete_pipeline.png)
+![方差：REINFORCE 与 Gumbel-Softmax 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/重参数化详解与gumbel-softmax深入探讨/fig5_discrete_pipeline.png)
 
 > **左侧管线**： logits → +Gumbel 噪声 → /τ → softmax → $y_{\text{soft}}$；可选 argmax → $y_{\text{hard}}$，结合 STE，即可前向硬、反向软。**右侧曲线**：横轴是每次梯度估计使用的样本数，纵轴是估计的方差（log-log）。 Gumbel-Softmax （$\tau=0.5$）始终低 REINFORCE 一个数量级以上，且两者方差都按 $1/n$ 下降（斜率 $-1$）。
 

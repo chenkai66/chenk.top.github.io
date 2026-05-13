@@ -23,7 +23,7 @@ translationKey: "system-design-7"
 
 数据管道设计的两种基础范式，核心差异在于**转换（Transformation）发生的时机**。
 
-![ETL vs ELT comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-etl-vs-elt.png)
+![ETL 与 ELT 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-etl-vs-elt.png)
 
 
 ### ETL： Extract, Transform, Load （抽取、转换、加载）
@@ -80,7 +80,7 @@ translationKey: "system-design-7"
 
 批处理以固定周期（如每小时、每天或每周）处理大量数据。数据被收集、存储后，作为完整数据集进行处理。
 
-![Batch vs stream processing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-batch-vs-stream.png)
+![批处理与流处理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-batch-vs-stream.png)
 
 
 ### MapReduce （概念模型）
@@ -189,7 +189,7 @@ daily_sales.write \
 ## 流处理（Stream Processing）
 
 
-![Data pipeline river system streams flowing through processin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-data-pipeline-river-system-streams-flowing-through-processin.jpg)
+![数据管道河流系统流经处理过程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-data-pipeline-river-system-streams-flowing-through-processin.jpg)
 
 流处理持续处理实时到达的数据，产出结果的延迟通常在亚秒级到分钟级。
 
@@ -251,7 +251,7 @@ daily_sales.write \
 
 Flink 是目前领先的开源流处理框架，提供**精确一次（exactly-once）** 处理保证、事件时间（event time）处理及高级窗口支持。
 
-![Apache Flink architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-flink-architecture.png)
+![Apache Flink 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-flink-architecture.png)
 
 
 ### 关键概念
@@ -431,10 +431,10 @@ Kappa 架构由 Kafka 联合创始人 Jay Kreps 提出，通过**仅使用流处
 ## 数据质量（Data Quality）
 
 
-![Data quality dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-data-quality.png)
+![数据质量维度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-data-quality.png)
 
 
-![Etl vs elt two factory layouts transform first vs load first](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-etl-vs-elt-two-factory-layouts-transform-first-vs-load-first.jpg)
+![ETL 与 ELT 两种工厂布局：先转换 vs 先加载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/07-etl-vs-elt-two-factory-layouts-transform-first-vs-load-first.jpg)
 
 ### Schema 校验
 
@@ -510,7 +510,7 @@ lineage:
 
 CDC 从数据库事务日志中捕获行级变更（INSERT/UPDATE/DELETE），并以事件形式流式输出。这使得实时数据同步无需轮询。
 
-![Change data capture pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-cdc.png)
+![变更数据捕获管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/07-cdc.png)
 
 
 ### Debezium

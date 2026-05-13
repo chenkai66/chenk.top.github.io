@@ -85,7 +85,7 @@ Qwen 不是一个模型，而是一个家族。覆盖文本、视觉、音频、
 
 这是关于 DashScope 最重要的一点：它提供了 OpenAI 兼容的 endpoint。只需修改两行配置，就能直接使用官方的 OpenAI Python SDK。
 
-![DashScope API comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_api_comparison.png)
+![DashScope API 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_api_comparison.png)
 
 ```python
 import os
@@ -397,7 +397,7 @@ for text, score in similarities[:3]:
 
 ![万象异步生成流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_wanxiang_pipeline.png)
 
-![Async task pattern for media generation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
+![媒体生成的异步任务模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
 
 ### 异步任务模式
 

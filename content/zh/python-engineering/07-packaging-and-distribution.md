@@ -23,7 +23,7 @@ translationKey: "python-engineering-7"
 
 这些术语常被混用，但在 Python 生态中有明确的定义。
 
-![Packaging pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png)
+![打包流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-packaging-pipeline.png)
 
 
 | 术语 | 定义 | 示例 |
@@ -40,7 +40,7 @@ translationKey: "python-engineering-7"
 
 Python 包支持两种标准分发格式。
 
-![Semantic versioning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png)
+![语义化版本控制](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-versioning.png)
 
 
 ### sdist （源码分发包）
@@ -51,7 +51,7 @@ Python 包支持两种标准分发格式。
 
 `.whl` 文件（本质是 zip 归档）。已预先构建完成，无需编译，安装更快。`pip` 默认使用 wheel。
 
-![Wheel vs sdist](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png)
+![Wheel 与 sdist 比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-wheel-vs-sdist.png)
 
 
 ```bash
@@ -100,7 +100,7 @@ Archive:  dist/my_tool-0.1.0-py3-none-any.whl
 ## 使用 pyproject.toml 进行打包配置
 
 
-![Python packaging journey from script to pypi published packa](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-python-packaging-journey-from-script-to-pypi-published-packa.jpg)
+![从脚本到发布到 PyPI 的 Python 打包过程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-python-packaging-journey-from-script-to-pypi-published-packa.jpg)
 
 完整的打包配置如下：
 
@@ -281,7 +281,7 @@ Checking dist/my_tool-0.1.0.tar.gz: PASSED
 
 并非所有包都适合公开发布，内部工具应使用私有索引。
 
-![Private package index](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-private-index.png)
+![私有包索引](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-private-index.png)
 
 
 ### devpi
@@ -330,7 +330,7 @@ $ pip install my-internal-tool --extra-index-url http://internal-pypi.company.co
 ## 使用 Docker 构建 Python 镜像
 
 
-![Docker Python packaging](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-docker-python.png)
+![Docker 中的 Python 打包](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/07-docker-python.png)
 
 ### 基础镜像选择
 
@@ -447,7 +447,7 @@ $ docker run -p 8000:8000 \
 ## 使用 Poetry 构建与发布
 
 
-![Wheel vs sdist comparison prebuilt furniture vs ikea flatpac](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg)
+![Wheel 与 sdist 比较：预组装家具 vs 宜家平板包装](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/07-wheel-vs-sdist-comparison-prebuilt-furniture-vs-ikea-flatpac.jpg)
 
 若项目采用 Poetry 而非 setuptools：
 

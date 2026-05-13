@@ -18,7 +18,7 @@ translationKey: "claude-code-learn-4"
 ---
 如果在 Claude Code 里只学一种扩展机制，那必须是 MCP——它是从“自动补全”迈向“平台级能力”的关键。
 
-![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_1.png)
+![Claude Code 实战 (4)：MCP 服务器，或 Claude 如何与任何事物通信 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_1.png)
 
 ## 60 秒说清楚
 
@@ -86,7 +86,7 @@ Claude Code  ──HTTP POST──>  MCP Server（远程）
 
 Playwright 是标准的“入门首选”，因为效果直观可见。注意，要在 Shell 里跑，*别*在 Claude Code 里面装：
 
-![MCP Server Communication Flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_mcp_arch_en.png)
+![MCP 服务器通信流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_mcp_arch_en.png)
 
 MCP 服务器是独立进程。 Claude Code 通过 stdio （远程场景下使用 HTTP）与其通信。在初始化握手阶段， Claude 会询问“你能提供哪些工具？”，服务器则返回一组工具 Schema。之后模型就能像调用内置工具一样调用它们。
 
@@ -104,7 +104,7 @@ claude mcp add playwright -- npx @anthropic-ai/mcp-playwright
 
 ## 权限设置——这一步绝对不能省
 
-![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_2.png)
+![Claude Code 实战 (4)：MCP 服务器，或 Claude 如何与任何事物通信 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_2.png)
 
 每个 MCP 工具都有权限级别。模型第一次调用时，会弹确认框。你有三个选项：
 

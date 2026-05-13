@@ -438,7 +438,7 @@ aliyun fc CreateTrigger \
 
 最灵活的选项。后面我会深入讲 EventBridge，先看触发器配置：
 
-![EventBridge event routing pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_event_pipeline.png)
+![EventBridge 事件路由管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_event_pipeline.png)
 
 ```bash
 aliyun fc CreateTrigger \

@@ -22,11 +22,11 @@ translationKey: "llm-engineering-5"
 
 训练是一次性资本支出（CapEx），成本可分摊至数百万次推理调用；推理则是持续发生的运营支出（OpEx），无法摊销。tokens-per-GPU-second 提升 50%，收益将在产品整个生命周期内持续复利增长，因此主流 LLM 团队普遍配备专职推理工程师；开源社区在五年内已迭代出四代推理引擎：FasterTransformer、DeepSpeed-Inference、vLLM 和 SGLang/TensorRT-LLM/llama.cpp。
 
-![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
+![LLM 工程（5）：推理优化 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
 
 ## 两个特性截然不同的阶段
 
-![fig1: prefill vs decode compute pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig1_prefill_vs_decode.png)
+![图1：预填充与解码计算模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig1_prefill_vs_decode.png)
 
 每次 LLM 推理调用分为两个阶段：
 
@@ -41,7 +41,7 @@ translationKey: "llm-engineering-5"
 
 ## KV cache：支撑长上下文的数据结构
 
-![fig2: KV cache size growth](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig2_kv_cache_growth.png)
+![图2：KV 缓存大小增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig2_kv_cache_growth.png)
 
 KV cache 存储了每一层中每个 prior token 的投影 K 和 V 向量。对于 70B 模型，GQA-8，32K 上下文（数据来自第一章）：
 
@@ -58,7 +58,7 @@ Naive 实现会为每个请求分配一个大小为 `max_context` 的连续 tens
 
 ## 分页注意力
 
-![fig3: paged attention block table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig3_paged_attention.png)
+![图3：分页注意力块表](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig3_paged_attention.png)
 
 vLLM 的杀手锏，来自 2023 年的论文 [Kwon et al.][kwon-vllm]，就是 **paged attention**。 KV cache 按固定大小的 **block** 分配（通常是 16 个 token 的量），每个请求通过 **block table** 映射逻辑位置到物理 block。就像操作系统的虚拟内存。
 
@@ -99,7 +99,7 @@ Block Manager 位于每个分页注意力引擎的核心。它拥有一池物理
 
 ## 连续批处理
 
-![fig4: continuous vs static batching](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig4_batching_timeline.png)
+![图4：连续批处理与静态批处理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig4_batching_timeline.png)
 
 另一场革命。 Static batching 会等待 batch 中最慢的序列完成后再开始下一个 batch。面对变长输出（这总是常态），你会浪费大量 GPU 时间空闲等待。
 
@@ -119,10 +119,10 @@ Orca 论文引入了两种机制，在 2026 年的引擎中依然无处不在。
 调度器的决策至关重要：你什么时候在 batch 中途接纳新请求？ Naive 的做法是立即接纳。但在 ongoing decode 旁边接纳一个 32K token 的 prompt 进行 prefill 会 dramatically  spike 每次迭代的延迟（32K 的 prefill FLOPS 大约是单个 decode 步的 100 倍）。生产调度器会限制每次迭代的“预算”，并将长 prefill 拆分成 chunk，与 decode 步交错执行。这是一个隐藏的权衡旋钮，决定了你的 TTFT p99 在负载下是 500 ms 还是 5 秒。
 ## 推测解码
 
-![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_2.png)
+![LLM 工程（5）：推理优化 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_2.png)
 
 
-![fig5: speculative decoding tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig5_speculative_tree.png)
+![图5：推测解码树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig5_speculative_tree.png)
 
 
 这是个巧点子，现在已经是标配了。 Decode 阶段通常是 memory-bound 的：每一步都得读遍整个模型权重才能吐出一个 token。要是能一次性验证 *N* 个 token 会怎样？

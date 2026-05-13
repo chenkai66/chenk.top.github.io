@@ -19,11 +19,11 @@ translationKey: "openclaw-quickstart-6"
 ---
 学到第五篇时，你的 OpenClaw 不仅能正常运行和支持对话，还从一个演示原型变成一个可落地的 Agent 系统。
 
-![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
+![OpenClaw 快速入门 (6)：技能、MCP 及实际应用 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
 ## 我们要做什么
 
-![Skill composition pipeline — from trigger to tool execution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/fig_skills.png)
+![技能组合流水线 —— 从触发到工具执行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/fig_skills.png)
 
 做一个晨间简报 Agent：
 
@@ -284,7 +284,7 @@ If there are no events, return "Nothing on the calendar today".
 
 ## 第四步：组合 Skill
 
-![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_2.png)
+![OpenClaw 快速入门（6）：技能、MCP 和实际交付 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_2.png)
 
 Skill 真正强大的能力在这里浮现：组合型 Skill 把多个 Skill 与 tool 编排成一条完整的多步工作流。
 

@@ -24,9 +24,9 @@ translationKey: "terraform-agents-4"
 
 ## 四种模式
 
-![Three primary places to run an agent: ECS, ACK, FC](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png)
+![运行代理的三个主要位置：ECS、ACK、FC](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png)
 
-![Auto-scaling compute cluster dynamically adjusting to workload](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/wanxiang_compute_scale.png)
+![自动伸缩计算集群根据工作负载动态调整](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/wanxiang_compute_scale.png)
 
 
 每种方案都有其优势：
@@ -41,7 +41,7 @@ translationKey: "terraform-agents-4"
 
 以下是基于持续 QPS 的大致月度成本概况：
 
-![Compute cost crossover — rough model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig2_compute_cost_curve.png)
+![计算成本交叉点 —— 粗略模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig2_compute_cost_curve.png)
 
 持续 QPS 低于 ~1 时，FC 占优，空闲时几乎不花钱；~1 到 ~30 之间，单台 ECS 更合适。超过这个值，ACK 的较高固定成本会被足够负载分摊，比硬塞到 ECS 上更便宜。ECI 的特殊之处在于：利用率低于 50% 时比 ECS 便宜，高于 50% 则更贵。
 
@@ -187,7 +187,7 @@ echo "$(date -Iseconds)" > /run/agent/bootstrap-done
 
 流程如下：
 
-![Cloud-init bootstrap flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig3_cloud_init_flow.png)
+![Cloud-init 引导流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig3_cloud_init_flow.png)
 
 从 `apply` 到 `pm2 status` 显示 agent 为 `online` 大约 90 秒。第一次 `apt-get install` 最慢（~60s）。一旦获得稳定镜像，即可使用 Packer 打包，后续 ECS 实例便能跳过 apt 更新，启动时间缩短至约 25 秒。
 
@@ -197,7 +197,7 @@ echo "$(date -Iseconds)" > /run/agent/bootstrap-done
 
 一旦你有三种以上 Agent 并行运行，单 VM 的运维成本就占主导了， ECS 扩展性到头。 ACK 给你一个集群、一个调度器、一条升级路径，还有一个地方接自动伸缩和可观测性。
 
-![Container orchestration managing distributed agent workloads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/wanxiang_container_orchestration.png)
+![容器编排管理分布式代理工作负载](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/wanxiang_container_orchestration.png)
 
 
 在阿里云上搞一个托管 K8s 集群的最小 Terraform 代码：

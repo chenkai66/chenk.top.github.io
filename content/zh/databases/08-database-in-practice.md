@@ -22,7 +22,7 @@ translationKey: "databases-8"
 
 你的数据库模式一定会变：新功能需要新字段、新表、新索引。真正的挑战在于：如何在零停机的前提下完成演进？
 
-![Schema evolution strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-schema-evolution.png)
+![模式演进策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-schema-evolution.png)
 
 
 ### 迁移工具对比
@@ -204,7 +204,7 @@ ALTER TABLE users DROP COLUMN name;
 
 每个数据库连接都消耗资源：内存（PostgreSQL 中约 5–10 MB/连接）、文件描述符、 CPU （用于进程/线程管理）。若无连接池，应用实例突发增长极易耗尽数据库连接上限。
 
-![Connection pooling](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-connection-pooling.png)
+![连接池](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-connection-pooling.png)
 
 
 ### 问题场景
@@ -327,10 +327,10 @@ HikariDataSource ds = new HikariDataSource(config);
 ## 数据库监控
 
 
-![Database monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-monitoring-dashboard.png)
+![数据库监控](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-monitoring-dashboard.png)
 
 
-![Database monitoring dashboard control room with holographic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-monitoring-dashboard-control-room-with-holographic-.jpg)
+![带有全息投影的数据库监控仪表板控制室](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-monitoring-dashboard-control-room-with-holographic-.jpg)
 
 ### 关键指标
 
@@ -448,10 +448,10 @@ WHERE variable_name IN (
 ## 慢查询分析
 
 
-![Migration workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-migration-workflow.png)
+![迁移工作流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-migration-workflow.png)
 
 
-![Database migration journey old schema transforming into new](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-migration-journey-old-schema-transforming-into-new-.jpg)
+![数据库迁移过程：旧模式转换为新模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-migration-journey-old-schema-transforming-into-new-.jpg)
 
 ### 启用慢查询日志
 
@@ -515,7 +515,7 @@ LIMIT 20;
 
 逻辑备份导出为 SQL 语句或结构化数据文件。
 
-![Backup strategy comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-backup-strategy.png)
+![备份策略对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-backup-strategy.png)
 
 
 ```bash

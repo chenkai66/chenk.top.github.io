@@ -18,13 +18,13 @@ translationKey: "aliyun-bailian-4"
 ---
 万象 API 在我们的营销流水线中作用最大，但也最不稳定。模型本身确实强——`wan2.5-t2v-plus` 生成的 720p 片段，大部分时候直接就能当正经视频团队的产出用——但它的外围接口全是异步的、私有协议、 URL 会过期，限流方式还特别隐蔽。本文总结了我在连续六个月应对高频凌晨告警（最晚一次发生在凌晨两点）过程中积累的实战经验。
 
-![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
+![阿里云百链 (4)：万象视频生成端到端 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
 ## 模型阵容
 
 三个模型均提供原生接口（不兼容 OpenAI 协议），并全部采用异步调用。
 
-![Wanxiang model lineup](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png)
+![万象模型阵容](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png)
 
 `wan2.5-t2v-plus` 是我 80% 时候的首选——文生视频最灵活，不需要设计师介入就能把需求 briefed 清楚。`wan2.5-i2v-plus` 适合营销团队手里已经有主图想要动起来的情况（例如将一张静态产品图转化为 5 秒的旋转展示效果）。`wan2.5-kf2v-plus` 专门做转场：给它首帧和尾帧，它生成中间的运动过程。
 
@@ -32,7 +32,7 @@ translationKey: "aliyun-bailian-4"
 
 所有视频生成都是同一个流程：
 
-![Wanxiang request flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig2_async_video_flow.png)
+![万象请求流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig2_async_video_flow.png)
 
 一个可运行的最小 Python 脚本示例如下：
 
@@ -74,7 +74,7 @@ print(url)
 
 每秒轮询太浪费，容易被限流；每 30 秒轮询又太耗用户时间。我使用的退避 schedule 如下：
 
-![Polling schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png)
+![轮询计划](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png)
 
 从 5 秒开始，每次轮询间隔按 1.45 倍递增，上限设为 60 秒。典型的 720p 5 秒片段通常在 30 到 90 秒内完成，因此用户平均需要等待约 4 次轮询。
 

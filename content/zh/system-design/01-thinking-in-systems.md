@@ -22,7 +22,7 @@ translationKey: "system-design-1"
 
 系统设计是为了满足特定需求而定义架构、组件、接口与数据流的过程。但这个教科书式的定义并未触及要害。实际上，系统设计是在不确定性中做出明智权衡的学科。
 
-![Latency numbers every programmer should know](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-latency-numbers.png)
+![每个程序员都应该知道的延迟数据](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-latency-numbers.png)
 
 
 每个设计决策都隐含权衡：
@@ -50,7 +50,7 @@ translationKey: "system-design-1"
 
 在深入估算技巧之前，先明确支撑一切优秀系统设计的三大基石：
 
-![Availability nines and downtime](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-availability-nines.png)
+![可用性九规则和停机时间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-availability-nines.png)
 
 
 **可扩展性（Scalability）**：系统能随增长（更多用户、更多数据、更多请求）而平滑扩容，无需根本性重构。可扩展性分垂直扩展（升级单机）与水平扩展（增加节点）；后者几乎总是首选——无理论上限，且天然冗余。
@@ -64,18 +64,18 @@ translationKey: "system-design-1"
 ## 快速估算（Back-of-Envelope Estimation）
 
 
-![Availability nines uptime guarantee as a reliability fortres](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-availability-nines-uptime-guarantee-as-a-reliability-fortres.jpg)
+![作为可靠性堡垒的可用性九规则服务保证](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-availability-nines-uptime-guarantee-as-a-reliability-fortres.jpg)
 
 系统设计中最宝贵的一项技能，就是快速、粗略地估算关键数量级。你不需要精确数字，你需要的是**数量级上的正确性**。误差 2 倍以内完全可接受；误差达 100 倍，则意味着你的架构方向已错。
 
-![Capacity estimation workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-capacity-estimation.png)
+![容量估算工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-capacity-estimation.png)
 
 
 ### 2 的幂次（Powers of 2）
 
 牢记这些值。它们在存储、内存与网络容量估算中反复出现。
 
-![Powers of 2 quick reference](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-powers-of-two.png)
+![2的幂快速参考](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-powers-of-two.png)
 
 
 | 幂次 | 精确值 | 近似值 |
@@ -125,7 +125,7 @@ translationKey: "system-design-1"
 
 以下是估算存储需求的一般流程。
 
-![System design framework](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-system-design-framework.png)
+![系统设计框架](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-system-design-framework.png)
 
 
 **步骤 1：确定日活跃用户数（DAU）**
@@ -311,7 +311,7 @@ translationKey: "system-design-1"
 ## 容量规划（Capacity Planning）
 
 
-![Back of envelope estimation napkin math on a whiteboard](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-back-of-envelope-estimation-napkin-math-on-a-whiteboard.jpg)
+![信封背面估算：白板上的粗略计算](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/01-back-of-envelope-estimation-napkin-math-on-a-whiteboard.jpg)
 
 容量规划是确定生产环境所需容量以应对动态需求的过程。以下是关键概念。
 

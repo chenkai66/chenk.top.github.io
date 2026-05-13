@@ -102,7 +102,7 @@ $$
 - $\lambda \to 0$：不让你离开 $v$，$\mathrm{prox}_{\lambda f}(v) \to v$。
 - $\lambda \to \infty$：自由最小化 $f$，$\mathrm{prox}_{\lambda f}(v) \to \arg\min f$。
 
-![Figure 1 - Proximal Operator and Moreau Envelope](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig1_prox_definition.png)
+![图1：近端算子和Moreau包络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig1_prox_definition.png)
 
 左图把这个权衡画出来了：蓝色的 $f$、灰色的二次惩罚、紫色的两者之和；橙点就是 $\mathrm{prox}_{\lambda f}(v)$。右图先按下不表，等讲到 Moreau 包络再回来看。
 
@@ -134,7 +134,7 @@ $$\min_{x_i} |x_i| + \frac{1}{2\lambda}(x_i - v_i)^2.$$
 $$
 \bigl[\mathrm{prox}_{\lambda \|\cdot\|_1}(v)\bigr]_i \;=\; \mathrm{soft}_\lambda(v_i) \;=\; \mathrm{sign}(v_i) \cdot \max\!\bigl(|v_i| - \lambda,\, 0\bigr).
 $$
-![Figure 2 - Soft-thresholding: the prox of the L1 norm](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig2_soft_threshold.png)
+![图2：软阈值：L1范数的近端算子](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig2_soft_threshold.png)
 
 - 左图：$|v| \le \lambda$ 的“死区”内输出全部归零，外面则把 $v$ 朝零方向**收缩** $\lambda$ 个单位（不是简单截断！）。
 - 右图：把含噪信号经一次软阈值，小幅噪声被压成精确零，大尖峰被保留并轻度收缩——这就是 LASSO 把不重要的特征系数推到精确零的机制。
@@ -231,7 +231,7 @@ $$
 
 **收敛速度**：对凸 $F$，
 $$F(x_k) - F^\star \le \frac{\|x_0 - x^\star\|_2^2}{2\eta k} = O(1 / k).$$
-![Figure 3 - ISTA on a 2-D LASSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig3_ista_iterations.png)
+![图3：二维LASSO上的ISTA](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig3_ista_iterations.png)
 
 Figure 3 在二维 LASSO 上跑 ISTA：灰色等高线是目标函数，橙线是稀疏轴 ($x_2 = 0$)。从右上角的紫星出发， ISTA 的迭代（蓝色折线）逐步靠近最优解，并在最后**精确落到 $x_2 = 0$**——这正是软阈值带来的稀疏诱导效果。
 
@@ -253,7 +253,7 @@ $$
 
 **收敛速度**：$F(x_k) - F^\star \le \dfrac{2 \|x_0 - x^\star\|_2^2}{\eta (k + 1)^2} = O(1/k^2)$。
 
-![Figure 4 - FISTA acceleration vs ISTA](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig4_fista_acceleration.png)
+![图4：FISTA加速与ISTA对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig4_fista_acceleration.png)
 
 Figure 4 在 60 维 LASSO 上把 ISTA 与 FISTA 的次优间隙画在双对数轴上。两条理论参��虚线（$1/k$ 与 $1/k^2$）几乎和实线平行——加速效果是真的，并且在前 50 次迭代里 FISTA 就比 ISTA 快了大约一个数量级。
 
@@ -273,7 +273,7 @@ LASSO：
 $$\min_x \;\tfrac{1}{2}\|Ax - y\|_2^2 + \mu \|x\|_1.$$
 **关键现象**：随着正则强度 $\mu$ 增大，越来越多的系数被精确推到零。这就是 LASSO 同时做“拟合”和“特征选择”的能力。
 
-![Figure 5 - LASSO solution path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig5_lasso_path.png)
+![图5：LASSO解路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/proximal-operator/fig5_lasso_path.png)
 
 Figure 5 是经典的 **LASSO 解路径**：横轴是 $\mu$（对数刻度），纵轴是各特征系数。紫色实线是真实非零的 4 个特征，灰色虚线是真实为零的 8 个特征。可以看到：
 

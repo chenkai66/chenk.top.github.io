@@ -20,7 +20,7 @@ translationKey: "claude-code-learn-9"
 
 这一章将补充这块缺失的参考文档。
 
-![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_1.png)
+![Claude Code 实操 (9)：settings.json、三层权限模型和环境 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_1.png)
 
 ## 三个层级
 
@@ -174,7 +174,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ## 为什么 deny 说了算
 
-![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
+![Claude Code 实操 (9)：settings.json、三层权限模型和环境 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
 只要合并后的配置中存在任一 deny 规则，该动作即被永久阻断——这是整个权限模型可信赖的核心
 ![图 6：按防护对象分类的 deny 规则速查，覆盖文件系统、git 历史、敏感文件、配置漂移四大类。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/fig6.png)

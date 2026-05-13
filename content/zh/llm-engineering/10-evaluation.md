@@ -21,11 +21,11 @@ translationKey: "llm-engineering-10"
 
 本章风格与系列其他章节不同：多数评估难题并非技术问题，而是认知问题。“模型 A 是否比模型 B 强”是一个假设检验问题，但该领域的干净实验记录很差；以下引用的论文揭示了失败模式，理应让每位从业者保持审慎。
 
-![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_1.png)
+![LLM 工程（10）：评估 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_1.png)
 
 ## 为什么公开基准在撒谎
 
-![fig1: benchmark contamination over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)
+![图1：随时间变化的基准污染](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)
 
 
 标准基准套件（如 MMLU、GSM8K、HumanEval、ARC、HellaSwag 等）存在五大共性缺陷：
@@ -90,13 +90,13 @@ translationKey: "llm-engineering-10"
 微妙点：**怎么切分 eval 集和集里有什么一样重要**。常见错误是从生产流量均匀采样 200 题，但生产流量 80% 简单 20% 困难。你的 eval 被简单题主导，每个模型都跑 95%。分层：目标 30-40% 简单， 30-40% 中等， 30-40% 困难，其中“困难” sourced from 你的错误日志。困难切片才是区分模型的部分。
 ## LLM-as-judge：主流模式与它的失效模式
 
-![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_2.png)
+![大语言模型工程（10）：评估 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_2.png)
 
 
-![fig5: human vs auto-eval correlation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig5_human_vs_auto.png)
+![图5：人工评估与自动评估的相关性](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig5_human_vs_auto.png)
 
 
-![fig2: LLM-judge position bias](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig2_judge_position_bias.png)
+![图2：LLM 评判的位置偏差](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig2_judge_position_bias.png)
 
 
 面对自由生成的输出（大多数生产任务都是这类）， exact match 根本行不通。你得有个办法给“这回答好不好”打分。目前主流的做法是 **LLM-as-judge**（Zheng et al., 2023, *Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*）：用一个强模型给被测模型的输出打分。
@@ -172,7 +172,7 @@ Zheng et al. 表明，交换顺序后一致的判断与人类的相关性约为 
 
 ## 生产环境的 A/B 测试
 
-![fig4: A/B test power calculation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig4_ab_power.png)
+![图4：A/B 测试的功效计算](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig4_ab_power.png)
 
 
 评估集能在部署前拦住回归问题。 A/B 测试则能抓住评估集漏掉的东西。
@@ -214,7 +214,7 @@ $$n \approx \frac{16 \cdot p (1-p)}{\delta^2}$$
 
 ## 校准：一个常被忽略的指标
 
-![fig3: calibration plot (ECE)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig3_calibration.png)
+![图3：校准图（ECE）](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig3_calibration.png)
 
 
 如果一个模型陈述的置信度与实际准确率匹配，它就是 **calibrated**。一个说“我有 90% 把握”的模型，应该 90% 的时候是对的。大多数 LLM 都系统性地过度自信——它们会说“我确定”，然后 30% 的时候是错的。

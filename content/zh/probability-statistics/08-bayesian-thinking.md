@@ -24,7 +24,7 @@ translationKey: "probability-statistics-8"
 ## 贝叶斯 vs 频率学派：核心差异
 
 
-![Prior to posterior updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-prior-posterior.png)
+![先验到后验更新](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-prior-posterior.png)
 
 ### 频率学派观点
 
@@ -48,7 +48,7 @@ translationKey: "probability-statistics-8"
 
 我们此前已见过事件层面的贝叶斯定理。贝叶斯推断引擎将相同逻辑应用于分布。
 
-![Conjugate prior families](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-conjugate-priors.png)
+![共轭先验族](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-conjugate-priors.png)
 
 
 给定数据 $\mathbf{x} = (x_1, \ldots, x_n)$ 和参数 $\theta$：
@@ -77,7 +77,7 @@ $$\boxed{p(\theta | \mathbf{x}) \propto p(\mathbf{x} | \theta) \cdot p(\theta)}$
 
 若某先验与似然配对后所得后验属于同一分布族，则称该先验为该似然的 **共轭先验**。共轭性使数学处理可解——后验具有闭式表达式。
 
-![Credible vs confidence intervals](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-credible-vs-confidence.png)
+![可信区间与置信区间](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-credible-vs-confidence.png)
 
 
 | 似然 | 共轭先验 | 后验 |
@@ -94,14 +94,14 @@ $$\boxed{p(\theta | \mathbf{x}) \propto p(\mathbf{x} | \theta) \cdot p(\theta)}$
 ## Beta-二项模型
 
 
-![Bayesian updating prior to posterior belief transformation t](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-bayesian-updating-prior-to-posterior-belief-transformation-t.jpg)
+![贝叶斯更新：先验到后验信念转换](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-bayesian-updating-prior-to-posterior-belief-transformation-t.jpg)
 
 这是贝叶斯推断的经典范例。我们将完整推导。
 
-![Bayesian updating animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-08-bayesian-updating.gif)
+![贝叶斯更新动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-08-bayesian-updating.gif)
 
 
-![Beta-Binomial sequential updating](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-beta-binomial.png)
+![Beta-二项分布顺序更新](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-beta-binomial.png)
 
 
 ### 设定
@@ -262,7 +262,7 @@ $$\tilde{X} | \mathbf{x} \sim \mathcal{N}(\mu_n, \sigma^2 + \sigma_n^2).$$
 
 大多数现实模型并无共轭先验。后验 $p(\theta | \mathbf{x})$ 仅知其比例形式（即缺少归一化常数）：我们可对任意 $\theta$ 计算 $p(\mathbf{x} | \theta) p(\theta)$，但计算 $p(\mathbf{x}) = \int p(\mathbf{x}|\theta)p(\theta)d\theta$ 不可行。
 
-![MCMC trace plot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-mcmc-trace.png)
+![MCMC轨迹图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/08-mcmc-trace.png)
 
 
 **马尔可夫链蒙特卡洛（MCMC）** 方法无需计算归一化常数，即可从后验中生成样本 $\theta^{(1)}, \theta^{(2)}, \ldots$。
@@ -286,7 +286,7 @@ $$\alpha = \min\left(1, \frac{p(\theta^* | \mathbf{x}) \, q(\theta^{(t)} | \thet
 ## 贝叶斯与机器学习的联系
 
 
-![Mcmc random walk exploring probability landscape pathfinding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-mcmc-random-walk-exploring-probability-landscape-pathfinding.jpg)
+![MCMC随机游走探索概率景观路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-mcmc-random-walk-exploring-probability-landscape-pathfinding.jpg)
 
 ### 正则化即先验
 

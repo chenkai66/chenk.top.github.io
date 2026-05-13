@@ -21,7 +21,7 @@ translationKey: "python-engineering-5"
 ## 文件 I/O：基础操作
 
 
-![Serialization formats](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png)
+![序列化格式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png)
 
 ### 打开文件
 
@@ -103,7 +103,7 @@ with open("output.bin", "wb") as f:
 
 `pathlib` 模块以面向对象 API 替代了 `os.path`。请在所有场景中使用它。
 
-![pathlib vs os.path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-pathlib-vs-os.png)
+![pathlib 与 os.path 对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-pathlib-vs-os.png)
 
 
 ```python
@@ -190,10 +190,10 @@ p.rmdir()           # 删除空目录
 ## 编码： UTF-8 优先原则
 
 
-![Encoding flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
+![编码流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-encoding-flow.png)
 
 
-![Data serialization formats json yaml toml as different conta](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-data-serialization-formats-json-yaml-toml-as-different-conta.jpg)
+![数据序列化格式：JSON、YAML、TOML 各有不同](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-data-serialization-formats-json-yaml-toml-as-different-conta.jpg)
 
 ### 问题所在
 
@@ -258,7 +258,7 @@ with open("output.csv", "w", encoding="utf-8-sig") as f:
 
 JSON 是最常用的数据交换格式。 Python 标准库 `json` 模块原生支持。
 
-![I/O pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png)
+![I/O 管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-io-pipeline.png)
 
 
 ### 读写操作
@@ -340,7 +340,7 @@ $ curl -s https://api.example.com/data | python -m json.tool
 
 YAML 因其人类可读性及支持注释，广泛用于配置文件。
 
-![Format size comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-format-sizes.png)
+![格式大小对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-format-sizes.png)
 
 
 ```bash
@@ -511,7 +511,7 @@ with open("excel_export.csv", encoding="utf-8-sig") as f:
 ## 二进制格式
 
 
-![File io pipeline data flowing from disk through buffers to a](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-file-io-pipeline-data-flowing-from-disk-through-buffers-to-a.jpg)
+![文件 I/O 管道：数据从磁盘通过缓冲区流向应用程序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/05-file-io-pipeline-data-flowing-from-disk-through-buffers-to-a.jpg)
 
 ### `pickle`： Python 对象序列化
 

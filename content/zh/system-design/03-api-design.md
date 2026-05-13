@@ -23,7 +23,7 @@ translationKey: "system-design-3"
 
 REST （Representational State Transfer）是一种架构风格，而非具体协议。它由 Roy Fielding 在其 2000 年博士论文中提出，但现实中人们常说的“REST”，往往指的是“基于 HTTP、使用 JSON 的 API”。
 
-![REST vs gRPC vs GraphQL](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png)
+![REST、gRPC 和 GraphQL 的比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png)
 
 
 ### 核心概念
@@ -158,7 +158,7 @@ HTTP 状态码的存在自有其意义。中间件、代理服务器及各类客
 
 gRPC 是 Google 开发的高性能开源 RPC 框架，采用 Protocol Buffers （protobuf）进行序列化，以 HTTP/2 作为传输层。
 
-![API versioning strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-versioning.png)
+![API 版本控制策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-versioning.png)
 
 
 ### Protocol Buffers
@@ -478,14 +478,14 @@ query Evil {
 ## 限流（Rate Limiting）
 
 
-![Api design three paths rest grpc graphql diverging roads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-api-design-three-paths-rest-grpc-graphql-diverging-roads.jpg)
+![API 设计的三条路径：REST、gRPC 和 GraphQL 分歧之路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-api-design-three-paths-rest-grpc-graphql-diverging-roads.jpg)
 
 限流用于保护 API 免受滥用，并确保资源公平分配。三种常用算法如下：
 
-![Token bucket rate limiting animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-03-token-bucket.gif)
+![令牌桶限流动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-03-token-bucket.gif)
 
 
-![Token bucket rate limiting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rate-limiting.png)
+![令牌桶限流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rate-limiting.png)
 
 
 ### 令牌桶（Token Bucket）
@@ -605,7 +605,7 @@ X-RateLimit-Reset: 1689436800
 
 若某操作重复执行多次与执行一次效果相同，则称其为幂等操作。这是系统可靠性基石 —— 网络故障必然引发重试，而重试绝不能产生重复副作用。
 
-![Idempotency key pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png)
+![幂等键模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png)
 
 
 HTTP 方法与幂等性关系：
@@ -670,7 +670,7 @@ def process_payment(request):
 
 常见认证机制简述：
 
-![API authentication methods](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-auth.png)
+![API 认证方法](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-auth.png)
 
 
 **API Keys**：简单，适用于服务间通信。置于请求头（`X-API-Key: abc123`）或查询参数中。易于实现，但难以精细化授权（通常为全有或全无）。
@@ -697,7 +697,7 @@ def authenticate(request):
 ## 对比： REST vs gRPC vs GraphQL
 
 
-![Rate limiting token bucket as a water fountain with controll](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-rate-limiting-token-bucket-as-a-water-fountain-with-controll.jpg)
+![将令牌桶限流比作可控的喷泉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-rate-limiting-token-bucket-as-a-water-fountain-with-controll.jpg)
 
 | 特性 | REST | gRPC | GraphQL |
 |---------|------|------|---------|

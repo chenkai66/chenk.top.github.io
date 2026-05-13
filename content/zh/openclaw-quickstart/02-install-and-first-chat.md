@@ -18,7 +18,7 @@ translationKey: "openclaw-quickstart-2"
 ---
 README 声称只需五分钟，但实际上常常需要十分钟，多出的时间几乎全耗在 Node 版本兼容性上，新手极易卡在这里。
 
-![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
+![OpenClaw 快速入门（2）：10 分钟内安装并进行首次聊天 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
 ## 前置条件
 
@@ -142,7 +142,7 @@ openclaw gateway start
 
 ## TUI：在终端里跟它聊
 
-![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_2.png)
+![OpenClaw 快速入门 (2)：10 分钟内安装和首次聊天 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_2.png)
 
 开第二个终端，运行：
 

@@ -29,7 +29,7 @@ translationKey: "aliyun-fullstack-7"
 
 行业已经共识了三个信号，组合起来就能看清系统到底在发生什么：
 
-![The three pillars of observability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_three_pillars.png)
+![可观测性的三大支柱](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_three_pillars.png)
 
 **Logs** 告诉你发生了什么。日志行会说“14:32:07，用户 abc123 请求了 /api/orders，因为数据库连接 30 秒超时而返回 500”。日志是离散事件，带时间戳且结构化。它是出事后的 forensic evidence。
 
@@ -53,7 +53,7 @@ translationKey: "aliyun-fullstack-7"
 
 SLS 是阿里云可观测性的核心组件。尽管名称含 ‘Simple’，它实则功能完备：集日志采集、存储、索引、查询、可视化与告警于一体。你可以将其理解为 AWS CloudWatch Logs 与 Elasticsearch 的融合体，并内置了 SQL 查询引擎。
 
-![SLS log collection pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_pipeline.png)
+![SLS 日志收集管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
 ### 核心概念
 

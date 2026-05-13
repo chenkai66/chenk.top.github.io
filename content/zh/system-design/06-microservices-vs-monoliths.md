@@ -23,7 +23,7 @@ translationKey: "system-design-6"
 
 单体是一个**单一可部署单元**，包含应用全部功能。整个代码库被统一编译、统一部署；所有模块共享同一进程、同一内存空间、同一数据库。
 
-![Monolith vs microservices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-monolith-vs-micro.png)
+![单体架构与微服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-monolith-vs-micro.png)
 
 
 ### 为什么单体架构行之有效
@@ -150,7 +150,7 @@ def check_module_boundaries():
 ## 服务边界：领域驱动设计（Domain-Driven Design）
 
 
-![Circuit breaker pattern electrical circuit breaker protectin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-circuit-breaker-pattern-electrical-circuit-breaker-protectin.jpg)
+![断路器模式：电气断路器保护](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-circuit-breaker-pattern-electrical-circuit-breaker-protectin.jpg)
 
 微服务最难的部分，是**如何划定服务边界**。划错边界，轻则导致服务间高频“聊天”，重则催生大量无意义的细粒度服务。
 
@@ -160,7 +160,7 @@ def check_module_boundaries():
 
 限界上下文是**特定领域模型被定义并适用的边界**。在此边界内，术语具有精确、无歧义的含义；跨越边界时，同一术语可能指向不同概念。
 
-![DDD bounded contexts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-ddd-bounded-contexts.png)
+![领域驱动设计的限界上下文](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-ddd-bounded-contexts.png)
 
 
 示例：在电商系统中，“Order”（订单）在不同上下文中含义迥异：
@@ -225,7 +225,7 @@ class PaymentGatewayAdapter:
 ## 服务间通信（Inter-Service Communication）
 
 
-![Monolith to microservices evolution single building to city](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-monolith-to-microservices-evolution-single-building-to-city-.jpg)
+![从单体架构到微服务的演变：从单一建筑到城市](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-monolith-to-microservices-evolution-single-building-to-city-.jpg)
 
 ### 同步通信： REST 与 gRPC
 
@@ -278,10 +278,10 @@ def get_user(user_id: str) -> dict:
 
 当下游服务持续失败时，继续发送请求不仅浪费资源，更会引发级联故障。熔断器可及时阻断故障蔓延。
 
-![Circuit breaker state transitions animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-06-circuit-breaker.gif)
+![断路器状态转换动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-06-circuit-breaker.gif)
 
 
-![Circuit breaker state machine](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-circuit-breaker.png)
+![断路器状态机](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-circuit-breaker.png)
 
 
 ### 三种状态
@@ -377,7 +377,7 @@ def process_payment(order):
 
 在微服务架构中，单个用户请求可能穿越 5–10 个服务。出问题时，你必须能跨所有服务追踪该请求。
 
-![Distributed tracing timeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-distributed-tracing.png)
+![分布式追踪时间线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-distributed-tracing.png)
 
 
 ### OpenTelemetry
@@ -436,7 +436,7 @@ def create_order():
 
 API 网关位于外部客户端与内部服务之间，提供统一入口点。
 
-![API gateway pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-api-gateway.png)
+![API 网关模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-api-gateway.png)
 
 
 ### 网关职责

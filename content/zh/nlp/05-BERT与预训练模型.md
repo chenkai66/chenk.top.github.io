@@ -427,7 +427,7 @@ print(trainer.evaluate())
 ## BERT 家族： RoBERTa、 ALBERT、 ELECTRA
 BERT 并不是终点，而是一个起点。在短短两年时间里，围绕 BERT 衍生出了一系列改进版本，它们从不同角度对原始模型进行了优化。
 
-![BERT vs RoBERTa vs ALBERT vs ELECTRA](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT与预训练模型/fig5_variants_comparison.png)
+![BERT 与 RoBERTa 与 ALBERT 与 ELECTRA](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT与预训练模型/fig5_variants_comparison.png)
 
 ### RoBERTa （Facebook， 2019）：把训练做到位
 

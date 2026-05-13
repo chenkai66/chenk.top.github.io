@@ -22,7 +22,7 @@ translationKey: "docker-containers-5"
 
 典型的 Web 应用通常由多个服务组成：
 
-![Compose architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-architecture.png)
+![Compose 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-architecture.png)
 
 
 - 前端（React、 Vue 或服务端渲染的 HTML）
@@ -38,7 +38,7 @@ translationKey: "docker-containers-5"
 
 以下是上述手动命令对应的 Compose 等价写法：
 
-![Health check flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-healthcheck-flow.png)
+![健康检查流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-healthcheck-flow.png)
 
 
 ```yaml
@@ -123,11 +123,11 @@ volumes:
 ## Compose 文件结构
 
 
-![Microservices ecosystem interconnected containers forming a](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-microservices-ecosystem-interconnected-containers-forming-a-.jpg)
+![微服务生态系统中的互联容器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-microservices-ecosystem-interconnected-containers-forming-a-.jpg)
 
 一个 Compose 文件包含四个顶层键：
 
-![Compose networking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-networking.png)
+![Compose 网络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-networking.png)
 
 
 ```yaml
@@ -252,7 +252,7 @@ services:
 ## 完整示例： Python Web 应用 + PostgreSQL + Redis
 
 
-![Docker compose orchestra conductor directing multiple servic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-docker-compose-orchestra-conductor-directing-multiple-servic.jpg)
+![Docker Compose 编排指挥多个服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-docker-compose-orchestra-conductor-directing-multiple-servic.jpg)
 
 我们来构建一个完整的应用栈：API 通过 HTTP 接收任务，将其存入 PostgreSQL 并推入 Redis 队列；Worker 异步处理任务。项目结构如下：
 
@@ -350,7 +350,7 @@ DB_NAME=myapp
 
 `depends_on` 控制服务启动顺序，但需严格区分“已启动”与“已就绪”：
 
-![Service dependencies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-service-dependency.png)
+![服务依赖关系](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-service-dependency.png)
 
 
 ```yaml
@@ -600,7 +600,7 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-co
 
 Compose 支持对单个服务运行多个实例：
 
-![Scaling pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-scaling-pattern.png)
+![扩展模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-scaling-pattern.png)
 
 
 ```bash

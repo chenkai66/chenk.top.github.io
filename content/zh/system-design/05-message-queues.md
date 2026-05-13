@@ -25,7 +25,7 @@ translationKey: "system-design-5"
 
 在同步系统中，调用方必须等待被调用方响应后才能继续执行。这种方式简单直观，适用于大量场景。但它带来了强耦合。
 
-![Sync vs async communication](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-sync-vs-async.png)
+![同步与异步通信](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-sync-vs-async.png)
 
 
 ```
@@ -91,7 +91,7 @@ translationKey: "system-design-5"
 
 Kafka 是一款为高吞吐、高持久性与高可扩展性而设计的分布式事件流平台。它将消息建模为追加式日志（append-only log），而非传统意义上的队列。
 
-![Apache Kafka architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-kafka-architecture.png)
+![Apache Kafka 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-kafka-architecture.png)
 
 
 ### 架构
@@ -219,7 +219,7 @@ cleanup.policy: compact        # 按 key 保留最新值（适用于变更日志
 ## RabbitMQ
 
 
-![Event sourcing history book recording every change as an eve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-event-sourcing-history-book-recording-every-change-as-an-eve.jpg)
+![事件溯源历史记录，将每个变更记录为一个事件](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-event-sourcing-history-book-recording-every-change-as-an-eve.jpg)
 
 RabbitMQ 是基于 AMQP 协议的传统消息代理，专注于灵活的路由机制、基于确认（acknowledgment）的投递保障，以及细粒度的消息级功能。
 
@@ -345,7 +345,7 @@ channel.start_consuming()
 
 消息投递语义是系统设计的根本决策之一。
 
-![Message delivery guarantees](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-delivery-guarantees.png)
+![消息传递保证](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-delivery-guarantees.png)
 
 
 ### 最多一次（At-Most-Once）
@@ -413,7 +413,7 @@ def process_order_idempotently(order):
 
 事件溯源是一种架构模式：不直接存储当前状态，而是将所有状态变更记录为一系列不可变事件；当前状态通过重放（replay）全部事件推导得出。
 
-![CRUD vs event sourcing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-event-sourcing.png)
+![CRUD 与事件溯源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-event-sourcing.png)
 
 
 ### 传统方式 vs 事件溯源
@@ -455,7 +455,7 @@ def process_order_idempotently(order):
 
 CQRS 将写模型（Commands）与读模型（Queries）彻底分离。它天然适配事件溯源。
 
-![CQRS pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-cqrs.png)
+![CQRS 模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/05-cqrs.png)
 
 
 ```
@@ -481,7 +481,7 @@ CQRS 将写模型（Commands）与读模型（Queries）彻底分离。它天然
 ## 死信队列（Dead Letter Queues, DLQ）
 
 
-![Message queue conveyor belt decoupling producers from consum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-message-queue-conveyor-belt-decoupling-producers-from-consum.jpg)
+![消息队列传送带，解耦生产者和消费者](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-message-queue-conveyor-belt-decoupling-producers-from-consum.jpg)
 
 当一条消息经多次重试仍无法被成功处理时，不应无限阻塞队列。死信队列（DLQ）是一个专用队列，用于暂存这些失败消息以便人工排查。
 

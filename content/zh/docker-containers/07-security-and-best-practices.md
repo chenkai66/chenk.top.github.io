@@ -22,7 +22,7 @@ Docker 默认配置优先便利性而非安全性：开箱即用时容器以 roo
 
 实施加固前，先明确防御对象：
 
-![Security layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-security-layers.png)
+![安全层](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-security-layers.png)
 
 
 1. **存在漏洞的应用代码**：你的应用存在缺陷（如远程代码执行 RCE、路径遍历、服务端请求伪造 SSRF），攻击者可在容器内获得代码执行能力  
@@ -38,7 +38,7 @@ Docker 默认配置优先便利性而非安全性：开箱即用时容器以 roo
 
 默认情况下， Docker 容器进程以 root （UID 0）运行——该身份与宿主机 root 相同（启用 user namespaces 除外）；一旦容器逃逸，攻击者即获得宿主机 root 权限。
 
-![Rootless containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png)
+![无根容器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png)
 
 
 ### 在 Dockerfile 中指定
@@ -120,11 +120,11 @@ docker exec default-container id
 ## 只读文件系统
 
 
-![Container security fortress with multiple defense layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-container-security-fortress-with-multiple-defense-layers.jpg)
+![具有多层防御的容器安全堡垒](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-container-security-fortress-with-multiple-defense-layers.jpg)
 
 只读根文件系统可阻断攻击者篡改二进制、注入恶意软件、修改配置等行为：
 
-![Image vulnerability scanning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-image-scanning.png)
+![镜像漏洞扫描](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-image-scanning.png)
 
 
 ```bash
@@ -167,11 +167,11 @@ docker run --read-only myapp 2>&1 | grep "Read-only file system"
 ## Linux 功能
 
 
-![Rootless container running as unprivileged user security vis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-rootless-container-running-as-unprivileged-user-security-vis.jpg)
+![以非特权用户运行的无根容器安全视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-rootless-container-running-as-unprivileged-user-security-vis.jpg)
 
 Linux capabilities 将 root 权限拆分为约 40 种独立特权，而 Docker 默认授予容器其中多项——往往远超应用实际需求。
 
-![Linux capability management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-capability-model.png)
+![Linux 能力管理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-capability-model.png)
 
 
 Docker 容器默认拥有的 capabilities：
@@ -563,7 +563,7 @@ docker run --pids-limit 100 myapp
 
 Seccomp （Secure Computing Mode）用于过滤容器可调用的系统调用。 Docker 默认 seccomp 配置文件屏蔽了约 60 个高危 syscall：
 
-![Seccomp syscall filtering](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-seccomp-profile.png)
+![Seccomp 系统调用过滤](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-seccomp-profile.png)
 
 
 ```bash

@@ -19,7 +19,7 @@ translationKey: "aliyun-pai-2"
 ---
 每次带新人上手 PAI，第一天的剧本都差不多。启动 DSW 实例，`pip install` 一通，训练一小时，不知为何重启了 kernel，然后问我模型文件去哪了。实话实说——“在 `/root` 下，但那台节点已经没了”——这种教训一次就够了。这篇文章就是让你提前避坑的版本。
 
-![Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/illustration_1.png)
+![阿里云PAI (2): PAI-DSW — 不会吞噬你的权重的笔记本 — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/illustration_1.png)
 
 ## DSW 到底是什么
 
@@ -27,7 +27,7 @@ translationKey: "aliyun-pai-2"
 
 有意思的是**镜像里其实什么都没多装**，DSW 容器的系统盘生命周期与实例一致。你 `pip install` 的东西能扛过 kernel 重启，但扛不住实例重启，除非你把 conda 环境持久化到 OSS，或者通过快照功能存到 ACR。
 
-![Anatomy of a DSW instance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig1_dsw_anatomy.png)
+![DSW实例的结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig1_dsw_anatomy.png)
 
 ## 怎么选实例类型
 
@@ -53,7 +53,7 @@ DSW 镜像都是官方维护、带版本号和标签的。快速入门用的是 
 
 控制台操作流程如下：
 
-![Standard DSW workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig2_dsw_workflow.png)
+![标准DSW工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig2_dsw_workflow.png)
 
 生命周期钩子容易忽略，但若忽略此项，将带来显著成本损失。**空闲 shutdown** 我默认设 30 分钟；**定时 shutdown** 设晚上 11 点，防止周末忘了关笔记本。每台空闲的 DSW GPU 实例每小时计费约 5 元，若周末全程未关闭，周一可能产生约 100 元费用。
 
@@ -61,7 +61,7 @@ DSW 镜像都是官方维护、带版本号和标签的。快速入门用的是 
 
 整个 DSW 文档里最重要的一张图：
 
-![DSW storage layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig3_dsw_storage_layout.png)
+![DSW存储布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/fig3_dsw_storage_layout.png)
 
 这是我通用的挂载路径：
 
@@ -163,7 +163,7 @@ DSW 这里有两个机制，都值得了解：
 > **实战建议：** 启动前在控制台检查镜像构建日期。如果超过 60 天，预计至少缺一个 CVE 补丁；对于生产级任务，选同家族里的最新标签。
 ## OSS-FUSE 挂载、延迟 profile 以及何时该拷贝 instead
 
-![Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/illustration_2.png)
+![阿里云PAI (2): PAI-DSW — 不会吞噬你的权重的笔记本 — 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/02-pai-dsw-notebook/illustration_2.png)
 
 OSS-FUSE 是默认的挂载方案， 90% 的场景都够用，但它踩坑的方式比较隐蔽。脑子里的模型应该是：对挂载路径的每次 `read()` 都是一次 OSS HTTP 请求，每次 `write()` 先攒在本地 buffer，等到 `close()` 或者攒够几 MB 才刷写。这带来几个影响：
 

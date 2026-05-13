@@ -19,13 +19,13 @@ translationKey: "aliyun-bailian-3"
 ---
 在所有百炼模型中，Qwen-Omni 帮我清掉了最多的技术债：过去处理‘帮我看看这段 2 分钟宣传视频讲了什么’这类需求时，需要自己实现帧提取、逐帧生成 caption 并拼接，整个流程动辄三周；现在只需一个 HTTP 请求就能搞定。但文档对关键细节语焉不详，尤其是“必须启用流式传输”这一硬性要求，已让多个团队白白耗费半天排查，务必警惕。
 
-![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
+![阿里云百链（3）：Qwen-Omni 用于视频、音频和图像理解 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 
 ## Qwen-Omni 能收什么
 
 查一下 Qwen 多模态模型的 API 参考，单个 user message 的 `content` 数组里能混排 text、 image、 audio 和 video。这才是关键：它支持文本、图像、音频和视频在单个消息中自由混排输入。
 
-![Qwen-Omni inputs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png)
+![Qwen-Omni 输入](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png)
 
 每种类型的结构如下：
 
@@ -70,7 +70,7 @@ for chunk in stream:
 
 文档里把 streaming 写成一个功能特性，但藏了一个事实：**对 Qwen-Omni 来说这是必填项**。设成 `stream=False` 直接返回 400，报错说模型要求流式。
 
-![Streaming requirement](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png)
+![流式处理需求](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png)
 
 原因很简单：Qwen-Omni 要处理数 MB 的视频输入并生成长文本输出，传输协议本身就是流式设计——如果等待完整响应再返回，客户端会卡住几十秒，全程没有进度反馈。
 
@@ -100,7 +100,7 @@ def call_omni_buffered(messages):
 
 你有两个选择，文档都有覆盖。
 
-![Sending a local video to Qwen-Omni](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png)
+![将本地视频发送到 Qwen-Omni](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png)
 
 **路径 1 （推荐）：上传到 OSS，发 signed URL。**
 
@@ -196,7 +196,7 @@ def normalize_audio(src: str, dst: str) -> None:
 每次上传后、调用 API 前都跑一遍，200ms 的转码开销远小于 API 延迟，可忽略不计，同时能完全规避此类“不支持的音频格式”400 错误。
 ## 视频帧采样：口播 1 fps 就够了，动作类要 8 fps
 
-![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.png)
+![阿里云百链（3）：Qwen-Omni 用于视频、音频和图像理解 —— 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.png)
 
 Qwen-Omni 在内部处理视频时，默认按其内置策略对视频采样帧，并将每帧编码为 vision token block。vision token 消耗量与帧数成正比，因此帧率（fps）是控制视频处理成本最关键的调节项。
 

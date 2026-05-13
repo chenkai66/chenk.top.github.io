@@ -26,7 +26,7 @@ translationKey: "aliyun-fullstack-3"
 
 虚拟私有云（VPC）是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络。你可以指定 IP 地址段、划分子网、配置防火墙规则，并控制哪些实例可访问互联网或仅限内网通信。默认情况下，所有入站和出站流量都被拒绝，只有显式允许的流量才能通过。
 
-![VPC architecture overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
+![VPC 架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 
 如果你熟悉 AWS，阿里云 VPC 的心智模型与其基本一致，功能完全等价，只是术语有所不同。
 
@@ -57,7 +57,7 @@ translationKey: "aliyun-fullstack-3"
 
 CIDR（无类别域间路由）用于定义 VPC 的 IP 地址空间。如果这一步规划失误，将不得不重建整个 VPC 并迁移所有资源。
 
-![CIDR planning guide for VPC subnets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
+![VPC 子网 CIDR 规划指南](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
 
 记法逻辑是这样：`10.0.0.0/16` 意味着“从 `10.0.0.0` 到 `10.0.255.255` 的所有 IP"。斜杠后面的数字是前缀长度——有多少位是固定的。剩下的位归你分配。
 
@@ -490,7 +490,7 @@ aliyun vpc CreateSnatEntry \
 
 Server Load Balancer 就是把流量分摊到多台后端实例上。任何想要高可用的服务，它都是必经之门。有了它，你才算从“我有两台服务器”进化到了“我有生产环境部署”。
 
-![SLB Layer 4 vs Layer 7 comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_slb_comparison.png)
+![SLB 第 4 层与第 7 层对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_slb_comparison.png)
 
 阿里云有三个 SLB 产品，名字一开始容易让人晕：
 
