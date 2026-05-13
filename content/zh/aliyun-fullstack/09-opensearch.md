@@ -20,7 +20,6 @@ translationKey: "aliyun-fullstack-9"
 ---
 我做的第一个搜索引擎是用 Elasticsearch 搭建的，配了一堆同义词表。花了六个月才达到基本可用水平，随后陷入重复循环：用户反馈搜不到结果，就加同义词；结果引发其他查询误匹配，又得补例外规则，如此反复。相关性调优配置膨胀到 400 行，包括三种语言的自定义 analyzer 和高度复杂的 boosting 逻辑，早已超出可维护边界；重建索引则需耗时四小时。后来在一个侧边项目中尝试了混合向量和关键词搜索，首日效果即超越此前所有调优成果，首次实现用户零投诉的搜索体验。这一实践经历重塑了我对搜索系统设计的理解，催生了本文。
 
-
 搜索表面简单，实则暗藏多个易被低估的技术挑战：关键词搜索依赖字面匹配，难以应对查询词与文档用词不一致（如术语差异、同义表达）；向量搜索基于语义相似度，但在零件号、错误码、SKU 等需要严格字面匹配的场景支持较弱。过去三年，业界普遍采用混合搜索架构，集成 LLM 提升查询理解与答案生成能力。阿里云提供一站式托管服务 OpenSearch，统一解决这些问题。本文将覆盖从基础关键词搜索到 LLM 驱动的 AI Search 全谱系，最终交付一个开箱即用的商品搜索引擎。
 
 生成文中用到的 embeddings，请参考 [百炼系列，第二部分：Qwen LLM API](/zh/aliyun-bailian/02-qwen-llm-api/)。喂给搜索索引的数据库内容在 [第五部分：RDS](/zh/aliyun-fullstack/05-rds-database/) 里讲。想了解 RAG pipeline 的 LLM Engineering 视角，去看 [LLM Engineering 系列](/zh/llm-engineering/)。
@@ -41,12 +40,12 @@ translationKey: "aliyun-fullstack-9"
 
 决策逻辑如下：
 
-- **你只想要个搜索引擎，别的不要** -- 用 OpenSearch。它的相关性调优最好，原生支持向量，还有 AI Search 插件。
-- **团队已经熟悉 Elasticsearch** -- 用托管 Elasticsearch 服务。 API 是标准 ES，现有代码能直接用。以 OpenSearch 的部分高级特性为代价，换取团队对 Elasticsearch 的熟悉度。
-- **搜索只是数据库的副产品** -- 如果已经在用 Lindorm 或 AnalyticDB 且只需要基础搜索，直接用内置功能，别再加新服务了。
-- **需要 AWS 兼容性** -- 注意，阿里云的 "OpenSearch" 跟 AWS OpenSearch Service 不是一回事（后者是 Elasticsearch 的 fork）。名称相同，但二者是完全不同的产品， API 也不兼容。如果你要从 AWS OpenSearch 迁移，用阿里云的托管 Elasticsearch 服务，别用 OpenSearch。
+- **你只想要个搜索引擎，别的不要** —— 用 OpenSearch。它的相关性调优最好，原生支持向量，还有 AI Search 插件。
+- **团队已经熟悉 Elasticsearch** —— 用托管 Elasticsearch 服务。API 是标准 ES，现有代码能直接用。以 OpenSearch 的部分高级特性为代价，换取团队对 Elasticsearch 的熟悉度。
+- **搜索只是数据库的副产品** —— 如果已经在用 Lindorm 或 AnalyticDB 且只需要基础搜索，直接用内置功能，别再加新服务了。
+- **需要 AWS 兼容性** —— 注意，阿里云的 "OpenSearch" 跟 AWS OpenSearch Service 不是一回事（后者是 Elasticsearch 的 fork）。名称相同，但二者是完全不同的产品，API 也不兼容。如果你要从 AWS OpenSearch 迁移，用阿里云的托管 Elasticsearch 服务，别用 OpenSearch。
 
-这一点最容易让人混淆。再次强调：**阿里云 OpenSearch 与 AWS OpenSearch Service 并非同一产品。** 它们是两套完全不同的系统，查询语言、 API 和计价模型都不同。
+这一点最容易让人混淆。再次强调：**阿里云 OpenSearch 与 AWS OpenSearch Service 并非同一产品。** 它们是两套完全不同的系统，查询语言、API 和计价模型都不同。
 
 ## OpenSearch 基础
 
@@ -56,10 +55,10 @@ translationKey: "aliyun-fullstack-9"
 
 核心概念：
 
-- **Application** -- 顶层容器。把它当成搜索“项目”。每个应用有自己的 schema、数据源和查询配置。
-- **Table** -- 应用内的数据 schema。定义字段、类型以及哪些字段被索引。
-- **Index** -- 基于表数据构建的可搜索结构。 OpenSearch 支持倒排索引（关键词）、向量索引（embeddings）和属性索引（过滤/排序）。
-- **Data Source** -- 数据来源。可以是 RDS、 MaxCompute、 Object Table Service，或者直接 API 推送。
+- **Application** —— 顶层容器。把它当成搜索“项目”。每个应用有自己的 schema、数据源和查询配置。
+- **Table** —— 应用内的数据 schema。定义字段、类型以及哪些字段被索引。
+- **Index** —— 基于表数据构建的可搜索结构。OpenSearch 支持倒排索引（关键词）、向量索引（embeddings）和属性索引（过滤/排序）。
+- **Data Source** —— 数据来源。可以是 RDS、MaxCompute、Object Table Service，或者直接 API 推送。
 
 ### 创建应用
 
@@ -170,6 +169,7 @@ query_with_agg = {
 | 从 ES 迁移路径 | 需要重写 | 自建 ES 迁移几乎无缝 |
 
 阿里云 OpenSearch 的设计倾向性更强，在灵活性上有所取舍，但大幅降低了运维复杂度。以零运维和原生 AI 功能为代价，放弃了 Elasticsearch 庞大的插件生态。
+
 ## RAG 的向量搜索
 
 搜索这事儿到了向量这里才真正变得有意思。传统关键词搜索靠的是倒排索引——它把词映射到文档。如果用户搜 "wireless earbuds"，但商品列表里写的是 "bluetooth headphones"，关键词搜索会直接返回空结果，因为词对不上。
@@ -226,7 +226,7 @@ print(f"First 5 values: {embedding[:5]}") # [-0.0234, 0.0891, ...]
 
 查询向量索引时，系统会计算查询向量和每个文档向量有多“近”。常用的距离度量有两个：
 
-**Cosine Similarity** —— 测量两个向量之间的夹角。返回值在 -1 到 1 之间（1 = 方向完全一致， 0 = 正交，-1 = 相反）。它忽略 magnitude，只关心方向。这是默认选项，也是大多数文本搜索场景的正确选择。
+**Cosine Similarity** —— 测量两个向量之间的夹角。返回值在 -1 到 1 之间（1 = 方向完全一致，0 = 正交，-1 = 相反）。它忽略 magnitude，只关心方向。这是默认选项，也是大多数文本搜索场景的正确选择。
 
 **L2 Distance (Euclidean)** —— 测量向量空间中两点之间的直线距离。相同向量返回 0，差异越大值越大。它对 magnitude 敏感。更适合 embedding 中绝对值很重要的场景（文本搜索里很少见）。
 
@@ -415,9 +415,10 @@ results = vector_search("wireless earbuds under 300 dollars")
 for r in results:
     print(f"  {r['title']} (score: {r['score']:.4f}, ${r['price']})")
 ```
+
 ## 混合搜索：兼得两者之长
 
-向量搜索擅长语义理解，关键词搜索擅长精确匹配。用户搜"WH-1000XM5"是要 exact product——向量搜索可能会返回语义相似但不是同款的产品。用户搜“适合长途飞行的舒适耳机”是要语义理解——关键词搜索会挂掉，因为没哪个商品列表 exactly 用这些词。
+向量搜索擅长语义理解，关键词搜索擅长精确匹配。用户搜 "WH-1000XM5" 是要 exact product——向量搜索可能会返回语义相似但不是同款的产品。用户搜“适合长途飞行的舒适耳机”是要语义理解——关键词搜索会挂掉，因为没哪个商品列表 exactly 用这些词。
 
 ![混合搜索：向量+关键词](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_hybrid_search.png)
 
@@ -459,7 +460,7 @@ RRF_score = 1/(60+3) + 1/(60+3) = 0.01587 + 0.01587 = 0.03175
 hybrid_score = alpha * keyword_score_normalized + (1 - alpha) * vector_score_normalized
 ```
 
-`alpha` 控制平衡。`alpha = 0.3` 意味着 30% 关键词， 70% 向量。合适的值取决于场景：
+`alpha` 控制平衡。`alpha = 0.3` 意味着 30% 关键词，70% 向量。合适的值取决于场景：
 
 | Use case | Recommended alpha | Why |
 |---|---|---|
@@ -566,11 +567,11 @@ Final Response (ranked results + generated answer)
 
 查询理解阶段把原始用户查询转换成更好的搜索查询。三个能力：
 
-**意图检测** -- 分类用户想要什么。"How do I return my order?" 是支持查询。"AirPods Pro price" 是产品搜索。这让你能把查询路由到不同的搜索配置。
+**意图检测** —— 分类用户想要什么。"How do I return my order?" 是支持查询。"AirPods Pro price" 是产品搜索。这让你能把查询路由到不同的搜索配置。
 
-**查询扩展** -- 添加相关词。"laptop" 可能扩展成 "laptop OR notebook OR computer"。这是同义词手动做的事，但 LLM 能自动且基于上下文地做。
+**查询扩展** —— 添加相关词。"laptop" 可能扩展成 "laptop OR notebook OR computer"。这是同义词手动做的事，但 LLM 能自动且基于上下文地做。
 
-**实体提取** -- 抽出结构化属性。"Red Nike running shoes under $100" 变成 `brand=Nike, color=red, category=running shoes, price<100`。这些直接映射到过滤器。
+**实体提取** —— 抽出结构化属性。"Red Nike running shoes under $100" 变成 `brand=Nike, color=red, category=running shoes, price<100`。这些直接映射到过滤器。
 
 ```python
 # AI Search with query understanding enabled
@@ -637,7 +638,7 @@ def ai_search(query_text: str) -> dict:
 
 ### 生成式答案
 
-答案生成阶段把 top 搜索结果喂给 LLM，产出自然语言答案。这是 RAG 模式：检索提供 context， LLM 生成 response。
+答案生成阶段把 top 搜索结果喂给 LLM，产出自然语言答案。这是 RAG 模式：检索提供 context，LLM 生成 response。
 
 ```python
 # Example response from AI Search
@@ -670,9 +671,10 @@ response = {
 关键的架构决策是用 OpenSearch 内置的答案生成还是在应用层处理。内置更简单但定制性差。应用层 RAG 给你完全控制 prompt、模型、引用格式和 fallback 行为。
 
 我的建议：先用 OpenSearch 内置的。只有遇到限制（自定义引用格式、多轮对话、答案内 tool use）再移到应用层 RAG。
+
 ## 查询改写与相关性调优
 
-哪怕混合搜索和 LLM 能力都配齐了，相关性调优这关还是得过。 LLM 擅长处理硬骨头，但像同义词、停用词、字段加权这种基础活儿，传统配置反而更快、更便宜、结果也更可控。
+哪怕混合搜索和 LLM 能力都配齐了，相关性调优这关还是得过。LLM 擅长处理硬骨头，但像同义词、停用词、字段加权这种基础活儿，传统配置反而更快、更便宜、结果也更可控。
 
 ![查询改写流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_query_rewrite.png)
 
@@ -774,9 +776,9 @@ boosted_query = (
 
 没法度量的东西就没法优化。做搜索 A/B 测试分三步：
 
-1. **记录每次查询和点击** -- 存下查询词、展示的结果、用户点了哪个结果（以及位置）。
-2. **计算指标** -- 点击率（CTR）、平均倒数排名（MRR）和 NDCG 是最核心的三个指标。
-3. **流量分割** -- 50% 用户走配置 A， 50% 走配置 B。收集足够数据后对比指标（通常每个变体需要 1,000+ 次查询）。
+1. **记录每次查询和点击** —— 存下查询词、展示的结果、用户点了哪个结果（以及位置）。
+2. **计算指标** —— 点击率（CTR）、平均倒数排名（MRR）和 NDCG 是最核心的三个指标。
+3. **流量分割** —— 50% 用户走配置 A，50% 走配置 B。收集足够数据后对比指标（通常每个变体需要 1,000+ 次查询）。
 
 ```python
 import random
@@ -843,17 +845,17 @@ aliyun dts CreateSynchronizationJob \
   --SynchronizationJobClass small
 ```
 
-DTS 任务监控 MySQL binlog，把 INSERT/UPDATE/DELETE 转成 OpenSearch 文档操作。 RDS 改一行， OpenSearch 里 1-3 秒就能见到变化。
+DTS 任务监控 MySQL binlog，把 INSERT/UPDATE/DELETE 转成 OpenSearch 文档操作。RDS 改一行，OpenSearch 里 1-3 秒就能见到变化。
 
 有几个关键点要注意：
 
-- **Schema 映射** -- DTS 把 RDS 列映射到 OpenSearch 字段。非 trivial 的 schema 需要显式配置。
-- **Embedding 生成** -- DTS 只同步原始数据，**不**生成 embedding。需要额外流水线（比如 Function Compute 触发器）监听 OpenSearch 的新/更新文档并添加 embedding。
-- **Delete 处理** -- RDS 删行时， DTS 会向 OpenSearch 发送删除命令。默认就能用。
+- **Schema 映射** —— DTS 把 RDS 列映射到 OpenSearch 字段。非 trivial 的 schema 需要显式配置。
+- **Embedding 生成** —— DTS 只同步原始数据，**不**生成 embedding。需要额外流水线（比如 Function Compute 触发器）监听 OpenSearch 的新/更新文档并添加 embedding。
+- **Delete 处理** —— RDS 删行时，DTS 会向 OpenSearch 发送删除命令。默认就能用。
 
 ### 实时更新的 Embedding 流水线
 
-DTS 推过来的新文档不带向量 embedding （因为 RDS 里没有）。需要有个流水线来生成并挂载 embedding：
+DTS 推过来的新文档不带向量 embedding（因为 RDS 里没有）。需要有个流水线来生成并挂载 embedding：
 
 ```python
 # Function Compute trigger: runs when OpenSearch receives a new document
@@ -907,9 +909,10 @@ def handler(event, context):
     logger.info(f"Updated embedding for doc {doc_id}")
     return {"status": "ok", "doc_id": doc_id}
 ```
+
 ## 解决方案：基于混合检索的商品搜索
 
-咱们来动手做一个完整的商品搜索 API。这就把之前文章里聊到的所有东西都串起来了： Schema 设计、带 Embedding 的数据导入、混合搜索、 LLM 查询理解，还有一个负责统筹一切的 Flask API。
+咱们来动手做一个完整的商品搜索 API。这就把之前文章里聊到的所有东西都串起来了：Schema 设计、带 Embedding 的数据导入、混合搜索、LLM 查询理解，还有一个负责统筹一切的 Flask API。
 
 ### 架构
 
@@ -1088,7 +1091,7 @@ if __name__ == "__main__":
     import_all()
 ```
 
-### 第三步： Flask 搜索 API
+### 第三步：Flask 搜索 API
 
 ```python
 """
@@ -1404,16 +1407,17 @@ curl http://localhost:5000/api/health
 
 ![成本按组件分解，以及 LLM 调用份额如何随"每个查询都启用 AI"策略变化。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_cost_breakdown.png)
 
-这套配置适合中等流量的搜索服务。 LLM 成本会随着查询量线性增长——如果不需要每次查询都开启 AI 功能，可以只在复杂查询时启用，这样能砍掉 80% 的 LLM 成本。
+这套配置适合中等流量的搜索服务。LLM 成本会随着查询量线性增长——如果不需要每次查询都开启 AI 功能，可以只在复杂查询时启用，这样能砍掉 80% 的 LLM 成本。
+
 ## 核心要点
 
 **混合搜索不是可选项。** 2026 年了，如果你构建搜索时还在只做关键词或者只做向量，等于白白扔掉 15-25% 的相关性。只要其中一种跑通了，上混合搜索的实施成本其实微乎其微。
 
 **阿里云 OpenSearch 不是 AWS OpenSearch。** 除了名字撞车，两者毫无关系。别指望 Elasticsearch APIs 能直接通用。如果需要 ES 兼容性，请直接选用阿里云的托管 Elasticsearch Service。
 
-**Embeddings 很便宜， LLM 调用很贵。** 全量目录做 Embedding 花不了几块钱。但要是每个搜索查询都跑一遍 LLM 查询理解，规模大了成本根本扛不住。策略要灵活：复杂查询才动用 LLM 特性，简单查询直接回退到纯混合搜索。
+**Embeddings 很便宜，LLM 调用很贵。** 全量目录做 Embedding 花不了几块钱。但要是每个搜索查询都跑一遍 LLM 查询理解，规模大了成本根本扛不住。策略要灵活：复杂查询才动用 LLM 特性，简单查询直接回退到纯混合搜索。
 
-**DTS 能解决同步难题。** 既然有 DTS，就别自己造 CDC 流水线了。 binlog 解析、 schema 映射、重试逻辑它都包了。唯一缺的 Embedding 生成环节，挂一个 Function Compute 触发器就能补齐。
+**DTS 能解决同步难题。** 既然有 DTS，就别自己造 CDC 流水线了。binlog 解析、schema 映射、重试逻辑它都包了。唯一缺的 Embedding 生成环节，挂一个 Function Compute 触发器就能补齐。
 
 **先别上 AI Search，后面再加。** 先把关键词搜索跑通，再加向量搜索，看看效果提升多少。然后加上 LLM 查询理解，最后才是答案生成。每一层都是增量迭代，独立创造价值。别想着第一天就建成完整的 AI Search 流水线。
 
@@ -1421,4 +1425,4 @@ curl http://localhost:5000/api/health
 
 ## 下期预告
 
-搜索负责把数据送到用户面前，但前提得是数据能先进到系统里。规模一旦上来，这就意味着得靠事件驱动架构。下篇文章我们聊聊阿里云上的消息队列和事件流——RocketMQ、 Kafka 和 EventBridge——看看这些基础设施是如何以解耦、可扩展的方式把一切连接起来的。
+搜索负责把数据送到用户面前，但前提得是数据能先进到系统里。规模一旦上来，这就意味着得靠事件驱动架构。下篇文章我们聊聊阿里云上的消息队列和事件流——RocketMQ、Kafka 和 EventBridge——看看这些基础设施是如何以解耦、可扩展的方式把一切连接起来的。
