@@ -51,7 +51,7 @@ translationKey: "computer-fundamentals-5"
 - **RSS**（接收侧扩展）——通过 Toeplitz 哈希算法将不同流量分布到多个 CPU 核心。如果没有 RSS，单条 25 GbE 流量可能打满一个核心，导致整台机器性能瓶颈。  
 - **VLAN 标签**和**SR-IOV**——后者允许将一张物理网卡虚拟为多个虚拟功能（VF），每个虚拟机独占一个 VF，从而绕过 hypervisor 的软件交换路径。
 
-![网络硬件架构](https://example.com/network-hardware-diagram)
+![网络硬件架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig1_nic_architecture.png)
 
 ## 千兆网络“缩水”到百兆？问题可能出在这儿
 
