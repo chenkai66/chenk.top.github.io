@@ -14,8 +14,7 @@ disableNunjucks: true
 series_order: 2
 translationKey: "databases-2"
 ---
-
-在笔记本上查 1,000 行只需 2 毫秒的查询，到了生产环境面对 5,000 万行数据时，可能暴涨到 45 秒——除非你建对了索引。索引是数据库工具箱里对性能影响最大的单项优化——吃透它，会彻底改变你设计 Schema 和写 SQL 的方式。
+在笔记本上查 1,000 行只需 2 毫秒的查询，到了生产环境面对 5,000 万行数据时，可能暴涨到 45 秒——除非你建对了索引。索引是数据库工具箱里对性能影响最大的单项优化；吃透它，会彻底改变你设计 Schema 和写 SQL 的方式。
 
 ## 根本问题：如何定位一行数据
 
@@ -23,12 +22,11 @@ translationKey: "databases-2"
 
 ![哈希索引结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-hash-index.png)
 
-
 ```sql
 SELECT * FROM users WHERE email = 'alice@example.com';
 ```
 
-若无索引，数据库必须执行一次 **顺序扫描（sequential scan）**（也称全表扫描）：逐页读取整张表，逐行检查 `email` 字段是否匹配。若该表在磁盘上占 2 GB，则数据库需读取整整 2 GB —— 仅仅为了查找一行数据。
+若无索引，数据库必须执行一次 **顺序扫描（sequential scan）**（也称全表扫描）：逐页读取整张表，逐行检查 `email` 字段是否匹配。若该表在磁盘上占 2 GB，则数据库需读取整整 2 GB——仅仅为了查找一行数据。
 
 索引是一种独立的数据结构，把列值直接映射到对应行的物理位置。若在 `email` 列上建立了 B 树索引，同样的查找操作只需访问约 3–4 个数据页，而非 250,000 个。这正是查询响应从毫秒级跃升至分钟级的根本原因。
 
@@ -44,7 +42,6 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 
 ![B-树索引结构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-btree-index.png)
 
-
 数据库的查询优化器会自动做出这一决策。有时顺序扫描确实更快——例如当 `WHERE` 条件匹配了表中 80% 的行时，索引带来的随机 I/O 反而比一次性顺序读取全部数据更慢。
 
 ## B 树索引：主力索引类型
@@ -52,7 +49,6 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 B 树（平衡树）几乎是所有关系型数据库的默认索引类型，其工作原理如下。
 
 ![查询成本模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-query-cost-model.png)
-
 
 ### 结构
 
@@ -63,7 +59,7 @@ B 树是一种自平衡树，具有以下特征：
 - 所有叶子节点处于同一深度（即“平衡”）
 - **分支因子（branching factor）**（每个节点的子节点数）通常为数百至数千
 
-假设一张表有 1,000 万行、分支因子为 500：根节点（第 0 层） 1 个，第 1 层最多 500 个节点，第 2 层最多 250,000 个节点，叶子层（第 3 层）最多 1.25 亿个条目。  
+假设一张表有 1,000 万行、分支因子为 500：根节点（第 0 层）1 个，第 1 层最多 500 个节点，第 2 层最多 250,000 个节点，叶子层（第 3 层）最多 1.25 亿个条目。
 
 仅需三次树遍历（即三次页读取），即可在 1,000 万行中定位任意一行。这正是 O(log N) 时间复杂度的体现——得益于极高的分支因子，实际查找只需极少层数。
 
@@ -107,13 +103,11 @@ SHOW INDEX FROM users;
 
 ## B+ 树：为何数据库更偏爱它？
 
-
 ![B-树索引结构如未来城市天际线分支](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-btree-index-structure-as-a-futuristic-city-skyline-branching.jpg)
 
 大多数数据库实现实际上使用的是 **B+ 树**——B 树的一种变体：
 
 ![索引选择性影响](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-index-selectivity.png)
-
 
 | 特性 | B 树 | B+ 树 |
 |------|------|--------|
@@ -155,7 +149,7 @@ CREATE INDEX idx_users_email_hash ON users USING hash (email);
 | WAL 日志记录（崩溃安全） | PostgreSQL 10+ 支持 | 始终支持 |
 | 实际使用频率 | 实践中极少使用 | 默认索引类型，几乎总是首选 |
 
-哈希索引只支持等值查找，而不支持范围查询、排序和前缀匹配。实践中， B 树索引的等值查找性能已足够优秀，而哈希索引功能受限带来的收益，往往无法弥补其适用场景狭窄的缺陷。 PostgreSQL 直到版本 10 才使哈希索引具备崩溃安全性。
+哈希索引只支持等值查找，而不支持范围查询、排序和前缀匹配。实践中，B 树索引的等值查找性能已足够优秀，而哈希索引功能受限带来的收益，往往无法弥补其适用场景狭窄的缺陷。PostgreSQL 直到版本 10 才使哈希索引具备崩溃安全性。
 
 ## 复合索引：列顺序至关重要
 
@@ -201,10 +195,9 @@ WHERE status = 'pending';
 
 通常，索引扫描包含两个步骤：
 1. 遍历索引以定位匹配项；
-2. 从堆（主表数据）中获取剩余所需列（即“堆获取”， heap fetch）。
+2. 从堆（主表数据）中获取剩余所需列（即“堆获取”，heap fetch）。
 
 ![索引扫描与顺序扫描](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-scan-comparison.png)
-
 
 第 2 步涉及随机 I/O。而 **覆盖索引（covering index）** 包含查询所需的所有列，从而完全避免堆获取：
 
@@ -220,7 +213,7 @@ FROM orders
 WHERE user_id = 42 AND status = 'completed';
 ```
 
-在 PostgreSQL 中，使用 `INCLUDE` 子句添加非搜索用但需覆盖的列。而在 MySQL （InnoDB）中，覆盖索引天然有效——因为 InnoDB 的二级索引若已包含查询所需全部列，即可直接服务查询。
+在 PostgreSQL 中，使用 `INCLUDE` 子句添加非搜索用但需覆盖的列。而在 MySQL（InnoDB）中，覆盖索引天然有效——因为 InnoDB 的二级索引若已包含查询所需全部列，即可直接服务查询。
 
 ```sql
 -- MySQL 覆盖索引
@@ -356,14 +349,14 @@ CREATE INDEX idx_orders_status_created ON orders (status, created_at);
  Execution Time: 0.234 ms
 ```
 
-从 18.6 毫秒降至 0.23 毫秒 —— **80 倍性能提升**，仅靠一个索引。
+从 18.6 毫秒降至 0.23 毫秒——**80 倍性能提升**，仅靠一个索引。
 
 ## 索引选型策略
 
 ### 应该建立索引的列
 
 1. **主键（Primary keys）**：所有数据库均自动为其建立索引；
-2. **外键（Foreign keys）**：务必索引 —— JOIN 操作频繁依赖；
+2. **外键（Foreign keys）**：务必索引——JOIN 操作频繁依赖；
 3. **WHERE 子句中的列**：尤其是高频查询中的过滤条件；
 4. **ORDER BY 子句中的列**：避免昂贵的排序操作；
 5. **GROUP BY 子句中的列**：加速聚合计算；
@@ -386,10 +379,9 @@ CREATE INDEX idx_orders_status_created ON orders (status, created_at);
 
 ## 过度索引：隐藏的成本
 
-
 ![放大镜下的数据库索引揭示优化查询](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-magnifying-glass-over-database-index-revealing-optimized-que.jpg)
 
-每个索引都附带成本：写放大（每次 INSERT/UPDATE/DELETE 都要同步更新所有相关索引）、存储开销（索引体积常达表的 10–30%）、内存争用（与表共享 buffer pool）、规划延迟（索引越多，优化器评估路径越耗时）以及维护负担（如 VACUUM、 REINDEX、统计更新等）。
+每个索引都附带成本：写放大（每次 INSERT/UPDATE/DELETE 都要同步更新所有相关索引）、存储开销（索引体积常达表的 10–30%）、内存争用（与表共享 buffer pool）、规划延迟（索引越多，优化器评估路径越耗时）以及维护负担（如 VACUUM、REINDEX、统计更新等）。
 
 一张表若有 10 个索引，则每次 INSERT 实际需写入 11 个数据结构（表 + 10 个索引）。对写密集型负载而言，这是灾难性的。
 
@@ -472,7 +464,7 @@ SELECT * FROM users WHERE email = 'alice@example.com';
 
 ## GIN 与 GiST 索引（PostgreSQL）
 
-除 B 树外， PostgreSQL 提供多种专用索引类型：
+除 B 树外，PostgreSQL 提供多种专用索引类型：
 
 ```sql
 -- GIN 索引用于全文检索
@@ -500,7 +492,7 @@ CREATE INDEX idx_events_timerange ON events USING gist (time_range);
 |-----------|---------|---------------------|
 | B-tree | 等值、范围、排序 | `=`, `<`, `>`, `BETWEEN`, `ORDER BY`, `LIKE 'prefix%'` |
 | Hash | 仅等值 | `=` |
-| GIN | 数组、 JSONB、全文检索 | `@>`, `&&`, `@@`, `?`, `?&` |
+| GIN | 数组、JSONB、全文检索 | `@>`, `&&`, `@@`, `?`, `?&` |
 | GiST | 几何、区间、最近邻 | `<<`, `>>`, `&&`, `@>`, `<->` |
 | BRIN | 大型、天然有序的表 | `<`, `>`, `=`（精度略降） |
 
@@ -549,4 +541,4 @@ EXPLAIN ANALYZE
 
 ## 下一步
 
-索引告诉数据库**去哪里**查找数据。但当两个事务同时尝试修改同一行数据时，会发生什么？在下一篇文章中，我们将深入探讨 **事务与并发控制** —— ACID 保证、隔离级别、锁机制，以及预防死锁的“黑魔法”。
+索引告诉数据库**去哪里**查找数据。但当两个事务同时尝试修改同一行数据时，会发生什么？在下一篇文章中，我们将深入探讨 **事务与并发控制**——ACID 保证、隔离级别、锁机制，以及预防死锁的“黑魔法”。

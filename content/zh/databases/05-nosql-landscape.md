@@ -15,30 +15,27 @@ disableNunjucks: true
 series_order: 5
 translationKey: "databases-5"
 ---
-
-并非所有数据都能被整齐地塞进行与列中，例如社交网络中的好友关系图、属性千差万别的商品目录、实时排行榜和推荐引擎背后的关系网络——这些工作负载会让关系型数据库陷入尴尬境地。NoSQL 数据库的存在，正是因为不同的数据模型更擅长解决不同的问题——关键在于知道何时选用哪种。
+并非所有数据都能被整齐地塞进行与列中。社交网络中的好友关系图、属性千差万别的商品目录、实时排行榜，以及推荐引擎背后的关系网络——这些工作负载都会让关系型数据库显得力不从心。NoSQL 数据库之所以存在，正是因为不同的数据模型能更高效地解决不同类型的问题。关键在于，你要知道该选用哪一种。
 
 ## 为何需要 NoSQL？
 
-“NoSQL”这一术语颇具误导性，并不意味着“不用 SQL”，事实上部分 NoSQL 数据库支持类 SQL 查询语言；它真正意指“不仅仅是 SQL”（Not Only SQL），或更准确地说，“非关系型”（non-relational）。采用 NoSQL 的动因有三类：
+“NoSQL”这个术语其实颇具误导性。它并不意味着“不用 SQL”——事实上，有些 NoSQL 数据库支持类 SQL 的查询语言。它真正的含义是“不仅仅是 SQL”（Not Only SQL），或者更准确地说，“非关系型”（non-relational）。采用 NoSQL 的动因主要可以归为三类：
 
 ![文档模型与关系模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-document-model.png)
 
+1. **模式灵活性**：你的数据没有固定 schema，或者 schema 经常变化
+2. **横向扩展架构**：你需要水平扩展的能力，而单机关系型数据库已无法满足
+3. **数据模型契合度**：你的数据天然就是文档、图、键值对或时间序列的形式，而不是表格
 
-1. **模式灵活性（Schema flexibility）**：你的数据没有固定模式，或模式频繁变更  
-2. **横向扩展架构（Scale-out architecture）**：你需要超越单机关系型数据库所能承载的水平扩展能力  
-3. **数据模型契合度（Data model fit）**：你的数据天然就是文档、图、键值对或时间序列形式，而非表格
+接下来，我们逐一探索这四大家族。
 
-下面我们逐一探索这四大家族。
+## 文档型数据库：MongoDB
 
-## 文档型数据库： MongoDB
-
-文档数据库以半结构化文档形式存储数据，通常采用 JSON（MongoDB 中使用其二进制变体 BSON）。
+文档数据库以半结构化文档的形式存储数据，通常使用 JSON（MongoDB 中则使用其二进制变体 BSON）。
 
 ![列族存储布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-column-store.png)
 
-
-每个文档可拥有不同结构，无需固定 schema。
+每个文档都可以拥有不同的结构，无需预定义固定的 schema。
 
 ### 数据模型
 
@@ -73,7 +70,7 @@ translationKey: "databases-5"
 }
 ```
 
-在关系型数据库中，这至少需拆分为 `users`、`addresses` 和 `user_preferences` 三张表。而在 MongoDB 中，它就是一个文档——无需 JOIN。
+在关系型数据库中，这类数据至少需要拆分成 `users`、`addresses` 和 `user_preferences` 三张表；而在 MongoDB 中，它就是一个完整的文档——完全不需要 JOIN。
 
 ### CRUD 操作
 
@@ -136,9 +133,9 @@ const searchResults = await users.find({
 }).toArray();
 ```
 
-### 聚合管道（Aggregation Pipeline）
+### 聚合管道
 
-MongoDB 的聚合框架出人意料地强大——它能完成许多 SQL 中通过 `GROUP BY`、`JOIN` 和窗口函数实现的功能：
+MongoDB 的聚合框架出人意料地强大，能够完成许多原本需要 SQL 中的 `GROUP BY`、`JOIN` 甚至窗口函数才能实现的功能：
 
 ```javascript
 // 计算上季度各品类商品营收
@@ -190,28 +187,26 @@ const results = await orders.aggregate(pipeline).toArray();
 
 | 场景 | 为何契合文档模型 |
 |------|------------------|
-| 商品目录 | 不同品类商品属性差异巨大（如鞋 vs 笔记本电脑） |
-| 内容管理系统 | 文章、博客等嵌套评论结构自然 |
-| 用户档案 | 偏好与元数据高度可变 |
-| 事件日志 | 半结构化事件数据 |
-| 移动端后端 | JSON 输入/输出， schema 快速演进 |
+| 商品目录 | 不同品类的商品属性差异巨大（比如鞋子和笔记本电脑） |
+| 内容管理系统 | 文章、博客及其嵌套评论的结构天然适合文档模型 |
+| 用户档案 | 用户偏好和元数据高度可变 |
+| 事件日志 | 半结构化的事件数据灵活多变 |
+| 移动端后端 | 输入输出均为 JSON，且 schema 演进迅速 |
 
 ### 文档型数据库不适用场景
 
-- **多对多关系**：易导致数据冗余或需手动管理引用  
-- **跨文档复杂事务**：多文档事务支持有限  
-- **重度聚合/分析任务**： SQL 数据库与列式存储更高效  
-- **强一致性要求**：分布式部署下默认为最终一致性  
+- **多对多关系**：容易导致数据冗余，或需要手动管理引用
+- **跨文档的复杂事务**：多文档事务支持有限
+- **重度聚合或分析任务**：SQL 数据库和列式存储通常更高效
+- **强一致性要求**：在分布式部署下，默认采用最终一致性
 
-## 键值型数据库： Redis
-
+## 键值型数据库：Redis
 
 ![在空间中浮动的CAP定理三角形：一致性、可用性](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/05-cap-theorem-triangle-floating-in-space-consistency-availabil.jpg)
 
-键值存储是最简单的 NoSQL 模型：你提供一个 key，它返回一个 value。 Redis 在此基础上进一步支持丰富的数据结构作为 value。
+键值存储是最简单的 NoSQL 模型：你提供一个 key，它就返回对应的 value。Redis 在此基础上更进一步，允许 value 是丰富的数据结构。
 
 ![图数据库遍历](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-graph-traversal.png)
-
 
 ### 数据结构
 
@@ -260,17 +255,17 @@ ZRANK leaderboard "player:carol"   # 1（0-indexed，升序）
 ZREVRANK leaderboard "player:carol" # 1（0-indexed，降序）
 ```
 
-### 持久化： RDB vs AOF
+### 持久化：RDB vs AOF
 
-Redis 主要为内存数据库，但提供两种持久化机制：
+Redis 主要是一个内存数据库，但它提供了两种持久化机制：
 
-| 特性 | RDB （快照） | AOF （追加日志） |
+| 特性 | RDB（快照） | AOF（追加日志） |
 |------|-------------|-----------------|
-| 工作原理 | 定期全量快照写入磁盘 | 记录每条写命令 |
-| 数据丢失风险 | 最多丢失上次快照间隔内的数据 | 可配置：每秒或每条命令同步 |
-| 恢复速度 | 快（加载二进制文件） | 较慢（重放全部命令） |
-| 文件大小 | 紧凑（二进制格式） | 更大（文本命令，但可压缩） |
-| CPU 开销 | 快照时 fork 引发瞬时峰值 | 稳定（持续追加） |
+| 工作原理 | 定期将全量数据快照写入磁盘 | 记录每一条写命令 |
+| 数据丢失风险 | 最多丢失上次快照间隔内的数据 | 可配置为每秒同步或每条命令同步 |
+| 恢复速度 | 快（直接加载二进制文件） | 较慢（需重放所有命令） |
+| 文件大小 | 紧凑（二进制格式） | 更大（文本命令，但可通过重写压缩） |
+| CPU 开销 | 快照时 fork 会造成瞬时峰值 | 开销平稳（持续追加到文件） |
 
 ```bash
 # redis.conf：启用双持久化以获得最高安全性
@@ -310,19 +305,19 @@ GET product:42
 SET product:42 '{"name":"Widget","price":9.99}' EX 300  # 5 分钟 TTL
 ```
 
-## 宽列式数据库： Cassandra
-
+## 宽列式数据库：Cassandra
 
 ![不同NoSQL数据库类型作为不同的架构风格](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/05-different-nosql-database-types-as-distinct-architectural-sty.jpg)
 
-宽列式数据库（亦称列族存储）专为海量规模与可预测性能而设计。 Apache Cassandra 是其中最具代表性的实现。
+宽列式数据库（有时也称为列族存储）专为海量规模和可预测的性能而设计。Apache Cassandra 是其中最具代表性的实现。
 
 ![NoSQL数据库类型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-nosql-types.png)
 
-
 ### 数据模型
 
-Cassandra 使用表结构，其主键由以下两部分构成：- **分区键（Partition key）**：决定数据分布到哪个节点；- **聚类键（Clustering key）**：决定同一分区内数据的排序顺序。  
+Cassandra 使用表结构，其主键由两部分组成：
+- **分区键（Partition key）**：决定数据分布到哪个节点（用于数据分片）
+- **聚类键（Clustering key）**：决定同一分区内数据的排序顺序
 
 ```sql
 -- CQL（Cassandra Query Language）
@@ -336,7 +331,7 @@ CREATE TABLE user_activity (
 ) WITH CLUSTERING ORDER BY (activity_date DESC, activity_time DESC);
 ```
 
-此处 `user_id` 是分区键，`(activity_date, activity_time)` 是聚类键。同一用户的全部活动均存储于同一节点，并按日期与时间倒序排列。
+这里，`user_id` 是分区键，`(activity_date, activity_time)` 是聚类键。同一个用户的所有活动都存储在同一节点上，并按日期和时间降序排列。
 
 ```sql
 -- 插入数据
@@ -365,27 +360,27 @@ LIMIT 20;
 | 场景 | 为何契合 Cassandra |
 |------|-------------------|
 | 时间序列数据 | 按实体分区，按时间聚类 |
-| 物联网传感器数据 | 极高写入吞吐量，延迟可控 |
-| 用户行为日志 | 按用户分区，快速查询近期行为 |
-| 即时通讯/聊天 | 按会话分区，按时间戳聚类 |
+| IoT 传感器数据 | 支持极高的写入吞吐量，延迟可预测 |
+| 用户行为日志 | 按用户分区，便于查询近期活动 |
+| 即时通讯 / 聊天 | 按会话分区，按时间戳聚类 |
 | 地理分布数据 | 支持跨数据中心复制 |
 
-### Cassandra 反模式（Anti-Patterns）
+### Cassandra 反模式
 
-- **跨分区随机读取**：每个分区可能位于不同节点  
-- **JOIN 操作**：不支持——需反范式化或使用物化视图  
-- **轻量级事务（LWT）**：虽支持但代价高昂（基于 Paxos）  
-- **高基数列上的二级索引**：性能极差  
+- **跨分区的随机读取**：每个分区可能位于不同节点，导致多次网络跳转
+- **JOIN 操作**：不支持——需通过反范式化或物化视图解决
+- **轻量级事务（LWT）**：虽然支持，但基于 Paxos，开销较大
+- **高基数列上的二级索引**：性能表现很差
 
-## 图数据库： Neo4j
+## 图数据库：Neo4j
 
-当关系本身即为核心数据——如社交网络、欺诈检测、推荐引擎、知识图谱——图数据库便是最自然的选择。
+当“关系”本身就是核心数据时——比如社交网络、欺诈检测、推荐引擎或知识图谱——图数据库就是最自然的选择。
 
 ### 数据模型
 
 图由两个基本元素构成：
-- **节点（Nodes / vertices）**：带标签（label）和属性（properties）的实体  
-- **关系（Relationships / edges）**：有类型的节点间连接，同样可携带属性  
+- **节点（Nodes / vertices）**：带标签和属性的实体
+- **关系（Relationships / edges）**：有类型的节点间连接，也可以携带属性
 
 ```text
 (Alice:Person {name: "Alice", age: 30})
@@ -431,7 +426,7 @@ RETURN colleague.name, company.name, count(*) AS mutual_connections
 ORDER BY mutual_connections DESC
 ```
 
-### 图数据库 vs 关系型数据库： JOIN 困境
+### 图数据库 vs 关系型数据库：JOIN 困境
 
 在 SQL 中查找“朋友的朋友的朋友”：
 
@@ -448,7 +443,7 @@ WHERE f1.person_id = 1
 -- 在百万级用户的社交图中，此查询几乎不可行
 ```
 
-在 Cypher 中：
+同样的查询用 Cypher 表达：
 
 ```cypher
 MATCH (alice:Person {id: 1})-[:FRIENDS_WITH*3]->(fofof)
@@ -461,24 +456,23 @@ RETURN DISTINCT fofof.name
 
 ## CAP 定理
 
-CAP 定理指出：一个分布式系统最多只能同时满足以下三项保证中的两项：
+CAP 定理指出：一个分布式系统最多只能同时满足以下三个保证中的两项：
 
 ![CAP定理权衡](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-cap-theorem.png)
 
+- **一致性（Consistency）**：每次读操作都能获得最新的写入结果
+- **可用性（Availability）**：每个请求都能得到响应（即使不是最新数据）
+- **分区容忍性（Partition Tolerance）**：即使发生网络分区，系统仍能继续运行
 
-- **一致性（Consistency）**：每次读操作都返回最新写入的数据  
-- **可用性（Availability）**：每次请求都返回响应（即使不是最新数据）  
-- **分区容忍性（Partition Tolerance）**：系统在网络分区发生时仍能继续运行  
-
-由于网络分区在分布式系统中不可避免，实际选择只能在 CP 与 AP 之间权衡：
+由于网络分区在分布式系统中不可避免，实际的选择只能在 **CP** 和 **AP** 之间权衡：
 
 | 选项 | 分区期间行为 | 示例 |
 |------|--------------|------|
-| **CP**（一致性 + 分区容忍） | 拒绝无法保证一致性的请求 | HBase、 MongoDB （设 majority write concern）、 etcd、 ZooKeeper |
-| **AP**（可用性 + 分区容忍） | 仍响应请求，但可能返回陈旧数据 | Cassandra、 DynamoDB、 CouchDB、 Riak |
-| **CA**（一致性 + 可用性） | 分布式系统中不可能实现 | 单机 PostgreSQL / MySQL （非分布式） |
+| **CP**（一致性 + 分区容忍） | 拒绝无法保证一致性的请求 | HBase、MongoDB（启用 majority write concern）、etcd、ZooKeeper |
+| **AP**（可用性 + 分区容忍） | 仍响应请求，但可能返回陈旧数据 | Cassandra、DynamoDB、CouchDB、Riak |
+| **CA**（一致性 + 可用性） | 在分布式系统中无法实现 | 单机 PostgreSQL / MySQL（非分布式） |
 
-实践中，多数数据库允许为每个操作单独调节一致性/可用性权衡。
+实践中，大多数数据库允许你针对每个操作单独调整一致性与可用性之间的权衡：
 
 ```javascript
 // MongoDB：可调写的写关注（write concern）
@@ -503,14 +497,14 @@ SELECT * FROM users WHERE user_id = ? CONSISTENCY ONE;
 
 ## NewSQL：鱼与熊掌兼得？
 
-NewSQL 数据库试图融合 SQL、ACID 事务与水平扩展能力：
+NewSQL 数据库试图融合 SQL、ACID 事务和水平扩展能力：
 
 | 数据库 | 架构 | 核心特性 |
 |--------|------|----------|
-| CockroachDB | Raft 共识 + 基于 Range 的分片 | PostgreSQL 协议，可容忍区域故障 |
-| TiDB | TiKV 存储层（RocksDB）+ TiDB SQL 层 | 兼容 MySQL 协议， HTAP （混合事务/分析处理） |
-| YugabyteDB | DocDB 存储 + Raft 共识 | 同时兼容 PostgreSQL 与 Cassandra API |
-| Google Spanner | TrueTime （原子钟）+ Paxos | 全局强一致性，具备外部一致性（external consistency） |
+| CockroachDB | Raft 共识 + 基于 Range 的分片 | 兼容 PostgreSQL 协议，可容忍区域故障 |
+| TiDB | TiKV 存储层（基于 RocksDB）+ TiDB SQL 层 | 兼容 MySQL 协议，支持 HTAP（混合事务/分析处理） |
+| YugabyteDB | DocDB 存储 + Raft 共识 | 同时提供 PostgreSQL 和 Cassandra 兼容的 API |
+| Google Spanner | TrueTime（原子钟）+ Paxos | 提供全局强一致性，具备外部一致性（external consistency） |
 
 ```sql
 -- CockroachDB：语法像 PostgreSQL，扩展性如 Cassandra
@@ -533,18 +527,18 @@ COMMIT;
 
 | 需求 | 最佳匹配 | 示例 |
 |------|----------|------|
-| ACID 事务、复杂查询 | 关系型数据库 | PostgreSQL、 MySQL |
-| 灵活 Schema、嵌套文档 | 文档型数据库 | MongoDB、 Firestore |
-| 超低延迟缓存 | 键值型数据库 | Redis、 Memcached |
-| 海量写入吞吐、时间序列 | 宽列式数据库 | Cassandra、 HBase |
-| 关系密集型查询 | 图数据库 | Neo4j、 Amazon Neptune |
-| SQL + 水平扩展 | NewSQL | CockroachDB、 TiDB |
-| 实时分析 | 列式数据库 | ClickHouse、 DuckDB |
-| 全文搜索 | 搜索引擎 | Elasticsearch、 Meilisearch |
-| 全球部署 + 强一致性 | 托管 NewSQL | Google Spanner、 CockroachDB |
+| ACID 事务、复杂查询 | 关系型数据库 | PostgreSQL、MySQL |
+| 灵活 schema、嵌套文档 | 文档型数据库 | MongoDB、Firestore |
+| 超低延迟缓存 | 键值型数据库 | Redis、Memcached |
+| 海量写入吞吐、时间序列 | 宽列式数据库 | Cassandra、HBase |
+| 关系密集型查询 | 图数据库 | Neo4j、Amazon Neptune |
+| SQL + 水平扩展 | NewSQL | CockroachDB、TiDB |
+| 实时分析 | 列式数据库 | ClickHouse、DuckDB |
+| 全文搜索 | 搜索引擎 | Elasticsearch、Meilisearch |
+| 全球部署 + 强一致性 | 托管 NewSQL | Google Spanner、CockroachDB |
 
-最佳答案往往不是“只用一种”，而是以 PostgreSQL 作为主数据源，再为特定工作负载引入专用数据库。大多数成功的系统会组合使用 2–3 种数据库，而非孤注一掷。
+现实中，最佳答案往往是：以 PostgreSQL 作为主数据存储，再为特定工作负载搭配专用数据库。大多数成功的系统都会组合使用 2–3 种数据库，而不是孤注一掷地依赖单一方案。
 
 ## 下一步
 
-无论你选择关系型还是 NoSQL，单台机器终将成为瓶颈。在下一篇文章中，我们将深入探讨 **复制（replication）与分片（partitioning）**——这些技术使数据库得以突破单机限制，在保持（某种程度）一致性的同时实现规模化扩展。
+无论你选择关系型还是 NoSQL，单台机器终将成为瓶颈。在下一篇文章中，我们将深入探讨 **复制（replication）与分片（partitioning）**——这些技术让数据库得以突破单机限制，在保持（某种程度）一致性的同时实现规模化扩展。

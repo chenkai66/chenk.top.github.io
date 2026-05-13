@@ -15,26 +15,24 @@ disableNunjucks: true
 series_order: 8
 translationKey: "databases-8"
 ---
-
-理解数据库内部原理只是成功的一半；另一半，是在生产环境中持续稳定运行它——不丢数据、不掉可用性、更别在凌晨三点被告警叫醒。本文聚焦于那些只能靠实战积累的运维知识：没人会在出事前告诉你，但一旦出事，你立刻就需要它们。
+理解数据库内部原理只是成功的一半；另一半是在生产环境中持续稳定运行它——不丢数据、不掉可用性，更别在凌晨三点被警报叫醒。本文聚焦于那些只能靠实战积累的运维知识：没人会在出事前告诉你，但一旦出事，你立刻就需要它们。
 
 ## 模式迁移：边飞行边换引擎
 
-你的数据库模式一定会变：新功能需要新字段、新表、新索引。真正的挑战在于：如何在零停机的前提下完成演进？
+你的数据库模式一定会变：新功能需要新字段、新表、新索引。真正的挑战在于如何在零停机的前提下完成演进？
 
 ![模式演进策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-schema-evolution.png)
-
 
 ### 迁移工具对比
 
 | 工具 | 语言 | 支持数据库 | 核心特性 |
 |------|----------|-----------------|-------------|
-| Flyway | Java （提供 CLI） | PostgreSQL, MySQL, Oracle, SQL Server | SQL + Java 迁移脚本，版本追踪 |
-| Liquibase | Java （提供 CLI） | PostgreSQL, MySQL, Oracle, SQL Server | XML/YAML/JSON 变更日志，支持回滚 |
-| golang-migrate | Go | PostgreSQL, MySQL, SQLite, 更多 | CLI + 库集成，支持 up/down 迁移 |
-| Alembic | Python （SQLAlchemy） | 所有 SQLAlchemy 支持的数据库 | 基于模型自动生成迁移 |
-| Prisma Migrate | TypeScript | PostgreSQL, MySQL, SQLite, MongoDB | Schema-first，自动生成 SQL |
-| dbmate | Go | PostgreSQL, MySQL, SQLite, ClickHouse | 简洁、无框架依赖 |
+| Flyway | Java（提供 CLI） | PostgreSQL、MySQL、Oracle、SQL Server | SQL + Java 迁移脚本，版本追踪 |
+| Liquibase | Java（提供 CLI） | PostgreSQL、MySQL、Oracle、SQL Server | XML/YAML/JSON 变更日志，支持回滚 |
+| golang-migrate | Go | PostgreSQL、MySQL、SQLite、更多 | CLI + 库集成，支持 up/down 迁移 |
+| Alembic | Python（SQLAlchemy） | 所有 SQLAlchemy 支持的数据库 | 基于模型自动生成迁移 |
+| Prisma Migrate | TypeScript | PostgreSQL、MySQL、SQLite、MongoDB | Schema-first，自动生成 SQL |
+| dbmate | Go | PostgreSQL、MySQL、SQLite、ClickHouse | 简洁、无框架依赖 |
 
 ### 迁移文件结构示例
 
@@ -123,11 +121,11 @@ UPDATE users SET phone = 'unknown' WHERE phone IS NULL;
 ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
 ```
 
-#### 2. 在线 DDL （Online DDL）
+#### 2. 在线 DDL（Online DDL）
 
-某些 DDL 操作会锁住整张表，阻塞读写 —— 对于一亿行的表，这可能意味着数分钟不可用。
+某些 DDL 操作会锁住整张表，阻塞读写——对于一亿行的表，这可能意味着数分钟不可用。
 
-✅ 安全操作（无锁或极短锁， PostgreSQL）：
+✅ 安全操作（无锁或极短锁，PostgreSQL）：
 
 ```sql
 -- 添加可空字段：瞬时完成（无需重写表）
@@ -202,10 +200,9 @@ ALTER TABLE users DROP COLUMN name;
 
 ## 连接池（Connection Pooling）
 
-每个数据库连接都消耗资源：内存（PostgreSQL 中约 5–10 MB/连接）、文件描述符、 CPU （用于进程/线程管理）。若无连接池，应用实例突发增长极易耗尽数据库连接上限。
+每个数据库连接都消耗资源：内存（PostgreSQL 中约 5–10 MB/连接）、文件描述符、CPU（用于进程/线程管理）。若无连接池，应用实例突发增长极易耗尽数据库连接上限。
 
 ![连接池](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-connection-pooling.png)
-
 
 ### 问题场景
 
@@ -326,9 +323,7 @@ HikariDataSource ds = new HikariDataSource(config);
 
 ## 数据库监控
 
-
 ![数据库监控](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-monitoring-dashboard.png)
-
 
 ![带有全息投影的数据库监控仪表板控制室](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-monitoring-dashboard-control-room-with-holographic-.jpg)
 
@@ -447,9 +442,7 @@ WHERE variable_name IN (
 
 ## 慢查询分析
 
-
 ![迁移工作流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-migration-workflow.png)
-
 
 ![数据库迁移过程：旧模式转换为新模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-migration-journey-old-schema-transforming-into-new-.jpg)
 
@@ -516,7 +509,6 @@ LIMIT 20;
 逻辑备份导出为 SQL 语句或结构化数据文件。
 
 ![备份策略对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-backup-strategy.png)
-
 
 ```bash
 # PostgreSQL：pg_dump
@@ -653,11 +645,11 @@ echo "Backup restore test passed: $(date)"
 
 | 服务 | 提供商 | 支持引擎 | 核心特性 |
 |---------|---------|---------------|-------------|
-| RDS | 阿里云 / AWS | MySQL, PostgreSQL, SQL Server, MariaDB | 自动备份、多可用区 |
-| PolarDB | 阿里云 | MySQL, PostgreSQL, Oracle 兼容 | 共享存储、最大 100 TB、读扩展 |
+| RDS | 阿里云 / AWS | MySQL、PostgreSQL、SQL Server、MariaDB | 自动备份、多可用区 |
+| PolarDB | 阿里云 | MySQL、PostgreSQL、Oracle 兼容 | 共享存储、最大 100 TB、读扩展 |
 | AnalyticDB | 阿里云 | MySQL 兼容（OLAP） | PB 级分析、列式存储 |
-| Aurora | AWS | MySQL, PostgreSQL 兼容 | 6 节点复制、自动扩缩容存储 |
-| Cloud SQL | Google Cloud | MySQL, PostgreSQL, SQL Server | 自动故障转移、 IAM 集成 |
+| Aurora | AWS | MySQL、PostgreSQL 兼容 | 6 节点复制、自动扩缩容存储 |
+| Cloud SQL | Google Cloud | MySQL、PostgreSQL、SQL Server | 自动故障转移、IAM 集成 |
 | AlloyDB | Google Cloud | PostgreSQL 兼容 | 列式引擎加速分析 |
 
 ### 自建 vs 托管决策指南
@@ -755,7 +747,7 @@ ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '60s';
 
 7. **事务务必短小。** 一个持有锁 30 秒的事务，会阻塞所有后续需要这些行的事务。
 
-8. **数据库不是消息队列。** 如果你在轮询 `SELECT ... WHERE status = 'pending' FOR UPDATE SKIP LOCKED`，你应该用真正的消息队列（如 Kafka、 RabbitMQ）。
+8. **数据库不是消息队列。** 如果你在轮询 `SELECT ... WHERE status = 'pending' FOR UPDATE SKIP LOCKED`，你应该用真正的消息队列（如 Kafka、RabbitMQ）。
 
 ## 系列结语
 
@@ -763,4 +755,4 @@ ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '60s';
 
 数据库正是这样一个领域：浅层认知极其危险。不了解索引的开发者，会构建出在小数据集上完美运行、却在生产中彻底崩塌的系统；不了解隔离级别的团队，会发布只有在高并发下才暴露的竞态 Bug；不验证备份的组织，会在最需要它时发现备份毫无价值。
 
-底层原理变化甚微： B-tree、 WAL、 MVCC、共识算法，数十年来始终是核心基石。掌握它们一次，你面对 PostgreSQL、 CockroachDB、 DynamoDB，乃至未来任何新数据库，看到的都只是你早已理解思想的不同变体。
+底层原理变化甚微：B-tree、WAL、MVCC、共识算法，数十年来始终是核心基石。掌握它们一次，你面对 PostgreSQL、CockroachDB、DynamoDB，乃至未来任何新数据库，看到的都只是你早已理解思想的不同变体。

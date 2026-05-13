@@ -14,8 +14,7 @@ disableNunjucks: true
 series_order: 6
 translationKey: "databases-6"
 ---
-
-一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：可能是读吞吐量超出了单颗 CPU 的能力，需要数据在数据中心火灾中幸存，或数据集已超出单块磁盘的容量。此时，你就需要**复制（Replication）**与**分片（Partitioning / Sharding）**。
+一台数据库服务器能承载惊人的负载——一个调优良好的 PostgreSQL 实例每秒可处理数万次查询。但终究会遇到瓶颈：可能是读吞吐量超出了单颗 CPU 的能力，需要数据在数据中心火灾中幸存，又或者数据集已经超出单块磁盘的容量。此时，你就需要**复制（Replication）**与**分片（Partitioning / Sharding）**。
 
 这是两种正交的扩展策略：
 - **复制**：将**相同的数据**拷贝到多台机器上（提升可用性与读扩展能力）
@@ -127,7 +126,7 @@ def get_comments(post_id, last_write_ts=None):
 
 用户连续发起两次读请求：第一次命中了最新副本，第二次却命中了一个滞后的副本，导致用户看到数据“倒退”。
 
-解决方案：为每个用户固定路由到同一副本（例如，对用户 ID 做哈希后取模选择副本）。
+解决方案：为每个用户固定路由到同一副本（例如，对用户 ID 做哈希后选择副本）。
 
 ### 多主复制（Multi-Leader Replication）
 
@@ -175,7 +174,7 @@ WHERE user_id = 1;
 
 ### 无主复制（Leaderless Replication， Dynamo 风格）
 
-完全不设主节点，任何节点均可接受读写请求。 Amazon DynamoDB、 Apache Cassandra 和 Riak 均采用此模型。
+完全不设主节点，任何节点均可接受读写请求。Amazon DynamoDB、Apache Cassandra 和 Riak 均采用此模型。
 
 #### 法定人数读写（Quorum Reads and Writes）
 
@@ -311,7 +310,7 @@ CREATE TABLE sessions_p3 PARTITION OF sessions
 
 ### 一致性哈希（Consistent Hashing）
 
-传统 `hash(key) % N` 的问题：增减分片时，几乎所有键都会映射到新分片，引发海量数据迁移。
+传统 `hash(key) % N` 的问题在于：增减分片时，几乎所有键都会映射到新分片，引发海量数据迁移。
 
 ![一致性哈希环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/06-consistent-hashing.png)
 
@@ -365,7 +364,7 @@ Cassandra 默认：每物理节点 256 个 vnode
   节点 11：分区 90–99, 190–199, ...（共接收约 91 个分区）
 ```
 
-**动态分区（Dynamic partitioning）**：初始仅设少量分区；当分区过大时分裂，过小时合并。 HBase 和 MongoDB 采用此方式。
+**动态分区（Dynamic partitioning）**：初始仅设少量分区；当分区过大时分裂，过小时合并。HBase 和 MongoDB 采用此方式。
 
 ### 分片数据库中的二级索引（Secondary Indexes）
 
@@ -544,11 +543,11 @@ START REPLICA;
 生产环境中，应使用编排工具实现自动化故障转移：
 - **Orchestrator**（MySQL）：自动检测主节点故障、提升从节点、重配复制拓扑  
 - **Patroni**（PostgreSQL）：基于 etcd/ZooKeeper/Consul 实现主节点选举与高可用管理  
-- **pg_auto_failover**： PostgreSQL 的轻量级高可用替代方案  
+- **pg_auto_failover**：PostgreSQL 的轻量级高可用替代方案  
 
 ## 下一步
 
 
 ![分布式数据库复制数据流在节点间流动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)
 
-复制与分片解决了数据跨多机部署的问题。但当一个事务需要同时更新多个机器上的数据时，又该如何保证原子性与一致性？这就是**分布式事务（Distributed Transactions）** 的挑战——两阶段提交（2PC）、 Saga 模式、共识算法（Consensus），以及为何大多数工程师在可行时都尽量规避它。我们将在下一篇文章中深入探讨。
+复制与分片解决了数据跨多机部署的问题。但当一个事务需要同时更新多个机器上的数据时，又该如何保证原子性与一致性？这就是**分布式事务（Distributed Transactions）** 的挑战——两阶段提交（2PC）、Saga 模式、共识算法（Consensus），以及为何大多数工程师在可行时都尽量规避它。我们将在下一篇文章中深入探讨。

@@ -14,17 +14,15 @@ disableNunjucks: true
 series_order: 1
 translationKey: "databases-1"
 ---
+你用过的每一个应用程序，其底层都依赖某种数据模型。一旦选错，接下来三年你可能都在跟数据库搏斗，而不是专注交付新功能。
 
-你用过的每一个应用程序，其底层都依赖某种数据模型；如果选错了模型，接下来的三年你将疲于与数据库搏斗，无法专注于交付新功能。
-
-过去四十年间，一种模型始终占据主导地位：**关系模型（Relational Model）**——扁平的表结构、外键、SQL。尽管它既不炫酷也不时髦，但几乎每一家银行、航空公司、医院和电商平台仍在使用，自有其深刻原因。理解这一点，是真正理解数据库的第一步。
+过去四十年间，一种模型始终占据主导地位：**关系模型（Relational Model）**——扁平的表结构、外键、SQL。它既不炫酷，也不时髦，但几乎每一家银行、航空公司、医院和电商平台仍在使用它，背后自有深刻原因。理解这一点，是真正掌握数据库的第一步。
 
 ## 关系模型：科德（Codd）的伟大构想
 
 1970 年，埃德加·F·科德（Edgar F. Codd）发表了论文《大型共享数据库的关系数据模型》（"A Relational Model of Data for Large Shared Data Banks"）。其核心洞见在当时极为激进：将数据的 **逻辑表示** 与 **物理存储** 彻底分离。应用程序无需关心数据究竟存于磁盘、内存，还是跨十台机器分布，只需看到 **表（tables）**——仅此而已。
 
 ![规范化形式比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-normalization-forms.png)
-
 
 关系型数据库将数据组织为 **关系（relations）**（即表），每张表包含：
 
@@ -40,7 +38,6 @@ translationKey: "databases-1"
 理论结合具体表结构更易理解。以下是一个极简的电商 Schema，本文后续将反复使用。
 
 ![实体-关系图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-er-diagram.png)
-
 
 ```sql
 CREATE TABLE users (
@@ -74,17 +71,15 @@ CREATE TABLE order_items (
 );
 ```
 
-四张表，三个外钥。这已足够表达“用户下单购买多种商品”这一核心场景——正是支撑着年营收达数十亿美元公司的模型。
+四张表，三个外键。这已足够表达“用户下单购买多种商品”这一核心场景——正是支撑着年营收达数十亿美元公司的模型。
 
 ## SQL 基础要点
 
-
 ![关系数据库表连接的抽象可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-abstract-visualization-of-relational-database-tables-connect.jpg)
 
-SQL （Structured Query Language）是与关系型数据库对话的语言，它是**声明式（declarative）**的：你只需描述 *想要什么数据*，而非 *如何获取它*，执行计划由数据库引擎自行推导。
+SQL（Structured Query Language）是与关系型数据库对话的语言，它是**声明式（declarative）**的：你只需描述 *想要什么数据*，而非 *如何获取它*，执行计划由数据库引擎自行推导。
 
 ![SQL 查询执行流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
-
 
 ### SELECT、FROM、WHERE
 
@@ -124,7 +119,6 @@ LIMIT 5;
 JOIN 将多张表的行组合起来。你需要掌握四种类型：
 
 ![SQL 连接类型可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-join-types.png)
-
 
 | JOIN 类型 | 返回结果 |
 |-----------|---------|
@@ -201,7 +195,7 @@ ORDER BY total_revenue DESC;
  Books        |          89 |         234 |       4567.80
 ```
 
-`WHERE` 在分组前过滤行；`HAVING` 在聚合后过滤分组。这个区别常令初学者困惑。
+`WHERE` 在分组前过滤行，而 `HAVING` 在聚合后过滤分组。这个区别常令初学者困惑。
 
 ## 数据类型：了解你的选项
 
@@ -212,13 +206,13 @@ ORDER BY total_revenue DESC;
 | 小整数 | `SMALLINT` | `SMALLINT` | 2 | -32,768 到 32,767 |
 | 整数 | `INT` / `INTEGER` | `INT` | 4 | -21 亿 到 21 亿 |
 | 大整数 | `BIGINT` | `BIGINT` | 8 | -9.2 × 10¹⁸ 到 9.2 × 10¹⁸ |
-| 可变长文本 | `VARCHAR(n)` | `VARCHAR(n)` | 1-4 + 长度 | 最大 1GB （PG）， 65,535 字节（MySQL） |
-| 无限长文本 | `TEXT` | `TEXT` / `LONGTEXT` | 1-4 + 长度 | 无长度限制（PG）， 4GB （MySQL LONGTEXT） |
+| 可变长文本 | `VARCHAR(n)` | `VARCHAR(n)` | 1-4 + 长度 | 最大 1 GB（PG），65,535 字节（MySQL） |
+| 无限长文本 | `TEXT` | `TEXT` / `LONGTEXT` | 1-4 + 长度 | 无长度限制（PG），4 GB（MySQL LONGTEXT） |
 | 精确小数 | `DECIMAL(p,s)` / `NUMERIC` | `DECIMAL(p,s)` | 可变 | 货币场景必用。**切勿用 FLOAT 存货币！** |
 | 时间戳 | `TIMESTAMP` / `TIMESTAMPTZ` | `TIMESTAMP` / `DATETIME` | 8 | PG 中务必用 `TIMESTAMPTZ` |
 | 布尔值 | `BOOLEAN` | `BOOLEAN` / `TINYINT(1)` | 1 | MySQL 的 `BOOLEAN` 实为 `TINYINT` |
 | JSON | `JSON` / `JSONB` | `JSON` | 可变 | `JSONB`（PG）为二进制格式，可索引且更快 |
-| UUID | `UUID` | `CHAR(36)` 或 `BINARY(16)` | 16 | PG 原生支持， MySQL 需模拟 |
+| UUID | `UUID` | `CHAR(36)` 或 `BINARY(16)` | 16 | PG 原生支持，MySQL 需模拟 |
 
 **经验法则：**
 
@@ -227,12 +221,11 @@ ORDER BY total_revenue DESC;
 - PostgreSQL 使用 `TIMESTAMPTZ`；或统一以 UTC 存储所有时间。
 - 仅当确实需要 schema-free 字段时才用 `JSONB`（PostgreSQL）；**切勿用它逃避合理 schema 设计。**
 
-## ALTER TABLE： Schema 演进
+## ALTER TABLE：Schema 演进
 
 Schema 必然随业务演进，新功能常需新增列：
 
 ![关系模型的应用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-relational-model.png)
-
 
 ```sql
 -- 添加电话号码列
@@ -252,7 +245,7 @@ ALTER TABLE order_items ADD CONSTRAINT uq_order_product
 ALTER TABLE users DROP COLUMN phone;
 ```
 
-在生产环境中，对大表执行 `ALTER TABLE` 可能导致表被锁住数分钟甚至数小时。第 8 篇文章将详解在线 DDL （Online DDL）策略。
+在生产环境中，对大表执行 `ALTER TABLE` 可能导致表被锁住数分钟甚至数小时。第 8 篇文章将详解在线 DDL（Online DDL）策略。
 
 ## 范式化（Normalization）：消除冗余
 
@@ -272,7 +265,7 @@ ALTER TABLE users DROP COLUMN phone;
 ```
 
 问题：
-- **更新异常（Update anomaly）**： Alice 修改邮箱？你必须更新她出现过的每一行。
+- **更新异常（Update anomaly）**：Alice 修改邮箱？你必须更新她出现过的每一行。
 - **插入异常（Insert anomaly）**：未产生订单，就无法添加新产品。
 - **删除异常（Delete anomaly）**：删掉 Bob 唯一的一笔订单，他的客户信息也彻底丢失。
 
@@ -322,10 +315,9 @@ ALTER TABLE users DROP COLUMN phone;
 
 ## 何时反范式化（Denormalize）
 
-
 ![SQL 查询处理引擎的机械齿轮和数据管道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/01-sql-query-processing-engine-mechanical-gears-and-data-pipes-.jpg)
 
-范式化消除了冗余，但读取常需 JOIN 多张表——而 JOIN 有开销。有时你**主动反范式化以换取性能**：
+范式化消除了冗余，但读取常需 JOIN 多张表——而 JOIN 有开销。有时你会**主动反范式化以换取性能**：
 
 ```sql
 -- 为避免每次查询都 JOIN orders + order_items + products，
@@ -349,11 +341,11 @@ WHERE o.order_id = 42;
 | 缓存聚合值（Cached aggregates） | 频繁运行的仪表板查询 | 每次写入均需同步更新 |
 | 物化视图（Materialized views） | 复杂报表查询 | 刷新间隔内数据陈旧 |
 | 冗余列（Redundant columns） | 热路径（hot paths）中规避昂贵 JOIN | 更新异常风险重现 |
-| 汇总表（Summary tables） | 时序数据滚动聚合（按小时/天） | 额外存储开销， ETL 复杂性 |
+| 汇总表（Summary tables） | 时序数据滚动聚合（按小时/天） | 额外存储开销，ETL 复杂性 |
 
 准则：**先范式化，仅在实测存在性能瓶颈时才反范式化。**
 
-## 高级 SQL：子查询、 CTE 与窗口函数
+## 高级 SQL：子查询、CTE 与窗口函数
 
 ### 子查询（Subqueries）
 
@@ -383,7 +375,7 @@ WHERE user_totals.total_spent > (
 ORDER BY user_totals.total_spent DESC;
 ```
 
-此写法可行，但可读性差。 CTE （Common Table Expressions）可解决此问题。
+此写法可行，但可读性差。CTE（Common Table Expressions）可解决此问题。
 
 ### 公共表表达式（CTEs）
 
@@ -427,7 +419,7 @@ ORDER BY us.total_spent DESC;
 
 CTE 更易读，可在同一查询中复用；部分数据库（如 PostgreSQL 12+）还能将其内联（inline）以提升性能。
 
-### 递归 CTE （Recursive CTEs）
+### 递归 CTE（Recursive CTEs）
 
 CTE 可自我引用，适用于层级数据：
 
@@ -547,7 +539,7 @@ ORDER BY month;
 
 ## 综合实战
 
-以下是一个融合 CTE、 JOIN 与窗口函数的真实查询：基于电商 Schema，找出每个品类营收最高的商品，并计算其占该品类总营收的百分比：
+以下是一个融合 CTE、JOIN 与窗口函数的真实查询：基于电商 Schema，找出每个品类营收最高的商品，并计算其占该品类总营收的百分比：
 
 ```sql
 WITH product_revenue AS (
