@@ -72,17 +72,29 @@
       return;
     }
     results.innerHTML = ranked
-      .map(
-        (r, i) => `
-      <a class="result${i === 0 ? ' active' : ''}" href="${r.d.url}">
-        <span class="title">${escape(r.d.title)}</span>
-        <span class="excerpt">${escape((r.d.summary || "").slice(0, 140))}</span>
-      </a>`
-      )
+      .map(function (r, i) {
+        var d = r.d;
+        var seriesTag = d.series ? `<span class="r-series">${escape(d.series.replace(/-/g, ' '))}</span>` : '';
+        var date = d.date ? `<span class="r-date">${escape(d.date.slice(0,10))}</span>` : '';
+        var titleHL = highlight(escape(d.title), q);
+        var summaryHL = highlight(escape((d.summary || '').slice(0, 140)), q);
+        return `<a class="result${i === 0 ? ' active' : ''}" href="${d.url}">
+          <div class="r-meta">${seriesTag}${date}</div>
+          <span class="title">${titleHL}</span>
+          <span class="excerpt">${summaryHL}</span>
+        </a>`;
+      })
       .join("");
     activeIdx = 0;
   }
 
+  function highlight(text, q) {
+    if (!q) return text;
+    var words = q.split(/\s+/).filter(function (w) { return w.length >= 2; });
+    if (!words.length) return text;
+    var pattern = new RegExp('(' + words.map(function (w) { return w.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }).join('|') + ')', 'gi');
+    return text.replace(pattern, '<mark>$1</mark>');
+  }
   function escape(s) {
     return String(s)
       .replace(/&/g, "&amp;")
