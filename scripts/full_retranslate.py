@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
-"""Full-context ZH article retranslation via Qwen-max.
+"""full_retranslate.py v2 — Qwen3-max powered ZH article rewriter.
+Changes from v1: JSON output format with LaTeX-safe parser, 128 workers."""
 
-For each ZH article:
-  1. Pair with EN article (same series + series_order)
-  2. Read series.toml for series name
-  3. Build context: series name + all article titles + EN content + current ZH content
-  4. Send to Qwen-max with instructions to produce natural, high-quality Chinese
-     using EN as authoritative semantic source
-  5. Replace ZH article body (preserve frontmatter)
-
-Chunked by H2 sections for articles longer than ~4K words to stay well within context.
-"""
-import os, glob, re, json, time, threading, sys
+import os, sys, glob, re, json, time, threading
 from concurrent.futures import ThreadPoolExecutor
 import requests
 
@@ -39,6 +30,30 @@ def next_key():
         e = API_KEYS[idx[0] % len(API_KEYS)]; idx[0] += 1; return e
 
 
+def pretest_keys():
+    print(f"Pre-testing {len(API_KEYS)} API keys...")
+    ok_count = 0
+    for i, (key, url) in enumerate(API_KEYS):
+        region = "INTL" if "intl" in url else "CN"
+        try:
+            r = requests.post(url,
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={"model": "qwen3-max", "max_tokens": 20, "temperature": 0.1,
+                      "messages": [{"role": "user", "content": "say OK"}]},
+                timeout=30)
+            if r.status_code == 200:
+                print(f"  [{i+1:2d}] {region} {key[:10]}... OK")
+                ok_count += 1
+            else:
+                print(f"  [{i+1:2d}] {region} {key[:10]}... FAIL (HTTP {r.status_code})")
+        except Exception as e:
+            print(f"  [{i+1:2d}] {region} {key[:10]}... FAIL ({e})")
+    print(f"Pre-test: {ok_count}/{len(API_KEYS)} keys working")
+    if ok_count == 0:
+        print("FATAL: no working keys!"); sys.exit(1)
+    return ok_count
+
+
 REPO = "/root/chenk-hugo"
 
 def parse_fm(content):
@@ -54,7 +69,6 @@ def get_field(fm, field):
 
 
 def build_series_context(series):
-    """Return {zh_name, en_name, articles: [{order, en_title, zh_title}]}."""
     en_articles = []
     zh_articles = []
     for path in sorted(glob.glob(f"{REPO}/content/en/{series}/*.md")):
@@ -75,12 +89,10 @@ def build_series_context(series):
         order = get_field(fm, "series_order") or "?"
         if title:
             zh_articles.append({"order": order, "title": title})
-    # Try to load series name from data/series.toml
     series_zh = series_en = series
     try:
         with open(f"{REPO}/themes/chenk/data/series.toml") as f:
             tc = f.read()
-        # Find [series.X] block matching id
         block_re = re.search(rf'\[\[series\]\]\s+id\s*=\s*"{re.escape(series)}"(.*?)(?=\[\[series\]\]|$)', tc, re.DOTALL)
         if block_re:
             block = block_re.group(1)
@@ -98,7 +110,7 @@ def build_series_context(series):
     }
 
 
-SYS = """你是一名顶尖的中文技术写作编辑。你的任务是把一篇技术博客的中文版本改写得自然、流畅、地道。
+SYS = r"""你是一名顶尖的中文技术写作编辑。你的任务是把一篇技术博客的中文版本改写得自然、流畅、地道。
 
 你会收到：
 1. **系列上下文**：系列名（中英）、本系列所有文章的标题
@@ -127,18 +139,106 @@ SYS = """你是一名顶尖的中文技术写作编辑。你的任务是把一�
 - 保留专有名词、模型名、库名、缩写英文（VPC, RDS, ECS, OSS, MMLU, GSM8K, BERT, MySQL, PolarDB 等）
 - 论文引用（Brown et al. (2020), *Title*）原样
 
-**输出格式**（重要）：
-将改写后的全部中文正文（不含 frontmatter）放在 <<<REWRITE>>> 和 <<<END>>> 之间。例如：
+**输出格式**（严格遵守）：
+输出一个 JSON 对象，只包含一个 body 字段：
 
-<<<REWRITE>>>
-（改写后的完整中文正文）
-<<<END>>>
+{"body": "改写后的完整中文正文..."}
 
-不要使用 JSON、不要解释、不要有其他文字。LaTeX 公式、反斜杠等可以原样输出。"""
+规则：
+- 只输出 JSON，不要解释、不要有其他文字
+- body 值中的换行输出为实际换行（不需要转义为 \n）
+- 如果 JSON 解析器要求，可以用 markdown code fence 包裹
+- LaTeX 公式保持原样（$\frac{1}{2}$ 等）"""
+
+
+def fix_json_backslashes(s):
+    """Fix LaTeX backslashes that break JSON parsing.
+    \frac -> \\frac, \mathbb -> \\mathbb, etc.
+    But keep real JSON escapes: \n \t \r \\ \" \/ \b \f (when not followed by alpha)."""
+    result = []
+    i = 0
+    n = len(s)
+    while i < n:
+        if s[i] == '\\' and i + 1 < n:
+            nxt = s[i+1]
+            if nxt == '\\' or nxt == '"' or nxt == '/':
+                result.append(s[i:i+2]); i += 2
+            elif nxt == 'u' and i+5 < n and all(c in '0123456789abcdefABCDEF' for c in s[i+2:i+6]):
+                result.append(s[i:i+6]); i += 6
+            elif nxt in 'nrtbf':
+                # \n, \t, etc. could be real JSON escapes OR LaTeX (\nabla, \text, \frac, \boldsymbol)
+                # If followed by another alpha char => LaTeX command => double the backslash
+                if i+2 < n and s[i+2].isalpha():
+                    result.append('\\\\'); result.append(nxt); i += 2
+                else:
+                    result.append(s[i:i+2]); i += 2
+            else:
+                # Not a valid JSON escape => double the backslash
+                result.append('\\\\'); result.append(nxt); i += 2
+        else:
+            result.append(s[i]); i += 1
+    return ''.join(result)
+
+
+def parse_json_body(raw):
+    """Extract body from Qwen's JSON output with robust LaTeX handling."""
+    raw = raw.strip()
+    # Strip code fences
+    if raw.startswith("```"):
+        raw = re.sub(r'^```(?:json)?\s*\n?', '', raw)
+        raw = re.sub(r'\n?```\s*$', '', raw)
+        raw = raw.strip()
+
+    # Method 1: Try clean JSON parse
+    try:
+        obj = json.loads(raw)
+        if isinstance(obj, dict) and "body" in obj:
+            return obj["body"]
+    except json.JSONDecodeError:
+        pass
+
+    # Method 2: Fix LaTeX backslashes then retry
+    fixed = fix_json_backslashes(raw)
+    try:
+        obj = json.loads(fixed)
+        if isinstance(obj, dict) and "body" in obj:
+            return obj["body"]
+    except json.JSONDecodeError:
+        pass
+
+    # Method 3: Regex extraction — find "body" : " ... last "
+    m = re.search(r'"body"\s*:\s*"', raw)
+    if m:
+        start = m.end()
+        # Find matching close: scan for unescaped " followed by optional whitespace and }
+        # Simple approach: last " before final }
+        last_brace = raw.rfind('}')
+        if last_brace > start:
+            end = raw.rfind('"', start, last_brace)
+            if end > start:
+                body = raw[start:end]
+                # Manual unescape (order matters: \\ first)
+                body = body.replace('\\\\', '\x00BKSL\x00')
+                body = body.replace('\\n', '\n')
+                body = body.replace('\\t', '\t')
+                body = body.replace('\\"', '"')
+                body = body.replace('\\/', '/')
+                body = body.replace('\x00BKSL\x00', '\\')
+                return body
+
+    # Method 4: Fall back to delimiter format if model ignored JSON instruction
+    dm = re.search(r"<<<REWRITE>>>\s*(.*?)\s*<<<END>>>", raw, re.DOTALL)
+    if dm:
+        return dm.group(1).strip()
+    dm2 = re.search(r"<<<REWRITE>>>\s*(.*)", raw, re.DOTALL)
+    if dm2:
+        return dm2.group(1).strip()
+
+    return None
 
 
 def call(prompt, retries=3):
-    for _ in range(retries):
+    for attempt in range(retries):
         k, u = next_key()
         try:
             r = requests.post(u,
@@ -155,23 +255,17 @@ def call(prompt, retries=3):
                     time.sleep(5); continue
                 print(f"  api error: {err[:100]}", flush=True); time.sleep(2); continue
             t = data["choices"][0]["message"]["content"]
-            # Extract content between <<<REWRITE>>> and <<<END>>>
-            m = re.search(r"<<<REWRITE>>>\s*(.*?)\s*<<<END>>>", t, re.DOTALL)
-            if not m:
-                # Try without <<<END>>> if model truncated
-                m2 = re.search(r"<<<REWRITE>>>\s*(.*)", t, re.DOTALL)
-                if m2:
-                    return {"rewritten": m2.group(1).strip()}
-                print(f"  no delim found in: {t[:200]}", flush=True)
-                time.sleep(2); continue
-            return {"rewritten": m.group(1).strip()}
+            body = parse_json_body(t)
+            if body:
+                return {"rewritten": body}
+            print(f"  json parse failed, raw start: {t[:200]}", flush=True)
+            time.sleep(2); continue
         except Exception as e:
             print(f"  err: {str(e)[:120]}", flush=True); time.sleep(2)
     return None
 
 
 def split_into_chunks(body, max_chars=16000):
-    """Split markdown body by H2 boundaries, each chunk up to max_chars."""
     sections = []
     cur = []
     for line in body.split("\n"):
@@ -196,25 +290,17 @@ def split_into_chunks(body, max_chars=16000):
 
 
 def mask_preserve(body):
-    """Mask image URLs, link URLs, code blocks with placeholders.
-    Returns (masked_text, placeholders) where placeholders are restored after rewrite."""
     placeholders = []
     def stash(m):
         placeholders.append(m.group(0))
         return f"§§{len(placeholders)-1}§§"
-
-    # Order matters: code blocks first (they may contain links/urls)
     masked = re.sub(r"```[\s\S]*?```", stash, body)
-    # Images (full ![alt](url) — entire token preserved including alt to keep it intact)
     masked = re.sub(r"!\[[^\]]*\]\([^)]+\)", stash, masked)
-    # Markdown link URLs only (preserve URL but allow text rewrite): [text](URL)
     masked = re.sub(r"\(\s*(/[^)\s]+|https?://[^)\s]+)\s*\)", stash, masked)
     return masked, placeholders
 
 
 def strip_images_for_context(body):
-    """For EN reference content: strip images entirely (model doesn't need them)
-    and strip code blocks (already in ZH, model just needs prose for semantic anchor)."""
     body = re.sub(r"```[\s\S]*?```", "[code block]", body)
     body = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", body)
     body = re.sub(r"\n\n\n+", "\n\n", body)
@@ -229,7 +315,6 @@ def unmask(text, placeholders):
 
 
 def process_article(zh_path, en_path, ctx):
-    """Retranslate one ZH article using EN as reference + series context."""
     with open(zh_path) as f: zh_full = f.read()
     with open(en_path) as f: en_full = f.read()
     zh_fm, zh_body = parse_fm(zh_full)
@@ -239,9 +324,7 @@ def process_article(zh_path, en_path, ctx):
     zh_title = get_field(zh_fm, "title") or "?"
     en_title = get_field(en_fm, "title") or "?"
 
-    # Mask ZH (only the ZH version's placeholders matter for restoration)
     zh_masked, zh_placeholders = mask_preserve(zh_body)
-    # EN is just for semantic context — strip images, code, etc.
     en_clean = strip_images_for_context(en_body)
 
     total_size = len(en_clean) + len(zh_masked)
@@ -282,10 +365,10 @@ def process_article(zh_path, en_path, ctx):
 
 {zh_chunk}
 
-请输出改写后的中文版（仅本部分）。
+请输出改写后的中文版（仅本部分），以 JSON 格式。
 
 **关键规则**（违反则输出无效）：
-- 所有 §§数字§§ 形式的占位符必须**原封不动**保留在输出中（包括相对位置）—— 这些占位符在后处理时会被替换回原始的图片、链接、代码块
+- 所有 §§数字§§ 形式的占位符必须**原封不动**保留在输出中（包括相对位置）
 - 不要在输出中创造任何 ![alt](url) 形式的新图片标签
 - 不要在输出中创造任何 ```...``` 形式的代码块
 - 输出仅基于"本文当前中文版"改写，**不要**直接抄写英文版的图片/链接/代码"""
@@ -293,13 +376,11 @@ def process_article(zh_path, en_path, ctx):
         if not result or "rewritten" not in result:
             return False, f"chunk {i+1}/{len(en_chunks)} failed"
         rewritten_masked = result["rewritten"].strip()
-        # Verify all placeholders survived
         original_placeholders = set(re.findall(r"§§(\d+)§§", zh_chunk))
         rewritten_placeholders = set(re.findall(r"§§(\d+)§§", rewritten_masked))
         if original_placeholders - rewritten_placeholders:
             missing = original_placeholders - rewritten_placeholders
-            return False, f"chunk {i+1}: placeholders dropped ({list(missing)[:3]})"
-        # Verify no fresh image/code tokens slipped in
+            return False, f"chunk {i+1}: placeholders dropped ({sorted(list(missing))[:5]})"
         if re.search(r"!\[[^\]]*\]\([^)]+\)", rewritten_masked):
             return False, f"chunk {i+1}: fresh image markdown injected"
         if "```" in rewritten_masked:
@@ -307,7 +388,6 @@ def process_article(zh_path, en_path, ctx):
         new_chunks.append(rewritten_masked)
 
     new_body_masked = "\n\n".join(new_chunks)
-    # Restore placeholders globally
     new_body = unmask(new_body_masked, zh_placeholders)
     new_full = "---" + zh_fm + "---\n" + new_body + ("\n" if not new_body.endswith("\n") else "")
     if len(new_body) < len(zh_body) * 0.4 or len(new_body) > len(zh_body) * 3.0:
@@ -315,11 +395,10 @@ def process_article(zh_path, en_path, ctx):
 
     with open(zh_path, "w") as f:
         f.write(new_full)
-    return True, f"rewritten ({len(zh_body)} → {len(new_body)} chars)"
+    return True, f"rewritten ({len(zh_body)} -> {len(new_body)} chars)"
 
 
 def find_pair(zh_path):
-    """Given a ZH article path, find the paired EN article via series + series_order."""
     with open(zh_path) as f: c = f.read()
     fm, _ = parse_fm(c)
     if not fm: return None
@@ -328,7 +407,6 @@ def find_pair(zh_path):
     if not series_m or not order_m: return None
     series = series_m.group(1).strip().strip('"')
     order = order_m.group(1)
-    # Find EN article in same series with same order
     for ep in glob.glob(f"{REPO}/content/en/{series}/*.md"):
         if "_index" in ep: continue
         with open(ep) as f: ec = f.read()
@@ -355,18 +433,63 @@ def process_series(series):
         return (zh_path, ok, msg)
 
     results = []
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=128) as ex:
         for zh_path, ok, msg in ex.map(worker, files):
             mark = "✓" if ok else "✗"
             print(f"  {mark} {os.path.basename(zh_path)}: {msg}")
             results.append((zh_path, ok))
     n_ok = sum(1 for _, ok in results if ok)
-    print(f"  Series {series}: {n_ok}/{len(results)} succeeded")
+    print(f"\n  Series {series}: {n_ok}/{len(results)} succeeded")
+    return n_ok
+
+
+def process_files(file_list):
+    """Process a list of specific file paths (for retrying failures)."""
+    print(f"\n=== Retry {len(file_list)} files ===")
+    series_ctx_cache = {}
+    def worker(zh_path):
+        # Extract series from path
+        parts = zh_path.replace(f"{REPO}/content/zh/", "").split("/")
+        series = parts[0] if parts else "unknown"
+        if series not in series_ctx_cache:
+            series_ctx_cache[series] = build_series_context(series)
+        ctx = series_ctx_cache[series]
+        en_path = find_pair(zh_path)
+        if not en_path:
+            return (zh_path, False, "no EN pair")
+        ok, msg = process_article(zh_path, en_path, ctx)
+        return (zh_path, ok, msg)
+
+    results = []
+    with ThreadPoolExecutor(max_workers=128) as ex:
+        for zh_path, ok, msg in ex.map(worker, file_list):
+            mark = "✓" if ok else "✗"
+            print(f"  {mark} {os.path.basename(zh_path)}: {msg}")
+            results.append((zh_path, ok))
+    n_ok = sum(1 for _, ok in results if ok)
+    print(f"\n  Retry: {n_ok}/{len(results)} succeeded")
     return n_ok
 
 
 if __name__ == "__main__":
-    series_list = sys.argv[1:] if len(sys.argv) > 1 else ["llm-engineering"]
+    if "--pretest" in sys.argv:
+        pretest_keys()
+        sys.exit(0)
+
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+
+    # Check for --files mode (specific file paths)
+    if "--files" in sys.argv:
+        file_idx = sys.argv.index("--files")
+        file_list = [f"{REPO}/{f}" if not f.startswith("/") else f for f in sys.argv[file_idx+1:]]
+        file_list = [f for f in file_list if os.path.exists(f)]
+        if file_list:
+            process_files(file_list)
+        else:
+            print("No valid files found")
+        sys.exit(0)
+
+    series_list = args if args else ["llm-engineering"]
     total = 0
     for s in series_list:
         total += process_series(s)
