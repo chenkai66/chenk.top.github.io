@@ -10,9 +10,9 @@ categories: Cloud Computing
 lang: zh
 mathjax: false
 series: aliyun-fullstack
-series_title: "Alibaba Cloud Full Stack"
+series_title: "阿里云全栈实战"
 series_order: 1
-description: "A 实战指南 to Alibaba Cloud's product ecosystem. We map every major service to its AWS/Azure/GCP equivalent, set up an account from scratch, and deploy our first ECS instance — all in under an hour."
+description: "阿里云产品生态实战指南。将每个核心服务映射到 AWS/Azure/GCP 对标产品，从零开通账号，部署第一台 ECS 实例——一小时搞定。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-1"
 ---
