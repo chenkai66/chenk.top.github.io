@@ -14,17 +14,15 @@ disableNunjucks: true
 series_order: 3
 translationKey: "system-design-3"
 ---
-
-2015 年， Facebook 发布了一篇博客文章，正式介绍 GraphQL，并描述了其移动应用正被海量 REST API 调用所“淹没”。单个新闻信息流页面就需要从帖子、用户、评论、点赞和媒体等多个资源获取数据 —— 每个资源对应一个独立端点，且每个端点返回的数据远超客户端实际所需。这种过度获取（over-fetching）在弱网环境下严重拖垮了移动端性能。 GraphQL 是他们的解决方案，但它绝非万能解药。
+2015 年，Facebook 发布了一篇博客文章，正式介绍 GraphQL，并描述了其移动应用正被海量 REST API 调用所“淹没”。单个新闻信息流页面就需要从帖子、用户、评论、点赞和媒体等多个资源获取数据——每个资源对应一个独立端点，且每个端点返回的数据远超客户端实际所需。这种过度获取（over-fetching）在弱网环境下严重拖垮了移动端性能。GraphQL 是他们的解决方案，但它绝非万能解药。
 
 每一种 API 风格之所以存在，是因为它能出色地解决某类特定问题；而与此同时，每一种风格也必然引入新的挑战。真正的技术能力，在于将正确的协议匹配到正确的上下文中。
 
-## REST： Web API 的通用语言
+## REST：Web API 的通用语言
 
-REST （Representational State Transfer）是一种架构风格，而非具体协议。它由 Roy Fielding 在其 2000 年博士论文中提出，但现实中人们常说的“REST”，往往指的是“基于 HTTP、使用 JSON 的 API”。
+REST（Representational State Transfer）是一种架构风格，而非具体协议。它由 Roy Fielding 在其 2000 年博士论文中提出，但现实中人们常说的“REST”，往往指的是“基于 HTTP、使用 JSON 的 API”。
 
 ![REST、gRPC 和 GraphQL 的比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rest-grpc-graphql.png)
-
 
 ### 核心概念
 
@@ -69,7 +67,7 @@ REST 将一切建模为 **资源（resource）**，每个资源通过 URL 唯一
 
 ### REST 最佳实践
 
-**URL 设计**：使用名词表示资源，而非动词。 HTTP 方法本身即为动词。
+**URL 设计**：使用名词表示资源，而非动词。HTTP 方法本身即为动词。
 
 ```sql
 良好实践：
@@ -128,7 +126,7 @@ GET /photos?cursor=eyJpZCI6MTAwfQ&limit=10
 GET /photos?user_id=123&created_after=2025-01-01&sort=-created_at&fields=id,url,caption
 ```
 
-`fields` 参数可显著减小响应负载 —— 这是 GraphQL 字段选择机制的一种轻量级替代方案。
+`fields` 参数可显著减小响应负载——这是 GraphQL 字段选择机制的一种轻量级替代方案。
 
 ### REST 反模式（Anti-Patterns）
 
@@ -139,7 +137,7 @@ POST /api/executeAction
 Body: { "action": "getUser", "userId": 123 }
 ```
 
-这彻底丧失了 REST 的核心优势：缓存能力（GET 可缓存， POST 不可）、可发现性、标准化工具链支持。
+这彻底丧失了 REST 的核心优势：缓存能力（GET 可缓存，POST 不可）、可发现性、标准化工具链支持。
 
 **忽略 HTTP 语义**：无论成功或失败均返回 `200 OK`，仅靠响应体中的标志位区分。
 
@@ -156,10 +154,9 @@ HTTP 状态码的存在自有其意义。中间件、代理服务器及各类客
 
 ## gRPC：高性能通信协议
 
-gRPC 是 Google 开发的高性能开源 RPC 框架，采用 Protocol Buffers （protobuf）进行序列化，以 HTTP/2 作为传输层。
+gRPC 是 Google 开发的高性能开源 RPC 框架，采用 Protocol Buffers（protobuf）进行序列化，以 HTTP/2 作为传输层。
 
 ![API 版本控制策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-versioning.png)
-
 
 ### Protocol Buffers
 
@@ -214,13 +211,13 @@ service PhotoService {
 
 gRPC 支持四种通信模式：
 
-**Unary （一元调用）**：标准请求-响应。客户端发送一条消息，服务端返回一条消息。
+**Unary（一元调用）**：标准请求-响应。客户端发送一条消息，服务端返回一条消息。
 
-**Server streaming （服务端流式）**：客户端发送一个请求，服务端返回一个消息流。适用场景：实时更新订阅、大批量数据下载。
+**Server streaming（服务端流式）**：客户端发送一个请求，服务端返回一个消息流。适用场景：实时更新订阅、大批量数据下载。
 
-**Client streaming （客户端流式）**：客户端发送一个消息流，服务端返回一条响应。适用场景：文件上传、批量数据写入。
+**Client streaming（客户端流式）**：客户端发送一个消息流，服务端返回一条响应。适用场景：文件上传、批量数据写入。
 
-**Bidirectional streaming （双向流式）**：客户端和服务端各自独立发送消息流。适用场景：聊天应用、协同编辑。
+**Bidirectional streaming（双向流式）**：客户端和服务端各自独立发送消息流。适用场景：聊天应用、协同编辑。
 
 ### Python 中使用 gRPC
 
@@ -297,14 +294,14 @@ gRPC 在后端服务间通信中表现出色：
 ### 为何不选 gRPC
 
 gRPC 不适合浏览器直连服务端的场景：
-- 浏览器不支持 HTTP/2 trailers （gRPC 所必需）
+- 浏览器不支持 HTTP/2 trailers（gRPC 所必需）
 - 二进制格式不可读（调试困难）
 - gRPC-Web 方案虽存在，但增加了复杂性和功能限制
 - 无原生浏览器支持，必须经由代理中转
 
 ## GraphQL：由客户端驱动的查询
 
-GraphQL 是一种专为 API 设计的查询语言。不同于服务端预定义固定端点结构， GraphQL 允许客户端精确声明所需数据。
+GraphQL 是一种专为 API 设计的查询语言。不同于服务端预定义固定端点结构，GraphQL 允许客户端精确声明所需数据。
 
 ### Schema 定义
 
@@ -414,7 +411,7 @@ query FeedFull {
 }
 ```
 
-两个查询均命中同一端点（`POST /graphql`），但返回结构截然不同。移动端每张照片仅拉取 3 个字段； Web 端则拉取 8+ 字段，包括嵌套的用户与评论数据。这从根本上解决了催生 GraphQL 的过度获取问题。
+两个查询均命中同一端点（`POST /graphql`），但返回结构截然不同。移动端每张照片仅拉取 3 个字段；Web 端则拉取 8+ 字段，包括嵌套的用户与评论数据。这从根本上解决了催生 GraphQL 的过度获取问题。
 
 ### GraphQL 的缺陷
 
@@ -444,9 +441,9 @@ class UserLoader(DataLoader):
 # 现在 20 张照片仅需 1 次照片查询 + 1 次批量用户查询 = 共 2 次查询
 ```
 
-**缓存复杂性**： REST API 可天然利用 HTTP 缓存（CDN、浏览器缓存），因每个 URL 对应唯一可缓存资源。而 GraphQL 仅有一个 `POST /graphql` 端点， POST 请求默认不可缓存。你必须构建应用层缓存策略（如持久化查询、按查询哈希缓存响应）。
+**缓存复杂性**：REST API 可天然利用 HTTP 缓存（CDN、浏览器缓存），因每个 URL 对应唯一可缓存资源。而 GraphQL 仅有一个 `POST /graphql` 端点，POST 请求默认不可缓存。你必须构建应用层缓存策略（如持久化查询、按查询哈希缓存响应）。
 
-**鉴权复杂性**： REST 中鉴权发生在端点粒度； GraphQL 中单个查询可横跨多个资源类型，而每种资源可能拥有不同的访问规则。因此需实现字段级（field-level）鉴权。
+**鉴权复杂性**：REST 中鉴权发生在端点粒度；GraphQL 中单个查询可横跨多个资源类型，而每种资源可能拥有不同的访问规则。因此需实现字段级（field-level）鉴权。
 
 **查询复杂度攻击**：恶意客户端可构造深度嵌套查询，耗尽服务端计算资源。
 
@@ -477,16 +474,13 @@ query Evil {
 
 ## 限流（Rate Limiting）
 
-
 ![API 设计的三条路径：REST、gRPC 和 GraphQL 分歧之路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-api-design-three-paths-rest-grpc-graphql-diverging-roads.jpg)
 
 限流用于保护 API 免受滥用，并确保资源公平分配。三种常用算法如下：
 
 ![令牌桶限流动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-03-token-bucket.gif)
 
-
 ![令牌桶限流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-rate-limiting.png)
-
 
 ### 令牌桶（Token Bucket）
 
@@ -603,10 +597,9 @@ X-RateLimit-Reset: 1689436800
 
 ## 幂等性（Idempotency）
 
-若某操作重复执行多次与执行一次效果相同，则称其为幂等操作。这是系统可靠性基石 —— 网络故障必然引发重试，而重试绝不能产生重复副作用。
+若某操作重复执行多次与执行一次效果相同，则称其为幂等操作。这是系统可靠性基石——网络故障必然引发重试，而重试绝不能产生重复副作用。
 
 ![幂等键模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-idempotency.png)
-
 
 HTTP 方法与幂等性关系：
 - **GET**：天然幂等（读取不改变状态）
@@ -672,12 +665,11 @@ def process_payment(request):
 
 ![API 认证方法](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/03-api-auth.png)
 
-
 **API Keys**：简单，适用于服务间通信。置于请求头（`X-API-Key: abc123`）或查询参数中。易于实现，但难以精细化授权（通常为全有或全无）。
 
 **OAuth 2.0**：委托式授权。用户授予第三方应用对其资源的有限访问权。含四种授权模式（授权码、隐式、客户端凭证、设备码）。复杂但已成为面向用户的行业标准。
 
-**JWT （JSON Web Tokens）**：自包含令牌，内嵌声明（如用户 ID、角色、过期时间）。服务端仅需验证签名，无需查库。适用于无状态认证，但单个 JWT 无法主动吊销（需配合短有效期 + Refresh Token）。
+**JWT（JSON Web Tokens）**：自包含令牌，内嵌声明（如用户 ID、角色、过期时间）。服务端仅需验证签名，无需查库。适用于无状态认证，但单个 JWT 无法主动吊销（需配合短有效期 + Refresh Token）。
 
 ```python
 # JWT 校验示例
@@ -694,25 +686,24 @@ def authenticate(request):
         raise AuthError("Invalid token")
 ```
 
-## 对比： REST vs gRPC vs GraphQL
-
+## 对比：REST vs gRPC vs GraphQL
 
 ![将令牌桶限流比作可控的喷泉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-rate-limiting-token-bucket-as-a-water-fountain-with-controll.jpg)
 
 | 特性 | REST | gRPC | GraphQL |
 |---------|------|------|---------|
 | 协议 | HTTP/1.1 或 HTTP/2 | HTTP/2 | HTTP/1.1 或 HTTP/2 |
-| 数据格式 | JSON （文本） | Protobuf （二进制） | JSON （文本） |
-| Schema/契约 | OpenAPI （可选） | `.proto`（必需） | GraphQL Schema （必需） |
+| 数据格式 | JSON（文本） | Protobuf（二进制） | JSON（文本） |
+| Schema/契约 | OpenAPI（可选） | `.proto`（必需） | GraphQL Schema（必需） |
 | 代码生成 | 可选 | 内置 | 可选 |
-| 流式支持 | SSE、 WebSocket | 原生（4 种模式） | 订阅（Subscription，基于 WebSocket） |
+| 流式支持 | SSE、WebSocket | 原生（4 种模式） | 订阅（Subscription，基于 WebSocket） |
 | 浏览器支持 | 原生 | 需 gRPC-Web 代理 | 原生 |
 | 缓存 | HTTP 缓存（原生） | 无标准缓存机制 | 复杂（单端点） |
 | 学习曲线 | 低 | 中等 | 中高 |
 | 过度获取（Over-fetching） | 常见问题 | 极少（强类型消息） | 已解决（客户端自主选字段） |
 | 获取不足（Under-fetching） | 常见（需多次调用） | 极少（按 RPC 设计） | 已解决（嵌套查询） |
 | 工具链成熟度 | 极佳 | 良好 | 良好 |
-| 最适用场景 | 公开 API、 Web 应用 | 内部微服务通信 | 移动端、复杂 UI |
+| 最适用场景 | 公开 API、Web 应用 | 内部微服务通信 | 移动端、复杂 UI |
 | 最不适用场景 | 复杂嵌套数据 | 浏览器直连 | 简单 CRUD 场景 |
 
 ### 决策框架（Decision Framework）
@@ -732,14 +723,14 @@ def authenticate(request):
 - 所有客户端均为可控的后端服务
 
 **选用 GraphQL 当**：
-- 多类客户端（移动端、 Web、 TV）需差异化数据结构
+- 多类客户端（移动端、Web、TV）需差异化数据结构
 - 数据模型高度关联（图状结构）
 - 减少网络请求至关重要（如弱网移动环境）
 - 前端团队需独立于后端快速迭代
 - 愿投入工具链建设（DataLoader、缓存、鉴权）
 
-**混合架构（Hybrid approaches）十分常见**。许多系统采用 REST 对外提供公开 API， gRPC 用于内部服务通信， GraphQL 作为面向前端的统一网关。
+**混合架构（Hybrid approaches）十分常见**。许多系统采用 REST 对外提供公开 API，gRPC 用于内部服务通信，GraphQL 作为面向前端的统一网关。
 
 ## 下一步
 
-当 API 设计趋于稳定后，下一个关键性能杠杆便是缓存。下一篇文章将深入探讨缓存策略 —— 缓存应放在何处？哪些数据应被淘汰？以及那些令人惊讶却极为常见的、反而让系统变得更慢的缓存误用方式。
+当 API 设计趋于稳定后，下一个关键性能杠杆便是缓存。下一篇文章将深入探讨缓存策略——缓存应放在何处？哪些数据应被淘汰？以及那些令人惊讶却极为常见的、反而让系统变得更慢的缓存误用方式。

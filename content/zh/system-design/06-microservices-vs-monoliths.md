@@ -14,7 +14,6 @@ disableNunjucks: true
 series_order: 6
 translationKey: "system-design-6"
 ---
-
 2020 年，客户数据平台 Segment 的工程团队发布了一篇题为《告别微服务》（Goodbye Microservices）的博客文章。当时，他们已将原有单体应用拆分为 **140 多个微服务**，但结果并非预期中的工程乌托邦。相反，团队大部分时间都在对抗分布式系统自身带来的复杂性：服务发现失败、级联超时、不一致的部署流水线，以及爆炸式增长的服务间通信缺陷。最终，他们选择回归单体架构，并报告称开发者生产力与系统可靠性均获得显著提升。
 
 这个故事并非孤例。微服务模式虽已成为业界默认的架构选择，但坦率地说，它并不适合大多数团队。准确判断微服务何时带来收益、何时反而造成伤害，是系统设计中最重要的判断之一。
@@ -24,7 +23,6 @@ translationKey: "system-design-6"
 单体是一个**单一可部署单元**，包含应用全部功能。整个代码库被统一编译、统一部署；所有模块共享同一进程、同一内存空间、同一数据库。
 
 ![单体架构与微服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-monolith-vs-micro.png)
-
 
 ### 为什么单体架构行之有效
 
@@ -125,7 +123,7 @@ def check_module_boundaries():
 
 **技术多样性（Technology diversity）**：订单服务可用 Python，推荐引擎可用 Go 提升性能，搜索服务可集成 Elasticsearch。各团队按领域需求自由选型。
 
-**团队自治（Team autonomy）**：每支团队端到端负责其服务——编码、测试、部署、监控与值班。 Conway 定律在此成为助力：架构自然映射组织结构。
+**团队自治（Team autonomy）**：每支团队端到端负责其服务——编码、测试、部署、监控与值班。Conway 定律在此成为助力：架构自然映射组织结构。
 
 **独立伸缩（Independent scaling）**：黑五期间搜索服务流量激增 100 倍？只需将其扩至 50 实例，而订单服务维持 5 实例即可。
 
@@ -135,7 +133,7 @@ def check_module_boundaries():
 
 每一项优势都伴随代价。微服务引入了单体中根本不存在的分布式系统问题。
 
-**网络延迟（Network latency）**：函数调用耗时纳秒级；网络调用则达毫秒级。若用户请求需串行调用 5 个服务，仅网络延迟就增加 5–50ms （尚未计入处理时间）。
+**网络延迟（Network latency）**：函数调用耗时纳秒级；网络调用则达毫秒级。若用户请求需串行调用 5 个服务，仅网络延迟就增加 5–50ms（尚未计入处理时间）。
 
 **部分失败（Partial failures）**：单体中进程非“全活”即“全死”；分布式系统中，服务 A 正常而服务 B 已宕机是常态。每次服务调用均需超时控制、重试逻辑与降级策略。
 
@@ -149,7 +147,6 @@ def check_module_boundaries():
 
 ## 服务边界：领域驱动设计（Domain-Driven Design）
 
-
 ![断路器模式：电气断路器保护](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-circuit-breaker-pattern-electrical-circuit-breaker-protectin.jpg)
 
 微服务最难的部分，是**如何划定服务边界**。划错边界，轻则导致服务间高频“聊天”，重则催生大量无意义的细粒度服务。
@@ -161,7 +158,6 @@ def check_module_boundaries():
 限界上下文是**特定领域模型被定义并适用的边界**。在此边界内，术语具有精确、无歧义的含义；跨越边界时，同一术语可能指向不同概念。
 
 ![领域驱动设计的限界上下文](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-ddd-bounded-contexts.png)
-
 
 示例：在电商系统中，“Order”（订单）在不同上下文中含义迥异：
 
@@ -184,9 +180,9 @@ def check_module_boundaries():
 
 ### 上下文映射（Context Mapping）
 
-服务需相互通信，而边界之间必须建立显式契约。 DDD 定义了若干关系模式：
+服务需相互通信，而边界之间必须建立显式契约。DDD 定义了若干关系模式：
 
-**公开语言（Published Language）**：服务间约定共享的数据格式（如 Protobuf Schema、 JSON Schema、 OpenAPI 规范），用于事件或 API 合约。
+**公开语言（Published Language）**：服务间约定共享的数据格式（如 Protobuf Schema、JSON Schema、OpenAPI 规范），用于事件或 API 合约。
 
 **防腐层（Anti-Corruption Layer）**：对接遗留系统或外部服务时，构建翻译层，将外部模型转换为内部模型。此举可防止外部系统的设计决策污染你的代码库。
 
@@ -224,10 +220,9 @@ class PaymentGatewayAdapter:
 
 ## 服务间通信（Inter-Service Communication）
 
-
 ![从单体架构到微服务的演变：从单一建筑到城市](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-monolith-to-microservices-evolution-single-building-to-city-.jpg)
 
-### 同步通信： REST 与 gRPC
+### 同步通信：REST 与 gRPC
 
 当调用方需要**即时响应**时使用同步通信。
 
@@ -280,9 +275,7 @@ def get_user(user_id: str) -> dict:
 
 ![断路器状态转换动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-06-circuit-breaker.gif)
 
-
 ![断路器状态机](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-circuit-breaker.png)
-
 
 ### 三种状态
 
@@ -379,10 +372,9 @@ def process_payment(order):
 
 ![分布式追踪时间线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-distributed-tracing.png)
 
-
 ### OpenTelemetry
 
-OpenTelemetry 是分布式追踪的行业标准，它通过传播 trace context （trace ID + span ID）贯穿所有服务调用。
+OpenTelemetry 是分布式追踪的行业标准，它通过传播 trace context（trace ID + span ID）贯穿所有服务调用。
 
 ```python
 from opentelemetry import trace
@@ -437,7 +429,6 @@ def create_order():
 API 网关位于外部客户端与内部服务之间，提供统一入口点。
 
 ![API 网关模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/06-api-gateway.png)
-
 
 ### 网关职责
 
@@ -529,11 +520,11 @@ server {
 - 某服务的重型查询会拖垮其他服务性能  
 - 若服务共享数据库迁移脚本，则无法真正独立部署  
 
-### 数据一致性： Saga 模式（The Saga Pattern）
+### 数据一致性：Saga 模式（The Saga Pattern）
 
 缺乏分布式事务时，跨服务一致性需依赖 Saga——即由事件或编排驱动的一系列本地事务。
 
-**基于编排的 Saga （Choreography-based saga）**（事件驱动）：
+**基于编排的 Saga（Choreography-based saga）**（事件驱动）：
 
 ```text
 1. 订单服务：创建订单（状态：PENDING）  
@@ -554,7 +545,7 @@ server {
 
 各服务发布事件并响应事件，**无中心协调者**。短流程简单，但复杂工作流难以追踪。
 
-**基于编排的 Saga （Orchestration-based saga）**（中心协调者）：
+**基于编排的 Saga（Orchestration-based saga）**（中心协调者）：
 
 ```python
 class OrderSaga:

@@ -14,7 +14,6 @@ disableNunjucks: true
 series_order: 8
 translationKey: "system-design-8"
 ---
-
 学习系统设计的最佳方式是动手实践。阅读关于单个组件（如缓存、消息队列、负载均衡器）的资料能帮你建立术语库，但只有亲手设计一个完整系统，才能学会如何将这些组件有机组合，构建出真正可用的系统。
 
 本文将端到端地剖析三个经典系统设计问题，每个案例均严格遵循本系列第一篇文章提出的系统设计框架：明确需求 → 规模估算 → 高层架构设计 → 关键组件深度剖析 → 瓶颈识别。
@@ -27,32 +26,31 @@ translationKey: "system-design-8"
 
 ![URL 短链设计](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-url-shortener.png)
 
-
 ### 需求
 
 **功能性需求**：
 - 给定一个长 URL，生成对应的短 URL
 - 给定一个短 URL，重定向至原始长 URL
 - 用户可选择自定义短别名
-- 短 URL 支持配置过期时间（默认： 5 年）
+- 短 URL 支持配置过期时间（默认：5 年）
 - 追踪点击分析数据（点击次数、来源页 referrer、地理分布）
 
 **非功能性需求**：
-- 每日新增 URL 数量： 1 亿条
-- 读写比： 100:1 （即每日 100 亿次重定向）
-- 重定向延迟 < 50ms （p99）
-- 可用性： 99.99% （对所有依赖该服务的用户而言，这是关键基础设施）
+- 每日新增 URL 数量：1 亿条
+- 读写比：100:1（即每日 100 亿次重定向）
+- 重定向延迟 < 50ms（p99）
+- 可用性：99.99%（对所有依赖该服务的用户而言，这是关键基础设施）
 - 短 URL 应尽可能短
 
 ### 规模估算
 
-**写入 QPS （URL 创建）**：
+**写入 QPS（URL 创建）**：
 ```text
 100M URLs/day ÷ 86,400 sec/day ≈ 1,160 writes/sec
 峰值（3×）：~3,500 writes/sec
 ```
 
-**读取 QPS （重定向）**：
+**读取 QPS（重定向）**：
 ```text
 10B redirects/day ÷ 86,400 sec/day ≈ 115,000 reads/sec
 峰值（3×）：~350,000 reads/sec
@@ -83,7 +81,7 @@ translationKey: "system-design-8"
 所需缓存内存：200M × 530 字节 ≈ 106 GB
 ```
 
-106 GB 的缓存容量在 Redis 集群中完全可控（例如： 6 个节点，每节点 32 GB）。
+106 GB 的缓存容量在 Redis 集群中完全可控（例如：6 个节点，每节点 32 GB）。
 
 ### 短 URL 生成方案
 
@@ -255,8 +253,8 @@ async def redirect(short_code: str):
 
 | 重定向类型 | 行为 | 分析准确性 | CDN 缓存 |
 |------------|------|-------------|-----------|
-| 301 （永久） | 浏览器缓存，后续不再访问服务器 | 低估（遗漏缓存重定向） | CDN 强力缓存 |
-| 302 （临时） | 浏览器每次均访问服务器 | 准确（每次点击均被记录） | CDN 可能不缓存 |
+| 301（永久） | 浏览器缓存，后续不再访问服务器 | 低估（遗漏缓存重定向） | CDN 强力缓存 |
+| 302（临时） | 浏览器每次均访问服务器 | 准确（每次点击均被记录） | CDN 可能不缓存 |
 
 绝大多数 URL 缩短服务采用 302，因为分析是其核心功能；部分服务提供双模式，默认 302，对性能敏感场景支持可选 301。
 
@@ -272,9 +270,9 @@ async def redirect(short_code: str):
 分片 4：短码首字符 ∈ [N-Z]
 ```
 
-**缓存热点 URL**： Top 1% 的 URL 承载了 90%+ 的流量。一个缓存这些热点 URL 的 Redis 集群，即可处理绝大部分重定向请求，无需触达数据库。
+**缓存热点 URL**：Top 1% 的 URL 承载了 90%+ 的流量。一个缓存这些热点 URL 的 Redis 集群，即可处理绝大部分重定向请求，无需触达数据库。
 
-**分析流水线**：点击事件先发往 Kafka，而非直写数据库。 Flink 作业按分钟/小时/天聚合点击数，并写入时序数据库。此举将实时重定向路径与分析路径解耦。
+**分析流水线**：点击事件先发往 Kafka，而非直写数据库。Flink 作业按分钟/小时/天聚合点击数，并写入时序数据库。此举将实时重定向路径与分析路径解耦。
 
 ---
 
@@ -283,7 +281,6 @@ async def redirect(short_code: str):
 聊天应用需支持实时双向通信、持久化消息存储、在线状态感知（presence）以及高效的群组消息广播（fan-out）。
 
 ![实时聊天系统](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-chat-system.png)
-
 
 ### 需求
 
@@ -297,12 +294,12 @@ async def redirect(short_code: str):
 - 支持文本、图片及文件附件
 
 **非功能性需求**：
-- 日活跃用户（DAU）： 5000 万
-- 每用户日均发送消息数： 40 条
-- 平均群组成员数： 10 人
+- 日活跃用户（DAU）：5000 万
+- 每用户日均发送消息数：40 条
+- 平均群组成员数：10 人
 - 30% 的消息为群组消息
-- 消息投递延迟 < 200ms （p95）
-- 可用性： 99.9%
+- 消息投递延迟 < 200ms（p95）
+- 可用性：99.9%
 - 同一聊天会话内消息顺序必须保证
 
 ### 规模估算
@@ -546,7 +543,7 @@ class PresenceService:
 
 **按用户 ID 哈希分片 WebSocket 连接**：一致性哈希将每个用户映射至特定网关服务器。若某服务器宕机，仅其用户需重连。
 
-**消息顺序保证**： Kafka 按 `conversation_id` 分区，确保同一会话内消息顺序；不同会话可在不同分区并行处理。
+**消息顺序保证**：Kafka 按 `conversation_id` 分区，确保同一会话内消息顺序；不同会话可在不同分区并行处理。
 
 **热门群组隔离**：含 500 名活跃成员的群组，每条消息触发 500 倍广播。应将热门群组的广播任务隔离至专用投递工作器，避免影响 1:1 聊天延迟。
 
@@ -554,13 +551,11 @@ class PresenceService:
 
 ## 案例研究 3：新闻信息流系统（News Feed System）
 
-
 ![大规模系统设计案例架构蓝图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/08-system-design-case-study-architect-blueprint-of-large-scale-.jpg)
 
 新闻信息流系统向用户展示个性化、排序后的动态内容流，内容来自其关注的用户与页面，这是 Facebook、Twitter、Instagram 等平台的核心产品功能。
 
 ![新闻推送设计](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-news-feed.png)
-
 
 ### 需求
 
@@ -573,11 +568,11 @@ class PresenceService:
 - 支持点赞与评论
 
 **非功能性需求**：
-- 日活跃用户（DAU）： 2 亿
+- 日活跃用户（DAU）：2 亿
 - 平均每人关注 200 个账号
 - 平均每人日发帖 1 条，日浏览信息流 10 次
 - 信息流生成延迟 < 500ms
-- 可用性： 99.9%
+- 可用性：99.9%
 - 接受最终一致性（帖子可在粉丝信息流中延迟数秒出现）
 
 ### 规模估算
@@ -886,13 +881,11 @@ class RankingService:
 
 ## 跨案例共性主题
 
-
 ![URL 短链架构，长 URL 压缩为短链接](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/08-url-shortener-architecture-long-url-compressed-into-short-co.jpg)
 
 纵观全部三个案例，以下模式反复出现：
 
 ![横切关注点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-cross-cutting.png)
-
 
 **读密集型系统受益于缓存**：网址缩短服务、聊天历史、新闻信息流的读写比均为 10:1 至 100:1。缓存能将原本不可扩展的系统转变为可扩展系统。
 
@@ -900,7 +893,7 @@ class RankingService:
 
 **为特定访问模式选择合适的数据存储**：网址缩短服务使用键值存储（哈希查找）；聊天系统使用宽列存储（按会话时间序存储消息）；新闻信息流使用有序集合缓存（按用户排序帖子）。没有一种数据库能通吃三者。
 
-**规模估算驱动架构决策**：估算阶段得出的数字决定了所需组件。 35 万次读取/秒要求引入缓存； 46 万次广播写入/秒要求引入消息队列； 1500 万并发连接要求分布式 WebSocket 网关。缺乏量化估算，所有架构决策都只是猜测。
+**规模估算驱动架构决策**：估算阶段得出的数字决定了所需组件。35 万次读取/秒要求引入缓存；46 万次广播写入/秒要求引入消息队列；1500 万并发连接要求分布式 WebSocket 网关。缺乏量化估算，所有架构决策都只是猜测。
 
 ## 下一步
 
