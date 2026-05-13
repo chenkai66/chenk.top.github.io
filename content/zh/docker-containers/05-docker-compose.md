@@ -15,8 +15,7 @@ disableNunjucks: true
 series_order: 5
 translationKey: "docker-containers-5"
 ---
-
-前几篇文章介绍了如何使用 `docker run` 运行容器、用 `-p` 参数映射端口、用 `docker network create` 创建网络、以及用 `-v` 挂载卷。现在试想一下：每次启动开发环境时，都要为 Web 服务器、 API 后端、数据库、缓存和任务队列分别执行这些操作——这将变得极其繁琐。 Docker Compose 将原本需要 20+ 条命令完成的工作，简化为一个文件和一条命令：`docker compose up`。
+前几篇文章介绍了如何使用 `docker run` 运行容器、用 `-p` 参数映射端口、用 `docker network create` 创建网络，以及用 `-v` 挂载卷。现在试想一下：每次启动开发环境时，都要为 Web 服务器、API 后端、数据库、缓存和任务队列分别执行这些操作——这将变得极其繁琐。Docker Compose 将原本需要 20 多条命令完成的工作，简化为一个文件和一条命令：`docker compose up`。
 
 ## 为什么需要 Compose
 
@@ -24,12 +23,11 @@ translationKey: "docker-containers-5"
 
 ![Compose 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-architecture.png)
 
-
-- 前端（React、 Vue 或服务端渲染的 HTML）
-- 后端 API （Python、 Node.js、 Go）
-- 数据库（PostgreSQL、 MySQL）
-- 缓存（Redis、 Memcached）
-- 任务队列（Celery、 Bull）
+- 前端（React、Vue 或服务端渲染的 HTML）
+- 后端 API（Python、Node.js、Go）
+- 数据库（PostgreSQL、MySQL）
+- 缓存（Redis、Memcached）
+- 任务队列（Celery、Bull）
 - 可能还有反向代理（nginx）
 
 每个服务都运行在独立的容器中。若不使用 Compose，启动整套栈意味着要依次运行 `docker network create`、`docker volume create`，再为每个服务单独执行带十几个参数的 `docker run`——至少五条命令，极易出错，且无法以清晰、可版本控制的方式管理。而 Compose 将这一切转化为一份声明式配置文件。
@@ -39,7 +37,6 @@ translationKey: "docker-containers-5"
 以下是上述手动命令对应的 Compose 等价写法：
 
 ![健康检查流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-healthcheck-flow.png)
-
 
 ```yaml
 services:
@@ -109,26 +106,24 @@ volumes:
 
 ### Compose 自动完成的工作
 
-当你运行 `docker compose up` 时， Compose 会自动：
+当你运行 `docker compose up` 时，Compose 会自动：
 
-1. 为所有服务创建一个专用网络（默认命名为 `<project>_default`）  
-2. 创建 `volumes:` 部分中声明的命名卷  
-3. 构建含 `build:` 指令的服务镜像  
-4. 按依赖顺序启动容器  
-5. 将服务名作为 DNS 主机名注册（因此 `api` 可直接通过 `postgres` 名称访问数据库）  
+1. 为所有服务创建一个专用网络（默认命名为 `<project>_default`）
+2. 创建 `volumes:` 部分中声明的命名卷
+3. 构建含 `build:` 指令的服务镜像
+4. 按依赖顺序启动容器
+5. 将服务名作为 DNS 主机名注册（因此 `api` 可直接通过 `postgres` 名称访问数据库）
 6. 将所有日志流式输出到终端（除非使用 `-d` 参数后台运行）
 
 项目名默认取自当前目录名。例如 `~/projects/myapp/` 下的项目，会创建名为 `myapp_default` 的网络，容器名为 `myapp-postgres-1`、`myapp-redis-1` 等。
 
 ## Compose 文件结构
 
-
 ![微服务生态系统中的互联容器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-microservices-ecosystem-interconnected-containers-forming-a-.jpg)
 
 一个 Compose 文件包含四个顶层键：
 
 ![Compose 网络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-compose-networking.png)
-
 
 ```yaml
 services:    # 容器定义（必需）
@@ -153,7 +148,7 @@ secrets:     # 敏感数据（仅 Swarm 模式）
     file: ./db_password.txt
 ```
 
-注意： Compose 文件顶部的 `version:` 字段已在 Docker Compose v2 中弃用，可完全省略。旧示例中出现的 `version: "3.8"` 虽无害，但已无必要。
+注意：Compose 文件顶部的 `version:` 字段已在 Docker Compose v2 中弃用，可完全省略。旧示例中出现的 `version: "3.8"` 虽无害，但已无必要。
 
 ### 服务配置选项详解
 
@@ -249,8 +244,7 @@ services:
         max-file: "3"
 ```
 
-## 完整示例： Python Web 应用 + PostgreSQL + Redis
-
+## 完整示例：Python Web 应用 + PostgreSQL + Redis
 
 ![Docker Compose 编排指挥多个服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-docker-compose-orchestra-conductor-directing-multiple-servic.jpg)
 
@@ -352,7 +346,6 @@ DB_NAME=myapp
 
 ![服务依赖关系](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-service-dependency.png)
 
-
 ```yaml
 services:
   api:
@@ -366,7 +359,7 @@ services:
         condition: service_healthy
 ```
 
-若未配置健康检查，`depends_on` 仅确保容器进程已启动，**并不等待其内部服务真正就绪**。 PostgreSQL 初始化需数秒；若 API 在 PostgreSQL 尚未接受连接时启动，将直接崩溃。
+若未配置健康检查，`depends_on` 仅确保容器进程已启动，并不等待其内部服务真正就绪。PostgreSQL 初始化需数秒；若 API 在 PostgreSQL 尚未接受连接时启动，将直接崩溃。
 
 ✅ **务必对数据库等有初始化耗时的服务，配合 `condition: service_healthy` 使用 `depends_on`**。这要求被依赖服务必须定义 `healthcheck`。
 
@@ -602,7 +595,6 @@ Compose 支持对单个服务运行多个实例：
 
 ![扩展模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/05-scaling-pattern.png)
 
-
 ```bash
 # 将 worker 扩容至 3 个实例
 docker compose up -d --scale worker=3
@@ -624,7 +616,7 @@ myapp-worker-3        myapp-worker           worker     Up
 三个 Worker 容器共享同一个 Redis 队列，实现基本的水平扩展。
 
 ⚠️ 扩容限制：
-- **不可扩容含固定端口映射的服务**（两个容器无法同时绑定 `8000` 端口）  
+- **不可扩容含固定端口映射的服务**（两个容器无法同时绑定 `8000` 端口）
 - 对于需暴露端口的服务，应使用端口范围或前置反向代理
 
 ```yaml
@@ -642,7 +634,7 @@ services:
       - "8000"    # 仅限 Docker 网络内访问
 ```
 
-## Compose Profiles （服务分组）
+## Compose Profiles（服务分组）
 
 Profiles 允许定义可选服务，仅在显式启用时才启动。
 
@@ -676,7 +668,7 @@ docker compose --profile debug up -d
 docker compose --profile debug --profile monitoring up -d
 ```
 
-## Compose Watch （开发热重载）
+## Compose Watch（开发热重载）
 
 Docker Compose Watch 可自动将文件变更同步至运行中的容器：
 
@@ -697,8 +689,8 @@ services:
 docker compose watch
 ```
 
-- `sync` 动作：复制文件，无需重建镜像  
-- `rebuild` 动作：依赖文件（如 `requirements.txt`）变更时触发完整镜像重建  
+- `sync` 动作：复制文件，无需重建镜像
+- `rebuild` 动作：依赖文件（如 `requirements.txt`）变更时触发完整镜像重建
 - 第三种动作 `sync+restart`：复制文件后重启容器（适用于配置变更）
 
 ## 快速参考表

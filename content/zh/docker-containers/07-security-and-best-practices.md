@@ -15,15 +15,13 @@ disableNunjucks: true
 series_order: 7
 translationKey: "docker-containers-7"
 ---
-
-Docker 默认配置优先便利性而非安全性：开箱即用时容器以 root （UID 0）运行、拥有大量 Linux capabilities、且根文件系统默认可写。开发环境或可容忍，但生产环境极其危险——若存在容器逃逸（container escape）漏洞且容器以 root 运行，攻击者将直接接管宿主机。让我们来修复这个问题。
+Docker 默认配置优先便利性而非安全性：开箱即用时容器以 root（UID 0）运行、拥有大量 Linux capabilities，且根文件系统默认可写。开发环境或许可以接受，但生产环境中极其危险——一旦存在容器逃逸（container escape）漏洞，而容器又以 root 权限运行，攻击者将直接接管宿主机。让我们来修复这个问题。
 
 ## 威胁模型
 
-实施加固前，先明确防御对象：
+实施加固前，先明确你要防御的对象：
 
 ![安全层](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-security-layers.png)
-
 
 1. **存在漏洞的应用代码**：你的应用存在缺陷（如远程代码执行 RCE、路径遍历、服务端请求伪造 SSRF），攻击者可在容器内获得代码执行能力  
 2. **存在漏洞的依赖项**：镜像中某个库存在已知 CVE 漏洞  
@@ -36,10 +34,9 @@ Docker 默认配置优先便利性而非安全性：开箱即用时容器以 roo
 
 ## 以非 root 用户身份运行
 
-默认情况下， Docker 容器进程以 root （UID 0）运行——该身份与宿主机 root 相同（启用 user namespaces 除外）；一旦容器逃逸，攻击者即获得宿主机 root 权限。
+默认情况下，Docker 容器进程以 root（UID 0）运行——该身份与宿主机 root 相同（除非启用了 user namespaces）。一旦发生容器逃逸，攻击者就直接获得了宿主机的 root 权限。
 
 ![无根容器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-rootless-container.png)
-
 
 ### 在 Dockerfile 中指定
 
@@ -83,7 +80,7 @@ CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
 
 ### 运行时覆盖
 
-即使 Dockerfile 中未指定用户，也可在运行时强制覆盖：
+即使 Dockerfile 中未指定用户，也可以在运行时强制覆盖：
 
 ```bash
 # 以指定 UID:GID 运行
@@ -119,20 +116,18 @@ docker exec default-container id
 
 ## 只读文件系统
 
-
 ![具有多层防御的容器安全堡垒](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-container-security-fortress-with-multiple-defense-layers.jpg)
 
-只读根文件系统可阻断攻击者篡改二进制、注入恶意软件、修改配置等行为：
+只读根文件系统能有效阻止攻击者篡改二进制文件、植入恶意软件或修改配置：
 
 ![镜像漏洞扫描](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-image-scanning.png)
-
 
 ```bash
 # 以只读根文件系统运行
 docker run --read-only myapp
 ```
 
-大多数应用仍需向某些路径写入（临时文件、缓存、 PID 文件）。可使用 `tmpfs` 提供可写区域：
+大多数应用仍需向某些路径写入数据（如临时文件、缓存、PID 文件）。这时可以使用 `tmpfs` 提供可写的临时空间：
 
 ```bash
 # 根文件系统只读，同时允许 `/tmp` 和 `/var/run` 写入
@@ -155,7 +150,7 @@ services:
       - /app/cache:size=50m
 ```
 
-请在开发阶段就用 `--read-only` 测试应用。若崩溃，错误信息会指出尝试写入的路径 —— 然后为其添加 `tmpfs`。
+建议在开发阶段就用 `--read-only` 测试应用。如果应用崩溃，错误信息会明确指出它试图写入哪个路径——此时只需为该路径添加一个 `tmpfs` 即可。
 
 ```bash
 # 查看应用试图写入的位置
@@ -166,13 +161,11 @@ docker run --read-only myapp 2>&1 | grep "Read-only file system"
 
 ## Linux 功能
 
-
 ![以非特权用户运行的无根容器安全视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-rootless-container-running-as-unprivileged-user-security-vis.jpg)
 
-Linux capabilities 将 root 权限拆分为约 40 种独立特权，而 Docker 默认授予容器其中多项——往往远超应用实际需求。
+Linux capabilities 将 root 的权限拆分为约 40 种独立特权。Docker 默认授予容器其中多项，但大多数应用实际只需要极少一部分。
 
 ![Linux 能力管理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-capability-model.png)
-
 
 Docker 容器默认拥有的 capabilities：
 
@@ -193,7 +186,7 @@ Docker 容器默认拥有的 capabilities：
 | `KILL` | 向其他进程发送信号 | 有时 |
 | `AUDIT_WRITE` | 写入内核审计日志 | 极少 |
 
-遵循最小权限原则（Principle of Least Privilege）：先全部禁用 capabilities，再按需逐个启用。
+应遵循最小权限原则（Principle of Least Privilege）：先全部禁用 capabilities，再按需逐个启用。
 
 ```bash
 # 移除全部 capabilities，仅添加必要项
@@ -239,7 +232,7 @@ docker exec my-container capsh --decode=00000000a80425fb
 
 ## 密钥管理（Secrets Management）
 
-密钥（API keys、数据库密码、 TLS 证书）是容器化应用最典型的安全失守环节。
+密钥（API keys、数据库密码、TLS 证书）是容器化应用中最常见的安全失守点。
 
 ### 错误的密钥处理方式
 
@@ -255,7 +248,7 @@ ENV API_KEY=sk-12345abcde
 COPY credentials.json /app/credentials.json
 ```
 
-以上三种方式均会使密钥暴露给任意可拉取该镜像的用户：
+以上三种方式都会导致密钥暴露给任何能访问该镜像的人：
 
 ```bash
 # 构建参数在 history 中可见
@@ -273,25 +266,25 @@ docker cp extract:/app/credentials.json .
 
 ### 环境变量（适用于多数场景）
 
-运行时传入环境变量（而非在 Dockerfile 中定义）是最常用的方式：
+在运行时传入环境变量（而非在 Dockerfile 中硬编码）是最常用的方法：
 
 ```bash
 docker run -e DB_PASSWORD=secret -e API_KEY=sk-12345 myapp
 ```
 
-或使用文件：
+或者通过文件加载：
 
 ```bash
 docker run --env-file .env myapp
 ```
 
-`.env` 文件绝不可提交至版本控制系统（务必加入 `.gitignore`）。
+`.env` 文件绝不能提交到版本控制系统（务必加入 `.gitignore`）。
 
 **环境变量的风险：**  
 - 可通过 `docker inspect` 查看  
-- 对容器内所有进程（含子进程）可见  
-- 可能被意外记录（调试输出中的 `env | sort`、错误上报工具）  
-- 在容器内可通过 `/proc/<pid>/environ` 查看  
+- 对容器内所有进程（包括子进程）可见  
+- 可能被意外记录（例如调试输出中的 `env | sort` 或错误上报工具）  
+- 在容器内部可通过 `/proc/<pid>/environ` 查看  
 
 ### Docker BuildKit 密钥（用于构建时密钥）
 
@@ -320,7 +313,7 @@ DOCKER_BUILDKIT=1 docker build \
 
 ### Docker Swarm 密钥（用于运行时密钥）
 
-若使用 Docker Swarm，密钥是一等公民：
+如果你使用 Docker Swarm，密钥是一等公民：
 
 ```bash
 # 创建密钥
@@ -333,14 +326,14 @@ docker service create \
     myapp
 ```
 
-在容器内，密钥以文件形式挂载至 `/run/secrets/db_password`。相比环境变量更安全，因为：  
-- 它是 tmpfs 挂载（永不落盘）  
+在容器内，密钥以文件形式挂载在 `/run/secrets/db_password`。这种方式比环境变量更安全，因为：  
+- 它是 tmpfs 挂载（永远不会写入磁盘）  
 - 仅对显式声明依赖的服务可见  
-- 可在不重启服务的前提下轮换密钥  
+- 可在不重启服务的情况下轮换密钥  
 
 ### 运行时挂载文件（非 Swarm 场景）
 
-对于非 Swarm 部署，可通过 bind mounts 实现类似安全级别：
+对于非 Swarm 部署，也可以通过 bind mounts 实现类似的安全级别：
 
 ```bash
 docker run \
@@ -348,7 +341,7 @@ docker run \
     myapp
 ```
 
-`:ro` 标志确保只读。结合 `--tmpfs /tmp` 和 `--read-only`，可防止密钥被复制到容器内其他位置。
+`:ro` 标志确保挂载为只读。结合 `--tmpfs /tmp` 和 `--read-only`，还能防止密钥被复制到容器内的其他位置。
 
 ## 使用 Trivy 进行镜像扫描
 
@@ -387,7 +380,7 @@ Total: 3 (HIGH: 2, MEDIUM: 1)
 +-------------------+------------------+----------+-------------------+-------------------+
 ```
 
-Trivy 同时扫描操作系统包和应用依赖（pip、 npm、 gem 等）。
+Trivy 同时扫描操作系统包和应用依赖（如 pip、npm、gem 等）。
 
 ```bash
 # 仅扫描 CRITICAL 和 HIGH 级别漏洞
@@ -418,7 +411,7 @@ trivy fs --security-checks vuln,secret ./
 
 ## 最小化基础镜像
 
-镜像中文件越少，攻击面越小。对比以下基础镜像：
+镜像中的文件越少，攻击面就越小。以下是几种常见基础镜像的对比：
 
 | 基础镜像 | 大小 | 包数量 | Shell | 安全态势 |
 |----------|------|--------|-------|-----------|
@@ -431,7 +424,7 @@ trivy fs --security-checks vuln,secret ./
 
 ### Distroless 镜像
 
-Google 的 distroless 镜像仅包含你的应用及其运行时依赖 —— 无 shell、无包管理器、无多余工具：
+Google 的 distroless 镜像仅包含你的应用及其运行时依赖——没有 shell、没有包管理器、也没有多余工具：
 
 ```dockerfile
 # 使用 distroless 的多阶段构建
@@ -449,15 +442,15 @@ ENTRYPOINT ["python3", "app.py"]
 ```
 
 优势：  
-- 无 shell 意味着 `docker exec bash` 失效 —— 攻击者无法获取交互式 shell  
-- 无包管理器意味着攻击者无法安装工具  
-- 文件越少，潜在 CVE 越少  
+- 没有 shell 意味着 `docker exec bash` 无法使用，攻击者无法获得交互式 shell  
+- 没有包管理器意味着攻击者无法安装额外工具  
+- 文件越少，潜在的 CVE 漏洞也越少  
 
-缺点：调试更困难（无法 `exec` 进入容器）。可参考上一篇文章中的“临时调试容器”技巧。
+缺点：调试更困难（无法 `exec` 进入容器）。可参考上一篇文章中介绍的“临时调试容器”技巧。
 
-### Scratch 镜像（Go、 Rust）
+### Scratch 镜像（Go、Rust）
 
-对于静态编译语言，可直接使用 `scratch`（真正空镜像）：
+对于静态编译语言，可以直接使用 `scratch`（真正的空镜像）：
 
 ```dockerfile
 FROM golang:1.21 AS builder
@@ -472,11 +465,11 @@ EXPOSE 8080
 ENTRYPOINT ["/server"]
 ```
 
-最终镜像仅含一个二进制文件（加 CA 证书）。攻击面：几乎为零。
+最终镜像仅包含一个二进制文件（外加 CA 证书），攻击面几乎为零。
 
 ## Docker 内容信任（Docker Content Trust, DCT）
 
-Docker 内容信任（DCT）使用数字签名验证镜像真实性：
+Docker 内容信任（DCT）使用数字签名验证镜像的真实性：
 
 ```bash
 # 启用内容信任
@@ -491,16 +484,16 @@ docker push myrepo/myapp:v1.0
 # Docker 将提示输入签名口令
 ```
 
-DCT 基于 The Update Framework （TUF）管理密钥与签名。启用后：  
-- `docker pull` 验证镜像是否由可信发布者签名  
-- `docker push` 使用你的密钥对镜像签名  
-- 未签名镜像将被拒绝  
+DCT 基于 The Update Framework（TUF）管理密钥与签名。启用后：  
+- `docker pull` 会验证镜像是否由可信发布者签名  
+- `docker push` 会使用你的密钥对镜像签名  
+- 未签名的镜像将被拒绝拉取  
 
-这可防范因镜像仓库被入侵而导致的恶意镜像替换类供应链攻击。
+这能有效防范因镜像仓库被入侵而导致的恶意镜像替换类供应链攻击。
 
 ## 资源限制
 
-若无资源限制，容器可无限消耗 CPU、内存和磁盘 I/O，从而挤占其他容器及宿主机资源：
+如果没有资源限制，容器可能会无限消耗 CPU、内存和磁盘 I/O，从而挤占其他容器甚至宿主机的资源：
 
 ```bash
 # 内存限制（超出即被 OOM kill）
@@ -542,14 +535,14 @@ services:
 
 | 资源 | 参数 | 效果 |
 |------|------|------|
-| 内存 | `--memory 512m` | 硬限制，超出触发 OOM kill |
+| 内存 | `--memory 512m` | 硬限制，超出会触发 OOM kill |
 | 内存 + Swap | `--memory-swap 1g` | 总内存+swap 限制 |
-| CPU | `--cpus 0.5` | 硬限制：单核的 50% |
+| CPU | `--cpus 0.5` | 硬限制：占用单核的 50% |
 | CPU 权重 | `--cpu-shares 512` | 相对权重（软限制） |
-| 进程数 | `--pids-limit 100` | 最大进程数（防 fork bomb） |
+| 进程数 | `--pids-limit 100` | 最大进程数（防止 fork bomb） |
 | 磁盘 I/O | `--device-read-bps /dev/sda:1mb` | 磁盘带宽限制 |
 
-`--pids-limit` 常被忽视，但可有效防御 fork bomb 攻击：
+`--pids-limit` 常被忽视，但它能有效防御 fork bomb 攻击：
 
 ```bash
 # 无 --pids-limit 时，fork bomb 可导致宿主机崩溃
@@ -561,10 +554,9 @@ docker run --pids-limit 100 myapp
 
 ### Seccomp 配置文件
 
-Seccomp （Secure Computing Mode）用于过滤容器可调用的系统调用。 Docker 默认 seccomp 配置文件屏蔽了约 60 个高危 syscall：
+Seccomp（Secure Computing Mode）用于过滤容器可调用的系统调用。Docker 默认的 seccomp 配置文件会屏蔽约 60 个高危 syscall：
 
 ![Seccomp 系统调用过滤](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-seccomp-profile.png)
-
 
 ```bash
 # 使用默认 seccomp 配置文件（自动启用）
@@ -579,7 +571,7 @@ docker run --security-opt seccomp=unconfined myapp
 
 ### AppArmor 与 SELinux
 
-Docker 自动应用 AppArmor （Ubuntu/Debian）或 SELinux （RHEL/CentOS）配置文件：
+Docker 会自动应用 AppArmor（Ubuntu/Debian）或 SELinux（RHEL/CentOS）配置文件：
 
 ```bash
 # 查看 AppArmor 配置文件
@@ -592,7 +584,7 @@ docker run --security-opt apparmor=my-custom-profile myapp
 
 ### 禁止新特权（No New Privileges）
 
-防止容器内进程通过 setuid 二进制文件等方式获取新特权：
+防止容器内的进程通过 setuid 二进制文件等方式获取新的特权：
 
 ```bash
 docker run --security-opt no-new-privileges:true myapp
@@ -622,7 +614,7 @@ services:
 | 镜像中不存放密钥 | 关键 | 使用运行时环境变量、挂载文件或 Docker secrets |
 | 使用多阶段构建 | 高 | 构建工具不进入生产镜像 |
 | 启用 `no-new-privileges` | 中 | `--security-opt no-new-privileges:true` |
-| 使用最小化基础镜像 | 中 | Alpine、 distroless 或 scratch |
+| 使用最小化基础镜像 | 中 | Alpine、distroless 或 scratch |
 | 锁定依赖版本 | 中 | lockfiles、精确版本号 |
 | 设置 PID 限制 | 中 | `--pids-limit 100` |
 | 启用内容信任 | 中 | `DOCKER_CONTENT_TRUST=1` |
@@ -708,8 +700,8 @@ volumes:
   postgres-data:
 ```
 
-注意 `backend` 网络设为 `internal: true` —— 该网络上的容器无法访问互联网，若数据库容器被攻破，可大幅缩小影响范围。
+注意 `backend` 网络设为 `internal: true`——该网络上的容器无法访问互联网。这样即使数据库容器被攻破，也能大幅缩小影响范围。
 
 ## 下一步
 
-你现在已掌握如何加固单个容器：非 root 用户、最小化 capabilities、只读文件系统、镜像扫描、资源限制等。但安全只是挑战之一 —— 规模化才是另一难题。当单台宿主机不再足够时该怎么办？当你需要自动故障转移、滚动更新、跨多台机器的服务发现时又该如何？最后一篇文章将预览容器编排：面向简单性的 Docker Swarm，面向大规模的 Kubernetes，以及何时你其实根本不需要编排。
+你现在已掌握如何加固单个容器：非 root 用户、最小化 capabilities、只读文件系统、镜像扫描、资源限制等。但安全只是挑战之一，规模化才是另一难题。当单台宿主机不再足够时该怎么办？当你需要自动故障转移、滚动更新、跨多台机器的服务发现时又该如何？最后一篇文章将预览容器编排：面向简单性的 Docker Swarm，面向大规模的 Kubernetes，以及何时你其实根本不需要编排。

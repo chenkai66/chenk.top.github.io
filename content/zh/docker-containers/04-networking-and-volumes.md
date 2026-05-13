@@ -15,15 +15,13 @@ disableNunjucks: true
 series_order: 4
 translationKey: "docker-containers-4"
 ---
-
-容器被刻意设计为相互隔离，这正是其核心价值；但实际应用必须能接收外部连接、与数据库通信，并持久化容器重启后仍需保留的数据。 Docker 通过**网络（Networking）**（管理容器间及对外通信）和**卷（Volumes）**（实现数据持久化）来满足这些需求；二者配置是否合理，直接决定了环境是仅供演示（demo）还是可用于生产（deployment）。
+容器被刻意设计为相互隔离，这正是其核心价值；但实际应用必须能接收外部连接、与数据库通信，并持久化容器重启后仍需保留的数据。Docker 通过**网络（Networking）**（管理容器间及对外通信）和**卷（Volumes）**（实现数据持久化）来满足这些需求；二者配置是否合理，直接决定了环境是仅供演示（demo）还是可用于生产（deployment）。
 
 ## Docker 网络
 
-Docker 启动时自动创建宿主机上的虚拟网络基础设施：每个容器拥有独立的网络命名空间（含专属 IP、路由表和网络接口）， Docker 负责调度容器间及容器与外部的流量。
+Docker 启动时自动创建宿主机上的虚拟网络基础设施：每个容器拥有独立的网络命名空间（含专属 IP、路由表和网络接口），Docker 负责调度容器间及容器与外部的流量。
 
 ![容器 DNS 解析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-dns-resolution.png)
-
 
 ### 网络驱动（Network Drivers）
 
@@ -31,7 +29,7 @@ Docker 支持多种网络驱动，各自适用于不同场景：
 
 | 驱动 | 描述 | 使用场景 | 容器间通信方式 |
 |--------|-------------|----------|------------------------|
-| `bridge` | 默认驱动。容器位于私有虚拟网络中。 | 单宿主机应用 | 通过 IP 或 DNS （仅限自定义 bridge） |
+| `bridge` | 默认驱动。容器位于私有虚拟网络中。 | 单宿主机应用 | 通过 IP 或 DNS（仅限自定义 bridge） |
 | `host` | 容器共享宿主机的网络命名空间 | 对性能极度敏感、单容器场景 | 容器直接使用宿主机 IP |
 | `overlay` | 基于 VXLAN 的多宿主机网络 | Docker Swarm、多节点集群 | 跨物理宿主机 |
 | `none` | 完全不启用网络 | 批处理任务、安全隔离 | 无 |
@@ -45,7 +43,6 @@ Docker 支持多种网络驱动，各自适用于不同场景：
 安装 Docker 后，它会自动创建一个名为 `bridge` 的网络（底层由 Linux 桥接设备 `docker0` 实现）：
 
 ![桥接网络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-bridge-network.png)
-
 
 ```bash
 docker network ls
@@ -90,7 +87,7 @@ PING 172.17.0.3 (172.17.0.3): 56 data bytes
 64 bytes from 172.17.0.3: seq=1 ttl=64 time=0.090 ms
 ```
 
-但在默认 bridge 上， DNS 解析**不可用**：
+但在默认 bridge 上，DNS 解析**不可用**：
 
 ```bash
 docker exec container-a ping -c 2 container-b
@@ -126,7 +123,7 @@ PING web (172.18.0.2): 56 data bytes
 64 bytes from 172.18.0.2: seq=1 ttl=64 time=0.078 ms
 ```
 
-容器名 `web` 可直接解析为其 IP 地址。这正是 Docker 内置 DNS 服务器在起作用： Docker 会在每个加入自定义网络的容器内部、以 `127.0.0.11` 地址运行一个嵌入式 DNS 服务器。
+容器名 `web` 可直接解析为其 IP 地址。这正是 Docker 内置 DNS 服务器在起作用：Docker 会在每个加入自定义网络的容器内部、以 `127.0.0.11` 地址运行一个嵌入式 DNS 服务器。
 
 自定义网络还提供天然隔离：不同网络的容器默认互不连通，仅当显式连接时才可通信。
 
@@ -174,7 +171,6 @@ docker network rm my-app-network other-network
 容器拥有自己的网络命名空间。要将容器端口暴露给宿主机（进而暴露给外部世界），需进行端口映射：
 
 ![端口映射](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-port-mapping.png)
-
 
 ```bash
 # 将宿主机端口 8080 映射到容器端口 80
@@ -262,7 +258,6 @@ docker network prune
 
 ![卷类型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-volume-types.png)
 
-
 ### 三种挂载类型（Mount Types）
 
 Docker 支持三种将存储挂载进容器的方式：
@@ -275,7 +270,7 @@ Docker 支持三种将存储挂载进容器的方式：
 
 ### 命名卷（Named Volumes）
 
-命名卷是推荐的数据持久化方案： Docker 自动管理存储位置，并支持跨容器共享。
+命名卷是推荐的数据持久化方案：Docker 自动管理存储位置，并支持跨容器共享。
 
 ```bash
 # 创建命名卷
@@ -399,15 +394,13 @@ docker run -d \
 - 敏感数据（密钥、令牌），禁止落盘
 - I/O 密集型缓存（磁盘 I/O 成为瓶颈时）
 
-## 真实案例： MySQL 与持久化数据
-
+## 真实案例：MySQL 与持久化数据
 
 ![Docker 网络桥连接容器，如同岛屿相连](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-network-bridge-connecting-containers-like-islands-con.jpg)
 
 本例展示卷为何至关重要。若不使用卷，删除 MySQL 容器将导致所有数据彻底丢失。
 
 ![覆盖网络](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/04-overlay-network.png)
-
 
 ```bash
 # 创建网络与卷
@@ -530,7 +523,7 @@ docker run --user 1000:1000 -v mydata:/data myapp
 | 场景 | 存储类型 | 示例 |
 |----------|-------------|---------|
 | 数据库文件 | 命名卷 | `-v postgres-data:/var/lib/postgresql/data` |
-| 应用日志 | 命名卷 或 绑定挂载 | `-v app-logs:/var/log/app` |
+| 应用日志 | 命名卷或绑定挂载 | `-v app-logs:/var/log/app` |
 | 配置文件 | 绑定挂载（只读） | `-v ./config:/app/config:ro` |
 | 源代码（开发） | 绑定挂载 | `-v $(pwd):/app` |
 | 用户上传文件 | 命名卷 | `-v uploads:/app/uploads` |
@@ -540,7 +533,6 @@ docker run --user 1000:1000 -v mydata:/data myapp
 | 构建缓存 | 命名卷 | `-v build-cache:/root/.cache` |
 
 ## 综合实践：带网络与持久化的应用
-
 
 ![Docker 卷作为浮动存储晶体连接到容器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/04-docker-volumes-as-floating-storage-crystals-connected-to-con.jpg)
 

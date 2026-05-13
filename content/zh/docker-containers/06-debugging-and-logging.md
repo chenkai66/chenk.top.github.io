@@ -15,15 +15,13 @@ disableNunjucks: true
 series_order: 6
 translationKey: "docker-containers-6"
 ---
-
-正常运行的容器近乎‘隐形’，而出现问题的容器则迅速变成‘黑盒’。容器化的隔离性是其核心价值，但也增加了调试难度。你无法直接通过 `ssh` 登录容器，也无法从宿主机直接浏览其文件系统。 Docker 提供了一套专用工具，用于检查、诊断和理解正在运行或已崩溃的容器内部的情况。
+正常运行的容器近乎‘隐形’，而一旦出问题，它就立刻变成一个密不透风的‘黑盒’。容器化的核心优势在于隔离，但恰恰是这种隔离，让调试变得棘手——你没法像对待普通服务器那样直接 `ssh` 进去，也无法从宿主机随意浏览容器内部的文件系统。好在 Docker 提供了一整套专用工具，帮助你检查、诊断并理解运行中（甚至已崩溃）容器内部究竟发生了什么。
 
 ## 查看容器日志
 
-日志是排查问题的第一道防线，Docker 会捕获容器向 stdout 和 stderr 输出的所有内容。
+日志是你排查问题的第一道防线。Docker 会自动捕获容器写入 stdout 和 stderr 的所有内容。
 
 ![资源监控](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-resource-monitoring.png)
-
 
 ### docker logs
 
@@ -50,7 +48,7 @@ docker logs --since 30m my-container
 docker logs -t my-container
 ```
 
-带时间戳的输出示例：
+带时间戳的输出示例如下：
 
 ```text
 2023-09-30T10:15:23.456789012Z [INFO] Server starting on port 8080
@@ -69,7 +67,7 @@ docker logs -t my-container
 
 ### 已停止容器的日志
 
-这一点至关重要 —— 当容器崩溃后停止运行，其日志仍会被保留，直到该容器被显式删除（`docker rm`）：
+这一点至关重要：即使容器因崩溃而停止，其日志仍会被保留，直到你显式执行 `docker rm` 将其删除。
 
 ```bash
 # 列出所有已停止的容器
@@ -97,7 +95,7 @@ psycopg2.OperationalError: could not connect to server: Connection refused
     TCP/IP connections on port 5432?
 ```
 
-该容器以退出码 1 （错误）终止，日志揭示了它无法连接 PostgreSQL。可能的原因包括应用启动时数据库尚未就绪（依赖顺序问题）或主机名配置错误。
+可以看到，该容器以退出码 1（错误）终止，日志显示它无法连接 PostgreSQL。这可能是由于应用启动时数据库尚未就绪（依赖顺序问题），也可能是配置的主机名有误。
 
 ### 退出码（Exit codes）
 
@@ -107,20 +105,20 @@ docker inspect crashed-app --format '{{.State.ExitCode}}'
 # 输出: 1
 ```
 
-常见退出码含义：
+常见退出码及其含义如下：
 
 | 退出码 | 含义 | 常见原因 |
 |--------|------|-----------|
 | 0 | 成功 | 正常关闭 |
-| 1 | 通用错误 | 应用异常、未捕获异常 |
+| 1 | 通用错误 | 应用异常、未捕获的异常 |
 | 2 | Shell 内置命令误用 | 脚本语法错误 |
-| 126 | 命令不可执行 | Entrypoint 权限问题 |
-| 127 | 命令未找到 | CMD/ENTRYPOINT 配置错误、二进制缺失 |
-| 137 | SIGKILL （128+9） | OOM killer 触发、`docker kill`、超时终止 |
-| 139 | SIGSEGV （128+11） | 段错误（Segmentation fault） |
-| 143 | SIGTERM （128+15） | `docker stop`（优雅关闭） |
+| 126 | 命令不可执行 | Entrypoint 权限不足 |
+| 127 | 命令未找到 | CMD/ENTRYPOINT 配置错误或二进制文件缺失 |
+| 137 | SIGKILL（128+9） | 被 OOM killer 终止、执行了 `docker kill` 或超时 |
+| 139 | SIGSEGV（128+11） | 段错误（Segmentation fault） |
+| 143 | SIGTERM（128+15） | 执行了 `docker stop`（优雅关闭） |
 
-退出码 137 尤其值得关注，通常意味着容器因超出内存限制而被内核 OOM killer 终止。
+其中，退出码 137 尤其值得警惕——它通常意味着容器因超出内存限制，被内核的 OOM killer 强制终止。
 
 ```bash
 # 检查容器是否被 OOM killer 终止
@@ -130,10 +128,11 @@ docker inspect crashed-app --format '{{.State.OOMKilled}}'
 
 ## 使用 docker exec 进行交互式调试
 
-`docker exec` 可在运行中的容器内执行命令，是交互式调试的主要方式：
+`docker exec` 可在运行中的容器内执行任意命令，是交互式调试的首选方式：
 
 ![exec 与 attach 的区别](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-exec-vs-attach.png)
 
+进入容器后，你就可以自由排查问题了：
 
 ```bash
 # 在运行中的容器内打开 shell
@@ -151,8 +150,6 @@ docker exec -u root my-container apt-get update
 # 为命令设置环境变量
 docker exec -e DEBUG=true my-container python check.py
 ```
-
-进入容器后，你可以进行如下排查：
 
 ```bash
 # 检查环境变量
@@ -188,7 +185,7 @@ netstat -tlnp
 
 ### 当 bash 不可用时
 
-精简镜像（如 Alpine、 distroless）可能不包含 bash 或常用调试工具：
+许多精简镜像（如 Alpine 或 distroless）为了减小体积，往往不包含 bash 甚至基本的调试工具：
 
 ```bash
 # Alpine 默认使用 sh，而非 bash
@@ -198,7 +195,7 @@ docker exec -it alpine-container sh
 docker exec -it alpine-container apk add --no-cache curl bind-tools
 ```
 
-对于 distroless 镜像，你根本无法 `exec` 进入（无 shell）。此时应改用调试 sidecar：
+对于 distroless 这类完全无 shell 的镜像，你根本无法通过 `exec` 进入。此时，推荐使用“调试 sidecar”模式：
 
 ```bash
 # 运行一个共享目标容器网络命名空间的调试容器
@@ -208,17 +205,15 @@ docker run -it --rm \
     bash
 ```
 
-`nicolaka/netshoot` 镜像集成了所有你需要的网络调试工具（curl、 nslookup、 tcpdump、 iptables 等），而 `--network container:my-distroless-container` 使其共享目标容器的网络命名空间。
+`nicolaka/netshoot` 镜像集成了几乎所有网络调试工具（curl、nslookup、tcpdump、iptables 等），配合 `--network container:my-distroless-container` 参数，就能让它共享目标容器的网络命名空间，从而实现间接调试。
 
 ## docker inspect — 获取完整视图
 
-
 ![容器日志流水线数据流从容器中流出](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-container-logging-pipeline-data-streams-flowing-from-contain.jpg)
 
-`docker inspect` 返回关于容器的详细 JSON 元数据。虽然输出冗长，但它包含了你能想到的一切信息：
+`docker inspect` 会返回关于容器的完整 JSON 元数据。虽然输出冗长，但几乎囊括了你能想到的所有信息：
 
 ![故障排查决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-troubleshooting.png)
-
 
 ```bash
 # 完整输出（非常长）
@@ -317,7 +312,7 @@ docker inspect -f '{{.State.Running}}' my-container
 
 ## docker stats — 实时资源监控
 
-`docker stats` 提供资源消耗的实时视图：
+`docker stats` 提供容器资源消耗的实时动态视图：
 
 ```bash
 docker stats
@@ -331,16 +326,16 @@ c3d4e5f6a7b8   myapp-redis-1     0.12%   12.5MiB / 256MiB      4.88%   8.4kB / 6
 d4e5f6a7b8c9   myapp-worker-1    15.67%  234.5MiB / 512MiB     45.80%  5.1kB / 3.2kB     0B / 0B           8
 ```
 
-关键列说明：
+关键列说明如下：
 
 | 列名 | 含义 | 关注点 |
 |------|------|---------|
-| CPU % | 相对于宿主机的 CPU 使用率 | 持续高 CPU = 瓶颈 |
-| MEM USAGE / LIMIT | 当前内存使用量 / 配置上限 | 接近上限 = OOM 风险 |
-| MEM % | 占配置上限的百分比 | > 80% 需警惕 |
-| NET I/O | 网络收发字节数 | 异常流量模式 |
-| BLOCK I/O | 磁盘读写量 | 高写入 = 可能日志泛滥 |
-| PIDS | 进程数 | 持续增长 = 可能存在泄漏 |
+| CPU % | 相对于宿主机的 CPU 使用率 | 持续高负载可能成为性能瓶颈 |
+| MEM USAGE / LIMIT | 当前内存使用量 / 配置上限 | 接近上限存在 OOM 风险 |
+| MEM % | 占配置上限的百分比 | 超过 80% 就需警惕 |
+| NET I/O | 网络收发字节数 | 异常流量可能暗示问题 |
+| BLOCK I/O | 磁盘读写量 | 高写入量可能是日志泛滥所致 |
+| PIDS | 进程数 | 持续增长可能意味着进程泄漏 |
 
 ```bash
 # 监控特定容器（单次快照）
@@ -365,7 +360,7 @@ appuser             12352               12345               1                   
 appuser             12353               12345               2                   10:15               ?                   00:01:32            gunicorn: worker [app:app]
 ```
 
-注意： PID 和 PPID 列显示的是宿主机视角的进程 ID；容器内主进程 PID 恒为 1，宿主机上对应 PID 为 12345——这正是 Linux 命名空间映射的结果。
+注意：PID 和 PPID 列显示的是宿主机上的实际进程 ID。尽管在容器内部主进程始终是 PID 1，但在宿主机上它可能对应 PID 12345——这正是 Linux 命名空间映射机制的体现。
 
 ```bash
 # 使用 ps 风格格式化输出
@@ -374,7 +369,7 @@ docker top my-container -o pid,ppid,user,%cpu,%mem,comm
 
 ## docker diff — 文件系统变更
 
-`docker diff` 显示容器可写层相对于原始镜像所发生的文件增删改：
+`docker diff` 能清晰展示容器可写层相对于原始镜像所发生的文件增删改操作：
 
 ```bash
 docker diff my-container
@@ -397,14 +392,14 @@ A /app/data/uploads/image001.png
 | C | 修改 —— 该文件在镜像中存在但已被修改 |
 | D | 删除 —— 该文件在镜像中存在但已被移除 |
 
-此功能适用于：
-- 定位应用写入数据的位置（是否应改用 volume？）
-- 检测意外的文件修改
-- 理解运行中容器累积的状态
+这项功能特别适用于：
+- 定位应用实际写入数据的位置（是否应改用 volume？）
+- 检测是否有意外的文件修改行为
+- 理解容器运行过程中累积了哪些状态
 
 ## 调试已崩溃容器
 
-当容器立即退出时，你无法 `docker exec` 进入。以下是几种有效策略：
+当容器启动后立即退出，你就无法使用 `docker exec` 进入。此时可尝试以下策略：
 
 ### 策略 1：查看日志
 
@@ -412,11 +407,11 @@ A /app/data/uploads/image001.png
 docker logs crashed-container
 ```
 
-这对任何已停止容器都有效（只要尚未执行 `docker rm`）。
+只要容器尚未被 `docker rm` 删除，此方法对任何已停止容器都有效。
 
 ### 策略 2：覆盖默认命令
 
-若容器在启动阶段崩溃，可覆盖命令使其保持运行：
+如果容器在启动阶段就崩溃，可以临时覆盖其启动命令，让它保持运行状态以便调试：
 
 ```bash
 # 不运行原命令，改为 sleep
@@ -460,13 +455,11 @@ docker run -it debug-image:latest bash
 
 ## 临时调试容器（Ephemeral Debug Containers）
 
-
 ![容器内部调试：侦探拿着放大镜](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/06-debugging-inside-a-container-detective-with-magnifying-glass.jpg)
 
-有时你需要网络工具、`strace` 或其他不在应用镜像中的调试工具。此时可运行一个独立的调试容器，并共享目标容器的网络：
+有时你需要 `strace`、高级网络工具等应用镜像中没有的调试组件。这时可以单独启动一个调试容器，并让它共享目标容器的命名空间：
 
 ![调试工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/06-debug-workflow.png)
-
 
 ```bash
 # 运行调试容器并共享目标容器的网络命名空间
@@ -476,7 +469,7 @@ docker run -it --rm \
     bash
 ```
 
-在 `netshoot` 中，你拥有对目标容器网络的完全访问权限：
+在 `netshoot` 容器内，你就能完全访问目标容器的网络环境：
 
 ```bash
 # DNS 解析（使用 my-app-container 的网络配置）
@@ -495,7 +488,7 @@ tcpdump -i eth0 -n port 5432
 traceroute postgres
 ```
 
-你也可以共享其他命名空间：
+不仅如此，你还可以共享其他命名空间，比如 PID 或 IPC：
 
 ```bash
 # 共享 PID 命名空间（查看目标容器的进程）
@@ -506,7 +499,7 @@ docker run -it --rm \
 
 ## 日志驱动（Log Drivers）
 
-默认情况下， Docker 将日志以 JSON 格式存储在本地磁盘。你可以配置不同的日志驱动：
+默认情况下，Docker 会将日志以 JSON 格式存储在本地磁盘。但你可以通过配置不同的日志驱动来改变这一行为：
 
 ```bash
 # 查看当前日志驱动
@@ -518,11 +511,11 @@ docker info --format '{{.LoggingDriver}}'
 
 | 驱动 | 目标 | 支持 `docker logs`？ | 使用场景 |
 |------|------|---------------------|----------|
-| `json-file` | 本地 JSON 文件 | 是 | 默认，开发环境 |
-| `local` | 优化的本地存储 | 是 | 生产环境（单机） |
+| `json-file` | 本地 JSON 文件 | 是 | 默认配置，适合开发环境 |
+| `local` | 优化的本地存储 | 是 | 单机生产环境 |
 | `syslog` | Syslog 守护进程 | 否 | 传统 Linux 日志体系 |
-| `journald` | systemd journal | 是 | 使用 systemd 的主机 |
-| `fluentd` | Fluentd 收集器 | 否 | 集中式日志（ELK/EFK） |
+| `journald` | systemd journal | 是 | 基于 systemd 的主机 |
+| `fluentd` | Fluentd 收集器 | 否 | 集中式日志（如 ELK/EFK） |
 | `awslogs` | CloudWatch Logs | 否 | AWS 部署 |
 | `gcplogs` | Google Cloud Logging | 否 | GCP 部署 |
 | `splunk` | Splunk HTTP Event Collector | 否 | 企业级环境 |
@@ -542,7 +535,7 @@ docker run -d \
 
 ### 配置日志轮转（生产环境必备）
 
-若不启用日志轮转，`json-file` 日志会无限增长，最终耗尽磁盘空间：
+如果不启用日志轮转，`json-file` 驱动生成的日志会无限增长，最终耗尽磁盘空间：
 
 ```bash
 # Docker daemon 配置 (/etc/docker/daemon.json)
@@ -566,7 +559,7 @@ cat /etc/docker/daemon.json
 | `max-file` | 保留的轮转日志文件数量 | 3 - 5 |
 | `compress` | 是否压缩已轮转的日志文件 | true |
 
-缺少这些配置时，繁忙容器可能在短时间内生成 GB 级的日志。
+缺少这些配置时，一个繁忙的容器可能在短时间内生成 GB 级的日志。
 
 ### 在 Docker Compose 中配置
 
@@ -583,24 +576,24 @@ services:
 
 ## 常见故障模式
 
-以下是对最常见容器问题的诊断速查表：
+下表总结了最常见的容器问题及其应对方法：
 
 | 症状 | 最可能原因 | 诊断命令 | 解决方案 |
 |------|-------------|-----------|------------|
-| 容器立即退出 | 应用启动时崩溃 | `docker logs container` | 检查配置、依赖项 |
+| 容器立即退出 | 应用启动时崩溃 | `docker logs container` | 检查配置与依赖项 |
 | 退出码 137 | 内存不足（OOM killed） | `docker inspect -f '{{.State.OOMKilled}}'` | 增加 `--memory` 限制，或修复内存泄漏 |
 | 退出码 127 | 命令未找到 | `docker inspect -f '{{json .Config.Cmd}}'` | 检查 CMD/ENTRYPOINT 拼写，确认二进制存在 |
-| 退出码 126 | 命令权限拒绝 | `docker exec container ls -la /entrypoint.sh` | `chmod +x` 设置入口脚本权限，检查 USER |
+| 退出码 126 | 命令权限拒绝 | `docker exec container ls -la /entrypoint.sh` | 用 `chmod +x` 设置入口脚本权限，检查 USER 指令 |
 | “地址已在使用” | 端口冲突 | `docker ps`（检查端口映射） | 更换宿主机端口 |
-| “连接被拒绝”到某服务 | 服务未就绪或主机名错误 | `docker exec container curl http://service:port` | 检查 `depends_on`、健康检查、网络配置 |
+| “连接被拒绝”到某服务 | 服务未就绪或主机名错误 | `docker exec container curl http://service:port` | 检查 `depends_on`、健康检查及网络配置 |
 | DNS 解析失败 | 未加入自定义网络 | `docker network inspect bridge` | 使用 `docker network create` 创建自定义网络 |
 | 文件权限错误 | 宿主机与容器 UID 不匹配 | `docker exec container id` + `ls -la /path` | 对齐 UID，或改用命名卷（named volumes） |
-| macOS 上性能缓慢 | 绑定挂载（bind mount） I/O 开销大 | `docker stats` | 对依赖项使用命名卷，仅对源码使用绑定挂载 |
-| 容器循环重启 | CrashLoopBackOff （崩溃 → 重启 → 崩溃） | `docker logs --tail 50 container` | 修复根本崩溃原因，设置 `restart: on-failure` |
+| macOS 上性能缓慢 | 绑定挂载（bind mount）I/O 开销大 | `docker stats` | 对依赖项使用命名卷，仅对源码使用绑定挂载 |
+| 容器循环重启 | CrashLoopBackOff（崩溃 → 重启 → 崩溃） | `docker logs --tail 50 container` | 修复根本崩溃原因，设置 `restart: on-failure` |
 
 ## 调试工作流检查清单
 
-容器无法正常工作时，按此顺序排查：
+当容器无法正常工作时，请按以下顺序排查：
 
 ```bash
 # 1. 容器是否正在运行？
@@ -637,7 +630,7 @@ docker network inspect $(docker inspect my-container --format '{{range $k, $v :=
 
 ## Docker Events — 全局系统活动
 
-`docker events` 流式输出 Docker daemon 的实时事件：
+`docker events` 会以流式方式输出 Docker daemon 的实时事件：
 
 ```bash
 docker events
@@ -650,7 +643,7 @@ docker events
 2023-09-30T10:31:16.456789012Z container die a1b2c3d4e5f6 (exitCode=1, image=myapp:v2, name=api)
 ```
 
-这表明容器正处于重启循环（die → start → die）。可通过过滤减少噪音：
+上述输出表明容器正处于重启循环（die → start → die）。你可以通过过滤条件减少噪音：
 
 ```bash
 # 仅显示容器事件
@@ -665,4 +658,4 @@ docker events --filter event=die --filter event=oom
 
 ## 下一步
 
-现在你已掌握在容器行为异常时定位问题的方法。但调试本质上是被动响应 —— 理想情况下，我们应提前预防问题发生。下一篇文章将聚焦**安全性**：以非 root 用户运行容器、降权（drop capabilities）、漏洞扫描，以及遵循最佳实践，规避容器化应用中最常见的安全失误。
+现在，你已经掌握了在容器行为异常时定位问题的方法。但调试本质上是一种被动响应——理想情况下，我们更希望防患于未然。下一篇文章将聚焦**安全性**：如何以非 root 用户运行容器、如何降权（drop capabilities）、如何扫描漏洞，以及如何遵循最佳实践，规避容器化应用中最常见的安全失误。

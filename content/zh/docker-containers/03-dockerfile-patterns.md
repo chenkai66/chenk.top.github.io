@@ -15,8 +15,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "docker-containers-3"
 ---
-
-大多数教程只展示一个 5 行的 Dockerfile 就匆匆略过。结果你部署到生产环境后才发现，镜像体积高达 1.2 GB，哪怕只改一行代码也要花 8 分钟构建，安全团队更是在报告中反复指出——那些你甚至不知道自己安装过的软件包存在严重漏洞。编写一份优秀的 Dockerfile 是一项关键技能，在每次 CI 流水线运行时都能带来持续回报。
+大多数教程只展示一个 5 行的 Dockerfile 就匆匆略过，结果你部署到生产环境后才发现：镜像体积高达 1.2 GB，哪怕只改一行代码也要花 8 分钟构建，安全团队更是在报告中反复指出——那些你甚至不知道自己安装过的软件包存在严重漏洞。编写一份优秀的 Dockerfile 是一项关键技能，在每次 CI 流水线运行时都能带来持续回报。
 
 ## 每一条 Dockerfile 指令详解
 
@@ -24,10 +23,9 @@ translationKey: "docker-containers-3"
 
 ![Dockerfile 最佳实践](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-best-practices.png)
 
-
 ### FROM — 起点镜像
 
-每个 Dockerfile 都必须以 `FROM` 开头。它指定了所有后续指令所基于的基础镜像。
+每个 Dockerfile 都必须以 `FROM` 开头，它指定了所有后续指令所基于的基础镜像。
 
 ```dockerfile
 # 使用特定版本（推荐）
@@ -59,7 +57,7 @@ FROM alpine:3.18
 
 ### RUN — 执行构建时命令
 
-`RUN` 在构建过程中于镜像内执行命令。每条 `RUN` 指令都会生成一个新的镜像层。
+`RUN` 在构建过程中于镜像内执行命令，每条 `RUN` 指令都会生成一个新的镜像层。
 
 ```dockerfile
 # Shell 形式（在 `/bin/sh -c` 中运行）
@@ -150,7 +148,7 @@ FROM python:${PYTHON_VERSION}-slim
 | 构建时可覆盖 | 否（应使用 ARG 实现） | 是（通过 `--build-arg`） |
 | 跨构建阶段持久化 | 是（限于同一阶段内） | 否（每个 `FROM` 后重置） |
 
-**安全警告**：`ENV` 和 `ARG` **均不应存放密钥**。构建参数会被记录在镜像历史中（`docker history`）。请改用 Docker Secrets 或通过 `--secret` 在构建时挂载密钥。
+**安全警告**：`ENV` 和 `ARG` **均不应存放密钥**。构建参数会被记录在镜像历史中（`docker history`），请改用 Docker Secrets 或通过 `--secret` 在构建时挂载密钥。
 
 ### EXPOSE — 声明端口
 
@@ -162,7 +160,7 @@ EXPOSE 8080/tcp
 EXPOSE 8443/udp
 ```
 
-`EXPOSE` **不会真正发布端口**。它只是元数据注释，供工具读取。运行容器时仍需显式指定 `-p 8080:80`。你可以把它理解为一条“机器可读的注释”。
+`EXPOSE` **不会真正发布端口**，它只是元数据注释，供工具读取。运行容器时仍需显式指定 `-p 8080:80`，你可以把它理解为一条“机器可读的注释”。
 
 ### CMD 和 ENTRYPOINT — 容器启动行为
 
@@ -199,7 +197,7 @@ CMD ["python3", "app.py"]
 CMD python3 app.py
 ```
 
-对 `CMD` 和 `ENTRYPOINT`，**始终使用 Exec 形式**（`["executable", "arg1", "arg2"]`）。 Shell 形式会将你的进程包裹在 `/bin/sh -c` 中，导致信号处理异常，影响优雅关闭。
+对 `CMD` 和 `ENTRYPOINT`，**始终使用 Exec 形式**（`["executable", "arg1", "arg2"]`）。Shell 形式会将你的进程包裹在 `/bin/sh -c` 中，导致信号处理异常，影响优雅关闭。
 
 ### USER — 以非 root 用户运行
 
@@ -233,11 +231,11 @@ HEALTHCHECK NONE
 | `--start-period` | 0s | 首次检查前的宽限期 |
 | `--retries` | 3 | 连续失败多少次后标记为 “unhealthy” |
 
-Docker 根据健康检查结果将容器标记为 `healthy`、`unhealthy` 或 `starting`。编排系统（Docker Compose、 Kubernetes）据此决定是否向该容器路由流量。
+Docker 根据健康检查结果将容器标记为 `healthy`、`unhealthy` 或 `starting`，编排系统（Docker Compose、Kubernetes）据此决定是否向该容器路由流量。
 
 ## 初学者版 vs 优化版：真实案例对比
 
-我们来构建一个 Flask 应用。应用代码如下：
+我们来构建一个 Flask 应用，应用代码如下：
 
 ![构建上下文](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-build-context.png)
 
@@ -382,7 +380,7 @@ flask-naive       latest    a1b2c3d4e5f6   2 minutes ago    1.02GB
 
 ![从臃肿到精简的 Dockerfile 优化过程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/03-dockerfile-optimization-journey-from-bloated-to-slim-contain.jpg)
 
-`.dockerignore` 的作用类似于 `.gitignore`，但针对 Docker 构建上下文。当你执行 `docker build .` 时， Docker 会将整个目录（即“构建上下文”）发送给守护进程。若无 `.dockerignore`，所有文件都将被上传。
+`.dockerignore` 的作用类似于 `.gitignore`，但针对 Docker 构建上下文。当你执行 `docker build .` 时，Docker 会将整个目录（即“构建上下文”）发送给守护进程；若无 `.dockerignore`，所有文件都将被上传。
 
 ![层优化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-layer-optimization.png)
 
@@ -443,7 +441,7 @@ LICENSE
 
 ## 层缓存（Layer Caching）：为何指令顺序至关重要
 
-Docker 会对每一层进行缓存。若某条指令未变更（且其之前所有层均已缓存）， Docker 将复用缓存层。但一旦某层缓存失效，其后所有层都必须重建。
+Docker 会对每一层进行缓存。若某条指令未变更（且其之前所有层均已缓存），Docker 将复用缓存层；但一旦某层缓存失效，其后所有层都必须重建。
 
 ![基础镜像大小对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/03-image-size-comparison.png)
 
@@ -572,7 +570,7 @@ go-server         single       a1b2c3d4e5f6   10 seconds ago   845MB
 go-server         multistage   b2c3d4e5f6a7   5 seconds ago    12.4MB
 ```
 
-**845 MB vs 12.4 MB**。多阶段构建产出的镜像缩小了 68 倍——因为它丢弃了整个 Go 工具链，最终镜像中仅保留编译好的二进制文件和 CA 证书。该模式同样适用于 Node.js （用 `node:20-alpine` 构建，仅复制 `node_modules` 和应用代码至运行时阶段）及任何其他语言。
+**845 MB vs 12.4 MB**。多阶段构建产出的镜像缩小了 68 倍——因为它丢弃了整个 Go 工具链，最终镜像中仅保留编译好的二进制文件和 CA 证书。该模式同样适用于 Node.js（用 `node:20-alpine` 构建，仅复制 `node_modules` 和应用代码至运行时阶段）及任何其他语言。
 
 ## 构建参数（ARG） vs 环境变量（ENV）
 

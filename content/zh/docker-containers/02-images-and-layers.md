@@ -15,19 +15,17 @@ disableNunjucks: true
 series_order: 2
 translationKey: "docker-containers-2"
 ---
-
-第一次运行 `docker pull ubuntu` 时，我本以为会下载一整套操作系统。结果它几秒就完成了，体积仅 77 MB —— 对一个 Linux 发行版而言，这小得不可思议。其中的奥秘正是「分层」（layers）；而理解分层的工作原理，将彻底改变你构建和分发容器的方式。
+第一次运行 `docker pull ubuntu` 时，我本以为会下载一整套操作系统，结果几秒就完成了，体积仅 77 MB——对一个 Linux 发行版来说，这小得不可思议。其中的奥秘正是「分层」（layers）；而一旦理解分层的工作原理，你构建和分发容器的方式也会随之改变。
 
 ## 镜像 vs 容器
 
-在深入分层机制之前，我们先厘清一个常令初学者困惑的基础概念。
+在深入分层机制之前，先厘清一个常令初学者困惑的基础概念。
 
 ![联合文件系统](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-union-fs.png)
 
+**镜像（Image）** 是一个只读模板，包含创建容器所需的文件系统、环境变量、默认命令及元数据，可以类比为面向对象编程中的「类定义（class definition）」。
 
-**镜像（Image）** 是一个只读模板，包含构建容器所需的全部内容：文件系统、环境变量、默认命令及元数据。你可以把它类比为面向对象编程中的「类定义（class definition）」。
-
-**容器（Container）** 是由镜像创建的正在运行（或已停止）的实例。它拥有镜像的一切，外加一层可写层（writable layer），以及运行时状态（如网络配置、进程 ID 等）。你可以把它类比为从类实例化出的「对象（object）」。
+**容器（Container）** 则是由镜像创建的运行中（或已停止）的实例。它不仅包含镜像的所有内容，还额外拥有一层可写层（writable layer）和运行时状态（如网络配置、进程 ID 等），相当于从类实例化出的「对象（object）」。
 
 ```bash
 # 镜像（模板）
@@ -52,24 +50,22 @@ b2c3d4e5f6a7   nginx          "/docker-entrypoint.…"   8 minutes ago    Up 8 m
 c3d4e5f6a7b8   ubuntu:22.04   "bash"                   5 minutes ago    Exited (0) 3 minutes ago   test
 ```
 
-注意：两个容器（`web1` 和 `web2`）均基于同一 `nginx` 镜像运行。它们共享相同的只读分层，但各自拥有独立的可写层。`web1` 中的修改不会影响 `web2`，二者也均不影响原始镜像。
+注意：两个容器（`web1` 和 `web2`）都基于同一个 `nginx` 镜像运行。它们共享相同的只读分层，但各自拥有独立的可写层。因此，`web1` 中的修改不会影响 `web2`，两者也不会反过来影响原始镜像。
 
 ## 分层模型（Layer Model）
 
-每个 Docker 镜像均由一组分层堆叠而成。每一层代表一组文件系统变更 —— 文件的新增、修改或删除。这些分层具有以下特性：
+每个 Docker 镜像都由一组堆叠的分层构成。每一层代表文件系统的变更——新增、修改或删除文件。这些分层具备以下特性：
 
 ![Docker 层构建动画](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/docker-02-layer-building.gif)
 
-
 ![Docker 镜像层堆栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-stack.png)
 
-
-1. **只读性（Read-only）**：一旦创建，分层永不更改；
+1. **只读性（Read-only）**：一旦创建，分层内容永不更改；
 2. **内容寻址（Content-addressable）**：通过其内容的 SHA256 哈希值唯一标识；
-3. **可共享（Shared）**：若两个镜像使用相同基础层，则该层在磁盘上仅存储一份；
-4. **堆叠式（Stacked）**：联合文件系统（union filesystem）将所有分层合并为一个统一、连贯的视图。
+3. **可共享（Shared）**：若多个镜像使用相同的基础层，该层在磁盘上仅存储一份；
+4. **堆叠式（Stacked）**：联合文件系统（union filesystem）将所有分层合并成一个统一、连贯的视图。
 
-下面以一个典型 Dockerfile 为例，直观说明分层如何工作：
+下面以一个典型的 Dockerfile 为例，直观说明分层如何工作：
 
 ```dockerfile
 FROM ubuntu:22.04          # 第 1 层：Ubuntu 基础文件系统
@@ -79,9 +75,9 @@ COPY app.py /app/app.py    # 第 4 层：你的应用文件
 CMD ["python3", "/app/app.py"]  # 仅元数据（不生成新分层）
 ```
 
-每条修改文件系统的指令都会创建一个新分层。`CMD` 指令仅设置元数据，不改动任何文件，因此不产生新分层。
+每条修改文件系统的指令都会创建一个新分层。而 `CMD` 指令仅设置元数据，并不改动任何文件，因此不会产生新分层。
 
-当容器从此镜像启动时， Docker 会在最上方额外添加一层：
+当容器从此镜像启动时，Docker 会在最上方再添加一层：
 
 ```toml
 [可写容器层]  ← 运行时的修改发生于此
@@ -91,14 +87,13 @@ CMD ["python3", "/app/app.py"]  # 仅元数据（不生成新分层）
 [第 1 层：ubuntu:22.04]      ← 只读
 ```
 
-若你在容器内修改了底层分层中的某个文件，联合文件系统将采用 **写时复制（copy-on-write）** 机制：先将该文件复制到可写层，再修改副本；原始只读分层中的文件保持不变。
+如果在容器内修改了底层分层中的某个文件，联合文件系统会采用 **写时复制（copy-on-write）** 机制：先将该文件复制到可写层，再修改副本，而原始只读层中的文件保持不变。
 
 ## 拉取镜像：`docker pull` 到底下载了什么？
 
 我们来追踪 `docker pull nginx` 的实际执行过程：
 
 ![容器间的层共享](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-sharing.png)
-
 
 ```bash
 docker pull nginx
@@ -118,7 +113,7 @@ Status: Downloaded newer image for nginx:latest
 docker.io/library/nginx:latest
 ```
 
-共下载了六个分层。每行 `Pull complete` 对应一个独立分层（真实终端中你会看到并行下载的进度条）。`Digest` 字段是镜像清单（manifest）的 SHA256 哈希值，它唯一标识了这一组特定分层的组合。
+共下载了六个分层。每行 `Pull complete` 对应一个独立分层（在真实终端中你会看到并行下载的进度条）。`Digest` 字段是镜像清单（manifest）的 SHA256 哈希值，它唯一标识了这一组特定分层的组合。
 
 现在拉取另一个共享相同基础层的镜像：
 
@@ -139,7 +134,7 @@ Status: Downloaded newer image for nginx:alpine
 docker.io/library/nginx:alpine
 ```
 
-注意 `59bf1c3509f3: Already exists` —— Docker 识别出本地已存在该分层（很可能与 Alpine 基础镜像共享），因而跳过下载。这就是分层共享（layer sharing）的实际体现：它同时节省带宽与磁盘空间。
+注意 `59bf1c3509f3: Already exists`——Docker 识别出本地已存在该分层（很可能与 Alpine 基础镜像共享），于是跳过下载。这正是分层共享（layer sharing）的实际体现：既节省带宽，又节约磁盘空间。
 
 ## 检查镜像分层
 
@@ -151,7 +146,7 @@ docker.io/library/nginx:alpine
 
 ### `docker history`
 
-`docker history` 命令展示镜像中每一层的来源指令及其大小：
+`docker history` 命令会列出镜像中每一层的来源指令及其大小：
 
 ```bash
 docker history nginx
@@ -175,18 +170,18 @@ IMAGE          CREATED       CREATED BY                                      SIZ
 <missing>      2 weeks ago   /bin/sh -c #(nop) ADD file:756183bba9c7f4593…   74.8MB
 ```
 
-自下而上阅读（最老的层在底部）：
+从下往上阅读（最老的层在底部）：
 
 1. `ADD file:756...` — 74.8 MB — Debian 基础文件系统；
 2. 大块 `set -x && addgroup...` — 61.1 MB — nginx 安装；
 3. 多个 `COPY` 指令 — 各几 KB — 配置文件；
-4. `ENV`, `EXPOSE`, `CMD` 等 — 0 字节 — 纯元数据。
+4. `ENV`、`EXPOSE`、`CMD` 等 — 0 字节 — 仅为元数据。
 
-`IMAGE` 列中的 `<missing>` 表示这些中间层没有自己的镜像标签。只有最终层（顶部）拥有镜像 ID `61395b4c586d`。
+`IMAGE` 列中的 `<missing>` 表示这些中间层没有独立的镜像标签。只有最顶层（最终层）拥有镜像 ID `61395b4c586d`。
 
 ### `docker image inspect`
 
-获取 JSON 格式的详细元数据：
+若需获取 JSON 格式的详细元数据，可使用：
 
 ```bash
 docker image inspect nginx --format '{{json .RootFS}}' | python3 -m json.tool
@@ -206,7 +201,7 @@ docker image inspect nginx --format '{{json .RootFS}}' | python3 -m json.tool
 }
 ```
 
-这些是各分层的内容寻址 SHA256 哈希值。 Docker 正是依靠它们判断某一分层是否已在本地存在。
+这些是各分层的内容寻址 SHA256 哈希值。Docker 正是依靠它们判断某一分层是否已在本地存在。
 
 ## 镜像命名与镜像仓库（Registry）
 
@@ -235,13 +230,13 @@ Docker 镜像遵循如下命名约定：
 
 - **省略仓库地址** 默认为 `docker.io`（即 Docker Hub）；
 - **省略标签（tag）** 默认为 `latest`（仅为惯例，并不保证是最新的版本）；
-- **Docker Hub 上的官方镜像** 无命名空间（例如 `nginx`, `ubuntu`, `python`）；
+- **Docker Hub 上的官方镜像** 无命名空间（例如 `nginx`、`ubuntu`、`python`）；
 - **用户镜像** 必须有命名空间（例如 `myuser/myapp`）；
-- **摘要（digest）**（`@sha256:...`）是不可变的 —— 标签可被重新指向不同镜像，但摘要永久固定。
+- **摘要（digest）**（`@sha256:...`）是不可变的——标签可被重新指向不同镜像，但摘要永久固定。
 
 ### Docker Hub
 
-Docker Hub 是默认的公共镜像仓库。当你运行 `docker pull nginx` 时， Docker 会连接 `registry-1.docker.io` 下载镜像。
+Docker Hub 是默认的公共镜像仓库。当你运行 `docker pull nginx` 时，Docker 会连接 `registry-1.docker.io` 下载镜像。
 
 ```bash
 # 从 CLI 搜索 Docker Hub
@@ -295,7 +290,7 @@ docker pull registry.example.com/team/myapp:v1.0
 - **构建耗时（Build time）**：大分层上传更慢；
 - **磁盘占用（Disk space）**：每个节点需本地存储镜像；
 - **安全攻击面（Security surface）**：文件越多，潜在漏洞越多；
-- **冷启动延迟（Cold start）**： Serverless 平台（如 AWS Lambda、 Cloud Run）对大镜像响应更慢。
+- **冷启动延迟（Cold start）**：Serverless 平台（如 AWS Lambda、Cloud Run）对大镜像响应更慢。
 
 对比几种基础镜像大小：
 
@@ -323,7 +318,7 @@ gcr.io/distroless/static-debian12   latest              2.45MB
 | `distroless/static` | 2.45 MB | 无 | 无 | 仅支持静态编译二进制（如 Go） |
 | `scratch` | 0 MB | 无 | 无 | 最小化（Go 二进制等） |
 
-Alpine 比 Ubuntu 小约 10 倍， Distroless 更小约 30 倍。代价是：越小的镜像，调试工具越少。你无法对 distroless 容器执行 `docker exec -it container bash`，因为其中根本不存在 `bash`。
+Alpine 比 Ubuntu 小约 10 倍，Distroless 更小约 30 倍。代价是：越小的镜像，调试工具越少。你无法对 distroless 容器执行 `docker exec -it container bash`，因为其中根本不存在 `bash`。
 
 我们将在下一篇关于 Dockerfile 的文章中深入探讨优化策略。
 
@@ -387,7 +382,7 @@ docker import test-export.tar my-custom-ubuntu:v1
 
 核心区别：
 
-| 操作 | 作用对象 | 是否保留分层？ | 是否保留元数据？（CMD、 ENV 等） |
+| 操作 | 作用对象 | 是否保留分层？ | 是否保留元数据？（CMD、ENV 等） |
 |-----------|-----------|-------------------|---------------------|
 | `save/load` | 镜像 | 是 | 是 |
 | `export/import` | 容器 | 否（扁平化为单层） | 否 |
@@ -420,7 +415,7 @@ registry.example.com/team/nginx   v1.0         61395b4c586d   2 weeks ago   187M
 
 ### “latest” 标签陷阱
 
-`latest` 标签对 Docker 来说并无特殊含义，它只是一个**惯例（convention）**，而非机制。 Docker 不会自动将 `latest` 指向最新版本。如果有人推送了 `myapp:v2` 却未同步更新 `latest`，那么 `latest` 仍指向旧版本。
+`latest` 标签对 Docker 来说并无特殊含义，它只是一个**惯例（convention）**，而非机制。Docker 不会自动将 `latest` 指向最新版本。如果有人推送了 `myapp:v2` 却未同步更新 `latest`，那么 `latest` 仍指向旧版本。
 
 最佳实践：**生产环境务必使用明确的标签。**
 
@@ -520,7 +515,7 @@ dive nginx:latest
 
 ## 分层在磁盘上的存储方式
 
-在 Linux 主机上， Docker 将所有数据存于 `/var/lib/docker/` 下。确切结构取决于所用存储驱动（通常为 OverlayFS）：
+在 Linux 主机上，Docker 将所有数据存于 `/var/lib/docker/` 下。确切结构取决于所用存储驱动（通常为 OverlayFS）：
 
 ```bash
 # 查看存储驱动信息
@@ -538,7 +533,7 @@ e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7ea8d4e0cfbbe85a1c0e10
 l
 ```
 
-`overlay2/` 下每个目录即一个分层。`l/` 目录存放用于分层识别的短符号链接。**切勿直接修改这些文件** —— 请交由 Docker 自动管理。
+`overlay2/` 下每个目录即一个分层。`l/` 目录存放用于分层识别的短符号链接。**切勿直接修改这些文件**——请交由 Docker 自动管理。
 
 ## 多架构镜像（Multi-Architecture Images）
 
@@ -575,10 +570,10 @@ docker manifest inspect nginx:latest | python3 -m json.tool | head -30
 }
 ```
 
-当你在 ARM Mac 上执行 `docker pull nginx`， Docker 会自动选择 `arm64` 变体；而在 x86_64 Linux 服务器上则选择 `amd64`。**同一标签，不同二进制** —— 这正是跨平台部署无缝衔接的原因。
+当你在 ARM Mac 上执行 `docker pull nginx`，Docker 会自动选择 `arm64` 变体；而在 x86_64 Linux 服务器上则选择 `amd64`。**同一标签，不同二进制**——这正是跨平台部署无缝衔接的原因。
 
 ## 下一步
 
 你现在已理解：镜像是由多个只读分层堆叠而成；分层可在镜像间共享；容器在此之上叠加一层薄薄的可写层；你也掌握了检查、导出、打标签及清理镜像的方法。
 
-下一步是构建你自己的镜像 —— 即编写 Dockerfile。一个朴素的 Dockerfile 与一个经过优化的 Dockerfile，其差异可能就是：一个 1.5 GB、耗时 10 分钟构建的镜像，与一个 50 MB、 30 秒即可完成构建的镜像之间的鸿沟。下一篇将详述每一个 Dockerfile 指令，以及区分开发型与生产型 Dockerfile 的关键模式。
+下一步是构建你自己的镜像——即编写 Dockerfile。一个朴素的 Dockerfile 与一个经过优化的 Dockerfile，其差异可能就是：一个 1.5 GB、耗时 10 分钟构建的镜像，与一个 50 MB、30 秒即可完成构建的镜像之间的鸿沟。下一篇将详述每一个 Dockerfile 指令，以及区分开发型与生产型 Dockerfile 的关键模式。
