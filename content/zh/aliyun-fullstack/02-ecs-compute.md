@@ -12,7 +12,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 2
-description: "Everything you need to know about ECS: instance families (g8, c8, r8, GPU), pricing models, cloud-init automation, security groups, and key pairs. We deploy a production-ready app server from scratch."
+description: "了解ECS所需的一切：实例系列（g8、c8、r8、GPU）、定价模型、cloud-init自动化、安全组、密钥对。从零部署生产就绪的应用服务器。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-2"
 ---

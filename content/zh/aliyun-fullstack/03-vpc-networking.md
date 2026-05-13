@@ -13,7 +13,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 3
-description: "Build a production network from scratch: VPC architecture, CIDR planning, VSwitches across availability zones, security groups as stateful firewalls, SLB for load balancing, NAT Gateway for outbound traffic, and EIP for public access."
+description: "从零开始构建生产网络：VPC架构、CIDR规划、跨可用区VSwitch、安全组防火墙、SLB负载均衡、NAT网关出站流量、EIP公网访问。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-3"
 ---

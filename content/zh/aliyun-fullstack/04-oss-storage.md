@@ -13,7 +13,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 4
-description: "Master Alibaba Cloud OSS: bucket types, storage classes, access control (ACL, RAM, STS, signed URLs), lifecycle rules, cross-region replication, CDN integration, and custom domains. Build a complete media storage backend."
+description: "掌握阿里云OSS：存储桶类型、存储类别、访问控制（ACL、RAM、STS、签名URL）、生命周期规则、跨区域复制、CDN集成、自定义域名。构建完整的媒体存储后端。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-4"
 ---

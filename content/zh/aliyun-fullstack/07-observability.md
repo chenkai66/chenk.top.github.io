@@ -14,7 +14,7 @@ mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"
 series_order: 7
-description: "Build full-stack observability: SLS for log collection and querying, CloudMonitor for metrics and alerts, ARMS for distributed tracing. Set up a complete monitoring stack for a production web application."
+description: "构建全栈可观测性：SLS日志收集和查询、CloudMonitor指标和告警、ARMS分布式追踪。为生产Web应用设置完整的监控堆栈。"
 disableNunjucks: true
 translationKey: "aliyun-fullstack-7"
 ---
