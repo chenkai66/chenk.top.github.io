@@ -72,7 +72,8 @@ $$
 ## 2. Neural ODE：从离散到连续深度
 
 ### 2.1 残差网络即前向 Euler 方法
-\nResNet 的更新规则 $\mathbf{h}_{l+1} = \mathbf{h}_l + f_l(\mathbf{h}_l)$ 正是步长 $\Delta t = 1$ 的前向 Euler 方法，用于求解 ODE $\dot{\mathbf{h}} = f(\mathbf{h}, t)$。取连续极限后，我们得到一个统一的连续时间 ODE：
+
+ResNet 的更新规则 $\mathbf{h}_{l+1} = \mathbf{h}_l + f_l(\mathbf{h}_l)$ 正是步长 $\Delta t = 1$ 的前向 Euler 方法，用于求解 ODE $\dot{\mathbf{h}} = f(\mathbf{h}, t)$。取连续极限后，我们得到一个统一的连续时间 ODE：
 $$
 \frac{d\mathbf{h}}{dt} = f_\theta(\mathbf{h}(t), t), \qquad \mathbf{h}(T) = \mathbf{h}(0) + \int_0^T f_\theta(\mathbf{h}(t), t)\,dt. \tag{2}
 $$
@@ -108,7 +109,8 @@ $$
 *图 3：左图展示同一螺旋 ODE 先正向积分（蓝色）得到 $h(T)$，再与伴随状态（红色虚线）一同反向积分以恢复梯度；右图对比内存开销随求解步数 $L$ 的增长情况：标准反向传播为 $O(L)$，而伴随方法始终保持 $O(1)$——当 $L=1000$ 时，内存节省达千倍。*
 
 ### 2.3 表达能力
-\nNeural ODE 在 $\mathbb{R}^d$ 上的同胚映射空间中是稠密的（Zhang et al., 2020）。然而，它**无法改变拓扑结构**——例如，单个定义在 $\mathbb{R}^d$ 上的 Neural ODE 无法解开两个互锁的环。这催生了**增广型 Neural ODE（Augmented Neural ODE）**：通过将系统提升至 $\mathbb{R}^{d+k}$，额外维度为流提供了“解扣”的空间。
+
+Neural ODE 在 $\mathbb{R}^d$ 上的同胚映射空间中是稠密的（Zhang et al., 2020）。然而，它**无法改变拓扑结构**——例如，单个定义在 $\mathbb{R}^d$ 上的 Neural ODE 无法解开两个互锁的环。这催生了**增广型 Neural ODE（Augmented Neural ODE）**：通过将系统提升至 $\mathbb{R}^{d+k}$，额外维度为流提供了“解扣”的空间。
 
 ## 3. 连续归一化流（CNF）
 
@@ -119,7 +121,8 @@ $$
 \mathbf{z}_K = f_K \circ \cdots \circ f_1(\mathbf{z}_0), \qquad \log p_K = \log p_0 - \sum_{k=1}^K \log\!\bigl|\det \partial f_k / \partial\mathbf{z}_{k-1}\bigr|.
 $$
 每个行列式计算的复杂度为 $O(d^3)$，除非采用特殊架构（如耦合层、自回归结构等）将其降至 $O(d)$——但这会限制模型的表达能力。
-\nCNF 则用一个 ODE 替代整个堆叠结构，并利用瞬时公式 (1)：
+
+CNF 则用一个 ODE 替代整个堆叠结构，并利用瞬时公式 (1)：
 $$
 \frac{d\mathbf{z}}{dt} = f_\theta(\mathbf{z}(t), t), \qquad \frac{d\log p}{dt} = -\nabla\!\cdot f_\theta(\mathbf{z}(t), t). \tag{5}
 $$
@@ -233,7 +236,8 @@ $$
 |------|--------------------|----------------|----------|
 | CNF (FFJORD) | 12.3 | 8000 | 2.1 s / 1k 样本 |
 | Flow Matching | 8.7 | 3000 | 1.8 s / 1k 样本 |
-\nFlow Matching 收敛速度约为 CNF 的 2.7 倍，且生成的月牙形状更清晰。在真实图像数据上，这一差距更为显著——训练时间和采样所需的函数评估次数（NFE）相差一到两个数量级。
+
+Flow Matching 收敛速度约为 CNF 的 2.7 倍，且生成的月牙形状更清晰。在真实图像数据上，这一差距更为显著——训练时间和采样所需的函数评估次数（NFE）相差一到两个数量级。
 
 ## 8. 习题
 

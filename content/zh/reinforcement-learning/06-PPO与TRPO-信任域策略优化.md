@@ -82,7 +82,8 @@ $$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac
 ## TRPO：信任域策略优化
 
 ### 单调改进下界
-\nSchulman 等人（2015）在 Kakade & Langford（2002）工作的基础上证明，新策略的真实回报可以被代理目标加上一个 KL 惩罚项所下界：
+
+Schulman 等人（2015）在 Kakade & Langford（2002）工作的基础上证明，新策略的真实回报可以被代理目标加上一个 KL 惩罚项所下界：
 $$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \cdot D_{KL}^{\max}\!\left(\pi_{\text{old}} \,\|\, \pi_{\text{new}}\right)$$
 其中 $C = 4\varepsilon\gamma/(1-\gamma)^2$，依赖于最大优势幅值 $\varepsilon$ 和折扣因子 $\gamma$。其推论令人震惊：**只要我们在提升代理目标的同时保持 $D_{KL}^{\max}$ 足够小，就能保证策略单调改进**。
 
@@ -280,7 +281,8 @@ class PPO:
 | 理论保证 | 单调改进（在下界条件下） | 无形式化保证 |
 | GPU/分布式友好性 | 差（CG 需要同步） | 优秀 |
 | 超参数敏感性 | $\delta$ 需仔细调整 | $\varepsilon = 0.2$ 几乎总是有效 |
-\nPPO 在实践中的优势源于*多种因素的结合*，而不仅仅是裁剪：
+
+PPO 在实践中的优势源于*多种因素的结合*，而不仅仅是裁剪：
 
 - **每批数据多轮更新**能从相同轨迹中榨取更多学习信号。
 - **熵奖励**在无需专门噪声调度的情况下维持探索。
@@ -288,12 +290,14 @@ class PPO:
 - **极易并行化**——你可以并行运行 64 个 actor 收集 rollout。
 
 ![PPO 在远低于 TRPO 的成本下，效果持平甚至更好](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/06-PPO与TRPO-信任域策略优化/fig4_benchmark.png)
-\nMuJoCo 曲线（左）和 Atari 条形图（右）展示了原始 PPO 论文发表并由 Engstrom 等人（2020）复现的经验结果：PPO-Clip 在所有任务上全面超越 A2C，并在大多数任务上小幅领先 TRPO，同时每墙钟秒的运行速度大约快 10 倍。
+
+MuJoCo 曲线（左）和 Atari 条形图（右）展示了原始 PPO 论文发表并由 Engstrom 等人（2020）复现的经验结果：PPO-Clip 在所有任务上全面超越 A2C，并在大多数任务上小幅领先 TRPO，同时每墙钟秒的运行速度大约快 10 倍。
 
 ---
 
 ## PPO 在 RLHF 中的角色
-\nPPO 最具影响力的应用是 **基于人类反馈的强化学习（RLHF）**——正是该算法将 GPT-3 转变为 ChatGPT。
+
+PPO 最具影响力的应用是 **基于人类反馈的强化学习（RLHF）**——正是该算法将 GPT-3 转变为 ChatGPT。
 
 ### 三阶段流程
 

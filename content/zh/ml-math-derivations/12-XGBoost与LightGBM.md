@@ -156,7 +156,8 @@ $$
 ![机器学习数学推导（十二）：XGBoost 与 LightGBM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/illustration_2.png)
 
 ### 直方图算法
-\nLightGBM 在训练前会一次性将每个特征离散化为 $K$ 个整数桶，默认值是 255。对每个叶子节点和每个特征，它都会构建一个 $(G_b, H_b)$ 的直方图：
+
+LightGBM 在训练前会一次性将每个特征离散化为 $K$ 个整数桶，默认值是 255。对每个叶子节点和每个特征，它都会构建一个 $(G_b, H_b)$ 的直方图：
 
 $$
 G_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} g_i, \qquad H_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} h_i.
@@ -173,7 +174,8 @@ $$
 还有一个**直方图减法**技巧：如果已知一个子节点的直方图，另一个子节点的直方图可以直接用*父节点减去已知子节点*得到。这样，构建两个子节点的代价就等于构建一个子节点的代价。在深树中，这种方法可以将每层的工作量减半。
 
 ### 按叶子生长 vs 按层生长
-\nXGBoost 默认使用**按层生长**（BFS）：先分裂当前深度的所有节点，再进入下一层。而 LightGBM 使用**按叶子生长**（best-first）：始终选择增益最大的叶子节点进行分裂。
+
+XGBoost 默认使用**按层生长**（BFS）：先分裂当前深度的所有节点，再进入下一层。而 LightGBM 使用**按叶子生长**（best-first）：始终选择增益最大的叶子节点进行分裂。
 
 ![Leaf-wise 与 Level-wise 树生长对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/fig5_growth.png)
 
@@ -182,7 +184,8 @@ $$
 ### GOSS：基于梯度的单边采样
 
 海森加权后的梯度 $g_i$ 能直接反映样本 $i$ 对下一个分裂的贡献。在一棵已经拟合得不错的树中，大多数样本的 $|g_i| \approx 0$（已经被很好地拟合了）。丢弃这些样本几乎不会损失信息——只要重新调整权重，确保 $G$ 和 $H$ 的统计量保持无偏。
-\nGOSS 通过 $a, b \in (0, 1)$ 分三步完成：
+
+GOSS 通过 $a, b \in (0, 1)$ 分三步完成：
 
 1. 按 $|g_i|$ 降序排列，保留前 $a\cdot N$ 个样本，记为 $A$。
 2. 从剩下的 $(1-a) N$ 个样本中随机抽取 $b \cdot N$ 个，记为 $B$。
@@ -212,12 +215,14 @@ $$
 $$
 
 ![EFB 把多列稀疏互斥特征合并为一列](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/fig4_efb.png)
-\nA 面板是一段近乎互斥的稀疏块（想象 6 个 one-hot 哑变量）。B 面板的红边标出违反互斥的特征对，节点颜色是贪心着色给出的组号。C 面板是合并后的列：每个原特征占据互不重叠的桶段，因此 $\tilde f$ 的直方图能精确还原各原特征的统计量——但列数减少了。
+
+A 面板是一段近乎互斥的稀疏块（想象 6 个 one-hot 哑变量）。B 面板的红边标出违反互斥的特征对，节点颜色是贪心着色给出的组号。C 面板是合并后的列：每个原特征占据互不重叠的桶段，因此 $\tilde f$ 的直方图能精确还原各原特征的统计量——但列数减少了。
 
 在高维稀疏问题中，EFB 经常将有效 $d$ 减少 5 到 10 倍，进一步放大了直方图构建的加速效果。
 
 ## 两种“重要性”定义：同一个模型，两种视角
-\nXGBoost 和 LightGBM 都提供了特征重要性的计算方法，但它们回答的问题并不相同。
+
+XGBoost 和 LightGBM 都提供了特征重要性的计算方法，但它们回答的问题并不相同。
 
 ![特征重要性：XGBoost gain 与 LightGBM split 计数](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/fig6_feature_importance.png)
 
@@ -239,7 +244,8 @@ $$
 | 适用场景 | 小/中等数据量，调参精细 | 大数据量，高维度，稀疏特征 |
 
 ### 实战中的训练成本
-\nLightGBM 的直方图、GOSS 和 EFB 技术栈，换来的是更高的吞吐量：
+
+LightGBM 的直方图、GOSS 和 EFB 技术栈，换来的是更高的吞吐量：
 
 ![训练时间随样本数变化与 Pareto 视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/fig7_time_vs_accuracy.png)
 

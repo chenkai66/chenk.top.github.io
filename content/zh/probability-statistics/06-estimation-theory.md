@@ -165,7 +165,8 @@ $$
 $$
 k(1-p) = (n-k)p \implies k = np \implies \hat{p}_{\text{MLE}} = \frac{k}{n} = \bar{X}.
 $$
-\nMLE 即样本比例，自然且直观。
+
+MLE 即样本比例，自然且直观。
 
 ### 例 2：高斯分布（两参数）
 
@@ -275,26 +276,29 @@ $$
 ## 最大后验估计（MAP）
 
 ### 从 MLE 到 MAP
-\nMLE 将 $\theta$ 视为固定未知量。**最大后验（MAP）估计**则将 $\theta$ 视为具有**先验分布** $p(\theta)$ 的随机变量。
+
+MLE 将 $\theta$ 视为固定未知量。**最大后验（MAP）估计**则将 $\theta$ 视为具有**先验分布** $p(\theta)$ 的随机变量。
 
 由贝叶斯定理：
 
 $$
 p(\theta | x_1, \ldots, x_n) \propto p(x_1, \ldots, x_n | \theta) \cdot p(\theta) = L(\theta) \cdot p(\theta).
 $$
-\nMAP 估计量最大化后验分布：
+
+MAP 估计量最大化后验分布：
 
 $$
 \hat{\theta}_{\text{MAP}} = \arg\max_\theta \left[\ell(\theta) + \ln p(\theta)\right].
 $$
 
 ### 与正则化的联系
-\nMAP 估计等价于带惩罚项的 MLE —— 对数先验起正则化作用。
+
+MAP 估计等价于带惩罚项的 MLE —— 对数先验起正则化作用。
 
 | 先验分布 | 惩罚项 | 对应的 ML 正则化 |
 |---|---|---|
 | $\theta \sim \mathcal{N}(0, \tau^2)$ | $-\frac{\theta^2}{2\tau^2}$ | L2 正则化（岭回归） |
-| $\theta \sim \text{Laplace}(0, b)$ | $-\frac{|\theta|}{b}$ | L1 正则化（Lasso） |
+| $\theta \sim \text{Laplace}(0, b)$ | $-\frac{\vert \theta\vert }{b}$ | L1 正则化（Lasso） |
 
 **例：** 对已知方差 $\sigma^2$ 的高斯分布，对其均值 $\mu$ 施加高斯先验 $\mu \sim \mathcal{N}(\mu_0, \tau^2)$。
 
@@ -570,7 +574,8 @@ $$
 2. **M 步：** $\theta^{(t+1)} = \arg\max_\theta Q(\theta | \theta^{(t)})$ —— 最大化期望对数似然。
 
 每步保证对数似然不减：$\ell(\theta^{(t+1)}) \geq \ell(\theta^{(t)})$。算法收敛至局部极大值。
-\nEM 用于高斯混合模型、隐马尔可夫模型、因子分析等——凡边际化隐变量使似然难解，但条件化使其易解的模型。
+
+EM 用于高斯混合模型、隐马尔可夫模型、因子分析等——凡边际化隐变量使似然难解，但条件化使其易解的模型。
 
 ### MLE 的梯度下降法
 
@@ -589,11 +594,11 @@ $$
 | 方法 | 公式 | 关键性质 |
 |---|---|---|
 | 矩估计法 | 匹配 $\hat{\mu}_k$ 与理论矩 | 简单，但未必最有效 |
-| MLE | $\arg\max_\theta \sum \ln p(x_i|\theta)$ | 相合，渐近有效 |
+| MLE | $\arg\max_\theta \sum \ln p(x_i\vert \theta)$ | 相合，渐近有效 |
 | MAP | $\arg\max_\theta [\ell(\theta) + \ln p(\theta)]$ | MLE + 正则化 |
 | 费希尔信息量 | $I(\theta) = -E[\partial^2 \ell/\partial\theta^2]$ | 衡量数据所含信息量 |
 | CRLB | $\text{Var}(\hat{\theta}) \geq 1/(nI_1(\theta))$ | 方差的下界 |
-| 拉奥–布莱克韦尔 | $E[\hat{\theta}|T]$ 改进 $\hat{\theta}$ | 对充分统计量做条件化 |
+| 拉奥–布莱克韦尔 | $E[\hat{\theta}\vert T]$ 改进 $\hat{\theta}$ | 对充分统计量做条件化 |
 | 偏差-方差 | $\text{MSE} = \text{Bias}^2 + \text{Var}$ | 解释过拟合/欠拟合 |
 
 ## 下一步

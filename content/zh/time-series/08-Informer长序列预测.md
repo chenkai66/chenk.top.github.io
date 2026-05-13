@@ -16,7 +16,8 @@ series_order: 8
 translationKey: "time-series-8"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/illustration_1.png)
-\nTransformer 在序列建模上确实很强大，但只要序列一变长，问题就来了。普通自注意力机制在计算和显存上的开销都是 $\mathcal{O}(L^2)$ 级别——一周的小时级窗口（168 步）还能轻松处理，一个月窗口（720 步）就已经吃力，而三个月窗口（2160 步）在单张 GPU 上基本无法运行。偏偏现实世界中的长 horizon 预测任务，比如气象、能源、金融和 IoT，恰恰就落在这个区间。
+
+Transformer 在序列建模上确实很强大，但只要序列一变长，问题就来了。普通自注意力机制在计算和显存上的开销都是 $\mathcal{O}(L^2)$ 级别——一周的小时级窗口（168 步）还能轻松处理，一个月窗口（720 步）就已经吃力，而三个月窗口（2160 步）在单张 GPU 上基本无法运行。偏偏现实世界中的长 horizon 预测任务，比如气象、能源、金融和 IoT，恰恰就落在这个区间。
 
 **Informer**（Zhou 等人，AAAI 2021 最佳论文）正是让 Transformer 在这类场景中变得实用的关键架构。它做了三件事，每一件单独拿出来都足以成为一项重要贡献：
 
@@ -210,7 +211,8 @@ class ProbSparseAttention(nn.Module):
 $$
 X_{\ell+1} = \mathrm{MaxPool}_{k=3, s=2}\!\Big(\mathrm{ELU}\big(\mathrm{Conv1d}_{k=3, s=2}(X_\ell)\big)\Big).
 $$
-\nstride=2 的 Conv1d 作为可学习的下采样器，MaxPool 保留相邻位置中的主导值，中间的 ELU 非线性激活则赋予该操作超越纯池化的表达能力。
+
+stride=2 的 Conv1d 作为可学习的下采样器，MaxPool 保留相邻位置中的主导值，中间的 ELU 非线性激活则赋予该操作超越纯池化的表达能力。
 
 ![编码器蒸馏金字塔](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig3_encoder_distilling.png)
 
@@ -243,7 +245,8 @@ class DistillingLayer(nn.Module):
 ## 生成式解码器：一次搞定整个预测范围
 
 标准 Transformer 解码器采用自回归方式：先预测 $\hat{y}_1$，将其作为输入再预测 $\hat{y}_2$，依此类推。若预测 horizon 为 $H = 168$，则需 168 次顺序前向传播。这不仅带来高延迟，还会导致误差累积——第 5 步的错误会作为输入影响第 6 步的预测。
-\nInformer 的生成式解码器另辟蹊径。其输入构造为：
+
+Informer 的生成式解码器另辟蹊径。其输入构造为：
 
 $$
 X_\text{dec} = \big[\, X_\text{token} \;;\; X_0 \,\big],
@@ -479,7 +482,8 @@ def build_decoder_input(x_enc, label_len, out_len):
 ---
 
 ## 小结
-\nInformer 是首个让 Transformer 在长 horizon 时间序列预测中真正实用的架构。其三大核心创新——ProbSparse 自注意力、编码器蒸馏和生成式解码器——共同构成一个端到端 $\mathcal{O}(L \log L)$ 系统，在所有长序列基准上，无论精度还是实际运行速度，均全面超越原始 $\mathcal{O}(L^2)$ Transformer。
+
+Informer 是首个让 Transformer 在长 horizon 时间序列预测中真正实用的架构。其三大核心创新——ProbSparse 自注意力、编码器蒸馏和生成式解码器——共同构成一个端到端 $\mathcal{O}(L \log L)$ 系统，在所有长序列基准上，无论精度还是实际运行速度，均全面超越原始 $\mathcal{O}(L^2)$ Transformer。
 
 对于 $L > 96$ 且仅使用单 GPU 的预测任务，Informer 是当之无愧的首选起点。后续架构（如 Autoformer、FEDformer、PatchTST）虽进一步优化了方案，但都建立在 Informer 的两大洞见之上：**并非每个查询都需要完整注意力**，以及**自回归解码实为自我设限的瓶颈**。
 

@@ -91,7 +91,8 @@ translationKey: "reinforcement-learning-5"
 ## 二、Dyna-Q：最初的蓝图
 
 ![Dyna-Q 数据流和收敛曲线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig3_dyna_q_flow.png)
-\nSutton 于 1990 年提出的 **Dyna** 是首个清晰阐述 Model-Based 循环的系统。每次真实的状态转移会被使用三次：
+
+Sutton 于 1990 年提出的 **Dyna** 是首个清晰阐述 Model-Based 循环的系统。每次真实的状态转移会被使用三次：
 
 1. **直接学习** —— 用真实的 $(s, a, r, s')$ 更新 Q 值；
 2. **模型学习** —— 将转移存入表格模型 $M(s, a) \to (r, s')$；
@@ -140,7 +141,8 @@ class DynaQ:
 ```
 
 ### Dyna 的启示与局限
-\nDyna 揭示了核心思想：**用计算换样本**。但它也暴露了一个所有现代方法都必须面对的问题：在错误模型上规划会直接将偏差注入价值函数。在表格化、确定性环境中，这几乎不可见；但一旦使用神经网络建模并在长时程任务中 rollout，误差会指数级累积。本文后续内容本质上就是对这一问题的一系列巧妙回应。
+
+Dyna 揭示了核心思想：**用计算换样本**。但它也暴露了一个所有现代方法都必须面对的问题：在错误模型上规划会直接将偏差注入价值函数。在表格化、确定性环境中，这几乎不可见；但一旦使用神经网络建模并在长时程任务中 rollout，误差会指数级累积。本文后续内容本质上就是对这一问题的一系列巧妙回应。
 
 ---
 
@@ -213,7 +215,8 @@ class EnsembleDynamics(nn.Module):
 4. 观测真实下一状态，并重新规划。
 
 图中展示了 12 条候选轨迹（灰色）、最优轨迹（绿色），以及实际发送给执行器的那个高亮动作。关键在于：每次只执行一步，意味着模型只需**局部准确**——累积误差根本没有机会破坏长时程开环计划。
-\nMPC 是**高风险场景**（如真实机器人、手术、自动驾驶）的首选。它也是连接学习模型与经典规划文献的桥梁：PETS、PlaNet、TD-MPC 和 Dreamer 的策略改进循环，本质上都是“在学习模型中运行 MPC”的变体。
+
+MPC 是**高风险场景**（如真实机器人、手术、自动驾驶）的首选。它也是连接学习模型与经典规划文献的桥梁：PETS、PlaNet、TD-MPC 和 Dreamer 的策略改进循环，本质上都是“在学习模型中运行 MPC”的变体。
 
 ---
 
@@ -223,7 +226,8 @@ class EnsembleDynamics(nn.Module):
 
 
 ![World Model V/M/C 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig2_world_model_vmc.png)
-\nMBPO 之所以有效，是因为 MuJoCo 状态仅有 11–23 维。但要预测下一帧 $84 \times 84 \times 3$ 的 Atari 图像则困难得多——而且大部分像素（如天空、计分板）与控制无关。**World Models**（Ha & Schmidhuber, 2018）提出了另一种思路：
+
+MBPO 之所以有效，是因为 MuJoCo 状态仅有 11–23 维。但要预测下一帧 $84 \times 84 \times 3$ 的 Atari 图像则困难得多——而且大部分像素（如天空、计分板）与控制无关。**World Models**（Ha & Schmidhuber, 2018）提出了另一种思路：
 
 > 将观测压缩为低维潜码，然后直接在该潜空间中学习动力学。
 
@@ -242,7 +246,8 @@ class EnsembleDynamics(nn.Module):
 ## 六、Dreamer：端到端的潜空间想象
 
 ![Dreamer RSSM 在三个时间步上的潜空间动力学](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig7_dreamer_latent.png)
-\nWorld Models 分阶段训练 V、M、C，导致 VAE 优化目标是像素重建，而非控制器真正需要的信息。**Dreamer**（Hafner et al., ICLR 2020；DreamerV2 2021；DreamerV3 2023）则端到端联合训练整个系统，并引入关键架构：**循环状态空间模型（RSSM）**。
+
+World Models 分阶段训练 V、M、C，导致 VAE 优化目标是像素重建，而非控制器真正需要的信息。**Dreamer**（Hafner et al., ICLR 2020；DreamerV2 2021；DreamerV3 2023）则端到端联合训练整个系统，并引入关键架构：**循环状态空间模型（RSSM）**。
 
 ### RSSM 一图解
 
@@ -268,13 +273,16 @@ class EnsembleDynamics(nn.Module):
 - **DMControl Walker**：10 万步达 ~900 分，SAC 需 ~100 万步。
 - **Atari**：DreamerV2 在 55 游戏套件上媲美 IQN/Rainbow，**且仅用单 GPU**。
 - **Minecraft（DreamerV3, 2023）**：首个从零挖到钻石的算法，无需演示，也无需逐任务调参。
-\nDreamerV3 的亮点在于**鲁棒性**：同一套基于模型的智能体、同一组超参数，在超过 150 个任务（涵盖 DMControl、Atari、Crafter、Minecraft）上击败了专为单任务调优的基线。
+
+DreamerV3 的亮点在于**鲁棒性**：同一套基于模型的智能体、同一组超参数，在超过 150 个任务（涵盖 DMControl、Atari、Crafter、Minecraft）上击败了专为单任务调优的基线。
 
 ---
 
 ## 七、MuZero：无需预测像素即可规划
-\nWorld Models 与 Dreamer 的主线是“预测观测”。但 MuZero（Schrittwieser et al., *Nature* 2020）指出：对于**规划**而言，你其实不需要观测——只需要价值、策略和奖励。其余一切只是达成此目标的手段。
-\nMuZero 学习三个在抽象隐状态上操作的小型网络：
+
+World Models 与 Dreamer 的主线是“预测观测”。但 MuZero（Schrittwieser et al., *Nature* 2020）指出：对于**规划**而言，你其实不需要观测——只需要价值、策略和奖励。其余一切只是达成此目标的手段。
+
+MuZero 学习三个在抽象隐状态上操作的小型网络：
 
 - **表示网络**：$s_0 = h(o_0)$ —— 将真实观测编码为隐状态。
 - **动力学网络**：$s_{k+1}, r_{k+1} = g(s_k, a_k)$ —— 完全在隐空间中转移。
@@ -299,7 +307,8 @@ $$
 - **围棋、国际象棋、将棋**：媲美或超越 AlphaZero —— **且无需提供游戏规则**。
 - **Atari 57**：刷新 R2D2 的 SOTA。
 - **MuZero Reanalyse / Sampled MuZero / EfficientZero（2021）**：仅用 2 小时游戏时间即达人类水平。
-\nMuZero 最清晰地诠释了一个深刻原则：**你的模型只需忠实到满足下游任务需求的程度**。
+
+MuZero 最清晰地诠释了一个深刻原则：**你的模型只需忠实到满足下游任务需求的程度**。
 
 ---
 
@@ -337,7 +346,8 @@ $$
 ---
 
 ## 小结
-\nModel-Based RL 是一类**用计算换样本**的方法：
+
+Model-Based RL 是一类**用计算换样本**的方法：
 
 - **Dyna** 引入循环——混合真实与想象更新，摊薄交互成本。
 - **MBPO** 证明**短**想象轨迹优于长轨迹，因模型误差会累积。

@@ -374,7 +374,7 @@ docker run -v /home/user/config:/app/config:ro myapp
 | 初始化填充 | 是（首次使用时，容器内容会复制进卷） | 否（宿主机内容直接覆盖容器内容） |
 | 权限管理 | Docker 自动处理所有权 | 需手动管理 |
 | macOS 性能 | 更优（使用 gRPC FUSE/VirtioFS） | 大型目录树下可能较慢 |
-| 备份方式 | `docker run --rm -v mydata:/data -v $(pwd):/backup alpine tar czf /backup/data.tar.gz /data` | 标准宿主机备份工具 |
+| 备份方式 | `docker run --rm -v mydata:/data -v $(pwd):/backup alpine tar czf /backup/data.tar.gz /data` \vert  标准宿主机备份工具 \vert 
 | 典型用途 | 生产环境数据持久化 | 开发（实时重载） |
 
 ### tmpfs 挂载
@@ -525,7 +525,7 @@ docker run --user 1000:1000 -v mydata:/data myapp
 | 数据库文件 | 命名卷 | `-v postgres-data:/var/lib/postgresql/data` |
 | 应用日志 | 命名卷或绑定挂载 | `-v app-logs:/var/log/app` |
 | 配置文件 | 绑定挂载（只读） | `-v ./config:/app/config:ro` |
-| 源代码（开发） | 绑定挂载 | `-v $(pwd):/app` |
+| 源代码（开发） | 绑定挂载 | `-v $(pwd):/app` \vert 
 | 用户上传文件 | 命名卷 | `-v uploads:/app/uploads` |
 | 临时/暂存文件 | tmpfs | `--tmpfs /tmp` |
 | 敏感凭据（Secrets） | tmpfs 或 Docker Secrets | `--tmpfs /run/secrets` |

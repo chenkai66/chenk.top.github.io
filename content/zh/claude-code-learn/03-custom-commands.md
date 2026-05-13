@@ -111,7 +111,7 @@ translationKey: "claude-code-learn-3"
 |------|--------|------|
 | `/review` | `/code-review-for-pr` | 过长，影响输入效率 |
 | `/test` | `/run-all-tests-and-report` | 冗余，违背“一词一意”原则 |
-| `/deploy` | `/deploy-to-staging-env` | 环境应通过 `$ARGUMENTS` 指定，而非硬编码进命令名 |
+| `/deploy` | `/deploy-to-staging-env` | 环境应通过 `$ARGUMENTS` 指定，而非硬编码进命令名 \vert 
 | `/explain` | `/e` | 对队友不友好，缺乏可发现性 |
 | `/debug` | `/dbg` | 新成员无法直观理解含义 |
 

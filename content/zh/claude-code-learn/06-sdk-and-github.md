@@ -998,7 +998,7 @@ console.log('\n\nOutput saved to analysis-output.md');
 |---------|-------|-----|
 | Action never triggers | `if` 条件错误 | 检查 `contains()` 语法和事件类型 |
 | "Resource not accessible" | 缺少权限 | 添加所需的 permissions block |
-| Claude can't push commits | checkout 时未指定 ref | 在 checkout 中添加 `ref: ${{ github.head_ref }}` |
+| Claude can't push commits | checkout 时未指定 ref | 在 checkout 中添加 `ref: ${{ github.head_ref }}` \vert 
 | Timeout after 30 min | 任务复杂 | 增加 `timeout-minutes` 或缩小范围 |
 | No response on PR | secret 未配置 | 验证 repo secrets 中的 `ANTHROPIC_API_KEY` |
 

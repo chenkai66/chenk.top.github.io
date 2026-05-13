@@ -2015,14 +2015,14 @@ ecs_instance_type = "ecs.g7.small"  # 原来是：ecs.g7.large
 
 | 资源 | 之前（按量付费） | 之后（优化后） | 节省 |
 |---|---|---|---|
-| ECS (app server) | $86.14/mo | $43.07/mo (right-sized) | 50% |
-| RDS Primary | $142.35/mo | $85.41/mo (1yr subscription) | 40% |
-| RDS Replica | $142.35/mo | $85.41/mo (1yr subscription) | 40% |
-| NAT Gateway | $13.14/mo | $13.14/mo | 0% |
-| EIPs (x2) | $6.72/mo | $6.72/mo | 0% |
-| OSS | $1.20/mo | $1.20/mo | 0% |
-| SLS + FC | $0.00/mo | $0.00/mo (free tier) | 0% |
-| **Total** | **$412.90/mo** | **$234.95/mo** | **43%** |
+| ECS (app server) | $86.14/mo \vert  $43.07/mo (right-sized) | 50% |
+| RDS Primary | $142.35/mo \vert  $85.41/mo (1yr subscription) | 40% |
+| RDS Replica | $142.35/mo \vert  $85.41/mo (1yr subscription) | 40% |
+| NAT Gateway | $13.14/mo \vert  $13.14/mo | 0% |
+| EIPs (x2) | $6.72/mo \vert  $6.72/mo | 0% |
+| OSS | $1.20/mo \vert  $1.20/mo | 0% |
+| SLS + FC | $0.00/mo \vert  $0.00/mo (free tier) | 0% |
+| **Total** | **$412.90/mo** \vert  **$234.95/mo** | **43%** |
 
 算下来一年能省将近 2200 美元，仅仅靠调整规格和改订阅模式。而且因为这些改动都在版本控制的 `.tfvars` 文件里，每次优化决策的时间和原因都有据可查。
 

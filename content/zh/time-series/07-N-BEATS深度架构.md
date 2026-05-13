@@ -253,7 +253,8 @@ def make_generic(history: int, horizon: int,
 ---
 
 ## 训练方法
-\nOreshkin 等人的训练方案极为简洁：
+
+Oreshkin 等人的训练方案极为简洁：
 
 ```python
 from torch.optim import Adam
@@ -303,7 +304,8 @@ def train_nbeats(model, train_loader, val_loader, epochs=100,
 ---
 
 ## N-BEATS 在 M4 竞赛中的表现
-\nM4 包含统计方法（ARIMA、ETS、Theta）、冠军 Smyl 的 ES-RNN 混合模型，以及亚军 FFORMA（基于特征元学习）。N-BEATS 无任何统计预处理，却在整体 sMAPE 及六个频率分组中的五个上全面胜出。
+
+M4 包含统计方法（ARIMA、ETS、Theta）、冠军 Smyl 的 ES-RNN 混合模型，以及亚军 FFORMA（基于特征元学习）。N-BEATS 无任何统计预处理，却在整体 sMAPE 及六个频率分组中的五个上全面胜出。
 
 ![N-BEATS 在 M4 竞赛中的表现](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/n-beats/fig4_m4_results.png)
 
@@ -474,7 +476,8 @@ y_hat = y_norm * sd + mu  # 广播到 (B, H)
 官方扩展 **N-BEATS-X**：将外生协变量拼接至输入窗口，并为每块添加辅助输入头。实践中，直接拼接外生序列并略增首层 MLP 宽度通常已足够。
 
 ### N-HiTS 是什么？是否应直接使用？
-\nN-HiTS（2023）出自同团队，通过输出端多速率下采样与插值，支持更长 horizon（720+ 步）且运行更快。但对短中期 horizon（<100 步），原版 N-BEATS 仍具竞争力且更简单。
+
+N-HiTS（2023）出自同团队，通过输出端多速率下采样与插值，支持更长 horizon（720+ 步）且运行更快。但对短中期 horizon（<100 步），原版 N-BEATS 仍具竞争力且更简单。
 
 **为何必须集成？我的单模型效果很好。**
 
@@ -483,7 +486,8 @@ y_hat = y_norm * sd + mu  # 广播到 (B, H)
 ---
 
 ## 小结
-\nN-BEATS 是个“架构平淡无奇”的模型，却靠将合适模块按正确顺序堆叠而取胜。双重残差流赋予其 boosting 式行为；基函数输出头提供强归纳偏置，并在可解释变体中实现免费分解；M4 排行榜验证了该组合对经典方法与循环深度模型的双重优势。
+
+N-BEATS 是个“架构平淡无奇”的模型，却靠将合适模块按正确顺序堆叠而取胜。双重残差流赋予其 boosting 式行为；基函数输出头提供强归纳偏置，并在可解释变体中实现免费分解；M4 排行榜验证了该组合对经典方法与循环深度模型的双重优势。
 
 对大多数采样规则、趋势/季节结构清晰的单变量预测问题，N-BEATS 是最强开箱即用基线之一。建议从可解释变体入手以争取业务认可，若需榨取极限精度，可切换至（或集成）通用变体，并记得在回看长度与随机种子上做集成。
 

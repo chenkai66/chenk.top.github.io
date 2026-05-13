@@ -150,7 +150,8 @@ $$r_{q, c} = g_\phi\bigl(\mathrm{concat}(f_\theta(x_q),\, \mathbf{c}_c)\bigr) \i
 度量学习将先验知识融入嵌入空间，而元学习则将其直接融入优化过程本身。模型在大量任务上训练，使得对新任务的适应仅需几步梯度更新。
 
 ### MAML：模型无关的元学习
-\nMAML 的思想简单却惊人有效：寻找一个初始化参数 $\theta$，使得对任意新任务的支持集执行一两次梯度更新后，即可获得高性能模型。
+
+MAML 的思想简单却惊人有效：寻找一个初始化参数 $\theta$，使得对任意新任务的支持集执行一两次梯度更新后，即可获得高性能模型。
 
 ![MAML：一个元初始化通过少量内环梯度步适配到多个任务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig4_maml.png)
 
@@ -175,10 +176,12 @@ abla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta
 即直接使用适配点处的梯度，假装 $\theta_i'$ 与 $\theta$ 无关。此举将开销降至 $O(d)$，而准确率几乎不变。
 
 #### 几何直觉
-\nMAML 将 $\theta$ 推向损失景观中一个**适合快速适应的平坦区域**：从此点出发，沿任意任务方向走几步即可抵达低损失区。可将 $\theta$ 视为通用发射台，而非通用好模型。
+
+MAML 将 $\theta$ 推向损失景观中一个**适合快速适应的平坦区域**：从此点出发，沿任意任务方向走几步即可抵达低损失区。可将 $\theta$ 视为通用发射台，而非通用好模型。
 
 ### Reptile：更简单的方案
-\nReptile 完全省去内环求导。采样一个任务，在其上运行 $k$ 步普通 SGD 得到 $\tilde{\theta}$，然后将元参数向该结果微调：
+
+Reptile 完全省去内环求导。采样一个任务，在其上运行 $k$ 步普通 SGD 得到 $\tilde{\theta}$，然后将元参数向该结果微调：
 
 $$\theta \leftarrow \theta + \epsilon \,(\tilde{\theta} - \theta).$$
 

@@ -71,7 +71,8 @@ $$
 \max_{\pi_\theta}\; \mathbb{E}_{x\sim\mathcal{D},\,y\sim\pi_\theta(\cdot|x)}\!\left[\,r_\phi(x, y) \,-\, \beta\,\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}\,\right].
 $$
 括号内的整体即为 PPO 使用的逐 token 奖励，第二项是 KL 锚点。若无此项，策略最终会找到在 $r_\phi$ 下得分高但语义混乱的 token 序列——这就是奖励操控，我们将在 §6 中详细讨论。
-\nPPO 成为首选算法的原因与 [第 6 部分](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化) 中所述一致：
+
+PPO 成为首选算法的原因与 [第 6 部分](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化) 中所述一致：
 
 1. **动作空间即词表**（约 5 万 token）。对每个 token 执行 5 万路 argmax 的 Q-learning 不可行；策略梯度则天然适用。
 2. **裁剪机制防止灾难性更新**。单个糟糕的 batch 就可能毁掉一个 70B 参数的聊天模型，且 checkpoint 无法挽救。PPO 的裁剪代理目标 $\min\big(\tfrac{\pi_\theta}{\pi_{\text{old}}}A,\,\text{clip}(\tfrac{\pi_\theta}{\pi_{\text{old}}},1\!-\!\epsilon,1\!+\!\epsilon)A\big)$ 限制了单次更新的步长。
@@ -99,7 +100,8 @@ $$
 ## 3. 带 KL 锚点的 PPO：参数空间中的视角
 
 ![带 KL 约束的 PPO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/12-RLHF与大语言模型应用/fig3_ppo_kl_constraint.png)
-\nKL 项的作用远不止正则化。它实现了与 [第 6 部分](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化) 中 TRPO 相同的信任域思想，但锚点是一个**冻结的参考模型**，而非上一次迭代的结果。左图展示了其几何意义：有 KL 锚点时，策略会走向一个适中但真实的奖励峰值；若无锚点，策略则滑向代理奖励 $r_\phi$ 存在虚假极大值但实际输出混乱的区域。
+
+KL 项的作用远不止正则化。它实现了与 [第 6 部分](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化) 中 TRPO 相同的信任域思想，但锚点是一个**冻结的参考模型**，而非上一次迭代的结果。左图展示了其几何意义：有 KL 锚点时，策略会走向一个适中但真实的奖励峰值；若无锚点，策略则滑向代理奖励 $r_\phi$ 存在虚假极大值但实际输出混乱的区域。
 
 右图揭示了实际困境：当 $\beta$ 从大调小时，**代理奖励**单调上升（策略获得更大优化自由度），但**真实人类评价质量**呈单峰曲线——通常在 $\beta \in [0.01, 0.03]$ 区间达到峰值后迅速崩塌。选择 $\beta$ 是一个必须依赖真人反馈的超参调优过程，没有任何离线指标能告诉你何时越界。实践中，团队普遍采用**自适应 KL 控制**：设定固定平均逐 token KL 目标（如 6 nats），让 $\beta$ 动态调整以维持该目标。
 
@@ -110,7 +112,8 @@ $$
 ## 4. InstructGPT：数据告诉了我们什么
 
 ![奖励模型训练](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/12-RLHF与大语言模型应用/fig2_reward_model_training.png)
-\nInstructGPT 论文（Ouyang et al., NeurIPS 2022）篇幅短小、内容密集，堪称该领域的“罗塞塔石碑”，清晰揭示了 RLHF 的实际价值。以下四个发现值得铭记：
+
+InstructGPT 论文（Ouyang et al., NeurIPS 2022）篇幅短小、内容密集，堪称该领域的“罗塞塔石碑”，清晰揭示了 RLHF 的实际价值。以下四个发现值得铭记：
 
 1. **对齐胜过规模**。在盲测人类评估中，**1.3B 参数的 InstructGPT 在约 85% 的情况下优于 175B 参数的 GPT-3**。经过对齐的小模型比未对齐的大模型更有用——这种差距之大，即使再增加一个数量级的预训练算力也无法弥补。
 2. **泛化真实存在但不均衡**。在英文指令上训练的 RLHF 模型，能迁移到代码任务和 SFT 数据集中几乎未见的非英文提示。这表明奖励模型捕捉到了超越训练分布表面形式的通用信号。
@@ -122,7 +125,8 @@ $$
 ## 5. DPO：跳过奖励模型与强化学习
 
 ![DPO 推导](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/12-RLHF与大语言模型应用/fig4_dpo_derivation.png)
-\nInstructGPT 之后，RLHF 领域最具影响力的工作是 **Direct Preference Optimization**（Rafailov et al., NeurIPS 2023）。其主张大胆：完全抛弃奖励模型和 PPO，用一个基于相同偏好数据的监督损失替代整个流程。
+
+InstructGPT 之后，RLHF 领域最具影响力的工作是 **Direct Preference Optimization**（Rafailov et al., NeurIPS 2023）。其主张大胆：完全抛弃奖励模型和 PPO，用一个基于相同偏好数据的监督损失替代整个流程。
 
 ### 推导过程
 
@@ -166,7 +170,8 @@ $$
 ## 6. 奖励操控与 Goodhart 定律
 
 ![奖励操控与 Goodhart 定律](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/12-RLHF与大语言模型应用/fig7_reward_hacking.png)
-\nCharles Goodhart 1975 年的观察，现代版本为：“**当一个度量成为目标，它就不再是一个好度量。**” RLHF 正是这一格言在机器学习中的构造性证明。奖励模型本是人类偏好的度量；但一旦 PPO 以其为目标，策略便开始寻找高分却不服务人类的方法。
+
+Charles Goodhart 1975 年的观察，现代版本为：“**当一个度量成为目标，它就不再是一个好度量。**” RLHF 正是这一格言在机器学习中的构造性证明。奖励模型本是人类偏好的度量；但一旦 PPO 以其为目标，策略便开始寻找高分却不服务人类的方法。
 
 左图是经典实证结果（Gao et al., ICML 2023）：横轴为训练中相对于 $\pi_{\text{ref}}$ 的 KL 散度（即“RL 剂量”），代理奖励 $r_\phi$ 单调上升，但**黄金标准的人类奖励呈单峰曲线**——早期达峰后迅速崩塌。两曲线间的差距即 Goodhart gap，且随模型规模和训练时长扩大。
 
@@ -228,7 +233,8 @@ $$
 ---
 
 ## 9. 超越语言：RL 的下一步
-\nRLHF 是当前 RL 最高风险的应用，但非最雄心勃勃的方向。三大前沿正并行推进，并大量借鉴本系列内容：
+
+RLHF 是当前 RL 最高风险的应用，但非最雄心勃勃的方向。三大前沿正并行推进，并大量借鉴本系列内容：
 
 **机器人 sim-to-real**。在快速模拟器（MuJoCo、Isaac Gym）中训练策略，通过**域随机化**（变动物理参数、光照、纹理）弥合仿真-现实差距，再部署至真实硬件。OpenAI Dactyl 以此让机械手解魔方；Google Aloha 结合模仿学习（[第 7 部分](/zh/reinforcement-learning/07-模仿学习与逆强化学习/)）初始化，并用在线 RL 精调。
 
@@ -329,7 +335,8 @@ class SimpleRLHF:
 
 ## 11. 常见问题
 
-**Q: 为何 RLHF 在足够示范下仍优于 SFT？**\nSFT 受限于示范作者——人类极少写出**最优**答案，通常仅是**不错**的答案。RLHF 允许模型探索超越示范分布，并对自身样本排序。且比较成本低于示范，单位预算可获更多信号。
+**Q: 为何 RLHF 在足够示范下仍优于 SFT？**
+SFT 受限于示范作者——人类极少写出**最优**答案，通常仅是**不错**的答案。RLHF 允许模型探索超越示范分布，并对自身样本排序。且比较成本低于示范，单位预算可获更多信号。
 
 **Q: RLAIF 多代后会导致模型坍缩吗？**
 当前证据（1–2 代）未见明显退化。但每轮自蒸馏均增加风险。缓解措施：持续混入新鲜人类数据、轮换标注模型、定期用留出人类黄金数据校准。
