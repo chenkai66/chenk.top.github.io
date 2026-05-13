@@ -383,4 +383,4 @@ Five things students reliably get wrong about backprop.
 
 ---
 
-*This is Part 19 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 20 — Regularization and Model Selection](/en/ml-math-derivations/20-regularization-and-model-selection). Previous: [Part 18 — Clustering Algorithms](/en/ml-math-derivations/18-clustering-algorithms/).*
+*This is Part 19 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 20 — Regularization and Model Selection](/en/ml-math-derivations/20-Regularization-and-Model-Selection). Previous: [Part 18 — Clustering Algorithms](/en/ml-math-derivations/18-Clustering-Algorithms).*

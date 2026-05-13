@@ -36,7 +36,7 @@ Feed a clustering algorithm $10{,}000$-dimensional data and it will most likely 
 6. t-SNE: a probabilistic neighbour-preserving embedding for visualisation
 7. ICA vs PCA: decorrelation is not independence
 
-**Prerequisites:** linear algebra (eigenvalues / eigenvectors, the spectral theorem for symmetric matrices), basic probability (variance, covariance), and some familiarity with [kernel methods](/en/ml-math-derivations/08-support-vector-machines).
+**Prerequisites:** linear algebra (eigenvalues / eigenvectors, the spectral theorem for symmetric matrices), basic probability (variance, covariance), and some familiarity with [kernel methods](/en/ml-math-derivations/08-Support-Vector-Machines).
 
 ---
 
@@ -156,7 +156,7 @@ Linear PCA can only ever rotate and project; it cannot bend. If the data lies on
 
 ### 4.2 PCA in feature space
 
-Apply the [kernel trick](/en/ml-math-derivations/08-support-vector-machines): map each point through a feature map $\phi: \mathbb{R}^d \to \mathcal{H}$ into a (possibly infinite-dimensional) feature space, and do PCA there. We never form $\phi$ explicitly; we only need inner products
+Apply the [kernel trick](/en/ml-math-derivations/08-Support-Vector-Machines): map each point through a feature map $\phi: \mathbb{R}^d \to \mathcal{H}$ into a (possibly infinite-dimensional) feature space, and do PCA there. We never form $\phi$ explicitly; we only need inner products
 $$k(\mathbf{x}_i, \mathbf{x}_j) = \phi(\mathbf{x}_i)^\top \phi(\mathbf{x}_j).$$
 Common choices:
 - **Polynomial:** $k(\mathbf{x}, \mathbf{y}) = (\mathbf{x}^\top \mathbf{y} + c)^p$
@@ -311,4 +311,4 @@ A reasonable default workflow when you meet new tabular data: **standardise -> P
 
 ---
 
-*This is Part 17 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 18 — Clustering Algorithms](/en/ml-math-derivations/18-clustering-algorithms/). Previous: [Part 16 — Conditional Random Fields](/en/ml-math-derivations/16-conditional-random-fields).*
+*This is Part 17 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 18 — Clustering Algorithms](/en/ml-math-derivations/18-Clustering-Algorithms). Previous: [Part 16 — Conditional Random Fields](/en/ml-math-derivations/16-Conditional-Random-Fields).*

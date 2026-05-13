@@ -627,7 +627,7 @@ terraform plan
 terraform apply
 ```
 
-Three commands instead of twelve. The state is tracked. The config is version-controlled. Tear it down with `terraform destroy` when you are done. We cover Terraform in depth in [Article 7](/en/aliyun-fullstack/07-terraform-iac/) and there is an entire [Terraform for AI Agents series](/en/terraform-agents/01-why-terraform-for-agents/) if you want to go deep.
+Three commands instead of twelve. The state is tracked. The config is version-controlled. Tear it down with `terraform destroy` when you are done. We cover Terraform in depth in [Article 7](/en/aliyun-fullstack/07-observability) and there is an entire [Terraform for AI Agents series](/en/terraform-agents/01-why-terraform-for-agents/) if you want to go deep.
 
 ## First Deployment Checklist
 
@@ -783,4 +783,4 @@ This Full Stack series is the breadth-first tour. Those series are the depth-fir
 
 5. **Terraform from day one.** The CLI walkthrough above is instructive, but in practice you should never create infrastructure imperatively. Every resource in this series will have a Terraform equivalent. Your future self will thank you.
 
-Next up: [Article 02 — ECS Deep Dive](/en/aliyun-fullstack/02-ecs-deep-dive/), where we go deep on instance type selection, image management, disk performance characteristics, and the placement strategies that actually matter for production workloads.
+Next up: [Article 02 — ECS Deep Dive](/en/aliyun-fullstack/02-ecs-compute), where we go deep on instance type selection, image management, disk performance characteristics, and the placement strategies that actually matter for production workloads.

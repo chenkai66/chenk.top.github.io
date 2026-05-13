@@ -1126,4 +1126,4 @@ The serving cost dominates. If your traffic is bursty, auto-scaling from 0 to N 
 
 For the full depth on each sub-product, the [PAI series](/en/aliyun-pai/01-platform-overview/) has five articles: [DSW notebooks](/en/aliyun-pai/02-pai-dsw-notebook/), [DLC distributed training](/en/aliyun-pai/03-pai-dlc-distributed-training/), [EAS model serving](/en/aliyun-pai/04-pai-eas-model-serving/), and [Designer vs QuickStart](/en/aliyun-pai/05-pai-designer-vs-quickstart/). For LLM APIs without managing your own infrastructure, see [Part 10: Bailian and DashScope](/en/aliyun-fullstack/10-bailian-llm/).
 
-Next up: [Article 12 — Putting It All Together](/en/aliyun-fullstack/12-production-architecture/), where we assemble a complete production architecture using everything from this series.
+Next up: [Article 12 — Putting It All Together](/en/aliyun-fullstack/12-terraform-e2e), where we assemble a complete production architecture using everything from this series.

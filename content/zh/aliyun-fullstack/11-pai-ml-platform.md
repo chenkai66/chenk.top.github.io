@@ -1121,4 +1121,4 @@ EAS 集成了云监控用于告警。建议配置以下几项：
 
 想深入了解每个子产品，[PAI 系列](/zh/aliyun-pai/01-platform-overview/) 共有五篇文章：[DSW notebooks](/zh/aliyun-pai/02-pai-dsw-notebook/)、[DLC distributed training](/zh/aliyun-pai/03-pai-dlc-distributed-training/)、[EAS model serving](/zh/aliyun-pai/04-pai-eas-model-serving/) 以及 [Designer vs QuickStart](/zh/aliyun-pai/05-pai-designer-vs-quickstart/)。如果不想管理基础设施只想调 LLM API，去看 [Part 10: Bailian and DashScope](/zh/aliyun-fullstack/10-bailian-llm/)。
 
-下一篇：[Article 12 -- Putting It All Together](/zh/aliyun-fullstack/12-production-architecture/)，我们会把本系列的所有内容组装成一个完整的生产架构。
+下一篇：[Article 12 -- Putting It All Together](/zh/aliyun-fullstack/12-terraform-e2e)，我们会把本系列的所有内容组装成一个完整的生产架构。

@@ -249,4 +249,4 @@ Flow Matching converges $\sim 2.7\times$ faster and produces qualitatively clean
 
 ---
 
-*This is Part 6 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 7 — Diffusion Models](/en/pde-ml/07-diffusion-models/). Previous: [Part 5 — Symplectic Geometry](/en/pde-ml/05-symplectic-geometry).*
+*This is Part 6 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 7 — Diffusion Models](/en/pde-ml/07-Diffusion-Models). Previous: [Part 5 — Symplectic Geometry](/en/pde-ml/05-Symplectic-Geometry).*

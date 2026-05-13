@@ -36,7 +36,7 @@ These are the **three problems of HMMs**, and the surprise is that all three red
 
 - Markov chains and stochastic matrices
 - Dynamic programming / memoisation
-- The EM algorithm and the ELBO ([Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm))
+- The EM algorithm and the ELBO ([Part 13](/en/ml-math-derivations/13-EM-Algorithm-and-GMM))
 
 ---
 

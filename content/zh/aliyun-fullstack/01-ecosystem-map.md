@@ -624,7 +624,7 @@ terraform plan
 terraform apply
 ```
 
-三条命令搞定，不用敲十二遍。状态有人跟踪，配置进了版本控制。用完 `terraform destroy` 一键销毁。我们在 [第 7 篇](/zh/aliyun-fullstack/07-terraform-iac/) 会深入讲 Terraform，如果想深挖，还有个完整的 [Terraform for AI Agents series](/zh/terraform-agents/01-why-terraform-for-agents/)。
+三条命令搞定，不用敲十二遍。状态有人跟踪，配置进了版本控制。用完 `terraform destroy` 一键销毁。我们在 [第 7 篇](/zh/aliyun-fullstack/07-observability) 会深入讲 Terraform，如果想深挖，还有个完整的 [Terraform for AI Agents series](/zh/terraform-agents/01-why-terraform-for-agents/)。
 
 ## 首次部署检查清单
 
@@ -779,4 +779,4 @@ Article 12: Putting It All Together — A Production Architecture
 
 5. **从第一天就开始用 Terraform。** 上面的 CLI 演示只是为了教学，实际生产中千万别命令式地创建基础设施。本系列里的每个资源都会提供对应的 Terraform 代码。未来的你一定会感谢现在的决定。
 
-下一篇：[文章 02 — ECS 深挖](/zh/aliyun-fullstack/02-ecs-deep-dive/)，我们会深入探讨实例选型、镜像管理、磁盘性能特征，以及对生产负载至关重要的部署策略。
+下一篇：[文章 02 — ECS 深挖](/zh/aliyun-fullstack/02-ecs-compute)，我们会深入探讨实例选型、镜像管理、磁盘性能特征，以及对生产负载至关重要的部署策略。

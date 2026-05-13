@@ -34,7 +34,7 @@ This post derives VI from a single identity, builds the mean-field algorithm and
 
 ## Prerequisites
 
-- The EM algorithm and the ELBO from [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm)
+- The EM algorithm and the ELBO from [Part 13](/en/ml-math-derivations/13-EM-Algorithm-and-GMM)
 - KL divergence and Jensen's inequality
 - Multivariate calculus and the exponential family
 - Comfort with stochastic gradient estimation
@@ -155,7 +155,7 @@ The under-dispersion in Figure 2 is not a bug; it follows from the geometry of r
 
 ## 5. Variational EM
 
-Section 2 of [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm) showed that the EM algorithm itself rests on the ELBO identity. EM alternates:
+Section 2 of [Part 13](/en/ml-math-derivations/13-EM-Algorithm-and-GMM) showed that the EM algorithm itself rests on the ELBO identity. EM alternates:
 
 - **E-step**: choose $q(\mathbf{z}) = p(\mathbf{z}\mid\mathbf{x};\boldsymbol{\theta}^{(t)})$, the exact posterior — the KL gap goes to zero, so the ELBO touches $\log p(\mathbf{x};\boldsymbol{\theta}^{(t)})$.
 - **M-step**: hold $q$ fixed, maximize the ELBO with respect to $\boldsymbol{\theta}$, which reduces to maximizing $\mathbb{E}_q[\log p(\mathbf{x},\mathbf{z};\boldsymbol{\theta})]$.

@@ -37,7 +37,7 @@ translationKey: "ml-math-derivations-8"
 - Linear algebra: inner products, hyperplanes, projections
 - Calculus: Lagrange multipliers, partial derivatives
 - A glance at convex duality is helpful but not required
-- Familiarity with [Part 7: Decision Trees](/en/ml-math-derivations/07-decision-trees)
+- Familiarity with [Part 7: Decision Trees](/en/ml-math-derivations/07-Decision-Trees)
 
 ---
 
@@ -410,6 +410,6 @@ $\eta$ and the kernel matrix involve $\lVert x \rVert$. A feature with large uni
 
 **ML Mathematical Derivations Series**
 
-[< Part 7: Decision Trees](/en/ml-math-derivations/07-decision-trees) | **Part 8: Support Vector Machines** | [Part 9: Naive Bayes >](/en/ml-math-derivations/09-naive-bayes)
+[< Part 7: Decision Trees](/en/ml-math-derivations/07-Decision-Trees) | **Part 8: Support Vector Machines** | [Part 9: Naive Bayes >](/en/ml-math-derivations/09-Naive-Bayes)
 
 </div>

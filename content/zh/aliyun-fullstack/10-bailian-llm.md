@@ -1011,4 +1011,4 @@ curl -s "https://dashscope.aliyuncs.com/compatible-mode/v1/models" \
 
 ## 下一篇
 
-[Part 11](/zh/aliyun-fullstack/11-security/) 讲阿里云上的安全： RAM 策略、 KMS 密钥管理、安全中心和 WAF。本文涉及的每个 API Key、每次 DashScope 调用、每个 OSS Bucket 都需要妥善的安全保障——这也是我们接下来的方向。
+[Part 11](/zh/aliyun-fullstack/11-pai-ml-platform) 讲阿里云上的安全： RAM 策略、 KMS 密钥管理、安全中心和 WAF。本文涉及的每个 API Key、每次 DashScope 调用、每个 OSS Bucket 都需要妥善的安全保障——这也是我们接下来的方向。

@@ -40,7 +40,7 @@ polished_by_qwen_max: true
 
 ![NLP (7)：提示工程和上下文学习 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_2.png)
 
-- 需要对大语言模型有一定的认识，建议先阅读[第 6 部分：GPT 与生成式模型](/zh/nlp/06-gpt与生成式语言模型)。
+- 需要对大语言模型有一定的认识，建议先阅读[第 6 部分：GPT 与生成式模型](/zh/nlp/06-GPT与生成式语言模型)。
 - 掌握基础的 Python 知识，能够轻松读懂简短的代码片段。
 - 拥有任意 LLM API 的访问权限，例如 OpenAI、 Anthropic，或者使用开源权重的模型。
 

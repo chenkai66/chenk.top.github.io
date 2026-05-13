@@ -38,8 +38,8 @@ polished_by_qwen_max: true
 
 ![NLP (10): RAG 与知识增强系统 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_2.png)
 
-- 熟悉 Embedding 的概念以及余弦相似度在语义表示中的应用（[第 2 篇：词向量与语言模型](/zh/nlp/word-embeddings-lm/)）
-- 了解 Decoder-only 架构的语言模型及其提示词设计方法（[第 6 篇：GPT](/zh/nlp/gpt-generative-models/)）
+- 熟悉 Embedding 的概念以及余弦相似度在语义表示中的应用（[第 2 篇：词向量与语言模型](/zh/nlp/02-词向量与语言模型)）
+- 了解 Decoder-only 架构的语言模型及其提示词设计方法（[第 6 篇：GPT](/zh/nlp/06-GPT与生成式语言模型)）
 - 能够熟练使用 Python，并对 TF-IDF 的基本功能有大致印象
 
 ---

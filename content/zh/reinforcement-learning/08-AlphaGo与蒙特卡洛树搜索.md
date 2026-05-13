@@ -30,7 +30,7 @@ translationKey: "reinforcement-learning-8"
 - **完整代码**：五子棋版 AlphaZero——包含环境、网络、MCTS 和自我对弈循环
 ## 前置知识
 
-- 深度强化学习基础（策略梯度、价值函数）——可以参考[第 3 篇](/zh/reinforcement-learning/03-policy-gradient与actor-critic方法)
+- 深度强化学习基础（策略梯度、价值函数）——可以参考[第 3 篇](/zh/reinforcement-learning/03-Policy-Gradient与Actor-Critic方法)
 - 卷积神经网络
 - 了解博弈树会有帮助，但不是必须的
 

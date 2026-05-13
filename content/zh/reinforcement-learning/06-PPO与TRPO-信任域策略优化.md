@@ -31,7 +31,7 @@ translationKey: "reinforcement-learning-6"
 - **PPO 在 RLHF 中的应用**：如何对齐 ChatGPT 级别的模型， DPO/IPO/KTO 又有哪些局限
 - 一份实用的超参数调优与调试指南，风格接近 `cleanrl` 或 Stable Baselines 3
 
-**前置知识**：[第三篇](/zh/reinforcement-learning/03-policy-gradient与actor-critic方法)（REINFORCE、 Actor-Critic、优势函数）。了解 KL 散度和 Fisher 信息会有帮助，但不是必须的，我会在文中适时讲解。
+**前置知识**：[第三篇](/zh/reinforcement-learning/03-Policy-Gradient与Actor-Critic方法)（REINFORCE、 Actor-Critic、优势函数）。了解 KL 散度和 Fisher 信息会有帮助，但不是必须的，我会在文中适时讲解。
 
 ---
 ## 策略更新为什么会不稳定

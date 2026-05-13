@@ -121,7 +121,7 @@ translationKey: "aliyun-fullstack-12"
 | RDS MySQL HA, 备份 | [第 5 部分：RDS 数据库](/zh/aliyun-fullstack/05-rds-database/) | `modules/database` |
 | OSS 存储桶, 生命周期, CORS, CDN | [第 4 部分：OSS 存储](/zh/aliyun-fullstack/04-oss-storage/) | `modules/storage` |
 | RAM 用户, 角色, 策略, KMS | [第 6 部分：RAM 安全](/zh/aliyun-fullstack/06-ram-security/) | `modules/security` |
-| SLS 项目, 日志存储, 警报 | [第 7 部分：SLS 可观测性](/zh/aliyun-fullstack/07-sls-observability/) | `modules/monitoring` |
+| SLS 项目, 日志存储, 警报 | [第 7 部分：SLS 可观测性](/zh/aliyun-fullstack/07-observability) | `modules/monitoring` |
 | Function Compute, OSS 触发器 | [第 8 部分：无服务器](/zh/aliyun-fullstack/08-serverless/) | `modules/serverless` |
 
 对于 [Part 10](/zh/aliyun-fullstack/10-bailian-llm/) 和 [Part 11](/zh/aliyun-fullstack/11-pai-ml-platform/) 中涵盖的 LLM 和 ML 部署， Terraform 支持较为有限——DashScope 和 PAI 模型部署通常通过它们自己的 SDK 完成。我们会注明 Terraform 支持的边界所在。

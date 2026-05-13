@@ -24,7 +24,7 @@ translationKey: "time-series-3"
 - 给出一份简洁的 PyTorch 参考实现，包含真正影响模型稳定性和性能的正则化技巧。
 ## 前置知识
 
-- 熟悉 [第二篇 LSTM](/zh/time-series/02-lstm/) 中的三门机制。
+- 熟悉 [第二篇 LSTM](/zh/time-series/02-LSTM) 中的三门机制。
 - 掌握 PyTorch 基础（`nn.Module`、 autograd、 optimizer）。
 - 了解 vanilla RNN 因梯度反复经过 tanh 非线性而导致梯度消失的原因。
 

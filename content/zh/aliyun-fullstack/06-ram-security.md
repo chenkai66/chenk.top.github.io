@@ -1128,4 +1128,4 @@ aliyun oss bucket-encryption --method put \
 
 ## 下期预告
 
-在 [第 7 部分](/zh/aliyun-fullstack/07-oss-storage/) 里，我们要进入存储层了：对象存储 OSS、共享文件系统 NAS，以及支撑 ECS 的块存储选项。我们会沿用本文打下的安全基础——每个 Bucket 都开 SSE-KMS，所有访问走 RAM 角色，绝不用永久 AccessKey。
+在 [第 7 部分](/zh/aliyun-fullstack/07-observability) 里，我们要进入存储层了：对象存储 OSS、共享文件系统 NAS，以及支撑 ECS 的块存储选项。我们会沿用本文打下的安全基础——每个 Bucket 都开 SSE-KMS，所有访问走 RAM 角色，绝不用永久 AccessKey。

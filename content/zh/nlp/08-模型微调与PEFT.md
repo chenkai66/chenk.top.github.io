@@ -37,8 +37,8 @@ polished_by_qwen_max: true
 <!-- wanx-mid -->
 ![自然语言处理（八）：模型微调与 PEFT —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_2.png)
 
-- 熟悉 Transformer 架构（详见 [第 4 部分](/zh/nlp/attention-transformer/)）
-- 了解 GPT 风格的解码器原理（参考 [第 6 部分](/zh/nlp/gpt-generative-models/)）
+- 熟悉 Transformer 架构（详见 [第 4 部分](/zh/nlp/04-注意力机制与Transformer)）
+- 了解 GPT 风格的解码器原理（参考 [第 6 部分](/zh/nlp/06-GPT与生成式语言模型)）
 - 掌握 PyTorch 的基本用法，并对 GPU 内存的核心概念（如优化器状态、激活值和梯度）有一定理解
 
 ---
@@ -113,7 +113,7 @@ class RewardModel(nn.Module):
         return self.head(last).squeeze(-1)
 ```
 
-关于强化学习的具体内容，可以参考 [RL 第 12 部分：RLHF 与 LLM 应用](/zh/reinforcement-learning/12-rlhf-and-llm-applications/)。此外， DPO （Rafailov 等人 2023 年提出）作为一种更简单的替代方法，直接省略了显式的奖励模型，近年来也受到了广泛关注。
+关于强化学习的具体内容，可以参考 [RL 第 12 部分：RLHF 与 LLM 应用](/zh/reinforcement-learning/12-RLHF与大语言模型应用)。此外， DPO （Rafailov 等人 2023 年提出）作为一种更简单的替代方法，直接省略了显式的奖励模型，近年来也受到了广泛关注。
 ## 8. 端到端方案
 
 ```python

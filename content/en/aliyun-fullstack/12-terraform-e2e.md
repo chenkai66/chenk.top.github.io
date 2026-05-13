@@ -122,7 +122,7 @@ The resources and where we built them:
 | RDS MySQL HA, backups | [Part 5: RDS Database](/en/aliyun-fullstack/05-rds-database/) | `modules/database` |
 | OSS bucket, lifecycle, CORS, CDN | [Part 4: OSS Storage](/en/aliyun-fullstack/04-oss-storage/) | `modules/storage` |
 | RAM users, roles, policies, KMS | [Part 6: RAM Security](/en/aliyun-fullstack/06-ram-security/) | `modules/security` |
-| SLS project, logstore, alerts | [Part 7: SLS Observability](/en/aliyun-fullstack/07-sls-observability/) | `modules/monitoring` |
+| SLS project, logstore, alerts | [Part 7: SLS Observability](/en/aliyun-fullstack/07-observability) | `modules/monitoring` |
 | Function Compute, OSS trigger | [Part 8: Serverless](/en/aliyun-fullstack/08-serverless/) | `modules/serverless` |
 
 For LLM and ML deployment covered in [Part 10](/en/aliyun-fullstack/10-bailian-llm/) and [Part 11](/en/aliyun-fullstack/11-pai-ml-platform/), Terraform support is more limited — DashScope and PAI model deployment are typically done through their own SDKs. We will note where Terraform coverage ends.

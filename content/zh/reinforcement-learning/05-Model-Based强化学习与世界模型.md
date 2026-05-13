@@ -338,7 +338,7 @@ Model-Based RL 是一类**用计算换样本**的方法：
 
 核心教训是：**预测的内容要和使用方式匹配**。如果任务依赖像素，就预测像素；如果规划只用$(r, v, p)$，那就只预测这些。这个原则正是让 DreamerV3、 EfficientZero、 TD-MPC2 等现代方法显得通用的关键。
 
-**下一篇：**[第 6 部分](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化/)深入 **PPO 和 TRPO**——支撑工业级强化学习（从机器人操作到 ChatGPT 的 RLHF）的信任域策略梯度方法。
+**下一篇：**[第 6 部分](/zh/reinforcement-learning/06-PPO与TRPO-信任域策略优化)深入 **PPO 和 TRPO**——支撑工业级强化学习（从机器人操作到 ChatGPT 的 RLHF）的信任域策略梯度方法。
 
 ---
 ## 参考文献

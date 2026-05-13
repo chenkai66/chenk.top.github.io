@@ -34,7 +34,7 @@ The fix is not to train harder. The fix is to **build the conservation law into 
 5. HNN, LNN, and SympNet: three answers to "how do I bake symplecticity into a neural network?"
 6. A clean reproduction of the Greydanus et al. pendulum result with controlled experiments
 
-**Prerequisites:** vector calculus (chain rule, gradients), an ODE solver from any numerics class, and one prior exposure to neural ODEs (covered in [Part 6](/en/pde-ml/06-continuous-normalizing-flows)).
+**Prerequisites:** vector calculus (chain rule, gradients), an ODE solver from any numerics class, and one prior exposure to neural ODEs (covered in [Part 6](/en/pde-ml/06-Continuous-Normalizing-Flows)).
 
 ---
 
@@ -363,4 +363,4 @@ A direct calculation shows each shear has a triangular Jacobian with unit diagon
 
 ---
 
-*This is Part 5 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 6 — Continuous Normalizing Flows and Neural ODEs](/en/pde-ml/06-continuous-normalizing-flows). Previous: [Part 4 — Variational Inference and the Fokker-Planck Equation](/en/pde-ml/04-variational-inference/).*
+*This is Part 5 of the [PDE and Machine Learning](/en/categories/pde-and-machine-learning/) series. Next: [Part 6 — Continuous Normalizing Flows and Neural ODEs](/en/pde-ml/06-Continuous-Normalizing-Flows). Previous: [Part 4 — Variational Inference and the Fokker-Planck Equation](/en/pde-ml/04-Variational-Inference).*

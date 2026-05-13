@@ -1016,4 +1016,4 @@ Every piece of this stack is covered in this series. DashScope is the brain; the
 
 ## What's Next
 
-[Part 11](/en/aliyun-fullstack/11-security/) covers security on Alibaba Cloud: RAM policies, KMS for key management, Security Center, and WAF. Every API key, every DashScope call, every OSS bucket from this article needs proper security — and that is where we are headed next.
+[Part 11](/en/aliyun-fullstack/11-pai-ml-platform) covers security on Alibaba Cloud: RAM policies, KMS for key management, Security Center, and WAF. Every API key, every DashScope call, every OSS bucket from this article needs proper security — and that is where we are headed next.

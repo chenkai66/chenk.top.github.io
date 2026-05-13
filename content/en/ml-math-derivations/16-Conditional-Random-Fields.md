@@ -23,7 +23,7 @@ translationKey: "ml-math-derivations-16"
 
 ## What This Article Covers
 
-Named entity recognition, POS tagging, information extraction — every one of these tasks asks you to label each element of a sequence. HMMs ([Part 15](/en/ml-math-derivations/15-hidden-markov-models/)) attack this problem **generatively** by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether *bank* is a noun or a verb depends on the preceding and following words, the suffix, capitalization, and dictionary lookups — all these features together.
+Named entity recognition, POS tagging, information extraction — every one of these tasks asks you to label each element of a sequence. HMMs ([Part 15](/en/ml-math-derivations/15-Hidden-Markov-Models)) attack this problem **generatively** by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether *bank* is a noun or a verb depends on the preceding and following words, the suffix, capitalization, and dictionary lookups — all these features together.
 
 **Conditional Random Fields (CRFs)** drop the generative ambition entirely and model $P(\mathbf{Y}\mid\mathbf{X})$ directly. Once you no longer need a generative story for $\mathbf{X}$, you can pile on as many overlapping features of $\mathbf{X}$ as you like.
 
@@ -35,7 +35,7 @@ Named entity recognition, POS tagging, information extraction — every one of t
 4. How the gradient of the log-likelihood reduces to **empirical minus expected** feature counts
 5. Viterbi decoding for finding the highest-scoring label sequence
 
-**Prerequisites:** Probability basics (conditional probability, Bayes' rule), familiarity with HMMs ([Part 15](/en/ml-math-derivations/15-hidden-markov-models/)), and comfort with matrix notation.
+**Prerequisites:** Probability basics (conditional probability, Bayes' rule), familiarity with HMMs ([Part 15](/en/ml-math-derivations/15-Hidden-Markov-Models)), and comfort with matrix notation.
 
 ---
 
@@ -350,4 +350,4 @@ The figure above shows what a trained CRF actually outputs at inference time on 
 
 ---
 
-*This is Part 16 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 17 — Dimensionality Reduction and PCA](/en/ml-math-derivations/17-dimensionality-reduction-and-pca). Previous: [Part 15 — Hidden Markov Models](/en/ml-math-derivations/15-hidden-markov-models/).*
+*This is Part 16 of the [ML Mathematical Derivations](/en/tags/mathematical-derivations/) series. Next: [Part 17 — Dimensionality Reduction and PCA](/en/ml-math-derivations/17-Dimensionality-Reduction-and-PCA). Previous: [Part 15 — Hidden Markov Models](/en/ml-math-derivations/15-Hidden-Markov-Models).*
