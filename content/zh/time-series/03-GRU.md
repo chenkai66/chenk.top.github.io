@@ -13,7 +13,9 @@ description: "GRU 把 LSTM 精炼为两个门，参数减少 25%，训练快 10-
 disableNunjucks: true
 series_order: 3
 translationKey: "time-series-3"
----## 本章要点
+---
+
+## 本章要点
 
 - GRU 的**更新门** $z_t$ 和**重置门** $r_t$ 如何仅凭两个门和一个状态，就实现与 LSTM 相当的记忆能力。
 - GRU 的参数量比 LSTM 少了整整 **25%**，这在实际应用中能带来哪些切实好处。

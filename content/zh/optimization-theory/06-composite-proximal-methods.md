@@ -80,8 +80,7 @@ $$
 
 **性质**：
 
-- 若 $f$ 在 $x$ 处可微，则 $\partial f(x) = \{
-abla f(x)\}$。
+- 若 $f$ 在 $x$ 处可微，则 $\partial f(x) = \{abla f(x)\}$。
 - $\partial f(x)$ 总是凸集（且当 $f$ 为闭真凸函数时，在 $\mathrm{dom}\,f$ 内部非空）。
 - **最优性条件**：$x^\star$ 是 $f$ 的全局最小点当且仅当 $0 \in \partial f(x^\star)$。这一条件推广了“梯度为零”，是后续所有推导的核心工具。
 
@@ -228,8 +227,7 @@ $$
 \boxed{\;x_{k+1} \;=\; \mathrm{prox}_{\eta h}\!\bigl(x_k - \eta 
 abla g(x_k)\bigr).\;}
 $$
-**主化视角**：用二次上界 $\widetilde{g}(x; x_k) = g(x_k) + \langle 
-abla g(x_k), x - x_k \rangle + 	frac{1}{2\eta}\|x - x_k\|_2^2$ 替代 $g$，然后最小化 $\widetilde{g}(x; x_k) + h(x)$——这恰好就是上述近端步骤。因此 ISTA 是 MM（主化-最小化）方法的一个实例。
+**主化视角**：用二次上界 $\widetilde{g}(x; x_k) = g(x_k) + \langleabla g(x_k), x - x_k \rangle + 	frac{1}{2\eta}\|x - x_k\|_2^2$ 替代 $g$，然后最小化 $\widetilde{g}(x; x_k) + h(x)$——这恰好就是上述近端步骤。因此 ISTA 是 MM（主化-最小化）方法的一个实例。
 
 **步长选择**：$\eta \le 1 / L$，其中 $L$ 是 $abla g$ 的 Lipschitz 常数。对 LASSO，$L = \|A\|_2^2$（最大奇异值平方），实践中两三次幂迭代即可足够准确。
 
@@ -445,8 +443,7 @@ $$
 [-y_i x_i, 0], & y_i x_i^	op w = 1.
 \end{cases}
 $$
-总子梯度：$\partial f(w) 
-i \sum_i g_i + \lambda w$，其中 $g_i \in \partial \ell_i(w)$。
+总子梯度：$\partial f(w)i \sum_i g_i + \lambda w$，其中 $g_i \in \partial \ell_i(w)$。
 
 (b) 证明计算 $\mathrm{prox}_{\alpha f}(0)$ 与求解 SVM 本身难度相当。
 
@@ -476,8 +473,7 @@ abla g(x_k)\bigr).$$
 
 最小操作清单：
 
-1. **ISTA**：$x_{k+1} = \mathrm{prox}_{\eta h}(x_k - \eta 
-abla g(x_k))$，$\eta \le 1/L$，$O(1/k)$；
+1. **ISTA**：$x_{k+1} = \mathrm{prox}_{\eta h}(x_k - \etaabla g(x_k))$，$\eta \le 1/L$，$O(1/k)$；
 2. **FISTA**：在外推点执行 ISTA 步，更新 $t_k$；$O(1/k^2)$，实践中常用函数值重启；
 3. **LASSO**：FISTA + 软阈值 + $\mu$ 路径热启动——工业界 $\ell_1$ 求解标准方案；
 4. **ADMM**：当存在两个非光滑项或等式约束时，按变量拆分并交替更新。

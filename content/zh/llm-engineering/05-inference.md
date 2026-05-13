@@ -295,10 +295,8 @@ PP 的延迟成本对单 batch 查询约为 $\text{depth} \cdot \text{time-per-l
 - $/Mtok-out = $0.00033 / 7400 × 10⁶ ≈ $0.045
 
 对比 2026 年中 API 定价：
-- Claude-4.5-Sonnet：$15/Mtok output
-- GPT-5：$12/Mtok output
-- DeepSeek-V3.2：$1.10/Mtok output
-- Qwen3-Max API：$0.80/Mtok output
+- Claude-4.5-Sonnet：$15/Mtok output- GPT-5：$12/Mtok output
+- DeepSeek-V3.2：$1.10/Mtok output- Qwen3-Max API：$0.80/Mtok output
 
 自托管开源模型与前沿 API 之间 30–300 倍的成本差距，正是团队选择自托管的根本原因。但需注意：月用量 <1 亿 token 时，工程成本会抵消节省；月用量 >10 亿 token 时，节省占绝对主导，自托管成为必然选择。
 

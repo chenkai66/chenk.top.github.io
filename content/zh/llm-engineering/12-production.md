@@ -232,8 +232,7 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 
 不妨做一道算术题。假设产品日均调用 1 万次 LLM，平均 4K 输入 + 500 输出 tokens，使用 Claude-4.5 Sonnet：
 
-- 单次调用：$4 \cdot 4 + 15 \cdot 0.5 = 16 + 7.5 = 23.5$ thousand-tok-cents = $0.0235；
-- 日成本：$235；
+- 单次调用：$4 \cdot 4 + 15 \cdot 0.5 = 16 + 7.5 = 23.5$ thousand-tok-cents = $0.0235；- 日成本：$235；
 - 月成本：$7050。
 
 现在启用 Prompt 缓存（4K 输入中有 3K 命中缓存）：

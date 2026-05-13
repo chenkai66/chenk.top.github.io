@@ -77,14 +77,12 @@ abla f(x), y - x\rangle + \frac{L}{2}\,\|y - x\|^2.\,}$$
 
 蓝色曲线为 $f(x) = \tfrac{1}{2}\sin(2x) + \tfrac{1}{2}x^2$。在三个锚点处，虚线二次函数 $f(x_0) + f'(x_0)(x-x_0) + \tfrac{L}{2}(x-x_0)^2$ 全局位于 $f$ 上方，而点线切线仅在 $f$ 局部凸的区域下方。
 
-**为何这个不等式如此重要？** 将 $y = x - \eta
-abla f(x)$ 代入：
+**为何这个不等式如此重要？** 将 $y = x - \etaabla f(x)$ 代入：
 
 $$f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|
 abla f(x)\|^2.$$
 
-只要 $\eta \le 1/L$，括号内 $\ge 1/2$，因此 **每一步都严格减小 $f$**，且减小量至少为常数乘以 $\|
-abla f\|^2$。这才是“步长至多为 $1/L$”的真正来源——并非传言，而是下降引理的直接推论。
+只要 $\eta \le 1/L$，括号内 $\ge 1/2$，因此 **每一步都严格减小 $f$**，且减小量至少为常数乘以 $\|abla f\|^2$。这才是“步长至多为 $1/L$”的真正来源——并非传言，而是下降引理的直接推论。
 
 ![GD on a 1D quadratic at three step sizes: contracting at eta=0.8/L, exact at eta=1/L, divergent at eta=2.2/L](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig7_stepsize.png)
 
@@ -102,8 +100,7 @@ abla f\|^2$。这才是“步长至多为 $1/L$”的真正来源——并非传
 
 ## 1.4 Hessian 谱范数蕴含梯度 Lipschitz
 
-**定理 1（Hessian 谱范数 $\Rightarrow$ Lipschitz 梯度）**。若 $f$ 二阶可微且 $\sup_x \|
-abla^2 f(x)\|_2 \le L$，则 $abla f$ 是 $L$-Lipschitz 的。
+**定理 1（Hessian 谱范数 $\Rightarrow$ Lipschitz 梯度）**。若 $f$ 二阶可微且 $\sup_x \|abla^2 f(x)\|_2 \le L$，则 $abla f$ 是 $L$-Lipschitz 的。
 
 **证明**。由 Newton-Leibniz 公式，
 
@@ -371,8 +368,7 @@ $\kappa > 10^4$：考虑预条件或二阶方法。
 
 ## 5.3 故事的延续
 
-- **非凸 + PL 条件**。放弃强凸性；若 $\tfrac{1}{2}\|
-abla f\|^2 \ge \mu(f - f^\star)$ 成立，GD 仍线性收敛。这是“为何过参数化深度网络能线性训练”的理论种子（Karimi et al., 2016）。
+- **非凸 + PL 条件**。放弃强凸性；若 $\tfrac{1}{2}\|abla f\|^2 \ge \mu(f - f^\star)$ 成立，GD 仍线性收敛。这是“为何过参数化深度网络能线性训练”的理论种子（Karimi et al., 2016）。
 - **含噪声的加速**。原始 Nesterov 对随机梯度不鲁棒。SAG / SVRG / Katyusha 通过方差缩减将强凸随机速率拉回 $\sqrt{\kappa}$ 区间。
 - **二阶加速**。Sophia 和 Shampoo 通过（块）对角 Hessian 预条件，有效重写条件数 —— 这是 2024 年大规模预训练的活跃前沿。
 
