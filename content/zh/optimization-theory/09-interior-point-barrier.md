@@ -124,7 +124,8 @@ $$
 $$
 
 **2. 阻尼牛顿法（damped Newton）以 $O(1)$ 量级常数保证进展。** 考虑阻尼牛顿迭代：  
-$$\nx_+ = x - \frac{1}{1 + \lambda} \, [\nabla^2 \phi(x)]^{-1} \nabla \phi(x), \quad \text{其中 } \lambda = \lambda_\phi(x).
+$$
+x_+ = x - \frac{1}{1 + \lambda} \, [\nabla^2 \phi(x)]^{-1} \nabla \phi(x), \quad \text{其中 } \lambda = \lambda_\phi(x).
 $$  
 若 $\phi$ 自和谐，则  
 $$
@@ -235,7 +236,8 @@ $$
 ## 6. 实例演算：通过障碍函数求解线性规划（LP）
 
 考虑最小化 $c^\top x$，满足约束 $Ax \leq b$，其中 $A \in \mathbb{R}^{m \times n}$。对应参数 $t$ 的障碍目标函数为：
-$$\nB_t(x) = t c^\top x - \sum_{i=1}^m \log(b_i - a_i^\top x).
+$$
+B_t(x) = t c^\top x - \sum_{i=1}^m \log(b_i - a_i^\top x).
 $$
 其梯度与 Hessian 矩阵为：
 $$

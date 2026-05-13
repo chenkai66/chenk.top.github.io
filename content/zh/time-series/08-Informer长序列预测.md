@@ -79,7 +79,8 @@ $$
 
 衡量一个分布是否“尖锐”的自然方式，是将其与均匀分布通过 KL 散度进行比较。设
 
-$$\np(k_j \mid q_i) = \mathrm{softmax}_j\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right),
+$$
+p(k_j \mid q_i) = \mathrm{softmax}_j\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right),
 $$
 
 则
@@ -206,7 +207,8 @@ class ProbSparseAttention(nn.Module):
 
 即便使用 ProbSparse，三层编码器每层处理 $L = 720$ 的序列依然昂贵。Informer 在编码器层间引入**蒸馏**操作，将序列长度减半：
 
-$$\nX_{\ell+1} = \mathrm{MaxPool}_{k=3, s=2}\!\Big(\mathrm{ELU}\big(\mathrm{Conv1d}_{k=3, s=2}(X_\ell)\big)\Big).
+$$
+X_{\ell+1} = \mathrm{MaxPool}_{k=3, s=2}\!\Big(\mathrm{ELU}\big(\mathrm{Conv1d}_{k=3, s=2}(X_\ell)\big)\Big).
 $$
 \nstride=2 的 Conv1d 作为可学习的下采样器，MaxPool 保留相邻位置中的主导值，中间的 ELU 非线性激活则赋予该操作超越纯池化的表达能力。
 
@@ -243,7 +245,8 @@ class DistillingLayer(nn.Module):
 标准 Transformer 解码器采用自回归方式：先预测 $\hat{y}_1$，将其作为输入再预测 $\hat{y}_2$，依此类推。若预测 horizon 为 $H = 168$，则需 168 次顺序前向传播。这不仅带来高延迟，还会导致误差累积——第 5 步的错误会作为输入影响第 6 步的预测。
 \nInformer 的生成式解码器另辟蹊径。其输入构造为：
 
-$$\nX_\text{dec} = \big[\, X_\text{token} \;;\; X_0 \,\big],
+$$
+X_\text{dec} = \big[\, X_\text{token} \;;\; X_0 \,\big],
 $$
 
 其中 $X_\text{token}$ 是编码器输入的最后 `label_len` 个时间步（作为“提示”），$X_0$ 是 `out_len` 个占位符（通常为零向量）。解码器**仅需一次前向传播**处理整个 $\text{label\_len} + \text{out\_len}$ 序列，最后 `out_len` 个输出即为预测结果。

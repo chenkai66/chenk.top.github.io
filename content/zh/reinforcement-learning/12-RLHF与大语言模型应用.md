@@ -86,7 +86,8 @@ $$
 ![Bradley-Terry 偏好模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/12-RLHF与大语言模型应用/fig5_bradley_terry.png)
 
 若让一百位标注员用 1–10 分制评价补全结果，你会发现某人的 7 分可能是另一人的 4 分。绝对分数在不同人之间、不同日期之间，甚至连续提示之间都不稳定（标定漂移）。Bradley-Terry 模型——1952 年为体育队伍排名提出——假设每个项目有潜在分数 $s(y)$，成对比较结果服从：
-$$\nP(y_A \succ y_B) \;=\; \frac{e^{s(y_A)}}{e^{s(y_A)} + e^{s(y_B)}} \;=\; \sigma\!\big(s(y_A) - s(y_B)\big).
+$$
+P(y_A \succ y_B) \;=\; \frac{e^{s(y_A)}}{e^{s(y_A)} + e^{s(y_B)}} \;=\; \sigma\!\big(s(y_A) - s(y_B)\big).
 $$
 这一模型带来两个关键推论，塑造了所有现代 RLHF 系统：
 
@@ -134,10 +135,12 @@ $$
 \pi^*(y|x) \;=\; \frac{1}{Z(x)}\,\pi_{\text{ref}}(y|x)\,\exp\!\left(\frac{r(x,y)}{\beta}\right),
 $$
 其中 $Z(x)$ 是关于 $y$ 的配分函数。将其反解，用最优策略表达奖励：
-$$\nr(x,y) \;=\; \beta\,\log\frac{\pi^*(y|x)}{\pi_{\text{ref}}(y|x)} \;+\; \beta\,\log Z(x).
+$$
+r(x,y) \;=\; \beta\,\log\frac{\pi^*(y|x)}{\pi_{\text{ref}}(y|x)} \;+\; \beta\,\log Z(x).
 $$
 关键观察：**将此 $r$ 表达式代入 Bradley-Terry 偏好似然**：
-$$\nP(y_w \succ y_l \mid x) \;=\; \sigma\!\big(r(x,y_w) - r(x,y_l)\big),
+$$
+P(y_w \succ y_l \mid x) \;=\; \sigma\!\big(r(x,y_w) - r(x,y_l)\big),
 $$
 $\beta\log Z(x)$ 项被消去——因其仅依赖 $x$，与 $y_w$ 或 $y_l$ 无关。最终得到仅依赖 $\pi_\theta$、$\pi_{\text{ref}}$ 和偏好数据的损失：
 $$

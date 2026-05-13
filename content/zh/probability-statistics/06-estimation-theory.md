@@ -45,17 +45,20 @@ $$
 
 **例：** 样本均值 $\bar{X} = \frac{1}{n}\sum X_i$ 对 $\mu$ 是无偏的：
 
-$$\nE[\bar{X}] = \frac{1}{n}\sum E[X_i] = \mu. \quad \checkmark
+$$
+E[\bar{X}] = \frac{1}{n}\sum E[X_i] = \mu. \quad \checkmark
 $$
 
 而样本方差 $S^2 = \frac{1}{n}\sum(X_i - \bar{X})^2$ 则是**有偏的**：
 
-$$\nE\left[\frac{1}{n}\sum(X_i - \bar{X})^2\right] = \frac{n-1}{n}\sigma^2 \neq \sigma^2.
+$$
+E\left[\frac{1}{n}\sum(X_i - \bar{X})^2\right] = \frac{n-1}{n}\sigma^2 \neq \sigma^2.
 $$
 
 因此，无偏样本方差使用 $n-1$ 作为分母：
 
-$$\nS^2 = \frac{1}{n-1}\sum_{i=1}^n (X_i - \bar{X})^2.
+$$
+S^2 = \frac{1}{n-1}\sum_{i=1}^n (X_i - \bar{X})^2.
 $$
 
 *偏差证明：* 展开：
@@ -66,7 +69,8 @@ $$
 
 取期望：
 
-$$\nE\left[\sum X_i^2\right] = n(\sigma^2 + \mu^2), \quad E[n\bar{X}^2] = n\left(\frac{\sigma^2}{n} + \mu^2\right) = \sigma^2 + n\mu^2.
+$$
+E\left[\sum X_i^2\right] = n(\sigma^2 + \mu^2), \quad E[n\bar{X}^2] = n\left(\frac{\sigma^2}{n} + \mu^2\right) = \sigma^2 + n\mu^2.
 $$
 
 于是 $E\left[\sum(X_i - \bar{X})^2\right] = n\sigma^2 + n\mu^2 - \sigma^2 - n\mu^2 = (n-1)\sigma^2$。除以 $n$ 得 $\frac{n-1}{n}\sigma^2$；除以 $n-1$ 则得 $\sigma^2$。$\blacksquare$
@@ -118,7 +122,8 @@ $$
 
 给定 i.i.d. 观测数据 $x_1, \ldots, x_n$ 来自 $p(x|\theta)$，其**似然函数**为：
 
-$$\nL(\theta) = \prod_{i=1}^n p(x_i | \theta).
+$$
+L(\theta) = \prod_{i=1}^n p(x_i | \theta).
 $$
 
 其**对数似然函数**为：
@@ -157,7 +162,8 @@ $$
 \frac{d\ell}{dp} = \frac{k}{p} - \frac{n-k}{1-p} = 0.
 $$
 
-$$\nk(1-p) = (n-k)p \implies k = np \implies \hat{p}_{\text{MLE}} = \frac{k}{n} = \bar{X}.
+$$
+k(1-p) = (n-k)p \implies k = np \implies \hat{p}_{\text{MLE}} = \frac{k}{n} = \bar{X}.
 $$
 \nMLE 即样本比例，自然且直观。
 
@@ -201,7 +207,8 @@ $$
 
 $X_i \sim \text{Uniform}(0, \theta)$，$\theta > 0$ 未知。
 
-$$\nL(\theta) = \prod_{i=1}^n \frac{1}{\theta} \cdot \mathbf{1}_{0 \leq x_i \leq \theta} = \frac{1}{\theta^n} \cdot \mathbf{1}_{\theta \geq x_{(n)}}
+$$
+L(\theta) = \prod_{i=1}^n \frac{1}{\theta} \cdot \mathbf{1}_{0 \leq x_i \leq \theta} = \frac{1}{\theta^n} \cdot \mathbf{1}_{\theta \geq x_{(n)}}
 $$
 
 其中 $x_{(n)} = \max(x_1, \ldots, x_n)$。当 $\theta \geq x_{(n)}$ 时，$L(\theta) = 1/\theta^n$ 关于 $\theta$ 单调递减，故 $L$ 在 $\hat{\theta}_{\text{MLE}} = x_{(n)} = \max_i x_i$ 处取得最大值。
@@ -237,7 +244,8 @@ $$
 
 **费希尔信息量** 是得分的方差：
 
-$$\nI(\theta) = E\left[\left(\frac{\partial \ln p(X|\theta)}{\partial\theta}\right)^2\right] = -E\left[\frac{\partial^2 \ln p(X|\theta)}{\partial\theta^2}\right].
+$$
+I(\theta) = E\left[\left(\frac{\partial \ln p(X|\theta)}{\partial\theta}\right)^2\right] = -E\left[\frac{\partial^2 \ln p(X|\theta)}{\partial\theta^2}\right].
 $$
 
 第二个等式（通过交换微分与期望得到）提供了更便捷的计算公式。对 $n$ 个 i.i.d. 观测，$I_n(\theta) = n \cdot I_1(\theta)$。
@@ -248,7 +256,8 @@ $$
 \frac{\partial^2}{\partial p^2}\ln p(x|p) = -\frac{x}{p^2} - \frac{1-x}{(1-p)^2}.
 $$
 
-$$\nI_1(p) = -E\left[-\frac{X}{p^2} - \frac{1-X}{(1-p)^2}\right] = \frac{p}{p^2} + \frac{1-p}{(1-p)^2} = \frac{1}{p} + \frac{1}{1-p} = \frac{1}{p(1-p)}.
+$$
+I_1(p) = -E\left[-\frac{X}{p^2} - \frac{1-X}{(1-p)^2}\right] = \frac{p}{p^2} + \frac{1-p}{(1-p)^2} = \frac{1}{p} + \frac{1}{1-p} = \frac{1}{p(1-p)}.
 $$
 
 ### 克拉美–罗下界（Cramér–Rao Lower Bound）
@@ -270,7 +279,8 @@ $$
 
 由贝叶斯定理：
 
-$$\np(\theta | x_1, \ldots, x_n) \propto p(x_1, \ldots, x_n | \theta) \cdot p(\theta) = L(\theta) \cdot p(\theta).
+$$
+p(\theta | x_1, \ldots, x_n) \propto p(x_1, \ldots, x_n | \theta) \cdot p(\theta) = L(\theta) \cdot p(\theta).
 $$
 \nMAP 估计量最大化后验分布：
 
@@ -340,7 +350,8 @@ $$
 
 在监督学习中，设预测器为 $\hat{f}$，对测试点 $x$，真值为 $y = f(x) + \varepsilon$，其中 $E[\varepsilon] = 0$，$\text{Var}(\varepsilon) = \sigma^2$：
 
-$$\nE[(\hat{f}(x) - y)^2] = \underbrace{(E[\hat{f}(x)] - f(x))^2}_{\text{Bias}^2} + \underbrace{\text{Var}(\hat{f}(x))}_{\text{Variance}} + \underbrace{\sigma^2}_{\text{Irreducible noise}}.
+$$
+E[(\hat{f}(x) - y)^2] = \underbrace{(E[\hat{f}(x)] - f(x))^2}_{\text{Bias}^2} + \underbrace{\text{Var}(\hat{f}(x))}_{\text{Variance}} + \underbrace{\sigma^2}_{\text{Irreducible noise}}.
 $$
 
 - **高偏差** → 欠拟合：模型过于简单，无法捕捉真实模式；
@@ -450,14 +461,16 @@ plt.show()
 
 统计量 $T(\mathbf{X})$ 是 $\theta$ 的**充分统计量**，当且仅当似然函数可分解为：
 
-$$\np(\mathbf{x} | \theta) = g(T(\mathbf{x}), \theta) \cdot h(\mathbf{x})
+$$
+p(\mathbf{x} | \theta) = g(T(\mathbf{x}), \theta) \cdot h(\mathbf{x})
 $$
 
 其中 $g$ 仅通过 $T$ 依赖于数据，而 $h$ 不依赖于 $\theta$。
 
 **例：** 对 $X_i \sim \text{Poisson}(\lambda)$：
 
-$$\np(\mathbf{x}|\lambda) = \prod_{i=1}^n \frac{\lambda^{x_i} e^{-\lambda}}{x_i!} = \frac{\lambda^{\sum x_i} e^{-n\lambda}}{\prod x_i!} = \underbrace{\lambda^{\sum x_i} e^{-n\lambda}}_{g(\sum x_i, \lambda)} \cdot \underbrace{\frac{1}{\prod x_i!}}_{h(\mathbf{x})}.
+$$
+p(\mathbf{x}|\lambda) = \prod_{i=1}^n \frac{\lambda^{x_i} e^{-\lambda}}{x_i!} = \frac{\lambda^{\sum x_i} e^{-n\lambda}}{\prod x_i!} = \underbrace{\lambda^{\sum x_i} e^{-n\lambda}}_{g(\sum x_i, \lambda)} \cdot \underbrace{\frac{1}{\prod x_i!}}_{h(\mathbf{x})}.
 $$
 
 故 $T = \sum X_i$ 是 $\lambda$ 的充分统计量。一旦知道总频数，单个观测不再提供关于 $\lambda$ 的额外信息。
@@ -500,7 +513,8 @@ $$
 
 我们研究的大多数分布属于**指数族（exponential family）**，其通式为：
 
-$$\np(x|\theta) = h(x) \exp\left(\eta(\theta)^T T(x) - A(\theta)\right)
+$$
+p(x|\theta) = h(x) \exp\left(\eta(\theta)^T T(x) - A(\theta)\right)
 $$
 
 其中 $T(x)$ 是充分统计量，$\eta(\theta)$ 是自然参数，$A(\theta)$ 是对数配分函数。
@@ -514,7 +528,8 @@ $$
 
 对数配分函数 $A(\theta)$ 生成矩：
 
-$$\nE[T(X)] = A'(\eta), \qquad \text{Var}(T(X)) = A''(\eta).
+$$
+E[T(X)] = A'(\eta), \qquad \text{Var}(T(X)) = A''(\eta).
 $$
 
 对指数族，MLE 由充分统计量唯一确定，且等价于基于 $T(X)$ 的矩估计。共轭先验也有自然形式，且 MLE 总存在且唯一（在温和条件下）。

@@ -164,7 +164,8 @@ $$
 **Flow Matching**（Lipman et al., 2022）是一种极具实用价值的简化方案。它既不通过 ODE 求解器优化负对数似然（NLL），也不求解复杂的最优传输问题，而是选定一条条件概率路径，并直接回归对应的速度场。
 
 最简单的选择是：将 $\mathbf{z}_0 \sim p_0$ 与 $\mathbf{z}_1 \sim p_{\text{data}}$ 配对，定义**条件路径** $\mathbf{z}_t = (1-t)\mathbf{z}_0 + t\mathbf{z}_1$，此时条件目标速度为
-$$\nu_t^\star(\mathbf{z}_t \mid \mathbf{z}_0, \mathbf{z}_1) = \mathbf{z}_1 - \mathbf{z}_0. \tag{7}
+$$
+u_t^\star(\mathbf{z}_t \mid \mathbf{z}_0, \mathbf{z}_1) = \mathbf{z}_1 - \mathbf{z}_0. \tag{7}
 $$
 **训练目标为**：
 $$

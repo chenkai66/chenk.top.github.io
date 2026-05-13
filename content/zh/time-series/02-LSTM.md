@@ -51,7 +51,8 @@ $$
 \end{aligned}
 $$
 这些信号共同完成细胞状态更新与隐藏状态输出：
-$$\nC_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad\nh_t = o_t \odot \tanh(C_t).
+$$
+C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad\nh_t = o_t \odot \tanh(C_t).
 $$
 其中 $\odot$ 表示逐元素乘法。**通俗理解**：遗忘门 $f_t$ 决定擦除多少旧记忆，输入门 $i_t$ 控制写入多少新候选值，最后通过输出门 $o_t$ 决定对外暴露多少当前记忆。
 

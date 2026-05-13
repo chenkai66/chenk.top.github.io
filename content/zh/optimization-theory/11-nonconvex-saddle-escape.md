@@ -107,7 +107,8 @@ for t = 0, 1, 2, ...:
 函数 $f$ 满足参数为 $\mu > 0$ 的 **PL 不等式**，如果对所有 $x$ 有
 $$
 \tfrac{1}{2} \|\nabla f(x)\|_2^2 \geq \mu (f(x) - f^\star).
-$$\nPL 条件**弱于强凸性**：每个 $\mu$-强凸函数都满足相同 $\mu$ 的 PL 不等式，但 PL 函数可以是非凸的。典型例子包括：
+$$
+PL 条件**弱于强凸性**：每个 $\mu$-强凸函数都满足相同 $\mu$ 的 PL 不等式，但 PL 函数可以是非凸的。典型例子包括：
 
 - 平方损失 $\|Ax - b\|_2^2$，当 $A$ 行满秩时成立——若 $A$ 是“宽”矩阵（列数多于行数），则函数满足 PL 但不强凸；
 - 在合适初始化下的过参数化神经网络（Liu, Zhu & Belkin 2022）——在某些设定下，损失景观在初始化附近满足 PL；
@@ -123,10 +124,12 @@ $$\nPL 条件**弱于强凸性**：每个 $\mu$-强凸函数都满足相同 $\mu
 > $$
 
 **证明**：由光滑性，
-$$\nf(x_{t+1}) \leq f(x_t) + \nabla f(x_t)^\top (x_{t+1} - x_t) + \tfrac{L}{2} \|x_{t+1} - x_t\|_2^2 = f(x_t) - \tfrac{1}{2 L} \|\nabla f(x_t)\|_2^2.
+$$
+f(x_{t+1}) \leq f(x_t) + \nabla f(x_t)^\top (x_{t+1} - x_t) + \tfrac{L}{2} \|x_{t+1} - x_t\|_2^2 = f(x_t) - \tfrac{1}{2 L} \|\nabla f(x_t)\|_2^2.
 $$
 再由 PL 条件，$\|\nabla f(x_t)\|_2^2 \geq 2 \mu (f(x_t) - f^\star)$。代入得：
-$$\nf(x_{t+1}) - f^\star \leq (1 - \mu / L) (f(x_t) - f^\star). \quad \blacksquare
+$$
+f(x_{t+1}) - f^\star \leq (1 - \mu / L) (f(x_t) - f^\star). \quad \blacksquare
 $$
 
 这个证明简洁得令人惊讶——仅需两行。PL 条件正是刻画**非凸情形下快速收敛**的恰当假设；它绕开了强凸性所依赖的“全局最小值唯一”这一强前提。
@@ -150,7 +153,8 @@ $$
 ### 4.2 NTK 区域
 
 **神经正切核**（NTK，Jacot, Gabriel & Hongler 2018）指出：足够宽的网络在其初始化 $\theta_0$ 附近，输出关于参数近似线性：
-$$\nf(x; \theta) \approx f(x; \theta_0) + \nabla_\theta f(x; \theta_0)^\top (\theta - \theta_0).
+$$
+f(x; \theta) \approx f(x; \theta_0) + \nabla_\theta f(x; \theta_0)^\top (\theta - \theta_0).
 $$
 在此区域中，对平方损失执行 GD，其收敛速率由 NTK 的特征值决定——梯度流退化为线性常微分方程（ODE）。在随机初始化下，NTK 的最小特征值以高概率远离零，从而保证线性收敛。
 \nNTK 描述的是“懒训练”现象：宽网络权重几乎不变。而真实网络通常运行于该区域之外，具备显著的**特征学习**能力与权重的**定性变化**。
@@ -175,7 +179,8 @@ $$
 ## 5. 立方正则化：一种非凸牛顿法
 
 阻尼牛顿法（见第 07 篇）在非凸情形下的对应物是**立方正则化**（cubic regularization）：
-$$\nx_{t+1} = \arg\min_x \, f(x_t) + \nabla f(x_t)^\top (x - x_t) + \tfrac{1}{2} (x - x_t)^\top \nabla^2 f(x_t) (x - x_t) + \tfrac{M}{6} \|x - x_t\|^3.
+$$
+x_{t+1} = \arg\min_x \, f(x_t) + \nabla f(x_t)^\top (x - x_t) + \tfrac{1}{2} (x - x_t)^\top \nabla^2 f(x_t) (x - x_t) + \tfrac{M}{6} \|x - x_t\|^3.
 $$
 
 > **定理（Nesterov & Polyak, 2006）**：若取 $M$ 为 $\nabla^2 f$ 的 Lipschitz 常数，则立方正则化能在 $O(1/\epsilon^{1.5})$ 次迭代内收敛到二阶平稳点（即 $\|\nabla f\| \leq \epsilon$ 且 $\lambda_{\min}(\nabla^2 f) \geq -\sqrt{\epsilon}$）。

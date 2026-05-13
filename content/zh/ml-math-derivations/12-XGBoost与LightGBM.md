@@ -73,13 +73,15 @@ $$
 
 把单样本损失在当前预测值 $\hat y_i^{(t-1)}$ 处做二阶展开：
 
-$$\nL\bigl(y_i,\; \hat y_i^{(t-1)} + f_t(\mathbf{x}_i)\bigr)
+$$
+L\bigl(y_i,\; \hat y_i^{(t-1)} + f_t(\mathbf{x}_i)\bigr)
 \;\approx\; L\bigl(y_i,\; \hat y_i^{(t-1)}\bigr) + g_i\, f_t(\mathbf{x}_i) + \tfrac{1}{2}h_i\, f_t(\mathbf{x}_i)^2,
 $$
 
 梯度和海森矩阵分别是：
 
-$$\ng_i \;=\; \partial L / \partial \hat y_i^{(t-1)}, \qquad h_i \;=\; \partial^2 L / \partial (\hat y_i^{(t-1)})^2.
+$$
+g_i \;=\; \partial L / \partial \hat y_i^{(t-1)}, \qquad h_i \;=\; \partial^2 L / \partial (\hat y_i^{(t-1)})^2.
 $$
 
 去掉与 $f_t$ 无关的零阶常数项，第 $t$ 轮的代理目标函数对 $f_t$ 是纯二次的：
@@ -94,7 +96,8 @@ $$
 
 用两部分表示一棵树：叶分配函数 $q : \mathbb{R}^d \to \{1,\ldots,T\}$ 和权重向量 $\mathbf{w}$。按叶子分组样本，记 $I_j = \{ i : q(\mathbf{x}_i) = j \}$，并定义：
 
-$$\nG_j = \sum_{i \in I_j} g_i, \qquad H_j = \sum_{i \in I_j} h_i.
+$$
+G_j = \sum_{i \in I_j} g_i, \qquad H_j = \sum_{i \in I_j} h_i.
 $$
 
 目标函数在叶子之间完全解耦：
@@ -155,7 +158,8 @@ $$
 ### 直方图算法
 \nLightGBM 在训练前会一次性将每个特征离散化为 $K$ 个整数桶，默认值是 255。对每个叶子节点和每个特征，它都会构建一个 $(G_b, H_b)$ 的直方图：
 
-$$\nG_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} g_i, \qquad H_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} h_i.
+$$
+G_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} g_i, \qquad H_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} h_i.
 $$
 
 单特征的复杂度从 $O(N)$ 降到 $O(K)$，内存占用和分裂查找都受益：
@@ -188,7 +192,8 @@ $$
 
 $$
 \widetilde{\text{Gain}} \;=\; \frac{1}{2}\!\left[\frac{(G_L^A + \tfrac{1-a}{b}G_L^B)^2}{H_L^A + \tfrac{1-a}{b}H_L^B + \lambda} + \frac{(G_R^A + \tfrac{1-a}{b}G_R^B)^2}{H_R^A + \tfrac{1-a}{b}H_R^B + \lambda} - \cdots \right].
-$$\nLightGBM 论文证明，这种子采样引入的方差是 $O(1/\sqrt{n_l})$，比叶子内部本身的采样噪声衰减得更快。
+$$
+LightGBM 论文证明，这种子采样引入的方差是 $O(1/\sqrt{n_l})$，比叶子内部本身的采样噪声衰减得更快。
 
 ![GOSS 保留信息丰富的尾部，对小梯度样本重加权](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/fig3_goss.png)
 
