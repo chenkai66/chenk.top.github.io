@@ -118,7 +118,7 @@ HNSW 是 pgvector、 Milvus、 Qdrant、 Weaviate 和大多数现代向量数据
 
 对于 10 万 -100 万向量部署，选择几乎无关紧要——pgvector 里的 HNSW 就够了。到了 1 亿+，选择就变成了内存预算和分片数量的问题。到了 100 亿+，你就进入了定制基础设施领域，需要 Google/Meta 级别的工程能力。
 
-## Dense vs Sparse vs Hybrid
+## 密集型 vs 稀疏型 vs 混合型
 
 ![fig3: RRF fusion of rankings](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/fig3_rrf_fusion.png)
 

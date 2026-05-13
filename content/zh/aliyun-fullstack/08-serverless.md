@@ -162,7 +162,7 @@ image-processor/
   └── README.md
 ```
 
-### Handler
+### 处理程序
 
 这是最简单的函数——一个 HTTP 触发的 hello world：
 
@@ -918,13 +918,13 @@ client.put_events(event_bus_name="my-app-bus", event_list=[event])
 | 审计追踪 | 有限 | 完整事件历史 |
 
 **我的建议：** 对于简单的单函数场景（比如“调整每张上传图片的大小”），直接用直接触发器。当你需要复杂路由、多个目标或者跨服务事件流时，再上 EventBridge。
-## API Gateway + Function Compute
+## API Gateway + 函数计算
 
 要想构建生产级的 REST API，光靠 FC 自带的 HTTP Trigger 还不够。得把 API Gateway 架在函数前面，因为它能提供鉴权、限流、请求校验以及 API 版本管理这些关键能力，而这些都是 FC 原生触发器欠缺的。
 
 ![API Gateway 与函数计算集成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_api_gateway.png)
 
-### Creating an API backed by Function Compute
+### 创建由函数计算支持的 API
 
 下面直接用 CLI 命令演示如何创建一个后端挂载 Function Compute 的 API。
 
@@ -961,7 +961,7 @@ aliyun cloudapi CreateApi \
   --ResultSample '{"user_id": "123", "name": "Test User"}'
 ```
 
-### Custom domains
+### 自定义域名
 
 想把自有域名映射到 API 上，操作如下：
 
@@ -976,7 +976,7 @@ aliyun cloudapi SetDomain \
   --CertificatePrivateKey "$(cat key.pem)"
 ```
 
-### Rate limiting and throttling
+### 限速和节流
 
 限流策略也是通过 API Gateway 配置的，比如设定一个默认的 throttling policy：
 
@@ -992,7 +992,7 @@ aliyun cloudapi CreateTrafficControl \
   --Description "1000 req/min total, 100 per user, 200 per app"
 ```
 
-### CORS configuration
+### CORS 配置
 
 如果前端浏览器要调用你的 API， CORS 头必不可少。这部分逻辑直接在函数代码里处理就行：
 

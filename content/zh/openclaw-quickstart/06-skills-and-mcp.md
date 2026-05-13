@@ -71,14 +71,14 @@ tools_required: [web_search]
 You have been given a list of headlines and source URLs.
 Produce a single paragraph summary.
 
-## Rules
+## 规则
 - Maximum 4 sentences.
 - Group related headlines into a single sentence.
 - If a headline is paywalled or the title is unclear, skip it.
 - Lead with the highest-signal item, not the chronological first.
 - Tone: dry, analytical. No "exciting!" or "breaking!".
 
-## Output template
+## 输出模板
 > [4 sentences max]
 >
 > _Sources: [domain1], [domain2], [domain3]_
@@ -312,12 +312,12 @@ skills_required: [today-calendar, summarize-headlines]
 4. Compose the final message in this format:
 
 ```
-## Morning Briefing — YYYY-MM-DD
+## 晨会 — YYYY-MM-DD
 
-### Today
+### 今日
 [output of today-calendar]
 
-### News
+### 新闻
 [output of summarize-headlines]
 ```
 

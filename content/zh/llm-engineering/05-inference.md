@@ -56,7 +56,7 @@ Naive 实现会为每个请求分配一个大小为 `max_context` 的连续 tens
 
 高负载下还会出现第三类问题：**外部碎片化**——请求异步到达与退出，导致空闲显存虽总量充足，却分散在多个不连续区域，无法满足任一新请求的连续内存分配需求。在可变负载下运行几小时的服务器，仅外部碎片化就会损失 20-40% 的可寻址 KV 内存。这和操作系统上世纪 60 年代用分页解决的问题一样，解决方案也一样。
 
-## Paged attention
+## 分页注意力
 
 ![fig3: paged attention block table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig3_paged_attention.png)
 
@@ -97,7 +97,7 @@ Block Manager 位于每个分页注意力引擎的核心。它拥有一池物理
 
 生产环境中，“驱逐到 CPU"这条路径很重要。当 GPU 空闲 block 用完但新请求在排队时，调度器会选一个受害者请求（通常是 FIFO 或运行时间最长的），通过 PCIe 将其 block 复制到 pinned host 内存，然后释放 GPU block。当内存可用时，请求再被搬回。驱逐开销是实打实的（Gen5 ×16 的 PCIe 带宽 64 GB/s，意味着驱逐和重载一个 8 GB 请求需要 100 ms），但这让系统能够通过不直接拒绝请求来遵守延迟 SLO。
 
-## Continuous batching
+## 连续批处理
 
 ![fig4: continuous vs static batching](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig4_batching_timeline.png)
 
@@ -117,7 +117,7 @@ Block Manager 位于每个分页注意力引擎的核心。它拥有一池物理
 Orca 论文引入了两种机制，在 2026 年的引擎中依然无处不在。**迭代级调度**将 batching 边界与请求边界解耦：每个 transformer 迭代独立调度，所以一个在第 500 步完成的请求不会阻塞一个需要 1500 步的请求。**选择性 batching** 通过允许注意力算子按每序列形状操作，而线性层（不关心位置）一起 batching，来处理 prefill/decode 不匹配的问题。现代引擎进一步融合了这一点： vLLM 和 SGLang 都运行 "chunked prefill"，其中一次 forward  pass 中一个请求的 prefill 与其他请求的 decode 交错进行，即使 decode 队列稀疏也能保持 GPU 利用率在 90% 以上。
 
 调度器的决策至关重要：你什么时候在 batch 中途接纳新请求？ Naive 的做法是立即接纳。但在 ongoing decode 旁边接纳一个 32K token 的 prompt 进行 prefill 会 dramatically  spike 每次迭代的延迟（32K 的 prefill FLOPS 大约是单个 decode 步的 100 倍）。生产调度器会限制每次迭代的“预算”，并将长 prefill 拆分成 chunk，与 decode 步交错执行。这是一个隐藏的权衡旋钮，决定了你的 TTFT p99 在负载下是 500 ms 还是 5 秒。
-## Speculative decoding
+## 推测解码
 
 ![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_2.png)
 
@@ -148,17 +148,17 @@ llm = LLM(model="Qwen/Qwen3-32B",
 
 correctness 上有个细节：验证步骤其实是针对目标分布做 *rejection sample*。如果 token $t$ 的 draft 概率是 $p_d(t)$，目标概率是 $p_t(t)$，接受概率为 $\min(1, p_t(t)/p_d(t))$；拒绝时，从正比于 $\max(0, p_t(t) - p_d(t))$ 的修正分布中 sample。这保证输出分布 *exactly* 是目标模型的分布，不管 draft 质量如何。 Spec decoding 是无损的： draft 差只意味着接受率低，不会导致输出变差。这也是为什么团队上线不用做质量回归测试——根本没质量可回归。
 
-## Quantization: INT8, INT4, FP8
+## 量化：INT8, INT4, FP8
 
 推理量化就是把 bf16 转成 INT8 / INT4 / FP8，为了省显存和带宽。通常量化模型权重；有时候也量化 activations。
 
-### INT8 weight-only quantization
+### 仅权重 INT8 量化
 
 最简单。按通道量化每个权重矩阵：$w_q = \text{round}(w / s)$，其中 $s$ 是每个输出通道的 scale。推理时，在 matmul 之前即时反量化成 bf16。
 
 显存：权重减半（16-bit → 8-bit）。质量：通常 perplexity 损失 <0.5 %，无需 calibration。白捡的便宜。
 
-### INT4: GPTQ vs AWQ
+### INT4：GPTQ 与 AWQ
 
 INT4 就难多了。 Naive 的 round-to-nearest 会丢 2-5 % perplexity。能用的算法 mainly 两个：
 
@@ -176,7 +176,7 @@ llm = LLM(model="Qwen/Qwen3-32B-AWQ", quantization="awq",
           dtype="float16", max_model_len=32768)
 ```
 
-### FP8 (and the H100/H200 hardware path)
+### FP8（及 H100/H200 硬件路径）
 
 H100 及更新的 GPU 有 FP8 tensor cores，吞吐量是 BF16 的 2 倍。 FP8 推理是现代路径：权重存 FP8，计算时 activations 转 FP8，累加用 FP32。质量损失忽略不计（<0.1 %），因为 FP8 比 INT8 动态范围更大。
 
@@ -186,13 +186,13 @@ FP8 有两种格式： E4M3 （4 位 exponent， 3 位 mantissa）用于 activat
 
 坑在于： FP8 需要硬件支持。 INT4/INT8 在任何 GPU 上都能跑。 FP8 仅限 H100/H200/B200。如果你在 A100 上部署， INT8/INT4 是你的选项。
 
-### KV cache quantization
+### KV 缓存量化
 
 显存账单的另一半。压缩 KV cache 到 INT8 （省 2 倍），或 INT4 （仔细做 per-token calibration 损失 1-2 % 质量）。 vLLM 和 SGLang 都支持 FP8 KV cache； INT4 KV 还是 research-grade，但 FlashInfer 有 kernels。
 
 FP8 KV cache 是 2026 年的主力。它以 <0.1 % 的质量损失将显存减半（所以同一 GPU 上并发请求翻倍）。 Per-token scaling 几乎是免费的，因为 scales 是 inline 计算的。 INT4 KV 需要更多操心——AWQ 利用权重的 per-channel salience 结构并不直接适用于 KV （这是数据，不是参数）。目前的最佳实践是 per-token-per-head scaling 加 outlier  preservation：保留约 1 % 的通道用更高精度，其余激进量化。
 
-## SGLang and RadixAttention
+## SGLang 和 RadixAttention
 
 vLLM 的前缀缓存是在具有相同前缀的请求间共享 blocks。 SGLang ([Zheng et al., 2024][zheng-sglang]) 用 **RadixAttention**  generalized 了这个：所有活跃 KV blocks 的 radix 树，其中从根到叶的每条路径代表一个 token 序列。新请求在树中查找最长匹配前缀，共享那些 blocks，只计算 suffix。
 
@@ -202,7 +202,7 @@ SGLang 论文里报告的提升：相比 vLLM 等价的前缀缓存， agent 和
 
 实现大致是：维护一个以 token IDs 为 key 的 radix 树，节点持有 KV block 引用。新请求到来时，尽可能深地遍历树匹配输入前缀；增加所有触及节点的 refcount；为未匹配的 suffix 分配新 blocks；完成后减少 refcounts；显存压力升高时 LRU-evict 子树。数据结构成本相比节省的资源微不足道。
 
-## TensorRT-LLM specifics
+## TensorRT-LLM 特性
 
 NVIDIA 的 TensorRT-LLM 是第三大引擎。它的差异化特点：
 
@@ -237,7 +237,7 @@ vLLM 0.6+ 和 SGLang 都支持大部分特性： speculative decoding、 FP8、 
 
 跑一个 BF16 精度的 70B 全量模型，你需要 >140 GB 显存。单卡 H100 （80 GB）塞不下。选项分支为三个正交维度——tensor parallelism (TP)、 pipeline parallelism (PP) 和 sequence parallelism (SP)——它们的组合方式与训练场景（第 4 章）不同。
 
-### Tensor parallelism (TP)
+### 张量并行（TP）
 
 把权重矩阵切分 across GPUs。经典的 Megatron-LM [Shoeybi et al., 2019][shoeybi-megatron] 分解法： QKV 投影做列并行（每张卡拿一部分 attention heads）， attention 输出投影做行并行（之后做 all-reduce），然后两个 FFN matmul 分别做列并行和行并行。每个 transformer 层两次 all-reduce。
 
@@ -249,13 +249,13 @@ vLLM 0.6+ 和 SGLang 都支持大部分特性： speculative decoding、 FP8、 
 
 `vllm serve Qwen/Qwen3-72B --tensor-parallel-size 2` 这一条命令就能搞定。
 
-### Pipeline parallelism (PP)
+### 流水线并行（PP）
 
 把层切分 across GPUs。 GPU 0 持第 0-19 层， GPU 1 持第 20-39 层，以此类推。激活值在流水线中流动。经典问题是 **pipeline 气泡**：流水线末端的 GPU 空闲等待起点，反之亦然。对于服务， PP 会引入与流水线深度 × 每层时间成正比的 TTFT 延迟（GPipe / Megatron-LM 分析）；现代引擎通过 **微批次**（micro-batching，把 batch 切分成更小的微批次背靠背流过流水线）来摊销这个开销。
 
 PP 是跨节点并行的首选方案。节点内 TP，跨节点 PP 是 200B+ 部署的标准配置。大多数团队对延迟敏感的业务会卡在单节点内——PP 气泡是真实存在的。
 
-### Sequence parallelism (SP)
+### 序列并行（SP）
 
 序列特别长时，激活值本身塞不进单卡。 Sequence parallelism 沿 token 维度切分， attention all-reduce 使用 ring 或 all-to-all 通信。对于推理， SP 出现在 512K+ context 场景，此时即使做了 TP，每层激活缓冲也超出 GPU 内存。大多数生产服务用不到它。
 
@@ -313,7 +313,7 @@ PP 延迟成本对于单 batch 查询大约是 $\text{depth} \cdot \text{time-pe
 
 下一章：**长 context**。 RoPE scaling、 YaRN、 NTK-aware interpolation、 ALiBi、 attention sinks，以及为什么大多数 "1M context" 宣称在实际检索任务中会崩盘。
 
-## References
+## 参考文献
 
 - [Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention," SOSP 2023.][kwon-vllm] The original vLLM paper.
 - [Yu et al., "Orca: A Distributed Serving System for Transformer-Based Generative Models," OSDI 2022.][yu-orca] Continuous batching + iteration-level scheduling.

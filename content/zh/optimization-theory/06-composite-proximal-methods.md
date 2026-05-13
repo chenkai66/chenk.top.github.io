@@ -206,7 +206,7 @@ $$v = \mathrm{prox}_{\lambda f}(v) + \lambda \cdot \mathrm{prox}_{f^* / \lambda}
 
 ---
 
-## Proximal Gradient： ISTA
+## 近端梯度：ISTA
 
 ## 适用结构
 

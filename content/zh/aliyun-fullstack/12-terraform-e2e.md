@@ -52,7 +52,7 @@ translationKey: "aliyun-fullstack-12"
 | **灾难恢复** | 几分钟内从代码重建整个栈 | 若所在地域发生故障，只需一条命令，即可将整套基础设施重建至新地域。 |
 | **成本追踪** | 代码定义的基础设施可估算成本 | 应用前就知道变更要花多少钱 |
 
-### Terraform vs Alibaba Cloud ROS
+### Terraform 与 Alibaba Cloud ROS
 
 阿里云有自己的 IaC 服务： Resource Orchestration Service (ROS)。它基于 JSON 或 YAML 模板定义资源，并与阿里云控制台深度集成。它是免费的。那我为什么还推荐 Terraform？
 
@@ -267,7 +267,7 @@ aliyun ots create-table \
   --table-meta '{"TableName":"terraform_lock","PrimaryKey":[{"Name":"LockID","Type":"STRING"}]}'
 ```
 
-### variables.tf (root module)
+### variables.tf (根模块)
 
 ```hcl
 # --- Provider ---
@@ -1544,7 +1544,7 @@ output "trigger_name" {
 
 根目录的 `main.tf` 负责把七个模块串起来，把上一个模块的输出变成下一个模块的输入。在这个文件里，你能看清整个架构是怎么连通的。
 
-### main.tf (root module)
+### main.tf (根模块)
 
 ![模块间数据流：outputs 如何串入下游模块的 inputs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_deps.png)
 
@@ -1631,7 +1631,7 @@ module "serverless" {
 }
 ```
 
-### outputs.tf (root module)
+### outputs.tf (根模块)
 
 ```hcl
 # --- Endpoints ---

@@ -26,7 +26,7 @@ translationKey: "terraform-agents-1"
 
 ![Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
-## What "an agent system" actually requires
+## "代理系统"实际需要什么
 
 聊基础设施之前，我们先明确 Agent 系统到底包含哪些组件——那些 `pip install langgraph` 的 README 通常会略过的部分：
 
@@ -45,7 +45,7 @@ translationKey: "terraform-agents-1"
 
 这至少涉及九个相互交互的阿里云服务。每个服务都有独立的控制台入口、 RAM 权限策略、可用区（Region）支持范围和网络配置。指望手动把这些全部连线，并且在三个月的演进后还能让 `dev`、`staging` 和 `prod` 保持一致，概率差不多是零。
 
-## The console-vs-IaC moment
+## 控制台与IaC的抉择时刻
 
 九个服务手动操作，等于九个漂移面——这种痛苦太普遍，我甚至画了一张标准图来描述它：
 
@@ -64,7 +64,7 @@ translationKey: "terraform-agents-1"
 
 第二段就是全部卖点。这个系列里的其他内容都是实现细节。
 
-## What Terraform actually is, in two sentences
+## 两句话解释Terraform是什么
 
 用两句话概括 Terraform 到底是什么： Terraform 是 HashiCorp 出品的开源声明式工具。你用 **HashiCorp Configuration Language (HCL)** 编写 `.tf` 文件来描述想要的云资源； Terraform 将该期望状态与 **state file** 中记录的 live state 进行 diff 并生成 **plan**；你 review plan；然后 `apply`； Terraform 将 plan 翻译成 provider API 调用。
 
@@ -104,7 +104,7 @@ done
 
 反面是 state 文件很珍贵。丢了它，资源宇宙对 Terraform 就不可见了——下次 plan 时会得到 wholesale "resource already exists" 错误。第二篇文章专门讲把 state 放在不会消失的地方。
 
-## What the Aliyun provider covers
+## 阿里云提供者涵盖的内容
 
 只有当 provider 能真正创建你声明的东西时， state 才有用。云平台通过 **provider plug-ins** 与 Terraform 对话。官方 `alicloud` provider 是中国第一个官方 Terraform provider，由阿里维护。截至撰写时，它在大约六个域中提供了 **300+ 资源类型**：
 
@@ -157,7 +157,7 @@ resource "alicloud_security_group" "agent_runtime" {
 
 三个资源，带有 Terraform 自动解析成正确依赖顺序的 `vpc_id` 引用。你不用说“先 VPC，再 vSwitch，再 SG"——你写出想要的， Terraform 构建 DAG。
 
-## Modules: the unit of reuse
+## 模块：复用的基本单位
 
 三个资源是玩具版本。真实栈有几百个资源，让几百个资源可管理的方法是 **modules**。 module 只是一个接受输入并产生输出的 `.tf` 文件目录。一旦你有了 working pattern——一个带三个 vSwitch、一个 NAT 和安全组基线的 VPC——把它封装进 module，你就可以 Across `dev`、`staging`、`prod` 和 `intl-prod` 复制它而不用复制 HCL。
 

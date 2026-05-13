@@ -230,7 +230,7 @@ echo ".venv/" >> .gitignore
 
 **切勿提交虚拟环境。** 它包含平台特定的二进制文件，不具备可移植性。
 
-### venv vs virtualenv vs conda
+### venv、virtualenv 和 conda
 
 | 特性 | venv | virtualenv | conda |
 |---------|------|------------|-------|
@@ -405,7 +405,7 @@ ruff
 (.venv) $ pip-sync requirements.txt requirements-dev.txt
 ```
 
-## Poetry vs pip-tools vs PDM
+## Poetry、pip-tools 和 PDM
 
 | 特性 | pip-tools | Poetry | PDM |
 |---------|-----------|--------|-----|

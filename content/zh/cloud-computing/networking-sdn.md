@@ -257,7 +257,7 @@ backend api_pool
 
 常见做法：**专线为主**，**VPN 为加密备份**，专线断了 VPN 自动接管。两者终结于同一台 VPN Gateway / TGW。
 
-### 5.2 Transit Gateway
+### 5.2 传输网关
 
 TGW 是区域中枢：每个 VPC、每条 VPN、每条专线挂一次，就能互通，由 *TGW 自身路由表* 控制访问。把 N² 对等连接简化为 N 个挂载。
 
@@ -320,7 +320,7 @@ resource "aws_security_group" "db" {
 }
 ```
 
-### 6.2 VPC Flow Logs
+### 6.2 VPC 流日日志
 
 Flow Logs 记录所有允许/拒绝的 5 元组，存到 S3 或 CloudWatch。启用后一周内通常会跑这三个查询：
 

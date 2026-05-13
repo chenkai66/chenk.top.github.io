@@ -220,7 +220,7 @@ LSM-Tree 引擎包括： RocksDB、 LevelDB、 Cassandra 的存储引擎、 HBas
                     └─────────────┘
 ```
 
-### SSTable （Sorted String Table）
+### SSTable（排序字符串表）
 
 SSTable 是磁盘上一个**不可变、有序**的文件。一旦写入，永不修改——仅在合并压缩过程中被替换。
 

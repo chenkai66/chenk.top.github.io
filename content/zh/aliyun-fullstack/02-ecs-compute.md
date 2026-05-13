@@ -735,7 +735,7 @@ aliyun ecs DescribeInstancesFullStatus \
 
 咱们把之前的内容串起来。下面这套流程，能让你从零开始，只用 CLI 就在 ECS 上跑起一个安全、可监控的 Flask 应用。
 
-### Step 1: Create the VPC and VSwitch
+### 步骤 1: 创建 VPC 和 VSwitch
 
 ```bash
 # Create VPC
@@ -762,7 +762,7 @@ VSWITCH_ID=$(aliyun vpc CreateVSwitch \
 echo "VSwitch: $VSWITCH_ID"
 ```
 
-### Step 2: Create security group with rules
+### 步骤 2: 创建带有规则的安全组
 
 ```bash
 # Create security group
@@ -796,7 +796,7 @@ aliyun ecs AuthorizeSecurityGroup \
   --SourceCidrIp "$(curl -s ifconfig.me)/32" --Policy accept --Priority 1
 ```
 
-### Step 3: Create key pair
+### 步骤 3: 创建密钥对
 
 ```bash
 aliyun ecs CreateKeyPair \
@@ -807,7 +807,7 @@ aliyun ecs CreateKeyPair \
 chmod 600 ~/.ssh/prod-app-key.pem
 ```
 
-### Step 4: Find the latest image
+### 步骤 4: 查找最新镜像
 
 ```bash
 IMAGE_ID=$(aliyun ecs DescribeImages \
@@ -821,7 +821,7 @@ IMAGE_ID=$(aliyun ecs DescribeImages \
 echo "Image: $IMAGE_ID"
 ```
 
-### Step 5: Create and start the instance
+### 步骤 5: 创建并启动实例
 
 ```bash
 # Create instance with cloud-init user data
@@ -862,7 +862,7 @@ PUBLIC_IP=$(aliyun ecs DescribeInstances \
 echo "Public IP: $PUBLIC_IP"
 ```
 
-### Step 6: Verify the deployment
+### 步骤 6: 验证部署
 
 ```bash
 # Wait for cloud-init to finish (usually 2-3 min)
@@ -877,7 +877,7 @@ ssh -i ~/.ssh/prod-app-key.pem root@"$PUBLIC_IP" \
   "cloud-init status --long && supervisorctl status"
 ```
 
-### Step 7: Set up HTTPS with certbot
+### 步骤 7: 使用 certbot 设置 HTTPS
 
 After pointing your domain's DNS A record to the public IP:
 
@@ -895,7 +895,7 @@ ssh -i ~/.ssh/prod-app-key.pem root@"$PUBLIC_IP" << 'EOF'
 EOF
 ```
 
-### Step 8: Set up monitoring
+### 步骤 8: 设置监控
 
 ```bash
 # Create alert for CPU
@@ -929,7 +929,7 @@ aliyun cms PutResourceMetricRule \
 
 这就搞定了一套完整的生产部署： VPC、安全组、密钥对、带 cloud-init 自动化的 ECS 实例、 nginx 反向代理、 supervisor 托管的 Flask 应用、自动续期的 HTTPS，还有监控告警。从零到生产环境， API 调用大概 5 分钟， cloud-init 执行 3 分钟。
 
-## Key takeaways
+## 关键要点
 
 **先小后大，随时扩容。** ECS 支持在线变配实例规格。别靠猜来决定配置，先跑起来，看监控数据再调整。
 

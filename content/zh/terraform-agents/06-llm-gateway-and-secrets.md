@@ -349,7 +349,7 @@ resource "null_resource" "agent_keys" {
 
 Step 1 保护的是静态存储（at rest）的密钥。如果你不小心，至少还有三个地方会漏明文，这三个坑我都见过项目栽过。
 
-### Leak 1: terraform.tfstate
+### 泄露 1: terraform.tfstate
 
 `alicloud_kms_secret.secret_data` 每次 apply 都会明文出现在 tfstate 里。哪怕变量设了 `sensitive = true`，*值* 还是活在 state JSON 里。缓解措施得分层：
 
@@ -374,7 +374,7 @@ resource "alicloud_instance" "gateway" {
 
 核心原则是： Terraform 只需知晓密钥的名称，无需掌握其具体值。运行时通过实例元数据从 KMS 拉取值。这是最重要的一条习惯，跟大多数教程教的正好相反。
 
-### Leak 2: CI logs
+### 泄露 2: CI 日志
 
 如果变量设了 `sensitive = true`，`terraform plan` 输出会把敏感值标记为 `(sensitive value)`。*但是* 只针对变量本身——衍生出的资源属性不会自动标记。常见的失误：
 
@@ -417,7 +417,7 @@ output "gateway_config_url" {
     fi
 ```
 
-### Leak 3: provider debug logs
+### 泄露 3: 提供商调试日志
 
 `TF_LOG=DEBUG terraform apply` 是调试 Provider 问题最快的方法。也是把每个 API 请求响应——包括含密钥的请求体—— dump 到终端历史记录的最快方法。我见过两次 Slack 截图泄露，发生在两家不同的公司。
 

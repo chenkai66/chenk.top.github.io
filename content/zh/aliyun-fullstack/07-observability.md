@@ -25,7 +25,7 @@ translationKey: "aliyun-fullstack-7"
 
 这篇文章将完整介绍阿里云上的可观测性栈：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用将拥有一套可用的监控设置。 ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform 部署 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
 
-## The Three Pillars of Observability
+## 可观测性的三大支柱
 
 行业已经共识了三个信号，组合起来就能看清系统到底在发生什么：
 
@@ -49,13 +49,13 @@ translationKey: "aliyun-fullstack-7"
 
 这三个服务是互通的。 CloudMonitor 可以基于 SLS 查询结果触发告警。 ARMS 追踪能关联到 SLS 日志条目。 SLS 大盘可以拉取 CloudMonitor 指标数据。集成度虽不如 Datadog 那种统一平台丝滑，但不用第三方工具也能覆盖 90% 的需求。
 
-## SLS: Simple Log Service
+## SLS: 简单日志服务
 
 SLS 是阿里云可观测性的核心组件。尽管名称含 ‘Simple’，它实则功能完备：集日志采集、存储、索引、查询、可视化与告警于一体。你可以将其理解为 AWS CloudWatch Logs 与 Elasticsearch 的融合体，并内置了 SQL 查询引擎。
 
 ![SLS log collection pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
-### Core Concepts
+### 核心概念
 
 SLS 把 everything 组织成两层：
 
@@ -112,7 +112,7 @@ aliyun sls CreateLogStore \
 
 `shardCount` 决定写入吞吐量。每个 shard 处理 5 MB/s 写入和 10 MB/s 读取。两个 shard 给你 10 MB/s 写入能力。开启 `autoSplit` 后，当写入压力超过阈值， SLS 会自动增加 shard，直到 `maxSplitShard`。
 
-### SLS vs AWS: What Is Different
+### SLS 与 AWS: 有何不同
 
 如果你来自 AWS 背景，这个映射值得厘清，因为 SLS 不是 1:1 的 CloudWatch Logs 等价物：
 
@@ -128,7 +128,7 @@ aliyun sls CreateLogStore \
 
 最显著的区别在于： SLS 将日志存储、搜索与分析集成于单一服务；而 AWS 生态通常需组合使用 CloudWatch Logs （采集）、 S3 （长期存储）、 OpenSearch （搜索）和 Athena （SQL 分析）。 SLS 在一个地方全干了。代价是厂商锁定： SLS 查询语法并非跨云通用标准。
 
-### Log Query Syntax
+### 日志查询语法
 
 SLS 支持三种查询模式，掌握这三种模式，可显著提升查询效率。
 
@@ -205,7 +205,7 @@ ORDER BY request_time DESC
 LIMIT 50
 ```
 
-### Enabling Indexes
+### 启用索引
 
 SLS 默认不为字段建立索引。如需使用键值对查询或 SQL 分析，须预先配置字段索引。未配置字段索引时，仅支持全文关键词搜索；若未启用全文索引，则无法执行任何搜索。
 

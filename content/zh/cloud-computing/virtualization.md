@@ -118,7 +118,7 @@ KVM 是一个特例：它是一个内核模块，能够将 Linux 本身转变为
 
 没有所谓“最好的” Hypervisor，选择哪种方案取决于你的现有技术栈、运维团队的熟悉程度以及预算对授权成本的接受度。
 
-### 3.1 KVM （Kernel-based Virtual Machine）
+### 3.1 KVM（基于内核的虚拟机）
 
 KVM 将 Linux 内核直接转变为 Type 1 Hypervisor。它开源、预装在主流发行版中，并为 OpenStack、 Proxmox、 Amazon EC2 （Nitro）、 Google Cloud 以及阿里云 ECS 的大部分实例提供底层支持。
 
@@ -345,7 +345,7 @@ sudo ip addr add 10.1.1.1/24 dev vxlan100
 sudo ip link set vxlan100 up
 ```
 
-### 5.3 Open vSwitch （OVS）
+### 5.3 Open vSwitch (OVS)
 
 Open vSwitch 是一款支持 OpenFlow 协议的可编程虚拟交换机，广泛应用于 OpenStack Neutron、 OVN 以及各类 SDN 解决方案中。
 

@@ -435,7 +435,7 @@ print(f"{'Benjamini-Hochberg':<25} {bh_reject.sum():>10} "
 
 p 值仅说明效应是否在统计上可与零区分。它**无法**告诉你效应有多大，或是否具有实际意义。
 
-### Cohen’s d
+### Cohen's d
 
 用于比较两组均值：
 

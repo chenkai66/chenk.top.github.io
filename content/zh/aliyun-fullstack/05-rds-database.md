@@ -115,13 +115,13 @@ RDS MySQL 提供三种连接方式：
 2. **公网 endpoint** —— 互联网可访问。默认禁用。只为了远程管理才开启（并且要用 IP whitelist 锁死）。千万别让生产应用通过公网 endpoint 连数据库。
 
 3. **数据库代理 endpoint** —— 代理层，提供读写分离、连接池和短连接优化。这是使用 read replicas 的应用推荐的 endpoint。
-## PolarDB: When RDS Isn't Enough
+## PolarDB：当 RDS 不够用时
 
 PolarDB 是阿里云的云原生数据库。如果说 RDS 是“托管的 MySQL 实例”，那 PolarDB 就是骨子里完全不同的架构，只不过恰好兼容 MySQL 协议而已。
 
 ![RDS vs PolarDB feature comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_rds_vs_polardb.png)
 
-### How PolarDB differs from RDS
+### PolarDB 与 RDS 的区别
 
 核心架构差异在于 **存算分离**。 RDS 里，每个实例（主、备、只读）都有自己的磁盘和数据副本。 PolarDB 则是所有计算节点共享一个分布式存储层。
 
@@ -135,7 +135,7 @@ PolarDB 是阿里云的云原生数据库。如果说 RDS 是“托管的 MySQL 
 
 - **故障切换更快。** 因为备节点本来就能访问同一份存储，切换不需要数据同步。 PolarDB 故障切换能在 10 秒内完成。
 
-### RDS vs PolarDB comparison
+### RDS 与 PolarDB 对比
 
 | 特性 | RDS MySQL HA | PolarDB MySQL |
 |---|---|---|
@@ -151,7 +151,7 @@ PolarDB 是阿里云的云原生数据库。如果说 RDS 是“托管的 MySQL 
 | 价格 (同等配置) | 1x | 1.2-1.5x |
 | 适用场景 | 标准 OLTP | 高读吞吐，大库，弹性负载 |
 
-### PolarDB Serverless
+### PolarDB 无服务器版
 
 PolarDB 提供 Serverless 模式，计算资源随负载自动伸缩。你设定 PCU （PolarDB Compute Units）的最小最大值，系统会在其间自动调整：
 
@@ -161,7 +161,7 @@ PolarDB 提供 Serverless 模式，计算资源随负载自动伸缩。你设定
 
 这对开发库、 staging 环境，或者流量波动极大的生产负载（比如大促期间流量翻 100 倍的电商站点）简直完美。
 
-### When to choose PolarDB over RDS
+### 何时选择 PolarDB 而不是 RDS
 
 满足以下情况选 PolarDB：
 
@@ -182,20 +182,20 @@ PolarDB 提供 Serverless 模式，计算资源随负载自动伸缩。你设定
 
 大部分项目，先上 RDS。碰到具体瓶颈再迁 PolarDB。 MySQL 线协议兼容，迁移通常就是 dump 加 restore。
 
-## Instance Sizing Guide
+## 实例规格指南
 
 选对 RDS 实例规格是成本控制最关键的一步。选小了，负载一高查询就慢；选大了，闲置资源全是钱。
 
 ![RDS instance sizing decision guide](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_sizing_guide.png)
 
-### Key metrics for sizing
+### 关键指标
 
 - **vCPUs** -- 决定并发查询处理能力。 CPU 密集型负载（复杂 JOIN、聚合）需要更多。
 - **Memory** -- 直接对应 InnoDB buffer pool 大小。理想情况是，你的整个热点数据集都能放进 buffer pool。
 - **Max IOPS** -- 每秒磁盘操作上限。事务密集型负载容易撞到这个天花板。
 - **Max connections** -- 每个实例类型都有硬限制。高并发负载必须在应用层做连接池。
 
-### Sizing table for common workloads
+### 常见工作负载的规格表
 
 | 负载类型 | 实例类型 | vCPU | Memory | Max IOPS | Max Connections | 月成本 (约) |
 |---|---|---|---|---|---|---|
@@ -206,7 +206,7 @@ PolarDB 提供 Serverless 模式，计算资源随负载自动伸缩。你设定
 | 大型 SaaS | rds.mysql.c2.xlarge | 16 | 64 GiB | 14,000 | 16,000 | ~3,200 CNY |
 | 数据密集型 | rds.mysql.st.h43 | 60 | 470 GiB | 120,000 | 48,000 | ~20,000 CNY |
 
-### The buffer pool rule
+### 缓冲池规则
 
 InnoDB 性能就看一点：数据能不能放进 buffer pool。 buffer pool 是内存里的数据和索引页缓存。走 buffer pool 的查询是微秒级。走磁盘的查询是毫秒级——慢 1000 倍。
 
@@ -243,7 +243,7 @@ ORDER BY size_mb DESC;
 
 如果你的 working set 是 12 GiB， 16 GiB 内存的实例给你分配的 buffer pool 大概 12 GiB （16 的 75%）。这就太紧了。直接上 32 GiB 留点增长余量。
 
-### Connection limits
+### 连接限制
 
 每个实例类型都有最大连接数限制。超了就直接 `Too many connections` 拒绝。这是生产环境最常见的问题之一。
 
@@ -265,9 +265,9 @@ engine = create_engine(
 
 配好连接池， 20-30 个连接能扛几千并发应用请求。不用连接池的话，每个请求新建数据库连接，几百并发用户就把连接数耗光了。
 
-## Creating an RDS Instance
+## 创建 RDS 实例
 
-### Step-by-step via CLI
+### 通过 CLI 逐步操作
 
 下面是一套完整的 CLI 创建生产环境 RDS MySQL 实例的流程。我们用高可用版， ESSD 存储，跟应用服务器放在同一个 VPC。
 
@@ -312,7 +312,7 @@ aliyun rds DescribeDBInstanceAttribute \
   --output cols=DBInstanceStatus,DBInstanceClass,Engine,EngineVersion
 ```
 
-### Create a database and accounts
+### 创建数据库和账号
 
 ```bash
 # Create the application database
@@ -340,7 +340,7 @@ aliyun rds GrantAccountPrivilege \
 
 别给应用账号 `Super` 权限。`Normal` 账号配特定数据库的 `ReadWrite` 符合最小权限原则。单独建个带 `Super` 的管理员账号给 DBA 操作用。
 
-### Get the connection endpoint
+### 获取连接端点
 
 ```bash
 # Get the internal connection string
@@ -358,7 +358,7 @@ mysql -h rm-bp1xxxxxxxxx.mysql.rds.aliyuncs.com \
   -e "SELECT VERSION(); SHOW DATABASES;"
 ```
 
-### Configure instance parameters
+### 配置实例参数
 
 RDS 用参数模板（parameter groups）管 MySQL 配置。可以改单个参数或者套用模板：
 
@@ -798,7 +798,7 @@ engine = create_engine(
 )
 ```
 
-### TDE (Transparent Data Encryption)
+### TDE（透明数据加密）
 
 TDE 负责加密磁盘上的静态数据。就算有人拿到了底层存储权限，没有密钥也休想读懂数据。
 

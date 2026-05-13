@@ -170,7 +170,7 @@ query_with_agg = {
 | 从 ES 迁移路径 | 需要重写 | 自建 ES 迁移几乎无缝 |
 
 阿里云 OpenSearch 的设计倾向性更强，在灵活性上有所取舍，但大幅降低了运维复杂度。以零运维和原生 AI 功能为代价，放弃了 Elasticsearch 庞大的插件生态。
-## Vector Search for RAG
+## RAG 的向量搜索
 
 搜索这事儿到了向量这里才真正变得有意思。传统关键词搜索靠的是倒排索引——它把词映射到文档。如果用户搜 "wireless earbuds"，但商品列表里写的是 "bluetooth headphones"，关键词搜索会直接返回空结果，因为词对不上。
 
@@ -178,7 +178,7 @@ query_with_agg = {
 
 向量搜索通过把文本转成高维数值表示（embeddings）来解决这个问题，这些向量能捕捉语义含义。"Wireless earbuds" 和 "bluetooth headphones" 在向量空间里会成为相邻的点，因为它们意思相近，哪怕它们没有一个字是重复的。
 
-### How Embeddings Work
+### 嵌入的工作原理
 
 Embedding 模型接收文本，输出一个固定长度的浮点数数组。比如阿里云 DashScope 上的 `text-embedding-v3` 模型，默认数组长度就是 1024 维。
 
@@ -222,7 +222,7 @@ print(f"First 5 values: {embedding[:5]}") # [-0.0234, 0.0891, ...]
 
 `text-embedding-v3` 模型的价格是每 1,000 tokens 0.0007 元人民币。要是你有 10 万个商品，每个描述 50 tokens，把整个目录做完 Embedding 大概只要 3.5 元（差不多 0.5 美元）。便宜到你想随时重刷都行。
 
-### Distance Metrics
+### 距离度量
 
 查询向量索引时，系统会计算查询向量和每个文档向量有多“近”。常用的距离度量有两个：
 
@@ -243,7 +243,7 @@ where A . B = sum(a_i * b_i)  (dot product)
 
 实际上，大多数 Embedding 模型输出的都是归一化向量（magnitude = 1），所以 Cosine Similarity 简化后就是点积。
 
-### HNSW Index
+### HNSW 索引
 
 如果把查询向量和每个文档向量都比对一遍，向量搜索会慢到无法使用。100 万文档，1024 维，每次查询就是 10 亿次乘法。HNSW（Hierarchical Navigable Small World）就是让这一切变快的索引结构。
 
@@ -261,7 +261,7 @@ where A . B = sum(a_i * b_i)  (dot product)
 
 对大多数应用来说，默认值就够了。如果需要调优：先增加 `ef_search`（成本低），然后是 `M`（消耗内存），最后才是 `ef_construction`（消耗索引时间）。
 
-### Creating a Vector Index in OpenSearch
+### 在 OpenSearch 中创建向量索引
 
 OpenSearch 原生支持向量字段。下面是定义包含向量字段的 Schema 并创建向量索引的方法：
 
@@ -302,7 +302,7 @@ OpenSearch 原生支持向量字段。下面是定义包含向量字段的 Schem
 }
 ```
 
-### Inserting Documents with Embeddings
+### 插入带有嵌入的文档
 
 ```python
 import json
@@ -373,7 +373,7 @@ products = [
 # embed_and_push(products, opensearch_client)
 ```
 
-### Querying the Vector Index
+### 查询向量索引
 
 ```python
 def vector_search(query_text: str, top_k: int = 10) -> list[dict]:

@@ -123,7 +123,7 @@ $$|\,H(z_{n}) - H(z_{0})\,| \;\le\; C\, h^{p} \quad (\text{辛、可积}).$$
 
 这一条不等式就是为什么所有生产环境的分子动力学代码都用辛积分器。
 
-### 4.2 Verlet （Störmer / leapfrog）
+### 4.2 Verlet（Störmer / leapfrog）
 
 对可分 Hamilton 量 $H(q, p) = \tfrac{1}{2}p^{\top} M^{-1} p + V(q)$，**速度 Verlet** 步骤为：
 
@@ -147,7 +147,7 @@ $$z_{n+1} \;=\; z_{n} + h\, J\, \nabla H\!\left(\tfrac{z_{n} + z_{n+1}}{2}\right
 
 二阶、辛、无条件 B-稳定。
 
-## 5. Hamiltonian Neural Networks （HNN）
+## 5. 哈密顿神经网络（HNN）
 
 ### 5.1 核心想法
 
@@ -176,7 +176,7 @@ $$\mathcal{L}(\theta) \;=\; \frac{1}{N} \sum_{i=1}^{N} \big\| J \,\nabla H_{\the
 - 必须有显式的典范坐标 $(q, p)$。如果数据是别的参数化，得先变换。
 - 纯 HNN 处理不了耗散。带阻尼或外驱动时用 **port-Hamiltonian** 扩展（Desai 等， 2021）。
 
-## 6. Lagrangian Neural Networks （LNN）
+## 6. 拉格朗日神经网络（LNN）
 
 Cranmer 等（2020）做了对偶的事情：让网络代表 Lagrange 函数 $L_{\theta}(q, \dot q)$，加速度由欧拉-拉格朗日方程反解：
 
@@ -190,7 +190,7 @@ LNN 用更高的 autograd 代价（二阶导加上一个矩阵解）换来两个
 
 对无约束的保守系统， LNN 与 HNN 通过 Legendre 变换 $H = p^\top \dot q - L$、$p = \nabla_{\dot q} L$ 在形式上等价。
 
-## 7. Symplectic Neural Networks （SympNet）
+## 7. 辛神经网络（SympNet）
 
 ![SympNet 架构：剪切型辛模块的复合](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/symplectic-geometry-and-structure-preserving-neural-networks/fig3_sympnet_arch.png)
 

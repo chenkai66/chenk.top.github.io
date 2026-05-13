@@ -86,7 +86,7 @@ SQL （Structured Query Language）是与关系型数据库对话的语言，它
 ![SQL query execution pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/01-sql-query-flow.png)
 
 
-### SELECT、 FROM、 WHERE
+### SELECT、FROM、WHERE
 
 最基础的查询：
 

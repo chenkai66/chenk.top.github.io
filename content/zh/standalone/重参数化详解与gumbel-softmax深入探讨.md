@@ -241,7 +241,7 @@ $$y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bi
 - 指数退火 $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$，每 $\sim 1000$ 步衰减一次；
 - **不要**直接训到 $\tau\to 0$——softmax 数值会爆掉，且梯度方差会主导；让模型早期“看清楚”分布形状，后期再“硬化”。
 
-## 4.3 Straight-Through Gumbel-Softmax (ST-GS)
+## 4.3 直通 Gumbel-Softmax (ST-GS)
 
 很多任务（例如 hard attention、离散 token 选择、稀疏 routing）**前向需要严格 one-hot**——比如下游是一个 lookup table，必须是整数索引。这时用 **Straight-Through 估计器**：
 

@@ -164,7 +164,7 @@ docker run --read-only myapp 2>&1 | grep "Read-only file system"
 # 解决方案：添加 --tmpfs /app/logs:size=50m
 ```
 
-## Linux Capabilities
+## Linux 功能
 
 
 ![Rootless container running as unprivileged user security vis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-rootless-container-running-as-unprivileged-user-security-vis.jpg)

@@ -391,7 +391,7 @@ for text, score in similarities[:3]:
 ```
 
 生产环境别在 Python 循环里算余弦相似度。直接用 OpenSearch 的向量搜索功能，或者专门的向量数据库比如 Milvus。上面的代码只是为了帮你理解概念。
-## Wanxiang: image and video generation
+## 万象：图像和视频生成
 
 万相（Wanxiang）是 DashScope 旗下的生成式媒体家族。它覆盖文生图、图生视频和文生视频。所有媒体生成都走 DashScope 原生 API （不是 OpenAI 兼容接口），并且遵循异步任务模式。
 
@@ -399,7 +399,7 @@ for text, score in similarities[:3]:
 
 ![Async task pattern for media generation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
 
-### The async task pattern
+### 异步任务模式
 
 每次调用万相，都是同样的三步走：
 
@@ -409,7 +409,7 @@ for text, score in similarities[:3]:
 
 24 小时过期是运维上最大的坑。我见过好几个团队——包括我自己——因为轮询后记录了 URL，结果因为别的 bug 没及时下载，第二天才发现链接废了。要把这个 URL 当成一次性下载链接处理：立刻下载，存到自己的 OSS，别指望它明天还在。
 
-### Text-to-video example
+### 文本转视频示例
 
 ```python
 import os
@@ -485,7 +485,7 @@ download_video(video_url, "shanghai_sunset.mp4")
 print("Downloaded to shanghai_sunset.mp4")
 ```
 
-### Image-to-video
+### 图像转视频
 
 模式一样，模型和输入参数不同：
 
@@ -510,7 +510,7 @@ def create_i2v_task(prompt: str, image_url: str, duration: int = 5) -> str:
 
 万相视频生成的完整深度解析，见 [Bailian Part 4: Wanxiang Video Generation](/zh/aliyun-bailian/04-wanxiang-video-generation/)。
 
-### Text-to-image
+### 文本转图像
 
 生图用的 endpoint 稍微不一样，但异步模式没变：
 
@@ -530,7 +530,7 @@ def create_image_task(prompt: str, size: str = "1024*1024") -> str:
 
 轮询还用那个 `poll_task()` 函数。成功返回里是 `output.results[0].url` 而不是 `output.video_url` —— 这点小不一致，适配一下就行。
 
-## Qwen TTS: text-to-speech
+## Qwen TTS：文本转语音
 
 Qwen TTS 是容易让人踩坑的地方。很多人想当然觉得“既然 Qwen LLM 能通过 OpenAI 客户端跑， TTS 肯定也行”。
 
@@ -538,7 +538,7 @@ Qwen TTS 是容易让人踩坑的地方。很多人想当然觉得“既然 Qwen
 
 你不能指着 `openai` SDK 的 `audio.speech.create` 去调兼容 URL，行不通。 TTS 没有兼容层。要么用 `dashscope` SDK，要么直接调 HTTP。
 
-### The simplest call
+### 最简单的调用
 
 ```python
 import os
@@ -554,7 +554,7 @@ with open("demo_narration.mp3", "wb") as f:
     f.write(audio_bytes)
 ```
 
-### Voice selection
+### 语音选择
 
 模型支持 40 多种音色。这是我实际在用的几个：
 
@@ -571,7 +571,7 @@ with open("demo_narration.mp3", "wb") as f:
 
 音色名区分大小写。`Cherry` 能用，`cherry` 不行。
 
-### Streaming TTS for real-time playback
+### 实时播放的流式 TTS
 
 文本比较长或者要做实时应用，就得流式传输音频：
 
@@ -605,7 +605,7 @@ with open("streamed_output.mp3", "wb") as f:
         f.write(chunk)
 ```
 
-### Language and dialect coverage
+### 语言和方言覆盖
 
 这里是 Qwen TTS 真正没有对手的地方。除了普通话和英语，它还支持粤语、四川话、上海话、东北话、日语和韩语——而且听起来像 native speaker，不像游客读短语手册。我没见过别的 TTS API 能把粤语处理得这么好，还是这个价格。
 

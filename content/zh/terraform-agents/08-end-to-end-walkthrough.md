@@ -24,7 +24,7 @@ translationKey: "terraform-agents-8"
 
 共五层：边缘、计算、记忆、平台、运维——均由本系列此前构建的模块组合而成；底层依赖 11 款阿里云服务： VPC、 ECS、 ALB、 OSS、 RDS for PostgreSQL、 OpenSearch、 KMS、 SLS、 ARMS、 CloudMonitor，以及通过网关调用的 DashScope （LLM 接入服务）。
 
-## Project structure
+## 项目结构
 
 ```
 research-agent-stack/
@@ -60,7 +60,7 @@ research-agent-stack/
 
 顶层八个 `*.tf` 文件，`modules/` 目录下五个模块，环境变量放在 `env/*.tfvars`，密钥隔离在 `secrets/secrets.auto.tfvars` 且不进 git。这是我每个项目的标准目录结构：略显刻板，但胜在稳定可靠。唯独 `secrets/` 目录必须从第一次提交就开始被 `.gitignore` 忽略，这点我绝不妥协。我处理过的所有密钥泄露事件，根本原因都是 gitignore 文件未在项目初始化时配置，而是在后续（例如第 50 次提交）才临时补充。
 
-## main.tf — the composition
+## main.tf — 组成
 
 ```hcl
 locals {
@@ -190,7 +190,7 @@ variable "agent_quotas" {
 
 `sensitive = true` 防止 Terraform 在 plan/apply 输出中打印值。不过值还是会写进 tfstate （这就是为什么我们在第 2 篇里用独立的 KMS CMK 加密了 OSS state bucket）。
 
-## env/dev.tfvars and secrets
+## env/dev.tfvars 和 secrets
 
 ```hcl
 # env/dev.tfvars
@@ -219,7 +219,7 @@ llm_keys = {
 
 `*.auto.tfvars` 文件会自动加载，不需要 `-var-file` 参数，所以 `secrets.auto.tfvars` 会被自动拾取，而 `env/dev.tfvars` 则按 workspace 显式传递。双文件模式，避免了 `terraform.tfvars` 的歧义。
 
-## The apply
+## 应用
 
 ```bash
 cd research-agent-stack

@@ -131,7 +131,7 @@ AIMaster 以 sidecar Pod 形式与训练 Pod 同驻运行，拥有独立的 Serv
 - **AIMaster sidecar 本身。** 如果 AIMaster 崩溃（罕见，但我见过一次工作区凭证过期的情况），就没有容错。 DLC 调度器会重启 AIMaster，但期间 worker 无人监管。
 
 实际建议：每个 worker 设置 `max_retries=3` 并设置任务级 `max_runtime` 上限。 AIMaster + EasyCKPT 能处理大多数节点抖动失败；预算上限保护你免受需要人工介入的无限循环失败。
-## Multi-node NCCL: RDMA vs TCP, ring vs tree
+## 多节点 NCCL：RDMA 与 TCP，环形与树形
 
 ![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/03-pai-dlc-distributed-training/illustration_2.png)
 
@@ -168,7 +168,7 @@ export NCCL_ALGO=Ring   # or Tree, or Auto
 
 **Topology awareness.** 灵骏节点清楚自己的 NVSwitch 拓扑， PAI 调度器尽量把 worker pod 放在相邻节点（同机架同 spine）。资源紧张调度不了时，跨 spine 通信会让 AllReduce 延迟上去。 job 级配置 `topology_constraint=spine` 强制同 spine 放置，可能调度慢点，但 4 节点以上任务值得。
 
-## Spot / preemptible quirks: cadence and notice
+## Spot/抢占式实例的特性：节奏和通知
 
 抢占式实例省 30-50%，但运营细节营销材料里不讲。跑了大概 40 个抢占式任务，这几条是实战经验。
 
@@ -200,7 +200,7 @@ for step, batch in enumerate(loader):
 
 **The retry trap.** 设个 job 级 `max_retries`（我设 5）。不然故障 spot 任务会在 pod 间反复横跳吃光预算，因为 `instance_count * preemption_rate * retry_cost > original_savings`。算笔账： 4 × A100 spot 打五折，每天每 pod 被抢 3 次就跟按量付费持平了。超过这个数，你花钱更多还训得更少。
 
-## Dataset sharding patterns for distributed training
+## 分布式训练的数据集分片模式
 
 默认是 `DistributedSampler`，按 `(rank, world_size)` 分片，内存数据集没问题。一旦数据上 OSS 或者超内存，模式就重要了。
 
@@ -253,6 +253,6 @@ class ResumableSampler:
 
 不然每次重启都浪费 worker 已完成的部分 epoch。 7B SFT 加 100 万样本数据集，每次重启浪费约 5% 算力。
 
-## What's next
+## 下一步
 
 第四篇是 **EAS** —— 把训好的模型塞进 HTTP 端点，自动扩缩容，流量镜像，凌晨 3 点不崩。 EAS 是你阿里云月度账单的大头，值得搞定。

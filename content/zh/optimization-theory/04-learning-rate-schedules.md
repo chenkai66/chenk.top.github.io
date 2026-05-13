@@ -194,7 +194,7 @@ v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
 
 简单。基本上永远是错的——不是早期太慢，就是后期太抖，没有两全。
 
-## 5.2 Step decay
+## 5.2 阶梯衰减
 
 到达指定 milestone 时把 $\eta$ 乘以 $\gamma$（通常 0.1）。经典 ResNet 配方就用这个。优点：实现简单、手工调参直观。缺点：突然的下台阶可能让 weight decay 或 BN 敏感的网络出现 loss spike。
 
@@ -333,7 +333,7 @@ LLM 微调里同样的思路换了几张皮：
 
 D-Adaptation 在训练过程中估计“当前点到最优点的距离”，再用这个距离反推步长。**没有 $\eta$ 可调**。在很多任务上能在几个百分点内追平手调的基线。
 
-## 9.2 Schedule-Free AdamW （Defazio et al., 2024，[arXiv:2405.15682](https://arxiv.org/abs/2405.15682)）
+## 9.2 无调度 AdamW （Defazio 等, 2024，[arXiv:2405.15682](https://arxiv.org/abs/2405.15682)）
 
 它把 iterate averaging 和一个常数基础 LR 结合起来，得到“看起来像 cosine 衰减过”的轨迹，但全程并不显式地降 $\eta$。这意味着**你不需要事先承诺训练总步数 $T$**：想停就停，想延长就延长，不必重调调度。
 
@@ -455,7 +455,7 @@ GPT-3 （175B）和 LLaMA （7B/13B/65B）用的是同一个模板：**短的线
 
 ## 十三、参考实现
 
-## Warmup + Cosine
+## 预热 + 余弦
 
 ```python
 import math
@@ -470,7 +470,7 @@ def lr_warmup_cosine(step, total_steps, warmup_steps, lr_max, lr_min=0.0):
     return lr_min + (lr_max - lr_min) * cos
 ```
 
-## Warmup + Stable + Decay (WSD)
+## 预热 + 稳定 + 衰减 (WSD)
 
 ```python
 def lr_wsd(step, total_steps, warmup_steps, cooldown_steps,
@@ -528,13 +528,13 @@ schedule_fn = lambda s, T: lr_wsd(
 
 下面五条线值得跟踪。
 
-## 14.1 D-Adaptation —— Learning-rate-free （2023）
+## 14.1 D-Adaptation —— 无学习率（2023）
 
 思路：在训练过程中估计“当前点到最优点的距离”，再用这个估计推算步长。**没有可调的 $\eta$**。原型迭代和 grid search 收敛阶段非常有用。
 
 参考：[Learning-Rate-Free Learning by D-Adaptation (Defazio & Mishchenko, 2023)](https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/)。
 
-## 14.2 Schedule-Free AdamW （2024）
+## 14.2 无调度 AdamW（2024）
 
 把 iterate averaging 和常数基础 LR 结合起来，达到与有调度方法相当的性能，却不需要显式衰减——更不需要事先承诺总步数 $T$。
 

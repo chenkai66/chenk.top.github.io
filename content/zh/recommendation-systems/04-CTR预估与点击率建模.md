@@ -497,7 +497,7 @@ class xDeepFM(nn.Module):
         return oh
 ```
 
-### xDeepFM vs DeepFM
+### xDeepFM 与 DeepFM
 
 | 维度 | DeepFM | xDeepFM |
 |---|---|---|

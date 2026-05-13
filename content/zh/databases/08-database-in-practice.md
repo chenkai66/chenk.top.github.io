@@ -221,7 +221,7 @@ ALTER TABLE users DROP COLUMN name;
   复用比（multiplexing ratio）：40:1
 ```
 
-### PgBouncer （PostgreSQL）
+### PgBouncer（PostgreSQL）
 
 ```ini
 ; pgbouncer.ini
@@ -267,7 +267,7 @@ SHOW SERVERS;
 SHOW STATS;
 ```
 
-### ProxySQL （MySQL）
+### ProxySQL（MySQL）
 
 ```sql
 -- ProxySQL 管理接口（端口 6032）

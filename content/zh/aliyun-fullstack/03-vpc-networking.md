@@ -22,7 +22,7 @@ translationKey: "aliyun-fullstack-3"
 
 [第一篇](/zh/aliyun-fullstack/01-ecosystem-map/) 我们梳理了阿里云生态，[第二篇](/zh/aliyun-fullstack/02-ecs-compute/) 学会了启动 ECS 实例——但 ECS 不能裸跑在公网上。本文带你搭建一个生产级多可用区网络：层级隔离的子网、边界清晰的安全组、通过 NAT 网关访问外网的私有子网、SLB 负载均衡公网流量。如果想直接用 Terraform 一键拉起这套网络，参考 [Terraform 实战（三）：VPC 与安全基线](/zh/terraform-agents/03-vpc-and-security-baseline/)。
 
-## What Is a VPC?
+## 什么是 VPC？
 
 虚拟私有云（VPC）是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络。你可以指定 IP 地址段、划分子网、配置防火墙规则，并控制哪些实例可访问互联网或仅限内网通信。默认情况下，所有入站和出站流量都被拒绝，只有显式允许的流量才能通过。
 
@@ -53,7 +53,7 @@ translationKey: "aliyun-fullstack-3"
 
 一个 VPC 不能跨区域。如果需要跨区域连通，就得用云企业网（CEN），本文后面会讲。
 
-## CIDR Planning: Get This Right from Day One
+## CIDR 规划：从第一天起就做好
 
 CIDR（无类别域间路由）用于定义 VPC 的 IP 地址空间。如果这一步规划失误，将不得不重建整个 VPC 并迁移所有资源。
 
@@ -85,7 +85,7 @@ VPC 本身用 `10.0.0.0/16`，给我们 65,534 个可用 IP，以后加子网也
 
 > **Note:** 如果你的 VPC 将来需要彼此对等（通过 CEN 或 VPN），它们的 CIDR 块不能重叠。规划一个方案，比如 VPC-prod = 10.0.0.0/16, VPC-staging = 10.1.0.0/16, VPC-dev = 10.2.0.0/16。
 
-## VSwitches: Subnets Across Availability Zones
+## VSwitch：跨可用区的子网
 
 VSwitch 即子网，每个 VSwitch 仅隶属于一个可用区，不能拉伸到多个可用区。这是设计使然：单个可用区发生故障时，仅影响该可用区内的 VSwitch 所承载的实例，不会波及其他可用区。
 
@@ -169,7 +169,7 @@ aliyun vpc DescribeVSwitches \
 - 并非所有实例类型在所有可用区均有供应。定可用区布局前先查一下。
 - 你可以随时给现有 VPC 添加 VSwitch，只要 CIDR 不和现有 VSwitch 重叠。这也是 CIDR 规划时预留地址间隙的关键原因。
 
-## Route Tables
+## 路由表
 
 每个 VPC 自带一个系统路由表，删不掉。里面有一条你关心的条目：本地路由，自动启用 VPC 内所有 VSwitch 互相通信。这是隐式的——控制台里你看不到，但 `10.0.1.0/24` 和 `10.0.20.0/24` 之间的流量就是能通。
 
@@ -486,7 +486,7 @@ aliyun vpc CreateSnatEntry \
 `SnatIp` 就是你绑给 NAT 网关的那个 EIP 地址。这些 VSwitch 的所有出站流量看起来都来自这个 IP。这对白名单很有用——如果外部 API 要求 whitelist 你的 IP，直接给 NAT 的 EIP 就行。
 
 务必使用 Enhanced NAT 类型。"Normal" 类型是旧版，吞吐量低，不支持多 EIP SNAT，也无法集成新服务。 Enhanced NAT 按 LCU (Logical Connection Unit) 计费，随实际用量弹性伸缩。
-## SLB: Server Load Balancer
+## SLB：服务器负载均衡器
 
 Server Load Balancer 就是把流量分摊到多台后端实例上。任何想要高可用的服务，它都是必经之门。有了它，你才算从“我有两台服务器”进化到了“我有生产环境部署”。
 
@@ -590,7 +590,7 @@ aliyun alb CreateListener \
 
 应用里的 `/health` 端点得检查真实依赖。那种不验数据库连通性直接返回 `200 OK` 的健康检查没什么用。起码要确认进程活着，主数据存储可达。
 
-## CEN: Cross-Region Networking
+## CEN：跨区域网络
 
 Cloud Enterprise Network 把不同地域的 VPC 连成一张私网。北京和新加坡的部署之间，不用走公网， CEN 提供阿里云专用的骨干链路，延迟可控，还带加密。
 
@@ -662,7 +662,7 @@ CEN 计费主要看跨地域带宽。同地域流量经过 Transit Router 免费
 - 1 个 NAT Gateway 配合 SNAT 供私有子网出网
 - 1 个 ALB 负责 Web 层流量
 
-### Step 1: Create the VPC
+### 步骤 1：创建 VPC
 
 ```bash
 VPC_ID=$(aliyun vpc CreateVpc \
@@ -680,7 +680,7 @@ aliyun vpc DescribeVpcs \
   --output cols=Status
 ```
 
-### Step 2: Create all 6 VSwitches
+### 步骤 2：创建所有 6 个 VSwitch
 
 ```bash
 # Public subnets
@@ -717,7 +717,7 @@ VSW_DATA_B=$(aliyun vpc CreateVSwitch \
   --output cols=VSwitchId --rows | tail -1)
 ```
 
-### Step 3: Create security groups with chained rules
+### 步骤 3：创建带有链式规则的安全组
 
 ```bash
 # Create the three groups
@@ -750,7 +750,7 @@ aliyun ecs AuthorizeSecurityGroup --SecurityGroupId $SG_DATA \
   --IpProtocol tcp --PortRange 6379/6379 --SourceGroupId $SG_APP --Priority 1
 ```
 
-### Step 4: Set up NAT Gateway for private subnet outbound
+### 步骤 4：为私有子网出站设置 NAT Gateway
 
 ```bash
 # Create NAT Gateway in public subnet
@@ -787,7 +787,7 @@ for VSW in $VSW_APP_A $VSW_APP_B $VSW_DATA_A $VSW_DATA_B; do
 done
 ```
 
-### Step 5: Create ALB for the web tier
+### 步骤 5：为 Web 层创建 ALB
 
 ```bash
 # Create ALB spanning both AZs
@@ -838,7 +838,7 @@ echo "ALB DNS: $(aliyun alb GetLoadBalancerAttribute \
   --output cols=DNSName --rows | tail -1)"
 ```
 
-### Step 6: Verify connectivity
+### 步骤 6：验证连接性
 
 实例启动并放入子网后（这部分会在第二部分讲），咱们得验证一下连通性：
 
@@ -862,7 +862,7 @@ ssh bastion "ssh web-server-a 'nc -zv 10.0.20.5 3306'"
 
 最后那个测试最关键。要是 Web 层能直连 Data 层，说明你的安全组链式规则失效了。
 
-## Key Takeaways
+## 关键要点
 
 **CIDR 规划一旦定稿就无法更改。** VPC 或 VSwitch 创建后没法调整大小。现在就把 IP 空间预留充足。一个 /16 的 VPC 配上 /24 的 VSwitch，足够你折腾几十年。 unused IP 不要钱，但不够用会很麻烦。
 
@@ -876,6 +876,6 @@ ssh bastion "ssh web-server-a 'nc -zv 10.0.20.5 3306'"
 
 **一定要测试“不通”的情况。** 安全组配完后，得验证被禁止的流量是不是真被拦住了。一个放行所有的安全组比没有安全组更糟糕，因为它给你虚假的安全感。
 
-## What's Next
+## 下一步
 
 网络是地基。 VPC、 VSwitch、安全组、 NAT 和 SLB 就位后，我们部署的任何东西都有了 predictable、 secure 的落脚点。下一篇咱们往上走，聊托管数据库——关系型数据用 RDS，缓存用 Redis，还有那些能在硬件故障时保住数据的复制和备份策略。

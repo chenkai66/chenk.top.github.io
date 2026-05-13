@@ -22,7 +22,7 @@ translationKey: "terraform-agents-4"
 
 本文将逐一分析这四种模式，并附带可直接运行的 Terraform 代码、成本拐点估算及实际运维中的典型问题。
 
-## The four patterns
+## 四种模式
 
 ![Three primary places to run an agent: ECS, ACK, FC](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png)
 
@@ -37,7 +37,7 @@ translationKey: "terraform-agents-4"
 
 前三种方案已覆盖大多数场景，而 ECI 则恰好填补了 FC 运行时长受限与 ECS 在突发性负载下资源闲置之间的空白。
 
-## The cost crossover
+## 成本交叉点
 
 以下是基于持续 QPS 的大致月度成本概况：
 
@@ -53,7 +53,7 @@ translationKey: "terraform-agents-4"
 
 架构方案已明确，接下来将逐一详解四种模式及其对应的 Terraform 实现。
 
-## Pattern 1: ECS with pm2
+## 模式 1：使用 pm2 的 ECS
 
 80% 的 Agent 项目选择该方案即可。 ALB 后面挂一两台 ECS，每台跑个 `pm2` 作为 Python 或 Node Agent 进程的守护器。
 
@@ -115,7 +115,7 @@ resource "alicloud_instance" "agent" {
 2. **`system_disk_kms_key_id` 把磁盘绑定到第 3 篇文章里的 `memory` CMK 上**。静态加密不额外花钱，还省去了一堆合规麻烦。
 3. **`lifecycle { create_before_destroy = true }`** 意味着计划替换时会先创建新实例，挂到 ALB，排空旧实例，再销毁——零停机轮换。代价是短暂需要 2 倍容量，两台实例的集群没问题，到了 50 台就开始肉疼了。
 
-### The cloud-init that actually survives a real bootstrap
+### 真正能存活的 cloud-init
 
 大多数博客展示的 cloud-init 都是理想路径：`apt-get install`, `git clone`, `pm2 start`, 完事。此类 cloud-init 示例仅适用于演示环境。生产环境的初始化流程还需应对六类典型问题： DNS 解析竞争、公共软件源响应延迟、基于 RAM 的临时凭证存在时序依赖、启动盘快照可能意外暴露敏感信息、 root 用户与服务账户需严格权限隔离，以及 ALB 健康检查对初始化完成状态的依赖。
 
@@ -193,7 +193,7 @@ echo "$(date -Iseconds)" > /run/agent/bootstrap-done
 
 > **实战建议：** `user_data` 会记录在实例的 `/var/log/cloud-init-output.log`。 Agent 起不来时，先看这儿。开头的 `set -euxo pipefail` 让失败大声且可追踪——没它我曾花两小时调试一个静默失败的 `pip install`，结果发现是缺了 `gcc`。
 
-## Pattern 2: ACK for production fleets
+## 模式 2：用于生产环境的 ACK
 
 一旦你有三种以上 Agent 并行运行，单 VM 的运维成本就占主导了， ECS 扩展性到头。 ACK 给你一个集群、一个调度器、一条升级路径，还有一个地方接自动伸缩和可观测性。
 
@@ -246,7 +246,7 @@ resource "alicloud_cs_kubernetes_node_pool" "agents" {
 - **`addons` 块** 启用 ARMS Prometheus （第 7 篇）和 SLS 日志收集器。通过 Terraform  部署 意味着新集群自带监控 instrumentation。
 
 真正的 Agent Pod 来自 Kubernetes Deployment manifest——通常由单独的 `kubectl` 步骤或 `kubernetes` Terraform provider 应用。我把集群放在这个 `terraform` 项目里，工作负载放在单独的 Helm chart 里，因为它们发布节奏不同。集群一季度变一次； Agent 镜像一天变十次。
-## Pattern 3: Function Compute for event-driven agents
+## 模式 3：用于事件驱动代理的 Function Compute
 
 有些 Agent 不用常驻，有事才动，例如 webhook 触发、定时任务或 OSS 文件上传。这种情况下， FC （函数计算）几乎是完美的选择：闲置零成本，自动弹性，运行时全托管。
 
@@ -308,7 +308,7 @@ resource "alicloud_fc_trigger" "daily" {
 
 这第三个坑，正好是 ECI 填补的空缺。
 
-## Pattern 4: ECI for bursty batch agents
+## 模式 4：用于突发批量代理的 ECI
 
 ECS、 ACK 和 FC 覆盖了大部分场景，但针对*突发*批量 Agent 任务，还有第四种模式：**弹性容器实例（ECI）**。 ECI 就像是“底层没有 Kubernetes 节点的容器”——阿里云直接在他们管理的裸金属集群上跑容器，你只为运行秒数付费。
 
@@ -372,7 +372,7 @@ resource "alicloud_eci_container_group" "research_batch" {
 
 成本粗算： 4 vCPU / 16 GB 的 ECI 大概 0.96 元/小时，按秒计费，最低 1 分钟。跑 8 分钟的研究任务大概 0.13 元。每天 100 次 = 13 元/天 = 390 元/月。同样的负载要是跑在常驻 ECS 上，闲置也得 250-400 元/月。**利用率低于 50% 选 ECI；高于这个数， ECS 或 ACK 更划算。**
 
-## A real example: hybrid
+## 实际案例：混合模式
 
 我交付过的生产级 Agent 栈，最后基本都是混合架构：
 
@@ -383,7 +383,7 @@ resource "alicloud_eci_container_group" "research_batch" {
 
 Terraform 让这事变得很简单——同一个项目里四个 module，共用第 3 篇文章里的 VPC 和安全组。关键技能是知道哪种负载配哪种模式，而不是背熟所有资源语法。
 
-## Right-sizing the instance
+## 选择合适的实例大小
 
 经常有人问： Agent 运行时选哪个 `ecs.*` 系列？我的默认配置：
 
@@ -397,7 +397,7 @@ Terraform 让这事变得很简单——同一个项目里四个 module，共用
 
 别选突发型 `ecs.t6` 系列跑 Agent 运行时——持续负载下 CPU 积分耗尽，延迟直接崩盘。拿来跑 `terraform apply` 的堡垒机倒是没问题。
 
-## When `alicloud_pai_*` doesn't exist (and the fallback)
+## 当 `alicloud_pai_*` 不存在时（及其回退方案）
 
 如果你要交付一个自己做训练或托管定制 LLM 的 Agent，第一反应肯定是用 Terraform 起 PAI-EAS。现实情况是：截至 `alicloud` provider 1.230 版本， PAI 资源覆盖还很薄。只有 `alicloud_pai_workspace` 和几个相关资源，完整的 EAS 服务部署不是一等公民——没有 `alicloud_pai_eas_service` 能让你在 HCL 里声明式地定义模型服务 endpoint。
 
@@ -447,7 +447,7 @@ resource "alicloud_ros_stack" "eas_serving" {
 
 > **实战建议：** `alicloud_ros_stack` 真的被低估了。当 alicloud Terraform provider 滞后时， ROS 往往领先四分之一季度。在 Terraform 里嵌入 ROS 模板，能两头吃香。
 
-## What's next
+## 下一步
 
 第 5 篇文章补充存储层——向量库、关系型数据库、对象存储、备份——也就是我们刚才 部署 的所有东西需要连接的地方。 ECS 实例、 ACK Pod、 FC 函数和 ECI 容器，直到有了存放记忆的地方，否则都是无用之功。
 

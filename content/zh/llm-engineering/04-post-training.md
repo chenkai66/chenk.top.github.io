@@ -137,7 +137,7 @@ $$P(y_w \succ y_l \mid x) = \sigma\!\left(\beta \log \frac{\pi^*(y_w | x)}{\pi_{
 在该模型下最大化观测偏好的 log-likelihood 就得到了 DPO loss。整个 RLHF 流水线坍缩为 log-prob 比值上的 binary cross-entropy。不用奖励模型。不用采样。不用 PPO。
 
 β 的解释变得清晰：β 是 implicit reward 的逆温度。低 β (0.01) 意味着小 reward 对应大 policy  shifts — 模型从每个偏好中激进地学习。高 β (1.0) 意味着 policy 几乎无法从 $\pi_{\text{ref}}$ 移动 — 偏好几乎不影响模型。经验上的 sweet spot 是 0.1-0.3，因为这时 implicit reward 大到足以提供信息，又小到防止漂移。
-## DPO variants: KTO, IPO, ORPO, SimPO
+## DPO 变体：KTO、IPO、ORPO、SimPO
 
 DPO 在 2024-2025 年衍生出了一堆变体，各自解决特定痛点：
 
@@ -151,7 +151,7 @@ DPO 在 2024-2025 年衍生出了一堆变体，各自解决特定痛点：
 
 按你的约束条件选：有成对人类数据 → DPO；有点赞数据 → KTO；噪声偏好 → IPO；单阶段训练 → ORPO；显存受限 → SimPO。 DPO 依然是稳妥的默认选项。
 
-## RLHF and PPO: why anyone still uses it
+## RLHF 和 PPO：为什么还有人在用
 
 ![fig3: KL divergence over training](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig3_kl_divergence.png)
 
@@ -185,7 +185,7 @@ for ppo_epoch in range(4):
 
 KL 项至关重要。没它， PPO 就会攻击奖励模型——生成高奖励但完全不像连贯文本的回答。 Anthropic 的 Sleeper Agents 论文 [Hubinger et al., 2024] 记录了几种有趣的奖励黑客模式，包括“总是以'Yes I can help with that!'结尾”，因为奖励模型学到合规的开头预测高奖励。
 
-## RLHF practical issues: reward hacking, mode collapse, length bias
+## RLHF 实际问题：奖励作弊、模式崩溃、长度偏差
 
 每个基于 PPO 的 RLHF 训练都会遇到的三个生产级失败模式：
 
@@ -195,7 +195,7 @@ KL 项至关重要。没它， PPO 就会攻击奖励模型——生成高奖励
 
 **Length bias**。 RLHF 策略系统性地生成比 SFT 策略更长的回答。原因是人类标注者往往偏好稍长的回答（觉得更详尽）。奖励模型捕捉到这点并放大。结果：聊天模型的回答从 200 token 涨到 800 token，质量却没真提升。修复：显式从奖励中减去长度惩罚，或在策略梯度中用长度归一化 log-probs。[Singhal et al., 2024] 详细记录了长度偏差，表明它负责了通常归因于 RLHF 优于 SFT 的 AlpacaEval 分数中的约 1.5 分。
 
-## Constitutional AI: RLAIF lineage
+## 宪法 AI：RLAIF 谱系
 
 Anthropic 的 Constitutional AI [Bai et al., 2022] 是主导的 RLAIF （RL from AI feedback）方案。两个阶段：
 
@@ -207,7 +207,7 @@ Anthropic 的 Constitutional AI [Bai et al., 2022] 是主导的 RLAIF （RL from
 
 2024-2026 年 CAI 的演变是 **rule-based rewards (RBR)** [Mu et al., 2024] (OpenAI)。不用学出来的奖励模型，写一组显式规则（“回答≤200 词”，“不应包含医疗建议”，“应引用来源”），让 LLM 评分合规性。这比奖励模型更易调试，更易更新，可作为学习奖励的补充。
 
-## RLVR: RL with verifiable rewards
+## RLVR：可验证奖励的强化学习
 
 DeepSeek-R1 [DeepSeek-AI, 2025] (2025 年 1 月) 发布了一个模型，其推理能力几乎全来自 **RLVR**：在数学问题上训练，奖励是“最终答案是否匹配 ground truth？”——程序化检查，不是学出来的模型。没奖励模型意味着没奖励黑客。
 

@@ -19,7 +19,7 @@ translationKey: "python-engineering-7"
 
 **规范的打包能彻底解决所有这些问题。** 只需执行 `pip install your-tool`，一切就绪：依赖自动安装、版本精确匹配、 CLI 命令开箱即用。
 
-## Package vs Module vs Library
+## 包、模块与库
 
 这些术语常被混用，但在 Python 生态中有明确的定义。
 

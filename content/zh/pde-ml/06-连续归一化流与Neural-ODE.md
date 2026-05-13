@@ -118,7 +118,7 @@ CNF 把整个堆叠换成 ODE，使用瞬时公式 (1)：$$\frac{d\mathbf{z}}{dt
 二次代价的最优传输有动态表述： $$\min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
 \quad\text{s.t.}\quad \partial_t\rho+\nabla\!\cdot(\rho v)=0,\;\rho_0,\rho_1\text{ 给定}.$$极小化的 $v_t^\star$ 是 CNF 的速度场，轨迹为直线（欧氏 OT 情形）。这是结合 CNF 和 OT 的几何本质。
 
-### 4.2 Flow Matching
+### 4.2 流量匹配
 
 **Flow Matching**（Lipman 等 2022）是杀手级简化。不通过 ODE 求解器优化 NLL，也不解 OT 问题，而是选一条条件概率路径，回归对应速度场。
 
