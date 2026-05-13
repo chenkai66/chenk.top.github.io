@@ -68,8 +68,6 @@ polished_by_qwen_max: true
 
 在 PEFT 出现前，最简单的节省成本方式是冻结模型主体，只训练分类头，或仅解冻顶部几层。例如：
 
-![微调策略决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig_finetuning_decision_zh.png)
-
 ### 如何选择秩 $r$
 
 建议从 $r = 16$ 开始。从上图右侧可见，大多数任务的收益拐点落在 $r = 8$ 到 $r = 32$ 之间：

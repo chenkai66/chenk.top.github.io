@@ -324,4 +324,4 @@ $$
 
 ---
 
-*本文是 [PDE 与机器学习](/zh/categories/pde-and-machine-learning/) 系列的第 7 篇。下一篇：[第 8 篇 —— 反应扩散系统与 GNN](/zh/pde-ml/08-反应扩散系统与gnn)。上一篇：[第 6 篇 —— 连续归一化流](/zh/pde-ml/06-连续归一化流与neural-ode)。*
+*本文是 [PDE 与机器学习](/zh/pde-ml/) 系列的第 7 篇。下一篇：[第 8 篇 —— 反应扩散系统与 GNN](/zh/pde-ml/08-反应扩散系统与gnn)。上一篇：[第 6 篇 —— 连续归一化流](/zh/pde-ml/06-连续归一化流与neural-ode)。*

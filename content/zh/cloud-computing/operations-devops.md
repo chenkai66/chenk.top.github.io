@@ -252,8 +252,6 @@ terraform {
   }
 }
 ```  
-![Terraform 工作流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig_terraform_pipeline_zh.png)
-
 `plan` 是关键一步。它提前告诉你变更内容。Code review 看的是 plan 输出，不只是 HCL。
 
 ### 2.3 完整的生产级模块
@@ -1040,8 +1038,6 @@ echo "非生产环境已启动，时间：$(date)"
 ---
 
 ## 8. GitOps：以 Git 作为唯一真实源
-
-![基于 ArgoCD/Flux 的 GitOps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig_gitops_argocd_zh.png)
 
 GitOps 删掉了一类能力（直接 `kubectl apply`），也删掉了一类错误。集群自动 reconcile 到配置仓库的内容，改集群的唯一方法是改 Git。
 

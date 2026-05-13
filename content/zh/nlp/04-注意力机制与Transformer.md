@@ -210,8 +210,6 @@ $$\text{output} = \text{LayerNorm}(x + \text{Sublayer}(x))$$
 
 ### 整体流程
 
-![Transformer 编码器-解码器架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig_transformer_arch_zh.png)
-
 以基础版 Transformer 为例（$N = 6$、$d_{\text{model}} = 512$、$h = 8$、$d_{\text{ff}} = 2048$），整个模型大约有 6500 万个参数。而 GPT-3 的改进思路非常直接：把 $N$、$d_{\text{model}}$ 和 $h$ 这些超参数大幅放大，去掉编码器部分，然后用互联网上的海量数据进行训练。
 ## 8. 用 PyTorch 从零实现
  Transformer

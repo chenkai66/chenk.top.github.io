@@ -54,8 +54,6 @@ translationKey: "gcsan"
 
 GC-SAN 的贡献偏**架构**而非算法：保留 SR-GNN 的门控 GNN 作为局部编码器，再在上面叠一层 Transformer 风格的自注意力，让全局依赖不必靠图上多跳来达成。完整流程见图 1。
 
-![GC-SAN 端到端流程：从点击到下一击打分](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-contextualized-self-attention-network-for-session-base/fig1_architecture.png)
-
 整个 pipeline 是严格串行的：点击序列 $\to$ 建图 $\to$ GGNN 传播 $\to$ 多层自注意力 $\to$ 融合“最后一击”与“全局意图” $\to$ 对所有物品打分。
 
 ## 3. 会话图的构建
@@ -74,8 +72,6 @@ $$A^{out}_{ij} = \frac{w(v_i \to v_j)}{\sum_k w(v_i \to v_k)}, \quad
 A^{in}_{ij}  = \frac{w(v_j \to v_i)}{\sum_k w(v_k \to v_i)}.$$
 
 图 2 走了一个完整例子。
-
-![会话图构建：点击序列到有向加权图再到归一化邻接矩阵](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-contextualized-self-attention-network-for-session-base/fig2_session_graph.png)
 
 注意点击序列 `v1 v2 v3 v2 v4` 收敛成 4 个节点的图，里面有一对 `v2 <-> v3` 回环，以及 `v2` 同时通向 `v3` 和 `v4` 的扇出。原序列长度 5，图只有 4 节点 4 条不同的边——这种压缩正是图视角的价值。
 
@@ -100,8 +96,6 @@ h_i^{(t)} &= (1 - z_i^{(t)}) \odot h_i^{(t-1)} \;+\; z_i^{(t)} \odot \tilde h_i^
 
 更新门 $z$ 决定新图信号写进多少；重置门 $r$ 决定形成候选状态时要忘掉多少旧状态。图 3 在单个节点上把这一步可视化。
 
-![GGNN 单元：入/出邻居聚合 + GRU 门控](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-contextualized-self-attention-network-for-session-base/fig3_ggnn_message_passing.png)
-
 跑 $T$ 步传播之后（论文常用 $T=1$，有时 $T=2$），每个节点嵌入都吸收了它在图上的局部邻域。**关键点**：传播是在每条会话各自的图上做的，不是全局物品图，所以嵌入是会话条件化的。
 
 > **实现细节**：会话里物品会重复出现，所以实现里要维护一个 *alias* 映射，把序列位置映射到去重后的节点索引。 GGNN 跑完之后，再把节点状态“散布”回序列位置上，才能丢进自注意力。这就是任何标准实现里 `seq_hidden = hidden[alias_inputs]` 在做的事。
@@ -119,8 +113,6 @@ $$F = \mathrm{softmax}\!\left(\frac{(E W^Q)(E W^K)^\top}{\sqrt{d}}\right)(E W^V)
 $$E^{(1)} = \mathrm{ReLU}(F W_1 + b_1) W_2 + b_2 + F.$$
 
 叠 $k$ 层得到 $E^{(k)}$，也就是**图上下文化**之后的序列表示。图 4 展示了自注意力典型学到的模式，以及为什么 GGNN 单独做不到同样的连接。
-
-![自注意力捕捉 GGNN 局部跳跃难以触及的全局意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-contextualized-self-attention-network-for-session-base/fig4_self_attention.png)
 
 热力图是示意性的，但模式是真实的：第一击“相机”会强烈注意到会话深处与之主题相关的物品（如存储卡、电池、相机包）——这种连接如果靠 GNN 走 4 跳，信号早就被平滑掉了。
 
@@ -154,8 +146,6 @@ $$\mathcal{L}_{\text{BPR}} \;=\; -\sum_{(u, i, j)} \log \sigma(\hat r_{ui} - \ha
 其中 $i$ 是正样本（被点击），$j$ 是采样的负样本。 BPR 适合隐式反馈场景，它直接优化“用户对正样本的偏好高于负样本”这一相对关系，不需要绝对评分。
 
 标准 benchmark 是 **Yoochoose1/64** 和 **Diginetica**，报 **Recall@20** 与 **MRR@20**。图 5 复现了论文里的对比格局。
-
-![GC-SAN 与 SR-GNN 等 baseline 的对比及融合权重消融](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/graph-contextualized-self-attention-network-for-session-base/fig5_perf_vs_baselines.png)
 
 从图中可以得出两点：
 1. **GC-SAN 相对 SR-GNN 的提升是稳定的，但不算夸张**（Recall 和 MRR 上大约 +1 到 +2 个点）。在图编码器之上添加自注意力的边际价值是真实的，但有上限。
