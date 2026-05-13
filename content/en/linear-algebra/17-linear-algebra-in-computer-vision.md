@@ -491,7 +491,7 @@ At inference time, batch norm with stored running statistics and learned $(\gamm
 8. Implement the **8-point algorithm** for estimating $\mathbf{F}$, including normalisation and rank-2 enforcement via SVD.
 9. Implement Harris corner detection end-to-end with non-maximum suppression.
 
-### Application
+### Applications
 
 10. Design a panorama stitcher. Why is a homography sufficient when the camera only rotates? How would you handle accumulated drift over many images and exposure differences?
 11. Implement a monocular visual odometry loop: extract features, match between frames, estimate $\mathbf{E}$, recover relative pose, accumulate trajectory. Discuss scale drift and how to detect tracking failure.

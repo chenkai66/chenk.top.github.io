@@ -452,13 +452,13 @@ Because the function-space view generalises: any differentiable loss, any tree l
 
 ## 10. Exercises
 
-### Exercise 1: Bias--variance arithmetic
+### Exercise 1 — Bias--variance arithmetic
 
 Three independent regression models each have $\text{bias}^2 = 4$ and $\text{Var} = 9$. Compute the expected MSE of (i) a single model and (ii) the simple-average ensemble. Ignore noise.
 
 **Solution.** Single: $4 + 9 = 13$. Ensemble: bias unchanged at $4$, variance reduced to $9/3 = 3$, total $7$. Improvement: $\approx 46\%$.
 
-### Exercise 2: Majority-vote error
+### Exercise 2 — Majority-vote error
 
 Twenty-one independent binary classifiers, each with error rate $\epsilon = 0.30$. Compute the majority-vote error.
 
@@ -468,13 +468,13 @@ $$P_{\text{ensemble}} = \sum_{k=11}^{21} \binom{21}{k}(0.3)^k(0.7)^{21-k} \appro
 
 A 30 % individual error becomes 2.6 %.
 
-### Exercise 3: AdaBoost weight update by hand
+### Exercise 3 — AdaBoost weight update by hand
 
 After round $t$, learner $h_t$ has $\epsilon_t = 0.2$. Sample $i$ is correctly classified with current weight $w_t(i) = 0.05$. Compute (i) the learner weight $\alpha_t$ and (ii) the unnormalised next weight $w_{t+1}(i)$.
 
 **Solution.** $\alpha_t = \tfrac{1}{2}\ln(0.8/0.2) = \tfrac{1}{2}\ln 4 \approx 0.693$. Correctly classified, so $w_{t+1}(i) = 0.05 \cdot e^{-0.693} = 0.025$ before normalisation. Misclassified samples would be multiplied by $e^{0.693} = 2$.
 
-### Exercise 4: AdaBoost vs GBDT cheat sheet
+### Exercise 4 — AdaBoost vs GBDT cheat sheet
 
 | Aspect | AdaBoost | GBDT |
 |---|---|---|
@@ -486,7 +486,7 @@ After round $t$, learner $h_t$ has $\epsilon_t = 0.2$. Sample $i$ is correctly c
 
 Bottom line: AdaBoost is a beautiful special case; GBDT is the framework you want for production work.
 
-### Exercise 5: Why feature randomisation matters
+### Exercise 5 — Why feature randomisation matters
 
 A Random Forest with $m = d$ (i.e. consider all features at every split) is just bagging. Explain why this typically performs *worse* than a forest with smaller $m$, even though each individual tree is stronger.
 

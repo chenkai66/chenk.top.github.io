@@ -485,7 +485,7 @@ The same handful of ideas â€” linear maps, transposes, ranks, singular values â€
 11. Generate a random batch and visualise the activation distribution before and after BatchNorm, LayerNorm, and RMSNorm.
 12. For BERT-tiny, profile FLOPs by component (attention, FFN, normalization). Plot total compute as a function of sequence length.
 
-### Open-ended
+### Open-Ended
 
 13. Why do Transformers universally prefer LayerNorm over BatchNorm? Argue from training stability, variable sequence length, and parallelism.
 14. LoRA's premise is that fine-tuning updates are low-rank. Sketch a setting where this assumption fails, and design an experiment to detect it.
