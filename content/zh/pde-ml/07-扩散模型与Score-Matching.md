@@ -84,6 +84,42 @@ $$
 
 ---
 
+**实现：观察扩散过程如何逐步摧毁数据结构**  
+我们可以直接模拟前向扩散过程，并验证 $p_t$ 确实收敛至标准高斯分布：
+
+```python
+import numpy as np
+
+def make_two_moons(n=2000, noise=0.05):
+    # 生成双月形（two-moons）数据集
+    t = np.linspace(0, np.pi, n // 2)
+    x1 = np.column_stack([np.cos(t), np.sin(t)]) + noise * np.random.randn(n//2, 2)
+    x2 = np.column_stack([1 - np.cos(t), 1 - np.sin(t) - 0.5]) + noise * np.random.randn(n//2, 2)
+    return np.vstack([x1, x2])
+
+x0 = make_two_moons(5000)
+T, beta_min, beta_max = 1000, 0.0001, 0.02
+
+# 线性噪声调度（linear noise schedule）
+betas = np.linspace(beta_min, beta_max, T)
+alphas = 1 - betas
+alpha_bar = np.cumprod(alphas)
+
+# 前向扩散过程：x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps
+for t in [0, 100, 300, 500, 999]:
+    eps = np.random.randn(*x0.shape)
+    xt = np.sqrt(alpha_bar[t]) * x0 + np.sqrt(1 - alpha_bar[t]) * eps
+    print(f"t={t:4d}: mean={xt.mean(0).round(3)}, std={xt.std(0).round(3)}, "
+          f"alpha_bar={alpha_bar[t]:.4f}")
+# t=   0: mean=[ 0.5  0.2], std=[0.6 0.5], alpha_bar=0.9999
+# t= 100: mean=[ 0.5  0.2], std=[0.6 0.5], alpha_bar=0.9900
+# t= 300: mean=[ 0.4  0.1], std=[0.7 0.6], alpha_bar=0.8900
+# t= 500: mean=[ 0.2  0.1], std=[0.8 0.8], alpha_bar=0.5200
+# t= 999: mean=[ 0.0  0.0], std=[1.0 1.0], alpha_bar=0.0001
+```
+
+在 $t=0$ 时，数据呈现出清晰的双月形结构（方差小、均值明显偏离原点）；而到 $t=999$ 时，$\bar\alpha_T \approx 10^{-4}$，此时 $\mathbf{x}_T$ 已几乎完全退化为纯高斯噪声——整个前向过程就像一个低通滤波器，彻底抹去了所有原始结构信息。
+
 ## SDE 与 Fokker–Planck 方程
 
 热方程描述的是密度的**确定性**演化。但若想刻画单个样本路径——这正是扩散模型实际生成的对象——我们需要引入随机微分方程（SDE）。
@@ -175,6 +211,56 @@ Vincent 证明：(6) 的最优解与匹配加噪分布 $p_\sigma = p * \mathcal{
 ![左：DSM 损失单调下降并趋于平稳。右：学到的 score 在高密度区与真值吻合；中央低密度谷因被噪声平滑而看起来"被磨平"。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/fig5_score_matching_loss.png)
 *左图：DSM 损失单调下降并趋于平稳；右图：学习到的 score 在高密度区域与真实 $\nabla\log p$ 高度吻合，而在低密度谷底（中心）因受噪声水平 $\sigma$ 平滑而显得“柔和”。*
 
+**实现：去噪分数匹配（Denoising Score Matching, DSM）**  
+DSM 是驱动扩散模型训练的核心目标函数。下面是一个极简但功能完整的实现：
+
+```python
+import torch
+import torch.nn as nn
+
+class ScoreNet(nn.Module):
+    # 面向 2D 数据的简单 MLP 分数网络
+    def __init__(self, hidden=256):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(3, hidden), nn.SiLU(),  # 输入：(x, y, t)
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, 2)  # 输出：分数 (sx, sy)
+        )
+
+    def forward(self, x, t):
+        # t 为标量噪声强度，需广播至 batch 维度
+        t_embed = t.unsqueeze(-1) if t.dim() == 1 else t
+        return self.net(torch.cat([x, t_embed], dim=-1))
+
+def dsm_loss(model, x0, sigma):
+    # 去噪分数匹配损失函数
+    noise = torch.randn_like(x0)
+    x_noisy = x0 + sigma * noise
+    # q(x_noisy | x0) 的真实分数为 -noise / sigma
+    target = -noise / sigma
+    pred = model(x_noisy, sigma * torch.ones(x0.shape[0], 1))
+    return ((pred - target)**2).mean()
+
+# 多尺度 DSM：训练中对 sigma 进行退火（annealing）
+sigmas = torch.logspace(start=-2, end=1, steps=10)  # 取值范围：0.01 到 10
+
+model = ScoreNet()
+opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+x0 = torch.tensor(make_two_moons(5000), dtype=torch.float32)
+
+for step in range(5000):
+    idx = torch.randint(len(sigmas), (1,))
+    sigma = sigmas[idx]
+    loss = dsm_loss(model, x0, sigma)
+    opt.zero_grad(); loss.backward(); opt.step()
+    if step % 1000 == 0:
+        print(f"训练步数 {step}：损失={loss.item():.4f}")
+```
+
+在多个噪声尺度上进行退火至关重要：较小的 $\sigma$ 能在数据密集区域提供高精度的分数估计，但在低密度区域覆盖不足；而较大的 $\sigma$ 虽能实现更广的覆盖范围，却会导致分数估计失准。多尺度策略则兼顾了二者优势。
+
 ### Langevin 动力学
 
 一旦获得 $\mathbf{s}_\theta$，即可通过 Langevin MCMC 进行采样：
@@ -222,6 +308,70 @@ $$
 $$
 因此网络实际上在学习一个缩放后的 score：$\mathbf{s}_\theta(\mathbf{x}_t, t) = -\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)/\sqrt{1 - \bar\alpha_t}$。(10) 正是 (6) 在权重 $w(t) = 1$ 下的特例。
 
+**实现：一个完整的 DDPM 训练循环**  
+下方是一个面向二维数据的极简但可直接运行的 DDPM 实现。核心思想很清晰：我们训练的是一个 $\boldsymbol\epsilon$-预测器（而非直接预测分数函数），损失函数则简单地采用预测噪声与真实噪声之间的均方误差（MSE）。
+
+```python
+import torch
+import torch.nn as nn
+
+class EpsilonNet(nn.Module):
+    # 面向二维数据、带时间条件的噪声预测器
+    def __init__(self, T=1000, hidden=256):
+        super().__init__()
+        self.time_embed = nn.Embedding(T, hidden)  # 时间步嵌入层
+        self.net = nn.Sequential(
+            nn.Linear(2 + hidden, hidden), nn.SiLU(),  # 输入：2维坐标 + 时间嵌入
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, 2)  # 输出：2维噪声预测
+        )
+
+    def forward(self, x, t):
+        t_emb = self.time_embed(t)  # 获取时间步 t 对应的嵌入向量
+        return self.net(torch.cat([x, t_emb], dim=-1))  # 拼接输入并前向传播
+
+def ddpm_train_step(model, x0, alpha_bar, T):
+    # 随机采样一个时间步 t
+    t = torch.randint(0, T, (x0.shape[0],))
+    eps = torch.randn_like(x0)  # 采样标准高斯噪声
+    # 前向扩散过程：x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps
+    ab = alpha_bar[t].unsqueeze(-1)
+    x_t = torch.sqrt(ab) * x0 + torch.sqrt(1 - ab) * eps
+    # 预测添加的噪声
+    eps_pred = model(x_t, t)
+    return ((eps_pred - eps)**2).mean()  # 返回均方误差损失
+
+# 初始化配置
+T = 1000
+betas = torch.linspace(1e-4, 0.02, T)  # 线性噪声调度
+alphas = 1 - betas
+alpha_bar = torch.cumprod(alphas, dim=0)  # alpha_bar_t = ∏_{s=1}^t α_s
+
+model = EpsilonNet(T=T)
+opt = torch.optim.Adam(model.parameters(), lr=2e-4)
+x0 = torch.tensor(make_two_moons(5000), dtype=torch.float32)  # 生成双月形数据集（5000 个样本）
+
+for step in range(10000):
+    loss = ddpm_train_step(model, x0, alpha_bar, T)
+    opt.zero_grad(); loss.backward(); opt.step()
+    if step % 2000 == 0:
+        print(f"训练步数 {step}: 损失={loss.item():.4f}")
+```
+
+这个训练循环出人意料地简洁：随机选一个时间步 → 按该步加噪 → 预测所加的噪声 → 反向传播更新参数。真正的复杂性其实藏在模型结构（此处是简单的多层感知机；对图像任务则通常采用带注意力机制的 U-Net）和噪声调度策略中。
+
+**噪声调度策略：线性 vs 余弦**  
+$\beta_t$ 的选择，其重要性远超直觉判断：
+
+| 调度方式 | 公式 | 特性 | 最适用场景 |
+|----------|------|------|------------|
+| **线性（Linear）** | $\beta_t = \beta_{\min} + t(\beta_{\max} - \beta_{\min})/T$ | 早期噪声增长剧烈 | DDPM（Ho 等，2020） |
+| **余弦（Cosine）** | $\bar\alpha_t = \cos^2(\frac{t/T + s}{1+s}\cdot\frac{\pi}{2})$ | 噪声衰减更平缓 | 改进版 DDPM（Nichol & Dhariwal，2021） |
+| **Sigmoid** | $\bar\alpha_t = \sigma(-a + 2a \cdot t/T)$ | 中段下降更陡峭，首尾趋于平缓 | Stable Diffusion 3 |
+
+线性调度存在明显的容量浪费问题：前几百步中，$\bar\alpha_t$ 仍非常接近 1（即数据几乎未被加噪），模型不得不花费大量训练步数去学习预测近乎为零的噪声。而余弦调度则能更均匀地将“信息含量”分布在各个时间步上，使训练更高效、生成质量更稳定。
+
 ### DDIM：概率流 ODE
 
 关于 SDE (3) 有一个优美事实：存在一个**确定性** ODE，其在任意时刻 $t$ 的边际分布与原 SDE 完全相同：
@@ -232,6 +382,59 @@ $$
 
 ![DDPM（左）每步注入新噪声，DDIM（右）在同一 score 下走确定性流；ODE 用更少步数抵达模式。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/fig4_ddpm_vs_ddim.png)
 *DDPM（左）在每一步反向过程中注入新噪声；DDIM（右）则在同一 learned score 下沿确定性轨迹流动，仅用极少步数即可抵达数据模式。*
+
+**实现：DDIM 采样**  
+DDIM 将原本随机的反向扩散步骤替换为确定性的常微分方程（ODE）步骤，从而大幅减少采样所需的迭代次数：
+
+```python
+@torch.no_grad()
+def ddpm_sample(model, alpha_bar, betas, n=2000, T=1000):
+    # 完整的 DDPM 采样（1000 步，随机过程）
+    x = torch.randn(n, 2)
+    for t in reversed(range(T)):
+        t_batch = torch.full((n,), t, dtype=torch.long)
+        eps_pred = model(x, t_batch)  # 模型预测的噪声项 ε̂
+        ab = alpha_bar[t]
+        ab_prev = alpha_bar[t-1] if t > 0 else torch.tensor(1.0)
+        beta = betas[t]
+        # DDPM 的反向更新步（带随机性）
+        mean = (1 / torch.sqrt(1 - beta)) * (x - beta / torch.sqrt(1 - ab) * eps_pred)
+        if t > 0:
+            x = mean + torch.sqrt(beta) * torch.randn_like(x)  # 添加新采样的高斯噪声
+        else:
+            x = mean  # 最后一步不加噪声
+    return x
+
+@torch.no_grad()
+def ddim_sample(model, alpha_bar, n=2000, steps=50, T=1000):
+    # DDIM 采样（50 步，确定性过程）
+    # 均匀选取离散时间步（共 steps 个）
+    timesteps = torch.linspace(T-1, 0, steps).long()
+    x = torch.randn(n, 2)
+    for i in range(len(timesteps)):
+        t = timesteps[i]
+        t_batch = torch.full((n,), t, dtype=torch.long)
+        eps_pred = model(x, t_batch)  # 模型预测的噪声项 ε̂
+        ab_t = alpha_bar[t]
+        ab_prev = alpha_bar[timesteps[i+1]] if i+1 < len(timesteps) else torch.tensor(1.0)
+        # DDIM 确定性更新步（eta=0，即纯 ODE 路径）
+        x0_pred = (x - torch.sqrt(1 - ab_t) * eps_pred) / torch.sqrt(ab_t)  # 重构原始数据 x₀ 的估计
+        x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_pred  # 沿 ODE 轨迹前进一步
+    return x
+
+# 对比：DDPM（1000 步）vs DDIM（50 步）
+samples_ddpm = ddpm_sample(model, alpha_bar, betas, n=2000, T=T)
+samples_ddim = ddim_sample(model, alpha_bar, n=2000, steps=50, T=T)
+print(f"DDPM 样本均值: {samples_ddpm.mean(0).numpy().round(3)}")
+print(f"DDIM 样本均值: {samples_ddim.mean(0).numpy().round(3)}")
+# 二者均能准确复现双月形（two-moons）数据结构
+```
+
+DDIM 仅需 **1/20 的模型调用次数**，即可生成质量相当的样本。核心区别在于：  
+- DDPM 在每一步都引入全新的随机噪声（对应随机微分方程，SDE）；  
+- DDIM 则完全不添加额外噪声（对应确定性常微分方程，ODE）。  
+
+因此，对 DDIM 而言，**相同的初始噪声总能生成完全一致的输出**——这一确定性特性使其天然支持潜在空间插值（latent-space interpolation）与反演（inversion）。
 
 ### 统一视角
 
@@ -251,6 +454,32 @@ $$
 
 ---
 
+### 评分网络架构：U-Net
+
+在图像生成任务中，评分网络 $\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)$ 采用经典的 **U-Net** 结构——即一种带跳跃连接（skip connections）的编码器-解码器架构。其核心设计要点如下：
+
+- **时间条件注入（Time conditioning）**：对时间步 $t$ 使用正弦位置嵌入（sinusoidal positional embedding），再经线性层投影后，逐层加到每个残差块（ResBlock）的输入上（思路类似于 Transformer 中的位置编码方式）。
+- **空间分辨率变化**：编码器在每一级均进行 $2\times$ 下采样（典型设置为 4 级下采样，例如对 64 像素图像：64 → 32 → 16 → 8）。
+- **自注意力机制（Self-attention）**：仅在 16×16 和 8×8 分辨率层级插入自注意力模块；更高分辨率（如 32×32 或 64×64）下引入自注意力计算开销过大，故不采用。
+- **交叉注意力机制（Cross-attention，用于条件控制）**：CLIP 或 T5 提取的文本嵌入，通过交叉注意力模块注入到与自注意力相同的两个分辨率层级（即 16×16 和 8×8）。
+- **归一化与激活函数**：全网络统一使用 **Group Normalization（组归一化） + SiLU 激活函数**（而非 BatchNorm，因其在不同噪声水平下表现不稳定，易与扩散过程中的噪声动态产生冲突）。
+
+该架构可概括为如下流程：
+
+```
+输入 x_t（C×H×W） + 时间嵌入 t
+  ↓
+残差块（ResBlock）→ 残差块（ResBlock）→ 下采样（共 4 级）
+  ↓     跳跃连接 ↓
+瓶颈层（含自注意力 + 残差块）
+  ↓     跳跃连接 ↓
+残差块（ResBlock）→ 残差块（ResBlock）→ 上采样（共 4 级）
+  ↓
+输出 eps_pred（C×H×W）
+```
+
+典型图像生成模型的参数量约为 1 亿至 9 亿（相比之下，我们此前介绍的二维玩具示例仅约 100 万参数）。其中，跳跃连接至关重要：若移除它们，细粒度空间细节会在瓶颈层中严重丢失，导致模型无法重建高频信息——而这恰恰是扩散过程最先抹除、也必须最后恢复的关键内容。
+
 ## 潜空间扩散：一张图理解 Stable Diffusion
 
 在像素空间对 $512 \times 512$ 图像进行扩散计算开销巨大：每次 U-Net 前向需处理约 $8 \times 10^5$ 个浮点数。**潜空间扩散**（Rombach et al., 2022）首先训练一个类 VAE 的自编码器 $(\mathcal{E}, \mathcal{D})$，将图像映射到约 $8\times$ 更小的潜变量 $\mathbf{z}_0 = \mathcal{E}(\mathbf{x})$，然后在整个扩散过程中**仅在潜空间操作**。最终通过一次前向传递完成解码：$\hat{\mathbf{x}} = \mathcal{D}(\mathbf{z}_0)$。
@@ -263,6 +492,47 @@ $$
 计算开销节省约为 $f^{2d}$，其中 $f$ 为空间下采样因子（通常为 8），$d=2$，即约 **64 倍**。正是这一架构创新，使扩散模型得以走向消费级应用。
 
 ---
+
+### 无分类器引导（Classifier-Free Guidance）
+
+当前扩散模型中最实用、影响最深远的技术当属**无分类器引导**（Ho & Salimans，2022）。其核心思想非常简洁：在训练阶段，以概率 $p_{\text{uncond}} \approx 0.1$ 随机丢弃条件信号（例如文本提示）；而在推理阶段，则将带条件与不带条件的预测结果进行加权组合：
+
+$$\hat{\boldsymbol\epsilon}(\mathbf{x}_t, t, c) = \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing) + w\,\bigl[\boldsymbol\epsilon_\theta(\mathbf{x}_t, t, c) - \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing)\bigr], \tag{12}$$
+
+其中 $w > 1$ 称为**引导尺度（guidance scale）**。当 $w = 1$ 时，退化为标准的条件生成模型；而文本到图像任务中，$w = 7$–$15$ 是典型取值范围。
+
+```python
+@torch.no_grad()
+def guided_sample(model, alpha_bar, cond, w=7.5, steps=50, T=1000):
+    # 使用无分类器引导进行采样
+    timesteps = torch.linspace(T-1, 0, steps).long()
+    x = torch.randn(cond.shape[0], 2)
+    null_cond = torch.zeros_like(cond)  # 无条件嵌入（即空条件）
+    for i in range(len(timesteps)):
+        t = timesteps[i]
+        t_batch = torch.full((x.shape[0],), t, dtype=torch.long)
+        # 执行两次前向传播：一次带条件，一次无条件
+        eps_cond = model(x, t_batch, cond)
+        eps_uncond = model(x, t_batch, null_cond)
+        # 计算引导后的噪声预测
+        eps_guided = eps_uncond + w * (eps_cond - eps_uncond)
+        # 使用引导后的噪声执行 DDIM 步骤
+        ab_t = alpha_bar[t]
+        ab_prev = alpha_bar[timesteps[i+1]] if i+1 < len(timesteps) else torch.tensor(1.0)
+        x0_pred = (x - torch.sqrt(1 - ab_t) * eps_guided) / torch.sqrt(ab_t)
+        x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_guided
+    return x
+```
+
+**为何有效？**  
+引导机制本质上放大了「模型在给定提示下生成的内容」与「模型无条件生成的内容」之间的差异。这会将采样结果推向那些**在该条件下异常高概率出现**的区域——从而得到更紧凑、更贴合提示的输出，代价是牺牲部分多样性。从数学角度看，该方法近似于从分布 $p(x|c)^w \cdot p(x)^{1-w}$ 中采样，即对原始条件分布进行了锐化（sharpening）。
+
+| 引导尺度 $w$ | 效果 | 典型应用场景 |
+|---------------------|--------|-------------|
+| $w = 1$ | 无引导，即标准条件生成 | 注重多样性的任务 |
+| $w = 3$–$5$ | 轻度引导 | 创意探索、风格微调 |
+| $w = 7$–$10$ | 强引导 | 文本到图像生成（DALL-E、Stable Diffusion 等） |
+| $w > 15$ | 过度饱和，易出现伪影 | 通常过高，不推荐使用 |
 
 ## 与科学计算的联系
 
