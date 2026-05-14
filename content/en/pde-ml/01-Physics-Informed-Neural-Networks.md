@@ -603,13 +603,13 @@ PINNs are not a universal solver. Here are concrete scenarios where they fail or
 
 Reading PINN as "constraint embedded in the loss function" makes the rest of the series fall into place:
 
-- **Chapter 2 — Neural operators.** From "learn one solution" to "learn the solution operator $\mathcal G:f\mapsto u$".
-- **Chapter 3 — Variational principles.** Replace the residual loss with an energy functional — more stable, closer to the FEM theory.
-- **Chapter 4 — Variational inference.** Push the Fokker–Planck equation into the loss for consistent probabilistic inference.
-- **Chapter 5 — Symplectic geometry.** Encode Hamiltonian conservation directly in the architecture — the extreme case of hard constraints.
-- **Chapter 6 — Neural ODE / CNF.** Replace "residual = 0" with "divergence of the flow = 0".
-- **Chapter 7 — Diffusion models / score matching.** Run PINN backwards: given data, recover the stochastic process whose Fokker–Planck equation it satisfies.
-- **Chapter 8 — Reaction-diffusion + GNN.** Swap the MLP for a graph network to handle mesh-shaped geometry.
+- [**Chapter 2 — Neural operators.**](/en/pde-ml/02-neural-operator-theory/) From "learn one solution" to "learn the solution operator $\mathcal G:f\mapsto u$".
+- [**Chapter 3 — Variational principles.**](/en/pde-ml/03-variational-principles/) Replace the residual loss with an energy functional — more stable, closer to the FEM theory.
+- [**Chapter 4 — Variational inference.**](/en/pde-ml/04-variational-inference/) Push the Fokker–Planck equation into the loss for consistent probabilistic inference.
+- [**Chapter 5 — Symplectic geometry.**](/en/pde-ml/05-symplectic-geometry/) Encode Hamiltonian conservation directly in the architecture — the extreme case of hard constraints.
+- [**Chapter 6 — Neural ODE / CNF.**](/en/pde-ml/06-continuous-normalizing-flows/) Replace "residual = 0" with "divergence of the flow = 0".
+- [**Chapter 7 — Diffusion models / score matching.**](/en/pde-ml/07-diffusion-models/) Run PINN backwards: given data, recover the stochastic process whose Fokker–Planck equation it satisfies.
+- [**Chapter 8 — Reaction-diffusion + GNN.**](/en/pde-ml/08-reaction-diffusion-systems/) Swap the MLP for a graph network to handle mesh-shaped geometry.
 
 After this chapter, you should be able to give the one-sentence answer:
 
