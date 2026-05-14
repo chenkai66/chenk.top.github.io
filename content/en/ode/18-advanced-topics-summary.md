@@ -257,22 +257,6 @@ If you read all of them, you have covered roughly the equivalent of an undergrad
 
 ---
 
-## Where to go from here
-
-Choose a target, not a textbook. Here are five well-defined next steps and the resources that match them.
-
-| Goal | Read next | Why |
-|---|---|---|
-| Master classical theory | Hirsch, Smale & Devaney, *Differential Equations, Dynamical Systems* | Cleanest geometric treatment |
-| Build numerical chops | Hairer & Wanner, *Solving ODEs* (vol 1 + 2) | The bible of numerical ODEs |
-| Deepen nonlinear dynamics | Strogatz, *Nonlinear Dynamics and Chaos* | Best-written intuition-first text |
-| Move into PDEs | Evans, *Partial Differential Equations* | Standard graduate reference |
-| Bridge to ML | Kidger, *On Neural Differential Equations* (free PhD thesis) | Modern, code-rich, beautifully clear |
-
-For software: `scipy.integrate` for Python, `DifferentialEquations.jl` for Julia (state-of-the-art), `diffrax` for JAX (autodiff-friendly), `torchdiffeq` for PyTorch.
-
----
-
 ## The Series Journey
 
 ![The 18-chapter journey along a wave: every chapter as a node along the timeline, with five eras and a closing message.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/fig5_series_journey.png)
@@ -299,6 +283,22 @@ If that is so, then the goal is met. Mathematics is not a memorised list of iden
 Go and use them. Predict, design, control, learn. The journey ends here — and the work begins now.
 
 Thank you for reading.
+
+---
+
+## Where to go from here
+
+Choose a target, not a textbook. Here are five well-defined next steps and the resources that match them.
+
+| Goal | Read next | Why |
+|---|---|---|
+| Master classical theory | Hirsch, Smale & Devaney, *Differential Equations, Dynamical Systems* | Cleanest geometric treatment |
+| Build numerical chops | Hairer & Wanner, *Solving ODEs* (vol 1 + 2) | The bible of numerical ODEs |
+| Deepen nonlinear dynamics | Strogatz, *Nonlinear Dynamics and Chaos* | Best-written intuition-first text |
+| Move into PDEs | Evans, *Partial Differential Equations* | Standard graduate reference |
+| Bridge to ML | Kidger, *On Neural Differential Equations* (free PhD thesis) | Modern, code-rich, beautifully clear |
+
+For software: `scipy.integrate` for Python, `DifferentialEquations.jl` for Julia (state-of-the-art), `diffrax` for JAX (autodiff-friendly), `torchdiffeq` for PyTorch.
 
 ---
 

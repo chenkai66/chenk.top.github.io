@@ -251,6 +251,250 @@ For competitive MARL, the standard recipe is **fictitious self-play**: at each i
 
 MARL is *much* more sensitive to hyperparameters than single-agent RL. The same QMIX implementation, with all defaults, converges on StarCraft II micromanagement at one learning rate and diverges on a multi-particle environment at a 2× different learning rate. The community lore is that the right starting point is roughly half the learning rate you would use for single-agent PPO — and to keep the entropy bonus higher for longer, because exploration is a public good in MARL: when one agent stops exploring, all the others lose information.
 
+## Centralised Critic, Decentralised Actor (CTDE) — A Theorem
+
+![MADDPG: centralised critic during training, decentralised actors at execution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-Multi-Agent-RL/fig09_maddpg.png)
+
+The setup is the one almost every paper after 2017 inherits. There are $N$ agents, a joint state $s$, individual actions $a_i$, and a joint policy that factorises as $\pi(a \mid s) = \prod_i \pi_i(a_i \mid s)$. Each agent only sees its own slice at execution time, but during training we let the critic peek at everything.
+
+The result that justifies all of this is from [Lowe et al. 2017](https://arxiv.org/abs/1706.02275). Define a centralised critic $Q^\pi(s, a_1, \dots, a_N)$ that takes the full joint action as input. Then the policy gradient for agent $i$ is
+$$\nabla_{\theta_i} J(\pi_i) = \mathbb{E}\!\left[ \nabla_{\theta_i} \log \pi_i(a_i \mid s) \, Q^\pi(s, a_1, \dots, a_N) \right],$$
+and this estimator is unbiased even while teammates are still updating. That is the whole CTDE theorem in one line.
+
+The proof sketch is short and worth knowing. Freeze the teammates' policies $\pi_{-i}$ for the duration of one update. From agent $i$'s viewpoint, the transition kernel is now $P(s' \mid s, a_i, a_{-i})$ marginalised over $a_{-i} \sim \pi_{-i}$, which is stationary because $\pi_{-i}$ is fixed. But — and this is the load-bearing word — the marginalisation introduces variance that scales badly with $N$. If instead we *condition* on $a_{-i}$ explicitly, the variance disappears. Centralisation is what enables that conditioning. An independent learner cannot condition on what it cannot see.
+
+The contrapositive matters too. If you only have access to $Q_i(s, a_i)$, the gradient $\nabla_{\theta_i} \log \pi_i(a_i \mid s) \, Q_i(s, a_i)$ is biased whenever the teammates' policies drift between data collection and update. This is the formal source of the non-stationarity that wrecks IQL.
+
+There is also a dimensionality argument that gets lost in the proof. The centralised critic learns a function over $\mathbb{R}^{|s| + N \cdot |a|}$, which is a lot. But it only has to learn it on the support of the joint policy — and since the joint policy is the product of decentralised actors, the support is much smaller than the full Cartesian product of action spaces. Empirically the critic generalises across the support cleanly, which is why MADDPG works with critic networks of modest capacity.
+
+A working MADDPG skeleton looks like this. One actor per agent, one shared centralised critic, deterministic policy gradient with Gumbel-Softmax for discrete action spaces.
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Actor(nn.Module):
+    def __init__(self, obs_dim, act_dim, hidden=128):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, hidden), nn.ReLU(),
+            nn.Linear(hidden, act_dim),
+        )
+
+    def forward(self, obs, hard=False, tau=1.0):
+        logits = self.net(obs)
+        return F.gumbel_softmax(logits, tau=tau, hard=hard)
+
+
+class CentralisedCritic(nn.Module):
+    def __init__(self, state_dim, n_agents, act_dim, hidden=256):
+        super().__init__()
+        self.q = nn.Sequential(
+            nn.Linear(state_dim + n_agents * act_dim, hidden), nn.ReLU(),
+            nn.Linear(hidden, hidden), nn.ReLU(),
+            nn.Linear(hidden, 1),
+        )
+
+    def forward(self, state, joint_actions):
+        return self.q(torch.cat([state, joint_actions], dim=-1)).squeeze(-1)
+
+
+def maddpg_update(actors, critic, target_actors, target_critic, batch, gamma=0.99):
+    s, a, r, s_next, done = batch
+    with torch.no_grad():
+        a_next = torch.cat([ta(s_next) for ta in target_actors], dim=-1)
+        y = r + gamma * (1 - done) * target_critic(s_next, a_next)
+    critic_loss = F.mse_loss(critic(s, a), y)
+
+    actor_losses = []
+    for i, actor in enumerate(actors):
+        a_i = actor(s)  # differentiable through Gumbel-Softmax
+        a_joint = a.clone()
+        slice_i = slice(i * a_i.size(-1), (i + 1) * a_i.size(-1))
+        a_joint[..., slice_i] = a_i
+        actor_losses.append(-critic(s, a_joint).mean())
+    return critic_loss, actor_losses
+```
+
+The numerical anchor I keep coming back to is the predator-prey environment with four predators chasing one prey on a 2-D torus. Independent Q-learning plateaus at roughly 35% catch rate after 50k episodes — the predators learn to chase but never coordinate the pincer. MADDPG hits 78% in the same budget, matching Figure 4 of the original paper. The gap is not the algorithm being clever; it is the centralised critic refusing to be confused.
+
+Two implementation details that cost me a week the first time. The Gumbel-Softmax temperature $\tau$ matters: too high and the actor's gradient is noise, too low and it becomes a one-hot that the critic cannot differentiate through. I anneal from $\tau = 1.0$ to $\tau = 0.5$ over the first 20% of training. Second, the target networks update slowly — Polyak coefficient $\rho = 0.995$ — and they are essential. Without them the critic chases its own moving target and the actor follows it off a cliff.
+
+The next question is who, inside the team reward, actually earned what.
+
+## Counterfactual Reasoning: COMA Baselines
+
+When the team gets a single scalar reward at the end of an episode, the gradient for each agent is contaminated by everyone else's noise. If agent 3 happened to do something useful on the same step that agent 1 made a coordinated kill, both get the same reward and the gradient credits both equally. Over millions of episodes that bias does not wash out — it locks in lazy agents.
+
+[COMA](https://arxiv.org/abs/1705.08926) proposes a counterfactual baseline. Define the advantage of agent $i$ as
+$$A_i(s, a) = Q(s, a_1, \dots, a_N) - \sum_{a'_i} \pi_i(a'_i \mid s) \, Q(s, a_1, \dots, a'_i, \dots, a_N),$$
+which marginalises over agent $i$'s possible actions while holding teammates fixed at what they actually did. The first term is what happened. The second is the expected $Q$ if agent $i$ had sampled from its policy instead. The difference is exactly $i$'s marginal contribution.
+
+This is not a new invention. It is the **difference reward** trick from mechanism design (Wolpert & Tumer 2002), reframed as a value-function baseline. The variance reduction is real — Foerster et al. show roughly a 4× reduction in gradient variance compared to a shared state-value baseline on SMAC.
+
+Why a difference reward beats a shared baseline is one of those things that looks obvious only after you have stared at the math for an hour. A shared baseline like $V(s)$ subtracts the same scalar from every agent's $Q(s, \mathbf{a})$, so gradient noise from $a_{-i}$ leaks into agent $i$'s update. The counterfactual baseline subtracts a quantity that depends on $a_{-i}$ in exactly the right way to cancel that leak. It is the same pattern as control variates in Monte Carlo integration.
+
+The implementation is cheaper than it looks. The centralised critic outputs a vector over agent $i$'s action space at once, so the baseline is one dot product:
+
+```python
+def coma_advantage(critic, state, joint_actions, agent_idx, policy_probs, n_actions):
+    """
+    critic: outputs Q-values for all actions of agent `agent_idx`,
+            given state and the OTHER agents' actions.
+    policy_probs: (batch, n_actions) — pi_i(.|s).
+    """
+    # q_all[b, a'] = Q(s, a_{-i}, a'_i = a')
+    q_all = critic(state, joint_actions, agent_idx)
+    actual_action = joint_actions[:, agent_idx].long()
+    q_taken = q_all.gather(1, actual_action.unsqueeze(1)).squeeze(1)
+    baseline = (policy_probs * q_all).sum(dim=1)
+    return q_taken - baseline
+```
+
+On the SMAC 3m map (three Marines vs three Marines), vanilla independent actor-critic wins about 41% of evaluations after 2M steps. COMA hits 87% in the same budget. The map is small enough that the centralised critic fits in a single MLP — the gain is not from capacity, it is from the baseline.
+
+The catch: COMA needs the full joint action distribution at training time. In partially observable settings where you cannot reconstruct $a_{-i}$ from the replay buffer, you fall back to off-policy corrections or just drop the agent index dimension and use a shared critic.
+
+A subtler practical point: COMA is on-policy. The advantage is computed under the *current* $\pi_i$, not whatever policy generated the replay sample. Mixing in stale samples re-introduces the bias the baseline was meant to remove. I run COMA with a small replay window (the last 8 episodes) and it stays stable; longer windows drift.
+
+That assumes the agents already see enough to coordinate. When they do not, they need to talk.
+
+## Communication: Differentiable Message Passing (DIAL)
+
+Sometimes CTDE is not enough. If the agents have genuinely partial observations and the joint state cannot be reconstructed at execution, they need a communication channel — and the channel itself has to be learned. The trick is that you cannot backprop through a discrete message.
+
+[DIAL (Foerster et al. 2016)](https://arxiv.org/abs/1605.06676) solves this with a soft trick: during training, send continuous-valued messages and let gradients flow through them as if they were activations. At execution time, discretise to whatever the channel actually supports (one bit, one byte, a token). The continuous-to-discrete gap is small if the noise injected during training matches the discretisation granularity.
+
+The gradient flowing back through the message is what makes this work. Agent $j$'s message to agent $i$ becomes part of $i$'s policy input, $i$'s loss depends on its action, and the chain rule pushes the loss signal back into $j$'s message-emitting head. So $j$ learns to emit messages that improve $i$'s decisions — even though $j$ never gets a direct reward for messaging. This is genuinely useful and genuinely hard to debug when it does not work.
+
+A CommNet-style module is the easiest variant to drop into existing code. Each agent emits a message vector, the messages are pooled (mean or attention), and the pooled representation is broadcast back as an extra input to every actor.
+
+```python
+import torch
+import torch.nn as nn
+
+class CommModule(nn.Module):
+    def __init__(self, obs_dim, msg_dim, hidden=128, n_heads=4):
+        super().__init__()
+        self.encoder = nn.Linear(obs_dim, hidden)
+        self.msg_head = nn.Linear(hidden, msg_dim)
+        self.attn = nn.MultiheadAttention(msg_dim, n_heads, batch_first=True)
+        self.policy_head = nn.Linear(hidden + msg_dim, hidden)
+
+    def forward(self, obs):
+        # obs: (batch, n_agents, obs_dim)
+        h = torch.relu(self.encoder(obs))
+        msgs = self.msg_head(h)  # (batch, n_agents, msg_dim)
+        # Self-attention over agents — each agent attends to all peers
+        pooled, _ = self.attn(msgs, msgs, msgs)
+        out = torch.relu(self.policy_head(torch.cat([h, pooled], dim=-1)))
+        return out
+```
+
+The caveat that bit me on a robotics project: DIAL helps when partial observability is the bottleneck. On fully observable environments — including most StarCraft II micromanagement scenarios at small scale — the centralised critic in CTDE already provides enough coordination signal, and adding a communication channel just adds parameters that learn to ignore themselves. Run an ablation before assuming you need messages.
+
+Communication scales linearly with $n$ if you use sparse top-$k$ attention; mean pooling is $O(n)$ but loses individual structure. For teams above 32 agents, neither matters much — what matters is whether the joint $Q$ function is even tractable.
+
+One more thing worth flagging: discretisation noise. DIAL trains with continuous messages plus Gaussian noise of std $\sigma$ matched to the discretisation step size. At test time the message is rounded to the nearest grid point. If $\sigma$ is too small the deployed policy underperforms the trained one because the rounding is off-distribution; too large and the trained policy never learns a useful signal. Picking $\sigma$ to match the binning was the only hyperparameter that mattered on my hand.
+
+## QMIX: Mixing Networks for Cooperative Tasks
+
+The core scaling problem of CTDE is in the centralised critic itself. With $N$ agents and $|A|$ actions each, the joint action space has $|A|^N$ entries. A centralised $Q$-network has to learn over that space, and at execution time you would need to enumerate it to pick the joint argmax. Both are dead on arrival past $N=8$.
+
+[QMIX (Rashid et al. 2018)](https://arxiv.org/abs/1803.11485) factorises the joint action-value into per-agent components combined by a mixing network:
+$$Q_{\text{tot}}(s, \mathbf{a}) = f_{\text{mix}}\!\left(Q_1(s, a_1), \dots, Q_N(s, a_N); s\right),$$
+where $f_{\text{mix}}$ is a feed-forward network whose **weights are non-negative** and conditioned on the global state $s$ via a hypernetwork. Non-negativity gives the monotonicity property
+$$\frac{\partial Q_{\text{tot}}}{\partial Q_i} \geq 0 \quad \forall i,$$
+which is the entire point. Monotonicity guarantees
+$$\arg\max_{\mathbf{a}} Q_{\text{tot}}(s, \mathbf{a}) = \left(\arg\max_{a_1} Q_1(s, a_1), \dots, \arg\max_{a_N} Q_N(s, a_N)\right),$$
+so each agent can act greedily on its own $Q_i$ at execution and the resulting joint action is provably optimal under the centralised $Q_{\text{tot}}$.
+
+The implementation has two pieces — the per-agent value heads and the hypernetwork that generates the mixing weights:
+
+```python
+import torch
+import torch.nn as nn
+
+class QMixer(nn.Module):
+    def __init__(self, n_agents, state_dim, mix_hidden=32):
+        super().__init__()
+        self.n_agents = n_agents
+        self.mix_hidden = mix_hidden
+        # Hypernetworks: state -> mixing weights (non-negative via abs)
+        self.hyper_w1 = nn.Linear(state_dim, n_agents * mix_hidden)
+        self.hyper_w2 = nn.Linear(state_dim, mix_hidden)
+        self.hyper_b1 = nn.Linear(state_dim, mix_hidden)
+        self.hyper_b2 = nn.Sequential(
+            nn.Linear(state_dim, mix_hidden), nn.ReLU(),
+            nn.Linear(mix_hidden, 1),
+        )
+
+    def forward(self, agent_qs, state):
+        # agent_qs: (batch, n_agents)
+        # state: (batch, state_dim)
+        b = agent_qs.size(0)
+        w1 = torch.abs(self.hyper_w1(state)).view(b, self.n_agents, self.mix_hidden)
+        b1 = self.hyper_b1(state).view(b, 1, self.mix_hidden)
+        hidden = torch.relu(torch.bmm(agent_qs.unsqueeze(1), w1) + b1)
+        w2 = torch.abs(self.hyper_w2(state)).view(b, self.mix_hidden, 1)
+        b2 = self.hyper_b2(state).view(b, 1, 1)
+        q_tot = torch.bmm(hidden, w2) + b2
+        return q_tot.view(b)
+```
+
+On the SMAC `3s5z` map (three Stalkers and five Zealots vs the same composition), MADDPG plateaus at around 10% win rate — the joint critic cannot generalise across the heterogeneous unit types. QMIX hits 92% in the same budget. The factorisation is doing real work; this is not a constant-factor speedup.
+
+The known limitation: the IGM (individual-global-max) property that QMIX enforces is sufficient but not necessary for decentralisable optimal policies. Tasks where the optimal joint action requires non-monotonic credit (one agent's $Q$ goes up only when another's goes down) cannot be represented exactly. QTRAN and QPLEX address this; in practice I rarely see the failure modes outside synthetic counter-examples.
+
+Training tip from a failure: do not share the learning rate between the per-agent $Q_i$ networks and the mixer. The mixer sees a much smaller effective gradient norm because the hypernetwork outputs are gated by the absolute value, and matching the agent learning rate will leave the mixer untrained for the first 5M steps. I run the mixer at 3× the agent rate and it keeps up.
+
+So far everything has been cooperative. The competitive case is its own kind of broken.
+
+## Self-Play and Population-Based Training
+
+Naive self-play in competitive games is a trap. The agent trains against its current self, gets better, but only along the axis its current self exposes. Old failure modes resurface six months later. The literature calls it the rock-paper-scissors cycle; I have watched a Dota bot forget how to defend a tower it had defended fine 200k iterations earlier.
+
+Two fixes recur. **Fictitious self-play** plays the current learner against a uniform mixture of past versions of itself — the average policy, not the latest one. **League training**, the AlphaStar variant, extends this with multiple sub-populations: main agents (the deployment target), main exploiters (whose only job is to find weaknesses in main agents), and league exploiters (which maintain strategic diversity by periodically resetting and forking).
+
+The numerical anchor: AlphaStar's published results show that pure self-play plateaus at roughly Diamond-rank play after equivalent training; the full league reaches Grandmaster. The compute is the same. The difference is curriculum.
+
+A minimal league looks like this:
+
+```python
+import random
+from collections import deque
+
+class League:
+    def __init__(self, max_history=200):
+        self.main = None
+        self.main_exploiters = []
+        self.history = deque(maxlen=max_history)
+
+    def sample_opponent(self, learner_role):
+        if learner_role == "main":
+            # 50% latest checkpoints, 35% historical, 15% exploiters
+            r = random.random()
+            if r < 0.5 and self.history:
+                return random.choice(list(self.history)[-20:])
+            if r < 0.85 and self.history:
+                return random.choice(self.history)
+            return random.choice(self.main_exploiters) if self.main_exploiters else self.main
+        if learner_role == "main_exploiter":
+            return self.main  # always train against the current main
+        if learner_role == "league_exploiter":
+            return random.choice(self.history) if self.history else self.main
+
+    def checkpoint(self, agent):
+        self.history.append(agent.snapshot())
+```
+
+The connection back to the cooperative side is [PSRO](https://arxiv.org/abs/1711.00832) (Policy-Space Response Oracles): it frames competitive MARL as a meta-game whose actions are policies and whose payoff matrix is "expected return when policy A plays policy B". The inner game is the environment, and the outer solver is something like double oracle or Nash equilibrium computation over the meta-payoff matrix. League training is one schedule for populating that matrix; fictitious self-play is another. The view is unifying: cooperative CTDE is PSRO with a single policy class and an additive payoff, competitive league training is PSRO with multiple classes and zero-sum payoffs, and the rest is engineering.
+
+A debugging story to close on. I spent two weeks watching a competitive MARL setup learn nothing. The reward curves were flat. Win rate against the latest checkpoint hovered at 50% — exactly chance. The bug was that I was sampling opponents only from the most recent 5 checkpoints, which were all variants of the same near-optimal policy that the learner had just memorised. Once I expanded the sampling window to 200 checkpoints, the learner immediately discovered exploits in older versions and bootstrapped from there. The policy improved not because the algorithm got smarter but because the *opponent distribution* got broader. That is the whole lesson of league training in one paragraph.
+
+Once you see MARL through the meta-game lens, the line between RLHF reward modelling and competitive self-play gets thin. That is the topic of [Part 12](/en/reinforcement-learning/12-rlhf-and-llm-applications/).
+
 ## FAQ
 
 ### Why does QMIX need the monotonicity constraint?
