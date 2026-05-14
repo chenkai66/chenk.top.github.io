@@ -38,7 +38,7 @@ This post derives ZSL from one equation — a compatibility function $F(x, c)$ b
 
 ## Prerequisites
 
-- Parts 1–6 of this series (especially few-shot in Part 4 and multi-task in Part 6)
+- Parts 1–6 of this series (especially [few-shot in Part 4](/en/transfer-learning/04-few-shot-learning/) and [multi-task in Part 6](/en/transfer-learning/06-multi-task-learning/))
 - PyTorch and standard cross-entropy / softmax training
 - Word embeddings (Word2Vec / GloVe basics) and a passing acquaintance with GANs
 

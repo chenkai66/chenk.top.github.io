@@ -37,7 +37,7 @@ This post derives why that is even possible. We start from the bilingual-embeddi
 
 ## Prerequisites
 
-- BERT pretraining (MLM, [CLS] pooling) — see Part 2
+- BERT pretraining (MLM, [CLS] pooling) — see [Part 2](/en/transfer-learning/02-pre-training-and-fine-tuning/)
 - Transfer-learning fundamentals — Parts 1-6
 - Word embeddings: dense vectors, cosine similarity
 

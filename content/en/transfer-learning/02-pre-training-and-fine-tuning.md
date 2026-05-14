@@ -35,7 +35,7 @@ But *why* does pre-training work? When should you freeze layers, when should you
 - Parameter-efficient adaptation: Adapters and LoRA
 - A complete BERT fine-tuning implementation with discriminative LR, gradient accumulation, mixed precision, and warmup scheduling
 
-**Prerequisites:** Part 1 of this series (or equivalent transfer-learning intuition), basic familiarity with the Transformer architecture.
+**Prerequisites:** [Part 1](/en/transfer-learning/01-fundamentals-and-core-concepts/) of this series (or equivalent transfer-learning intuition), basic familiarity with the Transformer architecture.
 
 ---
 

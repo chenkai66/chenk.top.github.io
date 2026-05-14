@@ -41,7 +41,7 @@ A telecom company had 80,000 labeled customer-support tickets but wanted to add 
 
 A model pretrained on ImageNet (natural images) transfers well to medical X-rays (grayscale, structured anatomy) but poorly to satellite imagery (top-down perspective, different feature scales). Check Hugging Face, TensorFlow Hub, PyTorch Hub, and domain-specific repositories (e.g., BioBERT for biomedical text, Climate Change AI model zoo for environmental data).
 
-If no pretrained model exists, you can still use self-supervised pretraining on your unlabeled data (Part 1 of this series), but that adds a training stage and requires more compute.
+If no pretrained model exists, you can still use self-supervised pretraining on your unlabeled data ([Part 1](/en/transfer-learning/01-fundamentals-and-core-concepts/) of this series), but that adds a training stage and requires more compute.
 
 A logistics company wanted to predict package-delivery delays. No pretrained model existed for "logistics time-series," but they had 10 million unlabeled shipment records. They pretrained a Transformer with masked time-series modeling (predicting missing time steps), then fine-tuned on 50,000 labeled delay events. The approach cut prediction error (MAE) by 18% compared to training an LSTM from scratch on the labeled set alone.
 
@@ -67,7 +67,7 @@ A healthcare startup with one ML engineer chose to fine-tune BioBERT for clinica
 | > 100,000 labeled examples | Train from scratch if compute is cheap and you need full control; transfer learning if you want faster iteration |
 | No relevant pretrained model | Self-supervised pretraining on your unlabeled data, or train from scratch |
 | Team < 3 people | Use off-the-shelf pretrained models to save time |
-| Deployment latency critical | Use distillation (Part 6) or parameter-efficient methods (Part 8) |
+| Deployment latency critical | Use [distillation (Part 5)](/en/transfer-learning/05-knowledge-distillation/) or [parameter-efficient methods (Part 9)](/en/transfer-learning/09-parameter-efficient-fine-tuning/) |
 
 
 ![Decision tree for choosing transfer learning over from-scratch training, keyed on pretrained-model availability and labeled-data volume](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications-and-best-practices/fig1_decision_tree.png)
@@ -805,7 +805,7 @@ Use the learning rate finder (Smith, 2017): train for 100–200 steps with expon
 
 **Q: Can I fine-tune a model on multiple tasks simultaneously?**
 
-Yes (multi-task learning, Part 7). Use a shared backbone with task-specific heads, or train a single head with mixed task data. Trade-off: multi-task learning can improve data efficiency but may hurt individual task performance if tasks conflict.
+Yes (multi-task learning, [Part 6](/en/transfer-learning/06-multi-task-learning/)). Use a shared backbone with task-specific heads, or train a single head with mixed task data. Trade-off: multi-task learning can improve data efficiency but may hurt individual task performance if tasks conflict.
 
 **Q: My fine-tuned model is too large for production. What do I do?**
 
@@ -838,7 +838,7 @@ Three strategies in order:
 
 **Q: Can I use transfer learning incrementally as new data arrives?**
 
-Yes (continual learning, Part 9). Key challenges: catastrophic forgetting and data imbalance. Solutions: experience replay, EWC, or parameter-efficient methods that add new knowledge without overwriting old weights.
+Yes (continual learning, [Part 10](/en/transfer-learning/10-continual-learning/)). Key challenges: catastrophic forgetting and data imbalance. Solutions: experience replay, EWC, or parameter-efficient methods that add new knowledge without overwriting old weights.
 
 ---
 

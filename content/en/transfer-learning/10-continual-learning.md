@@ -171,7 +171,7 @@ Instead of squeezing all tasks into a fixed parameter budget, grow the model.
 - **PackNet** (Mallya & Lazebnik, 2018): after each task, prune to a sparse subset of weights and freeze them; future tasks reuse the unpruned mask. Model size is fixed but available capacity shrinks each task — after enough tasks, performance collapses.
 - **Supermasks in Superposition** (Wortsman et al., 2020): keep parameters random and frozen; learn a binary mask per task. Storage per task is one bit per parameter, and surprisingly, performance rivals trained baselines.
 
-The trade-off is universal: zero forgetting either costs growing parameters or shrinking capacity. Hybrid approaches — a fixed trunk with lightweight per-task adapters (cf. Part 9) — are how this technology actually ships.
+The trade-off is universal: zero forgetting either costs growing parameters or shrinking capacity. Hybrid approaches — a fixed trunk with lightweight per-task adapters (cf. [Part 9](/en/transfer-learning/09-parameter-efficient-fine-tuning/)) — are how this technology actually ships.
 
 ---
 
@@ -713,7 +713,7 @@ def apply_task_mask(model: nn.Module, task_mask: dict[str, torch.Tensor],
 
 Every task consumes a fixed fraction of the *remaining* free capacity. If each task keeps $1 - p$ of the free pool, after $T$ tasks the free pool is $(1 - p)^{T}$ of the original. With $p = 0.3$, after 20 tasks roughly $0.0008$ of the network is free — there is essentially no plasticity left and accuracy collapses. PackNet is great for single-digit task counts and unworkable beyond about 20 unless the network is heavily over-parameterised.
 
-The natural extension: keep the base network frozen and attach LoRA adapters per task. The base never moves, so there is nothing to forget; the adapters provide a small per-task budget that does not eat into a shared pool. PackNet is the rigid version of that idea; LoRA-per-task is the elastic version. Part 9 covered the adapter machinery; combining it with PackNet-style allocation is straightforward and is how most production CL systems actually look.
+The natural extension: keep the base network frozen and attach LoRA adapters per task. The base never moves, so there is nothing to forget; the adapters provide a small per-task budget that does not eat into a shared pool. PackNet is the rigid version of that idea; LoRA-per-task is the elastic version. [Part 9](/en/transfer-learning/09-parameter-efficient-fine-tuning/) covered the adapter machinery; combining it with PackNet-style allocation is straightforward and is how most production CL systems actually look.
 
 ## FAQ
 
