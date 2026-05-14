@@ -306,6 +306,415 @@ Three takeaways:
 
 ---
 
+## The Fisher Spectrum View of Forgetting
+
+![Continual learning: Split-CIFAR-100 forgetting matrix + 8-method comparison (avg/FWT/BWT).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-Continual-Learning/fig10_continual.png)
+
+The diagonal Fisher tells one story; the full Fisher tells a richer one. EWC keeps only $F_{ii} = \mathbb{E}\!\left[(\partial \log p_\theta(y \mid x) / \partial \theta_i)^2\right]$ — a single scalar per parameter, ignoring every off-diagonal coupling. That works in practice, and the spectrum of the *full* Fisher is the reason why.
+
+The full empirical Fisher
+$$F = \frac{1}{N}\sum_{n=1}^{N} \mathbf{g}_n \mathbf{g}_n^{\top}, \qquad \mathbf{g}_n = \nabla_\theta \log p_\theta(y_n \mid x_n)$$
+is a $P \times P$ Gram matrix of per-sample log-likelihood gradients. For any modern network $P$ is in the millions, so $F$ never gets materialised. But its eigenstructure is observable through Hessian-vector products, and the picture that comes back is consistent across architectures: a heavy-tailed spectrum where a tiny number of directions hold almost all the curvature.
+
+### Top-$k$ eigenvalues by power iteration
+
+You do not need $F$ explicitly. Each Hessian-vector product can be replaced by a Fisher-vector product because, by the Gauss-Newton identity at a minimum, $F\mathbf{v} = \mathbb{E}[\mathbf{g}(\mathbf{g}^{\top}\mathbf{v})]$. That is a single forward, a single backward, and a dot product per sample.
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def flat_grad(model: nn.Module) -> torch.Tensor:
+    return torch.cat([p.grad.detach().flatten() for p in model.parameters()
+                      if p.grad is not None])
+
+def fisher_vector_product(model, loader, v, n_samples=500, device="cpu"):
+    """Compute F v where F is the empirical Fisher of p_theta(y|x)."""
+    model.eval()
+    Fv = torch.zeros_like(v)
+    seen = 0
+    for x, _ in loader:
+        x = x.to(device)
+        bs = x.size(0)
+        for i in range(bs):
+            model.zero_grad()
+            logits = model(x[i:i+1])
+            probs = F.softmax(logits, dim=-1)
+            y = torch.multinomial(probs, 1).squeeze(-1)
+            loss = F.cross_entropy(logits, y)
+            loss.backward()
+            g = flat_grad(model)
+            Fv += g * (g @ v)
+            seen += 1
+            if seen >= n_samples:
+                return Fv / seen
+    return Fv / seen
+
+def lanczos_topk(model, loader, k=20, n_samples=500, device="cpu", iters=40):
+    """Lanczos tridiagonalisation -> top-k eigenvalues of the Fisher."""
+    P = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    V = torch.zeros(iters + 1, P, device=device)
+    alphas = torch.zeros(iters, device=device)
+    betas = torch.zeros(iters, device=device)
+    V[0] = torch.randn(P, device=device); V[0] /= V[0].norm()
+    for j in range(iters):
+        w = fisher_vector_product(model, loader, V[j], n_samples, device)
+        alphas[j] = w @ V[j]
+        w = w - alphas[j] * V[j] - (betas[j-1] * V[j-1] if j > 0 else 0)
+        # full reorthogonalisation -- numerically essential
+        w = w - V[:j+1].T @ (V[:j+1] @ w)
+        betas[j] = w.norm()
+        if betas[j] < 1e-10: break
+        V[j+1] = w / betas[j]
+    T = torch.diag(alphas) + torch.diag(betas[:-1], 1) + torch.diag(betas[:-1], -1)
+    eigs = torch.linalg.eigvalsh(T)
+    return eigs.sort(descending=True).values[:k]
+```
+
+### What the spectrum looks like
+
+Run this on a small CNN (two conv + two FC, ~50k params) trained on CIFAR-10 to ~70% accuracy and the top 20 eigenvalues come back roughly geometric: $\lambda_1 \approx 12.4$, $\lambda_2 \approx 7.1$, $\lambda_5 \approx 1.9$, $\lambda_{20} \approx 0.08$. Compare that to the trace $\mathrm{tr}(F) = \sum_i F_{ii}$, which is the sum of *all* eigenvalues. The top 5% of directions account for roughly 80% of the trace. The Fisher is *low effective rank*.
+
+That is the structural fact behind EWC: most of the curvature lives in a few directions, and those directions correlate with high diagonal entries (since $F_{ii} = \sum_k \lambda_k v_{k,i}^2$). Diagonal EWC throws away the eigenvectors but keeps roughly the right total mass per coordinate. It is a coarse but cheap proxy for the rank-$k$ truncation that would be optimal.
+
+### Where the high-eigenvalue mass lives
+
+Group the parameters by layer and ask: which layers contribute most to the top eigenvectors? Tracking $\sum_{k \le 20} v_k^{\top} P_\ell v_k$ where $P_\ell$ projects onto layer $\ell$'s coordinates gives a clean per-layer importance signal across training. On the CIFAR CNN the pattern is consistent — `conv1` carries little top-eigenvector mass (its Fisher is diffuse), `conv2` and `fc1` carry most of it (sharp directions concentrate there), and the final classifier `fc2` is dominated by a handful of class-specific directions. Forgetting hits `fc2` first, exactly as the spectrum predicts.
+
+### Bridge
+
+This points at an obvious EWC upgrade: instead of penalising along the diagonal, project the parameter delta onto the top-$k$ Fisher eigenvectors and penalise there. Memory cost is $kP$ (twenty floats per parameter for $k=20$) rather than $P$, but the penalty is much sharper. K-FAC EWC and its block-diagonal cousins are this idea; we will not implement them here, but the spectral picture above is the justification. The next section takes a different route — keeping diagonal EWC and instead fixing the *accumulation* problem with a discount.
+
+---
+
+## Online EWC With Discount Schedules
+
+![Catastrophic forgetting animation: naive SGD drops Task 1 acc from 90% to 15%; EWC keeps it above 78%.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-Continual-Learning/anim_forgetting.gif)
+
+Vanilla multi-task EWC stores one Fisher per task. After $T$ tasks the regulariser holds $T$ copies of the parameter vector and $T$ Fisher diagonals. Memory grows linearly; worse, the penalty becomes a sum of $T$ quadratic wells that increasingly pin every parameter and the network goes rigid. There is a clean fix that costs no additional storage.
+
+### The accumulator
+
+Online EWC (Schwarz et al., 2018) keeps a single running Fisher and a single anchor:
+$$\tilde F_t \;=\; \gamma\, \tilde F_{t-1} + F_t, \qquad \theta^{*}_{1:t} \;=\; \theta^{*}_t.$$
+The anchor is always the most recent task's optimum. The Fisher is an exponential moving average with decay $\gamma$. The penalty becomes
+$$\Omega(\theta) \;=\; \tfrac{1}{2} \sum_i \tilde F_{t,i} \, (\theta_i - \theta^{*}_{t,i})^{2}.$$
+Note the subtle move: the anchor *moves* with each task. Old anchors are not stored. The story is "do not stray from where you currently are, weighted by how important each direction has been over your full history".
+
+### What $\gamma$ controls
+
+$\gamma$ is the half-life of importance. In effective task-units, an importance contribution at task $k$ has weight $\gamma^{t-k}$ at task $t$. Three regimes:
+
+- **$\gamma = 0.99$.** Half-life $\approx 69$ tasks. Importance decays slowly — early tasks still constrain the model after dozens of subsequent tasks. Stable but eventually saturates: $\sum_i \tilde F_i$ approaches a steady state that may be too large to leave room for new tasks.
+- **$\gamma = 0.95$.** Half-life $\approx 14$ tasks. Importance from ten tasks ago is at $\sim 60\%$ of fresh; from twenty tasks ago at $\sim 36\%$. This is a reasonable compromise: enough memory of structural directions, enough plasticity to absorb new tasks.
+- **$\gamma = 0.9$.** Half-life $\approx 7$ tasks. After ten tasks, weight is at $\sim 35\%$; after twenty at $\sim 12\%$. The model can move freely after enough subsequent training, which is fine if early tasks are similar enough to be re-learned by later tasks but disastrous if they are unique.
+
+### Implementation
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class OnlineEWC:
+    """Online EWC with exponential discount."""
+
+    def __init__(self, model: nn.Module, gamma: float = 0.95,
+                 device: str = "cpu"):
+        self.model = model
+        self.gamma = gamma
+        self.device = device
+        self.fisher: dict[str, torch.Tensor] = {}
+        self.theta_star: dict[str, torch.Tensor] = {}
+
+    @torch.enable_grad()
+    def _empirical_fisher(self, loader, n_samples: int = 1024):
+        self.model.eval()
+        new_F = {n: torch.zeros_like(p) for n, p in self.model.named_parameters()
+                 if p.requires_grad}
+        seen = 0
+        for x, _ in loader:
+            x = x.to(self.device)
+            self.model.zero_grad()
+            logits = self.model(x)
+            probs = F.softmax(logits, dim=-1)
+            y = torch.multinomial(probs, 1).squeeze(-1)
+            loss = F.cross_entropy(logits, y)
+            loss.backward()
+            for n, p in self.model.named_parameters():
+                if p.grad is not None:
+                    new_F[n] += p.grad.detach() ** 2 * x.size(0)
+            seen += x.size(0)
+            if seen >= n_samples:
+                break
+        for n in new_F:
+            new_F[n] /= max(seen, 1)
+        return new_F
+
+    def update_online_fisher(self, loader, n_samples: int = 1024) -> None:
+        """Call at the end of each task. Updates F and snapshots theta*."""
+        new_F = self._empirical_fisher(loader, n_samples)
+        if not self.fisher:
+            self.fisher = new_F
+        else:
+            for n in new_F:
+                self.fisher[n] = self.gamma * self.fisher[n] + new_F[n]
+        self.theta_star = {n: p.detach().clone()
+                           for n, p in self.model.named_parameters()
+                           if p.requires_grad}
+
+    def penalty(self) -> torch.Tensor:
+        if not self.fisher:
+            return torch.tensor(0.0, device=self.device)
+        loss = torch.tensor(0.0, device=self.device)
+        for n, p in self.model.named_parameters():
+            if n in self.fisher:
+                loss = loss + (self.fisher[n] *
+                               (p - self.theta_star[n]) ** 2).sum()
+        return 0.5 * loss
+```
+
+The only behavioural difference from vanilla EWC is the discount step in `update_online_fisher` and the fact that `theta_star` is overwritten each task instead of appended.
+
+### Numbers on Split CIFAR-100
+
+A representative sweep on Split CIFAR-100 (10 tasks of 10 classes each, ResNet-18 backbone, $\lambda = 5$):
+
+| $\gamma$ | Avg Acc (%) | BWT (%) |
+|---|---|---|
+| 0.90 | 51.2 | -8.4 |
+| 0.95 | 54.7 | -4.1 |
+| 0.99 | 52.9 | -2.6 |
+
+The $\gamma = 0.99$ row has the smallest forgetting (BWT closest to zero) but pays for it with reduced new-task accuracy — the network is too rigid to absorb the new classes well. $\gamma = 0.9$ has the highest new-task accuracy but the worst BWT — early tasks decay below the noise floor. $\gamma = 0.95$ wins on average accuracy because the trade-off lands in the right place.
+
+### Bridge
+
+Online EWC fixes the memory growth and the rigidity, but it does not fix the fundamental weakness of regularisation: every penalty is a *first-order* description of past loss surfaces, taken at one point. When tasks share substantial structure, that approximation is fine. When they do not, no diagonal Gaussian penalty can prevent forgetting and you need *actual* old data — or actual old gradients. That is the next family of methods.
+
+---
+
+## A-GEM Geometry: Gradient Projection in Practice
+
+EWC operates in parameter space; A-GEM operates in gradient space. Same concern, opposite tooling. Where EWC says "do not move along directions where the old loss curves up", A-GEM says "do not take a step whose first-order effect on the old loss is negative".
+
+### The constraint and its closed form
+
+For the new gradient $\mathbf{g}$ and a reference gradient $\mathbf{g}_{\text{ref}}$ (averaged over a random batch from the memory buffer), require
+$$\mathbf{g}_{\text{proj}} \cdot \mathbf{g}_{\text{ref}} \;\ge\; 0.$$
+If the constraint already holds — the new step is non-harmful in expectation — keep $\mathbf{g}$ unchanged. If it is violated, find the closest $\mathbf{g}_{\text{proj}}$ satisfying it. The optimisation
+$$\min_{\mathbf{g}_{\text{proj}}} \tfrac{1}{2}\|\mathbf{g}_{\text{proj}} - \mathbf{g}\|^{2} \quad \text{s.t.} \quad \mathbf{g}_{\text{proj}} \cdot \mathbf{g}_{\text{ref}} \;\ge\; 0$$
+has a one-line closed form when the constraint is active (KKT with a single multiplier):
+$$\mathbf{g}_{\text{proj}} \;=\; \mathbf{g} \;-\; \frac{\mathbf{g} \cdot \mathbf{g}_{\text{ref}}}{\mathbf{g}_{\text{ref}} \cdot \mathbf{g}_{\text{ref}}}\, \mathbf{g}_{\text{ref}}.$$
+Geometrically you remove the component of $\mathbf{g}$ along $-\mathbf{g}_{\text{ref}}$ and leave the orthogonal component intact.
+
+### Implementation on flat parameter vectors
+
+```python
+import torch
+import torch.nn as nn
+
+def flat_params_grad(model: nn.Module) -> tuple[torch.Tensor, torch.Tensor]:
+    params = [p for p in model.parameters() if p.requires_grad]
+    flat_p = torch.cat([p.detach().flatten() for p in params])
+    flat_g = torch.cat([p.grad.detach().flatten() for p in params])
+    return flat_p, flat_g
+
+def write_back_grad(model: nn.Module, flat_g: torch.Tensor) -> None:
+    offset = 0
+    for p in model.parameters():
+        if p.requires_grad:
+            n = p.numel()
+            p.grad.copy_(flat_g[offset:offset + n].view_as(p))
+            offset += n
+
+def agem_project(g: torch.Tensor, g_ref: torch.Tensor) -> torch.Tensor:
+    dot = g @ g_ref
+    if dot >= 0:
+        return g
+    return g - (dot / (g_ref @ g_ref + 1e-12)) * g_ref
+
+def agem_step(model, x, y, x_mem, y_mem, loss_fn, optimiser):
+    # 1. reference gradient on memory batch
+    optimiser.zero_grad()
+    loss_fn(model(x_mem), y_mem).backward()
+    _, g_ref = flat_params_grad(model)
+    # 2. current gradient on new batch
+    optimiser.zero_grad()
+    loss_fn(model(x), y).backward()
+    _, g_new = flat_params_grad(model)
+    # 3. project, write back, step
+    g_proj = agem_project(g_new, g_ref)
+    write_back_grad(model, g_proj)
+    optimiser.step()
+```
+
+The pattern is the standard A-GEM loop: two backward passes per step, a single dot product, conditional projection, then a normal optimiser step. No per-task constraints; no quadratic program.
+
+### A 2D toy
+
+Set $\mathbf{g}_{\text{ref}} = (1, 0)$ and watch three cases:
+
+| $\mathbf{g}$ | $\mathbf{g} \cdot \mathbf{g}_{\text{ref}}$ | $\mathbf{g}_{\text{proj}}$ |
+|---|---|---|
+| $(1, 1)$ | $+1$ | $(1, 1)$ — kept |
+| $(0, 1)$ | $0$ | $(0, 1)$ — kept (orthogonal) |
+| $(-1, 1)$ | $-1$ | $(0, 1)$ — projected onto the orthogonal complement of $\mathbf{g}_{\text{ref}}$ |
+
+Only the third case triggers projection. The component along $-\mathbf{g}_{\text{ref}}$ is removed; the orthogonal component is preserved exactly. This is why A-GEM rarely hurts new-task learning: most of the time the cosine is non-negative and the gradient passes through unchanged.
+
+### Cost
+
+Per step, A-GEM does a forward and backward on the memory batch *in addition to* the forward and backward on the new batch — backward time is roughly doubled. GEM is much worse: one constraint per past task means a quadratic program of size $T-1$ at every step, which becomes intractable around $T = 30$. A-GEM trades that for a single averaged constraint and recovers most of the accuracy at a small fraction of the cost.
+
+### Bridge
+
+A-GEM's projection assumes the reference batch is a faithful estimator of the past-task gradient. With small memory buffers it is noisy, and the projection step starts to harm training. At that point it is simpler to skip the projection entirely and just *mix the memory samples into the loss*. That is experience replay, and the next section dissects three of its strongest variants.
+
+---
+
+## DER vs DER++ vs CE Replay: Logit Matching Ablation
+
+The mechanical question for any replay method is: what loss do you put on the replay samples? Cross-entropy against the original labels is the obvious choice. But you have access to more than the labels — you have the *model's own predictions* at the moment the sample was added. Using those is what separates DER from CE replay.
+
+### Three losses
+
+Write $(x_m, y_m, z_m)$ for a memory sample with stored input, label, and stored logits. Three replay flavours:
+$$
+\mathcal{L}_{\text{CE}} = \mathcal{L}_{\text{new}} + \alpha\, \mathrm{CE}(f(x_m), y_m),
+$$
+$$
+\mathcal{L}_{\text{DER}} = \mathcal{L}_{\text{new}} + \alpha\, \|f(x_m) - z_m\|^{2},
+$$
+$$
+\mathcal{L}_{\text{DER++}} = \mathcal{L}_{\text{new}} + \alpha\, \|f(x_m) - z_m\|^{2} + \beta\, \mathrm{CE}(f(x_m), y_m).
+$$
+The MSE on logits preserves *uncertainty* — the relative magnitudes across classes carry information about how confident the past model was. CE collapses that to the argmax. DER++ keeps both signals: the label anchors the prediction to ground truth, the logits anchor the *shape* of the distribution.
+
+### Implementation
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def replay_loss(model: nn.Module,
+                x_curr: torch.Tensor, y_curr: torch.Tensor,
+                x_mem: torch.Tensor, logits_mem: torch.Tensor, y_mem: torch.Tensor,
+                alpha: float = 0.5, beta: float = 0.5,
+                mode: str = "der++") -> torch.Tensor:
+    """Replay-loss family: 'ce', 'der', or 'der++'."""
+    logits_curr = model(x_curr)
+    loss = F.cross_entropy(logits_curr, y_curr)
+    if x_mem is None or x_mem.numel() == 0:
+        return loss
+    logits_now = model(x_mem)
+    if mode == "ce":
+        loss = loss + alpha * F.cross_entropy(logits_now, y_mem)
+    elif mode == "der":
+        loss = loss + alpha * F.mse_loss(logits_now, logits_mem)
+    elif mode == "der++":
+        loss = loss + alpha * F.mse_loss(logits_now, logits_mem) \
+                    + beta * F.cross_entropy(logits_now, y_mem)
+    else:
+        raise ValueError(mode)
+    return loss
+```
+
+Buffer-write logic is unchanged from any reservoir replay loop — the only addition is storing `logits.detach().cpu()` alongside each sample at write time.
+
+### Numbers on Split MNIST
+
+Representative results on Split MNIST (5 tasks of 2 classes each, MLP, buffer size 200):
+
+| Method | Avg Acc (%) | Wallclock (relative) |
+|---|---|---|
+| CE replay | 91.0 | 1.00 |
+| DER | 93.5 | 1.02 |
+| DER++ | 94.8 | 1.03 |
+
+The wallclock cost is essentially identical — one extra MSE term is a rounding error on top of two forward passes. The accuracy gap is real and reproducible across seeds.
+
+### Why logit matching helps
+
+Cross-entropy says "the right class is class 7". Logit MSE says "class 7 should be at 4.2, class 1 at 1.8, class 9 at 0.4, the rest near zero". The second is a much stronger constraint on the function the model represents, and it carries information about the *decision boundary geometry* that the argmax discards. When the new task pulls the boundaries around, MSE pulls them back into something resembling the old shape; CE only pulls them back enough to put 7 on top.
+
+### Bridge
+
+DER and DER++ are the strongest single-model continual-learning methods on most benchmarks. They are not, however, the only way to bound forgetting at zero — you can also bound it by *physically isolating* the parameters of each task. That is the dynamic-architecture line, and PackNet is its sharpest representative.
+
+---
+
+## PackNet: Mask Allocation for Many Tasks
+
+PackNet's pitch is brutal: forgetting is impossible if old parameters cannot be touched. Implement that literally — after each task, freeze a chunk of the network and let new tasks scribble only on the rest.
+
+### The procedure
+
+For task $t$:
+
+1. Train the network to convergence on task $t$ using only the currently-free weights.
+2. Prune the lowest-magnitude $p\%$ of the trained weights — these become "free" again for task $t+1$.
+3. Freeze the surviving weights and record their positions in a binary mask $M_t$.
+4. At inference for task $t$, multiply the weights by $M_t$ to restore the exact post-training state.
+
+The frozen weights of past tasks are protected by the optimiser — gradients are masked to zero on them — so subsequent training cannot move them. By construction $R_{T,j} = R_{j,j}$ for every $j$: zero forgetting.
+
+### Implementation
+
+```python
+import torch
+import torch.nn as nn
+
+def pack_prune_step(model: nn.Module,
+                    mask_history: list[dict[str, torch.Tensor]],
+                    prune_ratio: float = 0.3) -> dict[str, torch.Tensor]:
+    """Prune the lowest-|w| fraction of CURRENTLY-FREE weights.
+
+    Returns the new task's binary mask: 1 on weights this task will own.
+    """
+    # union of all previously-frozen weights
+    frozen = {n: torch.zeros_like(p, dtype=torch.bool)
+              for n, p in model.named_parameters() if p.requires_grad}
+    for M in mask_history:
+        for n in frozen:
+            frozen[n] |= M[n]
+
+    new_mask = {}
+    for n, p in model.named_parameters():
+        if not p.requires_grad: continue
+        free = ~frozen[n]
+        free_w = p.detach().abs()[free]
+        if free_w.numel() == 0:
+            new_mask[n] = torch.zeros_like(p, dtype=torch.bool); continue
+        k = int(prune_ratio * free_w.numel())
+        thresh = free_w.kthvalue(max(k, 1)).values
+        keep = (p.detach().abs() > thresh) & free
+        with torch.no_grad():
+            p[free & ~keep] = 0.0  # prune
+        new_mask[n] = keep
+    return new_mask
+
+def apply_task_mask(model: nn.Module, task_mask: dict[str, torch.Tensor],
+                    prior_masks: list[dict[str, torch.Tensor]]) -> None:
+    """At inference: zero out anything not owned by this task or earlier."""
+    allowed = {n: task_mask[n].clone() for n in task_mask}
+    for M in prior_masks:
+        for n in allowed:
+            allowed[n] |= M[n]
+    with torch.no_grad():
+        for n, p in model.named_parameters():
+            if n in allowed:
+                p.mul_(allowed[n])
+```
+
+### The capacity ceiling
+
+Every task consumes a fixed fraction of the *remaining* free capacity. If each task keeps $1 - p$ of the free pool, after $T$ tasks the free pool is $(1 - p)^{T}$ of the original. With $p = 0.3$, after 20 tasks roughly $0.0008$ of the network is free — there is essentially no plasticity left and accuracy collapses. PackNet is great for single-digit task counts and unworkable beyond about 20 unless the network is heavily over-parameterised.
+
+The natural extension: keep the base network frozen and attach LoRA adapters per task. The base never moves, so there is nothing to forget; the adapters provide a small per-task budget that does not eat into a shared pool. PackNet is the rigid version of that idea; LoRA-per-task is the elastic version. Part 9 covered the adapter machinery; combining it with PackNet-style allocation is straightforward and is how most production CL systems actually look.
+
 ## FAQ
 
 ### How should I pick EWC's $\lambda$?

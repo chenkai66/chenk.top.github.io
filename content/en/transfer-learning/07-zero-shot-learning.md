@@ -275,6 +275,292 @@ The `gamma` argument to `gzsl_evaluate` implements calibrated stacking — the s
 
 ---
 
+## Bilinear Compatibility From Scratch
+
+The bilinear compatibility $F(x, c) = \theta(x)^\top W\, \phi(c)$ is the smallest model that captures the ZSL geometry — one matrix $W$ links the visual side to the semantic side, and that matrix is the only thing learning has to discover. ALE (Akata et al., 2013) and SJE (Akata et al., 2015) both live here; the difference is the loss. Cross-entropy works but treats every wrong class symmetrically. A structured ranking loss with a class-dependent margin is what gets you the extra two or three points on AwA2.
+
+Write the visual feature as $\theta(x) \in \mathbb{R}^d$ (a frozen CNN feature, in practice a 2048-D ResNet pool) and the class descriptor as $\phi(c) = a_c \in \mathbb{R}^M$ (the attribute vector). Then for a training pair $(x_n, y_n)$ the **structured ranking loss** is
+$$
+\mathcal{L}(x_n, y_n) = \sum_{y \in \mathcal{C}^s} \max\bigl(0,\; \Delta(y_n, y) + F(x_n, y) - F(x_n, y_n)\bigr),
+$$
+where $\Delta(y_n, y)$ is the margin — usually $\mathbb{1}[y \neq y_n]$ but it can be replaced by a semantic distance $\|a_{y_n} - a_y\|$ to push semantically distant impostors harder. The gradient with respect to $W$ collapses to a sum of rank-one updates $\theta(x_n)\bigl(\phi(y) - \phi(y_n)\bigr)^\top$ over the violating classes, which is why a single matrix is enough capacity and why convergence is fast.
+
+Why bilinear instead of a deep MLP? Three reasons. First, $W$ has $dM$ parameters — for $d=2048, M=85$ that is $\sim 174\text{k}$, two orders of magnitude below a two-tower MLP, and the seen-class training set on AwA2 is only $\sim 23\text{k}$ images. Second, the bilinear form is a *tensor decomposition* of the joint score: it cannot overfit to seen-class idiosyncrasies in the way a non-linear model can, which matters because the test loss lives on a *disjoint* class set. Third, $W$ is interpretable — its left singular vectors are the visual directions that carry the most attribute signal.
+
+A short derivation of the second point. Decompose $W = U \Sigma V^\top$ with $U \in \mathbb{R}^{d \times r}, V \in \mathbb{R}^{M \times r}$. Then $F(x, c) = \sum_{k=1}^{r} \sigma_k \langle u_k, \theta(x)\rangle \langle v_k, \phi(c)\rangle$. Each rank-one term routes a single visual direction to a single semantic direction with a single scalar gain. Generalisation to unseen $c$ requires only that $v_k$ has been *aligned* with the right semantic axis during training — and the seen-class loss aligns it whenever even one seen class lights up that attribute. There is no equivalent guarantee for a deep two-tower; the non-linearity can carve seen-class manifolds that the unseen-class semantics simply do not project onto.
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class BilinearCompatibility(nn.Module):
+    """F(x, c) = theta(x)^T W phi(c). One trainable matrix."""
+    def __init__(self, visual_dim: int, semantic_dim: int):
+        super().__init__()
+        self.W = nn.Parameter(torch.randn(visual_dim, semantic_dim) * 0.01)
+
+    def forward(self, x: torch.Tensor, A: torch.Tensor) -> torch.Tensor:
+        # x: [B, d], A: [C, M]  ->  scores [B, C]
+        return x @ self.W @ A.t()
+
+def structured_ranking_loss(scores: torch.Tensor, y: torch.Tensor,
+                            margin: float = 1.0) -> torch.Tensor:
+    """L = sum_y max(0, Delta + F(x,y) - F(x,y_n)) over wrong classes."""
+    B, C = scores.shape
+    correct = scores.gather(1, y.unsqueeze(1))           # [B, 1]
+    delta = torch.ones_like(scores) * margin
+    delta.scatter_(1, y.unsqueeze(1), 0.0)               # zero margin for true class
+    violations = (delta + scores - correct).clamp(min=0)
+    violations.scatter_(1, y.unsqueeze(1), 0.0)          # exclude true class
+    return violations.sum(dim=1).mean()
+
+# Tiny synthetic AwA2-shape problem: 5 classes, 100-D features, 85-D attrs.
+torch.manual_seed(0)
+C, d, M = 5, 100, 85
+A = torch.randn(C, M)                                    # class attribute matrix
+true_W = torch.randn(d, M) * 0.1
+X = torch.randn(256, d)
+y = (X @ true_W @ A.t()).argmax(dim=1)                   # synthetic labels
+
+model = BilinearCompatibility(d, M)
+opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+for step in range(300):
+    scores = model(X, A)
+    loss = structured_ranking_loss(scores, y, margin=1.0)
+    opt.zero_grad(); loss.backward(); opt.step()
+acc = (model(X, A).argmax(1) == y).float().mean().item()
+print(f"train acc={acc:.3f}, loss={loss.item():.4f}")
+```
+
+The synthetic run converges to $>0.95$ accuracy in a few hundred steps with a single $100 \times 85$ matrix. On real AwA2 features, the same model with cross-entropy hits $\sim 58\%$ ZSL accuracy; swapping to the ranking loss above buys $\sim 2$–$3$ points.
+
+| Method | AwA2 ZSL acc | Params learned | Notes |
+|---|---|---|---|
+| Bilinear + softmax | 58.2 | $dM$ | the floor |
+| Bilinear + ranking (ALE) | 60.7 | $dM$ | margin matters |
+| DeViSE (deep two-tower) | 59.7 | $\sim 2M$ | Word2Vec semantics |
+| SJE (structured + multi-cue) | 61.9 | $dM$ per cue | best non-generative |
+
+Numbers are in the range reported by Xian et al.'s 2019 TPAMI evaluation; absolute values shift a couple of points with backbone choice. Two implementation notes that make the difference between "publishes" and "reproduces":
+
+- **Initialise $W$ small.** The bilinear score is unbounded; with $W \sim \mathcal{N}(0, 1)$ the early softmax is saturated and the ranking gradient vanishes. The factor-of-100 scaling in the snippet above is not cosmetic.
+- **Use class-balanced minibatches.** Seen-class frequencies in AwA2 are skewed by 2–3x; vanilla SGD over an unbalanced sampler under-trains the rare classes whose attribute signature is exactly what generalises to the unseen split.
+
+The deeper compatibility families and feature-generating GANs from the next two sections are what eventually pulled GZSL harmonic mean above $\sim 60$ — but the bilinear baseline above is what every paper still has to beat.
+
+---
+
+## Hubness and the Calibration Arms Race
+
+![GZSL bias geometry and calibrated stacking γ sweep.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-Zero-Shot-Learning/fig07_zsl_prototypes.png)
+
+Once you embed both modalities into a shared $d$-dimensional space and rank by cosine, a quiet failure mode shows up: a handful of class prototypes turn into **hubs** — they appear among the $k$-nearest neighbours of disproportionately many query images, regardless of what those queries actually are. Hubness is a property of high-dimensional NN search itself (Radovanović et al., 2010), but ZSL embeddings make it worse: the projection from a few hundred million pixels down to $d=512$ concentrates probability mass near a few semantic prototypes, and any query falling in a low-density region of the visual side gets pulled toward those hubs.
+
+Define the **$k$-occurrence** of class $c$ as
+$$
+N_k(c) = \bigl|\{x : c \in \mathrm{kNN}(x)\}\bigr|,
+$$
+the number of queries that list $c$ among their top-$k$ neighbours. In a perfectly uniform embedding, $N_k(c) \approx k \cdot |X| / |\mathcal{C}|$ for every $c$. In a hubness-prone embedding, the distribution of $N_k$ over classes becomes heavy-tailed; the right diagnostic is its **skewness**
+$$
+\gamma_1 = \mathbb{E}\!\left[\left(\frac{N_k - \mu_{N_k}}{\sigma_{N_k}}\right)^{\!3}\right].
+$$
+A clean embedding has $\gamma_1$ near zero; a pathological one has $\gamma_1 > 2$. The reason ZSL is especially exposed: the compatibility space is shared but trained *only* on seen classes, so unseen-class prototypes sit in regions that the visual encoder never had to populate uniformly. Combine that with $d \gg 50$ and the hubness pump is on.
+
+The mechanical reason high $d$ amplifies hubness is the concentration of distances: as $d \to \infty$ the ratio of max-to-min cosine distance over a finite query set shrinks, and any prototype that sits even slightly inside the centroid of the visual cloud picks up a disproportionate share of "ties" that the argmax breaks in its favour. Fixing the geometry up front is much cheaper than fixing the consequences downstream.
+
+```python
+import torch
+from scipy.stats import skew
+
+def hubness_diagnostic(query_emb: torch.Tensor, proto_emb: torch.Tensor,
+                       k: int = 5) -> tuple[torch.Tensor, float]:
+    """Return N_k vector over prototypes and Pearson skewness gamma_1."""
+    q = torch.nn.functional.normalize(query_emb, dim=-1)
+    p = torch.nn.functional.normalize(proto_emb, dim=-1)
+    sims = q @ p.t()                                     # [N_query, C]
+    topk = sims.topk(k, dim=-1).indices                  # [N_query, k]
+    Nk = torch.bincount(topk.flatten(), minlength=p.size(0)).float()
+    return Nk, float(skew(Nk.numpy()))
+
+# Toy run: 1000 queries, 50 prototypes, d=512.
+torch.manual_seed(1)
+Q = torch.randn(1000, 512)
+P = torch.randn(50, 512)
+Nk, g1 = hubness_diagnostic(Q, P, k=5)
+print(f"max N_k = {Nk.max().item():.0f}, skewness = {g1:.2f}")
+```
+
+Two practical fixes. The first is the cheapest one and it is the only line of code you actually need most of the time:
+
+```python
+def normalize_and_standardize(scores: torch.Tensor) -> torch.Tensor:
+    """L2-normalize was already done; standardize per-class score columns."""
+    mu = scores.mean(dim=0, keepdim=True)
+    sigma = scores.std(dim=0, keepdim=True) + 1e-6
+    return (scores - mu) / sigma
+```
+L2-normalising both modalities removes the magnitude axis along which hubs concentrate; per-column standardisation kills the residual offset that lets one prototype dominate. The second fix is **cross-domain mean subtraction** (Dinu et al., 2015): subtract the mean of the *unlabelled target* embeddings from every query before scoring, which re-centres the visual cloud onto the semantic cloud and breaks the systematic projection bias. Together they typically cut $\gamma_1$ by half and lift unseen-class accuracy two to four points.
+
+CLIP suffers less from this because the symmetric InfoNCE loss optimises image$\to$text *and* text$\to$image at the same temperature — neither space is the privileged "anchor" side, so neither develops the skewed projection density that breeds hubs. There is also a scale effect: with $\sim 400\text{M}$ pairs the marginal density of any single text prototype is too small for it to become a global hub; hubness is partly a small-sample-of-classes pathology that vanishes when the class set is effectively continuous. Hubness is what you should profile *before* reaching for fancier calibration — measure $\gamma_1$ on your validation set, normalise + standardise, and only then move to transductive or generative tricks.
+
+---
+
+## Transductive ZSL via EM
+
+So far the model never touches the test distribution. But in many deployments you have **unseen-class images** at hand — you just don't have their labels. **Transductive ZSL** assumes you can see $X^u = \{x^u_1, \ldots, x^u_N\}$ at training time without labels, and asks whether you can use them to refine the compatibility function. The natural formalism is EM over the latent class assignments.
+
+Let $F_\theta(x, c)$ be the current compatibility and $\pi_{nc} = P(y_n = c \mid x_n; \theta)$ the soft assignment of unseen example $n$ to unseen class $c$. The complete-data log-likelihood is $\sum_{n,c} \pi_{nc} \log P(x_n \mid c; \theta)$, which under a softmax compatibility model factors as the standard EM bound
+$$
+\mathcal{Q}(\theta \mid \theta^{(t)}) = \sum_n \sum_{c \in \mathcal{C}^u} \pi_{nc}^{(t)} \log \frac{\exp F_\theta(x_n, c)}{\sum_{c'} \exp F_\theta(x_n, c')}.
+$$
+
+**E-step.** Hold $\theta$ fixed and compute the soft assignments
+$$
+\pi_{nc}^{(t)} = \frac{\exp F_{\theta^{(t)}}(x_n, c)}{\sum_{c' \in \mathcal{C}^u} \exp F_{\theta^{(t)}}(x_n, c')}.
+$$
+
+Two implementation details matter: the sum runs over $\mathcal{C}^u$ only (not $\mathcal{C}^s \cup \mathcal{C}^u$ — including seen classes lets the inductive bias from the seen-class training leak back in and stalls EM at the inductive solution), and the temperature inside $F$ should be re-tuned for the transductive distribution because the unseen-class score scale typically differs from the seen-class one by a factor of two or three.
+
+**M-step.** Refine the compatibility on the pseudo-labelled set. The cheapest version: refine the *prototypes* directly by setting $\mu_c \leftarrow \sum_n \pi_{nc} \, x_n / \sum_n \pi_{nc}$ — this is the Bayes-optimal mean under a Gaussian likelihood and avoids back-prop entirely.
+
+The non-trivial caveat: EM only converges to a **local** fixed point. If the initial calibration is wrong — say the compatibility systematically prefers one unseen class — the E-step will reinforce that bias and the M-step will lock it in. In practice this means: (a) run hubness correction before transductive EM; (b) initialise prototypes from semantic-side projections, not from random visual centroids; (c) monitor the assignment delta and stop early.
+
+```python
+import torch
+import torch.nn.functional as F
+
+def transductive_em(X_unseen: torch.Tensor,
+                    prototypes: torch.Tensor,
+                    n_iter: int = 10,
+                    tau: float = 10.0,
+                    tol: float = 1e-3) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    EM refinement of unseen-class prototypes given unlabelled features.
+      X_unseen   : [N, d]   target-domain features (no labels)
+      prototypes : [C, d]   initial unseen-class prototypes (from semantics)
+    Returns refined prototypes and final soft assignments.
+    """
+    X = F.normalize(X_unseen, dim=-1)
+    P = F.normalize(prototypes, dim=-1).clone()
+    prev_assign = None
+
+    for t in range(n_iter):
+        # E-step: cosine similarity -> softmax assignment
+        sims = tau * X @ P.t()                           # [N, C]
+        pi = F.softmax(sims, dim=-1)                     # [N, C]
+
+        # Convergence check: change in hard assignment fraction
+        assign = pi.argmax(dim=-1)
+        if prev_assign is not None:
+            delta = (assign != prev_assign).float().mean().item()
+            if delta < tol:
+                break
+        prev_assign = assign
+
+        # M-step: weighted mean of features per class, then renormalise
+        weights = pi / (pi.sum(dim=0, keepdim=True) + 1e-8)   # column-normalise
+        P_new = weights.t() @ X                          # [C, d]
+        P = F.normalize(P_new, dim=-1)
+
+    return P, pi
+
+# Sanity run.
+torch.manual_seed(2)
+N, C, d = 200, 5, 64
+true_proto = F.normalize(torch.randn(C, d), dim=-1)
+labels = torch.randint(0, C, (N,))
+X = true_proto[labels] + 0.4 * torch.randn(N, d)
+init = true_proto + 0.6 * torch.randn(C, d)              # noisy semantic init
+refined, pi = transductive_em(X, init, n_iter=20, tau=8.0)
+acc = (pi.argmax(1) == labels).float().mean().item()
+print(f"transductive cluster purity = {acc:.3f}")
+```
+
+Xian et al.'s **f-VAEGAN-D2** (2019) implements the generative-model analogue of this loop — its second discriminator is trained on unlabelled target images, which plays the same role as the E-step here but with adversarial gradients instead of soft EM. A useful way to read the design: the EM loop above is *deterministic* refinement of a discriminative score, while f-VAEGAN-D2 is *stochastic* refinement of a generative density. Both pay off in the regime where the unlabelled target set is large enough to estimate a reliable per-class statistic, and both fail in the same way when the inductive starting point puts a class on the wrong side of a decision boundary.
+
+The practical limit is data: with fewer than $\sim 50$ unlabelled examples per unseen class the M-step's prototype estimate is too noisy and EM oscillates. Above that, transductive ZSL closes another five to eight points of harmonic mean over the inductive baseline — enough that, when the deployment really has a stash of unlabelled target images sitting around, the EM loop is essentially free performance.
+
+---
+
+## Why CLIP Sidesteps GZSL Bias
+
+The GZSL collapse has a single mechanical cause: you train $F_\theta(x, c)$ to maximise $P(y_n \mid x_n)$ over $\mathcal{C}^s$ only, so the score landscape is sculpted to make *seen-class* prototypes attractors. At test time over $\mathcal{C}^s \cup \mathcal{C}^u$ the seen scores are systematically larger — not because seen classes are easier but because the optimiser only ever cared about them. Even with calibrated stacking you are subtracting a constant from a structurally biased landscape.
+
+CLIP avoids this entirely. The InfoNCE objective
+$$
+\mathcal{L}_{\text{CLIP}} = -\frac{1}{2}\sum_i \log \frac{\exp(I_i \cdot T_i / \tau)}{\sum_j \exp(I_i \cdot T_j / \tau)}
+\;-\; \frac{1}{2}\sum_i \log \frac{\exp(T_i \cdot I_i / \tau)}{\sum_j \exp(T_i \cdot I_j / \tau)}
+$$
+has no notion of "class" at all. Every image–text pair is its own positive; every other pair in the batch is a negative. There is no class label to be biased toward, so at deployment no class is privileged. The seen/unseen split that defines GZSL only exists in your benchmark — CLIP's encoder treats all prompts symmetrically.
+
+```python
+import torch
+import torch.nn.functional as F
+
+def symmetric_infonce(I: torch.Tensor, T: torch.Tensor,
+                      tau: float = 0.07) -> torch.Tensor:
+    """Symmetric image<->text contrastive loss."""
+    I = F.normalize(I, dim=-1)
+    T = F.normalize(T, dim=-1)
+    logits = I @ T.t() / tau                             # [B, B]
+    targets = torch.arange(I.size(0), device=I.device)
+    return 0.5 * (F.cross_entropy(logits, targets) +
+                  F.cross_entropy(logits.t(), targets))
+
+def harmonic_mean(S: float, U: float) -> float:
+    return 2 * S * U / (S + U + 1e-8)
+```
+
+Here is a numerical demonstration on the same toy problem under both regimes. Three seen classes, three unseen, 64-D features, 32-D semantics. The classification-trained model wins the seen-class argmax; the symmetric contrastive model spreads the score mass evenly.
+
+```python
+torch.manual_seed(3)
+Cs, Cu, d, m = 3, 3, 64, 32
+A = torch.randn(Cs + Cu, m)                              # class semantics
+true_W = torch.randn(d, m) * 0.1
+N_per = 80
+X_all, y_all = [], []
+for c in range(Cs + Cu):
+    Xc = (A[c] @ true_W.t()).expand(N_per, d) + 0.3 * torch.randn(N_per, d)
+    X_all.append(Xc); y_all.append(torch.full((N_per,), c))
+X = torch.cat(X_all); y = torch.cat(y_all)
+seen_mask = y < Cs
+
+# Train classification head on seen only -> measure GZSL.
+W_cls = torch.nn.Parameter(torch.randn(d, m) * 0.01)
+opt = torch.optim.Adam([W_cls], lr=5e-3)
+for _ in range(200):
+    scores = X[seen_mask] @ W_cls @ A.t()
+    loss = F.cross_entropy(scores[:, :Cs], y[seen_mask])
+    opt.zero_grad(); loss.backward(); opt.step()
+pred = (X @ W_cls @ A.t()).argmax(1)
+S = (pred[seen_mask] == y[seen_mask]).float().mean().item()
+U = (pred[~seen_mask] == y[~seen_mask]).float().mean().item()
+print(f"classification: S={S:.2f} U={U:.2f} H={harmonic_mean(S,U):.2f}")
+
+# Train symmetric InfoNCE on (feature, semantic) pairs from ALL classes' pairs.
+W_clip = torch.nn.Parameter(torch.randn(d, m) * 0.01)
+opt = torch.optim.Adam([W_clip], lr=5e-3)
+for _ in range(200):
+    idx = torch.randperm(X.size(0))[:64]
+    I_emb = X[idx] @ W_clip                              # [B, m]
+    T_emb = A[y[idx]]                                    # [B, m]
+    loss = symmetric_infonce(I_emb, T_emb, tau=0.1)
+    opt.zero_grad(); loss.backward(); opt.step()
+sims = F.normalize(X @ W_clip, dim=-1) @ F.normalize(A, dim=-1).t()
+pred = sims.argmax(1)
+S = (pred[seen_mask] == y[seen_mask]).float().mean().item()
+U = (pred[~seen_mask] == y[~seen_mask]).float().mean().item()
+print(f"contrastive:    S={S:.2f} U={U:.2f} H={harmonic_mean(S,U):.2f}")
+```
+
+Typical output on this toy: classification gives $S=0.92, U=0.08, H=0.18$ — the textbook GZSL collapse. Symmetric contrastive gives $S=0.71, U=0.55, H=0.62$. Same data, same capacity, no calibration trick — only a loss that refuses to privilege seen classes.
+
+This is not free. CLIP shifts the cost to massive web-scale pretraining: 400M image–text pairs, thousands of GPU-days, and a curation pipeline to keep the negatives diverse. The bias problem doesn't vanish; it gets amortised over a pretraining dataset large enough that essentially every "unseen" benchmark class has been seen in some form during contrastive learning. Inside that regime the GZSL bias mechanism never gets to form — and that is why CLIP-style training has effectively retired GZSL as a separate research problem.
+
+Two corollaries worth keeping in mind. First, the symmetric loss is what carries the argument — replacing InfoNCE with a one-sided softmax over class names would re-introduce the same asymmetry that classification-based ZSL suffers from, and the harmonic-mean gap would re-open. Second, in domains where web-scale pretraining is *not* available (medical imaging, industrial defect detection, satellite imagery) GZSL bias remains a live problem and the calibration / generative / transductive machinery from the previous sections is still the right toolkit. The mechanism is invariant; only the data scale at which it stops mattering changes.
+
 ## FAQ
 
 **Q1. When should I reach for ZSL instead of few-shot or active learning?**

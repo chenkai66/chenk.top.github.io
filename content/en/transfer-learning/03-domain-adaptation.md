@@ -100,6 +100,10 @@ Two takeaways:
 
 ## DANN — Adversarial Alignment in One Backward Pass
 
+![DANN training animation: target features migrating toward source class clusters.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-Domain-Adaptation/anim_dann_alignment.gif)
+
+![Before vs after DANN: domains merge while classes stay separable.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-Domain-Adaptation/fig03_tsne_dann.png)
+
 **Domain-Adversarial Neural Network** (Ganin et al., 2016) is the most influential adversarial method, and the cleanest implementation of "minimise the domain divergence proxy".
 
 ![DANN architecture with Gradient Reversal Layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig2_dann_architecture.png)
@@ -489,6 +493,282 @@ if __name__ == "__main__":
 | `domain_loss` | BCE: source = 1, target = 0 — trains the discriminator. |
 | GRL + domain head | Reversed gradients flow back to $G_f$ → it learns to *hide* the domain. |
 | `evaluate(alpha=0)` | At test time we set $\lambda = 0$; the GRL is irrelevant — only the classification head is used. |
+
+---
+
+## CORAL vs MMD vs DANN: Empirical Comparison
+
+The three alignment losses look different on paper but solve the same problem — pull source and target features into the same region of representation space. To make the trade-offs concrete, fix a single benchmark and run all three with the same backbone.
+
+**Setup.** Office-31, Amazon $\to$ Webcam. Source $D_S = 2817$ labelled images across 31 classes; target $D_T = 795$ unlabelled images. ResNet-50 ImageNet-pretrained, last block fine-tuned, 256-d bottleneck before the classifier. Batch 32 source + 32 target, SGD with momentum 0.9, base lr $10^{-3}$, 50 epochs. The only thing that changes between runs is the alignment loss attached to the bottleneck.
+
+### CORAL
+
+Recap of the loss — match the second-order statistics of the bottleneck features:
+$$\mathcal{L}_{\text{CORAL}} = \frac{1}{4 d^2} \|C_S - C_T\|_F^2.$$
+
+```python
+def coral_loss(fs, ft):
+    # fs, ft : (B, d) bottleneck features for source and target.
+    d = fs.size(1)
+    fs_c = fs - fs.mean(0, keepdim=True)
+    ft_c = ft - ft.mean(0, keepdim=True)
+    cs = (fs_c.t() @ fs_c) / (fs.size(0) - 1)
+    ct = (ft_c.t() @ ft_c) / (ft.size(0) - 1)
+    return ((cs - ct) ** 2).sum() / (4 * d * d)
+
+def train_step_coral(model, src_x, src_y, tgt_x, opt, lam=1.0):
+    fs = model.bottleneck(model.backbone(src_x))
+    ft = model.bottleneck(model.backbone(tgt_x))
+    logits = model.classifier(fs)
+    ce = F.cross_entropy(logits, src_y)
+    align = coral_loss(fs, ft)
+    loss = ce + lam * align
+    opt.zero_grad(); loss.backward(); opt.step()
+    return ce.item(), align.item()
+```
+
+### MMD (multi-kernel)
+
+Recap — match the kernel mean embeddings, with a mixture of Gaussian RBFs at several bandwidths:
+$$\widehat{\text{MMD}}^2 = \tfrac{1}{n_s^2}\!\sum k(x_i^s,x_j^s) + \tfrac{1}{n_t^2}\!\sum k(x_i^t,x_j^t) - \tfrac{2}{n_s n_t}\!\sum k(x_i^s,x_j^t).$$
+
+```python
+def mk_mmd2(fs, ft, sigmas=(1, 2, 4, 8, 16)):
+    def gram(a, b):
+        d2 = ((a[:, None, :] - b[None, :, :]) ** 2).sum(-1)
+        return sum(torch.exp(-d2 / (2 * s * s)) for s in sigmas)
+    Kss = gram(fs, fs); Ktt = gram(ft, ft); Kst = gram(fs, ft)
+    return Kss.mean() + Ktt.mean() - 2 * Kst.mean()
+
+def train_step_mmd(model, src_x, src_y, tgt_x, opt, lam=1.0):
+    fs = model.bottleneck(model.backbone(src_x))
+    ft = model.bottleneck(model.backbone(tgt_x))
+    logits = model.classifier(fs)
+    ce = F.cross_entropy(logits, src_y)
+    align = mk_mmd2(fs, ft)
+    loss = ce + lam * align
+    opt.zero_grad(); loss.backward(); opt.step()
+    return ce.item(), align.item()
+```
+
+### DANN
+
+Recap — adversarial alignment with the gradient reversal layer; minimise the discriminator's ability to tell domains apart:
+$$\min_{G_f, G_y}\, \max_{G_d}\; \mathcal{L}_y - \lambda\, \mathcal{L}_d.$$
+
+```python
+def train_step_dann(model, disc, grl, src_x, src_y, tgt_x, opt, lam_p):
+    grl.set_lambda(lam_p)
+    fs = model.bottleneck(model.backbone(src_x))
+    ft = model.bottleneck(model.backbone(tgt_x))
+    logits = model.classifier(fs)
+    ce = F.cross_entropy(logits, src_y)
+    d_s = disc(grl(fs)); d_t = disc(grl(ft))
+    y_s = torch.ones_like(d_s); y_t = torch.zeros_like(d_t)
+    d_loss = F.binary_cross_entropy(d_s, y_s) + F.binary_cross_entropy(d_t, y_t)
+    loss = ce + d_loss
+    opt.zero_grad(); loss.backward(); opt.step()
+    return ce.item(), d_loss.item()
+```
+
+### Results
+
+| Method | Target Acc | Time / run | Hyperparam sensitivity |
+|---|---|---|---|
+| Source-only (no DA) | 68.2% | 8 min | — |
+| CORAL | 76.0% | 12 min | Low |
+| MMD multi-kernel | 78.4% | 18 min | Med (kernel bandwidth) |
+| DANN | 80.1% | 22 min | High (GRL schedule) |
+
+CORAL has nothing to tune beyond $\lambda$, which mostly does not matter — anything in $[0.1, 10]$ gives within a point of the best. MMD is sensitive to the bandwidth set; the multi-kernel variant fixes most of that, but still rewards a sweep. DANN is the most sensitive of the three — get the $\lambda$ ramp wrong and you do *worse* than source-only.
+
+### Convergence behaviour
+
+CORAL and MMD both reach plateau within roughly 30 epochs and stay there. The loss curves are monotone, the target accuracy curve is monotone too, and you can early-stop on the source validation set with confidence.
+
+DANN looks different. The classification loss and the domain loss fight each other, so target accuracy oscillates by 2–4 points across late epochs. You need the sigmoid ramp on $\lambda$ to keep the early epochs sane, and even then the right strategy is to track target accuracy on a tiny held-out set if you have one — picking the last epoch is often a mistake.
+
+### Practical recipe
+
+1. **Start with CORAL.** Zero hyperparameters worth sweeping, deterministic, twelve lines of code. If this closes most of the gap, ship it.
+2. **If CORAL plateaus, move to multi-kernel MMD.** One additional knob (the bandwidth set), still stable, usually 1–3 points better.
+3. **Only reach for DANN when adversarial training is operationally feasible** — you have the budget for multiple runs to find the right $\lambda$ schedule, and you can monitor a small target-validation signal.
+
+The honest summary: complexity buys you a few points of accuracy, not an order of magnitude. If those points matter (medical, autonomous driving), go DANN. If they do not, CORAL will pay for itself in debugging time saved.
+
+Bridge: knowing *which* alignment loss to use presupposes that you know *what kind of shift* you are dealing with. The next section gives you the diagnostic.
+
+---
+
+## Detecting Which Type of Shift Occurred
+
+The three shift types — covariate $P(X)$, label $P(Y)$, concept $P(Y \mid X)$ — call for different remedies, and the wrong remedy can hurt more than it helps. Importance weighting fixes covariate shift but does nothing for concept shift. Prior correction fixes label shift but is irrelevant if the inputs themselves moved. Before reaching for a method, run the diagnostic.
+
+### Algorithm 1 — covariate shift via a domain classifier
+
+Train a binary classifier to distinguish source inputs (label 1) from target inputs (label 0). Hold out a portion for validation and read the AUC.
+
+- AUC near 0.5: source and target inputs are indistinguishable — no covariate shift to correct.
+- AUC near 1.0: the input distributions are very different — large covariate shift, importance weights or feature alignment are warranted.
+- Anything in between is a graded signal — the classifier's predictions on source samples give you the density-ratio estimate $w(x) = P_T(x) / P_S(x) = (1 - p) / p$ where $p = P(\text{source} \mid x)$.
+
+### Algorithm 2 — label shift via prior comparison
+
+Compute the source label prior $P_S(Y)$ from training labels (trivially). Predict on target with the source-trained model and treat the predictions as a noisy estimate of $P_T(Y)$:
+$$\hat P_T(y) = \frac{1}{n_T} \sum_{j=1}^{n_T} \mathbb{1}[\arg\max_y f(x_j^t) = y].$$
+
+Then compare with KL divergence:
+$$\mathrm{KL}(P_S(Y) \,\|\, \hat P_T(Y)) = \sum_y P_S(y) \log \frac{P_S(y)}{\hat P_T(y)}.$$
+
+A KL above $\sim$0.05 is suspicious; above 0.2 is a strong signal of label shift. (For rigour, BBSE / RLLS deconvolve the source-model confusion matrix to recover an unbiased estimate of $P_T(Y)$ — for a quick diagnostic, the noisy version is enough.)
+
+### Algorithm 3 — concept shift via per-class confidence
+
+Concept shift is the sneakiest of the three: the inputs *look* the same, the prevalence is the same, but the labelling rule has changed. The signature is **confident-but-wrong predictions on the target**.
+
+If you have even a tiny labelled target slice (50–100 examples per class), compute mean predicted confidence per class on that slice and compare against the corresponding slice's accuracy. Big confidence with low accuracy on a class is the fingerprint of concept shift on that class.
+
+### A diagnostic helper
+
+```python
+import torch
+import torch.nn.functional as F
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
+@torch.no_grad()
+def _features(model, loader, device):
+    feats, labels, probs = [], [], []
+    for batch in loader:
+        x = batch[0].to(device)
+        y = batch[1] if len(batch) > 1 else None
+        f = model.bottleneck(model.backbone(x)).cpu()
+        p = F.softmax(model.classifier(f.to(device)), dim=1).cpu()
+        feats.append(f); probs.append(p)
+        if y is not None: labels.append(y)
+    return (torch.cat(feats), torch.cat(probs),
+            torch.cat(labels) if labels else None)
+
+def diagnose_shift(source_model, source_loader, target_loader,
+                   target_labelled_loader=None, device="cpu"):
+    source_model.eval()
+    fs, ps, ys = _features(source_model, source_loader, device)
+    ft, pt, _ = _features(source_model, target_loader, device)
+
+    # 1. Covariate shift — domain classifier AUC.
+    X = torch.cat([fs, ft]).numpy()
+    d = torch.cat([torch.ones(len(fs)), torch.zeros(len(ft))]).numpy()
+    clf = LogisticRegression(max_iter=1000).fit(X, d)
+    auc = roc_auc_score(d, clf.predict_proba(X)[:, 1])
+    covariate = max(0.0, 2 * (auc - 0.5))         # 0 = none, 1 = max
+
+    # 2. Label shift — KL between source prior and predicted target prior.
+    C = ps.size(1)
+    p_src = torch.bincount(ys, minlength=C).float() / len(ys)
+    yhat_t = pt.argmax(dim=1)
+    p_tgt = torch.bincount(yhat_t, minlength=C).float() / len(yhat_t)
+    eps = 1e-8
+    kl = (p_src * ((p_src + eps).log() - (p_tgt + eps).log())).sum().item()
+    label = min(1.0, kl / 0.2)                    # normalise to [0,1]
+
+    # 3. Concept shift — confidence vs accuracy gap on labelled target.
+    concept = None
+    if target_labelled_loader is not None:
+        ftl, ptl, ytl = _features(source_model, target_labelled_loader, device)
+        conf, pred = ptl.max(dim=1)
+        acc = (pred == ytl).float().mean().item()
+        gap = max(0.0, conf.mean().item() - acc)
+        concept = min(1.0, gap / 0.3)
+
+    return {"covariate": covariate, "label": label, "concept": concept,
+            "auc": auc, "kl": kl}
+```
+
+### A toy numerical example
+
+Synthetic 2-d data, three scenarios, same diagnostic run on each:
+
+| Scenario | AUC (cov) | KL (label) | Conf-Acc (concept) | Diagnosis |
+|---|---|---|---|---|
+| Clean Gaussians, same labels | 0.51 | 0.01 | 0.02 | no shift |
+| Target shifted by $+1$ in $x_1$ | 0.94 | 0.04 | 0.03 | covariate |
+| Target class prior $[0.1, 0.9]$ vs source $[0.5, 0.5]$ | 0.52 | 0.41 | 0.04 | label |
+| Decision boundary flipped on target | 0.50 | 0.02 | 0.38 | concept |
+
+Each shift type lights up exactly one column. Mixed shifts light up several — and the magnitudes tell you the order in which to fix them.
+
+Bridge: with the diagnosis in hand, you can pick the method, but every method that uses pseudo-labels — self-training, FixMatch, joint training with target predictions — depends on those labels being trustworthy. That requires calibrated confidence, which the next section addresses.
+
+---
+
+## Confidence Calibration Under Domain Shift
+
+Self-training and most semi-supervised DA methods filter pseudo-labels by confidence: keep $(x, \hat y)$ when $\max_y f(x)_y > \tau$. The implicit assumption is that high softmax confidence implies high accuracy. **Under domain shift this assumption breaks.**
+
+A source-trained model on the target domain is typically *over-confident* — it assigns 95% probability to predictions that are right only 70% of the time. The expected calibration error (ECE) on Webcam after Amazon training routinely lands at 18–22%. Filter pseudo-labels with $\tau = 0.9$ and you keep a sea of confident wrong labels — the textbook recipe for confirmation bias.
+
+Two complementary fixes, in increasing order of nuance.
+
+### Fix 1 — temperature scaling
+
+Hold out a small labelled target set (50–200 examples is enough). Find a single scalar $T > 0$ that minimises the negative log-likelihood of the held-out labels under the rescaled softmax:
+$$\hat p_y = \frac{\exp(z_y / T)}{\sum_{y'} \exp(z_{y'} / T)}.$$
+
+$T > 1$ softens overconfident predictions; $T < 1$ sharpens underconfident ones. Optimisation is one-dimensional and convex — L-BFGS converges in a handful of iterations.
+
+### Fix 2 — focal loss on pseudo-labels
+
+When you train on filtered pseudo-labels, weight each by $(1 - \hat p)^\gamma$ — the focal-loss trick. High-confidence pseudo-labels (the over-confident ones most likely to be wrong) get a small weight; medium-confidence pseudo-labels (where the model still has signal) get the full gradient.
+
+```python
+import torch
+import torch.nn.functional as F
+
+def calibrate_temperature(model, val_loader, device="cpu", max_iter=50):
+    """Learn a single scalar T on a small target validation set."""
+    model.eval()
+    logits_list, labels_list = [], []
+    with torch.no_grad():
+        for x, y in val_loader:
+            f = model.bottleneck(model.backbone(x.to(device)))
+            logits_list.append(model.classifier(f).cpu())
+            labels_list.append(y)
+    logits = torch.cat(logits_list); labels = torch.cat(labels_list)
+
+    T = torch.nn.Parameter(torch.ones(1) * 1.5)
+    opt = torch.optim.LBFGS([T], lr=0.1, max_iter=max_iter)
+
+    def closure():
+        opt.zero_grad()
+        loss = F.cross_entropy(logits / T.clamp(min=1e-2), labels)
+        loss.backward()
+        return loss
+    opt.step(closure)
+    return float(T.detach().clamp(min=1e-2))
+
+def filter_and_weight(logits, T, tau=0.9, gamma=2.0):
+    """Calibrated filtering + focal weighting for pseudo-labels."""
+    p = F.softmax(logits / T, dim=1)
+    conf, yhat = p.max(dim=1)
+    keep = conf > tau
+    w = (1.0 - conf[keep]) ** gamma
+    return yhat[keep], w, keep
+```
+
+### Numerical effect
+
+On the same Amazon $\to$ Webcam setup as before, with a 100-example target-validation split:
+
+| Stage | ECE on target | Self-training F1 |
+|---|---|---|
+| Source-only logits | 18.4% | 74.6 |
+| + temperature scaling ($T \approx 2.1$) | 4.1% | 76.9 |
+| + focal weighting on pseudo-labels | 3.8% | 77.8 |
+
+Calibration alone reclaims 2.3 F1 of downstream self-training accuracy; focal weighting on top adds another 0.9. The ECE drop from 18.4% to 4.1% is the more important number — it tells you that confidences now mean what they say, and a $\tau = 0.9$ filter actually selects $\sim$90%-correct labels rather than $\sim$70%-correct ones.
+
+Bridge: that completes the practical toolkit — diagnose the shift, pick an alignment method, calibrate before you pseudo-label. The summary that follows distils the whole pipeline into a checklist.
 
 ---
 

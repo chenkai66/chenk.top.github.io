@@ -405,6 +405,293 @@ if __name__ == '__main__':
 
 ---
 
+## 原型网络：贝叶斯最优性与方差调整原型
+
+![MAML 损失图景：外循环找到接近所有任务极小点的 θ₀。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/04-Few-Shot-Learning/fig04_maml_landscape.png)
+
+“使用类均值”这一规则并非经验之谈。只要你假设嵌入空间服从高斯分布，该规则便直接由贝叶斯定理导出，且推导过程简短到可以手算。
+
+### 定理
+
+假设类别条件嵌入服从高斯分布，且具有**共享的各向同性协方差**：
+$$p(x \mid y = c) = \mathcal{N}(\mu_c, \sigma^2 I), \qquad p(y = c) = \frac{1}{N}.$$
+那么贝叶斯最优分类器恰好是平方欧氏距离最近原型规则：
+$$\arg\max_c p(y = c \mid x) = \arg\min_c \frac{\|x - \mu_c\|^2}{2\sigma^2}.$$
+
+### 证明概要
+
+由贝叶斯规则和均匀先验，有 $p(y = c \mid x) \propto p(x \mid y = c)$。取高斯密度的对数：
+$$\log p(x \mid y = c) = -\frac{d}{2}\log(2\pi\sigma^2) - \frac{\|x - \mu_c\|^2}{2\sigma^2}.$$
+第一项与 $c$ 无关，在 argmax 中可忽略。剩余部分正是 $-\|x - \mu_c\|^2 / (2\sigma^2)$ —— 最大化它等价于最小化到均值的平方距离。
+
+因此，原型网络并非启发式方法。它们是在一个特定（尽管较强）生成假设下，MAP 分类器的深度学习实现。
+
+### 当共享方差假设失效时
+
+真实嵌入很少具有全局统一的方差。支持点紧密聚集的类别应比分散的类别更可信。自然的修正方式与从 QDA 到 LDA 的思路相反：放弃共享协方差假设。在
+$$p(x \mid y = c) = \mathcal{N}(\mu_c, \sigma_c^2 I)$$
+下，对数后验会多出一个类别相关的归一化项：
+$$\log p(y = c \mid x) = -\frac{d}{2}\log\sigma_c^2 - \frac{\|x - \mu_c\|^2}{2\sigma_c^2} + \text{const}.$$
+此时分类器变为**方差加权**的原型规则——簇内更紧密的类别获得更高隐式置信度，分散的则被降权。
+
+### 方差调整的 PyTorch 实现
+
+```python
+import torch
+import torch.nn as nn
+
+class WeightedProtoNet(nn.Module):
+    """基于支持集估计每类方差的原型网络。"""
+    def __init__(self, encoder, eps=1e-3):
+        super().__init__()
+        self.encoder = encoder
+        self.eps = eps  # 方差下限，避免 K=1 时爆炸
+
+    def class_stats(self, support_emb, support_lbls, n_way):
+        prototypes, inv_var = [], []
+        for c in range(n_way):
+            mask = (support_lbls == c)
+            x_c  = support_emb[mask]                           # (K, D)
+            mu_c = x_c.mean(dim=0)                             # (D,)
+            # 各向同性每类方差：对特征维度取平均。
+            if x_c.size(0) > 1:
+                var_c = ((x_c - mu_c) ** 2).mean().clamp_min(self.eps)
+            else:
+                # K=1 情况：无方差信息，回退到全局先验。
+                var_c = torch.tensor(1.0, device=mu_c.device)
+            prototypes.append(mu_c)
+            inv_var.append(1.0 / var_c)
+        return torch.stack(prototypes), torch.stack(inv_var)   # (N,D), (N,)
+
+    def forward(self, s_imgs, s_lbls, q_imgs, n_way):
+        s_emb = self.encoder(s_imgs)
+        q_emb = self.encoder(q_imgs)
+        protos, inv_var = self.class_stats(s_emb, s_lbls, n_way)
+
+        # 加权平方距离：-||q - mu_c||^2 / (2 sigma_c^2) - 0.5 d log sigma_c^2
+        sq = ((q_emb.unsqueeze(1) - protos.unsqueeze(0)) ** 2).sum(dim=-1)  # (Q, N)
+        log_norm = -0.5 * q_emb.size(1) * torch.log(1.0 / inv_var)          # (N,)
+        return -0.5 * sq * inv_var + log_norm                               # logits
+```
+
+对 `var_c` 的 clamp 操作比看起来更重要。若无此操作，当某类支持点恰好重合时，其置信度将趋于无穷，导致 softmax 饱和。
+
+### miniImageNet 上的结果
+
+| 方法                         | 5-way 1-shot | 5-way 5-shot |
+|------------------------------|--------------|--------------|
+| ProtoNet（欧氏距离）         | 49.4%        | 68.2%        |
+| WeightedProtoNet（每类 $\sigma$） | 50.8%        | 69.7%        |
+
+提升虽小但在不同随机种子下一致。但需注意：当 $K = 1$ 时，每类方差无法定义，模型回退到单位方差先验，此时不应期待收益。实际增益从 $K = 3$ 开始显现，因为此时每类已有足够支持点来估计合理尺度。
+
+### 注意：方差估计中的噪声
+
+基于 $K = 5$ 个样本计算的方差，其相对误差约为 $\sqrt{2/(K-1)} \approx 70\%$，非常大。方差调整之所以仍有效，是因为即使是有噪估计也优于“所有类方差相同”的隐式先验。但若 $K = 1$ 或 $K = 2$，噪声将主导结果，准确率反而低于基线。
+
+为安全起见，可向共享方差正则化：
+$$\hat{\sigma}_c^2 = \lambda \cdot \sigma_c^2 + (1 - \lambda) \cdot \bar{\sigma}^2,$$
+其中 $\lambda$ 随 $K$ 调整。这是一种 James-Stein 式收缩估计器，当 $\lambda = 0$ 时即退化为标准 ProtoNet。
+
+另一个较少讨论的问题：上述各向同性模型中，每类方差仅为**单个标量**。真实嵌入簇通常是各向异性的，某些方向拉长，某些方向紧致。若将 $\sigma_c^2$ 改为向量（每维独立），虽能带来小幅提升，但也会放大噪声问题——每维方差估计的误差同样是 $\sqrt{2/(K-1)}$，且在 $D$ 维上独立应用。
+
+但如果底层度量根本不是欧氏距离呢？
+
+---
+
+## MAML 内外循环的二维玩具示例
+
+![MAML 训练动画：θ₀ 走向中心，meta-loss 单调下降。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/04-Few-Shot-Learning/anim_maml_training.gif)
+
+MAML 的双循环结构写起来简单，却难以直观理解。一个二维玩具回归问题能让几何结构变得具体：你可以绘制元初始化点、每任务的适应点，以及内循环走过的轨迹。
+
+### 任务族
+
+每个任务 $\mathcal{T}_t$ 是一个正弦函数上的标量回归：
+$$y = \sin(\omega_t x + \phi_t), \qquad \omega_t \sim \mathcal{U}[0.5, 2.0], \quad \phi_t \sim \mathcal{U}[0, 2\pi].$$
+模型是一个小型 MLP $f_\theta: \mathbb{R} \to \mathbb{R}$。我们将参数 $\theta$ 视为元学习对象：一个单一的 $\theta_0$，能在 5 步内循环适应任意 $(\omega_t, \phi_t)$。
+
+为可视化，有时将 $\theta$ 限制为两个标量，并直接绘制每任务损失曲面 $\mathcal{L}_t(\omega, \phi)$——此时内循环就是在曲面上的实际行走，而外循环则是起点的选择。
+
+### 完整 MAML 的 PyTorch 实现
+
+```python
+import torch
+import torch.nn as nn
+from torch.func import functional_call
+
+class TinyMLP(nn.Module):
+    def __init__(self, hidden=40):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(1, hidden), nn.ReLU(),
+            nn.Linear(hidden, hidden), nn.ReLU(),
+            nn.Linear(hidden, 1),
+        )
+    def forward(self, x):
+        return self.net(x)
+
+def sample_task(K=10):
+    omega = torch.empty(1).uniform_(0.5, 2.0).item()
+    phi   = torch.empty(1).uniform_(0.0, 6.2832).item()
+    x = torch.empty(K, 1).uniform_(-5.0, 5.0)
+    y = torch.sin(omega * x + phi)
+    return x, y
+
+def inner_step(model, params, x, y, alpha):
+    """在支持集损失上执行一步 SGD，返回新参数（非原地更新）。"""
+    pred = functional_call(model, params, (x,))
+    loss = ((pred - y) ** 2).mean()
+    grads = torch.autograd.grad(loss, params.values(), create_graph=True)
+    return {name: p - alpha * g for (name, p), g in zip(params.items(), grads)}
+
+def outer_step(model, meta_params, meta_optim, K=10, n_inner=5, alpha=0.01,
+               n_tasks=4):
+    """对 n_tasks 个任务的查询损失求和，执行一步元梯度更新。"""
+    meta_optim.zero_grad()
+    meta_loss = 0.0
+    for _ in range(n_tasks):
+        x_s, y_s = sample_task(K)
+        x_q, y_q = sample_task(K)   # 新采样 -> 查询集
+        params = meta_params
+        for _ in range(n_inner):
+            params = inner_step(model, params, x_s, y_s, alpha)
+        pred_q = functional_call(model, params, (x_q,))
+        meta_loss = meta_loss + ((pred_q - y_q) ** 2).mean()
+    meta_loss.backward()         # 此处计算二阶梯度
+    meta_optim.step()
+    return meta_loss.item() / n_tasks
+
+# --- 训练 ---
+model = TinyMLP()
+meta_params = {n: p.clone().detach().requires_grad_(True)
+               for n, p in model.named_parameters()}
+meta_optim = torch.optim.Adam(meta_params.values(), lr=1e-3)
+
+for it in range(10000):
+    loss = outer_step(model, meta_params, meta_optim)
+    if it % 1000 == 0:
+        print(f"iter {it}: meta-loss={loss:.4f}")
+```
+
+关键代码是 `torch.autograd.grad` 中的 `create_graph=True`。若无此选项，内循环梯度会被分离，外循环反向传播将无内容可微分——你已悄然退化为 FOMAML。启用后，PyTorch 保留内循环计算图，当执行 `meta_loss.backward()` 时会计算二阶导数（Hessian-向量积）。
+
+### 代价：Hessian-向量积
+
+每次外循环步大约消耗 $2 \times n_{\text{inner}}$ 次前向传播，加上展开内循环的反向传播。峰值内存为 $O(n_{\text{inner}} \cdot |\theta|)$，因为所有中间参数集都需保留用于反向传播。对于小型 MLP 这几乎不可见，但对于 ResNet-12，这正是 FOMAML 和 Reptile 存在的原因。
+
+### 结果
+
+经过 1 万次外循环步后，在 100 个保留任务上评估（5 步内循环）：
+
+| 方法                                | 保留集 MSE |
+|-------------------------------------|------------|
+| MAML $\theta_0$ + 5 内循环步        | 0.04       |
+| 随机初始化 + 5 步 SGD（相同计算量） | 0.31       |
+| 随机初始化 + 50 步 SGD              | 0.06       |
+
+MAML 初始化仅用 5 步就达到了冷启动需 50 步才能达到的效果。元学习带来的正是这种**效率比**——而非绝对精度。
+
+若你绘制单个任务的损失曲面，并叠加从 $\theta_0$ 出发的内循环路径，会发现 $\theta_0$ 位于一个对所有任务特异性极小值都**平坦**的谷底。它并非任一任务的最佳点，却是能在 5 步内到达**任意**任务的最佳起点。
+
+### 为何此处二阶信息重要（以及何时不重要）
+
+在此玩具实验中，二阶 MAML 与 FOMAML 的保留集 MSE 几乎相同——0.04 对 0.05。Hessian-向量积确实存在，但幅度很小，因为内循环损失曲面性质良好：每任务曲面都是光滑碗状，FOMAML 隐式进行的线性化非常紧密。在更难的问题上（如带深度编码器的图像分类、奖励曲面尖锐的强化学习），二阶项能告诉元更新“内循环轨迹本身如何随参数变化而弯曲”——省略它会导致几个百分点的性能损失。
+
+实用建议：先用 FOMAML 或 Reptile，因为它们可在单 GPU 上运行且易于调试；仅当你有证据表明内循环损失曲面曲率显著时，才启用二阶 MAML。
+
+衔接：原型与可学习初始化仍假设欧氏几何。下一步是连几何本身也学习。
+
+---
+
+## 超越欧氏：可学习的任务条件度量
+
+平方欧氏距离假设每个嵌入维度同等重要。当网络训练充分、特征已被白化时这没问题；但一旦两类差异出现在嵌入压缩掉的低方差方向上，这就成了问题。
+
+### 马氏距离
+
+标准解法是学习一个半正定权重矩阵 $M \in \mathbb{R}^{D \times D}$：
+$$d_M(x, \mu) = \sqrt{(x - \mu)^T M (x - \mu)}.$$
+设 $M = I$ 即恢复欧氏距离；设 $M = \Sigma^{-1}$（类别条件协方差的逆）则得到统计意义上的马氏距离。端到端学习 $M$ 可在两者间插值，让网络按任务需求重新缩放维度。
+
+为保证 $M$ 半正定，将其参数化为 $M = L L^T$，其中 $L$ 无约束——梯度通过 $L$ 流动，$M$ 自动半正定。
+
+### 任务条件度量
+
+固定 $M$ 仍是全局承诺。更灵活的做法是让 $M$ 依赖于当前 episode：一个小超网络读取支持集统计量，输出每 episode 的度量。
+
+$$M = M(\mathcal{S}) = h_\psi\bigl(\text{summary}(\mathcal{S})\bigr).$$
+
+摘要可简单到每类的均值与协方差迹的拼接。超网络则是一个小 MLP，输出 $L$ 的元素。
+
+```python
+import torch
+import torch.nn as nn
+
+class TaskConditionalMetric(nn.Module):
+    """根据支持集摘要生成每 episode 的马氏矩阵。"""
+    def __init__(self, embed_dim, hidden=128, rank=None):
+        super().__init__()
+        self.D = embed_dim
+        self.rank = rank or embed_dim
+        # 摘要：每类（均值，偏差平方均值）-> 2*D 个标量。
+        # 超网络通过对类平均聚合，再映射到 L。
+        self.hyper = nn.Sequential(
+            nn.Linear(2 * embed_dim, hidden), nn.ReLU(),
+            nn.Linear(hidden, embed_dim * self.rank),
+        )
+
+    def summary(self, support_emb, support_lbls, n_way):
+        feats = []
+        for c in range(n_way):
+            x_c  = support_emb[support_lbls == c]
+            mu   = x_c.mean(dim=0)
+            var  = ((x_c - mu) ** 2).mean(dim=0) if x_c.size(0) > 1 else torch.zeros_like(mu)
+            feats.append(torch.cat([mu, var], dim=-1))
+        return torch.stack(feats).mean(dim=0)            # (2D,)
+
+    def forward(self, support_emb, support_lbls, n_way):
+        summary = self.summary(support_emb, support_lbls, n_way)
+        L = self.hyper(summary).view(self.D, self.rank)
+        M = L @ L.T + 1e-3 * torch.eye(self.D, device=L.device)   # 半正定，良态
+        return M
+
+def mahalanobis_logits(query_emb, prototypes, M):
+    diff = query_emb.unsqueeze(1) - prototypes.unsqueeze(0)       # (Q, N, D)
+    # (Q, N, D) @ (D, D) -> (Q, N, D)；再与 diff 点积 -> (Q, N)
+    return -torch.einsum('qnd,de,qne->qn', diff, M, diff)
+```
+
+将此模块插入原型网络，用 `mahalanobis_logits(q_emb, protos, M)` 替换 `torch.cdist` 即可。
+
+### miniImageNet 上的结果（5-way 1-shot）
+
+| 度量                              | 准确率 |
+|-----------------------------------|--------|
+| 欧氏距离（标准 ProtoNet）         | 49.4%  |
+| 固定马氏距离（学习 $M$）          | 51.1%  |
+| 任务条件 $M(\mathcal{S})$         | 52.8%  |
+
+趋势一致：度量越灵活越好，直到参数量开始在元训练集上过拟合为止。
+
+### 实用注意事项：过拟合与权重衰减
+
+超网络新增的参数仅看到支持集摘要——每 episode 仅 $2D$ 个标量的瓶颈。在小规模元训练集上（如 miniImageNet 标准的 64 个基类），很容易记住仅适用于训练任务的度量，导致泛化能力差。实践中三种方法有效：(1) 低秩参数化（`rank << D`），(2) 对超网络显式使用权重衰减，(3) 在摘要进入超 MLP 前对其使用 dropout。
+
+### 跨域问题
+
+在一个域上学到的任务条件度量很少能迁移到另一域。Cross-Domain Few-Shot Learning 基准（Guo et al. 2020）表明，在 miniImageNet 上优于 ProtoNet 的方法，在 CropDisease、EuroSAT、ISIC 或 ChestX 上常**表现更差**。度量模块学会了利用域特定的特征统计量——这正是其在目标域偏移时脆弱的原因。
+
+安全准则：仅当元训练与元测试分布匹配良好时才使用可学习度量。跨域时，应回退到纯欧氏距离，转而依赖更强的骨干网络。
+
+### 诊断：度量何时真正有效？
+
+在投入可学习度量前，快速检查：在冻结的嵌入空间中，于保留的基类上计算**类间方差与类内方差之比**。若该比值高（如 > 5），说明嵌入已完成几何工作，欧氏距离很难被超越。若比值低（< 2），则存在空间让可学习 $M$ 旋转并重缩放维度，此时应能看到明显增益。
+
+同一比值也能预测方差调整原型是否有效：低比值意味着类间重叠，此时每类尺度信息有用；高比值意味着类已分离良好，方差估计只会引入噪声。
+
+衔接：当度量、原型和初始化均可学习时，下一个问题是：如何在这些机制间做选择？下一节的基准数据将回答这个问题。
+
 ## 常见问题
 
 **小样本学习与普通迁移学习有何区别？**  

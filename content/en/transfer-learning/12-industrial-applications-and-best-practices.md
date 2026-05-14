@@ -541,6 +541,255 @@ Leadership cares about **business impact**, not validation loss.
 **ROI:** ($768,000 - $89,900) / $89,900 = **754%**.
 **Payback period:** 1.4 months.
 
+## Inference Patterns
+
+Once a fine-tune is trained, the next decision is how to serve it. Adapters are convenient during experimentation but rarely optimal at peak load. The two patterns below cover the bulk of production deployments: merge adapters when latency dominates, distill when both latency and memory dominate.
+
+### LoRA Merge for Zero-Overhead Inference
+
+Serving a base model with an attached LoRA adapter introduces an extra matmul per linear layer ($x B A$ added to $x W_0$). On a 7B model with rank-16 adapters this typically adds 8-15% latency and prevents standard kernels (FlashAttention, fused MLPs) from being used. Once you have committed to a single deployment variant, merge the weights once and serve the result as a vanilla checkpoint.
+
+```python
+import torch
+from peft import PeftModel
+from transformers import AutoModelForCausalLM
+
+BASE = "meta-llama/Llama-3.1-7B"
+ADAPTER = "checkpoints/support-cls-lora-r16"
+OUT = "checkpoints/support-cls-merged-fp16"
+
+base = AutoModelForCausalLM.from_pretrained(BASE, torch_dtype=torch.float16)
+model = PeftModel.from_pretrained(base, ADAPTER)
+
+# Walk LoRA layers; for each: W_new = W_0 + (B @ A) * (alpha / r)
+for name, module in model.named_modules():
+    if hasattr(module, "lora_A"):
+        A = module.lora_A.default.weight.data        # (r, in)
+        B = module.lora_B.default.weight.data        # (out, r)
+        scale = module.scaling["default"]            # alpha / r
+        delta = (B @ A) * scale
+        module.base_layer.weight.data.add_(delta.to(module.base_layer.weight.dtype))
+
+merged = model.merge_and_unload()                    # collapse the wrappers
+merged.save_pretrained(OUT, safe_serialization=True, max_shard_size="5GB")
+```
+
+Trade-off: the merged checkpoint cannot share GPU memory with other adapters of the same base. If you serve many adapters per customer (the multi-tenant case), keep them unmerged and use a runtime like vLLM's `lora_modules` instead. If you serve one variant at high QPS, merging wins every time.
+
+### Distillation Pipeline (Teacher to Student)
+
+When the merged 7B is still too slow or too expensive, distill into a smaller student. The standard recipe is KL divergence on temperature-scaled logits plus a smaller cross-entropy term against hard labels; the soft term carries the teacher's "dark knowledge" about competing classes, the hard term anchors the student to ground truth.
+
+```python
+import torch, torch.nn.functional as F
+
+def distill_step(student, teacher, batch, optim, accum=4, tau=4.0, alpha=0.5):
+    """One gradient step. Call inside a loop with accum-step accumulation."""
+    teacher.eval()
+    with torch.no_grad():
+        t_logits = teacher(**batch["inputs"]).logits          # (B, T, V)
+    s_logits = student(**batch["inputs"]).logits
+
+    # Soft loss: KL on temperature-softened distributions.
+    # tau**2 keeps gradient magnitudes comparable to the hard loss.
+    kl = F.kl_div(
+        F.log_softmax(s_logits / tau, dim=-1),
+        F.softmax(t_logits / tau, dim=-1),
+        reduction="batchmean",
+    ) * (tau ** 2)
+
+    # Hard loss: standard cross-entropy against the ground-truth labels.
+    ce = F.cross_entropy(
+        s_logits.view(-1, s_logits.size(-1)),
+        batch["labels"].view(-1),
+        ignore_index=-100,
+    )
+
+    loss = (1 - alpha) * kl + alpha * ce
+    (loss / accum).backward()
+    if batch["step"] % accum == 0:
+        torch.nn.utils.clip_grad_norm_(student.parameters(), 1.0)
+        optim.step(); optim.zero_grad()
+    return {"loss": loss.item(), "kl": kl.item(), "ce": ce.item()}
+```
+
+A 7B teacher fine-tuned on customer support tickets distilled into a 700M student typically retains 92-96% of teacher F1 while cutting inference cost ~10x. If KL diverges early, drop $\tau$ from 4 to 2 and warm up the student with pure CE for the first 500 steps.
+
+## Fine-Tuning Cost Estimator
+
+![Industrial cost breakdown across 4 case studies + transfer-vs-scratch break-even.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-Industrial-Applications/fig12_cost_breakeven.png)
+
+Most teams under-budget fine-tuning by 2-3x because they only count GPU hours and forget engineering, evaluation, and serving. The formula below gives a defensible compute estimate; pair it with the per-feature template before quoting.
+
+Compute floor is set by the standard 6-FLOPs-per-token-per-parameter rule (forward + backward, ignoring activation recomputation):
+
+$$
+\text{GPU hours} = \frac{\text{tokens} \times \text{params} \times 6}{\text{TFLOPs} \times 10^{12} \times \text{utilization} \times 3600}
+$$
+
+Use **utilization = 0.4** for honest A100/H100 numbers (peak TFLOPs assume perfect kernels and no data loading). For LoRA, replace `params` with `params_trainable` for the optimizer-state portion but keep full `params` for the forward/backward FLOPs, since the base weights still participate.
+
+**Worked example 1: LoRA fine-tune, 7B base, 10M tokens.** $\frac{10^7 \times 7 \times 10^9 \times 6}{312 \times 10^{12} \times 0.4 \times 3600} \approx 0.94$ A100 hours. At $1.80/hour spot, **$1.69 of compute**. Reality check: most teams report 2-4 A100 hours at this size; the gap is data loading, eval-during-training, and restart overhead.
+
+**Worked example 2: Full fine-tune, 7B, 100M tokens.** Same formula gives ~94 A100 hours. With 8x A100 ZeRO-3 you wallclock ~12 hours, plus checkpoints (~80 GB at 4 saves). Cost: **~$170 spot, ~$420 on-demand**.
+
+**Worked example 3: Distillation 70B teacher to 7B student, 50M tokens.** Teacher inference dominates: 50M tokens through a 70B model at 2 FLOPs/token/param = $7 \times 10^{18}$ FLOPs, ~16 A100 hours just for teacher logits. Student training adds ~5 hours. Total: **~21 A100 hours plus 8x A100 for the student step**, $80-120 if you cache teacher logits and reuse across student epochs.
+
+**Per-feature launch template (use this when quoting):**
+
+| Line item             | Hours | Rate ($/hr) | Cost  |
+|-----------------------|-------|-------------|-------|
+| Engineering (4 weeks) | 100   | 200         | 20,000|
+| Eval annotation       | 30    | 50          | 1,500 |
+| Compute (training+eval)| 12   | 1.80        | 22    |
+| Serving (90 days)     | 2160  | 0.40        | 864   |
+| **Total**             |       |             |**~$22,400**|
+
+Compute is almost always under 5% of the bill. Optimize engineering loops and serving cost first.
+
+## Production Operations
+
+A model that passes offline eval can still fail in production from traffic-routing bugs, silent data drift, or capacity surprises. The next three blocks cover the minimum monitoring surface area: rollout control, input drift, and live inference health.
+
+### A/B Canary Rollout Configuration
+
+Never flip 100% of traffic to a new model. The canary pattern below routes by a stable hash of `user_id` so the same user always sees the same variant, then ramps gated on guardrail metrics rather than a fixed schedule.
+
+```yaml
+# rollout.yaml
+experiment: support-cls-v3
+start: 2026-05-14T09:00:00Z
+variants:
+  control:
+    model: support-cls-v2-merged
+    traffic: 95
+  treatment:
+    model: support-cls-v3-merged
+    traffic: 5
+ramp:
+  - {day: 1, treatment: 5}
+  - {day: 2, treatment: 20}
+  - {day: 4, treatment: 50}
+  - {day: 7, treatment: 100}
+guardrails:
+  p95_latency_ms: {max: 350, action: rollback}
+  error_rate:     {max: 0.005, action: pause}
+  csat_proxy:     {min_delta: -0.02, action: pause}
+log_fields: [request_id, user_id, variant, latency_ms, prediction, confidence, business_outcome]
+```
+
+```python
+import hashlib, yaml
+
+CFG = yaml.safe_load(open("rollout.yaml"))
+
+def route(user_id: str) -> str:
+    bucket = int(hashlib.md5(user_id.encode()).hexdigest(), 16) % 100
+    treat = CFG["variants"]["treatment"]["traffic"]
+    return "treatment" if bucket < treat else "control"
+```
+
+Guardrails are non-negotiable: every ramp step must be gated on the previous window's metrics, not on a calendar. If `p95_latency_ms` breaches 350 ms, the orchestrator rolls back without paging anyone.
+
+### PSI Drift Detection
+
+Population Stability Index quantifies how much a feature's distribution has shifted from a reference window. Run it daily on every production input feature; the cron exit code feeds straight into your alert pipeline.
+
+$$
+\text{PSI} = \sum_i (p^{new}_i - p^{ref}_i) \log\frac{p^{new}_i}{p^{ref}_i}
+$$
+
+```python
+import numpy as np
+
+def psi(ref, new, bins=10, eps=1e-6):
+    """PSI for numerical (auto-binned) or categorical (array of labels) features."""
+    if ref.dtype.kind in "fi":  # numeric
+        edges = np.quantile(ref, np.linspace(0, 1, bins + 1))
+        edges[0], edges[-1] = -np.inf, np.inf
+        p_ref, _ = np.histogram(ref, bins=edges)
+        p_new, _ = np.histogram(new, bins=edges)
+    else:                        # categorical
+        cats = np.unique(np.concatenate([ref, new]))
+        p_ref = np.array([(ref == c).sum() for c in cats])
+        p_new = np.array([(new == c).sum() for c in cats])
+    p_ref = p_ref / max(p_ref.sum(), 1) + eps
+    p_new = p_new / max(p_new.sum(), 1) + eps
+    return float(np.sum((p_new - p_ref) * np.log(p_new / p_ref)))
+
+def daily_check(ref_dict, new_dict):
+    """Returns 0 = ok, 1 = warn (>0.10), 2 = alert (>0.25). Cron-friendly."""
+    worst = max(psi(ref_dict[k], new_dict[k]) for k in ref_dict)
+    if worst > 0.25: return 2
+    if worst > 0.10: return 1
+    return 0
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(daily_check(load_ref(), load_today()))
+```
+
+PSI > 0.25 on a top-5 feature has predicted ~80% of the F1 regressions we have seen post-deploy. PSI between 0.10 and 0.25 is informational, but if three features cross the warn threshold in the same week, retrain.
+
+### Inference Monitoring Metrics
+
+Latency percentiles tell you about the system; prediction-distribution drift tells you about the model. Compute both per rolling window and ship as a single structured payload.
+
+```python
+import numpy as np, time, json
+
+def window_metrics(latencies_ms, preds, confs, ref_pred_probs):
+    p50, p95, p99 = np.percentile(latencies_ms, [50, 95, 99])
+    # Prediction distribution KL vs reference (fit at deploy time).
+    classes, counts = np.unique(preds, return_counts=True)
+    p = counts / counts.sum() + 1e-6
+    q = np.array([ref_pred_probs.get(c, 1e-6) for c in classes])
+    kl = float(np.sum(p * np.log(p / q)))
+    # Confidence histogram, 10 bins on [0, 1].
+    hist, _ = np.histogram(confs, bins=10, range=(0.0, 1.0))
+    return {
+        "ts": int(time.time()),
+        "n": len(latencies_ms),
+        "latency_ms": {"p50": float(p50), "p95": float(p95), "p99": float(p99)},
+        "pred_kl_vs_ref": kl,
+        "confidence_hist": hist.tolist(),
+        "low_conf_rate": float((confs < 0.6).mean()),
+    }
+
+# Forward to CloudWatch / Datadog / OTLP.
+print(json.dumps(window_metrics(lat, pred, conf, REF_PROBS)))
+```
+
+Watch `low_conf_rate` more than mean confidence: a calibrated model's mean barely moves under drift, but the tail below 0.6 fattens fast. A doubling of `low_conf_rate` over a 24-hour window has been a more reliable retrain trigger for us than PSI alone.
+
+## Inference Optimization Checklist
+
+Before adding GPUs, walk this checklist. In our experience the first four items recover 3-5x throughput on a typical fine-tuned 7B without measurable quality loss.
+
+1. **bf16 / fp16 weights.** Free on Ampere+. Quality delta on classification fine-tunes: <0.1 F1.
+2. **int8 weight quantization (bitsandbytes / GPTQ).** ~2x memory reduction, ~1.3x throughput, calibrated quality delta typically <0.5 F1.
+   ```python
+   from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+   bnb = BitsAndBytesConfig(load_in_8bit=True, llm_int8_threshold=6.0)
+   model = AutoModelForCausalLM.from_pretrained(CKPT, quantization_config=bnb, device_map="auto")
+   ```
+3. **KV-cache.** On for any autoregressive decoding. Off by accident if you wrote a custom generate loop.
+4. **PagedAttention (vLLM / TGI).** 2-4x throughput at high batch sizes by eliminating KV fragmentation.
+5. **Continuous batching.** Same runtimes; saturates GPU at variable request lengths.
+6. **ONNX or TensorRT export.** Worth it for sub-1B encoders and CPU serving. Diminishing returns above 7B vs vLLM.
+7. **Speculative decoding.** Pair the 7B with a 0.3B draft model, accept tokens that match. 1.5-2x latency win on instruction tasks.
+
+| Method                     | p50 latency (ms) | Throughput (req/s) | Rel. F1 |
+|----------------------------|------------------|--------------------|---------|
+| fp32 baseline (HF)         | 410              | 12                 | 1.000   |
+| fp16                       | 230              | 21                 | 0.999   |
+| int8 (bnb)                 | 175              | 28                 | 0.997   |
+| vLLM fp16 + paged + batch  | 95               | 140                | 0.999   |
+| vLLM int8 + paged + batch  | 80               | 190                | 0.996   |
+| TensorRT fp16 (encoder-only)| 22              | 410                | 0.999   |
+
+Numbers above are from a 7B classifier on A100-40GB, batch up to 32, prompt 256 tokens. The pattern generalizes: most teams should land on **vLLM + fp16 + paged + continuous batching** as the default and only reach for int8 or TensorRT when GPU budget is the binding constraint. Quantization rarely loses more than 0.5 F1 on transformer fine-tunes if you calibrate on a representative sample of 512-1024 production inputs.
+
 ## Practical Q&A
 
 **Q: Should I fine-tune all layers or freeze the early ones?**

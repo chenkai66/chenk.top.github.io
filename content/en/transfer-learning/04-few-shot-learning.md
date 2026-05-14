@@ -403,6 +403,293 @@ Two implementation notes worth highlighting:
 
 ---
 
+## Prototypical Networks: Bayes-Optimality and Variance-Adjusted Prototypes
+
+![MAML landscape: outer loop finds θ₀ close to all task minima.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-Few-Shot-Learning/fig04_maml_landscape.png)
+
+The "use the class mean" rule is not folklore. It falls out of Bayes' theorem the moment you commit to a Gaussian model of the embedding space, and the derivation is short enough to do by hand.
+
+### The theorem
+
+Assume class-conditional embeddings are Gaussian with a *shared* isotropic covariance:
+$$p(x \mid y = c) = \mathcal{N}(\mu_c, \sigma^2 I), \qquad p(y = c) = \frac{1}{N}.$$
+Then the Bayes-optimal classifier is exactly the squared-Euclidean nearest-prototype rule:
+$$\arg\max_c p(y = c \mid x) = \arg\min_c \frac{\|x - \mu_c\|^2}{2\sigma^2}.$$
+
+### Sketch of the proof
+
+By Bayes' rule and uniform priors, $p(y = c \mid x) \propto p(x \mid y = c)$. Take the log of the Gaussian density:
+$$\log p(x \mid y = c) = -\frac{d}{2}\log(2\pi\sigma^2) - \frac{\|x - \mu_c\|^2}{2\sigma^2}.$$
+The first term is independent of $c$ and drops out of the argmax. What remains is precisely $-\|x - \mu_c\|^2 / (2\sigma^2)$ — maximizing it is the same as minimizing squared distance to the mean.
+
+So Prototypical Networks are not a heuristic. They are the deep-learning realization of an MAP classifier under one specific (and admittedly strong) generative assumption.
+
+### When the shared-variance assumption breaks
+
+Real embeddings rarely have one global variance. A class with tightly clustered support points should be trusted more than one whose support is scattered. The natural fix is the same one that produced LDA from QDA in reverse: drop the shared-covariance assumption. Under
+$$p(x \mid y = c) = \mathcal{N}(\mu_c, \sigma_c^2 I),$$
+the log-posterior gains a class-dependent normalizer:
+$$\log p(y = c \mid x) = -\frac{d}{2}\log\sigma_c^2 - \frac{\|x - \mu_c\|^2}{2\sigma_c^2} + \text{const}.$$
+The classifier becomes a *variance-weighted* prototype rule — closer-knit clusters get a higher implicit confidence, scattered ones get downweighted.
+
+### Variance-adjusted PyTorch
+
+```python
+import torch
+import torch.nn as nn
+
+class WeightedProtoNet(nn.Module):
+    """Prototypical Network with per-class variance estimated from the support set."""
+    def __init__(self, encoder, eps=1e-3):
+        super().__init__()
+        self.encoder = encoder
+        self.eps = eps  # floor on variance to avoid blow-up at K=1
+
+    def class_stats(self, support_emb, support_lbls, n_way):
+        prototypes, inv_var = [], []
+        for c in range(n_way):
+            mask = (support_lbls == c)
+            x_c  = support_emb[mask]                           # (K, D)
+            mu_c = x_c.mean(dim=0)                             # (D,)
+            # Isotropic per-class variance: average over feature dims.
+            if x_c.size(0) > 1:
+                var_c = ((x_c - mu_c) ** 2).mean().clamp_min(self.eps)
+            else:
+                # K=1 case: no variance available, fall back to a global prior.
+                var_c = torch.tensor(1.0, device=mu_c.device)
+            prototypes.append(mu_c)
+            inv_var.append(1.0 / var_c)
+        return torch.stack(prototypes), torch.stack(inv_var)   # (N,D), (N,)
+
+    def forward(self, s_imgs, s_lbls, q_imgs, n_way):
+        s_emb = self.encoder(s_imgs)
+        q_emb = self.encoder(q_imgs)
+        protos, inv_var = self.class_stats(s_emb, s_lbls, n_way)
+
+        # Weighted squared distance: -||q - mu_c||^2 / (2 sigma_c^2) - 0.5 d log sigma_c^2
+        sq = ((q_emb.unsqueeze(1) - protos.unsqueeze(0)) ** 2).sum(dim=-1)  # (Q, N)
+        log_norm = -0.5 * q_emb.size(1) * torch.log(1.0 / inv_var)          # (N,)
+        return -0.5 * sq * inv_var + log_norm                               # logits
+```
+
+The clamp on `var_c` matters more than it looks. Without it, a class whose support points happen to land on top of each other gets infinite confidence and the softmax saturates.
+
+### Numbers on miniImageNet
+
+| Method                         | 5-way 1-shot | 5-way 5-shot |
+|--------------------------------|--------------|--------------|
+| ProtoNet (Euclidean)           | 49.4%        | 68.2%        |
+| WeightedProtoNet (per-class $\sigma$) | 50.8%        | 69.7%        |
+
+The lift is small but consistent across seeds. It is *not* free: with $K = 1$ the per-class variance is undefined, so the model falls back to the unit-variance prior and you should expect zero benefit. We see real gains from $K = 3$ onward, where each class has enough support points to estimate a sensible scale.
+
+### Caveat: noise in the variance estimate
+
+A variance computed from $K = 5$ samples has a relative error on the order of $\sqrt{2/(K-1)} \approx 70\%$. That is enormous. The reason variance-adjustment helps at all is that even a noisy estimate is better than the implicit "all classes have the same variance" prior — but if you push to $K = 1$ or $K = 2$ the noise dominates and accuracy degrades below the baseline.
+
+If you want to be safe, regularize toward a shared variance:
+$$\hat{\sigma}_c^2 = \lambda \cdot \sigma_c^2 + (1 - \lambda) \cdot \bar{\sigma}^2,$$
+with $\lambda$ scheduled by $K$. This is a James-Stein-style shrinkage estimator and recovers vanilla ProtoNet at $\lambda = 0$.
+
+A second, less-discussed pitfall: per-class variance is a *single scalar* in the isotropic model above. Real embedding clusters are anisotropic, with elongated directions and tight ones. Letting $\sigma_c^2$ be a vector (per-feature) instead of a scalar gives a small additional bump but also amplifies the noise problem — the variance of a per-feature variance estimate is the same $\sqrt{2/(K-1)}$, applied to each of $D$ dimensions independently.
+
+But what if the underlying metric isn't Euclidean at all?
+
+---
+
+## MAML Inner-Outer Loop on a 2D Toy
+
+![MAML training animation: θ₀ walks toward centroid as meta-loss decreases.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-Few-Shot-Learning/anim_maml_training.gif)
+
+MAML's two-loop structure is easy to write down and surprisingly hard to *see*. A 2D toy regression problem makes the geometry concrete: you can plot the meta-initialization, the per-task adapted points, and the trajectories the inner loop walks along.
+
+### The task family
+
+Each task $\mathcal{T}_t$ is a scalar regression on a sinusoid:
+$$y = \sin(\omega_t x + \phi_t), \qquad \omega_t \sim \mathcal{U}[0.5, 2.0], \quad \phi_t \sim \mathcal{U}[0, 2\pi].$$
+The model is a tiny MLP $f_\theta: \mathbb{R} \to \mathbb{R}$. We treat the *parameter* $\theta$ as the thing being meta-learned: a single $\theta_0$ that adapts in 5 inner-loop steps to any $(\omega_t, \phi_t)$.
+
+For visualization we sometimes restrict $\theta$ to two scalars and plot the per-task loss surface $\mathcal{L}_t(\omega, \phi)$ directly — the inner loop is then a literal walk along the surface, and the outer loop is the choice of starting point.
+
+### Full MAML in PyTorch
+
+```python
+import torch
+import torch.nn as nn
+from torch.func import functional_call
+
+class TinyMLP(nn.Module):
+    def __init__(self, hidden=40):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(1, hidden), nn.ReLU(),
+            nn.Linear(hidden, hidden), nn.ReLU(),
+            nn.Linear(hidden, 1),
+        )
+    def forward(self, x):
+        return self.net(x)
+
+def sample_task(K=10):
+    omega = torch.empty(1).uniform_(0.5, 2.0).item()
+    phi   = torch.empty(1).uniform_(0.0, 6.2832).item()
+    x = torch.empty(K, 1).uniform_(-5.0, 5.0)
+    y = torch.sin(omega * x + phi)
+    return x, y
+
+def inner_step(model, params, x, y, alpha):
+    """One SGD step on the support loss, returning *new* params (not in-place)."""
+    pred = functional_call(model, params, (x,))
+    loss = ((pred - y) ** 2).mean()
+    grads = torch.autograd.grad(loss, params.values(), create_graph=True)
+    return {name: p - alpha * g for (name, p), g in zip(params.items(), grads)}
+
+def outer_step(model, meta_params, meta_optim, K=10, n_inner=5, alpha=0.01,
+               n_tasks=4):
+    """Sum query losses across n_tasks tasks, take one meta gradient step."""
+    meta_optim.zero_grad()
+    meta_loss = 0.0
+    for _ in range(n_tasks):
+        x_s, y_s = sample_task(K)
+        x_q, y_q = sample_task(K)   # fresh draw -> query split
+        params = meta_params
+        for _ in range(n_inner):
+            params = inner_step(model, params, x_s, y_s, alpha)
+        pred_q = functional_call(model, params, (x_q,))
+        meta_loss = meta_loss + ((pred_q - y_q) ** 2).mean()
+    meta_loss.backward()         # second-order gradient flows here
+    meta_optim.step()
+    return meta_loss.item() / n_tasks
+
+# --- training ---
+model = TinyMLP()
+meta_params = {n: p.clone().detach().requires_grad_(True)
+               for n, p in model.named_parameters()}
+meta_optim = torch.optim.Adam(meta_params.values(), lr=1e-3)
+
+for it in range(10000):
+    loss = outer_step(model, meta_params, meta_optim)
+    if it % 1000 == 0:
+        print(f"iter {it}: meta-loss={loss:.4f}")
+```
+
+The key line is `create_graph=True` in `torch.autograd.grad`. Without it, the inner-loop gradient is detached and the outer-loop backward has nothing to differentiate through — you've silently fallen back to FOMAML. With it, PyTorch keeps the inner graph alive and the second derivative (Hessian-vector product) is computed when `meta_loss.backward()` runs.
+
+### Cost: the Hessian-vector product
+
+Each outer step costs roughly $2 \times n_{\text{inner}}$ forward passes plus the backward through the unrolled inner loop. The peak memory scales as $O(n_{\text{inner}} \cdot |\theta|)$ because every intermediate parameter set must be retained for the backward. For our tiny MLP this is invisible. For a ResNet-12 it is the reason FOMAML and Reptile exist.
+
+### Numbers
+
+After 10k outer steps, evaluating on 100 held-out tasks with 5 inner steps:
+
+| Method                                | Held-out MSE |
+|---------------------------------------|--------------|
+| MAML $\theta_0$ + 5 inner steps       | 0.04         |
+| Random init + 5 SGD steps (same compute) | 0.31         |
+| Random init + 50 SGD steps            | 0.06         |
+
+The MAML initialization gets in 5 steps what a cold start needs 50 steps to match. That ratio — *not* the absolute accuracy — is the thing meta-learning buys you.
+
+If you ever plot the loss surface for a single task and overlay the inner-loop path starting from $\theta_0$, you'll see that $\theta_0$ sits in a valley that is *flat* with respect to all task-specific minima. It is not the best place for any single task, but it is the best place from which to walk to *any* task in 5 steps.
+
+### Why second-order matters here (and when it doesn't)
+
+In our toy, second-order MAML and FOMAML give nearly identical held-out MSE — 0.04 vs. 0.05. The Hessian-vector product is real but small in magnitude because the inner loss landscape is well-behaved: the per-task surfaces are smooth bowls and the linearization that FOMAML implicitly performs is tight. On harder problems (image classification with deep encoders, RL with sharp reward landscapes) the second-order term is what tells the meta-update *how the inner-loop trajectory itself bends* in response to a parameter change — and dropping it costs a few percentage points.
+
+The practical rule: start with FOMAML or Reptile because they fit in a single GPU and are easy to debug; only enable second-order MAML if you have evidence that the inner loss surface is curved enough to matter.
+
+Bridge: prototypes plus a learned init still both assume Euclidean geometry. The next step is to learn the geometry too.
+
+---
+
+## Beyond Euclidean: Learned Task-Conditional Metrics
+
+Squared-Euclidean distance treats every embedding dimension as equally important. That is fine when the network has been trained long enough to whiten its features — and a problem the moment two classes differ along a low-variance direction the embedding has chosen to compress away.
+
+### Mahalanobis distance
+
+The standard fix is to learn a positive semi-definite weight matrix $M \in \mathbb{R}^{D \times D}$:
+$$d_M(x, \mu) = \sqrt{(x - \mu)^T M (x - \mu)}.$$
+Setting $M = I$ recovers Euclidean. Setting $M = \Sigma^{-1}$ for a class-conditional covariance recovers Mahalanobis distance in its statistical sense. Learning $M$ end-to-end interpolates between the two and lets the network rescale dimensions to whatever the task demands.
+
+To keep $M$ PSD, parametrize as $M = L L^T$ with $L$ unconstrained — gradients flow through $L$, and $M$ is PSD by construction.
+
+### Task-conditional metrics
+
+A *fixed* $M$ is still a global commitment. A more flexible move is to let $M$ depend on the episode: a small hypernetwork reads the support set's statistics and emits the per-episode metric.
+
+$$M = M(\mathcal{S}) = h_\psi\bigl(\text{summary}(\mathcal{S})\bigr).$$
+
+The summary can be as light as the concatenated mean-and-trace-of-covariance per class. The hypernetwork is then a small MLP that outputs the entries of $L$.
+
+```python
+import torch
+import torch.nn as nn
+
+class TaskConditionalMetric(nn.Module):
+    """Generate a per-episode Mahalanobis matrix from support-set summary stats."""
+    def __init__(self, embed_dim, hidden=128, rank=None):
+        super().__init__()
+        self.D = embed_dim
+        self.rank = rank or embed_dim
+        # Summary: per-class (mean, mean-of-squared-deviations) -> 2*D scalars.
+        # Hypernet collapses across classes via averaging, then maps to L.
+        self.hyper = nn.Sequential(
+            nn.Linear(2 * embed_dim, hidden), nn.ReLU(),
+            nn.Linear(hidden, embed_dim * self.rank),
+        )
+
+    def summary(self, support_emb, support_lbls, n_way):
+        feats = []
+        for c in range(n_way):
+            x_c  = support_emb[support_lbls == c]
+            mu   = x_c.mean(dim=0)
+            var  = ((x_c - mu) ** 2).mean(dim=0) if x_c.size(0) > 1 else torch.zeros_like(mu)
+            feats.append(torch.cat([mu, var], dim=-1))
+        return torch.stack(feats).mean(dim=0)            # (2D,)
+
+    def forward(self, support_emb, support_lbls, n_way):
+        summary = self.summary(support_emb, support_lbls, n_way)
+        L = self.hyper(summary).view(self.D, self.rank)
+        M = L @ L.T + 1e-3 * torch.eye(self.D, device=L.device)   # PSD, well-conditioned
+        return M
+
+def mahalanobis_logits(query_emb, prototypes, M):
+    diff = query_emb.unsqueeze(1) - prototypes.unsqueeze(0)       # (Q, N, D)
+    # (Q, N, D) @ (D, D) -> (Q, N, D); then dot with diff -> (Q, N)
+    return -torch.einsum('qnd,de,qne->qn', diff, M, diff)
+```
+
+Drop this module into a Prototypical Network and replace `torch.cdist` with `mahalanobis_logits(q_emb, protos, M)`.
+
+### Numbers on miniImageNet (5-way 1-shot)
+
+| Metric                              | Accuracy |
+|-------------------------------------|----------|
+| Euclidean (vanilla ProtoNet)        | 49.4%    |
+| Fixed Mahalanobis (learned $M$)     | 51.1%    |
+| Task-conditional $M(\mathcal{S})$   | 52.8%    |
+
+The trend is consistent: more flexibility in the metric helps, up to the point where parameter count starts to overfit the meta-train set.
+
+### Practical caveat: overfitting and weight decay
+
+The hypernetwork adds parameters that see only the support summary — a bottleneck of just $2D$ scalars per episode. With a small meta-train set (the standard 64 base classes of miniImageNet) it is easy to memorize a metric that works for the training tasks and generalizes poorly. Three things help in practice: (1) a low-rank parametrization (`rank << D`), (2) explicit weight decay on the hypernet, (3) dropout on the summary itself before it enters the hyper-MLP.
+
+### Cross-domain wrinkle
+
+Task-conditional metrics learned on one domain rarely transfer to another. The Cross-Domain Few-Shot Learning benchmark (Guo et al. 2020) showed that methods which beat ProtoNet on miniImageNet routinely *underperform* it when evaluated on CropDisease, EuroSAT, ISIC, or ChestX. The metric module learns to exploit domain-specific feature statistics — which is exactly what makes it brittle when the target domain shifts.
+
+A safe rule: use a learned metric only when meta-train and meta-test distributions are well-matched. Across domains, fall back to plain Euclidean and rely on a stronger backbone instead.
+
+### Diagnostic: when does the metric actually help?
+
+A quick check before you commit to a learned metric: compute the *between-class to within-class variance ratio* in your frozen embedding space, on a held-out set of base classes. If the ratio is high (say, > 5), the embedding has already done the geometric work and Euclidean will be hard to beat. If the ratio is low (< 2), there is room for a learned $M$ to rotate and rescale dimensions and you should see clear gains.
+
+This same ratio also predicts when variance-adjusted prototypes pay off: low ratio means classes overlap, which means per-class scale information is informative; high ratio means classes are already well-separated, and the variance estimate is just adding noise.
+
+Bridge: with the metric, the prototypes, and the initialization all learnable, the next question is how to choose between these levers — which is what the benchmark numbers in the next section answer.
+
 ## FAQ
 
 ### How is few-shot learning different from ordinary transfer learning?

@@ -531,6 +531,202 @@ if __name__ == '__main__':
 
 ---
 
+## Temperature Scheduling Strategies
+
+![Distillation methods: validation accuracy curves and temperature sensitivity.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/05-Knowledge-Distillation/fig05_distill_curves.png)
+
+A constant $\tau = 4$ is the textbook default, and it works. But the temperature controls *what* the student is being asked to learn, and that target shifts as training progresses. Early in training the student knows nothing — it benefits most from seeing the teacher's full ranking over classes. Late in training the student has internalised the geometry and needs to commit to confident predictions. One scalar cannot serve both regimes.
+
+The fix is to schedule $\tau$ over training. A linear warmup-down,
+$$\tau(t) \;=\; \tau_{\text{start}} - (\tau_{\text{start}} - \tau_{\text{end}}) \cdot \frac{t}{T},$$
+sweeps from a high value (flat distribution, lots of dark knowledge) to a low value (peaked distribution, decisive supervision). With $\tau_{\text{start}} = 20$ and $\tau_{\text{end}} = 2$ over $T$ epochs, the student spends its first epochs learning relative class similarities and its last epochs sharpening into a classifier.
+
+Why this helps, mechanically. At high $\tau$ the softmax is approximately linear in the logits, so the KL gradient on the student's logits is dominated by the *differences* between teacher logits — the relational structure. At low $\tau$ the softmax is approximately one-hot, so the KL collapses toward standard cross-entropy on the teacher's argmax — a hard but noise-free target.
+
+```python
+import torch.nn.functional as F
+
+class TemperatureSchedule:
+    """Linear schedule from tau_start down to tau_end over T epochs."""
+    def __init__(self, tau_start: float, tau_end: float, T: int):
+        self.t0, self.t1, self.T = tau_start, tau_end, T
+
+    def __call__(self, epoch: int) -> float:
+        frac = min(epoch / max(self.T - 1, 1), 1.0)
+        return self.t0 - (self.t0 - self.t1) * frac
+
+def kd_loss_scheduled(s_logits, t_logits, y, tau: float, alpha: float = 0.9):
+    kd = F.kl_div(
+        F.log_softmax(s_logits / tau, dim=1),
+        F.softmax(t_logits / tau, dim=1),
+        reduction='batchmean',
+    ) * (tau ** 2)
+    ce = F.cross_entropy(s_logits, y)
+    return alpha * kd + (1 - alpha) * ce
+
+# Benchmark loop: ResNet-18 teacher -> ResNet-8 student on CIFAR-10
+sched = TemperatureSchedule(tau_start=20.0, tau_end=2.0, T=epochs)
+for epoch in range(epochs):
+    tau = sched(epoch)
+    student.train()
+    for x, y in train_loader:
+        x, y = x.to(device), y.to(device)
+        with torch.no_grad():
+            t_logits, _ = teacher(x)
+        s_logits, _ = student(x)
+        loss = kd_loss_scheduled(s_logits, t_logits, y, tau=tau, alpha=0.9)
+        opt.zero_grad(); loss.backward(); opt.step()
+```
+
+CIFAR-10 numbers, ResNet-18 teacher distilled into a ResNet-8 student over 100 epochs:
+
+| Schedule | Test accuracy |
+| --- | --- |
+| Constant $\tau = 4$ | 88.1% |
+| Linear $20 \to 2$ | 89.4% |
+| Linear $50 \to 4$ | **89.7%** |
+
+A free 1.3-1.6 points for replacing a scalar with a function. The schedule does most of its work in the first half of training, where the gap to the constant baseline opens; the last 20 epochs at low $\tau$ mainly stabilise.
+
+One caveat. Push $\tau_{\text{start}}$ much past 50 and the soft target becomes nearly uniform — the $\tau^2$ scaling cannot compensate, gradients become tiny relative to the cross-entropy term, and early epochs stall or oscillate. If you want a hot start, cap it around $\tau = 30$ and stretch the schedule.
+
+Bridge: Temperature shapes *how* the student listens to the teacher's logits. The next move is to change *what* it listens to — features, and the geometry between them.
+
+---
+
+## CRD: Contrastive Representation Distillation
+
+Feature-based KD as we have seen it — FitNets, attention transfer — matches the student's features to the teacher's *pointwise*. That is a strong constraint, and a wasteful one: it asks the student to reproduce the teacher's exact activations, even when only the relational structure matters for downstream classification.
+
+Contrastive Representation Distillation (CRD) loosens the constraint. Instead of matching $f_S(x)$ to $f_T(x)$ directly, push them *closer than* student-teacher pairs from different inputs. The teacher's representation of input $x$ becomes the positive view; the teacher's representations of all other inputs in the batch become negatives.
+
+The loss is InfoNCE over (student, teacher) pairs:
+$$\mathcal{L}_{\text{CRD}} \;=\; -\log \frac{\exp\!\left(s(z_s, z_t) / \tau\right)}{\sum_{j} \exp\!\left(s(z_s, z_j^-) / \tau\right)},$$
+where $s(\cdot, \cdot)$ is cosine similarity, $z_s = g_S(f_S(x))$, $z_t = g_T(f_T(x))$, and $g_S, g_T$ are small projection heads (one nonlinear layer is enough). Maximising this lower-bounds the mutual information between student and teacher representations.
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class ProjectionHead(nn.Module):
+    def __init__(self, in_dim: int, out_dim: int = 128):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, in_dim), nn.ReLU(inplace=True),
+            nn.Linear(in_dim, out_dim))
+
+    def forward(self, x):
+        return F.normalize(self.net(x), p=2, dim=1)
+
+class CRDLoss(nn.Module):
+    """InfoNCE on (student, teacher) pairs with in-batch negatives."""
+    def __init__(self, s_dim: int, t_dim: int,
+                 proj_dim: int = 128, tau: float = 0.07):
+        super().__init__()
+        self.g_s = ProjectionHead(s_dim, proj_dim)
+        self.g_t = ProjectionHead(t_dim, proj_dim)
+        self.tau = tau
+
+    def forward(self, s_feat, t_feat):
+        # Pool spatial dims if needed
+        if s_feat.dim() == 4:
+            s_feat = F.adaptive_avg_pool2d(s_feat, 1).flatten(1)
+        if t_feat.dim() == 4:
+            t_feat = F.adaptive_avg_pool2d(t_feat, 1).flatten(1)
+        z_s = self.g_s(s_feat)             # (B, D)
+        z_t = self.g_t(t_feat).detach()    # teacher fixed
+        logits = z_s @ z_t.t() / self.tau  # (B, B): row i, col i is positive
+        labels = torch.arange(z_s.size(0), device=z_s.device)
+        return F.cross_entropy(logits, labels)
+```
+
+Slot it in alongside the standard KD loss with a small weight ($\beta = 0.8$ in the original paper):
+$$\mathcal{L} \;=\; \alpha \tau^2 \mathcal{L}_{\text{KD}} + (1 - \alpha) \mathcal{L}_{\text{hard}} + \beta \mathcal{L}_{\text{CRD}}.$$
+
+CIFAR-100, ResNet-50 teacher distilled into ResNet-18:
+
+| Method | Test accuracy |
+| --- | --- |
+| Hard-label baseline | 73.3% |
+| Vanilla response KD | 75.5% |
+| + CRD | **76.7%** (+1.2) |
+
+The gains are largest when teacher and student have very different capacities — exactly the case where pointwise matching breaks down because the student cannot represent the teacher's features even if it wanted to. CRD asks for a weaker thing (relative similarity) and gets more of it.
+
+Bridge: But not all distillation runs converge — sometimes the loss flat-lines, or even diverges.
+
+---
+
+## When Distillation Fails
+
+Distillation is a robust technique, not a magic one. Three failure modes show up often enough to be worth diagnosing explicitly.
+
+**Capacity ceiling.** The student is simply too small to fit the teacher's distribution. Symptom: the teacher-student KL,
+$$D_{\text{KL}}(p_t \,\|\, p_s) \;=\; \sum_c p_t(c) \log \frac{p_t(c)}{p_s(c)},$$
+plateaus at a high value within the first 5-10 epochs and refuses to budge. Cross-entropy may continue to fall — the student is learning the argmax — but it is not absorbing the dark knowledge. A 100k-parameter student trying to imitate a 100M-parameter teacher will hit this almost immediately.
+
+**Modality mismatch.** Teacher and student see different inputs: an RGB teacher distilling into a grayscale student, a high-resolution teacher into a low-resolution one, a cross-lingual setup with mismatched tokenisers. The teacher's soft targets encode features the student has no access to, so $p_t$ becomes effectively noise from the student's point of view. Symptom: KD loss is high and noisy, and the combined loss is *worse* than hard-label-only training.
+
+**Online distillation instability.** In online or mutual-learning setups the teacher is updated concurrently with the student. The student is chasing a moving target, and if the teacher's updates are large relative to the student's, the KL trajectory oscillates instead of decaying. Symptom: epoch-to-epoch KL goes up and down by 20-30% with no downward trend.
+
+A simple diagnostic catches all three:
+
+```python
+@torch.no_grad()
+def kd_diagnostic(student, teacher, loader, n_epochs: int,
+                  optimizer, device='cpu', tau: float = 4.0):
+    """Returns per-epoch mean KL(p_t || p_s); flags the dominant bottleneck."""
+    teacher.eval()
+    kl_history = []
+    for epoch in range(n_epochs):
+        student.train()
+        for x, y in loader:
+            x, y = x.to(device), y.to(device)
+            t_logits, _ = teacher(x)
+            s_logits, _ = student(x)
+            loss = F.kl_div(
+                F.log_softmax(s_logits / tau, dim=1),
+                F.softmax(t_logits / tau, dim=1),
+                reduction='batchmean') * (tau ** 2)
+            optimizer.zero_grad(); loss.backward(); optimizer.step()
+        # Measure KL on a clean pass
+        student.eval()
+        kl_sum, n = 0.0, 0
+        for x, _ in loader:
+            x = x.to(device)
+            t_logits, _ = teacher(x)
+            s_logits, _ = student(x)
+            p_t = F.softmax(t_logits / tau, dim=1)
+            log_p_s = F.log_softmax(s_logits / tau, dim=1)
+            kl_sum += F.kl_div(log_p_s, p_t, reduction='batchmean').item() * x.size(0)
+            n += x.size(0)
+        kl_history.append(kl_sum / n)
+
+    init, mid, last = kl_history[0], kl_history[len(kl_history) // 2], kl_history[-1]
+    if last > 0.5 * init:
+        verdict = 'capacity'   # KL did not halve in the run
+    elif max(kl_history[-5:]) - min(kl_history[-5:]) > 0.2 * last:
+        verdict = 'lr / instability'
+    elif init > 5.0:
+        verdict = 'data / modality mismatch'
+    else:
+        verdict = 'healthy'
+    return kl_history, verdict
+```
+
+A healthy run halves its initial KL within roughly 50 epochs and continues drifting downward. If yours does not, the verdict points at the fix:
+
+- **Capacity** — bump the student up one width or depth tier, or add intermediate-feature distillation so the student gets richer signal per parameter. If the student is locked in size, lower the teacher: distil into your target student via an intermediate teacher first (TA-KD).
+- **Modality mismatch** — align inputs before distilling. Convert the teacher's input space to match the student's, or train a small adapter that maps student features into the teacher's space and distil there.
+- **Instability** — freeze the teacher periodically (update every $k$ student steps, not every step), drop the student's learning rate, or warm up the KD weight $\alpha$ from 0 over the first few epochs.
+
+The pattern across all three: the KL trajectory is a more sensitive instrument than test accuracy. It tells you whether the student is *listening*, before you find out whether it learned anything useful.
+
+Bridge: With these diagnostics in hand, distillation moves from a hopeful loss term to an instrumented training procedure. The remaining questions are practical — how to pick hyperparameters, how far you can push compression, and how distillation interacts with the rest of the model-shrinking toolkit.
+
+---
+
 ## FAQ
 
 ### How do I pick the temperature?

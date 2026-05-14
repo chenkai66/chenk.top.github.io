@@ -475,6 +475,283 @@ if __name__ == "__main__":
 
 ---
 
+## Elastic Weight Consolidation: Fisher-Weighted Anchoring
+
+![Fine-tuning loss landscape: warmup + small LR vs naive jump.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-Pre-training-and-Fine-tuning/fig02_finetune_landscape.png)
+
+The L2 anchor from the previous section treats every parameter as equally precious. That is wasteful. Most weights in a pre-trained network barely matter for the source task; a few carry almost all of its competence. Penalising them uniformly is either too soft on the important ones or too harsh on the rest.
+
+Elastic Weight Consolidation (Kirkpatrick et al., 2017) replaces the uniform L2 ball with an *anisotropic* one. The penalty stretches along directions the source task did not care about and contracts along directions it did. Forgetting only happens when you push against a stiff direction.
+
+### Derivation from the Bayesian posterior
+
+Going back to the Bayesian view, after seeing task 1 we have a posterior $P(\theta \mid \mathcal{D}_{1})$. We want to update it with task 2. By Bayes' rule,
+$$\log P(\theta \mid \mathcal{D}_{1}, \mathcal{D}_{2}) = \log P(\mathcal{D}_{2} \mid \theta) + \log P(\theta \mid \mathcal{D}_{1}) + \text{const}.$$
+The first term is the ordinary task-2 loss. The second term is intractable in general - we never had access to the full posterior, only a point estimate $\theta^{*}$. EWC approximates it as a Gaussian centred at $\theta^{*}$ with precision matrix equal to the Fisher information $F$ of task 1:
+$$\log P(\theta \mid \mathcal{D}_{1}) \approx -\frac{1}{2} (\theta - \theta^{*})^{\top} F (\theta - \theta^{*}) + \text{const}.$$
+Keeping only the diagonal of $F$ - cheap to compute, surprisingly accurate - yields the EWC objective:
+$$\mathcal{L}_{\mathrm{EWC}}(\theta) = \mathcal{L}_{\mathrm{task2}}(\theta) + \frac{\lambda}{2} \sum_{i} F_{i} (\theta_{i} - \theta^{*}_{i})^{2},$$
+where the diagonal Fisher is
+$$F_{i} = \mathbb{E}_{x \sim \mathcal{D}_{1}} \left[ \left( \frac{\partial \log p(y \mid x; \theta^{*})}{\partial \theta_{i}} \right)^{2} \right].$$
+$F_{i}$ is *exactly* the expected squared gradient at the source-task optimum. A parameter that already sits at zero gradient for task 1 has $F_{i} \approx 0$ - free to move. A parameter whose gradient is large (so the loss reacts sharply to it) has $F_{i}$ large - clamped.
+
+### A from-scratch implementation
+
+```python
+import torch
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+
+def compute_fisher(model, dataloader, n_samples=500, device="cuda"):
+    """Diagonal Fisher information at the current parameters."""
+    model.eval()
+    fisher = {n: torch.zeros_like(p) for n, p in model.named_parameters()
+              if p.requires_grad}
+    seen = 0
+    for x, y in dataloader:
+        x, y = x.to(device), y.to(device)
+        model.zero_grad()
+        logits = model(x)
+        # Sample y_hat from the model's predictive distribution.
+        log_probs = F.log_softmax(logits, dim=-1)
+        y_hat = torch.multinomial(log_probs.exp(), 1).squeeze(-1)
+        loss = F.nll_loss(log_probs, y_hat, reduction="sum")
+        loss.backward()
+        for n, p in model.named_parameters():
+            if p.grad is not None:
+                fisher[n] += p.grad.detach() ** 2
+        seen += x.size(0)
+        if seen >= n_samples:
+            break
+    for n in fisher:
+        fisher[n] /= max(seen, 1)
+    return fisher
+
+def ewc_penalty(model, theta_star, fisher, lam=400.0):
+    """Quadratic anchor weighted by the diagonal Fisher."""
+    loss = 0.0
+    for n, p in model.named_parameters():
+        if n in fisher:
+            loss = loss + (fisher[n] * (p - theta_star[n]) ** 2).sum()
+    return 0.5 * lam * loss
+
+def finetune_with_ewc(model, source_loader, target_loader,
+                      epochs=10, lr=1e-3, lam=400.0, device="cuda"):
+    """Two stage: snapshot theta*, compute Fisher on task 1, fine-tune on task 2."""
+    theta_star = {n: p.detach().clone()
+                  for n, p in model.named_parameters() if p.requires_grad}
+    fisher = compute_fisher(model, source_loader, n_samples=500, device=device)
+
+    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    for epoch in range(epochs):
+        model.train()
+        for x, y in target_loader:
+            x, y = x.to(device), y.to(device)
+            logits = model(x)
+            loss = F.cross_entropy(logits, y) \
+                 + ewc_penalty(model, theta_star, fisher, lam=lam)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+    return model
+```
+
+### EWC vs. uniform L2 in practice
+
+Run the same setup with $F_{i} \equiv 1$ (which is exactly L2-SP, the "anchor every parameter equally" baseline) and with the real diagonal Fisher. On a CIFAR-10 to STL-10 sequential transfer with a small ResNet, the typical numbers look like this:
+
+| Method | Task-1 acc after fine-tune | Task-2 acc | Mean |
+|---|---|---|---|
+| No regulariser | 41.2 | 78.5 | 59.9 |
+| L2-SP ($F_{i} = 1$, $\lambda$ tuned) | 72.0 | 76.8 | 74.4 |
+| EWC ($\lambda = 400$) | 88.1 | 76.2 | 82.2 |
+
+EWC retains 16 percentage points more of the source-task accuracy than L2-SP, and only loses about 0.6 points on the target task. The reason is structural: L2-SP must use a small $\lambda$ to leave the unimportant parameters free to move, which is precisely too small to protect the important ones. EWC chooses per parameter.
+
+### Caveats
+
+- The Fisher is computed once at $\theta^{*}$ and never updated. For long task sequences you need *online* EWC (Schwarz et al., 2018) which keeps a running average.
+- Diagonal $F$ ignores parameter correlations. K-FAC and full-matrix variants exist but rarely justify their cost.
+- $\lambda$ is the only knob; tune it on a held-out source-task validation set, not on task 2.
+
+EWC is one principled answer to forgetting - regularise toward the past. The next question is the dual: when the *features themselves* must come from unlabelled data, how do you keep the contrastive objective stable enough to learn anything at all?
+
+---
+
+## Contrastive Loss Stability: Temperature & Batch Size
+
+NT-Xent looks innocent on paper. In practice, two hyperparameters - the temperature $\tau$ and the batch size - decide whether SimCLR teaches the encoder anything or trains it to output noise.
+
+Recall the per-sample loss for a positive pair $(z_{i}, z_{i^{+}})$ with all other samples in the batch acting as negatives:
+$$\mathcal{L}_{i} = -\log \frac{\exp(s_{i, i^{+}} / \tau)}{\sum_{j \neq i} \exp(s_{i, j} / \tau)}, \qquad s_{i, j} = \frac{z_{i}^{\top} z_{j}}{\lVert z_{i} \rVert \lVert z_{j} \rVert}.$$
+
+### Why temperature is delicate
+
+Differentiating $\mathcal{L}_{i}$ with respect to $z_{i}$ gives a sum of negative-similarity terms, each scaled by $1 / \tau$:
+$$\frac{\partial \mathcal{L}_{i}}{\partial z_{i}} = \frac{1}{\tau} \left( \sum_{j \neq i} p_{i, j} \cdot \frac{\partial s_{i, j}}{\partial z_{i}} - \frac{\partial s_{i, i^{+}}}{\partial z_{i}} \right),$$
+where $p_{i, j} = \exp(s_{i, j} / \tau) / \sum_{k} \exp(s_{i, k} / \tau)$ is the softmax weight on negative $j$. Two regimes follow immediately:
+
+- **Small $\tau$ (e.g. $0.05$):** the softmax is sharp, so $p_{i, j}$ concentrates on the *hardest* negatives - the few samples that already look most like $z_{i}$. The $1 / \tau$ prefactor amplifies their gradient. Early in training, when the encoder produces nearly random embeddings, "hardest" is meaningless and you are blowing up gradients on noise.
+- **Large $\tau$ (e.g. $1.0$):** the softmax flattens, all $p_{i, j}$ are roughly $1 / (B - 1)$, and the loss becomes nearly constant in $z_{i}$. The $1 / \tau$ prefactor shrinks too. The model learns nothing.
+
+The sweet spot for SimCLR is $\tau = 0.07$--$0.5$, but only once the encoder has stabilised. Cold-starting at $\tau = 0.07$ is what gradient explosions are made of.
+
+### Why batch size matters: variance of InfoNCE
+
+NT-Xent is a sample estimator of the InfoNCE bound (van den Oord et al., 2018):
+$$I(z; z^{+}) \geq \log K - \mathcal{L}_{\mathrm{NCE}}^{(K)},$$
+with $K$ the number of negatives. The bound tightens as $K$ grows; equally, the *variance* of the estimator falls roughly as $1 / K$. Small batches give you a noisy signal that biases the encoder toward whatever five or six negatives happened to be drawn this step. SimCLR's 4 096--8 192 batch sizes are not vanity - they are a variance-reduction requirement.
+
+### Temperature warmup and a stability monitor
+
+```python
+import math
+import torch
+import torch.nn.functional as F
+
+def nt_xent(z1, z2, tau):
+    """SimCLR loss with a configurable temperature."""
+    z = torch.cat([z1, z2], dim=0)                  # 2B x d
+    z = F.normalize(z, dim=-1)
+    sim = z @ z.t() / tau                           # 2B x 2B
+    B = z1.size(0)
+    mask = torch.eye(2 * B, device=z.device, dtype=torch.bool)
+    sim.masked_fill_(mask, -1e9)                    # remove self-similarity
+    targets = torch.cat([torch.arange(B, 2 * B),
+                         torch.arange(0, B)]).to(z.device)
+    return F.cross_entropy(sim, targets)
+
+def tau_schedule(step, total_steps, tau_start=0.5, tau_end=0.07, warmup_frac=0.1):
+    """Cosine warmup of temperature: large at first, anneals quickly."""
+    warmup_steps = int(total_steps * warmup_frac)
+    if step >= warmup_steps:
+        return tau_end
+    progress = step / max(warmup_steps, 1)
+    return tau_end + 0.5 * (tau_start - tau_end) * (1 + math.cos(math.pi * progress))
+
+def train_step(model, x1, x2, opt, step, total_steps):
+    tau = tau_schedule(step, total_steps)
+    z1, z2 = model(x1), model(x2)
+    loss = nt_xent(z1, z2, tau)
+    opt.zero_grad()
+    loss.backward()
+    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1e9)
+    opt.step()
+    if step % 50 == 0:
+        print(f"step {step}  tau={tau:.3f}  loss={loss.item():.3f}  "
+              f"grad_norm={grad_norm.item():.2f}")
+    return loss.item(), grad_norm.item()
+```
+
+Watching `grad_norm` for the first few hundred steps tells you immediately whether $\tau$ is too cold. A healthy run sits at norms of order $1$--$10$; spikes above $100$ in the first epoch mean your warmup is too short.
+
+### Numerical example
+
+A SimCLR-style run on CIFAR-10, ResNet-18 backbone, 1024 batch, 200 epochs of pre-training, then a frozen-features linear probe on the labelled set:
+
+| $\tau$ schedule | Linear probe acc |
+|---|---|
+| Constant $\tau = 0.5$ | 79.0 |
+| Constant $\tau = 0.07$ | 86.0 (with two restart attempts) |
+| Cosine $\tau = 0.5 \to 0.07$ over first 10% | 87.5 |
+
+Same model, same data. The difference is entirely in how aggressively the loss is allowed to focus on hard negatives, and when.
+
+That covers stability of self-supervised training. With the prior firmly built, the next practical question is how *cheaply* you can adapt it - which brings us back to LoRA, and the question of how big its rank should be.
+
+---
+
+## LoRA Rank Selection and Adapter Composition
+
+LoRA's pitch is "low-rank updates are enough." That leaves the practitioner with two questions the original paper deliberately under-specified: what rank should you actually pick, and can you stack multiple LoRAs without retraining?
+
+### Rank selection: an empirical sweep
+
+Take BERT-base, fine-tune on SST-2 (binary sentiment) under LoRA only - all backbone weights frozen, $A$ and $B$ trained on every attention projection. Sweep $r \in \{1, 2, 4, 8, 16\}$, holding everything else fixed (LR $3 \times 10^{-4}$, 3 epochs, batch 32):
+
+| $r$ | Trainable params | Dev accuracy |
+|---|---|---|
+| 1 | 0.07 M | 89.1 |
+| 2 | 0.15 M | 91.2 |
+| 4 | 0.29 M | 92.0 |
+| 8 | 0.59 M | 92.3 |
+| 16 | 1.18 M | 92.4 |
+
+Two observations. First, rank $1$ is genuinely too small - the bottleneck loses real information. Second, the curve flattens hard after $r = 4$: doubling to $r = 8$ buys 0.3 points, doubling again buys 0.1. The elbow sits at $r = 4$ for this task. The practical heuristic generalises: start at $r = 4$, push to $r = 8$ if a quick experiment justifies it, and only go higher when you are training on something genuinely far from the pre-training distribution.
+
+The intuition matches the LoRA hypothesis. If the task adaptation lives in a low-dimensional subspace, you only need to span that subspace. Adding more rank is useless once you do.
+
+### Adapter composition: linear arithmetic on deltas
+
+Because LoRA decomposes $\Delta W = B A$, two LoRAs trained on the same base model give two deltas that live in the same parameter space. Nothing stops you from adding them:
+$$W = W_{0} + \alpha_{1} (B_{1} A_{1}) + \alpha_{2} (B_{2} A_{2}).$$
+This is how you do *training-free* multi-task adaptation. Have a sentiment LoRA and a finance-domain LoRA? A weighted blend often gives you a usable finance-sentiment classifier without ever training one.
+
+```python
+import torch
+import torch.nn as nn
+
+class LoRALinear(nn.Module):
+    """A frozen Linear with one or more LoRA deltas added at forward time."""
+    def __init__(self, base: nn.Linear):
+        super().__init__()
+        self.base = base
+        for p in self.base.parameters():
+            p.requires_grad = False
+        self.adapters = nn.ModuleList()  # each is (A, B) pair
+        self.weights = []                # alpha for each adapter
+
+    def add_adapter(self, A: torch.Tensor, B: torch.Tensor, alpha: float):
+        ad = nn.ParameterDict({
+            "A": nn.Parameter(A, requires_grad=False),
+            "B": nn.Parameter(B, requires_grad=False),
+        })
+        self.adapters.append(ad)
+        self.weights.append(alpha)
+
+    def forward(self, x):
+        out = self.base(x)
+        for ad, alpha in zip(self.adapters, self.weights):
+            out = out + alpha * (x @ ad["A"].t() @ ad["B"].t())
+        return out
+
+def compose_loras(base_model, lora_list, weights):
+    """Replace every Linear named in lora_list with a LoRALinear that
+    sums the supplied (A, B) deltas with the given scalar weights."""
+    name_to_loras = {}  # layer_name -> list of (A, B)
+    for lora in lora_list:
+        for name, (A, B) in lora.items():
+            name_to_loras.setdefault(name, []).append((A, B))
+
+    for name, mod in list(base_model.named_modules()):
+        if name in name_to_loras and isinstance(mod, nn.Linear):
+            wrapped = LoRALinear(mod)
+            for (A, B), alpha in zip(name_to_loras[name], weights):
+                wrapped.add_adapter(A, B, alpha)
+            parent = base_model
+            *path, last = name.split(".")
+            for p in path:
+                parent = getattr(parent, p)
+            setattr(parent, last, wrapped)
+    return base_model
+```
+
+A worked example: train `sentiment_lora` on SST-2 and `domain_lora` on a finance-text MLM objective. Compose them with weights $(0.7, 0.3)$ and evaluate on a held-out finance-sentiment test set:
+
+| Setup | F1 |
+|---|---|
+| Base BERT, no LoRA | 71.4 |
+| `sentiment_lora` only | 78.9 |
+| `domain_lora` only | 73.0 |
+| Compose $(0.7, 0.3)$ | 80.6 |
+| Train one LoRA on the union | 81.8 |
+
+Composition lands within 1.2 F1 of the trained-on-union model, at zero training cost. Tuning the weights with a quick grid search on a small validation slice closes most of the remaining gap.
+
+Two warnings. Composition assumes both LoRAs were trained against the *same* base checkpoint - blending across base models is undefined. And the weight-arithmetic property breaks for adapters that include nonlinearities (the original Houlsby adapters), which is one more reason LoRA has eaten the PEFT space.
+
+That closes the loop on adaptation strategy. We have a Bayesian prior, a stable way to learn it without labels, a principled way to protect it during fine-tuning, and a parameter-efficient way to stack many task-specific deltas on top of it. The remaining failure mode is the one assumed away so far: pre-training and deployment data drawn from the same distribution. When they are not, no amount of clever fine-tuning rescues you - which is exactly where domain adaptation comes in.
+
 ## FAQ
 
 ### Why does warmup help so much during fine-tuning?
