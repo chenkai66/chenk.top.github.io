@@ -34,8 +34,8 @@ translationKey: "recommendation-systems-15"
 ## Prerequisites
 
 - Python and NumPy (Parts 1-2)
-- SGD and loss functions (Part 7)
-- The recommendation pipeline overview (Part 11)
+- SGD and loss functions ([Part 7](/en/recommendation-systems/07-graph-neural-networks/))
+- The recommendation pipeline overview ([Part 11](/en/recommendation-systems/11-contrastive-learning/))
 
 ---
 

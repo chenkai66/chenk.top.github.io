@@ -17,7 +17,7 @@ translationKey: "nlp-6"
 ---
 When you ask ChatGPT a question and a fluent multi-paragraph answer streams back token by token, you are watching a single deceptively simple loop: feed everything-so-far into a Transformer decoder, look at the probability distribution it produces over the vocabulary, pick one token, append it, repeat. That is *all* an autoregressive language model does. The miracle is not the loop — it is what happens when you scale the network behind the loop to hundreds of billions of parameters and train it on most of the internet.
 
-If BERT (Part 5) is the king of *understanding*, GPT is the king of *generation*. This article walks the full GPT lineage, opens up the mechanics of autoregressive decoding, makes the choice of decoding strategy visceral, and ends with a working chatbot you can run on your laptop.
+If BERT ([Part 5](/en/nlp/bert-pretrained-models/)) is the king of *understanding*, GPT is the king of *generation*. This article walks the full GPT lineage, opens up the mechanics of autoregressive decoding, makes the choice of decoding strategy visceral, and ends with a working chatbot you can run on your laptop.
 
 
 <!-- wanx-hero -->
@@ -36,7 +36,7 @@ If BERT (Part 5) is the king of *understanding*, GPT is the king of *generation*
 - How to evaluate generated text (BLEU, ROUGE, perplexity) and where each metric breaks
 - A working multi-turn chatbot built on GPT-2 with HuggingFace
 
-**Prerequisites**: Part 4 (Transformer architecture), Part 5 (pretraining and BERT).
+**Prerequisites**: [Part 4](/en/nlp/attention-transformer/) (Transformer architecture), [Part 5](/en/nlp/bert-pretrained-models/) (pretraining and BERT).
 
 ---
 
@@ -88,7 +88,7 @@ At inference time the model produces one token at a time. Three things happen at
 2. **Convert logits to a probability distribution** over the vocabulary (with optional temperature).
 3. **Choose** the next token (deterministically or by sampling), append it, and repeat until you hit `<eos>` or a length limit.
 
-The bottom panel above shows the next-token distribution after the prompt `"The cat sat on the"`: `mat` wins with ~42% probability, but plenty of probability mass is sprinkled across plausible alternatives (`floor`, `couch`, `sofa`, ...). Whether your model writes the same thing every time, or surprises you, depends entirely on **how you sample from this distribution** — which we get to in Section 4.
+The bottom panel above shows the next-token distribution after the prompt `"The cat sat on the"`: `mat` wins with ~42% probability, but plenty of probability mass is sprinkled across plausible alternatives (`floor`, `couch`, `sofa`, ...). Whether your model writes the same thing every time, or surprises you, depends entirely on **how you sample from this distribution** — which we get to in [Section 4](#the-gpt-family-5-years-$\sim$10000$\times$-growth).
 
 > **A practical note on speed**. Naïvely, generating $T$ tokens means running $T$ forward passes whose cost grows quadratically with sequence length — prohibitive. In practice every implementation uses a **KV cache**: keys and values from past tokens are stored once and reused, so each new token only triggers attention against cached vectors. This turns generation from $O(T^3)$ into $O(T^2)$ aggregate FLOPs and is the reason real systems are usable at all.
 
@@ -123,7 +123,7 @@ GPT-2 will produce a passable translation despite never having been trained on p
 
 - **175 B** parameters (~$100\times$ GPT-2), ~570 GB of curated text, ~3.14$\times 10^{23}$ FLOPs of training compute.
 - The headline discovery: **few-shot in-context learning**. Drop a handful of input-output examples into the prompt and the model picks up the task on the fly, *with no gradient updates*.
-- Many capabilities (3-digit arithmetic, code completion, multi-step reasoning) were essentially absent at GPT-2 scale and suddenly present at GPT-3 scale — the **emergence** phenomenon we revisit in Section 7.
+- Many capabilities (3-digit arithmetic, code completion, multi-step reasoning) were essentially absent at GPT-2 scale and suddenly present at GPT-3 scale — the **emergence** phenomenon we revisit in [Section 7](#emergent-capabilities).
 
 ### GPT-4 (Mar 2023) — multimodal and instruction-tuned
 
@@ -143,7 +143,7 @@ GPT-2 will produce a passable translation despite never having been trained on p
 
 ## Decoding strategies
 
-The choice of decoding strategy can change a generation from *repetitive and lifeless* to *surprising and on-topic* without retraining a single weight. Below we visualise the four canonical strategies on the **same** next-token distribution from Section 2.
+The choice of decoding strategy can change a generation from *repetitive and lifeless* to *surprising and on-topic* without retraining a single weight. Below we visualise the four canonical strategies on the **same** next-token distribution from [Section 2](#the-decoder-only-transformer).
 
 ![Greedy, top-k, top-p, and temperature on the same distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig5_sampling_strategies.png)
 
@@ -494,7 +494,7 @@ A useful mental model: **BERT is a search engine**, **GPT is a writer**. Use BER
 
 ## Limitations to be honest about
 
-- **Hallucination.** Producing fluent but factually wrong text is the model's default mode for anything it does not know. Mitigations: retrieval-augmentation (Part 10), tool use, calibrated refusal training.
+- **Hallucination.** Producing fluent but factually wrong text is the model's default mode for anything it does not know. Mitigations: retrieval-augmentation ([Part 10](/en/nlp/rag-knowledge-enhancement/)), tool use, calibrated refusal training.
 - **Context length.** GPT-2 had 1024 tokens; GPT-3 had 2048; GPT-4 went to 32 K and then 128 K; today 1 M is becoming common. But long contexts are expensive and recall in the *middle* of a long context degrades ("lost in the middle").
 - **Compute cost.** A single forward pass of a 175 B-parameter model needs hundreds of GB of GPU memory. Inference cost dominates training cost over a model's lifetime.
 - **Training-data bias.** The model reproduces whatever statistical patterns — including stereotypes — exist in its training data.

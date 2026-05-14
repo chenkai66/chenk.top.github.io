@@ -33,7 +33,7 @@ A bank account, a drug clearing the bloodstream, a tank of brine, a charging cap
 
 ## Prerequisites
 
-- Chapter 1 ideas: what an ODE is, what an initial value problem is, how a slope field looks.
+- [Chapter 1](/en/ode/01-origins-and-intuition/) ideas: what an ODE is, what an initial value problem is, how a slope field looks.
 - Standard integration: substitution, integration by parts, partial fractions.
 
 ---
@@ -306,7 +306,7 @@ print(f"At t=10 min: {T[50]:.1f} C")
 print(f"At t=30 min: {T[150]:.1f} C")
 ```
 
-`solve_ivp` adapts the step size automatically. For most problems you do *not* need to write your own RK4; you need to know when the standard solver will struggle (stiff systems — see Chapter 11).
+`solve_ivp` adapts the step size automatically. For most problems you do *not* need to write your own RK4; you need to know when the standard solver will struggle (stiff systems — see [Chapter 11](/en/ode/11-numerical-methods/)).
 
 ---
 
@@ -320,7 +320,7 @@ When you meet a first-order equation, run it through these in order — the firs
 | Is it $y' + P(x)y = Q(x)$? | Linear | Integrating factor $\mu = e^{\int P\,dx}$ |
 | Is it $M\,dx + N\,dy = 0$ with $M_y = N_x$? | Exact | Reconstruct potential $F$; solution is $F = C$ |
 | Is it $y' + Py = Qy^n$ with $n \notin \{0,1\}$? | Bernoulli | Substitute $v = y^{1-n}$, then go to row 2 |
-| None of the above? | — | Numerical methods (Chapter 11) or look for a clever substitution |
+| None of the above? | — | Numerical methods ([Chapter 11](/en/ode/11-numerical-methods/)) or look for a clever substitution |
 
 The four methods are not independent. The integrating factor for a *linear* equation is the special case of the integrating factor that fixes a non-exact equation. The Bernoulli substitution reduces nonlinear to linear. So learning these four well is really learning *one* idea — find the change of variable that turns the equation into something that integrates by inspection — applied four ways.
 

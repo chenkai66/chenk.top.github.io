@@ -87,7 +87,7 @@ Sets environment variables for all tool calls (Bash, hooks, etc.).
 
 ### hooks
 
-Defines scripts that run before or after tool calls. See Chapter 7 for the full treatment.
+Defines scripts that run before or after tool calls. See [Chapter 7](/en/claude-code-learn/07-hooks-deep-dive/) for the full treatment.
 
 ### worktree
 

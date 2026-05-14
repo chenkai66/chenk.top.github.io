@@ -79,7 +79,7 @@ A neural network with one hidden layer and a nonlinearity is, in theory, a unive
 - The same backbone consumes images (CNN), text (Transformer), and sequences (RNN) — all jointly trained.
 - Cold-start gets a hook: if the new item has *content* (a title, an image), pre-trained encoders give it a sensible initial vector.
 
-The price: more compute, less interpretability, more hyperparameters. Section 7 covers the engineering discipline that makes this trade pay off.
+The price: more compute, less interpretability, more hyperparameters. [Section 7](#youtube-dnn-the-two-stage-pipeline-that-runs-the-internet) covers the engineering discipline that makes this trade pay off.
 
 ---
 
@@ -308,7 +308,7 @@ You cannot score billions of videos for every request. You also cannot use rich 
 
 Three design choices have aged extremely well:
 
-- **Average-pool the user's recent behavior.** Cheap, parallel, and a strong baseline. Sequence models (Part 6) only beat it once you have enough data.
+- **Average-pool the user's recent behavior.** Cheap, parallel, and a strong baseline. Sequence models ([Part 6](/en/recommendation-systems/06-sequential-recommendation/)) only beat it once you have enough data.
 - **Treat candidate generation as classification, not regression.** Sampled softmax + ANN serving is the dominant pattern industry-wide.
 - **Choose your label carefully.** "Watch time," "long click" (>30s dwell), or "completed view" generalize better than raw click. Your loss is the product spec.
 

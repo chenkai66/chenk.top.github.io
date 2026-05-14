@@ -44,8 +44,8 @@ Once you internalize this, every property of determinants stops being a rule to 
 
 ### Prerequisites
 
-- Chapter 2: linear independence
-- Chapter 3: matrices as linear transformations
+- [Chapter 2](/en/linear-algebra/02-linear-combinations-and-vector-spaces/): linear independence
+- [Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/): matrices as linear transformations
 
 ---
 
@@ -386,4 +386,4 @@ A related habit: when comparing two determinants for sign or relative size, comp
 
 ## What's Next
 
-**Chapter 5: Linear Systems and Column Space.** We bring together everything so far — matrices, transformations, and determinants — to understand when $A\vec{x} = \vec{b}$ has solutions, how many, and what their structure looks like. The key concepts are the **column space** ("what can $A$ reach?"), the **null space** ("what gets crushed?"), and the **rank** ("how many effective dimensions remain?"). Determinants will play a starring role in the square case; for non-square or rank-deficient $A$ we will need a more refined toolkit.
+**[Chapter 5](/en/linear-algebra/05-linear-systems-and-column-space/): Linear Systems and Column Space.** We bring together everything so far — matrices, transformations, and determinants — to understand when $A\vec{x} = \vec{b}$ has solutions, how many, and what their structure looks like. The key concepts are the **column space** ("what can $A$ reach?"), the **null space** ("what gets crushed?"), and the **rank** ("how many effective dimensions remain?"). Determinants will play a starring role in the square case; for non-square or rank-deficient $A$ we will need a more refined toolkit.

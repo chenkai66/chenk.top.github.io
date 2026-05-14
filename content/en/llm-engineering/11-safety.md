@@ -39,7 +39,7 @@ Anthropic's HHH (Helpful-Harmless-Honest) framing from Askell et al. (2021, *A G
 
 Production "alignment" is mostly engineering against these tradeoffs, not solving them. You pick where on the curve you want to sit for your deployment, then measure and tune.
 
-A fourth aspect, *controllability*, is often hinted at but rarely named clearly. A model that adheres to the developer's system prompt under attack is more controllable than one that drifts. Wallace et al.'s instruction hierarchy (Chapter 9) touches on this. In production, controllability often competes with helpfulness; an aggressively controllable model refuses more user requests based on the system prompt.
+A fourth aspect, *controllability*, is often hinted at but rarely named clearly. A model that adheres to the developer's system prompt under attack is more controllable than one that drifts. Wallace et al.'s instruction hierarchy ([Chapter 9](/en/llm-engineering/09-prompting/)) touches on this. In production, controllability often competes with helpfulness; an aggressively controllable model refuses more user requests based on the system prompt.
 
 ## The RLHF objective and what it teaches
 

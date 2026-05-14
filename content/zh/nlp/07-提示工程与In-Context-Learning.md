@@ -176,7 +176,7 @@ few_shot = """将句子的情感分类为 positive、negative 或 neutral：
 
 从概率角度可以更清晰地理解 CoT：对于问题 $x$ 和答案 $a$，通过对潜在推理链 $z$ 求边缘概率：
 $$
-P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).$$贪心 CoT 是选择一个 $z$ 并希望它是正确的。**Self-Consistency**（第 5 节）则是通过采样多个 $z$ 来近似求和。
+P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).$$贪心 CoT 是选择一个 $z$ 并希望它是正确的。**Self-Consistency**（[第 5 节](#ICL-的工作原理猜想)）则是通过采样多个 $z$ 来近似求和。
 
 CoT 在什么时候有用，什么时候反而拖后腿：
 

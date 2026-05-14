@@ -212,7 +212,7 @@ A **hypervisor** lets many virtual machines share one physical server. Two flavo
 - **Type 1 (bare-metal)** — VMware ESXi, KVM, Hyper-V, Xen. Runs directly on hardware; this is what every public cloud uses
 - **Type 2 (hosted)** — VirtualBox, VMware Workstation. Runs on top of a host OS; useful for development and testing
 
-Containers are not a replacement for VMs at the substrate layer; they sit **above** them, sharing the kernel of the host VM. A typical EKS or AKS pod runs in a container, on a Linux VM, on a hypervisor, on a server. We dive deep into this in Part 2 (virtualisation) and Part 7 (cloud-native).
+Containers are not a replacement for VMs at the substrate layer; they sit **above** them, sharing the kernel of the host VM. A typical EKS or AKS pod runs in a container, on a Linux VM, on a hypervisor, on a server. We dive deep into this in [Part 2](/en/cloud-computing/virtualization/) (virtualisation) and [Part 7](/en/cloud-computing/operations-devops/) (cloud-native).
 
 | Feature   | VMs                          | Containers                                |
 | --------- | ---------------------------- | ----------------------------------------- |
@@ -279,7 +279,7 @@ Two practical consequences:
 1. **Identity is your problem on every model.** Multi-factor authentication, least-privilege roles, key rotation, JIT access — none of this is automatic.
 2. **Data is your problem on every model.** Encryption at rest is often on by default; encryption in transit is your responsibility to enforce; backups, retention and legal hold are entirely yours to design.
 
-We go deep on this in Part 5 (security and privacy).
+We go deep on this in [Part 5](/en/cloud-computing/networking-sdn/) (security and privacy).
 
 ## The Service Catalogue — Reading the Menu
 

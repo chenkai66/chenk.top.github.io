@@ -384,7 +384,7 @@ $\eta$ and the kernel matrix involve $\lVert x \rVert$. A feature with large uni
 - Vapnik, V. N. (1998). *Statistical Learning Theory*. Wiley.
 - Platt, J. C. (1998). *Sequential Minimal Optimization: A Fast Algorithm for Training Support Vector Machines*. Tech. Rep. MSR-TR-98-14, Microsoft Research.
 - Scholkopf, B., & Smola, A. J. (2002). *Learning with Kernels*. MIT Press.
-- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.). Springer. Chapter 12.
+- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.). Springer. [Chapter 12](/en/ml-math-derivations/12-xgboost-and-lightgbm/).
 
 ---
 

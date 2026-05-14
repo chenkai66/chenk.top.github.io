@@ -38,7 +38,7 @@ Combined, the three changes deliver about a 6-10x speedup and 5-10% better MSE t
 - Why the generative decoder is much faster *and* slightly more accurate than autoregressive decoding.
 - A complete PyTorch implementation, plus how Informer scores on the ETT and weather benchmarks.
 
-**Prerequisites**: Part 5 (Transformer architecture). Comfort with Big-O reasoning and basic information theory (entropy, KL divergence).
+**Prerequisites**: [Part 5](/en/time-series/transformer/) (Transformer architecture). Comfort with Big-O reasoning and basic information theory (entropy, KL divergence).
 
 ---
 

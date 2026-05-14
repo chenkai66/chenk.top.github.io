@@ -138,11 +138,11 @@ Stepping back from the technical detail, here is the path this series has walked
 
 ![Six-chapter series journey map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig6_series_journey.png)
 
-- **Part 1 — Bits, Bytes, and the CPU.** We started where everything starts: a bit is two states, a byte is eight bits, ASCII gives you English, UTF-8 gives you the world. From there we walked into the CPU itself: cores, threads, clock speed, the difference between Intel and AMD, why a 32-bit OS can't address 4 GB of RAM.
-- **Part 2 — Memory and cache.** DDR generations, dual-channel, the three-level cache hierarchy, hit rates, why doubling your channels matters more than doubling your frequency.
-- **Part 3 — Storage.** HDD platters and heads, NAND flash cells from SLC to QLC, SATA versus NVMe, RAID levels, the storage tiering pyramid that runs from DRAM down to Glacier.
-- **Part 4 — Motherboard and GPU.** Chipsets, PCIe lanes and generations, M.2 slot wiring, VRM phases, GPU memory hierarchy, the SM/CUDA-core architecture that makes massive parallelism possible.
-- **Part 5 — Network, power, and cooling.** NIC speeds and RDMA, the OSI model in practice, PSU wattage and 80 PLUS, fan curves and thermal throttling, the full assembly checklist.
+- **[Part 1](/en/computer-fundamentals/01-cpu/) — Bits, Bytes, and the CPU.** We started where everything starts: a bit is two states, a byte is eight bits, ASCII gives you English, UTF-8 gives you the world. From there we walked into the CPU itself: cores, threads, clock speed, the difference between Intel and AMD, why a 32-bit OS can't address 4 GB of RAM.
+- **[Part 2](/en/computer-fundamentals/02-memory/) — Memory and cache.** DDR generations, dual-channel, the three-level cache hierarchy, hit rates, why doubling your channels matters more than doubling your frequency.
+- **[Part 3](/en/computer-fundamentals/03-storage/) — Storage.** HDD platters and heads, NAND flash cells from SLC to QLC, SATA versus NVMe, RAID levels, the storage tiering pyramid that runs from DRAM down to Glacier.
+- **[Part 4](/en/computer-fundamentals/04-motherboard-gpu/) — Motherboard and GPU.** Chipsets, PCIe lanes and generations, M.2 slot wiring, VRM phases, GPU memory hierarchy, the SM/CUDA-core architecture that makes massive parallelism possible.
+- **[Part 5](/en/computer-fundamentals/05-network-power/) — Network, power, and cooling.** NIC speeds and RDMA, the OSI model in practice, PSU wattage and 80 PLUS, fan curves and thermal throttling, the full assembly checklist.
 - **Part 6 — This chapter.** The whole picture. Cross-layer optimisation. Performance counters. The Von Neumann story. Heterogeneous computing. And what comes next.
 
 Each part is a building block; none of them is the building. The building is the system you're sitting in front of, and the moment you can see all six pieces at once is the moment hardware stops being mysterious.
@@ -167,7 +167,7 @@ You've now seen the machine end to end. A few habits will compound this knowledg
 
 1. **When something is slow, measure before you guess.** A `perf stat` and a flamegraph will save you days of wrong intuition.
 2. **Read the datasheet of the hardware you actually own.** Cache sizes, memory channels, PCIe lane wiring — they're all in there, and they explain most of what you'll see.
-3. **Keep one mental model and refine it.** Every new technology — CXL, photonic IO, MI300 chiplets — fits somewhere on the system diagram in Part 1. Find where, and you understand it.
+3. **Keep one mental model and refine it.** Every new technology — CXL, photonic IO, MI300 chiplets — fits somewhere on the system diagram in [Part 1](/en/computer-fundamentals/01-cpu/). Find where, and you understand it.
 4. **Build something that pushes the hardware.** A toy database, a small ray tracer, a profiler of your own. There is no substitute for the moment a counter goes from 0.3 IPC to 2.8 IPC because of a change you made.
 
 Computer hardware is not a shopping list. It's a system that has been refined for eighty years, by tens of thousands of engineers, into the most intricate machine humans have ever built. Knowing how it works is one of the highest-leverage things you can know.

@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 6
 translationKey: "reinforcement-learning-6"
 ---
-Policy gradients (Part 3) optimise the policy directly, sidestepping discrete `argmax` operators and naturally handling stochastic strategies. They have one fatal flaw: **a single overlong step can destroy the policy**, and because the data distribution is *coupled* to the policy, recovery is nearly impossible.
+Policy gradients ([Part 3](/en/reinforcement-learning/03-policy-gradient-and-actor-critic/)) optimise the policy directly, sidestepping discrete `argmax` operators and naturally handling stochastic strategies. They have one fatal flaw: **a single overlong step can destroy the policy**, and because the data distribution is *coupled* to the policy, recovery is nearly impossible.
 
 **Trust-region methods** make this concrete: bound the change in *behaviour*, not in parameters, at every update. TRPO does this with a hard KL constraint and a second-order solver. PPO mimics the same effect with one line of clipped arithmetic. The simpler trick won: PPO trains OpenAI Five, ChatGPT's RLHF stage, and almost every modern robotics policy, remaining the workhorse of applied deep RL.
 

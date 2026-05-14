@@ -434,20 +434,6 @@ LLMs handle this naturally — translation and cross-lingual reasoning come buil
 
 ---
 
-## Summary
-
-LLMs are not replacing recommendation systems — they're filling specific gaps the previous generation could not. The three roles map cleanly to the three gaps:
-
-- **Enhancer** fills the *content understanding* gap. Run it offline, cache forever, get cleaner embeddings and stronger cold-start.
-- **Predictor** fills the *cold-start and small-data* gap. Fine-tune a 7B, use it to rerank the top 20–50 from a traditional pipeline.
-- **Agent** fills the *interaction* gap. Reserve it for genuinely conversational surfaces; pay the latency tax knowingly.
-
-The architecture every production team converges on is the hybrid pipeline: ANN retrieval → DNN ranker → LLM reranker → optional explanation. It works because the LLM only sees the top ~50 items, never the catalog. Cost stays bounded; quality gets the LLM's semantic lift.
-
-Start there. Measure operational metrics alongside ranking metrics from day one. Route warm users away from the LLM to keep the bill sane. Fine-tune as soon as you have a few hundred labeled examples.
-
----
-
 ## References
 
 1. Geng, S., Liu, S., Fu, Z., Ge, Y., & Zhang, Y. (2022). [**Recommendation as Language Processing (RLP): A Unified Pretrain, Personalized Prompt & Predict Paradigm (P5)**](https://arxiv.org/abs/2203.13366). RecSys 2022.
@@ -506,3 +492,17 @@ Two-year arc I've watched at multiple companies.
 The online model is still a DIN or a DCNv2 — a 50M-parameter classical ranker — but with 30+ extra features that are LLM-derived. Reported gains at this stage: +1--3% CTR, +2--5% conversion, with no online cost increase.
 
 The lesson: don't put the LLM in the request path. Put its outputs there.
+
+## Summary
+
+LLMs are not replacing recommendation systems — they're filling specific gaps the previous generation could not. The three roles map cleanly to the three gaps:
+
+- **Enhancer** fills the *content understanding* gap. Run it offline, cache forever, get cleaner embeddings and stronger cold-start.
+- **Predictor** fills the *cold-start and small-data* gap. Fine-tune a 7B, use it to rerank the top 20–50 from a traditional pipeline.
+- **Agent** fills the *interaction* gap. Reserve it for genuinely conversational surfaces; pay the latency tax knowingly.
+
+The architecture every production team converges on is the hybrid pipeline: ANN retrieval → DNN ranker → LLM reranker → optional explanation. It works because the LLM only sees the top ~50 items, never the catalog. Cost stays bounded; quality gets the LLM's semantic lift.
+
+Start there. Measure operational metrics alongside ranking metrics from day one. Route warm users away from the LLM to keep the bill sane. Fine-tune as soon as you have a few hundred labeled examples.
+
+---

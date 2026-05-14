@@ -370,7 +370,7 @@ Linear time-invariant systems live naturally in the $s$-plane: their poles are t
 
 ## References
 
-- Kreyszig, E. *Advanced Engineering Mathematics* (10th ed.), Wiley (2011) — Chapter 6 is the standard textbook treatment of the Laplace transform.
+- Kreyszig, E. *Advanced Engineering Mathematics* (10th ed.), Wiley (2011) — [Chapter 6](/en/ode/06-power-series/) is the standard textbook treatment of the Laplace transform.
 - Ogata, K. *Modern Control Engineering* (5th ed.), Pearson (2010) — pole–zero analysis, Bode plots, and PID tuning in depth.
 - Oppenheim, A. V. & Willsky, A. S. *Signals and Systems* (2nd ed.), Prentice Hall (1997) — the engineering-signals viewpoint and convolution.
 - Strang, G. *Differential Equations and Linear Algebra*, Wellesley-Cambridge (2014) — a more geometric introduction.

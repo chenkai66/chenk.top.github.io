@@ -30,7 +30,7 @@ translationKey: "time-series-2"
 
 - Basic understanding of neural networks (forward pass, backpropagation)
 - Familiarity with PyTorch (`nn.Module`, tensors, optimizers)
-- Part 1 of this series (helpful but not required)
+- [Part 1](/en/time-series/01-traditional-models/) of this series (helpful but not required)
 
 ---
 
@@ -206,7 +206,7 @@ A healthy LSTM training curve has the validation loss following the training los
 | Speed | Baseline | ~25 % faster, comparable accuracy |
 | Best for | Long sequences, very large datasets, when you need maximum capacity | Smaller datasets, real-time inference, mobile/edge |
 
-Empirically, on most forecasting tasks the gap between LSTM and GRU is within noise. **Default to GRU** for fast iteration; switch to LSTM if you have plenty of data and very long-range dependencies (sequences of several hundred steps). For sequences past ~500 steps, both are usually beaten by a Temporal Convolutional Network (Part 6) or an Informer-style sparse Transformer (Part 8).
+Empirically, on most forecasting tasks the gap between LSTM and GRU is within noise. **Default to GRU** for fast iteration; switch to LSTM if you have plenty of data and very long-range dependencies (sequences of several hundred steps). For sequences past ~500 steps, both are usually beaten by a Temporal Convolutional Network ([Part 6](/en/time-series/temporal-convolutional-networks/)) or an Informer-style sparse Transformer ([Part 8](/en/time-series/informer-long-sequence/)).
 
 ## Common Pitfalls
 

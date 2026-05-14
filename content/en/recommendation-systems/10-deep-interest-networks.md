@@ -189,7 +189,7 @@ DIN is trained with binary cross-entropy on logits:
 $$\mathcal{L} = -\frac{1}{N} \sum_{i=1}^{N} \big[ y_i \log \sigma(\hat{y}_i) + (1 - y_i) \log(1 - \sigma(\hat{y}_i)) \big]$$
 Three tricks the paper credits with most of the lift:
 
-- **Dice activation** — a data-adaptive PReLU that shifts its inflection point with the batch distribution (Section 7).
+- **Dice activation** — a data-adaptive PReLU that shifts its inflection point with the batch distribution ([Section 7](#behavior-sequence-transformer-bst)).
 - **Mini-batch aware regularization** — instead of L2-regularizing every embedding (millions of items, mostly never seen this batch), only regularize embeddings that appear in the current batch, weighted by their frequency. Roughly the same regularization signal at a fraction of the cost.
 - **Gradient clipping** — long behavior sequences tend to explode gradients early in training.
 

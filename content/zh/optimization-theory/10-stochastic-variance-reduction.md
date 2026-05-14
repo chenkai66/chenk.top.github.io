@@ -189,7 +189,7 @@ $$
 $$
 \mathbb{E}\|g_t - \nabla f(x_t)\|_2^2 \leq L (f(x_t) - f^\star) + L (f(\tilde w_s) - f^\star).
 $$
-此即**共轭光滑性（co-coercivity）引理**。将其代入标准 SGD 分析框架（参见第 2 节），但将此处所得的 $\sigma^2$ 上界代入，并仔细追踪一个 SVRG epoch 的全过程，即可导出关于 $f(\tilde w_s) - f^\star$ 的收缩不等式。
+此即**共轭光滑性（co-coercivity）引理**。将其代入标准 SGD 分析框架（参见[第 2 节](#前置知识)），但将此处所得的 $\sigma^2$ 上界代入，并仔细追踪一个 SVRG epoch 的全过程，即可导出关于 $f(\tilde w_s) - f^\star$ 的收缩不等式。
 
 ### 总计算代价
 

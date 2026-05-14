@@ -467,7 +467,7 @@ The entity update:
 $$\mathbf{e}_e^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}[\mathbf{e}_e^{(l-1)} \,\|\, \mathbf{e}_{\mathcal{N}(e)}^{(l-1)}] + \mathbf{b}^{(l)}\bigr)$$
 ### Multi-Head Attention
 
-Like GAT (Part 7), KGAT uses multiple attention heads to capture different aspects of the relationships:
+Like GAT ([Part 7](/en/recommendation-systems/07-graph-neural-networks/)), KGAT uses multiple attention heads to capture different aspects of the relationships:
 $$\mathbf{e}_{\mathcal{N}(e)} = \big\|_{k=1}^{K}\; \sum_{(r,e') \in \mathcal{N}(e)} \pi^{(k)}(e, r, e')\, \mathbf{e}_{e'}^{(k)}$$
 ### Implementation: KGAT
 

@@ -27,7 +27,7 @@ This chapter rebuilds the modern stack from that single language. We follow one 
 > - Why initialization, normalization and residual connections are all spectral-radius arguments in disguise
 > - LoRA: parameter-efficient fine-tuning as a low-rank update $\Delta W = BA$
 >
-> **Prerequisites:** Matrix calculus (Chapter 11), SVD (Chapter 9), and the previous chapter on classical ML (Chapter 15).
+> **Prerequisites:** Matrix calculus ([Chapter 11](/en/linear-algebra/11-matrix-calculus-and-optimization/)), SVD ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)), and the previous chapter on classical ML ([Chapter 15](/en/linear-algebra/15-linear-algebra-in-machine-learning/)).
 
 ---
 
@@ -282,11 +282,11 @@ The cost of vanilla attention is $O(n^2 d_k)$ in time and $O(n^2)$ in memory —
 
 A Transformer encoder layer is just four ingredients in a fixed pattern.
 
-- **Multi-head self-attention** (Section 4).
+- **Multi-head self-attention** ([Section 4](#attention-is-a-soft-lookup-—-done-with-three-matmuls)).
 - **Position-wise FFN.** A two-layer MLP, applied independently at each token position, that expands and re-projects:
 $$\mathrm{FFN}(\mathbf{x}) = \mathbf{W}_2\,\mathrm{ReLU}(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2$$
 - **Residual connections.** Every sublayer outputs $\mathbf{x} + \mathrm{sublayer}(\mathbf{x})$. The Jacobian becomes $\mathbf{I} + \mathbf{J}$, with eigenvalues clustered near 1 — gradients always have an unobstructed shortcut backwards.
-- **Layer normalization** (Section 6).
+- **Layer normalization** ([Section 6](#normalization-standardize-along-different-axes)).
 
 The decoder adds **cross-attention** (queries from the decoder, keys/values from the encoder) and a **causal mask** that zeros out scores from the future:
 

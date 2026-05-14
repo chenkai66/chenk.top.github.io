@@ -141,7 +141,7 @@ A few labels save us a lot of breath later.
 | **Ordinary** (ODE) | One (usually $t$) | $\dfrac{dy}{dt} = -ky$ |
 | **Partial** (PDE) | Several ($x, y, t, \dots$) | $\dfrac{\partial u}{\partial t} = k\,\dfrac{\partial^2 u}{\partial x^2}$ |
 
-This series is about ODEs. PDEs (heat, wave, Schrödinger, Navier–Stokes) get their own treatment in Chapter 13.
+This series is about ODEs. PDEs (heat, wave, Schrödinger, Navier–Stokes) get their own treatment in [Chapter 13](/en/ode/13-pde-introduction/).
 
 ### Order = highest derivative present
 
@@ -220,7 +220,7 @@ This is the *exact same equation* as decay, with $r$ replacing $-\lambda$. The m
 It also predicts **unbounded** exponential growth, which any biologist will tell you is nonsense — eventually you run out of food, space, or hosts. The fix, the **logistic equation**, is so important we plot it next to its naive cousin.
 
 ![Exponential vs logistic growth.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/fig7_exponential_vs_logistic.png)
-*Figure 6. Left: Malthus' exponential model rockets to infinity; the logistic model bends over and saturates at the carrying capacity $K$. Right: a "phase view" of the growth rate. The logistic curve has **two equilibria** (at $P = 0$ and $P = K$), with growth in between and decline above $K$. We will dissect this in Chapter 2.*
+*Figure 6. Left: Malthus' exponential model rockets to infinity; the logistic model bends over and saturates at the carrying capacity $K$. Right: a "phase view" of the growth rate. The logistic curve has **two equilibria** (at $P = 0$ and $P = K$), with growth in between and decline above $K$. We will dissect this in [Chapter 2](/en/ode/02-first-order-methods/).*
 
 ### Simple harmonic motion
 
@@ -259,7 +259,7 @@ ax2.set_aspect("equal")
 plt.tight_layout(); plt.show()
 ```
 
-The right panel is a **phase portrait**, our first glimpse of how second-order systems live naturally in a 2D space of $(x, v)$. Energy conservation forces the trajectory to be a closed ellipse; that geometric fact will become the centrepiece of Chapter 7.
+The right panel is a **phase portrait**, our first glimpse of how second-order systems live naturally in a 2D space of $(x, v)$. Energy conservation forces the trajectory to be a closed ellipse; that geometric fact will become the centrepiece of [Chapter 7](/en/ode/07-systems-and-phase-plane/).
 
 ---
 
@@ -323,7 +323,7 @@ plt.title("Analytical vs. Numerical")
 plt.legend(); plt.tight_layout(); plt.show()
 ```
 
-Euler is the seed of every more sophisticated method (Runge–Kutta, Adams–Bashforth, the symplectic integrators used for orbit propagation). We will spend Chapter 11 unpacking how the modern solvers in `scipy.integrate.solve_ivp` actually work — but the logic is always the same: estimate the derivative, take a step, repeat, control the error.
+Euler is the seed of every more sophisticated method (Runge–Kutta, Adams–Bashforth, the symplectic integrators used for orbit propagation). We will spend [Chapter 11](/en/ode/11-numerical-methods/) unpacking how the modern solvers in `scipy.integrate.solve_ivp` actually work — but the logic is always the same: estimate the derivative, take a step, repeat, control the error.
 
 ---
 

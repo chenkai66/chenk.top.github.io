@@ -79,7 +79,7 @@ public int maxSumSubarray(int[] arr, int k) {
 
 **Complexity.** Time $O(n)$ — one addition and one subtraction per slide. Space $O(1)$.
 
-**Why it works.** The window's sum is a function of its multiset of elements. When the window shifts by one, the multiset changes by exactly one removal and one insertion, so we only need to apply that delta. This *incremental update* generalises to running counts, frequency maps, and even monotonic deques (Section 6).
+**Why it works.** The window's sum is a function of its multiset of elements. When the window shifts by one, the multiset changes by exactly one removal and one insertion, so we only need to apply that delta. This *incremental update* generalises to running counts, frequency maps, and even monotonic deques ([Section 6](#common-pitfalls)).
 
 ## Variable-Size Window — Two Postures
 

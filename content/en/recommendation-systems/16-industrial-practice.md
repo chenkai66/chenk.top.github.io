@@ -760,7 +760,7 @@ Quantisation gives the biggest speed-up per unit of effort (2-4x on CPU). Distil
 
 ### How do you handle new users?
 
-Multi-stage fallback: (1) popular and trending items for truly new users; (2) demographics-based content recommendations once minimal profile is known; (3) bandit-style exploration to bootstrap signal in 3-10 interactions; (4) the full personalised model after ~50 interactions. See Part 14 for the meta-learning angle.
+Multi-stage fallback: (1) popular and trending items for truly new users; (2) demographics-based content recommendations once minimal profile is known; (3) bandit-style exploration to bootstrap signal in 3-10 interactions; (4) the full personalised model after ~50 interactions. See [Part 14](/en/recommendation-systems/14-cross-domain-cold-start/) for the meta-learning angle.
 
 ### How do you decide to retire a model?
 

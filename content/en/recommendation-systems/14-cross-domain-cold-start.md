@@ -33,7 +33,7 @@ translationKey: "recommendation-systems-14"
 ## Prerequisites
 
 - Working knowledge of collaborative filtering and matrix factorization (Parts 3-4)
-- Comfort with PyTorch and basic gradient descent (Part 7)
+- Comfort with PyTorch and basic gradient descent ([Part 7](/en/recommendation-systems/07-graph-neural-networks/))
 - Willingness to read one or two equations carefully
 
 ---
@@ -373,21 +373,6 @@ Hold out users entirely (not random interactions). For each held-out user, expos
 
 ---
 
-## Summary
-
-Cold-start is not a single problem with a single solution; it's a **regime** that demands different machinery at different points on the interaction-count axis.
-
-- The taxonomy (user / item / system) determines which lever — exploration, content, transfer — is actually available.
-- **EMCDR** and **PTUPCDR** turn a data-rich source domain into a prior on a data-sparse target. PTUPCDR's per-user bridge is the current practical sweet spot.
-- **MAML** and its recsys specialisation **MeLU** train models whose initialisations adapt in a few steps — perfect for the 3-10 interaction window.
-- **UCB1** and **Thompson sampling** give the few-shot regime a principled exploration rule with logarithmic regret.
-- **Content-based fallback** is the unglamorous always-on safety net.
-- The **hybrid stack** routes by interaction count and keeps a popularity circuit breaker.
-
-Build the stack incrementally. Start with content + popularity, layer in meta-learning once you have enough users to meta-train, add cross-domain when a related domain becomes available. Measure cold-user metrics separately from warm metrics; aggregate numbers will hide the regime where you're actually losing money.
-
----
-
 ## References
 
 - Finn, C., Abbeel, P., & Levine, S. (2017). [Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks](https://arxiv.org/abs/1703.03400). *ICML*.
@@ -434,3 +419,18 @@ Cold-start methods often have higher serving cost than warm-path. Watch for thes
 **Content-based fallback.** Cheap if you precompute item content embeddings and store them in the same ANN index as collaborative embeddings. Use a flag column to mark "cold" items and apply a popularity prior to their scores during ranking.
 
 The pattern: keep the online path simple (an ANN call + a small ranker), push the cold-start intelligence into batch jobs that update the ANN index every few minutes.
+
+## Summary
+
+Cold-start is not a single problem with a single solution; it's a **regime** that demands different machinery at different points on the interaction-count axis.
+
+- The taxonomy (user / item / system) determines which lever — exploration, content, transfer — is actually available.
+- **EMCDR** and **PTUPCDR** turn a data-rich source domain into a prior on a data-sparse target. PTUPCDR's per-user bridge is the current practical sweet spot.
+- **MAML** and its recsys specialisation **MeLU** train models whose initialisations adapt in a few steps — perfect for the 3-10 interaction window.
+- **UCB1** and **Thompson sampling** give the few-shot regime a principled exploration rule with logarithmic regret.
+- **Content-based fallback** is the unglamorous always-on safety net.
+- The **hybrid stack** routes by interaction count and keeps a popularity circuit breaker.
+
+Build the stack incrementally. Start with content + popularity, layer in meta-learning once you have enough users to meta-train, add cross-domain when a related domain becomes available. Measure cold-user metrics separately from warm metrics; aggregate numbers will hide the regime where you're actually losing money.
+
+---

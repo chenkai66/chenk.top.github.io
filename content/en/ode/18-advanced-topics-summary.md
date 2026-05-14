@@ -71,7 +71,7 @@ A residual network updates a hidden state by
 $$h_{t+1} = h_t + f(h_t,\; \theta_t).$$
 Take the layer index as a continuous "time" variable and shrink the step. The discrete update becomes
 $$\frac{d h(t)}{dt} = f\!\bigl(h(t),\; t,\; \theta\bigr).$$
-That is a learnable ODE. The forward pass is now an ODE solve; the network has *adaptive depth*; and the memory cost of backpropagation drops to $O(1)$ via the **adjoint method** (the same Pontryagin-style equations you would meet in optimal control, Chapter 16).
+That is a learnable ODE. The forward pass is now an ODE solve; the network has *adaptive depth*; and the memory cost of backpropagation drops to $O(1)$ via the **adjoint method** (the same Pontryagin-style equations you would meet in optimal control, [Chapter 16](/en/ode/16-control-theory/)).
 
 ![Neural ODE: ResNet stack of layers vs continuous-depth ODE, learned vector field, adjoint backward pass, and convergence as the number of layers grows.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/fig2_neural_odes.png)
 *Top-left: a discrete ResNet (left, blue blocks) becomes a continuous "depth" ODE (right, gradient bar) as $N \to \infty$. Top-right: trajectories under a learned vector field $f_\theta(h,t)$ — this is the network "thinking". Bottom-left: the adjoint method runs the ODE backwards in time to get parameter gradients without storing intermediate activations. Bottom-right: increasing the number of ResNet layers approximates the same continuous trajectory more and more finely; an adaptive ODE solver picks the step size automatically.*
@@ -116,7 +116,7 @@ The state space is now *infinite-dimensional*: we need the entire history $\{x(s
 
 A delayed logistic model:
 $$\dot N(t) = r N(t)\,\Bigl(1 - \frac{N(t-\tau)}{K}\Bigr).$$
-Without delay ($\tau = 0$) it is the smooth Verhulst sigmoid. With delay it can become *unstable* and produce limit cycles — specifically, when $r\tau > \pi/2$ the equilibrium loses stability through a Hopf bifurcation (Chapter 10) and oscillations emerge.
+Without delay ($\tau = 0$) it is the smooth Verhulst sigmoid. With delay it can become *unstable* and produce limit cycles — specifically, when $r\tau > \pi/2$ the equilibrium loses stability through a Hopf bifurcation ([Chapter 10](/en/ode/10-bifurcation-theory/)) and oscillations emerge.
 
 ```python
 import numpy as np

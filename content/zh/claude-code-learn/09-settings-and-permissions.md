@@ -72,7 +72,7 @@ Claude Code 会按顺序读取三个 `settings.json` 文件：
 
 ### 钩子
 
-定义在工具调用前或后运行的脚本，详见第 7 章。
+定义在工具调用前或后运行的脚本，详见[第 7 章](/zh/claude-code-learn/07-hooks-deep-dive/)。
 
 ### 工作树
 

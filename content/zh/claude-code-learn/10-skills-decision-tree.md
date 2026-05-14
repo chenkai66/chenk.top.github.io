@@ -449,7 +449,7 @@ Just tell Claude in the conversation.
 
 用于修改 `~/.claude/settings.json` 和 `.claude/settings.json`。当提到“allow X command”、“set env Y”、“add a hook”、“move permission to project settings” 时触发。
 
-它编码了第 9 章中的权限优先级规则和典型模式，省去了我每次都要重新推导合并顺序的麻烦。
+它编码了[第 9 章](/zh/claude-code-learn/09-settings-and-permissions/)中的权限优先级规则和典型模式，省去了我每次都要重新推导合并顺序的麻烦。
 
 为什么是 Skill 而不是 hook：它提供的是 *如何* 编辑设置的知识，而不是对设置的强制执行。Hook 会阻止或允许；而这个 Skill 是 *教学*。
 
@@ -541,10 +541,10 @@ my-project/
 经过十章的学习，你现在拥有：
 
 - 一个已配置好的 Claude Code，并在脑海中建立了三层设置模型（第 1、9 章）。
-- 对快捷键、模式和对话控制的熟练掌握（第 2 章）。
+- 对快捷键、模式和对话控制的熟练掌握（[第 2 章](/zh/claude-code-learn/02-shortcuts-and-modes/)）。
 - 四种扩展机制——slash commands、MCP、hooks、skills——以及在它们之间选择的决策树（第 3、4、5、7、10 章）。
-- 并发原语——sub-agents、worktrees、plan mode——用于将单个会话扩展到更大规模的工作（第 8 章）。
-- 一个可用的 SDK 和 GitHub 集成方案，用于将 Claude 放入 CI/CD（第 6 章）。
+- 并发原语——sub-agents、worktrees、plan mode——用于将单个会话扩展到更大规模的工作（[第 8 章](/zh/claude-code-learn/08-subagents-worktrees-plan/)）。
+- 一个可用的 SDK 和 GitHub 集成方案，用于将 Claude 放入 CI/CD（[第 6 章](/zh/claude-code-learn/06-sdk-and-github/)）。
 
 这就是全部表面功能。这些扩展点可以组合使用：Skill 可以引用 slash command，hook 可以强制执行 Skill 推荐的内容，MCP server 可以提供数据，而 Skill 则告诉 Claude 如何解读这些数据。你最初选择哪种机制并不那么重要——重要的是选择任意一种机制。因为“没有任何扩展的 Claude”和“哪怕只有一个精心编写的 Skill 的 Claude”之间的差距，远大于 Skill 和 command 之间的差距。
 

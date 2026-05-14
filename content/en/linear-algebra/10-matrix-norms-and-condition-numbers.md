@@ -39,9 +39,9 @@ The culprit is usually a single number called the **condition number**. It measu
 
 ### Prerequisites
 
-- Singular values and SVD (Chapter 9).
-- Matrix multiplication and inverses (Chapter 3).
-- Eigenvalues (Chapter 6).
+- Singular values and SVD ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)).
+- Matrix multiplication and inverses ([Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/)).
+- Eigenvalues ([Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/)).
 
 ---
 

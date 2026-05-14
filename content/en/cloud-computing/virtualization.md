@@ -37,7 +37,7 @@ Without virtualization, there is no cloud. Every EC2 instance, every Lambda invo
 
 - Comfortable on a Linux command line
 - Basic OS concepts (processes, kernel vs userspace, page tables)
-- Part 1 of this series ([Cloud Computing Fundamentals](/en/cloud-computing/fundamentals/))
+- [Part 1](/en/cloud-computing/fundamentals/) of this series ([Cloud Computing Fundamentals](/en/cloud-computing/fundamentals/))
 
 ---
 

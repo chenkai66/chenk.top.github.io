@@ -44,7 +44,7 @@ DQN was not invented from scratch. It is **Q-Learning** — a 1989 tabular algor
 
 ### The Bellman optimality equation, reread
 
-Recall from Part 1 that for the optimal policy $\pi^*$, the action-value function satisfies the Bellman optimality equation:
+Recall from [Part 1](/en/reinforcement-learning/01-fundamentals-and-core-concepts/) that for the optimal policy $\pi^*$, the action-value function satisfies the Bellman optimality equation:
 $$Q^*(s, a) \;=\; \mathbb{E}_{s' \sim P(\cdot|s,a)}\Big[R(s,a,s') + \gamma \max_{a'} Q^*(s', a')\Big]$$
 Read it as a contract: the value of taking action $a$ in state $s$ today equals the immediate reward plus the discounted best future you can achieve from $s'$. Once you know $Q^*$, the optimal policy is just $\pi^*(s) = \arg\max_a Q^*(s, a)$ — no planning, no search, just a table lookup.
 
@@ -464,4 +464,4 @@ The post-DQN variants each add a clean fix to a clean failure: Double DQN remove
 - Bellemare, M., Dabney, W., & Munos, R. (2017). A Distributional Perspective on Reinforcement Learning. *ICML*.
 - Fortunato, M., et al. (2018). Noisy Networks for Exploration. *ICLR*.
 - Hessel, M., et al. (2018). Rainbow: Combining Improvements in Deep Reinforcement Learning. *AAAI*.
-- Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press. — Chapter 11 for the Deadly Triad.
+- Sutton, R. S., & Barto, A. G. (2018). *Reinforcement Learning: An Introduction* (2nd ed.). MIT Press. — [Chapter 11](/en/reinforcement-learning/11-hierarchical-and-meta-rl/) for the Deadly Triad.

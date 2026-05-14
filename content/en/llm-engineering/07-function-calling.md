@@ -18,7 +18,7 @@ description: "JSON-mode vs function-mode vs free-form, parallel tool calls, stru
 translationKey: "llm-engineering-7"
 ---
 
-Function calling connects an LLM to the world outside its weights. It combines chat-template details (Chapter 2), structured-output kernels (Chapter 5), and prompt engineering (Chapter 9). This chapter explores what happens under the hood, the guarantees you can rely on, and the agent-loop patterns that handle real workloads.
+Function calling connects an LLM to the world outside its weights. It combines chat-template details ([Chapter 2](/en/llm-engineering/02-tokenization/)), structured-output kernels ([Chapter 5](/en/llm-engineering/05-inference/)), and prompt engineering ([Chapter 9](/en/llm-engineering/09-prompting/)). This chapter explores what happens under the hood, the guarantees you can rely on, and the agent-loop patterns that handle real workloads.
 
 The intellectual lineage matters. Tool use as an LLM capability traces back to two near-simultaneous papers in 2022: **MRKL Systems** (Karpas et al., AI21) which proposed expert-routing among neuro-symbolic modules, and **ReAct** ([Yao et al., 2022][yao-react]) which interleaved chain-of-thought reasoning with tool actions. **Toolformer** ([Schick et al., 2023][schick-toolformer]) showed self-supervised teaching of tool use, generating training data by having a model insert tool-call markers into existing text. By 2024 every frontier model had post-training data structured around the tool-use format, and tool calling moved from "research demo" to "API feature."
 

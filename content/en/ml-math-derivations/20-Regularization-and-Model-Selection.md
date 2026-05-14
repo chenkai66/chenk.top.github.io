@@ -38,7 +38,7 @@ A 100-million-parameter network trained on 50,000 images *should* overfit catast
 5. Model selection: K-fold CV, AIC, BIC.
 6. VC dimension, PAC learning, and the modern double-descent puzzle.
 
-**Prerequisites.** Calculus, probability (expectation, variance), linear algebra, gradient descent. Parts 1-4 of this series cover the math; Part 5 (linear regression), Part 6 (logistic regression), and Part 19 (neural networks) provide the models we will regularise.
+**Prerequisites.** Calculus, probability (expectation, variance), linear algebra, gradient descent. Parts 1-4 of this series cover the math; [Part 5](/en/ml-math-derivations/05-linear-regression/) (linear regression), [Part 6](/en/ml-math-derivations/06-logistic-regression-and-classification/) (logistic regression), and [Part 19](/en/ml-math-derivations/19-neural-networks-and-backpropagation/) (neural networks) provide the models we will regularise.
 
 ---
 
@@ -341,7 +341,7 @@ This series began with calculus and probability and ends with the question that 
 - **Parts 10-12 — Bayesian networks and ensembles.** From graphical models to XGBoost: how to combine weak structure into strong predictions.
 - **Parts 13-15 — Latent variables.** EM, variational inference, HMMs — what to do when the data does not tell you everything.
 - **Parts 16-18 — Beyond labels.** CRFs, dimensionality reduction, clustering — structured prediction and unsupervised learning.
-- **Part 19 — Neural networks.** Backpropagation as the chain rule, and the reason everything since 2012 happened.
+- **[Part 19](/en/ml-math-derivations/19-neural-networks-and-backpropagation/) — Neural networks.** Backpropagation as the chain rule, and the reason everything since 2012 happened.
 - **Part 20 — This article.** The meta-question: when does any of it *generalise*?
 
 The honest answer to that meta-question, today, is: *we are still figuring it out*. Classical theory (VC, Rademacher) gives a lower-bound story that under-explains the modern over-parameterised regime. Newer ideas — implicit bias, flat minima, neural tangent kernels, PAC-Bayes, scaling laws — are pieces of a picture that has not yet snapped into place. If the next decade of theory is as productive as the last decade of practice, the sequel to this series will be a different book.

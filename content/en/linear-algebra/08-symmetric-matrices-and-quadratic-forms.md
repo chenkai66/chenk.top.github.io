@@ -51,9 +51,9 @@ This chapter explains why symmetry buys you so much, and how the geometry of **q
 
 ### Prerequisites
 
-- Eigenvalues and eigenvectors (Chapter 6)
-- Orthogonality and projections (Chapter 7)
-- Matrix transpose and basic properties (Chapter 3)
+- Eigenvalues and eigenvectors ([Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/))
+- Orthogonality and projections ([Chapter 7](/en/linear-algebra/07-orthogonality-and-projections/))
+- Matrix transpose and basic properties ([Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/))
 
 ---
 
@@ -340,7 +340,7 @@ Two clean facts tie SVD back to this chapter:
 - The singular values of $A$ are the square roots of the eigenvalues of the symmetric PSD matrix $A^T A$.
 - The right singular vectors $\vec{v}_i$ are the eigenvectors of $A^T A$; the left singular vectors $\vec{u}_i$ are the eigenvectors of $A A^T$.
 
-So **SVD is the spectral theorem applied to the symmetric companions $A^T A$ and $A A^T$**. Chapter 9 is devoted to it.
+So **SVD is the spectral theorem applied to the symmetric companions $A^T A$ and $A A^T$**. [Chapter 9](/en/linear-algebra/09-singular-value-decomposition/) is devoted to it.
 
 ---
 
@@ -449,7 +449,7 @@ plt.show()
 
 ## References
 
-- Strang, G. (2019). *Introduction to Linear Algebra*, Chapter 6.
+- Strang, G. (2019). *Introduction to Linear Algebra*, [Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/).
 - Horn, R. A. & Johnson, C. R. (2012). *Matrix Analysis*, 2nd ed.
 - Boyd, S. & Vandenberghe, L. (2004). *Convex Optimization*.
 - Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations*, 4th ed.

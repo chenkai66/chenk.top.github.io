@@ -277,7 +277,7 @@ This works. Sort of. The model has never seen that format during post-training. 
 
 **Failure 2: tokenizing the rendered template with `add_special_tokens=True`.** This double-adds the BOS token. The model sees `<|begin_of_text|><|begin_of_text|>` and gets weird. Use `tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True)` — it knows whether to add specials.
 
-The chat template is also what makes function calling work. Qwen3's chat template includes `<tool_call>...</tool_call>` tags around JSON tool calls, and the model is trained to emit them. Mistral uses `[TOOL_CALLS]`. OpenAI's format uses no special tokens at all and does it via JSON in the message payload. Chapter 7 covers function calling end to end.
+The chat template is also what makes function calling work. Qwen3's chat template includes `<tool_call>...</tool_call>` tags around JSON tool calls, and the model is trained to emit them. Mistral uses `[TOOL_CALLS]`. OpenAI's format uses no special tokens at all and does it via JSON in the message payload. [Chapter 7](/en/llm-engineering/07-function-calling/) covers function calling end to end.
 
 ## Common Pitfalls
 

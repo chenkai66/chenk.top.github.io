@@ -31,7 +31,7 @@ This chapter explains why that recipe works. We'll derive the receptive-field fo
 - A head-to-head TCN vs LSTM/GRU/Transformer comparison on training time, memory, and accuracy.
 - Two case studies: hourly traffic flow forecasting and multivariate IoT sensor prediction.
 
-**Prerequisites**: Part 2 (LSTM) and Part 5 (Transformer). Comfort with PyTorch's `nn.Conv1d` and basic complexity analysis.
+**Prerequisites**: [Part 2](/en/time-series/lstm/) (LSTM) and [Part 5](/en/time-series/transformer/) (Transformer). Comfort with PyTorch's `nn.Conv1d` and basic complexity analysis.
 
 ---
 

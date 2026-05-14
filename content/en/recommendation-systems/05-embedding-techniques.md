@@ -503,7 +503,7 @@ A few non-obvious choices baked into this 30-line implementation:
 - **L2-normalise the outputs.** Cosine similarity equals an inner product on unit-norm vectors, so this lets you index with FAISS's inner-product flavour.
 - **Temperature.** Dividing logits by a small $\tau \in [0.05, 0.2]$ makes the softmax sharper. Without it, cosine similarities live in $[-1, 1]$ — a very flat distribution that learns slowly.
 - **`BatchNorm` between layers.** Keeps activations on a sane scale through the depth of the tower; especially important when input features mix wildly different magnitudes.
-- **Cross-entropy with the positive at index 0.** Cleanly extends to in-batch negatives by using *every other item in the batch* as a negative — see Section 5.
+- **Cross-entropy with the positive at index 0.** Cleanly extends to in-batch negatives by using *every other item in the batch* as a negative — see [Section 5](#graph-based-embeddings-node2vec).
 
 ---
 

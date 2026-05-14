@@ -39,7 +39,7 @@ The road from "RNN with attention" to the full Transformer is not long, but ever
 - A complete from-scratch Transformer in PyTorch you can run on your laptop
 - How BERT, GPT, and T5 specialise the same building blocks for different tasks
 
-**Prerequisites**: Part 3 (RNN, Seq2Seq), basic linear algebra (matrix multiplication, softmax), and working PyTorch familiarity.
+**Prerequisites**: [Part 3](/en/nlp/rnn-sequence-modeling/) (RNN, Seq2Seq), basic linear algebra (matrix multiplication, softmax), and working PyTorch familiarity.
 
 ---
 
@@ -49,7 +49,7 @@ The road from "RNN with attention" to the full Transformer is not long, but ever
 ![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
 
 
-Recall the vanilla encoder-decoder from Part 3. An RNN reads the source sentence one token at a time and squashes everything into a single fixed-size vector $c = h_T^{\text{enc}}$. The decoder then generates the target sequence using only that vector.
+Recall the vanilla encoder-decoder from [Part 3](/en/nlp/rnn-sequence-modeling/). An RNN reads the source sentence one token at a time and squashes everything into a single fixed-size vector $c = h_T^{\text{enc}}$. The decoder then generates the target sequence using only that vector.
 
 Imagine translating *"The cat that chased the mouse that ate the cheese was very tired"* into French. The encoder must compress the cat, the mouse, the cheese, the chase, the eating, the tiredness, and the grammatical relationships among them into 512 numbers. The decoder then has to reconstruct everything from those 512 numbers without ever looking at the source again.
 

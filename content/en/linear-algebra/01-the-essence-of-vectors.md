@@ -107,7 +107,7 @@ Multiplying a vector$\vec{v}$by a number (a *scalar*)$c$rescales it along its ow
 -$c = 0$: it collapses to the **zero vector**.
 -$c < 0$: it **reverses direction** and rescales by$|c|$.
 
-The set of all scalar multiples of a single non-zero vector traces out a line through the origin — this is your first taste of a *span*, which we'll explore in Chapter 2.
+The set of all scalar multiples of a single non-zero vector traces out a line through the origin — this is your first taste of a *span*, which we'll explore in [Chapter 2](/en/linear-algebra/02-linear-combinations-and-vector-spaces/).
 
 ![Scalar multiplication and the line of all multiples (the span)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig3_scalar_multiplication.png)
 
@@ -289,7 +289,7 @@ satisfying ten axioms (commutativity and associativity of addition, existence of
 Once you prove a theorem at the level of axioms, it applies *everywhere* the axioms hold:
 
 - Cauchy--Schwarz works for column vectors, function spaces, *and* random variables (where it becomes the covariance inequality$|\operatorname{Cov}(X,Y)| \le \sigma_X \sigma_Y$). One theorem, three subjects.
-- Fourier analysis is "decompose a function as a linear combination of orthogonal basis vectors" — exactly what we will do with column vectors in Chapter 7.
+- Fourier analysis is "decompose a function as a linear combination of orthogonal basis vectors" — exactly what we will do with column vectors in [Chapter 7](/en/linear-algebra/07-orthogonality-and-projections/).
 - Quantum mechanics is "physics, but in an infinite-dimensional inner-product space."
 
 This is the deepest pay-off of linear algebra: *learn the structure once, apply it forever*.
@@ -409,7 +409,7 @@ So: when this chapter says "the inner product is just $\sum u_i v_i$", that is t
 
 ## What's Next
 
-In **Chapter 2: Linear Combinations and Vector Spaces**, we ask the next natural questions:
+In **[Chapter 2](/en/linear-algebra/02-linear-combinations-and-vector-spaces/): Linear Combinations and Vector Spaces**, we ask the next natural questions:
 
 - How can we *build* an entire space from a small set of vectors? (*span*)
 - When are some of those vectors redundant? (*linear independence*)

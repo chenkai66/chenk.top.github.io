@@ -180,7 +180,7 @@ OSS-FUSE 是默认挂载方式，适用于 90% 的场景，但其失败模式相
 具体数值会因 Region 和 Bucket 类型略有波动，但趋势一致。我总结出以下几条经验：
 
 - **切勿对含 1 万以上文件的 OSS 挂载目录执行 `os.listdir()`**：这会触发一次 HTTP `ListObjects` 请求，而 Python 的懒迭代会让训练脚本在每个 epoch 开始时“假死”1–2 秒。建议预先生成 manifest 文件。
-- **训练中不要直接向 OSS-FUSE 写 checkpoint，除非启用了 `enable_easyckpt`**：一个 7B 参数模型的 `state_dict` 约 14 GB，FUSE 会阻塞训练进程 10–30 秒，导致 GPU 空转。要么先拷贝到本地 SSD 再异步上传，要么使用 EasyCKPT（见第 3 章）。
+- **训练中不要直接向 OSS-FUSE 写 checkpoint，除非启用了 `enable_easyckpt`**：一个 7B 参数模型的 `state_dict` 约 14 GB，FUSE 会阻塞训练进程 10–30 秒，导致 GPU 空转。要么先拷贝到本地 SSD 再异步上传，要么使用 EasyCKPT（见[第 3 章](/zh/aliyun-pai/03-pai-dlc-distributed-training/)）。
 - **训练数据超过 100 GB 时，不要直接从 OSS-FUSE 读取**：单个 FUSE 挂载点的带宽上限约为 200–400 MB/s，极易成为数据加载瓶颈。建议启动时用 `ossutil cp -r --jobs 8` 将数据拷至本地 SSD，再从本地训练。若数据集大于本地 SSD 容量，则改用 NAS 或 CPFS。
 - **代码、配置文件和输出目录可放心使用 OSS-FUSE**：偶尔读取的延迟可以接受，只要不在热循环中频繁写入，开销并不显著。
 

@@ -356,7 +356,7 @@ Replace the M-step's full maximisation with any update that *increases* $Q$ (e.g
 
 ### How is EM related to variational inference?
 
-Variational EM relaxes the E-step from the exact posterior to a tractable family $q \in \mathcal{Q}$. The decomposition $\log p = \mathcal{L} + \mathrm{KL}$ is identical; the algorithm now alternately minimises KL inside $\mathcal{Q}$ (E) and maximises $\mathcal{L}$ in $\boldsymbol{\theta}$ (M). See Part 14.
+Variational EM relaxes the E-step from the exact posterior to a tractable family $q \in \mathcal{Q}$. The decomposition $\log p = \mathcal{L} + \mathrm{KL}$ is identical; the algorithm now alternately minimises KL inside $\mathcal{Q}$ (E) and maximises $\mathcal{L}$ in $\boldsymbol{\theta}$ (M). See [Part 14](/en/ml-math-derivations/14-variational-inference-and-variational-em/).
 
 ---
 
@@ -387,7 +387,7 @@ Variational EM relaxes the E-step from the exact posterior to a tractable family
 ## References
 
 - Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum likelihood from incomplete data via the EM algorithm. *Journal of the Royal Statistical Society: Series B*, 39(1), 1-22.
-- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer. **Chapter 9**.
-- Murphy, K. P. (2012). *Machine Learning: A Probabilistic Perspective*. MIT Press. **Chapter 11**.
+- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer. **[Chapter 9](/en/ml-math-derivations/09-naive-bayes/)**.
+- Murphy, K. P. (2012). *Machine Learning: A Probabilistic Perspective*. MIT Press. **[Chapter 11](/en/ml-math-derivations/11-ensemble-learning/)**.
 - McLachlan, G., & Krishnan, T. (2007). *The EM Algorithm and Extensions* (2nd ed.). Wiley.
 - Neal, R. M., & Hinton, G. E. (1998). A view of the EM algorithm that justifies incremental, sparse, and other variants. *Learning in Graphical Models*, 89, 355-368.

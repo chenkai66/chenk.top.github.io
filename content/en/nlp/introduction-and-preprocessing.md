@@ -358,7 +358,7 @@ Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector
 
 ![One-hot encoding loses semantics; learned embeddings recover them](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig6_onehot_vs_distributed.png)
 
-Distributed representations — which we will build in Part 2 — pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.
+Distributed representations — which we will build in [Part 2](/en/nlp/word-embeddings-lm/) — pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.
 
 ### Bag of Words
 
@@ -446,7 +446,7 @@ The trade-off is sharp:
 - **Larger n** captures more context, which lowers perplexity (perplexity is roughly the model's effective branching factor — lower is better).
 - **Larger n** also explodes the parameter count and starves on rare contexts. With $V$ vocabulary, a trigram model has up to $V^3$ parameters, most of which see zero training examples. This is the **sparsity problem**, the central pain point of statistical NLP.
 
-Smoothing techniques (Laplace, Kneser-Ney) patch the holes by redistributing probability mass to unseen n-grams. Modern neural language models sidestep the issue entirely by sharing parameters across contexts via embeddings — which is the bridge to Part 2.
+Smoothing techniques (Laplace, Kneser-Ney) patch the holes by redistributing probability mass to unseen n-grams. Modern neural language models sidestep the issue entirely by sharing parameters across contexts via embeddings — which is the bridge to [Part 2](/en/nlp/word-embeddings-lm/).
 
 ---
 

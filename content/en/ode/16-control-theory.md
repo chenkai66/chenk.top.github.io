@@ -41,9 +41,9 @@ This chapter shows how the entire ODE toolkit — Laplace transforms (Ch 4), lin
 
 ## Prerequisites
 
-- Chapter 4 — Laplace transforms (where transfer functions come from)
-- Chapter 6 — Linear systems and matrix exponential
-- Chapter 7 — Eigenvalue criteria for linear stability
+- [Chapter 4](/en/ode/04-constant-coefficients/) — Laplace transforms (where transfer functions come from)
+- [Chapter 6](/en/ode/06-power-series/) — Linear systems and matrix exponential
+- [Chapter 7](/en/ode/07-systems-and-phase-plane/) — Eigenvalue criteria for linear stability
 
 ---
 
@@ -274,14 +274,14 @@ Look at $\mathbf{eigvals}(A)$: one of them sits in the right half-plane (the ope
 
 ## The Modern Picture
 
-What we have done in this chapter is replay the ODE story with a **goal**. Stability theory (Ch 7-8) said *whether* a system equilibrium survives small perturbations; control theory says *how to engineer* the equilibrium and the convergence rate to it. The same Laplace transform that gave us closed-form solutions in Chapter 4 now gives us frequency-domain robustness margins. The same matrix exponential from Chapter 6 now powers state-space simulation and observer design.
+What we have done in this chapter is replay the ODE story with a **goal**. Stability theory (Ch 7-8) said *whether* a system equilibrium survives small perturbations; control theory says *how to engineer* the equilibrium and the convergence rate to it. The same Laplace transform that gave us closed-form solutions in [Chapter 4](/en/ode/04-constant-coefficients/) now gives us frequency-domain robustness margins. The same matrix exponential from [Chapter 6](/en/ode/06-power-series/) now powers state-space simulation and observer design.
 
 The frontier extends beyond what we covered:
 
 - **Robust control** — $H_\infty$, $\mu$-synthesis: certify performance under bounded modelling error.
 - **Adaptive and model-predictive control (MPC)** — the controller updates online using a moving-horizon optimisation.
 - **Nonlinear control** — feedback linearisation, sliding mode, control Lyapunov functions.
-- **Reinforcement learning** — the controller is *learned* from experience rather than designed; ties back to Chapter 18's Neural ODEs.
+- **Reinforcement learning** — the controller is *learned* from experience rather than designed; ties back to [Chapter 18](/en/ode/18-advanced-topics-summary/)'s Neural ODEs.
 
 ---
 

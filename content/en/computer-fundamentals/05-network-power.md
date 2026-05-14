@@ -446,4 +446,4 @@ What this series covered, in five sentences:
 
 If you take one thing away: **the bottleneck is rarely where you first look**. Profile, measure, and trust the numbers — not the spec sheet.
 
-The deep-dive part (Part 6) returns to the questions this series only sketched: cache-coherence protocols, NUMA, virtualization at the silicon level, and the energy-efficiency frontier.
+The deep-dive part ([Part 6](/en/computer-fundamentals/06-deep-dive/)) returns to the questions this series only sketched: cache-coherence protocols, NUMA, virtualization at the silicon level, and the energy-efficiency frontier.

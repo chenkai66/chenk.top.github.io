@@ -45,9 +45,9 @@ Once these three are clear, every linear-systems result — existence, uniquenes
 
 ### Prerequisites
 
-- Chapter 2: span, linear independence, basis
-- Chapter 3: matrices as linear transformations
-- Chapter 4: determinants and invertibility
+- [Chapter 2](/en/linear-algebra/02-linear-combinations-and-vector-spaces/): span, linear independence, basis
+- [Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/): matrices as linear transformations
+- [Chapter 4](/en/linear-algebra/04-the-secrets-of-determinants/): determinants and invertibility
 
 ---
 
@@ -442,4 +442,4 @@ The principle: every piece of structure you can name about $A$ has a faster solv
 
 ## What's Next
 
-**Chapter 6: Eigenvalues and Eigenvectors.** Most vectors change direction under a transformation. A few special ones do not — they only get scaled. These eigenvectors are the natural axes of $A$, the directions in which the matrix becomes a simple stretch. Find them and you understand the long-term behaviour of any linear system.
+**[Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/): Eigenvalues and Eigenvectors.** Most vectors change direction under a transformation. A few special ones do not — they only get scaled. These eigenvectors are the natural axes of $A$, the directions in which the matrix becomes a simple stretch. Find them and you understand the long-term behaviour of any linear system.

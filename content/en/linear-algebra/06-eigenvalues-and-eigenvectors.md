@@ -40,7 +40,7 @@ Hunting for these "invariant directions" is one of the most powerful moves in al
 
 ### Prerequisites
 
-Chapter 3 (matrices as transformations), Chapter 4 (determinants), and Chapter 5 (null space and column space).
+[Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/) (matrices as transformations), [Chapter 4](/en/linear-algebra/04-the-secrets-of-determinants/) (determinants), and [Chapter 5](/en/linear-algebra/05-linear-systems-and-column-space/) (null space and column space).
 
 ---
 
@@ -296,7 +296,7 @@ Take a cloud of data points in $\mathbb{R}^n$, centre it, and compute the covari
 
 ![Principal components are eigenvectors of the covariance matrix](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/06-eigenvalues-and-eigenvectors/fig7_pca_preview.png)
 
-PC$_1$ points along the longest axis of the cloud; PC$_2$ is perpendicular and shorter. Project onto the first few PCs and you get the lowest-dimensional representation that preserves the most information. That single idea powers face recognition, gene-expression clustering, recommendation systems, and — as we will see in Chapter 9 — the singular value decomposition.
+PC$_1$ points along the longest axis of the cloud; PC$_2$ is perpendicular and shorter. Project onto the first few PCs and you get the lowest-dimensional representation that preserves the most information. That single idea powers face recognition, gene-expression clustering, recommendation systems, and — as we will see in [Chapter 9](/en/linear-algebra/09-singular-value-decomposition/) — the singular value decomposition.
 
 ---
 
@@ -408,7 +408,7 @@ So when this chapter says "the dominant eigenvalue controls long-term behaviour 
 
 ## What's Next
 
-- **Chapter 7:** Orthogonality and projections — the geometry that makes PCA and least squares possible.
-- **Chapter 8:** Symmetric matrices and quadratic forms — a deep dive into the spectral theorem.
-- **Chapter 9:** Singular value decomposition — *every* matrix is rotation × scaling × rotation, even non-square ones.
+- **[Chapter 7](/en/linear-algebra/07-orthogonality-and-projections/):** Orthogonality and projections — the geometry that makes PCA and least squares possible.
+- **[Chapter 8](/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/):** Symmetric matrices and quadratic forms — a deep dive into the spectral theorem.
+- **[Chapter 9](/en/linear-algebra/09-singular-value-decomposition/):** Singular value decomposition — *every* matrix is rotation × scaling × rotation, even non-square ones.
 - **Chapters 10-18:** Norms, sparse methods, matrix calculus, and applications across ML, vision, and beyond.

@@ -492,8 +492,8 @@ On $[0, 1]^2$, how many axis-aligned splits does a binary tree need to approxima
 - **Quinlan, J. R.** (1986). Induction of decision trees. *Machine Learning*, 1(1), 81–106.
 - **Quinlan, J. R.** (1993). *C4.5: Programs for Machine Learning*. Morgan Kaufmann.
 - **Breiman, L., Friedman, J., Stone, C. J., & Olshen, R. A.** (1984). *Classification and Regression Trees*. Wadsworth.
-- **Hastie, T., Tibshirani, R., & Friedman, J.** (2009). *The Elements of Statistical Learning* (2nd ed.). Springer. Chapter 9.
-- **Mitchell, T. M.** (1997). *Machine Learning*. McGraw-Hill. Chapter 3.
+- **Hastie, T., Tibshirani, R., & Friedman, J.** (2009). *The Elements of Statistical Learning* (2nd ed.). Springer. [Chapter 9](/en/ml-math-derivations/09-naive-bayes/).
+- **Mitchell, T. M.** (1997). *Machine Learning*. McGraw-Hill. [Chapter 3](/en/ml-math-derivations/03-probability-theory-and-statistical-inference/).
 - **Breiman, L.** (2001). Random forests. *Machine Learning*, 45(1), 5–32.
 - **Loh, W. Y.** (2011). Classification and regression trees. *WIREs Data Mining and Knowledge Discovery*, 1(1), 14–23.
 - **Domingos, P., & Hulten, G.** (2000). Mining high-speed data streams. *KDD*.

@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-7"
 ---
 
-Chapter 5 provided a conceptual tour of hooks. This chapter is the field guide. From the 100-script reference repo, ten scripts earn their place in every serious project I run. I'll walk through these ten with code.
+[Chapter 5](/en/claude-code-learn/05-hooks/) provided a conceptual tour of hooks. This chapter is the field guide. From the 100-script reference repo, ten scripts earn their place in every serious project I run. I'll walk through these ten with code.
 
 All examples assume Node 18+, save scripts to `./hooks/`, mark them `chmod +x`, and wire them in `.claude/settings.json` like:
 

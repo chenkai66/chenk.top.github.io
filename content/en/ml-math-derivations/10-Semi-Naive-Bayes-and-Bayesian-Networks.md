@@ -273,7 +273,7 @@ The cost of one elimination step is exponential in the *width* — the size of t
 
 For tree-structured networks (no undirected cycles in the moralised graph), treewidth is 1 and exact inference is $O(N \cdot K^2)$ for $N$ variables of cardinality $K$ — exactly the forward-backward cost of HMMs, which are the chain-structured special case. For dense networks like fully connected medical diagnosis BNs, treewidth grows linearly with $N$ and exact inference becomes infeasible by $N \approx 30$.
 
-**Approximate alternatives.** When treewidth is too large, the standard fallbacks are loopy belief propagation (run BP on the cyclic graph anyway, hope it converges; works empirically on many real networks but with no guarantee), Gibbs sampling (cycle through variables, sample each from its conditional given current values of others), and variational methods (Part 14). For a dense BN with binary variables and treewidth 25, a single Gibbs chain of 100k samples typically gives 2-3 digit accuracy on marginals — slow, but at least it returns.
+**Approximate alternatives.** When treewidth is too large, the standard fallbacks are loopy belief propagation (run BP on the cyclic graph anyway, hope it converges; works empirically on many real networks but with no guarantee), Gibbs sampling (cycle through variables, sample each from its conditional given current values of others), and variational methods ([Part 14](/en/ml-math-derivations/14-variational-inference-and-variational-em/)). For a dense BN with binary variables and treewidth 25, a single Gibbs chain of 100k samples typically gives 2-3 digit accuracy on marginals — slow, but at least it returns.
 
 ## Structure learning: where the hard problem actually is
 

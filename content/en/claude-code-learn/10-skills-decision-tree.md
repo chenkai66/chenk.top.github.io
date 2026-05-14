@@ -450,7 +450,7 @@ Why it is a skill and not a command: I do not always invoke it by name. Sometime
 
 For changes to `~/.claude/settings.json` and `.claude/settings.json`. Triggered by "allow X command," "set env Y," "add a hook," "move permission to project settings."
 
-Encodes the permission precedence rules from Chapter 9 and the typical patterns. Saves me from re-deriving the merge order every time.
+Encodes the permission precedence rules from [Chapter 9](/en/claude-code-learn/09-settings-and-permissions/) and the typical patterns. Saves me from re-deriving the merge order every time.
 
 Why it is a skill and not a hook: it provides knowledge about *how* to edit settings, not enforcement of settings. A hook would block or allow; this skill *teaches*.
 

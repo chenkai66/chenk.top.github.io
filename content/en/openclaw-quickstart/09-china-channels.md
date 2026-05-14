@@ -18,7 +18,7 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-9"
 ---
 
-Chapter 5 covered Telegram, DingTalk, and WeChat at a glance. This chapter is the sequel for everyone in mainland China who needed to ship something past their team's IT department. There are too many channels, the docs are scattered across a dozen READMEs, and most of the "compare" tables online are out of date.
+[Chapter 5](/en/openclaw-quickstart/05-channels/) covered Telegram, DingTalk, and WeChat at a glance. This chapter is the sequel for everyone in mainland China who needed to ship something past their team's IT department. There are too many channels, the docs are scattered across a dozen READMEs, and most of the "compare" tables online are out of date.
 
 Here’s the matrix I check before making any recommendations.
 

@@ -496,7 +496,7 @@ class SampledSoftmaxLoss(nn.Module):
 - **L2 归一化输出**：让余弦相似度等价于内积，可以直接用 FAISS 的 inner-product 索引。
 - **温度系数 $\tau$**：取 $\tau \in [0.05, 0.2]$ 让 softmax 更“尖锐”。不加温度时，余弦相似度分布在 $[-1, 1]$ 区间，分布太平坦，学习速度慢。
 - **层间 BatchNorm**：在塔的深层保持激活值的合理尺度，尤其是输入特征量纲差异较大时。
-- **正样本固定在 0 号位的交叉熵**：天然兼容 in-batch negative，直接把同 batch 内其他正样本当作负样本——见第 5 节。
+- **正样本固定在 0 号位的交叉熵**：天然兼容 in-batch negative，直接把同 batch 内其他正样本当作负样本——见[第 5 节](#基于图的嵌入：Node2Vec)。
 
 ---
 

@@ -202,7 +202,7 @@ Two 2024 advances pushed RAG quality further on production-scale corpora.
 
 ![fig6: long context vs RAG trade-off](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/fig6_context_vs_rag.png)
 
-Chapter 6 introduced this; here's the production decision matrix:
+[Chapter 6](/en/llm-engineering/06-long-context/) introduced this; here's the production decision matrix:
 
 | Property | RAG wins | Long context wins |
 |---|---|---|
@@ -227,7 +227,7 @@ The right answer is often **both**: RAG to find candidate chunks, then long-cont
 
 **Hot chunks dominating.** A few chunks (e.g., the FAQ on returns policy) get retrieved for every other query, regardless of relevance. They're embedded near the cluster centroid. Defense: penalize over-retrieved chunks (BM25 IDF naturally does this; dense retrieval needs explicit diversity terms like MMR).
 
-**Chunks containing only metadata.** A chunk that's just "Section 4.2.1" matches a lot of queries semantically but contains no answer. Defense: filter chunks below a minimum content density (e.g., reject chunks with <100 alphanumeric chars or <5 unique non-stopwords).
+**Chunks containing only metadata.** A chunk that's just "[Section 4](#vector-indexing-hnsw-ivf-and-the-tradeoffs).2.1" matches a lot of queries semantically but contains no answer. Defense: filter chunks below a minimum content density (e.g., reject chunks with <100 alphanumeric chars or <5 unique non-stopwords).
 
 **Duplicate chunks from ingestion bugs.** I once had a corpus where 30 % of chunks were near-duplicates because the ingestion script ran twice on a subset. Top-K retrieval returned 5 versions of the same chunk; LLM thought it had 5 sources confirming a fact and confidently asserted it. Defense: dedup at ingestion (MinHash, SimHash, or simple normalize+hash).
 

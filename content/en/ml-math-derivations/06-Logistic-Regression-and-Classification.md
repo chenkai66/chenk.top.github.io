@@ -542,10 +542,10 @@ The Hessian $\nabla^2 \mathcal{L} = \tfrac{1}{N}\mathbf{X}^\top \mathbf{S}\,\mat
 
 ## References
 
-- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer. Chapter 4.
-- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.). Springer. Chapter 4.
-- Murphy, K. P. (2012). *Machine Learning: A Probabilistic Perspective*. MIT Press. Chapter 8.
-- Goodfellow, I., Bengio, Y., & Courville, A. (2016). *Deep Learning*. MIT Press. Chapter 5.
+- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer. [Chapter 4](/en/ml-math-derivations/04-convex-optimization-theory/).
+- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.). Springer. [Chapter 4](/en/ml-math-derivations/04-convex-optimization-theory/).
+- Murphy, K. P. (2012). *Machine Learning: A Probabilistic Perspective*. MIT Press. [Chapter 8](/en/ml-math-derivations/08-support-vector-machines/).
+- Goodfellow, I., Bengio, Y., & Courville, A. (2016). *Deep Learning*. MIT Press. [Chapter 5](/en/ml-math-derivations/05-linear-regression/).
 - Hosmer, D. W., Lemeshow, S., & Sturdivant, R. X. (2013). *Applied Logistic Regression* (3rd ed.). Wiley.
 
 ---

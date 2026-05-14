@@ -25,7 +25,7 @@ polished_by_qwen_max: true
 
 ## 一、为什么 SVD 配得上“皇冠”二字
 
-第 8 章的谱定理给出了 $A = Q\Lambda Q^{\!\top}$，形式简洁优美，但有个硬性限制：**仅适用于对称矩阵**。而现实中遇到的矩阵大多不对称，甚至根本不是方阵：
+[第 8 章](/zh/linear-algebra/08-对称矩阵与二次型/)的谱定理给出了 $A = Q\Lambda Q^{\!\top}$，形式简洁优美，但有个硬性限制：**仅适用于对称矩阵**。而现实中遇到的矩阵大多不对称，甚至根本不是方阵：
 
 - 一张 $1920 \times 1080$ 的照片；
 - Netflix 风格的用户—电影评分矩阵（百万行，数千列）；
@@ -58,9 +58,9 @@ $$A = U\,\Sigma\,V^{\!\top}.$$
 
 ### 前置知识
 
-- 特征值与特征向量（第 6 章）
-- 正交矩阵与投影（第 7 章）
-- 对称矩阵与谱定理（第 8 章）
+- 特征值与特征向量（[第 6 章](/zh/linear-algebra/06-特征值与特征向量/)）
+- 正交矩阵与投影（[第 7 章](/zh/linear-algebra/07-正交性与投影/)）
+- 对称矩阵与谱定理（[第 8 章](/zh/linear-algebra/08-对称矩阵与二次型/)）
 
 ---
 
@@ -467,7 +467,7 @@ def plot_compression(img, ks):
 
 ## 参考文献
 
-- Strang, G. (2019). *Introduction to Linear Algebra*, 第 7 章。
+- Strang, G. (2019). *Introduction to Linear Algebra*, [第 7 章](/zh/linear-algebra/07-正交性与投影/)。
 - Trefethen, L. N. & Bau, D. (1997). *Numerical Linear Algebra*. SIAM.
 - Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations*（第 4 版）. Johns Hopkins.
 - Eckart, C. & Young, G. (1936). "The approximation of one matrix by another of lower rank." *Psychometrika*, 1(3).

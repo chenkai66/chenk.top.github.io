@@ -41,8 +41,8 @@ This chapter walks from the everyday intuition of "perpendicular" to the heavy h
 
 ### Prerequisites
 
-- Dot product and norm (Chapter 1)
-- Linear independence and bases (Chapter 2)
+- Dot product and norm ([Chapter 1](/en/linear-algebra/01-the-essence-of-vectors/))
+- Linear independence and bases ([Chapter 2](/en/linear-algebra/02-linear-combinations-and-vector-spaces/))
 - Matrix-vector products and column space (Chapters 3 and 5)
 
 ---
@@ -481,4 +481,4 @@ plt.show()
 - Strang, G. (2019). *Introduction to Linear Algebra*, Chapters 4 and 10.
 - Trefethen, L. N. & Bau, D. (1997). *Numerical Linear Algebra*, Lectures 7-11.
 - 3Blue1Brown. *Essence of Linear Algebra*, Chapters 9 and 11.
-- Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations*, Chapter 5.
+- Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations*, [Chapter 5](/en/linear-algebra/05-linear-systems-and-column-space/).

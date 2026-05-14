@@ -846,7 +846,7 @@ echo "ALB DNS: $(aliyun alb GetLoadBalancerAttribute \
 
 ### Step 6: Verify connectivity
 
-After launching instances into the subnets (covered in Part 2), verify:
+After launching instances into the subnets (covered in [Part 2](/en/aliyun-fullstack/02-ecs-compute/)), verify:
 
 ```bash
 # From an app-tier instance, test outbound via NAT

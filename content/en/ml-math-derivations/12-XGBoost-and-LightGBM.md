@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 12
 translationKey: "ml-math-derivations-12"
 ---
-XGBoost and LightGBM are the two libraries that quietly win most tabular-data battles --- on Kaggle leaderboards, in fraud-detection pipelines, in ad ranking, in churn models. They share the same backbone (gradient-boosted trees, Part 11) but make very different engineering bets:
+XGBoost and LightGBM are the two libraries that quietly win most tabular-data battles --- on Kaggle leaderboards, in fraud-detection pipelines, in ad ranking, in churn models. They share the same backbone (gradient-boosted trees, [Part 11](/en/ml-math-derivations/11-ensemble-learning/)) but make very different engineering bets:
 
 - **XGBoost** sharpens the *math*: it brings the second derivative of the loss into the objective, regularises the tree itself, and turns split selection into a closed-form score.
 - **LightGBM** sharpens the *systems*: it bins features into a small histogram, grows trees leaf-by-leaf, throws away uninformative samples (GOSS) and bundles mutually exclusive sparse features (EFB).
@@ -40,7 +40,7 @@ The result is two tools that look interchangeable from the API but behave very d
 
 ## Prerequisites
 
-- GBDT fundamentals (Part 11 of this series).
+- GBDT fundamentals ([Part 11](/en/ml-math-derivations/11-ensemble-learning/) of this series).
 - First- and second-order Taylor expansion.
 - Decision-tree splitting via impurity / gain.
 

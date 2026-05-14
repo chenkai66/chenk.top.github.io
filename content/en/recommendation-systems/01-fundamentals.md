@@ -794,10 +794,10 @@ Five things to remember from this article:
 
 In the rest of this series we go deep on each piece:
 
-- **Part 2** — collaborative filtering and matrix factorization in full detail
-- **Part 3** — deep-learning building blocks for recommenders
-- **Part 4** — CTR prediction (Wide & Deep, DCN, DeepFM)
-- **Part 5** — embedding techniques (Word2Vec, item2vec, graph embeddings)
+- **[Part 2](/en/recommendation-systems/02-collaborative-filtering/)** — collaborative filtering and matrix factorization in full detail
+- **[Part 3](/en/recommendation-systems/03-deep-learning-basics/)** — deep-learning building blocks for recommenders
+- **[Part 4](/en/recommendation-systems/04-ctr-prediction/)** — CTR prediction (Wide & Deep, DCN, DeepFM)
+- **[Part 5](/en/recommendation-systems/05-embedding-techniques/)** — embedding techniques (Word2Vec, item2vec, graph embeddings)
 - **Parts 6–10** — sequential models, GNNs, knowledge graphs, multi-task, DIN
 - **Parts 11–16** — contrastive learning, LLM-based recommenders, fairness, cross-domain, real-time, industrial practice
 

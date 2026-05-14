@@ -39,7 +39,7 @@ The entire trajectory of NLP shifted toward representation learning. This articl
 - How embeddings connect to language models and why neural LMs scale
 - How to train, evaluate, and visualize embeddings with Gensim
 
-**Prerequisites**: Part 1 (text preprocessing basics), basic linear algebra (dot products, matrix multiplication), and a working knowledge of softmax and stochastic gradient descent.
+**Prerequisites**: [Part 1](/en/nlp/introduction-and-preprocessing/) (text preprocessing basics), basic linear algebra (dot products, matrix multiplication), and a working knowledge of softmax and stochastic gradient descent.
 
 ---
 

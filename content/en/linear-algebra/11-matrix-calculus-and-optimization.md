@@ -44,9 +44,9 @@ This chapter builds that object from the ground up, and then puts it to work.
 ### Prerequisites
 
 - Single-variable calculus (derivatives, the chain rule)
-- Vectors and dot products (Chapter 1)
-- Matrix multiplication (Chapter 3)
-- Symmetric matrices and positive definiteness (Chapter 8)
+- Vectors and dot products ([Chapter 1](/en/linear-algebra/01-the-essence-of-vectors/))
+- Matrix multiplication ([Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/))
+- Symmetric matrices and positive definiteness ([Chapter 8](/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/))
 
 ---
 
@@ -352,7 +352,7 @@ This closed form exists exactly because the loss is a convex quadratic in$\vec{w
 
 Add an$\ell_2$regularizer:$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2 + \lambda\|\vec{w}\|^2$.
 $$\vec{w}^* = (X^TX + \lambda I)^{-1}X^T\vec{y}$$
-The$\lambda I$term shifts every eigenvalue of$X^TX$by$\lambda$, which guarantees invertibility and tames the condition number — a direct application of Chapter 10's intuition.
+The$\lambda I$term shifts every eigenvalue of$X^TX$by$\lambda$, which guarantees invertibility and tames the condition number — a direct application of [Chapter 10](/en/linear-algebra/10-matrix-norms-and-condition-numbers/)'s intuition.
 
 ### PCA as Optimization
 
@@ -514,7 +514,7 @@ The single most important takeaway: **for a scalar loss with a million parameter
 ## References
 
 - Petersen, K. B. & Pedersen, M. S. *The Matrix Cookbook*. (The reference for matrix derivative identities.)
-- Goodfellow, I., Bengio, Y. & Courville, A. (2016). *Deep Learning*, Chapter 6 — backpropagation in detail.
+- Goodfellow, I., Bengio, Y. & Courville, A. (2016). *Deep Learning*, [Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/) — backpropagation in detail.
 - Boyd, S. & Vandenberghe, L. (2004). *Convex Optimization* — the standard text on convexity, Lagrangians, and KKT.
 - Nocedal, J. & Wright, S. (2006). *Numerical Optimization* — the canonical reference for Newton, quasi-Newton, and trust-region methods.
 - Kingma, D. P. & Ba, J. (2015). "Adam: A Method for Stochastic Optimization." *ICLR*.

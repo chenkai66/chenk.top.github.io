@@ -298,7 +298,7 @@ Five things students reliably get wrong about backprop.
 
 **"ReLU avoids the saturation problem entirely."** Only on the positive side. A ReLU unit whose pre-activation is consistently negative receives zero gradient forever — *dead ReLU*. On a typical training run, 5-15% of ReLU units die in the first few epochs and never recover. Leaky ReLU and GELU exist mostly to mitigate this.
 
-**"More parameters always overfit."** Empirically false in the modern regime. Networks with $10\times$ more parameters than samples routinely generalise well, the *double descent* phenomenon — test error has a peak around the interpolation threshold, then drops again as width grows. The classical bias-variance picture (Part 20) is incomplete for over-parameterised models.
+**"More parameters always overfit."** Empirically false in the modern regime. Networks with $10\times$ more parameters than samples routinely generalise well, the *double descent* phenomenon — test error has a peak around the interpolation threshold, then drops again as width grows. The classical bias-variance picture ([Part 20](/en/ml-math-derivations/20-regularization-and-model-selection/)) is incomplete for over-parameterised models.
 
 **"Initialisation only affects training speed."** Wrong. With sufficiently bad init, a deep ReLU net's pre-activations either die out completely or saturate, and *no* amount of training recovers it. He initialisation (variance $2/n_{\text{in}}$) is not an optimisation; it is what makes the network trainable at all.
 

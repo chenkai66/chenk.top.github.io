@@ -39,8 +39,8 @@ The payoff for solving this is large. AlphaStar reached Grandmaster on the StarC
 
 ## Prerequisites
 
-- Q-learning and DQN (Part 2)
-- Actor-critic and policy gradients (Part 3, Part 6)
+- Q-learning and DQN ([Part 2](/en/reinforcement-learning/02-q-learning-and-dqn/))
+- Actor-critic and policy gradients ([Part 3](/en/reinforcement-learning/03-policy-gradient-and-actor-critic/), [Part 6](/en/reinforcement-learning/06-ppo-and-trpo/))
 - Comfort with expectations and conditional probabilities; we keep formal game theory minimal
 
 ---
@@ -55,7 +55,7 @@ Within any of these regimes, four obstacles break the single-agent toolbox.
 
 **Non-stationarity.** From agent $i$'s point of view the transition is $P(s' \mid s, a_i, a_{-i})$, where $a_{-i}$ denotes everyone else's actions. As the others' policies $\pi_{-i}$ keep updating during training, the *effective* transition kernel that $i$ sees keeps drifting. Off-policy methods like DQN, which assume a fixed data-generating distribution, can diverge or oscillate.
 
-**Credit assignment.** When the team gets a single reward $r$ for an episode-long collaboration, who actually earned it? A naive shared gradient encourages free-riding: an agent that does nothing receives the same credit as one that did the heavy lifting. Counterfactual baselines (COMA, Section 5) and value decomposition (Section 4) are the two principled answers.
+**Credit assignment.** When the team gets a single reward $r$ for an episode-long collaboration, who actually earned it? A naive shared gradient encourages free-riding: an agent that does nothing receives the same credit as one that did the heavy lifting. Counterfactual baselines (COMA, [Section 5](#markov-games-and-nash-equilibria-just-enough-to-be-useful)) and value decomposition ([Section 4](#ctde-train-with-everything-execute-with-almost-nothing)) are the two principled answers.
 
 **Partial observability.** Each agent sees only its own observation $o_i$. There is no Markov state available at execution time. Recurrent networks plus belief-state-style representations are typical, but the deeper fix is to architect training so that *the centralised critic* sees more than execution does.
 
@@ -205,7 +205,7 @@ A pool of *frozen historical checkpoints* is matched against current learners wi
 
 OpenAI Five takes a different cut. Each Dota hero is controlled by an independent LSTM policy with a shared parameter set; the team-level coordination problem is handed off to a hand-engineered shared reward and an enormous compute budget — roughly *180 years of self-play per day*. The lesson from both systems is the same: at industrial scale, the *training curriculum* matters at least as much as the per-agent algorithm.
 
-These ideas are migrating outside games. RLHF (Part 12) and tool-use agent orchestration both increasingly look like multi-population training — a population of policies, a population of evaluators, and prioritised match-making between them.
+These ideas are migrating outside games. RLHF ([Part 12](/en/reinforcement-learning/12-rlhf-and-llm-applications/)) and tool-use agent orchestration both increasingly look like multi-population training — a population of policies, a population of evaluators, and prioritised match-making between them.
 
 ---
 

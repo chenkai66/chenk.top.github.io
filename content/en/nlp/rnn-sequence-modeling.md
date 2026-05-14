@@ -191,7 +191,7 @@ P(y_t \mid y_{<t}, x) = \mathrm{softmax}(W_o s_t).
 $$
 **The bottleneck.** The whole input — possibly 50 words of context — must squeeze through the single fixed-size vector $c$. For short sentences this is fine; for long ones, the encoder simply runs out of room. Sutskever's original paper found that BLEU scores fell sharply once the input exceeded about 30 tokens, and that *reversing* the source sentence helped (which is itself a hint that the bottleneck was the problem).
 
-This bottleneck is the direct motivation for **attention**, the topic of Part 4: instead of forcing the decoder to live on a single $c$, attention lets it look back at *every* encoder hidden state at each decoding step.
+This bottleneck is the direct motivation for **attention**, the topic of [Part 4](/en/nlp/attention-transformer/): instead of forcing the decoder to live on a single $c$, attention lets it look back at *every* encoder hidden state at each decoding step.
 
 ---
 
@@ -315,7 +315,7 @@ print(generate(model, "Deep learning", length=200))
 
 ## PyTorch implementation: a minimal Seq2Seq translator
 
-A bare-bones English-to-French translator, useful for understanding the encoder-decoder pipeline before we add attention in Part 4.
+A bare-bones English-to-French translator, useful for understanding the encoder-decoder pipeline before we add attention in [Part 4](/en/nlp/attention-transformer/).
 
 ### Data and vocabulary
 
@@ -443,7 +443,7 @@ for s in ["hello", "thank you", "good morning"]:
     print(f"{s} -> {translate(encoder, decoder, s)}")
 ```
 
-**Caveats.** This minimal implementation overfits a tiny phrase book, uses greedy decoding, and has no attention or beam search. It is meant only to make the encoder-decoder data flow concrete. For real translation systems you would add attention (Part 4), beam search, subword (BPE) tokenisation, and a held-out validation set for early stopping.
+**Caveats.** This minimal implementation overfits a tiny phrase book, uses greedy decoding, and has no attention or beam search. It is meant only to make the encoder-decoder data flow concrete. For real translation systems you would add attention ([Part 4](/en/nlp/attention-transformer/)), beam search, subword (BPE) tokenisation, and a held-out validation set for early stopping.
 
 ---
 
@@ -462,7 +462,7 @@ $$
 \alpha_{tj} = \frac{\exp(\mathrm{score}(s_t, h_j))}{\sum_k \exp(\mathrm{score}(s_t, h_k))}, \qquad
 c_t = \sum_j \alpha_{tj}\, h_j.
 $$
-The context vector becomes a *time-varying* weighted sum of encoder states. This was the bridge from RNNs to Transformers, which we cover in Part 4.
+The context vector becomes a *time-varying* weighted sum of encoder states. This was the bridge from RNNs to Transformers, which we cover in [Part 4](/en/nlp/attention-transformer/).
 
 ---
 
@@ -485,4 +485,4 @@ The context vector becomes a *time-varying* weighted sum of encoder states. This
 - **LSTMs add an additive cell-state highway** gated by forget/input/output, giving gradients a path that does not vanish.
 - **GRUs simplify LSTMs** to two gates and one state, often matching LSTM accuracy with ~25% fewer parameters.
 - **Bidirectional and stacked variants** widen the per-position context and add depth, respectively.
-- **Seq2Seq encoder-decoders** map sequences to sequences but bottleneck on a single context vector $c$ — a limitation that motivates attention, the topic of Part 4.
+- **Seq2Seq encoder-decoders** map sequences to sequences but bottleneck on a single context vector $c$ — a limitation that motivates attention, the topic of [Part 4](/en/nlp/attention-transformer/).

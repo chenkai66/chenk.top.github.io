@@ -21,7 +21,7 @@ The same model can produce a sharp answer or a confident hallucination. The diff
 
 In-Context Learning (ICL) is the mechanism that makes this work. When you include a few examples in the prompt, the model doesn't retrain; it conditions its forward pass on those examples and effectively *infers a task* from them. Understanding ICL's capabilities and limitations separates a developer who struggles with the model from one who guides it.
 
-This part is the seventh in the NLP series. It assumes you know roughly how a Transformer decoder generates tokens (Part 4) and what an autoregressive LM is (Part 6). Everything below is grounded in published behaviour — but be warned: the literature on prompt engineering is unusually noisy, and most numbers are model- and dataset-specific. Treat the bars in the figures as illustrative shapes, not benchmark claims.
+This part is the seventh in the NLP series. It assumes you know roughly how a Transformer decoder generates tokens ([Part 4](/en/nlp/attention-transformer/)) and what an autoregressive LM is ([Part 6](/en/nlp/gpt-generative-models/)). Everything below is grounded in published behaviour — but be warned: the literature on prompt engineering is unusually noisy, and most numbers are model- and dataset-specific. Treat the bars in the figures as illustrative shapes, not benchmark claims.
 
 
 <!-- wanx-hero -->
@@ -186,7 +186,7 @@ The trick is mechanical, not mystical. Each generated reasoning token *changes t
 
 A clean way to think about CoT probabilistically: for problem $x$ with answer $a$, marginalize over latent reasoning chains $z$:
 $$
-P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).$$Greedy CoT picks one $z$ and hopes it is right. **Self-consistency** (Section 5) approximates the sum by sampling many $z$.
+P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).$$Greedy CoT picks one $z$ and hopes it is right. **Self-consistency** ([Section 5](#a-working-theory-of-in-context-learning)) approximates the sum by sampling many $z$.
 
 When CoT helps and when it does not:
 

@@ -475,7 +475,7 @@ For modern deep nets the VC bound is loose — networks routinely interpolate ra
 
 **Q5. Where does Hoeffding's inequality come from?**
 
-It is a sub-Gaussian concentration bound for sums of bounded independent random variables. We will derive it cleanly from the moment-generating function in Chapter 3 and use it as the workhorse for almost every uniform-convergence argument in the rest of the series.
+It is a sub-Gaussian concentration bound for sums of bounded independent random variables. We will derive it cleanly from the moment-generating function in [Chapter 3](/en/ml-math-derivations/03-probability-theory-and-statistical-inference/) and use it as the workhorse for almost every uniform-convergence argument in the rest of the series.
 
 ---
 

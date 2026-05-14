@@ -29,7 +29,7 @@ translationKey: "time-series-5"
 
 ## Prerequisites
 
-- Self-attention and multi-head attention (Part 4)
+- Self-attention and multi-head attention ([Part 4](/en/time-series/attention-mechanism/))
 - Encoder-decoder architectures and teacher forcing
 - PyTorch fundamentals (`nn.Module`, training loops)
 
@@ -77,7 +77,7 @@ h_1 &= \text{LayerNorm}(x + \text{MHSA}(x)) \\
 h_2 &= \text{LayerNorm}(h_1 + \text{FFN}(h_1))
 \end{aligned}
 $$
-with the standard scaled dot-product attention from Part 4:
+with the standard scaled dot-product attention from [Part 4](/en/time-series/attention-mechanism/):
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
 ### Encoder
 
@@ -213,8 +213,8 @@ change the model":
    $O(n \cdot d^2)$.
 3. **Patching** (PatchTST, autoformer-style series decomposition):
    *shorten the sequence itself* by grouping consecutive steps into
-   patches. We come back to this in Section 7.
-4. **Decoder-only with KV cache** (Section 6): you still pay $O(n^2)$
+   patches. We come back to this in [Section 7](#the-on^2-bottleneck).
+4. **Decoder-only with KV cache** ([Section 6](#what-multi-head-attention-learns)): you still pay $O(n^2)$
    in training, but inference is incremental.
 
 In practice, for forecasting horizons up to a few hundred steps with

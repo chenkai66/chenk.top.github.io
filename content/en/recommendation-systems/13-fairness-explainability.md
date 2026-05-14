@@ -485,7 +485,7 @@ These are low-effort, high-trust additions. YouTube's "Don't recommend channel" 
 
 ### Continuous monitoring
 
-Fairness is not a launch checkbox — it is an ongoing measurement. Set up dashboards for the bias metrics from Part 1, alert on regressions, and run quarterly audits with the SHAP/counterfactual tooling above. A model that was fair in March can drift by June; the only defence is instrumentation.
+Fairness is not a launch checkbox — it is an ongoing measurement. Set up dashboards for the bias metrics from [Part 1](/en/recommendation-systems/01-fundamentals/), alert on regressions, and run quarterly audits with the SHAP/counterfactual tooling above. A model that was fair in March can drift by June; the only defence is instrumentation.
 
 ---
 
@@ -493,7 +493,7 @@ Fairness is not a launch checkbox — it is an ongoing measurement. Set up dashb
 
 ### I am a small team. What is the minimum debiasing I should do?
 
-Two things. First, instrument the bias metrics from Part 1 — you cannot fix what you do not measure. Second, add IPS for position bias in your learning-to-rank loss. Both are cheap and both ship measurable wins.
+Two things. First, instrument the bias metrics from [Part 1](/en/recommendation-systems/01-fundamentals/) — you cannot fix what you do not measure. Second, add IPS for position bias in your learning-to-rank loss. Both are cheap and both ship measurable wins.
 
 ### How big is the accuracy cost of fairness?
 

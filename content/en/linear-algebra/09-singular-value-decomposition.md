@@ -57,9 +57,9 @@ Think of a band recording: lead vocal, guitar, bass, drums. Drop a background ha
 
 ### Prerequisites
 
-- Eigenvalues and eigenvectors (Chapter 6)
-- Orthogonal matrices and projections (Chapter 7)
-- Symmetric matrices and the spectral theorem (Chapter 8)
+- Eigenvalues and eigenvectors ([Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/))
+- Orthogonal matrices and projections ([Chapter 7](/en/linear-algebra/07-orthogonality-and-projections/))
+- Symmetric matrices and the spectral theorem ([Chapter 8](/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/))
 
 ---
 
@@ -451,7 +451,7 @@ def plot_compression(img, ks):
 
 ## References
 
-- Strang, G. (2019). *Introduction to Linear Algebra*, Chapter 7.
+- Strang, G. (2019). *Introduction to Linear Algebra*, [Chapter 7](/en/linear-algebra/07-orthogonality-and-projections/).
 - Trefethen, L. N. & Bau, D. (1997). *Numerical Linear Algebra*. SIAM.
 - Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations*, 4th ed. Johns Hopkins.
 - Eckart, C. & Young, G. (1936). "The approximation of one matrix by another of lower rank." *Psychometrika*, 1(3).

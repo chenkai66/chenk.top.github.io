@@ -38,9 +38,9 @@ This chapter is a deliberate tour through five canonical applications. Each one 
 ## Prerequisites
 
 - Chapters 1-3 — first- and second-order linear theory
-- Chapter 6-7 — linear systems and phase portraits
-- Chapter 8 — nonlinear stability and energy methods
-- Chapter 11 — numerical methods (used throughout)
+- [Chapter 6](/en/ode/06-power-series/)-7 — linear systems and phase portraits
+- [Chapter 8](/en/ode/08-nonlinear-stability/) — nonlinear stability and energy methods
+- [Chapter 11](/en/ode/11-numerical-methods/) — numerical methods (used throughout)
 
 ---
 
@@ -87,7 +87,7 @@ Compare with the mass-spring-damper $m\ddot x + c\dot x + kx = F(t)$. They are t
 
 Define $\omega_n = 1/\sqrt{LC}$ (natural frequency) and $\zeta = (R/2)\sqrt{C/L}$ (damping ratio). The transfer function from $V$ to $q$ is
 $$H(s) = \frac{1/L}{s^2 + (R/L)\,s + 1/(LC)},$$
-with the same three step-response regimes from Chapter 16: underdamped, critical, overdamped.
+with the same three step-response regimes from [Chapter 16](/en/ode/16-control-theory/): underdamped, critical, overdamped.
 
 ![Series RLC circuit: schematic, step responses, frequency response, and the Q-factor / bandwidth trade-off.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/fig2_rlc_circuit.png)
 *Top-left: the canonical series RLC. Top-right: step responses for three damping ratios; the underdamped case rings around the steady value, critical lands fastest without overshoot, overdamped is sluggish. Bottom-left: $|H(j\omega)|$ has a sharp resonant peak when $\zeta$ is small. Bottom-right: as $R$ rises, the Q factor $Q = (1/R)\sqrt{L/C}$ falls and the 3-dB bandwidth $\Delta\omega = R/L$ widens — a fundamental trade between selectivity and speed.*
@@ -230,7 +230,7 @@ Lesson: **a parameter going to zero rarely simplifies the numerics**. This is th
 
 ## Data-Driven Modelling: SINDy and Koopman
 
-Section 6 made the case that one ODE skeleton describes five phenomena. In real engineering, when a new system shows up the equation may not be derivable. You go from data to equation.
+[Section 6](#structural-vibration-—-buildings-bridges-tuned-mass-dampers) made the case that one ODE skeleton describes five phenomena. In real engineering, when a new system shows up the equation may not be derivable. You go from data to equation.
 
 **SINDy (Sparse Identification of Nonlinear Dynamics).** Brunton et al. (2016). Given a time series $\{x(t_i)\}$, numerically differentiate to get $\dot x$. Build a feature library $\Theta(x) = [1, x, x^2, \sin x, \dots]$ and solve
 $$ \dot x = \Theta(x)\,\xi,\quad \min \|\dot x - \Theta(x)\xi\|_2^2 + \lambda \|\xi\|_1. $$

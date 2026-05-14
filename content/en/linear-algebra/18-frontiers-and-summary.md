@@ -169,7 +169,7 @@ Three things to take away. First, eigenvalue decomposition is what makes the exp
 
 ![From random matrices (ch. 14) to free probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/18-frontiers-and-summary/fig5_random_to_free.png)
 
-Chapter 14 told you that high-dimensional randomness is not chaos — it is regularity in disguise. Two universal laws appear again on the left of the figure above: the eigenvalues of a sample covariance matrix at aspect ratio $\gamma = p/n$ pile up under the **Marchenko-Pastur** density, with sharp spectral edges at $(1\pm\sqrt{\gamma})^2$.
+[Chapter 14](/en/linear-algebra/14-random-matrix-theory/) told you that high-dimensional randomness is not chaos — it is regularity in disguise. Two universal laws appear again on the left of the figure above: the eigenvalues of a sample covariance matrix at aspect ratio $\gamma = p/n$ pile up under the **Marchenko-Pastur** density, with sharp spectral edges at $(1\pm\sqrt{\gamma})^2$.
 
 The right-hand panel takes the next step. If $W_1$ and $W_2$ are two large independent Wigner matrices, they are *asymptotically free* — a non-commutative analogue of independence — and the spectrum of $W_1 + W_2$ is again a semicircle, with variance equal to the sum of the variances. This is the **free central limit theorem**, and it is the start of a whole calculus (the $R$-transform) that lets you predict spectra of sums and products of random matrices analytically. Free probability is now a working tool inside neural-network theory, deep ensembles, and high-dimensional statistics.
 

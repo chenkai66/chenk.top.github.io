@@ -1039,3 +1039,65 @@ test:
 每行都是一个"症状 → 命令 → 期望"的迷你决策树,弱模型不需要 reasoning,直接按表执行。
 
 ---
+
+
+---
+
+## 29. 验证规则的松紧度（2026-05 教训：避免过度严格）
+
+### 29.1 archetype 检查的实际经验
+
+最初版本 §14 / §26 的 archetype 检查太严：把 "What's Next" 大小写不一致、"Series Navigation" 这种自定义 trailer 都当违规报。结果在全站 27 个 series 上跑 validate 出 250+ 假阳性。
+
+**最终留下的硬规则**（这些是真违规，必须修）：
+1. **Tail-bloat**：article 里**已经存在** "What's next" / "接下来" / "Summary" / "总结" anchor，但后面又跟了非 trailer 的内容章节。
+2. **Tables 含 `\|`**：列分隔被破坏（不论 EN/ZH）。
+3. **未来日期**：`date:` 字段晚于 today。
+4. **Hugo build warnings/errors**：broken refs、duplicate translationKey 等。
+5. **图片 URL 404**：不能跑（HEAD check 在服务器上做，本地 Mac 经常假阴性）。
+
+**软规则**（fail 但不阻塞 deploy）：
+6. 跨章 Part/Section 引用未超链接。
+
+**不再检查**：
+- "末尾必须是 What's next" — 现实中很多 reference-style 文章用 Exercises / Quick reference / Series Navigation 等多样化收尾，都合法。
+
+### 29.2 处理过的真违规模式（实战清单）
+
+| 违规模式 | 自动修法 | 脚本位置 |
+|---|---|---|
+| Tail-bloat（anchor 后还有内容） | 把 anchor 块整体移到末尾 trailer 之前 | `scripts/fix_tail_bloat.py`（37 篇命中） |
+| 表格 cell 含 `\|` 数学竖线 | 在 table 行里，把 `$...\|...$` 内的 `\|` 替换为 `\mid` | `scripts/bulk_fix_table_pipe.py`（45 文件 / 133 处） |
+| Section/Part 引用未超链接 | **手动**核对（自动化太冒险，可能链错章节） | 见 §21 grep 模板 |
+| EN/ZH 日期错位 | `deploy.sh` 自动跑 `sync-zh-dates-from-en.py` | 已在 deploy 流水线 |
+
+### 29.3 validator 的两档输出（建议）
+
+```bash
+# fast (CI/dev): 只查结构，不 HEAD 图、不 build
+bash scripts/fast_validate.sh <series>
+
+# full (deploy gate): 加 HEAD-check 所有图 + hugo build
+bash scripts/validate.sh <series>
+```
+
+`fast_validate.sh` 跑全站只要 ~10 秒；`validate.sh` 单 series ~30-60 秒（图越多越慢）。
+
+### 29.4 当 validator 报"假阳性"
+
+如果某个 archetype 报错你认为是合法的，决策树：
+1. 该模式是否在多个 series 都合法出现？是 → 放宽 validator regex（trailer/anchor 模式列表）；否 → 该篇是孤例 → 修内容。
+2. 不确定的 borderline 情况倾向 **放过 validator**，把 validator 当下限不当上限。
+3. 修正 validator 后，整站重跑，确认没引入新 false-negative。
+
+### 29.5 自动化的边界
+
+不要自动化的事：
+- **跨章 ref 自动加链接** — 高风险，可能链错章节（off-by-one、用错 series）。手动逐条核对编号正确性是 series 维护者必做的活。
+- **改 H2 标题** — 涉及 anchor URL 改变，会破坏外链。
+- **裁剪文章篇幅** — 内容判断不能交给规则。
+
+可以自动化的事：
+- 移动 H2 块的位置（结构调整不破坏内容）
+- 替换 `\|` → `\mid`、`P(Y\|X)` → `P(Y\mid X)` 这类符号级修复
+- 对齐 EN/ZH 的 series_order、front matter 字段、translationKey

@@ -36,7 +36,7 @@ If you have used a sentiment-analysis API, a search engine that understands inte
 - Practical fine-tuning recipes (learning rate, warmup, gradient accumulation)
 - A complete HuggingFace pipeline you can copy-paste
 
-**Prerequisites:** Part 4 (Transformer architecture) and basic PyTorch.
+**Prerequisites:** [Part 4](/en/nlp/attention-transformer/) (Transformer architecture) and basic PyTorch.
 
 ---
 
@@ -491,7 +491,7 @@ Picking among them is a recipe choice, not an architecture one: all four are enc
 It is just as important to know BERT's limits.
 
 - **Cost.** 110-340M parameters and quadratic attention make real-time inference uncomfortable without distillation (DistilBERT, TinyBERT) or quantization.
-- **No generation.** BERT is encoder-only with bidirectional attention. There is no sensible way to autoregressively decode text from it. For generation you need GPT-style decoder models — the topic of Part 6.
+- **No generation.** BERT is encoder-only with bidirectional attention. There is no sensible way to autoregressively decode text from it. For generation you need GPT-style decoder models — the topic of [Part 6](/en/nlp/gpt-generative-models/).
 - **512-token ceiling.** Position embeddings are learned for positions 0-511. Long documents need sliding windows, hierarchical aggregation, or a different architecture (Longformer, BigBird).
 - **English-centric.** The original BERT was trained on English text only. Multilingual BERT covers 100+ languages but underperforms language-specific models (BERT-Chinese, CamemBERT, etc.) on their target language.
 
@@ -517,4 +517,4 @@ It is just as important to know BERT's limits.
 - The 80/10/10 mask split is engineered to avoid train-test mismatch and to force the model to use context even when the input looks unmasked.
 - The **pretrain-then-finetune** paradigm means one expensive pretraining run amortizes across every downstream task; fine-tuning needs only a tiny head, a small learning rate, and a few epochs.
 - **RoBERTa, ALBERT, and ELECTRA** show that the recipe (data, masking, parameter sharing, training objective) matters as much as the architecture.
-- BERT excels at **understanding** tasks but cannot generate text. For that we turn to GPT (Part 6).
+- BERT excels at **understanding** tasks but cannot generate text. For that we turn to GPT ([Part 6](/en/nlp/gpt-generative-models/)).

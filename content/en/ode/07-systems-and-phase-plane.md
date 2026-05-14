@@ -35,7 +35,7 @@ translationKey: "ode-7"
 
 ## Prerequisites
 
-- Chapter 6: linear systems, eigenvalues, phase portraits
+- [Chapter 6](/en/ode/06-power-series/): linear systems, eigenvalues, phase portraits
 - Multivariable calculus: partial derivatives, Jacobian matrix
 
 ---
@@ -246,20 +246,6 @@ plt.grid(True, alpha=0.3); plt.tight_layout(); plt.show()
 
 ---
 
-## Summary
-
-| Concept | Key Point |
-|---|---|
-| Lyapunov stability | Nearby trajectories stay nearby |
-| Asymptotic stability | Nearby trajectories converge to equilibrium |
-| Linearization | Jacobian eigenvalues determine local fate (if hyperbolic) |
-| Lyapunov function | Energy-like scalar that proves stability without integration |
-| LaSalle's principle | Upgrades $\dot V \leq 0$ to asymptotic stability via invariant sets |
-| Trace-determinant plane | Single picture classifying every 2D linear system |
-| Bifurcations | Saddle-node, transcritical, pitchfork, Hopf — four ways the picture changes |
-
----
-
 ## Exercises
 
 **Basic.**
@@ -320,6 +306,20 @@ Two implementation tricks I have actually used:
 2. **Verify the descent condition with an SMT solver.** Sample-based loss is not a proof. After training, hand $V_\theta$ and $f$ to dReal or Z3, get a counterexample, retrain — CEGIS loop.
 
 References worth tracking: *Neural Lyapunov Control* (Chang et al., 2019) and *Learning Stability Certificates from Data* (Boffi et al., 2020). Already deployed on legged robot controllers.
+
+## Summary
+
+| Concept | Key Point |
+|---|---|
+| Lyapunov stability | Nearby trajectories stay nearby |
+| Asymptotic stability | Nearby trajectories converge to equilibrium |
+| Linearization | Jacobian eigenvalues determine local fate (if hyperbolic) |
+| Lyapunov function | Energy-like scalar that proves stability without integration |
+| LaSalle's principle | Upgrades $\dot V \leq 0$ to asymptotic stability via invariant sets |
+| Trace-determinant plane | Single picture classifying every 2D linear system |
+| Bifurcations | Saddle-node, transcritical, pitchfork, Hopf — four ways the picture changes |
+
+---
 
 ## References
 

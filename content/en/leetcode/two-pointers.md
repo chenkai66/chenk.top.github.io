@@ -366,9 +366,9 @@ Stating the **invariant** before coding is the single best signal that you under
 ## References
 
 - Robert Floyd, *Nondeterministic Algorithms*, J. ACM 14(4), 1967 — the original cycle-detection paper.
-- Cormen, Leiserson, Rivest, Stein, *Introduction to Algorithms*, Chapter 8 — the partitioning material that underpins quicksort and Dutch National Flag.
+- Cormen, Leiserson, Rivest, Stein, *Introduction to Algorithms*, [Chapter 8](/en/leetcode/backtracking/) — the partitioning material that underpins quicksort and Dutch National Flag.
 - Donald Knuth, *TAOCP* Vol. 2, §3.1 — the rho algorithm for cycle finding (the original "tortoise and hare" application).
 
 ## Series Navigation
 
-In **Part 3 — Linked List Operations**, the same fast/slow pointer machinery shows up in disguise: finding the middle, splitting for merge sort, and reversing in groups of $k$. The collision-pointer mindset transfers directly to palindrome detection on a list. The trick that makes everything click is the **dummy head node** — wait for it.
+In **[Part 3](/en/leetcode/linked-list-operations/) — Linked List Operations**, the same fast/slow pointer machinery shows up in disguise: finding the middle, splitting for merge sort, and reversing in groups of $k$. The collision-pointer mindset transfers directly to palindrome detection on a list. The trick that makes everything click is the **dummy head node** — wait for it.

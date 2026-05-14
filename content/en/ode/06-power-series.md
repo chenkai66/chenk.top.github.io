@@ -37,7 +37,7 @@ The miracle of the linear case is this: the scalar formula $y(t)=e^{at}y_0$ gene
 ## Prerequisites
 
 - Linear algebra: eigenvalues, eigenvectors, change of basis
-- Chapter 3: second-order linear ODEs (every such equation becomes a 2D system)
+- [Chapter 3](/en/ode/03-linear-theory/): second-order linear ODEs (every such equation becomes a 2D system)
 
 ---
 
@@ -235,7 +235,7 @@ For the linear flow $\mathbf{x}'=A\mathbf{x}$, the long-time behavior is decided
 
 The *liouville formula* sharpens this: $\det \Phi(t) = \det \Phi(0)\,\exp\bigl(\int_0^t \mathrm{tr}\,A\,d\tau\bigr)$. So $\mathrm{tr}\,A < 0$ means phase-space *volumes* contract (a dissipative system), $\mathrm{tr}\,A = 0$ means volumes are preserved (the Hamiltonian case), and $\mathrm{tr}\,A > 0$ means they expand.
 
-Chapter 7 will lift this entire theory to nonlinear systems via linearization at fixed points — the **Hartman–Grobman** theorem says that, away from the borderline cases, the local picture of a nonlinear system *is* the picture of its Jacobian.
+[Chapter 7](/en/ode/07-systems-and-phase-plane/) will lift this entire theory to nonlinear systems via linearization at fixed points — the **Hartman–Grobman** theorem says that, away from the borderline cases, the local picture of a nonlinear system *is* the picture of its Jacobian.
 
 ---
 

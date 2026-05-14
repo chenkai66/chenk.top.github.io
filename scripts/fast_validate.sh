@@ -37,20 +37,34 @@ en_count=$(ls $EN/*.md 2>/dev/null | grep -v _index | wc -l)
 zh_count=$(ls $ZH/*.md 2>/dev/null | grep -v _index | wc -l)
 [ "$en_count" = "$zh_count" ] || fail "篇数: EN=$en_count ZH=$zh_count"
 
+# Helper: extract main body — skip front-matter AND skip the References / Bibliography /
+# 参考文献 section (entries there are external book/paper refs, not to be auto-linked).
+body() {
+    awk '
+        BEGIN{n=0; in_refs=0}
+        /^---[[:space:]]*$/ {n++; next}
+        n<2 {next}
+        /^## (References|Bibliography|参考文献|参考资料|Further [Rr]eading|延伸阅读|深入阅读)[[:space:]]*$/ {in_refs=1; next}
+        /^## / {in_refs=0}
+        !in_refs {print}
+    ' "$1"
+}
+
 for f in $EN/*.md; do
     [ -f "$f" ] || continue
     [ "$(basename $f)" = "_index.md" ] && continue
     check_archetype "$f" "$ANCHOR_EN" "$TRAILER_EN"
-    grep -nE '^\|.*\\\|.*\|' "$f" >/dev/null 2>&1 && fail "$(basename $f) 表格 \\|"
-    unlinked=$(grep -nE '(Chapter|Part|Section) [0-9]+' "$f" 2>/dev/null | grep -vE '\]\(|http|^[^:]*:\s*#' | head -2)
+    # Table \| check: only fail if math `$...\|...$` is inside a table row
+    body "$f" | grep -nE '^\s*\|.*\$[^$]*\\\|[^$]*\$.*\|' >/dev/null 2>&1 && fail "$(basename $f) 表格 cell 含 math \\| (用 \\mid)"
+    unlinked=$(body "$f" | grep -nE '(Chapter|Part|Section) [0-9]+' 2>/dev/null | grep -vE '\]\(|http|^[^:]*:\s*#|^[^:]*:\s*>' | head -2)
     [ -n "$unlinked" ] && fail "$(basename $f) 未链接 Part/Section ref"
 done
 for f in $ZH/*.md; do
     [ -f "$f" ] || continue
     [ "$(basename $f)" = "_index.md" ] && continue
     check_archetype "$f" "$ANCHOR_ZH" "$TRAILER_ZH"
-    grep -nE '^\|.*\\\|.*\|' "$f" >/dev/null 2>&1 && fail "$(basename $f) 表格 \\|"
-    unlinked=$(grep -nE '第 ?[0-9]+ ?[章节部]' "$f" 2>/dev/null | grep -vE '\]\(|http|^[^:]*:\s*#' | head -2)
+    body "$f" | grep -nE '^\s*\|.*\$[^$]*\\\|[^$]*\$.*\|' >/dev/null 2>&1 && fail "$(basename $f) 表格 cell 含 math \\| (用 \\mid)"
+    unlinked=$(body "$f" | grep -nE '第 ?[0-9]+ ?[章节部]' 2>/dev/null | grep -vE '\]\(|http|^[^:]*:\s*#|^[^:]*:\s*>' | head -2)
     [ -n "$unlinked" ] && fail "$(basename $f) 未链接 第N章 ref"
 done
 

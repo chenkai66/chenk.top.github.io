@@ -28,7 +28,7 @@ This chapter covers the algorithms used in production ML systems — PCA, LDA, S
 > - Matrix form of linear regression, ridge, and LASSO, with the SVD view
 > - Why neural network layers, batches, and attention are all matrix multiplications
 >
-> **Prerequisites:** Eigendecomposition (Chapter 6), SVD (Chapter 9), matrix norms (Chapter 10), matrix calculus basics (Chapter 11).
+> **Prerequisites:** Eigendecomposition ([Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/)), SVD ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)), matrix norms ([Chapter 10](/en/linear-algebra/10-matrix-norms-and-condition-numbers/)), matrix calculus basics ([Chapter 11](/en/linear-algebra/11-matrix-calculus-and-optimization/)).
 
 ---
 
@@ -141,7 +141,7 @@ print(S**2 / len(X))     # same variances
 
 - **Visualization**: project 768-d sentence embeddings to 2-D for an exploratory plot.
 - **Compression**: keep top 50 PCs of MNIST (originally 784-d) before training a small classifier. The accuracy hit is negligible and training is 10x faster.
-- **Denoising**: in finance, the leading PCs of a returns matrix capture market and sector factors; the tail is mostly noise (this is the spiked-covariance picture from Chapter 14).
+- **Denoising**: in finance, the leading PCs of a returns matrix capture market and sector factors; the tail is mostly noise (this is the spiked-covariance picture from [Chapter 14](/en/linear-algebra/14-random-matrix-theory/)).
 - **Whitening for downstream models**: `PCA(whiten=True)` decorrelates and rescales features so iterative optimizers converge in fewer steps.
 - **Eigenfaces**: an early face-recognition system that stored each face as its 100-coefficient PCA representation.
 

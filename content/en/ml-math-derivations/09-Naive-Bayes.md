@@ -458,9 +458,9 @@ When (i) features are heavily correlated *and* the correlation differs across cl
 - Domingos, P., & Pazzani, M. (1997). On the optimality of the simple Bayesian classifier under zero-one loss. *Machine Learning*, 29(2-3), 103-130.
 - Ng, A. Y., & Jordan, M. I. (2001). On discriminative vs. generative classifiers: A comparison of logistic regression and naive Bayes. *NeurIPS*.
 - McCallum, A., & Nigam, K. (1998). A comparison of event models for naive Bayes text classification. *AAAI Workshop on Learning for Text Categorization*.
-- Manning, C. D., Raghavan, P., & Schutze, H. (2008). *Introduction to Information Retrieval*. Cambridge University Press. Chapter 13.
-- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer. Section 8.2.
-- Murphy, K. P. (2012). *Machine Learning: A Probabilistic Perspective*. MIT Press. Chapter 3.
+- Manning, C. D., Raghavan, P., & Schutze, H. (2008). *Introduction to Information Retrieval*. Cambridge University Press. [Chapter 13](/en/ml-math-derivations/13-em-algorithm-and-gmm/).
+- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer. [Section 8](#reference-implementation).2.
+- Murphy, K. P. (2012). *Machine Learning: A Probabilistic Perspective*. MIT Press. [Chapter 3](/en/ml-math-derivations/03-probability-theory-and-statistical-inference/).
 
 ---
 

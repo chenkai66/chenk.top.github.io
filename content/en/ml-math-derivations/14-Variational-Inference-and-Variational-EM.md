@@ -131,7 +131,7 @@ Every update is a coordinate ascent step on a concave-in-each-coordinate objecti
 
 ### Conjugate exponential families
 
-When the model is a **conjugate exponential family** — every conditional $p(z_j\mid \mathbf{z}_{-j},\mathbf{x})$ lies in an exponential family — the CAVI update has a closed form. The optimal $q_j$ is in the same exponential family as the conditional, and updating it amounts to averaging natural parameters under $q_{-j}$. This covers Bayesian Gaussian mixtures, LDA, Bayesian linear regression, hidden Markov models with Dirichlet priors, and many others. For non-conjugate models, we need the black-box approach of Section 6.
+When the model is a **conjugate exponential family** — every conditional $p(z_j\mid \mathbf{z}_{-j},\mathbf{x})$ lies in an exponential family — the CAVI update has a closed form. The optimal $q_j$ is in the same exponential family as the conditional, and updating it amounts to averaging natural parameters under $q_{-j}$. This covers Bayesian Gaussian mixtures, LDA, Bayesian linear regression, hidden Markov models with Dirichlet priors, and many others. For non-conjugate models, we need the black-box approach of [Section 6](#the-variational-family-as-approximator).
 
 ---
 
@@ -159,7 +159,7 @@ The under-dispersion in Figure 2 is not a bug; it follows from the geometry of r
 
 ## Variational EM
 
-Section 2 of [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm) showed that the EM algorithm itself rests on the ELBO identity. EM alternates:
+[Section 2](#prerequisites) of [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm) showed that the EM algorithm itself rests on the ELBO identity. EM alternates:
 
 - **E-step**: choose $q(\mathbf{z}) = p(\mathbf{z}\mid\mathbf{x};\boldsymbol{\theta}^{(t)})$, the exact posterior — the KL gap goes to zero, so the ELBO touches $\log p(\mathbf{x};\boldsymbol{\theta}^{(t)})$.
 - **M-step**: hold $q$ fixed, maximize the ELBO with respect to $\boldsymbol{\theta}$, which reduces to maximizing $\mathbb{E}_q[\log p(\mathbf{x},\mathbf{z};\boldsymbol{\theta})]$.
@@ -300,7 +300,7 @@ class VariationalGMM:
         return np.argmax(self._update_r(X, len(X), X.shape[1]), axis=1)
 ```
 
-The algorithmic shape mirrors the EM-GMM from Part 13 — alternate responsibilities and component statistics — but every quantity is a posterior moment under $q$, not a point estimate. A side benefit is **automatic component pruning**: $\alpha_k$ shrinks toward $\alpha_0$ for empty components, so unused topics quietly fade out instead of fitting noise.
+The algorithmic shape mirrors the EM-GMM from [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm/) — alternate responsibilities and component statistics — but every quantity is a posterior moment under $q$, not a point estimate. A side benefit is **automatic component pruning**: $\alpha_k$ shrinks toward $\alpha_0$ for empty components, so unused topics quietly fade out instead of fitting noise.
 
 ---
 
@@ -352,4 +352,4 @@ If you need uncertainty in $\boldsymbol{\theta}$ (small data, model selection, d
 - Hoffman, M. D., Blei, D. M., Wang, C., & Paisley, J. (2013). Stochastic variational inference. *JMLR*, 14, 1303–1347.
 - Kingma, D. P., & Welling, M. (2014). Auto-encoding variational Bayes. *ICLR*.
 - Ranganath, R., Gerrish, S., & Blei, D. M. (2014). Black box variational inference. *AISTATS*.
-- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*, Chapter 10. Springer.
+- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*, [Chapter 10](/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/). Springer.

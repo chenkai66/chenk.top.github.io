@@ -351,7 +351,7 @@ Three patterns in practice: (a) train **separate reward models** per objective a
 **Q: When should I pick PPO over DPO?**
 Pick DPO when you have a large, clean preference dataset, want fast iteration, and care about wall-clock training time. Pick PPO when you have a high-quality reward model you want to keep in the loop, you need on-policy exploration (multi-step reasoning, tool use), or you intend to mix in safety constraints and constitutional rules at training time.
 
-**Q: How is this connected to inverse RL from Part 7?**
+**Q: How is this connected to inverse RL from [Part 7](/en/reinforcement-learning/07-imitation-learning/)?**
 Directly. RLHF is structurally inverse RL with two simplifying choices: pairwise preferences instead of full demonstrations (Bradley-Terry instead of MaxEnt IRL), and PPO as the forward-RL step. The reward model is the IRL output; the PPO stage is the standard "use the recovered reward to train a new policy" step.
 
 ---

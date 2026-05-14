@@ -26,7 +26,7 @@ Computer vision is the science of teaching machines to see. What is striking is 
 > - SVD-based image compression and the Eckart-Young theorem
 > - Convolution as matrix multiplication; the Harris structure tensor and optical flow as $2 \times 2$ linear systems
 >
-> **Prerequisites:** linear transformations (Chapter 3), eigendecomposition (Chapter 6), SVD (Chapter 9).
+> **Prerequisites:** linear transformations ([Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/)), eigendecomposition ([Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/)), SVD ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)).
 
 ---
 
@@ -395,7 +395,7 @@ The system is well-posed precisely when $\mathbf{M}$ is well-conditioned — tha
 
 An $H \times W$ grayscale image has SVD
 $$\mathbf{I} = \sum_{i=1}^{r} \sigma_i\,\mathbf{u}_i\,\mathbf{v}_i^\top, \qquad \sigma_1 \ge \sigma_2 \ge \cdots \ge 0.$$
-The **Eckart-Young theorem** (Chapter 9) says the truncation to the first $k$ terms is the best rank-$k$ approximation under both Frobenius and spectral norms. For natural images the singular values decay rapidly — most of the visual energy lives in the first few dozen components — so a tiny $k$ already produces a recognisable picture.
+The **Eckart-Young theorem** ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)) says the truncation to the first $k$ terms is the best rank-$k$ approximation under both Frobenius and spectral norms. For natural images the singular values decay rapidly — most of the visual energy lives in the first few dozen components — so a tiny $k$ already produces a recognisable picture.
 
 Storage drops from $HW$ to $k(H + W + 1)$ numbers, a compression ratio of roughly $k(H + W) / (HW)$. SVD is nowhere near JPEG efficiency on natural images (JPEG exploits perceptual redundancy in DCT coefficients), but it is conceptually clean and the gold standard for low-rank approximation in many other corners of vision: face recognition (Eigenfaces), background subtraction (RPCA), denoising.
 

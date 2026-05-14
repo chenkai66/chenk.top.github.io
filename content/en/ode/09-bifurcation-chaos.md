@@ -36,8 +36,8 @@ translationKey: "ode-9"
 
 ## Prerequisites
 
-- Chapter 8: nonlinear systems, phase portraits, limit cycles
-- Chapter 7: stability and bifurcation basics
+- [Chapter 8](/en/ode/08-nonlinear-stability/): nonlinear systems, phase portraits, limit cycles
+- [Chapter 7](/en/ode/07-systems-and-phase-plane/): stability and bifurcation basics
 - Comfort with 3D visualization
 
 ---
@@ -254,21 +254,6 @@ This does not break causality. It limits **predictability**. The distinction mat
 
 ---
 
-## Summary
-
-| Concept | Key Point |
-|---|---|
-| Chaos | Deterministic + sensitive + bounded + aperiodic |
-| Lorenz system | The paradigm; butterfly attractor at $\rho=28$ |
-| Butterfly effect | $10^{-10}$ initial difference -> system scale in $\sim 20$ time units |
-| Lyapunov exponents | $\lambda_1 > 0$ certifies chaos; magnitude sets prediction horizon |
-| Bifurcation cascade | Period-doubling $\to$ chaos with universal Feigenbaum ratio $\delta$ |
-| Strange attractor | Fractal dimension via Kaplan-Yorke formula |
-| Forecast horizon | $T \approx \lambda^{-1}\ln(L/\varepsilon_0)$ |
-| Ensemble forecasting | Standard practice for chaotic systems |
-
----
-
 ## Exercises
 
 **Conceptual.**
@@ -353,6 +338,21 @@ Key points:
 3. $T_\lambda$ is a ceiling, not a floor. RC just gets you closer to that ceiling than naive recurrent nets do.
 
 **Implication for PINN / Neural ODE.** Asking ML to predict the long-term future of a chaotic system is the wrong objective. The right objective is to learn invariants — attractor geometry, spectra, transfer operators. That is also one of the deeper meanings of score matching in the PDE-ML chapter 7.
+
+## Summary
+
+| Concept | Key Point |
+|---|---|
+| Chaos | Deterministic + sensitive + bounded + aperiodic |
+| Lorenz system | The paradigm; butterfly attractor at $\rho=28$ |
+| Butterfly effect | $10^{-10}$ initial difference -> system scale in $\sim 20$ time units |
+| Lyapunov exponents | $\lambda_1 > 0$ certifies chaos; magnitude sets prediction horizon |
+| Bifurcation cascade | Period-doubling $\to$ chaos with universal Feigenbaum ratio $\delta$ |
+| Strange attractor | Fractal dimension via Kaplan-Yorke formula |
+| Forecast horizon | $T \approx \lambda^{-1}\ln(L/\varepsilon_0)$ |
+| Ensemble forecasting | Standard practice for chaotic systems |
+
+---
 
 ## References
 

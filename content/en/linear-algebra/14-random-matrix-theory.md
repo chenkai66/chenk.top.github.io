@@ -24,7 +24,7 @@ A million i.i.d. coin flips, arranged into a thousand-by-thousand symmetric matr
 > - A working understanding of free probability and the Stieltjes transform
 > - Applications: MIMO capacity, covariance cleaning, PCA thresholding, the spiked-covariance / BBP phase transition
 >
-> **Prerequisites:** eigendecomposition (Chapter 6), SVD (Chapter 9), basic probability (mean, variance, i.i.d., the classical CLT)
+> **Prerequisites:** eigendecomposition ([Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/)), SVD ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)), basic probability (mean, variance, i.i.d., the classical CLT)
 
 ---
 
@@ -84,7 +84,7 @@ and $f(x) = 0$ outside $[-2, 2]$.
 $$\rho(\lambda_1, \dots, \lambda_n) \;\propto\; \prod_{i<j} |\lambda_i - \lambda_j|\;\exp\!\Big(-\tfrac{n}{4}\sum_i \lambda_i^2\Big),$$
 which describes $n$ charged particles on a line with logarithmic repulsion (the Vandermonde factor) confined by a harmonic potential. The equilibrium density that balances repulsion against confinement is the semicircle.
 
-**3) Free CLT (the algebraic route).** A symmetric random matrix can be written as a sum of many "free" rank-one perturbations. In free probability the analogue of "sum of independent variables" is the **free additive convolution**, and its central limit theorem yields the semicircle distribution — not the Gaussian. Section 7 expands on this.
+**3) Free CLT (the algebraic route).** A symmetric random matrix can be written as a sum of many "free" rank-one perturbations. In free probability the analogue of "sum of independent variables" is the **free additive convolution**, and its central limit theorem yields the semicircle distribution — not the Gaussian. [Section 7](#tools-of-the-trade) expands on this.
 
 ### Why the underlying distribution does not matter
 

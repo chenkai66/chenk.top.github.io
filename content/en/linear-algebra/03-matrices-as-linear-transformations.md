@@ -35,7 +35,7 @@ In this chapter we will:
 - Prove that **matrix multiplication is composition of transformations** — which immediately explains non-commutativity.
 - Talk about inverses (undoing a transformation), kernel and image, and what happens when a matrix is *singular*.
 
-**Prerequisites.** Chapter 1 (vectors, addition, scalar multiplication) and Chapter 2 (linear independence, basis, span).
+**Prerequisites.** [Chapter 1](/en/linear-algebra/01-the-essence-of-vectors/) (vectors, addition, scalar multiplication) and [Chapter 2](/en/linear-algebra/02-linear-combinations-and-vector-spaces/) (linear independence, basis, span).
 
 ---
 
@@ -49,7 +49,7 @@ You feed it a vector, you get a vector back. The whole job of this chapter is to
 
 ### What Counts as "Linear"?
 
-Matrices are not arbitrary functions. They are exactly the functions that respect the two operations from Chapter 1: vector addition and scalar multiplication. Formally, a transformation $T$ is **linear** when
+Matrices are not arbitrary functions. They are exactly the functions that respect the two operations from [Chapter 1](/en/linear-algebra/01-the-essence-of-vectors/): vector addition and scalar multiplication. Formally, a transformation $T$ is **linear** when
 $$T(\vec{u} + \vec{v}) = T(\vec{u}) + T(\vec{v}) \qquad \text{(additivity)}$$
 
 $$T(c\,\vec{v}) = c\,T(\vec{v}) \qquad \text{(homogeneity)}$$
@@ -134,7 +134,7 @@ To stretch by $s_{x}$ along $x$ and $s_{y}$ along $y$, just send $\hat{\imath} \
 $$S = \begin{pmatrix} s_{x} & 0 \\ 0 & s_{y} \end{pmatrix}.$$
 ![Scaling: x by 2, y by 1.5](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/fig3_scaling.png)
 
-The unit square turns into an $s_{x} \times s_{y}$ rectangle, so its area is multiplied by $s_{x} s_{y}$. That product — the **determinant** — is the headline of Chapter 4.
+The unit square turns into an $s_{x} \times s_{y}$ rectangle, so its area is multiplied by $s_{x} s_{y}$. That product — the **determinant** — is the headline of [Chapter 4](/en/linear-algebra/04-the-secrets-of-determinants/).
 
 Resizing an image in Photoshop is exactly this: every pixel coordinate is multiplied by a diagonal $S$.
 
@@ -167,7 +167,7 @@ Projection onto the $x$-axis sends $\hat{\imath} \mapsto (1, 0)$ and crushes $\h
 $$P_{x} = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}.$$
 The whole 2D plane gets flattened onto a 1D line. This is the cast-shadow transformation, with the "sun" directly overhead. More generally, projection onto the line through the origin in unit-vector direction $\vec{u}$ is $P = \vec{u}\vec{u}^{\!\top}$.
 
-Projections are the first transformations that **lose information** — both $(1, 2)$ and $(1, 99)$ project to $(1, 0)$. We will see in Section 6 that this is exactly what makes them non-invertible. The `fig7` figure further down shows the same phenomenon for any singular matrix.
+Projections are the first transformations that **lose information** — both $(1, 2)$ and $(1, 99)$ project to $(1, 0)$. We will see in [Section 6](#identity-and-inverse-doing-nothing-and-undoing) that this is exactly what makes them non-invertible. The `fig7` figure further down shows the same phenomenon for any singular matrix.
 
 ### Summary Table
 
@@ -247,7 +247,7 @@ Examples that are obvious once you think geometrically:
 
 Not every transformation can be undone. Projection lost information by collapsing the $y$-direction; **any transformation that loses a dimension cannot be inverted**. Both $(1, 2)$ and $(1, 5)$ project to $(1, 0)$, so given only $(1, 0)$ you cannot recover the original $y$.
 
-The clean criterion — which we will earn properly in Chapter 4 — is:
+The clean criterion — which we will earn properly in [Chapter 4](/en/linear-algebra/04-the-secrets-of-determinants/) — is:
 
 > $A$ is invertible $\iff$ $A$ does not collapse any dimension $\iff$ $\det(A) \neq 0$.
 
@@ -289,7 +289,7 @@ For $S$, the image is the line $y = 2x$. This is also called the **column space*
 
 The two subspaces always satisfy a bookkeeping identity:
 $$\dim\ker(A) + \dim\operatorname{Im}(A) = n,$$
-where $n$ is the input dimension. Translation: every dimension the matrix collapses (kernel) is a dimension lost from the output (image). For our $S$: $1 + 1 = 2$. We will see this same equation again in Chapter 5 when we discuss linear systems.
+where $n$ is the input dimension. Translation: every dimension the matrix collapses (kernel) is a dimension lost from the output (image). For our $S$: $1 + 1 = 2$. We will see this same equation again in [Chapter 5](/en/linear-algebra/05-linear-systems-and-column-space/) when we discuss linear systems.
 
 ---
 
@@ -419,10 +419,10 @@ Everything else cascades from there:
 - The identity matrix does nothing; the inverse undoes whatever its partner did.
 - A matrix is **singular** ($\det = 0$) exactly when it collapses a dimension. The crushed directions form the kernel; the surviving image is the column space.
 
-We have done this all in 2D for visual clarity. In Chapter 4 we will quantify *how much* a transformation expands or shrinks space — the determinant — and finally see why $\det(AB) = \det(A)\det(B)$.
+We have done this all in 2D for visual clarity. In [Chapter 4](/en/linear-algebra/04-the-secrets-of-determinants/) we will quantify *how much* a transformation expands or shrinks space — the determinant — and finally see why $\det(AB) = \det(A)\det(B)$.
 
 ---
 
 ## What's Next
 
-**Chapter 4: The Secrets of Determinants.** The determinant is a single number that captures the volume-scaling factor of a transformation. We will see why it multiplies under composition, why a sign flip means orientation reversal, and why $\det = 0$ is precisely the singular case we just met.
+**[Chapter 4](/en/linear-algebra/04-the-secrets-of-determinants/): The Secrets of Determinants.** The determinant is a single number that captures the volume-scaling factor of a transformation. We will see why it multiplies under composition, why a sign flip means orientation reversal, and why $\det = 0$ is precisely the singular case we just met.

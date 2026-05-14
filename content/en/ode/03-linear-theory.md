@@ -281,7 +281,7 @@ $$
 \begin{pmatrix} y_1 \\ y_2 \end{pmatrix} +
 \begin{pmatrix} 0 \\ f(x) \end{pmatrix}.
 $$
-The eigenvalues of the matrix $\bigl(\begin{smallmatrix} 0 & 1 \\ -b & -a \end{smallmatrix}\bigr)$ are *exactly* the roots of the characteristic polynomial $r^2 + ar + b$ — so everything we said about characteristic roots is just two-dimensional linear algebra in disguise. We will exploit this fully in Chapter 6.
+The eigenvalues of the matrix $\bigl(\begin{smallmatrix} 0 & 1 \\ -b & -a \end{smallmatrix}\bigr)$ are *exactly* the roots of the characteristic polynomial $r^2 + ar + b$ — so everything we said about characteristic roots is just two-dimensional linear algebra in disguise. We will exploit this fully in [Chapter 6](/en/ode/06-power-series/).
 
 ---
 

@@ -37,7 +37,7 @@ These five words are the working vocabulary of linear algebra. Every later chapt
 
 ### Prerequisites
 
-- Chapter 1: vectors, addition, scalar multiplication, and the geometric picture of $\mathbb{R}^2$ and $\mathbb{R}^3$.
+- [Chapter 1](/en/linear-algebra/01-the-essence-of-vectors/): vectors, addition, scalar multiplication, and the geometric picture of $\mathbb{R}^2$ and $\mathbb{R}^3$.
 
 ---
 
@@ -280,7 +280,7 @@ This is why affine geometry (translations) is *not* the same as linear algebra (
 
 For two subspaces $U,W\subseteq V$:
 $$\dim(U+W)=\dim(U)+\dim(W)-\dim(U\cap W).$$
-It is the inclusion–exclusion principle, ported to vector spaces. We will see this formula again in Chapter 5 when we count solutions of linear systems.
+It is the inclusion–exclusion principle, ported to vector spaces. We will see this formula again in [Chapter 5](/en/linear-algebra/05-linear-systems-and-column-space/) when we count solutions of linear systems.
 
 ---
 
@@ -424,7 +424,7 @@ print(np.linalg.svd(A, compute_uv=False)) # [~14, ~10, ~1e-9]
 
 `matrix_rank` defaults to a tolerance based on the largest singular value. With strict numerics it reports rank 3, but the third singular value is $10^{-9}$ — the column is *effectively* dependent. If you build a model that inverts $A^TA$, the inversion blows up: the condition number is $\sim 10^{10}$.
 
-The right tool is the SVD (Chapter 9). The singular values $\sigma_1 \ge \sigma_2 \ge \cdots$ are a continuous measure of "how independent" the columns are. The ratio $\sigma_1/\sigma_n$ is the condition number; a basis where this ratio exceeds $10^{8}$ is no basis at all for double-precision work. *Numerical rank* is then defined as the count of singular values above some threshold, typically $\max(m,n)\cdot \varepsilon \cdot \sigma_1$.
+The right tool is the SVD ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)). The singular values $\sigma_1 \ge \sigma_2 \ge \cdots$ are a continuous measure of "how independent" the columns are. The ratio $\sigma_1/\sigma_n$ is the condition number; a basis where this ratio exceeds $10^{8}$ is no basis at all for double-precision work. *Numerical rank* is then defined as the count of singular values above some threshold, typically $\max(m,n)\cdot \varepsilon \cdot \sigma_1$.
 
 This matters constantly. Polynomial regression on $1, x, x^2, \ldots, x^{15}$ over $x \in [0,1]$ has condition number $> 10^{20}$ — the monomial basis is theoretically independent but practically useless. Switch to Chebyshev or Legendre polynomials and the condition number drops to $\sim 10^{2}$. Same span, vastly different basis.
 
@@ -444,7 +444,7 @@ So when this chapter says *basis* and *dimension*, the ML reading is: a basis is
 
 ## What's Next
 
-**Chapter 3 — Matrices as Linear Transformations.** A matrix is not a passive table of numbers; it is an *agent of transformation*. We will see that:
+**[Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/) — Matrices as Linear Transformations.** A matrix is not a passive table of numbers; it is an *agent of transformation*. We will see that:
 
 - multiplying $A\vec{x}$ is geometrically the action of $A$ on $\vec{x}$,
 - rotation, scaling, shearing, and projection are all matrices,

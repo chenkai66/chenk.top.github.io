@@ -249,4 +249,4 @@ Memory technology forks: DDR for CPUs (capacity, latency), GDDR for gaming GPUs 
 
 If you have a discrete GPU, the monitor cable goes into the GPU. The VRM phase count must match the CPU's sustained TDP or the system throttles silently. XMP/EXPO and Resizable BAR are free performance; everything else in the BIOS is a tuning exercise, not a magic bullet.
 
-**Next: Part 5 — Network, Power & Practical Troubleshooting.**
+**Next: [Part 5](/en/computer-fundamentals/05-network-power/) — Network, Power & Practical Troubleshooting.**

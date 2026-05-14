@@ -1187,7 +1187,7 @@ output "developer_group_name" {
 
 ## Module: Monitoring
 
-SLS (Simple Log Service) project and logstore for centralized logging, plus CloudMonitor alert rules. This codifies the observability layer from Part 7.
+SLS (Simple Log Service) project and logstore for centralized logging, plus CloudMonitor alert rules. This codifies the observability layer from [Part 7](/en/aliyun-fullstack/07-observability/).
 
 ### modules/monitoring/main.tf
 

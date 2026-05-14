@@ -36,8 +36,8 @@ translationKey: "ode-8"
 
 ## Prerequisites
 
-- Chapter 6: linear systems, phase portrait classification
-- Chapter 7: stability, linearization, Lyapunov functions
+- [Chapter 6](/en/ode/06-power-series/): linear systems, phase portrait classification
+- [Chapter 7](/en/ode/07-systems-and-phase-plane/): stability, linearization, Lyapunov functions
 
 ---
 
@@ -50,7 +50,7 @@ Nonlinear systems break this rule and pay the price — closed-form solutions va
 - **Multiple equilibria**, each with its own stability type
 - **Limit cycles** — isolated, stable periodic orbits (impossible in linear systems)
 - **Bistability and hysteresis** — memory of initial conditions
-- **Sensitive dependence** — chaos, in 3D and beyond (Chapter 9)
+- **Sensitive dependence** — chaos, in 3D and beyond ([Chapter 9](/en/ode/09-bifurcation-chaos/))
 
 Almost every interesting system in physics, biology, chemistry, neuroscience, and economics is nonlinear.
 
@@ -218,7 +218,7 @@ These two worlds sit at opposite extremes of the dissipation spectrum.
 
 In words: in 2D, the only long-term behaviors are *equilibrium* or *periodic*. There is no room for chaos.
 
-The Jordan curve theorem is the secret here — a closed orbit divides the plane in two, trapping the trajectory. Add a third dimension and the trajectory can escape *over* the orbit, opening the door to chaos (Chapter 9).
+The Jordan curve theorem is the secret here — a closed orbit divides the plane in two, trapping the trajectory. Add a third dimension and the trajectory can escape *over* the orbit, opening the door to chaos ([Chapter 9](/en/ode/09-bifurcation-chaos/)).
 
 **Bendixson's criterion (no closed orbits).** If $\partial f/\partial x + \partial g/\partial y$ has constant non-zero sign in a simply-connected region, no closed orbit lies inside it.
 
@@ -243,22 +243,6 @@ def rk4_step(f, x, t, h):
     k4 = h * np.array(f(x + k3,    t + h))
     return x + (k1 + 2*k2 + 2*k3 + k4) / 6
 ```
-
----
-
-## Summary
-
-| Concept | Key Point |
-|---|---|
-| Nonlinearity | Superposition fails; richer dynamics |
-| Lyapunov visualization | Trajectories cross level sets inward |
-| Linearization | Locally accurate near hyperbolic equilibria; globally only suggestive |
-| Lotka-Volterra | Closed orbits from a conserved quantity |
-| Competition | Four outcomes via nullcline geometry |
-| Van der Pol | Limit cycle from sign-changing damping |
-| Gradient systems | No periodic orbits |
-| Hamiltonian systems | Energy conserved; orbits are level curves |
-| Poincare-Bendixson | 2D rules out chaos |
 
 ---
 
@@ -326,6 +310,22 @@ A Neural ODE $\dot z = f_\theta(z, t)$ casts classification as "flow each input 
 - **Topological obstructions are real.** Dupont et al. (2019) showed Neural ODEs cannot learn a mapping that requires two disjoint curves to cross — ODE flows are homeomorphisms. Fix: augment the state space to $\mathbb{R}^{d+k}$ (ANODE). Direct consequence of phase-plane theory.
 - **Attractor pictures are interpretability.** After training a 2D Neural ODE classifier, draw the vector field of $f_\theta$. You see decision boundaries built from fixed points and stable manifolds, no SHAP needed.
 - **Stability regularisation.** Adding $\|J_\theta\|_F^2$ to the loss bounds local stretching of the flow. It is an implicit adversarial robustness device that comes from this chapter, not from ML folklore.
+
+## Summary
+
+| Concept | Key Point |
+|---|---|
+| Nonlinearity | Superposition fails; richer dynamics |
+| Lyapunov visualization | Trajectories cross level sets inward |
+| Linearization | Locally accurate near hyperbolic equilibria; globally only suggestive |
+| Lotka-Volterra | Closed orbits from a conserved quantity |
+| Competition | Four outcomes via nullcline geometry |
+| Van der Pol | Limit cycle from sign-changing damping |
+| Gradient systems | No periodic orbits |
+| Hamiltonian systems | Energy conserved; orbits are level curves |
+| Poincare-Bendixson | 2D rules out chaos |
+
+---
 
 ## References
 

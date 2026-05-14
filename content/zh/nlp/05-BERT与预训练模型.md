@@ -35,7 +35,7 @@ polished_by_qwen_max: true
 - 微调中的实用技巧：学习率的选择、warmup 策略、梯度累积等最佳实践  
 - 一段可以直接复用的完整 HuggingFace 流水线代码  
 
-**前置要求**：第 4 部分（Transformer 架构）以及 PyTorch 基础知识
+**前置要求**：[第 4 部分](/zh/nlp/04-注意力机制与Transformer/)（Transformer 架构）以及 PyTorch 基础知识
 
 ## 预训练-微调范式的崛起
 

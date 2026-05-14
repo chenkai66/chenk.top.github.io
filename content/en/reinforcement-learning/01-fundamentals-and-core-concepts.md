@@ -477,7 +477,7 @@ The figure above runs a classic 10-armed bandit experiment: each "arm" is a slot
 - **$\varepsilon = 0.3$** keeps wasting pulls on bad arms.
 - **$\varepsilon \in [0.01, 0.1]$** sits in the sweet spot.
 
-This same trade-off shows up dressed in different clothes throughout the series: $\varepsilon$-greedy in DQN, entropy bonuses in PPO, intrinsic motivation in Part 4, Thompson sampling in Bayesian RL. The *names* differ, the *problem* doesn't.
+This same trade-off shows up dressed in different clothes throughout the series: $\varepsilon$-greedy in DQN, entropy bonuses in PPO, intrinsic motivation in [Part 4](/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/), Thompson sampling in Bayesian RL. The *names* differ, the *problem* doesn't.
 
 ### The Discount Factor as a Planning Horizon
 

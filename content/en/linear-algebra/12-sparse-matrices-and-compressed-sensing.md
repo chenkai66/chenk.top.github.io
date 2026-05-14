@@ -41,9 +41,9 @@ Both miracles run on the same engine: **sparsity**. Most natural signals, writte
 
 ### Prerequisites
 
-- Norms and condition numbers (Chapter 10)
-- Convex optimization (Chapter 11)
-- SVD and low-rank approximation (Chapter 9)
+- Norms and condition numbers ([Chapter 10](/en/linear-algebra/10-matrix-norms-and-condition-numbers/))
+- Convex optimization ([Chapter 11](/en/linear-algebra/11-matrix-calculus-and-optimization/))
+- SVD and low-rank approximation ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/))
 
 ---
 

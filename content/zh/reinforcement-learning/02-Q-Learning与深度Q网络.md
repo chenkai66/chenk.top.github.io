@@ -43,7 +43,7 @@ DQN 并非凭空创造，而是对 Chris Watkins 在 1989 年提出的 **Q-Learn
 
 ### 再读 Bellman 最优方程
 
-回顾第 1 部分，对于最优策略 $\pi^*$，其动作价值函数满足 Bellman 最优方程：
+回顾[第 1 部分](/zh/reinforcement-learning/01-基础与核心概念/)，对于最优策略 $\pi^*$，其动作价值函数满足 Bellman 最优方程：
 $$Q^*(s, a) \;=\; \mathbb{E}_{s' \sim P(\cdot|s,a)}\Big[R(s,a,s') + \gamma \max_{a'} Q^*(s', a')\Big]$$
 可以将其理解为一份契约：在状态 $s$ 下执行动作 $a$ 的价值，等于即时奖励加上折扣后的最佳未来收益。一旦我们得到了 $Q^*$，最优策略就很简单：$\pi^*(s) = \arg\max_a Q^*(s, a)$——无需规划，也无需搜索，只需查表取最大值。
 

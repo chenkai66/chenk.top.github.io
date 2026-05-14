@@ -29,7 +29,7 @@ We'll start with familiar objects, build up the language (fibers, slices, unfold
 > - CP decomposition, Tucker decomposition, and HOSVD
 > - Applications in neural-network compression and recommender systems
 >
-> **Prerequisites:** Eigendecomposition (Chapter 6), SVD (Chapter 9), matrix norms (Chapter 10)
+> **Prerequisites:** Eigendecomposition ([Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/)), SVD ([Chapter 9](/en/linear-algebra/09-singular-value-decomposition/)), matrix norms ([Chapter 10](/en/linear-algebra/10-matrix-norms-and-condition-numbers/))
 
 ---
 
@@ -597,4 +597,4 @@ def simple_cp_als(X, rank, n_iter=100):
 - Sidiropoulos, N. D., et al. (2017). Tensor decomposition for signal processing and machine learning. *IEEE Transactions on Signal Processing*, 65(13), 3551--3582.
 - Cichocki, A., et al. (2015). Tensor decompositions for signal processing applications. *IEEE Signal Processing Magazine*, 32(2), 145--163.
 - [TensorLy Documentation](https://tensorly.org/) — Python tensor learning library.
-- Strang, G. (2019). *Linear Algebra and Learning from Data*, Chapter 7.
+- Strang, G. (2019). *Linear Algebra and Learning from Data*, [Chapter 7](/en/linear-algebra/07-orthogonality-and-projections/).

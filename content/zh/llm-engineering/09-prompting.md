@@ -19,7 +19,7 @@ translationKey: "llm-engineering-9"
 ---
 在本地笔记本上跑通 100 个测试样例的 prompt，上线后仍可能有 10% 的输入失败——这与模型是否“聪明”无关。本章将聚焦于 prompt 的工程化实践：探讨 CoT 在哪些任务上有效、哪些无效；prompt caching 如何重塑成本结构；few-shot、CoT 和 self-consistency 如何协同增效，而非各自承担全量开销；以及如何防御上线首周就可能出现的 jailbreak 和注入攻击。
 
-以下内容贯穿三条主线：首先，到 2026 年，**模型本身**正日益成为推理的核心载体——通过 RLVR 训练的“推理模型”（thinking models，见第 4 章）已经吸收了 prompting 社区在 2022–2024 年间发明的诸多技巧；其次，**经济账主导技术选型**：prompt caching、batch APIs 和 KV reuse 正在改变哪些“好”的 prompt 模式是实际用得起的；第三，威胁面（包括注入攻击、jailbreak 和检索污染）如今已是 prompt 工程师岗位职责的一部分，而不再仅属于专门的“安全”团队。
+以下内容贯穿三条主线：首先，到 2026 年，**模型本身**正日益成为推理的核心载体——通过 RLVR 训练的“推理模型”（thinking models，见[第 4 章](/zh/llm-engineering/04-post-training/)）已经吸收了 prompting 社区在 2022–2024 年间发明的诸多技巧；其次，**经济账主导技术选型**：prompt caching、batch APIs 和 KV reuse 正在改变哪些“好”的 prompt 模式是实际用得起的；第三，威胁面（包括注入攻击、jailbreak 和检索污染）如今已是 prompt 工程师岗位职责的一部分，而不再仅属于专门的“安全”团队。
 
 ![LLM 工程（9）：生产规模的提示工程 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/illustration_1.png)
 
@@ -36,7 +36,7 @@ translationKey: "llm-engineering-9"
 
 Kojima 等人（2022, *Large Language Models are Zero-Shot Reasoners*）进一步证明，仅靠触发短语（无需示例）就能在 GSM8K 上取得显著效果（InstructGPT 准确率从 17.7% 提升至 78.7%），并在 MultiArith、AQuA-RAT 和 StrategyQA 等任务上同样有效。这种“零样本 CoT”由此成为生产环境中的默认配置。
 
-到 2024 年，几乎所有聊天模型在被提示时都会默认进行某种形式的推理。而到了 2026 年，随着推理模型（如 o1 系列、Claude-thinking、Qwen3-Reasoning、DeepSeek-R1）的出现，CoT 已通过 RLVR（见第 4 章）**内建于模型之中**。对于这类模型，你无需额外提示其进行推理，只需让它自主思考即可；而对于非推理模型，CoT 在特定任务上仍是“免费的红利”。
+到 2024 年，几乎所有聊天模型在被提示时都会默认进行某种形式的推理。而到了 2026 年，随着推理模型（如 o1 系列、Claude-thinking、Qwen3-Reasoning、DeepSeek-R1）的出现，CoT 已通过 RLVR（见[第 4 章](/zh/llm-engineering/04-post-training/)）**内建于模型之中**。对于这类模型，你无需额外提示其进行推理，只需让它自主思考即可；而对于非推理模型，CoT 在特定任务上仍是“免费的红利”。
 
 CoT 有效的场景包括：
 
@@ -157,7 +157,7 @@ Output:
 
 截至 2025 年，OpenAI、Anthropic、Google 和 DeepSeek 均已支持 **prompt caching**。首次发送长 prompt 时，需支付完整的 prefill 费用；后续请求若前缀完全相同（OpenAI 约 5 分钟内，Anthropic 默认 5 分钟、可扩展至 1 小时以上，DeepSeek 则持久化到磁盘），将命中缓存的 KV 状态，这些 token 的费用仅为原价的 10–25%。
 
-技术细节补充：缓存的实际上是 *KV cache*（见第 5 章）。模型在 prefill 长 prompt 时，会为每个注意力层的每个 token 位置计算 key/value 张量，这些张量正是后续生成所需的状态。当下次请求的前缀完全相同时，服务器可跳过重计算，直接从缓存（内存、SSD 或分层存储）加载。正因如此，prompt caching 仅对**精确前缀匹配**有效——位置 $t$ 的 KV 状态依赖于 $0..t-1$ 的所有位置，因此开头改动一个 token，就会导致其后所有状态失效。
+技术细节补充：缓存的实际上是 *KV cache*（见[第 5 章](/zh/llm-engineering/05-inference/)）。模型在 prefill 长 prompt 时，会为每个注意力层的每个 token 位置计算 key/value 张量，这些张量正是后续生成所需的状态。当下次请求的前缀完全相同时，服务器可跳过重计算，直接从缓存（内存、SSD 或分层存储）加载。正因如此，prompt caching 仅对**精确前缀匹配**有效——位置 $t$ 的 KV 状态依赖于 $0..t-1$ 的所有位置，因此开头改动一个 token，就会导致其后所有状态失效。
 
 Claude 4.5 Sonnet 的真实定价（2025 年末近似值）：
 

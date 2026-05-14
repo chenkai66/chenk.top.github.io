@@ -278,7 +278,7 @@ Hallucinations are not a single failure mode. The useful split (Huang et al., *S
 - **Logical / arithmetic** — invalid reasoning steps that happen to look fluent.
 - **Self-consistency** — the model contradicts an earlier statement in the same conversation.
 
-Mitigations stack: **RAG** for factuality (Part 10), **constrained decoding** and JSON schemas for structural faithfulness, **self-consistency sampling** plus majority vote for arithmetic, **process supervision** and reasoning models for logical errors, **citation-required prompting** for verifiability, and **abstention training** ("say I don't know") as a last line of defence.
+Mitigations stack: **RAG** for factuality ([Part 10](/en/nlp/rag-knowledge-enhancement/)), **constrained decoding** and JSON schemas for structural faithfulness, **self-consistency sampling** plus majority vote for arithmetic, **process supervision** and reasoning models for logical errors, **citation-required prompting** for verifiability, and **abstention training** ("say I don't know") as a last line of defence.
 
 ### Alignment — RLHF, DPO, Constitutional AI
 
@@ -442,7 +442,7 @@ Sensible launch targets for a 7-8B model on a single A100 80GB with vLLM and bf1
 
 **Why does my agent loop forever?** Almost always one of: (1) tool descriptions are ambiguous and the model keeps re-trying the wrong one; (2) you forgot a `Final Answer` sentinel; (3) the observation is too long and pushes the original goal out of context. Cap iterations, log every step, and shrink observations to the relevant fields.
 
-**What's the cheapest way to extend context?** If you control fine-tuning: RoPE base scaling + a small LongLoRA run. If not: chunk + RAG (Part 10). True 1M-token context is rarely the right answer — retrieval is cheaper, more debuggable, and usually more accurate.
+**What's the cheapest way to extend context?** If you control fine-tuning: RoPE base scaling + a small LongLoRA run. If not: chunk + RAG ([Part 10](/en/nlp/rag-knowledge-enhancement/)). True 1M-token context is rarely the right answer — retrieval is cheaper, more debuggable, and usually more accurate.
 
 ---
 

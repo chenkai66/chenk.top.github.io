@@ -236,7 +236,7 @@ Server CPUs make different trade-offs because their workload is different:
 
 ## Series Navigation
 
-Part 2 — **Memory and the Cache Hierarchy** — goes deeper:
+[Part 2](/en/computer-fundamentals/02-memory/) — **Memory and the Cache Hierarchy** — goes deeper:
 
 - DDR generations from DDR2 to DDR5: what actually got faster?
 - Dual-channel and quad-channel: real measured benchmarks.

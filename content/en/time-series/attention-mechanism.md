@@ -273,7 +273,7 @@ The attention matrix has $n^2$ entries. Every entry is computed and stored. For 
 | Full attention | $O(n^2 d)$ | $O(n^2)$ | Compute every pair |
 | Sparse / strided | $O(n \log n \cdot d)$ | $O(n \log n)$ | Local windows + dilated jumps (Longformer, BigBird) |
 | Linear attention | $O(n d^2)$ | $O(n d)$ | Replace softmax with a kernel feature map (Linformer, Performer) |
-| Informer ProbSparse | $O(n \log n \cdot d)$ | $O(n \log n)$ | Score only the top-$\log n$ queries (covered in Part 8) |
+| Informer ProbSparse | $O(n \log n \cdot d)$ | $O(n \log n)$ | Score only the top-$\log n$ queries (covered in [Part 8](/en/time-series/informer-long-sequence/)) |
 
 For most time-series problems, $n$ is in the hundreds, $d$ is in the tens to a few hundred, and the crossover with RNNs sits in your favour. Reach for sub-quadratic variants only when the standard implementation runs out of memory.
 
@@ -305,7 +305,7 @@ A note of caution: attention weights are **correlated with importance, not ident
 5. **Layer-norm before attention**, dropout on attention weights and on the feed-forward block.
 6. **Lower learning rate than RNNs** — $10^{-4}$ to $5 \cdot 10^{-4}$ with a warm-up of a few hundred steps.
 7. **Visualise heads early**. If they collapse to identical patterns, reduce $h$ or add diversity regularisation.
-8. **Beware the $O(n^2)$ wall**. If you need $n > 1024$, go straight to a sub-quadratic variant or to Informer (Part 8).
+8. **Beware the $O(n^2)$ wall**. If you need $n > 1024$, go straight to a sub-quadratic variant or to Informer ([Part 8](/en/time-series/informer-long-sequence/)).
 
 ---
 
@@ -342,5 +342,5 @@ The price is $O(n^2)$ memory and the need to inject position explicitly. For mos
 4. Qin et al., *A Dual-Stage Attention-Based Recurrent Neural Network for Time Series Prediction*, IJCAI 2017.
 5. Kitaev, Kaiser, Levskaya, *Reformer: The Efficient Transformer*, ICLR 2020.
 6. Beltagy, Peters, Cohan, *Longformer: The Long-Document Transformer*, 2020.
-7. Zhou et al., *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting*, AAAI 2021. — covered in Part 8.
+7. Zhou et al., *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting*, AAAI 2021. — covered in [Part 8](/en/time-series/informer-long-sequence/).
 
