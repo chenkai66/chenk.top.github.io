@@ -18,7 +18,7 @@ translationKey: "openclaw-quickstart-1"
 
 I keep getting asked, "Is OpenClaw just another wrapper around an LLM?" The short answer is no, and the reason is important enough that I wanted to write it down before walking through the QuickStart.
 
-This is the first part of a six-part series. By the end, you should have a working OpenClaw on your machine, communicating with a model, listening on at least one chat channel, and performing tasks that survive a reboot.
+This is the first part of a ten-part series. By the end, you should have a working OpenClaw on your machine, communicating with a model, listening on at least one chat channel, and performing tasks that survive a reboot.
 
 ![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
@@ -112,7 +112,7 @@ If none of those three matter to you, you can stop reading and use Claude Code d
 
 ## What you'll have at the end
 
-By article six in this series:
+By the end of this series:
 
 - OpenClaw installed locally, gateway running on `:18789`
 - A model provider configured (Bailian Coding Plan, Claude direct, or DashScope free tier — your choice)
