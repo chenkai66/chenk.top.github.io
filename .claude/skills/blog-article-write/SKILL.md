@@ -109,6 +109,14 @@ aliyun oss cp diagram.png oss://blog-pic-ck/posts/en/{series}/{slug}/illustratio
   --access-key-id $AK --access-key-secret $SK --region cn-beijing
 ```
 
+
+### Script Preservation
+All diagram generation scripts MUST be saved to `/root/chenk-hugo/scripts/figures/{series}/`.
+- Scripts are the source of truth for reproducibility — if an image needs updating, re-run the script.
+- Each script should be self-contained: imports, data generation, plotting, and savefig in one file.
+- Name convention: `gen_{topic}.py` for static PNGs, `anim_{topic}.py` for GIF animations.
+- GIF animations use `matplotlib.animation.FuncAnimation` + `PillowWriter` (no imageio dependency).
+
 ---
 
 ## 4. Bilingual Workflow
