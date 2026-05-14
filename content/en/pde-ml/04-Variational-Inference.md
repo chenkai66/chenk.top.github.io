@@ -43,7 +43,7 @@ translationKey: "pde-ml-4"
 ## Prerequisites
 
 - Probability theory (Bayes' rule, KL divergence, expectations).
-- Wasserstein gradient flows from Part 3.
+- Wasserstein gradient flows from [Part 3](/en/pde-ml/03-variational-principles/).
 - Light stochastic calculus intuition (Brownian motion, It&ocirc; integral).
 - Python / PyTorch for the experiments.
 
@@ -207,7 +207,7 @@ In practice SGLD is the workhorse behind "Bayesian deep learning at scale" becau
 
 Decompose the KL divergence relative to $p^\star \propto e^{-V}$:
 $$\mathcal{F}[p] \;=\; \mathrm{KL}(p\,\|\,p^\star) \;=\; \underbrace{\int p\log p\,dx}_{\text{neg-entropy }\mathcal{H}[p]} \;+\; \underbrace{\int p\, V\,dx}_{\text{potential energy}} \;+\; \text{const}.$$
-This is the **free energy functional** from Part 3. The Jordan-Kinderlehrer-Otto (JKO) theorem (1998) tells us its **Wasserstein-2 gradient flow** is
+This is the **free energy functional** from [Part 3](/en/pde-ml/03-variational-principles/). The Jordan-Kinderlehrer-Otto (JKO) theorem (1998) tells us its **Wasserstein-2 gradient flow** is
 $$\partial_t p \;=\; \nabla\!\cdot\!\bigl(p \nabla V\bigr) + \Delta p,$$
 which is exactly the FP equation for Langevin with $\tau = 1$. Hence:
 
@@ -501,7 +501,7 @@ The whole pipeline is a Fokker-Planck story:
 - **Score matching**: train $s_\theta(x, t) \approx \nabla\log p_t(x)$ using denoising score matching (Vincent, 2011). The clean trick is $\nabla_x \log p_t(x) = \mathbb{E}[\nabla_x \log q(x|x_0)\,|\,x]$ for the conditional Gaussian $q(x|x_0)$.
 - **Reverse**: run the time-reversed SDE (Anderson, 1982) using the learned score. Each step is one Langevin update with a learned drift correction.
 
-The thing nobody states explicitly: **diffusion models are SVGD with the kernel replaced by a learned score field**. The repulsion-vs-attraction balance that SVGD does manually, diffusion learns from data. This is why both fall under the "sampling as gradient flow on densities" umbrella, and why Wasserstein geometry (Section 4) is the right language for both.
+The thing nobody states explicitly: **diffusion models are SVGD with the kernel replaced by a learned score field**. The repulsion-vs-attraction balance that SVGD does manually, diffusion learns from data. This is why both fall under the "sampling as gradient flow on densities" umbrella, and why Wasserstein geometry ([Section 4](#kl-divergence-is-a-wasserstein-gradient-flow)) is the right language for both.
 
 The PDE-ML chapter 7 unpacks this in its own right; here I just wanted to land the Fokker-Planck connection.
 

@@ -40,7 +40,7 @@ The seed of the idea goes back to Lagaris (1998) [^lagaris1998] and even further
 ![PINN architecture: MLP + automatic differentiation + physics-informed loss.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig1_architecture.png)
 *Figure 1: PINN architecture. Inputs $(x,t)$ feed an ordinary MLP that outputs $\hat u$; autodiff extracts $\partial_t\hat u$ and $\partial_x^2\hat u$, which assemble the PDE residual. Together with boundary and initial / data residuals it forms the training objective $\mathcal L=\lambda_r\mathcal L_r+\lambda_b\mathcal L_b+\lambda_i\mathcal L_i$.*
 
-This chapter proceeds as follows: §2 quantifies the pain points of classical methods. §3 provides the minimal complete definition of a PINN and shows its equivalence with Ritz–Galerkin. §4, the core of the chapter, offers a Neural Tangent Kernel (NTK) view of why PINNs are often hard to train and presents three effective remedies. §5 walks through a complete Burgers experiment and an inverse-problem demonstration. §6 lists failure modes and limits. §7 places PINNs on the broader SciML map alongside FEM and neural operators.
+This chapter proceeds as follows: [§2](#classical-numerical-methods-mature-with-edges) quantifies the pain points of classical methods. [§3](#the-minimal-complete-definition-of-a-pinn) provides the minimal complete definition of a PINN and shows its equivalence with Ritz–Galerkin. [§4](#training-pathologies-the-part-thats-actually-hard), the core of the chapter, offers a Neural Tangent Kernel (NTK) view of why PINNs are often hard to train and presents three effective remedies. [§5](#experiment-burgers-and-an-inverse-problem) walks through a complete Burgers experiment and an inverse-problem demonstration. [§6](#failure-modes-and-limits) lists failure modes and limits. [§7](#pinns-on-the-sciml-map) places PINNs on the broader SciML map alongside FEM and neural operators.
 
 ---
 
@@ -71,7 +71,7 @@ Céa's lemma supplies the optimal error bound $\|u-u_h\|_{H^1}\le Ch^k\|u\|_{H^{
 
 ### What PINNs are trying to disrupt
 
-Stitching §2.1 and §2.2 together, the shared cost of classical methods is:
+Stitching [§2.1](#finite-differences--intuition-at-the-price-of-stability) and [§2.2](#finite-elements--weak-forms-and-the-ritz-functional) together, the shared cost of classical methods is:
 
 | dimension | FDM | FEM |
 |---|---|---|
@@ -188,7 +188,7 @@ for epoch in range(5000):
 
 Key design choices visible in this code:
 
-1. **Three-term loss**: The total loss is a weighted sum of PDE residual, boundary, and initial conditions. The weights (here 10x for BC/IC) are critical -- Section 3 will explain why.
+1. **Three-term loss**: The total loss is a weighted sum of PDE residual, boundary, and initial conditions. The weights (here 10x for BC/IC) are critical -- [Section 3](#training-pathologies-the-part-thats-actually-hard) will explain why.
 2. **Automatic differentiation**: We never discretize $\partial u/\partial t$ or $\partial^2 u/\partial x^2$. PyTorch's `autograd` computes exact derivatives of the network output with respect to its inputs.
 3. **Mesh-free sampling**: Collocation points are simply random samples in $[0,1]^2$. No mesh connectivity, no element assembly.
 

@@ -96,7 +96,7 @@ This is the foundation of statistical mechanics: the Gibbs ensemble would not be
 
 ### What goes wrong without symplecticity
 
-For *every* explicit Runge-Kutta method, $|\det M_h| = 1 + c h^{p+1} + \mathcal{O}(h^{p+2})$ with $c \neq 0$ in general, where $p$ is the order. Phase volume changes by a tiny amount each step. Multiply by $10^6$ steps and the simulated trajectory has either spiralled inward (energy lost) or outward (energy gained) by a macroscopic amount. Section 3 shows how this looks in pictures.
+For *every* explicit Runge-Kutta method, $|\det M_h| = 1 + c h^{p+1} + \mathcal{O}(h^{p+2})$ with $c \neq 0$ in general, where $p$ is the order. Phase volume changes by a tiny amount each step. Multiply by $10^6$ steps and the simulated trajectory has either spiralled inward (energy lost) or outward (energy gained) by a macroscopic amount. [Section 3](#symplectic-integrators) shows how this looks in pictures.
 
 ---
 

@@ -124,7 +124,7 @@ Among all imaginable trajectories of a mechanical system, the actual one extremi
 $$\frac{d}{dt}\frac{\partial L}{\partial \dot q} - \frac{\partial L}{\partial q} = 0 ,$$
 recovers Newton's laws. Defining the conjugate momentum $p := \partial L / \partial \dot q$ and the Hamiltonian $H(q,p) := p\,\dot q - L$, this second-order equation becomes the first-order canonical system
 $$\dot q = \frac{\partial H}{\partial p}, \qquad \dot p = -\frac{\partial H}{\partial q} .$$
-The **symplectic two-form** $\omega = dp \wedge dq$ is preserved along the flow. We will see this structure again when comparing Hamiltonian dynamics to gradient flows in Section 7.
+The **symplectic two-form** $\omega = dp \wedge dq$ is preserved along the flow. We will see this structure again when comparing Hamiltonian dynamics to gradient flows in [Section 7](#hamiltonian-vs-gradient-flow).
 
 ### From Functional Derivatives to Gradient Flows
 
@@ -393,7 +393,7 @@ The variational worldview is not confined to physics. The **evidence lower bound
 $$\mathrm{ELBO}(q) = \mathbb{E}_{q(z|x)}[\log p(x|z)] - \mathrm{KL}\!\left(q(z|x) \,\Vert\, p(z)\right) ,$$
 which is equivalent to minimising $\mathrm{KL}(q(z|x)\,\Vert\,p(z|x))$ — the KL distance to the *true* posterior. This is a constrained variational problem, and in the limit $\mathcal{Q}$ = all densities, the maximiser is the exact posterior.
 
-In the Wasserstein view of the previous sections, the gradient flow of the KL divergence $\mathrm{KL}(\cdot\,\Vert\,p)$ is precisely the Fokker-Planck equation of Section 2.4, which is why diffusion-based generative models can be analysed with the same tools as the VAE.
+In the Wasserstein view of the previous sections, the gradient flow of the KL divergence $\mathrm{KL}(\cdot\,\Vert\,p)$ is precisely the Fokker-Planck equation of [Section 2.4](#the-heat-equation-as-a-gradient-flow-of-entropy), which is why diffusion-based generative models can be analysed with the same tools as the VAE.
 
 ![ELBO components on a small VAE trained on a 4-mode 2-D mixture: reconstruction loss vs KL regularizer (left), data and reconstructions (centre), and the latent code with the standard-normal prior contour (right).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig6_variational_autoencoder.png)
 *Figure 6. The reconstruction term and the KL term pull in opposite directions: the former insists on faithful $\hat x \approx x$, the latter on $q(z|x) \approx p(z)$. Their sum, the negative ELBO, is the variational objective. The latent map shows that the four data modes have been organised into four well-separated clusters within the standard-normal prior.*
@@ -498,7 +498,7 @@ which is the **gradient flow of $J$ in a coordinate-dependent Riemannian metric*
 A subtle but important point: not every flow is a gradient flow. The same energy function can be associated with two qualitatively opposite dynamics.
 
 ![Hamiltonian flow (left) and gradient flow (right) of the same energy $H(q,p) = \tfrac12 (q^2 + p^2)$. The first preserves $H$ on closed orbits; the second dissipates $H$ and converges to the unique minimum.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig7_hamiltonian_flow.png)
-*Figure 7. Two flows on the same energy. On the left, the symplectic vector field $\dot q = H_p, \dot p = -H_q$ rotates phase space and preserves energy — closed orbits, no convergence. On the right, the gradient field $\dot q = -H_q, \dot p = -H_p$ contracts every trajectory to the origin. Both pictures matter: gradient flows describe optimisation; symplectic flows describe conservative dynamics, and motivate "structure-preserving" neural-ODE architectures (a topic for Part 5 of this series).*
+*Figure 7. Two flows on the same energy. On the left, the symplectic vector field $\dot q = H_p, \dot p = -H_q$ rotates phase space and preserves energy — closed orbits, no convergence. On the right, the gradient field $\dot q = -H_q, \dot p = -H_p$ contracts every trajectory to the origin. Both pictures matter: gradient flows describe optimisation; symplectic flows describe conservative dynamics, and motivate "structure-preserving" neural-ODE architectures (a topic for [Part 5](/en/pde-ml/05-symplectic-geometry/) of this series).*
 
 ## Putting It All Together: From Least Action to Learning
 

@@ -500,7 +500,7 @@ $$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $
 - **Score 匹配**：通过去噪 score 匹配（Vincent, 2011）训练 $s_\theta(x, t) \approx \nabla\log p_t(x)$。其核心技巧在于：对于条件高斯 $q(x|x_0)$，有 $\nabla_x \log p_t(x) = \mathbb{E}[\nabla_x \log q(x|x_0)\,|\,x]$，可直接计算。
 - **逆向过程**：利用 Anderson（1982）提出的逆时间 SDE 和学到的 score 进行采样。每一步本质上是一次带有学习漂移修正的 Langevin 更新。
 
-鲜少有人明确指出：**扩散模型其实就是 SVGD，只不过将核函数替换为了从数据中学到的 score 场**。SVGD 手动平衡“排斥 vs 吸引”，而扩散模型则从数据中学习这一平衡。正因如此，二者同属“密度上的梯度流”这一框架，而第四节所述的 Wasserstein 几何正是描述它们的恰当语言。
+鲜少有人明确指出：**扩散模型其实就是 SVGD，只不过将核函数替换为了从数据中学到的 score 场**。SVGD 手动平衡“排斥 vs 吸引”，而扩散模型则从数据中学习这一平衡。正因如此，二者同属“密度上的梯度流”这一框架，而[第四节](#kl-散度是-wasserstein-梯度流)所述的 Wasserstein 几何正是描述它们的恰当语言。
 
 PDE-ML 系列第七章将专门深入探讨扩散模型；此处仅旨在点明其与 Fokker-Planck 方程的深刻联系。
 

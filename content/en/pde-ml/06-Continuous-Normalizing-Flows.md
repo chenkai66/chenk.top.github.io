@@ -54,7 +54,7 @@ $$
 
 **Theorem (Liouville).** Let $\phi_t$ be the flow of $\dot{\mathbf{z}}=f(\mathbf{z},t)$. For any measurable $\Omega$,$$\frac{d}{dt}\,\mathrm{vol}(\phi_t(\Omega))=\int_{\phi_t(\Omega)}\nabla\!\cdot f\,d\mathbf{z}.$$Therefore $\nabla\!\cdot f=0$ preserves volume, $\nabla\!\cdot f<0$ contracts, $\nabla\!\cdot f>0$ expands. In normalizing flows we *want* a non-zero divergence: that is exactly the lever that lets us reshape probability mass.
 
-*Mental picture.* A divergence-free $f$ behaves like an incompressible fluid (Hamiltonian / symplectic — Part 5). A divergence-rich $f$ behaves like a compressible flow that can squeeze probability mass into thin filaments and then re-inflate it elsewhere — which is what generative modelling needs.
+*Mental picture.* A divergence-free $f$ behaves like an incompressible fluid (Hamiltonian / symplectic — [Part 5](/en/pde-ml/05-symplectic-geometry/)). A divergence-rich $f$ behaves like a compressible flow that can squeeze probability mass into thin filaments and then re-inflate it elsewhere — which is what generative modelling needs.
 
 ### Instantaneous change of variables
 
@@ -62,7 +62,7 @@ $$
 $$
 *Proof sketch.* The continuity equation $\partial_t\rho+\nabla\!\cdot(\rho f)=0$ expands to $\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$. The left-hand side is the material derivative $D\rho/Dt$ along $\mathbf{z}(t)$. Dividing by $\rho$ gives (1).
 
-**Why this single equation matters.** Discrete normalizing flows pay $O(d^3)$ for $\log|\det\partial\phi/\partial\mathbf{z}|$. Equation (1) only ever needs the **trace** of the Jacobian (i.e. the divergence), which costs $O(d)$ with a vector-Jacobian product (Section 3.2 below). This is the central computational reason CNFs exist.
+**Why this single equation matters.** Discrete normalizing flows pay $O(d^3)$ for $\log|\det\partial\phi/\partial\mathbf{z}|$. Equation (1) only ever needs the **trace** of the Jacobian (i.e. the divergence), which costs $O(d)$ with a vector-Jacobian product ([Section 3.2](#ffjord-scalable-trace-via-hutchinson) below). This is the central computational reason CNFs exist.
 
 ---
 

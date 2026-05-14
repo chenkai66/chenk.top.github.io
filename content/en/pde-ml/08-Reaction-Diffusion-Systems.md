@@ -169,7 +169,7 @@ Conditions 1-3 are algebraic facts about the kinetics. Condition 4 follows once 
 
 ### The Intuition Behind Diffusion-Driven Instability
 
-Why does asymmetric diffusion destabilise an otherwise-stable steady state? Imagine a tiny local bump of activator. *Locally*, the activator self-amplifies (positive feedback). It also produces inhibitor — but the inhibitor diffuses away quickly, so its concentration *near* the bump stays low, while *far away* the inhibitor builds up and suppresses other potential bumps. This is **short-range activation, long-range inhibition** — the universal recipe behind animal coat patterns, vegetation stripes, sand ripples, and (we'll see in §5) the architecture of deep GNNs.
+Why does asymmetric diffusion destabilise an otherwise-stable steady state? Imagine a tiny local bump of activator. *Locally*, the activator self-amplifies (positive feedback). It also produces inhibitor — but the inhibitor diffuses away quickly, so its concentration *near* the bump stays low, while *far away* the inhibitor builds up and suppresses other potential bumps. This is **short-range activation, long-range inhibition** — the universal recipe behind animal coat patterns, vegetation stripes, sand ripples, and (we'll see in [§5](#rdgnn-reaction-diffusion-graph-neural-networks)) the architecture of deep GNNs.
 
 ---
 
