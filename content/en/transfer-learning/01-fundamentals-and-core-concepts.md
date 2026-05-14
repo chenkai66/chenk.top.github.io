@@ -91,7 +91,7 @@ A task is a pair $\mathcal{T} = \{\mathcal{Y}, f(\cdot)\}$: a label space and th
 | ------------ | --------------------------------------------------- | --------------------------------------------------- |
 | Domain       | $\mathcal{D}_S$ with task $\mathcal{T}_S$           | $\mathcal{D}_T$ with task $\mathcal{T}_T$           |
 | Labels       | abundant                                            | scarce or absent                                    |
-| Distribution | $P_S(X), P_S(Y\|X)$                                 | $P_T(X), P_T(Y\|X)$                                 |
+| Distribution | $P_S(X), P_S(Y\mid X)$                                 | $P_T(X), P_T(Y\mid X)$                                 |
 
 Transfer learning explicitly does **not** require source and target to be identical — that is its whole reason for existing. They may differ in any combination of feature space ($\mathcal{X}_S \neq \mathcal{X}_T$), marginal ($P_S(X) \neq P_T(X)$), label space ($\mathcal{Y}_S \neq \mathcal{Y}_T$), or conditional ($P_S(Y\mid X) \neq P_T(Y\mid X)$). Each combination gives rise to a different sub-problem.
 
