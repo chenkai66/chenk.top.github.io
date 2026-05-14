@@ -18,6 +18,9 @@ translationKey: "recommendation-systems-16"
 
 ![Recommendation Systems (16): Industrial Architecture and Best Practices — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **Multi-stage pipeline** — recall, coarse ranking, fine ranking, and reranking, with the constraints that determine each stage's design

@@ -18,6 +18,9 @@ translationKey: "docker-containers-8"
 
 So far, this series has focused on single-host Docker: one machine running containers. This setup works well for development, small projects, and applications with modest traffic. However, when you need your service to survive server failures, handle traffic spikes, or deploy updates without downtime, single-host Docker falls short. Container orchestration addresses these issues, and Kubernetes has become the go-to solution.
 
+
+---
+
 ## Why Single-Host Docker Isn't Enough
 
 Consider what happens when your Docker host fails:

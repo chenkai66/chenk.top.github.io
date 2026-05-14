@@ -22,6 +22,9 @@ polished_by_qwen_max: true
 
 <!-- wanx-hero -->
 ![自然语言处理（五）：BERT与预训练模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.png)
+
+---
+
 ## 你将学到什么
 
 - 预训练技术的发展历程：从 Word2Vec 到 ELMo，再到 GPT-1 和 BERT  

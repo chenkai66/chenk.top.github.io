@@ -19,6 +19,9 @@ translationKey: "linear-algebra-7"
 ---
 ![Essence of Linear Algebra (7): Orthogonality and Projections — When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_1.png)
 
+
+---
+
 ## Why Orthogonality Matters
 
 Two vectors are **orthogonal** when they "do not interfere" with one another. That single idea — one direction tells you nothing about the other — powers GPS positioning, noise-canceling headphones, JPEG compression, recommendation systems, and most of numerical linear algebra.

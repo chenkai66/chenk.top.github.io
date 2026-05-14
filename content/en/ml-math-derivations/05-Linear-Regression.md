@@ -22,6 +22,9 @@ This chapter develops linear regression from three independent starting points �
 
 ![ML Math Derivations (5): Linear Regression — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/05-Linear-Regression/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 1. **Setup** — how to write the model in matrix form so the math becomes one line.

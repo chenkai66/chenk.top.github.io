@@ -23,6 +23,9 @@ If BERT (Part 5) is the king of *understanding*, GPT is the king of *generation*
 <!-- wanx-hero -->
 ![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - How a decoder-only Transformer turns "predict the next token" into a general-purpose AI

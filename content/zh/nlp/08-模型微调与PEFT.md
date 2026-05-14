@@ -25,6 +25,9 @@ polished_by_qwen_max: true
 
 <!-- wanx-hero -->
 ![自然语言处理（八）：模型微调与PEFT — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_1.png)
+
+---
+
 ## 你将学到什么
 
 - **为什么** 在大语言模型（LLM）时代，全量微调是一种资源浪费——过参数化现象与内在低秩性的启示  

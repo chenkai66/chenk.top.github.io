@@ -15,6 +15,9 @@ translationKey: "gnn-equivariant-representations"
 
 Shuffling the hidden neurons of a trained MLP yields the exact same function, but the flat parameter vector looks entirely different. This fact ruins most attempts at "learning over neural networks": naive representations treat two functionally identical models as unrelated points in parameter space, causing the downstream learner to waste capacity rediscovering a symmetry it should have for free. This paper, *Graph Neural Networks for Learning Equivariant Representations of Neural Networks* (Kofinas et al., ICML 2024), proposes a clean fix: turn the network into a graph and use a GNN whose architecture natively respects the relevant permutation symmetry.
 
+
+---
+
 ## What You Will Learn
 
 - Why hidden-neuron permutations are the right symmetry to design against

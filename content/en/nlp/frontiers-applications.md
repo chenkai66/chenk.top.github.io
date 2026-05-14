@@ -26,6 +26,9 @@ Capability brings new failure modes. Models hallucinate confidently, generate ha
 <!-- wanx-hero -->
 ![NLP (12): Frontiers and Practical Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **Agents**: the Function Calling protocol and the ReAct reason-act loop, with worked Python.

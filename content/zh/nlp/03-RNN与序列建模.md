@@ -23,6 +23,9 @@ polished_by_qwen_max: true
 
 <!-- wanx-hero -->
 ![自然语言处理（三）：RNN与序列建模 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_1.png)
+
+---
+
 ## 你将学到什么
 ![自然语言处理（三）：RNN与序列建模 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.png)
 

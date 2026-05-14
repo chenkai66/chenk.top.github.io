@@ -27,6 +27,9 @@ The Transformer is wonderful at sequence modeling — right up to the moment you
 
 Combined, the three changes deliver about a 6-10x speedup and 5-10% better MSE than a vanilla Transformer on long-horizon ETT/weather/electricity benchmarks. This chapter unpacks the math behind each one and walks through the implementation.
 
+
+---
+
 ## What You Will Learn
 
 - The exact $\mathcal{O}(L^2)$ pain points in vanilla self-attention for long sequences.

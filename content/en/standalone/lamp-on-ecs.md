@@ -20,6 +20,9 @@ You have a fresh ECS instance and SSH access. Your goal is to run a public websi
 
 This guide covers these issues in the order you'll encounter them on day one and continues with topics that arise later, such as TLS, virtual hosts, backups, source compilation, and when to stop running everything on a single box.
 
+
+---
+
 ## What You Will Learn
 - Build a mental model of how an HTTP request travels through Linux, Apache, PHP, and MySQL, and predict where it might break.
 -   Configure Aliyun networking from the security group inwards, with a real defence-in-depth model rather than `0.0.0.0/0` everywhere.

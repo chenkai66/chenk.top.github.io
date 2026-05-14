@@ -23,6 +23,9 @@ polished_by_qwen_max: true
 
 <!-- wanx-hero -->
 ![自然语言处理（一）：NLP入门与文本预处理 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
+
+---
+
 ## 你将学到什么
 <!-- wanx-mid -->
 ![自然语言处理（一）：NLP入门与文本预处理 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_2.png)

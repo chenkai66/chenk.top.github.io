@@ -19,6 +19,9 @@ translationKey: "linear-algebra-11"
 ---
 ![Essence of Linear Algebra (11): Matrix Calculus and Optimization — The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)
 
+
+---
+
 ## From Shower Knobs to Neural Networks
 
 Every morning you train a tiny neural network. The water comes out too cold, so you nudge the knob — a *parameter* — in some direction. A second later you observe a new temperature — the *error signal* — and nudge again. After three or four iterations you have converged.

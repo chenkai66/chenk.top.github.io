@@ -18,6 +18,9 @@ translationKey: "linear-algebra-5"
 ---
 ![Essence of Linear Algebra (5): Linear Systems and Column Space — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/05-linear-systems-and-column-space/illustration_1.png)
 
+
+---
+
 ## The Central Question
 
 Almost everything in applied mathematics eventually lands on the same question:

@@ -18,6 +18,9 @@ translationKey: "recommendation-systems-14"
 
 ![Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **The three cold-start regimes** — new user, new item, new system — and why each demands a different lever

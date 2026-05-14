@@ -23,6 +23,9 @@ If you have used a sentiment-analysis API, a search engine that understands inte
 <!-- wanx-hero -->
 ![NLP (5): BERT and Pretrained Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - How pretraining evolved: Word2Vec to ELMo to GPT-1 to BERT

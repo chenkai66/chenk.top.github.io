@@ -24,6 +24,9 @@ Eighteen months later, AlphaGo Zero learned the game from nothing but the rules 
 
 ![Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **MCTS Foundations**: the four-phase loop, UCT exploration–exploitation balance, asymptotic optimality

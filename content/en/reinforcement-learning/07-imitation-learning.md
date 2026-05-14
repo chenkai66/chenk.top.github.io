@@ -24,6 +24,9 @@ Imitation learning takes that intuition seriously: instead of optimising a hand-
 
 ![Reinforcement Learning (7): Imitation Learning and Inverse RL — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **Behavioral cloning (BC)**: imitation as supervised learning, why it works on short tasks, and the precise reason it breaks on long ones.

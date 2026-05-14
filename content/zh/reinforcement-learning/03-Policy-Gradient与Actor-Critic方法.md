@@ -25,6 +25,9 @@ DQN 证明了深度强化学习能够成功解决 Atari 游戏，但其能力存
 **策略梯度方法**换了一条路子。它不学习价值函数，也不依赖价值函数间接导出策略，而是**直接对策略参数进行优化**。仅此一项改变，便使强化学习得以处理连续动作、随机策略，并能自然应对最优策略本身即具随机性的问题（例如石头剪刀布）。
 ![强化学习（三）：Policy Gradient与Actor-Critic方法 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_1.png)
 
+
+---
+
 ## 你将学到什么
 
 - 策略梯度为什么重要，以及**策略梯度定理**到底讲了什么

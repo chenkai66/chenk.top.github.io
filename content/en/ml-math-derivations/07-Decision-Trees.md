@@ -21,6 +21,9 @@ translationKey: "ml-math-derivations-7"
 
 ![ML Math Derivations (7): Decision Trees — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/07-Decision-Trees/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why a decision tree is mathematically a *piecewise-constant* function on a recursive partition of the feature space.

@@ -28,6 +28,9 @@ translationKey: "reinforcement-learning-5"
 本文梳理了 MBRL 的现代发展脉络：Dyna（1990）→ MBPO（2019）→ World Models（2018）→ Dreamer（2020–23）→ MuZero（2020）。每种方法都围绕一个核心洞见展开，文中的七幅图将逐一可视化这些思想。
 ![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
 
+
+---
+
 ## 你将学到什么
 
 - Model-Based RL 成功或失败背后的精确权衡

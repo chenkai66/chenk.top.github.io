@@ -20,6 +20,9 @@ translationKey: "pde-ml-6"
 ---
 ![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 Generative modeling reduces to one geometric question: **how do you transform a simple distribution (a Gaussian) into a complex one (faces, molecules, motion)?** Discrete normalizing flows stack invertible blocks, but each block needs a Jacobian determinant at $O(d^3)$ cost. **Neural ODEs** replace discrete depth with a continuous ODE; **Continuous Normalizing Flows (CNF)** then push densities through that ODE using the *instantaneous* change-of-variables formula, dropping density computation to $O(d)$. **Flow Matching** removes the divergence integral altogether and turns training into plain regression on a target velocity field.

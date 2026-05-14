@@ -23,6 +23,9 @@ Compare two friends recommending shows. The first knows your favourite genres bu
 
 ![A user's interaction sequence, where each step depends on the ones before it, ending in a next-item prediction](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/06-sequential-recommendation/fig1_sequence_timeline.png)
 
+
+---
+
 ## What You Will Learn
 
 - **Why order matters**, and how sequential models depart from set-based collaborative filtering

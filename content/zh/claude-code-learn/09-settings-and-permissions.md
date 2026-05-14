@@ -22,6 +22,9 @@ translationKey: "claude-code-learn-9"
 
 ![Claude Code 实操 (9)：settings.json、三层权限模型和环境 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_1.png)
 
+
+---
+
 ## 三个层级
 
 Claude Code 会按顺序读取三个 `settings.json` 文件：

@@ -27,6 +27,9 @@ This article walks through those changes in the order they actually matter when 
 <!-- wanx-hero -->
 ![NLP (9): Deep Dive into LLM Architecture — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/llm-architecture-deep-dive/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **Modern block layout** — pre-norm + RMSNorm + SwiGLU + RoPE + GQA, and why each replacement happened.

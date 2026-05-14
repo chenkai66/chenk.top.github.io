@@ -24,6 +24,9 @@ translationKey: "ode-15"
 
 ![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The trio of single-species models: **Malthus** (exponential), **logistic** (saturation), and the **Allee effect** (extinction threshold)

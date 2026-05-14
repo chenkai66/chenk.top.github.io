@@ -21,6 +21,9 @@ translationKey: "pde-ml-7"
 ---
 ![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_1.png)
 
+
+---
+
 ## 你将学到什么
 
 自 2020 年起，**扩散模型**已成为生成式 AI 的主流范式。从 DALL·E 2 到 Stable Diffusion 再到 Sora，其生成质量与训练稳定性均超越了 GAN 和 VAE。这一成功背后是一套异常简洁的数学结构：**扩散模型本质上是偏微分方程（PDE）的数值求解器**。

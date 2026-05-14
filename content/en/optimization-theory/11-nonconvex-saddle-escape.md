@@ -25,6 +25,9 @@ Three positive results:
 
 Each is rigorous in its setting. The article also discusses what is **not** known — there is no general theorem saying "SGD finds the global optimum of a deep network."
 
+
+---
+
 ## What You Will Learn
 
 1. Stationary points and the saddle-point classification ($\nabla^2 f$ eigenvalue signs).

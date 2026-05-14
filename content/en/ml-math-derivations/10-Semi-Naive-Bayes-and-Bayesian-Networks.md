@@ -22,6 +22,9 @@ translationKey: "ml-math-derivations-10"
 
 ![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why the full conditional-independence assumption fails, and how the parameter count grows when we relax it.

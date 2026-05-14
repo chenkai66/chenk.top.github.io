@@ -20,6 +20,9 @@ A live e-commerce ranker doesn't optimize just one number. The same model that d
 
 This post provides the mental model and working code for the four architectures you'll encounter in industry: **Shared-Bottom, ESMM, MMoE, PLE**. It also explains why the simple version fails (negative transfer, gradient conflict, sample selection bias) and how Uncertainty Weighting, GradNorm, and Pareto trade-offs address these issues.
 
+
+---
+
 ## What You Will Learn
 
 - **Why** ranking is inherently multi-objective and what goes wrong when you ignore that

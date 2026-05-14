@@ -21,6 +21,9 @@ The CLI is the obvious surface. The SDK is the interesting one. The GitHub integ
 
 ![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
+
+---
+
 ## The SDK in one paragraph
 
 `@anthropic-ai/claude-code` is the npm package. It exposes the same Claude Code engine the CLI uses, with the same tools and permissions, as a programmatic interface. You give it a prompt; you get an async iterable of conversation events. Plug it into anything — a script, a service, a CI step.

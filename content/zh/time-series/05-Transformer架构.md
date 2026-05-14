@@ -15,6 +15,9 @@ series_order: 5
 translationKey: "time-series-5"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
+
+---
+
 ## 本文要点
 
 - 完整解析专为时间序列设计的 encoder-decoder Transformer 架构

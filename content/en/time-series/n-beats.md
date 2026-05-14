@@ -20,6 +20,9 @@ The 2018 M4 forecasting competition served 100,000 series across six frequencies
 
 This chapter unpacks why such a stripped-down architecture beats both LSTMs and ARIMA-style ensembles, and how to implement and tune it for your own series.
 
+
+---
+
 ## What You Will Learn
 
 - How double residual stacking turns a plain MLP into a hierarchical decomposer.

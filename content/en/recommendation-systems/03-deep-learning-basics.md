@@ -30,6 +30,9 @@ This article walks the path that took the field from `dot(p_u, q_i)` to NeuMF, Y
 
 ![Recommendation Systems (3): Deep Learning Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/illustration_1.png)
 
+
+---
+
 ## What you will build a feel for
 
 - **The MLP intuition** — why stacking linear layers with ReLU is a universal interaction engine.

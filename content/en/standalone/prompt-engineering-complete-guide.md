@@ -13,6 +13,9 @@ translationKey: "prompt-engineering-complete-guide"
 
 The same model, two prompts: one achieves 17% accuracy on grade-school math, the other 78%. The difference isn't magic—it's prompt engineering. This guide covers the techniques that work, the research behind them, and how to systematically optimize prompts for production.
 
+
+---
+
 ## What You Will Learn
 
 - **Foundations** — zero-shot, few-shot, many-shot, task decomposition, and the five-block prompt skeleton.

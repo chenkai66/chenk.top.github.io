@@ -28,6 +28,9 @@ This article reconstructs PEFT from first principles. We start with the question
 <!-- wanx-hero -->
 ![NLP (8): Model Fine-tuning and PEFT — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **Why** full fine-tuning is wasteful in the LLM era — overparameterization and the intrinsic-rank hypothesis

@@ -23,6 +23,9 @@ If you only remember three things from this article, make it these:
 - The **conjugate** $f^*$ is the Legendre transform generalized — it converts pointwise inequalities into linear ones and is the bridge between primal and dual problems.
 - The **subdifferential** $\partial f(x)$ is the right notion of "gradient" for non-smooth convex functions; it is non-empty whenever $x$ lies in the relative interior of $\mathrm{dom}(f)$.
 
+
+---
+
 ## What You Will Learn
 
 1. Convex sets, convex hulls, the projection theorem (with proof).

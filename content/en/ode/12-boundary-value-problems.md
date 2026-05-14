@@ -23,6 +23,9 @@ This is also where ODE methods quietly become PDE methods. The discretization, e
 
 ![Ordinary Differential Equations (12): Boundary Value Problems — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why BVPs are *qualitatively* harder than IVPs, with a worked example showing existence and uniqueness can both fail

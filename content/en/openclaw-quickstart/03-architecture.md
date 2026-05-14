@@ -21,6 +21,9 @@ You can use OpenClaw for months without reading this. But the first time you nee
 
 ![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_1.png)
 
+
+---
+
 ## The six layers
 
 ![The six layers of an OpenClaw agent: Channels, Gateway, Router+Sessions+Pi Agent, Tools+Skills, Memory+ContextEngine, LLM provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/fig1_six_layers.png)

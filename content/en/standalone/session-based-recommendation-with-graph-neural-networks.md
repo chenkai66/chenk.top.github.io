@@ -16,6 +16,9 @@ A user clicks **A, B, C, B, D**. A sequence model reads this as five tokens and 
 
 This note unpacks SR-GNN end to end: how the session graph is built, how the **gated GNN** (GGNN) propagates information over it, how a session vector is assembled from a *local* (last click) and *global* (attention) view, how scoring and training work, and where the model breaks. The aim is to leave you in a position to either drop SR-GNN into your stack or, more usefully, to know exactly when *not* to.
 
+
+---
+
 ## What You Will Learn
 
 - How the click stream is converted into a directed weighted session graph (and how the in/out adjacency rows feed the GGNN)

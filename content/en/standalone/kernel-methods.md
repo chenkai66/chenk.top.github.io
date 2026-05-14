@@ -15,6 +15,9 @@ translationKey: "kernel-methods"
 
 You have non-linear data and a linear algorithm. The kernel trick lets you run that linear algorithm on the non-linear data — without ever writing down the high-dimensional feature map. This guide builds the intuition first, then the math, then a practical toolkit you can ship.
 
+
+---
+
 ## What You Will Learn
 
 - The kernel trick: why it works and what it actually buys you

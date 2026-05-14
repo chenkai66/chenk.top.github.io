@@ -23,6 +23,9 @@ Article 02 introduced Nesterov acceleration and showed it improves the per-itera
 
 The unifying tool is a **Lyapunov potential** — a non-negative quantity that the algorithm decreases at every step. Both Nesterov and Heavy-Ball admit Lyapunov proofs, and the lower bound essentially says no Lyapunov decrease can happen faster.
 
+
+---
+
 ## What You Will Learn
 
 1. The Nemirovski--Yudin lower bound: $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ iterations are necessary for any first-order method on the worst-case smooth strongly convex problem.

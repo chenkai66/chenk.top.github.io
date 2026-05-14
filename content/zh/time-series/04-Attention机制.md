@@ -15,6 +15,9 @@ series_order: 4
 translationKey: "time-series-4"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
+
+---
+
 ## 本文要点
 
 - 循环模型在处理长程依赖时为何遭遇瓶颈，而注意力机制又是如何彻底打破这一限制的。

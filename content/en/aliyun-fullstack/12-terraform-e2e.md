@@ -27,6 +27,9 @@ Infrastructure-as-code eliminates that problem entirely. You describe what you w
 This is the grand finale. We will take everything from Parts 1 through 11 and encode it into Terraform modules. By the end of this article, you will have a complete, production-grade Terraform project that provisions your entire Alibaba Cloud infrastructure with one command.
 
 
+
+---
+
 ## Why Infrastructure as Code?
 
 If you're reading the twelfth article in this series, you probably don't need to be convinced. But let me lay out the case precisely, as these are the arguments you'll use to convince your team to invest the time.

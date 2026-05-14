@@ -18,6 +18,9 @@ translationKey: "linear-algebra-6"
 ---
 ![Essence of Linear Algebra (6): Eigenvalues and Eigenvectors — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/06-eigenvalues-and-eigenvectors/illustration_1.png)
 
+
+---
+
 ## The Big Question
 
 Apply a matrix to a vector and almost anything can happen. Most vectors get rotated *and* stretched, landing in a brand new direction. But scattered among them are a few special vectors that refuse to leave their span. They come out of the transformation pointing exactly the way they went in — only longer, shorter, or flipped.

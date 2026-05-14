@@ -25,6 +25,9 @@ Almost every public cloud breach since has the same shape. Not zero-days, not na
 
 This article walks the full stack from the shared responsibility contract down to incident response, with code, diagrams, failure modes and rehearsable runbooks at every layer.
 
+
+---
+
 ## What You Will Learn
 
 - The shared responsibility model and how it shifts across IaaS / PaaS / SaaS

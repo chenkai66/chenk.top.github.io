@@ -22,6 +22,9 @@ The miracle of the linear case is this: the scalar formula $y(t)=e^{at}y_0$ gene
 
 ![Ordinary Differential Equations (6): Linear Systems and the Matrix Exponential — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Writing ODE systems in matrix form $\mathbf{x}'=A\mathbf{x}$ and why this is more than notation

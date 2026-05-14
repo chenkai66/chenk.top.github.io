@@ -20,6 +20,9 @@ translationKey: "ode-5"
 
 ![Ordinary Differential Equations (5): Power Series and Special Functions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Power series solutions at ordinary points and the role of the radius of convergence

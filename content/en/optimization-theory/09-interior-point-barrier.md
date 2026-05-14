@@ -25,6 +25,9 @@ This article unpacks the machinery in three layers:
 
 We give the central-path complexity proof in full.
 
+
+---
+
 ## What You Will Learn
 
 1. The logarithmic barrier and the central path.

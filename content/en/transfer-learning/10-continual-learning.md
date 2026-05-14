@@ -23,6 +23,9 @@ This post derives why forgetting happens (it is not a bug, it is the structure o
 
 ![Transfer Learning (10): Continual Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The CL problem statement and the three scenarios (Task-IL, Domain-IL, Class-IL)

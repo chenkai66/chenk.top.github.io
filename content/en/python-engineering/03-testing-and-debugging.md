@@ -18,6 +18,9 @@ You change one line and three unrelated features break. You refactor a function 
 
 Tests are not bureaucracy. They are the fastest way to know that your code does what you think it does. A good test suite runs in seconds and catches the bugs that would take hours to find manually.
 
+
+---
+
 ## Why Test
 
 Writing tests costs time up front. Not writing tests costs more time later. Here is the math:

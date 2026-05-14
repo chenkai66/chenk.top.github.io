@@ -16,6 +16,9 @@ You read a paper, want the code, but the "code available at" link is dead, missi
 
 The trick isn't the text encoder—any reasonable CNN or transformer will do. The challenge is that papers and repositories exist on two different graphs (citations for papers, co-star and tag overlap for repositories). Naively running a GCN on each produces embeddings in unrelated spaces. paper2repo bridges these with a small set of known matching paper-repo pairs and a constraint that aligns the embeddings. The rest of the model makes this constraint trainable.
 
+
+---
+
 ## What You Will Learn
 
 - How the joint heterogeneous graph is assembled from three asymmetric signals (citations, co-stars, tag overlap)

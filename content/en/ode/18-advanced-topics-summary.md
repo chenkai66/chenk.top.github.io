@@ -27,6 +27,9 @@ I'll keep this chapter readable rather than encyclopaedic. Each frontier gets th
 
 ![Ordinary Differential Equations (18): Frontiers and Series Finale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Neural ODEs: connecting deep learning with continuous dynamics

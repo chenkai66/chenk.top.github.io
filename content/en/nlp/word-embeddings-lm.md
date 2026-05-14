@@ -22,6 +22,9 @@ The entire trajectory of NLP shifted toward representation learning. This articl
 <!-- wanx-hero -->
 ![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 

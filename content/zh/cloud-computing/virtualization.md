@@ -20,6 +20,9 @@ translationKey: "cloud-computing-2"
 
 没有虚拟化，就没有云计算。每个 EC2 实例、每次 Lambda 调用、每个 Kubernetes Pod，归根结底都依赖同一个核心技巧：**让操作系统对底层硬件深信不疑地“被骗”**。本文将带你走完整个技术栈——从让这个把戏变得廉价的 CPU 指令，到主导市场的四大 Hypervisor，再到决定虚拟机性能是达到裸机 70% 还是 99% 的生产级调优参数。
 
+
+---
+
 ## 你将学到什么
 - 深入理解 CPU 虚拟化的工作原理（保护环、VT-x、EPT），以及 Type 1 与 Type 2 Hypervisor 存在的根本原因
 - 动手配置 VMware ESXi、KVM、Xen 和 Hyper-V，并设置适合生产环境的最佳默认参数

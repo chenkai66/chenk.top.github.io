@@ -22,6 +22,9 @@ This chapter builds the entire toolkit. We will derive it once, prove the struct
 
 ![Ordinary Differential Equations (3): Higher-Order Linear Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why second-order shows up the moment Newton's law meets a restoring force

@@ -22,6 +22,9 @@ When Netflix stores petabytes of video, when Instagram serves billions of photos
 
 This article walks the entire stack: the *theoretical floor* (CAP, consistency, consistent hashing), the *three storage shapes* (object, block, file), the *production systems* you will actually use (S3, HDFS, Ceph), and the *engineering levers* (replication, erasure coding, lifecycle, multipart uploads) that turn raw capacity into a service-level guarantee.
 
+
+---
+
 ## What You Will Learn
 
 1. **The trade-off space** — CAP, PACELC, and why partition tolerance is mandatory

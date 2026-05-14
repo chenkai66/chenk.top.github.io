@@ -22,6 +22,9 @@ Stuffing pixels, audio, and video into a language model so it can "see," "hear,"
 
 This post follows the natural research arc — architecture, model families, downstream tasks, fine-tuning, evaluation, deployment — and tries to be specific enough at each stop that you can act on it. Less "what's possible," more "what to actually pick."
 
+
+---
+
 ## What You Will Learn
 
 - The standard MLLM architecture (vision encoder + projector + LLM) and the trade-offs at each block

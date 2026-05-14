@@ -24,6 +24,9 @@ These settings do have logs — millions of hours of human driving, decades of d
 
 The answer is "yes, but only if we are very careful." The reason for this caveat is the central theme of this post: distributional shift between the *behavior policy* that generated the data and the *learned policy* that aims to improve on it.
 
+
+---
+
 ## What You Will Learn
 
 - **Why naive off-policy RL fails offline**: extrapolation error, value overestimation, and the death spiral.

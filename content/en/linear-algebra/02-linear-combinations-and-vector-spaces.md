@@ -18,6 +18,9 @@ translationKey: "linear-algebra-2"
 ---
 ![Essence of Linear Algebra (2): Linear Combinations and Vector Spaces — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/illustration_1.png)
 
+
+---
+
 ## Why This Chapter Matters
 
 Open a box of crayons that contains only **red, green, and blue**. How many colors can you draw? The honest answer is **infinitely many** — every shade you have ever seen on a screen is just a different mix of those three. Three "ingredients" produce an entire universe.

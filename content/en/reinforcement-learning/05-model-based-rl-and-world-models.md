@@ -29,6 +29,9 @@ This article traces the modern lineage:  Dyna (1990) -> MBPO (2019) -> World Mod
 
 ![Reinforcement Learning (5): Model-Based RL and World Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The exact trade-offs that make model-based RL win or lose

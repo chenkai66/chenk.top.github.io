@@ -25,6 +25,9 @@ By the end, you should be able to look at any ensemble method and say what it re
 
 ![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why averaging $T$ uncorrelated models cuts variance by a factor of $T$, and what happens when they are correlated.

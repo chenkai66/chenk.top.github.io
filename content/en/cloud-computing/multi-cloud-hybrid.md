@@ -22,6 +22,9 @@ The first article in this series asked, "What is the cloud, and why does it matt
 
 This final article covers the strategic, technical, and operational aspects of running across multiple clouds. We start by discussing when each pattern makes sense (it's not always), walk through the migration framework practitioners use, delve into the network and data plumbing that makes cross-cloud work, and conclude with cost discipline, lock-in mitigation, and the trends — edge, FinOps, sovereign clouds, sustainability — shaping the next decade. The article ends, as the series does, with a synthesis tying all eight parts together.
 
+
+---
+
 ## What You Will Learn
 
 - Multi-cloud vs hybrid cloud vs sovereign cloud: definitions, drivers, when each is right

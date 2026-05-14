@@ -23,6 +23,9 @@ This post derives why that is even possible. We start from the bilingual-embeddi
 
 ![Transfer Learning (11): Cross-Lingual Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The shared-semantic-space hypothesis and the Procrustes alignment that makes it concrete

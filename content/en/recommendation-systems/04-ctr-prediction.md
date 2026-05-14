@@ -33,6 +33,9 @@ By the end, you should be able to read any modern CTR paper, sketch its architec
 
 ![Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The CTR prediction problem and **why** it is uniquely hard (it is not just classification with imbalanced labels)

@@ -16,6 +16,9 @@ A chatbot answers questions. An *agent* gets things done — it browses, runs co
 
 This guide is the expanded version of that idea. It covers the four core capabilities (planning, memory, tool use, reflection), major framework families, multi-agent collaboration, evaluation, and the production concerns that determine whether an agent succeeds or fails.
 
+
+---
+
 ## What You Will Learn
 
 - Why an agent is more than "GPT-4 in a `while` loop"

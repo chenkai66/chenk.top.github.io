@@ -20,6 +20,9 @@ translationKey: "ode-8"
 
 ![Ordinary Differential Equations (8): Nonlinear Systems and Phase Portraits — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why nonlinear systems are *fundamentally* different from linear ones

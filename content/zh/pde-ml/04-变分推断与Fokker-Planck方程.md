@@ -18,6 +18,9 @@ translationKey: "pde-ml-4"
 ---
 ![偏微分方程与机器学习（四）：变分推断与Fokker-Planck方程 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_1.png)
 
+
+---
+
 ## 本文的七个维度
 
 1. **动机**：为什么 VI 和 MCMC 看似迥异，实则求解同一个 PDE。

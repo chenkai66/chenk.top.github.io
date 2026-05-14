@@ -21,6 +21,9 @@ translationKey: "ml-math-derivations-18"
 ---
 ![ML Math Derivations (18): Clustering Algorithms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 A million customer records arrive with no labels. Can you discover meaningful groups automatically? That is **clustering**, the most fundamental unsupervised learning task. Unlike classification, clustering forces you to first answer a slippery question: *what does "similar" even mean?* Every clustering algorithm is, at heart, a different answer to that question — a different geometric, probabilistic, or graph-theoretic prior on what a "group" is.

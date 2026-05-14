@@ -19,6 +19,9 @@ translationKey: "linear-algebra-12"
 ---
 ![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing — Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_1.png)
 
+
+---
+
 ## The "Less Is More" Miracle
 
 A raw 24-megapixel photograph weighs in at roughly 70 MB. JPEG compresses it to a few hundred kilobytes — a 100$\times$reduction — and you cannot tell the difference. A traditional MRI scan takes thirty minutes; a modern compressed sensing MRI gets the same image in five.

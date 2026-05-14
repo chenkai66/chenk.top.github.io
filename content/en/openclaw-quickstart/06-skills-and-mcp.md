@@ -22,6 +22,9 @@ After five pieces, you have a working OpenClaw with a chat channel. This is wher
 
 ![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
+
+---
+
 ## What we'll build
 
 ![Skill composition pipeline — from trigger to tool execution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/fig_skills.png)

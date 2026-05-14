@@ -24,6 +24,9 @@ This final installment concludes the series by bringing together all the concept
 
 ![Reinforcement Learning (12): RLHF and LLM Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The **three-stage RLHF pipeline**: supervised fine-tuning, reward-model training, and PPO with a KL anchor — and why each stage exists

@@ -16,6 +16,9 @@ translationKey: "time-series-3"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - How GRU's **update gate** $z_t$ and **reset gate** $r_t$ achieve LSTM-quality memory with one fewer gate and one fewer state.

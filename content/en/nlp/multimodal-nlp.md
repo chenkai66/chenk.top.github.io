@@ -31,6 +31,9 @@ This article walks through that arc end-to-end: the math behind contrastive alig
 <!-- wanx-hero -->
 ![NLP (11): Multimodal Large Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 

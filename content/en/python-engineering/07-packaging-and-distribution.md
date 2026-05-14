@@ -19,6 +19,9 @@ You wrote a useful utility. A colleague asks you to share it. You zip the folder
 
 Proper packaging eliminates all of this. With `pip install your-tool`, everything just works: correct dependencies, correct versions, and a clean CLI command.
 
+
+---
+
 ## Package vs Module vs Library
 
 These terms are used loosely, but they have specific meanings in Python:

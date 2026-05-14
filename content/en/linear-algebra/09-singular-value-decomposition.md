@@ -19,6 +19,9 @@ translationKey: "linear-algebra-9"
 ---
 ![Essence of Linear Algebra (9): Singular Value Decomposition — The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)
 
+
+---
+
 ## Why SVD Earns the Crown
 
 The spectral theorem of [Chapter 8](/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/) gave us $A = Q\Lambda Q^T$ — a beautifully clean factorisation, but **only for symmetric matrices**. Most matrices that show up in practice are not symmetric, and many are not even square:

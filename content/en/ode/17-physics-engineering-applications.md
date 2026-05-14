@@ -24,6 +24,9 @@ This chapter is a deliberate tour through five canonical applications. Each one 
 
 ![Ordinary Differential Equations (17): Physics and Engineering Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The nonlinear pendulum: small-angle linearisation vs the full equation, period vs amplitude, the separatrix

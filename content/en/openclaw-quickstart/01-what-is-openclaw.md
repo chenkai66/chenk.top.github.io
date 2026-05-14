@@ -22,6 +22,9 @@ This is the first part of a six-part series. By the end, you should have a worki
 
 ![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
+
+---
+
 ## Prerequisites
 Before diving in, here's what I expect you to already have:
 

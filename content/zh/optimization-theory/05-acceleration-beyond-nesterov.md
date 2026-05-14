@@ -22,6 +22,9 @@ translationKey: "optim-05"
 
 统一的工具是一个 **Lyapunov 势函数（Lyapunov potential）** —— 一种非负量，算法在每一步都会使其减小。Nesterov 和 Heavy-Ball 都有 Lyapunov 证明，而下界本质上说明了 Lyapunov 减小的速度不可能更快。
 
+
+---
+
 ## 你将学到什么
 
 1. Nemirovski--Yudin 下界：在最坏情况的光滑强凸问题上，任何一阶方法至少需要 $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ 次迭代。

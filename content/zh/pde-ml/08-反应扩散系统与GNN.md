@@ -20,6 +20,9 @@ translationKey: "pde-ml-8"
 ---
 ![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
 
+
+---
+
 ## 你将学到什么
 
 在引文图上堆叠 32 层 GCN，准确率会从 81% 骤降至 20%，所有节点特征最终坍缩为同一向量——这就是 GNN 中的“热寂”现象，即**过度平滑**（over-smoothing）。其根源可直接追溯至 PDE 理论：**单层 GCN 实质上是图上热方程的一个显式欧拉步**，而热方程只有一个不动点——常数函数。早在 1952 年，Alan Turing 就提出了解法：若在扩散方程中加入一个**反应项**，原本均匀的状态便能自发分裂出条纹、斑点或迷宫等复杂结构。同样的技巧——引入一个可学习的反应项——能让深层 GNN 免于坍缩，保持表达能力。

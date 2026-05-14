@@ -30,6 +30,9 @@ aliases:
 2. 梳理主流启发式算法谱系——粒子群优化（PSO）、遗传算法（GA）、模拟退火（SA）、螺旋优化（SOA）等，并厘清各自适用场景；
 3. 展开一项完整案例研究：将**螺旋优化算法（Spiral Optimization Algorithm, SOA）** 应用于一个带约束的均值-方差投资组合问题——该问题建模为混合整数非线性规划（Mixed-Integer Nonlinear Program, MINLP）。
 
+
+---
+
 ## 你将学到什么
 - 整数规划的标准建模方式，以及分支定界法如何利用 LP 松弛提供上下界来系统剪枝搜索树；
 - 割平面法（Cutting Planes）、Gomory 割平面，以及驱动现代商业 MIP 求解器的核心框架——**分支割平面法（Branch-and-Cut）**；

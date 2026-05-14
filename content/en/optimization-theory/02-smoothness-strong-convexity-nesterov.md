@@ -25,6 +25,9 @@ A surprising amount of "optimizer folklore" collapses into three concepts:
 
 This post lays them out on a single thread: nail the geometric intuition with the minimum number of inequalities, prove the key theorems, then close with a least-squares experiment that pits GD, Heavy Ball, and Nesterov against each other. The goal is not to stack formulas — it is to make you able to look at a new problem and instantly answer "what step size, what rate, is acceleration worth it?"
 
+
+---
+
 ## What You Will Learn
 
 - The geometric meaning of Lipschitz continuity: every point sits inside a slope cone that contains the function graph.

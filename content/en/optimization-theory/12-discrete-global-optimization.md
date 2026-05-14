@@ -31,6 +31,9 @@ This article:
 2. Surveys the heuristic landscape — particle swarm, genetic algorithms, simulated annealing, spiral optimization — and where each fits.
 3. Walks through a substantial case study: applying the Spiral Optimization Algorithm to a constrained mean-variance portfolio problem (a mixed-integer nonlinear program, MINLP).
 
+
+---
+
 ## What You Will Learn
 
 - The integer programming formulation and how branch-and-bound prunes the search tree using LP relaxation bounds.

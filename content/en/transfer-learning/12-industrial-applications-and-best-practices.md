@@ -24,6 +24,9 @@ This is the final part of the series. The previous eleven parts gave you the mec
 
 Everything below is written from the perspective of a team that has to keep a model running, not one that has to publish a paper. The trade-offs are different. You will see more spreadsheets than equations, more monitoring dashboards than architecture diagrams, and more conversations with product managers than with conference reviewers. If your job is to ship and maintain models that create business value, this chapter is for you.
 
+
+---
+
 ## When Transfer Learning Is the Right Tool
 
 Transfer learning is not always the answer. Three questions determine whether it belongs in your stack:

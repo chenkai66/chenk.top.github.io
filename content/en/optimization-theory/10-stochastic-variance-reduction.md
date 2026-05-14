@@ -32,6 +32,9 @@ This article:
 3. Derives SVRG and proves its linear convergence on strongly convex objectives.
 4. Mentions SAGA and Katyusha and the lower bound that motivated their development.
 
+
+---
+
 ## What You Will Learn
 
 1. The two SGD regimes: convex ($O(1/\sqrt{T})$ rate) and strongly convex ($O(1/T)$ rate).

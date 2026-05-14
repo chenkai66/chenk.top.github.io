@@ -18,6 +18,9 @@ translationKey: "linear-algebra-4"
 ---
 ![Essence of Linear Algebra (4): The Secrets of Determinants — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/04-the-secrets-of-determinants/illustration_1.png)
 
+
+---
+
 ## Beyond the Formula
 
 In most classrooms, determinants are introduced as a formula to memorize:

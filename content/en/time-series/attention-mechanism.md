@@ -16,6 +16,9 @@ translationKey: "time-series-4"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why recurrent models hit a wall on long-range dependencies, and how attention removes it.

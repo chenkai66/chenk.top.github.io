@@ -20,6 +20,9 @@ translationKey: "openclaw-quickstart-3"
 
 ![OpenClaw 快速入门（3）：使代理循环工作的六层结构 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_1.png)
 
+
+---
+
 ## 六层架构
 
 ![OpenClaw 代理的六层结构：通道、网关、路由+会话+Pi 代理、工具+技能、内存+上下文引擎、LLM 提供商](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/fig1_six_layers.png)

@@ -22,6 +22,9 @@ Show a child one photograph of a pangolin and they will spot pangolins for life.
 
 The trick is not to memorize individual classes harder. It is to learn *how to learn* from very few examples, then carry that ability over to brand-new classes at test time. This article covers the two families that dominate the field today: **metric learning**, which learns a good distance function, and **meta-learning**, which learns a good initialization.
 
+
+---
+
 ## What You Will Learn
 
 - The N-way K-shot evaluation protocol and why standard training fails on it

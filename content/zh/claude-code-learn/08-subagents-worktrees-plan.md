@@ -22,6 +22,9 @@ translationKey: "claude-code-learn-8"
 
 ![Claude Code 实战（8）：子代理、工作树和计划模式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
+
+---
+
 ## Plan mode —— 气闸舱
 
 Plan mode 是三者中成本最低的。按下 `Shift+Tab`，直到状态栏显示 **plan**。此时模型只做规划，不执行任何操作。它会读代码、思考、提出方案，然后停下来等你确认。你可以批准、修改，或者直接放弃。只有你点头后，它才会真正动手。

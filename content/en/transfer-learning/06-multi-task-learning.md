@@ -24,6 +24,9 @@ Multi-task learning (MTL) is the alternative: one shared backbone, one task-spec
 
 This article is about doing it well. The challenging aspects aren't the architecture — that's just one diagram. The real challenges are (1) the loss-scale mismatch between a cross-entropy term and an L2 depth term, (2) the gradient conflicts that occur 30-50% of the time when two tasks pull in different directions, and (3) determining which tasks should be in the same model. We will cover the architectures (hard vs soft sharing, cross-stitch, MTAN), the optimizers that survive contact with real loss landscapes (Uncertainty Weighting, GradNorm, PCGrad, CAGrad), and a runnable PyTorch framework that ties it all together.
 
+
+---
+
 ## What You Will Learn
 
 - Why MTL works at all — the regularization, data-augmentation and efficiency views

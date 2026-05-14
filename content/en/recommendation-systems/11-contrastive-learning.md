@@ -22,6 +22,9 @@ This article walks through the core machinery (InfoNCE, temperature, augmentatio
 
 ![Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **Why** contrastive learning attacks the sparsity, cold-start, and popularity-bias problems from a different angle than "more data"

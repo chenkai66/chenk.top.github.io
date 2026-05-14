@@ -21,6 +21,9 @@ The README claims five minutes, but I'd say ten. The extra time accounts for the
 
 ![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
+
+---
+
 ## Prerequisites
 
 - Node `v22.16` or newer. The project is strict about this. Older Node versions will install, but the gateway will throw errors with optional chaining in some places. I run `v24` because that's the recommended track.

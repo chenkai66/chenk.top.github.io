@@ -20,6 +20,9 @@ translationKey: "ode-9"
 
 ![Ordinary Differential Equations (9): Chaos Theory and the Lorenz System — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The four conditions that *together* define chaos

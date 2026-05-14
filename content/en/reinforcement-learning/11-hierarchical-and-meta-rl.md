@@ -24,6 +24,9 @@ A second weakness of standard RL is that every new task is learned from scratch.
 
 This post unifies the two ideas: hierarchy buys temporal abstraction, meta-learning buys task abstraction. Both reduce the effective dimensionality of the learning problem, and the modern frontier (FuN, HIRO, MAML, RL$^2$) combines them aggressively.
 
+
+---
+
 ## What You Will Learn
 
 - **Options framework** --- semi-Markov decision processes and intra-option Q-learning

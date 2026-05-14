@@ -20,6 +20,9 @@ For most of the 2010s, saying "deep learning for time series" meant using LSTM. 
 
 This chapter explains why that recipe works. We'll derive the receptive-field formula that makes dilation important, walk through the residual block step by step, and finish with two production-grade case studies (traffic flow and multivariate sensor forecasting) using a PyTorch implementation you can copy out.
 
+
+---
+
 ## What You Will Learn
 
 - Why a causal 1-D convolution is required for honest forecasting and how left-padding implements it.

@@ -22,6 +22,9 @@ The interesting question for 2023–2026 is not "LLM or traditional?" — it's *
 
 ![Recommendation Systems (12): Large Language Models and Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The **three roles** an LLM can play in a recommender: enhancer, predictor, agent — and which papers ship which

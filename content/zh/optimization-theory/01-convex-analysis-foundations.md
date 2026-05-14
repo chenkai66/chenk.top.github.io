@@ -22,6 +22,9 @@ translationKey: "optim-01"
 - **共轭函数（conjugate）** $f^*$ 是广义化的勒让德变换（Legendre transform）：它将逐点不等式转化为线性不等式，是连接原始问题（primal problem）与对偶问题（dual problem）的关键桥梁。
 - **次微分（subdifferential）** $\partial f(x)$ 是非光滑凸函数在点 $x$ 处“梯度”的恰当推广；只要 $x$ 位于 $\mathrm{dom}(f)$ 的相对内部（relative interior），$\partial f(x)$ 就非空。
 
+
+---
+
 ## 你将学到什么
 1. 凸集、凸包（convex hull）、投影定理（含严格证明）；
 2. 凸函数及其四种等价刻画方式（定义、上镜图、一阶条件、二阶条件）；

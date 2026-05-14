@@ -18,6 +18,9 @@ translationKey: "pde-ml-4"
 ---
 ![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_1.png)
 
+
+---
+
 ## Seven Dimensions of This Article
 
 1. **Motivation**: why VI and MCMC look different but solve the same PDE.

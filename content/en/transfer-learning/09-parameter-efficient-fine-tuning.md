@@ -21,6 +21,9 @@ How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of
 
 ![Transfer Learning (9): Parameter-Efficient Fine-Tuning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/09-parameter-efficient-fine-tuning/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why the low-rank assumption holds for weight updates

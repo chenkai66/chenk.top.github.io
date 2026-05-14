@@ -16,6 +16,9 @@ translationKey: "time-series-5"
 ---
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The full encoder-decoder Transformer, redrawn for time series

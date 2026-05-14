@@ -20,6 +20,9 @@ polished_by_qwen_max: true
 ---
 ![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_1.png)
 
+
+---
+
 ## 一、为什么 SVD 配得上“皇冠”二字
 
 第 8 章的谱定理给出了 $A = Q\Lambda Q^{\!\top}$，形式简洁优美，但有个硬性限制：**仅适用于对称矩阵**。而现实中遇到的矩阵大多不对称，甚至根本不是方阵：

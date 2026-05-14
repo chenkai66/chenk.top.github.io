@@ -19,6 +19,9 @@ Every application you have ever used sits on top of a data model. Pick the wrong
 
 For the past four decades, one model has dominated: the relational model. Flat tables, foreign keys, SQL. It is not glamorous. It is not trendy. But there is a reason almost every bank, airline, hospital, and e-commerce platform still runs on it — and understanding *why* is the first step to understanding databases at all.
 
+
+---
+
 ## The Relational Model: Codd's Big Idea
 
 In 1970, Edgar F. Codd published "A Relational Model of Data for Large Shared Data Banks." The core insight was radical at the time: separate the **logical** representation of data from its **physical** storage. Applications should not care whether data lives on disk, in memory, or across ten machines. They should see **tables** — nothing more.

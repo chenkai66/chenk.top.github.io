@@ -22,6 +22,9 @@ The shift from monolithic applications to cloud-native architectures is one of t
 
 This article walks the cloud-native stack from first principles. We start with the architectural shift that motivates everything else, then dig into what a container really is at the Linux kernel level, climb up to Kubernetes orchestration, examine when a service mesh earns its complexity, and finish with packaging and delivery via Helm and GitOps. Examples are deliberately concrete: copy-pastable Dockerfiles, real manifests, and the trade-offs that matter when you run this in production.
 
+
+---
+
 ## What You Will Learn
 
 - The 12-Factor App methodology and *why* each factor exists

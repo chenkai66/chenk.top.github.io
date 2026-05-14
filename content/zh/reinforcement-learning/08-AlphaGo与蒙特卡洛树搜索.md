@@ -21,6 +21,9 @@ translationKey: "reinforcement-learning-8"
 仅仅 18 个月后，AlphaGo Zero 仅凭游戏规则和三天的自我对弈，就从零开始学会了围棋，并以 100 比 0 的战绩彻底碾压了当年战胜李世石的版本。AlphaZero 将同一套方法推广至国际象棋和将棋，而 MuZero 更进一步，连游戏规则都不再需要预先提供。本章将完整追溯这一技术路线的演进历程——涵盖算法设计、数学原理，以及一个可实际训练的完整实现。
 ![强化学习（八）：AlphaGo与蒙特卡洛树搜索 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_1.png)
 
+
+---
+
 ## 你将学到什么
 - **MCTS 基础**：四阶段循环、UCT 探索与利用平衡、渐近最优性
 - **AlphaGo （2016）**：三阶段训练（监督策略、强化策略、价值网络），以及 MCTS 如何融合它们

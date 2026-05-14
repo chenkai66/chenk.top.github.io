@@ -26,6 +26,9 @@ XGBoost 和 LightGBM 是表格数据领域的两大利器——从 Kaggle 排行
 从 API 看，两者似乎可以无缝替换，但当数据量 $N$ 或特征维度 $d$ 增大时，它们的表现差异会变得非常明显。本文将推导这些设计背后的每一个公式，让你在阅读调参指南时，能清楚知道每个参数存在的原因。
 
 ![机器学习数学推导（十二）：XGBoost 与 LightGBM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/12-XGBoost与LightGBM/illustration_1.png)
+
+---
+
 ## 你将学到什么
 
 - XGBoost 的二阶泰勒展开如何直接计算出最优叶权重的闭式解，以及任意树结构的“结构分数”。

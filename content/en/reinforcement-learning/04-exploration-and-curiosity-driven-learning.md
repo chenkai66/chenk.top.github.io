@@ -27,6 +27,9 @@ This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a 
 
 ![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why $\varepsilon$-greedy, Boltzmann, and even UCB collapse in high-dimensional environments

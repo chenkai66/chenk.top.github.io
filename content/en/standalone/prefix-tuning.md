@@ -14,6 +14,9 @@ translationKey: "prefix-tuning"
 
 Fine-tuning a 1.5B-parameter GPT-2 model for each downstream task means saving a fresh 1.5B-parameter checkpoint every time. Across a dozen tasks that is a substantial storage and serving headache, and it makes sharing a single base model essentially impossible. *Prefix-Tuning* (Li & Liang, 2021) takes the opposite stance: freeze every weight of the language model, and learn a tiny block of continuous vectors — the *prefix* — that is fed into the attention layers as if it were context the model already attended to. The model never changes; only the prefix does, and a different prefix produces a different "personality" on demand.
 
+
+---
+
 ## What You Will Learn
 
 - What a prefix actually *is*, and why injecting it as K/V at every layer is more powerful than prepending soft tokens at the input

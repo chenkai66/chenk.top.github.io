@@ -22,6 +22,9 @@ translationKey: "reinforcement-learning-6"
 **信任域方法**精准地抓住了问题核心：每次更新应限制*行为*的变化，而非参数的变化。TRPO 通过硬性的 KL 散度约束和二阶优化器实现了这一点；而 PPO 则仅用一行带裁剪（clip）的简单算术，就模拟出了类似效果。最终，这个更简单的技巧胜出了——PPO 不仅训练出了 OpenAI Five，还支撑了 ChatGPT 的 RLHF 阶段，并成为几乎所有现代机器人策略的基石，至今仍是应用深度强化学习领域的主力算法。
 ![强化学习（六）：PPO与TRPO：信任域策略优化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/illustration_1.png)
 
+
+---
+
 ## 你将学到什么
 
 - 为什么朴素策略梯度会**灾难性地**不稳定，并附带一个详细示例

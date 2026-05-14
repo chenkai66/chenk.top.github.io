@@ -18,6 +18,9 @@ translationKey: "recommendation-systems-15"
 
 ![Recommendation Systems (15): Real-Time Recommendation and Online Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - **The two paths**: a real-time recommender is two pipelines glued together — an *asynchronous write-path* (events → state → model) and a *synchronous read-path* (request → recall → rank → response).

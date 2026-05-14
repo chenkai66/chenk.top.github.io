@@ -26,6 +26,9 @@ This article develops:
 
 Each result is proved or carefully cited. We close with the SVM example, where the dual cuts the problem dimension from $d$ (number of features) to $n$ (number of training points) — the original kernel-method magic.
 
+
+---
+
 ## What You Will Learn
 
 1. Constructing the Lagrangian and the dual function.

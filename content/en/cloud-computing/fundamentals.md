@@ -22,6 +22,9 @@ Every team building software in 2025 inherits the same buy-or-rent question thei
 
 This first instalment of the series is the conceptual ground floor. It deliberately moves slowly: by the end you should be able to read a cloud architecture diagram, ask the right questions in a vendor pitch, and reason about cost, reliability and lock-in without resorting to slogans.
 
+
+---
+
 ## What You Will Learn
 
 - The seven dimensions every cloud decision turns on — and why "use the cloud" is not a single decision

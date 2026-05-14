@@ -15,6 +15,9 @@ translationKey: "session-based-recommendation-with-graph-neural-networks"
 
 这篇笔记详细讲解了 SR-GNN 的各个方面，包括会话图的构建、门控 GNN（GGNN）在图上的操作、会话向量的“局部+全局”两路融合、打分和训练中的问题，以及它在哪些情况下不适用，旨在帮助你准确判断其适用边界。
 
+
+---
+
 ## 你将学到什么
 - 如何从点击流构造有向加权会话图，并将入/出邻接矩阵输入 GGNN
 - 门控 GNN 更新分为“先聚合消息、再通过 GRU 单元”两步

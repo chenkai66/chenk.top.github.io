@@ -23,6 +23,9 @@ In 2017 GitLab lost six hours of database state. An engineer, exhausted, ran `rm
 
 This article is about building that system. CI/CD that gates quality before code reaches users. Infrastructure as code so that "the production environment" is a Git revision, not a snowflake server. Monitoring that distinguishes signal from noise. Logs you can actually search. And the SRE practices — error budgets, SLOs, blameless postmortems — that turn ad-hoc firefighting into engineering.
 
+
+---
+
 ## What You Will Learn
 
 - CI/CD pipelines: stages, quality gates, rollback, and a complete GitHub Actions example

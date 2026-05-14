@@ -24,6 +24,9 @@ translationKey: "reinforcement-learning-2"
 DQN 并非凭空创造，而是对 Chris Watkins 在 1989 年提出的 **Q-Learning** 算法的扩展：用神经网络替代了查表，并辅以两项关键工程技巧，防止训练过程失控。本文将详细解释这两项技巧各自解决了什么问题，手把手带你用 PyTorch 实现一个完整的 DQN 智能体，并梳理那些让 DQN 从 Atari 演示蜕变为现代强化学习主力的各种改进版本。
 ![强化学习（二）：Q-Learning 与深度 Q 网络（DQN） — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/illustration_1.png)
 
+
+---
+
 ## 你将学到什么
 
 - 为什么表格型 Q-Learning 在高维状态空间中会失效

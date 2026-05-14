@@ -24,6 +24,9 @@ These are the **three problems of HMMs**, and the surprise is that all three red
 
 ![ML Math Derivations (15): Hidden Markov Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The HMM joint distribution and its **two conditional-independence assumptions**

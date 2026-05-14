@@ -17,6 +17,9 @@ Most LLM tutorials end where the interesting work begins. They show you how to c
 
 This article is about everything that comes after the demo. It is opinionated on purpose: production LLM systems are mostly plain distributed systems with one non-deterministic component bolted on, and most of the engineering effort goes into containing that non-determinism. We will work through seven dimensions — application architecture, workflow patterns, the RAG-vs-fine-tune decision, deployment topology, cost, observability, and enterprise integration — keeping each one short, concrete, and grounded in the levers that actually move the needle.
 
+
+---
+
 ## What You Will Learn
 
 - How to layer an LLM application so that only one layer is probabilistic

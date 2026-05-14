@@ -21,6 +21,9 @@ translationKey: "ml-math-derivations-6"
 
 ![ML Math Derivations (6): Logistic Regression and Classification — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why sigmoid is the natural way to turn a real-valued score into a probability, and why its derivative is so clean.

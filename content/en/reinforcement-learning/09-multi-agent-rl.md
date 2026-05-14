@@ -24,6 +24,9 @@ The payoff for solving this is large. AlphaStar reached Grandmaster on the StarC
 
 ![Reinforcement Learning (9): Multi-Agent Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - The four hard problems unique to MARL: **non-stationarity**, **credit assignment**, **partial observability**, and **scalability**

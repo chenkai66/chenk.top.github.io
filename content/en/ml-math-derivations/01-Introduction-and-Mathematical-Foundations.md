@@ -18,6 +18,9 @@ translationKey: "ml-math-derivations-1"
 ---
 ![ML Math Derivations (1): Introduction and Mathematical Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/illustration_1.png)
 
+
+---
+
 ## What this chapter does
 
 In 2005 Google Research showed, on a public benchmark, that a statistical translation model trained on raw bilingual text could outperform decades of carefully engineered linguistic rules. The conclusion was uncomfortable for the experts of the day, but mathematically liberating: **a system that has never been told the rules of a language can still recover them, given enough examples.** Why?

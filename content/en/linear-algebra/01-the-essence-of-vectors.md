@@ -17,6 +17,9 @@ translationKey: "linear-algebra-1"
 ---
 ![Essence of Linear Algebra (1): The Essence of Vectors — More Than Just Arrows — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/illustration_1.png)
 
+
+---
+
 ## Why Vectors, and Why Care?
 
 A physicist talks about a *force*. A data scientist talks about a *feature*. A game programmer talks about a *velocity*. A quantum theorist talks about a *state*. Different fields, different terms — but the same underlying object: **a vector**.

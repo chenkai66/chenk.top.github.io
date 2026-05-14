@@ -22,6 +22,9 @@ A cloud platform is essentially a network with attached computers. The compute l
 
 This article maps the cloud networking stack from the packet up: how a VPC carves an isolated network from shared infrastructure, what changes when load balancers move from L4 to L7, how a CDN converts geography into latency savings, why SDN reshaped the data center, and how BGP stitches it all together across regions.
 
+
+---
+
 ## What You Will Learn
 
 1. **VPC internals** — subnets, route tables, gateways, endpoints, and the encapsulation that makes them isolated

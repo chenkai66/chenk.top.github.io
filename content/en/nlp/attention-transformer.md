@@ -25,6 +25,9 @@ The road from "RNN with attention" to the full Transformer is not long, but ever
 <!-- wanx-hero -->
 ![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Why fixed-size context vectors broke vanilla Seq2Seq, and how attention rescued it

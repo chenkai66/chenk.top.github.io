@@ -21,6 +21,9 @@ translationKey: "ml-math-derivations-9"
 
 ![ML Math Derivations (9): Naive Bayes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Bayes' theorem as the foundation of probabilistic classification, and why the Bayes-optimal rule is the *target* every classifier secretly imitates.

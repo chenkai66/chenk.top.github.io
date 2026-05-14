@@ -21,6 +21,9 @@ The greedy algorithm paradigm seems too good to be true: at every step, choose t
 
 This article walks through the structural reason greedy is correct on some problems and broken on others, then applies that lens to seven LeetCode classics: **Jump Game**, **Jump Game II**, **Gas Station**, **Best Time to Buy and Sell Stock II**, **Non-overlapping Intervals**, **Task Scheduler**, and **Partition Labels**.
 
+
+---
+
 ## What Makes a Problem "Greedy"?
 
 A **greedy algorithm** builds a solution incrementally by committing, at each step, to the choice that is locally best according to some criterion — and **never undoing it**. That last clause is what separates greedy from backtracking and from DP: there is no `undo`, no memo table of alternative branches.

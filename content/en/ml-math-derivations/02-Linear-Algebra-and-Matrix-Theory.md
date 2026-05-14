@@ -18,6 +18,9 @@ translationKey: "ml-math-derivations-2"
 ---
 ![ML Math Derivations (2): Linear Algebra and Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_1.png)
 
+
+---
+
 ## Why this chapter, and what's different
 
 If you have already worked through a standard linear-algebra course you have seen most of these objects. **This chapter is not that course.** It is the *ML practitioner's slice* of linear algebra: the half-dozen ideas that actually appear when you implement gradient descent, run PCA, train a neural net, or read a paper.

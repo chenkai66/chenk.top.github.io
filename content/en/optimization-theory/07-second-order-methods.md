@@ -21,6 +21,9 @@ The cost is in the per-iteration work: Newton solves an $n \times n$ linear syst
 
 This article gives the convergence proofs, derives the BFGS update from the secant condition, walks through the L-BFGS two-loop recursion line by line, and explains trust-region methods (which use the same Hessian information but with a different globalization strategy).
 
+
+---
+
 ## What You Will Learn
 
 1. Newton's method: derivation from second-order Taylor approximation, proof of local quadratic convergence under standard assumptions.

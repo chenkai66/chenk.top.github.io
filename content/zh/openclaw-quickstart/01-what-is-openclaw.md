@@ -21,6 +21,9 @@ translationKey: "openclaw-quickstart-1"
 
 ![OpenClaw 快速入门 (1)：这是什么 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
+
+---
+
 ## 前置知识
 动手之前，先说明一下前提条件：
 

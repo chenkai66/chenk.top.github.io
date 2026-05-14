@@ -21,6 +21,9 @@ translationKey: "openclaw-quickstart-6"
 
 ![OpenClaw 快速入门 (6)：技能、MCP 及实际应用 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
+
+---
+
 ## 我们要做什么
 
 ![技能组合流水线 —— 从触发到工具执行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/fig_skills.png)

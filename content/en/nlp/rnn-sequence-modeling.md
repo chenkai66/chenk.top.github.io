@@ -23,6 +23,9 @@ This article builds up the family of recurrent architectures from scratch. We st
 <!-- wanx-hero -->
 ![NLP (3): RNN and Sequence Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - How RNNs maintain memory through recurrent connections and parameter sharing

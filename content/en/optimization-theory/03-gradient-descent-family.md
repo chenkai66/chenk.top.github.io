@@ -22,6 +22,9 @@ Why is "tuning the LR is an art" a meme for ResNet, while every modern LLM paper
 
 This post walks the lineage end-to-end on a single thread: each step exists because of a **specific failure** of the previous one. We end with the three directions that have actually entered the post-2023 large-model toolkit: Lion, Sophia, and Schedule-Free.
 
+
+---
+
 ## What You Will Learn
 
 - Why GD zig-zags on ill-conditioned losses, and how momentum fixes it physically

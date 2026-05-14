@@ -20,6 +20,9 @@ translationKey: "ode-7"
 
 ![Ordinary Differential Equations (7): Stability Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/illustration_1.png)
 
+
+---
+
 ## What You Will Learn
 
 - Three precise notions: Lyapunov stable, asymptotically stable, unstable

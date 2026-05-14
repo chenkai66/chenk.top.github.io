@@ -16,6 +16,9 @@ LoRA is the default tool for adapting a frozen base model: cheap, stable, mergea
 
 [**MoSLoRA**](https://arxiv.org/abs/2406.11909) (Wu, Huang and Wei, 2024) takes a different turn. Instead of one rank-$r$ pair $(B, A)$ it uses $k$ rank-$r$ pairs and lets a tiny **mixer matrix** decide how to combine them. The decomposition rewrites cleanly as a single $B\, W\, A$ product, so the mergeability that made LoRA deployable is preserved, and the extra parameter cost is essentially the $k\times k$ mixer. This post walks through why a single subspace is a real bottleneck, how the mixer changes the geometry of the update, where MoSLoRA actually moves the needle, and how to tune it without overfitting the mixer.
 
+
+---
+
 ## What You Will Learn
 
 - Why "just increase $r$" is *not* the right fix when adaptations are heterogeneous
