@@ -273,3 +273,50 @@ cd /root/chenk-hugo && git add content/ themes/ && git commit -m "add: series-na
 6. **Front matter**: Both EN and ZH must have matching `translationKey` for language switcher
 7. **Hugo build**: Check for `WARNING` in build output — usually indicates broken refs
 
+
+
+---
+
+## 10. Heading Format Rules
+
+### Auto-numbering (CSS + JS)
+The site uses JavaScript-based auto-numbering for headings. A numbering.js script assigns section numbers to all h2 and h3 headings AFTER the first horizontal rule in the article body.
+
+Rules:
+1. NEVER add manual numbers to headings. No "## 1. Title", no "### 3 Subtitle".
+2. Content separator (---) required before numbered content.
+3. Headings before the first --- are NOT numbered (intro, prerequisites).
+4. Multiple --- between sections are fine for visual separation.
+
+### Heading Hierarchy
+- ## = major sections (auto-numbered 1., 2., 3.)
+- ### = sub-sections (auto-numbered 1.1, 1.2, 2.1)
+- #### = rare, deep nesting only, NOT auto-numbered
+- NEVER use flat ## for everything. Sub-topics must use ###.
+
+### When a number IS part of the title (keep it)
+- "7 ms budget" (measurement)
+- "18 chapters overview" (count)
+- "2023 onwards" (year)
+- "Top 10 Algorithms" (content)
+- "0.0.0 any network" (IP address)
+
+### What to avoid (will double with auto-numbering)
+- "### 1 SVRG algorithm" renders as "6.1 1 SVRG"
+- "## 3. Convex analysis" renders as "1. 3. Convex"
+
+---
+
+## 11. Math (LaTeX) Rules
+
+### Passthrough Extension
+Hugo uses Goldmark passthrough with $ (inline) and $$ (block). KaTeX renders client-side.
+
+### Critical: nabla corruption
+The backslash-n in \nabla can be consumed as a newline during Python file writes or Qwen translation. After any batch processing:
+- Grep for bare "abla" in math contexts
+- Use raw strings (r"\nabla") in Python
+- Same risk applies to: \newcommand, \neq, \nu, \newline
+
+### Blockquote Math
+Hugo cannot handle multi-line $$ blocks inside blockquotes. Always use single-line: > $$content$$
