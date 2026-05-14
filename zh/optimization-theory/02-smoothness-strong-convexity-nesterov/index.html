@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/optimization-theory/>优化理论</a>
 · 第 2 篇</div><h1>优化理论（二）：光滑性、强凸性与 Nesterov 加速</h1><p class=deck>用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-09-15>September 15, 2022</time> · 18 分钟 · 4146 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/convex-analysis/ class=tag>#Convex Analysis</a></div><a class="pill pill-outline" href=/en/optimization-theory/02-smoothness-strong-convexity-nesterov/>Read in English →</a></div></header><div class=prose><p>大量关于优化器的“民间智慧”其实可以归结为三个核心概念：</p><ul><li><strong>梯度有多陡？</strong> Lipschitz 光滑性（<span class=math-inline>$L$</span>
+<span class=meta-line><time datetime=2022-09-15>September 15, 2022</time> · 18 分钟 · 4148 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/convex-analysis/ class=tag>#Convex Analysis</a></div><a class="pill pill-outline" href=/en/optimization-theory/02-smoothness-strong-convexity-nesterov/>Read in English →</a></div></header><div class=prose><p>大量关于优化器的“民间智慧”其实可以归结为三个核心概念：</p><ul><li><strong>梯度有多陡？</strong> Lipschitz 光滑性（<span class=math-inline>$L$</span>
 -smoothness）限制了步长上限。</li><li><strong>底部有多尖锐？</strong> <span class=math-inline>$\mu$</span>
 -强凸性决定了收敛速率，并保证最小值点唯一。</li><li><strong>能否在不牺牲稳定性的情况下更快到达？</strong> Nesterov 加速和自适应重启将每条件数的代价从 <span class=math-inline>$\kappa$</span>
 降至 <span class=math-inline>$\sqrt{\kappa}$</span>
@@ -39,12 +39,12 @@
 。</li><li><strong>封闭性</strong>：Lipschitz 函数在加法、标量乘法和复合下封闭（常数相乘）。这使我们能将复杂模型分解为具有已知常数的 Lipschitz 构件。</li></ol><h3 id=2-梯度-lipschitz--l-光滑性 class=heading-anchor>2 梯度-Lipschitz = <span class=math-inline>$L$</span>
 -光滑性<a href=#2-%e6%a2%af%e5%ba%a6-lipschitz--l-%e5%85%89%e6%bb%91%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \|
-abla f(y) -
-abla f(x)\| \le L\,\|y - x\|.
+\nabla f(y) -
+\nabla f(x)\| \le L\,\|y - x\|.
 $$</span>
 <span class=math-block>$$
 \boxed{\,f(y) \le f(x) + \langle
-abla f(x), y - x\rangle + \frac{L}{2}\,\|y - x\|^2.\,}
+\nabla f(x), y - x\rangle + \frac{L}{2}\,\|y - x\|^2.\,}
 $$</span><p>也就是说：<strong><span class=math-inline>$f$</span>
 被一族曲率为 <span class=math-inline>$L$</span>
 的向上抛物线从上方夹住</strong>。切线是最坏情况下的下包络；抛物线则是实际的上包络。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig2_l_smooth_quadratic.png alt="An L-smooth function is bounded above by a family of quadratic upper models" loading=lazy decoding=async class=content-image></figure></p><p>蓝色曲线为 <span class=math-inline>$f(x) = \tfrac{1}{2}\sin(2x) + \tfrac{1}{2}x^2$</span>
@@ -53,11 +53,11 @@ $$</span><p>也就是说：<strong><span class=math-inline>$f$</span>
 上方，而点线切线仅在 <span class=math-inline>$f$</span>
 局部凸的区域下方。</p><span class=math-block>$$
 f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|
-abla f(x)\|^2.
+\nabla f(x)\|^2.
 $$</span><p>只要 <span class=math-inline>$\eta \le 1/L$</span>
 ，括号内 <span class=math-inline>$\ge 1/2$</span>
 ，因此 <strong>每一步都严格减小 <span class=math-inline>$f$</span>
-</strong>，且减小量至少为常数乘以 <span class=math-inline>$\|abla f\|^2$</span>
+</strong>，且减小量至少为常数乘以 <span class=math-inline>$\|\nabla f\|^2$</span>
 。这才是“步长至多为 <span class=math-inline>$1/L$</span>
 ”的真正来源——并非传言，而是下降引理的直接推论。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/02-smoothness-strong-convexity-nesterov/fig7_stepsize.png alt="GD on a 1D quadratic at three step sizes: contracting at eta=0.8/L, exact at eta=1/L, divergent at eta=2.2/L" loading=lazy decoding=async class=content-image></figure></p><p>同一二次函数 <span class=math-inline>$f(x) = \tfrac{L}{2}x^2$</span>
 （此处 <span class=math-inline>$L = 4$</span>
@@ -71,33 +71,33 @@ $$</span><p>只要 <span class=math-inline>$\eta \le 1/L$</span>
 —— 关键在于 <span class=math-inline>$\sigma(\cdot)\sigma(-\cdot)\le 1/4$</span>
 。</p><h3 id=4-hessian-谱范数蕴含梯度-lipschitz class=heading-anchor>4 Hessian 谱范数蕴含梯度 Lipschitz<a href=#4-hessian-%e8%b0%b1%e8%8c%83%e6%95%b0%e8%95%b4%e5%90%ab%e6%a2%af%e5%ba%a6-lipschitz class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>定理 1（Hessian 谱范数 <span class=math-inline>$\Rightarrow$</span>
 Lipschitz 梯度）</strong>。若 <span class=math-inline>$f$</span>
-二阶可微且 <span class=math-inline>$\sup_x \|abla^2 f(x)\|_2 \le L$</span>
-，则 <span class=math-inline>$abla f$</span>
+二阶可微且 <span class=math-inline>$\sup_x \|\nabla^2 f(x)\|_2 \le L$</span>
+，则 <span class=math-inline>$\nabla f$</span>
 是 <span class=math-inline>$L$</span>
 -Lipschitz 的。</p><span class=math-block>$$
-abla f(y) -
-abla f(x) = \int_0^1
-abla^2 f(x + t(y-x))\,(y-x)\,\mathrm dt.
+\nabla f(y) -
+\nabla f(x) = \int_0^1
+\nabla^2 f(x + t(y-x))\,(y-x)\,\mathrm dt.
 $$</span>
 <span class=math-block>$$
 \|
-abla f(y) -
-abla f(x)\| \le \int_0^1 \|
-abla^2 f(\cdot)\|_2\,\|y-x\|\,\mathrm dt \le L\,\|y-x\|.\quad\blacksquare
+\nabla f(y) -
+\nabla f(x)\| \le \int_0^1 \|
+\nabla^2 f(\cdot)\|_2\,\|y-x\|\,\mathrm dt \le L\,\|y-x\|.\quad\blacksquare
 $$</span><p>对于二次函数 <span class=math-inline>$f(x) = \tfrac{1}{2}x^\top H x$</span>
 ，这恰好给出 <span class=math-inline>$L = \lambda_{\max}(H)$</span>
 —— 与下降引理使用的 <span class=math-inline>$L$</span>
 相同，因此步长规则 <span class=math-inline>$\eta \le 1/\lambda_{\max}(H)$</span>
 是紧致的。</p><hr><h2 id=强凸性存在性唯一性与二次增长 class=heading-anchor>强凸性：存在性、唯一性与二次增长<a href=#%e5%bc%ba%e5%87%b8%e6%80%a7%e5%ad%98%e5%9c%a8%e6%80%a7%e5%94%af%e4%b8%80%e6%80%a7%e4%b8%8e%e4%ba%8c%e6%ac%a1%e5%a2%9e%e9%95%bf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=1-三种等价定义 class=heading-anchor>1 三种等价定义<a href=#1-%e4%b8%89%e7%a7%8d%e7%ad%89%e4%bb%b7%e5%ae%9a%e4%b9%89 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 f(y) \ge f(x) + \langle
-abla f(x), y - x\rangle + \frac{\mu}{2}\,\|y - x\|^2.
+\nabla f(x), y - x\rangle + \frac{\mu}{2}\,\|y - x\|^2.
 $$</span><p>它有三种等价形式，各自适用于不同场景：</p><ol><li><strong>二次下界</strong>（上述不等式）：<span class=math-inline>$f$</span>
 位于一族曲率为 <span class=math-inline>$\mu$</span>
 的向上抛物线上方。</li><li><strong><span class=math-inline>$f - \tfrac{\mu}{2}\|x\|^2$</span>
 是凸的</strong>：减去“<span class=math-inline>$\mu$</span>
 -曲率质量”后剩下凸函数。</li><li><strong>二阶条件</strong>（若 <span class=math-inline>$f$</span>
 是 <span class=math-inline>$C^2$</span>
-）：<span class=math-inline>$abla^2 f(x) \succeq \mu I$</span>
+）：<span class=math-inline>$\nabla^2 f(x) \succeq \mu I$</span>
 。</li></ol><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig3_strong_convexity.png alt="A strongly convex function is bounded BELOW by a family of mu-quadratics; convex but not strongly convex (mu = 0) for contrast" loading=lazy decoding=async class=content-image></figure></p><p>左：一个强凸函数及其三个二次下界模型（每个锚点一个）。右：<span class=math-inline>$f(x) = 0.05\,x^4$</span>
 是凸的但 <strong>非强凸</strong> —— 在原点过于平坦，无法容纳任何 <span class=math-inline>$\mu>0$</span>
 的抛物线下界。这正是此类目标无法获得线性收敛的原因。</p><h3 id=2-存在性与唯一性 class=heading-anchor>2 存在性与唯一性<a href=#2-%e5%ad%98%e5%9c%a8%e6%80%a7%e4%b8%8e%e5%94%af%e4%b8%80%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p><strong>定理 2（存在性）</strong>。若 <span class=math-inline>$f$</span>
@@ -112,7 +112,7 @@ $$</span><p>它有三种等价形式，各自适用于不同场景：</p><ol><li
 -光滑与 <span class=math-inline>$\mu$</span>
 -强凸结合：条件数<a href=#3-l-%e5%85%89%e6%bb%91%e4%b8%8e-mu-%e5%bc%ba%e5%87%b8%e7%bb%93%e5%90%88%e6%9d%a1%e4%bb%b6%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \mu I \preceq
-abla^2 f(x) \preceq L I,
+\nabla^2 f(x) \preceq L I,
 $$</span>
 <span class=math-block>$$\boxed{\,\kappa := \frac{L}{\mu} \ge 1\,}$$</span><p>称为 <strong>条件数</strong>，它控制后续所有收敛速率。大的 <span class=math-inline>$\kappa$</span>
 意味着函数“又长又窄”——最陡方向濒临不稳定，而最平缓方向几乎不提供信号。这正是优化困难的结构性根源。</p><hr><h2 id=加速梯度下降从-kappa-到-sqrtkappa class=heading-anchor>加速梯度下降：从 <span class=math-inline>$\kappa$</span>
@@ -126,13 +126,13 @@ $$</span>
 替换为 <span class=math-inline>$\sqrt{\kappa}$</span>
 <a href=#2-nesterov%e5%89%8d%e7%9e%bb%e5%b0%86-kappa-%e6%9b%bf%e6%8d%a2%e4%b8%ba-sqrtkappa class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 x_{t+1} = x_t - \alpha
-abla f(x_t) + \beta(x_t - x_{t-1}).
+\nabla f(x_t) + \beta(x_t - x_{t-1}).
 $$</span>
 <span class=math-block>$$
 \begin{aligned}
 y_t &= x_t + \beta_t (x_t - x_{t-1}), \\
 x_{t+1} &= y_t - \eta\,
-abla f(y_t).
+\nabla f(y_t).
 \end{aligned}
 $$</span><p>直觉：先用动量外推预测落点，再用该点梯度校正。这点预见性足以在所有 <span class=math-inline>$L$</span>
 -光滑凸函数上保持加速。</p><span class=math-block>$$f(x_t) - f^\star \le \frac{2L\,\|x_0 - x^\star\|^2}{(t+1)^2}.$$</span>
@@ -183,8 +183,8 @@ unknown / locally s.c.</td><td>Adaptive-restart Nesterov</td><td>自适应 <span
 并保持最优速率</td></tr><tr><td>Strictly convex quadratic (least squares)</td><td>Conjugate Gradient first</td><td>最多 <span class=math-inline>$n$</span>
 步有限终止，优于 Nesterov</td></tr><tr><td>Non-convex but locally near-convex (deep nets)</td><td>Momentum / Adam with warmup + cosine</td><td>理论速率不可证；工程经验主导</td></tr></tbody></table><hr><h2 id=最小二乘实验 class=heading-anchor>最小二乘实验<a href=#%e6%9c%80%e5%b0%8f%e4%ba%8c%e4%b9%98%e5%ae%9e%e9%aa%8c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=1-问题与精确常数 class=heading-anchor>1 问题与精确常数<a href=#1-%e9%97%ae%e9%a2%98%e4%b8%8e%e7%b2%be%e7%a1%ae%e5%b8%b8%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\min_{x\in\mathbb{R}^n} f(x) = \frac{1}{2}\|Ax - b\|^2, \qquad A\in\mathbb{R}^{m\times n},\; b\in\mathbb{R}^m.$$</span>
 <span class=math-block>$$
-abla f(x) = A^\top(Ax - b), \qquad
-abla^2 f(x) = A^\top A,
+\nabla f(x) = A^\top(Ax - b), \qquad
+\nabla^2 f(x) = A^\top A,
 $$</span>
 <span class=math-block>$$L = \lambda_{\max}(A^\top A), \qquad \mu = \lambda_{\min}(A^\top A), \qquad \kappa = \kappa(A^\top A) = \kappa(A)^2.$$</span><p><strong>关键提醒</strong>。条件数是 <span class=math-inline>$A$</span>
 条件数的 <em>平方</em>。因此一个看似正常的 <span class=math-inline>$A$</span>
@@ -317,7 +317,7 @@ unknown</td><td>Restart Nesterov</td><td><span class=math-inline>$\big(1 - 1/\sq
 ：GD 足够。<span class=math-inline>$\kappa \in [50, 10^4]$</span>
 ：切换到 Nesterov。
 <span class=math-inline>$\kappa > 10^4$</span>
-：考虑预条件或二阶方法。</li></ol><h3 id=3-故事的延续 class=heading-anchor>3 故事的延续<a href=#3-%e6%95%85%e4%ba%8b%e7%9a%84%e5%bb%b6%e7%bb%ad class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li><strong>非凸 + PL 条件</strong>。放弃强凸性；若 <span class=math-inline>$\tfrac{1}{2}\|abla f\|^2 \ge \mu(f - f^\star)$</span>
+：考虑预条件或二阶方法。</li></ol><h3 id=3-故事的延续 class=heading-anchor>3 故事的延续<a href=#3-%e6%95%85%e4%ba%8b%e7%9a%84%e5%bb%b6%e7%bb%ad class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><ul><li><strong>非凸 + PL 条件</strong>。放弃强凸性；若 <span class=math-inline>$\tfrac{1}{2}\|\nabla f\|^2 \ge \mu(f - f^\star)$</span>
 成立，GD 仍线性收敛。这是“为何过参数化深度网络能线性训练”的理论种子（Karimi et al., 2016）。</li><li><strong>含噪声的加速</strong>。原始 Nesterov 对随机梯度不鲁棒。SAG / SVRG / Katyusha 通过方差缩减将强凸随机速率拉回 <span class=math-inline>$\sqrt{\kappa}$</span>
 区间。</li><li><strong>二阶加速</strong>。Sophia 和 Shampoo 通过（块）对角 Hessian 预条件，有效重写条件数 —— 这是 2024 年大规模预训练的活跃前沿。</li></ul><p><strong>References</strong></p><ol><li>Nesterov, Y. (1983). <em>A method of solving a convex programming problem with convergence rate <span class=math-inline>$\mathcal O(1/k^2)$</span>
 .</em> Soviet Mathematics Doklady, 27(2), 372–376.</li><li>Boyd, S., & Vandenberghe, L. (2004). <em>Convex Optimization.</em> Cambridge University Press.</li><li>Bubeck, S. (2015). <em>Convex Optimization: Algorithms and Complexity.</em> Foundations and Trends in Machine Learning, 8(3-4), 231–357.</li><li>O&rsquo;Donoghue, B., & Candès, E. (2015). <em>Adaptive restart for accelerated gradient schemes.</em> Foundations of Computational Mathematics, 15(3), 715–732.</li><li>Karimi, H., Nutini, J., & Schmidt, M. (2016). <em>Linear convergence of gradient and proximal-gradient methods under the Polyak-Łojasiewicz condition.</em> ECML-PKDD.</li></ol></div><section class=series-nav-block data-prev-url=https://www.chenk.top/zh/optimization-theory/01-convex-analysis-foundations/ data-next-url=https://www.chenk.top/zh/optimization-theory/03-gradient-descent-family/ aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/optimization-theory/>优化理论</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/optimization-theory/01-convex-analysis-foundations/><span class=title>优化理论（一）：凸分析基础</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/optimization-theory/03-gradient-descent-family/><span class=title>优化理论（三）：梯度下降族——从 SGD 到 AdamW</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/optimization-theory/01-convex-analysis-foundations/><span class=series-nav-num>01</span>
@@ -350,5 +350,5 @@ unknown</td><td>Restart Nesterov</td><td><span class=math-inline>$\big(1 - 1/\sq
 <span class=chapter-title>优化理论（九）：内点法与自和谐障碍函数</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/10-stochastic-variance-reduction/><span class=chapter-num>10</span>
 <span class=chapter-title>优化理论（十）：随机优化与方差缩减</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/11-nonconvex-saddle-escape/><span class=chapter-num>11</span>
 <span class=chapter-title>优化理论（十一）：非凸优化与鞍点逃逸</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/12-discrete-global-optimization/><span class=chapter-num>12</span>
-<span class=chapter-title>优化理论（十二）：离散与全局优化</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>18 min</strong></div><div class=row><span>字数</span><strong>4146</strong></div><div class=row><span>写于</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>优化理论（十二）：离散与全局优化</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>18 min</strong></div><div class=row><span>字数</span><strong>4148</strong></div><div class=row><span>写于</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

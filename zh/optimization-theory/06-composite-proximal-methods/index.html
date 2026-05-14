@@ -20,9 +20,9 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/optimization-theory/>优化理论</a>
 · 第 6 篇</div><h1>优化理论（六）：复合优化与近端方法</h1><p class=deck>系统讲解近端算子的理论与应用：凸分析基础、Moreau 包络、常见近端闭式解，以及 ISTA/FISTA、ADMM 等算法中的实际用法。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2022-09-21>September 21, 2022</time> · 24 分钟 · 5529 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/convex-analysis/ class=tag>#Convex Analysis</a></div><a class="pill pill-outline" href=/en/optimization-theory/06-composite-proximal-methods/>Read in English →</a></div></header><div class=prose><p>当目标函数包含不可导项（如稀疏正则、TV 正则或约束集的指示函数），又或者约束难以直接处理时，“直接上梯度下降”往往会卡住——要么在不可导点处没有梯度可用，要么每一步都破坏可行性。<strong>近端算子（proximal operator）</strong> 提供了一种精巧而优美的解决方案：把每次更新理解为“先对光滑部分走一步，再通过一个带二次惩罚的小规模优化，将当前点拉回具有特定结构的解空间”。</p><p>本文将从凸分析所需的最小工具集出发，推导 Moreau 包络与近端映射的核心性质，列举实际中高频使用的闭式近端算子，并将其嵌入 ISTA、FISTA、ADMM、SVM 和稀疏优化等具体算法中——重点解释每个组件为何有效、何时一种方法优于另一种，以及实现中最容易踩的坑。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>凸分析最小工具集：凸集、凸函数、子梯度</li><li>近端算子：定义、几何直觉、四条核心性质</li><li>三个日常高频闭式近端：软阈值、投影、二次收缩</li><li>Moreau 包络：如何将非光滑函数光滑化，及其驱动 ISTA 的梯度恒等式</li><li>ISTA：最简形式的近端梯度算法</li><li>FISTA：通过动量加速达到 <span class=math-inline>$O(1/k^2)$</span>
+<span class=meta-line><time datetime=2022-09-21>September 21, 2022</time> · 24 分钟 · 5531 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/convex-analysis/ class=tag>#Convex Analysis</a></div><a class="pill pill-outline" href=/en/optimization-theory/06-composite-proximal-methods/>Read in English →</a></div></header><div class=prose><p>当目标函数包含不可导项（如稀疏正则、TV 正则或约束集的指示函数），又或者约束难以直接处理时，“直接上梯度下降”往往会卡住——要么在不可导点处没有梯度可用，要么每一步都破坏可行性。<strong>近端算子（proximal operator）</strong> 提供了一种精巧而优美的解决方案：把每次更新理解为“先对光滑部分走一步，再通过一个带二次惩罚的小规模优化，将当前点拉回具有特定结构的解空间”。</p><p>本文将从凸分析所需的最小工具集出发，推导 Moreau 包络与近端映射的核心性质，列举实际中高频使用的闭式近端算子，并将其嵌入 ISTA、FISTA、ADMM、SVM 和稀疏优化等具体算法中——重点解释每个组件为何有效、何时一种方法优于另一种，以及实现中最容易踩的坑。</p><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>凸分析最小工具集：凸集、凸函数、子梯度</li><li>近端算子：定义、几何直觉、四条核心性质</li><li>三个日常高频闭式近端：软阈值、投影、二次收缩</li><li>Moreau 包络：如何将非光滑函数光滑化，及其驱动 ISTA 的梯度恒等式</li><li>ISTA：最简形式的近端梯度算法</li><li>FISTA：通过动量加速达到 <span class=math-inline>$O(1/k^2)$</span>
 收敛率</li><li>LASSO 端到端求解：从理论到清晰的 Python 实现</li><li>一页讲清 ADMM，及其与近端梯度族的关系</li><li>常见实现陷阱：步长选择、Lipschitz 常数估计、收敛性判断</li></ul><h2 id=前置知识 class=heading-anchor>前置知识<a href=#%e5%89%8d%e7%bd%ae%e7%9f%a5%e8%af%86 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><ul><li>多元微积分（梯度、链式法则）</li><li>线性代数基础（范数、内积、特征值）</li><li>一点凸优化常识（梯度下降、强凸性）</li></ul><hr><h2 id=凸分析基础 class=heading-anchor>凸分析基础<a href=#%e5%87%b8%e5%88%86%e6%9e%90%e5%9f%ba%e7%a1%80 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>在讨论近端算子前，需先厘清三个基本概念：凸集、凸函数和子梯度。后续所有关键性质（如非扩张性、闭式解存在性、收敛速率）都建立在这三者之上。</p><h3 id=凸集与凸函数 class=heading-anchor>凸集与凸函数<a href=#%e5%87%b8%e9%9b%86%e4%b8%8e%e5%87%b8%e5%87%bd%e6%95%b0 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\theta x + (1 - \theta) y \in C.$$</span><p>即任意两点间的线段完全包含在 <span class=math-inline>$C$</span>
-中。</p><span class=math-block>$$f\!\left(\theta x + (1 - \theta) y\right) \le \theta f(x) + (1 - \theta) f(y).$$</span><p>几何上，函数图像上任意两点间的弦始终位于图像上方（“碗状”）。</p><p><strong>两条关键事实</strong>：</p><ul><li><strong>局部最小即全局最小</strong>：凸函数的任一局部极小点都是全局最小点。</li><li><strong>支撑超平面存在性</strong>：凸集的每个边界点、凸函数的每个定义点处都存在支撑超平面——这正是子梯度的来源。</li></ul><h3 id=子梯度 class=heading-anchor>子梯度<a href=#%e5%ad%90%e6%a2%af%e5%ba%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>可微凸函数处处有唯一梯度 <span class=math-inline>$abla f(x)$</span>
+中。</p><span class=math-block>$$f\!\left(\theta x + (1 - \theta) y\right) \le \theta f(x) + (1 - \theta) f(y).$$</span><p>几何上，函数图像上任意两点间的弦始终位于图像上方（“碗状”）。</p><p><strong>两条关键事实</strong>：</p><ul><li><strong>局部最小即全局最小</strong>：凸函数的任一局部极小点都是全局最小点。</li><li><strong>支撑超平面存在性</strong>：凸集的每个边界点、凸函数的每个定义点处都存在支撑超平面——这正是子梯度的来源。</li></ul><h3 id=子梯度 class=heading-anchor>子梯度<a href=#%e5%ad%90%e6%a2%af%e5%ba%a6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>可微凸函数处处有唯一梯度 <span class=math-inline>$\nabla f(x)$</span>
 。但像 <span class=math-inline>$|x|$</span>
 或 hinge 损失 <span class=math-inline>$\max(0, 1 - t)$</span>
 这类函数在“折点”处不可导，此时需引入<strong>子梯度</strong>。</p><span class=math-block>$$f(y) \ge f(x) + \langle g,\, y - x \rangle.$$</span><p>这意味着 <span class=math-inline>$g$</span>
@@ -39,7 +39,7 @@
 $$</span><p>在 <span class=math-inline>$t = 0$</span>
 处，次微分是一个区间，这正是后文软阈值算子产生“死区”（输出为零的区间）的根本原因。</p><p><strong>性质</strong>：</p><ul><li>若 <span class=math-inline>$f$</span>
 在 <span class=math-inline>$x$</span>
-处可微，则 <span class=math-inline>$\partial f(x) = \{abla f(x)\}$</span>
+处可微，则 <span class=math-inline>$\partial f(x) = \{\nabla f(x)\}$</span>
 。</li><li><span class=math-inline>$\partial f(x)$</span>
 总是凸集（且当 <span class=math-inline>$f$</span>
 为闭真凸函数时，在 <span class=math-inline>$\mathrm{dom}\,f$</span>
@@ -101,16 +101,16 @@ $$</span>
 -光滑的</strong>。即使 <span class=math-inline>$f$</span>
 处处不可导，<span class=math-inline>$\widehat{f}_\lambda$</span>
 也处处可微，且其梯度为 <span class=math-inline>$\tfrac{1}{\lambda}$</span>
--Lipschitz。</p><span class=math-block>$$abla \widehat{f}_\lambda(x) \;=\; \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$</span><p><strong>为何重要</strong>：它将“对包络做梯度下降”转化为“计算一次近端”——这正是 ISTA 的算法本质。</p><p><strong>简要推导</strong>：令 <span class=math-inline>$y^\star = \mathrm{prox}_{\lambda f}(x)$</span>
+-Lipschitz。</p><span class=math-block>$$\nabla \widehat{f}_\lambda(x) \;=\; \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$</span><p><strong>为何重要</strong>：它将“对包络做梯度下降”转化为“计算一次近端”——这正是 ISTA 的算法本质。</p><p><strong>简要推导</strong>：令 <span class=math-inline>$y^\star = \mathrm{prox}_{\lambda f}(x)$</span>
 。一阶最优性给出 <span class=math-inline>$0 \in \partial f(y^\star) + \tfrac{1}{\lambda}(y^\star - x)$</span>
 ，即 <span class=math-inline>$\tfrac{1}{\lambda}(x - y^\star) \in \partial f(y^\star)$</span>
 。对 <span class=math-inline>$\widehat{f}_\lambda(x) = f(y^\star) + \tfrac{1}{2\lambda}\|y^\star - x\|^2$</span>
 应用包络定理——因内层关于 <span class=math-inline>$y$</span>
-的偏导在最优处为零，仅剩 <span class=math-inline>$abla_x \tfrac{1}{2\lambda}\|y - x\|^2 \big|_{y = y^\star} = \tfrac{1}{\lambda}(x - y^\star)$</span>
+的偏导在最优处为零，仅剩 <span class=math-inline>$\nabla_x \tfrac{1}{2\lambda}\|y - x\|^2 \big|_{y = y^\star} = \tfrac{1}{\lambda}(x - y^\star)$</span>
 。</p><h3 id=moreau-分解 class=heading-anchor>Moreau 分解<a href=#moreau-%e5%88%86%e8%a7%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$v = \mathrm{prox}_{\lambda f}(v) + \lambda \cdot \mathrm{prox}_{f^* / \lambda}(v / \lambda).$$</span><p>实践中，若 <span class=math-inline>$f$</span>
 的近端难算但 <span class=math-inline>$f^*$</span>
 的近端易算（或反之），可在易算侧进行计算。经典应用如核范数近端（SVD 软阈值）与谱范数投影之间的转换。</p><hr><h2 id=近端梯度ista class=heading-anchor>近端梯度：ISTA<a href=#%e8%bf%91%e7%ab%af%e6%a2%af%e5%ba%a6ista class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=问题设定 class=heading-anchor>问题设定<a href=#%e9%97%ae%e9%a2%98%e8%ae%be%e5%ae%9a class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\min_{x \in \mathbb{R}^n} F(x) \;=\; g(x) + h(x),$$</span><p>其中</p><ul><li><span class=math-inline>$g$</span>
-凸、可微，且 <span class=math-inline>$abla g$</span>
+凸、可微，且 <span class=math-inline>$\nabla g$</span>
 为 <span class=math-inline>$L$</span>
 -Lipschitz（“光滑部分”），</li><li><span class=math-inline>$h$</span>
 凸、可能不可微，但 <span class=math-inline>$\mathrm{prox}_{\lambda h}$</span>
@@ -118,13 +118,13 @@ $$</span>
 光滑，<span class=math-inline>$h(x) = \mu \|x\|_1$</span>
 可通过软阈值计算。</p><h3 id=ista-迭代 class=heading-anchor>ISTA 迭代<a href=#ista-%e8%bf%ad%e4%bb%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \boxed{\;x_{k+1} \;=\; \mathrm{prox}_{\eta h}\!\bigl(x_k - \eta
-abla g(x_k)\bigr).\;}
+\nabla g(x_k)\bigr).\;}
 $$</span><p><strong>主化视角</strong>：用二次上界 <span class=math-inline>$\widetilde{g}(x; x_k) = g(x_k) + \langleabla g(x_k), x - x_k \rangle + \tfrac{1}{2\eta}\|x - x_k\|_2^2$</span>
 替代 <span class=math-inline>$g$</span>
 ，然后最小化 <span class=math-inline>$\widetilde{g}(x; x_k) + h(x)$</span>
 ——这恰好就是上述近端步骤。因此 ISTA 是 MM（主化-最小化）方法的一个实例。</p><p><strong>步长选择</strong>：<span class=math-inline>$\eta \le 1 / L$</span>
 ，其中 <span class=math-inline>$L$</span>
-是 <span class=math-inline>$abla g$</span>
+是 <span class=math-inline>$\nabla g$</span>
 的 Lipschitz 常数。对 LASSO，<span class=math-inline>$L = \|A\|_2^2$</span>
 （最大奇异值平方），实践中两三次幂迭代即可足够准确。</p><span class=math-block>$$F(x_k) - F^\star \le \frac{\|x_0 - x^\star\|_2^2}{2\eta k} = O(1 / k).$$</span><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/proximal-operator/fig3_ista_iterations.png alt=图3：二维LASSO上的ISTA loading=lazy decoding=async class=content-image></figure></p><p>Figure 3 展示了二维 LASSO 上的 ISTA 运行过程：灰色等高线为目标函数，橙线为稀疏轴（<span class=math-inline>$x_2 = 0$</span>
 ）。从右上角紫星出发，ISTA 迭代点（蓝色折线）逐步逼近最优解，并<strong>精确落在 <span class=math-inline>$x_2 = 0$</span>
@@ -132,7 +132,7 @@ $$</span><p><strong>主化视角</strong>：用二次上界 <span class=math-inl
 \begin{aligned}
 y_k &= x_k + \frac{t_{k-1} - 1}{t_k}\bigl(x_k - x_{k-1}\bigr), \
 x_{k+1} &= \mathrm{prox}_{\eta h}\!\bigl(y_k - \eta
-abla g(y_k)\bigr), \
+\nabla g(y_k)\bigr), \
 t_{k+1} &= \frac{1 + \sqrt{1 + 4 t_k^2}}{2}.
 \end{aligned}
 $$</span><p>初始化 <span class=math-inline>$t_0 = 1$</span>
@@ -264,15 +264,15 @@ $$</span><p>每个子问题仅含<strong>一个</strong>非光滑项，故可用
 （<span class=math-inline>$\beta > 0$</span>
 ）。</p><span class=math-block>$$\bigl[\mathrm{prox}_{\lambda f}(v)\bigr]_i = \mathrm{sign}(v_i) \cdot \frac{-1 + \sqrt{1 + 4\lambda\beta |v_i|}}{2\lambda\beta}.$$</span><p>这是少数 <span class=math-inline>$\ell_p$</span>
 范数（<span class=math-inline>$p > 2$</span>
-）存在闭式近端的例子。</p><h3 id=习题-2moreau-包络的可微性 class=heading-anchor>习题 2：Moreau 包络的可微性<a href=#%e4%b9%a0%e9%a2%98-2moreau-%e5%8c%85%e7%bb%9c%e7%9a%84%e5%8f%af%e5%be%ae%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$abla \widehat{f}_\lambda(x) = \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$</span><p><strong>思路</strong>：</p><ol><li>最小化点唯一，记 <span class=math-inline>$y(x) := \mathrm{prox}_{\lambda f}(x)$</span>
+）存在闭式近端的例子。</p><h3 id=习题-2moreau-包络的可微性 class=heading-anchor>习题 2：Moreau 包络的可微性<a href=#%e4%b9%a0%e9%a2%98-2moreau-%e5%8c%85%e7%bb%9c%e7%9a%84%e5%8f%af%e5%be%ae%e6%80%a7 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$\nabla \widehat{f}_\lambda(x) = \frac{1}{\lambda}\bigl(x - \mathrm{prox}_{\lambda f}(x)\bigr).$$</span><p><strong>思路</strong>：</p><ol><li>最小化点唯一，记 <span class=math-inline>$y(x) := \mathrm{prox}_{\lambda f}(x)$</span>
 。由非扩张性，<span class=math-inline>$y(x)$</span>
 关于 <span class=math-inline>$x$</span>
 是 1-Lipschitz 的。</li><li>一阶条件给出 <span class=math-inline>$\tfrac{1}{\lambda}(x - y(x)) \in \partial f(y(x))$</span>
 。</li><li>对 <span class=math-inline>$\widehat{f}_\lambda(x) = f(y(x)) + \tfrac{1}{2\lambda}\|y(x) - x\|^2$</span>
 应用包络定理：内层关于 <span class=math-inline>$y$</span>
-的偏导因最优性为零，仅剩 <span class=math-inline>$abla_x \tfrac{1}{2\lambda}\|y - x\|^2 \big|_{y = y(x)} = \tfrac{1}{\lambda}(x - y(x))$</span>
+的偏导因最优性为零，仅剩 <span class=math-inline>$\nabla_x \tfrac{1}{2\lambda}\|y - x\|^2 \big|_{y = y(x)} = \tfrac{1}{\lambda}(x - y(x))$</span>
 。</li></ol><p>因 <span class=math-inline>$y(x)$</span>
-1-Lipschitz，<span class=math-inline>$abla \widehat{f}_\lambda$</span>
+1-Lipschitz，<span class=math-inline>$\nabla \widehat{f}_\lambda$</span>
 为 <span class=math-inline>$\tfrac{1}{\lambda}$</span>
 -Lipschitz——故包络自动光滑。</p><h3 id=习题-3为何-svm-近端无用 class=heading-anchor>习题 3：为何 SVM 近端“无用”<a href=#%e4%b9%a0%e9%a2%98-3%e4%b8%ba%e4%bd%95-svm-%e8%bf%91%e7%ab%af%e6%97%a0%e7%94%a8 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>考虑线性 SVM：<span class=math-inline>$f(w) = \sum_i \max(0, 1 - y_i x_i^\top w) + \tfrac{\lambda}{2}\|w\|_2^2$</span>
 。</p><p>(a) 给出 <span class=math-inline>$f$</span>
@@ -294,7 +294,7 @@ $$</span><p>总子梯度：<span class=math-inline>$\partial f(w)i \sum_i g_i + 
 闭凸）等价于复合问题 <span class=math-inline>$\min_x g(x) + \iota_C(x)$</span>
 ，并写出 ISTA 迭代。</p><span class=math-block>$$
 x_{k+1} = P_C\!\bigl(x_k - \eta
-abla g(x_k)\bigr).
+\nabla g(x_k)\bigr).
 $$</span><p>这正是<strong>投影梯度法</strong>——即 <span class=math-inline>$h = \iota_C$</span>
 时的 ISTA。加入动量即得加速投影梯度法。</p><hr><h2 id=总结 class=heading-anchor>总结<a href=#%e6%80%bb%e7%bb%93 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>近端算子的核心价值在于一个具体目标：<strong>将“非光滑”或“带约束”部分从主问题中隔离，转化为小型子问题</strong>。具体而言：</p><ul><li><span class=math-inline>$\ell_1$</span>
 的不可微性 → 软阈值；</li><li>凸约束 → 投影；</li><li>整体非光滑函数 → 可微的 Moreau 包络。</li></ul><p>最小操作清单：</p><ol><li><strong>ISTA</strong>：<span class=math-inline>$x_{k+1} = \mathrm{prox}_{\eta h}(x_k - \etaabla g(x_k))$</span>
@@ -336,5 +336,5 @@ $$</span><p>这正是<strong>投影梯度法</strong>——即 <span class=math-
 <span class=chapter-title>优化理论（九）：内点法与自和谐障碍函数</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/10-stochastic-variance-reduction/><span class=chapter-num>10</span>
 <span class=chapter-title>优化理论（十）：随机优化与方差缩减</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/11-nonconvex-saddle-escape/><span class=chapter-num>11</span>
 <span class=chapter-title>优化理论（十一）：非凸优化与鞍点逃逸</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/optimization-theory/12-discrete-global-optimization/><span class=chapter-num>12</span>
-<span class=chapter-title>优化理论（十二）：离散与全局优化</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5529</strong></div><div class=row><span>写于</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>优化理论（十二）：离散与全局优化</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5531</strong></div><div class=row><span>写于</span><strong>Sep 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
