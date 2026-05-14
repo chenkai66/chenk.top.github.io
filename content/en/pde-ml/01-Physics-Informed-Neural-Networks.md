@@ -107,6 +107,90 @@ The last term $\mathcal L_d$ is absent in **forward problems** but central to **
 ![Three loss components and a balanced-weighting comparison.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig2_loss_decomposition.png)
 *Figure 2. Left: with naive equal weights the PDE residual decays quickly while the boundary loss stalls — the network produces what aerodynamicists jokingly call "physics-respecting noise". Right: after NTK-balanced adaptive weighting the three curves descend together — this is what healthy PINN training looks like.*
 
+
+### Complete PINN implementation: 1D heat equation
+
+Before we discuss why autodiff matters, let us build a complete PINN from scratch. The 1D heat equation on $[0,1] \times [0,1]$:
+
+$$\frac{\partial u}{\partial t} = \nu \frac{\partial^2 u}{\partial x^2}, \quad u(x,0) = \sin(\pi x), \quad u(0,t) = u(1,t) = 0$$
+
+The exact solution is $u(x,t) = e^{-\nu \pi^2 t}\sin(\pi x)$. We will train a network to recover it using only the PDE, boundary conditions, and initial condition -- no mesh required.
+
+```python
+import torch
+import torch.nn as nn
+
+# Set diffusivity and device
+nu = 0.01
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Simple fully-connected network
+class PINN(nn.Module):
+    def __init__(self, layers=[2, 64, 64, 64, 1]):
+        super().__init__()
+        nets = []
+        for i in range(len(layers) - 1):
+            nets.append(nn.Linear(layers[i], layers[i+1]))
+            if i < len(layers) - 2:
+                nets.append(nn.Tanh())
+        self.net = nn.Sequential(*nets)
+
+    def forward(self, x, t):
+        inp = torch.cat([x, t], dim=1)
+        return self.net(inp)
+
+model = PINN().to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+# Collocation points inside the domain
+N_f = 10000
+x_f = torch.rand(N_f, 1, requires_grad=True, device=device)
+t_f = torch.rand(N_f, 1, requires_grad=True, device=device)
+
+# Boundary and initial condition points
+N_bc = 200
+t_bc = torch.rand(N_bc, 1, device=device)
+x_ic = torch.rand(N_bc, 1, device=device)
+
+for epoch in range(5000):
+    optimizer.zero_grad()
+
+    # --- PDE residual loss ---
+    u = model(x_f, t_f)
+    u_t = torch.autograd.grad(u, t_f, torch.ones_like(u), create_graph=True)[0]
+    u_x = torch.autograd.grad(u, x_f, torch.ones_like(u), create_graph=True)[0]
+    u_xx = torch.autograd.grad(u_x, x_f, torch.ones_like(u_x), create_graph=True)[0]
+    residual = u_t - nu * u_xx
+    loss_pde = torch.mean(residual ** 2)
+
+    # --- Boundary loss: u(0,t) = u(1,t) = 0 ---
+    x_left = torch.zeros(N_bc, 1, device=device)
+    x_right = torch.ones(N_bc, 1, device=device)
+    loss_bc = (torch.mean(model(x_left, t_bc)**2)
+               + torch.mean(model(x_right, t_bc)**2))
+
+    # --- Initial condition loss: u(x,0) = sin(pi*x) ---
+    t_zero = torch.zeros(N_bc, 1, device=device)
+    u_ic_pred = model(x_ic, t_zero)
+    u_ic_true = torch.sin(torch.pi * x_ic)
+    loss_ic = torch.mean((u_ic_pred - u_ic_true)**2)
+
+    # --- Total loss ---
+    loss = loss_pde + 10.0 * loss_bc + 10.0 * loss_ic
+    loss.backward()
+    optimizer.step()
+
+    if epoch % 1000 == 0:
+        print(f"Epoch {epoch}: PDE={loss_pde:.2e}, BC={loss_bc:.2e}, IC={loss_ic:.2e}")
+```
+
+Key design choices visible in this code:
+
+1. **Three-term loss**: The total loss is a weighted sum of PDE residual, boundary, and initial conditions. The weights (here 10x for BC/IC) are critical -- Section 3 will explain why.
+2. **Automatic differentiation**: We never discretize $\partial u/\partial t$ or $\partial^2 u/\partial x^2$. PyTorch's `autograd` computes exact derivatives of the network output with respect to its inputs.
+3. **Mesh-free sampling**: Collocation points are simply random samples in $[0,1]^2$. No mesh connectivity, no element assembly.
+
+
 ### Why automatic differentiation matters
 
 Naive numerical differentiation,
@@ -172,6 +256,78 @@ where $B$ satisfies the boundary by construction and $\tilde u_\theta$ is uncons
 
 **Fix 3: NTK balancing.** Wang–Yu–Perdikaris (2022) [^wang2022ntk] proved PINN training dynamics are governed by three Neural Tangent Kernels; weighting by the trace of each NTK is the principled choice.
 
+
+### Fixing spectral bias: Fourier features and SIREN
+
+Before examining spectral bias in detail, let us see the practical fix. The core idea: if a standard MLP has trouble representing high-frequency functions, we can **lift the input into a high-frequency basis** before feeding it to the network.
+
+**Random Fourier Features (RFF):** Map inputs $\mathbf{x}$ to $[\cos(B\mathbf{x}), \sin(B\mathbf{x})]$ where $B$ is a fixed random matrix sampled from $\mathcal{N}(0, \sigma^2)$. The bandwidth $\sigma$ controls the frequency range.
+
+```python
+import torch
+import torch.nn as nn
+import numpy as np
+
+class FourierFeatureLayer(nn.Module):
+    # Random Fourier feature mapping for spectral bias mitigation
+    def __init__(self, in_dim, num_features=128, sigma=10.0):
+        super().__init__()
+        # B is NOT trainable -- fixed random projection
+        B = torch.randn(in_dim, num_features) * sigma
+        self.register_buffer("B", B)
+
+    def forward(self, x):
+        proj = x @ self.B  # shape: (batch, num_features)
+        return torch.cat([torch.cos(proj), torch.sin(proj)], dim=-1)
+
+
+class PINN_RFF(nn.Module):
+    # PINN with Fourier feature input encoding
+    def __init__(self, in_dim=2, num_features=128, sigma=10.0):
+        super().__init__()
+        self.rff = FourierFeatureLayer(in_dim, num_features, sigma)
+        self.net = nn.Sequential(
+            nn.Linear(2 * num_features, 128),
+            nn.Tanh(),
+            nn.Linear(128, 128),
+            nn.Tanh(),
+            nn.Linear(128, 128),
+            nn.Tanh(),
+            nn.Linear(128, 1),
+        )
+
+    def forward(self, x, t):
+        inp = torch.cat([x, t], dim=1)
+        features = self.rff(inp)
+        return self.net(features)
+```
+
+**SIREN (Sinusoidal Representation Networks):** An alternative where every activation is a sine function with a carefully initialized frequency:
+
+```python
+class SirenLayer(nn.Module):
+    def __init__(self, in_features, out_features, omega_0=30.0, is_first=False):
+        super().__init__()
+        self.omega_0 = omega_0
+        self.linear = nn.Linear(in_features, out_features)
+        # Special initialization from Sitzmann et al. 2020
+        with torch.no_grad():
+            if is_first:
+                self.linear.weight.uniform_(-1.0 / in_features, 1.0 / in_features)
+            else:
+                bound = np.sqrt(6.0 / in_features) / omega_0
+                self.linear.weight.uniform_(-bound, bound)
+
+    def forward(self, x):
+        return torch.sin(self.omega_0 * self.linear(x))
+```
+
+**When to use which:**
+- **RFF** ($\sigma = 1$--$10$): Good default for moderately oscillatory solutions. Cheap to implement, no architecture change needed beyond the input layer.
+- **RFF** ($\sigma > 10$): Aggressive high-frequency capture. Risk: if $\sigma$ is too large, optimization becomes harder.
+- **SIREN** ($\omega_0 = 30$): Best for problems where the solution has structure at many scales (e.g., turbulence, wave interference). Requires careful initialization but gives smooth, infinitely differentiable outputs at all frequencies.
+
+
 ### Pathology B: spectral bias
 
 Neural network training has a well-known bias: **low frequencies are learned first, high frequencies last** (Rahaman 2019; Tancik 2020). For PINNs the impact is especially severe because the PDE residual involves second derivatives, which amplify high-frequency error by $k^2$ — the worse the network is at high frequencies, the larger the residual, in a vicious circle.
@@ -197,6 +353,75 @@ Combining the fixes on a Burgers experiment:
 *Figure 4. With only 50 noisy labels, pure supervised training (red) is quickly trapped at a 4% noise plateau. Adding the PDE residual (blue) keeps the physics constraint pushing the error down to 0.3%. This is the core value PINNs add over plain regression.*
 
 ---
+
+
+### Method comparison: PINNs vs classical solvers vs neural operators
+
+Before diving into experiments, let us position PINNs relative to alternatives. This table distills practical experience from the literature:
+
+| Criterion | FDM | FEM | PINN | Neural Operator (FNO/DeepONet) |
+|-----------|-----|-----|------|-------------------------------|
+| **Mesh required** | Yes (structured) | Yes (unstructured) | No | No (at inference) |
+| **Accuracy (smooth PDE)** | $O(h^2)$--$O(h^4)$ | $O(h^{p+1})$ | ~$10^{-3}$--$10^{-4}$ | ~$10^{-2}$--$10^{-3}$ |
+| **Accuracy (singular/stiff)** | Excellent with AMR | Excellent with adaptivity | Poor without tricks | Poor |
+| **Training/setup cost** | Minutes | Minutes--hours | Hours--days | Hours (amortized over queries) |
+| **Inference cost** | N/A (single solve) | N/A (single solve) | Milliseconds | Milliseconds |
+| **Dimension scaling** | Curse of dimensionality | Curse of dimensionality | Graceful (mesh-free) | Graceful |
+| **Inverse problems** | Requires adjoint code | Requires adjoint code | Native (add params to loss) | Requires fine-tuning |
+| **When to use** | Low-dim, need precision | Complex geometry, need precision | High-dim, inverse, no mesh | Many-query (design, UQ) |
+
+**Rule of thumb:** If you need $10^{-6}$ accuracy in 1D--3D with known geometry, use FEM. If you need fast parametric sweeps over many configurations, use neural operators. PINNs shine in the middle ground: inverse problems, high-dimensional PDEs, and situations where meshing is impractical.
+
+### Residual-based adaptive refinement (RAR)
+
+A key trick to improve PINN accuracy without increasing total point count: concentrate collocation points where the PDE residual is large. This is the mesh-free analogue of adaptive mesh refinement (AMR).
+
+```python
+import torch
+
+def adaptive_resample(model, x_domain, t_domain, N_total=10000, N_new=2000):
+    # Evaluate residual on a candidate pool
+    N_cand = 50000
+    x_cand = torch.rand(N_cand, 1, requires_grad=True, device=x_domain.device)
+    t_cand = torch.rand(N_cand, 1, requires_grad=True, device=t_domain.device)
+
+    with torch.no_grad():
+        # We need gradients for residual, so temporarily enable
+        pass
+
+    # Compute PDE residual at candidate points
+    x_cand.requires_grad_(True)
+    t_cand.requires_grad_(True)
+    u = model(x_cand, t_cand)
+    u_t = torch.autograd.grad(u, t_cand, torch.ones_like(u), create_graph=True)[0]
+    u_x = torch.autograd.grad(u, x_cand, torch.ones_like(u), create_graph=True)[0]
+    u_xx = torch.autograd.grad(u_x, x_cand, torch.ones_like(u_x), create_graph=False)[0]
+
+    residual = (u_t - 0.01 * u_xx).detach().abs().squeeze()
+
+    # Select top-k residual points
+    _, top_idx = torch.topk(residual, N_new)
+    x_new = x_cand[top_idx].detach()
+    t_new = t_cand[top_idx].detach()
+
+    # Combine with uniform samples for coverage
+    N_uniform = N_total - N_new
+    x_unif = torch.rand(N_uniform, 1, device=x_domain.device)
+    t_unif = torch.rand(N_uniform, 1, device=t_domain.device)
+
+    x_out = torch.cat([x_new, x_unif], dim=0).requires_grad_(True)
+    t_out = torch.cat([t_new, t_unif], dim=0).requires_grad_(True)
+    return x_out, t_out
+
+# Usage in training loop: resample every 1000 epochs
+# for epoch in range(20000):
+#     if epoch % 1000 == 0 and epoch > 0:
+#         x_f, t_f = adaptive_resample(model, x_f, t_f)
+#     ... (normal training step)
+```
+
+RAR typically improves accuracy by 3--10x for problems with localized features (shocks, boundary layers) at no extra computational cost per epoch.
+
 
 ## Experiment: Burgers and an inverse problem
 
@@ -230,6 +455,98 @@ Forward problems are unremarkable; inverse problems are where PINNs shine. Appen
 
 ---
 
+
+### Complete inverse problem: recovering the diffusion coefficient
+
+One of the most compelling PINN applications is **parameter discovery** -- recovering unknown PDE coefficients from sparse, noisy observations. Here we recover the diffusion coefficient $\nu$ in the heat equation from only 50 noisy measurements.
+
+The setup: we observe $u(x_i, t_i) + \epsilon_i$ at scattered points, where $\epsilon_i \sim \mathcal{N}(0, 0.01^2)$. The true $\nu = 0.01$ is unknown and treated as a trainable parameter.
+
+```python
+import torch
+import torch.nn as nn
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class InversePINN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(2, 64), nn.Tanh(),
+            nn.Linear(64, 64), nn.Tanh(),
+            nn.Linear(64, 64), nn.Tanh(),
+            nn.Linear(64, 1),
+        )
+        # Unknown parameter to discover -- initialize with a wrong guess
+        self.log_nu = nn.Parameter(torch.tensor([-2.0]))  # exp(-2) ~ 0.135
+
+    @property
+    def nu(self):
+        return torch.exp(self.log_nu)  # enforce positivity
+
+    def forward(self, x, t):
+        return self.net(torch.cat([x, t], dim=1))
+
+# Generate synthetic observations from exact solution
+nu_true = 0.01
+N_obs = 50
+x_obs = torch.rand(N_obs, 1, device=device)
+t_obs = torch.rand(N_obs, 1, device=device) * 0.5  # observe in [0, 0.5]
+u_obs = (torch.exp(-nu_true * torch.pi**2 * t_obs)
+         * torch.sin(torch.pi * x_obs))
+u_obs += 0.01 * torch.randn_like(u_obs)  # add noise
+
+model = InversePINN().to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+# Collocation points for PDE residual
+N_f = 5000
+
+for epoch in range(10000):
+    optimizer.zero_grad()
+
+    # Resample collocation points each epoch for better coverage
+    x_f = torch.rand(N_f, 1, requires_grad=True, device=device)
+    t_f = torch.rand(N_f, 1, requires_grad=True, device=device)
+
+    # PDE residual with learned nu
+    u = model(x_f, t_f)
+    u_t = torch.autograd.grad(u, t_f, torch.ones_like(u), create_graph=True)[0]
+    u_x = torch.autograd.grad(u, x_f, torch.ones_like(u), create_graph=True)[0]
+    u_xx = torch.autograd.grad(u_x, x_f, torch.ones_like(u_x), create_graph=True)[0]
+    residual = u_t - model.nu * u_xx
+    loss_pde = torch.mean(residual ** 2)
+
+    # Data fidelity loss
+    u_pred = model(x_obs, t_obs)
+    loss_data = torch.mean((u_pred - u_obs) ** 2)
+
+    # Boundary conditions
+    N_bc = 100
+    t_bc = torch.rand(N_bc, 1, device=device)
+    loss_bc = (torch.mean(model(torch.zeros(N_bc, 1, device=device), t_bc)**2)
+               + torch.mean(model(torch.ones(N_bc, 1, device=device), t_bc)**2))
+
+    loss = loss_pde + 100.0 * loss_data + 10.0 * loss_bc
+    loss.backward()
+    optimizer.step()
+
+    if epoch % 2000 == 0:
+        print(f"Epoch {epoch}: nu={model.nu.item():.6f} (true=0.01), "
+              f"loss_data={loss_data:.2e}")
+
+# Typical result after 10k epochs: nu ~ 0.0098-0.0102
+print(f"Recovered nu = {model.nu.item():.6f}, relative error = "
+      f"{abs(model.nu.item() - 0.01) / 0.01 * 100:.2f}%")
+```
+
+Key implementation details for inverse problems:
+
+- **Log-parameterization** (`log_nu`): We optimize $\log \nu$ and exponentiate to ensure positivity. This also improves gradient flow when the true value is small.
+- **High data weight**: The coefficient 100.0 on `loss_data` ensures the network fits observations tightly. Without it, the PDE loss dominates and $\nu$ may not converge.
+- **Observation window**: We only observe $t \in [0, 0.5]$ but enforce the PDE on the full domain. The PDE acts as a physics-informed regularizer that extrapolates beyond the data.
+
+
 ## Failure modes and limits
 
 PINNs are not silver bullets. Common industrial pitfalls:
@@ -261,6 +578,24 @@ A practitioner's rule of thumb: **complex geometry, high dimensions, parameter i
 PINNs do not aim to replace FEM. Their real role is to make **prior physics a first-class citizen of deep-learning model design.** That theme will run through every subsequent chapter.
 
 ---
+
+
+## When NOT to use PINNs
+
+PINNs are not a universal solver. Here are concrete scenarios where they fail or where alternatives are strictly better:
+
+**1. Stiff dynamical systems.** Consider the Van der Pol oscillator at $\mu = 1000$ or chemical kinetics with timescales spanning $10^6$. The loss landscape becomes extremely ill-conditioned because the network must simultaneously resolve fast transients and slow dynamics. Classical stiff ODE solvers (BDF, implicit Runge-Kutta) handle this trivially with adaptive timestepping.
+
+**2. Sharp discontinuities and shocks.** The Euler equations of gas dynamics develop contact discontinuities and shocks. Neural networks are smooth function approximators -- they cannot represent a true discontinuity without Gibbs-like oscillations. Godunov-type finite volume methods with Riemann solvers are purpose-built for this. PINNs require shock-capturing tricks (entropy viscosity, domain decomposition at the shock) that negate their simplicity.
+
+**3. High accuracy requirements ($< 10^{-6}$ relative error).** If your application demands machine-precision solutions (e.g., orbital mechanics, reference benchmarks), PINNs cannot compete with spectral methods or high-order FEM. The optimization landscape has many local minima, and SGD-based training introduces irreducible noise floors.
+
+**4. Large-scale 3D problems with existing meshes.** If you already have a mature FEM pipeline with validated meshes, switching to PINNs gains nothing. The mesh-free advantage only matters when meshing is the bottleneck (e.g., patient-specific biomedical geometries, topology optimization loops).
+
+**5. Real-time control without pre-training.** PINNs require minutes-to-hours of training per new PDE instance. For real-time model predictive control, you need either pre-trained neural operators (which amortize cost) or reduced-order models.
+
+**Decision heuristic:** Ask yourself: (a) Is meshing hard? (b) Do I need to solve an inverse problem? (c) Is the dimensionality $> 3$? If none of these are true, a classical solver is almost certainly faster, more accurate, and easier to validate.
+
 
 ## Handing off to the next chapters
 

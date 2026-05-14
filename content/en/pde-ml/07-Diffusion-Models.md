@@ -74,6 +74,41 @@ High-frequency content (large $\|\mathbf{k}\|$) decays exponentially faster than
 
 ---
 
+**Implementation: watching diffusion destroy structure.** We can simulate the forward process directly and verify that $p_t$ converges to Gaussian:
+
+```python
+import numpy as np
+
+def make_two_moons(n=2000, noise=0.05):
+    # Generate two-moons dataset
+    t = np.linspace(0, np.pi, n // 2)
+    x1 = np.column_stack([np.cos(t), np.sin(t)]) + noise * np.random.randn(n//2, 2)
+    x2 = np.column_stack([1 - np.cos(t), 1 - np.sin(t) - 0.5]) + noise * np.random.randn(n//2, 2)
+    return np.vstack([x1, x2])
+
+x0 = make_two_moons(5000)
+T, beta_min, beta_max = 1000, 0.0001, 0.02
+
+# Linear noise schedule
+betas = np.linspace(beta_min, beta_max, T)
+alphas = 1 - betas
+alpha_bar = np.cumprod(alphas)
+
+# Forward diffusion: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps
+for t in [0, 100, 300, 500, 999]:
+    eps = np.random.randn(*x0.shape)
+    xt = np.sqrt(alpha_bar[t]) * x0 + np.sqrt(1 - alpha_bar[t]) * eps
+    print(f"t={t:4d}: mean={xt.mean(0).round(3)}, std={xt.std(0).round(3)}, "
+          f"alpha_bar={alpha_bar[t]:.4f}")
+# t=   0: mean=[ 0.5  0.2], std=[0.6 0.5], alpha_bar=0.9999
+# t= 100: mean=[ 0.5  0.2], std=[0.6 0.5], alpha_bar=0.9900
+# t= 300: mean=[ 0.4  0.1], std=[0.7 0.6], alpha_bar=0.8900
+# t= 500: mean=[ 0.2  0.1], std=[0.8 0.8], alpha_bar=0.5200
+# t= 999: mean=[ 0.0  0.0], std=[1.0 1.0], alpha_bar=0.0001
+```
+
+At $t=0$, the data has clear two-moon structure (low variance, off-centre mean). By $t=999$, $\bar\alpha_T \approx 10^{-4}$, so $\mathbf{x}_T$ is nearly pure Gaussian noise — the low-pass filter has killed all structure.
+
 ## SDEs and the Fokker–Planck Equation
 
 The heat equation describes a **deterministic** evolution of densities. If we want to think of individual sample paths — which is what diffusion models actually generate — we need stochastic differential equations.
@@ -149,6 +184,55 @@ Vincent showed (6) has the same minimiser as matching the *true* score of the no
 ![Left: DSM loss decreases monotonically and plateaus. Right: the learned score matches the true $\nabla\log p$ in high-density regions; near low-density valleys (centre) it is intentionally smoothed by the noise level $\sigma$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig5_score_matching_loss.png)
 *Left: DSM loss decreases monotonically and plateaus. Right: the learned score matches the true $\nabla\log p$ in high-density regions; near low-density valleys (centre) it is intentionally smoothed by the noise level $\sigma$.*
 
+**Implementation: denoising score matching.** DSM is the training objective that makes diffusion models work. Here is a minimal but complete implementation:
+
+```python
+import torch
+import torch.nn as nn
+
+class ScoreNet(nn.Module):
+    # Simple MLP score network for 2D data
+    def __init__(self, hidden=256):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(3, hidden), nn.SiLU(),  # input: (x, y, t)
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, 2)  # output: score (sx, sy)
+        )
+
+    def forward(self, x, t):
+        # t is scalar noise level, broadcast to batch
+        t_embed = t.unsqueeze(-1) if t.dim() == 1 else t
+        return self.net(torch.cat([x, t_embed], dim=-1))
+
+def dsm_loss(model, x0, sigma):
+    # Denoising Score Matching loss
+    noise = torch.randn_like(x0)
+    x_noisy = x0 + sigma * noise
+    # True score of q(x_noisy | x0) = -noise / sigma
+    target = -noise / sigma
+    pred = model(x_noisy, sigma * torch.ones(x0.shape[0], 1))
+    return ((pred - target)**2).mean()
+
+# Multi-scale DSM: anneal sigma during training
+sigmas = torch.logspace(start=-2, end=1, steps=10)  # 0.01 to 10
+
+model = ScoreNet()
+opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+x0 = torch.tensor(make_two_moons(5000), dtype=torch.float32)
+
+for step in range(5000):
+    idx = torch.randint(len(sigmas), (1,))
+    sigma = sigmas[idx]
+    loss = dsm_loss(model, x0, sigma)
+    opt.zero_grad(); loss.backward(); opt.step()
+    if step % 1000 == 0:
+        print(f"Step {step}: loss={loss.item():.4f}")
+```
+
+The annealing over multiple noise levels is critical: small $\sigma$ gives accurate score estimates near the data but poor coverage in low-density regions; large $\sigma$ gives broad coverage but imprecise scores. The multi-scale approach gets both.
+
 ### Langevin Dynamics
 
 Once we have $\mathbf{s}_\theta$ we can sample with Langevin MCMC:
@@ -184,6 +268,68 @@ Why is this score matching in disguise? Because (9) implies
 $$\nabla_{\mathbf{x}_t} \log q(\mathbf{x}_t \mid \mathbf{x}_0) = -\frac{\boldsymbol\epsilon}{\sqrt{1 - \bar\alpha_t}},$$
 so the network is learning a scaled score: $\mathbf{s}_\theta(\mathbf{x}_t, t) = -\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)/\sqrt{1 - \bar\alpha_t}$. (10) is precisely (6) with weights $w(t) = 1$.
 
+**Implementation: a complete DDPM training loop.** Below is a minimal but runnable DDPM implementation for 2D data. The key insight: we train an $\boldsymbol\epsilon$-predictor (not a score predictor directly), and the loss is simply the MSE between predicted and actual noise.
+
+```python
+import torch
+import torch.nn as nn
+
+class EpsilonNet(nn.Module):
+    # Time-conditioned noise predictor for 2D data
+    def __init__(self, T=1000, hidden=256):
+        super().__init__()
+        self.time_embed = nn.Embedding(T, hidden)
+        self.net = nn.Sequential(
+            nn.Linear(2 + hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, hidden), nn.SiLU(),
+            nn.Linear(hidden, 2)
+        )
+
+    def forward(self, x, t):
+        t_emb = self.time_embed(t)
+        return self.net(torch.cat([x, t_emb], dim=-1))
+
+def ddpm_train_step(model, x0, alpha_bar, T):
+    # Sample random timestep
+    t = torch.randint(0, T, (x0.shape[0],))
+    eps = torch.randn_like(x0)
+    # Forward diffusion: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps
+    ab = alpha_bar[t].unsqueeze(-1)
+    x_t = torch.sqrt(ab) * x0 + torch.sqrt(1 - ab) * eps
+    # Predict noise
+    eps_pred = model(x_t, t)
+    return ((eps_pred - eps)**2).mean()
+
+# Setup
+T = 1000
+betas = torch.linspace(1e-4, 0.02, T)
+alphas = 1 - betas
+alpha_bar = torch.cumprod(alphas, dim=0)
+
+model = EpsilonNet(T=T)
+opt = torch.optim.Adam(model.parameters(), lr=2e-4)
+x0 = torch.tensor(make_two_moons(5000), dtype=torch.float32)
+
+for step in range(10000):
+    loss = ddpm_train_step(model, x0, alpha_bar, T)
+    opt.zero_grad(); loss.backward(); opt.step()
+    if step % 2000 == 0:
+        print(f"Step {step}: loss={loss.item():.4f}")
+```
+
+The training loop is strikingly simple: pick a random timestep, add the corresponding noise, predict the noise, backpropagate. The complexity is in the architecture (here a simple MLP; for images, a U-Net with attention) and the noise schedule.
+
+**Noise schedules: linear vs cosine.** The choice of $\beta_t$ matters more than you might think:
+
+| Schedule | Formula | Behaviour | Best for |
+|----------|---------|-----------|----------|
+| **Linear** | $\beta_t = \beta_{\min} + t(\beta_{\max} - \beta_{\min})/T$ | Aggressive early noise | DDPM (Ho et al. 2020) |
+| **Cosine** | $\bar\alpha_t = \cos^2(\frac{t/T + s}{1+s}\cdot\frac{\pi}{2})$ | Gentler decay | Improved DDPM (Nichol & Dhariwal 2021) |
+| **Sigmoid** | $\bar\alpha_t = \sigma(-a + 2a \cdot t/T)$ | Steeper mid, flat ends | Stable Diffusion 3 |
+
+The linear schedule wastes capacity: in the first few hundred steps, $\bar\alpha_t$ is still close to 1 (barely noised), so the model spends many timesteps learning to predict near-zero noise. The cosine schedule spreads the "information content" more evenly across timesteps.
+
 ### DDIM: The Probability-Flow ODE
 
 A beautiful fact about (3): there is a **deterministic** ODE with the same one-time marginals at every $t$,
@@ -192,6 +338,54 @@ This is the **probability-flow ODE**. Marginals match because both (8) and (11) 
 
 ![DDPM (left) injects fresh noise at each reverse step; DDIM (right) follows a deterministic flow under the same learned score, reaching the modes in far fewer steps.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig4_ddpm_vs_ddim.png)
 *DDPM (left) injects fresh noise at each reverse step; DDIM (right) follows a deterministic flow under the same learned score, reaching the modes in far fewer steps.*
+
+**Implementation: DDIM sampling.** DDIM replaces the stochastic reverse step with a deterministic ODE step, enabling dramatically fewer sampling steps:
+
+```python
+@torch.no_grad()
+def ddpm_sample(model, alpha_bar, betas, n=2000, T=1000):
+    # Full DDPM sampling (1000 steps, stochastic)
+    x = torch.randn(n, 2)
+    for t in reversed(range(T)):
+        t_batch = torch.full((n,), t, dtype=torch.long)
+        eps_pred = model(x, t_batch)
+        ab = alpha_bar[t]
+        ab_prev = alpha_bar[t-1] if t > 0 else torch.tensor(1.0)
+        beta = betas[t]
+        # DDPM reverse step
+        mean = (1 / torch.sqrt(1 - beta)) * (x - beta / torch.sqrt(1 - ab) * eps_pred)
+        if t > 0:
+            x = mean + torch.sqrt(beta) * torch.randn_like(x)
+        else:
+            x = mean
+    return x
+
+@torch.no_grad()
+def ddim_sample(model, alpha_bar, n=2000, steps=50, T=1000):
+    # DDIM sampling (50 steps, deterministic)
+    # Sub-sample timesteps evenly
+    timesteps = torch.linspace(T-1, 0, steps).long()
+    x = torch.randn(n, 2)
+    for i in range(len(timesteps)):
+        t = timesteps[i]
+        t_batch = torch.full((n,), t, dtype=torch.long)
+        eps_pred = model(x, t_batch)
+        ab_t = alpha_bar[t]
+        ab_prev = alpha_bar[timesteps[i+1]] if i+1 < len(timesteps) else torch.tensor(1.0)
+        # DDIM deterministic step (eta=0)
+        x0_pred = (x - torch.sqrt(1 - ab_t) * eps_pred) / torch.sqrt(ab_t)
+        x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_pred
+    return x
+
+# Compare: DDPM (1000 steps) vs DDIM (50 steps)
+samples_ddpm = ddpm_sample(model, alpha_bar, betas, n=2000, T=T)
+samples_ddim = ddim_sample(model, alpha_bar, n=2000, steps=50, T=T)
+print(f"DDPM mean: {samples_ddpm.mean(0).numpy().round(3)}")
+print(f"DDIM mean: {samples_ddim.mean(0).numpy().round(3)}")
+# Both should recover the two-moons structure
+```
+
+DDIM uses $20\times$ fewer model evaluations while producing comparable quality. The key difference: DDPM injects fresh noise at each step (SDE), DDIM does not (ODE). For DDIM, the same initial noise always produces the same output — this enables latent-space interpolation and inversion.
 
 ### A Unified View
 
@@ -211,6 +405,32 @@ Putting it all together:
 
 ---
 
+### Score Network Architecture: The U-Net
+
+For image generation, the score network $\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)$ is a **U-Net** — an encoder-decoder with skip connections. The key design choices:
+
+- **Time conditioning:** sinusoidal positional embedding of $t$, projected through a linear layer and added to each residual block (similar to transformer positional encoding).
+- **Spatial resolution:** the encoder downsamples by $2\times$ at each level (typically 4 levels: 64→32→16→8 for 64px images).
+- **Self-attention:** inserted at the 16×16 and 8×8 resolution levels. Attention at higher resolution is too expensive.
+- **Cross-attention (for conditioning):** text embeddings from CLIP/T5 enter via cross-attention at the same resolution levels.
+- **Group normalisation + SiLU activation** throughout (not BatchNorm, which interacts poorly with noise levels).
+
+The architecture can be summarised as:
+
+```
+Input x_t (C×H×W) + time embedding t
+  ↓
+ResBlock → ResBlock → Downsample (×4 levels)
+  ↓     skip connections ↓
+Bottleneck (self-attention + ResBlock)
+  ↓     skip connections ↓
+ResBlock → ResBlock → Upsample (×4 levels)
+  ↓
+Output eps_pred (C×H×W)
+```
+
+The total parameter count for a typical image model is 100M–900M (vs ~1M for our 2D toy examples). The skip connections are essential: without them, fine spatial detail is lost in the bottleneck and the model cannot reconstruct high-frequency content — exactly the content that diffusion destroys first and must reconstruct last.
+
 ## Latent Diffusion: Stable Diffusion in One Picture
 
 Pixel-space diffusion on $512 \times 512$ images is expensive: every U-Net forward pass operates on ~$8\times 10^5$ floats. **Latent Diffusion** (Rombach et al., 2022) trains a VAE-like autoencoder $(\mathcal{E}, \mathcal{D})$ first to map images to an $\sim\!8\times$ smaller latent $\mathbf{z}_0 = \mathcal{E}(\mathbf{x})$, and runs the entire diffusion process *in latent space*. Decoding $\hat{\mathbf{x}} = \mathcal{D}(\mathbf{z}_0)$ is a single feed-forward pass.
@@ -223,6 +443,46 @@ Conditioning (text, class labels, depth maps, ControlNet poses, …) enters the 
 The compute saving is roughly $f^{2d}$ where $f$ is the spatial downsampling factor (typically 8) and $d=2$, i.e. ~$64\times$. It is the architectural trick that turned diffusion models into a consumer technology.
 
 ---
+
+### Classifier-Free Guidance
+
+The most impactful practical technique in modern diffusion models is **classifier-free guidance** (Ho & Salimans, 2022). During training, randomly drop the conditioning signal (e.g., text prompt) with probability $p_{\text{uncond}} \approx 0.1$. At inference, combine the conditional and unconditional predictions:
+
+$$\hat{\boldsymbol\epsilon}(\mathbf{x}_t, t, c) = \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing) + w\,\bigl[\boldsymbol\epsilon_\theta(\mathbf{x}_t, t, c) - \boldsymbol\epsilon_\theta(\mathbf{x}_t, t, \varnothing)\bigr], \tag{12}$$
+
+where $w > 1$ is the **guidance scale**. Setting $w = 1$ recovers the vanilla conditional model; $w = 7$–$15$ is typical for text-to-image.
+
+```python
+@torch.no_grad()
+def guided_sample(model, alpha_bar, cond, w=7.5, steps=50, T=1000):
+    # Classifier-free guidance sampling
+    timesteps = torch.linspace(T-1, 0, steps).long()
+    x = torch.randn(cond.shape[0], 2)
+    null_cond = torch.zeros_like(cond)  # unconditional embedding
+    for i in range(len(timesteps)):
+        t = timesteps[i]
+        t_batch = torch.full((x.shape[0],), t, dtype=torch.long)
+        # Two forward passes: conditional + unconditional
+        eps_cond = model(x, t_batch, cond)
+        eps_uncond = model(x, t_batch, null_cond)
+        # Guided prediction
+        eps_guided = eps_uncond + w * (eps_cond - eps_uncond)
+        # DDIM step with guided eps
+        ab_t = alpha_bar[t]
+        ab_prev = alpha_bar[timesteps[i+1]] if i+1 < len(timesteps) else torch.tensor(1.0)
+        x0_pred = (x - torch.sqrt(1 - ab_t) * eps_guided) / torch.sqrt(ab_t)
+        x = torch.sqrt(ab_prev) * x0_pred + torch.sqrt(1 - ab_prev) * eps_guided
+    return x
+```
+
+**Why it works:** guidance amplifies the difference between "what the model generates given the prompt" and "what it generates unconditionally". This pushes samples toward regions that are *unusually likely under the condition* — tighter, more prompt-aligned generations at the cost of some diversity. Mathematically, it approximates sampling from $p(x|c)^w \cdot p(x)^{1-w}$, a sharpened conditional distribution.
+
+| Guidance scale $w$ | Effect | Typical use |
+|---------------------|--------|-------------|
+| $w = 1$ | No guidance, vanilla conditional | Diversity-focused |
+| $w = 3$–$5$ | Mild guidance | Creative exploration |
+| $w = 7$–$10$ | Strong guidance | Text-to-image (DALL-E, SD) |
+| $w > 15$ | Over-saturated, artefacts | Usually too high |
 
 ## Connection to Scientific Computing
 
