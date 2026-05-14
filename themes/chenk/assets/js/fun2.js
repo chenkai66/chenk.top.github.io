@@ -126,8 +126,8 @@
         row('Shift + G', isZh ? '跳到底部' : 'Go to bottom') +
         row('r', isZh ? '随机一篇' : 'Random article') +
         row('h', isZh ? '回到首页' : 'Back to home') +
-        row('[', isZh ? '上一篇' : 'Previous in series') +
-        row(']', isZh ? '下一篇' : 'Next in series') +
+        row('←', isZh ? '上一篇' : 'Previous in series') +
+        row('→', isZh ? '下一篇' : 'Next in series') +
         row('t', isZh ? '切换主题' : 'Toggle theme') +
         row('⌘ + K', isZh ? '搜索（mac）' : 'Search (mac)') +
         row('Ctrl + K', isZh ? '搜索（Win）' : 'Search (Win)') +
