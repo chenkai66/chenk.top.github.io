@@ -283,6 +283,8 @@ A useful rule of thumb: **if your problem has a structured grid and translation 
 
 ## Implementation: a 1D FNO from scratch
 
+![FNO training loss curve and Burgers equation prediction vs exact solution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/fig8_fno_training.png)
+
 The minimum runnable FNO in PyTorch fits in a single file. The two non-obvious pieces are (a) the spectral multiplication done with `torch.einsum` so the code generalises to multiple channels, and (b) the residual `W v` branch implemented as a $1\times 1$ convolution.
 
 ```python

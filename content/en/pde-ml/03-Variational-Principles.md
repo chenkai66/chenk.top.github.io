@@ -458,6 +458,8 @@ We pick the extremal $y(x) = \sin(\pi x)$ of the Dirichlet energy on $[0, 1]$ (w
 
 ### Wasserstein Gradient Flow (Figure 3)
 
+![Wasserstein gradient flow: density evolving toward Gibbs equilibrium with KL divergence decay](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/anim_gradient_flow.gif)
+
 We integrate the 1-D Fokker-Planck equation
 $$\partial_t \rho = \nabla\cdot(\rho \nabla V) + \Delta \rho, \qquad V(x) = \tfrac12 (x - \mu_\ast)^2 ,$$
 with explicit finite differences. The initial density is a sharp Gaussian far from the target. The simulation shows three things at once:

@@ -47,6 +47,8 @@ This is also Part 8 of the *PDE + Machine Learning* series. We have spent seven 
 
 ## Reaction-Diffusion in Continuous Space
 
+![Gray-Scott reaction-diffusion: four Turing morphologies (spots, stripes, labyrinth, holes)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/fig8_gray_scott_patterns.png)
+
 ### The General Form
 
 A reaction-diffusion (RD) equation couples spatial diffusion with local nonlinear reactions:
@@ -59,6 +61,8 @@ Two perspectives are useful. *Physically*, $\mathbf{u}$ is a vector of concentra
 The remarkable thing — and Turing's insight — is that the *competition* between these two terms can produce stable, non-trivial spatial patterns from a uniform initial state. Call this **diffusion-driven instability**.
 
 ### Gray-Scott
+
+![Gray-Scott simulation: spot patterns emerging from random initial conditions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/anim_gray_scott.gif)
 
 Gray-Scott is the canonical two-component model:
 $$

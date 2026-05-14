@@ -47,6 +47,8 @@ translationKey: "pde-ml-8"
 
 ## 连续空间上的反应扩散
 
+![Gray-Scott反应扩散: 四种图灵形态(斑点、条纹、迷宫、孔洞)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-反应扩散系统与GNN/fig8_gray_scott_patterns.png)
+
 ### 一般形式
 
 反应扩散（Reaction-Diffusion, RD）方程将空间扩散与局部非线性反应耦合在一起：
@@ -61,6 +63,8 @@ $$
 真正令人惊叹的是 Turing 的洞见：这两项之间的**竞争**，竟能让一个均匀的初始状态自发演化出稳定且非平凡的空间模式。这被称为**扩散驱动不稳定性**（diffusion-driven instability）。
 
 ### Gray-Scott 模型
+
+![Gray-Scott模拟: 斑点图案从随机初始条件中涌现](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-反应扩散系统与GNN/anim_gray_scott.gif)
 
 Gray-Scott 是经典的双组分模型：
 $$

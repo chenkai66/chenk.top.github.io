@@ -469,6 +469,8 @@ def augmented_neural_ode(func, x, k=1, steps=100):
 
 ## 实验
 
+![Neural ODE螺旋轨迹拟合与学习到的向量场](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig8_spiral_ode_fit.png)
+
 ### 螺旋 ODE 拟合
 
 使用一个 3 层 MLP（隐藏维 64，tanh 激活）参数化 $f_\theta$，通过伴随方法在二维阻尼螺旋目标上训练，求解器为 dopri5（rtol $=10^{-5}$）。经过 1000 步训练后，平均轨迹误差降至 $<10^{-3}$，峰值 GPU 内存约为 40 MB，与内部约 80 步的求解过程无关。

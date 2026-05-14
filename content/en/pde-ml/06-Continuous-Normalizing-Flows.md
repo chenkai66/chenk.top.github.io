@@ -430,6 +430,8 @@ This dual nature — exact-likelihood density estimation **and** sampling, throu
 
 ## Experiments
 
+![Neural ODE spiral trajectory fitting with learned vector field](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig8_spiral_ode_fit.png)
+
 ### Spiral ODE fitting
 
 A 3-layer MLP (hidden dim 64, tanh) parameterises $f_\theta$. Trained with the adjoint method on a 2D damped spiral target via dopri5 (rtol $=10^{-5}$). After 1000 steps the average trajectory error falls below $10^{-3}$, with peak GPU memory ~40 MB regardless of the ~80 internal solver steps.

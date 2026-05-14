@@ -122,6 +122,8 @@ for t in [0, 100, 300, 500, 999]:
 
 ## SDE 与 Fokker–Planck 方程
 
+![Ornstein-Uhlenbeck SDE样本路径收敛及直方图向高斯演化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/fig8_sde_particle_trajectories.png)
+
 热方程描述的是密度的**确定性**演化。但若想刻画单个样本路径——这正是扩散模型实际生成的对象——我们需要引入随机微分方程（SDE）。
 
 ### 布朗运动与 Itô SDE
@@ -285,6 +287,8 @@ $$
 ## 从连续理论到 DDPM 与 DDIM
 
 ### DDPM：前向过程的闭式解
+
+![前向扩散过程: 结构化点云逐渐溶解为高斯噪声](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/anim_forward_diffusion.gif)
 
 选定噪声调度 $\{\beta_t\}_{t=1}^T$，定义 $\alpha_t = 1 - \beta_t$ 和 $\bar\alpha_t = \prod_{s=1}^t \alpha_s$。DDPM 的前向过程是一个离散时间马尔可夫链：
 $$

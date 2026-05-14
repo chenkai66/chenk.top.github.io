@@ -48,6 +48,8 @@ This chapter proceeds as follows: §2 quantifies the pain points of classical me
 
 ### Finite differences — intuition at the price of stability
 
+![FDM 5-point stencil vs FEM triangular mesh with basis functions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig8_fdm_fem_stencil.png)
+
 Consider the 1-D heat equation
 $$u_t=\nu u_{xx},\qquad x\in(0,1),\ t>0,$$
 with $u(0,t)=u(1,t)=0$ and $u(x,0)=\sin(\pi x)$. Let $h$ be the spatial step and $\tau$ the time step. Forward Euler gives

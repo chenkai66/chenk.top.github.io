@@ -111,6 +111,8 @@ At $t=0$, the data has clear two-moon structure (low variance, off-centre mean).
 
 ## SDEs and the Fokker–Planck Equation
 
+![Ornstein-Uhlenbeck SDE sample paths converging with histogram evolution toward Gaussian](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig8_sde_particle_trajectories.png)
+
 The heat equation describes a **deterministic** evolution of densities. If we want to think of individual sample paths — which is what diffusion models actually generate — we need stochastic differential equations.
 
 ### Brownian Motion and Itô SDEs
@@ -253,6 +255,8 @@ where $\bar{\mathbf{B}}_t$ is a Brownian motion in reverse time and $p_t$ is the
 ## From Continuous Theory to DDPM and DDIM
 
 ### DDPM: Forward Process in Closed Form
+
+![Forward diffusion process: structured point cloud dissolving into Gaussian noise](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/anim_forward_diffusion.gif)
 
 Pick a noise schedule $\{\beta_t\}_{t=1}^T$. Define $\alpha_t = 1 - \beta_t$ and $\bar\alpha_t = \prod_{s=1}^t \alpha_s$. The DDPM forward process is the discrete-time Markov chain
 $$q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}\bigl(\mathbf{x}_t;\,\sqrt{\alpha_t}\,\mathbf{x}_{t-1},\,\beta_t\mathbf{I}\bigr),$$

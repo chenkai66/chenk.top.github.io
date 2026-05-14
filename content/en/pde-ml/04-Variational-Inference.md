@@ -131,6 +131,8 @@ The PDE perspective: HMC corresponds to the **underdamped** (kinetic) Langevin e
 
 ## Langevin Dynamics: Sampling as a PDE
 
+![Langevin dynamics: 200 particles sampling a double-well potential converging to Gibbs equilibrium](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/anim_langevin_sampling.gif)
+
 ![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.png)
 
 The **overdamped Langevin equation** for sampling from $p^\star \propto e^{-V}$ is

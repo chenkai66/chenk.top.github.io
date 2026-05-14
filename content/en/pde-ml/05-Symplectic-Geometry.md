@@ -102,6 +102,8 @@ For *every* explicit Runge-Kutta method, $|\det M_h| = 1 + c h^{p+1} + \mathcal{
 
 ## Symplectic integrators
 
+![Pendulum phase portrait: Euler spirals out while leapfrog preserves the orbit](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/anim_symplectic_vs_euler.gif)
+
 ### Why ordinary integrators drift
 
 Apply explicit Euler to (3):
@@ -286,6 +288,8 @@ The double pendulum is the acid test: it has a 4-dimensional phase space, two co
 ---
 
 ## Lagrangian Neural Networks (LNN)
+
+![Architecture comparison: HNN vs LNN vs SympNet with pros and cons](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig8_lnn_architecture.png)
 
 ### Why a Lagrangian flavour
 
@@ -510,6 +514,8 @@ class PortHamiltonianNN(nn.Module):
 This is the principled way to handle real-world systems: the symplectic part preserves energy (oscillations), the dissipation part removes it (damping). The network learns both structures from data, and the architecture *guarantees* that total energy is non-increasing — a hard physical constraint that no unconstrained network can enforce.
 
 ## Common Pitfalls
+
+![Energy drift comparison: vanilla MLP diverges vs HNN+Euler drifts vs HNN+leapfrog stays bounded](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig9_pitfall_energy_drift.png)
 
 - **Forgetting `create_graph=True`.** The HNN gradient is itself differentiated during backprop — without `create_graph=True` PyTorch will silently detach the graph and your gradient w.r.t. $\theta$ will be wrong.
 - **Choosing `ReLU` activations.** $H_\theta$ must be twice differentiable for the HNN gradient to be smooth. Use `Softplus`, `Tanh`, `SiLU`, or `GELU`.
