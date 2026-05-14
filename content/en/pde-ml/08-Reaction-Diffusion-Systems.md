@@ -56,7 +56,7 @@ $$\frac{\partial \mathbf{u}}{\partial t} = \mathbf{D}\,\nabla^2\mathbf{u} + \mat
 - The diffusion term $\mathbf{D}\nabla^2\mathbf{u}$ is **linear** and **smoothing** — it always reduces gradients.
 - The reaction term $\mathbf{R}(\mathbf{u})$ is **local** (no spatial derivatives) and **nonlinear** — it can either reinforce or oppose the smoothing.
 
-Two perspectives are useful. *Physically*, $\mathbf{u}$ is a vector of concentrations; diffusion is Fick's law, reaction is the local rate equation. *Mathematically*, (1) is a semilinear parabolic PDE — the heat equation we met in Chapter 7, plus a pointwise nonlinear forcing.
+Two perspectives are useful. *Physically*, $\mathbf{u}$ is a vector of concentrations; diffusion is Fick's law, reaction is the local rate equation. *Mathematically*, (1) is a semilinear parabolic PDE — the heat equation we met in [Chapter 7](/en/pde-ml/07-diffusion-models/), plus a pointwise nonlinear forcing.
 
 The remarkable thing — and Turing's insight — is that the *competition* between these two terms can produce stable, non-trivial spatial patterns from a uniform initial state. Call this **diffusion-driven instability**.
 
@@ -455,10 +455,10 @@ Underneath every chapter sits one slogan:
 
 Concretely:
 
-- **Want extrapolation off the training grid?** Choose an operator-learning PDE (Chapter 2).
-- **Want a network that reproduces conserved quantities?** Choose a symplectic integrator (Chapter 5).
-- **Want a tractable likelihood?** Choose a continuity equation and learn its drift (Chapter 6).
-- **Want to sample a complicated distribution?** Choose a Fokker-Planck and learn its score (Chapter 7).
+- **Want extrapolation off the training grid?** Choose an operator-learning PDE ([Chapter 2](/en/pde-ml/02-neural-operator-theory/)).
+- **Want a network that reproduces conserved quantities?** Choose a symplectic integrator ([Chapter 5](/en/pde-ml/05-symplectic-geometry/)).
+- **Want a tractable likelihood?** Choose a continuity equation and learn its drift ([Chapter 6](/en/pde-ml/06-continuous-normalizing-flows/)).
+- **Want to sample a complicated distribution?** Choose a Fokker-Planck and learn its score ([Chapter 7](/en/pde-ml/07-diffusion-models/)).
 - **Want a deep GNN that does not collapse?** Choose a reaction-diffusion equation, not just diffusion (this chapter).
 
 The PDE perspective is not the only useful lens on deep learning, but it is uncommonly *generative*: every time we have asked "what would the corresponding numerical analysis say?" we have learned something concrete — a stability bound, a step-size constraint, a structural fix. This is what physics-style thinking buys you in machine learning, and it is why the conversation between the two fields is far from over.

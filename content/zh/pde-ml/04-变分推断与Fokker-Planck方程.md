@@ -502,7 +502,7 @@ $$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $
 
 鲜少有人明确指出：**扩散模型其实就是 SVGD，只不过将核函数替换为了从数据中学到的 score 场**。SVGD 手动平衡“排斥 vs 吸引”，而扩散模型则从数据中学习这一平衡。正因如此，二者同属“密度上的梯度流”这一框架，而[第四节](#kl-散度是-wasserstein-梯度流)所述的 Wasserstein 几何正是描述它们的恰当语言。
 
-PDE-ML 系列第七章将专门深入探讨扩散模型；此处仅旨在点明其与 Fokker-Planck 方程的深刻联系。
+PDE-ML 系列[第七章](/zh/pde-ml/07-扩散模型与score-matching/)将专门深入探讨扩散模型；此处仅旨在点明其与 Fokker-Planck 方程的深刻联系。
 
 ## 参考文献
 
