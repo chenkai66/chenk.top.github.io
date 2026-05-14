@@ -139,7 +139,7 @@ Three implementation details matter much more than they look:
 2. **Early-stopping on a held-out validation set.** Long training overfits the expert's noise, which makes the next problem worse, not better.
 3. **Action representation.** For continuous control, predicting Gaussian parameters with a NLL loss outperforms MSE on Tanh outputs whenever the expert is multimodal.
 
-### 1 Why BC fails on long horizons
+### Why BC fails on long horizons
 
 BC is trained under the expert's state distribution $d_{\pi^*}$ but, at deployment, it visits states drawn from its _own_ distribution $d_{\pi_\theta}$. Because the policy is imperfect, those distributions diverge with every step.
 
@@ -233,7 +233,7 @@ Why bother going through reward? Two reasons:
 
 ![Inverse RL recovers reward from behaviour](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig3_irl_recovery.png)
 
-### 1 Maximum-entropy IRL
+### Maximum-entropy IRL
 
 A purely "match the expert's value" objective is ill-posed — many rewards explain the same behaviour. **Maximum-entropy IRL** (Ziebart et al., 2008) breaks the tie by requiring the recovered policy to maximise $r$ subject to maximum entropy. Concretely, the expert's distribution over trajectories $\tau$ takes the Boltzmann form
 $$p_\theta(\tau) \;\propto\; \exp\!\left( \sum_t r_\theta(s_t, a_t) \right).$$
@@ -243,7 +243,7 @@ Read this as a contrastive update: _push reward up where the expert goes, push i
 
 The cost is the second expectation. Computing $\mathbb{E}_{\pi_\theta}$ requires solving an RL problem (or doing trajectory sampling) at every reward update — a nested loop that limited classical IRL to small grid worlds. **Guided cost learning** (Finn, Levine & Abbeel, 2016) replaces the inner RL solve with sampled importance-weighted trajectories, scaling MaxEnt IRL to continuous control.
 
-### 2 Reward ambiguity
+### Reward ambiguity
 
 Even with the max-entropy regulariser, $\hat r$ is recovered up to **shaping invariances**: adding a potential function $\Phi(s') - \Phi(s)$ leaves the optimal policy unchanged but changes $r$. The recovered reward is therefore a useful _ranking_ over states, not an absolute scale. Adversarial inverse RL (§5.2) explicitly disentangles the shaping component.
 
@@ -314,11 +314,11 @@ class GAIL:
 - _Reward signal collapses._ As $D \to 0$ on policy samples, the reward drifts to zero. Reward normalisation per batch (running mean / std) restores learning.
 - _Policy mode-collapses._ Increase the entropy bonus $\lambda$ or use a maximum-entropy actor (SAC-style) as the generator.
 
-### 1 What does "matching occupancy" actually mean?
+### What does "matching occupancy" actually mean?
 
 GAIL is not minimising an action-prediction loss; it is minimising the Jensen-Shannon divergence between the expert occupancy $\rho_{\pi^*}(s, a)$ and the learner occupancy $\rho_{\pi_\theta}(s, a)$. That is a much stronger objective than BC — it is _aware_ of the rollout distribution. The price: it requires environment interaction during training (to sample $\rho_{\pi_\theta}$), so it does not work in fully offline settings without modification.
 
-### 2 AIRL: disentangling reward from shaping
+### AIRL: disentangling reward from shaping
 
 The discriminator GAIL learns is great for imitation but is _not_ a reusable reward. **AIRL** (Fu, Luo & Levine, 2018) restructures the discriminator as
 $$

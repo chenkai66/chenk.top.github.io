@@ -46,7 +46,7 @@ A VPC is a software-defined slice of the cloud provider's physical network that 
 
 ![Multi-AZ VPC architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig1_vpc_architecture.png)
 
-### 1 Anatomy of a production VPC
+### Anatomy of a production VPC
 
 The diagram above is a textbook 3-tier deployment. The pieces:
 
@@ -64,7 +64,7 @@ The diagram above is a textbook 3-tier deployment. The pieces:
 
 **The "public vs private subnet" distinction is purely about routes.** A subnet whose route table contains `0.0.0.0/0 -> igw-...` is public; a subnet whose default route is `0.0.0.0/0 -> nat-...` is private; a subnet with no internet route at all is isolated. This sounds trivial but is the source of half of all "I cannot reach the internet from my Lambda" tickets.
 
-### 2 Terraform: a real, multi-AZ VPC
+### Terraform: a real, multi-AZ VPC
 
 ```hcl
 locals {
@@ -135,7 +135,7 @@ Three production-relevant choices encoded above:
 - **Gateway endpoint for S3 / DynamoDB.** Without it, every byte to S3 from a private subnet flows through the NAT GW and bills at $0.045/GB. The endpoint is free.
 - **`map_public_ip_on_launch` only on public subnets.** Stops you from accidentally giving a private DB a public IP.
 
-### 3 Connecting VPCs: peering, TGW, PrivateLink
+### Connecting VPCs: peering, TGW, PrivateLink
 
 | Pattern | Topology | Best for | Caveats |
 |---------|----------|----------|---------|
@@ -154,7 +154,7 @@ A load balancer turns a fleet into a service. It hides individual instance failu
 
 ![L4 vs L7 load balancers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig3_lb_l4_l7.png)
 
-### 1 L4 vs L7
+### L4 vs L7
 
 | Feature | Network LB (L4) | Application LB (L7) |
 |---------|-----------------|---------------------|
@@ -169,7 +169,7 @@ A load balancer turns a fleet into a service. It hides individual instance failu
 
 A practical pattern in modern stacks: **L4 (NLB) -> L7 (Envoy/ALB) -> services**. The L4 layer absorbs DDoS and gives you a stable anycast IP; the L7 layer does smart routing and authentication. Each layer does one thing well.
 
-### 2 Algorithms
+### Algorithms
 
 ```text
 Round robin           A, B, C, A, B, C, ...
@@ -183,7 +183,7 @@ Maglev hash           Google's bounded-disruption consistent hash (used in Cloud
 
 For most stateless web traffic, *power-of-two-choices* (P2C) is empirically near-optimal and trivial to implement. For cache-sensitive workloads (anything in front of a key-value store), use a consistent or Maglev hash so the same key keeps hitting the same backend.
 
-### 3 ALB with path + host routing (Terraform)
+### ALB with path + host routing (Terraform)
 
 ```hcl
 resource "aws_lb" "app" {
@@ -246,7 +246,7 @@ The non-obvious knobs:
 - `drop_invalid_header_fields = true` mitigates HTTP request-smuggling attacks (CVE-2019-18860 class).
 - `enable_cross_zone_load_balancing` ensures even spread when AZs have unequal target counts. Off by default on NLB, on by default on ALB.
 
-### 4 Health checks that do not lie
+### Health checks that do not lie
 
 A health check that hits `/` and runs a database query *does* tell you when the database is down — but it also marks the entire fleet unhealthy on the first DB blip, taking the whole site offline. The pattern that survives production:
 
@@ -262,7 +262,7 @@ A CDN is geography turned into a cache. Static content is replicated to edge PoP
 
 ![CDN edge distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig4_cdn_edge.png)
 
-### 1 What actually happens on a request
+### What actually happens on a request
 
 1. **DNS** — the user resolves `cdn.example.com` to an anycast IP that lands at the closest healthy PoP.
 2. **TLS termination** — the TLS handshake completes at the edge (much shorter RTT) and the PoP holds a session ticket.
@@ -270,7 +270,7 @@ A CDN is geography turned into a cache. Static content is replicated to edge PoP
 4. **MISS path** — the PoP fetches from a *parent* (regional cache) which may itself fetch from origin (the hierarchical/tiered cache reduces origin load even for unique content).
 5. **Cache fill** — the PoP stores the response per its TTL (`Cache-Control: max-age`, `s-maxage`, `stale-while-revalidate`).
 
-### 2 Cache headers that work
+### Cache headers that work
 
 ```nginx
 # Static, content-addressed assets (hash in filename) -- cache forever
@@ -295,7 +295,7 @@ Three rules of thumb:
 - **`stale-while-revalidate`** lets the CDN serve a stale copy while it asynchronously refreshes — origin pain becomes invisible to users.
 - **Vary on the bare minimum.** `Vary: Accept-Encoding` is fine; `Vary: User-Agent` blows up the cache key space and your hit ratio.
 
-### 3 Beyond static: dynamic acceleration
+### Beyond static: dynamic acceleration
 
 Modern CDNs also accelerate *uncacheable* traffic. The mechanisms:
 
@@ -313,7 +313,7 @@ Traditional networks bound the *control* (routing, ACLs, QoS) tightly to each de
 
 ![SDN control plane vs data plane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig2_sdn_planes.png)
 
-### 1 The split
+### The split
 
 | Plane | Responsibility | Implementation |
 |-------|---------------|----------------|
@@ -324,14 +324,14 @@ Traditional networks bound the *control* (routing, ACLs, QoS) tightly to each de
 
 Inside a hyperscaler's region, **everything** is SDN: Hyper-V Virtual Switch, Open vSwitch, Cisco ACI, AWS's "Mapping Service" + "Hyperplane" implement what you experience as a VPC. Your security-group rules are compiled into ACL entries pushed to the host's vswitch on the path your packet takes — not enforced at the destination instance.
 
-### 2 Why operators love it
+### Why operators love it
 
 - **Centralised intent.** "All traffic from PCI-tagged subnets must pass through inspection" is one policy, applied everywhere, instead of 200 device configs.
 - **Traffic engineering.** A controller seeing the whole topology can route around congestion that distributed routing protocols (OSPF, IS-IS) react to with a 30-second delay.
 - **Programmable packet processing.** P4 lets the data plane parse new protocols (e.g. SRv6, custom in-band telemetry) without an ASIC respin.
 - **Fast failure recovery.** SDN-precomputed alternate paths + BFD failure detection reduces MTTR to milliseconds.
 
-### 3 Network Functions Virtualisation (NFV)
+### Network Functions Virtualisation (NFV)
 
 NFV is SDN's sibling: *replace dedicated network appliances with software running on commodity x86 servers*. A firewall, a load balancer, a WAN optimiser — each becomes a VNF that you can spin up, scale, and chain like any other workload.
 
@@ -366,7 +366,7 @@ backend api_pool
 
 Most enterprises live in hybrid topologies: cloud workloads need to reach on-prem databases, identity providers, or partner networks. There are three layers of connectivity tooling.
 
-### 1 VPN vs Direct Connect
+### VPN vs Direct Connect
 
 | Feature | Site-to-site VPN | Direct Connect / Express Connect / Cloud Interconnect |
 |---------|------------------|--------------------------------------------------------|
@@ -380,7 +380,7 @@ Most enterprises live in hybrid topologies: cloud workloads need to reach on-pre
 
 A common layered approach: **DX as the primary** with a **VPN as the encrypted backup** that activates on DX failure. Both terminate on the same Virtual Private Gateway / Transit Gateway.
 
-### 2 Transit Gateway
+### Transit Gateway
 
 A Transit Gateway (TGW) is the regional hub: every VPC, every VPN, every DX connection attaches once and gains reachability to everything else, governed by *route tables on the TGW itself*. It replaces the N²-peering problem with N attachments.
 
@@ -415,7 +415,7 @@ The pattern — **disable default association/propagation, then write the routes
 
 ## Security in the network
 
-### 1 Security Groups vs Network ACLs
+### Security Groups vs Network ACLs
 
 | Feature | Security Group | Network ACL |
 |---------|---------------|-------------|
@@ -446,7 +446,7 @@ resource "aws_security_group" "db" {
 }
 ```
 
-### 2 VPC Flow Logs
+### VPC Flow Logs
 
 Flow Logs record every accepted/rejected 5-tuple to S3 or CloudWatch. Three queries you will run within a week of enabling them:
 
@@ -470,7 +470,7 @@ WHERE az_id_src != az_id_dst
 GROUP BY srcsubnet, dstsubnet ORDER BY bytes DESC LIMIT 20;
 ```
 
-### 3 Zero trust at the network layer
+### Zero trust at the network layer
 
 The "soft chewy interior" model — a hard perimeter, trusted internal network — is gone. Modern designs assume the network is hostile and enforce identity per request. Practical building blocks:
 
@@ -486,7 +486,7 @@ When a request leaves your region and crosses the public internet — or when yo
 
 ![BGP across multiple regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig5_bgp_multi_region.png)
 
-### 1 The route-selection algorithm (simplified)
+### The route-selection algorithm (simplified)
 
 Given multiple paths to the same prefix, BGP picks one by walking down a long tiebreak list. The first five rungs cover 99% of cases:
 
@@ -496,12 +496,12 @@ Given multiple paths to the same prefix, BGP picks one by walking down a long ti
 4. **eBGP > iBGP** — prefer routes learned from external peers over internal.
 5. **Lowest IGP cost to the next hop** — shortest *internal* path to the chosen exit.
 
-### 2 ECMP and anycast
+### ECMP and anycast
 
 - **ECMP (Equal-Cost Multi-Path)** — when several paths tie on all the above, hash the 5-tuple of each flow and spread them across the equal-cost neighbours. ECMP is how a 100 Gbit/s logical link is built from ten 10 Gbit/s physical links, and how a multi-region anycast service spreads load across its PoPs.
 - **Anycast** — announce the *same* IP from many locations; BGP delivers each user to the topologically closest one. Anycast is the foundation of every CDN, every DNS root, every public DoH resolver.
 
-### 3 Multi-region failover
+### Multi-region failover
 
 A common pattern for global services:
 
@@ -516,7 +516,7 @@ The BGP details rarely intrude on the application — but when something is mis-
 
 ## Troubleshooting in production
 
-### 1 The triage order
+### The triage order
 
 When traffic is broken, walk *up* from the wire:
 
@@ -527,7 +527,7 @@ When traffic is broken, walk *up* from the wire:
 5. **TLS** — `openssl s_client -connect host:443 -servername host`. Half of "API down" is a stale cert.
 6. **Application** — `curl -vvv https://...`. Log shows `200 OK`? It's not the network.
 
-### 2 The Swiss-army CLI
+### The Swiss-army CLI
 
 ```bash
 # Where are packets actually going?
@@ -546,7 +546,7 @@ ip -6 route get 2606:4700::6810:84e5    # confirm next hop + MTU
 ping -M do -s 1472 8.8.8.8              # detect black-holed PMTUD
 ```
 
-### 3 The five most expensive misconfigurations
+### The five most expensive misconfigurations
 
 | Symptom | Usual cause | Fix |
 |---------|-------------|-----|

@@ -37,7 +37,7 @@ A bank account, a drug clearing the bloodstream, a tank of brine, a charging cap
 
 ## Separable equations: the most natural form
 
-### 1 The shape
+### The shape
 
 A first-order ODE is **separable** when the right-hand side factors into "something in $x$" times "something in $y$":
 $$\frac{dy}{dx} \;=\; g(x)\,h(y).$$
@@ -52,7 +52,7 @@ The constant $C$ is the family parameter — every choice picks out one solution
 ![Solution curves of dy/dx = -x/y are concentric circles, tangent to the slope field everywhere.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/fig1_separable_solution_curves.png)
 *Separation collapses a 2-D slope field into a 1-D family of curves $x^2+y^2=C$.*
 
-### 2 Worked example: exponential growth and decay
+### Worked example: exponential growth and decay
 
 Solve $\dfrac{dy}{dx} = ky$ for constant $k$.
 
@@ -65,7 +65,7 @@ What just happened? The growth rate $k$ controls the *time scale*, not the shape
 - $k > 0$: doubling every $\ln 2 / k$ — populations with no resource limit, continuously compounded interest, runaway nuclear chain reaction.
 - $k < 0$: half-life of $\ln 2 / |k|$ — radioactive decay, a charged capacitor draining, a drug being cleared by the liver.
 
-### 3 Application: drug metabolism and the half-life rule
+### Application: drug metabolism and the half-life rule
 
 Most drugs follow first-order elimination: the rate at which they leave the bloodstream is proportional to how much is in there:
 $$\frac{dC}{dt} = -kC, \qquad C(t) = C_0 e^{-kt}.$$
@@ -82,7 +82,7 @@ For ibuprofen $t_{1/2} \approx 2$ h. Starting from a 400 mg dose:
 
 That's why ibuprofen is dosed every 4–6 h: any longer and the level falls below the therapeutic window; any shorter and it accumulates. The "5 half-lives to clear" rule of thumb (about 99% gone) drops out of the same equation.
 
-### 4 Application: the logistic equation
+### Application: the logistic equation
 
 Pure exponential growth $P' = rP$ is a fantasy: nothing grows forever. Verhulst (1838) added a brake — a *carrying capacity* $K$ — and got the equation that still anchors mathematical ecology:
 $$\frac{dP}{dt} = r P\left(1 - \frac{P}{K}\right).$$
@@ -105,11 +105,11 @@ The right-hand panel below visualises this: the growth rate $\dot P$ as a functi
 
 ## First-order linear equations: the integrating factor
 
-### 1 Standard form
+### Standard form
 $$\frac{dy}{dx} + P(x)\,y \;=\; Q(x).$$
 This is the workhorse of applied math. Whenever a quantity changes in proportion to itself plus an external forcing term, you get this shape.
 
-### 2 The trick
+### The trick
 
 Multiply through by
 $$\mu(x) \;=\; e^{\int P(x)\,dx},$$
@@ -119,7 +119,7 @@ Integrate once and divide by $\mu$:
 $$\boxed{\,y(x) \;=\; \frac{1}{\mu(x)} \left[\int \mu(x)\,Q(x)\,dx + C\right].\,}$$
 That's the entire method. Why does it work? $\mu$ is engineered so that $\mu' = \mu P$, exactly what the product rule demands.
 
-### 3 Worked example: $y' + 2xy = x$
+### Worked example: $y' + 2xy = x$
 
 | Step | Computation | Result |
 |------|-------------|--------|
@@ -131,14 +131,14 @@ That's the entire method. Why does it work? $\mu$ is engineered so that $\mu' = 
 
 As $x \to \pm\infty$ the term $C e^{-x^2}$ vanishes, so every solution funnels into the equilibrium $y = 1/2$. The constant of integration only matters in a transient near the origin.
 
-### 4 What the integrating factor *does* visually
+### What the integrating factor *does* visually
 
 Three side-by-side panels make it obvious. We pick $y' + 2y = 4$ (so $P = 2$, $\mu = e^{2x}$, equilibrium $y=2$).
 
 ![Slope field with solution family for y' + 2y = 4, the integrating factor e^{2x}, and the collapse of LHS into a perfect derivative.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/fig2_integrating_factor.png)
 *Left: every solution $y = 2 + Ce^{-2x}$ rushes towards the equilibrium $y=2$. Middle: the integrating factor $e^{2x}$ is just a clean exponential. Right: after multiplying, $\mu(x)y(x)$ matches $\int 4\mu\,dx$ — the whole left side has become one antiderivative.*
 
-### 5 Application: charging an RC circuit
+### Application: charging an RC circuit
 
 Kirchhoff's voltage law on a series resistor $R$ and capacitor $C$ driven by source $V_s$ gives
 $$RC\,\frac{dV_c}{dt} + V_c \;=\; V_s.$$
@@ -158,7 +158,7 @@ Same formula, with a sign flip and $V_s = 0$, governs *discharging* — and expl
 
 ## Exact equations
 
-### 1 The geometric idea
+### The geometric idea
 
 Write the ODE in the differential form
 $$M(x,y)\,dx + N(x,y)\,dy = 0.$$
@@ -168,13 +168,13 @@ Then $M\,dx + N\,dy$ is precisely the total differential $dF$, the equation $dF 
 $$F(x,y) \;=\; C.$$
 The solution curves are the **level sets** of $F$. That is the whole picture, and it is profound: solving the ODE has been replaced by recovering a scalar function whose contour map *is* the solution family.
 
-### 2 The exactness test
+### The exactness test
 
 A potential exists iff mixed partials match — that's just $F_{xy} = F_{yx}$:
 $$\boxed{\,\dfrac{\partial M}{\partial y} \;=\; \dfrac{\partial N}{\partial x}.\,}$$
 If this fails, the equation is not exact (yet — see §3.4).
 
-### 3 Solving an exact equation, step by step
+### Solving an exact equation, step by step
 
 Take $(2x + y)\,dx + (x + 2y)\,dy = 0$. Check exactness: $M_y = 1 = N_x$. Good. Now reconstruct $F$:
 
@@ -187,7 +187,7 @@ Geometrically these are tilted ellipses. The figure below overlays the gradient 
 ![Level curves of F(x,y) = x^2 + xy + y^2 with the gradient field overlaid, showing perpendicularity.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/fig3_exact_level_curves.png)
 *Each contour is one solution. The grey arrows point along $\nabla F$, perpendicular to the contour — that's the geometric content of "$dF = 0$ along solutions".*
 
-### 4 Salvage: making a non-exact equation exact
+### Salvage: making a non-exact equation exact
 
 If $M_y \neq N_x$, multiply by $\mu(x,y)$ and look for a $\mu$ that fixes things. Two common cases admit closed forms:
 
@@ -202,17 +202,17 @@ This is the same construction as the linear-equation integrating factor — in f
 
 ## Bernoulli equations
 
-### 1 The shape
+### The shape
 $$\frac{dy}{dx} + P(x)\,y \;=\; Q(x)\,y^{n}, \qquad n \neq 0, 1.$$
 When $n = 0$ it's already linear; when $n = 1$ it's separable. The interesting range is everything else, where the $y^n$ term ruins linearity.
 
-### 2 The substitution
+### The substitution
 
 Let $v = y^{1-n}$. Then $\dfrac{dv}{dx} = (1-n)\,y^{-n}\,\dfrac{dy}{dx}$. Multiply the original equation by $(1-n) y^{-n}$ and rewrite:
 $$\frac{dv}{dx} + (1-n)P(x)\,v \;=\; (1-n)Q(x).$$
 That is **linear** in $v$. Solve it with the integrating factor of §2, then convert back via $y = v^{1/(1-n)}$.
 
-### 3 What the substitution does geometrically
+### What the substitution does geometrically
 
 Take $y' + y = y^2$ (so $n = 2$, $v = 1/y$). The substitution turns it into the linear equation $v' - v = -1$, whose solutions are exponentials around the equilibrium $v = 1$. In $v$-space the family is straight and orderly; in the original $y$-space it is curved and contains a finite-time blow-up.
 
@@ -252,7 +252,7 @@ $$Q(t) \;=\; 2000\bigl(1 - e^{-t/200}\bigr).$$
 
 Closed-form tricks fail the moment $f(x,y)$ is messy enough — and most real-world equations are. The answer is to step along the slope field.
 
-### 1 Euler's method
+### Euler's method
 
 The simplest possible idea: replace the curve with its tangent on each step.
 $$y_{n+1} \;=\; y_n + h\,f(t_n, y_n).$$
@@ -261,7 +261,7 @@ $$y_{n+1} \;=\; y_n + h\,f(t_n, y_n).$$
 
 Cheap, easy, often inadequate.
 
-### 2 Runge–Kutta 4 (RK4)
+### Runge–Kutta 4 (RK4)
 
 The standard workhorse. Combine four slope evaluations per step:
 $$
@@ -277,14 +277,14 @@ $$
 $$y_{n+1} \;=\; y_n + \frac{h}{6}\bigl(k_1 + 2k_2 + 2k_3 + k_4\bigr).$$
 Global error $O(h^4)$ — four orders of magnitude better than Euler at the same step size, for the cost of three extra evaluations.
 
-### 3 Slope fields tell you what the integrator will see
+### Slope fields tell you what the integrator will see
 
 Before you reach for a numerical solver, *look* at the right-hand side. Two superficially similar equations can have radically different long-term behaviour:
 
 ![Slope fields of a linear equation y'=y-x and the Bernoulli equation y'=y-y^3, with representative trajectories.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/02-first-order-methods/fig7_slope_field_comparison.png)
 *Linear (left): one straight-line solution $y=x+1$, all others diverge exponentially. Bernoulli (right): three equilibria at $y=-1, 0, +1$; trajectories are squeezed onto $\pm 1$ regardless of initial sign. Same first-order family, completely different geometry.*
 
-### 4 SciPy in three lines
+### SciPy in three lines
 
 Newton's law of cooling: $T' = -k(T - T_{\text{env}})$ with $T(0) = 90$°C, $T_{\text{env}} = 20$°C, $k = 0.1$ /min.
 

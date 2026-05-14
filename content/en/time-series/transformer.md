@@ -76,13 +76,13 @@ h_2 &= \text{LayerNorm}(h_1 + \text{FFN}(h_1))
 $$
 with the standard scaled dot-product attention from Part 4:
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
-### 1 Encoder
+### Encoder
 
 Reads the lookback window $x_{t-L+1:t}$ and produces context vectors
 $M \in \mathbb{R}^{L \times d_{\text{model}}}$. No mask — every
 position attends to every other.
 
-### 2 Decoder
+### Decoder
 
 Takes the **label window** (last $L_{\text{label}}$ steps of history)
 concatenated with placeholder zeros for the forecast horizon, and emits
@@ -95,7 +95,7 @@ block:
   values come from the encoder memory $M$. This is the only place the
   decoder ever looks at the encoder output.
 
-### 3 The label window: a small but useful trick
+### The label window: a small but useful trick
 
 Pure encoder-decoder models often suffer at the boundary between
 history and forecast. The fix used by Informer / Autoformer is to feed
@@ -358,7 +358,7 @@ to implement and faster to train.
 
 ## Performance and Engineering
 
-### 1 Forecast quality
+### Forecast quality
 
 We forecast a 96-step horizon on a synthetic signal with daily and
 weekly seasonality plus random spikes. The Transformer cleanly captures
@@ -368,7 +368,7 @@ on the weekly component.
 ![Forecast quality on a daily + weekly seasonal signal. The Transformer locks both cycles; the LSTM captures the dominant daily one but drifts on the weekly. Right: MAE comparison across architectures.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig4_lstm_vs_transformer.png)
 *Figure 4. Forecast quality on a daily + weekly seasonal signal. The Transformer locks both cycles; the LSTM captures the dominant daily one but drifts on the weekly. Right: MAE comparison across architectures.*
 
-### 2 Training recipe (the boring stuff that matters)
+### Training recipe (the boring stuff that matters)
 
 - **Optimizer**: AdamW, $\beta = (0.9, 0.95)$ (the GPT-3 setting — the
   default 0.999 is too sluggish for time series).
@@ -384,7 +384,7 @@ on the weekly component.
 - **Patience**: forecasting Transformers usually need 100-300 epochs;
   language Transformers' 3-10 epochs do not transfer.
 
-### 3 Production: serving cost and the RevIN trick
+### Production: serving cost and the RevIN trick
 
 - Use **`torch.compile`** (PyTorch 2.x) — 1.5-2x latency win for free.
 - For decoder-only deployments, **cache K and V** across steps so each

@@ -44,7 +44,7 @@ This article unpacks how those vectors get learned and served at production scal
 
 ## Foundations: what an embedding is, and why it matters
 
-### 1 The compression view
+### The compression view
 
 An **embedding** is a learned function $f : \mathcal{I} \to \mathbb{R}^{d}$ that maps a discrete object — a user, a movie, a SKU, a node in a graph — to a dense vector of $d$ real numbers, where $d$ is much smaller than the catalogue size.
 
@@ -58,7 +58,7 @@ Three properties make embeddings the lingua franca of modern recommenders:
 | **Geometry** | "Similar" becomes a measurable quantity — a dot product or a cosine. |
 | **Composability** | Embeddings can be averaged, concatenated, attended over, and indexed for retrieval. |
 
-### 2 Why this beats sparse representations
+### Why this beats sparse representations
 
 Real interaction matrices are absurdly sparse. A platform with $10^{8}$ users and $10^{7}$ items has $10^{15}$ possible cells but typically observes fewer than $10^{11}$ — under 0.01% density. Storing or factoring that matrix directly is infeasible. Compressing each row and column into a $d$-dimensional vector turns the problem into something modern hardware loves: dense matrix multiplications.
 
@@ -66,7 +66,7 @@ Real interaction matrices are absurdly sparse. A platform with $10^{8}$ users an
 
 The picture above is the central intuition of this entire article. Items belonging to the same category form clusters; the query item's neighbours in vector space are exactly the items we want to recommend. **Recommendation reduces to nearest-neighbour search in an embedding space.**
 
-### 3 The learning objective in one sentence
+### The learning objective in one sentence
 
 Almost every embedding method, from matrix factorisation to BERT4Rec, optimises the same idea:
 
@@ -85,7 +85,7 @@ The choice of context defines the method.
 
 ## Sequence-based embeddings: Word2Vec and Item2Vec
 
-### 1 From words to items
+### From words to items
 
 Word2Vec (Mikolov et al., 2013) had two flavours:
 
@@ -96,7 +96,7 @@ Word2Vec (Mikolov et al., 2013) had two flavours:
 
 Item2Vec (Barkan & Koenigstein, 2016) is the trivial-looking but powerful adaptation: **treat a user's interaction sequence as a sentence and each item as a word.** All the Word2Vec machinery transfers verbatim.
 
-### 2 The Skip-gram objective, derived
+### The Skip-gram objective, derived
 
 Given a sequence $S = [i_1, i_2, \dots, i_T]$ and a window size $c$, Skip-gram maximises the log-probability of seeing each context item given its centre:
 $$\mathcal{L} \;=\; \sum_{t=1}^{T} \;\sum_{\substack{-c \le j \le c \\ j \ne 0}} \log p\!\left(i_{t+j}\,\middle|\,i_t\right).$$
@@ -113,7 +113,7 @@ where $\sigma$ is the sigmoid. The noise distribution $P_n$ is the unigram frequ
 
 ![Item2Vec Skip-gram architecture: a sliding context window selects a centre item, an embedding lookup produces a vector, and the model contrasts the positive context items against K negatives sampled from the 3/4-power unigram distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig2_item2vec_skipgram.png)
 
-### 3 Implementation
+### Implementation
 
 A self-contained Item2Vec with Skip-gram + negative sampling. Read it once paying attention to the **two embedding tables**, the **score clamping**, and the **sigmoid trick**.
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
         print(f"epoch {epoch + 1:>2}  loss {running / max(1, len(pairs) // BATCH):.4f}")
 ```
 
-### 4 Design decisions worth defending
+### Design decisions worth defending
 
 | Decision | Choice | Why it matters |
 |---|---|---|
@@ -240,14 +240,14 @@ if __name__ == "__main__":
 | Negative distribution | $P_n \propto f^{0.75}$ | Pure-frequency over-samples blockbusters; uniform over-samples obscure long tails. The 3/4 exponent is the empirical sweet spot Mikolov found. |
 | `clamp(-10, 10)` on dot products | Numerical guard | A single overflowed sigmoid can NaN the whole epoch. Cheap insurance. |
 
-### 5 Field-tested gotchas
+### Field-tested gotchas
 
 - **Cold-start items.** An item with zero training interactions has no embedding. Three remedies: (1) train a side network from item content (text, image) to predict its embedding; (2) initialise from the average of categorically similar items; (3) accept randomness and let early online traffic pull it into place.
 - **Variable session length.** Truncate to the most recent $N$ items (typically 50 – 100) and pad shorter sessions. For very long sessions, segment into windows.
 - **Negative collisions.** With a million-item catalogue, drawing a "false negative" that is actually positive happens with probability $< 0.1\%$ — ignore it. With a 1k-item catalogue, explicitly exclude positives.
 - **Repeated items.** Power users replay the same song fifty times. De-duplicate consecutive repeats before building pairs, otherwise the model just learns "this song is similar to itself."
 
-### 6 CBOW: the symmetric variant
+### CBOW: the symmetric variant
 
 CBOW averages the surrounding context embeddings into one vector and uses *that* to predict the centre. It trains faster and tends to be slightly worse on long-tail items — Skip-gram sees each context item independently while CBOW averages everything into a single shot.
 
@@ -281,11 +281,11 @@ class Item2VecCBOW(nn.Module):
 
 ## Graph-based embeddings: Node2Vec
 
-### 1 When sequences are not enough
+### When sequences are not enough
 
 Item2Vec only sees what is *adjacent in time*. But the relationships in a marketplace look more like a graph: items are co-purchased, co-viewed, share a category, share a brand. The same item can be relevant in two completely different "neighbourhoods" — a hiking tent is near "camping" *and* near "cycling gear". Sequence models flatten that structure; graph models preserve it.
 
-### 2 The biased random walk
+### The biased random walk
 
 Node2Vec (Grover & Leskovec, 2016) takes a graph and produces "sentences" by walking from node to node. The trick is **how** it walks: a tunable bias makes the walker prefer either staying close to home (BFS-like, captures community) or wandering far (DFS-like, captures structural roles).
 
@@ -311,7 +311,7 @@ $$
 
 Once you have a corpus of walks, you feed them into Skip-gram exactly as in Item2Vec — the algorithm does not care whether the "sentence" came from user history or graph traversal.
 
-### 3 Implementation
+### Implementation
 
 ```python
 import numpy as np
@@ -376,7 +376,7 @@ class Node2Vec:
         return {n: model.wv[str(n)] for n in self.graph.nodes()}
 ```
 
-### 4 Building the graph in the first place
+### Building the graph in the first place
 
 Most production deployments do not start with a clean graph; they construct one from interaction logs. A common recipe uses **Jaccard similarity over user sets** to weight edges:
 
@@ -418,7 +418,7 @@ def co_occurrence_graph(interactions, min_jaccard=0.1, max_users=None):
 
 ![Recommendation Systems (5): Embedding and Representation Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/illustration_2.png)
 
-### 1 Why two towers, not one
+### Why two towers, not one
 
 Concatenate user features with item features, push them through a single network, get a score. Why not? **Because at serving time you would have to run the network for every (user, candidate) pair.** With ten million candidates that is ten million forward passes per request.
 
@@ -440,7 +440,7 @@ This is the canonical recipe for the *retrieval* (a.k.a. *recall*) stage of a mo
 
 ![Two-tower DSSM: user features flow up the left tower, item features flow up the right tower, both end in L2-normalised d-dimensional vectors, and a cosine similarity at the top produces the score](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig3_two_tower.png)
 
-### 2 DSSM in code
+### DSSM in code
 
 DSSM (Huang et al., Microsoft, 2013) is the canonical two-tower model. Originally designed for web search, it ships in essentially every large recommender today.
 
@@ -506,7 +506,7 @@ A few non-obvious choices baked into this 30-line implementation:
 
 ## YouTube DNN: pooling a user's history
 
-### 1 The setup
+### The setup
 
 YouTube DNN (Covington et al., 2016) is a celebrated two-tower variant tailored to video recommendation, where each user is described by a *sequence* of recently watched videos rather than a flat feature vector. The user tower's job is to **pool that sequence** into one vector.
 
@@ -541,7 +541,7 @@ class YouTubeDNN(nn.Module):
         return (u * i).sum(-1)
 ```
 
-### 2 When pooling is too crude: attention
+### When pooling is too crude: attention
 
 Average pooling treats every watched video equally. In reality, a user who just watched ten cooking videos and one ten-second car ad probably wants more cooking, not more cars. Self-attention lets the model *learn* the weighting:
 
@@ -576,7 +576,7 @@ class YouTubeDNNWithAttention(nn.Module):
 
 Positives are expensive — they come from real user behaviour. Negatives are cheap — there are millions of them. The art is **picking the right cheap negatives**, because random ones are too easy and trivially-hard ones destabilise training.
 
-### 1 The four strategies
+### The four strategies
 
 | Strategy | Mechanism | When to use |
 |---|---|---|
@@ -585,11 +585,11 @@ Positives are expensive — they come from real user behaviour. Negatives are ch
 | **Hard-negative mining** | Pick items that *look* relevant to the user but were not interacted with. | Late-stage fine-tuning; sharpens the decision boundary. |
 | **In-batch negatives** | Use other positives in the same minibatch as your negatives. | Two-tower training at scale; effectively free. |
 
-### 2 Why in-batch negatives are the workhorse
+### Why in-batch negatives are the workhorse
 
 In a batch of $B$ (user, positive item) pairs, every other positive's item embedding can serve as a negative for every user. That gives you $B - 1$ negatives per row at no extra cost. Variant: **add a popularity correction term** to undo the bias of in-batch sampling — popular items appear in batches more often and get penalised too hard. The standard correction (Yi et al., 2019, "Sampling-Bias-Corrected Neural Modeling") subtracts $\log p(i)$ from the logit before softmax.
 
-### 3 Implementation snippets
+### Implementation snippets
 
 ```python
 import numpy as np
@@ -628,13 +628,13 @@ def hard_neg(user_emb, item_emb, positives_mask, top_k=100, k=10):
 
 ## Approximate nearest-neighbour search
 
-### 1 The serving problem
+### The serving problem
 
 You have a one-million-item index and a hundred-millisecond budget. A brute-force scan is $O(Nd)$ per query — about $1.3 \times 10^{8}$ multiply-adds for $d=128$. Doable on a beefy CPU, undoable on a fleet of them at QPS in the tens of thousands. **Approximate** nearest-neighbour search trades 1 – 5% recall for a 10 – 100× speedup.
 
 ![ANN search: left panel shows IVF index probing the centroid nearest the query and returning the k-NN inside that cluster; right panel compares query latency vs Recall@10 for Flat, IVF, HNSW, Annoy, IVFPQ on a 1M-item, d=128 benchmark](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig5_ann_search.png)
 
-### 2 The three index families
+### The three index families
 
 | Family | Idea | Strength |
 |---|---|---|
@@ -644,7 +644,7 @@ You have a one-million-item index and a hundred-millisecond budget. A brute-forc
 
 Annoy (Spotify) uses random projection trees — simpler API, excellent for quick prototypes but typically slower than HNSW at the same recall.
 
-### 3 FAISS in production
+### FAISS in production
 
 ```python
 import faiss
@@ -688,7 +688,7 @@ class ANNIndex:
             self.index.nprobe = n
 ```
 
-### 4 Benchmarks at a glance
+### Benchmarks at a glance
 
 | Index | Build time | Query time | Memory | Recall@10 | Best for |
 |---|---|---|---|---|---|
@@ -708,7 +708,7 @@ Embeddings are not directly visible to users, so you need proxies. Use both **in
 
 ![Embedding similarity heatmap for 12 movies grouped into four categories; the block-diagonal pattern shows that within-category cosine similarity is high while cross-category similarity is near zero](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig6_similarity_heatmap.png)
 
-### 1 Intrinsic — does the geometry look right?
+### Intrinsic — does the geometry look right?
 
 ```python
 import numpy as np
@@ -739,7 +739,7 @@ def cluster_silhouette(emb: dict, n_clusters: int = 10) -> float:
     return silhouette_score(matrix, labels)
 ```
 
-### 2 Extrinsic — does the system recommend better?
+### Extrinsic — does the system recommend better?
 
 ```python
 def hit_rate_ndcg(user_vec: dict, item_vec: dict, test, k: int = 10):

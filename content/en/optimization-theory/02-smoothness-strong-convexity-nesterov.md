@@ -42,7 +42,7 @@ This post lays them out on a single thread: nail the geometric intuition with th
 
 ## Lipschitz continuity and gradient smoothness
 
-### 1 The geometric picture of Lipschitz continuity
+### The geometric picture of Lipschitz continuity
 
 **Definition (Lipschitz continuous).** A function $f:\mathbb{R}^n\to\mathbb{R}$ is $L$-Lipschitz if there exists $L\ge 0$ such that for all $x, y$,
 $$|f(y) - f(x)| \le L\,\|y - x\|.$$
@@ -57,7 +57,7 @@ Left: $\sin x$ is 1-Lipschitz; the orange cones at three sample anchors fully co
 1. **Uniform continuity**: take $\delta = \varepsilon / L$.
 2. **Closure**: Lipschitz functions are closed under addition, scalar multiplication, and composition (constants multiply). This lets us decompose complicated models into Lipschitz building blocks with known constants.
 
-### 2 Gradient-Lipschitz = $L$-smoothness
+### Gradient-Lipschitz = $L$-smoothness
 
 In practice we care less about Lipschitz $f$ and more about Lipschitz $\nabla f$, because that is what bounds the step size:
 $$\|\nabla f(y) - \nabla f(x)\| \le L\,\|y - x\|.$$
@@ -77,7 +77,7 @@ As long as $\eta \le 1/L$, the bracket is $\ge 1/2$, so **every step strictly de
 
 Three regimes on the same quadratic $f(x) = \tfrac{L}{2}x^2$ (here $L = 4$). Left: a small step ($\eta = 0.8/L$) creeps down monotonically. Middle: the canonical $\eta = 1/L$ lands at the optimum in one move from $x_0 = 1$ — fastest possible without overshoot. Right: cross the $2/L$ ceiling and the iterates blow up, the descent lemma broken. The tight band $[1/L,\, 2/L]$ is exactly where convergence is fastest *and* still safe; below it you waste iterations, above it you diverge.
 
-### 3 Three worked examples
+### Three worked examples
 
 | Function | Gradient | Spectral norm of Hessian | $L$ |
 |---|---|---|---|
@@ -87,7 +87,7 @@ Three regimes on the same quadratic $f(x) = \tfrac{L}{2}x^2$ (here $L = 4$). Lef
 
 The third row gives the standard $L = \tfrac{1}{4n}\sum_i\|x_i\|^2$ for logistic regression — the bound $\sigma(\cdot)\sigma(-\cdot)\le 1/4$ does the work.
 
-### 4 Hessian spectral bound implies gradient Lipschitz
+### Hessian spectral bound implies gradient Lipschitz
 
 **Theorem 1 (Hessian spectral norm $\Rightarrow$ Lipschitz gradient).** If $f$ is twice differentiable with $\sup_x \|\nabla^2 f(x)\|_2 \le L$, then $\nabla f$ is $L$-Lipschitz.
 
@@ -101,7 +101,7 @@ For a quadratic $f(x) = \tfrac{1}{2}x^\top H x$ this gives $L = \lambda_{\max}(H
 
 ## Strong convexity: existence, uniqueness, quadratic growth
 
-### 1 Three equivalent definitions
+### Three equivalent definitions
 
 **Definition ($\mu$-strongly convex).** A differentiable $f$ is $\mu$-strongly convex ($\mu>0$) if for all $x, y$,
 $$f(y) \ge f(x) + \langle \nabla f(x), y - x\rangle + \frac{\mu}{2}\,\|y - x\|^2.$$
@@ -115,7 +115,7 @@ It has three equivalent forms, each handier in a different context:
 
 Left: a strongly convex function with three quadratic lower models (one per anchor). Right: $f(x) = 0.05\,x^4$ is convex but **not strongly convex** — it is too flat at the origin for any $\mu>0$ parabola to fit underneath. This is exactly why we cannot get linear convergence on this kind of objective.
 
-### 2 Existence and uniqueness
+### Existence and uniqueness
 
 **Theorem 2 (existence).** If $f$ is lower semi-continuous and some sublevel set $\{x : f(x)\le\alpha\}$ is non-empty and bounded, $f$ attains its minimum on that set.
 
@@ -131,7 +131,7 @@ But $f(y^\star) = f(x^\star)$, so $\|y^\star - x^\star\| = 0$. $\blacksquare$
 $$f(y) - f^\star \ge \frac{\mu}{2}\|y - x^\star\|^2,$$
 i.e. **the cost grows at least quadratically away from the minimizer**. This is the lever that turns "small function value" into "small distance to optimum" in every convergence proof below.
 
-### 3 $L$-smooth and $\mu$-strongly convex together: the condition number
+### $L$-smooth and $\mu$-strongly convex together: the condition number
 
 If $f$ satisfies both
 $$\mu I \preceq \nabla^2 f(x) \preceq L I,$$
@@ -143,7 +143,7 @@ is the **condition number**, and it controls every rate that follows. Large $\ka
 
 ## Accelerated gradient descent: from $\kappa$ to $\sqrt{\kappa}$
 
-### 1 Two upper bounds for plain GD
+### Two upper bounds for plain GD
 
 **Theorem 4 (GD on convex + $L$-smooth, sublinear rate).** Take $\eta = 1/L$:
 $$f(x_t) - f^\star \le \frac{L\,\|x_0 - x^\star\|^2}{2t} = \mathcal O(1/t).$$
@@ -151,7 +151,7 @@ $$f(x_t) - f^\star \le \frac{L\,\|x_0 - x^\star\|^2}{2t} = \mathcal O(1/t).$$
 $$\|x_t - x^\star\|^2 \le \Big(1 - \frac{1}{\kappa}\Big)^t \|x_0 - x^\star\|^2.$$
 Reaching error $\varepsilon$ takes $t = \mathcal O(\kappa\log(1/\varepsilon))$. **The condition number enters linearly**: on a least-squares problem with $\kappa = 10^4$, every additional factor of 10 in precision costs about another $2\times 10^4$ iterations.
 
-### 2 Nesterov: lookahead trades $\kappa$ for $\sqrt{\kappa}$
+### Nesterov: lookahead trades $\kappa$ for $\sqrt{\kappa}$
 
 Classical Polyak Heavy Ball is
 $$x_{t+1} = x_t - \alpha\nabla f(x_t) + \beta(x_t - x_{t-1}).$$
@@ -178,7 +178,7 @@ Left: 80 iterations on a rotated quadratic with $\kappa = 30$. GD (blue, $\eta =
 
 Left ($\kappa=100$): on a log axis all three algorithms decrease linearly, but Nesterov (purple) and Heavy Ball (orange) have a steeper slope than GD (blue) — that is the $\sqrt{\kappa}$ vs $\kappa$ gap made visible. The dashed lines are the theoretical envelopes; they match the empirical traces. Right: zoom in on the first 80 iterations and Nesterov is **non-monotone** — it oscillates inside the lower envelope. That is the price of acceleration.
 
-### 3 Adaptive restart fixes the side effects of acceleration
+### Adaptive restart fixes the side effects of acceleration
 
 Acceleration's downside is **non-monotonicity** — the function value bumps up periodically. This becomes painful in two situations:
 
@@ -191,13 +191,13 @@ Acceleration's downside is **non-monotonicity** — the function value bumps up 
 
 Proof sketch: between two restarts, you run convex-rate Nesterov, so the gap drops as $\mathcal O(1/k^2)$. Combined with the quadratic-growth corollary, this gives "each restart at least halves the gap." A geometric halving $\log(1/\varepsilon)$ times reaches $\varepsilon$. Each segment has length $\sim \sqrt{\kappa}$, so total iterations are $\sim \sqrt{\kappa}\log(1/\varepsilon)$.
 
-### 4 How much does $\kappa$ actually matter
+### How much does $\kappa$ actually matter
 
 ![Condition number kappa controls iterations: GD grows linearly, Nesterov as sqrt(kappa)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig5_condition_number.png)
 
 Left (log-log): on synthetic least squares, the iterations to reach $10^{-6}$ relative gap grow strictly along $\kappa$ for GD and along $\sqrt{\kappa}$ for Nesterov. Right: the speedup ratio $T_{\text{GD}}/T_{\text{AGD}}$ tracks $\sqrt{\kappa}$ almost exactly. At $\kappa = 10^4$ the speedup is ~100x; at $\kappa = 100$ it is ~10x. **The worse the conditioning, the more acceleration pays off.**
 
-### 5 A decision table
+### A decision table
 
 | Situation | Recommendation | Why |
 |---|---|---|
@@ -211,7 +211,7 @@ Left (log-log): on synthetic least squares, the iterations to reach $10^{-6}$ re
 
 ## The least-squares experiment
 
-### 1 Problem and exact constants
+### Problem and exact constants
 
 Consider
 $$\min_{x\in\mathbb{R}^n} f(x) = \frac{1}{2}\|Ax - b\|^2, \qquad A\in\mathbb{R}^{m\times n},\; b\in\mathbb{R}^m.$$
@@ -221,7 +221,7 @@ so
 $$L = \lambda_{\max}(A^\top A), \qquad \mu = \lambda_{\min}(A^\top A), \qquad \kappa = \kappa(A^\top A) = \kappa(A)^2.$$
 **Critical caveat.** The condition number is the *square* of $A$'s condition number. So an $A$ that "looks fine" with $\kappa(A) = 100$ becomes a hard $\kappa = 10^4$ instance for least squares — and for the normal-equation gradient, no less.
 
-### 2 Implementation
+### Implementation
 
 ```python
 import numpy as np
@@ -279,7 +279,7 @@ def nesterov_restart(A, b, n_iter):
     return x, hist
 ```
 
-### 3 What we observe
+### What we observe
 
 On a synthetic instance with $m = 200, n = 100$, $\kappa(A) \approx 100$ (so $\kappa(A^\top A) \approx 10^4$):
 
@@ -293,7 +293,7 @@ The empirical speedup matches the $\sqrt{\kappa}$ prediction from Figure 5 ($10^
 
 ## Summary and where to go next
 
-### 1 The cheat sheet
+### The cheat sheet
 
 | Assumption | Algorithm | Rate | Step size |
 |---|---|---|---|
@@ -303,7 +303,7 @@ The empirical speedup matches the $\sqrt{\kappa}$ prediction from Figure 5 ($10^
 | $L$-smooth, $\mu$-strongly convex | Nesterov | $\big(1 - 1/\sqrt{\kappa}\big)^t$ | $\eta = 1/L,\ \beta = (1-\sqrt{1/\kappa})/(1+\sqrt{1/\kappa})$ |
 | Same, $\mu$ unknown | Restart Nesterov | $\big(1 - 1/\sqrt{\kappa}\big)^t$ | adaptive |
 
-### 2 Three reflexes for any new problem
+### Three reflexes for any new problem
 
 When a fresh objective lands on your desk, walk this loop:
 
@@ -311,7 +311,7 @@ When a fresh objective lands on your desk, walk this loop:
 2. **How sharp at the bottom?** Estimate $\mu$ (smallest eigenvalue or a PL constant). It tells you whether linear convergence is on the table.
 3. **Is acceleration worth it?** Look at $\kappa = L/\mu$. $\kappa < 50$: GD is fine. $\kappa \in [50, 10^4]$: switch to Nesterov. $\kappa > 10^4$: think about preconditioning or a second-order method.
 
-### 3 Where the story continues
+### Where the story continues
 
 - **Non-convex + PL condition.** Drop strong convexity; if $\tfrac{1}{2}\|\nabla f\|^2 \ge \mu(f - f^\star)$ holds, GD still converges linearly. This is the theoretical seed of "why over-parameterised deep nets train linearly" (Karimi et al., 2016).
 - **Acceleration with noise.** Vanilla Nesterov is not robust to stochastic gradients. SAG / SVRG / Katyusha pull the strongly-convex stochastic rate back to the $\sqrt{\kappa}$ regime through variance reduction.

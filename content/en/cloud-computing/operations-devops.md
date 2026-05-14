@@ -47,7 +47,7 @@ This article is about building that system. CI/CD that gates quality before code
 
 A modern CI/CD pipeline is not just "automation". It is the *only* way code is allowed to reach production, which makes it the system of record for every release: who shipped what, with which tests passing, against which infrastructure version, and what happened next. Every other piece of the operations stack hangs off this spine.
 
-### 1 The eight stages
+### The eight stages
 
 | Stage | Purpose | Failure mode |
 |-------|---------|--------------|
@@ -60,7 +60,7 @@ A modern CI/CD pipeline is not just "automation". It is the *only* way code is a
 | Deploy prod | Canary -> wider rollout | All-at-once rollouts; lack of automated rollback |
 | Verify | SLO check post-deploy | Verification by eyeball; not measured |
 
-### 2 A real GitHub Actions pipeline
+### A real GitHub Actions pipeline
 
 ```yaml
 name: deploy
@@ -209,7 +209,7 @@ jobs:
 
 Three design decisions worth calling out. First, **OIDC replaces long-lived secrets** — the `id-token: write` permission and `role-to-assume` mean no AWS access keys live in GitHub. Second, **the production environment requires manual approval**, creating a human checkpoint between staging success and prod deploy. Third, **the canary has automated rollback** — if the error rate exceeds 1% in the first five minutes, the pipeline rolls back without waiting for a human to wake up.
 
-### 3 Deployment strategies compared
+### Deployment strategies compared
 
 Not every service can afford a canary. The right strategy depends on traffic volume, rollback cost, and how quickly you can detect a bad deployment.
 
@@ -234,7 +234,7 @@ In practice you combine them. Deploy with canary; the canary itself uses feature
 
 Infrastructure as code (IaC) means the production environment is described in version-controlled files, not in the memory of the person who clicked through the console last Tuesday. Terraform is the most widely adopted tool for this because it is provider-agnostic, declarative, and has a preview step (`plan`) that shows exactly what will change before anything changes.
 
-### 1 The core workflow
+### The core workflow
 
 ```text
 terraform init      # download providers, configure backend
@@ -256,7 +256,7 @@ terraform show -no-color tfplan > plan.txt
 terraform apply -input=false tfplan
 ```
 
-### 2 State management
+### State management
 
 Terraform's state file (`terraform.tfstate`) is the map between your HCL code and the real resources in the cloud. Get state management wrong and you get drift, conflicts, and destroyed infrastructure.
 
@@ -280,7 +280,7 @@ terraform {
 }
 ```
 
-### 3 A complete production module
+### A complete production module
 
 Modules are reusable, testable units of infrastructure. A well-designed module encapsulates a service pattern so that teams consume it without knowing the details.
 
@@ -356,7 +356,7 @@ output "service_url" {
 }
 ```
 
-### 4 Drift detection
+### Drift detection
 
 Even with IaC, reality drifts. Someone clicks through the console to fix a production incident and forgets to backport the change. A scheduled drift check catches this before it compounds.
 
@@ -395,7 +395,7 @@ The `-detailed-exitcode` flag makes `terraform plan` return exit code 2 when cha
 
 Every production system needs three pillars of observability: **metrics** (numbers over time), **logs** (events with context), and **traces** (request paths across services). This section covers metrics; the next covers logs.
 
-### 1 The Prometheus scrape model
+### The Prometheus scrape model
 
 Prometheus *pulls* metrics from your services, rather than having services push to it. This has two advantages: you can scrape a target from multiple Prometheus instances for HA, and a crashed service simply stops being scraped rather than leaving a dangling push connection.
 
@@ -433,7 +433,7 @@ scrape_configs:
         replacement: $2:$1
 ```
 
-### 2 The four golden signals
+### The four golden signals
 
 Google's SRE book defines four signals that every service should measure. Prometheus makes them straightforward.
 
@@ -447,7 +447,7 @@ Google's SRE book defines four signals that every service should measure. Promet
 ![The four golden signals of monitoring (latency, traffic, errors, saturation)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig3_four_golden_signals.png)
 
 
-### 3 Instrumenting your application
+### Instrumenting your application
 
 Every service should expose a `/metrics` endpoint. In Go, this is a few lines:
 
@@ -503,7 +503,7 @@ func main() {
 }
 ```
 
-### 4 Alerting rules that do not wake people up for nothing
+### Alerting rules that do not wake people up for nothing
 
 The goal is zero false-positive pages. Every alert that fires should require human action. If it does not, it should be a dashboard panel, not a page.
 
@@ -568,7 +568,7 @@ groups:
 
 The multi-window, multi-burn-rate pattern from the Google SRE Workbook is the single most important improvement you can make to alerting. Instead of alerting on "error rate > 1%", which fires on any brief spike, it alerts on "the rate at which we are consuming our error budget". A 2% error rate for 30 seconds barely moves the monthly budget; a 0.5% error rate sustained for 3 days consumes it entirely. The burn-rate approach catches both.
 
-### 5 Alertmanager routing
+### Alertmanager routing
 
 ```yaml
 # alertmanager.yml
@@ -618,7 +618,7 @@ receivers:
 
 Metrics tell you *that* something is wrong. Logs tell you *why*. A centralised logging stack collects, processes, indexes, and retains logs from every service in one searchable store.
 
-### 1 Architecture overview
+### Architecture overview
 
 The two dominant stacks are **ELK** (Elasticsearch, Logstash, Kibana) and **EFK** (Elasticsearch, Fluentd/Fluent Bit, Kibana). The difference is the shipper: Logstash is JVM-based and powerful but heavy; Fluent Bit is C-based, lightweight, and runs well as a DaemonSet.
 
@@ -634,7 +634,7 @@ The two dominant stacks are **ELK** (Elasticsearch, Logstash, Kibana) and **EFK*
                   +------------+
 ```
 
-### 2 Structured logging
+### Structured logging
 
 The single most impactful thing you can do for log searchability is to log in JSON. A structured log entry is a queryable document; an unstructured one is a string you have to regex-parse.
 
@@ -697,7 +697,7 @@ This produces log lines like:
 }
 ```
 
-### 3 Fluent Bit configuration for Kubernetes
+### Fluent Bit configuration for Kubernetes
 
 ```ini
 # fluent-bit.conf
@@ -746,7 +746,7 @@ This produces log lines like:
     tls.verify      On
 ```
 
-### 4 Retention tiers
+### Retention tiers
 
 Logs are expensive to store and index. A tiered approach balances searchability with cost.
 
@@ -796,7 +796,7 @@ Automate the transitions with Elasticsearch Index Lifecycle Management (ILM):
 
 Auto-scaling sounds simple: add capacity when load increases, remove it when load decreases. In practice, getting it right requires choosing the right signal, tuning the response speed, and preventing flapping.
 
-### 1 Scaling signals
+### Scaling signals
 
 | Signal | When to use | Watch out for |
 |--------|-------------|---------------|
@@ -806,7 +806,7 @@ Auto-scaling sounds simple: add capacity when load increases, remove it when loa
 | **Queue depth** | Async workers, batch processors | Must scale on *rate of growth*, not absolute depth |
 | **Custom business metric** | When none of the above correlates with user experience | Requires instrumentation effort |
 
-### 2 Kubernetes HPA with custom metrics
+### Kubernetes HPA with custom metrics
 
 ```yaml
 apiVersion: autoscaling/v2
@@ -851,7 +851,7 @@ spec:
 
 The asymmetric scale-up/scale-down behaviour is deliberate. Scaling up fast (double in 60 seconds) protects user experience during traffic spikes. Scaling down slowly (10% per minute, after a 5-minute cooldown) prevents the "sawtooth" pattern where the autoscaler repeatedly scales down too aggressively, triggers high CPU, scales back up, and oscillates.
 
-### 3 Predictive scaling
+### Predictive scaling
 
 For workloads with predictable patterns (e.g., a retail site that peaks every day at noon), reactive scaling is always late. By the time CPU hits 70%, users are already experiencing latency. AWS predictive scaling and GCP scheduled scaling address this:
 
@@ -884,7 +884,7 @@ The `SchedulingBufferTime` of 300 seconds means instances are launched 5 minutes
 
 Cloud bills surprise everyone eventually. The good news is that 30-50% of most cloud bills can be cut without changing application code — it is about rightsizing, scheduling, and commitment.
 
-### 1 The cost optimisation hierarchy
+### The cost optimisation hierarchy
 
 Work from top to bottom; each layer has higher impact and lower effort than the one below it:
 
@@ -895,7 +895,7 @@ Work from top to bottom; each layer has higher impact and lower effort than the 
 5. **Commit with Reserved Instances / Savings Plans.** For steady-state production, 1-year no-upfront commitments save 30-40% with minimal risk.
 6. **Storage tiering.** Move infrequently accessed data to cheaper tiers (S3 Infrequent Access, Glacier, Archive).
 
-### 2 Automated cost controls
+### Automated cost controls
 
 ```bash
 # shutdown-nonprod.sh -- cron: 0 19 * * 1-5 (7 PM weekdays)
@@ -941,7 +941,7 @@ done
 echo "Non-prod environments started at $(date)"
 ```
 
-### 3 Tagging strategy for cost allocation
+### Tagging strategy for cost allocation
 
 Tags are the only way to attribute cloud spend to teams. Without them, the monthly bill is one big number nobody can act on.
 
@@ -980,7 +980,7 @@ Enforce tags via SCP (AWS) or Organisation Policy (GCP):
 
 Site Reliability Engineering is the practice of treating operations as a software engineering problem. The key tools are SLOs, error budgets, and blameless postmortems.
 
-### 1 SLI, SLO, and error budgets
+### SLI, SLO, and error budgets
 
 - **SLI** (Service Level Indicator): a quantitative measure of service behaviour. "The proportion of requests that complete in under 300ms."
 - **SLO** (Service Level Objective): a target for the SLI. "99.9% of requests complete in under 300ms over a rolling 30-day window."
@@ -1013,7 +1013,7 @@ The error budget is a management tool, not just a metric. When the budget is hea
     )
 ```
 
-### 2 On-call and escalation
+### On-call and escalation
 
 ![Error budget burndown over a 30-day SLO window](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/operations-devops/fig6_error_budget.png)
 
@@ -1029,7 +1029,7 @@ A healthy on-call rotation looks like this:
 | Compensation | Time off in lieu or on-call pay | "It's part of the job" |
 | Escalation | Clear path: primary -> secondary -> engineering manager -> VP | "Call whoever answers" |
 
-### 3 Blameless postmortems
+### Blameless postmortems
 
 A postmortem that names someone as the cause is a postmortem that teaches everyone else to hide their mistakes. The template:
 
@@ -1092,7 +1092,7 @@ The action items are the entire point. A postmortem without action items is just
 
 GitOps removes a whole class of mistakes by removing a whole class of capabilities. Nobody runs `kubectl apply` against production. The cluster reconciles itself to whatever is in the config repo, and the only way to change the cluster is to change Git.
 
-### 1 ArgoCD Application manifest
+### ArgoCD Application manifest
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -1123,7 +1123,7 @@ The properties this gives you for free:
 - **Diff** between staging and prod is `git diff`.
 - **Disaster recovery** is "point ArgoCD at the same repo from a fresh cluster".
 
-### 2 Repository structure for GitOps
+### Repository structure for GitOps
 
 ```text
 k8s-config/
@@ -1157,7 +1157,7 @@ k8s-config/
 
 This Kustomize-based layout gives you DRY base manifests with environment-specific patches. A PR that changes `apps/web/overlays/production/` is a production change — it gets the same review scrutiny as application code.
 
-### 3 GitOps vs. traditional CI/CD
+### GitOps vs. traditional CI/CD
 
 | Aspect | Traditional CI/CD | GitOps |
 |--------|-------------------|--------|
@@ -1174,7 +1174,7 @@ This Kustomize-based layout gives you DRY base manifests with environment-specif
 
 Every operations engineer needs a mental decision tree for the 3 AM page. Here is a practical one.
 
-### 1 The first five minutes
+### The first five minutes
 
 ```bash
 # 1. What is the symptom? Check the dashboard.
@@ -1199,7 +1199,7 @@ ss -tlnp                        # open ports / connection counts
 kubectl logs -l app=web -n production --tail=100 --since=5m
 ```
 
-### 2 Common failure patterns
+### Common failure patterns
 
 | Symptom | Likely cause | Investigation | Fix |
 |---------|-------------|---------------|-----|
@@ -1210,7 +1210,7 @@ kubectl logs -l app=web -n production --tail=100 --since=5m
 | Nodes not ready | Disk pressure, network, kubelet crash | `kubectl describe node`, `journalctl -u kubelet` | Drain and replace node |
 | DNS resolution failures | CoreDNS overloaded | `kubectl logs -l k8s-app=kube-dns -n kube-system` | Scale CoreDNS, check ndots |
 
-### 3 Database troubleshooting checklist
+### Database troubleshooting checklist
 
 ```bash
 # PostgreSQL: slow queries right now

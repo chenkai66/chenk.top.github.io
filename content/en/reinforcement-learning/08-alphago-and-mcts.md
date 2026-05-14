@@ -56,7 +56,7 @@ A single MCTS *simulation* repeats four phases:
 
 After a fixed simulation budget (AlphaGo Zero uses 800 per move), the algorithm returns the action whose root child has the most visits — *not* the highest mean value. Visit count is a more robust statistic because it integrates the search's own self-correction.
 
-### 1 UCT: balancing exploration and exploitation
+### UCT: balancing exploration and exploitation
 
 ![UCB1 Exploration and Exploitation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig2_ucb_exploration.png)
 
@@ -126,13 +126,13 @@ After **3 days** of training on 4 TPUs, AlphaGo Zero defeated the Lee-Sedol Alph
 
 MCTS unfolds entirely in **latent space**. There is no environment simulator inside the search — only the learned dynamics function. The hidden state is not required to reconstruct the observation; it only has to be useful for predicting *reward, value, and policy*. With this looser objective, MuZero matches AlphaZero on board games and surpasses model-free methods (R2D2, Ape-X) on Atari, where no rule-based simulator exists.
 
-### 1 Elo over time
+### Elo over time
 
 ![Elo Progression](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig6_elo_progression.png)
 
 The left panel compares peak Elo across the family. The right panel shows Zero's training trajectory: it surpasses the Lee-Sedol version after 3 days, AlphaGo Master after about 21 days, and saturates near 5200 Elo. For context, 9-dan human professionals are around 3500–3700.
 
-### 2 How much does search actually help?
+### How much does search actually help?
 
 ![Search Budget vs Strength](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig7_search_vs_strength.png)
 

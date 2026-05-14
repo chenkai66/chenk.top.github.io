@@ -59,7 +59,7 @@ A miracle of bifurcation theory: near *any* one-parameter bifurcation, the dynam
 
 Why "codimension-1"? Because each requires tuning exactly **one** parameter to occur. To meet two of them at once, you need to tune two parameters, etc. Codimension-1 events are the ones you bump into generically when sliding a single dial.
 
-### 1 Saddle-node (fold) bifurcation
+### Saddle-node (fold) bifurcation
 
 **Normal form:**$\dot{x} = \mu - x^2.$Setting$\dot{x}=0$gives$x^* = \pm\sqrt{\mu}$. So:
 
@@ -82,7 +82,7 @@ The linearisation$f_x = -2x$tells us the stability immediately: at$+\sqrt{\mu}$w
 
 The signature of a fold is **bistability before annihilation**. Just below$\mu_c$two equilibria coexist; just above$\mu_c$neither does. The system *must* go somewhere else, often violently.
 
-### 2 Transcritical bifurcation
+### Transcritical bifurcation
 
 **Normal form:**$\dot{x} = \mu x - x^2.$Two equilibria always exist:$x^*=0$and$x^*=\mu$. They never disappear — they merely **swap stability** as they cross at$\mu=0$.
 
@@ -102,13 +102,13 @@ This is the bifurcation you get whenever the system has a "trivial" state ($x=0$
 - *Population dynamics*: extinction is always an equilibrium. As an environmental quality parameter crosses a threshold, the extinction state hands off stability to a positive coexistence state.
 - *Lasers* (alternative model): the off-state is always a fixed point; it loses stability to the lasing state at threshold.
 
-### 3 Supercritical pitchfork
+### Supercritical pitchfork
 
 **Normal form:**$\dot{x} = \mu x - x^3.$Equilibria: always$x^*=0$, plus$x^*=\pm\sqrt{\mu}$when$\mu>0$. The trivial branch loses stability *and* two new stable branches are born symmetrically.
 
 This is the universal **symmetry-breaking** bifurcation. The equation is invariant under$x \to -x$, so any new equilibrium must come with a partner. Below$\mu_c$the system sits on the symmetric solution; above$\mu_c$it must commit to one of two equally valid asymmetric solutions.
 
-### 4 Subcritical pitchfork (the dangerous one)
+### Subcritical pitchfork (the dangerous one)
 
 **Normal form:**$\dot{x} = \mu x + x^3.$Now the trivial branch loses stability without any nearby stable branch waiting to catch the system. Below$\mu=0$we have$x^*=0$stable plus two unstable branches at$\pm\sqrt{-\mu}$; above$\mu=0$, only the unstable trivial branch remains. Trajectories shoot off to infinity.
 

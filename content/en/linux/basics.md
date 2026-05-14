@@ -47,11 +47,11 @@ For cloud, also check what your provider supports: AWS ships **Amazon Linux**, a
 
 ### The Three Ideas That Explain Everything Else
 
-#### 1. Multi-user, Multi-task
+#### Multi-user, Multi-task
 
 Dozens of users may log in simultaneously over SSH or local TTYs, each running many processes in parallel. The kernel must isolate their CPU time, memory, files, and network sockets. This is why the permission model is strict: without it, any user could read another user's secrets or kill their processes.
 
-#### 2. File-Centric Permissions
+#### File-Centric Permissions
 
 Every file (and a directory is just a special file) has three permission groups — **owner**, **group**, **others** — and three bits each: **read (r)**, **write (w)**, **execute (x)**. Read a permission string from left to right:
 
@@ -68,7 +68,7 @@ A common pattern you should recognise immediately: `rw-------` (mode `600`) is t
 
 > Depth on `chmod`/`chown`, numeric vs symbolic notation, SUID/SGID/sticky bit, ACLs, and `umask` lives in the **Linux File Permissions** article. The basics here are enough to read what `ls -l` shows you.
 
-#### 3. Everything Is a File
+#### Everything Is a File
 
 Regular files, directories, devices, processes, kernel state, pipes, sockets — all expose the same `read()` / `write()` interface. The payoff is that one set of tools works everywhere:
 

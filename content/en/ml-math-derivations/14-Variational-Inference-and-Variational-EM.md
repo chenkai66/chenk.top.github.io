@@ -96,7 +96,7 @@ Each factor lives in its own family. We make no further parametric commitment.
 
 *Figure 2.* The middle panel matches the marginals of the true posterior (left) but loses every off-diagonal entry. The right panel shows the global optimum of $\mathrm{KL}(q\|p)$: variance shrinks by a factor of $1-\rho^2$, so the surrogate is **under-dispersed** along both axes. This systematic under-estimation of uncertainty is the most common failure mode of mean-field VI.
 
-### 1 The optimal factor
+### The optimal factor
 
 Plug the factorization into the ELBO and isolate one factor $q_j$. Treating the others as fixed,
 $$
@@ -107,7 +107,7 @@ The bracketed expectation is a function of $z_j$ alone — call it $\log\tilde{p
 $$\boxed{\;\log q_j^\star(z_j) \;=\; \mathbb{E}_{q_{-j}}\!\big[\log p(\mathbf{x},\mathbf{z})\big] \;+\; \text{const}.\;}$$
 This is the central formula of mean-field VI. The optimal factor for coordinate $j$ is the geometric average of the joint with respect to all other factors, normalized.
 
-### 2 Coordinate-Ascent Variational Inference (CAVI)
+### Coordinate-Ascent Variational Inference (CAVI)
 
 Because each factor's optimum depends on the others, we solve cyclically:
 
@@ -126,7 +126,7 @@ Every update is a coordinate ascent step on a concave-in-each-coordinate objecti
 
 *Figure 5.* Eight CAVI sweeps on a correlated bivariate Gaussian. The diagonal $q$ both relocates and shrinks: its mean is dragged to the origin in two steps, and its variance collapses to $1/\text{precision}_{ii}$. The right panel shows the monotone ELBO trajectory — a useful convergence diagnostic in any VI implementation.
 
-### 3 Conjugate exponential families
+### Conjugate exponential families
 
 When the model is a **conjugate exponential family** — every conditional $p(z_j\mid \mathbf{z}_{-j},\mathbf{x})$ lies in an exponential family — the CAVI update has a closed form. The optimal $q_j$ is in the same exponential family as the conditional, and updating it amounts to averaging natural parameters under $q_{-j}$. This covers Bayesian Gaussian mixtures, LDA, Bayesian linear regression, hidden Markov models with Dirichlet priors, and many others. For non-conjugate models, we need the black-box approach of Section 6.
 

@@ -65,7 +65,7 @@ Two families of fixes exist:
 
 ## Reparameterizing continuous distributions
 
-## 1 The general form
+## The general form
 
 Express $z$ as a deterministic, differentiable function of a parameter-free noise $\epsilon$:
 $$z \;=\; g_\theta(\epsilon),\qquad \epsilon \sim p(\epsilon),$$
@@ -79,7 +79,7 @@ A Monte Carlo estimate is just: draw one (or a few) $\epsilon$, run autograd thr
 
 > **Side-by-side**: on the left, $z\sim\mathcal N(\mu,\sigma^2)$ is a stochastic node and gradients cannot flow through it; on the right, $z=\mu+\sigma\epsilon$ is a deterministic function of $\mu,\sigma$ and gradients flow through the green path back into the encoder.
 
-## 2 The Gaussian case
+## The Gaussian case
 
 The textbook example: for $z\sim\mathcal N(\mu,\sigma^2)$,
 $$z \;=\; \mu \;+\; \sigma \odot \epsilon,\qquad \epsilon \sim \mathcal N(0,I).$$
@@ -95,7 +95,7 @@ def reparameterize(mu: Tensor, logvar: Tensor) -> Tensor:
     return mu + std * eps
 ```
 
-## 3 In the VAE
+## In the VAE
 
 The VAE optimizes the evidence lower bound (ELBO):
 $$
@@ -112,7 +112,7 @@ The gradient w.r.t. $\phi$ flows through the decoder all the way back into the e
 $$\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),$$
 so no Monte Carlo is needed there.
 
-## 4 Which continuous distributions are "naturally" reparameterizable?
+## Which continuous distributions are "naturally" reparameterizable?
 
 Anything that admits a location-scale form, or a base-noise + differentiable transform:
 
@@ -128,7 +128,7 @@ Anything that admits a location-scale form, or a base-noise + differentiable tra
 
 ## Reparameterizing discrete distributions: the Gumbel-Max trick
 
-## 1 The difficulty
+## The difficulty
 
 Take a $K$-class categorical $\mathrm{Cat}(\pi_1,\dots,\pi_K)$ with $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$. The naive "sample" is: compute $\pi$, draw a class index $k$ from a multinomial. That step is **completely non-differentiable** — its output is a one-hot vector, with no notion of smooth variation.
 
@@ -139,7 +139,7 @@ $$
 $$
 universal but with variance large enough to wreck training stability. Can we, like in the Gaussian case, factor sampling into "noise + deterministic transform"? The answer is the Gumbel-Max trick.
 
-## 2 A quick tour of the Gumbel distribution
+## A quick tour of the Gumbel distribution
 
 The standard Gumbel $\mathrm{Gumbel}(0,1)$ has CDF/PDF
 $$F(g)=\exp(-e^{-g}),\qquad f(g)=\exp\!\bigl(-(g+e^{-g})\bigr).$$
@@ -151,7 +151,7 @@ $$u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).$
 
 > **Left**: the Gumbel(0,1) PDF; **middle**: inverse-CDF sampling visualized; **right**: 20k samples drawn via $-\log(-\log u)$, with the empirical histogram matching the analytic PDF.
 
-## 3 The Gumbel-Max trick
+## The Gumbel-Max trick
 
 **Claim.** Let $g_1,\dots,g_K\overset{iid}{\sim}\mathrm{Gumbel}(0,1)$ and define
 $$k^\star \;=\; \arg\max_i\,(\alpha_i + g_i).$$
@@ -188,7 +188,7 @@ $$\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alph
 
 ## Gumbel-Softmax: softening the argmax
 
-## 1 Definition
+## Definition
 
 Replace $\arg\max$ with a temperature-scaled softmax to obtain a sample from the **Gumbel-Softmax / Concrete** distribution:
 $$
@@ -202,7 +202,7 @@ Here $y\in\Delta^{K-1}$, the $(K-1)$-simplex — a continuous vector. The two li
 
 Because $g$ is independent of $\alpha$ and softmax is everywhere differentiable, $y$ is **differentiable in $\alpha$** (and therefore in any upstream parameter $\theta$). This is the heart of Gumbel-Softmax: a smooth, differentiable proxy for the discrete one-hot.
 
-## 2 The temperature bias-variance trade-off
+## The temperature bias-variance trade-off
 
 ![Gumbel-Softmax temperature effect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig4_gumbel_softmax_temp.png)
 
@@ -221,7 +221,7 @@ You can read this off the gradient estimator directly: smaller $\tau$ makes $y$ 
 - Exponential schedule $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$ with a check every $\sim 1000$ steps.
 - **Don't** drive $\tau\to 0$ — softmax numerics blow up and gradient variance dominates. Let the model "see" the soft distribution early, then "harden" it later.
 
-## 3 Straight-Through Gumbel-Softmax (ST-GS)
+## Straight-Through Gumbel-Softmax (ST-GS)
 
 Many tasks — hard attention, discrete token selection, sparse routing — **must** use a strict one-hot in the forward pass (e.g. the downstream is an embedding lookup expecting an integer index). The fix is the **Straight-Through estimator**:
 $$
@@ -256,7 +256,7 @@ PyTorch ships `torch.nn.functional.gumbel_softmax(logits, tau, hard)` with the s
 
 ## Comparison with REINFORCE: orders-of-magnitude variance gap
 
-## 1 Score-function / REINFORCE estimator
+## Score-function / REINFORCE estimator
 
 General form:
 $$
@@ -272,7 +272,7 @@ Standard variance reductions:
 
 Even with all these tricks, REINFORCE typically remains 1–3 orders of magnitude noisier than reparameterization.
 
-## 2 Empirical comparison
+## Empirical comparison
 
 We estimate $\nabla_{\alpha_0}\,\mathbb E_z[r^\top z]$ on a synthetic 8-class categorical (with a fixed reward vector $r$). Each curve aggregates 200 trials.
 
@@ -284,7 +284,7 @@ This is exactly why end-to-end discrete training only became practical once repa
 
 ## Full PyTorch: continuous and discrete VAEs
 
-## 1 Continuous VAE (reparameterization)
+## Continuous VAE (reparameterization)
 
 ```python
 import torch
@@ -334,7 +334,7 @@ def vae_loss(logits_x, x, mu, logvar):
 - Compute the KL term in closed form (rather than via sampling) to reduce gradient variance.
 - Optionally anneal KL ($\beta$ in $\beta$-VAE from 0 → 1) to mitigate posterior collapse.
 
-## 2 Discrete-latent VAE (categorical + Gumbel-Softmax)
+## Discrete-latent VAE (categorical + Gumbel-Softmax)
 
 ```python
 class CategoricalVAE(nn.Module):

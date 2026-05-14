@@ -42,7 +42,7 @@ This post follows the natural research arc — architecture, model families, dow
 
 ## The standard MLLM architecture
 
-## 1 Three pieces: vision encoder + projector + LLM
+## Three pieces: vision encoder + projector + LLM
 
 Roughly 90% of open-source MLLMs share the same skeleton. A **vision encoder** — usually CLIP-ViT-L/14 or SigLIP — chops the image into patch tokens. A **projector** maps those tokens into the LLM's embedding space. The visual tokens get concatenated with text tokens and fed into a **language model** (Llama / Qwen / Mistral) for autoregressive generation.
 
@@ -62,7 +62,7 @@ Each block has its sharp edges:
 | Projector | 2-layer MLP / Q-Former / Resampler | How many visual tokens? | MLP is simple but token count is fixed; Q-Former compresses but trains slowly |
 | LLM | Llama / Qwen / Mistral 7B-72B | Full / LoRA / frozen? | Full fine-tune forgets language skills; freezing limits instruction following |
 
-## 2 The visual-token "inflation" problem
+## The visual-token "inflation" problem
 
 A 336x336 image with patch size 14 produces (336/14)² = 576 visual tokens. Push to 1024² and you get 5,476 tokens — and prefill attention scales O(N²), so the cost balloons by ~100x. That's why production systems almost always compress:
 
@@ -72,7 +72,7 @@ A 336x336 image with patch size 14 produces (336/14)² = 576 visual tokens. Push
 
 **Rule of thumb.** In customer workloads, 80% of images do fine with 256-576 visual tokens. The remaining 20% — small text, dense tables — need a thousand or more. Route just that 20% to a high-res path, instead of paying the high-res tax on every image.
 
-## 3 The two-stage training paradigm
+## The two-stage training paradigm
 
 LLaVA distilled training to two stages, and that template stuck:
 
@@ -98,7 +98,7 @@ The three open-source families embody three distinct design philosophies. Unders
 
 ![Model family comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig2_family_comparison.png)
 
-## 1 CLIP (2021): the dual-tower foundation
+## CLIP (2021): the dual-tower foundation
 
 **Architecture.** Independent image and text encoders, both projecting to a shared L2-normalized vector space.
 
@@ -117,7 +117,7 @@ where $v_i, t_i$ is a matched image-text pair and $\tau$ is the temperature (CLI
 
 CLIP's importance is not the model — it's the proof that **400M noisy web image-text pairs plus contrastive learning yields exceptional visual representations.** Almost every open MLLM today still uses CLIP-ViT-L/14 as its visual backbone. A 2021 model still ruling the input layer.
 
-## 2 BLIP-2 (2023): bridging frozen giants
+## BLIP-2 (2023): bridging frozen giants
 
 **Architecture.** Frozen ViT + trainable **Q-Former** + frozen LLM.
 
@@ -132,7 +132,7 @@ CLIP's importance is not the model — it's the proof that **400M noisy web imag
 
 **Good for** captioning, VQA, retrieval. **Limited at** instruction following and multi-turn dialogue, because the LLM never adapts to vision.
 
-## 3 LLaVA (2023): MLP projector + LLM tuning
+## LLaVA (2023): MLP projector + LLM tuning
 
 **Architecture.** CLIP-ViT (frozen) + **2-layer MLP** + Llama (SFT or LoRA).
 
@@ -150,7 +150,7 @@ CLIP's importance is not the model — it's the proof that **400M noisy web imag
 
 After LLaVA, most open MLLMs (Qwen-VL, InternVL, MiniGPT-4, CogVLM) are essentially LLaVA derivatives — swap in a stronger ViT, a larger LLM, more data.
 
-## 4 Single-stream vs dual-stream: a fight that no longer matters
+## Single-stream vs dual-stream: a fight that no longer matters
 
 Early papers obsessed over "single-stream (VisualBERT, UNITER) vs dual-stream (ViLBERT, LXMERT)." The framing has aged out. Today: **CLIP-style dual towers do representation learning. LLaVA-style "concat into one LLM" does generation.** Two orthogonal tools. Hybrid models like BLIP-2 cover both but train more painfully.
 
@@ -162,7 +162,7 @@ The real-world MLLM workload almost always reduces to combinations of four tasks
 
 ![VL downstream tasks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig3_vl_tasks.png)
 
-## 1 Image Captioning
+## Image Captioning
 
 **Input** image. **Output** natural-language description.
 
@@ -173,7 +173,7 @@ The real-world MLLM workload almost always reduces to combinations of four tasks
 - Long-tail object recognition is poor (anything not in the eval set).
 - **Fix.** During instruction tuning, mix in "describe in detail" prompts ("describe in detail, including colors, positions, and background objects") to force richer outputs.
 
-## 2 VQA (Visual Question Answering)
+## VQA (Visual Question Answering)
 
 **Input** image + question. **Output** natural-language answer.
 
@@ -189,7 +189,7 @@ The real-world MLLM workload almost always reduces to combinations of four tasks
 - **Verbose answers.** User asks yes/no, model gives a paragraph. Fix: prompt "answer in one word."
 - **Confident hallucination.** Asked "What's the brand of the car?" with no car logo visible, the model still answers "Toyota." Fix: train data needs an "unanswerable" class, or threshold by output confidence.
 
-## 3 Visual Grounding
+## Visual Grounding
 
 **Input** image + text expression. **Output** bounding box (x, y, w, h).
 
@@ -208,7 +208,7 @@ The real-world MLLM workload almost always reduces to combinations of four tasks
 
 **Metric.** IoU > 0.5 counts as correct; report Acc@0.5.
 
-## 4 OCR / Document Understanding
+## OCR / Document Understanding
 
 The fastest enterprise use case for MLLMs: contracts, invoices, forms, dashboards.
 
@@ -234,7 +234,7 @@ Alignment is the most mystical and most critical step in MLLM training. The ment
 
 ![Cross-modal alignment](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig4_cross_modal_alignment.png)
 
-## 1 What contrastive learning sculpts
+## What contrastive learning sculpts
 
 CLIP's contrastive loss is equivalent to applying two forces in the embedding space:
 - **Attractive** — matched (image, text) pairs get pulled together
@@ -247,7 +247,7 @@ Two counterintuitive realities hide here:
 1. **The modality gap doesn't close.** Even after billions of pairs, image and text embeddings don't fully overlap in the space — they sit on **two parallel manifolds** with aligned directions but distinct positions. This is the *modality gap* (Liang et al., 2022). Retrieval works because of relative distances, not absolute positions.
 2. **Temperature is dangerously sensitive.** A $\tau$ that's too large weakens the contrastive signal; too small makes training unstable around hard negatives. CLIP makes $\tau$ a learnable parameter (initialized at 0.07), and it converges around 0.01.
 
-## 2 The alignment-objective toolkit
+## The alignment-objective toolkit
 
 Modern MLLM training usually combines several losses:
 
@@ -274,7 +274,7 @@ Once you pick an open MLLM, you almost always have to fine-tune for your domain.
 
 ![Fine-tuning strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig5_finetuning_strategies.png)
 
-## 1 Three strategies
+## Three strategies
 
 | Strategy | Trainable params | Data needed | Training cost | When to use |
 |---|---|---|---|---|
@@ -282,7 +282,7 @@ Once you pick an open MLLM, you almost always have to fine-tune for your domain.
 | **LoRA on LLM** | ~0.5% | Tens of thousands | Hours on 8x A100 | Default. Style adjustment; moderate domain shift |
 | **Projector only** | <0.1% | Thousands | 1-2 hours on a single GPU | Quick validation; only need to remap visual semantics |
 
-## 2 LoRA specifics for MLLMs
+## LoRA specifics for MLLMs
 
 LoRA decomposes the weight update into low-rank matrices:
 $$W' = W + \Delta W = W + \alpha \cdot B A, \quad B \in \mathbb{R}^{d \times r}, A \in \mathbb{R}^{r \times d}, r \ll d$$
@@ -292,7 +292,7 @@ Three MLLM-specific notes:
 2. **Picking r.** r=8 covers small datasets (<10K) well; r=64 only pays off on larger sets. Cranking r blindly is a common mistake.
 3. **Alpha-vs-lr coupling.** A common config is `r=16, alpha=32, lr=2e-4`. Note that alpha/r is just a fixed scale, so tuning alpha is equivalent to tuning lr — don't tune both.
 
-## 3 Catastrophic forgetting, in the wild
+## Catastrophic forgetting, in the wild
 
 Full fine-tuning an MLLM rarely fails through overfitting. It fails through **forgetting**: the visual instruction set is full of QA-style data, and the model loses caption-writing or text-only chat ability. Two countermeasures:
 
@@ -303,7 +303,7 @@ Full fine-tuning an MLLM rarely fails through overfitting. It fails through **fo
 
 ## Evaluation: from benchmarks to production
 
-## 1 The benchmark landscape
+## The benchmark landscape
 
 ![Benchmarks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig6_benchmarks.png)
 
@@ -317,7 +317,7 @@ Full fine-tuning an MLLM rarely fails through overfitting. It fails through **fo
 | **ChartQA** | Chart QA | 32K | Numerical / comparison questions |
 | **TextVQA** | Scene-text VQA | 45K | Signs, product labels |
 
-## 2 The blind spots in benchmark scores
+## The blind spots in benchmark scores
 
 High score doesn't mean it ships. Five recurring blind spots:
 
@@ -327,7 +327,7 @@ High score doesn't mean it ships. Five recurring blind spots:
 4. **Hallucination is qualitative.** "I don't know" and "confidently wrong" are extremely different in production. POPE measures the latter.
 5. **OOD performance.** All benchmarks use natural images. Industrial inspection, medical imaging, design mockups — public scores barely transfer.
 
-## 3 What you actually need
+## What you actually need
 
 Build **your own private eval set**, layered:
 
@@ -344,7 +344,7 @@ Going from demo to production is roughly an order of magnitude harder than build
 
 ![Production deployment](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig7_production_deployment.png)
 
-## 1 Latency budget
+## Latency budget
 
 A typical MLLM endpoint (user uploads image + question, P95 target 1.5s):
 
@@ -359,7 +359,7 @@ A typical MLLM endpoint (user uploads image + question, P95 target 1.5s):
 
 **Biggest lever.** Visual token count. Going from 576 to 144 tokens (4x average pool) speeds prefill by ~16x (attention is O(N²)) and typically costs less than 2 quality points in most domains.
 
-## 2 Cost structure
+## Cost structure
 
 Rough estimates on commodity inference GPUs (A10 / L20 class):
 
@@ -374,7 +374,7 @@ Rough estimates on commodity inference GPUs (A10 / L20 class):
 4. Quantize (int8 or int4 is essentially lossless on 7B)
 5. Speculative decoding (small model drafts, large model verifies)
 
-## 3 Safety: images are a new attack surface
+## Safety: images are a new attack surface
 
 MLLMs make images part of the prompt. **Every LLM attack has a visual variant.**
 
@@ -388,7 +388,7 @@ MLLMs make images part of the prompt. **Every LLM attack has a visual variant.**
 - Output side: content classifier; sensitive entity replacement.
 - System side: explicitly mark user images as "untrusted input"; system prompt instructs the model to ignore behavior-changing instructions found in images.
 
-## 4 Observability
+## Observability
 
 Every inference should log at minimum:
 - Input: image hash, prompt, user / session id
@@ -402,7 +402,7 @@ A practical **hallucination detector**: a small model or rule system that re-che
 
 ## Supervised fine-tuning (SFT) and RLHF
 
-## 1 An SFT recipe that actually works
+## An SFT recipe that actually works
 
 The LLAMA2 SFT recipe transfers almost directly to MLLM fine-tuning:
 
@@ -420,7 +420,7 @@ The LLAMA2 SFT recipe transfers almost directly to MLLM fine-tuning:
 - **Use special tokens** (`<image>`, `[INST]` / `[/INST]`) to clearly delimit image, user input, and assistant output.
 - **Pack short samples** into one batch sequence to keep GPU utilization high.
 
-## 2 LIMA: less really is more
+## LIMA: less really is more
 
 **Superficial Alignment Hypothesis.** Knowledge sits in pretraining; instruction tuning teaches the model "how to talk."
 
@@ -429,7 +429,7 @@ Practical implications:
 - Don't expect SFT to inject new factual knowledge — that's RAG or continued pretraining territory.
 - For MLLMs, SFT primarily teaches "what answer format to use when responding to images."
 
-## 3 RLHF: when it's worth the trouble
+## RLHF: when it's worth the trouble
 
 Standard PPO-route RLHF:
 
@@ -443,7 +443,7 @@ The KL term is the brake: it prevents the policy from drifting too far from the 
 $$R(x, y) = \begin{cases} R_s(x, y) & \text{if } x \text{ is safety-sensitive} \\ R_h(x, y) & \text{otherwise} \end{cases}$$
 Reward whitening (subtract mean, divide by std) is necessary for training stability.
 
-## 4 Rejection sampling: the engineer's RLHF
+## Rejection sampling: the engineer's RLHF
 
 Full PPO is hard to implement and unstable. **Rejection sampling** is the production-friendly alternative:
 
@@ -467,7 +467,7 @@ Full PPO is hard to implement and unstable. **Rejection sampling** is the produc
 
 ## Knowledge augmentation and domain adaptation
 
-## 1 RAG-augmented MLLMs
+## RAG-augmented MLLMs
 
 Bring RAG straight into the multimodal stack: given an input image and question, retrieve relevant knowledge first, then feed it alongside.
 
@@ -480,7 +480,7 @@ Bring RAG straight into the multimodal stack: given an input image and question,
 - Medical imaging + case database -> diagnostic suggestions
 - Industrial inspection + defect-standard library -> QC report
 
-## 2 Knowledge-graph fusion
+## Knowledge-graph fusion
 
 Medicine, law, finance — domains where a knowledge graph (KG) is non-negotiable as a factual anchor. Three integration patterns:
 
@@ -505,7 +505,7 @@ As MLLMs enter healthcare and finance, interpretability stops being a nice-to-ha
 
 ## Open problems and research direction
 
-## 1 Where things are heading
+## Where things are heading
 
 1. **Unified architectures (any-to-any).** From image+text toward image+text+audio+video+3D. Gemini, GPT-4o, Qwen2.5-Omni.
 2. **Aggressive visual-token compression.** 576 -> 144 -> 64 -> ?. Each compression unlocks O(N²) cost savings.
@@ -513,7 +513,7 @@ As MLLMs enter healthcare and finance, interpretability stops being a nice-to-ha
 4. **Agentic MLLMs.** Models that call tools (OCR detector, grounding model) instead of trying to solve everything end-to-end.
 5. **3D and embodied intelligence.** From 2D images to 3D scenes — robotics and AR/VR.
 
-## 2 What still doesn't work
+## What still doesn't work
 
 - **Fine-grained hallucination.** Models nail 90% of items; the remaining 10% are "confidently wrong" failures that ship-block products.
 - **Numbers and symbols.** Exact values in charts, math equations, table-cell alignment — OCR-augmented helps but isn't reliable.

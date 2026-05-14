@@ -65,18 +65,18 @@ $$
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
 $$
-### 1 编码器
+### 编码器
 
 编码器读取 lookback 窗口 $x_{t-L+1:t}$，输出上下文矩阵 $M \in \mathbb{R}^{L \times d_{\text{model}}}$。此处不使用掩码，即每个位置可关注窗口内所有其他位置。
 
-### 2 解码器
+### 解码器
 
 解码器输入由**标签窗口**（历史数据最后 $L_{\text{label}}$ 步）与 $H$ 个零占位符拼接而成，输出预测值 $\hat{y}_{t+1:t+H}$。每个 block 包含两类注意力子层：
 
 - **带因果掩码的自注意力**：确保第 $t+k$ 步只能看到 $t+k-1$ 及之前的位置。
 - **交叉注意力**：Query 来自解码器，Key/Value 来自编码器记忆 $M$。这是解码器获取编码器信息的唯一通道。
 
-### 3 标签窗口：一个小而有效的技巧
+### 标签窗口：一个小而有效的技巧
 
 标准 encoder-decoder 模型常在历史与预测的交界处表现不佳。Informer 和 Autoformer 的解决方案是：向解码器输入 $L_{\text{label}}$ 步**已知历史**加 $H$ 个零占位符，使其始终从确定状态出发，逐步推进至未知区域。
 
@@ -286,14 +286,14 @@ class TimeSeriesTransformer(nn.Module):
 
 ## 性能与工程实践
 
-### 1 预测质量
+### 预测质量
 
 我们在含日周期、周周期及随机尖峰的合成信号上预测 96 步。Transformer 清晰捕捉到双重周期性；LSTM 能跟踪主导的日周期，但在周周期上明显漂移。
 
 ![日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig4_lstm_vs_transformer.png)
 *图 4. 日+周双周期信号上的预测效果。Transformer 同时锁定两个周期；LSTM 仅捕获日周期，周周期发生漂移。右：各架构 MAE 对比。*
 
-### 2 训练配方（那些决定成败的细节）
+### 训练配方（那些决定成败的细节）
 
 - **优化器**：AdamW，$\beta = (0.9, 0.95)$（GPT-3 设置；默认 0.999 对时序任务过慢）。
 - **学习率调度**：前 5%–10% 步数线性 warm-up，随后余弦退火至零。无 warm-up 时，深层 Transformer 易发散。
@@ -303,7 +303,7 @@ class TimeSeriesTransformer(nn.Module):
 - **混合精度**（`torch.cuda.amp` 或 `bfloat16`）：提速 2–3 倍，精度几乎无损。
 - **训练轮数**：时序预测通常需 100–300 轮；语言模型的 3–10 轮经验不适用。
 
-### 3 生产部署：服务成本与 RevIN 技巧
+### 生产部署：服务成本与 RevIN 技巧
 
 - 启用 **`torch.compile`**（PyTorch 2.x）：免费获得 1.5–2 倍延迟降低。
 - decoder-only 部署时，**缓存 K 和 V**：使每步新增预测的复杂度从 $O(n^2)$ 降至 $O(n)$。

@@ -106,11 +106,11 @@ LAMP 自带、新栈要自己拼起来的东西：
 
 这四道关你必须每一道都开通，否则就会去诊断错的那一层。
 
-## 1 公网 IP
+## 公网 IP
 
 控制台 **实例 -> 你的实例 -> 网络与安全 -> 绑定弹性公网 IP**（或者创建实例时直接分配公网 IP）。把这个 IP 记下来，下面用 `8.134.207.88` 当例子。
 
-## 2 安全组规则
+## 安全组规则
 
 安全组是一个**有状态的包过滤器**，它跑在云上，不在你的操作系统里。它的判定**早于**任何到达实例的包，所以系统防火墙说什么都没用，安全组说不行就是不行。控制台 **安全组 -> 配置规则 -> 入方向**。
 
@@ -138,7 +138,7 @@ ssh -L 33306:127.0.0.1:3306 user@8.134.207.88
 -   只在隧道开着的时候才暴露 DB；
 -   永远不会出现在 shodan 的扫描结果里。
 
-## 3 操作系统防火墙
+## 操作系统防火墙
 
 云安全组是必要不充分的——未来某个运维同学可能为了「调试方便」把安全组放开，你的第二道防线就是操作系统防火墙。
 
@@ -164,7 +164,7 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-all
 ```
 
-## 4 一跳一跳验
+## 一跳一跳验
 
 访问不了的时候，按下面这个**严格顺序**排查。乱了顺序，你会浪费两个小时去查错的那一层。
 
@@ -219,7 +219,7 @@ sudo systemctl disable --now nginx
 
 安装顺序很重要：先 Apache，再 MySQL，最后 PHP。 PHP 的包会顺手把 Apache 模块拉进来并启用——前提是 Apache 已经在那儿。
 
-## 1 Apache
+## Apache
 
 ```bash
 sudo apt update
@@ -247,7 +247,7 @@ sudo sed -i 's/^LogLevel warn/LogLevel info/' /etc/apache2/apache2.conf
 sudo systemctl reload apache2
 ```
 
-## 2 MySQL
+## MySQL
 
 ```bash
 sudo apt install -y mysql-server
@@ -299,7 +299,7 @@ collation-server       = utf8mb4_unicode_ci
 
 改完重启 MySQL。缓冲池一项就能决定「每条 query 都打盘」和「热数据全在 RAM」的差别。
 
-## 3 PHP
+## PHP
 
 ```bash
 sudo apt install -y php libapache2-mod-php php-mysql \
@@ -334,11 +334,11 @@ sudo rm /var/www/html/info.php
 
 一台公网 LAMP 用默认配置上线，几分钟之内就会被自动扫描器开始探。把安全当作五圈同心圆——任何一圈被破，外面下一圈还能撑一段时间。
 
-## 1 安全组——最外圈
+## 安全组——最外圈
 
 第 4 节讲过了。原则是：安全组应该让操作系统防火墙看起来多余，操作系统防火墙也应该让安全组看起来多余。任何一道单独都不够。
 
-## 2 操作系统加固
+## 操作系统加固
 
 ```bash
 # 系统补丁——开启自动安全更新
@@ -355,7 +355,7 @@ sudo apt install -y fail2ban
 sudo systemctl enable --now fail2ban
 ```
 
-## 3 用 Let's Encrypt 上 HTTPS
+## 用 Let's Encrypt 上 HTTPS
 
 域名 A 记录指向你的公网 IP 之后，签证书就是两条命令：
 
@@ -381,14 +381,14 @@ SSLHonorCipherOrder     on
 Header always set Strict-Transport-Security "max-age=63072000"
 ```
 
-## 4 MySQL 加固
+## MySQL 加固
 
 -   绑定到 `127.0.0.1`（新版包默认就是，去 `/etc/mysql/mysql.conf.d/mysqld.cnf` 确认一下）。
 -   **每个应用一个数据库账号**，`GRANT` 范围限定到那个库。
 -   永远不要 `GRANT ALL ... TO root@'%'`。
 -   敏感数据的备份要加密落盘。
 
-## 5 应用层卫生
+## 应用层卫生
 
 -   能用 `php-fpm` 就别用 `mod_php`——把 PHP 故障从 Apache 进程树里隔离出去。
 -   生产环境的 `/etc/php/8.1/apache2/php.ini` 里 `expose_php = Off`、`display_errors = Off`。
@@ -398,7 +398,7 @@ Header always set Strict-Transport-Security "max-age=63072000"
 
 拿 Discuz! 当例子，是因为它把一个新装的 LAMP 的薄弱环节都敲打了一遍：文件权限、多个可写目录、 MySQL 用户创建、 PHP 扩展依赖、还有一个 web 安装器把这些都重新校验一次。
 
-## 1 下载
+## 下载
 
 ```bash
 cd /var/www/html
@@ -409,7 +409,7 @@ sudo mv upload/* upload/.htaccess . 2>/dev/null || sudo mv upload/* .
 sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
 ```
 
-## 2 权限——人人都搞错的地方
+## 权限——人人都搞错的地方
 
 Apache 跑在 `www-data`（Ubuntu）或 `apache`（CentOS）下。唯一的规则：**Apache 跑的那个用户必须 owns PHP 需要写入的所有文件，且仅此而已**。
 
@@ -427,7 +427,7 @@ done
 
 注意是 `775`，**不是** `777`。`www-data` 已经是属主了，`775` 让属主能写，同时只给 group 加写权限。`chmod 777` 是江湖偏方，不是建议——它让系统上**任何**用户都能改你的应用文件，在共享服务器上就是一条提权路径。
 
-## 3 数据库账号
+## 数据库账号
 
 ```bash
 sudo mysql -e "
@@ -443,7 +443,7 @@ sudo mysql -e "
 -   `discuz.*`——授权范围是单一数据库。 Discuz 即使被打穿，攻击者也读不到你别的应用的表。
 -   `'discuz_user'@'localhost'`——主机部分是身份的一部分。同名用户从不同主机来是不同用户。走 unix socket 算 `'localhost'`， TCP 到 `127.0.0.1` 算 `'127.0.0.1'`。如果 `mysql_secure_installation` 之后这两个不等价，两个都要授权。
 
-## 4 跑安装器
+## 跑安装器
 
 访问 `http://你的公网IP/install/`。三件事会发生：
 
@@ -530,7 +530,7 @@ sudo chmod -R 775 /var/www/html/{data,config,uc_server/data,uc_client/data}
 
 ## 上生产前要做完的几件事
 
-## 1 虚拟主机
+## 虚拟主机
 
 只要你有一个以上的站点，就别再把所有东西堆在 `/var/www/html/` 里。每个站点一个 `/var/www/<站点>/` 目录、一个 vhost 文件，结构会清晰很多。
 
@@ -563,7 +563,7 @@ sudo apache2ctl configtest && sudo systemctl reload apache2
 
 `configtest` 在 `reload` 之前执行，是「平滑切换」和「打错括号宕机五分钟」之间的差别。
 
-## 2 真正能恢复的备份
+## 真正能恢复的备份
 
 没演练过恢复的备份不是备份。最低限度：
 
@@ -594,7 +594,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 每个月在另一台机器上跑一次 `gunzip < some_backup.sql.gz | mysql -u root -p test_restore` 并核对行数。第一次演练一定会让你长见识。
 
-## 3 可观测性
+## 可观测性
 
 阿里云的 Cloud Monitor agent 默认就给你 CPU、内存、磁盘、带宽。值得自己再加两个信号：
 

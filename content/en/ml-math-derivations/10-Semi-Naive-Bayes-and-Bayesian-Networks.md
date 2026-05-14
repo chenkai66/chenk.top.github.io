@@ -41,7 +41,7 @@ translationKey: "ml-math-derivations-10"
 
 ## Why relax the independence assumption?
 
-### 1 The convenient lie
+### The convenient lie
 
 Recall the Naive Bayes factorisation:
 $$P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k).$$
@@ -53,7 +53,7 @@ The lie is that, conditioned on the class, features are unrelated. Three places 
 
 When the conditional-independence assumption is severely violated, the posterior $P(c\mid\mathbf{x})$ is *miscalibrated*: the "winning" class still wins, but with wildly inflated confidence, and the ranking among close runners-up degrades.
 
-### 2 The spectrum
+### The spectrum
 
 | Model | Allowed dependencies | # parameters | Accuracy |
 |---|---|---|---|
@@ -68,7 +68,7 @@ Here $S$ is the average number of values per feature and $K$ the number of class
 
 ## One-dependence estimators (ODE)
 
-### 1 SPODE: a single super-parent
+### SPODE: a single super-parent
 
 Pick one feature $x^{(p)}$ — the *super-parent* — and let every other feature condition on both the class and $x^{(p)}$:
 $$P(\mathbf{x}\mid c_k) \;=\; P(x^{(p)}\mid c_k)\prod_{j\neq p} P(x^{(j)}\mid c_k,\,x^{(p)}).$$
@@ -89,7 +89,7 @@ p^{*} \;=\; \arg\max_{p}\,\sum_{j\neq p} I(X^{(j)};Y\mid X^{(p)}).
 $$
 The first picks the feature most informative about $Y$; the second picks the feature whose conditioning maximally explains the rest. Both are heuristics — and the next two models exist precisely because this single choice is fragile.
 
-### 2 AODE: average all eligible super-parents
+### AODE: average all eligible super-parents
 
 ![AODE: each super-parent yields a SPODE; AODE averages them](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig4_aode.png)
 
@@ -132,7 +132,7 @@ print("Naive Bayes 5-fold CV:",
 
 ![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_2.png)
 
-### 1 Each feature picks its own parent
+### Each feature picks its own parent
 
 ![Naive Bayes (star) vs TAN (star + augmenting tree)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig3_nb_vs_tan.png)
 
@@ -140,7 +140,7 @@ Where SPODE forces every feature to share one super-parent, TAN lets each featur
 $$P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k,\,x^{(\pi_j)}),$$
 where $\pi_j$ is the unique parent of feature $j$ in the augmenting tree (the root has no parent, reducing to $P(x^{(j)}\mid c_k)$).
 
-### 2 Learning the tree — Chow-Liu
+### Learning the tree — Chow-Liu
 
 **Theorem (Chow & Liu 1968; Friedman, Geiger, Goldszmidt 1997).** Among all tree-shaped augmenting structures, the one that maximises the conditional log-likelihood is the **maximum spanning tree** with edge weights
 $$
@@ -187,7 +187,7 @@ The CMI for the dependent pair $(x_0,x_1)$ in the synthetic example above will b
 
 Both NB and TAN are special cases of a general object: a Bayesian network. We now zoom out to the full graphical-models picture.
 
-### 1 DAG factorisation
+### DAG factorisation
 
 ![Toy Bayesian network: Cloudy / Sprinkler / Rain / WetGrass](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig1_dag.png)
 
@@ -200,7 +200,7 @@ $$P(X_1,\dots,X_n) \;=\; \prod_{i=1}^{n} P\bigl(X_i\mid \mathrm{Pa}(X_i)\bigr).$
 - *Naive Bayes* is the star graph: $Y$ is the parent of every $X_j$, no edges among the $X_j$.
 - *TAN* is a star plus a tree on the $X_j$.
 
-### 2 d-separation
+### d-separation
 
 ![The three patterns: chain, fork, collider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig2_d_separation.png)
 
@@ -212,7 +212,7 @@ Conditional independence in a DAG is decided by the graphical criterion **d-sepa
 
 A path is **blocked** if any chain or fork node on it is observed, *or* any collider on it is *not* observed (and none of its descendants are). Two sets are d-separated by $Z$ iff every path between them is blocked by $Z$. This is the engine that drives every conditional-independence claim in graphical models.
 
-### 3 Markov blanket
+### Markov blanket
 
 ![Markov blanket = parents + children + co-parents](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig6_markov_blanket.png)
 
@@ -220,7 +220,7 @@ The **Markov blanket** $\mathrm{MB}(X)$ is the *smallest* set such that $X$ is i
 $$\mathrm{MB}(X) \;=\; \mathrm{Pa}(X)\;\cup\;\mathrm{Ch}(X)\;\cup\;\bigl\{\text{other parents of }X\text{'s children}\bigr\}.$$
 The co-parents are easy to forget but essential — they appear because, by the collider rule, conditioning on a child *activates* the path through that child to its other parents. The blanket is the minimal set of features a Gibbs sampler needs to resample $X$, and in causal terms it is the smallest sufficient statistic for predicting $X$ from the rest of the network.
 
-### 4 Inference: variable elimination
+### Inference: variable elimination
 
 ![Variable elimination on a chain](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig5_variable_elimination.png)
 
@@ -232,7 +232,7 @@ To compute a posterior such as $P(D\mid \text{evidence})$, the brute-force sum i
 
 For a chain this is $O(nS^{2})$ instead of $O(S^{n})$. For a general graph the complexity is governed by the **treewidth** of the graph — equivalently, by the largest intermediate factor produced — which is why dense graphs remain hard even after elimination.
 
-### 5 The junction tree
+### The junction tree
 
 ![Junction tree pipeline: triangulate -> max cliques -> separator-labelled tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig7_junction_tree.png)
 
@@ -246,7 +246,7 @@ The **junction tree** algorithm globalises variable elimination so that *all* ma
 
 The cost is exponential in the largest clique size, i.e. treewidth $+\,1$ — the same complexity bound as variable elimination, but amortised across all queries.
 
-### 6 Structure learning
+### Structure learning
 
 The DAG itself can be learned. Two main families:
 

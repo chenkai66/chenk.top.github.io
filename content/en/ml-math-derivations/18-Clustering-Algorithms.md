@@ -40,7 +40,7 @@ A million customer records arrive with no labels. Can you discover meaningful gr
 
 ## Formalizing the Clustering Problem
 
-### 1 What Makes a Good Clustering?
+### What Makes a Good Clustering?
 
 **Input:** dataset $\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N\}$ with $\mathbf{x}_i \in \mathbb{R}^d$.
 
@@ -53,7 +53,7 @@ A million customer records arrive with no labels. Can you discover meaningful gr
 
 Every objective we will write down is just one way to balance these two. The disagreements between K-means, DBSCAN, and spectral clustering all trace back to *how* they measure "similar".
 
-### 2 Distance and Similarity Measures
+### Distance and Similarity Measures
 
 | Measure | Formula | Best for |
 |---------|---------|----------|
@@ -64,7 +64,7 @@ Every objective we will write down is just one way to balance these two. The dis
 
 **Practical note:** because every distance is sensitive to feature scale, *standardize before clustering* unless your features are already on comparable scales.
 
-### 3 Evaluating Clusters Without Labels
+### Evaluating Clusters Without Labels
 
 The **silhouette coefficient** for point $i$ is
 $$s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}} \in [-1, 1]$$
@@ -74,13 +74,13 @@ where $a(i)$ is the mean intra-cluster distance and $b(i)$ is the mean distance 
 
 ## K-means: Centroid-Driven Clustering
 
-### 1 The Objective
+### The Objective
 
 K-means minimizes the **Within-Cluster Sum of Squares (WCSS):**
 $$J(\{c_i\}, \{\boldsymbol{\mu}_k\}) = \sum_{k=1}^{K} \sum_{i: c_i = k} \\|\mathbf{x}_i - \boldsymbol{\mu}_k\\|^2 \tag{1}$$
 This is a *joint* optimization over discrete assignments $\{c_i\}$ and continuous centroids $\{\boldsymbol{\mu}_k\}$ — and it is NP-hard in general. Lloyd's algorithm tackles it with **coordinate descent**: alternately optimize one set of variables while fixing the other.
 
-### 2 Lloyd's Algorithm
+### Lloyd's Algorithm
 
 ![Lloyd's algorithm: four iterations on a 3-blob dataset showing centroid trajectories and the monotonically decreasing WCSS J](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig1_kmeans_steps.png)
 
@@ -111,7 +111,7 @@ def kmeans(X, K, max_iter=100):
     return labels, centroids
 ```
 
-### 3 K-means++ Initialization
+### K-means++ Initialization
 
 The idea is simple: spread initial centroids far apart by picking each one *with probability proportional to its squared distance from the existing seeds*.
 
@@ -120,7 +120,7 @@ The idea is simple: spread initial centroids far apart by picking each one *with
 
 **Theoretical guarantee** (Arthur & Vassilvitskii, 2007): the expected K-means++ objective is at most $8(\ln K + 2) \cdot J_{\text{opt}}$ — a logarithmic-in-$K$ approximation, *without even running Lloyd's iterations afterward*.
 
-### 4 Choosing $K$: Silhouette and Elbow
+### Choosing $K$: Silhouette and Elbow
 
 K-means makes you specify $K$. The two most common ways to pick it are visualized below.
 
@@ -132,7 +132,7 @@ The silhouette curve typically *peaks* at the right $K$ and decays on both sides
 
 WCSS strictly decreases as $K$ grows (more centroids can always fit better), so we look for the **kink** where extra clusters stop helping much. The point of maximum perpendicular distance from the line connecting the two endpoints is a robust elbow heuristic.
 
-### 5 Limitations
+### Limitations
 
 | Limitation | Cause | Remedy |
 |------------|-------|--------|
@@ -145,7 +145,7 @@ WCSS strictly decreases as $K$ grows (more centroids can always fit better), so 
 
 ## Hierarchical Clustering
 
-### 1 Agglomerative Approach
+### Agglomerative Approach
 
 Build a **dendrogram** from the bottom up:
 
@@ -157,7 +157,7 @@ The result is a binary tree where the height of each merge encodes the distance 
 
 ![Ward dendrogram with horizontal cut producing three clusters, plus the resulting scatter plot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig3_dendrogram.png)
 
-### 2 Linkage Criteria
+### Linkage Criteria
 
 The merge rule depends on **linkage**, which is just a choice of how to define distance between two *sets* of points:
 
@@ -170,7 +170,7 @@ The merge rule depends on **linkage**, which is just a choice of how to define d
 
 **Ward is the default choice** for most numerical data because its objective coincides with WCSS reduction.
 
-### 3 When to Use It
+### When to Use It
 
 - You don't know $K$ and want to *see* the data's natural granularity.
 - You want a **hierarchy** (e.g. taxonomy of products, gene families).
@@ -182,7 +182,7 @@ The merge rule depends on **linkage**, which is just a choice of how to define d
 
 ![ML Math Derivations (18): Clustering Algorithms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/illustration_2.png)
 
-### 1 Core Concepts
+### Core Concepts
 
 DBSCAN ("Density-Based Spatial Clustering of Applications with Noise") replaces the "every point belongs to some cluster" assumption with a density rule. It uses two parameters: neighborhood radius $\epsilon$ and minimum points $\text{MinPts}$.
 
@@ -191,7 +191,7 @@ DBSCAN ("Density-Based Spatial Clustering of Applications with Noise") replaces 
 - **Border point:** not core, but inside some core point's neighborhood.
 - **Noise point:** neither — DBSCAN explicitly labels it as an outlier.
 
-### 2 Density Reachability
+### Density Reachability
 
 DBSCAN grows clusters by chaining core points:
 
@@ -205,11 +205,11 @@ DBSCAN grows clusters by chaining core points:
 
 The figure makes the bookkeeping concrete. The amber circle around the highlighted core point contains at least $\text{MinPts}=5$ neighbors, qualifying it as a core point. Any other point that falls inside such a ball joins the same cluster, and from there the density-reachability relation propagates outward through the moon shape. Stray points in low-density regions never accumulate enough neighbors and get labeled noise.
 
-### 3 Choosing $\epsilon$: the K-Distance Plot
+### Choosing $\epsilon$: the K-Distance Plot
 
 Plot, for every point, the distance to its $k$-th nearest neighbor (with $k = \text{MinPts}$), then sort those values descending. The curve has a knee where it transitions from "dense" to "sparse" distances — pick $\epsilon$ at that knee.
 
-### 4 Strengths and Weaknesses
+### Strengths and Weaknesses
 
 **Strengths.** No need to specify $K$; finds arbitrary shapes; identifies noise; robust to outliers.
 
@@ -219,13 +219,13 @@ Plot, for every point, the distance to its $k$-th nearest neighbor (with $k = \t
 
 ## Spectral Clustering: A Graph Theory Approach
 
-### 1 From Data to Graphs
+### From Data to Graphs
 
 Treat each data point as a graph node and put a weighted edge between every pair. The most common similarity is the Gaussian kernel:
 $$W_{ij} = \exp\left(-\frac{\\|\mathbf{x}_i - \mathbf{x}_j\\|^2}{2\sigma^2}\right)$$
 For scalability, sparsify with $k$-nearest-neighbor or $\epsilon$-ball graphs.
 
-### 2 The Graph Laplacian
+### The Graph Laplacian
 
 Define the **degree matrix** $D_{ii} = \sum_j W_{ij}$ and the **unnormalized Laplacian**
 $$\mathbf{L} = \mathbf{D} - \mathbf{W}.$$
@@ -235,13 +235,13 @@ That is, $\mathbf{L}$ measures how much a function $\mathbf{f}$ varies across ed
 
 The **symmetric normalized Laplacian** rescales by node degree to prevent high-degree nodes from dominating:
 $$\mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{W}\mathbf{D}^{-1/2}.$$
-### 3 Normalized Cut Objective
+### Normalized Cut Objective
 
 Spectral clustering minimizes a graph cut:
 $$\text{NCut}(A, B) = \frac{\text{cut}(A, B)}{\text{vol}(A)} + \frac{\text{cut}(A, B)}{\text{vol}(B)} \tag{3}$$
 where $\text{cut}(A,B) = \sum_{i \in A, j \in B} W_{ij}$ and $\text{vol}(A) = \sum_{i \in A} D_{ii}$. Dividing by volume prevents the trivial "split off one point" solution. Combinatorially this is NP-hard, but a **continuous relaxation** — letting cluster indicators take real values — has an exact closed-form solution: it is the eigenvalue problem for $\mathbf{L}_{\text{sym}}$.
 
-### 4 The Algorithm
+### The Algorithm
 
 1. Build the similarity matrix $\mathbf{W}$.
 2. Compute the Laplacian $\mathbf{L}_{\text{sym}}$.
@@ -258,7 +258,7 @@ where $\text{cut}(A,B) = \sum_{i \in A, j \in B} W_{ij}$ and $\text{vol}(A) = \s
 
 ## Gaussian Mixture Models: K-means with Probabilities
 
-### 1 The Generative Model
+### The Generative Model
 
 GMM assumes each point is generated by first sampling a component $z \sim \text{Categorical}(\pi_1, \dots, \pi_K)$, then sampling $\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}_z, \boldsymbol{\Sigma}_z)$. The marginal density is
 $$p(\mathbf{x}) = \sum_{k=1}^{K} \pi_k \, \mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).$$
@@ -267,7 +267,7 @@ Fit by EM (see [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm)):
 - **E-step:** posterior responsibility $\gamma_{ik} = \pi_k \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) / \sum_j \pi_j \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j)$.
 - **M-step:** weighted updates $\boldsymbol{\mu}_k = \sum_i \gamma_{ik} \mathbf{x}_i / \sum_i \gamma_{ik}$, similarly for $\boldsymbol{\Sigma}_k$ and $\pi_k$.
 
-### 2 Why GMM Generalizes K-means
+### Why GMM Generalizes K-means
 
 K-means is the **limit** of GMM with $\boldsymbol{\Sigma}_k = \sigma^2 \mathbf{I}$ and $\sigma \to 0$: as the variance shrinks, the soft posterior $\gamma_{ik}$ collapses to a one-hot vector, and the M-step becomes the centroid mean. So K-means is GMM with two strong assumptions hard-baked: spherical equal-radius clusters, hard assignments.
 

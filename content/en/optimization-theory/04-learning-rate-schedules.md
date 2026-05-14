@@ -51,7 +51,7 @@ The rest of this article is, essentially, the story of how researchers and engin
 
 ## Why "too big explodes, too small stalls"
 
-### 1 A 1-D quadratic — the cleanest possible intuition
+### A 1-D quadratic — the cleanest possible intuition
 
 Take the simplest non-trivial loss:
 $$L(\theta) = \tfrac{1}{2} a \theta^2, \qquad a > 0.$$
@@ -69,7 +69,7 @@ So the **stability ceiling is $\eta < 2/a$**, where $a$ is the curvature. Bigger
 
 Notice in the right panel that the iterate doesn't just overshoot — it bounces with **growing amplitude**. That's the geometric explosion that turns into NaN in real training.
 
-### 2 In high dimensions: the steepest direction sets the ceiling
+### In high dimensions: the steepest direction sets the ceiling
 
 Real losses are not 1-D quadratics, but locally a quadratic approximation $L(\theta) \approx \tfrac{1}{2} (\theta - \theta^\star)^\top H (\theta - \theta^\star)$ is a fine model. The Hessian $H$ has eigenvalues $\lambda_1 \geq \dots \geq \lambda_n \geq 0$, and stability now requires
 $$\eta < \frac{2}{\lambda_{\max}(H)}.$$
@@ -77,7 +77,7 @@ $$\eta < \frac{2}{\lambda_{\max}(H)}.$$
 
 This is also why training feels harder than it "should": the **largest eigenvalue grows during training** (this phenomenon is called *progressive sharpening*, see Cohen et al. 2021), so the LR you got away with at step 100 may blow up at step 10 000.
 
-### 3 $L$-smoothness: where the textbook bound $\eta \leq 1/L$ comes from
+### $L$-smoothness: where the textbook bound $\eta \leq 1/L$ comes from
 
 Generalize beyond quadratics. A function is **$L$-smooth** if its gradient is $L$-Lipschitz:
 $$\|\nabla L(\theta) - \nabla L(\theta')\| \leq L \,\|\theta - \theta'\|.$$
@@ -85,7 +85,7 @@ Intuitively: the loss surface has no "infinitely sharp" direction; curvature is 
 $$L(\theta_{t+1}) \leq L(\theta_t) - \eta\left(1 - \tfrac{\eta L}{2}\right) \|\nabla L(\theta_t)\|^2,$$
 which is monotonically decreasing for $\eta < 2/L$ and most aggressively decreasing at $\eta = 1/L$. This is the "safe choice" — it's also why $L$ and the maximum eigenvalue $\lambda_{\max}(H)$ play essentially the same role.
 
-### 4 Why schedules exist at all
+### Why schedules exist at all
 
 In real networks the curvature, the gradient noise, and even the eigenvector directions all change as training progresses. **No constant LR is right for the whole run.** A typical schedule does three things in sequence:
 
@@ -105,7 +105,7 @@ We will dissect each of these in §5.
 
 You cannot tune LR in isolation. Three friends always travel with it.
 
-### 1 Batch size and the linear scaling rule
+### Batch size and the linear scaling rule
 
 The mini-batch gradient $\tilde g_t$ is an unbiased estimate of $\nabla L(\theta_t)$ with variance roughly $\sigma^2 / B$, where $B$ is the batch size. So:
 
@@ -120,7 +120,7 @@ Modern large-batch results (LAMB, LARS) extend this idea, but the basic message 
 
 Left: empirically, the linear rule $\eta \propto B$ holds to within a few percent up to a critical batch size, then plateaus — past that point, more data per step buys you no extra LR headroom. Right: the gradient standard error shrinks as $1/\sqrt B$, which is exactly *why* a larger batch can absorb a larger step.
 
-### 2 Momentum: a hidden LR amplifier
+### Momentum: a hidden LR amplifier
 
 SGD with momentum (Polyak / heavy-ball form):
 $$v_{t+1} = \beta v_t + g_t, \qquad \theta_{t+1} = \theta_t - \eta \, v_{t+1}.$$
@@ -128,7 +128,7 @@ In steady state, $v_t \approx g / (1 - \beta)$, so the effective step size is ro
 
 Adam's first moment is similar in spirit.
 
-### 3 Weight decay: a coupled regularizer
+### Weight decay: a coupled regularizer
 
 Decoupled weight decay (AdamW) is
 $$\theta_{t+1} = \theta_t - \eta \, (\text{adaptive update}) - \eta \lambda \theta_t,$$
@@ -142,7 +142,7 @@ so the "shrinkage" applied per step is $\eta \lambda$. Doubling LR also doubles 
 
 If SGD's LR is one big hammer, Adam is a workshop full of small hammers — each parameter gets its own.
 
-### 1 The Adam update
+### The Adam update
 $$
 \begin{aligned}
 m_t &= \beta_1 m_{t-1} + (1-\beta_1) g_t, \\
@@ -153,7 +153,7 @@ v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
 $$
 The key term is $\eta / \sqrt{\hat v_t}$ — the **effective per-parameter LR** scales like $\eta / |g|$. Parameters with consistently large gradients get small steps; quiet parameters get full $\eta$. That is why Adam works out-of-the-box on dramatically different scales (embeddings, attention, layer norms) where SGD would need careful per-layer LR.
 
-### 2 Why Adam still needs warmup
+### Why Adam still needs warmup
 
 It's tempting to think the adaptive scaling makes warmup unnecessary. It doesn't. Two reasons:
 
@@ -172,21 +172,21 @@ The failure mode is dramatic. Without warmup the gradient norm spikes far above 
 
 The plot above shows four common families on one axis. Here is when to reach for which.
 
-### 1 Constant LR
+### Constant LR
 
 Simple. Almost always wrong. Either too slow early or too noisy late — you cannot have both.
 
-### 2 Step decay
+### Step decay
 
 Multiply $\eta$ by $\gamma$ (typically 0.1) at fixed milestones. The classic ResNet recipe. Pros: easy to implement, easy to tune by hand. Cons: the abrupt drop can cause loss spikes if your weight decay or batch normalization is sensitive.
 
-### 3 Cosine decay (the deep-learning workhorse)
+### Cosine decay (the deep-learning workhorse)
 $$\eta_t = \eta_{\min} + (\eta_{\max} - \eta_{\min}) \cdot \tfrac{1}{2}\left[1 + \cos\left(\pi \cdot \tfrac{t - t_w}{T - t_w}\right)\right],$$
 after a linear warmup of length $t_w$. The shape — slow decay early, fast decay late — matches the intuition: explore at high $\eta$ for as long as possible, then settle.
 
 This was the schedule of choice for almost every "big model" paper between 2019 and 2023 (BERT, RoBERTa, GPT-3, ViT, ResNet on ImageNet at scale). Its main drawback is **rigidity**: the cosine half-period is set by the *known* total step count $T$. If you want to extend the run, you have to redesign the schedule.
 
-### 4 WSD: warmup–stable–decay (the modern LLM default)
+### WSD: warmup–stable–decay (the modern LLM default)
 
 Hägele et al. (*Scaling Laws and Compute-Optimal Training Beyond Fixed Training Durations*, 2024) and others have popularized **WSD**:
 
@@ -200,7 +200,7 @@ Three reasons it has become the LLM default:
 2. **The "cooldown drop" effect.** Empirically, when cooldown starts the loss often takes a sharp final dip — as if the model had been "barely held back" and was finally allowed to settle.
 3. **Theoretical backing.** Schaipp et al. (*The surprising agreement between convex optimization theory and learning-rate scheduling*, 2025, arXiv:2501.18965) showed that the cooldown shape matches a tight bound from convex theory, with cooldown specifically removing log-factor terms.
 
-### 5 Cosine vs WSD vs Schedule-Free at a glance
+### Cosine vs WSD vs Schedule-Free at a glance
 
 | Schedule | Pros | Cons | Best for |
 |---|---|---|---|
@@ -309,11 +309,11 @@ For LLM fine-tuning the same idea reappears as:
 
 Both schedules and the LR scalar itself can, in principle, be eliminated. Two recent lines of work try to.
 
-### 1 D-Adaptation (Defazio & Mishchenko, 2023)
+### D-Adaptation (Defazio & Mishchenko, 2023)
 
 D-Adaptation estimates the *distance from initialization to optimum* during training, and uses that estimate to set the step size. There is no $\eta$ to tune. On many tasks it matches a tuned baseline within a few percent.
 
-### 2 Schedule-Free AdamW (Defazio et al., 2024, arXiv:2405.15682)
+### Schedule-Free AdamW (Defazio et al., 2024, arXiv:2405.15682)
 
 Schedule-Free AdamW combines iterate averaging with a constant base LR to produce trajectories that *behave* like cosine-decayed runs without ever explicitly decaying $\eta$. This means **you don't have to commit to a total step count $T$ upfront**: you can stop whenever you like, or extend, without re-tuning.
 
@@ -396,7 +396,7 @@ Don't change LR in isolation. The mental model is a three-way coupling:
 
 ## Troubleshooting checklist
 
-### 1 Loss explodes immediately (NaN / Inf)
+### Loss explodes immediately (NaN / Inf)
 
 In priority order:
 
@@ -406,7 +406,7 @@ In priority order:
 4. Verify mixed-precision: are you using `GradScaler` (fp16) or `bf16` properly?
 5. Increase weight decay (especially for LLMs).
 
-### 2 Loss decreases too slowly
+### Loss decreases too slowly
 
 Common causes:
 
@@ -415,14 +415,14 @@ Common causes:
 - Batch too small → too much noise (increase batch or use gradient accumulation).
 - Data/labels broken (this is *not* an LR problem; check the pipeline first).
 
-### 3 Loss oscillates wildly
+### Loss oscillates wildly
 
 - Lower peak LR (10–30%).
 - Reduce momentum ($\beta = 0.9 \to 0.85$, or $\beta_1 = 0.9 \to 0.85$ for Adam).
 - Add gradient clipping.
 - Check optimizer–normalization interaction (AdamW + LayerNorm is robust; SGD + BatchNorm with high LR is fragile).
 
-### 4 Validation loss diverges from training loss
+### Validation loss diverges from training loss
 
 This is overfitting, not directly an LR issue, but $\eta$ does affect implicit regularization:
 
@@ -508,37 +508,37 @@ schedule_fn = lambda s, T: lr_wsd(
 
 Five strands of research worth knowing about.
 
-### 1 D-Adaptation — learning-rate-free optimization (2023)
+### D-Adaptation — learning-rate-free optimization (2023)
 
 Idea: estimate the distance from the current point to the optimum, and use that to derive the step size. No tunable $\eta$. Useful for prototyping and for grid-search reduction.
 
 Reference: [Learning-Rate-Free Learning by D-Adaptation (Defazio & Mishchenko, 2023)](https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/).
 
-### 2 Schedule-Free AdamW (2024)
+### Schedule-Free AdamW (2024)
 
 Combines iterate averaging with a constant base LR to deliver schedule-like behaviour without an explicit decay. Concretely: you can stop or extend at any time without redesigning your schedule.
 
 Reference: [Schedule-Free AdamW (Defazio et al., 2024, arXiv:2405.15682)](https://arxiv.org/abs/2405.15682).
 
-### 3 Why warmup *really* helps (2024)
+### Why warmup *really* helps (2024)
 
 The traditional explanation ("Adam's statistics need to settle") is incomplete. Kalra et al. (2024) show that warmup decreases the maximum eigenvalue of the *preconditioned* Hessian, allowing a larger sustainable peak LR.
 
 Reference: [Why Warmup the Learning Rate? (Kalra et al., 2024, arXiv:2406.09405)](https://arxiv.org/abs/2406.09405).
 
-### 4 Power Scheduler — batch-/token-agnostic (2024)
+### Power Scheduler — batch-/token-agnostic (2024)
 
 When you change batch size or training-token budget, the optimal LR drifts. Power Scheduler exploits a *power-law* relationship between LR, batch size and tokens, giving schedules that transfer across regimes.
 
 Reference: [Power Scheduler: A Batch Size and Token Number Agnostic Learning Rate Scheduler (Shen et al., 2024, arXiv:2408.13359)](https://arxiv.org/abs/2408.13359).
 
-### 5 Small-scale proxies for LLM instabilities (2023–2024)
+### Small-scale proxies for LLM instabilities (2023–2024)
 
 Many "LLM-only" loss spikes can be reproduced in much smaller models by dialling up the LR. This means you can debug instabilities at 1/100 the cost.
 
 Reference: [Small-scale proxies for large-scale Transformer training instabilities (Wortsman et al., 2023, arXiv:2309.14322)](https://arxiv.org/abs/2309.14322).
 
-### 6 Cosine ↔ WSD: a convex-theory bridge (2025)
+### Cosine ↔ WSD: a convex-theory bridge (2025)
 
 A 2025 result (Schaipp et al., arXiv:2501.18965) shows that the WSD cooldown shape matches a tight convex-optimization bound, with cooldown specifically removing logarithmic terms. This gives a principled reason why cooldown helps.
 

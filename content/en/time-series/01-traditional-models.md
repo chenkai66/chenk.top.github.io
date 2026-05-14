@@ -223,7 +223,7 @@ forecast = model.get_forecast(steps=24)
 
 The ideas above generalise in four useful directions. They are not separate worlds — each one specialises ARIMA in a single dimension.
 
-### 1 VAR — multivariate dynamics
+### VAR — multivariate dynamics
 
 When you have several series that influence each other (GDP and unemployment, electricity demand and temperature), promote the scalar AR to a **vector autoregression**:
 $$\mathbf{y}_t = \mathbf{c} + A_1 \mathbf{y}_{t-1} + A_2 \mathbf{y}_{t-2} + \cdots + A_p \mathbf{y}_{t-p} + \boldsymbol{\varepsilon}_t.$$
@@ -231,7 +231,7 @@ Each entry of the matrix $A_k$ has an interpretation: $(A_k)_{ij}$ is the margin
 
 A practical caveat: with $K$ series and lag $p$ the model has $K + pK^2$ free parameters. For $K = 10, p = 4$ that is already 410 numbers from probably a few hundred observations. Hence the regularised cousins — Bayesian VAR, factor models — exist for high-dimensional settings.
 
-### 2 GARCH — variance dynamics
+### GARCH — variance dynamics
 
 ARIMA models the **mean**; GARCH models the **conditional variance**. The basic GARCH(1,1) is:
 $$
@@ -242,7 +242,7 @@ The $\alpha$ term lets a large shock yesterday push variance up today (the "ARCH
 
 GARCH is *the* standard tool for risk management (VaR, options pricing) and pairs naturally with an ARIMA mean model: fit ARIMA to the returns, then GARCH to the squared residuals.
 
-### 3 Exponential smoothing and Holt-Winters
+### Exponential smoothing and Holt-Winters
 
 If ARIMA is the "explicitly stochastic" view, exponential smoothing is the "weighted-average" view. Simple exponential smoothing assumes a level $\ell_t$ that drifts with new information:
 $$\ell_t = \alpha\, y_t + (1-\alpha)\, \ell_{t-1}.$$
@@ -257,13 +257,13 @@ This is the workhorse behind the **ETS** family in R / `statsmodels`, and many o
 ![Holt-Winters additive forecast and the underlying level / trend / seasonal components.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig7_holt_winters.png)
 *Fig. 7 — The decomposition gives Holt-Winters its appeal: each component is intelligible on its own, the smoothing coefficients ($\alpha, \beta, \gamma$) say how quickly each one adapts, and the recursive form means it costs $O(n)$ to fit.*
 
-### 4 Prophet
+### Prophet
 
 Prophet (Facebook, 2017) is a deliberately simple **additive** decomposition aimed at business analysts:
 $$y(t) = g(t) + s(t) + h(t) + \varepsilon_t,$$
 where $g(t)$ is a piecewise-linear or logistic trend with **changepoints**, $s(t)$ is a Fourier expansion for multiple seasonalities, and $h(t)$ encodes user-supplied holidays. It is fitted with Stan via MAP or full Bayesian sampling, exposes only a handful of tunables, and is robust to missing data and outliers. In practice it is *not* state of the art on benchmarks, but the API quality and the holiday handling are why it remains a default in product analytics.
 
-### 5 The Kalman filter and the state-space view
+### The Kalman filter and the state-space view
 
 Everything above is a special case of a **linear Gaussian state-space model**:
 $$

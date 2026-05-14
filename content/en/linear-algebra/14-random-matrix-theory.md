@@ -44,7 +44,7 @@ What changes in matrix-land is the limiting object: instead of a single Gaussian
 
 ## The Two Model Families
 
-### 1 Wigner matrices: symmetric noise
+### Wigner matrices: symmetric noise
 
 A **Wigner matrix** $\mathbf{W} \in \mathbb{R}^{n\times n}$ has
 
@@ -56,7 +56,7 @@ The **Gaussian Orthogonal Ensemble** (GOE) is the special case where all entries
 
 **Mental picture.** Imagine an Erdős-Rényi social graph where edge weight $w_{ij}$ is a random "closeness" score. The eigenvalues of that closeness matrix tell you about its global community structure — and for purely random closenesses, the structure is the universal one we are about to study.
 
-### 2 Wishart matrices: sample covariance
+### Wishart matrices: sample covariance
 
 Let $\mathbf{X} \in \mathbb{R}^{n \times p}$ have i.i.d. entries with mean $0$ and variance $1$. The **Wishart matrix** (or sample covariance matrix) is
 $$\mathbf{S} \;=\; \frac{1}{n}\,\mathbf{X}^\top \mathbf{X} \;\in\; \mathbb{R}^{p\times p}.$$
@@ -68,7 +68,7 @@ If $n \gg p$, $\mathbf{S}$ is a good estimator of the true covariance. If $n$ an
 
 ## The Wigner Semicircle Law
 
-### 1 Statement
+### Statement
 
 Let $\mathbf{W}$ be an $n \times n$ Wigner matrix with off-diagonal variance $\sigma^2$. Form the normalised matrix
 $$\hat{\mathbf{W}} \;=\; \frac{\mathbf{W}}{\sigma\sqrt{n}}.$$
@@ -76,7 +76,7 @@ As $n \to \infty$, the **empirical spectral distribution** $\frac{1}{n}\sum_i \d
 $$f(x) \;=\; \frac{1}{2\pi}\sqrt{4 - x^2}, \qquad x \in [-2, 2],$$
 and $f(x) = 0$ outside $[-2, 2]$.
 
-### 2 Three ways to see why it has to be a semicircle
+### Three ways to see why it has to be a semicircle
 
 **1) Method of moments (the rigorous route).** Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Each term in the trace is a closed walk on $n$ vertices using $k$ steps, weighted by the corresponding product of Gaussian moments. Independence and zero mean force the only surviving walks to be **pair-matched non-crossing walks** — exactly the structure counted by Catalan numbers $C_{k/2}$. The Catalan numbers are precisely the moments of the semicircle, so the limits match.
 
@@ -86,13 +86,13 @@ which describes $n$ charged particles on a line with logarithmic repulsion (the 
 
 **3) Free CLT (the algebraic route).** A symmetric random matrix can be written as a sum of many "free" rank-one perturbations. In free probability the analogue of "sum of independent variables" is the **free additive convolution**, and its central limit theorem yields the semicircle distribution — not the Gaussian. Section 7 expands on this.
 
-### 3 Why the underlying distribution does not matter
+### Why the underlying distribution does not matter
 
 The semicircle law is **universal**: change the entry distribution from Gaussian to uniform, to $\pm 1$, to anything with mean zero and finite variance, and the limit is the same. This mirrors the classical CLT, where the limit of the normalised sum is Gaussian regardless of the summands' distribution.
 
 The hidden mechanism is identical too: in both cases, only the second moment survives the limit; everything else gets averaged away by the scaling.
 
-### 4 Code: verify it yourself
+### Code: verify it yourself
 
 ```python
 import numpy as np
@@ -121,7 +121,7 @@ The fit is essentially perfect already at $n = 200$.
 
 ![Essence of Linear Algebra (14): Random Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/illustration_2.png)
 
-### 1 Statement
+### Statement
 
 Let $\mathbf{X}$ be $n \times p$ with i.i.d. entries of mean $0$ and variance $1$, and set $\gamma = p/n$ (the **aspect ratio**). As $n, p \to \infty$ with $\gamma$ fixed, the empirical spectral distribution of $\mathbf{S} = \frac{1}{n}\mathbf{X}^\top\mathbf{X}$ converges to the **Marchenko-Pastur density**
 $$f(\lambda) \;=\; \frac{1}{2\pi\gamma\,\lambda}\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)},\qquad \lambda \in [\lambda_-, \lambda_+],$$
@@ -129,7 +129,7 @@ with edges
 $$\lambda_\pm \;=\; (1 \pm \sqrt{\gamma})^2.$$
 If $\gamma > 1$ the matrix has rank $n < p$ and there are $p - n$ exact zero eigenvalues in addition to the bulk on $[\lambda_-, \lambda_+]$.
 
-### 2 What the density tells you
+### What the density tells you
 
 Even when the population covariance is the identity, finite samples spread the eigenvalues out:
 
@@ -141,7 +141,7 @@ This single density underwrites every quantitative use of RMT in statistics: any
 
 ![Marchenko-Pastur law for four aspect ratios. As gamma grows, the bulk widens; at gamma=1 the support reaches zero](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/fig2_marchenko_pastur.png)
 
-### 3 Code
+### Code
 
 ```python
 import numpy as np, matplotlib.pyplot as plt
@@ -171,7 +171,7 @@ plt.legend(); plt.show()
 
 The semicircle and MP densities describe the *bulk* — the macroscopic shape. RMT also gives precise answers on two finer scales.
 
-### 1 Spacings: eigenvalues repel
+### Spacings: eigenvalues repel
 
 Fix a generic point in the bulk and look at the distribution of the gap to the nearest neighbour, normalised by the local mean spacing. For GOE matrices the gap distribution is closely approximated by the **Wigner surmise**
 $$p(s) \;=\; \frac{\pi s}{2}\,\exp\!\Big(-\frac{\pi s^2}{4}\Big).$$
@@ -181,13 +181,13 @@ Compare this to **independent** levels: their spacings would be exponential, $p(
 
 ![Eigenvalue spacings vs Poisson: the GOE histogram vanishes at zero gap; the Poisson curve peaks there](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/fig3_eigenvalue_repulsion.png)
 
-### 2 The edge: Tracy-Widom
+### The edge: Tracy-Widom
 
 The largest eigenvalue $\lambda_{\max}$ of an $n \times n$ GOE sits near $2$ for large $n$, but its fluctuations are tiny — of order $n^{-2/3}$ rather than the $n^{-1/2}$ you would naively guess. Specifically,
 $$n^{2/3}\big(\lambda_{\max} - 2\big) \;\xrightarrow{d}\; \mathrm{TW}_1,$$
 where $\mathrm{TW}_1$ is the **Tracy-Widom distribution** for $\beta = 1$. It is highly asymmetric: the left tail decays super-exponentially (you almost never see $\lambda_{\max}$ much smaller than $2$), the right tail decays like $\exp(-\frac{2}{3} t^{3/2})$ (large outliers do occur, but rarely). The same TW law governs the longest increasing subsequence of a random permutation, the height of growing crystals, and the largest singular value of large random matrices used in modern statistics.
 
-### 3 Random vs deterministic spectra
+### Random vs deterministic spectra
 
 A picture summarises everything: a random Wigner spectrum is a *smooth bulk* with strongly correlated points, while a deterministic spectrum is a *handful of clusters* with independent sampling noise inside each cluster.
 
@@ -197,7 +197,7 @@ A picture summarises everything: a random Wigner spectrum is a *smooth bulk* wit
 
 ## Applications
 
-### 1 Wireless: MIMO capacity scales linearly in antennas
+### Wireless: MIMO capacity scales linearly in antennas
 
 A MIMO channel with $n_t$ transmit and $n_r$ receive antennas has capacity
 $$C \;=\; \sum_i \log_2\!\Big(1 + \frac{\mathrm{SNR}}{n_t}\,\lambda_i\Big),$$
@@ -220,7 +220,7 @@ print(f"4x4 @ 10 dB: {mimo_capacity(4, 4, 10):.2f} bits/s/Hz")
 print(f"8x8 @ 10 dB: {mimo_capacity(8, 8, 10):.2f} bits/s/Hz")
 ```
 
-### 2 Finance: cleaning sample covariance matrices
+### Finance: cleaning sample covariance matrices
 
 Track $p$ stocks over $n$ trading days; for any realistic $p, n$ the aspect ratio $\gamma = p/n$ is far from zero. The MP edges then tell you exactly which sample eigenvalues are "noise". A standard recipe:
 
@@ -250,7 +250,7 @@ def clean_covariance(returns):
     return vecs @ np.diag(eigs) @ vecs.T
 ```
 
-### 3 PCA in high dimensions: how many components to keep?
+### PCA in high dimensions: how many components to keep?
 
 In the PCA workflow, the question "how many principal components are signal?" usually has no good classical answer when $p \approx n$. RMT gives a sharp one: **count the eigenvalues that exceed $\lambda_+ = (1 + \sqrt{\gamma})^2$.** Anything below the MP edge is statistically indistinguishable from i.i.d. noise.
 
@@ -265,7 +265,7 @@ def pca_signal_count(X):
     return int(np.sum(eigs > (1 + np.sqrt(gamma))**2))
 ```
 
-### 4 Spiked covariance and the BBP phase transition
+### Spiked covariance and the BBP phase transition
 
 The PCA criterion above is too crude when the signal is small. A more honest model is the **spiked covariance**: the population covariance is $\Sigma = \mathbf{I} + \sum_{k=1}^{r} (s_k - 1) \mathbf{v}_k\mathbf{v}_k^\top$, i.e. identity plus $r$ "spikes". The **Baik-Ben Arous-Péché (BBP) transition** says:
 
@@ -276,7 +276,7 @@ This is a hard impossibility theorem for high-dim PCA. It tells you exactly when
 
 ![Spiked covariance: bulk follows MP, super-critical spikes appear as outliers shifted from their population value, sub-critical spikes vanish into the bulk](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/fig7_spiked_covariance.png)
 
-### 5 Neural network initialisation
+### Neural network initialisation
 
 Initialising weights so that $\mathbf{W}^\top\mathbf{W}$ has eigenvalues concentrated near $1$ keeps the variance of activations stable layer by layer. The Xavier/Glorot rule $\mathrm{Var}(w_{ij}) = 2 / (n_\text{in} + n_\text{out})$ is exactly the variance that puts the singular values of $\mathbf{W}$ on the MP support around $1$. Orthogonal initialisation goes further — it eliminates singular-value spread completely and gives provably better signal propagation in deep linear networks.
 
@@ -284,7 +284,7 @@ Initialising weights so that $\mathbf{W}^\top\mathbf{W}$ has eigenvalues concent
 
 ## Tools of the Trade
 
-### 1 Stieltjes transform
+### Stieltjes transform
 
 Every probability measure $\mu$ on $\mathbb{R}$ has a **Stieltjes transform**
 $$m_\mu(z) \;=\; \int \frac{d\mu(\lambda)}{\lambda - z}, \qquad z \in \mathbb{C}^+.$$
@@ -294,13 +294,13 @@ Why bother? Because the Stieltjes transform of an empirical spectral distributio
 
 For the semicircle, the equation is $m(z)^2 + zm(z) + 1 = 0$, solving to $m(z) = (-z + \sqrt{z^2 - 4})/2$. For Marchenko-Pastur the equation is similarly small.
 
-### 2 Free probability in one paragraph
+### Free probability in one paragraph
 
 In free probability, "non-commutative random variables" $a, b$ are **freely independent** if their alternating mixed moments factor in a particular tracial way. Voiculescu's theorem says **large independent random matrices are asymptotically free**. The free analogue of convolution — *free additive convolution* $\boxplus$ — takes the spectral distribution of $\mathbf{A}$ and that of $\mathbf{B}$ and returns the spectral distribution of $\mathbf{A} + \mathbf{B}$. The associated central limit theorem gives the semicircle distribution. Practical takeaway: anything you used to know how to do for sums of independent scalar variables (mean, variance, CLT, Berry-Esseen), there is a free analogue for spectra of sums of independent matrices.
 
 ![Free additive convolution: sum of two free semicircles is again a semicircle, with summed variance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/14-random-matrix-theory/fig5_free_convolution.png)
 
-### 3 Sketch of the semicircle proof (method of moments)
+### Sketch of the semicircle proof (method of moments)
 
 Compute $m_k = \mathbb{E}[\frac{1}{n}\operatorname{tr}\hat{\mathbf{W}}^k]$. Expanding the trace gives a sum over closed length-$k$ walks on $\{1, \dots, n\}$, weighted by $\prod_e \mathbb{E}[w_e]$. Independence + zero mean kill any walk that uses an edge an odd number of times. For even $k$, the dominant surviving walks are *non-crossing pair-matched* walks — counted by the Catalan number $C_{k/2}$ — and they come with a weight of $1$ after normalisation. Catalan numbers are exactly the moments of the semicircle, so the limit must be the semicircle.
 

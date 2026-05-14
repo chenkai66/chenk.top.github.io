@@ -41,7 +41,7 @@ aliases:
 
 ## Lipschitz 连续性与梯度光滑性
 
-### 1 Lipschitz 连续性的几何图像
+### Lipschitz 连续性的几何图像
 
 **定义（Lipschitz 连续）**。函数 $f:\mathbb{R}^n\to\mathbb{R}$ 是 $L$-Lipschitz 的，若存在 $L\ge 0$，使得对所有 $x, y$，
 $$|f(y) - f(x)| \le L\,\|y - x\|.$$
@@ -56,7 +56,7 @@ $$|f(y) - f(x)| \le L\,\|y - x\|.$$
 1. **一致连续性**：取 $\delta = \varepsilon / L$。
 2. **封闭性**：Lipschitz 函数在加法、标量乘法和复合下封闭（常数相乘）。这使我们能将复杂模型分解为具有已知常数的 Lipschitz 构件。
 
-### 2 梯度-Lipschitz = $L$-光滑性
+### 梯度-Lipschitz = $L$-光滑性
 
 实践中，我们更关心 $\nabla f$ 的 Lipschitz 性质，而非 $f$ 本身，因为它直接限制步长：
 $$
@@ -86,7 +86,7 @@ $$
 
 同一二次函数 $f(x) = \tfrac{L}{2}x^2$（此处 $L = 4$）上的三种情形。左：小步长（$\eta = 0.8/L$）单调缓慢下降。中：标准步长 $\eta = 1/L$ 从 $x_0 = 1$ 一步直达最优解——无超调下的最快方式。右：超过 $2/L$ 上限后，迭代发散，下降引理失效。区间 $[1/L,\, 2/L]$ 正是收敛最快 *且* 安全的紧致带；低于此则浪费迭代，高于此则发散。
 
-### 3 三个实例详解
+### 三个实例详解
 
 | Function | Gradient | Spectral norm of Hessian | $L$ |
 |---|---|---|---|
@@ -96,7 +96,7 @@ $$
 
 第三行给出了逻辑回归的标准 $L = \tfrac{1}{4n}\sum_i\|x_i\|^2$ —— 关键在于 $\sigma(\cdot)\sigma(-\cdot)\le 1/4$。
 
-### 4 Hessian 谱范数蕴含梯度 Lipschitz
+### Hessian 谱范数蕴含梯度 Lipschitz
 
 **定理 1（Hessian 谱范数 $\Rightarrow$ Lipschitz 梯度）**。若 $f$ 二阶可微且 $\sup_x \|\nabla^2 f(x)\|_2 \le L$，则 $\nabla f$ 是 $L$-Lipschitz 的。
 
@@ -119,7 +119,7 @@ $$
 
 ## 强凸性：存在性、唯一性与二次增长
 
-### 1 三种等价定义
+### 三种等价定义
 
 **定义（$\mu$-强凸）**。可微函数 $f$ 是 $\mu$-强凸的（$\mu>0$），若对所有 $x, y$，
 $$
@@ -136,7 +136,7 @@ $$
 
 左：一个强凸函数及其三个二次下界模型（每个锚点一个）。右：$f(x) = 0.05\,x^4$ 是凸的但 **非强凸** —— 在原点过于平坦，无法容纳任何 $\mu>0$ 的抛物线下界。这正是此类目标无法获得线性收敛的原因。
 
-### 2 存在性与唯一性
+### 存在性与唯一性
 
 **定理 2（存在性）**。若 $f$ 下半连续，且某个次水平集 $\{x : f(x)\le\alpha\}$ 非空且有界，则 $f$ 在该集合上取得最小值。
 
@@ -152,7 +152,7 @@ $$f(y^\star) \ge f(x^\star) + 0 + \frac{\mu}{2}\|y^\star - x^\star\|^2.$$
 $$f(y) - f^\star \ge \frac{\mu}{2}\|y - x^\star\|^2,$$
 即 **代价至少以二次速率远离最小值点增长**。这是所有后续收敛证明中将“小函数值”转化为“小到最优点距离”的关键杠杆。
 
-### 3 $L$-光滑与 $\mu$-强凸结合：条件数
+### $L$-光滑与 $\mu$-强凸结合：条件数
 
 若 $f$ 同时满足
 $$
@@ -167,7 +167,7 @@ $$\boxed{\,\kappa := \frac{L}{\mu} \ge 1\,}$$
 
 ## 加速梯度下降：从 $\kappa$ 到 $\sqrt{\kappa}$
 
-### 1 普通 GD 的两个上界
+### 普通 GD 的两个上界
 
 **定理 4（GD 在凸 + $L$-光滑情形，次线性速率）**。取 $\eta = 1/L$：
 $$f(x_t) - f^\star \le \frac{L\,\|x_0 - x^\star\|^2}{2t} = \mathcal O(1/t).$$
@@ -175,7 +175,7 @@ $$f(x_t) - f^\star \le \frac{L\,\|x_0 - x^\star\|^2}{2t} = \mathcal O(1/t).$$
 $$\|x_t - x^\star\|^2 \le \Big(1 - \frac{1}{\kappa}\Big)^t \|x_0 - x^\star\|^2.$$
 达到误差 $\varepsilon$ 需要 $t = \mathcal O(\kappa\log(1/\varepsilon))$。**条件数线性进入**：在 $\kappa = 10^4$ 的最小二乘问题中，精度每提高 10 倍，大约额外需要 $2\times 10^4$ 次迭代。
 
-### 2 Nesterov：前瞻将 $\kappa$ 替换为 $\sqrt{\kappa}$
+### Nesterov：前瞻将 $\kappa$ 替换为 $\sqrt{\kappa}$
 
 经典 Polyak Heavy Ball 形式为
 $$
@@ -206,7 +206,7 @@ $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 
 左（$\kappa=100$）：对数坐标下三种算法均线性下降，但 Nesterov（紫色）和 Heavy Ball（橙色）斜率比 GD（蓝色）更陡 —— 这正是 $\sqrt{\kappa}$ 与 $\kappa$ 差距的可视化。虚线为理论包络；与实证轨迹吻合。右：聚焦前 80 次迭代，Nesterov **非单调** —— 在下包络内振荡。这是加速的代价。
 
-### 3 自适应重启修复加速的副作用
+### 自适应重启修复加速的副作用
 
 加速的缺点是 **非单调性** —— 函数值周期性上升。这在两种情况下尤为痛苦：
 
@@ -219,13 +219,13 @@ $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 
 证明概要：两次重启之间运行凸速率 Nesterov，间隙以 $\mathcal O(1/k^2)$ 下降。结合二次增长推论，可得“每次重启至少将间隙减半”。几何减半 $\log(1/\varepsilon)$ 次即可达到 $\varepsilon$。每段长度约 $\sim \sqrt{\kappa}$，故总迭代次数为 $\sim \sqrt{\kappa}\log(1/\varepsilon)$。
 
-### 4 $\kappa$ 实际影响有多大
+### $\kappa$ 实际影响有多大
 
 ![Condition number kappa controls iterations: GD grows linearly, Nesterov as sqrt(kappa)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lipschitz-continuity-strong-convexity-nesterov/fig5_condition_number.png)
 
 左（双对数坐标）：在合成最小二乘问题上，达到 $10^{-6}$ 相对间隙所需的迭代次数，GD 严格随 $\kappa$ 增长，Nesterov 则随 $\sqrt{\kappa}$ 增长。右：加速比 $T_{\text{GD}}/T_{\text{AGD}}$ 几乎精确跟踪 $\sqrt{\kappa}$。当 $\kappa = 10^4$ 时加速比约 100 倍；$\kappa = 100$ 时约 10 倍。**条件越差，加速收益越大。**
 
-### 5 决策表
+### 决策表
 
 | Situation | Recommendation | Why |
 |---|---|---|
@@ -239,7 +239,7 @@ $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 
 ## 最小二乘实验
 
-### 1 问题与精确常数
+### 问题与精确常数
 
 考虑
 $$\min_{x\in\mathbb{R}^n} f(x) = \frac{1}{2}\|Ax - b\|^2, \qquad A\in\mathbb{R}^{m\times n},\; b\in\mathbb{R}^m.$$
@@ -252,7 +252,7 @@ $$
 $$L = \lambda_{\max}(A^\top A), \qquad \mu = \lambda_{\min}(A^\top A), \qquad \kappa = \kappa(A^\top A) = \kappa(A)^2.$$
 **关键提醒**。条件数是 $A$ 条件数的 *平方*。因此一个看似正常的 $A$（$\kappa(A) = 100$）会变成最小二乘中的困难实例（$\kappa = 10^4$）—— 对正规方程梯度而言尤其如此。
 
-### 2 实现
+### 实现
 
 ```python
 import numpy as np
@@ -310,7 +310,7 @@ def nesterov_restart(A, b, n_iter):
     return x, hist
 ```
 
-### 3 观察结果
+### 观察结果
 
 在合成实例上（$m = 200, n = 100$，$\kappa(A) \approx 100$，故 $\kappa(A^\top A) \approx 10^4$）：
 
@@ -324,7 +324,7 @@ def nesterov_restart(A, b, n_iter):
 
 ## 总结与后续方向
 
-### 1 速查表
+### 速查表
 
 | Assumption | Algorithm | Rate | Step size |
 |---|---|---|---|
@@ -334,7 +334,7 @@ def nesterov_restart(A, b, n_iter):
 | $L$-smooth, $\mu$-strongly convex | Nesterov | $\big(1 - 1/\sqrt{\kappa}\big)^t$ | $\eta = 1/L,\ \beta = (1-\sqrt{1/\kappa})/(1+\sqrt{1/\kappa})$ |
 | Same, $\mu$ unknown | Restart Nesterov | $\big(1 - 1/\sqrt{\kappa}\big)^t$ | adaptive |
 
-### 2 面对新问题的三个反射
+### 面对新问题的三个反射
 
 当一个新目标函数摆在面前时，走以下循环：
 
@@ -343,7 +343,7 @@ def nesterov_restart(A, b, n_iter):
 3. **加速是否值得？** 看 $\kappa = L/\mu$。$\kappa < 50$：GD 足够。$\kappa \in [50, 10^4]$：切换到 Nesterov。
 $\kappa > 10^4$：考虑预条件或二阶方法。
 
-### 3 故事的延续
+### 故事的延续
 
 - **非凸 + PL 条件**。放弃强凸性；若 $\tfrac{1}{2}\|\nabla f\|^2 \ge \mu(f - f^\star)$ 成立，GD 仍线性收敛。这是“为何过参数化深度网络能线性训练”的理论种子（Karimi et al., 2016）。
 - **含噪声的加速**。原始 Nesterov 对随机梯度不鲁棒。SAG / SVRG / Katyusha 通过方差缩减将强凸随机速率拉回 $\sqrt{\kappa}$ 区间。

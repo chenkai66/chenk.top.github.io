@@ -54,7 +54,7 @@ but this is only meaningful once we say what *the exponential of a matrix* is. T
 
 ## The Matrix Exponential
 
-### 1 Definition by power series
+### Definition by power series
 
 Mimicking $e^x = \sum x^k/k!$:
 $$e^{At} \;=\; I + At + \frac{(At)^2}{2!} + \frac{(At)^3}{3!} + \cdots \;=\; \sum_{k=0}^{\infty} \frac{(At)^k}{k!}.$$
@@ -63,7 +63,7 @@ This series converges in operator norm for *every* square matrix $A$ and every $
 ![Partial sums of the matrix exponential applied to a vector, converging to the true rotation; the spectral-norm error decays super-exponentially in the number of terms.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/fig1_matrix_exponential_series.png)
 *Figure 1. Left: partial sums $\sum_{k=0}^N (At)^k/k!\;\mathbf{x}_0$ for $A$ a rotation generator, converging to the unit circle. Right: spectral-norm error decays super-exponentially with the number of terms — this is why low-degree polynomial approximants like Padé work so well.*
 
-### 2 The three properties you actually use
+### The three properties you actually use
 
 Once the series is in hand, three facts do almost all the work:
 
@@ -75,7 +75,7 @@ Once the series is in hand, three facts do almost all the work:
 
 A subtle warning: $e^{A+B} = e^A e^B$ holds **only** when $AB=BA$. This is the matrix version of the fact that $\sin(x+y)\ne \sin x+\sin y$ — non-commutativity has consequences.
 
-### 3 Three ways to compute it in practice
+### Three ways to compute it in practice
 
 1. **Power series**, truncated. Cheap conceptually, terrible numerically when $\|At\|$ is large.
 2. **Eigendecomposition.** If $A$ is diagonalizable as $A=PDP^{-1}$ with $D=\mathrm{diag}(\lambda_i)$, then
@@ -108,7 +108,7 @@ The eigendecomposition formula has a clean re-statement that avoids matrix expon
 
 The proof is a one-liner: for each eigenpair, $\frac{d}{dt}\bigl(e^{\lambda t}\mathbf{v}\bigr)=\lambda e^{\lambda t}\mathbf{v}=A\bigl(e^{\lambda t}\mathbf{v}\bigr)$. Linearity finishes the job.
 
-### 1 Geometry: eigenvectors are the natural axes
+### Geometry: eigenvectors are the natural axes
 
 The decomposition $A=PDP^{-1}$ has a simple geometric reading. Apply $A$ to a vector by:
 
@@ -121,7 +121,7 @@ The flow $e^{At}$ does the same thing but with $e^{\lambda_i t}$ stretches.
 ![Geometric eigendecomposition: the unit circle goes to its image under A by rotating into the eigenbasis, scaling along each eigenvector, then rotating back.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/fig3_eigenvalue_decomposition.png)
 *Figure 2. The factorization $A=PDP^{-1}$ as three geometric steps. Eigenvectors are the natural axes in which a linear map (and its flow) is just diagonal scaling.*
 
-### 2 Complex eigenvalues give rotations
+### Complex eigenvalues give rotations
 
 Real matrices can have complex eigenvalues, and they always come in conjugate pairs $\lambda = \alpha\pm\beta i$ with conjugate eigenvectors $\mathbf{v}=\mathbf{a}\pm i\mathbf{b}$. Taking real and imaginary parts of $e^{\lambda t}\mathbf{v}$ produces two real solutions:
 $$\mathbf{x}_1(t) = e^{\alpha t}(\mathbf{a}\cos\beta t - \mathbf{b}\sin\beta t), \qquad \mathbf{x}_2(t) = e^{\alpha t}(\mathbf{a}\sin\beta t + \mathbf{b}\cos\beta t).$$
@@ -149,7 +149,7 @@ For $\mathbf{x}'=A\mathbf{x}$ on the plane, the eigenvalues $\lambda_1,\lambda_2
 ![Phase portraits of the six canonical 2D linear systems, with eigenvector lines colored by stability and arrows showing the direction field.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/fig2_phase_portrait_zoo.png)
 *Figure 3. The phase portrait zoo. Green lines mark stable eigen-directions, red mark unstable. The eigenvalues alone determine which picture you get — the rest is just rotation and rescaling of these six prototypes.*
 
-### 1 The trace–determinant trick
+### The trace–determinant trick
 
 You don't always need the eigenvalues themselves; for a $2\times 2$ matrix the characteristic polynomial is
 $$\lambda^2 - \tau\lambda + \delta = 0, \qquad \tau = \mathrm{tr}\,A = \lambda_1+\lambda_2, \quad \delta = \det A = \lambda_1\lambda_2,$$

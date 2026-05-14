@@ -38,7 +38,7 @@ By the end you will be able to:
 
 ## The shape of a learning problem
 
-### 1 Three families of problems
+### Three families of problems
 
 Before any theorem, fix the landscape. Almost every problem in this series will fall into one of three families.
 
@@ -50,7 +50,7 @@ Before any theorem, fix the landscape. Almost every problem in this series will 
 
 This chapter develops the theory in the supervised setting, because that is where the foundational results (PAC, VC, bias-variance) are cleanest. The same machinery, with care, lifts to the other two families.
 
-### 2 Mathematical formalization
+### Mathematical formalization
 
 We assume an unknown joint distribution $\mathcal{D}$ over an input space $\mathcal{X}$ and an output space $\mathcal{Y}$. A *learning algorithm* is a procedure that consumes a finite training sample $S = \{(x_i, y_i)\}_{i=1}^m$ drawn i.i.d. from $\mathcal{D}$ and returns a hypothesis $h: \mathcal{X} \to \mathcal{Y}$. The quality of $h$ is measured by a loss function.
 
@@ -66,7 +66,7 @@ This is the quantity we can *measure*.
 
 **The central paradox of statistical learning.** We optimize $L_S$ but are graded on $L_{\mathcal{D}}$. Almost every theorem in this chapter is a statement about how, when, and how much $L_S(h) \approx L_{\mathcal{D}}(h)$.
 
-### 3 Three components of a supervised learner
+### Three components of a supervised learner
 
 Any supervised algorithm is determined by a triple $(\mathcal{H}, \ell, \mathcal{A})$:
 
@@ -81,7 +81,7 @@ Two paradigmatic algorithms recur throughout the series:
 
 ERM is the natural starting point. SRM is what we *actually* use in practice, and we will see why once the bias-variance decomposition makes the need for $\Omega$ explicit.
 
-### 4 Choosing a loss: regression and classification surrogates
+### Choosing a loss: regression and classification surrogates
 
 The choice of loss is not cosmetic: it changes the optimization landscape, the statistical efficiency and the set of optima.
 
@@ -106,7 +106,7 @@ For **binary classification** with $y \in \{-1, +1\}$ and margin $m = y \cdot h(
 
 Every classification surrogate in the table is a convex upper bound on the 0-1 loss that is non-increasing in the margin. Bartlett, Jordan and McAuliffe (2006) showed that minimizing such "classification-calibrated" surrogates is statistically consistent: in the limit of infinite data the resulting classifier converges to a Bayes-optimal one.
 
-### 5 Why theory matters: the generalization gap
+### Why theory matters: the generalization gap
 
 A 100-degree polynomial fit to 10 noisy points achieves $L_S = 0$ but predicts catastrophically at any new $x$. The size of $L_{\mathcal{D}}(h) - L_S(h)$ is the **generalization gap**, and its behaviour is the subject of the next two sections.
 
@@ -124,7 +124,7 @@ Learning theory gives us tools to:
 
 ## The PAC framework
 
-### 1 What "learnable" should mean
+### What "learnable" should mean
 
 When we say a problem is *learnable* we are making three concessions:
 
@@ -138,7 +138,7 @@ These three weakenings — *Probably Approximately Correct* — were formalized 
 $$\Pr_{S \sim \mathcal{D}^m}\!\bigl[\, L_{\mathcal{D}}(h_S) \;\leq\; \min_{h \in \mathcal{H}} L_{\mathcal{D}}(h) + \varepsilon \,\bigr] \;\geq\; 1 - \delta. \tag{3}$$
 The function $m_{\mathcal{H}}(\varepsilon, \delta)$ is the **sample complexity**. Read in plain English: "with at most $m_{\mathcal{H}}(\varepsilon, \delta)$ examples, we can guarantee, with probability $\geq 1 - \delta$, a hypothesis whose true error is within $\varepsilon$ of the best in $\mathcal{H}$."
 
-### 2 The realizable case for finite hypothesis classes
+### The realizable case for finite hypothesis classes
 
 Begin with the simplest non-trivial setting: $\mathcal{H}$ is finite, and there exists $h^\star \in \mathcal{H}$ with $L_{\mathcal{D}}(h^\star) = 0$ (the *realizable* assumption). We use the 0-1 loss.
 
@@ -168,7 +168,7 @@ When $m$ satisfies (8), the bad event has probability at most $\delta$, and the 
 - $\ln(1/\delta)$ — doubling the required confidence costs only an additive $\ln 2$ samples.
 - $1/\varepsilon$ — halving $\varepsilon$ doubles $m$. Linear in accuracy.
 
-### 3 The agnostic case
+### The agnostic case
 
 Realizability is a strong assumption. **Agnostic PAC** drops it: we no longer require any $h^\star$ to be perfect, only that we want to compete with the best $h^\star \in \mathcal{H}$.
 
@@ -180,7 +180,7 @@ The proof, deferred to the probability chapter, uses **Hoeffding's inequality** 
 $$\Pr\!\bigl[\, |L_S(h) - L_{\mathcal{D}}(h)| > t \,\bigr] \;\leq\; 2 e^{-2 m t^2}. \tag{10}$$
 A union bound over $\mathcal{H}$ and a substitution $t = \varepsilon / 2$ yield (9).
 
-### 4 Why $1/\varepsilon^2$, not $1/\varepsilon$?
+### Why $1/\varepsilon^2$, not $1/\varepsilon$?
 
 The shift from realizable to agnostic costs a quadratic factor in $\varepsilon$. Where does it come from?
 
@@ -200,19 +200,19 @@ The left panel shows that $\ln|\mathcal{H}|$ enters only as a *logarithmic* addi
 
 ![ML Math Derivations (1): Introduction and Mathematical Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/illustration_2.png)
 
-### 1 Why a new measure is needed
+### Why a new measure is needed
 
 The bound $\ln |\mathcal{H}|$ collapses for any reasonable real-valued model: a linear classifier in $\mathbb{R}^d$ has uncountably many hypotheses, so $\ln|\mathcal{H}| = \infty$ and Theorem 2 is vacuous. We need a *finite* complexity measure that still captures statistical capacity.
 
 The right measure is combinatorial, not cardinal: it counts how many *distinct labelings* a class can produce on a finite set of points.
 
-### 2 Shattering
+### Shattering
 
 **Definition 5 (Shattering).** Let $C = \{x_1, \ldots, x_m\} \subset \mathcal{X}$. The class $\mathcal{H}$ **shatters** $C$ if, for every binary labeling $(y_1, \ldots, y_m) \in \{0,1\}^m$, some $h \in \mathcal{H}$ realizes it:
 $$\bigl|\{(h(x_1), \ldots, h(x_m)) : h \in \mathcal{H}\}\bigr| \;=\; 2^m. \tag{11}$$
 Intuition: shattering means $\mathcal{H}$ has enough flexibility to produce *every* dichotomy on those particular points. Its expressive power on $C$ is maximal.
 
-### 3 Definition
+### Definition
 
 **Definition 6 (VC dimension).** The VC dimension of $\mathcal{H}$ is
 $$\mathrm{VCdim}(\mathcal{H}) \;=\; \sup\bigl\{\, m : \exists\, C \subseteq \mathcal{X},\; |C| = m,\; \mathcal{H}\text{ shatters } C \,\bigr\}. \tag{12}$$
@@ -223,7 +223,7 @@ If the supremum is infinite we write $\mathrm{VCdim}(\mathcal{H}) = \infty$.
 - *Existential lower bound.* To prove $\mathrm{VCdim}(\mathcal{H}) \geq d$ it suffices to exhibit *one* set of size $d$ that $\mathcal{H}$ shatters.
 - *Universal upper bound.* To prove $\mathrm{VCdim}(\mathcal{H}) < d+1$ we must show that *every* set of size $d+1$ fails to be shattered.
 
-### 4 Worked example: linear classifiers in $\mathbb{R}^d$
+### Worked example: linear classifiers in $\mathbb{R}^d$
 
 **Theorem 3.** *The class of homogeneous linear classifiers $\mathcal{H} = \{x \mapsto \mathrm{sign}(w^\top x + b) : w \in \mathbb{R}^d, b \in \mathbb{R}\}$ has $\mathrm{VCdim}(\mathcal{H}) = d + 1$.*
 
@@ -245,7 +245,7 @@ The geometry behind the bound is exactly what one would guess: a hyperplane in $
 
 The eight panels on the left enumerate every labeling of three generic points in $\mathbb{R}^2$; in each one a separating line exists. The right-hand panel exhibits the XOR pattern of four points: no single line can separate the $+$'s from the $-$'s, and a counting argument shows that no set of four points in $\mathbb{R}^2$ is shatterable. So $\mathrm{VCdim} = 3$ for 2D linear classifiers, in agreement with the formula $d+1$.
 
-### 5 The VC bound on sample complexity
+### The VC bound on sample complexity
 
 **Theorem 4 (VC sample complexity).** *Let $\mathrm{VCdim}(\mathcal{H}) = d < \infty$. The agnostic PAC sample complexity satisfies*
 $$m_{\mathcal{H}}(\varepsilon, \delta) \;=\; O\!\left(\frac{d + \ln(1/\delta)}{\varepsilon^2}\right). \tag{15}$$
@@ -259,7 +259,7 @@ The exponential $2^m$ collapses to a polynomial $m^d$ as soon as $m$ exceeds $d$
 
 ## Bias-variance decomposition
 
-### 1 Setup
+### Setup
 
 Even when a class is PAC learnable, the *test error* of a particular learned predictor decomposes into pieces with very different origins. Understanding the decomposition is what guides model selection in practice.
 
@@ -281,7 +281,7 @@ $$
 \;+\;
 \underbrace{\sigma^2}_{\textstyle\text{Noise}}. \tag{17}
 $$
-### 2 Proof
+### Proof
 
 Abbreviate $\hat{f} = \hat{f}_S(x)$, $\bar{f} = \bar{f}(x)$, $f^\star = f^\star(x)$. Decompose the error:
 $$\hat{f} - y \;=\; \underbrace{(\hat{f} - \bar{f})}_{A} \;+\; \underbrace{(\bar{f} - f^\star)}_{B} \;+\; \underbrace{(f^\star - y)}_{C}. \tag{18}$$
@@ -295,7 +295,7 @@ Take expectations over $S$ and $\varepsilon$. The three cross-terms vanish:
 
 What remains is $\mathbb{E}_S[A^2] + B^2 + \mathbb{E}_\varepsilon[C^2]$, which are precisely Variance, Bias$^2$ and Noise. $\blacksquare$
 
-### 3 What each term means
+### What each term means
 
 | Term | Meaning | Decreased by |
 |------|---------|--------------|
@@ -309,7 +309,7 @@ These three forces compete as the model class grows in capacity:
 
 The total expected error follows a U-shape. To the left of the optimum, bias dominates and we are underfitting. To the right, variance dominates and we are overfitting. The minimum is the operating point you are looking for, and finding it — usually by cross-validation — is what model selection *is*.
 
-### 4 A quick numerical sanity check
+### A quick numerical sanity check
 
 Let $f^\star(x) = \sin(\pi x)$ on $[-1, 1]$ with $\sigma = 0.3$, $m = 20$, repeated over 100 random training sets:
 
@@ -321,7 +321,7 @@ Let $f^\star(x) = \sin(\pi x)$ on $[-1, 1]$ with $\sigma = 0.3$, $m = 20$, repea
 
 The degree-3 polynomial wins because it is the only one that simultaneously keeps both bias and variance small. Note that the noise term is the same in all rows, by definition.
 
-### 5 Diagnosing under- and overfitting
+### Diagnosing under- and overfitting
 
 | Train error | Validation error | Diagnosis | What to try |
 |-------------|------------------|-----------|-------------|
@@ -334,7 +334,7 @@ The degree-3 polynomial wins because it is the only one that simultaneously keep
 
 ## The No Free Lunch theorem
 
-### 1 Statement
+### Statement
 
 Wolpert and Macready (1997) and Wolpert (1996) made precise an idea that practitioners had long suspected: there is no universally best learner.
 
@@ -342,7 +342,7 @@ Wolpert and Macready (1997) and Wolpert (1996) made precise an idea that practit
 $$\frac{1}{|\mathcal{F}|} \sum_{f \in \mathcal{F}} \mathbb{E}_S\!\bigl[L_f(\mathcal{A}_1(S))\bigr] \;=\; \frac{1}{|\mathcal{F}|} \sum_{f \in \mathcal{F}} \mathbb{E}_S\!\bigl[L_f(\mathcal{A}_2(S))\bigr]. \tag{19}$$
 The argument is short. For any unseen $x \notin S$, the labels under a random target $f$ chosen uniformly from $\mathcal{F}$ are an unbiased fair coin: half the targets in $\mathcal{F}$ assign $f(x) = 0$ and half assign $f(x) = 1$. So *any* prediction strategy is right on exactly half the targets. Both sides of (19) equal $\tfrac12$ on the unseen part, regardless of the algorithm.
 
-### 2 Inductive bias
+### Inductive bias
 
 If no algorithm can be universally good, every successful algorithm must encode *assumptions about the world*. These assumptions go by the name **inductive bias**.
 
@@ -362,7 +362,7 @@ The next figure shows three different inductive biases acting on the *same* trai
 
 The linear fit underfits because its bias is too strong; random ReLU features overfit because their bias is too weak; the degree-4 polynomial happens to match the structure of the target. None of them is intrinsically right — the choice depends on what you believe about $f^\star$.
 
-### 3 Why NFL does not make learning useless
+### Why NFL does not make learning useless
 
 NFL averages over *all* possible functions. The functions we actually encounter — physical laws, natural language, images of objects — live on a vanishingly small, highly structured submanifold of "all functions". On that submanifold, some inductive biases dominate others by enormous margins.
 

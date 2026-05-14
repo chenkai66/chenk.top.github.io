@@ -42,7 +42,7 @@ This article walks the entire stack: the *theoretical floor* (CAP, consistency, 
 
 ## The shape of the problem
 
-### 1 Why distributed storage is hard
+### Why distributed storage is hard
 
 A single SSD can deliver hundreds of thousands of IOPS and survive years. The problem is that *one* of anything in production is a liability:
 
@@ -52,7 +52,7 @@ A single SSD can deliver hundreds of thousands of IOPS and survive years. The pr
 
 So we replicate. The moment we replicate, we hit *two* deeper problems: keeping the copies in agreement (consistency), and keeping the service usable when the network splits the copies into islands (partitions). That is the territory the CAP theorem maps out.
 
-### 2 Object vs Block vs File: pick the right primitive
+### Object vs Block vs File: pick the right primitive
 
 Before we get to consistency theory, fix the vocabulary. There are three storage *shapes*, and almost every cloud product is one of them in disguise:
 
@@ -72,7 +72,7 @@ When in doubt: if the workload is "open the file, seek, write" you want block or
 
 ## CAP, PACELC, and the consistency menu
 
-### 1 The CAP theorem
+### The CAP theorem
 
 Eric Brewer's CAP conjecture (2000), later proved by Gilbert and Lynch (2002), states: in the presence of a network partition, a distributed system must choose between **C**onsistency and **A**vailability. You cannot have both.
 
@@ -90,13 +90,13 @@ Because partitions are not optional in a real network — a switch reload, a fib
 | Cassandra, DynamoDB, Riak, S3 (legacy overwrite) | AP | Both sides keep accepting writes; reconciliation happens later |
 | Single-node Postgres | CA-ish | Stops working entirely on partition (the partition is "the network is down") |
 
-### 2 PACELC: the part CAP forgot
+### PACELC: the part CAP forgot
 
 CAP only describes behaviour *during a partition*. PACELC (Abadi, 2010) extends it: **if Partitioned, choose A or C; Else, choose Latency or Consistency**.
 
 This explains why Cassandra is "AP/EL" (eventual reads in normal operation are faster) while Spanner is "CP/EC" (it pays a TrueTime delay on every commit to stay strict). Most production decisions are PACELC decisions, not CAP decisions; partitions are rare but the latency-vs-consistency knob is set on every request.
 
-### 3 Practical consistency models
+### Practical consistency models
 
 | Model | Guarantee | Where you see it |
 |-------|-----------|------------------|
@@ -167,7 +167,7 @@ S3 is the de facto standard for cloud object storage and the inspiration for OSS
 
 ![S3-style object store request path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig2_s3_architecture.png)
 
-### 1 The request path
+### The request path
 
 A `PUT` for `s3://my-bucket/users/42.jpg`:
 
@@ -178,7 +178,7 @@ A `PUT` for `s3://my-bucket/users/42.jpg`:
 5. **Write** — bytes are streamed to enough nodes to satisfy the write quorum.
 6. **Acknowledge** — once durable, S3 returns `200 OK` with an ETag.
 
-### 2 Storage classes — the cost lever
+### Storage classes — the cost lever
 
 | Class | $/GB-month (US-East-1) | Retrieval latency | Min storage | Retrieval fee |
 |-------|------------------------|-------------------|-------------|----------------|
@@ -195,7 +195,7 @@ Two practical implications:
 - **Cold tiers have minimum retention.** Deleting a Deep Archive object after 30 days still bills you for the full 180. Tier *only* what you genuinely will not touch.
 - **Retrieval cost can dwarf storage cost.** An infrequently-accessed object hit unexpectedly often is worse-than-Standard. Intelligent-Tiering exists exactly to defend against this.
 
-### 3 The Python SDK in production
+### The Python SDK in production
 
 ```python
 import boto3
@@ -234,7 +234,7 @@ Three details that catch teams out:
 - **`StorageClass`** at PUT-time is essentially free; reclassifying later requires a `CopyObject` and may incur retrieval fees.
 - **Adaptive retries** back off on 503 SlowDown responses; without them a hot prefix can collapse a fleet.
 
-### 4 Multipart uploads
+### Multipart uploads
 
 Anything over a few hundred MB should be uploaded as multipart: parallelism, resumability, and a per-part checksum. Pre-built code in `boto3.s3.transfer` handles this; here is the explicit version so you can see what is happening:
 
@@ -285,7 +285,7 @@ The `try/except` matters: an aborted but un-cleaned multipart upload silently bi
 
 ![Replication vs erasure coding overhead and durability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig4_erasure_vs_replication.png)
 
-### 1 The math
+### The math
 
 With **k+m** Reed-Solomon erasure coding, each object is split into `k` data shards plus `m` parity shards. The object survives any `m` shard losses; the storage overhead is `m/k`.
 
@@ -303,7 +303,7 @@ The trade-off is brutal but predictable:
 
 Hot data wants the replication profile (a single read is one HTTP fetch). Cold data wants the EC profile (you rarely touch it, so rebuild cost amortises across years).
 
-### 2 11-nines durability is a budget
+### 11-nines durability is a budget
 
 S3 advertises "eleven nines" (99.999999999%) of object durability. That is one expected loss per 100 billion object-years. The number is not magic — it is engineered:
 
@@ -322,7 +322,7 @@ When you do need POSIX-ish semantics across many machines, two reference designs
 
 ![HDFS vs Ceph architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig5_distributed_fs.png)
 
-### 1 HDFS — master-coordinated, batch-tuned
+### HDFS — master-coordinated, batch-tuned
 
 HDFS is built on three opinions:
 
@@ -365,7 +365,7 @@ for info in hdfs.get_file_info(pafs.FileSelector("/user/data", recursive=False))
 
 **HDFS is the wrong tool** for: small files (each consumes ~150 bytes of NameNode RAM), random writes (it is append-only), or low-latency lookups. For everything else in the Hadoop / Spark ecosystem, it is still excellent.
 
-### 2 Ceph — one cluster, three interfaces
+### Ceph — one cluster, three interfaces
 
 Ceph's contribution is *unified storage*: a single RADOS cluster exposing block (RBD), object (RGW), and file (CephFS) interfaces, all backed by the same OSDs.
 
@@ -417,7 +417,7 @@ The price of Ceph's flexibility is operational weight: tuning CRUSH rules, balan
 
 ## Replication strategy and operations
 
-### 1 Synchronous vs asynchronous replication
+### Synchronous vs asynchronous replication
 
 | Aspect | Synchronous | Asynchronous |
 |--------|------------|---------------|
@@ -429,7 +429,7 @@ The price of Ceph's flexibility is operational weight: tuning CRUSH rules, balan
 
 A common pattern: **synchronous within a region** (across AZs, sub-millisecond) plus **asynchronous across regions** (DR replica with a few-second RPO).
 
-### 2 Quorum
+### Quorum
 
 For `N` replicas and read/write quorums `R` and `W`:
 
@@ -437,7 +437,7 @@ For `N` replicas and read/write quorums `R` and `W`:
 - `W = N` is the strongest writes (no progress on any failure); `W = 1` is the weakest.
 - Dynamo-style stores let the *application* choose `R` and `W` per request; ZooKeeper/etcd hard-code `W = R = majority`.
 
-### 3 Lifecycle policies — automate the cost story
+### Lifecycle policies — automate the cost story
 
 Most cost optimisation is a few lines of policy, not engineering work. Move logs to IA at 30 days, Glacier at 90, delete at 365; expire incomplete multipart uploads; transition object versions:
 
@@ -473,7 +473,7 @@ s3.put_bucket_lifecycle_configuration(
 )
 ```
 
-### 4 Backup, RTO and RPO
+### Backup, RTO and RPO
 
 | Strategy | RTO | RPO | Cost | Use case |
 |----------|-----|-----|------|----------|
@@ -488,18 +488,18 @@ The right answer is rarely the strictest one — it is the one whose cost matche
 
 ## Performance optimisation
 
-### 1 Latency tail dominates
+### Latency tail dominates
 
 The number to watch is **P99 latency**, not the average. In a system that fans out to 10 backends and waits for all, the P99 of the request is roughly the P99 of *one* backend (Dean & Barroso, *The Tail at Scale*, 2013). Every dependency is a multiplier.
 
-### 2 The four levers
+### The four levers
 
 - **Parallelism** — multipart uploads, range GETs, concurrent prefixes.
 - **Locality** — co-locate compute and storage (data-locality in HDFS, AZ-affinity in S3 cross-region setups).
 - **Caching** — LRU at the application, CloudFront in front of public S3, OSS CDN for hot prefixes.
 - **Compression** — zstd is the modern default (level 3 ≈ gzip-6 speed at gzip-9 ratio); use Snappy when CPU is scarce.
 
-### 3 A throughput rule of thumb
+### A throughput rule of thumb
 
 A single TCP stream on a long-haul link is bandwidth-limited by `window / RTT`. A 64 KB default window on a 100 ms RTT path tops out at ~5 Mbit/s. To use a 10 Gbit/s pipe you need either a much larger window (kernel auto-tuning helps) or many concurrent streams. Multipart uploads are the explicit form of "many streams"; this is *why* they are fast, not just *that* they are.
 
@@ -507,7 +507,7 @@ A single TCP stream on a long-haul link is bandwidth-limited by `window / RTT`. 
 
 ## Cost engineering
 
-### 1 The three line items
+### The three line items
 
 | Bill component | Driver | Lever |
 |----------------|--------|-------|
@@ -517,7 +517,7 @@ A single TCP stream on a long-haul link is bandwidth-limited by `window / RTT`. 
 
 For most teams, **egress is the surprise on the bill**. A 1 PB cross-region copy at $0.02/GB is $20,000. Use intra-region replication where possible; if you must move data out, schedule it through a cheaper transfer family (Direct Connect, dedicated peering, Aliyun's Cloud Enterprise Network).
 
-### 2 A worked cost calculation
+### A worked cost calculation
 
 A 1 TB dataset accessed twice a day, stored for 1 year:
 

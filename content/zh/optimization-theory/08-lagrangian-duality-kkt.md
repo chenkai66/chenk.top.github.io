@@ -92,7 +92,7 @@ $$
 
 ## 强对偶性
 
-### 1 斯莱特条件（Slater’s condition）
+### 斯莱特条件（Slater’s condition）
 
 > **斯莱特条件。** 存在一点 $x \in \mathrm{relint}(\mathrm{dom}(f_0))$，使得对所有非仿射的约束指标 $i$ 满足 $f_i(x) < 0$，且对所有等式约束指标 $j$ 满足 $h_j(x) = 0$。（等价地：存在一个严格可行点；仿射不等式约束允许取等号而无需严格性。）
 
@@ -114,7 +114,7 @@ $$
 ![值函数与支撑超平面](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig4.png)
 *图 4 —— 通过值函数解释强对偶性。$V(u)$ 是扰动约束后的最优值函数；凸性加斯莱特条件保证 $u=0$ 处存在非竖直的支撑超平面，其斜率恰好为 $-\lambda^\star$。*
 
-### 2 斯莱特条件不成立的情形
+### 斯莱特条件不成立的情形
 
 若斯莱特条件不成立，强对偶性仍可能成立（例如线性规划 LP 总是满足强对偶性，无需斯莱特条件），但也可能出现正的对偶间隙（duality gap）。典型病态例子包括：
 
@@ -141,7 +141,7 @@ $$
 ![KKT 条件的几何图景](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig3.png)
 *图 3 —— 二维下的 KKT 平稳性。在最优点 $x^\star$ 处，目标函数负梯度 $-\nabla f_0$ 落在活跃约束梯度所张成的凸锥中，权重 $\lambda_i^\star$ 非负。*
 
-### 1 KKT 作为充分最优性条件（凸问题）
+### KKT 作为充分最优性条件（凸问题）
 
 > **定理。** 设原始问题 (P) 是凸的，且 $(x^\star, \lambda^\star, \nu^\star)$ 满足 KKT 条件，则 $x^\star$ 是原始最优解，$(\lambda^\star, \nu^\star)$ 是对偶最优解。
 
@@ -153,7 +153,7 @@ $$
 
 这正是使 KKT 成为实用核心工具的关键结论：对凸问题而言，KKT 给出一个有限的方程与不等式系统，其解即为最优解。
 
-### 2 KKT 失效的情形
+### KKT 失效的情形
 
 KKT 条件在最优解处成立**仅当满足某种约束规范（constraint qualification）**。Slater 条件是其中一种；LICQ（活跃约束梯度的线性无关性，linear independence of active constraint gradients）是另一种。若缺乏任一约束规范，最优解可能不存在拉格朗日乘子，而依赖 KKT 系统的基于梯度的方法亦可能停滞。
 

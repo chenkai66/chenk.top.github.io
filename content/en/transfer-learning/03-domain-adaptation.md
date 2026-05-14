@@ -49,7 +49,7 @@ A **domain** is a feature space $\mathcal{X}$ with a marginal distribution $P(X)
 
 The figure is the entire game in one picture: before adaptation, the source-trained boundary slices through empty target space; after adaptation, both domains share a feature manifold and the same boundary works.
 
-### 1 Covariate shift — the input distribution moved
+### Covariate shift — the input distribution moved
 $$P_S(X) \neq P_T(X), \qquad P_S(Y \mid X) = P_T(Y \mid X)$$
 The *labelling rule* is unchanged; only what you observe is different. Examples:
 
@@ -60,7 +60,7 @@ The *labelling rule* is unchanged; only what you observe is different. Examples:
 $$\mathbb{E}_{P_T}[\ell(f(X), Y)] = \mathbb{E}_{P_S}\!\left[\frac{P_T(X)}{P_S(X)}\,\ell(f(X), Y)\right].$$
 Estimating densities in high dimensions is hopeless, so practitioners estimate the *ratio* directly with KLIEP, uLSIF, or a probabilistic classifier (Bayes-optimal classifier between source and target gives you the ratio for free).
 
-### 2 Label shift — the prevalence moved
+### Label shift — the prevalence moved
 $$P_S(Y) \neq P_T(Y), \qquad P_S(X \mid Y) = P_T(X \mid Y)$$
 Class-conditional appearance is unchanged; only base rates differ. Examples:
 
@@ -69,7 +69,7 @@ Class-conditional appearance is unchanged; only base rates differ. Examples:
 
 **Standard fix.** Estimate the target prior $P_T(Y)$ by EM on unlabelled target data (BBSE / RLLS work well), then rescale each source-trained probability by $P_T(y) / P_S(y)$ and renormalise.
 
-### 3 Concept shift — the rule itself moved
+### Concept shift — the rule itself moved
 $$P_S(Y \mid X) \neq P_T(Y \mid X)$$
 This is the hard case. "Sick" is positive in a music review and negative in a product review even though the *word* is identical. With no target labels at all, no method can untangle this — concept shift demands at least a few labelled target examples (the *semi-supervised* DA setting).
 
@@ -101,7 +101,7 @@ Two takeaways:
 
 ![DANN architecture with Gradient Reversal Layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig2_dann_architecture.png)
 
-### 1 Three subnetworks, one shared trunk
+### Three subnetworks, one shared trunk
 
 | Subnet | Role | Trained on |
 |---|---|---|
@@ -116,7 +116,7 @@ $$
 
 $G_d$ wants to tell the domains apart; $G_f$ wants to fool $G_d$ while still letting $G_y$ classify the source correctly.
 
-### 2 The Gradient Reversal Layer (GRL)
+### The Gradient Reversal Layer (GRL)
 
 A naive minimax requires alternating optimisation, which is fragile (think early GANs). DANN's contribution is to make the whole system trainable in **one** backward pass via the Gradient Reversal Layer:
 $$
@@ -131,7 +131,7 @@ GRL sits on the path from features to the domain head. During backprop, the disc
 
 No alternating training, no separate optimisers, no manual freezing.
 
-### 3 The adversarial weight schedule
+### The adversarial weight schedule
 
 DANN does not turn $\lambda$ on at full strength — that destroys early learning. Instead it follows a sigmoid ramp:
 $$\lambda_p = \frac{2}{1 + \exp(-\gamma p)} - 1, \qquad \gamma \approx 10,$$
@@ -145,7 +145,7 @@ Adversarial alignment is powerful but unstable. The non-adversarial alternative 
 
 ![Maximum Mean Discrepancy: kernel mean embeddings](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig3_mmd_kernel.png)
 
-### 1 The idea
+### The idea
 
 A kernel $k(x, y) = \langle \phi(x), \phi(y) \rangle_{\mathcal{H}}$ implicitly maps each sample into a (possibly infinite-dimensional) RKHS $\mathcal{H}$. The **kernel mean embedding** of a distribution $P$ is the average feature
 $$\mu_P = \mathbb{E}_{X \sim P}[\phi(X)] \;\in\; \mathcal{H}.$$
@@ -153,7 +153,7 @@ For *characteristic* kernels (the Gaussian RBF being the canonical example), the
 $$\text{MMD}^2(P_S, P_T) = \|\mu_{P_S} - \mu_{P_T}\|_{\mathcal{H}}^2.$$
 The figure shows this graphically: even when raw histograms overlap a little, the kernel mean embeddings make the gap explicit, and the shaded area is exactly $\text{MMD}^2$.
 
-### 2 The estimator you actually compute
+### The estimator you actually compute
 
 Because the embedding is implicit, expand the squared norm and the inner product becomes a kernel evaluation:
 $$
@@ -163,13 +163,13 @@ This is differentiable in the features, so you can drop it straight into a deep 
 $$\mathcal{L} = \mathcal{L}_{\text{task}} + \lambda \cdot \widehat{\text{MMD}}^2\!\big(G_f(X_S),\, G_f(X_T)\big).$$
 This is **DAN / DDC** (Long et al., 2015; Tzeng et al., 2014).
 
-### 3 Practical tips
+### Practical tips
 
 - **Use multi-kernel MMD.** A mixture $k = \sum_u \beta_u k_{\sigma_u}$ of Gaussian RBFs at several bandwidths is robust to bandwidth misspecification.
 - **Median heuristic for $\sigma$.** Set the bandwidth to the median pairwise distance in the batch — cheap, robust, almost always good enough.
 - **Apply MMD to deeper layers.** Lower layers carry domain-specific texture; the abstraction at the top is what you want aligned.
 
-### 4 MMD vs DANN at a glance
+### MMD vs DANN at a glance
 
 | | MMD | DANN |
 |---|---|---|

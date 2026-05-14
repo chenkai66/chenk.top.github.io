@@ -35,7 +35,7 @@ The entire pipeline has **16.7 ms** per frame at 60 fps, so each step must compl
 
 Before building, the non-negotiable numbers are outlined.
 
-### 1 Capability matrix
+### Capability matrix
 
 | Capability | Input | Output | Latency budget |
 | --- | --- | --- | --- |
@@ -48,7 +48,7 @@ Before building, the non-negotiable numbers are outlined.
 
 If any stage exceeds its budget, the pipeline drops from 60 fps to 30 fps, causing visible stutter.
 
-### 2 The physics of "hard"
+### The physics of "hard"
 
 **Pixel budget for a small target.** A tennis ball seen from the opposite baseline (~28 m away) at a 35 mm-equivalent focal length occupies about 12 px. A one-pixel center error translates to **2.3 cm of lateral 3D error** — already at the threshold for a baseline call.
 
@@ -64,7 +64,7 @@ If any stage exceeds its budget, the pipeline drops from 60 fps to 30 fps, causi
 
 Six years of papers, sorted by the four sub-tasks. Each section ends with the choice that goes into production.
 
-### 1 Small-object detection
+### Small-object detection
 
 The failure of generic detectors on small objects is evident in the data:
 
@@ -81,7 +81,7 @@ A **coarse-to-fine** alternative (YOLOv5 proposals + ResNet-50 verification) red
 
 > **Choice.** Live path: **YOLOv8-l @ 1280 + 3-frame temporal vote.** Offline path: stack TrackNet V3 as a refinement stage.
 
-### 2 Multi-view geometry and 3D reconstruction
+### Multi-view geometry and 3D reconstruction
 
 Hartley & Zisserman's *Multiple View Geometry* is still, eighteen years on, the right book to read. Three things to internalise:
 
@@ -104,7 +104,7 @@ Stack into $A_{2n\times4}\mathbf{X}=0$ and take the right singular vector of the
 
 > **Choice.** Use Zhang + checkerboard once at installation (precise, one-time effort); run SfM + BA nightly to compensate for thermal and mechanical drift.
 
-### 3 Multi-object tracking
+### Multi-object tracking
 
 The SORT family solves data association. Tennis has a single ball but many of these techniques are needed for player tracking and re-acquiring the ball after occlusion.
 
@@ -116,7 +116,7 @@ The SORT family solves data association. Tennis has a single ball but many of th
 
 **Tennis-specific gotcha.** Single target, very high speed, gravity-dominated. The constant-velocity assumption inside vanilla SORT-Kalman is wrong — you need constant-acceleration (or an EKF that includes Magnus force), otherwise the deceleration phase near the apex is systematically under-tracked.
 
-### 4 Trajectory prediction
+### Trajectory prediction
 
 **Physics-Informed Neural Networks (Raissi 2019)** add a physics-residual loss term:
 $$\mathcal{L} = \underbrace{\sum_i \|\hat{\mathbf{p}}(t_i) - \mathbf{p}_i\|^2}_{\text{data}} + \lambda\,\underbrace{\sum_j \|\ddot{\hat{\mathbf{p}}}(t_j) - \mathbf{f}(\hat{\mathbf{p}}, \dot{\hat{\mathbf{p}}})\|^2}_{\text{physics}}$$
@@ -126,7 +126,7 @@ In the data-poor regime that is one serve (30–50 observations), PINNs cut land
 
 > **Choice.** Live path: physics ODE + Kalman (deterministic, interpretable). Offline path: stack PINN refinement.
 
-### 5 Human pose
+### Human pose
 
 | Model | Paradigm | COCO AP | Note |
 | --- | --- | --- | --- |
@@ -141,7 +141,7 @@ In the data-poor regime that is one serve (30–50 observations), PINNs cut land
 
 ## System architecture
 
-### 1 Hardware and synchronisation
+### Hardware and synchronisation
 
 Eight cameras around a singles court (23.77 m × 8.23 m):
 
@@ -154,7 +154,7 @@ Eight cameras around a singles court (23.77 m × 8.23 m):
 
 **Time sync**: IEEE 1588 PTP. One server is the Grandmaster Clock, everything else is a Slave, switches must support Boundary Clock — sub-microsecond is then routinely achievable. NTP's millisecond-level jitter is hopeless here.
 
-### 2 Software layering
+### Software layering
 
 ![Tennis CV System — 4-Layer Architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig_tennis_cv_arch_en.png)
 
@@ -166,7 +166,7 @@ Eight cameras around a singles court (23.77 m × 8.23 m):
 - **Tracker thread**: single worker maintaining the Kalman state machine
 - **Output thread**: render and broadcast over WebSocket
 
-### 3 Edge + cloud split
+### Edge + cloud split
 
 ![Edge + cloud architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig7_architecture.png)
 
@@ -184,7 +184,7 @@ This split lets a venue ship "one gigabit uplink and a GPU-less cloud" and still
 
 The four modules below are load-bearing walls; every one comes with a minimal runnable implementation.
 
-### 1 Multi-camera calibration
+### Multi-camera calibration
 
 ```python
 import cv2
@@ -266,7 +266,7 @@ class MultiCameraCalibration:
 
 **Calibration pass criteria**: per-camera reprojection error < 1 px, stereo extrinsic baseline error < 1%. Either failure inflates the **3D error by an order of magnitude**.
 
-### 2 Ball detection: YOLOv8 + physics priors
+### Ball detection: YOLOv8 + physics priors
 
 ```python
 from ultralytics import YOLO
@@ -311,7 +311,7 @@ class TennisBallDetector:
 
 The two physics priors take this from ~50% precision to ~95% — circular logos on billboards and white-line crossings get filtered out by size and aspect ratio in a single pass.
 
-### 3 9-state Kalman: gravity in the model, not in the head
+### 9-state Kalman: gravity in the model, not in the head
 
 ```python
 from collections import deque
@@ -371,7 +371,7 @@ class TennisBallTracker:
 
 **Why 9 states, not the classic 6?** The 6-state $(x, v)$ filter assumes constant velocity. A tennis ball has gravity (9.8 m/s²), drag, and Magnus — non-zero, time-varying acceleration. Putting acceleration into the state and seeding $a_z = -9.8$ as a prior **drops apex-region prediction error from 12 cm to 3 cm**.
 
-### 4 Trajectory prediction: drag + Magnus ODE
+### Trajectory prediction: drag + Magnus ODE
 
 ```python
 from scipy.integrate import odeint
@@ -425,7 +425,7 @@ Left: 3D trajectories at the same launch (45 m/s, 5° elevation) under no spin /
 
 ## Court structure and pose: use every prior the scene gives you
 
-### 1 Court line detection: Hough + homography
+### Court line detection: Hough + homography
 
 Court lines do double duty — they are the line-call evidence, and they are a **free scene-level calibration check**. Four known white-line intersections uniquely determine a homography, which lets you correct any drift in camera pose between formal calibrations.
 
@@ -445,7 +445,7 @@ lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=80,
 
 Once four anchor intersections match, `cv2.findHomography` produces $H$. Run this nightly (or per match) and **long-term drift from mechanical vibration and thermal expansion stays under 5 cm in 3D**.
 
-### 2 Player pose: HRNet + rule templates
+### Player pose: HRNet + rule templates
 
 Action recognition labels each impact moment as one of 5–6 strokes (serve, forehand, backhand, volley, smash, ready). I benchmarked end-to-end action models (ST-GCN, VideoMAE) against **keypoints + handwritten rule templates**:
 
@@ -527,7 +527,7 @@ class TennisPoseClassifier:
 
 ## End-to-end integration and budget
 
-### 1 Frame synchroniser
+### Frame synchroniser
 
 ```python
 from queue import Queue
@@ -562,7 +562,7 @@ class FrameSynchronizer:
         return frames, ts
 ```
 
-### 2 Main loop
+### Main loop
 
 ```python
 class TennisAnalysisSystem:
@@ -602,7 +602,7 @@ class TennisAnalysisSystem:
         return {"position": pos, "velocity": vel, "landing": landing}
 ```
 
-### 3 Slicing the 16.7 ms budget
+### Slicing the 16.7 ms budget
 
 | Stage | Measured (RTX 4090, fp16) | Share |
 | --- | --- | --- |
@@ -622,7 +622,7 @@ It just fits inside the 60 fps budget; **pose is the largest single cost**. To r
 
 ## Deployment optimisation and robustness
 
-### 1 Model acceleration
+### Model acceleration
 
 ```bash
 # YOLOv8 -> TensorRT, FP16 ~2x, INT8 ~4x
@@ -632,14 +632,14 @@ yolo export model=yolov8l.pt format=engine int8=true data=tennis.yaml
 
 INT8 quantisation needs a calibration set (200–500 representative frames); skip it and you lose 3–5 pp of accuracy.
 
-### 2 Robustness fallbacks
+### Robustness fallbacks
 
 - **Occlusion**: when the ball is body-blocked, lean on the Kalman extrapolation; up to 30 frames (0.5 s) of seamless re-acquisition
 - **Lighting changes**: CLAHE adaptive histogram equalisation + background model refresh every 5 minutes
 - **Multi-hypothesis**: when consecutive detections wobble in confidence, keep top-3 trajectory candidates and disambiguate next frame
 - **Out-of-FOV**: predict next-frame ROI from the current trajectory and feed a narrowed search window to the detector (~3× faster)
 
-### 3 Monitoring
+### Monitoring
 
 Prometheus scrape, Grafana dashboard, alerts on:
 

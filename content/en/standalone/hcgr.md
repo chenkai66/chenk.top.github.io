@@ -62,7 +62,7 @@ This is the SR-GNN-family setup, and HCGR keeps everything that already works ab
 
 There are several equivalent models of hyperbolic geometry: the Poincaré ball, the Klein model, and the Lorentz (a.k.a. hyperboloid) model. HCGR uses the **Lorentz** model because its formulas are more numerically stable than those of the Poincaré ball, and gradients behave better near the boundary.
 
-### 1 The hyperboloid
+### The hyperboloid
 
 Define the Lorentzian inner product on $\mathbb{R}^{d+1}$:
 $$\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \;=\; -x_0 y_0 + \sum_{i=1}^{d} x_i y_i.$$
@@ -70,13 +70,13 @@ The hyperboloid (curvature $c = -1$ for simplicity) is the upper sheet:
 $$\mathbb{H}^d \;=\; \bigl\{\, \mathbf{x} \in \mathbb{R}^{d+1} \;:\; \langle \mathbf{x}, \mathbf{x} \rangle_{\mathcal{L}} = -1,\; x_0 > 0 \,\bigr\}.$$
 Concretely, an embedding is a $(d+1)$-vector that lives on this curved surface. The "extra" dimension is the price you pay to write hyperbolic operations as clean linear algebra in an ambient Euclidean space.
 
-### 2 Distance
+### Distance
 
 The Lorentz distance is
 $$d_{\mathcal{L}}(\mathbf{x}, \mathbf{y}) \;=\; \mathrm{arcosh}\!\bigl( -\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \bigr).$$
 The key qualitative fact: $d_{\mathcal{L}}$ grows roughly like $\mathrm{arcosh}$ of an inner product that itself can grow exponentially with how far points are pushed up the hyperboloid. So distances expand fast, which is exactly what we want when we are trying to keep an exponentially branching tree apart.
 
-### 3 Tangent space, exp and log
+### Tangent space, exp and log
 
 You cannot do gradient descent directly on a curved manifold without leaving it. The standard trick is to operate in the **tangent space** at a base point (usually the origin $\mathbf{o} = (1, 0, \dots, 0)$), which is locally Euclidean, then map back.
 
@@ -97,7 +97,7 @@ Three things are happening in parallel:
 2. **Recommendation head.** A session readout produces $\mathbf{s}$, and the next-item score is the negative Lorentz distance to each candidate item embedding. Cross-entropy supervises the click target.
 3. **Contrastive head.** Two augmented views of $G_s$ are encoded into $\mathbf{s}^a$ and $\mathbf{s}^b$. An InfoNCE loss pulls them together and pushes other sessions in the batch away.
 
-### 1 Hyperbolic GNN aggregation
+### Hyperbolic GNN aggregation
 
 In a vanilla GAT-style aggregator you would do $\mathbf{h}_i = \sigma\!\bigl(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} W \mathbf{h}_j\bigr)$. You cannot sum points on the hyperboloid directly: their sum doesn't lie on the manifold. HCGR does the obvious workaround:
 $$\mathbf{h}_i^{(l+1)} \;=\; \exp_{\mathbf{o}}\!\Biggl( \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^{(l)} \, \log_{\mathbf{o}}\!\bigl(\mathbf{h}_j^{(l)}\bigr) \Biggr).$$
@@ -105,7 +105,7 @@ Read it from inside out: bring neighbours into the tangent space, attention-weig
 
 A separate parallel-transport step is needed if you want to move tangent vectors between different base points — HCGR uses it to keep multi-layer aggregation consistent — but conceptually nothing changes.
 
-### 2 Non-linearity that respects curvature
+### Non-linearity that respects curvature
 
 Plain ReLU on a hyperboloid coordinate vector is meaningless. HCGR threads the activation through the tangent map of one layer's curvature and the exp map of the next layer's:
 $$\sigma_{\mathbb{H}}^{l \to l+1}(\mathbf{x}) \;=\; \exp_{\mathbf{o}}^{c_{l+1}}\!\Bigl(\, \sigma\!\bigl(\, \log_{\mathbf{o}}^{c_l}(\mathbf{x})\,\bigr)\, \Bigr).$$
@@ -117,7 +117,7 @@ Session graphs are noisy. A real session has accidental clicks, repeated items, 
 
 ![Two-view contrastive scheme. Edge dropout and node dropout each produce one view; both views go through the HCGR encoder; InfoNCE pulls the positive pair together and pushes negatives apart, all measured by Lorentz distance in the disk.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig3_contrastive_views.png)
 
-### 1 Augmentations
+### Augmentations
 
 HCGR uses graph-level augmentations on the session graph $G_s$:
 
@@ -126,13 +126,13 @@ HCGR uses graph-level augmentations on the session graph $G_s$:
 
 Two independent augmentations of $G_s$ produce views $G_s^a$ and $G_s^b$. Both are encoded by the same HCGR network into session vectors $\mathbf{s}^a, \mathbf{s}^b \in \mathbb{H}^d$.
 
-### 2 InfoNCE in hyperbolic space
+### InfoNCE in hyperbolic space
 
 The contrastive loss is the standard InfoNCE form, but with similarity defined through hyperbolic distance:
 $$\mathcal{L}_{\mathrm{cl}} \;=\; -\, \log \frac{\exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b) / \tau \bigr)}{\sum_{k} \exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b_k) / \tau \bigr)},$$
 where $\mathrm{sim}(\mathbf{u}, \mathbf{v}) = -\, d_{\mathcal{L}}(\mathbf{u}, \mathbf{v})$ (or, for stability, an inner product in the tangent space at $\mathbf{o}$) and $\tau$ is the InfoNCE temperature. The denominator runs over all sessions in the mini-batch, treating other sessions as negatives.
 
-### 3 Total objective
+### Total objective
 
 The recommendation cross-entropy and contrastive auxiliary are simply added:
 $$\mathcal{L} \;=\; \mathcal{L}_{\mathrm{rec}} \;+\; \lambda \, \mathcal{L}_{\mathrm{cl}}.$$

@@ -52,7 +52,7 @@ translationKey: "reinforcement-learning-8"
 
 在固定仿真预算耗尽后（AlphaGo Zero 每步使用 800 次仿真），算法会选择根节点下访问次数最多的子动作作为最终决策——而非平均价值最高的那个。访问次数是一个更稳健的统计量，因为它已内化了搜索过程中的自我修正能力。
 
-### 1 UCT：探索与利用的平衡
+### UCT：探索与利用的平衡
 
 ![UCB1 探索与利用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig2_ucb_exploration.png)
 
@@ -130,13 +130,13 @@ $$
 
 MCTS 完全在**隐空间**中展开。搜索内部不再调用环境模拟器，仅依赖学习到的动力学函数。隐状态无需重建原始观测，只需足以预测奖励、价值和策略即可。得益于这一更宽松的目标，MuZero 在棋类游戏中媲美 AlphaZero，在 Atari 游戏上则超越了 R2D2、Ape-X 等无模型方法——而 Atari 正是缺乏规则模拟器的典型场景。
 
-### 1 Elo 随时间的变化
+### Elo 随时间的变化
 
 ![Elo 演进](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig6_elo_progression.png)
 
 左图对比了各代系统的峰值 Elo 分数。右图展示了 AlphaGo Zero 的训练轨迹：3 天超越李世石版 AlphaGo，约 21 天超越 AlphaGo Master，最终在 5200 Elo 左右趋于饱和。作为参照，人类九段职业棋手的 Elo 通常在 3500–3700 区间。
 
-### 2 搜索到底有多大作用？
+### 搜索到底有多大作用？
 
 ![搜索预算与棋力](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig7_search_vs_strength.png)
 

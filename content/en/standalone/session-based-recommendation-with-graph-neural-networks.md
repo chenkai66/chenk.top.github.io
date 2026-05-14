@@ -166,7 +166,7 @@ A subtle gotcha: the official preprocessing **filters sessions of length 1** and
 
 SR-GNN is not a universal SBR solution. The four modes below show up reliably enough that they belong in any production checklist.
 
-### 1 Popularity collapse
+### Popularity collapse
 
 **Symptom.** Recall@20 looks fine, but the top-$K$ list is dominated by 5--10 globally popular items regardless of session. Diversity (intra-list distance, coverage@K) is low.
 
@@ -178,7 +178,7 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 - **Inverse-propensity-weighted softmax**: down-weight popular positives during training.
 - **Negative sampling** with popularity-proportional sampling, which forces the model to discriminate against popular items it would otherwise default to.
 
-### 2 Poor performance on very short sessions ($n \le 3$)
+### Poor performance on very short sessions ($n \le 3$)
 
 **Symptom.** The model is excellent on sessions of length 5+ but loses to a co-click baseline on length-2 and length-3 sessions.
 
@@ -190,7 +190,7 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 - **Graph augmentation**: attach the last item to its top-$k$ co-clicked neighbours from the global click graph. This "borrows" structure when the session itself has none.
 - **Pretrain item embeddings** on the global co-click graph (DeepWalk / node2vec) and initialise the SR-GNN item table from them. Short sessions then start with informative embeddings rather than random ones.
 
-### 3 Overfitting on small datasets
+### Overfitting on small datasets
 
 **Symptom.** Training Recall@20 climbs steadily; validation Recall@20 plateaus by epoch 4 and starts to drop.
 
@@ -203,7 +203,7 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 - L2 weight decay up to $10^{-4}$.
 - Earlier early-stopping: patience 3 instead of 5.
 
-### 4 Cold-start items
+### Cold-start items
 
 **Symptom.** Items that appear fewer than ~5 times in training are almost never recommended; their dot product with any $s_h$ stays small.
 
@@ -218,7 +218,7 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 
 A few extensions are worth knowing because they recur in follow-up SBR papers and in production systems.
 
-### 1 Attention-weighted message passing
+### Attention-weighted message passing
 
 Replace the fixed $A_s$ with attention weights computed per-edge:
 $$
@@ -227,13 +227,13 @@ $$
 $$
 This is essentially GAT inside the GGNN cell. Helps when transitions are not equally informative.
 
-### 2 Time-gap edges
+### Time-gap edges
 
 Sessions span seconds to minutes; a click that happens 2 seconds after the previous one is a stronger signal than one 5 minutes later. Encode the time gap $\Delta t_{u \to v}$ into the edge weight:
 $$w_{u \to v} \;=\; \exp\!\big(-\beta \cdot \Delta t_{u \to v}\big) \cdot \frac{\#(u \to v)}{\mathrm{outdeg}(u)} \, .$$
 A learnable $\beta$ usually settles around $0.05$--$0.2$ when $\Delta t$ is in seconds.
 
-### 3 Multi-task heads
+### Multi-task heads
 
 Add auxiliary losses on the same $s_h$:
 

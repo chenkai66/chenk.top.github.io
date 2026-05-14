@@ -97,7 +97,7 @@ The data we start from looks like this:
 
 Most entries are unknown. The job of any recommender is, in essence, to fill in the blanks.
 
-### 1 Collaborative Filtering — *"users like you liked this"*
+### Collaborative Filtering — *"users like you liked this"*
 
 Collaborative filtering (CF) rests on a beautifully simple intuition: **if two users agreed in the past, they are likely to agree in the future**. The algorithm needs to know nothing about what an item *is*. It learns purely from the pattern of who interacted with what.
 
@@ -134,7 +134,7 @@ The crucial difference: Alice rates everything 4–5 and Bob rates everything 2�
 | Captures serendipity | Suffers when data is sparse |
 | Improves automatically with more data | Popularity bias — popular items get recommended more |
 
-### 2 Content-Based Filtering — *"you'll like this because it's similar"*
+### Content-Based Filtering — *"you'll like this because it's similar"*
 
 Where CF asks "who else liked this?", content-based filtering asks "what *is* this thing, and have you liked similar things before?"
 
@@ -161,7 +161,7 @@ The $\lambda \|\mathbf{w}_u\|^2$ term is **L2 regularisation** — a tax on larg
 | Recommendations are easy to explain | Tends to over-specialise — keeps recommending the same kind of thing |
 | Works with a single user's history | New users still cold-start (no profile yet) |
 
-### 3 Hybrid Methods — *combining what each does best*
+### Hybrid Methods — *combining what each does best*
 
 Pure CF and pure content-based each have predictable failure modes. Hybrids combine them so that when one approach falters, the other takes over.
 
@@ -200,7 +200,7 @@ def predict(user, item):
 
 Neighbourhood methods like User-CF and Item-CF are intuitive, but **matrix factorization (MF)** is the technique that won the Netflix Prize and underpins much of what came after, including modern two-tower deep models.
 
-### 1 The geometric idea
+### The geometric idea
 
 MF assumes user preferences and item characteristics can be summarised by a small number of **latent factors** — hidden axes that emerge from the data rather than being labelled by hand.
 
@@ -212,7 +212,7 @@ The predicted rating is a **dot product**:
 $$\hat{r}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$
 If user and item vectors point in similar directions, the dot product is large, and the model predicts a high rating.
 
-### 2 The optimisation problem
+### The optimisation problem
 
 We factor $R \approx P Q^\top$ with $P \in \mathbb{R}^{m \times k}$ holding user vectors and $Q \in \mathbb{R}^{n \times k}$ holding item vectors. Train by minimising squared error on observed ratings, with L2 regularisation:
 $$\min_{P, Q} \sum_{(u, i) \in \Omega} (r_{ui} - \mathbf{p}_u^\top \mathbf{q}_i)^2 + \lambda (\|\mathbf{p}_u\|^2 + \|\mathbf{q}_i\|^2)$$
@@ -220,13 +220,13 @@ In production we add bias terms to capture systematic effects:
 $$\hat{r}_{ui} = \mu + b_u + b_i + \mathbf{p}_u^\top \mathbf{q}_i$$
 where $\mu$ is the global mean, $b_u$ is "this user rates everything high", and $b_i$ is "this item is universally loved (or hated)". With those biases pulled out, the latent factors only have to model the *interaction*, which is what we actually want them to learn.
 
-### 3 Two ways to optimise
+### Two ways to optimise
 
 **Stochastic Gradient Descent (SGD).** For each observed rating, compute the error $e_{ui} = r_{ui} - \hat{r}_{ui}$ and step:
 $$\mathbf{p}_u \leftarrow \mathbf{p}_u + \eta (e_{ui} \mathbf{q}_i - \lambda \mathbf{p}_u), \quad \mathbf{q}_i \leftarrow \mathbf{q}_i + \eta (e_{ui} \mathbf{p}_u - \lambda \mathbf{q}_i)$$
 **Alternating Least Squares (ALS).** Fix $Q$, solve a closed-form least-squares problem for each $\mathbf{p}_u$, then swap. ALS parallelises trivially across users (and items), which is why Spark MLlib's recommender ships with it.
 
-### 4 Implementation
+### Implementation
 
 Here is a minimal but complete MF with biases, trained by SGD:
 
@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
 > **Try it.** Sweep `n_factors` from 2 to 50 and watch RMSE: too few and the model under-fits, too many and it over-fits this tiny dataset. The right value on real data is almost always in the 20–200 range.
 
-### 5 Implicit feedback
+### Implicit feedback
 
 In production you rarely have explicit 1-to-5 ratings. You have **implicit feedback**: clicks, watch time, dwell time, purchases. The trouble is that *no interaction* doesn't mean *dislike* — the user may simply never have seen the item.
 
@@ -328,7 +328,7 @@ with $p_{ui} \in \{0, 1\}$ (interacted or not) and $c_{ui} = 1 + \alpha f_{ui}$ 
 
 Building a recommender is half the battle. Knowing whether it is actually good is the other half — and it is genuinely harder than people assume.
 
-### 1 Why a single accuracy number lies
+### Why a single accuracy number lies
 
 If your model has 95% accuracy at predicting ratings, is it good? Maybe — but consider:
 
@@ -338,7 +338,7 @@ If your model has 95% accuracy at predicting ratings, is it good? Maybe — but 
 
 Honest evaluation needs **multiple metrics** measuring different things.
 
-### 2 Classification metrics
+### Classification metrics
 
 For each user $u$, let $R_u$ be the items we recommended (top-$K$) and $T_u$ the items they actually liked.
 $$\text{Precision@}K = \frac{|R_u \cap T_u|}{|R_u|}, \quad \text{Recall@}K = \frac{|R_u \cap T_u|}{|T_u|}$$
@@ -348,7 +348,7 @@ $$\text{Precision@}K = \frac{|R_u \cap T_u|}{|R_u|}, \quad \text{Recall@}K = \fr
 
 These are intuitive but they ignore *order* within the top-$K$ list — a relevant item at position 1 counts the same as at position 10.
 
-### 3 Ranking metrics — position matters
+### Ranking metrics — position matters
 
 In real interfaces, position 1 is worth dramatically more than position 10. Two metrics dominate.
 
@@ -413,7 +413,7 @@ if __name__ == "__main__":
     print(f"NDCG@10      = {ndcg_at_k([5,5,2,5,1,3,4,2,1,1], 10):.3f}")
 ```
 
-### 4 Beyond accuracy: coverage, diversity, serendipity
+### Beyond accuracy: coverage, diversity, serendipity
 
 A recommender that always serves the global top 10 will score well on precision and ruin your product. Three accuracy-orthogonal metrics keep you honest:
 
@@ -423,7 +423,7 @@ A recommender that always serves the global top 10 will score well on precision 
 
 These objectives often *conflict* with raw accuracy. Picking the trade-off is a product decision, not an algorithmic one.
 
-### 5 Online metrics — what really decides
+### Online metrics — what really decides
 
 Offline metrics guide development. Online metrics decide promotions. The ones that matter in production:
 
@@ -623,7 +623,7 @@ The standard toolkit: aggressive caching, ANN libraries (FAISS, ScaNN, HNSW), mo
 
 Reading code teaches things that prose does not. Two reference implementations follow: User-CF and Item-CF, both fully runnable.
 
-### 1 User-Based Collaborative Filtering
+### User-Based Collaborative Filtering
 
 ```python
 import numpy as np
@@ -694,7 +694,7 @@ class UserBasedCF:
         return sorted(scores, key=lambda x: -x[1])[:n]
 ```
 
-### 2 Item-Based Collaborative Filtering
+### Item-Based Collaborative Filtering
 
 The architecture mirrors User-CF but flips the question: instead of "which users are like me?", we ask "which items are like the ones I already liked?" The standard similarity is **adjusted cosine** — cosine after subtracting each *user's* mean, which removes their personal rating scale.
 

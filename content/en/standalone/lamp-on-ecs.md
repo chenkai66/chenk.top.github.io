@@ -105,11 +105,11 @@ client laptop ---internet---> [security group] ---> [OS firewall] ---> [listen s
 
 You have to open all four, or you will diagnose the wrong layer.
 
-## 1 Public IP
+## Public IP
 
 In the ECS console, **Instances -> your instance -> Networking -> Bind EIP** (or assign a public IP at create time). Note the address; treat it like a domain name (`8.134.207.88` is the example used below).
 
-## 2 Security group rules
+## Security group rules
 
 The security group is a stateful packet filter that lives in the cloud, not on the OS. It runs **before** anything reaches your instance, so it overrides whatever your OS firewall says. In the console: **Security Groups -> Configure Rules -> Inbound**.
 
@@ -137,7 +137,7 @@ Compared to opening 3306 on the security group, the tunnel:
 -   only exposes the DB while the tunnel is up,
 -   never appears in shodan scans.
 
-## 3 OS-level firewall
+## OS-level firewall
 
 The cloud security group is necessary but not sufficient — a future operator might open everything on the security group "to debug", and your second line of defence is the OS firewall.
 
@@ -163,7 +163,7 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-all
 ```
 
-## 4 Verifying reachability hop by hop
+## Verifying reachability hop by hop
 
 When something does not respond, isolate the failing hop in this exact order. Doing it out of order is how you spend three hours debugging the wrong thing.
 
@@ -218,7 +218,7 @@ sudo systemctl disable --now nginx
 
 The order matters: install Apache, then MySQL, then PHP last. PHP's package will pull in the Apache module and will run a post-install hook that enables it — this only works if Apache is already there.
 
-## 1 Apache
+## Apache
 
 ```bash
 sudo apt update
@@ -246,7 +246,7 @@ sudo sed -i 's/^LogLevel warn/LogLevel info/' /etc/apache2/apache2.conf
 sudo systemctl reload apache2
 ```
 
-## 2 MySQL
+## MySQL
 
 ```bash
 sudo apt install -y mysql-server
@@ -298,7 +298,7 @@ collation-server       = utf8mb4_unicode_ci
 
 Restart MySQL after editing. The buffer pool is single-handedly responsible for the difference between "every query hits disk" and "the working set lives in RAM".
 
-## 3 PHP
+## PHP
 
 ```bash
 sudo apt install -y php libapache2-mod-php php-mysql \
@@ -333,11 +333,11 @@ sudo rm /var/www/html/info.php
 
 A public LAMP server with default settings will be probed by automated scanners within minutes. Treat security as five concentric rings, each one buying time even when the one outside it fails.
 
-## 1 Security group — the perimeter
+## Security group — the perimeter
 
 Already covered in section 4. The rule of thumb: your security group should make the OS firewall feel redundant, and your OS firewall should make the security group feel redundant. Neither should be your only line.
 
-## 2 OS hardening
+## OS hardening
 
 ```bash
 # Keep the system patched -- enable unattended security upgrades
@@ -354,7 +354,7 @@ sudo apt install -y fail2ban
 sudo systemctl enable --now fail2ban
 ```
 
-## 3 TLS with Let's Encrypt
+## TLS with Let's Encrypt
 
 Once you have a domain pointed at your IP, getting a certificate is two commands:
 
@@ -380,14 +380,14 @@ SSLHonorCipherOrder     on
 Header always set Strict-Transport-Security "max-age=63072000"
 ```
 
-## 4 MySQL hardening
+## MySQL hardening
 
 -   Bind to `127.0.0.1` only (default in modern packages, verify in `/etc/mysql/mysql.conf.d/mysqld.cnf`).
 -   One database user **per application**, with `GRANT` scoped to that database.
 -   No `GRANT ALL ... TO root@'%'` — ever.
 -   Backups encrypted at rest if the data is sensitive.
 
-## 5 Application hygiene
+## Application hygiene
 
 -   `php-fpm` instead of `mod_php` if you can — isolates PHP failures from the Apache process tree.
 -   `expose_php = Off` and `display_errors = Off` in `/etc/php/8.1/apache2/php.ini` for production.
@@ -397,7 +397,7 @@ Header always set Strict-Transport-Security "max-age=63072000"
 
 Discuz! is worth using as a worked example because it exercises every weak point of a fresh LAMP install: file permissions, multiple writable directories, MySQL user creation, PHP extension requirements and a web-based installer that double-checks all of them.
 
-## 1 Download
+## Download
 
 ```bash
 cd /var/www/html
@@ -408,7 +408,7 @@ sudo mv upload/* upload/.htaccess . 2>/dev/null || sudo mv upload/* .
 sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
 ```
 
-## 2 Permissions — the part everyone gets wrong
+## Permissions — the part everyone gets wrong
 
 Apache runs as `www-data` (Ubuntu) or `apache` (CentOS). The single rule: **the user running Apache must own every file that PHP needs to write**, and only those.
 
@@ -426,7 +426,7 @@ done
 
 Note that this is `775`, **not** `777`. If `www-data` already owns the directory, `775` lets the owner (web user) write while keeping `o+r` for the rest. `chmod 777` is folk wisdom, not advice — it lets every user on the system write your application files, and on a shared server that is a privilege-escalation path.
 
-## 3 Database account
+## Database account
 
 ```bash
 sudo mysql -e "
@@ -442,7 +442,7 @@ Two things to notice:
 -   `discuz.*` — the grant is scoped to one database. If Discuz is ever compromised, the attacker cannot read your other applications' tables.
 -   `'discuz_user'@'localhost'` — the host part is part of the identity. The same username from a different host is a different user. Connections via the unix socket count as `'localhost'`; TCP to `127.0.0.1` counts as `'127.0.0.1'`. If `mysql_secure_installation` left `localhost` and `127.0.0.1` distinct, grant both.
 
-## 4 Run the installer
+## Run the installer
 
 Visit `http://YOUR_PUBLIC_IP/install/`. Three things happen:
 
@@ -529,7 +529,7 @@ Resist the urge to `chmod -R 777 /var/www`. It will work, and it will hurt later
 
 ## Production essentials
 
-## 1 Virtual hosts
+## Virtual hosts
 
 Stop dumping everything in `/var/www/html/` the moment you have more than one site. Per-site directories under `/var/www/<sitename>/` and per-site vhost files keep the layout sane.
 
@@ -562,7 +562,7 @@ sudo apache2ctl configtest && sudo systemctl reload apache2
 
 `configtest` before `reload` is the difference between a graceful change and a five-minute outage when you mistype a brace.
 
-## 2 Backups that you actually test
+## Backups that you actually test
 
 A backup you have not restored is not a backup. The minimum:
 
@@ -593,7 +593,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 And once a month, on a separate machine: `gunzip < some_backup.sql.gz | mysql -u root -p test_restore` and verify the row counts. The first time is always educational.
 
-## 3 Observability
+## Observability
 
 The Aliyun Cloud Monitor agent gives you CPU, memory, disk and bandwidth out of the box. The two extra signals worth wiring up yourself:
 

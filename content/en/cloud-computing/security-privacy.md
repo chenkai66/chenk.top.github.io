@@ -79,7 +79,7 @@ Cryptographic attacks against AES or TLS do not appear on this list. The defende
 
 ![IAM Building Blocks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig2_iam_model.png)
 
-### 1 The model
+### The model
 
 Every mature IAM system has the same four primitives:
 
@@ -90,7 +90,7 @@ Every mature IAM system has the same four primitives:
 
 The arrow direction matters: *identity -> group -> role -> policy -> action*. Permissions only flow forward. You can audit any access by walking that chain backward from the resource.
 
-### 2 Six rules that survive contact with reality
+### Six rules that survive contact with reality
 
 1. **Least privilege, then iterate.** Start from zero. Grant the smallest set that lets the task succeed. When something legitimately fails, widen narrowly - never `s3:*`.
 2. **Roles, not long-lived users, for everything that runs code.** EC2 instance profiles, Lambda execution roles, IRSA on EKS, Workload Identity on GKE - all give short-lived, automatically rotated credentials.
@@ -99,7 +99,7 @@ The arrow direction matters: *identity -> group -> role -> policy -> action*. Pe
 5. **Permission boundaries and SCPs.** Give teams the freedom to create their own roles, *bounded* by an organisation-wide policy that blocks the dangerous combinations.
 6. **Log every grant and every use.** CloudTrail, Cloud Audit Logs, Azure Activity Log - centralised, tamper-evident, retained for at least a year.
 
-### 3 A real least-privilege policy
+### A real least-privilege policy
 
 Read-only access to one bucket, restricted to a corporate CIDR, and only when the caller has actually proved MFA in the current session:
 
@@ -125,7 +125,7 @@ Read-only access to one bucket, restricted to a corporate CIDR, and only when th
 
 The `MultiFactorAuthAge` condition is the underused one - it forces the MFA proof to be fresh, not "they MFA'd into the console six hours ago".
 
-### 4 The organisation-wide guardrail
+### The organisation-wide guardrail
 
 A Service Control Policy applied at the organisation level cannot be overridden by any account-level role. Use it for blast-radius decisions:
 
@@ -159,7 +159,7 @@ A Service Control Policy applied at the organisation level cannot be overridden 
 
 This denies any action by the root user, and any action in regions you do not operate in. Both block a large class of mistakes, including data-residency violations and crypto-mining attacks that spin up GPUs in obscure regions.
 
-### 5 IAM mistakes that recur
+### IAM mistakes that recur
 
 - `"Action": "*"` or `"Resource": "*"` in any non-deny statement. Almost always over-broad.
 - `iam:PassRole` with `Resource: "*"` - this is privilege escalation in a single line.
@@ -173,7 +173,7 @@ This denies any action by the root user, and any action in regions you do not op
 
 Data has three states. Each needs a different protection mechanism, and the threats that justify each are different.
 
-### 1 At rest
+### At rest
 
 The threat is someone walking off with the disk, the snapshot, or the backup tape - or an authorised process reading raw bytes you did not intend to expose. The defence is symmetric encryption with keys you actually control.
 
@@ -206,7 +206,7 @@ def encrypt_blob(plaintext: bytes, key_id: str) -> dict:
 
 The envelope pattern is what every "transparent" cloud encryption feature is doing under the hood. Understanding it lets you reason about cost (one KMS call per data key, not per byte) and key rotation (re-wrap data keys, not re-encrypt petabytes).
 
-### 2 In transit
+### In transit
 
 The threat is on-path interception, packet capture from a compromised network device, or a malicious mesh sidecar. The defence is TLS, used correctly.
 
@@ -235,7 +235,7 @@ Three details people miss:
 - **HSTS** with a long `max-age` is the only thing that defeats SSL-strip downgrade attacks.
 - **mTLS between services.** Inside the cluster, service A should refuse to talk to service B unless B presents a certificate from your internal CA. Service meshes (Istio, Linkerd) make this a single line of YAML.
 
-### 3 In use
+### In use
 
 The hardest case. Data is decrypted in RAM to be processed, which means a sufficiently privileged process on the same host can read it. Three mitigations exist today:
 
@@ -247,7 +247,7 @@ For most teams, "in use" protection is achieved indirectly: minimise the surface
 
 ## DDoS Protection and the Web Application Firewall
 
-### 1 Three classes of attack
+### Three classes of attack
 
 | Class | Mechanism | Example | Where it hurts |
 |-------|-----------|---------|----------------|
@@ -257,7 +257,7 @@ For most teams, "in use" protection is achieved indirectly: minimise the surface
 
 A real attacker uses all three together. A real defender uses a layered stack.
 
-### 2 The defence stack
+### The defence stack
 
 - **Edge / network**: AWS Shield Advanced, Cloud Armor, Cloudflare. Absorbs L3/L4 floods before they reach your VPC.
 - **CDN**: caches static assets and presents a much larger surface than your origin, diluting the attack.
@@ -265,7 +265,7 @@ A real attacker uses all three together. A real defender uses a layered stack.
 - **Rate limiting**: per-IP, per-token, per-route. Catches credential-stuffing, scraping, and slow-burn application-layer attacks.
 - **Application**: input validation, parameterised queries, query cost limits. The WAF is *not* your input validator.
 
-### 3 A WAF rule set you can ship today
+### A WAF rule set you can ship today
 
 ```json
 {
@@ -314,7 +314,7 @@ Tune `Limit` carefully. Too tight and you block your own mobile app behind a CGN
 
 ## Security Logging and Detection
 
-### 1 What to log
+### What to log
 
 Five categories, in priority order:
 
@@ -324,7 +324,7 @@ Five categories, in priority order:
 4. **Configuration changes** - IAM, security groups, KMS, infrastructure as code applies.
 5. **Network** - VPC Flow Logs, DNS query logs.
 
-### 2 A CloudTrail event, decoded
+### A CloudTrail event, decoded
 
 ```json
 {
@@ -352,7 +352,7 @@ The fields a SIEM rule actually consumes: `userIdentity.arn`, `mfaAuthenticated`
 - Any `kms:Disable*` or `kms:ScheduleKeyDeletion`.
 - `ec2:RunInstances` of a GPU type from a role that has never done that.
 
-### 3 Pipeline and retention
+### Pipeline and retention
 
 - Centralise into a SIEM (Security Hub, Splunk, Elastic Security, Chronicle).
 - Encrypt log buckets and deny `s3:DeleteObject` to everyone, including the security team's own role - logs you can mutate are not evidence.

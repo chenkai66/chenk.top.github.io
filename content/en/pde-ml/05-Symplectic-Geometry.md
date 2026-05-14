@@ -43,13 +43,13 @@ The fix is not to train harder. The fix is to **build the conservation law into 
 
 ## Hamiltonian mechanics: physics in phase space
 
-### 1 From Newton to Hamilton
+### From Newton to Hamilton
 
 Newton's $F = ma$ is a second-order ODE in position. Hamilton's reformulation introduces the **conjugate momentum** $\mathbf{p} = \partial L / \partial \dot{\mathbf{q}}$ and writes the dynamics as a *first-order* system on the **phase space** $(\mathbf{q}, \mathbf{p}) \in \mathbb{R}^{2n}$:
 $$H(\mathbf{q}, \mathbf{p}) \;=\; \underbrace{\tfrac{1}{2}\mathbf{p}^\top M^{-1} \mathbf{p}}_{\text{kinetic}} \;+\; \underbrace{V(\mathbf{q})}_{\text{potential}}\,. \tag{1}$$
 The price you pay (doubling the dimension) is repaid many times over: Hamiltonian dynamics has a *geometric* structure that Newtonian dynamics hides.
 
-### 2 Hamilton's equations as a single tensor identity
+### Hamilton's equations as a single tensor identity
 
 The equations of motion are
 $$\dot{\mathbf{q}} \;=\; \frac{\partial H}{\partial \mathbf{p}}, \qquad \dot{\mathbf{p}} \;=\; -\frac{\partial H}{\partial \mathbf{q}}. \tag{2}$$
@@ -59,13 +59,13 @@ equation (2) collapses to
 $$\boxed{\;\dot{\mathbf{z}} \;=\; J\,\nabla H(\mathbf{z}).\;} \tag{3}$$
 This single line is the entire content of classical mechanics for conservative systems. Every theorem we prove from here on — energy conservation, Liouville's theorem, Noether's theorem, KAM stability — follows from the algebraic structure of $J$.
 
-### 3 Energy conservation is automatic
+### Energy conservation is automatic
 
 Differentiate $H$ along a trajectory:
 $$\frac{dH}{dt} \;=\; (\nabla H)^\top \dot{\mathbf{z}} \;=\; (\nabla H)^\top J\,(\nabla H) \;=\; 0,$$
 because $J^\top = -J$ implies $\mathbf{v}^\top J \mathbf{v} = 0$ for every $\mathbf{v}$. **Energy conservation is a one-line corollary of antisymmetry.** This is the punchline that HNNs will exploit: write the dynamics as $\dot{\mathbf{z}} = J\,\nabla H_\theta$ and energy conservation comes for free, regardless of how badly $H_\theta$ approximates the truth.
 
-### 4 Worked example: the pendulum
+### Worked example: the pendulum
 
 For the unit-mass pendulum, $H = \tfrac{1}{2}p^2 + (1 - \cos q)$. Hamilton's equations give $\dot q = p,\ \dot p = -\sin q$. Trajectories are *level sets of $H$* (Figure 1, left): closed loops for $H<2$ (libration), open curves for $H>2$ (rotation), and a separatrix at $H=2$. The dynamics never leave a level set — a fact your neural network must respect if it hopes to extrapolate.
 
@@ -73,25 +73,25 @@ For the unit-mass pendulum, $H = \tfrac{1}{2}p^2 + (1 - \cos q)$. Hamilton's equ
 
 ## The symplectic 2-form: geometry of phase space
 
-### 1 What "structure" means
+### What "structure" means
 
 Phase space is not just a vector space; it carries a closed, non-degenerate 2-form
 $$\omega \;=\; \sum_{i=1}^{n} dq_i \wedge dp_i.$$
 Concretely, $\omega$ assigns an **oriented area** to every infinitesimal parallelogram in phase space. The Hamiltonian flow $\phi_t$ is special because it preserves $\omega$:
 $$\phi_t^* \omega \;=\; \omega \qquad\text{(symplecticity).} \tag{4}$$
-### 2 The Jacobian condition
+### The Jacobian condition
 
 A diffeomorphism $\phi : \mathbb{R}^{2n} \to \mathbb{R}^{2n}$ is **symplectic** iff its Jacobian $M = \partial \phi / \partial \mathbf{z}$ satisfies
 $$\boxed{\;M^\top J\,M \;=\; J.\;} \tag{5}$$
 This is the discrete-time analogue of (3). For $n=1$ it reduces to $\det M = 1$ (area preservation in the $(q,p)$ plane). For $n>1$ it is *strictly stronger* than $\det M = 1$; symplecticity also constrains all $2k\times 2k$ minors of $M$ for every $k$.
 
-### 3 Liouville's theorem
+### Liouville's theorem
 
 Taking determinants in (5) gives $\det(M)^2 = 1$, so $|\det M| = 1$ everywhere along the flow. Phase-space volume is preserved (Figure 1, right):
 $$\frac{d}{dt}\operatorname{vol}(\phi_t(U)) = 0 \qquad \text{for every region } U \subset \mathbb{R}^{2n}.$$
 This is the foundation of statistical mechanics: the Gibbs ensemble would not be well-defined without it. It also has a startling consequence — **Poincare's recurrence**: any bounded Hamiltonian trajectory returns arbitrarily close to its starting point infinitely often. Your simulator must reproduce this; an integrator that lets phase volume contract to a point cannot.
 
-### 4 What goes wrong without symplecticity
+### What goes wrong without symplecticity
 
 For *every* explicit Runge-Kutta method, $|\det M_h| = 1 + c h^{p+1} + \mathcal{O}(h^{p+2})$ with $c \neq 0$ in general, where $p$ is the order. Phase volume changes by a tiny amount each step. Multiply by $10^6$ steps and the simulated trajectory has either spiralled inward (energy lost) or outward (energy gained) by a macroscopic amount. Section 3 shows how this looks in pictures.
 
@@ -99,13 +99,13 @@ For *every* explicit Runge-Kutta method, $|\det M_h| = 1 + c h^{p+1} + \mathcal{
 
 ## Symplectic integrators
 
-### 1 Why ordinary integrators drift
+### Why ordinary integrators drift
 
 Apply explicit Euler to (3):
 $$\mathbf{z}_{k+1} = \mathbf{z}_k + h\,J\,\nabla H(\mathbf{z}_k), \qquad M_h = I + h J \nabla^2 H.$$
 Then $M_h^\top J M_h = J + h^2 (\nabla^2 H)^\top J\,J\,J\,(\nabla^2 H) + \cdots = J + \mathcal{O}(h^2)$, which fails (5). Energy drifts as $\sim h\,t$. Even RK4, with its $\mathcal{O}(h^4)$ local error, fails (5) and shows secular drift over long horizons (Figure 4, right).
 
-### 2 Symplectic Euler
+### Symplectic Euler
 
 Update $\mathbf{p}$ using the *new* position (or vice versa):
 $$
@@ -114,7 +114,7 @@ $$
 $$
 For separable Hamiltonians $H(q,p) = T(p) + V(q)$, this is *explicit*: $\mathbf{p}_{k+1} = \mathbf{p}_k - h\,V'(\mathbf{q}_k)$, then $\mathbf{q}_{k+1} = \mathbf{q}_k + h\,T'(\mathbf{p}_{k+1})$. A direct calculation gives $M_h^\top J M_h = J$ exactly.
 
-### 3 Stormer-Verlet (leapfrog)
+### Stormer-Verlet (leapfrog)
 
 The workhorse of molecular dynamics, planetary integration, and Hamiltonian Monte Carlo. Half-kick, full drift, half-kick:
 $$
@@ -129,7 +129,7 @@ Second-order accurate, *symmetric* in time, and symplectic. Figure 4 shows the s
 ![Two-panel comparison: phase-space trajectory of the pendulum integrated by explicit Euler, symplectic Euler, and leapfrog; relative energy error versus time on a symlog axis showing Euler diverging while symplectic methods stay bounded.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig2_integrator_comparison.png)
 *Figure 2. Long-term behaviour of the pendulum integrated for 80 seconds at $h = 0.05$. Left: explicit Euler (red) spirals outward to escape; symplectic Euler (green) and leapfrog (blue) trace nearly the reference orbit. Right: relative energy error $(H-H_0)/H_0$ on a symlog axis. The symplectic methods oscillate inside a tiny envelope; explicit Euler drifts unboundedly. This is not a quantitative point about accuracy — it is a **qualitative point about geometry**.*
 
-### 4 Symplectic integrators in code
+### Symplectic integrators in code
 
 ```python
 def leapfrog(q, p, dVdq, h, n_steps):
@@ -152,11 +152,11 @@ That is the entire symplectic story for separable Hamiltonians. Six lines, no de
 
 ![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_2.png)
 
-### 1 The problem with naive neural ODEs
+### The problem with naive neural ODEs
 
 A neural ODE learns $\dot{\mathbf{z}} = f_\theta(\mathbf{z})$ with no constraint on $f_\theta$. Generically $f_\theta \neq J\,\nabla H$ for any $H$, so the learned dynamics is *not* Hamiltonian, and energy drifts. The drift is invisible at training time (small loss) and catastrophic at inference time (long rollouts diverge).
 
-### 2 The HNN trick (Greydanus, Dzamba, Yosinski, 2019)
+### The HNN trick (Greydanus, Dzamba, Yosinski, 2019)
 
 Don't learn the vector field. Learn the **scalar Hamiltonian** $H_\theta : \mathbb{R}^{2n} \to \mathbb{R}$ and recover the dynamics by autodiff:
 $$\dot{\mathbf{q}} = \frac{\partial H_\theta}{\partial \mathbf{p}}, \qquad \dot{\mathbf{p}} = -\frac{\partial H_\theta}{\partial \mathbf{q}}. \tag{8}$$
@@ -168,13 +168,13 @@ Two consequences are immediate:
 ![Block diagram showing phase-space input (q,p) flowing through an MLP that outputs scalar H_theta, then through autodifferentiation to gradients, finally producing dot-q and dot-p via Hamilton's equations, with a training loss feedback path.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/fig3_hnn_architecture.png)
 *Figure 4. HNN architecture. The network maps the phase-space state $(q,p)$ to a single scalar $H_\theta$. Autodiff produces $\partial_q H_\theta$ and $\partial_p H_\theta$, and Hamilton's equations turn those gradients into the time derivatives $(\dot q, \dot p)$. The training loss compares predicted derivatives to observed ones. Energy conservation does not appear as a soft penalty — it is **baked into the forward pass**.*
 
-### 3 Training loss
+### Training loss
 
 If you have phase-space samples with derivatives $\{(\mathbf{q}_t, \mathbf{p}_t, \dot{\mathbf{q}}_t, \dot{\mathbf{p}}_t)\}$:
 $$\mathcal{L}(\theta) \;=\; \sum_{t} \Big\| \partial_{\mathbf{p}} H_\theta - \dot{\mathbf{q}}_t \Big\|^2 + \Big\| \partial_{\mathbf{q}} H_\theta + \dot{\mathbf{p}}_t \Big\|^2. \tag{9}$$
 If only state samples $(\mathbf{q}_t, \mathbf{p}_t)$ are available, integrate (8) inside the loss with an adjoint-friendly ODE solver (Neural-ODE style) and compare integrated trajectories.
 
-### 4 Reference implementation
+### Reference implementation
 
 ```python
 import torch
@@ -209,7 +209,7 @@ Two design choices matter:
 - **Smooth activations** (`Softplus`, `Tanh`). Hamilton's equations need the *gradient* of $H_\theta$; a `ReLU` would give a piecewise-constant vector field with kinks.
 - **No bias on the last layer is fine.** $H$ is defined up to an additive constant, which has no dynamical effect.
 
-### 5 Pendulum benchmark
+### Pendulum benchmark
 
 Train an HNN and a vanilla MLP on $T = 4$ s of pendulum derivatives. Roll both forward to $T = 25$ s.
 
@@ -218,7 +218,7 @@ Train an HNN and a vanilla MLP on $T = 4$ s of pendulum derivatives. Roll both f
 
 The relative energy error of the HNN is $< 10^{-2}$ throughout; the vanilla MLP grows past $10^{-1}$ within tens of seconds. The MLP is not "wrong" in the supervised loss — it has comparable training error — but it is wrong in the geometric sense that matters at deployment.
 
-### 6 What HNNs do *not* do
+### What HNNs do *not* do
 
 - **They do not solve Hamilton's equations symplectically.** The HNN forward pass produces a vector field; you still need to integrate it. If you integrate it with explicit Euler, you will see energy drift (smaller than the vanilla NN, but still present). For best results, integrate the HNN's vector field with a symplectic integrator. A few works (e.g. `SRNN`, Chen et al. 2020) bake symplectic integration into training too.
 - **They cannot model dissipation or driving.** $\dot z = J\nabla H$ is conservative by definition. For dissipative systems, see Port-Hamiltonian NNs (Desai et al., 2021) or GENERIC-style decompositions.
@@ -227,11 +227,11 @@ The relative energy error of the HNN is $< 10^{-2}$ throughout; the vanilla MLP 
 
 ## Lagrangian Neural Networks (LNN)
 
-### 1 Why a Lagrangian flavour
+### Why a Lagrangian flavour
 
 HNNs need both position **and** momentum. In many practical settings (a video of a robot arm, a ball-and-spring lab demo) you can measure positions and *velocities* but not momenta, and computing momenta requires knowing the mass matrix $M(q)$. Lagrangian Neural Networks (Cranmer et al., 2020) sidestep this by working in the configuration space $(\mathbf{q}, \dot{\mathbf{q}})$.
 
-### 2 The Euler-Lagrange equations as a learnable closure
+### The Euler-Lagrange equations as a learnable closure
 
 Given a learnable scalar $L_\theta(\mathbf{q}, \dot{\mathbf{q}})$, the equations of motion are
 $$\frac{d}{dt}\frac{\partial L_\theta}{\partial \dot{\mathbf{q}}} \;-\; \frac{\partial L_\theta}{\partial \mathbf{q}} \;=\; 0,$$
@@ -239,7 +239,7 @@ which after one application of the chain rule gives
 $$\boxed{\;\ddot{\mathbf{q}} \;=\; \big(\nabla_{\dot q} \nabla_{\dot q} L_\theta\big)^{-1} \!\Big[\nabla_q L_\theta - \big(\nabla_{\dot q} \nabla_{q} L_\theta\big)\dot{\mathbf{q}}\Big].\;} \tag{10}$$
 The right-hand side is computed by a single forward pass plus one Hessian via autodiff, and the matrix inverse is $\mathcal{O}(n^3)$ in the configuration dimension (cheap for $n \lesssim 100$). Because $L_\theta$ is a scalar that defines a Hamiltonian system via the Legendre transform, the resulting dynamics is symplectic.
 
-### 3 LNN vs HNN at a glance
+### LNN vs HNN at a glance
 
 | | HNN | LNN |
 |---|---|---|

@@ -44,7 +44,7 @@ A line through the origin is a 1D subspace of $\mathbb{R}^2$. A plane through th
 
 ![A 2D subspace inside R^3](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/fig1_vector_space_subspace.png)
 
-### 1 Span, independence, basis — in one breath
+### Span, independence, basis — in one breath
 
 Pick a few vectors $v_1, \ldots, v_k$. The set of all linear combinations $\sum \alpha_i v_i$ is their **span** — it is *always* a subspace.
 
@@ -56,7 +56,7 @@ A **basis** is an independent spanning set. Its size is the **dimension** of the
 
 The picture is the whole story: independent vectors enclose a non-degenerate parallelogram (positive area, so they actually span a 2D piece). Dependent vectors lie on a line, and the parallelogram collapses.
 
-### 2 Matrices ARE linear maps
+### Matrices ARE linear maps
 
 Every matrix $A \in \mathbb{R}^{m \times n}$ is the same object as a linear map $T : \mathbb{R}^n \to \mathbb{R}^m$, and conversely. The dictionary is one rule:
 
@@ -64,7 +64,7 @@ Every matrix $A \in \mathbb{R}^{m \times n}$ is the same object as a linear map 
 
 So when you see a weight matrix $W \in \mathbb{R}^{h \times d}$ in a neural net layer, you are looking at a function "take a $d$-dimensional input, output an $h$-dimensional vector"; the columns of $W$ tell you what each input feature contributes.
 
-### 3 Rank and the four fundamental subspaces
+### Rank and the four fundamental subspaces
 
 For an $m \times n$ matrix $A$ of rank $r$:
 
@@ -95,7 +95,7 @@ The **$\ell_p$ family** is the workhorse for regularisation:
 | $\ell_2$ | $\sqrt{\sum_i x_i^2}$ | circle / sphere | Ridge, weight decay |
 | $\ell_\infty$ | $\max_i \lvert x_i\rvert$ | square / cube | adversarial bounds |
 
-### 1 Cauchy-Schwarz and the cosine
+### Cauchy-Schwarz and the cosine
 
 **Theorem (Cauchy-Schwarz).** $|\langle u, v \rangle| \le \|u\| \cdot \|v\|$, with equality iff $u, v$ are parallel.
 
@@ -103,7 +103,7 @@ The **$\ell_p$ family** is the workhorse for regularisation:
 
 Divide both sides by $\|u\|\|v\|$ and you have the **cosine of the angle** $\cos\theta = \langle u, v\rangle / (\|u\|\|v\|)$ — and the proof that it lives in $[-1, 1]$. This is the formula behind cosine similarity in retrieval, attention, contrastive learning — everywhere.
 
-### 2 Matrix norms you actually use
+### Matrix norms you actually use
 
 | Norm | Formula | What it measures |
 |------|---------|------------------|
@@ -117,7 +117,7 @@ The spectral norm is the right thing for Lipschitz analysis (e.g. spectral norma
 
 ## Eigendecomposition — "the directions that survive"
 
-### 1 Definition and intuition
+### Definition and intuition
 
 A nonzero vector $v$ is an **eigenvector** of $A \in \mathbb{R}^{n \times n}$ with **eigenvalue** $\lambda$ when
 $$A v = \lambda v. \tag{2}$$
@@ -130,7 +130,7 @@ Eigenvalues solve the characteristic polynomial $\det(A - \lambda I) = 0$. Two f
 - $\sum_i \lambda_i = \operatorname{tr}(A)$
 - $\prod_i \lambda_i = \det(A)$
 
-### 2 The spectral theorem (the only one you'll use daily)
+### The spectral theorem (the only one you'll use daily)
 
 **Theorem.** If $A$ is real and symmetric ($A = A^\top$), then:
 
@@ -144,7 +144,7 @@ Equivalently, in **rank-1 form**:
 $$A = \sum_{i=1}^n \lambda_i\, q_i q_i^\top. \tag{3}$$
 Read this carefully — $A$ is *literally* a weighted sum of projections onto orthogonal directions. This is the ML lens on every symmetric matrix: covariance, Gram, Hessian, graph Laplacian.
 
-### 3 Positive (semi-)definite matrices
+### Positive (semi-)definite matrices
 
 A symmetric $A$ is **positive definite** ($A \succ 0$) when $x^\top A x > 0$ for all $x \neq 0$. Equivalently, *all eigenvalues are positive*. **Positive semi-definite** ($A \succeq 0$) replaces $> 0$ with $\ge 0$.
 
@@ -165,7 +165,7 @@ Where PD matrices show up:
 
 ![ML Math Derivations (2): Linear Algebra and Matrix Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/illustration_2.png)
 
-### 1 The theorem
+### The theorem
 
 **Theorem (SVD).** Every $A \in \mathbb{R}^{m \times n}$ of rank $r$ factors as
 $$A = U \Sigma V^\top, \tag{4}$$
@@ -173,7 +173,7 @@ with $U \in \mathbb{R}^{m \times m}$, $V \in \mathbb{R}^{n \times n}$ orthogonal
 
 **Why SVD always exists.** $A^\top A$ is symmetric PSD, so the spectral theorem gives an orthonormal eigenbasis $V$ with eigenvalues $\sigma_i^2$. Define $u_i = A v_i / \sigma_i$ for $\sigma_i > 0$ and complete to an orthonormal basis $U$. Then $A v_i = \sigma_i u_i$, i.e. $A V = U \Sigma$, i.e. $A = U \Sigma V^\top$. $\square$
 
-### 2 Geometric picture: rotate, scale, rotate
+### Geometric picture: rotate, scale, rotate
 
 ![SVD geometric pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/fig4_svd_three_steps.png)
 
@@ -185,7 +185,7 @@ Every linear map decomposes into three motions:
 
 This is the cleanest mental model in linear algebra: *any* matrix is a rotation, then an axis-aligned stretch, then another rotation.
 
-### 3 What goes wrong without rank: visualised
+### What goes wrong without rank: visualised
 
 When some $\sigma_i = 0$, that direction in the input is annihilated. The output ellipse collapses to a lower-dimensional shape:
 
@@ -193,7 +193,7 @@ When some $\sigma_i = 0$, that direction in the input is annihilated. The output
 
 A rank-1 matrix $A = u v^\top$ sends *all of $\mathbb{R}^n$* onto the single line $\text{span}(u)$. Everything orthogonal to $v$ is in the null space and gets sent to $0$. This is exactly what makes low-rank approximations *compress* data.
 
-### 4 Eckart-Young: best low-rank approximation
+### Eckart-Young: best low-rank approximation
 
 **Theorem (Eckart-Young).** The best rank-$k$ approximation to $A$ in both Frobenius and spectral norm is
 $$A_k = \sum_{i=1}^k \sigma_i u_i v_i^\top, \tag{5}$$
@@ -201,13 +201,13 @@ with errors $\|A - A_k\|_F = \sqrt{\sum_{i>k} \sigma_i^2}$ and $\|A - A_k\|_2 = 
 
 This is the **mathematical engine of PCA**. Center your data matrix $X$, take its SVD; the top-$k$ right singular vectors are the principal components, and the singular values squared (over $n$) are the explained variances. It is also the engine of every low-rank technique you have heard of: image compression, latent semantic analysis, recommender systems, LoRA.
 
-### 5 Pseudo-inverse and condition number
+### Pseudo-inverse and condition number
 
 The **Moore-Penrose pseudo-inverse** is computed via SVD: $A^+ = V \Sigma^+ U^\top$ where $\Sigma^+$ inverts the non-zero singular values. Then $x^\star = A^+ b$ is the minimum-norm least-squares solution to $Ax = b$ — exactly what `numpy.linalg.lstsq` returns.
 
 The **condition number** $\kappa(A) = \sigma_1 / \sigma_r$ measures how much $A$ amplifies relative perturbations. Roughly, if $\kappa(A) \approx 10^k$ you lose $k$ digits of precision when solving $Ax = b$. Always log it before trusting a least-squares fit.
 
-### 6 Eigendecomposition vs SVD
+### Eigendecomposition vs SVD
 
 | | Eigendecomposition | SVD |
 |---|---|---|
@@ -227,7 +227,7 @@ This is where most ML readers want a clean reference. We use **numerator layout*
 
 ![Matrix calculus shape rules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/02-Linear-Algebra-and-Matrix-Theory/fig6_matrix_calculus_shapes.png)
 
-### 1 The four formulas you reach for daily
+### The four formulas you reach for daily
 
 | # | $f$ | $\nabla f$ | Comment |
 |---|-----|-----------|---------|
@@ -240,7 +240,7 @@ This is where most ML readers want a clean reference. We use **numerator layout*
 
 *Proof of (3).* Apply the chain rule: $\nabla_x \tfrac12 \|Ax - b\|^2 = A^\top (A x - b)$. Multiplying by 2 absorbs the $\tfrac12$ that ML papers conventionally drop. The optimum solves the **normal equations** $A^\top A x = A^\top b$.
 
-### 2 Chain rule and backprop
+### Chain rule and backprop
 
 **Theorem (chain rule).** For $L : \mathbb{R}^n \to \mathbb{R}$ written as $L(x) = f(g(x))$ with $g : \mathbb{R}^n \to \mathbb{R}^m$:
 $$\nabla_x L = J_g^\top \cdot \nabla_g f, \tag{6}$$
@@ -250,7 +250,7 @@ This *is* backpropagation. For one neural-net layer $z = Wx + b$, $a = \sigma(z)
 $$\delta := \frac{\partial L}{\partial a} \odot \sigma'(z), \quad \frac{\partial L}{\partial W} = \delta\, x^\top, \quad \frac{\partial L}{\partial b} = \delta. \tag{7}$$
 That's the entire algorithm — everything PyTorch's autograd engine does is run (6) on a computation graph.
 
-### 3 Sanity check by finite differences
+### Sanity check by finite differences
 
 Whenever you derive a gradient, you owe yourself a numerical check:
 $$\hat g_i = \frac{f(x + \varepsilon e_i) - f(x - \varepsilon e_i)}{2 \varepsilon}.$$
@@ -260,17 +260,17 @@ Match against the analytic $\nabla f$ to relative error $\approx 10^{-6}$ at $\v
 
 ## Numerical decompositions — which one and when
 
-### 1 QR for least squares
+### QR for least squares
 
 Any full-column-rank $A$ factors as $A = QR$ with $Q$ orthonormal columns and $R$ upper triangular. To solve $\min_x \|Ax - b\|$, compute $Q^\top b$ and back-substitute on $R x = Q^\top b$.
 
 **Why prefer QR over normal equations.** Normal equations form $A^\top A$, whose condition number is $\kappa(A)^2$. If $\kappa(A) = 10^4$ that's $10^8$ — you've squared your error budget. QR works directly on $A$, so it's $\kappa(A)$.
 
-### 2 Cholesky for PD systems
+### Cholesky for PD systems
 
 For PD $A$, the **Cholesky** factorisation $A = L L^\top$ exists with $L$ lower triangular and positive diagonal. Cost $O(n^3 / 3)$, half of LU. Solving $Ax = b$ is then two triangular solves. This is the workhorse for Gaussian-process inference, kernel methods, and any quadratic program with PD Hessian.
 
-### 3 Decision table
+### Decision table
 
 | Situation | Use |
 |-----------|-----|

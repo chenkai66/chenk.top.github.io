@@ -44,7 +44,7 @@ translationKey: "pde-ml-7"
 
 ## 热方程与扩散过程
 
-### 1 Fick 定律与扩散方程
+### Fick 定律与扩散方程
 
 热传导、墨水在水中扩散、粒子在浓度梯度下的运动——它们都遵循同一个方程。**Fick 第一定律**指出，通量与浓度梯度成正比（方向相反）：
 $$
@@ -56,7 +56,7 @@ $$
 $$
 拉普拉斯算子衡量了 $u$ 的局部“曲率”：在凹陷处（热点），$\nabla^2 u < 0$，$u$ 下降；在凸起处（冷点），$u$ 上升。最终系统趋于均匀状态。
 
-### 2 高斯核：基本解
+### 高斯核：基本解
 
 对于点源初始条件 $u(\mathbf{x},0) = \delta(\mathbf{x})$，方程 (1) 的解是**热核**：
 $$
@@ -68,7 +68,7 @@ u(\mathbf{x}, t) = (G_t * u_0)(\mathbf{x}).
 $$
 **扩散 = 用不断扩大的高斯核进行模糊**。这正是扩散模型前向加噪过程的核心思想。
 
-### 3 傅里叶视角：扩散作为低通滤波器
+### 傅里叶视角：扩散作为低通滤波器
 
 在傅里叶空间中，$\widehat{\nabla^2 u}(\mathbf{k}) = -\|\mathbf{k}\|^2\,\hat u(\mathbf{k})$ 将 (1) 转化为每个频率模式的常微分方程：
 $$
@@ -85,7 +85,7 @@ $$
 
 热方程描述的是密度的**确定性**演化。但若想刻画单个样本路径——这正是扩散模型实际生成的对象——我们需要引入随机微分方程（SDE）。
 
-### 1 布朗运动与 Itô SDE
+### 布朗运动与 Itô SDE
 
 **布朗运动** $\mathbf{B}_t$ 满足 $\mathbf{B}_0 = 0$，具有独立的高斯增量 $\mathbf{B}_{t+\Delta t} - \mathbf{B}_t \sim \mathcal{N}(\mathbf{0}, \Delta t\,\mathbf{I})$，其路径连续但处处不可微。一般的 Itô SDE 形式为：
 $$
@@ -102,7 +102,7 @@ $$
 
 DDPM 是 VP-SDE 的离散化；而 Song & Ermon（2019）提出的原始 NCSN 则对应 VE 的离散化。
 
-### 2 Fokker–Planck 方程
+### Fokker–Planck 方程
 
 若随机过程 $\mathbf{X}_t$ 满足 (3)，其概率密度 $p(\mathbf{x}, t)$ 满足**Fokker–Planck 方程**（即 Kolmogorov 前向方程）：
 $$
@@ -116,7 +116,7 @@ $$
 
 **一致性验证**：在 (4) 中令 $f \equiv 0$ 且 $g^2/2 = D$，即得热方程 $\partial_t p = D\,\nabla^2 p$。可见 Fokker–Planck 方程正是带漂移项的热方程。
 
-### 3 Kolmogorov 后向方程
+### Kolmogorov 后向方程
 
 对于终端收益 $g(\mathbf{X}_T)$，条件期望 $u(s, \mathbf{x}) = \mathbb{E}[g(\mathbf{X}_T)\,|\,\mathbf{X}_s = \mathbf{x}]$ 满足**后向方程**：
 $$
@@ -130,7 +130,7 @@ $$
 
 ![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_2.png)
 
-### 1 Score 函数
+### Score 函数
 
 密度 $p$ 的 **score** 定义为：
 $$
@@ -147,7 +147,7 @@ $$
 ![双峰高斯混合的 score 场：箭头沿密度梯度向上，指向两个模式。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/fig3_score_field.png)
 *双峰高斯混合分布的 score 场：箭头沿密度梯度“上坡”，远离低密度区域，指向两个峰值。*
 
-### 2 Score Matching
+### Score Matching
 
 由于真实密度 $p$ 未知，无法直接最小化 $\mathbb{E}_p\,\|\mathbf{s}_\theta - \nabla\log p\|^2$。目前有三种实用的替代方案：
 
@@ -172,7 +172,7 @@ Vincent 证明：(6) 的最优解与匹配加噪分布 $p_\sigma = p * \mathcal{
 ![左：DSM 损失单调下降并趋于平稳。右：学到的 score 在高密度区与真值吻合；中央低密度谷因被噪声平滑而看起来"被磨平"。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/fig5_score_matching_loss.png)
 *左图：DSM 损失单调下降并趋于平稳；右图：学习到的 score 在高密度区域与真实 $\nabla\log p$ 高度吻合，而在低密度谷底（中心）因受噪声水平 $\sigma$ 平滑而显得“柔和”。*
 
-### 3 Langevin 动力学
+### Langevin 动力学
 
 一旦获得 $\mathbf{s}_\theta$，即可通过 Langevin MCMC 进行采样：
 $$
@@ -180,7 +180,7 @@ $$
 $$
 当 $\epsilon \to 0$ 且迭代步数 $k \to \infty$ 时，链收敛至目标分布 $p$。其中确定性项负责“利用”（沿 score 上坡），噪声项负责“探索”（跳出局部极大值）。
 
-### 4 Anderson 的反向时间 SDE
+### Anderson 的反向时间 SDE
 
 以下是将 score matching 转化为生成模型的基石性结果。**Anderson（1982）** 证明：SDE (3) 的时间反演本身仍是一个 SDE：
 $$
@@ -195,7 +195,7 @@ $$
 
 ## 从连续理论到 DDPM 与 DDIM
 
-### 1 DDPM：前向过程的闭式解
+### DDPM：前向过程的闭式解
 
 选定噪声调度 $\{\beta_t\}_{t=1}^T$，定义 $\alpha_t = 1 - \beta_t$ 和 $\bar\alpha_t = \prod_{s=1}^t \alpha_s$。DDPM 的前向过程是一个离散时间马尔可夫链：
 $$
@@ -207,7 +207,7 @@ $$
 $$
 这正是 VP-SDE 的 Euler–Maruyama 离散化形式。当 $T$ 足够大时，$\bar\alpha_T \to 0$，故 $\mathbf{x}_T \approx \mathcal{N}(\mathbf{0}, \mathbf{I})$。
 
-### 2 DDPM 损失 = 加权 DSM
+### DDPM 损失 = 加权 DSM
 
 训练一个网络 $\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)$ 来预测所添加的噪声：
 $$
@@ -219,7 +219,7 @@ $$
 $$
 因此网络实际上在学习一个缩放后的 score：$\mathbf{s}_\theta(\mathbf{x}_t, t) = -\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)/\sqrt{1 - \bar\alpha_t}$。(10) 正是 (6) 在权重 $w(t) = 1$ 下的特例。
 
-### 3 DDIM：概率流 ODE
+### DDIM：概率流 ODE
 
 关于 SDE (3) 有一个优美事实：存在一个**确定性** ODE，其在任意时刻 $t$ 的边际分布与原 SDE 完全相同：
 $$
@@ -230,7 +230,7 @@ $$
 ![DDPM（左）每步注入新噪声，DDIM（右）在同一 score 下走确定性流；ODE 用更少步数抵达模式。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-扩散模型与Score-Matching/fig4_ddpm_vs_ddim.png)
 *DDPM（左）在每一步反向过程中注入新噪声；DDIM（右）则在同一 learned score 下沿确定性轨迹流动，仅用极少步数即可抵达数据模式。*
 
-### 4 统一视角
+### 统一视角
 
 | 方法 | 过程 | 典型步数 | 是否确定性 | 优势 |
 |------|------|---------|------------|------|
@@ -239,7 +239,7 @@ $$
 | DPM-Solver | 高阶 ODE | ~10–20 | 是 | 更快、保真度不变 |
 | EDM（Karras et al.） | 连续、精细预条件 | ~30 | 可调 | 当前 SOTA 质量 |
 
-### 5 PDE → 扩散模型全景图
+### PDE → 扩散模型全景图
 
 将上述内容整合：
 

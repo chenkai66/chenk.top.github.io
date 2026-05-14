@@ -89,7 +89,7 @@ alembic current
 
 ### 迁移最佳实践
 
-#### 1. 向后兼容性（Backward Compatibility）
+#### 向后兼容性（Backward Compatibility）
 
 **永远不要破坏正在运行的应用程序。** 迁移必须同时兼容旧代码和新代码：
 
@@ -123,7 +123,7 @@ UPDATE users SET phone = 'unknown' WHERE phone IS NULL;
 ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
 ```
 
-#### 2. 在线 DDL（Online DDL）
+#### 在线 DDL（Online DDL）
 
 某些 DDL 操作会锁住整张表，阻塞读写——对于一亿行的表，这可能意味着数分钟不可用。
 
@@ -179,7 +179,7 @@ gh-ost \
 # 5. 原子重命名：users → _users_old，_users_gho → users
 ```
 
-#### 3. 零停机重命名策略
+#### 零停机重命名策略
 
 重命名字段极具挑战：旧代码引用旧名，新代码引用新名：
 

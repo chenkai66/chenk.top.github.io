@@ -55,7 +55,7 @@ This chapter moves from the concrete to the abstract:
 
 ## The Geometric Picture: Vectors as Arrows
 
-### 1 From Walking Directions to a Vector
+### From Walking Directions to a Vector
 
 Stand at the centre of a park (call it the origin). A friend says: *"Walk 4 steps east, then 3 steps north."*
 
@@ -71,7 +71,7 @@ So a vector packages two pieces of geometric information — *length* and *direc
 
 ![A 2D vector as a directed arrow with length, angle, and components](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig1_vector_as_arrow.png)
 
-### 2 Translation Invariance: A Vector Has No Home
+### Translation Invariance: A Vector Has No Home
 
 Here is the first idea that surprises beginners: **a vector does not care where it starts**. Whether you draw "4 east, 3 north" from the park centre or from the northeast corner, it is the *same* vector. Direction and length are the only invariants.
 
@@ -81,7 +81,7 @@ This is why, when drawing vectors, we can anchor them at the origin — a conven
 
 ![Position vector vs free vector: same arrow, three locations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig4_position_vs_free.png)
 
-### 3 Vector Addition: Three Pictures of the Same Thing
+### Vector Addition: Three Pictures of the Same Thing
 
 Given two vectors$\vec{a}$and$\vec{b}$, the sum$\vec{a} + \vec{b}$can be visualised three ways. They are all equivalent.
 
@@ -95,7 +95,7 @@ Use the geometric pictures to *understand*; use components to *compute*. They ar
 
 ![Vector addition: head-to-tail and parallelogram both yield the same sum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/01-the-essence-of-vectors/fig2_vector_addition.png)
 
-### 4 Scalar Multiplication: Stretch, Shrink, Reverse
+### Scalar Multiplication: Stretch, Shrink, Reverse
 
 Multiplying a vector$\vec{v}$by a number (a *scalar*)$c$rescales it along its own line. The behaviour splits into four regimes:
 
@@ -119,7 +119,7 @@ print(-1.0 * v)   # [-3.  -4. ]   reversed
 
 A driving analogy makes this stick. If$\vec{v}$is your current velocity, then$2\vec{v}$is doubling your speed,$0.5\vec{v}$is cruising at half-speed, and$-\vec{v}$is a U-turn at the same speed.
 
-### 5 Vector Subtraction: "From Here to There"
+### Vector Subtraction: "From Here to There"
 
 If$\vec{a}$and$\vec{b}$are position vectors of two points$A$and$B$(arrows from the origin), then
 $$\vec{b} - \vec{a} \;=\; \text{the vector that takes you from } A \text{ to } B.$$
@@ -129,13 +129,13 @@ Game engines use this constantly: the displacement from a player to a target, th
 
 ## The Numerical Picture: Vectors as Data
 
-### 1 Beyond 2D and 3D
+### Beyond 2D and 3D
 
 Drawing arrows works fine in two or three dimensions. The real power of the vector concept is that the *algebra* keeps working in **any number of dimensions**:
 $$\vec{v} = \begin{pmatrix} v_1 \\ v_2 \\ \vdots \\ v_n \end{pmatrix} \in \mathbb{R}^n.$$
 You cannot picture a 100-dimensional arrow, but every operation — addition, scaling, dot products, norms — carries over unchanged. This is the bridge from "geometry you can see" to "geometry you can only compute."
 
-### 2 The Same Object, Three Viewpoints
+### The Same Object, Three Viewpoints
 
 Here is the same five numbers,$\{25.3,\,65.0,\,1013,\,15.2,\,45\}$, viewed from three different traditions. They are all the same vector.
 
@@ -183,7 +183,7 @@ A famous NLP example takes this even further: words become 300-dimensional vecto
 
 The inner product (or *dot product* in$\mathbb{R}^n$) is the deepest single operation in this chapter. It hides a small miracle: two definitions that look completely unrelated turn out to give the same number.
 
-### 1 Two Definitions, One Operation
+### Two Definitions, One Operation
 
 **Algebraic:**
 $$\vec{a} \cdot \vec{b} \;=\; \sum_{i=1}^{n} a_i b_i \;=\; a_1 b_1 + a_2 b_2 + \cdots + a_n b_n.$$
@@ -193,7 +193,7 @@ where$\theta$is the angle between$\vec{a}$and$\vec{b}$.
 
 The algebraic form tells you *how to compute*. The geometric form tells you *what it means*: the dot product measures how much two vectors **agree in direction**. Same direction$\Rightarrow$large positive number. Perpendicular$\Rightarrow$exactly zero. Opposite directions$\Rightarrow$large negative number.
 
-### 2 Projection: The Best Approximation
+### Projection: The Best Approximation
 
 A picture turns the dot product from formula into geometry. Drop a perpendicular from the tip of$\vec{a}$onto the line through$\vec{b}$. The shadow you create is the **projection** of$\vec{a}$onto$\vec{b}$:
 $$\operatorname{proj}_{\vec{b}}\vec{a} \;=\; \frac{\vec{a}\cdot\vec{b}}{\vec{b}\cdot\vec{b}}\,\vec{b}.$$
@@ -210,7 +210,7 @@ proj = (np.dot(a, b) / np.dot(b, b)) * b
 print(proj)   # [3. 0.]
 ```
 
-### 3 Orthogonality: Independence, Made Geometric
+### Orthogonality: Independence, Made Geometric
 
 When$\vec{a} \cdot \vec{b} = 0$, the two vectors are **orthogonal** (perpendicular), written$\vec{a} \perp \vec{b}$. Geometrically that means a 90-degree angle. *Why is that worth a name?*
 
@@ -218,7 +218,7 @@ When$\vec{a} \cdot \vec{b} = 0$, the two vectors are **orthogonal** (perpendicul
 - **Statistics:** uncorrelated random variables correspond to orthogonal vectors (covariance$= 0$).
 - **Computation:** an orthogonal basis decouples a problem into independent one-dimensional pieces. Almost every "this is fast" trick in numerical linear algebra rides on orthogonality.
 
-### 4 The Cauchy--Schwarz Inequality
+### The Cauchy--Schwarz Inequality
 
 For any two vectors,
 $$|\vec{a}\cdot\vec{b}| \;\leq\; \|\vec{a}\|\,\|\vec{b}\|,$$
@@ -230,7 +230,7 @@ with equality only when one is a scalar multiple of the other. In words: *the do
 
 The familiar "length"$\sqrt{x_1^2+\cdots+x_n^2}$is one valid notion of size for a vector. It is the **$L^2$norm**. But it is not the only one, and which one you choose changes the geometry of your problem.
 
-### 1 The Three Most Common Norms
+### The Three Most Common Norms
 
 | Norm | Formula | Intuition |
 |------|---------|-----------|
@@ -244,7 +244,7 @@ Why three? Because different problems care about different things:
 -$L^1$has corners. That non-smoothness is a *feature*: it pushes optimisers towards solutions where many coordinates are exactly zero. This is the secret behind LASSO regression and compressed sensing.
 -$L^\infty$is what you reach for when you care about the *worst* component, not the *average* one — robust control, error bounds, max-error guarantees.
 
-### 2 Unit Balls: The Geometric Fingerprint of a Norm
+### Unit Balls: The Geometric Fingerprint of a Norm
 
 A clean way to *see* a norm is to draw its **unit ball** — the set of all vectors of length 1 in that norm. Three norms, three very different shapes:
 
@@ -260,7 +260,7 @@ A reassuring theorem — **norm equivalence** — says that in finite dimensions
 
 So far, "vector" has meant "an arrow" or "a column of numbers". But mathematicians noticed something striking: many wildly different objects — arrows, polynomials, continuous functions, random variables, quantum states — *all obey the same rules*. So they distilled those rules into a definition.
 
-### 1 The Definition
+### The Definition
 
 A **vector space**$V$over a field$\mathbb{F}$(usually$\mathbb{R}$or$\mathbb{C}$) is a set with two operations,
 
@@ -271,7 +271,7 @@ satisfying ten axioms (commutativity and associativity of addition, existence of
 
 > **Anything you can add together and scale, while obeying the usual algebraic rules, is a vector.**
 
-### 2 Surprising Vector Spaces
+### Surprising Vector Spaces
 
 **Continuous functions.** All continuous functions on$[0,1]$form a vector space: add them pointwise,$(f+g)(x) = f(x) + g(x)$; scale them pointwise,$(cf)(x) = c\,f(x)$; the zero vector is the constant function$0$. This space is *infinite-dimensional* — you can think of a function as a vector with one coordinate for every$x \in [0,1]$.
 
@@ -281,7 +281,7 @@ satisfying ten axioms (commutativity and associativity of addition, existence of
 
 **Quantum states.** A quantum state is a unit vector in a complex Hilbert space. The famous "superposition" of states is just vector addition wearing a tuxedo.
 
-### 3 Why the Abstraction Pays Off
+### Why the Abstraction Pays Off
 
 Once you prove a theorem at the level of axioms, it applies *everywhere* the axioms hold:
 
@@ -295,7 +295,7 @@ This is the deepest pay-off of linear algebra: *learn the structure once, apply 
 
 ## Vectors in the Wild
 
-### 1 Game Physics in Five Lines
+### Game Physics in Five Lines
 
 ```python
 import numpy as np
@@ -311,7 +311,7 @@ position = position + velocity * dt
 
 That is Newtonian mechanics, discretised. Every physics engine you have ever played in a game is built on these two lines, repeated 60 times per second.
 
-### 2 Colour Mixing Is Vector Addition
+### Colour Mixing Is Vector Addition
 
 ```python
 import numpy as np
@@ -325,7 +325,7 @@ dark_red = red // 2              # half-bright -> [127,   0,   0]
 
 RGB colours live in$\mathbb{R}^3$. Mixing them is literally vector arithmetic.
 
-### 3 GPS, Reduced to Vector Equations
+### GPS, Reduced to Vector Equations
 
 GPS positioning is **trilateration**: your receiver measures its distance$d_i$to each of several satellites at known positions$\vec{s}_i$, giving equations
 $$\|\vec{x} - \vec{s}_i\| \;=\; d_i.$$
@@ -363,7 +363,7 @@ A vector is not an arrow, and it is not a column of numbers. **It is a pattern**
 
 ---
 
-### 5 Numerical Stability: When Vector Math Breaks in Code
+### Numerical Stability: When Vector Math Breaks in Code
 
 I want to show one thing that quietly bites people: the textbook formula $\cos\theta = \vec{u}\cdot\vec{v} / (\|\vec{u}\|\,\|\vec{v}\|)$ is *not* a safe way to compute the angle between two vectors. Try it on a pair of nearly-parallel unit vectors:
 
@@ -388,7 +388,7 @@ $$\theta = \operatorname{atan2}\bigl(\|\vec{u}\times\vec{v}\|,\ \vec{u}\cdot\vec
 
 The takeaway: the algebra you learned in this chapter is exact over $\mathbb{R}$, but every line of code lives in $\mathbb{F}_{64}$, a finite set of about $2^{64}$ rational numbers. Cancellation, overflow, and rounding are not edge cases — they decide whether your model trains.
 
-### 6 What numpy Actually Does for `np.dot`
+### What numpy Actually Does for `np.dot`
 
 When you write `np.dot(u, v)` for two 1-D arrays, numpy does *not* run a Python loop. It dispatches to a BLAS Level 1 routine — typically `cblas_ddot` from OpenBLAS, MKL, or Apple Accelerate — written in hand-tuned C or assembly. For a vector of length $n$, the routine:
 

@@ -94,7 +94,7 @@ alembic current
 
 ### Migration Best Practices
 
-#### 1. Backward Compatibility
+#### Backward Compatibility
 
 Never break the current running application. This means migrations must be compatible with both the old and new code:
 
@@ -128,7 +128,7 @@ UPDATE users SET phone = 'unknown' WHERE phone IS NULL;
 ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
 ```
 
-#### 2. Online DDL
+#### Online DDL
 
 Some DDL operations lock the entire table, blocking reads and writes for the duration. On a 100 million row table, this can mean minutes of downtime.
 
@@ -184,7 +184,7 @@ gh-ost \
 # 5. Atomically renames: users → _users_old, _users_gho → users
 ```
 
-#### 3. Zero-Downtime Rename Strategy
+#### Zero-Downtime Rename Strategy
 
 Renaming a column is tricky — old code references the old name, new code references the new name:
 

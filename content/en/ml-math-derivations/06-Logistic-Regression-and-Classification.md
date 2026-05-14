@@ -41,7 +41,7 @@ translationKey: "ml-math-derivations-6"
 
 ## From Linear Models to Probabilistic Classification
 
-### 1 The Problem with Raw Linear Output
+### The Problem with Raw Linear Output
 
 Linear regression gives us $\hat y = \mathbf{w}^\top \mathbf{x}$, which is unbounded. For classification, two things go wrong:
 
@@ -50,7 +50,7 @@ Linear regression gives us $\hat y = \mathbf{w}^\top \mathbf{x}$, which is unbou
 
 The fix is a **link function** that squashes the linear score into $[0, 1]$. The canonical choice is the sigmoid.
 
-### 2 The Sigmoid Function
+### The Sigmoid Function
 
 ![Sigmoid function with tangent at z=0 and its derivative](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig1_sigmoid.png)
 
@@ -95,7 +95,7 @@ ana = sig * (1 - sig)
 print(f"derivative err: {np.max(np.abs(num - ana)):.2e}")
 ```
 
-### 3 Logistic Regression Model
+### Logistic Regression Model
 
 ![Decision boundary on 2D classification data with probability contours](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig2_decision_boundary.png)
 
@@ -115,7 +115,7 @@ When $y = 1$ this returns $\hat y$; when $y = 0$ it returns $1 - \hat y$. The fi
 
 ## Maximum Likelihood and the Cross-Entropy Loss
 
-### 1 Building the Likelihood
+### Building the Likelihood
 
 For an i.i.d. training set $\{(\mathbf{x}_i, y_i)\}_{i=1}^N$, the joint likelihood is
 $$
@@ -124,7 +124,7 @@ L(\mathbf{w}) = \prod_{i=1}^N P(y_i \mid \mathbf{x}_i; \mathbf{w})
               $$
 We want the $\mathbf{w}$ that makes the observed labels most probable.
 
-### 2 From Log-Likelihood to Cross-Entropy
+### From Log-Likelihood to Cross-Entropy
 
 Take the log (monotone, same optimum):
 $$\ell(\mathbf{w}) = \sum_{i=1}^N \bigl[\, y_i \ln \hat y_i + (1 - y_i)\ln(1 - \hat y_i) \,\bigr].$$
@@ -132,7 +132,7 @@ Maximising $\ell$ is the same as minimising the **negative** average log-likelih
 $$\boxed{\;\mathcal{L}(\mathbf{w}) = -\frac{1}{N} \sum_{i=1}^N \bigl[\, y_i \ln \hat y_i + (1 - y_i)\ln(1 - \hat y_i) \,\bigr].\;}$$
 **Information-theoretic view.** Cross-entropy $H(p, q) = -\sum_x p(x) \ln q(x)$ measures the extra bits needed to encode samples from $p$ using a code optimised for $q$. Here $p$ is the hard one-hot label and $q$ is the sigmoid output, so minimising $\mathcal{L}$ is literally pulling our predicted distribution toward the data distribution.
 
-### 3 Why Not MSE?
+### Why Not MSE?
 
 ![Cross-entropy vs MSE: loss curve and gradient magnitude when y=1](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig3_loss_landscape.png)
 
@@ -156,7 +156,7 @@ grad_ce  = np.abs(y_hat - 1)
 
 ## Gradient Derivation and Optimisation
 
-### 1 The Key Cancellation
+### The Key Cancellation
 
 For one sample, $\mathcal{L} = -\bigl[y \ln \hat y + (1 - y)\ln(1 - \hat y)\bigr]$ with $\hat y = \sigma(z)$, $z = \mathbf{w}^\top\mathbf{x}$. Chain rule:
 $$
@@ -176,13 +176,13 @@ $$
 $$
 The sigmoid derivative cancels with the $1/\hat y$ and $1/(1-\hat y)$ poles in $\partial \mathcal{L}/\partial \hat y$, leaving the famously clean result
 $$\boxed{\;\frac{\partial \mathcal{L}}{\partial \mathbf{w}} = (\hat y - y)\,\mathbf{x}.\;}$$
-### 2 Full Batch Gradient
+### Full Batch Gradient
 
 Averaging over $N$ samples and stacking:
 $$\nabla_{\mathbf{w}} \mathcal{L} = \frac{1}{N}\sum_{i=1}^N (\hat y_i - y_i)\,\mathbf{x}_i = \frac{1}{N}\,\mathbf{X}^\top(\hat{\mathbf{y}} - \mathbf{y}),$$
 where $\mathbf{X} \in \mathbb{R}^{N \times d}$ is the data matrix.
 
-### 3 Hessian and Convexity
+### Hessian and Convexity
 
 Differentiating $(\hat y_i - y_i)\mathbf{x}_i$ once more:
 $$\nabla^2 \mathcal{L} = \frac{1}{N}\sum_{i=1}^N \hat y_i(1 - \hat y_i)\,\mathbf{x}_i \mathbf{x}_i^\top = \frac{1}{N}\,\mathbf{X}^\top \mathbf{S}\, \mathbf{X},$$
@@ -211,7 +211,7 @@ for j in range(d):
 print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
 ```
 
-### 4 Optimisation Variants
+### Optimisation Variants
 
 - **Batch GD:** $\mathbf{w} \leftarrow \mathbf{w} - \eta \cdot \tfrac{1}{N}\mathbf{X}^\top(\hat{\mathbf{y}} - \mathbf{y})$. Stable, slow per epoch.
 - **SGD:** $\mathbf{w} \leftarrow \mathbf{w} - \eta(\hat y_i - y_i)\mathbf{x}_i$ for one random $i$. Noisy, scales to massive data.
@@ -224,7 +224,7 @@ print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
 
 ![ML Math Derivations (6): Logistic Regression and Classification — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/illustration_2.png)
 
-### 1 From Binary to $K$ Classes
+### From Binary to $K$ Classes
 
 For $K \geq 3$ we learn one weight vector $\mathbf{w}_k$ per class. The class-$k$ score is $z_k = \mathbf{w}_k^\top \mathbf{x}$, and the softmax turns scores into a probability distribution:
 $$P(y = k \mid \mathbf{x}) = \frac{e^{z_k}}{\sum_{j=1}^K e^{z_j}}.$$
@@ -234,7 +234,7 @@ Softmax is a *soft argmax*: it exponentiates each score (so they are positive) a
 
 Geometrically, every softmax output is a point in the **probability simplex** — the triangle above for $K = 3$. Vertices are deterministic predictions; the centre is maximal uncertainty $(1/3, 1/3, 1/3)$; example logits are projected to show how concentrated mass corresponds to clearer decisions.
 
-### 2 Cross-Entropy with One-Hot Labels
+### Cross-Entropy with One-Hot Labels
 
 If the true class is $c$, encode it as a one-hot vector $\mathbf{t}$ with $t_k = \mathbb{1}[k = c]$. The loss is
 $$
@@ -243,7 +243,7 @@ $$
 $$
 This is the multi-class **negative log-likelihood**.
 
-### 3 The Softmax Gradient — Same Form Again
+### The Softmax Gradient — Same Form Again
 
 Differentiating $\mathcal{L}$ w.r.t. $z_k$:
 
@@ -280,19 +280,19 @@ print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
 
 ## Regularisation
 
-### 1 L2 (Ridge)
+### L2 (Ridge)
 $$\mathcal{L}_{\text{reg}} = \mathcal{L} + \frac{\lambda}{2}\|\mathbf{w}\|_2^2.$$
 The gradient picks up a $\lambda \mathbf{w}$ term, and the SGD update becomes a *weight-decay* update:
 $$\mathbf{w} \leftarrow (1 - \eta\lambda)\mathbf{w} - \frac{\eta}{N}\mathbf{X}^\top(\hat{\mathbf{y}} - \mathbf{y}).$$
 **Bayesian view.** L2 is MAP estimation under a Gaussian prior $\mathbf{w} \sim \mathcal{N}(\mathbf{0}, \tfrac{1}{\lambda}\mathbf{I})$.
 
-### 2 L1 (Lasso)
+### L1 (Lasso)
 $$\mathcal{L}_{\text{reg}} = \mathcal{L} + \lambda \|\mathbf{w}\|_1.$$
 L1 is non-differentiable at zero; using the subgradient $\partial_{w_j}\|\mathbf{w}\|_1 = \operatorname{sign}(w_j)$ gives the proximal / soft-thresholding update. The penalty's sharp corner at the origin pushes many coefficients **exactly** to zero, producing automatic feature selection.
 
 **Bayesian view.** L1 corresponds to a Laplace prior $p(w_j) \propto e^{-\lambda |w_j|}$, whose peak at zero is the source of sparsity.
 
-### 3 Elastic Net
+### Elastic Net
 $$\mathcal{L}_{\text{reg}} = \mathcal{L} + \lambda_1 \|\mathbf{w}\|_1 + \frac{\lambda_2}{2}\|\mathbf{w}\|_2^2.$$
 Combines L1's sparsity with L2's stability when features are correlated.
 
@@ -300,7 +300,7 @@ Combines L1's sparsity with L2's stability when features are correlated.
 
 ## Decision Boundary and Geometry
 
-### 1 Binary Boundary
+### Binary Boundary
 
 Logistic regression predicts class 1 when $\hat y \geq 0.5$, i.e. when $\mathbf{w}^\top \mathbf{x} \geq 0$. So the decision boundary is the hyperplane
 $$\mathbf{w}^\top \mathbf{x} + b = 0.$$
@@ -315,7 +315,7 @@ The figure makes three things explicit:
 2. The weight vector $\mathbf{w}$ is the **normal** to that hyperplane.
 3. The norm $\|\mathbf{w}\|$ controls the *steepness* of the probability transition: a larger $\|\mathbf{w}\|$ collapses the $\hat y \approx 0.27 \to 0.73$ band into a thin strip.
 
-### 2 Multi-Class Regions
+### Multi-Class Regions
 
 For softmax regression, the decision rule "argmax over $z_k$" partitions feature space into $K$ convex regions. The boundary between class $j$ and class $k$ is the hyperplane
 $$(\mathbf{w}_j - \mathbf{w}_k)^\top \mathbf{x} + (b_j - b_k) = 0,$$
@@ -325,7 +325,7 @@ so all pairwise boundaries are still linear.
 
 ## Model Evaluation
 
-### 1 Confusion Matrix and Headline Metrics
+### Confusion Matrix and Headline Metrics
 
 For binary classification:
 
@@ -342,13 +342,13 @@ F_1 = \frac{2 \cdot \text{Prec} \cdot \text{Rec}}{\text{Prec} + \text{Rec}}.
 $$
 **Read precision as** "of those I flagged, how many were real?" and **recall as** "of the real ones, how many did I catch?" Optimising one without the other is almost always wrong.
 
-### 2 Class Imbalance: Why Accuracy Lies
+### Class Imbalance: Why Accuracy Lies
 
 ![Confusion matrices for an imbalanced problem: naive vs trained model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/fig6_confusion_imbalance.png)
 
 When the positive class is rare (95% negative, 5% positive), a *trivial* "always negative" classifier scores 95% accuracy and is completely useless: it never finds a single positive case. The trained model in the right panel sacrifices a little accuracy to actually solve the problem — its $F_1$ is dramatically higher even though its accuracy is lower. Lesson: **always pair accuracy with precision, recall, and $F_1$ when classes are imbalanced.**
 
-### 3 ROC, PR, and AUC
+### ROC, PR, and AUC
 
 Sweeping the threshold $\tau$ ("predict positive when $\hat y \geq \tau$") traces out two curves:
 
@@ -365,7 +365,7 @@ When positives are very rare, the **PR curve and average precision (AP)** are us
 
 ## Implementation
 
-### 1 Numerically Stable Sigmoid
+### Numerically Stable Sigmoid
 
 When $z$ is very negative, $e^{-z}$ overflows. Use a branched form:
 
@@ -378,7 +378,7 @@ def stable_sigmoid(z):
     )
 ```
 
-### 2 Numerically Stable Softmax
+### Numerically Stable Softmax
 
 Direct $e^{z_k}$ overflows for large logits. Use the shift-invariance $\operatorname{softmax}(z) = \operatorname{softmax}(z - \max_j z_j)$:
 
@@ -389,7 +389,7 @@ def stable_softmax(z):
     return e / np.sum(e, axis=-1, keepdims=True)
 ```
 
-### 3 Complete Binary Classifier
+### Complete Binary Classifier
 
 ```python
 import numpy as np
@@ -425,7 +425,7 @@ class LogisticRegression:
         return (self.predict_proba(X) >= threshold).astype(int)
 ```
 
-### 4 Complete Multi-Class Classifier
+### Complete Multi-Class Classifier
 
 ```python
 class SoftmaxRegression:

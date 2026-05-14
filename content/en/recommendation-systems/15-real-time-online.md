@@ -98,7 +98,7 @@ Two practical lessons:
 
 ![Streaming reference architecture: clients write to Kafka topics, Flink performs stateful aggregation and online learning, output is fanned out to feature store, model registry, and metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig5_streaming_arch.png)
 
-### 1 Kafka — the durable transport
+### Kafka — the durable transport
 
 Kafka's role is narrow but essential: a durable, partitioned, and replayable log. Three properties matter:
 
@@ -136,7 +136,7 @@ def emit_click(user_id: str, item_id: str, position: int) -> None:
     )
 ```
 
-### 2 Flink — the stateful compute
+### Flink — the stateful compute
 
 Where Kafka is a transport, Flink is a *stateful* stream processor. The killer feature is **exactly-once processing under failure**, achieved by Chandy-Lamport-style distributed snapshots: every checkpoint interval (default 60 s), Flink atomically captures the state of every operator and writes it to durable storage (S3). On failure, it rewinds Kafka offsets to the last checkpoint and replays — the externally visible effect is as if no failure occurred.
 
@@ -203,7 +203,7 @@ The watermark is the part most people get wrong. It says "I will not see any eve
 
 ![Online learning vs batch retraining — left: convergence on a stationary task; right: behavior under concept drift](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig3_online_vs_batch.png)
 
-### 1 The core update
+### The core update
 
 For a logistic ranker with parameters $\theta$ and a single example $(x_t, y_t)$:
 $$\theta_{t+1} = \theta_t - \eta_t \, \nabla_\theta \mathcal{L}(\sigma(\theta_t^\top x_t), y_t)$$
@@ -212,13 +212,13 @@ That is plain SGD. It works, but on web-scale CTR data — millions of sparse fe
 1. **No per-feature learning rate**: a feature that fires 1 in 10 000 needs bigger steps than one that fires every example.
 2. **No sparsity**: weights drift away from zero on noise. A model with 10⁹ parameters that never zeros any of them is unservable.
 
-### 2 AdaGrad — adaptive per-feature step
+### AdaGrad — adaptive per-feature step
 
 AdaGrad fixes the first problem by accumulating squared gradients per feature:
 $$\theta_{t+1, i} = \theta_{t, i} - \frac{\eta}{\sqrt{G_{t, i} + \varepsilon}} g_{t, i}, \quad G_{t, i} = \sum_{s=1}^{t} g_{s, i}^2$$
 A rare feature has small $G$, so it gets a big step the few times it does fire. A common feature has large $G$ and is updated cautiously.
 
-### 3 FTRL-Proximal — the production workhorse
+### FTRL-Proximal — the production workhorse
 
 FTRL-Proximal (McMahan et al., *Ad Click Prediction: a View from the Trenches*, KDD 2013 — the paper Google published describing the algorithm running their ad system) combines AdaGrad's per-feature scaling with $L_1$ regularization that produces *exact* zeros, not just small weights. The per-coordinate update:
 $$
@@ -277,7 +277,7 @@ class FTRLProximal:
         return p
 ```
 
-### 4 Online vs batch — the picture
+### Online vs batch — the picture
 
 The left panel of Figure 3 shows the stationary case: online learning converges smoothly while batch retraining produces a staircase — a fresh snapshot every 200 events, plateaus in between. On a stable task the gap closes in expectation, but online wins on integral over time.
 
@@ -300,19 +300,19 @@ This shapes the architecture: do not pay the streaming cost for features that do
 
 ## Bandits — the principled exploration story
 
-### 1 The problem in one sentence
+### The problem in one sentence
 
 You have $K$ items to choose from. Each item has an unknown click probability $\mu_i$. Each round you pick one, observe its click, and update. Over $T$ rounds, **regret** is what you lost relative to always picking the best:
 $$R_T = T \mu^* - \mathbb{E}\!\left[\sum_{t=1}^T \mu_{a_t}\right]$$
 A "good" algorithm has *sublinear regret*: $R_T = o(T)$, i.e. average per-round loss → 0.
 
-### 2 UCB1 — be optimistic in the face of uncertainty
+### UCB1 — be optimistic in the face of uncertainty
 
 UCB1 (Auer et al., 2002) picks the arm with the highest *upper confidence bound*:
 $$a_t = \arg\max_i \left( \hat\mu_i + \sqrt{\frac{2 \ln t}{n_i}} \right)$$
 where $n_i$ is how many times arm $i$ has been pulled. The bonus shrinks as $n_i$ grows — explore until you're sure, then exploit. UCB1 achieves $O(\log T)$ regret, which is provably optimal up to constants for stationary bandits (Lai-Robbins lower bound).
 
-### 3 Thompson Sampling — the Bayesian way
+### Thompson Sampling — the Bayesian way
 
 Maintain a posterior over each arm's success rate. For Bernoulli rewards, the conjugate prior is Beta:
 $$\theta_i \sim \text{Beta}(\alpha_i, \beta_i), \quad \text{update: } (\alpha_i, \beta_i) \leftarrow (\alpha_i + r, \beta_i + 1 - r)$$
@@ -338,7 +338,7 @@ class ThompsonSampling:
             self.beta[arm] += 1
 ```
 
-### 4 LinUCB — context that actually matters
+### LinUCB — context that actually matters
 
 Plain bandits learn a global ranking. The whole point of recommendation is *personalization*. LinUCB (Li et al., *A Contextual-Bandit Approach to Personalized News Article Recommendation*, WWW 2010 — the algorithm Yahoo used for front-page personalization) assumes the expected reward is linear in a context vector $x_t$:
 $$\mathbb{E}[r_a \mid x_t] = x_t^\top \theta_a$$
@@ -379,7 +379,7 @@ In practice you almost never use a "pure" LinUCB. The serving system runs a deep
 
 Online learning adapts to drift only if the learner *can* adapt — if the learning rate has decayed to nothing, it can't. Production systems explicitly detect drift and react.
 
-### 1 Three classical detectors
+### Three classical detectors
 
 - **Page-Hinkley test**: cumulative sum of deviations from the mean; alarm when CUSUM exceeds a threshold. Good for monotonic drift.
 - **DDM (Drift Detection Method, Gama et al. 2004)**: tracks the binomial error rate $p_t$ and its standard deviation. Warning at $p_t + s_t \ge p_{\min} + 2 s_{\min}$, alarm at $\ge p_{\min} + 3 s_{\min}$.
@@ -387,7 +387,7 @@ Online learning adapts to drift only if the learner *can* adapt — if the learn
 
 The simple z-score variant in Figure 6 is what you actually deploy for a v1: keep a reference window of "known-good" performance, compute the z-score of recent rolling-mean CTR vs that reference, alarm at $|z| > 3$.
 
-### 2 Reacting to drift
+### Reacting to drift
 
 Detection without a response is just an alert. Practical reactions, in order of cost:
 

@@ -54,7 +54,7 @@ The single biggest capability jump after instruction-tuning was teaching models 
 
 ![ReAct agent architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/fig1_agent_architecture.png)
 
-### 1 Function Calling — the protocol
+### Function Calling — the protocol
 
 Function Calling, popularised by OpenAI in mid-2023 and now standard across Claude, Gemini, Llama-3 and Qwen, is a typed protocol layered on top of chat completion. The application declares tools as JSON Schema; the model is trained to either reply directly or emit a structured tool call. Five stages, no magic:
 
@@ -116,7 +116,7 @@ def chat(user_msg: str) -> str:
 
 Three details people get wrong. First, **let the model decide** whether to call (`tool_choice="auto"`); forcing a call when none is needed produces silly arguments. Second, **always sandbox execution** — the model can hallucinate a `delete_all_users()` call if your schema lets it. Third, the tool description is a *prompt*: rewrite it until the model picks the right tool reliably.
 
-### 2 ReAct — reasoning + acting in a loop
+### ReAct — reasoning + acting in a loop
 
 Function Calling is a single-shot interface. **ReAct** (Yao et al., ICLR 2023, [arXiv:2210.03629](https://arxiv.org/abs/2210.03629)) generalises it into an iterative `Thought -> Action -> Observation` loop, so the model can decompose, branch, and re-plan. This is the architectural backbone of LangChain, AutoGPT, OpenAI's Assistants, Claude's tool-use mode and most production agents in 2025.
 
@@ -197,11 +197,11 @@ Code is the application area where LLMs have most clearly crossed from "interest
 
 ![Code generation pipeline and HumanEval pass@1](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/fig3_code_generation.png)
 
-### 1 The pipeline
+### The pipeline
 
 A modern code-LLM pipeline has five stages: an **intent** in natural language, an enriched **context** (open files, repository symbols, test stubs, retrieved API docs), a **decoder** trained on code, an **executor** that compiles and runs unit tests, and a **self-repair** step that feeds the failure back to the model. The repair loop is what turns 65% pass@1 into 85% pass@5. AlphaCode, Reflexion and Code Llama's instruction variants all use a version of it.
 
-### 2 Models and benchmarks
+### Models and benchmarks
 
 The standard benchmark is **HumanEval** (Chen et al., [arXiv:2107.03374](https://arxiv.org/abs/2107.03374), 2021): 164 hand-written Python problems graded by execution. *pass@k* is the probability that at least one of $k$ samples passes all unit tests; $\mathrm{pass}@1$ is the strict, single-shot measure. Two notes of caution: HumanEval is short, single-file and Python-only, so it overestimates real-world performance; and it has been heavily contaminated, so 2024+ scores should be cross-checked against MBPP, LiveCodeBench, SWE-bench Verified or CRUXEval.
 
@@ -266,7 +266,7 @@ The cost. Reasoning models are slow and token-hungry — a single AIME problem c
 
 A model that is helpful but unsafe is unshippable. A model that is safe but unhelpful is worse than no model. Alignment is the engineering discipline that tries to land in the narrow strip in between.
 
-### 1 The hallucination taxonomy
+### The hallucination taxonomy
 
 Hallucinations are not a single failure mode. The useful split (Huang et al., *Survey of Hallucination*, 2023) is:
 
@@ -277,7 +277,7 @@ Hallucinations are not a single failure mode. The useful split (Huang et al., *S
 
 Mitigations stack: **RAG** for factuality (Part 10), **constrained decoding** and JSON schemas for structural faithfulness, **self-consistency sampling** plus majority vote for arithmetic, **process supervision** and reasoning models for logical errors, **citation-required prompting** for verifiability, and **abstention training** ("say I don't know") as a last line of defence.
 
-### 2 Alignment — RLHF, DPO, Constitutional AI
+### Alignment — RLHF, DPO, Constitutional AI
 
 The dominant alignment recipe is still a three-stage pipeline: SFT on demonstrations, train a reward model on human preference pairs, then RL (PPO) against that reward. **DPO** (Rafailov et al., 2023) collapses the last two stages into a single supervised loss and is now the default in many open recipes because it is much simpler and cheaper. **Constitutional AI** (Bai et al., Anthropic, 2022) replaces most human labels with model-generated critiques against a written list of principles, making large-scale safety tuning tractable.
 
@@ -322,7 +322,7 @@ This is where the pretty notebook meets reality. The reference stack we will ske
 
 ![Production deployment stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/fig6_production_deploy.png)
 
-### 1 The serving layer
+### The serving layer
 
 Forget `transformers.generate` for serving. It is fine for prototypes and disastrous in production: no continuous batching, no PagedAttention, naive KV-cache management. Use **vLLM** (the open-source default), **TensorRT-LLM** (NVIDIA, fastest on H100), or **TGI** (Hugging Face, simplest ops). All three implement continuous batching, paged KV-cache, prefix caching and speculative decoding.
 
@@ -342,7 +342,7 @@ out = llm.generate(["Explain LoRA in two sentences."], params)
 print(out[0].outputs[0].text)
 ```
 
-### 2 The API layer
+### The API layer
 
 FastAPI is the path of least resistance: async, pydantic validation, OpenAPI for free, and it streams Server-Sent Events without ceremony. The non-obvious bit is **request hygiene** — strict input limits, request IDs, structured logging, and a fallback path when the GPU pool is saturated.
 
@@ -392,7 +392,7 @@ async def chat(req: ChatRequest, request: Request):
 async def health(): return {"status": "ok"}
 ```
 
-### 3 Containerisation
+### Containerisation
 
 ```dockerfile
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
@@ -416,7 +416,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--worker
 
 For Kubernetes, schedule the Pod onto a GPU node with `nvidia.com/gpu: 1`, set tight CPU/memory requests, configure a `livenessProbe` on `/healthz` and a `readinessProbe` that only flips to *ready* after the model is loaded (the most common deployment bug is taking traffic during the 30-90 s warm-up).
 
-### 4 Observability and SLOs
+### Observability and SLOs
 
 You cannot fix what you do not measure. The minimum viable instrumentation:
 

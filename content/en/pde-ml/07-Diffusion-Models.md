@@ -44,7 +44,7 @@ Since 2020, **diffusion models** have become the dominant paradigm in generative
 
 ## Heat Equation and Diffusion Processes
 
-### 1 Fick's Law and the Diffusion Equation
+### Fick's Law and the Diffusion Equation
 
 Heat flow, ink diffusing in water, particles diffusing under a concentration gradient — they all obey the same equation. **Fick's first law** says the flux is proportional to (minus) the concentration gradient,
 $$\mathbf{J} = -D\,\nabla u,$$
@@ -52,7 +52,7 @@ where $D > 0$ is the diffusion coefficient. Combined with mass conservation $\pa
 $$\frac{\partial u}{\partial t} = D\,\nabla^2 u. \tag{1}$$
 The Laplacian measures local "curvature" of $u$: where $u$ is concave (a hot spot), $\nabla^2 u < 0$ and $u$ decreases; where $u$ is convex (a cold spot), $u$ increases. The end state is uniform.
 
-### 2 Gaussian Kernels: Fundamental Solutions
+### Gaussian Kernels: Fundamental Solutions
 
 For the point-source initial condition $u(\mathbf{x},0) = \delta(\mathbf{x})$, the solution to (1) is the **heat kernel**
 $$G(\mathbf{x}, t) = \frac{1}{(4\pi D t)^{d/2}}\exp\!\left(-\frac{\|\mathbf{x}\|^2}{4Dt}\right). \tag{2}$$
@@ -60,7 +60,7 @@ This is a Gaussian with variance $\sigma_t^2 = 2Dt$ growing linearly in time. Fo
 $$u(\mathbf{x}, t) = (G_t * u_0)(\mathbf{x}).$$
 Diffusion = "blur with a growing Gaussian". Conceptually, that is exactly what the forward noising in a diffusion model does.
 
-### 3 Fourier Perspective: Diffusion as a Low-Pass Filter
+### Fourier Perspective: Diffusion as a Low-Pass Filter
 
 In Fourier space, $\widehat{\nabla^2 u}(\mathbf{k}) = -\|\mathbf{k}\|^2\,\hat u(\mathbf{k})$ turns (1) into an ODE for each mode:
 $$\hat u(\mathbf{k}, t) = \hat u_0(\mathbf{k})\,e^{-D\|\mathbf{k}\|^2 t}.$$
@@ -75,7 +75,7 @@ High-frequency content (large $\|\mathbf{k}\|$) decays exponentially faster than
 
 The heat equation describes a **deterministic** evolution of densities. If we want to think of individual sample paths — which is what diffusion models actually generate — we need stochastic differential equations.
 
-### 1 Brownian Motion and Itô SDEs
+### Brownian Motion and Itô SDEs
 
 **Brownian motion** $\mathbf{B}_t$ satisfies $\mathbf{B}_0 = 0$, has independent Gaussian increments $\mathbf{B}_{t+\Delta t} - \mathbf{B}_t \sim \mathcal{N}(\mathbf{0}, \Delta t\,\mathbf{I})$, and continuous but nowhere-differentiable paths. A general Itô SDE has the form
 $$d\mathbf{X}_t = f(\mathbf{X}_t, t)\,dt + g(t)\,d\mathbf{B}_t, \tag{3}$$
@@ -90,7 +90,7 @@ The two schedules dominating the diffusion-model literature are:
 
 DDPM is a discretisation of VP; the original NCSN of Song & Ermon (2019) is a discretisation of VE.
 
-### 2 The Fokker–Planck Equation
+### The Fokker–Planck Equation
 
 If $\mathbf{X}_t$ obeys (3) and has density $p(\mathbf{x}, t)$, then $p$ satisfies the **Fokker–Planck equation** (Kolmogorov forward equation):
 $$\boxed{\;\frac{\partial p}{\partial t} \;=\; -\nabla\!\cdot\!\bigl(f\,p\bigr) \;+\; \tfrac{1}{2}\,g^2\,\nabla^2 p\;.\;} \tag{4}$$
@@ -100,7 +100,7 @@ Taking expectations kills the martingale term, and writing $\mathbb{E}[\varphi(\
 
 **Sanity check.** Setting $f \equiv 0$ and $g^2/2 = D$ in (4) recovers the heat equation $\partial_t p = D\,\nabla^2 p$. The Fokker–Planck equation is exactly the heat equation plus a drift term.
 
-### 3 The Kolmogorov Backward Equation
+### The Kolmogorov Backward Equation
 
 For a terminal payoff $g(\mathbf{X}_T)$, the conditional expectation $u(s, \mathbf{x}) = \mathbb{E}[g(\mathbf{X}_T)\,|\,\mathbf{X}_s = \mathbf{x}]$ satisfies the **backward** equation
 $$\partial_s u + f\!\cdot\!\nabla u + \tfrac{1}{2}g^2 \nabla^2 u = 0,$$
@@ -112,7 +112,7 @@ with terminal condition $u(T, \mathbf{x}) = g(\mathbf{x})$. The forward equation
 
 ![PDE and ML (7): Diffusion Models and Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/illustration_2.png)
 
-### 1 The Score Function
+### The Score Function
 
 The **score** of a density $p$ is
 $$\mathbf{s}(\mathbf{x}) \;:=\; \nabla_{\mathbf{x}}\,\log p(\mathbf{x}). \tag{5}$$
@@ -127,7 +127,7 @@ Geometrically, the score is a vector field that always points *toward* high-prob
 ![Score of a 2-mode Gaussian mixture: the field points uphill, away from low-density regions and toward the modes.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig3_score_field.png)
 *Score of a 2-mode Gaussian mixture: the field points uphill, away from low-density regions and toward the modes.*
 
-### 2 Score Matching
+### Score Matching
 
 Because $p$ is unknown we cannot directly minimise $\mathbb{E}_p\,\|\mathbf{s}_\theta - \nabla\log p\|^2$. There are three workable surrogates.
 
@@ -146,13 +146,13 @@ Vincent showed (6) has the same minimiser as matching the *true* score of the no
 ![Left: DSM loss decreases monotonically and plateaus. Right: the learned score matches the true $\nabla\log p$ in high-density regions; near low-density valleys (centre) it is intentionally smoothed by the noise level $\sigma$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig5_score_matching_loss.png)
 *Left: DSM loss decreases monotonically and plateaus. Right: the learned score matches the true $\nabla\log p$ in high-density regions; near low-density valleys (centre) it is intentionally smoothed by the noise level $\sigma$.*
 
-### 3 Langevin Dynamics
+### Langevin Dynamics
 
 Once we have $\mathbf{s}_\theta$ we can sample with Langevin MCMC:
 $$\mathbf{x}_{k+1} = \mathbf{x}_k + \tfrac{\epsilon}{2}\,\mathbf{s}_\theta(\mathbf{x}_k) + \sqrt{\epsilon}\,\boldsymbol\eta_k,\qquad \boldsymbol\eta_k \sim \mathcal{N}(\mathbf{0}, \mathbf{I}). \tag{7}$$
 As $\epsilon \to 0$ and $k \to \infty$ the chain converges to $p$. The deterministic term is *exploitation* (climb the score), the noise term is *exploration* (escape local maxima).
 
-### 4 Anderson's Reverse-Time SDE
+### Anderson's Reverse-Time SDE
 
 Here is the keystone result that turns score matching into a generative model. **Anderson (1982)** showed that the time-reversal of (3) is itself an SDE:
 $$\boxed{\;d\mathbf{X}_t = \bigl[\,f(\mathbf{X}_t, t) - g(t)^2\,\nabla\log p_t(\mathbf{X}_t)\,\bigr]\,dt + g(t)\,d\bar{\mathbf{B}}_t,\;} \tag{8}$$
@@ -165,7 +165,7 @@ where $\bar{\mathbf{B}}_t$ is a Brownian motion in reverse time and $p_t$ is the
 
 ## From Continuous Theory to DDPM and DDIM
 
-### 1 DDPM: Forward Process in Closed Form
+### DDPM: Forward Process in Closed Form
 
 Pick a noise schedule $\{\beta_t\}_{t=1}^T$. Define $\alpha_t = 1 - \beta_t$ and $\bar\alpha_t = \prod_{s=1}^t \alpha_s$. The DDPM forward process is the discrete-time Markov chain
 $$q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}\bigl(\mathbf{x}_t;\,\sqrt{\alpha_t}\,\mathbf{x}_{t-1},\,\beta_t\mathbf{I}\bigr),$$
@@ -173,7 +173,7 @@ which has the convenient closed form
 $$\mathbf{x}_t = \sqrt{\bar\alpha_t}\,\mathbf{x}_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\epsilon,\qquad \boldsymbol\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{I}). \tag{9}$$
 This is exactly the Euler–Maruyama discretisation of the VP-SDE, so $\bar\alpha_T \to 0$ and $\mathbf{x}_T \approx \mathcal{N}(\mathbf{0}, \mathbf{I})$.
 
-### 2 The DDPM Loss = Weighted DSM
+### The DDPM Loss = Weighted DSM
 
 Train a network $\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)$ to predict the noise that was added:
 $$\mathcal{L}_{\text{DDPM}}(\theta) = \mathbb{E}_{t,\,\mathbf{x}_0,\,\boldsymbol\epsilon}\Bigl[\,\bigl\|\boldsymbol\epsilon_\theta(\mathbf{x}_t, t) - \boldsymbol\epsilon\bigr\|^2\Bigr]. \tag{10}$$
@@ -181,7 +181,7 @@ Why is this score matching in disguise? Because (9) implies
 $$\nabla_{\mathbf{x}_t} \log q(\mathbf{x}_t \mid \mathbf{x}_0) = -\frac{\boldsymbol\epsilon}{\sqrt{1 - \bar\alpha_t}},$$
 so the network is learning a scaled score: $\mathbf{s}_\theta(\mathbf{x}_t, t) = -\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)/\sqrt{1 - \bar\alpha_t}$. (10) is precisely (6) with weights $w(t) = 1$.
 
-### 3 DDIM: The Probability-Flow ODE
+### DDIM: The Probability-Flow ODE
 
 A beautiful fact about (3): there is a **deterministic** ODE with the same one-time marginals at every $t$,
 $$\boxed{\;\frac{d\mathbf{x}}{dt} = f(\mathbf{x}, t) - \tfrac{1}{2}\,g(t)^2\,\nabla\log p_t(\mathbf{x}).\;} \tag{11}$$
@@ -190,7 +190,7 @@ This is the **probability-flow ODE**. Marginals match because both (8) and (11) 
 ![DDPM (left) injects fresh noise at each reverse step; DDIM (right) follows a deterministic flow under the same learned score, reaching the modes in far fewer steps.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig4_ddpm_vs_ddim.png)
 *DDPM (left) injects fresh noise at each reverse step; DDIM (right) follows a deterministic flow under the same learned score, reaching the modes in far fewer steps.*
 
-### 4 A Unified View
+### A Unified View
 
 | Method | Process | Typical steps | Deterministic? | Strength |
 |--------|---------|---------------|----------------|----------|
@@ -199,7 +199,7 @@ This is the **probability-flow ODE**. Marginals match because both (8) and (11) 
 | DPM-Solver | Higher-order ODE | ~10–20 | Yes | Even faster, same fidelity |
 | EDM (Karras et al.) | Continuous, refined preconditioning | ~30 | Tunable | SOTA quality |
 
-### 5 The PDE → Diffusion Model Map
+### The PDE → Diffusion Model Map
 
 Putting it all together:
 

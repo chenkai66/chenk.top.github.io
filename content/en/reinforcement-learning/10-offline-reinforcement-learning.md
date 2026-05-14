@@ -48,13 +48,13 @@ The answer is "yes, but only if we are very careful." The reason for this caveat
 
 In **online** RL the policy and the data distribution are coupled. As soon as the policy starts overestimating some action, the next rollout puts it under the microscope and the Bellman update corrects it. In **offline** RL the dataset is *frozen*. There is no second chance: any error the model makes about an unseen action will sit in the Q-table forever, and the `argmax` operator will happily exploit it.
 
-### 1 Distributional Shift
+### Distributional Shift
 
 Let $\pi_\beta$ be the behavior policy that produced the dataset $\mathcal{D}=\{(s_i,a_i,r_i,s_i')\}_{i=1}^N$, and let $\pi_\theta$ be the policy we are learning. The state-action visitation distributions are usually different,
 $$d_{\pi_\theta}(s,a)\neq d_{\pi_\beta}(s,a).$$
 This becomes a problem the moment $\pi_\theta$ wants to take an action $a$ for which $\pi_\beta(a\mid s)\approx 0$. The Q-network has *never* seen a target for that action; whatever value it returns is pure extrapolation from a neural net that has been trained to fit a completely different region of the input space.
 
-### 2 Extrapolation Error and the Death Spiral
+### Extrapolation Error and the Death Spiral
 
 ![Distribution shift produces over-optimistic Q-values on OOD actions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/fig2_distribution_shift.png)
 
@@ -79,11 +79,11 @@ The three families of algorithms below all attack this problem; they differ in *
 
 CQL ([Kumar et al., 2020](https://arxiv.org/abs/2006.04779)) is the most widely used baseline. It does not change the network, the actor, or the data pipeline. It changes one term in the loss.
 
-### 1 The Idea in One Sentence
+### The Idea in One Sentence
 
 > **Push down the Q-values of any action the policy might consider, then push back up the Q-values of actions actually present in the data.** The net effect is a Q-function that is pessimistic exactly where it lacks evidence.
 
-### 2 The Objective
+### The Objective
 
 On top of the usual TD loss $\mathcal{L}_{\mathrm{TD}}$, CQL adds
 $$\mathcal{L}_{\mathrm{CQL}} \;=\; \alpha\,\Big[\,\underbrace{\log\sum_{a}\exp Q(s,a)}_{\text{push down everywhere}} \;-\; \underbrace{\mathbb{E}_{a\sim\mathcal{D}}\big[Q(s,a)\big]}_{\text{push up on data}}\Big] \;+\; \mathcal{L}_{\mathrm{TD}}.$$
@@ -97,13 +97,13 @@ A pessimistic estimate is exactly what we need: any policy that maximizes a *low
 
 The left panel shows what happens with a vanilla SAC-style critic on offline data: the argmax flees to the OOD bump. The right panel shows CQL's correction: the orange shaded region is the pessimism penalty, and the new argmax sits comfortably inside the data support.
 
-### 3 Practical Notes
+### Practical Notes
 
 - The `logsumexp` is intractable for continuous actions, so implementations approximate it with `n_random` uniform samples plus `n_actor` samples from the current policy. 10-20 samples is usually enough.
 - The original paper's "CQL($\mathcal{H}$)" variant adds a Lagrangian that auto-tunes $\alpha$ to hit a target gap; this is what the open-source `d3rlpy` and `JaxRL` implementations ship by default.
 - Empirically CQL is robust on `medium-replay` and `medium` D4RL splits but can be slightly conservative on `medium-expert`, where IQL or DT often win.
 
-### 4 A Complete CQL Implementation
+### A Complete CQL Implementation
 
 ```python
 import torch

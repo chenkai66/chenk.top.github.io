@@ -114,7 +114,7 @@ $$
 
 最优步长按 $1/t$ 衰减——这正是 Robbins–Monro（1951）提出的经典步长调度方案，也是所有现代自适应 SGD 步长策略（如 AdaGrad、Adam）的理论基础。
 
-### 1 为何在强凸函数上 SGD 不能使用常数步长？
+### 为何在强凸函数上 SGD 不能使用常数步长？
 
 若采用常数步长 $\eta_t = \eta$，上述递推式存在不动点 $a^\star = \eta \sigma^2 / (2 \mu)$。此时迭代点 $x_t$ 并不收敛至最优解 $x^\star$，而是收敛到一个以 $x^\star$ 为中心、半径为 $O(\sqrt{\eta \sigma^2 / \mu})$ 的「噪声球」内。若希望将该球半径压缩至 $\epsilon$，需设 $\eta = O(\epsilon \mu / \sigma^2)$，进而总迭代次数为 $T = O(\sigma^2 / (\epsilon \mu^2))$ —— 其对 $\epsilon$ 的依赖（$1/\epsilon$）虽与衰减步长 SGD 相同，但需针对每个目标精度 $\epsilon$ 手动重设 $\eta$。
 
@@ -147,7 +147,7 @@ $$
 
 只要我们仅用单个 $\nabla f_{i_t}$ 作为梯度估计，SGD 的方差项 $\sigma^2$ 就不可避免。**方差缩减（variance reduction）** 引入额外的控制变量（control variates）——即额外的计算开销，以在极限下将估计方差降至零。
 
-### 1 SVRG 算法
+### SVRG 算法
 
 （随机方差缩减梯度法，Stochastic Variance-Reduced Gradient，Johnson & Zhang，2013）
 
@@ -178,7 +178,7 @@ $$
 ![同一点处 SGD 与 SVRG 的随机梯度样本对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig3.png)
 *每条浅色箭头是一次随机梯度采样，加粗蓝色箭头表示真实梯度 $\nabla f(x)$。SGD（橙色）样本在均值附近大幅散布；SVRG（绿色）样本紧密聚集——控制变量 $-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$ 抵消了大部分方差。*
 
-### 2 SVRG 收敛性分析
+### SVRG 收敛性分析
 
 > **定理（Johnson–Zhang，2013）**：假设每个 $f_i$ 是 $L$-光滑的，且 $f$ 是 $\mu$-强凸的。取步长 $\eta = \frac{1}{10 L}$，并令 epoch 长度 $m$ 足够大（具体地，$m \geq 100 L / \mu$），则 SVRG 几何收敛：
 > $$\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].$$
@@ -188,7 +188,7 @@ $$
 $$
 此即**共轭光滑性（co-coercivity）引理**。将其代入标准 SGD 分析框架（参见第 2 节），但将此处所得的 $\sigma^2$ 上界代入，并仔细追踪一个 SVRG epoch 的全过程，即可导出关于 $f(\tilde w_s) - f^\star$ 的收缩不等式。
 
-### 3 总计算代价
+### 总计算代价
 
 每个 SVRG epoch 消耗 $n + m$ 次梯度计算（$n$ 次用于快照，$m$ 次用于内层迭代）。达到精度 $\epsilon$ 所需 epoch 数为 $O(\log(1/\epsilon))$。总梯度计算次数为  
 $$

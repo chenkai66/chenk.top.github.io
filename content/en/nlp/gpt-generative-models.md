@@ -144,7 +144,7 @@ The choice of decoding strategy can change a generation from *repetitive and lif
 
 ![Greedy, top-k, top-p, and temperature on the same distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig5_sampling_strategies.png)
 
-### 1 Greedy decoding
+### Greedy decoding
 
 Always pick the highest-probability token: $x_t = \arg\max_w P(w \mid x_{<t})$.
 
@@ -162,7 +162,7 @@ def greedy_decode(model, tokenizer, prompt, max_new=100):
 
 **Pros**: deterministic, fast. **Cons**: drifts into degenerate loops (`"the the the"`) and produces dull, predictable text. Use only when you need reproducibility for testing.
 
-### 2 Beam search
+### Beam search
 
 Maintain the top-$k$ partial sequences at every step, ranked by *cumulative* log-probability (with an optional length penalty to avoid favouring short sequences).
 
@@ -187,7 +187,7 @@ def beam_search(model, tokenizer, prompt, beam=5, max_new=100, lp=0.6):
 
 **Pros**: higher likelihood than greedy, the workhorse of machine translation and summarisation. **Cons**: tends to produce *bland*, generic outputs in open-ended generation — a phenomenon called **beam-search curse** (the highest-likelihood sentences are often the most boring).
 
-### 3 Top-$k$ sampling
+### Top-$k$ sampling
 
 Sample only from the $k$ most probable tokens (re-normalising their probabilities to sum to 1):
 
@@ -208,7 +208,7 @@ def top_k_sample(model, tokenizer, prompt, k=50, T=1.0, max_new=100):
 
 **Caveat**: $k$ is fixed. If the model is very confident (one token has 95% mass), top-$k$ still considers $k$ alternatives and may pick something silly. If the model is genuinely uncertain across hundreds of tokens, $k=50$ is too restrictive.
 
-### 4 Top-$p$ (nucleus) sampling
+### Top-$p$ (nucleus) sampling
 
 Pick the smallest set of tokens whose cumulative probability $\ge p$ — the **nucleus** — and sample from it. The size of the nucleus *adapts* to the model's confidence.
 
@@ -236,7 +236,7 @@ def top_p_sample(model, tokenizer, prompt, p=0.9, T=1.0, max_new=100):
 
 In panel (c) above the nucleus has 5 tokens because the top 5 already cover 85% of the mass. On a different distribution it could be 1 token (very confident model) or 200 (very flat distribution). This adaptivity is why top-$p$ has become the default for open-ended generation.
 
-### 5 Temperature
+### Temperature
 
 Temperature $T$ rescales the logits *before* the softmax:
 $$P_T(w) = \text{softmax}(z / T)$$

@@ -63,7 +63,7 @@ HCGR 是个**图模型**。给定一个会话 $s = [v_1, v_2, \dots, v_n]$，它
 
 双曲几何有几个等价模型：庞加莱球、克莱因模型、洛伦兹（也叫双曲面）模型。 HCGR 选**洛伦兹**，原因是公式比庞加莱球数值上稳定，靠近边界时梯度行为也更好。
 
-### 1 双曲面流形
+### 双曲面流形
 
 在 $\mathbb{R}^{d+1}$ 上定义洛伦兹内积：
 $$\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \;=\; -x_0 y_0 + \sum_{i=1}^{d} x_i y_i.$$
@@ -71,13 +71,13 @@ $$\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \;=\; -x_0 y_0 + \sum_{i=
 $$\mathbb{H}^d \;=\; \bigl\{\, \mathbf{x} \in \mathbb{R}^{d+1} \;:\; \langle \mathbf{x}, \mathbf{x} \rangle_{\mathcal{L}} = -1,\; x_0 > 0 \,\bigr\}.$$
 直白说：嵌入是个 $(d+1)$ 维向量，被强制贴在一张弯曲的曲面上。多出来那一维是**代价**——为了让双曲操作能在外围欧氏空间里写成干净的线性代数，必须把维度加一维。
 
-### 2 距离
+### 距离
 
 洛伦兹距离写起来非常清爽：
 $$d_{\mathcal{L}}(\mathbf{x}, \mathbf{y}) \;=\; \mathrm{arcosh}\!\bigl( -\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \bigr).$$
 定性上要记的就一句：随着两个点沿着双曲面“上推”，洛伦兹内积按指数量级变大，外面套一个 arcosh，距离照样指数般地张开——这正是把指数分支的树撑开所需要的几何性质。
 
-### 3 切空间、 exp、 log
+### 切空间、 exp、 log
 
 弯曲流形上不能直接做梯度下降，否则更新一步就掉出流形了。标准做法是借助**切空间**：选一个基点（一般取原点 $\mathbf{o} = (1, 0, \dots, 0)$），它的切空间是局部欧氏的，把所有“线性”操作都搬到切空间做完，再映射回流形。
 
@@ -98,7 +98,7 @@ $$d_{\mathcal{L}}(\mathbf{x}, \mathbf{y}) \;=\; \mathrm{arcosh}\!\bigl( -\langle
 2. **推荐头**：从节点表示读出整段会话向量 $\mathbf{s}$，对每个候选物品打分时用**负洛伦兹距离**作为相似度，用交叉熵监督真实的下一物品。
 3. **对比头**：对会话图 $G_s$ 做两次独立的随机增强，得到两个视图，分别编码成 $\mathbf{s}^a, \mathbf{s}^b$，跑 InfoNCE。
 
-### 1 双曲 GNN 聚合
+### 双曲 GNN 聚合
 
 普通 GAT 风格的聚合是 $\mathbf{h}_i = \sigma\!\bigl(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} W \mathbf{h}_j\bigr)$。但是**双曲面上不能直接对点求和**——加完之后多半已经飞出流形了。 HCGR 的处理方式是顺理成章的：
 $$\mathbf{h}_i^{(l+1)} \;=\; \exp_{\mathbf{o}}\!\Biggl( \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^{(l)} \, \log_{\mathbf{o}}\!\bigl(\mathbf{h}_j^{(l)}\bigr) \Biggr).$$
@@ -106,7 +106,7 @@ $$\mathbf{h}_i^{(l+1)} \;=\; \exp_{\mathbf{o}}\!\Biggl( \sum_{j \in \mathcal{N}(
 
 如果要在不同基点的切空间之间搬运向量，还需要**平行移动**（parallel transport）保持向量的“内在”特征不变。 HCGR 在多层聚合里用到了它，但只是在工程上让多层堆得正确，思想上没有多余的复杂度。
 
-### 2 尊重曲率的非线性
+### 尊重曲率的非线性
 
 直接对一个双曲面上的坐标向量做 ReLU 是没意义的，因为 ReLU 不知道曲率。 HCGR 把激活塞在两层不同曲率的映射之间：
 $$\sigma_{\mathbb{H}}^{l \to l+1}(\mathbf{x}) \;=\; \exp_{\mathbf{o}}^{c_{l+1}}\!\Bigl(\, \sigma\!\bigl(\, \log_{\mathbf{o}}^{c_l}(\mathbf{x})\,\bigr)\, \Bigr).$$
@@ -118,7 +118,7 @@ $$\sigma_{\mathbb{H}}^{l \to l+1}(\mathbf{x}) \;=\; \exp_{\mathbf{o}}^{c_{l+1}}\
 
 ![双视图对比方案：边丢弃和节点丢弃各产出一个增强视图，两个视图都过同一个 HCGR 编码器，InfoNCE 在双曲空间里把正对拉近、把负对推远，距离用洛伦兹距离衡量。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig3_contrastive_views.png)
 
-### 1 数据增强
+### 数据增强
 
 HCGR 在会话图 $G_s$ 上做**图级别**的增强：
 
@@ -127,13 +127,13 @@ HCGR 在会话图 $G_s$ 上做**图级别**的增强：
 
 对 $G_s$ 做两次独立的增强，得到 $G_s^a$ 和 $G_s^b$。两个视图共享同一个 HCGR 编码器，得到 $\mathbf{s}^a, \mathbf{s}^b \in \mathbb{H}^d$。
 
-### 2 双曲空间里的 InfoNCE
+### 双曲空间里的 InfoNCE
 
 对比损失就是标准的 InfoNCE，只是相似度用双曲距离来定义：
 $$\mathcal{L}_{\mathrm{cl}} \;=\; -\, \log \frac{\exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b) / \tau \bigr)}{\sum_{k} \exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b_k) / \tau \bigr)},$$
 其中 $\mathrm{sim}(\mathbf{u}, \mathbf{v}) = -\, d_{\mathcal{L}}(\mathbf{u}, \mathbf{v})$（实际实现里为了数值稳定，往往是在原点的切空间上做内积），$\tau$ 是 InfoNCE 温度。分母遍历当前 mini-batch 里的所有会话，把其它会话当作负样本。
 
-### 3 总损失
+### 总损失
 
 最终把两部分加起来：
 $$\mathcal{L} \;=\; \mathcal{L}_{\mathrm{rec}} \;+\; \lambda \, \mathcal{L}_{\mathrm{cl}}.$$

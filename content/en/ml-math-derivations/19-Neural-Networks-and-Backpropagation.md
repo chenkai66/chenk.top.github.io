@@ -38,25 +38,25 @@ A single perceptron cannot solve XOR. Stack enough of them with nonlinear activa
 
 ## The Perceptron: Where It All Starts
 
-### 1 Model
+### Model
 
 Given an input $\mathbf{x}\in\mathbb{R}^d$, weights $\mathbf{w}\in\mathbb{R}^d$, and bias $b\in\mathbb{R}$, the perceptron computes
 $$z = \mathbf{w}^{T}\mathbf{x} + b, \qquad \hat{y} = \operatorname{sign}(z) = \begin{cases} +1 & z \geq 0,\\ -1 & z < 0.\end{cases}$$
 Geometrically, the equation $\mathbf{w}^{T}\mathbf{x} + b = 0$ defines a hyperplane that splits the input space into two half-spaces, and $\hat y$ records which side the point falls on.
 
-### 2 Learning Algorithm
+### Learning Algorithm
 
 For a misclassified point $(\mathbf{x}_i, y_i)$ — meaning $y_i(\mathbf{w}^{T}\mathbf{x}_i + b) \leq 0$ — Rosenblatt's update is
 $$\mathbf{w} \leftarrow \mathbf{w} + \eta\, y_i\, \mathbf{x}_i, \qquad b \leftarrow b + \eta\, y_i.$$
 Equivalently, this is stochastic subgradient descent on the *perceptron loss* $\sum_{i \in M} -y_i(\mathbf{w}^{T}\mathbf{x}_i + b)$, where $M$ is the set of currently misclassified points.
 
-### 3 Convergence Theorem
+### Convergence Theorem
 
 **Theorem (Novikoff, 1962).** If the data is linearly separable — i.e. there exist $\mathbf{w}^{*}$ and $\gamma > 0$ such that $y_i\,\mathbf{w}^{*\,T}\mathbf{x}_i \geq \gamma$ for all $i$ — then the perceptron converges in at most
 $$\frac{\|\mathbf{w}^{*}\|^{2}\, R^{2}}{\gamma^{2}} \qquad \text{updates,}$$
 where $R = \max_i \|\mathbf{x}_i\|$. The proof bounds $\mathbf{w}_k^{T}\mathbf{w}^{*}$ from below (it grows at least linearly in $k$) and $\|\mathbf{w}_k\|$ from above (it grows at most like $\sqrt{k}$); combining them gives a finite cap on $k$.
 
-### 4 The XOR Problem
+### The XOR Problem
 
 The four points $(0,0)\!\to\!0$, $(0,1)\!\to\!1$, $(1,0)\!\to\!1$, $(1,1)\!\to\!0$ are *not* linearly separable: no single hyperplane separates the diagonal pairs. Minsky and Papert's 1969 observation of this fact stalled connectionist research for more than a decade, until multilayer networks made the problem trivially solvable — by drawing two hyperplanes, then combining them.
 
@@ -64,7 +64,7 @@ The four points $(0,0)\!\to\!0$, $(0,1)\!\to\!1$, $(1,0)\!\to\!1$, $(1,1)\!\to\!
 
 ## Multilayer Networks and Forward Propagation
 
-### 1 Architecture
+### Architecture
 
 ![Multilayer perceptron architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig1_mlp_architecture.png)
 
@@ -74,7 +74,7 @@ A feedforward network is a chain of affine maps interleaved with element-wise no
 - **Hidden layers:** $\mathbf{h}^{(l)}\in\mathbb{R}^{d_l}$ for $l = 1, \ldots, L-1$.
 - **Output layer:** $\mathbf{h}^{(L)} = \hat{\mathbf{y}}\in\mathbb{R}^{d_L}$.
 
-### 2 Forward Pass (Matrix Form)
+### Forward Pass (Matrix Form)
 
 ![Forward propagation flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig2_forward_propagation.png)
 
@@ -84,7 +84,7 @@ $$\mathbf{z}^{(l)} = \mathbf{W}^{(l)}\,\mathbf{h}^{(l-1)} + \mathbf{b}^{(l)}, \t
 $$\mathbf{h}^{(l)} = \sigma\!\left(\mathbf{z}^{(l)}\right), \tag{2}$$
 with $\mathbf{W}^{(l)}\in\mathbb{R}^{d_l\times d_{l-1}}$ and $\mathbf{b}^{(l)}\in\mathbb{R}^{d_l}$. During the forward pass we **cache** $\mathbf{h}^{(l-1)}$ and $\mathbf{z}^{(l)}$ at every layer; backpropagation will need them.
 
-### 3 Activation Functions
+### Activation Functions
 
 ![Activation functions and their derivatives](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig4_activations.png)
 
@@ -99,7 +99,7 @@ with $\mathbf{W}^{(l)}\in\mathbb{R}^{d_l\times d_{l-1}}$ and $\mathbf{b}^{(l)}\i
 
 The right panel of the figure makes one fact obvious: sigmoid's derivative never exceeds $0.25$, while ReLU's is exactly $1$ in the active region. That single difference governs much of what follows.
 
-### 4 Universal Approximation Theorem
+### Universal Approximation Theorem
 
 ![Universal approximation: a 1-hidden-layer ReLU MLP fits diverse targets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig5_universal_approx.png)
 
@@ -115,19 +115,19 @@ with $\|f - g\|_\infty < \varepsilon$. The figure above shows the theorem in act
 
 ![ML Math Derivations (19): Neural Networks and Backpropagation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/illustration_2.png)
 
-### 1 Loss Functions
+### Loss Functions
 
 For regression we typically use mean-squared error,
 $$\mathcal{L} = \tfrac{1}{2}\,\bigl\|\hat{\mathbf{y}} - \mathbf{y}\bigr\|^{2},$$
 while for classification we use cross-entropy on top of softmax,
 $$\mathcal{L} = -\sum_{c} y_c \log \hat{y}_c, \qquad \hat{\mathbf{y}} = \operatorname{softmax}(\mathbf{z}^{(L)}).$$
-### 2 The Key Idea
+### The Key Idea
 
 ![Backpropagation gradient flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig3_backprop_chain.png)
 
 We need $\partial\mathcal{L}/\partial\mathbf{W}^{(l)}$ and $\partial\mathcal{L}/\partial\mathbf{b}^{(l)}$ for every layer. A naive approach would re-traverse the network for each parameter, costing $\mathcal{O}(P^2)$ for $P$ parameters. Backpropagation exploits the fact that *every gradient shares the same suffix path through the network*: by computing one **error signal** per layer in a single right-to-left sweep, all parameter gradients fall out by simple outer products. The cost drops to $\mathcal{O}(P)$.
 
-### 3 Deriving the Error Signal
+### Deriving the Error Signal
 
 Define the error signal at layer $l$:
 $$\boldsymbol{\delta}^{(l)} \;=\; \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}. \tag{3}$$
@@ -139,7 +139,7 @@ This algebraic miracle is one of the main reasons softmax + cross-entropy is the
 $$\boldsymbol{\delta}^{(l)} \;=\; \bigl(\mathbf{W}^{(l+1)\,T}\boldsymbol{\delta}^{(l+1)}\bigr) \,\odot\, \sigma'\!\left(\mathbf{z}^{(l)}\right). \tag{5}$$
 In words: take the error from the layer above, push it back through the transposed weight matrix, then *gate* it element-wise by the local activation derivative.
 
-### 4 Parameter Gradients
+### Parameter Gradients
 
 Once the $\boldsymbol{\delta}^{(l)}$'s are in hand the parameter gradients are immediate:
 $$\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}\, \mathbf{h}^{(l-1)\,T}, \tag{6}$$
@@ -178,23 +178,23 @@ The whole algorithm is essentially three lines: one outer product, one sum, one 
 
 ## Vanishing and Exploding Gradients
 
-### 1 The Vanishing Gradient Problem
+### The Vanishing Gradient Problem
 
 Iterating equation (5) from layer $L$ down to layer $1$ shows that the gradient at layer $1$ is a *product* of $L-1$ Jacobian-like factors:
 $$\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(1)}} \;\propto\; \prod_{l=2}^{L} \Bigl[\mathbf{W}^{(l)\,T}\, \operatorname{diag}\bigl(\sigma'(\mathbf{z}^{(l-1)})\bigr)\Bigr].$$
 For sigmoid, $\sigma'(z)\leq 0.25$. If each weight matrix has spectral norm near $1$, the magnitude of the gradient at layer $1$ is roughly $0.25^{L-1}$. At depth $L=20$ that is about $3.6\times 10^{-12}$ — gradient updates are numerically zero, and the early layers stop learning.
 
-### 2 The Exploding Gradient Problem
+### The Exploding Gradient Problem
 
 Reverse the inequality: if the spectral norms of the weight matrices exceed $1$ and the activation derivatives are not strongly contracting, the same product *grows* exponentially. Numerical overflow follows in a few hundred steps. RNNs are notorious for this because the same weight matrix is multiplied $T$ times in unrolled time.
 
-### 3 Reading the Curves
+### Reading the Curves
 
 ![Vanishing vs. exploding gradients across depth](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig6_vanishing_exploding.png)
 
 The figure reproduces the effect numerically: a unit gradient signal is back-propagated through random networks of increasing depth. Sigmoid (Xavier-initialized) decays by orders of magnitude per layer; ReLU with He initialization stays close to the healthy regime; ReLU with no rescaling explodes by similar factors. The y-axis is logarithmic — every grid line is a factor of ten.
 
-### 4 Solutions
+### Solutions
 
 | Problem | Solution | How it helps |
 |---------|----------|--------------|
@@ -208,7 +208,7 @@ The figure reproduces the effect numerically: a unit gradient signal is back-pro
 
 ## Weight Initialization Strategies
 
-### 1 Why Initialization Matters
+### Why Initialization Matters
 
 - **All zeros.** Every neuron in a layer computes the same function and receives the same gradient; the network cannot break symmetry.
 - **Too large.** Pre-activations land in the saturating tails of the activation; gradients vanish.
@@ -216,7 +216,7 @@ The figure reproduces the effect numerically: a unit gradient signal is back-pro
 
 The goal is therefore to *preserve the variance of activations and gradients across layers*. The right scale is determined by the layer's fan-in and the activation function.
 
-### 2 Xavier (Glorot) Initialization
+### Xavier (Glorot) Initialization
 
 Consider a single neuron in layer $l$ with fan-in $n_{\text{in}}$ and fan-out $n_{\text{out}}$:
 $$z_j = \sum_{i=1}^{n_{\text{in}}} w_{ji}\, h_i.$$
@@ -226,13 +226,13 @@ Demanding $\operatorname{Var}(z) = \operatorname{Var}(h)$ on the *forward* pass 
 $$\operatorname{Var}(w) = \frac{2}{n_{\text{in}} + n_{\text{out}}}, \qquad w \sim \mathcal{U}\!\left(-\sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}},\; \sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}}\right). \tag{8}$$
 Best for **sigmoid and tanh** activations.
 
-### 3 He Initialization
+### He Initialization
 
 For ReLU, half of the units are zeroed out in expectation, halving the variance contribution of $h$. He et al. (2015) therefore scale up by a factor of two:
 $$\operatorname{Var}(w) = \frac{2}{n_{\text{in}}}, \qquad w \sim \mathcal{N}\!\left(0,\, \tfrac{2}{n_{\text{in}}}\right). \tag{9}$$
 Best for **ReLU and its variants**.
 
-### 4 Summary Table
+### Summary Table
 
 | Activation | Initialization | $\operatorname{Var}(w)$ |
 |------------|---------------|--------------------------|

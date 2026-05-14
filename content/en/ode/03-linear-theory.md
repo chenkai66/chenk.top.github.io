@@ -54,13 +54,13 @@ with **natural frequency** $\omega_0 = \sqrt{k/m}$ and **damping ratio** $\zeta 
 
 ## Structure of the solution space
 
-### 1 Standard form
+### Standard form
 
 An $n$-th order linear ODE looks like
 $$y^{(n)} + p_{n-1}(x)\,y^{(n-1)} + \cdots + p_1(x)\,y' + p_0(x)\,y \;=\; g(x).$$
 It is **homogeneous** when $g \equiv 0$, otherwise **non-homogeneous**.
 
-### 2 Three theorems that organise everything
+### Three theorems that organise everything
 
 **(T1) Superposition.** If $y_1, y_2$ both solve the homogeneous equation, so does $c_1 y_1 + c_2 y_2$ for any constants $c_1, c_2$. (Linearity of derivatives — write it out.)
 
@@ -72,7 +72,7 @@ This is the existence-uniqueness theorem in disguise: the $n$ initial conditions
 $$y \;=\; y_h \;+\; y_p,$$
 where $y_p$ is *any one* particular solution. The reason is that if $y, \tilde y$ are two solutions, $L[y - \tilde y] = 0$, so they differ by a homogeneous solution.
 
-### 3 The Wronskian: a determinant test for independence
+### The Wronskian: a determinant test for independence
 
 How do we *check* that $n$ candidate solutions are linearly independent? Differentiate them $n-1$ times and form the **Wronskian**:
 $$
@@ -101,7 +101,7 @@ Independent everywhere — they form a basis for solutions of $y'' + y = 0$.
 
 ## Constant coefficients: the characteristic equation
 
-### 1 The trick
+### The trick
 
 For
 $$a_n y^{(n)} + a_{n-1} y^{(n-1)} + \cdots + a_1 y' + a_0 y \;=\; 0$$
@@ -109,7 +109,7 @@ guess $y = e^{rx}$. Each derivative pulls down one factor of $r$, so the equatio
 $$P(r) \;\equiv\; a_n r^n + a_{n-1} r^{n-1} + \cdots + a_1 r + a_0 \;=\; 0.$$
 Every root $r$ contributes a building block. The map *roots $\to$ basis solutions* is the entire content of this section.
 
-### 2 The three cases
+### The three cases
 
 **Case 1: Distinct real roots $r_1, \dots, r_n$.**
 $$y \;=\; c_1 e^{r_1 x} + c_2 e^{r_2 x} + \cdots + c_n e^{r_n x}.$$
@@ -127,7 +127,7 @@ $$y \;=\; e^{\alpha x}\bigl(c_1 \cos\beta x + c_2 \sin\beta x\bigr).$$
 
 *Example.* $y'' + 2y' + 5y = 0$ gives $r = -1 \pm 2i$, so $y = e^{-x}(c_1\cos 2x + c_2\sin 2x)$ — a sinusoid trapped inside a shrinking exponential envelope.
 
-### 3 Reading roots geometrically
+### Reading roots geometrically
 
 The location of the roots in the complex plane *is* the qualitative behaviour:
 
@@ -164,7 +164,7 @@ Its characteristic equation $r^2 + 2\zeta\omega_0 r + \omega_0^2 = 0$ has discri
 
 ## Non-homogeneous: the method of undetermined coefficients
 
-### 1 The recipe
+### The recipe
 
 To solve $L[y] = f(x)$ with constant coefficients:
 
@@ -173,7 +173,7 @@ To solve $L[y] = f(x)$ with constant coefficients:
 3. Substitute the guess, equate coefficients to determine the unknown constants.
 4. Combine: $y = y_h + y_p$.
 
-### 2 The guessing table
+### The guessing table
 
 | Forcing $f(x)$ | Trial $y_p$ |
 |---|---|
@@ -185,7 +185,7 @@ To solve $L[y] = f(x)$ with constant coefficients:
 
 **The resonance correction.** If your trial form is *itself a homogeneous solution*, multiply it by $x$ (or $x^2$ for a double resonance). Otherwise the substitution gives $0 = f$ — a contradiction.
 
-### 3 A worked example end-to-end
+### A worked example end-to-end
 
 Solve $y'' + y' + y = e^{-x/2}\cos x$.
 
@@ -198,7 +198,7 @@ $$y_p \;=\; e^{-x/2}(A\cos x + B\sin x).$$
 ![The undetermined-coefficients workflow as three stacked panels: forcing, trial basis, fitted particular solution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig6_undetermined_coefficients.png)
 *Method of undetermined coefficients in three steps. (1) Identify the forcing. (2) Pick a trial form spanned by the same exponentials and trig functions. (3) Solve a small linear system; the green dashed curve verifies that $y_p'' + y_p' + y_p$ reproduces $f$ exactly.*
 
-### 4 Resonance: when the trial form lies inside $y_h$
+### Resonance: when the trial form lies inside $y_h$
 
 Force a frictionless oscillator at exactly its natural frequency:
 $$\ddot x + \omega_0^2 x \;=\; F_0\cos\omega_0 t.$$
@@ -213,11 +213,11 @@ The amplitude grows linearly with time — energy is pumped in every cycle and n
 
 ## Variation of parameters: when guessing fails
 
-### 1 Why we need it
+### Why we need it
 
 The undetermined-coefficients table only contains exponentials, polynomials, sines, cosines, and their products. For $f(x) = \sec x, \tan x, \ln x, e^{x^2}$, ... we need a method that works for any continuous forcing. **Variation of parameters** is that method.
 
-### 2 The formula (second order)
+### The formula (second order)
 
 Given $y'' + p(x)y' + q(x)y = f(x)$ and a basis $y_1, y_2$ for the homogeneous equation, look for a particular solution of the form $y_p = u_1(x)\,y_1(x) + u_2(x)\,y_2(x)$ — promoting the "constants" of the homogeneous solution to functions (hence the name). Imposing the constraint $u_1' y_1 + u_2' y_2 = 0$ to keep things tractable, substitution yields the linear system
 $$
@@ -227,7 +227,7 @@ $$
 $$
 whose determinant is the Wronskian $W$. Cramer's rule then gives the closed-form
 $$\boxed{\;y_p \;=\; -\,y_1 \int \frac{y_2\,f}{W}\,dx \;+\; y_2 \int \frac{y_1\,f}{W}\,dx\;}.$$
-### 3 Worked example: $y'' + y = \sec x$
+### Worked example: $y'' + y = \sec x$
 
 Homogeneous basis: $y_1 = \cos x,\ y_2 = \sin x,\ W = 1$. The integrands simplify nicely:
 $$

@@ -43,7 +43,7 @@ When data has hidden structure — like an unobserved cluster label, a missing f
 
 ## Latent variables and incomplete-data likelihood
 
-### 1 Setup
+### Setup
 
 We model observations $\mathbf{x}_1,\dots,\mathbf{x}_N$ together with hidden variables $z_1,\dots,z_N$ via a joint $p(\mathbf{x}, z \mid \boldsymbol{\theta})$. We see $\mathbf{X}$, never $\mathbf{Z}$. The **incomplete-data log-likelihood** is
 $$
@@ -52,7 +52,7 @@ $$
 $$
 The summation inside the logarithm is the source of the problem. The log no longer factors over components, so the gradient doesn't split into per-component pieces, and there is no closed-form maximizer.
 
-### 2 The mixture example
+### The mixture example
 
 For a Gaussian mixture with $K$ components,
 $$p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}(\mathbf{x}\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).$$
@@ -66,7 +66,7 @@ The figure above shows three Gaussian clusters fit by `sklearn.mixture.GaussianM
 
 ## The ELBO and Jensen's inequality
 
-### 1 Introducing an auxiliary distribution $q$
+### Introducing an auxiliary distribution $q$
 
 Pick **any** distribution $q(z)$ over the latent variable. Multiply and divide:
 $$
@@ -85,7 +85,7 @@ $$
 $$
 This $\mathcal{L}$ is the **Evidence Lower Bound (ELBO)**. It depends on both the variational distribution $q$ and the parameters $\boldsymbol{\theta}$.
 
-### 2 The exact decomposition
+### The exact decomposition
 
 A direct manipulation — without needing an inequality — yields the *equality*
 $$
@@ -110,7 +110,7 @@ This single identity is the entire engine of EM.
 
 EM repeatedly raises $\mathcal{L}$ by alternating in its two arguments.
 
-### 1 The two steps
+### The two steps
 
 **E-step.** Hold $\boldsymbol{\theta}^{(t)}$ fixed. Maximise $\mathcal{L}(q, \boldsymbol{\theta}^{(t)})$ over $q$. The maximiser is the posterior:
 $$q^{(t)}(z) \;=\; p\bigl(z \mid \mathbf{x}, \boldsymbol{\theta}^{(t)}\bigr).$$
@@ -122,7 +122,7 @@ Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
 \;=\;
 \mathbb{E}_{z\sim q^{(t)}}\!\bigl[\log p(\mathbf{x}, z\mid \boldsymbol{\theta})\bigr].
 $$
-### 2 The monotone-ascent proof
+### The monotone-ascent proof
 
 Chain these three inequalities:
 $$
@@ -138,7 +138,7 @@ $$
 $$\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{(t)})\;}$$
 at every iteration, with equality only at fixed points. EM converges to a stationary point of $\ell$ — typically a local maximum, occasionally a saddle point. **It is not guaranteed to reach the global maximum**, which is why multiple random restarts matter.
 
-### 3 Visualising the two views
+### Visualising the two views
 
 The **ELBO view** makes the dynamics very concrete. After every E-step the KL gap closes; the M-step then raises both the log-likelihood and the ELBO together, and the gap re-opens until the next E-step.
 
@@ -150,7 +150,7 @@ The shaded amber band is exactly the KL divergence $\mathrm{KL}\bigl[q\,\Vert\, 
 
 ## EM for Gaussian Mixture Models
 
-### 1 The model
+### The model
 
 Generative process for one observation:
 
@@ -159,7 +159,7 @@ Generative process for one observation:
 
 The parameters are $\boldsymbol{\theta} = \{\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k\}_{k=1}^{K}$, with $\sum_k \pi_k = 1$ and each $\boldsymbol{\Sigma}_k \succ 0$.
 
-### 2 The E-step: responsibilities
+### The E-step: responsibilities
 
 The latent posterior is just Bayes' rule on a finite alphabet. Define the **responsibility** of component $k$ for sample $i$:
 $$
@@ -177,7 +177,7 @@ Each row $(\gamma_{i1},\dots,\gamma_{iK})$ sums to 1 — the soft cluster member
 
 On the left every grid point is coloured by mixing the three component colours according to $\gamma_{ik}$: pure colour where one component dominates, blended colours along the boundaries. On the right, the responsibility matrix $\gamma_{ik}$ for twelve sample points — rows sum to 1.
 
-### 3 The M-step: weighted MLE
+### The M-step: weighted MLE
 
 Plugging the Gaussian density into $Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})$ and maximising (with a Lagrange multiplier for $\sum_k \pi_k = 1$) gives the closed-form updates. Let $N_k = \sum_{i=1}^{N} \gamma_{ik}$ be the *effective* sample size of component $k$:
 $$
@@ -193,7 +193,7 @@ These are exactly the standard Gaussian MLE formulas, but with each sample re-we
 
 Starting from a deliberately bad initialisation, a single M-step pulls the means (red arrows) onto the data and stretches the covariance ellipses to match the observed scatter. After only a handful of E-M cycles the fit is essentially correct.
 
-### 4 Convergence in practice
+### Convergence in practice
 
 Run EM for several random restarts and watch the log-likelihood:
 

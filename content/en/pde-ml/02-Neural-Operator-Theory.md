@@ -30,7 +30,7 @@ This article is a deep dive into how that is possible. We start from the functio
 
 ## Why operators, not just bigger networks
 
-### 1 The PINN ceiling
+### The PINN ceiling
 
 Consider the 1D viscous Burgers equation,
 $$u_t + u\,u_x = \nu\,u_{xx},\qquad x\in[0,2\pi],\ t\in[0,T],$$
@@ -38,7 +38,7 @@ with periodic boundary conditions and an initial condition $u(\cdot,0)=u_0$. A f
 $$\mathcal{L}_{\mathrm{PINN}}(\theta) = \big\| \partial_t u_\theta + u_\theta\,\partial_x u_\theta - \nu\,\partial_{xx} u_\theta \big\|^2 + \big\|u_\theta(\cdot,0) - u_0 \big\|^2 .$$
 Notice how $u_0$ appears explicitly inside the loss. **Change $u_0$ and the loss landscape changes; the optimiser has to start over.** For a design study with a thousand candidate inflow profiles, that is a thousand training runs.
 
-### 2 Operator learning, formally
+### Operator learning, formally
 
 Let $\mathcal{A}$ be the space of admissible inputs (e.g. initial conditions in some Sobolev class) and $\mathcal{U}$ the space of solutions. The PDE defines a *solution operator*
 $$\mathcal{G} : \mathcal{A} \to \mathcal{U},\qquad \mathcal{G}(u_0) = u(\cdot, T).$$
@@ -48,7 +48,7 @@ The training cost is amortised over the entire family of instances. This is the 
 
 ## Function-space foundations (the bare minimum)
 
-### 1 Banach, Hilbert, Sobolev — what each one buys you
+### Banach, Hilbert, Sobolev — what each one buys you
 
 A **Banach space** is a normed vector space in which every Cauchy sequence converges. The norm gives us a notion of "size of a function," and completeness gives us limits — without it we cannot even talk about convergence of a learning algorithm. The two everyday examples are
 $$C(K) \;=\; \{u:K\to\mathbb{R} \text{ continuous}\}, \quad \|u\|_\infty = \sup_{x\in K} |u(x)|,$$
@@ -58,7 +58,7 @@ A **Hilbert space** is a Banach space whose norm comes from an inner product. Th
 
 A **Sobolev space** $H^s(\Omega)$ controls not just the function but its derivatives up to order $s$ in $L^2$. PDE solutions usually live in some $H^s$, and the parameter $s$ measures *smoothness*. This is where the resolution-invariance argument will land: smoother functions have spectra that decay quickly, so we can throw away high-frequency modes without paying much.
 
-### 2 Why the input dimension is "infinite"
+### Why the input dimension is "infinite"
 
 When a CNN ingests a $256\times 256$ image, it really sees a vector in $\mathbb{R}^{65536}$. Doubling the resolution to $512\times 512$ changes the input dimension and breaks the model. A neural operator instead ingests a *function* and only samples it for numerical purposes. The architecture must therefore be designed so that the prediction at a query location $y$ is **independent of how the input was sampled**. This is the design constraint that distinguishes operator learning from "a CNN that happens to read a PDE solution."
 
@@ -113,7 +113,7 @@ A few practical wrinkles matter when you implement it:
 
 Where DeepONet decomposes the operator as a sum of rank-one terms in the spatial domain, FNO (Li et al., 2020) operates in the *spectral* domain. The motivation is the convolution theorem.
 
-### 1 Why spectral
+### Why spectral
 
 For a translation-invariant linear operator $K$, the Schwartz kernel theorem gives
 $$(K v)(x) = \int \kappa(x - x')\,v(x')\,\mathrm{d}x',$$
@@ -123,7 +123,7 @@ So instead of learning the kernel $\kappa$ in space — costly, with a large sup
 
 For nonlinear PDEs the operator is no longer a global convolution, but the **local-nonlinearity / global-linearity** decomposition is extremely common: dissipation, dispersion and propagation are all linear and translation-invariant; reaction and advection terms are pointwise nonlinear. FNO bakes this split into the architecture.
 
-### 2 The Fourier layer
+### The Fourier layer
 
 A single FNO block computes
 $$v_{\ell+1}(x) \;=\; \sigma\!\Big(\;W\,v_\ell(x) \;+\; \mathcal{F}^{-1}\!\big( R_\theta \cdot \mathcal{F}(v_\ell)\big)(x) \;\Big),$$
@@ -140,7 +140,7 @@ Three design choices are worth defending:
 
 **Channel lifting.** The FFT mixes spatial information across one dimension, but a single channel is too narrow a bottleneck. By first lifting to $d_v\in\{32,64,128\}$ channels, the network gets enough room to encode multiple "modes" of physical behaviour (e.g. transport vs. diffusion vs. shock formation).
 
-### 3 What the cost looks like
+### What the cost looks like
 
 For an $n$-point grid in $d$ spatial dimensions the dominant costs per Fourier layer are:
 

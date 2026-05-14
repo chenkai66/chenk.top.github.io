@@ -194,7 +194,7 @@ The reason ODEs feel ubiquitous is that a small number of equations show up *ove
 ![Three classic ODE applications: Newton cooling, radioactive decay, harmonic oscillator.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/fig3_three_classics.png)
 *Figure 5. Three of the most reused equations in all of science. Each is one line long, yet between them they describe heat exchange, archaeological dating, and every spring–mass system in mechanical engineering.*
 
-### 1 Radioactive decay — the universe's stopwatch
+### Radioactive decay — the universe's stopwatch
 
 Each radioactive atom has the same probability of decaying per unit time, so the total decay rate is proportional to how many atoms remain:
 $$
@@ -204,7 +204,7 @@ N(t) = N_0\,e^{-\lambda t}.
 $$
 The **half-life** $t_{1/2} = (\ln 2)/\lambda$ is a single number that summarises the whole curve. Carbon-14 has $t_{1/2} = 5730\,\text{yr}$, which is exactly why archaeologists can date a piece of charcoal: measure the surviving $^{14}\mathrm{C}$ ratio, take the log, and read off the age. The same equation also describes capacitor discharge in an RC circuit and drug clearance from the bloodstream.
 
-### 2 Malthusian population growth
+### Malthusian population growth
 
 If a population of size $P$ has a constant per-capita birth rate minus death rate $r$, then
 $$
@@ -219,7 +219,7 @@ It also predicts **unbounded** exponential growth, which any biologist will tell
 ![Exponential vs logistic growth.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/fig7_exponential_vs_logistic.png)
 *Figure 6. Left: Malthus' exponential model rockets to infinity; the logistic model bends over and saturates at the carrying capacity $K$. Right: a "phase view" of the growth rate. The logistic curve has **two equilibria** (at $P = 0$ and $P = K$), with growth in between and decline above $K$. We will dissect this in Chapter 2.*
 
-### 3 Simple harmonic motion
+### Simple harmonic motion
 
 A mass $m$ on a spring with stiffness $k$ obeys Hooke's law $F = -kx$ combined with Newton's $F = ma$:
 $$

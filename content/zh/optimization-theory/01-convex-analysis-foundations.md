@@ -36,7 +36,7 @@ translationKey: "optim-01"
 
 ## 凸集
 
-### 1 定义与基本例子
+### 定义与基本例子
 
 集合 $C \subseteq \mathbb{R}^n$ 称为**凸集**，若对任意 $x, y \in C$ 及任意 $\lambda \in [0, 1]$，均有  
 $$
@@ -55,7 +55,7 @@ $$
 
 ![凸集与非凸集对比：集合是凸集，当且仅当其中任意两点之间的线段都包含在集合内。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig1_convex_set.png)
 
-### 2 保持凸性的运算
+### 保持凸性的运算
 
 下列构造若以凸集为输入，则输出仍为凸集。每条均可直接由定义一步验证；你应能不查阅资料即写出证明。
 
@@ -69,7 +69,7 @@ $$
 
 其中交集规则在实践中最为常用——它解释了为何多面体 $\{x : Ax \leq b\}$ 是凸集（它是若干半空间的交），也说明了凸优化问题的可行域必为凸集。
 
-### 3 投影定理
+### 投影定理
 
 我们将反复使用如下重要定理：
 
@@ -107,7 +107,7 @@ $$
 
 ## 凸函数
 
-### 1 四种等价刻画
+### 四种等价刻画
 
 设 $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$，其**有效定义域**为 $\mathrm{dom}(f) = \{x : f(x) < +\infty\}$，并假设该集合是凸集。以下四条性质彼此等价，后续我们将不加区分地使用它们：
 
@@ -147,7 +147,7 @@ $$
 
 ![凸性的两种等价视角：（左）一阶条件——任意点处的切线都是 0 的全局下界；（右）上镜图 1 本身是 2 中的凸集。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig3_convex_function.png)
 
-### 2 严格凸性与强凸性
+### 严格凸性与强凸性
 
 - **严格凸函数**：当 $x \neq y$ 且 $\lambda \in (0,1)$ 时，(D) 中不等式严格成立。
 - **$\mu$-强凸函数**（$\mu > 0$）：函数 $f - \frac{\mu}{2} \|x\|_2^2$ 是凸函数。等价地，
@@ -156,7 +156,7 @@ $$
   $$
 强凸性之于凸性，正如“一致连续”之于“连续”——它提供了可量化的间隙（quantitative gap），是使优化算法收敛速率具象化的核心条件。我们将在第 02 篇文章中深入剖析其含义与作用。
 
-### 3 典型例子
+### 典型例子
 
 你应能借助二阶条件（或直接验证）确认下列函数的凸性：
 
@@ -169,7 +169,7 @@ $$
 | $x^4$                         | 严格凸   | $f''(x) = 12 x^2 \geq 0$，仅在 $x = 0$ 处为零（非强凸）。             |
 | $\frac{1}{2} x^\top Q x$（$Q \succ 0$） | $\lambda_{\min}(Q)$-强凸 | $\nabla^2 f = Q$。                             |
 
-### 4 保持凸性的运算
+### 保持凸性的运算
 
 | 运算                                     | 是否保持凸性？                                                   |
 | ------------------------------------------ | ---------------------------------------------------------------- |
@@ -190,13 +190,13 @@ f^*(y) = \sup_{x \in \mathbb{R}^n} \big[ \langle y, x \rangle - f(x) \big].
 $$
 无论 $f$ 是否凸，其共轭 $f^*$ **恒为凸函数**——因为它是关于 $y$ 的一族仿射函数的逐点上确界。
 
-### 1 几何解释
+### 几何解释
 
 对固定斜率 $y$，$f^*(y)$ 表示 $\langle y, x \rangle - f(x)$ 关于 $x$ 能取到的最大值。等价地，仿射函数 $x \mapsto \langle y, x \rangle - f^*(y)$ 是斜率为 $y$、且位于 $f$ 下方的最高仿射下界（affine minorant）。因此，$f^*$ 刻画了：对每个可能的斜率 $y$，对应的支持超平面（supporting hyperplane）距离函数图像下方有多远。
 
 ![共轭函数的几何含义：对斜率 0，1 下方斜率为 2 的最高仿射下界为 3；4 即该直线与 5 轴交点到原点的纵向距离。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig4_conjugate.png)
 
-### 2 Fenchel–Young 不等式
+### Fenchel–Young 不等式
 
 由定义直接可得：
 $$
@@ -204,7 +204,7 @@ f(x) + f^*(y) \geq \langle x, y \rangle. \tag{FY}
 $$
 等号成立当且仅当 $y \in \partial f(x)$（该次梯度概念将在后文引入）。这是凸分析中 AM-GM 不等式与 Young 不等式的统一推广；例如取 $f(x) = \frac{1}{p} |x|^p$（其中 $p > 1$），计算其共轭可精确导出经典 Young 不等式 $\frac{|x|^p}{p} + \frac{|y|^q}{q} \geq xy$，其中 $\frac{1}{p} + \frac{1}{q} = 1$。
 
-### 3 常见共轭函数示例
+### 常见共轭函数示例
 
 请熟记以下结果——它们将作为后续各讲中的基本构件反复使用。
 
@@ -220,13 +220,13 @@ $$
 
 范数与其对偶单位球指示函数构成的共轭对，完整解释了我们在第 06 篇文章中展开的 LASSO 对偶性理论。
 
-### 4 双共轭及“凸性”即对 $(f^*)^*$ 封闭
+### 双共轭及“凸性”即对 $(f^*)^*$ 封闭
 
 双共轭函数 $f^{**} = (f^*)^*$ 恒满足逐点不等式 $f^{**} \leq f$。当且仅当 $f$ 是凸函数且下半连续时，二者相等，即 $f^{**} = f$。因此，“取共轭两次”这一运算，恰好给出 $f$ 下方的最小凸闭函数——即 $f$ 的**凸包络**（convex envelope）。正因如此，人们有时将凸松弛（convex relaxation）直接写作 $f^{**}$。
 
 ## 次梯度
 
-### 1 次微分
+### 次微分
 
 对凸函数 $f$，其在点 $x$ 处的**次微分**定义为  
 $$
@@ -238,7 +238,7 @@ $$
 $$
 x^\star \in \arg\min f \iff 0 \in \partial f(x^\star).
 $$
-### 2 存在性与基本微分法则
+### 存在性与基本微分法则
 
 > **定理**．若 $f$ 是凸函数，且 $x \in \mathrm{relint}(\mathrm{dom}(f))$，则 $\partial f(x)$ 非空。
 
@@ -253,7 +253,7 @@ $$
 | 逐点最大值                         | $\partial \max_i f_i(x) = \mathrm{conv} \bigcup_{i \in I(x)} \partial f_i(x)$，其中 $I(x) = \{i : f_i(x) = \max_j f_j(x)\}$。 |
 | 共轭等价性                        | $g \in \partial f(x) \iff x \in \partial f^*(g) \iff f(x) + f^*(g) = \langle x, g \rangle$。 |
 
-### 3 具体示例
+### 具体示例
 
 **例 1：$f(x) = |x|$ 在 $\mathbb{R}$ 上。**  
 $$
@@ -281,7 +281,7 @@ $$
 $$
 点 $x = 1$ 是“拐点”（kink）——在此间隔边界上，损失函数可被赋予任意斜率 $[-1, 0]$ 中的值，这正是支撑 SVM 对偶理论成立的关键。
 
-### 4 最优性：从 $\nabla f = 0$ 到 $0 \in \partial f$
+### 最优性：从 $\nabla f = 0$ 到 $0 \in \partial f$
 
 我们将最常依赖的核心结论是：若 $f$ 是凸函数，则  
 $$

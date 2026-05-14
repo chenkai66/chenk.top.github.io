@@ -45,23 +45,23 @@ This first article in the series does two things. First, it maps out the field's
 
 NLP did not advance smoothly. It moved in jumps, each driven by a new representation of language. Knowing the sequence helps you choose the right tool: rule systems still beat neural nets for narrow form-filling, statistical methods still drive search ranking, and embeddings dominate everything else.
 
-### 1 Symbolic Era (1950s — late 1980s)
+### Symbolic Era (1950s — late 1980s)
 
 Early systems treated language as a logic problem. ELIZA (1966) matched user input against hand-crafted regex patterns and rephrased the captured groups; SHRDLU (1970) parsed instructions about a blocks world using a hand-written grammar. These systems were precise within their domain and completely brittle outside it — a synonym or a typo broke them. The lesson, in hindsight, is that language has too many surface forms for any human to enumerate.
 
-### 2 Statistical Revolution (1990s)
+### Statistical Revolution (1990s)
 
 The turning point was the realization that you don't need to write rules; you can estimate probabilities from data. The bigram model is the canonical example:
 $$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$
 This single formula powered IBM's statistical machine translation, the first viable speech recognizers, and probabilistic part-of-speech taggers. Hidden Markov Models extended the same idea to latent state, and probabilistic context-free grammars handled syntax. Features were still hand-engineered, but the rules were learned.
 
-### 3 Deep Learning Era (2013 — 2016)
+### Deep Learning Era (2013 — 2016)
 
 Word2Vec (Mikolov et al., 2013) showed that a tiny neural network trained to predict context words produces vectors with a remarkable property: semantic relationships become arithmetic.
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
 For the first time, words were no longer atomic identifiers. They lived in a continuous space where similarity was a cosine away. RNNs and LSTMs followed, letting models thread context through a sequence and finally learn from order, not just bag-of-tokens counts.
 
-### 4 Transformer Revolution (2017 — present)
+### Transformer Revolution (2017 — present)
 
 The 2017 paper "Attention Is All You Need" replaced recurrence with self-attention:
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
@@ -110,7 +110,7 @@ Raw text
 
 A common mistake is to apply every step by reflex. The right framing is: each stage should remove noise that downstream cannot handle and preserve everything else. We will revisit this trade-off at every step.
 
-### 1 Environment Setup
+### Environment Setup
 
 ```bash
 pip install nltk spacy scikit-learn matplotlib numpy pandas beautifulsoup4
@@ -178,7 +178,7 @@ Tokenization splits text into the atomic units a model will see. The boundary yo
 
 ![Three tokenization strategies for the same input](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig4_tokenization_variants.png)
 
-### 1 Word Tokenization
+### Word Tokenization
 
 ```python
 # Naive: breaks on contractions and punctuation
@@ -193,7 +193,7 @@ tokens = word_tokenize("Dr. Smith earned $150,000 in 2023! Isn't that amazing?")
 
 NLTK keeps `Dr.` as one token, separates punctuation, and splits the contraction `Isn't` into `Is` + `n't`. Each of those decisions is a hard-coded English convention — which is exactly why word tokenization is brittle across languages.
 
-### 2 Sentence Tokenization
+### Sentence Tokenization
 
 ```python
 from nltk.tokenize import sent_tokenize
@@ -204,7 +204,7 @@ sent_tokenize(text)
 
 NLTK's Punkt model learns from data which periods end sentences and which mark abbreviations.
 
-### 3 Subword Tokenization (BPE)
+### Subword Tokenization (BPE)
 
 Modern models — GPT, BERT, Llama, Claude — do not tokenize on words. They use **subword tokenization**, almost always a variant of Byte-Pair Encoding (BPE):
 
@@ -268,7 +268,7 @@ For production, use Hugging Face's `tokenizers` library — it ships GPT-style B
 
 Normalization collapses surface variants of the same word into a single form, which shrinks vocabulary and improves matching. It also throws information away, so apply it deliberately.
 
-### 1 Lowercasing
+### Lowercasing
 
 ```python
 "Apple Inc. sells apples in APPLE stores".lower()
@@ -277,7 +277,7 @@ Normalization collapses surface variants of the same word into a single form, wh
 
 Lowercasing helps search and topic modeling. It hurts named-entity recognition (`Apple` the company collapses with `apple` the fruit) and any task where capitalization signals emphasis.
 
-### 2 Stemming vs Lemmatization
+### Stemming vs Lemmatization
 
 **Stemming** chops suffixes with deterministic rules. Fast, crude, sometimes wrong:
 
@@ -349,7 +349,7 @@ When to remove stopwords:
 
 A model needs numbers. Two classical encodings — Bag-of-Words and TF-IDF — still anchor most retrieval systems and are the right baseline for any new task.
 
-### 1 One-hot vs Distributed Representations
+### One-hot vs Distributed Representations
 
 Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector assigns each word a unique index, with a 1 in that position and 0 everywhere else. Every pair of words is orthogonal, which means the encoding carries zero similarity information.
 
@@ -357,7 +357,7 @@ Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector
 
 Distributed representations — which we will build in Part 2 — pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.
 
-### 2 Bag of Words
+### Bag of Words
 
 Represent each document as a vector of word counts, ignoring order:
 
@@ -385,7 +385,7 @@ print(pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out()))
 
 The fatal limitation: `dog bites man` and `man bites dog` produce identical vectors. BoW discards order entirely.
 
-### 3 TF-IDF
+### TF-IDF
 
 TF-IDF up-weights words that are frequent in a document but rare in the corpus — a heuristic for "important to this document, but not generic":
 $$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$

@@ -186,7 +186,7 @@ Markowitz's mean-variance model is elegant until you add real trading constraint
 
 ## From Quadratic Program to MINLP
 
-### 1 The classical mean-variance problem
+### The classical mean-variance problem
 
 Let $\mathbf{y} \in \mathbb{R}^n$ be the vector of capital fractions, $\overline{\mathbf{r}} \in \mathbb{R}^n$ the vector of expected asset returns, and $Q \in \mathbb{R}^{n \times n}$ the positive semidefinite covariance matrix of returns. For a target portfolio return $R_p$, the *long-only* mean-variance problem is
 $$
@@ -203,13 +203,13 @@ where $\mathbf{e}$ is the all-ones vector. This is a convex quadratic program. S
 
 The figure above shows the geometry on a five-asset universe. The cloud of dots is 5,000 random portfolios sampled uniformly from the simplex (coloured by Sharpe-like ratio). The purple curve is the unconstrained efficient frontier (shorting permitted), and the dashed blue curve is the *cardinality-constrained* frontier with $K=3$. Two observations are immediate: (i) the cardinality-constrained frontier sits to the right of the unconstrained one at every return level (less choice means less diversification, which means more risk), and (ii) the gap between the two is *not* uniform in $R_p$. At extreme returns the gap widens because only a few combinations can hit the target at all.
 
-### 2 Adding the buy-in threshold
+### Adding the buy-in threshold
 
 Real desks rarely hold a 0.3% position in a stock. The buy-in threshold says: if you hold asset $i$ at all, hold at least $l_i$. Introduce a binary indicator $z_i \in \{0, 1\}$ for inclusion and link it to $y_i$ via box constraints:
 $$l_i z_i \leq y_i \leq u_i z_i, \qquad 0 < l_i < u_i \leq 1, \qquad z_i \in \{0, 1\}.$$
 When $z_i = 0$ the entire row collapses to $y_i = 0$. When $z_i = 1$ the weight is forced into $[l_i, u_i]$. This is the precise mathematical instant at which the problem becomes mixed-integer: the feasible set is now a finite union of polytopes (one per choice of $\mathbf{z}$), and convexity is gone.
 
-### 3 Adding the cardinality constraint
+### Adding the cardinality constraint
 
 The cardinality constraint pins the portfolio to exactly $K$ assets:
 $$\sum_{i=1}^{n} z_i = K.$$
@@ -228,7 +228,7 @@ This object has $\binom{n}{K}$ combinatorial branches. Even at $n = 100, K = 10$
 
 ## The Spiral Optimization Algorithm
 
-### 1 Update rule
+### Update rule
 
 SOA, introduced by Tamura and Yasuda (2011), is a population-based metaheuristic inspired by the logarithmic spirals seen in plant phyllotaxis and galactic arms. At iteration $k$, each candidate $\mathbf{x}_k^{(j)}$ is updated toward the current best $\mathbf{x}^*$ via
 $$\mathbf{x}_{k+1}^{(j)} \;=\; \mathbf{x}^* \;+\; r \cdot R(\theta) \, \big(\mathbf{x}_k^{(j)} - \mathbf{x}^*\big),$$
@@ -238,7 +238,7 @@ where $R(\theta)$ is a $d$-dimensional rotation matrix with angle $\theta$, and 
 
 The left panel shows the trajectories of five candidates initialised in the four quadrants of a non-convex landscape. The amber star marks the current best (which happens to be the global minimum here). Each candidate spirals inward, sampling the loss along the way. The right panel makes the *exploration vs exploitation* trade-off explicit: the geometric envelope $r^k$ governs how fast the spiral collapses. A slow shrink ($r = 0.95$) keeps candidates wandering far from $\mathbf{x}^*$ for many iterations (more exploration), while a fast shrink ($r = 0.85$) collapses them quickly onto the incumbent (more exploitation).
 
-### 2 Why the spiral specifically?
+### Why the spiral specifically?
 
 Compared to other metaheuristics:
 
@@ -248,13 +248,13 @@ Compared to other metaheuristics:
 
 SOA's selling point is that the rotation $R(\theta)$ guarantees the candidate cycles around the incumbent (so it samples *different* directions deterministically), while the contraction $r$ guarantees eventual convergence. The exploration-exploitation balance reduces to a single hyperparameter: the spectral radius of $r R(\theta)$.
 
-### 3 Updating the incumbent
+### Updating the incumbent
 
 After each candidate is moved, the population is re-evaluated and $\mathbf{x}^*$ is updated to the best point seen so far. This is the only stochastic element in classical SOA: the initial sampling. Some variants (including the one in the paper) inject random perturbations on candidates that have stagnated, to escape the basin of the current incumbent.
 
 ## Constraint Handling
 
-### 1 Quadratic penalty
+### Quadratic penalty
 
 The paper handles all constraints with a quadratic penalty:
 $$\min_{\mathbf{y}, \mathbf{z}} \; F(\mathbf{y}, \mathbf{z}) = V(\mathbf{y}) + \rho \cdot P(\mathbf{y}, \mathbf{z}),$$
@@ -272,7 +272,7 @@ The integer constraint $z_i \in \{0,1\}$ is enforced by *rounding*: SOA searches
 
 The left panel shows what the penalty does on a 1-D weight slice: the raw variance $V(y)$ (grey dashed) has its minimum sitting in the infeasible region (purple dot, below the buy-in threshold). Adding $\rho \cdot P(y)$ produces sharp parabolic walls outside the feasible band $[l, u]$; the resulting penalised objective (solid blue) has its optimum pulled into the green strip (amber diamond). The right panel shows a 2-D feasibility map for two assets with cardinality $K=1$: only the green region is feasible. Crosses are infeasible candidates, dots are feasible ones.
 
-### 2 The penalty weight $\rho$ is subtle
+### The penalty weight $\rho$ is subtle
 
 This is the most-fiddled hyperparameter in metaheuristic-with-penalty literature, and it is genuinely tricky:
 
@@ -282,19 +282,19 @@ This is the most-fiddled hyperparameter in metaheuristic-with-penalty literature
 
 A more robust alternative is the *augmented Lagrangian* approach, which adapts $\rho$ over iterations based on observed violations. The paper does not use this, so re-tuning $\rho$ is part of the cost when porting the method to a new universe.
 
-### 3 Repair operators
+### Repair operators
 
 After each spiral update, candidates can drift outside the unit box. The paper applies a simple *repair*: clip $y_i$ to $[0, 1]$ and renormalise so $\mathbf{e}^\top \mathbf{y} = 1$. This is cheap and keeps every candidate trivially feasible with respect to the budget constraint, leaving only target return, buy-in, and cardinality to the penalty.
 
 ## Numerical Results
 
-### 1 The benchmark
+### The benchmark
 
 Following Bartholomew-Biggs and Kane (2009), the paper uses a five-asset universe with mean return vector
 $$\overline{\mathbf{r}} = (0.10, 0.13, 0.085, 0.155, 0.07)^\top$$
 and a $5 \times 5$ positive semidefinite covariance matrix (the precise values are in the paper). Target return $R_p = 0.05$, buy-in $l_i = 0.05$, cardinality $K = 5$ (all assets active), penalty $\rho = 10^4$, 50 iterations.
 
-### 2 Convergence comparison
+### Convergence comparison
 
 ![Convergence vs Quasi-Newton, DIRECT, and PSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig4_convergence.png)
 
@@ -304,7 +304,7 @@ Two things are worth noticing. First, the final values rank consistently with wh
 
 The catch: this is a five-asset problem. Every claim about SOA's relative ranking should be re-checked at scale.
 
-### 3 An out-of-sample backtest
+### An out-of-sample backtest
 
 To pressure-test the *portfolio* (not just the *solver*), I simulated three years of daily returns from the multivariate Gaussian implied by $\overline{\mathbf{r}}$ and $Q$ and compared three rules: equal weight, unconstrained mean-variance at target return 11%, and an SOA-MINLP-style portfolio (long-only, $K=3$, buy-in $0.10$).
 

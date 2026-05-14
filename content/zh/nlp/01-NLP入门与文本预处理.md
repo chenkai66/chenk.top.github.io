@@ -43,23 +43,23 @@ polished_by_qwen_max: true
 
 自然语言处理（NLP）的发展并非一帆风顺，而是经历了几次跳跃式突破。每一次飞跃都源于一种全新的语言表示方式。了解这段历史能帮你更精准地选择工具：在狭窄的表单填写任务中，规则系统依然优于神经网络；搜索排序的核心依然是统计方法；而嵌入表示则几乎横扫了其他所有领域。
 
-### 1 符号主义时代（1950 年代 — 1980 年代末）
+### 符号主义时代（1950 年代 — 1980 年代末）
 
 早期的研究者把语言当作逻辑问题来解决。例如，1966 年的 ELIZA 系统通过手工编写的正则表达式匹配用户输入，并对捕获的内容进行重组输出；1970 年的 SHRDLU 则借助手写文法解析“积木世界”中的指令。这些系统在其特定领域内表现得非常精确，但一旦超出范围就完全失效——一个同义词或拼写错误就能让它们崩溃。回头看，教训显而易见：人类语言的表面形式千变万化，靠人工枚举根本无法穷尽。
 
-### 2 统计革命（1990 年代）
+### 统计革命（1990 年代）
 
 真正的转折点在于一个简单却深刻的洞见：不用再费力编写规则，直接从数据中估计概率就行。最经典的例子是 bigram 模型：
 $$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$
 就是这么一个公式，撑起了 IBM 的统计机器翻译、第一代真正可用的语音识别系统，以及概率词性标注器。隐马尔可夫模型（HMM）将这套思想扩展到隐状态，概率上下文无关文法（PCFG）则进一步覆盖了句法分析。虽然特征仍然需要人工设计，但规则已经能够自动学习了。
 
-### 3 深度学习时代（2013 — 2016）
+### 深度学习时代（2013 — 2016）
 
 2013 年，Mikolov 等人提出的 Word2Vec 展示了一个令人惊叹的现象：训练一个小型神经网络预测上下文词，得到的词向量竟然自带“算术”能力——
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
 从此，词不再是孤立的标识符，而是住进了一个连续空间，相似度可以用余弦距离轻松计算。随后，RNN 和 LSTM 登场，让模型能够沿着序列传递上下文，终于学会了利用顺序信息，而不仅仅是依赖词袋统计。
 
-### 4 Transformer 革命（2017 — 至今）
+### Transformer 革命（2017 — 至今）
 
 2017 年，《Attention Is All You Need》用自注意力机制彻底取代了循环结构：
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
@@ -104,7 +104,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\r
 
 一个常见误区是认为预处理步骤越多越好，从而盲目套用全部流程。实际上，正确的思路是：每一步的目标是去掉那些下游任务无法处理的噪音，同时尽可能保留其他有用的信息。在后续的每个环节中，我们会反复探讨这种权衡的重要性。
 
-### 1 环境准备
+### 环境准备
 
 ```bash
 pip install nltk spacy scikit-learn matplotlib numpy pandas beautifulsoup4
@@ -168,7 +168,7 @@ text = BeautifulSoup(html_text, 'html.parser').get_text(' ', strip=True)
 
 ![同一输入的三种分词策略对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/01-NLP入门与文本预处理/fig4_tokenization_variants.png)
 
-### 1 单词级分词
+### 单词级分词
 
 ```python
 # 简单粗暴：遇到缩写和标点就出问题
@@ -183,7 +183,7 @@ tokens = word_tokenize("Dr. Smith earned $150,000 in 2023! Isn't that amazing?")
 
 NLTK 将 `Dr.` 视为一个整体 token，标点符号单独切分，而缩写 `Isn't` 被拆成 `Is` 和 `n't`。这些规则实际上是硬编码的英语语言习惯，这也正是为什么单词级分词在跨语言场景中显得非常脆弱。如果换成中文，我会更倾向于使用 jieba、THULAC 或 HanLP 这些基于词典或统计模型的工具。
 
-### 2 句子级分词
+### 句子级分词
 
 ```python
 from nltk.tokenize import sent_tokenize
@@ -194,7 +194,7 @@ sent_tokenize(text)
 
 NLTK 的 Punkt 模型通过数据学习哪些句号表示句子结束，哪些只是缩写的组成部分。
 
-### 3 子词分词（BPE）
+### 子词分词（BPE）
 
 现代模型如 GPT、BERT、Llama 和 Claude 都不再以单词为单位进行分词，而是采用**子词分词**，几乎都基于字节对编码（Byte-Pair Encoding，BPE）。其核心逻辑非常直观：
 
@@ -256,7 +256,7 @@ for step in range(5):
 
 标准化的目的是将同一个词的不同形式归一化为统一的表达，这样可以有效缩减词汇表规模，提升匹配效率。但需要注意的是，这一操作会损失部分语言信息，需结合具体任务谨慎权衡，不可盲目应用。
 
-### 1 转小写处理
+### 转小写处理
 
 ```python
 "Apple Inc. sells apples in APPLE stores".lower()
@@ -265,7 +265,7 @@ for step in range(5):
 
 将文本统一转为小写对搜索和主题建模任务非常有帮助。然而，这种做法可能会对命名实体识别造成干扰。例如，公司名 `Apple` 和水果名 `apple` 在小写后就无法区分了。此外，大小写通常用于表示强调的任务（如标题或专有名词）也会受到影响。
 
-### 2 词干提取与词形还原
+### 词干提取与词形还原
 
 **词干提取（stemming）** 是通过规则直接去掉词尾的一种方法，速度快但相对粗糙，有时还会产生错误结果：
 
@@ -333,7 +333,7 @@ filtered = [w for w in word_tokenize(text.lower()) if w not in stop_words]
 
 模型需要数字来工作。两个经典方法——词袋（Bag-of-Words）和 TF-IDF——依然是大多数检索系统的核心，也是任何新任务的基准。
 
-### 1 One-hot 表示 vs 分布式表示
+### One-hot 表示 vs 分布式表示
 
 在讲 BoW 之前，先看看为什么最简单的编码方式会失败。One-hot 编码给每个词分配一个唯一索引，对应位置是 1，其他全是 0。任意两个词的向量都是正交的，这意味着这种编码完全无法表达词与词之间的相似性。
 
@@ -341,7 +341,7 @@ filtered = [w for w in word_tokenize(text.lower()) if w not in stop_words]
 
 分布式表示——我们会在第二篇里训练——把意义压缩到稠密向量中，相关词彼此靠近。BoW 和 TF-IDF 是中间状态：每个词仍然独占一个维度，但填的是频率，而不是简单的标记。
 
-### 2 词袋模型
+### 词袋模型
 
 把每篇文档表示成词频向量，忽略顺序：
 
@@ -369,7 +369,7 @@ print(pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out()))
 
 致命缺陷：`dog bites man` 和 `man bites dog` 的向量一模一样。词袋模型完全丢掉了顺序。
 
-### 3 TF-IDF
+### TF-IDF
 
 TF-IDF 给那些“在本文档中频繁、在整个语料中罕见”的词加权——这是个简单但有效的启发式规则：“对当前文档重要，但不是通用词”。
 $$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$

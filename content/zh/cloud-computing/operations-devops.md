@@ -46,7 +46,7 @@ polished_by_qwen_max: true
 
 现代 CI/CD 流水线远不止是“自动化”那么简单。它是代码进入生产的**唯一合法通道**，也因此成为每次发布的权威记录：谁发布了什么内容？哪些测试通过了？基于哪个基础设施版本？上线后发生了什么？整个运维体系都以此为主干延伸展开。
 
-### 1 八个关键阶段
+### 八个关键阶段
 | 阶段 | 目的 | 常见失效模式 |
 |------|------|--------------|
 | Commit | 由代码推送或合并触发流水线 | 无失败可能——仅作为事件源 |
@@ -58,7 +58,7 @@ polished_by_qwen_max: true
 | 部署到 Prod | 金丝雀发布 → 逐步扩大流量 | 一次性全量发布；缺乏自动回滚机制 |
 | 验证 | 发布后检查 SLO 是否达标 | 依赖人工“肉眼”观察，未量化验证 |
 
-### 2 一份真实的 GitHub Actions 流水线
+### 一份真实的 GitHub Actions 流水线
 
 ```yaml
 name: deploy
@@ -189,7 +189,7 @@ jobs:
 第二，**生产环境部署需人工审批**——Staging 验证成功后，必须由负责人手动确认才能推进至生产部署，形成关键的人为闸口。  
 第三，**金丝雀发布具备自动回滚能力**——若新版本在前 5 分钟内错误率超过 1%，系统将立即终止流量导入并自动回退至旧版本，无需等待工程师从睡梦中醒来。
 
-### 3 不同部署策略对比
+### 不同部署策略对比
 
 并非所有服务都适合金丝雀发布。选择哪种策略，取决于流量规模、回滚成本以及检测异常发布的能力。
 
@@ -212,7 +212,7 @@ jobs:
 
 基础设施即代码（IaC）意味着生产环境完全由版本受控的代码文件定义，而非依赖某位工程师上周二在控制台点击出的临时状态。Terraform 是目前最主流的 IaC 工具，因为它支持多云厂商、采用声明式语法，并提供关键的预览步骤（`plan`），可在任何变更实际发生前清晰展示“将要创建、修改或销毁哪些资源”。
 
-### 1 核心工作流
+### 核心工作流
 
 ```text
 terraform init      # 下载 Provider 插件，配置远程后端
@@ -229,7 +229,7 @@ terraform show -no-color tfplan > plan.txt
 terraform apply -input=false tfplan
 ```
 
-### 2 状态管理（State Management）
+### 状态管理（State Management）
 
 Terraform 的状态文件（`terraform.tfstate`）是连接 HCL 代码与云上真实资源的唯一映射。一旦状态管理出错，就会引发环境漂移、并发冲突，甚至误删关键基础设施。
 
@@ -254,7 +254,7 @@ terraform {
 ```  
 `plan` 是关键一步。它提前告诉你变更内容。Code review 看的是 plan 输出，不只是 HCL。
 
-### 3 完整的生产级模块
+### 完整的生产级模块
 
 模块是可复用、可测试的基础设施单元。设计良好的模块应封装一种服务模式，使团队在使用时无需了解底层实现细节。
 
@@ -306,7 +306,7 @@ resource "aws_ecs_service" "this" {
 }
 ```
 
-### 4 漂移检测
+### 漂移检测
 
 即使采用基础设施即代码（IaC），实际环境仍可能与代码定义发生偏离：例如，有人为快速修复线上故障而直接在控制台操作，却忘了将变更同步回代码；又或配置被手动覆盖而未走 CI/CD 流水线。定期执行漂移检查，可在问题累积前及时发现并干预。
 
@@ -341,7 +341,7 @@ done
 
 任何生产系统都离不开可观测性的三大支柱：**指标（Metrics）**（随时间变化的数值）、**日志（Logs）**（带上下文的事件）和 **链路追踪（Traces）**（跨服务的请求路径）。本节聚焦指标监控；日志部分将在下一节展开。
 
-### 1 Prometheus 的拉取模型（Scrape Model）
+### Prometheus 的拉取模型（Scrape Model）
 
 Prometheus 采用主动**拉取（Pull）**方式从目标服务采集指标，而非依赖服务主动推送（Push）。该模型具备两大优势：  
 - 支持多实例拉取同一目标，天然适配高可用（HA）部署；  
@@ -383,7 +383,7 @@ scrape_configs:
         replacement: $2:$1
 ```
 
-### 2 四大黄金信号（Golden Signals，使用 PromQL 表达）
+### 四大黄金信号（Golden Signals，使用 PromQL 表达）
 
 Google SRE 手册提出，每个服务都应持续关注以下四个核心指标——即“四大黄金信号”。Prometheus 可通过简洁的 PromQL 快速实现：
 
@@ -394,7 +394,7 @@ Google SRE 手册提出，每个服务都应持续关注以下四个核心指标
 | **错误（Errors）** | 失败请求占总请求的比例 | `sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))` |
 | **饱和度（Saturation）** | 服务资源使用程度（如内存/CPU 占比） | `container_memory_working_set_bytes / container_spec_memory_limit_bytes` |
 
-### 3 应用程序埋点（Instrumentation）
+### 应用程序埋点（Instrumentation）
 
 每个服务需暴露 `/metrics` 接口供 Prometheus 抓取。以 Go 为例，只需少量代码即可完成基础埋点：
 
@@ -453,7 +453,7 @@ func main() {
 
 Google SRE 把可观测性归结到四个信号——延迟、流量、错误、饱和度。覆盖这四个，你就能回答：服务慢吗、忙吗、坏了吗、满了吗。Prometheus 用 PromQL 表达它们都是几行的事。
 
-### 4 不无故打扰人的告警规则
+### 不无故打扰人的告警规则
 
 目标是：零误报告警。每一次触发的告警，都必须需要人工介入；否则，它就该是一个仪表盘面板，而不是一条告警（page）。
 
@@ -518,7 +518,7 @@ groups:
 
 Google SRE 手册中提出的「多时间窗口 + 多燃烧速率」告警模式，是你能对告警系统做出的最重要改进。它不再简单地监控「错误率 > 1%」这类易受瞬时抖动干扰的阈值，而是聚焦于「错误预算的实际消耗速率」。例如：2% 的错误率持续 30 秒，对月度错误预算几乎毫无影响；但 0.5% 的错误率若持续 3 天，则足以彻底耗尽整个月的预算。燃烧速率模型能同时捕获这两种关键场景。
 
-### 5 Alertmanager 路由配置
+### Alertmanager 路由配置
 
 ```yaml
 # alertmanager.yml
@@ -568,7 +568,7 @@ receivers:
 
 指标告诉你**出了问题**，日志则告诉你**为什么出问题**。一个集中式日志栈会从所有服务中采集、处理、索引并长期保留日志，统一存入一个可全文检索的存储中心。
 
-### 1 架构概览
+### 架构概览
 
 当前主流的两种日志栈是 **ELK**（Elasticsearch、Logstash、Kibana）和 **EFK**（Elasticsearch、Fluentd / Fluent Bit、Kibana）。二者核心区别在于日志采集器（shipper）：  
 - Logstash 基于 JVM，功能强大但资源开销大；  
@@ -586,7 +586,7 @@ receivers:
                   +------------+
 ```
 
-### 2 结构化日志
+### 结构化日志
 
 提升日志可检索性的最关键实践，就是**统一使用 JSON 格式输出日志**。结构化日志是一条可直接查询的文档；而非结构化日志只是一段字符串，必须依赖正则表达式解析，效率低且不可靠。
 
@@ -649,7 +649,7 @@ def handle_request(request):
 
 应用 stdout → Fluent Bit DaemonSet → （可选）Kafka 缓冲 → （可选）Logstash 富化 → Elasticsearch → Kibana 查询。每多一跳就多一份延迟，但也多一份韧性。规模小时可以省掉 Kafka 和 Logstash，等日志量超过采集器再加。
 
-### 3 Kubernetes 中的 Fluent Bit 配置
+### Kubernetes 中的 Fluent Bit 配置
 
 ```ini
 # fluent-bit.conf
@@ -698,7 +698,7 @@ def handle_request(request):
     tls.verify      On
 ```
 
-### 4 日志保留分层策略
+### 日志保留分层策略
 
 日志的存储与索引成本较高，采用分层策略可在可检索性与成本之间取得平衡。
 
@@ -748,7 +748,7 @@ def handle_request(request):
 
 自动伸缩听起来很简单：负载升高时扩容，负载下降时缩容。但在实际落地中，要真正做好，需要选对伸缩信号、调优响应速度，并避免反复震荡（flapping）。
 
-### 1 伸缩信号选择
+### 伸缩信号选择
 
 | 信号 | 适用场景 | 注意事项 |
 |------|----------|-----------|
@@ -758,7 +758,7 @@ def handle_request(request):
 | **队列深度** | 异步工作节点、批处理任务 | 应基于 *队列增长速率* 而非绝对深度触发伸缩 |
 | **自定义业务指标** | 当上述指标均无法反映真实用户体验时（如支付成功率、首屏加载时长） | 需投入可观的埋点与监控体系建设成本 |
 
-### 2 基于自定义指标的 Kubernetes HPA 配置
+### 基于自定义指标的 Kubernetes HPA 配置
 
 ```yaml
 apiVersion: autoscaling/v2
@@ -805,7 +805,7 @@ spec:
 - **快速扩容**（60 秒内翻倍）可及时应对突发流量，保障用户体验；  
 - **保守缩容**（5 分钟冷静期 + 每分钟最多缩 10%）则有效规避“锯齿震荡”——即因过度缩容导致 CPU 突升、触发再次扩容、继而反复循环的问题。
 
-### 3 预测式伸缩（Predictive Scaling）
+### 预测式伸缩（Predictive Scaling）
 
 对于具备明显周期性规律的工作负载（例如每日正午流量高峰的电商网站），纯响应式伸缩总是滞后的：等 CPU 达到 70% 时，用户早已感知到延迟。AWS 的预测式伸缩（Predictive Scaling）和 GCP 的定时伸缩（Scheduled Scaling）正是为此而生：
 
@@ -838,7 +838,7 @@ aws autoscaling put-scaling-policy \
 
 云账单总会让人措手不及。好消息是：大多数云账单中 30–50% 的费用，无需修改一行应用代码即可削减——关键在于资源规格调优、启停调度和承诺型购买。
 
-### 1 成本优化优先级金字塔
+### 成本优化优先级金字塔
 
 自上而下逐层推进；越靠上的层级，收益越高、实施难度越低：
 
@@ -849,7 +849,7 @@ aws autoscaling put-scaling-policy \
 5. **对稳态生产负载采用预留实例（RI）或 Savings Plans**：1 年期“零预付”承诺即可节省 30–40%，风险极低。
 6. **存储分层归档**：将访问频次低的数据迁移至更经济的存储层（如 S3 IA、Glacier、Archive）。
 
-### 2 自动化成本管控脚本
+### 自动化成本管控脚本
 
 ```bash
 # shutdown-nonprod.sh —— cron: 0 19 * * 1-5（工作日每晚 7 点）
@@ -895,7 +895,7 @@ done
 echo "非生产环境已启动，时间：$(date)"
 ```
 
-### 3 成本分摊标签策略
+### 成本分摊标签策略
 
 标签是唯一能将云支出精准归属到团队的方式。没有标签，月度账单只是一串无法归因、无法追责的数字。
 
@@ -934,7 +934,7 @@ echo "非生产环境已启动，时间：$(date)"
 
 站点可靠性工程（SRE）是一种将运维工作视为软件工程问题的实践方法。其核心工具包括服务等级目标（SLO）、错误预算（Error Budget）和无指责复盘（Blameless Postmortem）。
 
-### 1 SLI、SLO 与错误预算
+### SLI、SLO 与错误预算
 
 - **SLI**（Service Level Indicator，服务等级指标）：对服务行为的量化度量。例如：“300 毫秒内完成的请求占比。”  
 - **SLO**（Service Level Objective，服务等级目标）：SLI 的目标值。例如：“滚动 30 天窗口内，99.9% 的请求在 300 毫秒内完成。”  
@@ -965,7 +965,7 @@ echo "非生产环境已启动，时间：$(date)"
     )
 ```
 
-### 2 值班机制与升级流程
+### 值班机制与升级流程
 
 一个健康的值班轮值机制应具备以下特征：
 
@@ -982,7 +982,7 @@ echo "非生产环境已启动，时间：$(date)"
 
 错误预算是管理工具，不只是指标。预算充足时团队放手发版；预算见底时冻结新功能、专攻稳定性。把『快 vs. 稳』的争论换成一个所有人都看得到的数字。
 
-### 3 无指责复盘（Blameless Postmortem）
+### 无指责复盘（Blameless Postmortem）
 
 将事故归咎于某个人的复盘，只会教会其他人如何掩盖自己的错误。以下为无指责复盘（Blameless Postmortem）模板：
 
@@ -1041,7 +1041,7 @@ echo "非生产环境已启动，时间：$(date)"
 
 GitOps 删掉了一类能力（直接 `kubectl apply`），也删掉了一类错误。集群自动 reconcile 到配置仓库的内容，改集群的唯一方法是改 Git。
 
-### 1 ArgoCD Application 清单
+### ArgoCD Application 清单
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -1072,7 +1072,7 @@ spec:
 - **Staging 和 Prod 差异** = `git diff`。
 - **灾难恢复** = “新集群指向同一个仓库，ArgoCD 自动同步”。
 
-### 2 GitOps 仓库结构
+### GitOps 仓库结构
 
 ```text
 k8s-config/
@@ -1106,7 +1106,7 @@ k8s-config/
 
 该基于 Kustomize 的目录结构实现了「一次定义、多处复用」：通用配置集中在 `base/`，环境差异化通过 `overlays/` 中的补丁实现。任何修改 `apps/web/overlays/production/` 的 PR 都属于生产变更，需接受与应用代码同等严格的设计评审与代码审查。
 
-### 3 GitOps 与传统 CI/CD 对比
+### GitOps 与传统 CI/CD 对比
 
 | 维度 | 传统 CI/CD | GitOps |
 |------|-------------|--------|
@@ -1123,7 +1123,7 @@ k8s-config/
 
 每位运维工程师都需要一套应对凌晨三点告警的快速决策流程。以下是一套经过实战验证的实用方法。
 
-### 1 黄金五分钟响应流程
+### 黄金五分钟响应流程
 
 ```bash
 # 1. 具体现象是什么？先看仪表盘。
@@ -1148,7 +1148,7 @@ ss -tlnp                        # 监听端口与连接数
 kubectl logs -l app=web -n production --tail=100 --since=5m
 ```
 
-### 2 常见故障模式速查表
+### 常见故障模式速查表
 
 | 现象 | 最可能原因 | 排查方式 | 解决方案 |
 |------|-------------|-----------|-----------|
@@ -1159,7 +1159,7 @@ kubectl logs -l app=web -n production --tail=100 --since=5m
 | 节点状态为 NotReady | 磁盘压力、网络中断、kubelet 崩溃 | `kubectl describe node`，`journalctl -u kubelet` | 驱逐节点负载并替换节点 |
 | DNS 解析失败 | CoreDNS 过载或配置异常 | `kubectl logs -l k8s-app=kube-dns -n kube-system` | 扩容 CoreDNS 实例，检查 `ndots` 配置 |
 
-### 3 数据库故障排查清单
+### 数据库故障排查清单
 
 ```bash
 # PostgreSQL：当前正在执行的慢查询（>5 秒）

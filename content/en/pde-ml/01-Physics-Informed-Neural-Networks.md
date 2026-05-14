@@ -46,7 +46,7 @@ This chapter proceeds as follows: §2 quantifies the pain points of classical me
 
 ## Classical numerical methods: mature, with edges
 
-### 1 Finite differences — intuition at the price of stability
+### Finite differences — intuition at the price of stability
 
 Consider the 1-D heat equation
 $$u_t=\nu u_{xx},\qquad x\in(0,1),\ t>0,$$
@@ -56,7 +56,7 @@ A **Von Neumann analysis** yields the stability condition $\tau\le h^2/(2\nu)$ �
 
 **Bottom line.** FDM has a clean global error of $O(\tau+h^2)$ guaranteed by Lax equivalence. It is unbeatable on structured grids and **completely helpless on irregular geometries.**
 
-### 2 Finite elements — weak forms and the Ritz functional
+### Finite elements — weak forms and the Ritz functional
 
 The weak form of $-\Delta u=f$: find $u\in H_0^1(\Omega)$ such that
 $$
@@ -67,7 +67,7 @@ This is **equivalent** to minimising the Dirichlet energy $J(u)=\tfrac12 a(u,u)-
 
 Céa's lemma supplies the optimal error bound $\|u-u_h\|_{H^1}\le Ch^k\|u\|_{H^{k+1}}$. **FEM's strengths** are textbook: convergence proofs, error control, adaptive mesh refinement. **The weakness**, again, is the mesh — moving boundaries, porous media and high-dimensional parameter spaces are all hard.
 
-### 3 What PINNs are trying to disrupt
+### What PINNs are trying to disrupt
 
 Stitching §2.1 and §2.2 together, the shared cost of classical methods is:
 
@@ -86,7 +86,7 @@ PINNs aim at the last three rows simultaneously: **mesh-free, dimension-friendly
 
 ## The minimal complete definition of a PINN
 
-### 1 The mathematical statement
+### The mathematical statement
 
 Consider a generic PDE
 $$
@@ -107,7 +107,7 @@ The last term $\mathcal L_d$ is absent in **forward problems** but central to **
 ![Three loss components and a balanced-weighting comparison.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig2_loss_decomposition.png)
 *Figure 2. Left: with naive equal weights the PDE residual decays quickly while the boundary loss stalls — the network produces what aerodynamicists jokingly call "physics-respecting noise". Right: after NTK-balanced adaptive weighting the three curves descend together — this is what healthy PINN training looks like.*
 
-### 2 Why automatic differentiation matters
+### Why automatic differentiation matters
 
 Naive numerical differentiation,
 $$\partial_x u\approx\frac{u(x+\varepsilon)-u(x-\varepsilon)}{2\varepsilon},$$
@@ -126,7 +126,7 @@ def heat_residual(model, x, t, nu=0.1):
 
 The flag `create_graph=True` keeps the derivative itself in the computation graph, so that `loss = (residual**2).mean()` propagates back to $\nabla_\theta$ correctly.
 
-### 3 Isomorphism with the Ritz method
+### Isomorphism with the Ritz method
 
 Lifting to the abstract level:
 
@@ -140,7 +140,7 @@ Two differences:
 
 Read this way, PINNs are not exotic: they are **"Ritz with the finite-dimensional subspace replaced by a neural network."** The Deep Ritz method [^deepritz] makes this explicit by minimising the energy functional directly rather than the squared residual — better behaved on elliptic problems.
 
-### 4 Convergence: yes, but weak
+### Convergence: yes, but weak
 
 Shin, Darbon and Karniadakis (2020) [^shin2020] proved asymptotic convergence for linear second-order elliptic PDEs: as $N_r\to\infty$, network width $\to\infty$, and $\mathcal L\to 0$, $u_\theta\to u^\star$ in $L^2$. **There is no quantitative rate** like FEM's $O(h^k)$ — the most honest gap between PINNs and classical methods. Subsequent work has supplied Sobolev-norm bounds under restrictive assumptions, but engineering-grade *a priori* convergence orders remain out of reach.
 
@@ -152,7 +152,7 @@ Shin, Darbon and Karniadakis (2020) [^shin2020] proved asymptotic convergence fo
 
 Anyone who has run a PINN has seen the loss drop from 1 to 0.01 and then refuse to move, or seen boundary conditions fail outright. Three diagnoses follow, with engineering fixes for each.
 
-### 1 Pathology A: imbalanced loss terms (gradient pathology)
+### Pathology A: imbalanced loss terms (gradient pathology)
 
 Wang & Perdikaris (2021) [^wang2021] used backprop gradient statistics to expose a universal phenomenon: **$\nabla_\theta\mathcal L_r$ is several orders of magnitude larger than $\nabla_\theta\mathcal L_b$.** Plain Adam follows the dominant gradient, the boundary loss is drowned out, and the network "satisfies the PDE wonderfully in the interior but has no idea what the boundary looks like."
 
@@ -172,7 +172,7 @@ where $B$ satisfies the boundary by construction and $\tilde u_\theta$ is uncons
 
 **Fix 3: NTK balancing.** Wang–Yu–Perdikaris (2022) [^wang2022ntk] proved PINN training dynamics are governed by three Neural Tangent Kernels; weighting by the trace of each NTK is the principled choice.
 
-### 2 Pathology B: spectral bias
+### Pathology B: spectral bias
 
 Neural network training has a well-known bias: **low frequencies are learned first, high frequencies last** (Rahaman 2019; Tancik 2020). For PINNs the impact is especially severe because the PDE residual involves second derivatives, which amplify high-frequency error by $k^2$ — the worse the network is at high frequencies, the larger the residual, in a vicious circle.
 
@@ -181,7 +181,7 @@ Neural network training has a well-known bias: **low frequencies are learned fir
 - **Fourier features**: map $x$ first to $[\sin(2\pi Bx),\cos(2\pi Bx)]$ with a Gaussian random matrix $B$; this flattens the NTK spectrum.
 - **Sine activations** (SIREN [^siren]): naturally distribute energy across the frequency domain, but require careful initialisation.
 
-### 3 Pathology C: violation of causality
+### Pathology C: violation of causality
 
 Time-dependent PDEs respect "the past determines the future". But PINNs sample $\Omega\times[0,T]$ *all at once*, asking the network to fit $t=T$ before $t<T$ has been learned correctly. Krishnapriyan et al. (2021) [^krish2021] coined this *failure mode* on the convection equation.
 
@@ -189,7 +189,7 @@ Time-dependent PDEs respect "the past determines the future". But PINNs sample $
 $$w_n=\exp\bigl(-\varepsilon\sum_{k<n}\mathcal L_r(t_k)\bigr).$$
 Late-time residuals are admitted into the loss only after early-time residuals have decayed.
 
-### 4 Convergence comparison
+### Convergence comparison
 
 Combining the fixes on a Burgers experiment:
 
@@ -200,7 +200,7 @@ Combining the fixes on a Burgers experiment:
 
 ## Experiment: Burgers and an inverse problem
 
-### 1 Forward problem: the Burgers shock
+### Forward problem: the Burgers shock
 
 Consider
 $$
@@ -219,7 +219,7 @@ The reference solution is obtained via the Cole–Hopf transform $u=-2\nu(\ln\ph
 3. Run Adam at 1e-3 for 20k steps to settle, then switch to L-BFGS for 5k more to polish.
 4. **Normalise.** Map $(x,t)$ to $[-1,1]$ — otherwise the NTK is biased.
 
-### 2 Inverse problem: parameter discovery
+### Inverse problem: parameter discovery
 
 Forward problems are unremarkable; inverse problems are where PINNs shine. Append $\mathcal L_d$ to fit sparse observations and treat the unknown PDE parameter $\nu$ as a learnable scalar that joins the gradient descent.
 

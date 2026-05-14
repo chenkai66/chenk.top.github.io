@@ -109,7 +109,7 @@ No memorised formula required — just "three copies of column 1 plus two copies
 
 To build intuition, we will look at five transformations the same way: keep the original unit grid on the left, draw the deformed grid on the right, and mark $\hat{\imath}$ in **blue**, $\hat{\jmath}$ in **purple**. The unit square (in green) shows what happens to area.
 
-### 1 Rotation
+### Rotation
 
 Track $\hat{\imath}$ around the unit circle: at angle $\theta$ counter-clockwise it lands at $(\cos\theta, \sin\theta)$. Similarly $\hat{\jmath}$ goes from angle $90^{\circ}$ to $90^{\circ} + \theta$, landing at $(-\sin\theta, \cos\theta)$. Stack them as columns:
 $$R_{\theta} = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}.$$
@@ -125,7 +125,7 @@ A few special angles worth memorising:
 
 **Game programming aside.** Every "turn left" key press in a 2D game multiplies the player's facing vector by $R_{\Delta\theta}$. Rotations preserve length and angle, so the character does not stretch when it spins.
 
-### 2 Scaling
+### Scaling
 
 To stretch by $s_{x}$ along $x$ and $s_{y}$ along $y$, just send $\hat{\imath} \mapsto (s_{x}, 0)$ and $\hat{\jmath} \mapsto (0, s_{y})$:
 $$S = \begin{pmatrix} s_{x} & 0 \\ 0 & s_{y} \end{pmatrix}.$$
@@ -135,7 +135,7 @@ The unit square turns into an $s_{x} \times s_{y}$ rectangle, so its area is mul
 
 Resizing an image in Photoshop is exactly this: every pixel coordinate is multiplied by a diagonal $S$.
 
-### 3 Shear
+### Shear
 
 A horizontal shear sends $\hat{\imath} \mapsto (1, 0)$ unchanged and $\hat{\jmath} \mapsto (k, 1)$ — it slides the top of the unit square sideways:
 $$H = \begin{pmatrix} 1 & k \\ 0 & 1 \end{pmatrix}.$$
@@ -145,7 +145,7 @@ The new $x$ coordinate is $x + ky$, so the higher up a point sits, the more it s
 
 Notice that $\det H = 1$: shears never change area, even though they distort shape dramatically.
 
-### 4 Reflection
+### Reflection
 
 Reflection flips one coordinate. The matrix is again "where do the basis vectors land?":
 
@@ -158,7 +158,7 @@ Reflection flips one coordinate. The matrix is again "where do the basis vectors
 
 A reflection has $\det = -1$: area is preserved, but orientation is reversed (right-handed becomes left-handed). That sign is what distinguishes a reflection from a rotation.
 
-### 5 Projection
+### Projection
 
 Projection onto the $x$-axis sends $\hat{\imath} \mapsto (1, 0)$ and crushes $\hat{\jmath} \mapsto (0, 0)$:
 $$P_{x} = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}.$$

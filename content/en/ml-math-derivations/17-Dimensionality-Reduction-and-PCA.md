@@ -42,7 +42,7 @@ Feed a clustering algorithm $10{,}000$-dimensional data and it will most likely 
 
 ## The Curse of Dimensionality
 
-### 1 Two phenomena that break intuition
+### Two phenomena that break intuition
 
 **Volume concentrates near the surface.** The volume of a $d$-dimensional unit hyperball is
 $$V_d = \frac{\pi^{d/2}}{\Gamma(d/2 + 1)}$$
@@ -54,7 +54,7 @@ For $d=100$ only about $36.6\%$ of the volume is inside that inner ball; for $d=
 $$\frac{\max_{i \ne j}\|\mathbf{x}_i - \mathbf{x}_j\|}{\min_{i \ne j}\|\mathbf{x}_i - \mathbf{x}_j\|} \xrightarrow{d \to \infty} 1.$$
 When every point is roughly equidistant from every other, $k$-NN, kernel density, and clustering algorithms lose their grip. This is why preprocessing high-dimensional data through a learned low-dimensional representation is so often the single most useful step in a pipeline.
 
-### 2 What dimensionality reduction is for
+### What dimensionality reduction is for
 
 - **Feature extraction.** Strip out redundant directions to denoise, speed up downstream computation, and shrink storage.
 - **Visualisation.** Project to $2$D or $3$D so a human can look at the cluster structure.
@@ -74,14 +74,14 @@ We can categorise the methods we will study:
 
 ## PCA: the Maximum-Variance Derivation
 
-### 1 Setup
+### Setup
 
 Given data $\{\mathbf{x}_1, \dots, \mathbf{x}_N\}$ with each $\mathbf{x}_i \in \mathbb{R}^d$, **centre** them by subtracting the sample mean $\bar{\mathbf{x}} = \tfrac{1}{N}\sum_i \mathbf{x}_i$. We will assume $\bar{\mathbf{x}} = \mathbf{0}$ from here on. Stack the samples as rows of $\mathbf{X} \in \mathbb{R}^{N \times d}$; the **sample covariance** is then
 $$\mathbf{S} = \frac{1}{N} \mathbf{X}^\top \mathbf{X} \in \mathbb{R}^{d \times d}.$$
 
 $\mathbf{S}$ is symmetric and positive semidefinite, so by the spectral theorem it has an orthonormal eigenbasis with non-negative eigenvalues.
 
-### 2 The first principal component
+### The first principal component
 
 Look for the unit direction $\mathbf{w}_1 \in \mathbb{R}^d$ along which the projected data has the largest variance. The projections are scalars $z_i = \mathbf{w}_1^\top \mathbf{x}_i$ and (since the data is centred) their variance is
 $$\mathrm{Var}(z) = \frac{1}{N}\sum_{i=1}^{N} (\mathbf{w}_1^\top \mathbf{x}_i)^2 = \mathbf{w}_1^\top \mathbf{S}\, \mathbf{w}_1.$$
@@ -95,13 +95,13 @@ and the projected variance is exactly $\mathbf{w}_1^\top \mathbf{S}\, \mathbf{w}
 
 The figure makes the geometry concrete on a correlated $2$D Gaussian cloud. In panel (a) the orange arrow (PC1) is the direction of maximum spread of the data; the green arrow (PC2) is orthogonal to it and absorbs whatever variance remains. The two ellipses are the $1\sigma$ and $2\sigma$ contours of the empirical Gaussian. Panel (b) shows the same points after the rigid rotation $\mathbf{z}_i = \mathbf{W}^\top \mathbf{x}_i$: PC1 becomes the horizontal axis, PC2 the vertical axis, and the data is now decorrelated — its empirical covariance is the diagonal matrix $\mathrm{diag}(\lambda_1, \lambda_2)$. PCA is, geometrically, just **the rotation that aligns the coordinate axes with the data's principal axes**.
 
-### 3 The full set of principal components
+### The full set of principal components
 
 Repeating the argument while requiring orthogonality to previously chosen directions gives the rest: the top $k$ principal components are the eigenvectors $\mathbf{w}_1, \dots, \mathbf{w}_k$ of $\mathbf{S}$ ordered by $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_k$. Stack them into the projection matrix
 $$\mathbf{W}_k = [\mathbf{w}_1, \dots, \mathbf{w}_k] \in \mathbb{R}^{d \times k},$$
 and the reduced representation of $\mathbf{x}_i$ is $\mathbf{z}_i = \mathbf{W}_k^\top \mathbf{x}_i \in \mathbb{R}^k$.
 
-### 4 Choosing $k$ in practice
+### Choosing $k$ in practice
 
 Two graphical tools cover almost all use cases.
 
@@ -150,11 +150,11 @@ The figure shows what (3) means visually on the digits dataset. The MSE curve fa
 
 ## Kernel PCA: Nonlinear Structure via the Kernel Trick
 
-### 1 Where linear PCA fails
+### Where linear PCA fails
 
 Linear PCA can only ever rotate and project; it cannot bend. If the data lies on a curved manifold — two concentric circles, a Swiss roll, a sphere — then no linear projection can preserve its structure.
 
-### 2 PCA in feature space
+### PCA in feature space
 
 Apply the [kernel trick](/en/ml-math-derivations/08-support-vector-machines): map each point through a feature map $\phi: \mathbb{R}^d \to \mathcal{H}$ into a (possibly infinite-dimensional) feature space, and do PCA there. We never form $\phi$ explicitly; we only need inner products
 $$k(\mathbf{x}_i, \mathbf{x}_j) = \phi(\mathbf{x}_i)^\top \phi(\mathbf{x}_j).$$
@@ -178,7 +178,7 @@ The Swiss roll is the canonical illustration. The original $3$D manifold is a $2
 
 PCA ignores labels. If your downstream task is classification, this is wasteful: a direction can have huge variance and yet be perfectly useless for separating classes (and conversely, a tiny-variance direction can be a perfect class separator). **Linear Discriminant Analysis** uses the labels to find directions that maximise *class* spread relative to *within-class* spread.
 
-### 1 Two-class derivation
+### Two-class derivation
 
 With two classes $C_1, C_2$ of sizes $N_1, N_2$ and class means $\boldsymbol{\mu}_1, \boldsymbol{\mu}_2$, define
 $$\mathbf{S}_B = (\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2)^\top \quad \text{(between-class scatter)}$$$$\mathbf{S}_W = \sum_{c=1}^{2} \sum_{i \in C_c}(\mathbf{x}_i - \boldsymbol{\mu}_c)(\mathbf{x}_i - \boldsymbol{\mu}_c)^\top \quad \text{(within-class scatter)}$$
@@ -186,13 +186,13 @@ Maximise **Fisher's criterion** — the ratio of the projected between-class to 
 $$J(\mathbf{w}) = \frac{\mathbf{w}^\top \mathbf{S}_B\, \mathbf{w}}{\mathbf{w}^\top \mathbf{S}_W\, \mathbf{w}}. \tag{4}$$
 Setting $\nabla J = 0$ gives the generalised eigenvalue problem $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$; using the rank-$1$ structure of $\mathbf{S}_B$ this collapses to the closed form
 $$\mathbf{w}^* \propto \mathbf{S}_W^{-1}(\boldsymbol{\mu}_1 - \boldsymbol{\mu}_2). \tag{5}$$
-### 2 Multi-class
+### Multi-class
 
 For $C$ classes, generalise $\mathbf{S}_B$ with the global mean $\boldsymbol{\mu}$:
 $$\mathbf{S}_B = \sum_{c=1}^{C} N_c\, (\boldsymbol{\mu}_c - \boldsymbol{\mu})(\boldsymbol{\mu}_c - \boldsymbol{\mu})^\top.$$
 Solve $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$ for the top eigenvectors. Because $\mathbf{S}_B$ is a sum of $C$ rank-$1$ matrices whose summands are constrained by $\sum_c N_c (\boldsymbol{\mu}_c - \boldsymbol{\mu}) = 0$, $\mathrm{rank}(\mathbf{S}_B) \le C - 1$ — so **LDA can output at most $C - 1$ components**. This is a hard ceiling that is easy to forget in practice.
 
-### 3 PCA vs LDA at a glance
+### PCA vs LDA at a glance
 
 | Aspect | PCA | LDA |
 | --- | --- | --- |
@@ -209,19 +209,19 @@ Solve $\mathbf{S}_B \mathbf{w} = \lambda\, \mathbf{S}_W \mathbf{w}$ for the top 
 
 PCA preserves *global* structure (variance, distances); for $2$D visualisation that is often the wrong objective. A user looking at a scatter plot wants to see **clusters** — which usually means preserving local neighbourhoods. **t-SNE** does exactly this with a probabilistic formulation.
 
-### 1 High-dimensional similarities
+### High-dimensional similarities
 
 For each pair $(i, j)$ define a symmetric similarity from per-point Gaussians:
 $$p_{j \mid i} = \frac{\exp(-\|\mathbf{x}_i - \mathbf{x}_j\|^2 / 2\sigma_i^2)}{\sum_{k \ne i} \exp(-\|\mathbf{x}_i - \mathbf{x}_k\|^2 / 2\sigma_i^2)}, \qquad p_{ij} = \frac{p_{j \mid i} + p_{i \mid j}}{2N}.$$
 The bandwidth $\sigma_i$ is set per point by binary search so that the **perplexity**, $2^{H(P_i)}$, matches a user-chosen value — effectively the number of effective neighbours each point should have.
 
-### 2 Low-dimensional similarities and the heavy tail
+### Low-dimensional similarities and the heavy tail
 
 In the embedding space use a Student-$t$ (Cauchy) kernel:
 $$q_{ij} = \frac{(1 + \|\mathbf{y}_i - \mathbf{y}_j\|^2)^{-1}}{\sum_{k \ne l}(1 + \|\mathbf{y}_k - \mathbf{y}_l\|^2)^{-1}}. \tag{6}$$
 Why a heavy tail? In $2$D there is far less "room" than in the original space, so moderately distant points have to crowd together. The Cauchy distribution decays as $\|y\|^{-2}$ instead of the Gaussian's $\exp(-\|y\|^2)$, which gives those distant points more space to spread out — this is the **crowding problem** fix.
 
-### 3 Optimisation
+### Optimisation
 
 Minimise $C = \mathrm{KL}(P \,\|\, Q) = \sum_{i \ne j} p_{ij} \log (p_{ij}/q_{ij})$. The gradient has a clean physical reading:
 $$\frac{\partial C}{\partial \mathbf{y}_i} = 4\sum_{j}(p_{ij} - q_{ij})(1 + \|\mathbf{y}_i - \mathbf{y}_j\|^2)^{-1}(\mathbf{y}_i - \mathbf{y}_j). \tag{7}$$
