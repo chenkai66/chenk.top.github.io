@@ -68,6 +68,9 @@ If you are in mainland China: DashScope endpoints are domestic and fast. Anthrop
 
 If you are outside China: all three providers work without extra configuration. DashScope's international endpoint is available but slightly higher latency from US/Europe.
 
+
+---
+
 ## Install OpenClaw
 
 Two flavors — `npm` global, or the curl-bash. I prefer npm because I want to know where the binary lives:

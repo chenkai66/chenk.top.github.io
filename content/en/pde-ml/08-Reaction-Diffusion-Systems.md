@@ -42,9 +42,9 @@ This is also Part 8 of the *PDE + Machine Learning* series. We have spent seven 
 ![Four Turing morphologies produced by the Gray-Scott model — spots, stripes, labyrinth, holes — together with a sketch of where each lives in the $(F,k)$ regime map.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/fig1_turing_patterns.png)
 *Four Turing morphologies produced by the Gray-Scott model — spots, stripes, labyrinth, holes — together with a sketch of where each lives in the $(F,k)$ regime map.*
 
-## 1. Reaction-Diffusion in Continuous Space
+## Reaction-Diffusion in Continuous Space
 
-### 1.1 The General Form
+### 1 The General Form
 
 A reaction-diffusion (RD) equation couples spatial diffusion with local nonlinear reactions:
 $$\frac{\partial \mathbf{u}}{\partial t} = \mathbf{D}\,\nabla^2\mathbf{u} + \mathbf{R}(\mathbf{u}). \tag{1}$$
@@ -55,7 +55,7 @@ Two perspectives are useful. *Physically*, $\mathbf{u}$ is a vector of concentra
 
 The remarkable thing — and Turing's insight — is that the *competition* between these two terms can produce stable, non-trivial spatial patterns from a uniform initial state. Call this **diffusion-driven instability**.
 
-### 1.2 Gray-Scott
+### 2 Gray-Scott
 
 Gray-Scott is the canonical two-component model:
 $$
@@ -67,7 +67,7 @@ $$
 
 The same equation, with different $(F, k)$, gives **spots**, **stripes**, **labyrinths**, **holes**, **moving spots**, even **self-replicating spots** — Pearson (1993) catalogued a dozen distinct regimes.
 
-### 1.3 FitzHugh-Nagumo
+### 3 FitzHugh-Nagumo
 
 Originally a simplified neuron model:
 $$
@@ -81,15 +81,15 @@ In 2D you get spiral waves and target patterns — exactly the patterns observed
 
 ---
 
-## 2. Turing Instability: Patterns from Uniformity
+## Turing Instability: Patterns from Uniformity
 
-### 2.1 The Question
+### 1 The Question
 
 Pick a uniform steady state $\bar{\mathbf{u}}$ with $\mathbf{R}(\bar{\mathbf{u}}) = \mathbf{0}$ that is **stable in the well-mixed (no diffusion) system**. Can adding diffusion ever *destabilise* it?
 
 The naive answer is no — diffusion only smooths, surely it can only *help* stability. Turing (1952) proved that intuition wrong.
 
-### 2.2 The Argument
+### 2 The Argument
 
 Linearise (1) around $\bar{\mathbf{u}}$ with perturbation $\delta\mathbf{u}(\mathbf{x}, t) = \mathbf{q}\,e^{i\mathbf{k}\cdot\mathbf{x}}\,e^{\sigma t}$:
 $$
@@ -108,15 +108,15 @@ Conditions 1-3 are algebraic facts about the kinetics. Condition 4 follows once 
 ![Left: dispersion relation $\sigma(|\mathbf{k}|^2)$ for an activator-inhibitor system. With equal diffusion (blue) the system is stable everywhere; making the inhibitor diffuse faster (red) opens a band of unstable wavenumbers around $|\mathbf{k}_*|^2 \approx 3.4$. Right: the four Turing conditions in a glance.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/fig2_turing_instability.png)
 *Left: dispersion relation $\sigma(|\mathbf{k}|^2)$ for an activator-inhibitor system. With equal diffusion (blue) the system is stable everywhere; making the inhibitor diffuse faster (red) opens a band of unstable wavenumbers around $|\mathbf{k}_*|^2 \approx 3.4$. Right: the four Turing conditions at a glance.*
 
-### 2.3 The Intuition Behind Diffusion-Driven Instability
+### 3 The Intuition Behind Diffusion-Driven Instability
 
 Why does asymmetric diffusion destabilise an otherwise-stable steady state? Imagine a tiny local bump of activator. *Locally*, the activator self-amplifies (positive feedback). It also produces inhibitor — but the inhibitor diffuses away quickly, so its concentration *near* the bump stays low, while *far away* the inhibitor builds up and suppresses other potential bumps. This is **short-range activation, long-range inhibition** — the universal recipe behind animal coat patterns, vegetation stripes, sand ripples, and (we'll see in §5) the architecture of deep GNNs.
 
 ---
 
-## 3. From Grids to Graphs
+## From Grids to Graphs
 
-### 3.1 Why Graphs?
+### 1 Why Graphs?
 
 Finite differences (FDM) and finite elements (FEM) discretise PDEs on regular grids or carefully designed meshes. They are extremely powerful when the domain is simple. But for **molecular structures, social networks, citation graphs, road networks, brain connectomes**, there is no natural notion of a regular grid — the connectivity is the geometry.
 
@@ -125,7 +125,7 @@ A graph $G = (V, E)$ generalises both: it is just a set of nodes plus a relation
 ![From regular grids to irregular graphs. Both discretise $\nabla^2$, but the grid stencil is replaced by a node's neighbourhood. The continuous PDE $\partial_t u = D\nabla^2 u + R(u)$ admits both flavours of discretisation; one Euler step of the graph version is exactly a GCN layer.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/fig3_grid_to_graph.png)
 *From regular grids to irregular graphs. Both discretise $\nabla^2$, but the grid stencil is replaced by a node's neighbourhood. The continuous PDE $\partial_t u = D\nabla^2 u + R(u)$ admits both flavours of discretisation; one Euler step of the graph version is exactly a GCN layer.*
 
-### 3.2 The Graph Laplacian
+### 2 The Graph Laplacian
 
 For a weighted, undirected graph with adjacency matrix $\mathbf{A}$ and degree matrix $\mathbf{D} = \mathrm{diag}(d_i)$:
 
@@ -141,7 +141,7 @@ The Laplacian is the discrete analogue of $-\nabla^2$ in the sense that it integ
 
 The smallest eigenvalue is always zero, with eigenvector proportional to $\mathbf{1}$ (the constant). The second smallest, $\lambda_2$ — the *algebraic connectivity* — measures how well-connected the graph is.
 
-### 3.3 The Graph Heat Equation
+### 3 The Graph Heat Equation
 
 Write down the obvious continuous-time dynamics
 $$\frac{d\mathbf{X}}{dt} = -\mathbf{L}\mathbf{X}. \tag{4}$$
@@ -156,11 +156,11 @@ This is **over-smoothing in its purest form**, and we have not even mentioned ne
 
 ---
 
-## 4. GCN Is the Heat Equation
+## GCN Is the Heat Equation
 
 ![PDE and ML (8): Reaction-Diffusion Systems and Graph Neural Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_2.png)
 
-### 4.1 The Identification
+### 1 The Identification
 
 The standard GCN layer (Kipf & Welling, 2017) is
 $$
@@ -175,7 +175,7 @@ $$
 $$
 This is exactly the **explicit Euler step** of the graph heat equation $\dot{\mathbf{H}} = -\tilde{\mathbf{L}}_{\text{sym}}\mathbf{H}$ with step size $h = 1$. The "self-loops" trick $\mathbf{A} + \mathbf{I}$ is just the standard FDM stabilisation that pushes the spectrum of $\tilde{\mathbf{L}}_{\text{sym}}$ into $[0, 2)$ so the explicit scheme remains stable.
 
-### 4.2 The Spectral Proof of Over-Smoothing
+### 2 The Spectral Proof of Over-Smoothing
 
 After $L$ layers (still ignoring nonlinearities and weight matrices),
 $$\mathbf{H}^{(L)} = \tilde{\mathbf{A}}^L\,\mathbf{H}^{(0)}.$$
@@ -183,7 +183,7 @@ The eigenvalues of $\tilde{\mathbf{A}}$ lie in $(-1, 1]$, with the eigenvalue $1
 $$\tilde{\mathbf{A}}^L \xrightarrow[L \to \infty]{} \pi_{\text{const}}.$$
 Every node feature collapses onto the same vector. **This is not a quirk of GCN — it is a theorem about iterating any low-pass filter.** Adding ReLU and learning the weight matrices delays the collapse but does not prevent it: Oono & Suzuki (2020) proved that for an arbitrary weight matrix sequence with bounded singular values, GCN features still converge to a low-dimensional subspace.
 
-### 4.3 Continuous-Depth GNNs
+### 3 Continuous-Depth GNNs
 
 If GCN is one Euler step, why not solve the ODE properly? **GRAND** (Chamberlain et al., 2021) is the continuous-time GNN:
 $$\frac{d\mathbf{X}}{dt} = -\mathcal{L}_\theta(\mathbf{X})\,\mathbf{X},\qquad \mathbf{X}(T) = \text{output.}$$
@@ -192,9 +192,9 @@ $\mathcal{L}_\theta$ is a learned attention-weighted Laplacian, and the integrat
 
 ---
 
-## 5. RDGNN: Reaction-Diffusion Graph Neural Networks
+## RDGNN: Reaction-Diffusion Graph Neural Networks
 
-### 5.1 The Architecture
+### 1 The Architecture
 
 The continuous-time RD-GNN is the natural graph version of (1):
 $$
@@ -214,7 +214,7 @@ $$R_\theta(\mathbf{H}, \mathbf{H}^{(0)}) = \mathrm{MLP}_\theta\bigl([\mathbf{H} 
 ![A reaction-diffusion GNN layer. The diffusion branch performs the usual graph-Laplacian smoothing; the reaction branch is a learned, node-wise nonlinear update; an input skip from $\mathbf{H}^{(0)}$ provides the standard "anchor" against drift. Repeating the block $L$ times yields a deep GNN that, unlike GCN, does not collapse.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/fig5_rdgnn_architecture.png)
 *A reaction-diffusion GNN layer. The diffusion branch performs the usual graph-Laplacian smoothing; the reaction branch is a learned, node-wise nonlinear update; an input skip from $\mathbf{H}^{(0)}$ provides the standard "anchor" against drift. Repeating the block $L$ times yields a deep GNN that, unlike GCN, does not collapse.*
 
-### 5.2 Why It Works
+### 2 Why It Works
 
 There are two ways to see why a reaction term cures over-smoothing.
 
@@ -222,7 +222,7 @@ There are two ways to see why a reaction term cures over-smoothing.
 
 **Turing view.** If $R_\theta$ has activator-inhibitor structure (which a sufficiently expressive MLP can learn), and the diffusion strength $\epsilon_d$ is chosen so that the eigenvalues of $\mathbf{J} - \epsilon_d\,\lambda_k$ are unstable for some $k$, the network exhibits **node-level Turing patterns** — different nodes converge to different feature values, organised by the graph spectrum. This is the GNN equivalent of stripes on a fish.
 
-### 5.3 PyTorch Implementation
+### 3 PyTorch Implementation
 
 ```python
 import torch
@@ -267,7 +267,7 @@ Notice how lean the architecture is: one shared GCN for diffusion, $L$ small MLP
 
 ---
 
-## 6. Where Reaction-Diffusion Already Wins
+## Where Reaction-Diffusion Already Wins
 
 The same equation, three application stories.
 
@@ -282,7 +282,7 @@ The same equation, three application stories.
 
 ---
 
-## 7. Series Finale: Eight Chapters, One Idea
+## Series Finale: Eight Chapters, One Idea
 
 We are at the end of the *PDE + Machine Learning* series. Step back.
 
@@ -314,7 +314,7 @@ The PDE perspective is not the only useful lens on deep learning, but it is unco
 
 ---
 
-## 8. Exercises
+## Exercises
 
 **Exercise 1.** Show that for a connected graph the only solution of $\mathbf{L}\mathbf{x} = \mathbf{0}$ is the constant. Conclude that the heat equation on a connected graph drives every initial condition to its mean.
 

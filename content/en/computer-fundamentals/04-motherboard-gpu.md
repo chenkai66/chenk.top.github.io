@@ -235,7 +235,7 @@ The BIOS exposes hundreds of toggles; four of them produce all the user-visible 
 
 Other BIOS settings (Secure Boot, virtualisation, SATA mode) are correctness-critical but performance-neutral. Enable virtualisation if you'll touch Docker, WSL2, VMware or Android Studio; otherwise leave the defaults alone.
 
-## 11. Summary
+## Summary
 
 The motherboard is two domains glued by one link: a small CPU-direct domain that runs the GPU, primary NVMe and RAM at full speed, and a chipset domain that fans out everything else through a shared DMI bottleneck. Reading the PCB tells you which slot is which.
 

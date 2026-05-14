@@ -40,9 +40,9 @@ This is the **sparse-reward problem**, and it exposes an uncomfortable truth: a 
 
 ---
 
-## 1. Why exploration is so hard
+## Why exploration is so hard
 
-### 1.1 Classical schedules and what they actually look like
+### 1 Classical schedules and what they actually look like
 
 Every introductory RL course starts with **$\varepsilon$-greedy**: with probability $\varepsilon$ pick a uniformly random action, otherwise pick the greedy one. The hard part is not the formula — it is the *schedule*: how should $\varepsilon$ decay as training progresses?
 
@@ -61,7 +61,7 @@ $$
 \dfrac{\varepsilon}{|\mathcal{A}|} & \text{otherwise}
 \end{cases}
 $$
-### 1.2 Boltzmann (softmax) exploration: a marginal upgrade
+### 2 Boltzmann (softmax) exploration: a marginal upgrade
 
 Instead of an all-or-nothing random kick, **Boltzmann** exploration weights actions by their Q-values.
 $$\pi_\tau(a \mid s) = \frac{\exp(Q(s,a)/\tau)}{\sum_{a'} \exp(Q(s,a')/\tau)}.$$
@@ -73,7 +73,7 @@ The right panel plots policy entropy $H(\pi_\tau) = -\sum_a \pi_\tau(a) \log \pi
 
 But Boltzmann shares $\varepsilon$-greedy's fatal flaw: it spreads probability based on the agent's *current Q estimates*, not on any notion of how much it has actually visited each region of the state space. Two states the agent has never seen still get the same softmax over the same untrained Q-values.
 
-### 1.3 UCB: the principled approach that does not scale
+### 3 UCB: the principled approach that does not scale
 
 For multi-armed bandits, the classical **UCB1** rule is provably near-optimal.
 $$a_t = \arg\max_a \left[ \hat Q(a) + c \sqrt{\frac{\ln t}{N(a)}} \right].$$
@@ -85,7 +85,7 @@ Watch what happens in the figure above. At $t = 50$ the bonus dominates (orange 
 
 So why do we not just use UCB everywhere? **Because $N(s,a)$ is meaningless in high-dimensional state spaces.** In Atari each frame is $84 \times 84 \times 4 = 28{,}224$ pixels; the agent will essentially never see the same state twice. So $N(s, a) = 1$ for almost every encountered state-action pair, and the bonus becomes a useless constant.
 
-### 1.4 Thompson sampling: posterior beliefs over rewards
+### 4 Thompson sampling: posterior beliefs over rewards
 
 A close cousin of UCB is **Thompson sampling**: maintain a posterior over each arm's reward parameter, sample one possible world from that posterior, and pick the action that is best in that sampled world. For Bernoulli arms with a Beta prior the update is delightfully simple — on success increment $\alpha$, on failure increment $\beta$.
 
@@ -93,7 +93,7 @@ A close cousin of UCB is **Thompson sampling**: maintain a posterior over each a
 
 The figure shows posteriors sharpening around the true reward rates (dashed). After 10 pulls the algorithm has barely committed; by 300 pulls the posterior on the best arm (arm 2, $\mu = 0.75$) is a tight spike, while losing arms still carry enough variance to keep them in the running. Thompson sampling tends to match or beat UCB in practice and is widely used inside contextual-bandit recommender systems. As an exploration strategy in deep RL, however, it suffers the same generalisation problem as UCB: maintaining a posterior over a $10^{60}$-dimensional state-action space is intractable, and *Bayesian* deep RL approaches (e.g. **Bootstrapped DQN**, **Bayes by Backprop**) only partially recover its benefits.
 
-### 1.5 Four reasons exploration is hard in deep RL
+### 5 Four reasons exploration is hard in deep RL
 
 Putting the pieces together, the difficulty of exploration in real environments compounds along four axes:
 
@@ -106,7 +106,7 @@ The conceptual leap of the modern era is to stop computing exploration as a *fun
 
 ---
 
-## 2. The curiosity blueprint: intrinsic rewards
+## The curiosity blueprint: intrinsic rewards
 
 ![Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/illustration_2.png)
 
@@ -120,7 +120,7 @@ We now look at three increasingly elegant answers.
 
 ---
 
-## 3. Count-based methods: when counting still works
+## Count-based methods: when counting still works
 
 The cleanest definition of novelty is "states I have visited fewer times." For tabular MDPs this gives the MBIE-EB bonus
 $$r^{\text{int}}(s) = \frac{\beta}{\sqrt{N(s)}},$$
@@ -132,7 +132,7 @@ where $\rho_{\text{new}}$ is the model's density after training on one extra obs
 
 ---
 
-## 4. ICM: curiosity through prediction error
+## ICM: curiosity through prediction error
 
 **Intrinsic Curiosity Module (ICM)** (Pathak et al., ICML 2017) replaces "have I seen this before?" with "can I predict what happens next?". The intuition:
 
@@ -218,7 +218,7 @@ On Montezuma's Revenge, ICM + A3C reaches roughly **6,600** points within 25 M f
 
 ---
 
-## 5. RND: a startlingly simple alternative
+## RND: a startlingly simple alternative
 
 **Random Network Distillation** (Burda et al., ICLR 2019) replaces the entire forward/inverse machinery with a single observation:
 
@@ -296,7 +296,7 @@ The two non-obvious tricks that make RND work: (i) **two value heads** in the po
 
 ---
 
-## 6. NGU: never give up on a state
+## NGU: never give up on a state
 
 RND has a quiet assumption: once a state's predictor error has been driven to zero, that state is never novel again. Most of the time this is what we want. But two important cases break it:
 
@@ -324,7 +324,7 @@ The successor, **Agent57** (Badia et al., 2020), bolts NGU onto a meta-controlle
 
 ---
 
-## 7. Visualising the gap: random vs curious agents
+## Visualising the gap: random vs curious agents
 
 It is worth seeing, on a tiny problem, just how different "random" and "curious" exploration look.
 
@@ -340,7 +340,7 @@ The figure above tells the same story at scale. Vanilla DQN stays at zero foreve
 
 ---
 
-## 8. Practical recipes: PPO + curiosity in production
+## Practical recipes: PPO + curiosity in production
 
 ### Hyper-parameter starting points
 
@@ -377,7 +377,7 @@ If you are stuck below the first milestone for 20 M frames, the most common culp
 
 ---
 
-## 9. Summary and what comes next
+## Summary and what comes next
 
 Exploration is the bottleneck that separates toy reinforcement learning from anything resembling general intelligence. Random exploration scales catastrophically badly — not because the math is wrong, but because the universe of possible states is unimaginably larger than what uniform sampling can cover.
 

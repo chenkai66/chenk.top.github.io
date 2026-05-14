@@ -280,7 +280,7 @@ Sticky on a *file* exists historically (used to mean "keep text segment in swap"
 
 ![Owner / Group / Others decision matrix on a real shared dir](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig3_ugo_matrix.png)
 
-### 1. "Permission denied" running a script
+### "Permission denied" running a script
 
 ```bash
 $ ./deploy.sh
@@ -299,7 +299,7 @@ chmod 755 deploy.sh
 
 If you still see "exec format error," the script is missing a shebang (`#!/usr/bin/env bash` on the first line) and the kernel doesn't know what interpreter to use.
 
-### 2. Web server returns 403
+### Web server returns 403
 
 `nginx`/`apache` runs as `www-data` (Debian/Ubuntu) or `nginx` (RHEL family). It needs:
 
@@ -316,7 +316,7 @@ sudo find /var/www/html -type f -exec chmod 644 {} \;
 sudo chmod -R u=rwX,go=rX /var/www/html
 ```
 
-### 3. Team-shared project directory
+### Team-shared project directory
 
 Goal: everyone in `developers` can read and write everything; nobody else can even peek.
 
@@ -330,7 +330,7 @@ echo 'umask 002' | sudo tee /etc/profile.d/team-umask.sh
 
 `2` (SGID) makes inheritance work; `770` keeps outsiders out; `umask 002` ensures new files end up `664` rather than the default `644`, so other team members can edit them.
 
-### 4. Multi-user temp directory
+### Multi-user temp directory
 
 Already done by your distro — `/tmp` is `1777`. If you need a similar shared scratch space:
 
@@ -339,7 +339,7 @@ sudo mkdir /srv/scratch
 sudo chmod 1777 /srv/scratch
 ```
 
-### 5. Locking down a private key
+### Locking down a private key
 
 ```bash
 chmod 600 ~/.ssh/id_ed25519

@@ -178,7 +178,7 @@ Thanks for reading this series. See you in the next one.
 
 The whole series argued that *measuring* is the lever. Here are three concrete experiments, each takes under an hour, and each will leave you with a number you didn't have before.
 
-## 1. Measure your own machine's memory wall
+## Measure your own machine's memory wall
 
 ```bash
 # Linux
@@ -189,7 +189,7 @@ sysbench memory --memory-block-size=64 --memory-total-size=16G run
 
 The first run streams large blocks — it measures sustained DRAM bandwidth. The second run touches 64-byte cache lines randomly — it measures latency-bound throughput. The ratio between them is your machine's **memory wall**: typically 5x to 20x. That ratio is *the* reason cache locality matters.
 
-## 2. Watch a branch predictor learn
+## Watch a branch predictor learn
 
 ```python
 # pip install pyperf
@@ -212,7 +212,7 @@ for label, data in [("sorted", sorted_data), ("shuffled", shuffled_data)]:
 
 The sorted run is typically 1.4-1.8x faster on the same data. The CPU's branch predictor learns "always taken" then "always not taken" instead of fighting random noise. This is the entire point of Mike Acton's "data-oriented design" talk made small.
 
-## 3. Find your machine's real PCIe bandwidth
+## Find your machine's real PCIe bandwidth
 
 ```bash
 # nvidia-smi if you have a GPU

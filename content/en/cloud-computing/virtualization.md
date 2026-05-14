@@ -38,11 +38,11 @@ Without virtualization, there is no cloud. Every EC2 instance, every Lambda invo
 
 ---
 
-## 1. Virtualization Fundamentals
+## Virtualization Fundamentals
 
 Virtualization creates virtual versions of hardware resources — CPU, memory, disks, NICs — so that multiple operating systems can each believe they own a whole machine. The component that maintains the illusion is the **hypervisor**, also called the Virtual Machine Monitor (VMM).
 
-### 1.1 Why It Took Hardware Help
+### 1 Why It Took Hardware Help
 
 x86 was not originally virtualizable. The architecture exposes 17 sensitive instructions (e.g. `POPF`, `SGDT`) that change global state but do **not** trap when executed in user mode — which means a naive hypervisor cannot intercept them. Two workarounds emerged in the early 2000s:
 
@@ -53,7 +53,7 @@ In 2005-2006 Intel VT-x and AMD-V added a new CPU mode — **VMX root** for the 
 
 This is the moment virtualization became cheap enough to build a public cloud on.
 
-### 1.2 Type 1 vs Type 2 Hypervisors
+### 2 Type 1 vs Type 2 Hypervisors
 
 ![Type 1 (Bare-Metal) vs Type 2 (Hosted) Hypervisor Architectures](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig1_hypervisor_types.png)
 
@@ -66,7 +66,7 @@ This is the moment virtualization became cheap enough to build a public cloud on
 
 KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Type 1 hypervisor — the host kernel and the hypervisor are the same kernel.
 
-### 1.3 Key Concepts
+### 3 Key Concepts
 
 - **Hypervisor (VMM):** the layer that schedules vCPUs onto pCPUs, allocates memory, and traps privileged guest operations.
 - **Guest OS:** the OS running inside a VM, unaware (or barely aware) it is virtualized.
@@ -74,7 +74,7 @@ KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Ty
 - **Resource overcommit:** allocating more virtual resources than physically exist. Safe within limits because guests rarely peak together. Typical safe ratios: CPU 4:1-8:1, memory 1.5:1-2:1.
 - **Ballooning:** a guest driver that returns idle memory to the host on demand, enabling memory overcommit.
 
-### 1.4 Historical Milestones
+### 4 Historical Milestones
 
 | Year | Event |
 |------|-------|
@@ -87,7 +87,7 @@ KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Ty
 | 2013 | Docker launches; containers become the second wave |
 | 2018 | Firecracker (microVMs) enables sub-second VM boot for serverless |
 
-## 2. Types of Virtualization
+## Types of Virtualization
 
 | Property | Full virt (BT) | Para-virt | HW-assisted | Containers |
 |----------|---------------|-----------|-------------|------------|
@@ -98,7 +98,7 @@ KVM is a slightly weird case: it is a kernel module that turns Linux *into* a Ty
 | Image size | GB | GB | GB | tens of MB |
 | Example | Early VMware | Xen PV | KVM, ESXi 6+ | Docker, containerd |
 
-### 2.1 Containers vs VMs: a Different Isolation Boundary
+### 1 Containers vs VMs: a Different Isolation Boundary
 
 ![VM vs container resource isolation: each VM ships its own kernel, containers share the host kernel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig2_vm_vs_container.png)
 
@@ -112,19 +112,19 @@ Consequences:
 
 This is why production workloads often run **containers inside VMs**: the VM gives you a security boundary, the container gives you density and speed.
 
-### 2.2 Startup Latency and Memory Cost
+### 2 Startup Latency and Memory Cost
 
 ![Cold-start latency and idle memory footprint: containers vs MicroVMs vs VMs (log scale)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig3_startup_and_memory.png)
 
 The numbers above are why "serverless" works on Firecracker microVMs (~125 ms cold start, ~30 MB overhead) and not on traditional KVM/QEMU VMs. Two orders of magnitude in startup time and memory completely change the economics of bursty workloads.
 
-## 3. Hypervisor Choice
+## Hypervisor Choice
 
 ![KVM vs Xen vs VMware ESXi vs Hyper-V across six dimensions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig4_hypervisor_matrix.png)
 
 There is no single best hypervisor — the right choice depends on what you already run, who runs it, and what you can spend on licensing.
 
-### 3.1 KVM (Kernel-based Virtual Machine)
+### 1 KVM (Kernel-based Virtual Machine)
 
 KVM turns Linux itself into a Type 1 hypervisor. It is open-source, ships in every major distro, and powers OpenStack, Proxmox, Amazon EC2 (Nitro), Google Cloud, and most of Alibaba Cloud's ECS fleet.
 
@@ -171,7 +171,7 @@ virsh snapshot-create-as <vm> snap1
 virsh domstats <vm>             # live statistics
 ```
 
-### 3.2 VMware ESXi
+### 2 VMware ESXi
 
 ESXi is a Type 1 hypervisor that runs directly on the server. It is the de facto enterprise standard and pairs with vCenter for cluster management.
 
@@ -206,7 +206,7 @@ lsmod | grep vmw_pvscsi
 ethtool -i eth0    # should show "vmxnet3"
 ```
 
-### 3.3 Xen
+### 3 Xen
 
 Xen is the original open-source Type 1 hypervisor and powered the first generation of AWS EC2. It supports both PV and HVM (hardware-assisted) modes. Today it is most common in security-focused stacks (Qubes OS) and a handful of legacy clouds.
 
@@ -222,7 +222,7 @@ sudo xl create /etc/xen/debian-pv.cfg
 sudo xl list
 ```
 
-### 3.4 Microsoft Hyper-V
+### 4 Microsoft Hyper-V
 
 Hyper-V is bundled with Windows Server and the Windows desktop SKUs. The right choice when most of your guests are Windows or your team lives in PowerShell.
 
@@ -241,7 +241,7 @@ Set-VMMemory    -VMName "WindowsServer2022" `
 Start-VM -Name  "WindowsServer2022"
 ```
 
-### 3.5 Choosing
+### 5 Choosing
 
 | Criterion | KVM | VMware ESXi | Hyper-V | Xen |
 |-----------|-----|-------------|---------|-----|
@@ -250,9 +250,9 @@ Start-VM -Name  "WindowsServer2022"
 | Performance | Excellent | Excellent | Very good | Excellent |
 | Best fit | Linux clouds, OpenStack | Enterprise data centers | Microsoft shops | Security niches, legacy |
 
-## 4. Storage Virtualization
+## Storage Virtualization
 
-### 4.1 LVM (Logical Volume Manager)
+### 1 LVM (Logical Volume Manager)
 
 LVM abstracts block devices into flexible, resizable logical volumes. The mental model: physical volumes (`pv`) -> volume groups (`vg`) -> logical volumes (`lv`).
 
@@ -271,7 +271,7 @@ sudo resize2fs   /dev/vg_storage/lv_data
 sudo lvcreate -L 10G -s -n lv_data_snap /dev/vg_storage/lv_data
 ```
 
-### 4.2 ZFS
+### 2 ZFS
 
 ZFS combines volume management and filesystem with built-in checksums, compression, snapshots, and send/receive replication. The cost is RAM (rule of thumb: 1 GB per TB for the ARC).
 
@@ -287,7 +287,7 @@ sudo zfs send tank/data@2025-01-01 | ssh backup-host \
      sudo zfs receive backup-pool/data
 ```
 
-### 4.3 Disk Format and I/O Path
+### 3 Disk Format and I/O Path
 
 The format you pick for the virtual disk image — and the cache mode you give QEMU — often matters more than which CPU you bought.
 
@@ -313,9 +313,9 @@ echo none | sudo tee /sys/block/nvme0n1/queue/scheduler
 
 `cache=none` + `io=native` bypasses the host page cache and uses asynchronous direct I/O — the right default for any guest with its own filesystem cache (i.e. all of them). `cache=writeback` is faster but loses data on host crash; only use it for ephemeral workloads.
 
-## 5. Network Virtualization
+## Network Virtualization
 
-### 5.1 VLANs
+### 1 VLANs
 
 A VLAN tag (802.1Q) carves one physical network into many isolated broadcast domains.
 
@@ -327,7 +327,7 @@ sudo ip link set eth0.100 up
 
 Limit: 4 094 VLAN IDs is plenty for a single rack, nowhere near enough for a public cloud.
 
-### 5.2 VXLAN
+### 2 VXLAN
 
 VXLAN tunnels Layer-2 Ethernet frames inside UDP packets, giving you 16 million logical networks (24-bit VNI) over any IP fabric. This is the workhorse of multi-tenant cloud networks and Kubernetes overlays (Flannel, Calico VXLAN mode).
 
@@ -342,7 +342,7 @@ sudo ip addr add 10.1.1.1/24 dev vxlan100
 sudo ip link set vxlan100 up
 ```
 
-### 5.3 Open vSwitch
+### 3 Open vSwitch
 
 OVS is a programmable virtual switch with OpenFlow support, used by OpenStack Neutron, Open Virtual Network (OVN), and many SDN stacks.
 
@@ -357,7 +357,7 @@ sudo ovs-vsctl show
 sudo ovs-ofctl dump-flows br0
 ```
 
-### 5.4 SR-IOV: Bypass the Hypervisor
+### 4 SR-IOV: Bypass the Hypervisor
 
 SR-IOV (Single Root I/O Virtualization) lets a NIC expose Virtual Functions (VFs) that are mapped directly into VMs, bypassing the host's network stack entirely. Latency drops from ~30 µs (virtio) to ~3 µs (SR-IOV); throughput becomes line-rate.
 
@@ -369,9 +369,9 @@ ip link show eth0
 
 The trade-off: live migration becomes harder (the VM is bound to a specific physical NIC) and you can only have as many VMs on a NIC as it has VFs.
 
-## 6. Performance Optimization
+## Performance Optimization
 
-### 6.1 CPU: Pinning, NUMA, Topology
+### 1 CPU: Pinning, NUMA, Topology
 
 On any multi-socket host, the worst case is a vCPU that wakes up on socket A but its memory lives on socket B — every cache line is a cross-socket round trip. Fix this with **CPU pinning** plus **NUMA pinning**:
 
@@ -397,7 +397,7 @@ Expose the real CPU topology so the guest scheduler can make good decisions:
 
 `mode='host-passthrough'` exposes every CPU flag (AVX-512, AES-NI, etc.) but breaks live migration to dissimilar hosts; use `host-model` if you need migration across a heterogeneous fleet.
 
-### 6.2 Memory: Huge Pages and Ballooning
+### 2 Memory: Huge Pages and Ballooning
 
 Each TLB entry maps one page. With 4 KB pages, walking 1 GB of RAM hits 262 144 entries; with 2 MB huge pages, just 512. For databases and JVMs the speedup is 5-15 %.
 
@@ -416,7 +416,7 @@ virsh setmaxmem ubuntu-server 8G --config
 virsh setmem    ubuntu-server 2G --live   # shrink without reboot
 ```
 
-### 6.3 I/O: virtio Everywhere
+### 3 I/O: virtio Everywhere
 
 Always use virtio devices in KVM guests. They are paravirtual — the guest knows it is in a VM and uses ring buffers shared with the hypervisor instead of MMIO emulation. `vhost-net` moves the network ring processing into the kernel, eliminating one userspace round trip per packet.
 
@@ -427,7 +427,7 @@ Always use virtio devices in KVM guests. They are paravirtual — the guest know
 </interface>
 ```
 
-### 6.4 Tuning Checklist
+### 4 Tuning Checklist
 
 - [ ] VT-x / AMD-V enabled in BIOS
 - [ ] virtio (KVM) or PVSCSI/VMXNET3 (VMware) for disk and NIC
@@ -439,7 +439,7 @@ Always use virtio devices in KVM guests. They are paravirtual — the guest know
 - [ ] Multi-queue virtio-net with queue count = vCPU count
 - [ ] CPU governor = `performance` on the host
 
-## 7. Live Migration: Moving a Running VM
+## Live Migration: Moving a Running VM
 
 ![Pre-copy live migration: full image, then iterative dirty-page rounds, then sub-100ms cutover](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig5_live_migration.png)
 
@@ -464,7 +464,7 @@ Requirements:
 - Compatible CPU features on source and destination (use `host-model`, not `host-passthrough`)
 - A network fast enough that dirty rate < bandwidth — 10 Gbps is the practical minimum for production VMs
 
-## 8. Nested Virtualization
+## Nested Virtualization
 
 ![Nested virtualization stack: L0 hypervisor, L1 guest hypervisor, L2 guest VM, with throughput cost per level](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig6_nested_virtualization.png)
 
@@ -495,7 +495,7 @@ Then expose `vmx` (or `svm`) to the L1 guest:
 
 Cost: each nesting level adds VM-exit hops. CPU-bound workloads typically lose 5-10 % at L1 and 25-40 % at L2; I/O-bound workloads can lose much more without paravirt drivers all the way down.
 
-## 9. GPU Virtualization
+## GPU Virtualization
 
 ![Four ways to share a GPU: time-slicing, vGPU, MIG, and full passthrough](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig7_gpu_virtualization.png)
 
@@ -520,9 +520,9 @@ echo "options vfio-pci ids=10de:2204" | sudo tee /etc/modprobe.d/vfio.conf
 # </hostdev>
 ```
 
-## 10. Security and Isolation
+## Security and Isolation
 
-### 10.1 Threat Model
+### 1 Threat Model
 
 The fundamental promise of a hypervisor is that one tenant cannot read or affect another. Real-world breaks have come from:
 
@@ -532,7 +532,7 @@ The fundamental promise of a hypervisor is that one tenant cannot read or affect
 
 Defenses are layered, not perfect.
 
-### 10.2 Hypervisor Hardening
+### 2 Hypervisor Hardening
 
 ```bash
 # Smallest possible attack surface
@@ -552,7 +552,7 @@ sudo ufw allow from 192.168.1.0/24 to any port 16509   # libvirt
 
 Enable CPU side-channel mitigations on the host (`spectre_v2=on`, `l1tf=full`) and keep microcode current.
 
-### 10.3 Guest Best Practices
+### 3 Guest Best Practices
 
 - Minimal install (no GUI, no `cups`, no `apt-listchanges`)
 - Automatic security updates (`unattended-upgrades`)
@@ -560,11 +560,11 @@ Enable CPU side-channel mitigations on the host (`spectre_v2=on`, `l1tf=full`) a
 - Per-trust-tier VLANs — never put PCI workloads on the same broadcast domain as developer VMs
 - Keep guest agents (`qemu-guest-agent`, `vmtoolsd`, `Hyper-V Integration Services`) up to date
 
-### 10.4 Confidential Computing
+### 4 Confidential Computing
 
 The newest layer: AMD SEV-SNP, Intel TDX, and ARM CCA encrypt guest memory with a key the hypervisor cannot see. Even a fully compromised host cannot read tenant data. Available today on Azure Confidential VMs, GCP Confidential VMs, and Alibaba Cloud ECS gN8v.
 
-## 11. Troubleshooting Playbook
+## Troubleshooting Playbook
 
 | Symptom | First check | Likely fix |
 |---------|------------|-----------|
@@ -577,7 +577,7 @@ The newest layer: AMD SEV-SNP, Intel TDX, and ARM CCA encrypt guest memory with 
 | Random VM crash | `dmesg`, `/var/log/libvirt/qemu/<vm>.log` | EDAC errors -> bad RAM; otherwise check kernel + microcode |
 | `KVM: entry failed, hardware error 0x80000021` | `dmesg | grep KVM` | Disable nested or update microcode; check VT-x state |
 
-## 12. Resource Sizing Guidelines
+## Resource Sizing Guidelines
 
 | Resource | Light | Medium | Heavy |
 |----------|-------|--------|-------|
@@ -592,21 +592,21 @@ The newest layer: AMD SEV-SNP, Intel TDX, and ARM CCA encrypt guest memory with 
 - Memory: 1.5:1 to 2:1 — never overcommit memory for databases
 - Disk: thin provisioning OK if you monitor capacity
 
-## 13. Case Studies
+## Case Studies
 
-### 13.1 Enterprise Data Center Consolidation
+### 1 Enterprise Data Center Consolidation
 
 A financial services company consolidated 200 physical servers onto 20 VMware ESXi hosts backed by a shared NVMe SAN. Result: 90 % rack reduction, 60 % cost saving, deployment time from weeks to hours. The bigger win was operational — a single vCenter cluster replaced four ticket queues.
 
-### 13.2 HPC Research Cluster
+### 2 HPC Research Cluster
 
 A research institute ran tightly-coupled MPI jobs on KVM with `host-passthrough` CPU, NUMA pinning, 1 GB huge pages, and SR-IOV InfiniBand. Sustained 95-98 % of bare-metal throughput while gaining the ability to snapshot whole experiments and ship them between sites.
 
-### 13.3 Public Cloud Compute Plane
+### 3 Public Cloud Compute Plane
 
 Hyperscale clouds (AWS Nitro, Alibaba ECS Shenlong) push device emulation off the CPU entirely onto custom DPUs, leaving 100 % of the host CPU for guests and reducing the host's attack surface to a thin KVM. Performance overhead in the single digits, security boundary smaller than any traditional ESXi host.
 
-## 14. Aliyun-Specific Gotchas
+## Aliyun-Specific Gotchas
 
 The neutral material above is the same on every cloud, but some details only show up on Aliyun ECS. Things I've actually been billed by:
 
@@ -616,7 +616,7 @@ The neutral material above is the same on every cloud, but some details only sho
 - **Snapshot pricing is by GB-month, not by snapshot count.** Daily snapshot policies on a 500 GB disk add up fast. Use incremental snapshots (which Aliyun does by default) and prune retention to what you actually need.
 - **Live migration during maintenance is announced, not invisible.** Aliyun emails you a window when a host needs maintenance. The VM pauses ~10 s during the cutover. Stateful workloads (databases, long TCP connections) need to handle that.
 
-## 15. Region/AZ Choice — A Cost and Latency Story
+## Region/AZ Choice — A Cost and Latency Story
 
 Region selection is the cheapest decision that has the largest blast radius. The numbers I've seen in practice:
 
@@ -634,7 +634,7 @@ A few hard-earned lessons:
 - **Cross-region latency is not free and not symmetric.** Hangzhou to Singapore is ~80 ms; Hangzhou to Frankfurt is ~280 ms. If your replication is synchronous, that latency is in your write path.
 - **Bandwidth pricing changes with region.** Mainland regions have generally cheaper intra-China traffic; cross-border egress to international regions is the most expensive line item on the bill for many companies.
 
-## 16. When to Use a VM vs. a Container vs. a Function
+## When to Use a VM vs. a Container vs. a Function
 
 The "VMs are obsolete now" take is wrong. The real menu is:
 

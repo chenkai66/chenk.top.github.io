@@ -36,7 +36,7 @@ This post walks through the derivations, the intuition, the implementation detai
 
 ---
 
-## 1. Why we need reparameterization
+## Why we need reparameterization
 
 The general training objective looks like
 $$\mathcal L(\theta) \;=\; \mathbb E_{z\sim q_\theta(z)}\,[\,f(z)\,].$$
@@ -63,9 +63,9 @@ Two families of fixes exist:
 1. **Score-function / REINFORCE**: rewrite the gradient as $\mathbb E[f(z)\nabla_\theta\log q_\theta(z)]$. Universal, works on any random variable — **but the variance is enormous**.
 2. **Reparameterization**: pull the randomness *out of the parameters*, replace it with parameter-free noise, and keep the graph differentiable. **Low variance and end-to-end trainable, but requires a distribution that admits such a rewrite**.
 
-## 2. Reparameterizing continuous distributions
+## Reparameterizing continuous distributions
 
-## 2.1 The general form
+## 1 The general form
 
 Express $z$ as a deterministic, differentiable function of a parameter-free noise $\epsilon$:
 $$z \;=\; g_\theta(\epsilon),\qquad \epsilon \sim p(\epsilon),$$
@@ -79,7 +79,7 @@ A Monte Carlo estimate is just: draw one (or a few) $\epsilon$, run autograd thr
 
 > **Side-by-side**: on the left, $z\sim\mathcal N(\mu,\sigma^2)$ is a stochastic node and gradients cannot flow through it; on the right, $z=\mu+\sigma\epsilon$ is a deterministic function of $\mu,\sigma$ and gradients flow through the green path back into the encoder.
 
-## 2.2 The Gaussian case
+## 2 The Gaussian case
 
 The textbook example: for $z\sim\mathcal N(\mu,\sigma^2)$,
 $$z \;=\; \mu \;+\; \sigma \odot \epsilon,\qquad \epsilon \sim \mathcal N(0,I).$$
@@ -95,7 +95,7 @@ def reparameterize(mu: Tensor, logvar: Tensor) -> Tensor:
     return mu + std * eps
 ```
 
-## 2.3 In the VAE
+## 3 In the VAE
 
 The VAE optimizes the evidence lower bound (ELBO):
 $$
@@ -112,7 +112,7 @@ The gradient w.r.t. $\phi$ flows through the decoder all the way back into the e
 $$\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),$$
 so no Monte Carlo is needed there.
 
-## 2.4 Which continuous distributions are "naturally" reparameterizable?
+## 4 Which continuous distributions are "naturally" reparameterizable?
 
 Anything that admits a location-scale form, or a base-noise + differentiable transform:
 
@@ -126,9 +126,9 @@ Anything that admits a location-scale form, or a base-noise + differentiable tra
 
 **Counter-examples**: Gamma, Beta, Dirichlet, Student-t do not have a simple location-scale form. They need *implicit reparameterization gradients* or pathwise tricks (Figurnov et al., NeurIPS 2018; see §7).
 
-## 3. Reparameterizing discrete distributions: the Gumbel-Max trick
+## Reparameterizing discrete distributions: the Gumbel-Max trick
 
-## 3.1 The difficulty
+## 1 The difficulty
 
 Take a $K$-class categorical $\mathrm{Cat}(\pi_1,\dots,\pi_K)$ with $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$. The naive "sample" is: compute $\pi$, draw a class index $k$ from a multinomial. That step is **completely non-differentiable** — its output is a one-hot vector, with no notion of smooth variation.
 
@@ -139,7 +139,7 @@ $$
 $$
 universal but with variance large enough to wreck training stability. Can we, like in the Gaussian case, factor sampling into "noise + deterministic transform"? The answer is the Gumbel-Max trick.
 
-## 3.2 A quick tour of the Gumbel distribution
+## 2 A quick tour of the Gumbel distribution
 
 The standard Gumbel $\mathrm{Gumbel}(0,1)$ has CDF/PDF
 $$F(g)=\exp(-e^{-g}),\qquad f(g)=\exp\!\bigl(-(g+e^{-g})\bigr).$$
@@ -151,7 +151,7 @@ $$u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).$
 
 > **Left**: the Gumbel(0,1) PDF; **middle**: inverse-CDF sampling visualized; **right**: 20k samples drawn via $-\log(-\log u)$, with the empirical histogram matching the analytic PDF.
 
-## 3.3 The Gumbel-Max trick
+## 3 The Gumbel-Max trick
 
 **Claim.** Let $g_1,\dots,g_K\overset{iid}{\sim}\mathrm{Gumbel}(0,1)$ and define
 $$k^\star \;=\; \arg\max_i\,(\alpha_i + g_i).$$
@@ -186,9 +186,9 @@ $$\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alph
 - **Numerically stable**: addition followed by argmax is invariant to constant shifts in the logits.
 - **Most importantly**: all the randomness now lives in $g$; the logits $\alpha$ enter through the deterministic $\alpha+g$. We are one step away from "differentiable" — just need to soften the $\arg\max$.
 
-## 4. Gumbel-Softmax: softening the argmax
+## Gumbel-Softmax: softening the argmax
 
-## 4.1 Definition
+## 1 Definition
 
 Replace $\arg\max$ with a temperature-scaled softmax to obtain a sample from the **Gumbel-Softmax / Concrete** distribution:
 $$
@@ -202,7 +202,7 @@ Here $y\in\Delta^{K-1}$, the $(K-1)$-simplex — a continuous vector. The two li
 
 Because $g$ is independent of $\alpha$ and softmax is everywhere differentiable, $y$ is **differentiable in $\alpha$** (and therefore in any upstream parameter $\theta$). This is the heart of Gumbel-Softmax: a smooth, differentiable proxy for the discrete one-hot.
 
-## 4.2 The temperature bias-variance trade-off
+## 2 The temperature bias-variance trade-off
 
 ![Gumbel-Softmax temperature effect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig4_gumbel_softmax_temp.png)
 
@@ -221,7 +221,7 @@ You can read this off the gradient estimator directly: smaller $\tau$ makes $y$ 
 - Exponential schedule $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$ with a check every $\sim 1000$ steps.
 - **Don't** drive $\tau\to 0$ — softmax numerics blow up and gradient variance dominates. Let the model "see" the soft distribution early, then "harden" it later.
 
-## 4.3 Straight-Through Gumbel-Softmax (ST-GS)
+## 3 Straight-Through Gumbel-Softmax (ST-GS)
 
 Many tasks — hard attention, discrete token selection, sparse routing — **must** use a strict one-hot in the forward pass (e.g. the downstream is an embedding lookup expecting an integer index). The fix is the **Straight-Through estimator**:
 $$
@@ -254,9 +254,9 @@ def gumbel_softmax(logits: Tensor, tau: float = 1.0,
 
 PyTorch ships `torch.nn.functional.gumbel_softmax(logits, tau, hard)` with the same semantics; rolling your own is just to make every step explicit.
 
-## 5. Comparison with REINFORCE: orders-of-magnitude variance gap
+## Comparison with REINFORCE: orders-of-magnitude variance gap
 
-## 5.1 Score-function / REINFORCE estimator
+## 1 Score-function / REINFORCE estimator
 
 General form:
 $$
@@ -272,7 +272,7 @@ Standard variance reductions:
 
 Even with all these tricks, REINFORCE typically remains 1–3 orders of magnitude noisier than reparameterization.
 
-## 5.2 Empirical comparison
+## 2 Empirical comparison
 
 We estimate $\nabla_{\alpha_0}\,\mathbb E_z[r^\top z]$ on a synthetic 8-class categorical (with a fixed reward vector $r$). Each curve aggregates 200 trials.
 
@@ -282,9 +282,9 @@ We estimate $\nabla_{\alpha_0}\,\mathbb E_z[r^\top z]$ on a synthetic 8-class ca
 
 This is exactly why end-to-end discrete training only became practical once reparameterization-based estimators were available.
 
-## 6. Full PyTorch: continuous and discrete VAEs
+## Full PyTorch: continuous and discrete VAEs
 
-## 6.1 Continuous VAE (reparameterization)
+## 1 Continuous VAE (reparameterization)
 
 ```python
 import torch
@@ -334,7 +334,7 @@ def vae_loss(logits_x, x, mu, logvar):
 - Compute the KL term in closed form (rather than via sampling) to reduce gradient variance.
 - Optionally anneal KL ($\beta$ in $\beta$-VAE from 0 → 1) to mitigate posterior collapse.
 
-## 6.2 Discrete-latent VAE (categorical + Gumbel-Softmax)
+## 2 Discrete-latent VAE (categorical + Gumbel-Softmax)
 
 ```python
 class CategoricalVAE(nn.Module):
@@ -375,7 +375,7 @@ def cat_vae_loss(logits_x, x, q_logits):
 - `hard=True` enables ST-GS (forces a true discrete forward pass); `hard=False` keeps gradients smoother.
 - Anneal: `tau0=1.0`, `tau_min=0.5`, `r=1e-5`, checked every ~1k steps.
 
-## 7. Common training pitfalls
+## Common training pitfalls
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
@@ -387,7 +387,7 @@ def cat_vae_loss(logits_x, x, q_logits):
 | **Gradients insensitive to logits** | $\tau$ too large, output near-uniform | Lower $\tau$ or raise the learning rate |
 | **Forward / backward mismatch** | ST-GS line written incorrectly | Re-check `y_hard - y_soft.detach() + y_soft` |
 
-## 8. Recent work
+## Recent work
 
 - **Implicit Reparameterization Gradients** (Figurnov et al., NeurIPS 2018) — uses the implicit function theorem to make Gamma, Beta, Dirichlet, Student-t reparameterizable, with low bias and clean derivations.
 - **REBAR / RELAX** (Tucker et al., NeurIPS 2017; Grathwohl et al., ICLR 2018) — combine Gumbel-Softmax with REINFORCE and learn a control variate via a neural network, yielding **unbiased and lower-variance** discrete gradient estimators.

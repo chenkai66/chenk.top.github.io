@@ -26,9 +26,9 @@ This article is a deep dive into how that is possible. We start from the functio
 
 ![PDE and ML (2): and Machine Learning (2) — Neural Operator Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_1.png)
 
-## 1. Why operators, not just bigger networks
+## Why operators, not just bigger networks
 
-### 1.1 The PINN ceiling
+### 1 The PINN ceiling
 
 Consider the 1D viscous Burgers equation,
 $$u_t + u\,u_x = \nu\,u_{xx},\qquad x\in[0,2\pi],\ t\in[0,T],$$
@@ -36,7 +36,7 @@ with periodic boundary conditions and an initial condition $u(\cdot,0)=u_0$. A f
 $$\mathcal{L}_{\mathrm{PINN}}(\theta) = \big\| \partial_t u_\theta + u_\theta\,\partial_x u_\theta - \nu\,\partial_{xx} u_\theta \big\|^2 + \big\|u_\theta(\cdot,0) - u_0 \big\|^2 .$$
 Notice how $u_0$ appears explicitly inside the loss. **Change $u_0$ and the loss landscape changes; the optimiser has to start over.** For a design study with a thousand candidate inflow profiles, that is a thousand training runs.
 
-### 1.2 Operator learning, formally
+### 2 Operator learning, formally
 
 Let $\mathcal{A}$ be the space of admissible inputs (e.g. initial conditions in some Sobolev class) and $\mathcal{U}$ the space of solutions. The PDE defines a *solution operator*
 $$\mathcal{G} : \mathcal{A} \to \mathcal{U},\qquad \mathcal{G}(u_0) = u(\cdot, T).$$
@@ -44,9 +44,9 @@ Both $\mathcal{A}$ and $\mathcal{U}$ are infinite dimensional. The goal of opera
 $$u(\cdot, T) \approx \mathcal{G}_\theta(a) \quad \text{(one forward pass).}$$
 The training cost is amortised over the entire family of instances. This is the trade we want.
 
-## 2. Function-space foundations (the bare minimum)
+## Function-space foundations (the bare minimum)
 
-### 2.1 Banach, Hilbert, Sobolev — what each one buys you
+### 1 Banach, Hilbert, Sobolev — what each one buys you
 
 A **Banach space** is a normed vector space in which every Cauchy sequence converges. The norm gives us a notion of "size of a function," and completeness gives us limits — without it we cannot even talk about convergence of a learning algorithm. The two everyday examples are
 $$C(K) \;=\; \{u:K\to\mathbb{R} \text{ continuous}\}, \quad \|u\|_\infty = \sup_{x\in K} |u(x)|,$$
@@ -56,11 +56,11 @@ A **Hilbert space** is a Banach space whose norm comes from an inner product. Th
 
 A **Sobolev space** $H^s(\Omega)$ controls not just the function but its derivatives up to order $s$ in $L^2$. PDE solutions usually live in some $H^s$, and the parameter $s$ measures *smoothness*. This is where the resolution-invariance argument will land: smoother functions have spectra that decay quickly, so we can throw away high-frequency modes without paying much.
 
-### 2.2 Why the input dimension is "infinite"
+### 2 Why the input dimension is "infinite"
 
 When a CNN ingests a $256\times 256$ image, it really sees a vector in $\mathbb{R}^{65536}$. Doubling the resolution to $512\times 512$ changes the input dimension and breaks the model. A neural operator instead ingests a *function* and only samples it for numerical purposes. The architecture must therefore be designed so that the prediction at a query location $y$ is **independent of how the input was sampled**. This is the design constraint that distinguishes operator learning from "a CNN that happens to read a PDE solution."
 
-## 3. The Chen–Chen theorem: an operator can be a two-layer net
+## The Chen–Chen theorem: an operator can be a two-layer net
 
 The theoretical seed of operator learning was planted in 1995 by Chen and Chen.
 
@@ -76,7 +76,7 @@ Two things are remarkable:
 
 The theorem only gives existence: it says nothing about how $p$ scales with $\varepsilon$, with the smoothness of $\mathcal{G}$, or with the input dimension. Sharper rates have been proven for restricted operator classes (Lanthaler et al., 2022; Kovachki et al., 2023), and the asymptotic picture is the familiar bias–variance–noise decomposition of the right-hand panel.
 
-## 4. DeepONet: branch and trunk in practice
+## DeepONet: branch and trunk in practice
 
 DeepONet (Lu et al., 2019) is the direct architectural realisation of Chen–Chen. Two networks compute the two factors:
 
@@ -105,13 +105,13 @@ A few practical wrinkles matter when you implement it:
 
 **Variants worth knowing.** *POD-DeepONet* replaces the learned trunk with a precomputed POD basis from the training data and only learns the branch; it converges faster but inherits all the limitations of a fixed basis. *Physics-informed DeepONet* (Wang et al., 2021) adds a PDE-residual term to the loss, which is invaluable when labelled data is scarce.
 
-## 5. The Fourier Neural Operator
+## The Fourier Neural Operator
 
 ![PDE and ML (2): and Machine Learning (2) — Neural Operator Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_2.png)
 
 Where DeepONet decomposes the operator as a sum of rank-one terms in the spatial domain, FNO (Li et al., 2020) operates in the *spectral* domain. The motivation is the convolution theorem.
 
-### 5.1 Why spectral
+### 1 Why spectral
 
 For a translation-invariant linear operator $K$, the Schwartz kernel theorem gives
 $$(K v)(x) = \int \kappa(x - x')\,v(x')\,\mathrm{d}x',$$
@@ -121,7 +121,7 @@ So instead of learning the kernel $\kappa$ in space — costly, with a large sup
 
 For nonlinear PDEs the operator is no longer a global convolution, but the **local-nonlinearity / global-linearity** decomposition is extremely common: dissipation, dispersion and propagation are all linear and translation-invariant; reaction and advection terms are pointwise nonlinear. FNO bakes this split into the architecture.
 
-### 5.2 The Fourier layer
+### 2 The Fourier layer
 
 A single FNO block computes
 $$v_{\ell+1}(x) \;=\; \sigma\!\Big(\;W\,v_\ell(x) \;+\; \mathcal{F}^{-1}\!\big( R_\theta \cdot \mathcal{F}(v_\ell)\big)(x) \;\Big),$$
@@ -138,7 +138,7 @@ Three design choices are worth defending:
 
 **Channel lifting.** The FFT mixes spatial information across one dimension, but a single channel is too narrow a bottleneck. By first lifting to $d_v\in\{32,64,128\}$ channels, the network gets enough room to encode multiple "modes" of physical behaviour (e.g. transport vs. diffusion vs. shock formation).
 
-### 5.3 What the cost looks like
+### 3 What the cost looks like
 
 For an $n$-point grid in $d$ spatial dimensions the dominant costs per Fourier layer are:
 
@@ -148,7 +148,7 @@ For an $n$-point grid in $d$ spatial dimensions the dominant costs per Fourier l
 
 Compare with a CNN that needs depth proportional to $n$ to achieve a global receptive field: FNO trades that depth for one FFT and one inverse FFT per layer.
 
-## 6. Resolution invariance: train at 64, test at 256
+## Resolution invariance: train at 64, test at 256
 
 Here is the property that finally separates neural operators from "a CNN with extra steps." Both DeepONet and FNO, when implemented carefully, are **discretisation invariant**: the same trained weights produce a coherent answer regardless of the resolution at which you sample the input or query the output.
 
@@ -161,7 +161,7 @@ For FNO the argument is sharper. The spectral multiplier $R_\theta$ acts on Four
 
 A subtler point: **the error does not decay arbitrarily as resolution increases**, because the model never learned the higher modes. In practice, evaluation at up to $\sim 4\times$ the training resolution is reliable; beyond that the high-frequency content is "best guess" interpolation and you should retrain.
 
-## 7. Three ways to attack a PDE: PINN, FNO, DeepONet
+## Three ways to attack a PDE: PINN, FNO, DeepONet
 
 It is worth zooming out before diving into implementation. PINNs, FNOs and DeepONets are not interchangeable; they cover different parts of the design space.
 
@@ -182,7 +182,7 @@ A useful rule of thumb: **if your problem has a structured grid and translation 
 ![A single trained operator solves an entire PDE family: four different coefficient fields produce four different solutions in one forward pass each.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/fig6_geometry_application.png)
 *Figure 7. The payoff. A neural operator trained on (coefficient field, solution) pairs for the steady Darcy equation $-\nabla\!\cdot\!(a(x)\nabla u) = f$ generalises across the entire input distribution. Top row: four sample coefficient fields $a(x)$ (high values mean low permeability). Bottom row: the corresponding pressure solutions $u(x)$ produced in one forward pass per instance. Replacing each forward pass with a finite-element solve would cost orders of magnitude more.*
 
-## 8. Implementation: a 1D FNO from scratch
+## Implementation: a 1D FNO from scratch
 
 The minimum runnable FNO in PyTorch fits in a single file. The two non-obvious pieces are (a) the spectral multiplication done with `torch.einsum` so the code generalises to multiple channels, and (b) the residual `W v` branch implemented as a $1\times 1$ convolution.
 
@@ -258,7 +258,7 @@ for epoch in range(epochs):
 
 **Reference performance on Burgers ($\nu=10^{-2}$, $N=256$, $1{,}000$ training instances):** validation relative $L^2$ error around $1\%$, training time on a single A100 in the order of minutes. Compare with a PINN that takes minutes *per* instance and you immediately see the operator's economic advantage.
 
-## 9. What the theory actually guarantees (and where it doesn't)
+## What the theory actually guarantees (and where it doesn't)
 
 The cleanest results are about FNO and were established by Kovachki and collaborators.
 
@@ -276,7 +276,7 @@ What is **not** guaranteed in the same generality:
 
 Each of these is an active research front. In practice you should always treat a deployed neural operator as a *fast surrogate* whose extrapolation must be sanity-checked against an occasional reference solve.
 
-## 10. Limits, failure modes, and what to do about them
+## Limits, failure modes, and what to do about them
 
 **Aliasing on non-periodic domains.** FNO assumes periodicity. On non-periodic problems either pad and window the input, or switch to a non-Fourier basis (Spectral Neural Operator with Chebyshev or Legendre, Tran et al. 2022).
 
@@ -288,7 +288,7 @@ Each of these is an active research front. In practice you should always treat a
 
 **Complex geometry.** FNO is grid-bound. Options: Geo-FNO (learn a deformation to a reference torus), graph neural operators (Brandstetter et al., 2022) for unstructured meshes, or DeepONet with mesh-free trunks.
 
-## 11. Summary
+## Summary
 
 A neural operator is the right tool when the same PDE has to be solved many times across a family of inputs. Two architectures cover most of the design space:
 

@@ -24,7 +24,7 @@ translationKey: "llm-engineering-11"
 
 ![LLM 工程（11）：安全与对齐 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_1.png)
 
-## 2026 年的“对齐”到底指什么
+## 年的“对齐”到底指什么
 
 这个词实际上融合了三个相互独立的维度：
 

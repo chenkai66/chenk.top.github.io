@@ -31,7 +31,7 @@ translationKey: "time-series-2"
 
 ---
 
-## 1. The Problem LSTM Solves
+## The Problem LSTM Solves
 
 A vanilla RNN updates its hidden state recursively:
 $$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$
@@ -44,7 +44,7 @@ Two regimes appear:
 
 LSTM (Hochreiter & Schmidhuber, 1997) replaces the single recurrent state with **two** states and three learned gates that decide what to remember, what to overwrite, and what to expose. The result is a near-additive update over time, which lets gradients survive the long walk back.
 
-## 2. Anatomy of an LSTM Cell
+## Anatomy of an LSTM Cell
 
 Inside one cell, four gating units share the same input $[h_{t-1}, x_t]$ and emit three sigmoid gates plus one $\tanh$ candidate:
 $$
@@ -78,7 +78,7 @@ Differentiating the cell update with respect to a much earlier cell state gives$
 $$
 Whenever the model wants to remember, it can learn to push $f_t$ close to 1 for the relevant coordinates, and the corresponding gradient stays close to 1 too. That is the entire trick.
 
-## 3. A Minimal PyTorch Implementation
+## A Minimal PyTorch Implementation
 
 For a univariate or multivariate forecaster, this is all you need:
 
@@ -118,7 +118,7 @@ for name, p in model.lstm.named_parameters():
         p.data[n // 4 : n // 2].fill_(1.0)   # forget-gate bias
 ```
 
-## 4. From Cell to Forecaster
+## From Cell to Forecaster
 
 For time series, the loop is:
 
@@ -146,7 +146,7 @@ For horizon $H > 1$ there are two common strategies:
 
 A useful hybrid is **seq2seq with teacher forcing**: an LSTM encoder reads the lookback window into a final $(h, C)$ pair, an LSTM decoder generates $H$ outputs one at a time, and during training the decoder receives the *true* previous value (not its own prediction) with some scheduled-sampling probability. This is what most production forecasters use today.
 
-## 5. Architectural Variants
+## Architectural Variants
 
 ### Bidirectional LSTM
 
@@ -166,7 +166,7 @@ Stacking layers lets later layers operate on smoother, slower features. Layer 1 
 
 In practice, **2–3 layers** is the sweet spot for forecasting. Going deeper rarely helps without residual connections, and it markedly increases the risk of vanishing gradients along the *depth* axis (between layers, not time).
 
-## 6. Training Recipe That Actually Works
+## Training Recipe That Actually Works
 
 The following defaults work on most univariate or moderately multivariate forecasting problems with a few thousand to a few hundred thousand training windows:
 
@@ -193,7 +193,7 @@ A healthy LSTM training curve has the validation loss following the training los
 ![Training and validation loss across 60 epochs. The green dashed line marks the best validation epoch (~35); the purple dotted line marks the early-stop trigger after a patience window of 8 epochs.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig7_training_curves.png)
 *Training and validation loss with early stopping — restore the weights at the green line, not the purple one.*
 
-## 7. LSTM vs GRU — Which Should You Reach For?
+## LSTM vs GRU — Which Should You Reach For?
 
 | Aspect | LSTM | GRU |
 | --- | --- | --- |
@@ -205,7 +205,7 @@ A healthy LSTM training curve has the validation loss following the training los
 
 Empirically, on most forecasting tasks the gap between LSTM and GRU is within noise. **Default to GRU** for fast iteration; switch to LSTM if you have plenty of data and very long-range dependencies (sequences of several hundred steps). For sequences past ~500 steps, both are usually beaten by a Temporal Convolutional Network (Part 6) or an Informer-style sparse Transformer (Part 8).
 
-## 8. Common Pitfalls
+## Common Pitfalls
 
 - **Forgetting to standardize per feature.** LSTMs are scale-sensitive; raw stock prices and percent returns mixed in one input will train badly.
 - **Shuffling time-series windows across the train/test boundary.** Use `TimeSeriesSplit` or a fixed chronological cut.
@@ -214,7 +214,7 @@ Empirically, on most forecasting tasks the gap between LSTM and GRU is within no
 - **Tuning hidden size before the lookback.** Lookback decides what information the cell *can* see; making the cell wider doesn't help if the window is too short.
 - **Trusting a single random seed.** RNN training is noisy. Report mean ± std over at least 3 seeds.
 
-## 9. Diagnosing a Sick LSTM
+## Diagnosing a Sick LSTM
 
 When an LSTM forecaster underperforms, resist the urge to swap architectures. The same five symptoms account for the majority of failures, and each has a concrete check.
 
@@ -260,7 +260,7 @@ def gate_stats(model, batch):
 
 If the forget-gate bias is below zero after training, the network has learned to flush memory on every step — usually a sign that your sequences are too short to reward retention. Shorten them further or switch to a stateless feed-forward model.
 
-## 10. Production Deployment Notes
+## Production Deployment Notes
 
 LSTM models are deceptively easy to prototype and surprisingly fiddly to deploy. A few things that bit me on past projects.
 

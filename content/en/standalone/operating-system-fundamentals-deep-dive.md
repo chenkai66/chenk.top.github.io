@@ -33,7 +33,7 @@ This entire round trip takes about 100 microseconds. You see only the final resu
 
 ---
 
-## 1. What an operating system actually does
+## What an operating system actually does
 
 The name "operating system" is misleading — it sounds monolithic, but it is really a pile of code solving one fundamental problem: **multiple things sharing one machine**. If only one program ever ran, only one user ever logged in, and hardware never failed, you could delete most of the kernel. The OS is complex because reality is not that:
 
@@ -44,7 +44,7 @@ The name "operating system" is misleading — it sounds monolithic, but it is re
 
 Keep these four in mind, and every section below builds on them. We start with the kernel architecture and move outward: processes, memory, files, I/O, system calls, and scheduling.
 
-## 2. Kernel architecture: monolithic vs microkernel
+## Kernel architecture: monolithic vs microkernel
 
 ![Monolithic vs microkernel: where does the code live?](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig1_kernel_architectures.png)
 
@@ -52,7 +52,7 @@ Keep these four in mind, and every section below builds on them. We start with t
 
 Once that line is drawn, the question is: how much code goes on the kernel side? This is the monolithic vs. microkernel distinction.
 
-## 2.1 Monolithic: stuff everything in
+## 1 Monolithic: stuff everything in
 
 Linux, FreeBSD, and Windows NT (technically a hybrid) take this approach. **Scheduler, memory management, file systems, the TCP/IP stack, and device drivers** all reside in the kernel address space and call each other as plain functions, with no isolation overhead.
 
@@ -60,7 +60,7 @@ Linux, FreeBSD, and Windows NT (technically a hybrid) take this approach. **Sche
 - **Con: fragile.** Any driver crash equals a kernel panic. About 70% of the Linux source is drivers; every new piece of hardware introduces a new risk.
 - **Mitigation: modules.** Linux ships drivers as loadable modules (`*.ko`) that you `insmod`/`rmmod` at runtime. But modules **still live in the kernel address space** — a buggy module can still crash the kernel; modules just decouple build and shipping.
 
-## 2.2 Microkernel: only the bare essentials
+## 2 Microkernel: only the bare essentials
 
 Mach, L4, seL4, and QNX take the other approach. The kernel retains only **inter-process communication (IPC), the scheduler, and minimal memory management**. File systems, network stacks, and drivers all run as **ordinary user-mode processes**.
 
@@ -68,7 +68,7 @@ Mach, L4, seL4, and QNX take the other approach. The kernel retains only **inter
 - **Con: slow.** What used to be a function call ("open this file") now involves app -> kernel IPC -> file server -> kernel IPC -> block service. Each step requires a context switch.
 - **Where they live in production:** QNX has run cars, medical devices, and industrial controllers for decades; macOS / iOS use XNU, which is Mach (microkernel) plus a BSD layer (monolithic) glued together. Pure microkernels remain a minority on general-purpose desktops and servers.
 
-## 2.3 Why Linux did not switch
+## 3 Why Linux did not switch
 
 In the famous Tanenbaum-vs-Linus debate of 1992, Tanenbaum argued that Linux's monolithic design was already obsolete. Thirty years later, Linux is still monolithic. The reasons are unromantic:
 
@@ -78,11 +78,11 @@ In the famous Tanenbaum-vs-Linus debate of 1992, Tanenbaum argued that Linux's m
 
 Once this picture is in your head, every kernel oops or BSOD is "the cost of monolithic"; every piece of hardware that crashes without taking down the system (your phone's wifi driver restarting silently) is "microkernel ideas leaking in".
 
-## 3. Processes and the state machine
+## Processes and the state machine
 
 A process is the OS's accounting unit for a "running program". Each one has its own address space, file descriptor table, signal handler table, CPU context (registers), and scheduling state. When the OS decides to take one off the CPU and put another on, it saves the first's registers to memory and restores the second's from memory — that is a **context switch**, about 1-5 microseconds each.
 
-## 3.1 Five-state lifecycle
+## 1 Five-state lifecycle
 
 ![Five-state process lifecycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig2_process_states.png)
 
@@ -101,7 +101,7 @@ Two non-obvious facts worth memorising:
 1. **READY and RUNNING both show as `R` in ps.** Linux merges "could run" with "is running" because the time resolution is too short to be meaningful.
 2. **`D` state cannot be killed.** Not even with `kill -9`. A `D` process is stuck inside the kernel waiting on a hardware operation that cannot be cancelled (typically NFS or a hung disk). Lots of `D` processes? Your first suspect is the storage or network layer.
 
-## 3.2 The real cost of a context switch
+## 2 The real cost of a context switch
 
 ```bash
 # Switch frequency, in switches/sec (cs column)
@@ -112,7 +112,7 @@ perf stat -e context-switches,task-clock sleep 1
 
 Direct cost is 1-5 us (saving and restoring registers, switching the page table, updating scheduler stats). Indirect cost is **cache pollution** — the new process's working set has to be reloaded into L1/L2, which can add tens of microseconds. So **threads vastly outnumbering cores almost always loses**, not because the CPU runs out, but because switching burns time.
 
-## 3.3 Process vs thread vs coroutine
+## 3 Process vs thread vs coroutine
 
 These three words get muddled daily. One sentence each:
 
@@ -127,7 +127,7 @@ These three words get muddled daily. One sentence each:
 | Memory isolation | Strong | None (same proc) | None |
 | Best for | Multiple services, security boundary | CPU-bound + shared memory | High-concurrency I/O |
 
-## 4. Virtual memory: every process believes it owns the machine
+## Virtual memory: every process believes it owns the machine
 
 ![Virtual memory + paging](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig3_virtual_memory.png)
 
@@ -139,7 +139,7 @@ Letting processes touch physical addresses directly has three unsolvable problem
 
 Virtual memory dissolves all three. Each process gets its own **virtual address space** (256 TB on 64-bit), and a hardware MMU plus a kernel-maintained **page table** translates virtual addresses to physical ones at every access.
 
-## 4.1 The translation
+## 1 The translation
 
 Addresses are split into **pages** (typically 4 KiB). A virtual address is `[VPN | offset]`; the page table maps VPN to a PFN (physical frame number); the physical address is `[PFN | offset]`.
 
@@ -147,7 +147,7 @@ Addresses are split into **pages** (typically 4 KiB). A virtual address is `[VPN
 - **Multi-level page tables**: a flat 64-bit page table would take petabytes. Linux now uses 5-level page tables (PML5), expanded on demand so only the actually-used virtual address ranges have entries.
 - **PTE flag bits**: R/W/X (permissions), Present (is the page in RAM?), Dirty, Accessed, User/Supervisor. **All of memory safety and most of memory optimisation rests on these bits** — COW, mmap, swap, KSM all use them.
 
-## 4.2 The page-fault path
+## 2 The page-fault path
 
 If a PTE has Present=0, the CPU raises a **page fault** and jumps into the kernel. Three common cases:
 
@@ -162,7 +162,7 @@ sar -B 1                              # system-wide fault rate
 
 `maj_flt` climbing means active swapping; performance will collapse. That is the hard signal that the machine is "in swap", much more direct than reading the `free` column.
 
-## 4.3 Things you use every day that are silently virtual memory
+## 3 Things you use every day that are silently virtual memory
 
 - **`fork()`'s copy-on-write.** Fork does not actually copy 4 GB. It marks every page in both parent and child as read-only and shared; the first writer triggers a fault and only that page gets copied.
 - **`mmap()`-ing a file.** You think you are reading memory; the OS is reading the disk on demand. `/usr/bin/python` mapped by every Python process points to the same physical pages.
@@ -183,7 +183,7 @@ Latency hierarchy worth memorising:
 
 "Slow" comes in orders of magnitude. The first step of any optimisation is naming which order of magnitude you are stuck in.
 
-## 5. File systems: name, metadata, and data are three different things
+## File systems: name, metadata, and data are three different things
 
 ![Inode-based file system](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig4_file_system.png)
 
@@ -195,11 +195,11 @@ Most users think "a file = some bytes + a name". The kernel splits it into three
 
 This three-layer split is the heart of Unix file system design and explains a pile of otherwise-puzzling behaviours.
 
-## 5.1 Why is `mv` instant within the same partition?
+## 1 Why is `mv` instant within the same partition?
 
 `mv a.txt b.txt`: the only change is "a.txt -> ino 42" becoming "b.txt -> ino 42" in the directory. The inode does not move. The data does not move. Zero bytes copied. Across partitions it is a real copy because each file system has its own independent inode table.
 
-## 5.2 Why does `rm` not always free space?
+## 2 Why does `rm` not always free space?
 
 `rm` removes the dirent and decrements `nlink`. The inode (and its blocks) are released only when **`nlink` hits 0 AND no process still has the file open**.
 
@@ -209,7 +209,7 @@ lsof | grep deleted  # find files that were unlinked but are still open
 
 This is the canonical "disk full but I cannot find the big file": a log got rotated and unlinked, but the application still has the file descriptor open and is still writing. Restarting that application releases the space.
 
-## 5.3 Hard link vs symlink
+## 3 Hard link vs symlink
 
 - **Hard link (`ln a b`)**: another name on the same inode. `nlink++`. Deleting either name leaves the other intact. **Cannot cross partitions** (inode numbers are partition-local) and **cannot link directories** (would create cycles).
 - **Symlink (`ln -s a b`)**: a separate inode whose contents are just a path string. Crosses partitions, can point at non-existent targets (dangling), breaks if the target moves.
@@ -219,7 +219,7 @@ ls -li     # second column is nlink
 stat foo
 ```
 
-## 5.4 Block pointers: how a fixed-size inode addresses huge files
+## 4 Block pointers: how a fixed-size inode addresses huge files
 
 A classic Unix inode has 12 direct block pointers, 1 single-indirect, 1 double-indirect, 1 triple-indirect. With 4 KiB blocks:
 
@@ -232,7 +232,7 @@ Most files are small (< 48 KiB) and resolve in zero extra reads. Big files cost 
 
 Modern file systems (ext4, xfs, btrfs, ZFS) replace per-block pointers with **extents** (contiguous ranges) to shrink metadata further, but the structural idea — inode is metadata + locator — is unchanged.
 
-## 5.5 VFS: everything that looks like a file
+## 5 VFS: everything that looks like a file
 
 Linux puts a **VFS (Virtual File System)** layer on top, so all file systems, network mounts, and pseudo file systems expose the same `open/read/write/seek/close` API. That is why you can:
 
@@ -243,7 +243,7 @@ Linux puts a **VFS (Virtual File System)** layer on top, so all file systems, ne
 
 "Everything is a file" is not a slogan. It is the engineering output of VFS.
 
-## 6. The I/O subsystem: one read() drills down seven layers
+## The I/O subsystem: one read() drills down seven layers
 
 ![The I/O stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig5_io_subsystem.png)
 
@@ -260,7 +260,7 @@ Linux puts a **VFS (Virtual File System)** layer on top, so all file systems, ne
 
 The interrupt handler copies the data into the user buf and wakes the sleeping process. Control returns to the read() caller.
 
-## 6.1 Why so many layers
+## 1 Why so many layers
 
 Each layer abstracts something real:
 
@@ -275,7 +275,7 @@ Each layer abstracts something real:
 
 Strip a layer and the application has to solve the abstraction itself. That is why bypassing the OS to write your own database engine does not magically make it faster — the OS already encodes decades of these optimisations.
 
-## 6.2 Sync, async, io_uring
+## 2 Sync, async, io_uring
 
 Classic `read()` is **synchronous-blocking**: the caller is parked until data arrives. Fine for one-thing-at-a-time programs; fatal for a server juggling 10,000 connections (10,000 threads -> context-switch storm).
 
@@ -285,7 +285,7 @@ The historical answers:
 - **`aio`**: Linux's earlier real-async API. Direct-I/O only, buggy, never quite caught on.
 - **`io_uring` (Linux 5.1+)**: the modern answer. User space and kernel share two ring buffers (submission and completion); one syscall can submit dozens of I/Os; the kernel posts results to the completion ring; user space reads them back. Syscall counts drop dramatically. It is now the default for high-performance I/O libraries (QUIC servers, next-generation databases).
 
-## 6.3 Diagnosing "slow I/O" top-down
+## 3 Diagnosing "slow I/O" top-down
 
 ```bash
 # 1. application view
@@ -300,13 +300,13 @@ cat /proc/meminfo | grep -E 'Cached|Buffers'
 
 Walk it from app to device. Common trap: you see CPU is 5% busy and assume the box is idle — it might be entirely waiting on I/O. The `wa` column in `vmstat` is the truth.
 
-## 7. System calls: the only legal cry for help from user mode
+## System calls: the only legal cry for help from user mode
 
 ![The system call boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig6_syscall_interface.png)
 
 A user-mode program that wants to do anything privileged (read a file, send a packet, allocate memory, fork) must go through a system call. This is the bedrock of OS security: the CPU literally refuses certain instructions in ring 3, and the only way to switch to ring 0 is a **trap** instruction — `syscall`, `int 0x80`, `sysenter`.
 
-## 7.1 Steps in one syscall
+## 1 Steps in one syscall
 
 1. **C library wrapper.** `read(fd, buf, n)` in your code is a plain glibc function.
 2. **Register setup.** glibc puts the syscall number in `rax` (Linux x86_64 convention), arguments in `rdi`, `rsi`, `rdx`, `r10`, `r8`, `r9`.
@@ -315,7 +315,7 @@ A user-mode program that wants to do anything privileged (read a file, send a pa
 5. **Execute.** Walk VFS, file system, block layer ... (chapter 6).
 6. **Return.** Result in `rax`, `sysret` flips back to ring 3.
 
-## 7.2 The real cost of a syscall
+## 2 The real cost of a syscall
 
 A no-op syscall (a `getpid()` that does nothing) is ~100 ns on a modern CPU. Sounds small, but in context:
 
@@ -325,7 +325,7 @@ A no-op syscall (a `getpid()` that does nothing) is ~100 ns on a modern CPU. Sou
 
 This is exactly why every high-performance I/O library **batches** syscalls: `sendmmsg` (many packets per call), `io_uring` (many I/Os per call), `vmsplice` (move pages directly). The whole game is amortising those 100 ns.
 
-## 7.3 strace as your microscope
+## 3 strace as your microscope
 
 ```bash
 strace -c ls /tmp                  # which syscalls, how many, how slow (cumulative)
@@ -335,26 +335,26 @@ strace -f ./run.sh                  # follow forks
 
 For most performance investigations, `strace -c` tells you the bottleneck in 30 seconds. `read` 80% -> I/O bound. `futex` 80% -> lock contention. `epoll_wait` 80% -> probably healthy (waiting on events).
 
-## 8. Schedulers: four policies, the same workload
+## Schedulers: four policies, the same workload
 
 ![Four schedulers, same workload](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig7_schedulers.png)
 
 The scheduler decides who gets the CPU next. Run the same three jobs (P1 burst=8, P2 burst=4, P3 burst=2, arriving in order) through four classic policies and the contrast jumps out.
 
-## 8.1 FCFS — first come first served
+## 1 FCFS — first come first served
 
 Whoever arrives first runs to completion. One line of code to implement. The pathology is the **convoy effect**: one CPU-bound long job in front and every short job behind it starves. In the diagram, P3 doesn't even start until t=12, and the average wait is 5.67.
 
 Use case: batch back-end. **Never use for interactive systems.**
 
-## 8.2 SJF — shortest job first
+## 2 SJF — shortest job first
 
 Always pick the runnable job with the smallest remaining burst. **Provably optimal average wait time.** Two real problems:
 
 1. **Who knows future bursts?** You don't. You can only estimate via history (Linux's old nice + ageing).
 2. **Starvation.** A long job may never run if short jobs keep arriving.
 
-## 8.3 Round Robin — time-slice rotation
+## 3 Round Robin — time-slice rotation
 
 Each process runs for a fixed quantum (typically 10-100 ms), then is preempted to the back of the queue. **No starvation, even response.** This is what made early time-sharing possible — 20 people sharing one machine without any of them feeling the others.
 
@@ -365,7 +365,7 @@ The whole game is choosing the quantum:
 
 In the diagram, quantum=2 gives average wait 4.33.
 
-## 8.4 CFS — Linux today
+## 4 CFS — Linux today
 
 Linux switched to CFS (Completely Fair Scheduler) in 2.6.23. Core idea: **maintain a `vruntime` for each process; always schedule the smallest one**. `vruntime` is weighted by nice value — niced-down processes accumulate vruntime faster, so they run less often.
 
@@ -379,7 +379,7 @@ In the diagram, CFS finishes with the lowest and most even waits (4.0). The shor
 
 > Linux 6.6 (2024) introduced EEVDF (Earliest Eligible Virtual Deadline First), a CFS successor that handles modern NUMA + many-small-tasks workloads better. Same lineage, different bookkeeping.
 
-## 8.5 Real-time scheduling
+## 5 Real-time scheduling
 
 CFS is *fair*, not *real-time*. For audio/video, robotics, automotive, Linux also has:
 
@@ -392,7 +392,7 @@ chrt -p <pid>            # see a process's scheduling class
 chrt -f 50 ./mybin       # run with SCHED_FIFO priority 50
 ```
 
-## 9. Stitching the seven figures back together: one full `cat hello.txt`
+## Stitching the seven figures back together: one full `cat hello.txt`
 
 Back to the opening example, narrated with everything we have built:
 
@@ -406,7 +406,7 @@ Back to the opening example, narrated with everything we have built:
 
 In total: 4 main syscalls, several page faults, one full NVMe round trip, several context switches, several CFS scheduling decisions. **Every step maps to one of the figures above.** That is what "understanding the OS" means — not memorising terminology, but watching a concrete action and being able to name what is happening at every level beneath it.
 
-## 10. Where to read next
+## Where to read next
 
 In rough order of how deep you want to go:
 

@@ -36,7 +36,7 @@ This is also where ODE methods quietly become PDE methods. The discretization, e
 
 ---
 
-## 1. From IVP to BVP: a small change with big consequences
+## From IVP to BVP: a small change with big consequences
 
 The canonical second-order BVP is$y'' = f(x, y, y'), \quad y(a) = \alpha, \quad y(b) = \beta.$Compare with the IVP, which would specify$y(a) = \alpha,\;y'(a) = \alpha'$. The data set is the same size (two scalars), but its **distribution** matters enormously.
 
@@ -64,7 +64,7 @@ Mixed types are common in practice (Dirichlet on one side, Neumann on the other)
 
 ---
 
-## 2. The shooting method
+## The shooting method
 
 The simplest idea in the book: turn the BVP into a parametric IVP. For a second-order BVP we know$y(a) = \alpha$but not$y'(a)$. Pick a guess$s$, integrate the IVP$y'' = f(x, y, y'), \quad y(a) = \alpha, \quad y'(a) = s$forward to$x = b$, and look at the residual$F(s) := y(b; s) - \beta$. We want$F(s) = 0$. That is a one-dimensional root-finding problem, solvable by bisection, secant, Newton, or `brentq`.
 
@@ -106,7 +106,7 @@ The standard cure is **multiple shooting**: divide$[a, b]$into$M$panels, shoot i
 
 ---
 
-## 3. The finite-difference method
+## The finite-difference method
 
 ![Ordinary Differential Equations (12): Boundary Value Problems — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/illustration_2.png)
 
@@ -160,7 +160,7 @@ Central differences are second-order: the truncation error is$\mathcal{O}(h^2)$,
 
 ---
 
-## 4. Eigenvalue problems
+## Eigenvalue problems
 
 Linear BVPs with homogeneous boundary conditions and a parameter$\lambda$in the equation are **eigenvalue problems**. The simplest case:$-y'' = \lambda y, \quad y(0) = y(\pi) = 0.$Direct calculation gives eigenvalues$\lambda_n = n^2$with eigenfunctions$\sin(nx)$,$n = 1, 2, 3, \ldots$.
 
@@ -186,7 +186,7 @@ print(eigvals.round(4))    # [1.0000  4.0000  9.0000 16.0000 25.0000 ...]
 
 ---
 
-## 5. Sturm-Liouville theory
+## Sturm-Liouville theory
 
 The general second-order self-adjoint eigenvalue problem is$-\bigl(p(x)\,y'\bigr)' + q(x)\,y = \lambda\,w(x)\,y, \quad y(a) = y(b) = 0,$with$p>0$,$w>0$. This is the **Sturm-Liouville form**, and it is the bridge from ODEs to mathematical physics.
 
@@ -212,7 +212,7 @@ This template — "discretize, eigh, plot at energy" — is essentially the enti
 
 ---
 
-## 6. Collocation: scipy.integrate.solve_bvp
+## Collocation: scipy.integrate.solve_bvp
 
 Modern production BVP solvers usually use **collocation** rather than shooting or finite differences. The idea: assume the solution is a piecewise polynomial on a mesh, and demand that it satisfy the ODE *exactly* at chosen "collocation" points within each interval. SciPy's `solve_bvp` implements a 4th-order Lobatto IIIa scheme with adaptive mesh refinement.
 
@@ -251,7 +251,7 @@ Its weaknesses: like all global methods, it requires a reasonable initial guess;
 
 ---
 
-## 7. Putting it all together: same problem, three methods
+## Putting it all together: same problem, three methods
 
 The famous **Bratu problem**$y'' + 2 e^{y} = 0$,$y(0) = y(1) = 0$has two solutions on the lower branch (a small one and a larger one); we focus on the small one.
 
@@ -262,7 +262,7 @@ The redundancy is reassuring. When two independent BVP methods disagree by somet
 
 ---
 
-## 8. Where this leads: applications
+## Where this leads: applications
 
 - **Beam deflection.** Euler-Bernoulli beam:$EI\,y^{(4)} = w(x)$with combinations of fixed/free/simply-supported boundary conditions. Eigenvalues give the natural vibration frequencies of the beam; eigenfunctions are mode shapes used in structural dynamics.
 - **Steady heat conduction.**$(k(x) T'(x))' + Q(x) = 0$with Dirichlet (prescribed temperature) or Neumann (prescribed flux) boundaries. Sturm-Liouville to the bone; eigenfunction expansions give the time-dependent heat equation by separation of variables.
@@ -274,7 +274,7 @@ The same finite-difference and collocation ideas extend to elliptic PDEs (Laplac
 
 ---
 
-## 9. Method selection summary
+## Method selection summary
 
 | Method | Best for | Watch out for |
 |---|---|---|

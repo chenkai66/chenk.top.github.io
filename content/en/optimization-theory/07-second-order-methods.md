@@ -36,9 +36,9 @@ This article gives the convergence proofs, derives the BFGS update from the seca
 
 ---
 
-## 1. Newton's method
+## Newton's method
 
-### 1.1 Derivation
+### 1 Derivation
 
 For a twice-differentiable $f$, the second-order Taylor expansion around $x_k$ is
 $$
@@ -56,7 +56,7 @@ Geometrically: Newton's method approximates $f$ by the local quadratic and jumps
 ![Newton's method local quadratic model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig1.png)
 *Figure 1. Newton's method approximates f by the local quadratic at x_k and jumps to that quadratic's minimum. If f is itself quadratic, one step suffices.*
 
-### 1.2 Quadratic local convergence
+### 2 Quadratic local convergence
 
 > **Theorem.** Suppose $f$ is twice continuously differentiable, $\nabla^2 f$ is $L$-Lipschitz (i.e., $\|\nabla^2 f(x) - \nabla^2 f(y)\| \leq L \|x - y\|$), and $\nabla^2 f(x^\star) \succeq \mu I$ at a stationary point $x^\star$. Then for $x_0$ close enough to $x^\star$, Newton's method converges with
 > $$\|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.$$
@@ -80,7 +80,7 @@ The "doubling of digits" is concrete: if $\|x_k - x^\star\| = 10^{-3}$, then $\|
 ![Convergence rates: GD vs BFGS vs Newton](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig2.png)
 *Figure 2. Error vs iteration on a log scale: gradient descent decays linearly (constant rate), BFGS achieves superlinear decay, and Newton doubles the number of correct digits per step (quadratic).*
 
-### 1.3 The catch: globalization
+### 3 The catch: globalization
 
 The convergence theorem only guarantees fast convergence **in a neighborhood of $x^\star$**. Far from $x^\star$, the Newton direction may not even be a descent direction (when $\nabla^2 f \not\succ 0$), and the step size may be too large.
 
@@ -94,7 +94,7 @@ Once $x_k$ is close to $x^\star$, the unit step $\alpha_k = 1$ satisfies both co
 ![Damped Newton backtracking line search](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig3.png)
 *Figure 3. Damped Newton: starting from x_k, the pure step (alpha=1) overshoots; backtracking halves alpha until the Armijo sufficient-decrease bound (dotted) is satisfied.*
 
-### 1.4 When the Hessian is indefinite
+### 4 When the Hessian is indefinite
 
 If $\nabla^2 f(x_k) \not\succeq 0$, the Newton direction may point uphill. Common fixes:
 
@@ -104,11 +104,11 @@ If $\nabla^2 f(x_k) \not\succeq 0$, the Newton direction may point uphill. Commo
 
 ---
 
-## 2. Quasi-Newton methods: the secant equation
+## Quasi-Newton methods: the secant equation
 
 Newton needs $\nabla^2 f$, which costs $O(n^2)$ to store and $O(n^3)$ to invert per step. **Quasi-Newton** methods build an approximation $B_k \approx \nabla^2 f(x_k)$ from gradient differences alone, mimicking the curvature implicit in $\nabla f(x_k) - \nabla f(x_{k-1})$.
 
-### 2.1 The secant condition
+### 1 The secant condition
 
 For a quadratic $f(x) = \frac{1}{2} x^\top A x - b^\top x$,
 $$
@@ -120,7 +120,7 @@ B_{k+1} s_k = y_k. \tag{Sec}
 $$
 Any quasi-Newton update should preserve this: the new approximation $B_{k+1}$ should reproduce the curvature observed in the most recent step.
 
-### 2.2 BFGS: the canonical quasi-Newton update
+### 2 BFGS: the canonical quasi-Newton update
 
 The BFGS (Broyden--Fletcher--Goldfarb--Shanno) update is the unique rank-2 update of $B_k$ that:
 
@@ -139,7 +139,7 @@ H_{k+1} = (I - \rho_k s_k y_k^\top) H_k (I - \rho_k y_k s_k^\top) + \rho_k s_k s
 $$
 This is the form actually implemented.
 
-### 2.3 Why BFGS works in one paragraph
+### 3 Why BFGS works in one paragraph
 
 If $B_k$ approximates $\nabla^2 f$ well in the directions seen so far ($s_0, \ldots, s_{k-1}$), the BFGS update preserves that information while adding the new direction $s_k$. Over $n$ linearly-independent steps on a quadratic, BFGS reconstructs the exact Hessian and from then on behaves like Newton — the **finite termination property**.
 
@@ -147,11 +147,11 @@ For non-quadratic $f$, BFGS achieves **superlinear convergence**: $\|x_{k+1} - x
 
 ---
 
-## 3. L-BFGS: limited memory
+## L-BFGS: limited memory
 
 For $n = 10^6$, BFGS would need $10^{12}$ floats (8 TB) just to store $H_k$. **L-BFGS** ("limited memory" BFGS) keeps only the last $m$ pairs $(s_i, y_i)$ — typically $m = 5$ to $20$ — and reconstructs the action $H_k g$ on demand using the **two-loop recursion**.
 
-### 3.1 The two-loop recursion
+### 1 The two-loop recursion
 
 Given:
 - Current gradient $g = \nabla f(x_k)$
@@ -181,11 +181,11 @@ Each loop touches each pair once; the total work is $4mn$ inner products plus a 
 ![L-BFGS two-loop recursion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig4.png)
 *Figure 4. The L-BFGS two-loop recursion. The backward loop sweeps the m history pairs to produce alpha_i and an updated q; H_k^0 is applied; the forward loop sweeps in reverse, yielding r = H_k g in O(mn) without ever forming H_k.*
 
-### 3.2 Where the two-loop comes from
+### 2 Where the two-loop comes from
 
 Apply (BFGS) recursively to expand $H_k$ in terms of $H_k^0$ and the pairs $(s_i, y_i)$. The first loop unwinds the right-most factor $(I - \rho_i y_i s_i^\top)$ for each $i$ from $k-1$ down to $k-m$, applied to $g$. Multiplying by $H_k^0$ gives the middle. The second loop applies the left factors $(I - \rho_i s_i y_i^\top)$ in the reverse order. The $\alpha_i$ values are reused because they appear symmetrically in both factors. (Nocedal & Wright, *Numerical Optimization*, Algorithm 7.4 has the full derivation.)
 
-### 3.3 Practical L-BFGS
+### 3 Practical L-BFGS
 
 - **Initial $H_0$.** $H_0 = \gamma_k I$ with $\gamma_k = (s_{k-1}^\top y_{k-1}) / (y_{k-1}^\top y_{k-1})$ is the standard choice; it provides scale-invariance.
 - **Memory size $m$.** $m = 5$ is a sensible default; $m = 20$ for problems where the gain matters. Larger $m$ does not help past a point because old curvature pairs become irrelevant.
@@ -196,11 +196,11 @@ L-BFGS is the default solver for many ML problems: PyTorch's `torch.optim.LBFGS`
 
 ---
 
-## 4. Trust-region methods
+## Trust-region methods
 
 Line search asks "in which direction?" then "how far?". Trust region asks both at once: **within a region of trust around $x_k$, what is the best step?**
 
-### 4.1 The subproblem
+### 1 The subproblem
 
 At iterate $x_k$ with gradient $g_k$ and Hessian (or approximation) $B_k$, define the model
 $$
@@ -216,7 +216,7 @@ $$
 $$
 If $\rho_k$ is close to 1 the model is good; expand the trust region. If $\rho_k$ is poor or negative, contract the region and reject the step. Standard schedule: shrink $\Delta_k$ by 4 if $\rho_k < 0.25$, expand by 2 if $\rho_k > 0.75$ and the step lies on the boundary.
 
-### 4.2 Solving the subproblem
+### 2 Solving the subproblem
 
 The exact solution requires the **Moré--Sorensen** algorithm: find $\lambda \geq 0$ such that $(B_k + \lambda I) d = -g_k$ and $\lambda (\|d\|_2 - \Delta_k) = 0$. This is exact but expensive.
 
@@ -239,7 +239,7 @@ The dogleg path is a "broken line" from $0$ to $d_k^{SD}$ to $d_k^N$. The model 
 ![Trust region dogleg path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig5.png)
 *Figure 5. Trust-region subproblem in 2D: contours of the quadratic model m(d), the trust ball ||d||<=Delta (dashed), the Cauchy direction d_SD, the Newton step d_N, and the dogleg broken line. The dogleg solution is the intersection of the path with the trust boundary.*
 
-### 4.3 Convergence
+### 3 Convergence
 
 Trust-region methods with Cauchy decrease are **globally convergent** to a stationary point — i.e., $\|\nabla f(x_k)\| \to 0$ — under mild assumptions on $B_k$ (uniformly bounded). When $B_k = \nabla^2 f(x_k)$ and the iterates are close to a strict minimum, trust regions inherit Newton's quadratic convergence.
 
@@ -247,7 +247,7 @@ Trust regions are the method of choice for problems with non-convex Hessians (th
 
 ---
 
-## 5. Choosing among the second-order methods
+## Choosing among the second-order methods
 
 | Method        | Per-step cost  | Memory    | Convergence near $x^\star$ | When to use                                       |
 | ------------- | -------------- | --------- | -------------------------- | ------------------------------------------------- |
@@ -263,7 +263,7 @@ For classical scientific computing — physics simulations, parameter estimation
 
 ---
 
-## 7. Summary
+## Summary
 
 Second-order methods break the $\sqrt{\kappa}$ barrier by using curvature, at a per-iteration cost. The hierarchy:
 

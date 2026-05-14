@@ -249,7 +249,7 @@ async def redirect(short_code: str):
     return RedirectResponse(url=long_url, status_code=302)
 ```
 
-### 301 vs 302 Redirect
+### vs 302 Redirect
 
 This is a meaningful trade-off:
 

@@ -41,7 +41,7 @@ This first instalment of the series is the conceptual ground floor. It deliberat
 
 ---
 
-## 1. What Cloud Computing Actually Is
+## What Cloud Computing Actually Is
 
 The most cited definition is the US National Institute of Standards and Technology's, which lists five **essential characteristics**. They are useful precisely because they exclude things that look cloud-like but are not.
 
@@ -64,7 +64,7 @@ A traditional data centre that rents you a rack misses three of these criteria. 
 | 2015-2020      | Lambda (2014), serverless mainstream, hyperscalers cross $50B/yr                    | Pay-per-invocation; the operational layer disappears                  |
 | 2021-today     | $300B+ run-rate, GPU scarcity drives a second build-out for AI                       | Capacity planning is back — this time around accelerators            |
 
-## 2. Service Models — Where the Management Boundary Lies
+## Service Models — Where the Management Boundary Lies
 
 Think of cloud services as a stack: the higher you go, the less you manage and the less you control. The four widely deployed layers are IaaS, PaaS, FaaS and SaaS.
 
@@ -125,7 +125,7 @@ You use the application. The provider owns everything down to the silicon.
 
 The cleanest mental rule: **the boundary moves up the stack as you climb the pyramid; everything below the boundary is the provider's problem, everything above is yours.**
 
-## 3. Deployment Models — Where the Workload Lives
+## Deployment Models — Where the Workload Lives
 
 Service models tell you what to rent. Deployment models tell you whose data centre it lives in and how the network gets to it.
 
@@ -157,7 +157,7 @@ Two or more public clouds used in production. Adopted to avoid vendor lock-in, t
 
 > **Rule of thumb.** Default to single-region public cloud. Add a second region when downtime starts costing real money. Add a second cloud only when a strategic reason — regulation, customer mandate, or a service that genuinely doesn't exist on your primary — forces it.
 
-## 4. The Market and Why It Concentrates
+## The Market and Why It Concentrates
 
 Cloud is one of the most concentrated markets in modern infrastructure. Three vendors — AWS, Microsoft Azure, Google Cloud — account for roughly two-thirds of worldwide IaaS+PaaS spend; Alibaba Cloud leads in mainland China; the long tail of regional and specialty providers fills the remainder.
 
@@ -173,7 +173,7 @@ The concentration is not accidental. Cloud infrastructure is a CapEx-heavy busin
 | **Alibaba**    | ~4%    | China-region depth, APAC, competitive pricing           | China operations, APAC deployments, cost-sensitive      |
 | **Others**     | ~30%   | OCI, IBM, Tencent, Huawei, regional specialists         | Niche, regional or vertical-specific workloads          |
 
-## 5. The Economics — CapEx vs OpEx Over Time
+## The Economics — CapEx vs OpEx Over Time
 
 The single most important business case for cloud is the shape of the cost curve. On-prem buys capacity in chunks ahead of demand; cloud buys it by the second as demand arrives.
 
@@ -198,7 +198,7 @@ The on-demand sticker price is rarely the full bill. Always add:
 
 A defensible TCO model spans three years, includes refresh cycles for on-prem and reservations for cloud, and amortises people costs against both.
 
-## 6. Architecture Building Blocks
+## Architecture Building Blocks
 
 A cloud is more than VMs. The handful of primitives below recur in every serious architecture.
 
@@ -259,7 +259,7 @@ The reasoning behind the structure:
 
 A pragmatic default: **build everything multi-AZ from day one** (the cost is marginal); **add multi-region only when a minute of downtime costs more than a month of replication bandwidth**.
 
-## 7. The Shared Responsibility Model
+## The Shared Responsibility Model
 
 Almost every public cloud breach in the last decade has been a customer mis-configuration — a public S3 bucket, a leaked IAM key, a permissive security group. The shared responsibility model formalises why.
 
@@ -278,7 +278,7 @@ Two practical consequences:
 
 We go deep on this in Part 5 (security and privacy).
 
-## 8. The Service Catalogue — Reading the Menu
+## The Service Catalogue — Reading the Menu
 
 Each major vendor ships hundreds of services, but they cluster into a small number of families. The map below is enough to find your way around any of them.
 
@@ -290,7 +290,7 @@ A few practical notes when navigating a catalogue:
 - **Three concentric circles.** The "core" — compute, storage, network, IAM, monitoring — is mature and broadly equivalent across vendors. The "managed" tier — databases, queues, container orchestration — is differentiated by ergonomics and price. The "frontier" tier — AI, data warehouse, custom silicon — is where vendors fight for mindshare and where lock-in is highest
 - **Quotas before architecture.** Every account has soft and hard quotas (number of vCPUs, S3 buckets, API requests per second). Read them before designing for scale
 
-## 9. Real-World Cases — Architecture in Anger
+## Real-World Cases — Architecture in Anger
 
 ### Netflix — streaming at planetary scale
 
@@ -308,7 +308,7 @@ Among the first US banks to commit "all-in" on a public cloud (AWS, announced 20
 
 Spotify runs the streaming service primarily on GCP, with the data and ML platform leveraging BigQuery, Dataflow, and Pub/Sub. AWS is used in select areas for storage and some compute. **Outcome:** petabytes of listening data processed daily to power Discover Weekly and Wrapped, with vendor concentration consciously managed.
 
-## 10. A Decision Framework You Can Defend
+## A Decision Framework You Can Defend
 
 The hardest part of cloud is not picking the technology — it is justifying the choice in a year, when someone asks why. The seven-dimension framework below is the one I keep coming back to.
 
@@ -332,7 +332,7 @@ The hardest part of cloud is not picking the technology — it is justifying the
 - **Treat infrastructure as code.** Terraform, Pulumi or CloudFormation — never click in production
 - **Observe from day one.** Logs, metrics, traces, and alerts wired up before traffic, not after
 
-## 11. Common Questions
+## Common Questions
 
 **Is cloud always cheaper than on-prem?**
 No. For variable workloads and most businesses, cloud wins. For very large, very steady-state workloads at 70%+ utilisation — think Dropbox's storage tier, which famously moved off AWS to save hundreds of millions — a private build can win. Always model TCO over three years including refresh cycles, egress and people.

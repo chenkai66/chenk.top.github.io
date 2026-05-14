@@ -36,7 +36,7 @@ This is the everyday problem of **domain adaptation**: you have abundant labelle
 
 ---
 
-## 1. Three Faces of Distribution Shift
+## Three Faces of Distribution Shift
 
 A **domain** is a feature space $\mathcal{X}$ with a marginal distribution $P(X)$. A **task** is a label space $\mathcal{Y}$ with a conditional distribution $P(Y \mid X)$. Domain adaptation studies what happens when the source and target disagree on one of these.
 
@@ -49,7 +49,7 @@ A **domain** is a feature space $\mathcal{X}$ with a marginal distribution $P(X)
 
 The figure is the entire game in one picture: before adaptation, the source-trained boundary slices through empty target space; after adaptation, both domains share a feature manifold and the same boundary works.
 
-### 1.1 Covariate shift — the input distribution moved
+### 1 Covariate shift — the input distribution moved
 $$P_S(X) \neq P_T(X), \qquad P_S(Y \mid X) = P_T(Y \mid X)$$
 The *labelling rule* is unchanged; only what you observe is different. Examples:
 
@@ -60,7 +60,7 @@ The *labelling rule* is unchanged; only what you observe is different. Examples:
 $$\mathbb{E}_{P_T}[\ell(f(X), Y)] = \mathbb{E}_{P_S}\!\left[\frac{P_T(X)}{P_S(X)}\,\ell(f(X), Y)\right].$$
 Estimating densities in high dimensions is hopeless, so practitioners estimate the *ratio* directly with KLIEP, uLSIF, or a probabilistic classifier (Bayes-optimal classifier between source and target gives you the ratio for free).
 
-### 1.2 Label shift — the prevalence moved
+### 2 Label shift — the prevalence moved
 $$P_S(Y) \neq P_T(Y), \qquad P_S(X \mid Y) = P_T(X \mid Y)$$
 Class-conditional appearance is unchanged; only base rates differ. Examples:
 
@@ -69,13 +69,13 @@ Class-conditional appearance is unchanged; only base rates differ. Examples:
 
 **Standard fix.** Estimate the target prior $P_T(Y)$ by EM on unlabelled target data (BBSE / RLLS work well), then rescale each source-trained probability by $P_T(y) / P_S(y)$ and renormalise.
 
-### 1.3 Concept shift — the rule itself moved
+### 3 Concept shift — the rule itself moved
 $$P_S(Y \mid X) \neq P_T(Y \mid X)$$
 This is the hard case. "Sick" is positive in a music review and negative in a product review even though the *word* is identical. With no target labels at all, no method can untangle this — concept shift demands at least a few labelled target examples (the *semi-supervised* DA setting).
 
 ---
 
-## 2. Theory: the Ben-David Bound
+## Theory: the Ben-David Bound
 
 Why is adaptation possible at all? The classical answer is the bound of Ben-David et al. (2010). For any hypothesis $h$ in class $\mathcal{H}$:
 $$
@@ -95,13 +95,13 @@ Two takeaways:
 
 ---
 
-## 3. DANN — Adversarial Alignment in One Backward Pass
+## DANN — Adversarial Alignment in One Backward Pass
 
 **Domain-Adversarial Neural Network** (Ganin et al., 2016) is the most influential adversarial method, and the cleanest implementation of "minimise the domain divergence proxy".
 
 ![DANN architecture with Gradient Reversal Layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig2_dann_architecture.png)
 
-### 3.1 Three subnetworks, one shared trunk
+### 1 Three subnetworks, one shared trunk
 
 | Subnet | Role | Trained on |
 |---|---|---|
@@ -116,7 +116,7 @@ $$
 
 $G_d$ wants to tell the domains apart; $G_f$ wants to fool $G_d$ while still letting $G_y$ classify the source correctly.
 
-### 3.2 The Gradient Reversal Layer (GRL)
+### 2 The Gradient Reversal Layer (GRL)
 
 A naive minimax requires alternating optimisation, which is fragile (think early GANs). DANN's contribution is to make the whole system trainable in **one** backward pass via the Gradient Reversal Layer:
 $$
@@ -131,7 +131,7 @@ GRL sits on the path from features to the domain head. During backprop, the disc
 
 No alternating training, no separate optimisers, no manual freezing.
 
-### 3.3 The adversarial weight schedule
+### 3 The adversarial weight schedule
 
 DANN does not turn $\lambda$ on at full strength — that destroys early learning. Instead it follows a sigmoid ramp:
 $$\lambda_p = \frac{2}{1 + \exp(-\gamma p)} - 1, \qquad \gamma \approx 10,$$
@@ -139,13 +139,13 @@ where $p \in [0, 1]$ is training progress. Early on ($\lambda \approx 0$), the n
 
 ---
 
-## 4. MMD — Matching Means in an RKHS
+## MMD — Matching Means in an RKHS
 
 Adversarial alignment is powerful but unstable. The non-adversarial alternative is to define an explicit distance between distributions and minimise it directly. **Maximum Mean Discrepancy** (Gretton et al., 2012) is the standard choice.
 
 ![Maximum Mean Discrepancy: kernel mean embeddings](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig3_mmd_kernel.png)
 
-### 4.1 The idea
+### 1 The idea
 
 A kernel $k(x, y) = \langle \phi(x), \phi(y) \rangle_{\mathcal{H}}$ implicitly maps each sample into a (possibly infinite-dimensional) RKHS $\mathcal{H}$. The **kernel mean embedding** of a distribution $P$ is the average feature
 $$\mu_P = \mathbb{E}_{X \sim P}[\phi(X)] \;\in\; \mathcal{H}.$$
@@ -153,7 +153,7 @@ For *characteristic* kernels (the Gaussian RBF being the canonical example), the
 $$\text{MMD}^2(P_S, P_T) = \|\mu_{P_S} - \mu_{P_T}\|_{\mathcal{H}}^2.$$
 The figure shows this graphically: even when raw histograms overlap a little, the kernel mean embeddings make the gap explicit, and the shaded area is exactly $\text{MMD}^2$.
 
-### 4.2 The estimator you actually compute
+### 2 The estimator you actually compute
 
 Because the embedding is implicit, expand the squared norm and the inner product becomes a kernel evaluation:
 $$
@@ -163,13 +163,13 @@ This is differentiable in the features, so you can drop it straight into a deep 
 $$\mathcal{L} = \mathcal{L}_{\text{task}} + \lambda \cdot \widehat{\text{MMD}}^2\!\big(G_f(X_S),\, G_f(X_T)\big).$$
 This is **DAN / DDC** (Long et al., 2015; Tzeng et al., 2014).
 
-### 4.3 Practical tips
+### 3 Practical tips
 
 - **Use multi-kernel MMD.** A mixture $k = \sum_u \beta_u k_{\sigma_u}$ of Gaussian RBFs at several bandwidths is robust to bandwidth misspecification.
 - **Median heuristic for $\sigma$.** Set the bandwidth to the median pairwise distance in the batch — cheap, robust, almost always good enough.
 - **Apply MMD to deeper layers.** Lower layers carry domain-specific texture; the abstraction at the top is what you want aligned.
 
-### 4.4 MMD vs DANN at a glance
+### 4 MMD vs DANN at a glance
 
 | | MMD | DANN |
 |---|---|---|
@@ -183,7 +183,7 @@ A reasonable default workflow: try MMD first; switch to DANN if MMD plateaus.
 
 ---
 
-## 5. CORAL — Aligning Second-Order Statistics
+## CORAL — Aligning Second-Order Statistics
 
 If matching means is good, matching means and *covariances* is often better. **CORAL** (Sun & Saenko, 2016) does exactly this.
 
@@ -197,7 +197,7 @@ CORAL is dirt cheap (one matrix and one Frobenius norm per batch), entirely dete
 
 ---
 
-## 6. AdaBN — The Free Lunch You Should Always Try First
+## AdaBN — The Free Lunch You Should Always Try First
 
 The simplest domain adaptation trick of all: **recompute batch-norm statistics on the target.**
 
@@ -211,7 +211,7 @@ Cost: minutes. Code change: replacing a few `BatchNorm` running stats. Effect: r
 
 ---
 
-## 7. GAN-Based and Pixel-Level Adaptation
+## GAN-Based and Pixel-Level Adaptation
 
 Sometimes the gap is so visual — synthetic to real, day to night — that aligning *features* is too late. You want to translate the inputs themselves.
 
@@ -220,7 +220,7 @@ Sometimes the gap is so visual — synthetic to real, day to night — that alig
 
 ---
 
-## 8. Self-Training — Bootstrapping Labels on the Target
+## Self-Training — Bootstrapping Labels on the Target
 
 Adversarial and statistical alignment treat the target as one undifferentiated cloud. **Self-training** (also called pseudo-labelling) goes further: it uses your current model to produce target labels and then trains on them.
 
@@ -242,7 +242,7 @@ Self-training is powerful and underestimated, but it has one infamous failure mo
 
 ---
 
-## 9. Decision Tree — Which Method, When?
+## Decision Tree — Which Method, When?
 
 ![Domain Adaptation Decision Guide](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig_domain_adapt_en.png)
 
@@ -250,7 +250,7 @@ In practice a strong pipeline often *combines* methods: AdaBN for the easy gains
 
 ---
 
-## 10. Benchmarks — How Much Does This Actually Help?
+## Benchmarks — How Much Does This Actually Help?
 
 ![Office-31 and DomainNet benchmark](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig7_office31_benchmark.png)
 
@@ -261,7 +261,7 @@ The numbers are representative literature averages with a ResNet-50 backbone. Tw
 
 ---
 
-## 11. Where Domain Adaptation Earns Its Keep
+## Where Domain Adaptation Earns Its Keep
 
 - **Medical imaging** — Siemens vs GE scanners, 1.5T vs 3T MRI, hospital A vs hospital B.
 - **Autonomous driving** — sunny to rainy, city A to city B, simulation to real.
@@ -273,7 +273,7 @@ The common pattern: **source labels are abundant, target labels are expensive or
 
 ---
 
-## 12. Visualising the Effect — t-SNE Before and After
+## Visualising the Effect — t-SNE Before and After
 
 A standard sanity check after training a DA model: project source and target features through t-SNE. Before adaptation, samples cluster by *domain*; after, they cluster by *class*.
 
@@ -283,7 +283,7 @@ If your "after" plot still shows two domain blobs, alignment failed. If it shows
 
 ---
 
-## 13. Complete Implementation: DANN
+## Complete Implementation: DANN
 
 ```python
 import torch

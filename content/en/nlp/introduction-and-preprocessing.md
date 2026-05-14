@@ -41,27 +41,27 @@ This first article in the series does two things. First, it maps out the field's
 
 ---
 
-## 1. Four Eras of NLP
+## Four Eras of NLP
 
 NLP did not advance smoothly. It moved in jumps, each driven by a new representation of language. Knowing the sequence helps you choose the right tool: rule systems still beat neural nets for narrow form-filling, statistical methods still drive search ranking, and embeddings dominate everything else.
 
-### 1.1 Symbolic Era (1950s — late 1980s)
+### 1 Symbolic Era (1950s — late 1980s)
 
 Early systems treated language as a logic problem. ELIZA (1966) matched user input against hand-crafted regex patterns and rephrased the captured groups; SHRDLU (1970) parsed instructions about a blocks world using a hand-written grammar. These systems were precise within their domain and completely brittle outside it — a synonym or a typo broke them. The lesson, in hindsight, is that language has too many surface forms for any human to enumerate.
 
-### 1.2 Statistical Revolution (1990s)
+### 2 Statistical Revolution (1990s)
 
 The turning point was the realization that you don't need to write rules; you can estimate probabilities from data. The bigram model is the canonical example:
 $$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$
 This single formula powered IBM's statistical machine translation, the first viable speech recognizers, and probabilistic part-of-speech taggers. Hidden Markov Models extended the same idea to latent state, and probabilistic context-free grammars handled syntax. Features were still hand-engineered, but the rules were learned.
 
-### 1.3 Deep Learning Era (2013 — 2016)
+### 3 Deep Learning Era (2013 — 2016)
 
 Word2Vec (Mikolov et al., 2013) showed that a tiny neural network trained to predict context words produces vectors with a remarkable property: semantic relationships become arithmetic.
 $$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$
 For the first time, words were no longer atomic identifiers. They lived in a continuous space where similarity was a cosine away. RNNs and LSTMs followed, letting models thread context through a sequence and finally learn from order, not just bag-of-tokens counts.
 
-### 1.4 Transformer Revolution (2017 — present)
+### 4 Transformer Revolution (2017 — present)
 
 The 2017 paper "Attention Is All You Need" replaced recurrence with self-attention:
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
@@ -78,7 +78,7 @@ Two practical consequences mattered. First, the model is fully parallel across p
 
 ---
 
-## 2. Where NLP Shows Up Today
+## Where NLP Shows Up Today
 
 | Domain | Examples |
 |---|---|
@@ -92,7 +92,7 @@ The figure above arranges these into six clusters. Notice that almost every clus
 
 ---
 
-## 3. The Preprocessing Pipeline at a Glance
+## The Preprocessing Pipeline at a Glance
 
 Before any model, raw text has to become numerical features. The standard pipeline has six stages, and each one is a deliberate choice that trades information for regularity.
 
@@ -110,7 +110,7 @@ Raw text
 
 A common mistake is to apply every step by reflex. The right framing is: each stage should remove noise that downstream cannot handle and preserve everything else. We will revisit this trade-off at every step.
 
-### 3.1 Environment Setup
+### 1 Environment Setup
 
 ```bash
 pip install nltk spacy scikit-learn matplotlib numpy pandas beautifulsoup4
@@ -125,7 +125,7 @@ for pkg in ['punkt', 'stopwords', 'wordnet', 'averaged_perceptron_tagger']:
 
 ---
 
-## 4. Step 1 — Text Cleaning
+## Step 1 — Text Cleaning
 
 Web text comes wrapped in HTML, peppered with URLs, and littered with control characters. Cleaning removes the obvious noise without touching meaning.
 
@@ -172,13 +172,13 @@ text = BeautifulSoup(html_text, 'html.parser').get_text(' ', strip=True)
 
 ---
 
-## 5. Step 2 — Tokenization
+## Step 2 — Tokenization
 
 Tokenization splits text into the atomic units a model will see. The boundary you choose — characters, words, subwords — determines vocabulary size, sequence length, and how gracefully the model handles words it has never seen.
 
 ![Three tokenization strategies for the same input](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig4_tokenization_variants.png)
 
-### 5.1 Word Tokenization
+### 1 Word Tokenization
 
 ```python
 # Naive: breaks on contractions and punctuation
@@ -193,7 +193,7 @@ tokens = word_tokenize("Dr. Smith earned $150,000 in 2023! Isn't that amazing?")
 
 NLTK keeps `Dr.` as one token, separates punctuation, and splits the contraction `Isn't` into `Is` + `n't`. Each of those decisions is a hard-coded English convention — which is exactly why word tokenization is brittle across languages.
 
-### 5.2 Sentence Tokenization
+### 2 Sentence Tokenization
 
 ```python
 from nltk.tokenize import sent_tokenize
@@ -204,7 +204,7 @@ sent_tokenize(text)
 
 NLTK's Punkt model learns from data which periods end sentences and which mark abbreviations.
 
-### 5.3 Subword Tokenization (BPE)
+### 3 Subword Tokenization (BPE)
 
 Modern models — GPT, BERT, Llama, Claude — do not tokenize on words. They use **subword tokenization**, almost always a variant of Byte-Pair Encoding (BPE):
 
@@ -264,11 +264,11 @@ For production, use Hugging Face's `tokenizers` library — it ships GPT-style B
 
 ---
 
-## 6. Step 3 — Normalization
+## Step 3 — Normalization
 
 Normalization collapses surface variants of the same word into a single form, which shrinks vocabulary and improves matching. It also throws information away, so apply it deliberately.
 
-### 6.1 Lowercasing
+### 1 Lowercasing
 
 ```python
 "Apple Inc. sells apples in APPLE stores".lower()
@@ -277,7 +277,7 @@ Normalization collapses surface variants of the same word into a single form, wh
 
 Lowercasing helps search and topic modeling. It hurts named-entity recognition (`Apple` the company collapses with `apple` the fruit) and any task where capitalization signals emphasis.
 
-### 6.2 Stemming vs Lemmatization
+### 2 Stemming vs Lemmatization
 
 **Stemming** chops suffixes with deterministic rules. Fast, crude, sometimes wrong:
 
@@ -318,7 +318,7 @@ A useful default: use lemmatization unless you are running a high-throughput ret
 
 ---
 
-## 7. Step 4 — Stopwords and Zipf's Law
+## Step 4 — Stopwords and Zipf's Law
 
 Stopwords are common closed-class words such as `the`, `is`, `at` that carry little task-specific meaning. Removing them shrinks vocabulary by roughly a third and concentrates signal in content words.
 
@@ -345,11 +345,11 @@ When to remove stopwords:
 
 ---
 
-## 8. Step 5 — From Tokens to Vectors
+## Step 5 — From Tokens to Vectors
 
 A model needs numbers. Two classical encodings — Bag-of-Words and TF-IDF — still anchor most retrieval systems and are the right baseline for any new task.
 
-### 8.1 One-hot vs Distributed Representations
+### 1 One-hot vs Distributed Representations
 
 Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector assigns each word a unique index, with a 1 in that position and 0 everywhere else. Every pair of words is orthogonal, which means the encoding carries zero similarity information.
 
@@ -357,7 +357,7 @@ Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector
 
 Distributed representations — which we will build in Part 2 — pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.
 
-### 8.2 Bag of Words
+### 2 Bag of Words
 
 Represent each document as a vector of word counts, ignoring order:
 
@@ -385,7 +385,7 @@ print(pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out()))
 
 The fatal limitation: `dog bites man` and `man bites dog` produce identical vectors. BoW discards order entirely.
 
-### 8.3 TF-IDF
+### 3 TF-IDF
 
 TF-IDF up-weights words that are frequent in a document but rare in the corpus — a heuristic for "important to this document, but not generic":
 $$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$
@@ -430,7 +430,7 @@ tfidf = TfidfVectorizer(
 
 ---
 
-## 9. Step 6 — N-gram Language Models
+## Step 6 — N-gram Language Models
 
 Once you have tokens, you can also model how they follow each other. An n-gram model factors a sentence into a chain of conditional probabilities:
 $$P(w_1, \ldots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_{t-n+1}, \ldots, w_{t-1})$$
@@ -447,7 +447,7 @@ Smoothing techniques (Laplace, Kneser-Ney) patch the holes by redistributing pro
 
 ---
 
-## 10. A Reusable Preprocessing Class
+## A Reusable Preprocessing Class
 
 Putting the steps together into something you can drop into a project:
 
@@ -512,7 +512,7 @@ for orig, proc in zip(texts, pre.preprocess_corpus(texts)):
 
 ---
 
-## 11. End-to-End Example: a Minimal Spam Classifier
+## End-to-End Example: a Minimal Spam Classifier
 
 Combining everything into a working classifier. Use the SMS Spam Collection or any Kaggle spam dataset for real experiments; the snippet below is intentionally tiny so it runs anywhere.
 
@@ -558,7 +558,7 @@ The point of the example is not the accuracy on ten samples — it is the shape 
 
 ---
 
-## 12. Decision Table: Which Steps for Which Task
+## Decision Table: Which Steps for Which Task
 
 | Task | Tokenization | Normalization | Stopwords | Features |
 |---|---|---|---|---|

@@ -34,9 +34,9 @@ This chapter covers the algorithms used in production ML systems — PCA, LDA, S
 
 ![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_1.png)
 
-## 1. Vector Representations: How Data Enters the Pipeline
+## Vector Representations: How Data Enters the Pipeline
 
-### 1.1 Everything becomes a vector
+### 1 Everything becomes a vector
 
 Before any model can learn, real-world objects must be embedded in $\mathbb{R}^p$:
 
@@ -47,7 +47,7 @@ Before any model can learn, real-world objects must be embedded in $\mathbb{R}^p
 
 The reason is simple: **vectors are the building blocks of every linear algebra operation.** Once data is vectorized, you can take inner products (for similarity), compute distances (for k-NN), apply matrices (for linear transforms), and decompose covariances (for PCA). Without vectorization, you need a custom algorithm for each data type; with it, the same SVD routine can handle photos and protein sequences.
 
-### 1.2 Geometry of feature space
+### 2 Geometry of feature space
 
 Stack $n$ samples (each $p$-dimensional) row-wise into the **design matrix**:
 $$\mathbf{X} = \begin{bmatrix} \mathbf{x}_1^\top \\ \vdots \\ \mathbf{x}_n^\top \end{bmatrix} \in \mathbb{R}^{n \times p}$$
@@ -63,7 +63,7 @@ Each row is a point in $\mathbb{R}^p$; each column is a feature observed across 
 
 This geometric framing is more than aesthetic: it tells you which algorithm to reach for. "Find the direction of maximum spread" is PCA. "Find the direction that splits two clouds" is LDA. "Find the surface that classes lie on opposite sides of" is an SVM.
 
-### 1.3 Word embeddings: when geometry encodes meaning
+### 3 Word embeddings: when geometry encodes meaning
 
 Word2Vec, GloVe, and the embedding layers of modern LLMs map tokens to dense vectors so that semantically related words sit close together. The remarkable empirical finding is that simple **vector arithmetic** captures relations:
 $$\text{vec}(\text{king}) - \text{vec}(\text{man}) + \text{vec}(\text{woman}) \approx \text{vec}(\text{queen})$$
@@ -92,9 +92,9 @@ Caveat: real embeddings are 300 to 4096 dimensions, and the analogy property is 
 
 ---
 
-## 2. Principal Component Analysis (PCA)
+## Principal Component Analysis (PCA)
 
-### 2.1 The intuition
+### 1 The intuition
 
 Throw a handful of paper clips on a table, then look down. They are clearly elongated along some direction. PCA finds that direction automatically: **the axis of greatest variance**. Why care about variance? Because variance encodes information. A feature direction with near-zero variance is essentially constant — it cannot help any downstream task.
 
@@ -102,13 +102,13 @@ Throw a handful of paper clips on a table, then look down. They are clearly elon
 
 The figure shows a correlated 2D cloud, the two principal axes drawn at lengths proportional to $\sqrt{\text{variance}}$, and the 1D projection onto PC1. The orange axis (PC1) explains roughly 95% of the spread; throwing away PC2 loses very little structure.
 
-### 2.2 Derivation
+### 2 Derivation
 
 Center the data so $\mathbf{X}^\top\mathbf{1}=\mathbf{0}$. We want a unit vector $\mathbf{u}$ that maximizes the variance of projected coordinates:
 $$\text{Var}(\mathbf{u}) = \frac{1}{n}\sum_{i=1}^n (\mathbf{u}^\top \mathbf{x}_i)^2 = \mathbf{u}^\top \mathbf{C} \mathbf{u}, \qquad \mathbf{C} = \frac{1}{n}\mathbf{X}^\top\mathbf{X}.$$
 Maximizing $\mathbf{u}^\top \mathbf{C}\mathbf{u}$ subject to $\|\mathbf{u}\|=1$ is solved by Lagrange multipliers, which yields $\mathbf{C}\mathbf{u}=\lambda\mathbf{u}$. **The optimal $\mathbf{u}$ is the top eigenvector of the covariance matrix.** The variance along that direction equals the corresponding eigenvalue $\lambda$. Subsequent components are the next eigenvectors, which are mutually orthogonal because $\mathbf{C}$ is symmetric.
 
-### 2.3 PCA via SVD: what production code actually runs
+### 3 PCA via SVD: what production code actually runs
 
 Forming $\mathbf{X}^\top\mathbf{X}$ is wasteful when $p$ is large (think 4096-dim BERT embeddings) and numerically harmful when features are nearly collinear (the condition number squares). Real implementations use the SVD of the centered data matrix:
 $$\mathbf{X} = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top.$$
@@ -137,7 +137,7 @@ print(Vt)                # same up to sign
 print(S**2 / len(X))     # same variances
 ```
 
-### 2.4 Where PCA actually shows up in production
+### 4 Where PCA actually shows up in production
 
 - **Visualization**: project 768-d sentence embeddings to 2-D for an exploratory plot.
 - **Compression**: keep top 50 PCs of MNIST (originally 784-d) before training a small classifier. The accuracy hit is negligible and training is 10x faster.
@@ -147,7 +147,7 @@ print(S**2 / len(X))     # same variances
 
 A tip from experience: always center, and almost always standardize before PCA when features are on different scales (e.g., age in years, income in dollars). Otherwise the largest-variance direction is just "the column with the largest unit."
 
-### 2.5 Kernel PCA: when the manifold is curved
+### 5 Kernel PCA: when the manifold is curved
 
 Linear PCA finds a *flat* subspace. If your data lives on a Swiss-roll-like manifold, no linear projection unfolds it. Kernel PCA conceptually maps each point through a nonlinear feature map $\phi(\mathbf{x})$ and runs PCA in feature space. Crucially, by the kernel trick (next section) you never compute $\phi$ explicitly — only inner products $k(\mathbf{x}_i, \mathbf{x}_j)$.
 
@@ -166,9 +166,9 @@ Kernel PCA has largely been displaced by autoencoders and t-SNE / UMAP for visua
 
 ---
 
-## 3. Linear Discriminant Analysis (LDA)
+## Linear Discriminant Analysis (LDA)
 
-### 3.1 PCA's blind spot, fixed by labels
+### 1 PCA's blind spot, fixed by labels
 
 PCA is unsupervised: it ignores class labels and chases variance. That can be exactly wrong for classification. Imagine two long, parallel cigar-shaped clouds for classes A and B. PCA picks the direction along the cigars (max variance), which is the direction that **mixes** A and B. The right direction is perpendicular to the cigars — the one that splits them.
 
@@ -181,7 +181,7 @@ LDA is supervised. It looks for projections that simultaneously:
 
 The figure makes the failure mode concrete: PCA's arrow runs along the elongation of the clouds, projecting both classes on top of each other; LDA's arrow runs across the gap, and the bottom-of-panel histograms show clean class separation only on the right.
 
-### 3.2 The math
+### 2 The math
 
 With $C$ classes (class $c$ has $n_c$ samples, mean $\boldsymbol{\mu}_c$, overall mean $\boldsymbol{\mu}$):
 $$\mathbf{S}_W = \sum_{c=1}^{C}\sum_{\mathbf{x}\in c}(\mathbf{x}-\boldsymbol{\mu}_c)(\mathbf{x}-\boldsymbol{\mu}_c)^\top, \qquad \mathbf{S}_B = \sum_{c=1}^{C} n_c(\boldsymbol{\mu}_c - \boldsymbol{\mu})(\boldsymbol{\mu}_c - \boldsymbol{\mu})^\top.$$
@@ -198,7 +198,7 @@ X_lda = LinearDiscriminantAnalysis(n_components=2).fit_transform(X, y)
 # Iris (3 classes) reduces cleanly to 2 LDA dimensions.
 ```
 
-### 3.3 PCA vs LDA at a glance
+### 3 PCA vs LDA at a glance
 
 | Property | PCA | LDA |
 |---|---|---|
@@ -212,11 +212,11 @@ The hard cap $C-1$ is often surprising: for binary problems LDA outputs just **o
 
 ---
 
-## 4. Support Vector Machines and the Kernel Trick
+## Support Vector Machines and the Kernel Trick
 
 ![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_2.png)
 
-### 4.1 Why "maximum margin"?
+### 1 Why "maximum margin"?
 
 Many hyperplanes separate two linearly separable classes. SVMs pick the unique one whose margin — the distance to the nearest training point on either side — is maximal. The intuition: a wide margin leaves the most room for a new test point to fall on the correct side, so it generalizes better. This intuition is formalized by VC-dimension and PAC-Bayes bounds.
 
@@ -224,7 +224,7 @@ Many hyperplanes separate two linearly separable classes. SVMs pick the unique o
 
 The decision boundary is the central solid line; the dashed amber lines are the margin; the green-circled points sitting **on** the margin are the support vectors. Only those points determine the solution — delete any non-support-vector and the boundary doesn't move.
 
-### 4.2 The dual is where kernels enter
+### 2 The dual is where kernels enter
 
 **Primal:** $\min_{\mathbf{w}, b} \tfrac{1}{2}\|\mathbf{w}\|^2$ subject to $y_i(\mathbf{w}^\top\mathbf{x}_i + b) \ge 1.$
 
@@ -232,7 +232,7 @@ The decision boundary is the central solid line; the dashed amber lines are the 
 $$\max_{\boldsymbol{\alpha}} \sum_i \alpha_i - \frac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j \,\mathbf{x}_i^\top \mathbf{x}_j, \qquad \sum_i \alpha_i y_i = 0.$$
 The dual involves data only through the **inner products** $\mathbf{x}_i^\top\mathbf{x}_j$. Replace those inner products with any function $k(\mathbf{x}_i, \mathbf{x}_j)$ and you have implicitly replaced the input space with a different (possibly higher-dimensional) feature space. That is the kernel trick.
 
-### 4.3 Lifting to higher dimensions
+### 3 Lifting to higher dimensions
 
 If the classes form concentric rings in 2D, no straight line separates them. But map every point through $\phi(x_1, x_2) = (x_1, x_2, x_1^2 + x_2^2)$ and the inner ring sits low in the new $z$-coordinate while the outer ring sits high — a flat plane separates them.
 
@@ -247,7 +247,7 @@ In general the lifted space can be much higher-dimensional, but with a kernel fu
 - **RBF (Gaussian):** $k(\mathbf{x}, \mathbf{y}) = \exp(-\gamma\|\mathbf{x} - \mathbf{y}\|^2)$ — corresponds to an *infinite-dimensional* feature space, yet evaluates in $O(p)$.
 - **Sigmoid:** $k(\mathbf{x}, \mathbf{y}) = \tanh(\kappa \mathbf{x}^\top\mathbf{y} + c)$ — not always positive definite; used historically for "neural" SVMs.
 
-### 4.4 The Mercer condition
+### 4 The Mercer condition
 
 A function $k$ is a valid kernel iff for any finite sample, the Gram matrix $K_{ij} = k(\mathbf{x}_i, \mathbf{x}_j)$ is **symmetric positive semidefinite**. This is **Mercer's condition**, and it is exactly the condition that guarantees the existence of some feature map $\phi$ with $k(\mathbf{x}, \mathbf{y}) = \langle\phi(\mathbf{x}), \phi(\mathbf{y})\rangle$.
 
@@ -264,13 +264,13 @@ In modern practice SVMs have been displaced by neural networks for large-scale c
 
 ---
 
-## 5. Matrix Factorization for Recommender Systems
+## Matrix Factorization for Recommender Systems
 
-### 5.1 The Netflix problem
+### 1 The Netflix problem
 
 A user-movie rating matrix $\mathbf{R} \in \mathbb{R}^{m\times n}$ is enormous (tens of millions of users, hundreds of thousands of titles) and almost entirely missing — a typical user rates 0.1% of the catalogue. The goal is to **predict the unobserved cells** so we can recommend the highest-predicted unseen items to each user. The Netflix Prize (2006-2009) established matrix factorization as the workhorse approach, and variants of it still power Spotify, YouTube, and every major e-commerce recommender.
 
-### 5.2 The low-rank assumption
+### 2 The low-rank assumption
 
 Suppose user taste and movie content can each be summarized by $k$ latent factors — say, "amount of action," "amount of romance," "indie-vs-blockbuster," and so on. Then the rating user $u$ would give movie $j$ is well approximated by the inner product of their factor vectors:
 $$\hat{r}_{uj} = \mathbf{p}_u^\top \mathbf{q}_j, \qquad \mathbf{R} \approx \mathbf{P}\mathbf{Q}^\top, \quad \mathbf{P} \in \mathbb{R}^{m\times k}, \mathbf{Q} \in \mathbb{R}^{n\times k}.$$
@@ -280,7 +280,7 @@ This is exactly a rank-$k$ approximation of $\mathbf{R}$. With $m=10^7, n=10^5, 
 
 The figure shows the sparse observed matrix (with `?` for unrated cells), the two factor matrices, and the dense recovered prediction.
 
-### 5.3 Alternating Least Squares (ALS)
+### 3 Alternating Least Squares (ALS)
 
 We can't run plain SVD because most entries are missing. Instead, optimize over **observed** entries only, with regularization:
 $$\min_{\mathbf{P}, \mathbf{Q}} \sum_{(u,j)\in\Omega}\bigl(r_{uj} - \mathbf{p}_u^\top\mathbf{q}_j\bigr)^2 + \lambda\bigl(\|\mathbf{P}\|_F^2 + \|\mathbf{Q}\|_F^2\bigr).$$
@@ -308,7 +308,7 @@ def als(R, mask, k=10, n_iter=20, lam=0.1):
     return P, Q
 ```
 
-### 5.4 Cold-start, biases, and beyond
+### 4 Cold-start, biases, and beyond
 
 Pure matrix factorization fails on **cold-start**: a brand-new user with no ratings has no factor vector. Production systems patch this by:
 
@@ -316,7 +316,7 @@ Pure matrix factorization fails on **cold-start**: a brand-new user with no rati
 - Including **user and item biases**: some users rate generously, some movies are universally beloved. Writing $\hat{r}_{uj} = \mu + b_u + b_j + \mathbf{p}_u^\top\mathbf{q}_j$ measurably improves accuracy.
 - Switching to **neural CF** (two-tower models) where users and items are embedded by neural networks trained jointly. The inner-product head is still linear algebra.
 
-### 5.5 Non-negative Matrix Factorization (NMF)
+### 5 Non-negative Matrix Factorization (NMF)
 
 When you want each factor to be interpretable as an additive part rather than a signed combination, constrain $\mathbf{P}, \mathbf{Q} \ge 0$. NMF tends to produce **sparse, parts-based** representations: given a corpus of news articles, NMF factors look like topics ("sports," "politics," "tech") with non-negative word loadings. SVD on the same matrix would give you signed factors that mix topics together.
 
@@ -334,15 +334,15 @@ top = np.argsort(H, axis=1)[:, -10:]
 
 ---
 
-## 6. Linear Regression in Matrix Form
+## Linear Regression in Matrix Form
 
-### 6.1 The model
+### 1 The model
 
 Multivariate linear regression $y = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p + \epsilon$ stacked over $n$ observations:
 $$\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}, \qquad \mathbf{X} \in \mathbb{R}^{n\times(p+1)}.$$
 Here $\mathbf{X}$ is the **design matrix** with a leading column of ones (the intercept).
 
-### 6.2 Least squares as orthogonal projection
+### 2 Least squares as orthogonal projection
 
 We minimize the residual sum of squares $\|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2$. Geometrically, $\mathbf{X}\boldsymbol{\beta}$ ranges over the **column space** of $\mathbf{X}$; we want the point in that subspace closest to $\mathbf{y}$. Closest = perpendicular foot = orthogonal projection.
 
@@ -352,13 +352,13 @@ The condition that the residual $\mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}}
 $$\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}.$$
 In code, never form the inverse; use `np.linalg.lstsq(X, y)` (which calls a stable QR/SVD-based solver) or build $\mathbf{X} = \mathbf{Q}\mathbf{R}$ explicitly and back-substitute $\mathbf{R}\hat{\boldsymbol{\beta}} = \mathbf{Q}^\top\mathbf{y}$.
 
-### 6.3 Ridge regression: shrinkage as conditioning
+### 3 Ridge regression: shrinkage as conditioning
 
 If $\mathbf{X}^\top\mathbf{X}$ is ill-conditioned (collinear features, $p > n$, etc.) the OLS solution is unstable. Ridge adds an $\ell_2$ penalty:
 $$\hat{\boldsymbol{\beta}}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y}.$$
 Adding $\lambda \mathbf{I}$ shifts every eigenvalue of $\mathbf{X}^\top\mathbf{X}$ up by $\lambda$, guaranteeing invertibility and shrinking the condition number from $\sigma_{\max}^2/\sigma_{\min}^2$ to roughly $(\sigma_{\max}^2 + \lambda)/(\sigma_{\min}^2 + \lambda)$. Through the SVD lens, ridge multiplies each singular component of the OLS solution by $\sigma_i^2/(\sigma_i^2 + \lambda)$ — shrinking small-$\sigma$ (noisy) directions hard while leaving big-$\sigma$ (signal) directions almost unchanged.
 
-### 6.4 LASSO: sparsity through $\ell_1$
+### 4 LASSO: sparsity through $\ell_1$
 
 LASSO replaces the $\ell_2$ penalty with $\ell_1$:
 $$\min_{\boldsymbol{\beta}} \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2 + \lambda \|\boldsymbol{\beta}\|_1.$$
@@ -385,21 +385,21 @@ print("LASSO nonzero:", (np.abs(lasso.coef_) > 1e-2).sum())   # ~3
 
 ---
 
-## 7. Linear Layers in Neural Networks
+## Linear Layers in Neural Networks
 
-### 7.1 A fully connected layer is one matmul
+### 1 A fully connected layer is one matmul
 
 Every "Linear" or "Dense" layer is an affine map composed with a pointwise nonlinearity:
 $$\mathbf{h} = \sigma(\mathbf{W}\mathbf{x} + \mathbf{b}).$$
 Without $\sigma$, stacking layers collapses: $\mathbf{W}_3\mathbf{W}_2\mathbf{W}_1$ is just another matrix. Activations break linearity and let the network represent arbitrary continuous functions (the universal approximation theorem).
 
-### 7.2 Batches turn matvecs into matmuls
+### 2 Batches turn matvecs into matmuls
 
 GPUs are not magic; they are very fast at one thing: large dense matrix multiplies. The reason deep learning training is GPU-friendly is the batching trick. Stacking $B$ inputs into $\mathbf{X} \in \mathbb{R}^{B\times d_{\text{in}}}$:
 $$\mathbf{H} = \sigma\bigl(\mathbf{X}\mathbf{W}^\top + \mathbf{1}\mathbf{b}^\top\bigr).$$
 A single SGEMM call now does what $B$ separate matvecs would, with much higher FLOP utilization.
 
-### 7.3 Backpropagation is matrix calculus
+### 3 Backpropagation is matrix calculus
 
 For the layer $\mathbf{h} = \mathbf{W}\mathbf{x}$ the chain rule gives
 $$\frac{\partial L}{\partial \mathbf{W}} = \frac{\partial L}{\partial \mathbf{h}}\,\mathbf{x}^\top, \qquad \frac{\partial L}{\partial \mathbf{x}} = \mathbf{W}^\top \frac{\partial L}{\partial \mathbf{h}}.$$
@@ -427,7 +427,7 @@ class LinearLayer:
         return grad_x
 ```
 
-### 7.4 Attention is also linear algebra
+### 4 Attention is also linear algebra
 
 The self-attention block at the heart of every Transformer is
 $$\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V},$$
@@ -435,25 +435,25 @@ with $\mathbf{Q} = \mathbf{X}\mathbf{W}_Q$, $\mathbf{K} = \mathbf{X}\mathbf{W}_K
 
 ---
 
-## 8. Linear Algebra Foundations of Optimization
+## Linear Algebra Foundations of Optimization
 
-### 8.1 Gradient and Hessian
+### 1 Gradient and Hessian
 
 The Hessian $\mathbf{H}$ contains all second partials of $f$. A second-order Taylor expansion near a stationary point reads
 $$f(\mathbf{x}) \approx f(\mathbf{x}_0) + \nabla f^\top(\mathbf{x} - \mathbf{x}_0) + \tfrac{1}{2}(\mathbf{x} - \mathbf{x}_0)^\top \mathbf{H}(\mathbf{x} - \mathbf{x}_0).$$
 A symmetric positive-definite Hessian means a true minimum; eigenvalues of $\mathbf{H}$ are the curvatures along their corresponding eigenvector directions.
 
-### 8.2 Conditioning and the zigzag
+### 2 Conditioning and the zigzag
 
 Gradient descent's convergence rate depends on the **condition number** $\kappa = \lambda_{\max}/\lambda_{\min}$ of $\mathbf{H}$. When $\kappa$ is large, contour lines of $f$ are highly elongated ellipses; gradient vectors point across the ellipses rather than down them, producing the famous zigzag. The convergence rate of vanilla gradient descent on a quadratic is $\bigl((\kappa-1)/(\kappa+1)\bigr)^2$ per step; for $\kappa = 1000$ that means $\approx 0.996$, i.e., almost no progress.
 
-### 8.3 What Adam actually does
+### 3 What Adam actually does
 
 Newton's method preconditions by $\mathbf{H}^{-1}$, transforming the geometry so the Hessian becomes the identity (one step solves a quadratic). Computing $\mathbf{H}^{-1}$ for a billion-parameter network is hopeless, so Adam approximates it by a **diagonal** preconditioner — a per-parameter running estimate of the squared gradient, $\hat{v}_t$. The update $\theta \leftarrow \theta - \eta \,\hat{m}_t / \sqrt{\hat{v}_t}$ rescales each coordinate so that high-curvature directions take small steps and low-curvature directions take big ones, taming the zigzag at $O(p)$ extra cost.
 
 ---
 
-## 9. Exercises
+## Exercises
 
 ### Conceptual
 
@@ -506,7 +506,7 @@ def my_pca(X, n_components):
 
 ---
 
-## 10. Summary
+## Summary
 
 - **Vectorize first.** Every ML pipeline starts by mapping data into $\mathbb{R}^p$. Once there, geometry tells you which algorithm to reach for.
 - **PCA = top eigenvectors of the covariance.** Compute via SVD for stability. Kernel PCA generalizes to nonlinear manifolds.

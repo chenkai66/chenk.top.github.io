@@ -38,7 +38,7 @@ translationKey: "lamp-on-ecs"
 
 ---
 
-## 1. 为什么 2025 年还要学 LAMP
+## 为什么 2025 年还要学 LAMP
 
 LAMP （**L**inux + **A**pache + **M**ySQL + **P**HP）从 2010 年开始就被各种新框架轮番宣告过死亡，但它每次都活了下来。原因不是怀旧，是「合适」。对内容站点、 CMS （WordPress、 Discuz、 Drupal、 MediaWiki）、客户门户、内部工具，以及一长串小型 SaaS 后端来说， LAMP 仍然是把动态网页放到用户面前**性价比最高、文档最全、维护成本最低**的方案。
 
@@ -51,7 +51,7 @@ LAMP 自带、新栈要自己拼起来的东西：
 
 下面几种场景**别**用 LAMP：高扇出 API （用 Nginx + Go/Node/Rust）、长连接事件驱动（大规模 WebSocket 更适合 event loop 而不是 Apache prefork）、团队已经在容器和控制平面上有积累。把 LAMP 放在它擅长的地方用，别把它当默认选项。
 
-## 2. 四层架构
+## 四层架构
 
 ![LAMP 的四层架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-与阿里云服务器详解/fig1_lamp_architecture.png)
 
@@ -75,7 +75,7 @@ LAMP 自带、新栈要自己拼起来的东西：
 
 把这四条命令背下来，你之后基本不需要再去 Stack Overflow 翻 LAMP 的问题。
 
-## 3. 阿里云 ECS 实例长什么样
+## 阿里云 ECS 实例长什么样
 
 ![阿里云 ECS 实例的解剖图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-与阿里云服务器详解/fig2_aliyun_ecs_overview.png)
 
@@ -96,7 +96,7 @@ LAMP 自带、新栈要自己拼起来的东西：
 
 就这四件事。剩下那一长串高级特性，新手阶段可以无视。
 
-## 4. 网络配置：最容易把人坑住的地方
+## 网络配置：最容易把人坑住的地方
 
 阿里云论坛上每一条「我的服务器访问不了」，根因都落在这条链路的某一跳：
 
@@ -106,11 +106,11 @@ LAMP 自带、新栈要自己拼起来的东西：
 
 这四道关你必须每一道都开通，否则就会去诊断错的那一层。
 
-## 4.1 公网 IP
+## 1 公网 IP
 
 控制台 **实例 -> 你的实例 -> 网络与安全 -> 绑定弹性公网 IP**（或者创建实例时直接分配公网 IP）。把这个 IP 记下来，下面用 `8.134.207.88` 当例子。
 
-## 4.2 安全组规则
+## 2 安全组规则
 
 安全组是一个**有状态的包过滤器**，它跑在云上，不在你的操作系统里。它的判定**早于**任何到达实例的包，所以系统防火墙说什么都没用，安全组说不行就是不行。控制台 **安全组 -> 配置规则 -> 入方向**。
 
@@ -138,7 +138,7 @@ ssh -L 33306:127.0.0.1:3306 user@8.134.207.88
 -   只在隧道开着的时候才暴露 DB；
 -   永远不会出现在 shodan 的扫描结果里。
 
-## 4.3 操作系统防火墙
+## 3 操作系统防火墙
 
 云安全组是必要不充分的——未来某个运维同学可能为了「调试方便」把安全组放开，你的第二道防线就是操作系统防火墙。
 
@@ -164,7 +164,7 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-all
 ```
 
-## 4.4 一跳一跳验
+## 4 一跳一跳验
 
 访问不了的时候，按下面这个**严格顺序**排查。乱了顺序，你会浪费两个小时去查错的那一层。
 
@@ -185,7 +185,7 @@ curl -I http://127.0.0.1
 # 200 OK -> 问题在 Apache 上游（防火墙 / 安全组）
 ```
 
-## 5. 一个请求从头到尾走过的路
+## 一个请求从头到尾走过的路
 
 ![一个 HTTP 请求穿过整个栈的过程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-与阿里云服务器详解/fig3_request_flow.png)
 
@@ -206,7 +206,7 @@ curl -I http://127.0.0.1
 -   **装完之后空白页。** PHP 错误被静默掉了，脚本崩了——去 `/var/log/apache2/error.log` 找，不要在浏览器里找。
 -   **偶发的「Connection refused」。** MySQL 连接数打满了，或者 OOM killer 把 `mysqld` 杀了。看 `dmesg` 和 `mysql.err`。
 
-## 6. 在 Ubuntu 上装
+## 在 Ubuntu 上装
 
 第一步，先确认机器上没有别的 web 服务器或数据库在跑：
 
@@ -219,7 +219,7 @@ sudo systemctl disable --now nginx
 
 安装顺序很重要：先 Apache，再 MySQL，最后 PHP。 PHP 的包会顺手把 Apache 模块拉进来并启用——前提是 Apache 已经在那儿。
 
-## 6.1 Apache
+## 1 Apache
 
 ```bash
 sudo apt update
@@ -247,7 +247,7 @@ sudo sed -i 's/^LogLevel warn/LogLevel info/' /etc/apache2/apache2.conf
 sudo systemctl reload apache2
 ```
 
-## 6.2 MySQL
+## 2 MySQL
 
 ```bash
 sudo apt install -y mysql-server
@@ -299,7 +299,7 @@ collation-server       = utf8mb4_unicode_ci
 
 改完重启 MySQL。缓冲池一项就能决定「每条 query 都打盘」和「热数据全在 RAM」的差别。
 
-## 6.3 PHP
+## 3 PHP
 
 ```bash
 sudo apt install -y php libapache2-mod-php php-mysql \
@@ -328,17 +328,17 @@ sudo systemctl restart apache2
 sudo rm /var/www/html/info.php
 ```
 
-## 7. 纵深防御：把公网面收紧
+## 纵深防御：把公网面收紧
 
 ![一台公网 LAMP 服务器的纵深防御](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-与阿里云服务器详解/fig4_security_setup.png)
 
 一台公网 LAMP 用默认配置上线，几分钟之内就会被自动扫描器开始探。把安全当作五圈同心圆——任何一圈被破，外面下一圈还能撑一段时间。
 
-## 7.1 安全组——最外圈
+## 1 安全组——最外圈
 
 第 4 节讲过了。原则是：安全组应该让操作系统防火墙看起来多余，操作系统防火墙也应该让安全组看起来多余。任何一道单独都不够。
 
-## 7.2 操作系统加固
+## 2 操作系统加固
 
 ```bash
 # 系统补丁——开启自动安全更新
@@ -355,7 +355,7 @@ sudo apt install -y fail2ban
 sudo systemctl enable --now fail2ban
 ```
 
-## 7.3 用 Let's Encrypt 上 HTTPS
+## 3 用 Let's Encrypt 上 HTTPS
 
 域名 A 记录指向你的公网 IP 之后，签证书就是两条命令：
 
@@ -381,24 +381,24 @@ SSLHonorCipherOrder     on
 Header always set Strict-Transport-Security "max-age=63072000"
 ```
 
-## 7.4 MySQL 加固
+## 4 MySQL 加固
 
 -   绑定到 `127.0.0.1`（新版包默认就是，去 `/etc/mysql/mysql.conf.d/mysqld.cnf` 确认一下）。
 -   **每个应用一个数据库账号**，`GRANT` 范围限定到那个库。
 -   永远不要 `GRANT ALL ... TO root@'%'`。
 -   敏感数据的备份要加密落盘。
 
-## 7.5 应用层卫生
+## 5 应用层卫生
 
 -   能用 `php-fpm` 就别用 `mod_php`——把 PHP 故障从 Apache 进程树里隔离出去。
 -   生产环境的 `/etc/php/8.1/apache2/php.ini` 里 `expose_php = Off`、`display_errors = Off`。
 -   不论部署什么框架，都要订阅它的安全公告。 LAMP 服务器被入侵的最大单一来源就是 CMS 的 CVE。
 
-## 8. 端到端部署： Discuz!
+## 端到端部署： Discuz!
 
 拿 Discuz! 当例子，是因为它把一个新装的 LAMP 的薄弱环节都敲打了一遍：文件权限、多个可写目录、 MySQL 用户创建、 PHP 扩展依赖、还有一个 web 安装器把这些都重新校验一次。
 
-## 8.1 下载
+## 1 下载
 
 ```bash
 cd /var/www/html
@@ -409,7 +409,7 @@ sudo mv upload/* upload/.htaccess . 2>/dev/null || sudo mv upload/* .
 sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
 ```
 
-## 8.2 权限——人人都搞错的地方
+## 2 权限——人人都搞错的地方
 
 Apache 跑在 `www-data`（Ubuntu）或 `apache`（CentOS）下。唯一的规则：**Apache 跑的那个用户必须 owns PHP 需要写入的所有文件，且仅此而已**。
 
@@ -427,7 +427,7 @@ done
 
 注意是 `775`，**不是** `777`。`www-data` 已经是属主了，`775` 让属主能写，同时只给 group 加写权限。`chmod 777` 是江湖偏方，不是建议——它让系统上**任何**用户都能改你的应用文件，在共享服务器上就是一条提权路径。
 
-## 8.3 数据库账号
+## 3 数据库账号
 
 ```bash
 sudo mysql -e "
@@ -443,7 +443,7 @@ sudo mysql -e "
 -   `discuz.*`——授权范围是单一数据库。 Discuz 即使被打穿，攻击者也读不到你别的应用的表。
 -   `'discuz_user'@'localhost'`——主机部分是身份的一部分。同名用户从不同主机来是不同用户。走 unix socket 算 `'localhost'`， TCP 到 `127.0.0.1` 算 `'127.0.0.1'`。如果 `mysql_secure_installation` 之后这两个不等价，两个都要授权。
 
-## 8.4 跑安装器
+## 4 跑安装器
 
 访问 `http://你的公网IP/install/`。三件事会发生：
 
@@ -459,7 +459,7 @@ sudo rm -rf /var/www/html/install
 sudo chmod -R 755 /var/www/html/config
 ```
 
-## 9. 90% 的人会撞上的 5 个故障
+## 90% 的人会撞上的 5 个故障
 
 ## 故障 1 ——「Connection refused」
 
@@ -528,9 +528,9 @@ sudo chmod -R 775 /var/www/html/{data,config,uc_server/data,uc_client/data}
 
 忍住别 `chmod -R 777 /var/www`。它能解决问题，但日后会反过来咬你。
 
-## 10. 上生产前要做完的几件事
+## 上生产前要做完的几件事
 
-## 10.1 虚拟主机
+## 1 虚拟主机
 
 只要你有一个以上的站点，就别再把所有东西堆在 `/var/www/html/` 里。每个站点一个 `/var/www/<站点>/` 目录、一个 vhost 文件，结构会清晰很多。
 
@@ -563,7 +563,7 @@ sudo apache2ctl configtest && sudo systemctl reload apache2
 
 `configtest` 在 `reload` 之前执行，是「平滑切换」和「打错括号宕机五分钟」之间的差别。
 
-## 10.2 真正能恢复的备份
+## 2 真正能恢复的备份
 
 没演练过恢复的备份不是备份。最低限度：
 
@@ -594,7 +594,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 每个月在另一台机器上跑一次 `gunzip < some_backup.sql.gz | mysql -u root -p test_restore` 并核对行数。第一次演练一定会让你长见识。
 
-## 10.3 可观测性
+## 3 可观测性
 
 阿里云的 Cloud Monitor agent 默认就给你 CPU、内存、磁盘、带宽。值得自己再加两个信号：
 
@@ -603,7 +603,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 每天花五分钟看一眼，能在容量真出事之前几周就发现端倪。
 
-## 11. 一个应用，两种拓扑
+## 一个应用，两种拓扑
 
 ![LAMP 站点的两种部署拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-与阿里云服务器详解/fig5_deployment_topology.png)
 
@@ -619,7 +619,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 成本大致变成 3 倍，故障面从「一台机器」变成「多台机器加一段网络」，运维确实更难。别因为图画得好看就迁——单机真的扛不住了再迁。
 
-## 12. 源码编译 MySQL （进阶）
+## 源码编译 MySQL （进阶）
 
 通常你不需要这么干。除非有具体理由——发行版省了某个编译选项、合规要求锁死某个版本、上游还没 merge 的补丁——否则用包管理器。源码编译的代价是真的：编译几个小时、没自动安全更新、 CVE 全靠你自己跟。
 
@@ -665,7 +665,7 @@ sudo systemctl enable --now mysql
 
 装完别忘了同样要走 6.2 节的 `mysql_secure_installation` 和 `my.cnf` 调优——源码编译版本不会替你配好。
 
-## 13. 几个真实场景
+## 几个真实场景
 
 ## 场景 A —— 把 WordPress 从虚拟主机迁过来
 

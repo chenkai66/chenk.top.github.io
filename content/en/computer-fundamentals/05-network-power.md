@@ -135,11 +135,11 @@ The fat-tree is the architectural insight that makes hyperscale possible. In a c
 
 ## Part 4: Network Addressing — The Concepts That Actually Matter
 
-## 127.0.0.1 — the loopback address
+## 0.0.1 — the loopback address
 
 127.0.0.1 is the address your machine uses to talk to itself. Packets sent here never touch a physical NIC; they short-circuit inside the kernel's network stack. This is what makes `curl http://localhost:8080` work even with the cable unplugged. The whole `127.0.0.0/8` range is loopback — `127.0.0.1`, `127.5.6.7`, all of it.
 
-## 0.0.0.0 — "any interface"
+## 0.0.0 — "any interface"
 
 0.0.0.0 has two roles depending on context:
 

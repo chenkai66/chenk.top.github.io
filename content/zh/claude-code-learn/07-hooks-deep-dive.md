@@ -59,7 +59,7 @@ process.stdin.on('end', () => {
 
 ---
 
-## 1. block-env-read — 保护 secrets
+## block-env-read — 保护 secrets
 
 这是性价比最高（ROI 最高）的一个 Hook。防止 `Read` 和 `Grep` 触碰 `.env`、`id_rsa`、`credentials.json`。
 
@@ -155,7 +155,7 @@ Claude: I can't read .env.local directly as it contains sensitive data.
 
 ---
 
-## 2. bash-blacklist — 阻止 `rm -rf /`
+## bash-blacklist — 阻止 `rm -rf /`
 
 ![Claude Code 实战 (7)：我实际使用的十个钩子及其代码 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
 
@@ -215,7 +215,7 @@ process.stdin.on('end', () => {
 
 ---
 
-## 3. bash-whitelist — 适合生产环境周边的机器
+## bash-whitelist — 适合生产环境周边的机器
 
 反过来，适合那些需要接触生产环境的 repo，只允许明确列出的二进制文件。
 
@@ -264,7 +264,7 @@ process.stdin.on('end', () => {
 
 ---
 
-## 4. block-git-push — 禁止意外 push
+## block-git-push — 禁止意外 push
 
 我从来没想过让 Claude 不打招呼就直接 push。挂在 `Bash` 的 PreToolUse 上。
 
@@ -307,7 +307,7 @@ process.stdin.on('end', () => {
 
 ---
 
-## 5. format-on-write — 把 Prettier 做成 PostToolUse
+## format-on-write — 把 Prettier 做成 PostToolUse
 
 挂在 `Write|Edit|MultiEdit` 的 PostToolUse 上。
 
@@ -363,7 +363,7 @@ Claude: Done. The component now accepts a `subtitle` prop.
 
 ---
 
-## 6. test-on-edit — 快速失败
+## test-on-edit — 快速失败
 
 挂在源文件的 `Edit|MultiEdit` 的 PostToolUse 上。这是单论效益最高的 Hook——长期使用，它实际上“训练”了 Claude 在我的仓库里写出更靠谱的代码。
 
@@ -453,7 +453,7 @@ Claude: Fixed. The regex now correctly requires an @ symbol.
 
 ---
 
-## 7. backup-before-edit — 安全网
+## backup-before-edit — 安全网
 
 挂在 `Edit|Write|MultiEdit` 的 PreToolUse 上。便宜的保险。
 
@@ -522,7 +522,7 @@ cp /tmp/cc-backups/1714122225123-_src_config.ts ./src/config.ts
 
 ---
 
-## 8. log-tool-calls — 可观测性
+## log-tool-calls — 可观测性
 
 挂在 `*`（所有工具）的 PostToolUse 上。
 
@@ -602,7 +602,7 @@ cat .claude/tool-calls.jsonl | jq -r 'select(.ts > "2026-04-24T10:15") | "\(.ts)
 
 ---
 
-## 9. read-before-write — 禁止盲改
+## read-before-write — 禁止盲改
 
 挂在 `Edit|MultiEdit` 的 PreToolUse 上。强制模型在编辑文件前先读它。
 
@@ -694,7 +694,7 @@ process.stdin.on('end', () => {
 
 ---
 
-## 10. work-hours-only — 人性化边界
+## work-hours-only — 人性化边界
 
 挂在 `Bash` 的 PreToolUse 上。
 

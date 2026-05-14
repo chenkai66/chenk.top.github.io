@@ -30,7 +30,7 @@ translationKey: "time-series-4"
 
 ---
 
-## 1. Why attention? The bottleneck of recurrence
+## Why attention? The bottleneck of recurrence
 
 In a length-$n$ recurrent model, the path between two time steps that are $k$ apart is **$O(k)$ steps long**. Every step squeezes information through a single hidden vector, and every step risks attenuating the gradient.
 
@@ -47,7 +47,7 @@ Attention proposes a radically different geometry: every step has a **direct, le
 
 ---
 
-## 2. Scaled dot-product attention from first principles
+## Scaled dot-product attention from first principles
 
 Stack the input sequence as a matrix $X \in \mathbb{R}^{n \times d}$, one row per time step. Three learned linear maps produce three "views" of the same data:
 $$Q = X W^Q, \qquad K = X W^K, \qquad V = X W^V,$$
@@ -84,7 +84,7 @@ The whole mechanism is two matrix multiplications surrounding a softmax. The exp
 
 ---
 
-## 3. Bahdanau vs Luong: two classic scoring functions
+## Bahdanau vs Luong: two classic scoring functions
 
 Before the Transformer, Bahdanau et al. (2015) introduced **additive attention** for sequence-to-sequence translation, and Luong et al. (2015) followed with **multiplicative (dot-product)** variants. Both are still useful when you wire attention into an RNN.
 
@@ -103,7 +103,7 @@ Both produce a vector of pre-softmax scores, both finish with softmax + weighted
 
 ---
 
-## 4. Self-attention applied to a time series
+## Self-attention applied to a time series
 
 In the seq2seq world, queries come from the decoder and keys/values come from the encoder — two different sequences. **Self-attention** drops that distinction: the same sequence acts as $Q$, $K$, and $V$. Each step looks at every other step in the *same* window.
 
@@ -127,7 +127,7 @@ This is the only line that distinguishes a forecasting Transformer from a sequen
 
 ---
 
-## 5. Multi-head attention, specialised for time
+## Multi-head attention, specialised for time
 
 A single attention map averages whatever patterns it finds. Multi-head attention runs $h$ independent attentions in parallel, each on a slice of the embedding, then concatenates and projects:
 $$
@@ -184,7 +184,7 @@ class MultiHeadAttention(nn.Module):
 
 ---
 
-## 6. Positional encoding: putting time back in
+## Positional encoding: putting time back in
 
 Self-attention is **permutation-invariant** — shuffling the input shuffles the output identically. For time series, that throws away the most important variable in the dataset. We must inject position explicitly.
 
@@ -219,7 +219,7 @@ This generalises sinusoidal PE to arbitrary time intervals — the same code han
 
 ---
 
-## 7. Attention + LSTM: the practical hybrid
+## Attention + LSTM: the practical hybrid
 
 Pure Transformers shine on long sequences but require a lot of data. For windows in the **50-500 step** range, a hybrid is often the strongest baseline: an LSTM extracts local temporal features cheaply, and attention then chooses which encoder state matters at each forecast step.
 
@@ -258,7 +258,7 @@ Empirically this architecture (or variants — DA-RNN, dual-stage attention, etc
 
 ---
 
-## 8. The $O(n^2)$ wall and how to escape it
+## The $O(n^2)$ wall and how to escape it
 
 The attention matrix has $n^2$ entries. Every entry is computed and stored. For a 4096-step window with float32, that is 64 MB *per head*, *per layer*, *per example*. The wall is real.
 
@@ -276,7 +276,7 @@ For most time-series problems, $n$ is in the hundreds, $d$ is in the tens to a f
 
 ---
 
-## 9. Case study: forecasting a stock price
+## Case study: forecasting a stock price
 
 To make the whole pipeline concrete, here is a synthetic stock series with three regimes — a slow trend, a 30-day cycle, and an earnings event at day 60 — forecast 10 days ahead by an LSTM+attention model and a no-attention baseline.
 
@@ -293,7 +293,7 @@ A note of caution: attention weights are **correlated with importance, not ident
 
 ---
 
-## 10. Practical recipe for time-series attention
+## Practical recipe for time-series attention
 
 1. **Standardise inputs**. Attention scores are dot products; without normalisation, large-scale features dominate.
 2. **Add positional encoding**. Sinusoidal for regular sampling, time-aware for irregular.
@@ -306,7 +306,7 @@ A note of caution: attention weights are **correlated with importance, not ident
 
 ---
 
-## 11. Common Pitfalls
+## Common Pitfalls
 
 - **Forgetting to scale by $\sqrt{d_k}$** — training stalls within a few steps.
 - **Wrong masking** — subtle data leakage that inflates training metrics and crashes at deployment.

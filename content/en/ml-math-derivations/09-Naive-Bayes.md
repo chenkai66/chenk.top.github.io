@@ -38,11 +38,11 @@ translationKey: "ml-math-derivations-9"
 
 ---
 
-## 1. Bayesian Decision Theory
+## Bayesian Decision Theory
 
 Before we add the "naive" piece, we need to be honest about what an *optimal* probabilistic classifier looks like. Naive Bayes is one specific way of approximating it.
 
-### 1.1 Bayes' Theorem, Reread as a Belief Update
+### 1 Bayes' Theorem, Reread as a Belief Update
 
 For a class label $c_k \in \{c_1, \dots, c_K\}$ and a feature vector $\mathbf{x} \in \mathbb{R}^d$:
 $$P(c_k \mid \mathbf{x}) \;=\; \frac{P(\mathbf{x} \mid c_k)\, P(c_k)}{P(\mathbf{x})}.$$
@@ -57,7 +57,7 @@ Each term has a job:
 
 **Why the prior matters.** Suppose a test for a rare disease is 99% accurate. With prevalence $0.1\%$, a positive test moves the posterior from $0.001$ to roughly $0.09$ — still ten-to-one against the disease. Bayes' theorem makes the prior do its arithmetic out loud; ignoring priors is the canonical statistics mistake.
 
-### 1.2 The Bayes-Optimal Classifier
+### 2 The Bayes-Optimal Classifier
 
 Pick the class with the largest posterior:
 $$
@@ -70,7 +70,7 @@ is the **Bayes risk**, and the data-set-level $\mathbb{E}_{\mathbf{x}}[R^\star(\
 
 Every probabilistic classifier we will study is, in one way or another, an *approximation* of this rule under finite data.
 
-### 1.3 Generative vs. Discriminative
+### 3 Generative vs. Discriminative
 
 There are two ways to approach $P(c_k \mid \mathbf{x})$:
 
@@ -90,13 +90,13 @@ A classic result of Ng & Jordan (2001) shows the trade-off cleanly: with infinit
 
 ---
 
-## 2. The Naive Bayes Classifier
+## The Naive Bayes Classifier
 
-### 2.1 Why We Need a Drastic Simplification
+### 1 Why We Need a Drastic Simplification
 
 Estimating $P(\mathbf{x} \mid c_k)$ for $\mathbf{x} \in \{0,1\}^d$ requires $2^d - 1$ free parameters per class. For a vocabulary of $d = 10{,}000$ words this is utterly hopeless. The joint distribution is the bottleneck.
 
-### 2.2 The Conditional-Independence Assumption
+### 2 The Conditional-Independence Assumption
 
 Naive Bayes cuts the Gordian knot by assuming that, *conditional on the class*, all features are independent:
 $$P(\mathbf{x} \mid c_k) \;=\; \prod_{j=1}^{d} P\!\left(x^{(j)} \mid c_k\right).$$
@@ -111,7 +111,7 @@ The geometric cost of this assumption is illustrated below: the true joint densi
 
 The two densities can disagree dramatically, yet — as we will see in §5 — the *classification* often does not.
 
-### 2.3 The Classification Rule
+### 3 The Classification Rule
 
 Combining Bayes' theorem with conditional independence and dropping the constant $P(\mathbf{x})$:
 $$\hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k}\; P(c_k) \prod_{j=1}^{d} P\!\left(x^{(j)} \mid c_k\right).$$
@@ -131,7 +131,7 @@ The same picture viewed *probabilistically* (rather than geometrically) is the p
 
 The right panel makes the soft transition explicit: along a slice through the data, the posterior $P(c_1 \mid \mathbf{x})$ rises smoothly from $0$ to $1$, crossing $0.5$ exactly where the two scaled likelihoods cross. That crossover is the decision boundary.
 
-### 2.4 Parameter Estimation by Maximum Likelihood
+### 4 Parameter Estimation by Maximum Likelihood
 
 Given training data $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^{N}$ with $N_k$ samples in class $c_k$:
 
@@ -152,7 +152,7 @@ $$
 $$
 That is *all* the training. There is no iterative optimiser, no learning rate, no convergence check.
 
-### 2.5 Laplace Smoothing — and Its Bayesian Soul
+### 5 Laplace Smoothing — and Its Bayesian Soul
 
 **The catastrophe of zero counts.** Suppose the word *excellent* never appears in your spam training set. Then $\hat{P}(\text{excellent} \mid \text{spam}) = 0$, and a *single* occurrence of *excellent* in a future email forces $P(\text{spam} \mid \mathbf{x}) = 0$ regardless of how spammy the other 199 words are. One missing word kills everything.
 
@@ -177,7 +177,7 @@ Choosing $\alpha$ is a bias–variance dial: small $\alpha$ trusts the data (low
 
 ---
 
-## 3. Three Variants — Same Bayes Rule, Different Likelihood
+## Three Variants — Same Bayes Rule, Different Likelihood
 
 ![ML Math Derivations (9): Naive Bayes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/illustration_2.png)
 
@@ -185,7 +185,7 @@ The classification rule never changes. Only the model for $P(x^{(j)} \mid c_k)$ 
 
 ![Three NB variants compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/09-Naive-Bayes/fig5_three_variants.png)
 
-### 3.1 Multinomial Naive Bayes — for word counts
+### 1 Multinomial Naive Bayes — for word counts
 
 Use when features are non-negative integer counts: term frequencies, $n$-grams, hashed buckets.
 
@@ -195,7 +195,7 @@ $$P(\mathbf{x} \mid c_k) \;\propto\; \prod_{j=1}^{d} \theta_{jk}^{x^{(j)}}.$$
 $$\hat{\theta}_{jk} \;=\; \frac{\sum_{i:\, y_i=c_k} x_i^{(j)} + \alpha}{\sum_{j'=1}^{d}\sum_{i:\, y_i=c_k} x_i^{(j')} + \alpha d}.$$
 In words: the fraction of all word tokens in class-$c_k$ documents that happen to be word $j$.
 
-### 3.2 Bernoulli Naive Bayes — for word presence
+### 2 Bernoulli Naive Bayes — for word presence
 
 Use when features are binary: word *present* (1) or *absent* (0). Especially good for short texts.
 
@@ -205,7 +205,7 @@ $$P(\mathbf{x} \mid c_k) \;=\; \prod_{j=1}^{d} p_{jk}^{x^{(j)}} (1 - p_{jk})^{1 
 
 **Rule of thumb.** Short, sparse documents (tweets, log lines, short queries): Bernoulli usually wins. Long documents (news, reviews): Multinomial is typically better because frequency carries real information.
 
-### 3.3 Gaussian Naive Bayes — for continuous features
+### 3 Gaussian Naive Bayes — for continuous features
 
 Use when features are real-valued and roughly unimodal per class: physical measurements, embeddings, sensor readings.
 
@@ -217,7 +217,7 @@ A surprising fact: when the two classes have the same per-feature variances ($\s
 
 ---
 
-## 4. Worked Example: Spam Classification
+## Worked Example: Spam Classification
 
 Bayes' theorem, conditional independence, and Laplace smoothing all collide in the canonical Naive Bayes use case: spam filtering. The pipeline is:
 
@@ -238,7 +238,7 @@ This is, in a strong sense, the *whole* algorithm: every Naive Bayes prediction 
 
 ---
 
-## 5. Why Does It Work When the Assumption Is Wrong?
+## Why Does It Work When the Assumption Is Wrong?
 
 The independence assumption is essentially never true. Words co-occur, symptoms cluster, sensor readings correlate. So why does Naive Bayes routinely win on text classification benchmarks against models that *know* about correlations?
 
@@ -253,7 +253,7 @@ This is not a license to skip diagnostics. Naive Bayes is *not* well calibrated 
 
 ---
 
-## 6. Reference Implementation
+## Reference Implementation
 
 A clean NumPy implementation of all three variants. The Gaussian version is validated against scikit-learn at the end.
 
@@ -357,7 +357,7 @@ if __name__ == "__main__":
 
 ---
 
-## 7. Exercises
+## Exercises
 
 ### Exercise 1 — Conditional independence, by definition
 

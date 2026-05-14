@@ -42,7 +42,7 @@ This post unifies the two ideas: hierarchy buys temporal abstraction, meta-learn
 
 ---
 
-## 1. Hierarchy: the Options framework
+## Hierarchy: the Options framework
 
 ### Why temporal abstraction matters
 
@@ -149,7 +149,7 @@ MAXQ pays for that win with **recursive optimality** rather than global optimali
 
 ---
 
-## 2. Feudal RL: continuous subgoals with manager-worker
+## Feudal RL: continuous subgoals with manager-worker
 
 Discrete options scale poorly: in continuous-control or pixel-input domains we cannot enumerate a useful option set by hand. **Feudal Networks** (FuN, Vezhnevets et al., 2017) and **HIRO** (Nachum et al., 2018) replace the discrete option set with a *continuous goal vector* produced by a high-level Manager.
 
@@ -167,7 +167,7 @@ This keeps the Worker's training data on-policy with respect to its current para
 
 ---
 
-## 3. Goal-conditioned RL and HER
+## Goal-conditioned RL and HER
 
 Goal-conditioned policies $\pi(a \mid s, g)$ deserve a section of their own, because they are the bridge between hierarchy and meta-learning. The same network can pursue many goals; the goal $g$ is just an additional input.
 
@@ -181,7 +181,7 @@ Combined with off-policy methods (DDPG, SAC), HER turns sparse-reward goal reach
 
 ---
 
-## 4. Meta-RL: learning to learn
+## Meta-RL: learning to learn
 
 ![Reinforcement Learning (11): Hierarchical RL and Meta-Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/illustration_2.png)
 
@@ -313,7 +313,7 @@ RL$^2$ has two attractive properties: (i) zero gradient computation at test time
 
 ---
 
-## 5. FAQ
+## FAQ
 
 **Why does the Options framework actually accelerate learning?**
 Three compounding effects: (i) the effective horizon shrinks from $T$ to roughly $T/\bar k$; (ii) the high-level branching factor $|\mathcal{O}|$ is usually much smaller than $|\mathcal{A}|$; (iii) intra-option learning means every primitive transition contributes to the value of *every* compatible option, not just the one in control.

@@ -39,7 +39,7 @@ translationKey: "recommendation-systems-13"
 
 Bias in a recommender is not one problem. It is at least seven, and they compound. Below is the working taxonomy used in the survey of Chen et al. (2023, *Bias and Debias in Recommender System*) — the cleanest reference if you want the full literature map.
 
-### 1. Popularity bias — the rich get richer
+### Popularity bias — the rich get richer
 
 ![Long-tail item interactions: a small head dominates exposure while the tail is starved](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/fig1_popularity_bias.png)
 
@@ -49,7 +49,7 @@ A clean way to measure it is the gap between the average popularity of recommend
 $$\text{PopBias@K} = \frac{1}{|U|}\sum_{u \in U} \frac{\sum_{i \in R_u^K} \log(1 + p_i)}{K} - \frac{1}{|I|}\sum_{i \in I} \log(1 + p_i)$$
 The log dampens the head's influence so the metric is not dominated by a handful of mega-popular items. Track this per slate, not just globally — global averages hide per-user concentration.
 
-### 2. Position bias — clicks follow the cursor, not the intent
+### Position bias — clicks follow the cursor, not the intent
 
 ![CTR drops sharply with position even when underlying relevance is held constant](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/fig2_position_bias.png)
 
@@ -57,25 +57,25 @@ Users examine top positions far more than bottom ones. The classic *examination 
 $$P(\text{click} \mid u, i, k) = P(\text{examine} \mid k) \cdot P(\text{relevant} \mid u, i)$$
 If you train naively on logged clicks you will conflate "shown at position 1" with "actually relevant." Position bias is the single most-studied bias in industrial learning-to-rank, and the fix — **Inverse Propensity Scoring** — is the one debiasing technique you can deploy this quarter.
 
-### 3. Selection bias — the data you have is not the data you want
+### Selection bias — the data you have is not the data you want
 
 ![Observed ratings are inflated; high-rated items are far more likely to be rated at all](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/fig3_selection_bias.png)
 
 Users do not rate items at random. They rate things they loved or things that disappointed them; the lukewarm middle never gets logged. This is a textbook *missing-not-at-random* (MNAR) pattern. Marlin and Zemel (2009) showed that ignoring it inflates RMSE by 10–30% on MovieLens-style datasets. The cure is the same family of tools as for position bias: model the missingness mechanism explicitly, then reweight or impute.
 
-### 4. Exposure bias — you cannot click what you cannot see
+### Exposure bias — you cannot click what you cannot see
 
 The system can only learn about items it has shown. New items, niche items, and items from underrepresented creators get fewer impressions, which means fewer interactions, which means lower predicted relevance, which means even fewer impressions. This is the closed feedback loop that makes recommenders age badly.
 
-### 5. Conformity bias — users mimic the crowd
+### Conformity bias — users mimic the crowd
 
 A user's expressed preference is partly genuine taste and partly social proof. If a model treats both as the same signal, it learns a "popularity proxy" instead of true preference. This is the bias **DICE** (Zheng et al., WWW 2021) explicitly disentangles into separate "interest" and "conformity" embeddings.
 
-### 6. Demographic bias — uneven quality across groups
+### Demographic bias — uneven quality across groups
 
 The same model can hit NDCG@10 of 0.42 for one group and 0.31 for another. Often the cause is data imbalance: the underrepresented group simply has fewer training examples, so the model learns weaker representations. Sometimes the cause is causal: a feature acts as a proxy for the protected attribute (zip code for race, browser language for nationality).
 
-### 7. Confirmation bias / filter bubble — narrowing the world
+### Confirmation bias / filter bubble — narrowing the world
 
 Once the model thinks it knows you, every recommendation reinforces that belief. Diversity collapses, serendipity dies, and the user's exposure to ideas shrinks over time. This is the bias regulators worry about most because it operates at the population level, not the individual.
 

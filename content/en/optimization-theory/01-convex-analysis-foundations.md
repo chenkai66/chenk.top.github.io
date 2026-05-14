@@ -38,9 +38,9 @@ Linear algebra (inner products, norms), basic real analysis (limits, continuity,
 
 ---
 
-## 1. Convex sets
+## Convex sets
 
-### 1.1 Definition and basic examples
+### 1 Definition and basic examples
 
 A set $C \subseteq \mathbb{R}^n$ is **convex** if for every $x, y \in C$ and every $\lambda \in [0, 1]$,
 $$
@@ -59,7 +59,7 @@ A surprising one: the set of *invertible* matrices is **not** convex. Consider $
 
 ![Convex set vs non-convex set: a set is convex iff every line segment between two of its points stays inside.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig1_convex_set.png)
 
-### 1.2 Operations that preserve convexity
+### 2 Operations that preserve convexity
 
 The following constructions take convex inputs to convex outputs. Each is a one-line check from the definition; you should be able to write the proofs without looking.
 
@@ -73,7 +73,7 @@ The following constructions take convex inputs to convex outputs. Each is a one-
 
 The intersection rule is the most useful in practice — it is the reason a polyhedron $\{x : Ax \leq b\}$ is convex (it is an intersection of halfspaces) and why the feasible set of a convex optimization problem is convex.
 
-### 1.3 The projection theorem
+### 3 The projection theorem
 
 A theorem we will use repeatedly:
 
@@ -111,9 +111,9 @@ The projection theorem has a beautiful geometric reading: $\pi_C(y)$ is the poin
 
 ---
 
-## 2. Convex functions
+## Convex functions
 
-### 2.1 Four equivalent characterizations
+### 1 Four equivalent characterizations
 
 Let $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ with **effective domain** $\mathrm{dom}(f) = \{x : f(x) < +\infty\}$ assumed convex. The following are equivalent and we will use them interchangeably:
 
@@ -149,7 +149,7 @@ Taylor expansion gives $f(x + tv) = f(x) + t \langle \nabla f(x), v \rangle + \t
 
 ![Two equivalent views of convexity: (left) the first-order condition says the tangent at any point is a global lower bound on $f$; (right) the epigraph $\mathrm{epi}(f)$ is itself a convex set in $\mathbb{R}^{n+1}$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig3_convex_function.png)
 
-### 2.2 Strict and strong convexity
+### 2 Strict and strong convexity
 
 - **Strictly convex**: (D) holds with strict inequality whenever $x \neq y$ and $\lambda \in (0, 1)$.
 - **$\mu$-strongly convex** (for $\mu > 0$): $f - \frac{\mu}{2} \|x\|_2^2$ is convex. Equivalently,
@@ -158,7 +158,7 @@ Taylor expansion gives $f(x + tv) = f(x) + t \langle \nabla f(x), v \rangle + \t
   $$
 Strong convexity is to convexity what "uniformly continuous" is to continuous — it gives a quantitative gap and is what makes optimization rates concrete. We unpack it in detail in article 02.
 
-### 2.3 Examples
+### 3 Examples
 
 You should be able to verify each of these with the second-order condition (or directly):
 
@@ -171,7 +171,7 @@ You should be able to verify each of these with the second-order condition (or d
 | $x^4$                         | Strictly convex | $f''(x) = 12 x^2 \geq 0$, vanishes only at $x = 0$ (not strong). |
 | $\frac{1}{2} x^\top Q x$, $Q \succ 0$ | $\lambda_{\min}(Q)$-strongly convex | $\nabla^2 f = Q$.        |
 
-### 2.4 Operations preserving convexity
+### 4 Operations preserving convexity
 
 | Operation                                | Convexity preserved?                                                  |
 | ---------------------------------------- | --------------------------------------------------------------------- |
@@ -186,7 +186,7 @@ The pointwise supremum rule is the secret weapon: it explains why the **support 
 
 ---
 
-## 3. The conjugate function
+## The conjugate function
 
 For any $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ (not necessarily convex), define the **conjugate** (or **Legendre--Fenchel transform**):
 $$
@@ -194,13 +194,13 @@ f^*(y) = \sup_{x \in \mathbb{R}^n} \big[ \langle y, x \rangle - f(x) \big].
 $$
 The conjugate $f^*$ is **always convex**, even if $f$ is not — it is the pointwise supremum of affine functions of $y$.
 
-### 3.1 Geometric reading
+### 1 Geometric reading
 
 For a fixed slope $y$, $f^*(y)$ is the largest value of $\langle y, x \rangle - f(x)$. Equivalently, the affine function $x \mapsto \langle y, x \rangle - f^*(y)$ is the highest affine minorant of $f$ with slope $y$. So $f^*$ tracks, for each slope, how far the supporting hyperplane sits below the graph.
 
 ![Geometric meaning of the conjugate: for slope $y$, the highest affine minorant of $f$ with that slope is $x \mapsto y\,x - f^*(y)$; the value $f^*(y)$ measures the vertical drop from the origin to where this line crosses the $y$-axis.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/01-convex-analysis-foundations/fig4_conjugate.png)
 
-### 3.2 Fenchel--Young inequality
+### 2 Fenchel--Young inequality
 
 Directly from the definition:
 $$
@@ -208,7 +208,7 @@ f(x) + f^*(y) \geq \langle x, y \rangle. \tag{FY}
 $$
 Equality holds iff $y \in \partial f(x)$ (introduced below). This is the convex-analytic generalization of the AM-GM and Young inequalities; setting $f(x) = \frac{1}{p} |x|^p$ for $p > 1$ and computing $f^*$ recovers the classical Young inequality $\frac{|x|^p}{p} + \frac{|y|^q}{q} \geq xy$ with $\frac{1}{p} + \frac{1}{q} = 1$.
 
-### 3.3 Worked conjugates
+### 3 Worked conjugates
 
 Memorize these — we use them as building blocks throughout the series.
 
@@ -224,15 +224,15 @@ Memorize these — we use them as building blocks throughout the series.
 
 The pair (norm, indicator of dual unit ball) explains the entire LASSO duality story we develop in article 06.
 
-### 3.4 Biconjugate and why convexity is closure under $(f^*)^*$
+### 4 Biconjugate and why convexity is closure under $(f^*)^*$
 
 The biconjugate $f^{**} = (f^*)^*$ satisfies $f^{**} \leq f$ pointwise. The two are equal exactly when $f$ is convex and lower semicontinuous; in that case $f^{**} = f$. So the operation "take the conjugate twice" is the smallest convex closed function below $f$ — the **convex envelope** of $f$. This is why people sometimes write convex relaxations as $f^{**}$.
 
 ---
 
-## 4. Subgradients
+## Subgradients
 
-### 4.1 The subdifferential
+### 1 The subdifferential
 
 For convex $f$, the **subdifferential** at $x$ is
 $$
@@ -244,7 +244,7 @@ When $f$ is not differentiable, $\partial f(x)$ can be a non-singleton set. The 
 $$
 x^\star \in \arg\min f \iff 0 \in \partial f(x^\star).
 $$
-### 4.2 Existence and basic calculus
+### 2 Existence and basic calculus
 
 > **Theorem.** If $f$ is convex and $x \in \mathrm{relint}(\mathrm{dom}(f))$, then $\partial f(x)$ is non-empty.
 
@@ -259,7 +259,7 @@ Calculus rules — these are the workhorses of proximal methods:
 | Pointwise max                     | $\partial \max_i f_i(x) = \mathrm{conv} \bigcup_{i \in I(x)} \partial f_i(x)$ where $I(x) = \{i : f_i(x) = \max_j f_j(x)\}$. |
 | Conjugate equivalence             | $g \in \partial f(x) \iff x \in \partial f^*(g) \iff f(x) + f^*(g) = \langle x, g \rangle$. |
 
-### 4.3 Worked examples
+### 3 Worked examples
 
 **Example 1: $f(x) = |x|$ on $\mathbb{R}$.**
 $$
@@ -287,7 +287,7 @@ $$
 $$
 The point $x = 1$ is the kink — at this margin boundary, the loss can be assigned any slope in $[-1, 0]$, which is what lets SVM duality go through cleanly.
 
-### 4.4 Optimality: from $\nabla f = 0$ to $0 \in \partial f$
+### 4 Optimality: from $\nabla f = 0$ to $0 \in \partial f$
 
 The result we will rely on most: if $f$ is convex, then $x^\star \in \arg\min f$ iff $0 \in \partial f(x^\star)$. The forward direction is (D) applied to $y = x^\star$ and arbitrary $x$. For the reverse, $0 \in \partial f(x^\star)$ means $f(y) \geq f(x^\star)$ for all $y$.
 
@@ -299,7 +299,7 @@ where $N_C(x^\star) = \{g : \langle g, y - x^\star \rangle \leq 0 \ \forall y \i
 
 ---
 
-## 5. Putting it together: a worked problem
+## Putting it together: a worked problem
 
 Consider LASSO:
 $$
@@ -319,7 +319,7 @@ This is the celebrated **KKT condition for LASSO** — it tells us that any coor
 
 ---
 
-## 7. Summary
+## Summary
 
 | Concept           | What it lets you do                                                            |
 | ----------------- | ------------------------------------------------------------------------------ |

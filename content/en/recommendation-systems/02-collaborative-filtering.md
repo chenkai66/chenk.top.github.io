@@ -32,7 +32,7 @@ That single idea — let the crowd's behaviour speak — powers Amazon, YouTube,
 
 ![Recommendation Systems (2): Collaborative Filtering and Matrix Factorization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/02-collaborative-filtering/illustration_1.png)
 
-## 1 · The core idea of collaborative filtering
+## · The core idea of collaborative filtering
 
 Collaborative filtering (CF) rests on one assumption:
 
@@ -75,7 +75,7 @@ Matrix factorization, which we meet later, attacks the second problem head-on.
 
 ---
 
-## 2 · User-Based CF
+## · User-Based CF
 
 ### The recipe
 
@@ -196,7 +196,7 @@ User-CF is intuitive and explainable, but it scales as $O(m^2 \cdot n)$ in the o
 
 ---
 
-## 3 · Item-Based CF
+## · Item-Based CF
 
 ### Why Item-CF wins in production
 
@@ -277,7 +277,7 @@ Item-CF is the workhorse, but on million-item catalogues even the precomputed si
 
 ---
 
-## 4 · Matrix factorization
+## · Matrix factorization
 
 ![Recommendation Systems (2): Collaborative Filtering and Matrix Factorization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/02-collaborative-filtering/illustration_2.png)
 
@@ -386,7 +386,7 @@ That headline ("ALS is faster") needs a footnote. ALS pays in memory, because ea
 
 ---
 
-## 5 · Bias terms — the cheapest accuracy boost you'll ever get
+## · Bias terms — the cheapest accuracy boost you'll ever get
 
 Plain factorization assumes ratings come purely from the user–item interaction. Reality is messier:
 
@@ -414,7 +414,7 @@ That is the "SVD" of the Netflix Prize era — not the textbook singular value d
 
 ---
 
-## 6 · SVD++ — folding in implicit feedback
+## · SVD++ — folding in implicit feedback
 
 Most user behaviour is *implicit*: clicks, scrolls, dwell time, purchases without rating. SVD++ uses these silent signals to build a richer user vector.
 
@@ -445,7 +445,7 @@ In the Netflix Prize, going from biased MF → SVD++ shaved another ~2 % off RMS
 
 ---
 
-## 7 · BPR — when ranking matters more than rating
+## · BPR — when ranking matters more than rating
 
 Squared error is the wrong loss if your real metric is *Did the user click the top item?* RMSE penalises a 4.6 prediction for a true 5 just as much as it penalises ranking *Pursuit* above *Shawshank*.
 
@@ -465,7 +465,7 @@ Empirically, BPR pushes AUC 5–10 % above plain MF on implicit data. It is the 
 
 ---
 
-## 8 · Factorization Machines — when you have side features
+## · Factorization Machines — when you have side features
 
 Pure MF only knows about user IDs and item IDs. But you usually have more: the user's age, the item's category, the time of day. Factorization Machines (Rendle, 2010) generalise MF to any sparse feature vector $\mathbf{x}$:
 $$\hat{y}(\mathbf{x}) = w_0 + \sum_{i=1}^{n} w_i x_i + \sum_{i=1}^{n}\sum_{j=i+1}^{n} \langle \mathbf{v}_i, \mathbf{v}_j \rangle\, x_i\, x_j$$
@@ -477,7 +477,7 @@ If you set $\mathbf{x}$ to be just `[user_one_hot ; item_one_hot]`, FM reduces e
 
 ---
 
-## 9 · Implicit feedback in one paragraph
+## · Implicit feedback in one paragraph
 
 Real platforms rarely have ratings. They have *behaviour*: views, clicks, listens, purchases. Three tactics handle this:
 
@@ -493,7 +493,7 @@ def confidence(count: float, alpha: float = 10.0) -> float:
 
 ---
 
-## 10 · Q&A — the parts that bite in production
+## · Q&A — the parts that bite in production
 
 **User-CF or Item-CF?** Default to Item-CF. Items are usually fewer and more stable, so the similarity matrix is smaller and longer-lived. User-CF is worth a look only when users are rare and active.
 

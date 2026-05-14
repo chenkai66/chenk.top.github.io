@@ -40,7 +40,7 @@ This post derives the math behind that alignment, walks through CLIP and its suc
 
 ---
 
-## 1. CLIP: a dual-encoder vision-language model
+## CLIP: a dual-encoder vision-language model
 
 CLIP has only two moving parts: an image encoder $f_v$ (ViT or ResNet) and a text encoder $f_t$ (Transformer). Both project to a shared $d$-dimensional space and L2-normalize, so similarity is just a dot product on the unit hypersphere.
 
@@ -70,7 +70,7 @@ That's it. No gradient descent on the target task, no labeled examples — just 
 
 ---
 
-## 2. Contrastive learning: the math behind alignment
+## Contrastive learning: the math behind alignment
 
 ![Transfer Learning (8): Multimodal Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/illustration_2.png)
 
@@ -110,7 +110,7 @@ When you can't increase the batch directly, two tricks help: **MoCo-style memory
 
 ---
 
-## 3. BLIP and BLIP-2: bridging vision encoders to LLMs
+## BLIP and BLIP-2: bridging vision encoders to LLMs
 
 CLIP gives you a great *embedding*, but it cannot generate text. To unlock captioning, VQA, and instruction-following on images, you need a generative head. BLIP-2 (Li et al., 2023) provides a particularly elegant recipe.
 
@@ -134,7 +134,7 @@ BLIP-2 is the template for almost every modern vision-language model (LLaVA, Min
 
 ---
 
-## 4. Cross-modal retrieval
+## Cross-modal retrieval
 
 A shared embedding space buys you retrieval *for free*. Encode the query in one modality, encode a database in the other, return the top-$K$ nearest neighbours by cosine similarity.
 
@@ -150,7 +150,7 @@ Three engineering wins follow from the dual-encoder design:
 
 ---
 
-## 5. Cross-modal alignment: how tightly should we couple?
+## Cross-modal alignment: how tightly should we couple?
 
 The *granularity* of alignment is a design knob. Three regimes are common:
 
@@ -166,7 +166,7 @@ That clustering structure is what makes zero-shot transfer work: a new image of 
 
 ---
 
-## 6. Downstream tasks
+## Downstream tasks
 
 Once you have a good multimodal encoder, a small head — or sometimes no head at all — unlocks a wide task surface.
 
@@ -183,7 +183,7 @@ Once you have a good multimodal encoder, a small head — or sometimes no head a
 
 ---
 
-## 7. Fusion strategies
+## Fusion strategies
 
 Whenever you mix two modalities, you have to decide *where* to fuse them. Three patterns dominate.
 
@@ -207,7 +207,7 @@ Practical rule: use **late fusion** when retrieval is on the critical path (sear
 
 ---
 
-## 8. Implementation: a minimal CLIP
+## Implementation: a minimal CLIP
 
 This is a complete, runnable contrastive learner. The image encoder is intentionally a stub (a small MLP over fake 2048-d features) so the focus stays on the contrastive machinery; swap it for a real ViT in production.
 
@@ -292,7 +292,7 @@ Three details that newcomers often get wrong:
 
 ---
 
-## 10. SigLIP and the Post-CLIP Family
+## SigLIP and the Post-CLIP Family
 
 CLIP defined the genre but did not finish it. The 2023–2025 wave of vision-language models refines CLIP along three axes that matter in production.
 
@@ -314,7 +314,7 @@ The original CLIP text encoder caps text at 77 tokens, which is fine for image c
 
 The post-CLIP ecosystem is not uniformly open. SigLIP weights are Apache 2.0 (Google), EVA-CLIP weights are MIT (BAAI), but several variants are research-only (LiT, SigLIP-2 large variants under Google's licence). For a commercial product, audit the licence before fine-tuning — it is the single most common compliance bug I see in vision-language deployments.
 
-## 11. Failure Modes I Have Actually Hit
+## Failure Modes I Have Actually Hit
 
 Vision-language models fail in characteristic ways that are not documented in the canonical papers. Three I have shipped fixes for.
 
@@ -340,7 +340,7 @@ Fix: always resize to the model's training resolution before feeding it. If you 
 
 The CLIP era taught us that contrastive pretraining can produce extraordinary general-purpose visual representations. The post-CLIP era is teaching us that the rough edges — modality bias, hallucination, resolution brittleness — are deeply baked in. If you are deploying a vision-language model in production, the work is not picking the right model; it is building the guardrails around its known failure modes.
 
-## 9. FAQ
+## FAQ
 
 **Q1: Where does CLIP's zero-shot ability really come from?** Three things stacked: (i) 400M web pairs cover an enormous concept distribution; (ii) natural language is a far richer label space than discrete classes — you supervise on a *description*, not a category; (iii) contrastive learning aligns the modalities so that any text becomes a usable "prototype" for classification.
 

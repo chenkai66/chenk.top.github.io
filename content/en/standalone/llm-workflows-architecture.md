@@ -33,7 +33,7 @@ Comfortable with REST APIs, async Python or Node, basic Docker, and at least one
 
 ---
 
-## 1. The LLM application stack
+## The LLM application stack
 
 ![LLM application stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llm-workflows-architecture/fig1_application_stack.png)
 
@@ -49,7 +49,7 @@ Cutting across all five layers is the usual cross-cutting column: authentication
 
 A second consequence of the layering: most reliability work is not LLM work. The model is a black box you call over HTTP. The interesting questions — *did the right tool get called, with the right arguments, against the right tenant's data, within the right budget?* — all live in the orchestration and retrieval layers, which are deterministic Python or TypeScript and can be unit-tested.
 
-## 2. Workflow patterns: pick the smallest one that works
+## Workflow patterns: pick the smallest one that works
 
 ![Workflow orchestration patterns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llm-workflows-architecture/fig2_workflow_patterns.png)
 
@@ -67,7 +67,7 @@ There are four patterns you actually need.
 
 A useful test before adding any pattern: *can a non-LLM service do this step?* If a regex, a SQL query, or a function call works, use it. Every LLM call is a place latency, cost, and non-determinism leak in.
 
-## 3. RAG vs fine-tuning vs prompt engineering
+## RAG vs fine-tuning vs prompt engineering
 
 ![Decision tree: prompts, RAG, fine-tuning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llm-workflows-architecture/fig3_rag_vs_finetuning.png)
 
@@ -85,7 +85,7 @@ A few practical notes:
 - Long-context models do not eliminate RAG. Liu et al.'s [*Lost in the Middle*](https://arxiv.org/abs/2307.03172) (TACL 2024) showed that even at 128k tokens, models attend to the start and end of context far more than the middle. Retrieval still wins on precision and on cost.
 - Fine-tuning a frontier model is mostly unavailable. Fine-tune open-weight models (Llama, Qwen, Mistral) for behaviour, and call frontier APIs for the cases that need them. The branch pattern from §2 is what makes this practical.
 
-## 4. Production deployment topology
+## Production deployment topology
 
 ![Production deployment](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llm-workflows-architecture/fig4_production_deploy.png)
 
@@ -109,7 +109,7 @@ The shape of a production LLM service is not unusual; what is unusual is which b
 
 A common mistake is to skip the LLM gateway and let application code talk directly to model providers. This works until the day you need to swap a provider, add a fallback, or enforce a token budget — at which point every service needs to change. Build the gateway on day one even if it has only one provider behind it.
 
-## 5. Cost optimisation
+## Cost optimisation
 
 ![Cost optimisation levers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llm-workflows-architecture/fig5_cost_optimization.png)
 
@@ -126,7 +126,7 @@ The right side of the figure shows the quality / cost frontier. Three observatio
 
 A warning about benchmarks. Public leaderboards (MMLU, MT-Bench, Arena) generalise badly to specific products. Build a small task-specific eval (50–500 prompts with reference answers or rubric scores), re-run it whenever you change the model or the prompt, and trust it more than any public number.
 
-## 6. Observability
+## Observability
 
 ![Observability stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llm-workflows-architecture/fig6_observability.png)
 
@@ -146,7 +146,7 @@ Distributed tracing is non-optional for any non-trivial workflow. The [Dapper pa
 
 One pattern worth adopting: hash prompts and responses before logging them. You get the operational visibility you need (which prompt template, which response length, which user) without the compliance liability of storing raw user text indefinitely. When you do need the raw content for a debugging session, gate it behind a separate, audited path.
 
-## 7. Enterprise integration
+## Enterprise integration
 
 ![Enterprise integration patterns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/llm-workflows-architecture/fig7_enterprise_patterns.png)
 

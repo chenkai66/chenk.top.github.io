@@ -38,7 +38,7 @@ The unifying tool is a **Lyapunov potential** — a non-negative quantity that t
 
 ---
 
-## 1. The lower bound: why $\sqrt{\kappa}$ is the speed limit
+## The lower bound: why $\sqrt{\kappa}$ is the speed limit
 
 A "first-order method" is any algorithm whose iterate $x_k$ lies in
 $$
@@ -50,7 +50,7 @@ This captures GD, Heavy-Ball, Nesterov, conjugate gradient, and basically every 
 > $$f(x_k) - f^\star \geq \frac{\mu (\sqrt{\kappa} - 1)^{2k}}{2 (\sqrt{\kappa} + 1)^{2k}} \|x_0 - x^\star\|_2^2 \cdot \text{(constant factor)}.$$
 > In particular, achieving $\epsilon$-accuracy requires at least $\Omega(\sqrt{\kappa} \log(1/\epsilon))$ iterations.
 
-### 1.1 The worst-case function
+### 1 The worst-case function
 
 The construction uses a banded quadratic. Let $A \in \mathbb{R}^{n \times n}$ be the tridiagonal matrix
 $$
@@ -60,7 +60,7 @@ and let $f(x) = \frac{L - \mu}{8} (x^\top A x - 2 e_1^\top x) + \frac{\mu}{2} \|
 
 The Hessian is $\nabla^2 f = \frac{L-\mu}{4} A + \mu I$. Computing the eigenvalues of $A$ — they are $4 \sin^2 \frac{j \pi}{2(n+1)}$ for $j = 1, \ldots, n$ — shows $\nabla^2 f$ has eigenvalues in $[\mu, L]$, so $f$ is $L$-smooth and $\mu$-strongly convex.
 
-### 1.2 Why this function is hard
+### 2 Why this function is hard
 
 Starting from $x_0 = 0$, the gradient $\nabla f(x_0) = -\frac{L - \mu}{4} e_1 + \mu \cdot 0 = -\frac{L-\mu}{4} e_1$ is non-zero only in the first coordinate. After $k$ iterations of any first-order method, $x_k$ lies in $\mathrm{span}\{e_1, e_2, \ldots, e_k\}$ — the first $k$ coordinates. Why? Because $A$ is tridiagonal, multiplying a vector supported on the first $j$ coordinates by $A$ produces a vector supported on the first $j+1$ coordinates.
 
@@ -74,9 +74,9 @@ The shaded band above shows the optimal-rate region: any first-order method's wo
 
 ---
 
-## 2. Polyak's Heavy-Ball method
+## Polyak's Heavy-Ball method
 
-### 2.1 The physical analogy
+### 1 The physical analogy
 
 Imagine a ball with mass $m$ rolling down the surface $f$ in a viscous medium with friction coefficient $\gamma$. Newton's law gives
 $$
@@ -90,7 +90,7 @@ x_{k+1} = x_k - \alpha \nabla f(x_k) + \beta (x_k - x_{k-1}),
 $$
 where $\alpha = h^2 / m$ and $\beta = 1 - \gamma h / m$. This is **Polyak's Heavy-Ball** update: a gradient step plus a momentum term proportional to the previous step.
 
-### 2.2 The optimal parameters
+### 2 The optimal parameters
 
 For a quadratic $f(x) = \frac{1}{2} x^\top Q x - b^\top x$ with $\mu I \preceq Q \preceq L I$, the iteration linearizes to
 $$
@@ -102,7 +102,7 @@ $$
 $$
 with rate $\rho(M) = \frac{\sqrt{\kappa} - 1}{\sqrt{\kappa} + 1}$. This is **the same accelerated rate as Nesterov**, achieved with a much simpler-looking update.
 
-### 2.3 The catch: Heavy-Ball is not globally convergent
+### 3 The catch: Heavy-Ball is not globally convergent
 
 Polyak proved his rate for quadratics. For general smooth strongly convex functions, the same parameters can fail to converge — Lessard, Recht, Packard (2016) gave an explicit smooth strongly convex counterexample where Heavy-Ball with the optimal-quadratic parameters cycles forever. This is in stark contrast to Nesterov's method, which converges on every $L$-smooth $\mu$-strongly convex function.
 
@@ -114,9 +114,9 @@ GD zig-zags along the steep $x_1$ direction and crawls along the flat $x_2$ dire
 
 ---
 
-## 3. A unified Lyapunov framework
+## A unified Lyapunov framework
 
-### 3.1 The estimate-sequence (Nesterov's original device)
+### 1 The estimate-sequence (Nesterov's original device)
 
 Nesterov's 1983 paper used a sequence of "model functions" $\phi_k$ that lower bound $f$. Define
 $$
@@ -130,7 +130,7 @@ combined with $\phi_k(x^\star) \to f(x^\star)$ at rate $(1 - \sqrt{\mu/L})^k$ gi
 
 Estimate sequences are powerful but laborious to set up. The modern presentation is via Lyapunov functions, which we develop next.
 
-### 3.2 The Lyapunov approach
+### 2 The Lyapunov approach
 
 A **Lyapunov function** is a non-negative quantity $V_k$ that the algorithm decreases at every step:
 $$
@@ -148,7 +148,7 @@ Iterating gives $V_k \leq (1 - \sqrt{\mu/L})^k V_0$, hence $f(x_k) - f^\star \le
 
 The Lyapunov argument generalizes: for **any** algorithm whose update can be written as a discretization of a damped second-order ODE $\ddot x + \gamma(t) \dot x + \nabla f(x) = 0$ with appropriate $\gamma(t)$, a Lyapunov function exists and yields the accelerated rate.
 
-### 3.3 Mirror descent and the gap to acceleration
+### 3 Mirror descent and the gap to acceleration
 
 For convex but **not strongly convex** problems, the lower bound becomes $\Omega(\sqrt{L/\epsilon})$ — that is, $\Omega(1/k^2)$ rate. Nesterov's method achieves it; so does FISTA (article 06). The Lyapunov function in the convex-only case is:
 $$
@@ -158,7 +158,7 @@ Showing $V_{k+1} \leq V_k$ then yields $f(x_k) - f^\star \leq O(1/k^2)$. The sam
 
 ---
 
-## 4. Adaptive restart: when to interrupt momentum
+## Adaptive restart: when to interrupt momentum
 
 Acceleration has a nasty feature: the momentum coefficient $\beta_k = (k-1)/(k+2)$ for the convex case grows toward 1. If you start far from $x^\star$ and accumulate too much momentum, the iterate overshoots and the function value oscillates instead of decreasing monotonically.
 
@@ -178,11 +178,11 @@ Without restart, the function value bounces (orange curve) — the momentum coef
 
 ---
 
-## 5. Catalyst: black-box acceleration
+## Catalyst: black-box acceleration
 
 What if the problem is too complicated to apply Nesterov directly — maybe the gradient is hard to compute exactly, or you want to use an arbitrary inner solver? The **Catalyst** framework (Lin, Mairal, Harchaoui, 2015) accelerates any linearly-convergent inner solver using a regularized inner subproblem.
 
-### 5.1 The meta-algorithm
+### 1 The meta-algorithm
 
 For minimizing $L$-smooth convex $f$, choose $\kappa > 0$ and define the regularized objective
 $$
@@ -201,7 +201,7 @@ If the inner solver has linear convergence rate $\rho$ on $\kappa$-strongly conv
 The outer loop runs Nesterov-style momentum on the *anchors* $y_k$; the inner loop calls any linearly-convergent solver on the regularized subproblem $g_{y_k}(x) = f(x) + \frac{\kappa}{2}\|x - y_k\|^2$. Because $g_{y_k}$ is $\kappa$-strongly convex by construction, even a non-strongly-convex problem becomes amenable to a linearly-convergent inner solver.
 
 
-### 5.2 Example application
+### 2 Example application
 
 Suppose your inner problem is a finite-sum $f(x) = \frac{1}{n} \sum_i f_i(x)$ and you're using SVRG (article 10) as the inner solver. SVRG has rate $O((n + L/\kappa) \log(1/\epsilon))$ on $\kappa$-strongly convex problems. Catalyst-SVRG then gives total complexity $O((n + \sqrt{n L / \mu}) \log(1/\epsilon))$ on the original $\mu$-strongly convex problem — strictly better than vanilla SVRG when $L \gg \mu$.
 
@@ -209,7 +209,7 @@ This is how to accelerate algorithms that don't fit cleanly into Nesterov's fram
 
 ---
 
-## 6. Worked comparison: an ill-conditioned quadratic
+## Worked comparison: an ill-conditioned quadratic
 
 Consider $f(x) = \frac{1}{2} x^\top Q x$ with $Q = \mathrm{diag}(1, 1/\kappa)$ for $\kappa = 10^4$. Optimal point: $x^\star = 0$. Initial point: $x_0 = (1, 1)$.
 
@@ -271,7 +271,7 @@ The gap between GD and the accelerated methods is roughly $\sqrt{\kappa} = 100$ 
 
 ---
 
-## 7. Summary
+## Summary
 
 | Question                                  | Answer                                                                  |
 | ----------------------------------------- | ----------------------------------------------------------------------- |

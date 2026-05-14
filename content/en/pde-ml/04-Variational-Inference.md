@@ -46,7 +46,7 @@ translationKey: "pde-ml-4"
 
 ---
 
-## 1. The Inference Problem
+## The Inference Problem
 
 Bayesian inference asks for the posterior
 $$p(\theta \mid x) \;=\; \frac{p(x \mid \theta)\, p(\theta)}{\int p(x \mid \theta')\, p(\theta')\, d\theta'},$$
@@ -60,7 +60,7 @@ but the marginal likelihood in the denominator is intractable for any non-trivia
 
 These look like very different objects: VI is a finite-dimensional optimisation over $\phi$, while MCMC is an infinite-time stochastic process. The PDE viewpoint reveals they are the **same evolution of probability measures**, only sampled differently.
 
-## 2. From SDE to Fokker-Planck
+## From SDE to Fokker-Planck
 
 Consider an It&ocirc; SDE
 $$dX_t = \mu(X_t, t)\, dt + \sigma(X_t, t)\, dW_t.$$
@@ -75,7 +75,7 @@ whose unique stationary solution (under mild regularity) is the **Gibbs distribu
 ![Density evolution under the Fokker-Planck equation in a double-well potential.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig1_fokker_planck_evolution.png)
 *Figure 1. Solving the FP equation by finite differences. Starting from a narrow Gaussian on the left well, the density spreads, hops the barrier, and converges to the symmetric Gibbs density $p_\infty \propto e^{-V/D}$ (right panel).*
 
-## 3. Langevin Dynamics: Sampling as a PDE
+## Langevin Dynamics: Sampling as a PDE
 
 ![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.png)
 
@@ -103,7 +103,7 @@ ULA's bias is $O(\eta)$; **MALA** (Metropolis-Adjusted Langevin) restores exactn
 ![Langevin SDE trajectories and the empirical density they generate.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig2_langevin_sde_to_density.png)
 *Figure 2. Left: 25 representative particles bouncing inside the double well; many never cross the barrier in finite time. Right: the histogram of 400 particles converges to the Gibbs target as $t$ grows — the discrete sampler is realising the FP equation in figure 1.*
 
-## 4. KL Divergence is a Wasserstein Gradient Flow
+## KL Divergence is a Wasserstein Gradient Flow
 
 Decompose the KL divergence relative to $p^\star \propto e^{-V}$:
 $$\mathcal{F}[p] \;=\; \mathrm{KL}(p\,\|\,p^\star) \;=\; \underbrace{\int p\log p\,dx}_{\text{neg-entropy }\mathcal{H}[p]} \;+\; \underbrace{\int p\, V\,dx}_{\text{potential energy}} \;+\; \text{const}.$$
@@ -125,7 +125,7 @@ which is exactly the FP equation for Langevin with $\tau = 1$. Hence:
 ![KL divergence as a Wasserstein gradient flow.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig3_kl_gradient_flow.png)
 *Figure 3. Two initial densities (concentrated and broad) are evolved by the FP equation toward the bimodal target. The right panel shows their KL divergence to $p^\star$ decaying monotonically — the gradient-flow guarantee in action.*
 
-## 5. VI vs MCMC in Practice
+## VI vs MCMC in Practice
 
 VI and MCMC may be equivalent in the continuous limit, but their finite-time behaviour differs dramatically.
 
@@ -135,7 +135,7 @@ VI and MCMC may be equivalent in the continuous limit, but their finite-time beh
 ![VI vs MCMC.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig4_vi_vs_mcmc.png)
 *Figure 4. Left: the best mean-field Gaussian (in reverse KL) under-fits one mode of a bimodal posterior. Right: 4000 Langevin samples cover both modes correctly — but only because the barrier in this 1D example is small.*
 
-## 6. Stein Variational Gradient Descent
+## Stein Variational Gradient Descent
 
 SVGD (Liu and Wang, 2016) is a **deterministic** particle method that occupies the sweet spot between VI and MCMC. Maintain particles $\{x_i\}_{i=1}^n$ and update
 $$x_i \;\leftarrow\; x_i + \eta\, \hat\phi^*(x_i),\qquad \hat\phi^*(x) = \tfrac{1}{n}\sum_{j=1}^n \Bigl[\,k(x_j, x)\,\nabla_{x_j}\log p^\star(x_j) \;+\; \nabla_{x_j} k(x_j, x)\,\Bigr],$$
@@ -165,7 +165,7 @@ and as the bandwidth $h \to 0$ this PDE collapses to the standard Fokker-Planck 
 ![SVGD particles on a bimodal target.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig5_svgd_particles.png)
 *Figure 5. Left: snapshots of 80 SVGD particles starting at the origin and splitting to populate both modes within a few hundred iterations. Right: full particle trajectories show the kernel repulsion preventing collapse, while the drift term locks particles around $\pm 2$.*
 
-## 7. Convergence Theory
+## Convergence Theory
 
 **Definition (LSI).** $p^\star$ satisfies a **log-Sobolev inequality** with constant $\lambda > 0$ if for all smooth probability densities $p \ll p^\star$:
 $$\mathrm{KL}(p \,\|\, p^\star) \;\leq\; \frac{1}{2\lambda}\, I(p \,\|\, p^\star),\qquad I(p\|p^\star) = \int p\, \bigl\|\nabla \log \tfrac{p}{p^\star}\bigr\|^2 dx.$$
@@ -180,7 +180,7 @@ Strongly log-concave targets ($\nabla^2 V \succeq mI$) automatically satisfy LSI
 ![Convergence rates.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig6_convergence_analysis.png)
 *Figure 6. Left: theoretical KL decay $e^{-2\lambda t}$ for three log-Sobolev constants. Right: empirical KL trajectories for VI, Langevin MCMC and SVGD on a smooth Gaussian target — all three converge, but with different rates and noise profiles.*
 
-## 8. Application: Bayesian Neural Networks
+## Application: Bayesian Neural Networks
 
 A Bayesian neural network places a prior $p(w)$ on the weights and seeks the posterior $p(w \mid \mathcal{D}) \propto p(\mathcal{D} \mid w)\, p(w)$. Even for tiny architectures the posterior is intractable, but Langevin dynamics on $w$ requires only
 $$\nabla_w \log p(w \mid \mathcal{D}) \;=\; \nabla_w \log p(\mathcal{D} \mid w) + \nabla_w \log p(w),$$
@@ -191,7 +191,7 @@ The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so
 ![Bayesian neural net posterior bands.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/fig7_bayesian_nn.png)
 *Figure 7. Left: posterior predictive for a regression model with a gap in the training data; the 90% Langevin band widens precisely where data is missing. Right: predictive standard deviation peaks in the data gap — exactly the **epistemic uncertainty** that point-estimate networks lack.*
 
-## 11. Summary
+## Summary
 
 - Any It&ocirc; SDE has a Fokker-Planck PDE describing how its density evolves.
 - Langevin dynamics samples from $p^\star \propto e^{-V}$; the discrete ULA / MALA / HMC algorithms are practical realisations.
@@ -202,7 +202,7 @@ The figure below uses 24 random Fourier features as a tractable "Bayesian NN" so
 
 **Series conclusion.** Across four articles we have used PDEs to unify scientific computing and machine learning — from solving PDEs with neural networks (PINNs), to learning solution operators (FNO/DeepONet), to training as gradient flows, to probabilistic inference as Fokker-Planck dynamics. The recurring theme: **discrete algorithms in machine learning are usually best understood as the time-discretisation of a continuous PDE**, and PDE theory is the language for proving convergence.
 
-## 10. Numerical Implementation: SDE Simulation You Can Actually Run
+## Numerical Implementation: SDE Simulation You Can Actually Run
 
 The continuous Langevin SDE $dX = -\nabla U(X)\,dt + \sqrt{2}\,dW$ becomes the discrete update
 $$ X_{k+1} = X_k - \eta\,\nabla U(X_k) + \sqrt{2\eta}\,\xi_k,\quad \xi_k \sim \mathcal{N}(0, I). $$
@@ -227,7 +227,7 @@ Three things bite you in practice:
 
 Anywhere you read "we sample with Langevin", one of these three caveats applies. The papers usually skip them.
 
-## 11. SVGD in Practice: Where the Theory Hides Three Bugs
+## SVGD in Practice: Where the Theory Hides Three Bugs
 
 The gradient flow
 $$ \dot x_i = \frac{1}{n}\sum_j \bigl[k(x_j, x_i)\nabla\log p(x_j) + \nabla_{x_j}k(x_j, x_i)\bigr] $$
@@ -241,7 +241,7 @@ is elegant. Implementing it correctly is not.
 
 If you only remember one thing: **measure the mean pairwise kernel value periodically**. If it falls below $0.01$ you have lost the repulsive interaction.
 
-## 12. Score-Based Diffusion: Same Fokker-Planck, Reversed
+## Score-Based Diffusion: Same Fokker-Planck, Reversed
 
 Diffusion models train a network to approximate $\nabla \log p_t(x)$ at every noise level $t$. Sampling then runs a *reverse-time* SDE:
 $$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $$

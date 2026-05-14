@@ -42,19 +42,19 @@ The answer is "yes, but only if we are very careful." The reason for this caveat
 
 ---
 
-## 1. Why Offline RL Is Genuinely Hard
+## Why Offline RL Is Genuinely Hard
 
 ![Online vs offline RL: the missing feedback loop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/fig1_online_vs_offline.png)
 
 In **online** RL the policy and the data distribution are coupled. As soon as the policy starts overestimating some action, the next rollout puts it under the microscope and the Bellman update corrects it. In **offline** RL the dataset is *frozen*. There is no second chance: any error the model makes about an unseen action will sit in the Q-table forever, and the `argmax` operator will happily exploit it.
 
-### 1.1 Distributional Shift
+### 1 Distributional Shift
 
 Let $\pi_\beta$ be the behavior policy that produced the dataset $\mathcal{D}=\{(s_i,a_i,r_i,s_i')\}_{i=1}^N$, and let $\pi_\theta$ be the policy we are learning. The state-action visitation distributions are usually different,
 $$d_{\pi_\theta}(s,a)\neq d_{\pi_\beta}(s,a).$$
 This becomes a problem the moment $\pi_\theta$ wants to take an action $a$ for which $\pi_\beta(a\mid s)\approx 0$. The Q-network has *never* seen a target for that action; whatever value it returns is pure extrapolation from a neural net that has been trained to fit a completely different region of the input space.
 
-### 1.2 Extrapolation Error and the Death Spiral
+### 2 Extrapolation Error and the Death Spiral
 
 ![Distribution shift produces over-optimistic Q-values on OOD actions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/fig2_distribution_shift.png)
 
@@ -73,17 +73,17 @@ The three families of algorithms below all attack this problem; they differ in *
 
 ---
 
-## 2. Conservative Q-Learning (CQL)
+## Conservative Q-Learning (CQL)
 
 ![Reinforcement Learning (10): Offline Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/illustration_2.png)
 
 CQL ([Kumar et al., 2020](https://arxiv.org/abs/2006.04779)) is the most widely used baseline. It does not change the network, the actor, or the data pipeline. It changes one term in the loss.
 
-### 2.1 The Idea in One Sentence
+### 1 The Idea in One Sentence
 
 > **Push down the Q-values of any action the policy might consider, then push back up the Q-values of actions actually present in the data.** The net effect is a Q-function that is pessimistic exactly where it lacks evidence.
 
-### 2.2 The Objective
+### 2 The Objective
 
 On top of the usual TD loss $\mathcal{L}_{\mathrm{TD}}$, CQL adds
 $$\mathcal{L}_{\mathrm{CQL}} \;=\; \alpha\,\Big[\,\underbrace{\log\sum_{a}\exp Q(s,a)}_{\text{push down everywhere}} \;-\; \underbrace{\mathbb{E}_{a\sim\mathcal{D}}\big[Q(s,a)\big]}_{\text{push up on data}}\Big] \;+\; \mathcal{L}_{\mathrm{TD}}.$$
@@ -97,13 +97,13 @@ A pessimistic estimate is exactly what we need: any policy that maximizes a *low
 
 The left panel shows what happens with a vanilla SAC-style critic on offline data: the argmax flees to the OOD bump. The right panel shows CQL's correction: the orange shaded region is the pessimism penalty, and the new argmax sits comfortably inside the data support.
 
-### 2.3 Practical Notes
+### 3 Practical Notes
 
 - The `logsumexp` is intractable for continuous actions, so implementations approximate it with `n_random` uniform samples plus `n_actor` samples from the current policy. 10-20 samples is usually enough.
 - The original paper's "CQL($\mathcal{H}$)" variant adds a Lagrangian that auto-tunes $\alpha$ to hit a target gap; this is what the open-source `d3rlpy` and `JaxRL` implementations ship by default.
 - Empirically CQL is robust on `medium-replay` and `medium` D4RL splits but can be slightly conservative on `medium-expert`, where IQL or DT often win.
 
-### 2.4 A Complete CQL Implementation
+### 4 A Complete CQL Implementation
 
 ```python
 import torch
@@ -241,7 +241,7 @@ Plug an offline replay buffer (D4RL via `minari` or `d4rl-pybullet`) into `updat
 
 ---
 
-## 3. BCQ: Generative Action Proposals
+## BCQ: Generative Action Proposals
 
 CQL constrains the *value*; BCQ ([Fujimoto et al., 2019](https://arxiv.org/abs/1812.02900)) constrains the *policy* directly. The principle is mechanical: never even *query* the Q-function on an action that the behavior policy would not have produced.
 
@@ -257,7 +257,7 @@ The clever part is that the perturbation network is trained *to maximize Q*. So 
 
 ---
 
-## 4. IQL: Avoid the Bootstrap Problem Entirely
+## IQL: Avoid the Bootstrap Problem Entirely
 
 IQL ([Kostrikov et al., 2022](https://arxiv.org/abs/2110.06169)) is the most elegant of the three. Its observation: every offline-RL pathology comes from the $\max_{a'}Q(s',a')$ in the Bellman target, because that is where OOD actions enter. So... just don't use it.
 
@@ -275,7 +275,7 @@ IQL has the smallest moving-parts surface of any modern offline-RL algorithm, an
 
 ---
 
-## 5. Decision Transformer: RL as Sequence Modeling
+## Decision Transformer: RL as Sequence Modeling
 
 If we are going to drop the Bellman equation, why stop at IQL? The **Decision Transformer** ([Chen et al., 2021](https://arxiv.org/abs/2106.01345)) drops the value function entirely and treats RL as next-token prediction.
 
@@ -298,7 +298,7 @@ At test time you feed in your *desired* return-to-go as $\hat{R}_1$, run the mod
 
 ---
 
-## 6. Putting Numbers to It: D4RL
+## Putting Numbers to It: D4RL
 
 ![D4RL MuJoCo locomotion: BC, BCQ, CQL, IQL, DT across three data qualities](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/fig7_d4rl_benchmark.png)
 
@@ -314,7 +314,7 @@ When in doubt, start with **IQL** for stability or **CQL** for simplicity, and r
 
 ---
 
-## 7. FAQ
+## FAQ
 
 **Q: When does offline RL fail outright?**
 Three failure modes are well-documented: (i) *narrow data coverage* — only expert trajectories with no recovery examples, so the policy cannot learn to handle its own mistakes; (ii) *very low data quality* — random-policy data on long-horizon tasks; (iii) *evaluation-environment shift* — the test MDP's transition dynamics differ from those that produced $\mathcal{D}$.

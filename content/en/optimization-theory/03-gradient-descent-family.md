@@ -57,7 +57,7 @@ This post walks the lineage end-to-end on a single thread: each step exists beca
 
 The sections below follow this order.
 
-## 1. Gradient descent (GD): the origin
+## Gradient descent (GD): the origin
 
 Given a differentiable loss $J(\theta)$, the simplest update is
 $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
@@ -68,7 +68,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
 - Under **ill-conditioned curvature** (Hessian condition number $\kappa = \lambda_{\max}/\lambda_{\min}$ large), the iteration count grows linearly in $\kappa$. The 1-D intuition: $f(\theta)=\frac{1}{2}H\theta^2$ gives $\theta_{t+1}=(1-\eta H)\theta_t$, stable iff $\eta < 2/H$. Your step is **capped by the curvature in the steepest direction**.
 - When the steepest direction ($\lambda_{\max}$) and the flattest direction ($\lambda_{\min}$) differ by orders of magnitude, you barely move along the flat one but bounce back and forth along the steep one. That is the **narrow-valley problem** — visible in the left panel of Fig 1 below.
 
-## 2. SGD: the price and bonus of noise
+## SGD: the price and bonus of noise
 
 Once datasets do not fit in memory, you replace the full gradient with a mini-batch estimate:
 $$g_t = \nabla J(\theta_t) + \xi_t,\qquad \mathbb{E}[\xi_t]=0.$$
@@ -78,7 +78,7 @@ The noise $\xi_t$ is both a curse and a blessing:
 
 **Fig 1 middle panel**: SGD's trajectory in the same valley is hairier than GD's, but on average it still flows toward the bottom.
 
-## 3. Momentum: give the optimizer some inertia
+## Momentum: give the optimizer some inertia
 
 Mental model: think of $\theta$ as a **ball rolling down the valley**. GD is a "massless bug" — every step only sees the local slope, so it bounces around the narrow direction. Give the bug some mass and inertia **accumulates along the long axis** of the valley while the perpendicular bounces cancel out.
 $$v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t.$$
@@ -90,7 +90,7 @@ Typical $\gamma = 0.9$ — geometrically weights past gradients with effective m
 
 ![GD / SGD / Momentum trajectories on an ill-conditioned quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig1_gd_sgd_momentum_contour.png)
 
-## 4. Nesterov accelerated gradient (NAG): peek before you leap
+## Nesterov accelerated gradient (NAG): peek before you leap
 
 Classical momentum **overshoots** near the minimum: it computes the gradient at the current point, so it only learns "oops, I went too far" one step too late.
 
@@ -102,7 +102,7 @@ $$v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta
 
 ![NAG: lookahead gradient evaluation reduces overshoot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig2_nesterov_lookahead.png)
 
-## 5. AdaGrad: every coordinate gets its own learning rate
+## AdaGrad: every coordinate gets its own learning rate
 
 By 2011, NLP was drowning in **sparse features** — think word2vec where a rare word might appear 5 times in a million examples. With a single $\eta$ for everything:
 
@@ -119,7 +119,7 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t.$$
 
 ![AdaGrad: shrinks the steep direction automatically, but every per-coord LR decays monotonically](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig3_adagrad_per_coord_lr.png)
 
-## 6. RMSProp: replace cumulative sum with EMA
+## RMSProp: replace cumulative sum with EMA
 
 In his 2012 Coursera slides, Hinton **changed exactly one thing** and rescued AdaGrad: replace the cumulative sum $\sum g_t^2$ with an exponential moving average:
 $$E[g^2]_t = \rho\,E[g^2]_{t-1} + (1-\rho)\,g_t^2$$
@@ -135,7 +135,7 @@ Typical $\rho = 0.9$ — "remember roughly the last 10 steps of gradient magnitu
 
 ![RMSProp (EMA) vs AdaGrad (cumulative) under non-stationary gradient magnitude](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig4_rmsprop_moving_average.png)
 
-## 7. Adam: stitch momentum and RMSProp together
+## Adam: stitch momentum and RMSProp together
 
 By now both threads were mature:
 - **Momentum** gives a good **direction**.
@@ -155,7 +155,7 @@ Defaults: $\beta_1 = 0.9,\ \beta_2 = 0.999,\ \epsilon = 10^{-8}$.
 
 ![Adam dataflow: momentum branch + RMSProp branch -> bias correction -> adaptive update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig5_adam_combined.png)
 
-## 8. AdamW: the weight-decay bug that lived for a decade
+## AdamW: the weight-decay bug that lived for a decade
 
 Adding L2 regularization $\frac{\lambda}{2}\|\theta\|^2$ to the loss adds a term $\lambda\theta$ to the gradient. In **SGD** this is exactly equivalent to multiplying weights by $(1-\eta\lambda)$ each step — the classical "weight decay".
 
@@ -167,11 +167,11 @@ The effect: at the same $\lambda$ and LR, AdamW's generalization gap on ImageNet
 
 ![AdamW (decoupled) vs Adam+L2 (coupled): where weight decay enters the update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig6_adamw_vs_adam.png)
 
-## 9. The post-2023 frontier: three directions that scaled
+## The post-2023 frontier: three directions that scaled
 
 After AdamW reigned for ~6 years, three directions have actually **proven themselves at scale** since 2023.
 
-### 9.1 Lion (Google, 2023): only the sign
+### 1 Lion (Google, 2023): only the sign
 
 Discovered by AutoML program search; the update keeps **only the sign**:
 $$m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t$$
@@ -182,7 +182,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_
 - **Constant update magnitude $\eta$**: because sign returns $\pm 1$. So Lion's LR must be **about 10x smaller** than AdamW's, and wd about 10x larger.
 - On ViT and LLM pretraining, matches or slightly beats AdamW with faster wall-clock.
 
-### 9.2 Sophia (Stanford, 2023): cheap second-order
+### 2 Sophia (Stanford, 2023): cheap second-order
 
 Sophia plugs a cheap diagonal-Hessian estimate into the denominator:
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t$$
@@ -197,7 +197,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_
 
 Reported results: roughly halves the wall-clock to reach a given perplexity at GPT-2 scale.
 
-### 9.3 Schedule-Free (Meta, 2024): drop the schedule
+### 3 Schedule-Free (Meta, 2024): drop the schedule
 
 LR schedules (cosine, WSD, etc.) all share one annoyance: **you must know the total step count in advance**. During research you usually do not, so committing to a schedule ties your hands.
 
@@ -211,7 +211,7 @@ The result: matches the final performance of cosine schedules **without any expl
 
 ![Lion / Sophia / Schedule-Free: the three post-AdamW directions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig7_modern_optimizers.png)
 
-## 10. Selection guide
+## Selection guide
 
 | Setting | Recommendation | Why |
 |---|---|---|
@@ -222,7 +222,7 @@ The result: matches the final performance of cosine schedules **without any expl
 | Research, unknown training length | **Schedule-Free AdamW** | Extend mid-run, no schedule redesign |
 | Chasing wall-clock SOTA | **Sophia** | 2nd-order acceleration, but engineering cost |
 
-## 11. Five facts that get missed most often
+## Five facts that get missed most often
 
 1. **If you turn momentum on, lower the LR.** Momentum amplifies the effective step by roughly $1/(1-\gamma)$. With $\gamma=0.9$ that is ~10x.
 2. **Adam's $\beta_2 = 0.999$ implies a ~1000-step warmup** because $v_t$ has not "warmed up" before that.
@@ -230,7 +230,7 @@ The result: matches the final performance of cosine schedules **without any expl
 4. **Lion's LR must be ~10x smaller than AdamW's.** Copy-pasting AdamW's `3e-4` will diverge immediately.
 5. **Second-order methods looked "permanently impractical" not because they are bad, but because Hessians used to be too expensive.** Sophia broke that wall by combining $\mathrm{diag}(H)$ with cheap Hutchinson estimation.
 
-## 12. Optimizer state memory: the cost the math hides
+## Optimizer state memory: the cost the math hides
 
 The clean derivation of momentum, AdaGrad, RMSProp, and Adam never mentions VRAM. In production it is the dominant constraint. For a model with $P$ trainable parameters in fp16:
 
@@ -251,7 +251,7 @@ A practical rule of thumb: if optimizer state exceeds 1.5× model weight memory,
 
 ![Optimizer state memory across optimizers, and total VRAM at 7B / 70B scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig8_optimizer_memory.png)
 
-## 13. Mixed precision: where the optimizer sees fp32
+## Mixed precision: where the optimizer sees fp32
 
 A subtle point that bites first-time pretrainers: the optimizer almost always operates in fp32 even when the rest of training is fp16/bf16. The reason is that Adam's exponential moving averages accumulate over thousands of steps. With $\beta_2 = 0.999$, $v_t$ is a sum where the smallest contributors are $10^{-3}$ of the largest, easily below fp16's representable range ($\sim 6 \times 10^{-5}$ to $\sim 6 \times 10^4$).
 
@@ -269,7 +269,7 @@ bf16 changes the calculus slightly: its dynamic range is wide enough that you ca
 
 ![Mixed-precision training data flow: where each tensor lives in fp16/bf16 vs fp32](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig9_mixed_precision.png)
 
-## 14. Learning rate sanity ranges per optimizer (Transformer baseline)
+## Learning rate sanity ranges per optimizer (Transformer baseline)
 
 These are the intervals I reach for first when starting a Transformer-class run. Treat them as Bayesian priors, not finals.
 

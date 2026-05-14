@@ -32,6 +32,9 @@ This chapter develops linear regression from three independent starting points �
 6. **Optimization** — when $X^\top X$ is too big to invert, gradient descent steps in.
 7. **Diagnostics** — residuals, multicollinearity, outliers, and how to fix each.
 
+
+---
+
 ## Setup: Putting Linear Regression in Matrix Form
 
 ## Problem Statement

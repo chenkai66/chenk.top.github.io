@@ -30,7 +30,7 @@ Most people quit Vim because they try to memorize shortcuts. That's the wrong ap
 
 ---
 
-## 1. The core idea — modes plus a tiny grammar
+## The core idea — modes plus a tiny grammar
 
 ![The Four Modes of Vim](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig1_mode_state_diagram.png)
 
@@ -91,7 +91,7 @@ That's the whole game. Memorize the operators (there are five), memorize a dozen
 
 ---
 
-## 2. Movement — jump, do not crawl
+## Movement — jump, do not crawl
 
 ![Vim Motion Cheat Sheet](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig2_motion_cheatsheet.png)
 
@@ -111,7 +111,7 @@ Two motions deserve special mention because they pair perfectly with operators:
 
 ---
 
-## 3. Edits — delete, change, yank, paste
+## Edits — delete, change, yank, paste
 
 ### Delete
 
@@ -159,7 +159,7 @@ There's no separate cut command. Delete already puts the text in a register, so 
 
 ---
 
-## 4. Text objects — edit by meaning, not by position
+## Text objects — edit by meaning, not by position
 
 ![Text Objects — Edit by Meaning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig3_text_objects.png)
 
@@ -184,7 +184,7 @@ The cursor does **not** need to be on the boundary — `ci"` works from anywhere
 
 ---
 
-## 5. Search and replace — with safety
+## Search and replace — with safety
 
 `/pattern` searches forward, `?pattern` searches backward; `n` and `N` step through matches.
 
@@ -212,7 +212,7 @@ Useful flags inside the search pattern itself:
 
 ---
 
-## 6. Macros — automate without leaving Vim
+## Macros — automate without leaving Vim
 
 Macros are the highest-ROI "advanced" feature in Vim because they turn any repetitive edit into a one-time recording.
 
@@ -229,7 +229,7 @@ The trick to writing a *robust* macro is to make every motion repeatable from a 
 
 ---
 
-## 7. Registers — a clipboard with thirty slots
+## Registers — a clipboard with thirty slots
 
 Every yank and delete goes into a *register*. There is more than one:
 
@@ -253,7 +253,7 @@ Pro habit: when you are about to paste then immediately delete something else (w
 
 ---
 
-## 8. Marks — bookmarks across a file or project
+## Marks — bookmarks across a file or project
 
 ```text
 ma     " set mark a at the cursor
@@ -272,7 +272,7 @@ A few special marks Vim sets for you:
 
 ---
 
-## 9. Visual mode -- and especially Visual Block
+## Visual mode -- and especially Visual Block
 
 Three flavours:
 
@@ -292,7 +292,7 @@ The pattern is: enter block mode, extend the selection vertically, then press `I
 
 ---
 
-## 10. Files, windows, splits, tabs
+## Files, windows, splits, tabs
 
 ### File operations (command-line mode)
 
@@ -338,7 +338,7 @@ find . -name ".*.swp" -delete
 
 ---
 
-## 11. A minimal, safe `.vimrc`
+## A minimal, safe `.vimrc`
 
 ![Where Vim Keeps Things](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig4_vim_file_structure.png)
 
@@ -377,7 +377,7 @@ If you use **Neovim**, the equivalent config lives at `~/.config/nvim/init.vim` 
 
 ---
 
-## 12. Common workflows — search/replace and multi-file editing
+## Common workflows — search/replace and multi-file editing
 
 ![Two Workflows You Will Use Every Day](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vim-essentials/fig5_workflows.png)
 
@@ -403,7 +403,7 @@ Ctrl-w h/j/k/l       " jump between windows
 
 ---
 
-## 13. Pitfalls and how to escape them
+## Pitfalls and how to escape them
 
 **1. Pasted code is over-indented.** Vim's auto-indent re-indents each pasted line. Fix:
 
@@ -425,7 +425,7 @@ Even better: `"+p` pastes from the system clipboard, which Vim treats as a singl
 
 ---
 
-## 14. Vim or Neovim?
+## Vim or Neovim?
 
 Both are excellent. Decide on practical grounds:
 
@@ -436,7 +436,7 @@ You can move between the two without re-learning — the editor commands are ide
 
 ---
 
-## 15. A one-week deliberate-practice plan
+## A one-week deliberate-practice plan
 
 You become fluent in Vim the same way you become fluent in any language: by forcing yourself to use it for a fixed period, even when you're slower than usual.
 

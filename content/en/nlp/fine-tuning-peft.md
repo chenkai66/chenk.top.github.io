@@ -48,7 +48,7 @@ This article reconstructs PEFT from first principles. We start with the question
 
 ---
 
-## 1. Why not just fine-tune everything?
+## Why not just fine-tune everything?
 
 ### The cost ledger
 
@@ -90,7 +90,7 @@ If you are unsure, sweep $r \in \{8, 16, 32\}$ and pick the smallest that closes
 
 ---
 
-## 7. Alignment: instruction tuning and RLHF
+## Alignment: instruction tuning and RLHF
 
 PEFT is the lever, alignment is what you usually pull it for. Two stages dominate modern LLM post-training:
 
@@ -125,7 +125,7 @@ For the RL side of the story, see [RL Part 12: RLHF and LLM Applications](/en/re
 
 ---
 
-## 8. End-to-end recipe
+## End-to-end recipe
 
 ```python
 from transformers import (AutoModelForCausalLM, AutoTokenizer,
@@ -232,7 +232,7 @@ Yes — LoRA + prompt tuning is a documented combination, and QLoRA is itself a 
 
 ---
 
-## 9. Concrete fine-tuning recipe (LoRA on a 7B)
+## Concrete fine-tuning recipe (LoRA on a 7B)
 
 The hyperparameters that actually matter, with numbers I've used and shipped.
 
@@ -254,7 +254,7 @@ The hyperparameters that actually matter, with numbers I've used and shipped.
 
 A run on 5K examples, 7B base, single A100, takes about 2--4 hours and costs ~$8--12 on a rented GPU.
 
-## 10. Where LoRA quietly fails
+## Where LoRA quietly fails
 
 Three failure modes that I've seen burn teams.
 

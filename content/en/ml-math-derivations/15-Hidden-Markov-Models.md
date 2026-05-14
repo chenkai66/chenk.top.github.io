@@ -40,7 +40,7 @@ These are the **three problems of HMMs**, and the surprise is that all three red
 
 ---
 
-## 1. The Model
+## The Model
 
 ![HMM as a graphical model: a Markov chain over hidden states emits independent observations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig1_graphical_model.png)
 
@@ -86,7 +86,7 @@ A naive approach to (1) sums the joint over all $N^T$ hidden sequences — alrea
 
 ---
 
-## 2. Forward Algorithm: Evaluation by Left-to-Right Sweep
+## Forward Algorithm: Evaluation by Left-to-Right Sweep
 
 ![Forward algorithm trellis: alpha values flow left-to-right; each node sums incoming paths and multiplies by the local emission probability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig3_forward_trellis.png)
 
@@ -117,7 +117,7 @@ $$P(\mathbf{O}\mid\lambda) = \sum_{i=1}^N \alpha_T(i).$$
 
 ---
 
-## 3. Backward Algorithm and Posterior Smoothing
+## Backward Algorithm and Posterior Smoothing
 
 The forward sweep alone evaluates $P(\mathbf{O})$. To compute the **posterior over hidden states** at every $t$, we also need a right-to-left sweep.
 
@@ -145,7 +145,7 @@ These are the two statistics Baum-Welch needs in its E-step.
 
 ---
 
-## 4. Viterbi: From Sum to Max
+## Viterbi: From Sum to Max
 
 ![ML Math Derivations (15): Hidden Markov Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/illustration_2.png)
 
@@ -171,7 +171,7 @@ Now everything is an addition, so underflow is impossible.
 
 ---
 
-## 5. Baum-Welch: EM for HMMs
+## Baum-Welch: EM for HMMs
 
 When $\lambda$ is unknown, learn it by maximising $\log P(\mathbf{O}\mid\lambda)$. The hidden states $\mathbf{I}$ are latent, so apply EM. The result — the **Baum-Welch algorithm** — predates the general EM framework by several years (Baum & Petrie, 1966) and is one of the prettiest examples of EM in the wild.
 
@@ -207,7 +207,7 @@ EM guarantees $P(\mathbf{O}\mid\lambda^{(k+1)}) \geq P(\mathbf{O}\mid\lambda^{(k
 
 ---
 
-## 6. Application: POS Tagging
+## Application: POS Tagging
 
 ![POS tagging: Viterbi picks the most-likely tag sequence; emission heatmap shows per-tag word probabilities](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/15-Hidden-Markov-Models/fig7_pos_tagging.png)
 
@@ -219,7 +219,7 @@ The same engine appears in **speech recognition** (states = phonemes, observatio
 
 ---
 
-## 7. Numerical scaling: why naive forward-backward fails
+## Numerical scaling: why naive forward-backward fails
 
 The forward variables $\alpha_t(i) = P(\mathbf{o}_{1:t}, q_t = s_i \mid \lambda)$ shrink geometrically: each step multiplies by transition and emission probabilities, both bounded by 1. After $T = 200$ tokens with average factor $0.1$, $\alpha_T \sim 10^{-200}$, well below the float32 underflow threshold $\approx 10^{-38}$ and below float64's $\approx 10^{-308}$ for any non-trivial sequence length.
 
@@ -239,7 +239,7 @@ $$
 $$
 Log-space costs an extra `exp` and `log` per step but cleanly handles emission probabilities that are already log-densities (e.g. continuous Gaussian emissions). Most production HMM libraries — `hmmlearn`, `pomegranate` — use log-space by default. Viterbi already lives in log-space because $\max$ commutes with monotone transforms, so there is no scaling subtlety there.
 
-## 8. Cost, complexity, and when to reach for HMMs
+## Cost, complexity, and when to reach for HMMs
 
 The three core algorithms have identical asymptotic cost $O(N^2 T)$ where $N$ is the state count and $T$ the sequence length. The quadratic in $N$ comes from the transition sum; the linear in $T$ from the sweep. EM (Baum-Welch) is one forward-backward per iteration, so a full training run is $O(N^2 T \cdot I)$ for $I$ iterations and a single sequence, or $O(N^2 \sum_s T_s \cdot I)$ for a corpus.
 

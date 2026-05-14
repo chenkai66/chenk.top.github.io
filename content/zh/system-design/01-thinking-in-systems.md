@@ -66,7 +66,7 @@ translationKey: "system-design-1"
 
 ![容量估算工作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/01-capacity-estimation.png)
 
-### 2 的幂次（Powers of 2）
+### 的幂次（Powers of 2）
 
 务必牢记这些数值，它们在估算存储、内存和网络容量时会反复出现。
 

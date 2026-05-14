@@ -35,7 +35,7 @@ A user opens a sneaker app, taps "running shoes," drills into a brand, then a pr
 
 ---
 
-## 1. Why session intent fits hyperbolic geometry
+## Why session intent fits hyperbolic geometry
 
 Three properties of session-recommendation data keep showing up:
 
@@ -49,7 +49,7 @@ These are the defining properties of *trees*, and trees do not embed cleanly in 
 
 The picture above is the elevator pitch for hyperbolic embeddings. On the left, the Euclidean tree runs out of room at depth 4 — leaves crowd together, and the embedding must either increase the radius or add extra dimensions. On the right, the Poincaré disk pushes leaves toward the boundary, where exponential length accommodates them with even spacing.
 
-## 2. Session graphs, briefly
+## Session graphs, briefly
 
 HCGR is a *graph* model. Given a session $s = [v_1, v_2, \dots, v_n]$ it constructs a directed session graph $G_s = (V_s, E_s)$ where:
 
@@ -58,11 +58,11 @@ HCGR is a *graph* model. Given a session $s = [v_1, v_2, \dots, v_n]$ it constru
 
 This is the SR-GNN-family setup, and HCGR keeps everything that already works about it: local transition structure is captured by message passing on $G_s$. The only thing HCGR changes is the *geometry of the embeddings* and the *training signal*.
 
-## 3. The Lorentz model in operational form
+## The Lorentz model in operational form
 
 There are several equivalent models of hyperbolic geometry: the Poincaré ball, the Klein model, and the Lorentz (a.k.a. hyperboloid) model. HCGR uses the **Lorentz** model because its formulas are more numerically stable than those of the Poincaré ball, and gradients behave better near the boundary.
 
-### 3.1 The hyperboloid
+### 1 The hyperboloid
 
 Define the Lorentzian inner product on $\mathbb{R}^{d+1}$:
 $$\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \;=\; -x_0 y_0 + \sum_{i=1}^{d} x_i y_i.$$
@@ -70,13 +70,13 @@ The hyperboloid (curvature $c = -1$ for simplicity) is the upper sheet:
 $$\mathbb{H}^d \;=\; \bigl\{\, \mathbf{x} \in \mathbb{R}^{d+1} \;:\; \langle \mathbf{x}, \mathbf{x} \rangle_{\mathcal{L}} = -1,\; x_0 > 0 \,\bigr\}.$$
 Concretely, an embedding is a $(d+1)$-vector that lives on this curved surface. The "extra" dimension is the price you pay to write hyperbolic operations as clean linear algebra in an ambient Euclidean space.
 
-### 3.2 Distance
+### 2 Distance
 
 The Lorentz distance is
 $$d_{\mathcal{L}}(\mathbf{x}, \mathbf{y}) \;=\; \mathrm{arcosh}\!\bigl( -\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \bigr).$$
 The key qualitative fact: $d_{\mathcal{L}}$ grows roughly like $\mathrm{arcosh}$ of an inner product that itself can grow exponentially with how far points are pushed up the hyperboloid. So distances expand fast, which is exactly what we want when we are trying to keep an exponentially branching tree apart.
 
-### 3.3 Tangent space, exp and log
+### 3 Tangent space, exp and log
 
 You cannot do gradient descent directly on a curved manifold without leaving it. The standard trick is to operate in the **tangent space** at a base point (usually the origin $\mathbf{o} = (1, 0, \dots, 0)$), which is locally Euclidean, then map back.
 
@@ -85,7 +85,7 @@ You cannot do gradient descent directly on a curved manifold without leaving it.
 
 You don't need the closed forms by heart. The pattern that matters: anything you would do in a Euclidean GNN — sum, attention, MLP — happens in the tangent space, and you `exp_map` the result back. This is the only way "addition" makes sense on the hyperboloid.
 
-## 4. HCGR end-to-end
+## HCGR end-to-end
 
 Here is the full pipeline before we dive into pieces:
 
@@ -97,7 +97,7 @@ Three things are happening in parallel:
 2. **Recommendation head.** A session readout produces $\mathbf{s}$, and the next-item score is the negative Lorentz distance to each candidate item embedding. Cross-entropy supervises the click target.
 3. **Contrastive head.** Two augmented views of $G_s$ are encoded into $\mathbf{s}^a$ and $\mathbf{s}^b$. An InfoNCE loss pulls them together and pushes other sessions in the batch away.
 
-### 4.1 Hyperbolic GNN aggregation
+### 1 Hyperbolic GNN aggregation
 
 In a vanilla GAT-style aggregator you would do $\mathbf{h}_i = \sigma\!\bigl(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} W \mathbf{h}_j\bigr)$. You cannot sum points on the hyperboloid directly: their sum doesn't lie on the manifold. HCGR does the obvious workaround:
 $$\mathbf{h}_i^{(l+1)} \;=\; \exp_{\mathbf{o}}\!\Biggl( \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^{(l)} \, \log_{\mathbf{o}}\!\bigl(\mathbf{h}_j^{(l)}\bigr) \Biggr).$$
@@ -105,19 +105,19 @@ Read it from inside out: bring neighbours into the tangent space, attention-weig
 
 A separate parallel-transport step is needed if you want to move tangent vectors between different base points — HCGR uses it to keep multi-layer aggregation consistent — but conceptually nothing changes.
 
-### 4.2 Non-linearity that respects curvature
+### 2 Non-linearity that respects curvature
 
 Plain ReLU on a hyperboloid coordinate vector is meaningless. HCGR threads the activation through the tangent map of one layer's curvature and the exp map of the next layer's:
 $$\sigma_{\mathbb{H}}^{l \to l+1}(\mathbf{x}) \;=\; \exp_{\mathbf{o}}^{c_{l+1}}\!\Bigl(\, \sigma\!\bigl(\, \log_{\mathbf{o}}^{c_l}(\mathbf{x})\,\bigr)\, \Bigr).$$
 This is the standard "tangent-space activation" pattern from hyperbolic neural networks. It lets you stack layers with different curvatures while keeping every intermediate state on a valid manifold.
 
-## 5. The contrastive auxiliary
+## The contrastive auxiliary
 
 Session graphs are noisy. A real session has accidental clicks, repeated items, exploration, and back-tracks. Pure cross-entropy on the next item amplifies that noise: anything that helps predict the click target is reinforced, even if the *representation* of the session is brittle. Contrastive learning fixes this by enforcing a structural property of the encoder: two perturbations of the *same* session should land in the same place; two *different* sessions should not.
 
 ![Two-view contrastive scheme. Edge dropout and node dropout each produce one view; both views go through the HCGR encoder; InfoNCE pulls the positive pair together and pushes negatives apart, all measured by Lorentz distance in the disk.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig3_contrastive_views.png)
 
-### 5.1 Augmentations
+### 1 Augmentations
 
 HCGR uses graph-level augmentations on the session graph $G_s$:
 
@@ -126,19 +126,19 @@ HCGR uses graph-level augmentations on the session graph $G_s$:
 
 Two independent augmentations of $G_s$ produce views $G_s^a$ and $G_s^b$. Both are encoded by the same HCGR network into session vectors $\mathbf{s}^a, \mathbf{s}^b \in \mathbb{H}^d$.
 
-### 5.2 InfoNCE in hyperbolic space
+### 2 InfoNCE in hyperbolic space
 
 The contrastive loss is the standard InfoNCE form, but with similarity defined through hyperbolic distance:
 $$\mathcal{L}_{\mathrm{cl}} \;=\; -\, \log \frac{\exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b) / \tau \bigr)}{\sum_{k} \exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b_k) / \tau \bigr)},$$
 where $\mathrm{sim}(\mathbf{u}, \mathbf{v}) = -\, d_{\mathcal{L}}(\mathbf{u}, \mathbf{v})$ (or, for stability, an inner product in the tangent space at $\mathbf{o}$) and $\tau$ is the InfoNCE temperature. The denominator runs over all sessions in the mini-batch, treating other sessions as negatives.
 
-### 5.3 Total objective
+### 3 Total objective
 
 The recommendation cross-entropy and contrastive auxiliary are simply added:
 $$\mathcal{L} \;=\; \mathcal{L}_{\mathrm{rec}} \;+\; \lambda \, \mathcal{L}_{\mathrm{cl}}.$$
 A typical $\lambda$ is small (0.05–0.2). The contrastive loss is *regularising* the encoder, not replacing the supervision; making it too large hurts ranking quality.
 
-## 6. Distance and dimension: the capacity argument
+## Distance and dimension: the capacity argument
 
 Whether HCGR is "really" using hyperbolic geometry or just stacking parameters comes down to one question: does the same hierarchy fit in fewer dimensions?
 
@@ -146,7 +146,7 @@ Whether HCGR is "really" using hyperbolic geometry or just stacking parameters c
 
 The left panel is the geometry: $\sinh(r)$ versus $r$. Past $r \approx 1.5$ the curves diverge sharply, so two items at the periphery of the manifold are pushed apart almost for free. The right panel is the practical consequence in a recommender: at $d = 16$ Euclidean embeddings still struggle to keep a deep taxonomy untangled, while a 16-dim hyperbolic embedding has room to spare. This is why HCGR usually wins more on long-tail-heavy datasets (Last.FM) than on shorter, fatter sessions (Yoochoose).
 
-## 7. What the numbers actually show
+## What the numbers actually show
 
 ![Indicative Recall@20 and MRR@20 across three standard session datasets. The hyperbolic-only ablation already beats Euclidean baselines; full HCGR (hyperbolic + contrastive) widens the gap.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/hcgr/fig5_performance.png)
 
@@ -155,7 +155,7 @@ Two patterns are worth flagging from the paper's own ablations:
 - **Geometry alone helps.** Replacing the Euclidean GNN with the Lorentz aggregator (no contrastive loss) already moves Recall@20 by a meaningful margin. This is the cleanest evidence that the gain is *geometric*, not just "more parameters in a fashionable shape".
 - **Contrastive on top is consistent.** The contrastive auxiliary delivers further improvement across all three datasets. The lift is largest where session graphs are noisiest, which is also where you would expect view-based augmentation to help most.
 
-## 8. Reading HCGR-style results critically
+## Reading HCGR-style results critically
 
 If you're reviewing HCGR or any other hyperbolic recommender, here is the checklist I run through:
 
@@ -165,7 +165,7 @@ If you're reviewing HCGR or any other hyperbolic recommender, here is the checkl
 4. **Reproducibility.** Lorentz optimisation can be touchy. Look for fixed seeds, multiple runs, and at least one mention of stability tricks (clipping, careful initialisation near the origin, projection back to the manifold).
 5. **Curvature sensitivity.** Curvature $c$ is a hyperparameter. If results require fine curvature tuning per dataset, deployment will be painful.
 
-## 9. Practical takeaways
+## Practical takeaways
 
 If you're considering this for a real session recommender:
 
@@ -175,7 +175,7 @@ If you're considering this for a real session recommender:
 - **Budget for instability.** Manifold projection, gradient clipping, and a warm-up schedule on $\lambda$ are all worth implementing from day one. Hyperbolic optimisation diverges quietly.
 - **Tune three knobs deliberately.** Curvature $c$, contrastive temperature $\tau$, and contrastive weight $\lambda$. The other dials matter much less.
 
-## 10. Limitations and open questions
+## Limitations and open questions
 
 The paper is honest about the costs, and so should we be:
 
@@ -186,7 +186,7 @@ The paper is honest about the costs, and so should we be:
 
 For most teams, the right reading of HCGR is: *the geometry is the contribution, the contrastive part is a portable trick.* Steal the contrastive auxiliary for your existing Euclidean recommender first; pay the hyperbolic tax only when the data shape clearly demands it.
 
-## 11. The numerical reality of working in Lorentz space
+## The numerical reality of working in Lorentz space
 
 A clean derivation hides how often the manifold bites you in practice. Three numerical hazards show up over and over once you actually wire HCGR into a training loop.
 
@@ -198,7 +198,7 @@ A clean derivation hides how often the manifold bites you in practice. Three num
 
 A workable defensive recipe: clamp `acosh` arguments, Taylor-fallback for small `exp_map`, gradient-norm clip at 1.0, learning-rate warm-up over 1000 steps, and curvature $c$ frozen for the first epoch then unfrozen. With those five guards, HCGR is reproducibly stable on standard session datasets. Without them, runs diverge silently and the failure mode looks like "the model just doesn't learn".
 
-## 12. The contrastive trick is the portable part
+## The contrastive trick is the portable part
 
 Even if hyperbolic geometry isn't the right answer for your stack, the contrastive auxiliary in HCGR is. The recipe is shockingly simple: build two augmented views of each session by random edge dropout (rate 0.2) and node dropout (rate 0.1), pass each through your existing encoder, and add an InfoNCE term with $\tau = 0.1$ and $\lambda = 0.1$. On a vanilla Euclidean SR-GNN this typically buys 1-2 % Recall@20 on Yoochoose and 2-4 % on Last.FM, with the larger gains on the long-tail dataset. The implementation cost is one extra forward pass per batch and a 30-line loss function.
 

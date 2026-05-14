@@ -56,7 +56,7 @@ aliases:
 
 以下各节按此顺序展开。
 
-## 1. Gradient descent (GD)：起源
+## Gradient descent (GD)：起源
 
 给定一个可微损失函数 $J(\theta)$，最简单的更新方式是
 $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
@@ -67,7 +67,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).$$
 - 在 **病态曲率**（Hessian 条件数 $\kappa = \lambda_{\max}/\lambda_{\min}$ 很大）下，迭代次数随 $\kappa$ 线性增长。一维直觉：$f(\theta)=\frac{1}{2}H\theta^2$ 给出 $\theta_{t+1}=(1-\eta H)\theta_t$，稳定当且仅当 $\eta < 2/H$。你的步长 **受限于最陡方向的曲率**。
 - 当最陡方向（$\lambda_{\max}$）与最平缓方向（$\lambda_{\min}$）相差几个数量级时，你在平缓方向几乎不动，却在陡峭方向来回震荡。这就是 **窄谷问题** —— 见下图 Fig 1 左侧面板。
 
-## 2. SGD：噪声的代价与红利
+## SGD：噪声的代价与红利
 
 当数据集无法装入内存时，你用小批量估计替代全梯度：
 $$g_t = \nabla J(\theta_t) + \xi_t,\qquad \mathbb{E}[\xi_t]=0.$$
@@ -77,7 +77,7 @@ $$g_t = \nabla J(\theta_t) + \xi_t,\qquad \mathbb{E}[\xi_t]=0.$$
 
 **Fig 1 中间面板**：SGD 在同一山谷中的轨迹比 GD 更“毛糙”，但平均而言仍流向谷底。
 
-## 3. Momentum：赋予优化器惯性
+## Momentum：赋予优化器惯性
 
 心理模型：把 $\theta$ 想象成 **沿山谷滚动的球**。GD 是一只“无质量的虫子”——每一步只看到局部斜率，因此在狭窄方向来回弹跳。给虫子加上质量和惯性，**惯性会沿山谷长轴累积，而垂直方向的震荡相互抵消**。
 $$v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t.$$
@@ -89,7 +89,7 @@ $$v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t.$$
 
 ![GD / SGD / Momentum trajectories on an ill-conditioned quadratic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig1_gd_sgd_momentum_contour.png)
 
-## 4. Nesterov accelerated gradient (NAG)：先看再跳
+## Nesterov accelerated gradient (NAG)：先看再跳
 
 经典动量在接近最小值时会 **过冲**：它在当前点计算梯度，因此只有在多走一步后才意识到“哎呀，走太远了”。
 
@@ -101,7 +101,7 @@ $$v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta
 
 ![NAG: lookahead gradient evaluation reduces overshoot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig2_nesterov_lookahead.png)
 
-## 5. AdaGrad：每个坐标拥有自己的学习率
+## AdaGrad：每个坐标拥有自己的学习率
 
 到 2011 年，NLP 领域已被 **稀疏特征** 淹没——比如 word2vec 中，一个罕见词可能在百万样本中只出现 5 次。若对所有参数使用同一个 $\eta$：
 
@@ -118,7 +118,7 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t.$$
 
 ![AdaGrad: shrinks the steep direction automatically, but every per-coord LR decays monotonically](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig3_adagrad_per_coord_lr.png)
 
-## 6. RMSProp：用 EMA 替代累积和
+## RMSProp：用 EMA 替代累积和
 
 在 2012 年 Coursera 课程幻灯片中，Hinton **只改了一处** 就拯救了 AdaGrad：将累积和 $\sum g_t^2$ 替换为指数移动平均：
 $$E[g^2]_t = \rho\,E[g^2]_{t-1} + (1-\rho)\,g_t^2$$
@@ -134,7 +134,7 @@ $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t.$$
 
 ![RMSProp (EMA) vs AdaGrad (cumulative) under non-stationary gradient magnitude](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig4_rmsprop_moving_average.png)
 
-## 7. Adam：将动量与 RMSProp 缝合
+## Adam：将动量与 RMSProp 缝合
 
 此时两条线索均已成熟：
 - **动量** 提供良好的 **方向**。
@@ -154,7 +154,7 @@ $$\theta_{t+1} = \theta_t - \frac{\eta\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}.$$
 
 ![Adam dataflow: momentum branch + RMSProp branch -> bias correction -> adaptive update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig5_adam_combined.png)
 
-## 8. AdamW：存活十年的 weight-decay bug
+## AdamW：存活十年的 weight-decay bug
 
 向损失函数添加 L2 正则项 $\frac{\lambda}{2}\|\theta\|^2$ 会在梯度中增加一项 $\lambda\theta$。在 **SGD** 中，这等价于每步将权重乘以 $(1-\eta\lambda)$ —— 即经典的“weight decay”。
 
@@ -166,11 +166,11 @@ $$\theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \e
 
 ![AdamW (decoupled) vs Adam+L2 (coupled): where weight decay enters the update](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig6_adamw_vs_adam.png)
 
-## 9. 2023 年后的前沿：三种经受住规模考验的方向
+## 2023 年后的前沿：三种经受住规模考验的方向
 
 在 AdamW 主导约 6 年后，自 2023 年起有三种方向真正 **在大规模上被验证有效**。
 
-### 9.1 Lion (Google, 2023)：只保留符号
+### 1 Lion (Google, 2023)：只保留符号
 
 由 AutoML 程序搜索发现；更新只保留 **符号**：
 $$m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t$$
@@ -181,7 +181,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_
 - **恒定更新幅度 $\eta$**：因为 sign 返回 $\pm 1$。因此 Lion 的 LR 必须比 AdamW **小约 10 倍**，wd 则需大 10 倍。
 - 在 ViT 和 LLM 预训练中，以更快的实际耗时匹配或略微超越 AdamW。
 
-### 9.2 Sophia (Stanford, 2023)：廉价二阶方法
+### 2 Sophia (Stanford, 2023)：廉价二阶方法
 
 Sophia 将廉价的对角 Hessian 估计插入分母：
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t$$
@@ -196,7 +196,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_
 
 报告结果：在 GPT-2 规模下，达到相同困惑度所需的实际耗时大约减半。
 
-### 9.3 Schedule-Free (Meta, 2024)：抛弃调度
+### 3 Schedule-Free (Meta, 2024)：抛弃调度
 
 学习率调度（cosine、WSD 等）都有一个烦人之处：**你必须提前知道总步数**。研究中通常不知道，因此承诺一个调度会束缚手脚。
 
@@ -210,7 +210,7 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" paramete
 
 ![Lion / Sophia / Schedule-Free: the three post-AdamW directions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig7_modern_optimizers.png)
 
-## 10. 选择指南
+## 选择指南
 
 | Setting | Recommendation | Why |
 |---|---|---|
@@ -221,7 +221,7 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" paramete
 | Research, unknown training length | **Schedule-Free AdamW** | Extend mid-run, no schedule redesign |
 | Chasing wall-clock SOTA | **Sophia** | 2nd-order acceleration, but engineering cost |
 
-## 11. 最常被忽略的五个事实
+## 最常被忽略的五个事实
 
 1. **开启动量时，降低 LR**。动量将有效步长放大了约 $1/(1-\gamma)$ 倍。当 $\gamma=0.9$ 时约为 10 倍。
 2. **Adam 的 $\beta_2 = 0.999$ 意味着约 1000 步预热**，因为在此之前 $v_t$ 尚未“热起来”。
@@ -229,7 +229,7 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" paramete
 4. **Lion 的 LR 必须比 AdamW 小约 10 倍**。直接复制 AdamW 的 `3e-4` 会立即发散。
 5. **二阶方法曾被认为“永久不实用”并非因为效果差，而是因为 Hessian 计算太昂贵**。Sophia 通过结合 $\mathrm{diag}(H)$ 与廉价的 Hutchinson 估计打破了这一壁垒。
 
-## 12. 优化器状态内存：数学隐藏的成本
+## 优化器状态内存：数学隐藏的成本
 
 动量、AdaGrad、RMSProp 和 Adam 的简洁推导从未提及 VRAM。但在生产环境中，这是主要约束。对于 fp16 下含 $P$ 个可训练参数的模型：
 
@@ -250,7 +250,7 @@ $$x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" paramete
 
 ![Optimizer state memory across optimizers, and total VRAM at 7B / 70B scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig8_optimizer_memory.png)
 
-## 13. 混合精度：优化器看到的是 fp32
+## 混合精度：优化器看到的是 fp32
 
 一个让首次预训练者吃亏的微妙点：即使其余训练使用 fp16/bf16，优化器几乎总是在 fp32 下运行。原因是 Adam 的指数移动平均累积数千步。当 $\beta_2 = 0.999$ 时，$v_t$ 是一个求和，其中最小贡献者仅为最大者的 $10^{-3}$，很容易低于 fp16 的可表示范围（约 $6 \times 10^{-5}$ 到 $6 \times 10^4$）。
 
@@ -268,7 +268,7 @@ bf16 略有不同：其动态范围足够宽，有时可全程保留 bf16 梯度
 
 ![Mixed-precision training data flow: where each tensor lives in fp16/bf16 vs fp32](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/03-gradient-descent-family/fig9_mixed_precision.png)
 
-## 14. 各优化器的学习率合理范围（Transformer 基线）
+## 各优化器的学习率合理范围（Transformer 基线）
 
 这是我启动 Transformer 类任务时首先尝试的区间。将其视为贝叶斯先验，而非最终值。
 

@@ -41,9 +41,9 @@ When data has hidden structure — like an unobserved cluster label, a missing f
 
 ---
 
-## 1. Latent variables and incomplete-data likelihood
+## Latent variables and incomplete-data likelihood
 
-### 1.1 Setup
+### 1 Setup
 
 We model observations $\mathbf{x}_1,\dots,\mathbf{x}_N$ together with hidden variables $z_1,\dots,z_N$ via a joint $p(\mathbf{x}, z \mid \boldsymbol{\theta})$. We see $\mathbf{X}$, never $\mathbf{Z}$. The **incomplete-data log-likelihood** is
 $$
@@ -52,7 +52,7 @@ $$
 $$
 The summation inside the logarithm is the source of the problem. The log no longer factors over components, so the gradient doesn't split into per-component pieces, and there is no closed-form maximizer.
 
-### 1.2 The mixture example
+### 2 The mixture example
 
 For a Gaussian mixture with $K$ components,
 $$p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}(\mathbf{x}\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).$$
@@ -64,9 +64,9 @@ The figure above shows three Gaussian clusters fit by `sklearn.mixture.GaussianM
 
 ---
 
-## 2. The ELBO and Jensen's inequality
+## The ELBO and Jensen's inequality
 
-### 2.1 Introducing an auxiliary distribution $q$
+### 1 Introducing an auxiliary distribution $q$
 
 Pick **any** distribution $q(z)$ over the latent variable. Multiply and divide:
 $$
@@ -85,7 +85,7 @@ $$
 $$
 This $\mathcal{L}$ is the **Evidence Lower Bound (ELBO)**. It depends on both the variational distribution $q$ and the parameters $\boldsymbol{\theta}$.
 
-### 2.2 The exact decomposition
+### 2 The exact decomposition
 
 A direct manipulation — without needing an inequality — yields the *equality*
 $$
@@ -104,13 +104,13 @@ This single identity is the entire engine of EM.
 
 ---
 
-## 3. EM as coordinate ascent on the ELBO
+## EM as coordinate ascent on the ELBO
 
 ![ML Math Derivations (13): EM Algorithm and GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/illustration_2.png)
 
 EM repeatedly raises $\mathcal{L}$ by alternating in its two arguments.
 
-### 3.1 The two steps
+### 1 The two steps
 
 **E-step.** Hold $\boldsymbol{\theta}^{(t)}$ fixed. Maximise $\mathcal{L}(q, \boldsymbol{\theta}^{(t)})$ over $q$. The maximiser is the posterior:
 $$q^{(t)}(z) \;=\; p\bigl(z \mid \mathbf{x}, \boldsymbol{\theta}^{(t)}\bigr).$$
@@ -122,7 +122,7 @@ Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
 \;=\;
 \mathbb{E}_{z\sim q^{(t)}}\!\bigl[\log p(\mathbf{x}, z\mid \boldsymbol{\theta})\bigr].
 $$
-### 3.2 The monotone-ascent proof
+### 2 The monotone-ascent proof
 
 Chain these three inequalities:
 $$
@@ -138,7 +138,7 @@ $$
 $$\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{(t)})\;}$$
 at every iteration, with equality only at fixed points. EM converges to a stationary point of $\ell$ — typically a local maximum, occasionally a saddle point. **It is not guaranteed to reach the global maximum**, which is why multiple random restarts matter.
 
-### 3.3 Visualising the two views
+### 3 Visualising the two views
 
 The **ELBO view** makes the dynamics very concrete. After every E-step the KL gap closes; the M-step then raises both the log-likelihood and the ELBO together, and the gap re-opens until the next E-step.
 
@@ -148,9 +148,9 @@ The shaded amber band is exactly the KL divergence $\mathrm{KL}\bigl[q\,\Vert\, 
 
 ---
 
-## 4. EM for Gaussian Mixture Models
+## EM for Gaussian Mixture Models
 
-### 4.1 The model
+### 1 The model
 
 Generative process for one observation:
 
@@ -159,7 +159,7 @@ Generative process for one observation:
 
 The parameters are $\boldsymbol{\theta} = \{\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k\}_{k=1}^{K}$, with $\sum_k \pi_k = 1$ and each $\boldsymbol{\Sigma}_k \succ 0$.
 
-### 4.2 The E-step: responsibilities
+### 2 The E-step: responsibilities
 
 The latent posterior is just Bayes' rule on a finite alphabet. Define the **responsibility** of component $k$ for sample $i$:
 $$
@@ -177,7 +177,7 @@ Each row $(\gamma_{i1},\dots,\gamma_{iK})$ sums to 1 — the soft cluster member
 
 On the left every grid point is coloured by mixing the three component colours according to $\gamma_{ik}$: pure colour where one component dominates, blended colours along the boundaries. On the right, the responsibility matrix $\gamma_{ik}$ for twelve sample points — rows sum to 1.
 
-### 4.3 The M-step: weighted MLE
+### 3 The M-step: weighted MLE
 
 Plugging the Gaussian density into $Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})$ and maximising (with a Lagrange multiplier for $\sum_k \pi_k = 1$) gives the closed-form updates. Let $N_k = \sum_{i=1}^{N} \gamma_{ik}$ be the *effective* sample size of component $k$:
 $$
@@ -193,7 +193,7 @@ These are exactly the standard Gaussian MLE formulas, but with each sample re-we
 
 Starting from a deliberately bad initialisation, a single M-step pulls the means (red arrows) onto the data and stretches the covariance ellipses to match the observed scatter. After only a handful of E-M cycles the fit is essentially correct.
 
-### 4.4 Convergence in practice
+### 4 Convergence in practice
 
 Run EM for several random restarts and watch the log-likelihood:
 
@@ -203,7 +203,7 @@ Every restart curve is non-decreasing — this is the algorithmic guarantee. Dif
 
 ---
 
-## 5. K-means is the hard, spherical limit of GMM
+## K-means is the hard, spherical limit of GMM
 
 Let $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$ for all $k$ and let $\epsilon \to 0$. The Gaussian density becomes infinitely peaked; the responsibility for the **closest** mean tends to 1 and the others to 0. The E-step degenerates to *hard assignment* and the M-step to averaging the assigned points — exactly K-means.
 
@@ -213,7 +213,7 @@ On anisotropic data the difference is stark: K-means (left) imposes spherical Vo
 
 ---
 
-## 6. Choosing the number of components
+## Choosing the number of components
 
 The likelihood always increases with $K$ (more flexibility), so $\ell$ alone cannot pick $K$. Use a complexity-penalised criterion:
 $$
@@ -230,7 +230,7 @@ Both curves drop sharply going from $K=1$ to the true $K=3$ and then flatten or 
 
 ---
 
-## 7. Reference implementation
+## Reference implementation
 
 A minimal NumPy implementation that mirrors the formulas above. The actual experiments and figures use `sklearn.mixture.GaussianMixture` for verification.
 
@@ -291,7 +291,7 @@ class GMM:
 
 ---
 
-## 8. Numerical considerations
+## Numerical considerations
 
 The EM iteration above is mathematically clean but numerically dangerous. Three failure modes hit me repeatedly in production.
 
@@ -305,7 +305,7 @@ then $\gamma_{ik} = \exp(\log \gamma_{ik})$. Always work in log-space until the 
 
 A useful sanity check during iteration: the ELBO must be monotonically non-decreasing. If you ever see a decrease larger than $10^{-6}$, your numerics are wrong, not your math.
 
-## 9. What this looks like in scikit-learn
+## What this looks like in scikit-learn
 
 ```python
 from sklearn.mixture import GaussianMixture

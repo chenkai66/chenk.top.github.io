@@ -46,7 +46,7 @@ translationKey: "time-series-3"
 
 ---
 
-## 1. 四个公式讲清楚 GRU 单元
+## 四个公式讲清楚 GRU 单元
 
 ![GRU 单元架构：重置门和更新门，以及从 h_{t-1} 到 h_t 的 (1-z) 梯度高速通道](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig1_gru_cell_architecture.png)
 
@@ -78,7 +78,7 @@ $$\frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}(1 - z_t) \;+\; (\t
 
 ---
 
-## 2. GRU 为什么更轻：参数分析
+## GRU 为什么更轻：参数分析
 
 
 ![GRU 与 LSTM 在不同隐藏层大小下的参数量对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig2_param_count_comparison.png)
@@ -99,7 +99,7 @@ $$
 
 ---
 
-## 3. 隐藏状态到底长什么样
+## 隐藏状态到底长什么样
 
 
 ![16 个 GRU 隐藏单元在 80 个时间步上的热力图，叠加输入信号](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig3_hidden_state_evolution.png)
@@ -111,7 +111,7 @@ $$
 
 ---
 
-## 4. 预测质量：GRU 真的不如 LSTM 吗？
+## 预测质量：GRU 真的不如 LSTM 吗？
 
 
 ![真实值、GRU 预测和 LSTM 预测在测试集上的对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig4_forecast_quality.png)
@@ -131,7 +131,7 @@ LSTM **确实占优**的情况通常有三种：一是处理极长序列（>200 
 
 ---
 
-## 5. 读懂门：GRU 的诊断工具
+## 读懂门：GRU 的诊断工具
 
 ![三面板图：输入信号、响应最强的重置门单元、响应最强的更新门单元](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig6_gate_activations.png)
 
@@ -145,7 +145,7 @@ LSTM **确实占优**的情况通常有三种：一是处理极长序列（>200 
 
 ---
 
-## 6. PyTorch 参考实现
+## PyTorch 参考实现
 
 一个简洁、生产就绪的 GRU 预测器。注意显式权重初始化——尤其是递归矩阵的正交初始化，这是提升稳定性的最关键技巧。
 
@@ -219,7 +219,7 @@ def train_one_epoch(model, loader, opt, max_grad_norm=1.0, device="cuda"):
 
 ---
 
-## 7. GRU vs LSTM：决策矩阵
+## GRU vs LSTM：决策矩阵
 
 没有绝对赢家。将图 7 视为检查清单；若你的需求多数落在蓝色栏，就从 GRU 开始。
 *图 7. 我实际使用的启发式规则就是底部那条：先试 GRU；仅当验证 RMSE 停滞不前，且仍有数据与算力余量时，才升级到 LSTM。*
@@ -244,7 +244,7 @@ def train_one_epoch(model, loader, opt, max_grad_norm=1.0, device="cuda"):
 
 ---
 
-## 8. 几个值得了解的变体
+## 几个值得了解的变体
 
 **双向 GRU**。拼接前向与后向传递结果；参数翻倍，且无法用于因果预测（推理时不能用未来数据）。适用于 NER 等序列标注任务。
 
@@ -270,7 +270,7 @@ class AttnHead(nn.Module):
 
 ---
 
-## 9. 常见问题
+## 常见问题
 **训练几百步后 loss 爆炸**。先将学习率降至 `1e-4`，确认梯度裁剪确实在 `optimizer.step()` **之前**调用，并检查输入是否已归一化。若输入已是单位方差但梯度仍爆炸，基本可断定递归权重未正交初始化。
 
 **loss 下降后高位停滞**。通常是容量不足。先尝试将 `hidden_size` 翻倍或堆叠两层，再考虑复杂变体。若仍无效，这就是该换 LSTM 的信号。
@@ -291,7 +291,7 @@ last = out[torch.arange(out.size(0)), lengths - 1]   # 真正的最后一步
 
 ---
 
-## 10. 延迟预算下的 GRU
+## 延迟预算下的 GRU
 
 GRU 的参数节省直接转化为部署余量，实测差距更为显著。以下数据来自我近期上线的一个实时异常检测器：64 隐藏单元、2 层循环栈、60 步回溯、batch size=1，通过 TorchScript 部署于单核 CPU（Intel Xeon Platinum 8259CL，固定 2.5 GHz）。
 
@@ -328,7 +328,7 @@ class StreamingGRU(nn.Module):
 
 ---
 
-## 11. 什么时候该彻底放弃 GRU
+## 什么时候该彻底放弃 GRU
 
 尽管提倡“先试 GRU”，但以下三种情况应从一开始就跳过它：
 

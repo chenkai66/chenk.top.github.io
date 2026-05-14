@@ -36,7 +36,7 @@ This chapter rebuilds your intuition from scratch. We start with a single cup of
 
 ---
 
-## 1. What is a differential equation? Start with coffee
+## What is a differential equation? Start with coffee
 
 You brew coffee at $T_0 = 90^\circ\mathrm{C}$ and put it in a $T_\text{env} = 20^\circ\mathrm{C}$ room. A few minutes later it has cooled. Two questions feel natural:
 
@@ -106,7 +106,7 @@ Three things are worth memorising:
 
 ---
 
-## 2. Direction fields: see the solution before you compute it
+## Direction fields: see the solution before you compute it
 
 ![Ordinary Differential Equations (1): Origins and Intuition — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/illustration_2.png)
 
@@ -127,7 +127,7 @@ We will lean on direction fields throughout the series — they are the cheapest
 
 ---
 
-## 3. Classification: ODE, PDE, order, linearity
+## Classification: ODE, PDE, order, linearity
 
 A few labels save us a lot of breath later.
 
@@ -169,7 +169,7 @@ Nonlinear equations have none of this for free. They can do things linear equati
 
 ---
 
-## 4. A brief history
+## A brief history
 
 Differential equations were not "discovered" so much as *required* by physics. The same century that invented calculus needed it.
 
@@ -187,14 +187,14 @@ The arc is striking: we begin chasing formulas, give up, and learn instead to st
 
 ---
 
-## 5. Three classic models you will keep meeting
+## Three classic models you will keep meeting
 
 The reason ODEs feel ubiquitous is that a small number of equations show up *over and over* in different physical disguises. Here are three.
 
 ![Three classic ODE applications: Newton cooling, radioactive decay, harmonic oscillator.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/fig3_three_classics.png)
 *Figure 5. Three of the most reused equations in all of science. Each is one line long, yet between them they describe heat exchange, archaeological dating, and every spring–mass system in mechanical engineering.*
 
-### 5.1 Radioactive decay — the universe's stopwatch
+### 1 Radioactive decay — the universe's stopwatch
 
 Each radioactive atom has the same probability of decaying per unit time, so the total decay rate is proportional to how many atoms remain:
 $$
@@ -204,7 +204,7 @@ N(t) = N_0\,e^{-\lambda t}.
 $$
 The **half-life** $t_{1/2} = (\ln 2)/\lambda$ is a single number that summarises the whole curve. Carbon-14 has $t_{1/2} = 5730\,\text{yr}$, which is exactly why archaeologists can date a piece of charcoal: measure the surviving $^{14}\mathrm{C}$ ratio, take the log, and read off the age. The same equation also describes capacitor discharge in an RC circuit and drug clearance from the bloodstream.
 
-### 5.2 Malthusian population growth
+### 2 Malthusian population growth
 
 If a population of size $P$ has a constant per-capita birth rate minus death rate $r$, then
 $$
@@ -219,7 +219,7 @@ It also predicts **unbounded** exponential growth, which any biologist will tell
 ![Exponential vs logistic growth.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/01-origins-and-intuition/fig7_exponential_vs_logistic.png)
 *Figure 6. Left: Malthus' exponential model rockets to infinity; the logistic model bends over and saturates at the carrying capacity $K$. Right: a "phase view" of the growth rate. The logistic curve has **two equilibria** (at $P = 0$ and $P = K$), with growth in between and decline above $K$. We will dissect this in Chapter 2.*
 
-### 5.3 Simple harmonic motion
+### 3 Simple harmonic motion
 
 A mass $m$ on a spring with stiffness $k$ obeys Hooke's law $F = -kx$ combined with Newton's $F = ma$:
 $$
@@ -260,7 +260,7 @@ The right panel is a **phase portrait**, our first glimpse of how second-order s
 
 ---
 
-## 6. Initial value problems and the question of existence
+## Initial value problems and the question of existence
 
 A bare ODE has *infinitely many* solutions — an entire one-parameter (or $n$-parameter) family. To pick out *one*, you supply an **initial condition**:
 $$\frac{dy}{dt} = f(t, y), \qquad y(t_0) = y_0.$$
@@ -283,7 +283,7 @@ The takeaway is sharp: **a "law of physics" written as an ODE is only a law if P
 
 ---
 
-## 7. Analytical vs. numerical solutions
+## Analytical vs. numerical solutions
 
 |  | Analytical | Numerical |
 |---|---|---|

@@ -38,9 +38,9 @@ But likelihood alone is not enough. We need a vocabulary for uncertainty (probab
 
 ---
 
-## 1. Probability Spaces
+## Probability Spaces
 
-### 1.1 The Kolmogorov Axioms
+### 1 The Kolmogorov Axioms
 
 Probability theory rests on a triplet $(\Omega, \mathcal{F}, P)$.
 
@@ -50,7 +50,7 @@ Probability theory rests on a triplet $(\Omega, \mathcal{F}, P)$.
 
 *Why a $\sigma$-algebra and not all subsets?* Because for an uncountable $\Omega$ — say, $[0,1]$ — there are pathological subsets (Vitali sets) on which no translation-invariant probability can be defined consistently. Restricting to a $\sigma$-algebra is the cost of avoiding paradoxes.
 
-### 1.2 Conditional Probability and Bayes' Theorem
+### 2 Conditional Probability and Bayes' Theorem
 
 For any event $B$ with $P(B) > 0$,
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}. \tag{1}$$
@@ -65,7 +65,7 @@ $$\boxed{\, P(\theta \mid D) = \frac{P(D \mid \theta)\,P(\theta)}{P(D)} \,} \tag
 
 Bayes' theorem is the *learning rule of probability*: it tells you exactly how a rational observer should revise beliefs in light of evidence. Every Bayesian model — from spam filters to Gaussian processes — is an application of this single formula.
 
-### 1.3 Independence
+### 3 Independence
 
 Events $A$ and $B$ are **independent** when $P(A \cap B) = P(A) P(B)$. They are **conditionally independent given $C$** when $P(A \cap B \mid C) = P(A \mid C)\,P(B \mid C)$.
 
@@ -73,7 +73,7 @@ A common pitfall: independence and conditional independence do not imply each ot
 
 ---
 
-## 2. Random Variables, Expectation, and Variance
+## Random Variables, Expectation, and Variance
 
 A **random variable** $X$ is a measurable function $X : \Omega \to \mathbb{R}$. Its distribution is summarized by:
 
@@ -97,13 +97,13 @@ Cauchy–Schwarz gives $|\rho| \le 1$. **Warning:** $\rho = 0$ means *uncorrelat
 
 ---
 
-## 3. Common Probability Distributions
+## Common Probability Distributions
 
 A handful of distributions reappear constantly because they are either (a) the natural model of a physical mechanism, (b) the maximum-entropy distribution given some constraint, or (c) the conjugate prior to another well-loved distribution. The figure below shows the six families that cover most of what you meet in ML.
 
 ![Common probability distributions used throughout machine learning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/fig1_distributions.png)
 
-### 3.1 Discrete Distributions
+### 1 Discrete Distributions
 
 **Bernoulli** $X \sim \mathrm{Bern}(p)$ — a single binary trial:
 $$P(X = k) = p^k (1-p)^{1-k}, \quad k \in \{0, 1\}. \tag{6}$$
@@ -118,7 +118,7 @@ Writing $X = \sum_{i=1}^n X_i$ with $X_i \sim \mathrm{Bern}(p)$ and using linear
 $$P(X = k) = \frac{\lambda^k e^{-\lambda}}{k!}, \qquad \mathbb{E}[X] = \mathrm{Var}(X) = \lambda. \tag{8}$$
 It is the limit of $\mathrm{Bin}(n, \lambda / n)$ as $n \to \infty$, which is why it shows up for click counts, server hits, and photon arrivals.
 
-### 3.2 Continuous Distributions
+### 2 Continuous Distributions
 
 **Gaussian** $X \sim \mathcal{N}(\mu, \sigma^2)$ — the most important distribution in ML:
 $$f(x) = \frac{1}{\sqrt{2\pi}\,\sigma}\,\exp\!\left(-\frac{(x - \mu)^2}{2\sigma^2}\right). \tag{9}$$
@@ -142,11 +142,11 @@ Its level sets are ellipsoids whose principal axes are the eigenvectors of $\Sig
 
 ---
 
-## 4. Limit Theorems: Why ML Works at Scale
+## Limit Theorems: Why ML Works at Scale
 
 ![ML Math Derivations (3): Probability Theory and Statistical Inference — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/03-Probability-Theory-and-Statistical-Inference/illustration_2.png)
 
-### 4.1 Concentration Inequalities
+### 1 Concentration Inequalities
 
 These are crude but always-true bounds — useful when you know nothing but a moment.
 
@@ -156,13 +156,13 @@ $$P(X \ge a) \le \frac{\mathbb{E}[X]}{a}. \tag{11}$$
 $$P(|X - \mu| \ge k) \le \frac{\sigma^2}{k^2}. \tag{12}$$
 These two inequalities are the seeds of every PAC-style learning bound.
 
-### 4.2 Law of Large Numbers
+### 2 Law of Large Numbers
 
 For i.i.d. $X_1, \ldots, X_n$ with mean $\mu$ and finite variance $\sigma^2$, the **weak law** states
 $$P(|\bar{X}_n - \mu| > \epsilon) \le \frac{\sigma^2}{n\epsilon^2} \;\longrightarrow\; 0. \tag{13}$$
 In words: *empirical averages concentrate around true expectations*. This is the formal reason that empirical risk minimization — picking a model that fits training data well — has any hope of generalizing.
 
-### 4.3 Central Limit Theorem
+### 3 Central Limit Theorem
 
 LLN tells us the sample mean converges; CLT tells us *how fast and to what shape*.
 $$\frac{\bar{X}_n - \mu}{\sigma / \sqrt{n}} \xrightarrow{d} \mathcal{N}(0, 1). \tag{14}$$
@@ -176,9 +176,9 @@ The convergence is striking: even a wildly skewed underlying distribution produc
 
 ---
 
-## 5. Parameter Estimation
+## Parameter Estimation
 
-### 5.1 Properties of Estimators
+### 1 Properties of Estimators
 
 An **estimator** $\hat{\theta}_n$ is any function of the sample. Three properties matter most:
 
@@ -192,7 +192,7 @@ The famous *bias–variance trade-off* in ML is precisely this decomposition app
 $$\mathbb{E}\!\left[\frac{1}{n}\sum (X_i - \bar{X})^2\right] = \frac{n - 1}{n}\,\sigma^2.$$
 Dividing by $n - 1$ corrects the bias. The intuition: estimating $\bar{X}$ from the same data "uses up" one degree of freedom, leaving $n - 1$ effectively independent residuals.
 
-### 5.2 Maximum Likelihood Estimation (MLE)
+### 2 Maximum Likelihood Estimation (MLE)
 
 Given i.i.d. observations $x_1, \ldots, x_n$ from a model $f(x; \theta)$, the **likelihood** is
 $$L(\theta) = \prod_{i=1}^n f(x_i; \theta), \qquad \ell(\theta) = \log L(\theta) = \sum_{i=1}^n \log f(x_i; \theta). \tag{15}$$
@@ -214,7 +214,7 @@ Note that $\hat{\sigma}^2_{\mathrm{MLE}}$ is *biased* — it divides by $n$, not
 
 Here $I(\theta) = -\mathbb{E}[\partial^2 \ell / \partial \theta^2]$ is the **Fisher information**: how curved (and therefore how informative) the log-likelihood is at the truth.
 
-### 5.3 Bayesian Estimation
+### 3 Bayesian Estimation
 
 The Bayesian view treats $\theta$ as a random variable with prior $P(\theta)$. Bayes' theorem then defines the posterior:
 $$P(\theta \mid D) \propto P(D \mid \theta)\,P(\theta). \tag{17}$$
@@ -246,9 +246,9 @@ When data is plentiful, MLE, MAP, and the full posterior agree. When data is sca
 
 ---
 
-## 6. Hypothesis Testing and Confidence Intervals
+## Hypothesis Testing and Confidence Intervals
 
-### 6.1 Hypothesis Testing
+### 1 Hypothesis Testing
 
 A test pits a **null hypothesis** $H_0$ against an **alternative** $H_1$. We compute a test statistic $T$ and reject $H_0$ when $T$ falls in a pre-specified rejection region. Two kinds of errors are possible:
 
@@ -267,7 +267,7 @@ The figure below visualizes the tradeoff. Two competing distributions (the world
 
 **Example — one-sample t-test.** Test $H_0 : \mu = \mu_0$ when $\sigma$ is unknown:
 $$t = \frac{\bar{X} - \mu_0}{S / \sqrt{n}} \sim t_{n - 1} \quad\text{under } H_0. \tag{20}$$
-### 6.2 Confidence Intervals
+### 2 Confidence Intervals
 
 A $(1 - \alpha)$ confidence interval for the mean (with known $\sigma$) is
 $$\bar{X} \pm z_{\alpha/2} \cdot \frac{\sigma}{\sqrt{n}}. \tag{21}$$
@@ -281,7 +281,7 @@ If you want to say "the parameter is in this interval with probability 95%", you
 
 ---
 
-## 7. A Tour of Information Theory
+## A Tour of Information Theory
 
 Information theory is the bridge between probability and learning objectives. Three quantities matter most.
 
@@ -297,7 +297,7 @@ The Bernoulli entropy peaks at $p = 0.5$ — a fair coin is maximally unpredicta
 
 ---
 
-## 8. Exercises
+## Exercises
 
 **Exercise 1 (Base rate fallacy).** A disease has prevalence 0.1%. A test has sensitivity 99% and specificity 95%. Given a positive result, what is $P(\text{disease})$?
 

@@ -148,7 +148,7 @@ There are three working recipes, and you should know all three before picking on
 
 ![Translate-train vs translate-test vs zero-shot](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/fig7_translate_vs_align.png)
 
-### 1. Zero-shot direct transfer
+### Zero-shot direct transfer
 
 Fine-tune XLM-R on English labels, deploy it on the target language as-is. The model's encoder is already aligned, so the classifier head — which only sees `[CLS]` representations — generalizes.
 
@@ -156,7 +156,7 @@ Fine-tune XLM-R on English labels, deploy it on the target language as-is. The m
 - Cons: leaves the most accuracy on the table when target is far from source.
 - Use when: you support many target languages, or MT for the pair is unreliable.
 
-### 2. Translate-train
+### Translate-train
 
 Machine-translate your English training set into the target language(s), then fine-tune on the translated data (often jointly with the original English).
 
@@ -164,7 +164,7 @@ Machine-translate your English training set into the target language(s), then fi
 - Cons: cost scales linearly with the number of targets; degrades when MT is bad; you ship a model per language unless you train jointly.
 - Use when: you have a small number of high-value target languages and decent MT.
 
-### 3. Translate-test
+### Translate-test
 
 Keep the English-fine-tuned model. At inference time, translate the target-language input back to English and run the English model.
 

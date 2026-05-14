@@ -37,9 +37,9 @@ Three threads are braided together throughout the chapter:
 
 ---
 
-## 1. ODE Foundations: Existence, Uniqueness, Volume
+## ODE Foundations: Existence, Uniqueness, Volume
 
-### 1.1 Picard-Lindelof: when do ODEs have unique solutions?
+### 1 Picard-Lindelof: when do ODEs have unique solutions?
 
 **Theorem (Picard-Lindelof).** Consider $\dot{\mathbf{z}}=f(\mathbf{z},t)$ with $\mathbf{z}(0)=\mathbf{z}_0$. If $f$ is continuous in $t$ and Lipschitz in $\mathbf{z}$,
 $$
@@ -47,13 +47,13 @@ $$
 
 *Why this matters for ML.* If $f_\theta$ is a neural network with Lipschitz activations (ReLU, tanh, GELU) and bounded weights, the Lipschitz condition holds locally. So a Neural ODE is well-posed as long as the network is well-behaved — which is almost always true in practice and which is why Neural ODEs are robust enough to backprop through.
 
-### 1.2 Liouville's theorem: how flows change volume
+### 2 Liouville's theorem: how flows change volume
 
 **Theorem (Liouville).** Let $\phi_t$ be the flow of $\dot{\mathbf{z}}=f(\mathbf{z},t)$. For any measurable $\Omega$,$$\frac{d}{dt}\,\mathrm{vol}(\phi_t(\Omega))=\int_{\phi_t(\Omega)}\nabla\!\cdot f\,d\mathbf{z}.$$Therefore $\nabla\!\cdot f=0$ preserves volume, $\nabla\!\cdot f<0$ contracts, $\nabla\!\cdot f>0$ expands. In normalizing flows we *want* a non-zero divergence: that is exactly the lever that lets us reshape probability mass.
 
 *Mental picture.* A divergence-free $f$ behaves like an incompressible fluid (Hamiltonian / symplectic — Part 5). A divergence-rich $f$ behaves like a compressible flow that can squeeze probability mass into thin filaments and then re-inflate it elsewhere — which is what generative modelling needs.
 
-### 1.3 Instantaneous change of variables
+### 3 Instantaneous change of variables
 
 **Theorem.** Along a trajectory $\mathbf{z}(t)=\phi_t(\mathbf{z}_0)$ of $\dot{\mathbf{z}}=f(\mathbf{z},t)$, the density satisfies$$\boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t))=-\nabla\!\cdot f(\mathbf{z}(t),t).\;}\tag{1}
 $$
@@ -63,9 +63,9 @@ $$
 
 ---
 
-## 2. Neural ODEs: From Discrete to Continuous Depth
+## Neural ODEs: From Discrete to Continuous Depth
 
-### 2.1 Residual networks as forward Euler
+### 1 Residual networks as forward Euler
 
 A ResNet block $\mathbf{h}_{l+1}=\mathbf{h}_l+f_l(\mathbf{h}_l)$ is exactly forward Euler with $\Delta t=1$ on $\dot{\mathbf{h}}=f(\mathbf{h},t)$. Take the limit and we get a single continuous-time ODE$$\frac{d\mathbf{h}}{dt}=f_\theta(\mathbf{h}(t),t),\qquad \mathbf{h}(T)=\mathbf{h}(0)+\int_0^T f_\theta(\mathbf{h}(t),t)\,dt. \tag{2}
 $$
@@ -78,7 +78,7 @@ Three immediate wins:
 ![ResNet (discrete depth, fixed step) versus Neural ODE (continuous depth, adaptive solver).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig2_neural_ode_vs_resnet.png)
 *Figure 2. Left: a ResNet is a stack of $h_{l+1}=h_l+f_l(h_l)$ Euler steps with one parameter set per layer; activations at every layer must be stored for backprop. Right: a Neural ODE is one ODE driven by a single $f_\theta$; the adaptive solver chooses where to evaluate, and the adjoint method recovers gradients with $O(1)$ memory.*
 
-### 2.2 The adjoint sensitivity method
+### 2 The adjoint sensitivity method
 
 A standard backprop through the ODE solver stores every intermediate state, which is $O(L)$ in the number of solver steps — and adaptive solvers can take hundreds of them. The adjoint method avoids that completely.
 
@@ -94,28 +94,28 @@ Memory is $O(1)$, independent of solver steps. The price is one extra ODE solve 
 ![Adjoint sensitivity: forward + reverse trajectories on a 2D vector field, and memory cost vs depth.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig3_adjoint_method.png)
 *Figure 3. Left: the same spiral ODE is integrated forward (blue) to obtain $h(T)$, then re-integrated backward together with the adjoint (red dashed) to recover gradients. Right: memory cost as the number of solver steps $L$ grows. Standard backprop is $O(L)$; the adjoint stays at $O(1)$ — a 1000x saving at $L{=}1000$.*
 
-### 2.3 Universality
+### 3 Universality
 
 Neural ODEs are dense in the space of homeomorphisms of $\mathbb{R}^d$ (Zhang et al. 2020). They cannot, however, change *topology* — a single Neural ODE on $\mathbb{R}^d$ cannot un-link two linked rings. This motivates **augmented** Neural ODEs that lift to $\mathbb{R}^{d+k}$, where extra coordinates give the flow room to untangle.
 
 ---
 
-## 3. Continuous Normalizing Flows (CNF)
+## Continuous Normalizing Flows (CNF)
 
-### 3.1 From discrete flows to continuous
+### 1 From discrete flows to continuous
 
 Discrete flows transform $\mathbf{z}_0\sim p_0$ through invertible maps:$$\mathbf{z}_K=f_K\circ\cdots\circ f_1(\mathbf{z}_0),\qquad \log p_K=\log p_0-\sum_{k=1}^K\log\!\bigl|\det\partial f_k/\partial\mathbf{z}_{k-1}\bigr|.$$Each $\det$ is $O(d^3)$ unless the architecture is engineered (coupling layers, autoregressive, etc.) — which restricts expressivity.
 
 CNF replaces the entire stack by an ODE and uses the instantaneous formula (1):$$\frac{d\mathbf{z}}{dt}=f_\theta(\mathbf{z}(t),t),\qquad \frac{d\log p}{dt}=-\nabla\!\cdot f_\theta(\mathbf{z}(t),t). \tag{5}$$**No invertibility constraint on the architecture** — the ODE is invertible by integrating backwards. **No determinant** — only a trace.
 
-### 3.2 FFJORD: scalable trace via Hutchinson
+### 2 FFJORD: scalable trace via Hutchinson
 
 The remaining bottleneck is the trace $\nabla\!\cdot f=\mathrm{tr}(\partial f/\partial\mathbf{z})$. Computing it exactly still costs $d$ vector-Jacobian products. **FFJORD** (Grathwohl et al. 2018) replaces it with one *unbiased* estimate:$$\nabla\!\cdot f=\mathbb{E}_{\boldsymbol\epsilon}\!\left[\boldsymbol\epsilon^\top\!\frac{\partial f}{\partial\mathbf{z}}\,\boldsymbol\epsilon\right],\qquad \boldsymbol\epsilon\sim\mathcal{N}(0,\mathbf{I}). \tag{6}$$This is **Hutchinson's trace estimator** and it costs *one* vector-Jacobian product per sample — independent of $d$.
 
 ![Hutchinson trace estimator: variance shrinks as 1/sqrt(K), and the per-step cost is O(d) instead of O(d^2).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig4_ffjord_trace.png)
 *Figure 4. Left: variance of the Hutchinson estimator over 400 trials for $d{=}64$, vs the number of probe vectors $K$; the dotted envelope shows the textbook $1/\sqrt{K}$ rate. Right: per-step divergence cost as $d$ grows. A full Jacobian is $O(d^2)$ AD calls; Hutchinson with $K{=}4$ is $O(Kd)$ — three orders of magnitude cheaper at $d{=}1024$.*
 
-### 3.3 Training and sampling
+### 3 Training and sampling
 
 Given data $\mathbf{x}$:$$\log p_1(\mathbf{x})=\log p_0(\mathbf{z}_0)+\int_0^1 \nabla\!\cdot f_\theta(\mathbf{z}(t),t)\,dt,$$where $\mathbf{z}_0$ is obtained by solving (5) backwards from $\mathbf{x}$. Maximise the log-likelihood with the adjoint method. To **sample**, draw $\mathbf{z}_0\sim p_0$ and integrate forward.
 
@@ -123,16 +123,16 @@ Given data $\mathbf{x}$:$$\log p_1(\mathbf{x})=\log p_0(\mathbf{z}_0)+\int_0^1 \
 
 ---
 
-## 4. Optimal Transport and Flow Matching
+## Optimal Transport and Flow Matching
 
 ![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
 
-### 4.1 The Benamou-Brenier connection
+### 1 The Benamou-Brenier connection
 
 Optimal transport with quadratic cost has a *dynamic* formulation:$$\min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
 \quad\text{s.t.}\quad \partial_t\rho+\nabla\!\cdot(\rho v)=0,\;\rho_0,\rho_1\text{ given}.$$The minimiser $v_t^\star$ is exactly the velocity field of a CNF — and one whose **trajectories are straight lines** (in the Euclidean OT case). This is the cleanest geometric reason to combine CNFs with OT.
 
-### 4.2 Flow Matching
+### 2 Flow Matching
 
 **Flow Matching** (Lipman et al. 2022) is the killer-app simplification. Instead of optimising NLL through an ODE solver — and instead of solving an OT problem — it picks a *conditional probability path* and regresses on the corresponding velocity.
 
@@ -145,7 +145,7 @@ $$
 ![Flow Matching: pairs of samples and the linear conditional paths between them; loss curves vs CNF.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/fig5_flow_matching.png)
 *Figure 5. Left: random pairs $(\mathbf{z}_0,\mathbf{z}_1)$ joined by the conditional linear path. The target velocity at any $\mathbf{z}_t$ is just $\mathbf{z}_1-\mathbf{z}_0$ — no divergence, no ODE solve at training time. Right: illustrative loss curves; FM converges roughly an order of magnitude faster and to a lower stable plateau than direct CNF maximum-likelihood.*
 
-### 4.3 What you actually use in 2024
+### 3 What you actually use in 2024
 
 | Method | Training cost | Strengths | Weaknesses |
 |--------|--------------|-----------|------------|
@@ -159,7 +159,7 @@ In 2024 most production-scale continuous-flow systems (image, audio, molecule ge
 
 ---
 
-## 5. Continuous Depth in Pictures
+## Continuous Depth in Pictures
 
 The "continuous depth" idea is what unifies everything in this chapter — a Neural ODE *is* the continuous limit of a deep network, and CNFs are the continuous limit of a normalizing flow. The picture is the same in both cases.
 
@@ -170,7 +170,7 @@ This is also why one ODE function $f_\theta$ "replaces" hundreds of layers in a 
 
 ---
 
-## 6. Putting It Together: 2D Density Estimation
+## Putting It Together: 2D Density Estimation
 
 To make the whole pipeline concrete, here is what density estimation actually looks like end-to-end on the canonical two-moons toy.
 
@@ -181,17 +181,17 @@ This dual nature — exact-likelihood density estimation **and** sampling, throu
 
 ---
 
-## 7. Experiments
+## Experiments
 
-### 7.1 Spiral ODE fitting
+### 1 Spiral ODE fitting
 
 A 3-layer MLP (hidden dim 64, tanh) parameterises $f_\theta$. Trained with the adjoint method on a 2D damped spiral target via dopri5 (rtol $=10^{-5}$). After 1000 steps the average trajectory error falls below $10^{-3}$, with peak GPU memory ~40 MB regardless of the ~80 internal solver steps.
 
-### 7.2 Gaussian -> two moons CNF
+### 2 Gaussian -> two moons CNF
 
 A 4-layer MLP (hidden dim 128, softplus) trained as FFJORD with Hutchinson trace estimation, dopri5 solver, 5000 steps. Generated samples cover both moons and capture their crescent thickness; KDE comparison gives Wasserstein-2 $\approx 0.07$ versus the reference target.
 
-### 7.3 Adjoint vs standard backprop (illustrative; numbers from the original Neural ODE paper, scaled to 1024-dim hidden state)
+### 3 Adjoint vs standard backprop (illustrative; numbers from the original Neural ODE paper, scaled to 1024-dim hidden state)
 
 | Method | Memory (MB) | Time (s) | Test acc. |
 |--------|-------------|----------|-----------|
@@ -201,7 +201,7 @@ A 4-layer MLP (hidden dim 128, softplus) trained as FFJORD with Hutchinson trace
 
 Memory drops by ~87%; wall-clock cost increases by ~20-30%.
 
-### 7.4 Flow Matching vs CNF on 2D moons
+### 4 Flow Matching vs CNF on 2D moons
 
 | Method | Sample quality (lower = better) | Training iters to plateau | Sampling time |
 |--------|---------------------------------|--------------------------|---------------|
@@ -212,7 +212,7 @@ Flow Matching converges $\sim 2.7\times$ faster and produces qualitatively clean
 
 ---
 
-## 8. Exercises
+## Exercises
 
 **Exercise 1.** Derive the instantaneous change-of-variables formula (1) directly from the continuity equation.
 

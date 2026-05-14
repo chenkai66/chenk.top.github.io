@@ -40,7 +40,7 @@ translationKey: "ode-4"
 
 ---
 
-## 1. Why the Laplace transform exists
+## Why the Laplace transform exists
 
 Consider an RC circuit driven by a voltage source:
 $$RC\,V_c'(t) + V_c(t) = V_s(t), \qquad V_c(0) = V_0.$$
@@ -59,13 +59,13 @@ The bookkeeping disappears, leaving a clean separation: *who* drives the system 
 
 ---
 
-## 2. Definition and the core transform table
+## Definition and the core transform table
 
-### 2.1 The forward transform
+### 1 The forward transform
 $$F(s) = \mathcal{L}\{f(t)\} = \int_0^\infty f(t)\,e^{-st}\,dt.$$
 **Intuition.** Think of $e^{-st}$ as a probe that, for each complex frequency $s$, asks: *how much of $f$ survives if I weight it by an exponential that decays at rate $\operatorname{Re}(s)$?* When $s$ is large and positive, the probe sees only the behaviour of $f$ near $t = 0$. When $\operatorname{Re}(s)$ is small, it sees the long-term tail. The full function $F(s)$ is the answer at every $s$ at once — a fingerprint of $f$.
 
-### 2.2 A working transform table
+### 2 A working transform table
 
 | $f(t)$ | $F(s) = \mathcal{L}\{f(t)\}$ | Region of convergence |
 |---|---|---|
@@ -81,7 +81,7 @@ $$F(s) = \mathcal{L}\{f(t)\} = \int_0^\infty f(t)\,e^{-st}\,dt.$$
 
 This is enough to invert nearly every problem in the chapter.
 
-### 2.3 Two derivations from the definition
+### 3 Two derivations from the definition
 
 **$\mathcal{L}\{1\}$.** Direct integration:
 $$\int_0^\infty e^{-st}\,dt = \left[-\frac{1}{s}\,e^{-st}\right]_0^\infty = \frac{1}{s}, \qquad \operatorname{Re}(s) > 0.$$
@@ -91,11 +91,11 @@ The same trick — fold $e^{at}$ into the kernel — is what makes the *frequenc
 
 ---
 
-## 3. The properties that do all the work
+## The properties that do all the work
 
-### 3.1 Linearity
+### 1 Linearity
 $$\mathcal{L}\{a f + b g\} = a F(s) + b G(s).$$
-### 3.2 Differentiation — the key to the whole subject
+### 2 Differentiation — the key to the whole subject
 $$\mathcal{L}\{f'(t)\} = sF(s) - f(0),$$$$\mathcal{L}\{f''(t)\} = s^2 F(s) - s f(0) - f'(0),$$$$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - s^{n-1} f(0) - \cdots - f^{(n-1)}(0).$$
 **Why this matters.** Differentiation in $t$ becomes multiplication by $s$, and the initial conditions appear *as part of the formula*, not as side constraints to be matched later. An $n$-th order linear ODE turns into an $n$-th degree polynomial equation in $s$ that already knows about $y(0), y'(0), \dots$.
 
@@ -103,27 +103,27 @@ The proof is one integration by parts:
 $$\int_0^\infty f'(t)\,e^{-st}\,dt = \left[f(t)\,e^{-st}\right]_0^\infty + s\int_0^\infty f(t)\,e^{-st}\,dt = sF(s) - f(0),$$
 provided $f(t)\,e^{-st}\to 0$ at infinity, which is the meaning of the region of convergence.
 
-### 3.3 Frequency shift
+### 3 Frequency shift
 $$\mathcal{L}\{e^{at}f(t)\} = F(s-a).$$
 Multiplying by $e^{at}$ in the time domain shifts the entire transform by $a$. This is why every "damped" entry in the table is just an undamped entry with $s\to s-a$.
 
-### 3.4 Time shift (delay)
+### 4 Time shift (delay)
 $$\mathcal{L}\{f(t-a)\,u(t-a)\} = e^{-as}F(s), \qquad a > 0.$$
 A delay in time becomes a multiplicative phase $e^{-as}$ in the $s$-domain. Use the gate $u(t-a)$ to make sure you are transforming the *delayed-and-truncated* signal, not the original.
 
-### 3.5 Convolution
+### 5 Convolution
 $$\mathcal{L}\{(f * g)(t)\} = F(s)\,G(s), \qquad (f * g)(t) = \int_0^t f(\tau)\,g(t-\tau)\,d\tau.$$
 In the time domain, the response of an LTI system to an input is a convolution; in the $s$-domain it is just a product. This is the algebraic statement that makes block diagrams work.
 
-### 3.6 Final value theorem
+### 6 Final value theorem
 $$\lim_{t\to\infty} f(t) = \lim_{s\to 0} sF(s),$$
 provided the limit exists and all poles of $sF(s)$ lie in the open left half-plane. Use it to read steady-state values straight off $Y(s)$, without inverting.
 
 ---
 
-## 4. Solving ODEs: the workflow in two examples
+## Solving ODEs: the workflow in two examples
 
-### 4.1 First-order with an exponential forcing
+### 1 First-order with an exponential forcing
 
 Solve $y' + 2y = e^{-t}$, $y(0) = 1$.
 
@@ -137,7 +137,7 @@ $$Y(s) = \frac{1}{s+2} + \frac{1}{s+1} - \frac{1}{s+2} = \frac{1}{s+1}.$$
 $$\boxed{\; y(t) = e^{-t}.\;}$$
 **Verify.** $y' + 2y = -e^{-t} + 2e^{-t} = e^{-t}$, and $y(0) = 1$. Done.
 
-### 4.2 Second-order with resonance
+### 2 Second-order with resonance
 
 Solve $y'' + \omega_0^2\,y = \cos\omega_0 t$, with $y(0) = y'(0) = 0$.
 
@@ -152,19 +152,19 @@ The crucial feature is the explicit factor of $t$. Algebraically, it comes from 
 
 ---
 
-## 5. Partial fractions: the only technique you really need
+## Partial fractions: the only technique you really need
 
 Once you have $Y(s)$ as a rational function, almost all of the inversion work is splitting it into a sum of pieces that match table entries.
 
-### 5.1 Distinct real poles
+### 1 Distinct real poles
 $$\frac{P(s)}{(s-a)(s-b)} = \frac{A}{s-a} + \frac{B}{s-b}.$$
 Use the **cover-up rule**: $A$ equals $P(s)/(s-b)$ evaluated at $s = a$. (Geometrically, you "cover" the $(s-a)$ factor and plug in the pole.)
 
-### 5.2 Repeated poles
+### 2 Repeated poles
 $$\frac{P(s)}{(s-a)^3} = \frac{A_1}{s-a} + \frac{A_2}{(s-a)^2} + \frac{A_3}{(s-a)^3}.$$
 Each multiplicity-$k$ pole produces a term of the form $t^{k-1}\,e^{at}/(k-1)!$ in the time domain.
 
-### 5.3 Complex conjugate poles
+### 3 Complex conjugate poles
 
 For an irreducible quadratic factor, complete the square:
 $$\frac{B s + C}{(s-\alpha)^2 + \beta^2}\;\xrightarrow{\;\mathcal{L}^{-1}\;}\; e^{\alpha t}\big(B \cos\beta t + D \sin\beta t\big),$$
@@ -175,11 +175,11 @@ where $D = (C + \alpha B)/\beta$ after rewriting the numerator as $B(s-\alpha) +
 
 ---
 
-## 6. Transfer functions and the geometry of stability
+## Transfer functions and the geometry of stability
 
 ![Ordinary Differential Equations (4): The Laplace Transform — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/illustration_2.png)
 
-### 6.1 Definition
+### 1 Definition
 
 For a linear time-invariant (LTI) system relating input $u(t)$ to output $y(t)$, define
 $$H(s) \;=\; \frac{Y(s)}{U(s)}\quad\text{at zero initial conditions.}$$
@@ -190,7 +190,7 @@ $H(s)$ is the **transfer function**. It depends only on the system, not on what 
 $$H(s) = \frac{1}{RCs + 1} = \frac{1}{\tau s + 1}, \qquad \tau = RC.$$
 A single real pole at $s = -1/\tau$.
 
-### 6.2 Poles, zeros, and stability
+### 2 Poles, zeros, and stability
 
 - **Zeros** are values of $s$ where $H(s) = 0$ (numerator roots).
 - **Poles** are values of $s$ where $H(s) \to \infty$ (denominator roots).
@@ -210,7 +210,7 @@ The pole picture decides everything about the *unforced* response. Each pole con
 ![The complex s-plane with sample poles in each region, paired with the impulse responses they produce.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/04-constant-coefficients/fig2_pole_zero_responses.png)
 *The real part of a pole sets the decay rate; the imaginary part sets the oscillation frequency. Stability is just "are the poles in the left half-plane?"*
 
-### 6.3 Step and impulse responses
+### 3 Step and impulse responses
 
 The two canonical probes deserve their own names.
 
@@ -222,7 +222,7 @@ Once you know $h(t)$, the response to *any* input is the convolution $y(t) = (h 
 
 ---
 
-## 7. Two windows on the same system: time and frequency
+## Two windows on the same system: time and frequency
 
 Substituting $s = j\omega$ in $H(s)$ gives the **frequency response** $H(j\omega)$. The magnitude $|H(j\omega)|$ tells you how much each sinusoidal frequency is amplified; the phase $\arg H(j\omega)$ tells you how much it is delayed. Plotted on a log–log scale, these are the **Bode plots**.
 
@@ -254,7 +254,7 @@ plt.tight_layout()
 
 ---
 
-## 8. PID control: each term fixes what the others cannot
+## PID control: each term fixes what the others cannot
 
 The PID controller is the workhorse of industrial control. It produces an actuation $u(t)$ from the tracking error $e(t) = r(t) - y(t)$:
 $$u(t) = K_p\,e(t) + K_i\!\int_0^t e(\tau)\,d\tau + K_d\,\frac{de}{dt}.$$
@@ -277,9 +277,9 @@ Tuning $K_p, K_i, K_d$ moves the closed-loop poles around the $s$-plane. The art
 
 ---
 
-## 9. Python practice: symbolic and numerical
+## Python practice: symbolic and numerical
 
-### 9.1 Symbolic transforms with SymPy
+### 1 Symbolic transforms with SymPy
 
 ```python
 from sympy import (symbols, laplace_transform, inverse_laplace_transform,
@@ -297,7 +297,7 @@ print("partial fractions:", apart(F, s))
 print("L^{-1}{F}        =", inverse_laplace_transform(F, s, t))
 ```
 
-### 9.2 Pole–zero analysis with SciPy
+### 2 Pole–zero analysis with SciPy
 
 ```python
 import numpy as np

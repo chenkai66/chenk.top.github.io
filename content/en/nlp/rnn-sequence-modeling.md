@@ -37,7 +37,7 @@ This article builds up the family of recurrent architectures from scratch. We st
 
 ---
 
-## 1. The core idea: recurrence and parameter sharing
+## The core idea: recurrence and parameter sharing
 
 <!-- wanx-mid -->
 ![NLP (3): RNN and Sequence Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.png)
@@ -57,7 +57,7 @@ Mentally, picture the network reading one token at a time, updating its "running
 
 ---
 
-## 2. The vanishing gradient problem
+## The vanishing gradient problem
 
 ![Gradient norm decay vs. distance, with a long-range dependency illustrated on a sample sentence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig2_vanishing_gradient.png)
 
@@ -76,7 +76,7 @@ The right panel illustrates this. In *"The cat, which sat on the mat and purred,
 
 ---
 
-## 3. Long Short-Term Memory (LSTM)
+## Long Short-Term Memory (LSTM)
 
 ![LSTM cell architecture: forget, input, output gates and the additive cell-state highway](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig3_lstm_gates.png)
 
@@ -114,7 +114,7 @@ Picture the cell state as a conveyor belt running the length of the sequence. Th
 
 ---
 
-## 4. Gated Recurrent Unit (GRU)
+## Gated Recurrent Unit (GRU)
 
 ![GRU cell with reset and update gates — simpler than LSTM](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig4_gru_cell.png)
 
@@ -142,7 +142,7 @@ The **reset gate** $r_t$ controls how much of the past leaks into the candidate.
 
 ---
 
-## 5. Bidirectional RNNs
+## Bidirectional RNNs
 
 ![Bidirectional RNN: forward and backward states concatenated per position](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig5_bidirectional_rnn.png)
 
@@ -163,7 +163,7 @@ Each per-position representation now sees both directions of context.
 
 ---
 
-## 6. Stacked RNNs
+## Stacked RNNs
 
 Depth helps: stacking RNN layers lets each layer build on the previous layer's per-step output:
 $$
@@ -174,7 +174,7 @@ Empirically the lower layers learn local patterns (character n-grams, word bound
 
 ---
 
-## 7. Sequence-to-sequence models
+## Sequence-to-sequence models
 
 ![Seq2Seq encoder-decoder with the fixed-size context-vector bottleneck](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig6_seq2seq.png)
 
@@ -192,7 +192,7 @@ This bottleneck is the direct motivation for **attention**, the topic of Part 4:
 
 ---
 
-## 8. PyTorch implementation: character-level text generator
+## PyTorch implementation: character-level text generator
 
 Let us train a tiny LSTM that learns to generate text one character at a time.
 
@@ -310,7 +310,7 @@ print(generate(model, "Deep learning", length=200))
 
 ---
 
-## 9. PyTorch implementation: a minimal Seq2Seq translator
+## PyTorch implementation: a minimal Seq2Seq translator
 
 A bare-bones English-to-French translator, useful for understanding the encoder-decoder pipeline before we add attention in Part 4.
 
@@ -444,7 +444,7 @@ for s in ["hello", "thank you", "good morning"]:
 
 ---
 
-## 10. How they actually compare
+## How they actually compare
 
 ![Loss curves and accuracy vs. sequence length, comparing RNN, LSTM, GRU](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig7_loss_curves.png)
 

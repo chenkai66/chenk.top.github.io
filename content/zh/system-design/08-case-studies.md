@@ -247,7 +247,7 @@ async def redirect(short_code: str):
     return RedirectResponse(url=long_url, status_code=302)
 ```
 
-### 301 vs 302 重定向
+### vs 302 重定向
 
 这是一个重要的权衡：
 

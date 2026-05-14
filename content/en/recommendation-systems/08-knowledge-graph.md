@@ -164,25 +164,25 @@ Knowledge graphs solve four hard problems that plague pure collaborative filteri
 
 ![Four recurring failure modes of collaborative filtering and how a knowledge graph addresses each](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/08-knowledge-graph/fig5_four_problems.png)
 
-### 1. Cold Start
+### Cold Start
 
 **Problem.** A new movie with zero interactions is invisible to collaborative filtering — there's nothing for the model to compare against.
 
 **KG solution.** Even on day one, the new movie has attributes (director, actors, genre) that connect it to the rest of the graph. If you loved Nolan's other films, the KG can recommend his new movie immediately, without any interaction data.
 
-### 2. Data Sparsity
+### Data Sparsity
 
 **Problem.** Most users interact with a tiny fraction of items. The interaction matrix is 99%+ zeros, leaving the model with little signal to work with.
 
 **KG solution.** The knowledge graph fills the gaps with dense semantic connections. Even if two items share no users, they might share a director, genre, or production studio — and that link still carries information.
 
-### 3. Explainability
+### Explainability
 
 **Problem.** "Users who liked X also liked Y" is not a satisfying explanation.
 
 **KG solution.** "We recommend *Inception* because it was directed by Christopher Nolan, who also directed *The Dark Knight*, which you rated 5 stars." The KG provides concrete, interpretable reasoning paths.
 
-### 4. Diversity
+### Diversity
 
 **Problem.** Collaborative filtering tends to create filter bubbles — recommending more of the same.
 

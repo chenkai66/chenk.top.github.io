@@ -46,7 +46,7 @@ This article walks the path that took the field from `dot(p_u, q_i)` to NeuMF, Y
 
 ---
 
-## 1. Why deep learning, and why now
+## Why deep learning, and why now
 
 ### The ceiling classical methods hit
 
@@ -80,7 +80,7 @@ The price: more compute, less interpretability, more hyperparameters. Section 7 
 
 ---
 
-## 2. The MLP intuition: from dot product to nonlinear interaction
+## The MLP intuition: from dot product to nonlinear interaction
 
 Before diving into named architectures, it helps to internalize what an MLP buys you over a dot product.
 
@@ -94,7 +94,7 @@ This single substitution — replace dot product with MLP — is the seed from w
 
 ---
 
-## 3. Embeddings: the bridge from sparse IDs to learned semantics
+## Embeddings: the bridge from sparse IDs to learned semantics
 
 ![Recommendation Systems (3): Deep Learning Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/03-deep-learning-basics/illustration_2.png)
 
@@ -187,7 +187,7 @@ This `[batch, num_fields, dim]` tensor is the input shape every model below expe
 
 ---
 
-## 4. Neural Collaborative Filtering (NCF and NeuMF)
+## Neural Collaborative Filtering (NCF and NeuMF)
 
 ### The promise: replace the dot product with something smarter
 
@@ -282,7 +282,7 @@ Three things from the paper that people forget:
 
 ---
 
-## 5. YouTube DNN: the two-stage pipeline that runs the internet
+## YouTube DNN: the two-stage pipeline that runs the internet
 
 Covington, Adams, and Sargin (RecSys 2016) is the most-cited industrial recommender paper of the deep-learning era. Its two-stage decomposition — **candidate generation** then **ranking** — is the template for almost every large-scale recommender shipped since: TikTok, Spotify, Pinterest, Instagram, Taobao.
 
@@ -357,7 +357,7 @@ At training time, pair this user vector with a softmax over a sampled set of can
 
 ---
 
-## 6. Wide & Deep: memorization meets generalization
+## Wide & Deep: memorization meets generalization
 
 ### The insight
 
@@ -444,7 +444,7 @@ Wide & Deep spawned a family that automated away the manual cross features:
 
 ---
 
-## 7. Training discipline that decides whether any of this works
+## Training discipline that decides whether any of this works
 
 A correct architecture is necessary but nowhere near sufficient. The following details routinely move offline AUC by more than the choice of model.
 
@@ -544,7 +544,7 @@ If you measure CTR with RMSE or rating prediction with AUC, you will optimize th
 
 ---
 
-## 8. Frequently asked, honestly answered
+## Frequently asked, honestly answered
 
 **Q: How big should my embedding dimension be?**
 Start at 32 for catalogs under 1M items, 64 above. Double until validation AUC moves by less than ~0.5%. Above $d = 256$ you almost always overfit unless you have billions of interactions.
@@ -572,7 +572,7 @@ The 80/20 list: GPU first (10 — 100x), then bigger batches (better GPU util), 
 
 ---
 
-## 9. Where this leaves us
+## Where this leaves us
 
 Deep learning did not invent recommendations. It changed three constraints:
 

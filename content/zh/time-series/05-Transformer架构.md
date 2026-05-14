@@ -31,7 +31,7 @@ translationKey: "time-series-5"
 
 ---
 
-## 1. 为什么时间序列要用 Transformer
+## 为什么时间序列要用 Transformer
 
 LSTM 和 GRU 按时间步顺序处理序列，由此带来三个根本限制：
 
@@ -44,7 +44,7 @@ LSTM 和 GRU 按时间步顺序处理序列，由此带来三个根本限制：
 ![时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig1_architecture.png)
 *图 1. 适配时间序列的编码器-解码器 Transformer。编码器并行读取 lookback 窗口；解码器生成预测范围，并通过 cross-attention 访问编码器的记忆。*
 
-## 2. 架构逐块拆解
+## 架构逐块拆解
 
 时间序列 Transformer 基于 2017 年原始架构，仅在三个关键组件上做了针对性调整：
 
@@ -65,22 +65,22 @@ $$
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
 $$
-### 2.1 编码器
+### 1 编码器
 
 编码器读取 lookback 窗口 $x_{t-L+1:t}$，输出上下文矩阵 $M \in \mathbb{R}^{L \times d_{\text{model}}}$。此处不使用掩码，即每个位置可关注窗口内所有其他位置。
 
-### 2.2 解码器
+### 2 解码器
 
 解码器输入由**标签窗口**（历史数据最后 $L_{\text{label}}$ 步）与 $H$ 个零占位符拼接而成，输出预测值 $\hat{y}_{t+1:t+H}$。每个 block 包含两类注意力子层：
 
 - **带因果掩码的自注意力**：确保第 $t+k$ 步只能看到 $t+k-1$ 及之前的位置。
 - **交叉注意力**：Query 来自解码器，Key/Value 来自编码器记忆 $M$。这是解码器获取编码器信息的唯一通道。
 
-### 2.3 标签窗口：一个小而有效的技巧
+### 3 标签窗口：一个小而有效的技巧
 
 标准 encoder-decoder 模型常在历史与预测的交界处表现不佳。Informer 和 Autoformer 的解决方案是：向解码器输入 $L_{\text{label}}$ 步**已知历史**加 $H$ 个零占位符，使其始终从确定状态出发，逐步推进至未知区域。
 
-## 3. 时间序列的位置编码
+## 时间序列的位置编码
 
 自注意力具有排列不变性——打乱输入顺序，输出不变。这对语言建模已是问题，对时间序列更是灾难。为此，我们注入位置信息，最经典的方式是正弦编码：
 $$
@@ -132,7 +132,7 @@ class TemporalPositionalEncoding(nn.Module):
         return out
 ```
 
-## 4. 多头注意力学到了什么
+## 多头注意力学到了什么
 
 单个注意力头只能建模一种关系。多头机制将模型拆分为 $h$ 路并行计算，每路在 $d_k = d_{\text{model}} / h$ 维投影上独立运行，最终拼接结果。在时间序列任务中，不同头往往各司其职：
 
@@ -148,7 +148,7 @@ class TemporalPositionalEncoding(nn.Module):
 
 这也构成了 Transformer 的**可解释性基础**：对最后一层各头注意力取平均，即可看出预测实际依赖哪些历史时刻。
 
-## 5. O(n²) 瓶颈
+## O(n²) 瓶颈
 
 朴素注意力每层每头需存储 $n \times n$ 的得分矩阵。以 fp16 精度、8 个头计算，单层注意力内存占用为：
 $$
@@ -168,7 +168,7 @@ $$
 
 实践中，若 lookback 窗口小于 2k、预测步长仅数百，朴素注意力完全够用。超出此范围，**分块是最具性价比的改进**——通常既能显著降低计算开销，又能提升精度。
 
-## 6. Decoder-only 自回归预测
+## Decoder-only 自回归预测
 
 GPT 风格的仅解码器架构已在 NLP 领域胜出，同样适用于时间序列预测：舍弃编码器，仅用带因果掩码的解码器堆栈，逐步生成预测结果。
 
@@ -199,7 +199,7 @@ def autoregressive_forecast(model, history: torch.Tensor, horizon: int):
 
 若需构建一个可泛化至多任务的基础模型，decoder-only 已成主流选择。
 
-## 7. 分块（Patching）：最有效的提速手段
+## 分块（Patching）：最有效的提速手段
 
 PatchTST（Nie et al., ICLR 2023）提出一个颠覆性观点：**时间步并非合适的 token**。一段 512 步的小时级序列，token 数远超典型 NLP 句子，但每个“token”信息量极低。若将其按 $P$ 步一组聚合成 patch，则 token 数降至 $\lceil L / P \rceil$，每个新 token 都能概括一段短时波形。
 
@@ -228,7 +228,7 @@ class PatchEmbedding(nn.Module):
         return self.proj(x)              # (B, L/P, d_model)
 ```
 
-## 8. 参考实现
+## 参考实现
 
 使用 `nn.Transformer` 整合上述组件：
 
@@ -271,7 +271,7 @@ class TimeSeriesTransformer(nn.Module):
 - FFN 中使用 **GELU** 而非 ReLU——自 BERT 起已成为标配，实测效果更优。
 - **务必对每个序列单独做 z-score 归一化**，并在输出端反归一化。忽略此步是 Transformer 在时序任务上“无法训练”的最常见原因。
 
-## 9. 模型变体与选择指南
+## 模型变体与选择指南
 
 | 变体            | 核心思想                                      | 最佳适用场景                   | 年份 |
 |-----------------|-----------------------------------------------|--------------------------------|------|
@@ -284,16 +284,16 @@ class TimeSeriesTransformer(nn.Module):
 
 若在 2024–2025 年启动新项目，我们推荐优先尝试 **PatchTST 或 iTransformer**——二者在 ETT / Electricity / Traffic 等标准 benchmark 上普遍优于早期模型，且实现更简洁、训练更快。
 
-## 10. 性能与工程实践
+## 性能与工程实践
 
-### 10.1 预测质量
+### 1 预测质量
 
 我们在含日周期、周周期及随机尖峰的合成信号上预测 96 步。Transformer 清晰捕捉到双重周期性；LSTM 能跟踪主导的日周期，但在周周期上明显漂移。
 
 ![日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig4_lstm_vs_transformer.png)
 *图 4. 日+周双周期信号上的预测效果。Transformer 同时锁定两个周期；LSTM 仅捕获日周期，周周期发生漂移。右：各架构 MAE 对比。*
 
-### 10.2 训练配方（那些决定成败的细节）
+### 2 训练配方（那些决定成败的细节）
 
 - **优化器**：AdamW，$\beta = (0.9, 0.95)$（GPT-3 设置；默认 0.999 对时序任务过慢）。
 - **学习率调度**：前 5%–10% 步数线性 warm-up，随后余弦退火至零。无 warm-up 时，深层 Transformer 易发散。
@@ -303,13 +303,13 @@ class TimeSeriesTransformer(nn.Module):
 - **混合精度**（`torch.cuda.amp` 或 `bfloat16`）：提速 2–3 倍，精度几乎无损。
 - **训练轮数**：时序预测通常需 100–300 轮；语言模型的 3–10 轮经验不适用。
 
-### 10.3 生产部署：服务成本与 RevIN 技巧
+### 3 生产部署：服务成本与 RevIN 技巧
 
 - 启用 **`torch.compile`**（PyTorch 2.x）：免费获得 1.5–2 倍延迟降低。
 - decoder-only 部署时，**缓存 K 和 V**：使每步新增预测的复杂度从 $O(n^2)$ 降至 $O(n)$。
 - **可逆实例归一化**（RevIN, ICLR 2022）：推理时对每个输入序列归一化，输出时反归一化。一行代码即可解决“训练与线上数据分布漂移”问题。
 
-## 11. 常见陷阱与对策
+## 常见陷阱与对策
 
 | 现象                                    | 可能原因                                           | 解决方案                                   |
 |-----------------------------------------|----------------------------------------------------|--------------------------------------------|

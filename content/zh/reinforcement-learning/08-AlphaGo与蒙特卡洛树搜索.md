@@ -37,7 +37,7 @@ translationKey: "reinforcement-learning-8"
 
 ---
 
-## 1. 蒙特卡洛树搜索
+## 蒙特卡洛树搜索
 
 经典博弈树搜索（minimax + alpha–beta 剪枝）依赖一个评估函数和可控的分支因子。国际象棋两者兼备，而围棋则不然：其分支因子高达 250，既缺乏简洁的评估函数，也缺少有效的启发式规则。MCTS 巧妙地绕开了这些限制——它不枚举所有可能，而是通过采样，并将计算资源聚焦于树中最富潜力的部分。
 
@@ -52,7 +52,7 @@ translationKey: "reinforcement-learning-8"
 
 在固定仿真预算耗尽后（AlphaGo Zero 每步使用 800 次仿真），算法会选择根节点下访问次数最多的子动作作为最终决策——而非平均价值最高的那个。访问次数是一个更稳健的统计量，因为它已内化了搜索过程中的自我修正能力。
 
-### 1.1 UCT：探索与利用的平衡
+### 1 UCT：探索与利用的平衡
 
 ![UCB1 探索与利用](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig2_ucb_exploration.png)
 
@@ -70,7 +70,7 @@ $$
 
 ---
 
-## 2. AlphaGo （2016）：网络遇上搜索
+## AlphaGo （2016）：网络遇上搜索
 
 ![强化学习（八）：AlphaGo与蒙特卡洛树搜索 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_2.png)
 
@@ -92,7 +92,7 @@ $$
 
 ---
 
-## 3. AlphaGo Zero （2017）：从零开始
+## AlphaGo Zero （2017）：从零开始
 
 ![AlphaGo Zero 自我对弈循环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig4_zero_self_play_loop.png)
 
@@ -116,7 +116,7 @@ $$
 
 仅用 4 块 TPU 训练 **3 天**，AlphaGo Zero 便以 100–0 击败了曾战胜李世石的 AlphaGo。训练 40 天后，它又超越了曾击败柯洁的 AlphaGo Master。
 
-## 4. AlphaZero 与 MuZero
+## AlphaZero 与 MuZero
 
 ![算法演进时间线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig5_evolution_timeline.png)
 
@@ -130,19 +130,19 @@ $$
 
 MCTS 完全在**隐空间**中展开。搜索内部不再调用环境模拟器，仅依赖学习到的动力学函数。隐状态无需重建原始观测，只需足以预测奖励、价值和策略即可。得益于这一更宽松的目标，MuZero 在棋类游戏中媲美 AlphaZero，在 Atari 游戏上则超越了 R2D2、Ape-X 等无模型方法——而 Atari 正是缺乏规则模拟器的典型场景。
 
-### 4.1 Elo 随时间的变化
+### 1 Elo 随时间的变化
 
 ![Elo 演进](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig6_elo_progression.png)
 
 左图对比了各代系统的峰值 Elo 分数。右图展示了 AlphaGo Zero 的训练轨迹：3 天超越李世石版 AlphaGo，约 21 天超越 AlphaGo Master，最终在 5200 Elo 左右趋于饱和。作为参照，人类九段职业棋手的 Elo 通常在 3500–3700 区间。
 
-### 4.2 搜索到底有多大作用？
+### 2 搜索到底有多大作用？
 
 ![搜索预算与棋力](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/08-AlphaGo与蒙特卡洛树搜索/fig7_search_vs_strength.png)
 
 搜索与网络相辅相成：网络提供先验，搜索加以精炼。左图显示，MCTS 仿真次数每翻一倍，Elo 提升幅度大致恒定（呈对数关系），即便在 12800 次仿真下仍未见平台期。右图则揭示了神经先验的乘数效应：纯随机 rollout 的朴素 MCTS 很早就陷入停滞，而由网络引导的 MCTS 则能持续进步。二者缺一不可，单独使用任一组件都无法达到竞技水平。
 
-## 5. 完整实现：五子棋上的 AlphaZero
+## 完整实现：五子棋上的 AlphaZero
 
 9×9 的五子棋（“五子连珠”）是一个理想的试验场：规则仅需约 30 行代码即可实现，分支因子约为 60，且在单张消费级 GPU 上经过数千局自我对弈后，即可展现出可观的棋力。
 

@@ -437,7 +437,7 @@ Just tell Claude in the conversation.
 
 ## 我实际编写的三个 Skills
 
-### 1. `chenk-blog-write`
+### `chenk-blog-write`
 
 用于在此网站上写作。涵盖 front matter schema、写作风格、中英文内容对齐要求、使用 Wanxiang 生成封面、部署流程以及常见陷阱。
 
@@ -445,7 +445,7 @@ Just tell Claude in the conversation.
 
 为什么是 Skill 而不是 command：我并不总是通过名称调用它。有时我说“write about hooks”，Claude 需要知道这意味着“在 chenk.top 上以这种风格、这种格式写一篇关于 hooks 的博客文章”。Skill 之所以触发，是因为 description 匹配。
 
-### 2. `update-config`
+### `update-config`
 
 用于修改 `~/.claude/settings.json` 和 `.claude/settings.json`。当提到“allow X command”、“set env Y”、“add a hook”、“move permission to project settings” 时触发。
 
@@ -453,7 +453,7 @@ Just tell Claude in the conversation.
 
 为什么是 Skill 而不是 hook：它提供的是 *如何* 编辑设置的知识，而不是对设置的强制执行。Hook 会阻止或允许；而这个 Skill 是 *教学*。
 
-### 3. `simplify`
+### `simplify`
 
 用于审查我自己的代码变更。当提到“is there a simpler way to do this”、“review for quality”、“check for reuse” 时触发。
 
@@ -469,7 +469,7 @@ Just tell Claude in the conversation.
 
 ![Three skill anti-patterns: vague descriptions that fire on everything, overlapping skills that bloat context, and rules that should have been hooks instead](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig4.png)
 
-### 1. 模糊的 descriptions
+### 模糊的 descriptions
 
 ```markdown
 # BAD:
@@ -481,13 +481,13 @@ description: Use when writing or modifying Python FastAPI endpoints — covers r
 
 “Use for general programming” 会匹配一切。当你编辑 README 时会触发，当你写 commit message 时也会触发。“适用于一切” = “对任何有用的事情都不适用”。
 
-### 2. 重叠的 Skills
+### 重叠的 Skills
 
 两个 Skill 都在“write code”时触发，会导致上下文膨胀。模型会收到两套（可能矛盾的）指令，并不得不判断哪一套适用。
 
 解决方法：将它们合并为一个 Skill，或者让 descriptions 更具体，使它们在不同子主题上触发。
 
-### 3. 本该是 hooks 的 Skills
+### 本该是 hooks 的 Skills
 
 “Always format code after editing.” 这是 hook，不是 Skill。Skills 是建议；hooks 是强制执行。
 

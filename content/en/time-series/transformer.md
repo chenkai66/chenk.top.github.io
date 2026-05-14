@@ -32,7 +32,7 @@ translationKey: "time-series-5"
 
 ---
 
-## 1. Why Transformers for Time Series
+## Why Transformers for Time Series
 
 LSTM and GRU process a sequence step by step. Three things follow from
 that:
@@ -54,7 +54,7 @@ is $O(n^2)$, which we will deal with in Sections 5 and 7.
 ![Encoder-decoder Transformer adapted for time series. The encoder reads the lookback window in parallel; the decoder generates the forecast horizon and attends to encoder memory through cross-attention.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig1_architecture.png)
 *Figure 1. Encoder-decoder Transformer adapted for time series. The encoder reads the lookback window in parallel; the decoder generates the forecast horizon and attends to encoder memory through cross-attention.*
 
-## 2. The Architecture, Block by Block
+## The Architecture, Block by Block
 
 A time-series Transformer is the original 2017 architecture with three
 small but consequential changes:
@@ -76,13 +76,13 @@ h_2 &= \text{LayerNorm}(h_1 + \text{FFN}(h_1))
 $$
 with the standard scaled dot-product attention from Part 4:
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.$$
-### 2.1 Encoder
+### 1 Encoder
 
 Reads the lookback window $x_{t-L+1:t}$ and produces context vectors
 $M \in \mathbb{R}^{L \times d_{\text{model}}}$. No mask — every
 position attends to every other.
 
-### 2.2 Decoder
+### 2 Decoder
 
 Takes the **label window** (last $L_{\text{label}}$ steps of history)
 concatenated with placeholder zeros for the forecast horizon, and emits
@@ -95,7 +95,7 @@ block:
   values come from the encoder memory $M$. This is the only place the
   decoder ever looks at the encoder output.
 
-### 2.3 The label window: a small but useful trick
+### 3 The label window: a small but useful trick
 
 Pure encoder-decoder models often suffer at the boundary between
 history and forecast. The fix used by Informer / Autoformer is to feed
@@ -103,7 +103,7 @@ the decoder $L_{\text{label}}$ steps of *known history* plus $H$
 zero-filled placeholders, so the decoder always starts from a known
 state and rolls forward into the unknown.
 
-## 3. Positional Encoding for Time
+## Positional Encoding for Time
 
 Self-attention is permutation invariant — shuffle the input, you get
 the same output. For language that's a bug; for time series it's
@@ -165,7 +165,7 @@ class TemporalPositionalEncoding(nn.Module):
         return out
 ```
 
-## 4. What Multi-Head Attention Learns
+## What Multi-Head Attention Learns
 
 A single attention head can only model one type of relationship. Multi-
 head splits the model into $h$ parallel attention computations on
@@ -186,7 +186,7 @@ This is also where **interpretability** comes from: averaging the final
 layer's attention over heads tells you which historical steps the
 forecast actually depends on.
 
-## 5. The O(n^2) Bottleneck
+## The O(n^2) Bottleneck
 
 Vanilla attention stores an $n \times n$ score matrix per head per
 layer. In fp16 with 8 heads, the per-layer attention memory is
@@ -219,7 +219,7 @@ lookback windows under 2k, vanilla attention is fine. Past that,
 **patching is the most cost-effective change** — it usually improves
 accuracy *and* slashes compute.
 
-## 6. Decoder-Only Autoregressive Forecasting
+## Decoder-Only Autoregressive Forecasting
 
 GPT-style decoder-only Transformers have largely won in NLP. The same
 recipe works for forecasting: drop the encoder, train one stack with a
@@ -253,7 +253,7 @@ def autoregressive_forecast(model, history: torch.Tensor, horizon: int):
 For forecasting from a single foundation model on many tasks,
 decoder-only is now the dominant choice.
 
-## 7. Patching: The Single Best Speedup
+## Patching: The Single Best Speedup
 
 PatchTST (Nie et al., ICLR 2023) made a quietly revolutionary
 observation: **time steps are not the right tokens**. A length-512
@@ -293,7 +293,7 @@ class PatchEmbedding(nn.Module):
         return self.proj(x)              # (B, L/P, d_model)
 ```
 
-## 8. A Reference Implementation
+## A Reference Implementation
 
 Putting it together with `nn.Transformer`:
 
@@ -340,7 +340,7 @@ A few production notes:
   invert at the output. Forgetting this is the most common reason a
   Transformer "won't train" on time series.
 
-## 9. Variants and How to Pick One
+## Variants and How to Pick One
 
 | Variant      | Key idea                              | Best when                                  | Year |
 |--------------|---------------------------------------|--------------------------------------------|------|
@@ -356,9 +356,9 @@ If you're starting fresh in 2024-2025, our default recommendation is
 the standard ETT / Electricity / Traffic benchmarks while being simpler
 to implement and faster to train.
 
-## 10. Performance and Engineering
+## Performance and Engineering
 
-### 10.1 Forecast quality
+### 1 Forecast quality
 
 We forecast a 96-step horizon on a synthetic signal with daily and
 weekly seasonality plus random spikes. The Transformer cleanly captures
@@ -368,7 +368,7 @@ on the weekly component.
 ![Forecast quality on a daily + weekly seasonal signal. The Transformer locks both cycles; the LSTM captures the dominant daily one but drifts on the weekly. Right: MAE comparison across architectures.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig4_lstm_vs_transformer.png)
 *Figure 4. Forecast quality on a daily + weekly seasonal signal. The Transformer locks both cycles; the LSTM captures the dominant daily one but drifts on the weekly. Right: MAE comparison across architectures.*
 
-### 10.2 Training recipe (the boring stuff that matters)
+### 2 Training recipe (the boring stuff that matters)
 
 - **Optimizer**: AdamW, $\beta = (0.9, 0.95)$ (the GPT-3 setting — the
   default 0.999 is too sluggish for time series).
@@ -384,7 +384,7 @@ on the weekly component.
 - **Patience**: forecasting Transformers usually need 100-300 epochs;
   language Transformers' 3-10 epochs do not transfer.
 
-### 10.3 Production: serving cost and the RevIN trick
+### 3 Production: serving cost and the RevIN trick
 
 - Use **`torch.compile`** (PyTorch 2.x) — 1.5-2x latency win for free.
 - For decoder-only deployments, **cache K and V** across steps so each
@@ -394,7 +394,7 @@ on the weekly component.
   one-line change that fixes the "model trained on history that drifts
   away from production" failure mode.
 
-## 11. Common Pitfalls
+## Common Pitfalls
 
 | Symptom                                       | Likely cause                                                  | Fix                                            |
 |-----------------------------------------------|---------------------------------------------------------------|------------------------------------------------|

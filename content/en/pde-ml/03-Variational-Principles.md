@@ -27,9 +27,9 @@ This article assembles that picture from the ground up. We start with classical 
 
 ![PDE and ML (3): Variational Principles and Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/illustration_1.png)
 
-## 1. Foundations of the Calculus of Variations
+## Foundations of the Calculus of Variations
 
-### 1.1 Functionals and the First Variation
+### 1 Functionals and the First Variation
 
 The basic object of calculus of variations is a **functional** — a map that takes a function as input and returns a number. Whereas an ordinary function eats numbers, a functional eats whole functions.
 
@@ -62,7 +62,7 @@ for *every* admissible $\eta$. The fundamental lemma of the calculus of variatio
 ![Euler-Lagrange in pictures: a perturbation $y + \varepsilon\eta$ with $\eta(a)=\eta(b)=0$ on the left; the value $J(\varepsilon) = J[y+\varepsilon\eta]$ on the right, with the extremum manifesting itself as $J'(0)=0$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig2_euler_lagrange.png)
 *Figure 2. The first-variation argument geometrically. The extremal curve is the unique candidate at which $J(\varepsilon)$ has a horizontal tangent in every admissible direction $\eta$.*
 
-### 1.2 The Brachistochrone
+### 2 The Brachistochrone
 
 **Problem.** Under uniform gravity, what frictionless curve from $A=(0,0)$ to $B$ minimises the descent time?
 
@@ -74,7 +74,7 @@ Parametrising via $y' = \cot(\theta/2)$ and integrating produces the **cycloid**
 $$x(\theta) = R(\theta - \sin\theta), \qquad y(\theta) = R(1 - \cos\theta) ,$$
 the trajectory of a point on a circle of radius $R$ rolling along a straight line. Figure 1 shows that competing curves — straight lines, parabolas, circular arcs — all yield strictly larger descent times.
 
-### 1.3 Hamilton's Principle and the Symplectic View
+### 3 Hamilton's Principle and the Symplectic View
 
 Among all imaginable trajectories of a mechanical system, the actual one extremises the action $S[q] = \int L(q, \dot q)\, dt$. The Euler-Lagrange equation,
 $$\frac{d}{dt}\frac{\partial L}{\partial \dot q} - \frac{\partial L}{\partial q} = 0 ,$$
@@ -82,7 +82,7 @@ recovers Newton's laws. Defining the conjugate momentum $p := \partial L / \part
 $$\dot q = \frac{\partial H}{\partial p}, \qquad \dot p = -\frac{\partial H}{\partial q} .$$
 The **symplectic two-form** $\omega = dp \wedge dq$ is preserved along the flow. We will see this structure again when comparing Hamiltonian dynamics to gradient flows in Section 7.
 
-### 1.4 From Functional Derivatives to Gradient Flows
+### 4 From Functional Derivatives to Gradient Flows
 
 For functionals of the form $J[y] = \int F(x, y, y')\,dx$ the functional derivative is
 $$\frac{\delta J}{\delta y} = \frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'} .$$
@@ -92,9 +92,9 @@ $$\frac{\delta J}{\delta y} = \frac{\partial F}{\partial y} - \frac{d}{dx}\frac{
 $$\partial_t u = -\frac{\delta J}{\delta u} .$$
 For Dirichlet energy this is the **heat equation** $\partial_t u = \Delta u$. Many of the most important PDEs in physics have an interpretation of this kind, and we are about to see that this remains true even when the underlying state is not a function but a *probability measure*.
 
-## 2. Gradient Flows and Wasserstein Geometry
+## Gradient Flows and Wasserstein Geometry
 
-### 2.1 Gradient Flows in $\mathbb{R}^n$
+### 1 Gradient Flows in $\mathbb{R}^n$
 
 In a finite-dimensional Euclidean space, the gradient flow of a smooth $f : \mathbb{R}^n \to \mathbb{R}$ is the ODE
 $$\dot x(t) = -\nabla f(x(t)),$$
@@ -104,7 +104,7 @@ i.e. the continuous-time analogue of steepest descent. Three properties matter f
 2. **Equilibria** are critical points of $f$; under (strong) convexity the flow converges to the unique minimum.
 3. **Implicit Euler discretisation:** $x_{k+1} = \arg\min_x \{ f(x) + \tfrac{1}{2\tau}\|x - x_k\|^2 \}$. We will replace the squared Euclidean distance by a Wasserstein distance to obtain the JKO scheme.
 
-### 2.2 Wasserstein Distance
+### 2 Wasserstein Distance
 
 When the state of the system is a *probability density*, the Euclidean metric is no longer the natural one. The right replacement is the **Wasserstein-2 distance**, which measures how much mass must be moved (and how far) to convert one distribution into another.
 
@@ -116,7 +116,7 @@ where $\Pi(\rho_0, \rho_1)$ is the set of couplings with marginals $\rho_0, \rho
 
 **Example (Gaussians).** For $\rho_i = \mathcal{N}(\mu_i, \Sigma_i)$, $W_2^2 = \|\mu_0 - \mu_1\|^2 + \mathrm{tr}\!\left(\Sigma_0 + \Sigma_1 - 2 (\Sigma_0^{1/2}\Sigma_1\Sigma_0^{1/2})^{1/2}\right)$.
 
-### 2.3 The JKO Scheme: Gradient Flows on $\mathcal{P}_2(\mathbb{R}^d)$
+### 3 The JKO Scheme: Gradient Flows on $\mathcal{P}_2(\mathbb{R}^d)$
 
 How should one define a *gradient flow* on the space of probability measures? Jordan, Kinderlehrer, and Otto (1998) gave the answer: just imitate implicit Euler with the Wasserstein distance in place of $\|\cdot\|$.
 
@@ -124,7 +124,7 @@ How should one define a *gradient flow* on the space of probability measures? Jo
 $$\rho_{k+1}^\tau \in \arg\min_{\rho} \left\{\mathcal{E}[\rho] + \frac{1}{2\tau} W_2^2(\rho, \rho_k^\tau)\right\}.$$
 The continuous-time limit (when it exists) is called the **Wasserstein gradient flow** of $\mathcal{E}$.
 
-### 2.4 The Heat Equation as a Gradient Flow of Entropy
+### 4 The Heat Equation as a Gradient Flow of Entropy
 
 **Theorem (Otto).** The Wasserstein gradient flow of the Boltzmann entropy
 $$\mathcal{H}[\rho] = \int \rho \log \rho\, dx$$
@@ -137,11 +137,11 @@ The same machine produces other classical PDEs. With the free-energy $\mathcal{F
 ![Wasserstein gradient flow of $F[\rho] = \int V\rho + \int \rho\log\rho$: snapshots of the density (left) and the dissipation of $F$ along the flow (right).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig3_wasserstein_gradient_flow.png)
 *Figure 3. A 1-D Fokker-Planck simulation. The density $\rho_t$ travels in $\mathcal{P}_2(\mathbb{R})$ along the steepest-descent direction of the free energy and converges to the Gibbs measure $\rho_\ast \propto e^{-V}$. The right panel shows monotone dissipation of $F[\rho_t] - F[\rho_\ast]$ together with the drift of the mean — direct numerical evidence that we are watching a gradient flow.*
 
-## 3. Mean-Field Theory of Neural-Network Training
+## Mean-Field Theory of Neural-Network Training
 
 ![PDE and ML (3): Variational Principles and Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/illustration_2.png)
 
-### 3.1 From Finite to Infinite Width
+### 1 From Finite to Infinite Width
 
 Take a two-layer network
 $$f_\theta(x) = \frac{1}{m} \sum_{i=1}^m a_i\, \sigma(w_i^\top x + b_i),$$
@@ -158,7 +158,7 @@ $$f_{\rho_t^m}(x) = \int a\,\sigma(w^\top x + b)\, d\rho_t^m(\theta) .$$
 ![Mean-field limit on a two-layer ReLU network: histograms of first-layer weights at three training snapshots, for widths $m=20, 200, 2000$, with KDE overlays.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig4_mean_field_limit.png)
 *Figure 4. The empirical weight distribution $\rho_t^m$ becomes visibly smoother as $m$ grows. By $m = 2000$ the histograms already track a smooth density — exactly the mean-field limit predicted by Vlasov-type theory. The rightmost column shows that wider networks also converge faster (the over-parameterization effect).*
 
-### 3.2 Deriving the Mean-Field Equation
+### 2 Deriving the Mean-Field Equation
 
 Write the loss as a functional of the measure:
 $$\mathcal{L}[\rho] = \frac{1}{n} \sum_{k=1}^n \ell(f_\rho(x_k), y_k), \quad f_\rho(x) = \int a \, \sigma(w^\top x + b)\, d\rho(\theta) .$$
@@ -168,7 +168,7 @@ Passing to the limit yields the continuity equation
 $$\partial_t \rho + \nabla_\theta\cdot(\rho\, v_t) = 0, \qquad v_t(\theta) = -\nabla_\theta \frac{\delta \mathcal{L}}{\delta \rho}[\rho_t](\theta) .$$
 This is the mean-field PDE: a deterministic, nonlinear evolution of the *density* of neurons.
 
-### 3.3 Global Convergence
+### 3 Global Convergence
 
 **Theorem (Mei-Montanari-Nguyen 2018, Chizat-Bach 2018, in spirit).** Under (a) sufficient over-parameterisation (or, in the limit, sufficiently large support of $\rho_0$), (b) positive-definite Neural Tangent Kernel on the data, and (c) regular initialisation (e.g. Gaussian), the mean-field equation drives the loss to zero.
 
@@ -178,7 +178,7 @@ This is the mean-field PDE: a deterministic, nonlinear evolution of the *density
 - **NTK / lazy regime** (Jacot-Gabriel-Hongler 2018): $m \to \infty$ with fixed learning rate; parameters barely move; the network behaves as a kernel method.
 - **Mean-field regime**: learning rate scales with $m$ so that parameters move $O(1)$; the dynamics is genuinely nonlinear and exhibits feature learning.
 
-### 3.4 Wasserstein Gradient-Flow Form
+### 4 Wasserstein Gradient-Flow Form
 
 When the loss can be written as
 $$\mathcal{L}[\rho] = \tfrac12 \int K(\theta, \theta')\, d\rho(\theta)\, d\rho(\theta') + \int g(\theta)\, d\rho(\theta) ,$$
@@ -187,7 +187,7 @@ the mean-field equation is *exactly* the Wasserstein gradient flow of $\mathcal{
 ![A non-convex 2-D energy landscape with a gradient-flow trajectory from a poor initialisation to the basin minimum. Bottom-right: the energy decays monotonically along the flow, illustrating the universal dissipation identity $\dot E = -\|\nabla E\|^2$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig5_energy_landscape.png)
 *Figure 5. The energy is non-convex with multiple basins, yet the gradient flow descends monotonically. This is the picture one should keep in mind for high-dimensional neural-network training — except that, in the mean-field limit, the role of the parameter $\theta$ is taken by the entire density $\rho_t$.*
 
-### 3.5 Continuous-Time Limit of Deep Networks
+### 5 Continuous-Time Limit of Deep Networks
 
 Residual networks
 $$h_{\ell + 1} = h_\ell + \tau\, F(h_\ell, \theta_\ell)$$
@@ -195,7 +195,7 @@ become an ODE $\dot h = F(h, \theta(t))$ as the depth grows and the step shrinks
 $$\min_F \int c(x, F(x))\, d\rho_X(x), \quad \text{subject to } F_\# \rho_X = \rho_Y ,$$
 i.e. learning an optimal map that progressively flattens the data distribution toward a target distribution that the classifier head can read off easily.
 
-## 4. Variational Inference and the ELBO
+## Variational Inference and the ELBO
 
 The variational worldview is not confined to physics. The **evidence lower bound** at the heart of variational autoencoders is itself a variational principle: one chooses an approximate posterior $q(z|x)$ within a family $\mathcal{Q}$ to maximise
 $$\mathrm{ELBO}(q) = \mathbb{E}_{q(z|x)}[\log p(x|z)] - \mathrm{KL}\!\left(q(z|x) \,\Vert\, p(z)\right) ,$$
@@ -206,19 +206,19 @@ In the Wasserstein view of the previous sections, the gradient flow of the KL di
 ![ELBO components on a small VAE trained on a 4-mode 2-D mixture: reconstruction loss vs KL regularizer (left), data and reconstructions (centre), and the latent code with the standard-normal prior contour (right).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig6_variational_autoencoder.png)
 *Figure 6. The reconstruction term and the KL term pull in opposite directions: the former insists on faithful $\hat x \approx x$, the latter on $q(z|x) \approx p(z)$. Their sum, the negative ELBO, is the variational objective. The latent map shows that the four data modes have been organised into four well-separated clusters within the standard-normal prior.*
 
-## 5. Numerical Validation
+## Numerical Validation
 
 We now collect the experimental evidence that supports the theory above. All four experiments are reproducible from the figure script `scripts/figures/pde-ml/03-variational.py`.
 
-### 5.1 Brachistochrone (Figure 1)
+### 1 Brachistochrone (Figure 1)
 
 Five candidate descent curves connect $A=(0,0)$ and $B=(\pi, 2)$. We discretise the time functional $T[y] = \int \sqrt{(1+y'^2)/(2gy)}\, dx$ by trapezoidal quadrature and rank the curves by descent time. The cycloid wins by a comfortable margin, beating both the straight line ("shortest path") and the steeper "drop-and-coast" candidate. This single picture captures the entire spirit of the calculus of variations: distinct admissible curves give distinct functional values, and only one curve makes the first variation vanish.
 
-### 5.2 The First-Variation Argument (Figure 2)
+### 2 The First-Variation Argument (Figure 2)
 
 We pick the extremal $y(x) = \sin(\pi x)$ of the Dirichlet energy on $[0, 1]$ (with $y(0) = y(1) = 0$) and a smooth perturbation $\eta(x) = \sin(2\pi x)\, x(1-x)$ that vanishes at the boundary. Plotting $J(\varepsilon) = J[y + \varepsilon \eta]$ versus $\varepsilon$ shows a parabola with horizontal tangent at $\varepsilon = 0$ — the geometric content of the Euler-Lagrange equation.
 
-### 5.3 Wasserstein Gradient Flow (Figure 3)
+### 3 Wasserstein Gradient Flow (Figure 3)
 
 We integrate the 1-D Fokker-Planck equation
 $$\partial_t \rho = \nabla\cdot(\rho \nabla V) + \Delta \rho, \qquad V(x) = \tfrac12 (x - \mu_\ast)^2 ,$$
@@ -227,17 +227,17 @@ with explicit finite differences. The initial density is a sharp Gaussian far fr
 - the free energy $F[\rho_t]$ decreases monotonically (energy dissipation along a gradient flow);
 - the drift of the mean relative to $\mu_\ast$ also decays monotonically — what one would call a "Wasserstein-distance proxy".
 
-### 5.4 Mean-Field Limit (Figure 4)
+### 4 Mean-Field Limit (Figure 4)
 
 A two-layer ReLU network with width $m \in \{20, 200, 2000\}$ is trained to fit $f_\ast(x) = \sin(\pi x) + 0.5 \sin(3\pi x)$ on 64 points. The first-layer weight histograms after $0$, $200$, and $1500$ epochs become visibly smoother as $m$ grows; by $m = 2000$ the histogram is already a faithful sample of a continuous density. The right column shows the corresponding loss decays — wider networks converge faster, in line with mean-field over-parameterisation theory. The learning rate is scaled $\propto 1/\sqrt{m}$ to keep per-particle drift $O(1)$, which is the correct scaling for the mean-field regime.
 
-### 5.5 Energy Landscape (Figure 5)
+### 5 Energy Landscape (Figure 5)
 
 A deliberately non-convex 2-D energy with a tilt and trigonometric "bumps" demonstrates the universal dissipation identity. The gradient-flow trajectory, integrated by RK45, settles into the basin of attraction of the lowest-energy minimum; the energy time-series confirms monotone decrease. The same picture in a million dimensions is the working mental model for neural-network training — except that real loss landscapes typically have far flatter minima (a fact responsible for both generalisation and the success of stochastic gradient methods).
 
-## 6. Two Other Geometries: Fisher-Rao and Adam
+## Two Other Geometries: Fisher-Rao and Adam
 
-### 6.1 Fisher-Rao and Natural Gradient
+### 1 Fisher-Rao and Natural Gradient
 
 The Wasserstein metric is not the only Riemannian structure on probability space. The **Fisher information matrix**
 $$I(\theta) = \mathbb{E}_{p_\theta}\!\left[\nabla_\theta \log p_\theta(x)\, \nabla_\theta \log p_\theta(x)^\top\right]$$
@@ -247,20 +247,20 @@ defines a different metric — the **Fisher-Rao metric** — and the correspondi
 
 Recent work on [Kernel Approximation of Fisher-Rao Gradient Flows](https://arxiv.org/abs/2410.20622) shows how to approximate Fisher-Rao flows numerically and uses them to design new Langevin-style sampling algorithms.
 
-### 6.2 Adam as a Reparametrised Gradient Flow
+### 2 Adam as a Reparametrised Gradient Flow
 
 The continuous-time limit of Adam takes the form
 $$\dot\theta = -\frac{m_t}{\sqrt{v_t} + \epsilon}, \qquad \dot m_t = \alpha_1\big(\nabla J(\theta) - m_t\big), \qquad \dot v_t = \alpha_2\big(\|\nabla J(\theta)\|^2 - v_t\big) ,$$
 which is the **gradient flow of $J$ in a coordinate-dependent Riemannian metric** $g_{ii}(\theta) = (\sqrt{v_i(\theta)} + \epsilon)$. This is a diagonal approximation to a natural gradient — adaptive learning rates are, fundamentally, a *change of metric*.
 
-## 7. Hamiltonian vs. Gradient Flow
+## Hamiltonian vs. Gradient Flow
 
 A subtle but important point: not every flow is a gradient flow. The same energy function can be associated with two qualitatively opposite dynamics.
 
 ![Hamiltonian flow (left) and gradient flow (right) of the same energy $H(q,p) = \tfrac12 (q^2 + p^2)$. The first preserves $H$ on closed orbits; the second dissipates $H$ and converges to the unique minimum.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig7_hamiltonian_flow.png)
 *Figure 7. Two flows on the same energy. On the left, the symplectic vector field $\dot q = H_p, \dot p = -H_q$ rotates phase space and preserves energy — closed orbits, no convergence. On the right, the gradient field $\dot q = -H_q, \dot p = -H_p$ contracts every trajectory to the origin. Both pictures matter: gradient flows describe optimisation; symplectic flows describe conservative dynamics, and motivate "structure-preserving" neural-ODE architectures (a topic for Part 5 of this series).*
 
-## 8. Recent Advances and Open Problems
+## Recent Advances and Open Problems
 
 **Mean-field SGD.** Real training uses stochastic gradients. The mean-field equation acquires a noise term and turns into a McKean-Vlasov SDE; appropriate noise *accelerates* convergence by helping the dynamics escape saddles, and a fluctuation-dissipation relation links noise level, batch size, and an effective temperature. See [Mean-Field Analysis of Neural SGD-Ascent](https://arxiv.org/abs/2404.12312) for a recent treatment.
 
@@ -270,7 +270,7 @@ A subtle but important point: not every flow is a gradient flow. The same energy
 
 **Lyapunov functions.** A general convergence theory needs a Lyapunov function $L[\rho_t]$ whose dissipation rate one can lower bound. Candidates include the loss itself (only adequate under PL or convexity), free energies, and inter-particle distances. No single choice covers the general non-convex deep case.
 
-## 9. Outlook
+## Outlook
 
 A handful of directions where the PDE / variational viewpoint is currently most active:
 
@@ -279,7 +279,7 @@ A handful of directions where the PDE / variational viewpoint is currently most 
 - **Applications.** Diffusion generative models are reverse Fokker-Planck equations; policy gradients are gradient flows on policy space; Deep Ritz and PINNs turn PDE solving into variational problems.
 - **Cross-fertilisation.** Spin-glass analogies, Pontryagin's maximum principle for end-to-end optimisation, information geometry and symplectic geometry in deep learning.
 
-## 11. Summary
+## Summary
 
 Starting from the calculus of variations, we have built a PDE-centric picture of neural-network optimisation. Functionals and Euler-Lagrange equations connect discrete optimisation to continuous dynamics; Wasserstein geometry provides the natural metric on the space of probability measures and unifies the heat, Fokker-Planck, porous-medium, and Keller-Segel equations as gradient flows of explicit energies; the mean-field limit reduces finite-width neural-network training to a Vlasov-type PDE and yields global convergence under reasonable assumptions; the ELBO, Adam, and Hamiltonian dynamics all fit into the same variational framework. The numerical experiments — the brachistochrone, a 1-D Fokker-Planck simulation, a width sweep on a two-layer net, a non-convex energy landscape, and a small VAE — confirm the theory in each of its key predictions.
 

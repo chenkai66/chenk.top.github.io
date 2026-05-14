@@ -31,11 +31,14 @@ Session-based recommendation relies on the click graph. New items lack edges, an
 - LLM fine-tuning basics (LoRA, prompt tuning)
 - Recommendation metrics: HR@K, NDCG@K, MRR@K
 
+
+---
+
 ## Paper
 
 - [Integrating Large Language Models with Graphical Session-Based Recommendation (arXiv PDF)](https://arxiv.org/pdf/2402.16539)
 
-## 1. Why pure GNN session recommenders stall on sparsity
+## Why pure GNN session recommenders stall on sparsity
 
 A session is a short click stream $s = [v_1, v_2, \dots, v_n]$ — usually only **3 to 20 clicks** — and the task is to score the next item or rank a candidate set. Three structural problems make this hard for any model that only sees IDs and edges:
 
@@ -50,7 +53,7 @@ Text is often the lifeline. Even a new SKU has a title, description, and categor
 
 LLMGR's contribution is a way to actually train through that mismatch.
 
-## 2. Architecture: LLM as semantic engine, GNN as ranker
+## Architecture: LLM as semantic engine, GNN as ranker
 
 The cleanest way to read LLMGR is as a two-stream model with a fusion layer in the middle and a ranking head at the top.
 
@@ -64,7 +67,7 @@ A common pitfall is asking the LLM to *generate* the next item. This fails for t
 
 LLMGR takes a more pragmatic approach: **let the LLM extract semantics, and let a GNN + MLP head handle the ranking.** The LLM doesn't produce item IDs at inference time; instead, it generates a hidden state that the ranker uses to score the candidate set.
 
-## 3. Multi-task prompts as supervision interfaces
+## Multi-task prompts as supervision interfaces
 
 Prompts in LLMGR are not a UI feature. They are **training-time supervision signals** that force the model to learn the cross-modal alignment we actually want. Two prompt families do all the work.
 
@@ -76,7 +79,7 @@ The **main task** is next-item prediction. The model gets a session graph (nodes
 
 Both tasks share the same LLM weights, the same hybrid encoding layer, and the same cross-entropy loss. The split is purely about which supervision signal the gradient carries.
 
-## 4. The hybrid encoding layer: one linear map bridges two spaces
+## The hybrid encoding layer: one linear map bridges two spaces
 
 The plumbing problem is concrete: GNN ID embeddings are 64-d, LLaMA2-7B's hidden state is 4096-d, and the LLM expects token-shaped inputs. LLMGR solves this with a single learnable projection $W_p \in \mathbb{R}^{D \times d}$:
 $$\tilde{x}_v = W_p\, x_v, \quad x_v \in \mathbb{R}^{d=64}, \quad \tilde{x}_v \in \mathbb{R}^{D=4096}$$
@@ -90,7 +93,7 @@ A few properties of this design are worth highlighting:
 - **The fusion is structural, not statistical.** Concatenation in the LLM's own input space lets self-attention learn the cross-modal interactions instead of forcing them through a hand-designed gate.
 - **Text and IDs become interchangeable as far as the LLM is concerned.** This is what makes the auxiliary "which ID is this text?" task expressible at all.
 
-## 5. Two-stage prompt tuning: align first, learn behaviour second
+## Two-stage prompt tuning: align first, learn behaviour second
 
 Joint training of the auxiliary and main tasks does not work. LLMGR splits training into two stages and the split is the entire point.
 
@@ -104,7 +107,7 @@ Joint training of the auxiliary and main tasks does not work. LLMGR splits train
 
 The training schedule is engineered, not arbitrary: 1 epoch is enough for alignment because text-to-ID is a near-deterministic mapping; behaviour patterns are noisier and need more passes.
 
-## 6. The math that matters
+## The math that matters
 
 ### Session graph
 
@@ -130,7 +133,7 @@ Both stages optimise the same cross-entropy:
 $$\mathcal{L} = -\sum_{i} y_i \log p_i$$
 with $y$ the one-hot true next item.
 
-## 7. Experiments: what the paper reports
+## Experiments: what the paper reports
 
 ### Setup
 
@@ -191,7 +194,7 @@ Two takeaways:
 
 The paper shows qualitative cases where the auxiliary task aligns descriptively similar items to nearby IDs. This is a sanity check rather than a metric, but it does answer the "is the LLM actually learning the right thing?" question affirmatively.
 
-## 8. Engineering: how to ship this
+## Engineering: how to ship this
 
 ### Don't run the LLM per request
 
@@ -223,7 +226,7 @@ LLaMA2-7B + LoRA on 2x A100 is not free. If cost matters:
 - Use LLMGR only on cold and long-tail slices; let traditional GNN handle head items
 - Re-embed on a slower schedule
 
-## 9. FAQ
+## FAQ
 
 ### Why not let the LLM generate the next item?
 
@@ -259,7 +262,7 @@ There may be one-stage schedules that work (joint training with weighted losses,
 - Interaction data is so dense that cold-start is not your bottleneck
 - Cost envelope cannot fit even a LoRA-tuned 7B model
 
-## 10. Cost arithmetic: why precomputed embeddings dominate
+## Cost arithmetic: why precomputed embeddings dominate
 
 The headline claim "do not run the LLM per request" deserves real numbers, because this is the line that decides whether LLMGR is a research artifact or a deployable system.
 
@@ -275,7 +278,7 @@ Take a catalogue of 1 M items, an LLM that produces 1024-dim embeddings at 50 ms
 
 This cost gap — two orders of magnitude — is the practical reason LLMGR's architecture survives. A design that requires running a 7B-parameter LLM per request is a design that cannot leave a GPU farm. A design that uses the LLM as an *offline feature extractor* and a small GNN as the online ranker can run on a single mid-sized GPU per region, which is the only way recommendation systems in production actually look.
 
-## 11. Where LLMGR breaks: scenarios to avoid
+## Where LLMGR breaks: scenarios to avoid
 
 The architecture is not a universal recommender. Three regimes where it underperforms simpler baselines:
 

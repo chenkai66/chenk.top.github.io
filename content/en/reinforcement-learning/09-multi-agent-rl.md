@@ -42,7 +42,7 @@ The payoff for solving this is large. AlphaStar reached Grandmaster on the StarC
 
 ---
 
-## 1. Why MARL is genuinely harder than single-agent RL
+## Why MARL is genuinely harder than single-agent RL
 
 ![Cooperative, competitive, and mixed-motive multi-agent regimes](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig1_scenarios.png)
 
@@ -62,7 +62,7 @@ The dominant resolution to all four — and the conceptual backbone of the chapt
 
 ---
 
-## 2. CTDE: train with everything, execute with almost nothing
+## CTDE: train with everything, execute with almost nothing
 
 ![Reinforcement Learning (9): Multi-Agent Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/illustration_2.png)
 
@@ -74,7 +74,7 @@ CTDE works because the things that make MARL hard (non-stationarity, credit assi
 
 ---
 
-## 3. Markov games and Nash equilibria, just enough to be useful
+## Markov games and Nash equilibria, just enough to be useful
 
 A **Markov game** generalises the MDP to $n$ agents:
 $$\langle \mathcal{N}, \mathcal{S}, \{A_i\}_{i\in\mathcal{N}}, P, \{r_i\}_{i\in\mathcal{N}}, \gamma \rangle.$$
@@ -84,7 +84,7 @@ Two facts make Nash equilibria a slippery target. First, they are typically not 
 
 ---
 
-## 4. Value decomposition: VDN and QMIX
+## Value decomposition: VDN and QMIX
 
 ![QMIX architecture and monotonic factorisation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig3_qmix.png)
 
@@ -145,7 +145,7 @@ A practical note: QMIX cannot represent every IGM-decomposable function (its mon
 
 ---
 
-## 5. Multi-agent actor-critic: MADDPG and COMA
+## Multi-agent actor-critic: MADDPG and COMA
 
 ### MADDPG: a centralised critic per agent
 
@@ -172,7 +172,7 @@ The trick that makes COMA tractable is that the centralised critic outputs a vec
 
 ---
 
-## 6. Communication: how much should agents tell each other?
+## Communication: how much should agents tell each other?
 
 ![Communication topologies: broadcast, sparse, attention](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig6_communication.png)
 
@@ -188,7 +188,7 @@ The right knob is task-dependent: for tightly-coupled robotics teams, dense comm
 
 ---
 
-## 7. Scaling MARL: AlphaStar, OpenAI Five, and league training
+## Scaling MARL: AlphaStar, OpenAI Five, and league training
 
 ![AlphaStar league training and flagship MARL systems](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig7_league.png)
 
@@ -206,7 +206,7 @@ These ideas are migrating outside games. RLHF (Part 12) and tool-use agent orche
 
 ---
 
-## 8. Credit Assignment in MARL: A Worked Example
+## Credit Assignment in MARL: A Worked Example
 
 Credit assignment — figuring out which agent's action caused a team-level reward — is the *real* hard problem in cooperative MARL, and it deserves more than a passing mention. Consider a 4-agent grid task where the team gets +10 only when *all four* agents are on a goal cell at the same step. Train naive independent Q-learners and watch them oscillate forever: each agent's $Q$-update treats the other three as part of the environment, so the gradient of "I should move to my goal" gets buried in noise from teammates moving in and out of theirs.
 
@@ -232,7 +232,7 @@ For domains where you cannot afford either, fall back to potential-based reward 
 
 On a multi-robot warehouse pick task, an early team trained QMIX with a sparse "all packages picked" reward. After 100 M environment steps the policy was still suboptimal because robot 4 was idling — its individual $Q$-value barely moved because robot 4's action almost never determined the team success on its own. We added a difference reward (each robot's bonus = team reward $-$ team reward if that robot stood still), and the policy converged in 12 M steps. The fancy credit-assignment paper turned out to be dominated by a 30-line shaping function.
 
-## 9. Reward Shaping and Curricula in MARL
+## Reward Shaping and Curricula in MARL
 
 Sparse team rewards rarely converge in MARL. Two engineering tricks help more than another algorithm switch.
 

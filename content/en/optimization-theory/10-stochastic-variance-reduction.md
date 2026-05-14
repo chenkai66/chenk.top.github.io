@@ -46,7 +46,7 @@ This article:
 
 ---
 
-## 1. The SGD framework
+## The SGD framework
 
 At each iteration $t$, SGD samples an index $i_t$ uniformly from $\{1, \ldots, n\}$ and updates
 $$
@@ -68,7 +68,7 @@ These two assumptions (unbiased + bounded variance) are the SGD axioms. The stre
 
 ---
 
-## 2. Convex rate: $O(1/\sqrt{T})$
+## Convex rate: $O(1/\sqrt{T})$
 
 > **Theorem.** Suppose $f$ is convex and the variance bound holds. With constant step $\eta = R / (\sigma \sqrt{T})$ and starting from $x_0$ with $\|x_0 - x^\star\|_2 \leq R$, after $T$ iterations:
 > $$\mathbb{E}[f(\bar x_T) - f^\star] \leq \frac{R \sigma}{\sqrt{T}},$$
@@ -100,7 +100,7 @@ The $O(1/\sqrt{T})$ rate is **the** classical SGD rate. Notice it depends on $\s
 
 ---
 
-## 3. Strongly convex rate: $O(1/T)$
+## Strongly convex rate: $O(1/T)$
 
 > **Theorem.** Suppose $f$ is $\mu$-strongly convex and the variance bound holds with $\sigma^2$. With step $\eta_t = 2 / (\mu (t + 1))$, after $T$ iterations,
 > $$\mathbb{E}[\|x_T - x^\star\|_2^2] \leq \frac{4 \sigma^2}{\mu^2 T}.$$
@@ -112,7 +112,7 @@ where the last term comes from bounding $\|\nabla f(x_t)\|_2 \leq L \|x_t - x^\s
 
 The optimal step decays as $1/t$ — this is **Robbins--Monro**'s classical 1951 schedule and is the basis of all modern adaptive step size schemes for SGD.
 
-### 3.1 Why constant step size doesn't work for SGD on strongly convex $f$
+### 1 Why constant step size doesn't work for SGD on strongly convex $f$
 
 If $\eta_t = \eta$ constant, the recursion has a fixed point at $a^\star = \eta \sigma^2 / (2 \mu)$. The iterates do not converge to $x^\star$; they converge to a noise ball of radius $O(\sqrt{\eta \sigma^2 / \mu})$. To shrink the ball to $\epsilon$ requires $\eta = O(\epsilon \mu / \sigma^2)$, then $T = O(\sigma^2 / (\epsilon \mu^2))$ — the same $1/\epsilon$ dependence as decreasing-step SGD, but you need to manually re-pick $\eta$ for each target accuracy.
 
@@ -120,7 +120,7 @@ In deep learning we don't actually want to converge to $x^\star$ — generalizat
 
 ---
 
-## 4. Mini-batching: variance scales with batch size
+## Mini-batching: variance scales with batch size
 
 If the batch size is $B$ and we average $B$ stochastic gradients per step,
 $$
@@ -141,11 +141,11 @@ The **linear scaling rule** (Goyal et al., 2017) — batch size $\times k$, lear
 
 ---
 
-## 5. Variance reduction: SVRG
+## Variance reduction: SVRG
 
 SGD's $\sigma^2$ noise budget is unavoidable as long as we use a single $\nabla f_{i_t}$ as the gradient estimate. **Variance reduction** uses additional control variates — extra computation that reduces the variance to zero in the limit.
 
-### 5.1 The SVRG algorithm
+### 1 The SVRG algorithm
 
 (Stochastic Variance-Reduced Gradient, Johnson & Zhang, 2013)
 
@@ -176,7 +176,7 @@ This is what gives the linear convergence rate.
 ![SGD vs SVRG gradient samples around a fixed point](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/10-stochastic-variance-reduction/fig3.png)
 *Each light arrow is one stochastic gradient sample; the bold blue arrow is the true $\nabla f(x)$. SGD samples (orange) scatter widely around the mean; SVRG samples (green) cluster tightly because the control variate $-\nabla f_{i_t}(\tilde w_s) + \tilde g_s$ cancels most of the variance.*
 
-### 5.2 SVRG convergence
+### 2 SVRG convergence
 
 > **Theorem (Johnson--Zhang 2013).** Suppose each $f_i$ is $L$-smooth and $f$ is $\mu$-strongly convex. With $\eta = \frac{1}{10 L}$ and $m$ chosen large enough (specifically $m \geq 100 L / \mu$), SVRG converges geometrically:
 > $$\mathbb{E}[f(\tilde w_{s+1}) - f^\star] \leq 0.5 \cdot \mathbb{E}[f(\tilde w_s) - f^\star].$$
@@ -186,7 +186,7 @@ $$
 $$
 This is the **co-coercivity** lemma. Plugging it into the SGD analysis (as in section 2 but with this bound on $\sigma^2$) and tracking carefully through one SVRG epoch gives a contraction in $f(\tilde w_s) - f^\star$.
 
-### 5.3 Total cost
+### 3 Total cost
 
 Each SVRG epoch costs $n + m$ gradient evaluations. Number of epochs to reach $\epsilon$: $\log(1/\epsilon)$. Total: $O((n + L/\mu) \log(1/\epsilon)) = O((n + \kappa) \log(1/\epsilon))$.
 
@@ -203,7 +203,7 @@ For $n \approx \kappa$ (typical regularized ML), SVRG is $\sim \kappa \times$ fa
 
 ---
 
-## 6. SAGA, Katyusha, and the lower bound
+## SAGA, Katyusha, and the lower bound
 
 **SAGA** (Defazio, Bach & Lacoste-Julien, 2014) is similar to SVRG but maintains a table of the most recent $\nabla f_i$ for each $i$, updating one entry per step. It avoids the snapshot cost but requires $O(nd)$ extra memory. Same $O((n + \kappa) \log(1/\epsilon))$ rate.
 
@@ -218,7 +218,7 @@ So Katyusha is **optimal** for the strongly convex finite-sum setting.
 
 ---
 
-## 7. Practical takeaways
+## Practical takeaways
 
 | Problem regime                              | Method of choice                        |
 | ------------------------------------------- | --------------------------------------- |
@@ -232,7 +232,7 @@ In deep learning, vanilla SGD + momentum + a learning-rate schedule still beats 
 
 ---
 
-## 7. Summary
+## Summary
 
 Stochastic optimization trades per-step cost for noise. The classical SGD rates ($O(1/\sqrt{T})$ convex, $O(1/T)$ strongly convex) come directly from a noise-budget argument. Variance reduction extends SGD's per-step efficiency to the deterministic-rate regime, with Katyusha hitting the matching lower bound.
 

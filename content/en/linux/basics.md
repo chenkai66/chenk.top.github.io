@@ -124,7 +124,7 @@ Three habits will save you time:
 
 You have just SSH'd in. Before anything else, answer five questions.
 
-### 1. Who am I, and what can I do?
+### Who am I, and what can I do?
 
 The shell prompt tells you. The trailing character is the giveaway:
 
@@ -135,7 +135,7 @@ alice@web01:~$      # '$'  -> a regular user, sudo if needed
 
 **Don't log in as `root` for routine work.** Use a regular account and call `sudo` when you need power. The audit log (`/var/log/auth.log` or `/var/log/secure`) records every `sudo` invocation with a username — if everyone shares `root`, that trace is gone.
 
-### 2. Where am I, and what's around me?
+### Where am I, and what's around me?
 
 ```bash
 $ pwd
@@ -152,7 +152,7 @@ drwxr-xr-x  2 alice alice 4.0K Jan 15 09:30 projects
 
 `pwd` (print working directory) and `ls -lah` (long, all-including-hidden, human-readable sizes) together tell you almost everything you need.
 
-### 3. What is the system?
+### What is the system?
 
 ```bash
 $ uname -a
@@ -170,7 +170,7 @@ $ hostnamectl
       Architecture: x86-64
 ```
 
-### 4. Are we under pressure?
+### Are we under pressure?
 
 ```bash
 $ df -h /                # disk free, root partition
@@ -186,7 +186,7 @@ $ uptime
 
 Load averages are 1-, 5-, and 15-minute averages of *runnable + uninterruptible* tasks. On a 4-core box, anything sustained above 4.0 means CPU saturation.
 
-### 5. Is the network alive?
+### Is the network alive?
 
 ```bash
 $ ip -br addr            # brief view of all interfaces

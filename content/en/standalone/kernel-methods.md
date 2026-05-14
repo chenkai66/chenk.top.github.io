@@ -124,7 +124,7 @@ where $\mathbf{k}(x)_i = K(x_i, x)$. This is also the posterior mean of a Gaussi
 
 Pick one dataset, swap the kernel, and the decision boundary changes character entirely. Linear can't bend, polynomial bends in algebraic shapes, RBF wraps tightly around the data, sigmoid often misbehaves. Below is the working manual.
 
-## 1. RBF (Gaussian) kernel
+## RBF (Gaussian) kernel
 $$K(x, y) = \exp\!\left(-\gamma \,\|x - y\|^2\right) \quad \text{or} \quad \exp\!\left(-\frac{\|x-y\|^2}{2\sigma^2}\right).$$
 (scikit-learn uses $\gamma$; many textbooks use $\sigma$. The relation is $\gamma = 1/(2\sigma^2)$.)
 
@@ -140,7 +140,7 @@ $$K(x, y) = \exp\!\left(-\gamma \,\|x - y\|^2\right) \quad \text{or} \quad \exp\
 - **$\gamma$ too small** (large $\sigma$): every point looks the same to every other point; the kernel acts like a constant; the model underfits.
 - **Sweet spot.** Found by cross-validation on a *log* grid. A reasonable starting point is the **median heuristic**: $\sigma \approx \mathrm{median}(\|x_i - x_j\|)$, equivalently $\gamma \approx 1/(2 \cdot \mathrm{median}^2)$.
 
-## 2. Polynomial kernel
+## Polynomial kernel
 $$K(x, y) = (\gamma\, \langle x, y \rangle + c)^d.$$
 **Properties.** Finite-dimensional feature space (all monomials up to degree $d$). Captures explicit interactions of order up to $d$.
 
@@ -148,17 +148,17 @@ $$K(x, y) = (\gamma\, \langle x, y \rangle + c)^d.$$
 
 **Hyperparameters.** $d \in \{2, 3\}$ in practice; degree-$5+$ polynomials almost always overfit. $\gamma$ scales the inner product (sensitive to feature magnitudes; *normalise first*). $c$ controls the trade-off between low- and high-order terms; $c = 0$ keeps only top-order monomials, $c = 1$ mixes all orders.
 
-## 3. Linear kernel
+## Linear kernel
 $$K(x, y) = \langle x, y \rangle.$$
 The trivial kernel. No feature mapping, $O(d)$ per evaluation, equivalent to running the linear algorithm directly.
 
 **When to use.** Linearly separable data, very high-dimensional sparse data (text, gene expression), or as a baseline. For text in particular, linear SVMs often beat RBF — the curse of dimensionality is on your side here, since random points in high-$d$ space are nearly orthogonal.
 
-## 4. Sigmoid kernel
+## Sigmoid kernel
 $$K(x, y) = \tanh(\gamma\, \langle x, y \rangle + c).$$
 Modelled after a neural network activation, but **not always positive definite** — only for certain ranges of $\gamma, c$. Modern practice has largely abandoned it: if you want neural-network-style nonlinearity, train a neural network. Keeping it here mostly so you recognise it in legacy code.
 
-## 5. Matern kernel (Gaussian processes)
+## Matern kernel (Gaussian processes)
 $$K_\nu(r) = \frac{2^{1-\nu}}{\Gamma(\nu)} \left(\frac{\sqrt{2\nu}\, r}{\ell}\right)^{\!\nu} \! K_\nu\!\left(\frac{\sqrt{2\nu}\, r}{\ell}\right), \qquad r = \|x - y\|.$$
 The Matern kernel has a **tunable smoothness parameter** $\nu$:
 
@@ -169,7 +169,7 @@ The Matern kernel has a **tunable smoothness parameter** $\nu$:
 
 **When to use.** Almost always preferable to RBF for Gaussian-process regression. RBF's infinite smoothness is unrealistically strong for most real functions; Matern with $\nu = 5/2$ is the workhorse default.
 
-## 6. Periodic kernel (time series)
+## Periodic kernel (time series)
 $$K(x, y) = \exp\!\left(-\frac{2 \sin^2(\pi \|x - y\| / p)}{\ell^2}\right).$$
 Captures **strict periodicity** with period $p$. Combine additively with an RBF or linear kernel to model "trend + seasonality".
 

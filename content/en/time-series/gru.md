@@ -46,7 +46,7 @@ This article walks through GRU end-to-end:
 
 ---
 
-## 1. The GRU Cell in Four Equations
+## The GRU Cell in Four Equations
 
 Let $x_t \in \mathbb{R}^{d_{in}}$ be the input and $h_{t-1} \in \mathbb{R}^{h}$ the previous hidden state. GRU computes the next hidden state $h_t$ in four steps.
 
@@ -76,7 +76,7 @@ Whenever the model **wants** to remember (learns $z_t \approx 0$), the Jacobian 
 
 ---
 
-## 2. Why GRU is Lighter: A Parameter Accounting
+## Why GRU is Lighter: A Parameter Accounting
 
 A single GRU layer has three weight blocks ($W_z$, $W_r$, $W_h$), each of shape $h \times (d_{in} + h)$, plus biases. LSTM has four blocks (forget, input, candidate, output). Counting:
 $$
@@ -96,7 +96,7 @@ The downstream effects:
 
 ---
 
-## 3. What the Hidden State Actually Looks Like
+## What the Hidden State Actually Looks Like
 
 Equations are easier to trust when you can see them at work. Figure 3 runs a 16-unit GRU on a composite signal containing a slow oscillation, a noise burst around $t=27$, and a step change at $t=45$.
 
@@ -107,7 +107,7 @@ This is the practical payoff of having gates: the network learns a basis of time
 
 ---
 
-## 4. Forecast Quality: Is GRU Actually Worse Than LSTM?
+## Forecast Quality: Is GRU Actually Worse Than LSTM?
 
 The headline finding from Chung et al. (2014) and Jozefowicz et al. (2015) — repeatedly reproduced — is that **on most sequence tasks, GRU and LSTM are statistically indistinguishable**. Figure 4 makes this concrete on a synthetic but realistic seasonal-plus-trend signal.
 
@@ -125,7 +125,7 @@ For prototyping or hyperparameter sweeps, that 12% compounds quickly: a one-week
 
 ---
 
-## 5. Reading the Gates: A Diagnostic Tool
+## Reading the Gates: A Diagnostic Tool
 
 The most underused feature of any gated RNN is that the gate activations are *interpretable signals* you can plot. Figure 6 shows the mean reset and update gate traces while a GRU processes a signal that contains a regime shift at $t=40$ and a transient spike at $t \in [68, 72]$.
 
@@ -139,7 +139,7 @@ Two practical uses:
 
 ---
 
-## 6. PyTorch Reference Implementation
+## PyTorch Reference Implementation
 
 A clean, production-ready GRU forecaster. Notice the explicit weight initialisation (orthogonal on the recurrent matrix is the single most impactful trick for stability).
 
@@ -213,7 +213,7 @@ The four essentials:
 
 ---
 
-## 7. GRU vs LSTM: A Decision Matrix
+## GRU vs LSTM: A Decision Matrix
 
 There is no universal winner. Use Figure 7 as a checklist; if most of your boxes are blue, start with GRU.
 
@@ -237,7 +237,7 @@ In about half of well-posed forecasting problems, both architectures land within
 
 ---
 
-## 8. Common Variants Worth Knowing
+## Common Variants Worth Knowing
 
 **Bidirectional GRU**. Concatenates a forward and backward pass; doubles the parameter count and disqualifies you from causal forecasting (you cannot use future data at inference time). Useful for sequence-tagging tasks like NER.
 
@@ -263,7 +263,7 @@ class AttnHead(nn.Module):
 
 ---
 
-## 9. Common Pitfalls
+## Common Pitfalls
 **Loss explodes after a few hundred steps.** Lower the learning rate to `1e-4`, double-check that gradient clipping is actually being called *before* `optimizer.step()`, and verify input normalisation. If inputs have unit variance and gradients still explode, the recurrent weights were not initialised orthogonally.
 
 **Loss decreases then plateaus high.** Usually under-capacity. Try doubling `hidden_size` or stacking 2 layers before adding fancy variants. If that does not help, this is your signal to try LSTM.
@@ -284,7 +284,7 @@ last = out[torch.arange(out.size(0)), lengths - 1]   # true last step
 
 ---
 
-## 10. GRU Under a Latency Budget
+## GRU Under a Latency Budget
 
 GRU's parameter savings translate directly into deployment headroom, and the gap widens once you start measuring. Below are numbers from a recent real-time anomaly detector I shipped — a 64-hidden, 2-layer recurrent stack, 60-step lookback, batch size 1, served via TorchScript on a single CPU core (Intel Xeon Platinum 8259CL, frozen at 2.5 GHz).
 
@@ -319,7 +319,7 @@ Trace this with `torch.jit.script` (not `trace`, which would bake in the time di
 
 If you are caching state across requests in a stateless service (e.g. behind a load balancer), the marshalling cost of `(h_t)` matters. A 64-hidden, 2-layer GRU state is 256 floats — about 1 KB — versus 512 floats for an LSTM. On a high-QPS service serialised through Redis or gRPC, that doubles your effective state-cache TPS. This is one of the genuinely underappreciated reasons production teams pick GRU.
 
-## 11. When to Abandon GRU Entirely
+## When to Abandon GRU Entirely
 
 Despite the rhetoric of "GRU first", there are three regimes in which you should reach past it from the start.
 

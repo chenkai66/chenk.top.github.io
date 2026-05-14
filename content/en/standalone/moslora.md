@@ -33,7 +33,7 @@ LoRA is the default tool for adapting a frozen base model: cheap, stable, mergea
 
 ---
 
-## 1. LoRA recap: why low-rank updates work, and where they don't
+## LoRA recap: why low-rank updates work, and where they don't
 
 Take any linear projection $W \in \mathbb{R}^{d_{out}\times d_{in}}$ inside a Transformer (Q/K/V/O or up/down/gate of the MLP). LoRA freezes $W_0$ and learns the update $\Delta W$ in factorised form:
 $$
@@ -56,7 +56,7 @@ The strong assumption baked into LoRA is that **one** rank-$r$ subspace is the r
 
 This is the gap MoSLoRA targets.
 
-## 2. Why "just increase $r$" is not always the right fix
+## Why "just increase $r$" is not always the right fix
 
 Increasing $r$ does increase capacity, but it has costs that compound at scale:
 
@@ -66,7 +66,7 @@ Increasing $r$ does increase capacity, but it has costs that compound at scale:
 
 What you actually want is **structured capacity**: a small set of distinct rank-$r$ subspaces that the model can selectively combine. That is exactly what MoSLoRA provides, and at marginal extra cost.
 
-## 3. Core idea of MoSLoRA: mixture of subspaces, written as $B\, W\, A$
+## Core idea of MoSLoRA: mixture of subspaces, written as $B\, W\, A$
 
 MoSLoRA factorises the update through a learnable **mixer**:
 $$
@@ -92,7 +92,7 @@ Think of each $(B_i, A_i)$ as a "dial" pointing in some direction of weight spac
 
 Each pair $(B_i, A_i)$ defines a rank-$r$ subspace of update directions in $\mathbb{R}^{d_{out}\times d_{in}}$. The collection $\{(B_i, A_i)\}_{i=1}^{k}$ spans a union of $k$ such subspaces; the mixer turns that union into a parameterised manifold of rank-$kr$ updates with structure. The structure is what matters: an unstructured rank-$kr$ LoRA would have $kr(d_{in}+d_{out})$ parameters but no inductive bias toward "few interpretable directions". MoSLoRA keeps the inductive bias *and* adds the manifold.
 
-## 4. How this differs from LoRA-MoE and classical MoE routing
+## How this differs from LoRA-MoE and classical MoE routing
 
 It is tempting to read MoSLoRA as "LoRA-MoE without the gate". That comparison is useful but slightly off. Classical MoE adds:
 
@@ -110,7 +110,7 @@ MoSLoRA flips the design choice. There is no routing; all $k$ subspaces always c
 
 For the regime LoRA is used in — one base model, a handful of adapters, deployable at base-model cost — this is the right trade.
 
-## 5. Mixer design choices
+## Mixer design choices
 
 The matrix $W$ has several useful variants. The paper's default is the simplest one; the others are worth knowing because they cover most of the design space you'll encounter in follow-up work.
 
@@ -135,7 +135,7 @@ Use a different $W$ per Transformer layer or per projection (Q/K/V/O/MLP). The c
 
 For very large $k$, replace the dense $W$ by a low-rank or block-diagonal matrix to keep $(kr)^2$ from growing. Rarely needed at the $k\le 8$ scale most papers operate in.
 
-## 6. Parameter count and compute overhead
+## Parameter count and compute overhead
 
 Per adapted projection of shape $d_{out}\times d_{in}$ with $k$ subspaces of rank $r$:
 
@@ -150,7 +150,7 @@ For $d_{in}=d_{out}=4096$, $r=8$, $k=4$: LoRA is $\approx 65$K params per projec
 
 The point is that the mixer cost is asymptotically free: $(kr)^2$ is dwarfed by $kr(d_{in}+d_{out})$ as soon as $kr \ll d_{in}$, which is the regime you want to be in anyway.
 
-## 7. Empirical behaviour: where the gap actually shows up
+## Empirical behaviour: where the gap actually shows up
 
 The headline finding in the paper, and the consistent pattern in follow-up work, is that MoSLoRA gives a small-to-moderate but *consistent* lift over LoRA across heterogeneous benchmarks, while staying inside the LoRA cost envelope.
 
@@ -169,7 +169,7 @@ The geometric picture for why this works is the cleanest mental model:
 
 One LoRA is a single elongated direction; targets that lie off that direction can only be approximated, with residual error proportional to their angle off the subspace. MoSLoRA places several slim subspaces at different angles and lets the mixer combine them; the reachable set is a structured *union* of subspaces, not a single fat one.
 
-## 8. When MoSLoRA helps — and when LoRA is enough
+## When MoSLoRA helps — and when LoRA is enough
 
 MoSLoRA pays off when at least one of the following is true:
 
@@ -183,7 +183,7 @@ It is *not* worth the extra moving parts when:
 - Your dataset is small relative to the adapter size; the mixer can overfit.
 - You need the maximum capacity possible and can afford a real MoE; LoRA-MoE or full sparse MoE will give you more headroom.
 
-## 9. Practical tuning tips
+## Practical tuning tips
 
 A short list of high-signal knobs from the paper and from practice:
 
@@ -194,7 +194,7 @@ A short list of high-signal knobs from the paper and from practice:
 - **Watch the mixer's spectrum.** If $W$'s singular values collapse to one direction, the model is effectively running as plain LoRA — you've over-regularised or given the mixer too little learning rate.
 - **Keep the global mixer unless you really need input-dependent gating.** The static mixer is mergeable and rarely the bottleneck; the dynamic gate is harder to train and breaks mergeability.
 
-## 10. Implementation sketch (PyTorch)
+## Implementation sketch (PyTorch)
 
 A minimal, faithful implementation — a drop-in for `nn.Linear` that adds the MoSLoRA update on the forward pass:
 
@@ -250,7 +250,7 @@ Three details worth noting:
 2. `W` starts near identity so MoSLoRA at step 0 behaves like a sum of $k$ independent LoRAs; off-diagonal mixing emerges during training.
 3. `merge()` collapses everything into a single dense `Linear`. This is the property that makes MoSLoRA deployable in production with zero inference overhead.
 
-## 11. Comparison: LoRA vs MoSLoRA vs LoRA-MoE vs Full FT
+## Comparison: LoRA vs MoSLoRA vs LoRA-MoE vs Full FT
 
 | Method        | Trainable params | Expressivity         | Inference cost          | Best for                                                        |
 |---------------|------------------|----------------------|-------------------------|-----------------------------------------------------------------|
@@ -261,7 +261,7 @@ Three details worth noting:
 
 The key insight is that MoSLoRA sits between LoRA and full FT *on the same axis as LoRA*: same deployment story, more capacity. LoRA-MoE moves you onto a different axis with different operational properties.
 
-## 12. When MoSLoRA matters most
+## When MoSLoRA matters most
 
 - **Instruction tuning across diverse task families.** Code, math, reasoning, creativity push the weights in different directions; one subspace cannot serve all of them well.
 - **Multi-domain adaptation (finance + medical + legal).** Each domain wants its own small set of update directions; the mixer effectively learns a soft per-domain combination without an explicit router.

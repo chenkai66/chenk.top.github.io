@@ -31,7 +31,7 @@ This is part 2 of the **Computer Fundamentals Deep Dive**. We will not stop at "
 5. Network, Power & Practical Troubleshooting
 6. Putting It Together: A System-Level Deep Dive
 
-## 1. The Memory Hierarchy: Why a Single "RAM" Is Not Enough
+## The Memory Hierarchy: Why a Single "RAM" Is Not Enough
 
 If a single technology could be both fast and cheap, computers would have one big block of it and we would be done. No such technology exists. SRAM is fast but expensive and large per bit. DRAM is dense but slow. NAND flash is dense and persistent but slower still. Spinning disks are cheap and huge but mechanical. The memory hierarchy is the engineering compromise.
 
@@ -53,7 +53,7 @@ Translate those numbers into something tangible. If a register access takes one 
 
 Every cache miss that goes to DRAM is the difference between a 1-second decision and a 5-minute coffee break. Every page fault to disk is the difference between 1 second and **a year**. This is why "just add RAM" or "just buy a faster SSD" is not the right mental model — what matters is **where in the hierarchy your working set actually lives**.
 
-## 2. DRAM vs SRAM: Why Your CPU Has Tiny Caches
+## DRAM vs SRAM: Why Your CPU Has Tiny Caches
 
 Both DRAM and SRAM store bits with transistors and voltages. The difference is in the cell — and the cell determines everything else: density, cost, speed, power, even why DRAM has to be refreshed.
 
@@ -70,7 +70,7 @@ The price of that density is two ugly facts:
 
 This single trade-off explains the entire memory hierarchy. CPUs use SRAM where it has to be fast (registers, L1, L2, L3). DRAM lives one level out, where density wins. Flash and disk live further out still, where persistence and capacity dominate.
 
-## 3. The CPU Cache: Three Levels of Bridge
+## The CPU Cache: Three Levels of Bridge
 
 Even DRAM at 100 ns is **300×** slower than the CPU. To hide that latency, modern CPUs put SRAM on-die and serve hot data from there. The cache is not a single thing — it is a hierarchy in miniature.
 
@@ -96,7 +96,7 @@ That is **~70× faster** than going to DRAM every time. The whole point of the h
 
 **Why three levels and not two or four?** Each extra level adds a tag-check stage in the pipeline. Two levels leave too big a gap (L2 to DRAM = 25× jump). Four levels add complexity without much win. Three is the empirically tuned answer for current technology — though server chips with **96 MB of L3 via 3D V-Cache** are pushing on this boundary.
 
-## 4. Virtual Memory: Every Process Lives in Its Own Address Space
+## Virtual Memory: Every Process Lives in Its Own Address Space
 
 So far we have talked about physical addresses — actual coordinates in DRAM. But **no modern process ever sees a physical address**. Programs run in a virtual address space, and the hardware translates virtual to physical on every single memory access.
 
@@ -123,7 +123,7 @@ This buys us four enormous things at once:
 
 The cost: every memory access now requires walking a page table, which itself lives in memory. On x86-64 the page table is 4 levels deep, so a TLB miss can cost up to 4 extra DRAM reads — hundreds of nanoseconds. Which is exactly why the TLB exists.
 
-## 5. The TLB: The Cache You Have Never Heard Of
+## The TLB: The Cache You Have Never Heard Of
 
 The Translation Lookaside Buffer is a tiny, fully-associative SRAM cache of recent VPN → PFN translations. Every CPU has one (often two: L1 TLB and L2 TLB), with somewhere between 64 and 1024 entries.
 
@@ -136,7 +136,7 @@ When the CPU issues a virtual address:
 
 The TLB is why virtual memory is practical at all. At 99% hit-rate, the average translation cost is ~1 ns; without the TLB it would be ~100 ns on every single load. Most workloads never even notice virtual memory exists. But TLB misses are also why workloads with **large random working sets** (some databases, graph algorithms, certain ML inference patterns) can be much slower than their cache-miss numbers suggest. **Huge pages** (2 MB or 1 GB instead of 4 KB) exist mainly to relieve TLB pressure: one TLB entry now covers 512× more memory.
 
-## 6. Memory Channels: Why Two Sticks Beat One Big Stick
+## Memory Channels: Why Two Sticks Beat One Big Stick
 
 DRAM is connected to the CPU through **memory channels**. A channel is an independent 64-bit data path with its own command/address bus. A modern desktop CPU has 2 channels; a server CPU has 4, 8 or 12.
 
@@ -159,7 +159,7 @@ Latency does not improve — a single load is still ~100 ns. What improves is **
 
 This is also the technical reason "**2 × 8 GB beats 1 × 16 GB**": a single stick can only fill one channel. The total capacity is the same, the bandwidth is half. On modern Intel/AMD desktops you typically populate slots **A2 + B2** to get dual channel.
 
-## 7. ECC Memory: When Cosmic Rays Become a Bug Report
+## ECC Memory: When Cosmic Rays Become a Bug Report
 
 DRAM is reliable but not perfect. Cells get hit by alpha particles from package materials, by neutrons from cosmic rays, by electromagnetic noise. Google's large-scale field study (2009) found that DRAM error rates are far higher than vendors had publicly stated — on the order of **one correctable error per gigabyte per year**, with some modules orders of magnitude worse.
 
@@ -182,7 +182,7 @@ The trade-offs are real:
 
 DDR5 introduces **on-die ECC** which protects against errors *inside the chip*, but that is not the same as full system-level ECC: errors on the bus between chip and CPU still need traditional ECC DIMMs.
 
-## 8. NUMA: When Memory Has a Postcode
+## NUMA: When Memory Has a Postcode
 
 Once you put two CPU sockets on a board (or two chiplets in a package), memory becomes **non-uniform**. Each socket has its own memory controller and its own local bank of DRAM. Accessing your local memory is fast; accessing the other socket's memory has to traverse the inter-socket interconnect (Intel UPI, AMD Infinity Fabric).
 
@@ -199,7 +199,7 @@ What this means in practice:
 
 Even on a single-socket modern CPU you can hit "NUMA-like" effects: AMD's chiplet (CCD) design means cores in one CCD see slower L3 access to data cached in another CCD. The architectural lesson generalises — **memory has a topology**, and good systems software respects it.
 
-## 9. DDR Generations: What Actually Changes Each Step
+## DDR Generations: What Actually Changes Each Step
 
 Each DDR generation roughly doubles peak bandwidth and trims voltage. The interesting story is *how*.
 
@@ -215,7 +215,7 @@ The single most important change in DDR5 is splitting each 64-bit DIMM into **tw
 
 DDR6 (in standardisation) is targeting 8.8-17.6 GT/s and four subchannels per DIMM.
 
-## 10. FAQ
+## FAQ
 
 ### Q1. If caches make memory access "average ~1 ns", why does memory speed still matter?
 
@@ -263,7 +263,7 @@ Three quick signals on Linux:
 
 If the bottleneck is genuinely memory bandwidth, the fixes are: blocking/tiling the algorithm to fit in cache, NUMA pinning, huge pages, prefetch hints, or in extreme cases switching to a more memory-friendly data layout (struct-of-arrays vs array-of-structs).
 
-## 11. Summary
+## Summary
 
 - The memory hierarchy exists because **no single technology is both fast and dense**. SRAM is fast and expensive (caches). DRAM is dense and slower (main memory). Flash and disk are denser still and persistent.
 - A single load instruction quietly traverses **registers → L1 → L2 → L3 → memory controller → channel → DRAM rank/bank/row/column**, with translation through the **TLB and page table** layered on top.

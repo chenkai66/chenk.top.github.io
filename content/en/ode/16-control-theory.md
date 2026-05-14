@@ -44,7 +44,7 @@ This chapter shows how the entire ODE toolkit — Laplace transforms (Ch 4), lin
 
 ---
 
-## 1. Open Loop vs Closed Loop
+## Open Loop vs Closed Loop
 
 Suppose we want a heater to bring a room from 15 deg C up to 22 deg C.
 
@@ -62,7 +62,7 @@ Two consequences of feedback we will derive precisely:
 
 ---
 
-## 2. Transfer Functions
+## Transfer Functions
 
 For a linear time-invariant (LTI) system with input $u(t)$ and output $y(t)$, the transfer function
 $$G(s) \;=\; \frac{Y(s)}{U(s)}$$
@@ -91,7 +91,7 @@ These four cases recur everywhere — circuits, mechanical systems, biology — 
 
 ---
 
-## 3. PID Controllers
+## PID Controllers
 
 The most widely deployed controller in industry, by an enormous margin. The control law:
 $$
@@ -149,7 +149,7 @@ class PIDController:
 
 ---
 
-## 4. Root Locus — where the closed-loop poles go
+## Root Locus — where the closed-loop poles go
 
 For a unity-feedback loop with open-loop transfer function $K\,L(s)$, the closed-loop characteristic equation is
 $$1 + K\,L(s) = 0.$$
@@ -165,7 +165,7 @@ Two facts to memorize:
 
 ---
 
-## 5. Bode Plots and Stability Margins
+## Bode Plots and Stability Margins
 
 ![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_2.png)
 
@@ -180,7 +180,7 @@ Rules of thumb: **GM > 6 dB** (a factor of 2) and **PM > 30 deg** (preferably > 
 
 ---
 
-## 6. State-Space Representation
+## State-Space Representation
 
 For multi-input multi-output (MIMO) systems we drop the transfer-function fiction and write the dynamics directly:
 $$
@@ -206,7 +206,7 @@ Controllability says you can drive the state to *any* target with a suitable inp
 
 ---
 
-## 7. Pole Placement and LQR
+## Pole Placement and LQR
 
 If $(A, B)$ is controllable, the state-feedback law $\mathbf u = -K\mathbf x$ produces closed-loop dynamics $\dot{\mathbf x} = (A - BK)\mathbf x$. We can choose $K$ to put the eigenvalues of $A - BK$ wherever we like.
 
@@ -242,7 +242,7 @@ Compared to pole placement, LQR almost always uses less actuator effort to achie
 
 ---
 
-## 8. Observers and the Separation Principle
+## Observers and the Separation Principle
 
 State feedback presupposes you can *measure* every component of $\mathbf x$. In reality you only see $\mathbf y$. A **Luenberger observer** estimates the unmeasured state from the measured output:
 $$\dot{\hat{\mathbf x}} \;=\; A\hat{\mathbf x} + B\mathbf u + L\bigl(\mathbf y - C\hat{\mathbf x}\bigr).$$
@@ -252,7 +252,7 @@ The miraculous **separation principle** says that the closed-loop poles of *cont
 
 ---
 
-## 9. Worked Example: Inverted Pendulum on a Cart
+## Worked Example: Inverted Pendulum on a Cart
 
 The cart-pendulum has linearised state $\mathbf x = [x,\; \dot x,\; \theta,\; \dot\theta]^T$ with
 $$
@@ -269,7 +269,7 @@ Look at $\mathbf{eigvals}(A)$: one of them sits in the right half-plane (the ope
 
 ---
 
-## 10. The Modern Picture
+## The Modern Picture
 
 What we have done in this chapter is replay the ODE story with a **goal**. Stability theory (Ch 7-8) said *whether* a system equilibrium survives small perturbations; control theory says *how to engineer* the equilibrium and the convergence rate to it. The same Laplace transform that gave us closed-form solutions in Chapter 4 now gives us frequency-domain robustness margins. The same matrix exponential from Chapter 6 now powers state-space simulation and observer design.
 

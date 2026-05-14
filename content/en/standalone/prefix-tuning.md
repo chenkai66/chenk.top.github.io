@@ -30,7 +30,7 @@ Fine-tuning a 1.5B-parameter GPT-2 model for each downstream task means saving a
 
 ---
 
-## 1. Motivation: adapt large models without touching their weights
+## Motivation: adapt large models without touching their weights
 
 Full fine-tuning updates every parameter of a large LM. That is expensive in compute, ruinous in storage when you have many tasks, and incompatible with a single-model multi-tenant serving setup. PEFT methods aim to:
 
@@ -40,7 +40,7 @@ Full fine-tuning updates every parameter of a large LM. That is expensive in com
 
 Prefix-Tuning is one of the earliest PEFT methods designed specifically for *generation* tasks (table-to-text, summarization, dialogue), and it remains a clean conceptual baseline.
 
-## 2. What is a "prefix" in Prefix-Tuning?
+## What is a "prefix" in Prefix-Tuning?
 
 ![Prefix-Tuning architecture: learnable K/V prefixes injected into every frozen attention layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig1_architecture.png)
 
@@ -53,7 +53,7 @@ There are two natural places to insert *learned* parameters that look like addit
 
 The second formulation is strictly more expressive: it adds capacity at every layer, not just at the input. In practice it is also what works well for generation tasks.
 
-## 3. The attention-prefix formulation
+## The attention-prefix formulation
 
 Let layer $\ell$ have a learnable prefix matrix $P^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times 2 d}$, which we split into per-layer prefix keys and values:
 $$
@@ -73,7 +73,7 @@ Two things are worth noting:
 1. The queries $Q^{(\ell)}$ are *not* augmented. The prefix only ever appears on the "context" side of attention, so token positions still attend to it but it does not produce its own output.
 2. Because $K$ and $V$ are extended, every generated token can read from the prefix at every layer. The prefix behaves like a learned, differentiable working memory threaded through the whole stack.
 
-## 4. Parameter count: why it is efficient
+## Parameter count: why it is efficient
 
 With $L$ Transformer layers, hidden size $d$, and prefix length $L_{\text{prefix}}$, the number of trainable parameters is
 $$| \theta_{\text{prefix}} | = 2 \cdot L \cdot d \cdot L_{\text{prefix}} .$$
@@ -81,7 +81,7 @@ For GPT-2 medium ($L = 24$, $d = 1024$) and a typical $L_{\text{prefix}} = 10$, 
 
 Per-task storage drops from gigabytes to a few hundred kilobytes. That is the practical hook: you can ship one base model and a directory of small prefix files, one per task.
 
-## 5. Why reparameterization helps
+## Why reparameterization helps
 
 Optimizing $P$ directly is surprisingly fragile, especially for longer prefixes: training is unstable and the final quality is below what the same parameter budget *should* be able to express. Li & Liang propose to *reparameterize* the prefix through a small MLP:
 $$P^{(\ell)}_K, P^{(\ell)}_V = \text{MLP}_\phi\!\big( P'^{(\ell)} \big),$$
@@ -93,7 +93,7 @@ where $P'^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times d'}$ is a smaller la
 
 After training, the MLP can be discarded — only the materialized $P^{(\ell)}_K, P^{(\ell)}_V$ tensors are kept for inference, so the extra capacity is "free" at deploy time.
 
-## 6. Three ways to adapt a frozen LM, at a glance
+## Three ways to adapt a frozen LM, at a glance
 
 ![Comparison of full fine-tuning, Prefix-Tuning, and prompt tuning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig2_method_comparison.png)
 
@@ -105,7 +105,7 @@ The three approaches sit on a clear continuum:
 
 LoRA (Hu et al., 2021) is a fourth option that is structurally different: it leaves the activations alone and instead adds a *low-rank delta* to the weight matrices, $W \mapsto W + \alpha BA$ with $A, B$ low rank. LoRA has dominated practical PEFT for instruction tuning, mostly because (a) it merges into the weights at inference with zero latency overhead and (b) the rank knob is more intuitive than prefix length for many users. Prefix-Tuning is still the right tool when you need to keep weights bit-identical, when you want per-request swappable adapters at decode time, or when the task is generation-flavored and you want the inductive bias of "extra context".
 
-## 7. Prefix length: a sweet spot, not a hyperparameter to maximize
+## Prefix length: a sweet spot, not a hyperparameter to maximize
 
 ![Prefix-Tuning quality and parameter cost as a function of prefix length](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig3_prefix_length_sweep.png)
 
@@ -115,7 +115,7 @@ Empirically, BLEU on E2E table-to-text rises sharply from $L_{\text{prefix}} = 1
 - **Long-form generation, few-shot regime:** $L_{\text{prefix}} \in [10, 20]$
 - **More than ~100:** rarely worth the parameter cost or the longer effective sequence at inference
 
-## 8. KV-cache mechanics during autoregressive decoding
+## KV-cache mechanics during autoregressive decoding
 
 ![Prefix K/V prepended into the attention KV-cache during generation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig4_kv_cache_prepend.png)
 
@@ -129,7 +129,7 @@ The runtime cost is therefore an additive $O(L_{\text{prefix}})$ on top of norma
 
 This mechanism also makes *per-request* task switching cheap: load a different prefix tensor, reset the cache, and the same base model now behaves like a different fine-tune.
 
-## 9. Application: GPT-2 generation tasks
+## Application: GPT-2 generation tasks
 
 ![Prefix-Tuning vs full fine-tuning vs adapters on E2E and XSum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig5_gpt2_application.png)
 
@@ -140,7 +140,7 @@ The original paper's headline experiments are on GPT-2 medium for two generation
 
 The low-data result has aged well. It is the same story you see later with LoRA on instruction-tuning data: when you have very little task data, restricting the hypothesis class to a low-dimensional adapter is a regularizer, and the regularizer is usually worth more than the extra capacity full fine-tuning would give you.
 
-## 10. Practical engineering notes
+## Practical engineering notes
 
 **Where to apply prefixes.** In a decoder-only model, applying them to self-attention at every layer is the standard recipe. In an encoder-decoder model, you have to decide: encoder self-attention only, decoder self-attention, decoder cross-attention, or all three. For conditional generation tasks the original paper found cross-attention prefixes to be the most important.
 
@@ -154,7 +154,7 @@ The low-data result has aged well. It is the same story you see later with LoRA 
 - *Loss is stable but generation is gibberish.* Check that you are concatenating into the correct attention dimension and that the prefix is on the *context* side only. A surprisingly common bug is also putting it on $Q$.
 - *Quality collapses with very long prefixes.* Likely an optimization issue; try smaller LR, stronger reparameterization, or just shorten the prefix.
 
-## 11. When to choose Prefix-Tuning
+## When to choose Prefix-Tuning
 
 Choose Prefix-Tuning when:
 
@@ -173,7 +173,7 @@ Choose full fine-tuning when:
 - You truly have abundant task data and care about every last point of quality.
 - Per-task storage is not a concern.
 
-## 12. Memory and latency budget in production
+## Memory and latency budget in production
 
 The "0.5 M parameters" headline hides three other costs you actually pay at serving time. None are deal-breakers, but they decide whether your stack scales to thousands of tasks or stalls at a few dozen.
 

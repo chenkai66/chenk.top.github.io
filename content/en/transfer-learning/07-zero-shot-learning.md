@@ -41,7 +41,7 @@ This post derives ZSL from one equation — a compatibility function $F(x, c)$ b
 
 ---
 
-## 1. Problem definition
+## Problem definition
 
 Let $\mathcal{C}^s$ be the set of **seen classes** (labelled training data available) and $\mathcal{C}^u$ the set of **unseen classes** (no labelled data at all). The defining constraint of ZSL is
 $$\mathcal{C}^s \cap \mathcal{C}^u = \emptyset.$$
@@ -71,7 +71,7 @@ We learn $F$ on seen classes and *trust* the semantic geometry to extend it to u
 
 ---
 
-## 2. Attribute representations and DAP
+## Attribute representations and DAP
 
 Attributes are the most interpretable semantic descriptor. They are short, human-defined predicates such as *striped*, *four-legged*, *has wings*, *aquatic*. The widely used **Animals with Attributes 2** (AwA2) dataset gives every one of its 50 animal classes an 85-dimensional attribute vector; **CUB-200-2011** uses 312 attributes for fine-grained bird recognition.
 
@@ -101,7 +101,7 @@ The variant **IAP (Indirect Attribute Prediction)** marginalises over seen class
 
 ---
 
-## 3. Compatibility functions: a unified view
+## Compatibility functions: a unified view
 
 Stop predicting attributes as an intermediate step and learn the compatibility $F(x, c)$ end-to-end.
 
@@ -135,7 +135,7 @@ DeViSE was the first proof that ZSL could scale: trained on ImageNet, it produce
 
 ---
 
-## 4. Generative ZSL: synthesise unseen-class features
+## Generative ZSL: synthesise unseen-class features
 
 Discriminative ZSL learns a fixed compatibility function and *hopes* it extends. Generative ZSL flips the problem: **synthesise visual features for unseen classes from their semantic descriptors**, then train a perfectly ordinary supervised classifier on the union of real-seen and synthetic-unseen features. ZSL becomes supervised learning again.
 
@@ -162,7 +162,7 @@ Xian et al. (2019) added a VAE encoder to stabilise training and a second discri
 
 ---
 
-## 5. Generalised ZSL: the bias problem
+## Generalised ZSL: the bias problem
 
 Conventional-ZSL benchmarks restrict the test label space to $\mathcal{C}^u$, which secretly papers over the real difficulty: in deployment, you do not know whether an incoming image belongs to a seen or unseen class.
 
@@ -186,7 +186,7 @@ Tune $\gamma$ on a held-out validation set. Cheap, effective, and a strong basel
 
 ---
 
-## 6. CLIP and the vision-language pretraining era
+## CLIP and the vision-language pretraining era
 
 **CLIP** (Radford et al., 2021) is, in retrospect, exactly the deep-compatibility two-tower of Section 3 — but trained on **400 million image–text pairs** scraped from the web, with the cross-entropy contrastive loss
 $$\mathcal{L} = -\sum_i \log \frac{\exp\bigl(I_i \cdot T_i / \tau\bigr)}{\sum_j \exp\bigl(I_i \cdot T_j / \tau\bigr)} \;+\; (\text{symmetric term over text}).$$
@@ -207,7 +207,7 @@ DAP (2009) → ALE/DeViSE (2013) — bilinear and ranking compatibility. SAE (20
 
 ---
 
-## 7. Implementation
+## Implementation
 
 A compact PyTorch building block for the deep-compatibility model and a feature-generating GAN. The complete training scaffold (data loaders for AwA2, evaluation in both ZSL and GZSL settings) is in the longer reference implementation linked at the end.
 
@@ -272,7 +272,7 @@ The `gamma` argument to `gzsl_evaluate` implements calibrated stacking — the s
 
 ---
 
-## 8. FAQ
+## FAQ
 
 **Q1. When should I reach for ZSL instead of few-shot or active learning?**
 When (a) the long tail is wide and unstable — new classes appear faster than you can label them; (b) you already have rich semantics — attribute taxonomies, product catalogues, textual descriptions; or (c) you can use a pretrained vision-language model (CLIP, SigLIP, OpenCLIP) and skip ZSL-specific machinery entirely.

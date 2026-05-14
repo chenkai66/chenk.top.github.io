@@ -20,7 +20,7 @@ translationKey: "claude-code-learn-4"
 
 ![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.png)
 
-## 60 秒快速介绍
+## 秒快速介绍
 
 MCP 是 **Model Context Protocol** —— 一个小型开放规范，允许 Claude Code 调用外部服务器上的工具并读取资源。“服务器”可以是任何通过 stdio 或 HTTP 实现 MCP 的进程。Claude 将 MCP 工具视为内置工具：模型决定何时调用它们，你确认或自动批准，结果以文本形式返回。
 

@@ -161,7 +161,7 @@ These look minor on paper but the ablations show they each matter.
 
 ## Downstream tasks: what equivariance buys you
 
-## 1. Predicting generalisation
+## Predicting generalisation
 
 The setup: take a model zoo of trained networks with known test accuracies, train the GNN to regress test accuracy from weights alone.
 
@@ -169,15 +169,15 @@ The setup: take a model zoo of trained networks with known test accuracies, trai
 
 Figure 5 shows the qualitative gap between an equivariant predictor (tight scatter around $y = x$) and a flat-vector MLP baseline (a noisy cloud that struggles to discriminate). Equivariance prevents the model from "wasting" its sample efficiency on parameter permutations and lets it focus on the parts of the weights that actually correlate with generalisation — spectra, alignment of layers, sharpness proxies.
 
-## 2. Classifying networks by behaviour
+## Classifying networks by behaviour
 
 Same pipeline, classification head: predict which dataset / task / optimiser produced the network. The interesting result is that the embedding learned for one classification task transfers to others: the GNN learns a general "feature space of networks", not just a task-specific decision boundary.
 
-## 3. Retrieving similar networks
+## Retrieving similar networks
 
 Embed every model in a zoo with the GNN, then use cosine similarity for retrieval. Functionally similar networks (e.g. two CIFAR-10 classifiers trained from different seeds) end up close, *despite* having parameter-space distances that are essentially random. This is exactly what equivariance is supposed to give you: the embedding metric is induced by the *function* the network computes, not by its arbitrary parameterisation.
 
-## 4. Model merging via neuron alignment
+## Model merging via neuron alignment
 
 Use the *equivariant* (per-node) embeddings, not the pooled vector. Match neurons between two networks by Hungarian / optimal transport on their node-embedding distance, then merge weights along the resulting alignment. The traditional approach (activation matching with probe inputs) becomes a *special case*: probe activations are one of the node features the GNN consumes.
 

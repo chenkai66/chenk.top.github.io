@@ -41,7 +41,7 @@ This chapter is a deliberate tour through five canonical applications. Each one 
 
 ---
 
-## 1. The Nonlinear Pendulum — the Hello World of nonlinear ODEs
+## The Nonlinear Pendulum — the Hello World of nonlinear ODEs
 
 A point mass on a rigid rod of length $L$ in gravity $g$ obeys
 $$\ddot\theta + \frac{g}{L}\sin\theta = 0.$$
@@ -74,7 +74,7 @@ for v0 in [1.5, 4.0, 6.5, 7.5]:    # last two go over the top
 
 ---
 
-## 2. RLC Circuits — the same equation, in copper
+## RLC Circuits — the same equation, in copper
 
 ![Ordinary Differential Equations (17): Physics and Engineering Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/illustration_2.png)
 
@@ -93,7 +93,7 @@ The peak amplitude of an undamped oscillator driven at resonance grows linearly 
 
 ---
 
-## 3. Planetary Orbits — where Newton meets Kepler
+## Planetary Orbits — where Newton meets Kepler
 
 Newton's gravitational law gives, in two dimensions,
 $$\ddot{\mathbf r} \;=\; -\frac{GM\,\mathbf r}{|\mathbf r|^3}.$$
@@ -124,7 +124,7 @@ for v0 in [1.0, 0.85, 0.55]:
 
 ---
 
-## 4. Structural Vibration — buildings, bridges, tuned mass dampers
+## Structural Vibration — buildings, bridges, tuned mass dampers
 
 A multi-storey building is, to first approximation, a chain of masses connected by stiff springs (the columns). For two storeys with masses $m_1, m_2$ and stiffnesses $k_1, k_2$:
 $$
@@ -143,7 +143,7 @@ The pattern is universal: whether the system is a violin string, a wing, a turbi
 
 ---
 
-## 5. Fluid Mechanics — from steady pipes to vortex shedding
+## Fluid Mechanics — from steady pipes to vortex shedding
 
 ### Steady pipe flow (Poiseuille)
 
@@ -170,7 +170,7 @@ a first-order linear ODE with terminal velocity $v_t = (\rho_p - \rho_f) V g / (
 
 ---
 
-## 6. The Common Thread
+## The Common Thread
 
 Every domain in this chapter speaks the same five-step grammar:
 
@@ -201,7 +201,7 @@ The next chapter, the finale, looks beyond this classical menu: Neural ODEs, sto
 
 ---
 
-## 7. Worked Example with Units: Designing a Tuned RLC Bandpass
+## Worked Example with Units: Designing a Tuned RLC Bandpass
 
 A symbolic equation is mathematics; an equation with units attached is engineering. Design a series RLC bandpass with centre frequency $f_0 = 1\,\text{kHz}$ and bandwidth $\Delta f = 100\,\text{Hz}$.
 
@@ -219,7 +219,7 @@ $$ C = \frac{1}{\omega_0^2 L} = \frac{1}{(6283)^2 \cdot 0.01} \approx 2.53\,\mu\
 
 Five steps and four numbers turn an abstract second-order ODE into something I can put on a breadboard.
 
-## 8. Limit Cases: Small Parameters Make Equations Degenerate
+## Limit Cases: Small Parameters Make Equations Degenerate
 
 The nonlinear pendulum $\ddot\theta + (g/\ell)\sin\theta = 0$ degenerates to the harmonic oscillator as $|\theta| \to 0$, with amplitude-independent period $2\pi\sqrt{\ell/g}$. Standard small-angle story.
 
@@ -233,7 +233,7 @@ What is more useful in the ML era is the other direction: **parameters going to 
 
 Lesson: **a parameter going to zero rarely simplifies the numerics**. This is the contradiction Neural Operators in PDE-ML chapter 2 are trying to dodge.
 
-## 9. Data-Driven Modelling: SINDy and Koopman
+## Data-Driven Modelling: SINDy and Koopman
 
 Section 6 made the case that one ODE skeleton describes five phenomena. In real engineering, when a new system shows up the equation may not be derivable. You go from data to equation.
 

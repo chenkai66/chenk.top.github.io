@@ -39,9 +39,9 @@ translationKey: "ml-math-derivations-13"
 - K-means 聚类
 
 ---
-## 1. 隐变量与不完全数据似然
+## 隐变量与不完全数据似然
 
-### 1.1 设定
+### 1 设定
 
 我们用联合分布 $p(\mathbf{x}, z \mid \boldsymbol{\theta})$ 对观测数据 $\mathbf{x}_1,\dots,\mathbf{x}_N$ 和隐变量 $z_1,\dots,z_N$ 建模。实际中只能观测到 $\mathbf{X}$，而 $\mathbf{Z}$ 始终不可见。**不完全数据对数似然**定义为：
 $$
@@ -50,7 +50,7 @@ $$
 $$
 问题根源在于对数内部的求和。由于该求和项存在，对数无法分解为各成分的独立项，导致梯度无法拆解，也无法获得闭式最大化解。
 
-### 1.2 混合模型的例子
+### 2 混合模型的例子
 
 以包含 $K$ 个成分的高斯混合模型为例：
 $$p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}(\mathbf{x}\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).$$
@@ -61,9 +61,9 @@ $$p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}
 上图展示了 `sklearn.mixture.GaussianMixture` 在二维数据上拟合出的三个高斯成分。每个叉号代表均值 $\boldsymbol{\mu}_k$，内侧椭圆是 1 倍标准差等高线，外侧椭圆是 2 倍标准差，$\pi_k$ 是对应的混合权重。
 
 ---
-## 2. ELBO 与 Jensen 不等式
+## ELBO 与 Jensen 不等式
 
-### 2.1 引入辅助分布 $q$
+### 1 引入辅助分布 $q$
 
 任选一个定义在隐变量上的分布 $q(z)$，对原式做乘除变换：
 $$
@@ -82,7 +82,7 @@ $$
 $$
 该下界 $\mathcal{L}$ 称为 **证据下界（ELBO, Evidence Lower Bound）**，它同时依赖于变分分布 $q$ 和模型参数 $\boldsymbol{\theta}$。
 
-### 2.2 精确分解
+### 2 精确分解
 
 通过直接代数变换（无需不等式），可得到如下恒等式：
 $$
@@ -100,13 +100,13 @@ $$
 这一恒等式构成了 EM 算法的全部理论基础。
 
 ---
-## 3. EM 是 ELBO 上的坐标上升
+## EM 是 ELBO 上的坐标上升
 
 ![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_2.png)
 
 EM 算法通过交替优化 $\mathcal{L}$ 关于 $q$ 和 $\boldsymbol{\theta}$ 的两个变量，逐步提升下界。
 
-### 3.1 两步走
+### 1 两步走
 
 **E 步**  
 固定当前参数 $\boldsymbol{\theta}^{(t)}$，最大化 $\mathcal{L}(q, \boldsymbol{\theta}^{(t)})$ 关于 $q$。最优解即为后验分布：
@@ -122,7 +122,7 @@ Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
 $$
 直观上，Q 函数即为在当前后验下完全数据对数似然的期望。
 
-### 3.2 单调上升的证明
+### 2 单调上升的证明
 
 将以下三步不等式串联：
 $$
@@ -138,7 +138,7 @@ $$
 $$\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{(t)})\;}$$
 在每次迭代中均成立，仅在不动点处取等号。EM 收敛至 $\ell$ 的驻点——通常是局部极大值，偶尔为鞍点。**它不保证收敛到全局最优**，因此实践中需采用多次随机或 K-means 初始化，并保留最优结果。
 
-### 3.3 两条曲线的视角
+### 3 两条曲线的视角
 
 从 ELBO 视角看，EM 的动态过程非常清晰：每次 E 步将 KL 差距压缩至零；随后 M 步同步抬升对数似然与 ELBO，差距重新打开，直至下一次 E 步。
 
@@ -147,9 +147,9 @@ $$\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{
 图中琥珀色带表示 KL 散度 $\mathrm{KL}\bigl[q\,\Vert\, p(z\mid\mathbf{x},\boldsymbol{\theta})\bigr]$。绿色圆点标记 E 步完成后的时刻，此时 KL 散度按构造为零。
 
 ---
-## 4. EM 算法与高斯混合模型
+## EM 算法与高斯混合模型
 
-### 4.1 模型
+### 1 模型
 
 单个观测值的生成过程如下：
 
@@ -158,7 +158,7 @@ $$\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{
 
 模型参数为 $\boldsymbol{\theta} = \{\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k\}_{k=1}^{K}$，满足 $\sum_k \pi_k = 1$，且每个 $\boldsymbol{\Sigma}_k \succ 0$。
 
-### 4.2 E 步：计算责任度
+### 2 E 步：计算责任度
 
 由于隐变量离散，后验概率可直接由贝叶斯公式得出。定义成分 $k$ 对样本 $i$ 的**责任度（responsibility）**：
 $$
@@ -176,7 +176,7 @@ $$
 
 左图中，每个网格点的颜色由三个成分的责任度加权混合而成：单一成分主导区域颜色纯净，边界处则呈现混合色。右图展示了 12 个样本点的责任度矩阵 $\gamma_{ik}$，每行和为 1。
 
-### 4.3 M 步：加权最大似然估计
+### 3 M 步：加权最大似然估计
 
 将高斯密度代入 Q 函数并引入拉格朗日乘子处理 $\sum_k \pi_k = 1$ 约束，可得闭式更新公式。令 $N_k = \sum_{i=1}^{N} \gamma_{ik}$ 表示成分 $k$ 的有效样本数：
 $$
@@ -192,7 +192,7 @@ $$
 
 即使从一个故意设置得很差的初始值开始，仅一次 M 步就能将均值（红色箭头所示）拉向数据，并调整协方差椭圆以匹配观测分布。经过少数几次 E-M 迭代，拟合结果已基本准确。
 
-### 4.4 实战中的收敛性
+### 4 实战中的收敛性
 
 对 EM 进行多次随机重启并观察对数似然变化：
 
@@ -201,7 +201,7 @@ $$
 每条曲线均单调非减——这是算法的理论保证。不同重启可能收敛至不同局部最优；虚线是 `sklearn.mixture.GaussianMixture` 在 `n_init=20` 下找到的最佳值。**实践中建议采用多次随机或 K-means 初始化，并保留效果最好的结果。**
 
 ---
-## 5. K-means 是 GMM 的硬分配、球形极限
+## K-means 是 GMM 的硬分配、球形极限
 
 设所有 $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$，并令 $\epsilon \to 0$。此时高斯密度趋于无限尖锐，离样本最近的均值对应的责任度趋近于 1，其余趋近于 0。E 步退化为**硬分配**，M 步退化为对分配点求均值——这正是 K-means 的更新规则。
 
@@ -209,7 +209,7 @@ $$
 
 在各向异性数据上，两者差异显著：K-means（左）强制使用球形 Voronoi 单元，将拉长的簇切割得十分生硬；GMM（右）则用椭圆沿数据主轴方向贴合分布。**只要簇非各向同性，或需要软隶属概率，GMM 就应作为默认选择。**
 
-## 6. 如何选择成分数 $K$
+## 如何选择成分数 $K$
 
 似然值随 $K$ 增大而单调递增（模型更灵活），故仅凭 $\ell$ 无法确定 $K$。需采用带复杂度惩罚的准则：
 $$
@@ -224,7 +224,7 @@ $$
 从 $K=1$ 到真实值 $K=3$，两条曲线迅速下降，之后趋于平缓甚至回升。BIC 因含额外 $\log N$ 因子，对复杂度惩罚更重，通常偏好更小的 $K$。但在此例中，两者均给出了正确答案。
 
 ---
-## 7. 参考实现
+## 参考实现
 
 此处提供一个极简的 NumPy 实现，严格对应前述公式。本文所有实验与图表均通过 `sklearn.mixture.GaussianMixture` 验证。
 
@@ -282,7 +282,7 @@ class GMM:
     def predict(self, X):
         return np.argmax(self._e_step(X)[0], axis=1)
 ```
-## 8. 数值实现的几个坑
+## 数值实现的几个坑
 
 上述推导虽数学优雅，但工程实现中潜藏诸多陷阱。我在生产环境中反复遭遇以下三类问题。
 
@@ -296,7 +296,7 @@ $$\log \gamma_{ik} = \log\pi_k + \log\mathcal{N}_k(\mathbf{x}_i) - \mathrm{logsu
 
 迭代过程中可设一监控指标：ELBO 必须单调非减。若下降幅度超过 $10^{-6}$，应优先排查数值实现错误，而非质疑数学推导。
 
-## 9. scikit-learn 中的实现
+## scikit-learn 中的实现
 
 ```python
 from sklearn.mixture import GaussianMixture

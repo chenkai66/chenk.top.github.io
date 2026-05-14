@@ -30,6 +30,9 @@ The trick isn't the text encoder—any reasonable CNN or transformer will do. Th
 - Standard recommendation metrics: HR@K, MAP@K, MRR@K
 - Cosine similarity, hinge loss, and the idea behind margin-based ranking losses
 
+
+---
+
 ## System overview
 
 ![paper2repo system architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation/fig1_system_architecture.png)

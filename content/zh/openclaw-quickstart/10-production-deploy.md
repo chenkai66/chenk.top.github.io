@@ -123,7 +123,7 @@ services:
 
 ![OpenClaw 快速入门 (10)：生产部署及那些没人提醒你的故障模式 — 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_2.png)
 
-### 1. 重启后 `command not found: openclaw`
+### 重启后 `command not found: openclaw`
 
 nvm 默认不会在非交互式 Shell 中初始化，而 pm2 的开机自启正是通过非交互式 Shell 触发的。要么在 `/etc/profile.d/` 中 source nvm，要么为二进制文件创建软链接：
 
@@ -134,19 +134,19 @@ sudo ln -sf $(which node) /usr/local/bin/node
 
 **检测：** `pm2 status` 显示网关在启动后立即处于 `errored` 状态，退出码为 127。
 
-### 2. `Node.js version too old`
+### `Node.js version too old`
 
 OpenClaw 要求 Node.js 版本不低于 22.16。错误信息通常很明确；真正的问题在于使用了发行版自带的旧版 Node.js。
 
 **检测：** 网关启动失败，`pm2 logs openclaw-gateway --err` 的前三行显示版本不匹配。
 
-### 3. DashScope 返回 `401 Unauthorized`
+### DashScope 返回 `401 Unauthorized`
 
 两个原因：Coding Plan 密钥被用于错误的端点，或密钥已轮换但未更新。
 
 **检测：** 每轮 Agent 对话瞬间失败，响应中包含 401 错误。检查 `~/.openclaw/agents/main/sessions/*.jsonl` —— 如果每个会话的最后一行都是认证错误，那就是密钥问题。
 
-### 4. 网关启动时 `Connection refused`
+### 网关启动时 `Connection refused`
 
 端口 18789 已被占用：
 
@@ -158,7 +158,7 @@ pm2 restart openclaw-gateway
 
 **检测：** `pm2 logs openclaw-gateway --err` 在启动第一秒内就显示 `EADDRINUSE`。网关始终无法打印出 “listening on 18789” 的日志。
 
-### 5. 钉钉 30 分钟后沉默
+### 钉钉 30 分钟后沉默
 
 上游 NAT 设备主动终止了长轮询连接：
 
@@ -171,19 +171,19 @@ pm2 restart openclaw-gateway
 
 **检测：** 网关日志中 `[dingtalk] reconnecting...` 出现频率超过每小时一次。用户反馈“机器人没反应了”，但从 Web Dashboard 手动发送消息仍能正常工作。
 
-### 6. 对话中途 Agent 失忆
+### 对话中途 Agent 失忆
 
 Compaction 已运行，但未启用 `memoryFlush`。请设置 `memoryFlush.enabled: true`。
 
 **检测：** 多轮对话在第 15 轮左右突然丢失上下文。检查会话长度：`cat ~/.openclaw/agents/main/sessions/<session-id>.jsonl | wc -l`。如果恰好为 20 行（默认 compaction 阈值），说明 compaction 直接丢弃了历史轮次，而非进行摘要总结。
 
-### 7. `Token consumption is way too high`
+### `Token consumption is way too high`
 
 三个原因：使用了昂贵的默认模型、MEMORY.md 文件过于臃肿，或为琐碎任务也频繁 spawn 子 Agent。
 
 **检测：** 使用量稳定，但账单周环比翻倍。运行 `openclaw stats tokens --since 7d` 并对比每轮平均 token 消耗。若对话型 Agent 每轮超过 8k tokens，肯定存在问题。检查 MEMORY.md 长度：`wc -l ~/.openclaw/workspace/MEMORY.md`。超过 500 行就是危险信号。
 
-### 8. 内存无限增长
+### 内存无限增长
 
 若长期不归档会话，MEMORY.md 文件将持续膨胀：突破 100 行后，迅速增至 200 行、500 行乃至更多。每轮 Agent 对话现在都夹带半 KB 的无关上下文（例如“三周前用户问过 Docker”）。启动变慢，因为 workspace loader 在启动时需解析整个 memory 文件。达到 1000 行时，启动耗时约 30 秒；到 2000 行时，Agent 开始在对话中途超时——因为上下文窗口中 80% 是记忆内容，仅 20% 是当前任务。
 

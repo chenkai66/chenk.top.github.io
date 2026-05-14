@@ -41,7 +41,7 @@ This post derives VI from a single identity, builds the mean-field algorithm and
 
 ---
 
-## 1. The Posterior Bottleneck
+## The Posterior Bottleneck
 
 Bayesian inference with observations $\mathbf{x}$, latent variables $\mathbf{z}$ and parameters $\boldsymbol{\theta}$ produces the posterior
 $$p(\mathbf{z}\mid\mathbf{x}) \;=\; \frac{p(\mathbf{x},\mathbf{z})}{p(\mathbf{x})},\qquad p(\mathbf{x}) \;=\; \int p(\mathbf{x},\mathbf{z})\,d\mathbf{z}.$$
@@ -61,7 +61,7 @@ VI's bias is the price you pay for its speed. The rest of this post quantifies t
 
 ---
 
-## 2. The ELBO Identity
+## The ELBO Identity
 
 Pick **any** distribution $q(\mathbf{z})$ over the latent variables. Then
 $$
@@ -84,7 +84,7 @@ It is worth pausing on what we have done. We replaced an intractable integral (t
 
 ---
 
-## 3. Mean-Field Approximation
+## Mean-Field Approximation
 
 ![ML Math Derivations (14): Variational Inference and Variational EM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/illustration_2.png)
 
@@ -96,7 +96,7 @@ Each factor lives in its own family. We make no further parametric commitment.
 
 *Figure 2.* The middle panel matches the marginals of the true posterior (left) but loses every off-diagonal entry. The right panel shows the global optimum of $\mathrm{KL}(q\|p)$: variance shrinks by a factor of $1-\rho^2$, so the surrogate is **under-dispersed** along both axes. This systematic under-estimation of uncertainty is the most common failure mode of mean-field VI.
 
-### 3.1 The optimal factor
+### 1 The optimal factor
 
 Plug the factorization into the ELBO and isolate one factor $q_j$. Treating the others as fixed,
 $$
@@ -107,7 +107,7 @@ The bracketed expectation is a function of $z_j$ alone — call it $\log\tilde{p
 $$\boxed{\;\log q_j^\star(z_j) \;=\; \mathbb{E}_{q_{-j}}\!\big[\log p(\mathbf{x},\mathbf{z})\big] \;+\; \text{const}.\;}$$
 This is the central formula of mean-field VI. The optimal factor for coordinate $j$ is the geometric average of the joint with respect to all other factors, normalized.
 
-### 3.2 Coordinate-Ascent Variational Inference (CAVI)
+### 2 Coordinate-Ascent Variational Inference (CAVI)
 
 Because each factor's optimum depends on the others, we solve cyclically:
 
@@ -126,13 +126,13 @@ Every update is a coordinate ascent step on a concave-in-each-coordinate objecti
 
 *Figure 5.* Eight CAVI sweeps on a correlated bivariate Gaussian. The diagonal $q$ both relocates and shrinks: its mean is dragged to the origin in two steps, and its variance collapses to $1/\text{precision}_{ii}$. The right panel shows the monotone ELBO trajectory — a useful convergence diagnostic in any VI implementation.
 
-### 3.3 Conjugate exponential families
+### 3 Conjugate exponential families
 
 When the model is a **conjugate exponential family** — every conditional $p(z_j\mid \mathbf{z}_{-j},\mathbf{x})$ lies in an exponential family — the CAVI update has a closed form. The optimal $q_j$ is in the same exponential family as the conditional, and updating it amounts to averaging natural parameters under $q_{-j}$. This covers Bayesian Gaussian mixtures, LDA, Bayesian linear regression, hidden Markov models with Dirichlet priors, and many others. For non-conjugate models, we need the black-box approach of Section 6.
 
 ---
 
-## 4. The Variational Family as Approximator
+## The Variational Family as Approximator
 
 It pays to look at VI without the mean-field crutch. Pick **any** parametric family $q_\phi(\mathbf{z})$ — a Gaussian with learnable mean and covariance, a normalizing flow, an amortized inference network — and minimize $\mathrm{KL}(q_\phi\,\|\,p(\cdot\mid\mathbf{x}))$ over $\phi$.
 
@@ -154,7 +154,7 @@ The under-dispersion in Figure 2 is not a bug; it follows from the geometry of r
 
 ---
 
-## 5. Variational EM
+## Variational EM
 
 Section 2 of [Part 13](/en/ml-math-derivations/13-em-algorithm-and-gmm) showed that the EM algorithm itself rests on the ELBO identity. EM alternates:
 
@@ -175,7 +175,7 @@ In Variational EM the ELBO is no longer tight after the E-step (the KL gap is no
 
 ---
 
-## 6. Black-Box VI and the Reparameterization Trick
+## Black-Box VI and the Reparameterization Trick
 
 Outside conjugate models, neither the closed-form CAVI updates nor the variational E-step are available. **Black-box VI (BBVI)** parameterizes $q_\phi$ with a neural network and optimizes the ELBO with stochastic gradients:
 $$\nabla_\phi\,\mathcal{L}(\phi) \;=\; \nabla_\phi\,\mathbb{E}_{q_\phi(\mathbf{z})}\!\left[\log p(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z})\right].$$
@@ -205,7 +205,7 @@ For discrete latent variables the trick fails (you cannot write $z\in\{0,1\}$ as
 
 ---
 
-## 7. Application: VI for LDA
+## Application: VI for LDA
 
 Latent Dirichlet Allocation (Blei, Ng, Jordan 2003) is the canonical large-scale VI success story. The model has per-document topic proportions $\theta_d$ and per-topic word distributions $\beta_k$, both Dirichlet-distributed. The posterior is intractable, but the model is conjugate-exponential, so mean-field CAVI gives closed-form updates:
 $$q(\theta,\beta,z) \;=\; \prod_d q(\theta_d\mid\gamma_d) \prod_k q(\beta_k\mid\lambda_k) \prod_{d,n} q(z_{d,n}\mid\phi_{d,n}),$$
@@ -219,7 +219,7 @@ Stochastic VI (Hoffman et al. 2013) scales the same updates to billions of docum
 
 ---
 
-## 8. Implementation: Variational Bayesian GMM
+## Implementation: Variational Bayesian GMM
 
 A compact CAVI implementation of the conjugate Bayesian GMM. The math behind the updates is in Bishop PRML §10.2; here we focus on a clean reading of the loop.
 
@@ -301,7 +301,7 @@ The algorithmic shape mirrors the EM-GMM from Part 13 — alternate responsibili
 
 ---
 
-## 9. FAQ
+## FAQ
 
 **Q1: Why reverse KL and not forward KL?**
 Reverse $\mathrm{KL}(q\|p)$ only requires expectations under $q$, which we control. Forward $\mathrm{KL}(p\|q)$ requires expectations under the intractable $p$. The price is mode-seeking behavior — see Figure 6.
@@ -323,7 +323,7 @@ If you need uncertainty in $\boldsymbol{\theta}$ (small data, model selection, d
 
 ---
 
-## 10. Exercises
+## Exercises
 
 **E1.** Prove $\mathcal{L}(q) \leq \log p(\mathbf{x})$ from scratch.
 *Sketch.* $\log p(\mathbf{x}) = \mathcal{L}(q) + \mathrm{KL}(q\|p(\cdot\mid\mathbf{x}))$ and KL is non-negative by Jensen.

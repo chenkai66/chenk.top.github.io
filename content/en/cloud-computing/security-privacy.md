@@ -43,7 +43,7 @@ This article walks the full stack from the shared responsibility contract down t
 
 ---
 
-## 1. Shared Responsibility, Honestly
+## Shared Responsibility, Honestly
 
 ![Shared Responsibility Model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig1_shared_responsibility.png)
 
@@ -62,7 +62,7 @@ Three things get missed in the diagrams. First, *data and access controls are al
 
 A useful mental rewrite: "The provider secures the substrate. Everything you can configure, you must configure correctly."
 
-## 2. The Threats You Will Actually See
+## The Threats You Will Actually See
 
 The Verizon DBIR and Mandiant M-Trends reports converge year after year on the same top causes for cloud incidents. In rough order of frequency:
 
@@ -75,11 +75,11 @@ The Verizon DBIR and Mandiant M-Trends reports converge year after year on the s
 
 Cryptographic attacks against AES or TLS do not appear on this list. The defender's leverage is in IAM hygiene, configuration management, and detection - not in inventing new ciphers.
 
-## 3. IAM: The One Subsystem You Cannot Get Wrong
+## IAM: The One Subsystem You Cannot Get Wrong
 
 ![IAM Building Blocks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig2_iam_model.png)
 
-### 3.1 The model
+### 1 The model
 
 Every mature IAM system has the same four primitives:
 
@@ -90,7 +90,7 @@ Every mature IAM system has the same four primitives:
 
 The arrow direction matters: *identity -> group -> role -> policy -> action*. Permissions only flow forward. You can audit any access by walking that chain backward from the resource.
 
-### 3.2 Six rules that survive contact with reality
+### 2 Six rules that survive contact with reality
 
 1. **Least privilege, then iterate.** Start from zero. Grant the smallest set that lets the task succeed. When something legitimately fails, widen narrowly - never `s3:*`.
 2. **Roles, not long-lived users, for everything that runs code.** EC2 instance profiles, Lambda execution roles, IRSA on EKS, Workload Identity on GKE - all give short-lived, automatically rotated credentials.
@@ -99,7 +99,7 @@ The arrow direction matters: *identity -> group -> role -> policy -> action*. Pe
 5. **Permission boundaries and SCPs.** Give teams the freedom to create their own roles, *bounded* by an organisation-wide policy that blocks the dangerous combinations.
 6. **Log every grant and every use.** CloudTrail, Cloud Audit Logs, Azure Activity Log - centralised, tamper-evident, retained for at least a year.
 
-### 3.3 A real least-privilege policy
+### 3 A real least-privilege policy
 
 Read-only access to one bucket, restricted to a corporate CIDR, and only when the caller has actually proved MFA in the current session:
 
@@ -125,7 +125,7 @@ Read-only access to one bucket, restricted to a corporate CIDR, and only when th
 
 The `MultiFactorAuthAge` condition is the underused one - it forces the MFA proof to be fresh, not "they MFA'd into the console six hours ago".
 
-### 3.4 The organisation-wide guardrail
+### 4 The organisation-wide guardrail
 
 A Service Control Policy applied at the organisation level cannot be overridden by any account-level role. Use it for blast-radius decisions:
 
@@ -159,7 +159,7 @@ A Service Control Policy applied at the organisation level cannot be overridden 
 
 This denies any action by the root user, and any action in regions you do not operate in. Both block a large class of mistakes, including data-residency violations and crypto-mining attacks that spin up GPUs in obscure regions.
 
-### 3.5 IAM mistakes that recur
+### 5 IAM mistakes that recur
 
 - `"Action": "*"` or `"Resource": "*"` in any non-deny statement. Almost always over-broad.
 - `iam:PassRole` with `Resource: "*"` - this is privilege escalation in a single line.
@@ -167,13 +167,13 @@ This denies any action by the root user, and any action in regions you do not op
 - "Temporary" admin grants made permanent because nobody set an expiry.
 - Service accounts shared between services so that no single owner can rotate the credential.
 
-## 4. Encryption: At Rest, In Transit, In Use
+## Encryption: At Rest, In Transit, In Use
 
 ![Three States of Data](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig3_encryption_layers.png)
 
 Data has three states. Each needs a different protection mechanism, and the threats that justify each are different.
 
-### 4.1 At rest
+### 1 At rest
 
 The threat is someone walking off with the disk, the snapshot, or the backup tape - or an authorised process reading raw bytes you did not intend to expose. The defence is symmetric encryption with keys you actually control.
 
@@ -206,7 +206,7 @@ def encrypt_blob(plaintext: bytes, key_id: str) -> dict:
 
 The envelope pattern is what every "transparent" cloud encryption feature is doing under the hood. Understanding it lets you reason about cost (one KMS call per data key, not per byte) and key rotation (re-wrap data keys, not re-encrypt petabytes).
 
-### 4.2 In transit
+### 2 In transit
 
 The threat is on-path interception, packet capture from a compromised network device, or a malicious mesh sidecar. The defence is TLS, used correctly.
 
@@ -235,7 +235,7 @@ Three details people miss:
 - **HSTS** with a long `max-age` is the only thing that defeats SSL-strip downgrade attacks.
 - **mTLS between services.** Inside the cluster, service A should refuse to talk to service B unless B presents a certificate from your internal CA. Service meshes (Istio, Linkerd) make this a single line of YAML.
 
-### 4.3 In use
+### 3 In use
 
 The hardest case. Data is decrypted in RAM to be processed, which means a sufficiently privileged process on the same host can read it. Three mitigations exist today:
 
@@ -245,9 +245,9 @@ The hardest case. Data is decrypted in RAM to be processed, which means a suffic
 
 For most teams, "in use" protection is achieved indirectly: minimise the surface that handles plaintext, isolate it, and audit it.
 
-## 5. DDoS Protection and the Web Application Firewall
+## DDoS Protection and the Web Application Firewall
 
-### 5.1 Three classes of attack
+### 1 Three classes of attack
 
 | Class | Mechanism | Example | Where it hurts |
 |-------|-----------|---------|----------------|
@@ -257,7 +257,7 @@ For most teams, "in use" protection is achieved indirectly: minimise the surface
 
 A real attacker uses all three together. A real defender uses a layered stack.
 
-### 5.2 The defence stack
+### 2 The defence stack
 
 - **Edge / network**: AWS Shield Advanced, Cloud Armor, Cloudflare. Absorbs L3/L4 floods before they reach your VPC.
 - **CDN**: caches static assets and presents a much larger surface than your origin, diluting the attack.
@@ -265,7 +265,7 @@ A real attacker uses all three together. A real defender uses a layered stack.
 - **Rate limiting**: per-IP, per-token, per-route. Catches credential-stuffing, scraping, and slow-burn application-layer attacks.
 - **Application**: input validation, parameterised queries, query cost limits. The WAF is *not* your input validator.
 
-### 5.3 A WAF rule set you can ship today
+### 3 A WAF rule set you can ship today
 
 ```json
 {
@@ -312,9 +312,9 @@ A real attacker uses all three together. A real defender uses a layered stack.
 
 Tune `Limit` carefully. Too tight and you block your own mobile app behind a CGNAT. Run the rule in `Count` mode for a week before flipping to `Block`.
 
-## 6. Security Logging and Detection
+## Security Logging and Detection
 
-### 6.1 What to log
+### 1 What to log
 
 Five categories, in priority order:
 
@@ -324,7 +324,7 @@ Five categories, in priority order:
 4. **Configuration changes** - IAM, security groups, KMS, infrastructure as code applies.
 5. **Network** - VPC Flow Logs, DNS query logs.
 
-### 6.2 A CloudTrail event, decoded
+### 2 A CloudTrail event, decoded
 
 ```json
 {
@@ -352,14 +352,14 @@ The fields a SIEM rule actually consumes: `userIdentity.arn`, `mfaAuthenticated`
 - Any `kms:Disable*` or `kms:ScheduleKeyDeletion`.
 - `ec2:RunInstances` of a GPU type from a role that has never done that.
 
-### 6.3 Pipeline and retention
+### 3 Pipeline and retention
 
 - Centralise into a SIEM (Security Hub, Splunk, Elastic Security, Chronicle).
 - Encrypt log buckets and deny `s3:DeleteObject` to everyone, including the security team's own role - logs you can mutate are not evidence.
 - Hot-tier 90 days, cold-tier 1-7 years depending on industry.
 - Build dashboards before you need them; an incident at 3 AM is the wrong moment to learn Lucene syntax.
 
-## 7. Zero Trust, Concretely
+## Zero Trust, Concretely
 
 ![Zero Trust Architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig4_zero_trust.png)
 
@@ -375,7 +375,7 @@ The concrete controls that implement it:
 
 The mental model: every request runs through a Policy Decision Point that asks "who, what, from where, on what device, in what context, against this resource - allow or deny?" - and the answer is logged, every time.
 
-## 8. Compliance Frameworks
+## Compliance Frameworks
 
 ![Compliance Frameworks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig5_compliance_frameworks.png)
 
@@ -400,7 +400,7 @@ Compliance is not security, but it forces a baseline of controls and a paper tra
 
 The pattern across all five: you cannot bolt them on at the end. Bake controls into infrastructure code, audit logging, and the deployment pipeline, and the audit becomes a paperwork exercise rather than an existential crisis.
 
-## 9. Incident Response: The Loop
+## Incident Response: The Loop
 
 The NIST cycle (preparation -> detection -> containment -> eradication -> recovery -> lessons learned) is correct but academic. In practice, three things determine whether your incident becomes a 30-minute footnote or a 30-day disaster:
 
@@ -459,7 +459,7 @@ def quarantine(instance_id: str, reason: str) -> dict:
 
 The order matters: snapshot, isolate, revoke credentials, stop. Reverse it and you risk the malware exfiltrating during the seconds it takes to take the snapshot, or evidence being lost in the OS shutdown sequence.
 
-## 10. Hardened Infrastructure as Code
+## Hardened Infrastructure as Code
 
 A secure baseline is worth nothing if a tired engineer can `terraform apply` an open S3 bucket on a Friday afternoon. Encode the baseline in modules and policy-as-code (OPA / Sentinel / Checkov):
 
@@ -507,7 +507,7 @@ resource "aws_s3_bucket_logging" "data" {
 
 A Checkov policy in CI rejects any `aws_s3_bucket` not accompanied by these four sidecar resources. Mistakes get caught before they reach production.
 
-## 11. The Engineer's Pre-flight Checklist
+## The Engineer's Pre-flight Checklist
 
 **Identity**
 - [ ] MFA enforced for every human, including break-glass accounts (whose codes are in a sealed envelope, not Slack).

@@ -38,7 +38,7 @@ This article is the first in a 16-part series. Its job is to give you a complete
 
 ![Recommendation Systems (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/01-fundamentals/illustration_1.png)
 
-## 1. Why Recommendation Systems Matter
+## Why Recommendation Systems Matter
 
 Before any algorithm, it helps to be clear about what problem we are solving.
 
@@ -83,7 +83,7 @@ All of these are powered, at the bottom, by a small set of ideas. Let us look at
 
 ---
 
-## 2. The Three Paradigms
+## The Three Paradigms
 
 Every recommender, from a 50-line script to YouTube's stack, builds on one of three philosophies:
 
@@ -97,7 +97,7 @@ The data we start from looks like this:
 
 Most entries are unknown. The job of any recommender is, in essence, to fill in the blanks.
 
-### 2.1 Collaborative Filtering — *"users like you liked this"*
+### 1 Collaborative Filtering — *"users like you liked this"*
 
 Collaborative filtering (CF) rests on a beautifully simple intuition: **if two users agreed in the past, they are likely to agree in the future**. The algorithm needs to know nothing about what an item *is*. It learns purely from the pattern of who interacted with what.
 
@@ -134,7 +134,7 @@ The crucial difference: Alice rates everything 4–5 and Bob rates everything 2�
 | Captures serendipity | Suffers when data is sparse |
 | Improves automatically with more data | Popularity bias — popular items get recommended more |
 
-### 2.2 Content-Based Filtering — *"you'll like this because it's similar"*
+### 2 Content-Based Filtering — *"you'll like this because it's similar"*
 
 Where CF asks "who else liked this?", content-based filtering asks "what *is* this thing, and have you liked similar things before?"
 
@@ -161,7 +161,7 @@ The $\lambda \|\mathbf{w}_u\|^2$ term is **L2 regularisation** — a tax on larg
 | Recommendations are easy to explain | Tends to over-specialise — keeps recommending the same kind of thing |
 | Works with a single user's history | New users still cold-start (no profile yet) |
 
-### 2.3 Hybrid Methods — *combining what each does best*
+### 3 Hybrid Methods — *combining what each does best*
 
 Pure CF and pure content-based each have predictable failure modes. Hybrids combine them so that when one approach falters, the other takes over.
 
@@ -194,13 +194,13 @@ def predict(user, item):
 
 ---
 
-## 3. Matrix Factorization: The Workhorse
+## Matrix Factorization: The Workhorse
 
 ![Recommendation Systems (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/01-fundamentals/illustration_2.png)
 
 Neighbourhood methods like User-CF and Item-CF are intuitive, but **matrix factorization (MF)** is the technique that won the Netflix Prize and underpins much of what came after, including modern two-tower deep models.
 
-### 3.1 The geometric idea
+### 1 The geometric idea
 
 MF assumes user preferences and item characteristics can be summarised by a small number of **latent factors** — hidden axes that emerge from the data rather than being labelled by hand.
 
@@ -212,7 +212,7 @@ The predicted rating is a **dot product**:
 $$\hat{r}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$
 If user and item vectors point in similar directions, the dot product is large, and the model predicts a high rating.
 
-### 3.2 The optimisation problem
+### 2 The optimisation problem
 
 We factor $R \approx P Q^\top$ with $P \in \mathbb{R}^{m \times k}$ holding user vectors and $Q \in \mathbb{R}^{n \times k}$ holding item vectors. Train by minimising squared error on observed ratings, with L2 regularisation:
 $$\min_{P, Q} \sum_{(u, i) \in \Omega} (r_{ui} - \mathbf{p}_u^\top \mathbf{q}_i)^2 + \lambda (\|\mathbf{p}_u\|^2 + \|\mathbf{q}_i\|^2)$$
@@ -220,13 +220,13 @@ In production we add bias terms to capture systematic effects:
 $$\hat{r}_{ui} = \mu + b_u + b_i + \mathbf{p}_u^\top \mathbf{q}_i$$
 where $\mu$ is the global mean, $b_u$ is "this user rates everything high", and $b_i$ is "this item is universally loved (or hated)". With those biases pulled out, the latent factors only have to model the *interaction*, which is what we actually want them to learn.
 
-### 3.3 Two ways to optimise
+### 3 Two ways to optimise
 
 **Stochastic Gradient Descent (SGD).** For each observed rating, compute the error $e_{ui} = r_{ui} - \hat{r}_{ui}$ and step:
 $$\mathbf{p}_u \leftarrow \mathbf{p}_u + \eta (e_{ui} \mathbf{q}_i - \lambda \mathbf{p}_u), \quad \mathbf{q}_i \leftarrow \mathbf{q}_i + \eta (e_{ui} \mathbf{p}_u - \lambda \mathbf{q}_i)$$
 **Alternating Least Squares (ALS).** Fix $Q$, solve a closed-form least-squares problem for each $\mathbf{p}_u$, then swap. ALS parallelises trivially across users (and items), which is why Spark MLlib's recommender ships with it.
 
-### 3.4 Implementation
+### 4 Implementation
 
 Here is a minimal but complete MF with biases, trained by SGD:
 
@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
 > **Try it.** Sweep `n_factors` from 2 to 50 and watch RMSE: too few and the model under-fits, too many and it over-fits this tiny dataset. The right value on real data is almost always in the 20–200 range.
 
-### 3.5 Implicit feedback
+### 5 Implicit feedback
 
 In production you rarely have explicit 1-to-5 ratings. You have **implicit feedback**: clicks, watch time, dwell time, purchases. The trouble is that *no interaction* doesn't mean *dislike* — the user may simply never have seen the item.
 
@@ -324,11 +324,11 @@ with $p_{ui} \in \{0, 1\}$ (interacted or not) and $c_{ui} = 1 + \alpha f_{ui}$ 
 
 ---
 
-## 4. Evaluation: Measuring What Matters
+## Evaluation: Measuring What Matters
 
 Building a recommender is half the battle. Knowing whether it is actually good is the other half — and it is genuinely harder than people assume.
 
-### 4.1 Why a single accuracy number lies
+### 1 Why a single accuracy number lies
 
 If your model has 95% accuracy at predicting ratings, is it good? Maybe — but consider:
 
@@ -338,7 +338,7 @@ If your model has 95% accuracy at predicting ratings, is it good? Maybe — but 
 
 Honest evaluation needs **multiple metrics** measuring different things.
 
-### 4.2 Classification metrics
+### 2 Classification metrics
 
 For each user $u$, let $R_u$ be the items we recommended (top-$K$) and $T_u$ the items they actually liked.
 $$\text{Precision@}K = \frac{|R_u \cap T_u|}{|R_u|}, \quad \text{Recall@}K = \frac{|R_u \cap T_u|}{|T_u|}$$
@@ -348,7 +348,7 @@ $$\text{Precision@}K = \frac{|R_u \cap T_u|}{|R_u|}, \quad \text{Recall@}K = \fr
 
 These are intuitive but they ignore *order* within the top-$K$ list — a relevant item at position 1 counts the same as at position 10.
 
-### 4.3 Ranking metrics — position matters
+### 3 Ranking metrics — position matters
 
 In real interfaces, position 1 is worth dramatically more than position 10. Two metrics dominate.
 
@@ -413,7 +413,7 @@ if __name__ == "__main__":
     print(f"NDCG@10      = {ndcg_at_k([5,5,2,5,1,3,4,2,1,1], 10):.3f}")
 ```
 
-### 4.4 Beyond accuracy: coverage, diversity, serendipity
+### 4 Beyond accuracy: coverage, diversity, serendipity
 
 A recommender that always serves the global top 10 will score well on precision and ruin your product. Three accuracy-orthogonal metrics keep you honest:
 
@@ -423,7 +423,7 @@ A recommender that always serves the global top 10 will score well on precision 
 
 These objectives often *conflict* with raw accuracy. Picking the trade-off is a product decision, not an algorithmic one.
 
-### 4.5 Online metrics — what really decides
+### 5 Online metrics — what really decides
 
 Offline metrics guide development. Online metrics decide promotions. The ones that matter in production:
 
@@ -436,7 +436,7 @@ The tool is **A/B testing**: split users randomly, run the new system against th
 
 ---
 
-## 5. System Architecture: From Millions to Top-10
+## System Architecture: From Millions to Top-10
 
 A real recommender has a daunting job: pick 10 items from a catalog of 10⁷, in <100 ms, hundreds of thousands of times per second. No single model can do that. The answer everyone has converged on is a **multi-stage funnel** that progressively narrows the candidate set while applying increasingly expensive models.
 
@@ -550,7 +550,7 @@ The funnel's discipline is what makes it possible to combine "deep learning qual
 
 ---
 
-## 6. The Five Open Challenges
+## The Five Open Challenges
 
 Decades of research later, every recommender team still wrestles with the same five problems. There is no clean solution to any of them.
 
@@ -619,11 +619,11 @@ The standard toolkit: aggressive caching, ANN libraries (FAISS, ScaNN, HNSW), mo
 
 ---
 
-## 7. Implementations from Scratch
+## Implementations from Scratch
 
 Reading code teaches things that prose does not. Two reference implementations follow: User-CF and Item-CF, both fully runnable.
 
-### 7.1 User-Based Collaborative Filtering
+### 1 User-Based Collaborative Filtering
 
 ```python
 import numpy as np
@@ -694,7 +694,7 @@ class UserBasedCF:
         return sorted(scores, key=lambda x: -x[1])[:n]
 ```
 
-### 7.2 Item-Based Collaborative Filtering
+### 2 Item-Based Collaborative Filtering
 
 The architecture mirrors User-CF but flips the question: instead of "which users are like me?", we ask "which items are like the ones I already liked?" The standard similarity is **adjusted cosine** — cosine after subtracting each *user's* mean, which removes their personal rating scale.
 
@@ -758,7 +758,7 @@ class ItemBasedCF:
 
 ---
 
-## 8. FAQ
+## FAQ
 
 **When should I use CF vs. content-based?**
 
@@ -782,7 +782,7 @@ Pure exploitation creates filter bubbles; pure exploration annoys users. Practic
 
 ---
 
-## 9. Takeaways and What's Next
+## Takeaways and What's Next
 
 Five things to remember from this article:
 

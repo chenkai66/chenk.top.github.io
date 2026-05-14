@@ -49,7 +49,7 @@ The idea is one paragraph. The engineering is the rest of this article. A real R
 
 ---
 
-## 1. The RAG decomposition
+## The RAG decomposition
 
 ![End-to-end RAG pipeline showing offline indexing and online query path](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig1_rag_pipeline.png)
 
@@ -121,7 +121,7 @@ RAG shines when the knowledge is **large, volatile, or auditable**: docs that ch
 
 ---
 
-## 2. Embedding space and ANN trade-offs
+## Embedding space and ANN trade-offs
 
 ![Vector similarity in embedding space and recall vs latency for FAISS index families](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig2_vector_similarity.png)
 
@@ -148,7 +148,7 @@ The right panel of the figure shows the Pareto frontier on a 1 M × 768-d corpus
 
 ---
 
-## 3. Hybrid retrieval: dense + sparse with RRF
+## Hybrid retrieval: dense + sparse with RRF
 
 ![Hybrid retrieval combining dense and BM25 via Reciprocal Rank Fusion](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig3_hybrid_retrieval.png)
 
@@ -199,7 +199,7 @@ Hybrid retrieval is rarely the *bottleneck* in a RAG system, but it is reliably 
 
 ---
 
-## 4. Reranking: where most of the precision lives
+## Reranking: where most of the precision lives
 
 ![Bi-encoder vs cross-encoder, and the quality-latency curve of two-stage retrieval](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig4_reranking.png)
 
@@ -224,7 +224,7 @@ def retrieve_and_rerank(query, hybrid_retriever, top_k_retrieve=50, top_k_final=
 
 ---
 
-## 5. Chunking: the silent precision leak
+## Chunking: the silent precision leak
 
 ![Fixed, recursive, and semantic chunking, with the quality-vs-size trade-off curve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig5_chunking.png)
 
@@ -258,7 +258,7 @@ The retriever embeds 400-token children for **precision** (small windows give sh
 
 ---
 
-## 6. Query optimisation
+## Query optimisation
 
 The query the user types is rarely the query the index expects. Three techniques worth knowing:
 
@@ -283,7 +283,7 @@ def hyde_retrieve(question, llm, vectordb, k=6):
 
 ---
 
-## 7. Self-RAG and Corrective RAG
+## Self-RAG and Corrective RAG
 
 ![Self-RAG / Corrective RAG control flow with reflection tokens](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig6_self_rag.png)
 
@@ -332,7 +332,7 @@ The cost is real — 3–4× the LLM calls of vanilla RAG — and it is worth it
 
 ---
 
-## 8. Vector databases in practice
+## Vector databases in practice
 
 ![Capability radar and indicative single-node throughput across vector DBs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/fig7_vectordb.png)
 
@@ -358,7 +358,7 @@ The radar in the left panel is a subjective summary; the right panel is an order
 
 ---
 
-## 9. Evaluating a RAG system
+## Evaluating a RAG system
 
 A RAG system has two failure modes — bad retrieval and bad generation — and you must measure them separately.
 
@@ -378,7 +378,7 @@ The standard tooling here is **RAGAS** and **TruLens**; both wrap the prompts so
 
 ---
 
-## 10. FAQ
+## FAQ
 
 **My RAG is slow. Where do I start?** Profile first. Embedding the query is single-digit ms; HNSW retrieval is single-digit ms; the 90th percentile is almost always in the LLM call. Cache identical queries, shrink your prompt (parent–child chunking helps here), and consider a smaller reranker before you touch the index.
 
@@ -392,7 +392,7 @@ The standard tooling here is **RAGAS** and **TruLens**; both wrap the prompts so
 
 ---
 
-## 11. Inference cost: what RAG actually pays for
+## Inference cost: what RAG actually pays for
 
 A RAG response isn't just an LLM call. The latency budget breaks down like this for a typical production pipeline answering one user question:
 
@@ -411,7 +411,7 @@ The LLM call dominates everything else by an order of magnitude, which means: **
 
 Cost-wise on GPT-4o-mini at $0.15/M input tokens, $0.6/M output tokens, with 4K input context and 200 output tokens: **$0.0007/query**. At 1M queries/day that's $700/day, $250K/year. Switching to a self-hosted 7B model on 4× A10 GPUs costs roughly $400/month all-in — break-even is at ~50K queries/day.
 
-## 12. Why production RAG actually fails
+## Why production RAG actually fails
 
 Five failure modes I've debugged in shipped systems, with the fix.
 

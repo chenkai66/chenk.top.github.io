@@ -34,6 +34,9 @@ translationKey: "openclaw-quickstart-1"
 
 **为什么这些很重要。** OpenClaw 不是一个只需填写表单即可使用的 SaaS 服务，而是你自己运行的基础设施。如果想到要 SSH 连 VPS 或编辑 `.env` 文件就让你头大，那 ChatGPT Plus 或 Claude Pro 这类托管方案可能更适合你——这没高低之分，它们同样是优秀的产品。但如果你来这里是因为想把 agent 跑在自己的基础设施上，读本地文件，且不向外部“打电话汇报”，那你来对地方了。
 
+
+---
+
 ## 它到底是什么
 
 OpenClaw 是一个自托管的 AI agent 平台。你只需安装一个 Node 二进制文件并配置一个或多个 LLM 提供商的 API Key，它就能运行一个长驻网关进程，监听你接入的任何聊天平台——钉钉、微信（通过 WorkBuddy）、Telegram、Discord、Slack、飞书等。网关将消息路由到包含工具、技能、记忆和 cron 调度器的 agent 循环中。整个项目采用 MIT 协议开源，数据存储在你的机器上，可以随时更换模型而无需重写 prompt。

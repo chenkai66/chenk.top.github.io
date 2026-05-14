@@ -36,7 +36,7 @@ Imitation learning takes that intuition seriously: instead of optimising a hand-
 
 ---
 
-## 1. Problem setting
+## Problem setting
 
 Given expert demonstrations
 $$\mathcal{D} = \{(s_1, a_1), (s_2, a_2), \ldots, (s_N, a_N)\},$$
@@ -56,7 +56,7 @@ The methods we cover trade these axes against each other. The five-rung ladder i
 
 ---
 
-## 2. Behavioral cloning
+## Behavioral cloning
 
 The simplest imitation algorithm is also the most-deployed one: treat $\mathcal{D}$ as a supervised dataset and minimise
 $$\mathcal{L}(\theta) \;=\; \mathbb{E}_{(s,a)\sim \mathcal{D}}\big[ \ell\big(\pi_\theta(s),\, a\big) \big],$$
@@ -139,7 +139,7 @@ Three implementation details matter much more than they look:
 2. **Early-stopping on a held-out validation set.** Long training overfits the expert's noise, which makes the next problem worse, not better.
 3. **Action representation.** For continuous control, predicting Gaussian parameters with a NLL loss outperforms MSE on Tanh outputs whenever the expert is multimodal.
 
-### 2.1 Why BC fails on long horizons
+### 1 Why BC fails on long horizons
 
 BC is trained under the expert's state distribution $d_{\pi^*}$ but, at deployment, it visits states drawn from its _own_ distribution $d_{\pi_\theta}$. Because the policy is imperfect, those distributions diverge with every step.
 
@@ -159,7 +159,7 @@ Early in the episode the BC learner stays on the expert corridor. Around the mid
 
 ---
 
-## 3. DAgger: dataset aggregation
+## DAgger: dataset aggregation
 
 DAgger (Ross, Gordon & Bagnell, 2011) breaks the cascade by collecting expert labels _on the states the learner actually visits_. Each iteration adds a new slice of $(s, a^*)$ pairs sampled from $d_{\pi_\theta}$ and retrains on the aggregated dataset.
 
@@ -220,7 +220,7 @@ It does _not_ apply when the only demonstrations are a static log — e.g. a rec
 
 ---
 
-## 4. Inverse reinforcement learning
+## Inverse reinforcement learning
 
 ![Reinforcement Learning (7): Imitation Learning and Inverse RL — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/illustration_2.png)
 
@@ -233,7 +233,7 @@ Why bother going through reward? Two reasons:
 
 ![Inverse RL recovers reward from behaviour](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig3_irl_recovery.png)
 
-### 4.1 Maximum-entropy IRL
+### 1 Maximum-entropy IRL
 
 A purely "match the expert's value" objective is ill-posed — many rewards explain the same behaviour. **Maximum-entropy IRL** (Ziebart et al., 2008) breaks the tie by requiring the recovered policy to maximise $r$ subject to maximum entropy. Concretely, the expert's distribution over trajectories $\tau$ takes the Boltzmann form
 $$p_\theta(\tau) \;\propto\; \exp\!\left( \sum_t r_\theta(s_t, a_t) \right).$$
@@ -243,13 +243,13 @@ Read this as a contrastive update: _push reward up where the expert goes, push i
 
 The cost is the second expectation. Computing $\mathbb{E}_{\pi_\theta}$ requires solving an RL problem (or doing trajectory sampling) at every reward update — a nested loop that limited classical IRL to small grid worlds. **Guided cost learning** (Finn, Levine & Abbeel, 2016) replaces the inner RL solve with sampled importance-weighted trajectories, scaling MaxEnt IRL to continuous control.
 
-### 4.2 Reward ambiguity
+### 2 Reward ambiguity
 
 Even with the max-entropy regulariser, $\hat r$ is recovered up to **shaping invariances**: adding a potential function $\Phi(s') - \Phi(s)$ leaves the optimal policy unchanged but changes $r$. The recovered reward is therefore a useful _ranking_ over states, not an absolute scale. Adversarial inverse RL (§5.2) explicitly disentangles the shaping component.
 
 ---
 
-## 5. Adversarial imitation: GAIL and AIRL
+## Adversarial imitation: GAIL and AIRL
 
 The IRL inner loop is expensive. **GAIL** (Ho & Ermon, 2016) noticed that for imitation we don't actually need $r$ — we only need the policy whose state-action _occupancy_ matches the expert's. So GAIL replaces "recover reward, then re-solve RL" with a single adversarial game.
 
@@ -314,11 +314,11 @@ class GAIL:
 - _Reward signal collapses._ As $D \to 0$ on policy samples, the reward drifts to zero. Reward normalisation per batch (running mean / std) restores learning.
 - _Policy mode-collapses._ Increase the entropy bonus $\lambda$ or use a maximum-entropy actor (SAC-style) as the generator.
 
-### 5.1 What does "matching occupancy" actually mean?
+### 1 What does "matching occupancy" actually mean?
 
 GAIL is not minimising an action-prediction loss; it is minimising the Jensen-Shannon divergence between the expert occupancy $\rho_{\pi^*}(s, a)$ and the learner occupancy $\rho_{\pi_\theta}(s, a)$. That is a much stronger objective than BC — it is _aware_ of the rollout distribution. The price: it requires environment interaction during training (to sample $\rho_{\pi_\theta}$), so it does not work in fully offline settings without modification.
 
-### 5.2 AIRL: disentangling reward from shaping
+### 2 AIRL: disentangling reward from shaping
 
 The discriminator GAIL learns is great for imitation but is _not_ a reusable reward. **AIRL** (Fu, Luo & Levine, 2018) restructures the discriminator as
 $$
@@ -330,7 +330,7 @@ so that $r_\psi$ is the _state-only_ reward and $\Phi_\xi$ absorbs the shaping. 
 
 ---
 
-## 6. Sample efficiency: imitation vs RL
+## Sample efficiency: imitation vs RL
 
 The strongest practical argument for imitation is sample efficiency. A few thousand expert demonstrations can substitute for tens of millions of environment interactions, especially in high-dimensional control.
 
@@ -342,7 +342,7 @@ This is also why **imitation pre-training + RL fine-tuning** is the dominant rec
 
 ---
 
-## 7. Method selection
+## Method selection
 
 | Method | Needs interactive expert? | Needs env interaction? | Sample efficiency | Interpretable reward? | Typical regime |
 |---|---|---|---|---|---|
@@ -361,7 +361,7 @@ A short decision rule:
 
 ---
 
-## 8. FAQ
+## FAQ
 
 **Can imitation learning exceed the expert?**
 Pure imitation cannot, by construction — the optimal imitator matches the expert. The standard fix is _imitation as initialisation_: start from the BC/GAIL policy and fine-tune with RL on whatever reward you _can_ specify (or with RLHF). Most large-scale systems use exactly this two-stage recipe.

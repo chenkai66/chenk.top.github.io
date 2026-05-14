@@ -36,7 +36,7 @@ In this chapter we will:
 
 ---
 
-## 1. A Matrix Is a Function
+## A Matrix Is a Function
 
 Forget for a moment that a matrix is "an array of numbers." A matrix $A$ is a **function**
 $$A: \mathbb{R}^{n} \longrightarrow \mathbb{R}^{m}, \qquad \vec{v} \mapsto A\vec{v}.$$
@@ -72,7 +72,7 @@ It is just as useful to know what falls outside this club:
 
 ---
 
-## 2. The Key Insight: Columns Are Where the Basis Vectors Land
+## The Key Insight: Columns Are Where the Basis Vectors Land
 
 This is the single most important sentence in the chapter. Read it twice:
 
@@ -105,11 +105,11 @@ No memorised formula required — just "three copies of column 1 plus two copies
 
 ---
 
-## 3. A Visual Gallery of 2D Transformations
+## A Visual Gallery of 2D Transformations
 
 To build intuition, we will look at five transformations the same way: keep the original unit grid on the left, draw the deformed grid on the right, and mark $\hat{\imath}$ in **blue**, $\hat{\jmath}$ in **purple**. The unit square (in green) shows what happens to area.
 
-### 3.1 Rotation
+### 1 Rotation
 
 Track $\hat{\imath}$ around the unit circle: at angle $\theta$ counter-clockwise it lands at $(\cos\theta, \sin\theta)$. Similarly $\hat{\jmath}$ goes from angle $90^{\circ}$ to $90^{\circ} + \theta$, landing at $(-\sin\theta, \cos\theta)$. Stack them as columns:
 $$R_{\theta} = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}.$$
@@ -125,7 +125,7 @@ A few special angles worth memorising:
 
 **Game programming aside.** Every "turn left" key press in a 2D game multiplies the player's facing vector by $R_{\Delta\theta}$. Rotations preserve length and angle, so the character does not stretch when it spins.
 
-### 3.2 Scaling
+### 2 Scaling
 
 To stretch by $s_{x}$ along $x$ and $s_{y}$ along $y$, just send $\hat{\imath} \mapsto (s_{x}, 0)$ and $\hat{\jmath} \mapsto (0, s_{y})$:
 $$S = \begin{pmatrix} s_{x} & 0 \\ 0 & s_{y} \end{pmatrix}.$$
@@ -135,7 +135,7 @@ The unit square turns into an $s_{x} \times s_{y}$ rectangle, so its area is mul
 
 Resizing an image in Photoshop is exactly this: every pixel coordinate is multiplied by a diagonal $S$.
 
-### 3.3 Shear
+### 3 Shear
 
 A horizontal shear sends $\hat{\imath} \mapsto (1, 0)$ unchanged and $\hat{\jmath} \mapsto (k, 1)$ — it slides the top of the unit square sideways:
 $$H = \begin{pmatrix} 1 & k \\ 0 & 1 \end{pmatrix}.$$
@@ -145,7 +145,7 @@ The new $x$ coordinate is $x + ky$, so the higher up a point sits, the more it s
 
 Notice that $\det H = 1$: shears never change area, even though they distort shape dramatically.
 
-### 3.4 Reflection
+### 4 Reflection
 
 Reflection flips one coordinate. The matrix is again "where do the basis vectors land?":
 
@@ -158,7 +158,7 @@ Reflection flips one coordinate. The matrix is again "where do the basis vectors
 
 A reflection has $\det = -1$: area is preserved, but orientation is reversed (right-handed becomes left-handed). That sign is what distinguishes a reflection from a rotation.
 
-### 3.5 Projection
+### 5 Projection
 
 Projection onto the $x$-axis sends $\hat{\imath} \mapsto (1, 0)$ and crushes $\hat{\jmath} \mapsto (0, 0)$:
 $$P_{x} = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}.$$
@@ -178,7 +178,7 @@ Projections are the first transformations that **lose information** — both $(1
 
 ---
 
-## 4. Matrix Multiplication = Composition of Transformations
+## Matrix Multiplication = Composition of Transformations
 
 ![Essence of Linear Algebra (3): Matrices as Linear Transformations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/03-matrices-as-linear-transformations/illustration_2.png)
 
@@ -218,7 +218,7 @@ If you have a million vertices, you do **not** apply $S$, then $R$, then $T$ to 
 
 ---
 
-## 5. Identity and Inverse: Doing Nothing, and Undoing
+## Identity and Inverse: Doing Nothing, and Undoing
 
 ### The Identity
 
@@ -256,7 +256,7 @@ $$A^{-1} = \frac{1}{ad - bc}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix}.$$
 
 ---
 
-## 6. Singular Matrices: When the Plane Collapses
+## Singular Matrices: When the Plane Collapses
 
 This is where the geometric viewpoint really earns its keep. Consider the matrix
 $$S = \begin{pmatrix} 1 & 2 \\ 2 & 4 \end{pmatrix}.$$
@@ -290,7 +290,7 @@ where $n$ is the input dimension. Translation: every dimension the matrix collap
 
 ---
 
-## 7. Transformations in 3D and Beyond
+## Transformations in 3D and Beyond
 
 Everything generalises cleanly. In $\mathbb{R}^{3}$ a linear transformation is a $3 \times 3$ matrix, and the three columns are where $\hat{\imath}$, $\hat{\jmath}$, $\hat{k}$ land.
 
@@ -302,7 +302,7 @@ This 3D projection is the higher-dimensional analogue of the singular matrix abo
 
 ---
 
-## 8. Python: Visualising Transformations
+## Python: Visualising Transformations
 
 The script that produced every figure in this chapter lives at `scripts/figures/linear-algebra/03-matrices-as-linear-transformations.py`. Here is the minimal idea behind it — a function that draws a matrix's effect on the unit square:
 

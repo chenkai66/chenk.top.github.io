@@ -42,9 +42,9 @@ By the end, you should be able to look at any ensemble method and say what it re
 
 ---
 
-## 1. Why ensembles work
+## Why ensembles work
 
-### 1.1 The variance reduction identity
+### 1 The variance reduction identity
 
 Pick any regression problem and any base learner that produces $h_t(\mathbf{x})$ on training set $\mathcal{D}_t$. The simplest ensemble is a flat average:
 $$H(\mathbf{x}) = \frac{1}{T}\sum_{t=1}^T h_t(\mathbf{x}).$$
@@ -61,7 +61,7 @@ This equation is the core reason ensembles exist. Read it carefully:
 
 So every ensemble method is, at heart, an answer to two questions: *how do I generate diverse learners (small $\rho$) without making them too weak (large bias)?*
 
-### 1.2 Bias--variance decomposition
+### 2 Bias--variance decomposition
 
 For squared loss the generalisation error of any predictor decomposes as
 $$
@@ -77,7 +77,7 @@ Complex models (deep trees, large neural nets) have low bias but high variance. 
 
 That is the entire taxonomy in two sentences.
 
-### 1.3 Why a committee of mediocre voters works
+### 3 Why a committee of mediocre voters works
 
 For binary classification with $T$ independent classifiers, each with error rate $\epsilon < 1/2$, the majority vote is wrong only when more than half the voters are wrong. The exact probability is binomial:
 $$P_{\text{ensemble}} = \sum_{k > T/2} \binom{T}{k}\,\epsilon^k(1-\epsilon)^{T-k}.$$
@@ -85,9 +85,9 @@ With $T = 21$ and $\epsilon = 0.30$ this evaluates to about $0.026$. A 30 % erro
 
 ---
 
-## 2. Bagging and Random Forest
+## Bagging and Random Forest
 
-### 2.1 Bagging: the parallel recipe
+### 1 Bagging: the parallel recipe
 
 ![Bagging architecture: parallel weak learners on bootstrap samples, then averaged](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig1_bagging_diagram.png)
 
@@ -111,7 +111,7 @@ $$
 $$
 This is an (almost) unbiased estimate of generalization error, computed for free as a side effect of training. No need for a held-out set or cross-validation loop.
 
-### 2.2 Random Forest: decorrelating the trees
+### 2 Random Forest: decorrelating the trees
 
 ![Random Forest smooths the boundary by averaging decorrelated trees](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig3_rf_decision_boundary.png)
 
@@ -133,7 +133,7 @@ This is the variance-reduction identity dressed up. To improve a forest you have
 
 The two knobs trade off, which is why $m$ is a tuning parameter, not a constant.
 
-### 2.3 Feature importance
+### 3 Feature importance
 
 Two ways to score features:
 
@@ -144,7 +144,7 @@ When two features carry similar signal, mean-decrease-in-impurity *splits* the i
 
 ---
 
-## 3. Bagging vs Boosting --- the bias--variance picture
+## Bagging vs Boosting --- the bias--variance picture
 
 ![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_2.png)
 
@@ -159,13 +159,13 @@ Bagging cannot do anything about systematic bias --- if the base learner is fund
 
 ---
 
-## 4. Boosting: sequential bias reduction
+## Boosting: sequential bias reduction
 
 ![Boosting: sequential weighted learners](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig2_boosting_diagram.png)
 
 Boosting flips the picture. Instead of training $T$ learners in parallel and averaging, boosting trains them **sequentially**, each one focused on the mistakes of its predecessor. Each learner is intentionally weak (e.g. a depth-1 stump), which makes it *high bias, low variance*. The sequence then drives the bias down.
 
-### 4.1 AdaBoost: the algorithm
+### 1 AdaBoost: the algorithm
 
 For binary labels $y_i \in \{-1, +1\}$, initialise weights $w_1(i) = 1/N$. For $t = 1,\dots,T$:
 
@@ -182,7 +182,7 @@ Three things to notice in the formulas:
 - **$\alpha_t > 0 \iff \epsilon_t < 1/2$.** A learner worse than random gets a *negative* weight --- AdaBoost flips its predictions and keeps it. Nothing is wasted.
 - **Weight update is multiplicative.** Correctly classified samples ($y_i h_t = +1$) shrink by $e^{-\alpha_t}$; misclassified ones grow by $e^{+\alpha_t}$. The next round literally *cannot ignore* the hard cases.
 
-### 4.2 The exponential training-error bound
+### 2 The exponential training-error bound
 
 A short calculation shows the training error is bounded by the product of normalisers:
 $$
@@ -202,7 +202,7 @@ The left heatmap traces every sample's weight across iterations: most points fad
 
 This is also AdaBoost's failure mode: with genuinely *mislabelled* points the same dynamic dumps all of the model's capacity on the noise. GBDT with a robust loss (e.g. Huber) handles that case much more gracefully.
 
-### 4.3 Why exponential weights? The forward stagewise view
+### 3 Why exponential weights? The forward stagewise view
 
 AdaBoost looks like a clever heuristic until you realise it is exactly **forward stagewise additive modelling under exponential loss**. The model is
 $$F(\mathbf{x}) = \sum_{t=1}^T \alpha_t\, h_t(\mathbf{x}),$$
@@ -214,9 +214,9 @@ Solving for the optimal $h_t$ first (it minimises weighted error) and then for $
 
 ---
 
-## 5. Gradient Boosting Decision Trees (GBDT)
+## Gradient Boosting Decision Trees (GBDT)
 
-### 5.1 Boosting as gradient descent in function space
+### 1 Boosting as gradient descent in function space
 
 Exponential loss is fragile. The key insight of Friedman (2001) was that the forward-stagewise idea works for *any* differentiable loss if we recast it as gradient descent.
 
@@ -233,7 +233,7 @@ These $r_{ti}$ are the **pseudo-residuals**. A single regression tree fit to $\{
    - Line search the step size $\rho_t = \arg\min_\rho \sum_i L(y_i, F_{t-1}(\mathbf{x}_i) + \rho\, h_t(\mathbf{x}_i))$.
    - Update $F_t = F_{t-1} + \eta\,\rho_t\, h_t$, where $\eta \in (0, 1]$ is the learning rate.
 
-### 5.2 What the pseudo-residuals look like for common losses
+### 2 What the pseudo-residuals look like for common losses
 
 | Loss | $L(y, F)$ | Pseudo-residual $r_i$ | Notes |
 |---|---|---|---|
@@ -244,7 +244,7 @@ These $r_{ti}$ are the **pseudo-residuals**. A single regression tree fit to $\{
 
 For squared loss the algorithm reduces to "fit the residuals", which was the original boosting intuition. For everything else the gradient-in-function-space picture is the only clean way to see what is happening.
 
-### 5.3 Regularisation: the three knobs that actually matter
+### 3 Regularisation: the three knobs that actually matter
 
 GBDT will overfit aggressively if you let it. The standard defences:
 
@@ -256,7 +256,7 @@ XGBoost (next post) adds an explicit $L_2$ penalty on leaf weights and a leaf-co
 
 ---
 
-## 6. Stacking: meta-learning over heterogeneous models
+## Stacking: meta-learning over heterogeneous models
 
 ![Stacking: meta-learner consumes base-learner outputs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig6_stacking_diagram.png)
 
@@ -271,7 +271,7 @@ When does stacking pay off? When the base learners make *different kinds* of mis
 
 ---
 
-## 7. Ensemble size: how many learners is enough?
+## Ensemble size: how many learners is enough?
 
 ![Test error vs ensemble size for Bagging, Random Forest and AdaBoost](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig7_size_vs_error.png)
 
@@ -286,7 +286,7 @@ Practical takeaway: for Bagging/RF, choose $T$ as large as your compute budget a
 
 ---
 
-## 8. Reference implementations
+## Reference implementations
 
 The code below is intentionally short and dependency-free. It is not as fast as scikit-learn, but every step maps directly onto the formulas above.
 
@@ -409,7 +409,7 @@ class GradientBoostingRegressor:
 
 ---
 
-## 9. FAQ
+## FAQ
 
 **Q1. Bagging or Boosting --- which is "better"?**
 Wrong question. Bagging reduces variance; Boosting reduces bias. If your base learner overfits (deep tree on a small dataset), bag it. If your base learner underfits (a stump), boost it. They live on opposite sides of the bias--variance dilemma.
@@ -434,7 +434,7 @@ Because the function-space view generalises: any differentiable loss, any tree l
 
 ---
 
-## 10. Exercises
+## Exercises
 
 ### Exercise 1 — Bias--variance arithmetic
 

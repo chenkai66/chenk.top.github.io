@@ -30,6 +30,9 @@ translationKey: "ml-math-derivations-7"
 - Pre-pruning vs post-pruning, and the exact derivation of the cost-complexity threshold $\alpha$.
 - How feature importance is *defined* (not just printed by sklearn) and where it can be misleading.
 
+
+---
+
 ## Decision Tree Fundamentals
 
 ### Model Representation

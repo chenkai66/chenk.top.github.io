@@ -40,7 +40,7 @@ This chapter builds the entire toolkit. We will derive it once, prove the struct
 
 ---
 
-## 1. Why second-order is the natural unit
+## Why second-order is the natural unit
 
 Any time a system has both **inertia** (kinetic content, momentum, current in an inductor) and a **restoring force** (a spring, gravity, a capacitor's voltage), Newton's $F = ma$ produces a second derivative on the left and a position on the right:
 $$m\,\ddot x \;=\; -\,k x \;-\; b\,\dot x \;+\; F_\text{ext}(t).$$
@@ -52,15 +52,15 @@ with **natural frequency** $\omega_0 = \sqrt{k/m}$ and **damping ratio** $\zeta 
 
 ---
 
-## 2. Structure of the solution space
+## Structure of the solution space
 
-### 2.1 Standard form
+### 1 Standard form
 
 An $n$-th order linear ODE looks like
 $$y^{(n)} + p_{n-1}(x)\,y^{(n-1)} + \cdots + p_1(x)\,y' + p_0(x)\,y \;=\; g(x).$$
 It is **homogeneous** when $g \equiv 0$, otherwise **non-homogeneous**.
 
-### 2.2 Three theorems that organise everything
+### 2 Three theorems that organise everything
 
 **(T1) Superposition.** If $y_1, y_2$ both solve the homogeneous equation, so does $c_1 y_1 + c_2 y_2$ for any constants $c_1, c_2$. (Linearity of derivatives — write it out.)
 
@@ -72,7 +72,7 @@ This is the existence-uniqueness theorem in disguise: the $n$ initial conditions
 $$y \;=\; y_h \;+\; y_p,$$
 where $y_p$ is *any one* particular solution. The reason is that if $y, \tilde y$ are two solutions, $L[y - \tilde y] = 0$, so they differ by a homogeneous solution.
 
-### 2.3 The Wronskian: a determinant test for independence
+### 3 The Wronskian: a determinant test for independence
 
 How do we *check* that $n$ candidate solutions are linearly independent? Differentiate them $n-1$ times and form the **Wronskian**:
 $$
@@ -99,9 +99,9 @@ Independent everywhere — they form a basis for solutions of $y'' + y = 0$.
 
 ---
 
-## 3. Constant coefficients: the characteristic equation
+## Constant coefficients: the characteristic equation
 
-### 3.1 The trick
+### 1 The trick
 
 For
 $$a_n y^{(n)} + a_{n-1} y^{(n-1)} + \cdots + a_1 y' + a_0 y \;=\; 0$$
@@ -109,7 +109,7 @@ guess $y = e^{rx}$. Each derivative pulls down one factor of $r$, so the equatio
 $$P(r) \;\equiv\; a_n r^n + a_{n-1} r^{n-1} + \cdots + a_1 r + a_0 \;=\; 0.$$
 Every root $r$ contributes a building block. The map *roots $\to$ basis solutions* is the entire content of this section.
 
-### 3.2 The three cases
+### 2 The three cases
 
 **Case 1: Distinct real roots $r_1, \dots, r_n$.**
 $$y \;=\; c_1 e^{r_1 x} + c_2 e^{r_2 x} + \cdots + c_n e^{r_n x}.$$
@@ -127,7 +127,7 @@ $$y \;=\; e^{\alpha x}\bigl(c_1 \cos\beta x + c_2 \sin\beta x\bigr).$$
 
 *Example.* $y'' + 2y' + 5y = 0$ gives $r = -1 \pm 2i$, so $y = e^{-x}(c_1\cos 2x + c_2\sin 2x)$ — a sinusoid trapped inside a shrinking exponential envelope.
 
-### 3.3 Reading roots geometrically
+### 3 Reading roots geometrically
 
 The location of the roots in the complex plane *is* the qualitative behaviour:
 
@@ -141,7 +141,7 @@ The location of the roots in the complex plane *is* the qualitative behaviour:
 
 ---
 
-## 4. Damped oscillation: the trichotomy in pictures
+## Damped oscillation: the trichotomy in pictures
 
 ![Ordinary Differential Equations (3): Higher-Order Linear Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/illustration_2.png)
 
@@ -162,9 +162,9 @@ Its characteristic equation $r^2 + 2\zeta\omega_0 r + \omega_0^2 = 0$ has discri
 
 ---
 
-## 5. Non-homogeneous: the method of undetermined coefficients
+## Non-homogeneous: the method of undetermined coefficients
 
-### 5.1 The recipe
+### 1 The recipe
 
 To solve $L[y] = f(x)$ with constant coefficients:
 
@@ -173,7 +173,7 @@ To solve $L[y] = f(x)$ with constant coefficients:
 3. Substitute the guess, equate coefficients to determine the unknown constants.
 4. Combine: $y = y_h + y_p$.
 
-### 5.2 The guessing table
+### 2 The guessing table
 
 | Forcing $f(x)$ | Trial $y_p$ |
 |---|---|
@@ -185,7 +185,7 @@ To solve $L[y] = f(x)$ with constant coefficients:
 
 **The resonance correction.** If your trial form is *itself a homogeneous solution*, multiply it by $x$ (or $x^2$ for a double resonance). Otherwise the substitution gives $0 = f$ — a contradiction.
 
-### 5.3 A worked example end-to-end
+### 3 A worked example end-to-end
 
 Solve $y'' + y' + y = e^{-x/2}\cos x$.
 
@@ -198,7 +198,7 @@ $$y_p \;=\; e^{-x/2}(A\cos x + B\sin x).$$
 ![The undetermined-coefficients workflow as three stacked panels: forcing, trial basis, fitted particular solution.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/03-linear-theory/fig6_undetermined_coefficients.png)
 *Method of undetermined coefficients in three steps. (1) Identify the forcing. (2) Pick a trial form spanned by the same exponentials and trig functions. (3) Solve a small linear system; the green dashed curve verifies that $y_p'' + y_p' + y_p$ reproduces $f$ exactly.*
 
-### 5.4 Resonance: when the trial form lies inside $y_h$
+### 4 Resonance: when the trial form lies inside $y_h$
 
 Force a frictionless oscillator at exactly its natural frequency:
 $$\ddot x + \omega_0^2 x \;=\; F_0\cos\omega_0 t.$$
@@ -211,13 +211,13 @@ The amplitude grows linearly with time — energy is pumped in every cycle and n
 
 ---
 
-## 6. Variation of parameters: when guessing fails
+## Variation of parameters: when guessing fails
 
-### 6.1 Why we need it
+### 1 Why we need it
 
 The undetermined-coefficients table only contains exponentials, polynomials, sines, cosines, and their products. For $f(x) = \sec x, \tan x, \ln x, e^{x^2}$, ... we need a method that works for any continuous forcing. **Variation of parameters** is that method.
 
-### 6.2 The formula (second order)
+### 2 The formula (second order)
 
 Given $y'' + p(x)y' + q(x)y = f(x)$ and a basis $y_1, y_2$ for the homogeneous equation, look for a particular solution of the form $y_p = u_1(x)\,y_1(x) + u_2(x)\,y_2(x)$ — promoting the "constants" of the homogeneous solution to functions (hence the name). Imposing the constraint $u_1' y_1 + u_2' y_2 = 0$ to keep things tractable, substitution yields the linear system
 $$
@@ -227,7 +227,7 @@ $$
 $$
 whose determinant is the Wronskian $W$. Cramer's rule then gives the closed-form
 $$\boxed{\;y_p \;=\; -\,y_1 \int \frac{y_2\,f}{W}\,dx \;+\; y_2 \int \frac{y_1\,f}{W}\,dx\;}.$$
-### 6.3 Worked example: $y'' + y = \sec x$
+### 3 Worked example: $y'' + y = \sec x$
 
 Homogeneous basis: $y_1 = \cos x,\ y_2 = \sin x,\ W = 1$. The integrands simplify nicely:
 $$
@@ -246,7 +246,7 @@ y_p \;=\; -\cos x\int\tan x\,dx + \sin x\int 1\,dx
 
 ---
 
-## 7. RLC circuits: the same equation in disguise
+## RLC circuits: the same equation in disguise
 
 A series resistor-inductor-capacitor circuit with applied voltage $V(t)$ obeys Kirchhoff's voltage law:
 $$L\,\ddot q \;+\; R\,\dot q \;+\; \frac{q}{C} \;=\; V(t),$$
@@ -267,7 +267,7 @@ The standard parameters become $\omega_0 = 1/\sqrt{LC}$ (resonant angular freque
 
 ---
 
-## 8. Reduction to a first-order system
+## Reduction to a first-order system
 
 Numerical solvers (and the matrix theory of [Chapter 6](/en/ode/07-systems-and-phase-plane/)) want first-order systems. Any $n$-th order ODE can be flattened by introducing one variable per derivative. For
 $$y'' + a\,y' + b\,y = f(x), \qquad y_1 := y,\ y_2 := y',$$

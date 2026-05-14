@@ -56,7 +56,7 @@ Now the input at position 1 is genuinely different from the input at position 2,
 
 The question is: where do the $e_p$ come from?
 
-## 1.1 Learned Position Embeddings
+## 1 Learned Position Embeddings
 
 The most direct answer: make $E \in \mathbb{R}^{L_{\max} \times d}$ a trainable parameter matrix and let SGD figure it out. This is what the original BERT and GPT-2 use.
 
@@ -74,7 +74,7 @@ The most direct answer: make $E \in \mathbb{R}^{L_{\max} \times d}$ a trainable 
 
 The right panel above is the punchline: an absolute learned PE is a good in-distribution function and an *undefined* function past $L_{\max}$. For a chat model that needs to handle long documents, this is fatal.
 
-## 1.2 Sinusoidal Position Encoding
+## 2 Sinusoidal Position Encoding
 
 The "Attention Is All You Need" paper proposes a hand-designed alternative. For position $p$ and dimension index $i$ (with $d$ even), define
 $$
@@ -104,7 +104,7 @@ Each pair of dimensions $(2i, 2i+1)$ is a sine/cosine at a frequency that decrea
 
 In practice: sinusoidal PE was a beautiful idea that was overtaken by what came next.
 
-## 1.3 Other Absolute Variants (Brief)
+## 3 Other Absolute Variants (Brief)
 
 Two more schemes are worth mentioning quickly so you recognize them.
 
@@ -120,7 +120,7 @@ The ceiling of pure absolute encoding is set by the same fact for all of these: 
 
 The shift in viewpoint that powers everything modern: in language, **what matters is usually the *gap* between two tokens, not where either of them sits in the document.** "The cat sat on the mat" means the same thing whether it appears on page 1 or page 47. So inject the relative offset $i - j$ directly into attention, where it is actually used.
 
-## 2.1 The Original Shaw-Style Formulation
+## 1 The Original Shaw-Style Formulation
 
 Shaw et al. (2018) introduced relative position into the attention dot product as a learned bias on the keys:
 $$\text{score}(i, j) = \frac{q_i^\top \bigl(k_j + r_{i-j}\bigr)}{\sqrt{d_k}},$$
@@ -130,7 +130,7 @@ where $r_{i-j} \in \mathbb{R}^{d_k}$ is a learned vector indexed by the *signed 
 
 **Limitation.** Each layer adds a $|R| \times d_k$ table, and the attention computation now includes a per-pair lookup, which is awkward to fuse into the matmul.
 
-## 2.2 T5 Bias: As Simple As It Gets
+## 2 T5 Bias: As Simple As It Gets
 
 T5 (Raffel et al., 2020) takes the simplification one step further. Drop the vector $r_{i-j}$ and use a *scalar* bias added directly to the score:
 $$\text{score}(i, j) = \frac{q_i^\top k_j}{\sqrt{d_k}} + b_{B(i-j)},$$
@@ -138,7 +138,7 @@ where $B(\cdot)$ is a "bucketing" function that maps small offsets to themselves
 
 T5 also drops the position bias on the value vectors entirely. Empirically nothing breaks, and the math is dramatically simpler.
 
-## 2.3 DeBERTa: Disentangled Attention
+## 3 DeBERTa: Disentangled Attention
 
 DeBERTa (He et al., 2021) goes the other direction and *expands* the relative formulation. If you expand $(x_i + e_i)^\top (x_j + e_j)$ you get four terms: content–content, content–position, position–content, position–position. T5 keeps content–content plus a position–position scalar; DeBERTa keeps the cross terms (content–position and position–content) and drops the position–position one. The intuition is that "what does this token attend to at relative distance $k$?" is genuinely informative, and a content-aware version of that should be even better.
 
@@ -150,7 +150,7 @@ DeBERTa held the SuperGLUE crown briefly. The cost is more parameters and more a
 
 RoPE (Su et al., 2021) is the position encoding that powers most modern open-source LLMs — LLaMA, Qwen, Mistral, Yi, DeepSeek, Gemma, all RoPE. It deserves its own section because it manages a magic trick: it looks like an *absolute* encoding (apply a transform to each token's $q$ and $k$ based on its absolute position) but the resulting attention score depends only on the *relative* offset. Best of both worlds.
 
-## 3.1 The Construction
+## 1 The Construction
 
 Treat each pair of dimensions in the query/key vectors as a 2-D plane. For position $m$, rotate that plane by an angle $m \theta_g$, where $\theta_g$ is a fixed frequency for the $g$-th pair (chosen on a geometric schedule, just like sinusoidal):
 $$
@@ -172,7 +172,7 @@ The two absolute rotations collapse into a *single* rotation by the relative off
 
 ![RoPE rotates each (q, k) pair by an angle proportional to its absolute position; the resulting inner product depends only on the relative offset](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig3_rope.png)
 
-## 3.2 Why It Works So Well
+## 2 Why It Works So Well
 
 Three properties make RoPE the default for modern LLMs.
 
@@ -182,7 +182,7 @@ Three properties make RoPE the default for modern LLMs.
 
 3. **Cheap.** Block rotations cost the same as a single complex multiplication per dimension pair; in code it's a few `cos`/`sin` ops and elementwise products. Negligible on top of the attention matmul.
 
-## 3.3 Extending RoPE to Longer Context
+## 3 Extending RoPE to Longer Context
 
 RoPE doesn't extrapolate perfectly past the training length either — perplexity rises, just less catastrophically than sinusoidal. The community has invested heavily in fixes:
 

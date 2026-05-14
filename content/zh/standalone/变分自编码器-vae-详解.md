@@ -292,7 +292,7 @@ $$q_\phi(z \mid x, y), \qquad p_\theta(x \mid z, y).$$
 
 ## 实战经验
 
-## 1. 输入归一化要匹配你用的似然
+## 输入归一化要匹配你用的似然
 
 BCE 期望像素落在 $[0, 1]$；高斯似然（MSE）则在零均值数据上更稳。
 
@@ -307,17 +307,17 @@ transform = transforms.Compose([
 ])
 ```
 
-## 2. 潜在维度从小开始
+## 潜在维度从小开始
 
 MNIST 这种规模，`latent_dim = 20` 是个合理起点。太小，重建被瓶颈卡死；太大，更容易后验坍塌，训练也变慢。
 
-## 3. 永远把重建项与 KL 项分开打印
+## 永远把重建项与 KL 项分开打印
 
 ![训练过程中的 ELBO 分解：KL 退火让 KL 项干净地爬上来，重建项稳步下降](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/变分自编码器-vae-详解/fig5_elbo_decomposition.png)
 
 健康的训练曲线应该是：重建项单调下降，KL 项稳定在一个非平凡的值（每个活跃维度几个 nat）。如果 KL 一直贴在零，说明你在经历后验坍塌；如果 KL 爆掉，说明重建项被忽视。
 
-## 4. 把潜在空间画出来
+## 把潜在空间画出来
 
 二维潜空间（或更高维做 PCA/t-SNE 之后），按类别给 $\mu(x)$ 上色画散点图。你应该看到的是**有重叠但仍可分**的若干类簇，并且大致铺满先验。
 
@@ -340,7 +340,7 @@ def plot_latent_space(model, loader, device="cuda"):
     plt.colorbar(); plt.title("VAE 潜在空间 (2D)"); plt.show()
 ```
 
-## 5. 既要采样，也要在样本之间走
+## 既要采样，也要在样本之间走
 
 下面这两个工具函数你会反复用到：
 

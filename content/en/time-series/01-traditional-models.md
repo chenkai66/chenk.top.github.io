@@ -32,7 +32,7 @@ translationKey: "time-series-1"
 
 ---
 
-## 1. Why traditional models still matter
+## Why traditional models still matter
 
 Before the deep-learning era, the time-series toolbox was already remarkably complete. ARIMA captures linear autocorrelation, SARIMA adds calendar effects, VAR generalises to vectors, GARCH models the variance, and the Kalman filter unifies the lot inside a state-space recursion. They share three properties that deep models do not give for free:
 
@@ -44,7 +44,7 @@ If your series is short, smooth, or has clean calendar structure, a traditional 
 
 ---
 
-## 2. The decomposition view
+## The decomposition view
 
 A good mental picture before any modelling: most series can be written as
 $$y_t = T_t + S_t + R_t,$$
@@ -68,7 +68,7 @@ The **Augmented Dickey-Fuller (ADF)** test gives a hypothesis test: $H_0$ is "un
 
 ---
 
-## 3. AR, MA, and ARMA — three flavours of memory
+## AR, MA, and ARMA — three flavours of memory
 
 ARIMA is built from two atomic ingredients. They look similar but encode very different ideas about *what* the series remembers.
 
@@ -100,7 +100,7 @@ In practice $d = 1$ handles linear drift, $d = 2$ handles curvature; rarely do y
 
 ---
 
-## 4. ACF and PACF — the model-identification microscope
+## ACF and PACF — the model-identification microscope
 
 How do you pick $p$ and $q$? Two diagnostic plots almost always do the job.
 
@@ -129,7 +129,7 @@ with $\ell$ the maximised log-likelihood, $k$ the number of free parameters, $n$
 
 ---
 
-## 5. The Box-Jenkins workflow
+## The Box-Jenkins workflow
 
 ARIMA is not a one-shot fit; it is an **iterative loop** that Box and Jenkins formalised in 1970. Every subsequent statistical-forecasting toolkit (including `auto.arima`) is just an automation of the same four boxes.
 
@@ -146,7 +146,7 @@ ARIMA is not a one-shot fit; it is an **iterative loop** that Box and Jenkins fo
 
 ---
 
-## 6. ARIMA in code
+## ARIMA in code
 
 A faithful, minimal walk-through using `statsmodels`:
 
@@ -192,7 +192,7 @@ The forecast on a held-out tail looks like this:
 
 ---
 
-## 7. Seasonality: SARIMA
+## Seasonality: SARIMA
 
 Many series have a calendar that ARIMA on its own cannot exploit — monthly retail with a December peak, daily traffic with a weekly cycle, hourly load with a 24-hour cycle. **SARIMA** ($p, d, q$)($P, D, Q$)$_s$ folds in seasonal lags of period $s$:
 $$\Phi(B^s)\, \phi(B)\, (1-B)^d (1-B^s)^D y_t \;=\; \Theta(B^s)\, \theta(B)\, \varepsilon_t.$$
@@ -219,11 +219,11 @@ forecast = model.get_forecast(steps=24)
 
 ---
 
-## 8. Beyond ARIMA: the rest of the family
+## Beyond ARIMA: the rest of the family
 
 The ideas above generalise in four useful directions. They are not separate worlds — each one specialises ARIMA in a single dimension.
 
-### 8.1 VAR — multivariate dynamics
+### 1 VAR — multivariate dynamics
 
 When you have several series that influence each other (GDP and unemployment, electricity demand and temperature), promote the scalar AR to a **vector autoregression**:
 $$\mathbf{y}_t = \mathbf{c} + A_1 \mathbf{y}_{t-1} + A_2 \mathbf{y}_{t-2} + \cdots + A_p \mathbf{y}_{t-p} + \boldsymbol{\varepsilon}_t.$$
@@ -231,7 +231,7 @@ Each entry of the matrix $A_k$ has an interpretation: $(A_k)_{ij}$ is the margin
 
 A practical caveat: with $K$ series and lag $p$ the model has $K + pK^2$ free parameters. For $K = 10, p = 4$ that is already 410 numbers from probably a few hundred observations. Hence the regularised cousins — Bayesian VAR, factor models — exist for high-dimensional settings.
 
-### 8.2 GARCH — variance dynamics
+### 2 GARCH — variance dynamics
 
 ARIMA models the **mean**; GARCH models the **conditional variance**. The basic GARCH(1,1) is:
 $$
@@ -242,7 +242,7 @@ The $\alpha$ term lets a large shock yesterday push variance up today (the "ARCH
 
 GARCH is *the* standard tool for risk management (VaR, options pricing) and pairs naturally with an ARIMA mean model: fit ARIMA to the returns, then GARCH to the squared residuals.
 
-### 8.3 Exponential smoothing and Holt-Winters
+### 3 Exponential smoothing and Holt-Winters
 
 If ARIMA is the "explicitly stochastic" view, exponential smoothing is the "weighted-average" view. Simple exponential smoothing assumes a level $\ell_t$ that drifts with new information:
 $$\ell_t = \alpha\, y_t + (1-\alpha)\, \ell_{t-1}.$$
@@ -257,13 +257,13 @@ This is the workhorse behind the **ETS** family in R / `statsmodels`, and many o
 ![Holt-Winters additive forecast and the underlying level / trend / seasonal components.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig7_holt_winters.png)
 *Fig. 7 — The decomposition gives Holt-Winters its appeal: each component is intelligible on its own, the smoothing coefficients ($\alpha, \beta, \gamma$) say how quickly each one adapts, and the recursive form means it costs $O(n)$ to fit.*
 
-### 8.4 Prophet
+### 4 Prophet
 
 Prophet (Facebook, 2017) is a deliberately simple **additive** decomposition aimed at business analysts:
 $$y(t) = g(t) + s(t) + h(t) + \varepsilon_t,$$
 where $g(t)$ is a piecewise-linear or logistic trend with **changepoints**, $s(t)$ is a Fourier expansion for multiple seasonalities, and $h(t)$ encodes user-supplied holidays. It is fitted with Stan via MAP or full Bayesian sampling, exposes only a handful of tunables, and is robust to missing data and outliers. In practice it is *not* state of the art on benchmarks, but the API quality and the holiday handling are why it remains a default in product analytics.
 
-### 8.5 The Kalman filter and the state-space view
+### 5 The Kalman filter and the state-space view
 
 Everything above is a special case of a **linear Gaussian state-space model**:
 $$
@@ -282,7 +282,7 @@ Why this matters: ARIMA, exponential smoothing, dynamic linear regressions, stru
 
 ---
 
-## 9. Choosing a model
+## Choosing a model
 
 | Model | Best when | Avoid when |
 |-------|-----------|------------|
@@ -298,7 +298,7 @@ A pragmatic recipe: start with **ETS or SARIMA** as a baseline, add **GARCH** if
 
 ---
 
-## 10. Limits, and what comes next
+## Limits, and what comes next
 
 Traditional models reach their ceiling when:
 

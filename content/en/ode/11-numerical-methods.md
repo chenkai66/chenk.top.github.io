@@ -32,7 +32,7 @@ Almost every interesting differential equation in science and engineering resist
 
 ---
 
-## 1. Why we need numerical methods
+## Why we need numerical methods
 
 The analytical methods of earlier chapters — separation of variables, integrating factors, Laplace transforms, eigenvalue expansions — are powerful but **fragile**. They work for narrow classes of equations and break the moment a real problem stops being symbolic-friendly. Take$\frac{dy}{dx} = \sin(xy).$No closed form exists. The Navier-Stokes equations, the three-body problem, every chemical reaction network with more than a handful of species, the Lorenz system — all defeat symbolic methods. We have to settle for **discrete approximations**$y_n \approx y(x_n)$at a sequence of grid points$x_n = x_0 + nh$.
 
@@ -46,7 +46,7 @@ We answer all three.
 
 ---
 
-## 2. Forward Euler: the geometric idea
+## Forward Euler: the geometric idea
 
 Given$\dot{y} = f(x, y),\;y(x_0) = y_0$, the simplest step replaces the curve by its tangent line:$y_{n+1} = y_n + h\,f(x_n, y_n).$This is **forward Euler**, and it is the prototype of every explicit one-step scheme. The intuition: at every step you read the slope at your current location, walk a small distance$h$in that direction, then re-read the slope. Like navigating a hillside in fog by always trusting the local incline.
 
@@ -75,7 +75,7 @@ def euler(f, x0, y0, x_end, h):
 
 ---
 
-## 3. Heun, midpoint, and the Runge-Kutta family
+## Heun, midpoint, and the Runge-Kutta family
 
 The cure for Euler's first-order accuracy is to evaluate the slope **more than once per step** and combine the evaluations cleverly. The general structure of an explicit$s$-stage Runge-Kutta method:$k_i = f\bigl(x_n + c_i h,\; y_n + h \textstyle\sum_{j<i} a_{ij}\,k_j\bigr), \quad y_{n+1} = y_n + h\sum_i b_i\,k_i.$The coefficients$\{a_{ij}, b_i, c_i\}$are arranged in a **Butcher tableau**.
 
@@ -119,7 +119,7 @@ This is not a small effect. Going from order 1 to order 4 means the error budget
 
 ---
 
-## 4. Convergence orders, made visible
+## Convergence orders, made visible
 
 The cleanest way to detect a method's order is to compute the global error at the endpoint for a sequence of step sizes and plot it on log-log axes. The slope indicates the order.
 
@@ -133,7 +133,7 @@ Two practical lessons:
 
 ---
 
-## 5. Adaptive step-size control
+## Adaptive step-size control
 
 Real solutions are not uniformly smooth. They have plateaus, sharp transients, slow tails. A fixed$h$is either wastefully small on the plateau or dangerously large on the transient. The fix is **adaptive stepping**: choose$h$on the fly to hold the local error near a user-specified tolerance.
 
@@ -144,7 +144,7 @@ The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$
 
 ---
 
-## 6. Stiffness: the failure mode of explicit methods
+## Stiffness: the failure mode of explicit methods
 
 ![Ordinary Differential Equations (11): Numerical Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/illustration_2.png)
 
@@ -174,7 +174,7 @@ A practical rule: if `solve_ivp(..., method='RK45')` is taking forever or refusi
 
 ---
 
-## 7. A few more methods worth knowing
+## A few more methods worth knowing
 
 ### Multistep: Adams-Bashforth and Adams-Moulton
 
@@ -188,7 +188,7 @@ The minimal example is **Stormer-Verlet (leapfrog)** for$\ddot q = -\nabla V(q)$
 
 ---
 
-## 8. Using SciPy in practice
+## Using SciPy in practice
 
 ```python
 from scipy.integrate import solve_ivp
@@ -227,7 +227,7 @@ sol = solve_ivp(rhs, [0, T], y0, method='LSODA')
 
 ---
 
-## 9. Method selection summary
+## Method selection summary
 
 | Method | Order | Class | Stable for stiff? | Best for |
 |---|---|---|---|---|

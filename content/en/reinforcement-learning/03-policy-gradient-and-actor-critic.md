@@ -39,7 +39,7 @@ DQN showed that deep RL can master Atari, but it has a hard ceiling: it only wor
 
 ---
 
-## 1. Why Policy Gradients?
+## Why Policy Gradients?
 
 DQN learns $Q(s,a)$ and acts greedily: $\pi(s) = \arg\max_a Q(s,a)$. That indirect recipe creates four pain points:
 
@@ -57,7 +57,7 @@ Policy gradient methods sidestep all four by **parameterising the policy directl
 
 Either way, the loss machinery is identical: pick an action by sampling from $\pi_\theta$, then push the parameters in a direction that makes good actions more likely.
 
-### 1.1 The Policy Gradient Theorem
+### 1 The Policy Gradient Theorem
 
 Let $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G_0]$ be the expected return of the trajectories produced by $\pi_\theta$. We want $\nabla_\theta J(\theta)$ so we can do gradient ascent.
 
@@ -75,7 +75,7 @@ Visually, the theorem says "shift probability mass toward actions whose realised
 
 The left panel shows $\pi_\theta(a|s)$ before and after one (large, illustrative) update — mass migrates toward the reward bump. The right panel shows the update direction itself: the score function multiplied by the reward and the current density. Where the product is positive we increase $\pi(a)$; where it is negative we decrease it.
 
-### 1.2 The Variance Problem and the Baseline Trick
+### 2 The Variance Problem and the Baseline Trick
 
 The raw estimator above is **unbiased**, but its variance is horrible. $Q^\pi$ can be hundreds or thousands; one lucky episode can shove $\theta$ in any direction.
 
@@ -91,11 +91,11 @@ Green bars on the right are actions worth reinforcing; red bars are actions to s
 
 ---
 
-## 2. REINFORCE: Monte Carlo Policy Gradient
+## REINFORCE: Monte Carlo Policy Gradient
 
 **REINFORCE** (Williams, 1992) is the textbook starting point. It uses the *actual* discounted return $G_t$ as a Monte Carlo estimate of $Q^\pi(s_t, a_t)$.
 
-### 2.1 Algorithm
+### 1 Algorithm
 
 1. Roll out one full trajectory $\tau = (s_0, a_0, r_0, \ldots, s_T)$ under $\pi_\theta$.
 2. Compute the discounted return for every step: $G_t = \sum_{k=0}^{T-t-1} \gamma^k r_{t+k}$.
@@ -104,7 +104,7 @@ Green bars on the right are actions worth reinforcing; red bars are actions to s
 
 That is the whole algorithm. The simplicity is the point.
 
-### 2.2 REINFORCE with a Learned Baseline on CartPole
+### 2 REINFORCE with a Learned Baseline on CartPole
 
 ```python
 import torch
@@ -210,7 +210,7 @@ This typically solves CartPole in 100-200 episodes. On harder tasks, REINFORCE q
 
 ---
 
-## 3. Actor-Critic: Replacing Returns with TD Estimates
+## Actor-Critic: Replacing Returns with TD Estimates
 
 ![Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_2.png)
 
@@ -231,7 +231,7 @@ The two networks usually share a backbone:
 
 The TD error $\delta_t$ does double duty: it acts as the **advantage** weighting the actor's gradient, and as the **target** for the critic's regression loss.
 
-### 3.1 How Big a Deal Is the Variance Reduction?
+### 1 How Big a Deal Is the Variance Reduction?
 
 A simulated comparison on the same set of trajectories: the orange line uses raw Monte Carlo returns, the blue line uses the advantage produced by a learned baseline.
 
@@ -239,7 +239,7 @@ A simulated comparison on the same set of trajectories: the orange line uses raw
 
 Same trajectories, same expected gradient. The right panel shows the practical payoff: variance shrinks by an order of magnitude, which is exactly why training curves of A2C/PPO look so much smoother than REINFORCE.
 
-### 3.2 A2C in Code
+### 2 A2C in Code
 
 ```python
 class ActorCritic(nn.Module):
@@ -261,7 +261,7 @@ class ActorCritic(nn.Module):
 
 A3C (Mnih et al., 2016) parallelised this across asynchronous workers. Modern practice prefers the synchronous version **A2C**: collect rollouts from $N$ environments in lockstep, then take one combined gradient step. Same idea, much friendlier to GPUs.
 
-### 3.3 GAE: A Dial Between TD and Monte Carlo
+### 3 GAE: A Dial Between TD and Monte Carlo
 
 One-step TD has low variance but high bias; Monte Carlo has the opposite. **Generalised Advantage Estimation** (Schulman et al., 2016) interpolates between them with a single hyperparameter $\lambda \in [0, 1]$:
 $$
@@ -277,11 +277,11 @@ The left panel shows the qualitative trade-off; the right panel shows what the w
 
 ---
 
-## 4. Continuous Control: DDPG and TD3
+## Continuous Control: DDPG and TD3
 
 For continuous actions like joint torques the policy is naturally Gaussian: $a \sim \mathcal{N}(\mu_\theta(s),\,\sigma_\theta(s))$. But sampling injects noise that hurts precise control. **Deterministic policies** $a = \mu_\theta(s)$ avoid that noise — and admit a particularly clean gradient.
 
-### 4.1 DDPG: Deep Deterministic Policy Gradient
+### 1 DDPG: Deep Deterministic Policy Gradient
 
 DDPG (Lillicrap et al., 2016) couples DQN-style stability tricks with an Actor-Critic structure:
 
@@ -292,7 +292,7 @@ Read it from right to left: shift $\theta$ in whatever direction $\mu_\theta(s)$
 
 Exploration is added externally as action noise: $a_t = \mu_\theta(s_t) + \mathcal{N}(0,\sigma)$.
 
-### 4.2 TD3: Three Tricks That Stabilise DDPG
+### 2 TD3: Three Tricks That Stabilise DDPG
 
 DDPG inherits DQN's overestimation bias and is famously brittle. **TD3** (Fujimoto et al., 2018) fixes it with three independent ideas, each useful on its own:
 
@@ -363,7 +363,7 @@ These three changes turn DDPG from "sometimes works after careful tuning" into a
 
 ---
 
-## 5. SAC: Maximum Entropy RL
+## SAC: Maximum Entropy RL
 
 Even TD3 has a failure mode: the policy can collapse to a narrow distribution and stop exploring. **Soft Actor-Critic** (Haarnoja et al., 2018) attacks the problem at its root by **changing the objective**:
 $$J(\pi) \;=\; \mathbb{E}\!\Big[\sum_t \gamma^t\big(r_t + \alpha\,\mathcal H[\pi(\cdot|s_t)]\big)\Big].$$
@@ -379,7 +379,7 @@ In practice, SAC matches or beats TD3 on MuJoCo benchmarks while being noticeabl
 
 ---
 
-## 6. Why Does This Even Work? Climbing a Noisy Hill in $\theta$-Space
+## Why Does This Even Work? Climbing a Noisy Hill in $\theta$-Space
 
 It is worth zooming out. Every algorithm in this article is a special case of one idea: **stochastic gradient ascent on $J(\theta)$ in policy parameter space**. The "stochastic" is doing a lot of work — our gradient estimates are noisy, sometimes wildly so, and the loss surface itself is non-convex.
 
@@ -393,7 +393,7 @@ A few things this picture makes obvious:
 
 ---
 
-## 7. Algorithm Selection Guide
+## Algorithm Selection Guide
 
 | Situation | Recommended | Why |
 |-----------|-------------|-----|

@@ -39,7 +39,7 @@ We give the central-path complexity proof in full.
 
 ---
 
-## 1. The barrier method
+## The barrier method
 
 Consider the convex problem
 $$
@@ -58,7 +58,7 @@ $$
 $$
 This is an equality-constrained convex problem; its solution $x^\star(t)$ traces out the **central path**.
 
-### 1.1 Central path properties
+### 1 Central path properties
 
 For each $t > 0$:
 
@@ -80,7 +80,7 @@ So **as $t \to \infty$, $x^\star(t) \to x^\star$**, and the duality gap shrinks 
 *Figure 2. Central path $x^\star(t)$ on a 2D polytope. As the barrier weight $t$ grows, the minimizer moves smoothly from the **analytic center** (where the barrier dominates) toward the **optimum** $x^\star$ at a vertex (where the linear objective dominates). Light gray contours show level sets of the linear objective $c^\top x$.*
  This gives the most basic interior-point algorithm: choose $t = m/\epsilon$, solve ($P_t$), and you have $\epsilon$-suboptimality.
 
-### 1.2 The naive algorithm and its problem
+### 2 The naive algorithm and its problem
 
 For very large $t$, ($P_t$) becomes badly conditioned — the term $t f_0$ dominates near the boundary and Newton's method has trouble. The fix is to solve a sequence of problems with increasing $t$, **warm-started** from the previous solution:
 
@@ -100,7 +100,7 @@ Each outer iteration multiplies $t$ by $\mu$. The number of outer iterations is 
 
 ---
 
-## 2. Self-concordance
+## Self-concordance
 
 A convex function $\phi : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is **self-concordant** if for every $x \in \mathrm{dom}(\phi)$ and every direction $u$,
 $$
@@ -114,7 +114,7 @@ The most important examples:
 - $\phi(X) = -\log \det X$ on $\mathbf{S}^n_{++}$: self-concordant.
 - The barrier $-\sum_i \log(-f_i(x))$ for affine $f_i$: self-concordant. (More generally for $f_i$ that are themselves "nice".)
 
-### 2.1 Why self-concordance matters
+### 1 Why self-concordance matters
 
 Self-concordance has three magical consequences:
 
@@ -143,7 +143,7 @@ These properties are what makes Newton's method robust on a self-concordant func
 *Figure 4. **Left:** the per-step decrease $\omega(\lambda) = \lambda - \log(1+\lambda)$ stays above an absolute constant ($\geq 0.02$) whenever $\lambda \geq 1/4$, so the **damped phase** burns down $\phi$ at a constant rate. **Right:** once the Newton decrement enters the **quadratic region** $\lambda \leq 1/4$, full Newton steps satisfy $\lambda_+ \leq 2\lambda^2$ and convergence is dramatic. Crucially the boundary $1/4$ is independent of conditioning.*
 
 
-### 2.2 Putting it together for the barrier method
+### 2 Putting it together for the barrier method
 
 For each outer iteration of the barrier method, we Newton-solve $\min_x t f_0(x) + \phi(x)$. If $f_0$ is self-concordant (or more generally if $t f_0 + \phi$ is) and we warm-start from $x^\star(t/\mu)$ (the previous solution), the warm start lies in the quadratic-convergence region of the new objective. So **each outer iteration costs $O(1)$ Newton steps**, independent of $t$ and the problem size.
 
@@ -153,7 +153,7 @@ But there is a subtlety: we need a sharper bound to capture the effect of the **
 
 ---
 
-## 3. The barrier parameter and the $\sqrt{\nu}$ rate
+## The barrier parameter and the $\sqrt{\nu}$ rate
 
 A self-concordant function $\phi$ has **barrier parameter** $\nu \geq 1$ if for all $x \in \mathrm{dom}(\phi)$,
 $$
@@ -177,7 +177,7 @@ and each inner solve takes $O(1)$ Newton steps. This is the **short-step interio
 
 For LP with $m$ inequality constraints, $\nu = m$ and the complexity is $O(\sqrt{m} \log(m/\epsilon))$ — Karmarkar's bound. For SDP on $n \times n$ matrices, $\nu = n$, giving $O(\sqrt{n} \log(n/\epsilon))$.
 
-### 3.1 Long-step vs short-step
+### 1 Long-step vs short-step
 
 The textbook short-step method ($\mu = 1 + 1/\sqrt{\nu}$, full Newton steps) has the cleanest theory but is slow in practice — many small outer iterations. **Long-step** algorithms ($\mu = 10$ or $100$, damped Newton) violate the strict theory but converge much faster empirically. The theoretical complexity becomes $O(\nu \log(\nu/\epsilon))$ in the worst case, but the practical performance often matches short-step.
 
@@ -188,11 +188,11 @@ Modern solvers use **predictor-corrector** schemes (Mehrotra, 1992): predict the
 
 ---
 
-## 4. Primal-dual interior-point methods
+## Primal-dual interior-point methods
 
 The barrier method updates the primal $x$ explicitly and recovers the dual $(\lambda, \nu)$ as a byproduct. **Primal-dual** methods update both simultaneously.
 
-### 4.1 The primal-dual system
+### 1 The primal-dual system
 
 For the inequality-constrained LP $\min c^\top x$ s.t. $Ax = b, x \geq 0$, the central-path conditions are:
 $$
@@ -205,7 +205,7 @@ x, \lambda &\geq 0
 $$
 This is a system in $(x, \nu, \lambda)$ with $1/t$ as a perturbation. Newton's method on this system, with $1/t \to 0$, converges to the primal-dual optimal pair.
 
-### 4.2 Why primal-dual is preferred
+### 2 Why primal-dual is preferred
 
 - **No need to find a strictly feasible starting point.** Primal-dual methods can start from infeasible iterates and converge to feasibility along the way.
 - **Better numerical conditioning.** The Newton system has block structure that can be exploited (and is more stable than the pure primal Newton system as $t \to \infty$).
@@ -218,7 +218,7 @@ The vast majority of solvers (Mosek, Gurobi for QP, SDPT3 for SDP, OSQP for QP) 
 
 ---
 
-## 5. Where interior-point shines and where it doesn't
+## Where interior-point shines and where it doesn't
 
 **Where interior-point dominates:**
 
@@ -237,7 +237,7 @@ The classical workflow in convex modeling: write the problem in CVXPY, the model
 
 ---
 
-## 6. Worked example: LP via the barrier
+## Worked example: LP via the barrier
 
 Consider minimizing $c^\top x$ s.t. $Ax \leq b$ with $A \in \mathbb{R}^{m \times n}$. The barrier objective for parameter $t$:
 $$
@@ -255,7 +255,7 @@ A small worked instance with $n = 100$, $m = 200$ to high precision typically ta
 
 ---
 
-## 7. Summary
+## Summary
 
 | Concept                        | Role                                                                       |
 | ------------------------------ | -------------------------------------------------------------------------- |

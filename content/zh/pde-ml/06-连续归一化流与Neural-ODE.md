@@ -37,9 +37,9 @@ translationKey: "pde-ml-6"
 
 ---
 
-## 1. ODE 基础：存在唯一性与体积演化
+## ODE 基础：存在唯一性与体积演化
 
-### 1.1 Picard-Lindelöf：解何时存在且唯一？
+### 1 Picard-Lindelöf：解何时存在且唯一？
 
 **定理（Picard-Lindelöf）**。考虑初值问题 $\dot{\mathbf{z}} = f(\mathbf{z}, t)$，$\mathbf{z}(0) = \mathbf{z}_0$。若 $f$ 关于 $t$ 连续，且关于 $\mathbf{z}$ 满足 Lipschitz 条件：
 $$
@@ -49,7 +49,7 @@ $$
 
 *这对机器学习意味着什么？* 如果 $f_\theta$ 是一个使用 Lipschitz 激活函数（如 ReLU、tanh、GELU）且权重有界的神经网络，那么局部 Lipschitz 条件自然成立。因此，只要网络行为良好——这在实践中几乎总是成立——Neural ODE 就是适定的，这也是它能稳定进行反向传播的根本原因。
 
-### 1.2 Liouville 定理：流如何改变体积
+### 2 Liouville 定理：流如何改变体积
 
 **定理（Liouville）**。设 $\phi_t$ 是 ODE $\dot{\mathbf{z}} = f(\mathbf{z}, t)$ 的流映射。对任意可测集合 $\Omega$，有
 $$
@@ -59,7 +59,7 @@ $$
 
 *直观理解*：散度为零的 $f$ 类似不可压缩流体（如第 5 篇讨论的哈密顿或辛系统）；而散度非零的 $f$ 则像可压缩流，能将概率质量挤压成细丝，再在别处重新膨胀——这正是生成建模所需要的特性。
 
-### 1.3 瞬时变量替换公式
+### 3 瞬时变量替换公式
 
 **定理**。沿 ODE $\dot{\mathbf{z}} = f(\mathbf{z}, t)$ 的轨迹 $\mathbf{z}(t) = \phi_t(\mathbf{z}_0)$，密度满足
 $$
@@ -69,9 +69,9 @@ $$
 
 **为何这个公式至关重要？** 离散归一化流需要 $O(d^3)$ 的代价来计算 $\log|\det \partial\phi / \partial\mathbf{z}|$，而公式 (1) 仅需 Jacobian 的迹（即散度），借助一次 vector-Jacobian product 即可在 $O(d)$ 时间内完成（见 3.2 节）。这正是连续归一化流（CNF）得以存在的核心计算优势。
 
-## 2. Neural ODE：从离散到连续深度
+## Neural ODE：从离散到连续深度
 
-### 2.1 残差网络即前向 Euler 方法
+### 1 残差网络即前向 Euler 方法
 
 ResNet 的更新规则 $\mathbf{h}_{l+1} = \mathbf{h}_l + f_l(\mathbf{h}_l)$ 正是步长 $\Delta t = 1$ 的前向 Euler 方法，用于求解 ODE $\dot{\mathbf{h}} = f(\mathbf{h}, t)$。取连续极限后，我们得到一个统一的连续时间 ODE：
 $$
@@ -86,7 +86,7 @@ $$
 ![ResNet（离散深度，固定步）vs Neural ODE（连续深度，自适应求解器）。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig2_neural_ode_vs_resnet.png)
 *图 2：左侧是 ResNet，由一系列 $h_{l+1} = h_l + f_l(h_l)$ 的 Euler 步组成，每层参数独立，反向传播需存储所有中间激活；右侧是 Neural ODE，由单一 $f_\theta$ 驱动，自适应求解器动态选择评估点，伴随方法仅用 $O(1)$ 内存即可恢复梯度。*
 
-### 2.2 伴随灵敏度方法
+### 2 伴随灵敏度方法
 
 标准反向传播在 ODE 求解过程中需存储每一步的中间状态，内存开销为 $O(L)$——而自适应求解器可能执行上百步。伴随方法则完全避免了这一问题。
 
@@ -108,13 +108,13 @@ $$
 ![伴随方法：在二维向量场上的正反两条轨迹，以及不同深度下的内存对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig3_adjoint_method.png)
 *图 3：左图展示同一螺旋 ODE 先正向积分（蓝色）得到 $h(T)$，再与伴随状态（红色虚线）一同反向积分以恢复梯度；右图对比内存开销随求解步数 $L$ 的增长情况：标准反向传播为 $O(L)$，而伴随方法始终保持 $O(1)$——当 $L=1000$ 时，内存节省达千倍。*
 
-### 2.3 表达能力
+### 3 表达能力
 
 Neural ODE 在 $\mathbb{R}^d$ 上的同胚映射空间中是稠密的（Zhang et al., 2020）。然而，它**无法改变拓扑结构**——例如，单个定义在 $\mathbb{R}^d$ 上的 Neural ODE 无法解开两个互锁的环。这催生了**增广型 Neural ODE（Augmented Neural ODE）**：通过将系统提升至 $\mathbb{R}^{d+k}$，额外维度为流提供了“解扣”的空间。
 
-## 3. 连续归一化流（CNF）
+## 连续归一化流（CNF）
 
-### 3.1 从离散流到连续流
+### 1 从离散流到连续流
 
 离散归一化流通过一系列可逆映射将初始样本 $\mathbf{z}_0 \sim p_0$ 变换为目标分布：
 $$
@@ -128,7 +128,7 @@ $$
 $$
 **无需对网络施加可逆性约束**——ODE 本身可通过反向积分实现逆映射；**无需计算行列式**——只需计算迹（即散度）。
 
-### 3.2 FFJORD：通过 Hutchinson 估计实现可扩展的迹计算
+### 2 FFJORD：通过 Hutchinson 估计实现可扩展的迹计算
 
 剩下的瓶颈是散度 $\nabla\!\cdot f = \mathrm{tr}(\partial f / \partial\mathbf{z})$。精确计算仍需 $d$ 次 vector-Jacobian product。**FFJORD**（Grathwohl et al., 2018）提出用无偏估计替代：
 $$
@@ -139,7 +139,7 @@ $$
 ![Hutchinson 迹估计：方差以 1/sqrt(K) 收缩，单步代价从 O(d^2) 降为 O(d)。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig4_ffjord_trace.png)
 *图 4：左图展示在 $d=64$ 下，Hutchinson 估计器在 400 次试验中的方差随探针向量数 $K$ 的变化，虚线表示理论上的 $1/\sqrt{K}$ 收敛速率；右图对比不同维度下的单步散度计算成本：完整 Jacobian 需 $O(d^2)$ 次自动微分调用，而 $K=4$ 的 Hutchinson 方法仅需 $O(Kd)$——在 $d=1024$ 时快三个数量级。*
 
-### 3.3 训练与采样
+### 3 训练与采样
 
 给定数据点 $\mathbf{x}$，其对数似然为：
 $$
@@ -149,11 +149,11 @@ $$
 
 **权衡取舍**：CNF 提供精确的似然估计，但每次前向或反向传递都需要求解 ODE——通常涉及数十至数百次网络评估。训练过程也较为敏感：求解器容差、$f_\theta$ 的正则化强度以及 Hutchinson 估计的方差会相互影响。
 
-## 4. 最优传输与 Flow Matching
+## 最优传输与 Flow Matching
 
 ![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
 
-### 4.1 Benamou-Brenier 联系
+### 1 Benamou-Brenier 联系
 
 二次代价的最优传输问题具有动态形式：
 $$
@@ -162,7 +162,7 @@ $$
 $$
 其最优解 $v_t^\star$ 恰好是 CNF 的速度场，且在欧氏最优传输情形下，其轨迹为直线。这为将 CNF 与最优传输结合提供了最清晰的几何动机。
 
-### 4.2 Flow Matching
+### 2 Flow Matching
 
 **Flow Matching**（Lipman et al., 2022）是一种极具实用价值的简化方案。它既不通过 ODE 求解器优化负对数似然（NLL），也不求解复杂的最优传输问题，而是选定一条条件概率路径，并直接回归对应的速度场。
 
@@ -179,7 +179,7 @@ $$
 ![Flow Matching：成对样本之间的线性条件路径；对比 CNF 的训练曲线。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-连续归一化流与Neural-ODE/fig5_flow_matching.png)
 *图 5：左图展示随机样本对 $(\mathbf{z}_0, \mathbf{z}_1)$ 之间的线性条件路径，任意 $\mathbf{z}_t$ 处的目标速度就是 $\mathbf{z}_1 - \mathbf{z}_0$——训练时既无散度计算，也无需 ODE 求解；右图对比损失曲线：Flow Matching 收敛速度快近一个数量级，且达到更低的稳定平台。*
 
-### 4.3 2024 年的实际选择
+### 3 2024 年的实际选择
 
 | 方法 | 训练成本 | 优点 | 缺点 |
 |------|---------|------|------|
@@ -191,7 +191,7 @@ $$
 
 截至 2024 年，大多数生产级的连续流系统（用于图像、音频、分子生成）都采用了 Flow Matching 或 Rectified Flow 的某种变体。
 
-## 5. “连续深度”的直观图景
+## “连续深度”的直观图景
 
 “连续深度”是贯穿本章的核心思想：Neural ODE 是深度网络的连续极限，而 CNF 则是归一化流的连续极限。两者背后的图像完全一致。
 
@@ -200,7 +200,7 @@ $$
 
 这也解释了为何一个 ODE 函数 $f_\theta$ 能替代深 ResNet 中的数百层：**时间变量**取代了层索引的角色，而离散化策略则交由求解器自动决定。
 
-## 6. 整合全流程：二维密度估计
+## 整合全流程：二维密度估计
 
 为使整个流程更具体，我们在经典的“双月牙”玩具数据集上展示端到端的密度估计过程。
 
@@ -209,17 +209,17 @@ $$
 
 这种双重能力——既能进行**精确似然的密度估计**，又能高效**采样**——仅依赖一个网络 $v_\theta$ 和一个 ODE $\dot{\mathbf{z}} = v_\theta(\mathbf{z}, t)$，正是连续流在理论上极具吸引力的原因。
 
-## 7. 实验
+## 实验
 
-### 7.1 螺旋 ODE 拟合
+### 1 螺旋 ODE 拟合
 
 使用一个 3 层 MLP（隐藏维 64，tanh 激活）参数化 $f_\theta$，通过伴随方法在二维阻尼螺旋目标上训练，求解器为 dopri5（rtol $=10^{-5}$）。经过 1000 步训练后，平均轨迹误差降至 $<10^{-3}$，峰值 GPU 内存约为 40 MB，与内部约 80 步的求解过程无关。
 
-### 7.2 高斯 → 双月牙 CNF
+### 2 高斯 → 双月牙 CNF
 
 采用 4 层 MLP（隐藏维 128，softplus 激活），按 FFJORD 方式训练，使用 Hutchinson 迹估计和 dopri5 求解器，共训练 5000 步。生成样本完整覆盖两个月牙，并准确捕捉其弯月状厚度；与目标分布的 KDE 对比显示，Wasserstein-2 距离约为 0.07。
 
-### 7.3 伴随方法 vs 标准反向传播（数据源自 Neural ODE 原文，外推至 1024 维隐藏状态）
+### 3 伴随方法 vs 标准反向传播（数据源自 Neural ODE 原文，外推至 1024 维隐藏状态）
 
 | 方法 | 内存 (MB) | 时间 (s) | 测试准确率 |
 |------|-----------|---------|-----------|
@@ -229,7 +229,7 @@ $$
 
 内存开销降低约 87%，而实际运行时间仅增加 20–30%。
 
-### 7.4 Flow Matching vs CNF（双月牙数据）
+### 4 Flow Matching vs CNF（双月牙数据）
 
 | 方法 | 样本质量（越低越好） | 收敛所需迭代数 | 采样时间 |
 |------|--------------------|----------------|----------|
@@ -238,7 +238,7 @@ $$
 
 Flow Matching 收敛速度约为 CNF 的 2.7 倍，且生成的月牙形状更清晰。在真实图像数据上，这一差距更为显著——训练时间和采样所需的函数评估次数（NFE）相差一到两个数量级。
 
-## 8. 练习题
+## 练习题
 
 **习题 1.** 从连续性方程直接推导瞬时变量替换公式 (1)。
 

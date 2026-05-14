@@ -37,7 +37,7 @@ If BERT (Part 5) is the king of *understanding*, GPT is the king of *generation*
 
 ---
 
-## 1. The decoder-only Transformer
+## The decoder-only Transformer
 
 <!-- wanx-mid -->
 ![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.png)
@@ -75,7 +75,7 @@ That single loss, applied to terabytes of text, is the entire training story.
 
 ---
 
-## 2. Autoregressive generation, step by step
+## Autoregressive generation, step by step
 
 ![Autoregressive generation: one token at a time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig2_autoregressive_step.png)
 
@@ -91,7 +91,7 @@ The bottom panel above shows the next-token distribution after the prompt `"The 
 
 ---
 
-## 3. The GPT family: 5 years, $\sim$10,000$\times$ growth
+## The GPT family: 5 years, $\sim$10,000$\times$ growth
 
 ![GPT-1 to GPT-4 evolution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig4_gpt_evolution.png)
 
@@ -138,13 +138,13 @@ GPT-2 will produce a passable translation despite never having been trained on p
 
 ---
 
-## 4. Decoding strategies
+## Decoding strategies
 
 The choice of decoding strategy can change a generation from *repetitive and lifeless* to *surprising and on-topic* without retraining a single weight. Below we visualise the four canonical strategies on the **same** next-token distribution from Section 2.
 
 ![Greedy, top-k, top-p, and temperature on the same distribution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig5_sampling_strategies.png)
 
-### 4.1 Greedy decoding
+### 1 Greedy decoding
 
 Always pick the highest-probability token: $x_t = \arg\max_w P(w \mid x_{<t})$.
 
@@ -162,7 +162,7 @@ def greedy_decode(model, tokenizer, prompt, max_new=100):
 
 **Pros**: deterministic, fast. **Cons**: drifts into degenerate loops (`"the the the"`) and produces dull, predictable text. Use only when you need reproducibility for testing.
 
-### 4.2 Beam search
+### 2 Beam search
 
 Maintain the top-$k$ partial sequences at every step, ranked by *cumulative* log-probability (with an optional length penalty to avoid favouring short sequences).
 
@@ -187,7 +187,7 @@ def beam_search(model, tokenizer, prompt, beam=5, max_new=100, lp=0.6):
 
 **Pros**: higher likelihood than greedy, the workhorse of machine translation and summarisation. **Cons**: tends to produce *bland*, generic outputs in open-ended generation — a phenomenon called **beam-search curse** (the highest-likelihood sentences are often the most boring).
 
-### 4.3 Top-$k$ sampling
+### 3 Top-$k$ sampling
 
 Sample only from the $k$ most probable tokens (re-normalising their probabilities to sum to 1):
 
@@ -208,7 +208,7 @@ def top_k_sample(model, tokenizer, prompt, k=50, T=1.0, max_new=100):
 
 **Caveat**: $k$ is fixed. If the model is very confident (one token has 95% mass), top-$k$ still considers $k$ alternatives and may pick something silly. If the model is genuinely uncertain across hundreds of tokens, $k=50$ is too restrictive.
 
-### 4.4 Top-$p$ (nucleus) sampling
+### 4 Top-$p$ (nucleus) sampling
 
 Pick the smallest set of tokens whose cumulative probability $\ge p$ — the **nucleus** — and sample from it. The size of the nucleus *adapts* to the model's confidence.
 
@@ -236,7 +236,7 @@ def top_p_sample(model, tokenizer, prompt, p=0.9, T=1.0, max_new=100):
 
 In panel (c) above the nucleus has 5 tokens because the top 5 already cover 85% of the mass. On a different distribution it could be 1 token (very confident model) or 200 (very flat distribution). This adaptivity is why top-$p$ has become the default for open-ended generation.
 
-### 4.5 Temperature
+### 5 Temperature
 
 Temperature $T$ rescales the logits *before* the softmax:
 $$P_T(w) = \text{softmax}(z / T)$$
@@ -259,7 +259,7 @@ A practical rule of thumb: **top-$p$ = 0.9 with $T$ = 0.7-0.9** is the default f
 
 ---
 
-## 5. Scaling laws: predictability before emergence
+## Scaling laws: predictability before emergence
 
 ![Scaling laws: loss decreases as a power law](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig3_scaling_laws.png)
 
@@ -274,7 +274,7 @@ The 2022 **Chinchilla** paper later refined the picture: for a fixed compute bud
 
 ---
 
-## 6. Emergent capabilities
+## Emergent capabilities
 
 ![Emergent capabilities: sharp phase transitions with scale](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig6_emergent_capabilities.png)
 
@@ -286,7 +286,7 @@ Whether emergence is "real" or an artefact of how we measure (using exact-match 
 
 ---
 
-## 7. In-context learning
+## In-context learning
 
 ![Few-shot in-context learning](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig7_in_context_learning.png)
 
@@ -338,7 +338,7 @@ A few rules of thumb that consistently help:
 
 ---
 
-## 8. Evaluating generated text
+## Evaluating generated text
 
 There is no perfect metric — but knowing which approximate metric to use, and what it misses, is essential.
 
@@ -395,7 +395,7 @@ For anything user-facing, **human evaluation remains the gold standard**.
 
 ---
 
-## 9. Build a chatbot with GPT-2
+## Build a chatbot with GPT-2
 
 GPT-2 is small enough to run on CPU and large enough to be interesting. The HuggingFace `transformers` library hides almost all of the boilerplate.
 
@@ -474,7 +474,7 @@ print(gen("User: What is deep learning?\nAssistant:",
 
 ---
 
-## 10. GPT vs. BERT, in one table
+## GPT vs. BERT, in one table
 
 | Aspect        | BERT                                      | GPT                                         |
 |---------------|-------------------------------------------|---------------------------------------------|
@@ -489,7 +489,7 @@ A useful mental model: **BERT is a search engine**, **GPT is a writer**. Use BER
 
 ---
 
-## 11. Limitations to be honest about
+## Limitations to be honest about
 
 - **Hallucination.** Producing fluent but factually wrong text is the model's default mode for anything it does not know. Mitigations: retrieval-augmentation (Part 10), tool use, calibrated refusal training.
 - **Context length.** GPT-2 had 1024 tokens; GPT-3 had 2048; GPT-4 went to 32 K and then 128 K; today 1 M is becoming common. But long contexts are expensive and recall in the *middle* of a long context degrades ("lost in the middle").

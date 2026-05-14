@@ -34,7 +34,7 @@ This note unpacks SR-GNN end to end: how the session graph is built, how the **g
 
 ---
 
-## 1. Background: what makes session-based recommendation different
+## Background: what makes session-based recommendation different
 
 In **session-based recommendation** there is no stable long-term user profile to lean on. We see only the current short sequence of clicks $s = [v_{s,1}, v_{s,2}, \dots, v_{s,n}]$ over an item catalog $V = \{v_1, \dots, v_{|V|}\}$, and we have to predict the next item $v_{s,n+1}$. The model outputs a score vector $\hat z \in \mathbb{R}^{|V|}$ over the catalog and the top-$K$ items are recommended.
 
@@ -45,7 +45,7 @@ Two properties make this regime awkward for classical CF and for plain RNNs:
 
 Pure sequence models compress these clicks into a single hidden state and inevitably lose the relational structure between revisited items. SR-GNN's contribution is to keep that structure explicit — as a graph — and let message passing handle the rest.
 
-## 2. Session graph construction
+## Session graph construction
 
 For each session $s$, SR-GNN builds a directed graph $G_s = (V_s, E_s)$ where $V_s$ are the unique items clicked in this session and $E_s$ contains a directed edge $u \to v$ for every observed transition. **Repeated nodes are deduplicated** (each item appears once as a node, no matter how many times it is clicked), but every transition is preserved as an edge. Edge weights are normalised by the source's out-degree:
 $$w_{u \to v} \;=\; \frac{\#(u \to v)}{\mathrm{outdeg}(u)} \, .$$
@@ -64,7 +64,7 @@ Concretely, for the click stream `A, B, C, B, D`:
 
 A pure GRU over the same stream would compress the second visit to `B` *into* the hidden state and effectively forget the `B -> C` transition once it absorbs `C -> B`. The graph view loses none of this.
 
-## 3. Gated GNN propagation
+## Gated GNN propagation
 
 Each item $v$ in the session has a $d$-dimensional embedding $h_v$ pulled from a global **item table** $V \in \mathbb{R}^{|V|\times d}$. SR-GNN runs $T$ rounds of message passing over the session graph using a **Gated Graph Neural Network** (Li et al., 2016), which is essentially a GRU cell driven by an aggregated message rather than a sequential input.
 
@@ -93,7 +93,7 @@ A few practical notes on the propagation:
 - **Parameter sharing**: the GRU cell parameters $(W_z, U_z, W_r, U_r, W, U, W_a, b)$ are shared across all nodes and across all sessions — the model is **transductive over the session catalog only at the embedding table level**, not at the cell level.
 - **Repeated visits**: because deduplicated nodes appear exactly once in the graph, both visits to `B` share the same embedding throughout propagation. The model recovers ordering information later, in the pooling step.
 
-## 4. Building the session representation
+## Building the session representation
 
 After propagation, SR-GNN turns the per-item embeddings $\{h_1, \dots, h_n\}$ into a single session vector $s_h$. A naive choice — "use the last $h_n$" — works surprisingly well on short sessions but throws away everything else the graph learned. The paper's design uses **two views**, fused linearly.
 
@@ -114,7 +114,7 @@ $$s_h \;=\; W_3\, [\,s_l \,;\, s_g\,], \qquad W_3 \in \mathbb{R}^{d \times 2d} \
 
 The local + global split is the same idea you see in NARM and STAMP, but with one important difference: SR-GNN's per-item embeddings already encode *graph structure*, so the global term aggregates structurally aware vectors rather than raw item embeddings. This is most of the empirical win.
 
-## 5. Scoring and training
+## Scoring and training
 
 Given $s_h$ and the item table $V \in \mathbb{R}^{|V|\times d}$, candidate scores are dot products:
 $$
@@ -131,7 +131,7 @@ A few details that matter in practice:
 - **Batching**: sessions vary in length, so the implementation pads each batch to the max session size and masks accordingly. The official repo at <https://github.com/CRIPAC-DIG/SR-GNN/tree/master> handles this carefully — if you reimplement, copy that masking logic.
 - **Sampled softmax for huge catalogs**: with $|V| > 10^5$ the full softmax becomes the bottleneck. Replace it with sampled softmax or a two-tower retrieval head; SR-GNN itself stays unchanged.
 
-## 6. Why session graphs outperform sequential baselines
+## Why session graphs outperform sequential baselines
 
 The pure-sequence formulation is $h_t = \mathrm{GRU}(h_{t-1}, v_t)$. It has three weaknesses that the graph view fixes by construction:
 
@@ -145,7 +145,7 @@ Empirically these add up. On the standard SR-GNN evaluation — Yoochoose 1/64, 
 
 The lifts are biggest on Diginetica, where sessions are longer and have more revisits — exactly the regime where sequence models lose the most transition information.
 
-## 7. Hyperparameters and training recipe
+## Hyperparameters and training recipe
 
 The paper's defaults are unusually well-tuned and tend to transfer to new SBR datasets with little change. Use them as a starting point:
 
@@ -162,11 +162,11 @@ The paper's defaults are unusually well-tuned and tend to transfer to new SBR da
 
 A subtle gotcha: the official preprocessing **filters sessions of length 1** and **filters items appearing fewer than 5 times**. If you reuse the published numbers without these filters your Recall@20 will look ~3--5 points worse, and you will spend a week debugging the model rather than the data.
 
-## 8. Failure modes and how to fix them
+## Failure modes and how to fix them
 
 SR-GNN is not a universal SBR solution. The four modes below show up reliably enough that they belong in any production checklist.
 
-### 8.1 Popularity collapse
+### 1 Popularity collapse
 
 **Symptom.** Recall@20 looks fine, but the top-$K$ list is dominated by 5--10 globally popular items regardless of session. Diversity (intra-list distance, coverage@K) is low.
 
@@ -178,7 +178,7 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 - **Inverse-propensity-weighted softmax**: down-weight popular positives during training.
 - **Negative sampling** with popularity-proportional sampling, which forces the model to discriminate against popular items it would otherwise default to.
 
-### 8.2 Poor performance on very short sessions ($n \le 3$)
+### 2 Poor performance on very short sessions ($n \le 3$)
 
 **Symptom.** The model is excellent on sessions of length 5+ but loses to a co-click baseline on length-2 and length-3 sessions.
 
@@ -190,7 +190,7 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 - **Graph augmentation**: attach the last item to its top-$k$ co-clicked neighbours from the global click graph. This "borrows" structure when the session itself has none.
 - **Pretrain item embeddings** on the global co-click graph (DeepWalk / node2vec) and initialise the SR-GNN item table from them. Short sessions then start with informative embeddings rather than random ones.
 
-### 8.3 Overfitting on small datasets
+### 3 Overfitting on small datasets
 
 **Symptom.** Training Recall@20 climbs steadily; validation Recall@20 plateaus by epoch 4 and starts to drop.
 
@@ -203,7 +203,7 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 - L2 weight decay up to $10^{-4}$.
 - Earlier early-stopping: patience 3 instead of 5.
 
-### 8.4 Cold-start items
+### 4 Cold-start items
 
 **Symptom.** Items that appear fewer than ~5 times in training are almost never recommended; their dot product with any $s_h$ stays small.
 
@@ -214,11 +214,11 @@ SR-GNN is not a universal SBR solution. The four modes below show up reliably en
 - Add **content features** (title text embedding, category, brand) as a side-channel and learn $v_i = V[i] + g(\text{content}_i)$. The cold-start row inherits a prior from $g$.
 - Use **two-tower retrieval** for the candidate generation step and reserve SR-GNN for ranking on a smaller candidate set.
 
-## 9. Variants and useful extensions
+## Variants and useful extensions
 
 A few extensions are worth knowing because they recur in follow-up SBR papers and in production systems.
 
-### 9.1 Attention-weighted message passing
+### 1 Attention-weighted message passing
 
 Replace the fixed $A_s$ with attention weights computed per-edge:
 $$
@@ -227,13 +227,13 @@ $$
 $$
 This is essentially GAT inside the GGNN cell. Helps when transitions are not equally informative.
 
-### 9.2 Time-gap edges
+### 2 Time-gap edges
 
 Sessions span seconds to minutes; a click that happens 2 seconds after the previous one is a stronger signal than one 5 minutes later. Encode the time gap $\Delta t_{u \to v}$ into the edge weight:
 $$w_{u \to v} \;=\; \exp\!\big(-\beta \cdot \Delta t_{u \to v}\big) \cdot \frac{\#(u \to v)}{\mathrm{outdeg}(u)} \, .$$
 A learnable $\beta$ usually settles around $0.05$--$0.2$ when $\Delta t$ is in seconds.
 
-### 9.3 Multi-task heads
+### 3 Multi-task heads
 
 Add auxiliary losses on the same $s_h$:
 
@@ -243,7 +243,7 @@ Add auxiliary losses on the same $s_h$:
 
 These regularise the session vector and tend to help when the next-click loss alone is noisy. Keep the auxiliary loss weights small ($0.05$--$0.2$) — they are guides, not objectives.
 
-## 10. When to use SR-GNN vs alternatives
+## When to use SR-GNN vs alternatives
 
 | Scenario                                  | Recommendation                                                       |
 | ----------------------------------------- | -------------------------------------------------------------------- |

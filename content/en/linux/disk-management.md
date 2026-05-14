@@ -405,7 +405,7 @@ sudo du -sh /var/log              # single total for one path
 There are three classic reasons `df` says "100% full" but `du` can't
 find the missing space.
 
-### 1. A process still has a deleted file open
+### A process still has a deleted file open
 
 A process opens `/var/log/app.log` and writes to it for weeks.
 Someone deletes the file. The directory entry is gone — `du` doesn't
@@ -421,7 +421,7 @@ The fix is to make the holding process close the file: restart the
 service, send `SIGHUP` if it supports log re-opening, or use
 `logrotate`'s `copytruncate` mode for processes that don't.
 
-### 2. Mount confusion
+### Mount confusion
 
 You think you are looking at the data volume, but actually nothing
 is mounted there and you are filling up the parent filesystem.
@@ -433,7 +433,7 @@ mount | grep data
 
 If `findmnt` returns nothing, `/data` is just a directory on `/`.
 
-### 3. ext4 reserved blocks
+### ext4 reserved blocks
 
 ext4 reserves **5%** of the filesystem for `root` by default. The
 intent is that essential daemons can still write even when users

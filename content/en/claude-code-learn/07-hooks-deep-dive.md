@@ -60,7 +60,7 @@ I will skip that preamble in some listings below for brevity, but every real hoo
 
 ---
 
-## 1. block-env-read — protect secrets
+## block-env-read — protect secrets
 
 The single highest-ROI hook. Stops `Read` and `Grep` from touching `.env`, `id_rsa`, `credentials.json`.
 
@@ -156,7 +156,7 @@ The model recovers gracefully because the stderr message tells it *what to do in
 
 ---
 
-## 2. bash-blacklist — stop `rm -rf /`
+## bash-blacklist — stop `rm -rf /`
 
 ![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
 
@@ -221,7 +221,7 @@ The regex list is short on purpose. Long blocklists get ignored when they cause 
 
 ---
 
-## 3. bash-whitelist — for production-adjacent boxes
+## bash-whitelist — for production-adjacent boxes
 
 The inverse of the blacklist, for repos that touch production. It allows only an explicit set of binaries.
 
@@ -304,7 +304,7 @@ echo "Exit code: $?"
 
 ---
 
-## 4. block-git-push — no surprise pushes
+## block-git-push — no surprise pushes
 
 I have never wanted Claude to push without asking. PreToolUse on `Bash`.
 
@@ -387,7 +387,7 @@ The cost of being wrong is so much worse than the friction of typing `git push` 
 
 ---
 
-## 5. format-on-write — Prettier as a PostToolUse
+## format-on-write — Prettier as a PostToolUse
 
 PostToolUse on `Write|Edit|MultiEdit`. This is hygiene, not policy.
 
@@ -459,7 +459,7 @@ The format happens silently. Claude does not even mention it.
 
 ---
 
-## 6. test-on-edit — fail fast
+## test-on-edit — fail fast
 
 PostToolUse on `Edit|MultiEdit` for source files. This hook taught Claude to write better code over time on my repos.
 
@@ -549,7 +549,7 @@ Over time, across many sessions, this hook trains the model to write code that m
 
 ---
 
-## 7. backup-before-edit — the safety net
+## backup-before-edit — the safety net
 
 PreToolUse on `Edit|Write|MultiEdit`. Cheap insurance.
 
@@ -618,7 +618,7 @@ I have recovered files from `/tmp` exactly twice, both times worth a year of cro
 
 ---
 
-## 8. log-tool-calls — observability
+## log-tool-calls — observability
 
 PostToolUse on `*` (all tools).
 
@@ -695,7 +695,7 @@ You won't look at this file every day, but when you do, you'll be glad it's ther
 
 ---
 
-## 9. read-before-write — no blind edits
+## read-before-write — no blind edits
 
 PreToolUse on `Edit|MultiEdit`. Forces the model to read a file before editing it.
 
@@ -791,7 +791,7 @@ This hook catches the subtle bug where the model edits based on its training dat
 
 ---
 
-## 10. work-hours-only — humane boundaries
+## work-hours-only — humane boundaries
 
 PreToolUse on `Bash`.
 

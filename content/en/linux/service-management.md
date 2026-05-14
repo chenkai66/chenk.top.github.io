@@ -34,7 +34,7 @@ day to day, dissect a unit file line by line, and then cover the
 adjacent surfaces: `journalctl` for logs, `.timer` units as the modern
 cron, and a step-by-step playbook for "the service won't start."
 
-## 1. Why a service manager exists
+## Why a service manager exists
 
 ### The problem before systemd
 
@@ -108,7 +108,7 @@ For most of this article "service" means a `.service` unit. The other
 types share the same lifecycle and the same management commands, so
 once you understand services the rest comes for free.
 
-## 2. systemctl: the day-to-day commands
+## systemctl: the day-to-day commands
 
 `systemctl` is your one entry point. It is worth memorising the
 common subcommands until they become muscle memory — you will type
@@ -175,7 +175,7 @@ sees. And `systemctl list-dependencies` makes the ordering graph
 visible, which is invaluable when something refuses to start because
 something else hasn't.
 
-## 3. The service lifecycle
+## The service lifecycle
 
 Once you have started a service, it lives inside a small state
 machine. Every line `systemctl status` prints is just a label on one
@@ -203,7 +203,7 @@ runs `ExecStart=` again. This is the entire reason you don't need
 something like Monit on top of systemd — the supervisor is already
 there.
 
-## 4. Writing your own service
+## Writing your own service
 
 The path from "I have a script" to "it survives reboots and crashes"
 is a single unit file. Suppose you have an HTTP server at
@@ -342,7 +342,7 @@ sudo systemctl restart nginx          # apply it to the running process
 `daemon-reload` only re-reads unit files; it does not restart anything.
 Forgetting it is the single most common reason "my edit had no effect."
 
-## 5. journalctl: the logs are already there
+## journalctl: the logs are already there
 
 systemd ships with **journald**, a logging daemon that captures
 stdout/stderr from every service plus everything written to syslog.
@@ -403,7 +403,7 @@ sudo journalctl --vacuum-time=7d             # keep last 7 days
 sudo journalctl --vacuum-size=1G             # cap at 1 GiB
 ```
 
-## 6. Timers: the modern cron
+## Timers: the modern cron
 
 `cron` still works on every Linux system. But on a systemd box,
 `.timer` units are usually a better choice — they share the journal
@@ -462,7 +462,7 @@ hardening/limit knobs; and `Persistent=true` solves the laptop
 problem (the cron job that "should have run at 03:00" while the
 laptop was asleep simply doesn't, ever).
 
-## 7. The boot timeline
+## The boot timeline
 
 Knowing roughly what happens between power-on and your login prompt
 makes "why did boot take 90 seconds" tractable.
@@ -496,7 +496,7 @@ start without delaying boot at all, if nothing was waiting on it.
 `critical-chain` is what tells you which slow service is actually on
 the critical path. Optimise that one first.
 
-## 8. Common services in 60 seconds
+## Common services in 60 seconds
 
 This section is a reference card for the four services you will touch
 most often.
@@ -591,7 +591,7 @@ Always use absolute paths inside the command — cron runs with a
 near-empty `PATH`. Capture both streams (`>> /var/log/myjob.log 2>&1`)
 or you'll never know why the job stopped working.
 
-## 9. Troubleshooting playbook: the service won't start
+## Troubleshooting playbook: the service won't start
 
 When a service refuses to come up, work the list in order. Most of
 the time you find the answer in the first two steps.

@@ -49,7 +49,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 
 ---
 
-## 1. Anatomy of a prompt
+## Anatomy of a prompt
 
 A prompt is *a single text string the model conditions on*. Everything else — such as "system" vs. "user" roles, function schemas, and retrieval results — is just structured text the API combines into one sequence before tokenization. Treating a prompt as a flat string with named blocks gives the cleanest mental model.
 
@@ -111,7 +111,7 @@ These are the principles I would still teach today, after a lot of prompts in pr
 
 ---
 
-## 2. Zero-shot, few-shot, chain-of-thought
+## Zero-shot, few-shot, chain-of-thought
 
 These are the three baseline framings every other technique builds on.
 
@@ -193,7 +193,7 @@ When CoT helps and when it does not:
 
 ---
 
-## 3. A working theory of in-context learning
+## A working theory of in-context learning
 
 Why does putting examples in the prompt change behaviour at all? The model's weights are frozen. Three complementary explanations — none alone complete — are the closest thing the field has to consensus.
 
@@ -212,7 +212,7 @@ The practical consequences are the same regardless of which story you prefer:
 
 ---
 
-## 4. The variance problem
+## The variance problem
 
 Here is the uncomfortable truth nobody mentions in the marketing material. **Prompt accuracy can swing 10-30 points based on choices that should not matter:** the order of your examples, whether you write `Q:` or `Input:`, whether you wrap the answer in quotes.
 
@@ -274,7 +274,7 @@ Pick examples that are **diverse across the input distribution** and **clean / u
 
 ---
 
-## 5. Self-consistency: turn the decoder into an ensemble
+## Self-consistency: turn the decoder into an ensemble
 
 A single CoT chain can take a wrong turn at step 2 and propagate the mistake. Self-consistency (Wang et al., 2022) addresses this with a one-line fix: **sample $k$ different reasoning chains, then majority-vote the final answers.**
 
@@ -313,7 +313,7 @@ Two notes from running this in production:
 
 ---
 
-## 6. ReAct: reasoning + acting
+## ReAct: reasoning + acting
 
 Self-consistency improves what the model can do with what it already knows. **ReAct** (Yao et al., 2022) addresses the harder case: when the model needs *external information or actions*. The pattern interleaves three blocks in the output:
 
@@ -374,7 +374,7 @@ Three things that matter for a ReAct agent in production:
 
 ---
 
-## 7. Building a prompt system
+## Building a prompt system
 
 A handful of strong prompts is a script. A *system* of prompts is what survives team turnover, model upgrades, and four months of A/B tests. Three habits separate the two.
 

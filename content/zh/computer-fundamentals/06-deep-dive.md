@@ -177,7 +177,7 @@ translationKey: "computer-fundamentals-6"
 
 本系列反复强调：**测量即杠杆。** 以下三个实验，各耗时不足一小时，做完你将获得此前没有的数字。
 
-## 1. 测量你机器的“内存墙”
+## 测量你机器的“内存墙”
 
 ```bash
 # Linux
@@ -188,7 +188,7 @@ sysbench memory --memory-block-size=64 --memory-total-size=16G run
 
 首次运行测试大块连续数据流，反映 DRAM 持续带宽；第二次随机访问 64 字节 cache line，测量延迟受限吞吐。两者比值即为你的**内存墙**，通常为 5x 至 20x。这一差距正是缓存局部性至关重要的根本原因。
 
-## 2. 观察分支预测器的学习过程
+## 观察分支预测器的学习过程
 
 ```python
 # pip install pyperf
@@ -211,7 +211,7 @@ for label, data in [("sorted", sorted_data), ("shuffled", shuffled_data)]:
 
 相同数据，排序后运行通常快 1.4–1.8 倍。因 CPU 分支预测器可轻松学习“前半段永不满足、后半段恒满足”的规律，而非对抗随机噪声。这正是 Mike Acton “数据导向设计”演讲核心思想的微型体现。
 
-## 3. 测量你机器的实际 PCIe 带宽
+## 测量你机器的实际 PCIe 带宽
 
 ```bash
 # 如果你有 GPU，可以用以下命令查看信息

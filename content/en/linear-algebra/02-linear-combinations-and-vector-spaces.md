@@ -38,7 +38,7 @@ These five words are the working vocabulary of linear algebra. Every later chapt
 
 ---
 
-## 1. What Is a Linear Combination?
+## What Is a Linear Combination?
 
 ### The recipe
 
@@ -72,7 +72,7 @@ The left panel shows one specific combination $1.5\vec{v}+1.2\vec{w}$ built by t
 
 ---
 
-## 2. Span — Everywhere the Vectors Can Reach
+## Span — Everywhere the Vectors Can Reach
 
 ### Definition
 
@@ -112,7 +112,7 @@ Can you produce the target $(15\%,\,12\%)$? Since $\vec{A}$ and $\vec{B}$ are no
 
 ---
 
-## 3. Linear Independence — No Wasted Vectors
+## Linear Independence — No Wasted Vectors
 
 ### The core idea
 
@@ -157,7 +157,7 @@ If $\{\vec{v}_1,\ldots,\vec{v}_k\}$ is independent, then *every* vector in their
 
 ---
 
-## 4. Basis — The Smallest Complete Toolbox
+## Basis — The Smallest Complete Toolbox
 
 ![Essence of Linear Algebra (2): Linear Combinations and Vector Spaces — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/illustration_2.png)
 
@@ -203,7 +203,7 @@ A "vector" is the geometric object. A "coordinate tuple" is what the vector look
 
 ---
 
-## 5. Dimension — Counting the Degrees of Freedom
+## Dimension — Counting the Degrees of Freedom
 
 ### Definition
 
@@ -236,7 +236,7 @@ This is why dimension feels like the *capacity* of a space — it is the upper b
 
 ---
 
-## 6. Subspaces — Spaces Inside Spaces
+## Subspaces — Spaces Inside Spaces
 
 ### Definition
 
@@ -281,7 +281,7 @@ It is the inclusion–exclusion principle, ported to vector spaces. We will see 
 
 ---
 
-## 7. Case Study — RGB as a Vector Space
+## Case Study — RGB as a Vector Space
 
 The RGB color model is the cleanest real-world illustration of everything in this chapter:
 
@@ -307,7 +307,7 @@ white  = red + green + blue   # [255, 255, 255]
 
 ---
 
-## 8. Common Pitfalls
+## Common Pitfalls
 
 > **"$\vec{v}_1=(1,2)$ and $\vec{v}_2=(2,4)$ span $\mathbb{R}^2$."**
 > No. $\vec{v}_2=2\vec{v}_1$, so they span only the line $y=2x$.
@@ -326,7 +326,7 @@ white  = red + green + blue   # [255, 255, 255]
 
 ---
 
-## 9. Code Lab
+## Code Lab
 
 ### Is a set linearly independent?
 
@@ -380,7 +380,7 @@ print(len(extract_basis(vs)))   # 3 -> {v1, v2, v4}
 
 ---
 
-## 10. Summary
+## Summary
 
 | Concept | Definition | Picture |
 |---------|-----------|---------|
@@ -401,7 +401,7 @@ These six ideas thread through everything that follows:
 
 ---
 
-## 10. When the Basis Assumption Breaks: Near-Dependent Columns
+## When the Basis Assumption Breaks: Near-Dependent Columns
 
 The clean dichotomy "vectors are either independent or dependent" is a lie that floating-point arithmetic does not respect. In practice, columns are *near*-dependent, and the symptom is a basis matrix whose determinant is $10^{-15}$ instead of $0$.
 
@@ -425,7 +425,7 @@ The right tool is the SVD (Chapter 9). The singular values $\sigma_1 \ge \sigma_
 
 This matters constantly. Polynomial regression on $1, x, x^2, \ldots, x^{15}$ over $x \in [0,1]$ has condition number $> 10^{20}$ — the monomial basis is theoretically independent but practically useless. Switch to Chebyshev or Legendre polynomials and the condition number drops to $\sim 10^{2}$. Same span, vastly different basis.
 
-## 11. Connection to ML: Feature Redundancy and the Rank of the Data Matrix
+## Connection to ML: Feature Redundancy and the Rank of the Data Matrix
 
 In a tabular ML pipeline, your design matrix $X \in \mathbb{R}^{n\times d}$ has one row per sample and one column per feature. The *column space* of $X$ is the set of label functions a linear model can possibly represent. Three things that this chapter's vocabulary lets you diagnose precisely:
 

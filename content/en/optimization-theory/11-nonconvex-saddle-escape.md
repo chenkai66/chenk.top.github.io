@@ -39,7 +39,7 @@ Each is rigorous in its setting. The article also discusses what is **not** know
 
 ---
 
-## 1. The non-convex landscape
+## The non-convex landscape
 
 For non-convex $f$, the first-order optimality condition $\nabla f(x) = 0$ has multiple solution types, classified by the Hessian:
 
@@ -63,9 +63,9 @@ The good news: **most saddles are escapable**.
 
 ---
 
-## 2. Saddle escape via perturbed GD
+## Saddle escape via perturbed GD
 
-### 2.1 Strict saddle property
+### 1 Strict saddle property
 
 A function $f$ has the **strict saddle property** if at every stationary point $x^\star$,
 $$
@@ -75,7 +75,7 @@ That is, every stationary point is either a strict local min or has a strictly n
 
 Many machine-learning problems have the strict saddle property: orthogonal tensor decomposition, generalized phase retrieval, low-rank matrix completion, dictionary learning. For these problems, escaping saddles automatically reaches a local minimum, which is often global.
 
-### 2.2 Perturbed GD
+### 2 Perturbed GD
 
 ```text
 Algorithm: PGD (perturbed gradient descent)
@@ -99,13 +99,13 @@ This is the same dependence on $\epsilon$ as plain GD's first-order convergence 
 
 The proof is intricate but the intuition is clean: count "stuck epochs" (where the function value barely decreases) and show that each one ends with high probability after $O(\log^4 d)$ iterations of perturbed GD. Each stuck epoch happens at a near-stationary point, and the post-perturbation trajectory escapes if $\lambda_{\min}(\nabla^2 f) < -\sqrt{\rho \epsilon}$.
 
-### 2.3 SGD's implicit perturbation
+### 3 SGD's implicit perturbation
 
 In the stochastic setting, the noise from $\nabla f_{i_t}$ already perturbs the iterate. The above analysis carries over: SGD escapes strict saddles in polynomial time without explicit perturbation. This is part of why deep learning practitioners do not worry about saddle points — the noise gets you out for free.
 
 ---
 
-## 3. The Polyak--Łojasiewicz (PL) condition
+## The Polyak--Łojasiewicz (PL) condition
 
 A function $f$ satisfies the **PL inequality** with parameter $\mu > 0$ if
 $$
@@ -134,7 +134,7 @@ f(x_{t+1}) - f^\star \leq (1 - \mu / L) (f(x_t) - f^\star). \quad \blacksquare
 $$
 This is shockingly clean — the proof is two lines. PL is the **right** condition for fast convergence in non-convex settings; it bypasses the global-minimum-uniqueness story that strong convexity needs.
 
-### 3.1 PL in deep learning
+### 1 PL in deep learning
 
 For sufficiently wide neural networks (width polynomial in number of training points), the Neural Tangent Kernel (NTK) regime gives a **provable PL inequality** along the GD trajectory (Du, Lee, Li, Wang, Zhai 2019; Liu et al. 2022). This is one of the few theoretical explanations of why GD finds zero training loss on neural networks despite non-convexity.
 
@@ -142,17 +142,17 @@ The catch: the PL constant $\mu$ scales unfavorably with network width and depth
 
 ---
 
-## 4. Loss landscape of neural networks
+## Loss landscape of neural networks
 
 What do we actually know about the loss landscape of a deep network?
 
-### 4.1 Over-parameterization eliminates spurious local minima
+### 1 Over-parameterization eliminates spurious local minima
 
 For a deep neural network with $\geq n$ parameters where $n$ is the number of training examples, the global minimum value of the empirical loss is $0$ (assuming the architecture has enough capacity to interpolate). Under mild assumptions on the activation, **all local minima of the empirical loss are global** — the loss landscape has the **PL property** along the GD trajectory in suitable regimes.
 
 This is the modern "**over-parameterization helps optimization**" theme: with more parameters than data points, training loss zero is achievable and gradient methods reach it. The 2017--2020 literature on neural-network loss landscapes provided the theoretical grounding for what practitioners had observed since AlexNet.
 
-### 4.2 The NTK regime
+### 2 The NTK regime
 
 The **Neural Tangent Kernel** (Jacot, Gabriel, Hongler 2018) shows that a wide enough network behaves linearly in its parameters around initialization:
 $$
@@ -167,7 +167,7 @@ NTK is descriptive of "lazy training" — wide networks where weights barely cha
 *Figure: left — in the NTK / lazy regime a wide network's parameters $\theta$ stay inside a tiny neighborhood of the initialization $\theta_0$ (blue), while a narrow network's parameters move substantially (orange, feature learning). Right — under PL with NTK constant $\mu$, GD enjoys the linear rate $(1-\mu/L)^t$, in contrast to the sublinear plateau of generic non-convex landscapes.*
 
 
-### 4.3 Implicit bias of SGD
+### 3 Implicit bias of SGD
 
 SGD does not just find any global min — it finds **flat** ones. Empirically, SGD-found minima generalize better than the same loss values found by full-batch GD. The conjectured mechanism: the SGD noise has variance proportional to the loss's local curvature, so SGD spends more time in flat regions where curvature is small.
 
@@ -182,7 +182,7 @@ This is part of a larger story — **implicit bias** — where the choice of opt
 
 ---
 
-## 5. Cubic regularization: a non-convex Newton
+## Cubic regularization: a non-convex Newton
 
 The non-convex analogue of damped Newton (article 07) is **cubic regularization**:
 $$
@@ -200,7 +200,7 @@ The catch is that cubic regularization needs the Hessian (or a cubic subproblem 
 
 ---
 
-## 6. What is provably hard
+## What is provably hard
 
 To balance the optimism, here's what cannot be done:
 
@@ -212,7 +212,7 @@ The successes of saddle escape, PL, and NTK all rely on **specific structure** o
 
 ---
 
-## 7. Summary
+## Summary
 
 | Concept                       | What it gives you                                                       |
 | ----------------------------- | ------------------------------------------------------------------------ |

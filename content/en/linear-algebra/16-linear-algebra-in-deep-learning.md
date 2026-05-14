@@ -33,21 +33,21 @@ This chapter rebuilds the modern stack from that single language. We follow one 
 
 ![Essence of Linear Algebra (16): Linear Algebra in Deep Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/illustration_1.png)
 
-## 1. The Network Is the Matmul Chain
+## The Network Is the Matmul Chain
 
-### 1.1 One neuron, one inner product
+### 1 One neuron, one inner product
 
 A neuron does the simplest thing imaginable: take a weighted sum, add a bias, squash it.
 $$h \;=\; \sigma(\mathbf{w}^{\top}\mathbf{x} + b)$$
 That is **one inner product plus one nonlinearity**. Stop here and the rest of deep learning is just stacking and broadcasting this primitive.
 
-### 1.2 Stack neurons — get a matrix
+### 2 Stack neurons — get a matrix
 
 Pack $m$ neurons' weight vectors as the rows of a matrix $\mathbf{W} \in \mathbb{R}^{m \times d}$:
 $$\mathbf{h} \;=\; \sigma(\mathbf{W}\mathbf{x} + \mathbf{b})$$
 Geometrically, $\mathbf{W}$ is a linear map from a $d$-dimensional input space into an $m$-dimensional feature space; $\sigma$ then bends that space so it is no longer flat. Without $\sigma$ a stack of layers would collapse to a single matrix product — the nonlinearity is what breaks the closure of matrix multiplication and makes universal approximation possible.
 
-### 1.3 Batch is not optional
+### 3 Batch is not optional
 
 GPUs are GEMM machines. A single sample wastes nearly all of their FLOPs. Stack $B$ samples as rows of $\mathbf{X} \in \mathbb{R}^{B \times d}$ and a layer becomes one giant matmul:
 $$\mathbf{H} \;=\; \sigma(\mathbf{X}\mathbf{W}^{\top} + \mathbf{1}\mathbf{b}^{\top})$$
@@ -67,7 +67,7 @@ print(linear.weight.shape)       # torch.Size([256, 784])
 print(linear.bias.shape)         # torch.Size([256])
 ```
 
-### 1.4 Reading a trained weight matrix
+### 4 Reading a trained weight matrix
 
 After training, $\mathbf{W}$ is not random noise — each row is a learned **template** the neuron fires on. Heatmapping the matrix and reshaping each row back to the input geometry gives you a direct picture of what the network has learned.
 
@@ -77,11 +77,11 @@ For an MLP on images you see oriented edges and blobs — the same primitives Hu
 
 ---
 
-## 2. Backpropagation Is the Matrix Chain Rule
+## Backpropagation Is the Matrix Chain Rule
 
 Backprop has a reputation for being mysterious. It isn't. It is the chain rule, written with matrices, with one rule of thumb: **whichever matrix multiplied on the forward pass, its transpose multiplies on the backward pass.**
 
-### 2.1 One layer, four steps
+### 1 One layer, four steps
 
 Consider $\mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b}$, $\mathbf{h} = \sigma(\mathbf{z})$, with some scalar loss $L$ downstream.
 
@@ -94,7 +94,7 @@ $$\frac{\partial L}{\partial \mathbf{W}} \;=\; \frac{\partial L}{\partial \mathb
 $$\frac{\partial L}{\partial \mathbf{x}} \;=\; \mathbf{W}^{\top}\,\frac{\partial L}{\partial \mathbf{z}}$$
 Why $\mathbf{W}^{\top}$? Because $\mathbf{W}$ pushes $\mathbf{x}$ forward; its transpose — the **adjoint** — pulls gradients back. This is exactly the duality theorem for linear maps, dressed up in calculus notation.
 
-### 2.2 Batched form
+### 2 Batched form
 
 For a batch $\mathbf{X} \in \mathbb{R}^{B \times d}$ with post-activation gradient $\boldsymbol{\Delta}$:
 $$\frac{\partial L}{\partial \mathbf{W}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{X}, \qquad \frac{\partial L}{\partial \mathbf{b}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{1}, \qquad \frac{\partial L}{\partial \mathbf{X}} \;=\; \boldsymbol{\Delta}\,\mathbf{W}$$
@@ -122,7 +122,7 @@ class ManualLinear:
         return grad_z @ self.W                    # to previous layer
 ```
 
-### 2.3 The Jacobian view
+### 3 The Jacobian view
 
 For any $\mathbf{y} = f(\mathbf{x})$ the Jacobian $\mathbf{J}_{ij} = \partial y_i / \partial x_j$ is the local linear approximation. The chain rule then reads as a product of Jacobians:
 $$\nabla_{\!\mathbf{x}} L \;=\; \mathbf{J}^{\top}\,\nabla_{\!\mathbf{y}} L$$
@@ -130,15 +130,15 @@ For a linear layer $\mathbf{y} = \mathbf{W}\mathbf{x}$ the Jacobian is literally
 
 ---
 
-## 3. Convolution Is Just GEMM in Disguise
+## Convolution Is Just GEMM in Disguise
 
-### 3.1 One dimension: a Toeplitz matrix
+### 1 One dimension: a Toeplitz matrix
 
 A 1D convolution with kernel $\mathbf{w} = [w_0, w_1, w_2]$ acting on a length-5 input is the same as multiplying by a banded **Toeplitz matrix**:
 $$\mathbf{T} \;=\; \begin{bmatrix} w_2 & w_1 & w_0 & 0 & 0 \\ 0 & w_2 & w_1 & w_0 & 0 \\ 0 & 0 & w_2 & w_1 & w_0 \end{bmatrix}, \qquad \mathbf{y} = \mathbf{T}\mathbf{x}$$
 So convolution was always a matrix product. The only reason we don't write it that way is that $\mathbf{T}$ is enormous and almost entirely zero.
 
-### 3.2 Two dimensions: im2col
+### 2 Two dimensions: im2col
 
 In 2D, frameworks pull the same trick using **im2col**. The idea is to **unfold** every receptive field into a column, stack them, and convert the whole convolution into a single dense matmul that BLAS adores.
 
@@ -183,7 +183,7 @@ print((conv2d_via_im2col(x, w, padding=1) - F.conv2d(x, w, padding=1))
       .abs().max().item())   # ~1e-6
 ```
 
-### 3.3 Depthwise separable convolution = low-rank factorization
+### 3 Depthwise separable convolution = low-rank factorization
 
 A standard $K\times K$ convolution costs $C_{\rm out}\,C_{\rm in}\,K^2$ parameters. **Depthwise-separable** convolution factors that tensor into two cheaper pieces:
 
@@ -210,17 +210,17 @@ print(sum(p.numel() for p in DepthwiseSeparableConv(64, 128).parameters()))
 
 ---
 
-## 4. Attention Is a Soft Lookup — Done with Three Matmuls
+## Attention Is a Soft Lookup — Done with Three Matmuls
 
 ![Essence of Linear Algebra (16): Linear Algebra in Deep Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/illustration_2.png)
 
-### 4.1 The library metaphor
+### 1 The library metaphor
 
 You walk into a library with a question. Each book has a **key** (its keywords) and a **value** (its content). You compare your **query** against every key, normalise the scores into weights, and return a weighted blend of the values.
 
 That is the entire mechanism. The clever part is that all of it is matmuls.
 
-### 4.2 Scaled dot-product attention, four steps
+### 2 Scaled dot-product attention, four steps
 $$\mathrm{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) \;=\; \mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{\top}}{\sqrt{d_k}}\right)\mathbf{V}$$
 Read the four panels left to right:
 
@@ -246,7 +246,7 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
     return weights @ V, weights
 ```
 
-### 4.3 Multi-head: many subspaces in parallel
+### 3 Multi-head: many subspaces in parallel
 
 One attention head learns one notion of "relevance". Real language wants many — syntactic, semantic, positional. Multi-head attention runs $h$ heads in parallel, each in a $d_k = d_{\rm model}/h$ subspace, then mixes them.
 $$\mathrm{MultiHead}(\mathbf{X}) = \mathrm{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}^O$$$$\text{head}_i = \mathrm{Attention}(\mathbf{X}\mathbf{W}_i^Q,\,\mathbf{X}\mathbf{W}_i^K,\,\mathbf{X}\mathbf{W}_i^V)$$
@@ -278,7 +278,7 @@ The cost of vanilla attention is $O(n^2 d_k)$ in time and $O(n^2)$ in memory —
 
 ---
 
-## 5. Putting It Together: A Transformer Block
+## Putting It Together: A Transformer Block
 
 A Transformer encoder layer is just four ingredients in a fixed pattern.
 
@@ -301,11 +301,11 @@ have the elegant property that $\mathrm{PE}_{\mathrm{pos}+k}$ is a **linear func
 
 ---
 
-## 6. Normalization: Standardize Along Different Axes
+## Normalization: Standardize Along Different Axes
 
 Activations drift during training. Normalization layers pull them back to a known distribution at every forward pass.
 
-### 6.1 BatchNorm vs LayerNorm
+### 1 BatchNorm vs LayerNorm
 
 Both apply $\hat{x} = (x - \mu)/\sqrt{\sigma^2 + \epsilon}$ followed by a learnable affine $\gamma\hat{x} + \beta$. The difference is **which axis the mean and variance are computed over**:
 
@@ -314,7 +314,7 @@ Both apply $\hat{x} = (x - \mu)/\sqrt{\sigma^2 + \epsilon}$ followed by a learna
 
 Reading the matrix mental model: BatchNorm standardises **columns** of the activation matrix, LayerNorm standardises **rows**.
 
-### 6.2 RMSNorm: drop the mean
+### 2 RMSNorm: drop the mean
 
 LLaMA-style models simplify further. Skip the mean subtraction and just rescale by the root-mean-square:
 $$\hat{x} = \frac{x}{\mathrm{RMS}(x)} \cdot \gamma, \qquad \mathrm{RMS}(x) = \sqrt{\tfrac{1}{d}\sum_i x_i^2}$$
@@ -322,11 +322,11 @@ Roughly half the FLOPs of LayerNorm, comparable downstream quality. Modern LLMs 
 
 ---
 
-## 7. Initialization, Conditioning, and Gradient Flow
+## Initialization, Conditioning, and Gradient Flow
 
 Every issue with training depth ultimately reduces to one quantity: **the singular values of the layerwise Jacobian, multiplied together**.
 
-### 7.1 The variance-preservation principle
+### 1 The variance-preservation principle
 
 Want signals to neither explode nor vanish through $L$ layers? Then every layer should approximately preserve variance. For a linear layer $\mathbf{y} = \mathbf{W}\mathbf{x}$ with i.i.d. zero-mean inputs and weights, $\mathrm{Var}(y_i) = n_{\rm in}\,\mathrm{Var}(W_{ij})\,\mathrm{Var}(x)$. Setting this equal to $\mathrm{Var}(x)$ gives the initialization rules.
 
@@ -334,7 +334,7 @@ Want signals to neither explode nor vanish through $L$ layers? Then every layer 
 $$w_{ij} \sim \mathcal{U}\!\left[-\sqrt{\tfrac{6}{n_{\rm in} + n_{\rm out}}},\;\sqrt{\tfrac{6}{n_{\rm in} + n_{\rm out}}}\right]$$
 - **He (Kaiming)**, designed for ReLU (which kills half the units, halving the variance, so we double the scale):
 $$w_{ij} \sim \mathcal{N}\!\left(0,\,\tfrac{2}{n_{\rm in}}\right)$$
-### 7.2 What the spectrum says
+### 2 What the spectrum says
 
 The product $\mathbf{W}_L \mathbf{W}_{L-1} \cdots \mathbf{W}_1$ has top singular value roughly $\prod_\ell \sigma_{\max}(\mathbf{W}_\ell)$. If each factor has $\sigma_{\max} > 1$ the product blows up; if each has $\sigma_{\max} < 1$ it crashes to zero. He / Xavier are calibrated so each factor sits around 1.
 
@@ -342,7 +342,7 @@ The product $\mathbf{W}_L \mathbf{W}_{L-1} \cdots \mathbf{W}_1$ has top singular
 
 The right panel shows the catastrophe directly: naive $\mathcal{N}(0,1)$ init explodes by orders of magnitude per layer, while He init keeps the top singular value of the product around $O(1)$ no matter the depth.
 
-### 7.3 The same story, in the gradient
+### 3 The same story, in the gradient
 
 Run a forward and backward pass through a 6-layer linear network with three different initializations:
 
@@ -352,11 +352,11 @@ Naive init explodes. Tiny init vanishes. Only He init keeps both the activations
 
 ---
 
-## 8. LoRA: Fine-Tuning as a Low-Rank Update
+## LoRA: Fine-Tuning as a Low-Rank Update
 
 Frontier LLMs have hundreds of billions of parameters. Full fine-tuning is wasteful in compute, memory, and storage (one full copy of the weights per task). **LoRA** observes that the *update* you actually need is often very low-rank, even though the base weights are not.
 
-### 8.1 The formula
+### 1 The formula
 
 Freeze the pretrained $\mathbf{W}_0$. Learn an additive update factored into two skinny matrices:
 $$\mathbf{W}' \;=\; \mathbf{W}_0 + \Delta\mathbf{W}, \qquad \Delta\mathbf{W} = \mathbf{B}\mathbf{A}$$
@@ -373,7 +373,7 @@ For $d_{\rm in} = d_{\rm out} = 4096$ and $r = 8$: 16.8M parameters become 65K �
 
 The top row visualises the factorisation: a fat $\Delta\mathbf{W}$ on the left equals a tall $\mathbf{B}$ times a wide $\mathbf{A}$ on the right. The bottom-left chart shows the parameter savings; the bottom-right shows reconstruction error collapsing to zero once $r$ reaches the true intrinsic rank of the update.
 
-### 8.2 Why low-rank works
+### 2 Why low-rank works
 
 Empirically, the change in weights induced by fine-tuning lives in a low-dimensional subspace — the "intrinsic rank" hypothesis of Aghajanyan et al. and Hu et al. By fixing $\mathrm{rank}(\Delta\mathbf{W}) \le r$ a priori, LoRA both saves parameters and acts as **structural regularization**: you can only move along $r$ directions, which prevents the catastrophic forgetting that full fine-tuning often suffers from.
 
@@ -397,7 +397,7 @@ class LoRALinear(nn.Module):
         self.base.weight.data += (self.B @ self.A) * self.scaling
 ```
 
-### 8.3 The LoRA family
+### 3 The LoRA family
 
 - **QLoRA.** Store $\mathbf{W}_0$ in 4-bit NF4, train LoRA in BF16. Fine-tune a 65B model on a single 48GB GPU.
 - **DoRA.** Decompose each weight column into magnitude $m$ and direction $\hat{v}$; LoRA-adapt the direction, learn the magnitude separately.
@@ -407,7 +407,7 @@ All of them are linear-algebra moves: LoRA itself is rank constraint, DoRA is po
 
 ---
 
-## 9. The Big Picture
+## The Big Picture
 
 Lay the chapter end to end:
 

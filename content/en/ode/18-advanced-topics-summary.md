@@ -43,7 +43,7 @@ This chapter draws on the entire series. Familiarity with [Chapters 1-17](/en/od
 
 ---
 
-## 1. The Whole Course in One Diagram
+## The Whole Course in One Diagram
 
 Before we step out of the classical world, let us see what we've built.
 
@@ -60,7 +60,7 @@ Read it as a journey, not a hierarchy:
 
 ---
 
-## 2. Neural ODEs — depth becomes time
+## Neural ODEs — depth becomes time
 
 In 2018 a single NeurIPS paper, "Neural Ordinary Differential Equations" by Chen, Rubanova, Bettencourt and Duvenaud, made deep-learning practitioners pick up ODE textbooks. The trick is so clean it is almost unfair.
 
@@ -101,7 +101,7 @@ Neural ODEs naturally handle **irregularly sampled time series** (medical record
 
 ---
 
-## 3. Delay Differential Equations — systems with a memory
+## Delay Differential Equations — systems with a memory
 
 Many real systems do not respond to the *current* state alone; they respond to a *delayed* state. The delivery van's response to a price change today depends on the order book of two weeks ago. A red blood cell count today reflects the bone-marrow signal of days past. A laser cavity feeds back light that was emitted picoseconds earlier.
 
@@ -146,7 +146,7 @@ The **Mackey-Glass equation** with $\tau = 17$ produces low-dimensional chaos �
 
 ---
 
-## 4. Stochastic Differential Equations — when noise has agency
+## Stochastic Differential Equations — when noise has agency
 
 ![Ordinary Differential Equations (18): Frontiers and Series Finale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/illustration_2.png)
 
@@ -185,7 +185,7 @@ SDEs form the foundation of mathematical finance, statistical physics, neuroscie
 
 ---
 
-## 5. Fractional Differential Equations — derivatives of order 0.7
+## Fractional Differential Equations — derivatives of order 0.7
 
 What if the order of a derivative were a continuous parameter? The Caputo fractional derivative ${}^C\!D^\alpha$ for $0 < \alpha < 1$ is, loosely, a "convolutional smoothing" of the ordinary derivative,
 $${}^C\!D^\alpha f(t) \;=\; \frac{1}{\Gamma(1-\alpha)}\int_0^t \frac{f'(\tau)}{(t-\tau)^\alpha}\,d\tau.$$
@@ -203,7 +203,7 @@ That memory makes fractional ODEs the natural language for:
 
 ---
 
-## 6. The ODE-ML Connection — and why it is more than a fashion
+## The ODE-ML Connection — and why it is more than a fashion
 
 We have already seen Neural ODEs (continuous-depth networks) and PINNs in the chapter intro. The deeper picture is this: **ODEs and SDEs sit at the heart of every modern generative model.**
 
@@ -220,7 +220,7 @@ A practical takeaway: a serious ML practitioner in 2025 *needs* to be comfortabl
 
 ---
 
-## 7. The Method Selection Flowchart
+## The Method Selection Flowchart
 
 Here is the practical decision tree for any ODE that lands on your desk.
 
@@ -236,7 +236,7 @@ A few concrete tips that the chart cannot show:
 
 ---
 
-## 8. The 18-Chapter Map at a Glance
+## The 18-Chapter Map at a Glance
 
 | Chapters | Theme | What you can now do |
 |---|---|---|
@@ -254,7 +254,7 @@ If you read all of them, you have covered roughly the equivalent of an undergrad
 
 ---
 
-## 9. Where to Go Next
+## Where to Go Next
 
 Choose a target, not a textbook. Here are five well-defined next steps and the resources that match them.
 
@@ -270,7 +270,7 @@ For software: `scipy.integrate` for Python, `DifferentialEquations.jl` for Julia
 
 ---
 
-## 10. The Series Journey
+## The Series Journey
 
 ![The 18-chapter journey along a wave: every chapter as a node along the timeline, with five eras and a closing message.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/fig5_series_journey.png)
 *The path we walked together. Foundations -> dynamics & chaos -> computation -> applications -> beyond. The wave is not flat: every chapter peaks above (or dips below) the line where I hoped a key idea would land.*
@@ -285,7 +285,7 @@ And here, in the *finale*, the toolset became modern: Neural ODE turned the inte
 
 ---
 
-## 11. A Closing Word
+## A Closing Word
 
 **Differential equations are the laws of change.** They describe how a body falls, how a population grows, how a current rings, how a nation converges to herd immunity, how a neural network learns, how the universe expands. Every dynamical claim about the world, formalised, is an equation in this family.
 

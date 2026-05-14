@@ -35,6 +35,9 @@ Before diving in, here's what I expect you to already have:
 
 **Why these matter.** OpenClaw is not a SaaS product with a signup form. It is infrastructure you run. If the idea of SSH-ing into a VPS or editing a `.env` file makes you uncomfortable, you might be happier with a hosted solution like ChatGPT Plus or Claude Pro. No judgment — those are excellent products. But if you are here because you want the agent on your infrastructure, reading your local files, and not phoning home, then you are in the right place.
 
+
+---
+
 ## What it is
 
 OpenClaw is a self-hosted AI agent platform. You install a single Node binary, provide API keys for one or more LLM providers, and it runs a long-lived gateway process that listens for messages on various chat platforms—DingTalk, WeChat (via WorkBuddy), Telegram, Discord, Slack, Feishu, and more. The gateway routes these messages through an agent loop with tools, skills, memory, and a cron scheduler. The entire system is MIT-licensed, the data stays on your machine, and you can switch models without rewriting your prompts.

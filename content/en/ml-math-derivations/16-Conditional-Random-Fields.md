@@ -39,9 +39,9 @@ Named entity recognition, POS tagging, information extraction — every one of t
 
 ---
 
-## 1. From HMM to CRF: Generative vs Discriminative
+## From HMM to CRF: Generative vs Discriminative
 
-### 1.1 What HMM forces you to assume
+### 1 What HMM forces you to assume
 
 HMM models the **joint** probability of observations $\mathbf{X}$ and labels $\mathbf{Y}$:
 $$P(\mathbf{X}, \mathbf{Y}) = P(y_1) \prod_{t=2}^{T} P(y_t \mid y_{t-1}) \prod_{t=1}^{T} P(x_t \mid y_t)$$
@@ -52,7 +52,7 @@ To predict labels you go via Bayes' rule: $\mathbf{Y}^* = \arg\max_{\mathbf{Y}} 
 
 The Markov assumption is mostly fine. The observation independence assumption, however, is the real issue: it forbids any feature that considers neighboring tokens, suffixes, or gazetteers based on the current label.
 
-### 1.2 The CRF idea: model $P(\mathbf{Y}\mid\mathbf{X})$ directly
+### 2 The CRF idea: model $P(\mathbf{Y}\mid\mathbf{X})$ directly
 
 ![Linear-chain CRF vs HMM structure](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig1_chain_structure.png)
 
@@ -67,7 +67,7 @@ The figure above shows the structural difference. In HMM (top) every $x_t$ is a 
 
 **What you pay:** the partition function $Z(\mathbf{X})$ is a sum over all $L^T$ label sequences, and you have to compute it (and its gradients) every training iteration. The forward-backward algorithm does exactly this in $O(TL^2)$.
 
-### 1.3 The path from HMM through MEMM to CRF
+### 3 The path from HMM through MEMM to CRF
 
 The **Maximum Entropy Markov Model (MEMM)** was the natural intermediate step between HMM and CRF:
 $$P(\mathbf{Y} \mid \mathbf{X}) = \prod_{t=1}^{T} P(y_t \mid y_{t-1}, \mathbf{X})$$
@@ -81,7 +81,7 @@ CRF fixes this with **global normalisation**: the single $Z(\mathbf{X})$ in the 
 - **MEMM** — discriminative, locally normalised, label-biased.
 - **CRF** — discriminative, globally normalised, no label bias.
 
-### 1.4 Generative vs discriminative more broadly
+### 4 Generative vs discriminative more broadly
 
 ![Generative vs discriminative budgets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig6_generative_vs_disc.png)
 
@@ -89,9 +89,9 @@ Even outside sequence problems the same trade-off applies. A generative model sp
 
 ---
 
-## 2. Mathematical Framework of Linear-Chain CRF
+## Mathematical Framework of Linear-Chain CRF
 
-### 2.1 Basic definitions
+### 1 Basic definitions
 
 Input: observation sequence $\mathbf{X} = (x_1, x_2, \dots, x_T)$.
 Output: label sequence $\mathbf{Y} = (y_1, y_2, \dots, y_T)$ with each $y_t \in \mathcal{Y} = \{1, 2, \dots, L\}$.
@@ -105,7 +105,7 @@ where
 
 By convention $y_0$ is a special `START` symbol so the first transition is well defined.
 
-### 2.2 Feature function decomposition
+### 2 Feature function decomposition
 
 ![Feature templates on a NER example](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig2_feature_templates.png)
 
@@ -123,7 +123,7 @@ The figure shows what this looks like at one position on the sentence "Barack Ob
 
 The potential bundles them with weights $\lambda_k$ and $\mu_l$:
 $$\Psi_t(y_{t-1}, y_t, \mathbf{X}) = \exp\!\left(\sum_k \lambda_k\, t_k(y_{t-1}, y_t, \mathbf{X}, t) + \sum_l \mu_l\, s_l(y_t, \mathbf{X}, t)\right)$$
-### 2.3 Unified parameterisation
+### 3 Unified parameterisation
 
 Stack all feature functions into one vector $\mathbf{f}$ and all weights into $\mathbf{w}$:
 $$\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t) = (t_1, \dots, t_{K_1}, s_1, \dots, s_{K_2})^\top, \quad \mathbf{w} = (\lambda_1, \dots, \lambda_{K_1}, \mu_1, \dots, \mu_{K_2})^\top$$
@@ -133,7 +133,7 @@ Define the **global feature vector** as the sum over positions:
 $$\mathbf{F}(\mathbf{Y}, \mathbf{X}) = \sum_{t=1}^{T} \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$$
 The model collapses to a clean log-linear form:
 $$P(\mathbf{Y} \mid \mathbf{X}) = \frac{\exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})\big)}{Z(\mathbf{X})}, \quad Z(\mathbf{X}) = \sum_{\mathbf{Y}'} \exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}', \mathbf{X})\big) \tag{3}$$
-### 2.4 Matrix form
+### 4 Matrix form
 
 For each position $t$ define an $L \times L$ score matrix
 $$[\mathbf{M}_t(\mathbf{X})]_{i,j} = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}=i, y_t=j, \mathbf{X}, t)\big)$$
@@ -143,9 +143,9 @@ This is exactly $T$ multiplications of $L\times L$ matrices, hence $O(TL^2)$ —
 
 ---
 
-## 3. Forward-Backward for CRF
+## Forward-Backward for CRF
 
-### 3.1 Forward recursion
+### 1 Forward recursion
 
 Define the **forward variable** $\alpha_t(j)$ as the unnormalised total score of all partial paths ending in label $j$ at position $t$.
 
@@ -159,11 +159,11 @@ Intuitively, $\alpha_t(j)$ accumulates the (unnormalised) probability mass of ev
 
 **Complexity:** $O(TL^2)$ — at each of $T$ steps you sum over $L \times L$ transitions. Compared to the brute-force $O(L^T)$, this is the difference between practical and impossible.
 
-### 3.2 Backward recursion
+### 2 Backward recursion
 
 Symmetrically, $\beta_t(i)$ is the unnormalised total score of all partial paths starting in label $i$ at position $t$ and going to the end. The recursion runs from $t = T$ backwards to $t = 1$, with the same $O(TL^2)$ cost.
 
-### 3.3 Marginals from $\alpha$ and $\beta$
+### 3 Marginals from $\alpha$ and $\beta$
 
 ![Forward-backward trellis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig3_forward_backward.png)
 
@@ -175,7 +175,7 @@ $$P(y_t = j \mid \mathbf{X}) = \frac{\alpha_t(j) \cdot \beta_t(j)}{Z(\mathbf{X})
 $$P(y_{t-1} = i, y_t = j \mid \mathbf{X}) = \frac{\alpha_{t-1}(i) \cdot \Psi_t(i, j, \mathbf{X}) \cdot \beta_t(j)}{Z(\mathbf{X})} \tag{5}$$
 The trellis figure shows the geometry: every cell $(t, j)$ collects forward arrows from the left (blue) and backward arrows from the right (purple). Their product, normalised by $Z(\mathbf{X})$, is the per-position marginal that we are about to plug into the gradient.
 
-### 3.4 Numerical stability: log-space
+### 4 Numerical stability: log-space
 
 Multiplying many positive numbers underflows quickly, so all of forward-backward is done in log space using `logsumexp`:
 $$\log\!\sum_i e^{x_i} = \max_i x_i + \log\!\sum_i e^{x_i - \max_i x_i}$$
@@ -183,9 +183,9 @@ This is the same trick that makes softmax stable.
 
 ---
 
-## 4. Parameter Learning: Maximum Likelihood
+## Parameter Learning: Maximum Likelihood
 
-### 4.1 Objective
+### 1 Objective
 
 Given training data $\mathcal{D} = \{(\mathbf{X}^{(n)}, \mathbf{Y}^{(n)})\}_{n=1}^N$, maximise the log-likelihood
 $$\ell(\mathbf{w}) = \sum_{n=1}^{N} \log P(\mathbf{Y}^{(n)} \mid \mathbf{X}^{(n)}; \mathbf{w}) = \sum_{n=1}^{N}\!\left[\mathbf{w}^\top \mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)}) - \log Z(\mathbf{X}^{(n)})\right] \tag{6}$$
@@ -193,19 +193,19 @@ The first term is linear in $\mathbf{w}$ and trivial; all the difficulty is in $
 
 In practice we add L2 regularisation (which, importantly, also keeps the objective strictly concave so optimisation has a unique global maximum):
 $$\ell_{\text{reg}}(\mathbf{w}) = \ell(\mathbf{w}) - \tfrac{\lambda}{2} \|\mathbf{w}\|^2$$
-### 4.2 Gradient: empirical minus expected
+### 2 Gradient: empirical minus expected
 
 Differentiating (6) gives the standard log-linear gradient:
 $$\nabla_{\mathbf{w}} \ell = \sum_{n=1}^{N}\!\left[\underbrace{\mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)})}_{\text{empirical feature counts}} - \underbrace{\mathbb{E}_{P(\mathbf{Y}'\mid \mathbf{X}^{(n)})}\!\big[\mathbf{F}(\mathbf{Y}', \mathbf{X}^{(n)})\big]}_{\text{model-expected feature counts}}\right] \tag{7}$$
 This is the same shape as the gradient of any maximum-entropy model: **how often the feature actually fired in the data, minus how often the current model thinks it should fire**. Training pushes the model's expectations onto the empirical ones; at convergence they match exactly (the maximum-entropy condition).
 
-### 4.3 Computing the expectation in $O(TL^2)$
+### 3 Computing the expectation in $O(TL^2)$
 
 The expectation in (7) looks intractable — it's a sum over $L^T$ sequences — but linearity plus the chain structure save us. Substituting the per-position decomposition of $\mathbf{F}$ and exchanging sums,
 $$\mathbb{E}\big[\mathbf{F}(\mathbf{Y}, \mathbf{X})\big] = \sum_{t=1}^{T} \sum_{i,j} P(y_{t-1}=i, y_t=j \mid \mathbf{X}) \cdot \mathbf{f}(i, j, \mathbf{X}, t) \tag{8}$$
 The pair-marginals on the right are exactly the ones we computed in (5), at $O(TL^2)$ cost. So one sweep of forward-backward gives us $\log Z$ and **every gradient component at once**.
 
-### 4.4 Optimisation: L-BFGS
+### 4 Optimisation: L-BFGS
 
 The objective is concave (and strictly concave once you add L2), so any first-order method converges to the global optimum. In practice **L-BFGS** is the standard CRF optimiser:
 
@@ -217,15 +217,15 @@ The objective is concave (and strictly concave once you add L2), so any first-or
 
 ---
 
-## 5. Viterbi Decoding
+## Viterbi Decoding
 
-### 5.1 The decoding problem
+### 1 The decoding problem
 
 Given a trained CRF and a new $\mathbf{X}$, find
 $$\mathbf{Y}^* = \arg\max_{\mathbf{Y}} P(\mathbf{Y} \mid \mathbf{X}) = \arg\max_{\mathbf{Y}} \mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})$$
 The denominator $Z(\mathbf{X})$ doesn't depend on $\mathbf{Y}$, so we never need to compute it for decoding.
 
-### 5.2 Dynamic programming
+### 2 Dynamic programming
 
 Define $\delta_t(j)$ as the score of the best partial path ending in label $j$ at position $t$. The recursion is forward-backward with $\sum$ replaced by $\max$:
 $$\delta_t(j) = \max_{i \in \{1,\dots,L\}}\!\left[\delta_{t-1}(i) + \mathbf{w}^\top \mathbf{f}(i, j, \mathbf{X}, t)\right] \tag{9}$$
@@ -239,7 +239,7 @@ The trellis above shows it visually: faint grey arrows are all candidate transit
 
 ---
 
-## 6. CRF in the Deep Learning Era: BiLSTM-CRF
+## CRF in the Deep Learning Era: BiLSTM-CRF
 
 ![ML Math Derivations (16): Conditional Random Fields — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/illustration_2.png)
 
@@ -306,7 +306,7 @@ The figure above shows what a trained CRF actually outputs at inference time on 
 
 ---
 
-## 7. Exercises
+## Exercises
 
 **Exercise 1: CRF vs HMM features.** In a POS-tagging task, explain why CRF can use the feature "the next word is a verb" but HMM cannot.
 

@@ -294,7 +294,7 @@ Stack latents $z_1, z_2, \ldots, z_L$ with $z_{l-1}$ generated conditional on $z
 
 ## Practical tips
 
-## 1. Normalize your inputs to match your likelihood
+## Normalize your inputs to match your likelihood
 
 BCE expects pixels in $[0, 1]$; Gaussian likelihoods (MSE) work better with zero-centered inputs.
 
@@ -309,17 +309,17 @@ transform = transforms.Compose([
 ])
 ```
 
-## 2. Start small with the latent
+## Start small with the latent
 
 `latent_dim = 20` is a reasonable default for MNIST-scale data. Too small bottlenecks reconstruction; too large invites posterior collapse and slows training.
 
-## 3. Always log reconstruction and KL separately
+## Always log reconstruction and KL separately
 
 ![ELBO decomposition over training: KL annealing makes the KL term ramp in cleanly while reconstruction comes down](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig5_elbo_decomposition.png)
 
 A healthy run shows reconstruction dropping monotonically and KL stabilizing at a non-trivial value (a few nats per active dimension). If KL flatlines at zero you are in posterior collapse; if it explodes, your reconstruction term is being ignored.
 
-## 4. Visualize the latent space
+## Visualize the latent space
 
 For a 2-D latent (or after PCA/t-SNE), plot $\mu(x)$ colored by class. You should see overlapping but distinguishable clusters that roughly cover the prior.
 
@@ -342,7 +342,7 @@ def plot_latent_space(model, loader, device="cuda"):
     plt.colorbar(); plt.title("VAE latent (2D)"); plt.show()
 ```
 
-## 5. Sample, and walk between samples
+## Sample, and walk between samples
 
 Two utilities you will reach for constantly:
 

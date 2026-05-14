@@ -32,7 +32,7 @@ In session-based recommendation you only see a short anonymous click sequence �
 
 ---
 
-## 1. Problem setup and why this is hard
+## Problem setup and why this is hard
 
 Let $V = \{v_1, v_2, \dots, v_{|V|}\}$ be the item universe and let a session be an ordered click sequence $s = (v_{s,1}, v_{s,2}, \dots, v_{s,n})$. The task is to predict the next item $v_{s,n+1}$, usually by ranking all candidates and reporting Recall@K and MRR@K.
 
@@ -45,7 +45,7 @@ What makes this harder than classical collaborative filtering:
 
 These four pressures pull in different directions. Sequence-only models (RNN/Transformer) handle order well but treat each step as a new token. Graph-only models (SR-GNN) capture loops and repeats but need many hops to reach distant clicks. GC-SAN's design aims to combine the two without incurring the costs of either.
 
-## 2. Where GC-SAN sits among prior work
+## Where GC-SAN sits among prior work
 
 Before GC-SAN the standard baselines were:
 
@@ -60,7 +60,7 @@ GC-SAN's contribution is **architectural rather than algorithmic**: keep SR-GNN'
 
 The pipeline is strictly serial: clicks $\to$ graph build $\to$ GGNN propagation $\to$ self-attention stack $\to$ fuse last-click and global $\to$ score every item.
 
-## 3. Session graph construction
+## Session graph construction
 
 For each session $s$ build a directed graph $G_s = (V_s, E_s)$:
 
@@ -81,7 +81,7 @@ Figure 2 walks through one example end-to-end.
 
 Note that the click sequence `v1 v2 v3 v2 v4` produces a 4-node graph with a `v2 <-> v3` loop and a fan-out from `v2` to both `v3` and `v4`. The pure sequence has length 5; the graph has 4 nodes and 4 distinct edges. That compactness is the whole point.
 
-## 4. Local encoder: GGNN over the session graph
+## Local encoder: GGNN over the session graph
 
 GC-SAN reuses the SR-GNN gated graph neural network cell. Each node carries a $d$-dim embedding $h_i$. One propagation step has three parts.
 
@@ -106,7 +106,7 @@ After $T$ propagation steps (the paper uses $T=1$, sometimes 2), each node embed
 
 > **Practical note.** Because sessions can repeat items, the implementation maintains an *alias* mapping from each sequence position to its node index in the unique-item graph. After GGNN you "scatter" node states back to sequence positions before applying self-attention. This is what `seq_hidden = hidden[alias_inputs]` does in any standard implementation.
 
-## 5. Global encoder: self-attention over the session
+## Global encoder: self-attention over the session
 
 GGNN is strong locally, but reaching a distant click requires many hops, and stacking too many GGNN layers leads to oversmoothing — node embeddings collapse toward each other. Self-attention sidesteps this entirely: every position can attend to every other position in one step.
 
@@ -120,7 +120,7 @@ Stacking $k$ such blocks produces $E^{(k)}$, the **graph-contextualised** sequen
 
 The heatmap is illustrative but the pattern is real: the first click ("camera") attends strongly to thematically related items deep in the session (memory card, battery, bag) — a connection that would take a 4-hop GNN traversal to reach, by which point the signal has been smoothed.
 
-## 6. Fusion: last-click vs global intent
+## Fusion: last-click vs global intent
 
 Session recommendation almost always benefits from explicitly mixing two signals:
 
@@ -133,7 +133,7 @@ then scores every candidate by dot product with the item embedding table and nor
 $$\hat y \;=\; \mathrm{softmax}\!\bigl(s_f \, V^\top\bigr).$$
 The weight $w$ is a hyperparameter (typical sweet spot $w \in [0.4, 0.6]$). Set $w = 0$ and you get last-click only, set $w = 1$ and you discard the strong short-term signal. Figure 5(b) shows the typical sweep — forgiving in the middle, painful at the extremes.
 
-## 7. Training and evaluation
+## Training and evaluation
 
 Most session recommenders train with cross-entropy over the next-item softmax:
 $$\mathcal{L} \;=\; -\sum_{i=1}^{|V|} y_i \log \hat y_i \;+\; \lambda \|\Theta\|^2,$$
@@ -150,7 +150,7 @@ Two things to read off the chart:
 1. The **GC-SAN over SR-GNN** gap is consistent but not enormous (roughly +1 to +2 points on Recall and MRR). The marginal value of self-attention on top of a graph encoder is real but bounded.
 2. The fusion-weight curve is **flat in the middle and steep at the edges**, which is exactly what you want from a hyperparameter: easy to tune, hard to break.
 
-## 8. Implementation notes (what matters in practice)
+## Implementation notes (what matters in practice)
 
 **Alias mapping and batching.** Sessions repeat items, so you map each sequence position to a node index in the unique-item graph. Batching multiple session graphs together is non-trivial: either build a block-diagonal adjacency or use a library that supports batched graph operations (PyG, RecBole-GNN).
 
@@ -165,7 +165,7 @@ Two things to read off the chart:
 
 **Padding and masking.** Self-attention must mask padded positions, otherwise gradient mass leaks into nonsense tokens. This is a frequent source of silent regressions when porting code.
 
-## 9. Reference implementation sketch
+## Reference implementation sketch
 
 A minimal RecBole-style implementation. The GGNN cell is reused from SR-GNN; the rest of the wiring is GC-SAN's contribution.
 
@@ -248,7 +248,7 @@ A few things worth noticing about this reference:
 - The fusion weight `self.weight` is a fixed scalar from config. A natural extension is to make it input-dependent (a small gating MLP on $h_t \oplus a_t$), but the paper does not explore this.
 - Loss can be swapped between BPR and full-softmax cross-entropy depending on $|V|$.
 
-## 10. When GC-SAN is a good choice (and when it is not)
+## When GC-SAN is a good choice (and when it is not)
 
 **Good fit:**
 
@@ -263,7 +263,7 @@ A few things worth noticing about this reference:
 - If item metadata is critical (text, image, category hierarchy), pure-ID GC-SAN underuses your features. Consider concatenating side-information embeddings before the GGNN, or move to a content-aware variant.
 - The improvement over SR-GNN is real but modest. If you cannot afford a self-attention stack, SR-GNN alone is a respectable baseline.
 
-## 11. Practical takeaway
+## Practical takeaway
 
 GC-SAN reads as a sober "do both" recipe rather than a clever new mechanism:
 

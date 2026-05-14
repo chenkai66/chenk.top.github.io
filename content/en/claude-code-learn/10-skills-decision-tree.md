@@ -438,7 +438,7 @@ If a thing fits two boxes, prefer the simpler one. A skill that calls a slash co
 
 ## Three skills I have actually written
 
-### 1. `chenk-blog-write`
+### `chenk-blog-write`
 
 For writing on this site. Covers front matter schema, writing voice, EN/ZH parity requirements, cover generation with Wanxiang, deploy procedure, and common pitfalls.
 
@@ -446,7 +446,7 @@ Triggered by anything mentioning chenk.top, "write a post," or "new article." Th
 
 Why it is a skill and not a command: I do not always invoke it by name. Sometimes I say "write about hooks" and Claude needs to know that means "write a blog post on chenk.top about hooks, in this voice, with this format." The skill fires because the description matches.
 
-### 2. `update-config`
+### `update-config`
 
 For changes to `~/.claude/settings.json` and `.claude/settings.json`. Triggered by "allow X command," "set env Y," "add a hook," "move permission to project settings."
 
@@ -454,7 +454,7 @@ Encodes the permission precedence rules from Chapter 9 and the typical patterns.
 
 Why it is a skill and not a hook: it provides knowledge about *how* to edit settings, not enforcement of settings. A hook would block or allow; this skill *teaches*.
 
-### 3. `simplify`
+### `simplify`
 
 For code review on my own changes. Triggered by "is there a simpler way to do this," "review for quality," "check for reuse."
 
@@ -470,7 +470,7 @@ A skill that fires too often is worse than no skill — it pollutes context for 
 
 ![Three skill anti-patterns: vague descriptions that fire on everything, overlapping skills that bloat context, and rules that should have been hooks instead](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/10-skills-decision-tree/fig4.png)
 
-### 1. Vague descriptions
+### Vague descriptions
 
 ```markdown
 # BAD:
@@ -482,13 +482,13 @@ description: Use when writing or modifying Python FastAPI endpoints — covers r
 
 "Use for general programming" matches everything. It will fire when you are editing a README. It will fire when you are writing a commit message. Use for everything = use for nothing useful.
 
-### 2. Overlapping skills
+### Overlapping skills
 
 Two skills that both fire on "write code" create context bloat. The model gets two sets of instructions, possibly contradictory, and has to figure out which one applies.
 
 Fix: merge them into one skill, or make the descriptions more specific so they fire on different subtopics.
 
-### 3. Skills that should have been hooks
+### Skills that should have been hooks
 
 "Always format code after editing." That is a hook, not a skill. Skills suggest; hooks enforce.
 

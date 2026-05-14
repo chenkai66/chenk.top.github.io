@@ -41,7 +41,7 @@ translationKey: "cloud-computing-6"
 
 ---
 
-## 1. 共享责任，说透本质
+## 共享责任，说透本质
 
 ![共担责任模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig1_shared_responsibility.png)
 
@@ -63,7 +63,7 @@ translationKey: "cloud-computing-6"
 
 更直白的说法是：“厂商保障底层基座，凡是你能配置的，就必须配对。”
 
-## 2. 你真正会遭遇的威胁
+## 你真正会遭遇的威胁
 
 Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全事件根源。按发生频率大致排序如下：
 
@@ -76,11 +76,11 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 
 注意：针对 AES 或 TLS 的密码学攻击从未出现在这份清单上。防御者的杠杆在于 IAM 卫生、配置管理与检测能力，而非发明新密码算法。
 
-## 3. IAM：不容有失的核心子系统
+## IAM：不容有失的核心子系统
 
 ![IAM 架构图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig2_iam_model.png)
 
-### 3.1 模型基础
+### 1 模型基础
 
 成熟的 IAM 系统都包含四个基本原语：
 
@@ -91,7 +91,7 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 
 权限流向至关重要：**身份 → 组 → 角色 → 策略 → 操作**。权限只能单向流动。审计任意访问行为时，可从资源反向追溯整条链。
 
-### 3.2 六条经得起实战检验的规则
+### 2 六条经得起实战检验的规则
 
 1. **最小权限起步，逐步迭代**：从零开始，仅授予任务所需的最小权限。若合法操作失败，精准放宽——绝不使用 `s3:*`。
 2. **所有运行代码的实体一律使用角色，禁用长期凭证**：EC2 实例配置文件、Lambda 执行角色、EKS 的 IRSA、GKE 的 Workload Identity——均提供自动轮换的短期凭证。
@@ -100,7 +100,7 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 5. **使用权限边界与 SCP**：允许团队自主创建角色，但通过组织级策略限制危险组合。
 6. **记录每一次授权与使用**：CloudTrail、Cloud Audit Logs、Azure Activity Log——集中存储、防篡改、保留至少一年。
 
-### 3.3 一份真正的最小权限策略
+### 3 一份真正的最小权限策略
 
 仅允许对单一存储桶只读访问，限制为企业 CIDR 范围，且要求当前会话已完成 MFA 验证：
 
@@ -126,7 +126,7 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 
 其中 `MultiFactorAuthAge` 条件常被忽视——它强制 MFA 验证必须“新鲜”，而非“六小时前登录时验证过一次”。
 
-### 3.4 组织级防护护栏
+### 4 组织级防护护栏
 
 在组织根节点应用的服务控制策略（SCP）无法被任何账户级角色覆盖，适用于控制爆炸半径：
 
@@ -160,7 +160,7 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 
 该策略禁止 root 用户执行任何操作，并阻止在非运营区域执行动作。两者共同防范数据驻留违规及攻击者在冷门区域启动 GPU 挖矿等行为。
 
-### 3.5 反复出现的 IAM 错误
+### 5 反复出现的 IAM 错误
 
 - 在非 Deny 语句中使用 `"Action": "*"` 或 `"Resource": "*"`——几乎必然导致权限过宽。
 - `iam:PassRole` 配合 `Resource: "*"`——单行代码即可实现权限提升。
@@ -168,13 +168,13 @@ Verizon DBIR 与 Mandiant M-Trends 报告年复一年地指向相同的云安全
 - “临时”管理员权限未设过期，最终变成永久授权。
 - 多个服务共享同一 Service Account，导致无人敢轮换凭证。
 
-## 4. 加密：静态、传输中与使用中
+## 加密：静态、传输中与使用中
 
 ![数据的三种状态](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig3_encryption_layers.png)
 
 数据有三种状态，每种需不同防护机制，对应不同威胁。
 
-### 4.1 静态数据
+### 1 静态数据
 
 威胁：硬盘、快照或备份磁带被盗，或授权进程意外读取你不希望暴露的原始字节。防御：使用你实际控制的密钥进行对称加密。
 
@@ -207,7 +207,7 @@ def encrypt_blob(plaintext: bytes, key_id: str) -> dict:
 
 所有“透明”云加密功能底层都采用信封加密模式。理解它有助于评估成本（每数据密钥一次 KMS 调用，而非每字节）和轮换策略（重包装数据密钥，而非重加密 PB 级数据）。
 
-### 4.2 传输中数据
+### 2 传输中数据
 
 威胁：链路中间人、被攻陷的网络设备抓包、恶意服务网格 sidecar。防御：**正确使用 TLS**。
 
@@ -236,7 +236,7 @@ server {
 - **HSTS 设置长 `max-age`**：这是唯一能抵御 SSL-strip 降级攻击的手段。
 - **服务间启用 mTLS**：集群内部，服务 A 应拒绝未出示内部 CA 证书的服务 B。服务网格（Istio、Linkerd）可将此简化为一行 YAML。
 
-### 4.3 使用中数据
+### 3 使用中数据
 
 最棘手的场景：数据在内存解密后处理，意味着同主机上高权限进程可能读取它。现有三种缓解方案：
 
@@ -246,9 +246,9 @@ server {
 
 对大多数团队而言，“使用中”保护靠间接实现：**最小化明文处理面、严格隔离、加强审计**。
 
-## 5. DDoS 防护与 Web 应用防火墙
+## DDoS 防护与 Web 应用防火墙
 
-### 5.1 三类攻击
+### 1 三类攻击
 
 | 类型       | 机制                     | 示例                     | 影响点               |
 |------------|--------------------------|--------------------------|----------------------|
@@ -258,7 +258,7 @@ server {
 
 真实攻击者常三者并用，真实防御需分层堆叠。
 
-### 5.2 防御堆栈
+### 2 防御堆栈
 
 - **边缘 / 网络层**：AWS Shield Advanced、Cloud Armor、Cloudflare——在流量进入 VPC 前吸收 L3/L4 洪水。
 - **CDN**：缓存静态资源，扩大暴露面以稀释攻击。
@@ -266,7 +266,7 @@ server {
 - **限流**：按 IP、token、路由限制，应对撞库、爬虫和慢速应用层攻击。
 - **应用层**：输入验证、参数化查询、查询成本上限。**WAF 不是输入验证的替代品**。
 
-### 5.3 今日即可部署的 WAF 规则集
+### 3 今日即可部署的 WAF 规则集
 
 ```json
 {
@@ -313,9 +313,9 @@ server {
 
 谨慎调整 `Limit`。过严可能误拦 CGNAT 后的自家移动 App。建议先以 `Count` 模式运行一周，再切换至 `Block`。
 
-## 6. 安全日志与检测
+## 安全日志与检测
 
-### 6.1 应记录的内容
+### 1 应记录的内容
 
 按优先级排序的五类日志：
 
@@ -325,7 +325,7 @@ server {
 4. **配置变更**：IAM、安全组、KMS、基础设施即代码（IaC）变更。
 5. **网络**：VPC Flow Logs、DNS 查询日志。
 
-### 6.2 解析一条 CloudTrail 事件
+### 2 解析一条 CloudTrail 事件
 
 ```json
 {
@@ -353,14 +353,14 @@ SIEM 规则实际消费的字段：`userIdentity.arn`、`mfaAuthenticated`、`so
 - 任何 `kms:Disable*` 或 `kms:ScheduleKeyDeletion`
 - 从未使用 GPU 的角色调用 `ec2:RunInstances` 启动 GPU 实例
 
-### 6.3 日志管道与保留策略
+### 3 日志管道与保留策略
 
 - 集中至 SIEM（Security Hub、Splunk、Elastic Security、Chronicle）
 - 日志桶加密，并禁止所有人（含安全团队角色）执行 `s3:DeleteObject`——**可篡改的日志不是证据**
 - 热数据保留 90 天，冷数据依行业合规要求保留 1–7 年
 - 提前构建仪表盘；凌晨 3 点应急时不该才学 Lucene 语法
 
-## 7. 零信任，具体落地
+## 零信任，具体落地
 
 ![零信任架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig4_zero_trust.png)
 
@@ -376,7 +376,7 @@ SIEM 规则实际消费的字段：`userIdentity.arn`、`mfaAuthenticated`、`so
 
 心智模型：每次请求都经策略决策点（PDP）判断——“谁？做什么？从哪来？用什么设备？在什么上下文？针对此资源——允许还是拒绝？”且每次决策均被记录。
 
-## 8. 合规框架
+## 合规框架
 
 ![合规框架](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/security-privacy/fig5_compliance_frameworks.png)
 
@@ -401,7 +401,7 @@ SIEM 规则实际消费的字段：`userIdentity.arn`、`mfaAuthenticated`、`so
 
 五大框架共性：**无法事后补救**。将控制嵌入基础设施代码、审计日志与部署流水线，审计才能成为文书工作，而非生存危机。
 
-## 9. 事件响应：闭环实践
+## 事件响应：闭环实践
 
 NIST 循环（准备 → 检测 → 遏制 → 清除 → 恢复 → 复盘）理论正确但偏学术。实践中，决定事故是 30 分钟插曲还是 30 天灾难的，是以下三点：
 
@@ -460,7 +460,7 @@ def quarantine(instance_id: str, reason: str) -> dict:
 
 顺序至关重要：**快照 → 隔离 → 撤销凭证 → 停止**。颠倒顺序可能导致快照期间数据外泄，或关机时丢失证据。
 
-## 10. 安全基线固化到基础设施即代码中
+## 安全基线固化到基础设施即代码中
 
 再完美的安全基线，也挡不住疲惫工程师周五下午随手 `terraform apply` 出一个公开 S3 桶。解决方案：将基线编码为模块与策略即代码（OPA / Sentinel / Checkov）：
 
@@ -508,7 +508,7 @@ resource "aws_s3_bucket_logging" "data" {
 
 CI 中的 Checkov 策略会拒绝任何未配套这四个附属资源的 `aws_s3_bucket`。错误在抵达生产前即被拦截。
 
-## 11. 工程师起飞前检查清单
+## 工程师起飞前检查清单
 
 **身份**
 - [ ] 所有人类身份强制 MFA，包括应急账号（密钥封存信封，不在 Slack）

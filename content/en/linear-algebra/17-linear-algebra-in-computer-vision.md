@@ -32,7 +32,7 @@ Computer vision is the science of teaching machines to see. What is striking is 
 
 ![Essence of Linear Algebra (17): Linear Algebra in Computer Vision — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/illustration_1.png)
 
-## 1 Images as Matrices, Tensors, and Vectors
+## Images as Matrices, Tensors, and Vectors
 
 ### From pixels to a matrix
 
@@ -65,7 +65,7 @@ a tool used in everything from image retrieval to face recognition. The huge dim
 
 ---
 
-## 2 Geometric Transformations as Matrix Multiplication
+## Geometric Transformations as Matrix Multiplication
 
 ### Why matrices
 
@@ -100,7 +100,7 @@ T = rotation_matrix(np.pi / 4) @ S        # first S, then R
 
 ---
 
-## 3 Homogeneous Coordinates: Making Translation Linear
+## Homogeneous Coordinates: Making Translation Linear
 
 ### The translation problem
 
@@ -149,7 +149,7 @@ M = affine_matrix(30, (1.5, 1.5), (100, 50))
 
 ---
 
-## 4 Perspective and the Homography
+## Perspective and the Homography
 
 ### Why affine is not enough
 
@@ -184,7 +184,7 @@ H, _ = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
 
 ---
 
-## 5 The Pinhole Camera and Its Projection Matrix
+## The Pinhole Camera and Its Projection Matrix
 
 ### Pinhole geometry
 
@@ -231,7 +231,7 @@ Estimating $\mathbf{K}$ and the lens distortion coefficients from images of a kn
 
 ---
 
-## 6 Two Views: Epipolar Geometry
+## Two Views: Epipolar Geometry
 
 ![Essence of Linear Algebra (17): Linear Algebra in Computer Vision — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/illustration_2.png)
 
@@ -255,7 +255,7 @@ _, R, t, _ = cv2.recoverPose(E, pts1, pts2, K)
 
 ---
 
-## 7 3D Reconstruction: Triangulation, SfM, and Bundle Adjustment
+## 3D Reconstruction: Triangulation, SfM, and Bundle Adjustment
 
 ### Triangulation as a linear system
 
@@ -283,7 +283,7 @@ where $\pi$ is the projection function and $\rho$ is a robust kernel (Huber) for
 
 ---
 
-## 8 SLAM: Linear Algebra in Real-Time
+## SLAM: Linear Algebra in Real-Time
 
 ### The SLAM problem
 
@@ -319,7 +319,7 @@ where $\mathbf{H} = \mathbf{J}^\top \boldsymbol{\Omega}\,\mathbf{J}$ inherits th
 
 ---
 
-## 9 Image Filtering as Matrix Multiplication
+## Image Filtering as Matrix Multiplication
 
 ![Edge-detect, blur, and sharpen kernels with their input/output pairs.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/fig2_convolution_kernels.png)
 
@@ -343,7 +343,7 @@ Designing a filter becomes shaping its frequency response: low-pass for noise re
 
 ---
 
-## 10 Two Vision Algorithms That Are Just $2 \times 2$ Eigenvalue Problems
+## Two Vision Algorithms That Are Just $2 \times 2$ Eigenvalue Problems
 
 ### Harris corners and the structure tensor
 
@@ -391,7 +391,7 @@ The system is well-posed precisely when $\mathbf{M}$ is well-conditioned — tha
 
 ---
 
-## 11 SVD for Image Compression
+## SVD for Image Compression
 
 An $H \times W$ grayscale image has SVD
 $$\mathbf{I} = \sum_{i=1}^{r} \sigma_i\,\mathbf{u}_i\,\mathbf{v}_i^\top, \qquad \sigma_1 \ge \sigma_2 \ge \cdots \ge 0.$$
@@ -403,7 +403,7 @@ Storage drops from $HW$ to $k(H + W + 1)$ numbers, a compression ratio of roughl
 
 ---
 
-## 12 Linear Algebra in Modern Deep Vision
+## Linear Algebra in Modern Deep Vision
 
 ### Convolution as matrix multiplication via im2col
 

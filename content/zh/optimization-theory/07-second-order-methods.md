@@ -32,9 +32,9 @@ translationKey: "optim-07"
 
 [第 01 篇](../01-convex-analysis-foundations/)–[第 02 篇](../02-smoothness-strong-convexity-nesterov/)（凸分析、光滑性、强凸性）；线性代数熟练：矩阵求逆、秩-1 更新、Sherman–Morrison 公式。
 
-## 1. 牛顿法（Newton’s method）
+## 牛顿法（Newton’s method）
 
-### 1.1 推导
+### 1 推导
 
 对于二阶可微函数 $f$，其在点 $x_k$ 处的二阶泰勒展开为：
 $$
@@ -52,7 +52,7 @@ $$
 ![牛顿法局部二次模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig1.png)
 *图 1. 牛顿法在 x_k 处用局部二次模型近似 f，并直接跳跃到该二次模型的极小点；若 f 本身就是二次函数，则一步收敛。*
 
-### 1.2 局部二次收敛性
+### 2 局部二次收敛性
 
 > **定理**：设 $f$ 二阶连续可微，其 Hessian 矩阵 $\nabla^2 f$ 是 $L$-Lipschitz 连续的（即 $\|\nabla^2 f(x) - \nabla^2 f(y)\| \leq L \|x - y\|$），且在驻点 $x^\star$ 处满足 $\nabla^2 f(x^\star) \succeq \mu I$。则当初始点 $x_0$ 足够接近 $x^\star$ 时，牛顿法满足如下收敛界：
 > $$\|x_{k+1} - x^\star\|_2 \leq \frac{L}{2 \mu} \|x_k - x^\star\|_2^2.$$
@@ -76,7 +76,7 @@ $$
 ![收敛速率对比：梯度下降 vs BFGS vs 牛顿](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig2.png)
 *图 2. 误差随迭代次数的对数曲线：梯度下降以线性速率衰减（每步乘一个常数），BFGS 实现超线性，牛顿法每步将有效数字位数翻倍（二次收敛）。*
 
-### 1.3 关键难点：全局化（Globalization）
+### 3 关键难点：全局化（Globalization）
 
 上述收敛定理仅保证牛顿法在 $x^\star$ 的**邻域内**具有快速收敛性。远离 $x^\star$ 时，牛顿方向甚至可能不是下降方向（尤其当 $\nabla^2 f \not\succ 0$），且步长过大导致发散。
 
@@ -92,7 +92,7 @@ $$
 ![阻尼牛顿法回溯线搜索](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig3.png)
 *图 3. 阻尼牛顿法：从 x_k 出发，纯牛顿步（alpha=1）越过了局部最优；回溯逐次将 alpha 减半，直至满足 Armijo 充分下降条件（虚线为上界）。*
 
-### 1.4 当 Hessian 矩阵不定时
+### 4 当 Hessian 矩阵不定时
 
 若 $\nabla^2 f(x_k) \not\succeq 0$，牛顿方向可能指向上升方向。常见修正策略包括：
 
@@ -101,11 +101,11 @@ $$
 - **三次正则化（Cubic regularization）**（Nesterov & Polyak, 2006）：改而最小化模型  
   $\nabla f^\top d + \tfrac{1}{2} d^\top \nabla^2 f \, d + \tfrac{M}{6} \|d\|^3$。该方法具备全局收敛性，且可收敛至二阶临界点（即梯度为零、Hessian 半正定的点）。
 
-## 2. 拟牛顿法：割线方程
+## 拟牛顿法：割线方程
 
 牛顿法需要计算并存储 Hessian 矩阵 $\nabla^2 f$，其存储代价为 $O(n^2)$，每步求逆代价高达 $O(n^3)$。**拟牛顿法**仅利用梯度差构造 Hessian 近似 $B_k \approx \nabla^2 f(x_k)$，从而隐式捕捉 $\nabla f(x_k) - \nabla f(x_{k-1})$ 中所蕴含的曲率信息。
 
-### 2.1 割线条件
+### 1 割线条件
 
 对于二次函数 $f(x) = \frac{1}{2} x^\top A x - b^\top x$，有  
 $$
@@ -117,7 +117,7 @@ B_{k+1} s_k = y_k. \tag{Sec}
 $$
 任何拟牛顿更新都应满足此条件：新近似矩阵 $B_{k+1}$ 必须能复现最近一步中观测到的曲率。
 
-### 2.2 BFGS：标准拟牛顿更新
+### 2 BFGS：标准拟牛顿更新
 
 BFGS（Broyden–Fletcher–Goldfarb–Shanno）更新是满足以下四条性质的、对 $B_k$ 的唯一秩-2 更新：
 
@@ -136,17 +136,17 @@ H_{k+1} = (I - \rho_k s_k y_k^\top) H_k (I - \rho_k y_k s_k^\top) + \rho_k s_k s
 $$
 此即实际编程中采用的形式。
 
-### 2.3 一句话解释 BFGS 为何有效
+### 3 一句话解释 BFGS 为何有效
 
 若 $B_k$ 已在已遍历方向 $s_0, \ldots, s_{k-1}$ 上较好地逼近了 $\nabla^2 f$，则 BFGS 更新既保留了这些历史信息，又融入了新方向 $s_k$。当应用于二次函数且经历 $n$ 个线性无关步长后，BFGS 可精确重构真实 Hessian 矩阵，此后行为与牛顿法完全一致——这一性质称为 **有限步终止性**（finite termination property）。
 
 对非二次函数 $f$，BFGS 具备 **超线性收敛性**：$\|x_{k+1} - x^\star\| / \|x_k - x^\star\| \to 0$。其严格证明（Dennis & Moré, 1974）较为精巧；直观理解是：当迭代点 $x_k \to x^\star$ 时，割线条件迫使 $B_k$ 在算法实际使用的那些方向上，渐近逼近 $\nabla^2 f(x^\star)$。
 
-## 3. L-BFGS：有限内存法
+## L-BFGS：有限内存法
 
 当 $n = 10^6$ 时，标准 BFGS 方法仅存储近似 Hessian 矩阵的逆 $H_k$ 就需要 $10^{12}$ 个浮点数（约 8 TB）。**L-BFGS**（“有限内存” BFGS）仅保留最近的 $m$ 对向量 $(s_i, y_i)$ —— 通常取 $m = 5$ 至 $20$ —— 并在需要时通过 **双循环递推（two-loop recursion）** 动态重构作用 $H_k g$。
 
-### 3.1 双循环递推
+### 1 双循环递推
 
 给定：
 - 当前梯度 $g = \nabla f(x_k)$
@@ -176,11 +176,11 @@ return r                              # r = H_k g
 ![L-BFGS 双循环递推](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig4.png)
 *图 4. L-BFGS 双循环递推示意：第一轮反向遍历 m 对历史，得到 alpha_i 与更新后的 q；中间施加初始缩放 H_k^0；第二轮正向遍历，最终输出 r = H_k g，全程复杂度 O(mn)、无需构造 H_k。*
 
-### 3.2 双循环递推的来源
+### 2 双循环递推的来源
 
 将（BFGS）公式递归展开，将 $H_k$ 表示为初始近似 $H_k^0$ 与历史对 $(s_i, y_i)$ 的函数。第一循环从 $i = k-1$ 递减至 $i = k-m$，逐层消去最右侧因子 $(I - \rho_i y_i s_i^\top)$ 对 $g$ 的作用；再乘以 $H_k^0$ 得到中间结果。第二循环则按相反顺序（即 $i = k-m$ 到 $k-1$）施加左侧因子 $(I - \rho_i s_i y_i^\top)$。由于 $\alpha_i$ 在左右两个因子中对称出现，因此可在两轮中复用。（详见 Nocedal & Wright，《Numerical Optimization》，算法 7.4，含完整推导。）
 
-### 3.3 实用的 L-BFGS 实现要点
+### 3 实用的 L-BFGS 实现要点
 
 - **初始 $H_0$ 的选取**：标准做法是令 $H_0 = \gamma_k I$，其中 $\gamma_k = (s_{k-1}^\top y_{k-1}) / (y_{k-1}^\top y_{k-1})$；该选择具有尺度不变性。
 - **内存大小 $m$**：$m = 5$ 是稳健的默认值；若问题曲率信息丰富且收益显著，可增至 $m = 20$。但 $m$ 过大并无益处，因过早的历史曲率对已失去相关性。
@@ -189,11 +189,11 @@ return r                              # r = H_k g
 
 L-BFGS 是众多机器学习任务的默认求解器：PyTorch 中的 `torch.optim.LBFGS`、scikit-learn 中中等规模问题的 `LogisticRegression`、SciPy 的 `minimize` 函数族等均内置支持。对于能装入内存、噪声不大的优化问题，L-BFGS 在性能上显著优于一阶方法。
 
-## 4. 信赖域方法（Trust-region methods）
+## 信赖域方法（Trust-region methods）
 
 线搜索法（line search）分两步：先问「朝哪个方向走？」，再问「走多远？」；而信赖域方法则**同时回答这两个问题：在当前点 $x_k$ 周围的信赖域内，什么是最优的步长？**
 
-### 4.1 子问题（The subproblem）
+### 1 子问题（The subproblem）
 
 在迭代点 $x_k$ 处，记其梯度为 $g_k$，Hessian 矩阵（或其近似）为 $B_k$，定义二次模型：
 $$
@@ -209,7 +209,7 @@ $$
 $$
 若 $\rho_k$ 接近 1，说明模型精度高，可扩大信赖域；若 $\rho_k$ 过小甚至为负，则模型失真严重，应缩小信赖域并拒绝该步。标准调整策略为：当 $\rho_k < 0.25$ 时将 $\Delta_k$ 缩小为原来的 $1/4$；当 $\rho_k > 0.75$ 且步长恰好落在信赖域边界上时，将 $\Delta_k$ 扩大为原来的 $2$ 倍。
 
-### 4.2 子问题的求解
+### 2 子问题的求解
 
 精确求解需采用 **Moré–Sorensen 算法**：寻找 $\lambda \geq 0$，使得 $(B_k + \lambda I) d = -g_k$，且满足互补松弛条件 $\lambda (\|d\|_2 - \Delta_k) = 0$。该算法精确但计算开销大。
 
@@ -235,7 +235,7 @@ $$
 ![信赖域狗腿法路径](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/07-second-order-methods/fig5.png)
 *图 5. 二维信赖域子问题：二次模型 m(d) 的等高线、信赖域 ||d||<=Delta （虚线圆）、最速下降方向 d_SD、牛顿步 d_N，以及由 0 → d_SD → d_N 构成的狗腿折线。狗腿解为路径与信赖域边界的交点。*
 
-### 4.3 收敛性
+### 3 收敛性
 
 采用柯西下降策略的信赖域方法，在 $B_k$ 一致有界等温和假设下，具有**全局收敛性**——即 $\|\nabla f(x_k)\| \to 0$，收敛至驻点。当 $B_k = \nabla^2 f(x_k)$ 且迭代点充分接近严格极小点时，信赖域方法继承牛顿法的**二次收敛速率**。
 
@@ -243,7 +243,7 @@ $$
 
 ---
 
-## 5. 二阶优化方法的选择
+## 二阶优化方法的选择
 
 | 方法             | 单步计算代价     | 内存占用    | 在极小点 $x^\star$ 附近的收敛速率 | 适用场景                                               |
 | ---------------- | ---------------- | ----------- | ---------------------------------- | ------------------------------------------------------ |
@@ -257,7 +257,7 @@ $$
 
 而在经典科学计算领域——如物理仿真、参数估计、凸域上的信号恢复——L-BFGS 与信赖域牛顿法是核心工具。它们能在合理墙钟时间内达成梯度下降无法企及的解精度与稳定性。
 
-## 7. 总结
+## 总结
 
 二阶方法通过利用曲率信息，突破了 $\sqrt{\kappa}$ 的收敛速率瓶颈，但代价是每次迭代的计算开销更高。其方法谱系如下：
 

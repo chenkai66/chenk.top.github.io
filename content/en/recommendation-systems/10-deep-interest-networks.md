@@ -39,7 +39,7 @@ This article walks through the family of attention-based CTR models that grew fr
 
 ---
 
-## 1. From averaging to attention
+## From averaging to attention
 
 ### The problem with averaging
 
@@ -71,7 +71,7 @@ DIN goes further still — instead of just concatenating $\mathbf{q}$ and $\math
 
 ---
 
-## 2. Deep Interest Network (DIN)
+## Deep Interest Network (DIN)
 
 DIN was introduced by Alibaba in 2018 (Zhou et al., KDD'18) and remains the foundational attention-based CTR model. Its workhorse is the **Local Activation Unit** — a small MLP that scores each historical behavior against the candidate.
 
@@ -192,7 +192,7 @@ Three tricks the paper credits with most of the lift:
 
 ---
 
-## 3. Deep Interest Evolution Network (DIEN)
+## Deep Interest Evolution Network (DIEN)
 
 DIN treats history as a bag of behaviors. It ignores time. But interests *move* — last month you were researching laptops, this week you're chasing laptop accessories, next week the obsession shifts to ergonomic chairs.
 
@@ -286,7 +286,7 @@ In production, the per-timestep Python loop is replaced with a custom CUDA kerne
 
 ---
 
-## 4. Deep Session Interest Network (DSIN)
+## Deep Session Interest Network (DSIN)
 
 User behavior tends to come in bursts. You spend fifteen minutes browsing laptops at lunch, come back at night to skim headphones, then look at running shoes the next morning. Each burst is internally coherent; the gaps between them often mark a shift in mood.
 
@@ -337,7 +337,7 @@ def split_sessions(timestamps, gap_seconds=1800):
 
 ---
 
-## 5. Behavior Sequence Transformer (BST)
+## Behavior Sequence Transformer (BST)
 
 By 2019 the Transformer had eaten NLP. Alibaba's Taobao team asked: what if we just put one over the behavior sequence and call it a day?
 
@@ -384,7 +384,7 @@ class BST(nn.Module):
 
 ---
 
-## 6. How much do these tricks actually buy you?
+## How much do these tricks actually buy you?
 
 ![AUC progression on Amazon Books CTR benchmark](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/10-deep-interest-networks/fig6_performance_comparison.png)
 
@@ -399,7 +399,7 @@ A reasonable rule of thumb: start with DIN. It captures 80% of the lift with 20%
 
 ---
 
-## 7. Production tricks that actually move the needle
+## Production tricks that actually move the needle
 
 ### Dice — a data-adaptive activation
 
@@ -457,7 +457,7 @@ For millions of QPS:
 
 ---
 
-## 8. FAQ
+## FAQ
 
 **Why target attention instead of self-attention in DIN?**
 Target attention answers "which past behaviors are relevant to *this* candidate?" Self-attention only looks within the history ("laptop and phone are both electronics") — useful, but it doesn't condition on the candidate, which is the whole point. BST eventually shows you can have both at once with a Transformer.

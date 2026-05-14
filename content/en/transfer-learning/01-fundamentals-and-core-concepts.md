@@ -33,7 +33,7 @@ This article is the foundation for the rest of the series. It covers the seven t
 
 ---
 
-## 1. Why We Need Transfer Learning
+## Why We Need Transfer Learning
 
 ### The dilemma of training from scratch
 
@@ -67,7 +67,7 @@ The only requirement is some correlation between the source and target. They don
 
 ---
 
-## 2. Formal Definitions
+## Formal Definitions
 
 To talk about transfer learning precisely, we need to separate two ideas that beginners often confuse: a **domain** is about *the inputs you see*; a **task** is about *what you have to predict*. Pan and Yang's 2010 survey makes this distinction the cornerstone of the field.
 
@@ -105,7 +105,7 @@ or, equivalently, *the same accuracy with fewer target labels*. This second fram
 
 ---
 
-## 3. Taxonomy of Transfer Learning
+## Taxonomy of Transfer Learning
 
 The field looks chaotic until you organise it by **what is missing on the target side**. That gives the three-way split below.
 
@@ -135,7 +135,7 @@ In practice these categories blur: a typical foundation-model workflow does **un
 
 ---
 
-## 4. What Transfers at Each Layer
+## What Transfers at Each Layer
 
 A deep network is not one knowledge unit — it is a stack of representations of increasing specificity. Yosinski et al. (2014) ran a now-classic experiment: take a CNN trained on one half of ImageNet, freeze the first $k$ layers, retrain the rest on the other half, and measure the accuracy gap as you slide $k$. The result, sketched below, is the single most useful empirical fact about transfer learning.
 
@@ -151,7 +151,7 @@ This single picture explains most of the practical advice in the rest of the ser
 
 ---
 
-## 5. Negative Transfer
+## Negative Transfer
 
 Transfer learning is not free. When the source and target are too different, the inherited weights become a liability rather than an asset. We call this **negative transfer**: the transferred model performs *worse* than a model trained on the target alone.
 $$\epsilon_T > \epsilon_0$$
@@ -176,7 +176,7 @@ The crossover in the figure is not theoretical — it is the operating curve eve
 
 ---
 
-## 6. Quantifying Transfer Feasibility
+## Quantifying Transfer Feasibility
 
 Two tools let you predict, before training, whether transfer is likely to help.
 
@@ -204,7 +204,7 @@ A useful rule of thumb after pretraining: MMD below 0.1 in the embedding space i
 
 ---
 
-## 7. Putting It Together: The Standard Recipe
+## Putting It Together: The Standard Recipe
 
 ### Pretrained backbone + new head
 

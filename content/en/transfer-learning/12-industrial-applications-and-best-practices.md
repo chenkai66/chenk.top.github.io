@@ -24,7 +24,7 @@ This is the final part of the series. The previous eleven parts gave you the mec
 
 Everything below is written from the perspective of a team that has to keep a model running, not one that has to publish a paper. The trade-offs are different. You will see more spreadsheets than equations, more monitoring dashboards than architecture diagrams, and more conversations with product managers than with conference reviewers. If your job is to ship and maintain models that create business value, this chapter is for you.
 
-## 1. When Transfer Learning Is the Right Tool
+## When Transfer Learning Is the Right Tool
 
 Transfer learning is not always the answer. Three questions determine whether it belongs in your stack:
 
@@ -70,13 +70,13 @@ A healthcare startup with one ML engineer chose to fine-tune BioBERT for clinica
 ![Decision tree for choosing transfer learning over from-scratch training, keyed on pretrained-model availability and labeled-data volume](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications-and-best-practices/fig1_decision_tree.png)
 *Figure 1: A practical decision tree. The sweet spot for transfer learning is 100-10k labeled examples with a relevant pretrained checkpoint; outside that range, few-shot prompting or from-scratch training may win.*
 
-## 2. The End-to-End Transfer Learning Pipeline
+## The End-to-End Transfer Learning Pipeline
 
 ![End-to-End Transfer Learning Pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications/12-pipeline.png)
 
 A production transfer learning system has six stages. Most tutorials cover stage 3 (fine-tuning) and ignore the other five.
 
-### 2.1 Pretrained Model Selection
+### 1 Pretrained Model Selection
 
 **Goal:** Pick the checkpoint that minimizes downstream fine-tuning cost.
 
@@ -94,7 +94,7 @@ A content-moderation team evaluated 8 pretrained vision models (ResNet-50, Effic
 
 **Common mistake:** Picking the largest model without testing. A 1.5B-parameter model is not always better than a 300M-parameter model if the smaller one was pretrained on in-domain data.
 
-### 2.2 Data Preparation
+### 2 Data Preparation
 
 **Goal:** Format your labeled data for the pretrained model's input pipeline.
 
@@ -106,7 +106,7 @@ A content-moderation team evaluated 8 pretrained vision models (ResNet-50, Effic
 
 An e-commerce team fine-tuned a BERT model for product categorization. They initially used `bert-base-uncased` but tokenized text with a different library (spaCy instead of Hugging Face's `BertTokenizer`). Accuracy was 67%. After switching to the correct tokenizer, accuracy jumped to 89% on the same data with the same hyperparameters. The issue: spaCy's tokenization created out-of-vocabulary tokens that BERT mapped to `[UNK]`, losing semantic information.
 
-### 2.3 Fine-Tuning
+### 3 Fine-Tuning
 
 **Goal:** Adapt the pretrained model to your task with minimal overfitting.
 
@@ -125,7 +125,7 @@ An e-commerce team fine-tuned a BERT model for product categorization. They init
 
 A sentiment-analysis pipeline fine-tuned RoBERTa on 5,000 product reviews. Initial experiments used `lr=1e-3` (standard for training from scratch) and diverged after 50 steps. Reducing to `lr=2e-5` with 300 warmup steps achieved 92% validation accuracy in 4 epochs. The team also experimented with LoRA (rank 16), which reached 91% accuracy with 100x fewer trainable parameters and allowed them to store 20 task-specific adapters instead of 20 full model copies.
 
-### 2.4 Evaluation
+### 4 Evaluation
 
 **Goal:** Measure performance on held-out data and edge cases.
 
@@ -141,7 +141,7 @@ A sentiment-analysis pipeline fine-tuned RoBERTa on 5,000 product reviews. Initi
 
 A hiring platform built a resume-screening model by fine-tuning BERT. Aggregate F1 was 87%, beating the rule-based filter (F1 = 71%). But slice-based evaluation revealed the model had 61% recall on resumes from candidates who changed careers (non-linear work history) versus 94% recall on traditional linear resumes. The business required >= 80% recall on all slices. The team retrained with augmented examples of career-change resumes (synthesized by masking and replacing job titles), which lifted career-change recall to 83% while maintaining 88% aggregate F1.
 
-### 2.5 Deployment
+### 5 Deployment
 
 **Goal:** Serve predictions in production with acceptable latency and cost.
 
@@ -161,7 +161,7 @@ A news app fine-tuned a 355M-parameter model for article recommendations. Latenc
 2. Exported to ONNX and deployed on TensorRT (latency dropped to 16ms).
 3. Enabled request batching (max batch size 8), achieving 11ms average latency under production load.
 
-### 2.6 Monitoring and Retraining
+### 6 Monitoring and Retraining
 
 **Goal:** Detect when the model degrades and decide when to retrain.
 
@@ -178,7 +178,7 @@ A news app fine-tuned a 355M-parameter model for article recommendations. Latenc
 
 A loan-approval model was retrained quarterly. Six months after launch, approval rates dropped from 68% to 52% even though the model's validation accuracy remained at 91%. Investigation revealed that applicants' income distributions had shifted (median income increased by 12% due to macroeconomic changes), but the model's decision boundary was calibrated to the original distribution. Retraining on the last 3 months of data restored approval rates to 66% while maintaining risk-adjusted returns.
 
-## 3. Compute and Cost Economics
+## Compute and Cost Economics
 
 Transfer learning's value proposition is **speed** and **sample efficiency**, but it still costs money. Below are benchmarks from real projects.
 
@@ -186,7 +186,7 @@ Transfer learning's value proposition is **speed** and **sample efficiency**, bu
 *Figure 2: Compute cost drops 10-180x moving from scratch to fine-tune to LoRA. Labeling cost drops 10x in the easy case (image classification) and 8x in the expensive case (medical NER with experts) when paired with active learning.*
 
 
-### 3.1 Compute Costs
+### 1 Compute Costs
 
 **Fine-tuning a pretrained model** (NLP, 110M parameters, 10,000 examples, 5 epochs):
 - **Hardware:** 1x V100 (16GB).
@@ -207,7 +207,7 @@ Transfer learning's value proposition is **speed** and **sample efficiency**, bu
 
 A marketing-tech company maintained 40 different text-classification models (one per customer vertical). Full fine-tuning required 40 x 440MB = 17.6GB of storage and $6 x 40 = $240 to retrain all models. Switching to LoRA reduced storage to 40 x 2MB = 80MB and retraining cost to $4.59 x 40 = $183.60, a 99.5% storage reduction and 23% cost reduction.
 
-### 3.2 Labeling Costs
+### 2 Labeling Costs
 
 Transfer learning reduces the number of labeled examples needed, which cuts annotation costs.
 
@@ -226,7 +226,7 @@ Transfer learning reduces the number of labeled examples needed, which cuts anno
 
 A pharmaceutical company used this approach to build a drug-interaction extraction system. The active-learning loop queried annotators for the 1,200 most-uncertain examples over 6 iterations. The final model (fine-tuned BioBERT) achieved 89% F1, matching the performance of a from-scratch model trained on 8,000 examples in a prior project that cost $100,000 to label.
 
-### 3.3 Engineering Time
+### 3 Engineering Time
 
 Transfer learning's largest cost is often **human time** for experimentation.
 
@@ -247,7 +247,7 @@ Transfer learning's largest cost is often **human time** for experimentation.
 
 These numbers are conservative. In practice, from-scratch projects often take longer because architecture choices are less certain. One autonomous-vehicle startup spent 6 months building a custom object-detection architecture before realizing that fine-tuning YOLOv8 on their labeled driving data outperformed it in 3 weeks.
 
-## 4. Case Studies
+## Case Studies
 
 Below are four real-world deployments (anonymized). Each shows a different facet of transfer learning in production.
 
@@ -255,7 +255,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 *Figure 3: Four production deployments at a glance. Note how each case combines a different pretrained backbone with a different transfer technique; there is no single recipe.*
 
 
-### 4.1 Medical Imaging: Diabetic Retinopathy Detection
+### 1 Medical Imaging: Diabetic Retinopathy Detection
 
 **Organization:** Regional hospital network (Southeast Asia).
 **Task:** Binary classification (referable diabetic retinopathy: yes/no) from fundus photographs.
@@ -282,7 +282,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 
 **Key lesson:** Self-supervised pretraining on unlabeled in-domain data (fundus images) was critical. A model fine-tuned directly from ImageNet weights achieved 93% sensitivity; adding SimCLR pretraining lifted it to 96%, crossing the clinical acceptability threshold.
 
-### 4.2 E-Commerce: Product Categorization
+### 2 E-Commerce: Product Categorization
 
 **Organization:** Mid-size online marketplace (Latin America).
 **Task:** Multi-class classification (450 product categories).
@@ -308,7 +308,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 
 **Key lesson:** Focal loss and human-in-the-loop routing were essential for handling long-tail categories. A naive fine-tuned model optimized for aggregate accuracy would have failed on rare categories, creating poor user experience.
 
-### 4.3 Finance: Transaction Fraud Detection
+### 3 Finance: Transaction Fraud Detection
 
 **Organization:** Payment processor (North America).
 **Task:** Binary classification (fraudulent transaction: yes/no).
@@ -335,7 +335,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 
 **Key lesson:** Temporal validation prevented overfitting to time-specific patterns. Initial experiments with random splits showed F1 = 0.84 on the test set, but production F1 was 0.61 (catastrophic). Switching to time-based validation gave honest performance estimates and saved the project from a failed launch.
 
-### 4.4 Social Media: Content Moderation
+### 4 Social Media: Content Moderation
 
 **Organization:** Regional social network (Middle East, 40M users).
 **Task:** Multi-label classification (hate speech, violence, spam, sexual content, etc.; 12 labels).
@@ -362,7 +362,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 
 **Key lesson:** Continued pretraining on in-domain unlabeled data (code-switched social media posts) was more valuable than using the off-the-shelf XLM-RoBERTa checkpoint directly. The domain adaptation step (Part 3) improved F1 from 0.74 to 0.81, making the difference between a marginal and a transformative deployment.
 
-## 5. When Transfer Learning Fails (and What to Do)
+## When Transfer Learning Fails (and What to Do)
 
 Not all transfer learning projects succeed. Common failure modes:
 
@@ -408,7 +408,7 @@ The model performs well at launch but degrades over time as the input distributi
 
 **Fix:** Monitor input and output distributions (Section 8). Retrain periodically or use continual learning (Part 9) to adapt without forgetting.
 
-## 6. Common Mistakes That Kill Transfer Learning Projects
+## Common Mistakes That Kill Transfer Learning Projects
 
 Beyond the technical failure modes above, organizational and process mistakes often doom projects before they launch. Here are the top five:
 
@@ -444,7 +444,7 @@ Team fine-tunes a pretrained model, but "enhances" it with custom attention laye
 
 **Fix:** Resist the urge to add complexity unless it delivers a large, measurable gain. A video-classification team started with a fine-tuned TimeSformer (F1 = 0.83). They added optical flow (+0.01), audio embeddings (+0.02), temporal ensembling (+0.01), and TTA (+0.01). Final F1: 0.88 — but training time went from 4 hours to 19, and deployment required 3 separate inference pipelines. They shipped the base model and invested saved engineering time in labeling more data instead.
 
-## 7. A/B Testing and Evaluation in Production
+## A/B Testing and Evaluation in Production
 
 Offline metrics (accuracy, F1, AUC) are necessary but not sufficient. The model must improve **business outcomes**.
 
@@ -452,7 +452,7 @@ Offline metrics (accuracy, F1, AUC) are necessary but not sufficient. The model 
 *Figure 5: A/B test design and the brutal arithmetic of statistical power. Detecting a 1% relative lift on a 10% baseline needs ~157,000 users per arm; that constraint usually drives the decision of how big a model change to ship.*
 
 
-### 7.1 Designing the A/B Test
+### 1 Designing the A/B Test
 
 **Goal:** Compare the new model (fine-tuned) against the baseline (existing system or no-model control).
 
@@ -467,7 +467,7 @@ To detect a 2% relative improvement in conversion rate (e.g., from 10% to 10.2%)
 $$n = \frac{2 (Z_{\alpha/2} + Z_\beta)^2 \bar{p} (1 - \bar{p})}{(\Delta p)^2}$$
 where $\bar{p} = 0.10$, $\Delta p = 0.002$, $Z_{\alpha/2} = 1.96$, $Z_\beta = 0.84$. This gives $n \approx 30{,}000$ users per group.
 
-### 7.2 Iterating Based on User Feedback
+### 2 Iterating Based on User Feedback
 
 A/B tests measure **what** happened, but user feedback explains **why**.
 
@@ -476,13 +476,13 @@ A/B tests measure **what** happened, but user feedback explains **why**.
 - **Session replay:** Watch how users interact with the model's outputs.
 - **Support tickets:** Track if the new model generates more complaints.
 
-## 8. Monitoring and Maintaining Production Models
+## Monitoring and Maintaining Production Models
 
 ![Production Model Monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications/12-monitoring.png)
 
 A deployed model is not a static artifact. Inputs drift, user behavior changes, and upstream systems evolve. Monitoring detects problems before they become incidents.
 
-### 8.1 What to Monitor
+### 1 What to Monitor
 
 **1. Prediction distribution:**
 Track the distribution of predicted classes or values. Alert if it shifts significantly from the baseline distribution.
@@ -496,20 +496,20 @@ Track the distribution of predicted probabilities. If high-confidence prediction
 **4. Business metrics:**
 Track the downstream impact (revenue, conversions, user satisfaction). A stable model accuracy with declining business metrics means the model is optimizing for the wrong thing.
 
-### 8.2 When to Retrain
+### 2 When to Retrain
 
 **Hybrid approach (recommended):**
 - Retrain on a schedule (e.g., quarterly).
 - Add drift detection to trigger **early** retraining if needed.
 - Use the PSI threshold of 0.25 as a "retrain now" signal.
 
-## 9. Return on Investment (ROI)
+## Return on Investment (ROI)
 
 ![ROI Analysis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/12-industrial-applications/12-roi.png)
 
 Leadership cares about **business impact**, not validation loss.
 
-### 9.1 Cost Categories
+### 1 Cost Categories
 
 | Category | One-time | Recurring |
 |----------|----------|-----------|
@@ -519,7 +519,7 @@ Leadership cares about **business impact**, not validation loss.
 | Compute (inference) | - | $A/month |
 | Monitoring and maintenance | - | $B/month |
 
-### 9.2 Example Calculation (Customer Support Chatbot)
+### 2 Example Calculation (Customer Support Chatbot)
 
 **Costs:**
 - Data labeling (10,000 Q&A pairs): $15,000.
@@ -538,7 +538,7 @@ Leadership cares about **business impact**, not validation loss.
 **ROI:** ($768,000 - $89,900) / $89,900 = **754%**.
 **Payback period:** 1.4 months.
 
-## 10. Practical Q&A
+## Practical Q&A
 
 **Q: Should I fine-tune all layers or freeze the early ones?**
 

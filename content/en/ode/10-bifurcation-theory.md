@@ -36,7 +36,7 @@ These are not prediction failures. The universe is doing exactly what dynamical 
 
 ---
 
-## 1. What is a bifurcation, really?
+## What is a bifurcation, really?
 
 The word *bifurcation* (Latin *furca* = fork) was coined by Henri Poincare around 1885. The intuition is geometric. Picture the long-term behaviour of a one-parameter system$\dot{x} = f(x,\mu)$as a portrait that depends continuously on$\mu$. For most values of$\mu$, small perturbations move the portrait around but do not change its essential shape: the same number of fixed points, the same stability assignments, the same cycles. We call such$\mu$**structurally stable**.
 
@@ -50,7 +50,7 @@ Think of$f(x,\mu)$as a landscape that depends on$\mu$. The fixed points are wher
 
 ---
 
-## 2. The four codimension-1 normal forms
+## The four codimension-1 normal forms
 
 A miracle of bifurcation theory: near *any* one-parameter bifurcation, the dynamics are locally equivalent (after a smooth change of coordinates) to one of just four canonical equations. These are the **normal forms**.
 
@@ -59,7 +59,7 @@ A miracle of bifurcation theory: near *any* one-parameter bifurcation, the dynam
 
 Why "codimension-1"? Because each requires tuning exactly **one** parameter to occur. To meet two of them at once, you need to tune two parameters, etc. Codimension-1 events are the ones you bump into generically when sliding a single dial.
 
-### 2.1 Saddle-node (fold) bifurcation
+### 1 Saddle-node (fold) bifurcation
 
 **Normal form:**$\dot{x} = \mu - x^2.$Setting$\dot{x}=0$gives$x^* = \pm\sqrt{\mu}$. So:
 
@@ -82,7 +82,7 @@ The linearisation$f_x = -2x$tells us the stability immediately: at$+\sqrt{\mu}$w
 
 The signature of a fold is **bistability before annihilation**. Just below$\mu_c$two equilibria coexist; just above$\mu_c$neither does. The system *must* go somewhere else, often violently.
 
-### 2.2 Transcritical bifurcation
+### 2 Transcritical bifurcation
 
 **Normal form:**$\dot{x} = \mu x - x^2.$Two equilibria always exist:$x^*=0$and$x^*=\mu$. They never disappear — they merely **swap stability** as they cross at$\mu=0$.
 
@@ -102,13 +102,13 @@ This is the bifurcation you get whenever the system has a "trivial" state ($x=0$
 - *Population dynamics*: extinction is always an equilibrium. As an environmental quality parameter crosses a threshold, the extinction state hands off stability to a positive coexistence state.
 - *Lasers* (alternative model): the off-state is always a fixed point; it loses stability to the lasing state at threshold.
 
-### 2.3 Supercritical pitchfork
+### 3 Supercritical pitchfork
 
 **Normal form:**$\dot{x} = \mu x - x^3.$Equilibria: always$x^*=0$, plus$x^*=\pm\sqrt{\mu}$when$\mu>0$. The trivial branch loses stability *and* two new stable branches are born symmetrically.
 
 This is the universal **symmetry-breaking** bifurcation. The equation is invariant under$x \to -x$, so any new equilibrium must come with a partner. Below$\mu_c$the system sits on the symmetric solution; above$\mu_c$it must commit to one of two equally valid asymmetric solutions.
 
-### 2.4 Subcritical pitchfork (the dangerous one)
+### 4 Subcritical pitchfork (the dangerous one)
 
 **Normal form:**$\dot{x} = \mu x + x^3.$Now the trivial branch loses stability without any nearby stable branch waiting to catch the system. Below$\mu=0$we have$x^*=0$stable plus two unstable branches at$\pm\sqrt{-\mu}$; above$\mu=0$, only the unstable trivial branch remains. Trajectories shoot off to infinity.
 
@@ -135,7 +135,7 @@ In real systems higher-order terms eventually re-stabilise things: adding a$-x^5
 
 ---
 
-## 3. The Hopf bifurcation: a focus gives birth to a cycle
+## The Hopf bifurcation: a focus gives birth to a cycle
 
 ![Ordinary Differential Equations (10): Bifurcation Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/illustration_2.png)
 
@@ -178,7 +178,7 @@ sol = odeint(hopf, [0.05, 0.05], t, args=(0.4,))
 
 ---
 
-## 4. Codimension and universality
+## Codimension and universality
 
 A bifurcation has **codimension k** if it requires tuning k independent parameters to occur generically. Codimension-1 events fill curves in parameter space; codimension-2 events occur at isolated points where two such curves meet.
 
@@ -192,7 +192,7 @@ The deep reason these classifications exist is the **centre-manifold theorem** p
 
 ---
 
-## 5. Global bifurcations: when the topology changes far from any equilibrium
+## Global bifurcations: when the topology changes far from any equilibrium
 
 Local bifurcations rearrange phase space near a single point. **Global** bifurcations rearrange it on a large scale, typically by reconnecting invariant manifolds.
 
@@ -212,7 +212,7 @@ A saddle-node bifurcation that happens *on* a closed invariant curve. Below the 
 
 ---
 
-## 6. The route to chaos: period doubling
+## The route to chaos: period doubling
 
 Limit cycles can themselves bifurcate. The most famous route is the **period-doubling cascade**: a stable cycle of period$T$loses stability and gives birth to a stable cycle of period$2T$, which in turn doubles to$4T$, then$8T$, then$16T$, accumulating at a finite parameter value beyond which the dynamics is chaotic.
 
@@ -235,7 +235,7 @@ For a deeper dive into the chaos that lives beyond the cascade, see [Chapter 9](
 
 ---
 
-## 7. Numerical detection and continuation
+## Numerical detection and continuation
 
 In practice we rarely have closed-form normal forms. We have a vector field$\mathbf{f}(\mathbf{x},\mu)$and want to map out its bifurcations as$\mu$varies. The standard tools are **continuation methods**:
 
@@ -285,7 +285,7 @@ def detect_bifurcations(f, fx, x_branch, mu_grid):
 
 ---
 
-## 8. Why this matters
+## Why this matters
 
 The deepest message of bifurcation theory is that **smooth causes can produce abrupt effects, but only through a small number of canonical mechanisms**. When you suspect a system is approaching a tipping point, you can ask concrete diagnostic questions:
 

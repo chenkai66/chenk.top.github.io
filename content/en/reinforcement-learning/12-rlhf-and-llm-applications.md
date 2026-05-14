@@ -43,7 +43,7 @@ This final installment concludes the series by bringing together all the concept
 
 ---
 
-## 1. RLHF: The Three-Stage Pipeline
+## RLHF: The Three-Stage Pipeline
 
 ![RLHF Three-Stage Pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig1_rlhf_three_stage_pipeline.png)
 
@@ -81,7 +81,7 @@ Each stage compresses the previous artifact into a more compact signal. SFT comp
 
 ---
 
-## 2. The Bradley-Terry Model: Why Preferences, Not Scores
+## The Bradley-Terry Model: Why Preferences, Not Scores
 
 ![Bradley-Terry preference model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig5_bradley_terry.png)
 
@@ -96,7 +96,7 @@ The right mental picture: a reward model is a **calibrated classifier of prefere
 
 ---
 
-## 3. PPO with KL Anchor: The Picture in Parameter Space
+## PPO with KL Anchor: The Picture in Parameter Space
 
 ![PPO with KL constraint](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig3_ppo_kl_constraint.png)
 
@@ -108,7 +108,7 @@ A working RLHF run touches **four models in memory simultaneously**: the policy 
 
 ---
 
-## 4. InstructGPT: What the Numbers Said
+## InstructGPT: What the Numbers Said
 
 ![Reward model training](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig2_reward_model_training.png)
 
@@ -121,7 +121,7 @@ The InstructGPT paper (Ouyang et al., NeurIPS 2022) is short, dense, and the clo
 
 ---
 
-## 5. DPO: Skipping the Reward Model and the RL
+## DPO: Skipping the Reward Model and the RL
 
 ![DPO derivation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig4_dpo_derivation.png)
 
@@ -158,7 +158,7 @@ The pragmatic verdict in 2024–2026: most open-weights instruction-tuned models
 
 ---
 
-## 6. Reward Hacking and Goodhart's Law
+## Reward Hacking and Goodhart's Law
 
 ![Reward hacking and Goodhart's law](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig7_reward_hacking.png)
 
@@ -186,7 +186,7 @@ There is no permanent fix. Reward hacking is an arms race built into the structu
 
 ---
 
-## 7. RLAIF and Constitutional AI: Removing the Human
+## RLAIF and Constitutional AI: Removing the Human
 
 Human annotation is slow, expensive, and inconsistent — and it does not scale to the volume of preferences a frontier model needs. Two families of methods replace humans, partly or wholly, with strong models:
 
@@ -209,7 +209,7 @@ The trend line is clear: as base models get better, more of the alignment signal
 
 ---
 
-## 8. Architecture of a Production Alignment Stack
+## Architecture of a Production Alignment Stack
 
 ![ChatGPT/Claude training architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/fig6_chatgpt_architecture.png)
 
@@ -225,7 +225,7 @@ The pieces are commoditised. The differentiation between labs lives in the **qua
 
 ---
 
-## 9. Beyond Language: Where RL Goes Next
+## Beyond Language: Where RL Goes Next
 
 RLHF is the highest-stakes deployment of RL right now, but it is not the most ambitious one. Three other frontiers are advancing in parallel and borrow heavily from this series:
 
@@ -239,7 +239,7 @@ RLHF is the highest-stakes deployment of RL right now, but it is not the most am
 
 ---
 
-## 10. Simplified RLHF Implementation
+## Simplified RLHF Implementation
 
 The reference code below covers the conceptual flow — reward model with Bradley-Terry loss, then a stripped-down PPO-style optimisation against it. Production stacks (TRL, DeepSpeed-Chat, OpenRLHF, trlX) add GAE advantages, value heads, full PPO clipping, multi-GPU sharding, and adaptive KL control, none of which fit on this page.
 
@@ -328,7 +328,7 @@ Two things this code clarifies that prose tends to obscure: (1) the "reward" PPO
 
 ---
 
-## 11. FAQ
+## FAQ
 
 **Q: Why does RLHF beat SFT given enough demonstrations?**
 SFT is bounded by demonstration writers — humans rarely write the *optimal* answer, just a *good* one. RLHF lets the model explore beyond the demonstration distribution and rank its own samples. Comparisons are also cheaper than demonstrations, so you collect more signal per dollar.

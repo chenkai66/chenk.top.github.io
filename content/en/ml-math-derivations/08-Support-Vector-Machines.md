@@ -41,9 +41,9 @@ translationKey: "ml-math-derivations-8"
 
 ---
 
-## 1. Hard-margin SVM
+## Hard-margin SVM
 
-### 1.1 Functional and geometric margin
+### 1 Functional and geometric margin
 
 Take binary labels $y_i \in \{-1, +1\}$ and a linear decision rule $\hat{y} = \operatorname{sign}(w^\top x + b)$. Two notions of "how far" a point sits from the boundary:
 $$
@@ -59,7 +59,7 @@ The functional margin is positive on correctly classified points but is *not* sc
 
 *Why this formula?* For any point $x_0$, the closest point on $w^\top x + b = 0$ is its orthogonal projection, and the displacement is $-(w^\top x_0 + b)/\lVert w \rVert^2 \cdot w$. Its norm is $\lvert w^\top x_0 + b\rvert / \lVert w \rVert$. Multiplying by $y_i$ keeps it positive whenever the prediction is correct.
 
-### 1.2 The maximum-margin program
+### 2 The maximum-margin program
 
 ![Hard-margin SVM: the maximum-margin hyperplane and its support vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig1_max_margin.png)
 
@@ -74,7 +74,7 @@ This is a **convex quadratic program** with linear constraints. Strict convexity
 
 The points where the constraint is tight, $y_i(w^\top x_i + b) = 1$, are the **support vectors**. Geometrically they sit on the two parallel margin lines flanking the boundary; algebraically, they are the only points that determine $w^\*$.
 
-### 1.3 The dual via Lagrange
+### 3 The dual via Lagrange
 
 Attach multipliers $\alpha_i \ge 0$ to each constraint:
 $$L(w, b, \alpha) \;=\; \tfrac{1}{2}\lVert w \rVert^2 \;-\; \sum_{i=1}^N \alpha_i \bigl[\,y_i(w^\top x_i + b) - 1\,\bigr].$$
@@ -96,7 +96,7 @@ Two consequences are doing all the heavy lifting here:
 1. The data only enter through inner products $x_i^\top x_j$. Replace this with $K(x_i, x_j)$ and the entire derivation goes through unchanged — this is the kernel trick before we even introduce it.
 2. The dual has $N$ scalar variables and a single equality constraint, so it is much cheaper than the primal whenever the feature dimension $d \gg N$.
 
-### 1.4 KKT conditions and sparsity
+### 4 KKT conditions and sparsity
 
 The primal is convex with affine constraints, so Slater's condition is satisfied and **strong duality** holds. Optimal $(w^\*, b^\*, \alpha^\*)$ must obey:
 
@@ -135,9 +135,9 @@ for i in clf.support_:
 
 ---
 
-## 2. Soft-margin SVM
+## Soft-margin SVM
 
-### 2.1 Slack variables and the $C$ knob
+### 1 Slack variables and the $C$ knob
 
 Real data overlap. We let each point misbehave by a non-negative amount $\xi_i$:
 $$
@@ -154,7 +154,7 @@ $C > 0$ trades two evils. Big $C$ punishes slack heavily, narrows the margin and
 
 ![Soft-margin SVM at three values of C: wider margin pays in slack, narrower margin pays in $\lVert w \rVert$](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig2_soft_margin_C.png)
 
-### 2.2 Dual: the box constraint
+### 2 Dual: the box constraint
 
 Repeat the Lagrangian recipe, this time with multipliers $\alpha_i \ge 0$ for the margin constraints and $\mu_i \ge 0$ for $\xi_i \ge 0$. Setting $\partial_\xi L = 0$ gives $\alpha_i + \mu_i = C$, hence $0 \le \alpha_i \le C$. The dual:
 $$
@@ -173,7 +173,7 @@ Only difference from hard margin: an upper bound $\alpha_i \le C$. The KKT condi
 
 The bias is recovered from any boundary support vector: $b^\* = y_i - \sum_j \alpha_j^\* y_j x_j^\top x_i$. For numerical stability, average this over all boundary SVs.
 
-### 2.3 Hinge loss view
+### 3 Hinge loss view
 
 Eliminate $\xi_i$ from the primal by noting that the optimal slack is $\xi_i^\* = \max(0,\, 1 - y_i(w^\top x_i + b))$. Substituting:
 $$\min_{w, b}\; \tfrac{1}{2}\lVert w \rVert^2 + C \sum_i \max\bigl(0,\, 1 - y_i(w^\top x_i + b)\bigr).$$
@@ -185,11 +185,11 @@ The hinge has a kink at $m = 1$ and is exactly zero beyond, which is what create
 
 ---
 
-## 3. Kernels
+## Kernels
 
 ![ML Math Derivations (8): Support Vector Machines — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/illustration_2.png)
 
-### 3.1 The kernel trick
+### 1 The kernel trick
 
 Map inputs to some feature space $\phi: \mathbb{R}^d \to \mathcal{H}$. Run linear SVM in $\mathcal{H}$. The dual objective becomes
 $$W(\alpha) \;=\; \sum_i \alpha_i \;-\; \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j \;\phi(x_i)^\top \phi(x_j).$$
@@ -201,7 +201,7 @@ Anywhere $x_i^\top x_j$ appeared in the dual or in the prediction, write $K(x_i,
 
 The lifted picture shows *why* this works. The inner two-class data on the left admits no separating line. Lifting $\phi(x) = (x_1, x_2, x_1^2 + x_2^2)$ pushes the outer ring upward in the third coordinate, and the horizontal plane $x_1^2 + x_2^2 = c$ separates the classes. Computing inner products in $\mathbb{R}^3$ via $K(x, z) = (1 + x^\top z)^2$ achieves the same effect without ever forming $\phi$.
 
-### 3.2 The kernel zoo
+### 2 The kernel zoo
 
 | Kernel | Formula | Feature space |
 |---|---|---|
@@ -214,7 +214,7 @@ The lifted picture shows *why* this works. The inner two-class data on the left 
 
 ![RBF SVM at three values of $\gamma$: bandwidth controls how locally each support vector influences the boundary](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig4_rbf_boundary.png)
 
-### 3.3 Mercer's condition
+### 3 Mercer's condition
 
 **Theorem.** A symmetric function $K(x, z)$ corresponds to some inner product $\phi(x)^\top \phi(z)$ in a Hilbert space if and only if for every finite point set $\{x_i\}_{i=1}^N$, the kernel matrix $\mathbf{K}_{ij} = K(x_i, x_j)$ is positive semi-definite, i.e.
 $$\sum_{i, j} c_i c_j\, K(x_i, x_j) \;\ge\; 0 \quad \text{for all } c \in \mathbb{R}^N.$$
@@ -243,15 +243,15 @@ print(f"eigenvalues: {eig.round(4)} -- all >= 0: {np.all(eig >= -1e-10)}")
 
 ---
 
-## 4. The SMO algorithm
+## The SMO algorithm
 
-### 4.1 Why two coordinates at a time
+### 1 Why two coordinates at a time
 
 The dual is a QP in $N$ variables with a single equality constraint $\sum_i \alpha_i y_i = 0$. General QP solvers run in $O(N^3)$ time and $O(N^2)$ memory — prohibitive for tens of thousands of points.
 
 A naive coordinate-descent strategy (fix all but one $\alpha_i$ and optimise) is illegal: the equality constraint forces *any* legal move to change at least two coordinates. The minimum number of variables to update while staying feasible is therefore **two**. That is the entire premise of Sequential Minimal Optimization (Platt, 1998): pick a pair, solve the two-variable QP analytically, repeat.
 
-### 4.2 The two-variable sub-problem
+### 2 The two-variable sub-problem
 
 Pick indices $1, 2$ and freeze the others. The equality constraint reduces to
 $$\alpha_1 y_1 + \alpha_2 y_2 \;=\; -\sum_{i \ge 3} \alpha_i y_i \;=:\; \zeta \quad (\text{constant}).$$
@@ -265,7 +265,7 @@ $$
 
 $\eta$ is the squared distance $\lVert \phi(x_1) - \phi(x_2) \rVert^2$ in feature space, hence non-negative.
 
-### 4.3 Clipping to $[L, H]$
+### 3 Clipping to $[L, H]$
 
 The pair must respect $0 \le \alpha_1, \alpha_2 \le C$ *and* the equality constraint. Combining them restricts $\alpha_2$ to an interval $[L, H]$ that depends on the sign agreement of the two labels:
 $$
@@ -281,7 +281,7 @@ $$
 $$
 ![One step of SMO in the $(\alpha_1, \alpha_2)$ plane: the feasibility line, the box $[0,C]^2$, the unconstrained optimum and the clipped result](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig7_smo_step.png)
 
-### 4.4 Heuristics and convergence
+### 4 Heuristics and convergence
 
 - **Outer loop:** alternate between (a) sweeping all examples and (b) sweeping non-bound SVs only ($0 < \alpha_i < C$), since bound coordinates rarely move.
 - **First variable:** any $\alpha_i$ that violates the KKT conditions by more than a tolerance.
@@ -291,7 +291,7 @@ Each step strictly improves the dual objective unless the chosen pair is already
 
 ---
 
-## 5. Practical notes
+## Practical notes
 
 - **Always standardise features.** SVM uses Euclidean geometry; mismatched scales let one coordinate dominate the margin.
 - **Choose $C$ and $\gamma$ together.** Their product loosely controls model capacity. Grid-search $C \in \{10^{-2}, \dots, 10^3\}$ and $\gamma \in \{10^{-3}, \dots, 10^1\}$ on a log scale with cross-validation.
@@ -301,7 +301,7 @@ Each step strictly improves the dual objective unless the chosen pair is already
 
 ---
 
-## 6. Exercises
+## Exercises
 
 ### Exercise 1 — Geometric margin
 

@@ -35,6 +35,9 @@ polished_by_qwen_max: true
 - 使用 PyTorch 实现文本生成和翻译的实际代码示例
 
 **前置知识**：本系列第 1-2 部分（分词与词嵌入），以及基础 PyTorch 知识（张量操作、`nn.Module` 模块、训练循环）。
+
+---
+
 ## 一、核心思想：循环与参数共享
 
 ![NLP (3): RNN 和序列建模 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.png)

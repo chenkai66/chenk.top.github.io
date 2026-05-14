@@ -39,9 +39,9 @@ This article builds the convex toolkit from the ground up. We start with the geo
 
 ---
 
-## 1. Convex Sets and Convex Functions
+## Convex Sets and Convex Functions
 
-### 1.1 Convex Sets
+### 1 Convex Sets
 
 **Definition 1 (Convex Set).** A set $C \subseteq \mathbb{R}^n$ is **convex** if for any two points $x, y \in C$ and any $\lambda \in [0, 1]$,
 $$\lambda x + (1 - \lambda) y \in C. \tag{1}$$
@@ -62,7 +62,7 @@ A short list of convex sets that you will meet again and again:
 
 This single fact is the workhorse of practical convex modeling: complicated feasible regions are almost always built by intersecting many simple convex constraints.
 
-### 1.2 Convex Functions
+### 2 Convex Functions
 
 **Definition 2 (Convex Function).** $f : C \to \mathbb{R}$ is **convex** if its domain $C$ is convex and for all $x, y \in C$ and $\lambda \in [0, 1]$,
 $$f(\lambda x + (1-\lambda)y) \;\leq\; \lambda f(x) + (1-\lambda) f(y). \tag{2}$$
@@ -75,7 +75,7 @@ Two strengthenings of convexity matter often enough to name:
 - **Strictly convex:** the inequality (2) is strict whenever $x \neq y$ and $\lambda \in (0, 1)$. This rules out flat plateaus and guarantees a *unique* minimizer (when one exists).
 - **$\mu$-strongly convex** ($\mu > 0$): $f(x) - \tfrac{\mu}{2}\|x\|^2$ is convex. Equivalently, $f$ has at least quadratic curvature in every direction. Strong convexity is what powers the *linear* convergence rates we will derive shortly.
 
-### 1.3 First-Order and Second-Order Characterizations
+### 3 First-Order and Second-Order Characterizations
 
 Definition 2 is geometric and clean, but it is hard to *check*. The next two theorems give equivalent conditions in terms of derivatives, which is what we actually use in practice.
 
@@ -87,7 +87,7 @@ In other words, every tangent hyperplane is a *global* lower bound on $f$. This 
 $$\nabla^2 f(x) \;\succeq\; 0 \qquad \text{for all } x. \tag{4}$$
 If $\nabla^2 f \succ 0$ everywhere, $f$ is strictly convex. If $\nabla^2 f \succeq \mu I$ everywhere, $f$ is $\mu$-strongly convex. The Hessian test is by far the most common way to certify convexity in practice — for instance, the loss in linear regression is $\nabla^2 = X^T X$, which is automatically PSD.
 
-### 1.4 Jensen's Inequality
+### 4 Jensen's Inequality
 
 The convexity inequality (2) is a statement about a two-point average. Pushing it to general probability distributions gives what is arguably the single most-used inequality in machine learning.
 
@@ -106,11 +106,11 @@ A short catalog of convex functions worth memorizing: affine functions $a^T x + 
 
 ---
 
-## 2. Subgradients and Non-Smooth Optimization
+## Subgradients and Non-Smooth Optimization
 
 Many of the most useful objectives in machine learning are *not* differentiable everywhere. The L1 norm $\|x\|_1$ used in Lasso has a kink at every coordinate axis; the hinge loss $\max(0, 1 - y \cdot s)$ used in SVMs has a kink at $s = 1/y$. To do calculus on these objects we generalize the gradient.
 
-### 2.1 Subgradients
+### 1 Subgradients
 
 **Definition 3 (Subgradient).** A vector $g \in \mathbb{R}^n$ is a **subgradient** of $f$ at $x$ if for all $y$,
 $$f(y) \;\geq\; f(x) + g^T (y - x). \tag{6}$$
@@ -120,7 +120,7 @@ The set of all such $g$ is the **subdifferential** $\partial f(x)$. When $f$ is 
 $$\partial f(x) = \begin{cases} \{-1\} & x < 0, \\ [-1, 1] & x = 0, \\ \{+1\} & x > 0. \end{cases} \tag{7}$$
 **Optimality.** $x^\star$ is a global minimizer of a convex $f$ if and only if $0 \in \partial f(x^\star)$. This is the non-smooth analogue of $\nabla f(x^\star) = 0$.
 
-### 2.2 Subgradient Method
+### 2 Subgradient Method
 
 Replacing the gradient with any subgradient yields the **subgradient method**:
 $$x^{(k+1)} = x^{(k)} - \alpha_k g^{(k)}, \quad g^{(k)} \in \partial f(x^{(k)}). \tag{8}$$
@@ -130,9 +130,9 @@ For composite problems of the form $f(x) + h(x)$ where $f$ is smooth and $h$ is 
 
 ---
 
-## 3. First-Order Optimization Algorithms
+## First-Order Optimization Algorithms
 
-### 3.1 Gradient Descent
+### 1 Gradient Descent
 
 Gradient descent is the most fundamental algorithm in continuous optimization: at each step, move in the direction of steepest local decrease.
 $$x^{(k+1)} \;=\; x^{(k)} - \alpha \, \nabla f(x^{(k)}). \tag{9}$$
@@ -148,7 +148,7 @@ $$f(x^{(k)}) - f(x^\star) \;\leq\; \frac{L\, \|x^{(0)} - x^\star\|^2}{2k} \;=\; 
 $$f(x^{(k)}) - f(x^\star) \;\leq\; \left(1 - \frac{\mu}{L}\right)^k \big[f(x^{(0)}) - f(x^\star)\big]. \tag{11}$$
 This is **linear convergence**: the error shrinks by a fixed factor each step. The factor depends on the **condition number** $\kappa = L / \mu$. A well-conditioned problem ($\kappa$ near 1) converges in a handful of steps; a badly-conditioned one ($\kappa \sim 10^6$) needs millions. Improving conditioning — through preconditioning, normalization, or regularization — is one of the most effective practical tricks in optimization.
 
-### 3.2 The Learning Rate is a Choice You Cannot Avoid
+### 2 The Learning Rate is a Choice You Cannot Avoid
 
 Gradient descent has one knob: the step size $\alpha$. For the same convex quadratic, three choices produce three completely different stories.
 
@@ -163,7 +163,7 @@ The arithmetic for the 1D quadratic $f(x) = \tfrac{L}{2} x^2$ makes the picture 
 
 The same dichotomy holds in many dimensions, with $L$ replaced by the largest Hessian eigenvalue. This is the single most important practical fact about gradient descent: **the right learning rate is set by curvature, not by guessing**.
 
-### 3.3 Momentum and Nesterov Acceleration
+### 3 Momentum and Nesterov Acceleration
 
 On long, narrow valleys gradient descent zig-zags across the walls instead of running down the floor. Momentum methods fix this by averaging past gradients, damping the oscillations and accumulating speed in consistent directions.
 
@@ -175,7 +175,7 @@ $$x^{(k+1)} = y^{(k)} - \alpha \nabla f(y^{(k)}), \qquad y^{(k+1)} = x^{(k+1)} +
 $$f(x^{(k)}) - f(x^\star) \;=\; O(1/k^2). \tag{14}$$
 The bound (14) is **provably optimal**: no first-order method (one that only queries $\nabla f$) can do asymptotically better in the worst case. This is one of the genuine surprises of convex optimization — a tiny algorithmic twist (look ahead, then step) gets you from $O(1/k)$ to $O(1/k^2)$ for free.
 
-### 3.4 Adaptive Learning Rates and Adam
+### 4 Adaptive Learning Rates and Adam
 
 Plain gradient descent uses one global step size for every coordinate. In practice, different coordinates have wildly different effective curvatures — for instance, in a text model, common-word embeddings receive frequent gradient updates while rare-word embeddings receive almost none. **Adaptive methods** give each coordinate its own learning rate, scaled by the recent magnitude of its gradient.
 
@@ -189,7 +189,7 @@ x^{(k+1)} &= x^{(k)} \;-\; \frac{\alpha\, \hat m^{(k+1)}}{\sqrt{\hat v^{(k+1)}} 
 $$
 with bias-corrected estimates $\hat m^{(k+1)} = m^{(k+1)} / (1 - \beta_1^{k+1})$ and $\hat v^{(k+1)} = v^{(k+1)} / (1 - \beta_2^{k+1})$. The standard hyperparameters $(\beta_1, \beta_2, \alpha, \varepsilon) = (0.9, 0.999, 10^{-3}, 10^{-8})$ work astonishingly well across deep learning workloads, which is part of why Adam became the default optimizer for transformers.
 
-### 3.5 Stochastic Gradient Descent
+### 5 Stochastic Gradient Descent
 
 In large-scale ML, computing the full gradient $\nabla f(x) = \tfrac{1}{N}\sum_{i=1}^N \nabla f_i(x)$ over millions of examples is prohibitive. **Stochastic gradient descent (SGD)** replaces the full sum by a random sample (a mini-batch), trading a noisy step for a much cheaper one.
 
@@ -201,9 +201,9 @@ For convex objectives, SGD converges at $O(1/\sqrt{k})$ with constant step size 
 
 ---
 
-## 4. Second-Order Methods
+## Second-Order Methods
 
-### 4.1 Newton's Method
+### 1 Newton's Method
 
 If a first-order method models $f$ locally as a tangent plane, Newton's method models it as a tangent paraboloid and jumps straight to that paraboloid's minimum. The second-order Taylor expansion at $x^{(k)}$ is
 $$f(x) \;\approx\; f(x^{(k)}) + \nabla f^T (x - x^{(k)}) + \tfrac{1}{2} (x - x^{(k)})^T \nabla^2 f \,(x - x^{(k)}).$$
@@ -215,7 +215,7 @@ Quadratic convergence is qualitatively different from anything we have seen so f
 
 The catch is in three places. (i) Per-iteration cost is $O(n^3)$ to factor the Hessian — prohibitive for $n > 10^4$. (ii) Storage is $O(n^2)$ for the Hessian itself. (iii) If $\nabla^2 f$ is not PD (which happens away from convex regions), the Newton step may not even decrease $f$, so it has to be regularized into something like a trust-region step.
 
-### 4.2 Quasi-Newton: BFGS and L-BFGS
+### 2 Quasi-Newton: BFGS and L-BFGS
 
 Quasi-Newton methods aim for "almost" Newton-like behavior at first-order cost. Instead of computing the Hessian, they *approximate* its inverse using only the gradients we have already seen.
 
@@ -236,17 +236,17 @@ For large $n$, even storing $H$ is impractical, so **L-BFGS** keeps only the las
 
 ---
 
-## 5. Constrained Optimization and Duality
+## Constrained Optimization and Duality
 
 ![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_2.png)
 
-### 5.1 Problem Setup
+### 1 Problem Setup
 
 The general constrained convex problem has the form
 $$\min_x f(x) \quad \text{s.t.} \quad g_i(x) \leq 0 \;\; (i = 1, \ldots, m), \quad h_j(x) = 0 \;\; (j = 1, \ldots, p). \tag{21}$$
 We assume $f$ and $g_i$ are convex, and $h_j$ are affine.
 
-### 5.2 The Lagrangian and the Dual Problem
+### 2 The Lagrangian and the Dual Problem
 
 The Lagrangian rolls the constraints into the objective with multipliers $\lambda_i \geq 0$ (for inequalities) and $\nu_j \in \mathbb{R}$ (for equalities):
 $$\mathcal{L}(x, \lambda, \nu) = f(x) + \sum_{i=1}^m \lambda_i g_i(x) + \sum_{j=1}^p \nu_j h_j(x). \tag{22}$$
@@ -264,7 +264,7 @@ The geometric picture is in the figure below. The image set $\{(g(x), f(x)) : x 
 
 ![Primal vs dual: geometric view](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/fig5_duality_geometry.png)
 
-### 5.3 KKT Conditions
+### 3 KKT Conditions
 
 When strong duality holds, the optimal primal and dual variables jointly satisfy a small set of equations and inequalities — the **Karush-Kuhn-Tucker (KKT) conditions**.
 
@@ -285,7 +285,7 @@ The geometry of the stationarity condition is striking. At the optimum, $-\nabla
 
 ---
 
-## 6. ADMM: Splitting Hard Problems Into Easy Ones
+## ADMM: Splitting Hard Problems Into Easy Ones
 
 Some problems have a structure where a *joint* optimization over $(x, z)$ is hard, but optimizing $x$ alone (with $z$ fixed) and $z$ alone (with $x$ fixed) are both easy. **ADMM** — the Alternating Direction Method of Multipliers — exploits exactly this structure:
 $$\min_{x, z}\, f(x) + g(z) \quad \text{s.t.} \quad A x + B z = c. \tag{24}$$
@@ -308,7 +308,7 @@ Both subproblems are essentially free, and the iteration produces the exact Lass
 
 ---
 
-## 7. Code: Optimization Algorithms
+## Code: Optimization Algorithms
 
 A minimal but working implementation of GD, Newton, BFGS, and ADMM-Lasso:
 
@@ -376,7 +376,7 @@ print(f"ADMM:   nonzeros = {int(np.sum(np.abs(z) > 1e-4))}/10, "
 
 ---
 
-## 8. FAQ
+## FAQ
 
 **Q1: Why study convex optimization if deep learning is non-convex?**
 

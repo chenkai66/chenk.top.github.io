@@ -37,7 +37,7 @@ This guide covers these issues in the order you'll encounter them on day one and
 
 ---
 
-## 1. Why LAMP still earns its place
+## Why LAMP still earns its place
 
 LAMP — **L**inux + **A**pache + **M**ySQL + **P**HP — has been declared dead in every web framework cycle since 2010 but refuses to oblige. The reason is not nostalgia; it's fitness for purpose. For content sites, CMS platforms (WordPress, Discuz, Drupal, MediaWiki), customer portals, internal tools, and a long tail of small SaaS backends, LAMP is the most cost-effective, best-documented, and lowest-maintenance way to put dynamic web pages in front of users.
 
@@ -50,7 +50,7 @@ What you get for free with LAMP that newer stacks make you reassemble:
 
 LAMP is **not** the right answer for high-fanout APIs (use Nginx + Go/Node/Rust), event-driven and connection-heavy workloads (websockets at scale prefer event loops over Apache prefork), or when your team has already invested in containers and a control plane. Choose LAMP for what it excels at, not as a default.
 
-## 2. The four-layer architecture
+## The four-layer architecture
 
 ![The four-layer LAMP stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig1_lamp_architecture.png)
 
@@ -74,7 +74,7 @@ The interfaces between the layers are the parts that can fail:
 
 Memorize these four checks, and you'll resolve most LAMP issues without ever opening Stack Overflow.
 
-## 3. Anatomy of an Aliyun ECS instance
+## Anatomy of an Aliyun ECS instance
 
 ![Anatomy of an Alibaba Cloud ECS instance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig2_aliyun_ecs_overview.png)
 
@@ -95,7 +95,7 @@ Before installing anything, choose the right instance. The console shows hundred
 
 That is the entire decision. Skip the long list of features and confirm.
 
-## 4. Networking: the part that traps everyone
+## Networking: the part that traps everyone
 
 Every "I can't reach my server" question on the Aliyun forum has the same root cause — packets are dropped at one of the four points in the path:
 
@@ -105,11 +105,11 @@ client laptop ---internet---> [security group] ---> [OS firewall] ---> [listen s
 
 You have to open all four, or you will diagnose the wrong layer.
 
-## 4.1 Public IP
+## 1 Public IP
 
 In the ECS console, **Instances -> your instance -> Networking -> Bind EIP** (or assign a public IP at create time). Note the address; treat it like a domain name (`8.134.207.88` is the example used below).
 
-## 4.2 Security group rules
+## 2 Security group rules
 
 The security group is a stateful packet filter that lives in the cloud, not on the OS. It runs **before** anything reaches your instance, so it overrides whatever your OS firewall says. In the console: **Security Groups -> Configure Rules -> Inbound**.
 
@@ -137,7 +137,7 @@ Compared to opening 3306 on the security group, the tunnel:
 -   only exposes the DB while the tunnel is up,
 -   never appears in shodan scans.
 
-## 4.3 OS-level firewall
+## 3 OS-level firewall
 
 The cloud security group is necessary but not sufficient — a future operator might open everything on the security group "to debug", and your second line of defence is the OS firewall.
 
@@ -163,7 +163,7 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-all
 ```
 
-## 4.4 Verifying reachability hop by hop
+## 4 Verifying reachability hop by hop
 
 When something does not respond, isolate the failing hop in this exact order. Doing it out of order is how you spend three hours debugging the wrong thing.
 
@@ -184,7 +184,7 @@ curl -I http://127.0.0.1
 # 200 OK -> the problem is upstream of Apache (firewall / SG)
 ```
 
-## 5. The request flow, end to end
+## The request flow, end to end
 
 ![How a request travels through the stack](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig3_request_flow.png)
 
@@ -205,7 +205,7 @@ The classic failure modes are annotated under the figure. The most common are:
 -   **Blank page after install.** PHP errors are being suppressed and the script crashed — look in `/var/log/apache2/error.log`, not in the browser.
 -   **"Connection refused" intermittently.** The MySQL connection limit is hit, or the OOM killer just shot `mysqld`. Check `dmesg` and `mysql.err`.
 
-## 6. Installing the stack on Ubuntu
+## Installing the stack on Ubuntu
 
 Step zero before installing anything: make sure no other web server or database is already on the box.
 
@@ -218,7 +218,7 @@ sudo systemctl disable --now nginx
 
 The order matters: install Apache, then MySQL, then PHP last. PHP's package will pull in the Apache module and will run a post-install hook that enables it — this only works if Apache is already there.
 
-## 6.1 Apache
+## 1 Apache
 
 ```bash
 sudo apt update
@@ -246,7 +246,7 @@ sudo sed -i 's/^LogLevel warn/LogLevel info/' /etc/apache2/apache2.conf
 sudo systemctl reload apache2
 ```
 
-## 6.2 MySQL
+## 2 MySQL
 
 ```bash
 sudo apt install -y mysql-server
@@ -298,7 +298,7 @@ collation-server       = utf8mb4_unicode_ci
 
 Restart MySQL after editing. The buffer pool is single-handedly responsible for the difference between "every query hits disk" and "the working set lives in RAM".
 
-## 6.3 PHP
+## 3 PHP
 
 ```bash
 sudo apt install -y php libapache2-mod-php php-mysql \
@@ -327,17 +327,17 @@ sudo systemctl restart apache2
 sudo rm /var/www/html/info.php
 ```
 
-## 7. Defence in depth: hardening the public surface
+## Defence in depth: hardening the public surface
 
 ![Defence in depth for a public LAMP server](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig4_security_setup.png)
 
 A public LAMP server with default settings will be probed by automated scanners within minutes. Treat security as five concentric rings, each one buying time even when the one outside it fails.
 
-## 7.1 Security group — the perimeter
+## 1 Security group — the perimeter
 
 Already covered in section 4. The rule of thumb: your security group should make the OS firewall feel redundant, and your OS firewall should make the security group feel redundant. Neither should be your only line.
 
-## 7.2 OS hardening
+## 2 OS hardening
 
 ```bash
 # Keep the system patched -- enable unattended security upgrades
@@ -354,7 +354,7 @@ sudo apt install -y fail2ban
 sudo systemctl enable --now fail2ban
 ```
 
-## 7.3 TLS with Let's Encrypt
+## 3 TLS with Let's Encrypt
 
 Once you have a domain pointed at your IP, getting a certificate is two commands:
 
@@ -380,24 +380,24 @@ SSLHonorCipherOrder     on
 Header always set Strict-Transport-Security "max-age=63072000"
 ```
 
-## 7.4 MySQL hardening
+## 4 MySQL hardening
 
 -   Bind to `127.0.0.1` only (default in modern packages, verify in `/etc/mysql/mysql.conf.d/mysqld.cnf`).
 -   One database user **per application**, with `GRANT` scoped to that database.
 -   No `GRANT ALL ... TO root@'%'` — ever.
 -   Backups encrypted at rest if the data is sensitive.
 
-## 7.5 Application hygiene
+## 5 Application hygiene
 
 -   `php-fpm` instead of `mod_php` if you can — isolates PHP failures from the Apache process tree.
 -   `expose_php = Off` and `display_errors = Off` in `/etc/php/8.1/apache2/php.ini` for production.
 -   Whatever framework you deploy, check it has a security advisory feed and subscribe to it. CVEs in CMSes are the single largest source of compromised LAMP servers.
 
-## 8. End-to-end deployment: Discuz!
+## End-to-end deployment: Discuz!
 
 Discuz! is worth using as a worked example because it exercises every weak point of a fresh LAMP install: file permissions, multiple writable directories, MySQL user creation, PHP extension requirements and a web-based installer that double-checks all of them.
 
-## 8.1 Download
+## 1 Download
 
 ```bash
 cd /var/www/html
@@ -408,7 +408,7 @@ sudo mv upload/* upload/.htaccess . 2>/dev/null || sudo mv upload/* .
 sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
 ```
 
-## 8.2 Permissions — the part everyone gets wrong
+## 2 Permissions — the part everyone gets wrong
 
 Apache runs as `www-data` (Ubuntu) or `apache` (CentOS). The single rule: **the user running Apache must own every file that PHP needs to write**, and only those.
 
@@ -426,7 +426,7 @@ done
 
 Note that this is `775`, **not** `777`. If `www-data` already owns the directory, `775` lets the owner (web user) write while keeping `o+r` for the rest. `chmod 777` is folk wisdom, not advice — it lets every user on the system write your application files, and on a shared server that is a privilege-escalation path.
 
-## 8.3 Database account
+## 3 Database account
 
 ```bash
 sudo mysql -e "
@@ -442,7 +442,7 @@ Two things to notice:
 -   `discuz.*` — the grant is scoped to one database. If Discuz is ever compromised, the attacker cannot read your other applications' tables.
 -   `'discuz_user'@'localhost'` — the host part is part of the identity. The same username from a different host is a different user. Connections via the unix socket count as `'localhost'`; TCP to `127.0.0.1` counts as `'127.0.0.1'`. If `mysql_secure_installation` left `localhost` and `127.0.0.1` distinct, grant both.
 
-## 8.4 Run the installer
+## 4 Run the installer
 
 Visit `http://YOUR_PUBLIC_IP/install/`. Three things happen:
 
@@ -458,7 +458,7 @@ sudo rm -rf /var/www/html/install
 sudo chmod -R 755 /var/www/html/config
 ```
 
-## 9. The five failures that hit everyone
+## The five failures that hit everyone
 
 ## Failure 1 — "Connection refused"
 
@@ -527,9 +527,9 @@ sudo chmod -R 775 /var/www/html/{data,config,uc_server/data,uc_client/data}
 
 Resist the urge to `chmod -R 777 /var/www`. It will work, and it will hurt later.
 
-## 10. Production essentials
+## Production essentials
 
-## 10.1 Virtual hosts
+## 1 Virtual hosts
 
 Stop dumping everything in `/var/www/html/` the moment you have more than one site. Per-site directories under `/var/www/<sitename>/` and per-site vhost files keep the layout sane.
 
@@ -562,7 +562,7 @@ sudo apache2ctl configtest && sudo systemctl reload apache2
 
 `configtest` before `reload` is the difference between a graceful change and a five-minute outage when you mistype a brace.
 
-## 10.2 Backups that you actually test
+## 2 Backups that you actually test
 
 A backup you have not restored is not a backup. The minimum:
 
@@ -593,7 +593,7 @@ ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/$(hostname)/
 
 And once a month, on a separate machine: `gunzip < some_backup.sql.gz | mysql -u root -p test_restore` and verify the row counts. The first time is always educational.
 
-## 10.3 Observability
+## 3 Observability
 
 The Aliyun Cloud Monitor agent gives you CPU, memory, disk and bandwidth out of the box. The two extra signals worth wiring up yourself:
 
@@ -602,7 +602,7 @@ The Aliyun Cloud Monitor agent gives you CPU, memory, disk and bandwidth out of 
 
 A weekly five-minute look at these will catch capacity problems weeks before they bite.
 
-## 11. Two topologies, one app
+## Two topologies, one app
 
 ![Two topologies for a LAMP site](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig5_deployment_topology.png)
 
@@ -618,7 +618,7 @@ Almost every successful LAMP site eventually hits the wall of the single-instanc
 
 The cost roughly triples; the failure surface goes from "one box" to "many boxes plus a network", which is genuinely harder to operate. Do not migrate just because the diagrams look impressive — migrate because the single instance is actually saturating.
 
-## 12. Compiling MySQL from source (advanced)
+## Compiling MySQL from source (advanced)
 
 You normally do not need to do this. Use the package manager unless you have a concrete reason — a build flag the package omits, a pinned version your vendor mandates, a patch the upstream has not merged. The downsides of source builds are real: hours of compile time, no automatic security updates, your own job to track CVEs.
 
@@ -664,7 +664,7 @@ Two things go wrong almost every time:
 
 After install, do not forget the same `mysql_secure_installation` and `my.cnf` tuning from section 6.2 — a from-source build is not configured for you.
 
-## 13. Real-world cases
+## Real-world cases
 
 ## Case A — Migrating WordPress from shared hosting
 

@@ -33,7 +33,7 @@ translationKey: "time-series-2"
 
 ---
 
-## 1. LSTM 要解决的问题
+## LSTM 要解决的问题
 
 普通 RNN 的隐藏状态按如下方式递归更新：
 $$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$
@@ -46,7 +46,7 @@ $$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 -
 
 LSTM（Hochreiter & Schmidhuber, 1997）通过引入**两个状态**（细胞状态 $C_t$ 和隐藏状态 $h_t$）以及三个可学习的门控机制——遗忘门、输入门和输出门——来决定保留什么、覆盖什么、暴露什么。这种近似加性的更新方式使梯度能在数百个时间步中稳定回传。
 
-## 2. LSTM 单元的内部结构
+## LSTM 单元的内部结构
 
 
 ![LSTM 单元架构：三个 sigmoid 门和一个 tanh 候选值，位于水平的细胞状态通道之下](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig1_lstm_cell.png)
@@ -83,7 +83,7 @@ $$\frac{\partial C_t}{\partial C_{t-1}} = f_t,$$
 $$\frac{\partial C_T}{\partial C_k} = \prod_{t=k+1}^{T} f_t.$$
 当模型需要记住某段信息时，只需将对应维度的 $f_t$ 学习为接近 1，相应梯度也会保持接近 1。这便是 LSTM 的核心奥秘。
 
-## 3. 一个最简的 PyTorch 实现
+## 一个最简的 PyTorch 实现
 
 无论是单变量还是多变量预测，以下实现已足够应对大多数场景：
 
@@ -123,7 +123,7 @@ for name, p in model.lstm.named_parameters():
         p.data[n // 4 : n // 2].fill_(1.0)   # 遗忘门偏置
 ```
 
-## 4. 从单元到预测器
+## 从单元到预测器
 
 
 ![单步 LSTM 预测与实际序列对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig3_forecast.png)
@@ -153,7 +153,7 @@ for name, p in model.lstm.named_parameters():
 
 实践中常用一种折中方案：**seq2seq + teacher forcing**。LSTM 编码器读取回望窗口生成最终 $(h, C)$ 状态对，解码器逐步生成 $H$ 个输出。训练时，解码器以一定概率接收**真实历史值**（而非自身预测）作为输入，该技术称为 scheduled sampling。这也是当前生产环境中的主流做法。
 
-## 5. 架构变体
+## 架构变体
 
 ### 双向 LSTM（BiLSTM）
 
@@ -173,7 +173,7 @@ $$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
 
 实践中，**2～3 层**通常是最佳选择。层数更深不仅收益有限，还会显著增加**深度方向**（非时间方向）的梯度消失风险，除非引入残差连接。
 
-## 6. 真正有效的训练方法
+## 真正有效的训练方法
 
 以下默认配置适用于大多数单变量或中等规模多变量预测任务（训练窗口数在几千至几十万之间）：
 
@@ -200,7 +200,7 @@ $$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
 健康的 LSTM 训练曲线中，验证损失会紧贴训练损失下降，直至达到最低点后开始回升（表明过拟合）。早停机制会在最优验证损失出现后继续等待若干 epoch，随后恢复该时刻的权重：
 *带早停的 LSTM 训练曲线——恢复绿色虚线处的权重，而不是紫色点划线处。*
 
-## 7. LSTM 和 GRU——到底该选哪个？
+## LSTM 和 GRU——到底该选哪个？
 
 | 维度 | LSTM | GRU |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ $$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
 
 实证表明，在多数预测任务中，LSTM 与 GRU 的性能差距通常在噪声范围内。**建议默认使用 GRU** 以加速迭代；仅当数据量极大且依赖跨度达数百步时，才考虑切换至 LSTM。对于超过 500 步的超长序列，时序卷积网络（TCN，第 6 篇）或 Informer 类稀疏 Transformer（第 8 篇）往往表现更优。
 
-## 8. 常见陷阱
+## 常见陷阱
 
 - **未对每个特征单独标准化**：LSTM 对尺度敏感，混合原始股价与百分比回报会导致训练失败。
 - **跨训练/测试边界打乱时序窗口**：必须使用 `TimeSeriesSplit` 或严格按时间切分。
@@ -221,7 +221,7 @@ $$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$
 - **未定回望长度就调大 hidden_size**：窗口太短时，扩大 cell 宽度毫无意义。
 - **仅凭单次随机种子下结论**：RNN 训练噪声大，至少运行 3 次种子，报告均值 ± 标准差。
 
-## 9. 给 LSTM 找问题
+## 给 LSTM 找问题
 
 当 LSTM 预测效果不佳时，先别急着换架构。以下五类症状覆盖了绝大多数失败案例，且均有明确诊断方法。
 
@@ -267,7 +267,7 @@ def gate_stats(model, batch):
 
 若训练后遗忘门偏置低于 0，说明网络学会了“每步清空记忆”——通常因序列太短，记忆无价值。此时可进一步缩短序列，或直接改用无状态前馈模型。
 
-## 10. 上线注意事项
+## 上线注意事项
 
 LSTM 原型易写，部署却暗藏玄机。以下是我在项目中踩过的坑。
 

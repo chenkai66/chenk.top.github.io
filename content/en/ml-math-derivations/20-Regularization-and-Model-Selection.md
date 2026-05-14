@@ -39,9 +39,9 @@ A 100-million-parameter network trained on 50,000 images *should* overfit catast
 
 ---
 
-## 1. Overfitting and the Bias-Variance Decomposition
+## Overfitting and the Bias-Variance Decomposition
 
-### 1.1 Empirical vs Expected Risk
+### 1 Empirical vs Expected Risk
 
 The training error and the *true* error you actually care about are not the same object:
 $$
@@ -51,7 +51,7 @@ R(f) = \mathbb{E}_{(\mathbf{x},y)\sim\mathcal D}\bigl[\ell(f(\mathbf{x}), y)\big
 $$
 The **generalisation gap** is $R(f) - \hat{R}(f)$. Overfitting means the gap is large; underfitting means even $\hat R$ is large.
 
-### 1.2 Bias-Variance Decomposition
+### 2 Bias-Variance Decomposition
 
 Pick a fixed test point $\mathbf{x}$, draw a fresh training set $S$, fit a regressor $f_S$, and look at the expected squared error. Define the average prediction $\bar f(\mathbf{x}) = \mathbb{E}_S[f_S(\mathbf{x})]$. Adding and subtracting $\bar f$:
 $$
@@ -76,9 +76,9 @@ The U-shape on the test curve is the entire story of classical model selection: 
 
 ---
 
-## 2. L2 Regularisation (Ridge Regression)
+## L2 Regularisation (Ridge Regression)
 
-### 2.1 Three Equivalent Views
+### 1 Three Equivalent Views
 
 **Penalised loss.** Add $\tfrac{\lambda}{2}\|\mathbf{w}\|_2^2$ to the empirical risk. For squared loss this gives the closed form
 $$\hat{\mathbf{w}}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y}. \tag{3}$$
@@ -93,23 +93,23 @@ $$
 $$
 Larger prior variance ($\tau^2 \uparrow$) means weaker regularisation.
 
-### 2.2 SVD View: Shrinking Small Singular Directions
+### 2 SVD View: Shrinking Small Singular Directions
 
 Decompose $\mathbf{X} = \mathbf{U}\boldsymbol\Sigma\mathbf{V}^\top$. Then
 $$\hat{\mathbf{w}}_{\text{ridge}} = \sum_j \frac{\sigma_j^2}{\sigma_j^2 + \lambda}\,\frac{\mathbf{u}_j^\top\mathbf{y}}{\sigma_j}\,\mathbf{v}_j. \tag{4}$$
 The shrinkage factor $\sigma_j^2/(\sigma_j^2+\lambda)$ is $\approx 1$ for large $\sigma_j$ (signal) and $\approx 0$ for small $\sigma_j$ (noise direction). Ridge is **soft principal-component truncation**.
 
-### 2.3 Weight Decay
+### 3 Weight Decay
 
 The gradient step is $\mathbf{w} \leftarrow (1 - \eta\lambda)\mathbf{w} - \eta\nabla\hat R(\mathbf{w})$: each step starts by *shrinking* the weights. This is why deep-learning libraries call L2 "weight decay."
 
 ---
 
-## 3. L1 Regularisation (Lasso) and Sparsity
+## L1 Regularisation (Lasso) and Sparsity
 
 ![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_2.png)
 
-### 3.1 The Geometry of Sparsity
+### 1 The Geometry of Sparsity
 
 Replace $\|\mathbf{w}\|_2^2$ with $\|\mathbf{w}\|_1 = \sum_j |w_j|$. The constraint region $\|\mathbf{w}\|_1 \le t$ is a diamond (in 2D) or a cross-polytope (in higher dim). Its **corners lie on the coordinate axes**, and the elliptical loss contours of the unregularised problem will generically meet the constraint at one of those corners — driving some $w_j$ to *exactly* zero.
 
@@ -117,13 +117,13 @@ Replace $\|\mathbf{w}\|_2^2$ with $\|\mathbf{w}\|_1 = \sum_j |w_j|$. The constra
 
 This is *not* a numerical artefact. The L1 sub-differential at zero is the interval $[-1, 1]$, so zero is a **stable** stationary point: small perturbations of the data do not move the optimal coefficient away from the axis. L2 has gradient $w_j$ at $w_j = 0$, so the coefficient *immediately* slides off the axis under any signal.
 
-### 3.2 Soft-Thresholding
+### 2 Soft-Thresholding
 
 The proximal operator for $\lambda\|\mathbf{w}\|_1$ has a beautifully simple form, the **soft-threshold**:
 $$\hat w_j = \mathrm{sign}(w_j^\star)\,\max\bigl(|w_j^\star| - \lambda,\ 0\bigr). \tag{5}$$
 Coordinate descent applies (5) coordinate-by-coordinate; this is essentially how `glmnet` works.
 
-### 3.3 Lasso as Embedded Feature Selection
+### 3 Lasso as Embedded Feature Selection
 
 Tracing the LASSO solution as $\lambda$ decreases from $\infty$ to $0$ yields the **regularisation path**. Relevant features switch on one at a time; irrelevant ones stay glued to zero.
 
@@ -131,7 +131,7 @@ Tracing the LASSO solution as $\lambda$ decreases from $\infty$ to $0$ yields th
 
 The path itself is piecewise linear (LARS algorithm of Efron et al.) — a non-trivial geometric fact that follows from the polyhedral structure of the L1 ball.
 
-### 3.4 Bayesian Reading and Elastic Net
+### 4 Bayesian Reading and Elastic Net
 
 L1 = MAP under a **Laplace prior** $p(w_j) \propto \exp(-|w_j|/b)$. The Laplace distribution has a *cusp* at zero, putting more prior mass exactly there than the Gaussian — hence sparsity.
 
@@ -141,15 +141,15 @@ inheriting the sparsity of L1 and the grouping effect of L2.
 
 ---
 
-## 4. Dropout
+## Dropout
 
-### 4.1 The Mechanism
+### 1 The Mechanism
 
 At every training step, each hidden unit is independently zeroed with probability $p$ and the survivors are scaled by $1/(1-p)$:
 $$\tilde h_j = \frac{m_j}{1-p}\,h_j,\qquad m_j \sim \mathrm{Bernoulli}(1-p).$$
 The scaling keeps the expected activation unchanged: $\mathbb E[\tilde h_j] = h_j$. At test time we use the full network with no mask (this is *inverted dropout*, the modern convention).
 
-### 4.2 Two Mathematical Stories
+### 2 Two Mathematical Stories
 
 **Story 1 — Implicit ensemble.** A network with $M$ Bernoulli-droppable units defines $2^M$ thinned sub-networks that all share the same weights. Dropout SGD samples a uniformly random sub-network at every mini-batch. At test time, evaluating the full network with the inverted-dropout scaling approximates the geometric mean of the sub-network predictions — a free ensemble of exponentially many models.
 
@@ -162,7 +162,7 @@ $$
 $$
 The extra term is an L2 penalty *weighted by feature variance*: large-magnitude inputs are regularised more aggressively. Wager, Wang & Liang (2013) extended this to GLMs and showed dropout is approximately *adaptive ridge*.
 
-### 4.3 Variants
+### 3 Variants
 
 - **DropConnect.** Drop weights, not activations.
 - **Spatial dropout.** For CNNs, drop entire feature maps (channels), not individual pixels — pixels are too correlated for elementwise dropout to do much.
@@ -170,13 +170,13 @@ The extra term is an L2 penalty *weighted by feature variance*: large-magnitude 
 
 ---
 
-## 5. Early Stopping as Implicit Regularisation
+## Early Stopping as Implicit Regularisation
 
-### 5.1 The Strategy
+### 1 The Strategy
 
 Hold out a validation set. Stop when validation error has not improved for $P$ epochs (the *patience*). Return the best-so-far model.
 
-### 5.2 Why It Equals Ridge (in the Quadratic Case)
+### 2 Why It Equals Ridge (in the Quadratic Case)
 
 For least squares with gradient descent from $\mathbf{w}_0 = \mathbf 0$, expand in the eigenbasis of $\mathbf{X}^\top\mathbf{X}$. After $t$ steps,
 $$\hat{\mathbf{w}}_t = \sum_j \bigl[1 - (1 - \eta\lambda_j)^t\bigr]\,\frac{\mathbf{u}_j^\top \mathbf{X}^\top\mathbf{y}}{\lambda_j}\,\mathbf{u}_j, \tag{7}$$
@@ -186,9 +186,9 @@ so **early stopping at iteration $t$ is approximately ridge with $\alpha_{\text{
 
 ---
 
-## 6. Model Selection: CV, AIC, BIC
+## Model Selection: CV, AIC, BIC
 
-### 6.1 K-Fold Cross-Validation
+### 1 K-Fold Cross-Validation
 
 Partition the data into $K$ folds; for each $k$, train on the other $K-1$ and validate on fold $k$:
 $$\hat R_{\text{CV}} = \frac{1}{K}\sum_{k=1}^K \hat R_{\text{val}, k}. \tag{8}$$
@@ -196,7 +196,7 @@ $$\hat R_{\text{CV}} = \frac{1}{K}\sum_{k=1}^K \hat R_{\text{val}, k}. \tag{8}$$
 
 $K = 5$ or $10$ is the practical sweet spot (small bias, manageable variance, $K$ training runs). $K = N$ is **leave-one-out** — unbiased but expensive (and surprisingly *high-variance* in small samples). For time series, never shuffle; use blocked, expanding-window CV that respects causality.
 
-### 6.2 Information Criteria
+### 2 Information Criteria
 
 Both criteria penalise the negative log-likelihood by a function of the parameter count $p$:
 $$
@@ -217,25 +217,25 @@ In small samples, the three criteria can disagree by 1-2 degrees. In large sampl
 
 ---
 
-## 7. Generalisation Theory: VC Dimension, PAC, and Beyond
+## Generalisation Theory: VC Dimension, PAC, and Beyond
 
-### 7.1 VC Dimension
+### 1 VC Dimension
 
 A hypothesis class $\mathcal H$ **shatters** a set of $m$ points if it can realise all $2^m$ binary labelings. The **VC dimension** is the largest such $m$:
 $$\mathrm{VC}(\mathcal H) = \max\{m : \exists\, S\ \text{of size}\ m\ \text{shattered by}\ \mathcal H\}.$$
 For linear classifiers in $\mathbb R^d$, $\mathrm{VC} = d + 1$.
 
-### 7.2 The VC Generalisation Bound
+### 2 The VC Generalisation Bound
 
 With probability $\ge 1 - \delta$, simultaneously for every $h \in \mathcal H$,
 $$R(h) \le \hat R(h) + O\!\left(\sqrt{\frac{\mathrm{VC}(\mathcal H)\log\!\bigl(N/\mathrm{VC}(\mathcal H)\bigr) + \log(1/\delta)}{N}}\right). \tag{10}$$
 Higher VC dimension demands more data; more data tightens the bound. This bound is **distribution-free** — it holds for *any* data distribution, which is also why it tends to be pessimistic.
 
-### 7.3 PAC Learnability
+### 3 PAC Learnability
 
 A class is **PAC** (probably approximately correct) learnable if, for every $\epsilon, \delta > 0$, there is an algorithm that with probability $\ge 1 - \delta$ outputs a hypothesis with error $\le \epsilon$, using at most polynomially many samples. **Theorem (Blumer et al., 1989):** finite VC dimension $\Leftrightarrow$ PAC learnable.
 
-### 7.4 The Deep-Learning Mystery and Double Descent
+### 4 The Deep-Learning Mystery and Double Descent
 
 Modern neural networks have $p \gg N$. Their VC dimension is enormous (proportional to $p$), so (10) is *vacuous* — the bound exceeds 1. Yet they generalise. Why?
 
@@ -252,7 +252,7 @@ The second descent is real, robust, and breaks every classical intuition: for ov
 
 ---
 
-## 8. Numerical and implementation details
+## Numerical and implementation details
 
 The math for ridge and lasso is clean; the implementation choices that follow from it are not always obvious.
 
@@ -266,7 +266,7 @@ Each sweep is $O(np)$, and well-implemented coordinate descent (`sklearn.linear_
 
 **Cross-validation tells you $\lambda$, not whether to regularise.** The CV-optimal $\lambda$ may be tiny — meaning the data already constrains the fit. This is information: it says you have enough data and not enough features to need regularisation. Do not force a non-zero $\lambda$ because "best practice" says so. Conversely, if the CV curve is monotone decreasing as $\lambda \to \infty$, your model is unidentifiable and you have a bigger problem than tuning.
 
-## 9. What this looks like in scikit-learn
+## What this looks like in scikit-learn
 
 ```python
 from sklearn.linear_model import RidgeCV, LassoCV, ElasticNetCV
@@ -298,7 +298,7 @@ Two things scikit-learn handles for you that you would otherwise have to write. 
 
 ---
 
-## 10. The Practitioner's Cheat Sheet
+## The Practitioner's Cheat Sheet
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
@@ -313,7 +313,7 @@ Two things scikit-learn handles for you that you would otherwise have to write. 
 
 ---
 
-## 11. Exercises
+## Exercises
 
 **Exercise 1 (Ridge gradient).** Show $\nabla_{\mathbf w}\bigl[\tfrac12\|\mathbf y - \mathbf{X}\mathbf w\|^2 + \tfrac\lambda 2\|\mathbf w\|^2\bigr] = (\mathbf X^\top\mathbf X + \lambda\mathbf I)\mathbf w - \mathbf X^\top\mathbf y$ and recover (3).
 
@@ -329,7 +329,7 @@ Two things scikit-learn handles for you that you would otherwise have to write. 
 
 ---
 
-## 12. Series Wrap-Up
+## Series Wrap-Up
 
 This series began with calculus and probability and ends with the question that motivates the whole field: *why does empirical risk minimisation work?* Looking back across the twenty parts:
 

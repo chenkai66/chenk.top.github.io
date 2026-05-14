@@ -40,7 +40,7 @@ The road from "RNN with attention" to the full Transformer is not long, but ever
 
 ---
 
-## 1. The bottleneck that motivated attention
+## The bottleneck that motivated attention
 
 <!-- wanx-mid -->
 ![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
@@ -59,7 +59,7 @@ A useful analogy: imagine memorising a paragraph, putting it away, then reciting
 
 ---
 
-## 2. Bahdanau attention (2015): looking back at every step
+## Bahdanau attention (2015): looking back at every step
 
 ![Cross-attention alignment heatmap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig1_attention_heatmap.png)
 
@@ -79,7 +79,7 @@ The figure above shows what these $\alpha_{tj}$ look like for a small English-to
 
 ---
 
-## 3. Luong attention: simpler scoring functions
+## Luong attention: simpler scoring functions
 
 A few months later, Luong, Pham, and Manning proposed simpler alternatives to Bahdanau's small feed-forward scorer:
 
@@ -93,7 +93,7 @@ The dot-product variant is the conceptual ancestor of what the Transformer would
 
 ---
 
-## 4. The leap: self-attention without recurrence
+## The leap: self-attention without recurrence
 
 Bahdanau and Luong attention sit on top of an RNN. They speed up convergence and improve quality, but the RNN still serialises computation: token $t$ must be processed before token $t+1$. On a GPU with thousands of cores, this is a tragedy.
 
@@ -145,7 +145,7 @@ Dividing by $\sqrt{d_k}$ rescales the variance back to 1, keeping softmax in the
 
 ---
 
-## 5. Multi-head attention
+## Multi-head attention
 
 ![Multi-head attention architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig3_multihead_attention.png)
 
@@ -169,7 +169,7 @@ This single trick is what lets GPT-style models train on the entire sequence in 
 
 ---
 
-## 6. Positional encoding: putting order back in
+## Positional encoding: putting order back in
 
 ![Sinusoidal positional encoding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig4_positional_encoding.png)
 
@@ -195,7 +195,7 @@ Modern alternatives — **RoPE** (rotary position embedding), **ALiBi** (linear 
 
 ---
 
-## 7. The full Transformer architecture
+## The full Transformer architecture
 
 ![Transformer encoder and decoder blocks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig6_transformer_block.png)
 
@@ -230,7 +230,7 @@ For a base Transformer ($N = 6$, $d_{\text{model}} = 512$, $h = 8$, $d_{\text{ff
 
 ---
 
-## 8. PyTorch implementation from scratch
+## PyTorch implementation from scratch
 
 The following implementation is intentionally minimal so each piece maps to the equations above. Run it on CPU; this is for understanding, not training a real model.
 
@@ -438,7 +438,7 @@ About 24M parameters at $N=2$. The full base Transformer at $N=6$ is roughly 65M
 
 ---
 
-## 9. Self-attention vs. RNN vs. CNN
+## Self-attention vs. RNN vs. CNN
 
 ![Receptive field comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig7_receptive_field.png)
 
@@ -454,7 +454,7 @@ Self-attention pays $O(n^2)$ in compute but gives you constant path length and f
 
 ---
 
-## 10. Three flavours of Transformer in production
+## Three flavours of Transformer in production
 
 The original Transformer is encoder-decoder. Two widely-used variants drop one half:
 
@@ -512,7 +512,7 @@ print(tok.decode(out[0], skip_special_tokens=True))
 
 ---
 
-## 11. FAQ
+## FAQ
 
 **Why do we need masking only in the decoder, not the encoder?**
 The encoder sees the entire source sentence and is supposed to look at everything bidirectionally. The decoder generates one token at a time and would otherwise cheat by attending to future ground-truth tokens during training. Encoder-only models like BERT are bidirectional precisely because they have no causal mask.

@@ -41,7 +41,7 @@ Eighteen months later, AlphaGo Zero learned the game from nothing but the rules 
 
 ---
 
-## 1. Monte Carlo Tree Search
+## Monte Carlo Tree Search
 
 Classical game-tree search (minimax + alpha–beta) needs an evaluation function and a manageable branching factor. Chess has both. Go has neither: branching factor around 250, no concise evaluation function, no useful heuristics. MCTS sidesteps this by *sampling* rather than enumerating, and by *focusing* its samples on the most promising parts of the tree.
 
@@ -56,7 +56,7 @@ A single MCTS *simulation* repeats four phases:
 
 After a fixed simulation budget (AlphaGo Zero uses 800 per move), the algorithm returns the action whose root child has the most visits — *not* the highest mean value. Visit count is a more robust statistic because it integrates the search's own self-correction.
 
-### 1.1 UCT: balancing exploration and exploitation
+### 1 UCT: balancing exploration and exploitation
 
 ![UCB1 Exploration and Exploitation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig2_ucb_exploration.png)
 
@@ -70,7 +70,7 @@ The prior tells the search *where to look first*; the visit count tells it *wher
 
 ---
 
-## 2. AlphaGo (2016): Networks Meet Search
+## AlphaGo (2016): Networks Meet Search
 
 ![Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_2.png)
 
@@ -90,7 +90,7 @@ Why mix at all? In 2016 the value network was strong but not perfect — rollout
 
 ---
 
-## 3. AlphaGo Zero (2017): Tabula Rasa
+## AlphaGo Zero (2017): Tabula Rasa
 
 ![AlphaGo Zero Self-Play Loop](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig4_zero_self_play_loop.png)
 
@@ -112,7 +112,7 @@ After **3 days** of training on 4 TPUs, AlphaGo Zero defeated the Lee-Sedol Alph
 
 ---
 
-## 4. AlphaZero and MuZero
+## AlphaZero and MuZero
 
 ![Algorithm Evolution Timeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig5_evolution_timeline.png)
 
@@ -126,13 +126,13 @@ After **3 days** of training on 4 TPUs, AlphaGo Zero defeated the Lee-Sedol Alph
 
 MCTS unfolds entirely in **latent space**. There is no environment simulator inside the search — only the learned dynamics function. The hidden state is not required to reconstruct the observation; it only has to be useful for predicting *reward, value, and policy*. With this looser objective, MuZero matches AlphaZero on board games and surpasses model-free methods (R2D2, Ape-X) on Atari, where no rule-based simulator exists.
 
-### 4.1 Elo over time
+### 1 Elo over time
 
 ![Elo Progression](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig6_elo_progression.png)
 
 The left panel compares peak Elo across the family. The right panel shows Zero's training trajectory: it surpasses the Lee-Sedol version after 3 days, AlphaGo Master after about 21 days, and saturates near 5200 Elo. For context, 9-dan human professionals are around 3500–3700.
 
-### 4.2 How much does search actually help?
+### 2 How much does search actually help?
 
 ![Search Budget vs Strength](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig7_search_vs_strength.png)
 
@@ -140,7 +140,7 @@ Search and the network are complementary — the network produces priors; search
 
 ---
 
-## 5. Complete Implementation: AlphaZero for Gomoku
+## Complete Implementation: AlphaZero for Gomoku
 
 Gomoku ("five in a row") on a 9×9 board is a useful test bed: rules fit in 30 lines, branching factor is around 60, and decent play emerges from a few thousand self-play games on a single GPU.
 

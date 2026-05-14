@@ -41,7 +41,7 @@ Each result is proved or carefully cited. We close with the SVM example, where t
 
 ---
 
-## 1. The setup
+## The setup
 
 Consider the **primal problem**
 $$
@@ -71,7 +71,7 @@ with optimal value $d^\star$.
 
 ---
 
-## 2. Weak duality
+## Weak duality
 
 > **Theorem (Weak duality).** $d^\star \leq p^\star$.
 
@@ -95,9 +95,9 @@ The gap $p^\star - d^\star \geq 0$ is the **duality gap**. When it is zero, **st
 ![Weak duality and the duality gap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig1.png)
 *Figure 1 — Weak duality. The dual function $g(\lambda)$ never exceeds the primal optimum $p^\star$. Its supremum $d^\star$ is the best lower bound; the shaded region is the duality gap, which collapses to zero under strong duality.*
 
-## 3. Strong duality
+## Strong duality
 
-### 3.1 Slater's condition
+### 1 Slater's condition
 
 > **Slater's condition.** There exists $x \in \mathrm{relint}(\mathrm{dom}(f_0))$ with $f_i(x) < 0$ for all non-affine $i$ and $h_j(x) = 0$ for all $j$. (Equivalently: a strictly feasible point exists; affine inequalities can be feasible without strictness.)
 
@@ -119,7 +119,7 @@ The full proof is in Boyd & Vandenberghe §5.3.2; the key step is to apply the s
 ![Value function and supporting hyperplane](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig4.png)
 *Figure 4 — Strong duality via the value function. $V(u)$ is the optimal value of the constraint-perturbed problem; convexity plus Slater's condition yields a non-vertical supporting hyperplane at $u=0$ whose slope is exactly $-\lambda^\star$.*
 
-### 3.2 When Slater fails
+### 2 When Slater fails
 
 If Slater's condition fails, strong duality may still hold (e.g., for LP it always holds without Slater) or it may fail with a positive duality gap. Standard pathological examples:
 
@@ -130,7 +130,7 @@ For LPs and convex QPs, strong duality holds whenever (P) and (D) are both feasi
 
 ---
 
-## 4. The KKT conditions
+## The KKT conditions
 
 If $x^\star$ is primal-optimal and $(\lambda^\star, \nu^\star)$ is dual-optimal under strong duality, the **Karush--Kuhn--Tucker** conditions hold:
 
@@ -147,7 +147,7 @@ If $x^\star$ is primal-optimal and $(\lambda^\star, \nu^\star)$ is dual-optimal 
 ![KKT geometric picture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/optimization-theory/08-lagrangian-duality-kkt/fig3.png)
 *Figure 3 — KKT stationarity in two dimensions. At the optimum $x^\star$ the negative objective gradient $-\nabla f_0$ lies in the cone spanned by the active constraint gradients with non-negative weights $\lambda_i^\star$.*
 
-### 4.1 KKT as sufficient optimality (convex problems)
+### 1 KKT as sufficient optimality (convex problems)
 
 > **Theorem.** Suppose (P) is convex and $(x^\star, \lambda^\star, \nu^\star)$ satisfies the KKT conditions. Then $x^\star$ is primal-optimal and $(\lambda^\star, \nu^\star)$ is dual-optimal.
 
@@ -159,7 +159,7 @@ Thus weak duality is tight: $f_0(x^\star) = g(\lambda^\star, \nu^\star) \leq p^\
 
 This is the result that makes KKT the practical workhorse: for convex problems, KKT gives a finite system of equations + inequalities whose solution is the optimum.
 
-### 4.2 When KKT fails
+### 2 When KKT fails
 
 KKT is necessary at an optimum **only if a constraint qualification holds**. Slater's condition is one such qualification; LICQ (linear independence of active constraint gradients) is another. Without one, an optimum may have no Lagrange multipliers, and gradient-based methods that rely on the KKT system can stall.
 
@@ -167,7 +167,7 @@ For non-convex problems, KKT is necessary (with constraint qualification) but no
 
 ---
 
-## 5. Saddle-point characterization
+## Saddle-point characterization
 
 The Lagrangian gives a **min-max** game between primal player ($x$, minimizing) and dual player ($\lambda, \nu$, maximizing).
 
@@ -188,7 +188,7 @@ Saddle-point characterization is the foundation of:
 
 ---
 
-## 6. Worked example: the SVM dual
+## Worked example: the SVM dual
 
 The hard-margin support vector machine on linearly separable data $\{(x_i, y_i)\}_{i=1}^n$ with $y_i \in \{-1, +1\}$:
 $$
@@ -225,7 +225,7 @@ The same structure powers kernel ridge regression, kernel PCA, and Gaussian proc
 
 ---
 
-## 7. Where duality fails: noisy and large-scale ML
+## Where duality fails: noisy and large-scale ML
 
 For $n = 10^9$ training examples (think large-scale ad CTR), the dual SVM has $10^9$ variables — worse than the primal. The dual's elegance breaks down at scale, which is one reason deep learning skipped duality entirely and went back to SGD on the primal.
 
@@ -237,7 +237,7 @@ For convex problems with strong duality, modern practice is:
 
 ---
 
-## 7. Summary
+## Summary
 
 | Concept                | What it gives you                                                            |
 | ---------------------- | ---------------------------------------------------------------------------- |

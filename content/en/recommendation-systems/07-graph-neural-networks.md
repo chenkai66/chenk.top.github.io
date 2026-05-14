@@ -353,15 +353,15 @@ The ability to embed brand-new nodes is the single biggest reason GraphSAGE show
 
 PinSage (Ying et al., 2018) is Pinterest's production GNN, running on **3 billion nodes and 18 billion edges**. Three innovations make this possible:
 
-### 1. Random Walk Sampling
+### Random Walk Sampling
 
 Instead of sampling neighbours uniformly, PinSage runs short random walks from each node and keeps the top-$k$ most frequently visited neighbours. This focuses on the most *important* neighbours, not just the closest ones.
 
-### 2. Importance-Weighted Aggregation
+### Importance-Weighted Aggregation
 
 Neighbour features are weighted by random-walk visit counts:
 $$\mathbf{h}_v^{(l)} = \sigma\!\Bigl(\mathbf{W}^{(l)}\cdot \bigl[\mathbf{h}_v^{(l-1)} \,\big\|\, \mathrm{AGG}\bigl(\{\alpha_{uv}\, \mathbf{h}_u^{(l-1)} : u\in\mathcal{N}_{\text{top-}k}(v)\}\bigr)\bigr]\Bigr)$$
-### 3. Hard Negative Mining
+### Hard Negative Mining
 
 During training, PinSage samples *hard negatives* — items that score high but are not actual positives. This forces the model to make finer distinctions instead of just separating obviously irrelevant items from positives.
 

@@ -124,7 +124,7 @@ Three volumes are essential:
 
 ![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_2.png)
 
-### 1. `command not found: openclaw` after reboot
+### `command not found: openclaw` after reboot
 
 nvm doesn't load in non-interactive shells. pm2 startup uses one. Either source nvm in `/etc/profile.d/`, or symlink the binary:
 
@@ -135,19 +135,19 @@ sudo ln -sf $(which node) /usr/local/bin/node
 
 **Detection:** `pm2 status` shows the gateway in `errored` state with exit code 127 immediately after boot.
 
-### 2. `Node.js version too old`
+### `Node.js version too old`
 
 OpenClaw needs >= 22.16. The error is clear; the real bug is using whatever Node your distro ships.
 
 **Detection:** Gateway fails to start, and `pm2 logs openclaw-gateway --err` shows a version mismatch in the first three lines.
 
-### 3. `401 Unauthorized` from DashScope
+### `401 Unauthorized` from DashScope
 
 Two causes: Coding Plan key used against the wrong endpoint, or key rotated and not replaced.
 
 **Detection:** Every agent turn fails instantly with a 401 in the response. Check `~/.openclaw/agents/main/sessions/*.jsonl` — if the last line of every session is an auth error, it's your key.
 
-### 4. `Connection refused` on Gateway start
+### `Connection refused` on Gateway start
 
 Port 18789 is taken:
 
@@ -159,7 +159,7 @@ pm2 restart openclaw-gateway
 
 **Detection:** `pm2 logs openclaw-gateway --err` shows `EADDRINUSE` within the first second of startup. The gateway never reaches the "listening on 18789" log line.
 
-### 5. DingTalk goes silent after 30 minutes
+### DingTalk goes silent after 30 minutes
 
 The long-poll connection is being torn down by an upstream NAT:
 
@@ -172,19 +172,19 @@ The long-poll connection is being torn down by an upstream NAT:
 
 **Detection:** Gateway log shows `[dingtalk] reconnecting...` more than once per hour. Users report "the bot stopped responding" but manual messages from the web dashboard still work.
 
-### 6. The agent forgets things mid-conversation
+### The agent forgets things mid-conversation
 
 Compaction ran without `memoryFlush` enabled. Set `memoryFlush.enabled: true`.
 
 **Detection:** A multi-turn conversation suddenly loses context after turn 15. Check session length: `cat ~/.openclaw/agents/main/sessions/<session-id>.jsonl | wc -l`. If it's exactly 20 lines (the default compaction threshold), compaction discarded turns instead of summarizing.
 
-### 7. `Token consumption is way too high`
+### `Token consumption is way too high`
 
 Three reasons: expensive default model, bloated MEMORY.md, or sub-agents spawning for trivial tasks.
 
 **Detection:** Your bill doubles week-over-week despite stable usage. Run `openclaw stats tokens --since 7d` and compare the per-turn average. If it climbs above 8k tokens/turn for a conversational agent, something is wrong. Grep MEMORY.md for length: `wc -l ~/.openclaw/workspace/MEMORY.md`. Anything above 500 lines is a red flag.
 
-### 8. Memory grows unbounded
+### Memory grows unbounded
 
 What happens when you never archive sessions: MEMORY.md bloats past 100 lines, then 200, then 500. Every agent turn now includes half a kilobyte of irrelevant context ("three weeks ago the user asked about Docker"). Startup slows because the workspace loader parses the entire memory file on boot. At 1000 lines, startup takes 30 seconds. At 2000 lines, the agent begins timing out mid-turn because the context window is 80% memory and 20% actual task.
 

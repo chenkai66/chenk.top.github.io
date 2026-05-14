@@ -43,7 +43,7 @@ This article traces the modern lineage:  Dyna (1990) -> MBPO (2019) -> World Mod
 
 ---
 
-## 1. Two Paradigms, One Goal
+## Two Paradigms, One Goal
 
 ![Model-free vs model-based control loops](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig1_mf_vs_mb_loops.png)
 
@@ -89,7 +89,7 @@ Poor fit:
 
 ---
 
-## 2. Dyna-Q: The Original Blueprint
+## Dyna-Q: The Original Blueprint
 
 ![Dyna-Q flow diagram and convergence curves](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig3_dyna_q_flow.png)
 
@@ -147,7 +147,7 @@ Dyna isolates the core insight: **a learned model lets you spend compute instead
 
 ---
 
-## 3. MBPO: Keep Your Imagination Short
+## MBPO: Keep Your Imagination Short
 
 ![MBPO short branched rollouts and model error growth](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig4_mbpo_short_rollouts.png)
 
@@ -202,7 +202,7 @@ On MuJoCo HalfCheetah, MBPO reaches ~10,000 return in **~100K** environment step
 
 ---
 
-## 4. Pure Planning: Model Predictive Control
+## Pure Planning: Model Predictive Control
 
 ![Model Predictive Control: shoot, score, execute first action, repeat](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig5_mpc_planning.png)
 
@@ -221,7 +221,7 @@ MPC is the dominant choice when **the cost of a mistake is high** (real robots, 
 
 ---
 
-## 5. World Models: Dreaming in a Latent Space
+## World Models: Dreaming in a Latent Space
 
 ![Reinforcement Learning (5): Model-Based RL and World Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.png)
 
@@ -244,7 +244,7 @@ The controller can be trained **entirely in dreams**: roll out M from a sampled$
 
 ---
 
-## 6. Dreamer: End-to-End Latent Imagination
+## Dreamer: End-to-End Latent Imagination
 
 ![Dreamer RSSM latent dynamics across three time steps](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig7_dreamer_latent.png)
 
@@ -279,7 +279,7 @@ DreamerV3's claim to fame is robustness: the same model-based agent, with the sa
 
 ---
 
-## 7. MuZero: Plan Without Predicting Pixels
+## MuZero: Plan Without Predicting Pixels
 
 The thread running through World Models and Dreamer is "predict observations". MuZero (Schrittwieser et al., *Nature* 2020) noticed that for **planning**, you do not actually need observations — you need value, policy, and reward. Everything else is a means to that end.
 
@@ -309,7 +309,7 @@ MuZero is the cleanest demonstration of a deep principle: **your model only has 
 
 ---
 
-## 8. The Big Picture: Sample Efficiency
+## The Big Picture: Sample Efficiency
 
 ![Sample efficiency on MuJoCo HalfCheetah and steps-to-target bar chart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig6_sample_efficiency.png)
 
@@ -319,7 +319,7 @@ That said, the plot also shows an honest limitation. Model-based curves do not a
 
 ---
 
-## 9. Choosing the Right Tool
+## Choosing the Right Tool
 
 | Scenario                                          | Method        | Why                                         |
 | ------------------------------------------------- | ------------- | ------------------------------------------- |
@@ -332,7 +332,7 @@ That said, the plot also shows an honest limitation. Model-based curves do not a
 
 ---
 
-## 10. Open Problems
+## Open Problems
 
 Three frontiers are particularly active:
 
