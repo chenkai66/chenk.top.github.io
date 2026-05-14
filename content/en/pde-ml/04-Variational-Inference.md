@@ -88,7 +88,7 @@ The leapfrog integrator preserves volume (symplecticity) and is time-reversible,
 ```python
 import numpy as np
 
-def hmc_sample(grad_V, x0, step=0.02, L=20, n_samples=2000):
+def hmc_sample(V, grad_V, x0, step=0.02, L=20, n_samples=2000):
     # Hamiltonian Monte Carlo with leapfrog integration
     # grad_V: gradient of the potential energy V(x) = -log p*(x)
     # L: number of leapfrog steps per proposal
@@ -110,8 +110,8 @@ def hmc_sample(grad_V, x0, step=0.02, L=20, n_samples=2000):
         v_prop = v_prop - 0.5 * step * grad_V(x_prop)
 
         # Metropolis accept/reject
-        H_current = 0.5 * np.dot(v, v) + V_at(x)      # current Hamiltonian
-        H_proposed = 0.5 * np.dot(v_prop, v_prop) + V_at(x_prop)
+        H_current = 0.5 * np.dot(v, v) + V(x)      # current Hamiltonian
+        H_proposed = 0.5 * np.dot(v_prop, v_prop) + V(x_prop)
         log_alpha = H_current - H_proposed
 
         if np.log(np.random.rand()) < log_alpha:

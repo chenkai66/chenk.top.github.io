@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "pde-ml-8"
 ---
-![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
+![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
 
 
 ---
@@ -264,7 +264,7 @@ $$
 
 ## GCN 就是热方程
 
-![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_2.png)
+![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-Reaction-Diffusion-Systems/illustration_2.png)
 
 ### 等价性
 
