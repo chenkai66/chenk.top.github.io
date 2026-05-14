@@ -51,7 +51,7 @@ Transfer learning adds:
 - **Model selection overhead**: comparing 5–10 pretrained checkpoints.
 - **Hyperparameter tuning**: learning rate, layer freezing, warmup schedules.
 - **Version control**: tracking both the pretrained weights and your fine-tuned deltas.
-- **Monitoring drift** in the pretrained feature space (Section 8).
+- **Monitoring drift** in the pretrained feature space ([Section 8](#monitoring-and-maintaining-production-models)).
 
 If your team is two people and you need a model deployed in a week, fine-tuning a well-known pretrained model is usually faster than training from scratch. If you are a single researcher with no MLOps support, training a smaller model from scratch may be simpler to debug.
 
@@ -104,7 +104,7 @@ A content-moderation team evaluated 8 pretrained vision models (ResNet-50, Effic
 **Checklist:**
 - Tokenization (text): use the **exact tokenizer** from the pretrained model. Mismatched vocabularies destroy performance.
 - Image preprocessing (vision): match the **normalization statistics** (mean, std) used during pretraining. For ImageNet models, this is `mean=[0.485, 0.456, 0.406]`, `std=[0.229, 0.224, 0.225]`.
-- Sampling strategy: if your classes are imbalanced, oversample the minority class or use weighted loss (Part 2).
+- Sampling strategy: if your classes are imbalanced, oversample the minority class or use weighted loss ([Part 2](/en/transfer-learning/02-pre-training-and-fine-tuning/)).
 - Train/val/test split: hold out a test set that the model **never** sees during selection or tuning.
 
 An e-commerce team fine-tuned a BERT model for product categorization. They initially used `bert-base-uncased` but tokenized text with a different library (spaCy instead of Hugging Face's `BertTokenizer`). Accuracy was 67%. After switching to the correct tokenizer, accuracy jumped to 89% on the same data with the same hyperparameters. The issue: spaCy's tokenization created out-of-vocabulary tokens that BERT mapped to `[UNK]`, losing semantic information.
@@ -116,7 +116,7 @@ An e-commerce team fine-tuned a BERT model for product categorization. They init
 **Strategies** (covered in Parts 2–4, 8):
 - **Full fine-tuning**: update all parameters.
 - **Layer freezing**: freeze early layers, train later layers.
-- **Parameter-efficient methods**: LoRA, prefix tuning, adapters (Part 8).
+- **Parameter-efficient methods**: LoRA, prefix tuning, adapters ([Part 9](/en/transfer-learning/09-parameter-efficient-fine-tuning/)).
 
 **Hyperparameters that matter most:**
 1. **Learning rate**: 10x to 100x smaller than training from scratch. Typical range: $10^{-5}$ to $10^{-4}$ for Transformers, $10^{-4}$ to $10^{-3}$ for vision models.
@@ -135,7 +135,7 @@ A sentiment-analysis pipeline fine-tuned RoBERTa on 5,000 product reviews. Initi
 **Metrics:**
 - **Aggregate metrics** (accuracy, F1, AUC): compare to baseline and business requirements.
 - **Per-class metrics**: identify which categories underperform.
-- **Slice-based evaluation** (Part 4): test on subpopulations (e.g., different age groups, languages, image lighting conditions).
+- **Slice-based evaluation** ([Part 4](/en/transfer-learning/04-few-shot-learning/)): test on subpopulations (e.g., different age groups, languages, image lighting conditions).
 
 **Checklist:**
 - Does the model beat the baseline (rules-based system, previous model, or training from scratch)?
@@ -154,8 +154,8 @@ A hiring platform built a resume-screening model by fine-tuning BERT. Aggregate 
 3. **Edge deployment**: for on-device inference (mobile, IoT).
 
 **Optimization techniques:**
-- **Quantization** (Part 6): int8 or fp16 inference. Reduces memory by 2–4x and speeds up inference by 1.5–3x on most hardware.
-- **Model distillation** (Part 6): train a smaller student model to mimic the fine-tuned teacher.
+- **Quantization** ([Part 9](/en/transfer-learning/09-parameter-efficient-fine-tuning/)): int8 or fp16 inference. Reduces memory by 2–4x and speeds up inference by 1.5–3x on most hardware.
+- **Model distillation** ([Part 5](/en/transfer-learning/05-knowledge-distillation/)): train a smaller student model to mimic the fine-tuned teacher.
 - **ONNX or TensorRT export**: compile the model for optimized inference.
 - **Batching**: group requests to maximize GPU utilization.
 
@@ -168,7 +168,7 @@ A news app fine-tuned a 355M-parameter model for article recommendations. Latenc
 
 **Goal:** Detect when the model degrades and decide when to retrain.
 
-**What to monitor** (Section 8 has details):
+**What to monitor** ([Section 8](#monitoring-and-maintaining-production-models) has details):
 - **Prediction distribution**: are output probabilities shifting?
 - **Input distribution**: are feature statistics drifting?
 - **Business metrics**: are click-through rates, conversion rates, or user satisfaction changing?
@@ -267,7 +267,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 
 **Approach:**
 1. Pretrained model: EfficientNet-B3 (ImageNet weights).
-2. Self-supervised pretraining: SimCLR on the 12,000 unlabeled fundus images for 200 epochs (Part 1).
+2. Self-supervised pretraining: SimCLR on the 12,000 unlabeled fundus images for 200 epochs ([Part 1](/en/transfer-learning/01-fundamentals-and-core-concepts/)).
 3. Fine-tuning: Full fine-tuning on 3,500 labeled images for 30 epochs with heavy augmentation (random crops, color jitter, horizontal flips).
 4. Ensembling: Average predictions from 5 models trained with different random seeds.
 
@@ -307,7 +307,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 - Accuracy: 91% (versus 72% baseline).
 - Reduced manual categorization workload by 85%.
 - Saved 2.5 FTE ops analysts ($90,000/year).
-- Increased correctly categorized listings by 26%, improving search relevance and conversion rates by an estimated 4% (A/B tested, Section 7).
+- Increased correctly categorized listings by 26%, improving search relevance and conversion rates by an estimated 4% (A/B tested, [Section 7](#ab-testing-and-evaluation-in-production)).
 
 **Key lesson:** Focal loss and human-in-the-loop routing were essential for handling long-tail categories. A naive fine-tuned model optimized for aggregate accuracy would have failed on rare categories, creating poor user experience.
 
@@ -347,7 +347,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 
 **Approach:**
 1. Pretrained model: XLM-RoBERTa (cross-lingual RoBERTa, pretrained on 100 languages).
-2. Self-supervised pretraining: Continued MLM pretraining on 10M unlabeled in-domain posts for 50,000 steps (Part 1).
+2. Self-supervised pretraining: Continued MLM pretraining on 10M unlabeled in-domain posts for 50,000 steps ([Part 1](/en/transfer-learning/01-fundamentals-and-core-concepts/)).
 3. Fine-tuning: Multi-label classification head, trained for 10 epochs with binary cross-entropy loss.
 4. Active learning: Weekly retraining, querying human moderators for high-uncertainty cases.
 
@@ -363,7 +363,7 @@ Below are four real-world deployments (anonymized). Each shows a different facet
 - Reduced average moderation time from 18 hours (queue backlog) to 2 minutes (real-time flagging + human review).
 - Improved user-reported content-quality scores by 22% (internal survey).
 
-**Key lesson:** Continued pretraining on in-domain unlabeled data (code-switched social media posts) was more valuable than using the off-the-shelf XLM-RoBERTa checkpoint directly. The domain adaptation step (Part 3) improved F1 from 0.74 to 0.81, making the difference between a marginal and a transformative deployment.
+**Key lesson:** Continued pretraining on in-domain unlabeled data (code-switched social media posts) was more valuable than using the off-the-shelf XLM-RoBERTa checkpoint directly. The domain adaptation step ([Part 3](/en/transfer-learning/03-domain-adaptation/)) improved F1 from 0.74 to 0.81, making the difference between a marginal and a transformative deployment.
 
 ## When Transfer Learning Fails (and What to Do)
 
@@ -381,7 +381,7 @@ The pretrained model **hurts** performance compared to training from scratch.
 
 **Example:** Fine-tuning an ImageNet-pretrained ResNet for galaxy morphology classification (astronomy images). ImageNet features encode object boundaries and textures; galaxies are diffuse, low-contrast structures. Performance was worse than a randomly initialized ResNet.
 
-**Fix:** Use self-supervised pretraining on in-domain unlabeled data (Part 1), or train from scratch.
+**Fix:** Use self-supervised pretraining on in-domain unlabeled data ([Part 1](/en/transfer-learning/01-fundamentals-and-core-concepts/)), or train from scratch.
 
 **5.2 Catastrophic Forgetting**
 
@@ -409,7 +409,7 @@ The model performs well at launch but degrades over time as the input distributi
 
 **Example:** A job-recommendation model fine-tuned on 2019–2020 resumes performed well in 2020 (F1 = 0.88) but dropped to F1 = 0.72 by mid-2021 as remote-work trends changed resume language and job descriptions.
 
-**Fix:** Monitor input and output distributions (Section 8). Retrain periodically or use continual learning (Part 9) to adapt without forgetting.
+**Fix:** Monitor input and output distributions ([Section 8](#monitoring-and-maintaining-production-models)). Retrain periodically or use [continual learning (Part 10)](/en/transfer-learning/10-continual-learning/) to adapt without forgetting.
 
 ## Common Mistakes That Kill Transfer Learning Projects
 
@@ -848,7 +848,7 @@ Transfer learning is not a research technique waiting for production. It is alre
 
 The economics are clear: transfer learning cuts development time by 50–80%, reduces labeled-data requirements by 10x, and often improves performance. But it is not automatic. You still need to understand your data, choose the right architecture, tune hyperparameters, test rigorously, monitor continuously, and retrain when distributions shift.
 
-The 12-part series ends here. You now have the full toolkit: pretraining strategies (Part 1), fine-tuning techniques (Parts 2–4), advanced methods (Parts 5–11), and this final part on production deployment. The rest is execution.
+The 12-part series ends here. You now have the full toolkit: pretraining strategies ([Part 1](/en/transfer-learning/01-fundamentals-and-core-concepts/)), fine-tuning techniques ([Parts 2–4](/en/transfer-learning/02-pre-training-and-fine-tuning/)), advanced methods (Parts 5–11), and this final part on production deployment. The rest is execution.
 
 If you take one idea from this series, let it be this: **transfer learning is not about using someone else's model. It is about using someone else's model as a starting point and making it yours.** The pretrained weights are raw material. Your data, your task, your evaluation, your deployment, and your monitoring turn them into a product.
 

@@ -107,9 +107,9 @@ The three induced norms you will see most often:
 
 | Norm | Formula | How to compute |
 |---|---|---|
-| $\|A\|_1$ (column sum) | $\max_j \sum_i \lvert a_{ij}\rvert$ | Sum the absolute values in each column, take the maximum |
-| $\|A\|_2$ (spectral) | $\sigma_{\max}(A)$ | Largest singular value |
-| $\|A\|_\infty$ (row sum) | $\max_i \sum_j \lvert a_{ij}\rvert$ | Sum the absolute values in each row, take the maximum |
+| $\midA\mid_1$ (column sum) | $\max_j \sum_i \lvert a_{ij}\rvert$ | Sum the absolute values in each column, take the maximum |
+| $\midA\mid_2$ (spectral) | $\sigma_{\max}(A)$ | Largest singular value |
+| $\midA\mid_\infty$ (row sum) | $\max_i \sum_j \lvert a_{ij}\rvert$ | Sum the absolute values in each row, take the maximum |
 
 **Memory trick:** $1$ → column sum, $\infty$ → row sum.
 
@@ -442,9 +442,9 @@ compare_methods()
 
 | Concept | Key formula | Intuition |
 |---|---|---|
-| Vector norm | $\|\vec{x}\|_p = (\sum \lvert x_i\rvert^p)^{1/p}$ | "How big is this vector?" |
-| Frobenius norm | $\|A\|_F = \sqrt{\sum a_{ij}^2}$ | Total energy of the matrix |
-| Spectral norm | $\|A\|_2 = \sigma_{\max}$ | Maximum amplification |
+| Vector norm | $\mid\vec{x}\mid_p = (\sum \lvert x_i\rvert^p)^{1/p}$ | "How big is this vector?" |
+| Frobenius norm | $\midA\mid_F = \sqrt{\sum a_{ij}^2}$ | Total energy of the matrix |
+| Spectral norm | $\midA\mid_2 = \sigma_{\max}$ | Maximum amplification |
 | Condition number | $\kappa = \sigma_{\max}/\sigma_{\min}$ | Bound on error amplification |
 | Spectral radius | $\rho(A) = \max\lvert\lambda_i\rvert$ | Controls iterative convergence |
 | Normal equations | $\kappa(A^TA) = \kappa(A)^2$ | Why they are dangerous |

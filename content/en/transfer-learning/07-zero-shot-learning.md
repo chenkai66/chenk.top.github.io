@@ -183,7 +183,7 @@ Three families of remedies:
 $$F_{\text{cal}}(x, c) = F(x, c) - \gamma \cdot \mathbb{1}[c \in \mathcal{C}^s].$$
 Tune $\gamma$ on a held-out validation set. Cheap, effective, and a strong baseline.
 
-**2. Generative feature synthesis** (Section 4). Once you can fabricate unseen-class features, GZSL is just supervised classification on a balanced training set.
+**2. Generative feature synthesis** ([Section 4](#generative-zsl-synthesise-unseen-class-features)). Once you can fabricate unseen-class features, GZSL is just supervised classification on a balanced training set.
 
 **3. OOD gating.** Train a binary detector that decides "is this image from a seen class or an unseen class?" and route to the appropriate sub-classifier. Performance is bounded by the OOD detector itself.
 
@@ -191,7 +191,7 @@ Tune $\gamma$ on a held-out validation set. Cheap, effective, and a strong basel
 
 ## CLIP and the vision-language pretraining era
 
-**CLIP** (Radford et al., 2021) is, in retrospect, exactly the deep-compatibility two-tower of Section 3 — but trained on **400 million image–text pairs** scraped from the web, with the cross-entropy contrastive loss
+**CLIP** (Radford et al., 2021) is, in retrospect, exactly the deep-compatibility two-tower of [Section 3](#compatibility-functions-a-unified-view) — but trained on **400 million image–text pairs** scraped from the web, with the cross-entropy contrastive loss
 $$\mathcal{L} = -\sum_i \log \frac{\exp\bigl(I_i \cdot T_i / \tau\bigr)}{\sum_j \exp\bigl(I_i \cdot T_j / \tau\bigr)} \;+\; (\text{symmetric term over text}).$$
 At zero-shot inference time you build a classifier *from text* on the fly. For a $K$-class problem, write a prompt template such as `"a photo of a {class}"`, encode all $K$ prompts with the text tower, and classify a new image by picking the prompt embedding closest to its image embedding.
 

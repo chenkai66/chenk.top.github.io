@@ -427,12 +427,12 @@ $$f_Z(z) = \int_0^{\infty} y \, f_X(zy) f_Y(y) \, dy.$$
 |---|---|---|
 | 联合 PMF/PDF | $p(x,y)$ 或 $f(x,y)$ | $(X,Y)$ 的完整概率描述 |
 | 边缘分布 | $f_X(x) = \int f(x,y) dy$ | “遗忘”另一变量 |
-| 条件分布 | $f(x\|y) = f(x,y)/f_Y(y)$ | 已知 $Y=y$ 时 $X$ 的分布 |
+| 条件分布 | $f(x\midy) = f(x,y)/f_Y(y)$ | 已知 $Y=y$ 时 $X$ 的分布 |
 | 独立性 | $f(x,y) = f_X(x) f_Y(y)$ | 联合分布可分解为边缘分布乘积 |
-| 雅可比行列式 | $f_Y(y) = f_X(g^{-1}(y)) \|dg^{-1}/dy\|$ | 正确变换概率密度 |
+| 雅可比行列式 | $f_Y(y) = f_X(g^{-1}(y)) \middg^{-1}/dy\mid$ | 正确变换概率密度 |
 | 卷积 | $f_{X+Y} = f_X * f_Y$ | 独立变量之和的 PDF |
 | 次序统计量 | $f_{X_{(k)}}$ 含 $F^{k-1}(1-F)^{n-k}f$ | 第 $k$ 小值的分布 |
-| 多元正态条件分布 | $\boldsymbol{\mu}_{1\|2} = \boldsymbol{\mu}_1 + \boldsymbol{\Sigma}_{12}\boldsymbol{\Sigma}_{22}^{-1}(\mathbf{x}_2 - \boldsymbol{\mu}_2)$ | 线性回归 |
+| 多元正态条件分布 | $\boldsymbol{\mu}_{1\mid2} = \boldsymbol{\mu}_1 + \boldsymbol{\Sigma}_{12}\boldsymbol{\Sigma}_{22}^{-1}(\mathbf{x}_2 - \boldsymbol{\mu}_2)$ | 线性回归 |
 
 ## 下一步（What's Next）
 

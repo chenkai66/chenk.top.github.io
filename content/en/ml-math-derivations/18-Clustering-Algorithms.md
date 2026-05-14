@@ -60,9 +60,9 @@ Every objective we will write down is just one way to balance these two. The dis
 
 | Measure | Formula | Best for |
 |---------|---------|----------|
-| Euclidean | $d(\mathbf{x}, \mathbf{y}) = \\|\mathbf{x} - \mathbf{y}\\|_2$ | dense, low-dimensional data |
-| Manhattan | $d(\mathbf{x}, \mathbf{y}) = \sum_j \\|x_j - y_j\\|$ | sparse features, anomaly-resistant |
-| Cosine | $\text{sim}(\mathbf{x}, \mathbf{y}) = \frac{\mathbf{x}^T\mathbf{y}}{\\|\mathbf{x}\\|\\|\mathbf{y}\\|}$ | text, high-dimensional sparse vectors |
+| Euclidean | $d(\mathbf{x}, \mathbf{y}) = \\mid\mathbf{x} - \mathbf{y}\\mid_2$ | dense, low-dimensional data |
+| Manhattan | $d(\mathbf{x}, \mathbf{y}) = \sum_j \\midx_j - y_j\\mid$ | sparse features, anomaly-resistant |
+| Cosine | $\text{sim}(\mathbf{x}, \mathbf{y}) = \frac{\mathbf{x}^T\mathbf{y}}{\\mid\mathbf{x}\\mid\\mid\mathbf{y}\\mid}$ | text, high-dimensional sparse vectors |
 | Mahalanobis | $d(\mathbf{x}, \mathbf{y}) = \sqrt{(\mathbf{x}-\mathbf{y})^T \boldsymbol{\Sigma}^{-1}(\mathbf{x}-\mathbf{y})}$ | correlated features |
 
 **Practical note:** because every distance is sensitive to feature scale, *standardize before clustering* unless your features are already on comparable scales.

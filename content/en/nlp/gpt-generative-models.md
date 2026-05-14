@@ -502,16 +502,6 @@ A useful mental model: **BERT is a search engine**, **GPT is a writer**. Use BER
 
 ---
 
-## Summary
-
-- A GPT model is just a **decoder-only Transformer with a causal mask** trained to predict the next token. The simplicity is the point.
-- **Scale is the multiplier**: parameters, data, and compute together produce a clean power-law improvement in loss, with sudden capability jumps on top.
-- **In-context learning** lets a single fixed model handle thousands of tasks via prompts — no fine-tuning required for most use-cases.
-- **Decoding strategy** is a free lever: prefer **top-$p$ + temperature 0.7-0.9** for chat and creative writing; greedy or beam for translation and reproducibility.
-- **BERT understands; GPT generates.** Together they cover the full spectrum of modern NLP, and Parts 7-12 will dive into how to wield GPT-style models effectively (prompting, fine-tuning, RAG, multimodal, ...).
-
----
-
 ## Series Navigation
 
 | Part | Topic | Link |
@@ -524,3 +514,13 @@ A useful mental model: **BERT is a search engine**, **GPT is a writer**. Use BER
 | **6** | **GPT and Generative Models (this article)** | |
 | 7 | Prompt Engineering and In-Context Learning | [Next](/en/nlp/prompt-engineering-icl/) |
 | 8 | Fine-tuning and PEFT | [Read](/en/nlp/fine-tuning-peft/) |
+
+## Summary
+
+- A GPT model is just a **decoder-only Transformer with a causal mask** trained to predict the next token. The simplicity is the point.
+- **Scale is the multiplier**: parameters, data, and compute together produce a clean power-law improvement in loss, with sudden capability jumps on top.
+- **In-context learning** lets a single fixed model handle thousands of tasks via prompts — no fine-tuning required for most use-cases.
+- **Decoding strategy** is a free lever: prefer **top-$p$ + temperature 0.7-0.9** for chat and creative writing; greedy or beam for translation and reproducibility.
+- **BERT understands; GPT generates.** Together they cover the full spectrum of modern NLP, and Parts 7-12 will dive into how to wield GPT-style models effectively (prompting, fine-tuning, RAG, multimodal, ...).
+
+---

@@ -213,7 +213,7 @@ $$\partial_t p \;=\; \nabla\!\cdot\!\bigl(p \nabla V\bigr) + \Delta p,$$
 
 | 维度 | 变分推断 | Langevin MCMC |
 |---|---|---|
-| 目标 | 最小化 $\mathrm{KL}(q_\phi \| p^\star)$ | 从 $p^\star$ 采样 |
+| 目标 | 最小化 $\mathrm{KL}(q_\phi \mid p^\star)$ | 从 $p^\star$ 采样 |
 | 状态 | 参数 $\phi$ | 粒子 $\{X^{(i)}\}$ |
 | 更新步 | ELBO 上的梯度步 | SDE 的 Euler-Maruyama 步 |
 | 连续极限 | KL 的 Wasserstein 梯度流 | Fokker-Planck 方程 |
@@ -440,17 +440,6 @@ std_pred = predictions.std(axis=0)        # 预测标准差（即后验预测不
 - **安全强化学习**（Safe Reinforcement Learning）：规避认知不确定性过高的状态；  
 - **模型选择**（Model Selection）：在验证集上更倾向选择预测置信带更紧凑的模型。
 
-## 总结
-
-- 任意 Itô SDE 都对应一个 Fokker-Planck PDE，描述其概率密度的演化。
-- Langevin 动力学用于从 $p^\star \propto e^{-V}$ 采样；ULA / MALA / HMC 是其实用的离散实现。
-- $\mathrm{KL}(\cdot \,\|\, p^\star)$ 是 Wasserstein 梯度流的能量泛函；其流方程正是 Langevin 的 FP 方程。因此，VI 与 MCMC 在连续时间下完全等价。
-- SVGD 是一种核平滑的、确定性的粒子近似方法，避免了 MCMC 的随机游走低效问题。
-- 收敛速率呈指数级，速率为 $2\lambda$，其中 $\lambda$ 是 $p^\star$ 的 log-Sobolev 常数；实践中，穿越高势垒的混合速度是主要瓶颈。
-- 贝叶斯神经网络的后验采样可归结为在损失景观上运行 Langevin 或 SVGD。
-
-**系列结语**。在四篇文章中，我们借助 PDE 统一了科学计算与机器学习：从用神经网络求解 PDE（PINNs），到学习解算子（FNO/DeepONet），再到将训练视为梯度流，最后将概率推断理解为 Fokker-Planck 动力学。贯穿始终的主题是：**机器学习中的离散算法，通常最好被理解为某个连续 PDE 的时间离散化**，而 PDE 理论正是证明其收敛性的通用语言。
-
 ## 数值实现：真正能跑起来的 SDE 模拟
 
 连续 Langevin SDE $dX = -\nabla U(X)\,dt + \sqrt{2}\,dW$ 的离散形式为：
@@ -503,6 +492,17 @@ $$ dX = \bigl[-\nabla U(X) - 2\nabla\log p_t(X)\bigr]\,dt + \sqrt{2}\,d\bar W. $
 鲜少有人明确指出：**扩散模型其实就是 SVGD，只不过将核函数替换为了从数据中学到的 score 场**。SVGD 手动平衡“排斥 vs 吸引”，而扩散模型则从数据中学习这一平衡。正因如此，二者同属“密度上的梯度流”这一框架，而[第四节](#kl-散度是-wasserstein-梯度流)所述的 Wasserstein 几何正是描述它们的恰当语言。
 
 PDE-ML 系列[第七章](/zh/pde-ml/07-扩散模型与score-matching/)将专门深入探讨扩散模型；此处仅旨在点明其与 Fokker-Planck 方程的深刻联系。
+
+## 总结
+
+- 任意 Itô SDE 都对应一个 Fokker-Planck PDE，描述其概率密度的演化。
+- Langevin 动力学用于从 $p^\star \propto e^{-V}$ 采样；ULA / MALA / HMC 是其实用的离散实现。
+- $\mathrm{KL}(\cdot \,\|\, p^\star)$ 是 Wasserstein 梯度流的能量泛函；其流方程正是 Langevin 的 FP 方程。因此，VI 与 MCMC 在连续时间下完全等价。
+- SVGD 是一种核平滑的、确定性的粒子近似方法，避免了 MCMC 的随机游走低效问题。
+- 收敛速率呈指数级，速率为 $2\lambda$，其中 $\lambda$ 是 $p^\star$ 的 log-Sobolev 常数；实践中，穿越高势垒的混合速度是主要瓶颈。
+- 贝叶斯神经网络的后验采样可归结为在损失景观上运行 Langevin 或 SVGD。
+
+**系列结语**。在四篇文章中，我们借助 PDE 统一了科学计算与机器学习：从用神经网络求解 PDE（PINNs），到学习解算子（FNO/DeepONet），再到将训练视为梯度流，最后将概率推断理解为 Fokker-Planck 动力学。贯穿始终的主题是：**机器学习中的离散算法，通常最好被理解为某个连续 PDE 的时间离散化**，而 PDE 理论正是证明其收敛性的通用语言。
 
 ## 参考文献
 

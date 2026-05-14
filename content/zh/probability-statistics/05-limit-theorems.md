@@ -419,7 +419,7 @@ plt.show()
 | SLLN | $\bar{X}_n \xrightarrow{a.s.} \mu$ | i.i.d.，有限均值 | — |
 | CLT | $\sqrt{n}(\bar{X}_n - \mu)/\sigma \xrightarrow{d} \mathcal{N}(0,1)$ | i.i.d.，有限方差 | Berry-Esseen 给出 $O(1/\sqrt{n})$ |
 | Delta 方法 | $\sqrt{n}(g(\bar{X}_n) - g(\mu)) \xrightarrow{d} \mathcal{N}(0, [g'(\mu)]^2\sigma^2)$ | CLT 成立 + $g$ 在 $\mu$ 可导 | $O(1/\sqrt{n})$ |
-| Hoeffding | $P(\|\bar{X}_n - \mu\| \geq t) \leq 2e^{-2nt^2/(b-a)^2}$ | 独立、有界 | 指数级 |
+| Hoeffding | $P(\mid\bar{X}_n - \mu\mid \geq t) \leq 2e^{-2nt^2/(b-a)^2}$ | 独立、有界 | 指数级 |
 
 ## 下一步
 

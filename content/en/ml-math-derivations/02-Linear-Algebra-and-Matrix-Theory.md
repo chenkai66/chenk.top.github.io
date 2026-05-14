@@ -110,9 +110,9 @@ Divide both sides by $\|u\|\|v\|$ and you have the **cosine of the angle** $\cos
 
 | Norm | Formula | What it measures |
 |------|---------|------------------|
-| Frobenius $\|A\|_F$ | $\sqrt{\sum_{ij} a_{ij}^2}$ | the "Euclidean length" of $A$ as a vector |
-| Spectral $\|A\|_2$ | $\sigma_1(A)$ | maximum stretch over all unit inputs |
-| Nuclear $\|A\|_*$ | $\sum_i \sigma_i(A)$ | convex surrogate for $\text{rank}(A)$ |
+| Frobenius $\midA\mid_F$ | $\sqrt{\sum_{ij} a_{ij}^2}$ | the "Euclidean length" of $A$ as a vector |
+| Spectral $\midA\mid_2$ | $\sigma_1(A)$ | maximum stretch over all unit inputs |
+| Nuclear $\midA\mid_*$ | $\sum_i \sigma_i(A)$ | convex surrogate for $\text{rank}(A)$ |
 
 The spectral norm is the right thing for Lipschitz analysis (e.g. spectral normalisation in GANs). The nuclear norm is what you minimise for low-rank matrix completion (Netflix-style problems).
 
@@ -236,7 +236,7 @@ This is where most ML readers want a clean reference. We use **numerator layout*
 |---|-----|-----------|---------|
 | 1 | $a^\top x$ | $a$ | linear |
 | 2 | $x^\top A x$ | $(A + A^\top) x$ | $= 2 A x$ if $A$ symmetric |
-| 3 | $\|A x - b\|_2^2$ | $2 A^\top (A x - b)$ | least squares |
+| 3 | $\midA x - b\mid_2^2$ | $2 A^\top (A x - b)$ | least squares |
 | 4 | $\ln \det X$ | $X^{-\top}$ | log-det — shows up in Gaussian MLE |
 
 *Proof of (2).* Write $f = \sum_{i,j} A_{ij} x_i x_j$. Then $\partial f / \partial x_k = \sum_j A_{kj} x_j + \sum_i A_{ik} x_i = [(A + A^\top) x]_k$. $\square$
@@ -279,7 +279,7 @@ For PD $A$, the **Cholesky** factorisation $A = L L^\top$ exists with $L$ lower 
 |-----------|-----|
 | Symmetric matrix (covariance, Hessian) | Eigendecomposition / spectral |
 | Any matrix; want "honest" rank, PCA, pseudo-inverse | SVD |
-| Tall least squares $\min \|Ax - b\|$ | QR |
+| Tall least squares $\min \midAx - b\mid$ | QR |
 | PD linear system $Ax = b$ | Cholesky |
 | Detect rank deficiency / monitor numerical health | $\kappa(A)$ via SVD |
 

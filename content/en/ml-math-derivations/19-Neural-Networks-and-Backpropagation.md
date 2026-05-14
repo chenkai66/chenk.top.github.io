@@ -204,7 +204,7 @@ The figure reproduces the effect numerically: a unit gradient signal is back-pro
 | Vanishing | ReLU activation | $\sigma'(z) = 1$ for $z>0$, no exponential decay. |
 | Vanishing | Residual connections | $\mathbf{h}^{(l)} = \mathbf{h}^{(l-1)} + F(\mathbf{h}^{(l-1)})$ — the gradient has an *identity* path that bypasses the nonlinearities. |
 | Vanishing | Batch normalization | Stabilises activation distributions layer by layer. |
-| Exploding | Gradient clipping | Rescale $\mathbf{g}\!\leftarrow\!(c/\|\mathbf{g}\|)\,\mathbf{g}$ when $\|\mathbf{g}\| > c$. |
+| Exploding | Gradient clipping | Rescale $\mathbf{g}\!\leftarrow\!(c/\mid\mathbf{g}\mid)\,\mathbf{g}$ when $\mid\mathbf{g}\mid > c$. |
 | Both | Proper initialization | Keep the variance of activations and gradients stable across layers (next section). |
 
 ---

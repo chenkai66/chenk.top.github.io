@@ -486,19 +486,6 @@ plt.show()
 
 The MCMC histogram closely matches the exact Beta posterior, verifying that the sampler works. The trace plot shows the chain exploring the parameter space, and the autocorrelation plot reveals how quickly successive samples become independent (shorter correlation = more efficient sampling).
 
-## Summary
-| Concept | Formula | Role |
-|---|---|---|
-| Bayes' rule | $p(\theta\lvert \mathbf{x}) \propto p(\mathbf{x}\rvert\theta)p(\theta)$ | Fundamental update |
-| Conjugate prior | Prior and posterior in same family | Closed-form posterior |
-| Beta-Binomial | $\text{Beta}(\alpha+x, \beta+n-x)$ | Estimating proportions |
-| Normal-Normal | Precision-weighted average | Estimating means |
-| Posterior mean | $E[\theta\mid \mathbf{x}]$ | Optimal under squared loss |
-| MAP | $\arg\max p(\theta\mid \mathbf{x})$ | = MLE + regularization |
-| Credible interval | $P(\theta \in [a,b]\mid \mathbf{x}) = 0.95$ | Direct probability statement |
-| Predictive | $p(\tilde{x}\lvert \mathbf{x}) = \int p(\tilde{x}\rvert\theta)p(\theta\mid \mathbf{x})d\theta$ | Prediction with uncertainty |
-| MCMC | Sample from posterior | When no closed form |
-
 ## The Series in Retrospect
 
 Over eight articles, we've built probability and statistics from the ground up:
@@ -515,3 +502,16 @@ Over eight articles, we've built probability and statistics from the ground up:
 Each article built on the previous ones, and together they form the mathematical backbone of modern data science and machine learning. The distributions, theorems, and techniques covered here are not historical curiosities — they are the daily tools of anyone building systems that learn from data.
 
 The path forward leads in many directions: multivariate analysis, time series, causal inference, information theory, statistical learning theory. But the foundations laid in this series are sufficient to read any of those topics with confidence.
+
+## Summary
+| Concept | Formula | Role |
+|---|---|---|
+| Bayes' rule | $p(\theta\lvert \mathbf{x}) \propto p(\mathbf{x}\rvert\theta)p(\theta)$ | Fundamental update |
+| Conjugate prior | Prior and posterior in same family | Closed-form posterior |
+| Beta-Binomial | $\text{Beta}(\alpha+x, \beta+n-x)$ | Estimating proportions |
+| Normal-Normal | Precision-weighted average | Estimating means |
+| Posterior mean | $E[\theta\mid \mathbf{x}]$ | Optimal under squared loss |
+| MAP | $\arg\max p(\theta\mid \mathbf{x})$ | = MLE + regularization |
+| Credible interval | $P(\theta \in [a,b]\mid \mathbf{x}) = 0.95$ | Direct probability statement |
+| Predictive | $p(\tilde{x}\lvert \mathbf{x}) = \int p(\tilde{x}\rvert\theta)p(\theta\mid \mathbf{x})d\theta$ | Prediction with uncertainty |
+| MCMC | Sample from posterior | When no closed form |

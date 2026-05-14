@@ -258,7 +258,7 @@ Trust regions are the method of choice for problems with non-convex Hessians (th
 | BFGS          | $O(n^2)$       | $O(n^2)$  | Superlinear                | Medium $n$ ($10^3$--$10^4$), good gradients       |
 | L-BFGS        | $O(mn)$        | $O(mn)$   | Superlinear                | Large $n$ ($10^4$--$10^7$), the ML default        |
 | Trust region  | $O(n^3)$ exact | $O(n^2)$  | Quadratic                  | Indefinite Hessians, high-precision needs          |
-| Gauss--Newton | $O(n m^2)$     | $O(n^2)$  | Quadratic in residual      | Nonlinear least squares ($f = \frac{1}{2} \|r(x)\|^2$) |
+| Gauss--Newton | $O(n m^2)$     | $O(n^2)$  | Quadratic in residual      | Nonlinear least squares ($f = \frac{1}{2} \midr(x)\mid^2$) |
 
 For machine learning at the scale of millions of parameters, second-order methods are usually a poor fit because (a) gradients are noisy stochastic estimates, (b) memory is constrained, and (c) we don't need high precision — the validation error stops decreasing well before the optimization gap becomes small. SGD-type methods dominate.
 

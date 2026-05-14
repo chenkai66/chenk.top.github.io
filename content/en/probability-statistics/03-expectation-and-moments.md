@@ -266,7 +266,7 @@ Markov's inequality is often loose, but it requires almost nothing — just $X \
 $$P(|X - \mu| \geq k\sigma) \leq \frac{1}{k^2}.$$
 *Proof.* Apply Markov's inequality to the non-negative random variable $(X - \mu)^2$ with $a = k^2 \sigma^2$:
 $$P((X - \mu)^2 \geq k^2 \sigma^2) \leq \frac{E[(X - \mu)^2]}{k^2 \sigma^2} = \frac{\sigma^2}{k^2 \sigma^2} = \frac{1}{k^2}. \quad \blacksquare$$
-| $k$ | Chebyshev bound $P(\|X - \mu\| \geq k\sigma) \leq$ | Normal exact $P(\|Z\| \geq k)$ |
+| $k$ | Chebyshev bound $P(\midX - \mu\mid \geq k\sigma) \leq$ | Normal exact $P(\midZ\mid \geq k)$ |
 |---|---|---|
 | 1 | 1.000 | 0.317 |
 | 2 | 0.250 | 0.046 |
@@ -429,7 +429,7 @@ This is tighter than Chebyshev for one-sided deviations and requires no symmetry
 | Total variance | $\text{Var}(X) = E[\text{Var}(X\lvert Y)] + \text{Var}(E[X\rvertY])$ | Within + between |
 | Jensen | $g(E[X]) \leq E[g(X)]$ for convex $g$ | Fundamental inequality |
 | Markov | $P(X \geq a) \leq E[X]/a$ | Requires $X \geq 0$ |
-| Chebyshev | $P(\|X-\mu\| \geq k\sigma) \leq 1/k^2$ | Distribution-free |
+| Chebyshev | $P(\midX-\mu\mid \geq k\sigma) \leq 1/k^2$ | Distribution-free |
 
 ## What's Next
 

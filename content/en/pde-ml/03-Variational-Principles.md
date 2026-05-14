@@ -518,7 +518,7 @@ The variational thread runs through the entire article. Let us trace it once mor
 | PDE theory | Minimise Dirichlet energy $J[u]$ | Functions | $L^2$ | Laplace / heat equation |
 | Optimal transport | JKO proximal step on $\mathcal{E}[\rho]$ | Measures $\mathcal{P}_2$ | $W_2$ | Fokker-Planck / porous medium |
 | Neural-network training | Minimise empirical risk $\hat{R}[\rho]$ | Neuron distributions $\mathcal{P}_2$ | $W_2$ | Mean-field PDE |
-| Variational inference | Minimise $\mathrm{KL}(q \| p)$ | Approximate posteriors $\mathcal{Q}$ | KL / $W_2$ | Langevin SDE / Fokker-Planck |
+| Variational inference | Minimise $\mathrm{KL}(q \mid p)$ | Approximate posteriors $\mathcal{Q}$ | KL / $W_2$ | Langevin SDE / Fokker-Planck |
 | Adam optimiser | Gradient flow of $J$ | Parameters $\mathbb{R}^n$ | Adaptive diagonal | Riemannian gradient flow |
 
 Every row is a variational problem. Every row produces a dynamical system by following the steepest descent of a functional in the appropriate geometry. The only things that change are the state space, the metric, and the energy. This is why the PDE perspective is so powerful: once you recognise the variational structure, convergence proofs, numerical schemes, and design principles *transfer* across all these settings.

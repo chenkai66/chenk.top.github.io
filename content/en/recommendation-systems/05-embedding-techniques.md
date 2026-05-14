@@ -824,6 +824,12 @@ Cosine similarity is direction-only; magnitudes cancel. Dot product also rewards
 
 ---
 
+## Series Navigation
+
+- **Previous:** [Part 4 — CTR Prediction and Click-Through Rate Modeling](/en/recommendation-systems/04-ctr-prediction/)
+- **Next:** [Part 6 — Sequential Recommendation and Session-based Modeling](/en/recommendation-systems/06-sequential-recommendation/)
+- [Back to Series Overview (Part 1)](/en/recommendation-systems/01-fundamentals/)
+
 ## Summary
 
 - **Embeddings are dense, learned vectors that turn discrete identity into geometry.** Recommendation becomes nearest-neighbour search.
@@ -834,9 +840,3 @@ Cosine similarity is direction-only; magnitudes cancel. Dot product also rewards
 - **Evaluate with intrinsic and extrinsic metrics.** Track coverage and diversity alongside HR@K and NDCG, or you will silently drift toward popularity.
 
 ---
-
-## Series Navigation
-
-- **Previous:** [Part 4 — CTR Prediction and Click-Through Rate Modeling](/en/recommendation-systems/04-ctr-prediction/)
-- **Next:** [Part 6 — Sequential Recommendation and Session-based Modeling](/en/recommendation-systems/06-sequential-recommendation/)
-- [Back to Series Overview (Part 1)](/en/recommendation-systems/01-fundamentals/)

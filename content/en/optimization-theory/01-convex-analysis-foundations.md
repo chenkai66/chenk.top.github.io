@@ -167,7 +167,7 @@ You should be able to verify each of these with the second-order condition (or d
 
 | $f(x)$                        | Convex? | Justification                                                    |
 | ----------------------------- | ------- | ---------------------------------------------------------------- |
-| $\|x\|_p$ for $p \geq 1$      | Yes     | Triangle inequality + positive homogeneity.                      |
+| $\midx\mid_p$ for $p \geq 1$      | Yes     | Triangle inequality + positive homogeneity.                      |
 | $\log(1 + e^x)$ (softplus)    | Yes     | $f''(x) = \frac{e^x}{(1 + e^x)^2} > 0$.                          |
 | $-\log \det X$ on $\mathbf{S}^n_{++}$ | Yes | Hessian is $X^{-1} \otimes X^{-1}$; PSD.                         |
 | $x \log x$ on $\mathbb{R}_+$  | Yes     | $f''(x) = 1/x > 0$.                                              |
@@ -217,10 +217,10 @@ Memorize these — we use them as building blocks throughout the series.
 
 | $f(x)$                                            | $f^*(y)$                                                                  |
 | ------------------------------------------------- | ------------------------------------------------------------------------- |
-| $\frac{1}{2} \|x\|_2^2$                           | $\frac{1}{2} \|y\|_2^2$ (self-conjugate).                                  |
+| $\frac{1}{2} \midx\mid_2^2$                           | $\frac{1}{2} \midy\mid_2^2$ (self-conjugate).                                  |
 | $\frac{1}{2} x^\top Q x$, $Q \succ 0$             | $\frac{1}{2} y^\top Q^{-1} y$.                                             |
 | Indicator $\iota_C$                               | Support function $\sigma_C(y) = \sup_{x \in C} \langle y, x \rangle$.      |
-| $\|x\|$ (any norm)                                | $\iota_{B^\circ}(y) = \begin{cases} 0 & \|y\|_* \leq 1 \\ +\infty & \text{else} \end{cases}$ where $\|\cdot\|_*$ is the dual norm. |
+| $\midx\mid$ (any norm)                                | $\iota_{B^\circ}(y) = \begin{cases} 0 & \midy\mid_* \leq 1 \\ +\infty & \text{else} \end{cases}$ where $\mid\cdot\mid_*$ is the dual norm. |
 | $e^x$                                             | $y \log y - y$ for $y > 0$ (entropy-like).                                 |
 | $\log(1 + e^x)$                                   | $y \log y + (1 - y) \log(1 - y)$ for $y \in [0, 1]$.                       |
 | $-\log x$ on $x > 0$                              | $-1 - \log(-y)$ on $y < 0$.                                                |

@@ -420,18 +420,6 @@ The returns diminish quickly: going from 50 to 100 dimensions buys a lot, going 
 
 ---
 
-## Summary
-
-- **Embeddings encode distributional semantics.** Words that share contexts share geometric neighbourhoods, and that neighbourhood structure is what gives downstream models their generalisation.
-- **Word2Vec, GloVe, and FastText are three answers to the same question.** Word2Vec scans local windows; GloVe factorises the global co-occurrence matrix; FastText decomposes words into character n-grams. They produce embeddings of comparable quality through different routes.
-- **Negative sampling makes training feasible** by replacing the full softmax with binary classification against $k$ random negatives, with frequencies smoothed by the $f(w)^{0.75}$ noise distribution.
-- **Embeddings let language models scale.** Without them, n-gram counts plateau as the corpus grows; with them, neural LMs keep improving because each new context borrows strength from learned geometry.
-- **Static embeddings have a hard limit.** "Bank" has one vector regardless of whether it sits next to "river" or "account". The next two wavefronts — ELMo / BERT / GPT in Parts 5--6 — replace static vectors with context-dependent ones.
-
-Word embeddings cracked open neural NLP. Once words could be added, subtracted, and clustered like real vectors, every downstream architecture — from RNNs to Transformers — became possible. We pick up that thread in the next article with sequence modelling.
-
----
-
 ## Multilingual reality
 
 Word2Vec and GloVe were built on English Wikipedia. Their assumptions break in three places when you cross languages.
@@ -457,3 +445,15 @@ A few cases where Word2Vec/GloVe demonstrably fail, with the diagnosis.
 **Domain drift.** A Word2Vec model trained on news will misplace "transformer" — in news it's an electrical device, in ML papers it's an architecture. There's no recovery without retraining; the vector is fixed.
 
 These failures are why everyone moved to contextual embeddings the moment compute allowed it.
+
+## Summary
+
+- **Embeddings encode distributional semantics.** Words that share contexts share geometric neighbourhoods, and that neighbourhood structure is what gives downstream models their generalisation.
+- **Word2Vec, GloVe, and FastText are three answers to the same question.** Word2Vec scans local windows; GloVe factorises the global co-occurrence matrix; FastText decomposes words into character n-grams. They produce embeddings of comparable quality through different routes.
+- **Negative sampling makes training feasible** by replacing the full softmax with binary classification against $k$ random negatives, with frequencies smoothed by the $f(w)^{0.75}$ noise distribution.
+- **Embeddings let language models scale.** Without them, n-gram counts plateau as the corpus grows; with them, neural LMs keep improving because each new context borrows strength from learned geometry.
+- **Static embeddings have a hard limit.** "Bank" has one vector regardless of whether it sits next to "river" or "account". The next two wavefronts — ELMo / BERT / GPT in Parts 5--6 — replace static vectors with context-dependent ones.
+
+Word embeddings cracked open neural NLP. Once words could be added, subtracted, and clustered like real vectors, every downstream architecture — from RNNs to Transformers — became possible. We pick up that thread in the next article with sequence modelling.
+
+---

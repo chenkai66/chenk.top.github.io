@@ -250,7 +250,7 @@ $$w_{u \to v} \;=\; \exp\!\big(-\beta \cdot \Delta t_{u \to v}\big) \cdot \frac{
 | 极短会话（$n \le 3$）                  | item-KNN 或共点击， SR-GNN 没图可用                         |
 | 重度冷启动                             | 两塔 + 内容特征召回， SR-GNN 仅用于精排                     |
 | 实时延迟预算 < 5 ms                    | 缓存物品邻居表示，或蒸馏成 MLP 头                          |
-| 物品池 $\|V\|> 10^6$                    | SR-GNN 主体 + sampled softmax / 两塔召回                   |
+| 物品池 $\midV\mid> 10^6$                    | SR-GNN 主体 + sampled softmax / 两塔召回                   |
 | 有强长期用户历史                       | 看 SASRec、 BERT4Rec 这一支带用户嵌入的序列模型             |
 
 ## 五点小结

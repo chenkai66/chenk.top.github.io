@@ -273,6 +273,12 @@ GD 与加速方法在达到相同精度所需的迭代次数上的差距约为 $
 
 ---
 
+## 故事的延续
+
+- [文章 06](../06-composite-proximal-methods/) 使用上述 Lyapunov 模板推导 FISTA（加速近端梯度方法）。
+- [文章 10](../10-stochastic-variance-reduction/) 将 Catalyst 与随机内部求解器（SVRG、SAGA）结合用于有限和问题。
+- [文章 07](../07-second-order-methods/) 探索二阶方法，它们通过使用更多信息突破了 $\sqrt{\kappa}$ 壁垒。
+
 ## 总结
 
 | 问题                                  | 答案                                                                  |
@@ -282,12 +288,6 @@ GD 与加速方法在达到相同精度所需的迭代次数上的差距约为 $
 | 何时重启？                          | 当动量过冲时（梯度或函数值准则）。         |
 | 如何加速黑盒求解器？     | 使用正则化内部子问题的 Catalyst 元算法。              |
 | 统一理论是什么？                | 阻尼二阶 ODE 及其离散化的 Lyapunov 函数。 |
-
-## 故事的延续
-
-- [文章 06](../06-composite-proximal-methods/) 使用上述 Lyapunov 模板推导 FISTA（加速近端梯度方法）。
-- [文章 10](../10-stochastic-variance-reduction/) 将 Catalyst 与随机内部求解器（SVRG、SAGA）结合用于有限和问题。
-- [文章 07](../07-second-order-methods/) 探索二阶方法，它们通过使用更多信息突破了 $\sqrt{\kappa}$ 壁垒。
 
 ## 参考文献
 

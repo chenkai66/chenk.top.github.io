@@ -440,7 +440,7 @@ Each panel shows 10 independent sample paths of the running average $\bar{X}_n$.
 | SLLN | $\bar{X}_n \xrightarrow{a.s.} \mu$ | i.i.d., finite mean | — |
 | CLT | $\sqrt{n}(\bar{X}_n - \mu)/\sigma \xrightarrow{d} \mathcal{N}(0,1)$ | i.i.d., finite variance | $O(1/\sqrt{n})$ via Berry-Esseen |
 | Delta method | $\sqrt{n}(g(\bar{X}_n) - g(\mu)) \xrightarrow{d} \mathcal{N}(0, [g'(\mu)]^2\sigma^2)$ | CLT + differentiable $g$ | $O(1/\sqrt{n})$ |
-| Hoeffding | $P(\|\bar{X}_n - \mu\| \geq t) \leq 2e^{-2nt^2/(b-a)^2}$ | Independent, bounded | Exponential |
+| Hoeffding | $P(\mid\bar{X}_n - \mu\mid \geq t) \leq 2e^{-2nt^2/(b-a)^2}$ | Independent, bounded | Exponential |
 
 ## What's Next
 

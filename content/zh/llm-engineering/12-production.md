@@ -323,19 +323,19 @@ vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-to
 
 ## 不同部署形态的成本（2025 年末粗略数据）
 
-| Setup | $/Mtok input \|$/Mtok output | Notes |
+| Setup | $/Mtok input \mid$/Mtok output | Notes |
 |---|---|---|---|
-| Claude-4.5-Sonnet API | $3 \|$15 | 高质量 |
-| GPT-4o API | $2.50 \|$10 | 高质量 |
-| Qwen3-Max API | $1.40 \|$5.60 | 高质量，更便宜 |
-| Gemini-2.5-Pro API | $2.50 \|$10 | 高质量，长上下文 |
-| DeepSeek-V3 API | $0.14 \|$0.28 | 便宜，擅长数学/代码 |
-| Self-host Qwen3-32B FP8 (1xH100) | $0.10 \|$0.30 | 70% 利用率 |
-| Self-host LLaMA-3.3-70B FP8 (2xH100) | $0.30 \|$0.90 | 70% 利用率 |
-| Self-host Qwen3-235B-A22B (8xH100) | $0.50 \|$1.50 | 70% 利用率 |
-| Open-router 池化小模型 | $0.15 \|$0.50 | 最便宜 |
-| Anthropic Batch API (50% 折扣) | $1.50 \|$7.50 | 24 小时 SLA |
-| OpenAI Batch API (50% 折扣) | $1.25 \|$5 | 24 小时 SLA |
+| Claude-4.5-Sonnet API | $3 \mid$15 | 高质量 |
+| GPT-4o API | $2.50 \mid$10 | 高质量 |
+| Qwen3-Max API | $1.40 \mid$5.60 | 高质量，更便宜 |
+| Gemini-2.5-Pro API | $2.50 \mid$10 | 高质量，长上下文 |
+| DeepSeek-V3 API | $0.14 \mid$0.28 | 便宜，擅长数学/代码 |
+| Self-host Qwen3-32B FP8 (1xH100) | $0.10 \mid$0.30 | 70% 利用率 |
+| Self-host LLaMA-3.3-70B FP8 (2xH100) | $0.30 \mid$0.90 | 70% 利用率 |
+| Self-host Qwen3-235B-A22B (8xH100) | $0.50 \mid$1.50 | 70% 利用率 |
+| Open-router 池化小模型 | $0.15 \mid$0.50 | 最便宜 |
+| Anthropic Batch API (50% 折扣) | $1.50 \mid$7.50 | 24 小时 SLA |
+| OpenAI Batch API (50% 折扣) | $1.25 \mid$5 | 24 小时 SLA |
 
 输出成本通常比输入高 3–5 倍，因为输出是串行解码（内存受限）。对于生成长文本的应用（如摘要、报告、代码），切换至输出成本更低的模型，往往比优化模型本身更有效。
 

@@ -93,8 +93,8 @@ $$\mathcal{L} = \sum_{(h,r,t) \in \mathcal{G}}\; \sum_{(h',r,t') \notin \mathcal
 
 | Method | Scoring function | Best for |
 |---|---|---|
-| **TransE** | $\|\mathbf{h} + \mathbf{r} - \mathbf{t}\|$ | Simple 1-to-1 relations |
-| **TransR** | $\|\mathbf{h} M_r + \mathbf{r} - \mathbf{t} M_r\|$ | Relations needing different vector spaces |
+| **TransE** | $\mid\mathbf{h} + \mathbf{r} - \mathbf{t}\mid$ | Simple 1-to-1 relations |
+| **TransR** | $\mid\mathbf{h} M_r + \mathbf{r} - \mathbf{t} M_r\mid$ | Relations needing different vector spaces |
 | **DistMult** | $\mathbf{h}^T \text{diag}(\mathbf{r})\, \mathbf{t}$ | Symmetric relations |
 | **ComplEx** | $\text{Re}(\mathbf{h}^T \text{diag}(\mathbf{r})\, \bar{\mathbf{t}})$ | Asymmetric relations |
 

@@ -93,9 +93,9 @@ $$
 
 | Function | Gradient | Spectral norm of Hessian | $L$ |
 |---|---|---|---|
-| $\tfrac{1}{2}\|x\|^2$ | $x$ | $1$ | $1$ |
-| $\tfrac{1}{2}\|Ax-b\|^2$ | $A^\top(Ax-b)$ | $\lambda_{\max}(A^\top A)$ | $\lambda_{\max}(A^\top A)$ |
-| Logistic $\log(1 + e^{-y\,\theta^\top x})$ (one sample) | $-y\,\sigma(-y\theta^\top x)\,x$ | $\sigma(\cdot)\sigma(-\cdot)\,xx^\top$ | $\tfrac{1}{4}\|x\|^2$ |
+| $\tfrac{1}{2}\midx\mid^2$ | $x$ | $1$ | $1$ |
+| $\tfrac{1}{2}\midAx-b\mid^2$ | $A^\top(Ax-b)$ | $\lambda_{\max}(A^\top A)$ | $\lambda_{\max}(A^\top A)$ |
+| Logistic $\log(1 + e^{-y\,\theta^\top x})$ (one sample) | $-y\,\sigma(-y\theta^\top x)\,x$ | $\sigma(\cdot)\sigma(-\cdot)\,xx^\top$ | $\tfrac{1}{4}\midx\mid^2$ |
 
 第三行给出了逻辑回归的标准 $L = \tfrac{1}{4n}\sum_i\|x_i\|^2$ —— 关键在于 $\sigma(\cdot)\sigma(-\cdot)\le 1/4$。
 

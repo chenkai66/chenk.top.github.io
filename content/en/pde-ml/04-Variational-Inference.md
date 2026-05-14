@@ -215,7 +215,7 @@ which is exactly the FP equation for Langevin with $\tau = 1$. Hence:
 
 | Aspect | Variational Inference | Langevin MCMC |
 |---|---|---|
-| Objective | Minimise $\mathrm{KL}(q_\phi \| p^\star)$ | Sample from $p^\star$ |
+| Objective | Minimise $\mathrm{KL}(q_\phi \mid p^\star)$ | Sample from $p^\star$ |
 | State | Parameters $\phi$ | Particles $\{X^{(i)}\}$ |
 | Step | Gradient step on ELBO | Euler-Maruyama on SDE |
 | Continuous limit | Wasserstein gradient flow of KL | Fokker-Planck equation |
@@ -441,17 +441,6 @@ The result demonstrates the core promise of Bayesian inference: **calibrated unc
 This is not a toy property --- it is the foundation of active learning (query where uncertainty is high), safe reinforcement learning (avoid states with high epistemic uncertainty), and model selection (prefer models with tighter predictive bands on held-out data).
 
 
-## Summary
-
-- Any It&ocirc; SDE has a Fokker-Planck PDE describing how its density evolves.
-- Langevin dynamics samples from $p^\star \propto e^{-V}$; the discrete ULA / MALA / HMC algorithms are practical realisations.
-- $\mathrm{KL}(\cdot \,\|\, p^\star)$ is a Wasserstein gradient-flow energy; its flow PDE *is* the Langevin FP equation. VI and MCMC are equivalent in continuous time.
-- SVGD is a kernel-smoothed, deterministic particle approximation of the same flow, and avoids the random-walk inefficiency of MCMC.
-- Convergence is exponential at rate $2\lambda$ where $\lambda$ is the log-Sobolev constant of $p^\star$; mixing through high barriers is the bottleneck in practice.
-- Posterior sampling for Bayesian neural networks reduces to running Langevin (or SVGD) on the loss landscape.
-
-**Series conclusion.** Across four articles we have used PDEs to unify scientific computing and machine learning — from solving PDEs with neural networks (PINNs), to learning solution operators (FNO/DeepONet), to training as gradient flows, to probabilistic inference as Fokker-Planck dynamics. The recurring theme: **discrete algorithms in machine learning are usually best understood as the time-discretisation of a continuous PDE**, and PDE theory is the language for proving convergence.
-
 ## Numerical Implementation: SDE Simulation You Can Actually Run
 
 The continuous Langevin SDE $dX = -\nabla U(X)\,dt + \sqrt{2}\,dW$ becomes the discrete update
@@ -504,6 +493,17 @@ The whole pipeline is a Fokker-Planck story:
 The thing nobody states explicitly: **diffusion models are SVGD with the kernel replaced by a learned score field**. The repulsion-vs-attraction balance that SVGD does manually, diffusion learns from data. This is why both fall under the "sampling as gradient flow on densities" umbrella, and why Wasserstein geometry ([Section 4](#kl-divergence-is-a-wasserstein-gradient-flow)) is the right language for both.
 
 The PDE-ML chapter 7 unpacks this in its own right; here I just wanted to land the Fokker-Planck connection.
+
+## Summary
+
+- Any It&ocirc; SDE has a Fokker-Planck PDE describing how its density evolves.
+- Langevin dynamics samples from $p^\star \propto e^{-V}$; the discrete ULA / MALA / HMC algorithms are practical realisations.
+- $\mathrm{KL}(\cdot \,\|\, p^\star)$ is a Wasserstein gradient-flow energy; its flow PDE *is* the Langevin FP equation. VI and MCMC are equivalent in continuous time.
+- SVGD is a kernel-smoothed, deterministic particle approximation of the same flow, and avoids the random-walk inefficiency of MCMC.
+- Convergence is exponential at rate $2\lambda$ where $\lambda$ is the log-Sobolev constant of $p^\star$; mixing through high barriers is the bottleneck in practice.
+- Posterior sampling for Bayesian neural networks reduces to running Langevin (or SVGD) on the loss landscape.
+
+**Series conclusion.** Across four articles we have used PDEs to unify scientific computing and machine learning — from solving PDEs with neural networks (PINNs), to learning solution operators (FNO/DeepONet), to training as gradient flows, to probabilistic inference as Fokker-Planck dynamics. The recurring theme: **discrete algorithms in machine learning are usually best understood as the time-discretisation of a continuous PDE**, and PDE theory is the language for proving convergence.
 
 ## References
 

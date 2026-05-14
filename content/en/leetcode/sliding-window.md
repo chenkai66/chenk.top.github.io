@@ -428,19 +428,6 @@ def shortest_valid(arr):
 | Hard | LC 239 Sliding Window Maximum | monotonic deque |
 | Hard | LC 30 Substring with Concatenation of All Words | fixed + hashing |
 
-## Summary
-
-Sliding window is fundamentally an **amortisation argument**: instead of recomputing each window's value from scratch, you maintain a tiny piece of state and update it as the window moves by one position. Two pointers, both monotonically increasing, give you an $O(n)$ algorithm where the brute force is $O(n^2)$.
-
-The mental checklist when you see a contiguous-range problem:
-
-1. Is the window size **fixed** or **variable**?
-2. If variable, am I after the **longest** or the **shortest** valid window?
-3. What **state** do I maintain — a sum, a frequency map, a monotonic deque?
-4. What is the **invariant** that determines validity, and which pointer's move can break it?
-
-Internalise those four questions and most sliding window problems collapse to filling in a template.
-
 ## Where Sliding Window Shows Up Outside Interviews
 
 The pattern lives well beyond LeetCode. Three places I've actually shipped it:
@@ -511,3 +498,16 @@ Before you submit, run your solution mentally against this list. Most "wrong ans
 | Window larger than array | `len(arr) < k` for fixed-size templates needs an explicit guard |
 
 Two minutes of mental dry-run on these saves the fifteen minutes of staring at "Wrong Answer on test case 87".
+
+## Summary
+
+Sliding window is fundamentally an **amortisation argument**: instead of recomputing each window's value from scratch, you maintain a tiny piece of state and update it as the window moves by one position. Two pointers, both monotonically increasing, give you an $O(n)$ algorithm where the brute force is $O(n^2)$.
+
+The mental checklist when you see a contiguous-range problem:
+
+1. Is the window size **fixed** or **variable**?
+2. If variable, am I after the **longest** or the **shortest** valid window?
+3. What **state** do I maintain — a sum, a frequency map, a monotonic deque?
+4. What is the **invariant** that determines validity, and which pointer's move can break it?
+
+Internalise those four questions and most sliding window problems collapse to filling in a template.

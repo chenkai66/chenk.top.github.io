@@ -365,7 +365,7 @@ A$k$-sparse vector in$\mathbb{R}^n$has roughly$k \log(n/k)$bits of structural in
 | Sparsity | Most natural signals are sparse in some basis | Foundation for compression and CS |
 |$L_1$norm | Convex relaxation of$L_0$| Makes sparse recovery a tractable LP / QP |
 |$L_1$geometry | Diamond with corners on the axes | Forces some coordinates to be exactly zero |
-| LASSO |$\tfrac12\|X\beta-y\|^2 + \lambda\|\beta\|_1$| Regression + feature selection in one shot |
+| LASSO |$\tfrac12\midX\beta-y\mid^2 + \lambda\mid\beta\mid_1$| Regression + feature selection in one shot |
 | Compressed sensing |$m \sim k\log(n/k)$measurements suffice | Far below the Nyquist rate |
 | RIP |$\Phi$nearly preserves sparse-vector norms | Sufficient condition for unique recovery |
 | ISTA / FISTA / IHT | Gradient + thresholding | Practical algorithms with simple inner loops |

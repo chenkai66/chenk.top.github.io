@@ -358,18 +358,6 @@ Standard top-K metrics (Recall@K, NDCG@K, HR@K) for parity with baselines, then 
 
 ---
 
-## Summary
-
-Contrastive learning solves a problem that more data cannot: it gives a model a way to learn *geometry* from sparse interactions, by demanding consistency under perturbation. The recipe in 2024 is well-understood:
-
-1. **Pick an augmentation**, or none at all (XSimGCL noise).
-2. **Apply InfoNCE** with $\tau \approx 0.2$.
-3. **Add it as an auxiliary loss** with weight $\lambda \approx 0.1$ on top of your existing supervised objective.
-
-For graph-based recommenders, start with XSimGCL — it is the simplest thing that works. If you want a more interpretable baseline, SGL with edge dropout is still a strong choice. For sequence recommenders, CL4SRec's three-way augmentation menu is the standard. In every case, expect the largest wins on the cold and the tail.
-
----
-
 ## Online vs offline metric divergence
 
 This is the trap I've seen burn the most teams trying to ship contrastive recsys.
@@ -405,3 +393,15 @@ The gotcha is *training* cost, which determines refresh cadence. Contrastive tra
 On a 100M-interaction dataset, vanilla LightGCN trains in ~3 hours on a single A100. SGL with 2 augmentations and batch 4096 takes ~9 hours. That's a real cost when you're retraining every 4 hours in production. Mitigations: smaller batch with momentum queue (MoCo-style), or skip augmentations entirely (XSimGCL — random noise on embeddings).
 
 XSimGCL is what most teams should ship. Same uniformity gains as SGL, ~30% slower than vanilla LightGCN instead of 3×.
+
+## Summary
+
+Contrastive learning solves a problem that more data cannot: it gives a model a way to learn *geometry* from sparse interactions, by demanding consistency under perturbation. The recipe in 2024 is well-understood:
+
+1. **Pick an augmentation**, or none at all (XSimGCL noise).
+2. **Apply InfoNCE** with $\tau \approx 0.2$.
+3. **Add it as an auxiliary loss** with weight $\lambda \approx 0.1$ on top of your existing supervised objective.
+
+For graph-based recommenders, start with XSimGCL — it is the simplest thing that works. If you want a more interpretable baseline, SGL with edge dropout is still a strong choice. For sequence recommenders, CL4SRec's three-way augmentation menu is the standard. In every case, expect the largest wins on the cold and the tail.
+
+---

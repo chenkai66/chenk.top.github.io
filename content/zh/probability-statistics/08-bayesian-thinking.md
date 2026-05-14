@@ -194,9 +194,9 @@ $$P(\theta \in [a, b] | \mathbf{x}) = 1 - \alpha.$$
 
 | 估计量 | 定义 | 最优于 |
 |---|---|---|
-| 后验均值 | $E[\theta \|\mathbf{x}]$ | 最小化 $E[(\hat\theta - \theta)^2 \|\mathbf{x}]$（平方误差） |
-| 后验中位数 | $p(\theta \|\mathbf{x})$ 的中位数 | 最小化 $E[\|\hat\theta - \theta\|\, \|\mathbf{x}]$（绝对误差） |
-| MAP | $\arg\max_\theta p(\theta \|\mathbf{x})$ | 后验众数（= 带惩罚的 MLE） |
+| 后验均值 | $E[\theta \mid\mathbf{x}]$ | 最小化 $E[(\hat\theta - \theta)^2 \mid\mathbf{x}]$（平方误差） |
+| 后验中位数 | $p(\theta \mid\mathbf{x})$ 的中位数 | 最小化 $E[\mid\hat\theta - \theta\mid\, \mid\mathbf{x}]$（绝对误差） |
+| MAP | $\arg\max_\theta p(\theta \mid\mathbf{x})$ | 后验众数（= 带惩罚的 MLE） |
 
 对于对称且单峰的后验（如正态分布），这三种估计量重合。对于偏斜的后验，它们会有所不同，具体选择取决于你所采用的损失函数。
 
@@ -483,19 +483,6 @@ plt.show()
 
 MCMC 生成的直方图与精确的 Beta 后验高度吻合，验证了采样器的有效性。迹线图展示了马尔可夫链在参数空间中的探索过程，而自相关图则揭示了连续样本之间何时趋于独立（自相关越短，采样效率越高）。
 
-## 总结
-| 概念 | 公式 | 作用 |
-|---|---|---|
-| 贝叶斯公式 | $p(\theta\|\mathbf{x}) \propto p(\mathbf{x}\|\theta)p(\theta)$ | 基本更新规则 |
-| 共轭先验 | 先验与后验同属一族 | 后验具闭式解 |
-| Beta-二项 | $\text{Beta}(\alpha+x, \beta+n-x)$ | 比例估计 |
-| 正态-正态 | 精度加权平均 | 均值估计 |
-| 后验均值 | $E[\theta\|\mathbf{x}]$ | 平方损失下最优 |
-| MAP | $\arg\max p(\theta\|\mathbf{x})$ | = MLE + 正则化 |
-| 可信区间 | $P(\theta \in [a,b]\|\mathbf{x}) = 0.95$ | 直接概率陈述 |
-| 预测分布 | $p(\tilde{x}\|\mathbf{x}) = \int p(\tilde{x}\|\theta)p(\theta\|\mathbf{x})d\theta$ | 带不确定性的预测 |
-| MCMC | 从后验采样 | 无闭式解时的替代方案 |
-
 ## 系列回顾
 
 历经八篇文章，我们从零开始构建了概率与统计的完整体系：
@@ -512,3 +499,16 @@ MCMC 生成的直方图与精确的 Beta 后验高度吻合，验证了采样器
 每一篇文章都建立在前文的基础之上，共同构成了现代数据科学与机器学习的数学主干。文中涵盖的分布、定理与技术绝非历史遗迹——它们是每一位构建数据驱动系统者的日常工具。
 
 前方的道路通向诸多方向：多元分析、时间序列、因果推断、信息论、统计学习理论。但本系列所奠定的基础，足以让你自信地深入研读上述任何一个领域。
+
+## 总结
+| 概念 | 公式 | 作用 |
+|---|---|---|
+| 贝叶斯公式 | $p(\theta\mid\mathbf{x}) \propto p(\mathbf{x}\mid\theta)p(\theta)$ | 基本更新规则 |
+| 共轭先验 | 先验与后验同属一族 | 后验具闭式解 |
+| Beta-二项 | $\text{Beta}(\alpha+x, \beta+n-x)$ | 比例估计 |
+| 正态-正态 | 精度加权平均 | 均值估计 |
+| 后验均值 | $E[\theta\mid\mathbf{x}]$ | 平方损失下最优 |
+| MAP | $\arg\max p(\theta\mid\mathbf{x})$ | = MLE + 正则化 |
+| 可信区间 | $P(\theta \in [a,b]\mid\mathbf{x}) = 0.95$ | 直接概率陈述 |
+| 预测分布 | $p(\tilde{x}\mid\mathbf{x}) = \int p(\tilde{x}\mid\theta)p(\theta\mid\mathbf{x})d\theta$ | 带不确定性的预测 |
+| MCMC | 从后验采样 | 无闭式解时的替代方案 |

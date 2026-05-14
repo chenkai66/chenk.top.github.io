@@ -276,7 +276,7 @@ For *strict* convexity, replace$\succeq$with$\succ$.
 | Function | Why it's convex |
 |---|---|
 |$\vec{a}^T\vec{x} + b$| Affine — both convex and concave |
-|$\|\vec{x}\|_p$($p \geq 1$) | Triangle inequality |
+|$\mid\vec{x}\mid_p$($p \geq 1$) | Triangle inequality |
 |$\vec{x}^TA\vec{x}$with$A \succeq 0$| Hessian is$2A \succeq 0$|
 |$e^x$,$x \log x$| Second derivative$> 0$|
 |$-\log x$($x > 0$) | Underlies log-likelihood losses |
@@ -371,7 +371,7 @@ The Lagrangian is$\vec{w}^T\Sigma\vec{w} - \lambda(\vec{w}^T\vec{w} - 1)$, and s
 |$\vec{a}^T\vec{x}$|$\vec{a}$|
 |$\vec{x}^T\vec{x}$|$2\vec{x}$|
 |$\vec{x}^TA\vec{x}$($A$symmetric) |$2A\vec{x}$|
-|$\|\vec{x}\|_2$|$\vec{x}/\|\vec{x}\|_2$|
+|$\mid\vec{x}\mid_2$|$\vec{x}/\mid\vec{x}\mid_2$|
 
 ### Matrix Derivatives
 

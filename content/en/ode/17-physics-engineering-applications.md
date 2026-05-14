@@ -196,14 +196,6 @@ Master this loop and a vast portion of physics and engineering is unified.
 
 ---
 
-## Summary
-
-Differential equations are the **lingua franca of physics**. You spent 16 chapters building the language; this chapter showed how a handful of canonical models — pendulum, RLC, Kepler, MDOF building, pipe flow — carry you from undergraduate physics to professional engineering practice. None of them required new mathematics. They required us to *recognise the structure* and reach for the right tool.
-
-The next chapter, the finale, looks beyond this classical menu: Neural ODEs, stochastic and fractional equations, and the questions that connect ODE theory to modern machine learning.
-
----
-
 ## Worked Example with Units: Designing a Tuned RLC Bandpass
 
 A symbolic equation is mathematics; an equation with units attached is engineering. Design a series RLC bandpass with centre frequency $f_0 = 1\,\text{kHz}$ and bandwidth $\Delta f = 100\,\text{Hz}$.
@@ -251,6 +243,14 @@ Most components of $\xi$ collapse to zero; the survivors give you the equation f
 - Clean data, interpretable variables, want an equation → SINDy.
 - Noisy data, want forecasting/control, equation form irrelevant → Koopman/DMD.
 - Both → SINDy on a Koopman-invariant subspace (Otto & Rowley, 2019).
+
+## Summary
+
+Differential equations are the **lingua franca of physics**. You spent 16 chapters building the language; this chapter showed how a handful of canonical models — pendulum, RLC, Kepler, MDOF building, pipe flow — carry you from undergraduate physics to professional engineering practice. None of them required new mathematics. They required us to *recognise the structure* and reach for the right tool.
+
+The next chapter, the finale, looks beyond this classical menu: Neural ODEs, stochastic and fractional equations, and the questions that connect ODE theory to modern machine learning.
+
+---
 
 ## References
 

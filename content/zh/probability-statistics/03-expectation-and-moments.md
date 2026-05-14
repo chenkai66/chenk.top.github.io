@@ -260,7 +260,7 @@ $$a \cdot P(X \geq a) \leq E[X].$$
 $$P(|X - \mu| \geq k\sigma) \leq \frac{1}{k^2}.$$
 *证明。* 对非负随机变量 $(X - \mu)^2$ 应用马尔可夫不等式，取 $a = k^2 \sigma^2$：
 $$P((X - \mu)^2 \geq k^2 \sigma^2) \leq \frac{E[(X - \mu)^2]}{k^2 \sigma^2} = \frac{\sigma^2}{k^2 \sigma^2} = \frac{1}{k^2}. \quad \blacksquare$$
-| $k$ | 切比雪夫上界 $P(\|X - \mu\|\geq k\sigma) \leq$ | 正态分布精确值 $P(\|Z\|\geq k)$ |
+| $k$ | 切比雪夫上界 $P(\midX - \mu\mid\geq k\sigma) \leq$ | 正态分布精确值 $P(\midZ\mid\geq k)$ |
 |---|---|---|
 | 1 | 1.000 | 0.317 |
 | 2 | 0.250 | 0.046 |
@@ -420,11 +420,11 @@ $$P(X - \mu \geq t) \leq \frac{\sigma^2}{\sigma^2 + t^2}.$$
 | $\text{Cov}(X,Y)$ | $E[XY] - E[X]E[Y]$ | 线性协同变化 |
 | $\rho(X,Y)$ | $\text{Cov}(X,Y)/(\sigma_X \sigma_Y)$ | 标准化，取值范围 $[-1, 1]$ |
 | $M_X(t)$ | $E[e^{tX}]$ | 生成所有矩 |
-| 塔式性质 | $E[E[X\|Y]] = E[X]$ | 迭代期望 |
-| 全方差公式 | $\text{Var}(X) = E[\text{Var}(X\|Y)] + \text{Var}(E[X\|Y])$ | 组内 + 组间 |
+| 塔式性质 | $E[E[X\midY]] = E[X]$ | 迭代期望 |
+| 全方差公式 | $\text{Var}(X) = E[\text{Var}(X\midY)] + \text{Var}(E[X\midY])$ | 组内 + 组间 |
 | 詹森不等式 | $g(E[X]) \leq E[g(X)]$（$g$ 凸） | 基础不等式 |
 | 马尔可夫不等式 | $P(X \geq a) \leq E[X]/a$ | 要求 $X \geq 0$ |
-| 切比雪夫不等式 | $P(\|X-\mu\|\geq k\sigma) \leq 1/k^2$ | 分布无关 |
+| 切比雪夫不等式 | $P(\midX-\mu\mid\geq k\sigma) \leq 1/k^2$ | 分布无关 |
 
 ## 下一步
 
