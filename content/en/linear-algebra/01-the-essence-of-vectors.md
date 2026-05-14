@@ -363,7 +363,7 @@ A vector is not an arrow, and it is not a column of numbers. **It is a pattern**
 
 ---
 
-## 7.5 Numerical Stability: When Vector Math Breaks in Code
+### 7.5 Numerical Stability: When Vector Math Breaks in Code
 
 I want to show one thing that quietly bites people: the textbook formula $\cos\theta = \vec{u}\cdot\vec{v} / (\|\vec{u}\|\,\|\vec{v}\|)$ is *not* a safe way to compute the angle between two vectors. Try it on a pair of nearly-parallel unit vectors:
 
@@ -388,7 +388,7 @@ $$\theta = \operatorname{atan2}\bigl(\|\vec{u}\times\vec{v}\|,\ \vec{u}\cdot\vec
 
 The takeaway: the algebra you learned in this chapter is exact over $\mathbb{R}$, but every line of code lives in $\mathbb{F}_{64}$, a finite set of about $2^{64}$ rational numbers. Cancellation, overflow, and rounding are not edge cases — they decide whether your model trains.
 
-## 7.6 What numpy Actually Does for `np.dot`
+### 7.6 What numpy Actually Does for `np.dot`
 
 When you write `np.dot(u, v)` for two 1-D arrays, numpy does *not* run a Python loop. It dispatches to a BLAS Level 1 routine — typically `cblas_ddot` from OpenBLAS, MKL, or Apple Accelerate — written in hand-tuned C or assembly. For a vector of length $n$, the routine:
 

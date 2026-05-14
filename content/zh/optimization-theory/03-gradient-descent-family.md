@@ -170,7 +170,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \e
 
 在 AdamW 主导约 6 年后，自 2023 年起有三种方向真正 **在大规模上被验证有效**。
 
-## 9.1 Lion (Google, 2023)：只保留符号
+### 9.1 Lion (Google, 2023)：只保留符号
 
 由 AutoML 程序搜索发现；更新只保留 **符号**：
 $$m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t$$
@@ -181,7 +181,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_
 - **恒定更新幅度 $\eta$**：因为 sign 返回 $\pm 1$。因此 Lion 的 LR 必须比 AdamW **小约 10 倍**，wd 则需大 10 倍。
 - 在 ViT 和 LLM 预训练中，以更快的实际耗时匹配或略微超越 AdamW。
 
-## 9.2 Sophia (Stanford, 2023)：廉价二阶方法
+### 9.2 Sophia (Stanford, 2023)：廉价二阶方法
 
 Sophia 将廉价的对角 Hessian 估计插入分母：
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t$$
@@ -196,7 +196,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_
 
 报告结果：在 GPT-2 规模下，达到相同困惑度所需的实际耗时大约减半。
 
-## 9.3 Schedule-Free (Meta, 2024)：抛弃调度
+### 9.3 Schedule-Free (Meta, 2024)：抛弃调度
 
 学习率调度（cosine、WSD 等）都有一个烦人之处：**你必须提前知道总步数**。研究中通常不知道，因此承诺一个调度会束缚手脚。
 
@@ -283,7 +283,7 @@ bf16 略有不同：其动态范围足够宽，有时可全程保留 bf16 梯度
 
 这些只是初试先验。实际数值取决于 batch size（SGD 遵循线性缩放规则，Adam 遵循类似 $\sqrt{}$ 的缩放规则）、预热长度和数据集噪声。但若初始值超出这些区间，几乎总是配置错误，而非新发现。
 
-## 7. 总结
+## 总结
 
 三十余年的优化器演化可浓缩为两句话：
 

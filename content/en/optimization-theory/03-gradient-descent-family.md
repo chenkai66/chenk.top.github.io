@@ -171,7 +171,7 @@ The effect: at the same $\lambda$ and LR, AdamW's generalization gap on ImageNet
 
 After AdamW reigned for ~6 years, three directions have actually **proven themselves at scale** since 2023.
 
-## 9.1 Lion (Google, 2023): only the sign
+### 9.1 Lion (Google, 2023): only the sign
 
 Discovered by AutoML program search; the update keeps **only the sign**:
 $$m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t$$
@@ -182,7 +182,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_
 - **Constant update magnitude $\eta$**: because sign returns $\pm 1$. So Lion's LR must be **about 10x smaller** than AdamW's, and wd about 10x larger.
 - On ViT and LLM pretraining, matches or slightly beats AdamW with faster wall-clock.
 
-## 9.2 Sophia (Stanford, 2023): cheap second-order
+### 9.2 Sophia (Stanford, 2023): cheap second-order
 
 Sophia plugs a cheap diagonal-Hessian estimate into the denominator:
 $$m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t$$
@@ -197,7 +197,7 @@ $$\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_
 
 Reported results: roughly halves the wall-clock to reach a given perplexity at GPT-2 scale.
 
-## 9.3 Schedule-Free (Meta, 2024): drop the schedule
+### 9.3 Schedule-Free (Meta, 2024): drop the schedule
 
 LR schedules (cosine, WSD, etc.) all share one annoyance: **you must know the total step count in advance**. During research you usually do not, so committing to a schedule ties your hands.
 
@@ -284,7 +284,7 @@ These are the intervals I reach for first when starting a Transformer-class run.
 
 These are first-shot priors. The real number depends on batch size (linear scaling rule for SGD, $\sqrt{}$-ish scaling rule for Adam), warmup length, and dataset noise. But starting outside these intervals is almost always a configuration mistake, not a discovery.
 
-## 7. Summary
+## Summary
 
 Three decades of optimizer evolution compress to two sentences:
 
