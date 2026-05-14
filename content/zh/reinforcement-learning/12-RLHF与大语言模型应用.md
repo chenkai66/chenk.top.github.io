@@ -18,7 +18,7 @@ translationKey: "reinforcement-learning-12"
 ---
 GPT-3（2020 年 6 月）和 ChatGPT（2022 年 11 月）共享了大部分权重。基础模型能写出流畅的散文、补全代码，也能续写任意给定的模式；但当你直接问它一个简单问题时，它却可能喋喋不休、以错误理由拒绝回答、编造虚假引用，甚至输出有害内容。从 GPT-3 到 ChatGPT 的两年半时间，并没有花在扩大 Transformer 规模上，而是聚焦于一个更根本的问题：**如何让模型真正有用**——而这本质上是一个强化学习问题。
 
-作为本系列的收官之作，本文将整合此前构建的所有核心概念：值函数、策略梯度、PPO 的信任域、离策略修正、偏好学习、内在动机，以及从模仿学习到逆强化学习（IRL）的演进路径。这些共同构成了催生 ChatGPT、Claude、Llama-3-Instruct 等主流助手模型的“对齐技术栈”。我们将推导出 **RLHF 的三阶段流程**、每个偏好数据集背后的 **Bradley-Terry 似然模型**、让 DPO 能跳过强化学习的 **闭式最优解**，以及因 **Goodhart 定律**导致对齐成为动态目标的失败模式。最后，我们将目光投向强化学习的未来：具身智能体、宪法式自监督，以及推理时搜索。
+作为本系列的收官之作，本文将整合此前构建的所有核心概念：值函数、策略梯度、PPO 的信任域、离策略修正、偏好学习、内在动机，以及从模仿学习到逆强化学习（IRL）的演进路径。这些共同构成了催生 ChatGPT、Claude、Llama-3-Instruct 等主流助手模型的“对齐技术栈”。下面推导出 **RLHF 的三阶段流程**、每个偏好数据集背后的 **Bradley-Terry 似然模型**、让 DPO 能跳过强化学习的 **闭式最优解**，以及因 **Goodhart 定律**导致对齐成为动态目标的失败模式。最后，本文目光投向强化学习的未来：具身智能体、宪法式自监督，以及推理时搜索。
 ![强化学习（十二）：RLHF与大语言模型应用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.png)
 
 
@@ -69,11 +69,11 @@ $$
 
 ### 阶段 3 —— 带 KL 锚点的 PPO
 
-现在进入真正的强化学习阶段。我们将 $r_\phi$ 视为环境奖励，优化策略以最大化期望奖励——但加入一个 **KL 惩罚项**，使其保持接近 $\pi_{\text{ref}}$：
+现在进入真正的强化学习阶段。本文 $r_\phi$ 视为环境奖励，优化策略以最大化期望奖励——但加入一个 **KL 惩罚项**，使其保持接近 $\pi_{\text{ref}}$：
 $$
 \max_{\pi_\theta}\; \mathbb{E}_{x\sim\mathcal{D},\,y\sim\pi_\theta(\cdot|x)}\!\left[\,r_\phi(x, y) \,-\, \beta\,\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}\,\right].
 $$
-括号内的整体即为 PPO 使用的逐 token 奖励，第二项是 KL 锚点。若无此项，策略最终会找到在 $r_\phi$ 下得分高但语义混乱的 token 序列——这就是奖励操控，我们将在 §6 中详细讨论。
+括号内的整体即为 PPO 使用的逐 token 奖励，第二项是 KL 锚点。若无此项，策略最终会找到在 $r_\phi$ 下得分高但语义混乱的 token 序列——这就是奖励操控，本文在 §6 中详细讨论。
 
 PPO 成为首选算法的原因与 [第 6 部分](/zh/reinforcement-learning/06-ppo与trpo-信任域策略优化) 中所述一致：
 

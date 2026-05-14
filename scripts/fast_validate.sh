@@ -54,9 +54,13 @@ for f in $EN/*.md; do
     [ -f "$f" ] || continue
     [ "$(basename $f)" = "_index.md" ] && continue
     check_archetype "$f" "$ANCHOR_EN" "$TRAILER_EN"
-    # Table \| check: only fail if math `$...\|...$` is inside a table row
     body "$f" | grep -nE '^\s*\|.*\$[^$]*\\\|[^$]*\$.*\|' >/dev/null 2>&1 && fail "$(basename $f) 表格 cell 含 math \\| (用 \\mid)"
-    unlinked=$(body "$f" | grep -nE '(Chapter|Part|Section) [0-9]+' 2>/dev/null | grep -vE '\]\(|http|^[^:]*:\s*#|^[^:]*:\s*>' | head -2)
+    # Self-ref number (NN- prefix or front-matter series_order)
+    own_n=$(basename "$f" | grep -oE '^[0-9]{1,2}' | sed 's/^0//')
+    [ -z "$own_n" ] && own_n=$(grep -m1 '^series_order:' "$f" | awk '{print $2}')
+    unlinked=$(body "$f" | grep -nE '(Chapter|Part|Section) [0-9]+' 2>/dev/null \
+        | grep -vE '\]\(|http|^[^:]*:\s*#|^[^:]*:\s*>' \
+        | { [ -n "$own_n" ] && grep -vE "(Chapter|Part|Section) ${own_n}\b" || cat; } | head -2)
     [ -n "$unlinked" ] && fail "$(basename $f) 未链接 Part/Section ref"
 done
 for f in $ZH/*.md; do
@@ -64,7 +68,11 @@ for f in $ZH/*.md; do
     [ "$(basename $f)" = "_index.md" ] && continue
     check_archetype "$f" "$ANCHOR_ZH" "$TRAILER_ZH"
     body "$f" | grep -nE '^\s*\|.*\$[^$]*\\\|[^$]*\$.*\|' >/dev/null 2>&1 && fail "$(basename $f) 表格 cell 含 math \\| (用 \\mid)"
-    unlinked=$(body "$f" | grep -nE '第 ?[0-9]+ ?[章节部]' 2>/dev/null | grep -vE '\]\(|http|^[^:]*:\s*#|^[^:]*:\s*>' | head -2)
+    own_n=$(basename "$f" | grep -oE '^[0-9]{1,2}' | sed 's/^0//')
+    [ -z "$own_n" ] && own_n=$(grep -m1 '^series_order:' "$f" | awk '{print $2}')
+    unlinked=$(body "$f" | grep -nE '第 ?[0-9]+ ?[章节部]' 2>/dev/null \
+        | grep -vE '\]\(|http|^[^:]*:\s*#|^[^:]*:\s*>' \
+        | { [ -n "$own_n" ] && grep -vE "第 ?${own_n} ?[章节部]" || cat; } | head -2)
     [ -n "$unlinked" ] && fail "$(basename $f) 未链接 第N章 ref"
 done
 

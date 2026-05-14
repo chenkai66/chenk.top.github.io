@@ -37,6 +37,8 @@ translationKey: "gnn-equivariant-representations"
 
 ## 为什么「在网络空间上学习」必须考虑等变
 
+![Permutation equivariance: hidden-unit symmetry of an MLP](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/gnn-equivariant-representations/fig1_permutation_equivariance.png)
+
 近几年出现了一类新任务，将一个完整的训练好的网络视为一个数据点：
 
 - **预测泛化能力**：不跑验证集，只看权重就估计测试精度
@@ -70,6 +72,8 @@ $$\mathcal{S} \;=\; S_{n_1} \times S_{n_2} \times \cdots \times S_{n_L},$$
 正确的做法是直接画一张有向图，让它的结构和网络的计算图一一对应。
 
 ## MLP 怎么变成图
+
+![MLP weights vs the same MLP as a neural graph](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/gnn-equivariant-representations/fig2_neural_graph.png)
 
 设一个 MLP 的层宽是 $n_0, n_1, \ldots, n_L$，第 $\ell$ 层的权重是 $W_\ell \in \mathbb{R}^{n_\ell \times n_{\ell-1}}$，偏置是 $b_\ell \in \mathbb{R}^{n_\ell}$。神经图的定义是：
 
@@ -105,6 +109,8 @@ $$\mathcal{S} \;=\; S_{n_1} \times S_{n_2} \times \cdots \times S_{n_L},$$
 
 ## 等变性：形式定义与操作含义
 
+![Invariance vs equivariance: same symmetry, different output](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/gnn-equivariant-representations/fig4_equivariant_vs_invariant.png)
+
 把概念再钉死一点。对图上函数 $f$ 和节点标号置换 $\pi$：
 
 - $f$ **不变（invariant）**：$f(\pi \cdot G) = f(G)$。**图级**输出（一个网络一个标量）用这个。
@@ -138,6 +144,8 @@ $$V_{uv} \;=\; (\gamma(e_{uv}) \odot V_u) + \beta(e_{uv}),$$
 
 ## 整体流水线
 
+![End-to-end GNN pipeline for processing neural-net parameters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/gnn-equivariant-representations/fig3_gnn_pipeline.png)
+
 图 3 把五个阶段一字排开：训好的网络 → 神经图 → $L$ 层带边更新的等变消息传递 → 图级池化 → 一个小 MLP 输出头。等变性是在第三步**写进架构**的：之前都是数据，之后要么继续保持等变，要么有意做一次塌缩（最后那一次池化）。
 
 ## 一些「看着小但真有用」的工程细节
@@ -155,6 +163,8 @@ $$V_{uv} \;=\; (\gamma(e_{uv}) \odot V_u) + \beta(e_{uv}),$$
 ## 下游任务：等变性能换到什么
 
 ## 预测泛化能力
+
+![Predicting generalisation from weights alone](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/gnn-equivariant-representations/fig5_generalization_prediction.png)
 
 设定：拿一组训好的网络（每个都知道测试精度），训 GNN 直接从权重回归测试精度。
 

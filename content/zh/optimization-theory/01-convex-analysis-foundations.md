@@ -14,7 +14,7 @@ description: "解锁本系列后续内容的几何与分析工具包：凸集、
 disableNunjucks: true
 translationKey: "optim-01"
 ---
-本文是本系列其余所有内容的基石。我们后续将证明的几乎所有结论——梯度下降法的收敛速率、拉格朗日对偶性、近端算子（proximal operator），乃至随机优化方法的分析——都依赖于关于凸集与凸函数的一小套基本事实。我们将从零开始，逐一推导全部结论。
+本文是本系列其余所有内容的基石。我们后续将证明的几乎所有结论——梯度下降法的收敛速率、拉格朗日对偶性、近端算子（proximal operator），乃至随机优化方法的分析——都依赖于关于凸集与凸函数的一小套基本事实。本文从零开始，逐一推导全部结论。
 
 若你仅记住本文中的三点，请务必牢记以下内容：
 
@@ -74,7 +74,7 @@ $$
 
 ### 投影定理
 
-我们将反复使用如下重要定理：
+本文反复使用如下重要定理：
 
 > **投影定理**．设 $C \subseteq \mathbb{R}^n$ 是非空闭凸集，$y \in \mathbb{R}^n$。则存在唯一一点 $\pi_C(y) \in C$，使得 $\|x - y\|_2$ 在 $x \in C$ 上取得最小值。进一步地，$z = \pi_C(y)$ 当且仅当  
 > $$\langle y - z,\, x - z \rangle \leq 0 \quad \text{对所有 } x \in C \text{ 成立}。$$
@@ -112,7 +112,7 @@ $$
 
 ### 四种等价刻画
 
-设 $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$，其**有效定义域**为 $\mathrm{dom}(f) = \{x : f(x) < +\infty\}$，并假设该集合是凸集。以下四条性质彼此等价，后续我们将不加区分地使用它们：
+设 $f : \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$，其**有效定义域**为 $\mathrm{dom}(f) = \{x : f(x) < +\infty\}$，并假设该集合是凸集。以下四条性质彼此等价，后续本文不加区分地使用它们：
 
 **定义式（凸性原始定义）**：对任意 $x, y \in \mathrm{dom}(f)$ 及 $\lambda \in [0, 1]$，
 $$
@@ -157,7 +157,7 @@ $$
   $$
   f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \frac{\mu}{2} \|y - x\|_2^2.
   $$
-强凸性之于凸性，正如“一致连续”之于“连续”——它提供了可量化的间隙（quantitative gap），是使优化算法收敛速率具象化的核心条件。我们将在第 02 篇文章中深入剖析其含义与作用。
+强凸性之于凸性，正如“一致连续”之于“连续”——它提供了可量化的间隙（quantitative gap），是使优化算法收敛速率具象化的核心条件。本文在第 02 篇文章中深入剖析其含义与作用。
 
 ### 典型例子
 
@@ -286,7 +286,7 @@ $$
 
 ### 最优性：从 $\nabla f = 0$ 到 $0 \in \partial f$
 
-我们将最常依赖的核心结论是：若 $f$ 是凸函数，则  
+本文最常依赖的核心结论是：若 $f$ 是凸函数，则  
 $$
 x^\star \in \arg\min f \iff 0 \in \partial f(x^\star).
 $$
@@ -296,7 +296,7 @@ $$
 $$
 0 \in \partial f(x^\star) + N_C(x^\star),
 $$
-其中 $N_C(x^\star) = \{g : \langle g, y - x^\star \rangle \leq 0 \ \forall y \in C\}$ 称为集合 $C$ 在 $x^\star$ 处的**法锥**（normal cone）。我们将在第 08 篇文章中结合 KKT 条件再次深入讨论此式。
+其中 $N_C(x^\star) = \{g : \langle g, y - x^\star \rangle \leq 0 \ \forall y \in C\}$ 称为集合 $C$ 在 $x^\star$ 处的**法锥**（normal cone）。本文在第 08 篇文章中结合 KKT 条件再次深入讨论此式。
 
 ## 综合应用：一个完整求解示例
 

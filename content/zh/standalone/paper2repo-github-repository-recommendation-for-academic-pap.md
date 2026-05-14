@@ -38,9 +38,13 @@ paper2repo（WWW 2020）将这一过程系统化：将论文摘要和 GitHub 仓
 
 ## 系统总览
 
+![paper2repo system architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation/fig1_system_architecture.png)
+
 图 1 从左右两边、自上而下读。模型是两座并行的塔。左塔把论文摘要喂进 CNN，再用 GCN 在引用图上传播，输出论文嵌入 $h^p$。右塔对仓库描述和标签做同样的事，在仓库关联图上传播，输出 $h^r$。两座塔不共享任何权重，但训练阶段被两股跨塔的力量拽在一起：一是桥接对上的余弦对齐约束，二是用论文-仓库正样本对喂的 WARP 排序损失。推理阶段两座塔各自独立运行，排序就是 $h^p$ 和预先算好的仓库嵌入索引做一次稠密内积。
 
 ## 联合异构图
+
+![Heterogeneous graph: papers, repos, users, bridged pairs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation/fig2_heterogeneous_graph.png)
 
 模型设计中首个关键决策，是为每座塔选择适配的图结构。论文这边有一个干净的现成信号——引用——它是有向、稀疏、语义明确的。仓库这边没有可以直接对应的东西， paper2repo 用两种隐式信号把它造出来。
 
@@ -76,6 +80,8 @@ paper2repo（WWW 2020）将这一过程系统化：将论文摘要和 GitHub 仓
 
 ## 两股训练力
 
+![WARP ranking + cosine alignment constraint](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation/fig3_embedding_objectives.png)
+
 图 3(a) 展示排序力。归一化之后所有嵌入都活在单位球面上。对一个 “论文-正样本仓库” 对 $(p, r^+)$，损失把 $h^{r^+}$ 朝 $h^p$ 的方向拉，把任何落在正样本附近 margin $\gamma$ 之内的负样本 $r^-$ 推开。图 3(b) 展示对齐力。如果没有跨塔约束，两座 GCN 各自训练得到的 “论文云” 和 “仓库云” 会以椭球状漂在 $\mathbb{R}^d$ 的不同区域里，互不接壤。约束把桥接对捆在一起，相当于把整片仓库云拽进论文云的坐标系。
 
 ### WARP 排序损失
@@ -102,11 +108,15 @@ $$
 
 ## 推理流程
 
+![Recommendation flow at query time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation/fig4_recommendation_flow.png)
+
 线上来一篇新论文，左塔跑一遍： CNN 编码摘要，再用 GCN 在它已知的引用邻居上传播一次（如果这篇论文还没被引用，就只用编码器输出）。结果是单个向量 $h^p$。排序就是 $h^p$ 和预算好的仓库嵌入矩阵做一次稠密矩阵-向量乘， top-K 是一次 argpartition。整套系统没有重排器、没有二段过滤——这是个有意识的工程取舍：方便上线，方便做消融。
 
 图 4 那个示意 shortlist 反映的是典型的排序模式：榜首基本被那些 “话题接近”（文本相似度高）+ “在关联图里位置好”（GCN 平滑得好）的仓库占据。两个信号在论文话题清晰、有公认参考实现时互相加成；在话题冷门时会分歧——这种情况下关联图几乎是唯一可靠的信号，模型实际上退化为 “社区平时会和这类工作放在一起的是哪些仓库”。
 
 ## 实验
+
+![paper2repo vs seven baselines on HR@10, MAP@10, MRR@10](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/paper2repo-github-repository-recommendation/fig5_evaluation_results.png)
 
 **数据。** 32,029 篇论文，来自 Microsoft Academic （2010-2018 顶会顶刊）； 7,571 个 GitHub 仓库，其中 2,107 个是桥接仓库。论文把桥接对切成训练 / 验证 / 测试三份用作对齐监督，剩下的图结构作为无监督的辅助信号。
 

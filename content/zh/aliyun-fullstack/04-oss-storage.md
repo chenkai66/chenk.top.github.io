@@ -870,7 +870,7 @@ curl "https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-os
 
 ## 解决方案：媒体存储后端
 
-现在，我们将前述内容整合为一个完整的媒体存储后端：包含生命周期规则的 OSS Bucket、绑定自定义域名的 CDN，以及一个 Python Flask API，用于生成预签名上传 URL 并通过 CDN 提供带处理能力的图片服务。
+现在，本文前述内容整合为一个完整的媒体存储后端：包含生命周期规则的 OSS Bucket、绑定自定义域名的 CDN，以及一个 Python Flask API，用于生成预签名上传 URL 并通过 CDN 提供带处理能力的图片服务。
 
 ### 第一步：创建并配置 Bucket
 
@@ -1202,8 +1202,8 @@ Browser                          Your Flask API                OSS Bucket
 
 **预签名 URL 让服务器保持轻量。** 切勿让应用服务器代理文件上传下载。生成预签名 URL，让客户端直连 OSS（或 CDN）。服务器只处理元数据与授权，不碰字节流。
 
-关于通过基础设施即代码管理 OSS，请参阅 [Terraform Part 5: Storage](/zh/terraform-agents/05-storage-for-agent-memory/)。我们将在 [Part 11: PAI](/zh/aliyun-fullstack/11-pai-ml-platform/) 中使用 OSS 作为机器学习模型的后端存储。
+关于通过基础设施即代码管理 OSS，请参阅 [Terraform Part 5: Storage](/zh/terraform-agents/05-storage-for-agent-memory/)。本文在 [Part 11: PAI](/zh/aliyun-fullstack/11-pai-ml-platform/) 中使用 OSS 作为机器学习模型的后端存储。
 
 ## 接下来聊什么
 
-存储是数据安身立命之所。随着 OSS 配置到位——Bucket、生命周期规则、访问控制、CDN 与图片处理均已就绪——我们的持久化层已稳固可靠。下一篇文章，我们将转向托管数据库：用 RDS 处理关系型数据，用 Redis 提供缓存，并探讨复制、备份与故障转移策略，确保在硬件不可避免地失效时，数据依然安然无恙。
+存储是数据安身立命之所。随着 OSS 配置到位——Bucket、生命周期规则、访问控制、CDN 与图片处理均已就绪——我们的持久化层已稳固可靠。下一篇文章，本文转向托管数据库：用 RDS 处理关系型数据，用 Redis 提供缓存，并探讨复制、备份与故障转移策略，确保在硬件不可避免地失效时，数据依然安然无恙。

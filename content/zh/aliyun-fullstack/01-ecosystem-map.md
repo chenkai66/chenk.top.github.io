@@ -18,7 +18,7 @@ translationKey: "aliyun-fullstack-1"
 ---
 刚接触阿里云的第一周，我彻底迷失在产品名称的海洋里：ECS、SLB、SLS、RDS、OSS、NAS、PAI、ARMS、ACK、FC、CDN、WAF、RAM、KMS、ROS、CloudMonitor、EventBridge、PolarDB、Lindorm、AnalyticDB、MaxCompute、DataWorks、Flink、DashScope、Bailian、OpenSearch……每个控制台页面都链接到三四个我没听过的产品，文档默认你已经了解一切，英文翻译有时直译、有时意译，偶尔干脆缺失。这正是我当初最需要的指南——不用浪费整个周末点击控制台、硬啃那些只教你怎么开关功能却从不解释产品本质的翻译文档。
 
-本文就是一张全景地图：我们将阿里云生态完整映射到你熟悉的 AWS/Azure/GCP 服务，从零开通账号、厘清计费模型（避免账单惊吓），最终部署一台可运行的 ECS 实例。文中提到的每一项服务，要么已在生产环境使用，要么经过审慎评估后明确弃用，绝不空谈理论。
+本文就是一张全景地图：本文阿里云生态完整映射到你熟悉的 AWS/Azure/GCP 服务，从零开通账号、厘清计费模型（避免账单惊吓），最终部署一台可运行的 ECS 实例。文中提到的每一项服务，要么已在生产环境使用，要么经过审慎评估后明确弃用，绝不空谈理论。
 
 ---
 
@@ -365,7 +365,7 @@ aliyun ecs RunInstances \
 
 ![阿里云免费额度一览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_free_tier.png)
 
-我们将启动一台运行 Alibaba Cloud Linux 3 的 ECS 实例，通过 SSH 登录，安装 nginx，并托管一个测试页面。整个过程约需 15 分钟。
+本文启动一台运行 Alibaba Cloud Linux 3 的 ECS 实例，通过 SSH 登录，安装 nginx，并托管一个测试页面。整个过程约需 15 分钟。
 
 ### 前置条件
 
@@ -627,7 +627,7 @@ terraform plan
 terraform apply
 ```
 
-三条命令替代十二步操作，状态自动跟踪，配置可版本控制，用完执行 `terraform destroy` 即可一键清理。我们将在 [第 7 篇](/zh/aliyun-fullstack/07-observability) 深入讲解 Terraform，若想深入探索，还可参考完整的 [Terraform for AI Agents series](/zh/terraform-agents/01-why-terraform-for-agents/)。
+三条命令替代十二步操作，状态自动跟踪，配置可版本控制，用完执行 `terraform destroy` 即可一键清理。本文在 [第 7 篇](/zh/aliyun-fullstack/07-observability) 深入讲解 Terraform，若想深入探索，还可参考完整的 [Terraform for AI Agents series](/zh/terraform-agents/01-why-terraform-for-agents/)。
 
 ## 首次部署检查清单
 
@@ -783,4 +783,4 @@ Article 12: Putting It All Together — A Production Architecture
 
 5. **从第一天就使用 Terraform。** 上述 CLI 演示仅为教学目的，实际生产中绝不应命令式创建基础设施。本系列所有资源均提供 Terraform 实现。未来的你一定会感谢现在的决定。
 
-下一篇：[文章 02 — ECS 深挖](/zh/aliyun-fullstack/02-ecs-compute)，我们将深入探讨实例选型、镜像管理、磁盘性能特性，以及对生产负载至关重要的部署策略。
+下一篇：[文章 02 — ECS 深挖](/zh/aliyun-fullstack/02-ecs-compute)，本文深入探讨实例选型、镜像管理、磁盘性能特性，以及对生产负载至关重要的部署策略。
