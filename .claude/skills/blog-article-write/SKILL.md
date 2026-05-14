@@ -280,6 +280,11 @@ cd /root/chenk-hugo && git add content/ themes/ && git commit -m "add: series-na
 5. **Image paths**: EN uses `/en/`, ZH uses `/zh/` — Qwen prompt handles this but verify
 6. **Front matter**: Both EN and ZH must have matching `translationKey` for language switcher
 7. **Hugo build**: Check for `WARNING` in build output — usually indicates broken refs
+8. **Markdown table cells with `\|` in math**: breaks column count — use `\mid` instead. See §12.2.
+9. **Tables looking visually broken**: ensure `layouts/_default/_markup/render-table.html` exists. See §12.1.
+10. **Plain-text "Part N" / "第 N 章" mentions**: must be hyperlinks to the target chapter. See §13.
+11. **OSS image-path slug variants** (Title-Case vs lowercase, truncated vs full): pick one per article, verify with HEAD-check. See §14.
+12. **Wrong Part numbers in series text**: after any series re-shuffle, grep every "Part N" / "第 N 章" and verify against current outline. See §13.3.
 
 
 
@@ -328,3 +333,145 @@ The backslash-n in \nabla can be consumed as a newline during Python file writes
 
 ### Blockquote Math
 Hugo cannot handle multi-line $$ blocks inside blockquotes. Always use single-line: > $$content$$
+
+---
+
+## 12. Markdown Tables
+
+### 12.1 Required render hook (CRITICAL — root-cause fix for "tables look weird")
+
+**Symptom**: 2- or 3-column tables render with rows the wrong width, columns overflow the article column on desktop, ZH tables in particular get pushed out beyond the layout.
+
+**Root cause**: Goldmark emits a raw `<table>` element. The site's CSS only applies `overflow-x: auto` to `.prose .table-wrap > table`, which requires the table to be wrapped in a `<div class="table-wrap">` element. Without a Hugo render hook, raw tables get no scroll container and overflow.
+
+**Fix (already installed at `layouts/_default/_markup/render-table.html`)**: this hook wraps every markdown table in `<div class="table-wrap">` so the existing CSS kicks in.
+
+```html
+<div class="table-wrap">
+<table>
+  <thead>
+    {{- range .THead }}
+    <tr>{{- range . }}<th{{ with .Alignment }} style="text-align: {{ . }}"{{ end }}>{{ .Text | safeHTML }}</th>{{- end }}</tr>
+    {{- end }}
+  </thead>
+  <tbody>
+    {{- range .TBody }}
+    <tr>{{- range . }}<td{{ with .Alignment }} style="text-align: {{ . }}"{{ end }}>{{ .Text | safeHTML }}</td>{{- end }}</tr>
+    {{- end }}
+  </tbody>
+</table>
+</div>
+```
+
+If this file is ever deleted, every table on the site loses its scroll container. After editing the hook, run `hugo --minify` to verify the output contains `class="table-wrap"`.
+
+### 12.2 Cell escaping — the `\|` pipe trap
+
+Markdown table parsers split rows on every `|`, including `\|` written inside `$...$` math. So a cell like:
+
+```
+| Distribution | $P_S(Y\|X)$ | $P_T(Y\|X)$ |
+```
+
+…is parsed as a 5-cell row, not 3, and the table renders with broken column widths.
+
+**Rule**: never write `\|` inside a table cell. Always use `\mid`:
+
+```
+| Distribution | $P_S(Y\mid X)$ | $P_T(Y\mid X)$ |
+```
+
+`\mid` renders identically as `|` in KaTeX but doesn't trip the markdown table parser. This applies to BOTH EN and ZH copies — fix in pairs.
+
+Detection script (catches column-count mismatches in tables):
+
+```python
+# Run from the repo root after edits
+import re, glob
+for path in glob.glob("content/{en,zh}/*/*.md"):
+    with open(path) as f: lines = f.read().split("\n")
+    in_table = False; hdr_n = 0
+    for i, line in enumerate(lines, 1):
+        if not re.match(r"^\s*\|.*\|\s*$", line): in_table = False; continue
+        n = len(line.strip().strip("|").split("|"))
+        if not in_table: in_table = True; hdr_n = n
+        elif n != hdr_n and not re.match(r"^\s*\|?\s*:?-{2,}", line):
+            print(f"{path}:{i}  cols={n} hdr={hdr_n}")
+```
+
+### 12.3 Wide-table best practice
+
+Even with the wrap, tables wider than ~6 columns are painful on mobile. When a comparison naturally has 7+ columns:
+- **Split** into two side-by-side smaller tables; OR
+- **Transpose** so columns become rows; OR
+- **Move detail to prose** below the table.
+
+Don't rely on horizontal scroll alone — readers often miss off-screen columns.
+
+---
+
+## 13. Cross-chapter Links (mandatory in series)
+
+Whenever a sentence references another chapter / part / section of the same series, it must be a hyperlink, not plain text. Plain "Part 9" or "第 9 章" mentions render as inert grey text and don't help navigation.
+
+### 13.1 The patterns to grep for
+
+After any expansion or audit, run these greps and link every hit (allow only the ones already inside `[...](...)` to pass):
+
+```bash
+# EN
+grep -nE '(Chapter|Part|Section) [0-9]+' content/en/<series>/*.md \
+  | grep -vE '\]\(|http|^[^:]*:\s*#'
+
+# ZH
+grep -nE '第 ?[0-9０-９一二三四五六七八九十]+ ?[章节部]' content/zh/<series>/*.md \
+  | grep -vE '\]\(|http|^[^:]*:\s*#'
+```
+
+### 13.2 Link form
+
+```markdown
+EN intra-series:    [Part 9](/en/<series>/09-<slug>/)
+EN intra-article:   [Section 4](#section-anchor)        ← auto-slugified Hugo anchor
+ZH intra-series:    [第 9 章](/zh/<series>/09-<slug>/)
+```
+
+Use the **URL slug** Hugo serves the article at (lowercase, kebab-case for EN; the original Chinese filename for ZH). Verify by visiting the link in the dev server before committing.
+
+### 13.3 Factual numbering check
+
+Every "Part N" / "第 N 章" claim names a specific chapter — a stale series outline introduces off-by-one errors that misdirect readers. After any series re-shuffle:
+1. List the actual chapter order from the `_index.md` / `series.toml`.
+2. Grep every "Part N" / "第 N 章" in the prose.
+3. Verify N matches the current series numbering, not an old draft.
+
+E.g., during the transfer-learning expansion an article said "distillation (Part 6)" when distillation is actually Part 5; "continual learning, Part 9" when it's Part 10. These survive Qwen translation untouched, so they're easy to miss.
+
+---
+
+## 14. OSS image-path slug consistency
+
+Each article has TWO independent slugs:
+1. **Hugo URL slug** — used in `[link](/en/<series>/<slug>/)` and the article's URL on chenk.top.
+2. **OSS image directory** — used in `posts/{en,zh}/<series>/<dir>/<file>.png`.
+
+These don't have to match, but they MUST be consistent across every image reference in a given article. Mixing case-variants causes 404s on case-sensitive OSS:
+
+```
+✗ posts/en/transfer-learning/12-Industrial-Applications/foo.png       (Title-Case)
+✗ posts/en/transfer-learning/12-industrial-applications/foo.png       (lowercase, truncated)
+✓ posts/en/transfer-learning/12-industrial-applications-and-best-practices/foo.png
+```
+
+When uploading new figures, pick one canonical OSS dir name per article and stick with it. Recommended: lowercase-kebab, full slug. Document the chosen name at the top of the figure-generation script:
+
+```python
+# OSS dir for this article: 12-industrial-applications-and-best-practices
+OSS_PATH = "posts/en/transfer-learning/12-industrial-applications-and-best-practices"
+```
+
+After bulk-uploading, run a HEAD-check on every image URL referenced from the article's markdown (run from a server with healthy DNS — local Mac → blog-pic-ck OSS sometimes has timeouts, use ai4m or the deploy server).
+
+### 14.1 Mistake-prone alt + path mapping in ZH copies
+
+When duplicating an EN article's image references into ZH, it's easy to leave the path pointing at `/posts/en/...`. The image will still render (because the EN bucket has it), but a future re-render of localized labels won't appear in ZH. Always flip both the alt-text language AND the URL path to `/posts/zh/...`.

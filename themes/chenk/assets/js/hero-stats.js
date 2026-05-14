@@ -11,9 +11,9 @@
       var progress = Math.min(elapsed / duration, 1);
       var eased = easeOutQuad(progress);
       var value = Math.floor(target * eased);
-      el.textContent = value + suffix;
+      el.textContent = value.toLocaleString() + suffix;
       if (progress < 1) requestAnimationFrame(tick);
-      else el.textContent = target + suffix;
+      else el.textContent = target.toLocaleString() + suffix;
     }
     requestAnimationFrame(tick);
   }
