@@ -30,7 +30,7 @@ translationKey: "optim-07"
 
 ## 前置知识
 
-第 01–02 篇文章（凸分析、光滑性、强凸性）；线性代数熟练：矩阵求逆、秩-1 更新、Sherman–Morrison 公式。
+[第 01 篇](../01-convex-analysis-foundations/)–[第 02 篇](../02-smoothness-strong-convexity-nesterov/)（凸分析、光滑性、强凸性）；线性代数熟练：矩阵求逆、秩-1 更新、Sherman–Morrison 公式。
 
 ## 1. 牛顿法（Newton’s method）
 

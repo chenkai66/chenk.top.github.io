@@ -35,7 +35,7 @@ We give the central-path complexity proof in full.
 
 ## Prerequisites
 
-Articles 02 (smoothness), 07 (Newton's method), 08 (Lagrangian, KKT). Some comfort with directional derivatives and reading "Hessian metric" arguments.
+[Articles 02](../02-smoothness-strong-convexity-nesterov/) (smoothness), 07 (Newton's method), 08 (Lagrangian, KKT). Some comfort with directional derivatives and reading "Hessian metric" arguments.
 
 ---
 

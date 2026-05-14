@@ -35,7 +35,7 @@ translationKey: "optim-08"
 
 ## 前置知识
 
-第 01–02 篇文章（凸集、凸函数、次梯度、光滑性、强凸性）。
+[第 01 篇](../01-convex-analysis-foundations/)–[第 02 篇](../02-smoothness-strong-convexity-nesterov/)（凸集、凸函数、次梯度、光滑性、强凸性）。
 
 ---
 

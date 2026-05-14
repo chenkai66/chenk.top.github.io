@@ -35,7 +35,7 @@ Each is rigorous in its setting. The article also discusses what is **not** know
 
 ## Prerequisites
 
-Articles 02 (smoothness), 03 (GD basics), 10 (stochastic methods).
+[Articles 02](../02-smoothness-strong-convexity-nesterov/) (smoothness), 03 (GD basics), 10 (stochastic methods).
 
 ---
 

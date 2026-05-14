@@ -34,7 +34,7 @@ The unifying tool is a **Lyapunov potential** — a non-negative quantity that t
 
 ## Prerequisites
 
-Article 01 (convex analysis basics), article 02 (Lipschitz smoothness, strong convexity, and the basic Nesterov update). Comfort with manipulating quadratic forms and reading "for any $L, \mu$, there exists a function such that..." style proofs.
+[Article 01](../01-convex-analysis-foundations/) (convex analysis basics), [article 02](../02-smoothness-strong-convexity-nesterov/) (Lipschitz smoothness, strong convexity, and the basic Nesterov update). Comfort with manipulating quadratic forms and reading "for any $L, \mu$, there exists a function such that..." style proofs.
 
 ---
 

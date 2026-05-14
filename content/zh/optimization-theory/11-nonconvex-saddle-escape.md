@@ -33,7 +33,7 @@ translationKey: "optim-11"
 
 ## 前置知识
 
-第 02 篇（光滑性）、第 03 篇（GD 基础）、第 10 篇（随机优化方法）。
+[第 02 篇](../02-smoothness-strong-convexity-nesterov/)（光滑性）、[第 03 篇](../03-gradient-descent-family/)（GD 基础）、[第 10 篇](../10-stochastic-variance-reduction/)（随机优化方法）。
 
 ---
 

@@ -32,7 +32,7 @@ This article gives the convergence proofs, derives the BFGS update from the seca
 
 ## Prerequisites
 
-Articles 01--02 (convex analysis, smoothness, strong convexity). Linear algebra fluency: matrix inverse, rank-1 updates, Sherman--Morrison formula.
+[Articles 01](../01-convex-analysis-foundations/)--02 (convex analysis, smoothness, strong convexity). Linear algebra fluency: matrix inverse, rank-1 updates, Sherman--Morrison formula.
 
 ---
 

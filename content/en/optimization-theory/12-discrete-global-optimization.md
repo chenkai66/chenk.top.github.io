@@ -43,7 +43,7 @@ This article:
 
 ## Prerequisites
 
-Articles 08 (Lagrangian duality), 09 (interior-point) for the LP/QP solver mentions. Otherwise self-contained.
+[Articles 08](../08-lagrangian-duality-kkt/) (Lagrangian duality), 09 (interior-point) for the LP/QP solver mentions. Otherwise self-contained.
 
 ---
 

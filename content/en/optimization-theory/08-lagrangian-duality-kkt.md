@@ -37,7 +37,7 @@ Each result is proved or carefully cited. We close with the SVM example, where t
 
 ## Prerequisites
 
-Articles 01--02 (convex sets, convex functions, subgradients, smoothness, strong convexity).
+[Articles 01](../01-convex-analysis-foundations/)--02 (convex sets, convex functions, subgradients, smoothness, strong convexity).
 
 ---
 

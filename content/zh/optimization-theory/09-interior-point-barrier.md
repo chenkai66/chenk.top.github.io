@@ -33,7 +33,7 @@ translationKey: "optim-09"
 
 ## 前置知识
 
-第 02 篇（光滑性）、第 07 篇（牛顿法）、第 08 篇（拉格朗日函数与 KKT 条件）。需熟悉方向导数，并能理解涉及“Hessian 度量”（Hessian metric）的论证。
+[第 02 篇](../02-smoothness-strong-convexity-nesterov/)（光滑性）、[第 07 篇](../07-second-order-methods/)（牛顿法）、[第 08 篇](../08-lagrangian-duality-kkt/)（拉格朗日函数与 KKT 条件）。需熟悉方向导数，并能理解涉及“Hessian 度量”（Hessian metric）的论证。
 
 ---
 

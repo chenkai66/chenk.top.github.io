@@ -15,6 +15,8 @@ disableNunjucks: true
 translationKey: "optim-10"
 ---
 
+Stochastic gradient descent samples a single component gradient per step — far cheaper than full GD, but at what cost in convergence? Can we retain the cheap per-iteration cost while recovering the fast rate of deterministic methods? This article quantifies the tradeoff from a noise-budget perspective and derives the solution.
+
 For the finite-sum problem
 $$
 \min_x f(x) := \frac{1}{n} \sum_{i=1}^n f_i(x),
@@ -40,7 +42,7 @@ This article:
 
 ## Prerequisites
 
-Articles 02 (smoothness, strong convexity), 03 (gradient descent and SGD).
+[Articles 02](../02-smoothness-strong-convexity-nesterov/) (smoothness, strong convexity), 03 (gradient descent and SGD).
 
 ---
 
