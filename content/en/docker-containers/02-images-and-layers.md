@@ -18,6 +18,8 @@ translationKey: "docker-containers-2"
 
 The first time I ran `docker pull ubuntu` I expected to download an entire operating system. Instead, it finished in seconds and was only 77 MB. That seemed impossibly small for a Linux distribution. The secret is layers — and understanding how they work changes the way you think about building and shipping containers.
 
+---
+
 ## Image vs Container
 
 Before diving into layers, let's clarify a fundamental distinction that trips up many beginners.

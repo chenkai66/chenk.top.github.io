@@ -18,6 +18,8 @@ translationKey: "docker-containers-1"
 
 Every developer has heard the phrase "it works on my machine." Virtual machines were supposed to fix that, and they did — at the cost of gigabytes of RAM, minutes of boot time, and an entire duplicate operating system per application. Containers asked a different question: what if we could isolate applications without duplicating the kernel?
 
+---
+
 ## The Actual Problem
 
 Consider deploying a Python web application. You need Python 3.11, specific pip packages, a particular version of libssl, and some system-level configuration. Your colleague's app needs Python 3.9 and a conflicting libssl version. The staging server runs Ubuntu 20.04 while production runs Amazon Linux 2.

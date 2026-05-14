@@ -34,6 +34,8 @@ day to day, dissect a unit file line by line, and then cover the
 adjacent surfaces: `journalctl` for logs, `.timer` units as the modern
 cron, and a step-by-step playbook for "the service won't start."
 
+---
+
 ## Why a service manager exists
 
 ### The problem before systemd

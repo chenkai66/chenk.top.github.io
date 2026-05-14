@@ -22,6 +22,8 @@ translationKey: "openclaw-quickstart-4"
 
 ![OpenClaw 快速入门（4）：配置、模型提供者和编码计划技巧 — 视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_1.png)
 
+---
+
 ## 最小可用配置
 
 ![配置层次结构和提供者解析顺序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/fig_config.png)

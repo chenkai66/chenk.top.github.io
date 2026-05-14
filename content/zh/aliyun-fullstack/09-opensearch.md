@@ -24,6 +24,8 @@ translationKey: "aliyun-fullstack-9"
 
 生成文中用到的 embeddings，请参考 [百炼系列，第二部分：Qwen LLM API](/zh/aliyun-bailian/02-qwen-llm-api/)。喂给搜索索引的数据库内容在 [第五部分：RDS](/zh/aliyun-fullstack/05-rds-database/) 里讲。想了解 RAG pipeline 的 LLM Engineering 视角，去看 [LLM Engineering 系列](/zh/llm-engineering/)。
 
+---
+
 ## 阿里云上的搜索 landscape
 
 在深入 OpenSearch 之前，需要先搞清楚阿里云上的搜索选项。方案选型失误可能导致成本浪费，甚至引发耗时数月的系统迁移。

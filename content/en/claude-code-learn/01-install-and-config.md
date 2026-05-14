@@ -20,6 +20,8 @@ This is the first in a six-part field guide to Claude Code. The order is deliber
 
 ![Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_1.png)
 
+---
+
 ## Install
 
 There is one supported install path, and it's the right one.

@@ -17,6 +17,8 @@ translationKey: "databases-7"
 
 Everything we covered about transactions in Article 3 assumed a single database server: one machine, one transaction log, one lock manager. When your data spans multiple machines—through sharding, using microservices with separate databases, or replicating with strong consistency—you face the hardest problem in distributed systems: how do you get multiple machines to agree?
 
+---
+
 ## The Distributed Transaction Problem
 
 Consider an e-commerce system with separate services for orders and inventory, each with its own database:

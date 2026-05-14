@@ -25,6 +25,8 @@ Training is a one-time capital expense, with costs spread over millions of infer
 
 ![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_1.png)
 
+---
+
 ## The two phases that don't share characteristics
 
 ![fig1: prefill vs decode compute pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig1_prefill_vs_decode.png)

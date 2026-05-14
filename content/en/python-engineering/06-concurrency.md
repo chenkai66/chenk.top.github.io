@@ -18,6 +18,8 @@ Your script downloads 100 files one at a time. Each download takes 2 seconds, mo
 
 Python has three concurrency models, each designed for different problems. Choosing the wrong one can make your code slow or full of race conditions. This article explains when to use each.
 
+---
+
 ## The GIL: What It Is and Why It Matters
 
 The Global Interpreter Lock (GIL) is a mutex that protects access to Python objects. Only one thread can execute Python bytecode at a time, even on a multi-core machine.

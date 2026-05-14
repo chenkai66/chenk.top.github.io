@@ -18,6 +18,8 @@ Most programs are just plumbing between data formats. Read a CSV, transform it, 
 
 This article covers every common I/O pattern in Python, from basic file reading to columnar data formats, with a focus on the pitfalls that waste your time.
 
+---
+
 ## File I/O: The Basics
 
 

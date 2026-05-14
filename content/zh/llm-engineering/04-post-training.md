@@ -22,6 +22,8 @@ translationKey: "llm-engineering-4"
 
 ![LLM 工程（4）：后训练 — SFT, DPO, RLHF, RLAIF — 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_1.png)
 
+---
+
 ## 四阶段技术栈
 
 ![图1：RLHF 流程概述](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/fig1_rlhf_pipeline.png)

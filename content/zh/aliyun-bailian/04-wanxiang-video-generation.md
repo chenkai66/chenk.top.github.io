@@ -20,6 +20,8 @@ translationKey: "aliyun-bailian-4"
 
 ![阿里云百链 (4)：万象视频生成端到端 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
+---
+
 ## 模型阵容
 
 三个模型均提供原生接口（不兼容 OpenAI 协议），并全部采用异步调用。

@@ -19,6 +19,8 @@ In 2017, a single misconfigured DNS record at a major cloud provider took down a
 
 Every HTTP request your users make passes through at least two of these systems before it reaches your application code. If any of them fails or performs poorly, nothing downstream matters.
 
+---
+
 ## DNS Resolution
 
 The Domain Name System is a distributed, hierarchical database that maps human-readable domain names to IP addresses. When a user types `photos.example.com` into their browser, a cascade of lookups happens before a single byte of your application code executes.

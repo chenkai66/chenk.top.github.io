@@ -31,6 +31,8 @@ We use a single example tree throughout, so the figures and code align perfectly
 
 Its preorder is `[3, 9, 20, 15, 7]`, inorder is `[9, 3, 15, 20, 7]`, postorder is `[9, 15, 7, 20, 3]`, and level-order is `[[3], [9, 20], [15, 7]]`. Keep this picture nearby; almost every figure below refers back to it.
 
+---
+
 ## Series Navigation
 
 **LeetCode Algorithm Masterclass** (10 parts):

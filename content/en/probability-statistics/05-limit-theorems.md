@@ -20,6 +20,8 @@ If you had to choose just two theorems from all of probability theory, you'd cho
 
 This article develops both theorems carefully, starting with the different notions of convergence that make the statements precise.
 
+---
+
 ## Modes of Convergence
 
 Before we can say "converges," we need to say what kind of convergence we mean. There are four main types, listed from weakest to strongest.

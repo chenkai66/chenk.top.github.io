@@ -27,6 +27,8 @@ This article is where you stop reading and start typing. By the end, you'll have
 
 Nothing here provisions an agent yet. This lays the foundation for all future articles. If you skip this and try to wing it in article 3, you'll likely face a state-corruption incident within a week.
 
+---
+
 ## Step 0: install Terraform
 
 I won't dwell — the official `Install Terraform` doc covers all OSes. On macOS:

@@ -24,6 +24,8 @@ When I first needed an LLM API for a production app in China, my options were li
 This is not a shallow overview. By the end you will understand the full model catalog, know how to call every modality (text, image, video, audio, embeddings), handle the async task pattern that trips up every team at least once, and have a working multi-modal pipeline that generates an article, illustrates it, and narrates it — all from Python.
 
 
+---
+
 ## Bailian vs DashScope: what is what
 
 The naming confuses everyone, even Alibaba's own documentation sometimes. Here’s the truth:

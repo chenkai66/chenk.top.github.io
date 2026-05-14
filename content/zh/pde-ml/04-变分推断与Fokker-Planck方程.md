@@ -182,7 +182,7 @@ $$
 
 贝叶斯神经网络对权重 $w$ 设定先验 $p(w)$，并寻求后验 $p(w \mid \mathcal{D}) \propto p(\mathcal{D} \mid w)\, p(w)$。即使对于小型网络，后验也难以解析，但 Langevin 动力学仅需计算：
 $$
-abla_w \log p(w \mid \mathcal{D}) \;=\; \nabla_w \log p(\mathcal{D} \mid w) + \nabla_w \log p(w),
+\nabla_w \log p(w \mid \mathcal{D}) \;=\; \nabla_w \log p(\mathcal{D} \mid w) + \nabla_w \log p(w),
 $$
 这恰好就是反向传播中计算的梯度，再加上高斯先验项。**随机梯度 Langevin 动力学（SGLD）**（Welling and Teh, 2011）进一步用小批量梯度估计替代全数据梯度，使其适用于现代大规模场景。
 

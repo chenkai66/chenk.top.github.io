@@ -22,6 +22,8 @@ A DSW notebook is for one engineer on one GPU. When you need eight GPUs across t
 
 ![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/illustration_1.png)
 
+---
+
 ## What the docs actually claim
 
 The official DLC overview highlights four key points that matter:

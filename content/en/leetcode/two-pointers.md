@@ -21,6 +21,8 @@ Hash tables buy you speed by spending memory. Two pointers is the opposite trade
 
 This article explores four types of two-pointer techniques — **collision**, **fast/slow**, **sliding window**, and **partition** — and links each to a problem you might encounter in a real interview: Two Sum II, 3Sum, Container With Most Water, Linked List Cycle, and Move Zeroes.
 
+---
+
 ## Series Navigation
 
 **LeetCode Algorithm Masterclass** (10 parts):

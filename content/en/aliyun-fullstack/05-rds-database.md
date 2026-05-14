@@ -24,6 +24,8 @@ My self-managed MySQL on ECS lasted exactly four months before a disk I/O spike 
 
 This article covers the database layer on Alibaba Cloud: RDS for managed relational databases, PolarDB for when RDS hits its limits, and the operational practices — sizing, replication, backup, monitoring, security — that keep your data alive. The VPC where this database lives was set up in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). For the Terraform approach to database provisioning, see [Terraform Part 5](/en/terraform-agents/05-storage-for-agent-memory/).
 
+---
+
 ## Why Managed Databases?
 
 Running a database on a raw ECS instance gives you complete control. You choose the exact MySQL version, you tune every `my.cnf` parameter, you install custom plugins, you have root access to the OS and can run `perf` and `strace` directly on the mysqld process. That control is real and occasionally valuable.

@@ -20,6 +20,8 @@ A probability distribution is a complete description of a random variable — it
 
 This article develops the mathematical framework for summarizing distributions. We start with expectation (the center), build up to variance (the spread), and then introduce moment-generating functions — a single formula that encodes every moment of a distribution and, remarkably, uniquely determines the distribution itself.
 
+---
+
 ## Expectation
 
 

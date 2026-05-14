@@ -21,6 +21,8 @@ translationKey: "aliyun-pai-4"
 
 ![Aliyun PAI (4): PAI-EAS — 模型服务、冷启动与 TPS 谎言 — 视觉图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_1.png)
 
+---
+
 ## 文档里的 EAS 是什么
 
 官方《EAS 概述》将其定义为：“将训练好的模型部署为在线推理服务或 AI Web 应用，支持异构资源、自动伸缩、一键压测、灰度发布与实时监控。”核心要点如下：

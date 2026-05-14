@@ -18,6 +18,8 @@ Every project starts as a single file. You write `main.py`, it works, you add fe
 
 The jump from script to package is the first real engineering decision in a Python project. Get it right early, and testing, packaging, and deployment become easier. Get it wrong, and you'll spend weeks untangling circular imports.
 
+---
+
 ## When a Single File Is Not Enough
 
 A single-file script is fine when:

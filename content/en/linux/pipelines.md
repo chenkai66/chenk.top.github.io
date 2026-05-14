@@ -19,6 +19,8 @@ translationKey: "linux-8"
 
 The biggest productivity boost on Linux isn't memorizing more commands. It's learning to **compose small tools** into clean data flows. The pipe operator `|` is the embodiment of the Unix philosophy: each tool does one thing and does it well (`grep` only filters, `awk` only extracts fields, `sort` only sorts), and you chain them into a pipeline that is readable, debuggable, and obvious to maintain. This article starts from the data-flow model — `stdin`, `stdout`, `stderr` and the file descriptors behind them — then walks through every common redirection form (`>`, `>>`, `<`, `2>`, `2>&1`, `&>`), builds up the text-processing toolchain (`grep`, `awk`, `sed`, `cut`, `tr`, `sort`, `uniq`, `xargs`, `tee`), and ends with two patterns most introductions skip: named pipes (FIFOs) and process substitution. By the end you should be able to replace many "I need to write a script" tasks with one or two readable command lines, and read other people's one-liners without squinting.
 
+---
+
 ## The Data-Flow Model: stdin, stdout, stderr
 
 ![Pipe data flow: stdin / stdout / stderr](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/pipelines/fig1_pipe_data_flow.png)

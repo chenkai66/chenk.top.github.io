@@ -20,6 +20,8 @@ Why does the gigabit NIC on your motherboard sometimes drop to 100 Mbps? Why doe
 
 This is the finale of the Computer Fundamentals series. Instead of repeating component spec tables, we'll follow the data and energy: from the copper pair on the wall, through the PHY, MAC, and DMA engine into RAM; and from the wall socket, through the PSU's conversion stages, into the 12 V rails powering the GPU. Along the way, we'll look at how a datacenter quantifies waste with PUE and how a UPS keeps the lights on when the grid falters.
 
+---
+
 ## Series Navigation
 
 **Computer Fundamentals Deep Dive Series** (6 parts):

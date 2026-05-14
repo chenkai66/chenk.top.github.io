@@ -21,6 +21,8 @@ Two statisticians walk into a bar. One says: "The probability of rain tomorrow i
 
 This, roughly, is the Bayesian-frequentist debate. It's not about who's right — both frameworks are mathematically consistent. It's about what "probability" means and how that interpretation shapes the tools you use. Having worked through six articles of largely frequentist reasoning, we now develop the Bayesian perspective: parameters are random, data update our beliefs, and uncertainty is quantified through distributions rather than confidence intervals.
 
+---
+
 ## Bayesian vs Frequentist: The Core Difference
 
 

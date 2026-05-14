@@ -18,6 +18,8 @@ translationKey: "docker-containers-3"
 
 Most tutorials show you a 5-line Dockerfile and move on. When you deploy to production, you might find your image is 1.2 GB, builds take 8 minutes even for a one-line code change, and your security team flags vulnerabilities in packages you didn't know were installed. Writing a good Dockerfile is a skill that pays off every time your CI pipeline runs.
 
+---
+
 ## Every Dockerfile Instruction
 
 Let's go through every instruction you'll use, with concrete examples.

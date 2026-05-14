@@ -23,6 +23,8 @@ This part of the series covers the entire landscape. We start with the basic dat
 
 ![Stack vs Queue: same input, opposite output order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/stack-and-queue/fig1_lifo_vs_fifo.png)
 
+---
+
 ## Series Navigation
 
 **LeetCode Algorithm Masterclass** (10 parts):

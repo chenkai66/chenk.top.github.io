@@ -19,6 +19,8 @@ In 2020, the team behind Segment — a customer data platform processing billion
 
 This story is not unique. The microservices pattern has become the default architectural assumption in the industry, but the honest truth is that it is the wrong choice for most teams. Understanding when microservices help and when they hurt is one of the most important judgment calls in system design.
 
+---
+
 ## The Monolith
 
 A monolith is a single deployable unit that contains all the application's functionality. The entire codebase is compiled and deployed together. All modules share the same process, the same memory space, and the same database.

@@ -18,6 +18,8 @@ translationKey: "docker-containers-5"
 
 The previous articles taught you how to run containers with `docker run`, pass port mappings with `-p`, create networks with `docker network create`, and mount volumes with `-v`. Now imagine doing that for a web server, an API backend, a database, a cache, and a task queue — every time you start your development environment. Docker Compose replaces those 20+ commands with a single file and a single command: `docker compose up`.
 
+---
+
 ## Why Compose Exists
 
 A typical web application has multiple services:

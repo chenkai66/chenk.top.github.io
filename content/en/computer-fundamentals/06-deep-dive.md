@@ -22,6 +22,8 @@ This finale is about that conversation. We'll wire everything together into a si
 
 If you stick with one chapter from this series, make it this one. This is where the mental model finally solidifies.
 
+---
+
 ## Part 1 — The whole machine, in one picture
 
 When you press the power button, a precisely choreographed sequence begins and continues until you shut down. The motherboard's BIOS/UEFI powers up the rails in sequence, the CPU fetches from a hardcoded reset vector, the memory controller initializes the DRAM, the boot SSD loads the kernel, the GPU sets up its display engine, and the NIC establishes a link. Within a few seconds, billions of transistors work together to show you a login screen.

@@ -21,6 +21,8 @@ translationKey: "aliyun-bailian-2"
 
 ![阿里云百链（2）：生产环境中的Qwen LLM API —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_1.png)
 
+---
+
 ## 选对适合工作负载的 Qwen variant
 
 Qwen 家族很大。很多团队默认全用 `qwen-max`，结果钱花多了；有的默认全用 `qwen-turbo`，结果质量差了。正确的策略是‘按需选型’：

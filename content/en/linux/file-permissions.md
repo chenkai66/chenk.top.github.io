@@ -25,6 +25,8 @@ File permissions look elementary — `chmod 755`, done — but they remain one o
 
 This article works through the model from the smallest concept up: bit semantics, numeric vs symbolic notation, `chmod`/`chown`/`chgrp`, default permissions via `umask`, the three special bits, ACL with `getfacl`/`setfacl`, and a concrete troubleshooting checklist. Examples are the kind you actually meet — webroot, shared team folders, `/tmp`, immutable config files — not toy puzzles.
 
+---
+
 ## The permission model: owner / group / others
 
 ![Mode string anatomy and rwx on files vs directories](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig1_rwx_bits.png)

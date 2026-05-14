@@ -23,6 +23,8 @@ translationKey: "openclaw-quickstart-9"
 
 ![OpenClaw 快速入门（9）：中国 IM 选择器，权衡利弊 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_1.png)
 
+---
+
 ## 值得了解的七个渠道
 
 ![中国 IM 频道选择决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/fig_picker.png)

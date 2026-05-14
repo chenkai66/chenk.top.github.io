@@ -20,6 +20,8 @@ translationKey: "aliyun-fullstack-2"
 
 本文是一份完整的 ECS 实战指南，从厘清 ECS 的本质出发，深入实例家族与计费模型，最终通过 CLI 从零构建一台生产级应用服务器。读完这篇，你就能掌握为真实业务配置、加固和运维 ECS 实例所需的实战知识。
 
+---
+
 ## ECS 到底是什么
 
 弹性计算服务（ECS）是阿里云的虚拟机产品。如果你用过 AWS EC2、Azure VMs 或 GCP Compute Engine，ECS 就是它们的直接对标物：你可以获得一台运行 Linux 或 Windows 的虚拟服务器，接入虚拟网络，并可挂载块存储；通过 SSH 或 RDP 控制，按小时或按月付费。

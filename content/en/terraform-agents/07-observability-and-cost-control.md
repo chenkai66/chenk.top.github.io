@@ -23,6 +23,8 @@ Agents are non-deterministic, multi-step, and call expensive APIs. This combinat
 
 By the end, you'll have a DingTalk channel that alerts you before the bill explodes, latency increases, the error rate spikes, or an agent starts looping on itself — plus SLO budgets that turn operational feelings into data.
 
+---
+
 ## The three pipelines
 
 ![Three signals, three pipelines: logs, traces, metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig1_obs_pipeline.png)

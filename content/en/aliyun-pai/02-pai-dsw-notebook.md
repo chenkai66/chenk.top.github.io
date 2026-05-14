@@ -22,6 +22,8 @@ Every time I onboard a new ML engineer to PAI the first day looks the same. They
 
 ![Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/illustration_1.png)
 
+---
+
 ## What DSW actually is
 
 Per the official "DSW Overview", DSW is a **cloud-based IDE for AI development** that integrates JupyterLab, VSCode, and a terminal, with pre-configured container images for PyTorch and TensorFlow, heterogeneous compute (CPU / GPU / Lingjun), and the ability to mount datasets from OSS, NAS, and CPFS. In practice that means you click "Open" and within a minute you have a real Jupyter on a real GPU with `nvidia-smi` working and PyTorch already importable.

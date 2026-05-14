@@ -22,6 +22,8 @@ This first article is the lay of the land: what Bailian actually is, the model f
 
 ![Aliyun Bailian (1): Platform Overview and First Request — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_1.png)
 
+---
+
 ## What is Bailian, what is DashScope?
 
 The naming is genuinely confusing because Alibaba renamed things mid-flight. The official "DashScope" docs frame it from the API side; the "Bailian" docs frame it from the console side. Same product, two names.

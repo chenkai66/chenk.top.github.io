@@ -22,6 +22,8 @@ translationKey: "llm-engineering-3"
 
 ![LLM 工程（3）：大规模预训练 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/illustration_1.png)
 
+---
+
 ## 数据配比比架构更重要
 
 ![图3：数据混合组成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/fig3_data_mixture.png)

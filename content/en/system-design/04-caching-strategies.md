@@ -19,6 +19,8 @@ There is an old joke in computer science that the two hardest problems are cache
 
 The trick is knowing where to cache, what patterns to use, and — critically — when caching will make your system worse instead of better.
 
+---
+
 ## Why Caching Works
 
 Caching exploits a fundamental property of most systems: access patterns are not uniform. A small fraction of data is accessed far more frequently than the rest.

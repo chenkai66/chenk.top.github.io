@@ -22,6 +22,8 @@ EAS is where the money goes. DSW costs a few hundred RMB a month for development
 
 ![Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_1.png)
 
+---
+
 ## What EAS is, per the docs
 
 The official "EAS overview" describes it as: "deploy trained models as online inference services or AI web applications, with heterogeneous resources, automatic scaling, one-click stress testing, canary releases, and real-time monitoring". The two key points are:

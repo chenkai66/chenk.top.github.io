@@ -21,6 +21,8 @@ Wanxiang is the API that has done the most for our marketing pipeline and caused
 
 ![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
+---
+
 ## The model lineup
 
 Three models, all native-only (no OpenAI compat), all async:

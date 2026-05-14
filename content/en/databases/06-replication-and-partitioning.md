@@ -23,6 +23,8 @@ These are two orthogonal strategies:
 
 Most production databases use both.
 
+---
+
 ## Replication: Keeping Copies of Your Data
 
 ### Why Replicate?

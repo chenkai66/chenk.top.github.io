@@ -29,6 +29,8 @@ This article covers five problems that, together, encompass every classical link
 
 Each section follows the same format: problem, idea, code, complexity, and a worked example. The figures below show the pointer state before and after each rewiring, which is how you should solve these in your head and on the whiteboard.
 
+---
+
 ## Series Navigation
 
 **LeetCode Patterns** (10 articles): Hash Tables, Two Pointers, **Linked List Operations** (this article), Binary Tree Traversal, Dynamic Programming, Backtracking, Binary Search, Stacks and Queues, Graphs, Greedy and Bit Manipulation.

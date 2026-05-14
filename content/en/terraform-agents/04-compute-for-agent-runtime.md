@@ -23,6 +23,8 @@ The single most important architectural decision in an agent system is *where th
 
 This article covers all four options with working Terraform, cost crossovers, and operational gotchas I often encounter.
 
+---
+
 ## The four patterns
 
 ![Three primary places to run an agent: ECS, ACK, FC](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png)

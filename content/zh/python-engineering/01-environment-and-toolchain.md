@@ -17,6 +17,8 @@ translationKey: "python-engineering-1"
 
 本文将从零开始，带你完整梳理整套工具链。读完后，你将拥有一个可复现、强隔离且版本锁定的开发环境，确保在任何机器上行为一致。
 
+---
+
 ## Python 版本问题
 
 大多数操作系统都自带一个系统级 Python。macOS 曾长期预装 Python 2.7（Monterey 中已移除），Ubuntu 22.04 则预装 Python 3.10。这个系统 Python 被操作系统内部工具所依赖，向其中安装或升级包可能会导致系统异常。

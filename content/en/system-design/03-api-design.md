@@ -19,6 +19,8 @@ In 2015, Facebook published a blog post introducing GraphQL, describing how thei
 
 Every API style exists because it solves a specific set of problems well, and every API style creates new problems. The skill is matching the right protocol to the right context.
 
+---
+
 ## REST: The Lingua Franca of Web APIs
 
 REST (Representational State Transfer) is an architectural style, not a protocol. It was defined by Roy Fielding in his 2000 doctoral dissertation, but what most people call "REST" is really "HTTP-based APIs that use JSON."

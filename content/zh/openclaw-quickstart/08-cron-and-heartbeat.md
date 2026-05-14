@@ -22,6 +22,8 @@ translationKey: "openclaw-quickstart-8"
 
 ![OpenClaw 快速入门（8）：心跳、定时任务和早上7点的提醒 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
 
+---
+
 ## Heartbeat 还是 Cron —— 心里得有数
 
 ![心跳与定时任务调度模型比较](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/fig_hb_vs_cron.png)

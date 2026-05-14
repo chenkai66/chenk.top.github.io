@@ -21,6 +21,8 @@ translationKey: "llm-engineering-2"
 
 ![LLM 工程（2）：分词深入 — 视觉化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/02-tokenization/illustration_1.png)
 
+---
+
 ## 分词器到底在做什么
 
 分词器（tokenizer）做的事很简单：把字符串映射成一串整数 ID，反过来也能把 ID 还原成字符串。这两个方向都是确定性的，但通常不是双射——`tokenizer.decode(tokenizer.encode(s))` 往返一遍可能会丢失空格、标准化 Unicode 或者合并重复标点，具体取决于算法。

@@ -26,6 +26,8 @@ translationKey: "terraform-agents-1"
 
 ![Terraform for AI Agents (1): 为什么 IaC 是部署代理的唯一明智方式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
+---
+
 ## “代理系统”实际需要什么
 
 聊基础设施之前，我们先明确 Agent 系统到底包含哪些组件——那些 `pip install langgraph` 的 README 通常会略过的部分：

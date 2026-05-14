@@ -26,6 +26,8 @@ translationKey: "terraform-agents-2"
 
 至此，Agent 尚未部署——本阶段仅搭建基础设施底座，后续所有文章都以此为基础。如果跳过此步骤，等到第三篇文章再临时补救，一周内遭遇 tfstate 损坏的概率极高。
 
+---
+
 ## Step 0: 安装 Terraform
 
 安装过程我不赘述，官方《Install Terraform》文档已覆盖所有操作系统。macOS 用户可直接运行：

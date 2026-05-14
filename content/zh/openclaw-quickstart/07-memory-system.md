@@ -20,6 +20,8 @@ translationKey: "openclaw-quickstart-7"
 
 ![OpenClaw 快速入门 (7)：记忆系统，去掉魔法 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.png)
 
+---
+
 ## 工作区的样子
 
 ![记忆系统四层架构 — 热、温、冷和归档层](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/fig_memory.png)

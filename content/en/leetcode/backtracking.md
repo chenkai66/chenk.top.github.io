@@ -23,6 +23,8 @@ Backtracking is the algorithm you use when a problem asks you to *enumerate* som
 
 This simple pattern solves Permutations, Combinations, Subsets, Word Search, N-Queens, and Sudoku, and it's the same template you'll use for about 90% of "find all..." problems on LeetCode. This article walks you through the template, then applies it to six canonical problems with full implementations, recursion-tree diagrams, complexity proofs, pruning tactics, and a debugging checklist for the bugs you will inevitably hit the first few times you write it.
 
+---
+
 ## Series Navigation
 
 **LeetCode Algorithm Masterclass Series** (10 Parts):

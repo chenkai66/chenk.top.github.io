@@ -25,6 +25,8 @@ The stack we're building:
 
 Five layers — edge, compute, memory, platform, ops — composed from the modules we built across this series. Eleven Aliyun products under the hood: VPC, ECS, ALB, OSS, RDS for PostgreSQL, OpenSearch, KMS, SLS, ARMS, CloudMonitor, and DashScope (the LLM provider, accessed via the gateway).
 
+---
+
 ## Project structure
 
 ```text

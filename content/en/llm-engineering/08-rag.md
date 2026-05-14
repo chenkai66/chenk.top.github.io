@@ -24,6 +24,8 @@ The original RAG paper ([Lewis et al., 2020][lewis-rag]) framed retrieval-augmen
 
 ![LLM Engineering (8): Retrieval-Augmented Generation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/illustration_1.png)
 
+---
+
 ## What RAG actually is
 
 Retrieval-augmented generation: at query time, fetch relevant text from an external corpus, stuff it into the LLM's context, generate a grounded answer. The "augmented" part is the prompt template:

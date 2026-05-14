@@ -18,6 +18,8 @@ translationKey: "databases-5"
 
 Not everything fits neatly into rows and columns. A social network's friend graph, a product catalog with wildly varying attributes, a real-time leaderboard, a recommendation engine's relationship web — these workloads push relational databases into awkward territory. NoSQL databases exist because different data models solve different problems better. The trick is knowing which one to reach for.
 
+---
+
 ## Why NoSQL?
 
 The term "NoSQL" is misleading. It does not mean "no SQL" — some NoSQL databases support SQL-like query languages. It means "not only SQL" or, more accurately, "non-relational." The motivations for NoSQL fall into three categories:

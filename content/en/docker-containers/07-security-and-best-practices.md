@@ -18,6 +18,8 @@ translationKey: "docker-containers-7"
 
 Docker's default configuration prioritizes convenience over security. Containers run as root, have access to a broad set of Linux capabilities, and can write to their entire filesystem. This is fine for development but dangerous for production. A container escape vulnerability in a root-privileged container means an attacker can take over the host. Let's fix that.
 
+---
+
 ## The Threat Model
 
 Before securing your setup, understand what you're defending against:

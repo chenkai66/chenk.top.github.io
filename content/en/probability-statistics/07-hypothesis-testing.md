@@ -21,6 +21,8 @@ You've estimated a parameter. You've quantified the bias-variance tradeoff. Now 
 
 Hypothesis testing is the formal framework for answering this question. It's also the most widely misunderstood part of statistics. Entire papers have been written about how researchers misinterpret p-values, how significance thresholds are arbitrary, and how the multiple testing problem inflates false discoveries. Understanding both the theory and the pitfalls is essential for anyone who works with data.
 
+---
+
 ## The Framework
 
 

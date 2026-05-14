@@ -20,6 +20,8 @@ A CPU core can complete a multiplication in roughly **0.3 ns**. A spinning hard 
 
 This is part 2 of the **Computer Fundamentals Deep Dive**. We will not stop at "DDR is fast and RAM is volatile". We will trace a single load instruction from the CPU pipeline through the L1, L2, L3 caches, the TLB, the page table, the memory controller, the channels, and finally the DRAM cells themselves — and look at what each layer is actually doing, and why.
 
+---
+
 ## Series Navigation
 
 **Computer Fundamentals Deep Dive** (6 parts):

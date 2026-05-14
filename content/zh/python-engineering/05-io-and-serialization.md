@@ -17,6 +17,8 @@ translationKey: "python-engineering-5"
 
 本文将覆盖 Python 中所有常见的 I/O 模式——从基础文件读写到列式数据格式，并重点剖析那些最容易浪费你时间的陷阱。
 
+---
+
 ## 文件 I/O：基础操作
 
 ![序列化格式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/05-serialization-formats.png)

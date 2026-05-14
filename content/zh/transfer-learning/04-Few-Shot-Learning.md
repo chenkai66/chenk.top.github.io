@@ -157,7 +157,7 @@ MAML 的思想简单却惊人有效：寻找一个初始化参数 $\theta$，使
 
 精确的二阶 MAML 在参数维度 $d$ 上内存开销为 $O(d^2)$，且实现复杂。FOMAML 直接忽略二阶项，近似为：
 $$
-abla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),
+\nabla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),
 $$
 即直接使用适配点处的梯度，假装 $\theta_i'$ 与 $\theta$ 无关。此举将开销降至 $O(d)$，而准确率几乎不变。
 

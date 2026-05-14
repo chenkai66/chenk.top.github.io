@@ -25,6 +25,8 @@ The history of long-context LLMs in three acts. Act one (2017-2021): models were
 
 ![LLM Engineering (6): Long Context — RoPE, YaRN, Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/illustration_1.png)
 
+---
+
 ## Position is not free
 
 Self-attention is permutation invariant. Without a position signal the model can't tell "the cat sat on the mat" from "the mat sat on the cat." Three answers to "how to inject position":

@@ -21,6 +21,8 @@ If you only ever ran `useradd` and `passwd` on a single laptop, you can probably
 
 This article walks the model end to end. We start with the raw shape of `/etc/passwd` and `/etc/shadow` — because every command in this space is just a wrapper around editing those files. Then we cover the user/group relationship (the bit people most often get backwards), the full lifecycle commands (`useradd`, `usermod`, `passwd`, `chage`, `userdel`), `sudo` and `visudo` done right, and finally the PAM stack that ties authentication, account policy, password rules and session setup together.
 
+---
+
 ## The mental model: accounts are rows in three text files
 
 First, the data model. Linux accounts are stored in three flat text files, one row per entity, with fields separated by colons:

@@ -19,6 +19,8 @@ translationKey: "probability-statistics-4"
 
 要回答这些问题，我们需要 **联合分布（Joint Distributions）** —— 这是同时刻画多个随机变量的数学框架。也正是从这里开始，概率论直接连接到回归分析、多元统计学，以及机器学习所依赖的高维空间。
 
+---
+
 ## 联合分布：离散情形
 
 ### 联合概率质量函数（Joint PMF）

@@ -22,6 +22,8 @@ This article in the series covers most of the production wins. While the other m
 
 ![Aliyun Bailian (2): The Qwen LLM API in Production — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_1.png)
 
+---
+
 ## Pick the right Qwen variant for the workload
 
 The Qwen family is large. Most teams overspend by defaulting to `qwen-max` everywhere. Most teams underspend on quality by defaulting to `qwen-turbo`. The right answer is "match variant to job":

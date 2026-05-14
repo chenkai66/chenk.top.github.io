@@ -22,6 +22,8 @@ The bridge between abstract probability and applied statistics is the **random v
 
 This article catalogs the distributions you'll encounter most often and shows exactly where each one comes from.
 
+---
+
 ## Random Variables as Functions
 
 **Definition.** A **random variable** $X$ is a function from the sample space to the real numbers:

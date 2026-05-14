@@ -22,6 +22,8 @@ The first ECS instance I ever launched was wildly over-provisioned. I picked the
 This article is the complete guide to Elastic Compute Service. We start from what ECS actually is, move through instance families and pricing models, then build a production-ready app server from scratch using the CLI. By the end, you will have enough working knowledge to provision, secure, and operate ECS instances for real workloads.
 
 
+---
+
 ## What ECS actually is
 
 Elastic Compute Service is Alibaba Cloud's virtual machine product. If you have used AWS EC2, Azure VMs, or GCP Compute Engine, ECS is the direct equivalent. You get a virtual server running Linux or Windows, connected to a virtual network, with block storage attached. You control it over SSH or RDP, and you pay by the hour or by the month.

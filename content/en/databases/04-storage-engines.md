@@ -17,6 +17,8 @@ translationKey: "databases-4"
 
 Every SQL statement you write eventually becomes bytes written to a disk. The component responsible for this translation — the storage engine — determines your database's performance characteristics more than almost any other factor. Two tables with identical schemas and identical data can perform wildly differently depending on the storage engine underneath. Understanding this layer explains *why* databases behave the way they do.
 
+---
+
 ## The Basics: Pages, Extents, and Tablespaces
 
 Databases do not read or write individual rows from disk. Disk I/O operates on **pages** (also called blocks), typically 4 KB, 8 KB, or 16 KB.

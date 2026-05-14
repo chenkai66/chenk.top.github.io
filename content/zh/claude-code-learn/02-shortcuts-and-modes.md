@@ -19,6 +19,8 @@ translationKey: "claude-code-learn-2"
 
 ![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
+---
+
 ## `Shift+Tab` —— 四态循环切换
 
 很多人以为 `Shift+Tab` 只是个简单的开关：开自动确认，关自动确认。其实不是。它会在**四个状态之间按固定顺序循环**：

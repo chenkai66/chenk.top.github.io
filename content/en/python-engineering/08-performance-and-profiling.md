@@ -19,6 +19,8 @@ Donald Knuth's famous quote is often half-remembered. The full version is: "We s
 
 This article is about finding that 3%. You'll learn to profile first, optimize second, and measure the impact of each change.
 
+---
+
 ## Manual Benchmarking
 
 ### time.perf_counter()

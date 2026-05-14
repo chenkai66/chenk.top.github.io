@@ -21,6 +21,8 @@ Their solution was Apache Kafka — a distributed event log that decoupled produ
 
 That architectural pattern — decoupling through asynchronous messaging — is one of the most powerful tools in system design.
 
+---
+
 ## Synchronous vs Asynchronous Communication
 
 In a synchronous system, the caller waits for the callee to respond before proceeding. This is simple, intuitive, and works perfectly for many use cases. But it creates tight coupling.

@@ -23,6 +23,8 @@ translationKey: "aliyun-pai-1"
 
 ![阿里云PAI（1）：平台概览及产品家族图 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/illustration_1.png)
 
+---
+
 ## PAI 是什么，不是什么
 
 官方文档称，**Platform for AI (PAI)** 是“阿里云覆盖全生命周期的 AI 开发平台，涵盖数据标注、模型开发、训练和部署”。控制台 `pai.console.aliyun.com` 只是一个入口，PAI 本身其实是一组紧密关联的产品家族，它们共享账号体系、基于 OSS 的存储层，以及统一的 Python SDK。

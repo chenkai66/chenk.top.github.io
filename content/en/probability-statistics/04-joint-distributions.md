@@ -20,6 +20,8 @@ Until now, every distribution we've studied described a single quantity: one die
 
 Answering these questions requires **joint distributions** — the mathematical framework for describing multiple random variables simultaneously. This is where probability theory starts connecting directly to regression, multivariate statistics, and the high-dimensional spaces of machine learning.
 
+---
+
 ## Joint Distributions: Discrete Case
 
 

@@ -20,6 +20,8 @@ Everything we've built so far â€” distributions, expectations, limit theorems â€
 
 This is **estimation theory**: the bridge between probability (where parameters are given) and statistics (where parameters are inferred). It's also where the foundations of machine learning live. Every time you train a model, you are estimating parameters from data. The quality of that estimation determines whether your model generalizes or overfits.
 
+---
+
 ## The Setup: Estimators vs Estimates
 
 Suppose we observe data $x_1, x_2, \ldots, x_n$ drawn i.i.d. from some distribution $p(x|\theta)$, where $\theta$ is an unknown parameter (or vector of parameters).

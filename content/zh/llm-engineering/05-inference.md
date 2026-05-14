@@ -24,6 +24,8 @@ translationKey: "llm-engineering-5"
 
 ![LLM 工程（5）：推理优化 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_1.png)
 
+---
+
 ## 两个特性截然不同的阶段
 
 ![图1：预填充与解码计算模式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig1_prefill_vs_decode.png)

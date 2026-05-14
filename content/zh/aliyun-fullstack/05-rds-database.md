@@ -22,6 +22,8 @@ translationKey: "aliyun-fullstack-5"
 
 本文将深入阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 则是 RDS 触及瓶颈时的升级方案，同时涵盖规格选型、复制、备份、监控与安全等关键运维实践。该数据库所在的 VPC 已在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 中搭建完成。若想了解如何通过 Terraform 自动化部署数据库，请参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
 
+---
+
 ## 为什么选择托管数据库？
 
 在裸 ECS 实例上运行数据库确实赋予你完全的控制权：你可以自由选择 MySQL 版本、精细调整每一个 `my.cnf` 参数、安装任意插件，甚至以 root 身份直接对 mysqld 进程执行 `perf` 或 `strace` 调试。这种控制力真实存在，偶尔也确实有用。

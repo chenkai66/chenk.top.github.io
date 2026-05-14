@@ -17,6 +17,8 @@ translationKey: "databases-2"
 
 A query that returns in 2 milliseconds on your laptop with 1,000 rows will take 45 seconds on a production database with 50 million rows — unless you have the right indexes. Indexes are the single most impactful performance tool in your database toolkit, and understanding how they work changes the way you think about every schema and every query you write.
 
+---
+
 ## The Fundamental Problem: Finding a Row
 
 Imagine a table with 10 million rows, stored on disk as a heap file. Each row sits somewhere in a sequence of 8 KB pages. When you run:

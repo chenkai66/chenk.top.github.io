@@ -19,6 +19,8 @@ Every second, a large e-commerce platform generates thousands of data points: pa
 
 Data pipelines are not glamorous. They do not face users directly. But they are the nervous system of every data-driven organization, and designing them well is the difference between decisions made on yesterday's data and decisions made on data from 30 seconds ago.
 
+---
+
 ## ETL vs ELT
 
 The two fundamental approaches to data pipeline design differ in when transformation happens.

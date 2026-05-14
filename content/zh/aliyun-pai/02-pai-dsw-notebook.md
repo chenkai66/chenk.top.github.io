@@ -21,6 +21,8 @@ translationKey: "aliyun-pai-2"
 
 ![阿里云PAI (2): PAI-DSW — 不会吞噬你的权重的笔记本 — 视觉展示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/illustration_1.png)
 
+---
+
 ## DSW 到底是什么
 
 官方文档称 DSW 是**面向 AI 开发的云端 IDE**，集成了 JupyterLab、VSCode 和终端，预置了 PyTorch 和 TensorFlow 容器镜像，支持异构计算（CPU / GPU / 灵骏），并能挂载 OSS、NAS 和 CPFS 数据集。实际体验非常直接：点一下“打开”，一分钟内你就能获得一个运行在真实 GPU 上的完整 Jupyter 环境，`nvidia-smi` 正常工作，PyTorch 也能直接 import。

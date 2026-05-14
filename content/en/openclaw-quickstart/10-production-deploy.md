@@ -24,6 +24,8 @@ This chapter walks through the deployment I use on a 2-core 4GB ECS box and the 
 
 ![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_1.png)
 
+---
+
 ## Choosing your server
 
 ![Production deployment stack — from OS to monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/fig_deploy.png)

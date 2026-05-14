@@ -27,6 +27,8 @@ Eight articles. One real, working stack at the end. This first one explains the 
 
 ![Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
+---
+
 ## What "an agent system" actually requires
 
 Before we talk infrastructure, let's name the components an agent system has — the ones a `pip install langgraph` README usually skips:

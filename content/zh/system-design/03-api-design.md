@@ -18,6 +18,8 @@ translationKey: "system-design-3"
 
 每一种 API 风格之所以存在，是因为它能出色地解决某类特定问题；而与此同时，每一种风格也必然引入新的挑战。真正的技术能力，在于将正确的协议匹配到正确的上下文中。
 
+---
+
 ## REST：Web API 的通用语言
 
 REST（Representational State Transfer）是一种架构风格，而非具体协议。它由 Roy Fielding 在其 2000 年博士论文中提出，但现实中人们常说的“REST”，往往指的是“基于 HTTP、使用 JSON 的 API”。

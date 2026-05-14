@@ -26,6 +26,8 @@ That day, I set up RAM users, rotated all access keys, enabled MFA, and started 
 
 Security groups — the network-layer firewall — are covered in [Part 3](/en/aliyun-fullstack/03-vpc-networking/). This article is about the identity layer: who can do what, how to encrypt data, and how to audit everything. For Terraform-managed security, see [Terraform Part 6: LLM Gateway and Secrets](/en/terraform-agents/06-llm-gateway-and-secrets/).
 
+---
+
 ## The Security Mental Model
 
 Cloud security isn't a single feature; it's a stack of independent layers, each covering a different failure mode. If you miss one layer, the others still protect you—that's the principle of defense in depth.

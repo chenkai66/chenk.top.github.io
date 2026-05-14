@@ -18,6 +18,8 @@ translationKey: "docker-containers-6"
 
 A container that works is invisible. A container that doesn't work is a black box. The entire point of containerization is isolation — but that same isolation makes debugging harder. You can't just `ssh` into a container or browse its filesystem from the host. Docker provides a specific set of tools for inspecting, diagnosing, and understanding what happens inside running (and crashed) containers.
 
+---
+
 ## Reading Container Logs
 
 Logs are your first line of investigation. Docker captures everything a container writes to stdout and stderr.

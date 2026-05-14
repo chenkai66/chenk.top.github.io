@@ -19,6 +19,8 @@ translationKey: "leetcode-4"
 
 If you have ever caught yourself writing a double `for` loop to inspect every contiguous subarray, **sliding window** is probably the optimisation you are missing. It turns an $O(nk)$ or $O(n^2)$ scan into a single linear pass by *reusing the work* it has already done. This article walks through the technique from first principles, then drills four canonical LeetCode problems plus a monotonic-deque variant.
 
+---
+
 ## The Idea in One Picture
 
 A sliding window is a contiguous range `[left, right]` over an array or string. Instead of recomputing everything when the range moves, we **add the element entering on the right** and **remove the element leaving on the left**. Each element is touched at most twice, so the total cost is $O(n)$.

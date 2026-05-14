@@ -21,6 +21,8 @@ translationKey: "aliyun-bailian-3"
 
 ![阿里云百链（3）：Qwen-Omni 用于视频、音频和图像理解 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 
+---
+
 ## Qwen-Omni 能接收什么
 
 根据 Qwen 多模态模型的 API 文档，单个用户消息的 `content` 数组可以自由混合文本、图像、音频和视频内容。这才是真正的核心能力——不是“支持图像”，而是“支持任意模态以任意组合输入”：

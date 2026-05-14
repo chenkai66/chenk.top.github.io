@@ -19,6 +19,8 @@ translationKey: "claude-code-learn-3"
 
 ![Claude Code 实战指南（三）：自定义斜杠命令与对话控制 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png)
 
+---
+
 ## 什么是斜杠命令？
 
 一个位于 `.claude/commands/<name>.md` 的 Markdown 文件。文件内容即为向 Claude 发送的提示词（prompt），文件名就是命令名。创建后需重启 Claude Code（这是少数几个不支持热重载的功能）。

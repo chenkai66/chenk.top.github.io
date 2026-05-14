@@ -20,6 +20,8 @@ translationKey: "claude-code-learn-5"
 
 ![Claude Code 实战 (5)：Hooks，或如何不再担心 Yolo 模式 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.png)
 
+---
+
 ## 模型
 
 Hook 本质上是一条 shell 命令，Claude Code 会在特定时机触发。最常用的两个是：

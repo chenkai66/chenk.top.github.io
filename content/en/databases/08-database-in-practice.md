@@ -18,6 +18,8 @@ translationKey: "databases-8"
 
 Knowing how databases work internally is half the battle. The other half is keeping them running in production without losing data, dropping availability, or waking up at 3 AM. This article covers the operational knowledge that comes from experience — the things nobody teaches you until something breaks.
 
+---
+
 ## Schema Migrations: Changing the Engine While Flying
 
 Your schema will change. New features require new columns, new tables, new indexes. The question is how to evolve the schema without downtime.

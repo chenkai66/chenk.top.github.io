@@ -24,6 +24,8 @@ translationKey: "aliyun-fullstack-7"
 
 本文将完整介绍阿里云上的可观测性体系：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完后，你将为本系列一直在构建的生产 Web 应用部署一套可用的监控方案。其中 ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。若希望使用 Terraform 自动化部署这些监控资源，请参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
 
+---
+
 ## 可观测性的三大支柱
 
 业界已普遍认同，以下三种信号组合起来，才能完整还原系统运行状态：

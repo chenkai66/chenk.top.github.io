@@ -17,6 +17,8 @@ translationKey: "databases-3"
 
 Every application that handles money, inventory, or any state that matters eventually hits a concurrency bug. Two users buy the last item in stock. A bank transfer debits one account but crashes before crediting the other. A report reads half-updated data and produces nonsense numbers. Transactions exist to prevent these failures, and understanding how they work is non-negotiable for anyone building production systems.
 
+---
+
 ## What Is a Transaction?
 
 A transaction is a group of operations that the database treats as a single unit. Either **all** operations succeed, or **none** of them do.

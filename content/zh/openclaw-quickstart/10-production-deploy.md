@@ -23,6 +23,8 @@ translationKey: "openclaw-quickstart-10"
 
 ![OpenClaw 快速入门 (10)：生产部署及那些没人告诉你的故障模式 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_1.png)
 
+---
+
 ## 选服务器
 
 ![生产部署堆栈 —— 从操作系统到监控](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/fig_deploy.png)

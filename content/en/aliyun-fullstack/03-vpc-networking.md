@@ -23,6 +23,8 @@ Every outage I have debugged in the cloud ultimately traced back to networking. 
 
 We set up the basic VPC in [Part 1](/en/aliyun-fullstack/01-ecosystem-map/) — now we are going deep. By the end of this article you will have a production-grade multi-AZ network with isolated tiers, proper security boundaries, internet access via NAT, and load balancing via SLB. The ECS instances that go into these subnets are covered in [Part 2](/en/aliyun-fullstack/02-ecs-compute/). For the Terraform approach to VPC setup, see [Terraform Part 3: VPC and Security Baseline](/en/terraform-agents/03-vpc-and-security-baseline/).
 
+---
+
 ## What Is a VPC?
 
 A Virtual Private Cloud is your own isolated network segment on Alibaba Cloud. Think of it as a private data center network that you define entirely in software: you pick the IP range, you carve it into subnets, you write the firewall rules, you decide what can reach the internet and what stays internal. Nothing gets in or out unless you explicitly allow it.

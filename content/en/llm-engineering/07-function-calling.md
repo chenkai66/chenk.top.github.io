@@ -24,6 +24,8 @@ The intellectual lineage matters. Tool use as an LLM capability traces back to t
 
 ![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/illustration_1.png)
 
+---
+
 ## What "function calling" actually means
 
 When an API exposes "function calling," several different things might be happening:

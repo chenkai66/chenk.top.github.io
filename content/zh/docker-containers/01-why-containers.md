@@ -19,6 +19,8 @@ translationKey: "docker-containers-1"
 
 容器则提出了一个不同的思路：如果无需复制内核，仅隔离关键组件，是否也能实现应用级隔离？
 
+---
+
 ## 真正的问题所在
 
 设想你要部署一个 Python Web 应用：它依赖 Python 3.11、特定的 pip 包、某个版本的 `libssl`，以及一些系统级配置。而你同事的应用却需要 Python 3.9 和一个与之冲突的 `libssl` 版本。预发布环境运行 Ubuntu 20.04，生产环境却是 Amazon Linux 2。

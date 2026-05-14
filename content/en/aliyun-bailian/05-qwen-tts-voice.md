@@ -22,6 +22,8 @@ Every Chinese-language product I've worked on uses Qwen-TTS-Flash, not because i
 
 ![Aliyun Bailian (5): Qwen-TTS for Multilingual Voice — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
 
+---
+
 ## Voice catalog
 
 According to the model card, Qwen-TTS-Flash offers 40+ voices. The ones I use most:

@@ -21,6 +21,8 @@ The first four articles covered the underlying primitives — DSW, DLC, EAS — 
 
 ![Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
 
+---
+
 ## Designer — the drag-and-drop pipeline composer
 
 According to the docs, Designer implements modeling and model debugging through workflows. Users can build AI development processes by dragging and dropping different components, like building blocks. Key features include over 140 built-in algorithm components, JSON export, scheduling in DataWorks, and support for custom SQL, Python, and PyAlink scripts as nodes.

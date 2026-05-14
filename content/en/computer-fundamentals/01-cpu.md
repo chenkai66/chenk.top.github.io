@@ -20,6 +20,8 @@ Why does your 100 Mbps internet only download at about 12 MB/s? Why does a "1 TB
 
 This is part 1 of the **Computer Fundamentals** series. We start from bits and bytes, then go down into the CPU itself: pipelines, caches, branch prediction, out-of-order execution, multiple cores, and SMT. By the end you should be able to read a CPU spec sheet — or a perf profile — and know what each number is paying for.
 
+---
+
 ## Series Navigation
 
 **Computer Fundamentals** (6 parts):

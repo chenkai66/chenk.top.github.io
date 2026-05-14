@@ -23,6 +23,8 @@ If you only edit one file in OpenClaw, this is it.
 
 ![OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_1.png)
 
+---
+
 ## The minimal viable config
 
 ![Configuration hierarchy and provider resolution order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/fig_config.png)

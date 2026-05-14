@@ -21,6 +21,8 @@ Binary search is the algorithm everyone thinks they understand until they have t
 
 We will build everything from a single invariant: at every iteration the answer, if it exists, lives inside our current search interval. Once that invariant is internalised, the choice between `<` and `<=`, between `right = mid` and `right = mid - 1`, becomes mechanical instead of mysterious.
 
+---
+
 ## The Mental Model
 
 ![Binary search: lo, mid, hi narrowing the search space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/binary-search-step.gif)

@@ -23,6 +23,8 @@ translationKey: "llm-engineering-1"
 
 ![LLM 工程（1）：从 Transformer 到 MoE 的架构 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/illustration_1.png)
 
+---
+
 ## 变了什么，为什么变
 
 ![图5：2017-2026年架构时间线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/fig5_timeline.png)

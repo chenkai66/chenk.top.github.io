@@ -24,6 +24,8 @@ I'll assume you know the original Transformer block. If you don't, the [NLP seri
 
 ![LLM Engineering (1): Architectures from Transformer to MoE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/illustration_1.png)
 
+---
+
 ## What changed and why
 
 ![fig5: architecture timeline 2017-2026](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/fig5_timeline.png)

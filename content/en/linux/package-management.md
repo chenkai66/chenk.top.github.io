@@ -23,6 +23,8 @@ This article is the model plus the cookbook. We start with what is in a `.deb` o
 
 ![Mainstream Linux package toolchains](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/package-management/fig1_package_manager_comparison.png)
 
+---
+
 ## What a package actually is
 
 A package is a single file (`.deb`, `.rpm`, `.pkg.tar.zst`) that contains everything one piece of software needs *plus* metadata describing how it should be installed. The metadata is what makes a package a package - without it you have a tarball.

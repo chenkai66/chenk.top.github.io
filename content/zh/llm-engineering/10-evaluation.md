@@ -23,6 +23,8 @@ translationKey: "llm-engineering-10"
 
 ![LLM 工程（10）：评估 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/illustration_1.png)
 
+---
+
 ## 为什么公开基准在撒谎
 
 ![图1：随时间变化的基准污染](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)

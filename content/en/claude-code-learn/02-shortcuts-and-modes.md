@@ -20,6 +20,8 @@ The shortcuts are not in the help screen for a reason — they're discoverable t
 
 ![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
+---
+
 ## `Shift+Tab` — the four-state cycle
 
 Most people think `Shift+Tab` toggles auto-accept on and off. It doesn't. It cycles four states in order:

@@ -26,6 +26,8 @@ This article is a deep dive into how that is possible. We start from the functio
 
 ![PDE and ML (2): and Machine Learning (2) — Neural Operator Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_1.png)
 
+---
+
 ## Why operators, not just bigger networks
 
 ### 1 The PINN ceiling

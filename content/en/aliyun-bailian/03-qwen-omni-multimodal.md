@@ -22,6 +22,8 @@ Of all the Bailian models, Qwen-Omni has saved me the most from product-roadmap 
 
 ![Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 
+---
+
 ## What Qwen-Omni accepts
 
 Per the Qwen API reference for multimodal models, a single user message can mix text, image, audio, and video parts in one `content` array. That is the headline capability — not "supports images", but "supports anything in any combination":

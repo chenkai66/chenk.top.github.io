@@ -20,6 +20,8 @@ translationKey: "probability-statistics-7"
 
 假设检验正是回答这一问题的形式化框架，但它同时也是统计学中最常被误解的部分。大量论文专门探讨研究者如何误读 p 值、显著性阈值为何是任意设定的，以及多重检验问题如何推高假阳性发现率。对理论原理与常见陷阱的双重理解，对任何从事数据分析工作的人来说都至关重要。
 
+---
+
 ## 框架
 
 ![拒绝域](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/07-rejection-region.png)

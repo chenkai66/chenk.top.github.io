@@ -23,6 +23,8 @@ Pretraining is where most of an LLM's capability comes from, and it's also where
 
 ![LLM Engineering (3): Pretraining at Scale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/illustration_1.png)
 
+---
+
 ## The data mixture is more important than the architecture
 
 ![fig3: data mixture composition](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/03-pretraining/fig3_data_mixture.png)

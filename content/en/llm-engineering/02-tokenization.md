@@ -22,6 +22,8 @@ Tokenization is the layer everyone skips. It's also the layer where I've debugge
 
 ![LLM Engineering (2): Tokenization Deep Dive — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/02-tokenization/illustration_1.png)
 
+---
+
 ## What a tokenizer actually does
 
 A tokenizer maps a string to a list of integer IDs. Reverse maps IDs back to a string. Both directions are deterministic but not bijective in general — round-tripping `tokenizer.decode(tokenizer.encode(s))` can lose whitespace, normalize Unicode, or collapse repeated punctuation, depending on the algorithm.

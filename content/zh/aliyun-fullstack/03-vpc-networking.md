@@ -21,6 +21,8 @@ translationKey: "aliyun-fullstack-3"
 
 [第一篇](/zh/aliyun-fullstack/01-ecosystem-map/) 我们梳理了阿里云生态，[第二篇](/zh/aliyun-fullstack/02-ecs-compute/) 学会了启动 ECS 实例——但 ECS 不能裸跑在公网上。本文带你搭建一个生产级多可用区网络：层级隔离的子网、边界清晰的安全组、通过 NAT 网关访问外网的私有子网、SLB 负载均衡公网流量。如果想直接用 Terraform 一键拉起这套网络，参考 [Terraform 实战（三）：VPC 与安全基线](/zh/terraform-agents/03-vpc-and-security-baseline/)。
 
+---
+
 ## 什么是 VPC？
 
 虚拟私有云（VPC）是你在阿里云上独占的网络段，可以理解为一个纯软件定义的私有数据中心网络。你可以指定 IP 地址段、划分子网、配置防火墙规则，并控制哪些实例可访问互联网或仅限内网通信。默认情况下，所有入站和出站流量都被拒绝，只有显式允许的流量才能通过。

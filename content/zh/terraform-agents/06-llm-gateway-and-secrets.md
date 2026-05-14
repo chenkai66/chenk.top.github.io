@@ -34,6 +34,8 @@ translationKey: "terraform-agents-6"
 
 ![Terraform for AI Agents (6)：LLM Gateway 和密钥管理 — 视图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
 
+---
+
 ## 架构形态
 
 ![集中式 LLM 网关：一个出口，一个配额，一个审计日志](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)

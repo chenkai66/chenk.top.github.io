@@ -24,6 +24,8 @@ translationKey: "llm-engineering-6"
 
 ![LLM 工程（6）：长上下文 — RoPE、YaRN、Sinks — 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/illustration_1.png)
 
+---
+
 ## 位置信息不是免费的
 
 自注意力机制对输入顺序是不变的。若无位置信号，模型无法区分“猫坐在垫子上”和“垫子坐在猫上”。目前主流的位置注入方案有三种：

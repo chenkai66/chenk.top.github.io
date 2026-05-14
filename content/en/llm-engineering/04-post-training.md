@@ -23,6 +23,8 @@ A base model from pretraining can complete text but cannot follow instructions, 
 
 ![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_1.png)
 
+---
+
 ## The four-stage stack
 
 ![fig1: RLHF pipeline overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/fig1_rlhf_pipeline.png)

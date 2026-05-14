@@ -33,6 +33,8 @@ problems every DP study list eventually converges on: Climbing Stairs,
 House Robber, Coin Change, Longest Increasing Subsequence, 0/1 Knapsack,
 Longest Common Subsequence, and Edit Distance.
 
+---
+
 ## Why DP Exists: Overlapping Subproblems
 
 ![Fibonacci recursion tree showing overlapping subproblems](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/dynamic-programming-basics/fig1_fib_recursion_tree.png)

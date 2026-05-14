@@ -21,6 +21,8 @@ If you only learn one extension mechanism in Claude Code, learn MCP. It is the d
 
 ![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.png)
 
+---
+
 ## The 60-second pitch
 
 MCP is **Model Context Protocol** — a small open spec that lets Claude Code call tools and read resources from external servers. The "server" is any process that speaks MCP over stdio or HTTP. Claude treats MCP tools the same as its built-in tools: the model decides when to call them, you confirm or auto-approve, results come back as text.

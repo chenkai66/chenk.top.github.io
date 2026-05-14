@@ -19,6 +19,8 @@ translationKey: "claude-code-learn-1"
 
 ![Claude Code 实战入门（1）：安装、三层配置体系，以及 0 1 2 三剑客 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/01-install-and-config/illustration_1.png)
 
+---
+
 ## 安装
 
 目前官方唯一支持且推荐的安装方式如下：

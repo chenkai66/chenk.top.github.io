@@ -18,6 +18,8 @@ Every Python developer has lived through this moment: you run a script on your c
 
 This article walks through the entire toolchain from scratch. By the end, you'll have a reproducible, isolated, and version-pinned setup that works the same way on every machine.
 
+---
+
 ## The Python Version Problem
 
 Most operating systems come with a system Python. On macOS, it was Python 2.7 (removed in Monterey). On Ubuntu 22.04, it's Python 3.10. This system Python is used by OS-level tools, and installing or upgrading packages in it can break your operating system.

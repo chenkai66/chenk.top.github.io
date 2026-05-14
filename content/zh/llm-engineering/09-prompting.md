@@ -23,6 +23,8 @@ translationKey: "llm-engineering-9"
 
 ![LLM 工程（9）：生产规模的提示工程 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/illustration_1.png)
 
+---
+
 ## Chain-of-thought：有用，但别滥用
 
 ![图1：链式思维 vs 直接准确率按任务对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/fig1_cot_vs_direct.png)

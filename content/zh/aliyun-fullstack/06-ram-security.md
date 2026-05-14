@@ -25,6 +25,8 @@ translationKey: "aliyun-fullstack-6"
 
 安全组——也就是网络层防火墙——我们在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 讲过了。这篇讲的是身份层：谁能做什么、怎么加密数据、怎么审计所有操作。想用 Terraform 管安全，看 [Terraform Part 6: LLM Gateway and Secrets](/zh/terraform-agents/06-llm-gateway-and-secrets/)。
 
+---
+
 ## 安全心智模型
 
 云安全不是打开一个开关就能搞定的事——它由多个相互独立的安全层构成，各层分别防御一类典型故障；即使某一层失效，其余层仍可提供防护，这正是“纵深防御（defense in depth）”原则的核心要义。

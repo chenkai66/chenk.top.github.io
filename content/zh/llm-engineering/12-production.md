@@ -24,6 +24,8 @@ translationKey: "llm-engineering-12"
 
 ![LLM 工程（12）：生产 —— 部署、监控、成本 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.png)
 
+---
+
 ## 端到端的服务栈
 
 ![图1：端到端服务堆栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig1_stack_architecture.png)

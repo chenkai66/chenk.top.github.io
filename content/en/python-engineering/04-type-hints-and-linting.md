@@ -19,6 +19,8 @@ Code reviews should be about logic and design, not about whether someone used si
 
 This article covers three layers of automated code quality: type hints catch logical errors before runtime, linters catch style violations and common bugs, and pre-commit hooks enforce everything automatically on every commit.
 
+---
+
 ## Type Hints: Basic Annotations
 
 Python is dynamically typed, but since 3.5 it supports optional type annotations. They do not affect runtime behavior. They are metadata that tools like mypy can check.

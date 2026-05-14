@@ -25,6 +25,8 @@ A note on my stance: I'm an engineer, not a policy expert. I don't have strong v
 
 ![LLM Engineering (11): Safety and Alignment — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/11-safety/illustration_1.png)
 
+---
+
 ## What "alignment" actually means in 2026
 
 The term combines three distinct aspects:

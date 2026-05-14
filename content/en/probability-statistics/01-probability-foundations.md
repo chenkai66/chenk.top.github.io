@@ -22,6 +22,8 @@ The good news: you don't need to become a measure theorist to understand modern 
 
 This article lays the groundwork. We'll define precisely what a "probability" is, derive the tools that make it useful (conditional probability, Bayes' theorem, independence), and end with a classic problem that surprises nearly everyone who encounters it for the first time.
 
+---
+
 ## Sample Spaces, Events, and Sigma-Algebras
 
 

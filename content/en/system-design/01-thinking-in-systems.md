@@ -18,6 +18,8 @@ A friend once asked me to help debug a performance problem. Their photo-sharing 
 
 That conversation captures the core reason system design matters. It is not about drawing boxes and arrows on a whiteboard. It is about building the mental models that let you reason about systems before they break.
 
+---
+
 ## What System Design Actually Is
 
 System design is the process of defining the architecture, components, modules, interfaces, and data flow of a system to satisfy specified requirements. But that textbook definition misses the point. In practice, system design is the discipline of making informed trade-offs under uncertainty.

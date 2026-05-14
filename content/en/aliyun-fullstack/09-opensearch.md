@@ -26,6 +26,8 @@ Search is deceptively hard. Keyword search fails when users use different words 
 
 For generating the embeddings we use throughout this article, see our [Bailian series, Part 2: Qwen LLM API](/en/aliyun-bailian/02-qwen-llm-api/). The database feeding our search index is covered in [Part 5: RDS](/en/aliyun-fullstack/05-rds-database/). For the LLM Engineering perspective on RAG pipelines, see our [LLM Engineering series](/en/llm-engineering/).
 
+---
+
 ## The Search Landscape on Alibaba Cloud
 
 Before diving into OpenSearch, you should know there are multiple search options on Alibaba Cloud. Choosing the wrong one can cost you money or months of migration.

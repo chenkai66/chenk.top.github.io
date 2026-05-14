@@ -21,6 +21,8 @@ translationKey: "aliyun-fullstack-4"
 
 本文将从第一性原理出发，带你完整掌握阿里云对象存储 OSS（Object Storage Service），直至生产级部署。读完后，你将拥有一个功能完备的媒体存储后端，支持生命周期管理、CDN 加速，并能通过 Python API 生成预签名上传链接。我们在 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/) 和 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 中已经搭建好了 VPC 与 ECS 基础设施——现在，我们为其加上这个能抵御实例故障、轻松扩展至 PB 级、成本却仅为块存储零头的存储层。
 
+---
+
 ## 什么是 OSS？
 
 OSS 是阿里云对标 AWS S3 的对象存储服务。你将文件（称为“对象”）存入名为“桶”（Bucket）的容器中，每个对象由唯一的 key（即路径字符串）、数据本身和元数据组成。这就是全部的数据模型——没有目录结构，没有文件层级，也没有 POSIX 文件系统语义。当你在 OSS 中看到 `images/2026/05/avatar.png` 时，斜杠只是 key 字符串的一部分，并非真实目录。控制台为了便于浏览会将其渲染为文件夹，但底层存储本质上是扁平的。

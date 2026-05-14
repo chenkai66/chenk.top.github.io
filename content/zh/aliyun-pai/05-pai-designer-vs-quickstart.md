@@ -20,6 +20,8 @@ translationKey: "aliyun-pai-5"
 
 ![阿里云PAI (5)：Designer与Model Gallery — 当图形界面真正发挥作用时 — 视觉](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
 
+---
+
 ## Designer —— 拖拽式 Pipeline 编排工具
 
 根据官方文档，Designer 通过工作流实现建模与模型调试，用户只需像搭积木一样拖拽不同组件，即可构建完整的 AI 开发流程。其核心功能包括 140 多个内置算法组件、支持导出 JSON、可接入 DataWorks 调度，以及允许在节点中嵌入自定义 SQL、Python 或 PyAlink 脚本。

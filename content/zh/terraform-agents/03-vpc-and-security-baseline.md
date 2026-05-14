@@ -29,6 +29,8 @@ translationKey: "terraform-agents-3"
 - 干净的模块接口：输入 `name + CIDR + zones`，输出 IDs
 - CI 里的 drift detection、semver 锁定的模块引用，以及按行计算的成本模型
 
+---
+
 ## 心智模型
 
 先别急着写代码，先看图：

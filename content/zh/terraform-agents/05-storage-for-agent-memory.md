@@ -22,6 +22,8 @@ translationKey: "terraform-agents-5"
 
 本文将系统梳理这三层架构：各自的 Terraform 配置、看似枯燥却至关重要的备份与容灾（DR）机制、PostgreSQL 大版本升级的实际操作流程，以及一次真实的周六故障——正是那次事故彻底改变了我的运维方式。
 
+---
+
 ## 三层记忆模型
 
 ![代理的三种内存映射到三种阿里云服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png)

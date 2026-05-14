@@ -21,6 +21,8 @@ translationKey: "aliyun-bailian-1"
 
 ![阿里云百链（1）：平台概览和首次请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/01-platform-overview/illustration_1.png)
 
+---
+
 ## 百炼是什么，DashScope 又是什么？
 
 命名确实容易让人困惑，因为阿里中途统一了品牌：官方文档中，“DashScope”是从 API 视角编写的，而“百炼”则是从控制台视角出发的——但它们本质上是同一个产品，只是叫法不同。

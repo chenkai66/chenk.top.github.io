@@ -25,6 +25,8 @@ I'll focus more on numbers here than in earlier chapters. In production, the dif
 
 ![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.png)
 
+---
+
 ## The serving stack, end to end
 
 ![fig1: end-to-end serving stack architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/fig1_stack_architecture.png)

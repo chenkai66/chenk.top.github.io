@@ -19,6 +19,8 @@ translationKey: "probability-statistics-3"
 
 本文构建用于**概括分布特征**的数学框架：我们从刻画“中心位置”的**期望**出发，进阶至刻画“离散程度”的**方差**，最后引入**矩生成函数（MGF）**——一个简洁公式，不仅能编码分布的所有矩（moments），更惊人地**唯一确定该分布本身**。
 
+---
+
 ## 期望
 
 ![期望作为平衡点](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/03-expectation.png)

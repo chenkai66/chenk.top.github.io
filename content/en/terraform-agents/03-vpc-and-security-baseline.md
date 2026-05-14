@@ -30,6 +30,8 @@ By the end you'll have:
 - A clean module interface: `name + CIDR + zones` in, IDs out
 - Drift detection in CI, semver-pinned module references, and a per-line cost model
 
+---
+
 ## The mental model
 
 Before code, the picture:

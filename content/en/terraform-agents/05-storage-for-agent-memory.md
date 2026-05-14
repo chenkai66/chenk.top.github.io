@@ -23,6 +23,8 @@ Most tutorials gloss over an agent's memory. 'Just put the embeddings in Pinecon
 
 This article covers all three layers, their Terraform configurations, the critical but tedious backup and disaster recovery (DR) setup, the major version upgrade process, and the Saturday outage that changed how I do things.
 
+---
+
 ## The three-layer memory model
 
 ![An agent's three kinds of memory map onto three Aliyun services](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png)

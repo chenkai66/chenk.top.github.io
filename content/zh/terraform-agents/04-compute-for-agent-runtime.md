@@ -22,6 +22,8 @@ translationKey: "terraform-agents-4"
 
 本文将逐一分析这四种模式，并附带可直接运行的 Terraform 代码、成本拐点估算及实际运维中的典型问题。
 
+---
+
 ## 四种模式
 
 ![运行代理的三个主要位置：ECS、ACK、FC](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png)

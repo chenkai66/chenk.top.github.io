@@ -18,6 +18,8 @@ translationKey: "computer-fundamentals-4"
 
 A modern desktop motherboard is an unusually honest object. Every important design decision — how many PCIe lanes the CPU exposes, which slots are wired straight to the CPU and which tunnel through the chipset, how the VRM is sized to feed a 250 W processor, why the second long PCIe slot only runs at ×4 — is laid out in plain copper on the PCB. If you can read the board, you can predict almost every performance cliff a user will hit. This fourth instalment of the **Computer Fundamentals Deep Dive Series** teaches that reading skill, then turns it inward to the GPU, where the same lesson applies in miniature: a GPU is a chip whose entire architecture exists to keep thousands of arithmetic lanes fed with data, and almost everything else — caches, schedulers, tensor cores, HBM stacks — is in service of that goal.
 
+---
+
 ## Series Navigation
 
 **Computer Fundamentals Deep Dive Series** (6 parts)

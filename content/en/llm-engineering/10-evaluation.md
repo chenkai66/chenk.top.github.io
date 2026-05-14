@@ -24,6 +24,8 @@ The chapter has a slightly different flavor from the others in this series. Most
 
 ![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/illustration_1.png)
 
+---
+
 ## Why public benchmarks lie
 
 ![fig1: benchmark contamination over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)

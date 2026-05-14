@@ -21,6 +21,8 @@ If MCP is how Claude reaches out, hooks are how you reach in. They enforce the r
 
 ![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.png)
 
+---
+
 ## The model
 
 A hook is a shell command that Claude Code runs at specific moments. The two you'll use most are:

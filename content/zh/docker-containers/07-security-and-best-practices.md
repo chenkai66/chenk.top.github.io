@@ -17,6 +17,8 @@ translationKey: "docker-containers-7"
 ---
 Docker 默认配置优先便利性而非安全性：开箱即用时容器以 root（UID 0）运行、拥有大量 Linux capabilities，且根文件系统默认可写。开发环境或许可以接受，但生产环境中极其危险——一旦存在容器逃逸（container escape）漏洞，而容器又以 root 权限运行，攻击者将直接接管宿主机。让我们来修复这个问题。
 
+---
+
 ## 威胁模型
 
 实施加固前，先明确你要防御的对象：

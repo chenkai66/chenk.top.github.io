@@ -24,6 +24,8 @@ Three threads run through everything below. First, in 2026 the *model* is increa
 
 ![LLM Engineering (9): Prompting at Production Scale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/illustration_1.png)
 
+---
+
 ## Chain-of-thought: useful, but not always
 
 ![fig1: CoT vs direct accuracy by task](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/09-prompting/fig1_cot_vs_direct.png)

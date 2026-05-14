@@ -24,6 +24,8 @@ Here’s the matrix I check before making any recommendations.
 
 ![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_1.png)
 
+---
+
 ## The seven channels worth knowing
 
 ![China IM channel selection decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/fig_picker.png)

@@ -23,6 +23,8 @@ I used to store user uploads on the ECS disk. Profile pictures, PDF invoices, CS
 
 This article covers Alibaba Cloud's Object Storage Service from first principles through production deployment. By the end, you will have a working media storage backend with lifecycle management, CDN acceleration, and presigned uploads from a Python API. We set up the VPC and ECS foundation in [Part 2](/en/aliyun-fullstack/02-ecs-compute/) and [Part 3](/en/aliyun-fullstack/03-vpc-networking/) — now we add the storage layer that survives instance failures, scales to petabytes, and costs a fraction of block storage.
 
+---
+
 ## What Is OSS?
 
 Object Storage Service is Alibaba Cloud's equivalent of AWS S3. You store files — called "objects" — in containers called "buckets." Each object has a unique key (its path), the data itself, and metadata. That is the entire data model. There are no directories, no file hierarchies, no POSIX semantics. When you see `images/2026/05/avatar.png` in OSS, the slashes are part of the key string, not a directory structure. The console renders them as folders for convenience, but the storage layer is flat.

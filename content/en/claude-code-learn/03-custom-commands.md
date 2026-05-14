@@ -20,6 +20,8 @@ Built-in slash commands like `/clear` and `/init` are the visible part of the ic
 
 ![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png)
 
+---
+
 ## What a slash command is
 
 A file at `.claude/commands/<name>.md`. Contents are a Markdown prompt. Filename becomes the command. After creating the command, you need to restart Claude Code (one of the few places it isn't hot-reloaded).

@@ -21,6 +21,8 @@ The job of a Linux operator is rarely "memorise more commands". It is to take a 
 
 This post walks the full picture in that order. We start from how a process actually comes to exist (`fork()` + `exec()`), the state machine the kernel pushes it through, and the four resource axes that bound everything it can do. Then we build up the toolchain — `top` / `htop` / `ps` / `pstree` / `lsof` / `ss` / `iostat` — not as a command list but as a layered way of looking at the same system. Finally we cover the things you do *to* a process: signals, background jobs, `nice`/`renice` priorities, and the cgroup + namespace mechanisms that quietly underpin every container you have ever run.
 
+---
+
 ## Process, program, thread — and why the distinction matters
 
 ![Process states](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig1_process_states.png)

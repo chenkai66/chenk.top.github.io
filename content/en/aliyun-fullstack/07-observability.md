@@ -26,6 +26,8 @@ The lesson was simple and costly: observability isn't something you set up after
 
 This article covers the full observability stack on Alibaba Cloud: SLS for logs, CloudMonitor for metrics, and ARMS for traces. By the end you will have a working monitoring setup for the production web application we have been building throughout this series. The ECS instances come from [Part 2](/en/aliyun-fullstack/02-ecs-compute/), the network from [Part 3](/en/aliyun-fullstack/03-vpc-networking/). For the Terraform approach to provisioning these monitoring resources, see [Terraform Part 7: Observability and Cost Control](/en/terraform-agents/07-observability-and-cost-control/).
 
+---
+
 ## The Three Pillars of Observability
 
 The industry has converged on three signals that together provide a complete picture of what your system is doing:

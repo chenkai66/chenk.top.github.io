@@ -21,6 +21,8 @@ The first six pieces got you to a working OpenClaw with a channel and a skill. T
 
 ![OpenClaw QuickStart (7): The Memory System, Without the Magic — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.png)
 
+---
+
 ## The shape of the workspace
 
 ![Memory system four-tier architecture — hot, warm, cold, and archive layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/fig_memory.png)

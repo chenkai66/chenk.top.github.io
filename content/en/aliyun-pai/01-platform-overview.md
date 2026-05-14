@@ -24,6 +24,8 @@ This first article is the lay of the land. It is deliberately short on code — 
 
 ![Aliyun PAI (1): Platform Overview and the Product Family Map — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/01-platform-overview/illustration_1.png)
 
+---
+
 ## What PAI is, and what it isn't
 
 Per the official docs, **Platform for AI (PAI)** is "Alibaba Cloud's AI development platform covering the full lifecycle: data annotation, model development, training, and deployment". The console at `pai.console.aliyun.com` is one entry point, but PAI itself is a *family* of related products that share an account model, an OSS-backed storage layer, and a single Python SDK.

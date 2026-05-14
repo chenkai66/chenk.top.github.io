@@ -32,6 +32,8 @@ LVM, and debug the recurring failure modes — while explaining the
 underlying mechanism so you can reason about what the kernel is
 doing rather than memorising commands.
 
+---
+
 ## The filesystem hierarchy: where things live
 
 ![Linux filesystem hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig1_filesystem_hierarchy.png)

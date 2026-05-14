@@ -23,6 +23,8 @@ translationKey: "llm-engineering-7"
 
 ![LLM 工程（7）：函数调用和工具使用 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/illustration_1.png)
 
+---
+
 ## 函数调用到底是什么意思
 
 API 提供“函数调用”能力时，其底层实现可能有以下几种形式：

@@ -22,6 +22,8 @@ The point of OpenClaw is that the agent comes to you. So far ours hasn't — it'
 
 ![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_1.png)
 
+---
+
 ## Telegram — five minutes
 
 ![Channel routing architecture — message flow from IM platforms through the gateway](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/fig_channels.png)

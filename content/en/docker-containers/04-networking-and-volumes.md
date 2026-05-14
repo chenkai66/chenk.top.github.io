@@ -18,6 +18,8 @@ translationKey: "docker-containers-4"
 
 Containers are deliberately isolated. That's the point. But useful applications need to accept connections from the outside world, talk to databases, and store data that survives container restarts. Docker provides two mechanisms for this: networks (for communication) and volumes (for persistent storage). Getting these right makes the difference between a demo and a deployment.
 
+---
+
 ## Docker Networking
 
 When Docker starts, it creates a virtual network infrastructure on the host. Each container gets its own network namespace (with its own IP address, routing table, and network interfaces), and Docker manages the traffic flow between containers and the outside world.

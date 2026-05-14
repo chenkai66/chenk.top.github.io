@@ -23,6 +23,8 @@ This piece is about the two ways to make that happen.
 
 ![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
 
+---
+
 ## Heartbeat vs Cron — pick one in your head
 
 ![Heartbeat vs Cron scheduling model comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/fig_hb_vs_cron.png)

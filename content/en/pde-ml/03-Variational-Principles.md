@@ -27,6 +27,8 @@ This article assembles that picture from the ground up. We start with classical 
 
 ![PDE and ML (3): Variational Principles and Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/illustration_1.png)
 
+---
+
 ## Foundations of the Calculus of Variations
 
 ### 1 Functionals and the First Variation
