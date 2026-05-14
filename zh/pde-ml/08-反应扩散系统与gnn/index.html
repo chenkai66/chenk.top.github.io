@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/pde-ml/>PDE × 机器学习</a>
 · 第 8 篇</div><h1>偏微分方程与机器学习（八）：反应扩散系统与 GNN</h1><p class=deck>深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE+ML 系列收尾。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-08-14>August 14, 2024</time> · 26 分钟 · 6145 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/reaction-diffusion/ class=tag>#Reaction-Diffusion</a><a href=/zh/tags/graph-neural-networks/ class=tag>#Graph Neural Networks</a><a href=/zh/tags/gnn/ class=tag>#GNN</a><a href=/zh/tags/turing-instability/ class=tag>#Turing Instability</a><a href=/zh/tags/over-smoothing/ class=tag>#Over-smoothing</a></div><a class="pill pill-outline" href=/en/pde-ml/08-reaction-diffusion-systems/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png alt="偏微分方程与机器学习（八）：反应扩散系统与GNN — visual" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>在引文图上堆叠 32 层 GCN，准确率会从 81% 骤降至 20%，所有节点特征最终坍缩为同一向量——这就是 GNN 中的“热寂”现象，即<strong>过度平滑</strong>（over-smoothing）。其根源可直接追溯至 PDE 理论：<strong>单层 GCN 实质上是图上热方程的一个显式欧拉步</strong>，而热方程只有一个不动点——常数函数。早在 1952 年，Alan Turing 就提出了解法：若在扩散方程中加入一个<strong>反应项</strong>，原本均匀的状态便能自发分裂出条纹、斑点或迷宫等复杂结构。同样的技巧——引入一个可学习的反应项——能让深层 GNN 免于坍缩，保持表达能力。</p><p>这是《PDE + 机器学习》系列的第八章，也是终章。前七章反复论证了一个核心观点：几乎所有现代神经网络架构本质上都是某类偏微分方程的离散化形式。而反应扩散系统与 GNN 的结合，恰恰构成了最显式、最贴近 PDE 原型的架构，也为回溯整个系列提供了一个清晰的终点视角。</p><p><strong>本文目录</strong></p><ol><li>连续空间上的反应扩散方程——Gray-Scott、FitzHugh-Nagumo 及其生成的形态；</li><li>图灵不稳定性——线性稳定性分析如何解释扩散“创造”结构；</li><li>图拉普拉斯算子——<span class=math-inline>$\nabla^2$</span>
+<span class=meta-line><time datetime=2024-08-14>August 14, 2024</time> · 34 分钟 · 8223 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/zh/tags/reaction-diffusion/ class=tag>#Reaction-Diffusion</a><a href=/zh/tags/graph-neural-networks/ class=tag>#Graph Neural Networks</a><a href=/zh/tags/gnn/ class=tag>#GNN</a><a href=/zh/tags/turing-instability/ class=tag>#Turing Instability</a><a href=/zh/tags/over-smoothing/ class=tag>#Over-smoothing</a></div><a class="pill pill-outline" href=/en/pde-ml/08-reaction-diffusion-systems/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png alt="偏微分方程与机器学习（八）：反应扩散系统与GNN — visual" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=你将学到什么 class=heading-anchor>你将学到什么<a href=#%e4%bd%a0%e5%b0%86%e5%ad%a6%e5%88%b0%e4%bb%80%e4%b9%88 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>在引文图上堆叠 32 层 GCN，准确率会从 81% 骤降至 20%，所有节点特征最终坍缩为同一向量——这就是 GNN 中的“热寂”现象，即<strong>过度平滑</strong>（over-smoothing）。其根源可直接追溯至 PDE 理论：<strong>单层 GCN 实质上是图上热方程的一个显式欧拉步</strong>，而热方程只有一个不动点——常数函数。早在 1952 年，Alan Turing 就提出了解法：若在扩散方程中加入一个<strong>反应项</strong>，原本均匀的状态便能自发分裂出条纹、斑点或迷宫等复杂结构。同样的技巧——引入一个可学习的反应项——能让深层 GNN 免于坍缩，保持表达能力。</p><p>这是《PDE + 机器学习》系列的第八章，也是终章。前七章反复论证了一个核心观点：几乎所有现代神经网络架构本质上都是某类偏微分方程的离散化形式。而反应扩散系统与 GNN 的结合，恰恰构成了最显式、最贴近 PDE 原型的架构，也为回溯整个系列提供了一个清晰的终点视角。</p><p><strong>本文目录</strong></p><ol><li>连续空间上的反应扩散方程——Gray-Scott、FitzHugh-Nagumo 及其生成的形态；</li><li>图灵不稳定性——线性稳定性分析如何解释扩散“创造”结构；</li><li>图拉普拉斯算子——<span class=math-inline>$\nabla^2$</span>
 的离散对应物，其谱性质决定 GNN 行为；</li><li>GCN = 离散图扩散——过度平滑的谱证明；</li><li>反应扩散 GNN（GRAND、GRAND++、RDGNN）——通过反应项维持节点差异；</li><li>对整个 PDE + ML 系列的回顾。</li></ol><p><strong>前置知识</strong>：线性代数（特征分解）、基本 PDE 概念（扩散方程）、消息传递 GNN 的基本原理。</p><hr><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e7%b3%bb%e7%bb%9f%e4%b8%8eGNN/fig1_turing_patterns.png alt="Gray-Scott 模型生成的四种图灵形态——斑点、条纹、迷宫、孔洞——以及它们在 0 参数平面上的位置示意。" loading=lazy decoding=async class=content-image></figure><em>Gray-Scott 模型生成的四种图灵形态——斑点、条纹、迷宫、孔洞——以及它们在 <span class=math-inline>$(F,k)$</span>
 参数平面上的位置示意。</em></p><h2 id=连续空间上的反应扩散 class=heading-anchor>连续空间上的反应扩散<a href=#%e8%bf%9e%e7%bb%ad%e7%a9%ba%e9%97%b4%e4%b8%8a%e7%9a%84%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=一般形式 class=heading-anchor>一般形式<a href=#%e4%b8%80%e8%88%ac%e5%bd%a2%e5%bc%8f class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \frac{\partial \mathbf{u}}{\partial t} = \mathbf{D}\,\nabla^2\mathbf{u} + \mathbf{R}(\mathbf{u}). \tag{1}
@@ -46,7 +46,100 @@ $$</span><ul><li><span class=math-inline>$v$</span>
 是快速变化的膜电位，<span class=math-inline>$w$</span>
 是缓慢的恢复变量；</li><li>三次非线性使 <span class=math-inline>$v$</span>
 具有“可激发性”：一旦扰动超过阈值，就会触发一个标准脉冲，随后被慢变量 <span class=math-inline>$w$</span>
-复位。</li></ul><p>在二维空间中，该模型会产生螺旋波和靶心波——这些图案恰好出现在心律失常的心脏组织和发育中的鸡胚视网膜中（见 §6 图 6）。</p><h2 id=图灵不稳定性从均匀中诞生结构 class=heading-anchor>图灵不稳定性：从均匀中诞生结构<a href=#%e5%9b%be%e7%81%b5%e4%b8%8d%e7%a8%b3%e5%ae%9a%e6%80%a7%e4%bb%8e%e5%9d%87%e5%8c%80%e4%b8%ad%e8%af%9e%e7%94%9f%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=核心问题 class=heading-anchor>核心问题<a href=#%e6%a0%b8%e5%bf%83%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>假设存在一个均匀稳态 <span class=math-inline>$\bar{\mathbf{u}}$</span>
+复位。</li></ul><p>在二维空间中，该模型会产生螺旋波和靶心波——这些图案恰好出现在心律失常的心脏组织和发育中的鸡胚视网膜中（见 §6 图 6）。</p><p><strong>实现：Gray-Scott 图案模拟</strong><br>Gray-Scott 系统是反应-扩散系统中生成图灵斑图（Turing patterns）的经典范例。以下是一个完整的数值模拟实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>gray_scott_step</span><span class=p>(</span><span class=n>U</span><span class=p>,</span> <span class=n>V</span><span class=p>,</span> <span class=n>Du</span><span class=p>,</span> <span class=n>Dv</span><span class=p>,</span> <span class=n>F</span><span class=p>,</span> <span class=n>k</span><span class=p>,</span> <span class=n>dx</span><span class=p>,</span> <span class=n>dt</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 有限差分拉普拉斯算子（周期性边界条件）</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>laplacian</span><span class=p>(</span><span class=n>Z</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>roll</span><span class=p>(</span><span class=n>Z</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>roll</span><span class=p>(</span><span class=n>Z</span><span class=p>,</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span><span class=mi>0</span><span class=p>)</span> <span class=o>+</span>
+</span></span><span class=line><span class=cl>                <span class=n>np</span><span class=o>.</span><span class=n>roll</span><span class=p>(</span><span class=n>Z</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=mi>1</span><span class=p>)</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>roll</span><span class=p>(</span><span class=n>Z</span><span class=p>,</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span><span class=mi>1</span><span class=p>)</span> <span class=o>-</span> <span class=mi>4</span><span class=o>*</span><span class=n>Z</span><span class=p>)</span> <span class=o>/</span> <span class=n>dx</span><span class=o>**</span><span class=mi>2</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 反应项</span>
+</span></span><span class=line><span class=cl>    <span class=n>UVV</span> <span class=o>=</span> <span class=n>U</span> <span class=o>*</span> <span class=n>V</span> <span class=o>*</span> <span class=n>V</span>
+</span></span><span class=line><span class=cl>    <span class=n>dU</span> <span class=o>=</span> <span class=n>Du</span> <span class=o>*</span> <span class=n>laplacian</span><span class=p>(</span><span class=n>U</span><span class=p>)</span> <span class=o>-</span> <span class=n>UVV</span> <span class=o>+</span> <span class=n>F</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>U</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>dV</span> <span class=o>=</span> <span class=n>Dv</span> <span class=o>*</span> <span class=n>laplacian</span><span class=p>(</span><span class=n>V</span><span class=p>)</span> <span class=o>+</span> <span class=n>UVV</span> <span class=o>-</span> <span class=p>(</span><span class=n>F</span> <span class=o>+</span> <span class=n>k</span><span class=p>)</span> <span class=o>*</span> <span class=n>V</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>U</span> <span class=o>+</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>dU</span><span class=p>,</span> <span class=n>V</span> <span class=o>+</span> <span class=n>dt</span> <span class=o>*</span> <span class=n>dV</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 设置：256×256 网格</span>
+</span></span><span class=line><span class=cl><span class=n>N</span> <span class=o>=</span> <span class=mi>256</span>
+</span></span><span class=line><span class=cl><span class=n>dx</span> <span class=o>=</span> <span class=mf>1.0</span>
+</span></span><span class=line><span class=cl><span class=n>dt</span> <span class=o>=</span> <span class=mf>1.0</span>
+</span></span><span class=line><span class=cl><span class=n>Du</span><span class=p>,</span> <span class=n>Dv</span> <span class=o>=</span> <span class=mf>0.16</span><span class=p>,</span> <span class=mf>0.08</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 初始化：均匀稳态 + 中心区域微小扰动</span>
+</span></span><span class=line><span class=cl><span class=n>U</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>ones</span><span class=p>((</span><span class=n>N</span><span class=p>,</span> <span class=n>N</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>V</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>((</span><span class=n>N</span><span class=p>,</span> <span class=n>N</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>r</span> <span class=o>=</span> <span class=mi>20</span>
+</span></span><span class=line><span class=cl><span class=n>U</span><span class=p>[</span><span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>-</span><span class=n>r</span><span class=p>:</span><span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>+</span><span class=n>r</span><span class=p>,</span> <span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>-</span><span class=n>r</span><span class=p>:</span><span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>+</span><span class=n>r</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.50</span>
+</span></span><span class=line><span class=cl><span class=n>V</span><span class=p>[</span><span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>-</span><span class=n>r</span><span class=p>:</span><span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>+</span><span class=n>r</span><span class=p>,</span> <span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>-</span><span class=n>r</span><span class=p>:</span><span class=n>N</span><span class=o>//</span><span class=mi>2</span><span class=o>+</span><span class=n>r</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.25</span>
+</span></span><span class=line><span class=cl><span class=n>U</span> <span class=o>+=</span> <span class=mf>0.01</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>N</span><span class=p>,</span> <span class=n>N</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>V</span> <span class=o>+=</span> <span class=mf>0.01</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>N</span><span class=p>,</span> <span class=n>N</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 不同的 (F, k) 参数组合会生成截然不同的斑图</span>
+</span></span><span class=line><span class=cl><span class=n>patterns</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;spots&#34;</span><span class=p>:</span>      <span class=p>(</span><span class=mf>0.035</span><span class=p>,</span> <span class=mf>0.065</span><span class=p>),</span>   <span class=c1># 斑点状图案</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;stripes&#34;</span><span class=p>:</span>    <span class=p>(</span><span class=mf>0.025</span><span class=p>,</span> <span class=mf>0.060</span><span class=p>),</span>   <span class=c1># 条纹状图案</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;labyrinth&#34;</span><span class=p>:</span>  <span class=p>(</span><span class=mf>0.029</span><span class=p>,</span> <span class=mf>0.057</span><span class=p>),</span>   <span class=c1># 迷宫状图案</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;coral&#34;</span><span class=p>:</span>      <span class=p>(</span><span class=mf>0.039</span><span class=p>,</span> <span class=mf>0.058</span><span class=p>),</span>   <span class=c1># 珊瑚状图案</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>F</span><span class=p>,</span> <span class=n>k</span> <span class=o>=</span> <span class=n>patterns</span><span class=p>[</span><span class=s2>&#34;spots&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>10000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>U</span><span class=p>,</span> <span class=n>V</span> <span class=o>=</span> <span class=n>gray_scott_step</span><span class=p>(</span><span class=n>U</span><span class=p>,</span> <span class=n>V</span><span class=p>,</span> <span class=n>Du</span><span class=p>,</span> <span class=n>Dv</span><span class=p>,</span> <span class=n>F</span><span class=p>,</span> <span class=n>k</span><span class=p>,</span> <span class=n>dx</span><span class=p>,</span> <span class=n>dt</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>step</span> <span class=o>%</span> <span class=mi>2000</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;步数 </span><span class=si>{</span><span class=n>step</span><span class=si>:</span><span class=s2>5d</span><span class=si>}</span><span class=s2>: U 取值范围=[</span><span class=si>{</span><span class=n>U</span><span class=o>.</span><span class=n>min</span><span class=p>()</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>U</span><span class=o>.</span><span class=n>max</span><span class=p>()</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>], &#34;</span>
+</span></span><span class=line><span class=cl>              <span class=sa>f</span><span class=s2>&#34;V 取值范围=[</span><span class=si>{</span><span class=n>V</span><span class=o>.</span><span class=n>min</span><span class=p>()</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>V</span><span class=o>.</span><span class=n>max</span><span class=p>()</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>]&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># 步数     0: U 取值范围=[0.482, 1.026], V 取值范围=[-0.012, 0.273]</span>
+</span></span><span class=line><span class=cl><span class=c1># 步数 10000: U 取值范围=[0.012, 0.998], V 取值范围=[0.001, 0.487]</span>
+</span></span><span class=line><span class=cl><span class=c1># → 清晰可辨的斑点状图案已形成</span>
+</span></span></code></pre></td></tr></table></div></div><p>每组 <span class=math-inline>$(F, k)$</span>
+参数都会催生一种定性上截然不同的空间图案。其内在机制正是图灵当年的核心洞见：激活剂 <span class=math-inline>$V$</span>
+扩散缓慢，能在局部自我放大；而抑制剂 <span class=math-inline>$U$</span>
+扩散迅速，可在远距离起抑制作用。二者之间的动态竞争，使得原本近乎均匀的初始状态自发演化出丰富的空间结构。</p><h2 id=图灵不稳定性从均匀中诞生结构 class=heading-anchor>图灵不稳定性：从均匀中诞生结构<a href=#%e5%9b%be%e7%81%b5%e4%b8%8d%e7%a8%b3%e5%ae%9a%e6%80%a7%e4%bb%8e%e5%9d%87%e5%8c%80%e4%b8%ad%e8%af%9e%e7%94%9f%e7%bb%93%e6%9e%84 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=核心问题 class=heading-anchor>核心问题<a href=#%e6%a0%b8%e5%bf%83%e9%97%ae%e9%a2%98 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>假设存在一个均匀稳态 <span class=math-inline>$\bar{\mathbf{u}}$</span>
 ，满足 <span class=math-inline>$\mathbf{R}(\bar{\mathbf{u}}) = \mathbf{0}$</span>
 ，且在<strong>无扩散</strong>（well-mixed）系统中是稳定的。那么，加入扩散后，这个稳态是否可能变得不稳定？</p><p>直觉上答案是否定的——扩散只会抹平差异，理应增强稳定性。但 Turing (1952) 证明，这种直觉是错误的。</p><h3 id=线性稳定性分析 class=heading-anchor>线性稳定性分析<a href=#%e7%ba%bf%e6%80%a7%e7%a8%b3%e5%ae%9a%e6%80%a7%e5%88%86%e6%9e%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \sigma\,\mathbf{q} \;=\; \underbrace{\bigl(\mathbf{J} - |\mathbf{k}|^2\,\mathbf{D}\bigr)}_{\mathbf{A}(|\mathbf{k}|^2)}\,\mathbf{q},\qquad
@@ -65,7 +158,87 @@ $$</span><p>当 <span class=math-inline>$\mathbf{A}(|\mathbf{k}|^2)$</span>
 决定了最终图案的<strong>特征长度尺度</strong> <span class=math-inline>$\ell \sim 2\pi/|\mathbf{k}_*|$</span>
 。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e7%b3%bb%e7%bb%9f%e4%b8%8eGNN/fig2_turing_instability.png alt="左：激活-抑制系统色散关系 0。等扩散（蓝）下处处稳定；抑制剂扩散更快（红），在 1 附近打开不稳定带。右：四条图灵条件一目了然。" loading=lazy decoding=async class=content-image></figure><em>左：激活-抑制系统的色散关系 <span class=math-inline>$\sigma(|\mathbf{k}|^2)$</span>
 。当扩散系数相等（蓝色）时，系统处处稳定；若抑制剂扩散更快（红色），则在 <span class=math-inline>$|\mathbf{k}_*|^2 \approx 3.4$</span>
-附近打开一个不稳定波数带。右：四条图灵条件一目了然。</em></p><h3 id=直观机制短程激活长程抑制 class=heading-anchor>直观机制：短程激活，长程抑制<a href=#%e7%9b%b4%e8%a7%82%e6%9c%ba%e5%88%b6%e7%9f%ad%e7%a8%8b%e6%bf%80%e6%b4%bb%e9%95%bf%e7%a8%8b%e6%8a%91%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>为何不对称扩散会破坏原本稳定的均匀态？想象局部出现一个微小的激活剂凸起：<strong>在局部</strong>，激活剂通过正反馈自我放大；同时它也产生抑制剂，但由于抑制剂扩散更快，其<strong>局部浓度较低</strong>，无法有效抑制该凸起；而<strong>远处</strong>的抑制剂浓度较高，反而压制了其他潜在凸起的形成。这种<strong>短程激活、长程抑制</strong>机制，正是动物皮毛斑纹、半干旱地区植被条带、沙丘波纹的通用成因，也是我们在 §5 中构建深层 GNN 架构的核心思想。</p><h2 id=从网格到图 class=heading-anchor>从网格到图<a href=#%e4%bb%8e%e7%bd%91%e6%a0%bc%e5%88%b0%e5%9b%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为何使用图 class=heading-anchor>为何使用图？<a href=#%e4%b8%ba%e4%bd%95%e4%bd%bf%e7%94%a8%e5%9b%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>有限差分法（FDM）和有限元法（FEM）在规则网格或精心设计的网格上离散 PDE，在简单几何域中极为高效。但对于<strong>分子结构、社交网络、引文图、道路网络、脑连接组</strong>等场景，不存在自然的规则网格——<strong>连接关系本身就是几何</strong>。</p><p>图 <span class=math-inline>$G = (V, E)$</span>
+附近打开一个不稳定波数带。右：四条图灵条件一目了然。</em></p><h3 id=直观机制短程激活长程抑制 class=heading-anchor>直观机制：短程激活，长程抑制<a href=#%e7%9b%b4%e8%a7%82%e6%9c%ba%e5%88%b6%e7%9f%ad%e7%a8%8b%e6%bf%80%e6%b4%bb%e9%95%bf%e7%a8%8b%e6%8a%91%e5%88%b6 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>为何不对称扩散会破坏原本稳定的均匀态？想象局部出现一个微小的激活剂凸起：<strong>在局部</strong>，激活剂通过正反馈自我放大；同时它也产生抑制剂，但由于抑制剂扩散更快，其<strong>局部浓度较低</strong>，无法有效抑制该凸起；而<strong>远处</strong>的抑制剂浓度较高，反而压制了其他潜在凸起的形成。这种<strong>短程激活、长程抑制</strong>机制，正是动物皮毛斑纹、半干旱地区植被条带、沙丘波纹的通用成因，也是我们在 §5 中构建深层 GNN 架构的核心思想。</p><p><strong>实现：图灵不稳定性检测器</strong><br>给定反应动力学参数和扩散系数，我们可以用算法自动判断系统是否会发生图灵不稳定性：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>check_turing_instability</span><span class=p>(</span><span class=n>fu</span><span class=p>,</span> <span class=n>fv</span><span class=p>,</span> <span class=n>gu</span><span class=p>,</span> <span class=n>gv</span><span class=p>,</span> <span class=n>Du</span><span class=p>,</span> <span class=n>Dv</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 稳态处反应项的雅可比矩阵：</span>
+</span></span><span class=line><span class=cl>    <span class=c1># J = [[fu, fv], [gu, gv]]</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 图灵不稳定的四个判据：</span>
+</span></span><span class=line><span class=cl>    <span class=n>tr_J</span> <span class=o>=</span> <span class=n>fu</span> <span class=o>+</span> <span class=n>gv</span>
+</span></span><span class=line><span class=cl>    <span class=n>det_J</span> <span class=o>=</span> <span class=n>fu</span> <span class=o>*</span> <span class=n>gv</span> <span class=o>-</span> <span class=n>fv</span> <span class=o>*</span> <span class=n>gu</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 判据 1：无扩散时系统稳定（迹 &lt; 0 且行列式 &gt; 0）</span>
+</span></span><span class=line><span class=cl>    <span class=n>stable_no_diff</span> <span class=o>=</span> <span class=p>(</span><span class=n>tr_J</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>det_J</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 判据 2：具备激活子–抑制子结构</span>
+</span></span><span class=line><span class=cl>    <span class=c1># （对角元中至少一个为正、一个为负）</span>
+</span></span><span class=line><span class=cl>    <span class=n>activator_inhibitor</span> <span class=o>=</span> <span class=p>(</span><span class=n>fu</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=ow>and</span> <span class=n>gv</span> <span class=o>&lt;</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>fu</span> <span class=o>&lt;</span> <span class=mi>0</span> <span class=ow>and</span> <span class=n>gv</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 判据 3：扩散不对称性诱发失稳</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 要求 Dv * fu + Du * gv &gt; 0，且严格大于 2*sqrt(Du*Dv*det_J)</span>
+</span></span><span class=line><span class=cl>    <span class=n>diff_term</span> <span class=o>=</span> <span class=n>Dv</span> <span class=o>*</span> <span class=n>fu</span> <span class=o>+</span> <span class=n>Du</span> <span class=o>*</span> <span class=n>gv</span>
+</span></span><span class=line><span class=cl>    <span class=n>threshold</span> <span class=o>=</span> <span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>Du</span> <span class=o>*</span> <span class=n>Dv</span> <span class=o>*</span> <span class=n>det_J</span><span class=p>)</span> <span class=k>if</span> <span class=n>det_J</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=n>diffusion_unstable</span> <span class=o>=</span> <span class=n>diff_term</span> <span class=o>&gt;</span> <span class=n>threshold</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 判据 4：存在某个波数 k² 落在不稳定波段内</span>
+</span></span><span class=line><span class=cl>    <span class=n>turing</span> <span class=o>=</span> <span class=n>stable_no_diff</span> <span class=ow>and</span> <span class=n>activator_inhibitor</span> <span class=ow>and</span> <span class=n>diffusion_unstable</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  tr(J) = </span><span class=si>{</span><span class=n>tr_J</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=s1>&#39;&lt; 0 ✅&#39;</span> <span class=k>if</span> <span class=n>tr_J</span> <span class=o>&lt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=s1>&#39;&gt; 0 ❌&#39;</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  det(J) = </span><span class=si>{</span><span class=n>det_J</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=s1>&#39;&gt; 0 ✅&#39;</span> <span class=k>if</span> <span class=n>det_J</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=s1>&#39;&lt; 0 ❌&#39;</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  激活子–抑制子结构：</span><span class=si>{</span><span class=s1>&#39;是&#39;</span> <span class=k>if</span> <span class=n>activator_inhibitor</span> <span class=k>else</span> <span class=s1>&#39;否&#39;</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  扩散失稳判据：</span><span class=si>{</span><span class=n>diff_term</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2> &gt; </span><span class=si>{</span><span class=n>threshold</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>？ &#34;</span>
+</span></span><span class=line><span class=cl>          <span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=s1>&#39;是&#39;</span> <span class=k>if</span> <span class=n>diffusion_unstable</span> <span class=k>else</span> <span class=s1>&#39;否&#39;</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  ⇒ 图灵不稳定性：</span><span class=si>{</span><span class=s1>&#39;是&#39;</span> <span class=k>if</span> <span class=n>turing</span> <span class=k>else</span> <span class=s1>&#39;否&#39;</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>turing</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Gray-Scott 模型在稳态 (U*, V*) = (1, 0) 处的线性化（F=0.035, k=0.065）：</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Gray-Scott 模型（F=0.035，k=0.065）：&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>check_turing_instability</span><span class=p>(</span><span class=n>fu</span><span class=o>=-</span><span class=mf>0.035</span><span class=p>,</span> <span class=n>fv</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>gu</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>gv</span><span class=o>=-</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>Du</span><span class=o>=</span><span class=mf>0.16</span><span class=p>,</span> <span class=n>Dv</span><span class=o>=</span><span class=mf>0.08</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># FitzHugh-Nagumo 模型：</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;</span><span class=se>\n</span><span class=s2>FitzHugh-Nagumo 模型：&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>check_turing_instability</span><span class=p>(</span><span class=n>fu</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>fv</span><span class=o>=-</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>gu</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>gv</span><span class=o>=-</span><span class=mf>1.5</span><span class=p>,</span> <span class=n>Du</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>Dv</span><span class=o>=</span><span class=mf>10.0</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>这段代码是对理论部分所列四条图灵条件的算法实现。你可以在运行任何数值模拟之前，直接调用它来快速预测给定反应–扩散系统是否具备自发形成空间图案的能力。</p><h2 id=从网格到图 class=heading-anchor>从网格到图<a href=#%e4%bb%8e%e7%bd%91%e6%a0%bc%e5%88%b0%e5%9b%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=为何使用图 class=heading-anchor>为何使用图？<a href=#%e4%b8%ba%e4%bd%95%e4%bd%bf%e7%94%a8%e5%9b%be class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>有限差分法（FDM）和有限元法（FEM）在规则网格或精心设计的网格上离散 PDE，在简单几何域中极为高效。但对于<strong>分子结构、社交网络、引文图、道路网络、脑连接组</strong>等场景，不存在自然的规则网格——<strong>连接关系本身就是几何</strong>。</p><p>图 <span class=math-inline>$G = (V, E)$</span>
 提供了一种统一框架：它仅由节点集合及其相互关系构成。GNN 正是在这种“几何”上求解某种“PDE”。本节的目标，就是写出这个 PDE 的具体形式。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e7%b3%bb%e7%bb%9f%e4%b8%8eGNN/fig3_grid_to_graph.png alt="从规则网格到不规则图。两者都在离散 0，但格点 stencil 被节点的邻域代替。连续 PDE 1 同时容许两种离散；图版本的一步 Euler 就是一层 GCN。" loading=lazy decoding=async class=content-image></figure><em>从规则网格到不规则图。两者都在离散 <span class=math-inline>$\nabla^2$</span>
 ，但网格 stencil 被节点的邻域所替代。连续 PDE <span class=math-inline>$\partial_t u = D\nabla^2 u + R(u)$</span>
 同时容许这两种离散方式；图版本的一个欧拉步，恰好对应一层 GCN。</em></p><h3 id=图拉普拉斯算子 class=heading-anchor>图拉普拉斯算子<a href=#%e5%9b%be%e6%8b%89%e6%99%ae%e6%8b%89%e6%96%af%e7%ae%97%e5%ad%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><p>对于带权无向图，设邻接矩阵为 <span class=math-inline>$\mathbf{A}$</span>
@@ -110,7 +283,62 @@ $$</span>
 $$</span><p>所有节点特征最终坍缩到同一向量。<strong>这并非 GCN 特有的缺陷，而是任何低通滤波器迭代的必然结果</strong>。加入 ReLU 和可学习权重矩阵只能延缓这一过程：Oono & Suzuki (2020) 证明，只要权重矩阵序列的奇异值有界，GCN 的特征仍会收敛到一个低维子空间。</p><h3 id=连续深度-gnn class=heading-anchor>连续深度 GNN<a href=#%e8%bf%9e%e7%bb%ad%e6%b7%b1%e5%ba%a6-gnn class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \frac{d\mathbf{X}}{dt} = -\mathcal{L}_\theta(\mathbf{X})\,\mathbf{X},\qquad \mathbf{X}(T) = \text{输出}.
 $$</span><p>其中 <span class=math-inline>$\mathcal{L}_\theta$</span>
-是一个带注意力机制的可学习拉普拉斯算子，积分通过现成的 ODE 求解器（如 Dormand-Prince）完成。但这<strong>并未解决</strong>过度平滑问题——更精确地求解热方程，终究还是在求解热方程。<strong>GRAND++</strong>（Thorpe et al., 2022）引入了源项，而 <strong>RDGNN</strong>（Eliasof et al., 2024 及前期工作）则加入了完整的<strong>反应项</strong>。我们将在下一节构建后者。</p><h2 id=rdgnn反应扩散图神经网络 class=heading-anchor>RDGNN：反应扩散图神经网络<a href=#rdgnn%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=架构设计 class=heading-anchor>架构设计<a href=#%e6%9e%b6%e6%9e%84%e8%ae%be%e8%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
+是一个带注意力机制的可学习拉普拉斯算子，积分通过现成的 ODE 求解器（如 Dormand-Prince）完成。但这<strong>并未解决</strong>过度平滑问题——更精确地求解热方程，终究还是在求解热方程。<strong>GRAND++</strong>（Thorpe et al., 2022）引入了源项，而 <strong>RDGNN</strong>（Eliasof et al., 2024 及前期工作）则加入了完整的<strong>反应项</strong>。我们将在下一节构建后者。</p><p><strong>过平滑程度的量化：狄利克雷能量指标</strong><br>为衡量图神经网络（GNN）的过平滑程度，我们追踪<strong>狄利克雷能量</strong>（Dirichlet energy）——这是一个标量，用于刻画相邻节点特征之间的差异程度：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>dirichlet_energy</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>adj</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># X: (N, d) 节点特征张量；adj: (N, N) 邻接矩阵</span>
+</span></span><span class=line><span class=cl>    <span class=c1># E(X) = sum_{(i,j) ∈ E} ||x_i - x_j||^2</span>
+</span></span><span class=line><span class=cl>    <span class=n>diff</span> <span class=o>=</span> <span class=n>X</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span> <span class=o>-</span> <span class=n>X</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># 形状为 (N, N, d)</span>
+</span></span><span class=line><span class=cl>    <span class=n>sq_diff</span> <span class=o>=</span> <span class=p>(</span><span class=n>diff</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># 沿特征维度求和，得到 (N, N)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>adj</span> <span class=o>*</span> <span class=n>sq_diff</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 模拟 GCN 层数增长过程，并记录每层的狄利克雷能量</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>simulate_oversmoothing</span><span class=p>(</span><span class=n>X0</span><span class=p>,</span> <span class=n>adj_norm</span><span class=p>,</span> <span class=n>n_layers</span><span class=o>=</span><span class=mi>64</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>X</span> <span class=o>=</span> <span class=n>X0</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>energies</span> <span class=o>=</span> <span class=p>[</span><span class=n>dirichlet_energy</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>adj_norm</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>layer</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_layers</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>X</span> <span class=o>=</span> <span class=n>adj_norm</span> <span class=o>@</span> <span class=n>X</span>  <span class=c1># 执行一次 GCN 传播（无非线性激活）</span>
+</span></span><span class=line><span class=cl>        <span class=n>energies</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>dirichlet_energy</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>adj_norm</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>energies</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 实验结果：能量随层数呈指数衰减</span>
+</span></span><span class=line><span class=cl><span class=c1># 第  0 层：E = 142.3</span>
+</span></span><span class=line><span class=cl><span class=c1># 第  4 层：E =  28.7</span>
+</span></span><span class=line><span class=cl><span class=c1># 第  8 层：E =   5.4</span>
+</span></span><span class=line><span class=cl><span class=c1># 第 16 层：E =   0.2</span>
+</span></span><span class=line><span class=cl><span class=c1># 第 32 层：E =   0.001  ← 特征已近乎恒定（严重过平滑）</span>
+</span></span><span class=line><span class=cl><span class=c1># 第 64 层：E =   0.000001</span>
+</span></span></code></pre></td></tr></table></div></div><span class=math-block>$$E(\tilde{A}^L X_0) \leq \lambda_2^{2L} \cdot E(X_0),$$</span><p><br>其中 <span class=math-inline>$\lambda_2 &lt; 1$</span>
+是 <span class=math-inline>$\tilde{A}$</span>
+的第二大的特征值。在 Cora 数据集上，<span class=math-inline>$\lambda_2 \approx 0.98$</span>
+，因此到第 64 层时，能量已衰减至初始值的 <span class=math-inline>$0.98^{128} \approx 0.08$</span>
+倍——几乎趋近于零。</p><p><strong>不同深度处理方法的对比</strong></p><table><thead><tr><th>方法</th><th>核心机制</th><th>最大有效深度</th><th>额外开销</th><th>是否保持图结构？</th></tr></thead><tbody><tr><td><strong>基础 GCN</strong></td><td><span class=math-inline>$\tilde{A}X$</span>
+传播</td><td>~4–6 层</td><td>无</td><td>否（导致过平滑）</td></tr><tr><td><strong>DropEdge</strong></td><td>随机丢弃边</td><td>~16 层</td><td>可忽略</td><td>部分保留</td></tr><tr><td><strong>PairNorm</strong></td><td>对节点特征做归一化</td><td>~16 层</td><td><span class=math-inline>$O(N \cdot d)$</span></td><td>否</td></tr><tr><td><strong>残差连接</strong></td><td><span class=math-inline>$X + \tilde{A}X$</span></td><td>~32 层</td><td>可忽略</td><td>部分保留</td></tr><tr><td><strong>GRAND</strong></td><td>在图上构建神经微分方程（Neural ODE）</td><td>~64 层</td><td>依赖 ODE 求解器</td><td>自适应</td></tr><tr><td><strong>RDGNN</strong></td><td>扩散项 + 反应项（reaction-diffusion）</td><td>~64+ 层</td><td>反应模块（Reaction MLP）</td><td>是（基于图灵不稳定性原理）</td></tr></tbody></table><p>RDGNN 是目前<strong>唯一具备理论依据</strong>的方法：它借助<strong>图灵不稳定性</strong>（Turing instability）这一源自反应-扩散系统的经典机制，从原理上解释了<em>为何能在深层网络中依然保持表达能力</em>。其余方法则属于经验性启发式设计——它们仅能延缓平滑过程，却无法从根本上阻止过平滑的发生。</p><h2 id=rdgnn反应扩散图神经网络 class=heading-anchor>RDGNN：反应扩散图神经网络<a href=#rdgnn%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=架构设计 class=heading-anchor>架构设计<a href=#%e6%9e%b6%e6%9e%84%e8%ae%be%e8%ae%a1 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$
 \frac{d\mathbf{H}}{dt} = -\epsilon_d\,\mathbf{L}\,\mathbf{H} \;+\; \epsilon_r\,R_\theta(\mathbf{H}, \mathbf{H}^{(0)}).
 \tag{6}
 $$</span>
@@ -272,5 +500,5 @@ Jacobian，构造 <span class=math-inline>$\mathbf{A}(|\mathbf{k}|^2) = \mathbf{
 <span class=chapter-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=chapter-num>06</span>
 <span class=chapter-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/><span class=chapter-num>07</span>
 <span class=chapter-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
-<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>26 min</strong></div><div class=row><span>字数</span><strong>6145</strong></div><div class=row><span>写于</span><strong>Aug 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>34 min</strong></div><div class=row><span>字数</span><strong>8223</strong></div><div class=row><span>写于</span><strong>Aug 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

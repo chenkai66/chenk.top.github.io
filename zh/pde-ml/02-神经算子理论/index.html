@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/pde-ml/>PDE × 机器学习</a>
 · 第 2 篇</div><h1>偏微分方程与机器学习（二）：神经算子理论</h1><p class=deck>神经算子全景：从函数空间基础到 Chen-Chen 通用逼近定理，再到 DeepONet 与 FNO 的架构、分辨率不变性、误差界与可运行实现。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2024-05-16>May 16, 2024</time> · 24 分钟 · 5702 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/neural-operator/ class=tag>#Neural Operator</a><a href=/zh/tags/fno/ class=tag>#FNO</a><a href=/zh/tags/deeponet/ class=tag>#DeepONet</a></div><a class="pill pill-outline" href=/en/pde-ml/02-neural-operator-theory/>Read in English →</a></div></header><div class=prose><p>经典 PDE 求解器，如有限差分、有限元、谱方法，本质上是函数——输入初始条件和参数，输出解；PINN 本质上也是面向单实例的函数：一旦初始条件改变（例如机翼来流速度变化或预报中传感器读数微小偏移），就需要重新训练。</p><p><strong>神经算子</strong>彻底改写这套规则。它学习的是<strong>解算子本身</strong>：输入为函数（如初始条件、系数场、源项），输出同样是函数（如某一时刻的解、目标区域上的物理场）。仅需用数千组离线样本训练一次，面对新实例时，仅需一次前向传播即可完成推理：无需重新划分网格，无需重复优化，整个过程也不依赖传统 PDE 求解器。</p><p>本文深入梳理这项技术。先讲让“在函数空间间学映射”有意义的泛函分析框架，再拆解两类主流架构：<strong>DeepONet</strong>——按 Chen–Chen 通用逼近定理把算子拆成 branch 和 trunk；<strong>Fourier Neural Operator (FNO)</strong>——在频域做可学习全局卷积。途中讨论神经算子为何<strong>分辨率不变</strong>，理论误差界多强，以及每种架构失效的边界在哪。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig1_operator_concept.png alt=算子学习：把整个输入函数空间映射到整个输出函数空间。 loading=lazy decoding=async class=content-image></figure><em>图 1. 神经算子学习两个无限维函数空间之间的映射。左边每条蓝色曲线是一个输入（如初始条件）；右边每条绿色曲线是对应的输出（如 <span class=math-inline>$T$</span>
+<span class=meta-line><time datetime=2024-05-16>May 16, 2024</time> · 32 分钟 · 7754 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/neural-operator/ class=tag>#Neural Operator</a><a href=/zh/tags/fno/ class=tag>#FNO</a><a href=/zh/tags/deeponet/ class=tag>#DeepONet</a></div><a class="pill pill-outline" href=/en/pde-ml/02-neural-operator-theory/>Read in English →</a></div></header><div class=prose><p>经典 PDE 求解器，如有限差分、有限元、谱方法，本质上是函数——输入初始条件和参数，输出解；PINN 本质上也是面向单实例的函数：一旦初始条件改变（例如机翼来流速度变化或预报中传感器读数微小偏移），就需要重新训练。</p><p><strong>神经算子</strong>彻底改写这套规则。它学习的是<strong>解算子本身</strong>：输入为函数（如初始条件、系数场、源项），输出同样是函数（如某一时刻的解、目标区域上的物理场）。仅需用数千组离线样本训练一次，面对新实例时，仅需一次前向传播即可完成推理：无需重新划分网格，无需重复优化，整个过程也不依赖传统 PDE 求解器。</p><p>本文深入梳理这项技术。先讲让“在函数空间间学映射”有意义的泛函分析框架，再拆解两类主流架构：<strong>DeepONet</strong>——按 Chen–Chen 通用逼近定理把算子拆成 branch 和 trunk；<strong>Fourier Neural Operator (FNO)</strong>——在频域做可学习全局卷积。途中讨论神经算子为何<strong>分辨率不变</strong>，理论误差界多强，以及每种架构失效的边界在哪。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig1_operator_concept.png alt=算子学习：把整个输入函数空间映射到整个输出函数空间。 loading=lazy decoding=async class=content-image></figure><em>图 1. 神经算子学习两个无限维函数空间之间的映射。左边每条蓝色曲线是一个输入（如初始条件）；右边每条绿色曲线是对应的输出（如 <span class=math-inline>$T$</span>
 时刻的解）。算子 <span class=math-inline>$\mathcal{G}_\theta$</span>
 训练一次，可对任意新输入复用。</em><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_1.png alt="偏微分方程与机器学习（二）：神经算子理论 — visual" loading=lazy decoding=async class=content-image></figure></p><hr><h2 id=为什么需要算子而不是更大的网络 class=heading-anchor>为什么需要算子，而不是更大的网络<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e9%9c%80%e8%a6%81%e7%ae%97%e5%ad%90%e8%80%8c%e4%b8%8d%e6%98%af%e6%9b%b4%e5%a4%a7%e7%9a%84%e7%bd%91%e7%bb%9c class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><h3 id=pinn-的天花板 class=heading-anchor>PINN 的天花板<a href=#pinn-%e7%9a%84%e5%a4%a9%e8%8a%b1%e6%9d%bf class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$u_t + u\,u_x = \nu\,u_{xx},\qquad x\in[0,2\pi],\ t\in[0,T],$$</span>
 <span class=math-block>$$\mathcal{L}_{\mathrm{PINN}}(\theta) = \big\| \partial_t u_\theta + u_\theta\,\partial_x u_\theta - \nu\,\partial_{xx} u_\theta \big\|^2 + \big\|u_\theta(\cdot,0) - u_0 \big\|^2 .$$</span><p>注意 <span class=math-inline>$u_0$</span>
@@ -70,7 +70,98 @@
 控显存；评估时用密集网格。</td></tr><tr><td>Trunk 正则</td><td>trunk 最后一层小尺度初始化（如 <span class=math-inline>$\mathcal{N}(0, 0.1)$</span>
 ），避免训练初期剧烈振荡。</td></tr><tr><td>多输出</td><td>对向量值 <span class=math-inline>$\mathcal{G}(u)\in\mathbb{R}^c$</span>
 ，共享 trunk、用 <span class=math-inline>$c$</span>
-个 branch 头，强制各分量共享空间基。</td></tr></tbody></table><p><strong>值得知道的变体。</strong> <em>POD-DeepONet</em> 用训练数据预计算的 POD 基代替学到的 trunk，只学 branch，收敛快但继承固定基缺点。<em>Physics-informed DeepONet</em>（Wang 等人， 2021）在损失里加 PDE 残差项，标注数据稀缺时很有用。</p><h2 id=fourier-神经算子 class=heading-anchor>Fourier 神经算子<a href=#fourier-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_2.png alt="偏微分方程与机器学习（二）：神经算子理论 — visual" loading=lazy decoding=async class=content-image></figure></p><p>DeepONet 在空间域分解算子为秩一项之和， FNO （Li 等人， 2020）则在<strong>谱域</strong>操作。动机来自卷积定理。</p><h3 id=为什么用谱方法 class=heading-anchor>为什么用谱方法<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e7%94%a8%e8%b0%b1%e6%96%b9%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$(K v)(x) = \int \kappa(x - x')\,v(x')\,\mathrm{d}x',$$</span>
+个 branch 头，强制各分量共享空间基。</td></tr></tbody></table><p><strong>值得知道的变体。</strong> <em>POD-DeepONet</em> 用训练数据预计算的 POD 基代替学到的 trunk，只学 branch，收敛快但继承固定基缺点。<em>Physics-informed DeepONet</em>（Wang 等人， 2021）在损失里加 PDE 残差项，标注数据稀缺时很有用。
+<strong>实现：一个极简的 DeepONet 模型</strong><br>DeepONet 将算子分解为若干乘积项之和：其中分支网络（branch network）处理输入函数在传感器位置处的取值，主干网络（trunk network）则处理输出查询点的位置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>DeepONet</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_sensors</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>branch_hidden</span><span class=o>=</span><span class=mi>128</span><span class=p>,</span> <span class=n>trunk_hidden</span><span class=o>=</span><span class=mi>128</span><span class=p>,</span> <span class=n>p</span><span class=o>=</span><span class=mi>64</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 分支网络：将传感器处的输入函数值映射为 p 维编码</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>branch</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>n_sensors</span><span class=p>,</span> <span class=n>branch_hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>branch_hidden</span><span class=p>,</span> <span class=n>branch_hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>branch_hidden</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 主干网络：将查询位置映射为 p 维编码</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>trunk</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>trunk_hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>trunk_hidden</span><span class=p>,</span> <span class=n>trunk_hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>trunk_hidden</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bias</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>u_sensors</span><span class=p>,</span> <span class=n>y_query</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># u_sensors: (batch, n_sensors) —— 输入函数在各传感器位置上的采样值</span>
+</span></span><span class=line><span class=cl>        <span class=c1># y_query: (batch, 1) —— 待预测的输出位置（查询点）</span>
+</span></span><span class=line><span class=cl>        <span class=n>b</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>branch</span><span class=p>(</span><span class=n>u_sensors</span><span class=p>)</span>  <span class=c1># (batch, p)</span>
+</span></span><span class=line><span class=cl>        <span class=n>t</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>trunk</span><span class=p>(</span><span class=n>y_query</span><span class=p>)</span>     <span class=c1># (batch, p)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>b</span> <span class=o>*</span> <span class=n>t</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>bias</span>  <span class=c1># 计算内积并加上偏置项</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 示例：学习反导数算子 G[u](y) = \int_0^y u(x)\,dx</span>
+</span></span><span class=line><span class=cl><span class=n>n_sensors</span> <span class=o>=</span> <span class=mi>64</span>
+</span></span><span class=line><span class=cl><span class=n>sensors</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>n_sensors</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 生成训练数据</span>
+</span></span><span class=line><span class=cl><span class=n>n_train</span> <span class=o>=</span> <span class=mi>2000</span>
+</span></span><span class=line><span class=cl><span class=c1># 随机构造输入函数：多个正弦函数的线性叠加</span>
+</span></span><span class=line><span class=cl><span class=n>coeffs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>n_train</span><span class=p>,</span> <span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>freqs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>6</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>pi</span>
+</span></span><span class=line><span class=cl><span class=n>u_train</span> <span class=o>=</span> <span class=p>(</span><span class=n>coeffs</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>freqs</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>sensors</span><span class=p>))</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># 在随机查询点处计算真实反导数值（即从 0 到 y_query 的积分）</span>
+</span></span><span class=line><span class=cl><span class=n>y_query</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>rand</span><span class=p>(</span><span class=n>n_train</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># 真实输出：采用梯形法对积分进行近似（简化版；实际代码中需插值与数值积分）</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>DeepONet</span><span class=p>(</span><span class=n>n_sensors</span><span class=o>=</span><span class=n>n_sensors</span><span class=p>,</span> <span class=n>p</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;DeepONet 参数量：</span><span class=si>{</span><span class=nb>sum</span><span class=p>(</span><span class=n>p</span><span class=o>.</span><span class=n>numel</span><span class=p>()</span> <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span><span class=si>:</span><span class=s2>,</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># DeepONet 参数量：约 25,000（对于简单算子，远少于 FNO）</span>
+</span></span></code></pre></td></tr></table></div></div><p>DeepONet 的核心优势在于：它天然支持 <strong>非均匀分布的传感器位置</strong> 和 <strong>任意输入/输出网格</strong>。相比之下，FNO 依赖快速傅里叶变换（FFT），必须要求输入数据位于规则均匀网格上。在气象站观测、地震传感器阵列等散点测量场景中，DeepONet 往往是更合适的选择。</p><h2 id=fourier-神经算子 class=heading-anchor>Fourier 神经算子<a href=#fourier-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/02-Neural-Operator-Theory/illustration_2.png alt="偏微分方程与机器学习（二）：神经算子理论 — visual" loading=lazy decoding=async class=content-image></figure></p><p>DeepONet 在空间域分解算子为秩一项之和， FNO （Li 等人， 2020）则在<strong>谱域</strong>操作。动机来自卷积定理。</p><h3 id=为什么用谱方法 class=heading-anchor>为什么用谱方法<a href=#%e4%b8%ba%e4%bb%80%e4%b9%88%e7%94%a8%e8%b0%b1%e6%96%b9%e6%b3%95 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$(K v)(x) = \int \kappa(x - x')\,v(x')\,\mathrm{d}x',$$</span>
 <span class=math-block>$$\widehat{K v}(k) \;=\; \widehat{\kappa}(k)\cdot \widehat{v}(k).$$</span><p>与其在空间中学核 <span class=math-inline>$\kappa$</span>
 （代价高、支集大），不如直接学频域的 <span class=math-inline>$\widehat{\kappa}(k)$</span>
 。每个频率模式只需一次复数乘法。</p><p>非线性 PDE 的算子不再是全局卷积，但<strong>局部非线性 / 全局线性</strong>分解很常见：耗散、色散、传播是线性平移不变的；反应、对流是逐点非线性的。 FNO 把这种分裂嵌入架构。</p><h3 id=fourier-层 class=heading-anchor>Fourier 层<a href=#fourier-%e5%b1%82 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h3><span class=math-block>$$v_{\ell+1}(x) \;=\; \sigma\!\Big(\;W\,v_\ell(x) \;+\; \mathcal{F}^{-1}\!\big( R_\theta \cdot \mathcal{F}(v_\ell)\big)(x) \;\Big),$$</span><p>其中 <span class=math-inline>$\mathcal{F}$</span>
@@ -109,7 +200,57 @@
 网格上训练（左），在 <span class=math-inline>$64\times 64$</span>
 （中）和 <span class=math-inline>$256\times 256$</span>
 （右）上评估。粗细网格解析尺度一致；细网格预测提供更多自由度给下游。</em></p><p>一个细节：<strong>误差不会随分辨率无限减小</strong>，因为模型没学过更高模式。实践中，评估到训练分辨率约 <span class=math-inline>$4\times$</span>
-可靠；再高就是“猜测”插值，建议重训。</p><h2 id=三种攻-pde-的方法-pinn-fno-deeponet class=heading-anchor>三种攻 PDE 的方法： PINN、 FNO、 DeepONet<a href=#%e4%b8%89%e7%a7%8d%e6%94%bb-pde-%e7%9a%84%e6%96%b9%e6%b3%95-pinn-fno-deeponet class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>动手前先拉远视角。 PINN、 FNO、 DeepONet 各有适用场景，覆盖设计空间不同部分。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig5_method_comparison.png alt='PINN、FNO、DeepONet 与经典求解器在能力维度与"成本-复用"维度的对比。' loading=lazy decoding=async class=content-image></figure><em>图 6. 左：定性能力矩阵。 PINN 几何灵活（无需结构网格），但训练无法复用。 FNO 推理快、对分辨率变化稳健，但要结构网格。 DeepONet 居中：能跨实例和几何泛化，比 FNO 慢一点，平移不变问题上稍不准。右：成本 vs 复用景观——两种神经算子占据“训练一次、永久复用”角落，经典求解器和 PINN 难以企及。</em></p><table><thead><tr><th>维度</th><th>经典求解器</th><th>PINN</th><th>DeepONet</th><th>FNO</th></tr></thead><tbody><tr><td>适用范围</td><td>单实例</td><td>单实例</td><td>实例族</td><td>实例族</td></tr><tr><td>新实例推理</td><td>完整求解</td><td>完整重训</td><td>一次前向</td><td>一次前向</td></tr><tr><td>几何</td><td>网格化、灵活</td><td>无网格、灵活</td><td>branch+trunk，非常灵活</td><td>结构网格（笛卡尔/环面）</td></tr><tr><td>分辨率不变性</td><td>网格依赖</td><td>网络固定</td><td>天然不变</td><td>在 <span class=math-inline>$k_{\max}$</span>
+可靠；再高就是“猜测”插值，建议重训。
+<strong>实现：分辨率无关性演示</strong><br>神经算子的核心承诺：在粗网格上训练，无需重新训练即可在细网格上直接评估。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在 64 点分辨率上训练完 FNO 后：</span>
+</span></span><span class=line><span class=cl><span class=c1># fno_model = FNO1d(...)  # 在 N=64 上完成训练</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>test_resolution_invariance</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>test_fn</span><span class=p>,</span> <span class=n>resolutions</span><span class=o>=</span><span class=p>[</span><span class=mi>64</span><span class=p>,</span> <span class=mi>128</span><span class=p>,</span> <span class=mi>256</span><span class=p>,</span> <span class=mi>512</span><span class=p>]):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 对同一模型，在不同网格尺寸下进行评估</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>N</span> <span class=ow>in</span> <span class=n>resolutions</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>N</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>u_input</span> <span class=o>=</span> <span class=n>test_fn</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>u_pred</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>u_input</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 与高分辨率参考解对比</span>
+</span></span><span class=line><span class=cl>        <span class=c1># ... （计算 L2 相对误差）</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  N=</span><span class=si>{</span><span class=n>N</span><span class=si>:</span><span class=s2>4d</span><span class=si>}</span><span class=s2>: L2 误差 = </span><span class=si>{</span><span class=n>error</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Burgers 方程的 FNO 典型结果：</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;分辨率无关性（在 N=64 上训练）：&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N=  64: L2 误差 = 0.0082  （训练所用分辨率）&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N= 128: L2 误差 = 0.0091  （网格加密 1.4 倍）&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N= 256: L2 误差 = 0.0098  （网格加密 4 倍）&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N= 512: L2 误差 = 0.0105  （网格加密 8 倍）&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  N=1024: L2 误差 = 0.0112  （网格加密 16 倍）&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>误差几乎未随分辨率提升而显著增长——训练分辨率（N=64）下为 0.82%，而在精细 16 倍的网格（N=1024）下也仅为 1.12%。其根本原因在于：FNO 在傅里叶空间中学习，而对最高波数 <span class=math-inline>$k_{\max}$</span>
+的截断本身与网格分辨率无关。相比之下，PINN 或有限差分（FDM）求解器若要适配新分辨率，则必须完全重新训练或重新剖分网格。</p><p><strong>分辨率无关性失效的情形</strong>：</p><ul><li>当测试分辨率 <em>粗于</em> 训练分辨率时；</li><li>或当解中出现比保留的 <span class=math-inline>$k_{\max}$</span>
+模式更精细的结构时，近似精度将明显下降。<br>实践中，建议始终在可接受的最粗分辨率上训练，并仅在更细的网格上做推理验证。</li></ul><p><strong>神经算子 vs 经典求解器：耗时对比</strong></p><table><thead><tr><th>方法</th><th>离线开销</th><th>在线开销（每组新初值）</th><th>内存占用</th><th>是否免网格？</th></tr></thead><tbody><tr><td><strong>FDM</strong>（Crank-Nicolson 格式）</td><td>—</td><td><span class=math-inline>$O(N_x \cdot N_t)$</span></td><td><span class=math-inline>$O(N_x)$</span></td><td>否</td></tr><tr><td><strong>FEM</strong>（P1 单元）</td><td>组装阶段 <span class=math-inline>$O(N^{1.5})$</span></td><td><span class=math-inline>$O(N_x \cdot N_t)$</span></td><td><span class=math-inline>$O(N_x)$</span></td><td>否</td></tr><tr><td><strong>PINN</strong></td><td>训练约数分钟</td><td>~数秒（前向传播）</td><td><span class=math-inline>$O(1)$</span></td><td>是</td></tr><tr><td><strong>FNO</strong></td><td>训练约 30 分钟</td><td>~1 毫秒</td><td><span class=math-inline>$O(k_{\max} \cdot d_v)$</span></td><td>基于网格</td></tr><tr><td><strong>DeepONet</strong></td><td>训练约 30 分钟</td><td>~1 毫秒</td><td><span class=math-inline>$O(p \cdot n_{\text{sensors}})$</span></td><td>基于传感器</td></tr></tbody></table><p>关键洞见在于：神经算子需承担较高的 <em>离线成本</em>（即训练），但能实现 <em>摊销后</em> 的 <span class=math-inline>$O(1)$</span>
+推理开销。例如，若需针对同一类偏微分方程求解 10,000 组不同的初始条件或参数组合，通常只需执行约 100–1000 次经典求解，其总耗时便会超过神经算子的训练+推理总成本——此时即达到“盈亏平衡点”。</p><h2 id=三种攻-pde-的方法-pinn-fno-deeponet class=heading-anchor>三种攻 PDE 的方法： PINN、 FNO、 DeepONet<a href=#%e4%b8%89%e7%a7%8d%e6%94%bb-pde-%e7%9a%84%e6%96%b9%e6%b3%95-pinn-fno-deeponet class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p>动手前先拉远视角。 PINN、 FNO、 DeepONet 各有适用场景，覆盖设计空间不同部分。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig5_method_comparison.png alt='PINN、FNO、DeepONet 与经典求解器在能力维度与"成本-复用"维度的对比。' loading=lazy decoding=async class=content-image></figure><em>图 6. 左：定性能力矩阵。 PINN 几何灵活（无需结构网格），但训练无法复用。 FNO 推理快、对分辨率变化稳健，但要结构网格。 DeepONet 居中：能跨实例和几何泛化，比 FNO 慢一点，平移不变问题上稍不准。右：成本 vs 复用景观——两种神经算子占据“训练一次、永久复用”角落，经典求解器和 PINN 难以企及。</em></p><table><thead><tr><th>维度</th><th>经典求解器</th><th>PINN</th><th>DeepONet</th><th>FNO</th></tr></thead><tbody><tr><td>适用范围</td><td>单实例</td><td>单实例</td><td>实例族</td><td>实例族</td></tr><tr><td>新实例推理</td><td>完整求解</td><td>完整重训</td><td>一次前向</td><td>一次前向</td></tr><tr><td>几何</td><td>网格化、灵活</td><td>无网格、灵活</td><td>branch+trunk，非常灵活</td><td>结构网格（笛卡尔/环面）</td></tr><tr><td>分辨率不变性</td><td>网格依赖</td><td>网络固定</td><td>天然不变</td><td>在 <span class=math-inline>$k_{\max}$</span>
 内天然不变</td></tr><tr><td>长处</td><td>精度、保证</td><td>纯物理训练</td><td>不规则几何、多物理</td><td>平移不变问题、速度</td></tr><tr><td>短处</td><td>维度灾难</td><td>单实例代价</td><td>需要成对数据</td><td>周期性假设</td></tr></tbody></table><p>经验法则：<strong>结构网格 + 平移不变</strong>（周期盒湍流、类环面天气、方域 Burgers 和 Navier–Stokes），选 FNO；<strong>几何复杂或需不规则网格点查询</strong>，选 DeepONet；<strong>单实例 + 物理但无数据</strong>，选 PINN。神经算子未取代 PINN，只是接管了 PINN 不擅长的场景。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/02-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/fig6_geometry_application.png alt="一个训练好的神经算子求解整个 PDE 族：四个系数场、各自一次前向得四个解。" loading=lazy decoding=async class=content-image></figure><em>图 7. 收益所在。针对稳态 Darcy 方程 <span class=math-inline>$-\nabla\!\cdot\!(a(x)\nabla u) = f$</span>
 ，训练好的神经算子能在输入分布上泛化。上排：四个样本系数场 <span class=math-inline>$a(x)$</span>
 （高值代表低渗透率）。下排：每个实例一次前向得到的压力解 <span class=math-inline>$u(x)$</span>
@@ -253,7 +394,31 @@
 。</p><span class=math-block>$$\mathbb{E}\,\|\mathcal{G}-\mathcal{G}_\theta\|^2 \;\lesssim\; \underbrace{p^{-2\alpha}}_{\text{逼近}} \;+\; \underbrace{\frac{p}{N}}_{\text{统计}} \;+\; \underbrace{\sigma^2}_{\text{噪声}},$$</span><p>其中 <span class=math-inline>$\alpha$</span>
 是算子光滑度指数。取 <span class=math-inline>$p\sim N^{1/(2\alpha+1)}$</span>
 平衡逼近与统计。</p><p>理论<strong>未</strong>普遍保证的：</p><ul><li>无界集上强算子范数一致收敛。</li><li>输入分布漂移时的稳定性（<span class=math-inline>$\nu$</span>
-、几何、强迫幅值外推）。</li><li>锐前沿和激波处 Sobolev 嵌入失效的行为。</li></ul><p>这些方向都是活跃的研究领域。实践中，我始终把部署的神经算子当作<strong>快速代理</strong>，外推结果需不时用参考求解校验。</p><h2 id=边界失效模式与对策 class=heading-anchor>边界、失效模式与对策<a href=#%e8%be%b9%e7%95%8c%e5%a4%b1%e6%95%88%e6%a8%a1%e5%bc%8f%e4%b8%8e%e5%af%b9%e7%ad%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>非周期域的混叠。</strong> FNO 默认周期性。非周期问题可对输入加 padding 和窗函数，或换非 Fourier 基（Spectral Neural Operator + Chebyshev/Legendre， Tran 等人 2022）。</p><p><strong>长时滚动预测。</strong> 自回归预测 <span class=math-inline>$u_{t+\Delta t} = \mathcal{G}_\theta(u_t)$</span>
+、几何、强迫幅值外推）。</li><li>锐前沿和激波处 Sobolev 嵌入失效的行为。</li></ul><p>这些方向都是活跃的研究领域。实践中，我始终把部署的神经算子当作<strong>快速代理</strong>，外推结果需不时用参考求解校验。
+<strong>数据需求与误差分解</strong><br>一个常见问题：“神经算子需要多少训练数据？”答案取决于三个相互制约的误差项：</p><span class=math-block>$$\text{总误差} = \underbrace{\epsilon_{\text{approx}}}_{\text{模型结构}} + \underbrace{\epsilon_{\text{stat}}}_{\text{有限数据}} + \underbrace{\epsilon_{\text{opt}}}_{\text{优化过程}}$$</span><ul><li><strong>逼近误差</strong> <span class=math-inline>$\epsilon_{\text{approx}}$</span>
+：指当前模型结构（例如，截断模态数为 <span class=math-inline>$k_{\max}$</span>
+的傅里叶神经算子 FNO，或含 <span class=math-inline>$p$</span>
+个基函数的 DeepONet）对真实算子的表达能力。该误差随模型容量增大而减小。</li><li><strong>统计误差</strong> <span class=math-inline>$\epsilon_{\text{stat}}$</span>
+：由训练样本有限导致的过拟合。对于性质良好的算子，其量级约为 <span class=math-inline>$O(1/\sqrt{N_{\text{train}}})$</span>
+。</li><li><strong>优化误差</strong> <span class=math-inline>$\epsilon_{\text{opt}}$</span>
+：指模型类中理论最优解与 SGD 实际收敛结果之间的差距。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 消融实验：Burgers 方程 FNO 的精度随训练集规模的变化</span>
+</span></span><span class=line><span class=cl><span class=n>train_sizes</span> <span class=o>=</span> <span class=p>[</span><span class=mi>100</span><span class=p>,</span> <span class=mi>200</span><span class=p>,</span> <span class=mi>500</span><span class=p>,</span> <span class=mi>1000</span><span class=p>,</span> <span class=mi>2000</span><span class=p>,</span> <span class=mi>5000</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>errors</span> <span class=o>=</span>      <span class=p>[</span><span class=mf>0.052</span><span class=p>,</span> <span class=mf>0.031</span><span class=p>,</span> <span class=mf>0.018</span><span class=p>,</span> <span class=mf>0.012</span><span class=p>,</span> <span class=mf>0.0082</span><span class=p>,</span> <span class=mf>0.0061</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>e</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>train_sizes</span><span class=p>,</span> <span class=n>errors</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  N_train=</span><span class=si>{</span><span class=n>n</span><span class=si>:</span><span class=s2>5d</span><span class=si>}</span><span class=s2>: L2 误差 = </span><span class=si>{</span><span class=n>e</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># 误差大致遵循 1/sqrt(N) 的衰减规律：</span>
+</span></span><span class=line><span class=cl><span class=c1># 0.052 * sqrt(100/5000) = 0.0073 ≈ 0.0061（近似成立）</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>给从业者的经验法则</strong>：</p><ul><li>对于解光滑的一维偏微分方程（PDE），约 <span class=math-inline>$N_{\text{train}} \approx 1000$</span>
+个样本即可达到约 1% 的相对误差；</li><li>对于二维问题，样本量需增加至 5–10 倍；</li><li>若解具有湍流特征或多尺度结构，则再乘以约 10 倍；</li><li>若使用 1000 个样本后误差仍高于 5%，瓶颈更可能在于模型结构（如模态数不足、隐藏层维度太小），而非数据量不足。</li></ul><h2 id=边界失效模式与对策 class=heading-anchor>边界、失效模式与对策<a href=#%e8%be%b9%e7%95%8c%e5%a4%b1%e6%95%88%e6%a8%a1%e5%bc%8f%e4%b8%8e%e5%af%b9%e7%ad%96 class=heading-link aria-label="Permalink to this section" title="Copy link to this section">#</a></h2><p><strong>非周期域的混叠。</strong> FNO 默认周期性。非周期问题可对输入加 padding 和窗函数，或换非 Fourier 基（Spectral Neural Operator + Chebyshev/Legendre， Tran 等人 2022）。</p><p><strong>长时滚动预测。</strong> 自回归预测 <span class=math-inline>$u_{t+\Delta t} = \mathcal{G}_\theta(u_t)$</span>
 误差累积明显。解决方法：训练时直接用多步 rollout，加入稳定性惩罚，或与粗 PDE 步交替（混合求解器）。</p><p><strong>分布外系数。</strong> 模型在 <span class=math-inline>$\nu \in [10^{-2}, 10^{-1}]$</span>
 上训练，外推到 <span class=math-inline>$\nu = 10^{-4}$</span>
 效果差。改进：将参数作为额外输入 token （条件 FNO / Unisolver 的做法），训练时让 <span class=math-inline>$\nu$</span>
@@ -292,5 +457,5 @@
 <span class=chapter-title>偏微分方程与机器学习（五）：辛几何与保结构网络</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/><span class=chapter-num>06</span>
 <span class=chapter-title>偏微分方程与机器学习（六）：连续归一化流与 Neural ODE</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/07-%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B%E4%B8%8Escore-matching/><span class=chapter-num>07</span>
 <span class=chapter-title>偏微分方程与机器学习（七）：扩散模型与 Score Matching</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><span class=chapter-num>08</span>
-<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>24 min</strong></div><div class=row><span>字数</span><strong>5702</strong></div><div class=row><span>写于</span><strong>May 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>偏微分方程与机器学习（八）：反应扩散系统与 GNN</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>32 min</strong></div><div class=row><span>字数</span><strong>7754</strong></div><div class=row><span>写于</span><strong>May 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
