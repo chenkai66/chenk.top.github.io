@@ -75,7 +75,7 @@ $$
 
 蓝色曲线为 $f(x) = \tfrac{1}{2}\sin(2x) + \tfrac{1}{2}x^2$。在三个锚点处，虚线二次函数 $f(x_0) + f'(x_0)(x-x_0) + \tfrac{L}{2}(x-x_0)^2$ 全局位于 $f$ 上方，而点线切线仅在 $f$ 局部凸的区域下方。
 
-**为何这个不等式如此重要？** 将 $y = x - \etaabla f(x)$ 代入：
+**为何这个不等式如此重要？** 将 $y = x - \eta\nabla f(x)$ 代入：
 $$
 f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|
 \nabla f(x)\|^2.
@@ -213,8 +213,7 @@ $$\beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},$$
 - **$\mu$ 未知**：定理 7 需要 $\sqrt{1/\kappa}$ 作为动量；估计错误会破坏速率。
 - **局部强凸**：$f$ 全局仅凸但在 $x^\star$ 附近强凸；使用凸速率的 Nesterov 表现不佳。
 
-**自适应重启（O'Donoghue & Candès, 2015）**：每当 **梯度方向反转**（$\langle
-abla f(y_t), x_{t+1}-x_t\rangle > 0$）或 **函数值上升** 时，重置动量并将迭代计数器归零 $t \leftarrow 1$。
+**自适应重启（O'Donoghue & Candès, 2015）**：每当 **梯度方向反转**（$\langle\nabla f(y_t), x_{t+1}-x_t\rangle > 0$）或 **函数值上升** 时，重置动量并将迭代计数器归零 $t \leftarrow 1$。
 
 **定理 8（重启 Nesterov 在未知 $\mu$ 下仍达最优速率）**。对 $\mu$-强凸 + $L$-光滑函数 $f$，重启 Nesterov 仍实现 $\mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$ 次迭代，**无需知道 $\mu$**。
 
