@@ -15,7 +15,7 @@ series_order: 4
 translationKey: "time-series-4"
 ---
 ![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
-## 总结
+## 本文要点
 
 - 循环模型在处理长程依赖时为何遭遇瓶颈，而注意力机制又是如何彻底打破这一限制的。
 - Query / Key / Value 机制、缩放点积注意力（scaled dot-product attention）的原理，以及为何要除以 $\sqrt{d_k}$。
@@ -326,18 +326,3 @@ class LSTMAttention(nn.Module):
 5. Kitaev, Kaiser, Levskaya, *Reformer: The Efficient Transformer*, ICLR 2020.
 6. Beltagy, Peters, Cohan, *Longformer: The Long-Document Transformer*, 2020.
 7. Zhou et al., *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting*, AAAI 2021. — 第 8 篇将详细介绍。
-
----
-
-> 
->
-> 本文是时间序列模型系列的**第 4 篇**，共 8 篇。
->
-> - [第 1 篇：传统统计模型](/zh/time-series/01-传统模型/)
-> - [第 2 篇：LSTM —— 门控机制与长期依赖](/zh/time-series/02-lstm)
-> - [第 3 篇：GRU —— 轻量门控与效率权衡](/zh/time-series/03-gru)
-> - **第 4 篇： Attention 机制 —— 直接的长程依赖**（当前）
-> - [第 5 篇：时间序列的 Transformer 架构](/zh/time-series/05-transformer架构)
-> - [第 6 篇：时序卷积网络 TCN](/zh/time-series/06-时序卷积网络tcn)
-> - [第 7 篇：N-BEATS —— 可解释的深度架构](/zh/time-series/07-n-beats深度架构)
-> - [第 8 篇：Informer —— 高效长序列预测](/zh/time-series/08-informer长序列预测)

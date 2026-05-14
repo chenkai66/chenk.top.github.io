@@ -498,5 +498,3 @@ Next chapter we move from convolutions to **N-BEATS**, which throws away both co
 - van den Oord, A. et al. (2016). *WaveNet: A Generative Model for Raw Audio.* [arXiv:1609.03499](https://arxiv.org/abs/1609.03499).
 - Lea, C. et al. (2017). *Temporal Convolutional Networks for Action Segmentation and Detection.* CVPR.
 - Salimans, T., & Kingma, D. P. (2016). *Weight Normalization.* NeurIPS.
-
-*This article is part of the Time Series Forecasting series. Use the navigation at the top to jump to other chapters.*

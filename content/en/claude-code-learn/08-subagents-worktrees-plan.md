@@ -30,7 +30,6 @@ Three features, in increasing order of trust required.
 Plan mode is the cheapest of the three. Press `Shift+Tab` until the indicator says **plan**. The model now plans without taking any actions. It will read, think, propose, and stop. You read the plan. You either approve, edit, or kill it. Only then does it execute.
 
 
-
 ![Plan mode lifecycle: read, plan, approve, execute](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/fig5.png)
 *Figure 1. Plan mode lifecycle. The airlock between intent and action.*
 
@@ -126,7 +125,6 @@ After Claude shows the plan:
 ## Sub-agents — for things you can run in parallel
 
 A sub-agent is a Claude Code instance spawned by the parent agent to handle a scoped task. It has its own context window, tool set, and instructions. The parent orchestrates, and the sub-agents do the work.
-
 
 
 ![Sub-agent topology with isolated context windows](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/fig3.png)
@@ -286,7 +284,6 @@ When Claude calls `EnterWorktree`, here is what happens:
 5. All subsequent file operations happen in the worktree, not the original repo.
 
 The key insight: the worktree shares the same `.git` object store as the original repo. Commits, branches, and refs are shared. But the working tree — the files on disk — is independent.
-
 
 
 ![Worktree filesystem layout: shared .git, separate working trees](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/fig4.png)
@@ -541,7 +538,6 @@ The mistake is jumping to sub-agents for everything. Start with plan mode. Move 
 Most tasks. Genuinely. The 80% case is "edit this function, run the test, ship it" — plain mode, no sub-agents, no worktrees. The features above earn their keep on the 20% that are large, irreversible, or branching.
 
 If you find yourself reaching for sub-agents and worktrees on every task, the more interesting question is whether you are making your tasks too big.
-
 
 
 ![Decision tree for choosing plain, plan, worktree, or sub-agent](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/fig7.png)

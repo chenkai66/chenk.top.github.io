@@ -471,5 +471,3 @@ This concludes the time-series forecasting series. Across eight chapters we walk
 - Nie, Y. et al. (2023). *A Time Series is Worth 64 Words: Long-term Forecasting with Transformers (PatchTST).* ICLR.
 - Wang, S. et al. (2020). *Linformer: Self-Attention with Linear Complexity.* [arXiv:2006.04768](https://arxiv.org/abs/2006.04768).
 - Choromanski, K. et al. (2021). *Rethinking Attention with Performers.* ICLR.
-
-*This article concludes the Time Series Forecasting series. Use the navigation at the top to revisit earlier chapters.*

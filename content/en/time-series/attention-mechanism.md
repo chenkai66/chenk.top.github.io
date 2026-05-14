@@ -341,6 +341,3 @@ The price is $O(n^2)$ memory and the need to inject position explicitly. For mos
 6. Beltagy, Peters, Cohan, *Longformer: The Long-Document Transformer*, 2020.
 7. Zhou et al., *Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting*, AAAI 2021. — covered in Part 8.
 
----
-
-**Series navigation**

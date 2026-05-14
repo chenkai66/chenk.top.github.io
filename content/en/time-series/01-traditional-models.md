@@ -14,8 +14,6 @@ disableNunjucks: true
 series_order: 1
 translationKey: "time-series-1"
 ---
-> [Next: LSTM Deep Dive -->](/en/time-series/lstm/)
-
 ![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)
 
 ## What You Will Learn
@@ -322,18 +320,3 @@ That is the launchpad for the next seven articles. We start with **LSTM** as the
 - Engle, R. F. (1982). Autoregressive conditional heteroscedasticity with estimates of the variance of United Kingdom inflation. *Econometrica*, 50(4), 987-1007.
 - Bollerslev, T. (1986). Generalized autoregressive conditional heteroskedasticity. *Journal of Econometrics*, 31(3), 307-327.
 - Taylor, S. J., & Letham, B. (2018). Forecasting at scale. *The American Statistician*, 72(1), 37-45.
-
----
-
-> 
->
-> This is **Part 1** of the 8-part Time Series Forecasting series.
->
-> - **Part 1: Traditional Statistical Models** (current)
-> - [Part 2: LSTM — Gated Memory and Long-Term Dependencies](/en/time-series/lstm/)
-> - [Part 3: GRU — Lightweight Gating and Efficiency](/en/time-series/gru/)
-> - [Part 4: Attention Mechanism — Direct Long-Range Dependencies](/en/time-series/attention-mechanism/)
-> - [Part 5: Transformer Architecture for Time Series](/en/time-series/transformer/)
-> - [Part 6: Temporal Convolutional Networks (TCN)](/en/time-series/temporal-convolutional-networks/)
-> - [Part 7: N-BEATS — Interpretable Deep Architecture](/en/time-series/n-beats/)
-> - [Part 8: Informer — Efficient Long-Sequence Forecasting](/en/time-series/informer-long-sequence/)

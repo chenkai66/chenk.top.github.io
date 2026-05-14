@@ -504,5 +504,3 @@ Next chapter we close the series with **Informer**, which solves a different pro
 - Smyl, S. (2020). *A Hybrid Method of Exponential Smoothing and Recurrent Neural Networks for Time Series Forecasting.* International Journal of Forecasting, 36(1).
 - Challu, C. et al. (2023). *N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting.* AAAI.
 - Olivares, K. et al. (2023). *Neural Basis Expansion Analysis with Exogenous Variables: Forecasting Electricity Prices with N-BEATS-X.* International Journal of Forecasting.
-
-*This article is part of the Time Series Forecasting series. Use the navigation at the top to jump to other chapters.*

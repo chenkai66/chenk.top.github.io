@@ -15,7 +15,7 @@ series_order: 3
 translationKey: "time-series-3"
 ---
 
-## 总结
+## 本文要点
 
 ![GRU 章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
 
