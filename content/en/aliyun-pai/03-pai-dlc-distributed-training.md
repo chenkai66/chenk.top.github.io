@@ -257,6 +257,6 @@ class ResumableSampler:
 
 Without this, every restart wastes the partial epoch the worker had completed. On a 7B SFT with a 1 M-sample dataset, that's ~5% wasted compute per restart.
 
-## What's next
+## What's Next
 
 Article 4 is **EAS** — taking whatever you trained and putting it behind an HTTP endpoint that auto-scales, mirrors traffic, and does not fall over at 3am. EAS is where most of your monthly Aliyun bill will live; it is worth getting right.

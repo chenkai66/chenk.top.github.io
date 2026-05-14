@@ -232,6 +232,6 @@ The decision tree:
 
 The mistake I see most: defaulting to snapshot for everything, including things that should be in git. Then you have a frozen image with a hard-coded `/root/notebooks/foo.ipynb` and no way to diff what changed since last quarter.
 
-## What's next
+## What's Next
 
 Article 3 takes the same MNIST job and shows what changes when you scale it across multiple GPUs and multiple nodes via DLC — including the AIMaster fault tolerance that the docs mention but do not really explain.

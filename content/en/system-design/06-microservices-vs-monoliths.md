@@ -615,6 +615,6 @@ The safest approach is to start with a monolith and extract services when pain i
 
 This approach avoids premature decomposition. You only pay the microservices tax for parts of the system that genuinely need it.
 
-## What's next
+## What's Next
 
 Whether your system is a monolith or microservices, data flows through it in patterns. The next article covers data pipelines — batch processing, stream processing, and the architectural patterns that connect raw data to actionable insights.

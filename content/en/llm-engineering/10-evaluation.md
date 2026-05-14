@@ -275,7 +275,7 @@ A mature evaluation system has the same operational hygiene as a CI pipeline:
 
 Tools that work in 2026: **Promptfoo** (simple YAML-driven, good for local iteration), **Inspect AI** (UK AISI's framework, used for safety evals), **OpenAI evals**, **DeepEval**, and roll-your-own with pytest if your taste runs that way. The framework matters less than having one; the worst pattern is a notebook that runs evals once when someone remembers to.
 
-## What's next
+## What's Next
 
 Public benchmarks are mostly noise above the 80-mark and many are contaminated. Build a hand-curated eval set on your real traffic, stratified by difficulty, and treat it like load-bearing code. LLM-as-judge works with bias correction (swap order, length-control, use a different judge family, panel-vote). Use program-based eval whenever the task is verifiable. A/B test in production for what the offline eval misses, and use sequential tests when you peek. Maintain the eval set continuously and cull saturated questions. Don't forget calibration — confidence matters as much as accuracy in many deployments, and post-training reliably degrades it. For long-form, score by dimension before composing.
 

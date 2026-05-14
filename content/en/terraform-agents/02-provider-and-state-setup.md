@@ -438,7 +438,7 @@ In the order they happened to me:
 
 > **Real-world tip:** Run `terraform plan` immediately after every `apply`, even on no changes. The plan should be empty. If it isn't, you have drift, and the longer you let drift live the harder it is to reconcile.
 
-## What's next
+## What's Next
 
 If this article worked end-to-end, you should now be able to run `terraform init`, `terraform workspace select dev`, `terraform plan` and see "No changes." That's the foundation. Everything else stacks on top of it.
 

@@ -550,6 +550,6 @@ ON CONFLICT (event_id) DO NOTHING;
 
 5. **Use a single database**: If your microservices share the same database (heresy, but practical), use regular transactions.
 
-## What's next
+## What's Next
 
 We have covered the theory: how data is stored, queried, replicated, partitioned, and transacted. But theory is not enough. In the final article, we will get practical: **databases in production** — migrations, monitoring, connection pooling, backups, capacity planning, and real war stories from production incidents.

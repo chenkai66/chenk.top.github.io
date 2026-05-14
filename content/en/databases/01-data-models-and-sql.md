@@ -601,6 +601,6 @@ The relational model won because it offers something no other model did at the t
 
 It is not perfect. Some data (social graphs, time series, documents with deeply nested structures) fits awkwardly into tables. We will explore those alternatives in Article 5. But for most applications — especially those where data integrity matters — the relational model remains the default choice for good reason.
 
-## What's next
+## What's Next
 
 Knowing SQL is necessary but not sufficient. Writing a correct query and writing a *fast* query are different skills. In the next article, we will look at **indexing and query planning** — how databases actually find your data, and how to make them find it faster.

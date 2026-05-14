@@ -555,6 +555,6 @@ docker rm my-nginx
 | `docker logs CONTAINER` | View container output |
 | `docker inspect CONTAINER` | Detailed container metadata (JSON) |
 
-## What's next
+## What's Next
 
 Now you know what containers are and how they differ from VMs. You've installed Docker, run your first container, and seen the basic commands. But we glossed over something important: when you ran `docker run nginx`, Docker downloaded an "image." What exactly is an image? How are those layers structured? Why did only one small layer download when you pulled Ubuntu, but several layers downloaded for nginx? The next article digs into images and the layer model — the foundation that makes containers fast and space-efficient.

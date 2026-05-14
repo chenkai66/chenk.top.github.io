@@ -314,7 +314,7 @@ The 30-300x margin between self-hosted open-weights and frontier API is the enti
 
 A subtle gotcha: input tokens are typically 5-10x cheaper than output tokens on APIs (because they batch better and don't autoregress). Self-hosted, they're still cheaper but less dramatically (3-5x), because both phases run on your hardware. Cost models that assume parity will mislead you in either direction.
 
-## What's next
+## What's Next
 
 Inference is two asymmetric phases (prefill, decode), and the modern serving stack — paged attention + continuous batching + speculation + quantization + FP8 hardware — exists to make the worst of both phases tolerable. vLLM is the right default. Quantization (INT8 always, INT4 if budget tight, FP8 if H100+) is essentially free. Spec decoding is a 2-3x win for low-batch low-latency serving and noise for high-throughput. The cost arithmetic in 2026 strongly favors self-hosting open weights at scale.
 

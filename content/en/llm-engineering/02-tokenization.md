@@ -329,7 +329,7 @@ What's coming after the byte-level BPE consensus:
 
 **Multimodal tokenizers.** Models that handle text, images, audio, and video need a unified tokenization scheme. The current dominant approach (LLaVA, Qwen-VL, Gemini) tokenizes images with a separate vision encoder and inserts vision tokens into the text stream. Whether the next generation moves to a unified tokenizer for all modalities is an open question. [Team, 2024] (Chameleon) showed early-fusion all-modality tokenization can work.
 
-## What's next
+## What's Next
 
 Tokenization is invisible until it bites: 2x cost on CJK workloads if you pick the wrong tokenizer; instruction-following degradation if you skip the chat template; a fine-tuned model that's worse than the base if you naively expanded the vocab. Always measure tokens on your actual prompts before picking a model. Always use the model's official chat template via `apply_chat_template`. Don't expand vocabularies unless you have hundreds of billions of training tokens to spare.
 

@@ -406,7 +406,7 @@ So when this chapter says "the dominant eigenvalue controls long-term behaviour 
 
 ---
 
-## What's next
+## What's Next
 
 - **[Chapter 7](/en/linear-algebra/07-orthogonality-and-projections/):** Orthogonality and projections — the geometry that makes PCA and least squares possible.
 - **[Chapter 8](/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/):** Symmetric matrices and quadratic forms — a deep dive into the spectral theorem.

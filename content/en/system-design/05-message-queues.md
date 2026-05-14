@@ -730,6 +730,6 @@ metrics = {
 
 Consumer lag is the most important metric. If lag is increasing, consumers are falling behind. If lag is stable, the system is keeping up. If lag is decreasing, consumers are catching up after a spike.
 
-## What's next
+## What's Next
 
 Message queues decouple individual services, but how do you decide what constitutes a service in the first place? The next article tackles the monolith-vs-microservices debate honestly — when microservices help, when they hurt, and how to draw service boundaries using domain-driven design.

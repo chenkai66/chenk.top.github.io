@@ -274,7 +274,7 @@ dashscope.base_http_api_url = "https://dashscope.aliyuncs.com/api/v1"
 
 至于万相（按视频秒数）和 Qwen-TTS（按音频秒数），其计价单位是**成品资产**，而非 Token。一段 720p、5 秒的视频约 1.5 元；60 秒的 TTS 语音约 0.6 元。两者价格足够低廉，真正的瓶颈在于人工审核，而非 API 成本。
 
-## 接下来
+## 下一步
 
 第 2 篇将深入剖析 Qwen LLM 家族——如何根据延迟与成本选择模型、Function Calling 的最佳实践、JSON 模式的使用技巧，以及那个让我 personally 调试了整整四小时的 `enable_thinking` 参数。第 3 篇将讲解 Qwen-Omni 的强制流式要求，并提供真实的视频理解案例。第 4 篇将完整演示万相视频生成的端到端流程，第 5 篇则聚焦 Qwen-TTS 的多语言语音合成能力。
 

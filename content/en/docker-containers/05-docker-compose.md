@@ -716,6 +716,6 @@ The `sync` action copies files without rebuilding. The `rebuild` action triggers
 | `docker compose up -d --scale SVC=N` | Scale a service to N instances |
 | `docker compose config` | Validate and display merged config |
 
-## What's next
+## What's Next
 
 Docker Compose handles the happy path well — define services, start them, they work. But applications break. Containers crash silently, logs vanish into the ether, and that "works on my machine" problem returns when you can't see inside the container. The next article covers debugging and logging: how to figure out what went wrong when a container refuses to cooperate.

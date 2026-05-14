@@ -442,7 +442,7 @@ So when this chapter says *basis* and *dimension*, the ML reading is: a basis is
 
 ---
 
-## What's next
+## What's Next
 
 **[Chapter 3](/en/linear-algebra/03-matrices-as-linear-transformations/) — Matrices as Linear Transformations.** A matrix is not a passive table of numbers; it is an *agent of transformation*. We will see that:
 

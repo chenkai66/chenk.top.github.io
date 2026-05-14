@@ -443,6 +443,6 @@ In stochastic settings (mini-batches), we use stochastic gradient ascent, and th
 | Rao-Blackwell | $E[\hat{\theta}\mid T]$ improves $\hat{\theta}$ | Condition on sufficiency |
 | Bias-Variance | $\text{MSE} = \text{Bias}^2 + \text{Var}$ | Explains overfitting/underfitting |
 
-## What's next
+## What's Next
 
 Estimation gives us point estimates — single best guesses for parameters. But how confident should we be? The next article tackles hypothesis testing and confidence intervals: the framework for quantifying uncertainty, controlling error rates, and making principled decisions from data. We'll also see why p-values are so often misunderstood and how to avoid the most common statistical pitfalls.

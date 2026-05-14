@@ -284,7 +284,7 @@ The gap between GD and the accelerated methods is roughly $\sqrt{\kappa} = 100$ 
 | How to accelerate a black-box solver?     | Catalyst meta-algorithm with regularized inner subproblems.              |
 | What's the unified theory?                | Lyapunov functions on damped second-order ODEs and their discretizations. |
 
-## What's next
+## What's Next
 
 - Article 06 derives FISTA, the accelerated proximal gradient method, using exactly the Lyapunov template above.
 - Article 10 uses Catalyst with stochastic inner solvers (SVRG, SAGA) for finite-sum problems.

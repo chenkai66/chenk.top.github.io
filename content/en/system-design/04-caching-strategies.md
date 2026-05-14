@@ -788,6 +788,6 @@ This implementation handles the common edge cases:
 - **Monitoring**: Hit rate metric for operational visibility
 - **Safety valve**: Direct DB fetch on lock timeout prevents deadlock
 
-## What's next
+## What's Next
 
 Caching handles the read path. But what about the write path when you need to decouple producers from consumers, smooth out traffic spikes, and build event-driven architectures? The next article covers message queues — Kafka, RabbitMQ, delivery guarantees, and the patterns that make asynchronous systems reliable.

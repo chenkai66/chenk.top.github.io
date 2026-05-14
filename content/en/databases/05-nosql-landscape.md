@@ -547,6 +547,6 @@ COMMIT;
 
 The right answer is often "PostgreSQL" for your primary data store, with a specialized database for specific workloads. Most successful systems use 2-3 databases, not one.
 
-## What's next
+## What's Next
 
 Whether you choose relational or NoSQL, a single machine eventually becomes a bottleneck. In the next article, we will explore **replication and partitioning** — the techniques that let databases scale beyond one server while maintaining (some level of) consistency.

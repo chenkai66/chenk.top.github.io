@@ -658,6 +658,6 @@ docker events --filter container=my-container
 docker events --filter event=die --filter event=oom
 ```
 
-## 接下来
+## 下一步
 
 现在，你已经掌握了在容器行为异常时定位问题的方法。但调试本质上是一种被动响应——理想情况下，我们更希望防患于未然。下一篇文章将聚焦**安全性**：如何以非 root 用户运行容器、如何降权（drop capabilities）、如何扫描漏洞，以及如何遵循最佳实践，规避容器化应用中最常见的安全失误。

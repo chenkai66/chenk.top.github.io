@@ -523,7 +523,7 @@ The lever is egress. If your agents stream long completions from public LLM endp
 
 > **Real-world tip:** Tag every resource with `Cost-Center` and `Owner`. Aliyun's billing dashboard pivots by tag, and at end of quarter you can answer "this team's network cost was ¥X" without asking finance. The `tags = var.tags` plumbing in this module is what makes it work.
 
-## What's next
+## What's Next
 
 Article 4 lands compute on this network. Three patterns — ECS with `pm2`, ACK for production fleets, Function Compute for event-driven agents — and the cost-crossover model I use to pick between them. Then a real `alicloud_instance` block that bootstraps Python + Node + the agent runtime via cloud-init.
 

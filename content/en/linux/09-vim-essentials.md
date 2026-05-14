@@ -474,7 +474,7 @@ Once the grammar lives in your fingers, Vim stops being a tool you "operate" and
 
 ---
 
-## What's next
+## What's Next
 
 - `vimtutor` — run it in your terminal. Thirty minutes, built into Vim.
 - *Practical Vim* by Drew Neil — the best book for going from beginner to fluent.

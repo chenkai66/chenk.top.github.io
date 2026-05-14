@@ -579,7 +579,7 @@ docker manifest inspect nginx:latest | python3 -m json.tool | head -30
 
 When you `docker pull nginx` on an ARM Mac, Docker automatically selects the `arm64` variant. On an x86_64 Linux server, it selects `amd64`. Same tag, different binary — this is why cross-platform deployment works seamlessly.
 
-## What's next
+## What's Next
 
 You now understand that images are stacks of read-only layers, that layers are shared between images, and that containers add a thin writable layer on top. You know how to inspect, export, tag, and clean up images.
 

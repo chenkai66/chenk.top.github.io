@@ -605,6 +605,6 @@ Understanding the ratio between random read IOPS and sequential write throughput
 | Key-value workloads | RocksDB / LevelDB | Optimized for simple get/put |
 | Time-series | TimescaleDB / InfluxDB | Time-partitioned, retention policies |
 
-## What's next
+## What's Next
 
 We have now seen how individual storage engines organize data on a single machine. But not all data fits in tables, and not all workloads are best served by SQL. In the next article, we will explore the **NoSQL landscape** — document stores, key-value stores, wide-column databases, and graph databases — and when each one makes sense.

@@ -789,6 +789,6 @@ tests/test_processor.py::TestParseLogEntry::test_strips_whitespace PASSED
 14 passed
 ```
 
-## What's next
+## What's Next
 
 Tests tell you that your code works. Type hints and linting tell you that your code is correct before you even run it. In the next article, we will add type annotations to our codebase, set up mypy for static type checking, and configure ruff and black so that style arguments become automated, not debated.

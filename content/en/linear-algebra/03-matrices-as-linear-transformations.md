@@ -423,6 +423,6 @@ We have done this all in 2D for visual clarity. In [Chapter 4](/en/linear-algebr
 
 ---
 
-## What's next
+## What's Next
 
 **[Chapter 4](/en/linear-algebra/04-the-secrets-of-determinants/): The Secrets of Determinants.** The determinant is a single number that captures the volume-scaling factor of a transformation. We will see why it multiplies under composition, why a sign flip means orientation reversal, and why $\det = 0$ is precisely the singular case we just met.

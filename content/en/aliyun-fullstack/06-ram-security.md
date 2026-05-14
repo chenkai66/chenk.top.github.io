@@ -1133,6 +1133,6 @@ The total time to set this up is about 30 minutes via CLI. The total time to rec
 
 The hardcoded API key that kicked off this article cost me a weekend and a modest bill. A production database leak or a compromised root account costs orders of magnitude more. The six steps in the solution section are 30 minutes of work. Do them now, not "later."
 
-## What's next
+## What's Next
 
 In [Part 7](/en/aliyun-fullstack/07-observability), we move to the storage layer: OSS for object storage, NAS for shared filesystems, and the block storage options that back your ECS instances. We will build on the security foundations from this article — every bucket gets SSE-KMS, every access goes through RAM roles, and nothing gets a permanent AccessKey.

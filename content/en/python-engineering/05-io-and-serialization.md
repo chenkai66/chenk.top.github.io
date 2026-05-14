@@ -669,6 +669,6 @@ SECRET_KEY=generate-a-random-key
 - **Data interchange:** JSON (universal, every language supports it)
 - **Avoid YAML** unless you are working with tools that require it (Kubernetes, GitHub Actions)
 
-## What's next
+## What's Next
 
 Files and data formats are the I/O layer. But what happens when your program needs to do many I/O operations at once, like downloading 100 files or querying 50 APIs? Sequential execution wastes most of its time waiting. In the next article, we will tackle concurrency with threads, processes, and asyncio, and learn which tool to use for which problem.

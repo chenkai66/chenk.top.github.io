@@ -673,6 +673,6 @@ jobs:
 
 With trusted publishing, you configure PyPI to trust your GitHub Actions workflow. No API tokens to manage.
 
-## What's next
+## What's Next
 
 Your package is published and installable. But is it fast enough? In the next article, we will profile Python code to find bottlenecks, apply caching and vectorization, and learn the crucial skill of knowing when optimization matters and when it does not.

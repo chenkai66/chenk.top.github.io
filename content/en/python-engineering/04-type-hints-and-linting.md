@@ -672,6 +672,6 @@ jobs:
           file: coverage.xml
 ```
 
-## What's next
+## What's Next
 
 Your code is now type-safe, consistently formatted, and automatically checked on every commit. But Python programs do more than compute; they read files, parse configs, and serialize data in a dozen formats. In the next article, we will master I/O, tackle encoding headaches, and compare every serialization format from JSON to Parquet.

@@ -668,6 +668,6 @@ PostgreSQL storage: negligible (aggregated data is small)
 
 This architecture handles the requirements with reasonable infrastructure: a 3-broker Kafka cluster, 2-4 Flink task managers, and a single PostgreSQL instance for aggregated metrics.
 
-## What's next
+## What's Next
 
 With all the building blocks in place — estimation, networking, APIs, caching, message queues, microservices, and data pipelines — the final article puts them together. Three complete case studies: a URL shortener, a real-time chat system, and a news feed. Each walks through the full design process from requirements to scaling strategies.

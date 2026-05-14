@@ -274,7 +274,7 @@ What's coming after the current Llama-style "filter + dedup + train" recipe:
 
 **Continual pretraining.** Most production models are now updated, not retrained from scratch. Llama 3.1 was Llama 3 + continued pretraining on additional data + post-training. Continued pretraining is much cheaper but requires careful learning-rate scheduling to avoid catastrophic forgetting.
 
-## What's next
+## What's Next
 
 Pretraining is 70 % data engineering and 30 % distributed-systems engineering. The architecture choice is the smallest of the three. Get the data mix right, dedup hard, train past Chinchilla for inference-cost reasons, use μP so your hyperparameters transfer, pick FSDP plus TP plus PP based on your hardware topology, and write defensive code for the failure modes that only appear at scale.
 

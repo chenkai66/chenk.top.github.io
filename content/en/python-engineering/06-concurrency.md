@@ -686,6 +686,6 @@ Both threaded and async complete in about 1 second (the server delay). Async use
 | Race conditions with shared state | Inconsistent data, intermittent bugs | Use locks, queues, or immutable data |
 | Deadlocks | Program hangs forever | Acquire locks in consistent order, use timeouts |
 
-## What's next
+## What's Next
 
 Your code is now concurrent and fast. But before you share it with the world, you need to package it properly. In the next article, we will build distributable Python packages, publish to PyPI, create Docker images, and set up a complete distribution pipeline.

@@ -407,7 +407,7 @@ So: when this chapter says "the inner product is just $\sum u_i v_i$", that is t
 
 ---
 
-## What's next
+## What's Next
 
 In **[Chapter 2](/en/linear-algebra/02-linear-combinations-and-vector-spaces/): Linear Combinations and Vector Spaces**, we ask the next natural questions:
 

@@ -561,6 +561,6 @@ EXPLAIN ANALYZE
 -- Execution Time: 3.456 ms  (68x faster)
 ```
 
-## What's next
+## What's Next
 
 Indexes tell the database *where* to find data. But what happens when two transactions try to modify the same data at the same time? In the next article, we will explore **transactions and concurrency** — ACID guarantees, isolation levels, locking, and the dark art of preventing deadlocks.

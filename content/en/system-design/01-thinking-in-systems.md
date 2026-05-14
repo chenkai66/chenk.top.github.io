@@ -550,6 +550,6 @@ When reasoning about distributed systems, you will encounter different consisten
 
 The choice of consistency model is one of the most consequential decisions in system design, and it connects directly to the CAP theorem: in the presence of network partitions, a distributed system must choose between consistency and availability. Most large-scale systems choose availability and eventual consistency for the majority of their operations, reserving strong consistency for critical paths like payment processing.
 
-## What's next
+## What's Next
 
 With estimation skills in hand, the next article covers the first three hops of every web request: DNS resolution, CDN caching, and load balancing. These are the components that sit between your users and your application servers, and getting them right determines whether your system can handle the load you just estimated.

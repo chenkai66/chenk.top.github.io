@@ -649,6 +649,6 @@ JOIN information_schema.innodb_trx b ON b.trx_id = w.blocking_trx_id
 JOIN information_schema.innodb_trx r ON r.trx_id = w.requesting_trx_id;
 ```
 
-## What's next
+## What's Next
 
 Transactions guarantee correctness at the logical level. But how does the database actually store data on disk? How does a `COMMIT` survive a power failure? In the next article, we will go a level deeper and explore **storage engines** — the machinery that turns SQL into bytes on disk.

@@ -1205,6 +1205,6 @@ The beauty of this architecture: your application server handles zero file I/O. 
 
 For using OSS with infrastructure-as-code, see [Terraform Part 5: Storage](/en/terraform-agents/05-storage-for-agent-memory/). We will use OSS as the backing store for our ML models in [Part 11: PAI](/en/aliyun-fullstack/11-pai-ml-platform/).
 
-## What's next
+## What's Next
 
 Storage is where your data lives. With OSS configured — buckets, lifecycle rules, access control, CDN, and image processing in place — we have the persistence layer sorted. In the next article, we move to managed databases: RDS for relational data, Redis for caching, and the replication, backup, and failover strategies that keep your data alive when hardware inevitably fails.
