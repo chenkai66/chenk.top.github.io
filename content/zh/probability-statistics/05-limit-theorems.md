@@ -421,6 +421,6 @@ plt.show()
 | Delta 方法 | $\sqrt{n}(g(\bar{X}_n) - g(\mu)) \xrightarrow{d} \mathcal{N}(0, [g'(\mu)]^2\sigma^2)$ | CLT 成立 + $g$ 在 $\mu$ 可导 | $O(1/\sqrt{n})$ |
 | Hoeffding | $P(\mid\bar{X}_n - \mu\mid \geq t) \leq 2e^{-2nt^2/(b-a)^2}$ | 独立、有界 | 指数级 |
 
-## 下一步
+## 接下来
 
 LLN 与 CLT 告诉我们样本均值收敛至总体参数。但如何从数据中实际估计这些参数？下一篇文章将发展估计理论——矩估计法、最大似然估计、偏差-方差权衡——并将这些思想与机器学习中广泛应用的正则化技术联系起来。

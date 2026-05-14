@@ -483,7 +483,7 @@ $$
 
 掌握这些工具后，下次再遇到目标函数中的 $\|\cdot\|_1$、$\iota_C$、全变分或核范数，便无需畏惧——它们都只是“一次近端之遥”。
 
-## 进一步阅读
+## 延伸阅读
 
 - N. Parikh, S. Boyd. *Proximal Algorithms*. Foundations and Trends in Optimization, 2014.（权威综述）
 - A. Beck, M. Teboulle. *A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse Problems*. SIAM J. Imaging Sciences, 2009.（FISTA 原文）

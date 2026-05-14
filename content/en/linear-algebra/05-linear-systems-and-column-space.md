@@ -440,6 +440,6 @@ The principle: every piece of structure you can name about $A$ has a faster solv
 
 ---
 
-## What's Next
+## What's next
 
 **[Chapter 6](/en/linear-algebra/06-eigenvalues-and-eigenvectors/): Eigenvalues and Eigenvectors.** Most vectors change direction under a transformation. A few special ones do not — they only get scaled. These eigenvectors are the natural axes of $A$, the directions in which the matrix becomes a simple stretch. Find them and you understand the long-term behaviour of any linear system.

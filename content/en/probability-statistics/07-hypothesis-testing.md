@@ -507,6 +507,6 @@ Starting around 2010, systematic replication efforts revealed that many publishe
 | Model comparison | Likelihood ratio | $-2\ln\Lambda$ | $\chi^2_r$ (Wilks) |
 | Non-parametric | Permutation test | Any statistic | Permutation distribution |
 
-## What's Next
+## What's next
 
 Hypothesis testing answers "is the effect real?" by controlling false positive rates. But it treats the parameter as a fixed unknown and the data as random. Bayesian statistics flips this: the data are fixed (you observed them), and the parameter is random (described by a distribution). The next article develops Bayesian thinking — priors, posteriors, conjugate families, and the philosophical debate that has shaped statistics for a century.

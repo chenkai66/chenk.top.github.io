@@ -336,7 +336,7 @@ What's coming after the current "MoE Transformer with GQA" consensus:
 
 The choice is rarely "pick the best architecture." It's "pick the architecture whose constraints match my serving constraints." MoE wins when you have many GPUs and are FLOPs-bound. Dense wins on a single GPU where total VRAM is the cap. Hybrids win when context is the bottleneck.
 
-## What's Next
+## What's next
 
 Modern LLMs are still Transformers, but the block has been re-engineered piece by piece for stability (pre-norm, RMSNorm), quality (SwiGLU, RoPE), inference cost (GQA, sliding window), and parameter efficiency (MoE). Pure non-attention models (Mamba, RWKV) underperform in general but win on long context when hybridized.
 

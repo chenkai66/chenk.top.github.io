@@ -636,6 +636,6 @@ docker inspect my-container --format '{{json .Mounts}}' | python3 -m json.tool
 ]
 ```
 
-## What's Next
+## What's next
 
 You now know how to connect containers to each other and to the outside world with networks, and how to persist data with volumes. But running `docker run` with 10 flags for each of 5 services is tedious, error-prone, and impossible to share with teammates. The next article introduces Docker Compose — a declarative way to define and run multi-container applications with a single YAML file. Everything we covered in this article (networks, volumes, port mappings) gets expressed in a `docker-compose.yml` that serves as both documentation and executable infrastructure.

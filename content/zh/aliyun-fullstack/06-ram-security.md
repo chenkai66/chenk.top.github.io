@@ -1128,6 +1128,6 @@ aliyun oss bucket-encryption --method put \
 
 这篇文章起因的那个硬编码 API Key，让我赔上了一个周末和一笔不小的账单。要是生产库泄露或者 root 账号被攻陷，代价得翻好几个数量级。解决方案里那六步操作，半小时就能搞定。现在就做，别等“以后”。
 
-## 下一步
+## 接下来
 
 在 [第 7 部分](/zh/aliyun-fullstack/07-observability) 里，我们要进入存储层了：对象存储 OSS、共享文件系统 NAS，以及支撑 ECS 的块存储选项。我们会沿用本文打下的安全基础——每个 Bucket 都开 SSE-KMS，所有访问走 RAM 角色，绝不用永久 AccessKey。

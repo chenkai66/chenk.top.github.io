@@ -1427,6 +1427,6 @@ This is for a moderately trafficked search service. The LLM costs scale linearly
 
 **Measure everything.** Log every query, every result set, every click. Without this data, you are tuning search by intuition, which is how you end up with a 400-row synonym spreadsheet and no idea if it is helping.
 
-## What's Next
+## What's next
 
 Search gets data to users. But the data has to get into the system first, and at scale, that means event-driven architectures. In the next article, we cover message queues and event streaming on Alibaba Cloud — RocketMQ, Kafka, and EventBridge — the infrastructure that connects everything together in a decoupled, scalable way.

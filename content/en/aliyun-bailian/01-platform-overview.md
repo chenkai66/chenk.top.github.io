@@ -276,7 +276,7 @@ Two things to internalize:
 For Wanxiang (per second of video) and Qwen-TTS (per second of audio), the right unit is per-finished-asset, not per-token. A 720p 5-second clip is around 1.5 RMB; a 60-second TTS narration is around 0.6 RMB. Both are cheap enough that the bottleneck is human review, not API spend.
 
 
-## What's Next
+## What's next
 
 Article 2 is a deep dive into the Qwen LLM family — model selection by latency and cost, function calling, JSON mode, and the `enable_thinking` parameter that has personally cost me about four hours of debugging. Article 3 covers Qwen-Omni's streaming requirement and a real video-understanding example. Article 4 is the Wanxiang video pipeline end-to-end, and article 5 is Qwen-TTS for multilingual narration.
 

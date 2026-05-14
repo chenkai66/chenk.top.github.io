@@ -443,7 +443,7 @@ Before we move on, here are mistakes that even experienced practitioners make:
 
 **7. Simpson's paradox.** A trend that appears in several groups can reverse when the groups are combined. For example, Treatment A might have a higher success rate than Treatment B in both men and women, yet Treatment B has a higher overall success rate — if men and women are unevenly distributed between treatments. The resolution is to condition on the confounding variable (gender), which brings us back to conditional probability and Bayes' theorem. Simpson's paradox demonstrates why causal reasoning requires more than just probability — you need to know the causal structure to decide whether to condition.
 
-## What's Next
+## What's next
 
 We've built the formal scaffolding: sample spaces, axioms, conditional probability, and independence. But so far, we've only talked about events — yes/no questions about outcomes. The real power of probability comes when we attach **numbers** to outcomes, turning events into **random variables**. That's where distributions live, and where the mathematics starts to connect directly to data science and machine learning.
 

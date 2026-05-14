@@ -882,6 +882,6 @@ That last test is the most important. If the web tier can reach the data tier di
 
 **Test the negative case.** After setting up security groups, verify that disallowed traffic is actually blocked. A security group that allows everything is worse than no security group because it gives false confidence.
 
-## What's Next
+## What's next
 
 The network is the foundation. With VPC, VSwitches, security groups, NAT, and SLB in place, everything else we deploy has a predictable, secure place to land. In the next article, we move up the stack to managed databases — RDS for relational data, Redis for caching, and the replication and backup strategies that keep your data alive when hardware fails.

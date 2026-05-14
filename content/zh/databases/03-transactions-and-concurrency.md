@@ -641,6 +641,6 @@ JOIN information_schema.innodb_trx b ON b.trx_id = w.blocking_trx_id
 JOIN information_schema.innodb_trx r ON r.trx_id = w.requesting_trx_id;
 ```
 
-## 下一步
+## 接下来
 
 事务保障了逻辑层面的正确性。但数据库究竟如何将数据持久化到磁盘？一次 `COMMIT` 如何扛住断电冲击？在下一篇文章中，我们将深入底层，探索**存储引擎（Storage Engines）**——那套将 SQL 语句转化为磁盘字节的精密机械。

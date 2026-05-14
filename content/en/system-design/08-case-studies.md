@@ -903,7 +903,7 @@ Looking across all three case studies, several patterns recur:
 
 **Estimation drives architecture**: The numbers calculated in the estimation phase determine which components are needed. 350,000 reads/sec demands a cache. 460,000 fan-out writes/sec demands a message queue. 15 million concurrent connections demands a distributed WebSocket gateway. Without the math, these decisions are guesswork.
 
-## What's Next
+## What's next
 
 This article concludes the System Design series. The eight articles together cover the full spectrum from estimation fundamentals to complete system designs. The next step is practice: pick a system you use daily, define its requirements, estimate its scale, and design its architecture. The more systems you design, the more patterns you recognize, and the faster you converge on good solutions.
 

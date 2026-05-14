@@ -589,7 +589,7 @@ After this article you have:
 
 The gateway is a strategic asset. Every team I've shipped one for has thanked me within a month — usually the first time someone's API key gets accidentally checked into git and they realise rotating it is a one-line PR instead of the six-hour fire drill I lived through.
 
-## What's Next
+## What's next
 
 Article 7 is observability and cost control: SLS for logs, ARMS for traces, CloudMonitor for metrics, the budget alarm that pings DingTalk when daily LLM spend crosses a threshold, and the SLS-driven cost dashboard that lets you see "which agent is burning my budget."
 

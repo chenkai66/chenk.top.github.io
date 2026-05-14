@@ -574,7 +574,7 @@ docker manifest inspect nginx:latest | python3 -m json.tool | head -30
 
 当你在 ARM Mac 上执行 `docker pull nginx`，Docker 会自动选择 `arm64` 变体；而在 x86_64 Linux 服务器上则选择 `amd64`。**同一标签，不同二进制**——这正是跨平台部署无缝衔接的原因。
 
-## 下一步
+## 接下来
 
 你现在已理解：镜像是由多个只读分层堆叠而成；分层可在镜像间共享；容器在此之上叠加一层薄薄的可写层；你也掌握了检查、导出、打标签及清理镜像的方法。
 

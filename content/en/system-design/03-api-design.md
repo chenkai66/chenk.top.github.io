@@ -742,6 +742,6 @@ def authenticate(request):
 
 **Hybrid approaches** are common. Many systems use REST for public APIs, gRPC for internal services, and GraphQL for their frontend-facing gateway.
 
-## What's Next
+## What's next
 
 Once your API design is solid, the next performance lever is caching. The next article covers caching strategies — where to cache, what to evict, and the surprisingly common ways that caching makes things worse instead of better.

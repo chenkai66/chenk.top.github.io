@@ -665,6 +665,6 @@ docker events --filter container=my-container
 docker events --filter event=die --filter event=oom
 ```
 
-## What's Next
+## What's next
 
 Now you can find out what's wrong when containers misbehave. But debugging is reactive — ideally, you prevent problems before they happen. The next article covers security: running containers as non-root, dropping capabilities, scanning for vulnerabilities, and following best practices that prevent the most common security mistakes in containerized applications.

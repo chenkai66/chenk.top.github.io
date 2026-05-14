@@ -715,6 +715,6 @@ docker build --no-cache -t myapp .
 | `STOPSIGNAL` | Set stop signal | No (metadata) |
 | `SHELL` | Set default shell | No (metadata) |
 
-## What's Next
+## What's next
 
 You can now write Dockerfiles that produce small, secure, fast-building images. But a container in isolation isn't very useful — it needs to communicate with the outside world and persist data. The next article covers Docker networking (how containers talk to each other and the host) and volumes (how data survives container restarts). These are the building blocks you'll need before we tackle multi-container applications with Docker Compose.

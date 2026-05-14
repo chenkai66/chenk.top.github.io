@@ -293,6 +293,6 @@ For batch workloads (process 1000 videos overnight), there's no native `batch` e
 For higher throughput, request a quota bump (chapter 1 walks through the process) and fan out across multiple workspaces. Bailian doesn't have a native parallel-batch primitive, so you build it yourself.
 
 
-## What's Next
+## What's next
 
 Article 4 jumps to the *production* side — **Wanxiang text-to-video**. That is async-only, native-protocol-only, and the failure modes are completely different (queue depth, output URL expiry). It is also the API I have spent the most time tuning prompts for.

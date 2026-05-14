@@ -712,6 +712,6 @@ volumes:
 
 Notice `backend` is an `internal: true` network — containers on this network cannot reach the internet, limiting the blast radius if the database container is compromised.
 
-## What's Next
+## What's next
 
 You now know how to secure individual containers: non-root users, minimal capabilities, read-only filesystems, image scanning, and resource limits. But security is one challenge — scaling is another. What happens when a single host isn't enough? When you need automatic failover, rolling updates, and service discovery across multiple machines? The final article previews container orchestration: Docker Swarm for simplicity and Kubernetes for scale, and when you might not need either.

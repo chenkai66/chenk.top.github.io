@@ -257,7 +257,7 @@ If you read all of them, you have covered roughly the equivalent of an undergrad
 
 ---
 
-## Where to Go Next
+## Where to go from here
 
 Choose a target, not a textbook. Here are five well-defined next steps and the resources that match them.
 

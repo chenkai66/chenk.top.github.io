@@ -334,7 +334,7 @@ This is the celebrated **KKT condition for LASSO** — it tells us that any coor
 
 The next article makes this concrete: we show that adding two extra assumptions — Lipschitz smoothness and strong convexity — gives quantitative convergence rates for gradient descent.
 
-## What's Next
+## What's next
 
 - Article 02 builds smoothness and strong convexity on top of these foundations and proves the convergence of GD in three regimes.
 - Article 06 uses subgradients and the conjugate to derive ISTA, FISTA, and ADMM.

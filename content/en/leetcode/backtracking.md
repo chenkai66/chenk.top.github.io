@@ -443,7 +443,7 @@ path.append(c); backtrack(); # missing path.pop() -> the next iteration starts c
 
 **Bug 6 — re-scanning instead of indexing in Sudoku.** The naive solver finds the next empty cell with a nested loop on every call. Pre-compute the list of empties once.
 
-## frequently asked questions
+## FAQ
 
 **Q1. Backtracking vs DFS — what is the actual difference?** DFS visits each node once and never modifies the structure; backtracking reuses the same `path`/state across exponentially many branches and *must* restore that state on the way up. Backtracking uses DFS as its motion.
 

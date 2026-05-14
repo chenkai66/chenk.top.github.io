@@ -781,6 +781,6 @@ tests/test_processor.py::TestParseLogEntry::test_strips_whitespace PASSED
 14 passed
 ```
 
-## 下一步
+## 接下来
 
 测试告诉你**代码是否能跑起来**；类型提示和静态检查则能在你运行之前就告诉你**代码是否写对了**。下一篇文章中，我们将为代码库添加类型注解，配置 mypy 进行静态类型检查，并设置 ruff 和 black，让代码风格问题自动化解决，不再靠争论。

@@ -523,6 +523,6 @@ A request from a user in London to your photo-sharing application traverses thes
 
 For a cached static asset, total latency is 5-20ms. For an uncached API call, total latency is 50-200ms depending on geography and backend processing time. The gap between these two numbers is why CDN and caching strategy matter so much.
 
-## What's Next
+## What's next
 
 DNS, CDN, and load balancing get the request to your application. But what shape should that request take? The next article covers API design — REST, gRPC, and GraphQL — and the trade-offs that determine which protocol fits your system.

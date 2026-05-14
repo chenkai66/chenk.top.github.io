@@ -528,7 +528,7 @@ Why this pays off: dependencies are resolved automatically, every package is sig
    sudo journalctl -u nginx -n 50 --no-pager       # last 50 lines for one service
    ```
 
-## What's Next
+## What's next
 
 This article exists to give you a map. Each topic has its own dedicated piece for when you need depth:
 

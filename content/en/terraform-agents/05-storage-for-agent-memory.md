@@ -525,6 +525,6 @@ Monthly, dev workspace, low traffic:
 
 Roughly ¥1200/mo for the storage layer in dev. Prod with HA RDS, larger OpenSearch, more OSS, and the cross-region replica will be ¥3000–5000/mo. This is where the cost pressure starts being real — article 7 shows how to track and alert on it before it surprises you in the monthly bill review.
 
-## What's Next
+## What's next
 
 Article 6 builds the LLM gateway in front of the compute we provisioned in article 4 and the storage we just provisioned. That's the place where API keys live, quotas get enforced, and per-agent cost gets attributed. By the end of article 6 you'll have a complete agent-runnable stack — the last two articles wire observability and cost control over the top.

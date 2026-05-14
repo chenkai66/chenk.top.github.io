@@ -442,6 +442,6 @@ Each panel shows 10 independent sample paths of the running average $\bar{X}_n$.
 | Delta method | $\sqrt{n}(g(\bar{X}_n) - g(\mu)) \xrightarrow{d} \mathcal{N}(0, [g'(\mu)]^2\sigma^2)$ | CLT + differentiable $g$ | $O(1/\sqrt{n})$ |
 | Hoeffding | $P(\mid\bar{X}_n - \mu\mid \geq t) \leq 2e^{-2nt^2/(b-a)^2}$ | Independent, bounded | Exponential |
 
-## What's Next
+## What's next
 
 The LLN and CLT tell us that sample averages converge to population parameters. But how do we actually estimate those parameters from data? The next article develops estimation theory — method of moments, maximum likelihood estimation, the bias-variance tradeoff — and connects these ideas to the regularization techniques used throughout machine learning.

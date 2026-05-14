@@ -633,6 +633,6 @@ Downloaded: data.csv
 | `ImportError: cannot import name 'X' from 'my_tool'` | `X` 未在 `__init__.py` 中导出，或存在循环导入 | 检查 `__init__.py`，拆解循环依赖 |
 | `ModuleNotFoundError: No module named 'my_tool.core'` | 缺少 `__init__.py` 或 `pyproject.toml` 中 `find` 配置错误 | 确认 `__init__.py` 存在，检查 `pyproject.toml` 的 `find` 配置 |
 
-## 下一步
+## 接下来
 
 项目结构已就绪，下一步是确保它真正可靠地工作。**测试不是为了追求覆盖率数字，而是为了建立信心：确信你的代码正如你所设想的那样运行。** 在下一篇文章中，我们将配置 `pytest`，编写有意义的测试（含 fixtures 和 `parametrize`），并学习如何在测试暴露问题时高效调试。

@@ -335,6 +335,6 @@ print(f"cache hit rate over last {len(window)} calls: {hit_rate:.1%}")
 
 当确实超过窗口需要截断时：安全模式是“保留 system prompt 和最近的 user/assistant pair，中间部分滑动窗口”。我保留第一条 system message 和最后 6 条消息原样，当对话超过阈值时，用便宜的 `qwen-turbo` 调用总结中间内容。总结内容作为合成 system message 放回 messages 数组（`"role": "system", "content": "Earlier in this conversation: ..."`）。对于聊天类负载，质量损失很小；但对于代码上下文负载，不能对有损压缩文件内容——这种情况下，优选更长上下文的模型而不是总结。
 
-## 下一步
+## 接下来
 
 第三篇是 **Qwen-Omni** —— 多模态兄弟模型。主要区别在于：流式是 *必须* 的（非可选）， content 数组需要为图片/音频/视频使用 typed parts，你还得考虑 pixel budgets 和帧率。如果你的产品涉及非文本内容，这是 Bailian 里杠杆率最高的能力。

@@ -554,6 +554,6 @@ docker rm my-nginx
 | `docker logs CONTAINER` | 查看容器输出日志 |
 | `docker inspect CONTAINER` | 查看容器详细元数据（JSON 格式） |
 
-## 下一步
+## 接下来
 
 现在你已了解容器的本质及其与虚拟机的根本区别，完成了 Docker 安装、运行了首个容器，并掌握了基础命令。但我们略过了一个关键点：当你执行 `docker run nginx` 时，Docker 下载了一个“镜像”。**镜像到底是什么？这些分层是如何组织的？为什么拉取 Ubuntu 时只下载了一个小层，而拉取 nginx 却下载了多个层？** 下一篇文章将深入探讨镜像与分层模型——这正是容器快速启动与节省空间的基石。

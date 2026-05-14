@@ -449,7 +449,7 @@ resource "alicloud_ros_stack" "eas_serving" {
 
 > **实战建议：** `alicloud_ros_stack` 真的被低估了。当 alicloud Terraform provider 滞后时， ROS 往往领先四分之一季度。在 Terraform 里嵌入 ROS 模板，能两头吃香。
 
-## 下一步
+## 接下来
 
 第 5 篇文章补充存储层——向量库、关系型数据库、对象存储、备份——也就是我们刚才 部署 的所有东西需要连接的地方。 ECS 实例、 ACK Pod、 FC 函数和 ECI 容器，直到有了存放记忆的地方，否则都是无用之功。
 

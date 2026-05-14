@@ -436,7 +436,7 @@ terraform apply -replace=alicloud_instance.agent[1]
 
 > **实战建议：** 每次 `apply` 后立即运行 `terraform plan`，即使预期无变更。理想情况下输出应为空。若非空，说明存在 drift——drift 存留越久，修复难度越大。
 
-## 下一步
+## 接下来
 如果本文操作顺利，你现在应能运行 `terraform init`、`terraform workspace select dev`、`terraform plan`，并看到 “No changes.”。这就是地基，后续一切皆构建于此。
 
 第三篇文章将搭建首个真实基础设施组件：一个可复用的 `vpc-baseline` 模块，包含 VPC、跨三个可用区的 vSwitch、NAT 网关、EIP、安全组基线和 KMS 密钥。该模块将在后续每篇文章中复用——它是我 Agent 栈中被复制粘贴最多的模块。

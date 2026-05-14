@@ -548,7 +548,7 @@ In production, use orchestration tools for automated failover:
 - **Patroni** (PostgreSQL): Manages leader election via etcd/ZooKeeper/Consul
 - **pg_auto_failover**: Simpler alternative for PostgreSQL
 
-## What's Next
+## What's next
 
 
 ![Distributed database replication data streams flowing betwee](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)

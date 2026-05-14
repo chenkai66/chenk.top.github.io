@@ -1189,6 +1189,6 @@ For a production database with HA, read scaling, automated backup, and cross-reg
 
 **Lock down access.** IP whitelist to app tier CIDRs only, no public endpoint, SSL encryption, least-privilege accounts. The database contains your most valuable asset — treat its security accordingly.
 
-## What's Next
+## What's next
 
 The database is running, replicated, backed up, and monitored. But a production application needs more than just a relational database. In the next article, we cover the caching and storage layer — Tair (managed Redis) for session storage and caching, OSS for object storage, and NAS for shared file systems. These are the services that sit alongside your database to handle the workloads that relational databases are not built for.

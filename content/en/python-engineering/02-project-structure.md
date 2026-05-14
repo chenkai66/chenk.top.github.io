@@ -639,6 +639,6 @@ And `python -m my_downloader` also works because of `__main__.py`.
 | `ImportError: cannot import name 'X' from 'my_tool'` | X not in `__init__.py` or circular import | Check `__init__.py`, break circular deps |
 | `ModuleNotFoundError: No module named 'my_tool.core'` | Missing `__init__.py` or wrong package structure | Verify `__init__.py` exists, check `find` config in pyproject.toml |
 
-## What's Next
+## What's next
 
 With a proper project structure in place, the next step is making sure it actually works. Testing is not about writing tests for the sake of coverage numbers. It is about building confidence that your code does what you think it does. In the next article, we will set up pytest, write meaningful tests with fixtures and parametrize, and learn to debug efficiently when tests reveal problems.

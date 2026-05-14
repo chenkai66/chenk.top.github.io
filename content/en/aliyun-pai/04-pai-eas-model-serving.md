@@ -264,6 +264,6 @@ monthly_cost = min_replicas × replica_price_per_hour × 720
 
 Plug in numbers *before* deploying. The number of times a "small" deploy turned out to cost an unexpected $2k/month because someone defaulted `min_replicas=10` is non-zero. The console shows you a price estimate when you click Deploy — read it.
 
-## What's Next
+## What's next
 
 Article 5 closes the series with the honest pitch for **Designer** and **Model Gallery** — the two zero/low-code surfaces. They are not what most engineers reach for, but they earn their keep when used right, and there is a specific set of jobs where they are obviously the correct answer.

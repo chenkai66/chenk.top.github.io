@@ -262,7 +262,7 @@ For a typical 100K-1M document RAG deployment in 2026:
 
 This pipeline serves <1s p95 latency at <$0.01 per query for most workloads, scales to ~10M documents on a single Postgres instance, and degrades gracefully under load.
 
-## What's Next
+## What's next
 
 Chunking is the most under-appreciated knob; pick chunk sizes that match where your answers actually live. Use a multilingual embedder if your corpus is multilingual; use a domain embedder if you have one. Always go hybrid (dense + sparse + RRF) and always rerank. Long context wins on small corpora and synthesis tasks; RAG wins on cost and freshness for everything else. Build an eval set before you build a second iteration. The 2024 advances (Contextual Retrieval, GraphRAG, late chunking) move the frontier; the basics still apply.
 

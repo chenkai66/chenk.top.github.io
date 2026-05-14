@@ -546,7 +546,7 @@ START REPLICA;
 - **Patroni**（PostgreSQL）：基于 etcd/ZooKeeper/Consul 实现主节点选举与高可用管理  
 - **pg_auto_failover**：PostgreSQL 的轻量级高可用替代方案  
 
-## 下一步
+## 接下来
 
 
 ![分布式数据库复制数据流在节点间流动](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/06-distributed-database-replication-data-streams-flowing-betwee.jpg)

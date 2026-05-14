@@ -431,6 +431,6 @@ This is tighter than Chebyshev for one-sided deviations and requires no symmetry
 | Markov | $P(X \geq a) \leq E[X]/a$ | Requires $X \geq 0$ |
 | Chebyshev | $P(\midX-\mu\mid \geq k\sigma) \leq 1/k^2$ | Distribution-free |
 
-## What's Next
+## What's next
 
 So far we've worked with one random variable at a time. But real data is multivariate: height and weight are correlated, features in a dataset interact, errors propagate through functions. The next article tackles joint distributions — the mathematics of multiple random variables living together — including marginals, conditionals, transformations, and the bivariate normal.

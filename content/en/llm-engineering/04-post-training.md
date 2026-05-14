@@ -346,7 +346,7 @@ What's coming after the current SFT → DPO → RLVR consensus:
 
 **Test-time post-training.** [Akyürek et al., 2024] and others showed you can post-train at inference time on a few examples (similar to in-context learning but with weight updates). For high-stakes deployments, "post-train on the user's first 10 examples then generate" is becoming a viable pattern.
 
-## What's Next
+## What's next
 
 SFT is more important than people credit and more sensitive to data hygiene than to volume. DPO replaced PPO for most preference work but PPO is still the right tool when you want to keep adapting to new failure modes. RLVR — RL on verifiable rewards — is the post-2024 unlock for reasoning. LoRA wins on most production fine-tunes; full FT on the post-DPO RL stage at frontier labs.
 

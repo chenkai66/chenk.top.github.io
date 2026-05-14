@@ -661,6 +661,6 @@ SECRET_KEY=generate-a-random-key
 - **数据交换**：JSON（通用性强，所有语言均支持）
 - **避免使用 YAML**，除非你必须配合要求 YAML 的工具（如 Kubernetes、GitHub Actions）
 
-## 下一步
+## 接下来
 
 文件与数据格式构成了程序的 I/O 层。但当你的程序需要同时执行大量 I/O 操作——比如下载 100 个文件或并发调用 50 个 API——串行执行会把大部分时间浪费在等待上。下一篇文章将深入探讨并发编程：线程（threads）、进程（processes）与异步 I/O（asyncio），并教你如何为不同场景选择最合适的工具。

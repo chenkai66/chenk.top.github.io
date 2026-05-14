@@ -559,6 +559,6 @@ my-api/
     ...
 ```
 
-## What's Next
+## What's next
 
 With your environment locked down, the next question is how to organize your code. A single `main.py` works for scripts, but anything beyond 200 lines needs structure. In the next article, we will build a proper Python project from scratch, covering package layouts, imports, entry points, and CLI tools.

@@ -444,6 +444,6 @@ For independent random variables, the distribution of the maximum and minimum ca
 | Order stats | $f_{X_{(k)}}$ involves $F^{k-1}(1-F)^{n-k}f$ | Distribution of $k$-th smallest |
 | MVN conditional | $\boldsymbol{\mu}_{1\mid 2} = \boldsymbol{\mu}_1 + \boldsymbol{\Sigma}_{12}\boldsymbol{\Sigma}_{22}^{-1}(\mathbf{x}_2 - \boldsymbol{\mu}_2)$ | Linear regression |
 
-## What's Next
+## What's next
 
 We now have the machinery to describe how multiple random variables behave together. The next article tackles the crown jewels of probability: the Law of Large Numbers and the Central Limit Theorem. These theorems explain why sample averages are reliable and why the Normal distribution appears everywhere — and they connect directly to why algorithms like stochastic gradient descent converge.

@@ -601,6 +601,6 @@ fio --name=seqwrite --ioengine=libaio --iodepth=32 \
 | 键值型（Key-Value） | RocksDB / LevelDB | 针对简单 get/put 优化 |
 | 时序型（Time-Series） | TimescaleDB / InfluxDB | 时间分区、数据保留策略 |
 
-## 下一步
+## 接下来
 
 至此，我们已了解了单机环境下各类存储引擎如何组织数据。但并非所有数据都适合放入关系表中，也并非所有工作负载都由 SQL 最优服务。在下一篇文章中，我们将探索 **NoSQL 生态**——文档数据库、键值存储、宽列数据库与图数据库——并阐明每种技术的适用场景。

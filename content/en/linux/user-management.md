@@ -374,7 +374,7 @@ done < users.csv
 
 `chpasswd` reads `user:password` lines and is the right tool for batch updates; `passwd --stdin` is RHEL-only. `chage -d 0` is the trick that forces a reset on first login without giving the user a non-expiring random secret.
 
-## What's Next
+## What's next
 
 This article gave you the operational model: the file shapes, the lifecycle commands, the `sudo` policy language and the PAM stack. The next two pieces in the series build on it directly:
 

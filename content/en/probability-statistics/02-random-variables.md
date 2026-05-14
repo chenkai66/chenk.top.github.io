@@ -473,6 +473,6 @@ Using the CDF method: $F_Y(y) = P(X^2 \leq y) = P(X \leq \sqrt{y}) = \sqrt{y}$ f
 
 Differentiating: $f_Y(y) = \frac{1}{2\sqrt{y}}$ for $0 < y < 1$. This is a $\text{Beta}(1/2, 1)$ distribution.
 
-## What's Next
+## What's next
 
 We can now describe the probability distribution of a single random variable. But a distribution is a full object — it contains far more information than we can easily work with. The next article introduces the summary statistics that compress this information: expectation (the "center"), variance (the "spread"), and the moment-generating function (the "fingerprint" that uniquely identifies a distribution).

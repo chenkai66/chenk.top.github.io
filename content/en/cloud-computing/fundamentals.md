@@ -335,7 +335,7 @@ The hardest part of cloud is not picking the technology — it is justifying the
 - **Treat infrastructure as code.** Terraform, Pulumi or CloudFormation — never click in production
 - **Observe from day one.** Logs, metrics, traces, and alerts wired up before traffic, not after
 
-## Common Questions
+## FAQ
 
 **Is cloud always cheaper than on-prem?**
 No. For variable workloads and most businesses, cloud wins. For very large, very steady-state workloads at 70%+ utilisation — think Dropbox's storage tier, which famously moved off AWS to save hundreds of millions — a private build can win. Always model TCO over three years including refresh cycles, egress and people.
