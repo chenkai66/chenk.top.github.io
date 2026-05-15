@@ -179,6 +179,8 @@ SNAT 条目才是让私网子网实例能通互联网的关键。少了它们，
 
 在阿里云上，正确的安全组做法是每层一个 SG，规则引用 SG ID 而不是 CIDR：
 
+![多层网络安全架构与防火墙屏障](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/wanxiang_network_layers.png)
+
 ![安全组策略 — 严格的入站，宽松的出站，分层](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/fig2_sg_layers.png)
 
 ```hcl

@@ -216,6 +216,9 @@ chmod +x cms_go_agent_install.sh && ./cms_go_agent_install.sh
 
 精彩部分来了：每个 LLM 请求都会经过 Gateway，而 Gateway 会向 `gateway-requests` 写入一行记录，包含如下字段：
 
+![云成本优化与资源合理调整](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/wanxiang_cost_optimization.png)
+
+
 ```json
 {
   "ts": "2026-03-24T09:15:23Z",
